@@ -333,6 +333,24 @@ function updateSyncUi(message, tone = "local") {
   status.textContent = message;
 }
 
+function syncErrorMessage(error) {
+  const message = error?.message || String(error || "");
+  const normalized = message.toLowerCase();
+  if (normalized.includes("email not confirmed")) {
+    return "Email pendiente de confirmar. Revisa Gmail y Spam, o pulsa Reenviar email.";
+  }
+  if (normalized.includes("invalid login credentials")) {
+    return "Email o contraseña incorrectos.";
+  }
+  if (normalized.includes("user already registered") || normalized.includes("already registered")) {
+    return "Este email ya tiene cuenta. Usa Entrar o reenvía el email de confirmación.";
+  }
+  if (normalized.includes("password")) {
+    return "Revisa la contraseña. Supabase suele exigir al menos 6 caracteres.";
+  }
+  return message;
+}
+
 function renderSyncPanel() {
   const form = qs("syncForm");
   const session = qs("syncSession");
@@ -468,7 +486,7 @@ async function handleSyncAuth(mode) {
       ? await supabaseClient.auth.signUp({ email, password })
       : await supabaseClient.auth.signInWithPassword({ email, password });
   if (result.error) {
-    updateSyncUi(result.error.message, "warn");
+    updateSyncUi(syncErrorMessage(result.error), "warn");
     return;
   }
   remoteUser = result.data.user || result.data.session?.user || null;
@@ -479,6 +497,28 @@ async function handleSyncAuth(mode) {
   } else {
     updateSyncUi("Cuenta creada. Revisa el email si Supabase pide confirmación.", "warn");
   }
+}
+
+async function handleResendConfirmation() {
+  if (!supabaseClient) return;
+  const email = qs("syncEmail").value.trim();
+  if (!email) {
+    updateSyncUi("Introduce tu email para reenviar la confirmación.", "warn");
+    qs("syncEmail").focus();
+    return;
+  }
+  updateSyncUi("Reenviando email de confirmación...", "cloud");
+  const { error } = await supabaseClient.auth.resend({
+    type: "signup",
+    email,
+    options: {
+      emailRedirectTo: window.location.href.split("#")[0],
+    },
+  });
+  updateSyncUi(
+    error ? syncErrorMessage(error) : "Email reenviado. Revisa Gmail, Spam o Promociones y confirma la cuenta.",
+    error ? "warn" : "cloud",
+  );
 }
 
 async function handleSyncLogout() {
@@ -2289,6 +2329,7 @@ async function init() {
   qs("downloadCsv").addEventListener("click", downloadCsv);
   qs("syncLogin").addEventListener("click", () => handleSyncAuth("login"));
   qs("syncSignup").addEventListener("click", () => handleSyncAuth("signup"));
+  qs("syncResend").addEventListener("click", handleResendConfirmation);
   qs("syncLogout").addEventListener("click", handleSyncLogout);
   qs("syncNow").addEventListener("click", () => saveRemoteState(true));
   qs("addProject").addEventListener("click", handleAddProject);

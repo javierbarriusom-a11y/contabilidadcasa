@@ -363,6 +363,16 @@ h2 {
   background: var(--teal);
 }
 
+.sync-secondary {
+  width: 100%;
+  min-height: 34px;
+  color: #dff9f5;
+  border-color: rgba(15, 143, 140, 0.34);
+  background: rgba(15, 143, 140, 0.16);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .sync-session {
   display: grid;
   gap: 10px;
