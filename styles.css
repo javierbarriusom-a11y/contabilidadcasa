@@ -225,7 +225,8 @@ h2 {
 }
 
 .sidebar-card,
-.sidebar-metrics {
+.sidebar-metrics,
+.sync-panel {
   margin-top: 24px;
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -263,6 +264,104 @@ h2 {
   display: block;
   color: #ffffff;
   font-size: 18px;
+}
+
+.sync-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.sync-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sync-head strong {
+  color: #ffffff;
+  font-size: 16px;
+}
+
+#syncBadge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 56px;
+  min-height: 26px;
+  padding: 4px 9px;
+  color: #dff9f5;
+  border: 1px solid rgba(15, 143, 140, 0.45);
+  border-radius: 999px;
+  background: rgba(15, 143, 140, 0.24);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+#syncBadge.sync-cloud {
+  color: #ffffff;
+  border-color: rgba(38, 127, 78, 0.7);
+  background: rgba(38, 127, 78, 0.38);
+}
+
+#syncBadge.sync-warn {
+  color: #fff4d9;
+  border-color: rgba(183, 121, 31, 0.7);
+  background: rgba(183, 121, 31, 0.32);
+}
+
+#syncStatus,
+.sync-session span {
+  color: #c9d8dc;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.sync-form {
+  display: grid;
+  gap: 8px;
+}
+
+.sync-form input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.sync-form input::placeholder {
+  color: #aabdc4;
+}
+
+.sync-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sync-actions button {
+  min-height: 34px;
+  padding: 7px 9px;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sync-actions button:first-child {
+  color: #ffffff;
+  border-color: rgba(15, 143, 140, 0.62);
+  background: var(--teal);
+}
+
+.sync-session {
+  display: grid;
+  gap: 10px;
 }
 
 .workspace {

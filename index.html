@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260515b" />
+    <link rel="stylesheet" href="styles.css?v=20260515c" />
   </head>
   <body>
     <div class="app-shell">
@@ -44,6 +44,29 @@
           <div>
             <span>Deuda anterior</span>
             <strong id="miniDebtShift"></strong>
+          </div>
+        </div>
+
+        <div class="sync-panel" id="syncPanel">
+          <div class="sync-head">
+            <span id="syncBadge">Local</span>
+            <strong>Sincronización</strong>
+          </div>
+          <p id="syncStatus">Guardando solo en este navegador.</p>
+          <div class="sync-form" id="syncForm">
+            <input id="syncEmail" type="email" placeholder="Email" autocomplete="username" />
+            <input id="syncPassword" type="password" placeholder="Contraseña" autocomplete="current-password" />
+            <div class="sync-actions">
+              <button id="syncLogin" type="button">Entrar</button>
+              <button id="syncSignup" type="button">Crear</button>
+            </div>
+          </div>
+          <div class="sync-session" id="syncSession" hidden>
+            <span id="syncUser"></span>
+            <div class="sync-actions">
+              <button id="syncNow" type="button">Sincronizar</button>
+              <button id="syncLogout" type="button">Salir</button>
+            </div>
           </div>
         </div>
       </aside>
@@ -427,7 +450,9 @@
       </div>
     </div>
 
-    <script src="data.js?v=20260515b"></script>
-    <script src="app.js?v=20260515b"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js?v=20260515c"></script>
+    <script src="data.js?v=20260515c"></script>
+    <script src="app.js?v=20260515c"></script>
   </body>
 </html>

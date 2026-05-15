@@ -38,9 +38,14 @@ let projectPlan = { outflows: [], placements: [] };
 let incomeActuals = {};
 let expenseActuals = {};
 let balanceSettings = {};
+let scenarioSettings = {};
 let customPlanningRows = [];
 let deletedPlanningRows = {};
 let memoryStorage = {};
+let supabaseClient = null;
+let remoteUser = null;
+let remoteSaveTimer = null;
+let remoteSaveInFlight = false;
 let selectedCashflowIndex = null;
 let expandedCashflowYears = new Set();
 let expandedPlanningSections = {
@@ -152,20 +157,73 @@ function storageSet(key, value) {
   }
 }
 
+function sourceStateKey() {
+  return baseData?.metadata?.sourceWorkbook || "finance-dashboard";
+}
+
+function appStatePayload() {
+  return {
+    version: 1,
+    updatedAt: new Date().toISOString(),
+    sourceWorkbook: sourceStateKey(),
+    projects,
+    incomeActuals,
+    expenseActuals,
+    balanceSettings,
+    scenarioSettings,
+    customPlanningRows,
+    deletedPlanningRows,
+  };
+}
+
+function applyPersistedPayload(payload = {}) {
+  projects = Array.isArray(payload.projects) ? payload.projects : [];
+  incomeActuals = payload.incomeActuals && typeof payload.incomeActuals === "object" ? payload.incomeActuals : {};
+  expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
+  balanceSettings = payload.balanceSettings && typeof payload.balanceSettings === "object" ? payload.balanceSettings : {};
+  scenarioSettings = payload.scenarioSettings && typeof payload.scenarioSettings === "object" ? payload.scenarioSettings : {};
+  customPlanningRows = Array.isArray(payload.customPlanningRows) ? payload.customPlanningRows : [];
+  deletedPlanningRows =
+    payload.deletedPlanningRows && typeof payload.deletedPlanningRows === "object" ? payload.deletedPlanningRows : {};
+  currentScenario = scenarioSettings.currentScenario || "Base";
+  normalizeLoadedProjects();
+}
+
+function saveLocalSnapshot() {
+  storageSet(storageKey("projects"), JSON.stringify(projects));
+  storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
+  storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
+  storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
+  storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
+  storageSet(storageKey("customPlanningRows"), JSON.stringify(customPlanningRows));
+  storageSet(storageKey("deletedPlanningRows"), JSON.stringify(deletedPlanningRows));
+}
+
+function queueRemoteSave() {
+  if (!remoteUser || !supabaseClient) return;
+  window.clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = window.setTimeout(() => {
+    saveRemoteState();
+  }, 650);
+}
+
 function loadLocalState() {
   try {
-    projects = JSON.parse(storageGet(storageKey("projects"), "[]"));
-    incomeActuals = JSON.parse(storageGet(storageKey("incomeActuals"), "{}"));
-    expenseActuals = JSON.parse(storageGet(storageKey("expenseActuals"), "{}"));
-    balanceSettings = JSON.parse(storageGet(storageKey("balanceSettings"), "{}"));
-    customPlanningRows = JSON.parse(storageGet(storageKey("customPlanningRows"), "[]"));
-    deletedPlanningRows = JSON.parse(storageGet(storageKey("deletedPlanningRows"), "{}"));
-    normalizeLoadedProjects();
+    applyPersistedPayload({
+      projects: JSON.parse(storageGet(storageKey("projects"), "[]")),
+      incomeActuals: JSON.parse(storageGet(storageKey("incomeActuals"), "{}")),
+      expenseActuals: JSON.parse(storageGet(storageKey("expenseActuals"), "{}")),
+      balanceSettings: JSON.parse(storageGet(storageKey("balanceSettings"), "{}")),
+      scenarioSettings: JSON.parse(storageGet(storageKey("scenarioSettings"), "{}")),
+      customPlanningRows: JSON.parse(storageGet(storageKey("customPlanningRows"), "[]")),
+      deletedPlanningRows: JSON.parse(storageGet(storageKey("deletedPlanningRows"), "{}")),
+    });
   } catch {
     projects = [];
     incomeActuals = {};
     expenseActuals = {};
     balanceSettings = {};
+    scenarioSettings = {};
     customPlanningRows = [];
     deletedPlanningRows = {};
   }
@@ -198,22 +256,44 @@ function normalizeLoadedProjects() {
 
 function saveProjects() {
   storageSet(storageKey("projects"), JSON.stringify(projects));
+  queueRemoteSave();
 }
 
 function saveIncomeActuals() {
   storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
+  queueRemoteSave();
 }
 
 function saveExpenseActuals() {
   storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
+  queueRemoteSave();
 }
 
 function saveCustomPlanningRows() {
   storageSet(storageKey("customPlanningRows"), JSON.stringify(customPlanningRows));
+  queueRemoteSave();
 }
 
 function saveDeletedPlanningRows() {
   storageSet(storageKey("deletedPlanningRows"), JSON.stringify(deletedPlanningRows));
+  queueRemoteSave();
+}
+
+function saveScenarioSettings() {
+  if (!state) return;
+  scenarioSettings = {
+    currentScenario,
+    initialCash: state.initialCash,
+    recommendedSavings: state.recommendedSavings,
+    annualInflation: state.annualInflation,
+    annualIncomeGrowth: state.annualIncomeGrowth,
+    emergencyBufferMonths: state.emergencyBufferMonths,
+    autoCapSavings: state.autoCapSavings,
+    incomeFactor: state.incomeFactor,
+    expenseFactor: state.expenseFactor,
+  };
+  storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
+  queueRemoteSave();
 }
 
 function saveBalanceSettings() {
@@ -225,6 +305,169 @@ function saveBalanceSettings() {
       state?.balanceMode === "manual" ? state.initialCash : (balanceSettings.manualInitialCash ?? state?.initialCash),
   };
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
+  queueRemoteSave();
+}
+
+function supabaseConfig() {
+  return window.SUPABASE_CONFIG || {};
+}
+
+function isSupabaseConfigured() {
+  const config = supabaseConfig();
+  return Boolean(
+    window.supabase &&
+      config.url &&
+      config.anonKey &&
+      !config.url.includes("TU_PROYECTO") &&
+      !config.anonKey.includes("TU_SUPABASE"),
+  );
+}
+
+function updateSyncUi(message, tone = "local") {
+  const badge = qs("syncBadge");
+  const status = qs("syncStatus");
+  if (!badge || !status) return;
+  badge.classList.toggle("sync-cloud", tone === "cloud");
+  badge.classList.toggle("sync-warn", tone === "warn");
+  badge.textContent = tone === "cloud" ? "Nube" : tone === "warn" ? "Aviso" : "Local";
+  status.textContent = message;
+}
+
+function renderSyncPanel() {
+  const form = qs("syncForm");
+  const session = qs("syncSession");
+  const user = qs("syncUser");
+  if (!form || !session || !user) return;
+
+  if (!isSupabaseConfigured()) {
+    form.hidden = true;
+    session.hidden = true;
+    updateSyncUi("Configura Supabase para sincronizar entre ordenadores.", "warn");
+    return;
+  }
+
+  form.hidden = Boolean(remoteUser);
+  session.hidden = !remoteUser;
+  user.textContent = remoteUser?.email || "";
+  updateSyncUi(
+    remoteUser ? "Cambios sincronizados con Supabase." : "Entra para guardar cambios en la nube.",
+    remoteUser ? "cloud" : "local",
+  );
+}
+
+function initSupabaseClient() {
+  if (supabaseClient || !isSupabaseConfigured()) return supabaseClient;
+  const config = supabaseConfig();
+  supabaseClient = window.supabase.createClient(config.url, config.anonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  });
+  return supabaseClient;
+}
+
+function refreshFromPersistedState() {
+  writeControls({ ...baseData.assumptions, ...scenarioSettings, autoCapSavings: scenarioSettings.autoCapSavings ?? true });
+  qs("scenarioName").textContent = currentScenario;
+  document.querySelectorAll(".scenario-buttons button").forEach((button) => {
+    const label = button.textContent.trim();
+    button.classList.toggle("active", label === currentScenario);
+  });
+  render();
+}
+
+async function loadRemoteState() {
+  if (!supabaseClient || !remoteUser) return;
+  updateSyncUi("Cargando datos guardados en Supabase...", "cloud");
+  const { data, error } = await supabaseClient
+    .from("finance_dashboard_states")
+    .select("state, updated_at")
+    .eq("source_key", sourceStateKey())
+    .maybeSingle();
+
+  if (error) {
+    updateSyncUi(`No se pudo cargar Supabase: ${error.message}`, "warn");
+    return;
+  }
+
+  if (data?.state) {
+    applyPersistedPayload(data.state);
+    saveLocalSnapshot();
+    refreshFromPersistedState();
+    updateSyncUi(`Sincronizado. Último cambio: ${new Date(data.updated_at).toLocaleString("es-ES")}.`, "cloud");
+    return;
+  }
+
+  await saveRemoteState(true);
+}
+
+async function saveRemoteState(force = false) {
+  if (!supabaseClient || !remoteUser || remoteSaveInFlight) return;
+  remoteSaveInFlight = true;
+  if (!force) updateSyncUi("Guardando cambios en Supabase...", "cloud");
+  const { error } = await supabaseClient.from("finance_dashboard_states").upsert(
+    {
+      user_id: remoteUser.id,
+      source_key: sourceStateKey(),
+      state: appStatePayload(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,source_key" },
+  );
+  remoteSaveInFlight = false;
+  updateSyncUi(error ? `No se pudo guardar: ${error.message}` : "Cambios sincronizados con Supabase.", error ? "warn" : "cloud");
+}
+
+async function handleSyncAuth(mode) {
+  if (!supabaseClient) return;
+  const email = qs("syncEmail").value.trim();
+  const password = qs("syncPassword").value;
+  if (!email || !password) {
+    updateSyncUi("Introduce email y contraseña.", "warn");
+    return;
+  }
+  updateSyncUi(mode === "signup" ? "Creando cuenta..." : "Entrando...", "cloud");
+  const result =
+    mode === "signup"
+      ? await supabaseClient.auth.signUp({ email, password })
+      : await supabaseClient.auth.signInWithPassword({ email, password });
+  if (result.error) {
+    updateSyncUi(result.error.message, "warn");
+    return;
+  }
+  remoteUser = result.data.user || result.data.session?.user || null;
+  if (remoteUser) {
+    qs("syncPassword").value = "";
+    renderSyncPanel();
+    await loadRemoteState();
+  } else {
+    updateSyncUi("Cuenta creada. Revisa el email si Supabase pide confirmación.", "warn");
+  }
+}
+
+async function handleSyncLogout() {
+  if (!supabaseClient) return;
+  await supabaseClient.auth.signOut();
+  remoteUser = null;
+  renderSyncPanel();
+}
+
+async function setupSupabaseSync() {
+  initSupabaseClient();
+  renderSyncPanel();
+  if (!supabaseClient) return;
+
+  const { data } = await supabaseClient.auth.getSession();
+  remoteUser = data.session?.user || null;
+  renderSyncPanel();
+  if (remoteUser) await loadRemoteState();
+
+  supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+    remoteUser = session?.user || null;
+    renderSyncPanel();
+    if (remoteUser) await loadRemoteState();
+  });
 }
 
 function actualAwareValue(row, month) {
@@ -510,10 +753,11 @@ function readStateFromControls() {
   }
   updateBalanceModeUi();
   saveBalanceSettings();
+  saveScenarioSettings();
 }
 
 function writeControls(nextState) {
-  state = { ...nextState };
+  state = { ...nextState, ...scenarioSettings };
   state.balanceDate = state.balanceDate || balanceSettings.balanceDate || defaultBalanceDate();
   state.balanceMode = state.balanceMode || balanceSettings.balanceMode || "auto";
   if (state.balanceMode === "manual" && balanceSettings.manualInitialCash != null) {
@@ -2008,6 +2252,10 @@ async function init() {
   applyHelpTooltips();
   qs("autoCapSavings").addEventListener("change", render);
   qs("downloadCsv").addEventListener("click", downloadCsv);
+  qs("syncLogin").addEventListener("click", () => handleSyncAuth("login"));
+  qs("syncSignup").addEventListener("click", () => handleSyncAuth("signup"));
+  qs("syncLogout").addEventListener("click", handleSyncLogout);
+  qs("syncNow").addEventListener("click", () => saveRemoteState(true));
   qs("addProject").addEventListener("click", handleAddProject);
   qs("clearProjects").addEventListener("click", handleClearProjects);
   qs("addIncomeConcept").addEventListener("click", () => handleAddCustomConcept("income"));
@@ -2028,6 +2276,7 @@ async function init() {
   window.addEventListener("resize", render);
   updateProjectModeUi();
   render();
+  await setupSupabaseSync();
 }
 
 init().catch((error) => {
