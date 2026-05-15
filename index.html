@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260515c" />
+    <link rel="stylesheet" href="styles.css?v=20260515d" />
   </head>
   <body>
     <div class="app-shell">
@@ -72,7 +72,7 @@
       </aside>
 
       <div class="workspace">
-        <header class="topbar" id="overview">
+        <header class="topbar">
           <div>
             <p class="eyebrow">Cuadro de mando financiero</p>
             <h1>Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
@@ -81,7 +81,7 @@
         </header>
 
         <main>
-          <section class="hero-grid" aria-label="Resumen del plan">
+          <section class="hero-grid view-section" id="overview" aria-label="Resumen del plan">
             <article class="summary-card primary">
               <span>Liquidez proyectada final</span>
               <strong id="kpiEnding"></strong>
@@ -105,7 +105,7 @@
             </article>
           </section>
 
-          <section class="decision-studio" id="simulator">
+          <section class="decision-studio view-section" id="simulator">
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Escenarios y proyectos</p>
@@ -299,7 +299,7 @@
             </div>
           </section>
 
-          <section class="analytics-grid" id="forecast">
+          <section class="analytics-grid view-section" id="forecast">
             <div class="chart-panel wide">
               <div class="section-title">
                 <div>
@@ -322,7 +322,7 @@
             </div>
           </section>
 
-          <section class="table-section" id="monthly-detail">
+          <section class="table-section view-section" id="monthly-detail">
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Contabilidad New Life</p>
@@ -402,7 +402,7 @@
             </div>
           </section>
 
-          <section class="table-section" id="cashflow">
+          <section class="table-section view-section" id="cashflow">
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Detalle operativo</p>
@@ -436,7 +436,7 @@
             </div>
           </section>
 
-          <section class="table-section" id="movements">
+          <section class="table-section view-section" id="movements">
             <div class="section-title">
               <div>
                 <p class="panel-kicker">Base del modelo</p>
@@ -451,8 +451,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=20260515c"></script>
-    <script src="data.js?v=20260515c"></script>
-    <script src="app.js?v=20260515c"></script>
+    <script src="supabase-config.js?v=20260515d"></script>
+    <script src="data.js?v=20260515d"></script>
+    <script src="app.js?v=20260515d"></script>
   </body>
 </html>

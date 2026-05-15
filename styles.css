@@ -21,6 +21,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -404,6 +408,22 @@ main {
   width: min(1540px, 100%);
   margin: 0 auto;
   padding: 22px 34px 42px;
+}
+
+.view-section {
+  animation: viewIn 180ms ease both;
+}
+
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .hero-grid {

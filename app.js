@@ -355,6 +355,41 @@ function renderSyncPanel() {
   );
 }
 
+function viewFromHash() {
+  const id = (window.location.hash || "#overview").replace("#", "");
+  return document.getElementById(id)?.classList.contains("view-section") ? id : "overview";
+}
+
+function setActiveView(viewId = viewFromHash()) {
+  document.querySelectorAll(".view-section").forEach((section) => {
+    section.hidden = section.id !== viewId;
+  });
+  document.querySelectorAll(".side-nav a").forEach((link) => {
+    const isActive = link.getAttribute("href") === `#${viewId}`;
+    link.classList.toggle("active", isActive);
+    if (isActive) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function setupViewNavigation() {
+  document.querySelectorAll(".side-nav a").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const href = link.getAttribute("href");
+      if (!href?.startsWith("#")) return;
+      const viewId = href.slice(1);
+      if (!document.getElementById(viewId)?.classList.contains("view-section")) return;
+      event.preventDefault();
+      history.pushState(null, "", href);
+      setActiveView(viewId);
+    });
+  });
+  window.addEventListener("hashchange", () => setActiveView());
+  window.addEventListener("popstate", () => setActiveView());
+  setActiveView();
+}
+
 function initSupabaseClient() {
   if (supabaseClient || !isSupabaseConfigured()) return supabaseClient;
   const config = supabaseConfig();
@@ -2276,6 +2311,7 @@ async function init() {
   window.addEventListener("resize", render);
   updateProjectModeUi();
   render();
+  setupViewNavigation();
   await setupSupabaseSync();
 }
 
