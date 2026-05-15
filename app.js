@@ -1904,6 +1904,11 @@ function populateSelectors() {
     : defaultPlanningIndex;
 }
 
+function csvValue(value) {
+  const text = value === null || value === undefined ? "" : String(value);
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
 function downloadCsv() {
   const header = [
     "Mes",
@@ -1938,15 +1943,21 @@ function downloadCsv() {
       base.totalLiquidity,
       row.totalLiquidity,
       row.totalLiquidity - base.totalLiquidity,
-    ].join(",");
+    ].map(csvValue).join(";");
   });
-  const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+  const csvContent = `\uFEFF${[header.map(csvValue).join(";"), ...lines].join("\r\n")}`;
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = "simulacion_financiera_60_meses.csv";
+  link.style.display = "none";
+  document.body.appendChild(link);
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+    link.remove();
+  }, 1000);
 }
 
 function render() {
