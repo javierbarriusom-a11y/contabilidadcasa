@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard financiero personal</title>
+    <link rel="stylesheet" href="styles.css?v=20260515a" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navegación principal">
+        <div class="brand-block">
+          <div class="brand-mark">FC</div>
+          <div>
+            <p>Finanzas Casa</p>
+            <strong>Plan 2026-2031</strong>
+          </div>
+        </div>
+
+        <nav class="side-nav">
+          <a href="#overview" class="active">Vista general</a>
+          <a href="#simulator">Simulador</a>
+          <a href="#forecast">Proyección</a>
+          <a href="#monthly-detail">Detalle mensual</a>
+          <a href="#cashflow">Flujo mensual</a>
+          <a href="#movements">Movimientos</a>
+        </nav>
+
+        <div class="sidebar-card">
+          <span>Escenario activo</span>
+          <strong id="scenarioName">Base</strong>
+          <p id="scenarioStatus">Plan viable con ahorro controlado.</p>
+        </div>
+
+        <div class="sidebar-metrics">
+          <div>
+            <span>Tasa ahorro</span>
+            <strong id="miniSavingsRate"></strong>
+          </div>
+          <div>
+            <span>Meses colchón</span>
+            <strong id="miniRunway"></strong>
+          </div>
+          <div>
+            <span>Deuda anterior</span>
+            <strong id="miniDebtShift"></strong>
+          </div>
+        </div>
+      </aside>
+
+      <div class="workspace">
+        <header class="topbar" id="overview">
+          <div>
+            <p class="eyebrow">Cuadro de mando financiero</p>
+            <h1>Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
+          </div>
+          <div class="source-note" id="sourceNote"></div>
+        </header>
+
+        <main>
+          <section class="hero-grid" aria-label="Resumen del plan">
+            <article class="summary-card primary">
+              <span>Liquidez proyectada final</span>
+              <strong id="kpiEnding"></strong>
+              <small id="kpiEndingDelta"></small>
+              <p>Cuenta corriente más ahorro separado, después de coche, refinanciación y ahorro.</p>
+            </article>
+            <article class="summary-card">
+              <span>Liquidez de partida</span>
+              <strong id="kpiInitial"></strong>
+              <p>Saldo calculado por fecha o saldo real introducido manualmente.</p>
+            </article>
+            <article class="summary-card">
+              <span>Superávit antes de ahorrar</span>
+              <strong id="kpiSurplus"></strong>
+              <p>Margen mensual estimado con gastos no crediticios y deuda refinanciada.</p>
+            </article>
+            <article class="summary-card">
+              <span>Ahorro medio aplicado</span>
+              <strong id="kpiSaving"></strong>
+              <p>Objetivo suavizado si la caja mensual queda demasiado justa.</p>
+            </article>
+          </section>
+
+          <section class="decision-studio" id="simulator">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Escenarios y proyectos</p>
+                <h2>Simulador de decisiones</h2>
+                <p>Planifica proyectos, revisa supuestos y mira el impacto global en caja, ahorro y liquidez.</p>
+              </div>
+              <div class="decision-actions">
+                <div class="scenario-buttons">
+                  <button data-scenario="base" class="active">Base</button>
+                  <button data-scenario="prudente">Prudente</button>
+                  <button data-scenario="ahorro">Ahorro alto</button>
+                </div>
+                <button id="clearProjects">Limpiar proyectos</button>
+              </div>
+            </div>
+
+            <div class="decision-grid">
+              <div class="decision-left">
+                <div class="project-panel" id="projects">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Simulación avanzada</p>
+                      <h3>Proyectos e imprevistos</h3>
+                    </div>
+                  </div>
+
+                  <div class="project-grid">
+                    <div class="project-form">
+                      <label>
+                        <span>Nombre</span>
+                        <input id="projectName" type="text" placeholder="Ej. Lavadora, viaje, reforma" />
+                      </label>
+                      <label>
+                        <span>Importe total</span>
+                        <input id="projectAmount" type="number" step="50" placeholder="1500" />
+                      </label>
+                      <label>
+                        <span>Duración (meses)</span>
+                        <input id="projectDuration" type="number" min="1" max="24" step="1" value="1" />
+                      </label>
+                      <div class="project-schedule">
+                        <span>Planificación</span>
+                        <div class="mode-switch" role="radiogroup" aria-label="Planificación del proyecto">
+                          <label>
+                            <input type="radio" name="projectMode" value="optimize" checked />
+                            <span>Mes óptimo</span>
+                          </label>
+                          <label>
+                            <input type="radio" name="projectMode" value="fixed" />
+                            <span>Mes manual</span>
+                          </label>
+                        </div>
+                      </div>
+                      <label id="projectMonthField" class="month-disabled">
+                        <span>Mes manual</span>
+                        <select id="projectMonth" disabled></select>
+                      </label>
+                      <button id="addProject">Añadir impacto</button>
+                    </div>
+
+                    <div class="project-output">
+                      <div class="project-summary" id="projectSummary"></div>
+                      <div class="impact-chart-card">
+                        <div>
+                          <span>Impacto mensual</span>
+                          <strong id="impactChartTitle">Sin impactos cargados</strong>
+                        </div>
+                        <svg id="projectImpactChart" role="img" aria-label="Gráfico de impacto mensual de proyectos"></svg>
+                      </div>
+                      <div class="project-list" id="projectList"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="control-panel" aria-label="Supuestos del simulador">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Supuestos</p>
+                      <h3>Visión futura del escenario</h3>
+                    </div>
+                  </div>
+
+                  <div class="assumption-groups">
+                    <fieldset>
+                      <legend>Liquidez e ingresos</legend>
+                      <div class="controls-grid two">
+                        <label>
+                          <span>Fecha de saldo</span>
+                          <input id="balanceDate" type="date" />
+                        </label>
+                        <label>
+                          <span>Modo saldo</span>
+                          <select id="balanceMode">
+                            <option value="auto">Auto por fecha</option>
+                            <option value="manual">Real manual</option>
+                          </select>
+                        </label>
+                        <label>
+                          <span>Liquidez de partida</span>
+                          <input id="initialCash" type="number" step="10" />
+                        </label>
+                        <label>
+                          <span>Saldo cuenta fecha</span>
+                          <input id="startingAccountBalance" type="number" step="10" />
+                        </label>
+                        <label>
+                          <span>Ingresos medios 12m</span>
+                          <input id="monthlyIncome" type="number" step="10" />
+                        </label>
+                        <label>
+                          <span>Ajuste anual ingresos</span>
+                          <input id="annualIncomeGrowth" type="number" step="0.1" />
+                        </label>
+                        <label>
+                          <span>Colchón objetivo (meses)</span>
+                          <input id="emergencyBufferMonths" type="number" min="1" max="12" step="1" />
+                        </label>
+                      </div>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend>Gastos y deuda</legend>
+                      <div class="controls-grid three">
+                        <label>
+                          <span>Gastos medios 12m</span>
+                          <input id="coreSpend" type="number" step="10" />
+                        </label>
+                        <label>
+                          <span>Ajuste anual gastos</span>
+                          <input id="annualInflation" type="number" step="0.1" />
+                        </label>
+                        <label>
+                          <span>Coche próximos 12m</span>
+                          <input id="carPayment" type="number" step="1" />
+                        </label>
+                        <label>
+                          <span>Meses con deuda</span>
+                          <input id="remainingHighRefiPayments" type="number" min="0" max="60" step="1" />
+                        </label>
+                        <label>
+                          <span>Deuda media 12m</span>
+                          <input id="refiFirstPayment" type="number" step="1" />
+                        </label>
+                        <label>
+                          <span>Deuda total futura</span>
+                          <input id="refiLaterPayment" type="number" step="1" />
+                        </label>
+                      </div>
+                    </fieldset>
+
+                    <fieldset>
+                      <legend>Ahorro</legend>
+                      <div class="saving-row">
+                        <label>
+                          <span>Ahorro mensual objetivo</span>
+                          <input id="recommendedSavings" type="number" step="50" />
+                        </label>
+                        <label class="toggle">
+                          <input id="autoCapSavings" type="checkbox" checked />
+                          <span>Ajustar automáticamente si falta caja</span>
+                        </label>
+                      </div>
+                    </fieldset>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="decision-right">
+                <div class="project-global-panel">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Impacto global</p>
+                      <h3>Con proyectos vs sin proyectos</h3>
+                    </div>
+                  </div>
+                  <div class="global-impact-grid" id="projectGlobalSummary"></div>
+                  <svg id="projectGlobalChart" role="img" aria-label="Comparativa global de liquidez con y sin proyectos"></svg>
+                  <div class="global-timeline" id="projectGlobalTimeline"></div>
+                </div>
+
+                <div class="advice-panel">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Lectura rápida</p>
+                      <h3>Consejos del escenario</h3>
+                    </div>
+                  </div>
+                  <div id="adviceList"></div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="analytics-grid" id="forecast">
+            <div class="chart-panel wide">
+              <div class="section-title">
+                <div>
+                  <p class="panel-kicker">60 meses</p>
+                  <h2>Proyección de liquidez</h2>
+                </div>
+                <div class="chart-chip">Con proyectos · Sin proyectos</div>
+              </div>
+              <svg id="balanceChart" role="img" aria-label="Gráfico de proyección de liquidez"></svg>
+            </div>
+
+            <div class="chart-panel compact">
+              <div class="section-title">
+                <div>
+                  <p class="panel-kicker">Histórico limpio</p>
+                  <h2>Gastos recurrentes</h2>
+                </div>
+              </div>
+              <svg id="categoryChart" role="img" aria-label="Gráfico de categorías de gasto"></svg>
+            </div>
+          </section>
+
+          <section class="table-section" id="monthly-detail">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Contabilidad New Life</p>
+                <h2>Detalle mensual previsto vs real</h2>
+                <p>Un solo mes sincroniza ingresos y gastos; abre cada partida para registrar importes reales.</p>
+              </div>
+              <label class="month-picker">
+                <span>Mes</span>
+                <select id="detailMonth"></select>
+              </label>
+            </div>
+            <div class="expense-summary monthly-summary" id="monthlySummary"></div>
+            <div class="monthly-detail-grid">
+              <article class="monthly-detail-panel" id="income-detail">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Ingresos</p>
+                    <h3>Previsto vs real</h3>
+                  </div>
+                </div>
+                <div class="expense-summary compact-summary" id="incomeSummary"></div>
+                <div class="concept-editor" id="incomeConceptEditor">
+                  <select id="incomeCustomSection" aria-label="Bloque del nuevo ingreso"></select>
+                  <input id="incomeCustomLabel" type="text" placeholder="Nuevo concepto" />
+                  <input id="incomeCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
+                  <input id="incomeCustomActual" type="number" step="0.01" placeholder="Real" />
+                  <button id="addIncomeConcept">Añadir</button>
+                </div>
+                <div class="table-wrap detail-wrap">
+                  <table class="detail-table">
+                    <thead>
+                      <tr>
+                        <th>Bloque</th>
+                        <th>Concepto</th>
+                        <th>Previsto</th>
+                        <th>Real</th>
+                        <th>Desviación</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="incomeDetailRows"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="monthly-detail-panel" id="expense-detail">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Gastos</p>
+                    <h3>Previsto vs real</h3>
+                  </div>
+                </div>
+                <div class="expense-summary compact-summary" id="expenseSummary"></div>
+                <div class="concept-editor" id="expenseConceptEditor">
+                  <select id="expenseCustomSection" aria-label="Bloque del nuevo gasto"></select>
+                  <input id="expenseCustomLabel" type="text" placeholder="Nuevo concepto" />
+                  <input id="expenseCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
+                  <input id="expenseCustomActual" type="number" step="0.01" placeholder="Real" />
+                  <button id="addExpenseConcept">Añadir</button>
+                </div>
+                <div class="table-wrap detail-wrap">
+                  <table class="detail-table">
+                    <thead>
+                      <tr>
+                        <th>Bloque</th>
+                        <th>Concepto</th>
+                        <th>Previsto</th>
+                        <th>Real</th>
+                        <th>Desviación</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="expenseDetailRows"></tbody>
+                  </table>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="table-section" id="cashflow">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Detalle operativo</p>
+                <h2>Flujo de caja mensual</h2>
+                <p>Agrupado por años naturales; abre un año y haz clic en un mes para ver ingresos, gastos y proyectos.</p>
+              </div>
+              <button id="downloadCsv">Descargar CSV</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mes</th>
+                    <th>Inicio liquidez</th>
+                    <th>Ingresos</th>
+                    <th>Gasto detalle</th>
+                    <th>Coche detalle</th>
+                    <th>Financiación detalle</th>
+                    <th>Proyectos</th>
+                    <th>Ahorro sin</th>
+                    <th>Ahorro con</th>
+                    <th>Cuenta sin</th>
+                    <th>Cuenta con</th>
+                    <th>Liquidez sin</th>
+                    <th>Liquidez con</th>
+                    <th>Impacto</th>
+                  </tr>
+                </thead>
+                <tbody id="cashflowRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="table-section" id="movements">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker">Base del modelo</p>
+                <h2>Movimientos recientes clasificados</h2>
+                <p>Top gastos no crediticios usados para estimar la base mensual.</p>
+              </div>
+            </div>
+            <div class="merchant-list" id="merchantList"></div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="data.js?v=20260515a"></script>
+    <script src="app.js?v=20260515a"></script>
+  </body>
+</html>
