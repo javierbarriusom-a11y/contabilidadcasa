@@ -51,6 +51,7 @@ let remoteSaveTimer = null;
 let remoteSaveInFlight = false;
 let selectedCashflowIndex = null;
 let expandedCashflowYears = new Set();
+let expandedVisualSections = new Set();
 let expandedPlanningSections = {
   income: new Set(),
   expense: new Set(),
@@ -2681,8 +2682,8 @@ function visualRowsForSection(section, months) {
     });
   return rows.filter((row) =>
     months.some((month) => {
-      if (row.custom && monthKeys.has(month.key) && customRowForVisualMonth(row, month)) return true;
       if (seriesOverrideForRow(row, month)?.deleted) return false;
+      if (row.custom && monthKeys.has(month.key) && customRowForVisualMonth(row, month)) return true;
       const info = actualAwareInfoForVisualRow(row, month);
       return info.value !== 0 || info.planned !== 0 || info.hasActual;
     }),
@@ -2707,6 +2708,16 @@ function visualSectionTotal(section, rows, months, mode, month) {
 
 function visualCellClass(section) {
   return section.kind === "income" ? "positive" : "negative";
+}
+
+function visualSectionKey(section) {
+  return `${section.kind}:${section.name}`;
+}
+
+function toggleVisualSection(key) {
+  if (expandedVisualSections.has(key)) expandedVisualSections.delete(key);
+  else expandedVisualSections.add(key);
+  renderVisualDetail();
 }
 
 function projectRowsForVisualMonths(months) {
@@ -2806,17 +2817,31 @@ function renderVisualDetail() {
   baseData.monthlyPlanning.sections.forEach((section) => {
     const rows = visualRowsForSection(section, months);
     if (!rows.length) return;
+    const sectionKey = visualSectionKey(section);
+    const expanded = expandedVisualSections.has(sectionKey);
     totals.lines += rows.length;
+    rows.forEach((row) => {
+      months.forEach((month) => {
+        if (actualAwareInfoForVisualRow(row, month).hasActual) totals.realRows += 1;
+      });
+    });
     const sectionTotals = months.map((month) => round2(visualSectionTotal(section, rows, months, mode, month)));
     sectionTotals.forEach((value) => {
       if (section.kind === "income") totals.income += value;
       else totals.expense += value;
     });
-    body.push(`<tr class="visual-section-row ${section.kind}">
-      <td><strong>${escapeHtml(section.name)}</strong><small>${rows.length} líneas</small></td>
+    body.push(`<tr class="visual-section-row ${section.kind} ${expanded ? "expanded" : ""}" data-visual-section-row="${escapeHtml(sectionKey)}">
+      <td>
+        <button class="visual-section-button" type="button" data-visual-section-toggle="${escapeHtml(sectionKey)}" aria-expanded="${expanded ? "true" : "false"}">
+          <span class="visual-toggle">${expanded ? "-" : "+"}</span>
+          <span><strong>${escapeHtml(section.name)}</strong><small>${rows.length} líneas</small></span>
+        </button>
+      </td>
       ${sectionTotals.map((value) => `<td class="${visualCellClass(section)}">${money(value, true)}</td>`).join("")}
       <td></td>
     </tr>`);
+
+    if (!expanded) return;
 
     rows.forEach((row) => {
       const label = displayLabelForRow(row);
@@ -2829,7 +2854,6 @@ function renderVisualDetail() {
         ${months
           .map((month) => {
             const info = actualAwareInfoForVisualRow(row, month);
-            if (info.hasActual) totals.realRows += 1;
             const value = visualCellValue(row, month, mode);
             const placeholder = mode === "actual" && info.planned ? `prev. ${money(info.planned, true)}` : "";
             return `<td>
@@ -2844,29 +2868,38 @@ function renderVisualDetail() {
 
   const projectRows = projectRowsForVisualMonths(months);
   if (projectRows.length) {
+    const projectSectionKey = "project:projects";
+    const expanded = expandedVisualSections.has(projectSectionKey);
     const sectionTotals = months.map((_, index) => round2(projectRows.reduce((sum, project) => sum + project.values[index], 0)));
     sectionTotals.forEach((value) => {
       totals.expense += value;
     });
     totals.lines += projectRows.length;
-    body.push(`<tr class="visual-section-row expense project-section">
-      <td><strong>Proyectos e imprevistos</strong><small>${projectRows.length} proyectos</small></td>
+    body.push(`<tr class="visual-section-row expense project-section ${expanded ? "expanded" : ""}" data-visual-section-row="${escapeHtml(projectSectionKey)}">
+      <td>
+        <button class="visual-section-button" type="button" data-visual-section-toggle="${escapeHtml(projectSectionKey)}" aria-expanded="${expanded ? "true" : "false"}">
+          <span class="visual-toggle">${expanded ? "-" : "+"}</span>
+          <span><strong>Proyectos e imprevistos</strong><small>${projectRows.length} proyectos</small></span>
+        </button>
+      </td>
       ${sectionTotals.map((value) => `<td class="negative">${money(value, true)}</td>`).join("")}
       <td></td>
     </tr>`);
 
-    projectRows.forEach((project) => {
-      body.push(`<tr class="visual-line-row visual-project-row">
-        <td>
-          <input class="visual-label-input derived-control" value="${escapeHtml(project.name)}" readonly />
-          <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}</small>
-        </td>
-        ${project.values
-          .map((value) => `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? round2(value) : ""}" readonly /></td>`)
-          .join("")}
-        <td><button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}">Eliminar</button></td>
-      </tr>`);
-    });
+    if (expanded) {
+      projectRows.forEach((project) => {
+        body.push(`<tr class="visual-line-row visual-project-row">
+          <td>
+            <input class="visual-label-input derived-control" value="${escapeHtml(project.name)}" readonly />
+            <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}</small>
+          </td>
+          ${project.values
+            .map((value) => `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? round2(value) : ""}" readonly /></td>`)
+            .join("")}
+          <td><button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}">Eliminar</button></td>
+        </tr>`);
+      });
+    }
   }
 
   qs("visualSummary").innerHTML = [
@@ -2880,6 +2913,9 @@ function renderVisualDetail() {
 
   qs("visualDetailTable").innerHTML = `<thead><tr><th>Partida</th>${monthHeaders}<th>Acción</th></tr></thead><tbody>${body.join("")}</tbody>`;
 
+  document.querySelectorAll("[data-visual-section-toggle]").forEach((button) => {
+    button.addEventListener("click", () => toggleVisualSection(button.dataset.visualSectionToggle));
+  });
   document.querySelectorAll("[data-visual-cell]").forEach((input) => {
     input.addEventListener("change", () => updateVisualCell(input));
   });
@@ -2922,6 +2958,7 @@ function handleVisualAddRow() {
       plannedValue: amount,
     });
   });
+  expandedVisualSections.add(`${kind}:${sectionName}`);
   expandedPlanningSections[kind].add(`${kind}:${sectionName}`);
   saveCustomPlanningRows();
   qs("visualAddLabel").value = "";
