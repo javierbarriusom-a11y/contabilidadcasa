@@ -175,6 +175,14 @@ function sumRows(rows, getValue) {
   return rows.reduce((sum, row) => sum + getValue(row), 0);
 }
 
+function baseAccountBalances() {
+  const source = baseData?.sourceBalances || {};
+  const mediolanum = round2(source.mediolanumBalance ?? baseData?.assumptions?.newAccountBalance ?? 0);
+  const total = round2(source.totalBalance ?? baseData?.assumptions?.initialCash ?? 0);
+  const caixa = round2(source.caixaBalance ?? total - mediolanum);
+  return { caixa, mediolanum, total: round2(caixa + mediolanum) };
+}
+
 function isActiveInMonth(monthStart, endDate) {
   if (!endDate) return true;
   const end = new Date(endDate);
@@ -369,7 +377,6 @@ function saveScenarioSettings() {
   if (!state) return;
   scenarioSettings = {
     currentScenario,
-    initialCash: state.initialCash,
     recommendedSavings: state.recommendedSavings,
     annualInflation: state.annualInflation,
     annualIncomeGrowth: state.annualIncomeGrowth,
@@ -389,6 +396,12 @@ function saveBalanceSettings() {
     balanceMode: state?.balanceMode || "auto",
     manualInitialCash:
       state?.balanceMode === "manual" ? state.initialCash : (balanceSettings.manualInitialCash ?? state?.initialCash),
+    manualCaixaBalance:
+      state?.balanceMode === "manual" ? state.caixaBalance : (balanceSettings.manualCaixaBalance ?? state?.caixaBalance),
+    manualMediolanumBalance:
+      state?.balanceMode === "manual"
+        ? state.mediolanumBalance
+        : (balanceSettings.manualMediolanumBalance ?? state?.mediolanumBalance),
   };
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
   queueRemoteSave();
@@ -1342,10 +1355,10 @@ function projectsForForecastIndex(forecastIndex) {
     }));
 }
 
-function projectedInitialCashForStartIndex(startIndex) {
-  const a = baseData.assumptions;
-  let checking = a.initialCash - a.newAccountBalance;
-  let savings = a.newAccountBalance;
+function projectedAccountBalancesForStartIndex(startIndex) {
+  const source = baseAccountBalances();
+  let checking = source.caixa;
+  let savings = source.mediolanum;
 
   for (let i = 0; i < Math.max(0, startIndex); i += 1) {
     const date = addMonths(baseModelStartDate(), i);
@@ -1367,7 +1380,41 @@ function projectedInitialCashForStartIndex(startIndex) {
     savings += appliedSaving;
   }
 
-  return checking + savings;
+  return {
+    caixa: round2(checking),
+    mediolanum: round2(savings),
+    total: round2(checking + savings),
+  };
+}
+
+function projectedInitialCashForStartIndex(startIndex) {
+  return projectedAccountBalancesForStartIndex(startIndex).total;
+}
+
+function accountBalancesFromState() {
+  const base = baseAccountBalances();
+  const mediolanum = Number.isFinite(Number(state?.mediolanumBalance))
+    ? Number(state.mediolanumBalance)
+    : Math.min(base.mediolanum, Math.max(0, Number(state?.initialCash ?? base.total)));
+  const caixa = Number.isFinite(Number(state?.caixaBalance))
+    ? Number(state.caixaBalance)
+    : Number(state?.initialCash ?? base.total) - mediolanum;
+  return {
+    caixa: round2(caixa),
+    mediolanum: round2(mediolanum),
+    total: round2(caixa + mediolanum),
+  };
+}
+
+function setStateAccountBalances(balances) {
+  state.caixaBalance = round2(balances.caixa);
+  state.mediolanumBalance = round2(balances.mediolanum);
+  state.initialCash = round2(state.caixaBalance + state.mediolanumBalance);
+  if (qs("initialCash")) qs("initialCash").value = state.initialCash.toFixed(2);
+}
+
+function applyAutomaticAccountBalances() {
+  setStateAccountBalances(projectedAccountBalancesForStartIndex(modelStartIndex()));
 }
 
 function updateBalanceModeUi() {
@@ -1376,6 +1423,12 @@ function updateBalanceModeUi() {
   const auto = (qs("balanceMode")?.value || state?.balanceMode) === "auto";
   initialCash.readOnly = auto;
   initialCash.classList.toggle("derived-control", auto);
+  ["visualCaixaBalance", "visualMediolanumBalance"].forEach((id) => {
+    const input = qs(id);
+    if (!input) return;
+    input.readOnly = auto;
+    input.classList.toggle("derived-control", auto);
+  });
 }
 
 function applyBalanceModeChange() {
@@ -1383,14 +1436,16 @@ function applyBalanceModeChange() {
   state.balanceDate = qs("balanceDate").value || defaultBalanceDate();
   state.balanceMode = mode;
   if (mode === "manual") {
-    const manual = balanceSettings.manualInitialCash ?? qs("initialCash").value ?? state.initialCash;
-    qs("initialCash").value = Number(manual || 0).toFixed(2);
-    state.initialCash = Number(qs("initialCash").value);
+    const fallback = accountBalancesFromState();
+    setStateAccountBalances({
+      caixa: balanceSettings.manualCaixaBalance ?? fallback.caixa,
+      mediolanum: balanceSettings.manualMediolanumBalance ?? fallback.mediolanum,
+    });
   } else {
-    state.initialCash = projectedInitialCashForStartIndex(modelStartIndex());
-    qs("initialCash").value = state.initialCash.toFixed(2);
+    applyAutomaticAccountBalances();
   }
   updateBalanceModeUi();
+  renderAccountBalancePanels();
   saveBalanceSettings();
 }
 
@@ -1402,8 +1457,13 @@ function readStateFromControls() {
   state.balanceDate = qs("balanceDate").value || defaultBalanceDate();
   state.balanceMode = qs("balanceMode").value || "auto";
   if (state.balanceMode === "auto") {
-    state.initialCash = projectedInitialCashForStartIndex(modelStartIndex());
-    qs("initialCash").value = state.initialCash.toFixed(2);
+    applyAutomaticAccountBalances();
+  } else if (!Number.isFinite(Number(state.caixaBalance)) || !Number.isFinite(Number(state.mediolanumBalance))) {
+    const fallbackSavings = balanceSettings.manualMediolanumBalance ?? baseAccountBalances().mediolanum;
+    setStateAccountBalances({
+      caixa: Number(state.initialCash || 0) - Number(fallbackSavings || 0),
+      mediolanum: Number(fallbackSavings || 0),
+    });
   }
   updateBalanceModeUi();
   saveBalanceSettings();
@@ -1414,8 +1474,12 @@ function writeControls(nextState) {
   state = { ...nextState, ...scenarioSettings };
   state.balanceDate = state.balanceDate || balanceSettings.balanceDate || defaultBalanceDate();
   state.balanceMode = state.balanceMode || balanceSettings.balanceMode || "auto";
-  if (state.balanceMode === "manual" && balanceSettings.manualInitialCash != null) {
-    state.initialCash = Number(balanceSettings.manualInitialCash);
+  if (state.balanceMode === "manual") {
+    const base = baseAccountBalances();
+    setStateAccountBalances({
+      caixa: balanceSettings.manualCaixaBalance ?? Number(balanceSettings.manualInitialCash ?? state.initialCash ?? base.total) - (balanceSettings.manualMediolanumBalance ?? base.mediolanum),
+      mediolanum: balanceSettings.manualMediolanumBalance ?? base.mediolanum,
+    });
   }
   controls.forEach((key) => {
     qs(key).value = state[key];
@@ -1424,10 +1488,10 @@ function writeControls(nextState) {
   qs("balanceMode").value = state.balanceMode;
   qs("autoCapSavings").checked = state.autoCapSavings ?? true;
   if (state.balanceMode === "auto") {
-    state.initialCash = projectedInitialCashForStartIndex(modelStartIndex());
-    qs("initialCash").value = state.initialCash.toFixed(2);
+    applyAutomaticAccountBalances();
   }
   updateBalanceModeUi();
+  renderAccountBalancePanels();
 }
 
 function writeDerivedControls(rows) {
@@ -1445,6 +1509,52 @@ function writeDerivedControls(rows) {
   Object.entries(values).forEach(([key, value]) => {
     qs(key).value = Number.isInteger(value) ? value : Number(value || 0).toFixed(2);
   });
+}
+
+function renderAccountBalancePanels() {
+  if (!state) return;
+  const balances = accountBalancesFromState();
+  const mode = state.balanceMode || "auto";
+  if (qs("visualBalanceDate")) qs("visualBalanceDate").value = state.balanceDate || defaultBalanceDate();
+  if (qs("visualBalanceMode")) qs("visualBalanceMode").value = mode;
+  if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = balances.caixa.toFixed(2);
+  if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = balances.mediolanum.toFixed(2);
+  if (qs("visualTotalBalance")) qs("visualTotalBalance").value = balances.total.toFixed(2);
+  if (qs("previsionBalanceSummary")) {
+    qs("previsionBalanceSummary").innerHTML = [
+      ["Fecha", formatIsoDate(state.balanceDate || defaultBalanceDate())],
+      ["CaixaBank", money(balances.caixa, true)],
+      ["Mediolanum", money(balances.mediolanum, true)],
+      ["Liquidez total", money(balances.total, true)],
+    ]
+      .map(([label, value]) => `<div class="account-balance-chip"><span>${label}</span><strong>${value}</strong></div>`)
+      .join("");
+  }
+  updateBalanceModeUi();
+}
+
+function handleVisualBalanceControlChange() {
+  if (!state) return;
+  qs("balanceDate").value = qs("visualBalanceDate").value || defaultBalanceDate();
+  qs("balanceMode").value = qs("visualBalanceMode").value || "auto";
+  applyBalanceModeChange();
+  render();
+}
+
+function handleVisualAccountBalanceInput() {
+  if (!state) return;
+  qs("balanceMode").value = "manual";
+  qs("visualBalanceMode").value = "manual";
+  state.balanceMode = "manual";
+  state.balanceDate = qs("visualBalanceDate").value || qs("balanceDate").value || defaultBalanceDate();
+  qs("balanceDate").value = state.balanceDate;
+  setStateAccountBalances({
+    caixa: parseAmount(qs("visualCaixaBalance").value) ?? 0,
+    mediolanum: parseAmount(qs("visualMediolanumBalance").value) ?? 0,
+  });
+  renderAccountBalancePanels();
+  saveBalanceSettings();
+  render();
 }
 
 function addHelpToControl(id, text) {
@@ -1493,6 +1603,10 @@ function applyHelpTooltips() {
   addHelpToControl(
     "balanceMode",
     "Auto calcula el saldo según la fecha; Real manual te deja introducir el saldo total actual de tus cuentas.",
+  );
+  qs("visualBalancePanel")?.setAttribute(
+    "data-help",
+    "Estos saldos gobiernan el arranque de todo el modelo. En automático se estiman por fecha; en manual puedes introducir CaixaBank y Mediolanum reales.",
   );
   addHelpToControl(
     "monthlyIncome",
@@ -1577,9 +1691,9 @@ function applyScenario(name) {
 function simulate(projectOutflows = [], options = {}) {
   const rows = [];
   const start = modelStartDate();
-  const savingsStart = Math.min(baseData.assumptions.newAccountBalance, Math.max(0, state.initialCash));
-  let checking = state.initialCash - savingsStart;
-  let savings = savingsStart;
+  const startingBalances = accountBalancesFromState();
+  let checking = startingBalances.caixa;
+  let savings = startingBalances.mediolanum;
 
   for (let i = 0; i < modelMonthCount(); i += 1) {
     const date = addMonths(start, i);
@@ -3719,6 +3833,7 @@ function render() {
   lastPlannedSimulation = simulate(projectPlan.outflows, { useActuals: false });
   writeDerivedControls(lastSimulation);
   updateKpis(lastSimulation, lastBaseSimulation);
+  renderAccountBalancePanels();
   renderBalanceChart(lastSimulation, lastBaseSimulation);
   renderCategoryChart();
   renderAdvice(lastSimulation, lastBaseSimulation);
@@ -3780,6 +3895,12 @@ async function init() {
   qs("applySeriesChange").addEventListener("click", applySeriesChange);
   ["visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
     qs(id).addEventListener("change", render);
+  });
+  ["visualBalanceDate", "visualBalanceMode"].forEach((id) => {
+    qs(id).addEventListener("change", handleVisualBalanceControlChange);
+  });
+  ["visualCaixaBalance", "visualMediolanumBalance"].forEach((id) => {
+    qs(id).addEventListener("change", handleVisualAccountBalanceInput);
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);

@@ -1456,6 +1456,53 @@ svg {
   margin-top: 18px;
 }
 
+.account-balance-panel {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.account-balance-panel h3 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.account-balance-grid {
+  display: grid;
+  grid-template-columns: 150px 170px repeat(3, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.account-balance-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.account-balance-chip {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.account-balance-chip span {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.account-balance-chip strong {
+  display: block;
+  font-size: 18px;
+}
+
 .visual-controls,
 .movement-filters {
   display: grid;
