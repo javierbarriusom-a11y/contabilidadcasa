@@ -2739,10 +2739,8 @@ function updateVisualCell(input) {
   const parsed = parseAmount(input.value);
   if (input.dataset.mode === "planned") {
     next.planned = input.value === "" || parsed === null ? 0 : parsed;
-  } else if (input.value === "" || parsed === null) {
-    delete next.actual;
   } else {
-    next.actual = parsed;
+    next.actual = input.value === "" || parsed === null ? 0 : parsed;
   }
   if (Object.keys(next).length) seriesOverrides[key] = next;
   else delete seriesOverrides[key];
