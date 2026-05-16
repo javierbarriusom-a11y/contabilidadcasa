@@ -683,6 +683,10 @@ function plannedValueForRow(row, month) {
   const override = seriesOverrideForRow(row, month);
   if (override?.deleted) return 0;
   if (override?.planned !== undefined && override?.planned !== "") return Number(override.planned || 0);
+  return basePlannedValueForRow(row, month);
+}
+
+function basePlannedValueForRow(row, month) {
   return row.custom ? Number(row.plannedValue || 0) : Number(row.planned[month.index] || 0);
 }
 
@@ -1152,7 +1156,7 @@ function planningSectionsForMonth(kind, month) {
       const rows = section.rows
         .filter((row) => !deletedPlanningRows[deleteKeyForRow(row, month)] && !seriesOverrideForRow(row, month)?.deleted)
         .concat(customRowsForSection(section.kind, section.name, month));
-      return { ...section, rows, sourceRowCount };
+      return { ...section, rows, sourceRows: section.rows, sourceRowCount };
     });
 
   customPlanningRows
@@ -1170,15 +1174,9 @@ function planningSectionsForMonth(kind, month) {
   return sections.filter((section) => section.rows.length);
 }
 
-function sectionUsesWorkbookTotal(section, month, useActuals) {
-  if (!Array.isArray(section.totals) || section.totals[month.index] === undefined) return false;
-  if (section.rows.length !== section.sourceRowCount) return false;
-  return !section.rows.some((row) => {
-    if (row.custom) return true;
-    const override = seriesOverrideForRow(row, month);
-    if (override?.planned !== undefined || override?.actual !== undefined || override?.deleted) return true;
-    return useActuals && actualAwareInfo(row, month).hasActual;
-  });
+function sectionWorkbookTotal(section, month) {
+  if (!Array.isArray(section.totals) || section.totals[month.index] === undefined) return null;
+  return Number(section.totals[month.index] || 0);
 }
 
 function varianceClassForKind(kind, variance) {
@@ -1244,17 +1242,23 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
   };
 
   planningSectionsForMonth(null, month).forEach((section) => {
-    const useWorkbookTotal = sectionUsesWorkbookTotal(section, month, useActuals);
-    const workbookTotal = useWorkbookTotal ? Number(section.totals[month.index] || 0) : null;
+    const workbookTotal = sectionWorkbookTotal(section, month);
+    const sourceRows = workbookTotal === null ? section.rows.filter((row) => !row.custom) : section.sourceRows || section.rows.filter((row) => !row.custom);
+    const customRows = section.rows.filter((row) => row.custom);
+    const calculationRows = [...sourceRows, ...customRows];
     let rowTotal = 0;
+    let sectionDelta = 0;
     let sectionCoreSpend = 0;
     let sectionCar = 0;
     let sectionRefi = 0;
     let sectionPrePayrollIncome = 0;
 
-    section.rows.forEach((row) => {
-      const value = useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
+    calculationRows.forEach((row) => {
+      const deleted = deletedPlanningRows[deleteKeyForRow(row, month)] || seriesOverrideForRow(row, month)?.deleted;
+      const value = deleted ? 0 : useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
+      const baseValue = row.custom ? 0 : basePlannedValueForRow(row, month);
       rowTotal += value;
+      sectionDelta += row.custom ? value : value - baseValue;
       if (section.kind === "income") {
         if (isPrePayrollIncomeRow(row)) sectionPrePayrollIncome += value;
         return;
@@ -1270,8 +1274,8 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
       }
     });
 
-    const sectionTotal = workbookTotal ?? rowTotal;
-    const workbookAdjustment = workbookTotal === null ? 0 : workbookTotal - rowTotal;
+    const sectionTotal = workbookTotal === null ? rowTotal : workbookTotal + sectionDelta;
+    const workbookAdjustment = workbookTotal === null ? 0 : sectionTotal - rowTotal;
     if (section.kind === "income") {
       breakdown.income += sectionTotal;
       breakdown.prePayrollIncome += sectionPrePayrollIncome;
