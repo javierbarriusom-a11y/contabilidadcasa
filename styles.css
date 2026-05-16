@@ -1544,6 +1544,55 @@ svg {
   font-weight: 800;
 }
 
+.prevision-section {
+  margin-top: 18px;
+}
+
+.prevision-controls {
+  min-width: 220px;
+}
+
+.prevision-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.prevision-table-wrap {
+  max-height: 680px;
+}
+
+.prevision-table {
+  min-width: 1180px;
+}
+
+.prevision-table th:first-child,
+.prevision-table td:first-child {
+  min-width: 170px;
+}
+
+.prevision-group-row td {
+  color: #ffffff;
+  background: #2267a9 !important;
+  font-weight: 900;
+  text-align: left;
+}
+
+.prevision-group-row.adjusted td {
+  background: #184b79 !important;
+}
+
+.prevision-group-row.planned td {
+  background: #2f7684 !important;
+}
+
+.prevision-group-row.difference td {
+  background: #6c4939 !important;
+}
+
+.prevision-table tbody tr:not(.prevision-group-row) td:first-child {
+  color: var(--ink);
+  font-weight: 900;
+}
+
 .movement-detail-title {
   margin-top: 22px;
 }

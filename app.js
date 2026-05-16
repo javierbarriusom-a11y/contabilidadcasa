@@ -32,6 +32,7 @@ let baseData;
 let state;
 let lastSimulation = [];
 let lastBaseSimulation = [];
+let lastPlannedSimulation = [];
 let currentScenario = "Base";
 let projects = [];
 let projectPlan = { outflows: [], placements: [] };
@@ -66,6 +67,10 @@ const viewTitles = {
   "visual-detail": {
     eyebrow: "Detalle visual",
     title: "Edita la matriz mensual como en Contabilidad New Life",
+  },
+  prevision: {
+    eyebrow: "Previsión",
+    title: "Resultados mensuales previstos, reales y ajustados",
   },
   simulator: {
     eyebrow: "Escenarios y proyectos",
@@ -1203,9 +1208,10 @@ function planningMonthForDate(date, forecastIndex) {
   return { ...planning.months[index], index };
 }
 
-function planningBreakdownForForecastMonth(forecastIndex, date) {
+function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
   const planning = baseData.monthlyPlanning;
   const month = planningMonthForDate(date, forecastIndex);
+  const useActuals = options.useActuals !== false;
   const breakdown = {
     monthKey: month.key,
     income: 0,
@@ -1217,7 +1223,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date) {
 
   planningSectionsForMonth(null, month).forEach((section) => {
     section.rows.forEach((row) => {
-      const value = actualAwareValue(row, month);
+      const value = useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
       if (section.kind === "income") {
         breakdown.income += value;
         return;
@@ -1520,7 +1526,7 @@ function applyScenario(name) {
   render();
 }
 
-function simulate(projectOutflows = []) {
+function simulate(projectOutflows = [], options = {}) {
   const rows = [];
   const start = modelStartDate();
   const savingsStart = Math.min(baseData.assumptions.newAccountBalance, Math.max(0, state.initialCash));
@@ -1529,7 +1535,7 @@ function simulate(projectOutflows = []) {
 
   for (let i = 0; i < modelMonthCount(); i += 1) {
     const date = addMonths(start, i);
-    const detail = planningBreakdownForForecastMonth(i, date);
+    const detail = planningBreakdownForForecastMonth(i, date, options);
     const income =
       detail.income *
       (state.incomeFactor ?? 1) *
@@ -2700,6 +2706,109 @@ function handleVisualAddRow() {
   showImportLog("Línea añadida", `${label} se ha incorporado al rango indicado y ya recalcula todo el dashboard.`);
 }
 
+function previsionMetric(row) {
+  return {
+    result: row.totalLiquidity - row.startLiquidity,
+    max: Math.max(row.startLiquidity, row.totalLiquidity),
+    min: Math.min(row.startLiquidity, row.totalLiquidity),
+    adjustedMax: Math.max(row.startChecking, row.checking),
+    adjustedMin: Math.min(row.startChecking, row.checking),
+  };
+}
+
+function previsionYears() {
+  return [...new Set(lastSimulation.map((row) => cashflowYear(row)))].filter(Boolean);
+}
+
+function populatePrevisionYearSelect() {
+  const select = qs("previsionYear");
+  if (!select) return;
+  const previous = select.value;
+  const years = previsionYears();
+  select.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
+  select.value = years.includes(previous) ? previous : years[0] || "";
+}
+
+function previsionRowsForYear(year) {
+  return lastSimulation
+    .map((row, index) => ({
+      row,
+      planned: lastPlannedSimulation[index] || row,
+      index,
+    }))
+    .filter((item) => cashflowYear(item.row) === year);
+}
+
+function previsionCell(value, mode = "") {
+  const klass = mode || (value < 0 ? "negative" : value > 0 ? "positive" : "");
+  return `<td class="${klass}">${money(value, true)}</td>`;
+}
+
+function renderPrevisionValueRow(label, items, getter, mode = "") {
+  return `<tr>
+    <td>${escapeHtml(label)}</td>
+    ${items.map((item) => previsionCell(getter(item), mode)).join("")}
+  </tr>`;
+}
+
+function renderPrevisionGroup(title, klass = "") {
+  return `<tr class="prevision-group-row ${klass}"><td colspan="20">${escapeHtml(title)}</td></tr>`;
+}
+
+function renderPrevision() {
+  if (!qs("previsionTable")) return;
+  populatePrevisionYearSelect();
+  const selectedYear = qs("previsionYear")?.value || previsionYears()[0];
+  const items = previsionRowsForYear(selectedYear);
+  if (!items.length) {
+    qs("previsionSummary").innerHTML = "";
+    qs("previsionTable").innerHTML = "";
+    return;
+  }
+
+  const realMetrics = items.map((item) => previsionMetric(item.row));
+  const plannedMetrics = items.map((item) => previsionMetric(item.planned));
+  const resultYear = sumRows(realMetrics, (metric) => metric.result);
+  const minAdjusted = Math.min(...realMetrics.map((metric) => metric.adjustedMin));
+  const minTotal = Math.min(...realMetrics.map((metric) => metric.min));
+  const maxTotal = Math.max(...realMetrics.map((metric) => metric.max));
+  const worstItem = items[realMetrics.findIndex((metric) => metric.adjustedMin === minAdjusted)] || items[0];
+
+  qs("previsionSummary").innerHTML = [
+    ["Resultado anual", money(resultYear, true), resultYear >= 0 ? "positive" : "negative"],
+    ["Saldo máximo", money(maxTotal, true), "positive"],
+    ["Mínimo", money(minTotal, true), minTotal < 0 ? "negative" : ""],
+    ["Mínimo ajustado", `${money(minAdjusted, true)} · ${worstItem.row.month}`, minAdjusted < 0 ? "negative" : ""],
+  ]
+    .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
+    .join("");
+
+  const headers = items.map((item) => `<th>${escapeHtml(item.row.month)}</th>`).join("");
+  const rows = [
+    renderPrevisionGroup("Reales", "real"),
+    renderPrevisionValueRow("Resultado mes", items, (item) => previsionMetric(item.row).result),
+    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).max, "positive"),
+    renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.row).min),
+    renderPrevisionGroup("Reales · flujo ajustado", "adjusted"),
+    renderPrevisionValueRow("Max cuenta", items, (item) => previsionMetric(item.row).adjustedMax),
+    renderPrevisionValueRow("Mínimo ajustado", items, (item) => previsionMetric(item.row).adjustedMin),
+    renderPrevisionGroup("Previstos", "planned"),
+    renderPrevisionValueRow("Resultado mes", items, (item) => previsionMetric(item.planned).result),
+    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.planned).max, "positive"),
+    renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.planned).min),
+    renderPrevisionGroup("Diferencia real - previsto", "difference"),
+    renderPrevisionValueRow(
+      "Resultado mes",
+      items,
+      (item) => previsionMetric(item.row).result - previsionMetric(item.planned).result,
+    ),
+    renderPrevisionValueRow("Max", items, (item) => previsionMetric(item.row).max - previsionMetric(item.planned).max),
+    renderPrevisionValueRow("Min", items, (item) => previsionMetric(item.row).min - previsionMetric(item.planned).min),
+  ];
+
+  qs("previsionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody>`;
+}
+
 function renderMerchants() {
   qs("merchantList").innerHTML = baseData.topMerchants
     .slice(0, 12)
@@ -3509,6 +3618,7 @@ function render() {
   lastBaseSimulation = simulate();
   projectPlan = buildProjectSchedule();
   lastSimulation = simulate(projectPlan.outflows);
+  lastPlannedSimulation = simulate(projectPlan.outflows, { useActuals: false });
   writeDerivedControls(lastSimulation);
   updateKpis(lastSimulation, lastBaseSimulation);
   renderBalanceChart(lastSimulation, lastBaseSimulation);
@@ -3517,6 +3627,7 @@ function render() {
   renderProjectSimulator(lastBaseSimulation, lastSimulation);
   renderTable(lastSimulation, lastBaseSimulation);
   renderVisualDetail();
+  renderPrevision();
   renderMonthlyDetails();
   renderMerchants();
 }
@@ -3572,6 +3683,7 @@ async function init() {
   ["visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
     qs(id).addEventListener("change", render);
   });
+  qs("previsionYear").addEventListener("change", renderPrevision);
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);
   qs("visualAddRow").addEventListener("click", handleVisualAddRow);
   qs("movementMonthFilter").addEventListener("change", renderDetailedMovements);
