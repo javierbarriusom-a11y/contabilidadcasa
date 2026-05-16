@@ -892,6 +892,7 @@ function loadMonthlyPlanningFromWorkbook(workbook) {
         }
       }
       if (endRow < startRow) return null;
+      const totalRow = endRow + 1;
       const rows = [];
       for (let row = startRow; row <= endRow; row += 1) {
         const label = cellByIndex(sheet, row, 1);
@@ -911,7 +912,10 @@ function loadMonthlyPlanningFromWorkbook(workbook) {
         name: sectionName,
         kind,
         rows,
-        totals: months.map((_, index) => round2(rows.reduce((sum, row) => sum + Number(row.planned[index] || 0), 0))),
+        totals: columns.map((col, index) => {
+          const totalValue = parseAmount(cellByIndex(sheet, totalRow, col));
+          return round2(totalValue !== null ? Math.abs(totalValue) : rows.reduce((sum, row) => sum + Number(row.planned[index] || 0), 0));
+        }),
       };
     })
     .filter(Boolean);
@@ -1144,10 +1148,11 @@ function planningSectionsForMonth(kind, month) {
   const sections = baseData.monthlyPlanning.sections
     .filter((section) => !kind || section.kind === kind)
     .map((section) => {
+      const sourceRowCount = section.rows.length;
       const rows = section.rows
         .filter((row) => !deletedPlanningRows[deleteKeyForRow(row, month)] && !seriesOverrideForRow(row, month)?.deleted)
         .concat(customRowsForSection(section.kind, section.name, month));
-      return { ...section, rows };
+      return { ...section, rows, sourceRowCount };
     });
 
   customPlanningRows
@@ -1163,6 +1168,17 @@ function planningSectionsForMonth(kind, month) {
     });
 
   return sections.filter((section) => section.rows.length);
+}
+
+function sectionUsesWorkbookTotal(section, month, useActuals) {
+  if (!Array.isArray(section.totals) || section.totals[month.index] === undefined) return false;
+  if (section.rows.length !== section.sourceRowCount) return false;
+  return !section.rows.some((row) => {
+    if (row.custom) return true;
+    const override = seriesOverrideForRow(row, month);
+    if (override?.planned !== undefined || override?.actual !== undefined || override?.deleted) return true;
+    return useActuals && actualAwareInfo(row, month).hasActual;
+  });
 }
 
 function varianceClassForKind(kind, variance) {
@@ -1197,6 +1213,11 @@ function isFinancingPlanningRow(section, row) {
   );
 }
 
+function isPrePayrollIncomeRow(row) {
+  const label = normalizedText(displayLabelForRow(row));
+  return label === "local" || /(^|\b)(nomina|salario)\s+tere(\b|$)/.test(label) || /\btere\b.*\b(nomina|salario)\b/.test(label);
+}
+
 function planningMonthForDate(date, forecastIndex) {
   const planning = baseData.monthlyPlanning;
   const key = monthKey(date);
@@ -1219,26 +1240,49 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     car: 0,
     refi: 0,
     expenseTotal: 0,
+    prePayrollIncome: 0,
   };
 
   planningSectionsForMonth(null, month).forEach((section) => {
+    const useWorkbookTotal = sectionUsesWorkbookTotal(section, month, useActuals);
+    const workbookTotal = useWorkbookTotal ? Number(section.totals[month.index] || 0) : null;
+    let rowTotal = 0;
+    let sectionCoreSpend = 0;
+    let sectionCar = 0;
+    let sectionRefi = 0;
+    let sectionPrePayrollIncome = 0;
+
     section.rows.forEach((row) => {
       const value = useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
+      rowTotal += value;
       if (section.kind === "income") {
-        breakdown.income += value;
+        if (isPrePayrollIncomeRow(row)) sectionPrePayrollIncome += value;
         return;
       }
       if (section.kind !== "expense") return;
 
-      breakdown.expenseTotal += value;
       if (isCarPlanningRow(row)) {
-        breakdown.car += value;
+        sectionCar += value;
       } else if (isFinancingPlanningRow(section, row)) {
-        breakdown.refi += value;
+        sectionRefi += value;
       } else {
-        breakdown.coreSpend += value;
+        sectionCoreSpend += value;
       }
     });
+
+    const sectionTotal = workbookTotal ?? rowTotal;
+    const workbookAdjustment = workbookTotal === null ? 0 : workbookTotal - rowTotal;
+    if (section.kind === "income") {
+      breakdown.income += sectionTotal;
+      breakdown.prePayrollIncome += sectionPrePayrollIncome;
+      return;
+    }
+    if (section.kind !== "expense") return;
+
+    breakdown.expenseTotal += sectionTotal;
+    breakdown.car += sectionCar;
+    breakdown.refi += sectionRefi;
+    breakdown.coreSpend += sectionCoreSpend + workbookAdjustment;
   });
 
   return breakdown;
@@ -1548,6 +1592,10 @@ function simulate(projectOutflows = [], options = {}) {
     const refi = detail.refi;
     const projectOutflow = Number(projectOutflows[i] || 0);
     const outflowsBeforeSaving = coreSpend + carPayment + refi + projectOutflow;
+    const prePayrollIncome =
+      detail.prePayrollIncome *
+      (state.incomeFactor ?? 1) *
+      Math.pow(1 + state.annualIncomeGrowth / 100, i / 12);
     const startChecking = checking;
     const startLiquidity = checking + savings;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
@@ -1571,6 +1619,8 @@ function simulate(projectOutflows = [], options = {}) {
       car: carPayment,
       refi,
       projectOutflow,
+      outflowsBeforeSaving,
+      prePayrollIncome,
       saving: appliedSaving,
       checking,
       savings,
@@ -2707,12 +2757,18 @@ function handleVisualAddRow() {
 }
 
 function previsionMetric(row) {
+  const outflowsBeforeIncome =
+    row.outflowsBeforeSaving ?? Number(row.coreSpend || 0) + Number(row.car || 0) + Number(row.refi || 0) + Number(row.projectOutflow || 0);
+  const result = row.netBeforeSaving ?? Number(row.totalLiquidity || 0) - Number(row.startLiquidity || 0);
+  const max = Number(row.startLiquidity || 0) + result;
+  const min = Number(row.startLiquidity || 0) - outflowsBeforeIncome;
+  const adjustedMin = min + Number(row.prePayrollIncome || 0);
   return {
-    result: row.totalLiquidity - row.startLiquidity,
-    max: Math.max(row.startLiquidity, row.totalLiquidity),
-    min: Math.min(row.startLiquidity, row.totalLiquidity),
-    adjustedMax: Math.max(row.startChecking, row.checking),
-    adjustedMin: Math.min(row.startChecking, row.checking),
+    result,
+    max,
+    min,
+    adjustedMax: max,
+    adjustedMin,
   };
 }
 
@@ -2767,7 +2823,6 @@ function renderPrevision() {
   }
 
   const realMetrics = items.map((item) => previsionMetric(item.row));
-  const plannedMetrics = items.map((item) => previsionMetric(item.planned));
   const resultYear = sumRows(realMetrics, (metric) => metric.result);
   const minAdjusted = Math.min(...realMetrics.map((metric) => metric.adjustedMin));
   const minTotal = Math.min(...realMetrics.map((metric) => metric.min));
@@ -2790,20 +2845,8 @@ function renderPrevision() {
     renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).max, "positive"),
     renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.row).min),
     renderPrevisionGroup("Reales · flujo ajustado", "adjusted"),
-    renderPrevisionValueRow("Max cuenta", items, (item) => previsionMetric(item.row).adjustedMax),
+    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).adjustedMax, "positive"),
     renderPrevisionValueRow("Mínimo ajustado", items, (item) => previsionMetric(item.row).adjustedMin),
-    renderPrevisionGroup("Previstos", "planned"),
-    renderPrevisionValueRow("Resultado mes", items, (item) => previsionMetric(item.planned).result),
-    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.planned).max, "positive"),
-    renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.planned).min),
-    renderPrevisionGroup("Diferencia real - previsto", "difference"),
-    renderPrevisionValueRow(
-      "Resultado mes",
-      items,
-      (item) => previsionMetric(item.row).result - previsionMetric(item.planned).result,
-    ),
-    renderPrevisionValueRow("Max", items, (item) => previsionMetric(item.row).max - previsionMetric(item.planned).max),
-    renderPrevisionValueRow("Min", items, (item) => previsionMetric(item.row).min - previsionMetric(item.planned).min),
   ];
 
   qs("previsionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody>`;

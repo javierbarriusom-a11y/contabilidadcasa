@@ -1580,14 +1580,6 @@ svg {
   background: #184b79 !important;
 }
 
-.prevision-group-row.planned td {
-  background: #2f7684 !important;
-}
-
-.prevision-group-row.difference td {
-  background: #6c4939 !important;
-}
-
 .prevision-table tbody tr:not(.prevision-group-row) td:first-child {
   color: var(--ink);
   font-weight: 900;
