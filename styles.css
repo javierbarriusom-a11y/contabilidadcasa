@@ -25,6 +25,10 @@
   display: none !important;
 }
 
+.is-hidden {
+  display: none !important;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -449,7 +453,8 @@ main {
 .chart-panel,
 .advice-panel,
 .table-section,
-.project-panel {
+.project-panel,
+.data-workbench {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -529,7 +534,8 @@ main {
 .advice-panel,
 .table-section,
 .project-panel,
-.project-global-panel {
+.project-global-panel,
+.data-workbench {
   padding: 20px;
 }
 
@@ -1095,6 +1101,136 @@ svg {
   font-weight: 800;
 }
 
+.data-import-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.05fr) minmax(360px, 1fr) minmax(300px, 0.72fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.data-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.data-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.data-form button {
+  align-self: end;
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  font-weight: 900;
+}
+
+.data-card textarea {
+  width: 100%;
+  min-height: 214px;
+  resize: vertical;
+  padding: 10px 12px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.data-card textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(44, 107, 224, 0.12);
+  outline: none;
+}
+
+.data-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.data-actions button:first-child {
+  color: #ffffff;
+  border-color: var(--teal);
+  background: var(--teal);
+  font-weight: 900;
+}
+
+.data-actions button:last-child {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.data-hint {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.file-drop {
+  display: grid;
+  min-height: 142px;
+  place-items: center;
+  padding: 18px;
+  color: var(--teal);
+  border: 1px dashed rgba(15, 143, 140, 0.45);
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: center;
+}
+
+.file-drop:hover {
+  border-color: var(--teal);
+  background: #f3fbfa;
+}
+
+.file-drop input {
+  max-width: 260px;
+  margin-top: 10px;
+}
+
+.manual-project-field.is-hidden {
+  display: none;
+}
+
+.data-import-log {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--teal);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+
+.data-import-log.warning {
+  border-left-color: var(--amber);
+}
+
+.data-import-log.danger {
+  border-left-color: var(--red);
+}
+
+.data-import-log strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.data-import-log p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .section-row td {
   color: var(--ink);
   background: #eef5f4;
@@ -1585,11 +1721,13 @@ tbody tr:hover {
 
   .hero-grid,
   .decision-actions,
+  .data-import-grid,
   .controls-grid.two,
   .controls-grid.three,
   .saving-row,
   .merchant-list,
   .project-form,
+  .data-form,
   .concept-editor,
   .expense-summary,
   .compact-summary,

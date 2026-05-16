@@ -53,6 +53,37 @@ let expandedPlanningSections = {
   expense: new Set(),
 };
 
+const viewTitles = {
+  overview: {
+    eyebrow: "Cuadro de mando financiero",
+    title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
+  },
+  simulator: {
+    eyebrow: "Escenarios y proyectos",
+    title: "Decide proyectos, imprevistos y ahorro con impacto completo",
+  },
+  forecast: {
+    eyebrow: "Proyección",
+    title: "Visualiza la evolución de liquidez durante 60 meses",
+  },
+  "monthly-detail": {
+    eyebrow: "Contabilidad New Life",
+    title: "Controla ingresos y gastos previstos frente a reales",
+  },
+  "data-entry": {
+    eyebrow: "Carga de datos",
+    title: "Añade datos manuales, por lotes o desde Excel",
+  },
+  cashflow: {
+    eyebrow: "Flujo mensual",
+    title: "Audita cada mes con detalle de ingresos, gastos y proyectos",
+  },
+  movements: {
+    eyebrow: "Base del modelo",
+    title: "Revisa los movimientos usados para construir el escenario",
+  },
+};
+
 function qs(id) {
   return document.getElementById(id);
 }
@@ -388,6 +419,9 @@ function setActiveView(viewId = viewFromHash()) {
     if (isActive) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
+  const copy = viewTitles[viewId] || viewTitles.overview;
+  if (qs("viewEyebrow")) qs("viewEyebrow").textContent = copy.eyebrow;
+  if (qs("viewTitle")) qs("viewTitle").textContent = copy.title;
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 
@@ -592,6 +626,80 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function parseAmount(value) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const cleaned = raw
+    .replace(/\s/g, "")
+    .replace(/€/g, "")
+    .replace(/\./g, "")
+    .replace(",", ".");
+  const number = Number(cleaned);
+  return Number.isFinite(number) ? number : null;
+}
+
+function monthFromInput(value) {
+  const raw = String(value ?? "").trim();
+  const months = baseData.monthlyPlanning?.months || [];
+  if (!raw) return null;
+  const normalized = normalizedText(raw).replace(/\./g, "");
+  const keyMatch = normalized.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (keyMatch) {
+    const key = `${keyMatch[1]}-${String(Number(keyMatch[2])).padStart(2, "0")}`;
+    const index = months.findIndex((month) => month.key === key);
+    return index >= 0 ? { ...months[index], index } : null;
+  }
+  const dateMatch = normalized.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
+  if (dateMatch) {
+    const year = Number(dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]);
+    const key = `${year}-${String(Number(dateMatch[2])).padStart(2, "0")}`;
+    const index = months.findIndex((month) => month.key === key);
+    return index >= 0 ? { ...months[index], index } : null;
+  }
+  const index = months.findIndex((month) => normalizedText(month.label).replace(/\./g, "") === normalized);
+  return index >= 0 ? { ...months[index], index } : null;
+}
+
+function normalizeDataKind(value) {
+  const text = normalizedText(value);
+  if (text.includes("proy") || text.includes("imprev")) return "project";
+  if (text.includes("ing")) return "income";
+  return "expense";
+}
+
+function canonicalHeader(value) {
+  const text = normalizedText(value).replace(/[^a-z0-9]/g, "");
+  const aliases = {
+    tipo: "kind",
+    clase: "kind",
+    mes: "month",
+    fecha: "month",
+    bloque: "sectionName",
+    partida: "sectionName",
+    categoria: "sectionName",
+    seccion: "sectionName",
+    concepto: "label",
+    descripcion: "label",
+    nombre: "label",
+    previsto: "planned",
+    presupuesto: "planned",
+    real: "actual",
+    importe: "actual",
+    cantidad: "actual",
+    duracion: "duration",
+    meses: "duration",
+    modo: "mode",
+    planificacion: "mode",
+  };
+  return aliases[text] || text;
+}
+
+function normalizeProjectMode(value) {
+  const text = normalizedText(value);
+  return text.includes("opt") ? "optimize" : "fixed";
 }
 
 function customRowsForSection(kind, sectionName, month) {
@@ -2074,6 +2182,224 @@ function populateCustomConceptForms() {
   });
 }
 
+function populateDataEntryControls() {
+  const monthSelect = qs("manualDataMonth");
+  if (monthSelect) {
+    const previous = monthSelect.value;
+    monthSelect.innerHTML = baseData.monthlyPlanning.months
+      .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
+      .join("");
+    if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
+  }
+  updateManualDataKindUi();
+}
+
+function updateManualDataKindUi() {
+  const kind = qs("manualDataKind")?.value || "expense";
+  const sectionSelect = qs("manualDataSection");
+  if (sectionSelect) {
+    sectionSelect.disabled = kind === "project";
+    const sections = baseData.monthlyPlanning.sections.filter((section) => section.kind === kind);
+    sectionSelect.innerHTML = sections
+      .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
+      .join("");
+  }
+  document.querySelectorAll(".manual-project-field").forEach((field) => {
+    field.classList.toggle("is-hidden", kind !== "project");
+  });
+  qs("manualDataPlanned")?.closest("label")?.classList.toggle("is-hidden", kind === "project");
+}
+
+function showImportLog(title, body, tone = "") {
+  const log = qs("dataImportLog");
+  if (!log) return;
+  log.classList.toggle("warning", tone === "warning");
+  log.classList.toggle("danger", tone === "danger");
+  log.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${escapeHtml(body)}</p>`;
+}
+
+function findPlanningRow(kind, sectionName, label, month) {
+  const targetSection = normalizedText(sectionName);
+  const targetLabel = normalizedText(label);
+  const sections = planningSectionsForMonth(kind, month);
+  for (const section of sections) {
+    if (normalizedText(section.name) !== targetSection) continue;
+    const row = section.rows.find((item) => normalizedText(item.label) === targetLabel);
+    if (row) return row;
+  }
+  return null;
+}
+
+function upsertPlanningRecord(record) {
+  const kind = normalizeDataKind(record.kind);
+  const month = monthFromInput(record.month);
+  const label = String(record.label || "").trim();
+  if (!month) return { ok: false, reason: `Mes no reconocido: ${record.month || ""}` };
+  if (!label) return { ok: false, reason: "Concepto vacío" };
+
+  const fallbackSection = kind === "income" ? "INGRESOS" : "GASTOS FIJOS";
+  const sectionName = String(record.sectionName || fallbackSection).trim() || fallbackSection;
+  const planned = parseAmount(record.planned);
+  const actual = parseAmount(record.actual);
+  let row = findPlanningRow(kind, sectionName, label, month);
+
+  if (!row) {
+    row = {
+      id: `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      custom: true,
+      kind,
+      sectionName,
+      label,
+      monthKey: month.key,
+      plannedValue: planned ?? 0,
+    };
+    customPlanningRows.push(row);
+  } else if (row.custom && planned !== null) {
+    const stored = customPlanningRows.find((item) => item.id === row.id && item.monthKey === month.key);
+    if (stored) stored.plannedValue = planned;
+  }
+
+  if (actual !== null) {
+    const actuals = actualsForKind(kind);
+    actuals[actualKeyForRow(row, month)] = actual;
+  }
+  expandedPlanningSections[kind].add(`${kind}:${sectionName}`);
+  return { ok: true, kind, label, month: month.label };
+}
+
+function upsertProjectRecord(record) {
+  const month = monthFromInput(record.month) || baseData.monthlyPlanning.months[0];
+  const label = String(record.label || record.concept || "").trim();
+  const amount = parseAmount(record.actual ?? record.planned);
+  if (!label) return { ok: false, reason: "Proyecto sin nombre" };
+  if (!amount || amount <= 0) return { ok: false, reason: `Proyecto sin importe: ${label}` };
+  const duration = Math.max(1, Number(record.duration || 1));
+  const mode = normalizeProjectMode(record.mode || "fixed");
+  const monthIndex = forecastMonths().findIndex((item) => item.key === month.key);
+  projects.push({
+    id: `project-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: label,
+    amount,
+    duration,
+    mode,
+    monthIndex: Math.max(0, monthIndex),
+    monthKey: month.key,
+  });
+  return { ok: true, kind: "project", label, month: month.label };
+}
+
+function processDataRecords(records, sourceLabel = "datos") {
+  let imported = 0;
+  const warnings = [];
+  records.forEach((record, index) => {
+    const kind = normalizeDataKind(record.kind);
+    const result = kind === "project" ? upsertProjectRecord(record) : upsertPlanningRecord({ ...record, kind });
+    if (result.ok) imported += 1;
+    else warnings.push(`Línea ${index + 1}: ${result.reason}`);
+  });
+
+  saveCustomPlanningRows();
+  saveIncomeActuals();
+  saveExpenseActuals();
+  saveProjects();
+  render();
+  populateDataEntryControls();
+
+  const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
+  showImportLog(
+    `${imported} registro(s) importado(s)`,
+    `Origen: ${sourceLabel}. El flujo, detalle mensual, simulador y proyección se han recalculado.${warningText}`,
+    warnings.length ? "warning" : "",
+  );
+}
+
+function handleManualData() {
+  const kind = qs("manualDataKind").value;
+  const record = {
+    kind,
+    month: qs("manualDataMonth").value,
+    sectionName: qs("manualDataSection").value,
+    label: qs("manualDataLabel").value,
+    planned: qs("manualDataPlanned").value,
+    actual: qs("manualDataActual").value,
+    duration: qs("manualProjectDuration").value,
+    mode: qs("manualProjectMode").value,
+  };
+  processDataRecords([record], "entrada manual");
+  qs("manualDataLabel").value = "";
+  qs("manualDataPlanned").value = "";
+  qs("manualDataActual").value = "";
+}
+
+function splitDataLine(line) {
+  const delimiters = ["\t", ";", ","];
+  const delimiter = delimiters
+    .map((item) => ({ item, count: line.split(item).length }))
+    .sort((a, b) => b.count - a.count)[0].item;
+  return line.split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ""));
+}
+
+function parseTabularText(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitDataLine(lines[0]).map(canonicalHeader);
+  return lines.slice(1).map((line) => {
+    const cells = splitDataLine(line);
+    return headers.reduce((record, header, index) => {
+      record[header] = cells[index] ?? "";
+      return record;
+    }, {});
+  });
+}
+
+function handleBatchImport() {
+  const records = parseTabularText(qs("batchDataInput").value);
+  if (!records.length) {
+    showImportLog("No hay datos importables", "Pega una tabla con cabeceras y al menos una línea.", "danger");
+    return;
+  }
+  processDataRecords(records, "lote pegado");
+}
+
+async function handleExcelImport(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith(".csv") || lowerName.endsWith(".txt")) {
+    const records = parseTabularText(await file.text());
+    if (!records.length) {
+      showImportLog("Fichero vacío", "No se han encontrado filas importables.", "danger");
+      return;
+    }
+    processDataRecords(records, file.name);
+    event.target.value = "";
+    return;
+  }
+  if (!window.XLSX) {
+    showImportLog("No se pudo leer Excel", "La librería de lectura de Excel no está disponible todavía.", "danger");
+    return;
+  }
+  const buffer = await file.arrayBuffer();
+  const workbook = window.XLSX.read(buffer, { type: "array" });
+  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rawRows = window.XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
+  const records = rawRows.map((row) =>
+    Object.entries(row).reduce((record, [key, value]) => {
+      record[canonicalHeader(key)] = value;
+      return record;
+    }, {}),
+  );
+  if (!records.length) {
+    showImportLog("Excel vacío", "No se han encontrado filas en la primera hoja.", "danger");
+    return;
+  }
+  processDataRecords(records, file.name);
+  event.target.value = "";
+}
+
 function handleAddCustomConcept(kind) {
   const month = selectedPlanningMonth();
   const sectionName = qs(`${kind}CustomSection`).value;
@@ -2221,6 +2547,7 @@ function populateSelectors() {
   qs("detailMonth").value = [...qs("detailMonth").options].some((option) => option.value === previousDetailMonth)
     ? previousDetailMonth
     : defaultPlanningIndex;
+  populateDataEntryControls();
 }
 
 function csvValue(value) {
@@ -2336,6 +2663,14 @@ async function init() {
   qs("clearProjects").addEventListener("click", handleClearProjects);
   qs("addIncomeConcept").addEventListener("click", () => handleAddCustomConcept("income"));
   qs("addExpenseConcept").addEventListener("click", () => handleAddCustomConcept("expense"));
+  qs("manualDataKind").addEventListener("change", updateManualDataKindUi);
+  qs("addManualData").addEventListener("click", handleManualData);
+  qs("importBatchData").addEventListener("click", handleBatchImport);
+  qs("clearBatchData").addEventListener("click", () => {
+    qs("batchDataInput").value = "";
+    showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.");
+  });
+  qs("excelDataFile").addEventListener("change", handleExcelImport);
   qs("detailMonth").addEventListener("change", renderMonthlyDetails);
   document.querySelectorAll('input[name="projectMode"]').forEach((input) => {
     input.addEventListener("change", updateProjectModeUi);

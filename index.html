@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260515f" />
+    <link rel="stylesheet" href="styles.css?v=20260516a" />
   </head>
   <body>
     <div class="app-shell">
@@ -22,6 +22,7 @@
           <a href="#simulator">Simulador</a>
           <a href="#forecast">Proyección</a>
           <a href="#monthly-detail">Detalle mensual</a>
+          <a href="#data-entry">Carga de datos</a>
           <a href="#cashflow">Flujo mensual</a>
           <a href="#movements">Movimientos</a>
         </nav>
@@ -75,8 +76,8 @@
       <div class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Cuadro de mando financiero</p>
-            <h1>Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
+            <p class="eyebrow" id="viewEyebrow">Cuadro de mando financiero</p>
+            <h1 id="viewTitle">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="source-note" id="sourceNote"></div>
         </header>
@@ -403,6 +404,103 @@
             </div>
           </section>
 
+          <section class="data-workbench view-section" id="data-entry">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker">Entrada operativa</p>
+                <h2>Cargar datos manuales, lotes o Excel</h2>
+                <p>Todo lo que cargues aquí actualiza detalle mensual, simulador, flujo, proyección y sincronización.</p>
+              </div>
+            </div>
+
+            <div class="data-import-grid">
+              <article class="data-card">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Uno a uno</p>
+                    <h3>Nuevo dato manual</h3>
+                  </div>
+                </div>
+                <div class="data-form">
+                  <label>
+                    <span>Tipo</span>
+                    <select id="manualDataKind">
+                      <option value="expense">Gasto</option>
+                      <option value="income">Ingreso</option>
+                      <option value="project">Proyecto / imprevisto</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Mes</span>
+                    <select id="manualDataMonth"></select>
+                  </label>
+                  <label>
+                    <span>Bloque</span>
+                    <select id="manualDataSection"></select>
+                  </label>
+                  <label>
+                    <span>Concepto</span>
+                    <input id="manualDataLabel" type="text" placeholder="Ej. Colegio, nómina, vacaciones" />
+                  </label>
+                  <label>
+                    <span>Previsto</span>
+                    <input id="manualDataPlanned" type="number" step="0.01" placeholder="0,00" />
+                  </label>
+                  <label>
+                    <span>Real / importe</span>
+                    <input id="manualDataActual" type="number" step="0.01" placeholder="0,00" />
+                  </label>
+                  <label class="manual-project-field">
+                    <span>Duración proyecto</span>
+                    <input id="manualProjectDuration" type="number" min="1" max="24" step="1" value="1" />
+                  </label>
+                  <label class="manual-project-field">
+                    <span>Planificación</span>
+                    <select id="manualProjectMode">
+                      <option value="fixed">Mes manual</option>
+                      <option value="optimize">Mes óptimo</option>
+                    </select>
+                  </label>
+                  <button id="addManualData">Añadir dato</button>
+                </div>
+              </article>
+
+              <article class="data-card">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Por lotes</p>
+                    <h3>Pegar tabla</h3>
+                  </div>
+                </div>
+                <textarea id="batchDataInput" spellcheck="false" placeholder="tipo;mes;bloque;concepto;previsto;real;duracion;modo&#10;gasto;2026-06;GASTOS FIJOS;Luz;120;134,20&#10;ingreso;jul 26;INGRESOS;Extra;0;500&#10;proyecto;2026-09;;Viaje;0;1800;3;optimo"></textarea>
+                <div class="data-actions">
+                  <button id="importBatchData">Importar lote</button>
+                  <button id="clearBatchData" type="button">Limpiar</button>
+                </div>
+                <p class="data-hint">Admite separador `;`, tabulador o coma. Cabeceras recomendadas: tipo, mes, bloque, concepto, previsto, real, duracion, modo.</p>
+              </article>
+
+              <article class="data-card">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Excel</p>
+                    <h3>Importar fichero</h3>
+                  </div>
+                </div>
+                <label class="file-drop">
+                  <span>Seleccionar Excel o CSV</span>
+                  <input id="excelDataFile" type="file" accept=".xlsx,.xls,.csv,.txt" />
+                </label>
+                <p class="data-hint">Lee la primera hoja. Usa las mismas cabeceras del lote. Los proyectos se añaden al simulador; ingresos y gastos entran como reales del mes.</p>
+              </article>
+            </div>
+
+            <div class="data-import-log" id="dataImportLog">
+              <strong>Sin importaciones en esta sesión</strong>
+              <p>Cuando cargues datos verás aquí el resumen y los avisos.</p>
+            </div>
+          </section>
+
           <section class="table-section view-section" id="cashflow">
             <div class="section-title with-action">
               <div>
@@ -452,8 +550,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=20260515f"></script>
-    <script src="data.js?v=20260515f"></script>
-    <script src="app.js?v=20260515f"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260516a"></script>
+    <script src="supabase-config.js?v=20260516a"></script>
+    <script src="data.js?v=20260516a"></script>
+    <script src="app.js?v=20260516a"></script>
   </body>
 </html>
