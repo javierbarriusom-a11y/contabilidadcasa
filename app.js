@@ -2738,8 +2738,7 @@ function updateVisualCell(input) {
   delete next.deleted;
   const parsed = parseAmount(input.value);
   if (input.dataset.mode === "planned") {
-    if (input.value === "" || parsed === null) delete next.planned;
-    else next.planned = parsed;
+    next.planned = input.value === "" || parsed === null ? 0 : parsed;
   } else if (input.value === "" || parsed === null) {
     delete next.actual;
   } else {
