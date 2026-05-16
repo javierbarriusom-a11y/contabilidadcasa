@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260516p" />
+    <link rel="stylesheet" href="styles.css?v=20260516q" />
   </head>
   <body>
     <div class="app-shell">
@@ -168,6 +168,19 @@
             </article>
 
             <div class="expense-summary" id="visualSummary"></div>
+
+            <article class="visual-save-panel" id="visualSavePanel">
+              <div>
+                <p class="panel-kicker">Edición pendiente</p>
+                <h3 id="visualSaveTitle">Sin cambios pendientes</h3>
+                <p id="visualSaveSummary">Edita importes, nombres o selecciona partidas para borrar antes de guardar.</p>
+              </div>
+              <div class="visual-save-actions">
+                <button id="visualBulkDelete" type="button" class="ghost-button">Borrar seleccionadas</button>
+                <button id="visualDiscardChanges" type="button" class="ghost-button">Descartar</button>
+                <button id="visualSaveChanges" type="button">Guardar cambios</button>
+              </div>
+            </article>
 
             <article class="visual-add-card">
               <div class="visual-add-grid">
@@ -758,9 +771,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260516p"></script>
-    <script src="supabase-config.js?v=20260516p"></script>
-    <script src="data.js?v=20260516p"></script>
-    <script src="app.js?v=20260516p"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260516q"></script>
+    <script src="supabase-config.js?v=20260516q"></script>
+    <script src="data.js?v=20260516q"></script>
+    <script src="app.js?v=20260516q"></script>
   </body>
 </html>

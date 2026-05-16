@@ -1523,6 +1523,66 @@ svg {
   background: var(--surface-soft);
 }
 
+.visual-save-panel {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.visual-save-panel.has-pending {
+  border-color: rgba(12, 139, 135, 0.4);
+  background: #f4fbfa;
+}
+
+.visual-save-panel h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.visual-save-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.visual-save-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.visual-save-actions button {
+  min-height: 38px;
+  padding: 8px 12px;
+  font-weight: 900;
+}
+
+.visual-save-actions button:last-child {
+  color: #ffffff;
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
+.visual-save-actions .ghost-button {
+  color: var(--ink);
+  border-color: var(--line);
+  background: #ffffff;
+}
+
+.visual-save-actions button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
 .visual-add-grid {
   display: grid;
   grid-template-columns: 110px 170px minmax(210px, 1fr) 140px 130px 130px auto;
@@ -1631,6 +1691,30 @@ svg {
   min-height: 32px;
   padding: 6px 8px;
   text-align: right;
+}
+
+.visual-line-row.pending-delete td {
+  background: #fff6f5;
+  opacity: 0.86;
+}
+
+.visual-line-row.selected td {
+  background: #eef8f7;
+}
+
+.visual-row-heading {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.visual-row-heading .visual-select-row {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  accent-color: var(--teal);
 }
 
 .visual-line-row .visual-label-input {

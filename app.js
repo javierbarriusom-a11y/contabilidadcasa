@@ -52,6 +52,11 @@ let remoteSaveInFlight = false;
 let selectedCashflowIndex = null;
 let expandedCashflowYears = new Set();
 let expandedVisualSections = new Set();
+let visualDraftCells = {};
+let visualDraftLabels = {};
+let visualDraftDeletes = {};
+let visualDraftProjectDeletes = {};
+let visualSelectedRows = new Set();
 let expandedPlanningSections = {
   income: new Set(),
   expense: new Set(),
@@ -758,6 +763,12 @@ function parseAmount(value) {
         : compact;
   const number = Number(cleaned);
   return Number.isFinite(number) ? number : null;
+}
+
+function amountInputValue(value) {
+  if (value === "" || value === null || value === undefined) return "";
+  const number = Number(value);
+  return Number.isFinite(number) ? round2(number).toFixed(2) : "";
 }
 
 function monthFromInput(value) {
@@ -2658,6 +2669,26 @@ function plannedValueForVisualRow(row, month) {
   return plannedValueForRow(scopedRow, month);
 }
 
+function visualDraftCellKey(rowKey, monthKey, mode) {
+  return `${rowKey}|${monthKey}|${mode}`;
+}
+
+function visualDraftForCell(row, month, mode) {
+  return visualDraftCells[visualDraftCellKey(seriesKeyForRow(row), month.key, mode)] || null;
+}
+
+function isVisualRowPendingDelete(rowKey) {
+  return Boolean(visualDraftDeletes[rowKey]);
+}
+
+function isVisualProjectPendingDelete(projectId) {
+  return Boolean(visualDraftProjectDeletes[projectId]);
+}
+
+function visualDisplayLabel(row) {
+  return visualDraftLabels[seriesKeyForRow(row)]?.value ?? displayLabelForRow(row);
+}
+
 function actualAwareInfoForVisualRow(row, month) {
   const scopedRow = row.custom ? customRowForVisualMonth(row, month) : row;
   if (!scopedRow) {
@@ -2691,6 +2722,8 @@ function visualRowsForSection(section, months) {
 }
 
 function visualCellValue(row, month, mode) {
+  const draft = visualDraftForCell(row, month, mode);
+  if (draft) return draft.value;
   if (mode === "actual") {
     const info = actualAwareInfoForVisualRow(row, month);
     return info.hasActual ? Number(info.actual || 0) : "";
@@ -2700,7 +2733,10 @@ function visualCellValue(row, month, mode) {
 
 function visualSectionTotal(section, rows, months, mode, month) {
   return rows.reduce((sum, row) => {
+    if (isVisualRowPendingDelete(seriesKeyForRow(row))) return sum;
     if (seriesOverrideForRow(row, month)?.deleted) return sum;
+    const drafted = visualDraftForCell(row, month, mode);
+    if (drafted) return sum + Number(drafted.value || 0);
     if (mode === "planned") return sum + plannedValueForVisualRow(row, month);
     return sum + actualAwareInfoForVisualRow(row, month).value;
   }, 0);
@@ -2745,19 +2781,26 @@ function updateVisualCell(input) {
   const row = rowForSeriesKey(input.dataset.rowKey);
   const month = baseData.monthlyPlanning.months.find((item) => item.key === input.dataset.monthKey);
   if (!row || !month) return;
-  const key = overrideKeyForRow(row, month);
-  const next = { ...(seriesOverrides[key] || {}) };
-  delete next.deleted;
   const parsed = parseAmount(input.value);
-  if (input.dataset.mode === "planned") {
-    next.planned = input.value === "" || parsed === null ? 0 : parsed;
+  const value = input.value === "" || parsed === null ? 0 : round2(parsed);
+  const mode = input.dataset.mode;
+  const key = visualDraftCellKey(input.dataset.rowKey, month.key, mode);
+  const currentValue = mode === "planned" ? plannedValueForVisualRow(row, month) : actualAwareInfoForVisualRow(row, month).actual;
+  if (Number(currentValue ?? 0) === value && !(mode === "actual" && currentValue === null)) {
+    delete visualDraftCells[key];
   } else {
-    next.actual = input.value === "" || parsed === null ? 0 : parsed;
+    visualDraftCells[key] = {
+      rowKey: input.dataset.rowKey,
+      monthKey: month.key,
+      monthLabel: month.label,
+      mode,
+      label: displayLabelForRow(row),
+      value,
+      oldValue: currentValue,
+    };
   }
-  if (Object.keys(next).length) seriesOverrides[key] = next;
-  else delete seriesOverrides[key];
-  saveSeriesOverrides();
-  render();
+  input.value = amountInputValue(value);
+  renderVisualDetail();
 }
 
 function updateVisualLabel(input) {
@@ -2765,18 +2808,15 @@ function updateVisualLabel(input) {
   if (!row) return;
   const label = input.value.trim();
   const key = seriesKeyForRow(row);
-  if (!label || label === row.label) delete rowLabelOverrides[key];
-  else rowLabelOverrides[key] = label;
-  if (row.custom) {
-    customPlanningRows
-      .filter((item) => seriesKeyForRow(item) === key)
-      .forEach((item) => {
-        item.label = label || item.label;
-      });
-    saveCustomPlanningRows();
+  if (!label || label === displayLabelForRow(row)) delete visualDraftLabels[key];
+  else {
+    visualDraftLabels[key] = {
+      rowKey: key,
+      oldValue: displayLabelForRow(row),
+      value: label,
+    };
   }
-  saveRowLabelOverrides();
-  render();
+  renderVisualDetail();
 }
 
 function rowForSeriesKey(key) {
@@ -2791,18 +2831,169 @@ function rowForSeriesKey(key) {
 function deleteVisualRow(rowKey) {
   const row = rowForSeriesKey(rowKey);
   if (!row) return;
-  const months = visualMonths();
+  visualDraftDeletes[rowKey] = {
+    rowKey,
+    label: displayLabelForRow(row),
+  };
+  visualSelectedRows.delete(rowKey);
+  renderVisualDetail();
+}
+
+function applyVisualDeleteRow(rowKey, months) {
+  const row = rowForSeriesKey(rowKey);
+  if (!row) return;
   const monthKeys = new Set(months.map((month) => month.key));
   const before = customPlanningRows.length;
   customPlanningRows = customPlanningRows.filter((item) => !(seriesKeyForRow(item) === rowKey && monthKeys.has(item.monthKey)));
-  if (customPlanningRows.length !== before) saveCustomPlanningRows();
 
   months.forEach((month) => {
     if (row.custom && row.monthKey !== month.key) return;
     seriesOverrides[overrideKeyForRow(row, month)] = { deleted: true };
   });
-  saveSeriesOverrides();
+  return before !== customPlanningRows.length;
+}
+
+function visualPendingCounts() {
+  return {
+    cells: Object.keys(visualDraftCells).length,
+    labels: Object.keys(visualDraftLabels).length,
+    deletes: Object.keys(visualDraftDeletes).length + Object.keys(visualDraftProjectDeletes).length,
+    selected: visualSelectedRows.size,
+  };
+}
+
+function visualHasPendingChanges() {
+  const counts = visualPendingCounts();
+  return counts.cells + counts.labels + counts.deletes > 0;
+}
+
+function renderVisualSavePanel() {
+  if (!qs("visualSavePanel")) return;
+  const counts = visualPendingCounts();
+  const pending = counts.cells + counts.labels + counts.deletes;
+  qs("visualSaveTitle").textContent = pending ? `${pending} cambio(s) pendiente(s)` : "Sin cambios pendientes";
+  const parts = [];
+  if (counts.cells) parts.push(`${counts.cells} importe(s)`);
+  if (counts.labels) parts.push(`${counts.labels} nombre(s)`);
+  if (counts.deletes) parts.push(`${counts.deletes} partida(s) para borrar`);
+  if (counts.selected) parts.push(`${counts.selected} seleccionada(s)`);
+  qs("visualSaveSummary").textContent = parts.length
+    ? `Se guardarán: ${parts.join(", ")}. Los cambios afectarán a Detalle visual, Previsión, flujo de caja, simulador y detalle mensual.`
+    : "Edita importes, nombres o selecciona partidas para borrar antes de guardar.";
+  qs("visualSavePanel").classList.toggle("has-pending", pending > 0 || counts.selected > 0);
+  qs("visualSaveChanges").disabled = pending === 0;
+  qs("visualDiscardChanges").disabled = pending === 0 && counts.selected === 0;
+  qs("visualBulkDelete").disabled = counts.selected === 0;
+}
+
+function toggleVisualRowSelection(rowKey, checked) {
+  if (checked) visualSelectedRows.add(rowKey);
+  else visualSelectedRows.delete(rowKey);
+  renderVisualDetail();
+}
+
+function stageSelectedVisualDeletes() {
+  visualSelectedRows.forEach((rowKey) => {
+    const row = rowForSeriesKey(rowKey);
+    if (row) {
+      visualDraftDeletes[rowKey] = {
+        rowKey,
+        label: displayLabelForRow(row),
+      };
+    }
+  });
+  visualSelectedRows.clear();
+  renderVisualDetail();
+}
+
+function stageVisualProjectDelete(id) {
+  const project = projects.find((item) => item.id === id);
+  if (!project) return;
+  visualDraftProjectDeletes[id] = { id, label: project.name || "Proyecto" };
+  renderVisualDetail();
+}
+
+function discardVisualChanges() {
+  visualDraftCells = {};
+  visualDraftLabels = {};
+  visualDraftDeletes = {};
+  visualDraftProjectDeletes = {};
+  visualSelectedRows.clear();
+  renderVisualDetail();
+}
+
+function saveVisualChanges() {
+  const months = visualMonths();
+  let savedCells = 0;
+  let savedLabels = 0;
+  let savedDeletes = 0;
+  let customChanged = false;
+  let projectsChanged = false;
+
+  Object.values(visualDraftCells).forEach((draft) => {
+    const row = rowForSeriesKey(draft.rowKey);
+    const month = baseData.monthlyPlanning.months.find((item) => item.key === draft.monthKey);
+    if (!row || !month) return;
+    const key = overrideKeyForRow(row, month);
+    const next = { ...(seriesOverrides[key] || {}) };
+    delete next.deleted;
+    if (draft.mode === "planned") next.planned = draft.value;
+    else next.actual = draft.value;
+    seriesOverrides[key] = next;
+    savedCells += 1;
+  });
+
+  Object.values(visualDraftLabels).forEach((draft) => {
+    const row = rowForSeriesKey(draft.rowKey);
+    if (!row) return;
+    const label = String(draft.value || "").trim();
+    if (!label) return;
+    if (label === row.label) delete rowLabelOverrides[draft.rowKey];
+    else rowLabelOverrides[draft.rowKey] = label;
+    if (row.custom) {
+      customPlanningRows
+        .filter((item) => seriesKeyForRow(item) === draft.rowKey)
+        .forEach((item) => {
+          item.label = label;
+        });
+      customChanged = true;
+    }
+    savedLabels += 1;
+  });
+
+  Object.keys(visualDraftDeletes).forEach((rowKey) => {
+    if (applyVisualDeleteRow(rowKey, months)) customChanged = true;
+    savedDeletes += 1;
+  });
+
+  Object.keys(visualDraftProjectDeletes).forEach((id) => {
+    const before = projects.length;
+    projects = projects.filter((project) => project.id !== id);
+    if (projects.length !== before) {
+      projectsChanged = true;
+      savedDeletes += 1;
+    }
+  });
+
+  if (savedCells || savedDeletes) saveSeriesOverrides();
+  if (savedLabels) saveRowLabelOverrides();
+  if (customChanged) saveCustomPlanningRows();
+  if (projectsChanged) saveProjects();
+
+  const summary = [];
+  if (savedCells) summary.push(`${savedCells} importe(s)`);
+  if (savedLabels) summary.push(`${savedLabels} nombre(s)`);
+  if (savedDeletes) summary.push(`${savedDeletes} borrado(s)`);
+  visualDraftCells = {};
+  visualDraftLabels = {};
+  visualDraftDeletes = {};
+  visualDraftProjectDeletes = {};
+  visualSelectedRows.clear();
   render();
+  if (qs("visualAddFeedback")) {
+    qs("visualAddFeedback").textContent = summary.length ? `Guardado: ${summary.join(", ")}.` : "No había cambios que guardar.";
+    qs("visualAddFeedback").className = "inline-feedback success";
+  }
 }
 
 function renderVisualDetail() {
@@ -2821,6 +3012,7 @@ function renderVisualDetail() {
     const expanded = expandedVisualSections.has(sectionKey);
     totals.lines += rows.length;
     rows.forEach((row) => {
+      if (isVisualRowPendingDelete(seriesKeyForRow(row))) return;
       months.forEach((month) => {
         if (actualAwareInfoForVisualRow(row, month).hasActual) totals.realRows += 1;
       });
@@ -2844,12 +3036,19 @@ function renderVisualDetail() {
     if (!expanded) return;
 
     rows.forEach((row) => {
-      const label = displayLabelForRow(row);
+      const label = visualDisplayLabel(row);
       const rowKey = seriesKeyForRow(row);
-      body.push(`<tr class="visual-line-row">
+      const pendingDelete = isVisualRowPendingDelete(rowKey);
+      const selected = visualSelectedRows.has(rowKey);
+      body.push(`<tr class="visual-line-row ${pendingDelete ? "pending-delete" : ""} ${selected ? "selected" : ""}">
         <td>
-          <input class="visual-label-input" data-visual-label-key="${escapeHtml(rowKey)}" value="${escapeHtml(label)}" />
-          <small>${escapeHtml(section.name)}${row.custom ? " · nuevo" : ""}</small>
+          <div class="visual-row-heading">
+            <input class="visual-select-row" data-visual-select-row="${escapeHtml(rowKey)}" type="checkbox" ${selected ? "checked" : ""} ${pendingDelete ? "disabled" : ""} aria-label="Seleccionar ${escapeHtml(label)}" />
+            <div>
+              <input class="visual-label-input" data-visual-label-key="${escapeHtml(rowKey)}" value="${escapeHtml(label)}" ${pendingDelete ? "disabled" : ""} />
+              <small>${escapeHtml(section.name)}${row.custom ? " · nuevo" : ""}${pendingDelete ? " · se borrará al guardar" : ""}</small>
+            </div>
+          </div>
         </td>
         ${months
           .map((month) => {
@@ -2857,11 +3056,11 @@ function renderVisualDetail() {
             const value = visualCellValue(row, month, mode);
             const placeholder = mode === "actual" && info.planned ? `prev. ${money(info.planned, true)}` : "";
             return `<td>
-              <input class="visual-amount-input" data-visual-cell data-row-key="${escapeHtml(rowKey)}" data-month-key="${month.key}" data-mode="${mode}" type="number" step="0.01" value="${value}" placeholder="${placeholder}" />
+              <input class="visual-amount-input" data-visual-cell data-row-key="${escapeHtml(rowKey)}" data-month-key="${month.key}" data-mode="${mode}" type="number" step="0.01" value="${amountInputValue(value)}" placeholder="${placeholder}" ${pendingDelete ? "disabled" : ""} />
             </td>`;
           })
           .join("")}
-        <td><button class="row-delete-button" type="button" data-visual-delete="${escapeHtml(rowKey)}">Eliminar</button></td>
+        <td><button class="row-delete-button" type="button" data-visual-delete="${escapeHtml(rowKey)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button></td>
       </tr>`);
     });
   });
@@ -2870,7 +3069,9 @@ function renderVisualDetail() {
   if (projectRows.length) {
     const projectSectionKey = "project:projects";
     const expanded = expandedVisualSections.has(projectSectionKey);
-    const sectionTotals = months.map((_, index) => round2(projectRows.reduce((sum, project) => sum + project.values[index], 0)));
+    const sectionTotals = months.map((_, index) =>
+      round2(projectRows.reduce((sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : project.values[index]), 0)),
+    );
     sectionTotals.forEach((value) => {
       totals.expense += value;
     });
@@ -2888,15 +3089,16 @@ function renderVisualDetail() {
 
     if (expanded) {
       projectRows.forEach((project) => {
-        body.push(`<tr class="visual-line-row visual-project-row">
+        const pendingDelete = isVisualProjectPendingDelete(project.id);
+        body.push(`<tr class="visual-line-row visual-project-row ${pendingDelete ? "pending-delete" : ""}">
           <td>
             <input class="visual-label-input derived-control" value="${escapeHtml(project.name)}" readonly />
-            <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}</small>
+            <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}${pendingDelete ? " · se borrará al guardar" : ""}</small>
           </td>
           ${project.values
-            .map((value) => `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? round2(value) : ""}" readonly /></td>`)
+            .map((value) => `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" readonly /></td>`)
             .join("")}
-          <td><button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}">Eliminar</button></td>
+          <td><button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button></td>
         </tr>`);
       });
     }
@@ -2916,6 +3118,9 @@ function renderVisualDetail() {
   document.querySelectorAll("[data-visual-section-toggle]").forEach((button) => {
     button.addEventListener("click", () => toggleVisualSection(button.dataset.visualSectionToggle));
   });
+  document.querySelectorAll("[data-visual-select-row]").forEach((input) => {
+    input.addEventListener("change", () => toggleVisualRowSelection(input.dataset.visualSelectRow, input.checked));
+  });
   document.querySelectorAll("[data-visual-cell]").forEach((input) => {
     input.addEventListener("change", () => updateVisualCell(input));
   });
@@ -2926,8 +3131,9 @@ function renderVisualDetail() {
     button.addEventListener("click", () => deleteVisualRow(button.dataset.visualDelete));
   });
   document.querySelectorAll("[data-visual-project-delete]").forEach((button) => {
-    button.addEventListener("click", () => removeProject(button.dataset.visualProjectDelete));
+    button.addEventListener("click", () => stageVisualProjectDelete(button.dataset.visualProjectDelete));
   });
+  renderVisualSavePanel();
 }
 
 function handleVisualAddRow() {
@@ -2936,7 +3142,7 @@ function handleVisualAddRow() {
   const label = qs("visualAddLabel").value.trim();
   const amountInput = qs("visualAddAmount").value;
   const parsedAmount = parseAmount(amountInput);
-  const amount = amountInput === "" || parsedAmount === null ? 0 : parsedAmount;
+  const amount = amountInput === "" || parsedAmount === null ? 0 : round2(parsedAmount);
   const feedback = qs("visualAddFeedback");
   if (!label) {
     if (feedback) {
@@ -3951,6 +4157,9 @@ async function init() {
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);
   qs("visualAddRow").addEventListener("click", handleVisualAddRow);
+  qs("visualSaveChanges").addEventListener("click", saveVisualChanges);
+  qs("visualDiscardChanges").addEventListener("click", discardVisualChanges);
+  qs("visualBulkDelete").addEventListener("click", stageSelectedVisualDeletes);
   qs("movementMonthFilter").addEventListener("change", renderDetailedMovements);
   qs("movementSearch").addEventListener("input", renderDetailedMovements);
   qs("clearBatchData").addEventListener("click", () => {
