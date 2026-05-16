@@ -54,6 +54,9 @@ let expandedPlanningSections = {
   expense: new Set(),
 };
 
+const WORKBOOK_OVERRIDE_KEY = "financeDashboard:workbookOverride:v1";
+const REMOTE_SOURCE_KEY = "finance-dashboard-main";
+
 const viewTitles = {
   overview: {
     eyebrow: "Cuadro de mando financiero",
@@ -189,8 +192,24 @@ function storageSet(key, value) {
   }
 }
 
+function loadWorkbookOverride() {
+  const stored = storageGet(WORKBOOK_OVERRIDE_KEY, "");
+  if (!stored) return;
+  try {
+    const parsed = JSON.parse(stored);
+    if (parsed?.metadata && parsed?.monthlyPlanning) baseData = parsed;
+  } catch {
+    storageSet(WORKBOOK_OVERRIDE_KEY, "");
+  }
+}
+
+function saveWorkbookOverride() {
+  if (!baseData?.metadata || !baseData?.monthlyPlanning) return;
+  storageSet(WORKBOOK_OVERRIDE_KEY, JSON.stringify(baseData));
+}
+
 function sourceStateKey() {
-  return baseData?.metadata?.sourceWorkbook || "finance-dashboard";
+  return REMOTE_SOURCE_KEY;
 }
 
 function appStatePayload() {
@@ -198,6 +217,7 @@ function appStatePayload() {
     version: 1,
     updatedAt: new Date().toISOString(),
     sourceWorkbook: sourceStateKey(),
+    workbookData: baseData?.metadata?.sourceWorkbookStatus === "Leído desde la app" ? baseData : null,
     projects,
     incomeActuals,
     expenseActuals,
@@ -210,6 +230,10 @@ function appStatePayload() {
 }
 
 function applyPersistedPayload(payload = {}) {
+  if (payload.workbookData?.metadata && payload.workbookData?.monthlyPlanning) {
+    baseData = payload.workbookData;
+    saveWorkbookOverride();
+  }
   projects = Array.isArray(payload.projects) ? payload.projects : [];
   incomeActuals = payload.incomeActuals && typeof payload.incomeActuals === "object" ? payload.incomeActuals : {};
   expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
@@ -453,6 +477,14 @@ function setupViewNavigation() {
   setActiveView();
 }
 
+function updateSourceNote() {
+  const sourceNote = qs("sourceNote");
+  if (!sourceNote || !baseData?.metadata) return;
+  const sourceFile = (baseData.metadata.sourceWorkbook || "").split("/").pop() || "Excel financiero";
+  sourceNote.textContent =
+    `Fuente: ${sourceFile}. Lee Plan_Ahorro_821, Contabilidad New Life, Importe devolucion recibos y movimientos de cuenta.`;
+}
+
 function initSupabaseClient() {
   if (supabaseClient || !isSupabaseConfigured()) return supabaseClient;
   const config = supabaseConfig();
@@ -466,6 +498,7 @@ function initSupabaseClient() {
 }
 
 function refreshFromPersistedState() {
+  updateSourceNote();
   writeControls({ ...baseData.assumptions, ...scenarioSettings, autoCapSavings: scenarioSettings.autoCapSavings ?? true });
   qs("scenarioName").textContent = currentScenario;
   document.querySelectorAll(".scenario-buttons button").forEach((button) => {
@@ -669,11 +702,18 @@ function parseAmount(value) {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   const raw = String(value ?? "").trim();
   if (!raw) return null;
-  const cleaned = raw
+  const compact = raw
     .replace(/\s/g, "")
     .replace(/€/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
+    .replace(/[^\d,.-]/g, "");
+  const hasComma = compact.includes(",");
+  const hasDot = compact.includes(".");
+  const cleaned =
+    hasComma && hasDot
+      ? compact.replace(/\./g, "").replace(",", ".")
+      : hasComma
+        ? compact.replace(",", ".")
+        : compact;
   const number = Number(cleaned);
   return Number.isFinite(number) ? number : null;
 }
@@ -737,6 +777,326 @@ function canonicalHeader(value) {
 function normalizeProjectMode(value) {
   const text = normalizedText(value);
   return text.includes("opt") ? "optimize" : "fixed";
+}
+
+function workbookSheet(workbook, candidates) {
+  const names = workbook.SheetNames || [];
+  return names.find((name) => candidates.some((candidate) => normalizedText(name) === normalizedText(candidate))) || null;
+}
+
+function cellValue(sheet, address, fallback = null) {
+  const cell = sheet?.[address];
+  return cell ? (cell.v ?? fallback) : fallback;
+}
+
+function numberCell(sheet, address, fallback = 0) {
+  const value = cellValue(sheet, address, fallback);
+  const number = parseAmount(value);
+  return number ?? fallback;
+}
+
+function dateCell(sheet, address) {
+  return isoFromWorkbookValue(cellValue(sheet, address));
+}
+
+function isoFromWorkbookValue(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  if (typeof value === "number" && window.XLSX?.SSF?.parse_date_code) {
+    const parsed = window.XLSX.SSF.parse_date_code(value);
+    if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
+  }
+  const raw = String(value).trim();
+  const spanishDate = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  if (spanishDate) {
+    const year = spanishDate[3].length === 2 ? `20${spanishDate[3]}` : spanishDate[3];
+    return `${year}-${String(Number(spanishDate[2])).padStart(2, "0")}-${String(Number(spanishDate[1])).padStart(2, "0")}`;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? raw : date.toISOString().slice(0, 10);
+}
+
+function monthKeyFromWorkbookValue(value) {
+  const iso = isoFromWorkbookValue(value);
+  return iso?.match(/^\d{4}-\d{2}/)?.[0] || null;
+}
+
+function cellByIndex(sheet, rowIndex, colIndex) {
+  return sheet?.[window.XLSX.utils.encode_cell({ r: rowIndex, c: colIndex })]?.v;
+}
+
+function loadMonthlyPlanningFromWorkbook(workbook) {
+  const sheetName = workbookSheet(workbook, ["Contabilidad New Life", "Contabilidad New Life (2)"]);
+  const sheet = workbook.Sheets[sheetName];
+  if (!sheet) throw new Error("No encuentro la pestaña Contabilidad New Life.");
+  const range = window.XLSX.utils.decode_range(sheet["!ref"]);
+  const months = [];
+  const columns = [];
+
+  for (let col = 2; col <= range.e.c; col += 1) {
+    const key = monthKeyFromWorkbookValue(cellByIndex(sheet, 4, col));
+    if (!key) continue;
+    months.push({ key, label: monthLabel(dateFromMonthKey(key)) });
+    columns.push(col);
+  }
+
+  const sectionDefs = [
+    ["Ingresos", "INGRESOS", "income"],
+    ["Gastos fijos", "GASTOS FIJOS", "expense"],
+    ["Suscripciones", "SUSCRIPCIONES", "expense"],
+    ["Financiaciones", "FINANCIACIONES", "expense"],
+    ["Imprevistos / otros", "IMPREVISTOS", "expense"],
+  ];
+
+  const sections = sectionDefs
+    .map(([sectionName, marker, kind]) => {
+      let startRow = -1;
+      let endRow = -1;
+      for (let row = 0; row <= range.e.r; row += 1) {
+        const label = cellByIndex(sheet, row, 1);
+        if (typeof label === "string" && label.toUpperCase().includes(marker)) {
+          startRow = row + 1;
+          break;
+        }
+      }
+      if (startRow < 0) return null;
+      for (let row = startRow; row <= range.e.r; row += 1) {
+        const label = cellByIndex(sheet, row, 1);
+        if (typeof label === "string" && label.trim().toUpperCase() === "TOTAL") {
+          endRow = row - 1;
+          break;
+        }
+      }
+      if (endRow < startRow) return null;
+      const rows = [];
+      for (let row = startRow; row <= endRow; row += 1) {
+        const label = cellByIndex(sheet, row, 1);
+        if (label === null || label === undefined || label === "") continue;
+        const planned = columns.map((col) => Math.abs(parseAmount(cellByIndex(sheet, row, col)) ?? 0));
+        if (!planned.some(Boolean)) continue;
+        rows.push({
+          id: `${sectionName.toLowerCase().replaceAll(" ", "-")}-${row + 1}`,
+          label: String(label).trim(),
+          row: row + 1,
+          kind,
+          planned,
+        });
+      }
+      if (!rows.length) return null;
+      return {
+        name: sectionName,
+        kind,
+        rows,
+        totals: months.map((_, index) => round2(rows.reduce((sum, row) => sum + Number(row.planned[index] || 0), 0))),
+      };
+    })
+    .filter(Boolean);
+
+  return { months, sections };
+}
+
+function round2(value) {
+  return Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+}
+
+function classifyTransaction(row) {
+  const text = `${row.movement || ""} ${row.details || ""}`.toUpperCase();
+  const amount = Number(row.amount || 0);
+  const hasAny = (needles) => needles.some((needle) => text.includes(needle));
+  if (amount > 0) {
+    if (text.includes("NOMINA")) return "Ingresos nomina";
+    if (text.includes("JESUS SANTOS")) return "Ingreso recurrente 800";
+    if (hasAny(["DEVOLUCION", "DEVOLUCIONES", "TARJ.FINANC.RECIBO", "LIQUID.VISA", "BANKINTER CONS", "WIZINK", "BANCO CETELEM", "ABON.TARJ.CREDITO"])) return "Devoluciones/creditos";
+    return "Otros ingresos";
+  }
+  if (hasAny(["PZ FINANZ", "JAVIER BARRIUSO M"])) return "Refinanciacion";
+  if (text.includes("BMW BANK")) return "Coche";
+  if (hasAny(["RECIBO ENTIDAD DE FINANCIACION", "RECIBO ENTIDAD DE FINANCIACIÓN", "FINANCIE", "FIN.EL CORTE", "ECITC", "ECIVP", "CRD010", "BANKINTER CONS", "LIQUID.VISA ORO", "WIZINK", "CAIXABANK PAYM", "PRS304", "VISA GO", "MYCARD", "LC ASSET"])) return "Creditos antiguos";
+  if (text.includes("MASTER BASICA")) return "Tarjeta Mastercard";
+  if (hasAny(["TELEFONICA", "REPSOL ELECT", "ENDESA", "IBERDROLA", "CANAL DE ISAB", "AGUA", "SUMINIST"])) return "Suministros y telecom";
+  if (hasAny(["CP LA FRONTERA", "FINCAS", "ALQUILER", "TRASTERO"])) return "Vivienda/comunidad";
+  if (text.includes("REINT.CAJERO")) return "Efectivo";
+  if (text.includes("TRASPASO")) return "Traspasos/ahorro";
+  if (hasAny(["GENERALI", "PROSEGUR", "SEG.", "SEGURO"])) return "Seguros";
+  if (hasAny(["SUPERMERC", "MERCADONA", "CARREFOUR", "LIDL", "ALCAMPO", "CONSUM"])) return "Alimentacion";
+  return "Otros gastos";
+}
+
+function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
+  const sheet = workbook.Sheets[sheetName];
+  const rawRows = window.XLSX.utils.sheet_to_json(sheet, { range: 2, defval: "", raw: true });
+  return rawRows
+    .map((row) => {
+      const date = isoFromWorkbookValue(row.Fecha);
+      const amount = parseAmount(row.Importe);
+      if (!date || !row.Movimiento || amount === null) return null;
+      const transaction = {
+        date,
+        valueDate: isoFromWorkbookValue(row["Fecha valor"]) || date,
+        movement: String(row.Movimiento),
+        details: String(row["Más datos"] || row["Mas datos"] || ""),
+        amount: round2(amount),
+        balance: parseAmount(row.Saldo),
+        category: "",
+        source: sheetName,
+        sourceRank,
+        month: date.slice(0, 7),
+      };
+      transaction.category = classifyTransaction(transaction);
+      return transaction;
+    })
+    .filter(Boolean);
+}
+
+function loadTransactionsFromWorkbook(workbook) {
+  const movementSheets = workbook.SheetNames.filter((name) =>
+    normalizedText(name).replace(/[^a-z0-9]/g, "").startsWith("movimientoscuenta"),
+  );
+  const deduped = new Map();
+  movementSheets.forEach((sheetName, sourceRank) => {
+    rowsFromMovementSheet(workbook, sheetName, sourceRank).forEach((row) => {
+      const key = `${row.date}|${row.movement}|${row.details}|${row.amount}`;
+      const previous = deduped.get(key);
+      if (!previous || row.sourceRank >= previous.sourceRank) deduped.set(key, row);
+    });
+  });
+  return [...deduped.values()]
+    .sort((a, b) => `${a.date}|${a.sourceRank}|${a.movement}`.localeCompare(`${b.date}|${b.sourceRank}|${b.movement}`))
+    .map(({ sourceRank, ...row }) => row);
+}
+
+function buildRollupsFromTransactions(transactions) {
+  const recent = transactions.filter((row) => row.date >= "2025-11-01");
+  const current = recent.filter((row) => row.month >= "2026-01" && row.month <= "2026-03");
+  const coreCategories = ["Tarjeta Mastercard", "Suministros y telecom", "Vivienda/comunidad", "Efectivo", "Seguros", "Alimentacion", "Otros gastos"];
+  const recurringIncomeCategories = ["Ingresos nomina", "Ingreso recurrente 800"];
+  const group = (rows, keyer, valuer) =>
+    rows.reduce((map, row) => {
+      const key = keyer(row);
+      map.set(key, round2((map.get(key) || 0) + valuer(row)));
+      return map;
+    }, new Map());
+  const categoryMonthly = [...group(recent, (row) => `${row.month}|${row.category}`, (row) => row.amount)].map(([key, amount]) => {
+    const [month, Categoria] = key.split("|");
+    return { month, Categoria, amount };
+  });
+  const coreMonthly = [...group(current.filter((row) => row.amount < 0 && coreCategories.includes(row.category)), (row) => row.month, (row) => -row.amount).values()];
+  const incomeMonthly = [...group(current.filter((row) => recurringIncomeCategories.includes(row.category)), (row) => row.month, (row) => row.amount).values()];
+  const topMerchants = [...group(current.filter((row) => row.amount < 0 && coreCategories.includes(row.category)), (row) => `${row.movement}|${row.category}`, (row) => -row.amount)]
+    .map(([key, amount]) => {
+      const [Movimiento, Categoria] = key.split("|");
+      return { Movimiento, Categoria, amount: round2(amount) };
+    })
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 20);
+  return {
+    categoryMonthly,
+    topMerchants,
+    historicalCoreSpend: coreMonthly.length ? round2(coreMonthly.reduce((a, b) => a + b, 0) / coreMonthly.length) : 0,
+    historicalIncome: incomeMonthly.length ? round2(incomeMonthly.reduce((a, b) => a + b, 0) / incomeMonthly.length) : 0,
+  };
+}
+
+function buildFinanceDataFromWorkbook(workbook, fileName) {
+  const planSheet = workbook.Sheets[workbookSheet(workbook, ["Plan_Ahorro_821"])];
+  const lifeSheet = workbook.Sheets[workbookSheet(workbook, ["Contabilidad New Life", "Contabilidad New Life (2)"])];
+  const refundSheet = workbook.Sheets[workbookSheet(workbook, ["Importe devolucion recibos", "Importe devolución recibos"])];
+  if (!planSheet || !lifeSheet) throw new Error("El libro no contiene Plan_Ahorro_821 y Contabilidad New Life.");
+
+  const monthlyPlanning = loadMonthlyPlanningFromWorkbook(workbook);
+  const sourcePlan = {
+    baseHouseholdIncome: numberCell(planSheet, "B5"),
+    incomeWithExtrasProrated: numberCell(planSheet, "F5"),
+    extraApril: numberCell(planSheet, "B6"),
+    extraDecember: numberCell(planSheet, "B7"),
+    mortgagePayment: numberCell(planSheet, "B8"),
+    bmwPayment: numberCell(planSheet, "B9"),
+    unifiedCreditPayment: numberCell(planSheet, "B10"),
+    otherFixedNonDebt: numberCell(planSheet, "B11"),
+    variableSpendTarget: numberCell(planSheet, "B12"),
+    initialEmergencyFund: numberCell(planSheet, "B13"),
+    emergencyBufferMonths: numberCell(planSheet, "B14", 6),
+    debtServiceMonthlyTotal: numberCell(planSheet, "F6"),
+    debtToIncomeRatio: numberCell(planSheet, "F7"),
+    totalSpendTarget: numberCell(planSheet, "F8"),
+    monthlySavingPotential: numberCell(planSheet, "F9"),
+    savingsRate: numberCell(planSheet, "F10"),
+    emergencyFundTarget: numberCell(planSheet, "F11"),
+    emergencyFundGap: numberCell(planSheet, "F12"),
+    recommendedSaving: numberCell(planSheet, "F16", baseData.assumptions.recommendedSavings),
+    suggestedAmortization: numberCell(planSheet, "F17"),
+    bankinterOutsidePlanPayment: numberCell(planSheet, "B18"),
+    cetelemOutsidePlanPayment: numberCell(planSheet, "B19"),
+    carEndDate: dateCell(planSheet, "F18"),
+    bankinterEndDate: dateCell(planSheet, "H18"),
+    cetelemEndDate: dateCell(planSheet, "F19"),
+    monthWithoutBmwCetelem: dateCell(planSheet, "H19"),
+    oldDebtPrincipal: refundSheet ? numberCell(refundSheet, "K16") : 0,
+    oldDebtMonthlyPayments: refundSheet ? numberCell(refundSheet, "L16") : 0,
+  };
+  const sourceBalances = {
+    valuationDate: dateCell(lifeSheet, "C1") || defaultBalanceDate(),
+    caixaBalance: numberCell(lifeSheet, "C3"),
+    mediolanumBalance: numberCell(lifeSheet, "D3"),
+    totalBalance: numberCell(lifeSheet, "E3"),
+  };
+  const transactions = loadTransactionsFromWorkbook(workbook);
+  const rollups = buildRollupsFromTransactions(transactions);
+  const baseSpendWithMortgage = sourcePlan.otherFixedNonDebt + sourcePlan.variableSpendTarget + sourcePlan.mortgagePayment;
+  const assumptions = {
+    ...baseData.assumptions,
+    initialCash: round2(sourceBalances.totalBalance || sourceBalances.caixaBalance + sourceBalances.mediolanumBalance),
+    caixaBalanceBeforeCar: round2(sourceBalances.caixaBalance),
+    newAccountBalance: round2(sourceBalances.mediolanumBalance),
+    currentCarAdjustment: 0,
+    monthlyIncome: round2(sourcePlan.incomeWithExtrasProrated),
+    baseHouseholdIncome: round2(sourcePlan.baseHouseholdIncome),
+    coreSpend: round2(baseSpendWithMortgage),
+    otherFixedNonDebt: round2(sourcePlan.otherFixedNonDebt),
+    variableSpendTarget: round2(sourcePlan.variableSpendTarget),
+    mortgagePayment: round2(sourcePlan.mortgagePayment),
+    carPayment: round2(sourcePlan.bmwPayment),
+    carEndDate: sourcePlan.carEndDate,
+    refiFirstPayment: round2(sourcePlan.unifiedCreditPayment),
+    remainingHighRefiPayments: 1,
+    extraDebts: [
+      { name: "Bankinter fuera del plan", payment: round2(sourcePlan.bankinterOutsidePlanPayment), endDate: sourcePlan.bankinterEndDate },
+      { name: "Cetelem fuera del plan", payment: round2(sourcePlan.cetelemOutsidePlanPayment), endDate: sourcePlan.cetelemEndDate },
+    ],
+    recommendedSavings: round2(sourcePlan.recommendedSaving),
+    emergencyBufferMonths: round2(sourcePlan.emergencyBufferMonths),
+    annualInflation: 0,
+    annualIncomeGrowth: 0,
+  };
+  const monthlySurplus = assumptions.monthlyIncome - assumptions.coreSpend - assumptions.carPayment - assumptions.refiFirstPayment - assumptions.extraDebts.reduce((sum, item) => sum + item.payment, 0);
+  return {
+    metadata: {
+      generatedAt: new Date().toISOString(),
+      sourceWorkbook: fileName,
+      sourceWorkbookStatus: "Leído desde la app",
+      forecastStart: `${monthlyPlanning.months[0]?.key || "2026-05"}-01`,
+      forecastMonths: 60,
+      currency: "EUR",
+    },
+    assumptions,
+    sourcePlan,
+    sourceBalances,
+    monthlyPlanning,
+    derived: {
+      coreMonthlyAverageJanMar2026: rollups.historicalCoreSpend,
+      incomeMonthlyAverageJanMar2026: rollups.historicalIncome,
+      monthlySurplusAfterRefiAndCar: round2(monthlySurplus),
+      oldCreditMonthlyAverageJanMar2026: round2(sourcePlan.oldDebtMonthlyPayments),
+      oldCreditPrincipal: round2(sourcePlan.oldDebtPrincipal),
+      debtToIncomeRatio: round2(sourcePlan.debtToIncomeRatio),
+      planSavingsRate: round2(sourcePlan.savingsRate),
+      emergencyFundTarget: round2(sourcePlan.emergencyFundTarget),
+      emergencyFundGap: round2(sourcePlan.emergencyFundGap),
+    },
+    categoryMonthly: rollups.categoryMonthly,
+    topMerchants: rollups.topMerchants,
+    transactions,
+  };
 }
 
 function customRowsForSection(kind, sectionName, month) {
@@ -2532,6 +2892,36 @@ function handleBatchImport() {
   processDataRecords(records, "lote pegado");
 }
 
+function applyImportedWorkbookData(nextData, fileName) {
+  baseData = nextData;
+  balanceSettings = {};
+  scenarioSettings = {};
+  currentScenario = "Base";
+  selectedCashflowIndex = null;
+  expandedCashflowYears = new Set();
+  expandedPlanningSections = {
+    income: new Set(),
+    expense: new Set(),
+  };
+  saveWorkbookOverride();
+  writeControls({ ...baseData.assumptions, autoCapSavings: true });
+  populateSelectors();
+  updateSourceNote();
+  qs("scenarioName").textContent = currentScenario;
+  saveLocalSnapshot();
+  queueRemoteSave();
+  render();
+
+  const monthCount = baseData.monthlyPlanning?.months?.length || 0;
+  const sectionCount = baseData.monthlyPlanning?.sections?.length || 0;
+  const transactionCount = baseData.transactions?.length || 0;
+  showImportLog(
+    "Libro Excel cargado completo",
+    `${fileName}: ${monthCount} meses, ${sectionCount} bloques de planificación y ${transactionCount} movimientos incorporados al modelo.`,
+    "success",
+  );
+}
+
 async function handleExcelImport(event) {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -2546,25 +2936,21 @@ async function handleExcelImport(event) {
     event.target.value = "";
     return;
   }
-  if (!window.XLSX) {
+  if (!window.XLSX || typeof window.XLSX.read !== "function") {
     showImportLog("No se pudo leer Excel", "La librería de lectura de Excel no está disponible todavía.", "danger");
     return;
   }
   const buffer = await file.arrayBuffer();
   const workbook = window.XLSX.read(buffer, { type: "array" });
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  const rawRows = window.XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
-  const records = rawRows.map((row) =>
-    Object.entries(row).reduce((record, [key, value]) => {
-      record[canonicalHeader(key)] = value;
-      return record;
-    }, {}),
-  );
-  if (!records.length) {
-    showImportLog("Excel vacío", "No se han encontrado filas en la primera hoja.", "danger");
-    return;
+  try {
+    applyImportedWorkbookData(buildFinanceDataFromWorkbook(workbook, file.name), file.name);
+  } catch (error) {
+    showImportLog(
+      "No se pudo cargar el libro completo",
+      `${error.message}. Comprueba que el Excel mantiene las pestañas Plan_Ahorro_821, Contabilidad New Life, Importe devolucion recibos y Movimientos_cuenta.`,
+      "danger",
+    );
   }
-  processDataRecords(records, file.name);
   event.target.value = "";
 }
 
@@ -2798,12 +3184,12 @@ async function init() {
     const response = await fetch("../data/finance_data.json");
     baseData = await response.json();
   }
+  loadWorkbookOverride();
   loadLocalState();
+  document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors();
-  const sourceFile = (baseData.metadata.sourceWorkbook || "").split("/").pop() || "Excel financiero";
-  qs("sourceNote").textContent =
-    `Fuente: ${sourceFile}. Usa Plan_Ahorro_821, Importe devolucion recibos y movimientos de cuenta.`;
+  updateSourceNote();
   qs("scenarioName").textContent = currentScenario;
 
   controls.forEach((key) => qs(key).addEventListener("input", render));
