@@ -2681,6 +2681,7 @@ function visualRowsForSection(section, months) {
     });
   return rows.filter((row) =>
     months.some((month) => {
+      if (row.custom && monthKeys.has(month.key) && customRowForVisualMonth(row, month)) return true;
       if (seriesOverrideForRow(row, month)?.deleted) return false;
       const info = actualAwareInfoForVisualRow(row, month);
       return info.value !== 0 || info.planned !== 0 || info.hasActual;
@@ -2897,9 +2898,16 @@ function handleVisualAddRow() {
   const kind = qs("visualAddKind").value;
   const sectionName = qs("visualAddSection").value;
   const label = qs("visualAddLabel").value.trim();
-  const amount = parseAmount(qs("visualAddAmount").value);
-  if (!label || amount === null) {
-    showImportLog("Falta información", "Introduce concepto e importe para añadir una línea visual.", "danger");
+  const amountInput = qs("visualAddAmount").value;
+  const parsedAmount = parseAmount(amountInput);
+  const amount = amountInput === "" || parsedAmount === null ? 0 : parsedAmount;
+  const feedback = qs("visualAddFeedback");
+  if (!label) {
+    if (feedback) {
+      feedback.textContent = "Pon un nombre de concepto para crear la línea.";
+      feedback.className = "inline-feedback warning";
+    }
+    qs("visualAddLabel").focus();
     return;
   }
   const sharedId = `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -2919,6 +2927,10 @@ function handleVisualAddRow() {
   qs("visualAddLabel").value = "";
   qs("visualAddAmount").value = "";
   render();
+  if (qs("visualAddFeedback")) {
+    qs("visualAddFeedback").textContent = `${label} añadida. Puedes editar sus importes directamente en la tabla.`;
+    qs("visualAddFeedback").className = "inline-feedback success";
+  }
   showImportLog("Línea añadida", `${label} se ha incorporado al rango indicado y ya recalcula todo el dashboard.`);
 }
 

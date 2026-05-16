@@ -1538,6 +1538,21 @@ svg {
   font-weight: 900;
 }
 
+.inline-feedback {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.inline-feedback.warning {
+  color: var(--red);
+}
+
+.inline-feedback.success {
+  color: var(--green);
+}
+
 .visual-table-wrap {
   max-height: 720px;
 }
