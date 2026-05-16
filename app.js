@@ -2590,6 +2590,27 @@ function visualCellClass(section) {
   return section.kind === "income" ? "positive" : "negative";
 }
 
+function projectRowsForVisualMonths(months) {
+  if (!projectPlan.placements.length) return [];
+  const forecast = forecastMonths();
+  const monthIndexByKey = new Map(forecast.map((month) => [month.key, month.index]));
+  return projectPlan.placements
+    .map((project) => {
+      const duration = Math.max(1, Number(project.duration || 1));
+      const monthlyAmount = Number(project.amount || 0) / duration;
+      const values = months.map((month) => {
+        const forecastIndex = monthIndexByKey.get(month.key);
+        const active =
+          forecastIndex !== undefined &&
+          forecastIndex >= project.startIndex &&
+          forecastIndex < project.startIndex + duration;
+        return active ? monthlyAmount : 0;
+      });
+      return { ...project, monthlyAmount, values };
+    })
+    .filter((project) => project.values.some((value) => value !== 0));
+}
+
 function updateVisualCell(input) {
   const row = rowForSeriesKey(input.dataset.rowKey);
   const month = baseData.monthlyPlanning.months.find((item) => item.key === input.dataset.monthKey);
@@ -2705,6 +2726,33 @@ function renderVisualDetail() {
     });
   });
 
+  const projectRows = projectRowsForVisualMonths(months);
+  if (projectRows.length) {
+    const sectionTotals = months.map((_, index) => round2(projectRows.reduce((sum, project) => sum + project.values[index], 0)));
+    sectionTotals.forEach((value) => {
+      totals.expense += value;
+    });
+    totals.lines += projectRows.length;
+    body.push(`<tr class="visual-section-row expense project-section">
+      <td><strong>Proyectos e imprevistos</strong><small>${projectRows.length} proyectos</small></td>
+      ${sectionTotals.map((value) => `<td class="negative">${money(value, true)}</td>`).join("")}
+      <td></td>
+    </tr>`);
+
+    projectRows.forEach((project) => {
+      body.push(`<tr class="visual-line-row visual-project-row">
+        <td>
+          <input class="visual-label-input derived-control" value="${escapeHtml(project.name)}" readonly />
+          <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}</small>
+        </td>
+        ${project.values
+          .map((value) => `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? round2(value) : ""}" readonly /></td>`)
+          .join("")}
+        <td><button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}">Eliminar</button></td>
+      </tr>`);
+    });
+  }
+
   qs("visualSummary").innerHTML = [
     ["Ingresos rango", money(totals.income, true), "positive"],
     ["Gastos rango", money(totals.expense, true), "negative"],
@@ -2724,6 +2772,9 @@ function renderVisualDetail() {
   });
   document.querySelectorAll("[data-visual-delete]").forEach((button) => {
     button.addEventListener("click", () => deleteVisualRow(button.dataset.visualDelete));
+  });
+  document.querySelectorAll("[data-visual-project-delete]").forEach((button) => {
+    button.addEventListener("click", () => removeProject(button.dataset.visualProjectDelete));
   });
 }
 
