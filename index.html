@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260516e" />
+    <link rel="stylesheet" href="styles.css?v=20260516g" />
   </head>
   <body>
     <div class="app-shell">
@@ -19,6 +19,7 @@
 
         <nav class="side-nav">
           <a href="#overview" class="active">Vista general</a>
+          <a href="#visual-detail">Detalle visual</a>
           <a href="#simulator">Simulador</a>
           <a href="#forecast">Proyección</a>
           <a href="#monthly-detail">Detalle mensual</a>
@@ -105,6 +106,72 @@
               <strong id="kpiSaving"></strong>
               <p>Objetivo suavizado si la caja mensual queda demasiado justa.</p>
             </article>
+          </section>
+
+          <section class="visual-detail view-section" id="visual-detail">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Contabilidad New Life</p>
+                <h2>Detalle visual</h2>
+                <p>Matriz editable por partidas y meses. Los cambios actualizan simulador, flujo, proyección y detalle mensual.</p>
+              </div>
+              <div class="visual-controls">
+                <label>
+                  <span>Desde</span>
+                  <select id="visualStartMonth"></select>
+                </label>
+                <label>
+                  <span>Hasta</span>
+                  <select id="visualEndMonth"></select>
+                </label>
+                <label>
+                  <span>Editar</span>
+                  <select id="visualValueMode">
+                    <option value="planned">Previsto</option>
+                    <option value="actual">Real</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="expense-summary" id="visualSummary"></div>
+
+            <article class="visual-add-card">
+              <div class="visual-add-grid">
+                <label>
+                  <span>Tipo</span>
+                  <select id="visualAddKind">
+                    <option value="expense">Gasto</option>
+                    <option value="income">Ingreso</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Bloque</span>
+                  <select id="visualAddSection"></select>
+                </label>
+                <label>
+                  <span>Concepto</span>
+                  <input id="visualAddLabel" type="text" placeholder="Ej. Colegio, subida nómina, seguro" />
+                </label>
+                <label>
+                  <span>Importe previsto</span>
+                  <input id="visualAddAmount" type="number" step="0.01" placeholder="0,00" />
+                </label>
+                <label>
+                  <span>Desde</span>
+                  <select id="visualAddStartMonth"></select>
+                </label>
+                <label>
+                  <span>Hasta</span>
+                  <select id="visualAddEndMonth"></select>
+                </label>
+                <button id="visualAddRow" type="button">Añadir línea</button>
+              </div>
+            </article>
+
+            <div class="table-wrap visual-table-wrap">
+              <table class="visual-matrix" id="visualDetailTable"></table>
+            </div>
           </section>
 
           <section class="decision-studio view-section" id="simulator">
@@ -595,15 +662,50 @@
               </div>
             </div>
             <div class="merchant-list" id="merchantList"></div>
+            <div class="section-title movement-detail-title">
+              <div>
+                <p class="panel-kicker">Extracto real</p>
+                <h2>Movimientos detallados</h2>
+                <p>Se actualizan automáticamente al cargar un libro Excel completo desde “Carga de datos”.</p>
+              </div>
+              <div class="movement-filters">
+                <label>
+                  <span>Mes</span>
+                  <select id="movementMonthFilter"></select>
+                </label>
+                <label>
+                  <span>Buscar</span>
+                  <input id="movementSearch" type="search" placeholder="Movimiento, detalle o categoría" />
+                </label>
+              </div>
+            </div>
+            <div class="movement-count" id="movementCount"></div>
+            <div class="table-wrap movements-table-wrap">
+              <table class="movements-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Fecha valor</th>
+                    <th>Movimiento</th>
+                    <th>Más datos</th>
+                    <th>Categoría</th>
+                    <th>Importe</th>
+                    <th>Saldo</th>
+                    <th>Origen</th>
+                  </tr>
+                </thead>
+                <tbody id="movementRows"></tbody>
+              </table>
+            </div>
           </section>
         </main>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260516e"></script>
-    <script src="supabase-config.js?v=20260516e"></script>
-    <script src="data.js?v=20260516e"></script>
-    <script src="app.js?v=20260516e"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260516g"></script>
+    <script src="supabase-config.js?v=20260516g"></script>
+    <script src="data.js?v=20260516g"></script>
+    <script src="app.js?v=20260516g"></script>
   </body>
 </html>

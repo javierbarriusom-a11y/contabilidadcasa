@@ -1452,6 +1452,133 @@ svg {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.visual-detail {
+  margin-top: 18px;
+}
+
+.visual-controls,
+.movement-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.movement-filters {
+  grid-template-columns: 180px minmax(260px, 1fr);
+}
+
+.visual-add-card {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.visual-add-grid {
+  display: grid;
+  grid-template-columns: 110px 170px minmax(210px, 1fr) 140px 130px 130px auto;
+  gap: 9px;
+  align-items: end;
+}
+
+.visual-add-grid button {
+  min-height: 40px;
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  font-weight: 900;
+}
+
+.visual-table-wrap {
+  max-height: 720px;
+}
+
+.visual-matrix {
+  min-width: 1500px;
+}
+
+.visual-matrix th:first-child,
+.visual-matrix td:first-child {
+  min-width: 230px;
+}
+
+.visual-section-row {
+  background: #173b66;
+  color: #ffffff;
+}
+
+.visual-section-row.expense {
+  background: #7d2d25;
+}
+
+.visual-section-row td {
+  border-bottom-color: rgba(255, 255, 255, 0.28);
+  font-weight: 900;
+}
+
+.visual-section-row td:first-child {
+  background: inherit;
+}
+
+.visual-section-row small,
+.visual-line-row small {
+  display: block;
+  margin-top: 3px;
+  color: inherit;
+  opacity: 0.72;
+  font-size: 11px;
+}
+
+.visual-line-row input {
+  width: 112px;
+  min-height: 32px;
+  padding: 6px 8px;
+  text-align: right;
+}
+
+.visual-line-row .visual-label-input {
+  width: 100%;
+  text-align: left;
+  font-weight: 800;
+}
+
+.movement-detail-title {
+  margin-top: 22px;
+}
+
+.movement-count {
+  margin: -6px 0 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.movements-table-wrap {
+  max-height: 720px;
+}
+
+.movements-table {
+  min-width: 1280px;
+}
+
+.movements-table th:nth-child(4),
+.movements-table td:nth-child(4) {
+  min-width: 280px;
+  text-align: left;
+  white-space: normal;
+}
+
+.movements-table th:nth-child(3),
+.movements-table td:nth-child(3),
+.movements-table th:nth-child(5),
+.movements-table td:nth-child(5),
+.movements-table th:nth-child(8),
+.movements-table td:nth-child(8) {
+  text-align: left;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

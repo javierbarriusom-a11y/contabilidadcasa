@@ -42,6 +42,7 @@ let scenarioSettings = {};
 let customPlanningRows = [];
 let deletedPlanningRows = {};
 let seriesOverrides = {};
+let rowLabelOverrides = {};
 let memoryStorage = {};
 let supabaseClient = null;
 let remoteUser = null;
@@ -61,6 +62,10 @@ const viewTitles = {
   overview: {
     eyebrow: "Cuadro de mando financiero",
     title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
+  },
+  "visual-detail": {
+    eyebrow: "Detalle visual",
+    title: "Edita la matriz mensual como en Contabilidad New Life",
   },
   simulator: {
     eyebrow: "Escenarios y proyectos",
@@ -226,6 +231,7 @@ function appStatePayload() {
     customPlanningRows,
     deletedPlanningRows,
     seriesOverrides,
+    rowLabelOverrides,
   };
 }
 
@@ -243,6 +249,7 @@ function applyPersistedPayload(payload = {}) {
   deletedPlanningRows =
     payload.deletedPlanningRows && typeof payload.deletedPlanningRows === "object" ? payload.deletedPlanningRows : {};
   seriesOverrides = payload.seriesOverrides && typeof payload.seriesOverrides === "object" ? payload.seriesOverrides : {};
+  rowLabelOverrides = payload.rowLabelOverrides && typeof payload.rowLabelOverrides === "object" ? payload.rowLabelOverrides : {};
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
 }
@@ -256,6 +263,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("customPlanningRows"), JSON.stringify(customPlanningRows));
   storageSet(storageKey("deletedPlanningRows"), JSON.stringify(deletedPlanningRows));
   storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
+  storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
 }
 
 function queueRemoteSave() {
@@ -277,6 +285,7 @@ function loadLocalState() {
       customPlanningRows: JSON.parse(storageGet(storageKey("customPlanningRows"), "[]")),
       deletedPlanningRows: JSON.parse(storageGet(storageKey("deletedPlanningRows"), "{}")),
       seriesOverrides: JSON.parse(storageGet(storageKey("seriesOverrides"), "{}")),
+      rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
     });
   } catch {
     projects = [];
@@ -287,6 +296,7 @@ function loadLocalState() {
     customPlanningRows = [];
     deletedPlanningRows = {};
     seriesOverrides = {};
+    rowLabelOverrides = {};
   }
 }
 
@@ -342,6 +352,11 @@ function saveDeletedPlanningRows() {
 
 function saveSeriesOverrides() {
   storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
+  queueRemoteSave();
+}
+
+function saveRowLabelOverrides() {
+  storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
   queueRemoteSave();
 }
 
@@ -645,6 +660,10 @@ function deleteKeyForRow(row, month) {
 
 function seriesKeyForRow(row) {
   return `${row.kind}|${row.id}`;
+}
+
+function displayLabelForRow(row) {
+  return rowLabelOverrides[seriesKeyForRow(row)] || row.label || "Concepto";
 }
 
 function overrideKeyForRow(row, month) {
@@ -1159,12 +1178,12 @@ function normalizedText(value) {
 }
 
 function isCarPlanningRow(row) {
-  return /\b(coche|bmw)\b/.test(normalizedText(row.label));
+  return /\b(coche|bmw)\b/.test(normalizedText(displayLabelForRow(row)));
 }
 
 function isFinancingPlanningRow(section, row) {
   const sectionName = normalizedText(section.name);
-  const label = normalizedText(row.label);
+  const label = normalizedText(displayLabelForRow(row));
   return (
     sectionName.includes("financi") ||
     /refinanci|libre deuda|prestamo|tarjeta|credito|mycard|visa|mastercard|cetelem|bankinter|pdh/.test(
@@ -1240,7 +1259,7 @@ function planningDetailSectionsForForecastIndex(forecastIndex) {
                     ? "Financiación"
                     : "Gasto";
             return {
-              label: row.label,
+              label: displayLabelForRow(row),
               type,
               value: info.value,
               planned: info.planned,
@@ -2408,6 +2427,279 @@ function renderTable(rows, baseRows = rows) {
   });
 }
 
+function visualDefaultStartIndex() {
+  const planning = baseData.monthlyPlanning;
+  const forecastStartKey = forecastMonths()[0]?.key || baseData.metadata.forecastStart.slice(0, 7);
+  const found = planning.months.findIndex((month) => month.key === forecastStartKey);
+  return Math.max(0, found);
+}
+
+function monthOptionsHtml(selectedKey = "") {
+  return baseData.monthlyPlanning.months
+    .map((month) => `<option value="${month.key}" ${month.key === selectedKey ? "selected" : ""}>${escapeHtml(month.label)}</option>`)
+    .join("");
+}
+
+function populateVisualControls() {
+  const months = baseData.monthlyPlanning?.months || [];
+  if (!months.length || !qs("visualStartMonth")) return;
+  const defaultStart = visualDefaultStartIndex();
+  const defaultEnd = Math.min(defaultStart + 17, months.length - 1);
+  const selectIds = ["visualStartMonth", "visualEndMonth", "visualAddStartMonth", "visualAddEndMonth"];
+  selectIds.forEach((id) => {
+    const select = qs(id);
+    if (!select) return;
+    const previous = select.value;
+    const fallbackIndex = id.includes("End") ? defaultEnd : defaultStart;
+    const selected = months.some((month) => month.key === previous) ? previous : months[fallbackIndex]?.key;
+    select.innerHTML = monthOptionsHtml(selected);
+    select.value = selected;
+  });
+  populateVisualAddSections();
+}
+
+function populateVisualAddSections() {
+  const kind = qs("visualAddKind")?.value || "expense";
+  const sectionSelect = qs("visualAddSection");
+  if (!sectionSelect) return;
+  const previous = sectionSelect.value;
+  sectionSelect.innerHTML = baseData.monthlyPlanning.sections
+    .filter((section) => section.kind === kind)
+    .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
+    .join("");
+  if ([...sectionSelect.options].some((option) => option.value === previous)) sectionSelect.value = previous;
+}
+
+function visualMonths() {
+  const months = baseData.monthlyPlanning.months;
+  const startKey = qs("visualStartMonth")?.value || months[visualDefaultStartIndex()]?.key;
+  const endKey = qs("visualEndMonth")?.value || months[Math.min(visualDefaultStartIndex() + 17, months.length - 1)]?.key;
+  return monthsInRange(startKey, endKey);
+}
+
+function plannedValueForVisualRow(row, month) {
+  const scopedRow = row.custom ? customRowForVisualMonth(row, month) : row;
+  if (!scopedRow) return 0;
+  return plannedValueForRow(scopedRow, month);
+}
+
+function actualAwareInfoForVisualRow(row, month) {
+  const scopedRow = row.custom ? customRowForVisualMonth(row, month) : row;
+  if (!scopedRow) {
+    return { planned: 0, actual: null, hasActual: false, value: 0, source: "Previsto" };
+  }
+  return actualAwareInfo(scopedRow, month);
+}
+
+function customRowForVisualMonth(row, month) {
+  return customPlanningRows.find(
+    (item) => item.kind === row.kind && item.id === row.id && item.monthKey === month.key,
+  );
+}
+
+function visualRowsForSection(section, months) {
+  const monthKeys = new Set(months.map((month) => month.key));
+  const rows = section.rows.slice();
+  customPlanningRows
+    .filter((row) => row.kind === section.kind && row.sectionName === section.name && monthKeys.has(row.monthKey))
+    .forEach((row) => {
+      if (!rows.some((item) => seriesKeyForRow(item) === seriesKeyForRow(row))) rows.push(row);
+    });
+  return rows.filter((row) =>
+    months.some((month) => {
+      if (seriesOverrideForRow(row, month)?.deleted) return false;
+      const info = actualAwareInfoForVisualRow(row, month);
+      return info.value !== 0 || info.planned !== 0 || info.hasActual;
+    }),
+  );
+}
+
+function visualCellValue(row, month, mode) {
+  if (mode === "actual") {
+    const info = actualAwareInfoForVisualRow(row, month);
+    return info.hasActual ? Number(info.actual || 0) : "";
+  }
+  return plannedValueForVisualRow(row, month) || "";
+}
+
+function visualSectionTotal(section, rows, months, mode, month) {
+  return rows.reduce((sum, row) => {
+    if (seriesOverrideForRow(row, month)?.deleted) return sum;
+    if (mode === "planned") return sum + plannedValueForVisualRow(row, month);
+    return sum + actualAwareInfoForVisualRow(row, month).value;
+  }, 0);
+}
+
+function visualCellClass(section) {
+  return section.kind === "income" ? "positive" : "negative";
+}
+
+function updateVisualCell(input) {
+  const row = rowForSeriesKey(input.dataset.rowKey);
+  const month = baseData.monthlyPlanning.months.find((item) => item.key === input.dataset.monthKey);
+  if (!row || !month) return;
+  const key = overrideKeyForRow(row, month);
+  const next = { ...(seriesOverrides[key] || {}) };
+  delete next.deleted;
+  const parsed = parseAmount(input.value);
+  if (input.dataset.mode === "planned") {
+    if (input.value === "" || parsed === null) delete next.planned;
+    else next.planned = parsed;
+  } else if (input.value === "" || parsed === null) {
+    delete next.actual;
+  } else {
+    next.actual = parsed;
+  }
+  if (Object.keys(next).length) seriesOverrides[key] = next;
+  else delete seriesOverrides[key];
+  saveSeriesOverrides();
+  render();
+}
+
+function updateVisualLabel(input) {
+  const row = rowForSeriesKey(input.dataset.rowKey);
+  if (!row) return;
+  const label = input.value.trim();
+  const key = seriesKeyForRow(row);
+  if (!label || label === row.label) delete rowLabelOverrides[key];
+  else rowLabelOverrides[key] = label;
+  if (row.custom) {
+    customPlanningRows
+      .filter((item) => seriesKeyForRow(item) === key)
+      .forEach((item) => {
+        item.label = label || item.label;
+      });
+    saveCustomPlanningRows();
+  }
+  saveRowLabelOverrides();
+  render();
+}
+
+function rowForSeriesKey(key) {
+  const rows = [];
+  baseData.monthlyPlanning.sections.forEach((section) => {
+    section.rows.forEach((row) => rows.push({ ...row, sectionName: section.name }));
+  });
+  customPlanningRows.forEach((row) => rows.push(row));
+  return rows.find((row) => seriesKeyForRow(row) === key) || null;
+}
+
+function deleteVisualRow(rowKey) {
+  const row = rowForSeriesKey(rowKey);
+  if (!row) return;
+  const months = visualMonths();
+  const monthKeys = new Set(months.map((month) => month.key));
+  const before = customPlanningRows.length;
+  customPlanningRows = customPlanningRows.filter((item) => !(seriesKeyForRow(item) === rowKey && monthKeys.has(item.monthKey)));
+  if (customPlanningRows.length !== before) saveCustomPlanningRows();
+
+  months.forEach((month) => {
+    if (row.custom && row.monthKey !== month.key) return;
+    seriesOverrides[overrideKeyForRow(row, month)] = { deleted: true };
+  });
+  saveSeriesOverrides();
+  render();
+}
+
+function renderVisualDetail() {
+  if (!qs("visualDetailTable")) return;
+  populateVisualControls();
+  const months = visualMonths();
+  const mode = qs("visualValueMode")?.value || "planned";
+  const monthHeaders = months.map((month) => `<th>${escapeHtml(month.label)}</th>`).join("");
+  const body = [];
+  const totals = { income: 0, expense: 0, realRows: 0, lines: 0 };
+
+  baseData.monthlyPlanning.sections.forEach((section) => {
+    const rows = visualRowsForSection(section, months);
+    if (!rows.length) return;
+    totals.lines += rows.length;
+    const sectionTotals = months.map((month) => round2(visualSectionTotal(section, rows, months, mode, month)));
+    sectionTotals.forEach((value) => {
+      if (section.kind === "income") totals.income += value;
+      else totals.expense += value;
+    });
+    body.push(`<tr class="visual-section-row ${section.kind}">
+      <td><strong>${escapeHtml(section.name)}</strong><small>${rows.length} líneas</small></td>
+      ${sectionTotals.map((value) => `<td class="${visualCellClass(section)}">${money(value, true)}</td>`).join("")}
+      <td></td>
+    </tr>`);
+
+    rows.forEach((row) => {
+      const label = displayLabelForRow(row);
+      const rowKey = seriesKeyForRow(row);
+      body.push(`<tr class="visual-line-row">
+        <td>
+          <input class="visual-label-input" data-visual-label-key="${escapeHtml(rowKey)}" value="${escapeHtml(label)}" />
+          <small>${escapeHtml(section.name)}${row.custom ? " · nuevo" : ""}</small>
+        </td>
+        ${months
+          .map((month) => {
+            const info = actualAwareInfoForVisualRow(row, month);
+            if (info.hasActual) totals.realRows += 1;
+            const value = visualCellValue(row, month, mode);
+            const placeholder = mode === "actual" && info.planned ? `prev. ${money(info.planned, true)}` : "";
+            return `<td>
+              <input class="visual-amount-input" data-visual-cell data-row-key="${escapeHtml(rowKey)}" data-month-key="${month.key}" data-mode="${mode}" type="number" step="0.01" value="${value}" placeholder="${placeholder}" />
+            </td>`;
+          })
+          .join("")}
+        <td><button class="row-delete-button" type="button" data-visual-delete="${escapeHtml(rowKey)}">Eliminar</button></td>
+      </tr>`);
+    });
+  });
+
+  qs("visualSummary").innerHTML = [
+    ["Ingresos rango", money(totals.income, true), "positive"],
+    ["Gastos rango", money(totals.expense, true), "negative"],
+    ["Neto rango", money(totals.income - totals.expense, true), totals.income - totals.expense >= 0 ? "positive" : "negative"],
+    ["Líneas / reales", `${totals.lines} líneas · ${totals.realRows} reales`, ""],
+  ]
+    .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
+    .join("");
+
+  qs("visualDetailTable").innerHTML = `<thead><tr><th>Partida</th>${monthHeaders}<th>Acción</th></tr></thead><tbody>${body.join("")}</tbody>`;
+
+  document.querySelectorAll("[data-visual-cell]").forEach((input) => {
+    input.addEventListener("change", () => updateVisualCell(input));
+  });
+  document.querySelectorAll("[data-visual-label-key]").forEach((input) => {
+    input.addEventListener("change", () => updateVisualLabel(input));
+  });
+  document.querySelectorAll("[data-visual-delete]").forEach((button) => {
+    button.addEventListener("click", () => deleteVisualRow(button.dataset.visualDelete));
+  });
+}
+
+function handleVisualAddRow() {
+  const kind = qs("visualAddKind").value;
+  const sectionName = qs("visualAddSection").value;
+  const label = qs("visualAddLabel").value.trim();
+  const amount = parseAmount(qs("visualAddAmount").value);
+  if (!label || amount === null) {
+    showImportLog("Falta información", "Introduce concepto e importe para añadir una línea visual.", "danger");
+    return;
+  }
+  const sharedId = `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  monthsInRange(qs("visualAddStartMonth").value, qs("visualAddEndMonth").value).forEach((month) => {
+    customPlanningRows.push({
+      id: sharedId,
+      custom: true,
+      kind,
+      sectionName,
+      label,
+      monthKey: month.key,
+      plannedValue: amount,
+    });
+  });
+  expandedPlanningSections[kind].add(`${kind}:${sectionName}`);
+  saveCustomPlanningRows();
+  qs("visualAddLabel").value = "";
+  qs("visualAddAmount").value = "";
+  render();
+  showImportLog("Línea añadida", `${label} se ha incorporado al rango indicado y ya recalcula todo el dashboard.`);
+}
+
 function renderMerchants() {
   qs("merchantList").innerHTML = baseData.topMerchants
     .slice(0, 12)
@@ -2416,6 +2708,53 @@ function renderMerchants() {
         <div><strong>${item.Movimiento}</strong><br><span>${item.Categoria}</span></div>
         <strong>${money(item.amount, true)}</strong>
       </div>`,
+    )
+    .join("");
+  renderDetailedMovements();
+}
+
+function formatIsoDate(value) {
+  if (!value) return "";
+  const [year, month, day] = String(value).slice(0, 10).split("-");
+  return day && month && year ? `${day}/${month}/${year}` : String(value);
+}
+
+function populateMovementFilters(transactions) {
+  const monthSelect = qs("movementMonthFilter");
+  if (!monthSelect) return;
+  const previous = monthSelect.value;
+  const months = [...new Set(transactions.map((row) => row.month).filter(Boolean))].sort().reverse();
+  monthSelect.innerHTML = `<option value="">Todos los meses</option>${months
+    .map((month) => `<option value="${month}">${escapeHtml(monthLabel(dateFromMonthKey(month)))}</option>`)
+    .join("")}`;
+  if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
+}
+
+function renderDetailedMovements() {
+  const rowsElement = qs("movementRows");
+  if (!rowsElement) return;
+  const transactions = (baseData.transactions || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  populateMovementFilters(transactions);
+  const monthFilter = qs("movementMonthFilter")?.value || "";
+  const search = normalizedText(qs("movementSearch")?.value || "");
+  const filtered = transactions.filter((row) => {
+    if (monthFilter && row.month !== monthFilter) return false;
+    if (!search) return true;
+    return normalizedText(`${row.date} ${row.movement} ${row.details} ${row.category} ${row.source}`).includes(search);
+  });
+  qs("movementCount").textContent = `${filtered.length} movimiento(s) reales${monthFilter ? ` en ${monthLabel(dateFromMonthKey(monthFilter))}` : ""}.`;
+  rowsElement.innerHTML = filtered
+    .map(
+      (row) => `<tr>
+        <td>${formatIsoDate(row.date)}</td>
+        <td>${formatIsoDate(row.valueDate)}</td>
+        <td>${escapeHtml(row.movement)}</td>
+        <td>${escapeHtml(row.details)}</td>
+        <td>${escapeHtml(row.category)}</td>
+        <td class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</td>
+        <td>${row.balance === null || row.balance === undefined ? "" : money(row.balance, true)}</td>
+        <td>${escapeHtml(row.source || "")}</td>
+      </tr>`,
     )
     .join("");
 }
@@ -2492,7 +2831,7 @@ function renderPlanningDetails({
         const varianceClass = varianceClassForKind(kind, variance);
         html.push(`<tr class="planning-line-row ${row.custom ? "custom-line" : ""}" data-parent-section="${escapeHtml(sectionKey)}">
           <td>${escapeHtml(section.name)}</td>
-          <td>${escapeHtml(row.label)}${row.custom ? " <small>nuevo</small>" : ""}</td>
+          <td>${escapeHtml(displayLabelForRow(row))}${row.custom ? " <small>nuevo</small>" : ""}</td>
           <td>${money(planned, true)}</td>
           <td><input ${actualDataKey}="${key}" type="number" step="0.01" value="${hasActual ? actual : ""}" placeholder="Real" /></td>
           <td class="${varianceClass}">${hasActual ? money(variance, true) : ""}</td>
@@ -2630,7 +2969,9 @@ function availableSeriesRows(kind) {
       seen.add(key);
       rows.push(row);
     });
-  return rows.sort((a, b) => `${a.sectionName} ${a.label}`.localeCompare(`${b.sectionName} ${b.label}`, "es"));
+  return rows.sort((a, b) =>
+    `${a.sectionName} ${displayLabelForRow(a)}`.localeCompare(`${b.sectionName} ${displayLabelForRow(b)}`, "es"),
+  );
 }
 
 function selectedSeriesRow() {
@@ -2649,7 +2990,7 @@ function populateSeriesEditor() {
   const previousRow = rowSelect.value;
   const rows = availableSeriesRows(kindSelect.value);
   rowSelect.innerHTML = rows
-    .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(row.label)}</option>`)
+    .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(displayLabelForRow(row))}</option>`)
     .join("");
   if ([...rowSelect.options].some((option) => option.value === previousRow)) rowSelect.value = previousRow;
 
@@ -2686,7 +3027,7 @@ function updateSeriesPreview() {
   const first = months[0];
   const last = months.at(-1);
   const current = first ? actualAwareInfo(row, first) : null;
-  preview.innerHTML = `<strong>${escapeHtml(row.label)}</strong> en ${escapeHtml(row.sectionName)}. Rango: ${escapeHtml(first?.label || "")} - ${escapeHtml(last?.label || "")} (${months.length} meses). Importe actual de inicio: ${current ? money(current.value, true) : "sin dato"}.`;
+  preview.innerHTML = `<strong>${escapeHtml(displayLabelForRow(row))}</strong> en ${escapeHtml(row.sectionName)}. Rango: ${escapeHtml(first?.label || "")} - ${escapeHtml(last?.label || "")} (${months.length} meses). Importe actual de inicio: ${current ? money(current.value, true) : "sin dato"}.`;
 }
 
 function applySeriesChange() {
@@ -2733,7 +3074,7 @@ function applySeriesChange() {
   render();
   populateDataEntryControls();
   showImportLog(
-    `Serie actualizada: ${row.label}`,
+    `Serie actualizada: ${displayLabelForRow(row)}`,
     `${changed} mes(es) modificados. El cambio ya afecta a detalle mensual, simulador, flujo de caja y proyección.`,
   );
 }
@@ -2752,7 +3093,7 @@ function findPlanningRow(kind, sectionName, label, month) {
   const sections = planningSectionsForMonth(kind, month);
   for (const section of sections) {
     if (normalizedText(section.name) !== targetSection) continue;
-    const row = section.rows.find((item) => normalizedText(item.label) === targetLabel);
+    const row = section.rows.find((item) => normalizedText(displayLabelForRow(item)) === targetLabel);
     if (row) return row;
   }
   return null;
@@ -3103,6 +3444,7 @@ function populateSelectors() {
     ? previousDetailMonth
     : defaultPlanningIndex;
   populateDataEntryControls();
+  populateVisualControls();
 }
 
 function csvValue(value) {
@@ -3174,6 +3516,7 @@ function render() {
   renderAdvice(lastSimulation, lastBaseSimulation);
   renderProjectSimulator(lastBaseSimulation, lastSimulation);
   renderTable(lastSimulation, lastBaseSimulation);
+  renderVisualDetail();
   renderMonthlyDetails();
   renderMerchants();
 }
@@ -3226,6 +3569,13 @@ async function init() {
   qs("seriesStartMonth").addEventListener("change", updateSeriesPreview);
   qs("seriesEndMonth").addEventListener("change", updateSeriesPreview);
   qs("applySeriesChange").addEventListener("click", applySeriesChange);
+  ["visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
+    qs(id).addEventListener("change", render);
+  });
+  qs("visualAddKind").addEventListener("change", populateVisualAddSections);
+  qs("visualAddRow").addEventListener("click", handleVisualAddRow);
+  qs("movementMonthFilter").addEventListener("change", renderDetailedMovements);
+  qs("movementSearch").addEventListener("input", renderDetailedMovements);
   qs("clearBatchData").addEventListener("click", () => {
     qs("batchDataInput").value = "";
     showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.");
