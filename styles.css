@@ -1211,9 +1211,10 @@ svg {
 }
 
 .file-drop {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-height: 142px;
-  place-items: center;
   padding: 18px;
   color: var(--teal);
   border: 1px dashed rgba(15, 143, 140, 0.45);
@@ -1221,6 +1222,8 @@ svg {
   background: #ffffff;
   cursor: pointer;
   text-align: center;
+  align-items: center;
+  justify-content: center;
 }
 
 .file-drop:hover {
@@ -1229,8 +1232,52 @@ svg {
 }
 
 .file-drop input {
-  max-width: 260px;
-  margin-top: 10px;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.file-drop-title {
+  color: var(--teal);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.file-drop-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.file-drop-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  color: #ffffff;
+  border: 1px solid var(--teal);
+  border-radius: 8px;
+  background: var(--teal);
+  font-weight: 900;
+}
+
+.file-drop-name {
+  max-width: 100%;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .manual-project-field.is-hidden {

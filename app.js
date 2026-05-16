@@ -2925,6 +2925,7 @@ function applyImportedWorkbookData(nextData, fileName) {
 async function handleExcelImport(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+  if (qs("excelFileName")) qs("excelFileName").textContent = file.name;
   const lowerName = file.name.toLowerCase();
   if (lowerName.endsWith(".csv") || lowerName.endsWith(".txt")) {
     const records = parseTabularText(await file.text());
