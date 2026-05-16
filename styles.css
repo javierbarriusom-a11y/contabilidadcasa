@@ -1108,6 +1108,40 @@ svg {
   align-items: stretch;
 }
 
+.series-editor {
+  margin-top: 14px;
+}
+
+.series-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.75fr) minmax(220px, 1.6fr) repeat(5, minmax(130px, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.series-form button {
+  color: #ffffff;
+  border-color: var(--teal);
+  background: var(--teal);
+  font-weight: 900;
+}
+
+.series-preview {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.series-preview strong {
+  color: var(--ink);
+}
+
 .data-card {
   display: grid;
   align-content: start;
@@ -1722,6 +1756,7 @@ tbody tr:hover {
   .hero-grid,
   .decision-actions,
   .data-import-grid,
+  .series-form,
   .controls-grid.two,
   .controls-grid.three,
   .saving-row,

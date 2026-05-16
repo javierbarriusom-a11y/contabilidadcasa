@@ -41,6 +41,7 @@ let balanceSettings = {};
 let scenarioSettings = {};
 let customPlanningRows = [];
 let deletedPlanningRows = {};
+let seriesOverrides = {};
 let memoryStorage = {};
 let supabaseClient = null;
 let remoteUser = null;
@@ -204,6 +205,7 @@ function appStatePayload() {
     scenarioSettings,
     customPlanningRows,
     deletedPlanningRows,
+    seriesOverrides,
   };
 }
 
@@ -216,6 +218,7 @@ function applyPersistedPayload(payload = {}) {
   customPlanningRows = Array.isArray(payload.customPlanningRows) ? payload.customPlanningRows : [];
   deletedPlanningRows =
     payload.deletedPlanningRows && typeof payload.deletedPlanningRows === "object" ? payload.deletedPlanningRows : {};
+  seriesOverrides = payload.seriesOverrides && typeof payload.seriesOverrides === "object" ? payload.seriesOverrides : {};
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
 }
@@ -228,6 +231,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
   storageSet(storageKey("customPlanningRows"), JSON.stringify(customPlanningRows));
   storageSet(storageKey("deletedPlanningRows"), JSON.stringify(deletedPlanningRows));
+  storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
 }
 
 function queueRemoteSave() {
@@ -248,6 +252,7 @@ function loadLocalState() {
       scenarioSettings: JSON.parse(storageGet(storageKey("scenarioSettings"), "{}")),
       customPlanningRows: JSON.parse(storageGet(storageKey("customPlanningRows"), "[]")),
       deletedPlanningRows: JSON.parse(storageGet(storageKey("deletedPlanningRows"), "{}")),
+      seriesOverrides: JSON.parse(storageGet(storageKey("seriesOverrides"), "{}")),
     });
   } catch {
     projects = [];
@@ -257,6 +262,7 @@ function loadLocalState() {
     scenarioSettings = {};
     customPlanningRows = [];
     deletedPlanningRows = {};
+    seriesOverrides = {};
   }
 }
 
@@ -307,6 +313,11 @@ function saveCustomPlanningRows() {
 
 function saveDeletedPlanningRows() {
   storageSet(storageKey("deletedPlanningRows"), JSON.stringify(deletedPlanningRows));
+  queueRemoteSave();
+}
+
+function saveSeriesOverrides() {
+  storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
   queueRemoteSave();
 }
 
@@ -599,17 +610,43 @@ function deleteKeyForRow(row, month) {
   return `${row.kind}|${row.id}|${month.key}`;
 }
 
+function seriesKeyForRow(row) {
+  return `${row.kind}|${row.id}`;
+}
+
+function overrideKeyForRow(row, month) {
+  return `${seriesKeyForRow(row)}|${month.key}`;
+}
+
+function seriesOverrideForRow(row, month) {
+  return seriesOverrides[overrideKeyForRow(row, month)] || null;
+}
+
 function plannedValueForRow(row, month) {
+  const override = seriesOverrideForRow(row, month);
+  if (override?.deleted) return 0;
+  if (override?.planned !== undefined && override?.planned !== "") return Number(override.planned || 0);
   return row.custom ? Number(row.plannedValue || 0) : Number(row.planned[month.index] || 0);
 }
 
 function actualAwareInfo(row, month) {
   const actuals = actualsForKind(row.kind);
   const key = actualKeyForRow(row, month);
+  const override = seriesOverrideForRow(row, month);
+  if (override?.deleted) {
+    return {
+      planned: 0,
+      actual: null,
+      hasActual: false,
+      value: 0,
+      source: "Eliminado",
+    };
+  }
   const stored = actuals[key];
   const planned = plannedValueForRow(row, month);
-  const hasActual = stored !== undefined && stored !== "";
-  const actual = hasActual ? Number(stored) : null;
+  const hasOverrideActual = override?.actual !== undefined && override?.actual !== "";
+  const hasActual = hasOverrideActual || (stored !== undefined && stored !== "");
+  const actual = hasOverrideActual ? Number(override.actual) : hasActual ? Number(stored) : null;
   return {
     planned,
     actual,
@@ -709,7 +746,8 @@ function customRowsForSection(kind, sectionName, month) {
         row.kind === kind &&
         row.sectionName === sectionName &&
         row.monthKey === month.key &&
-        !deletedPlanningRows[deleteKeyForRow(row, month)],
+        !deletedPlanningRows[deleteKeyForRow(row, month)] &&
+        !seriesOverrideForRow(row, month)?.deleted,
     )
     .map((row) => ({
       ...row,
@@ -723,7 +761,7 @@ function planningSectionsForMonth(kind, month) {
     .filter((section) => !kind || section.kind === kind)
     .map((section) => {
       const rows = section.rows
-        .filter((row) => !deletedPlanningRows[deleteKeyForRow(row, month)])
+        .filter((row) => !deletedPlanningRows[deleteKeyForRow(row, month)] && !seriesOverrideForRow(row, month)?.deleted)
         .concat(customRowsForSection(section.kind, section.name, month));
       return { ...section, rows };
     });
@@ -2192,6 +2230,7 @@ function populateDataEntryControls() {
     if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
   }
   updateManualDataKindUi();
+  populateSeriesEditor();
 }
 
 function updateManualDataKindUi() {
@@ -2208,6 +2247,135 @@ function updateManualDataKindUi() {
     field.classList.toggle("is-hidden", kind !== "project");
   });
   qs("manualDataPlanned")?.closest("label")?.classList.toggle("is-hidden", kind === "project");
+}
+
+function availableSeriesRows(kind) {
+  const seen = new Set();
+  const rows = [];
+  baseData.monthlyPlanning.sections
+    .filter((section) => section.kind === kind)
+    .forEach((section) => {
+      section.rows.forEach((row) => {
+        const key = seriesKeyForRow(row);
+        if (seen.has(key)) return;
+        seen.add(key);
+        rows.push({ ...row, sectionName: section.name });
+      });
+    });
+  customPlanningRows
+    .filter((row) => row.kind === kind)
+    .forEach((row) => {
+      const key = seriesKeyForRow(row);
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push(row);
+    });
+  return rows.sort((a, b) => `${a.sectionName} ${a.label}`.localeCompare(`${b.sectionName} ${b.label}`, "es"));
+}
+
+function selectedSeriesRow() {
+  const kind = qs("seriesKind")?.value || "income";
+  const key = qs("seriesRow")?.value || "";
+  return availableSeriesRows(kind).find((row) => seriesKeyForRow(row) === key) || null;
+}
+
+function populateSeriesEditor() {
+  const kindSelect = qs("seriesKind");
+  const rowSelect = qs("seriesRow");
+  const startSelect = qs("seriesStartMonth");
+  const endSelect = qs("seriesEndMonth");
+  if (!kindSelect || !rowSelect || !startSelect || !endSelect) return;
+
+  const previousRow = rowSelect.value;
+  const rows = availableSeriesRows(kindSelect.value);
+  rowSelect.innerHTML = rows
+    .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(row.label)}</option>`)
+    .join("");
+  if ([...rowSelect.options].some((option) => option.value === previousRow)) rowSelect.value = previousRow;
+
+  [startSelect, endSelect].forEach((select) => {
+    const previous = select.value;
+    select.innerHTML = baseData.monthlyPlanning.months
+      .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
+      .join("");
+    if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+  });
+  if (!endSelect.value) endSelect.value = baseData.monthlyPlanning.months.at(-1)?.key || "";
+  updateSeriesPreview();
+}
+
+function monthsInRange(startKey, endKey) {
+  const months = baseData.monthlyPlanning.months;
+  const startIndex = Math.max(0, months.findIndex((month) => month.key === startKey));
+  const endIndexRaw = months.findIndex((month) => month.key === endKey);
+  const endIndex = endIndexRaw >= 0 ? endIndexRaw : months.length - 1;
+  const from = Math.min(startIndex, endIndex);
+  const to = Math.max(startIndex, endIndex);
+  return months.slice(from, to + 1).map((month, offset) => ({ ...month, index: from + offset }));
+}
+
+function updateSeriesPreview() {
+  const preview = qs("seriesPreview");
+  if (!preview) return;
+  const row = selectedSeriesRow();
+  if (!row) {
+    preview.textContent = "Selecciona una serie para ver el alcance del cambio.";
+    return;
+  }
+  const months = monthsInRange(qs("seriesStartMonth").value, qs("seriesEndMonth").value);
+  const first = months[0];
+  const last = months.at(-1);
+  const current = first ? actualAwareInfo(row, first) : null;
+  preview.innerHTML = `<strong>${escapeHtml(row.label)}</strong> en ${escapeHtml(row.sectionName)}. Rango: ${escapeHtml(first?.label || "")} - ${escapeHtml(last?.label || "")} (${months.length} meses). Importe actual de inicio: ${current ? money(current.value, true) : "sin dato"}.`;
+}
+
+function applySeriesChange() {
+  const row = selectedSeriesRow();
+  if (!row) {
+    showImportLog("No hay serie seleccionada", "Elige un concepto antes de aplicar cambios.", "danger");
+    return;
+  }
+  const action = qs("seriesAction").value;
+  const planned = parseAmount(qs("seriesPlannedAmount").value);
+  const actual = parseAmount(qs("seriesActualAmount").value);
+  const months = monthsInRange(qs("seriesStartMonth").value, qs("seriesEndMonth").value);
+  let changed = 0;
+
+  months.forEach((month) => {
+    const key = overrideKeyForRow(row, month);
+    if (action === "clear") {
+      if (seriesOverrides[key]) {
+        delete seriesOverrides[key];
+        changed += 1;
+      }
+      return;
+    }
+    if (action === "delete") {
+      seriesOverrides[key] = { deleted: true };
+      changed += 1;
+      return;
+    }
+    const next = { ...(seriesOverrides[key] || {}) };
+    delete next.deleted;
+    if (planned !== null) next.planned = planned;
+    if (actual !== null) next.actual = actual;
+    if (planned !== null || actual !== null) {
+      seriesOverrides[key] = next;
+      changed += 1;
+    }
+  });
+
+  if (!changed) {
+    showImportLog("Sin cambios aplicados", "Introduce un nuevo importe o elige eliminar/quitar ajustes.", "warning");
+    return;
+  }
+  saveSeriesOverrides();
+  render();
+  populateDataEntryControls();
+  showImportLog(
+    `Serie actualizada: ${row.label}`,
+    `${changed} mes(es) modificados. El cambio ya afecta a detalle mensual, simulador, flujo de caja y proyección.`,
+  );
 }
 
 function showImportLog(title, body, tone = "") {
@@ -2666,6 +2834,11 @@ async function init() {
   qs("manualDataKind").addEventListener("change", updateManualDataKindUi);
   qs("addManualData").addEventListener("click", handleManualData);
   qs("importBatchData").addEventListener("click", handleBatchImport);
+  qs("seriesKind").addEventListener("change", populateSeriesEditor);
+  qs("seriesRow").addEventListener("change", updateSeriesPreview);
+  qs("seriesStartMonth").addEventListener("change", updateSeriesPreview);
+  qs("seriesEndMonth").addEventListener("change", updateSeriesPreview);
+  qs("applySeriesChange").addEventListener("click", applySeriesChange);
   qs("clearBatchData").addEventListener("click", () => {
     qs("batchDataInput").value = "";
     showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.");

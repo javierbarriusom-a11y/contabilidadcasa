@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260516a" />
+    <link rel="stylesheet" href="styles.css?v=20260516b" />
   </head>
   <body>
     <div class="app-shell">
@@ -495,6 +495,54 @@
               </article>
             </div>
 
+            <article class="data-card series-editor">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Series recurrentes</p>
+                  <h3>Modificar una serie completa</h3>
+                </div>
+              </div>
+              <div class="series-form">
+                <label>
+                  <span>Tipo</span>
+                  <select id="seriesKind">
+                    <option value="income">Ingreso</option>
+                    <option value="expense">Gasto</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Serie / concepto</span>
+                  <select id="seriesRow"></select>
+                </label>
+                <label>
+                  <span>Desde mes</span>
+                  <select id="seriesStartMonth"></select>
+                </label>
+                <label>
+                  <span>Hasta mes</span>
+                  <select id="seriesEndMonth"></select>
+                </label>
+                <label>
+                  <span>Nuevo previsto</span>
+                  <input id="seriesPlannedAmount" type="number" step="0.01" placeholder="Mantener" />
+                </label>
+                <label>
+                  <span>Nuevo real</span>
+                  <input id="seriesActualAmount" type="number" step="0.01" placeholder="Mantener" />
+                </label>
+                <label>
+                  <span>Acción</span>
+                  <select id="seriesAction">
+                    <option value="update">Cambiar importes</option>
+                    <option value="delete">Eliminar serie en rango</option>
+                    <option value="clear">Quitar ajustes del rango</option>
+                  </select>
+                </label>
+                <button id="applySeriesChange">Aplicar a la serie</button>
+              </div>
+              <div class="series-preview" id="seriesPreview"></div>
+            </article>
+
             <div class="data-import-log" id="dataImportLog">
               <strong>Sin importaciones en esta sesión</strong>
               <p>Cuando cargues datos verás aquí el resumen y los avisos.</p>
@@ -550,9 +598,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260516a"></script>
-    <script src="supabase-config.js?v=20260516a"></script>
-    <script src="data.js?v=20260516a"></script>
-    <script src="app.js?v=20260516a"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260516b"></script>
+    <script src="supabase-config.js?v=20260516b"></script>
+    <script src="data.js?v=20260516b"></script>
+    <script src="app.js?v=20260516b"></script>
   </body>
 </html>
