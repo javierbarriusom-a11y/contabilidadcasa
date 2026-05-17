@@ -1970,6 +1970,10 @@ svg {
   opacity: 0.76;
 }
 
+.debt-bar.saving {
+  fill: var(--green);
+}
+
 .savings-assumptions,
 .savings-kpis {
   display: grid;

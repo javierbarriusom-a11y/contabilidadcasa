@@ -67,20 +67,24 @@ const WORKBOOK_OVERRIDE_KEY = "financeDashboard:workbookOverride:v1";
 const REMOTE_SOURCE_KEY = "finance-dashboard-main";
 
 const DEBT_PORTFOLIO = [
-  { entity: "Cetelem", type: "Crédito", number: "40037624105825", principal: 1547.08, payment: 262.34, maturity: "jul-26", remainingInstallments: 5 },
-  { entity: "Cetelem", type: "Crédito", number: "40037624105827", principal: 3559.33, payment: 212.03, maturity: "ago-27", remainingInstallments: 18 },
-  { entity: "Cetelem", type: "Tarjeta", number: "5100341635315001", principal: 7508, payment: 256.98, maturity: "", remainingInstallments: null },
-  { entity: "Cetelem", type: "Tarjeta", number: "5100341647655006", principal: 8000, payment: 289.62, maturity: "", remainingInstallments: null },
-  { entity: "Wizink", type: "Tarjeta", number: "5267 5209 1552 8008", principal: 7381.63, payment: 191.72, maturity: "", remainingInstallments: null },
-  { entity: "Wizink", type: "Tarjeta", number: "5489 1808 1365 8688", principal: 2599.7, payment: 114.37, maturity: "", remainingInstallments: null },
-  { entity: "Bankintercard", type: "Crédito", number: "0128/9830/051.1130377", principal: 14975.01, payment: 426.49, maturity: "19/8/29", remainingInstallments: 43 },
-  { entity: "Bankintercard", type: "Tarjeta", number: "4966630612068823", principal: 6477.07, payment: 508.2, maturity: "", remainingInstallments: null },
-  { entity: "Mediamarkt", type: "Tarjeta", number: "4010 2111 8083 0013", principal: 1376.71, payment: 115, maturity: "", remainingInstallments: null },
-  { entity: "Ikea", type: "Tarjeta", number: "4552 4698 2929 5014", principal: 2594.88, payment: 120, maturity: "", remainingInstallments: null },
-  { entity: "Caixabank PC", type: "Crédito", number: "8197109", principal: 464.62, payment: 86.41, maturity: "30/7/26", remainingInstallments: 6 },
-  { entity: "Caixabank PC", type: "Crédito", number: "40354", principal: 2195.07, payment: 167.68, maturity: "30/3/27", remainingInstallments: 14 },
-  { entity: "Caixabank PC", type: "Crédito", number: "40353", principal: 491.6, payment: 159.72, maturity: "30/4/26", remainingInstallments: 3 },
+  { entity: "Cetelem", type: "Crédito", number: "40037624105825", initialPrincipal: 1547.08, originalPayment: 262.34, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
+  { entity: "Cetelem", type: "Crédito", number: "40037624105827", initialPrincipal: 3559.33, originalPayment: 212.03, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
+  { entity: "Cetelem", type: "Tarjeta", number: "5100341635315001", initialPrincipal: 7508, originalPayment: 256.98, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
+  { entity: "Cetelem", type: "Tarjeta", number: "5100341647655006", initialPrincipal: 8000, originalPayment: 289.62, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
+  { entity: "Wizink", type: "Tarjeta", number: "5267 5209 1552 8008", initialPrincipal: 7381.63, originalPayment: 191.72, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 7381.63, maturity: "", remainingInstallments: null },
+  { entity: "Wizink", type: "Tarjeta", number: "5489 1808 1365 8688", initialPrincipal: 3117.23, originalPayment: 114.37, currentPayment: 0, reunified: false, amortized: 1300, currentPrincipal: 0, maturity: "", remainingInstallments: null },
+  { entity: "Bankintercard", type: "Crédito", number: "0128/9830/051.1130377", initialPrincipal: 14975.01, originalPayment: 426.49, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 14975.01, maturity: "19/8/29", remainingInstallments: 43 },
+  { entity: "Bankintercard", type: "Tarjeta", number: "4966630612068823", initialPrincipal: 6477.07, originalPayment: 508.2, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 6477.07, maturity: "", remainingInstallments: null },
+  { entity: "Mediamarkt", type: "Tarjeta", number: "4010 2111 8083 0013", initialPrincipal: 1376.71, originalPayment: 115, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 1376.71, maturity: "", remainingInstallments: null },
+  { entity: "Ikea", type: "Tarjeta", number: "4552 4698 2929 5014", initialPrincipal: 2594.88, originalPayment: 120, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 2594.88, maturity: "", remainingInstallments: null },
+  { entity: "Caixabank PC", type: "Crédito", number: "8197109", initialPrincipal: 464.62, originalPayment: 86.41, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 464.62, maturity: "30/7/26", remainingInstallments: 6 },
+  { entity: "Caixabank PC", type: "Crédito", number: "40354", initialPrincipal: 2195.07, originalPayment: 167.68, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 2195.07, maturity: "30/3/27", remainingInstallments: 14 },
+  { entity: "Caixabank PC", type: "Crédito", number: "40353", initialPrincipal: 491.6, originalPayment: 159.72, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 491.6, maturity: "30/4/26", remainingInstallments: 3 },
 ].map((item, index) => ({ ...item, id: `debt-${index + 1}` }));
+
+const CURRENT_REUNIFIED_DEBT_PAYMENT = 259;
+const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 130;
+const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
 
 const viewTitles = {
   overview: {
@@ -744,11 +748,37 @@ function plannedValueForRow(row, month) {
   const override = seriesOverrideForRow(row, month);
   if (override?.deleted) return 0;
   if (override?.planned !== undefined && override?.planned !== "") return Number(override.planned || 0);
+  const debtProjection = adjustedDebtPlannedValue(row, month);
+  if (debtProjection !== null) return debtProjection;
   return basePlannedValueForRow(row, month);
 }
 
 function basePlannedValueForRow(row, month) {
   return row.custom ? Number(row.plannedValue || 0) : Number(row.planned[month.index] || 0);
+}
+
+function adjustedDebtPlannedValue(row, month) {
+  if (row.custom || row.kind !== "expense") return null;
+  if (!month?.key || month.key < "2026-05") return null;
+  const label = normalizedText(displayLabelForRow(row));
+  if (label.includes("refinanciacion cetelem")) return CURRENT_REUNIFIED_DEBT_PAYMENT;
+  const oldFinancingLabels = [
+    "tarjeta eci",
+    "anticipo eci",
+    "mastercard credito",
+    "mastecard credito",
+    "financiacion express",
+    "pass javi credito",
+    "mastercard tere",
+    "visa go tere",
+    "visa go javi",
+    "mycard javi",
+    "tarjeta tere",
+    "prestamo tere",
+    "prestamo cetelem tere",
+    "mastercard pdh",
+  ];
+  return oldFinancingLabels.some((item) => label.includes(item)) ? 0 : null;
 }
 
 function actualAwareInfo(row, month) {
@@ -2232,21 +2262,19 @@ function removeDebtLiquidation(id) {
 }
 
 function debtPortfolioRows() {
-  const sourcePrincipal = Number(baseData?.sourcePlan?.oldDebtPrincipal || 0);
-  const portfolioPrincipal = sumRows(DEBT_PORTFOLIO, (item) => item.principal);
-  if (sourcePrincipal && Math.abs(sourcePrincipal - portfolioPrincipal) > 1) {
-    const adjustment = sourcePrincipal - portfolioPrincipal;
-    return [...DEBT_PORTFOLIO, { id: "debt-adjustment", entity: "Otros", type: "Ajuste", number: "Ajuste libro", principal: adjustment, payment: 0, maturity: "", remainingInstallments: null }];
-  }
   return DEBT_PORTFOLIO;
 }
 
 function debtPortfolioTotals(rows = debtPortfolioRows()) {
   return {
-    principal: round2(sumRows(rows, (item) => item.principal)),
-    payment: round2(sumRows(rows, (item) => item.payment)),
-    creditPrincipal: round2(sumRows(rows.filter((item) => normalizedText(item.type).includes("credito")), (item) => item.principal)),
-    cardPrincipal: round2(sumRows(rows.filter((item) => normalizedText(item.type).includes("tarjeta")), (item) => item.principal)),
+    initialPrincipal: round2(sumRows(rows, (item) => item.initialPrincipal)),
+    originalPayment: round2(sumRows(rows, (item) => item.originalPayment)),
+    currentPayment: round2(CURRENT_REUNIFIED_DEBT_PAYMENT + sumRows(rows.filter((item) => !item.reunified), (item) => item.currentPayment)),
+    amortized: round2(sumRows(rows, (item) => item.amortized)),
+    currentPrincipal: round2(sumRows(rows, (item) => item.currentPrincipal)),
+    reunifiedPrincipal: round2(sumRows(rows.filter((item) => item.reunified), (item) => item.initialPrincipal)),
+    creditPrincipal: round2(sumRows(rows.filter((item) => normalizedText(item.type).includes("credito")), (item) => item.currentPrincipal)),
+    cardPrincipal: round2(sumRows(rows.filter((item) => normalizedText(item.type).includes("tarjeta")), (item) => item.currentPrincipal)),
   };
 }
 
@@ -2261,8 +2289,8 @@ function currentOutsideDebtPayment() {
 }
 
 function currentDebtPaymentBreakdown() {
-  const unified = Number(baseData?.assumptions?.refiLaterPayment || baseData?.sourcePlan?.unifiedCreditPayment || 0);
-  const outside = currentOutsideDebtPayment();
+  const unified = CURRENT_REUNIFIED_DEBT_PAYMENT;
+  const outside = round2(sumRows(debtPortfolioRows().filter((item) => !item.reunified), (item) => item.currentPayment));
   return {
     unified: round2(unified),
     outside,
@@ -2278,12 +2306,17 @@ function debtTargetOptions() {
       entity: "Plan refinanciado",
       type: "Cuota unificada",
       number: "PZ Finanz / Cetelem",
-      principal: Number(baseData?.sourcePlan?.oldDebtPrincipal || debtPortfolioTotals().principal),
+      principal: CURRENT_REUNIFIED_DEBT_COST,
+      currentPrincipal: CURRENT_REUNIFIED_DEBT_COST,
       payment: current.unified,
       maturity: "10 años aprox.",
-      remainingInstallments: null,
+      remainingInstallments: CURRENT_REUNIFIED_DEBT_INSTALLMENTS,
     },
-    ...debtPortfolioRows(),
+    ...debtPortfolioRows().map((item) => ({
+      ...item,
+      principal: item.currentPrincipal,
+      payment: item.currentPayment,
+    })),
   ];
 }
 
@@ -2298,7 +2331,7 @@ function populateDebtTargetSelect() {
   const previous = select.value;
   const hadOptions = select.options.length > 0;
   select.innerHTML = debtTargetOptions()
-    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${money(item.principal, true)}</option>`)
+    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${money(item.currentPrincipal ?? item.principal, true)}</option>`)
     .join("");
   select.value = [...select.options].some((option) => option.value === previous) ? previous : "plan-unificado";
   if (!hadOptions) updateDebtTargetDefaults(false);
@@ -2310,7 +2343,8 @@ function updateDebtTargetDefaults(force = true) {
   if (force || !qs("debtPayoffName")?.value) {
     qs("debtPayoffName").value = target.id === "plan-unificado" ? "Amortización plan refinanciado" : `${target.entity} ${target.type}`;
   }
-  if (force || !qs("debtPayoffAmount")?.value) qs("debtPayoffAmount").value = target.principal ? target.principal.toFixed(2) : "";
+  const targetPrincipal = Number(target.currentPrincipal ?? target.principal ?? 0);
+  if (force || !qs("debtPayoffAmount")?.value) qs("debtPayoffAmount").value = targetPrincipal ? targetPrincipal.toFixed(2) : "";
   if (force || !qs("debtPayoffRelief")?.value) qs("debtPayoffRelief").value = target.payment ? target.payment.toFixed(2) : "";
 }
 
@@ -2351,8 +2385,8 @@ function recommendedDebtDecision() {
 function debtControlStats() {
   const portfolioTotals = debtPortfolioTotals();
   const currentPayment = currentDebtPaymentBreakdown();
-  const oldDebt = Number(baseData?.derived?.oldCreditPrincipal || baseData?.sourcePlan?.oldDebtPrincipal || portfolioTotals.principal);
-  const oldMonthly = Number(baseData?.derived?.oldCreditMonthlyAverageJanMar2026 || baseData?.sourcePlan?.oldDebtMonthlyPayments || portfolioTotals.payment);
+  const oldDebt = portfolioTotals.initialPrincipal;
+  const oldMonthly = portfolioTotals.originalPayment;
   const remainingPlanDebt = lastBaseSimulation.length ? sumRows(lastBaseSimulation, (row) => row.refi) : Number(baseData?.sourcePlan?.debtServiceMonthlyTotal || 0);
   const currentMonthly12 = lastBaseSimulation.length
     ? averageRows(lastBaseSimulation.slice(0, Math.min(12, lastBaseSimulation.length)), (row) => row.refi)
@@ -2368,7 +2402,7 @@ function debtControlStats() {
     remainingPlanDebt,
     currentMonthly12,
     liquidationTotal,
-    principalAfterAgreements: Math.max(0, oldDebt - principalCovered),
+    principalAfterAgreements: Math.max(0, portfolioTotals.currentPrincipal - principalCovered),
     afterLiquidations: Math.max(0, remainingPlanDebt - liquidationTotal),
     monthlyAfterDecisions: Math.max(0, currentPayment.total - relief),
     monthlyRelief: Math.max(0, oldMonthly - currentMonthly12),
@@ -2412,27 +2446,24 @@ function renderDebtPayoffChart() {
   const values = months.map((month) =>
     projectPlan.placements
       .filter((item) => item.source === "debt")
-      .reduce((sum, item) => {
-        const duration = Math.max(1, Number(item.duration || 1));
-        const active = month.index >= item.startIndex && month.index < item.startIndex + duration;
-        return sum + (active ? Number(item.amount || 0) / duration : 0);
-      }, 0),
+      .reduce((sum, item) => sum + scheduledDecisionMonthlyImpact(item, month.index), 0),
   );
   const width = svg.clientWidth || 520;
   const height = 180;
   const pad = { left: 42, right: 12, top: 14, bottom: 34 };
   svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-  const max = Math.max(...values, 1);
+  const max = Math.max(...values.map((value) => Math.abs(value)), 1);
+  const zeroY = height - pad.bottom - (height - pad.top - pad.bottom) * 0.5;
   const barW = (width - pad.left - pad.right) / Math.max(values.length, 1);
   svg.innerHTML = values
     .map((value, index) => {
-      const h = ((height - pad.top - pad.bottom) * value) / max;
+      const h = (((height - pad.top - pad.bottom) * 0.48) * Math.abs(value)) / max;
       const x = pad.left + index * barW + 2;
-      const y = height - pad.bottom - h;
+      const y = value >= 0 ? zeroY - h : zeroY;
       const label = index % 6 === 0 ? `<text class="chart-label" x="${x}" y="${height - 10}">${months[index].label}</text>` : "";
-      return `<rect class="bar debt-bar" x="${x}" y="${y}" width="${Math.max(3, barW - 4)}" height="${h}" rx="3"></rect>${label}`;
+      return `<rect class="bar debt-bar ${value < 0 ? "saving" : ""}" x="${x}" y="${y}" width="${Math.max(3, barW - 4)}" height="${h}" rx="3"></rect>${label}`;
     })
-    .join("");
+    .join("") + `<line class="chart-grid-line" x1="${pad.left}" x2="${width - pad.right}" y1="${zeroY}" y2="${zeroY}"></line>`;
 }
 
 function renderDebtControl() {
@@ -2441,10 +2472,11 @@ function renderDebtControl() {
   updateDebtModeUi();
   const stats = debtControlStats();
   qs("debtControlSummary").innerHTML = [
-    ["Capital anterior", money(stats.oldDebt, true), ""],
+    ["Capital inicial", money(stats.oldDebt, true), ""],
+    ["Capital actual", money(stats.portfolioTotals.currentPrincipal, true), ""],
     ["Pago mensual anterior", money(stats.oldMonthly, true), "negative"],
     ["Pago mensual actual", money(stats.currentPayment.total, true), ""],
-    ["Capital tras acuerdos", money(stats.principalAfterAgreements, true), stats.principalAfterAgreements < stats.oldDebt ? "positive" : ""],
+    ["Capital tras acuerdos", money(stats.principalAfterAgreements, true), stats.principalAfterAgreements < stats.portfolioTotals.currentPrincipal ? "positive" : ""],
     ["Tras decisiones", money(stats.monthlyAfterDecisions, true), stats.monthlyAfterDecisions < stats.currentPayment.total ? "positive" : ""],
   ]
     .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
@@ -2452,10 +2484,10 @@ function renderDebtControl() {
 
   if (qs("debtBreakdownCards")) {
     qs("debtBreakdownCards").innerHTML = [
-      ["Créditos", money(stats.portfolioTotals.creditPrincipal, true), `${DEBT_PORTFOLIO.filter((item) => normalizedText(item.type).includes("credito")).length} líneas`],
-      ["Tarjetas", money(stats.portfolioTotals.cardPrincipal, true), `${DEBT_PORTFOLIO.filter((item) => normalizedText(item.type).includes("tarjeta")).length} líneas`],
-      ["Cuota refinanciada", money(stats.currentPayment.unified, true), "PZ Finanz / Cetelem"],
-      ["Fuera del plan", money(stats.currentPayment.outside, true), "Bankinter + Cetelem vigentes"],
+      ["Reunificado", money(stats.portfolioTotals.reunifiedPrincipal, true), `${money(stats.currentPayment.unified, true)}/mes · ${CURRENT_REUNIFIED_DEBT_INSTALLMENTS} cuotas`],
+      ["Capital actual", money(stats.portfolioTotals.currentPrincipal, true), "No reunificado pendiente"],
+      ["Amortizado", money(stats.portfolioTotals.amortized, true), "Acuerdos ya aplicados"],
+      ["Pago mensual actual", money(stats.currentPayment.total, true), "Desde mayo 2026"],
     ]
       .map(([label, value, detail]) => `<div class="debt-mini-card"><span>${label}</span><strong>${value}</strong><small>${detail}</small></div>`)
       .join("");
@@ -2465,26 +2497,34 @@ function renderDebtControl() {
     const rows = debtPortfolioRows();
     const grouped = new Map();
     rows.forEach((row) => {
-      const key = `${row.entity}|${row.type}`;
-      const current = grouped.get(key) || { entity: row.entity, type: row.type, principal: 0, payment: 0, lines: [] };
-      current.principal += Number(row.principal || 0);
-      current.payment += Number(row.payment || 0);
+      const displayType = row.reunified ? "Reunificado" : row.type;
+      const key = `${row.entity}|${displayType}`;
+      const current = grouped.get(key) || { entity: row.entity, type: displayType, initialPrincipal: 0, originalPayment: 0, currentPayment: 0, amortized: 0, currentPrincipal: 0, reunified: false, lines: [] };
+      current.initialPrincipal += Number(row.initialPrincipal || 0);
+      current.originalPayment += Number(row.originalPayment || 0);
+      current.currentPayment = row.reunified ? Math.max(current.currentPayment, Number(row.currentPayment || 0)) : current.currentPayment + Number(row.currentPayment || 0);
+      current.amortized += Number(row.amortized || 0);
+      current.currentPrincipal += Number(row.currentPrincipal || 0);
+      current.reunified = current.reunified || Boolean(row.reunified);
       current.lines.push(row);
       grouped.set(key, current);
     });
     qs("debtPortfolioTable").innerHTML = `<thead>
-      <tr><th>Entidad / tipo</th><th>Capital</th><th>Mensualidad</th><th>Productos</th><th>Vencimiento</th></tr>
+      <tr><th>Entidad / tipo</th><th>Capital inicial</th><th>Mensualidad original</th><th>Desde mayo 2026</th><th>Amortizado</th><th>Capital actual</th><th>Productos</th></tr>
     </thead><tbody>
       ${[...grouped.values()]
         .map((group) => {
-          const details = group.lines.map((line) => `${line.number}${line.remainingInstallments ? ` · ${line.remainingInstallments} cuotas` : ""}`).join("<br>");
-          const maturities = [...new Set(group.lines.map((line) => line.maturity).filter(Boolean))].join("<br>") || "Sin dato";
+          const details = group.lines
+            .map((line) => `${line.number}${line.reunified ? " · reunificado" : ""}${line.remainingInstallments ? ` · ${line.remainingInstallments} cuotas` : ""}`)
+            .join("<br>");
           return `<tr>
             <td><strong>${escapeHtml(group.entity)}</strong><small>${escapeHtml(group.type)}</small></td>
-            <td>${money(group.principal, true)}</td>
-            <td class="negative">${money(group.payment, true)}</td>
+            <td>${money(group.initialPrincipal, true)}</td>
+            <td class="negative">${money(group.originalPayment, true)}</td>
+            <td class="${group.currentPayment ? "negative" : ""}">${money(group.currentPayment, true)}</td>
+            <td>${money(group.amortized, true)}</td>
+            <td>${money(group.currentPrincipal, true)}</td>
             <td>${details}</td>
-            <td>${escapeHtml(maturities)}</td>
           </tr>`;
         })
         .join("")}
