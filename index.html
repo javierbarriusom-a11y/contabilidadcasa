@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260517c" />
+    <link rel="stylesheet" href="styles.css?v=20260517d" />
   </head>
   <body>
     <div class="app-shell">
@@ -648,7 +648,7 @@
               <div>
                 <p class="panel-kicker">Entrada operativa</p>
                 <h2>Cargar datos manuales, lotes o Excel</h2>
-                <p>Todo lo que cargues aquí actualiza detalle mensual, simulador, flujo, proyección y sincronización.</p>
+                <p>Todo lo que cargues aquí actualiza vista general, detalle visual, control de deuda, previsión, simulador, plan ahorro, flujo y movimientos.</p>
               </div>
             </div>
 
@@ -667,6 +667,7 @@
                       <option value="expense">Gasto</option>
                       <option value="income">Ingreso</option>
                       <option value="project">Proyecto / imprevisto</option>
+                      <option value="debt">Deuda / liquidación</option>
                     </select>
                   </label>
                   <label>
@@ -711,12 +712,12 @@
                     <h3>Pegar tabla</h3>
                   </div>
                 </div>
-                <textarea id="batchDataInput" spellcheck="false" placeholder="tipo;mes;bloque;concepto;previsto;real;duracion;modo&#10;gasto;2026-06;GASTOS FIJOS;Luz;120;134,20&#10;ingreso;jul 26;INGRESOS;Extra;0;500&#10;proyecto;2026-09;;Viaje;0;1800;3;optimo"></textarea>
+                <textarea id="batchDataInput" spellcheck="false" placeholder="tipo;mes;bloque;concepto;previsto;real;duracion;modo&#10;gasto;2026-06;GASTOS FIJOS;Luz;120;134,20&#10;ingreso;jul 26;INGRESOS;Extra;0;500&#10;proyecto;2026-09;;Viaje;0;1800;3;optimo&#10;deuda;2026-12;;Amortización extra;0;900;1;manual"></textarea>
                 <div class="data-actions">
                   <button id="importBatchData">Importar lote</button>
                   <button id="clearBatchData" type="button">Limpiar</button>
                 </div>
-                <p class="data-hint">Admite separador `;`, tabulador o coma. Cabeceras recomendadas: tipo, mes, bloque, concepto, previsto, real, duracion, modo.</p>
+                <p class="data-hint">Admite separador `;`, tabulador o coma. Cabeceras recomendadas: tipo, mes, bloque, concepto, previsto, real, duracion, modo. Tipo puede ser gasto, ingreso, proyecto o deuda.</p>
               </article>
 
               <article class="data-card">
@@ -875,9 +876,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260517c"></script>
-    <script src="supabase-config.js?v=20260517c"></script>
-    <script src="data.js?v=20260517c"></script>
-    <script src="app.js?v=20260517c"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260517d"></script>
+    <script src="supabase-config.js?v=20260517d"></script>
+    <script src="data.js?v=20260517d"></script>
+    <script src="app.js?v=20260517d"></script>
   </body>
 </html>

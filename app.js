@@ -822,6 +822,7 @@ function monthFromInput(value) {
 function normalizeDataKind(value) {
   const text = normalizedText(value);
   if (text.includes("proy") || text.includes("imprev")) return "project";
+  if (text.includes("deud") || text.includes("debt") || text.includes("liquid") || text.includes("amort") || text.includes("refin") || text.includes("payoff")) return "debt";
   if (text.includes("ing")) return "income";
   return "expense";
 }
@@ -856,6 +857,12 @@ function canonicalHeader(value) {
 function normalizeProjectMode(value) {
   const text = normalizedText(value);
   return text.includes("opt") ? "optimize" : "fixed";
+}
+
+function normalizeDebtPayoffMode(value, duration = 1) {
+  const text = normalizedText(value);
+  if (text.includes("repart") || text.includes("varios") || text.includes("mensual") || Number(duration) > 1) return "spread";
+  return "fixed";
 }
 
 function workbookSheet(workbook, candidates) {
@@ -3888,16 +3895,17 @@ function updateManualDataKindUi() {
   const kind = qs("manualDataKind")?.value || "expense";
   const sectionSelect = qs("manualDataSection");
   if (sectionSelect) {
-    sectionSelect.disabled = kind === "project";
-    const sections = baseData.monthlyPlanning.sections.filter((section) => section.kind === kind);
-    sectionSelect.innerHTML = sections
-      .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
-      .join("");
+    const usesPlanningSection = kind === "income" || kind === "expense";
+    sectionSelect.disabled = !usesPlanningSection;
+    const sections = usesPlanningSection ? baseData.monthlyPlanning.sections.filter((section) => section.kind === kind) : [];
+    sectionSelect.innerHTML = sections.length
+      ? sections.map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`).join("")
+      : '<option value="">No aplica</option>';
   }
   document.querySelectorAll(".manual-project-field").forEach((field) => {
-    field.classList.toggle("is-hidden", kind !== "project");
+    field.classList.toggle("is-hidden", kind !== "project" && kind !== "debt");
   });
-  qs("manualDataPlanned")?.closest("label")?.classList.toggle("is-hidden", kind === "project");
+  qs("manualDataPlanned")?.closest("label")?.classList.toggle("is-hidden", kind === "project" || kind === "debt");
 }
 
 function availableSeriesRows(kind) {
@@ -4023,11 +4031,10 @@ function applySeriesChange() {
     return;
   }
   saveSeriesOverrides();
-  render();
-  populateDataEntryControls();
+  refreshAllSectionsAfterDataChange();
   showImportLog(
     `Serie actualizada: ${displayLabelForRow(row)}`,
-    `${changed} mes(es) modificados. El cambio ya afecta a detalle mensual, simulador, flujo de caja y proyección.`,
+    `${changed} mes(es) modificados. ${fullRefreshMessage()}`,
   );
 }
 
@@ -4037,6 +4044,16 @@ function showImportLog(title, body, tone = "") {
   log.classList.toggle("warning", tone === "warning");
   log.classList.toggle("danger", tone === "danger");
   log.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${escapeHtml(body)}</p>`;
+}
+
+function fullRefreshMessage() {
+  return "Vista general, detalle visual, control de deuda, previsión, simulador, proyección, plan ahorro, flujo mensual y movimientos quedan recalculados.";
+}
+
+function refreshAllSectionsAfterDataChange() {
+  updateSourceNote();
+  render();
+  populateDataEntryControls();
 }
 
 function findPlanningRow(kind, sectionName, label, month) {
@@ -4109,27 +4126,60 @@ function upsertProjectRecord(record) {
   return { ok: true, kind: "project", label, month: month.label };
 }
 
+function upsertDebtRecord(record) {
+  const month = monthFromInput(record.month) || baseData.monthlyPlanning.months[0];
+  const label = String(record.label || record.concept || "").trim() || "Liquidación deuda";
+  const amount = parseAmount(record.actual ?? record.planned ?? record.amount);
+  if (!amount || amount <= 0) return { ok: false, reason: `Liquidación sin importe: ${label}` };
+  const duration = Math.max(1, Number(record.duration || 1));
+  const payoffMode = normalizeDebtPayoffMode(record.mode || "fixed", duration);
+  const monthIndex = forecastMonths().findIndex((item) => item.key === month.key);
+  debtLiquidations.push({
+    id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: label,
+    amount: round2(amount),
+    duration,
+    mode: "fixed",
+    payoffMode,
+    monthIndex: Math.max(0, monthIndex),
+    monthKey: month.key,
+  });
+  return { ok: true, kind: "debt", label, month: month.label };
+}
+
 function processDataRecords(records, sourceLabel = "datos") {
   let imported = 0;
+  let projectRows = 0;
+  let debtRows = 0;
+  let planningRows = 0;
   const warnings = [];
   records.forEach((record, index) => {
     const kind = normalizeDataKind(record.kind);
-    const result = kind === "project" ? upsertProjectRecord(record) : upsertPlanningRecord({ ...record, kind });
-    if (result.ok) imported += 1;
-    else warnings.push(`Línea ${index + 1}: ${result.reason}`);
+    const result =
+      kind === "project"
+        ? upsertProjectRecord(record)
+        : kind === "debt"
+          ? upsertDebtRecord(record)
+          : upsertPlanningRecord({ ...record, kind });
+    if (result.ok) {
+      imported += 1;
+      if (result.kind === "project") projectRows += 1;
+      else if (result.kind === "debt") debtRows += 1;
+      else planningRows += 1;
+    } else warnings.push(`Línea ${index + 1}: ${result.reason}`);
   });
 
   saveCustomPlanningRows();
   saveIncomeActuals();
   saveExpenseActuals();
   saveProjects();
-  render();
-  populateDataEntryControls();
+  saveDebtLiquidations();
+  refreshAllSectionsAfterDataChange();
 
   const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
   showImportLog(
     `${imported} registro(s) importado(s)`,
-    `Origen: ${sourceLabel}. El flujo, detalle mensual, simulador y proyección se han recalculado.${warningText}`,
+    `Origen: ${sourceLabel}. ${planningRows} concepto(s), ${projectRows} proyecto(s) y ${debtRows} liquidación(es) de deuda procesados. ${fullRefreshMessage()}${warningText}`,
     warnings.length ? "warning" : "",
   );
 }
@@ -4198,19 +4248,18 @@ function applyImportedWorkbookData(nextData, fileName) {
   };
   saveWorkbookOverride();
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
-  populateSelectors();
   updateSourceNote();
   qs("scenarioName").textContent = currentScenario;
   saveLocalSnapshot();
   queueRemoteSave();
-  render();
+  refreshAllSectionsAfterDataChange();
 
   const monthCount = baseData.monthlyPlanning?.months?.length || 0;
   const sectionCount = baseData.monthlyPlanning?.sections?.length || 0;
   const transactionCount = baseData.transactions?.length || 0;
   showImportLog(
     "Libro Excel cargado completo",
-    `${fileName}: ${monthCount} meses, ${sectionCount} bloques de planificación y ${transactionCount} movimientos incorporados al modelo.`,
+    `${fileName}: ${monthCount} meses, ${sectionCount} bloques de planificación y ${transactionCount} movimientos incorporados al modelo. ${fullRefreshMessage()}`,
     "success",
   );
 }
