@@ -1835,6 +1835,10 @@ svg {
   gap: 8px;
 }
 
+.savings-assumptions {
+  grid-template-columns: repeat(2, minmax(230px, 1fr));
+}
+
 .savings-assumptions div,
 .savings-assumption-input,
 .savings-kpi {
@@ -1862,11 +1866,17 @@ svg {
 }
 
 .savings-assumption-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(108px, 138px);
+  align-items: center;
   gap: 6px;
+  min-height: 58px;
+  padding: 9px 10px;
 }
 
 .savings-assumption-input input {
-  min-height: 34px;
+  width: 100%;
+  min-height: 32px;
   padding: 6px 8px;
   text-align: right;
   font-weight: 900;
@@ -2325,6 +2335,14 @@ tbody tr:hover {
 @media (max-width: 860px) {
   .app-shell {
     display: block;
+  }
+
+  .savings-assumptions {
+    grid-template-columns: 1fr;
+  }
+
+  .savings-assumption-input {
+    grid-template-columns: 1fr;
   }
 
   .sidebar {
