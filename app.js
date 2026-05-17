@@ -56,6 +56,7 @@ let remoteSaveInFlight = false;
 let selectedCashflowIndex = null;
 let expandedCashflowYears = new Set();
 let expandedVisualSections = new Set();
+let expandedVisualYears = new Set();
 let visualDraftCells = {};
 let visualDraftLabels = {};
 let visualDraftDeletes = {};
@@ -3126,10 +3127,7 @@ function visualTimeMode() {
   return qs("visualTimeMode")?.value || "year";
 }
 
-function visualColumns(months) {
-  if (visualTimeMode() !== "year") {
-    return months.map((month) => ({ key: month.key, label: month.label, months: [month], kind: "month" }));
-  }
+function visualYearGroups(months) {
   const groups = [];
   months.forEach((month) => {
     const year = month.key.slice(0, 4);
@@ -3141,6 +3139,51 @@ function visualColumns(months) {
     group.months.push(month);
   });
   return groups;
+}
+
+function ensureVisualYearDefaults(months) {
+  if (visualTimeMode() !== "year" || expandedVisualYears.size || !months.length) return;
+  expandedVisualYears.add(months[0].key.slice(0, 4));
+}
+
+function visualColumns(months) {
+  if (visualTimeMode() !== "year") {
+    return months.map((month) => ({ key: month.key, label: month.label, months: [month], kind: "month", year: month.key.slice(0, 4) }));
+  }
+  ensureVisualYearDefaults(months);
+  return visualYearGroups(months).flatMap((group) => {
+    const expanded = expandedVisualYears.has(group.key);
+    const summaryColumn = {
+      key: `${group.key}:summary`,
+      label: expanded ? `Total ${group.key}` : group.key,
+      months: group.months,
+      kind: "year-summary",
+      year: group.key,
+      expanded,
+    };
+    if (!expanded) return [summaryColumn];
+    return [
+      ...group.months.map((month) => ({ key: month.key, label: month.label, months: [month], kind: "month", year: group.key })),
+      summaryColumn,
+    ];
+  });
+}
+
+function renderVisualColumnHeader(column) {
+  if (visualTimeMode() === "year" && column.kind === "year-summary") {
+    return `<th class="visual-year-header">
+      <button type="button" data-visual-year-toggle="${escapeHtml(column.year)}" aria-expanded="${column.expanded ? "true" : "false"}">
+        <span>${column.expanded ? "-" : "+"}</span>${escapeHtml(column.label)}
+      </button>
+    </th>`;
+  }
+  return `<th class="${column.kind === "month" && visualTimeMode() === "year" ? "visual-month-header" : ""}">${escapeHtml(column.label)}</th>`;
+}
+
+function toggleVisualYear(year) {
+  if (expandedVisualYears.has(year)) expandedVisualYears.delete(year);
+  else expandedVisualYears.add(year);
+  renderVisualDetail();
 }
 
 function sumColumnMonths(column, getter) {
@@ -3489,7 +3532,7 @@ function renderVisualDetail() {
   const columns = visualColumns(months);
   const compactYears = visualTimeMode() === "year";
   const mode = qs("visualValueMode")?.value || "planned";
-  const monthHeaders = columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join("");
+  const monthHeaders = columns.map((column) => renderVisualColumnHeader(column)).join("");
   const body = [];
   const totals = { income: 0, expense: 0, realRows: 0, lines: 0 };
 
@@ -3508,10 +3551,9 @@ function renderVisualDetail() {
     const sectionTotals = columns.map((column) =>
       sumColumnMonths(column, (month) => visualSectionTotal(section, rows, months, mode, month)),
     );
-    sectionTotals.forEach((value) => {
-      if (section.kind === "income") totals.income += value;
-      else totals.expense += value;
-    });
+    const sectionRangeTotal = sumColumnMonths({ months }, (month) => visualSectionTotal(section, rows, months, mode, month));
+    if (section.kind === "income") totals.income += sectionRangeTotal;
+    else totals.expense += sectionRangeTotal;
     body.push(`<tr class="visual-section-row ${section.kind} ${expanded ? "expanded" : ""}" data-visual-section-row="${escapeHtml(sectionKey)}">
       <td>
         <button class="visual-section-button" type="button" data-visual-section-toggle="${escapeHtml(sectionKey)}" aria-expanded="${expanded ? "true" : "false"}">
@@ -3542,7 +3584,7 @@ function renderVisualDetail() {
         </td>
         ${columns
           .map((column) => {
-            if (compactYears) {
+            if (compactYears && column.kind === "year-summary") {
               const value = sumColumnMonths(column, (month) => visualCellValue(row, month, mode));
               return `<td class="visual-year-cell ${value < 0 ? "negative" : value > 0 ? "positive" : ""}">${value ? money(value, true) : ""}</td>`;
             }
@@ -3571,8 +3613,9 @@ function renderVisualDetail() {
         return projectRows.reduce((sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : project.values[monthIndex] || 0), 0);
       }),
     );
-    sectionTotals.forEach((value) => {
-      totals.expense += value;
+    totals.expense += sumColumnMonths({ months }, (month) => {
+      const monthIndex = monthIndexByKey.get(month.key);
+      return projectRows.reduce((sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : project.values[monthIndex] || 0), 0);
     });
     totals.lines += projectRows.length;
     body.push(`<tr class="visual-section-row expense project-section ${expanded ? "expanded" : ""}" data-visual-section-row="${escapeHtml(projectSectionKey)}">
@@ -3597,7 +3640,7 @@ function renderVisualDetail() {
           ${columns
             .map((column) => {
               const value = sumColumnMonths(column, (month) => project.values[monthIndexByKey.get(month.key)] || 0);
-              if (compactYears) return `<td class="visual-year-cell negative">${value ? money(value, true) : ""}</td>`;
+              if (compactYears && column.kind === "year-summary") return `<td class="visual-year-cell negative">${value ? money(value, true) : ""}</td>`;
               return `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" readonly /></td>`;
             })
             .join("")}
@@ -3619,6 +3662,9 @@ function renderVisualDetail() {
   qs("visualDetailTable").className = `visual-matrix ${compactYears ? "compact-years" : ""}`;
   qs("visualDetailTable").innerHTML = `<thead><tr><th>Partida</th>${monthHeaders}<th>Acción</th></tr></thead><tbody>${body.join("")}</tbody>`;
 
+  document.querySelectorAll("[data-visual-year-toggle]").forEach((button) => {
+    button.addEventListener("click", () => toggleVisualYear(button.dataset.visualYearToggle));
+  });
   document.querySelectorAll("[data-visual-section-toggle]").forEach((button) => {
     button.addEventListener("click", () => toggleVisualSection(button.dataset.visualSectionToggle));
   });
@@ -3832,6 +3878,45 @@ function renderPrevisionAnnualRows(groups) {
   ];
 }
 
+function previsionDisplayItemsForColumns(columns, monthlyItems) {
+  const byKey = new Map(monthlyItems.map((item) => [item.row.detailMonthKey, item]));
+  return columns
+    .map((column) => {
+      if (column.kind === "month") {
+        const item = byKey.get(column.key);
+        return item ? { ...item, label: column.label, kind: "month", items: [item] } : null;
+      }
+      const items = column.months.map((month) => byKey.get(month.key)).filter(Boolean);
+      const last = items.at(-1);
+      return last ? { key: column.key, label: column.label, kind: "year-summary", items, index: last.index, row: last.row } : null;
+    })
+    .filter(Boolean);
+}
+
+function previsionDisplayValue(item, metricName) {
+  const metrics = item.items.map((entry) => previsionMetric(entry.row));
+  if (metricName === "result") return sumRows(metrics, (metric) => metric.result);
+  if (metricName === "max") return Math.max(...metrics.map((metric) => metric.max));
+  if (metricName === "min") return Math.min(...metrics.map((metric) => metric.min));
+  if (metricName === "adjustedMax") return Math.max(...metrics.map((metric) => metric.adjustedMax));
+  if (metricName === "adjustedMin") return Math.min(...metrics.map((metric) => metric.adjustedMin));
+  return 0;
+}
+
+function renderPrevisionDisplayRows(items) {
+  const colspan = Math.max(2, items.length + 1);
+  return [
+    renderPrevisionGroup("Reales", "real", colspan),
+    renderPrevisionValueRow("Resultado", items, (item) => previsionDisplayValue(item, "result")),
+    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionDisplayValue(item, "max"), "positive"),
+    renderPrevisionValueRow("Mínimo", items, (item) => previsionDisplayValue(item, "min")),
+    renderPrevisionGroup("Reales · flujo ajustado", "adjusted", colspan),
+    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionDisplayValue(item, "adjustedMax"), "positive"),
+    renderPrevisionValueRow("Mínimo ajustado", items, (item) => previsionDisplayValue(item, "adjustedMin")),
+    ...decisionComparisonRows(items),
+  ];
+}
+
 function renderVisualPrevision(months = visualMonths()) {
   if (!qs("visualPrevisionTable")) return;
   const items = previsionRowsForMonths(months);
@@ -3840,11 +3925,16 @@ function renderVisualPrevision(months = visualMonths()) {
     return;
   }
   const compactYears = visualTimeMode() === "year";
-  const displayItems = compactYears ? groupPrevisionItemsByYear(items) : items;
-  const headers = displayItems.map((item) => `<th>${escapeHtml(compactYears ? item.label : item.row.month)}</th>`).join("");
-  const rows = compactYears ? renderPrevisionAnnualRows(displayItems) : renderPrevisionRows(displayItems);
+  const displayItems = compactYears ? previsionDisplayItemsForColumns(visualColumns(months), items) : items;
+  const headers = displayItems
+    .map((item) => (compactYears ? renderVisualColumnHeader({ kind: item.kind, key: item.key || item.row.detailMonthKey, label: item.label, year: String(cashflowYear(item.row)), expanded: expandedVisualYears.has(String(cashflowYear(item.row))) }) : `<th>${escapeHtml(item.row.month)}</th>`))
+    .join("");
+  const rows = compactYears ? renderPrevisionDisplayRows(displayItems) : renderPrevisionRows(displayItems);
   qs("visualPrevisionTable").className = `prevision-table visual-prevision-table ${compactYears ? "compact-years" : ""}`;
   qs("visualPrevisionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody>`;
+  document.querySelectorAll("#visualPrevisionTable [data-visual-year-toggle]").forEach((button) => {
+    button.addEventListener("click", () => toggleVisualYear(button.dataset.visualYearToggle));
+  });
 }
 
 function renderPrevision() {

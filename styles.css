@@ -1679,6 +1679,52 @@ svg {
   min-width: 112px;
 }
 
+.visual-year-header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 6px;
+  color: var(--ink);
+  border: 1px solid rgba(12, 139, 135, 0.25);
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.visual-year-header button:hover {
+  color: #ffffff;
+  border-color: var(--teal);
+  background: var(--teal);
+  transform: none;
+}
+
+.visual-year-header span {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  color: #ffffff;
+  background: var(--teal);
+  line-height: 1;
+}
+
+.visual-year-header button:hover span {
+  color: var(--teal);
+  background: #ffffff;
+}
+
+.visual-month-header {
+  color: #60717d;
+  background: #f7fafb;
+}
+
 .visual-matrix th:first-child,
 .visual-matrix td:first-child {
   min-width: 230px;
