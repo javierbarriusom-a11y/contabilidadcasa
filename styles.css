@@ -1552,7 +1552,7 @@ svg {
 .visual-controls,
 .movement-filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  grid-template-columns: repeat(4, minmax(130px, 1fr));
   gap: 10px;
   align-items: end;
 }
@@ -1667,6 +1667,18 @@ svg {
   min-width: 1500px;
 }
 
+.visual-matrix.compact-years,
+.prevision-table.compact-years {
+  min-width: 960px;
+}
+
+.visual-matrix.compact-years th:not(:first-child),
+.visual-matrix.compact-years td:not(:first-child),
+.prevision-table.compact-years th:not(:first-child),
+.prevision-table.compact-years td:not(:first-child) {
+  min-width: 112px;
+}
+
 .visual-matrix th:first-child,
 .visual-matrix td:first-child {
   min-width: 230px;
@@ -1772,6 +1784,19 @@ svg {
   min-height: 32px;
   padding: 6px 8px;
   text-align: right;
+}
+
+.visual-year-cell {
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.visual-year-cell.positive {
+  color: var(--green);
+}
+
+.visual-year-cell.negative {
+  color: var(--red);
 }
 
 .visual-line-row.pending-delete td {

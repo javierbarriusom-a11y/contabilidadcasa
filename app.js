@@ -16,6 +16,9 @@ const derivedControlIds = [
   "refiLaterPayment",
 ];
 
+const MODEL_END_YEAR = 2040;
+const MODEL_END_MONTH = 11;
+
 const euro = new Intl.NumberFormat("es-ES", {
   style: "currency",
   currency: "EUR",
@@ -190,9 +193,16 @@ function modelStartDate() {
   return months[startIndex]?.key ? dateFromMonthKey(months[startIndex].key) : addMonths(baseModelStartDate(), startIndex);
 }
 
+function modelEndDate() {
+  return new Date(MODEL_END_YEAR, MODEL_END_MONTH, 1);
+}
+
+function monthSpanInclusive(start, end) {
+  return (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + 1;
+}
+
 function modelMonthCount() {
-  const planningCount = baseData.monthlyPlanning?.months?.length || baseData.metadata.forecastMonths;
-  return Math.min(baseData.metadata.forecastMonths + 1, Math.max(1, planningCount - modelStartIndex()));
+  return Math.max(1, monthSpanInclusive(modelStartDate(), modelEndDate()));
 }
 
 function chartTickIndexes(rows) {
@@ -754,7 +764,24 @@ function plannedValueForRow(row, month) {
 }
 
 function basePlannedValueForRow(row, month) {
-  return row.custom ? Number(row.plannedValue || 0) : Number(row.planned[month.index] || 0);
+  if (row.custom) return Number(row.plannedValue || 0);
+  const sourceMonth = sourcePlanningMonthForMonth(month);
+  return Number(row.planned[sourceMonth.index] || 0);
+}
+
+function sourcePlanningMonthForMonth(month) {
+  const planning = baseData.monthlyPlanning;
+  if (!planning?.months?.length || !month?.key) return month || { index: 0, key: "", label: "" };
+  const exactIndex = planning.months.findIndex((item) => item.key === month.key);
+  if (exactIndex >= 0) return { ...planning.months[exactIndex], index: exactIndex, key: month.key, label: month.label || planning.months[exactIndex].label };
+  const monthNumber = month.key.slice(5, 7);
+  for (let index = planning.months.length - 1; index >= 0; index -= 1) {
+    if (planning.months[index].key.slice(5, 7) === monthNumber) {
+      return { ...planning.months[index], index, key: month.key, label: month.label || monthLabel(dateFromMonthKey(month.key)) };
+    }
+  }
+  const fallbackIndex = Math.min(Math.max(0, Number(month.index || 0)), planning.months.length - 1);
+  return { ...planning.months[fallbackIndex], index: fallbackIndex, key: month.key, label: month.label || planning.months[fallbackIndex].label };
 }
 
 function adjustedDebtPlannedValue(row, month) {
@@ -845,7 +872,7 @@ function amountInputValue(value) {
 
 function monthFromInput(value) {
   const raw = String(value ?? "").trim();
-  const months = baseData.monthlyPlanning?.months || [];
+  const months = selectableMonths();
   if (!raw) return null;
   const normalized = normalizedText(raw).replace(/\./g, "");
   const keyMatch = normalized.match(/^(\d{4})[-/](\d{1,2})$/);
@@ -1318,12 +1345,8 @@ function isPrePayrollIncomeRow(row) {
 function planningMonthForDate(date, forecastIndex) {
   const planning = baseData.monthlyPlanning;
   const key = monthKey(date);
-  const foundIndex = planning.months.findIndex((month) => month.key === key);
-  const index =
-    foundIndex >= 0
-      ? foundIndex
-      : Math.min(Math.max(0, forecastIndex), planning.months.length - 1);
-  return { ...planning.months[index], index };
+  const label = monthLabel(date);
+  return sourcePlanningMonthForMonth({ key, label, index: forecastIndex });
 }
 
 function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
@@ -3042,23 +3065,30 @@ function renderTable(rows, baseRows = rows) {
 }
 
 function visualDefaultStartIndex() {
-  const planning = baseData.monthlyPlanning;
-  const forecastStartKey = forecastMonths()[0]?.key || baseData.metadata.forecastStart.slice(0, 7);
-  const found = planning.months.findIndex((month) => month.key === forecastStartKey);
-  return Math.max(0, found);
+  return 0;
 }
 
-function monthOptionsHtml(selectedKey = "") {
-  return baseData.monthlyPlanning.months
+function selectableMonths() {
+  try {
+    if (baseData && state) return forecastMonths();
+  } catch (error) {
+    // Fall back to the imported workbook months while the app is still booting.
+  }
+  return baseData?.monthlyPlanning?.months || [];
+}
+
+function monthOptionsHtml(selectedKey = "", months = selectableMonths()) {
+  return months
     .map((month) => `<option value="${month.key}" ${month.key === selectedKey ? "selected" : ""}>${escapeHtml(month.label)}</option>`)
     .join("");
 }
 
 function populateVisualControls() {
-  const months = baseData.monthlyPlanning?.months || [];
+  const months = selectableMonths();
   if (!months.length || !qs("visualStartMonth")) return;
+  const timeMode = qs("visualTimeMode")?.value || "year";
   const defaultStart = visualDefaultStartIndex();
-  const defaultEnd = Math.min(defaultStart + 17, months.length - 1);
+  const defaultEnd = timeMode === "year" ? months.length - 1 : Math.min(defaultStart + 17, months.length - 1);
   const selectIds = ["visualStartMonth", "visualEndMonth", "visualAddStartMonth", "visualAddEndMonth"];
   selectIds.forEach((id) => {
     const select = qs(id);
@@ -3066,7 +3096,7 @@ function populateVisualControls() {
     const previous = select.value;
     const fallbackIndex = id.includes("End") ? defaultEnd : defaultStart;
     const selected = months.some((month) => month.key === previous) ? previous : months[fallbackIndex]?.key;
-    select.innerHTML = monthOptionsHtml(selected);
+    select.innerHTML = monthOptionsHtml(selected, months);
     select.value = selected;
   });
   populateVisualAddSections();
@@ -3085,10 +3115,36 @@ function populateVisualAddSections() {
 }
 
 function visualMonths() {
-  const months = baseData.monthlyPlanning.months;
+  const months = selectableMonths();
   const startKey = qs("visualStartMonth")?.value || months[visualDefaultStartIndex()]?.key;
-  const endKey = qs("visualEndMonth")?.value || months[Math.min(visualDefaultStartIndex() + 17, months.length - 1)]?.key;
-  return monthsInRange(startKey, endKey);
+  const defaultEndIndex = (qs("visualTimeMode")?.value || "year") === "year" ? months.length - 1 : Math.min(visualDefaultStartIndex() + 17, months.length - 1);
+  const endKey = qs("visualEndMonth")?.value || months[defaultEndIndex]?.key;
+  return monthsInRange(startKey, endKey, months);
+}
+
+function visualTimeMode() {
+  return qs("visualTimeMode")?.value || "year";
+}
+
+function visualColumns(months) {
+  if (visualTimeMode() !== "year") {
+    return months.map((month) => ({ key: month.key, label: month.label, months: [month], kind: "month" }));
+  }
+  const groups = [];
+  months.forEach((month) => {
+    const year = month.key.slice(0, 4);
+    let group = groups.at(-1);
+    if (!group || group.key !== year) {
+      group = { key: year, label: year, months: [], kind: "year" };
+      groups.push(group);
+    }
+    group.months.push(month);
+  });
+  return groups;
+}
+
+function sumColumnMonths(column, getter) {
+  return round2(column.months.reduce((sum, month) => sum + Number(getter(month) || 0), 0));
 }
 
 function plannedValueForVisualRow(row, month) {
@@ -3203,7 +3259,7 @@ function projectRowsForVisualMonths(months) {
 
 function updateVisualCell(input) {
   const row = rowForSeriesKey(input.dataset.rowKey);
-  const month = baseData.monthlyPlanning.months.find((item) => item.key === input.dataset.monthKey);
+  const month = monthByKey(input.dataset.monthKey);
   if (!row || !month) return;
   const parsed = parseAmount(input.value);
   const value = input.value === "" || parsed === null ? 0 : round2(parsed);
@@ -3356,7 +3412,7 @@ function saveVisualChanges() {
 
   Object.values(visualDraftCells).forEach((draft) => {
     const row = rowForSeriesKey(draft.rowKey);
-    const month = baseData.monthlyPlanning.months.find((item) => item.key === draft.monthKey);
+    const month = monthByKey(draft.monthKey);
     if (!row || !month) return;
     const key = overrideKeyForRow(row, month);
     const next = { ...(seriesOverrides[key] || {}) };
@@ -3430,8 +3486,10 @@ function renderVisualDetail() {
   if (!qs("visualDetailTable")) return;
   populateVisualControls();
   const months = visualMonths();
+  const columns = visualColumns(months);
+  const compactYears = visualTimeMode() === "year";
   const mode = qs("visualValueMode")?.value || "planned";
-  const monthHeaders = months.map((month) => `<th>${escapeHtml(month.label)}</th>`).join("");
+  const monthHeaders = columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join("");
   const body = [];
   const totals = { income: 0, expense: 0, realRows: 0, lines: 0 };
 
@@ -3447,7 +3505,9 @@ function renderVisualDetail() {
         if (actualAwareInfoForVisualRow(row, month).hasActual) totals.realRows += 1;
       });
     });
-    const sectionTotals = months.map((month) => round2(visualSectionTotal(section, rows, months, mode, month)));
+    const sectionTotals = columns.map((column) =>
+      sumColumnMonths(column, (month) => visualSectionTotal(section, rows, months, mode, month)),
+    );
     sectionTotals.forEach((value) => {
       if (section.kind === "income") totals.income += value;
       else totals.expense += value;
@@ -3480,8 +3540,13 @@ function renderVisualDetail() {
             </div>
           </div>
         </td>
-        ${months
-          .map((month) => {
+        ${columns
+          .map((column) => {
+            if (compactYears) {
+              const value = sumColumnMonths(column, (month) => visualCellValue(row, month, mode));
+              return `<td class="visual-year-cell ${value < 0 ? "negative" : value > 0 ? "positive" : ""}">${value ? money(value, true) : ""}</td>`;
+            }
+            const month = column.months[0];
             const info = actualAwareInfoForVisualRow(row, month);
             const value = visualCellValue(row, month, mode);
             const placeholder = mode === "actual" && info.planned ? `prev. ${money(info.planned, true)}` : "";
@@ -3499,8 +3564,12 @@ function renderVisualDetail() {
   if (projectRows.length) {
     const projectSectionKey = "project:projects";
     const expanded = expandedVisualSections.has(projectSectionKey);
-    const sectionTotals = months.map((_, index) =>
-      round2(projectRows.reduce((sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : project.values[index]), 0)),
+    const monthIndexByKey = new Map(months.map((month, index) => [month.key, index]));
+    const sectionTotals = columns.map((column) =>
+      sumColumnMonths(column, (month) => {
+        const monthIndex = monthIndexByKey.get(month.key);
+        return projectRows.reduce((sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : project.values[monthIndex] || 0), 0);
+      }),
     );
     sectionTotals.forEach((value) => {
       totals.expense += value;
@@ -3525,8 +3594,12 @@ function renderVisualDetail() {
             <input class="visual-label-input derived-control" value="${escapeHtml(project.name)}" readonly />
             <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}${pendingDelete ? " · se borrará al guardar" : ""}</small>
           </td>
-          ${project.values
-            .map((value) => `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" readonly /></td>`)
+          ${columns
+            .map((column) => {
+              const value = sumColumnMonths(column, (month) => project.values[monthIndexByKey.get(month.key)] || 0);
+              if (compactYears) return `<td class="visual-year-cell negative">${value ? money(value, true) : ""}</td>`;
+              return `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" readonly /></td>`;
+            })
             .join("")}
           <td><button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button></td>
         </tr>`);
@@ -3543,6 +3616,7 @@ function renderVisualDetail() {
     .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
     .join("");
 
+  qs("visualDetailTable").className = `visual-matrix ${compactYears ? "compact-years" : ""}`;
   qs("visualDetailTable").innerHTML = `<thead><tr><th>Partida</th>${monthHeaders}<th>Acción</th></tr></thead><tbody>${body.join("")}</tbody>`;
 
   document.querySelectorAll("[data-visual-section-toggle]").forEach((button) => {
@@ -3711,6 +3785,53 @@ function renderPrevisionRows(items) {
   ];
 }
 
+function groupPrevisionItemsByYear(items) {
+  const groups = [];
+  items.forEach((item) => {
+    const year = String(cashflowYear(item.row));
+    let group = groups.at(-1);
+    if (!group || group.key !== year) {
+      group = { key: year, label: year, items: [], index: item.index, row: item.row };
+      groups.push(group);
+    }
+    group.items.push(item);
+    group.index = item.index;
+    group.row = item.row;
+  });
+  return groups;
+}
+
+function renderPrevisionAnnualValueRow(label, groups, getter, mode = "") {
+  return `<tr>
+    <td>${escapeHtml(label)}</td>
+    ${groups.map((group) => previsionCell(getter(group), mode)).join("")}
+  </tr>`;
+}
+
+function renderPrevisionAnnualRows(groups) {
+  const colspan = Math.max(2, groups.length + 1);
+  return [
+    renderPrevisionGroup("Reales", "real", colspan),
+    renderPrevisionAnnualValueRow("Resultado año", groups, (group) =>
+      sumRows(group.items, (item) => previsionMetric(item.row).result),
+    ),
+    renderPrevisionAnnualValueRow("Saldo máximo", groups, (group) =>
+      Math.max(...group.items.map((item) => previsionMetric(item.row).max)),
+    "positive"),
+    renderPrevisionAnnualValueRow("Mínimo", groups, (group) =>
+      Math.min(...group.items.map((item) => previsionMetric(item.row).min)),
+    ),
+    renderPrevisionGroup("Reales · flujo ajustado", "adjusted", colspan),
+    renderPrevisionAnnualValueRow("Saldo máximo", groups, (group) =>
+      Math.max(...group.items.map((item) => previsionMetric(item.row).adjustedMax)),
+    "positive"),
+    renderPrevisionAnnualValueRow("Mínimo ajustado", groups, (group) =>
+      Math.min(...group.items.map((item) => previsionMetric(item.row).adjustedMin)),
+    ),
+    ...decisionComparisonRows(groups),
+  ];
+}
+
 function renderVisualPrevision(months = visualMonths()) {
   if (!qs("visualPrevisionTable")) return;
   const items = previsionRowsForMonths(months);
@@ -3718,8 +3839,12 @@ function renderVisualPrevision(months = visualMonths()) {
     qs("visualPrevisionTable").innerHTML = "";
     return;
   }
-  const headers = items.map((item) => `<th>${escapeHtml(item.row.month)}</th>`).join("");
-  qs("visualPrevisionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${renderPrevisionRows(items).join("")}</tbody>`;
+  const compactYears = visualTimeMode() === "year";
+  const displayItems = compactYears ? groupPrevisionItemsByYear(items) : items;
+  const headers = displayItems.map((item) => `<th>${escapeHtml(compactYears ? item.label : item.row.month)}</th>`).join("");
+  const rows = compactYears ? renderPrevisionAnnualRows(displayItems) : renderPrevisionRows(displayItems);
+  qs("visualPrevisionTable").className = `prevision-table visual-prevision-table ${compactYears ? "compact-years" : ""}`;
+  qs("visualPrevisionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody>`;
 }
 
 function renderPrevision() {
@@ -4255,7 +4380,8 @@ function populateDataEntryControls() {
   const monthSelect = qs("manualDataMonth");
   if (monthSelect) {
     const previous = monthSelect.value;
-    monthSelect.innerHTML = baseData.monthlyPlanning.months
+    const months = selectableMonths();
+    monthSelect.innerHTML = months
       .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
       .join("");
     if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
@@ -4329,17 +4455,23 @@ function populateSeriesEditor() {
 
   [startSelect, endSelect].forEach((select) => {
     const previous = select.value;
-    select.innerHTML = baseData.monthlyPlanning.months
+    const months = selectableMonths();
+    select.innerHTML = months
       .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
       .join("");
     if ([...select.options].some((option) => option.value === previous)) select.value = previous;
   });
-  if (!endSelect.value) endSelect.value = baseData.monthlyPlanning.months.at(-1)?.key || "";
+  if (!endSelect.value) endSelect.value = selectableMonths().at(-1)?.key || "";
   updateSeriesPreview();
 }
 
-function monthsInRange(startKey, endKey) {
-  const months = baseData.monthlyPlanning.months;
+function monthByKey(key, months = selectableMonths()) {
+  return months.find((item) => item.key === key) || null;
+}
+
+function monthsInRange(startKey, endKey, sourceMonths = selectableMonths()) {
+  const months = sourceMonths;
+  if (!months.length) return [];
   const startIndex = Math.max(0, months.findIndex((month) => month.key === startKey));
   const endIndexRaw = months.findIndex((month) => month.key === endKey);
   const endIndex = endIndexRaw >= 0 ? endIndexRaw : months.length - 1;
@@ -4479,7 +4611,7 @@ function upsertPlanningRecord(record) {
 }
 
 function upsertProjectRecord(record) {
-  const month = monthFromInput(record.month) || baseData.monthlyPlanning.months[0];
+  const month = monthFromInput(record.month) || selectableMonths()[0];
   const label = String(record.label || record.concept || "").trim();
   const amount = parseAmount(record.actual ?? record.planned);
   if (!label) return { ok: false, reason: "Proyecto sin nombre" };
@@ -4500,7 +4632,7 @@ function upsertProjectRecord(record) {
 }
 
 function upsertDebtRecord(record) {
-  const month = monthFromInput(record.month) || baseData.monthlyPlanning.months[0];
+  const month = monthFromInput(record.month) || selectableMonths()[0];
   const label = String(record.label || record.concept || "").trim() || "Liquidación deuda";
   const amount = parseAmount(record.actual ?? record.planned ?? record.amount);
   if (!amount || amount <= 0) return { ok: false, reason: `Liquidación sin importe: ${label}` };
@@ -4874,7 +5006,7 @@ function downloadCsv() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "simulacion_financiera_60_meses.csv";
+  link.download = "simulacion_financiera_hasta_2040.csv";
   link.style.display = "none";
   document.body.appendChild(link);
   link.click();
@@ -4964,7 +5096,7 @@ async function init() {
   qs("seriesStartMonth").addEventListener("change", updateSeriesPreview);
   qs("seriesEndMonth").addEventListener("change", updateSeriesPreview);
   qs("applySeriesChange").addEventListener("click", applySeriesChange);
-  ["visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
+  ["visualTimeMode", "visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
     qs(id).addEventListener("change", render);
   });
   ["visualBalanceDate", "visualBalanceMode"].forEach((id) => {
