@@ -2123,6 +2123,10 @@ svg {
   background: #184b79 !important;
 }
 
+.prevision-group-row.comparison td {
+  background: #4f3f77 !important;
+}
+
 .prevision-table tbody tr:not(.prevision-group-row) td:first-child {
   color: var(--ink);
   font-weight: 900;

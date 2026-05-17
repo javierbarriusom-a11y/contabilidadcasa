@@ -3670,8 +3670,31 @@ function renderPrevisionValueRow(label, items, getter, mode = "") {
   </tr>`;
 }
 
+function renderPrevisionSimulationRow(label, items, rows, mode = "positive") {
+  return renderPrevisionValueRow(label, items, (item) => rows[item.index]?.totalLiquidity ?? 0, mode);
+}
+
 function renderPrevisionGroup(title, klass = "", colspan = 20) {
   return `<tr class="prevision-group-row ${klass}"><td colspan="${colspan}">${escapeHtml(title)}</td></tr>`;
+}
+
+function decisionComparisonRows(items) {
+  if (!projectPlan.placements.length) return [];
+  const rows = [
+    renderPrevisionGroup("Comparativa de decisiones", "comparison", Math.max(2, items.length + 1)),
+    renderPrevisionSimulationRow("Sin proyectos ni deuda", items, lastBaseSimulation, ""),
+    renderPrevisionSimulationRow("Con todo lo cargado", items, lastSimulation, "positive"),
+  ];
+  const months = forecastMonths();
+  projectPlan.placements.forEach((placement) => {
+    const outflows = Array(months.length).fill(0);
+    addScheduledDecisionOutflow(outflows, placement, placement.startIndex);
+    const simulatedRows = simulate(outflows);
+    const prefix = placement.source === "debt" ? "Deuda" : "Proyecto";
+    const label = `${prefix} · ${placement.name || "Sin nombre"}`;
+    rows.push(renderPrevisionSimulationRow(label, items, simulatedRows, "positive"));
+  });
+  return rows;
 }
 
 function renderPrevisionRows(items) {
@@ -3684,6 +3707,7 @@ function renderPrevisionRows(items) {
     renderPrevisionGroup("Reales · flujo ajustado", "adjusted", colspan),
     renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).adjustedMax, "positive"),
     renderPrevisionValueRow("Mínimo ajustado", items, (item) => previsionMetric(item.row).adjustedMin),
+    ...decisionComparisonRows(items),
   ];
 }
 
