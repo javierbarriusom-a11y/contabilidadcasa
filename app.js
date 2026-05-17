@@ -3296,6 +3296,7 @@ function renderVisualDetail() {
   document.querySelectorAll("[data-visual-project-delete]").forEach((button) => {
     button.addEventListener("click", () => stageVisualProjectDelete(button.dataset.visualProjectDelete));
   });
+  renderVisualPrevision(months);
   renderVisualSavePanel();
 }
 
@@ -3379,6 +3380,17 @@ function previsionRowsForYear(year) {
     .filter((item) => cashflowYear(item.row) === year);
 }
 
+function previsionRowsForMonths(months) {
+  const monthKeys = new Set(months.map((month) => month.key));
+  return lastSimulation
+    .map((row, index) => ({
+      row,
+      planned: lastPlannedSimulation[index] || row,
+      index,
+    }))
+    .filter((item) => monthKeys.has(item.row.detailMonthKey));
+}
+
 function previsionCell(value, mode = "") {
   const klass = mode || (value < 0 ? "negative" : value > 0 ? "positive" : "");
   return `<td class="${klass}">${money(value, true)}</td>`;
@@ -3391,8 +3403,32 @@ function renderPrevisionValueRow(label, items, getter, mode = "") {
   </tr>`;
 }
 
-function renderPrevisionGroup(title, klass = "") {
-  return `<tr class="prevision-group-row ${klass}"><td colspan="20">${escapeHtml(title)}</td></tr>`;
+function renderPrevisionGroup(title, klass = "", colspan = 20) {
+  return `<tr class="prevision-group-row ${klass}"><td colspan="${colspan}">${escapeHtml(title)}</td></tr>`;
+}
+
+function renderPrevisionRows(items) {
+  const colspan = Math.max(2, items.length + 1);
+  return [
+    renderPrevisionGroup("Reales", "real", colspan),
+    renderPrevisionValueRow("Resultado mes", items, (item) => previsionMetric(item.row).result),
+    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).max, "positive"),
+    renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.row).min),
+    renderPrevisionGroup("Reales · flujo ajustado", "adjusted", colspan),
+    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).adjustedMax, "positive"),
+    renderPrevisionValueRow("Mínimo ajustado", items, (item) => previsionMetric(item.row).adjustedMin),
+  ];
+}
+
+function renderVisualPrevision(months = visualMonths()) {
+  if (!qs("visualPrevisionTable")) return;
+  const items = previsionRowsForMonths(months);
+  if (!items.length) {
+    qs("visualPrevisionTable").innerHTML = "";
+    return;
+  }
+  const headers = items.map((item) => `<th>${escapeHtml(item.row.month)}</th>`).join("");
+  qs("visualPrevisionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${renderPrevisionRows(items).join("")}</tbody>`;
 }
 
 function renderPrevision() {
@@ -3423,15 +3459,7 @@ function renderPrevision() {
     .join("");
 
   const headers = items.map((item) => `<th>${escapeHtml(item.row.month)}</th>`).join("");
-  const rows = [
-    renderPrevisionGroup("Reales", "real"),
-    renderPrevisionValueRow("Resultado mes", items, (item) => previsionMetric(item.row).result),
-    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).max, "positive"),
-    renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.row).min),
-    renderPrevisionGroup("Reales · flujo ajustado", "adjusted"),
-    renderPrevisionValueRow("Saldo máximo", items, (item) => previsionMetric(item.row).adjustedMax, "positive"),
-    renderPrevisionValueRow("Mínimo ajustado", items, (item) => previsionMetric(item.row).adjustedMin),
-  ];
+  const rows = renderPrevisionRows(items);
 
   qs("previsionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody>`;
 }

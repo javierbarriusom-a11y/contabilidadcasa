@@ -456,7 +456,8 @@ main {
 .project-panel,
 .data-workbench,
 .debt-control,
-.savings-plan {
+.savings-plan,
+.visual-prevision-panel {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1805,6 +1806,28 @@ svg {
 
 .visual-project-row td {
   background: #fcf9ff;
+}
+
+.visual-prevision-panel {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.visual-prevision-panel .section-title {
+  margin-bottom: 12px;
+}
+
+.visual-prevision-panel h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.visual-prevision-wrap {
+  max-height: 460px;
+}
+
+.visual-prevision-table {
+  min-width: 1180px;
 }
 
 .prevision-section {
