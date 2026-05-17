@@ -3445,6 +3445,29 @@ function statusDot(type) {
   return `<span class="status-dot ${type}"></span>${label}`;
 }
 
+function isUnifiedCreditTransaction(transaction) {
+  const text = normalizedText(`${transaction?.movement || ""} ${transaction?.details || ""} ${transaction?.category || ""}`);
+  return Number(transaction?.amount || 0) < 0 && (text.includes("pz finanz") || text.includes("libre deuda"));
+}
+
+function observedUnifiedCreditPayment() {
+  const forecastStart = baseData?.metadata?.forecastStart?.slice(0, 7) || baseData?.monthlyPlanning?.months?.[0]?.key || "";
+  const monthTotals = new Map();
+  (baseData?.transactions || [])
+    .filter((transaction) => transaction.month >= forecastStart && isUnifiedCreditTransaction(transaction))
+    .forEach((transaction) => {
+      monthTotals.set(transaction.month, round2((monthTotals.get(transaction.month) || 0) + Math.abs(Number(transaction.amount || 0))));
+    });
+  const monthlyValues = [...monthTotals.values()].filter((value) => value > 0);
+  const observed = monthlyValues.length ? round2(monthlyValues.reduce((sum, value) => sum + value, 0) / monthlyValues.length) : 0;
+  return {
+    value: observed,
+    monthCount: monthlyValues.length,
+    forecastStart,
+    plannedReference: Number(baseData?.sourcePlan?.unifiedCreditPayment || 0),
+  };
+}
+
 const savingsPlanFieldMeta = [
   ["baseHouseholdIncome", "Ingreso neto mensual base hogar", "€"],
   ["extraApril", "Extra abril", "€"],
@@ -3466,6 +3489,7 @@ const savingsPlanFieldMeta = [
 function savingsPlanBaseValue(key) {
   const plan = baseData.sourcePlan || {};
   const assumptions = baseData.assumptions || {};
+  if (key === "unifiedCreditPayment") return observedUnifiedCreditPayment().value;
   const fallbacks = {
     emergencyBufferMonths: state?.emergencyBufferMonths ?? plan.emergencyBufferMonths,
     extraToBufferPct: 70,
@@ -3476,6 +3500,24 @@ function savingsPlanBaseValue(key) {
   return plan[key] ?? assumptions[key] ?? fallbacks[key] ?? 0;
 }
 
+function savingsPlanFieldSource(key) {
+  if (key !== "unifiedCreditPayment") return "";
+  const observed = observedUnifiedCreditPayment();
+  const overrides = savingsPlanOverrides();
+  const overrideValue = Number(overrides[key] || 0);
+  const isLegacyPlanValue =
+    overrides[key] !== undefined &&
+    !overrides.__manualUnifiedCreditPayment &&
+    observed.monthCount === 0 &&
+    Math.abs(overrideValue - observed.plannedReference) < 0.01;
+  const hasOverride = overrides[key] !== undefined && !isLegacyPlanValue;
+  const source = observed.monthCount
+    ? `real detectado en ${observed.monthCount} mes(es) desde ${observed.forecastStart}`
+    : `real detectado: 0,00 € desde ${observed.forecastStart}`;
+  const reference = `referencia Plan_Ahorro_821: ${money(observed.plannedReference, true)}`;
+  return hasOverride ? `Manual. ${source}; ${reference}.` : `${source}; ${reference}.`;
+}
+
 function savingsPlanOverrides() {
   scenarioSettings.savingsPlan = scenarioSettings.savingsPlan || {};
   return scenarioSettings.savingsPlan;
@@ -3483,6 +3525,18 @@ function savingsPlanOverrides() {
 
 function savingsPlanValue(key) {
   const overrides = savingsPlanOverrides();
+  if (key === "unifiedCreditPayment") {
+    const observed = observedUnifiedCreditPayment();
+    if (overrides[key] !== undefined) {
+      const overrideValue = Number(overrides[key] || 0);
+      const isLegacyPlanValue =
+        !overrides.__manualUnifiedCreditPayment &&
+        observed.monthCount === 0 &&
+        Math.abs(overrideValue - observed.plannedReference) < 0.01;
+      if (!isLegacyPlanValue) return overrideValue;
+    }
+    return observed.value;
+  }
   if (overrides[key] !== undefined) return Number(overrides[key] || 0);
   if (key === "baseHouseholdIncome") return Number(savingsPlanBaseValue(key) || 0) * Number(state?.incomeFactor ?? 1);
   if (key === "otherFixedNonDebt" || key === "variableSpendTarget") {
@@ -3557,7 +3611,9 @@ function handleSavingsPlanInput(input) {
   const key = input.dataset.savingsPlanField;
   const parsed = parseAmount(input.value);
   if (!key || parsed === null) return;
-  savingsPlanOverrides()[key] = parsed;
+  const overrides = savingsPlanOverrides();
+  overrides[key] = parsed;
+  if (key === "unifiedCreditPayment") overrides.__manualUnifiedCreditPayment = true;
   if (key === "recommendedSaving") state.recommendedSavings = parsed;
   applySavingsPlanToScenario({ silent: true });
   render();
@@ -3568,9 +3624,11 @@ function handleSavingsPlanInput(input) {
 }
 
 function renderSavingsPlanAssumptionInput(key, label, unit) {
+  const source = savingsPlanFieldSource(key);
   return `<label class="savings-assumption-input">
     <span>${escapeHtml(label)}</span>
     <input data-savings-plan-field="${escapeHtml(key)}" type="number" step="${unit === "n" ? "1" : "0.01"}" value="${savingsInputValue(key, unit)}" />
+    ${source ? `<small class="savings-field-source">${escapeHtml(source)}</small>` : ""}
   </label>`;
 }
 
@@ -3638,7 +3696,7 @@ function renderSavingsPlan() {
 
   const formulaRows = [
     ["Ingreso mensual total", "Base hogar + (extra abril + extra diciembre) / 12", `${money(calc.values.baseHouseholdIncome, true)} + (${money(calc.values.extraApril, true)} + ${money(calc.values.extraDecember, true)}) / 12`, money(calc.monthlyIncomeTotal, true)],
-    ["Servicio deuda mensual total", "Hipoteca + BMW + cuota unificada + Bankinter + Cetelem", `${money(calc.values.mortgagePayment, true)} + ${money(calc.values.bmwPayment, true)} + ${money(calc.values.unifiedCreditPayment, true)} + ${money(calc.values.bankinterOutsidePlanPayment, true)} + ${money(calc.values.cetelemOutsidePlanPayment, true)}`, money(calc.debtServiceMonthlyTotal, true)],
+    ["Servicio deuda mensual total", "Hipoteca + BMW + cuota unificada real + Bankinter + Cetelem", `${money(calc.values.mortgagePayment, true)} + ${money(calc.values.bmwPayment, true)} + ${money(calc.values.unifiedCreditPayment, true)} + ${money(calc.values.bankinterOutsidePlanPayment, true)} + ${money(calc.values.cetelemOutsidePlanPayment, true)}`, money(calc.debtServiceMonthlyTotal, true)],
     ["Ratio deuda / ingresos", "Servicio deuda / ingreso total", `${money(calc.debtServiceMonthlyTotal, true)} / ${money(calc.monthlyIncomeTotal, true)}`, `${(calc.debtToIncomeRatio * 100).toFixed(1)}%`],
     ["Gasto total objetivo mensual", "Servicio deuda + otros fijos + variable", `${money(calc.debtServiceMonthlyTotal, true)} + ${money(calc.values.otherFixedNonDebt, true)} + ${money(calc.values.variableSpendTarget, true)}`, money(calc.totalSpendTarget, true)],
     ["Ahorro mensual base potencial", "Ingreso total - gasto total objetivo", `${money(calc.monthlyIncomeTotal, true)} - ${money(calc.totalSpendTarget, true)}`, money(calc.monthlySavingPotential, true)],
