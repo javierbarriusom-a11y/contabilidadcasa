@@ -1627,25 +1627,48 @@ svg {
 }
 
 .visual-section-row {
-  background: #173b66;
+  --section-bg: #1d436f;
+  --section-bg-hover: #234e7d;
+  --section-value: #c8f4d4;
+  --section-line: rgba(255, 255, 255, 0.26);
+  background: var(--section-bg);
   color: #ffffff;
 }
 
 .visual-section-row.expense {
-  background: #7d2d25;
+  --section-bg: #743229;
+  --section-bg-hover: #843a30;
+  --section-value: #ffded8;
 }
 
 .visual-section-row.project-section {
-  background: #5b3a75;
+  --section-bg: #55396f;
+  --section-bg-hover: #62417f;
+  --section-value: #eadcff;
+}
+
+.visual-matrix tbody tr.visual-section-row:hover {
+  background: var(--section-bg-hover);
 }
 
 .visual-section-row td {
-  border-bottom-color: rgba(255, 255, 255, 0.28);
+  background: var(--section-bg);
+  border-bottom-color: var(--section-line);
+  color: var(--section-value);
   font-weight: 900;
 }
 
+.visual-section-row:hover td {
+  background: var(--section-bg-hover);
+}
+
 .visual-section-row td:first-child {
-  background: inherit;
+  background: var(--section-bg);
+  color: #ffffff;
+}
+
+.visual-section-row:hover td:first-child {
+  background: var(--section-bg-hover);
 }
 
 .visual-section-button {
@@ -1663,6 +1686,13 @@ svg {
   cursor: pointer;
 }
 
+.visual-section-button:hover {
+  color: #ffffff;
+  border-color: transparent;
+  background: transparent;
+  transform: none;
+}
+
 .visual-toggle {
   display: inline-grid;
   place-items: center;
@@ -1675,6 +1705,11 @@ svg {
   font-size: 15px;
   line-height: 1;
   background: rgba(255, 255, 255, 0.12);
+}
+
+.visual-section-row .positive,
+.visual-section-row .negative {
+  color: var(--section-value);
 }
 
 .visual-section-row small,
