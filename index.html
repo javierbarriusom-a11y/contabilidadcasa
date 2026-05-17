@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260517i" />
+    <link rel="stylesheet" href="styles.css?v=20260517j" />
   </head>
   <body>
     <div class="app-shell">
@@ -245,28 +245,53 @@
               </div>
             </div>
             <div class="expense-summary debt-summary" id="debtControlSummary"></div>
+            <div class="debt-overview-grid">
+              <article class="debt-panel debt-wide-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Cartera</p>
+                    <h3>Deuda por entidad y producto</h3>
+                  </div>
+                </div>
+                <div class="debt-breakdown-cards" id="debtBreakdownCards"></div>
+                <div class="table-wrap debt-portfolio-wrap">
+                  <table class="debt-portfolio-table" id="debtPortfolioTable"></table>
+                </div>
+              </article>
+            </div>
             <div class="debt-control-grid">
               <article class="debt-panel">
                 <div class="module-heading">
                   <div>
-                    <p class="panel-kicker">Liquidación</p>
-                    <h3>Añadir amortización</h3>
+                    <p class="panel-kicker">Simulador</p>
+                    <h3>Liquidar o refinanciar deuda</h3>
                   </div>
                 </div>
+                <div class="debt-recommendation" id="debtRecommendation"></div>
                 <div class="debt-form">
                   <label>
-                    <span>Nombre</span>
-                    <input id="debtPayoffName" type="text" placeholder="Ej. Amortización plan deuda" />
+                    <span>Deuda objetivo</span>
+                    <select id="debtTargetSelect"></select>
                   </label>
                   <label>
-                    <span>Importe</span>
+                    <span>Nombre</span>
+                    <input id="debtPayoffName" type="text" placeholder="Ej. Acuerdo Cetelem tarjeta" />
+                  </label>
+                  <label>
+                    <span>Importe pactado</span>
                     <input id="debtPayoffAmount" type="number" step="50" placeholder="5000" />
+                  </label>
+                  <label>
+                    <span>Cuota que se elimina</span>
+                    <input id="debtPayoffRelief" type="number" step="10" placeholder="515" />
                   </label>
                   <label>
                     <span>Modo de liquidación</span>
                     <select id="debtPayoffMode">
+                      <option value="optimize">Buscar mejor mes</option>
                       <option value="fixed">Pagar en un mes concreto</option>
-                      <option value="spread">Repartir en varios meses</option>
+                      <option value="spread">Repartir pago en varios meses</option>
+                      <option value="refinance">Refinanciar acuerdo</option>
                     </select>
                   </label>
                   <label>
@@ -277,7 +302,7 @@
                     <span>Duración (meses)</span>
                     <input id="debtPayoffDuration" type="number" min="1" max="60" step="1" value="1" />
                   </label>
-                  <button id="addDebtPayoff" type="button">Añadir liquidación</button>
+                  <button id="addDebtPayoff" type="button">Añadir decisión</button>
                 </div>
               </article>
               <article class="debt-panel">
@@ -890,9 +915,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260517i"></script>
-    <script src="supabase-config.js?v=20260517i"></script>
-    <script src="data.js?v=20260517i"></script>
-    <script src="app.js?v=20260517i"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260517j"></script>
+    <script src="supabase-config.js?v=20260517j"></script>
+    <script src="data.js?v=20260517j"></script>
+    <script src="app.js?v=20260517j"></script>
   </body>
 </html>

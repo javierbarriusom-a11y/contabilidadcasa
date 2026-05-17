@@ -1847,12 +1847,93 @@ svg {
   align-items: start;
 }
 
+.debt-overview-grid {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
 .debt-panel,
 .savings-card {
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
+}
+
+.debt-wide-panel {
+  background: #ffffff;
+}
+
+.debt-breakdown-cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.debt-mini-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.debt-mini-card span,
+.debt-mini-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.debt-mini-card strong {
+  display: block;
+  margin: 6px 0 4px;
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.debt-portfolio-wrap {
+  max-height: 420px;
+}
+
+.debt-portfolio-table {
+  min-width: 900px;
+}
+
+.debt-portfolio-table td:first-child strong,
+.debt-portfolio-table td:first-child small {
+  display: block;
+}
+
+.debt-portfolio-table td:first-child small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.debt-recommendation {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 12px;
+  color: #ffffff;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1f6f68, #244b7d);
+}
+
+.debt-recommendation strong {
+  font-size: 16px;
+}
+
+.debt-recommendation span {
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .debt-form {
@@ -2378,6 +2459,7 @@ tbody tr:hover {
   .project-grid,
   .monthly-detail-grid,
   .debt-control-grid,
+  .debt-breakdown-cards,
   .savings-plan-grid {
     grid-template-columns: 1fr;
   }
