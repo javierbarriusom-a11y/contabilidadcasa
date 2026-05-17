@@ -503,6 +503,43 @@ main {
   line-height: 1;
 }
 
+.overview-balance-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 4px 0 10px;
+}
+
+.overview-balance-breakdown div {
+  min-width: 0;
+  padding: 8px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.summary-card .overview-balance-breakdown span {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-card .overview-balance-breakdown strong {
+  display: block;
+  margin: 4px 0 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .summary-card small {
   display: block;
   min-height: 18px;

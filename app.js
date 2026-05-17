@@ -1552,6 +1552,15 @@ function renderAccountBalancePanels() {
   if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = balances.caixa.toFixed(2);
   if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = balances.mediolanum.toFixed(2);
   if (qs("visualTotalBalance")) qs("visualTotalBalance").value = balances.total.toFixed(2);
+  if (qs("overviewBalanceBreakdown")) {
+    qs("overviewBalanceBreakdown").innerHTML = [
+      ["CaixaBank", balances.caixa],
+      ["Mediolanum", balances.mediolanum],
+      ["Total", balances.total],
+    ]
+      .map(([label, value]) => `<div><span>${label}</span><strong>${money(value, true)}</strong></div>`)
+      .join("");
+  }
   if (qs("previsionBalanceSummary")) {
     qs("previsionBalanceSummary").innerHTML = [
       ["Fecha", formatIsoDate(state.balanceDate || defaultBalanceDate())],
