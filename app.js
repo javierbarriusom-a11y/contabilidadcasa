@@ -35,6 +35,7 @@ let lastBaseSimulation = [];
 let lastPlannedSimulation = [];
 let currentScenario = "Base";
 let projects = [];
+let debtLiquidations = [];
 let projectPlan = { outflows: [], placements: [] };
 let incomeActuals = {};
 let expenseActuals = {};
@@ -74,6 +75,10 @@ const viewTitles = {
     eyebrow: "Detalle visual",
     title: "Edita la matriz mensual como en Contabilidad New Life",
   },
+  "debt-control": {
+    eyebrow: "Control de deuda",
+    title: "Compara la deuda anterior con el plan actual y simula liquidaciones",
+  },
   prevision: {
     eyebrow: "Previsión",
     title: "Resultados mensuales previstos, reales y ajustados",
@@ -85,6 +90,10 @@ const viewTitles = {
   forecast: {
     eyebrow: "Proyección",
     title: "Visualiza la evolución de liquidez durante 60 meses",
+  },
+  "savings-plan": {
+    eyebrow: "Plan ahorro",
+    title: "Seguimiento de colchón, ahorro objetivo y semáforo de control",
   },
   "monthly-detail": {
     eyebrow: "Contabilidad New Life",
@@ -243,6 +252,7 @@ function appStatePayload() {
     sourceWorkbook: sourceStateKey(),
     workbookData: baseData?.metadata?.sourceWorkbookStatus === "Leído desde la app" ? baseData : null,
     projects,
+    debtLiquidations,
     incomeActuals,
     expenseActuals,
     balanceSettings,
@@ -260,6 +270,7 @@ function applyPersistedPayload(payload = {}) {
     saveWorkbookOverride();
   }
   projects = Array.isArray(payload.projects) ? payload.projects : [];
+  debtLiquidations = Array.isArray(payload.debtLiquidations) ? payload.debtLiquidations : [];
   incomeActuals = payload.incomeActuals && typeof payload.incomeActuals === "object" ? payload.incomeActuals : {};
   expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
   balanceSettings = payload.balanceSettings && typeof payload.balanceSettings === "object" ? payload.balanceSettings : {};
@@ -275,6 +286,7 @@ function applyPersistedPayload(payload = {}) {
 
 function saveLocalSnapshot() {
   storageSet(storageKey("projects"), JSON.stringify(projects));
+  storageSet(storageKey("debtLiquidations"), JSON.stringify(debtLiquidations));
   storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
   storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
@@ -297,6 +309,7 @@ function loadLocalState() {
   try {
     applyPersistedPayload({
       projects: JSON.parse(storageGet(storageKey("projects"), "[]")),
+      debtLiquidations: JSON.parse(storageGet(storageKey("debtLiquidations"), "[]")),
       incomeActuals: JSON.parse(storageGet(storageKey("incomeActuals"), "{}")),
       expenseActuals: JSON.parse(storageGet(storageKey("expenseActuals"), "{}")),
       balanceSettings: JSON.parse(storageGet(storageKey("balanceSettings"), "{}")),
@@ -308,6 +321,7 @@ function loadLocalState() {
     });
   } catch {
     projects = [];
+    debtLiquidations = [];
     incomeActuals = {};
     expenseActuals = {};
     balanceSettings = {};
@@ -322,8 +336,8 @@ function loadLocalState() {
 function normalizeLoadedProjects() {
   const months = forecastMonths();
   let changed = false;
-  projects = projects.map((project) => {
-    if (project.mode !== "fixed") return project;
+  const normalizeItem = (project) => {
+    if (project.mode !== "fixed" && project.mode !== "spread") return project;
     const next = { ...project };
     if (next.monthKey) {
       const indexFromKey = months.findIndex((month) => month.key === next.monthKey);
@@ -340,12 +354,22 @@ function normalizeLoadedProjects() {
     next.monthKey = months[shiftedIndex]?.key;
     changed = true;
     return next;
-  });
-  if (changed) saveProjects();
+  };
+  projects = projects.map(normalizeItem);
+  debtLiquidations = debtLiquidations.map(normalizeItem);
+  if (changed) {
+    saveProjects();
+    saveDebtLiquidations();
+  }
 }
 
 function saveProjects() {
   storageSet(storageKey("projects"), JSON.stringify(projects));
+  queueRemoteSave();
+}
+
+function saveDebtLiquidations() {
+  storageSet(storageKey("debtLiquidations"), JSON.stringify(debtLiquidations));
   queueRemoteSave();
 }
 
@@ -480,12 +504,13 @@ function renderSyncPanel() {
 
 function viewFromHash() {
   const id = (window.location.hash || "#overview").replace("#", "");
+  if (id === "monthly-detail") return "overview";
   return document.getElementById(id)?.classList.contains("view-section") ? id : "overview";
 }
 
 function setActiveView(viewId = viewFromHash()) {
   document.querySelectorAll(".view-section").forEach((section) => {
-    section.hidden = section.id !== viewId;
+    section.hidden = section.id !== viewId && !(viewId === "overview" && section.id === "monthly-detail");
   });
   document.querySelectorAll(".side-nav a").forEach((link) => {
     const isActive = link.getAttribute("href") === `#${viewId}`;
@@ -2053,7 +2078,17 @@ function buildProjectSchedule() {
   const placements = [];
   const optimizable = [];
 
-  projects.forEach((project) => {
+  const scheduledItems = [
+    ...projects.map((project) => ({ ...project, source: "project" })),
+    ...debtLiquidations.map((item) => ({
+      ...item,
+      source: "debt",
+      mode: item.mode === "spread" ? "fixed" : item.mode,
+      duration: item.duration || 1,
+    })),
+  ];
+
+  scheduledItems.forEach((project) => {
     if (project.mode === "fixed") {
       const indexFromKey = project.monthKey
         ? months.findIndex((month) => month.key === project.monthKey)
@@ -2063,7 +2098,7 @@ function buildProjectSchedule() {
           ? indexFromKey
           : Math.min(Math.max(Number(project.monthIndex || 0), 0), months.length - 1);
       addProjectOutflow(outflows, project, startIndex);
-      placements.push({ ...project, startIndex, status: "fixed", monthLabel: months[startIndex].label });
+      placements.push({ ...project, startIndex, status: project.source === "debt" ? "debt" : "fixed", monthLabel: months[startIndex].label });
     } else {
       optimizable.push(project);
     }
@@ -2141,6 +2176,119 @@ function removeProject(id) {
   render();
 }
 
+function removeDebtLiquidation(id) {
+  debtLiquidations = debtLiquidations.filter((item) => item.id !== id);
+  saveDebtLiquidations();
+  render();
+}
+
+function debtControlStats() {
+  const oldDebt = Number(baseData?.derived?.oldCreditPrincipal || baseData?.sourcePlan?.oldDebtPrincipal || 0);
+  const oldMonthly = Number(baseData?.derived?.oldCreditMonthlyAverageJanMar2026 || baseData?.sourcePlan?.oldDebtMonthlyPayments || 0);
+  const remainingPlanDebt = lastBaseSimulation.length ? sumRows(lastBaseSimulation, (row) => row.refi) : Number(baseData?.sourcePlan?.debtServiceMonthlyTotal || 0);
+  const currentMonthly12 = lastBaseSimulation.length
+    ? averageRows(lastBaseSimulation.slice(0, Math.min(12, lastBaseSimulation.length)), (row) => row.refi)
+    : Number(baseData?.assumptions?.refiLaterPayment || 0);
+  const liquidationTotal = debtLiquidations.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  return {
+    oldDebt,
+    oldMonthly,
+    remainingPlanDebt,
+    currentMonthly12,
+    liquidationTotal,
+    afterLiquidations: Math.max(0, remainingPlanDebt - liquidationTotal),
+    monthlyRelief: Math.max(0, oldMonthly - currentMonthly12),
+  };
+}
+
+function handleAddDebtLiquidation() {
+  const amount = parseAmount(qs("debtPayoffAmount").value);
+  if (!amount || amount <= 0) return;
+  const mode = qs("debtPayoffMode").value || "fixed";
+  const duration = mode === "spread" ? Math.max(1, Number(qs("debtPayoffDuration").value || 1)) : 1;
+  const monthIndex = Number(qs("debtPayoffMonth").value || 0);
+  const monthKeyForDebt = forecastMonths()[monthIndex]?.key;
+  debtLiquidations.push({
+    id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: qs("debtPayoffName").value.trim() || "Liquidación deuda",
+    amount: round2(amount),
+    duration,
+    mode: "fixed",
+    payoffMode: mode,
+    monthIndex,
+    monthKey: monthKeyForDebt,
+  });
+  qs("debtPayoffName").value = "";
+  qs("debtPayoffAmount").value = "";
+  qs("debtPayoffDuration").value = 1;
+  saveDebtLiquidations();
+  render();
+}
+
+function renderDebtPayoffChart() {
+  const svg = qs("debtPayoffChart");
+  if (!svg) return;
+  const months = forecastMonths().slice(0, 36);
+  const values = months.map((month) =>
+    projectPlan.placements
+      .filter((item) => item.source === "debt")
+      .reduce((sum, item) => {
+        const duration = Math.max(1, Number(item.duration || 1));
+        const active = month.index >= item.startIndex && month.index < item.startIndex + duration;
+        return sum + (active ? Number(item.amount || 0) / duration : 0);
+      }, 0),
+  );
+  const width = svg.clientWidth || 520;
+  const height = 180;
+  const pad = { left: 42, right: 12, top: 14, bottom: 34 };
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  const max = Math.max(...values, 1);
+  const barW = (width - pad.left - pad.right) / Math.max(values.length, 1);
+  svg.innerHTML = values
+    .map((value, index) => {
+      const h = ((height - pad.top - pad.bottom) * value) / max;
+      const x = pad.left + index * barW + 2;
+      const y = height - pad.bottom - h;
+      const label = index % 6 === 0 ? `<text class="chart-label" x="${x}" y="${height - 10}">${months[index].label}</text>` : "";
+      return `<rect class="bar debt-bar" x="${x}" y="${y}" width="${Math.max(3, barW - 4)}" height="${h}" rx="3"></rect>${label}`;
+    })
+    .join("");
+}
+
+function renderDebtControl() {
+  if (!qs("debtControlSummary")) return;
+  const stats = debtControlStats();
+  qs("debtControlSummary").innerHTML = [
+    ["Debía antes", money(stats.oldDebt, true), ""],
+    ["Pago mensual anterior", money(stats.oldMonthly, true), "negative"],
+    ["Deuda futura plan", money(stats.remainingPlanDebt, true), ""],
+    ["Tras liquidaciones", money(stats.afterLiquidations, true), stats.afterLiquidations < stats.remainingPlanDebt ? "positive" : ""],
+  ]
+    .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
+    .join("");
+
+  qs("debtPayoffList").innerHTML = debtLiquidations.length
+    ? debtLiquidations
+        .map((item) => {
+          const monthly = Number(item.amount || 0) / Math.max(1, Number(item.duration || 1));
+          const month = forecastMonths().find((candidate) => candidate.key === item.monthKey) || forecastMonths()[item.monthIndex || 0];
+          return `<div class="project-item debt-item">
+            <div>
+              <strong>${escapeHtml(item.name)}</strong>
+              <p>${money(item.amount, true)} desde ${escapeHtml(month?.label || "")}, ${item.duration} mes(es). Impacto mensual: ${money(monthly, true)}.</p>
+            </div>
+            <button data-remove-debt-liquidation="${escapeHtml(item.id)}">Quitar</button>
+          </div>`;
+        })
+        .join("")
+    : '<div class="project-item"><div><strong>Sin liquidaciones cargadas</strong><p>Añade una liquidación para ver el impacto mensual y en el resto de secciones.</p></div></div>';
+
+  document.querySelectorAll("[data-remove-debt-liquidation]").forEach((button) => {
+    button.addEventListener("click", () => removeDebtLiquidation(button.dataset.removeDebtLiquidation));
+  });
+  renderDebtPayoffChart();
+}
+
 function handleClearProjects() {
   projects = [];
   saveProjects();
@@ -2151,7 +2299,7 @@ function renderProjectSimulator(baseRows, rows) {
   const baseEnding = baseRows[baseRows.length - 1].totalLiquidity;
   const ending = rows[rows.length - 1].totalLiquidity;
   const impact = ending - baseEnding;
-  const totalProjects = projects.reduce((sum, project) => sum + Number(project.amount || 0), 0);
+  const totalProjects = [...projects, ...debtLiquidations].reduce((sum, project) => sum + Number(project.amount || 0), 0);
   const warningCount = projectPlan.placements.filter((item) => item.status === "warning").length;
 
   qs("projectSummary").innerHTML = [
@@ -2168,7 +2316,7 @@ function renderProjectSimulator(baseRows, rows) {
   renderProjectImpactChart(baseRows, rows);
   renderProjectGlobalImpact(baseRows, rows);
 
-  if (!projects.length) {
+  if (!projects.length && !debtLiquidations.length) {
     qs("projectList").innerHTML =
       '<div class="project-item"><div><strong>Sin proyectos cargados</strong><p>Añade un importe y elige mes fijo u optimización automática.</p></div></div>';
     return;
@@ -2178,7 +2326,9 @@ function renderProjectSimulator(baseRows, rows) {
     .map((project) => {
       const monthly = Number(project.amount || 0) / Math.max(1, Number(project.duration || 1));
       const statusText =
-        project.status === "fixed"
+        project.status === "debt"
+          ? "Liquidación de deuda programada"
+          : project.status === "fixed"
           ? "Mes fijado manualmente"
           : project.status === "warning"
             ? "Sin hueco plenamente cómodo; colocado en el mejor mes disponible"
@@ -2188,13 +2338,16 @@ function renderProjectSimulator(baseRows, rows) {
           <strong>${project.name}</strong>
           <p>${money(project.amount, true)} en ${project.duration} mes(es), desde ${project.monthLabel}. ${statusText}. Impacto mensual: ${money(monthly, true)}.</p>
         </div>
-        <button data-remove-project="${project.id}">Quitar</button>
+        <button data-remove-project="${project.id}" data-remove-project-source="${project.source || "project"}">Quitar</button>
       </div>`;
     })
     .join("");
 
   document.querySelectorAll("[data-remove-project]").forEach((button) => {
-    button.addEventListener("click", () => removeProject(button.dataset.removeProject));
+    button.addEventListener("click", () => {
+      if (button.dataset.removeProjectSource === "debt") removeDebtLiquidation(button.dataset.removeProject);
+      else removeProject(button.dataset.removeProject);
+    });
   });
 }
 
@@ -2907,7 +3060,7 @@ function stageSelectedVisualDeletes() {
 }
 
 function stageVisualProjectDelete(id) {
-  const project = projects.find((item) => item.id === id);
+  const project = projects.find((item) => item.id === id) || debtLiquidations.find((item) => item.id === id);
   if (!project) return;
   visualDraftProjectDeletes[id] = { id, label: project.name || "Proyecto" };
   renderVisualDetail();
@@ -2973,12 +3126,18 @@ function saveVisualChanges() {
       projectsChanged = true;
       savedDeletes += 1;
     }
+    const beforeDebt = debtLiquidations.length;
+    debtLiquidations = debtLiquidations.filter((item) => item.id !== id);
+    if (debtLiquidations.length !== beforeDebt) {
+      savedDeletes += 1;
+    }
   });
 
   if (savedCells || savedDeletes) saveSeriesOverrides();
   if (savedLabels) saveRowLabelOverrides();
   if (customChanged) saveCustomPlanningRows();
   if (projectsChanged) saveProjects();
+  saveDebtLiquidations();
 
   const summary = [];
   if (savedCells) summary.push(`${savedCells} importe(s)`);
@@ -3271,6 +3430,80 @@ function renderPrevision() {
   ];
 
   qs("previsionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody>`;
+}
+
+function statusDot(type) {
+  const label = type === "good" ? "En plan" : type === "warn" ? "Vigilancia" : "Crítico";
+  return `<span class="status-dot ${type}"></span>${label}`;
+}
+
+function renderSavingsPlan() {
+  if (!qs("savingsTable") || !lastSimulation.length) return;
+  const rows = lastSimulation.slice(0, Math.min(48, lastSimulation.length));
+  const first = rows[0];
+  const last = rows[rows.length - 1];
+  const avgIncome = averageRows(rows.slice(0, 12), (row) => row.income);
+  const avgDebt = averageRows(rows.slice(0, 12), (row) => row.refi + row.car);
+  const avgSaving = averageRows(rows, (row) => row.saving);
+  const firstOutflow = first.coreSpend + first.car + first.refi + first.projectOutflow;
+  const bufferTarget = firstOutflow * Number(state.emergencyBufferMonths || 6);
+  const debtRatio = avgIncome ? avgDebt / avgIncome : 0;
+  const savingsRate = avgIncome ? avgSaving / avgIncome : 0;
+  const currentCoverage = firstOutflow ? state.initialCash / firstOutflow : 0;
+  const amortizationSuggested = rows.reduce((sum, row) => sum + Math.max(0, row.saving - state.recommendedSavings), 0);
+
+  qs("savingsAssumptions").innerHTML = [
+    ["Ingreso mensual medio 12m", money(avgIncome, true)],
+    ["Gasto operativo primer mes", money(first.coreSpend, true)],
+    ["Servicio deuda medio 12m", money(avgDebt, true)],
+    ["Ahorro objetivo mensual", money(state.recommendedSavings, true)],
+    ["Colchón objetivo", money(bufferTarget, true)],
+    ["Meses objetivo", `${state.emergencyBufferMonths || 6}`],
+  ]
+    .map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+    .join("");
+
+  qs("savingsKpis").innerHTML = [
+    ["Tasa de ahorro", `${(savingsRate * 100).toFixed(1)}%`, ">= 20%", savingsRate >= 0.2 ? "good" : "danger"],
+    ["Ratio deuda / ingresos", `${(debtRatio * 100).toFixed(1)}%`, "<= 32%", debtRatio <= 0.32 ? "good" : debtRatio <= 0.4 ? "warn" : "danger"],
+    ["Cobertura actual", `${currentCoverage.toFixed(1)} meses`, `>= ${state.emergencyBufferMonths || 6}`, currentCoverage >= Number(state.emergencyBufferMonths || 6) ? "good" : currentCoverage >= 3 ? "warn" : "danger"],
+    ["Desvío ahorro", money(sumRows(rows, (row) => row.saving - state.recommendedSavings), true), ">= 0", sumRows(rows, (row) => row.saving - state.recommendedSavings) >= 0 ? "good" : "danger"],
+  ]
+    .map(
+      ([kpi, value, objective, status]) => `<div class="savings-kpi ${status}">
+        <span>${kpi}</span><strong>${value}</strong><small>Objetivo: ${objective}</small><em>${statusDot(status)}</em>
+      </div>`,
+    )
+    .join("");
+
+  qs("savingsSummary").innerHTML = [
+    ["Colchón final estimado", money(last.savings, true), last.savings >= bufferTarget ? "positive" : "negative"],
+    ["Meses cobertura final", `${(last.savings / Math.max(1, firstOutflow)).toFixed(1)}`, last.savings >= bufferTarget ? "positive" : "negative"],
+    ["Total ahorro 48m", money(sumRows(rows, (row) => row.saving), true), "positive"],
+    ["Amortización sugerida", money(amortizationSuggested, true), amortizationSuggested > 0 ? "positive" : ""],
+  ]
+    .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
+    .join("");
+
+  const tableRows = rows.map((row) => {
+    const coverage = firstOutflow ? row.savings / firstOutflow : 0;
+    const deviation = row.saving - state.recommendedSavings;
+    const status = coverage >= Number(state.emergencyBufferMonths || 6) ? "good" : coverage >= Number(state.emergencyBufferMonths || 6) * 0.7 ? "warn" : "danger";
+    return `<tr>
+      <td>${escapeHtml(row.month)}</td>
+      <td>${money(state.recommendedSavings, true)}</td>
+      <td>${money(row.saving, true)}</td>
+      <td class="${deviation < 0 ? "negative" : "positive"}">${money(deviation, true)}</td>
+      <td>${money(row.startLiquidity, true)}</td>
+      <td>${money(row.savings, true)}</td>
+      <td>${coverage.toFixed(1)}</td>
+      <td>${statusDot(status)}</td>
+      <td>${money(Math.max(0, row.saving - state.recommendedSavings), true)}</td>
+    </tr>`;
+  });
+  qs("savingsTable").innerHTML = `<thead><tr>
+    <th>Mes</th><th>Ahorro objetivo</th><th>Ahorro real</th><th>Desviación</th><th>Liquidez inicio</th><th>Colchón fin</th><th>Meses cobertura</th><th>Estado</th><th>Amortización sugerida</th>
+  </tr></thead><tbody>${tableRows.join("")}</tbody>`;
 }
 
 function renderMerchants() {
@@ -3994,6 +4227,7 @@ function renderMonthlyDetails() {
 
 function populateSelectors() {
   const previousProjectMonth = qs("projectMonth")?.value;
+  const previousDebtMonth = qs("debtPayoffMonth")?.value;
   const previousDetailMonth = qs("detailMonth")?.value;
   const projectOptions = forecastMonths()
     .map((month) => `<option value="${month.index}">${month.label}</option>`)
@@ -4001,6 +4235,12 @@ function populateSelectors() {
   qs("projectMonth").innerHTML = projectOptions;
   if ([...qs("projectMonth").options].some((option) => option.value === previousProjectMonth)) {
     qs("projectMonth").value = previousProjectMonth;
+  }
+  if (qs("debtPayoffMonth")) {
+    qs("debtPayoffMonth").innerHTML = projectOptions;
+    if ([...qs("debtPayoffMonth").options].some((option) => option.value === previousDebtMonth)) {
+      qs("debtPayoffMonth").value = previousDebtMonth;
+    }
   }
 
   const planning = baseData.monthlyPlanning;
@@ -4090,9 +4330,11 @@ function render() {
   renderCategoryChart();
   renderAdvice(lastSimulation, lastBaseSimulation);
   renderProjectSimulator(lastBaseSimulation, lastSimulation);
+  renderDebtControl();
   renderTable(lastSimulation, lastBaseSimulation);
   renderVisualDetail();
   renderPrevision();
+  renderSavingsPlan();
   renderMonthlyDetails();
   renderMerchants();
 }
@@ -4135,6 +4377,10 @@ async function init() {
   qs("syncNow").addEventListener("click", () => saveRemoteState(true));
   qs("addProject").addEventListener("click", handleAddProject);
   qs("clearProjects").addEventListener("click", handleClearProjects);
+  qs("addDebtPayoff").addEventListener("click", handleAddDebtLiquidation);
+  qs("debtPayoffMode").addEventListener("change", () => {
+    qs("debtPayoffDuration").disabled = qs("debtPayoffMode").value !== "spread";
+  });
   qs("addIncomeConcept").addEventListener("click", () => handleAddCustomConcept("income"));
   qs("addExpenseConcept").addEventListener("click", () => handleAddCustomConcept("expense"));
   qs("manualDataKind").addEventListener("change", updateManualDataKindUi);
@@ -4182,6 +4428,7 @@ async function init() {
   });
   window.addEventListener("resize", render);
   updateProjectModeUi();
+  if (qs("debtPayoffDuration")) qs("debtPayoffDuration").disabled = qs("debtPayoffMode").value !== "spread";
   render();
   setupViewNavigation();
   await setupSupabaseSync();

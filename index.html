@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260517a" />
+    <link rel="stylesheet" href="styles.css?v=20260517b" />
   </head>
   <body>
     <div class="app-shell">
@@ -20,10 +20,11 @@
         <nav class="side-nav">
           <a href="#overview" class="active">Vista general</a>
           <a href="#visual-detail">Detalle visual</a>
+          <a href="#debt-control">Control de deuda</a>
           <a href="#prevision">Previsión</a>
           <a href="#simulator">Simulador</a>
           <a href="#forecast">Proyección</a>
-          <a href="#monthly-detail">Detalle mensual</a>
+          <a href="#savings-plan">Plan ahorro</a>
           <a href="#data-entry">Carga de datos</a>
           <a href="#cashflow">Flujo mensual</a>
           <a href="#movements">Movimientos</a>
@@ -218,6 +219,63 @@
 
             <div class="table-wrap visual-table-wrap">
               <table class="visual-matrix" id="visualDetailTable"></table>
+            </div>
+          </section>
+
+          <section class="debt-control view-section" id="debt-control">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker">Refinanciación</p>
+                <h2>Control de deuda</h2>
+                <p>Compara deuda anterior, deuda futura del plan y simula liquidaciones anticipadas con impacto en todo el dashboard.</p>
+              </div>
+            </div>
+            <div class="expense-summary debt-summary" id="debtControlSummary"></div>
+            <div class="debt-control-grid">
+              <article class="debt-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Liquidación</p>
+                    <h3>Añadir amortización</h3>
+                  </div>
+                </div>
+                <div class="debt-form">
+                  <label>
+                    <span>Nombre</span>
+                    <input id="debtPayoffName" type="text" placeholder="Ej. Amortización plan deuda" />
+                  </label>
+                  <label>
+                    <span>Importe</span>
+                    <input id="debtPayoffAmount" type="number" step="50" placeholder="5000" />
+                  </label>
+                  <label>
+                    <span>Modo de liquidación</span>
+                    <select id="debtPayoffMode">
+                      <option value="fixed">Pagar en un mes concreto</option>
+                      <option value="spread">Repartir en varios meses</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Mes inicio</span>
+                    <select id="debtPayoffMonth"></select>
+                  </label>
+                  <label>
+                    <span>Duración (meses)</span>
+                    <input id="debtPayoffDuration" type="number" min="1" max="60" step="1" value="1" />
+                  </label>
+                  <button id="addDebtPayoff" type="button">Añadir liquidación</button>
+                </div>
+              </article>
+              <article class="debt-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Calendario</p>
+                    <h3>Cómo se liquida</h3>
+                  </div>
+                </div>
+                <div class="debt-list" id="debtPayoffList"></div>
+                <svg id="debtPayoffChart" role="img" aria-label="Impacto mensual de liquidaciones de deuda"></svg>
+              </article>
             </div>
           </section>
 
@@ -459,7 +517,41 @@
             </div>
           </section>
 
-          <section class="table-section view-section" id="monthly-detail">
+          <section class="savings-plan view-section" id="savings-plan">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker">Plan ahorro 821</p>
+                <h2>Plan ahorro</h2>
+                <p>Seguimiento del colchón, ahorro objetivo, amortización sugerida y semáforo de control calculado con las cifras actuales.</p>
+              </div>
+            </div>
+            <div class="savings-plan-grid">
+              <article class="savings-card">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Supuestos</p>
+                    <h3>Base de planificación</h3>
+                  </div>
+                </div>
+                <div class="savings-assumptions" id="savingsAssumptions"></div>
+              </article>
+              <article class="savings-card">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Semáforo</p>
+                    <h3>KPIs de control</h3>
+                  </div>
+                </div>
+                <div class="savings-kpis" id="savingsKpis"></div>
+              </article>
+            </div>
+            <div class="expense-summary savings-summary" id="savingsSummary"></div>
+            <div class="table-wrap savings-table-wrap">
+              <table class="savings-table" id="savingsTable"></table>
+            </div>
+          </section>
+
+          <section class="table-section overview-monthly-panel view-section" id="monthly-detail">
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Contabilidad New Life</p>
@@ -771,9 +863,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260517a"></script>
-    <script src="supabase-config.js?v=20260517a"></script>
-    <script src="data.js?v=20260517a"></script>
-    <script src="app.js?v=20260517a"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260517b"></script>
+    <script src="supabase-config.js?v=20260517b"></script>
+    <script src="data.js?v=20260517b"></script>
+    <script src="app.js?v=20260517b"></script>
   </body>
 </html>
