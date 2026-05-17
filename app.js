@@ -414,6 +414,7 @@ function saveScenarioSettings() {
     autoCapSavings: state.autoCapSavings,
     incomeFactor: state.incomeFactor,
     expenseFactor: state.expenseFactor,
+    savingsPlan: scenarioSettings.savingsPlan || {},
   };
   storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
   queueRemoteSave();
@@ -3437,36 +3438,159 @@ function statusDot(type) {
   return `<span class="status-dot ${type}"></span>${label}`;
 }
 
+const savingsPlanFieldMeta = [
+  ["baseHouseholdIncome", "Ingreso neto mensual base hogar", "€"],
+  ["extraApril", "Extra abril", "€"],
+  ["extraDecember", "Extra diciembre", "€"],
+  ["mortgagePayment", "Hipoteca mensual", "€"],
+  ["bmwPayment", "BMW mensual", "€"],
+  ["unifiedCreditPayment", "Cuota créditos unificados", "€"],
+  ["otherFixedNonDebt", "Otros gastos fijos no deuda", "€"],
+  ["variableSpendTarget", "Gasto variable objetivo", "€"],
+  ["initialEmergencyFund", "Colchón inicial", "€"],
+  ["emergencyBufferMonths", "Meses objetivo de colchón", "n"],
+  ["extraToBufferPct", "% extra destinado a colchón", "%"],
+  ["extraToAmortizationPct", "% extra destinado a amortización", "%"],
+  ["cashTargetPct", "% objetivo gasto en efectivo", "%"],
+  ["bankinterOutsidePlanPayment", "Financiación fuera plan - Bankinter", "€"],
+  ["cetelemOutsidePlanPayment", "Financiación fuera plan - Cetelem", "€"],
+];
+
+function savingsPlanBaseValue(key) {
+  const plan = baseData.sourcePlan || {};
+  const assumptions = baseData.assumptions || {};
+  const fallbacks = {
+    emergencyBufferMonths: state?.emergencyBufferMonths ?? plan.emergencyBufferMonths,
+    extraToBufferPct: 70,
+    extraToAmortizationPct: 30,
+    cashTargetPct: 5,
+    initialEmergencyFund: plan.initialEmergencyFund ?? assumptions.initialCash,
+  };
+  return plan[key] ?? assumptions[key] ?? fallbacks[key] ?? 0;
+}
+
+function savingsPlanOverrides() {
+  scenarioSettings.savingsPlan = scenarioSettings.savingsPlan || {};
+  return scenarioSettings.savingsPlan;
+}
+
+function savingsPlanValue(key) {
+  const overrides = savingsPlanOverrides();
+  if (overrides[key] !== undefined) return Number(overrides[key] || 0);
+  if (key === "baseHouseholdIncome") return Number(savingsPlanBaseValue(key) || 0) * Number(state?.incomeFactor ?? 1);
+  if (key === "otherFixedNonDebt" || key === "variableSpendTarget") {
+    return Number(savingsPlanBaseValue(key) || 0) * Number(state?.expenseFactor ?? 1);
+  }
+  if (key === "emergencyBufferMonths") return Number(state?.emergencyBufferMonths ?? savingsPlanBaseValue(key) ?? 0);
+  return Number(savingsPlanBaseValue(key) || 0);
+}
+
+function savingsPlanValues() {
+  return Object.fromEntries(savingsPlanFieldMeta.map(([key]) => [key, savingsPlanValue(key)]));
+}
+
+function savingsInputValue(key, unit) {
+  const value = savingsPlanValue(key);
+  if (unit === "%") return value.toFixed(1);
+  if (unit === "n") return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return amountInputValue(value);
+}
+
+function savingsPlanCalculations() {
+  const v = savingsPlanValues();
+  const monthlyIncomeTotal = v.baseHouseholdIncome + (v.extraApril + v.extraDecember) / 12;
+  const debtServiceMonthlyTotal =
+    v.mortgagePayment + v.bmwPayment + v.unifiedCreditPayment + v.bankinterOutsidePlanPayment + v.cetelemOutsidePlanPayment;
+  const totalSpendTarget = debtServiceMonthlyTotal + v.otherFixedNonDebt + v.variableSpendTarget;
+  const monthlySavingPotential = monthlyIncomeTotal - totalSpendTarget;
+  const savingsRate = monthlyIncomeTotal ? monthlySavingPotential / monthlyIncomeTotal : 0;
+  const debtToIncomeRatio = monthlyIncomeTotal ? debtServiceMonthlyTotal / monthlyIncomeTotal : 0;
+  const emergencyFundTarget = totalSpendTarget * v.emergencyBufferMonths;
+  const emergencyFundGap = Math.max(0, emergencyFundTarget - v.initialEmergencyFund);
+  const minMonthlyForBuffer = emergencyFundGap / 9;
+  const monthsToComplete = monthlySavingPotential > 0 ? emergencyFundGap / monthlySavingPotential : 0;
+  const recommendedSaving = Math.max(0, minMonthlyForBuffer);
+  const suggestedAmortization = Math.max(0, monthlySavingPotential - recommendedSaving) * (v.extraToAmortizationPct / 100);
+  return {
+    values: v,
+    monthlyIncomeTotal,
+    debtServiceMonthlyTotal,
+    totalSpendTarget,
+    monthlySavingPotential,
+    savingsRate,
+    debtToIncomeRatio,
+    emergencyFundTarget,
+    emergencyFundGap,
+    minMonthlyForBuffer,
+    monthsToComplete,
+    recommendedSaving,
+    suggestedAmortization,
+  };
+}
+
+function applySavingsPlanToScenario({ silent = false } = {}) {
+  const c = savingsPlanCalculations();
+  const base = baseData.sourcePlan || {};
+  state.incomeFactor = base.baseHouseholdIncome ? c.values.baseHouseholdIncome / base.baseHouseholdIncome : 1;
+  const baseOperational = Number(base.otherFixedNonDebt || 0) + Number(base.variableSpendTarget || 0);
+  const nextOperational = c.values.otherFixedNonDebt + c.values.variableSpendTarget;
+  state.expenseFactor = baseOperational ? nextOperational / baseOperational : 1;
+  state.recommendedSavings = round2(c.recommendedSaving);
+  state.emergencyBufferMonths = c.values.emergencyBufferMonths;
+  if (qs("recommendedSavings")) qs("recommendedSavings").value = state.recommendedSavings.toFixed(2);
+  if (qs("emergencyBufferMonths")) qs("emergencyBufferMonths").value = state.emergencyBufferMonths;
+  saveScenarioSettings();
+  if (!silent && qs("savingsPlanFeedback")) {
+    qs("savingsPlanFeedback").textContent = "Supuestos aplicados al modelo: ingresos, gasto operativo, colchón y ahorro objetivo recalculados.";
+    qs("savingsPlanFeedback").className = "inline-feedback success";
+  }
+}
+
+function handleSavingsPlanInput(input) {
+  const key = input.dataset.savingsPlanField;
+  const parsed = parseAmount(input.value);
+  if (!key || parsed === null) return;
+  savingsPlanOverrides()[key] = parsed;
+  if (key === "recommendedSaving") state.recommendedSavings = parsed;
+  applySavingsPlanToScenario({ silent: true });
+  render();
+  if (qs("savingsPlanFeedback")) {
+    qs("savingsPlanFeedback").textContent = "Cambio aplicado y recalculado en el resto del dashboard.";
+    qs("savingsPlanFeedback").className = "inline-feedback success";
+  }
+}
+
+function renderSavingsPlanAssumptionInput(key, label, unit) {
+  return `<label class="savings-assumption-input">
+    <span>${escapeHtml(label)}</span>
+    <input data-savings-plan-field="${escapeHtml(key)}" type="number" step="${unit === "n" ? "1" : "0.01"}" value="${savingsInputValue(key, unit)}" />
+  </label>`;
+}
+
 function renderSavingsPlan() {
   if (!qs("savingsTable") || !lastSimulation.length) return;
   const rows = lastSimulation.slice(0, Math.min(48, lastSimulation.length));
   const first = rows[0];
   const last = rows[rows.length - 1];
-  const avgIncome = averageRows(rows.slice(0, 12), (row) => row.income);
-  const avgDebt = averageRows(rows.slice(0, 12), (row) => row.refi + row.car);
+  const calc = savingsPlanCalculations();
+  const avgIncome = calc.monthlyIncomeTotal;
+  const avgDebt = calc.debtServiceMonthlyTotal;
   const avgSaving = averageRows(rows, (row) => row.saving);
-  const firstOutflow = first.coreSpend + first.car + first.refi + first.projectOutflow;
-  const bufferTarget = firstOutflow * Number(state.emergencyBufferMonths || 6);
-  const debtRatio = avgIncome ? avgDebt / avgIncome : 0;
-  const savingsRate = avgIncome ? avgSaving / avgIncome : 0;
-  const currentCoverage = firstOutflow ? state.initialCash / firstOutflow : 0;
+  const firstOutflow = calc.totalSpendTarget;
+  const bufferTarget = calc.emergencyFundTarget;
+  const debtRatio = calc.debtToIncomeRatio;
+  const savingsRate = calc.savingsRate;
+  const currentCoverage = calc.totalSpendTarget ? calc.values.initialEmergencyFund / calc.totalSpendTarget : 0;
   const amortizationSuggested = rows.reduce((sum, row) => sum + Math.max(0, row.saving - state.recommendedSavings), 0);
 
-  qs("savingsAssumptions").innerHTML = [
-    ["Ingreso mensual medio 12m", money(avgIncome, true)],
-    ["Gasto operativo primer mes", money(first.coreSpend, true)],
-    ["Servicio deuda medio 12m", money(avgDebt, true)],
-    ["Ahorro objetivo mensual", money(state.recommendedSavings, true)],
-    ["Colchón objetivo", money(bufferTarget, true)],
-    ["Meses objetivo", `${state.emergencyBufferMonths || 6}`],
-  ]
-    .map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+  qs("savingsAssumptions").innerHTML = savingsPlanFieldMeta
+    .map(([key, label, unit]) => renderSavingsPlanAssumptionInput(key, label, unit))
     .join("");
 
   qs("savingsKpis").innerHTML = [
     ["Tasa de ahorro", `${(savingsRate * 100).toFixed(1)}%`, ">= 20%", savingsRate >= 0.2 ? "good" : "danger"],
     ["Ratio deuda / ingresos", `${(debtRatio * 100).toFixed(1)}%`, "<= 32%", debtRatio <= 0.32 ? "good" : debtRatio <= 0.4 ? "warn" : "danger"],
-    ["Cobertura actual", `${currentCoverage.toFixed(1)} meses`, `>= ${state.emergencyBufferMonths || 6}`, currentCoverage >= Number(state.emergencyBufferMonths || 6) ? "good" : currentCoverage >= 3 ? "warn" : "danger"],
+    ["Cobertura actual", `${currentCoverage.toFixed(1)} meses`, `>= ${calc.values.emergencyBufferMonths}`, currentCoverage >= Number(calc.values.emergencyBufferMonths) ? "good" : currentCoverage >= 3 ? "warn" : "danger"],
     ["Desvío ahorro", money(sumRows(rows, (row) => row.saving - state.recommendedSavings), true), ">= 0", sumRows(rows, (row) => row.saving - state.recommendedSavings) >= 0 ? "good" : "danger"],
   ]
     .map(
@@ -3480,7 +3604,7 @@ function renderSavingsPlan() {
     ["Colchón final estimado", money(last.savings, true), last.savings >= bufferTarget ? "positive" : "negative"],
     ["Meses cobertura final", `${(last.savings / Math.max(1, firstOutflow)).toFixed(1)}`, last.savings >= bufferTarget ? "positive" : "negative"],
     ["Total ahorro 48m", money(sumRows(rows, (row) => row.saving), true), "positive"],
-    ["Amortización sugerida", money(amortizationSuggested, true), amortizationSuggested > 0 ? "positive" : ""],
+    ["Amortización sugerida", money(calc.suggestedAmortization, true), calc.suggestedAmortization > 0 ? "positive" : ""],
   ]
     .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
     .join("");
@@ -3488,7 +3612,7 @@ function renderSavingsPlan() {
   const tableRows = rows.map((row) => {
     const coverage = firstOutflow ? row.savings / firstOutflow : 0;
     const deviation = row.saving - state.recommendedSavings;
-    const status = coverage >= Number(state.emergencyBufferMonths || 6) ? "good" : coverage >= Number(state.emergencyBufferMonths || 6) * 0.7 ? "warn" : "danger";
+    const status = coverage >= Number(calc.values.emergencyBufferMonths || 6) ? "good" : coverage >= Number(calc.values.emergencyBufferMonths || 6) * 0.7 ? "warn" : "danger";
     return `<tr>
       <td>${escapeHtml(row.month)}</td>
       <td>${money(state.recommendedSavings, true)}</td>
@@ -3504,6 +3628,28 @@ function renderSavingsPlan() {
   qs("savingsTable").innerHTML = `<thead><tr>
     <th>Mes</th><th>Ahorro objetivo</th><th>Ahorro real</th><th>Desviación</th><th>Liquidez inicio</th><th>Colchón fin</th><th>Meses cobertura</th><th>Estado</th><th>Amortización sugerida</th>
   </tr></thead><tbody>${tableRows.join("")}</tbody>`;
+
+  const formulaRows = [
+    ["Ingreso mensual total", "Base hogar + (extra abril + extra diciembre) / 12", `${money(calc.values.baseHouseholdIncome, true)} + (${money(calc.values.extraApril, true)} + ${money(calc.values.extraDecember, true)}) / 12`, money(calc.monthlyIncomeTotal, true)],
+    ["Servicio deuda mensual total", "Hipoteca + BMW + cuota unificada + Bankinter + Cetelem", `${money(calc.values.mortgagePayment, true)} + ${money(calc.values.bmwPayment, true)} + ${money(calc.values.unifiedCreditPayment, true)} + ${money(calc.values.bankinterOutsidePlanPayment, true)} + ${money(calc.values.cetelemOutsidePlanPayment, true)}`, money(calc.debtServiceMonthlyTotal, true)],
+    ["Ratio deuda / ingresos", "Servicio deuda / ingreso total", `${money(calc.debtServiceMonthlyTotal, true)} / ${money(calc.monthlyIncomeTotal, true)}`, `${(calc.debtToIncomeRatio * 100).toFixed(1)}%`],
+    ["Gasto total objetivo mensual", "Servicio deuda + otros fijos + variable", `${money(calc.debtServiceMonthlyTotal, true)} + ${money(calc.values.otherFixedNonDebt, true)} + ${money(calc.values.variableSpendTarget, true)}`, money(calc.totalSpendTarget, true)],
+    ["Ahorro mensual base potencial", "Ingreso total - gasto total objetivo", `${money(calc.monthlyIncomeTotal, true)} - ${money(calc.totalSpendTarget, true)}`, money(calc.monthlySavingPotential, true)],
+    ["Tasa de ahorro", "Ahorro base potencial / ingreso total", `${money(calc.monthlySavingPotential, true)} / ${money(calc.monthlyIncomeTotal, true)}`, `${(calc.savingsRate * 100).toFixed(1)}%`],
+    ["Colchón objetivo", "Gasto total objetivo * meses objetivo", `${money(calc.totalSpendTarget, true)} * ${calc.values.emergencyBufferMonths}`, money(calc.emergencyFundTarget, true)],
+    ["Gap para colchón", "Colchón objetivo - colchón inicial", `${money(calc.emergencyFundTarget, true)} - ${money(calc.values.initialEmergencyFund, true)}`, money(calc.emergencyFundGap, true)],
+    ["Ahorro mínimo mensual para colchón", "Gap / 9 meses", `${money(calc.emergencyFundGap, true)} / 9`, money(calc.minMonthlyForBuffer, true)],
+    ["Meses estimados para completar", "Gap / ahorro base potencial", `${money(calc.emergencyFundGap, true)} / ${money(calc.monthlySavingPotential, true)}`, calc.monthsToComplete.toFixed(1)],
+    ["Ahorro automático recomendado", "Ahorro mínimo mensual redondeado", money(calc.minMonthlyForBuffer, true), money(calc.recommendedSaving, true)],
+    ["Amortización mensual sugerida", "Excedente sobre ahorro recomendado * % amortización", `(${money(calc.monthlySavingPotential, true)} - ${money(calc.recommendedSaving, true)}) * ${calc.values.extraToAmortizationPct.toFixed(1)}%`, money(calc.suggestedAmortization, true)],
+  ];
+  qs("savingsCalculationTable").innerHTML = `<thead><tr><th>Cálculo</th><th>Fórmula</th><th>Valores usados</th><th>Resultado</th></tr></thead><tbody>${formulaRows
+    .map(([name, formula, values, result]) => `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(formula)}</td><td>${escapeHtml(values)}</td><td><strong>${escapeHtml(result)}</strong></td></tr>`)
+    .join("")}</tbody>`;
+
+  document.querySelectorAll("[data-savings-plan-field]").forEach((input) => {
+    input.addEventListener("change", () => handleSavingsPlanInput(input));
+  });
 }
 
 function renderMerchants() {

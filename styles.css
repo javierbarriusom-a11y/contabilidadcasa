@@ -1836,6 +1836,7 @@ svg {
 }
 
 .savings-assumptions div,
+.savings-assumption-input,
 .savings-kpi {
   padding: 10px;
   border: 1px solid var(--line);
@@ -1844,6 +1845,7 @@ svg {
 }
 
 .savings-assumptions span,
+.savings-assumption-input span,
 .savings-kpi span,
 .savings-kpi small {
   display: block;
@@ -1857,6 +1859,19 @@ svg {
   display: block;
   margin: 4px 0;
   font-size: 20px;
+}
+
+.savings-assumption-input {
+  gap: 6px;
+}
+
+.savings-assumption-input input {
+  min-height: 34px;
+  padding: 6px 8px;
+  text-align: right;
+  font-weight: 900;
+  color: var(--blue);
+  background: #eef5ff;
 }
 
 .savings-kpi em {
@@ -1893,6 +1908,25 @@ svg {
 
 .savings-table {
   min-width: 1100px;
+}
+
+.savings-calculation-card {
+  margin-top: 14px;
+}
+
+.calculation-table-wrap {
+  max-height: 420px;
+}
+
+.calculation-table {
+  min-width: 980px;
+}
+
+.calculation-table td:nth-child(2),
+.calculation-table td:nth-child(3) {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .prevision-controls {
