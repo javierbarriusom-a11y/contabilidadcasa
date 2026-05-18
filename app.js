@@ -48,6 +48,8 @@ let customPlanningRows = [];
 let deletedPlanningRows = {};
 let seriesOverrides = {};
 let rowLabelOverrides = {};
+let movementMappings = {};
+let pendingMovementMappings = [];
 let memoryStorage = {};
 let supabaseClient = null;
 let remoteUser = null;
@@ -284,6 +286,7 @@ function appStatePayload() {
     deletedPlanningRows,
     seriesOverrides,
     rowLabelOverrides,
+    movementMappings,
   };
 }
 
@@ -303,6 +306,7 @@ function applyPersistedPayload(payload = {}) {
     payload.deletedPlanningRows && typeof payload.deletedPlanningRows === "object" ? payload.deletedPlanningRows : {};
   seriesOverrides = payload.seriesOverrides && typeof payload.seriesOverrides === "object" ? payload.seriesOverrides : {};
   rowLabelOverrides = payload.rowLabelOverrides && typeof payload.rowLabelOverrides === "object" ? payload.rowLabelOverrides : {};
+  movementMappings = payload.movementMappings && typeof payload.movementMappings === "object" ? payload.movementMappings : {};
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
 }
@@ -318,6 +322,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("deletedPlanningRows"), JSON.stringify(deletedPlanningRows));
   storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
+  storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
 }
 
 function queueRemoteSave() {
@@ -341,6 +346,7 @@ function loadLocalState() {
       deletedPlanningRows: JSON.parse(storageGet(storageKey("deletedPlanningRows"), "{}")),
       seriesOverrides: JSON.parse(storageGet(storageKey("seriesOverrides"), "{}")),
       rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
+      movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
     });
   } catch {
     projects = [];
@@ -353,6 +359,7 @@ function loadLocalState() {
     deletedPlanningRows = {};
     seriesOverrides = {};
     rowLabelOverrides = {};
+    movementMappings = {};
   }
 }
 
@@ -423,6 +430,11 @@ function saveSeriesOverrides() {
 
 function saveRowLabelOverrides() {
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
+  queueRemoteSave();
+}
+
+function saveMovementMappings() {
+  storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
   queueRemoteSave();
 }
 
@@ -1082,7 +1094,20 @@ function classifyTransaction(row) {
 
 function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
   const sheet = workbook.Sheets[sheetName];
-  const rawRows = window.XLSX.utils.sheet_to_json(sheet, { range: 2, defval: "", raw: true });
+  if (!sheet?.["!ref"]) return [];
+  const range = window.XLSX.utils.decode_range(sheet["!ref"]);
+  let headerRow = 2;
+  for (let row = range.s.r; row <= Math.min(range.e.r, 6); row += 1) {
+    const labels = [];
+    for (let col = range.s.c; col <= Math.min(range.e.c, 10); col += 1) {
+      labels.push(normalizedText(cellByIndex(sheet, row, col)).replace(/[^a-z0-9]/g, ""));
+    }
+    if (labels.includes("fecha") && labels.includes("movimiento") && labels.includes("importe") && labels.includes("saldo")) {
+      headerRow = row;
+      break;
+    }
+  }
+  const rawRows = window.XLSX.utils.sheet_to_json(sheet, { range: headerRow, defval: "", raw: true });
   return rawRows
     .map((row) => {
       const date = isoFromWorkbookValue(row.Fecha);
@@ -1098,6 +1123,7 @@ function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
         category: "",
         source: sheetName,
         sourceRank,
+        statementOrder: Number(row.__rowNum__ || 0),
         month: date.slice(0, 7),
       };
       transaction.category = classifyTransaction(transaction);
@@ -1106,9 +1132,26 @@ function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
     .filter(Boolean);
 }
 
+function sheetLooksLikeMovementSheet(sheet) {
+  if (!sheet?.["!ref"]) return false;
+  const range = window.XLSX.utils.decode_range(sheet["!ref"]);
+  const lastHeaderRow = Math.min(range.e.r, 6);
+  for (let row = range.s.r; row <= lastHeaderRow; row += 1) {
+    const labels = [];
+    for (let col = range.s.c; col <= Math.min(range.e.c, 10); col += 1) {
+      labels.push(normalizedText(cellByIndex(sheet, row, col)).replace(/[^a-z0-9]/g, ""));
+    }
+    if (labels.includes("fecha") && labels.includes("movimiento") && labels.includes("importe") && labels.includes("saldo")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function loadTransactionsFromWorkbook(workbook) {
   const movementSheets = workbook.SheetNames.filter((name) =>
-    normalizedText(name).replace(/[^a-z0-9]/g, "").startsWith("movimientoscuenta"),
+    normalizedText(name).replace(/[^a-z0-9]/g, "").startsWith("movimientoscuenta") ||
+    sheetLooksLikeMovementSheet(workbook.Sheets[name]),
   );
   const deduped = new Map();
   movementSheets.forEach((sheetName, sourceRank) => {
@@ -1758,6 +1801,9 @@ function applyHelpTooltips() {
   qs("monthly-detail")
     ?.querySelector(".section-title")
     ?.setAttribute("data-help", "Aquí puedes registrar importes reales por línea. Esos reales alimentan el simulador y el flujo de caja.");
+  qs("movementExcelFile")
+    ?.closest(".movement-import-card")
+    ?.setAttribute("data-help", "Importa un extracto bancario. La app aprende cómo relacionar cada movimiento con las partidas del Cuadro de mandos y usa el saldo más reciente como saldo real de CaixaBank.");
 }
 
 function applyScenario(name) {
@@ -4154,11 +4200,66 @@ function renderPrevisionDisplayRows(items) {
   ];
 }
 
+function rangeKpiMetric(rows) {
+  const metrics = rows.map((row) => ({ row, metric: previsionMetric(row) }));
+  if (!metrics.length) return null;
+  const minItem = metrics.reduce((best, item) => (item.metric.min < best.metric.min ? item : best), metrics[0]);
+  const maxItem = metrics.reduce((best, item) => (item.metric.max > best.metric.max ? item : best), metrics[0]);
+  const adjustedMinItem = metrics.reduce(
+    (best, item) => (item.metric.adjustedMin < best.metric.adjustedMin ? item : best),
+    metrics[0],
+  );
+  return {
+    min: minItem.metric.min,
+    minMonth: minItem.row.month,
+    max: maxItem.metric.max,
+    maxMonth: maxItem.row.month,
+    adjustedMin: adjustedMinItem.metric.adjustedMin,
+    adjustedMinMonth: adjustedMinItem.row.month,
+    adjustedIncome: Number(adjustedMinItem.row.prePayrollIncome || 0),
+  };
+}
+
+function renderVisualRangeKpis() {
+  const panel = qs("visualRangeKpis");
+  if (!panel) return;
+  const metrics = rangeKpiMetric(lastSimulation);
+  if (!metrics) {
+    panel.innerHTML = "";
+    return;
+  }
+  panel.innerHTML = `<div class="section-title compact">
+      <div>
+        <p class="panel-kicker">Resumen de caja</p>
+        <h3>Mínimos y máximo del horizonte</h3>
+        <p>Lectura rápida de la tensión de caja hasta el final de la simulación.</p>
+      </div>
+    </div>
+    <div class="range-kpi-grid">
+      <div class="range-kpi-card adjusted">
+        <span>Min ajustado</span>
+        <strong>${money(metrics.adjustedMin, true)}</strong>
+        <p>${escapeHtml(metrics.adjustedMinMonth)} · mínimo antes de nómina Javi, sumando Tere + local (${money(metrics.adjustedIncome, true)}).</p>
+      </div>
+      <div class="range-kpi-card minimum">
+        <span>Min</span>
+        <strong>${money(metrics.min, true)}</strong>
+        <p>${escapeHtml(metrics.minMonth)} · peor punto de caja antes de cobrar los ingresos principales del mes.</p>
+      </div>
+      <div class="range-kpi-card maximum">
+        <span>Max</span>
+        <strong>${money(metrics.max, true)}</strong>
+        <p>${escapeHtml(metrics.maxMonth)} · mayor liquidez estimada con proyectos, deuda y ahorro aplicados.</p>
+      </div>
+    </div>`;
+}
+
 function renderVisualPrevision(months = visualMonths()) {
   if (!qs("visualPrevisionTable")) return;
   const items = previsionRowsForMonths(months);
   if (!items.length) {
     qs("visualPrevisionTable").innerHTML = "";
+    renderVisualRangeKpis();
     return;
   }
   const compactYears = visualTimeMode() === "year";
@@ -4172,6 +4273,7 @@ function renderVisualPrevision(months = visualMonths()) {
   document.querySelectorAll("#visualPrevisionTable [data-visual-year-toggle]").forEach((button) => {
     button.addEventListener("click", () => toggleVisualYear(button.dataset.visualYearToggle));
   });
+  renderVisualRangeKpis();
 }
 
 function renderPrevision() {
@@ -4731,7 +4833,282 @@ function renderMerchants() {
       </div>`,
     )
     .join("");
+  renderMovementImportReview();
   renderDetailedMovements();
+}
+
+function movementKindFromAmount(amount) {
+  return Number(amount || 0) >= 0 ? "income" : "expense";
+}
+
+function movementMappingKey(transaction) {
+  const kind = movementKindFromAmount(transaction?.amount);
+  const movement = normalizedText(transaction?.movement || "").replace(/[^a-z0-9]+/g, " ").trim();
+  const details = normalizedText(transaction?.details || "").replace(/[^a-z0-9]+/g, " ").trim();
+  return `${kind}|${movement}|${details}`;
+}
+
+function movementDisplayName(transaction) {
+  const details = String(transaction?.details || "").trim();
+  return details ? `${transaction.movement} · ${details}` : String(transaction?.movement || "Movimiento");
+}
+
+function planningRowBySeriesKey(kind, key) {
+  return availableSeriesRows(kind).find((row) => seriesKeyForRow(row) === key) || null;
+}
+
+function exactMovementPlanningMatch(transaction) {
+  const kind = movementKindFromAmount(transaction.amount);
+  const movement = normalizedText(transaction.movement || "");
+  const details = normalizedText(transaction.details || "");
+  const combined = normalizedText(`${transaction.movement || ""} ${transaction.details || ""}`);
+  if (!movement && !details) return null;
+  return (
+    availableSeriesRows(kind).find((row) => {
+      const label = normalizedText(displayLabelForRow(row));
+      return label && (label === movement || label === details || label === combined);
+    }) || null
+  );
+}
+
+function mappingForMovement(transaction) {
+  const kind = movementKindFromAmount(transaction.amount);
+  const stored = movementMappings[movementMappingKey(transaction)];
+  const storedRow = stored?.kind === kind ? planningRowBySeriesKey(kind, stored.rowKey) : null;
+  if (storedRow) return { kind, row: storedRow, source: "dictionary" };
+  const exact = exactMovementPlanningMatch(transaction);
+  return exact ? { kind, row: exact, source: "exact" } : null;
+}
+
+function movementMappingOptions(kind, selected = "") {
+  return [
+    `<option value="">Sin asignar todavía</option>`,
+    ...availableSeriesRows(kind).map((row) => {
+      const key = seriesKeyForRow(row);
+      return `<option value="${escapeHtml(key)}" ${key === selected ? "selected" : ""}>${escapeHtml(row.sectionName)} · ${escapeHtml(displayLabelForRow(row))}</option>`;
+    }),
+  ].join("");
+}
+
+function buildPendingMovementMappings(transactions) {
+  const groups = new Map();
+  transactions.forEach((transaction) => {
+    if (!transaction || !Number(transaction.amount)) return;
+    if (mappingForMovement(transaction)) return;
+    const key = movementMappingKey(transaction);
+    const current = groups.get(key) || {
+      key,
+      kind: movementKindFromAmount(transaction.amount),
+      label: movementDisplayName(transaction),
+      count: 0,
+      total: 0,
+      examples: [],
+    };
+    current.count += 1;
+    current.total = round2(current.total + Math.abs(Number(transaction.amount || 0)));
+    if (current.examples.length < 2) current.examples.push(transaction);
+    groups.set(key, current);
+  });
+  return [...groups.values()].sort((a, b) => b.total - a.total);
+}
+
+function renderMovementImportReview() {
+  const panel = qs("movementMappingReview");
+  if (!panel) return;
+  const dictionaryCount = Object.keys(movementMappings).length;
+  if (!pendingMovementMappings.length) {
+    panel.hidden = false;
+    panel.innerHTML = `<div class="movement-mapping-empty">
+      <strong>Diccionario activo: ${dictionaryCount} relación(es)</strong>
+      <p>Cuando un movimiento no coincida con ninguna partida del Cuadro de mandos, aparecerá aquí para asignarlo.</p>
+    </div>`;
+    return;
+  }
+  panel.hidden = false;
+  panel.innerHTML = `<div class="movement-mapping-head">
+      <div>
+        <strong>${pendingMovementMappings.length} movimiento(s) por relacionar</strong>
+        <p>El signo del importe ya separa ingresos y gastos. Elige la partida del Cuadro de mandos y guardaremos la relación para próximos ficheros.</p>
+      </div>
+      <button id="applyMovementMappings" type="button">Guardar relaciones</button>
+    </div>
+    <div class="table-wrap movement-mapping-table-wrap">
+      <table class="movement-mapping-table">
+        <thead><tr><th>Tipo</th><th>Movimiento del banco</th><th>Total detectado</th><th>Asignar a partida</th></tr></thead>
+        <tbody>
+          ${pendingMovementMappings
+            .map(
+              (item) => `<tr>
+                <td>${item.kind === "income" ? "Ingreso" : "Gasto"}</td>
+                <td><strong>${escapeHtml(item.label)}</strong><small>${item.count} mov.; ejemplo ${escapeHtml(formatIsoDate(item.examples[0]?.date))}</small></td>
+                <td>${money(item.total, true)}</td>
+                <td><select data-movement-map-key="${escapeHtml(item.key)}" data-movement-map-kind="${escapeHtml(item.kind)}">${movementMappingOptions(item.kind)}</select></td>
+              </tr>`,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+  qs("applyMovementMappings")?.addEventListener("click", applyPendingMovementMappings);
+}
+
+function applyPendingMovementMappings() {
+  let changed = 0;
+  document.querySelectorAll("[data-movement-map-key]").forEach((select) => {
+    if (!select.value) return;
+    movementMappings[select.dataset.movementMapKey] = {
+      kind: select.dataset.movementMapKind,
+      rowKey: select.value,
+      label: select.options[select.selectedIndex]?.textContent || "",
+      updatedAt: new Date().toISOString(),
+    };
+    changed += 1;
+  });
+  if (!changed) {
+    qs("movementImportStatus").innerHTML = `<strong>No se guardó ninguna relación</strong><p>Selecciona una partida antes de guardar.</p>`;
+    return;
+  }
+  saveMovementMappings();
+  const applied = applyMovementMappingsToActuals();
+  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+  saveIncomeActuals();
+  saveExpenseActuals();
+  refreshAllSectionsAfterDataChange();
+  qs("movementImportStatus").innerHTML = `<strong>${changed} relación(es) guardada(s)</strong><p>${applied} importe(s) reales recalculados desde movimientos. ${fullRefreshMessage()}</p>`;
+}
+
+function applyMovementMappingsToActuals() {
+  const monthlyTotals = {
+    income: new Map(),
+    expense: new Map(),
+  };
+  (baseData.transactions || []).forEach((transaction) => {
+    const mapping = mappingForMovement(transaction);
+    if (!mapping) return;
+    const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
+    if (!month) return;
+    const key = actualKeyForRow(mapping.row, month);
+    const amount = mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
+    monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
+  });
+  let applied = 0;
+  monthlyTotals.income.forEach((value, key) => {
+    incomeActuals[key] = value;
+    applied += 1;
+  });
+  monthlyTotals.expense.forEach((value, key) => {
+    expenseActuals[key] = value;
+    applied += 1;
+  });
+  return applied;
+}
+
+function transactionIdentity(row) {
+  return [
+    row.date || "",
+    row.valueDate || "",
+    normalizedText(row.movement || ""),
+    normalizedText(row.details || ""),
+    round2(row.amount || 0),
+    row.balance === null || row.balance === undefined ? "" : round2(row.balance),
+  ].join("|");
+}
+
+function mergeTransactions(existing, imported) {
+  const map = new Map();
+  [...(existing || []), ...(imported || [])].forEach((row) => {
+    if (!row?.date || !row?.movement) return;
+    map.set(transactionIdentity(row), row);
+  });
+  return [...map.values()].sort((a, b) =>
+    `${a.date}|${String(a.statementOrder || "").padStart(5, "0")}|${a.movement}`.localeCompare(
+      `${b.date}|${String(b.statementOrder || "").padStart(5, "0")}|${b.movement}`,
+    ),
+  );
+}
+
+function latestStatementBalance(transactions) {
+  return (transactions || [])
+    .filter((row) => row.balance !== null && row.balance !== undefined && row.date)
+    .sort((a, b) => {
+      const dateCompare = String(b.date).localeCompare(String(a.date));
+      if (dateCompare) return dateCompare;
+      return Number(a.statementOrder || 0) - Number(b.statementOrder || 0);
+    })[0];
+}
+
+function applyMovementBalance(transaction) {
+  if (!transaction || transaction.balance === null || transaction.balance === undefined) return null;
+  const current = accountBalancesFromState();
+  qs("balanceMode").value = "manual";
+  qs("balanceDate").value = transaction.date;
+  state.balanceMode = "manual";
+  state.balanceDate = transaction.date;
+  setStateAccountBalances({
+    caixa: Number(transaction.balance || 0),
+    mediolanum: current.mediolanum,
+  });
+  saveBalanceSettings();
+  return accountBalancesFromState();
+}
+
+function refreshMovementRollups() {
+  const rollups = buildRollupsFromTransactions(baseData.transactions || []);
+  baseData = {
+    ...baseData,
+    metadata: {
+      ...baseData.metadata,
+      generatedAt: new Date().toISOString(),
+      sourceWorkbookStatus: "Leído desde la app",
+    },
+    categoryMonthly: rollups.categoryMonthly,
+    topMerchants: rollups.topMerchants,
+    derived: {
+      ...(baseData.derived || {}),
+      historicalCoreSpend: rollups.historicalCoreSpend,
+      historicalIncome: rollups.historicalIncome,
+      coreMonthlyAverageJanMar2026: rollups.historicalCoreSpend,
+      incomeMonthlyAverageJanMar2026: rollups.historicalIncome,
+    },
+  };
+}
+
+async function handleMovementExcelImport(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!window.XLSX || typeof window.XLSX.read !== "function") {
+    qs("movementImportStatus").innerHTML = `<strong>No se pudo leer Excel</strong><p>La librería de lectura de Excel no está disponible todavía.</p>`;
+    return;
+  }
+  try {
+    const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
+    const imported = loadTransactionsFromWorkbook(workbook);
+    if (!imported.length) {
+      qs("movementImportStatus").innerHTML = `<strong>Sin movimientos detectados</strong><p>El fichero debe incluir una hoja Movimientos_cuenta con Fecha, Movimiento, Importe y Saldo.</p>`;
+      return;
+    }
+    baseData.transactions = mergeTransactions(baseData.transactions || [], imported);
+    refreshMovementRollups();
+    const latest = latestStatementBalance(imported);
+    const balances = applyMovementBalance(latest);
+    const appliedActuals = applyMovementMappingsToActuals();
+    pendingMovementMappings = buildPendingMovementMappings(imported);
+    saveWorkbookOverride();
+    saveIncomeActuals();
+    saveExpenseActuals();
+    saveLocalSnapshot();
+    queueRemoteSave();
+    refreshAllSectionsAfterDataChange();
+    const balanceText = balances
+      ? `Saldo CaixaBank actualizado a ${money(balances.caixa, true)} con fecha ${formatIsoDate(latest.date)}.`
+      : "No se encontró saldo final utilizable en el fichero.";
+    qs("movementImportStatus").innerHTML = `<strong>${imported.length} movimiento(s) importado(s)</strong><p>${balanceText} ${appliedActuals} real(es) aplicados. ${pendingMovementMappings.length} relación(es) pendiente(s).</p>`;
+    renderMovementImportReview();
+  } catch (error) {
+    qs("movementImportStatus").innerHTML = `<strong>No se pudo importar el extracto</strong><p>${escapeHtml(error.message || "Revisa el formato del Excel.")}</p>`;
+  } finally {
+    event.target.value = "";
+  }
 }
 
 function formatIsoDate(value) {
@@ -5708,6 +6085,7 @@ async function init() {
   qs("visualBulkDelete").addEventListener("click", stageSelectedVisualDeletes);
   qs("movementMonthFilter").addEventListener("change", renderDetailedMovements);
   qs("movementSearch").addEventListener("input", renderDetailedMovements);
+  qs("movementExcelFile").addEventListener("change", handleMovementExcelImport);
   qs("clearBatchData").addEventListener("click", () => {
     qs("batchDataInput").value = "";
     showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.");

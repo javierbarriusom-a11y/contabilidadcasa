@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260518i" />
+    <link rel="stylesheet" href="styles.css?v=20260518k" />
   </head>
   <body>
     <div class="app-shell">
@@ -247,6 +247,8 @@
                 <table class="prevision-table visual-prevision-table" id="visualPrevisionTable"></table>
               </div>
             </article>
+
+            <article class="visual-range-kpis" id="visualRangeKpis"></article>
           </section>
 
           <section class="debt-control view-section" id="debt-control">
@@ -885,6 +887,26 @@
                 <p>Top gastos no crediticios usados para estimar la base mensual.</p>
               </div>
             </div>
+            <article class="movement-import-card">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Extracto bancario</p>
+                  <h3>Cargar movimientos desde Excel</h3>
+                </div>
+              </div>
+              <div class="movement-import-grid">
+                <label class="file-drop compact-file-drop" for="movementExcelFile">
+                  <strong>Seleccionar Excel de movimientos</strong>
+                  <span>Formato Movimientos_cuenta_0308278_abr: Fecha, Fecha valor, Movimiento, Más datos, Importe y Saldo.</span>
+                  <input id="movementExcelFile" type="file" accept=".xlsx,.xls" />
+                </label>
+                <div class="movement-import-status" id="movementImportStatus">
+                  <strong>Sin fichero cargado en esta sesión</strong>
+                  <p>Al importar, el último saldo real del extracto actualiza CaixaBank y recalcula toda la app.</p>
+                </div>
+              </div>
+              <div class="movement-mapping-review" id="movementMappingReview" hidden></div>
+            </article>
             <div class="merchant-list" id="merchantList"></div>
             <div class="section-title movement-detail-title">
               <div>
@@ -927,9 +949,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260518i"></script>
-    <script src="supabase-config.js?v=20260518i"></script>
-    <script src="data.js?v=20260518i"></script>
-    <script src="app.js?v=20260518i"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260518k"></script>
+    <script src="supabase-config.js?v=20260518k"></script>
+    <script src="data.js?v=20260518k"></script>
+    <script src="app.js?v=20260518k"></script>
   </body>
 </html>

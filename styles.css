@@ -457,7 +457,8 @@ main {
 .data-workbench,
 .debt-control,
 .savings-plan,
-.visual-prevision-panel {
+.visual-prevision-panel,
+.visual-range-kpis {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1920,6 +1921,75 @@ svg {
   min-width: 1180px;
 }
 
+.visual-range-kpis {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.range-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.range-kpi-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--blue);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.range-kpi-card.minimum {
+  border-left-color: var(--red);
+}
+
+.range-kpi-card.adjusted {
+  border-left-color: var(--teal);
+}
+
+.range-kpi-card.maximum {
+  border-left-color: var(--green);
+}
+
+.range-kpi-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.range-kpi-card strong {
+  display: block;
+  margin: 8px 0;
+  color: var(--ink);
+  font-size: clamp(24px, 2.6vw, 38px);
+  line-height: 1;
+  overflow-wrap: anywhere;
+}
+
+.range-kpi-card.adjusted strong {
+  color: var(--teal);
+}
+
+.range-kpi-card.minimum strong {
+  color: var(--red);
+}
+
+.range-kpi-card.maximum strong {
+  color: var(--green);
+}
+
+.range-kpi-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
 .prevision-section {
   margin-top: 18px;
 }
@@ -2432,6 +2502,105 @@ svg {
   margin-top: 22px;
 }
 
+.movement-import-card {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.movement-import-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.8fr) minmax(280px, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.compact-file-drop {
+  min-height: 136px;
+  margin: 0;
+  padding: 18px;
+}
+
+.compact-file-drop span,
+.movement-import-status p,
+.movement-mapping-head p,
+.movement-mapping-empty p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.movement-import-status,
+.movement-mapping-empty {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.movement-import-status strong,
+.movement-mapping-empty strong {
+  display: block;
+  font-size: 18px;
+}
+
+.movement-mapping-review {
+  margin-top: 14px;
+}
+
+.movement-mapping-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
+  background: #ffffff;
+}
+
+.movement-mapping-head strong {
+  font-size: 18px;
+}
+
+.movement-mapping-head button {
+  flex: 0 0 auto;
+}
+
+.movement-mapping-table-wrap {
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  max-height: 420px;
+}
+
+.movement-mapping-table {
+  min-width: 980px;
+}
+
+.movement-mapping-table td:nth-child(2) {
+  text-align: left;
+  white-space: normal;
+}
+
+.movement-mapping-table td:nth-child(2) strong,
+.movement-mapping-table td:nth-child(2) small {
+  display: block;
+}
+
+.movement-mapping-table td:nth-child(2) small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.movement-mapping-table select {
+  width: min(100%, 360px);
+}
+
 .movement-count {
   margin: -6px 0 10px;
   color: var(--muted);
@@ -2909,12 +3078,14 @@ tbody tr:hover {
   .project-grid,
   .monthly-detail-grid,
   .debt-control-grid,
-  .debt-breakdown-cards,
-  .debt-product-grid,
-  .debt-agreement-preview,
-  .savings-plan-grid {
-    grid-template-columns: 1fr;
-  }
+	  .debt-breakdown-cards,
+	  .debt-product-grid,
+	  .debt-agreement-preview,
+	  .movement-import-grid,
+	  .range-kpi-grid,
+	  .savings-plan-grid {
+	    grid-template-columns: 1fr;
+	  }
 
   .advice-panel {
     position: static;
