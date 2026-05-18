@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260518h" />
+    <link rel="stylesheet" href="styles.css?v=20260518i" />
   </head>
   <body>
     <div class="app-shell">
@@ -18,8 +18,7 @@
         </div>
 
         <nav class="side-nav">
-          <a href="#overview" class="active">Vista general</a>
-          <a href="#visual-detail">Detalle visual</a>
+          <a href="#visual-detail" class="active">Cuadro de mandos</a>
           <a href="#debt-control">Control de deuda</a>
           <a href="#prevision">Previsión</a>
           <a href="#simulator">Simulador</a>
@@ -86,36 +85,36 @@
         </header>
 
         <main>
-          <section class="hero-grid view-section" id="overview" aria-label="Resumen del plan">
-            <article class="summary-card primary">
-              <span>Liquidez proyectada final</span>
-              <strong id="kpiEnding"></strong>
-              <small id="kpiEndingDelta"></small>
-              <p>Cuenta corriente más ahorro separado, después de coche, refinanciación y ahorro.</p>
-            </article>
-            <article class="summary-card">
-              <span>Liquidez de partida</span>
-              <strong id="kpiInitial"></strong>
-              <div class="overview-balance-breakdown" id="overviewBalanceBreakdown" aria-label="Saldos por cuenta"></div>
-              <p>Saldo calculado por fecha o saldo real introducido manualmente.</p>
-            </article>
-            <article class="summary-card">
-              <span>Superávit antes de ahorrar</span>
-              <strong id="kpiSurplus"></strong>
-              <p>Margen mensual estimado con gastos no crediticios y deuda refinanciada.</p>
-            </article>
-            <article class="summary-card">
-              <span>Ahorro medio aplicado</span>
-              <strong id="kpiSaving"></strong>
-              <p>Objetivo suavizado si la caja mensual queda demasiado justa.</p>
-            </article>
-          </section>
-
           <section class="visual-detail view-section" id="visual-detail">
+            <div class="hero-grid dashboard-hero" aria-label="Resumen del plan">
+              <article class="summary-card primary">
+                <span>Liquidez proyectada final</span>
+                <strong id="kpiEnding"></strong>
+                <small id="kpiEndingDelta"></small>
+                <p>Cuenta corriente más ahorro separado, después de coche, refinanciación y ahorro.</p>
+              </article>
+              <article class="summary-card">
+                <span>Liquidez de partida</span>
+                <strong id="kpiInitial"></strong>
+                <div class="overview-balance-breakdown" id="overviewBalanceBreakdown" aria-label="Saldos por cuenta"></div>
+                <p>Saldo calculado por fecha o saldo real introducido manualmente.</p>
+              </article>
+              <article class="summary-card">
+                <span>Superávit antes de ahorrar</span>
+                <strong id="kpiSurplus"></strong>
+                <p>Margen mensual estimado con gastos no crediticios y deuda refinanciada.</p>
+              </article>
+              <article class="summary-card">
+                <span>Ahorro medio aplicado</span>
+                <strong id="kpiSaving"></strong>
+                <p>Objetivo suavizado si la caja mensual queda demasiado justa.</p>
+              </article>
+            </div>
+
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker">Contabilidad New Life</p>
-                <h2>Detalle visual</h2>
+                <p class="panel-kicker">Cuadro de mandos</p>
+                <h2>Cuadro de mandos</h2>
                 <p>Matriz editable por partidas y meses. Los cambios actualizan simulador, flujo, proyección y detalle mensual.</p>
               </div>
               <div class="visual-controls">
@@ -354,6 +353,86 @@
             <div class="table-wrap prevision-table-wrap">
               <table class="prevision-table" id="previsionTable"></table>
             </div>
+
+            <section class="table-section overview-monthly-panel prevision-monthly-panel" id="monthly-detail">
+              <div class="section-title with-action">
+                <div>
+                  <p class="panel-kicker">Contabilidad New Life</p>
+                  <h2>Detalle mensual previsto vs real</h2>
+                  <p>Un solo mes sincroniza ingresos y gastos; abre cada partida para registrar importes reales.</p>
+                </div>
+                <label class="month-picker">
+                  <span>Mes</span>
+                  <select id="detailMonth"></select>
+                </label>
+              </div>
+              <div class="expense-summary monthly-summary" id="monthlySummary"></div>
+              <div class="monthly-detail-grid">
+                <article class="monthly-detail-panel" id="income-detail">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Ingresos</p>
+                      <h3>Previsto vs real</h3>
+                    </div>
+                  </div>
+                  <div class="expense-summary compact-summary" id="incomeSummary"></div>
+                  <div class="concept-editor" id="incomeConceptEditor">
+                    <select id="incomeCustomSection" aria-label="Bloque del nuevo ingreso"></select>
+                    <input id="incomeCustomLabel" type="text" placeholder="Nuevo concepto" />
+                    <input id="incomeCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
+                    <input id="incomeCustomActual" type="number" step="0.01" placeholder="Real" />
+                    <button id="addIncomeConcept">Añadir</button>
+                  </div>
+                  <div class="table-wrap detail-wrap">
+                    <table class="detail-table">
+                      <thead>
+                        <tr>
+                          <th>Bloque</th>
+                          <th>Concepto</th>
+                          <th>Previsto</th>
+                          <th>Real</th>
+                          <th>Desviación</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="incomeDetailRows"></tbody>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="monthly-detail-panel" id="expense-detail">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Gastos</p>
+                      <h3>Previsto vs real</h3>
+                    </div>
+                  </div>
+                  <div class="expense-summary compact-summary" id="expenseSummary"></div>
+                  <div class="concept-editor" id="expenseConceptEditor">
+                    <select id="expenseCustomSection" aria-label="Bloque del nuevo gasto"></select>
+                    <input id="expenseCustomLabel" type="text" placeholder="Nuevo concepto" />
+                    <input id="expenseCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
+                    <input id="expenseCustomActual" type="number" step="0.01" placeholder="Real" />
+                    <button id="addExpenseConcept">Añadir</button>
+                  </div>
+                  <div class="table-wrap detail-wrap">
+                    <table class="detail-table">
+                      <thead>
+                        <tr>
+                          <th>Bloque</th>
+                          <th>Concepto</th>
+                          <th>Previsto</th>
+                          <th>Real</th>
+                          <th>Desviación</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="expenseDetailRows"></tbody>
+                    </table>
+                  </div>
+                </article>
+              </div>
+            </section>
           </section>
 
           <section class="decision-studio view-section" id="simulator">
@@ -619,92 +698,12 @@
             </div>
           </section>
 
-          <section class="table-section overview-monthly-panel view-section" id="monthly-detail">
-            <div class="section-title with-action">
-              <div>
-                <p class="panel-kicker">Contabilidad New Life</p>
-                <h2>Detalle mensual previsto vs real</h2>
-                <p>Un solo mes sincroniza ingresos y gastos; abre cada partida para registrar importes reales.</p>
-              </div>
-              <label class="month-picker">
-                <span>Mes</span>
-                <select id="detailMonth"></select>
-              </label>
-            </div>
-            <div class="expense-summary monthly-summary" id="monthlySummary"></div>
-            <div class="monthly-detail-grid">
-              <article class="monthly-detail-panel" id="income-detail">
-                <div class="module-heading">
-                  <div>
-                    <p class="panel-kicker">Ingresos</p>
-                    <h3>Previsto vs real</h3>
-                  </div>
-                </div>
-                <div class="expense-summary compact-summary" id="incomeSummary"></div>
-                <div class="concept-editor" id="incomeConceptEditor">
-                  <select id="incomeCustomSection" aria-label="Bloque del nuevo ingreso"></select>
-                  <input id="incomeCustomLabel" type="text" placeholder="Nuevo concepto" />
-                  <input id="incomeCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
-                  <input id="incomeCustomActual" type="number" step="0.01" placeholder="Real" />
-                  <button id="addIncomeConcept">Añadir</button>
-                </div>
-                <div class="table-wrap detail-wrap">
-                  <table class="detail-table">
-                    <thead>
-                      <tr>
-                        <th>Bloque</th>
-                        <th>Concepto</th>
-                        <th>Previsto</th>
-                        <th>Real</th>
-                        <th>Desviación</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody id="incomeDetailRows"></tbody>
-                  </table>
-                </div>
-              </article>
-
-              <article class="monthly-detail-panel" id="expense-detail">
-                <div class="module-heading">
-                  <div>
-                    <p class="panel-kicker">Gastos</p>
-                    <h3>Previsto vs real</h3>
-                  </div>
-                </div>
-                <div class="expense-summary compact-summary" id="expenseSummary"></div>
-                <div class="concept-editor" id="expenseConceptEditor">
-                  <select id="expenseCustomSection" aria-label="Bloque del nuevo gasto"></select>
-                  <input id="expenseCustomLabel" type="text" placeholder="Nuevo concepto" />
-                  <input id="expenseCustomPlanned" type="number" step="0.01" placeholder="Previsto" />
-                  <input id="expenseCustomActual" type="number" step="0.01" placeholder="Real" />
-                  <button id="addExpenseConcept">Añadir</button>
-                </div>
-                <div class="table-wrap detail-wrap">
-                  <table class="detail-table">
-                    <thead>
-                      <tr>
-                        <th>Bloque</th>
-                        <th>Concepto</th>
-                        <th>Previsto</th>
-                        <th>Real</th>
-                        <th>Desviación</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody id="expenseDetailRows"></tbody>
-                  </table>
-                </div>
-              </article>
-            </div>
-          </section>
-
           <section class="data-workbench view-section" id="data-entry">
             <div class="section-title">
               <div>
                 <p class="panel-kicker">Entrada operativa</p>
                 <h2>Cargar datos manuales, lotes o Excel</h2>
-                <p>Todo lo que cargues aquí actualiza vista general, detalle visual, control de deuda, previsión, simulador, plan ahorro, flujo y movimientos.</p>
+                <p>Todo lo que cargues aquí actualiza cuadro de mandos, control de deuda, previsión, simulador, plan ahorro, flujo y movimientos.</p>
               </div>
             </div>
 
@@ -928,9 +927,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260518h"></script>
-    <script src="supabase-config.js?v=20260518h"></script>
-    <script src="data.js?v=20260518h"></script>
-    <script src="app.js?v=20260518h"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260518i"></script>
+    <script src="supabase-config.js?v=20260518i"></script>
+    <script src="data.js?v=20260518i"></script>
+    <script src="app.js?v=20260518i"></script>
   </body>
 </html>

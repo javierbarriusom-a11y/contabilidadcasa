@@ -91,13 +91,9 @@ const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 130;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
 
 const viewTitles = {
-  overview: {
-    eyebrow: "Cuadro de mando financiero",
-    title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
-  },
   "visual-detail": {
-    eyebrow: "Detalle visual",
-    title: "Edita la matriz mensual como en Contabilidad New Life",
+    eyebrow: "Cuadro de mandos",
+    title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
   },
   "debt-control": {
     eyebrow: "Control de deuda",
@@ -118,10 +114,6 @@ const viewTitles = {
   "savings-plan": {
     eyebrow: "Plan ahorro",
     title: "Seguimiento de colchón, ahorro objetivo y semáforo de control",
-  },
-  "monthly-detail": {
-    eyebrow: "Contabilidad New Life",
-    title: "Controla ingresos y gastos previstos frente a reales",
   },
   "data-entry": {
     eyebrow: "Carga de datos",
@@ -535,14 +527,15 @@ function renderSyncPanel() {
 }
 
 function viewFromHash() {
-  const id = (window.location.hash || "#overview").replace("#", "");
-  if (id === "monthly-detail") return "overview";
-  return document.getElementById(id)?.classList.contains("view-section") ? id : "overview";
+  const id = (window.location.hash || "#visual-detail").replace("#", "");
+  if (id === "overview") return "visual-detail";
+  if (id === "monthly-detail") return "prevision";
+  return document.getElementById(id)?.classList.contains("view-section") ? id : "visual-detail";
 }
 
 function setActiveView(viewId = viewFromHash()) {
   document.querySelectorAll(".view-section").forEach((section) => {
-    section.hidden = section.id !== viewId && !(viewId === "overview" && section.id === "monthly-detail");
+    section.hidden = section.id !== viewId;
   });
   document.querySelectorAll(".side-nav a").forEach((link) => {
     const isActive = link.getAttribute("href") === `#${viewId}`;
@@ -550,7 +543,7 @@ function setActiveView(viewId = viewFromHash()) {
     if (isActive) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
-  const copy = viewTitles[viewId] || viewTitles.overview;
+  const copy = viewTitles[viewId] || viewTitles["visual-detail"];
   if (qs("viewEyebrow")) qs("viewEyebrow").textContent = copy.eyebrow;
   if (qs("viewTitle")) qs("viewTitle").textContent = copy.title;
   renderActiveSection(viewId);
@@ -3641,7 +3634,7 @@ function renderVisualSavePanel() {
   if (counts.deletes) parts.push(`${counts.deletes} partida(s) para borrar`);
   if (counts.selected) parts.push(`${counts.selected} seleccionada(s)`);
   qs("visualSaveSummary").textContent = parts.length
-    ? `Se guardarán: ${parts.join(", ")}. Los cambios afectarán a Detalle visual, Previsión, flujo de caja, simulador y detalle mensual.`
+    ? `Se guardarán: ${parts.join(", ")}. Los cambios afectarán a Cuadro de mandos, Previsión, flujo de caja, simulador y detalle mensual.`
     : "Edita importes, nombres o selecciona partidas para borrar antes de guardar.";
   qs("visualSavePanel").classList.toggle("has-pending", pending > 0 || counts.selected > 0);
   qs("visualSaveChanges").disabled = pending === 0;
@@ -5123,7 +5116,7 @@ function showImportLog(title, body, tone = "") {
 }
 
 function fullRefreshMessage() {
-  return "Vista general, detalle visual, control de deuda, previsión, simulador, proyección, plan ahorro, flujo mensual y movimientos quedan recalculados.";
+  return "Cuadro de mandos, control de deuda, previsión, simulador, proyección, plan ahorro, flujo mensual y movimientos quedan recalculados.";
 }
 
 function refreshAllSectionsAfterDataChange() {
@@ -5590,9 +5583,6 @@ function downloadCsv() {
 function renderActiveSection(viewId = viewFromHash()) {
   if (!lastSimulation.length) return;
   switch (viewId) {
-    case "overview":
-      renderMonthlyDetails();
-      break;
     case "visual-detail":
       renderVisualDetail();
       break;
@@ -5601,6 +5591,7 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "prevision":
       renderPrevision();
+      renderMonthlyDetails();
       break;
     case "simulator":
       renderProjectSimulator(lastBaseSimulation, lastSimulation);
