@@ -50,6 +50,7 @@ let seriesOverrides = {};
 let rowLabelOverrides = {};
 let movementMappings = {};
 let pendingMovementMappings = [];
+let editingProjectId = null;
 let memoryStorage = {};
 let supabaseClient = null;
 let remoteUser = null;
@@ -367,8 +368,13 @@ function normalizeLoadedProjects() {
   const months = forecastMonths();
   let changed = false;
   const normalizeItem = (project) => {
-    if (project.mode !== "fixed" && project.mode !== "spread") return project;
     const next = { ...project };
+    next.amount = round2(Number(next.amount || 0));
+    next.duration = Math.max(1, Number(next.duration || 1));
+    next.recurringAmount = round2(Number(next.recurringAmount || 0));
+    next.recurringDuration = Math.max(0, Number(next.recurringDuration || 0));
+    next.recurringStartOffset = Math.max(0, Number(next.recurringStartOffset || 0));
+    if (project.mode !== "fixed" && project.mode !== "spread") return next;
     if (next.monthKey) {
       const indexFromKey = months.findIndex((month) => month.key === next.monthKey);
       if (indexFromKey >= 0 && Number(next.monthIndex) !== indexFromKey) {
@@ -1486,6 +1492,14 @@ function scheduledDecisionMonthlyImpact(project, forecastIndex) {
   const duration = Math.max(1, Number(project.duration || 1));
   const costActive = forecastIndex >= project.startIndex && forecastIndex < project.startIndex + duration;
   const cost = costActive ? Number(project.amount || 0) / duration : 0;
+  const recurringAmount = Number(project.recurringAmount || 0);
+  const recurringDuration = Math.max(0, Number(project.recurringDuration || 0));
+  const recurringStartOffset = Math.max(0, Number(project.recurringStartOffset || 0));
+  const recurringActive =
+    recurringDuration > 0 &&
+    forecastIndex >= project.startIndex + recurringStartOffset &&
+    forecastIndex < project.startIndex + recurringStartOffset + recurringDuration;
+  const recurring = recurringActive ? recurringAmount : 0;
   const reliefStart = project.startIndex + duration;
   const reliefMonths = Math.max(1, Number(project.reliefMonths || modelMonthCount()));
   const reliefActive =
@@ -1494,7 +1508,7 @@ function scheduledDecisionMonthlyImpact(project, forecastIndex) {
     forecastIndex >= reliefStart &&
     forecastIndex < reliefStart + reliefMonths;
   const relief = reliefActive ? -Number(project.monthlyRelief || 0) : 0;
-  return round2(cost + relief);
+  return round2(cost + recurring + relief);
 }
 
 function projectsForForecastIndex(forecastIndex) {
@@ -1744,8 +1758,11 @@ function applyHelpTooltips() {
   );
 
   addHelpToControl("projectName", "Nombre interno para reconocer el proyecto o imprevisto en el impacto mensual.");
-  addHelpToControl("projectAmount", "Coste total del proyecto. Si dura varios meses, se reparte linealmente.");
-  addHelpToControl("projectDuration", "Número de meses durante los que se reparte el importe total.");
+  addHelpToControl("projectAmount", "Impacto inicial del plan. Puede ser un pago único o repartirse en varios meses.");
+  addHelpToControl("projectDuration", "Meses durante los que se reparte el impacto inicial.");
+  addHelpToControl("projectRecurringAmount", "Cuota mensual adicional si el proyecto se financia o genera un pago recurrente.");
+  addHelpToControl("projectRecurringDuration", "Número de meses de la cuota recurrente. Déjalo en 0 si solo hay un impacto puntual.");
+  addHelpToControl("projectRecurringDelay", "Define si la cuota recurrente empieza el mismo mes o después del impacto inicial.");
   addHelpToControl("projectMonth", "Solo se activa con Mes manual. Si usas Mes óptimo, el algoritmo busca el hueco con mejor caja.");
   document
     .querySelector(".mode-switch")
@@ -1927,9 +1944,9 @@ function updateKpis(rows, baseRows = rows) {
   qs("kpiSaving").textContent = money(averageSaving, true);
   qs("kpiEnding").textContent = money(last.totalLiquidity, true);
   const endingDelta = last.totalLiquidity - baseLast.totalLiquidity;
-  qs("kpiEndingDelta").textContent = projects.length
-    ? `${endingDelta >= 0 ? "+" : ""}${money(endingDelta, true)} vs. sin proyectos`
-    : "Sin proyectos cargados";
+  qs("kpiEndingDelta").textContent = projectPlan.placements.length
+    ? `${endingDelta >= 0 ? "+" : ""}${money(endingDelta, true)} vs. sin decisiones`
+    : "Sin decisiones cargadas";
   qs("kpiEndingDelta").className = endingDelta < 0 ? "negative" : "positive";
   qs("miniSavingsRate").textContent = `${(savingsRate * 100).toFixed(0)}%`;
   qs("miniRunway").textContent = bufferMonths.toFixed(1);
@@ -1939,8 +1956,8 @@ function updateKpis(rows, baseRows = rows) {
     qs("scenarioStatus").textContent = "Necesita ajustar gasto o ahorro antes de ejecutarlo.";
   } else if (bufferMonths < state.emergencyBufferMonths) {
     qs("scenarioStatus").textContent = "Viable, pero conviene reforzar colchón al inicio.";
-  } else if (projects.length && endingDelta < 0) {
-    qs("scenarioStatus").textContent = `Proyectos cargados: impacto ${money(endingDelta)} al final.`;
+  } else if (projectPlan.placements.length && endingDelta < 0) {
+    qs("scenarioStatus").textContent = `Decisiones cargadas: impacto ${money(endingDelta)} al final.`;
   } else if (savingsRate > 0.35) {
     qs("scenarioStatus").textContent = "Ahorro potente; vigila tarjeta y gasto variable.";
   } else {
@@ -2002,7 +2019,8 @@ function renderBalanceChart(rows, baseRows = rows) {
     );
   });
 
-  if (projects.length) {
+  const hasDecisionImpact = projectPlan.placements.length > 0;
+  if (hasDecisionImpact) {
     const baselinePath = baseRows
       .map((row, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(row.totalLiquidity).toFixed(2)}`)
       .join(" ");
@@ -2027,7 +2045,7 @@ function renderBalanceChart(rows, baseRows = rows) {
     );
   });
 
-  const legendItems = projects.length
+  const legendItems = hasDecisionImpact
     ? [
         { label: "Cuenta", color: "#2c6be0" },
         { label: "Ahorro", color: "#267f4e" },
@@ -2037,7 +2055,7 @@ function renderBalanceChart(rows, baseRows = rows) {
     : series.map((serie) => ({ label: serie.label, color: serie.color }));
 
   legendItems.forEach((serie, idx) => {
-    const x0 = width - pad.right - (projects.length ? 330 : 230) + idx * (projects.length ? 82 : 78);
+    const x0 = width - pad.right - (hasDecisionImpact ? 330 : 230) + idx * (hasDecisionImpact ? 82 : 78);
     svg.insertAdjacentHTML(
       "beforeend",
       `${serie.dashed ? `<line x1="${x0 - 5}" x2="${x0 + 5}" y1="16" y2="16" stroke="${serie.color}" stroke-width="2.5" stroke-dasharray="4 3" />` : `<circle cx="${x0}" cy="16" r="5" fill="${serie.color}" />`}
@@ -2102,7 +2120,12 @@ function renderAdvice(rows, baseRows = rows) {
   const avgExpense12 = averageRows(next12, (row) => row.coreSpend + row.car + row.refi);
   const savingsRate = avgIncome12 ? avgSaving / avgIncome12 : 0;
   const projectImpact = rows[rows.length - 1].totalLiquidity - baseRows[baseRows.length - 1].totalLiquidity;
-  const totalProjects = projects.reduce((sum, project) => sum + Number(project.amount || 0), 0);
+  const decisions = projectPlan.placements || [];
+  const totalProjects = decisions.reduce((sum, project) => sum + decisionGrossCost(project), 0);
+  const projectCount = decisions.filter((item) => item.source !== "debt").length;
+  const debtCount = decisions.filter((item) => item.source === "debt").length;
+  const minChecking = Math.min(...rows.map((row) => row.checking));
+  const minCheckingRow = rows.find((row) => row.checking === minChecking) || rows[0];
   const list = [];
 
   if (avgNetBeforeSaving <= 0) {
@@ -2139,11 +2162,16 @@ function renderAdvice(rows, baseRows = rows) {
     body: `El escenario mira el calendario futuro: media 12m de ${money(avgIncome12, true)} en ingresos y ${money(avgExpense12, true)} en gastos. Si introduces reales en un mes, sustituyen al previsto de esa línea.`,
   });
 
-  if (projects.length) {
+  if (decisions.length) {
     list.push({
       type: projectImpact < 0 ? "warning" : "good",
-      title: "Impacto de proyectos visible",
-      body: `Hay ${projects.length} proyecto(s) por ${money(totalProjects, true)}. La liquidez final cambia ${projectImpact >= 0 ? "+" : ""}${money(projectImpact, true)} frente al escenario sin proyectos.`,
+      title: "Decisiones coordinadas",
+      body: `Hay ${projectCount} proyecto(s) y ${debtCount} decisión(es) de deuda por ${money(totalProjects, true)}. La liquidez final cambia ${projectImpact >= 0 ? "+" : ""}${money(projectImpact, true)} frente al escenario base.`,
+    });
+    list.push({
+      type: minChecking < 0 ? "danger" : minChecking < monthlyOutflow * 0.4 ? "warning" : "good",
+      title: "Semáforo de caja",
+      body: `El punto de mayor tensión es ${minCheckingRow.month}, con ${money(minChecking, true)} en cuenta corriente tras aplicar proyectos, refinanciaciones y ahorro automático.`,
     });
   }
 
@@ -2164,9 +2192,15 @@ function renderAdvice(rows, baseRows = rows) {
   qs("adviceList").innerHTML = list
     .map(
       (item) =>
-        `<div class="advice-item ${item.type}"><strong>${item.title}</strong><p>${item.body}</p></div>`,
+        `<div class="advice-item ${item.type}"><span>${adviceStatusLabel(item.type)}</span><strong>${item.title}</strong><p>${item.body}</p></div>`,
     )
     .join("");
+}
+
+function adviceStatusLabel(type) {
+  if (type === "good") return "OK";
+  if (type === "warning") return "Vigilar";
+  return "Acción";
 }
 
 function forecastMonths() {
@@ -2186,6 +2220,16 @@ function addProjectOutflow(outflows, project, startIndex) {
       outflows[index] += monthlyAmount;
     }
   }
+  const recurringAmount = Number(project.recurringAmount || 0);
+  const recurringDuration = Math.max(0, Number(project.recurringDuration || 0));
+  const recurringStartOffset = Math.max(0, Number(project.recurringStartOffset || 0));
+  if (!recurringAmount || !recurringDuration) return;
+  for (let i = 0; i < recurringDuration; i += 1) {
+    const index = startIndex + recurringStartOffset + i;
+    if (index >= 0 && index < outflows.length) {
+      outflows[index] += recurringAmount;
+    }
+  }
 }
 
 function addDebtRelief(outflows, item, startIndex) {
@@ -2203,6 +2247,22 @@ function addDebtRelief(outflows, item, startIndex) {
 function addScheduledDecisionOutflow(outflows, item, startIndex) {
   addProjectOutflow(outflows, item, startIndex);
   if (item.source === "debt") addDebtRelief(outflows, item, startIndex);
+}
+
+function decisionGrossCost(item) {
+  return round2(Number(item.amount || 0) + Number(item.recurringAmount || 0) * Math.max(0, Number(item.recurringDuration || 0)));
+}
+
+function decisionWindowMonths(item) {
+  const initial = Math.max(1, Number(item.duration || 1));
+  const recurring = Math.max(0, Number(item.recurringDuration || 0));
+  const offset = Math.max(0, Number(item.recurringStartOffset || 0));
+  return Math.max(initial, recurring ? offset + recurring : initial);
+}
+
+function decisionPeakMonthlyImpact(item) {
+  const initialMonthly = Number(item.amount || 0) / Math.max(1, Number(item.duration || 1));
+  return round2(Math.max(initialMonthly, Number(item.recurringAmount || 0)));
 }
 
 function evaluateOutflows(outflows) {
@@ -2249,9 +2309,9 @@ function buildProjectSchedule() {
 
   optimizable
     .slice()
-    .sort((a, b) => Number(b.amount) / Number(b.duration || 1) - Number(a.amount) / Number(a.duration || 1))
+    .sort((a, b) => decisionPeakMonthlyImpact(b) - decisionPeakMonthlyImpact(a))
     .forEach((project) => {
-      const duration = Math.max(1, Number(project.duration || 1));
+      const duration = decisionWindowMonths(project);
       let best = null;
       for (let startIndex = 0; startIndex <= months.length - duration; startIndex += 1) {
         const candidate = outflows.slice();
@@ -2288,32 +2348,72 @@ function buildProjectSchedule() {
 
 function handleAddProject() {
   const name = qs("projectName").value.trim() || "Proyecto sin nombre";
-  const amount = Number(qs("projectAmount").value);
+  const amount = parseAmount(qs("projectAmount").value) ?? 0;
   const duration = Math.max(1, Number(qs("projectDuration").value || 1));
+  const recurringAmount = parseAmount(qs("projectRecurringAmount")?.value) ?? 0;
+  const recurringDuration = Math.max(0, Number(qs("projectRecurringDuration")?.value || 0));
+  const recurringStartOffset = qs("projectRecurringDelay")?.value === "same" ? 0 : duration;
   const mode = document.querySelector('input[name="projectMode"]:checked')?.value || "optimize";
   const monthIndex = Number(qs("projectMonth").value || 0);
   const monthKeyForProject = forecastMonths()[monthIndex]?.key;
-  if (!amount || amount <= 0) return;
+  if ((!amount || amount <= 0) && (!recurringAmount || recurringAmount <= 0)) return;
 
-  projects.push({
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  const project = {
+    id: editingProjectId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name,
-    amount,
+    amount: round2(amount),
     duration,
+    recurringAmount: round2(recurringAmount),
+    recurringDuration,
+    recurringStartOffset,
     mode,
     monthIndex,
     monthKey: monthKeyForProject,
-  });
-  qs("projectName").value = "";
-  qs("projectAmount").value = "";
-  qs("projectDuration").value = 1;
-  document.querySelector('input[name="projectMode"][value="optimize"]').checked = true;
-  updateProjectModeUi();
+  };
+  if (editingProjectId) {
+    projects = projects.map((item) => (item.id === editingProjectId ? project : item));
+  } else {
+    projects.push(project);
+  }
+  clearProjectForm();
   saveProjects();
   render();
 }
 
+function clearProjectForm() {
+  editingProjectId = null;
+  qs("projectName").value = "";
+  qs("projectAmount").value = "";
+  qs("projectDuration").value = 1;
+  if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = "";
+  if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = 0;
+  if (qs("projectRecurringDelay")) qs("projectRecurringDelay").value = "after";
+  document.querySelector('input[name="projectMode"][value="optimize"]').checked = true;
+  updateProjectModeUi();
+  renderProjectPlanPreview();
+}
+
+function editProject(id) {
+  const project = projects.find((item) => item.id === id);
+  if (!project) return;
+  editingProjectId = id;
+  qs("projectName").value = project.name || "";
+  qs("projectAmount").value = amountInputValue(Number(project.amount || 0));
+  qs("projectDuration").value = Math.max(1, Number(project.duration || 1));
+  if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = Number(project.recurringAmount || 0) ? amountInputValue(project.recurringAmount) : "";
+  if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = Math.max(0, Number(project.recurringDuration || 0));
+  if (qs("projectRecurringDelay")) {
+    qs("projectRecurringDelay").value = Number(project.recurringStartOffset || 0) === 0 ? "same" : "after";
+  }
+  setProjectMode(project.mode === "fixed" ? "fixed" : "optimize");
+  if (qs("projectMonth") && Number.isFinite(Number(project.monthIndex))) qs("projectMonth").value = Number(project.monthIndex);
+  updateProjectModeUi();
+  renderProjectPlanPreview();
+  qs("projectName").focus();
+}
+
 function removeProject(id) {
+  if (editingProjectId === id) clearProjectForm();
   projects = projects.filter((project) => project.id !== id);
   saveProjects();
   render();
@@ -2758,6 +2858,7 @@ function renderDebtControl() {
 }
 
 function handleClearProjects() {
+  clearProjectForm();
   projects = [];
   saveProjects();
   render();
@@ -2767,7 +2868,7 @@ function renderProjectSimulator(baseRows, rows) {
   const baseEnding = baseRows[baseRows.length - 1].totalLiquidity;
   const ending = rows[rows.length - 1].totalLiquidity;
   const impact = ending - baseEnding;
-  const totalProjects = [...projects, ...debtLiquidations].reduce((sum, project) => sum + Number(project.amount || 0), 0);
+  const totalProjects = projectPlan.placements.reduce((sum, project) => sum + decisionGrossCost(project), 0);
   const warningCount = projectPlan.placements.filter((item) => item.status === "warning").length;
 
   qs("projectSummary").innerHTML = [
@@ -2786,13 +2887,17 @@ function renderProjectSimulator(baseRows, rows) {
 
   if (!projects.length && !debtLiquidations.length) {
     qs("projectList").innerHTML =
-      '<div class="project-item"><div><strong>Sin proyectos cargados</strong><p>Añade un importe y elige mes fijo u optimización automática.</p></div></div>';
+      '<div class="project-item"><div><strong>Sin decisiones cargadas</strong><p>Añade un plan con impacto puntual, recurrente o una decisión de deuda desde Control de deuda.</p></div></div>';
     return;
   }
 
   qs("projectList").innerHTML = projectPlan.placements
     .map((project) => {
-      const monthly = Number(project.amount || 0) / Math.max(1, Number(project.duration || 1));
+      const monthly = decisionPeakMonthlyImpact(project);
+      const totalCost = decisionGrossCost(project);
+      const recurrenceText = Number(project.recurringAmount || 0)
+        ? ` Cuota recurrente: ${money(project.recurringAmount, true)} durante ${project.recurringDuration} mes(es).`
+        : "";
       const statusText =
         project.status === "debt"
           ? "Liquidación de deuda programada"
@@ -2801,16 +2906,23 @@ function renderProjectSimulator(baseRows, rows) {
           : project.status === "warning"
             ? "Sin hueco plenamente cómodo; colocado en el mejor mes disponible"
             : "Mes optimizado automáticamente";
-      return `<div class="project-item ${project.status === "warning" ? "warning" : ""}">
+      const actions =
+        project.source === "debt"
+          ? `<button data-remove-project="${project.id}" data-remove-project-source="debt">Quitar</button>`
+          : `<button data-edit-project="${project.id}">Editar</button><button data-remove-project="${project.id}" data-remove-project-source="project">Quitar</button>`;
+      return `<div class="project-item ${project.status === "warning" ? "warning" : ""} ${project.source === "debt" ? "debt-item" : ""}">
         <div>
           <strong>${project.name}</strong>
-          <p>${money(project.amount, true)} en ${project.duration} mes(es), desde ${project.monthLabel}. ${statusText}. Impacto mensual: ${money(monthly, true)}.</p>
+          <p>${project.source === "debt" ? "Deuda" : "Proyecto"} · ${money(totalCost, true)} total, desde ${project.monthLabel}. ${statusText}. Pico mensual: ${money(monthly, true)}.${recurrenceText}</p>
         </div>
-        <button data-remove-project="${project.id}" data-remove-project-source="${project.source || "project"}">Quitar</button>
+        <div class="project-item-actions">${actions}</div>
       </div>`;
     })
     .join("");
 
+  document.querySelectorAll("[data-edit-project]").forEach((button) => {
+    button.addEventListener("click", () => editProject(button.dataset.editProject));
+  });
   document.querySelectorAll("[data-remove-project]").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.removeProjectSource === "debt") removeDebtLiquidation(button.dataset.removeProject);
@@ -2829,7 +2941,7 @@ function renderProjectGlobalImpact(baseRows, rows) {
   const impactFinal = deltas[lastIndex] || 0;
   const minChecking = Math.min(...rows.map((row) => row.checking));
   const minCheckingRow = rows.find((row) => row.checking === minChecking) || rows[0];
-  const maxMonthlyImpact = Math.max(...rows.map((row) => row.projectOutflow || 0), 0);
+  const maxAbsMonthlyImpact = Math.max(...rows.map((row) => Math.abs(row.projectOutflow || 0)), 0);
 
   qs("projectGlobalSummary").innerHTML = [
     ["Impacto 12m", money(impact12, true), impact12 < 0 ? "negative" : "positive"],
@@ -2847,22 +2959,22 @@ function renderProjectGlobalImpact(baseRows, rows) {
 
   const impactedMonths = rows
     .map((row, index) => ({ row, index }))
-    .filter((item) => item.row.projectOutflow > 0)
+    .filter((item) => Math.abs(item.row.projectOutflow || 0) > 0)
     .slice(0, 7);
 
   qs("projectGlobalTimeline").innerHTML = impactedMonths.length
     ? impactedMonths
         .map(({ row }) => {
-          const width = maxMonthlyImpact ? Math.max(4, (row.projectOutflow / maxMonthlyImpact) * 100) : 0;
+          const width = maxAbsMonthlyImpact ? Math.max(4, (Math.abs(row.projectOutflow) / maxAbsMonthlyImpact) * 100) : 0;
           const delta = row.totalLiquidity - (baseRows[row.index - 1]?.totalLiquidity || row.totalLiquidity);
           return `<div class="timeline-item">
             <span>${row.month}</span>
-            <div class="timeline-bar"><i style="width:${width.toFixed(1)}%"></i></div>
+            <div class="timeline-bar ${row.projectOutflow < 0 ? "saving" : ""}"><i style="width:${width.toFixed(1)}%"></i></div>
             <strong class="${delta < 0 ? "negative" : "positive"}">${money(delta, true)}</strong>
           </div>`;
         })
         .join("")
-    : '<p class="month-detail-empty">Sin proyectos cargados: la curva coincide con el escenario base.</p>';
+    : '<p class="month-detail-empty">Sin decisiones cargadas: la curva coincide con el escenario base.</p>';
 }
 
 function renderProjectGlobalChart(baseRows, rows) {
@@ -2908,7 +3020,7 @@ function renderProjectGlobalChart(baseRows, rows) {
     "Z",
   ].join(" ");
 
-  if (projects.length) {
+  if (projectPlan.placements.length) {
     svg.insertAdjacentHTML("beforeend", `<path d="${impactArea}" fill="#c44945" opacity="0.08" />`);
   }
 
@@ -2918,7 +3030,7 @@ function renderProjectGlobalChart(baseRows, rows) {
      <path d="${pathFor(rows, "totalLiquidity")}" fill="none" stroke="#6657d2" stroke-width="3" stroke-linecap="round" />`,
   );
 
-  chartTickIndexes(rows).forEach((idx) => {
+  projectChartTickIndexes(rows, width).forEach((idx) => {
     svg.insertAdjacentHTML(
       "beforeend",
       `<text class="chart-label" x="${x(idx) - 16}" y="${height - 8}">${rows[idx].month}</text>`,
@@ -2931,7 +3043,7 @@ function renderProjectGlobalChart(baseRows, rows) {
     `<line x1="${legendX}" x2="${legendX + 14}" y1="18" y2="18" stroke="#6657d2" stroke-width="3" />
      <text class="legend" x="${legendX + 20}" y="22">Con proyectos</text>
      <line x1="${legendX}" x2="${legendX + 14}" y1="38" y2="38" stroke="#7a8890" stroke-width="2.2" stroke-dasharray="5 4" />
-     <text class="legend" x="${legendX + 20}" y="42">Sin proyectos</text>`,
+     <text class="legend" x="${legendX + 20}" y="42">Escenario base</text>`,
   );
 }
 
@@ -2945,7 +3057,7 @@ function renderProjectImpactChart(baseRows, rows) {
 
   const monthly = rows.map((row) => row.projectOutflow || 0);
   const deltas = rows.map((row, index) => row.totalLiquidity - (baseRows[index]?.totalLiquidity || row.totalLiquidity));
-  const maxMonthly = Math.max(...monthly, 0);
+  const maxMonthly = Math.max(...monthly.map((value) => Math.abs(value)), 0);
   const minDelta = Math.min(...deltas, 0);
   const maxDelta = Math.max(...deltas, 0);
   const yMax = Math.max(maxMonthly, Math.abs(minDelta), Math.abs(maxDelta), 1);
@@ -2953,31 +3065,34 @@ function renderProjectImpactChart(baseRows, rows) {
   const plotH = height - pad.top - pad.bottom;
   const barW = Math.max(2, plotW / rows.length - 2);
   const x = (i) => pad.left + (i / rows.length) * plotW;
-  const yBar = (value) => height - pad.bottom - (value / yMax) * plotH;
-  const yDelta = (value) => height - pad.bottom - ((value + yMax) / (yMax * 2)) * plotH;
+  const zeroY = pad.top + plotH / 2;
+  const halfPlot = plotH * 0.45;
+  const yDelta = (value) => zeroY - (value / yMax) * halfPlot;
   const totalImpact = deltas[deltas.length - 1] || 0;
-  const loadedMonths = monthly.filter(Boolean).length;
+  const loadedMonths = monthly.filter((value) => Math.abs(value) > 0.01).length;
 
-  qs("impactChartTitle").textContent = projects.length
+  const decisionCount = projectPlan.placements.length;
+  qs("impactChartTitle").textContent = decisionCount
     ? `${loadedMonths} mes(es) con impacto · ${totalImpact >= 0 ? "+" : ""}${money(totalImpact)} al final`
     : "Sin impactos cargados";
 
   svg.insertAdjacentHTML(
     "beforeend",
-    `<line class="tick" x1="${pad.left}" x2="${width - pad.right}" y1="${height - pad.bottom}" y2="${height - pad.bottom}" />
-     <text class="chart-label" x="0" y="${height - pad.bottom + 4}">0 €</text>`,
+    `<line class="tick" x1="${pad.left}" x2="${width - pad.right}" y1="${zeroY}" y2="${zeroY}" />
+     <text class="chart-label" x="0" y="${zeroY + 4}">0 €</text>`,
   );
 
   monthly.forEach((value, index) => {
     if (!value) return;
-    const h = height - pad.bottom - yBar(value);
+    const h = (Math.abs(value) / yMax) * halfPlot;
+    const y = value >= 0 ? zeroY - h : zeroY;
     svg.insertAdjacentHTML(
       "beforeend",
-      `<rect x="${x(index)}" y="${yBar(value)}" width="${barW}" height="${h}" rx="2" fill="#c44945" opacity="0.78" />`,
+      `<rect x="${x(index)}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${value < 0 ? "#248a50" : "#c44945"}" opacity="0.78" />`,
     );
   });
 
-  if (projects.length) {
+  if (decisionCount) {
     const path = deltas
       .map((value, index) => `${index === 0 ? "M" : "L"} ${x(index).toFixed(2)} ${yDelta(value).toFixed(2)}`)
       .join(" ");
@@ -2988,12 +3103,41 @@ function renderProjectImpactChart(baseRows, rows) {
     );
   }
 
-  chartTickIndexes(rows).forEach((idx) => {
+  projectChartTickIndexes(rows, width).forEach((idx) => {
     svg.insertAdjacentHTML(
       "beforeend",
       `<text class="chart-label" x="${x(idx) - 14}" y="${height - 6}">${rows[idx].month}</text>`,
     );
   });
+}
+
+function projectChartTickIndexes(rows, width) {
+  const last = rows.length - 1;
+  if (last <= 0) return [0];
+  const base = width < 620 ? [0, Math.floor(last / 2), last] : [0, 11, 23, 35, 47, last];
+  return [...new Set(base.map((idx) => Math.min(Math.max(idx, 0), last)))].filter((idx) => rows[idx]);
+}
+
+function renderProjectPlanPreview() {
+  const element = qs("projectPlanPreview");
+  if (!element) return;
+  const amount = parseAmount(qs("projectAmount")?.value) ?? 0;
+  const duration = Math.max(1, Number(qs("projectDuration")?.value || 1));
+  const recurringAmount = parseAmount(qs("projectRecurringAmount")?.value) ?? 0;
+  const recurringDuration = Math.max(0, Number(qs("projectRecurringDuration")?.value || 0));
+  const recurringDelay = qs("projectRecurringDelay")?.value || "after";
+  const mode = document.querySelector('input[name="projectMode"]:checked')?.value || "optimize";
+  const monthLabelText = mode === "fixed" ? qs("projectMonth")?.selectedOptions?.[0]?.textContent || "mes manual" : "mes óptimo";
+  const total = round2(amount + recurringAmount * recurringDuration);
+  element.innerHTML = `<strong>${editingProjectId ? "Editando plan" : "Resumen del plan"}</strong>
+    <div class="project-preview-grid">
+      <span>Inicio: ${escapeHtml(monthLabelText)}</span>
+      <span>Coste total: ${money(total, true)}</span>
+      <span>Inicial: ${money(amount, true)} en ${duration} mes(es)</span>
+      <span>Recurrente: ${recurringAmount ? `${money(recurringAmount, true)} durante ${recurringDuration} mes(es), ${recurringDelay === "same" ? "desde el mismo mes" : "tras el impacto inicial"}` : "sin cuota recurrente"}</span>
+    </div>`;
+  qs("addProject").textContent = editingProjectId ? "Guardar plan" : "Añadir plan";
+  qs("cancelProjectEdit").hidden = !editingProjectId;
 }
 
 function updateProjectModeUi() {
@@ -3003,6 +3147,7 @@ function updateProjectModeUi() {
   const isManual = mode === "fixed";
   monthSelect.disabled = !isManual;
   monthField.classList.toggle("month-disabled", !isManual);
+  renderProjectPlanPreview();
 }
 
 function setProjectMode(mode) {
@@ -3209,7 +3354,7 @@ function renderMonthDetailList(sections, kind) {
 
 function renderProjectMonthDetails(projectsInMonth) {
   if (!projectsInMonth.length) {
-    return '<p class="month-detail-empty">Sin proyectos o imprevistos cargados en este mes.</p>';
+    return '<p class="month-detail-empty">Sin proyectos, imprevistos ni decisiones de deuda en este mes.</p>';
   }
 
   return projectsInMonth
@@ -6045,6 +6190,14 @@ async function init() {
   qs("syncLogout").addEventListener("click", handleSyncLogout);
   qs("syncNow").addEventListener("click", () => saveRemoteState(true));
   qs("addProject").addEventListener("click", handleAddProject);
+  qs("cancelProjectEdit").addEventListener("click", () => {
+    clearProjectForm();
+    renderProjectSimulator(lastBaseSimulation, lastSimulation);
+  });
+  ["projectName", "projectAmount", "projectDuration", "projectRecurringAmount", "projectRecurringDuration", "projectRecurringDelay", "projectMonth"].forEach((id) => {
+    qs(id)?.addEventListener("input", renderProjectPlanPreview);
+    qs(id)?.addEventListener("change", renderProjectPlanPreview);
+  });
   qs("clearProjects").addEventListener("click", handleClearProjects);
   qs("addDebtPayoff").addEventListener("click", handleAddDebtLiquidation);
   qs("debtTargetSelect").addEventListener("change", () => updateDebtTargetDefaults(true));

@@ -750,7 +750,7 @@ select:focus {
 
 .project-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
   gap: 12px;
   align-self: start;
   align-content: start;
@@ -760,12 +760,52 @@ select:focus {
   background: #fbfcfd;
 }
 
+.project-form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
 .project-form button {
   align-self: end;
   background: var(--ink);
   border-color: var(--ink);
   color: #fff;
   font-weight: 800;
+}
+
+.project-form .ghost-button {
+  color: var(--ink);
+  border-color: var(--line);
+  background: #ffffff;
+}
+
+.project-plan-preview {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 1px solid rgba(12, 139, 135, 0.22);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+  background: #f4fbfa;
+}
+
+.project-plan-preview strong {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.project-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+
+.project-preview-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .project-schedule {
@@ -857,7 +897,7 @@ select:focus {
 
 .impact-chart-card {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 190px minmax(0, 1fr);
   gap: 12px;
   align-items: stretch;
   padding: 13px;
@@ -881,7 +921,7 @@ select:focus {
 }
 
 #projectImpactChart {
-  min-height: 170px;
+  min-height: 190px;
 }
 
 .global-impact-grid {
@@ -954,6 +994,10 @@ select:focus {
   background: var(--red);
 }
 
+.timeline-bar.saving i {
+  background: var(--green);
+}
+
 .project-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -969,6 +1013,10 @@ select:focus {
   border-left-color: var(--amber);
 }
 
+.project-item.debt-item {
+  border-left-color: #55396f;
+}
+
 .project-item strong {
   display: block;
   margin-bottom: 4px;
@@ -980,6 +1028,14 @@ select:focus {
   line-height: 1.4;
 }
 
+.project-item-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
 .project-item button,
 #clearProjects {
   min-height: 32px;
@@ -988,6 +1044,11 @@ select:focus {
   border-color: rgba(196, 73, 69, 0.28);
   background: #fff;
   font-weight: 800;
+}
+
+.project-item [data-edit-project] {
+  color: var(--teal);
+  border-color: rgba(12, 139, 135, 0.28);
 }
 
 .saving-row {
@@ -1053,10 +1114,11 @@ svg {
 }
 
 .advice-item {
+  position: relative;
   border: 1px solid var(--line);
   border-left: 5px solid var(--blue);
   background: var(--surface-soft);
-  padding: 13px 14px;
+  padding: 14px 14px 14px 16px;
   margin-bottom: 10px;
   border-radius: 7px;
 }
@@ -1073,10 +1135,38 @@ svg {
   border-left-color: var(--green);
 }
 
+.advice-item > span {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 8px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.advice-item.good > span {
+  color: var(--green);
+  border-color: rgba(36, 138, 80, 0.22);
+}
+
+.advice-item.warning > span {
+  color: var(--amber);
+  border-color: rgba(201, 130, 22, 0.28);
+}
+
+.advice-item.danger > span {
+  color: var(--red);
+  border-color: rgba(196, 73, 69, 0.28);
+}
+
 .advice-item strong {
   display: block;
   margin-bottom: 5px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .advice-item p {
@@ -3098,9 +3188,12 @@ tbody tr:hover {
   .expense-summary,
   .compact-summary,
   .project-summary,
-  .impact-chart-card,
   .global-impact-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .impact-chart-card {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3129,6 +3222,12 @@ tbody tr:hover {
   .topbar {
     display: block;
     padding: 24px 18px 18px;
+  }
+
+  .project-form,
+  .project-preview-grid,
+  .project-form-actions {
+    grid-template-columns: 1fr;
   }
 
   .source-note {

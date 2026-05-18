@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260518k" />
+    <link rel="stylesheet" href="styles.css?v=20260518l" />
   </head>
   <body>
     <div class="app-shell">
@@ -467,16 +467,31 @@
                   <div class="project-grid">
                     <div class="project-form">
                       <label>
-                        <span>Nombre</span>
-                        <input id="projectName" type="text" placeholder="Ej. Lavadora, viaje, reforma" />
+                        <span>Nombre del plan</span>
+                        <input id="projectName" type="text" placeholder="Ej. Viaje, reforma, segundo coche" />
                       </label>
                       <label>
-                        <span>Importe total</span>
+                        <span>Impacto inicial</span>
                         <input id="projectAmount" type="number" step="50" placeholder="1500" />
                       </label>
                       <label>
-                        <span>Duración (meses)</span>
+                        <span>Duración impacto inicial</span>
                         <input id="projectDuration" type="number" min="1" max="24" step="1" value="1" />
+                      </label>
+                      <label>
+                        <span>Cuota recurrente</span>
+                        <input id="projectRecurringAmount" type="number" step="25" placeholder="0" />
+                      </label>
+                      <label>
+                        <span>Duración recurrente</span>
+                        <input id="projectRecurringDuration" type="number" min="0" max="180" step="1" value="0" />
+                      </label>
+                      <label>
+                        <span>Inicio recurrente</span>
+                        <select id="projectRecurringDelay">
+                          <option value="after">Tras impacto inicial</option>
+                          <option value="same">Mismo mes</option>
+                        </select>
                       </label>
                       <div class="project-schedule">
                         <span>Planificación</span>
@@ -495,7 +510,11 @@
                         <span>Mes manual</span>
                         <select id="projectMonth" disabled></select>
                       </label>
-                      <button id="addProject">Añadir impacto</button>
+                      <div class="project-form-actions">
+                        <button id="addProject" type="button">Añadir plan</button>
+                        <button id="cancelProjectEdit" type="button" class="ghost-button" hidden>Cancelar</button>
+                      </div>
+                      <div class="project-plan-preview" id="projectPlanPreview"></div>
                     </div>
 
                     <div class="project-output">
@@ -949,9 +968,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260518k"></script>
-    <script src="supabase-config.js?v=20260518k"></script>
-    <script src="data.js?v=20260518k"></script>
-    <script src="app.js?v=20260518k"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260518l"></script>
+    <script src="supabase-config.js?v=20260518l"></script>
+    <script src="data.js?v=20260518l"></script>
+    <script src="app.js?v=20260518l"></script>
   </body>
 </html>
