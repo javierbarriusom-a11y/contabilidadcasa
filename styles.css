@@ -1923,7 +1923,7 @@ svg {
 .debt-control-grid,
 .savings-plan-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(460px, 1.05fr);
   gap: 14px;
   align-items: start;
 }
@@ -2127,6 +2127,58 @@ svg {
   font-weight: 900;
 }
 
+.savings-kpi-comparison {
+  display: grid;
+  gap: 10px;
+  border-left: 4px solid var(--green);
+}
+
+.savings-kpi-comparison.warn {
+  border-left-color: #b98918;
+}
+
+.savings-kpi-comparison.danger {
+  border-left-color: var(--red);
+}
+
+.savings-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.savings-kpi-header em {
+  flex: 0 0 auto;
+}
+
+.savings-kpi-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.savings-kpi-columns div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.savings-kpi-columns strong {
+  overflow-wrap: anywhere;
+  font-size: 18px;
+}
+
+.savings-kpi-comparison p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .status-dot {
   display: inline-block;
   width: 13px;
@@ -2150,7 +2202,7 @@ svg {
 }
 
 .savings-table {
-  min-width: 1100px;
+  min-width: 1280px;
 }
 
 .savings-calculation-card {
@@ -2162,7 +2214,7 @@ svg {
 }
 
 .calculation-table {
-  min-width: 980px;
+  min-width: 1120px;
 }
 
 .calculation-table td:nth-child(2),
