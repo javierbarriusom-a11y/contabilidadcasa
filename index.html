@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260518a" />
+    <link rel="stylesheet" href="styles.css?v=20260518b" />
   </head>
   <body>
     <div class="app-shell">
@@ -842,29 +842,25 @@
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker">Detalle operativo</p>
-                <h2>Flujo de caja mensual</h2>
-                <p>Agrupado por años naturales; abre un año y haz clic en un mes para ver ingresos, gastos y proyectos.</p>
+                <h2>Flujo de caja por años y meses</h2>
+                <p>Conclusiones anuales primero; abre un año y haz clic en un mes para ver el detalle operativo.</p>
               </div>
               <button id="downloadCsv">Descargar CSV</button>
             </div>
+            <div class="cashflow-executive" id="cashflowExecutive"></div>
+            <div class="cashflow-year-insights" id="cashflowYearInsights"></div>
             <div class="table-wrap">
-              <table>
+              <table class="cashflow-table">
                 <thead>
                   <tr>
-                    <th>Mes</th>
-                    <th>Inicio liquidez</th>
+                    <th>Año / mes</th>
                     <th>Ingresos</th>
-                    <th>Gasto detalle</th>
-                    <th>Coche detalle</th>
-                    <th>Financiación detalle</th>
+                    <th>Gastos operativos</th>
+                    <th>Deuda y coche</th>
                     <th>Proyectos</th>
-                    <th>Ahorro sin</th>
-                    <th>Ahorro con</th>
-                    <th>Cuenta sin</th>
-                    <th>Cuenta con</th>
-                    <th>Liquidez sin</th>
-                    <th>Liquidez con</th>
-                    <th>Impacto</th>
+                    <th>Ahorro</th>
+                    <th>Liquidez final</th>
+                    <th>Conclusión</th>
                   </tr>
                 </thead>
                 <tbody id="cashflowRows"></tbody>
@@ -922,9 +918,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260518a"></script>
-    <script src="supabase-config.js?v=20260518a"></script>
-    <script src="data.js?v=20260518a"></script>
-    <script src="app.js?v=20260518a"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260518b"></script>
+    <script src="supabase-config.js?v=20260518b"></script>
+    <script src="data.js?v=20260518b"></script>
+    <script src="app.js?v=20260518b"></script>
   </body>
 </html>

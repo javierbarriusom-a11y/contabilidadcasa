@@ -2885,12 +2885,16 @@ function toggleCashflowYear(year) {
 function summarizeCashflowYear(group) {
   const first = group.items[0];
   const last = group.items[group.items.length - 1];
+  const totalDebtAndCar = group.items.reduce((sum, item) => sum + item.row.car + item.row.refi, 0);
+  const totalOutflow = group.items.reduce((sum, item) => sum + item.row.coreSpend + item.row.car + item.row.refi + item.row.projectOutflow, 0);
   return {
     startLiquidity: first.row.startLiquidity,
     income: group.items.reduce((sum, item) => sum + item.row.income, 0),
     coreSpend: group.items.reduce((sum, item) => sum + item.row.coreSpend, 0),
     car: group.items.reduce((sum, item) => sum + item.row.car, 0),
     refi: group.items.reduce((sum, item) => sum + item.row.refi, 0),
+    debtAndCar: totalDebtAndCar,
+    outflow: totalOutflow,
     projectOutflow: group.items.reduce((sum, item) => sum + item.row.projectOutflow, 0),
     savingBase: group.items.reduce((sum, item) => sum + item.base.saving, 0),
     saving: group.items.reduce((sum, item) => sum + item.row.saving, 0),
@@ -2899,27 +2903,110 @@ function summarizeCashflowYear(group) {
     liquidityBase: last.base.totalLiquidity,
     liquidity: last.row.totalLiquidity,
     impact: last.row.totalLiquidity - last.base.totalLiquidity,
+    result: last.row.totalLiquidity - first.row.startLiquidity,
+    minLiquidity: Math.min(...group.items.map((item) => item.row.totalLiquidity)),
+    maxProjectMonth: group.items.reduce(
+      (max, item) => (Math.abs(item.row.projectOutflow) > Math.abs(max.row.projectOutflow) ? item : max),
+      group.items[0],
+    ),
   };
+}
+
+function cashflowYearConclusion(group) {
+  const summary = summarizeCashflowYear(group);
+  const savingRate = summary.income ? summary.saving / summary.income : 0;
+  const debtRate = summary.income ? summary.debtAndCar / summary.income : 0;
+  const projectImpact = summary.projectOutflow;
+  const hasProjectPressure = projectImpact > summary.income * 0.05;
+  const hasDebtPressure = debtRate > 0.35;
+  const isStrongSaving = savingRate >= 0.3;
+  const liquidityGrows = summary.result >= 0;
+  let tone = "good";
+  let title = "Año sólido";
+  let body = `La liquidez crece ${money(summary.result, true)} y cierra en ${money(summary.liquidity, true)}.`;
+  if (!liquidityGrows) {
+    tone = "danger";
+    title = "Año con caída de liquidez";
+    body = `La liquidez baja ${money(Math.abs(summary.result), true)}. Revisa proyectos, ahorro y deuda antes de cerrar este año.`;
+  } else if (hasProjectPressure) {
+    tone = "warn";
+    title = "Año condicionado por proyectos";
+    body = `Hay ${money(projectImpact, true)} en proyectos. El mes más exigente es ${summary.maxProjectMonth.row.month}.`;
+  } else if (hasDebtPressure) {
+    tone = "warn";
+    title = "Deuda todavía pesa";
+    body = `Deuda y coche absorben el ${(debtRate * 100).toFixed(0)}% de los ingresos del año.`;
+  } else if (isStrongSaving) {
+    title = "Buen ritmo de ahorro";
+    body = `Ahorro anual de ${money(summary.saving, true)} (${(savingRate * 100).toFixed(0)}% de ingresos).`;
+  }
+  return { tone, title, body, savingRate, debtRate };
+}
+
+function renderCashflowExecutive(groups) {
+  const container = qs("cashflowExecutive");
+  if (!container || !groups.length) return;
+  const first = groups[0];
+  const last = groups.at(-1);
+  const firstSummary = summarizeCashflowYear(first);
+  const lastSummary = summarizeCashflowYear(last);
+  const fullIncome = sumRows(groups, (group) => summarizeCashflowYear(group).income);
+  const fullSaving = sumRows(groups, (group) => summarizeCashflowYear(group).saving);
+  const fullProjects = sumRows(groups, (group) => summarizeCashflowYear(group).projectOutflow);
+  const weakest = groups
+    .map((group) => ({ group, summary: summarizeCashflowYear(group), conclusion: cashflowYearConclusion(group) }))
+    .sort((a, b) => a.summary.minLiquidity - b.summary.minLiquidity)[0];
+  container.innerHTML = [
+    ["Horizonte visible", `${first.year}-${last.year}`, `De ${money(firstSummary.startLiquidity, true)} a ${money(lastSummary.liquidity, true)}.`],
+    ["Ahorro acumulado", money(fullSaving, true), `${fullIncome ? ((fullSaving / fullIncome) * 100).toFixed(0) : "0"}% de los ingresos visibles.`],
+    ["Proyectos cargados", money(fullProjects, true), fullProjects ? "Impactan en la liquidez y en la cuenta final." : "Sin presión por proyectos en el rango."],
+    ["Año a vigilar", weakest.group.year, `${weakest.conclusion.title}. Mínimo: ${money(weakest.summary.minLiquidity, true)}.`],
+  ]
+    .map(([label, value, note]) => `<article><span>${label}</span><strong>${value}</strong><p>${note}</p></article>`)
+    .join("");
+}
+
+function renderCashflowYearInsights(groups) {
+  const container = qs("cashflowYearInsights");
+  if (!container) return;
+  container.innerHTML = groups
+    .map((group) => {
+      const summary = summarizeCashflowYear(group);
+      const conclusion = cashflowYearConclusion(group);
+      const expanded = expandedCashflowYears.has(group.year);
+      return `<article class="cashflow-insight ${conclusion.tone}">
+        <button type="button" data-cashflow-year-card="${escapeHtml(group.year)}" aria-expanded="${expanded ? "true" : "false"}">
+          <span>${expanded ? "-" : "+"}</span>
+          <strong>${escapeHtml(group.year)}</strong>
+        </button>
+        <h3>${escapeHtml(conclusion.title)}</h3>
+        <p>${escapeHtml(conclusion.body)}</p>
+        <dl>
+          <div><dt>Cierre</dt><dd>${money(summary.liquidity, true)}</dd></div>
+          <div><dt>Ahorro</dt><dd>${money(summary.saving, true)}</dd></div>
+          <div><dt>Deuda+coche</dt><dd>${money(summary.debtAndCar, true)}</dd></div>
+        </dl>
+      </article>`;
+    })
+    .join("");
+  document.querySelectorAll("[data-cashflow-year-card]").forEach((button) => {
+    button.addEventListener("click", () => toggleCashflowYear(button.dataset.cashflowYearCard));
+  });
 }
 
 function renderCashflowYearRow(group) {
   const expanded = expandedCashflowYears.has(group.year);
   const summary = summarizeCashflowYear(group);
+  const conclusion = cashflowYearConclusion(group);
   return `<tr class="cashflow-year-row ${expanded ? "expanded" : ""}" data-cashflow-year="${group.year}" tabindex="0" role="button" aria-expanded="${expanded ? "true" : "false"}">
     <td><span class="cashflow-toggle">${expanded ? "-" : "+"}</span><strong>${group.year}</strong> <small>${group.items.length} meses</small></td>
-    <td>${money(summary.startLiquidity, true)}</td>
     <td class="positive">${money(summary.income, true)}</td>
     <td class="negative">${money(summary.coreSpend, true)}</td>
-    <td class="negative">${money(summary.car, true)}</td>
-    <td class="negative">${money(summary.refi, true)}</td>
+    <td class="negative">${money(summary.debtAndCar, true)}</td>
     <td class="${summary.projectOutflow ? "negative" : ""}">${money(summary.projectOutflow, true)}</td>
-    <td>${money(summary.savingBase, true)}</td>
     <td>${money(summary.saving, true)}</td>
-    <td>${money(summary.checkingBase, true)}</td>
-    <td class="${summary.checking < 0 ? "negative" : ""}">${money(summary.checking, true)}</td>
-    <td>${money(summary.liquidityBase, true)}</td>
     <td>${money(summary.liquidity, true)}</td>
-    <td class="${summary.impact < 0 ? "negative" : summary.impact > 0 ? "positive" : ""}">${money(summary.impact, true)}</td>
+    <td><span class="cashflow-conclusion ${conclusion.tone}">${escapeHtml(conclusion.title)}</span></td>
   </tr>`;
 }
 
@@ -2977,7 +3064,7 @@ function renderCashflowDetailRow(row, index, base) {
   const liquidityImpact = row.totalLiquidity - base.totalLiquidity;
 
   return `<tr class="cashflow-detail-row">
-    <td colspan="14">
+    <td colspan="8">
       <div class="cashflow-detail-panel">
         <div class="cashflow-detail-head">
           <div>
@@ -3013,6 +3100,8 @@ function renderCashflowDetailRow(row, index, base) {
 function renderTable(rows, baseRows = rows) {
   const groups = groupCashflowByYear(rows, baseRows);
   ensureCashflowYearDefaults(groups);
+  renderCashflowExecutive(groups);
+  renderCashflowYearInsights(groups);
 
   qs("cashflowRows").innerHTML = groups
     .map((group) => {
@@ -3022,23 +3111,25 @@ function renderTable(rows, baseRows = rows) {
       const monthRows = group.items
         .map(({ row, base, index }) => {
           const liquidityImpact = row.totalLiquidity - base.totalLiquidity;
-          const checkingImpact = row.checking - base.checking;
+          const debtAndCar = row.car + row.refi;
+          const conclusion =
+            row.projectOutflow > 0
+              ? `Proyecto: ${money(row.projectOutflow, true)}`
+              : debtAndCar > row.income * 0.45
+                ? "Mes tensionado por deuda"
+                : row.totalLiquidity >= row.startLiquidity
+                  ? "Liquidez sube"
+                  : "Liquidez baja";
           const isSelected = selectedCashflowIndex === index;
           const mainRow = `<tr class="cashflow-row ${isSelected ? "selected" : ""}" data-cashflow-index="${index}" tabindex="0" role="button" aria-expanded="${isSelected ? "true" : "false"}" title="Ver detalle de ${row.month}">
         <td><span class="cashflow-toggle">${isSelected ? "-" : "+"}</span>${row.month}</td>
-        <td>${money(row.startLiquidity, true)}</td>
         <td class="positive">${money(row.income, true)}</td>
         <td class="negative">${money(row.coreSpend, true)}</td>
-        <td class="negative">${money(row.car, true)}</td>
-        <td class="negative">${money(row.refi, true)}</td>
+        <td class="negative">${money(debtAndCar, true)}</td>
         <td class="${row.projectOutflow < 0 ? "positive" : row.projectOutflow ? "negative" : ""}">${money(row.projectOutflow, true)}</td>
-        <td>${money(base.saving, true)}</td>
         <td>${money(row.saving, true)}</td>
-        <td>${money(base.checking, true)}</td>
-        <td class="${row.checking < 0 ? "negative" : ""}">${money(row.checking, true)}</td>
-        <td>${money(base.totalLiquidity, true)}</td>
         <td>${money(row.totalLiquidity, true)}</td>
-        <td class="${liquidityImpact < 0 ? "negative" : liquidityImpact > 0 ? "positive" : ""}" title="Impacto en cuenta: ${money(checkingImpact, true)}">${money(liquidityImpact, true)}</td>
+        <td><span class="cashflow-conclusion ${liquidityImpact < 0 ? "warn" : "good"}">${escapeHtml(conclusion)}</span></td>
       </tr>`;
           return mainRow + (isSelected ? renderCashflowDetailRow(row, index, base) : "");
         })

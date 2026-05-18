@@ -2320,6 +2320,115 @@ tbody tr:hover {
   cursor: pointer;
 }
 
+.cashflow-executive {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 14px;
+}
+
+.cashflow-executive article,
+.cashflow-insight {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.cashflow-executive article {
+  padding: 13px;
+}
+
+.cashflow-executive span,
+.cashflow-insight dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cashflow-executive strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 23px;
+  line-height: 1;
+}
+
+.cashflow-executive p,
+.cashflow-insight p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cashflow-year-insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+  max-height: 360px;
+  overflow: auto;
+  padding-right: 3px;
+}
+
+.cashflow-insight {
+  padding: 12px;
+  border-left: 5px solid var(--green);
+}
+
+.cashflow-insight.warn {
+  border-left-color: #b7791f;
+}
+
+.cashflow-insight.danger {
+  border-left-color: var(--red);
+}
+
+.cashflow-insight button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font-weight: 900;
+}
+
+.cashflow-insight button span {
+  display: inline-grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--teal);
+  background: #f4fbfa;
+}
+
+.cashflow-insight h3 {
+  margin: 10px 0 0;
+  font-size: 16px;
+}
+
+.cashflow-insight dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.cashflow-insight dd {
+  margin: 2px 0 0;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.cashflow-table {
+  min-width: 1180px;
+}
+
 .cashflow-year-row {
   cursor: pointer;
   background: #e9f1f3;
@@ -2354,6 +2463,28 @@ tbody tr:hover {
 .cashflow-year-row:focus {
   outline: 2px solid var(--teal);
   outline-offset: -2px;
+}
+
+.cashflow-conclusion {
+  display: inline-flex;
+  align-items: center;
+  max-width: 210px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #17623c;
+  background: #eaf7ef;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.cashflow-conclusion.warn {
+  color: #7a4a08;
+  background: #fff5df;
+}
+
+.cashflow-conclusion.danger {
+  color: #8f2f28;
+  background: #fff0ed;
 }
 
 .cashflow-row.selected {
