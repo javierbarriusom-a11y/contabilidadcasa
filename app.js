@@ -4111,6 +4111,45 @@ function savingsPlanningLineAverage(rows, predicate) {
   return round2(averageRows(values, (value) => value));
 }
 
+function savingsDecisionImpact(rows) {
+  const rowIndexes = rows.map((row) => row.index - 1);
+  const summary = {
+    projectCost: 0,
+    debtAmortization: 0,
+    debtRelief: 0,
+    netDecisionImpact: 0,
+    projectCount: projects.length,
+    debtDecisionCount: debtLiquidations.length,
+    labels: [],
+  };
+  projectPlan.placements.forEach((item) => {
+    let cost = 0;
+    let relief = 0;
+    rowIndexes.forEach((forecastIndex) => {
+      const impact = scheduledDecisionMonthlyImpact(item, forecastIndex);
+      if (impact > 0) cost += impact;
+      if (impact < 0) relief += Math.abs(impact);
+    });
+    if (!cost && !relief) return;
+    summary.netDecisionImpact += cost - relief;
+    if (item.source === "debt") {
+      summary.debtAmortization += cost;
+      summary.debtRelief += relief;
+      summary.labels.push(`${item.name || "Amortización deuda"}: ${money(cost, true)}${relief ? `, alivio ${money(relief, true)}` : ""}`);
+    } else {
+      summary.projectCost += cost;
+      summary.labels.push(`${item.name || "Proyecto"}: ${money(cost, true)}`);
+    }
+  });
+  return {
+    ...summary,
+    projectCost: round2(summary.projectCost),
+    debtAmortization: round2(summary.debtAmortization),
+    debtRelief: round2(summary.debtRelief),
+    netDecisionImpact: round2(summary.netDecisionImpact),
+  };
+}
+
 function savingsDetectedModel() {
   const rows = savingsRows(48);
   const first12 = rows.slice(0, Math.min(12, rows.length));
@@ -4139,6 +4178,12 @@ function savingsDetectedModel() {
   const cetelemAverage = savingsPlanningLineAverage(first12, (_section, line) =>
     normalizedText(displayLabelForRow(line)).includes("cetelem"),
   );
+  const reunifiedAverage = savingsPlanningLineAverage(first12, (section, line) => {
+    const text = normalizedText(`${section.name} ${displayLabelForRow(line)}`);
+    return isFinancingPlanningRow(section, line) && /cetelem|pz finanz|libre deuda|reunific|refinanci/.test(text);
+  });
+  const decisionImpact12 = savingsDecisionImpact(first12);
+  const decisionImpact48 = savingsDecisionImpact(rows);
   const operationalAverage = round2(averageRows(first12, (row) => row.coreSpend));
   const debtAverage = round2(averageRows(first12, (row) => row.car + row.refi));
   const availableAverage = round2(averageRows(first12, (row) => row.netBeforeSaving));
@@ -4156,6 +4201,7 @@ function savingsDetectedModel() {
     mortgageAverage,
     bankinterAverage,
     cetelemAverage,
+    reunifiedAverage,
     bmwPositiveAverage: round2(averageRows(bmwRows, (row) => row.car)),
     bmwMonthsRemaining: bmwRows.length,
     bmwEndLabel: lastBmwRow ? lastBmwRow.month : "",
@@ -4168,6 +4214,8 @@ function savingsDetectedModel() {
     essentialAverage,
     firstIncome: round2(first12[0]?.income || 0),
     firstDebt: round2((first12[0]?.car || 0) + (first12[0]?.refi || 0)),
+    decisionImpact12,
+    decisionImpact48,
   };
 }
 
@@ -4193,7 +4241,7 @@ function savingsPlanBaseValue(key) {
   const plan = baseData.sourcePlan || {};
   const assumptions = baseData.assumptions || {};
   const detected = savingsDetectedModel();
-  if (key === "unifiedCreditPayment") return observedUnifiedCreditPayment().value;
+  if (key === "unifiedCreditPayment") return detected.reunifiedAverage || observedUnifiedCreditPayment().value;
   if (key === "baseHouseholdIncome") return detected.recurringIncome;
   if (key === "extraApril") return detected.extraApril;
   if (key === "extraDecember") return detected.extraDecember;
@@ -4226,25 +4274,20 @@ function savingsPlanFieldSource(key) {
       ? `Detectado ${money(detected.bmwPositiveAverage, true)} durante ${detected.bmwMonthsRemaining} mes(es); último mes ${detected.bmwEndLabel}.`
       : "Sin pagos BMW futuros detectados en el flujo.";
   }
+  if (key === "unifiedCreditPayment") {
+    const observed = observedUnifiedCreditPayment();
+    const modelValue = detected.reunifiedAverage || currentDebtPaymentBreakdown().unified;
+    const source = detected.reunifiedAverage
+      ? `reunificación detectada en el modelo: ${money(detected.reunifiedAverage, true)} de media 12m`
+      : `reunificación de cartera: ${money(modelValue, true)}/mes`;
+    const reference = `referencia Plan_Ahorro_821: ${money(observed.plannedReference, true)}`;
+    return `${source}; real bancario observado: ${money(observed.value, true)}; ${reference}.`;
+  }
   if (key === "otherFixedNonDebt") return `Media real/proyectada de gasto operativo ${monthLabelText}, excluyendo coche, financiación y proyectos.`;
   if (key === "variableSpendTarget") return "Objetivo de control manual; se compara contra el gasto operativo real calculado.";
   if (key === "initialEmergencyFund") return "Saldo de ahorro separado estimado a la fecha de análisis o saldo manual introducido.";
   if (key === "bankinterOutsidePlanPayment" || key === "cetelemOutsidePlanPayment") return "Media detectada por concepto si existe; si no, referencia editable.";
-  if (key !== "unifiedCreditPayment") return "";
-  const observed = observedUnifiedCreditPayment();
-  const overrides = savingsPlanOverrides();
-  const overrideValue = Number(overrides[key] || 0);
-  const isLegacyPlanValue =
-    overrides[key] !== undefined &&
-    !overrides.__manualUnifiedCreditPayment &&
-    observed.monthCount === 0 &&
-    Math.abs(overrideValue - observed.plannedReference) < 0.01;
-  const hasOverride = overrides[key] !== undefined && !isLegacyPlanValue;
-  const source = observed.monthCount
-    ? `real detectado en ${observed.monthCount} mes(es) desde ${observed.forecastStart}`
-    : `real detectado: 0,00 € desde ${observed.forecastStart}`;
-  const reference = `referencia Plan_Ahorro_821: ${money(observed.plannedReference, true)}`;
-  return hasOverride ? `Manual. ${source}; ${reference}.` : `${source}; ${reference}.`;
+  return "";
 }
 
 function savingsPlanOverrides() {
@@ -4264,7 +4307,7 @@ function savingsPlanValue(key) {
         Math.abs(overrideValue - observed.plannedReference) < 0.01;
       if (!isLegacyPlanValue) return overrideValue;
     }
-    return observed.value;
+    return savingsPlanBaseValue(key);
   }
   if (overrides[key] !== undefined) return Number(overrides[key] || 0);
   if (key === "emergencyBufferMonths") return Number(state?.emergencyBufferMonths ?? savingsPlanBaseValue(key) ?? 0);
@@ -4292,6 +4335,7 @@ function savingsPlanCalculations() {
   const debtServiceMonthlyTotal = detected.debtAverage;
   const operationalMonthlyTotal = detected.operationalAverage;
   const projectMonthlyTotal = detected.projectAverage;
+  const decisionMonthlyNet = round2(detected.decisionImpact12.netDecisionImpact / horizon);
   const totalSpendTarget = round2(operationalMonthlyTotal + debtServiceMonthlyTotal + projectMonthlyTotal);
   const monthlySavingPotential = round2(sumRows(rows, (row) => row.netBeforeSaving) / horizon);
   const savingsRate = monthlyIncomeTotal ? monthlySavingPotential / monthlyIncomeTotal : 0;
@@ -4319,6 +4363,7 @@ function savingsPlanCalculations() {
     monthlyIncomeTotal,
     operationalMonthlyTotal,
     projectMonthlyTotal,
+    decisionMonthlyNet,
     debtServiceMonthlyTotal,
     totalSpendTarget,
     monthlySavingPotential,
@@ -4402,7 +4447,15 @@ function savingsMonthlyAdvice(row, calc) {
   const available = Math.max(0, Number(row.netBeforeSaving || 0));
   const advised = round2(Math.min(available, calc.recommendedSaving + extraToBuffer));
   const amortization = round2(Math.max(0, extraIncome * (Number(calc.values.extraToAmortizationPct || 0) / 100)));
-  const note = extraIncome > 500
+  const decisions = projectsForForecastIndex(row.index - 1);
+  const decisionNote = decisions.length
+    ? decisions
+        .map((item) => `${item.source === "debt" ? "Deuda" : "Proyecto"}: ${item.name || "sin nombre"} ${money(item.monthlyAmount, true)}`)
+        .join("; ")
+    : "";
+  const note = decisionNote
+    ? decisionNote
+    : extraIncome > 500
     ? `Extra detectada: ${money(extraIncome, true)}. Se propone reforzar colchón y reservar ${money(amortization, true)} para amortizar.`
     : row.car > 0 && calc.detected.bmwEndLabel
       ? `BMW activo; termina en ${calc.detected.bmwEndLabel}.`
@@ -4459,6 +4512,14 @@ function renderSavingsPlan() {
       note: "Incluye coche y financiaciones detectadas mes a mes. El BMW desaparece automáticamente al terminar.",
       status: debtRatio <= 0.32 ? "good" : debtRatio <= 0.4 ? "warn" : "danger",
     }),
+    renderSavingsKpiComparison({
+      title: "Proyectos y deuda simulada",
+      actual: `${calc.detected.decisionImpact12.projectCount + calc.detected.decisionImpact12.debtDecisionCount} cargados`,
+      current: money(calc.decisionMonthlyNet, true),
+      advised: calc.detected.decisionImpact12.netDecisionImpact <= calc.monthlySavingPotential * 12 ? "Asumible 12m" : "Reordenar",
+      note: `Proyectos: ${money(calc.detected.decisionImpact12.projectCost, true)}. Amortizaciones: ${money(calc.detected.decisionImpact12.debtAmortization, true)}. Alivio posterior: ${money(calc.detected.decisionImpact12.debtRelief, true)}.`,
+      status: calc.detected.decisionImpact12.netDecisionImpact <= calc.monthlySavingPotential * 12 ? "good" : "warn",
+    }),
   ]
     .join("");
 
@@ -4466,7 +4527,7 @@ function renderSavingsPlan() {
     ["Colchón final estimado", money(last.savings, true), last.savings >= bufferTarget ? "positive" : "negative"],
     ["Meses cobertura final", `${(last.savings / Math.max(1, firstOutflow)).toFixed(1)}`, last.savings >= bufferTarget ? "positive" : "negative"],
     ["Total ahorro 48m", money(sumRows(rows, (row) => row.saving), true), "positive"],
-    ["Desvío vs aconsejable 12m", money(appliedVsAdvised, true), appliedVsAdvised >= 0 ? "positive" : "negative"],
+    ["Decisiones cargadas 48m", money(calc.detected.decisionImpact48.netDecisionImpact, true), calc.detected.decisionImpact48.netDecisionImpact <= 0 ? "positive" : "negative"],
   ]
     .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
     .join("");
@@ -4496,8 +4557,10 @@ function renderSavingsPlan() {
   const formulaRows = [
     ["Ingresos próximos 12m", "Suma mensual real/proyectada / 12", `Incluye extras en su mes: abril ${money(calc.values.extraApril, true)}, diciembre ${money(calc.values.extraDecember, true)}`, money(calc.monthlyIncomeTotal, true), calc.values.extraApril || calc.values.extraDecember ? "OK: extras no prorrateadas en el flujo." : "Revisar si falta alguna extra prevista."],
     ["Gasto operativo próximo 12m", "CoreSpend del modelo / 12", "Gastos no clasificados como coche, financiación o proyectos.", money(calc.operationalMonthlyTotal, true), calc.operationalMonthlyTotal > 0 ? "OK si el detalle visual contiene todos los gastos recurrentes." : "Revisar: gasto operativo a cero."],
+    ["Deuda reunificada actual", "Líneas de refinanciación/reunificación detectadas", `Modelo 12m: ${money(calc.detected.reunifiedAverage, true)}; cartera actual: ${money(currentDebtPaymentBreakdown().unified, true)}/mes`, money(calc.values.unifiedCreditPayment, true), calc.values.unifiedCreditPayment ? "OK: incluida en la deuda mensual del flujo." : "Revisar: no se detecta reunificación futura."],
     ["Deuda + coche próximo 12m", "Coche + financiaciones del modelo / 12", calc.detected.bmwMonthsRemaining ? `BMW detectado hasta ${calc.detected.bmwEndLabel}; cuota media positiva ${money(calc.values.bmwPayment, true)}.` : "Sin BMW futuro detectado.", money(calc.debtServiceMonthlyTotal, true), calc.debtToIncomeRatio <= 0.32 ? "OK frente al umbral <=32%." : "Revisar deuda: supera el umbral aconsejable."],
-    ["Proyectos cargados", "Impactos de proyectos/deuda / 12", "Incluye proyectos y liquidaciones simuladas ya cargadas.", money(calc.projectMonthlyTotal, true), calc.projectMonthlyTotal ? "OK: impacto incluido en el plan." : "Sin proyectos en el periodo."],
+    ["Proyectos cargados", "Impactos de proyectos / 12", `${calc.detected.decisionImpact12.projectCount} proyecto(s): ${money(calc.detected.decisionImpact12.projectCost, true)}`, money(calc.detected.decisionImpact12.projectCost / Math.max(1, calc.rows.length), true), calc.detected.decisionImpact12.projectCost ? "OK: proyecto incluido en caja y ahorro." : "Sin proyectos en el periodo."],
+    ["Amortizaciones/liquidaciones cargadas", "Coste de liquidación menos alivio posterior", `${calc.detected.decisionImpact12.debtDecisionCount} decisión(es): coste ${money(calc.detected.decisionImpact12.debtAmortization, true)}; alivio ${money(calc.detected.decisionImpact12.debtRelief, true)}`, money(calc.detected.decisionImpact12.netDecisionImpact / Math.max(1, calc.rows.length), true), calc.detected.decisionImpact12.debtDecisionCount ? "OK: amortizaciones y alivios incluidos." : "Sin amortizaciones simuladas en el periodo."],
     ["Margen medio antes de ahorrar", "Ingresos - gasto operativo - deuda - proyectos", `${money(calc.monthlyIncomeTotal, true)} - ${money(calc.totalSpendTarget, true)}`, money(calc.monthlySavingPotential, true), calc.monthlySavingPotential > 0 ? "OK: hay margen positivo." : "Revisar: no hay margen para ahorrar."],
     ["Colchón objetivo", "Gasto esencial medio * meses objetivo", `${money(calc.operationalMonthlyTotal + calc.debtServiceMonthlyTotal, true)} * ${calc.values.emergencyBufferMonths}`, money(calc.emergencyFundTarget, true), "Ajustable según tolerancia de riesgo."],
     ["Gap de colchón", "Colchón objetivo - colchón actual", `${money(calc.emergencyFundTarget, true)} - ${money(calc.values.initialEmergencyFund, true)}`, money(calc.emergencyFundGap, true), calc.emergencyFundGap > 0 ? "Priorizar colchón antes de amortizar agresivamente." : "Colchón cubierto; se puede priorizar amortización/inversión."],
