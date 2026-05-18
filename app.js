@@ -2337,11 +2337,13 @@ function debtTargetOptions() {
       maturity: "10 años aprox.",
       remainingInstallments: CURRENT_REUNIFIED_DEBT_INSTALLMENTS,
     },
-    ...debtPortfolioRows().map((item) => ({
-      ...item,
-      principal: item.currentPrincipal,
-      payment: item.currentPayment,
-    })),
+    ...debtPortfolioRows()
+      .filter((item) => Number(item.currentPrincipal || 0) > 0)
+      .map((item) => ({
+        ...item,
+        principal: item.currentPrincipal,
+        payment: item.currentPayment || item.originalPayment,
+      })),
   ];
 }
 
@@ -2356,21 +2358,32 @@ function populateDebtTargetSelect() {
   const previous = select.value;
   const hadOptions = select.options.length > 0;
   select.innerHTML = debtTargetOptions()
-    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${money(item.currentPrincipal ?? item.principal, true)}</option>`)
+    .map((item) => {
+      const suffix = item.id === "plan-unificado" ? "plan actual" : item.number;
+      return `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${escapeHtml(suffix)} · ${money(item.currentPrincipal ?? item.principal, true)}</option>`;
+    })
     .join("");
   select.value = [...select.options].some((option) => option.value === previous) ? previous : "plan-unificado";
   if (!hadOptions) updateDebtTargetDefaults(false);
+}
+
+function debtTargetDisplayName(target) {
+  if (!target) return "Liquidación deuda";
+  if (target.id === "plan-unificado") return "Amortización plan refinanciado";
+  const number = target.number ? ` ${target.number}` : "";
+  return `Acuerdo ${target.entity} ${target.type}${number}`;
 }
 
 function updateDebtTargetDefaults(force = true) {
   const target = selectedDebtTarget();
   if (!target) return;
   if (force || !qs("debtPayoffName")?.value) {
-    qs("debtPayoffName").value = target.id === "plan-unificado" ? "Amortización plan refinanciado" : `${target.entity} ${target.type}`;
+    qs("debtPayoffName").value = debtTargetDisplayName(target);
   }
   const targetPrincipal = Number(target.currentPrincipal ?? target.principal ?? 0);
   if (force || !qs("debtPayoffAmount")?.value) qs("debtPayoffAmount").value = targetPrincipal ? targetPrincipal.toFixed(2) : "";
   if (force || !qs("debtPayoffRelief")?.value) qs("debtPayoffRelief").value = target.payment ? target.payment.toFixed(2) : "";
+  renderDebtAgreementPreview();
 }
 
 function debtModeLabel(mode) {
@@ -2382,29 +2395,80 @@ function debtModeLabel(mode) {
 
 function updateDebtModeUi() {
   const mode = qs("debtPayoffMode")?.value || "optimize";
-  if (qs("debtPayoffDuration")) qs("debtPayoffDuration").disabled = mode !== "spread" && mode !== "refinance";
+  const isRefinance = mode === "refinance";
+  if (qs("debtPayoffDuration")) {
+    qs("debtPayoffDuration").disabled = !isRefinance;
+    if (!isRefinance) qs("debtPayoffDuration").value = 1;
+  }
   if (qs("debtPayoffMonth")) qs("debtPayoffMonth").disabled = mode === "optimize";
+  qs("debtPayoffDuration")?.closest("label")?.classList.toggle("muted-control", !isRefinance);
+  renderDebtAgreementPreview();
 }
 
-function recommendedDebtDecision() {
+function debtCandidateMonths(months = forecastMonths(), mode = "full") {
+  if (mode === "priority") {
+    return months.filter((month) => month.index < 24 || (month.index < 84 && month.index % 3 === 0) || month.index % 12 === 0);
+  }
+  return months.filter((month) => month.index < 36 || (month.index < 120 && month.index % 6 === 0) || month.index % 12 === 0);
+}
+
+function evaluateDebtCandidate(target, amount, relief, duration = 1, mode = "full") {
   if (!lastBaseSimulation.length) return null;
-  const target = selectedDebtTarget();
-  const amount = parseAmount(qs("debtPayoffAmount")?.value) ?? Number(target?.principal || 0);
-  const relief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target?.payment || 0);
   const months = forecastMonths();
-  const duration = Math.max(1, Number(qs("debtPayoffDuration")?.value || 1));
+  const baselineOutflows = projectPlan?.outflows?.length === months.length ? projectPlan.outflows : Array(months.length).fill(0);
+  const baseline = evaluateOutflows(baselineOutflows);
   let best = null;
-  months.forEach((month) => {
-    const candidate = Array(months.length).fill(0);
-    const item = { source: "debt", amount, duration, monthlyRelief: relief };
+  debtCandidateMonths(months, mode).forEach((month) => {
+    const candidate = baselineOutflows.slice();
+    const item = { source: "debt", amount, duration, monthlyRelief: relief, targetId: target?.id };
     addScheduledDecisionOutflow(candidate, item, month.index);
     const evaluation = evaluateOutflows(candidate);
-    const netGain = evaluation.ending - lastBaseSimulation[lastBaseSimulation.length - 1].totalLiquidity;
+    const netGain = evaluation.ending - baseline.ending;
     const feasible = evaluation.minChecking > Math.max(0, relief);
-    const score = (feasible ? 1_000_000 : 0) + netGain + evaluation.minChecking * 0.2 - month.index * 5;
+    const discount = Math.max(0, Number(target?.currentPrincipal ?? target?.principal ?? 0) - Number(amount || 0));
+    const score = (feasible ? 1_000_000 : 0) + discount * 3 + Number(relief || 0) * 18 + evaluation.minChecking * 0.2 + netGain - month.index * 5;
     if (!best || score > best.score) best = { month, evaluation, netGain, feasible, score };
   });
   return best;
+}
+
+function recommendedDebtDecision() {
+  const target = selectedDebtTarget();
+  const amount = parseAmount(qs("debtPayoffAmount")?.value) ?? Number(target?.principal || 0);
+  const relief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target?.payment || 0);
+  const duration = (qs("debtPayoffMode")?.value || "optimize") === "refinance" ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
+  return evaluateDebtCandidate(target, amount, relief, duration);
+}
+
+function renderDebtAgreementPreview() {
+  const target = selectedDebtTarget();
+  const element = qs("debtAgreementPreview");
+  if (!target || !element) return;
+  const original = Number(target.currentPrincipal ?? target.principal ?? 0);
+  const agreed = parseAmount(qs("debtPayoffAmount")?.value) ?? original;
+  const relief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target.payment || 0);
+  const income12 = lastSimulation.length
+    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.income)
+    : 0;
+  const debt12 = lastSimulation.length
+    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.car + row.refi)
+    : 0;
+  const ratioBefore = income12 ? debt12 / income12 : 0;
+  const ratioAfter = income12 ? Math.max(0, debt12 - relief) / income12 : 0;
+  const discount = Math.max(0, original - agreed);
+  const discountPct = original ? discount / original : 0;
+  element.innerHTML = `<div>
+      <span>Deuda original</span><strong>${money(original, true)}</strong>
+    </div>
+    <div>
+      <span>Importe pactado</span><strong>${money(agreed, true)}</strong>
+    </div>
+    <div>
+      <span>Quita / mejora</span><strong class="${discount ? "positive" : ""}">${money(discount, true)} · ${(discountPct * 100).toFixed(1)}%</strong>
+    </div>
+    <div>
+      <span>Ratio deuda</span><strong>${(ratioBefore * 100).toFixed(1)}% → ${(ratioAfter * 100).toFixed(1)}%</strong>
+    </div>`;
 }
 
 function debtControlStats() {
@@ -2439,16 +2503,19 @@ function handleAddDebtLiquidation() {
   if (!amount || amount <= 0) return;
   const target = selectedDebtTarget();
   const rawMode = qs("debtPayoffMode").value || "optimize";
-  const duration = rawMode === "spread" || rawMode === "refinance" ? Math.max(1, Number(qs("debtPayoffDuration").value || 1)) : 1;
+  const duration = rawMode === "refinance" ? Math.max(1, Number(qs("debtPayoffDuration").value || 1)) : 1;
   const monthIndex = Number(qs("debtPayoffMonth").value || 0);
   const monthKeyForDebt = forecastMonths()[monthIndex]?.key;
   const monthlyRelief = parseAmount(qs("debtPayoffRelief").value) ?? Number(target?.payment || 0);
+  const originalPrincipal = round2(Number(target?.currentPrincipal ?? target?.principal ?? amount));
   debtLiquidations.push({
     id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name: qs("debtPayoffName").value.trim() || "Liquidación deuda",
+    name: qs("debtPayoffName").value.trim() || debtTargetDisplayName(target),
     amount: round2(amount),
     targetId: target?.id || "plan-unificado",
-    targetPrincipal: round2(Number(target?.principal || amount)),
+    targetPrincipal: originalPrincipal,
+    originalPrincipal,
+    discount: round2(Math.max(0, originalPrincipal - amount)),
     monthlyRelief: round2(monthlyRelief),
     duration,
     mode: rawMode === "optimize" ? "optimize" : "fixed",
@@ -2462,6 +2529,24 @@ function handleAddDebtLiquidation() {
   qs("debtPayoffDuration").value = 1;
   saveDebtLiquidations();
   render();
+}
+
+function debtPriorityCandidates() {
+  return debtTargetOptions()
+    .filter((target) => target.id !== "plan-unificado")
+    .map((target) => {
+      const principal = Number(target.currentPrincipal ?? target.principal ?? 0);
+      const payment = Number(target.payment || 0);
+      const suggestedRow =
+        lastSimulation.find((row) => Number(row.checking || 0) - principal > Math.max(0, Number(row.outflowsBeforeSaving || 0) * 0.35)) ||
+        lastSimulation.find((row) => Number(row.totalLiquidity || 0) - principal > Math.max(0, Number(row.outflowsBeforeSaving || 0))) ||
+        lastSimulation.at(-1);
+      const pressure = principal ? payment / principal : 0;
+      const monthPenalty = suggestedRow ? suggestedRow.index * 0.8 : 999;
+      const priorityScore = pressure * 100000 + payment * 2 - principal / 1000 - monthPenalty;
+      return { target, principal, payment, best: suggestedRow ? { month: { label: suggestedRow.month } } : null, priorityScore };
+    })
+    .sort((a, b) => b.priorityScore - a.priorityScore);
 }
 
 function renderDebtPayoffChart() {
@@ -2556,12 +2641,49 @@ function renderDebtControl() {
     </tbody>`;
   }
 
+  if (qs("debtProductGrid")) {
+    const activeRows = debtPortfolioRows().filter((row) => Number(row.currentPrincipal || 0) > 0 || row.reunified);
+    qs("debtProductGrid").innerHTML = activeRows
+      .map((row) => {
+        const discount = Math.max(0, Number(row.initialPrincipal || 0) - Number(row.currentPrincipal || 0) - Number(row.amortized || 0));
+        const status = row.reunified ? "Reunificada" : Number(row.currentPrincipal || 0) > 0 ? "Viva" : "Saldada";
+        const currentPaymentLabel = row.reunified ? `Incluida en ${money(CURRENT_REUNIFIED_DEBT_PAYMENT, true)}` : money(row.currentPayment, true);
+        return `<article class="debt-product-card ${row.reunified ? "reunified" : ""}">
+          <div class="debt-product-title">
+            <strong>${escapeHtml(row.entity)}</strong>
+            <span>${escapeHtml(row.type)} · ${escapeHtml(row.number)}</span>
+          </div>
+          <div class="debt-product-metrics">
+            <div><span>Inicial</span><strong>${money(row.initialPrincipal, true)}</strong></div>
+            <div><span>Actual</span><strong>${money(row.currentPrincipal, true)}</strong></div>
+            <div><span>Cuota antes</span><strong class="negative">${money(row.originalPayment, true)}</strong></div>
+            <div><span>Cuota ahora</span><strong>${escapeHtml(currentPaymentLabel)}</strong></div>
+          </div>
+          <p><b>${escapeHtml(status)}</b>${row.remainingInstallments ? ` · ${row.remainingInstallments} cuotas` : ""}${discount ? ` · mejora ${money(discount, true)}` : ""}</p>
+        </article>`;
+      })
+      .join("");
+  }
+
   if (qs("debtRecommendation")) {
     const recommendation = recommendedDebtDecision();
     qs("debtRecommendation").innerHTML = recommendation
       ? `<strong>${recommendation.feasible ? "Mejor hueco sugerido" : "Hueco menos malo"}</strong>
-        <span>${escapeHtml(recommendation.month.label)} · impacto final ${money(recommendation.netGain, true)} · caja mínima ${money(recommendation.evaluation.minChecking, true)}</span>`
+        <span>${escapeHtml(recommendation.month.label)} · calcula con proyectos cargados · impacto final ${money(recommendation.netGain, true)} · caja mínima ${money(recommendation.evaluation.minChecking, true)}</span>`
       : "<strong>Introduce una deuda</strong><span>El simulador propondrá mes y modalidad con impacto en caja.</span>";
+  }
+  renderDebtAgreementPreview();
+
+  if (qs("debtPriorityPlan")) {
+    const candidates = debtPriorityCandidates().slice(0, 5);
+    qs("debtPriorityPlan").innerHTML = candidates.length
+      ? `<div class="debt-priority-header"><strong>Prioridad recomendada</strong><span>Orden optimizado con proyectos ya cargados</span></div>${candidates
+          .map((item, index) => `<div class="debt-priority-item">
+            <span>${index + 1}</span>
+            <div><strong>${escapeHtml(item.target.entity)} · ${escapeHtml(item.target.type)}</strong><small>${escapeHtml(item.target.number || "")} · ${money(item.principal, true)} · cuota ${money(item.payment, true)} · mes sugerido ${escapeHtml(item.best?.month?.label || "-")}</small></div>
+          </div>`)
+          .join("")}`
+      : `<div class="debt-priority-header"><strong>Sin deuda viva fuera del plan</strong><span>No hay productos pendientes para priorizar.</span></div>`;
   }
 
   qs("debtPayoffList").innerHTML = debtLiquidations.length
@@ -2575,7 +2697,7 @@ function renderDebtControl() {
           return `<div class="project-item debt-item">
             <div>
               <strong>${escapeHtml(item.name)}</strong>
-              <p>${debtModeLabel(item.payoffMode || item.mode)} · ${money(item.amount, true)} desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(item.monthlyRelief || 0, true)}.</p>
+              <p>${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(item.monthlyRelief || 0, true)}.</p>
             </div>
             <button data-remove-debt-liquidation="${escapeHtml(item.id)}">Quitar</button>
           </div>`;
@@ -5555,8 +5677,9 @@ async function init() {
     updateDebtModeUi();
     renderDebtControl();
   });
-  ["debtPayoffAmount", "debtPayoffRelief", "debtPayoffDuration"].forEach((id) => {
+  ["debtPayoffAmount", "debtPayoffRelief", "debtPayoffDuration", "debtPayoffMonth"].forEach((id) => {
     qs(id).addEventListener("input", renderDebtControl);
+    qs(id).addEventListener("change", renderDebtControl);
   });
   qs("addIncomeConcept").addEventListener("click", () => handleAddCustomConcept("income"));
   qs("addExpenseConcept").addEventListener("click", () => handleAddCustomConcept("expense"));

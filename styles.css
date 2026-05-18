@@ -1986,6 +1986,81 @@ svg {
   line-height: 1;
 }
 
+.debt-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.debt-product-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--red);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.debt-product-card.reunified {
+  border-left-color: var(--teal);
+  background: #f5fbfa;
+}
+
+.debt-product-title strong,
+.debt-product-title span,
+.debt-product-card p {
+  display: block;
+}
+
+.debt-product-title strong {
+  font-size: 16px;
+}
+
+.debt-product-title span,
+.debt-product-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.debt-product-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.debt-product-metrics div,
+.debt-agreement-preview div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.debt-product-metrics span,
+.debt-agreement-preview span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.debt-product-metrics strong,
+.debt-agreement-preview strong {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 15px;
+}
+
 .debt-portfolio-wrap {
   max-height: 420px;
 }
@@ -2044,10 +2119,68 @@ svg {
   font-weight: 900;
 }
 
+.debt-form .muted-control {
+  opacity: 0.62;
+}
+
+.debt-agreement-preview {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .debt-list {
   display: grid;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.debt-priority-plan {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.debt-priority-header,
+.debt-priority-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.debt-priority-header {
+  justify-content: space-between;
+}
+
+.debt-priority-header strong,
+.debt-priority-item strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.debt-priority-header span,
+.debt-priority-item small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.debt-priority-item > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  color: #ffffff;
+  border-radius: 999px;
+  background: var(--teal);
+  font-weight: 900;
 }
 
 #debtPayoffChart {
@@ -2777,6 +2910,8 @@ tbody tr:hover {
   .monthly-detail-grid,
   .debt-control-grid,
   .debt-breakdown-cards,
+  .debt-product-grid,
+  .debt-agreement-preview,
   .savings-plan-grid {
     grid-template-columns: 1fr;
   }

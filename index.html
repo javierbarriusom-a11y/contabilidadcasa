@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260518f" />
+    <link rel="stylesheet" href="styles.css?v=20260518g" />
   </head>
   <body>
     <div class="app-shell">
@@ -268,6 +268,7 @@
                   </div>
                 </div>
                 <div class="debt-breakdown-cards" id="debtBreakdownCards"></div>
+                <div class="debt-product-grid" id="debtProductGrid"></div>
                 <div class="table-wrap debt-portfolio-wrap">
                   <table class="debt-portfolio-table" id="debtPortfolioTable"></table>
                 </div>
@@ -302,10 +303,9 @@
                   <label>
                     <span>Modo de liquidación</span>
                     <select id="debtPayoffMode">
-                      <option value="optimize">Buscar mejor mes</option>
-                      <option value="fixed">Pagar en un mes concreto</option>
-                      <option value="spread">Repartir pago en varios meses</option>
-                      <option value="refinance">Refinanciar acuerdo</option>
+                      <option value="optimize">Buscar mejor mes · pago único</option>
+                      <option value="fixed">Mes manual · pago único</option>
+                      <option value="refinance">Reunificación · rango de meses</option>
                     </select>
                   </label>
                   <label>
@@ -318,6 +318,7 @@
                   </label>
                   <button id="addDebtPayoff" type="button">Añadir decisión</button>
                 </div>
+                <div class="debt-agreement-preview" id="debtAgreementPreview"></div>
               </article>
               <article class="debt-panel">
                 <div class="module-heading">
@@ -326,6 +327,7 @@
                     <h3>Cómo se liquida</h3>
                   </div>
                 </div>
+                <div class="debt-priority-plan" id="debtPriorityPlan"></div>
                 <div class="debt-list" id="debtPayoffList"></div>
                 <svg id="debtPayoffChart" role="img" aria-label="Impacto mensual de liquidaciones de deuda"></svg>
               </article>
@@ -925,9 +927,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260518f"></script>
-    <script src="supabase-config.js?v=20260518f"></script>
-    <script src="data.js?v=20260518f"></script>
-    <script src="app.js?v=20260518f"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260518g"></script>
+    <script src="supabase-config.js?v=20260518g"></script>
+    <script src="data.js?v=20260518g"></script>
+    <script src="app.js?v=20260518g"></script>
   </body>
 </html>
