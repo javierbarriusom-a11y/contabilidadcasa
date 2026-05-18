@@ -2389,19 +2389,25 @@ function updateDebtTargetDefaults(force = true) {
 function debtModeLabel(mode) {
   if (mode === "optimize") return "mes óptimo";
   if (mode === "spread") return "pago repartido";
+  if (mode === "refinance-optimize") return "reunificación con inicio óptimo";
   if (mode === "refinance") return "refinanciación";
   return "mes fijo";
 }
 
+function isDebtRefinanceMode(mode) {
+  return mode === "refinance" || mode === "refinance-optimize";
+}
+
 function updateDebtModeUi() {
   const mode = qs("debtPayoffMode")?.value || "optimize";
-  const isRefinance = mode === "refinance";
+  const isRefinance = isDebtRefinanceMode(mode);
   if (qs("debtPayoffDuration")) {
     qs("debtPayoffDuration").disabled = !isRefinance;
     if (!isRefinance) qs("debtPayoffDuration").value = 1;
   }
-  if (qs("debtPayoffMonth")) qs("debtPayoffMonth").disabled = mode === "optimize";
+  if (qs("debtPayoffMonth")) qs("debtPayoffMonth").disabled = mode === "optimize" || mode === "refinance-optimize";
   qs("debtPayoffDuration")?.closest("label")?.classList.toggle("muted-control", !isRefinance);
+  qs("debtPayoffMonth")?.closest("label")?.classList.toggle("muted-control", mode === "optimize" || mode === "refinance-optimize");
   renderDebtAgreementPreview();
 }
 
@@ -2436,7 +2442,8 @@ function recommendedDebtDecision() {
   const target = selectedDebtTarget();
   const amount = parseAmount(qs("debtPayoffAmount")?.value) ?? Number(target?.principal || 0);
   const relief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target?.payment || 0);
-  const duration = (qs("debtPayoffMode")?.value || "optimize") === "refinance" ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
+  const mode = qs("debtPayoffMode")?.value || "optimize";
+  const duration = isDebtRefinanceMode(mode) ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
   return evaluateDebtCandidate(target, amount, relief, duration);
 }
 
@@ -2503,7 +2510,7 @@ function handleAddDebtLiquidation() {
   if (!amount || amount <= 0) return;
   const target = selectedDebtTarget();
   const rawMode = qs("debtPayoffMode").value || "optimize";
-  const duration = rawMode === "refinance" ? Math.max(1, Number(qs("debtPayoffDuration").value || 1)) : 1;
+  const duration = isDebtRefinanceMode(rawMode) ? Math.max(1, Number(qs("debtPayoffDuration").value || 1)) : 1;
   const monthIndex = Number(qs("debtPayoffMonth").value || 0);
   const monthKeyForDebt = forecastMonths()[monthIndex]?.key;
   const monthlyRelief = parseAmount(qs("debtPayoffRelief").value) ?? Number(target?.payment || 0);
@@ -2518,7 +2525,7 @@ function handleAddDebtLiquidation() {
     discount: round2(Math.max(0, originalPrincipal - amount)),
     monthlyRelief: round2(monthlyRelief),
     duration,
-    mode: rawMode === "optimize" ? "optimize" : "fixed",
+    mode: rawMode === "optimize" || rawMode === "refinance-optimize" ? "optimize" : "fixed",
     payoffMode: rawMode,
     monthIndex,
     monthKey: monthKeyForDebt,
