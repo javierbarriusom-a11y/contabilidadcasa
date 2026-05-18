@@ -2982,9 +2982,9 @@ function renderCashflowYearInsights(groups) {
         <h3>${escapeHtml(conclusion.title)}</h3>
         <p>${escapeHtml(conclusion.body)}</p>
         <dl>
-          <div><dt>Cierre</dt><dd>${money(summary.liquidity, true)}</dd></div>
-          <div><dt>Ahorro</dt><dd>${money(summary.saving, true)}</dd></div>
-          <div><dt>Deuda+coche</dt><dd>${money(summary.debtAndCar, true)}</dd></div>
+          <div><dt>Cierre</dt><dd title="${money(summary.liquidity, true)}">${money(summary.liquidity, true)}</dd></div>
+          <div><dt>Ahorro</dt><dd title="${money(summary.saving, true)}">${money(summary.saving, true)}</dd></div>
+          <div><dt>Deuda + coche</dt><dd title="${money(summary.debtAndCar, true)}">${money(summary.debtAndCar, true)}</dd></div>
         </dl>
       </article>`;
     })
