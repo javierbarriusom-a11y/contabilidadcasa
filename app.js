@@ -553,6 +553,7 @@ function setActiveView(viewId = viewFromHash()) {
   const copy = viewTitles[viewId] || viewTitles.overview;
   if (qs("viewEyebrow")) qs("viewEyebrow").textContent = copy.eyebrow;
   if (qs("viewTitle")) qs("viewTitle").textContent = copy.title;
+  renderActiveSection(viewId);
   window.scrollTo({ top: 0, behavior: "instant" });
 }
 
@@ -5106,6 +5107,46 @@ function downloadCsv() {
   }, 1000);
 }
 
+function renderActiveSection(viewId = viewFromHash()) {
+  if (!lastSimulation.length) return;
+  switch (viewId) {
+    case "overview":
+      renderMonthlyDetails();
+      break;
+    case "visual-detail":
+      renderVisualDetail();
+      break;
+    case "debt-control":
+      renderDebtControl();
+      break;
+    case "prevision":
+      renderPrevision();
+      break;
+    case "simulator":
+      renderProjectSimulator(lastBaseSimulation, lastSimulation);
+      renderAdvice(lastSimulation, lastBaseSimulation);
+      break;
+    case "forecast":
+      renderBalanceChart(lastSimulation, lastBaseSimulation);
+      renderCategoryChart();
+      break;
+    case "savings-plan":
+      renderSavingsPlan();
+      break;
+    case "cashflow":
+      renderTable(lastSimulation, lastBaseSimulation);
+      break;
+    case "movements":
+      renderMerchants();
+      break;
+    case "data-entry":
+      populateDataEntryControls();
+      break;
+    default:
+      break;
+  }
+}
+
 function render() {
   readStateFromControls();
   populateSelectors();
@@ -5116,17 +5157,7 @@ function render() {
   writeDerivedControls(lastSimulation);
   updateKpis(lastSimulation, lastBaseSimulation);
   renderAccountBalancePanels();
-  renderBalanceChart(lastSimulation, lastBaseSimulation);
-  renderCategoryChart();
-  renderAdvice(lastSimulation, lastBaseSimulation);
-  renderProjectSimulator(lastBaseSimulation, lastSimulation);
-  renderDebtControl();
-  renderTable(lastSimulation, lastBaseSimulation);
-  renderVisualDetail();
-  renderPrevision();
-  renderSavingsPlan();
-  renderMonthlyDetails();
-  renderMerchants();
+  renderActiveSection();
 }
 
 async function init() {
@@ -5187,7 +5218,7 @@ async function init() {
   qs("seriesEndMonth").addEventListener("change", updateSeriesPreview);
   qs("applySeriesChange").addEventListener("click", applySeriesChange);
   ["visualTimeMode", "visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
-    qs(id).addEventListener("change", render);
+    qs(id).addEventListener("change", renderVisualDetail);
   });
   ["visualBalanceDate", "visualBalanceMode"].forEach((id) => {
     qs(id).addEventListener("change", handleVisualBalanceControlChange);
@@ -5221,11 +5252,11 @@ async function init() {
   document.querySelectorAll(".scenario-buttons button").forEach((button) => {
     button.addEventListener("click", () => applyScenario(button.dataset.scenario));
   });
-  window.addEventListener("resize", render);
+  window.addEventListener("resize", () => renderActiveSection());
   updateProjectModeUi();
   updateDebtModeUi();
-  render();
   setupViewNavigation();
+  render();
   await setupSupabaseSync();
 }
 
