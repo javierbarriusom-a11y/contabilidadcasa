@@ -3193,6 +3193,7 @@ function populateVisualControls() {
     select.value = selected;
   });
   populateVisualAddSections();
+  updateVisualAddScopeUi();
 }
 
 function populateVisualAddSections() {
@@ -3205,6 +3206,24 @@ function populateVisualAddSections() {
     .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
     .join("");
   if ([...sectionSelect.options].some((option) => option.value === previous)) sectionSelect.value = previous;
+}
+
+function visualAddSingleMonthMode() {
+  return (qs("visualAddScope")?.value || "single") === "single";
+}
+
+function updateVisualAddScopeUi() {
+  const start = qs("visualAddStartMonth");
+  const end = qs("visualAddEndMonth");
+  if (!start || !end) return;
+  if (visualAddSingleMonthMode()) {
+    end.value = start.value;
+    end.disabled = true;
+    end.closest("label")?.classList.add("muted-control");
+  } else {
+    end.disabled = false;
+    end.closest("label")?.classList.remove("muted-control");
+  }
 }
 
 function visualMonths() {
@@ -3786,6 +3805,8 @@ function handleVisualAddRow() {
   const amountInput = qs("visualAddAmount").value;
   const parsedAmount = parseAmount(amountInput);
   const amount = amountInput === "" || parsedAmount === null ? 0 : round2(parsedAmount);
+  const startKey = qs("visualAddStartMonth").value;
+  const endKey = visualAddSingleMonthMode() ? startKey : qs("visualAddEndMonth").value;
   const feedback = qs("visualAddFeedback");
   if (!label) {
     if (feedback) {
@@ -3796,7 +3817,8 @@ function handleVisualAddRow() {
     return;
   }
   const sharedId = `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  monthsInRange(qs("visualAddStartMonth").value, qs("visualAddEndMonth").value).forEach((month) => {
+  const targetMonths = monthsInRange(startKey, endKey);
+  targetMonths.forEach((month) => {
     customPlanningRows.push({
       id: sharedId,
       custom: true,
@@ -3814,10 +3836,11 @@ function handleVisualAddRow() {
   qs("visualAddAmount").value = "";
   render();
   if (qs("visualAddFeedback")) {
-    qs("visualAddFeedback").textContent = `${label} añadida. Puedes editar sus importes directamente en la tabla.`;
+    const scopeText = targetMonths.length === 1 ? `solo en ${targetMonths[0].label}` : `de ${targetMonths[0]?.label} a ${targetMonths.at(-1)?.label}`;
+    qs("visualAddFeedback").textContent = `${label} añadida ${scopeText}. Puedes editar sus importes directamente en la tabla.`;
     qs("visualAddFeedback").className = "inline-feedback success";
   }
-  showImportLog("Línea añadida", `${label} se ha incorporado al rango indicado y ya recalcula todo el dashboard.`);
+  showImportLog("Línea añadida", `${label} se ha incorporado a ${targetMonths.length} mes(es) y ya recalcula todo el dashboard.`);
 }
 
 function previsionMetric(row) {
@@ -5556,6 +5579,8 @@ async function init() {
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);
+  qs("visualAddScope").addEventListener("change", updateVisualAddScopeUi);
+  qs("visualAddStartMonth").addEventListener("change", updateVisualAddScopeUi);
   qs("visualAddRow").addEventListener("click", handleVisualAddRow);
   qs("visualSaveChanges").addEventListener("click", saveVisualChanges);
   qs("visualDiscardChanges").addEventListener("click", discardVisualChanges);

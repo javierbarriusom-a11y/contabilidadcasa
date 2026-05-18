@@ -1631,7 +1631,7 @@ svg {
 
 .visual-add-grid {
   display: grid;
-  grid-template-columns: 110px 170px minmax(210px, 1fr) 140px 130px 130px auto;
+  grid-template-columns: 110px 170px minmax(210px, 1fr) 140px 140px 130px 130px auto;
   gap: 9px;
   align-items: end;
 }
@@ -1642,6 +1642,15 @@ svg {
   border-color: var(--ink);
   background: var(--ink);
   font-weight: 900;
+}
+
+.visual-add-grid .muted-control {
+  opacity: 0.62;
+}
+
+.visual-add-grid select:disabled {
+  cursor: not-allowed;
+  background: #eef3f5;
 }
 
 .inline-feedback {

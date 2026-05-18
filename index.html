@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260518e" />
+    <link rel="stylesheet" href="styles.css?v=20260518f" />
   </head>
   <body>
     <div class="app-shell">
@@ -211,6 +211,13 @@
                 <label>
                   <span>Importe previsto</span>
                   <input id="visualAddAmount" type="number" step="0.01" placeholder="0,00" />
+                </label>
+                <label>
+                  <span>Alcance</span>
+                  <select id="visualAddScope">
+                    <option value="single">Solo un mes</option>
+                    <option value="range">Rango de meses</option>
+                  </select>
                 </label>
                 <label>
                   <span>Desde</span>
@@ -918,9 +925,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260518e"></script>
-    <script src="supabase-config.js?v=20260518e"></script>
-    <script src="data.js?v=20260518e"></script>
-    <script src="app.js?v=20260518e"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260518f"></script>
+    <script src="supabase-config.js?v=20260518f"></script>
+    <script src="data.js?v=20260518f"></script>
+    <script src="app.js?v=20260518f"></script>
   </body>
 </html>
