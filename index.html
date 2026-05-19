@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260518l" />
+    <link rel="stylesheet" href="styles.css?v=20260519a" />
   </head>
   <body>
     <div class="app-shell">
@@ -188,6 +188,62 @@
                 <button id="visualDiscardChanges" type="button" class="ghost-button">Descartar</button>
                 <button id="visualSaveChanges" type="button">Guardar cambios</button>
               </div>
+            </article>
+
+            <article class="visual-bulk-edit-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Ajuste rápido</p>
+                  <h3>Modificar importes de una partida</h3>
+                  <p>Cambia una línea en un mes, en un rango o en varios meses concretos. El cambio queda pendiente hasta guardar.</p>
+                </div>
+              </div>
+              <div class="visual-bulk-edit-grid">
+                <label>
+                  <span>Tipo</span>
+                  <select id="visualEditKind">
+                    <option value="expense">Gasto</option>
+                    <option value="income">Ingreso</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Partida</span>
+                  <select id="visualEditRow"></select>
+                </label>
+                <label>
+                  <span>Dato</span>
+                  <select id="visualEditMode">
+                    <option value="planned">Previsto</option>
+                    <option value="actual">Real</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Importe</span>
+                  <input id="visualEditAmount" type="number" step="0.01" placeholder="0,00" />
+                </label>
+                <label>
+                  <span>Aplicar en</span>
+                  <select id="visualEditScope">
+                    <option value="single">Un mes</option>
+                    <option value="range">Rango</option>
+                    <option value="multiple">Meses concretos</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Desde / mes</span>
+                  <select id="visualEditStartMonth"></select>
+                </label>
+                <label id="visualEditEndMonthField">
+                  <span>Hasta</span>
+                  <select id="visualEditEndMonth"></select>
+                </label>
+                <label id="visualEditMultiMonthField" class="visual-wide-field">
+                  <span>Meses concretos</span>
+                  <select id="visualEditMonths" multiple size="4"></select>
+                </label>
+                <button id="visualStageBulkEdit" type="button">Preparar cambio</button>
+              </div>
+              <p class="inline-feedback" id="visualBulkEditFeedback"></p>
             </article>
 
             <article class="visual-add-card">
@@ -634,6 +690,7 @@
                   </div>
                   <div class="global-impact-grid" id="projectGlobalSummary"></div>
                   <svg id="projectGlobalChart" role="img" aria-label="Comparativa global de liquidez con y sin proyectos"></svg>
+                  <div class="scenario-sensitivity" id="scenarioSensitivity"></div>
                   <div class="global-timeline" id="projectGlobalTimeline"></div>
                 </div>
 
@@ -703,6 +760,16 @@
               </article>
             </div>
             <div class="expense-summary savings-summary" id="savingsSummary"></div>
+            <article class="savings-card savings-period-card">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Ahorro recomendado</p>
+                  <h3>Media sugerida por periodo</h3>
+                  <p>Ajustada con proyectos, refinanciaciones, amortizaciones y el margen de caja de cada tramo.</p>
+                </div>
+              </div>
+              <div class="savings-period-grid" id="savingsPeriodAdvice"></div>
+            </article>
             <article class="savings-card savings-calculation-card">
               <div class="module-heading">
                 <div>
@@ -963,14 +1030,40 @@
               </table>
             </div>
           </section>
+          <aside class="finance-assistant" id="financeAssistant" aria-label="Asistente financiero">
+            <button id="assistantToggle" class="assistant-toggle" type="button">Asistente financiero</button>
+            <div class="assistant-panel" id="assistantPanel" hidden>
+              <div class="assistant-head">
+                <div>
+                  <p class="panel-kicker">IA financiera</p>
+                  <h3>Asistente del dashboard</h3>
+                </div>
+                <button id="assistantClose" type="button" aria-label="Cerrar asistente">×</button>
+              </div>
+              <div class="assistant-quick-actions">
+                <button type="button" data-assistant-prompt="¿Puedo asumir los proyectos cargados?">Viabilidad proyectos</button>
+                <button type="button" data-assistant-prompt="¿Cuánto debería ahorrar los próximos 12 meses?">Ahorro 12m</button>
+                <button type="button" data-assistant-prompt="¿Qué deuda conviene priorizar?">Prioridad deuda</button>
+              </div>
+              <label>
+                <span>Pregunta</span>
+                <textarea id="assistantQuestion" rows="3" placeholder="Ej. ¿Puedo hacer una reforma en septiembre sin bajar del mínimo?"></textarea>
+              </label>
+              <button id="assistantAsk" type="button">Analizar</button>
+              <div class="assistant-answer" id="assistantAnswer">
+                <strong>Listo para analizar</strong>
+                <p>Te responderé usando los datos actuales del dashboard: caja, ahorro, proyectos, deuda y previsión.</p>
+              </div>
+            </div>
+          </aside>
         </main>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260518l"></script>
-    <script src="supabase-config.js?v=20260518l"></script>
-    <script src="data.js?v=20260518l"></script>
-    <script src="app.js?v=20260518l"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260519a"></script>
+    <script src="supabase-config.js?v=20260519a"></script>
+    <script src="data.js?v=20260519a"></script>
+    <script src="app.js?v=20260519a"></script>
   </body>
 </html>

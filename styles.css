@@ -963,6 +963,71 @@ select:focus {
   margin-top: 10px;
 }
 
+.scenario-sensitivity {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(102, 87, 210, 0.24);
+  border-radius: 8px;
+  background: #f7f6ff;
+}
+
+.scenario-sensitivity-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+.scenario-sensitivity-head h4 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.scenario-sensitivity-head > span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.scenario-sensitivity-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.scenario-sensitivity-grid div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.scenario-sensitivity-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.scenario-sensitivity-grid strong {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  font-size: 16px;
+}
+
+.scenario-sensitivity p {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .timeline-item {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr) auto;
@@ -1652,7 +1717,8 @@ svg {
   grid-template-columns: 180px minmax(260px, 1fr);
 }
 
-.visual-add-card {
+.visual-add-card,
+.visual-bulk-edit-panel {
   margin-bottom: 14px;
   padding: 12px;
   border: 1px solid var(--line);
@@ -1727,7 +1793,29 @@ svg {
   align-items: end;
 }
 
-.visual-add-grid button {
+.visual-bulk-edit-grid {
+  display: grid;
+  grid-template-columns: 110px minmax(260px, 1.4fr) 120px 130px 130px 130px 130px auto;
+  gap: 9px;
+  align-items: end;
+}
+
+.visual-wide-field {
+  grid-column: span 2;
+}
+
+.visual-bulk-edit-grid select[multiple] {
+  min-height: 82px;
+  padding: 7px;
+}
+
+.visual-bulk-edit-grid .is-hidden,
+.visual-add-grid .is-hidden {
+  display: none;
+}
+
+.visual-add-grid button,
+.visual-bulk-edit-grid button {
   min-height: 40px;
   color: #ffffff;
   border-color: var(--ink);
@@ -2511,6 +2599,85 @@ svg {
   margin-top: 14px;
 }
 
+.savings-period-card {
+  margin-top: 14px;
+}
+
+.savings-period-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.savings-period-item {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.savings-period-item.warn {
+  border-left-color: #b98918;
+}
+
+.savings-period-item.danger {
+  border-left-color: var(--red);
+}
+
+.savings-period-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.savings-period-head span {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.savings-period-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.savings-period-metrics div {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.savings-period-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.savings-period-metrics b {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+.savings-period-item p {
+  margin: 9px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .calculation-table-wrap {
   max-height: 420px;
 }
@@ -2727,6 +2894,139 @@ table {
   border-collapse: collapse;
   min-width: 1120px;
   font-size: 13px;
+}
+
+.finance-assistant {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  width: min(430px, calc(100vw - 36px));
+  pointer-events: none;
+}
+
+.assistant-toggle,
+.assistant-panel {
+  pointer-events: auto;
+}
+
+.assistant-toggle {
+  float: right;
+  min-height: 44px;
+  padding: 10px 15px;
+  color: #ffffff;
+  border-color: var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+  box-shadow: 0 14px 32px rgba(23, 33, 38, 0.22);
+  font-weight: 900;
+}
+
+.assistant-panel {
+  clear: both;
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid rgba(12, 139, 135, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 22px 55px rgba(23, 33, 38, 0.22);
+}
+
+.assistant-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.assistant-head h3 {
+  margin: 0 0 8px;
+}
+
+.assistant-head button {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.assistant-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.assistant-quick-actions button {
+  min-height: 32px;
+  padding: 6px 9px;
+  color: var(--teal);
+  border-color: rgba(12, 139, 135, 0.22);
+  background: #f4fbfa;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.assistant-panel textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.assistant-panel > button:not(.assistant-toggle) {
+  width: 100%;
+  margin: 9px 0;
+  color: #ffffff;
+  border-color: var(--teal);
+  background: var(--teal);
+  font-weight: 900;
+}
+
+.assistant-answer {
+  max-height: 280px;
+  overflow: auto;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.assistant-answer ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.assistant-answer li {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.assistant-mini-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.assistant-mini-kpis span {
+  min-width: 0;
+  padding: 6px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.assistant-mini-kpis b {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 12px;
 }
 
 th,
@@ -3173,7 +3473,10 @@ tbody tr:hover {
 	  .debt-agreement-preview,
 	  .movement-import-grid,
 	  .range-kpi-grid,
-	  .savings-plan-grid {
+	  .savings-plan-grid,
+    .savings-period-grid,
+    .visual-bulk-edit-grid,
+    .scenario-sensitivity-grid {
 	    grid-template-columns: 1fr;
 	  }
 
@@ -3256,6 +3559,9 @@ tbody tr:hover {
   .project-summary,
   .impact-chart-card,
   .global-impact-grid,
+  .savings-period-grid,
+  .visual-bulk-edit-grid,
+  .scenario-sensitivity-grid,
   .timeline-item {
     grid-template-columns: 1fr;
   }

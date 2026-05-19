@@ -2956,6 +2956,7 @@ function renderProjectGlobalImpact(baseRows, rows) {
     .join("");
 
   renderProjectGlobalChart(baseRows, rows);
+  renderScenarioSensitivity(baseRows, rows);
 
   const impactedMonths = rows
     .map((row, index) => ({ row, index }))
@@ -2975,6 +2976,37 @@ function renderProjectGlobalImpact(baseRows, rows) {
         })
         .join("")
     : '<p class="month-detail-empty">Sin decisiones cargadas: la curva coincide con el escenario base.</p>';
+}
+
+function renderScenarioSensitivity(baseRows, rows) {
+  const panel = qs("scenarioSensitivity");
+  if (!panel || !rows.length) return;
+  const plannedTotal = sumRows(rows, () => Number(state.recommendedSavings || 0));
+  const appliedTotal = sumRows(rows, (row) => row.saving);
+  const adjustedMonths = rows.filter((row) => Math.abs(row.saving - Number(state.recommendedSavings || 0)) > 0.01).length;
+  const withheld = round2(plannedTotal - appliedTotal);
+  const metrics = rangeKpiMetric(rows);
+  const baseMetrics = rangeKpiMetric(baseRows);
+  const avgChecking = round2(averageRows(rows, (row) => row.checking));
+  const minDelta = metrics && baseMetrics ? metrics.min - baseMetrics.min : 0;
+  panel.innerHTML = `<div class="scenario-sensitivity-head">
+      <div>
+        <p class="panel-kicker">Caja y ahorro automático</p>
+        <h4>Qué cambia si falta caja</h4>
+      </div>
+      <span class="${state.autoCapSavings ? "positive" : "negative"}">${state.autoCapSavings ? "Activo" : "Desactivado"}</span>
+    </div>
+    <div class="scenario-sensitivity-grid">
+      <div><span>Ahorro objetivo total</span><strong>${money(plannedTotal, true)}</strong></div>
+      <div><span>Ahorro aplicado</span><strong>${money(appliedTotal, true)}</strong></div>
+      <div><span>No aplicado por caja</span><strong class="${withheld > 0 ? "negative" : "positive"}">${money(withheld, true)}</strong></div>
+      <div><span>Meses ajustados</span><strong>${adjustedMonths}</strong></div>
+      <div><span>Mínimo caja</span><strong class="${metrics?.min < 0 ? "negative" : ""}">${metrics ? money(metrics.min, true) : "-"}</strong></div>
+      <div><span>Mínimo ajustado</span><strong>${metrics ? money(metrics.adjustedMin, true) : "-"}</strong></div>
+      <div><span>Máximo liquidez</span><strong>${metrics ? money(metrics.max, true) : "-"}</strong></div>
+      <div><span>Caja media</span><strong>${money(avgChecking, true)}</strong></div>
+    </div>
+    <p>El mínimo cambia ${minDelta >= 0 ? "+" : ""}${money(minDelta, true)} frente al escenario sin decisiones. Si el ajuste automático está activo, el ahorro se reduce solo cuando la cuenta se queda demasiado justa.</p>`;
 }
 
 function renderProjectGlobalChart(baseRows, rows) {
@@ -3495,7 +3527,15 @@ function populateVisualControls() {
   const timeMode = qs("visualTimeMode")?.value || "year";
   const defaultStart = visualDefaultStartIndex();
   const defaultEnd = timeMode === "year" ? months.length - 1 : Math.min(defaultStart + 17, months.length - 1);
-  const selectIds = ["visualStartMonth", "visualEndMonth", "visualAddStartMonth", "visualAddEndMonth"];
+  const selectIds = [
+    "visualStartMonth",
+    "visualEndMonth",
+    "visualAddStartMonth",
+    "visualAddEndMonth",
+    "visualEditStartMonth",
+    "visualEditEndMonth",
+    "visualEditMonths",
+  ];
   selectIds.forEach((id) => {
     const select = qs(id);
     if (!select) return;
@@ -3506,7 +3546,9 @@ function populateVisualControls() {
     select.value = selected;
   });
   populateVisualAddSections();
+  populateVisualBulkEditor();
   updateVisualAddScopeUi();
+  updateVisualBulkEditScopeUi();
 }
 
 function populateVisualAddSections() {
@@ -3537,6 +3579,108 @@ function updateVisualAddScopeUi() {
     end.disabled = false;
     end.closest("label")?.classList.remove("muted-control");
   }
+}
+
+function populateVisualBulkEditor() {
+  const kind = qs("visualEditKind")?.value || "expense";
+  const rowSelect = qs("visualEditRow");
+  if (!rowSelect) return;
+  const previous = rowSelect.value;
+  const rows = availableSeriesRows(kind);
+  rowSelect.innerHTML = rows
+    .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(displayLabelForRow(row))}</option>`)
+    .join("");
+  if ([...rowSelect.options].some((option) => option.value === previous)) rowSelect.value = previous;
+}
+
+function updateVisualBulkEditScopeUi() {
+  const scope = qs("visualEditScope")?.value || "single";
+  const start = qs("visualEditStartMonth");
+  const end = qs("visualEditEndMonth");
+  const endField = qs("visualEditEndMonthField");
+  const multiField = qs("visualEditMultiMonthField");
+  if (!start || !end || !endField || !multiField) return;
+  const isRange = scope === "range";
+  const isMultiple = scope === "multiple";
+  endField.classList.toggle("is-hidden", !isRange);
+  multiField.classList.toggle("is-hidden", !isMultiple);
+  start.closest("label")?.classList.toggle("is-hidden", isMultiple);
+  if (scope === "single") end.value = start.value;
+}
+
+function selectedVisualBulkEditRow() {
+  const kind = qs("visualEditKind")?.value || "expense";
+  const key = qs("visualEditRow")?.value || "";
+  return availableSeriesRows(kind).find((row) => seriesKeyForRow(row) === key) || null;
+}
+
+function visualBulkEditTargetMonths() {
+  const months = selectableMonths();
+  const scope = qs("visualEditScope")?.value || "single";
+  if (scope === "multiple") {
+    return [...(qs("visualEditMonths")?.selectedOptions || [])]
+      .map((option) => monthByKey(option.value, months))
+      .filter(Boolean);
+  }
+  const startKey = qs("visualEditStartMonth")?.value || months[0]?.key;
+  const endKey = scope === "range" ? qs("visualEditEndMonth")?.value : startKey;
+  return monthsInRange(startKey, endKey, months);
+}
+
+function stageVisualBulkEdit() {
+  const row = selectedVisualBulkEditRow();
+  const parsed = parseAmount(qs("visualEditAmount")?.value);
+  const mode = qs("visualEditMode")?.value || "planned";
+  const feedback = qs("visualBulkEditFeedback");
+  if (!row) {
+    if (feedback) {
+      feedback.textContent = "Selecciona una partida para modificar.";
+      feedback.className = "inline-feedback warning";
+    }
+    return;
+  }
+  if (parsed === null) {
+    if (feedback) {
+      feedback.textContent = "Introduce el importe que quieres aplicar.";
+      feedback.className = "inline-feedback warning";
+    }
+    qs("visualEditAmount")?.focus();
+    return;
+  }
+  const months = visualBulkEditTargetMonths();
+  if (!months.length) {
+    if (feedback) {
+      feedback.textContent = "Selecciona al menos un mes.";
+      feedback.className = "inline-feedback warning";
+    }
+    return;
+  }
+  const value = round2(parsed);
+  months.forEach((month) => {
+    const key = visualDraftCellKey(seriesKeyForRow(row), month.key, mode);
+    const currentValue = mode === "planned" ? plannedValueForVisualRow(row, month) : actualAwareInfoForVisualRow(row, month).actual;
+    if (Number(currentValue ?? 0) === value && !(mode === "actual" && currentValue === null)) {
+      delete visualDraftCells[key];
+    } else {
+      visualDraftCells[key] = {
+        rowKey: seriesKeyForRow(row),
+        monthKey: month.key,
+        monthLabel: month.label,
+        mode,
+        label: displayLabelForRow(row),
+        value,
+        oldValue: currentValue,
+      };
+    }
+  });
+  if (feedback) {
+    const scopeText =
+      months.length === 1 ? months[0].label : `${months[0].label} - ${months.at(-1).label}${qs("visualEditScope")?.value === "multiple" ? ` (${months.length} meses concretos)` : ""}`;
+    feedback.textContent = `${displayLabelForRow(row)} preparado en ${scopeText}. Pulsa Guardar cambios para recalcular toda la app.`;
+    feedback.className = "inline-feedback success";
+  }
+  expandedVisualSections.add(`${row.kind}:${row.sectionName}`);
+  renderVisualDetail();
 }
 
 function visualMonths() {
@@ -4855,6 +4999,41 @@ function savingsMonthlyAdvice(row, calc) {
   return { advised, amortization, extraIncome, note };
 }
 
+function renderSavingsPeriodAdvice(rows, calc) {
+  const container = qs("savingsPeriodAdvice");
+  if (!container) return;
+  const groups = new Map();
+  rows.forEach((row) => {
+    const year = String(cashflowYear(row));
+    if (!groups.has(year)) groups.set(year, []);
+    groups.get(year).push(row);
+  });
+  container.innerHTML = [...groups.entries()]
+    .map(([year, items]) => {
+      const advisedAvg = round2(averageRows(items, (row) => savingsMonthlyAdvice(row, calc).advised));
+      const currentAvg = round2(averageRows(items, (row) => row.saving));
+      const netAvg = round2(averageRows(items, (row) => row.netBeforeSaving));
+      const projectAvg = round2(averageRows(items, (row) => row.projectOutflow));
+      const minCash = Math.min(...items.map((row) => previsionMetric(row).min));
+      const status = minCash < 0 ? "danger" : currentAvg >= advisedAvg * 0.95 ? "good" : "warn";
+      const statusText = status === "good" ? "En ritmo" : status === "warn" ? "Ajustar" : "Caja crítica";
+      return `<article class="savings-period-item ${status}">
+        <div class="savings-period-head">
+          <strong>${escapeHtml(year)}</strong>
+          <span>${statusText}</span>
+        </div>
+        <div class="savings-period-metrics">
+          <div><small>Ahorro sugerido medio</small><b>${money(advisedAvg, true)}</b></div>
+          <div><small>Ahorro aplicado medio</small><b>${money(currentAvg, true)}</b></div>
+          <div><small>Margen medio</small><b>${money(netAvg, true)}</b></div>
+          <div><small>Proyectos/deuda medio</small><b>${money(projectAvg, true)}</b></div>
+        </div>
+        <p>${status === "danger" ? "Conviene mover proyectos o reducir ahorro antes de ejecutar." : status === "warn" ? "Hay margen, pero el ahorro aplicado queda por debajo del recomendado." : "El ahorro sugerido encaja con el flujo y las decisiones cargadas."}</p>
+      </article>`;
+    })
+    .join("");
+}
+
 function renderSavingsPlan() {
   if (!qs("savingsTable") || !lastSimulation.length) return;
   const rows = savingsRows(48);
@@ -4923,6 +5102,7 @@ function renderSavingsPlan() {
   ]
     .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
     .join("");
+  renderSavingsPeriodAdvice(rows, calc);
 
   const tableRows = rows.map((row) => {
     const coverage = firstOutflow ? row.savings / firstOutflow : 0;
@@ -6140,6 +6320,93 @@ function renderActiveSection(viewId = viewFromHash()) {
   }
 }
 
+function assistantDashboardContext() {
+  const rows = lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []);
+  const baseRows = lastBaseSimulation.length ? lastBaseSimulation : simulate();
+  const next12 = rows.slice(0, 12);
+  const metrics = rangeKpiMetric(rows);
+  const savingsCalc = savingsPlanCalculations();
+  const decisionImpact = rows.at(-1)?.totalLiquidity - (baseRows.at(-1)?.totalLiquidity || 0);
+  const debtOpen = DEBT_PORTFOLIO.filter((row) => Number(row.currentPrincipal || 0) > 0);
+  const debtPriority = debtOpen
+    .slice()
+    .sort((a, b) => Number(b.originalPayment || 0) / Math.max(1, Number(b.currentPrincipal || 0)) - Number(a.originalPayment || 0) / Math.max(1, Number(a.currentPrincipal || 0)))
+    .slice(0, 3);
+  return {
+    rows,
+    next12,
+    metrics,
+    savingsCalc,
+    avgNet12: round2(averageRows(next12, (row) => row.netBeforeSaving)),
+    avgSaving12: round2(averageRows(next12, (row) => row.saving)),
+    avgProject12: round2(averageRows(next12, (row) => row.projectOutflow)),
+    decisionImpact: round2(decisionImpact || 0),
+    decisions: projectPlan.placements || [],
+    debtPriority,
+  };
+}
+
+function assistantRecommendationForQuestion(question, ctx) {
+  const q = normalizedText(question);
+  const lines = [];
+  const minText = ctx.metrics ? `${money(ctx.metrics.min, true)} en ${ctx.metrics.minMonth}` : "sin mínimo calculado";
+  const adjustedText = ctx.metrics ? `${money(ctx.metrics.adjustedMin, true)} en ${ctx.metrics.adjustedMinMonth}` : "sin mínimo ajustado calculado";
+
+  if (q.includes("deuda") || q.includes("amort") || q.includes("refinanc")) {
+    lines.push(`Deuda: priorizaría primero ${ctx.debtPriority.map((item) => `${item.entity} ${item.type} (${money(item.currentPrincipal, true)})`).join(", ") || "ninguna deuda viva detectada"}.`);
+    lines.push("Criterio: mira el ahorro de cuota frente al capital pactado y evita meses en los que el mínimo de caja caiga por debajo de cero.");
+  } else if (q.includes("proyecto") || q.includes("reforma") || q.includes("viaje") || q.includes("compr")) {
+    lines.push(`Proyectos: ahora hay ${ctx.decisions.length} decisión(es) cargada(s) y cambian la liquidez final ${ctx.decisionImpact >= 0 ? "+" : ""}${money(ctx.decisionImpact, true)}.`);
+    lines.push(`La caja más delicada queda en ${minText}; si el proyecto es nuevo, buscaría el mes que mantenga ese mínimo por encima de un mes de gastos.`);
+  } else if (q.includes("ahorro") || q.includes("colchon") || q.includes("colchón")) {
+    lines.push(`Ahorro: el sugerido por el plan es ${money(ctx.savingsCalc.recommendedSaving, true)} y el aplicado medio 12m es ${money(ctx.avgSaving12, true)}.`);
+    lines.push(`Colchón: objetivo ${money(ctx.savingsCalc.emergencyFundTarget, true)}; gap ${money(ctx.savingsCalc.emergencyFundGap, true)}. El mínimo ajustado es ${adjustedText}.`);
+  } else if (q.includes("caja") || q.includes("minimo") || q.includes("mínimo") || q.includes("saldo")) {
+    lines.push(`Caja: mínimo ${minText}, mínimo ajustado ${adjustedText} y máximo ${ctx.metrics ? money(ctx.metrics.max, true) : "sin dato"}.`);
+    lines.push("Si quieres proteger caja, mantén activo el ajuste automático de ahorro y mueve impactos grandes a meses con extra o margen positivo.");
+  } else {
+    lines.push(`Lectura general: margen medio 12m antes de ahorrar ${money(ctx.avgNet12, true)}, ahorro medio aplicado ${money(ctx.avgSaving12, true)} y decisiones/proyectos medios ${money(ctx.avgProject12, true)}.`);
+    lines.push(`La decisión más prudente es proteger el mínimo de caja (${minText}) antes de subir ahorro o amortizar más rápido.`);
+  }
+
+  if (ctx.metrics?.min < 0) {
+    lines.push("Alerta: hay al menos un punto de caja negativo. Antes de ejecutar, reduce ahorro, mueve proyecto o cambia una deuda a modalidad recurrente.");
+  } else if (ctx.savingsCalc.debtToIncomeRatio > 0.32) {
+    lines.push("Vigila deuda/ingresos: está por encima del umbral aconsejable del 32%; conviene simular acuerdos con quita o menor cuota.");
+  } else {
+    lines.push("Estado: el escenario es viable con los datos actuales, siempre que los importes reales se mantengan cerca de lo previsto.");
+  }
+  return lines;
+}
+
+function renderAssistantAnswer(question) {
+  const ctx = assistantDashboardContext();
+  const answer = assistantRecommendationForQuestion(question, ctx);
+  const sectionName = viewTitles[viewFromHash()]?.eyebrow || "Dashboard";
+  return `<strong>${escapeHtml(sectionName)} · análisis con datos actuales</strong>
+    <ul>${answer.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+    <div class="assistant-mini-kpis">
+      <span>Mín: <b>${ctx.metrics ? money(ctx.metrics.min, true) : "-"}</b></span>
+      <span>Ajustado: <b>${ctx.metrics ? money(ctx.metrics.adjustedMin, true) : "-"}</b></span>
+      <span>Ahorro sugerido: <b>${money(ctx.savingsCalc.recommendedSaving, true)}</b></span>
+    </div>`;
+}
+
+function handleAssistantAsk(promptText = "") {
+  const question = String(promptText || qs("assistantQuestion")?.value || "").trim();
+  const answer = qs("assistantAnswer");
+  if (!answer) return;
+  answer.innerHTML = renderAssistantAnswer(question || "Dame una lectura general del dashboard");
+  if (question && qs("assistantQuestion")) qs("assistantQuestion").value = question;
+}
+
+function toggleAssistant(open) {
+  const panel = qs("assistantPanel");
+  if (!panel) return;
+  panel.hidden = open === undefined ? !panel.hidden : !open;
+  if (!panel.hidden) handleAssistantAsk(qs("assistantQuestion")?.value || "");
+}
+
 function render() {
   readStateFromControls();
   populateSelectors();
@@ -6222,6 +6489,13 @@ async function init() {
   ["visualTimeMode", "visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
     qs(id).addEventListener("change", renderVisualDetail);
   });
+  qs("visualEditKind").addEventListener("change", () => {
+    populateVisualBulkEditor();
+    updateVisualBulkEditScopeUi();
+  });
+  qs("visualEditScope").addEventListener("change", updateVisualBulkEditScopeUi);
+  qs("visualEditStartMonth").addEventListener("change", updateVisualBulkEditScopeUi);
+  qs("visualStageBulkEdit").addEventListener("click", stageVisualBulkEdit);
   ["visualBalanceDate", "visualBalanceMode"].forEach((id) => {
     qs(id).addEventListener("change", handleVisualBalanceControlChange);
   });
@@ -6256,6 +6530,15 @@ async function init() {
   });
   document.querySelectorAll(".scenario-buttons button").forEach((button) => {
     button.addEventListener("click", () => applyScenario(button.dataset.scenario));
+  });
+  qs("assistantToggle")?.addEventListener("click", () => toggleAssistant());
+  qs("assistantClose")?.addEventListener("click", () => toggleAssistant(false));
+  qs("assistantAsk")?.addEventListener("click", () => handleAssistantAsk());
+  qs("assistantQuestion")?.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") handleAssistantAsk();
+  });
+  document.querySelectorAll("[data-assistant-prompt]").forEach((button) => {
+    button.addEventListener("click", () => handleAssistantAsk(button.dataset.assistantPrompt));
   });
   window.addEventListener("resize", () => renderActiveSection());
   updateProjectModeUi();
