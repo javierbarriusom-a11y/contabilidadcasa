@@ -65,6 +65,13 @@ let visualDraftLabels = {};
 let visualDraftDeletes = {};
 let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
+let selectorSignature = "";
+let visualMonthSelectorSignature = "";
+let visualAddSectionSignature = "";
+let visualBulkEditorSignature = "";
+let dataEntryMonthSignature = "";
+let seriesEditorSignature = "";
+let renderFrame = 0;
 let expandedPlanningSections = {
   income: new Set(),
   expense: new Set(),
@@ -292,6 +299,12 @@ function appStatePayload() {
 }
 
 function applyPersistedPayload(payload = {}) {
+  selectorSignature = "";
+  visualMonthSelectorSignature = "";
+  visualAddSectionSignature = "";
+  visualBulkEditorSignature = "";
+  dataEntryMonthSignature = "";
+  seriesEditorSignature = "";
   if (payload.workbookData?.metadata && payload.workbookData?.monthlyPlanning) {
     baseData = payload.workbookData;
     saveWorkbookOverride();
@@ -3536,15 +3549,21 @@ function populateVisualControls() {
     "visualEditEndMonth",
     "visualEditMonths",
   ];
+  const monthSignature = months.map((month) => month.key).join("|");
+  const optionHtml = visualMonthSelectorSignature === monthSignature ? null : monthOptionsHtml("", months);
   selectIds.forEach((id) => {
     const select = qs(id);
     if (!select) return;
     const previous = select.value;
     const fallbackIndex = id.includes("End") ? defaultEnd : defaultStart;
     const selected = months.some((month) => month.key === previous) ? previous : months[fallbackIndex]?.key;
-    select.innerHTML = monthOptionsHtml(selected, months);
+    if (select.dataset.monthSignature !== monthSignature) {
+      select.innerHTML = optionHtml ?? monthOptionsHtml("", months);
+      select.dataset.monthSignature = monthSignature;
+    }
     select.value = selected;
   });
+  visualMonthSelectorSignature = monthSignature;
   populateVisualAddSections();
   populateVisualBulkEditor();
   updateVisualAddScopeUi();
@@ -3556,10 +3575,14 @@ function populateVisualAddSections() {
   const sectionSelect = qs("visualAddSection");
   if (!sectionSelect) return;
   const previous = sectionSelect.value;
-  sectionSelect.innerHTML = baseData.monthlyPlanning.sections
-    .filter((section) => section.kind === kind)
-    .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
-    .join("");
+  const sections = baseData.monthlyPlanning.sections.filter((section) => section.kind === kind);
+  const signature = `${kind}:${sections.map((section) => section.name).join("|")}`;
+  if (visualAddSectionSignature !== signature) {
+    sectionSelect.innerHTML = sections
+      .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
+      .join("");
+    visualAddSectionSignature = signature;
+  }
   if ([...sectionSelect.options].some((option) => option.value === previous)) sectionSelect.value = previous;
 }
 
@@ -3587,9 +3610,13 @@ function populateVisualBulkEditor() {
   if (!rowSelect) return;
   const previous = rowSelect.value;
   const rows = availableSeriesRows(kind);
-  rowSelect.innerHTML = rows
-    .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(displayLabelForRow(row))}</option>`)
-    .join("");
+  const signature = `${kind}:${rows.map((row) => `${seriesKeyForRow(row)}:${displayLabelForRow(row)}:${row.sectionName}`).join("|")}`;
+  if (visualBulkEditorSignature !== signature) {
+    rowSelect.innerHTML = rows
+      .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(displayLabelForRow(row))}</option>`)
+      .join("");
+    visualBulkEditorSignature = signature;
+  }
   if ([...rowSelect.options].some((option) => option.value === previous)) rowSelect.value = previous;
 }
 
@@ -5647,9 +5674,13 @@ function populateDataEntryControls() {
   if (monthSelect) {
     const previous = monthSelect.value;
     const months = selectableMonths();
-    monthSelect.innerHTML = months
-      .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
-      .join("");
+    const signature = months.map((month) => month.key).join("|");
+    if (dataEntryMonthSignature !== signature) {
+      monthSelect.innerHTML = months
+        .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
+        .join("");
+      dataEntryMonthSignature = signature;
+    }
     if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
   }
   updateManualDataKindUi();
@@ -5714,19 +5745,22 @@ function populateSeriesEditor() {
 
   const previousRow = rowSelect.value;
   const rows = availableSeriesRows(kindSelect.value);
-  rowSelect.innerHTML = rows
-    .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(displayLabelForRow(row))}</option>`)
-    .join("");
-  if ([...rowSelect.options].some((option) => option.value === previousRow)) rowSelect.value = previousRow;
-
-  [startSelect, endSelect].forEach((select) => {
-    const previous = select.value;
-    const months = selectableMonths();
-    select.innerHTML = months
-      .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
+  const months = selectableMonths();
+  const signature = `${kindSelect.value}:${rows.map((row) => `${seriesKeyForRow(row)}:${displayLabelForRow(row)}:${row.sectionName}`).join("|")}::${months.map((month) => month.key).join("|")}`;
+  if (seriesEditorSignature !== signature) {
+    rowSelect.innerHTML = rows
+      .map((row) => `<option value="${escapeHtml(seriesKeyForRow(row))}">${escapeHtml(row.sectionName)} · ${escapeHtml(displayLabelForRow(row))}</option>`)
       .join("");
-    if ([...select.options].some((option) => option.value === previous)) select.value = previous;
-  });
+    [startSelect, endSelect].forEach((select) => {
+      const previous = select.value;
+      select.innerHTML = months
+        .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}</option>`)
+        .join("");
+      if ([...select.options].some((option) => option.value === previous)) select.value = previous;
+    });
+    seriesEditorSignature = signature;
+  }
+  if ([...rowSelect.options].some((option) => option.value === previousRow)) rowSelect.value = previousRow;
   if (!endSelect.value) endSelect.value = selectableMonths().at(-1)?.key || "";
   updateSeriesPreview();
 }
@@ -5823,8 +5857,14 @@ function fullRefreshMessage() {
 
 function refreshAllSectionsAfterDataChange() {
   updateSourceNote();
+  selectorSignature = "";
+  visualMonthSelectorSignature = "";
+  visualAddSectionSignature = "";
+  visualBulkEditorSignature = "";
+  dataEntryMonthSignature = "";
+  seriesEditorSignature = "";
   render();
-  populateDataEntryControls();
+  if (viewFromHash() === "data-entry") populateDataEntryControls();
 }
 
 function findPlanningRow(kind, sectionName, label, month) {
@@ -6191,11 +6231,16 @@ function renderMonthlyDetails() {
   renderExpenseDetails();
 }
 
-function populateSelectors() {
+function populateSelectors(force = false) {
+  const forecast = forecastMonths();
+  const planning = baseData.monthlyPlanning;
+  const signature = `${forecast.map((month) => month.key).join("|")}::${planning.months.map((month) => month.key).join("|")}`;
+  if (!force && selectorSignature === signature) return;
+  selectorSignature = signature;
   const previousProjectMonth = qs("projectMonth")?.value;
   const previousDebtMonth = qs("debtPayoffMonth")?.value;
   const previousDetailMonth = qs("detailMonth")?.value;
-  const projectOptions = forecastMonths()
+  const projectOptions = forecast
     .map((month) => `<option value="${month.index}">${month.label}</option>`)
     .join("");
   qs("projectMonth").innerHTML = projectOptions;
@@ -6209,12 +6254,11 @@ function populateSelectors() {
     }
   }
 
-  const planning = baseData.monthlyPlanning;
   const planningOptions = planning.months
     .map((month, index) => `<option value="${index}">${month.label}</option>`)
     .join("");
   qs("detailMonth").innerHTML = planningOptions;
-  const forecastStartKey = forecastMonths()[0]?.key || baseData.metadata.forecastStart.slice(0, 7);
+  const forecastStartKey = forecast[0]?.key || baseData.metadata.forecastStart.slice(0, 7);
   const defaultPlanningIndex = Math.max(
     0,
     planning.months.findIndex((month) => month.key === forecastStartKey),
@@ -6222,8 +6266,6 @@ function populateSelectors() {
   qs("detailMonth").value = [...qs("detailMonth").options].some((option) => option.value === previousDetailMonth)
     ? previousDetailMonth
     : defaultPlanningIndex;
-  populateDataEntryControls();
-  populateVisualControls();
 }
 
 function csvValue(value) {
@@ -6420,6 +6462,14 @@ function render() {
   renderActiveSection();
 }
 
+function scheduleRender() {
+  if (renderFrame) window.cancelAnimationFrame(renderFrame);
+  renderFrame = window.requestAnimationFrame(() => {
+    renderFrame = 0;
+    render();
+  });
+}
+
 async function init() {
   if (window.FINANCE_DATA) {
     baseData = window.FINANCE_DATA;
@@ -6431,11 +6481,11 @@ async function init() {
   loadLocalState();
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
-  populateSelectors();
+  populateSelectors(true);
   updateSourceNote();
   qs("scenarioName").textContent = currentScenario;
 
-  controls.forEach((key) => qs(key).addEventListener("input", render));
+  controls.forEach((key) => qs(key).addEventListener("input", scheduleRender));
   qs("balanceDate").addEventListener("change", () => {
     if (qs("balanceMode").value === "auto") applyBalanceModeChange();
     render();
@@ -6540,7 +6590,13 @@ async function init() {
   document.querySelectorAll("[data-assistant-prompt]").forEach((button) => {
     button.addEventListener("click", () => handleAssistantAsk(button.dataset.assistantPrompt));
   });
-  window.addEventListener("resize", () => renderActiveSection());
+  window.addEventListener("resize", () => {
+    if (renderFrame) window.cancelAnimationFrame(renderFrame);
+    renderFrame = window.requestAnimationFrame(() => {
+      renderFrame = 0;
+      renderActiveSection();
+    });
+  });
   updateProjectModeUi();
   updateDebtModeUi();
   setupViewNavigation();
