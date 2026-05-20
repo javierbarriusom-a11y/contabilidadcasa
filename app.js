@@ -16,7 +16,7 @@ const derivedControlIds = [
   "refiLaterPayment",
 ];
 
-const MODEL_END_YEAR = 2040;
+const MODEL_END_YEAR = 2036;
 const MODEL_END_MONTH = 11;
 
 const euro = new Intl.NumberFormat("es-ES", {
@@ -71,6 +71,7 @@ let visualAddSectionSignature = "";
 let visualBulkEditorSignature = "";
 let dataEntryMonthSignature = "";
 let seriesEditorSignature = "";
+let simulationSignature = "";
 let renderFrame = 0;
 let expandedPlanningSections = {
   income: new Set(),
@@ -119,7 +120,7 @@ const viewTitles = {
   },
   forecast: {
     eyebrow: "Proyección",
-    title: "Visualiza la evolución de liquidez durante 60 meses",
+    title: "Visualiza la evolución de liquidez hasta 2036",
   },
   "savings-plan": {
     eyebrow: "Plan ahorro",
@@ -305,6 +306,7 @@ function applyPersistedPayload(payload = {}) {
   visualBulkEditorSignature = "";
   dataEntryMonthSignature = "";
   seriesEditorSignature = "";
+  simulationSignature = "";
   if (payload.workbookData?.metadata && payload.workbookData?.monthlyPlanning) {
     baseData = payload.workbookData;
     saveWorkbookOverride();
@@ -459,7 +461,8 @@ function saveMovementMappings() {
 
 function saveScenarioSettings() {
   if (!state) return;
-  scenarioSettings = {
+  const previous = JSON.stringify(scenarioSettings);
+  const next = {
     currentScenario,
     recommendedSavings: state.recommendedSavings,
     annualInflation: state.annualInflation,
@@ -470,13 +473,17 @@ function saveScenarioSettings() {
     expenseFactor: state.expenseFactor,
     savingsPlan: scenarioSettings.savingsPlan || {},
   };
-  storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
+  const serialized = JSON.stringify(next);
+  scenarioSettings = next;
+  if (serialized === previous) return;
+  storageSet(storageKey("scenarioSettings"), serialized);
   queueRemoteSave();
 }
 
 function saveBalanceSettings() {
   if (!baseData) return;
-  balanceSettings = {
+  const previous = JSON.stringify(balanceSettings);
+  const next = {
     balanceDate: state?.balanceDate || defaultBalanceDate(),
     balanceMode: state?.balanceMode || "auto",
     manualInitialCash:
@@ -488,7 +495,10 @@ function saveBalanceSettings() {
         ? state.mediolanumBalance
         : (balanceSettings.manualMediolanumBalance ?? state?.mediolanumBalance),
   };
-  storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
+  const serialized = JSON.stringify(next);
+  balanceSettings = next;
+  if (serialized === previous) return;
+  storageSet(storageKey("balanceSettings"), serialized);
   queueRemoteSave();
 }
 
@@ -1941,6 +1951,49 @@ function simulate(projectOutflows = [], options = {}) {
   }
 
   return rows;
+}
+
+function modelComputationSignature() {
+  return JSON.stringify({
+    end: `${MODEL_END_YEAR}-${MODEL_END_MONTH}`,
+    source: baseData?.metadata?.generatedAt || baseData?.metadata?.sourceWorkbook || "",
+    startDate: monthKey(modelStartDate()),
+    planningMonths: baseData?.monthlyPlanning?.months?.length || 0,
+    state: {
+      initialCash: round2(state.initialCash),
+      caixaBalance: round2(state.caixaBalance),
+      mediolanumBalance: round2(state.mediolanumBalance),
+      recommendedSavings: round2(state.recommendedSavings),
+      annualInflation: round2(state.annualInflation),
+      annualIncomeGrowth: round2(state.annualIncomeGrowth),
+      emergencyBufferMonths: round2(state.emergencyBufferMonths),
+      autoCapSavings: Boolean(state.autoCapSavings),
+      incomeFactor: state.incomeFactor ?? 1,
+      expenseFactor: state.expenseFactor ?? 1,
+      balanceDate: state.balanceDate || "",
+      balanceMode: state.balanceMode || "auto",
+    },
+    projects,
+    debtLiquidations,
+    incomeActuals,
+    expenseActuals,
+    customPlanningRows,
+    deletedPlanningRows,
+    seriesOverrides,
+    rowLabelOverrides,
+  });
+}
+
+function recomputeModelIfNeeded(force = false) {
+  const nextSignature = modelComputationSignature();
+  if (!force && simulationSignature === nextSignature && lastSimulation.length && lastBaseSimulation.length) {
+    return;
+  }
+  simulationSignature = nextSignature;
+  lastBaseSimulation = simulate();
+  projectPlan = buildProjectSchedule();
+  lastSimulation = simulate(projectPlan.outflows);
+  lastPlannedSimulation = simulate(projectPlan.outflows, { useActuals: false });
 }
 
 function updateKpis(rows, baseRows = rows) {
@@ -5863,6 +5916,7 @@ function refreshAllSectionsAfterDataChange() {
   visualBulkEditorSignature = "";
   dataEntryMonthSignature = "";
   seriesEditorSignature = "";
+  simulationSignature = "";
   render();
   if (viewFromHash() === "data-entry") populateDataEntryControls();
 }
@@ -6314,7 +6368,7 @@ function downloadCsv() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "simulacion_financiera_hasta_2040.csv";
+  link.download = "simulacion_financiera_hasta_2036.csv";
   link.style.display = "none";
   document.body.appendChild(link);
   link.click();
@@ -6452,10 +6506,7 @@ function toggleAssistant(open) {
 function render() {
   readStateFromControls();
   populateSelectors();
-  lastBaseSimulation = simulate();
-  projectPlan = buildProjectSchedule();
-  lastSimulation = simulate(projectPlan.outflows);
-  lastPlannedSimulation = simulate(projectPlan.outflows, { useActuals: false });
+  recomputeModelIfNeeded();
   writeDerivedControls(lastSimulation);
   updateKpis(lastSimulation, lastBaseSimulation);
   renderAccountBalancePanels();
