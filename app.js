@@ -287,6 +287,7 @@ function appStatePayload() {
     workbookData: baseData?.metadata?.sourceWorkbookStatus === "Leído desde la app" ? baseData : null,
     projects,
     debtLiquidations,
+    savingsPlan: scenarioSettings.savingsPlan || {},
     incomeActuals,
     expenseActuals,
     balanceSettings,
@@ -1121,6 +1122,65 @@ function classifyTransaction(row) {
   return "Otros gastos";
 }
 
+function isMasterBasicaTransaction(row) {
+  return normalizedText(`${row?.movement || ""} ${row?.details || ""}`).includes("master basica");
+}
+
+function isVariableOperationalTransaction(row) {
+  if (!row || Number(row.amount || 0) >= 0 || isMasterBasicaTransaction(row)) return false;
+  const blockedCategories = new Set([
+    "Creditos antiguos",
+    "Refinanciacion",
+    "Coche",
+    "Suministros y telecom",
+    "Vivienda/comunidad",
+    "Seguros",
+    "Traspasos/ahorro",
+    "Devoluciones/creditos",
+    "Tarjeta Mastercard",
+  ]);
+  if (blockedCategories.has(row.category)) return false;
+  return ["Alimentacion", "Efectivo", "Otros gastos"].includes(row.category);
+}
+
+let variableOperationalSpendCacheKey = "";
+let variableOperationalSpendCache = null;
+
+function variableOperationalSpendModel() {
+  const transactions = baseData?.transactions || [];
+  const key = `${transactions.length}|${transactions[0]?.date || ""}|${transactions.at(-1)?.date || ""}`;
+  if (variableOperationalSpendCacheKey === key && variableOperationalSpendCache) return variableOperationalSpendCache;
+
+  const candidateMonths = [
+    ...new Set(transactions.filter((row) => row.month >= "2026-01").map((row) => row.month)),
+  ].sort();
+  const visibleMonths = candidateMonths.slice(-6);
+  const monthTotals = new Map(visibleMonths.map((month) => [month, 0]));
+
+  transactions
+    .filter((row) => visibleMonths.includes(row.month) && isVariableOperationalTransaction(row))
+    .forEach((row) => {
+      monthTotals.set(row.month, round2((monthTotals.get(row.month) || 0) + Math.abs(Number(row.amount || 0))));
+    });
+
+  const values = [...monthTotals.values()];
+  const average = values.length ? round2(values.reduce((sum, value) => sum + value, 0) / values.length) : 0;
+  variableOperationalSpendCacheKey = key;
+  variableOperationalSpendCache = {
+    average,
+    months: visibleMonths,
+    totals: [...monthTotals.entries()].map(([month, amount]) => ({ month, amount })),
+    excluded: "MASTER BASICA",
+  };
+  return variableOperationalSpendCache;
+}
+
+function variableOperationalSpendForForecastIndex(forecastIndex) {
+  const override = scenarioSettings?.savingsPlan?.variableSpendTarget;
+  const base = override !== undefined ? Number(override || 0) : variableOperationalSpendModel().average;
+  return round2(base);
+}
+
 function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
   const sheet = workbook.Sheets[sheetName];
   if (!sheet?.["!ref"]) return [];
@@ -1198,7 +1258,7 @@ function loadTransactionsFromWorkbook(workbook) {
 function buildRollupsFromTransactions(transactions) {
   const recent = transactions.filter((row) => row.date >= "2025-11-01");
   const current = recent.filter((row) => row.month >= "2026-01" && row.month <= "2026-03");
-  const coreCategories = ["Tarjeta Mastercard", "Suministros y telecom", "Vivienda/comunidad", "Efectivo", "Seguros", "Alimentacion", "Otros gastos"];
+  const coreCategories = ["Suministros y telecom", "Vivienda/comunidad", "Efectivo", "Seguros", "Alimentacion", "Otros gastos"];
   const recurringIncomeCategories = ["Ingresos nomina", "Ingreso recurrente 800"];
   const group = (rows, keyer, valuer) =>
     rows.reduce((map, row) => {
@@ -1476,38 +1536,58 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
 function planningDetailSectionsForForecastIndex(forecastIndex) {
   const date = addMonths(modelStartDate(), forecastIndex);
   const month = planningMonthForDate(date, forecastIndex);
+  const sections = planningSectionsForMonth(null, month)
+    .map((section) => {
+      const lines = section.rows
+        .map((row) => {
+          const info = actualAwareInfo(row, month);
+          const include = info.value !== 0 || info.planned !== 0 || info.hasActual;
+          if (!include) return null;
+          const type =
+            section.kind === "income"
+              ? "Ingreso"
+              : isCarPlanningRow(row)
+                ? "Coche"
+                : isFinancingPlanningRow(section, row)
+                  ? "Financiación"
+                  : "Gasto";
+          return {
+            label: displayLabelForRow(row),
+            type,
+            value: info.value,
+            planned: info.planned,
+            actual: info.actual,
+            source: info.source,
+            hasActual: info.hasActual,
+          };
+        })
+        .filter(Boolean);
+      const total = lines.reduce((sum, line) => sum + line.value, 0);
+      return { name: section.name, kind: section.kind, total, lines };
+    })
+    .filter((section) => section.lines.length);
+  const variableOperationalSpend = variableOperationalSpendForForecastIndex(forecastIndex);
+  if (variableOperationalSpend > 0) {
+    sections.push({
+      name: "Gasto variable operativo",
+      kind: "expense",
+      total: variableOperationalSpend,
+      lines: [
+        {
+          label: "Promedio tarjeta variable",
+          type: "Gasto",
+          value: variableOperationalSpend,
+          planned: variableOperationalSpend,
+          actual: "",
+          source: `Estimado desde movimientos; excluye ${variableOperationalSpendModel().excluded}.`,
+          hasActual: false,
+        },
+      ],
+    });
+  }
   return {
     month,
-    sections: planningSectionsForMonth(null, month)
-      .map((section) => {
-        const lines = section.rows
-          .map((row) => {
-            const info = actualAwareInfo(row, month);
-            const include = info.value !== 0 || info.planned !== 0 || info.hasActual;
-            if (!include) return null;
-            const type =
-              section.kind === "income"
-                ? "Ingreso"
-                : isCarPlanningRow(row)
-                  ? "Coche"
-                  : isFinancingPlanningRow(section, row)
-                    ? "Financiación"
-                    : "Gasto";
-            return {
-              label: displayLabelForRow(row),
-              type,
-              value: info.value,
-              planned: info.planned,
-              actual: info.actual,
-              source: info.source,
-              hasActual: info.hasActual,
-            };
-          })
-          .filter(Boolean);
-        const total = lines.reduce((sum, line) => sum + line.value, 0);
-        return { name: section.name, kind: section.kind, total, lines };
-      })
-      .filter((section) => section.lines.length),
+    sections,
   };
 }
 
@@ -1555,10 +1635,10 @@ function projectedAccountBalancesForStartIndex(startIndex) {
       detail.income *
       (state.incomeFactor ?? 1) *
       Math.pow(1 + state.annualIncomeGrowth / 100, i / 12);
-    const coreSpend =
-      detail.coreSpend *
-      (state.expenseFactor ?? 1) *
-      Math.pow(1 + state.annualInflation / 100, i / 12);
+    const expenseMultiplier = (state.expenseFactor ?? 1) * Math.pow(1 + state.annualInflation / 100, i / 12);
+    const fixedCoreSpend = detail.coreSpend * expenseMultiplier;
+    const variableOperationalSpend = variableOperationalSpendForForecastIndex(i) * expenseMultiplier;
+    const coreSpend = fixedCoreSpend + variableOperationalSpend;
     const outflowsBeforeSaving = coreSpend + detail.car + detail.refi;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
     const appliedSaving = state.autoCapSavings
@@ -1905,10 +1985,10 @@ function simulate(projectOutflows = [], options = {}) {
       detail.income *
       (state.incomeFactor ?? 1) *
       Math.pow(1 + state.annualIncomeGrowth / 100, i / 12);
-    const coreSpend =
-      detail.coreSpend *
-      (state.expenseFactor ?? 1) *
-      Math.pow(1 + state.annualInflation / 100, i / 12);
+    const expenseMultiplier = (state.expenseFactor ?? 1) * Math.pow(1 + state.annualInflation / 100, i / 12);
+    const fixedCoreSpend = detail.coreSpend * expenseMultiplier;
+    const variableOperationalSpend = variableOperationalSpendForForecastIndex(i) * expenseMultiplier;
+    const coreSpend = fixedCoreSpend + variableOperationalSpend;
     const carPayment = detail.car;
     const refi = detail.refi;
     const projectOutflow = Number(projectOutflows[i] || 0);
@@ -1937,6 +2017,8 @@ function simulate(projectOutflows = [], options = {}) {
       startLiquidity,
       income,
       coreSpend,
+      fixedCoreSpend,
+      variableOperationalSpend,
       car: carPayment,
       refi,
       projectOutflow,
@@ -1975,6 +2057,7 @@ function modelComputationSignature() {
     },
     projects,
     debtLiquidations,
+    savingsPlan: scenarioSettings.savingsPlan || {},
     incomeActuals,
     expenseActuals,
     customPlanningRows,
@@ -2139,11 +2222,11 @@ function renderCategoryChart() {
   svg.innerHTML = "";
 
   const wanted = new Set([
-    "Tarjeta Mastercard",
     "Suministros y telecom",
     "Vivienda/comunidad",
     "Efectivo",
     "Seguros",
+    "Alimentacion",
     "Otros gastos",
   ]);
   const months = new Set(["2026-01", "2026-02", "2026-03"]);
@@ -4800,7 +4883,10 @@ function savingsDetectedModel() {
   });
   const decisionImpact12 = savingsDecisionImpact(first12);
   const decisionImpact48 = savingsDecisionImpact(rows);
-  const operationalAverage = round2(averageRows(first12, (row) => row.coreSpend));
+  const variableOperational = variableOperationalSpendModel();
+  const variableOperationalAverage = round2(averageRows(first12, (row) => row.variableOperationalSpend || 0) || variableOperational.average);
+  const fixedOperationalAverage = round2(averageRows(first12, (row) => row.fixedCoreSpend ?? Math.max(0, Number(row.coreSpend || 0) - Number(row.variableOperationalSpend || 0))));
+  const operationalAverage = round2(fixedOperationalAverage + variableOperationalAverage);
   const debtAverage = round2(averageRows(first12, (row) => row.car + row.refi));
   const availableAverage = round2(averageRows(first12, (row) => row.netBeforeSaving));
   const startingSavings = round2(accountBalancesFromState().mediolanum || first12[0]?.savings || 0);
@@ -4822,6 +4908,10 @@ function savingsDetectedModel() {
     bmwMonthsRemaining: bmwRows.length,
     bmwEndLabel: lastBmwRow ? lastBmwRow.month : "",
     operationalAverage,
+    fixedOperationalAverage,
+    variableOperationalAverage,
+    variableOperationalMonths: variableOperational.months,
+    variableOperationalTotals: variableOperational.totals,
     coreWithoutMortgageAverage: round2(Math.max(0, operationalAverage - mortgageAverage)),
     debtAverage,
     projectAverage: round2(averageRows(first12, (row) => row.projectOutflow)),
@@ -4842,8 +4932,8 @@ const savingsPlanFieldMeta = [
   ["mortgagePayment", "Hipoteca detectada", "€"],
   ["bmwPayment", "BMW detectado", "€"],
   ["unifiedCreditPayment", "Cuota unificada real", "€"],
-  ["otherFixedNonDebt", "Gasto operativo medio", "€"],
-  ["variableSpendTarget", "Objetivo variable revisable", "€"],
+  ["otherFixedNonDebt", "Gasto fijo operativo", "€"],
+  ["variableSpendTarget", "Gasto variable tarjeta", "€"],
   ["initialEmergencyFund", "Colchón inicial", "€"],
   ["emergencyBufferMonths", "Meses objetivo de colchón", "n"],
   ["extraToBufferPct", "% extra destinado a colchón", "%"],
@@ -4863,7 +4953,8 @@ function savingsPlanBaseValue(key) {
   if (key === "extraDecember") return detected.extraDecember;
   if (key === "mortgagePayment") return detected.mortgageAverage || plan.mortgagePayment || 0;
   if (key === "bmwPayment") return detected.bmwPositiveAverage;
-  if (key === "otherFixedNonDebt") return detected.operationalAverage;
+  if (key === "otherFixedNonDebt") return detected.fixedOperationalAverage;
+  if (key === "variableSpendTarget") return detected.variableOperationalAverage;
   if (key === "initialEmergencyFund") return detected.startingSavings;
   if (key === "bankinterOutsidePlanPayment") return detected.bankinterAverage || plan.bankinterOutsidePlanPayment || 0;
   if (key === "cetelemOutsidePlanPayment") return detected.cetelemAverage || plan.cetelemOutsidePlanPayment || 0;
@@ -4899,8 +4990,11 @@ function savingsPlanFieldSource(key) {
     const reference = `referencia Plan_Ahorro_821: ${money(observed.plannedReference, true)}`;
     return `${source}; real bancario observado: ${money(observed.value, true)}; ${reference}.`;
   }
-  if (key === "otherFixedNonDebt") return `Media real/proyectada de gasto operativo ${monthLabelText}, excluyendo coche, financiación y proyectos.`;
-  if (key === "variableSpendTarget") return "Objetivo de control manual; se compara contra el gasto operativo real calculado.";
+  if (key === "otherFixedNonDebt") return `Media de partidas fijas/operativas ${monthLabelText}, separando coche, financiación, proyectos y tarjeta variable.`;
+  if (key === "variableSpendTarget") {
+    const months = detected.variableOperationalMonths?.length ? detected.variableOperationalMonths.join(", ") : "sin meses suficientes";
+    return `Promedio de movimientos variables de tarjeta (${months}), excluyendo MASTER BASICA y deuda. Editable si quieres tensionar o relajar el objetivo.`;
+  }
   if (key === "initialEmergencyFund") return "Saldo de ahorro separado estimado a la fecha de análisis o saldo manual introducido.";
   if (key === "bankinterOutsidePlanPayment" || key === "cetelemOutsidePlanPayment") return "Media detectada por concepto si existe; si no, referencia editable.";
   return "";
@@ -4949,7 +5043,7 @@ function savingsPlanCalculations() {
   const monthlyIncomeTotal = round2(sumRows(rows, (row) => row.income) / horizon);
   const recurringIncome = v.baseHouseholdIncome;
   const debtServiceMonthlyTotal = detected.debtAverage;
-  const operationalMonthlyTotal = detected.operationalAverage;
+  const operationalMonthlyTotal = round2(Number(v.otherFixedNonDebt || 0) + Number(v.variableSpendTarget || 0));
   const projectMonthlyTotal = detected.projectAverage;
   const decisionMonthlyNet = round2(detected.decisionImpact12.netDecisionImpact / horizon);
   const totalSpendTarget = round2(operationalMonthlyTotal + debtServiceMonthlyTotal + projectMonthlyTotal);
@@ -5208,7 +5302,13 @@ function renderSavingsPlan() {
 
   const formulaRows = [
     ["Ingresos próximos 12m", "Suma mensual real/proyectada / 12", `Incluye extras en su mes: abril ${money(calc.values.extraApril, true)}, diciembre ${money(calc.values.extraDecember, true)}`, money(calc.monthlyIncomeTotal, true), calc.values.extraApril || calc.values.extraDecember ? "OK: extras no prorrateadas en el flujo." : "Revisar si falta alguna extra prevista."],
-    ["Gasto operativo próximo 12m", "CoreSpend del modelo / 12", "Gastos no clasificados como coche, financiación o proyectos.", money(calc.operationalMonthlyTotal, true), calc.operationalMonthlyTotal > 0 ? "OK si el detalle visual contiene todos los gastos recurrentes." : "Revisar: gasto operativo a cero."],
+    [
+      "Gasto operativo próximo 12m",
+      "Fijos operativos + variable tarjeta",
+      `Fijos ${money(calc.values.otherFixedNonDebt, true)} + tarjeta variable ${money(calc.values.variableSpendTarget, true)}; excluye MASTER BASICA, coche, deuda y proyectos.`,
+      money(calc.operationalMonthlyTotal, true),
+      calc.values.variableSpendTarget > 0 ? "OK: la liquidez descuenta un colchón de gasto variable real." : "Revisar: no hay gasto variable de tarjeta detectado.",
+    ],
     ["Deuda reunificada actual", "Líneas de refinanciación/reunificación detectadas", `Modelo 12m: ${money(calc.detected.reunifiedAverage, true)}; cartera actual: ${money(currentDebtPaymentBreakdown().unified, true)}/mes`, money(calc.values.unifiedCreditPayment, true), calc.values.unifiedCreditPayment ? "OK: incluida en la deuda mensual del flujo." : "Revisar: no se detecta reunificación futura."],
     ["Deuda + coche próximo 12m", "Coche + financiaciones del modelo / 12", calc.detected.bmwMonthsRemaining ? `BMW detectado hasta ${calc.detected.bmwEndLabel}; cuota media positiva ${money(calc.values.bmwPayment, true)}.` : "Sin BMW futuro detectado.", money(calc.debtServiceMonthlyTotal, true), calc.debtToIncomeRatio <= 0.32 ? "OK frente al umbral <=32%." : "Revisar deuda: supera el umbral aconsejable."],
     ["Proyectos cargados", "Impactos de proyectos / 12", `${calc.detected.decisionImpact12.projectCount} proyecto(s): ${money(calc.detected.decisionImpact12.projectCost, true)}`, money(calc.detected.decisionImpact12.projectCost / Math.max(1, calc.rows.length), true), calc.detected.decisionImpact12.projectCost ? "OK: proyecto incluido en caja y ahorro." : "Sin proyectos en el periodo."],
