@@ -86,8 +86,8 @@ const DEBT_PORTFOLIO = [
   { entity: "Cetelem", type: "Crédito", number: "40037624105827", initialPrincipal: 3559.33, originalPayment: 212.03, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
   { entity: "Cetelem", type: "Tarjeta", number: "5100341635315001", initialPrincipal: 7508, originalPayment: 256.98, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
   { entity: "Cetelem", type: "Tarjeta", number: "5100341647655006", initialPrincipal: 8000, originalPayment: 289.62, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
-  { entity: "Wizink", type: "Tarjeta", number: "5267 5209 1552 8008", initialPrincipal: 7381.63, originalPayment: 191.72, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 7381.63, maturity: "", remainingInstallments: null },
-  { entity: "Wizink", type: "Tarjeta", number: "5489 1808 1365 8688", initialPrincipal: 3117.23, originalPayment: 114.37, currentPayment: 0, reunified: false, amortized: 1300, currentPrincipal: 0, maturity: "", remainingInstallments: null },
+  { entity: "Wizink", type: "Tarjeta", number: "5267 5209 1552 8008", initialPrincipal: 7381.63, originalPayment: 191.72, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 7381.63, maturity: "", remainingInstallments: 0 },
+  { entity: "Wizink", type: "Tarjeta", number: "5489 1808 1365 8688", initialPrincipal: 3117.23, originalPayment: 114.37, currentPayment: 0, reunified: false, amortized: 1300, currentPrincipal: 0, maturity: "", remainingInstallments: 0 },
   { entity: "Bankintercard", type: "Crédito", number: "0128/9830/051.1130377", initialPrincipal: 14975.01, originalPayment: 426.49, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 14975.01, maturity: "19/8/29", remainingInstallments: 46 },
   { entity: "Bankintercard", type: "Tarjeta", number: "4966630612068823", initialPrincipal: 6477.07, originalPayment: 508.2, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 6477.07, maturity: "", remainingInstallments: 15 },
   { entity: "Mediamarkt", type: "Tarjeta", number: "4010 2111 8083 0013", initialPrincipal: 1376.71, originalPayment: 115, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 1376.71, maturity: "", remainingInstallments: 15 },
@@ -2578,6 +2578,12 @@ function debtPortfolioRows() {
   return DEBT_PORTFOLIO;
 }
 
+function installmentLabel(row) {
+  return row.remainingInstallments === null || row.remainingInstallments === undefined
+    ? ""
+    : ` · ${row.remainingInstallments} cuotas`;
+}
+
 function debtPortfolioTotals(rows = debtPortfolioRows()) {
   return {
     initialPrincipal: round2(sumRows(rows, (item) => item.initialPrincipal)),
@@ -2920,7 +2926,7 @@ function renderDebtControl() {
       ${[...grouped.values()]
         .map((group) => {
           const details = group.lines
-            .map((line) => `${line.number}${line.reunified ? " · reunificado" : ""}${line.remainingInstallments ? ` · ${line.remainingInstallments} cuotas` : ""}`)
+            .map((line) => `${line.number}${line.reunified ? " · reunificado" : ""}${installmentLabel(line)}`)
             .join("<br>");
           return `<tr>
             <td><strong>${escapeHtml(group.entity)}</strong><small>${escapeHtml(group.type)}</small></td>
@@ -2954,7 +2960,7 @@ function renderDebtControl() {
             <div><span>Cuota antes</span><strong class="negative">${money(row.originalPayment, true)}</strong></div>
             <div><span>Cuota ahora</span><strong>${escapeHtml(currentPaymentLabel)}</strong></div>
           </div>
-          <p><b>${escapeHtml(status)}</b>${row.remainingInstallments ? ` · ${row.remainingInstallments} cuotas` : ""}${discount ? ` · mejora ${money(discount, true)}` : ""}</p>
+          <p><b>${escapeHtml(status)}</b>${installmentLabel(row)}${discount ? ` · mejora ${money(discount, true)}` : ""}</p>
         </article>`;
       })
       .join("");
