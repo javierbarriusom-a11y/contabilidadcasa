@@ -100,6 +100,9 @@ const DEBT_PORTFOLIO = [
 const CURRENT_REUNIFIED_DEBT_PAYMENT = 259;
 const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 130;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
+const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
+const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
+const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
 
 const viewTitles = {
   "visual-detail": {
@@ -310,6 +313,7 @@ function applyPersistedPayload(payload = {}) {
   simulationSignature = "";
   if (payload.workbookData?.metadata && payload.workbookData?.monthlyPlanning) {
     baseData = payload.workbookData;
+    ensureVariableOperationalSection();
     saveWorkbookOverride();
   }
   projects = Array.isArray(payload.projects) ? payload.projects : [];
@@ -1181,6 +1185,46 @@ function variableOperationalSpendForForecastIndex(forecastIndex) {
   return round2(base);
 }
 
+function variableOperationalPlannedSeries() {
+  const months = baseData?.monthlyPlanning?.months || [];
+  const override = scenarioSettings?.savingsPlan?.variableSpendTarget;
+  const estimate = override !== undefined ? Number(override || 0) : variableOperationalSpendModel().average;
+  return months.map(() => estimate);
+}
+
+function ensureVariableOperationalSection() {
+  if (!baseData?.monthlyPlanning?.sections?.length) return;
+  const sections = baseData.monthlyPlanning.sections;
+  const planned = variableOperationalPlannedSeries();
+  let section = sections.find((item) => item.kind === "expense" && item.name === VARIABLE_OPERATIONAL_SECTION);
+  if (!section) {
+    section = { name: VARIABLE_OPERATIONAL_SECTION, kind: "expense", rows: [] };
+    const fixedIndex = sections.findIndex((item) => item.kind === "expense" && normalizedText(item.name).includes("gastos fijos"));
+    const insertAt = fixedIndex >= 0 ? fixedIndex + 1 : sections.findIndex((item) => item.kind === "expense");
+    sections.splice(insertAt >= 0 ? insertAt : sections.length, 0, section);
+  } else {
+    const currentIndex = sections.indexOf(section);
+    const fixedIndex = sections.findIndex((item) => item.kind === "expense" && normalizedText(item.name).includes("gastos fijos"));
+    if (fixedIndex >= 0 && currentIndex !== fixedIndex + 1) {
+      sections.splice(currentIndex, 1);
+      sections.splice(fixedIndex + (currentIndex < fixedIndex ? 0 : 1), 0, section);
+    }
+  }
+  const row = section.rows.find((item) => item.id === VARIABLE_OPERATIONAL_ROW_ID);
+  if (row) {
+    row.kind = "expense";
+    row.label = row.label || VARIABLE_OPERATIONAL_ROW_LABEL;
+    row.planned = planned;
+  } else {
+    section.rows.push({
+      id: VARIABLE_OPERATIONAL_ROW_ID,
+      kind: "expense",
+      label: VARIABLE_OPERATIONAL_ROW_LABEL,
+      planned,
+    });
+  }
+}
+
 function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
   const sheet = workbook.Sheets[sheetName];
   if (!sheet?.["!ref"]) return [];
@@ -1464,6 +1508,10 @@ function isFinancingPlanningRow(section, row) {
   );
 }
 
+function isVariableOperationalRow(row) {
+  return row?.id === VARIABLE_OPERATIONAL_ROW_ID;
+}
+
 function isPrePayrollIncomeRow(row) {
   const label = normalizedText(displayLabelForRow(row));
   return label === "local" || /(^|\b)(nomina|salario)\s+tere(\b|$)/.test(label) || /\btere\b.*\b(nomina|salario)\b/.test(label);
@@ -1488,6 +1536,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     refi: 0,
     expenseTotal: 0,
     prePayrollIncome: 0,
+    variableOperationalSpend: 0,
   };
 
   planningSectionsForMonth(null, month).forEach((section) => {
@@ -1497,6 +1546,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     let sectionCar = 0;
     let sectionRefi = 0;
     let sectionPrePayrollIncome = 0;
+    let sectionVariableOperationalSpend = 0;
 
     calculationRows.forEach((row) => {
       const deleted = deletedPlanningRows[deleteKeyForRow(row, month)] || seriesOverrideForRow(row, month)?.deleted;
@@ -1513,6 +1563,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
       } else if (isFinancingPlanningRow(section, row)) {
         sectionRefi += value;
       } else {
+        if (isVariableOperationalRow(row)) sectionVariableOperationalSpend += value;
         sectionCoreSpend += value;
       }
     });
@@ -1528,6 +1579,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     breakdown.car += sectionCar;
     breakdown.refi += sectionRefi;
     breakdown.coreSpend += sectionCoreSpend;
+    breakdown.variableOperationalSpend += sectionVariableOperationalSpend;
   });
 
   return breakdown;
@@ -1566,25 +1618,6 @@ function planningDetailSectionsForForecastIndex(forecastIndex) {
       return { name: section.name, kind: section.kind, total, lines };
     })
     .filter((section) => section.lines.length);
-  const variableOperationalSpend = variableOperationalSpendForForecastIndex(forecastIndex);
-  if (variableOperationalSpend > 0) {
-    sections.push({
-      name: "Gasto variable operativo",
-      kind: "expense",
-      total: variableOperationalSpend,
-      lines: [
-        {
-          label: "Promedio tarjeta variable",
-          type: "Gasto",
-          value: variableOperationalSpend,
-          planned: variableOperationalSpend,
-          actual: "",
-          source: `Estimado desde movimientos; excluye ${variableOperationalSpendModel().excluded}.`,
-          hasActual: false,
-        },
-      ],
-    });
-  }
   return {
     month,
     sections,
@@ -1636,8 +1669,8 @@ function projectedAccountBalancesForStartIndex(startIndex) {
       (state.incomeFactor ?? 1) *
       Math.pow(1 + state.annualIncomeGrowth / 100, i / 12);
     const expenseMultiplier = (state.expenseFactor ?? 1) * Math.pow(1 + state.annualInflation / 100, i / 12);
-    const fixedCoreSpend = detail.coreSpend * expenseMultiplier;
-    const variableOperationalSpend = variableOperationalSpendForForecastIndex(i) * expenseMultiplier;
+    const variableOperationalSpend = detail.variableOperationalSpend * expenseMultiplier;
+    const fixedCoreSpend = Math.max(0, detail.coreSpend - detail.variableOperationalSpend) * expenseMultiplier;
     const coreSpend = fixedCoreSpend + variableOperationalSpend;
     const outflowsBeforeSaving = coreSpend + detail.car + detail.refi;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
@@ -1986,8 +2019,8 @@ function simulate(projectOutflows = [], options = {}) {
       (state.incomeFactor ?? 1) *
       Math.pow(1 + state.annualIncomeGrowth / 100, i / 12);
     const expenseMultiplier = (state.expenseFactor ?? 1) * Math.pow(1 + state.annualInflation / 100, i / 12);
-    const fixedCoreSpend = detail.coreSpend * expenseMultiplier;
-    const variableOperationalSpend = variableOperationalSpendForForecastIndex(i) * expenseMultiplier;
+    const variableOperationalSpend = detail.variableOperationalSpend * expenseMultiplier;
+    const fixedCoreSpend = Math.max(0, detail.coreSpend - detail.variableOperationalSpend) * expenseMultiplier;
     const coreSpend = fixedCoreSpend + variableOperationalSpend;
     const carPayment = detail.car;
     const refi = detail.refi;
@@ -5564,6 +5597,8 @@ function applyMovementBalance(transaction) {
 }
 
 function refreshMovementRollups() {
+  variableOperationalSpendCacheKey = "";
+  variableOperationalSpendCache = null;
   const rollups = buildRollupsFromTransactions(baseData.transactions || []);
   baseData = {
     ...baseData,
@@ -5582,6 +5617,7 @@ function refreshMovementRollups() {
       incomeMonthlyAverageJanMar2026: rollups.historicalIncome,
     },
   };
+  ensureVariableOperationalSection();
 }
 
 async function handleMovementExcelImport(event) {
@@ -6208,6 +6244,7 @@ function handleBatchImport() {
 
 function applyImportedWorkbookData(nextData, fileName) {
   baseData = nextData;
+  ensureVariableOperationalSection();
   balanceSettings = {};
   scenarioSettings = {};
   currentScenario = "Base";
@@ -6611,6 +6648,7 @@ function toggleAssistant(open) {
 
 function render() {
   readStateFromControls();
+  ensureVariableOperationalSection();
   populateSelectors();
   recomputeModelIfNeeded();
   writeDerivedControls(lastSimulation);
@@ -6636,6 +6674,7 @@ async function init() {
   }
   loadWorkbookOverride();
   loadLocalState();
+  ensureVariableOperationalSection();
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors(true);
