@@ -105,6 +105,10 @@ const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
 const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
 
 const viewTitles = {
+  home: {
+    eyebrow: "Inicio",
+    title: "Control diario de caja, deuda y decisiones",
+  },
   "visual-detail": {
     eyebrow: "Cuadro de mandos",
     title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
@@ -573,10 +577,10 @@ function renderSyncPanel() {
 }
 
 function viewFromHash() {
-  const id = (window.location.hash || "#visual-detail").replace("#", "");
-  if (id === "overview") return "visual-detail";
+  const id = (window.location.hash || "#home").replace("#", "");
+  if (id === "overview") return "home";
   if (id === "monthly-detail") return "prevision";
-  return document.getElementById(id)?.classList.contains("view-section") ? id : "visual-detail";
+  return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
 }
 
 function setActiveView(viewId = viewFromHash()) {
@@ -6521,9 +6525,253 @@ function downloadCsv() {
   }, 1000);
 }
 
+function homeRowsForHorizon() {
+  const value = qs("homeHorizon")?.value || "12";
+  const count = value === "all" ? lastSimulation.length : Number(value || 12);
+  return lastSimulation.slice(0, Math.max(1, Math.min(count, lastSimulation.length)));
+}
+
+function homeStatusClass(value, warnAt = 0, dangerAt = 0) {
+  if (value <= dangerAt) return "danger";
+  if (value <= warnAt) return "warn";
+  return "good";
+}
+
+function renderHomeKpi({ label, value, note, status = "good", cta, target }) {
+  return `<article class="home-kpi-card ${status}">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value)}</strong>
+    <p>${escapeHtml(note)}</p>
+    ${cta ? `<button type="button" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
+  </article>`;
+}
+
+function renderHomeInsight({ title, text, status = "good", target, cta }) {
+  return `<div class="home-insight ${status}">
+    <div>
+      <strong>${escapeHtml(title)}</strong>
+      <p>${escapeHtml(text)}</p>
+    </div>
+    ${cta ? `<button type="button" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
+  </div>`;
+}
+
+function renderHomeAction({ title, value, detail, target, tone = "neutral" }) {
+  return `<button type="button" class="home-action-card ${tone}" data-home-nav="${escapeHtml(target)}">
+    <span>${escapeHtml(title)}</span>
+    <strong>${escapeHtml(value)}</strong>
+    <small>${escapeHtml(detail)}</small>
+  </button>`;
+}
+
+function renderHomePriority({ title, meta, value, target, status = "neutral" }) {
+  return `<button type="button" class="home-priority-item ${status}" data-home-nav="${escapeHtml(target)}">
+    <span>${escapeHtml(title)}</span>
+    <small>${escapeHtml(meta)}</small>
+    <strong>${escapeHtml(value)}</strong>
+  </button>`;
+}
+
+function renderHomeDashboard() {
+  if (!qs("homeKpis")) return;
+  const rows = homeRowsForHorizon();
+  if (!rows.length) return;
+  const baseRows = lastBaseSimulation.slice(0, rows.length);
+  const metrics = rangeKpiMetric(rows);
+  const savings = savingsPlanCalculations();
+  const debtStats = debtControlStats();
+  const firstRow = rows[0];
+  const lastRow = rows.at(-1);
+  const baseLastRow = baseRows.at(-1) || lastRow;
+  const decisionImpact = round2(Number(lastRow?.totalLiquidity || 0) - Number(baseLastRow?.totalLiquidity || 0));
+  const avgNet = round2(averageRows(rows, (row) => row.netBeforeSaving));
+  const avgSaving = round2(averageRows(rows, (row) => row.saving));
+  const avgProjects = round2(averageRows(rows, (row) => row.projectOutflow));
+  const totalProjects = round2(sumRows(rows, (row) => row.projectOutflow));
+  const debtPriorities = debtPriorityCandidates().slice(0, 3);
+  const loadedDecisions = projectPlan.placements || [];
+  const nextSensitiveMonths = rows
+    .map((row) => ({ row, metric: previsionMetric(row) }))
+    .sort((a, b) => a.metric.adjustedMin - b.metric.adjustedMin)
+    .slice(0, 6);
+  const adjustedWarn = Math.max(0, savings.emergencyFundTarget * 0.35);
+  const adjustedStatus = metrics ? homeStatusClass(metrics.adjustedMin, adjustedWarn, 0) : "warn";
+  const debtRatioStatus = savings.debtToIncomeRatio > 0.32 ? "danger" : savings.debtToIncomeRatio > 0.26 ? "warn" : "good";
+  const decisionStatus = decisionImpact < 0 ? "warn" : "good";
+  const coverageStatus = savings.currentCoverage < 3 ? "danger" : savings.currentCoverage < 6 ? "warn" : "good";
+  const runwayNote = metrics
+    ? `Punto más delicado: ${metrics.adjustedMinMonth}. Mínimo real ${money(metrics.min, true)}.`
+    : "Sin rango suficiente para calcular mínimos.";
+
+  qs("homeKpis").innerHTML = [
+    renderHomeKpi({
+      label: "Caja mínima ajustada",
+      value: metrics ? money(metrics.adjustedMin, true) : "-",
+      note: runwayNote,
+      status: adjustedStatus,
+      cta: "Ver previsión",
+      target: "prevision",
+    }),
+    renderHomeKpi({
+      label: "Margen medio antes de ahorrar",
+      value: money(avgNet, true),
+      note: `Ahorro aplicado medio: ${money(avgSaving, true)} al mes.`,
+      status: avgNet > savings.recommendedSaving ? "good" : "warn",
+      cta: "Ajustar ahorro",
+      target: "savings-plan",
+    }),
+    renderHomeKpi({
+      label: "Deuda viva",
+      value: money(debtStats.portfolioTotals.currentPrincipal, true),
+      note: `Pago actual estimado: ${money(debtStats.currentPayment.total, true)}/mes. Ratio ${(savings.debtToIncomeRatio * 100).toFixed(1)}%.`,
+      status: debtRatioStatus,
+      cta: "Simular deuda",
+      target: "debt-control",
+    }),
+    renderHomeKpi({
+      label: "Impacto de decisiones",
+      value: `${decisionImpact >= 0 ? "+" : ""}${money(decisionImpact, true)}`,
+      note: `${loadedDecisions.length} decisión(es), ${money(totalProjects, true)} de impacto en el horizonte visible.`,
+      status: decisionStatus,
+      cta: "Ver simulador",
+      target: "simulator",
+    }),
+  ].join("");
+
+  const mainInsights = [];
+  if (metrics?.adjustedMin < 0) {
+    mainInsights.push({
+      title: "Prioridad: proteger caja",
+      text: `Hay un mínimo ajustado negativo en ${metrics.adjustedMinMonth}. Antes de amortizar o añadir proyectos, mueve impactos o baja ahorro temporalmente.`,
+      status: "danger",
+      target: "simulator",
+      cta: "Corregir",
+    });
+  } else if (savings.currentCoverage < savings.values.emergencyBufferMonths) {
+    mainInsights.push({
+      title: "Construir colchón antes de acelerar",
+      text: `Cobertura actual ${savings.currentCoverage.toFixed(1)} meses frente a objetivo ${savings.values.emergencyBufferMonths}. Ahorro sugerido: ${money(savings.recommendedSaving, true)}/mes.`,
+      status: coverageStatus,
+      target: "savings-plan",
+      cta: "Plan ahorro",
+    });
+  } else {
+    mainInsights.push({
+      title: "Escenario operativo estable",
+      text: `La caja mínima ajustada se mantiene positiva y el margen medio permite planificar deuda o proyectos sin tensionar el flujo mensual.`,
+      status: "good",
+      target: "simulator",
+      cta: "Planificar",
+    });
+  }
+  if (debtPriorities[0]) {
+    mainInsights.push({
+      title: "Siguiente deuda a mirar",
+      text: `${debtTargetDisplayName(debtPriorities[0].target)}: ${money(debtPriorities[0].principal, true)} pendientes, ${money(debtPriorities[0].payment, true)}/mes. Mejor hueco sugerido: ${debtPriorities[0].best?.month?.label || "por calcular"}.`,
+      status: debtRatioStatus,
+      target: "debt-control",
+      cta: "Optimizar",
+    });
+  }
+  if (avgProjects > 0) {
+    mainInsights.push({
+      title: "Proyectos ya influyen en el plan",
+      text: `El impacto medio de proyectos/deuda simulada es ${money(avgProjects, true)}/mes en este horizonte. Compáralo con el escenario sin decisiones antes de confirmar.`,
+      status: decisionImpact < 0 ? "warn" : "good",
+      target: "prevision",
+      cta: "Comparar",
+    });
+  }
+  qs("homeInsights").innerHTML = mainInsights.map(renderHomeInsight).join("");
+
+  const bestProjectMonth = rows
+    .map((row) => ({ row, metric: previsionMetric(row) }))
+    .sort((a, b) => b.metric.adjustedMin - a.metric.adjustedMin)[0];
+  qs("homeActions").innerHTML = [
+    renderHomeAction(
+      {
+        title: "Ahorro sugerido",
+        value: money(savings.recommendedSaving, true),
+        detail: `Potencial medio: ${money(savings.monthlySavingPotential, true)}/mes`,
+        target: "savings-plan",
+        tone: "good",
+      },
+    ),
+    renderHomeAction({
+      title: "Mejor mes para proyecto",
+      value: bestProjectMonth?.row.month || "-",
+      detail: `Mínimo ajustado estimado: ${money(bestProjectMonth?.metric.adjustedMin || 0, true)}`,
+      target: "simulator",
+      tone: "neutral",
+    }),
+    renderHomeAction({
+      title: "Revisar movimientos",
+      value: money(Number(firstRow?.startLiquidity || 0), true),
+      detail: "Actualiza saldos reales y clasificación bancaria",
+      target: "movements",
+      tone: "neutral",
+    }),
+    renderHomeAction({
+      title: "Editar cuadro",
+      value: firstRow?.month || "Mes actual",
+      detail: "Previstos, reales y nuevas líneas",
+      target: "visual-detail",
+      tone: "neutral",
+    }),
+  ].join("");
+
+  const debtPriorityHtml = debtPriorities.map((item, index) =>
+    renderHomePriority({
+      title: `${index + 1}. ${debtTargetDisplayName(item.target)}`,
+      meta: `Mejor hueco: ${item.best?.month?.label || "por calcular"} · cuota ${money(item.payment, true)}/mes`,
+      value: money(item.principal, true),
+      target: "debt-control",
+      status: index === 0 ? "warn" : "neutral",
+    }),
+  );
+  const decisionPriorityHtml = loadedDecisions.slice(0, 3).map((item) =>
+    renderHomePriority({
+      title: `${item.source === "debt" ? "Deuda" : "Proyecto"} · ${item.name || "Sin nombre"}`,
+      meta: `${forecastMonths()[item.startIndex]?.label || "sin mes"} · ${item.duration || 1} mes(es)`,
+      value: money(Number(item.amount || 0), true),
+      target: item.source === "debt" ? "debt-control" : "simulator",
+      status: "neutral",
+    }),
+  );
+  qs("homePriorities").innerHTML =
+    [...debtPriorityHtml, ...decisionPriorityHtml].join("") ||
+    `<div class="empty-state compact">No hay decisiones pendientes: puedes crear un proyecto o simular una amortización.</div>`;
+
+  qs("homeMonthTable").innerHTML = `<thead><tr>
+      <th>Mes</th>
+      <th>Margen</th>
+      <th>Mín. ajustado</th>
+      <th>Decisiones</th>
+      <th>Lectura</th>
+    </tr></thead>
+    <tbody>
+      ${nextSensitiveMonths
+        .map(({ row, metric }) => {
+          const status = homeStatusClass(metric.adjustedMin, adjustedWarn, 0);
+          const label = status === "danger" ? "Caja crítica" : status === "warn" ? "Vigilar" : "Cómodo";
+          return `<tr>
+            <td>${escapeHtml(row.month)}</td>
+            <td class="${row.netBeforeSaving < 0 ? "negative" : "positive"}">${money(row.netBeforeSaving, true)}</td>
+            <td class="${status === "danger" ? "negative" : "positive"}">${money(metric.adjustedMin, true)}</td>
+            <td>${money(row.projectOutflow, true)}</td>
+            <td><span class="status-pill ${status}">${label}</span></td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>`;
+}
+
 function renderActiveSection(viewId = viewFromHash()) {
   if (!lastSimulation.length) return;
   switch (viewId) {
+    case "home":
+      renderHomeDashboard();
+      break;
     case "visual-detail":
       renderVisualDetail();
       break;
@@ -6759,6 +7007,14 @@ async function init() {
   qs("movementMonthFilter").addEventListener("change", renderDetailedMovements);
   qs("movementSearch").addEventListener("input", renderDetailedMovements);
   qs("movementExcelFile").addEventListener("change", handleMovementExcelImport);
+  qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
+  qs("home")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-home-nav]");
+    const target = button?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
+  });
   qs("clearBatchData").addEventListener("click", () => {
     qs("batchDataInput").value = "";
     showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.");

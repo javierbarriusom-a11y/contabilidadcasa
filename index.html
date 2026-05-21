@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260521c" />
+    <link rel="stylesheet" href="styles.css?v=20260521d" />
   </head>
   <body>
     <div class="app-shell">
@@ -18,7 +18,8 @@
         </div>
 
         <nav class="side-nav">
-          <a href="#visual-detail" class="active">Cuadro de mandos</a>
+          <a href="#home" class="active">Inicio</a>
+          <a href="#visual-detail">Cuadro de mandos</a>
           <a href="#debt-control">Control de deuda</a>
           <a href="#prevision">Previsión</a>
           <a href="#simulator">Simulador</a>
@@ -78,13 +79,82 @@
       <div class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow" id="viewEyebrow">Cuadro de mando financiero</p>
-            <h1 id="viewTitle">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
+            <p class="eyebrow" id="viewEyebrow">Inicio</p>
+            <h1 id="viewTitle">Control diario de caja, deuda y decisiones</h1>
           </div>
           <div class="source-note" id="sourceNote"></div>
         </header>
 
         <main>
+          <section class="home-dashboard view-section" id="home">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Inicio</p>
+                <h2>Centro de decisión diario</h2>
+                <p>Vista ejecutiva para decidir ahorro, deuda y proyectos con los datos actuales del modelo.</p>
+              </div>
+              <div class="visual-controls">
+                <label>
+                  <span>Horizonte</span>
+                  <select id="homeHorizon">
+                    <option value="12">12 meses</option>
+                    <option value="24">24 meses</option>
+                    <option value="48">48 meses</option>
+                    <option value="all">Hasta 2036</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="home-kpi-grid" id="homeKpis"></div>
+
+            <div class="home-layout">
+              <article class="home-panel home-main-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Lectura prioritaria</p>
+                    <h3>Qué haría ahora</h3>
+                  </div>
+                </div>
+                <div class="home-insight-list" id="homeInsights"></div>
+              </article>
+
+              <article class="home-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Acciones</p>
+                    <h3>Planificador rápido</h3>
+                  </div>
+                </div>
+                <div class="home-action-grid" id="homeActions"></div>
+              </article>
+            </div>
+
+            <div class="home-layout">
+              <article class="home-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Deuda y proyectos</p>
+                    <h3>Prioridades recomendadas</h3>
+                  </div>
+                </div>
+                <div class="home-priority-list" id="homePriorities"></div>
+              </article>
+
+              <article class="home-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Próximos meses</p>
+                    <h3>Meses a vigilar</h3>
+                  </div>
+                </div>
+                <div class="table-wrap home-table-wrap">
+                  <table class="home-month-table" id="homeMonthTable"></table>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <section class="visual-detail view-section" id="visual-detail">
             <div class="hero-grid dashboard-hero" aria-label="Resumen del plan">
               <article class="summary-card primary">
@@ -1061,9 +1131,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260521c"></script>
-    <script src="supabase-config.js?v=20260521c"></script>
-    <script src="data.js?v=20260521c"></script>
-    <script src="app.js?v=20260521c"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260521d"></script>
+    <script src="supabase-config.js?v=20260521d"></script>
+    <script src="data.js?v=20260521d"></script>
+    <script src="app.js?v=20260521d"></script>
   </body>
 </html>
