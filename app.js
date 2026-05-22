@@ -844,6 +844,13 @@ function plannedValueForRow(row, month) {
   return basePlannedValueForRow(row, month);
 }
 
+function sourcePlannedValueForRow(row, month) {
+  const override = seriesOverrideForRow(row, month);
+  if (override?.deleted) return 0;
+  if (override?.planned !== undefined && override?.planned !== "") return Number(override.planned || 0);
+  return basePlannedValueForRow(row, month);
+}
+
 function basePlannedValueForRow(row, month) {
   if (row.custom) return Number(row.plannedValue || 0);
   const sourceMonth = sourcePlanningMonthForMonth(month);
@@ -4188,7 +4195,7 @@ function sumColumnMonths(column, getter) {
 function plannedValueForVisualRow(row, month) {
   const scopedRow = row.custom ? customRowForVisualMonth(row, month) : row;
   if (!scopedRow) return 0;
-  return plannedValueForRow(scopedRow, month);
+  return sourcePlannedValueForRow(scopedRow, month);
 }
 
 function visualDraftCellKey(rowKey, monthKey, mode) {
@@ -4216,7 +4223,13 @@ function actualAwareInfoForVisualRow(row, month) {
   if (!scopedRow) {
     return { planned: 0, actual: null, hasActual: false, value: 0, source: "Previsto" };
   }
-  return actualAwareInfo(scopedRow, month);
+  const info = actualAwareInfo(scopedRow, month);
+  const planned = sourcePlannedValueForRow(scopedRow, month);
+  return {
+    ...info,
+    planned,
+    value: info.hasActual ? info.actual : planned,
+  };
 }
 
 function customRowForVisualMonth(row, month) {
@@ -5958,7 +5971,7 @@ function renderPlanningDetails({
       let sectionCapturedPlanned = 0;
       let sectionCapturedRows = 0;
       const sectionPlanned = section.rows.reduce((sum, row) => {
-        const planned = plannedValueForRow(row, month);
+        const planned = sourcePlannedValueForRow(row, month);
         const key = actualKeyForRow(row, month);
         const stored = actuals[key];
         const hasActual = stored !== undefined && stored !== "";
@@ -5992,7 +6005,7 @@ function renderPlanningDetails({
       if (!expanded) return;
 
       section.rows.forEach((row) => {
-        const planned = plannedValueForRow(row, month);
+        const planned = sourcePlannedValueForRow(row, month);
         const key = actualKeyForRow(row, month);
         const deleteKey = deleteKeyForRow(row, month);
         const stored = actuals[key];
