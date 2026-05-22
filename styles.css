@@ -1339,6 +1339,11 @@ select:focus {
   border-left-color: #55396f;
 }
 
+.project-item.locked {
+  border-left-color: var(--green);
+  background: #f4fbf7;
+}
+
 .project-item strong {
   display: block;
   margin-bottom: 4px;
@@ -1371,6 +1376,28 @@ select:focus {
 .project-item [data-edit-project] {
   color: var(--teal);
   border-color: rgba(12, 139, 135, 0.28);
+}
+
+.project-item .lock-action {
+  color: #1f6f47;
+  border-color: rgba(47, 133, 90, 0.32);
+  background: #f8fffb;
+}
+
+.decision-lock-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: #1f6f47;
+  background: #e4f5eb;
+  border: 1px solid rgba(47, 133, 90, 0.22);
+  font-size: 11px;
+  font-weight: 900;
+  vertical-align: middle;
+  white-space: nowrap;
 }
 
 .saving-row {
@@ -2303,6 +2330,10 @@ svg {
 .visual-line-row.pending-delete td {
   background: #fff6f5;
   opacity: 0.86;
+}
+
+.visual-line-row.locked td {
+  background: #f5fbf7;
 }
 
 .visual-line-row.selected td {

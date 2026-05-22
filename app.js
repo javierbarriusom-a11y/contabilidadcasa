@@ -434,6 +434,8 @@ function normalizeLoadedProjects() {
     next.recurringAmount = round2(Number(next.recurringAmount || 0));
     next.recurringDuration = Math.max(0, Number(next.recurringDuration || 0));
     next.recurringStartOffset = Math.max(0, Number(next.recurringStartOffset || 0));
+    next.locked = Boolean(next.locked);
+    if (!next.locked) delete next.lockedAt;
     if (project.mode !== "fixed" && project.mode !== "spread") return next;
     if (next.monthKey) {
       const indexFromKey = months.findIndex((month) => month.key === next.monthKey);
@@ -467,6 +469,38 @@ function saveProjects() {
 function saveDebtLiquidations() {
   storageSet(storageKey("debtLiquidations"), JSON.stringify(debtLiquidations));
   queueRemoteSave();
+}
+
+function decisionLockedBadge(item) {
+  return item?.locked ? '<span class="decision-lock-badge">Fijo en plan</span>' : "";
+}
+
+function setDecisionLocked(source, id, locked) {
+  const stamp = locked ? new Date().toISOString() : null;
+  if (source === "debt") {
+    debtLiquidations = debtLiquidations.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            locked: Boolean(locked),
+            lockedAt: stamp || undefined,
+          }
+        : item,
+    );
+    saveDebtLiquidations();
+  } else {
+    projects = projects.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            locked: Boolean(locked),
+            lockedAt: stamp || undefined,
+          }
+        : item,
+    );
+    saveProjects();
+  }
+  render();
 }
 
 function saveIncomeActuals() {
@@ -2653,7 +2687,11 @@ function handleAddProject() {
     monthKey: monthKeyForProject,
   };
   if (editingProjectId) {
-    projects = projects.map((item) => (item.id === editingProjectId ? project : item));
+    const previous = projects.find((item) => item.id === editingProjectId);
+    if (previous?.locked) return;
+    projects = projects.map((item) =>
+      item.id === editingProjectId ? { ...project, locked: Boolean(item.locked), lockedAt: item.lockedAt } : item,
+    );
   } else {
     projects.push(project);
   }
@@ -2678,6 +2716,7 @@ function clearProjectForm() {
 function editProject(id) {
   const project = projects.find((item) => item.id === id);
   if (!project) return;
+  if (project.locked) return;
   editingProjectId = id;
   qs("projectName").value = project.name || "";
   qs("projectAmount").value = amountInputValue(Number(project.amount || 0));
@@ -2695,6 +2734,8 @@ function editProject(id) {
 }
 
 function removeProject(id) {
+  const project = projects.find((item) => item.id === id);
+  if (project?.locked) return;
   if (editingProjectId === id) clearProjectForm();
   projects = projects.filter((project) => project.id !== id);
   saveProjects();
@@ -2702,6 +2743,8 @@ function removeProject(id) {
 }
 
 function removeDebtLiquidation(id) {
+  const item = debtLiquidations.find((candidate) => candidate.id === id);
+  if (item?.locked) return;
   debtLiquidations = debtLiquidations.filter((item) => item.id !== id);
   saveDebtLiquidations();
   render();
@@ -3260,12 +3303,15 @@ function renderDebtControl() {
           const month = placement
             ? forecastMonths()[placement.startIndex]
             : forecastMonths().find((candidate) => candidate.key === item.monthKey) || forecastMonths()[item.monthIndex || 0];
-          return `<div class="project-item debt-item">
+          const actions = item.locked
+            ? `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="false">Desbloquear</button>`
+            : `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="true">Fijar en plan</button><button data-remove-debt-liquidation="${escapeHtml(item.id)}">Quitar</button>`;
+          return `<div class="project-item debt-item ${item.locked ? "locked" : ""}">
             <div>
-              <strong>${escapeHtml(item.name)}</strong>
+              <strong>${escapeHtml(item.name)} ${decisionLockedBadge(item)}</strong>
               <p>${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(item.monthlyRelief || 0, true)}.</p>
             </div>
-            <button data-remove-debt-liquidation="${escapeHtml(item.id)}">Quitar</button>
+            <div class="project-item-actions">${actions}</div>
           </div>`;
         })
         .join("")
@@ -3274,12 +3320,17 @@ function renderDebtControl() {
   document.querySelectorAll("[data-remove-debt-liquidation]").forEach((button) => {
     button.addEventListener("click", () => removeDebtLiquidation(button.dataset.removeDebtLiquidation));
   });
+  document.querySelectorAll("[data-lock-debt-liquidation]").forEach((button) => {
+    button.addEventListener("click", () =>
+      setDecisionLocked("debt", button.dataset.lockDebtLiquidation, button.dataset.lockValue === "true"),
+    );
+  });
   renderDebtPayoffChart();
 }
 
 function handleClearProjects() {
   clearProjectForm();
-  projects = [];
+  projects = projects.filter((project) => project.locked);
   saveProjects();
   render();
 }
@@ -3326,13 +3377,15 @@ function renderProjectSimulator(baseRows, rows) {
           : project.status === "warning"
             ? "Sin hueco plenamente cómodo; colocado en el mejor mes disponible"
             : "Mes optimizado automáticamente";
-      const actions =
-        project.source === "debt"
-          ? `<button data-remove-project="${project.id}" data-remove-project-source="debt">Quitar</button>`
-          : `<button data-edit-project="${project.id}">Editar</button><button data-remove-project="${project.id}" data-remove-project-source="project">Quitar</button>`;
-      return `<div class="project-item ${project.status === "warning" ? "warning" : ""} ${project.source === "debt" ? "debt-item" : ""}">
+      const source = project.source === "debt" ? "debt" : "project";
+      const actions = project.locked
+        ? `<button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="${source}" data-lock-value="false">Desbloquear</button>`
+        : source === "debt"
+          ? `<button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="debt" data-lock-value="true">Fijar en plan</button><button data-remove-project="${escapeHtml(project.id)}" data-remove-project-source="debt">Quitar</button>`
+          : `<button data-edit-project="${escapeHtml(project.id)}">Editar</button><button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="project" data-lock-value="true">Fijar en plan</button><button data-remove-project="${escapeHtml(project.id)}" data-remove-project-source="project">Quitar</button>`;
+      return `<div class="project-item ${project.status === "warning" ? "warning" : ""} ${project.source === "debt" ? "debt-item" : ""} ${project.locked ? "locked" : ""}">
         <div>
-          <strong>${project.name}</strong>
+          <strong>${escapeHtml(project.name)} ${decisionLockedBadge(project)}</strong>
           <p>${project.source === "debt" ? "Deuda" : "Proyecto"} · ${money(totalCost, true)} total, desde ${project.monthLabel}. ${statusText}. Pico mensual: ${money(monthly, true)}.${recurrenceText}</p>
         </div>
         <div class="project-item-actions">${actions}</div>
@@ -3348,6 +3401,11 @@ function renderProjectSimulator(baseRows, rows) {
       if (button.dataset.removeProjectSource === "debt") removeDebtLiquidation(button.dataset.removeProject);
       else removeProject(button.dataset.removeProject);
     });
+  });
+  document.querySelectorAll("[data-lock-project]").forEach((button) => {
+    button.addEventListener("click", () =>
+      setDecisionLocked(button.dataset.lockProjectSource, button.dataset.lockProject, button.dataset.lockValue === "true"),
+    );
   });
 }
 
@@ -4441,6 +4499,13 @@ function stageSelectedVisualDeletes() {
 function stageVisualProjectDelete(id) {
   const project = projects.find((item) => item.id === id) || debtLiquidations.find((item) => item.id === id);
   if (!project) return;
+  if (project.locked) {
+    if (qs("visualAddFeedback")) {
+      qs("visualAddFeedback").textContent = "Esta decisión está fija en el plan. Desbloquéala antes de eliminarla.";
+      qs("visualAddFeedback").className = "inline-feedback warning";
+    }
+    return;
+  }
   visualDraftProjectDeletes[id] = { id, label: project.name || "Proyecto" };
   renderVisualDetail();
 }
@@ -4499,6 +4564,8 @@ function saveVisualChanges() {
   });
 
   Object.keys(visualDraftProjectDeletes).forEach((id) => {
+    if (projects.some((project) => project.id === id && project.locked)) return;
+    if (debtLiquidations.some((item) => item.id === id && item.locked)) return;
     const before = projects.length;
     projects = projects.filter((project) => project.id !== id);
     if (projects.length !== before) {
@@ -4641,10 +4708,14 @@ function renderVisualDetail() {
     if (expanded) {
       projectRows.forEach((project) => {
         const pendingDelete = isVisualProjectPendingDelete(project.id);
-        body.push(`<tr class="visual-line-row visual-project-row ${pendingDelete ? "pending-delete" : ""}">
+        const locked = Boolean(project.locked);
+        const actionCell = locked
+          ? '<span class="decision-lock-badge">Fijo</span>'
+          : `<button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button>`;
+        body.push(`<tr class="visual-line-row visual-project-row ${pendingDelete ? "pending-delete" : ""} ${locked ? "locked" : ""}">
           <td>
             <input class="visual-label-input derived-control" value="${escapeHtml(project.name)}" readonly />
-            <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}${pendingDelete ? " · se borrará al guardar" : ""}</small>
+            <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}${locked ? " · fijo en plan" : ""}${pendingDelete ? " · se borrará al guardar" : ""}</small>
           </td>
           ${columns
             .map((column) => {
@@ -4653,7 +4724,7 @@ function renderVisualDetail() {
               return `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" readonly /></td>`;
             })
             .join("")}
-          <td><button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button></td>
+          <td>${actionCell}</td>
         </tr>`);
       });
     }
