@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260521d" />
+    <link rel="stylesheet" href="styles.css?v=20260522a" />
   </head>
   <body>
     <div class="app-shell">
@@ -432,6 +432,8 @@
                     <select id="debtPayoffMode">
                       <option value="optimize">Buscar mejor mes · pago único</option>
                       <option value="fixed">Mes manual · pago único</option>
+                      <option value="spread-optimize">Fraccionar pactado · inicio óptimo</option>
+                      <option value="spread">Fraccionar pactado · mes manual</option>
                       <option value="refinance-optimize">Reunificación · inicio óptimo</option>
                       <option value="refinance">Reunificación · mes manual</option>
                     </select>
@@ -444,9 +446,13 @@
                     <span>Duración (meses)</span>
                     <input id="debtPayoffDuration" type="number" min="1" max="60" step="1" value="1" />
                   </label>
-                  <button id="addDebtPayoff" type="button">Añadir decisión</button>
+                  <div class="debt-form-actions">
+                    <button id="reviewDebtPayoff" type="button">Comparar decisión</button>
+                    <button id="addDebtPayoff" type="button" disabled>Confirmar y aplicar</button>
+                  </div>
                 </div>
                 <div class="debt-agreement-preview" id="debtAgreementPreview"></div>
+                <div class="debt-decision-review" id="debtDecisionReview"></div>
               </article>
               <article class="debt-panel">
                 <div class="module-heading">
@@ -1131,9 +1137,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260521d"></script>
-    <script src="supabase-config.js?v=20260521d"></script>
-    <script src="data.js?v=20260521d"></script>
-    <script src="app.js?v=20260521d"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260522a"></script>
+    <script src="supabase-config.js?v=20260522a"></script>
+    <script src="data.js?v=20260522a"></script>
+    <script src="app.js?v=20260522a"></script>
   </body>
 </html>

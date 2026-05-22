@@ -2589,15 +2589,32 @@ svg {
 }
 
 .debt-form label:nth-child(1),
-.debt-form button {
+.debt-form-actions {
   grid-column: 1 / -1;
 }
 
-.debt-form button {
+.debt-form-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.debt-form button,
+.debt-form-actions button {
   color: #ffffff;
   border-color: var(--ink);
   background: var(--ink);
   font-weight: 900;
+}
+
+.debt-form-actions button:first-child {
+  border-color: var(--teal);
+  background: var(--teal);
+}
+
+.debt-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .debt-form .muted-control {
@@ -2609,6 +2626,115 @@ svg {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
+}
+
+.debt-decision-review {
+  margin-top: 12px;
+}
+
+.debt-review-empty,
+.debt-review-head,
+.debt-review-summary,
+.debt-review-options {
+  margin-top: 10px;
+}
+
+.debt-review-empty {
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: #ffffff;
+}
+
+.debt-review-empty strong {
+  display: block;
+  color: var(--ink);
+}
+
+.debt-review-empty p,
+.debt-review-head p,
+.debt-review-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.debt-review-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.debt-review-head h4 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.debt-review-badge {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  background: #4f3f77;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.debt-review-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.debt-review-summary div,
+.debt-review-card {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.debt-review-summary span,
+.debt-review-card span,
+.debt-review-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.debt-review-summary strong,
+.debt-review-card strong,
+.debt-review-card b {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.debt-review-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.debt-review-card {
+  border-left: 4px solid var(--green);
+}
+
+.debt-review-card.warn {
+  border-left-color: #bf7a13;
 }
 
 .debt-list {
@@ -3130,10 +3256,14 @@ table {
 }
 
 .finance-assistant {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  align-items: flex-end;
   position: fixed;
   right: 18px;
   bottom: 18px;
-  z-index: 40;
+  z-index: 120;
   width: min(430px, calc(100vw - 36px));
   pointer-events: none;
 }
@@ -3144,7 +3274,6 @@ table {
 }
 
 .assistant-toggle {
-  float: right;
   min-height: 44px;
   padding: 10px 15px;
   color: #ffffff;
@@ -3156,8 +3285,8 @@ table {
 }
 
 .assistant-panel {
-  clear: both;
-  margin-top: 10px;
+  width: 100%;
+  margin-top: 0;
   padding: 14px;
   border: 1px solid rgba(12, 139, 135, 0.28);
   border-radius: 8px;
@@ -3706,6 +3835,8 @@ tbody tr:hover {
 	  .debt-breakdown-cards,
 	  .debt-product-grid,
 	  .debt-agreement-preview,
+    .debt-review-summary,
+    .debt-review-options,
 	  .movement-import-grid,
 	  .range-kpi-grid,
 	  .savings-plan-grid,
@@ -3782,6 +3913,9 @@ tbody tr:hover {
   .home-kpi-grid,
   .home-layout,
   .home-action-grid,
+  .debt-form-actions,
+  .debt-review-summary,
+  .debt-review-options,
   .decision-actions,
   .data-import-grid,
   .series-form,

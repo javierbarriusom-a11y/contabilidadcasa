@@ -65,6 +65,7 @@ let visualDraftLabels = {};
 let visualDraftDeletes = {};
 let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
+let pendingDebtDecision = null;
 let selectorSignature = "";
 let visualMonthSelectorSignature = "";
 let visualAddSectionSignature = "";
@@ -979,6 +980,7 @@ function normalizeProjectMode(value) {
 
 function normalizeDebtPayoffMode(value, duration = 1) {
   const text = normalizedText(value);
+  if (text.includes("refinanc") || text.includes("reunific")) return "refinance";
   if (text.includes("repart") || text.includes("varios") || text.includes("mensual") || Number(duration) > 1) return "spread";
   return "fixed";
 }
@@ -2720,6 +2722,7 @@ function updateDebtTargetDefaults(force = true) {
 function debtModeLabel(mode) {
   if (mode === "optimize") return "mes óptimo";
   if (mode === "spread") return "pago repartido";
+  if (mode === "spread-optimize") return "pago repartido con inicio óptimo";
   if (mode === "refinance-optimize") return "reunificación con inicio óptimo";
   if (mode === "refinance") return "refinanciación";
   return "mes fijo";
@@ -2729,16 +2732,22 @@ function isDebtRefinanceMode(mode) {
   return mode === "refinance" || mode === "refinance-optimize";
 }
 
+function isDebtMultiMonthMode(mode) {
+  return isDebtRefinanceMode(mode) || mode === "spread" || mode === "spread-optimize";
+}
+
 function updateDebtModeUi() {
   const mode = qs("debtPayoffMode")?.value || "optimize";
-  const isRefinance = isDebtRefinanceMode(mode);
+  const isMultiMonth = isDebtMultiMonthMode(mode);
   if (qs("debtPayoffDuration")) {
-    qs("debtPayoffDuration").disabled = !isRefinance;
-    if (!isRefinance) qs("debtPayoffDuration").value = 1;
+    qs("debtPayoffDuration").disabled = !isMultiMonth;
+    if (!isMultiMonth) qs("debtPayoffDuration").value = 1;
   }
-  if (qs("debtPayoffMonth")) qs("debtPayoffMonth").disabled = mode === "optimize" || mode === "refinance-optimize";
-  qs("debtPayoffDuration")?.closest("label")?.classList.toggle("muted-control", !isRefinance);
-  qs("debtPayoffMonth")?.closest("label")?.classList.toggle("muted-control", mode === "optimize" || mode === "refinance-optimize");
+  const optimizesMonth = mode === "optimize" || mode === "refinance-optimize" || mode === "spread-optimize";
+  if (qs("debtPayoffMonth")) qs("debtPayoffMonth").disabled = optimizesMonth;
+  qs("debtPayoffDuration")?.closest("label")?.classList.toggle("muted-control", !isMultiMonth);
+  qs("debtPayoffMonth")?.closest("label")?.classList.toggle("muted-control", optimizesMonth);
+  updateDebtConfirmState();
   renderDebtAgreementPreview();
 }
 
@@ -2769,12 +2778,152 @@ function evaluateDebtCandidate(target, amount, relief, duration = 1, mode = "ful
   return best;
 }
 
+function debtDecisionModeFromRaw(rawMode) {
+  return rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize" ? "optimize" : "fixed";
+}
+
+function debtDecisionDurationFromMode(rawMode) {
+  return isDebtMultiMonthMode(rawMode) ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
+}
+
+function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize } = {}) {
+  const amount = parseAmount(qs("debtPayoffAmount")?.value);
+  if (!amount || amount <= 0) return null;
+  const target = selectedDebtTarget();
+  const rawMode = rawModeOverride || qs("debtPayoffMode")?.value || "optimize";
+  const duration = Math.max(1, Number(durationOverride || debtDecisionDurationFromMode(rawMode)));
+  const monthlyRelief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target?.payment || 0);
+  const originalPrincipal = round2(Number(target?.currentPrincipal ?? target?.principal ?? amount));
+  const optimized = forceOptimize || rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize";
+  const best = optimized ? evaluateDebtCandidate(target, amount, monthlyRelief, duration) : null;
+  const monthIndex = optimized
+    ? Number(best?.month?.index ?? qs("debtPayoffMonth")?.value ?? 0)
+    : Number(qs("debtPayoffMonth")?.value || 0);
+  const month = forecastMonths()[Math.max(0, Math.min(monthIndex, forecastMonths().length - 1))];
+  return {
+    id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: qs("debtPayoffName")?.value.trim() || debtTargetDisplayName(target),
+    amount: round2(amount),
+    targetId: target?.id || "plan-unificado",
+    targetPrincipal: originalPrincipal,
+    originalPrincipal,
+    discount: round2(Math.max(0, originalPrincipal - amount)),
+    monthlyRelief: round2(monthlyRelief),
+    duration,
+    mode: debtDecisionModeFromRaw(rawMode),
+    payoffMode: rawMode,
+    monthIndex: month?.index || 0,
+    monthKey: month?.key,
+    preview: best,
+  };
+}
+
+function evaluateDebtDecisionItem(item) {
+  const months = forecastMonths();
+  const baselineOutflows = projectPlan?.outflows?.length === months.length ? projectPlan.outflows : Array(months.length).fill(0);
+  const candidate = baselineOutflows.slice();
+  addScheduledDecisionOutflow(candidate, { ...item, source: "debt" }, item.monthIndex || 0);
+  const baseline = evaluateOutflows(baselineOutflows);
+  const evaluation = evaluateOutflows(candidate);
+  return {
+    evaluation,
+    netGain: round2(evaluation.ending - baseline.ending),
+    monthly: round2(Number(item.amount || 0) / Math.max(1, Number(item.duration || 1))),
+  };
+}
+
+function updateDebtConfirmState() {
+  const confirm = qs("addDebtPayoff");
+  if (!confirm) return;
+  confirm.disabled = !pendingDebtDecision;
+  confirm.textContent = pendingDebtDecision ? "Confirmar y aplicar" : "Primero compara la decisión";
+}
+
+function debtReviewOptionCard(option, selected = false) {
+  const klass = option.feasible ? "good" : "warn";
+  return `<article class="debt-review-card ${klass} ${selected ? "selected" : ""}">
+    <span>${escapeHtml(option.title)}</span>
+    <strong>${escapeHtml(option.monthLabel)} · ${money(option.monthly, true)}/mes</strong>
+    <p>${escapeHtml(option.detail)}</p>
+    <div>
+      <small>Caja mínima</small><b>${money(option.minChecking, true)}</b>
+    </div>
+    <div>
+      <small>Liquidez final</small><b>${option.netGain >= 0 ? "+" : ""}${money(option.netGain, true)}</b>
+    </div>
+  </article>`;
+}
+
+function renderDebtDecisionReview(decision = pendingDebtDecision) {
+  const panel = qs("debtDecisionReview");
+  if (!panel) return;
+  if (!decision) {
+    panel.innerHTML = `<div class="debt-review-empty">
+      <strong>Compara antes de aplicar</strong>
+      <p>Elige deuda, importe pactado y modalidad. La decisión no afectará al resto de secciones hasta que confirmes.</p>
+    </div>`;
+    updateDebtConfirmState();
+    return;
+  }
+  const target = selectedDebtTarget();
+  const currentEval = evaluateDebtDecisionItem(decision);
+  const targetPrincipal = Number(target?.currentPrincipal ?? target?.principal ?? decision.originalPrincipal ?? decision.amount);
+  const variants = [
+    { title: "Pago único óptimo", rawMode: "optimize", duration: 1, detail: "Liquida en un solo mes y elimina cuota después." },
+    { title: "Fraccionar 6 meses", rawMode: "spread-optimize", duration: 6, detail: "Divide el importe pactado y busca inicio óptimo." },
+    { title: "Reunificar 12 meses", rawMode: "refinance-optimize", duration: 12, detail: "Menos presión mensual, más tiempo hasta eliminar cuota." },
+    { title: "Reunificar 24 meses", rawMode: "refinance-optimize", duration: 24, detail: "Menor cuota mensual, impacto más suave en caja." },
+  ]
+    .filter((option) => targetPrincipal > 0 || option.rawMode !== "optimize")
+    .map((option) => {
+      const candidate = debtDecisionFromForm({ rawModeOverride: option.rawMode, durationOverride: option.duration, forceOptimize: true });
+      if (!candidate) return null;
+      const evaluation = evaluateDebtDecisionItem(candidate);
+      return {
+        ...option,
+        monthly: evaluation.monthly,
+        minChecking: evaluation.evaluation.minChecking,
+        netGain: evaluation.netGain,
+        monthLabel: forecastMonths()[candidate.monthIndex]?.label || "-",
+        feasible: evaluation.evaluation.minChecking >= 0,
+      };
+    })
+    .filter(Boolean);
+  const currentMonth = forecastMonths()[decision.monthIndex]?.label || "-";
+  const discountPct = decision.originalPrincipal ? decision.discount / decision.originalPrincipal : 0;
+  panel.innerHTML = `<div class="debt-review-head">
+      <div>
+        <p class="panel-kicker">Revisión previa</p>
+        <h4>${escapeHtml(decision.name)}</h4>
+        <p>Se aplicará al dashboard solo al confirmar. Objetivo: evitar duplicados y validar caja antes de comprometer la decisión.</p>
+      </div>
+      <div class="debt-review-badge">${debtModeLabel(decision.payoffMode)} · ${currentMonth}</div>
+    </div>
+    <div class="debt-review-summary">
+      <div><span>Deuda original</span><strong>${money(decision.originalPrincipal, true)}</strong></div>
+      <div><span>Importe pactado</span><strong>${money(decision.amount, true)}</strong></div>
+      <div><span>Mejora</span><strong class="${decision.discount ? "positive" : ""}">${money(decision.discount, true)} · ${(discountPct * 100).toFixed(1)}%</strong></div>
+      <div><span>Opción seleccionada</span><strong>${money(currentEval.monthly, true)}/mes</strong></div>
+      <div><span>Caja mínima</span><strong class="${currentEval.evaluation.minChecking < 0 ? "negative" : "positive"}">${money(currentEval.evaluation.minChecking, true)}</strong></div>
+      <div><span>Liquidez final</span><strong>${currentEval.netGain >= 0 ? "+" : ""}${money(currentEval.netGain, true)}</strong></div>
+    </div>
+    <div class="debt-review-options">
+      ${variants.map((option) => debtReviewOptionCard(option)).join("")}
+    </div>`;
+  updateDebtConfirmState();
+}
+
+function stageDebtDecision() {
+  pendingDebtDecision = debtDecisionFromForm();
+  renderDebtDecisionReview(pendingDebtDecision);
+}
+
 function recommendedDebtDecision() {
   const target = selectedDebtTarget();
   const amount = parseAmount(qs("debtPayoffAmount")?.value) ?? Number(target?.principal || 0);
   const relief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target?.payment || 0);
   const mode = qs("debtPayoffMode")?.value || "optimize";
-  const duration = isDebtRefinanceMode(mode) ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
+  const duration = isDebtMultiMonthMode(mode) ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
   return evaluateDebtCandidate(target, amount, relief, duration);
 }
 
@@ -2837,30 +2986,13 @@ function debtControlStats() {
 }
 
 function handleAddDebtLiquidation() {
-  const amount = parseAmount(qs("debtPayoffAmount").value);
-  if (!amount || amount <= 0) return;
-  const target = selectedDebtTarget();
-  const rawMode = qs("debtPayoffMode").value || "optimize";
-  const duration = isDebtRefinanceMode(rawMode) ? Math.max(1, Number(qs("debtPayoffDuration").value || 1)) : 1;
-  const monthIndex = Number(qs("debtPayoffMonth").value || 0);
-  const monthKeyForDebt = forecastMonths()[monthIndex]?.key;
-  const monthlyRelief = parseAmount(qs("debtPayoffRelief").value) ?? Number(target?.payment || 0);
-  const originalPrincipal = round2(Number(target?.currentPrincipal ?? target?.principal ?? amount));
-  debtLiquidations.push({
-    id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name: qs("debtPayoffName").value.trim() || debtTargetDisplayName(target),
-    amount: round2(amount),
-    targetId: target?.id || "plan-unificado",
-    targetPrincipal: originalPrincipal,
-    originalPrincipal,
-    discount: round2(Math.max(0, originalPrincipal - amount)),
-    monthlyRelief: round2(monthlyRelief),
-    duration,
-    mode: rawMode === "optimize" || rawMode === "refinance-optimize" ? "optimize" : "fixed",
-    payoffMode: rawMode,
-    monthIndex,
-    monthKey: monthKeyForDebt,
-  });
+  if (!pendingDebtDecision) {
+    stageDebtDecision();
+    return;
+  }
+  const { preview, ...decision } = pendingDebtDecision;
+  debtLiquidations.push(decision);
+  pendingDebtDecision = null;
   qs("debtPayoffName").value = "";
   qs("debtPayoffAmount").value = "";
   qs("debtPayoffRelief").value = "";
@@ -2870,8 +3002,9 @@ function handleAddDebtLiquidation() {
 }
 
 function debtPriorityCandidates() {
+  const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
   return debtTargetOptions()
-    .filter((target) => target.id !== "plan-unificado")
+    .filter((target) => target.id !== "plan-unificado" && !alreadyPlanned.has(target.id))
     .map((target) => {
       const principal = Number(target.currentPrincipal ?? target.principal ?? 0);
       const payment = Number(target.payment || 0);
@@ -3011,6 +3144,7 @@ function renderDebtControl() {
       : "<strong>Introduce una deuda</strong><span>El simulador propondrá mes y modalidad con impacto en caja.</span>";
   }
   renderDebtAgreementPreview();
+  renderDebtDecisionReview();
 
   if (qs("debtPriorityPlan")) {
     const candidates = debtPriorityCandidates().slice(0, 5);
@@ -6961,14 +7095,26 @@ async function init() {
   });
   qs("clearProjects").addEventListener("click", handleClearProjects);
   qs("addDebtPayoff").addEventListener("click", handleAddDebtLiquidation);
-  qs("debtTargetSelect").addEventListener("change", () => updateDebtTargetDefaults(true));
+  qs("reviewDebtPayoff")?.addEventListener("click", stageDebtDecision);
+  qs("debtTargetSelect").addEventListener("change", () => {
+    pendingDebtDecision = null;
+    updateDebtTargetDefaults(true);
+    renderDebtControl();
+  });
   qs("debtPayoffMode").addEventListener("change", () => {
+    pendingDebtDecision = null;
     updateDebtModeUi();
     renderDebtControl();
   });
   ["debtPayoffAmount", "debtPayoffRelief", "debtPayoffDuration", "debtPayoffMonth"].forEach((id) => {
-    qs(id).addEventListener("input", renderDebtControl);
-    qs(id).addEventListener("change", renderDebtControl);
+    qs(id).addEventListener("input", () => {
+      pendingDebtDecision = null;
+      renderDebtControl();
+    });
+    qs(id).addEventListener("change", () => {
+      pendingDebtDecision = null;
+      renderDebtControl();
+    });
   });
   qs("addIncomeConcept").addEventListener("click", () => handleAddCustomConcept("income"));
   qs("addExpenseConcept").addEventListener("click", () => handleAddCustomConcept("expense"));
