@@ -2794,31 +2794,21 @@ function currentDebtPaymentBreakdown() {
 }
 
 function debtTargetOptions() {
-  const current = currentDebtPaymentBreakdown();
-  return [
-    {
-      id: "plan-unificado",
-      entity: "Plan refinanciado",
-      type: "Cuota unificada",
-      number: "PZ Finanz / Cetelem",
-      principal: CURRENT_REUNIFIED_DEBT_COST,
-      currentPrincipal: CURRENT_REUNIFIED_DEBT_COST,
-      payment: current.unified,
-      maturity: "10 años aprox.",
-      remainingInstallments: CURRENT_REUNIFIED_DEBT_INSTALLMENTS,
-    },
-    ...debtPortfolioRows()
-      .filter((item) => Number(item.currentPrincipal || 0) > 0)
-      .map((item) => ({
-        ...item,
-        principal: item.currentPrincipal,
-        payment: item.currentPayment || item.originalPayment,
-      })),
-  ];
+  return debtPortfolioRows()
+    .filter((item) => Number(item.currentPrincipal || 0) > 0)
+    .map((item) => ({
+      ...item,
+      principal: item.currentPrincipal,
+      payment: item.currentPayment || item.originalPayment,
+    }));
+}
+
+function defaultDebtTargetId() {
+  return debtTargetOptions()[0]?.id || "";
 }
 
 function selectedDebtTarget() {
-  const targetId = qs("debtTargetSelect")?.value || "plan-unificado";
+  const targetId = qs("debtTargetSelect")?.value || defaultDebtTargetId();
   return debtTargetOptions().find((item) => item.id === targetId) || debtTargetOptions()[0];
 }
 
@@ -2829,11 +2819,10 @@ function populateDebtTargetSelect() {
   const hadOptions = select.options.length > 0;
   select.innerHTML = debtTargetOptions()
     .map((item) => {
-      const suffix = item.id === "plan-unificado" ? "plan actual" : item.number;
-      return `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${escapeHtml(suffix)} · ${money(item.currentPrincipal ?? item.principal, true)}</option>`;
+      return `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${escapeHtml(item.number || "")} · ${money(item.currentPrincipal ?? item.principal, true)}</option>`;
     })
     .join("");
-  select.value = [...select.options].some((option) => option.value === previous) ? previous : "plan-unificado";
+  select.value = [...select.options].some((option) => option.value === previous) ? previous : defaultDebtTargetId();
   if (!hadOptions) updateDebtTargetDefaults(false);
 }
 
@@ -2941,7 +2930,7 @@ function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize
     id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: qs("debtPayoffName")?.value.trim() || debtTargetDisplayName(target),
     amount: round2(amount),
-    targetId: target?.id || "plan-unificado",
+    targetId: target?.id || defaultDebtTargetId(),
     targetPrincipal: originalPrincipal,
     originalPrincipal,
     discount: round2(Math.max(0, originalPrincipal - amount)),
@@ -3141,7 +3130,7 @@ function handleAddDebtLiquidation() {
 function debtPriorityCandidates() {
   const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
   return debtTargetOptions()
-    .filter((target) => target.id !== "plan-unificado" && !alreadyPlanned.has(target.id))
+    .filter((target) => !alreadyPlanned.has(target.id))
     .map((target) => {
       const principal = Number(target.currentPrincipal ?? target.principal ?? 0);
       const payment = Number(target.payment || 0);
