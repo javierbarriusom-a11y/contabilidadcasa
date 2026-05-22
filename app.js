@@ -2793,9 +2793,10 @@ function currentDebtPaymentBreakdown() {
   };
 }
 
-function debtTargetOptions() {
+function debtTargetOptions({ includePlanned = false } = {}) {
+  const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
   return debtPortfolioRows()
-    .filter((item) => Number(item.currentPrincipal || 0) > 0)
+    .filter((item) => Number(item.currentPrincipal || 0) > 0 && (includePlanned || !alreadyPlanned.has(item.id)))
     .map((item) => ({
       ...item,
       principal: item.currentPrincipal,
@@ -2809,7 +2810,7 @@ function defaultDebtTargetId() {
 
 function selectedDebtTarget() {
   const targetId = qs("debtTargetSelect")?.value || defaultDebtTargetId();
-  return debtTargetOptions().find((item) => item.id === targetId) || debtTargetOptions()[0];
+  return debtTargetOptions({ includePlanned: true }).find((item) => item.id === targetId) || debtTargetOptions()[0];
 }
 
 function populateDebtTargetSelect() {
@@ -2977,7 +2978,53 @@ function debtReviewOptionCard(option, selected = false) {
     <div>
       <small>Liquidez final</small><b>${option.netGain >= 0 ? "+" : ""}${money(option.netGain, true)}</b>
     </div>
+    <button type="button" data-apply-debt-option="${escapeHtml(option.key || "")}" data-raw-mode="${escapeHtml(option.rawMode || "")}" data-duration="${escapeHtml(String(option.duration || 1))}">
+      ${selected ? "Aplicar opción original" : "Aplicar esta sugerencia"}
+    </button>
   </article>`;
+}
+
+function resetDebtDecisionForm() {
+  pendingDebtDecision = null;
+  if (qs("debtPayoffName")) qs("debtPayoffName").value = "";
+  if (qs("debtPayoffAmount")) qs("debtPayoffAmount").value = "";
+  if (qs("debtPayoffRelief")) qs("debtPayoffRelief").value = "";
+  if (qs("debtPayoffDuration")) qs("debtPayoffDuration").value = 1;
+}
+
+function applyDebtDecision(decision) {
+  if (!decision) return;
+  if (decision.targetId && debtLiquidations.some((item) => item.targetId === decision.targetId)) {
+    if (qs("debtDecisionReview")) {
+      qs("debtDecisionReview").innerHTML = `<div class="debt-review-empty">
+        <strong>Decisión ya incorporada</strong>
+        <p>Esta deuda ya tiene una decisión cargada. Elimínala o desbloquéala antes de volver a simularla.</p>
+      </div>`;
+    }
+    updateDebtConfirmState();
+    return;
+  }
+  const { preview, ...cleanDecision } = decision;
+  debtLiquidations.push({
+    ...cleanDecision,
+    id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  });
+  resetDebtDecisionForm();
+  saveDebtLiquidations();
+  render();
+}
+
+function applyDebtReviewOption(button) {
+  const key = button.dataset.applyDebtOption;
+  const decision =
+    key === "original"
+      ? pendingDebtDecision || debtDecisionFromForm()
+      : debtDecisionFromForm({
+          rawModeOverride: button.dataset.rawMode,
+          durationOverride: Number(button.dataset.duration || 1),
+          forceOptimize: true,
+        });
+  applyDebtDecision(decision);
 }
 
 function renderDebtDecisionReview(decision = pendingDebtDecision) {
@@ -3017,6 +3064,18 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
     .filter(Boolean);
   const currentMonth = forecastMonths()[decision.monthIndex]?.label || "-";
   const discountPct = decision.originalPrincipal ? decision.discount / decision.originalPrincipal : 0;
+  const originalOption = {
+    key: "original",
+    title: "Opción original",
+    rawMode: decision.payoffMode,
+    duration: decision.duration,
+    detail: "Aplica exactamente la modalidad y el mes que has configurado arriba.",
+    monthly: currentEval.monthly,
+    minChecking: currentEval.evaluation.minChecking,
+    netGain: currentEval.netGain,
+    monthLabel: currentMonth,
+    feasible: currentEval.evaluation.minChecking >= 0,
+  };
   panel.innerHTML = `<div class="debt-review-head">
       <div>
         <p class="panel-kicker">Revisión previa</p>
@@ -3034,8 +3093,12 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
       <div><span>Liquidez final</span><strong>${currentEval.netGain >= 0 ? "+" : ""}${money(currentEval.netGain, true)}</strong></div>
     </div>
     <div class="debt-review-options">
-      ${variants.map((option) => debtReviewOptionCard(option)).join("")}
+      ${debtReviewOptionCard(originalOption, true)}
+      ${variants.map((option) => debtReviewOptionCard({ ...option, key: "suggested" })).join("")}
     </div>`;
+  panel.querySelectorAll("[data-apply-debt-option]").forEach((button) => {
+    button.addEventListener("click", () => applyDebtReviewOption(button));
+  });
   updateDebtConfirmState();
 }
 
@@ -3116,15 +3179,7 @@ function handleAddDebtLiquidation() {
     stageDebtDecision();
     return;
   }
-  const { preview, ...decision } = pendingDebtDecision;
-  debtLiquidations.push(decision);
-  pendingDebtDecision = null;
-  qs("debtPayoffName").value = "";
-  qs("debtPayoffAmount").value = "";
-  qs("debtPayoffRelief").value = "";
-  qs("debtPayoffDuration").value = 1;
-  saveDebtLiquidations();
-  render();
+  applyDebtDecision(pendingDebtDecision);
 }
 
 function debtPriorityCandidates() {
