@@ -170,10 +170,16 @@ h2 {
 }
 
 .sidebar {
+  display: flex;
+  flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: 22px 18px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 18px 34px;
+  scrollbar-gutter: stable;
   color: #e7eff1;
   background:
     linear-gradient(180deg, rgba(15, 143, 140, 0.22), transparent 28%),
@@ -181,7 +187,23 @@ h2 {
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.sidebar::-webkit-scrollbar {
+  width: 9px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: padding-box;
+}
+
 .brand-block {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: 46px 1fr;
   gap: 12px;
@@ -213,6 +235,7 @@ h2 {
 }
 
 .side-nav {
+  flex: 0 0 auto;
   display: grid;
   gap: 6px;
 }
@@ -275,6 +298,7 @@ h2 {
 }
 
 .sync-panel {
+  flex: 0 0 auto;
   display: grid;
   gap: 12px;
 }
@@ -3866,6 +3890,37 @@ tbody tr:hover {
   }
 }
 
+@media (max-height: 820px) and (min-width: 861px) {
+  .sidebar {
+    padding-top: 16px;
+    padding-bottom: 28px;
+  }
+
+  .brand-block {
+    margin-bottom: 16px;
+  }
+
+  .side-nav {
+    gap: 4px;
+  }
+
+  .side-nav a {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .sidebar-card,
+  .sidebar-metrics,
+  .sync-panel {
+    margin-top: 14px;
+    padding: 12px;
+  }
+
+  .sidebar-metrics {
+    gap: 9px;
+  }
+}
+
 @media (max-width: 860px) {
   .app-shell {
     display: block;
@@ -3882,6 +3937,7 @@ tbody tr:hover {
   .sidebar {
     position: static;
     height: auto;
+    overflow: visible;
   }
 
   .side-nav {
