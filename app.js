@@ -66,6 +66,7 @@ let visualDraftDeletes = {};
 let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
+let pendingProjectDecision = null;
 let selectorSignature = "";
 let visualMonthSelectorSignature = "";
 let visualAddSectionSignature = "";
@@ -2662,46 +2663,115 @@ function buildProjectSchedule() {
   return { outflows, placements };
 }
 
-function handleAddProject() {
-  const name = qs("projectName").value.trim() || "Proyecto sin nombre";
-  const amount = parseAmount(qs("projectAmount").value) ?? 0;
-  const duration = Math.max(1, Number(qs("projectDuration").value || 1));
-  const recurringAmount = parseAmount(qs("projectRecurringAmount")?.value) ?? 0;
-  const recurringDuration = Math.max(0, Number(qs("projectRecurringDuration")?.value || 0));
-  const recurringStartOffset = qs("projectRecurringDelay")?.value === "same" ? 0 : duration;
-  const mode = document.querySelector('input[name="projectMode"]:checked')?.value || "optimize";
-  const monthIndex = Number(qs("projectMonth").value || 0);
-  const monthKeyForProject = forecastMonths()[monthIndex]?.key;
-  if ((!amount || amount <= 0) && (!recurringAmount || recurringAmount <= 0)) return;
+function evaluateProjectCandidate(project, mode = "full") {
+  if (!lastBaseSimulation.length) return null;
+  const months = forecastMonths();
+  const baselineOutflows = projectPlan?.outflows?.length === months.length ? projectPlan.outflows : Array(months.length).fill(0);
+  const baseline = evaluateOutflows(baselineOutflows);
+  const duration = decisionWindowMonths(project);
+  let best = null;
+  debtCandidateMonths(months, mode).forEach((month) => {
+    if (month.index > months.length - duration) return;
+    const candidate = baselineOutflows.slice();
+    addScheduledDecisionOutflow(candidate, { ...project, source: "project" }, month.index);
+    const evaluation = evaluateOutflows(candidate);
+    const netGain = evaluation.ending - baseline.ending;
+    const feasible = evaluation.minChecking >= 0;
+    const score =
+      (feasible ? 1_000_000 : 0) +
+      evaluation.minChecking * 0.45 +
+      evaluation.minLiquidity * 0.08 +
+      evaluation.ending * 0.01 -
+      month.index * 6;
+    if (!best || score > best.score) best = { month, evaluation, netGain, feasible, score };
+  });
+  return best;
+}
 
-  const project = {
-    id: editingProjectId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+function projectDecisionFromForm({ title, amountOverride, durationOverride, recurringAmountOverride, recurringDurationOverride, recurringStartOffsetOverride, modeOverride, forceOptimize } = {}) {
+  const name = qs("projectName").value.trim() || "Proyecto sin nombre";
+  const formAmount = parseAmount(qs("projectAmount").value) ?? 0;
+  const amount = round2(amountOverride ?? formAmount);
+  const duration = Math.max(1, Number(durationOverride ?? qs("projectDuration").value ?? 1));
+  const recurringAmount = round2(recurringAmountOverride ?? (parseAmount(qs("projectRecurringAmount")?.value) ?? 0));
+  const recurringDuration = Math.max(0, Number(recurringDurationOverride ?? qs("projectRecurringDuration")?.value ?? 0));
+  const recurringStartOffset =
+    recurringStartOffsetOverride ?? (qs("projectRecurringDelay")?.value === "same" ? 0 : duration);
+  const rawMode = modeOverride || document.querySelector('input[name="projectMode"]:checked')?.value || "optimize";
+  const mode = forceOptimize ? "optimize" : rawMode;
+  if ((!amount || amount <= 0) && (!recurringAmount || recurringAmount <= 0)) return;
+  const baseProject = {
+    id: editingProjectId || `project-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name,
-    amount: round2(amount),
+    title: title || "Opción configurada",
+    amount,
     duration,
-    recurringAmount: round2(recurringAmount),
+    recurringAmount,
     recurringDuration,
     recurringStartOffset,
     mode,
-    monthIndex,
-    monthKey: monthKeyForProject,
+  };
+  const best = mode === "optimize" ? evaluateProjectCandidate(baseProject) : null;
+  const monthIndex =
+    mode === "optimize"
+      ? Number(best?.month?.index ?? qs("projectMonth").value ?? 0)
+      : Number(qs("projectMonth").value || 0);
+  const month = forecastMonths()[Math.max(0, Math.min(monthIndex, forecastMonths().length - 1))];
+  return {
+    ...baseProject,
+    monthIndex: month?.index || 0,
+    monthKey: month?.key,
+    preview: best,
+  };
+}
+
+function evaluateProjectDecisionItem(item) {
+  const months = forecastMonths();
+  const baselineOutflows = projectPlan?.outflows?.length === months.length ? projectPlan.outflows : Array(months.length).fill(0);
+  const candidate = baselineOutflows.slice();
+  addScheduledDecisionOutflow(candidate, { ...item, source: "project" }, item.monthIndex || 0);
+  const baseline = evaluateOutflows(baselineOutflows);
+  const evaluation = evaluateOutflows(candidate);
+  return {
+    evaluation,
+    netGain: round2(evaluation.ending - baseline.ending),
+    monthly: decisionPeakMonthlyImpact(item),
+  };
+}
+
+function applyProjectDecision(project) {
+  if (!project) return;
+  const { preview, title, ...cleanProject } = project;
+  const nextProject = {
+    ...cleanProject,
+    id: editingProjectId || `project-${Date.now()}-${Math.random().toString(16).slice(2)}`,
   };
   if (editingProjectId) {
     const previous = projects.find((item) => item.id === editingProjectId);
     if (previous?.locked) return;
     projects = projects.map((item) =>
-      item.id === editingProjectId ? { ...project, locked: Boolean(item.locked), lockedAt: item.lockedAt } : item,
+      item.id === editingProjectId ? { ...nextProject, locked: Boolean(item.locked), lockedAt: item.lockedAt } : item,
     );
   } else {
-    projects.push(project);
+    projects.push(nextProject);
   }
   clearProjectForm();
   saveProjects();
   render();
 }
 
+function handleAddProject() {
+  if (editingProjectId) {
+    applyProjectDecision(projectDecisionFromForm());
+    return;
+  }
+  pendingProjectDecision = projectDecisionFromForm();
+  renderProjectDecisionReview(pendingProjectDecision);
+}
+
 function clearProjectForm() {
   editingProjectId = null;
+  pendingProjectDecision = null;
   qs("projectName").value = "";
   qs("projectAmount").value = "";
   qs("projectDuration").value = 1;
@@ -2711,6 +2781,180 @@ function clearProjectForm() {
   document.querySelector('input[name="projectMode"][value="optimize"]').checked = true;
   updateProjectModeUi();
   renderProjectPlanPreview();
+  renderProjectDecisionReview();
+}
+
+function projectReviewOptionCard(option, selected = false) {
+  const klass = option.feasible ? "good" : "warn";
+  return `<article class="debt-review-card project-review-card ${klass} ${selected ? "selected" : ""}">
+    <span>${escapeHtml(option.title)}</span>
+    <strong>${escapeHtml(option.monthLabel)} · ${money(option.monthly, true)}/mes</strong>
+    <p>${escapeHtml(option.detail)}</p>
+    <div>
+      <small>Caja mínima</small><b>${money(option.minChecking, true)}</b>
+    </div>
+    <div>
+      <small>Liquidez final</small><b>${option.netGain >= 0 ? "+" : ""}${money(option.netGain, true)}</b>
+    </div>
+    <button type="button" data-apply-project-option="${escapeHtml(option.key || "")}" data-duration="${escapeHtml(String(option.duration || 1))}" data-recurring-amount="${escapeHtml(String(option.recurringAmount || 0))}" data-recurring-duration="${escapeHtml(String(option.recurringDuration || 0))}" data-recurring-offset="${escapeHtml(String(option.recurringStartOffset || 0))}" data-mode="${escapeHtml(option.mode || "optimize")}">
+      ${selected ? "Aplicar opción original" : "Aplicar esta sugerencia"}
+    </button>
+  </article>`;
+}
+
+function projectReviewVariants(decision) {
+  const baseAmount = Number(decision?.amount || 0);
+  if (!baseAmount) return [];
+  return [
+    {
+      key: "single",
+      title: "Pago único óptimo",
+      detail: "Busca el mejor mes para pagar todo el importe de una vez.",
+      amountOverride: baseAmount,
+      duration: 1,
+      recurringAmount: 0,
+      recurringDuration: 0,
+      recurringStartOffset: 0,
+      mode: "optimize",
+    },
+    {
+      key: "split-3",
+      title: "Repartir 3 meses",
+      detail: "Divide el importe inicial en tres pagos mensuales.",
+      amountOverride: baseAmount,
+      duration: 3,
+      recurringAmount: 0,
+      recurringDuration: 0,
+      recurringStartOffset: 0,
+      mode: "optimize",
+    },
+    {
+      key: "split-6",
+      title: "Repartir 6 meses",
+      detail: "Reduce la presión mensual repartiendo el impacto.",
+      amountOverride: baseAmount,
+      duration: 6,
+      recurringAmount: 0,
+      recurringDuration: 0,
+      recurringStartOffset: 0,
+      mode: "optimize",
+    },
+    {
+      key: "finance-12",
+      title: "Financiar 12 meses",
+      detail: "Sin pago inicial; convierte el proyecto en cuota mensual.",
+      amountOverride: 0,
+      duration: 1,
+      recurringAmount: round2(baseAmount / 12),
+      recurringDuration: 12,
+      recurringStartOffset: 0,
+      mode: "optimize",
+    },
+    {
+      key: "finance-24",
+      title: "Financiar 24 meses",
+      detail: "Menor cuota mensual, impacto más largo en el plan.",
+      amountOverride: 0,
+      duration: 1,
+      recurringAmount: round2(baseAmount / 24),
+      recurringDuration: 24,
+      recurringStartOffset: 0,
+      mode: "optimize",
+    },
+  ];
+}
+
+function renderProjectDecisionReview(decision = pendingProjectDecision) {
+  const panel = qs("projectDecisionReview");
+  if (!panel) return;
+  if (!decision) {
+    panel.innerHTML = `<div class="debt-review-empty">
+      <strong>Compara antes de aplicar</strong>
+      <p>Configura un proyecto y revisa alternativas de pago único, reparto o financiación. Nada impacta el dashboard hasta aplicar una opción.</p>
+    </div>`;
+    return;
+  }
+  const currentEval = evaluateProjectDecisionItem(decision);
+  const currentMonth = forecastMonths()[decision.monthIndex]?.label || "-";
+  const originalOption = {
+    key: "original",
+    title: "Opción original",
+    detail: "Aplica exactamente la configuración que has introducido arriba.",
+    duration: decision.duration,
+    recurringAmount: decision.recurringAmount,
+    recurringDuration: decision.recurringDuration,
+    recurringStartOffset: decision.recurringStartOffset,
+    mode: decision.mode,
+    monthly: currentEval.monthly,
+    minChecking: currentEval.evaluation.minChecking,
+    netGain: currentEval.netGain,
+    monthLabel: currentMonth,
+    feasible: currentEval.evaluation.minChecking >= 0,
+  };
+  const variants = projectReviewVariants(decision)
+    .map((option) => {
+      const candidate = projectDecisionFromForm({
+        title: option.title,
+        amountOverride: option.amountOverride,
+        durationOverride: option.duration,
+        recurringAmountOverride: option.recurringAmount,
+        recurringDurationOverride: option.recurringDuration,
+        recurringStartOffsetOverride: option.recurringStartOffset,
+        modeOverride: option.mode,
+        forceOptimize: option.mode === "optimize",
+      });
+      if (!candidate) return null;
+      const evaluation = evaluateProjectDecisionItem(candidate);
+      return {
+        ...option,
+        monthly: evaluation.monthly,
+        minChecking: evaluation.evaluation.minChecking,
+        netGain: evaluation.netGain,
+        monthLabel: forecastMonths()[candidate.monthIndex]?.label || "-",
+        feasible: evaluation.evaluation.minChecking >= 0,
+      };
+    })
+    .filter(Boolean);
+  panel.innerHTML = `<div class="debt-review-head project-review-head">
+      <div>
+        <p class="panel-kicker">Revisión previa</p>
+        <h4>${escapeHtml(decision.name)}</h4>
+        <p>Compara formas de acometerlo antes de incorporarlo. Después podrás fijarlo en plan para convertirlo en definitivo.</p>
+      </div>
+      <div class="debt-review-badge">${decision.mode === "fixed" ? "mes manual" : "mes óptimo"} · ${currentMonth}</div>
+    </div>
+    <div class="debt-review-summary">
+      <div><span>Coste total</span><strong>${money(decisionGrossCost(decision), true)}</strong></div>
+      <div><span>Opción seleccionada</span><strong>${money(currentEval.monthly, true)}/mes</strong></div>
+      <div><span>Caja mínima</span><strong class="${currentEval.evaluation.minChecking < 0 ? "negative" : "positive"}">${money(currentEval.evaluation.minChecking, true)}</strong></div>
+      <div><span>Liquidez final</span><strong>${currentEval.netGain >= 0 ? "+" : ""}${money(currentEval.netGain, true)}</strong></div>
+      <div><span>Inicio</span><strong>${escapeHtml(currentMonth)}</strong></div>
+      <div><span>Tipo</span><strong>${decision.recurringAmount ? "Con cuota" : "Sin cuota"}</strong></div>
+    </div>
+    <div class="debt-review-options project-review-options">
+      ${projectReviewOptionCard(originalOption, true)}
+      ${variants.map((option) => projectReviewOptionCard(option)).join("")}
+    </div>`;
+  panel.querySelectorAll("[data-apply-project-option]").forEach((button) => {
+    button.addEventListener("click", () => applyProjectReviewOption(button));
+  });
+}
+
+function applyProjectReviewOption(button) {
+  const key = button.dataset.applyProjectOption;
+  const decision =
+    key === "original"
+      ? pendingProjectDecision || projectDecisionFromForm()
+      : projectDecisionFromForm({
+          amountOverride: button.dataset.recurringAmount && Number(button.dataset.recurringAmount) > 0 ? 0 : undefined,
+          durationOverride: Number(button.dataset.duration || 1),
+          recurringAmountOverride: Number(button.dataset.recurringAmount || 0),
+          recurringDurationOverride: Number(button.dataset.recurringDuration || 0),
+          recurringStartOffsetOverride: Number(button.dataset.recurringOffset || 0),
+          modeOverride: button.dataset.mode || "optimize",
+          forceOptimize: true,
+        });
+  applyProjectDecision(decision);
 }
 
 function editProject(id) {
@@ -3690,7 +3934,7 @@ function renderProjectPlanPreview() {
       <span>Inicial: ${money(amount, true)} en ${duration} mes(es)</span>
       <span>Recurrente: ${recurringAmount ? `${money(recurringAmount, true)} durante ${recurringDuration} mes(es), ${recurringDelay === "same" ? "desde el mismo mes" : "tras el impacto inicial"}` : "sin cuota recurrente"}</span>
     </div>`;
-  qs("addProject").textContent = editingProjectId ? "Guardar plan" : "Añadir plan";
+  qs("addProject").textContent = editingProjectId ? "Guardar plan" : "Comparar plan";
   qs("cancelProjectEdit").hidden = !editingProjectId;
 }
 
@@ -7308,8 +7552,16 @@ async function init() {
     renderProjectSimulator(lastBaseSimulation, lastSimulation);
   });
   ["projectName", "projectAmount", "projectDuration", "projectRecurringAmount", "projectRecurringDuration", "projectRecurringDelay", "projectMonth"].forEach((id) => {
-    qs(id)?.addEventListener("input", renderProjectPlanPreview);
-    qs(id)?.addEventListener("change", renderProjectPlanPreview);
+    qs(id)?.addEventListener("input", () => {
+      pendingProjectDecision = null;
+      renderProjectPlanPreview();
+      renderProjectDecisionReview();
+    });
+    qs(id)?.addEventListener("change", () => {
+      pendingProjectDecision = null;
+      renderProjectPlanPreview();
+      renderProjectDecisionReview();
+    });
   });
   qs("clearProjects").addEventListener("click", handleClearProjects);
   qs("addDebtPayoff").addEventListener("click", handleAddDebtLiquidation);
@@ -7386,12 +7638,20 @@ async function init() {
   qs("excelDataFile").addEventListener("change", handleExcelImport);
   qs("detailMonth").addEventListener("change", renderMonthlyDetails);
   document.querySelectorAll('input[name="projectMode"]').forEach((input) => {
-    input.addEventListener("change", updateProjectModeUi);
+    input.addEventListener("change", () => {
+      pendingProjectDecision = null;
+      updateProjectModeUi();
+      renderProjectDecisionReview();
+    });
   });
   document.querySelectorAll(".mode-switch label").forEach((label) => {
     label.addEventListener("click", () => {
       const input = label.querySelector('input[name="projectMode"]');
-      if (input) setProjectMode(input.value);
+      if (input) {
+        pendingProjectDecision = null;
+        setProjectMode(input.value);
+        renderProjectDecisionReview();
+      }
     });
   });
   document.querySelectorAll(".scenario-buttons button").forEach((button) => {

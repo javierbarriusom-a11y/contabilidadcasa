@@ -1047,6 +1047,10 @@ select:focus {
   background: #f4fbfa;
 }
 
+.project-decision-review {
+  grid-column: 1 / -1;
+}
+
 .project-plan-preview strong {
   display: block;
   margin-bottom: 8px;
@@ -2811,6 +2815,10 @@ svg {
 
 .debt-review-card.selected button {
   background: #4f3f77;
+}
+
+.project-review-options {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .debt-list {
