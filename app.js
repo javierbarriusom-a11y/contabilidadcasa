@@ -104,6 +104,40 @@ const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REU
 const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
 const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
 const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
+const FINANCING_SUBGROUP_LABELS = [
+  "ECI",
+  "Pass Carrefour Tere",
+  "Pass Carrefour Javi",
+  "Caixabank",
+  "Bankintercard",
+  "Otros",
+];
+const FINANCING_ROW_TEMPLATES = [
+  { row: 61, group: "ECI", label: "Tarjeta ECI" },
+  { row: 62, group: "ECI", label: "Anticipo ECI" },
+  { row: 64, group: "Pass Carrefour Tere", label: "Mastercard contado" },
+  { row: 65, group: "Pass Carrefour Tere", label: "Mastercard credito" },
+  { row: 66, group: "Pass Carrefour Tere", label: "Financiacion express 1" },
+  { row: 67, group: "Pass Carrefour Tere", label: "Financiacion express 2" },
+  { row: 68, group: "Pass Carrefour Tere", label: "Financiacion express 3" },
+  { row: 69, group: "Pass Carrefour Tere", label: "Financiacion express 4" },
+  { row: 70, group: "Pass Carrefour Tere", label: "Financiacion express 5" },
+  { row: 71, group: "Pass Carrefour Tere", label: "Financiacion express 6" },
+  { row: 73, group: "Pass Carrefour Javi", label: "Pass Javi Credito" },
+  { row: 74, group: "Pass Carrefour Javi", label: "Mastercard contado" },
+  { row: 75, group: "Pass Carrefour Javi", label: "Mastecard credito" },
+  { row: 76, group: "Pass Carrefour Javi", label: "Financiacion express 1" },
+  { row: 78, group: "Caixabank", label: "MasterCard Tere" },
+  { row: 79, group: "Caixabank", label: "Visa Go Tere" },
+  { row: 80, group: "Caixabank", label: "Visa Go Javi" },
+  { row: 81, group: "Caixabank", label: "Mycard Tere" },
+  { row: 82, group: "Caixabank", label: "Mycard Javi" },
+  { row: 84, group: "Bankintercard", label: "Tarjeta Tere" },
+  { row: 85, group: "Bankintercard", label: "Prestamo Tere" },
+  { row: 87, group: "Otros", label: "Prestamo cetelem Tere" },
+  { row: 88, group: "Otros", label: "Refinanciacion Cetelem" },
+  { row: 89, group: "Otros", label: "Mastercard PDH" },
+];
 
 const viewTitles = {
   home: {
@@ -318,6 +352,7 @@ function applyPersistedPayload(payload = {}) {
   simulationSignature = "";
   if (payload.workbookData?.metadata && payload.workbookData?.monthlyPlanning) {
     baseData = payload.workbookData;
+    ensureCompleteFinancingSection();
     ensureVariableOperationalSection();
     saveWorkbookOverride();
   }
@@ -842,9 +877,11 @@ function adjustedDebtPlannedValue(row, month) {
     "mastecard credito",
     "financiacion express",
     "pass javi credito",
+    "mastercard contado",
     "mastercard tere",
     "visa go tere",
     "visa go javi",
+    "mycard tere",
     "mycard javi",
     "tarjeta tere",
     "prestamo tere",
@@ -1075,17 +1112,27 @@ function loadMonthlyPlanningFromWorkbook(workbook) {
       }
       if (endRow < startRow) return null;
       const totalRow = endRow + 1;
+      const financingSubgroups = new Set(FINANCING_SUBGROUP_LABELS.map((item) => normalizedText(item)));
       const rows = [];
+      let currentGroup = "";
       for (let row = startRow; row <= endRow; row += 1) {
         const label = cellByIndex(sheet, row, 1);
         if (label === null || label === undefined || label === "") continue;
+        const labelText = String(label).trim().replace(/\s+/g, " ");
         const planned = columns.map((col) => Math.abs(parseAmount(cellByIndex(sheet, row, col)) ?? 0));
-        if (!planned.some(Boolean)) continue;
+        const hasValue = planned.some(Boolean);
+        if (sectionName === "Financiaciones" && financingSubgroups.has(normalizedText(labelText)) && !hasValue) {
+          currentGroup = labelText;
+          continue;
+        }
+        if (!hasValue && sectionName !== "Financiaciones") continue;
+        const displayLabel = sectionName === "Financiaciones" && currentGroup ? `${currentGroup} · ${labelText}` : labelText;
         rows.push({
           id: `${sectionName.toLowerCase().replaceAll(" ", "-")}-${row + 1}`,
-          label: String(label).trim(),
+          label: displayLabel,
           row: row + 1,
           kind,
+          group: currentGroup || null,
           planned,
         });
       }
@@ -1229,6 +1276,46 @@ function ensureVariableOperationalSection() {
       planned,
     });
   }
+}
+
+function ensureCompleteFinancingSection() {
+  if (!baseData?.monthlyPlanning?.sections?.length) return;
+  const section = baseData.monthlyPlanning.sections.find((item) => item.name === "Financiaciones");
+  if (!section) return;
+  const months = baseData.monthlyPlanning.months || [];
+  const monthCount = months.length;
+  const rowsById = new Map(section.rows.map((row) => [row.id, row]));
+  const templateIds = new Set(FINANCING_ROW_TEMPLATES.map((item) => `financiaciones-${item.row}`));
+  const fitPlanned = (planned = []) => {
+    const values = planned.slice(0, monthCount).map((value) => round2(Number(value || 0)));
+    while (values.length < monthCount) values.push(0);
+    return values;
+  };
+  const templateRows = FINANCING_ROW_TEMPLATES.map((template) => {
+    const id = `financiaciones-${template.row}`;
+    const existing = rowsById.get(id) || {};
+    return {
+      ...existing,
+      id,
+      row: template.row,
+      kind: "expense",
+      group: template.group,
+      label: `${template.group} · ${template.label}`,
+      planned: fitPlanned(existing.planned),
+    };
+  });
+  const extraRows = section.rows
+    .filter((row) => !templateIds.has(row.id))
+    .map((row) => ({
+      ...row,
+      kind: "expense",
+      planned: fitPlanned(row.planned),
+    }));
+  section.kind = "expense";
+  section.rows = [...templateRows, ...extraRows];
+  section.totals = months.map((_, index) =>
+    round2(section.rows.reduce((sum, row) => sum + Number(row.planned?.[index] || 0), 0)),
+  );
 }
 
 function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
@@ -4149,6 +4236,7 @@ function visualRowsForSection(section, months) {
   return rows.filter((row) =>
     months.some((month) => {
       if (seriesOverrideForRow(row, month)?.deleted) return false;
+      if (section.name === "Financiaciones") return true;
       if (row.custom && monthKeys.has(month.key) && customRowForVisualMonth(row, month)) return true;
       const info = actualAwareInfoForVisualRow(row, month);
       return info.value !== 0 || info.planned !== 0 || info.hasActual;
@@ -6382,6 +6470,7 @@ function handleBatchImport() {
 
 function applyImportedWorkbookData(nextData, fileName) {
   baseData = nextData;
+  ensureCompleteFinancingSection();
   ensureVariableOperationalSection();
   balanceSettings = {};
   scenarioSettings = {};
@@ -7056,6 +7145,7 @@ async function init() {
   }
   loadWorkbookOverride();
   loadLocalState();
+  ensureCompleteFinancingSection();
   ensureVariableOperationalSection();
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
