@@ -2626,7 +2626,7 @@ svg {
 
 .agent-rec-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 1.2fr) auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(260px, 0.95fr);
   gap: 12px;
   align-items: center;
   padding: 12px;
@@ -2640,13 +2640,13 @@ svg {
 .agent-rec-card strong {
   display: block;
   margin: 4px 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   font-size: 17px;
 }
 
 .agent-rec-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(118px, 1fr));
   gap: 7px;
 }
 
@@ -2669,11 +2669,16 @@ svg {
 .agent-rec-metrics b {
   display: block;
   margin-top: 3px;
-  overflow-wrap: anywhere;
-  font-size: 14px;
+  overflow: hidden;
+  font-size: clamp(13px, 0.95vw, 15px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .agent-rec-card button {
+  grid-column: 1 / -1;
   min-height: 38px;
   padding: 8px 11px;
   color: #ffffff;
@@ -2682,6 +2687,7 @@ svg {
   font-size: 12px;
   font-weight: 900;
   white-space: nowrap;
+  width: 100%;
 }
 
 .agent-table-wrap {
