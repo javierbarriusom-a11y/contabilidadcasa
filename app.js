@@ -566,6 +566,7 @@ function saveScenarioSettings() {
     incomeFactor: state.incomeFactor,
     expenseFactor: state.expenseFactor,
     savingsPlan: scenarioSettings.savingsPlan || {},
+    savingsAgent: scenarioSettings.savingsAgent || {},
   };
   const serialized = JSON.stringify(next);
   scenarioSettings = next;
@@ -5451,17 +5452,39 @@ function renderVisualPrevision(months = visualMonths()) {
   renderVisualRangeKpis();
 }
 
-const AGENT_CAIXA_FLOOR = 2250;
+const DEFAULT_AGENT_CAIXA_FLOOR = 2500;
 
-function agentNextMonthReserve(sourceRows, index) {
+function savingsAgentSettings() {
+  scenarioSettings.savingsAgent = scenarioSettings.savingsAgent || {};
+  return scenarioSettings.savingsAgent;
+}
+
+function agentCaixaFloor() {
+  const value = Number(savingsAgentSettings().caixaFloor);
+  return Number.isFinite(value) && value >= 0 ? round2(value) : DEFAULT_AGENT_CAIXA_FLOOR;
+}
+
+function setAgentCaixaFloor(value) {
+  const parsed = parseAmount(value);
+  savingsAgentSettings().caixaFloor = parsed === null ? DEFAULT_AGENT_CAIXA_FLOOR : Math.max(0, round2(parsed));
+  saveScenarioSettings();
+}
+
+function handleAgentCaixaFloorChange() {
+  setAgentCaixaFloor(qs("agentCaixaFloor")?.value);
+  renderSavingsAgent();
+}
+
+function agentNextMonthReserve(sourceRows, index, caixaFloor = agentCaixaFloor()) {
   const next = sourceRows[index + 1];
-  if (!next) return AGENT_CAIXA_FLOOR;
-  return round2(AGENT_CAIXA_FLOOR + Math.max(0, Number(next.outflowsBeforeSaving || 0)));
+  if (!next) return caixaFloor;
+  return round2(caixaFloor + Math.max(0, Number(next.outflowsBeforeSaving || 0)));
 }
 
 function buildSavingsAgentPlan() {
   const sourceRows = lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []);
   const start = accountBalancesFromState();
+  const caixaFloor = agentCaixaFloor();
   let caixa = Number(start.caixa || 0);
   let mediolanum = Number(start.mediolanum || 0);
   let totalTransferred = 0;
@@ -5471,7 +5494,7 @@ function buildSavingsAgentPlan() {
   const rows = sourceRows.map((row, index) => {
     const result = round2(row.income - row.coreSpend - row.car - row.refi - row.projectOutflow);
     const beforeTransfer = round2(caixa + result);
-    const requiredReserve = agentNextMonthReserve(sourceRows, index);
+    const requiredReserve = agentNextMonthReserve(sourceRows, index, caixaFloor);
     const rescue = beforeTransfer < requiredReserve ? round2(Math.min(mediolanum, requiredReserve - beforeTransfer)) : 0;
     const protectedCaixa = round2(beforeTransfer + rescue);
     const monthShortage = Math.max(0, round2(requiredReserve - protectedCaixa));
@@ -5501,6 +5524,7 @@ function buildSavingsAgentPlan() {
   const final = rows.at(-1) || {};
   return {
     rows,
+    caixaFloor,
     totalTransferred,
     totalRescued,
     shortage,
@@ -5552,7 +5576,7 @@ function agentDebtRecommendations(plan) {
     .map((item) => {
       const principal = round2(Number(item.currentPrincipal || item.principal || 0));
       const payment = round2(Number(item.payment || item.originalPayment || 0));
-      const affordability = agentAffordabilityMonth(plan, principal, AGENT_CAIXA_FLOOR * 0.35);
+      const affordability = agentAffordabilityMonth(plan, principal, plan.caixaFloor * 0.35);
       const efficiency = principal ? payment / principal : 0;
       return {
         ...item,
@@ -5573,7 +5597,7 @@ function agentLifeProjectRecommendations(plan) {
     .filter((project) => !project.locked && Number(decisionGrossCost(project)) > 0)
     .map((project) => {
       const amount = decisionGrossCost(project);
-      const affordability = agentAffordabilityMonth(plan, amount, AGENT_CAIXA_FLOOR * 0.35);
+      const affordability = agentAffordabilityMonth(plan, amount, plan.caixaFloor * 0.35);
       const monthsToGoal = affordability ? Math.max(1, affordability.agentIndex + 1) : 12;
       const pot = round2(amount / monthsToGoal);
       const evaluation = evaluateProjectDecisionItem({ ...project, monthIndex: affordability?.agentIndex ?? project.monthIndex ?? 0 });
@@ -5601,7 +5625,7 @@ function agentInsightCards(plan, debtRecs, projectRecs) {
     title: firstShortage ? "Hay meses sin caja suficiente" : "Regla de caja viable",
     text: firstShortage
       ? `${firstShortage.month}: faltarían ${money(firstShortage.shortage, true)} para cubrir la reserva operativa del mes siguiente. Revisa proyectos o ahorro antes de fijar más decisiones.`
-      : `CaixaBank retiene ${money(AGENT_CAIXA_FLOOR, true)} más los pagos previstos del mes siguiente. Primer traspaso posible: ${nextTransfer ? `${money(nextTransfer.transferToSavings, true)} en ${nextTransfer.month}` : "sin excedente próximo"}.`,
+      : `CaixaBank retiene ${money(plan.caixaFloor, true)} más los pagos previstos del mes siguiente. Primer traspaso posible: ${nextTransfer ? `${money(nextTransfer.transferToSavings, true)} en ${nextTransfer.month}` : "sin excedente próximo"}.`,
     tone: firstShortage ? "danger" : "good",
   });
   cards.push({
@@ -5707,6 +5731,7 @@ function prepareAgentProjectDecision(projectId) {
 function renderSavingsAgent() {
   if (!qs("agentKpis")) return;
   const plan = buildSavingsAgentPlan();
+  if (qs("agentCaixaFloor")) qs("agentCaixaFloor").value = amountInputValue(plan.caixaFloor);
   populateAgentYearSelect(plan);
   const selectedYear = qs("agentYear")?.value || agentYears(plan)[0];
   const debtRecs = agentDebtRecommendations(plan);
@@ -5717,7 +5742,7 @@ function renderSavingsAgent() {
   qs("agentKpis").innerHTML = [
     ["Patrimonio neto final", money(plan.netWorth, true), `Liquidez final menos deuda viva no planificada (${money(plan.remainingDebt, true)}).`, plan.netWorth >= 0 ? "good" : "danger"],
     ["Ahorrado en Mediolanum", money(plan.finalMediolanum, true), `Traspasos acumulados: ${money(plan.totalTransferred, true)}.`, "good"],
-    ["Caja mínima protegida", money(plan.minCaixa, true), `Reserva: ${money(AGENT_CAIXA_FLOOR, true)} + pagos del mes siguiente. Margen mínimo: ${money(plan.minReserveCoverage, true)}.`, plan.minReserveCoverage >= 0 ? "good" : "danger"],
+    ["Caja mínima protegida", money(plan.minCaixa, true), `Reserva: ${money(plan.caixaFloor, true)} + pagos del mes siguiente. Margen mínimo: ${money(plan.minReserveCoverage, true)}.`, plan.minReserveCoverage >= 0 ? "good" : "danger"],
     ["Proyectos y deuda cargados", money(plan.projectSpend, true), `Deuda planificada: ${money(plan.plannedDebtPrincipal, true)}.`, plan.projectSpend > 0 ? "warn" : "neutral"],
   ]
     .map(([label, value, note, tone]) => `<article class="agent-kpi-card ${tone}">
@@ -5728,7 +5753,7 @@ function renderSavingsAgent() {
     .join("");
 
   qs("agentRules").innerHTML = [
-    ["Regla de traspaso", `Cada mes mueve a Mediolanum solo lo que exceda ${money(AGENT_CAIXA_FLOOR, true)} más los pagos previstos del mes siguiente.`],
+    ["Regla de traspaso", `Cada mes mueve a Mediolanum solo lo que exceda ${money(plan.caixaFloor, true)} más los pagos previstos del mes siguiente.`],
     ["Año seleccionado", `${selectedYear}: resultado acumulado ${money(yearResult, true)} y traspaso estimado ${money(yearTransferred, true)}.`],
     ["Uso del ahorro", "Primero protege caja, después calcula deudas y proyectos financiables con Mediolanum."],
     ["Decisiones definitivas", "Nada se aplica al cuadro de mandos hasta preparar la decisión y fijarla en su simulador."],
@@ -8004,6 +8029,7 @@ async function init() {
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
+  qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
   qs("savings-agent")?.addEventListener("click", (event) => {
     const debtButton = event.target.closest("[data-agent-debt-target]");
     if (debtButton) prepareAgentDebtDecision(debtButton.dataset.agentDebtTarget);

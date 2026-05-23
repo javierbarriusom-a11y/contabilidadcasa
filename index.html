@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260523d" />
+    <link rel="stylesheet" href="styles.css?v=20260523e" />
   </head>
   <body>
     <div class="app-shell">
@@ -387,6 +387,10 @@
               </div>
               <div class="visual-controls">
                 <label>
+                  <span>Saldo operativo CaixaBank</span>
+                  <input id="agentCaixaFloor" type="number" step="50" min="0" value="2500" />
+                </label>
+                <label>
                   <span>Año natural</span>
                   <select id="agentYear"></select>
                 </label>
@@ -401,7 +405,7 @@
                   <div>
                     <p class="panel-kicker">Plan mensual</p>
                     <h3>Reglas del agente</h3>
-                    <p>La cuenta CaixaBank se mantiene como operativa. Todo excedente sobre 2.250 € se traspasa a Mediolanum como ahorro.</p>
+                    <p>La cuenta CaixaBank se mantiene como operativa. Todo excedente sobre el saldo operativo definido se traspasa a Mediolanum como ahorro.</p>
                   </div>
                 </div>
                 <div class="agent-rule-grid" id="agentRules"></div>
@@ -424,7 +428,7 @@
                   <div>
                     <p class="panel-kicker">Deuda</p>
                     <h3>Liquidaciones candidatas</h3>
-                    <p>Busca cuándo el ahorro acumulado permitiría liquidar sin bajar CaixaBank de 2.250 €.</p>
+                    <p>Busca cuándo el ahorro acumulado permitiría liquidar sin bajar CaixaBank del saldo operativo configurado.</p>
                   </div>
                 </div>
                 <div class="agent-recommendation-list" id="agentDebtList"></div>
@@ -1217,9 +1221,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260523d"></script>
-    <script src="supabase-config.js?v=20260523d"></script>
-    <script src="data.js?v=20260523d"></script>
-    <script src="app.js?v=20260523d"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260523e"></script>
+    <script src="supabase-config.js?v=20260523e"></script>
+    <script src="data.js?v=20260523e"></script>
+    <script src="app.js?v=20260523e"></script>
   </body>
 </html>
