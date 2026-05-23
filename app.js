@@ -1772,10 +1772,11 @@ function scheduledDecisionMonthlyImpact(project, forecastIndex) {
     forecastIndex < project.startIndex + recurringStartOffset + recurringDuration;
   const recurring = recurringActive ? recurringAmount : 0;
   const reliefStart = project.startIndex + duration;
-  const reliefMonths = Math.max(1, Number(project.reliefMonths || modelMonthCount()));
+  const reliefMonths = debtReliefMonthsForItem(project, reliefStart);
   const reliefActive =
     project.source === "debt" &&
     Number(project.monthlyRelief || 0) > 0 &&
+    reliefMonths > 0 &&
     forecastIndex >= reliefStart &&
     forecastIndex < reliefStart + reliefMonths;
   const relief = reliefActive ? -Number(project.monthlyRelief || 0) : 0;
@@ -2549,12 +2550,63 @@ function addProjectOutflow(outflows, project, startIndex) {
   }
 }
 
+function parseDebtMaturityIndex(value) {
+  if (!value) return null;
+  const text = String(value).trim().toLowerCase();
+  const numeric = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  let date = null;
+  if (numeric) {
+    const month = Number(numeric[2]) - 1;
+    const rawYear = Number(numeric[3]);
+    const year = rawYear < 100 ? 2000 + rawYear : rawYear;
+    date = new Date(year, month, 1);
+  } else {
+    const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sept", "sep", "oct", "nov", "dic"];
+    const match = text.match(/([a-záéíóúñ]{3,5})[-\s/]+(\d{2,4})/);
+    if (match) {
+      const normalized = match[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const monthIndex = monthNames.findIndex((name) => normalized.startsWith(name));
+      if (monthIndex >= 0) {
+        const rawYear = Number(match[2]);
+        const year = rawYear < 100 ? 2000 + rawYear : rawYear;
+        date = new Date(year, monthIndex > 8 ? monthIndex - 1 : monthIndex, 1);
+      }
+    }
+  }
+  if (!date) return null;
+  const start = modelStartDate();
+  return (date.getFullYear() - start.getFullYear()) * 12 + (date.getMonth() - start.getMonth());
+}
+
+function debtTargetForDecision(item) {
+  return debtPortfolioRows().find((row) => row.id === item?.targetId) || null;
+}
+
+function debtReliefMonthsForItem(item, reliefStartIndex = 0) {
+  const monthlyRelief = Math.max(0, Number(item?.monthlyRelief || 0));
+  if (!monthlyRelief) return 0;
+  if (Number.isFinite(Number(item?.reliefMonths)) && Number(item.reliefMonths) >= 0) {
+    return Math.max(0, Math.floor(Number(item.reliefMonths)));
+  }
+  const target = debtTargetForDecision(item);
+  const maturityIndex = parseDebtMaturityIndex(target?.maturity);
+  if (maturityIndex !== null) return Math.max(0, maturityIndex - reliefStartIndex + 1);
+  const remainingInstallments = Number(target?.remainingInstallments ?? item?.remainingInstallments ?? 0);
+  if (remainingInstallments > 0) return Math.max(0, Math.ceil(remainingInstallments - reliefStartIndex));
+  const principal = Math.max(
+    0,
+    Number(item?.targetPrincipal ?? item?.originalPrincipal ?? target?.currentPrincipal ?? target?.principal ?? item?.amount ?? 0),
+  );
+  return Math.max(0, Math.ceil((principal + monthlyRelief * 2) / monthlyRelief));
+}
+
 function addDebtRelief(outflows, item, startIndex) {
   const monthlyRelief = Math.max(0, Number(item.monthlyRelief || 0));
   if (!monthlyRelief) return;
   const duration = Math.max(1, Number(item.duration || 1));
   const reliefStart = Math.min(outflows.length, startIndex + duration);
-  const reliefMonths = Math.max(1, Number(item.reliefMonths || outflows.length));
+  const reliefMonths = debtReliefMonthsForItem(item, reliefStart);
+  if (!reliefMonths) return;
   const reliefEnd = Math.min(outflows.length, reliefStart + reliefMonths);
   for (let i = reliefStart; i < reliefEnd; i += 1) {
     outflows[i] -= monthlyRelief;
@@ -3171,6 +3223,16 @@ function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize
     ? Number(best?.month?.index ?? qs("debtPayoffMonth")?.value ?? 0)
     : Number(qs("debtPayoffMonth")?.value || 0);
   const month = forecastMonths()[Math.max(0, Math.min(monthIndex, forecastMonths().length - 1))];
+  const reliefMonths = debtReliefMonthsForItem(
+    {
+      targetId: target?.id,
+      targetPrincipal: originalPrincipal,
+      originalPrincipal,
+      monthlyRelief,
+      remainingInstallments: target?.remainingInstallments,
+    },
+    (month?.index || 0) + duration,
+  );
   return {
     id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: qs("debtPayoffName")?.value.trim() || debtTargetDisplayName(target),
@@ -3180,6 +3242,7 @@ function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize
     originalPrincipal,
     discount: round2(Math.max(0, originalPrincipal - amount)),
     monthlyRelief: round2(monthlyRelief),
+    reliefMonths,
     duration,
     mode: debtDecisionModeFromRaw(rawMode),
     payoffMode: rawMode,
@@ -3597,7 +3660,7 @@ function renderDebtControl() {
           return `<div class="project-item debt-item ${item.locked ? "locked" : ""}">
             <div>
               <strong>${escapeHtml(item.name)} ${decisionLockedBadge(item)}</strong>
-              <p>${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(item.monthlyRelief || 0, true)}.</p>
+              <p>${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(item.monthlyRelief || 0, true)} durante ${debtReliefMonthsForItem(item, (placement?.startIndex ?? item.monthIndex ?? 0) + Math.max(1, Number(item.duration || 1)))} mes(es).</p>
             </div>
             <div class="project-item-actions">${actions}</div>
           </div>`;
