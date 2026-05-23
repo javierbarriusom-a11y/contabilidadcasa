@@ -5453,6 +5453,12 @@ function renderVisualPrevision(months = visualMonths()) {
 
 const AGENT_CAIXA_FLOOR = 2250;
 
+function agentNextMonthReserve(sourceRows, index) {
+  const next = sourceRows[index + 1];
+  if (!next) return AGENT_CAIXA_FLOOR;
+  return round2(AGENT_CAIXA_FLOOR + Math.max(0, Number(next.outflowsBeforeSaving || 0)));
+}
+
 function buildSavingsAgentPlan() {
   const sourceRows = lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []);
   const start = accountBalancesFromState();
@@ -5465,10 +5471,11 @@ function buildSavingsAgentPlan() {
   const rows = sourceRows.map((row, index) => {
     const result = round2(row.income - row.coreSpend - row.car - row.refi - row.projectOutflow);
     const beforeTransfer = round2(caixa + result);
-    const rescue = beforeTransfer < AGENT_CAIXA_FLOOR ? round2(Math.min(mediolanum, AGENT_CAIXA_FLOOR - beforeTransfer)) : 0;
+    const requiredReserve = agentNextMonthReserve(sourceRows, index);
+    const rescue = beforeTransfer < requiredReserve ? round2(Math.min(mediolanum, requiredReserve - beforeTransfer)) : 0;
     const protectedCaixa = round2(beforeTransfer + rescue);
-    const monthShortage = Math.max(0, round2(AGENT_CAIXA_FLOOR - protectedCaixa));
-    const transfer = Math.max(0, round2(protectedCaixa - AGENT_CAIXA_FLOOR));
+    const monthShortage = Math.max(0, round2(requiredReserve - protectedCaixa));
+    const transfer = Math.max(0, round2(protectedCaixa - requiredReserve));
     caixa = round2(protectedCaixa - transfer);
     mediolanum = round2(mediolanum + transfer - rescue);
     totalTransferred = round2(totalTransferred + transfer);
@@ -5479,6 +5486,7 @@ function buildSavingsAgentPlan() {
       ...row,
       agentIndex: index,
       operatingResult: result,
+      requiredReserve,
       transferToSavings: transfer,
       rescueFromSavings: rescue,
       shortage: monthShortage,
@@ -5504,6 +5512,7 @@ function buildSavingsAgentPlan() {
     finalTotal: round2(final.agentTotal || start.total || 0),
     netWorth: round2((final.agentTotal || start.total || 0) - remainingDebt),
     minCaixa: rows.length ? Math.min(...rows.map((row) => row.agentCaixa)) : start.caixa,
+    minReserveCoverage: rows.length ? Math.min(...rows.map((row) => row.agentCaixa - row.requiredReserve)) : 0,
     maxSavings: rows.length ? Math.max(...rows.map((row) => row.agentMediolanum)) : start.mediolanum,
   };
 }
@@ -5529,7 +5538,7 @@ function agentStatusForRow(row) {
   if (row.shortage > 0) return { label: "Falta caja", tone: "danger" };
   if (row.rescueFromSavings > 0) return { label: "Usa ahorro", tone: "warn" };
   if (row.transferToSavings > 0) return { label: "Ahorra", tone: "good" };
-  return { label: "Equilibrio", tone: "neutral" };
+  return { label: "Reserva operativa", tone: "neutral" };
 }
 
 function agentAffordabilityMonth(plan, amount, buffer = 0) {
@@ -5591,8 +5600,8 @@ function agentInsightCards(plan, debtRecs, projectRecs) {
   cards.push({
     title: firstShortage ? "Hay meses sin caja suficiente" : "Regla de caja viable",
     text: firstShortage
-      ? `${firstShortage.month}: faltarían ${money(firstShortage.shortage, true)} incluso rescatando ahorro. Revisa proyectos o ahorro antes de fijar más decisiones.`
-      : `CaixaBank se mantiene en ${money(AGENT_CAIXA_FLOOR, true)} o más. Primer traspaso previsto: ${nextTransfer ? `${money(nextTransfer.transferToSavings, true)} en ${nextTransfer.month}` : "sin excedente próximo"}.`,
+      ? `${firstShortage.month}: faltarían ${money(firstShortage.shortage, true)} para cubrir la reserva operativa del mes siguiente. Revisa proyectos o ahorro antes de fijar más decisiones.`
+      : `CaixaBank retiene ${money(AGENT_CAIXA_FLOOR, true)} más los pagos previstos del mes siguiente. Primer traspaso posible: ${nextTransfer ? `${money(nextTransfer.transferToSavings, true)} en ${nextTransfer.month}` : "sin excedente próximo"}.`,
     tone: firstShortage ? "danger" : "good",
   });
   cards.push({
@@ -5660,6 +5669,7 @@ function renderAgentTable(plan, year) {
   qs("agentTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>
     <tr class="prevision-group-row"><td colspan="${rows.length + 1}">Caja operativa</td></tr>
     ${line("Resultado del mes", (row) => row.operatingResult)}
+    ${line("Reserva mes siguiente", (row) => row.requiredReserve)}
     ${line("Traspaso a Mediolanum", (row) => row.transferToSavings, "positive")}
     ${line("Rescate desde Mediolanum", (row) => row.rescueFromSavings, "negative")}
     ${line("CaixaBank cierre", (row) => row.agentCaixa)}
@@ -5707,7 +5717,7 @@ function renderSavingsAgent() {
   qs("agentKpis").innerHTML = [
     ["Patrimonio neto final", money(plan.netWorth, true), `Liquidez final menos deuda viva no planificada (${money(plan.remainingDebt, true)}).`, plan.netWorth >= 0 ? "good" : "danger"],
     ["Ahorrado en Mediolanum", money(plan.finalMediolanum, true), `Traspasos acumulados: ${money(plan.totalTransferred, true)}.`, "good"],
-    ["Caja mínima protegida", money(plan.minCaixa, true), `Límite operativo: ${money(AGENT_CAIXA_FLOOR, true)} en CaixaBank.`, plan.minCaixa >= AGENT_CAIXA_FLOOR ? "good" : "danger"],
+    ["Caja mínima protegida", money(plan.minCaixa, true), `Reserva: ${money(AGENT_CAIXA_FLOOR, true)} + pagos del mes siguiente. Margen mínimo: ${money(plan.minReserveCoverage, true)}.`, plan.minReserveCoverage >= 0 ? "good" : "danger"],
     ["Proyectos y deuda cargados", money(plan.projectSpend, true), `Deuda planificada: ${money(plan.plannedDebtPrincipal, true)}.`, plan.projectSpend > 0 ? "warn" : "neutral"],
   ]
     .map(([label, value, note, tone]) => `<article class="agent-kpi-card ${tone}">
@@ -5718,7 +5728,7 @@ function renderSavingsAgent() {
     .join("");
 
   qs("agentRules").innerHTML = [
-    ["Regla de traspaso", `Cada mes mueve a Mediolanum todo lo que deje CaixaBank por encima de ${money(AGENT_CAIXA_FLOOR, true)}.`],
+    ["Regla de traspaso", `Cada mes mueve a Mediolanum solo lo que exceda ${money(AGENT_CAIXA_FLOOR, true)} más los pagos previstos del mes siguiente.`],
     ["Año seleccionado", `${selectedYear}: resultado acumulado ${money(yearResult, true)} y traspaso estimado ${money(yearTransferred, true)}.`],
     ["Uso del ahorro", "Primero protege caja, después calcula deudas y proyectos financiables con Mediolanum."],
     ["Decisiones definitivas", "Nada se aplica al cuadro de mandos hasta preparar la decisión y fijarla en su simulador."],
