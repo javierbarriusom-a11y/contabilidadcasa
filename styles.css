@@ -1880,6 +1880,31 @@ svg {
   font-weight: 800;
 }
 
+.visual-action-stack {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.visual-return-button {
+  min-height: 30px;
+  padding: 4px 8px;
+  color: #1f6f47;
+  border: 1px solid rgba(47, 133, 90, 0.28);
+  background: #f8fffb;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.visual-return-button:hover,
+.visual-return-button:focus-visible {
+  color: #155739;
+  background: #eaf7ef;
+  border-color: rgba(47, 133, 90, 0.48);
+}
+
 .total-row td {
   background: #f7fafb;
   font-weight: 900;

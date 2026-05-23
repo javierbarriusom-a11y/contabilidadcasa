@@ -504,6 +504,16 @@ function setDecisionLocked(source, id, locked) {
   render();
 }
 
+function returnDecisionToSimulator(source, id) {
+  const normalizedSource = source === "debt" ? "debt" : "project";
+  setDecisionLocked(normalizedSource, id, false);
+  if (qs("visualAddFeedback")) {
+    qs("visualAddFeedback").textContent =
+      "Decisión devuelta al simulador. Ya puedes modificarla, quitarla o volver a fijarla cuando estés seguro.";
+    qs("visualAddFeedback").className = "inline-feedback success";
+  }
+}
+
 function saveIncomeActuals() {
   storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
   queueRemoteSave();
@@ -5060,8 +5070,12 @@ function renderVisualDetail() {
       projectRows.forEach((project) => {
         const pendingDelete = isVisualProjectPendingDelete(project.id);
         const locked = Boolean(project.locked);
+        const source = project.source === "debt" ? "debt" : "project";
         const actionCell = locked
-          ? '<span class="decision-lock-badge">Fijo</span>'
+          ? `<div class="visual-action-stack">
+              <span class="decision-lock-badge">Fijo</span>
+              <button class="visual-return-button" type="button" data-visual-project-unlock="${escapeHtml(project.id)}" data-visual-project-source="${source}">Devolver a simulador</button>
+            </div>`
           : `<button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button>`;
         body.push(`<tr class="visual-line-row visual-project-row ${pendingDelete ? "pending-delete" : ""} ${locked ? "locked" : ""}">
           <td>
@@ -5113,6 +5127,11 @@ function renderVisualDetail() {
   });
   document.querySelectorAll("[data-visual-project-delete]").forEach((button) => {
     button.addEventListener("click", () => stageVisualProjectDelete(button.dataset.visualProjectDelete));
+  });
+  document.querySelectorAll("[data-visual-project-unlock]").forEach((button) => {
+    button.addEventListener("click", () =>
+      returnDecisionToSimulator(button.dataset.visualProjectSource, button.dataset.visualProjectUnlock),
+    );
   });
   renderVisualPrevision(months);
   renderVisualSavePanel();
