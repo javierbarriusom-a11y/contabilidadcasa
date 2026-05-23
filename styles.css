@@ -480,6 +480,7 @@ main {
 .project-panel,
 .data-workbench,
 .debt-control,
+.savings-agent,
 .savings-plan,
 .visual-prevision-panel,
 .visual-range-kpis {
@@ -2490,8 +2491,205 @@ svg {
 }
 
 .debt-control,
+.savings-agent,
 .savings-plan {
   margin-top: 18px;
+}
+
+.savings-agent {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.agent-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.agent-kpi-card,
+.agent-panel,
+.agent-rec-card {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.agent-kpi-card {
+  padding: 16px;
+  border-left: 5px solid var(--teal);
+}
+
+.agent-kpi-card.warn {
+  border-left-color: #b98918;
+}
+
+.agent-kpi-card.danger {
+  border-left-color: var(--red);
+}
+
+.agent-kpi-card span,
+.agent-rule-grid span,
+.agent-rec-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.agent-kpi-card strong {
+  display: block;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(24px, 2.3vw, 34px);
+  line-height: 1;
+}
+
+.agent-kpi-card p,
+.agent-panel p,
+.agent-rec-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.agent-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.agent-panel {
+  padding: 16px;
+  background: var(--surface-soft);
+}
+
+.agent-main-panel {
+  background: #ffffff;
+}
+
+.agent-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agent-rule-grid div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.agent-rule-grid strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.agent-insight-list,
+.agent-recommendation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-insight {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.agent-insight.warn {
+  border-left-color: #b98918;
+}
+
+.agent-insight.danger {
+  border-left-color: var(--red);
+}
+
+.agent-insight strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 16px;
+}
+
+.agent-rec-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 1.2fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-left: 5px solid var(--green);
+}
+
+.agent-rec-card.warn {
+  border-left-color: #b98918;
+}
+
+.agent-rec-card strong {
+  display: block;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+  font-size: 17px;
+}
+
+.agent-rec-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.agent-rec-metrics div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.agent-rec-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.agent-rec-metrics b {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.agent-rec-card button {
+  min-height: 38px;
+  padding: 8px 11px;
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.agent-table-wrap {
+  max-height: 520px;
+}
+
+.agent-table {
+  min-width: 1120px;
 }
 
 .debt-control-grid,
@@ -3938,6 +4136,9 @@ tbody tr:hover {
   .analytics-grid,
   .home-kpi-grid,
   .home-layout,
+  .agent-kpi-grid,
+  .agent-layout,
+  .agent-rec-card,
   .project-grid,
   .monthly-detail-grid,
   .debt-control-grid,
@@ -3948,6 +4149,7 @@ tbody tr:hover {
     .debt-review-options,
 	  .movement-import-grid,
 	  .range-kpi-grid,
+    .agent-rule-grid,
 	  .savings-plan-grid,
     .savings-period-grid,
     .visual-bulk-edit-grid,
@@ -4053,6 +4255,11 @@ tbody tr:hover {
   .hero-grid,
   .home-kpi-grid,
   .home-layout,
+  .agent-kpi-grid,
+  .agent-layout,
+  .agent-rule-grid,
+  .agent-rec-card,
+  .agent-rec-metrics,
   .home-action-grid,
   .debt-form-actions,
   .debt-review-summary,

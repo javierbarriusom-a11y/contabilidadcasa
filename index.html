@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260523b" />
+    <link rel="stylesheet" href="styles.css?v=20260523c" />
   </head>
   <body>
     <div class="app-shell">
@@ -20,6 +20,7 @@
         <nav class="side-nav">
           <a href="#home" class="active">Inicio</a>
           <a href="#visual-detail">Cuadro de mandos</a>
+          <a href="#savings-agent">Agente ahorro</a>
           <a href="#debt-control">Control de deuda</a>
           <a href="#prevision">Previsión</a>
           <a href="#simulator">Simulador</a>
@@ -375,6 +376,84 @@
             </article>
 
             <article class="visual-range-kpis" id="visualRangeKpis"></article>
+          </section>
+
+          <section class="savings-agent view-section" id="savings-agent">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Agente automático</p>
+                <h2>Gestión y ahorro</h2>
+                <p>Calcula cada mes cuánto mover a Mediolanum, protege CaixaBank y prioriza deuda y proyectos con el ahorro acumulado.</p>
+              </div>
+              <div class="visual-controls">
+                <label>
+                  <span>Año natural</span>
+                  <select id="agentYear"></select>
+                </label>
+              </div>
+            </div>
+
+            <div class="agent-kpi-grid" id="agentKpis"></div>
+
+            <div class="agent-layout">
+              <article class="agent-panel agent-main-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Plan mensual</p>
+                    <h3>Reglas del agente</h3>
+                    <p>La cuenta CaixaBank se mantiene como operativa. Todo excedente sobre 2.250 € se traspasa a Mediolanum como ahorro.</p>
+                  </div>
+                </div>
+                <div class="agent-rule-grid" id="agentRules"></div>
+              </article>
+
+              <article class="agent-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Lectura ejecutiva</p>
+                    <h3>Qué recomienda ahora</h3>
+                  </div>
+                </div>
+                <div class="agent-insight-list" id="agentInsights"></div>
+              </article>
+            </div>
+
+            <div class="agent-layout">
+              <article class="agent-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Deuda</p>
+                    <h3>Liquidaciones candidatas</h3>
+                    <p>Busca cuándo el ahorro acumulado permitiría liquidar sin bajar CaixaBank de 2.250 €.</p>
+                  </div>
+                </div>
+                <div class="agent-recommendation-list" id="agentDebtList"></div>
+              </article>
+
+              <article class="agent-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Proyectos de vida</p>
+                    <h3>Huchas y ejecución</h3>
+                    <p>Propone cuándo acometer cada proyecto o qué hucha mensual reservar en Mediolanum.</p>
+                  </div>
+                </div>
+                <div class="agent-recommendation-list" id="agentProjectList"></div>
+              </article>
+            </div>
+
+            <article class="agent-panel">
+              <div class="section-title compact">
+                <div>
+                  <p class="panel-kicker">Evolución</p>
+                  <h3>Resultado, traspasos y saldos</h3>
+                  <p>Vista mensual del año seleccionado, calculada con ingresos, gastos, deuda, proyectos y ahorro automático.</p>
+                </div>
+              </div>
+              <div class="table-wrap prevision-table-wrap agent-table-wrap">
+                <table class="prevision-table agent-table" id="agentTable"></table>
+              </div>
+            </article>
           </section>
 
           <section class="debt-control view-section" id="debt-control">
@@ -1138,9 +1217,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260523b"></script>
-    <script src="supabase-config.js?v=20260523b"></script>
-    <script src="data.js?v=20260523b"></script>
-    <script src="app.js?v=20260523b"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260523c"></script>
+    <script src="supabase-config.js?v=20260523c"></script>
+    <script src="data.js?v=20260523c"></script>
+    <script src="app.js?v=20260523c"></script>
   </body>
 </html>

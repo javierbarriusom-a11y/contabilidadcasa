@@ -149,6 +149,10 @@ const viewTitles = {
     eyebrow: "Cuadro de mandos",
     title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
   },
+  "savings-agent": {
+    eyebrow: "Agente ahorro",
+    title: "Automatiza traspasos, huchas y decisiones de deuda",
+  },
   "debt-control": {
     eyebrow: "Control de deuda",
     title: "Compara la deuda anterior con el plan actual y simula liquidaciones",
@@ -5447,6 +5451,297 @@ function renderVisualPrevision(months = visualMonths()) {
   renderVisualRangeKpis();
 }
 
+const AGENT_CAIXA_FLOOR = 2250;
+
+function buildSavingsAgentPlan() {
+  const sourceRows = lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []);
+  const start = accountBalancesFromState();
+  let caixa = Number(start.caixa || 0);
+  let mediolanum = Number(start.mediolanum || 0);
+  let totalTransferred = 0;
+  let totalRescued = 0;
+  let shortage = 0;
+  let projectSpend = 0;
+  const rows = sourceRows.map((row, index) => {
+    const result = round2(row.income - row.coreSpend - row.car - row.refi - row.projectOutflow);
+    const beforeTransfer = round2(caixa + result);
+    const rescue = beforeTransfer < AGENT_CAIXA_FLOOR ? round2(Math.min(mediolanum, AGENT_CAIXA_FLOOR - beforeTransfer)) : 0;
+    const protectedCaixa = round2(beforeTransfer + rescue);
+    const monthShortage = Math.max(0, round2(AGENT_CAIXA_FLOOR - protectedCaixa));
+    const transfer = Math.max(0, round2(protectedCaixa - AGENT_CAIXA_FLOOR));
+    caixa = round2(protectedCaixa - transfer);
+    mediolanum = round2(mediolanum + transfer - rescue);
+    totalTransferred = round2(totalTransferred + transfer);
+    totalRescued = round2(totalRescued + rescue);
+    shortage = round2(shortage + monthShortage);
+    projectSpend = round2(projectSpend + Math.max(0, Number(row.projectOutflow || 0)));
+    return {
+      ...row,
+      agentIndex: index,
+      operatingResult: result,
+      transferToSavings: transfer,
+      rescueFromSavings: rescue,
+      shortage: monthShortage,
+      agentCaixa: caixa,
+      agentMediolanum: mediolanum,
+      agentTotal: round2(caixa + mediolanum),
+    };
+  });
+  const plannedDebtPrincipal = round2(sumRows(debtLiquidations, (item) => Number(item.originalPrincipal || item.targetPrincipal || item.amount || 0)));
+  const openDebtPrincipal = round2(sumRows(debtTargetOptions({ includePlanned: true }), (item) => Number(item.currentPrincipal || item.principal || 0)));
+  const remainingDebt = Math.max(0, round2(openDebtPrincipal - plannedDebtPrincipal));
+  const final = rows.at(-1) || {};
+  return {
+    rows,
+    totalTransferred,
+    totalRescued,
+    shortage,
+    projectSpend,
+    plannedDebtPrincipal,
+    remainingDebt,
+    finalCaixa: round2(final.agentCaixa || start.caixa || 0),
+    finalMediolanum: round2(final.agentMediolanum || start.mediolanum || 0),
+    finalTotal: round2(final.agentTotal || start.total || 0),
+    netWorth: round2((final.agentTotal || start.total || 0) - remainingDebt),
+    minCaixa: rows.length ? Math.min(...rows.map((row) => row.agentCaixa)) : start.caixa,
+    maxSavings: rows.length ? Math.max(...rows.map((row) => row.agentMediolanum)) : start.mediolanum,
+  };
+}
+
+function agentYears(plan) {
+  return [...new Set(plan.rows.map((row) => String(cashflowYear(row))))].filter(Boolean);
+}
+
+function populateAgentYearSelect(plan) {
+  const select = qs("agentYear");
+  if (!select) return;
+  const years = agentYears(plan);
+  const previous = select.value;
+  select.innerHTML = years.map((year) => `<option value="${escapeHtml(year)}">${escapeHtml(year)}</option>`).join("");
+  select.value = years.includes(previous) ? previous : years[0] || "";
+}
+
+function agentRowsForYear(plan, year) {
+  return plan.rows.filter((row) => String(cashflowYear(row)) === String(year));
+}
+
+function agentStatusForRow(row) {
+  if (row.shortage > 0) return { label: "Falta caja", tone: "danger" };
+  if (row.rescueFromSavings > 0) return { label: "Usa ahorro", tone: "warn" };
+  if (row.transferToSavings > 0) return { label: "Ahorra", tone: "good" };
+  return { label: "Equilibrio", tone: "neutral" };
+}
+
+function agentAffordabilityMonth(plan, amount, buffer = 0) {
+  return plan.rows.find((row) => row.agentMediolanum >= Number(amount || 0) + Number(buffer || 0));
+}
+
+function agentDebtRecommendations(plan) {
+  const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
+  return debtTargetOptions({ includePlanned: false })
+    .filter((item) => !alreadyPlanned.has(item.id) && Number(item.currentPrincipal || item.principal || 0) > 0)
+    .map((item) => {
+      const principal = round2(Number(item.currentPrincipal || item.principal || 0));
+      const payment = round2(Number(item.payment || item.originalPayment || 0));
+      const affordability = agentAffordabilityMonth(plan, principal, AGENT_CAIXA_FLOOR * 0.35);
+      const efficiency = principal ? payment / principal : 0;
+      return {
+        ...item,
+        principal,
+        payment,
+        affordability,
+        monthLabel: affordability?.month || "No alcanzado",
+        efficiency,
+        score: (affordability ? 1000 - affordability.agentIndex : 0) + efficiency * 10000 + payment,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
+
+function agentLifeProjectRecommendations(plan) {
+  return projects
+    .filter((project) => !project.locked && Number(decisionGrossCost(project)) > 0)
+    .map((project) => {
+      const amount = decisionGrossCost(project);
+      const affordability = agentAffordabilityMonth(plan, amount, AGENT_CAIXA_FLOOR * 0.35);
+      const monthsToGoal = affordability ? Math.max(1, affordability.agentIndex + 1) : 12;
+      const pot = round2(amount / monthsToGoal);
+      const evaluation = evaluateProjectDecisionItem({ ...project, monthIndex: affordability?.agentIndex ?? project.monthIndex ?? 0 });
+      return {
+        ...project,
+        amount,
+        affordability,
+        monthLabel: affordability?.month || "No alcanzado",
+        pot,
+        minChecking: evaluation?.evaluation?.minChecking,
+        netGain: evaluation?.netGain,
+      };
+    })
+    .sort((a, b) => (a.affordability?.agentIndex ?? 999) - (b.affordability?.agentIndex ?? 999))
+    .slice(0, 5);
+}
+
+function agentInsightCards(plan, debtRecs, projectRecs) {
+  const firstShortage = plan.rows.find((row) => row.shortage > 0);
+  const nextTransfer = plan.rows.find((row) => row.transferToSavings > 0);
+  const topDebt = debtRecs[0];
+  const topProject = projectRecs[0];
+  const cards = [];
+  cards.push({
+    title: firstShortage ? "Hay meses sin caja suficiente" : "Regla de caja viable",
+    text: firstShortage
+      ? `${firstShortage.month}: faltarían ${money(firstShortage.shortage, true)} incluso rescatando ahorro. Revisa proyectos o ahorro antes de fijar más decisiones.`
+      : `CaixaBank se mantiene en ${money(AGENT_CAIXA_FLOOR, true)} o más. Primer traspaso previsto: ${nextTransfer ? `${money(nextTransfer.transferToSavings, true)} en ${nextTransfer.month}` : "sin excedente próximo"}.`,
+    tone: firstShortage ? "danger" : "good",
+  });
+  cards.push({
+    title: topDebt ? "Mejor deuda candidata" : "Sin deuda candidata",
+    text: topDebt
+      ? `${topDebt.entity} ${topDebt.type}: ${money(topDebt.principal, true)}. El ahorro la cubriría en ${topDebt.monthLabel}; cuota liberable ${money(topDebt.payment, true)}.`
+      : "No hay deuda viva sin plan cargado. El agente priorizará proyectos o colchón.",
+    tone: topDebt ? "warn" : "good",
+  });
+  cards.push({
+    title: topProject ? "Proyecto de vida más cercano" : "Sin proyectos pendientes",
+    text: topProject
+      ? `${topProject.name}: hucha sugerida ${money(topProject.pot, true)}/mes; objetivo alcanzable en ${topProject.monthLabel}.`
+      : "Añade proyectos en el simulador para que el agente calcule huchas, fecha objetivo y modalidad.",
+    tone: topProject ? "good" : "neutral",
+  });
+  return cards;
+}
+
+function renderAgentRecommendationCard(item, type) {
+  if (type === "debt") {
+    const canPay = Boolean(item.affordability);
+    return `<article class="agent-rec-card ${canPay ? "good" : "warn"}">
+      <div>
+        <span>Deuda</span>
+        <strong>${escapeHtml(item.entity)} · ${escapeHtml(item.type)}</strong>
+        <p>${escapeHtml(item.number || "")}</p>
+      </div>
+      <div class="agent-rec-metrics">
+        <div><small>Pendiente</small><b>${money(item.principal, true)}</b></div>
+        <div><small>Cuota liberable</small><b>${money(item.payment, true)}</b></div>
+        <div><small>Mes sugerido</small><b>${escapeHtml(item.monthLabel)}</b></div>
+        <div><small>Eficiencia</small><b>${(item.efficiency * 100).toFixed(1)}%</b></div>
+      </div>
+      <button type="button" data-agent-debt-target="${escapeHtml(item.id)}">Preparar en control de deuda</button>
+    </article>`;
+  }
+  const canPay = Boolean(item.affordability);
+  return `<article class="agent-rec-card ${canPay ? "good" : "warn"}">
+    <div>
+      <span>Proyecto</span>
+      <strong>${escapeHtml(item.name)}</strong>
+      <p>${item.locked ? "Fijo en plan" : "Pendiente de decisión final"}</p>
+    </div>
+    <div class="agent-rec-metrics">
+      <div><small>Coste</small><b>${money(item.amount, true)}</b></div>
+      <div><small>Hucha sugerida</small><b>${money(item.pot, true)}/mes</b></div>
+      <div><small>Mes objetivo</small><b>${escapeHtml(item.monthLabel)}</b></div>
+      <div><small>Caja mínima plan</small><b>${money(item.minChecking, true)}</b></div>
+    </div>
+    <button type="button" data-agent-project-id="${escapeHtml(item.id)}">Revisar en simulador</button>
+  </article>`;
+}
+
+function renderAgentTable(plan, year) {
+  const rows = agentRowsForYear(plan, year);
+  if (!qs("agentTable")) return;
+  if (!rows.length) {
+    qs("agentTable").innerHTML = "";
+    return;
+  }
+  const headers = rows.map((row) => `<th>${escapeHtml(row.month)}</th>`).join("");
+  const line = (label, getter, klass = "") =>
+    `<tr><td>${escapeHtml(label)}</td>${rows.map((row) => `<td class="${klass || (getter(row) < 0 ? "negative" : getter(row) > 0 ? "positive" : "")}">${typeof getter(row) === "string" ? escapeHtml(getter(row)) : money(getter(row), true)}</td>`).join("")}</tr>`;
+  qs("agentTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>
+    <tr class="prevision-group-row"><td colspan="${rows.length + 1}">Caja operativa</td></tr>
+    ${line("Resultado del mes", (row) => row.operatingResult)}
+    ${line("Traspaso a Mediolanum", (row) => row.transferToSavings, "positive")}
+    ${line("Rescate desde Mediolanum", (row) => row.rescueFromSavings, "negative")}
+    ${line("CaixaBank cierre", (row) => row.agentCaixa)}
+    ${line("Mediolanum cierre", (row) => row.agentMediolanum, "positive")}
+    ${line("Patrimonio total", (row) => row.agentTotal, "positive")}
+    <tr class="prevision-group-row comparison"><td colspan="${rows.length + 1}">Control</td></tr>
+    ${line("Impacto proyectos/deuda", (row) => row.projectOutflow)}
+    ${line("Estado", (row) => agentStatusForRow(row).label)}
+  </tbody>`;
+}
+
+function prepareAgentDebtDecision(targetId) {
+  history.pushState(null, "", "#debt-control");
+  setActiveView("debt-control");
+  window.requestAnimationFrame(() => {
+    if (qs("debtTargetSelect")) qs("debtTargetSelect").value = targetId;
+    pendingDebtDecision = null;
+    updateDebtTargetDefaults(true);
+    if (qs("debtPayoffMode")) qs("debtPayoffMode").value = "optimize";
+    updateDebtModeUi();
+    stageDebtDecision();
+  });
+}
+
+function prepareAgentProjectDecision(projectId) {
+  history.pushState(null, "", "#simulator");
+  setActiveView("simulator");
+  window.requestAnimationFrame(() => {
+    editProject(projectId);
+    pendingProjectDecision = projectDecisionFromForm({ forceOptimize: true });
+    renderProjectDecisionReview(pendingProjectDecision);
+  });
+}
+
+function renderSavingsAgent() {
+  if (!qs("agentKpis")) return;
+  const plan = buildSavingsAgentPlan();
+  populateAgentYearSelect(plan);
+  const selectedYear = qs("agentYear")?.value || agentYears(plan)[0];
+  const debtRecs = agentDebtRecommendations(plan);
+  const projectRecs = agentLifeProjectRecommendations(plan);
+  const firstYearRows = agentRowsForYear(plan, selectedYear);
+  const yearTransferred = sumRows(firstYearRows, (row) => row.transferToSavings);
+  const yearResult = sumRows(firstYearRows, (row) => row.operatingResult);
+  qs("agentKpis").innerHTML = [
+    ["Patrimonio neto final", money(plan.netWorth, true), `Liquidez final menos deuda viva no planificada (${money(plan.remainingDebt, true)}).`, plan.netWorth >= 0 ? "good" : "danger"],
+    ["Ahorrado en Mediolanum", money(plan.finalMediolanum, true), `Traspasos acumulados: ${money(plan.totalTransferred, true)}.`, "good"],
+    ["Caja mínima protegida", money(plan.minCaixa, true), `Límite operativo: ${money(AGENT_CAIXA_FLOOR, true)} en CaixaBank.`, plan.minCaixa >= AGENT_CAIXA_FLOOR ? "good" : "danger"],
+    ["Proyectos y deuda cargados", money(plan.projectSpend, true), `Deuda planificada: ${money(plan.plannedDebtPrincipal, true)}.`, plan.projectSpend > 0 ? "warn" : "neutral"],
+  ]
+    .map(([label, value, note, tone]) => `<article class="agent-kpi-card ${tone}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${value}</strong>
+      <p>${escapeHtml(note)}</p>
+    </article>`)
+    .join("");
+
+  qs("agentRules").innerHTML = [
+    ["Regla de traspaso", `Cada mes mueve a Mediolanum todo lo que deje CaixaBank por encima de ${money(AGENT_CAIXA_FLOOR, true)}.`],
+    ["Año seleccionado", `${selectedYear}: resultado acumulado ${money(yearResult, true)} y traspaso estimado ${money(yearTransferred, true)}.`],
+    ["Uso del ahorro", "Primero protege caja, después calcula deudas y proyectos financiables con Mediolanum."],
+    ["Decisiones definitivas", "Nada se aplica al cuadro de mandos hasta preparar la decisión y fijarla en su simulador."],
+  ]
+    .map(([title, text]) => `<div><span>${escapeHtml(title)}</span><strong>${escapeHtml(text)}</strong></div>`)
+    .join("");
+
+  qs("agentInsights").innerHTML = agentInsightCards(plan, debtRecs, projectRecs)
+    .map((item) => `<article class="agent-insight ${item.tone}">
+      <strong>${escapeHtml(item.title)}</strong>
+      <p>${escapeHtml(item.text)}</p>
+    </article>`)
+    .join("");
+
+  qs("agentDebtList").innerHTML = debtRecs.length
+    ? debtRecs.map((item) => renderAgentRecommendationCard(item, "debt")).join("")
+    : `<div class="empty-state compact">No hay deudas vivas sin plan pendiente de simular.</div>`;
+  qs("agentProjectList").innerHTML = projectRecs.length
+    ? projectRecs.map((item) => renderAgentRecommendationCard(item, "project")).join("")
+    : `<div class="empty-state compact">No hay proyectos de vida pendientes. Añade uno en el simulador para que el agente calcule hucha y mes objetivo.</div>`;
+  renderAgentTable(plan, selectedYear);
+}
+
 function renderPrevision() {
   if (!qs("previsionTable")) return;
   populatePrevisionYearSelect();
@@ -7452,6 +7747,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "visual-detail":
       renderVisualDetail();
       break;
+    case "savings-agent":
+      renderSavingsAgent();
+      break;
     case "debt-control":
       renderDebtControl();
       break;
@@ -7695,6 +7993,13 @@ async function init() {
     qs(id).addEventListener("change", handleVisualAccountBalanceInput);
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
+  qs("agentYear")?.addEventListener("change", renderSavingsAgent);
+  qs("savings-agent")?.addEventListener("click", (event) => {
+    const debtButton = event.target.closest("[data-agent-debt-target]");
+    if (debtButton) prepareAgentDebtDecision(debtButton.dataset.agentDebtTarget);
+    const projectButton = event.target.closest("[data-agent-project-id]");
+    if (projectButton) prepareAgentProjectDecision(projectButton.dataset.agentProjectId);
+  });
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);
   qs("visualAddScope").addEventListener("change", updateVisualAddScopeUi);
   qs("visualAddStartMonth").addEventListener("change", updateVisualAddScopeUi);
