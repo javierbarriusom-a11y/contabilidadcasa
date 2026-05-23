@@ -2659,6 +2659,20 @@ function evaluateOutflows(outflows) {
   };
 }
 
+function decisionBaselineOutflows(excludeId = null) {
+  const months = forecastMonths();
+  if (!excludeId || !projectPlan?.placements?.length) {
+    return projectPlan?.outflows?.length === months.length ? projectPlan.outflows.slice() : Array(months.length).fill(0);
+  }
+  const outflows = Array(months.length).fill(0);
+  projectPlan.placements
+    .filter((item) => item.id !== excludeId)
+    .forEach((item) => {
+      addScheduledDecisionOutflow(outflows, item, Number(item.startIndex || 0));
+    });
+  return outflows;
+}
+
 function buildProjectSchedule() {
   const months = forecastMonths();
   const outflows = Array(months.length).fill(0);
@@ -2733,7 +2747,7 @@ function buildProjectSchedule() {
 function evaluateProjectCandidate(project, mode = "full") {
   if (!lastBaseSimulation.length) return null;
   const months = forecastMonths();
-  const baselineOutflows = projectPlan?.outflows?.length === months.length ? projectPlan.outflows : Array(months.length).fill(0);
+  const baselineOutflows = decisionBaselineOutflows(project?.id);
   const baseline = evaluateOutflows(baselineOutflows);
   const duration = decisionWindowMonths(project);
   let best = null;
@@ -2794,7 +2808,7 @@ function projectDecisionFromForm({ title, amountOverride, durationOverride, recu
 
 function evaluateProjectDecisionItem(item) {
   const months = forecastMonths();
-  const baselineOutflows = projectPlan?.outflows?.length === months.length ? projectPlan.outflows : Array(months.length).fill(0);
+  const baselineOutflows = decisionBaselineOutflows(item?.id);
   const candidate = baselineOutflows.slice();
   addScheduledDecisionOutflow(candidate, { ...item, source: "project" }, item.monthIndex || 0);
   const baseline = evaluateOutflows(baselineOutflows);
@@ -5592,26 +5606,39 @@ function agentDebtRecommendations(plan) {
     .slice(0, 5);
 }
 
+function agentProjectTargetIndex(project) {
+  const placement = projectPlan?.placements?.find((item) => item.id === project.id);
+  if (Number.isFinite(Number(placement?.startIndex))) return Number(placement.startIndex);
+  const months = forecastMonths();
+  if (project.monthKey) {
+    const indexFromKey = months.findIndex((month) => month.key === project.monthKey);
+    if (indexFromKey >= 0) return indexFromKey;
+  }
+  return Math.max(0, Math.min(Number(project.monthIndex || 0), months.length - 1));
+}
+
 function agentLifeProjectRecommendations(plan) {
   return projects
     .filter((project) => !project.locked && Number(decisionGrossCost(project)) > 0)
     .map((project) => {
       const amount = decisionGrossCost(project);
-      const affordability = agentAffordabilityMonth(plan, amount, plan.caixaFloor * 0.35);
-      const monthsToGoal = affordability ? Math.max(1, affordability.agentIndex + 1) : 12;
+      const targetIndex = agentProjectTargetIndex(project);
+      const targetRow = plan.rows[targetIndex];
+      const monthsToGoal = Math.max(1, targetIndex + 1);
       const pot = round2(amount / monthsToGoal);
-      const evaluation = evaluateProjectDecisionItem({ ...project, monthIndex: affordability?.agentIndex ?? project.monthIndex ?? 0 });
+      const evaluation = evaluateProjectDecisionItem({ ...project, monthIndex: targetIndex });
       return {
         ...project,
         amount,
-        affordability,
-        monthLabel: affordability?.month || "No alcanzado",
+        affordability: targetRow,
+        monthLabel: targetRow?.month || forecastMonths()[targetIndex]?.label || "No alcanzado",
         pot,
+        targetIndex,
         minChecking: evaluation?.evaluation?.minChecking,
         netGain: evaluation?.netGain,
       };
     })
-    .sort((a, b) => (a.affordability?.agentIndex ?? 999) - (b.affordability?.agentIndex ?? 999))
+    .sort((a, b) => (a.targetIndex ?? 999) - (b.targetIndex ?? 999))
     .slice(0, 5);
 }
 
