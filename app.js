@@ -5100,6 +5100,7 @@ function renderVisualDetail() {
           <td>
             <input class="visual-label-input derived-control" value="${escapeHtml(project.name)}" readonly />
             <small>${escapeHtml(project.status === "optimized" ? "mes óptimo" : "mes manual")} · ${escapeHtml(project.monthLabel)}${locked ? " · fijo en plan" : ""}${pendingDelete ? " · se borrará al guardar" : ""}</small>
+            ${renderProjectSavingsProgress(project, true)}
           </td>
           ${columns
             .map((column) => {
@@ -5617,6 +5618,44 @@ function agentProjectTargetIndex(project) {
   return Math.max(0, Math.min(Number(project.monthIndex || 0), months.length - 1));
 }
 
+function projectSavingsProgress(project) {
+  const months = forecastMonths();
+  const amount = decisionGrossCost(project);
+  const targetIndex = agentProjectTargetIndex(project);
+  const totalMonths = Math.max(1, targetIndex + 1);
+  const monthlyPot = round2(amount / totalMonths);
+  const availableSavings = Math.max(0, Number(accountBalancesFromState().mediolanum || 0));
+  const saved = round2(Math.min(amount, availableSavings));
+  const remaining = round2(Math.max(0, amount - saved));
+  return {
+    amount,
+    saved,
+    remaining,
+    monthlyPot,
+    percent: amount > 0 ? Math.min(100, Math.max(0, (saved / amount) * 100)) : 0,
+    startLabel: months[0]?.label || "",
+    targetLabel: months[targetIndex]?.label || project.monthLabel || "",
+  };
+}
+
+function renderProjectSavingsProgress(project, compact = false) {
+  if (!project || project.source === "debt" || project.locked || decisionGrossCost(project) <= 0) return "";
+  const progress = projectSavingsProgress(project);
+  return `<div class="project-savings-progress ${compact ? "compact" : ""}">
+    <div class="project-savings-progress-head">
+      <span>Hucha desde ${escapeHtml(progress.startLabel)}</span>
+      <strong>${money(progress.saved, true)} / ${money(progress.amount, true)}</strong>
+    </div>
+    <div class="project-savings-bar" aria-label="Progreso de hucha">
+      <span style="width:${progress.percent.toFixed(1)}%"></span>
+    </div>
+    <div class="project-savings-progress-foot">
+      <span>Objetivo ${escapeHtml(progress.targetLabel)}</span>
+      <span>Quedan ${money(progress.remaining, true)} · ${money(progress.monthlyPot, true)}/mes</span>
+    </div>
+  </div>`;
+}
+
 function agentLifeProjectRecommendations(plan) {
   return projects
     .filter((project) => !project.locked && Number(decisionGrossCost(project)) > 0)
@@ -5739,6 +5778,7 @@ function renderAgentRecommendationCard(item, type) {
       <span>Proyecto</span>
       <strong>${escapeHtml(item.name)}</strong>
       <p>${item.locked ? "Fijo en plan" : "Pendiente de decisión final"}</p>
+      ${renderProjectSavingsProgress(item)}
     </div>
     <div class="agent-rec-metrics">
       <div><small>Coste</small><b>${money(item.amount, true)}</b></div>

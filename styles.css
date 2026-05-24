@@ -2395,6 +2395,53 @@ svg {
   background: #fcf9ff;
 }
 
+.project-savings-progress {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid rgba(92, 71, 131, 0.2);
+  border-radius: 8px;
+  background: rgba(92, 71, 131, 0.06);
+}
+
+.project-savings-progress.compact {
+  max-width: 280px;
+  margin-top: 6px;
+  padding: 8px;
+}
+
+.project-savings-progress-head,
+.project-savings-progress-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.project-savings-progress-head strong,
+.project-savings-progress-foot span:last-child {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.project-savings-bar {
+  height: 8px;
+  margin: 8px 0;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(92, 71, 131, 0.16);
+}
+
+.project-savings-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal), var(--purple));
+}
+
 .visual-prevision-panel {
   margin-top: 16px;
   padding: 16px;
