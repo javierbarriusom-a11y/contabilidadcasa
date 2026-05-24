@@ -2558,6 +2558,9 @@ svg {
 .agent-kpi-card,
 .agent-panel,
 .agent-plan-summary,
+.agent-today-card,
+.agent-month-card,
+.agent-priority-card,
 .agent-rec-card {
   min-width: 0;
   border: 1px solid var(--line);
@@ -2659,11 +2662,65 @@ svg {
   white-space: nowrap;
 }
 
+.agent-today-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.agent-today-card {
+  padding: 14px;
+  border-left: 5px solid var(--teal);
+}
+
+.agent-today-card.good {
+  border-left-color: var(--green);
+}
+
+.agent-today-card.warn {
+  border-left-color: #b98918;
+}
+
+.agent-today-card.danger {
+  border-left-color: var(--red);
+}
+
+.agent-today-card span,
+.agent-month-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.agent-today-card strong {
+  display: block;
+  margin: 6px 0 8px;
+  overflow-wrap: anywhere;
+  font-size: clamp(22px, 2vw, 32px);
+  line-height: 1;
+}
+
+.agent-today-card p,
+.agent-month-card p,
+.agent-priority-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .agent-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr);
   gap: 14px;
   align-items: start;
+}
+
+.agent-planning-layout {
+  grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
 }
 
 .agent-panel {
@@ -2698,9 +2755,113 @@ svg {
 }
 
 .agent-insight-list,
-.agent-recommendation-list {
+.agent-recommendation-list,
+.agent-month-strip,
+.agent-priority-list {
   display: grid;
   gap: 10px;
+}
+
+.agent-month-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.agent-month-card {
+  padding: 12px;
+  border-left: 5px solid var(--teal);
+}
+
+.agent-month-card.good {
+  border-left-color: var(--green);
+}
+
+.agent-month-card.warn {
+  border-left-color: #b98918;
+}
+
+.agent-month-card.danger {
+  border-left-color: var(--red);
+}
+
+.agent-month-card strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 16px;
+}
+
+.agent-month-card dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin: 12px 0 0;
+}
+
+.agent-month-card dl div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.agent-month-card dt {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.agent-month-card dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.agent-priority-card {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) minmax(130px, auto);
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-left: 5px solid var(--green);
+}
+
+.agent-priority-card.warn {
+  border-left-color: #b98918;
+}
+
+.agent-priority-card.danger {
+  border-left-color: var(--red);
+}
+
+.agent-priority-card > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--teal);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.agent-priority-card strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 15px;
+}
+
+.agent-priority-card button {
+  min-height: 34px;
+  padding: 7px 10px;
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
 }
 
 .agent-insight {
@@ -4257,9 +4418,11 @@ tbody tr:hover {
   .home-kpi-grid,
   .home-layout,
   .agent-kpi-grid,
+  .agent-today-grid,
   .agent-layout,
   .agent-plan-summary,
   .agent-rec-card,
+  .agent-month-strip,
   .project-grid,
   .monthly-detail-grid,
   .debt-control-grid,
@@ -4381,11 +4544,13 @@ tbody tr:hover {
   .home-kpi-grid,
   .home-layout,
   .agent-kpi-grid,
+  .agent-today-grid,
   .agent-layout,
   .agent-rule-grid,
   .agent-plan-summary,
   .agent-rec-card,
   .agent-rec-metrics,
+  .agent-month-strip,
   .home-action-grid,
   .debt-form-actions,
   .debt-review-summary,

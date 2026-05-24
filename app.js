@@ -5750,17 +5750,19 @@ function agentDebtRecommendations(plan) {
     .filter((item) => !alreadyPlanned.has(item.id) && Number(item.currentPrincipal || item.principal || 0) > 0)
     .map((item) => {
       const principal = round2(Number(item.currentPrincipal || item.principal || 0));
-      const payment = round2(Number(item.payment || item.originalPayment || 0));
+      const payment = debtMonthlyReliefForMode(item, "optimize");
+      const originalPayment = round2(Number(item.originalPayment || 0));
       const affordability = agentAffordabilityMonth(plan, principal, plan.caixaFloor * 0.35);
       const efficiency = principal ? payment / principal : 0;
       return {
         ...item,
         principal,
         payment,
+        originalPayment,
         affordability,
         monthLabel: affordability?.month || "No alcanzado",
         efficiency,
-        score: (affordability ? 1000 - affordability.agentIndex : 0) + efficiency * 10000 + payment,
+        score: (affordability ? 1000 - affordability.agentIndex : 0) + efficiency * 10000 + payment + (debtTargetIsSuspended(item) ? 150 : 0),
       };
     })
     .sort((a, b) => b.score - a.score)
@@ -5871,6 +5873,158 @@ function agentInsightCards(plan, debtRecs, projectRecs) {
   return cards;
 }
 
+function agentTodayCards(plan) {
+  const today = plan.rows[0] || {};
+  const next = plan.rows[1] || {};
+  const transferableNow = Math.max(0, Number(today.transferToSavings || 0));
+  const reserveGap = Math.max(0, round2(Number(today.requiredReserve || plan.caixaFloor) - Number(today.agentCaixa || 0)));
+  const nextOutflows = Number(next.outflowsBeforeSaving || 0);
+  return [
+    {
+      label: "Puedes traspasar hoy",
+      value: money(transferableNow, true),
+      detail: transferableNow
+        ? `Manteniendo ${money(plan.caixaFloor, true)} y cubriendo ${money(nextOutflows, true)} del mes siguiente.`
+        : "No hay excedente seguro; conserva la caja operativa.",
+      tone: transferableNow ? "good" : "warn",
+    },
+    {
+      label: "Reserva protegida",
+      value: money(today.requiredReserve || plan.caixaFloor, true),
+      detail: `Saldo operativo ${money(plan.caixaFloor, true)} + pagos previstos del próximo mes.`,
+      tone: reserveGap ? "danger" : "good",
+    },
+    {
+      label: "Resultado del mes",
+      value: money(today.operatingResult || 0, true),
+      detail: `${escapeHtml(today.month || "Mes actual")} antes del traspaso automático a Mediolanum.`,
+      tone: Number(today.operatingResult || 0) >= 0 ? "good" : "danger",
+    },
+    {
+      label: "Ahorro disponible",
+      value: money(today.agentMediolanum || 0, true),
+      detail: "Mediolanum tras aplicar traspasos/rescates del mes.",
+      tone: "neutral",
+    },
+  ];
+}
+
+function renderAgentToday(plan) {
+  const target = qs("agentToday");
+  if (!target) return;
+  target.innerHTML = agentTodayCards(plan)
+    .map(
+      (card) => `<article class="agent-today-card ${card.tone}">
+        <span>${escapeHtml(card.label)}</span>
+        <strong>${card.value}</strong>
+        <p>${escapeHtml(card.detail)}</p>
+      </article>`,
+    )
+    .join("");
+}
+
+function renderAgentQuarterPlan(plan) {
+  const target = qs("agentQuarterPlan");
+  if (!target) return;
+  const rows = plan.rows.slice(0, 3);
+  target.innerHTML = rows.length
+    ? rows
+        .map((row) => {
+          const status = agentStatusForRow(row);
+          return `<article class="agent-month-card ${status.tone}">
+            <div>
+              <span>${escapeHtml(row.month)}</span>
+              <strong>${escapeHtml(status.label)}</strong>
+            </div>
+            <dl>
+              <div><dt>Resultado</dt><dd class="${row.operatingResult < 0 ? "negative" : "positive"}">${money(row.operatingResult, true)}</dd></div>
+              <div><dt>Reserva</dt><dd>${money(row.requiredReserve, true)}</dd></div>
+              <div><dt>Traspaso</dt><dd class="positive">${money(row.transferToSavings, true)}</dd></div>
+              <div><dt>Mediolanum</dt><dd>${money(row.agentMediolanum, true)}</dd></div>
+            </dl>
+          </article>`;
+        })
+        .join("")
+    : `<div class="empty-state compact">Sin meses suficientes para agenda.</div>`;
+}
+
+function agentPriorityQueue(plan, debtRecs, projectRecs) {
+  const queue = [];
+  const firstShortage = plan.rows.find((row) => row.shortage > 0);
+  const firstTransfer = plan.rows.find((row) => row.transferToSavings > 0);
+  if (firstShortage) {
+    queue.push({
+      tone: "danger",
+      title: "Proteger caja antes de decidir",
+      meta: `${firstShortage.month}: faltan ${money(firstShortage.shortage, true)} frente a la reserva del mes siguiente.`,
+      action: "Revisar simulador",
+      target: "simulator",
+      score: 10000,
+    });
+  } else {
+    queue.push({
+      tone: "good",
+      title: "Traspaso prudente a Mediolanum",
+      meta: firstTransfer
+        ? `${money(firstTransfer.transferToSavings, true)} en ${firstTransfer.month}, manteniendo pagos del mes siguiente cubiertos.`
+        : "Sin excedente inmediato: esperar al próximo ingreso antes de mover ahorro.",
+      action: "Ver evolución",
+      target: "savings-agent",
+      score: 9000,
+    });
+  }
+  debtRecs.slice(0, 3).forEach((item, index) => {
+    const suspended = debtTargetIsSuspended(item);
+    queue.push({
+      tone: suspended ? "warn" : item.affordability ? "good" : "warn",
+      title: `${suspended ? "Negociar" : "Liquidar"} ${item.entity} ${item.type}`,
+      meta: suspended
+        ? `${money(item.principal, true)} pendiente y pagos suspendidos: buscar quita/reunificación; no cuenta como cuota liberable.`
+        : `${money(item.principal, true)}; mes sugerido ${item.monthLabel}; cuota liberable ${money(item.payment, true)}.`,
+      action: "Preparar deuda",
+      debtId: item.id,
+      score: 7000 - index * 100 + item.score,
+    });
+  });
+  projectRecs.slice(0, 3).forEach((item, index) => {
+    queue.push({
+      tone: item.affordability ? "good" : "warn",
+      title: `Hucha ${item.name}`,
+      meta: `${money(item.pot, true)}/mes hasta ${item.monthLabel}; faltan ${money(projectSavingsProgress(item).remaining, true)}.`,
+      action: "Revisar proyecto",
+      projectId: item.id,
+      score: 6200 - index * 100 - Number(item.targetIndex || 0),
+    });
+  });
+  return queue.sort((a, b) => b.score - a.score).slice(0, 7);
+}
+
+function renderAgentPriorityQueue(plan, debtRecs, projectRecs) {
+  const target = qs("agentPriorityQueue");
+  if (!target) return;
+  const queue = agentPriorityQueue(plan, debtRecs, projectRecs);
+  target.innerHTML = queue.length
+    ? queue
+        .map(
+          (item, index) => `<article class="agent-priority-card ${item.tone}">
+            <span>${index + 1}</span>
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.meta)}</p>
+            </div>
+            ${
+              item.debtId
+                ? `<button type="button" data-agent-debt-target="${escapeHtml(item.debtId)}">${escapeHtml(item.action)}</button>`
+                : item.projectId
+                  ? `<button type="button" data-agent-project-id="${escapeHtml(item.projectId)}">${escapeHtml(item.action)}</button>`
+                  : `<button type="button" data-home-nav="${escapeHtml(item.target || "savings-agent")}">${escapeHtml(item.action)}</button>`
+            }
+          </article>`,
+        )
+        .join("")
+    : `<div class="empty-state compact">Sin acciones recomendadas ahora mismo.</div>`;
+}
+
 function agentPlanSummary(plan) {
   const decisions = [
     ...projects.map((item) => ({ ...item, source: "project" })),
@@ -5917,17 +6071,18 @@ function renderAgentPlanSummary(plan) {
 function renderAgentRecommendationCard(item, type) {
   if (type === "debt") {
     const canPay = Boolean(item.affordability);
+    const suspended = debtTargetIsSuspended(item);
     return `<article class="agent-rec-card ${canPay ? "good" : "warn"}">
       <div>
         <span>Deuda</span>
         <strong>${escapeHtml(item.entity)} · ${escapeHtml(item.type)}</strong>
-        <p>${escapeHtml(item.number || "")}</p>
+        <p>${escapeHtml(item.number || "")}${suspended ? " · pagos suspendidos" : ""}</p>
       </div>
       <div class="agent-rec-metrics">
         <div><small>Pendiente</small><b>${money(item.principal, true)}</b></div>
-        <div><small>Cuota liberable</small><b>${money(item.payment, true)}</b></div>
+        <div><small>${suspended ? "Cuota original" : "Cuota liberable"}</small><b>${money(suspended ? item.originalPayment : item.payment, true)}</b></div>
         <div><small>Mes sugerido</small><b>${escapeHtml(item.monthLabel)}</b></div>
-        <div><small>Eficiencia</small><b>${(item.efficiency * 100).toFixed(1)}%</b></div>
+        <div><small>${suspended ? "Flujo liberable" : "Eficiencia"}</small><b>${suspended ? "0,0%" : `${(item.efficiency * 100).toFixed(1)}%`}</b></div>
       </div>
       <button type="button" data-agent-debt-target="${escapeHtml(item.id)}">Preparar en control de deuda</button>
     </article>`;
@@ -6009,6 +6164,9 @@ function renderSavingsAgent() {
   const firstYearRows = agentRowsForYear(plan, selectedYear);
   const yearTransferred = sumRows(firstYearRows, (row) => row.transferToSavings);
   const yearResult = sumRows(firstYearRows, (row) => row.operatingResult);
+  renderAgentToday(plan);
+  renderAgentQuarterPlan(plan);
+  renderAgentPriorityQueue(plan, debtRecs, projectRecs);
   qs("agentKpis").innerHTML = [
     ["Patrimonio neto final", money(plan.netWorth, true), `Liquidez final menos deuda viva no planificada (${money(plan.remainingDebt, true)}).`, plan.netWorth >= 0 ? "good" : "danger"],
     ["Ahorrado en Mediolanum", money(plan.finalMediolanum, true), `Traspasos acumulados: ${money(plan.totalTransferred, true)}.`, "good"],
@@ -8303,6 +8461,11 @@ async function init() {
     if (debtButton) prepareAgentDebtDecision(debtButton.dataset.agentDebtTarget);
     const projectButton = event.target.closest("[data-agent-project-id]");
     if (projectButton) prepareAgentProjectDecision(projectButton.dataset.agentProjectId);
+    const navButton = event.target.closest("[data-home-nav]");
+    if (navButton) {
+      history.pushState(null, "", `#${navButton.dataset.homeNav}`);
+      setActiveView(navButton.dataset.homeNav);
+    }
   });
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);
   qs("visualAddScope").addEventListener("change", updateVisualAddScopeUi);
