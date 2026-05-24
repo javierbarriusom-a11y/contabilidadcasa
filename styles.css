@@ -2428,6 +2428,7 @@ svg {
 }
 
 .project-savings-bar {
+  position: relative;
   height: 8px;
   margin: 8px 0;
   overflow: hidden;
@@ -2440,6 +2441,16 @@ svg {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--teal), var(--purple));
+}
+
+.project-savings-bar i {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--ink);
+  opacity: 0.55;
 }
 
 .visual-prevision-panel {
@@ -2660,6 +2671,72 @@ svg {
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.agent-decision-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.agent-decision-card {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--teal);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.agent-decision-card.good {
+  border-left-color: var(--green);
+}
+
+.agent-decision-card.warn {
+  border-left-color: #b98918;
+}
+
+.agent-decision-card.danger {
+  border-left-color: var(--red);
+}
+
+.agent-decision-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.agent-decision-card strong {
+  display: block;
+  margin: 7px 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(21px, 1.8vw, 30px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.agent-decision-card p {
+  min-height: 42px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.agent-decision-card button {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 10px;
+  padding: 7px 10px;
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .agent-today-grid {
@@ -4418,6 +4495,7 @@ tbody tr:hover {
   .home-kpi-grid,
   .home-layout,
   .agent-kpi-grid,
+  .agent-decision-board,
   .agent-today-grid,
   .agent-layout,
   .agent-plan-summary,
@@ -4544,6 +4622,7 @@ tbody tr:hover {
   .home-kpi-grid,
   .home-layout,
   .agent-kpi-grid,
+  .agent-decision-board,
   .agent-today-grid,
   .agent-layout,
   .agent-rule-grid,
