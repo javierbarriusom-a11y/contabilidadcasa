@@ -105,6 +105,9 @@ const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REU
 const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
 const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
 const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
+const VARIABLE_OPERATIONAL_MIGRATION_KEY = "migration:variable-operational-1750-from-2026-06";
+const VARIABLE_OPERATIONAL_MIGRATION_START = "2026-06";
+const VARIABLE_OPERATIONAL_MIGRATION_VALUE = 1750;
 const FINANCING_SUBGROUP_LABELS = [
   "ECI",
   "Pass Carrefour Tere",
@@ -1333,6 +1336,31 @@ function ensureVariableOperationalSection() {
       planned,
     });
   }
+}
+
+function variableOperationalPlanningRow() {
+  return baseData?.monthlyPlanning?.sections
+    ?.find((section) => section.kind === "expense" && section.name === VARIABLE_OPERATIONAL_SECTION)
+    ?.rows?.find((row) => row.id === VARIABLE_OPERATIONAL_ROW_ID) || null;
+}
+
+function applyVariableOperationalMigration() {
+  const markerKey = storageKey(VARIABLE_OPERATIONAL_MIGRATION_KEY);
+  if (storageGet(markerKey, "") === "done") return;
+  ensureVariableOperationalSection();
+  const row = variableOperationalPlanningRow();
+  if (!row) return;
+  const months = forecastMonths().filter((month) => month.key >= VARIABLE_OPERATIONAL_MIGRATION_START);
+  months.forEach((month) => {
+    const key = overrideKeyForRow(row, month);
+    seriesOverrides[key] = {
+      ...(seriesOverrides[key] || {}),
+      planned: VARIABLE_OPERATIONAL_MIGRATION_VALUE,
+      deleted: false,
+    };
+  });
+  storageSet(markerKey, "done");
+  saveSeriesOverrides();
 }
 
 function ensureCompleteFinancingSection() {
@@ -8360,6 +8388,7 @@ async function init() {
   loadLocalState();
   ensureCompleteFinancingSection();
   ensureVariableOperationalSection();
+  applyVariableOperationalMigration();
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors(true);
