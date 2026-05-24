@@ -4633,7 +4633,7 @@ function sumColumnMonths(column, getter) {
 function plannedValueForVisualRow(row, month) {
   const scopedRow = row.custom ? customRowForVisualMonth(row, month) : row;
   if (!scopedRow) return 0;
-  return sourcePlannedValueForRow(scopedRow, month);
+  return plannedValueForRow(scopedRow, month);
 }
 
 function visualDraftCellKey(rowKey, monthKey, mode) {
@@ -4662,7 +4662,7 @@ function actualAwareInfoForVisualRow(row, month) {
     return { planned: 0, actual: null, hasActual: false, value: 0, source: "Previsto" };
   }
   const info = actualAwareInfo(scopedRow, month);
-  const planned = sourcePlannedValueForRow(scopedRow, month);
+  const planned = plannedValueForRow(scopedRow, month);
   return {
     ...info,
     planned,
@@ -6853,13 +6853,11 @@ function renderPlanningDetails({
       let sectionCapturedPlanned = 0;
       let sectionCapturedRows = 0;
       const sectionPlanned = section.rows.reduce((sum, row) => {
-        const planned = sourcePlannedValueForRow(row, month);
-        const key = actualKeyForRow(row, month);
-        const stored = actuals[key];
-        const hasActual = stored !== undefined && stored !== "";
-        if (hasActual) {
+        const info = actualAwareInfo(row, month);
+        const planned = info.planned;
+        if (info.hasActual) {
           sectionCapturedRows += 1;
-          sectionActual += Number(stored);
+          sectionActual += Number(info.actual || 0);
           sectionCapturedPlanned += planned;
         }
         return sum + planned;
@@ -6887,20 +6885,19 @@ function renderPlanningDetails({
       if (!expanded) return;
 
       section.rows.forEach((row) => {
-        const planned = sourcePlannedValueForRow(row, month);
+        const info = actualAwareInfo(row, month);
+        const planned = info.planned;
         const key = actualKeyForRow(row, month);
         const deleteKey = deleteKeyForRow(row, month);
-        const stored = actuals[key];
-        const hasActual = stored !== undefined && stored !== "";
-        const actual = hasActual ? Number(stored) : "";
-        const variance = hasActual ? Number(actual) - planned : "";
+        const actual = info.hasActual ? Number(info.actual || 0) : "";
+        const variance = info.hasActual ? Number(actual) - planned : "";
         const varianceClass = varianceClassForKind(kind, variance);
         html.push(`<tr class="planning-line-row ${row.custom ? "custom-line" : ""}" data-parent-section="${escapeHtml(sectionKey)}">
           <td>${escapeHtml(section.name)}</td>
           <td>${escapeHtml(displayLabelForRow(row))}${row.custom ? " <small>nuevo</small>" : ""}</td>
           <td>${money(planned, true)}</td>
-          <td><input ${actualDataKey}="${key}" type="number" step="0.01" value="${hasActual ? actual : ""}" placeholder="Real" /></td>
-          <td class="${varianceClass}">${hasActual ? money(variance, true) : ""}</td>
+          <td><input ${actualDataKey}="${key}" type="number" step="0.01" value="${info.hasActual ? actual : ""}" placeholder="Real" /></td>
+          <td class="${varianceClass}">${info.hasActual ? money(variance, true) : ""}</td>
           <td><button type="button" class="row-delete-button" data-delete-planning-row="${escapeHtml(deleteKey)}">Eliminar</button></td>
         </tr>`);
       });
