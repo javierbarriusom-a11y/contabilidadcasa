@@ -570,6 +570,7 @@ function saveScenarioSettings() {
     expenseFactor: state.expenseFactor,
     savingsPlan: scenarioSettings.savingsPlan || {},
     savingsAgent: scenarioSettings.savingsAgent || {},
+    migrations: scenarioSettings.migrations || {},
   };
   const serialized = JSON.stringify(next);
   scenarioSettings = next;
@@ -1346,7 +1347,8 @@ function variableOperationalPlanningRow() {
 
 function applyVariableOperationalMigration() {
   const markerKey = storageKey(VARIABLE_OPERATIONAL_MIGRATION_KEY);
-  if (storageGet(markerKey, "") === "done") return;
+  scenarioSettings.migrations = scenarioSettings.migrations || {};
+  if (storageGet(markerKey, "") === "done" || scenarioSettings.migrations[VARIABLE_OPERATIONAL_MIGRATION_KEY]) return;
   ensureVariableOperationalSection();
   const row = variableOperationalPlanningRow();
   if (!row) return;
@@ -1360,7 +1362,9 @@ function applyVariableOperationalMigration() {
     };
   });
   storageSet(markerKey, "done");
+  scenarioSettings.migrations[VARIABLE_OPERATIONAL_MIGRATION_KEY] = new Date().toISOString();
   saveSeriesOverrides();
+  saveScenarioSettings();
 }
 
 function ensureCompleteFinancingSection() {
