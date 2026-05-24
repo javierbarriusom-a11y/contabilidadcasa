@@ -1788,13 +1788,14 @@ function scheduledDecisionMonthlyImpact(project, forecastIndex) {
   const recurring = recurringActive ? recurringAmount : 0;
   const reliefStart = project.startIndex + duration;
   const reliefMonths = debtReliefMonthsForItem(project, reliefStart);
+  const effectiveRelief = effectiveDebtDecisionMonthlyRelief(project);
   const reliefActive =
     project.source === "debt" &&
-    Number(project.monthlyRelief || 0) > 0 &&
+    effectiveRelief > 0 &&
     reliefMonths > 0 &&
     forecastIndex >= reliefStart &&
     forecastIndex < reliefStart + reliefMonths;
-  const relief = reliefActive ? -Number(project.monthlyRelief || 0) : 0;
+  const relief = reliefActive ? -effectiveRelief : 0;
   return round2(cost + recurring + relief);
 }
 
@@ -2597,13 +2598,92 @@ function debtTargetForDecision(item) {
   return debtPortfolioRows().find((row) => row.id === item?.targetId) || null;
 }
 
+function debtTargetIsSuspended(target) {
+  return (
+    Boolean(target) &&
+    !target.reunified &&
+    Number(target.currentPrincipal ?? target.principal ?? 0) > 0 &&
+    Number(target.currentPayment || 0) <= 0
+  );
+}
+
+function isDebtResumeMode(mode) {
+  return mode === "retomar" || mode === "retomar-optimize";
+}
+
+function debtMonthlyReliefForMode(target, mode) {
+  if (!target || isDebtResumeMode(mode) || debtTargetIsSuspended(target)) return 0;
+  return round2(Number(target.currentPayment || target.payment || 0));
+}
+
+function effectiveDebtDecisionMonthlyRelief(item) {
+  if (!item || isDebtResumeMode(item.payoffMode || item.mode)) return 0;
+  const target = debtTargetForDecision(item);
+  if (debtTargetIsSuspended(target)) return 0;
+  return Math.max(0, Number(item.monthlyRelief || 0));
+}
+
+function monthDistance(fromDate, toDate) {
+  return (toDate.getFullYear() - fromDate.getFullYear()) * 12 + (toDate.getMonth() - fromDate.getMonth());
+}
+
+function suspendedDebtArrearsMonths(startIndex = 0) {
+  const arrearsStart = new Date(2026, 0, 1);
+  const startDate = addMonths(modelStartDate(), Math.max(0, Number(startIndex || 0)));
+  return Math.max(0, monthDistance(arrearsStart, startDate));
+}
+
+function debtResumeRemainingMonths(target, startIndex = 0) {
+  const maturityIndex = parseDebtMaturityIndex(target?.maturity);
+  if (maturityIndex !== null) return Math.max(0, maturityIndex - Number(startIndex || 0) + 1);
+  const remainingInstallments = Number(target?.remainingInstallments || 0);
+  if (remainingInstallments > 0) return Math.max(0, Math.ceil(remainingInstallments));
+  const principal = Math.max(0, Number(target?.currentPrincipal ?? target?.principal ?? 0));
+  const payment = Math.max(0, Number(target?.originalPayment || 0));
+  return payment ? Math.max(1, Math.ceil(principal / payment)) : 0;
+}
+
+function debtResumePlan(target, startIndex = 0) {
+  const originalPayment = round2(Number(target?.originalPayment || 0));
+  const arrearsMonths = suspendedDebtArrearsMonths(startIndex);
+  const arrears = round2(originalPayment * arrearsMonths);
+  const recurringDuration = debtResumeRemainingMonths(target, startIndex);
+  return {
+    arrearsMonths,
+    arrears,
+    recurringAmount: originalPayment,
+    recurringDuration,
+    total: round2(arrears + originalPayment * recurringDuration),
+  };
+}
+
+function resolvedDebtDecisionForStart(item, startIndex = 0) {
+  if (!isDebtResumeMode(item?.payoffMode || item?.mode)) return item;
+  const target = debtTargetForDecision(item) || item?.target || null;
+  const plan = debtResumePlan(target, startIndex);
+  return {
+    ...item,
+    amount: plan.arrears,
+    duration: 1,
+    recurringAmount: plan.recurringAmount,
+    recurringDuration: plan.recurringDuration,
+    recurringStartOffset: 0,
+    monthlyRelief: 0,
+    reliefMonths: 0,
+    resumeArrearsMonths: plan.arrearsMonths,
+    resumeTotalCost: plan.total,
+  };
+}
+
 function debtReliefMonthsForItem(item, reliefStartIndex = 0) {
   const monthlyRelief = Math.max(0, Number(item?.monthlyRelief || 0));
   if (!monthlyRelief) return 0;
+  if (isDebtResumeMode(item?.payoffMode || item?.mode)) return 0;
+  const target = debtTargetForDecision(item);
+  if (debtTargetIsSuspended(target)) return 0;
   if (Number.isFinite(Number(item?.reliefMonths)) && Number(item.reliefMonths) >= 0) {
     return Math.max(0, Math.floor(Number(item.reliefMonths)));
   }
-  const target = debtTargetForDecision(item);
   const maturityIndex = parseDebtMaturityIndex(target?.maturity);
   if (maturityIndex !== null) return Math.max(0, maturityIndex - reliefStartIndex + 1);
   const remainingInstallments = Number(target?.remainingInstallments ?? item?.remainingInstallments ?? 0);
@@ -2616,6 +2696,8 @@ function debtReliefMonthsForItem(item, reliefStartIndex = 0) {
 }
 
 function addDebtRelief(outflows, item, startIndex) {
+  if (isDebtResumeMode(item?.payoffMode || item?.mode)) return;
+  if (debtTargetIsSuspended(debtTargetForDecision(item))) return;
   const monthlyRelief = Math.max(0, Number(item.monthlyRelief || 0));
   if (!monthlyRelief) return;
   const duration = Math.max(1, Number(item.duration || 1));
@@ -2629,8 +2711,9 @@ function addDebtRelief(outflows, item, startIndex) {
 }
 
 function addScheduledDecisionOutflow(outflows, item, startIndex) {
-  addProjectOutflow(outflows, item, startIndex);
-  if (item.source === "debt") addDebtRelief(outflows, item, startIndex);
+  const resolvedItem = item.source === "debt" ? resolvedDebtDecisionForStart(item, startIndex) : item;
+  addProjectOutflow(outflows, resolvedItem, startIndex);
+  if (resolvedItem.source === "debt") addDebtRelief(outflows, resolvedItem, startIndex);
 }
 
 function decisionGrossCost(item) {
@@ -2698,8 +2781,9 @@ function buildProjectSchedule() {
         indexFromKey >= 0
           ? indexFromKey
           : Math.min(Math.max(Number(project.monthIndex || 0), 0), months.length - 1);
-      addScheduledDecisionOutflow(outflows, project, startIndex);
-      placements.push({ ...project, startIndex, status: project.source === "debt" ? "debt" : "fixed", monthLabel: months[startIndex].label });
+      const resolvedProject = project.source === "debt" ? resolvedDebtDecisionForStart(project, startIndex) : project;
+      addScheduledDecisionOutflow(outflows, resolvedProject, startIndex);
+      placements.push({ ...resolvedProject, startIndex, status: project.source === "debt" ? "debt" : "fixed", monthLabel: months[startIndex].label });
     } else {
       optimizable.push(project);
     }
@@ -2730,8 +2814,9 @@ function buildProjectSchedule() {
         best.candidate.forEach((value, index) => {
           outflows[index] = value;
         });
+        const resolvedProject = project.source === "debt" ? resolvedDebtDecisionForStart(project, best.startIndex) : project;
         placements.push({
-          ...project,
+          ...resolvedProject,
           startIndex: best.startIndex,
           status: best.feasible ? "optimized" : "warning",
           monthLabel: months[best.startIndex].label,
@@ -3125,7 +3210,8 @@ function debtTargetOptions({ includePlanned = false } = {}) {
     .map((item) => ({
       ...item,
       principal: item.currentPrincipal,
-      payment: item.currentPayment || item.originalPayment,
+      payment: debtTargetIsSuspended(item) ? 0 : Number(item.currentPayment || 0),
+      suspendedPayment: debtTargetIsSuspended(item),
     }));
 }
 
@@ -3167,7 +3253,9 @@ function updateDebtTargetDefaults(force = true) {
   }
   const targetPrincipal = Number(target.currentPrincipal ?? target.principal ?? 0);
   if (force || !qs("debtPayoffAmount")?.value) qs("debtPayoffAmount").value = targetPrincipal ? targetPrincipal.toFixed(2) : "";
-  if (force || !qs("debtPayoffRelief")?.value) qs("debtPayoffRelief").value = target.payment ? target.payment.toFixed(2) : "";
+  const mode = qs("debtPayoffMode")?.value || "optimize";
+  const monthlyRelief = debtMonthlyReliefForMode(target, mode);
+  if (force || !qs("debtPayoffRelief")?.value) qs("debtPayoffRelief").value = monthlyRelief ? monthlyRelief.toFixed(2) : "0.00";
   renderDebtAgreementPreview();
 }
 
@@ -3175,6 +3263,8 @@ function debtModeLabel(mode) {
   if (mode === "optimize") return "mes óptimo";
   if (mode === "spread") return "pago repartido";
   if (mode === "spread-optimize") return "pago repartido con inicio óptimo";
+  if (mode === "retomar-optimize") return "retomar pagos con inicio óptimo";
+  if (mode === "retomar") return "retomar pagos";
   if (mode === "refinance-optimize") return "reunificación con inicio óptimo";
   if (mode === "refinance") return "refinanciación";
   return "mes fijo";
@@ -3185,20 +3275,29 @@ function isDebtRefinanceMode(mode) {
 }
 
 function isDebtMultiMonthMode(mode) {
-  return isDebtRefinanceMode(mode) || mode === "spread" || mode === "spread-optimize";
+  return isDebtRefinanceMode(mode) || isDebtResumeMode(mode) || mode === "spread" || mode === "spread-optimize";
 }
 
 function updateDebtModeUi() {
   const mode = qs("debtPayoffMode")?.value || "optimize";
   const isMultiMonth = isDebtMultiMonthMode(mode);
+  const locksDuration = isDebtResumeMode(mode);
   if (qs("debtPayoffDuration")) {
-    qs("debtPayoffDuration").disabled = !isMultiMonth;
+    qs("debtPayoffDuration").disabled = !isMultiMonth || locksDuration;
     if (!isMultiMonth) qs("debtPayoffDuration").value = 1;
   }
-  const optimizesMonth = mode === "optimize" || mode === "refinance-optimize" || mode === "spread-optimize";
+  const optimizesMonth = mode === "optimize" || mode === "refinance-optimize" || mode === "spread-optimize" || mode === "retomar-optimize";
   if (qs("debtPayoffMonth")) qs("debtPayoffMonth").disabled = optimizesMonth;
-  qs("debtPayoffDuration")?.closest("label")?.classList.toggle("muted-control", !isMultiMonth);
+  qs("debtPayoffDuration")?.closest("label")?.classList.toggle("muted-control", !isMultiMonth || locksDuration);
   qs("debtPayoffMonth")?.closest("label")?.classList.toggle("muted-control", optimizesMonth);
+  if (isDebtResumeMode(mode)) {
+    const target = selectedDebtTarget();
+    const startIndex = Number(qs("debtPayoffMonth")?.value || 0);
+    const plan = debtResumePlan(target, startIndex);
+    if (qs("debtPayoffAmount")) qs("debtPayoffAmount").value = plan.arrears.toFixed(2);
+    if (qs("debtPayoffRelief")) qs("debtPayoffRelief").value = "0.00";
+    if (qs("debtPayoffDuration")) qs("debtPayoffDuration").value = Math.max(1, plan.recurringDuration || 1);
+  }
   updateDebtConfirmState();
   renderDebtAgreementPreview();
 }
@@ -3210,7 +3309,7 @@ function debtCandidateMonths(months = forecastMonths(), mode = "full") {
   return months.filter((month) => month.index < 36 || (month.index < 120 && month.index % 6 === 0) || month.index % 12 === 0);
 }
 
-function evaluateDebtCandidate(target, amount, relief, duration = 1, mode = "full") {
+function evaluateDebtCandidate(target, amount, relief, duration = 1, mode = "full", options = {}) {
   if (!lastBaseSimulation.length) return null;
   const months = forecastMonths();
   const baselineOutflows = projectPlan?.outflows?.length === months.length ? projectPlan.outflows : Array(months.length).fill(0);
@@ -3218,20 +3317,38 @@ function evaluateDebtCandidate(target, amount, relief, duration = 1, mode = "ful
   let best = null;
   debtCandidateMonths(months, mode).forEach((month) => {
     const candidate = baselineOutflows.slice();
-    const item = { source: "debt", amount, duration, monthlyRelief: relief, targetId: target?.id };
+    const item = options.resume
+      ? {
+          source: "debt",
+          targetId: target?.id,
+          payoffMode: "retomar-optimize",
+          mode: "optimize",
+          ...debtResumePlan(target, month.index),
+        }
+      : { source: "debt", amount, duration, monthlyRelief: relief, targetId: target?.id };
+    if (options.resume) {
+      item.amount = item.arrears;
+      item.duration = 1;
+      item.recurringAmount = Number(target?.originalPayment || 0);
+      item.recurringStartOffset = 0;
+      item.monthlyRelief = 0;
+    }
     addScheduledDecisionOutflow(candidate, item, month.index);
     const evaluation = evaluateOutflows(candidate);
     const netGain = evaluation.ending - baseline.ending;
     const feasible = evaluation.minChecking > Math.max(0, relief);
     const discount = Math.max(0, Number(target?.currentPrincipal ?? target?.principal ?? 0) - Number(amount || 0));
-    const score = (feasible ? 1_000_000 : 0) + discount * 3 + Number(relief || 0) * 18 + evaluation.minChecking * 0.2 + netGain - month.index * 5;
+    const totalCost = decisionGrossCost(item);
+    const score = options.resume
+      ? (feasible ? 1_000_000 : 0) + evaluation.minChecking * 0.25 - totalCost / 10 - month.index * 4
+      : (feasible ? 1_000_000 : 0) + discount * 3 + Number(relief || 0) * 18 + evaluation.minChecking * 0.2 + netGain - month.index * 5;
     if (!best || score > best.score) best = { month, evaluation, netGain, feasible, score };
   });
   return best;
 }
 
 function debtDecisionModeFromRaw(rawMode) {
-  return rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize" ? "optimize" : "fixed";
+  return rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize" || rawMode === "retomar-optimize" ? "optimize" : "fixed";
 }
 
 function debtDecisionDurationFromMode(rawMode) {
@@ -3239,19 +3356,23 @@ function debtDecisionDurationFromMode(rawMode) {
 }
 
 function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize } = {}) {
-  const amount = parseAmount(qs("debtPayoffAmount")?.value);
-  if (!amount || amount <= 0) return null;
   const target = selectedDebtTarget();
   const rawMode = rawModeOverride || qs("debtPayoffMode")?.value || "optimize";
-  const duration = Math.max(1, Number(durationOverride || debtDecisionDurationFromMode(rawMode)));
-  const monthlyRelief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target?.payment || 0);
+  const resumeMode = isDebtResumeMode(rawMode);
+  let amount = parseAmount(qs("debtPayoffAmount")?.value);
+  if (!resumeMode && (!amount || amount <= 0)) return null;
+  const duration = resumeMode ? 1 : Math.max(1, Number(durationOverride || debtDecisionDurationFromMode(rawMode)));
+  const defaultRelief = debtMonthlyReliefForMode(target, rawMode);
+  const monthlyRelief = debtTargetIsSuspended(target) || resumeMode ? 0 : (parseAmount(qs("debtPayoffRelief")?.value) ?? defaultRelief);
   const originalPrincipal = round2(Number(target?.currentPrincipal ?? target?.principal ?? amount));
-  const optimized = forceOptimize || rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize";
-  const best = optimized ? evaluateDebtCandidate(target, amount, monthlyRelief, duration) : null;
+  const optimized = forceOptimize || rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize" || rawMode === "retomar-optimize";
+  const best = optimized ? evaluateDebtCandidate(target, amount || originalPrincipal, monthlyRelief, duration, "full", { resume: resumeMode }) : null;
   const monthIndex = optimized
     ? Number(best?.month?.index ?? qs("debtPayoffMonth")?.value ?? 0)
     : Number(qs("debtPayoffMonth")?.value || 0);
   const month = forecastMonths()[Math.max(0, Math.min(monthIndex, forecastMonths().length - 1))];
+  const resumePlan = resumeMode ? debtResumePlan(target, month?.index || 0) : null;
+  if (resumeMode) amount = resumePlan.arrears;
   const reliefMonths = debtReliefMonthsForItem(
     {
       targetId: target?.id,
@@ -3273,6 +3394,11 @@ function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize
     monthlyRelief: round2(monthlyRelief),
     reliefMonths,
     duration,
+    recurringAmount: resumePlan ? resumePlan.recurringAmount : 0,
+    recurringDuration: resumePlan ? resumePlan.recurringDuration : 0,
+    recurringStartOffset: 0,
+    resumeArrearsMonths: resumePlan ? resumePlan.arrearsMonths : 0,
+    resumeTotalCost: resumePlan ? resumePlan.total : 0,
     mode: debtDecisionModeFromRaw(rawMode),
     payoffMode: rawMode,
     monthIndex: month?.index || 0,
@@ -3291,7 +3417,7 @@ function evaluateDebtDecisionItem(item) {
   return {
     evaluation,
     netGain: round2(evaluation.ending - baseline.ending),
-    monthly: round2(Number(item.amount || 0) / Math.max(1, Number(item.duration || 1))),
+    monthly: decisionPeakMonthlyImpact(item),
   };
 }
 
@@ -3377,12 +3503,17 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
   const target = selectedDebtTarget();
   const currentEval = evaluateDebtDecisionItem(decision);
   const targetPrincipal = Number(target?.currentPrincipal ?? target?.principal ?? decision.originalPrincipal ?? decision.amount);
+  const suspended = debtTargetIsSuspended(target);
   const variants = [
-    { title: "Pago único óptimo", rawMode: "optimize", duration: 1, detail: "Liquida en un solo mes y elimina cuota después." },
+    { title: "Pago único óptimo", rawMode: "optimize", duration: 1, detail: suspended ? "Liquida deuda suspendida; no genera alivio mensual porque hoy no se paga cuota." : "Liquida en un solo mes y elimina cuota después." },
     { title: "Fraccionar 6 meses", rawMode: "spread-optimize", duration: 6, detail: "Divide el importe pactado y busca inicio óptimo." },
-    { title: "Reunificar 12 meses", rawMode: "refinance-optimize", duration: 12, detail: "Menos presión mensual, más tiempo hasta eliminar cuota." },
+    { title: "Reunificar 12 meses", rawMode: "refinance-optimize", duration: 12, detail: "Menos presión mensual, más tiempo hasta cerrar el acuerdo." },
     { title: "Reunificar 24 meses", rawMode: "refinance-optimize", duration: 24, detail: "Menor cuota mensual, impacto más suave en caja." },
+    suspended
+      ? { title: "Retomar pagos", rawMode: "retomar-optimize", duration: 1, detail: "Paga atrasos desde enero 2026 y retoma la cuota original hasta vencimiento." }
+      : null,
   ]
+    .filter(Boolean)
     .filter((option) => targetPrincipal > 0 || option.rawMode !== "optimize")
     .map((option) => {
       const candidate = debtDecisionFromForm({ rawModeOverride: option.rawMode, durationOverride: option.duration, forceOptimize: true });
@@ -3400,6 +3531,11 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
     .filter(Boolean);
   const currentMonth = forecastMonths()[decision.monthIndex]?.label || "-";
   const discountPct = decision.originalPrincipal ? decision.discount / decision.originalPrincipal : 0;
+  const resumeText = isDebtResumeMode(decision.payoffMode)
+    ? `<p class="debt-review-note">Retomar no amortiza con quita: añade ${money(decision.amount, true)} de atrasos (${decision.resumeArrearsMonths || 0} mes(es)) y después ${money(decision.recurringAmount || 0, true)}/mes durante ${decision.recurringDuration || 0} mes(es), según el vencimiento inicial si existe.</p>`
+    : suspended
+      ? `<p class="debt-review-note">Pagos suspendidos: esta liquidación no crea flujo positivo posterior. La cuota original solo se usa si eliges “retomar”.</p>`
+      : "";
   const originalOption = {
     key: "original",
     title: "Opción original",
@@ -3428,6 +3564,7 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
       <div><span>Caja mínima</span><strong class="${currentEval.evaluation.minChecking < 0 ? "negative" : "positive"}">${money(currentEval.evaluation.minChecking, true)}</strong></div>
       <div><span>Liquidez final</span><strong>${currentEval.netGain >= 0 ? "+" : ""}${money(currentEval.netGain, true)}</strong></div>
     </div>
+    ${resumeText}
     <div class="debt-review-options">
       ${debtReviewOptionCard(originalOption, true)}
       ${variants.map((option) => debtReviewOptionCard({ ...option, key: "suggested" })).join("")}
@@ -3446,10 +3583,12 @@ function stageDebtDecision() {
 function recommendedDebtDecision() {
   const target = selectedDebtTarget();
   const amount = parseAmount(qs("debtPayoffAmount")?.value) ?? Number(target?.principal || 0);
-  const relief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target?.payment || 0);
   const mode = qs("debtPayoffMode")?.value || "optimize";
+  const relief = debtTargetIsSuspended(target) || isDebtResumeMode(mode)
+    ? 0
+    : (parseAmount(qs("debtPayoffRelief")?.value) ?? debtMonthlyReliefForMode(target, mode));
   const duration = isDebtMultiMonthMode(mode) ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
-  return evaluateDebtCandidate(target, amount, relief, duration);
+  return evaluateDebtCandidate(target, amount, relief, duration, "full", { resume: isDebtResumeMode(mode) });
 }
 
 function renderDebtAgreementPreview() {
@@ -3458,7 +3597,10 @@ function renderDebtAgreementPreview() {
   if (!target || !element) return;
   const original = Number(target.currentPrincipal ?? target.principal ?? 0);
   const agreed = parseAmount(qs("debtPayoffAmount")?.value) ?? original;
-  const relief = parseAmount(qs("debtPayoffRelief")?.value) ?? Number(target.payment || 0);
+  const mode = qs("debtPayoffMode")?.value || "optimize";
+  const relief = debtTargetIsSuspended(target) || isDebtResumeMode(mode)
+    ? 0
+    : (parseAmount(qs("debtPayoffRelief")?.value) ?? debtMonthlyReliefForMode(target, mode));
   const income12 = lastSimulation.length
     ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.income)
     : 0;
@@ -3493,8 +3635,11 @@ function debtControlStats() {
     ? averageRows(lastBaseSimulation.slice(0, Math.min(12, lastBaseSimulation.length)), (row) => row.refi)
     : currentPayment.total;
   const liquidationTotal = debtLiquidations.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const principalCovered = debtLiquidations.reduce((sum, item) => sum + Number(item.targetPrincipal || item.amount || 0), 0);
-  const relief = debtLiquidations.reduce((sum, item) => sum + Number(item.monthlyRelief || 0), 0);
+  const principalCovered = debtLiquidations.reduce(
+    (sum, item) => sum + (isDebtResumeMode(item.payoffMode || item.mode) ? 0 : Number(item.targetPrincipal || item.amount || 0)),
+    0,
+  );
+  const relief = debtLiquidations.reduce((sum, item) => sum + effectiveDebtDecisionMonthlyRelief(item), 0);
   return {
     oldDebt,
     oldMonthly,
@@ -3634,8 +3779,13 @@ function renderDebtControl() {
     qs("debtProductGrid").innerHTML = activeRows
       .map((row) => {
         const discount = Math.max(0, Number(row.initialPrincipal || 0) - Number(row.currentPrincipal || 0) - Number(row.amortized || 0));
-        const status = row.reunified ? "Reunificada" : Number(row.currentPrincipal || 0) > 0 ? "Viva" : "Saldada";
-        const currentPaymentLabel = row.reunified ? `Incluida en ${money(CURRENT_REUNIFIED_DEBT_PAYMENT, true)}` : money(row.currentPayment, true);
+        const suspended = debtTargetIsSuspended(row);
+        const status = row.reunified ? "Reunificada" : suspended ? "Suspendida / pendiente de acuerdo" : Number(row.currentPrincipal || 0) > 0 ? "Viva" : "Saldada";
+        const currentPaymentLabel = row.reunified
+          ? `Incluida en ${money(CURRENT_REUNIFIED_DEBT_PAYMENT, true)}`
+          : suspended
+            ? "0,00 € suspendida"
+            : money(row.currentPayment, true);
         return `<article class="debt-product-card ${row.reunified ? "reunified" : ""}">
           <div class="debt-product-title">
             <strong>${escapeHtml(row.entity)}</strong>
@@ -3678,18 +3828,24 @@ function renderDebtControl() {
   qs("debtPayoffList").innerHTML = debtLiquidations.length
     ? debtLiquidations
         .map((item) => {
-          const monthly = Number(item.amount || 0) / Math.max(1, Number(item.duration || 1));
+          const monthly = decisionPeakMonthlyImpact(item);
           const placement = projectPlan.placements.find((candidate) => candidate.source === "debt" && candidate.id === item.id);
           const month = placement
             ? forecastMonths()[placement.startIndex]
             : forecastMonths().find((candidate) => candidate.key === item.monthKey) || forecastMonths()[item.monthIndex || 0];
+          const resolvedItem = placement || resolvedDebtDecisionForStart(item, item.monthIndex || 0);
+          const relief = effectiveDebtDecisionMonthlyRelief(item);
+          const reliefMonths = debtReliefMonthsForItem(item, (placement?.startIndex ?? item.monthIndex ?? 0) + Math.max(1, Number(item.duration || 1)));
+          const detail = isDebtResumeMode(item.payoffMode || item.mode)
+            ? `${debtModeLabel(item.payoffMode || item.mode)} · atrasos ${money(resolvedItem.amount || 0, true)} (${resolvedItem.resumeArrearsMonths || 0} mes(es)) · retoma ${money(resolvedItem.recurringAmount || 0, true)}/mes durante ${resolvedItem.recurringDuration || 0} mes(es) · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}.`
+            : `${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(relief, true)} durante ${reliefMonths} mes(es).`;
           const actions = item.locked
             ? `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="false">Desbloquear</button>`
             : `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="true">Fijar en plan</button><button data-remove-debt-liquidation="${escapeHtml(item.id)}">Quitar</button>`;
           return `<div class="project-item debt-item ${item.locked ? "locked" : ""}">
             <div>
               <strong>${escapeHtml(item.name)} ${decisionLockedBadge(item)}</strong>
-              <p>${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(item.monthlyRelief || 0, true)} durante ${debtReliefMonthsForItem(item, (placement?.startIndex ?? item.monthIndex ?? 0) + Math.max(1, Number(item.duration || 1)))} mes(es).</p>
+              <p>${detail}</p>
             </div>
             <div class="project-item-actions">${actions}</div>
           </div>`;
@@ -5533,7 +5689,11 @@ function buildSavingsAgentPlan() {
       agentTotal: round2(caixa + mediolanum),
     };
   });
-  const plannedDebtPrincipal = round2(sumRows(debtLiquidations, (item) => Number(item.originalPrincipal || item.targetPrincipal || item.amount || 0)));
+  const plannedDebtPrincipal = round2(
+    sumRows(debtLiquidations, (item) =>
+      isDebtResumeMode(item.payoffMode || item.mode) ? 0 : Number(item.originalPrincipal || item.targetPrincipal || item.amount || 0),
+    ),
+  );
   const openDebtPrincipal = round2(sumRows(debtTargetOptions({ includePlanned: true }), (item) => Number(item.currentPrincipal || item.principal || 0)));
   const remainingDebt = Math.max(0, round2(openDebtPrincipal - plannedDebtPrincipal));
   const final = rows.at(-1) || {};
