@@ -68,6 +68,7 @@ let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
 let pendingProjectDecision = null;
+let agentDebtOptimizationCache = { key: "", value: null };
 let selectorSignature = "";
 let visualMonthSelectorSignature = "";
 let visualAddSectionSignature = "";
@@ -5781,8 +5782,8 @@ function agentNextMonthReserve(sourceRows, index, caixaFloor = agentCaixaFloor()
   return round2(caixaFloor + Math.max(0, Number(next.outflowsBeforeSaving || 0)));
 }
 
-function buildSavingsAgentPlan() {
-  const sourceRows = lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []);
+function buildSavingsAgentPlan(sourceRowsOverride = null) {
+  const sourceRows = sourceRowsOverride || (lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []));
   const start = accountBalancesFromState();
   const caixaFloor = agentCaixaFloor();
   let caixa = Number(start.caixa || 0);
@@ -5870,7 +5871,12 @@ function agentStatusForRow(row) {
 }
 
 function agentAffordabilityMonth(plan, amount, buffer = 0) {
-  return plan.rows.find((row) => row.agentMediolanum >= Number(amount || 0) + Number(buffer || 0));
+  const threshold = Number(amount || 0) + Number(buffer || 0);
+  const startingSavings = Number(accountBalancesFromState().mediolanum || 0);
+  return plan.rows.find((row, index) => {
+    const savingsBeforeMonth = index === 0 ? startingSavings : Number(plan.rows[index - 1]?.agentMediolanum || 0);
+    return savingsBeforeMonth >= threshold;
+  });
 }
 
 function agentDebtRecommendations(plan) {
@@ -5896,6 +5902,163 @@ function agentDebtRecommendations(plan) {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5);
+}
+
+function agentDebtPayoffCandidates() {
+  const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
+  return debtTargetOptions({ includePlanned: false })
+    .filter((item) => !alreadyPlanned.has(item.id) && Number(item.currentPrincipal || item.principal || 0) > 0)
+    .map((item) => {
+      const principal = round2(Number(item.currentPrincipal || item.principal || 0));
+      const suspended = debtTargetIsSuspended(item);
+      const payment = debtMonthlyReliefForMode(item, "optimize");
+      const originalPayment = round2(Number(item.originalPayment || item.currentPayment || item.payment || 0));
+      return {
+        ...item,
+        principal,
+        payment,
+        originalPayment,
+        suspended,
+        effectiveRelief: suspended ? 0 : payment,
+        efficiency: principal ? (suspended ? 0 : payment / principal) : 0,
+      };
+    })
+    .filter((item) => item.principal > 0);
+}
+
+function agentDebtDecisionForCandidate(candidate, startIndex) {
+  const months = forecastMonths();
+  return {
+    id: `agent-opt-${candidate.id}-${startIndex}`,
+    source: "debt",
+    targetId: candidate.id,
+    targetPrincipal: candidate.principal,
+    originalPrincipal: candidate.principal,
+    name: debtTargetDisplayName(candidate),
+    amount: candidate.principal,
+    duration: 1,
+    monthlyRelief: candidate.effectiveRelief,
+    reliefMonths: debtReliefMonthsForItem(
+      {
+        targetId: candidate.id,
+        monthlyRelief: candidate.effectiveRelief,
+        targetPrincipal: candidate.principal,
+        originalPrincipal: candidate.principal,
+      },
+      startIndex + 1,
+    ),
+    payoffMode: "optimize",
+    mode: "optimize",
+    monthIndex: startIndex,
+    monthKey: months[startIndex]?.key,
+  };
+}
+
+function buildAgentPlanFromOutflows(outflows) {
+  return buildSavingsAgentPlan(simulate(outflows));
+}
+
+function agentDebtOptimizationFeasible(plan, startIndex) {
+  if (!plan?.rows?.length) return false;
+  const fromStart = plan.rows.slice(Math.max(0, startIndex));
+  return plan.shortage <= 0 && fromStart.every((row) => Number(row.agentCaixa || 0) + 0.01 >= Number(row.requiredReserve || 0));
+}
+
+function findAgentBestDebtPayoffStep(baseOutflows, candidates, startIndex = 0) {
+  const months = forecastMonths();
+  const currentPlan = buildAgentPlanFromOutflows(baseOutflows);
+  const startingSavings = Number(accountBalancesFromState().mediolanum || 0);
+  const evaluated = [];
+  candidates.forEach((candidate) => {
+    let bestForCandidate = null;
+    for (let monthIndex = Math.max(0, startIndex); monthIndex < months.length; monthIndex += 1) {
+      const savingsBeforeMonth =
+        monthIndex === 0 ? startingSavings : Number(currentPlan.rows[monthIndex - 1]?.agentMediolanum || 0);
+      if (savingsBeforeMonth + 0.01 < candidate.principal) continue;
+      const testOutflows = baseOutflows.slice();
+      const decision = agentDebtDecisionForCandidate(candidate, monthIndex);
+      addScheduledDecisionOutflow(testOutflows, decision, monthIndex);
+      const testPlan = buildAgentPlanFromOutflows(testOutflows);
+      if (agentDebtOptimizationFeasible(testPlan, monthIndex)) {
+        const monthRow = testPlan.rows[monthIndex] || {};
+        const reliefScore = candidate.effectiveRelief * 6;
+        const prudenceScore = Math.min(5000, Math.max(0, Number(monthRow.agentMediolanum || 0)));
+        bestForCandidate = {
+          candidate,
+          decision,
+          monthIndex,
+          monthLabel: months[monthIndex]?.label || "",
+          plan: testPlan,
+          minReserveCoverage: testPlan.minReserveCoverage,
+          finalMediolanum: testPlan.finalMediolanum,
+          score:
+            monthIndex * 100000 -
+            reliefScore -
+            candidate.efficiency * 50000 -
+            Math.min(candidate.principal, 10000) -
+            prudenceScore * 0.02,
+        };
+        break;
+      }
+    }
+    if (bestForCandidate) evaluated.push(bestForCandidate);
+  });
+  return evaluated.sort((a, b) => a.score - b.score)[0] || null;
+}
+
+function agentOptimalDebtPayoffPlan() {
+  const cacheKey = JSON.stringify({
+    signature: simulationSignature || modelComputationSignature(),
+    caixaFloor: agentCaixaFloor(),
+    balances: accountBalancesFromState(),
+  });
+  if (agentDebtOptimizationCache.key === cacheKey && agentDebtOptimizationCache.value) {
+    return agentDebtOptimizationCache.value;
+  }
+  const baseOutflows = decisionBaselineOutflows();
+  const baselinePlan = buildAgentPlanFromOutflows(baseOutflows);
+  let workingOutflows = baseOutflows.slice();
+  let candidates = agentDebtPayoffCandidates();
+  const steps = [];
+  const maxSteps = Math.min(candidates.length, 12);
+
+  for (let guard = 0; guard < maxSteps && candidates.length; guard += 1) {
+    const best = findAgentBestDebtPayoffStep(workingOutflows, candidates, 0);
+    if (!best) break;
+    addScheduledDecisionOutflow(workingOutflows, best.decision, best.monthIndex);
+    const updatedPlan = buildAgentPlanFromOutflows(workingOutflows);
+    const step = {
+      ...best,
+      plan: updatedPlan,
+      order: steps.length + 1,
+      cumulativePrincipal: round2(sumRows(steps, (item) => item.candidate.principal) + best.candidate.principal),
+      cumulativeRelief: round2(sumRows(steps, (item) => item.candidate.effectiveRelief) + best.candidate.effectiveRelief),
+      finalMediolanum: updatedPlan.finalMediolanum,
+      minReserveCoverage: updatedPlan.minReserveCoverage,
+    };
+    steps.push(step);
+    workingOutflows = workingOutflows.slice();
+    candidates = candidates.filter((item) => item.id !== best.candidate.id);
+  }
+
+  const finalPlan = buildAgentPlanFromOutflows(workingOutflows);
+  const totalPrincipal = round2(sumRows(steps, (item) => item.candidate.principal));
+  const optimizedRemainingDebt = Math.max(0, round2((baselinePlan.remainingDebt || 0) - totalPrincipal));
+  const optimizedNetWorth = round2((finalPlan.finalTotal || 0) - optimizedRemainingDebt);
+  const result = {
+    baselinePlan,
+    finalPlan,
+    steps,
+    remaining: candidates,
+    totalPrincipal,
+    totalRelief: round2(sumRows(steps, (item) => item.candidate.effectiveRelief)),
+    optimizedRemainingDebt,
+    optimizedNetWorth,
+    netWorthDelta: round2(optimizedNetWorth - (baselinePlan.netWorth || 0)),
+    lastMonth: steps.at(-1)?.monthLabel || "Sin fecha",
+  };
+  agentDebtOptimizationCache = { key: cacheKey, value: result };
+  return result;
 }
 
 function agentProjectTargetIndex(project) {
@@ -6298,6 +6461,61 @@ function renderAgentDecisionBoard(plan, debtRecs, projectRecs) {
     .join("");
 }
 
+function renderAgentDebtOptimization(optimization) {
+  const target = qs("agentDebtOptimization");
+  if (!target) return;
+  const steps = optimization?.steps || [];
+  if (!steps.length) {
+    const remaining = optimization?.remaining?.length || 0;
+    target.innerHTML = `<div class="empty-state compact">
+      ${remaining ? "No hay una amortización viable manteniendo la reserva operativa actual. Prueba a subir plazo, reducir importe pactado o esperar a más ahorro." : "No quedan deudas vivas sin decisión cargada para optimizar."}
+    </div>`;
+    return;
+  }
+  const finalDelta = round2((optimization.finalPlan?.finalMediolanum || 0) - (optimization.baselinePlan?.finalMediolanum || 0));
+  const summaryCards = [
+    ["Deuda liquidada", money(optimization.totalPrincipal, true), `${steps.length} deuda(s) en ruta`],
+    ["Fin de ruta", optimization.lastMonth, "Última amortización sugerida"],
+    ["Cuota liberable real", money(optimization.totalRelief, true), "No suma cuotas suspendidas como ingreso"],
+    ["Patrimonio vs base", money(optimization.netWorthDelta, true), `Mediolanum final: ${money(finalDelta, true)} frente a no amortizar`],
+  ];
+  target.innerHTML = `<div class="agent-optimization-summary">
+      ${summaryCards
+        .map(
+          ([label, value, note]) => `<div>
+            <span>${escapeHtml(label)}</span>
+            <strong>${typeof value === "string" ? escapeHtml(value) : value}</strong>
+            <small>${escapeHtml(note)}</small>
+          </div>`,
+        )
+        .join("")}
+    </div>
+    <div class="agent-optimization-steps">
+      ${steps
+        .map((step) => {
+          const item = step.candidate;
+          const suspendedNote = item.suspended
+            ? "Pagos suspendidos: liquidar reduce deuda, pero no genera una cuota liberable adicional en caja."
+            : `Libera ${money(item.effectiveRelief, true)}/mes desde el mes posterior, hasta vencimiento o límite prudente.`;
+          return `<article class="agent-optimization-step ${item.suspended ? "warn" : "good"}">
+            <span class="agent-step-number">${step.order}</span>
+            <div class="agent-step-main">
+              <strong>${escapeHtml(item.entity)} · ${escapeHtml(item.type)}</strong>
+              <p>${escapeHtml(item.number || "")} · ${escapeHtml(suspendedNote)}</p>
+            </div>
+            <div class="agent-step-metrics">
+              <div><small>Mes óptimo</small><b>${escapeHtml(step.monthLabel)}</b></div>
+              <div><small>Amortización</small><b>${money(item.principal, true)}</b></div>
+              <div><small>Caja mínima</small><b>${money(step.plan.minCaixa, true)}</b></div>
+              <div><small>Margen reserva</small><b>${money(step.minReserveCoverage, true)}</b></div>
+            </div>
+            <button type="button" data-agent-debt-target="${escapeHtml(item.id)}">Preparar esta amortización</button>
+          </article>`;
+        })
+        .join("")}
+    </div>`;
+}
+
 function renderAgentPlanSummary(plan) {
   const target = qs("agentPlanSummary");
   if (!target) return;
@@ -6411,6 +6629,7 @@ function renderSavingsAgent() {
   const selectedYear = qs("agentYear")?.value || agentYears(plan)[0];
   const debtRecs = agentDebtRecommendations(plan);
   const projectRecs = agentLifeProjectRecommendations(plan);
+  const debtOptimization = agentOptimalDebtPayoffPlan();
   const firstYearRows = agentRowsForYear(plan, selectedYear);
   const yearTransferred = sumRows(firstYearRows, (row) => row.transferToSavings);
   const yearResult = sumRows(firstYearRows, (row) => row.operatingResult);
@@ -6431,6 +6650,7 @@ function renderSavingsAgent() {
     .join("");
   renderAgentPlanSummary(plan);
   renderAgentDecisionBoard(plan, debtRecs, projectRecs);
+  renderAgentDebtOptimization(debtOptimization);
 
   qs("agentRules").innerHTML = [
     ["Regla de traspaso", `Cada mes mueve a Mediolanum solo lo que exceda ${money(plan.caixaFloor, true)} más los pagos previstos del mes siguiente.`],

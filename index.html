@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260524k" />
+    <link rel="stylesheet" href="styles.css?v=20260524l" />
   </head>
   <body>
     <div class="app-shell">
@@ -400,6 +400,16 @@
             <div class="agent-kpi-grid" id="agentKpis"></div>
             <article class="agent-plan-summary" id="agentPlanSummary"></article>
             <div class="agent-decision-board" id="agentDecisionBoard"></div>
+            <article class="agent-panel agent-optimization-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Optimización de deuda</p>
+                  <h3>Ruta para liquidar lo antes posible</h3>
+                  <p>Simula una secuencia prudente de amortizaciones usando Mediolanum, sin bajar CaixaBank del saldo operativo ni duplicar decisiones ya cargadas.</p>
+                </div>
+              </div>
+              <div class="agent-debt-optimization" id="agentDebtOptimization"></div>
+            </article>
 
             <div class="agent-today-grid" id="agentToday"></div>
 
@@ -1251,9 +1261,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="vendor/xlsx.full.min.js?v=20260524k"></script>
-    <script src="supabase-config.js?v=20260524k"></script>
-    <script src="data.js?v=20260524k"></script>
-    <script src="app.js?v=20260524k"></script>
+    <script src="vendor/xlsx.full.min.js?v=20260524l"></script>
+    <script src="supabase-config.js?v=20260524l"></script>
+    <script src="data.js?v=20260524l"></script>
+    <script src="app.js?v=20260524l"></script>
   </body>
 </html>

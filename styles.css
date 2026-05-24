@@ -2739,6 +2739,134 @@ svg {
   font-weight: 900;
 }
 
+.agent-optimization-panel {
+  background: linear-gradient(180deg, #ffffff, var(--surface-soft));
+}
+
+.agent-debt-optimization {
+  display: grid;
+  gap: 12px;
+}
+
+.agent-optimization-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agent-optimization-summary div {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.agent-optimization-summary span,
+.agent-optimization-summary small,
+.agent-step-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.agent-optimization-summary strong {
+  display: block;
+  margin: 6px 0 4px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: clamp(20px, 1.65vw, 28px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.agent-optimization-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-optimization-step {
+  display: grid;
+  grid-template-columns: 36px minmax(190px, 1fr) minmax(360px, 1.3fr) minmax(170px, auto);
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.agent-optimization-step.warn {
+  border-left-color: #b98918;
+}
+
+.agent-step-number {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--teal);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.agent-step-main {
+  min-width: 0;
+}
+
+.agent-step-main strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.agent-step-main p {
+  margin-top: 4px;
+}
+
+.agent-step-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(82px, 1fr));
+  gap: 7px;
+  min-width: 0;
+}
+
+.agent-step-metrics div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.agent-step-metrics b {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.agent-optimization-step button {
+  min-height: 38px;
+  padding: 8px 11px;
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .agent-today-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -4496,6 +4624,8 @@ tbody tr:hover {
   .home-layout,
   .agent-kpi-grid,
   .agent-decision-board,
+  .agent-optimization-summary,
+  .agent-optimization-step,
   .agent-today-grid,
   .agent-layout,
   .agent-plan-summary,
@@ -4623,12 +4753,15 @@ tbody tr:hover {
   .home-layout,
   .agent-kpi-grid,
   .agent-decision-board,
+  .agent-optimization-summary,
+  .agent-optimization-step,
   .agent-today-grid,
   .agent-layout,
   .agent-rule-grid,
   .agent-plan-summary,
   .agent-rec-card,
   .agent-rec-metrics,
+  .agent-step-metrics,
   .agent-month-strip,
   .home-action-grid,
   .debt-form-actions,
