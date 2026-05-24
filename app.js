@@ -1348,22 +1348,46 @@ function variableOperationalPlanningRow() {
     ?.rows?.find((row) => row.id === VARIABLE_OPERATIONAL_ROW_ID) || null;
 }
 
+function shouldApplyVariableOperationalMigration(row, months) {
+  return months.some((month) => {
+    const override = seriesOverrideForRow(row, month);
+    if (override?.deleted) return false;
+    if (override?.planned === VARIABLE_OPERATIONAL_MIGRATION_VALUE) return false;
+    const base = basePlannedValueForRow(row, month);
+    if (override?.planned === undefined || override?.planned === "") return base !== VARIABLE_OPERATIONAL_MIGRATION_VALUE;
+    return Math.abs(Number(override.planned || 0) - base) < 0.01;
+  });
+}
+
 function applyVariableOperationalMigration() {
-  const markerKey = storageKey(VARIABLE_OPERATIONAL_MIGRATION_KEY);
   scenarioSettings.migrations = scenarioSettings.migrations || {};
-  if (storageGet(markerKey, "") === "done" || scenarioSettings.migrations[VARIABLE_OPERATIONAL_MIGRATION_KEY]) return;
   ensureVariableOperationalSection();
   const row = variableOperationalPlanningRow();
   if (!row) return;
   const months = forecastMonths().filter((month) => month.key >= VARIABLE_OPERATIONAL_MIGRATION_START);
+  if (!shouldApplyVariableOperationalMigration(row, months)) {
+    scenarioSettings.migrations[VARIABLE_OPERATIONAL_MIGRATION_KEY] =
+      scenarioSettings.migrations[VARIABLE_OPERATIONAL_MIGRATION_KEY] || new Date().toISOString();
+    return;
+  }
   months.forEach((month) => {
     const key = overrideKeyForRow(row, month);
+    const current = seriesOverrides[key] || {};
+    const base = basePlannedValueForRow(row, month);
+    if (
+      current.deleted ||
+      current.planned === VARIABLE_OPERATIONAL_MIGRATION_VALUE ||
+      (current.planned !== undefined && current.planned !== "" && Math.abs(Number(current.planned || 0) - base) >= 0.01)
+    ) {
+      return;
+    }
     seriesOverrides[key] = {
-      ...(seriesOverrides[key] || {}),
+      ...current,
       planned: VARIABLE_OPERATIONAL_MIGRATION_VALUE,
       deleted: false,
     };
   });
+  const markerKey = storageKey(VARIABLE_OPERATIONAL_MIGRATION_KEY);
   storageSet(markerKey, "done");
   scenarioSettings.migrations[VARIABLE_OPERATIONAL_MIGRATION_KEY] = new Date().toISOString();
   saveSeriesOverrides();
