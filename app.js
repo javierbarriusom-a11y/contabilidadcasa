@@ -105,7 +105,7 @@ const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REU
 const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
 const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
 const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
-const VARIABLE_OPERATIONAL_MIGRATION_KEY = "migration:variable-operational-1750-from-2026-06";
+const VARIABLE_OPERATIONAL_MIGRATION_KEY = "migration:variable-operational-1750-from-2026-06-v2";
 const VARIABLE_OPERATIONAL_MIGRATION_START = "2026-06";
 const VARIABLE_OPERATIONAL_MIGRATION_VALUE = 1750;
 const FINANCING_SUBGROUP_LABELS = [
@@ -754,6 +754,9 @@ async function loadRemoteState() {
 
   if (data?.state) {
     applyPersistedPayload(data.state);
+    ensureCompleteFinancingSection();
+    ensureVariableOperationalSection();
+    applyVariableOperationalMigration();
     saveLocalSnapshot();
     refreshFromPersistedState();
     updateSyncUi(`Sincronizado. Último cambio: ${new Date(data.updated_at).toLocaleString("es-ES")}.`, "cloud");
