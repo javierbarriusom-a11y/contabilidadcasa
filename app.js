@@ -5672,6 +5672,49 @@ function agentInsightCards(plan, debtRecs, projectRecs) {
   return cards;
 }
 
+function agentPlanSummary(plan) {
+  const decisions = [
+    ...projects.map((item) => ({ ...item, source: "project" })),
+    ...debtLiquidations.map((item) => ({ ...item, source: "debt" })),
+  ];
+  const pending = decisions.filter((item) => !item.locked);
+  const locked = decisions.filter((item) => item.locked);
+  const nextImpact = plan.rows.find((row) => Math.abs(Number(row.projectOutflow || 0)) >= 0.01);
+  const pendingAmount = round2(sumRows(pending, (item) => decisionGrossCost(item)));
+  const fixedAmount = round2(sumRows(locked, (item) => decisionGrossCost(item)));
+  const debtCount = decisions.filter((item) => item.source === "debt").length;
+  const projectCount = decisions.filter((item) => item.source === "project").length;
+  return {
+    total: decisions.length,
+    pending: pending.length,
+    locked: locked.length,
+    debtCount,
+    projectCount,
+    pendingAmount,
+    fixedAmount,
+    nextImpactMonth: nextImpact?.month || "Sin impacto próximo",
+    nextImpactAmount: round2(nextImpact?.projectOutflow || 0),
+  };
+}
+
+function renderAgentPlanSummary(plan) {
+  const target = qs("agentPlanSummary");
+  if (!target) return;
+  const summary = agentPlanSummary(plan);
+  const hasPlans = summary.total > 0;
+  target.innerHTML = `<div>
+      <p class="panel-kicker">Planes en cálculo</p>
+      <h3>${hasPlans ? `${summary.total} plan(es) considerados` : "Sin planes cargados"}</h3>
+      <p>${hasPlans ? "El agente ya los incorpora al flujo hasta que los elimines o los fijes definitivamente." : "Añade proyectos o decisiones de deuda para que el agente calcule impacto, hucha y prioridad."}</p>
+    </div>
+    <div class="agent-plan-summary-grid">
+      <div><span>Pendientes</span><strong>${summary.pending}</strong><small>${money(summary.pendingAmount, true)}</small></div>
+      <div><span>Fijos</span><strong>${summary.locked}</strong><small>${money(summary.fixedAmount, true)}</small></div>
+      <div><span>Deuda / vida</span><strong>${summary.debtCount} / ${summary.projectCount}</strong><small>decisiones activas</small></div>
+      <div><span>Próximo impacto</span><strong class="${summary.nextImpactAmount < 0 ? "positive" : summary.nextImpactAmount > 0 ? "negative" : ""}">${money(summary.nextImpactAmount, true)}</strong><small>${escapeHtml(summary.nextImpactMonth)}</small></div>
+    </div>`;
+}
+
 function renderAgentRecommendationCard(item, type) {
   if (type === "debt") {
     const canPay = Boolean(item.affordability);
@@ -5778,6 +5821,7 @@ function renderSavingsAgent() {
       <p>${escapeHtml(note)}</p>
     </article>`)
     .join("");
+  renderAgentPlanSummary(plan);
 
   qs("agentRules").innerHTML = [
     ["Regla de traspaso", `Cada mes mueve a Mediolanum solo lo que exceda ${money(plan.caixaFloor, true)} más los pagos previstos del mes siguiente.`],

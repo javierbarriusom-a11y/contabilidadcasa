@@ -2510,6 +2510,7 @@ svg {
 
 .agent-kpi-card,
 .agent-panel,
+.agent-plan-summary,
 .agent-rec-card {
   min-width: 0;
   border: 1px solid var(--line);
@@ -2550,12 +2551,65 @@ svg {
 
 .agent-kpi-card p,
 .agent-panel p,
+.agent-plan-summary p,
 .agent-rec-card p {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.4;
+}
+
+.agent-plan-summary {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  gap: 14px;
+  align-items: center;
+  padding: 16px;
+  border-left: 5px solid var(--purple);
+  background: linear-gradient(90deg, rgba(92, 71, 131, 0.08), #ffffff 42%);
+}
+
+.agent-plan-summary h3 {
+  margin: 2px 0 6px;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.agent-plan-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agent-plan-summary-grid div {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.agent-plan-summary-grid span,
+.agent-plan-summary-grid small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.agent-plan-summary-grid strong {
+  display: block;
+  margin: 5px 0 4px;
+  overflow: hidden;
+  color: var(--ink);
+  font-size: clamp(18px, 1.7vw, 26px);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .agent-layout {
@@ -4144,6 +4198,7 @@ tbody tr:hover {
   .home-layout,
   .agent-kpi-grid,
   .agent-layout,
+  .agent-plan-summary,
   .agent-rec-card,
   .project-grid,
   .monthly-detail-grid,
@@ -4248,6 +4303,10 @@ tbody tr:hover {
     grid-template-columns: 1fr;
   }
 
+  .agent-plan-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .source-note {
     width: auto;
     margin-top: 12px;
@@ -4264,6 +4323,7 @@ tbody tr:hover {
   .agent-kpi-grid,
   .agent-layout,
   .agent-rule-grid,
+  .agent-plan-summary,
   .agent-rec-card,
   .agent-rec-metrics,
   .home-action-grid,
