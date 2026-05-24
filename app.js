@@ -32,6 +32,7 @@ const euroPrecise = new Intl.NumberFormat("es-ES", {
 });
 
 let baseData;
+let packagedFinanceData;
 let state;
 let lastSimulation = [];
 let lastBaseSimulation = [];
@@ -309,12 +310,22 @@ function storageSet(key, value) {
   }
 }
 
+function cloneFinanceData(data) {
+  if (!data) return null;
+  return JSON.parse(JSON.stringify(data));
+}
+
 function loadWorkbookOverride() {
   const stored = storageGet(WORKBOOK_OVERRIDE_KEY, "");
   if (!stored) return;
   try {
     const parsed = JSON.parse(stored);
-    if (parsed?.metadata && parsed?.monthlyPlanning) baseData = parsed;
+    if (parsed?.metadata && parsed?.monthlyPlanning) {
+      baseData = parsed;
+      ensureCompleteFinancingSection();
+      repairFinancingSectionFromReference();
+      ensureVariableOperationalSection();
+    }
   } catch {
     storageSet(WORKBOOK_OVERRIDE_KEY, "");
   }
@@ -361,6 +372,7 @@ function applyPersistedPayload(payload = {}) {
   if (payload.workbookData?.metadata && payload.workbookData?.monthlyPlanning) {
     baseData = payload.workbookData;
     ensureCompleteFinancingSection();
+    repairFinancingSectionFromReference();
     ensureVariableOperationalSection();
     saveWorkbookOverride();
   }
@@ -755,6 +767,7 @@ async function loadRemoteState() {
   if (data?.state) {
     applyPersistedPayload(data.state);
     ensureCompleteFinancingSection();
+    repairFinancingSectionFromReference();
     ensureVariableOperationalSection();
     applyVariableOperationalMigration();
     saveLocalSnapshot();
@@ -934,25 +947,7 @@ function adjustedDebtPlannedValue(row, month) {
   if (!month?.key || month.key < "2026-05") return null;
   const label = normalizedText(displayLabelForRow(row));
   if (label.includes("refinanciacion cetelem")) return CURRENT_REUNIFIED_DEBT_PAYMENT;
-  const oldFinancingLabels = [
-    "tarjeta eci",
-    "anticipo eci",
-    "mastercard credito",
-    "mastecard credito",
-    "financiacion express",
-    "pass javi credito",
-    "mastercard contado",
-    "mastercard tere",
-    "visa go tere",
-    "visa go javi",
-    "mycard tere",
-    "mycard javi",
-    "tarjeta tere",
-    "prestamo tere",
-    "prestamo cetelem tere",
-    "mastercard pdh",
-  ];
-  return oldFinancingLabels.some((item) => label.includes(item)) ? 0 : null;
+  return null;
 }
 
 function actualAwareInfo(row, month) {
@@ -1401,15 +1396,16 @@ function ensureCompleteFinancingSection() {
   const months = baseData.monthlyPlanning.months || [];
   const monthCount = months.length;
   const rowsById = new Map(section.rows.map((row) => [row.id, row]));
+  const rowsByKey = new Map(section.rows.map((row) => [financingRowKey(row), row]));
+  const referenceRowsByKey = financingReferenceRowsByKey();
   const templateIds = new Set(FINANCING_ROW_TEMPLATES.map((item) => `financiaciones-${item.row}`));
-  const fitPlanned = (planned = []) => {
-    const values = planned.slice(0, monthCount).map((value) => round2(Number(value || 0)));
-    while (values.length < monthCount) values.push(0);
-    return values;
-  };
+  const templateKeys = new Set(FINANCING_ROW_TEMPLATES.map((item) => financingTemplateKey(item.group, item.label)));
   const templateRows = FINANCING_ROW_TEMPLATES.map((template) => {
     const id = `financiaciones-${template.row}`;
-    const existing = rowsById.get(id) || {};
+    const key = financingTemplateKey(template.group, template.label);
+    const existing = rowsById.get(id) || rowsByKey.get(key) || {};
+    const reference = referenceRowsByKey.get(key);
+    const source = hasPlannedValues(existing.planned) || !reference ? existing : reference;
     return {
       ...existing,
       id,
@@ -1417,21 +1413,96 @@ function ensureCompleteFinancingSection() {
       kind: "expense",
       group: template.group,
       label: `${template.group} · ${template.label}`,
-      planned: fitPlanned(existing.planned),
+      planned: fitPlannedValues(source.planned, monthCount),
     };
   });
   const extraRows = section.rows
-    .filter((row) => !templateIds.has(row.id))
+    .filter((row) => !templateIds.has(row.id) && !templateKeys.has(financingRowKey(row)))
     .map((row) => ({
       ...row,
       kind: "expense",
-      planned: fitPlanned(row.planned),
+      planned: fitPlannedValues(row.planned, monthCount),
     }));
   section.kind = "expense";
   section.rows = [...templateRows, ...extraRows];
   section.totals = months.map((_, index) =>
     round2(section.rows.reduce((sum, row) => sum + Number(row.planned?.[index] || 0), 0)),
   );
+}
+
+function fitPlannedValues(planned = [], monthCount = 0) {
+  const values = Array.isArray(planned)
+    ? planned.slice(0, monthCount).map((value) => round2(Number(value || 0)))
+    : [];
+  while (values.length < monthCount) values.push(0);
+  return values;
+}
+
+function hasPlannedValues(planned = []) {
+  return Array.isArray(planned) && planned.some((value) => Math.abs(Number(value || 0)) >= 0.01);
+}
+
+function financingTemplateKey(group, label) {
+  return `${normalizedText(group).trim()}|${normalizedText(label).trim()}`;
+}
+
+function financingRowKey(row = {}) {
+  const label = String(row.label || "");
+  const parts = label.split("·").map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2) return financingTemplateKey(parts[0], parts.slice(1).join(" · "));
+  return financingTemplateKey(row.group || "", label);
+}
+
+function financingReferenceRowsByKey() {
+  if (!shouldUsePackagedFinancingReference()) return new Map();
+  const referenceSection = packagedFinanceData?.monthlyPlanning?.sections?.find((item) => item.name === "Financiaciones");
+  const map = new Map();
+  if (!referenceSection?.rows?.length) return map;
+  referenceSection.rows.forEach((row) => {
+    const key = financingRowKey(row);
+    if (!key || map.has(key)) return;
+    map.set(key, row);
+  });
+  return map;
+}
+
+function sourceWorkbookBaseName(data) {
+  return String(data?.metadata?.sourceWorkbook || "")
+    .split(/[\\/]/)
+    .pop();
+}
+
+function shouldUsePackagedFinancingReference() {
+  if (!packagedFinanceData?.monthlyPlanning?.sections?.length) return false;
+  const packagedSource = sourceWorkbookBaseName(packagedFinanceData);
+  const currentSource = sourceWorkbookBaseName(baseData);
+  if (!packagedSource) return false;
+  if (!currentSource) return true;
+  return normalizedText(currentSource) === normalizedText(packagedSource);
+}
+
+function repairFinancingSectionFromReference() {
+  if (!baseData?.monthlyPlanning?.sections?.length || !packagedFinanceData?.monthlyPlanning?.sections?.length) return;
+  const section = baseData.monthlyPlanning.sections.find((item) => item.name === "Financiaciones");
+  if (!section?.rows?.length) return;
+  const referenceRowsByKey = financingReferenceRowsByKey();
+  if (!referenceRowsByKey.size) return;
+  const monthCount = baseData.monthlyPlanning.months?.length || 0;
+  let repaired = false;
+  section.rows.forEach((row) => {
+    if (hasPlannedValues(row.planned)) return;
+    const reference = referenceRowsByKey.get(financingRowKey(row));
+    if (!reference || !hasPlannedValues(reference.planned)) return;
+    row.planned = fitPlannedValues(reference.planned, monthCount);
+    repaired = true;
+  });
+  if (repaired) {
+    const months = baseData.monthlyPlanning.months || [];
+    section.totals = months.map((_, index) =>
+      round2(section.rows.reduce((sum, row) => sum + Number(row.planned?.[index] || 0), 0)),
+    );
+    saveWorkbookOverride();
+  }
 }
 
 function rowsFromMovementSheet(workbook, sheetName, sourceRank) {
@@ -4902,7 +4973,6 @@ function visualRowsForSection(section, months) {
   return rows.filter((row) =>
     months.some((month) => {
       if (seriesOverrideForRow(row, month)?.deleted) return false;
-      if (section.name === "Financiaciones") return true;
       if (row.custom && monthKeys.has(month.key) && customRowForVisualMonth(row, month)) return true;
       const info = actualAwareInfoForVisualRow(row, month);
       return info.value !== 0 || info.planned !== 0 || info.hasActual;
@@ -8410,14 +8480,17 @@ function scheduleRender() {
 
 async function init() {
   if (window.FINANCE_DATA) {
-    baseData = window.FINANCE_DATA;
+    packagedFinanceData = cloneFinanceData(window.FINANCE_DATA);
+    baseData = cloneFinanceData(window.FINANCE_DATA);
   } else {
     const response = await fetch("../data/finance_data.json");
     baseData = await response.json();
+    packagedFinanceData = cloneFinanceData(baseData);
   }
   loadWorkbookOverride();
   loadLocalState();
   ensureCompleteFinancingSection();
+  repairFinancingSectionFromReference();
   ensureVariableOperationalSection();
   applyVariableOperationalMigration();
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
