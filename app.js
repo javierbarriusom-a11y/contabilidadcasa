@@ -85,6 +85,7 @@ let expandedPlanningSections = {
 
 const WORKBOOK_OVERRIDE_KEY = "financeDashboard:workbookOverride:v1";
 const REMOTE_SOURCE_KEY = "finance-dashboard-main";
+const AGENT_ROUTE_SIMULATION_TAG = "agent-optimal-debt-route";
 
 const DEBT_PORTFOLIO = [
   { entity: "Cetelem", type: "Crédito", number: "40037624105825", initialPrincipal: 1547.08, originalPayment: 262.34, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
@@ -4408,6 +4409,11 @@ function decisionOutflowsForPlacements(placements) {
   return outflows;
 }
 
+function decisionOutflowsExcluding(predicate) {
+  const placements = projectPlan?.placements || [];
+  return decisionOutflowsForPlacements(placements.filter((item) => !predicate(item)));
+}
+
 function decisionScenarioMetrics(label, placements) {
   const rows = simulate(decisionOutflowsForPlacements(placements));
   const minChecking = Math.min(...rows.map((row) => row.checking));
@@ -6522,6 +6528,136 @@ function agentDebtDecisionForCandidate(candidate, startIndex) {
   };
 }
 
+function isAgentRouteSimulationDecision(item) {
+  return item?.routeSimulation === AGENT_ROUTE_SIMULATION_TAG;
+}
+
+function agentRouteSimulationDecisions() {
+  return debtLiquidations.filter(isAgentRouteSimulationDecision);
+}
+
+function clearAgentRouteSimulation({ rerender = true, record = true } = {}) {
+  const removed = agentRouteSimulationDecisions();
+  if (!removed.length) return 0;
+  debtLiquidations = debtLiquidations.filter((item) => !isAgentRouteSimulationDecision(item));
+  agentDebtOptimizationCache = { key: "", value: null };
+  simulationSignature = "";
+  if (record) {
+    decisionEvents.unshift({
+      id: `event-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      date: new Date().toISOString(),
+      source: "debt",
+      itemId: "agent-route",
+      name: "Ruta óptima de deuda",
+      status: "devuelta a simulación",
+      owner: "Hogar",
+      amount: round2(sumRows(removed, (item) => Number(item.amount || item.targetPrincipal || 0))),
+      creditCapital: 0,
+      monthLabel: "",
+      note: "Simulación completa de amortizaciones retirada del cuadro de mandos y del flujo mensual.",
+    });
+    saveDecisionEvents();
+  }
+  saveDebtLiquidations();
+  if (rerender) render();
+  return removed.length;
+}
+
+function applyAgentRouteSimulation() {
+  clearAgentRouteSimulation({ rerender: false, record: false });
+  recomputeModelIfNeeded(true);
+  agentDebtOptimizationCache = { key: "", value: null };
+  const optimization = agentOptimalDebtPayoffPlan();
+  const steps = optimization?.steps || [];
+  if (!steps.length) {
+    renderSavingsAgent();
+    return 0;
+  }
+  const reservedTargets = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
+  const additions = steps
+    .filter((step) => step?.candidate?.id && !reservedTargets.has(step.candidate.id))
+    .map((step) => {
+      reservedTargets.add(step.candidate.id);
+      const decision = step.decision || agentDebtDecisionForCandidate(step.candidate, step.monthIndex);
+      return {
+        ...decision,
+        id: `debt-route-${step.candidate.id}-${step.monthIndex}-${Date.now()}`,
+        name: `Ruta óptima · ${debtTargetDisplayName(step.candidate)}`,
+        amount: round2(step.candidate.principal),
+        targetPrincipal: round2(step.candidate.principal),
+        originalPrincipal: round2(step.candidate.originalPrincipal || step.candidate.principal),
+        monthlyRelief: round2(step.candidate.effectiveRelief || 0),
+        routeSimulation: AGENT_ROUTE_SIMULATION_TAG,
+        routeOrder: step.order,
+        status: "simulated",
+        locked: false,
+        monthLabel: step.monthLabel,
+      };
+    });
+  if (!additions.length) {
+    renderSavingsAgent();
+    return 0;
+  }
+  debtLiquidations.push(...additions);
+  decisionEvents.unshift({
+    id: `event-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    date: new Date().toISOString(),
+    source: "debt",
+    itemId: "agent-route",
+    name: "Ruta óptima de deuda",
+    status: "simulado",
+    owner: "Hogar",
+    amount: round2(sumRows(additions, (item) => Number(item.amount || item.targetPrincipal || 0))),
+    creditCapital: 0,
+    monthLabel: additions.at(-1)?.monthLabel || "",
+    note: "Simulación completa aplicada temporalmente al cuadro de mandos y al flujo mensual. Se puede retirar sin borrar decisiones fijas.",
+  });
+  agentDebtOptimizationCache = { key: "", value: null };
+  simulationSignature = "";
+  saveDebtLiquidations();
+  saveDecisionEvents();
+  render();
+  return additions.length;
+}
+
+function routeSimulationSummaryFromActive(plan) {
+  const active = agentRouteSimulationDecisions();
+  if (!active.length) return null;
+  const baseline = buildAgentPlanFromOutflows(decisionOutflowsExcluding(isAgentRouteSimulationDecision));
+  const current = plan || buildSavingsAgentPlan();
+  const months = forecastMonths();
+  const ordered = active.slice().sort((a, b) => Number(a.monthIndex || 0) - Number(b.monthIndex || 0));
+  return {
+    active: true,
+    count: active.length,
+    total: round2(sumRows(active, (item) => Number(item.amount || item.targetPrincipal || 0))),
+    debtReduced: round2(sumRows(active, (item) => Number(item.originalPrincipal || item.targetPrincipal || item.amount || 0))),
+    firstMonth: months[ordered[0]?.monthIndex || 0]?.label || ordered[0]?.monthLabel || "",
+    lastMonth: months[ordered.at(-1)?.monthIndex || 0]?.label || ordered.at(-1)?.monthLabel || "",
+    liquidityDelta: round2((current.finalTotal || 0) - (baseline.finalTotal || 0)),
+    netWorthDelta: round2((current.netWorth || 0) - (baseline.netWorth || 0)),
+    minCaixa: current.minCaixa,
+    minReserveCoverage: current.minReserveCoverage,
+  };
+}
+
+function routeSimulationSummaryFromOptimization(optimization) {
+  const steps = optimization?.steps || [];
+  if (!steps.length) return null;
+  return {
+    active: false,
+    count: steps.length,
+    total: round2(sumRows(steps, (step) => Number(step.candidate?.principal || 0))),
+    debtReduced: optimization.totalOriginalPrincipal || round2(sumRows(steps, (step) => Number(step.candidate?.originalPrincipal || step.candidate?.principal || 0))),
+    firstMonth: steps[0]?.monthLabel || "",
+    lastMonth: optimization.lastMonth || steps.at(-1)?.monthLabel || "",
+    liquidityDelta: round2((optimization.finalPlan?.finalTotal || 0) - (optimization.baselinePlan?.finalTotal || 0)),
+    netWorthDelta: optimization.netWorthDelta || 0,
+    minCaixa: optimization.finalPlan?.minCaixa || 0,
+    minReserveCoverage: optimization.finalPlan?.minReserveCoverage || 0,
+  };
+}
+
 function buildAgentPlanFromOutflows(outflows) {
   return buildSavingsAgentPlan(simulate(outflows));
 }
@@ -6617,7 +6753,8 @@ function agentOptimalDebtPayoffPlan() {
 
   const finalPlan = buildAgentPlanFromOutflows(workingOutflows);
   const totalPrincipal = round2(sumRows(steps, (item) => item.candidate.principal));
-  const optimizedRemainingDebt = Math.max(0, round2((baselinePlan.remainingDebt || 0) - totalPrincipal));
+  const totalOriginalPrincipal = round2(sumRows(steps, (item) => item.candidate.originalPrincipal || item.candidate.principal));
+  const optimizedRemainingDebt = Math.max(0, round2((baselinePlan.remainingDebt || 0) - totalOriginalPrincipal));
   const optimizedNetWorth = round2((finalPlan.finalTotal || 0) - optimizedRemainingDebt);
   const result = {
     baselinePlan,
@@ -6625,6 +6762,7 @@ function agentOptimalDebtPayoffPlan() {
     steps,
     remaining: candidates,
     totalPrincipal,
+    totalOriginalPrincipal,
     totalRelief: round2(sumRows(steps, (item) => item.candidate.effectiveRelief)),
     optimizedRemainingDebt,
     optimizedNetWorth,
@@ -7293,14 +7431,47 @@ function saveAgentDebtOptimizerSettingsFromForm() {
   renderSavingsAgent();
 }
 
+function renderAgentRouteSimulationPanel(optimization) {
+  const activeSummary = routeSimulationSummaryFromActive();
+  const summary = activeSummary || routeSimulationSummaryFromOptimization(optimization);
+  if (!summary) return "";
+  const statusText = summary.active
+    ? "Ruta simulada en el modelo"
+    : "Ruta lista para simular";
+  const note = summary.active
+    ? "Estas amortizaciones ya están entrando temporalmente en cuadro de mandos, previsión y flujo mensual. Puedes retirarlas sin tocar decisiones fijas."
+    : "Añade toda la ruta óptima como decisiones simuladas para comparar el impacto completo antes de fijar nada.";
+  return `<section class="agent-route-simulation ${summary.active ? "active" : ""}">
+    <div class="agent-route-copy">
+      <span>Simulación global</span>
+      <h3>${escapeHtml(statusText)}</h3>
+      <p>${escapeHtml(note)}</p>
+    </div>
+    <div class="agent-route-metrics">
+      <div><small>Amortizaciones</small><strong>${summary.count}</strong><span>${escapeHtml(summary.firstMonth)} - ${escapeHtml(summary.lastMonth)}</span></div>
+      <div><small>Total aplicado</small><strong>${money(summary.total, true)}</strong><span>${money(summary.debtReduced, true)} deuda baja</span></div>
+      <div><small>Liquidez vs base</small><strong class="${summary.liquidityDelta >= 0 ? "positive" : "negative"}">${money(summary.liquidityDelta, true)}</strong><span>efecto caja</span></div>
+      <div><small>Patrimonio vs base</small><strong class="${summary.netWorthDelta >= 0 ? "positive" : "negative"}">${money(summary.netWorthDelta, true)}</strong><span>incluye quitas</span></div>
+      <div><small>Caja mínima</small><strong>${money(summary.minCaixa, true)}</strong><span>margen ${money(summary.minReserveCoverage, true)}</span></div>
+    </div>
+    <div class="agent-route-actions">
+      <button type="button" data-agent-route-simulate>${summary.active ? "Recalcular ruta completa" : "Simular ruta completa"}</button>
+      ${summary.active ? `<button type="button" class="secondary" data-agent-route-clear>Quitar simulación</button>` : ""}
+      <button type="button" class="secondary" data-home-nav="visual-detail">Ver cuadro de mandos</button>
+      <button type="button" class="secondary" data-home-nav="cashflow">Ver flujo mensual</button>
+    </div>
+  </section>`;
+}
+
 function renderAgentDebtOptimization(optimization) {
   const target = qs("agentDebtOptimization");
   if (!target) return;
   const controls = renderAgentDebtOptimizerControls();
+  const routePanel = renderAgentRouteSimulationPanel(optimization);
   const steps = optimization?.steps || [];
   if (!steps.length) {
     const remaining = optimization?.remaining?.length || 0;
-    target.innerHTML = `${controls}<div class="empty-state compact">
+    target.innerHTML = `${controls}${routePanel}<div class="empty-state compact">
       ${remaining ? "No hay una amortización viable manteniendo la reserva operativa actual. Prueba a subir plazo, reducir importe pactado o esperar a más ahorro." : "No quedan deudas vivas sin decisión cargada para optimizar."}
     </div>`;
     return;
@@ -7323,6 +7494,7 @@ function renderAgentDebtOptimization(optimization) {
         )
         .join("")}
     </div>
+    ${routePanel}
     <div class="agent-optimization-steps">
       ${steps
         .map((step) => {
@@ -9783,6 +9955,16 @@ async function init() {
     const settingsButton = event.target.closest("[data-agent-debt-settings-save]");
     if (settingsButton) {
       saveAgentDebtOptimizerSettingsFromForm();
+      return;
+    }
+    const routeSimButton = event.target.closest("[data-agent-route-simulate]");
+    if (routeSimButton) {
+      applyAgentRouteSimulation();
+      return;
+    }
+    const routeClearButton = event.target.closest("[data-agent-route-clear]");
+    if (routeClearButton) {
+      clearAgentRouteSimulation();
       return;
     }
     const debtButton = event.target.closest("[data-agent-debt-target]");

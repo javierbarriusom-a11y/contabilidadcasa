@@ -3327,6 +3327,112 @@ svg {
   line-height: 1;
 }
 
+.agent-route-simulation {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(360px, 1.4fr) minmax(190px, auto);
+  gap: 12px;
+  align-items: stretch;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid #5b47a0;
+  border-radius: 10px;
+  background: #fbf9ff;
+}
+
+.agent-route-simulation.active {
+  border-left-color: var(--green);
+  background: #f6fbf8;
+}
+
+.agent-route-copy {
+  min-width: 0;
+}
+
+.agent-route-copy span,
+.agent-route-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.agent-route-copy h3 {
+  margin-top: 4px;
+  font-size: 20px;
+  line-height: 1.05;
+}
+
+.agent-route-copy p {
+  margin-top: 6px;
+}
+
+.agent-route-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.agent-route-metrics div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.agent-route-metrics strong {
+  display: block;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+
+.agent-route-metrics strong.positive {
+  color: var(--green);
+}
+
+.agent-route-metrics strong.negative {
+  color: var(--red);
+}
+
+.agent-route-metrics span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.agent-route-actions {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.agent-route-actions button {
+  min-height: 38px;
+  padding: 8px 11px;
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.agent-route-actions button.secondary {
+  color: var(--ink);
+  border-color: var(--line);
+  background: #ffffff;
+}
+
 .agent-optimization-steps {
   display: grid;
   gap: 10px;
@@ -5175,6 +5281,7 @@ tbody tr:hover {
   .agent-executive-grid,
   .agent-optimization-summary,
   .agent-optimization-step,
+  .agent-route-simulation,
   .agent-today-grid,
   .agent-layout,
   .agent-plan-summary,
@@ -5252,6 +5359,10 @@ tbody tr:hover {
 }
 
 @media (max-width: 900px) {
+  .agent-route-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .decision-comparison-header {
     display: none;
   }
@@ -5381,6 +5492,8 @@ tbody tr:hover {
   .agent-decision-board,
   .agent-optimization-summary,
   .agent-optimization-step,
+  .agent-route-simulation,
+  .agent-route-metrics,
   .agent-today-grid,
   .agent-layout,
   .agent-rule-grid,
