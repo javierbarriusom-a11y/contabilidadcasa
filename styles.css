@@ -2673,6 +2673,80 @@ svg {
   white-space: nowrap;
 }
 
+.agent-debt-controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.agent-debt-control-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: 12px;
+  align-items: end;
+}
+
+.agent-debt-control-head strong {
+  display: block;
+  margin: 2px 0 4px;
+  font-size: 20px;
+}
+
+.agent-debt-control-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.agent-debt-control-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 74px 120px;
+  gap: 8px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(239, 246, 247, 0.45);
+}
+
+.agent-debt-control-row > span {
+  min-width: 0;
+  font-weight: 900;
+}
+
+.agent-debt-control-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.agent-debt-control-row input,
+.agent-debt-control-head select {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-weight: 900;
+}
+
+.agent-debt-save {
+  justify-self: end;
+}
+
+.agent-agreement-note {
+  margin-top: 4px !important;
+  color: var(--green) !important;
+}
+
 .agent-decision-board {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

@@ -110,6 +110,17 @@ const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
 const VARIABLE_OPERATIONAL_MIGRATION_KEY = "migration:variable-operational-1750-from-2026-06-v2";
 const VARIABLE_OPERATIONAL_MIGRATION_START = "2026-06";
 const VARIABLE_OPERATIONAL_MIGRATION_VALUE = 1750;
+const VARIABLE_OPERATIONAL_FORMULA_TARGET = 1750;
+const VARIABLE_FORMULA_FINANCING_EXCLUSIONS = [
+  "caixabank|mastercard tere",
+  "caixabank|visa go tere",
+  "caixabank|visa go javi",
+  "caixabank|mycard tere",
+  "caixabank|mycard javi",
+  "bankintercard|tarjeta tere",
+  "bankintercard|prestamo tere",
+  "otros|prestamo cetelem tere",
+];
 const FINANCING_SUBGROUP_LABELS = [
   "ECI",
   "Pass Carrefour Tere",
@@ -894,6 +905,22 @@ function seriesKeyForRow(row) {
   return `${row.kind}|${row.id}`;
 }
 
+function seriesDeletionKeyForRow(row, sectionName = "") {
+  return `series-delete|${row.kind || ""}|${normalizedText(sectionName || row.sectionName || "")}|${normalizedText(displayLabelForRow(row))}`;
+}
+
+function isPlanningRowSeriesDeleted(row, sectionName = "") {
+  return Boolean(deletedPlanningRows[seriesDeletionKeyForRow(row, sectionName)]);
+}
+
+function isPlanningRowDeleted(row, month, sectionName = "") {
+  return (
+    Boolean(deletedPlanningRows[deleteKeyForRow(row, month)]) ||
+    isPlanningRowSeriesDeleted(row, sectionName) ||
+    Boolean(seriesOverrideForRow(row, month)?.deleted)
+  );
+}
+
 function displayLabelForRow(row) {
   return rowLabelOverrides[seriesKeyForRow(row)] || row.label || "Concepto";
 }
@@ -907,6 +934,11 @@ function seriesOverrideForRow(row, month) {
 }
 
 function plannedValueForRow(row, month) {
+  if (isVariableOperationalRow(row)) return variableOperationalFormulaValue(month);
+  return plannedValueForRowRaw(row, month);
+}
+
+function plannedValueForRowRaw(row, month) {
   const override = seriesOverrideForRow(row, month);
   if (override?.deleted) return 0;
   if (override?.planned !== undefined && override?.planned !== "") return Number(override.planned || 0);
@@ -1416,9 +1448,10 @@ function ensureCompleteFinancingSection() {
       label: `${template.group} · ${template.label}`,
       planned: fitPlannedValues(source.planned, monthCount),
     };
-  });
+  }).filter((row) => !isPlanningRowSeriesDeleted(row, "Financiaciones"));
   const extraRows = section.rows
     .filter((row) => !templateIds.has(row.id) && !templateKeys.has(financingRowKey(row)))
+    .filter((row) => !isPlanningRowSeriesDeleted(row, "Financiaciones"))
     .map((row) => ({
       ...row,
       kind: "expense",
@@ -1491,6 +1524,7 @@ function repairFinancingSectionFromReference() {
   const monthCount = baseData.monthlyPlanning.months?.length || 0;
   let repaired = false;
   section.rows.forEach((row) => {
+    if (isPlanningRowSeriesDeleted(row, "Financiaciones")) return;
     if (hasPlannedValues(row.planned)) return;
     const reference = referenceRowsByKey.get(financingRowKey(row));
     if (!reference || !hasPlannedValues(reference.planned)) return;
@@ -1721,8 +1755,7 @@ function customRowsForSection(kind, sectionName, month) {
         row.kind === kind &&
         row.sectionName === sectionName &&
         row.monthKey === month.key &&
-        !deletedPlanningRows[deleteKeyForRow(row, month)] &&
-        !seriesOverrideForRow(row, month)?.deleted,
+        !isPlanningRowDeleted(row, month, sectionName),
     )
     .map((row) => ({
       ...row,
@@ -1737,7 +1770,7 @@ function planningSectionsForMonth(kind, month) {
     .map((section) => {
       const sourceRowCount = section.rows.length;
       const rows = section.rows
-        .filter((row) => !deletedPlanningRows[deleteKeyForRow(row, month)] && !seriesOverrideForRow(row, month)?.deleted)
+        .filter((row) => !isPlanningRowDeleted(row, month, section.name))
         .concat(customRowsForSection(section.kind, section.name, month));
       return { ...section, rows, sourceRows: section.rows, sourceRowCount };
     });
@@ -1746,7 +1779,7 @@ function planningSectionsForMonth(kind, month) {
     .filter((row) => (!kind || row.kind === kind) && row.monthKey === month.key)
     .forEach((row) => {
       if (sections.some((section) => section.kind === row.kind && section.name === row.sectionName)) return;
-      if (deletedPlanningRows[deleteKeyForRow(row, month)]) return;
+      if (isPlanningRowDeleted(row, month, row.sectionName)) return;
       sections.push({
         name: row.sectionName,
         kind: row.kind,
@@ -1793,6 +1826,37 @@ function isVariableOperationalRow(row) {
   return row?.id === VARIABLE_OPERATIONAL_ROW_ID;
 }
 
+function variableFormulaFinancingExclusionKey(row) {
+  const label = String(displayLabelForRow(row) || "");
+  const parts = label.split("·").map((part) => normalizedText(part).trim()).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0]}|${parts.slice(1).join(" · ")}`;
+  return `${normalizedText(row.group || "")}|${normalizedText(label)}`;
+}
+
+function isVariableFormulaFinancingExcluded(row) {
+  const key = variableFormulaFinancingExclusionKey(row);
+  return VARIABLE_FORMULA_FINANCING_EXCLUSIONS.some((excluded) => key.includes(excluded));
+}
+
+function variableOperationalFormulaValue(month) {
+  if (!baseData?.monthlyPlanning?.sections?.length || !month?.key) return 0;
+  let subscriptions = 0;
+  let financing = 0;
+  baseData.monthlyPlanning.sections.forEach((section) => {
+    if (section.kind !== "expense") return;
+    const sectionName = normalizedText(section.name);
+    if (!sectionName.includes("suscrip") && !sectionName.includes("financi")) return;
+    section.rows.forEach((row) => {
+      if (isPlanningRowDeleted(row, month, section.name)) return;
+      if (sectionName.includes("financi") && isVariableFormulaFinancingExcluded(row)) return;
+      const value = plannedValueForRowRaw(row, month);
+      if (sectionName.includes("suscrip")) subscriptions += value;
+      else financing += value;
+    });
+  });
+  return round2(Math.max(0, VARIABLE_OPERATIONAL_FORMULA_TARGET - subscriptions - financing));
+}
+
 function isPrePayrollIncomeRow(row) {
   const label = normalizedText(displayLabelForRow(row));
   return label === "local" || /(^|\b)(nomina|salario)\s+tere(\b|$)/.test(label) || /\btere\b.*\b(nomina|salario)\b/.test(label);
@@ -1830,7 +1894,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     let sectionVariableOperationalSpend = 0;
 
     calculationRows.forEach((row) => {
-      const deleted = deletedPlanningRows[deleteKeyForRow(row, month)] || seriesOverrideForRow(row, month)?.deleted;
+      const deleted = isPlanningRowDeleted(row, month, section.name);
       const value = deleted ? 0 : useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
       rowTotal += value;
       if (section.kind === "income") {
@@ -4973,7 +5037,7 @@ function visualRowsForSection(section, months) {
     });
   return rows.filter((row) =>
     months.some((month) => {
-      if (seriesOverrideForRow(row, month)?.deleted) return false;
+      if (isPlanningRowDeleted(row, month, section.name)) return false;
       if (row.custom && monthKeys.has(month.key) && customRowForVisualMonth(row, month)) return true;
       const info = actualAwareInfoForVisualRow(row, month);
       return info.value !== 0 || info.planned !== 0 || info.hasActual;
@@ -4994,7 +5058,7 @@ function visualCellValue(row, month, mode) {
 function visualSectionTotal(section, rows, months, mode, month) {
   return rows.reduce((sum, row) => {
     if (isVisualRowPendingDelete(seriesKeyForRow(row))) return sum;
-    if (seriesOverrideForRow(row, month)?.deleted) return sum;
+    if (isPlanningRowDeleted(row, month, section.name)) return sum;
     const drafted = visualDraftForCell(row, month, mode);
     if (drafted) return sum + Number(drafted.value || 0);
     if (mode === "planned") return sum + plannedValueForVisualRow(row, month);
@@ -5102,11 +5166,12 @@ function applyVisualDeleteRow(rowKey, months) {
   const before = customPlanningRows.length;
   customPlanningRows = customPlanningRows.filter((item) => !(seriesKeyForRow(item) === rowKey && monthKeys.has(item.monthKey)));
 
+  deletedPlanningRows[seriesDeletionKeyForRow(row, row.sectionName)] = true;
   months.forEach((month) => {
     if (row.custom && row.monthKey !== month.key) return;
     seriesOverrides[overrideKeyForRow(row, month)] = { deleted: true };
   });
-  return before !== customPlanningRows.length;
+  return before !== customPlanningRows.length || true;
 }
 
 function visualPendingCounts() {
@@ -5246,6 +5311,7 @@ function saveVisualChanges() {
   });
 
   if (savedCells || savedDeletes) saveSeriesOverrides();
+  if (savedDeletes) saveDeletedPlanningRows();
   if (savedLabels) saveRowLabelOverrides();
   if (customChanged) saveCustomPlanningRows();
   if (projectsChanged) saveProjects();
@@ -5760,6 +5826,27 @@ function savingsAgentSettings() {
   return scenarioSettings.savingsAgent;
 }
 
+function agentDebtOptimizerSettings() {
+  const settings = savingsAgentSettings();
+  settings.debtOptimizer = settings.debtOptimizer || { mode: "optimized", order: {}, agreements: {} };
+  settings.debtOptimizer.order = settings.debtOptimizer.order || {};
+  settings.debtOptimizer.agreements = settings.debtOptimizer.agreements || {};
+  settings.debtOptimizer.mode = settings.debtOptimizer.mode || "optimized";
+  return settings.debtOptimizer;
+}
+
+function agentDebtAgreementAmount(id, originalPrincipal) {
+  const raw = agentDebtOptimizerSettings().agreements?.[id];
+  const parsed = parseAmount(raw);
+  if (parsed === null || parsed <= 0) return round2(originalPrincipal);
+  return round2(Math.min(parsed, originalPrincipal));
+}
+
+function agentDebtManualRank(id) {
+  const value = Number(agentDebtOptimizerSettings().order?.[id]);
+  return Number.isFinite(value) && value > 0 ? value : 999;
+}
+
 function agentCaixaFloor() {
   const value = Number(savingsAgentSettings().caixaFloor);
   return Number.isFinite(value) && value >= 0 ? round2(value) : DEFAULT_AGENT_CAIXA_FLOOR;
@@ -5909,16 +5996,20 @@ function agentDebtPayoffCandidates() {
   return debtTargetOptions({ includePlanned: false })
     .filter((item) => !alreadyPlanned.has(item.id) && Number(item.currentPrincipal || item.principal || 0) > 0)
     .map((item) => {
-      const principal = round2(Number(item.currentPrincipal || item.principal || 0));
+      const originalPrincipal = round2(Number(item.currentPrincipal || item.principal || 0));
+      const principal = agentDebtAgreementAmount(item.id, originalPrincipal);
       const suspended = debtTargetIsSuspended(item);
       const payment = debtMonthlyReliefForMode(item, "optimize");
       const originalPayment = round2(Number(item.originalPayment || item.currentPayment || item.payment || 0));
       return {
         ...item,
+        originalPrincipal,
         principal,
         payment,
         originalPayment,
         suspended,
+        agreementSavings: round2(originalPrincipal - principal),
+        manualRank: agentDebtManualRank(item.id),
         effectiveRelief: suspended ? 0 : payment,
         efficiency: principal ? (suspended ? 0 : payment / principal) : 0,
       };
@@ -5933,7 +6024,7 @@ function agentDebtDecisionForCandidate(candidate, startIndex) {
     source: "debt",
     targetId: candidate.id,
     targetPrincipal: candidate.principal,
-    originalPrincipal: candidate.principal,
+    originalPrincipal: candidate.originalPrincipal || candidate.principal,
     name: debtTargetDisplayName(candidate),
     amount: candidate.principal,
     duration: 1,
@@ -5968,6 +6059,7 @@ function findAgentBestDebtPayoffStep(baseOutflows, candidates, startIndex = 0) {
   const months = forecastMonths();
   const currentPlan = buildAgentPlanFromOutflows(baseOutflows);
   const startingSavings = Number(accountBalancesFromState().mediolanum || 0);
+  const optimizerMode = agentDebtOptimizerSettings().mode;
   const evaluated = [];
   candidates.forEach((candidate) => {
     let bestForCandidate = null;
@@ -5983,6 +6075,8 @@ function findAgentBestDebtPayoffStep(baseOutflows, candidates, startIndex = 0) {
         const monthRow = testPlan.rows[monthIndex] || {};
         const reliefScore = candidate.effectiveRelief * 6;
         const prudenceScore = Math.min(5000, Math.max(0, Number(monthRow.agentMediolanum || 0)));
+        const agreementScore = optimizerMode === "agreements" ? Number(candidate.agreementSavings || 0) * 120 : 0;
+        const manualPenalty = optimizerMode === "manual" ? agentDebtManualRank(candidate.id) * 10000000 : 0;
         bestForCandidate = {
           candidate,
           decision,
@@ -5992,11 +6086,13 @@ function findAgentBestDebtPayoffStep(baseOutflows, candidates, startIndex = 0) {
           minReserveCoverage: testPlan.minReserveCoverage,
           finalMediolanum: testPlan.finalMediolanum,
           score:
+            manualPenalty +
             monthIndex * 100000 -
             reliefScore -
             candidate.efficiency * 50000 -
             Math.min(candidate.principal, 10000) -
-            prudenceScore * 0.02,
+            prudenceScore * 0.02 -
+            agreementScore,
         };
         break;
       }
@@ -6011,6 +6107,7 @@ function agentOptimalDebtPayoffPlan() {
     signature: simulationSignature || modelComputationSignature(),
     caixaFloor: agentCaixaFloor(),
     balances: accountBalancesFromState(),
+    optimizer: agentDebtOptimizerSettings(),
   });
   if (agentDebtOptimizationCache.key === cacheKey && agentDebtOptimizationCache.value) {
     return agentDebtOptimizationCache.value;
@@ -6461,13 +6558,69 @@ function renderAgentDecisionBoard(plan, debtRecs, projectRecs) {
     .join("");
 }
 
+function renderAgentDebtOptimizerControls() {
+  const settings = agentDebtOptimizerSettings();
+  const candidates = agentDebtPayoffCandidates();
+  if (!candidates.length) return "";
+  return `<div class="agent-debt-controls">
+    <div class="agent-debt-control-head">
+      <div>
+        <span class="panel-kicker">Criterio de ruta</span>
+        <strong>Orden y acuerdos</strong>
+        <p>El orden manual fuerza prioridades; los importes pactados simulan quitas antes de decidir.</p>
+      </div>
+      <label>
+        <span>Modo</span>
+        <select id="agentDebtOptimizerMode">
+          <option value="optimized" ${settings.mode === "optimized" ? "selected" : ""}>Optimizado automático</option>
+          <option value="manual" ${settings.mode === "manual" ? "selected" : ""}>Orden manual</option>
+          <option value="agreements" ${settings.mode === "agreements" ? "selected" : ""}>Priorizar acuerdos pactados</option>
+        </select>
+      </label>
+    </div>
+    <div class="agent-debt-control-list">
+      ${candidates
+        .map((item, index) => {
+          const order = settings.order[item.id] ?? index + 1;
+          const agreement = settings.agreements[item.id] ?? "";
+          return `<div class="agent-debt-control-row">
+            <span>${escapeHtml(item.entity)} · ${escapeHtml(item.type)} <small>${escapeHtml(item.number || "")}</small></span>
+            <label><small>Orden</small><input data-agent-debt-order="${escapeHtml(item.id)}" type="number" min="1" step="1" value="${escapeHtml(order)}" /></label>
+            <label><small>Pactado</small><input data-agent-debt-agreement="${escapeHtml(item.id)}" type="number" min="0" step="0.01" placeholder="${amountInputValue(item.originalPrincipal || item.principal)}" value="${agreement === "" ? "" : amountInputValue(agreement)}" /></label>
+          </div>`;
+        })
+        .join("")}
+    </div>
+    <button type="button" class="secondary-button agent-debt-save" data-agent-debt-settings-save>Aplicar criterio al agente</button>
+  </div>`;
+}
+
+function saveAgentDebtOptimizerSettingsFromForm() {
+  const settings = agentDebtOptimizerSettings();
+  settings.mode = qs("agentDebtOptimizerMode")?.value || "optimized";
+  settings.order = {};
+  settings.agreements = {};
+  document.querySelectorAll("[data-agent-debt-order]").forEach((input) => {
+    const value = Number(input.value);
+    if (Number.isFinite(value) && value > 0) settings.order[input.dataset.agentDebtOrder] = Math.round(value);
+  });
+  document.querySelectorAll("[data-agent-debt-agreement]").forEach((input) => {
+    const parsed = parseAmount(input.value);
+    if (parsed !== null && parsed > 0) settings.agreements[input.dataset.agentDebtAgreement] = round2(parsed);
+  });
+  agentDebtOptimizationCache = { key: "", value: null };
+  saveScenarioSettings();
+  renderSavingsAgent();
+}
+
 function renderAgentDebtOptimization(optimization) {
   const target = qs("agentDebtOptimization");
   if (!target) return;
+  const controls = renderAgentDebtOptimizerControls();
   const steps = optimization?.steps || [];
   if (!steps.length) {
     const remaining = optimization?.remaining?.length || 0;
-    target.innerHTML = `<div class="empty-state compact">
+    target.innerHTML = `${controls}<div class="empty-state compact">
       ${remaining ? "No hay una amortización viable manteniendo la reserva operativa actual. Prueba a subir plazo, reducir importe pactado o esperar a más ahorro." : "No quedan deudas vivas sin decisión cargada para optimizar."}
     </div>`;
     return;
@@ -6479,7 +6632,7 @@ function renderAgentDebtOptimization(optimization) {
     ["Cuota liberable real", money(optimization.totalRelief, true), "No suma cuotas suspendidas como ingreso"],
     ["Patrimonio vs base", money(optimization.netWorthDelta, true), `Mediolanum final: ${money(finalDelta, true)} frente a no amortizar`],
   ];
-  target.innerHTML = `<div class="agent-optimization-summary">
+  target.innerHTML = `${controls}<div class="agent-optimization-summary">
       ${summaryCards
         .map(
           ([label, value, note]) => `<div>
@@ -6502,6 +6655,7 @@ function renderAgentDebtOptimization(optimization) {
             <div class="agent-step-main">
               <strong>${escapeHtml(item.entity)} · ${escapeHtml(item.type)}</strong>
               <p>${escapeHtml(item.number || "")} · ${escapeHtml(suspendedNote)}</p>
+              ${item.agreementSavings > 0 ? `<p class="agent-agreement-note">Acuerdo pactado: ${money(item.principal, true)} frente a ${money(item.originalPrincipal, true)} (${money(item.agreementSavings, true)} de mejora).</p>` : ""}
             </div>
             <div class="agent-step-metrics">
               <div><small>Mes óptimo</small><b>${escapeHtml(step.monthLabel)}</b></div>
@@ -7813,6 +7967,7 @@ function availableSeriesRows(kind) {
     .filter((section) => section.kind === kind)
     .forEach((section) => {
       section.rows.forEach((row) => {
+        if (isPlanningRowSeriesDeleted(row, section.name)) return;
         const key = seriesKeyForRow(row);
         if (seen.has(key)) return;
         seen.add(key);
@@ -7822,6 +7977,7 @@ function availableSeriesRows(kind) {
   customPlanningRows
     .filter((row) => row.kind === kind)
     .forEach((row) => {
+      if (isPlanningRowSeriesDeleted(row, row.sectionName)) return;
       const key = seriesKeyForRow(row);
       if (seen.has(key)) return;
       seen.add(key);
@@ -8932,6 +9088,11 @@ async function init() {
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
   qs("savings-agent")?.addEventListener("click", (event) => {
+    const settingsButton = event.target.closest("[data-agent-debt-settings-save]");
+    if (settingsButton) {
+      saveAgentDebtOptimizerSettingsFromForm();
+      return;
+    }
     const debtButton = event.target.closest("[data-agent-debt-target]");
     if (debtButton) prepareAgentDebtDecision(debtButton.dataset.agentDebtTarget);
     const projectButton = event.target.closest("[data-agent-project-id]");
