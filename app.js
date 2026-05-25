@@ -155,6 +155,10 @@ const FINANCING_ROW_TEMPLATES = [
   { row: 88, group: "Otros", label: "Refinanciacion Cetelem" },
   { row: 89, group: "Otros", label: "Mastercard PDH" },
 ];
+const USER_REMOVED_FINANCING_KEYS = new Set([
+  financingTemplateKey("Pass Carrefour Tere", "Financiacion express 5"),
+  financingTemplateKey("Pass Carrefour Javi", "Financiacion express 1"),
+]);
 
 const viewTitles = {
   home: {
@@ -1448,9 +1452,10 @@ function ensureCompleteFinancingSection() {
       label: `${template.group} · ${template.label}`,
       planned: fitPlannedValues(source.planned, monthCount),
     };
-  }).filter((row) => !isPlanningRowSeriesDeleted(row, "Financiaciones"));
+  }).filter((row) => !USER_REMOVED_FINANCING_KEYS.has(financingRowKey(row)) && !isPlanningRowSeriesDeleted(row, "Financiaciones"));
   const extraRows = section.rows
     .filter((row) => !templateIds.has(row.id) && !templateKeys.has(financingRowKey(row)))
+    .filter((row) => !USER_REMOVED_FINANCING_KEYS.has(financingRowKey(row)))
     .filter((row) => !isPlanningRowSeriesDeleted(row, "Financiaciones"))
     .map((row) => ({
       ...row,
@@ -1524,6 +1529,7 @@ function repairFinancingSectionFromReference() {
   const monthCount = baseData.monthlyPlanning.months?.length || 0;
   let repaired = false;
   section.rows.forEach((row) => {
+    if (USER_REMOVED_FINANCING_KEYS.has(financingRowKey(row))) return;
     if (isPlanningRowSeriesDeleted(row, "Financiaciones")) return;
     if (hasPlannedValues(row.planned)) return;
     const reference = referenceRowsByKey.get(financingRowKey(row));
