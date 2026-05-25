@@ -6564,6 +6564,170 @@ function renderAgentDecisionBoard(plan, debtRecs, projectRecs) {
     .join("");
 }
 
+function executiveToneForAmount(value) {
+  if (Number(value || 0) < 0) return "danger";
+  if (Number(value || 0) === 0) return "warn";
+  return "good";
+}
+
+function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
+  const target = qs("agentExecutive");
+  if (!target) return;
+  const today = plan.rows[0] || {};
+  const nextMonth = plan.rows[1] || {};
+  const planSummary = agentPlanSummary(plan);
+  const capacity = agentTwelveMonthCapacity(plan);
+  const firstDebtStep = debtOptimization?.steps?.[0] || null;
+  const bestDebt = firstDebtStep?.candidate || debtRecs[0] || null;
+  const bestProject = projectRecs[0] || null;
+  const marginNow = round2(Number(today.agentCaixa || 0) - Number(today.requiredReserve || plan.caixaFloor));
+  const nextImpactText = planSummary.nextImpactAmount
+    ? `${money(planSummary.nextImpactAmount, true)} en ${planSummary.nextImpactMonth}`
+    : "Sin impactos próximos cargados";
+  const immediateActions = [];
+
+  if (today.shortage > 0) {
+    immediateActions.push({
+      tone: "danger",
+      title: "No traspasar todavía",
+      meta: `${today.month}: faltan ${money(today.shortage, true)} frente a la reserva operativa. Revisa gastos/proyectos antes de fijar más decisiones.`,
+      action: "Ver simulador",
+      target: "simulator",
+    });
+  } else if (today.transferToSavings > 0) {
+    immediateActions.push({
+      tone: "good",
+      title: "Traspaso seguro a Mediolanum",
+      meta: `Mover ${money(today.transferToSavings, true)} y dejar CaixaBank cubriendo ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      action: "Ver flujo",
+      target: "cashflow",
+    });
+  } else {
+    immediateActions.push({
+      tone: "warn",
+      title: "Esperar a próximo ingreso",
+      meta: `Hoy la caja queda justa. Mantén CaixaBank en ${money(today.requiredReserve || plan.caixaFloor, true)} antes de transferir ahorro.`,
+      action: "Ver previsión",
+      target: "forecast",
+    });
+  }
+
+  if (bestDebt) {
+    const monthLabel = firstDebtStep?.monthLabel || bestDebt.monthLabel || "mes por calcular";
+    const pactado = firstDebtStep?.candidate?.principal ?? bestDebt.principal;
+    const original = firstDebtStep?.candidate?.originalPrincipal ?? bestDebt.originalPrincipal ?? bestDebt.principal;
+    const agreementText = original && original > pactado ? ` · quita ${money(original - pactado, true)}` : "";
+    immediateActions.push({
+      tone: "warn",
+      title: `Preparar deuda: ${bestDebt.entity} ${bestDebt.type}`,
+      meta: `${money(pactado, true)} en ${monthLabel}${agreementText}. Pagos suspendidos: no sumar cuota liberada como ingreso si no se paga ahora.`,
+      action: "Preparar deuda",
+      debtId: bestDebt.id,
+    });
+  }
+
+  if (bestProject) {
+    immediateActions.push({
+      tone: "good",
+      title: `Hucha/proyecto: ${bestProject.name}`,
+      meta: `${money(bestProject.pot, true)}/mes hasta ${bestProject.monthLabel}. Acumulado previsto ${money(bestProject.progress?.projected || 0, true)}.`,
+      action: "Revisar proyecto",
+      projectId: bestProject.id,
+    });
+  }
+
+  if (!bestDebt && !bestProject && today.shortage <= 0) {
+    immediateActions.push({
+      tone: "neutral",
+      title: "Sin decisión nueva urgente",
+      meta: "Prioriza traspaso automático y mantenimiento de colchón. Añade proyectos o acuerdos para que el agente proponga ruta.",
+      action: "Añadir proyecto",
+      target: "simulator",
+    });
+  }
+
+  const guardrails = [
+    {
+      label: "Margen caja hoy",
+      value: money(marginNow, true),
+      tone: marginNow >= 0 ? "good" : "danger",
+      note: `Sobre reserva de ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+    },
+    {
+      label: "Pagos mes siguiente",
+      value: money(Math.max(0, Number(nextMonth.outflowsBeforeSaving || 0)), true),
+      tone: "neutral",
+      note: nextMonth.month ? `Reserva previa para ${nextMonth.month}.` : "Sin mes posterior.",
+    },
+    {
+      label: "Planes considerados",
+      value: `${planSummary.pending} pend. · ${planSummary.locked} fijo(s)`,
+      tone: planSummary.pending ? "warn" : "good",
+      note: `Próximo impacto: ${nextImpactText}.`,
+    },
+    {
+      label: "Ruta deuda",
+      value: debtOptimization?.lastMonth || "Sin ruta",
+      tone: debtOptimization?.steps?.length ? "warn" : "neutral",
+      note: debtOptimization?.steps?.length
+        ? `${debtOptimization.steps.length} paso(s), ${money(debtOptimization.totalPrincipal, true)} pactados.`
+        : "No hay deudas vivas optimizables.",
+    },
+  ];
+
+  const alerts = [];
+  if (capacity.firstShortage) {
+    alerts.push(`Caja: ${capacity.firstShortage.month} tiene déficit de ${money(capacity.firstShortage.shortage, true)}.`);
+  }
+  if (planSummary.nextImpactAmount > 0) {
+    alerts.push(`Proyecto/deuda cargada: impacto próximo de ${money(planSummary.nextImpactAmount, true)} en ${planSummary.nextImpactMonth}.`);
+  }
+  if (debtOptimization?.steps?.[0]?.candidate?.agreementSavings > 0) {
+    alerts.push(`Acuerdo interesante: primera deuda con mejora de ${money(debtOptimization.steps[0].candidate.agreementSavings, true)}.`);
+  }
+  if (!alerts.length) alerts.push("Sin alertas críticas: mantener traspaso prudente y revisar acuerdos antes de fijarlos.");
+
+  target.innerHTML = `<div class="agent-executive-grid">
+    <div class="agent-executive-actions">
+      ${immediateActions
+        .map(
+          (item, index) => `<article class="agent-executive-action ${item.tone}">
+            <span>${index + 1}</span>
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${escapeHtml(item.meta)}</p>
+            </div>
+            ${
+              item.debtId
+                ? `<button type="button" data-agent-debt-target="${escapeHtml(item.debtId)}">${escapeHtml(item.action)}</button>`
+                : item.projectId
+                  ? `<button type="button" data-agent-project-id="${escapeHtml(item.projectId)}">${escapeHtml(item.action)}</button>`
+                  : `<button type="button" data-home-nav="${escapeHtml(item.target || "savings-agent")}">${escapeHtml(item.action)}</button>`
+            }
+          </article>`,
+        )
+        .join("")}
+    </div>
+    <aside class="agent-executive-side">
+      <div class="agent-executive-metrics">
+        ${guardrails
+          .map(
+            (item) => `<div class="${item.tone}">
+              <span>${escapeHtml(item.label)}</span>
+              <strong>${typeof item.value === "string" ? escapeHtml(item.value) : item.value}</strong>
+              <small>${escapeHtml(item.note)}</small>
+            </div>`,
+          )
+          .join("")}
+      </div>
+      <div class="agent-executive-alerts">
+        <span>Checklist de control</span>
+        <ul>${alerts.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      </div>
+    </aside>
+  </div>`;
+}
+
 function renderAgentDebtOptimizerControls() {
   const settings = agentDebtOptimizerSettings();
   const candidates = agentDebtPayoffCandidates();
@@ -6808,6 +6972,7 @@ function renderSavingsAgent() {
       <p>${escapeHtml(note)}</p>
     </article>`)
     .join("");
+  renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization);
   renderAgentPlanSummary(plan);
   renderAgentDecisionBoard(plan, debtRecs, projectRecs);
   renderAgentDebtOptimization(debtOptimization);

@@ -2753,6 +2753,172 @@ svg {
   gap: 12px;
 }
 
+.agent-executive-panel {
+  border-left: 6px solid var(--teal);
+  background: linear-gradient(90deg, rgba(18, 151, 146, 0.08), #fff 40%);
+}
+
+.agent-executive-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.agent-executive-actions,
+.agent-executive-side,
+.agent-executive-metrics {
+  display: grid;
+  gap: 10px;
+}
+
+.agent-executive-action {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--teal);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.agent-executive-action.warn {
+  border-left-color: #b98918;
+}
+
+.agent-executive-action.danger {
+  border-left-color: var(--red);
+}
+
+.agent-executive-action.neutral {
+  border-left-color: var(--muted);
+}
+
+.agent-executive-action > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--teal);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.agent-executive-action.warn > span {
+  background: #b98918;
+}
+
+.agent-executive-action.danger > span {
+  background: var(--red);
+}
+
+.agent-executive-action.neutral > span {
+  background: var(--muted);
+}
+
+.agent-executive-action strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 19px;
+  line-height: 1.12;
+}
+
+.agent-executive-action p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.agent-executive-action button {
+  min-width: 138px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.agent-executive-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.agent-executive-metrics div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.agent-executive-metrics div.good {
+  background: rgba(54, 130, 82, 0.08);
+}
+
+.agent-executive-metrics div.warn {
+  background: rgba(185, 137, 24, 0.1);
+}
+
+.agent-executive-metrics div.danger {
+  background: rgba(194, 82, 75, 0.08);
+}
+
+.agent-executive-metrics span,
+.agent-executive-alerts span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.agent-executive-metrics strong {
+  display: block;
+  margin: 6px 0 4px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: clamp(18px, 1.7vw, 25px);
+  line-height: 1;
+}
+
+.agent-executive-metrics small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.agent-executive-alerts {
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: rgba(239, 246, 247, 0.7);
+}
+
+.agent-executive-alerts ul {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.agent-executive-alerts li {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .agent-decision-card {
   min-width: 0;
   padding: 14px;
@@ -4698,6 +4864,7 @@ tbody tr:hover {
   .home-layout,
   .agent-kpi-grid,
   .agent-decision-board,
+  .agent-executive-grid,
   .agent-optimization-summary,
   .agent-optimization-step,
   .agent-today-grid,
@@ -4739,6 +4906,19 @@ tbody tr:hover {
   }
 
   .impact-chart-card {
+    grid-template-columns: 1fr;
+  }
+
+  .agent-executive-action {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .agent-executive-action button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .agent-executive-metrics {
     grid-template-columns: 1fr;
   }
 }
