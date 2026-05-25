@@ -109,6 +109,7 @@ const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
 const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
 const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
 const VARIABLE_OPERATIONAL_MIGRATION_KEY = "migration:variable-operational-1750-from-2026-06-v2";
+const VARIABLE_OPERATIONAL_MAY_ZERO_KEY = "migration:variable-operational-may-2026-zero-v1";
 const VARIABLE_OPERATIONAL_MIGRATION_START = "2026-06";
 const VARIABLE_OPERATIONAL_MIGRATION_VALUE = 1750;
 const VARIABLE_OPERATIONAL_FORMULA_TARGET = 1750;
@@ -979,7 +980,12 @@ function seriesOverrideForRow(row, month) {
 }
 
 function plannedValueForRow(row, month) {
-  if (isVariableOperationalRow(row)) return variableOperationalFormulaValue(month);
+  if (isVariableOperationalRow(row)) {
+    const override = seriesOverrideForRow(row, month);
+    if (override?.deleted) return 0;
+    if (override?.planned !== undefined && override?.planned !== "") return Number(override.planned || 0);
+    return variableOperationalFormulaValue(month);
+  }
   return plannedValueForRowRaw(row, month);
 }
 
@@ -1464,6 +1470,23 @@ function applyVariableOperationalMigration() {
   storageSet(markerKey, "done");
   scenarioSettings.migrations[VARIABLE_OPERATIONAL_MIGRATION_KEY] = new Date().toISOString();
   saveSeriesOverrides();
+  saveScenarioSettings();
+}
+
+function applyVariableOperationalMayZeroDefault() {
+  scenarioSettings.migrations = scenarioSettings.migrations || {};
+  if (scenarioSettings.migrations[VARIABLE_OPERATIONAL_MAY_ZERO_KEY]) return;
+  ensureVariableOperationalSection();
+  const row = variableOperationalPlanningRow();
+  const month = forecastMonths().find((item) => item.key === "2026-05");
+  if (!row || !month) return;
+  const key = overrideKeyForRow(row, month);
+  const current = seriesOverrides[key] || {};
+  if (current.planned === undefined || current.planned === "") {
+    seriesOverrides[key] = { ...current, planned: 0, deleted: false };
+    saveSeriesOverrides();
+  }
+  scenarioSettings.migrations[VARIABLE_OPERATIONAL_MAY_ZERO_KEY] = new Date().toISOString();
   saveScenarioSettings();
 }
 
@@ -5476,7 +5499,10 @@ function visualCellValue(row, month, mode) {
     const info = actualAwareInfoForVisualRow(row, month);
     return info.hasActual ? Number(info.actual || 0) : "";
   }
-  return plannedValueForVisualRow(row, month) || "";
+  const scopedRow = row.custom ? customRowForVisualMonth(row, month) : row;
+  const override = scopedRow ? seriesOverrideForRow(scopedRow, month) : null;
+  const planned = plannedValueForVisualRow(row, month);
+  return planned !== 0 || (override?.planned !== undefined && override?.planned !== "") ? planned : "";
 }
 
 function visualSectionTotal(section, rows, months, mode, month) {
@@ -6271,6 +6297,27 @@ function agentDebtManualRank(id) {
   return Number.isFinite(value) && value > 0 ? value : 999;
 }
 
+function normalizeAgentDebtManualOrder(settings, candidates = null) {
+  const available = candidates || agentDebtPayoffCandidates();
+  const originalOrder = new Map(available.map((item, index) => [item.id, index]));
+  const ranked = available
+    .map((item) => ({
+      id: item.id,
+      value: Number(settings.order?.[item.id]),
+      original: originalOrder.get(item.id) ?? 999,
+    }))
+    .sort((a, b) => {
+      const rankA = Number.isFinite(a.value) && a.value > 0 ? a.value : 9999;
+      const rankB = Number.isFinite(b.value) && b.value > 0 ? b.value : 9999;
+      return rankA - rankB || a.original - b.original;
+    });
+  settings.order = {};
+  ranked.forEach((item, index) => {
+    settings.order[item.id] = index + 1;
+  });
+  return settings.order;
+}
+
 function agentCaixaFloor() {
   const value = Number(savingsAgentSettings().caixaFloor);
   return Number.isFinite(value) && value >= 0 ? round2(value) : DEFAULT_AGENT_CAIXA_FLOOR;
@@ -6392,6 +6439,7 @@ function agentAffordabilityMonth(plan, amount, buffer = 0) {
 
 function agentDebtRecommendations(plan) {
   const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
+  const settings = agentDebtOptimizerSettings();
   return debtTargetOptions({ includePlanned: false })
     .filter((item) => !alreadyPlanned.has(item.id) && Number(item.currentPrincipal || item.principal || 0) > 0)
     .map((item) => {
@@ -6408,10 +6456,15 @@ function agentDebtRecommendations(plan) {
         affordability,
         monthLabel: affordability?.month || "No alcanzado",
         efficiency,
+        manualRank: agentDebtManualRank(item.id),
         score: (affordability ? 1000 - affordability.agentIndex : 0) + efficiency * 10000 + payment + (debtTargetIsSuspended(item) ? 150 : 0),
       };
     })
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) =>
+      settings.mode === "manual" || settings.mode === "agreements"
+        ? a.manualRank - b.manualRank || b.score - a.score
+        : b.score - a.score,
+    )
     .slice(0, 5);
 }
 
@@ -6500,7 +6553,7 @@ function findAgentBestDebtPayoffStep(baseOutflows, candidates, startIndex = 0) {
         const reliefScore = candidate.effectiveRelief * 6;
         const prudenceScore = Math.min(5000, Math.max(0, Number(monthRow.agentMediolanum || 0)));
         const agreementScore = optimizerMode === "agreements" ? Number(candidate.agreementSavings || 0) * 120 : 0;
-        const manualPenalty = optimizerMode === "manual" ? agentDebtManualRank(candidate.id) * 10000000 : 0;
+        const manualPenalty = optimizerMode === "manual" || optimizerMode === "agreements" ? agentDebtManualRank(candidate.id) * 10000000 : 0;
         bestForCandidate = {
           candidate,
           decision,
@@ -7075,6 +7128,16 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
       target: "simulator",
     });
   }
+  const mergedActions = immediateActions.slice();
+  agentPriorityQueue(plan, debtRecs, projectRecs).forEach((item) => {
+    const duplicate = mergedActions.some((existing) =>
+      (item.debtId && existing.debtId === item.debtId) ||
+      (item.projectId && existing.projectId === item.projectId) ||
+      (normalizedText(item.title).includes("traspaso") && normalizedText(existing.title).includes("traspaso")) ||
+      (!item.debtId && !item.projectId && existing.target === item.target && existing.action === item.action),
+    );
+    if (!duplicate) mergedActions.push(item);
+  });
 
   const guardrails = [
     {
@@ -7125,7 +7188,8 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
 
   target.innerHTML = `<div class="agent-executive-grid">
     <div class="agent-executive-actions">
-      ${immediateActions
+      ${mergedActions
+        .slice(0, 6)
         .map(
           (item, index) => `<article class="agent-executive-action ${item.tone}">
             <span>${index + 1}</span>
@@ -7168,12 +7232,20 @@ function renderAgentDebtOptimizerControls() {
   const settings = agentDebtOptimizerSettings();
   const candidates = agentDebtPayoffCandidates();
   if (!candidates.length) return "";
+  const usedOrders = new Map();
+  candidates.forEach((item, index) => {
+    const value = settings.order[item.id] ?? index + 1;
+    const key = String(value);
+    usedOrders.set(key, (usedOrders.get(key) || 0) + 1);
+  });
+  const hasDuplicateOrders = [...usedOrders.values()].some((count) => count > 1);
   return `<div class="agent-debt-controls">
     <div class="agent-debt-control-head">
       <div>
         <span class="panel-kicker">Criterio de ruta</span>
         <strong>Orden y acuerdos</strong>
         <p>El orden manual fuerza prioridades; los importes pactados simulan quitas antes de decidir.</p>
+        ${hasDuplicateOrders ? `<p class="agent-debt-order-warning">Hay órdenes repetidas. Al aplicar el criterio se normalizarán automáticamente para que no haya duplicados.</p>` : ""}
       </div>
       <label>
         <span>Modo</span>
@@ -7206,10 +7278,12 @@ function saveAgentDebtOptimizerSettingsFromForm() {
   settings.mode = qs("agentDebtOptimizerMode")?.value || "optimized";
   settings.order = {};
   settings.agreements = {};
+  const candidates = agentDebtPayoffCandidates();
   document.querySelectorAll("[data-agent-debt-order]").forEach((input) => {
     const value = Number(input.value);
     if (Number.isFinite(value) && value > 0) settings.order[input.dataset.agentDebtOrder] = Math.round(value);
   });
+  normalizeAgentDebtManualOrder(settings, candidates);
   document.querySelectorAll("[data-agent-debt-agreement]").forEach((input) => {
     const parsed = parseAmount(input.value);
     if (parsed !== null && parsed > 0) settings.agreements[input.dataset.agentDebtAgreement] = round2(parsed);
@@ -9600,6 +9674,7 @@ async function init() {
   repairFinancingSectionFromReference();
   ensureVariableOperationalSection();
   applyVariableOperationalMigration();
+  applyVariableOperationalMayZeroDefault();
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors(true);

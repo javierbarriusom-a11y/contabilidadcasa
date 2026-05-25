@@ -3024,6 +3024,11 @@ svg {
   font-weight: 900;
 }
 
+.agent-debt-order-warning {
+  margin-top: 6px !important;
+  color: #8b650f !important;
+}
+
 .agent-debt-control-row input,
 .agent-debt-control-head select {
   width: 100%;
@@ -3465,6 +3470,10 @@ svg {
 
 .agent-planning-layout {
   grid-template-columns: minmax(0, 1.1fr) minmax(380px, 0.9fr);
+}
+
+.agent-planning-layout > .agent-panel:only-child {
+  grid-column: 1 / -1;
 }
 
 .agent-panel {
