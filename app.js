@@ -2755,6 +2755,11 @@ function addProjectOutflow(outflows, project, startIndex) {
       outflows[index] += monthlyAmount;
     }
   }
+  const creditCapital = Math.max(0, Number(project.creditCapital || 0));
+  if (creditCapital) {
+    const index = Math.min(Math.max(Number(startIndex || 0), 0), outflows.length - 1);
+    outflows[index] -= creditCapital;
+  }
   const recurringAmount = Number(project.recurringAmount || 0);
   const recurringDuration = Math.max(0, Number(project.recurringDuration || 0));
   const recurringStartOffset = Math.max(0, Number(project.recurringStartOffset || 0));
@@ -2921,6 +2926,21 @@ function decisionGrossCost(item) {
   return round2(Number(item.amount || 0) + Number(item.recurringAmount || 0) * Math.max(0, Number(item.recurringDuration || 0)));
 }
 
+function decisionCreditCapital(item) {
+  return Math.max(0, Number(item?.creditCapital || 0));
+}
+
+function decisionNetCashCost(item) {
+  return round2(decisionGrossCost(item) - decisionCreditCapital(item));
+}
+
+function projectKindLabel(item) {
+  if (item?.projectKind === "external-credit" || decisionCreditCapital(item) > 0) {
+    return `Crédito externo${item.creditOwner ? ` · ${item.creditOwner}` : ""}`;
+  }
+  return item?.source === "debt" ? "Deuda" : "Proyecto";
+}
+
 function decisionWindowMonths(item) {
   const initial = Math.max(1, Number(item.duration || 1));
   const recurring = Math.max(0, Number(item.recurringDuration || 0));
@@ -3055,22 +3075,39 @@ function evaluateProjectCandidate(project, mode = "full") {
   return best;
 }
 
-function projectDecisionFromForm({ title, amountOverride, durationOverride, recurringAmountOverride, recurringDurationOverride, recurringStartOffsetOverride, modeOverride, forceOptimize } = {}) {
+function projectDecisionFromForm({
+  title,
+  amountOverride,
+  durationOverride,
+  recurringAmountOverride,
+  recurringDurationOverride,
+  recurringStartOffsetOverride,
+  creditCapitalOverride,
+  projectKindOverride,
+  modeOverride,
+  forceOptimize,
+} = {}) {
   const name = qs("projectName").value.trim() || "Proyecto sin nombre";
+  const projectKind = projectKindOverride || qs("projectKind")?.value || "standard";
+  const creditOwner = qs("projectCreditOwner")?.value || "";
   const formAmount = parseAmount(qs("projectAmount").value) ?? 0;
   const amount = round2(amountOverride ?? formAmount);
   const duration = Math.max(1, Number(durationOverride ?? qs("projectDuration").value ?? 1));
   const recurringAmount = round2(recurringAmountOverride ?? (parseAmount(qs("projectRecurringAmount")?.value) ?? 0));
   const recurringDuration = Math.max(0, Number(recurringDurationOverride ?? qs("projectRecurringDuration")?.value ?? 0));
+  const creditCapital = round2(creditCapitalOverride ?? (parseAmount(qs("projectCreditCapital")?.value) ?? 0));
   const recurringStartOffset =
     recurringStartOffsetOverride ?? (qs("projectRecurringDelay")?.value === "same" ? 0 : duration);
   const rawMode = modeOverride || document.querySelector('input[name="projectMode"]:checked')?.value || "optimize";
   const mode = forceOptimize ? "optimize" : rawMode;
-  if ((!amount || amount <= 0) && (!recurringAmount || recurringAmount <= 0)) return;
+  if ((!amount || amount <= 0) && (!recurringAmount || recurringAmount <= 0) && (!creditCapital || creditCapital <= 0)) return;
   const baseProject = {
     id: editingProjectId || `project-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name,
     title: title || "Opción configurada",
+    projectKind,
+    creditOwner,
+    creditCapital,
     amount,
     duration,
     recurringAmount,
@@ -3139,6 +3176,9 @@ function handleAddProject() {
 function clearProjectForm() {
   editingProjectId = null;
   pendingProjectDecision = null;
+  if (qs("projectKind")) qs("projectKind").value = "standard";
+  if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "Tere";
+  if (qs("projectCreditCapital")) qs("projectCreditCapital").value = "";
   qs("projectName").value = "";
   qs("projectAmount").value = "";
   qs("projectDuration").value = 1;
@@ -3146,6 +3186,7 @@ function clearProjectForm() {
   if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = 0;
   if (qs("projectRecurringDelay")) qs("projectRecurringDelay").value = "after";
   document.querySelector('input[name="projectMode"][value="optimize"]').checked = true;
+  updateProjectKindUi();
   updateProjectModeUi();
   renderProjectPlanPreview();
   renderProjectDecisionReview();
@@ -3157,13 +3198,14 @@ function projectReviewOptionCard(option, selected = false) {
     <span>${escapeHtml(option.title)}</span>
     <strong>${escapeHtml(option.monthLabel)} · ${money(option.monthly, true)}/mes</strong>
     <p>${escapeHtml(option.detail)}</p>
+    ${option.creditCapital ? `<div><small>Capital prestado</small><b>${money(option.creditCapital, true)}</b></div>` : ""}
     <div>
       <small>Caja mínima</small><b>${money(option.minChecking, true)}</b>
     </div>
     <div>
       <small>Liquidez final</small><b>${option.netGain >= 0 ? "+" : ""}${money(option.netGain, true)}</b>
     </div>
-    <button type="button" data-apply-project-option="${escapeHtml(option.key || "")}" data-duration="${escapeHtml(String(option.duration || 1))}" data-recurring-amount="${escapeHtml(String(option.recurringAmount || 0))}" data-recurring-duration="${escapeHtml(String(option.recurringDuration || 0))}" data-recurring-offset="${escapeHtml(String(option.recurringStartOffset || 0))}" data-mode="${escapeHtml(option.mode || "optimize")}">
+    <button type="button" data-apply-project-option="${escapeHtml(option.key || "")}" data-amount="${escapeHtml(String(option.amountOverride ?? ""))}" data-credit-capital="${escapeHtml(String(option.creditCapital || 0))}" data-project-kind="${escapeHtml(option.projectKind || "")}" data-duration="${escapeHtml(String(option.duration || 1))}" data-recurring-amount="${escapeHtml(String(option.recurringAmount || 0))}" data-recurring-duration="${escapeHtml(String(option.recurringDuration || 0))}" data-recurring-offset="${escapeHtml(String(option.recurringStartOffset || 0))}" data-mode="${escapeHtml(option.mode || "optimize")}">
       ${selected ? "Aplicar opción original" : "Aplicar esta sugerencia"}
     </button>
   </article>`;
@@ -3171,8 +3213,9 @@ function projectReviewOptionCard(option, selected = false) {
 
 function projectReviewVariants(decision) {
   const baseAmount = Number(decision?.amount || 0);
-  if (!baseAmount) return [];
-  return [
+  const creditBase = Number(decision?.creditCapital || 0);
+  if (!baseAmount && !creditBase) return [];
+  const variants = [
     {
       key: "single",
       title: "Pago único óptimo",
@@ -3229,6 +3272,38 @@ function projectReviewVariants(decision) {
       mode: "optimize",
     },
   ];
+  const financeBase = Math.max(baseAmount, creditBase);
+  if (financeBase > 0) {
+    variants.push(
+      {
+        key: "external-36",
+        title: "Crédito externo 36 meses",
+        detail: "Entrada inicial del capital y cuota a 36 meses para adelantar el proyecto.",
+        amountOverride: baseAmount,
+        creditCapital: financeBase,
+        projectKind: "external-credit",
+        duration: Math.max(1, Number(decision.duration || 1)),
+        recurringAmount: round2(financeBase / 36),
+        recurringDuration: 36,
+        recurringStartOffset: 1,
+        mode: "optimize",
+      },
+      {
+        key: "external-60",
+        title: "Crédito externo 60 meses",
+        detail: "Mayor plazo, menor cuota; útil si la prioridad es proteger caja mensual.",
+        amountOverride: baseAmount,
+        creditCapital: financeBase,
+        projectKind: "external-credit",
+        duration: Math.max(1, Number(decision.duration || 1)),
+        recurringAmount: round2(financeBase / 60),
+        recurringDuration: 60,
+        recurringStartOffset: 1,
+        mode: "optimize",
+      },
+    );
+  }
+  return variants;
 }
 
 function renderProjectDecisionReview(decision = pendingProjectDecision) {
@@ -3247,6 +3322,9 @@ function renderProjectDecisionReview(decision = pendingProjectDecision) {
     key: "original",
     title: "Opción original",
     detail: "Aplica exactamente la configuración que has introducido arriba.",
+    amountOverride: decision.amount,
+    creditCapital: decisionCreditCapital(decision),
+    projectKind: decision.projectKind || "standard",
     duration: decision.duration,
     recurringAmount: decision.recurringAmount,
     recurringDuration: decision.recurringDuration,
@@ -3267,6 +3345,8 @@ function renderProjectDecisionReview(decision = pendingProjectDecision) {
         recurringAmountOverride: option.recurringAmount,
         recurringDurationOverride: option.recurringDuration,
         recurringStartOffsetOverride: option.recurringStartOffset,
+        creditCapitalOverride: option.creditCapital || 0,
+        projectKindOverride: option.projectKind || decision.projectKind || "standard",
         modeOverride: option.mode,
         forceOptimize: option.mode === "optimize",
       });
@@ -3275,6 +3355,7 @@ function renderProjectDecisionReview(decision = pendingProjectDecision) {
       return {
         ...option,
         monthly: evaluation.monthly,
+        creditCapital: Number(candidate.creditCapital || 0),
         minChecking: evaluation.evaluation.minChecking,
         netGain: evaluation.netGain,
         monthLabel: forecastMonths()[candidate.monthIndex]?.label || "-",
@@ -3292,6 +3373,8 @@ function renderProjectDecisionReview(decision = pendingProjectDecision) {
     </div>
     <div class="debt-review-summary">
       <div><span>Coste total</span><strong>${money(decisionGrossCost(decision), true)}</strong></div>
+      <div><span>Capital prestado</span><strong>${decisionCreditCapital(decision) ? money(decisionCreditCapital(decision), true) : "No"}</strong></div>
+      <div><span>Impacto neto</span><strong>${decisionNetCashCost(decision) >= 0 ? "" : "+"}${money(decisionNetCashCost(decision), true)}</strong></div>
       <div><span>Opción seleccionada</span><strong>${money(currentEval.monthly, true)}/mes</strong></div>
       <div><span>Caja mínima</span><strong class="${currentEval.evaluation.minChecking < 0 ? "negative" : "positive"}">${money(currentEval.evaluation.minChecking, true)}</strong></div>
       <div><span>Liquidez final</span><strong>${currentEval.netGain >= 0 ? "+" : ""}${money(currentEval.netGain, true)}</strong></div>
@@ -3313,11 +3396,13 @@ function applyProjectReviewOption(button) {
     key === "original"
       ? pendingProjectDecision || projectDecisionFromForm()
       : projectDecisionFromForm({
-          amountOverride: button.dataset.recurringAmount && Number(button.dataset.recurringAmount) > 0 ? 0 : undefined,
+          amountOverride: button.dataset.amount === "" ? undefined : Number(button.dataset.amount || 0),
           durationOverride: Number(button.dataset.duration || 1),
           recurringAmountOverride: Number(button.dataset.recurringAmount || 0),
           recurringDurationOverride: Number(button.dataset.recurringDuration || 0),
           recurringStartOffsetOverride: Number(button.dataset.recurringOffset || 0),
+          creditCapitalOverride: Number(button.dataset.creditCapital || 0),
+          projectKindOverride: button.dataset.projectKind || undefined,
           modeOverride: button.dataset.mode || "optimize",
           forceOptimize: true,
         });
@@ -3329,6 +3414,9 @@ function editProject(id) {
   if (!project) return;
   if (project.locked) return;
   editingProjectId = id;
+  if (qs("projectKind")) qs("projectKind").value = project.projectKind || (Number(project.creditCapital || 0) > 0 ? "external-credit" : "standard");
+  if (qs("projectCreditOwner")) qs("projectCreditOwner").value = project.creditOwner || "Tere";
+  if (qs("projectCreditCapital")) qs("projectCreditCapital").value = Number(project.creditCapital || 0) ? amountInputValue(project.creditCapital) : "";
   qs("projectName").value = project.name || "";
   qs("projectAmount").value = amountInputValue(Number(project.amount || 0));
   qs("projectDuration").value = Math.max(1, Number(project.duration || 1));
@@ -3339,6 +3427,7 @@ function editProject(id) {
   }
   setProjectMode(project.mode === "fixed" ? "fixed" : "optimize");
   if (qs("projectMonth") && Number.isFinite(Number(project.monthIndex))) qs("projectMonth").value = Number(project.monthIndex);
+  updateProjectKindUi();
   updateProjectModeUi();
   renderProjectPlanPreview();
   qs("projectName").focus();
@@ -4092,6 +4181,7 @@ function renderProjectSimulator(baseRows, rows) {
 
   renderProjectImpactChart(baseRows, rows);
   renderProjectGlobalImpact(baseRows, rows);
+  renderProjectDecisionLedger(baseRows, rows);
 
   if (!projects.length && !debtLiquidations.length) {
     qs("projectList").innerHTML =
@@ -4103,8 +4193,13 @@ function renderProjectSimulator(baseRows, rows) {
     .map((project) => {
       const monthly = decisionPeakMonthlyImpact(project);
       const totalCost = decisionGrossCost(project);
+      const creditCapital = decisionCreditCapital(project);
+      const netCost = decisionNetCashCost(project);
       const recurrenceText = Number(project.recurringAmount || 0)
         ? ` Cuota recurrente: ${money(project.recurringAmount, true)} durante ${project.recurringDuration} mes(es).`
+        : "";
+      const creditText = creditCapital
+        ? ` Capital prestado: ${money(creditCapital, true)}${project.creditOwner ? ` (${escapeHtml(project.creditOwner)})` : ""}; impacto neto ${netCost >= 0 ? "" : "+"}${money(netCost, true)}.`
         : "";
       const statusText =
         project.status === "debt"
@@ -4123,7 +4218,7 @@ function renderProjectSimulator(baseRows, rows) {
       return `<div class="project-item ${project.status === "warning" ? "warning" : ""} ${project.source === "debt" ? "debt-item" : ""} ${project.locked ? "locked" : ""}">
         <div>
           <strong>${escapeHtml(project.name)} ${decisionLockedBadge(project)}</strong>
-          <p>${project.source === "debt" ? "Deuda" : "Proyecto"} · ${money(totalCost, true)} total, desde ${project.monthLabel}. ${statusText}. Pico mensual: ${money(monthly, true)}.${recurrenceText}</p>
+          <p>${escapeHtml(projectKindLabel(project))} · ${money(totalCost, true)} total, desde ${project.monthLabel}. ${statusText}. Pico mensual: ${money(monthly, true)}.${creditText}${recurrenceText}</p>
         </div>
         <div class="project-item-actions">${actions}</div>
       </div>`;
@@ -4144,6 +4239,56 @@ function renderProjectSimulator(baseRows, rows) {
       setDecisionLocked(button.dataset.lockProjectSource, button.dataset.lockProject, button.dataset.lockValue === "true"),
     );
   });
+}
+
+function decisionStatusLabel(item) {
+  if (item.locked) return "Fijo en plan";
+  if (item.source === "debt") return "Pendiente de confirmar";
+  return item.mode === "fixed" ? "Simulado manual" : "Simulado óptimo";
+}
+
+function renderProjectDecisionLedger(baseRows, rows) {
+  const target = qs("projectDecisionLedger");
+  if (!target) return;
+  const decisions = projectPlan.placements || [];
+  const baseFinal = baseRows[baseRows.length - 1]?.totalLiquidity || 0;
+  const final = rows[rows.length - 1]?.totalLiquidity || 0;
+  const creditCapital = round2(sumRows(decisions, (item) => decisionCreditCapital(item)));
+  const locked = decisions.filter((item) => item.locked).length;
+  const pending = Math.max(0, decisions.length - locked);
+  if (!decisions.length) {
+    target.innerHTML = `<article class="decision-ledger-empty">
+      <strong>Sin decisiones en curso</strong>
+      <p>Añade un proyecto, crédito externo o acuerdo de deuda para comparar impacto antes de fijarlo.</p>
+    </article>`;
+    return;
+  }
+  const next = decisions
+    .slice()
+    .sort((a, b) => Number(a.startIndex || 0) - Number(b.startIndex || 0))[0];
+  target.innerHTML = `<article class="decision-ledger-card">
+      <div>
+        <p class="panel-kicker">Centro de decisiones</p>
+        <h4>${decisions.length} decisión(es) consideradas</h4>
+        <p>${pending} pendiente(s), ${locked} fija(s). Impacto final ${final - baseFinal >= 0 ? "+" : ""}${money(final - baseFinal, true)}.</p>
+      </div>
+      <div class="decision-ledger-metrics">
+        <span><b>${money(creditCapital, true)}</b><small>Capital externo</small></span>
+        <span><b>${next ? escapeHtml(next.monthLabel) : "-"}</b><small>Siguiente impacto</small></span>
+        <span><b>${money(Math.min(...rows.map((row) => row.checking)), true)}</b><small>Caja mínima</small></span>
+      </div>
+    </article>
+    <div class="decision-ledger-list">
+      ${decisions
+        .map(
+          (item) => `<div class="decision-ledger-row ${item.locked ? "locked" : ""}">
+            <span>${escapeHtml(decisionStatusLabel(item))}</span>
+            <strong>${escapeHtml(item.name)}</strong>
+            <small>${escapeHtml(projectKindLabel(item))} · ${escapeHtml(item.monthLabel || "")} · neto ${decisionNetCashCost(item) >= 0 ? "" : "+"}${money(decisionNetCashCost(item), true)}</small>
+          </div>`,
+        )
+        .join("")}
+    </div>`;
 }
 
 function renderProjectGlobalImpact(baseRows, rows) {
@@ -4368,6 +4513,9 @@ function projectChartTickIndexes(rows, width) {
 function renderProjectPlanPreview() {
   const element = qs("projectPlanPreview");
   if (!element) return;
+  const projectKind = qs("projectKind")?.value || "standard";
+  const creditOwner = qs("projectCreditOwner")?.value || "Tere";
+  const creditCapital = parseAmount(qs("projectCreditCapital")?.value) ?? 0;
   const amount = parseAmount(qs("projectAmount")?.value) ?? 0;
   const duration = Math.max(1, Number(qs("projectDuration")?.value || 1));
   const recurringAmount = parseAmount(qs("projectRecurringAmount")?.value) ?? 0;
@@ -4376,15 +4524,34 @@ function renderProjectPlanPreview() {
   const mode = document.querySelector('input[name="projectMode"]:checked')?.value || "optimize";
   const monthLabelText = mode === "fixed" ? qs("projectMonth")?.selectedOptions?.[0]?.textContent || "mes manual" : "mes óptimo";
   const total = round2(amount + recurringAmount * recurringDuration);
+  const net = round2(total - creditCapital);
   element.innerHTML = `<strong>${editingProjectId ? "Editando plan" : "Resumen del plan"}</strong>
     <div class="project-preview-grid">
+      <span>Tipo: ${projectKind === "external-credit" ? `crédito externo (${escapeHtml(creditOwner)})` : "proyecto propio"}</span>
       <span>Inicio: ${escapeHtml(monthLabelText)}</span>
       <span>Coste total: ${money(total, true)}</span>
+      <span>Capital prestado: ${creditCapital ? money(creditCapital, true) : "sin financiación externa"}</span>
+      <span>Impacto neto total: ${net >= 0 ? "" : "+"}${money(net, true)}</span>
       <span>Inicial: ${money(amount, true)} en ${duration} mes(es)</span>
       <span>Recurrente: ${recurringAmount ? `${money(recurringAmount, true)} durante ${recurringDuration} mes(es), ${recurringDelay === "same" ? "desde el mismo mes" : "tras el impacto inicial"}` : "sin cuota recurrente"}</span>
     </div>`;
   qs("addProject").textContent = editingProjectId ? "Guardar plan" : "Comparar plan";
   qs("cancelProjectEdit").hidden = !editingProjectId;
+}
+
+function updateProjectKindUi() {
+  const kind = qs("projectKind")?.value || "standard";
+  const isCredit = kind === "external-credit";
+  document.querySelectorAll(".project-credit-field").forEach((field) => {
+    field.classList.toggle("is-visible", isCredit);
+  });
+  if (isCredit) {
+    if (qs("projectRecurringDelay")) qs("projectRecurringDelay").value = "same";
+    if (qs("projectCreditCapital") && !qs("projectCreditCapital").value && qs("projectAmount")?.value) {
+      qs("projectCreditCapital").value = qs("projectAmount").value;
+    }
+  }
+  renderProjectPlanPreview();
 }
 
 function updateProjectModeUi() {
@@ -6207,6 +6374,18 @@ function projectSavingsProgress(project, plan = null) {
 
 function renderProjectSavingsProgress(project, compact = false, progressOverride = null) {
   if (!project || project.source === "debt" || project.locked || decisionGrossCost(project) <= 0) return "";
+  if (decisionCreditCapital(project) > 0) {
+    return `<div class="project-savings-progress ${compact ? "compact" : ""}">
+      <div class="project-savings-progress-head">
+        <span>Financiación externa</span>
+        <strong>${money(decisionCreditCapital(project), true)} de capital</strong>
+      </div>
+      <div class="project-savings-progress-foot">
+        <span>${project.creditOwner ? `Titular: ${escapeHtml(project.creditOwner)}` : "Titular no indicado"}</span>
+        <span>Cuota prevista ${money(project.recurringAmount || 0, true)} durante ${project.recurringDuration || 0} mes(es)</span>
+      </div>
+    </div>`;
+  }
   const progress = progressOverride || projectSavingsProgress(project);
   return `<div class="project-savings-progress ${compact ? "compact" : ""}">
     <div class="project-savings-progress-head">
@@ -6878,15 +7057,17 @@ function renderAgentRecommendationCard(item, type) {
     </article>`;
   }
   const canPay = Boolean(item.affordability);
+  const creditCapital = decisionCreditCapital(item);
   return `<article class="agent-rec-card ${canPay ? "good" : "warn"}">
     <div>
-      <span>Proyecto</span>
+      <span>${creditCapital ? "Proyecto financiado" : "Proyecto"}</span>
       <strong>${escapeHtml(item.name)}</strong>
-      <p>${item.locked ? "Fijo en plan" : "Pendiente de decisión final"}</p>
+      <p>${item.locked ? "Fijo en plan" : "Pendiente de decisión final"}${creditCapital ? ` · capital externo ${money(creditCapital, true)}` : ""}</p>
       ${renderProjectSavingsProgress(item, false, item.progress)}
     </div>
     <div class="agent-rec-metrics">
       <div><small>Coste</small><b>${money(item.amount, true)}</b></div>
+      ${creditCapital ? `<div><small>Capital prestado</small><b>${money(creditCapital, true)}</b></div>` : ""}
       <div><small>Hucha sugerida</small><b>${money(item.pot, true)}/mes</b></div>
       <div><small>Mes objetivo</small><b>${escapeHtml(item.monthLabel)}</b></div>
       <div><small>Caja mínima plan</small><b>${money(item.minChecking, true)}</b></div>
@@ -9194,14 +9375,22 @@ async function init() {
     clearProjectForm();
     renderProjectSimulator(lastBaseSimulation, lastSimulation);
   });
-  ["projectName", "projectAmount", "projectDuration", "projectRecurringAmount", "projectRecurringDuration", "projectRecurringDelay", "projectMonth"].forEach((id) => {
+  ["projectKind", "projectCreditOwner", "projectCreditCapital", "projectName", "projectAmount", "projectDuration", "projectRecurringAmount", "projectRecurringDuration", "projectRecurringDelay", "projectMonth"].forEach((id) => {
     qs(id)?.addEventListener("input", () => {
       pendingProjectDecision = null;
+      if (id === "projectKind") updateProjectKindUi();
+      if (id === "projectAmount" && qs("projectKind")?.value === "external-credit" && qs("projectCreditCapital") && !qs("projectCreditCapital").value) {
+        qs("projectCreditCapital").value = qs("projectAmount")?.value || "";
+      }
       renderProjectPlanPreview();
       renderProjectDecisionReview();
     });
     qs(id)?.addEventListener("change", () => {
       pendingProjectDecision = null;
+      if (id === "projectKind") updateProjectKindUi();
+      if (id === "projectAmount" && qs("projectKind")?.value === "external-credit" && qs("projectCreditCapital") && !qs("projectCreditCapital").value) {
+        qs("projectCreditCapital").value = qs("projectAmount")?.value || "";
+      }
       renderProjectPlanPreview();
       renderProjectDecisionReview();
     });

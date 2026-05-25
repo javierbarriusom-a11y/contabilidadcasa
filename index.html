@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260525c" />
+    <link rel="stylesheet" href="styles.css?v=20260525d" />
   </head>
   <body>
     <div class="app-shell">
@@ -732,6 +732,21 @@
                   <div class="project-grid">
                     <div class="project-form">
                       <label>
+                        <span>Tipo de plan</span>
+                        <select id="projectKind">
+                          <option value="standard">Proyecto / imprevisto</option>
+                          <option value="external-credit">Crédito externo para proyecto</option>
+                        </select>
+                      </label>
+                      <label class="project-credit-field">
+                        <span>Titular / origen</span>
+                        <select id="projectCreditOwner">
+                          <option value="Tere">Tere</option>
+                          <option value="Javi">Javi</option>
+                          <option value="Hogar">Hogar</option>
+                        </select>
+                      </label>
+                      <label>
                         <span>Nombre del plan</span>
                         <input id="projectName" type="text" placeholder="Ej. Viaje, reforma, segundo coche" />
                       </label>
@@ -746,6 +761,10 @@
                       <label>
                         <span>Cuota recurrente</span>
                         <input id="projectRecurringAmount" type="number" step="25" placeholder="0" />
+                      </label>
+                      <label class="project-credit-field">
+                        <span>Capital prestado inicial</span>
+                        <input id="projectCreditCapital" type="number" step="50" placeholder="0" />
                       </label>
                       <label>
                         <span>Duración recurrente</span>
@@ -785,6 +804,7 @@
 
                     <div class="project-output">
                       <div class="project-summary" id="projectSummary"></div>
+                      <div class="decision-ledger" id="projectDecisionLedger"></div>
                       <div class="impact-chart-card">
                         <div>
                           <span>Impacto mensual</span>
@@ -1273,7 +1293,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="vendor/xlsx.full.min.js?v=20260525c"></script>
     <script src="supabase-config.js?v=20260525c"></script>
-    <script src="data.js?v=20260525c"></script>
-    <script src="app.js?v=20260525c"></script>
+    <script src="data.js?v=20260525d"></script>
+    <script src="app.js?v=20260525d"></script>
   </body>
 </html>
