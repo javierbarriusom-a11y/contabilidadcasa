@@ -4427,22 +4427,26 @@ function renderDecisionComparator(baseRows, rows) {
       <div>
         <p class="panel-kicker">Comparador global</p>
         <h4>3 escenarios completos</h4>
-        <p>Cruza crédito externo, deuda y proyectos con caja mínima, ahorro final y deuda pendiente.</p>
+        <p>Caja mínima, ahorro final y deuda pendiente en una lectura única.</p>
       </div>
       <strong>Mejor caja: ${money(bestMin, true)}</strong>
     </div>
-    <div class="decision-comparator-grid">
+    <div class="decision-comparison-table" role="table" aria-label="Comparador de escenarios">
+      <div class="decision-comparison-header" role="row">
+        <span>Escenario</span>
+        <span>Caja mínima</span>
+        <span>Ahorro final</span>
+        <span>Deuda pendiente</span>
+        <span>Primer impacto</span>
+      </div>
       ${scenarios
         .map(
-          (item) => `<div class="${item.minChecking === bestMin ? "best" : ""}">
-            <span>${escapeHtml(item.label)}</span>
+          (item) => `<div class="decision-comparison-row ${item.minChecking === bestMin ? "best" : ""}" role="row">
+            <strong>${escapeHtml(item.label)}</strong>
             <b>${money(item.minChecking, true)}</b>
-            <small>Caja mínima</small>
-            <dl>
-              <dt>Ahorro final</dt><dd>${money(item.finalSavings, true)}</dd>
-              <dt>Deuda pendiente</dt><dd>${money(item.debtRemaining, true)}</dd>
-              <dt>Primer impacto</dt><dd>${escapeHtml(item.firstImpactLabel)}</dd>
-            </dl>
+            <span>${money(item.finalSavings, true)}</span>
+            <span>${money(item.debtRemaining, true)}</span>
+            <span>${escapeHtml(item.firstImpactLabel)}</span>
           </div>`,
         )
         .join("")}

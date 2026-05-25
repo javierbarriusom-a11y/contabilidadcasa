@@ -1002,7 +1002,7 @@ select:focus {
 
 .project-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  grid-template-columns: minmax(360px, 0.88fr) minmax(440px, 1.12fr);
   gap: 18px;
 }
 
@@ -1139,6 +1139,7 @@ select:focus {
 }
 
 .project-summary-card {
+  min-width: 0;
   padding: 13px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1155,6 +1156,7 @@ select:focus {
 
 .project-summary-card strong {
   display: block;
+  overflow-wrap: anywhere;
   font-size: 18px;
 }
 
@@ -1176,6 +1178,10 @@ select:focus {
   background: #fbfcfd;
 }
 
+.decision-ledger-empty {
+  display: block;
+}
+
 .decision-ledger-card h4,
 .decision-ledger-empty strong {
   margin: 0 0 4px;
@@ -1191,11 +1197,12 @@ select:focus {
 
 .decision-ledger-metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
 .decision-ledger-metrics span {
+  min-width: 0;
   padding: 9px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1205,6 +1212,7 @@ select:focus {
 .decision-ledger-metrics b,
 .decision-ledger-metrics small {
   display: block;
+  overflow-wrap: anywhere;
 }
 
 .decision-ledger-metrics small {
@@ -1262,6 +1270,7 @@ select:focus {
 }
 
 .decision-owner-strip span {
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--muted);
@@ -1325,60 +1334,72 @@ select:focus {
   padding: 0.45rem 0.7rem;
 }
 
-.decision-comparator-grid {
+.decision-comparison-table {
   display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.decision-comparator-grid > div {
+  overflow: hidden;
   border: 1px solid var(--line);
-  border-left: 5px solid var(--teal);
   border-radius: 8px;
-  padding: 0.85rem;
 }
 
-.decision-comparator-grid > div.best {
+.decision-comparison-header,
+.decision-comparison-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.15fr) repeat(3, minmax(70px, 0.85fr)) minmax(58px, 0.65fr);
+  gap: 0.55rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+}
+
+.decision-comparison-header {
+  background: #eef5f6;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.decision-comparison-row {
+  border-top: 1px solid var(--line);
+  background: #ffffff;
+}
+
+.decision-comparison-row.best {
   background: rgba(63, 146, 92, 0.08);
-  border-left-color: var(--green);
+  box-shadow: inset 5px 0 0 var(--green);
 }
 
-.decision-comparator-grid span,
+.decision-comparison-row strong,
+.decision-comparison-row b,
+.decision-comparison-row span,
+.decision-comparison-header span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.decision-comparison-row strong {
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.decision-comparison-row b {
+  color: var(--green);
+  font-size: 1rem;
+}
+
+.decision-comparison-row span {
+  color: var(--ink);
+  font-weight: 850;
+  font-size: 0.9rem;
+}
+
 .decision-history-columns span,
 .decision-alerts-card span {
   color: var(--muted);
   display: block;
   font-weight: 950;
   text-transform: uppercase;
-}
-
-.decision-comparator-grid b {
-  color: var(--ink);
-  display: block;
-  font-size: 1.45rem;
-  margin-top: 0.25rem;
-}
-
-.decision-comparator-grid small {
-  color: var(--muted);
-  font-weight: 850;
-}
-
-.decision-comparator-grid dl {
-  display: grid;
-  gap: 0.35rem 0.7rem;
-  grid-template-columns: 1fr auto;
-  margin: 0.8rem 0 0;
-}
-
-.decision-comparator-grid dt,
-.decision-comparator-grid dd {
-  font-weight: 850;
-  margin: 0;
-}
-
-.decision-comparator-grid dt {
-  color: var(--muted);
 }
 
 .decision-alerts-card > div {
@@ -1468,6 +1489,7 @@ select:focus {
 }
 
 .global-impact-card {
+  min-width: 0;
   min-height: 76px;
   padding: 11px;
   border: 1px solid var(--line);
@@ -1485,7 +1507,9 @@ select:focus {
 
 .global-impact-card strong {
   display: block;
-  font-size: 18px;
+  overflow-wrap: anywhere;
+  font-size: clamp(15px, 1.35vw, 18px);
+  line-height: 1.15;
 }
 
 #projectGlobalChart {
@@ -1553,7 +1577,8 @@ select:focus {
   display: block;
   margin-top: 3px;
   overflow-wrap: anywhere;
-  font-size: 16px;
+  font-size: clamp(14px, 1.1vw, 16px);
+  line-height: 1.15;
 }
 
 .scenario-sensitivity p {
@@ -5161,7 +5186,6 @@ tbody tr:hover {
     .savings-period-grid,
     .visual-bulk-edit-grid,
     .scenario-sensitivity-grid,
-    .decision-comparator-grid,
     .decision-history-columns {
 	    grid-template-columns: 1fr;
 	  }
@@ -5215,6 +5239,50 @@ tbody tr:hover {
   .decision-comparator-head,
   .decision-history-head {
     display: grid;
+  }
+}
+
+@media (max-width: 900px) {
+  .decision-comparison-header {
+    display: none;
+  }
+
+  .decision-comparison-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.75rem;
+  }
+
+  .decision-comparison-row strong {
+    grid-column: 1 / -1;
+  }
+
+  .decision-comparison-row b::before {
+    content: "Caja minima ";
+    color: var(--muted);
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 950;
+    text-transform: uppercase;
+  }
+
+  .decision-comparison-row span:nth-of-type(1)::before {
+    content: "Ahorro final";
+  }
+
+  .decision-comparison-row span:nth-of-type(2)::before {
+    content: "Deuda pendiente";
+  }
+
+  .decision-comparison-row span:nth-of-type(3)::before {
+    content: "Primer impacto";
+  }
+
+  .decision-comparison-row span::before {
+    color: var(--muted);
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 950;
+    text-transform: uppercase;
   }
 }
 
