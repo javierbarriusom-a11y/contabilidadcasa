@@ -40,6 +40,7 @@ let lastPlannedSimulation = [];
 let currentScenario = "Base";
 let projects = [];
 let debtLiquidations = [];
+let decisionEvents = [];
 let projectPlan = { outflows: [], placements: [] };
 let incomeActuals = {};
 let expenseActuals = {};
@@ -364,6 +365,7 @@ function appStatePayload() {
     workbookData: baseData?.metadata?.sourceWorkbookStatus === "Leído desde la app" ? baseData : null,
     projects,
     debtLiquidations,
+    decisionEvents,
     savingsPlan: scenarioSettings.savingsPlan || {},
     incomeActuals,
     expenseActuals,
@@ -394,6 +396,7 @@ function applyPersistedPayload(payload = {}) {
   }
   projects = Array.isArray(payload.projects) ? payload.projects : [];
   debtLiquidations = Array.isArray(payload.debtLiquidations) ? payload.debtLiquidations : [];
+  decisionEvents = Array.isArray(payload.decisionEvents) ? payload.decisionEvents : [];
   incomeActuals = payload.incomeActuals && typeof payload.incomeActuals === "object" ? payload.incomeActuals : {};
   expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
   balanceSettings = payload.balanceSettings && typeof payload.balanceSettings === "object" ? payload.balanceSettings : {};
@@ -411,6 +414,7 @@ function applyPersistedPayload(payload = {}) {
 function saveLocalSnapshot() {
   storageSet(storageKey("projects"), JSON.stringify(projects));
   storageSet(storageKey("debtLiquidations"), JSON.stringify(debtLiquidations));
+  storageSet(storageKey("decisionEvents"), JSON.stringify(decisionEvents));
   storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
   storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
@@ -435,6 +439,7 @@ function loadLocalState() {
     applyPersistedPayload({
       projects: JSON.parse(storageGet(storageKey("projects"), "[]")),
       debtLiquidations: JSON.parse(storageGet(storageKey("debtLiquidations"), "[]")),
+      decisionEvents: JSON.parse(storageGet(storageKey("decisionEvents"), "[]")),
       incomeActuals: JSON.parse(storageGet(storageKey("incomeActuals"), "{}")),
       expenseActuals: JSON.parse(storageGet(storageKey("expenseActuals"), "{}")),
       balanceSettings: JSON.parse(storageGet(storageKey("balanceSettings"), "{}")),
@@ -448,6 +453,7 @@ function loadLocalState() {
   } catch {
     projects = [];
     debtLiquidations = [];
+    decisionEvents = [];
     incomeActuals = {};
     expenseActuals = {};
     balanceSettings = {};
@@ -507,12 +513,38 @@ function saveDebtLiquidations() {
   queueRemoteSave();
 }
 
+function saveDecisionEvents() {
+  decisionEvents = decisionEvents.slice(0, 120);
+  storageSet(storageKey("decisionEvents"), JSON.stringify(decisionEvents));
+  queueRemoteSave();
+}
+
+function recordDecisionEvent(status, item, note = "") {
+  if (!item) return;
+  const source = item.source === "debt" || item.targetId ? "debt" : "project";
+  decisionEvents.unshift({
+    id: `event-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    date: new Date().toISOString(),
+    source,
+    itemId: item.id || item.targetId || "",
+    name: item.name || item.label || item.entity || "Decisión",
+    status,
+    owner: item.creditOwner || item.owner || inferDecisionOwner(item),
+    amount: decisionGrossCost(item),
+    creditCapital: decisionCreditCapital(item),
+    monthLabel: item.monthLabel || forecastMonths()[item.monthIndex || 0]?.label || "",
+    note,
+  });
+  saveDecisionEvents();
+}
+
 function decisionLockedBadge(item) {
   return item?.locked ? '<span class="decision-lock-badge">Fijo en plan</span>' : "";
 }
 
 function setDecisionLocked(source, id, locked) {
   const stamp = locked ? new Date().toISOString() : null;
+  let changedItem = null;
   if (source === "debt") {
     debtLiquidations = debtLiquidations.map((item) =>
       item.id === id
@@ -523,6 +555,7 @@ function setDecisionLocked(source, id, locked) {
           }
         : item,
     );
+    changedItem = debtLiquidations.find((item) => item.id === id);
     saveDebtLiquidations();
   } else {
     projects = projects.map((item) =>
@@ -534,7 +567,15 @@ function setDecisionLocked(source, id, locked) {
           }
         : item,
     );
+    changedItem = projects.find((item) => item.id === id);
     saveProjects();
+  }
+  if (changedItem) {
+    recordDecisionEvent(
+      locked ? "fijo en plan" : "devuelto a simulación",
+      { ...changedItem, source },
+      locked ? "La decisión queda bloqueada en el plan." : "La decisión vuelve a estar editable.",
+    );
   }
   render();
 }
@@ -2941,6 +2982,13 @@ function projectKindLabel(item) {
   return item?.source === "debt" ? "Deuda" : "Proyecto";
 }
 
+function inferDecisionOwner(item = {}) {
+  const text = normalizedText(`${item.name || ""} ${item.label || ""} ${item.entity || ""} ${item.number || ""}`);
+  if (text.includes("tere")) return "Tere";
+  if (text.includes("javi") || text.includes("javier")) return "Javi";
+  return "Hogar";
+}
+
 function decisionWindowMonths(item) {
   const initial = Math.max(1, Number(item.duration || 1));
   const recurring = Math.max(0, Number(item.recurringDuration || 0));
@@ -3156,8 +3204,10 @@ function applyProjectDecision(project) {
     projects = projects.map((item) =>
       item.id === editingProjectId ? { ...nextProject, locked: Boolean(item.locked), lockedAt: item.lockedAt } : item,
     );
+    recordDecisionEvent("aprobado", { ...nextProject, source: "project" }, "Proyecto modificado desde el simulador.");
   } else {
     projects.push(nextProject);
+    recordDecisionEvent("aprobado", { ...nextProject, source: "project" }, "Proyecto incorporado tras comparar alternativas.");
   }
   clearProjectForm();
   saveProjects();
@@ -3171,6 +3221,7 @@ function handleAddProject() {
   }
   pendingProjectDecision = projectDecisionFromForm();
   renderProjectDecisionReview(pendingProjectDecision);
+  renderDecisionHistory();
 }
 
 function clearProjectForm() {
@@ -3438,6 +3489,7 @@ function removeProject(id) {
   if (project?.locked) return;
   if (editingProjectId === id) clearProjectForm();
   projects = projects.filter((project) => project.id !== id);
+  recordDecisionEvent("cancelado", { ...project, source: "project" }, "Proyecto retirado del simulador.");
   saveProjects();
   render();
 }
@@ -3446,6 +3498,7 @@ function removeDebtLiquidation(id) {
   const item = debtLiquidations.find((candidate) => candidate.id === id);
   if (item?.locked) return;
   debtLiquidations = debtLiquidations.filter((item) => item.id !== id);
+  recordDecisionEvent("cancelado", { ...item, source: "debt" }, "Decisión de deuda retirada del plan.");
   saveDebtLiquidations();
   render();
 }
@@ -3757,10 +3810,12 @@ function applyDebtDecision(decision) {
     return;
   }
   const { preview, ...cleanDecision } = decision;
-  debtLiquidations.push({
+  const nextDecision = {
     ...cleanDecision,
     id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-  });
+  };
+  debtLiquidations.push(nextDecision);
+  recordDecisionEvent("aprobado", { ...nextDecision, source: "debt" }, "Decisión de deuda incorporada tras revisión previa.");
   resetDebtDecisionForm();
   saveDebtLiquidations();
   render();
@@ -4182,6 +4237,8 @@ function renderProjectSimulator(baseRows, rows) {
   renderProjectImpactChart(baseRows, rows);
   renderProjectGlobalImpact(baseRows, rows);
   renderProjectDecisionLedger(baseRows, rows);
+  renderDecisionComparator(baseRows, rows);
+  renderDecisionHistory();
 
   if (!projects.length && !debtLiquidations.length) {
     qs("projectList").innerHTML =
@@ -4243,8 +4300,10 @@ function renderProjectSimulator(baseRows, rows) {
 
 function decisionStatusLabel(item) {
   if (item.locked) return "Fijo en plan";
-  if (item.source === "debt") return "Pendiente de confirmar";
-  return item.mode === "fixed" ? "Simulado manual" : "Simulado óptimo";
+  if (item.executed) return "Ejecutado";
+  if (item.cancelled) return "Cancelado";
+  if (item.source === "debt") return "Aprobado · deuda";
+  return item.mode === "fixed" ? "Aprobado · mes manual" : "Aprobado · mes óptimo";
 }
 
 function renderProjectDecisionLedger(baseRows, rows) {
@@ -4256,6 +4315,8 @@ function renderProjectDecisionLedger(baseRows, rows) {
   const creditCapital = round2(sumRows(decisions, (item) => decisionCreditCapital(item)));
   const locked = decisions.filter((item) => item.locked).length;
   const pending = Math.max(0, decisions.length - locked);
+  const freeCapacity = monthlyFreeCapacity(rows);
+  const ownerSummary = decisionOwnerSummary(decisions);
   if (!decisions.length) {
     target.innerHTML = `<article class="decision-ledger-empty">
       <strong>Sin decisiones en curso</strong>
@@ -4276,6 +4337,12 @@ function renderProjectDecisionLedger(baseRows, rows) {
         <span><b>${money(creditCapital, true)}</b><small>Capital externo</small></span>
         <span><b>${next ? escapeHtml(next.monthLabel) : "-"}</b><small>Siguiente impacto</small></span>
         <span><b>${money(Math.min(...rows.map((row) => row.checking)), true)}</b><small>Caja mínima</small></span>
+        <span><b>${money(freeCapacity, true)}</b><small>Capacidad libre/mes</small></span>
+      </div>
+      <div class="decision-owner-strip">
+        ${ownerSummary
+          .map((item) => `<span><b>${escapeHtml(item.owner)}</b>${item.count} decisión(es) · ${money(item.creditCapital, true)} crédito</span>`)
+          .join("")}
       </div>
     </article>
     <div class="decision-ledger-list">
@@ -4289,6 +4356,186 @@ function renderProjectDecisionLedger(baseRows, rows) {
         )
         .join("")}
     </div>`;
+}
+
+function monthlyFreeCapacity(rows) {
+  const sample = rows.slice(0, 12);
+  if (!sample.length) return 0;
+  const avgNet = sumRows(sample, (row) => Number(row.netBeforeSaving || 0)) / sample.length;
+  return round2(avgNet - Number(state?.recommendedSavings || 0));
+}
+
+function decisionOwnerSummary(decisions = []) {
+  const owners = ["Javi", "Tere", "Hogar"];
+  return owners.map((owner) => {
+    const items = decisions.filter((item) => (item.creditOwner || inferDecisionOwner(item)) === owner);
+    return {
+      owner,
+      count: items.length,
+      creditCapital: round2(sumRows(items, (item) => decisionCreditCapital(item))),
+      gross: round2(sumRows(items, (item) => decisionGrossCost(item))),
+    };
+  });
+}
+
+function decisionOutflowsForPlacements(placements) {
+  const months = forecastMonths();
+  const outflows = Array(months.length).fill(0);
+  placements.forEach((item) => addScheduledDecisionOutflow(outflows, item, Number(item.startIndex || item.monthIndex || 0)));
+  return outflows;
+}
+
+function decisionScenarioMetrics(label, placements) {
+  const rows = simulate(decisionOutflowsForPlacements(placements));
+  const minChecking = Math.min(...rows.map((row) => row.checking));
+  const finalSavings = rows[rows.length - 1]?.savings || 0;
+  const finalLiquidity = rows[rows.length - 1]?.totalLiquidity || 0;
+  const debtPaid = round2(sumRows(placements.filter((item) => item.source === "debt"), (item) => Number(item.amount || item.principal || 0)));
+  const debtRemaining = Math.max(0, round2(debtPortfolioTotals().currentPrincipal - debtPaid));
+  const firstImpact = placements
+    .slice()
+    .sort((a, b) => Number(a.startIndex || 0) - Number(b.startIndex || 0))
+    .find((item) => decisionGrossCost(item) || decisionCreditCapital(item));
+  return {
+    label,
+    rows,
+    minChecking,
+    finalSavings,
+    finalLiquidity,
+    debtRemaining,
+    firstImpactLabel: firstImpact?.monthLabel || "-",
+  };
+}
+
+function renderDecisionComparator(baseRows, rows) {
+  const target = qs("decisionComparator");
+  if (!target) return;
+  const placements = projectPlan.placements || [];
+  const noExternalCredit = placements.filter((item) => decisionCreditCapital(item) <= 0 && item.projectKind !== "external-credit");
+  const tereCredit = placements.filter(
+    (item) => item.source !== "debt" && (decisionCreditCapital(item) <= 0 || (item.creditOwner || inferDecisionOwner(item)) === "Tere"),
+  );
+  const allLoaded = placements;
+  const scenarios = [
+    decisionScenarioMetrics("Sin crédito externo", noExternalCredit),
+    decisionScenarioMetrics("Con crédito de Tere", tereCredit),
+    decisionScenarioMetrics("Crédito + deuda", allLoaded),
+  ];
+  const bestMin = Math.max(...scenarios.map((item) => item.minChecking));
+  target.innerHTML = `<article class="decision-comparator-card">
+    <div class="decision-comparator-head">
+      <div>
+        <p class="panel-kicker">Comparador global</p>
+        <h4>3 escenarios completos</h4>
+        <p>Cruza crédito externo, deuda y proyectos con caja mínima, ahorro final y deuda pendiente.</p>
+      </div>
+      <strong>Mejor caja: ${money(bestMin, true)}</strong>
+    </div>
+    <div class="decision-comparator-grid">
+      ${scenarios
+        .map(
+          (item) => `<div class="${item.minChecking === bestMin ? "best" : ""}">
+            <span>${escapeHtml(item.label)}</span>
+            <b>${money(item.minChecking, true)}</b>
+            <small>Caja mínima</small>
+            <dl>
+              <dt>Ahorro final</dt><dd>${money(item.finalSavings, true)}</dd>
+              <dt>Deuda pendiente</dt><dd>${money(item.debtRemaining, true)}</dd>
+              <dt>Primer impacto</dt><dd>${escapeHtml(item.firstImpactLabel)}</dd>
+            </dl>
+          </div>`,
+        )
+        .join("")}
+    </div>
+  </article>
+  ${renderExecutiveDecisionAlerts(rows)}`;
+}
+
+function renderExecutiveDecisionAlerts(rows) {
+  const minChecking = Math.min(...rows.map((row) => row.checking));
+  const avgIncome = averageRows(rows.slice(0, 12), (row) => row.income);
+  const debtRatio = avgIncome ? (currentDebtPaymentBreakdown().total / avgIncome) * 100 : 0;
+  const bestAgreement = agentDebtPayoffCandidates().sort((a, b) => Number(b.agreementSavings || 0) - Number(a.agreementSavings || 0))[0];
+  const alerts = [
+    {
+      tone: minChecking < agentCaixaFloor() ? "danger" : "good",
+      text: `No ejecutar proyectos si CaixaBank baja de ${money(agentCaixaFloor(), true)}. Mínimo actual: ${money(minChecking, true)}.`,
+    },
+    {
+      tone: debtRatio > 32 ? "danger" : "good",
+      text: `No aceptar financiación si el ratio deuda supera 32%. Ratio actual estimado: ${debtRatio.toFixed(1)}%.`,
+    },
+    {
+      tone: bestAgreement?.agreementSavings > 0 ? "warn" : "good",
+      text: bestAgreement?.agreementSavings > 0
+        ? `Priorizar deuda antes de proyecto si la mejora supera ${money(bestAgreement.agreementSavings, true)} (${bestAgreement.entity}).`
+        : "Sin quitas detectadas pendientes por encima del criterio actual.",
+    },
+  ];
+  return `<article class="decision-alerts-card">
+    <p class="panel-kicker">Alertas ejecutivas</p>
+    <div>
+      ${alerts.map((item) => `<span class="${item.tone}">${escapeHtml(item.text)}</span>`).join("")}
+    </div>
+  </article>`;
+}
+
+function renderDecisionHistory() {
+  const target = qs("decisionHistory");
+  if (!target) return;
+  const current = (projectPlan.placements || []).map((item) => ({
+    date: item.lockedAt || "",
+    name: item.name,
+    status: decisionStatusLabel(item),
+    amount: decisionGrossCost(item),
+    monthLabel: item.monthLabel,
+    owner: item.creditOwner || inferDecisionOwner(item),
+  }));
+  if (pendingProjectDecision) {
+    current.unshift({
+      date: "",
+      name: pendingProjectDecision.name,
+      status: "Simulado · pendiente de decidir",
+      amount: decisionGrossCost(pendingProjectDecision),
+      monthLabel: forecastMonths()[pendingProjectDecision.monthIndex || 0]?.label || "",
+      owner: pendingProjectDecision.creditOwner || inferDecisionOwner(pendingProjectDecision),
+    });
+  }
+  if (pendingDebtDecision) {
+    current.unshift({
+      date: "",
+      name: pendingDebtDecision.name,
+      status: "Simulado · pendiente de decidir",
+      amount: decisionGrossCost(pendingDebtDecision),
+      monthLabel: forecastMonths()[pendingDebtDecision.monthIndex || 0]?.label || "",
+      owner: inferDecisionOwner(pendingDebtDecision),
+    });
+  }
+  const events = decisionEvents.slice(0, 12);
+  target.innerHTML = `<article class="decision-history-card">
+    <div class="decision-history-head">
+      <div>
+        <p class="panel-kicker">Registro de decisiones</p>
+        <h4>Historial y estados</h4>
+        <p>Simulado, aprobado, fijo, ejecutado o cancelado queda visible para evitar duplicados.</p>
+      </div>
+      <strong>${current.length} activas</strong>
+    </div>
+    <div class="decision-history-columns">
+      <div>
+        <span>Estado actual</span>
+        ${current.length ? current
+          .map((item) => `<p><b>${escapeHtml(item.status)}</b> · ${escapeHtml(item.name)} · ${escapeHtml(item.owner)} · ${money(item.amount, true)} · ${escapeHtml(item.monthLabel || "-")}</p>`)
+          .join("") : "<p>Sin decisiones activas.</p>"}
+      </div>
+      <div>
+        <span>Últimos movimientos</span>
+        ${events.length ? events
+          .map((item) => `<p><b>${escapeHtml(item.status)}</b> · ${escapeHtml(item.name)} · ${escapeHtml(item.owner || "Hogar")} · ${money(item.amount, true)} · ${escapeHtml(item.note || "")}</p>`)
+          .join("") : "<p>Aún no hay historial guardado.</p>"}
+      </div>
+    </div>
+  </article>`;
 }
 
 function renderProjectGlobalImpact(baseRows, rows) {
@@ -6837,6 +7084,12 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
       value: money(Math.max(0, Number(nextMonth.outflowsBeforeSaving || 0)), true),
       tone: "neutral",
       note: nextMonth.month ? `Reserva previa para ${nextMonth.month}.` : "Sin mes posterior.",
+    },
+    {
+      label: "Capacidad libre real",
+      value: money(monthlyFreeCapacity(plan.rows || []), true),
+      tone: executiveToneForAmount(monthlyFreeCapacity(plan.rows || [])),
+      note: "Media mensual tras gastos, deuda, proyectos y ahorro objetivo.",
     },
     {
       label: "Planes considerados",
