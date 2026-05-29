@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260529a" />
+    <link rel="stylesheet" href="styles.css?v=20260529b" />
   </head>
   <body>
     <div class="app-shell">
@@ -21,6 +21,7 @@
           <a href="#home" class="active">Inicio</a>
           <a href="#visual-detail">Cuadro de mandos</a>
           <a href="#savings-agent">Agente ahorro</a>
+          <a href="#virtual-advisor">Asesor virtual</a>
           <a href="#debt-control">Control de deuda</a>
           <a href="#prevision">Previsión</a>
           <a href="#simulator">Simulador</a>
@@ -494,6 +495,61 @@
               <div class="table-wrap prevision-table-wrap agent-table-wrap">
                 <table class="prevision-table agent-table" id="agentTable"></table>
               </div>
+            </article>
+          </section>
+
+          <section class="virtual-advisor view-section" id="virtual-advisor">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Asesor virtual</p>
+                <h2>Decisiones listas para usar</h2>
+                <p>Lee cuadro de mandos, simulaciones, deuda, proyectos y agente de ahorro para ordenar qué hacer ahora y con qué impacto.</p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="secondary-button" data-home-nav="savings-agent">Ver agente completo</button>
+                <button type="button" class="secondary-button" data-home-nav="visual-detail">Ver cuadro de mandos</button>
+              </div>
+            </div>
+
+            <div class="advisor-kpi-grid" id="virtualAdvisorKpis"></div>
+
+            <div class="advisor-layout">
+              <article class="advisor-panel advisor-priority" id="virtualAdvisorPriority"></article>
+              <article class="advisor-panel" id="virtualAdvisorStatus"></article>
+            </div>
+
+            <div class="advisor-layout advisor-layout-wide">
+              <article class="advisor-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Acciones recomendadas</p>
+                    <h3>Ready to use</h3>
+                    <p>Cada acción prepara o simula usando el mismo motor que el agente, sin duplicar planes ya cargados.</p>
+                  </div>
+                </div>
+                <div class="advisor-action-list" id="virtualAdvisorActions"></div>
+              </article>
+
+              <article class="advisor-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Próximos meses</p>
+                    <h3>Lectura de caja</h3>
+                    <p>Resumen accionable antes de comprometer proyectos, reunificaciones o amortizaciones.</p>
+                  </div>
+                </div>
+                <div class="advisor-month-list" id="virtualAdvisorMonths"></div>
+              </article>
+            </div>
+
+            <article class="advisor-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Coherencia del modelo</p>
+                  <h3>Qué está entrando en los cálculos</h3>
+                </div>
+              </div>
+              <div class="advisor-model-grid" id="virtualAdvisorModel"></div>
             </article>
           </section>
 

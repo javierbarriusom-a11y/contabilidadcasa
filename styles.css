@@ -2849,11 +2849,13 @@ svg {
 
 .debt-control,
 .savings-agent,
+.virtual-advisor,
 .savings-plan {
   margin-top: 18px;
 }
 
-.savings-agent {
+.savings-agent,
+.virtual-advisor {
   display: grid;
   gap: 16px;
   padding: 20px;
@@ -3240,6 +3242,352 @@ svg {
   font-size: 13px;
   font-weight: 850;
   line-height: 1.35;
+}
+
+.advisor-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.advisor-kpi,
+.advisor-panel,
+.advisor-action,
+.advisor-month,
+.advisor-priority-card,
+.advisor-status-grid div,
+.advisor-model-grid div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.advisor-kpi {
+  padding: 14px;
+  border-left: 5px solid var(--teal);
+}
+
+.advisor-kpi.warn,
+.advisor-action.warn {
+  border-left-color: #b98918;
+}
+
+.advisor-kpi.danger,
+.advisor-action.danger {
+  border-left-color: var(--red);
+}
+
+.advisor-kpi.neutral,
+.advisor-action.neutral {
+  border-left-color: var(--muted);
+}
+
+.advisor-kpi span,
+.advisor-priority-card span,
+.advisor-status-head span,
+.advisor-status-grid span,
+.advisor-model-grid span,
+.advisor-month span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.advisor-kpi strong {
+  display: block;
+  margin: 7px 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: clamp(20px, 1.7vw, 30px);
+  line-height: 1;
+}
+
+.advisor-kpi p,
+.advisor-panel p,
+.advisor-priority-card p,
+.advisor-status-head p,
+.advisor-model-grid p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.advisor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(340px, 0.92fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.advisor-layout-wide {
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.72fr);
+}
+
+.advisor-panel {
+  padding: 16px;
+}
+
+.advisor-priority {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.advisor-priority-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.34fr);
+  gap: 16px;
+  align-items: stretch;
+  min-height: 190px;
+  padding: 22px;
+  border-left: 7px solid var(--teal);
+  background: linear-gradient(120deg, rgba(18, 151, 146, 0.1), #ffffff 42%);
+}
+
+.advisor-priority-card.warn {
+  border-left-color: #b98918;
+  background: linear-gradient(120deg, rgba(185, 137, 24, 0.13), #ffffff 42%);
+}
+
+.advisor-priority-card.danger {
+  border-left-color: var(--red);
+  background: linear-gradient(120deg, rgba(194, 82, 75, 0.12), #ffffff 42%);
+}
+
+.advisor-priority-card h3 {
+  margin: 6px 0 10px;
+  font-size: clamp(28px, 3.2vw, 48px);
+  line-height: 1.02;
+}
+
+.advisor-priority-card aside {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.advisor-priority-card aside small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.advisor-priority-card aside strong {
+  overflow-wrap: anywhere;
+  font-size: clamp(26px, 2.8vw, 42px);
+  line-height: 1;
+}
+
+.advisor-priority-card button,
+.advisor-action button,
+.advisor-model-grid button {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.advisor-priority-card button.secondary {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.advisor-status-head {
+  margin-bottom: 12px;
+}
+
+.advisor-status-head strong {
+  display: block;
+  margin: 4px 0 6px;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.advisor-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.advisor-status-grid div {
+  padding: 12px;
+}
+
+.advisor-status-grid div.good {
+  background: rgba(54, 130, 82, 0.08);
+}
+
+.advisor-status-grid div.warn {
+  background: rgba(185, 137, 24, 0.1);
+}
+
+.advisor-status-grid div.danger {
+  background: rgba(194, 82, 75, 0.08);
+}
+
+.advisor-status-grid strong {
+  display: block;
+  margin: 6px 0 4px;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.advisor-status-grid small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
+.advisor-action-list,
+.advisor-month-list {
+  display: grid;
+  gap: 10px;
+}
+
+.advisor-action {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-left: 5px solid var(--teal);
+}
+
+.advisor-action > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 950;
+}
+
+.advisor-action.warn > span {
+  background: #b98918;
+}
+
+.advisor-action.danger > span {
+  background: var(--red);
+}
+
+.advisor-action.neutral > span {
+  background: var(--muted);
+}
+
+.advisor-action strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 19px;
+  line-height: 1.12;
+}
+
+.advisor-action p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 820;
+  line-height: 1.35;
+}
+
+.advisor-action button {
+  min-width: 152px;
+}
+
+.advisor-month {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-left: 5px solid var(--teal);
+}
+
+.advisor-month.warn {
+  border-left-color: #b98918;
+}
+
+.advisor-month.danger {
+  border-left-color: var(--red);
+}
+
+.advisor-month > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.advisor-month > div:first-child strong {
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.advisor-month dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.advisor-month dl div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.advisor-month dt {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.advisor-month dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 18px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.advisor-model-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.advisor-model-grid div {
+  padding: 13px;
+  background: rgba(239, 246, 247, 0.58);
+}
+
+.advisor-model-grid strong {
+  display: block;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  line-height: 1.08;
 }
 
 .agent-decision-card {
