@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260525i" />
+    <link rel="stylesheet" href="styles.css?v=20260529a" />
   </head>
   <body>
     <div class="app-shell">
@@ -550,16 +550,17 @@
                   <label>
                     <span>Modo de liquidación</span>
                     <select id="debtPayoffMode">
-                      <option value="optimize">Buscar mejor mes · pago único</option>
-                      <option value="fixed">Mes manual · pago único</option>
-                      <option value="spread-optimize">Fraccionar pactado · inicio óptimo</option>
-                      <option value="spread">Fraccionar pactado · mes manual</option>
+                      <option value="optimize">Amortización · mes óptimo</option>
+                      <option value="fixed">Amortización · mes manual</option>
+                      <option value="spread-optimize">Amortización fraccionada · inicio óptimo</option>
+                      <option value="spread">Amortización fraccionada · mes manual</option>
                       <option value="refinance-optimize">Reunificación · inicio óptimo</option>
                       <option value="refinance">Reunificación · mes manual</option>
                       <option value="retomar-optimize">Retomar pagos · inicio óptimo</option>
                       <option value="retomar">Retomar pagos · mes manual</option>
                     </select>
                   </label>
+                  <p id="debtModeHelp" class="form-help debt-mode-help">Amortización: pago único para cerrar o reducir deuda en un mes. La opción óptima solo calcula el mejor mes; al confirmar queda fijada.</p>
                   <label>
                     <span>Mes inicio</span>
                     <select id="debtPayoffMonth"></select>
@@ -1284,7 +1285,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="vendor/xlsx.full.min.js?v=20260525c"></script>
     <script src="supabase-config.js?v=20260525c"></script>
-    <script src="data.js?v=20260525i"></script>
-    <script src="app.js?v=20260525i"></script>
+    <script src="data.js?v=20260529a"></script>
+    <script src="app.js?v=20260529a"></script>
   </body>
 </html>

@@ -3046,6 +3046,25 @@ svg {
   justify-self: end;
 }
 
+.agent-debt-save-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: rgba(239, 246, 247, 0.6);
+}
+
+.agent-debt-save-row p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .agent-agreement-note {
   margin-top: 4px !important;
   color: var(--green) !important;
@@ -3998,8 +4017,21 @@ svg {
 }
 
 .debt-form label:nth-child(1),
+.debt-mode-help,
 .debt-form-actions {
   grid-column: 1 / -1;
+}
+
+.form-help {
+  margin: -2px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: rgba(239, 246, 247, 0.7);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 850;
+  line-height: 1.35;
 }
 
 .debt-form-actions {

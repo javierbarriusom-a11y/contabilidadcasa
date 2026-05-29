@@ -498,7 +498,20 @@ function normalizeLoadedProjects() {
     return next;
   };
   projects = projects.map(normalizeItem);
-  debtLiquidations = debtLiquidations.map(normalizeItem);
+  debtLiquidations = debtLiquidations.map((item) => {
+    const next = { ...item };
+    if (next.mode === "optimize") {
+      const index = Math.min(Math.max(Number(next.monthIndex || 0), 0), months.length - 1);
+      next.mode = "fixed";
+      next.monthKey = next.monthKey || months[index]?.key;
+      changed = true;
+    }
+    if (isAgentRouteSimulationDecision(next) && next.payoffMode === "optimize") {
+      next.payoffMode = "fixed";
+      changed = true;
+    }
+    return normalizeItem(next);
+  });
   if (changed) {
     saveProjects();
     saveDebtLiquidations();
@@ -1161,8 +1174,9 @@ function normalizeProjectMode(value) {
 
 function normalizeDebtPayoffMode(value, duration = 1) {
   const text = normalizedText(value);
+  if (text.includes("retomar")) return "retomar";
   if (text.includes("refinanc") || text.includes("reunific")) return "refinance";
-  if (text.includes("repart") || text.includes("varios") || text.includes("mensual") || Number(duration) > 1) return "spread";
+  if (text.includes("fraccion") || text.includes("repart") || text.includes("varios") || text.includes("mensual") || Number(duration) > 1) return "spread";
   return "fixed";
 }
 
@@ -3627,14 +3641,28 @@ function updateDebtTargetDefaults(force = true) {
 }
 
 function debtModeLabel(mode) {
-  if (mode === "optimize") return "mes óptimo";
-  if (mode === "spread") return "pago repartido";
-  if (mode === "spread-optimize") return "pago repartido con inicio óptimo";
+  if (mode === "optimize") return "amortización óptima";
+  if (mode === "fixed") return "amortización manual";
+  if (mode === "spread") return "amortización fraccionada";
+  if (mode === "spread-optimize") return "amortización fraccionada con inicio óptimo";
   if (mode === "retomar-optimize") return "retomar pagos con inicio óptimo";
   if (mode === "retomar") return "retomar pagos";
   if (mode === "refinance-optimize") return "reunificación con inicio óptimo";
   if (mode === "refinance") return "refinanciación";
-  return "mes fijo";
+  return "amortización manual";
+}
+
+function debtModeHelpText(mode) {
+  if (mode === "spread" || mode === "spread-optimize") {
+    return "Amortización fraccionada: reparte el importe pactado en varios meses. Si la deuda está suspendida, no suma cuota liberada como ingreso.";
+  }
+  if (mode === "retomar" || mode === "retomar-optimize") {
+    return "Retomar: calcula atrasos desde enero de 2026, vuelve a pagar la cuota original y respeta el vencimiento inicial si está informado.";
+  }
+  if (mode === "refinance" || mode === "refinance-optimize") {
+    return "Reunificación: sustituye la deuda por una cuota nueva repartida en el plazo indicado.";
+  }
+  return "Amortización: pago único para cerrar o reducir deuda en un mes. La opción óptima solo calcula el mejor mes; al confirmar queda fijada.";
 }
 
 function isDebtRefinanceMode(mode) {
@@ -3665,6 +3693,7 @@ function updateDebtModeUi() {
     if (qs("debtPayoffRelief")) qs("debtPayoffRelief").value = "0.00";
     if (qs("debtPayoffDuration")) qs("debtPayoffDuration").value = Math.max(1, plan.recurringDuration || 1);
   }
+  if (qs("debtModeHelp")) qs("debtModeHelp").textContent = debtModeHelpText(mode);
   updateDebtConfirmState();
   renderDebtAgreementPreview();
 }
@@ -3766,7 +3795,7 @@ function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize
     recurringStartOffset: 0,
     resumeArrearsMonths: resumePlan ? resumePlan.arrearsMonths : 0,
     resumeTotalCost: resumePlan ? resumePlan.total : 0,
-    mode: debtDecisionModeFromRaw(rawMode),
+    mode: "fixed",
     payoffMode: rawMode,
     monthIndex: month?.index || 0,
     monthKey: month?.key,
@@ -6521,8 +6550,9 @@ function agentDebtDecisionForCandidate(candidate, startIndex) {
       },
       startIndex + 1,
     ),
-    payoffMode: "optimize",
-    mode: "optimize",
+    payoffMode: "fixed",
+    mode: "fixed",
+    optimizedFromAgent: true,
     monthIndex: startIndex,
     monthKey: months[startIndex]?.key,
   };
@@ -6587,6 +6617,10 @@ function applyAgentRouteSimulation() {
         targetPrincipal: round2(step.candidate.principal),
         originalPrincipal: round2(step.candidate.originalPrincipal || step.candidate.principal),
         monthlyRelief: round2(step.candidate.effectiveRelief || 0),
+        mode: "fixed",
+        payoffMode: decision.payoffMode === "retomar-optimize" ? "retomar" : "fixed",
+        monthIndex: step.monthIndex,
+        monthKey: forecastMonths()[step.monthIndex]?.key,
         routeSimulation: AGENT_ROUTE_SIMULATION_TAG,
         routeOrder: step.order,
         status: "simulated",
@@ -7382,7 +7416,7 @@ function renderAgentDebtOptimizerControls() {
       <div>
         <span class="panel-kicker">Criterio de ruta</span>
         <strong>Orden y acuerdos</strong>
-        <p>El orden manual fuerza prioridades; los importes pactados simulan quitas antes de decidir.</p>
+        <p>Define el orden y los importes pactados que usará el agente para calcular la ruta. No aplica ninguna deuda al cuadro de mandos hasta que prepares o simules una decisión.</p>
         ${hasDuplicateOrders ? `<p class="agent-debt-order-warning">Hay órdenes repetidas. Al aplicar el criterio se normalizarán automáticamente para que no haya duplicados.</p>` : ""}
       </div>
       <label>
@@ -7407,7 +7441,10 @@ function renderAgentDebtOptimizerControls() {
         })
         .join("")}
     </div>
-    <button type="button" class="secondary-button agent-debt-save" data-agent-debt-settings-save>Aplicar criterio al agente</button>
+    <div class="agent-debt-save-row">
+      <p>Guarda este criterio y recalcula la ruta sugerida. Sirve para que el agente respete tus prioridades, pero no mueve dinero ni crea amortizaciones por sí solo.</p>
+      <button type="button" class="secondary-button agent-debt-save" data-agent-debt-settings-save>Guardar criterio y recalcular ruta</button>
+    </div>
   </div>`;
 }
 
@@ -7515,7 +7552,7 @@ function renderAgentDebtOptimization(optimization) {
               <div><small>Caja mínima</small><b>${money(step.plan.minCaixa, true)}</b></div>
               <div><small>Margen reserva</small><b>${money(step.minReserveCoverage, true)}</b></div>
             </div>
-            <button type="button" data-agent-debt-target="${escapeHtml(item.id)}">Preparar esta amortización</button>
+            <button type="button" data-agent-debt-target="${escapeHtml(item.id)}" data-agent-debt-month="${escapeHtml(String(step.monthIndex))}" data-agent-debt-amount="${escapeHtml(String(item.principal))}">Preparar esta amortización</button>
           </article>`;
         })
         .join("")}
@@ -7556,7 +7593,7 @@ function renderAgentRecommendationCard(item, type) {
         <div><small>Mes sugerido</small><b>${escapeHtml(item.monthLabel)}</b></div>
         <div><small>${suspended ? "Flujo liberable" : "Eficiencia"}</small><b>${suspended ? "0,0%" : `${(item.efficiency * 100).toFixed(1)}%`}</b></div>
       </div>
-      <button type="button" data-agent-debt-target="${escapeHtml(item.id)}">Preparar en control de deuda</button>
+      <button type="button" data-agent-debt-target="${escapeHtml(item.id)}" data-agent-debt-month="${escapeHtml(String(item.affordability?.agentIndex ?? ""))}" data-agent-debt-amount="${escapeHtml(String(item.principal || ""))}">Preparar en control de deuda</button>
     </article>`;
   }
   const canPay = Boolean(item.affordability);
@@ -7606,14 +7643,26 @@ function renderAgentTable(plan, year) {
   </tbody>`;
 }
 
-function prepareAgentDebtDecision(targetId) {
+function prepareAgentDebtDecision(targetId, options = {}) {
   history.pushState(null, "", "#debt-control");
   setActiveView("debt-control");
   window.requestAnimationFrame(() => {
     if (qs("debtTargetSelect")) qs("debtTargetSelect").value = targetId;
     pendingDebtDecision = null;
     updateDebtTargetDefaults(true);
-    if (qs("debtPayoffMode")) qs("debtPayoffMode").value = "optimize";
+    const rawMonthIndex = options.monthIndex;
+    const hasSuggestedMonth = rawMonthIndex !== undefined && rawMonthIndex !== null && String(rawMonthIndex) !== "";
+    const monthIndex = hasSuggestedMonth ? Number(rawMonthIndex) : NaN;
+    if (Number.isFinite(monthIndex) && monthIndex >= 0) {
+      if (qs("debtPayoffMode")) qs("debtPayoffMode").value = "fixed";
+      if (qs("debtPayoffMonth")) qs("debtPayoffMonth").value = String(monthIndex);
+    } else if (qs("debtPayoffMode")) {
+      qs("debtPayoffMode").value = "optimize";
+    }
+    const amount = Number(options.amount);
+    if (Number.isFinite(amount) && amount > 0 && qs("debtPayoffAmount")) {
+      qs("debtPayoffAmount").value = amount.toFixed(2);
+    }
     updateDebtModeUi();
     stageDebtDecision();
   });
@@ -9968,7 +10017,13 @@ async function init() {
       return;
     }
     const debtButton = event.target.closest("[data-agent-debt-target]");
-    if (debtButton) prepareAgentDebtDecision(debtButton.dataset.agentDebtTarget);
+    if (debtButton) {
+      prepareAgentDebtDecision(debtButton.dataset.agentDebtTarget, {
+        monthIndex: debtButton.dataset.agentDebtMonth,
+        amount: debtButton.dataset.agentDebtAmount,
+      });
+      return;
+    }
     const projectButton = event.target.closest("[data-agent-project-id]");
     if (projectButton) prepareAgentProjectDecision(projectButton.dataset.agentProjectId);
     const navButton = event.target.closest("[data-home-nav]");
