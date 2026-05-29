@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260529b" />
+    <link rel="stylesheet" href="styles.css?v=20260529c" />
   </head>
   <body>
     <div class="app-shell">
@@ -517,6 +517,52 @@
               <article class="advisor-panel advisor-priority" id="virtualAdvisorPriority"></article>
               <article class="advisor-panel" id="virtualAdvisorStatus"></article>
             </div>
+
+            <article class="advisor-panel advisor-debt-sandbox">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Simulación flexible</p>
+                  <h3>Probar una deuda antes de aplicarla</h3>
+                  <p>Usa los mismos modos de Control de deuda: amortización, fraccionado, reunificación o retomar pagos.</p>
+                </div>
+                <button type="button" class="secondary-button" data-home-nav="debt-control">Abrir control de deuda</button>
+              </div>
+              <div class="advisor-debt-grid">
+                <div class="advisor-debt-form">
+                  <label>
+                    <span>Deuda</span>
+                    <select id="advisorDebtTarget"></select>
+                  </label>
+                  <label>
+                    <span>Importe pactado</span>
+                    <input id="advisorDebtAmount" type="number" step="50" />
+                  </label>
+                  <label>
+                    <span>Modo</span>
+                    <select id="advisorDebtMode">
+                      <option value="optimize">Amortización · mes óptimo</option>
+                      <option value="fixed">Amortización · mes manual</option>
+                      <option value="spread-optimize">Amortización fraccionada · inicio óptimo</option>
+                      <option value="spread">Amortización fraccionada · mes manual</option>
+                      <option value="refinance-optimize">Reunificación · inicio óptimo</option>
+                      <option value="refinance">Reunificación · mes manual</option>
+                      <option value="retomar-optimize">Retomar pagos · inicio óptimo</option>
+                      <option value="retomar">Retomar pagos · mes manual</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Duración</span>
+                    <input id="advisorDebtDuration" type="number" min="1" max="60" step="1" value="1" />
+                  </label>
+                  <label>
+                    <span>Mes manual</span>
+                    <select id="advisorDebtMonth"></select>
+                  </label>
+                  <button type="button" id="advisorDebtCompare">Comparar opciones</button>
+                </div>
+                <div class="advisor-debt-review" id="advisorDebtReview"></div>
+              </div>
+            </article>
 
             <div class="advisor-layout advisor-layout-wide">
               <article class="advisor-panel">
@@ -1341,7 +1387,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="vendor/xlsx.full.min.js?v=20260525c"></script>
     <script src="supabase-config.js?v=20260525c"></script>
-    <script src="data.js?v=20260529b"></script>
-    <script src="app.js?v=20260529b"></script>
+    <script src="data.js?v=20260529c"></script>
+    <script src="app.js?v=20260529c"></script>
   </body>
 </html>

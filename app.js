@@ -3609,6 +3609,10 @@ function selectedDebtTarget() {
   return debtTargetOptions({ includePlanned: true }).find((item) => item.id === targetId) || debtTargetOptions()[0];
 }
 
+function debtTargetById(targetId, { includePlanned = true } = {}) {
+  return debtTargetOptions({ includePlanned }).find((item) => item.id === targetId) || null;
+}
+
 function populateDebtTargetSelect() {
   const select = qs("debtTargetSelect");
   if (!select) return;
@@ -3755,21 +3759,32 @@ function debtDecisionDurationFromMode(rawMode) {
   return isDebtMultiMonthMode(rawMode) ? Math.max(1, Number(qs("debtPayoffDuration")?.value || 1)) : 1;
 }
 
-function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize } = {}) {
-  const target = selectedDebtTarget();
-  const rawMode = rawModeOverride || qs("debtPayoffMode")?.value || "optimize";
+function debtDecisionFromValues({
+  targetId,
+  name,
+  amount: amountValue,
+  relief: reliefValue,
+  rawMode = "optimize",
+  monthIndex: monthIndexValue,
+  duration: durationValue,
+  forceOptimize = false,
+} = {}) {
+  const target = debtTargetById(targetId) || selectedDebtTarget();
   const resumeMode = isDebtResumeMode(rawMode);
-  let amount = parseAmount(qs("debtPayoffAmount")?.value);
+  let amount = Number(amountValue);
+  if (!Number.isFinite(amount)) amount = parseAmount(String(amountValue ?? ""));
   if (!resumeMode && (!amount || amount <= 0)) return null;
-  const duration = resumeMode ? 1 : Math.max(1, Number(durationOverride || debtDecisionDurationFromMode(rawMode)));
+  const duration = resumeMode ? 1 : Math.max(1, Number(durationValue || 1));
   const defaultRelief = debtMonthlyReliefForMode(target, rawMode);
-  const monthlyRelief = debtTargetIsSuspended(target) || resumeMode ? 0 : (parseAmount(qs("debtPayoffRelief")?.value) ?? defaultRelief);
+  let parsedRelief = Number(reliefValue);
+  if (!Number.isFinite(parsedRelief)) parsedRelief = parseAmount(String(reliefValue ?? ""));
+  const monthlyRelief = debtTargetIsSuspended(target) || resumeMode ? 0 : (parsedRelief ?? defaultRelief);
   const originalPrincipal = round2(Number(target?.currentPrincipal ?? target?.principal ?? amount));
   const optimized = forceOptimize || rawMode === "optimize" || rawMode === "refinance-optimize" || rawMode === "spread-optimize" || rawMode === "retomar-optimize";
   const best = optimized ? evaluateDebtCandidate(target, amount || originalPrincipal, monthlyRelief, duration, "full", { resume: resumeMode }) : null;
   const monthIndex = optimized
-    ? Number(best?.month?.index ?? qs("debtPayoffMonth")?.value ?? 0)
-    : Number(qs("debtPayoffMonth")?.value || 0);
+    ? Number(best?.month?.index ?? monthIndexValue ?? 0)
+    : Number(monthIndexValue || 0);
   const month = forecastMonths()[Math.max(0, Math.min(monthIndex, forecastMonths().length - 1))];
   const resumePlan = resumeMode ? debtResumePlan(target, month?.index || 0) : null;
   if (resumeMode) amount = resumePlan.arrears;
@@ -3785,7 +3800,7 @@ function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize
   );
   return {
     id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    name: qs("debtPayoffName")?.value.trim() || debtTargetDisplayName(target),
+    name: String(name || "").trim() || debtTargetDisplayName(target),
     amount: round2(amount),
     targetId: target?.id || defaultDebtTargetId(),
     targetPrincipal: originalPrincipal,
@@ -3805,6 +3820,20 @@ function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize
     monthKey: month?.key,
     preview: best,
   };
+}
+
+function debtDecisionFromForm({ rawModeOverride, durationOverride, forceOptimize } = {}) {
+  const rawMode = rawModeOverride || qs("debtPayoffMode")?.value || "optimize";
+  return debtDecisionFromValues({
+    targetId: qs("debtTargetSelect")?.value,
+    name: qs("debtPayoffName")?.value,
+    amount: parseAmount(qs("debtPayoffAmount")?.value),
+    relief: parseAmount(qs("debtPayoffRelief")?.value),
+    rawMode,
+    monthIndex: Number(qs("debtPayoffMonth")?.value || 0),
+    duration: durationOverride || debtDecisionDurationFromMode(rawMode),
+    forceOptimize,
+  });
 }
 
 function evaluateDebtDecisionItem(item) {
@@ -7810,6 +7839,195 @@ function advisorActionButton(item) {
   return `<button type="button" data-home-nav="${escapeHtml(item.target || "savings-agent")}">${escapeHtml(item.action)}</button>`;
 }
 
+function advisorDebtTargetOptions() {
+  return debtTargetOptions({ includePlanned: false })
+    .filter((item) => Number(item.currentPrincipal ?? item.principal ?? 0) > 0)
+    .filter((item) => !debtLiquidations.some((decision) => decision.targetId === item.id && decision.locked));
+}
+
+function advisorDebtInitialTargetId(ctx) {
+  const preferred = ctx?.bestDebt?.id;
+  const options = advisorDebtTargetOptions();
+  if (preferred && options.some((item) => item.id === preferred)) return preferred;
+  return options[0]?.id || "";
+}
+
+function advisorDebtControlValues(ctx) {
+  const options = advisorDebtTargetOptions();
+  const targetSelect = qs("advisorDebtTarget");
+  const currentTargetId = targetSelect?.value && options.some((item) => item.id === targetSelect.value)
+    ? targetSelect.value
+    : advisorDebtInitialTargetId(ctx);
+  const target = debtTargetById(currentTargetId, { includePlanned: true }) || options[0] || null;
+  const amountInput = qs("advisorDebtAmount");
+  const amount = parseAmount(amountInput?.value) ?? Number(target?.currentPrincipal ?? target?.principal ?? 0);
+  const rawMode = qs("advisorDebtMode")?.value || "optimize";
+  const duration = Math.max(1, Number(qs("advisorDebtDuration")?.value || (isDebtMultiMonthMode(rawMode) ? 6 : 1)));
+  const monthIndex = Number(qs("advisorDebtMonth")?.value || 0);
+  return { target, targetId: target?.id || "", amount, rawMode, duration, monthIndex };
+}
+
+function populateAdvisorDebtControls(ctx) {
+  const targetSelect = qs("advisorDebtTarget");
+  const monthSelect = qs("advisorDebtMonth");
+  if (!targetSelect || !monthSelect) return;
+  const options = advisorDebtTargetOptions();
+  const previousTarget = targetSelect.value;
+  const selectedId = previousTarget && options.some((item) => item.id === previousTarget)
+    ? previousTarget
+    : advisorDebtInitialTargetId(ctx);
+  targetSelect.innerHTML = options
+    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${escapeHtml(item.number || "")} · ${money(item.currentPrincipal ?? item.principal, true)}</option>`)
+    .join("");
+  targetSelect.value = selectedId;
+  const previousMonth = monthSelect.value;
+  monthSelect.innerHTML = forecastMonths()
+    .map((month) => `<option value="${month.index}">${escapeHtml(month.label)}</option>`)
+    .join("");
+  monthSelect.value = previousMonth && [...monthSelect.options].some((option) => option.value === previousMonth) ? previousMonth : "0";
+  const target = debtTargetById(selectedId, { includePlanned: true });
+  if (qs("advisorDebtAmount") && !qs("advisorDebtAmount").value) {
+    qs("advisorDebtAmount").value = amountInputValue(Number(target?.currentPrincipal ?? target?.principal ?? 0));
+  }
+  const mode = qs("advisorDebtMode")?.value || "optimize";
+  const optimizes = ["optimize", "spread-optimize", "refinance-optimize", "retomar-optimize"].includes(mode);
+  const multi = isDebtMultiMonthMode(mode);
+  if (qs("advisorDebtMonth")) qs("advisorDebtMonth").disabled = optimizes;
+  if (qs("advisorDebtDuration")) {
+    qs("advisorDebtDuration").disabled = isDebtResumeMode(mode) || !multi;
+    if (!multi) qs("advisorDebtDuration").value = 1;
+    if (multi && !Number(qs("advisorDebtDuration").value)) qs("advisorDebtDuration").value = 6;
+  }
+}
+
+function advisorDebtDecisionFromCurrent({ rawModeOverride, durationOverride, forceOptimize } = {}) {
+  const values = advisorDebtControlValues();
+  const rawMode = rawModeOverride || values.rawMode;
+  const target = values.target;
+  const amount = isDebtResumeMode(rawMode) ? Number(target?.currentPrincipal ?? target?.principal ?? 0) : values.amount;
+  return debtDecisionFromValues({
+    targetId: values.targetId,
+    name: debtTargetDisplayName(target),
+    amount,
+    relief: debtMonthlyReliefForMode(target, rawMode),
+    rawMode,
+    monthIndex: values.monthIndex,
+    duration: durationOverride || (isDebtMultiMonthMode(rawMode) ? values.duration : 1),
+    forceOptimize,
+  });
+}
+
+function advisorDebtOption(rawMode, duration, title, detail) {
+  const decision = advisorDebtDecisionFromCurrent({ rawModeOverride: rawMode, durationOverride: duration, forceOptimize: true });
+  if (!decision) return null;
+  const evaluated = evaluateDebtDecisionItem(decision);
+  return {
+    rawMode,
+    duration,
+    title,
+    detail,
+    decision,
+    monthly: evaluated.monthly,
+    minChecking: evaluated.evaluation.minChecking,
+    netGain: evaluated.netGain,
+    monthLabel: forecastMonths()[decision.monthIndex]?.label || "-",
+    feasible: evaluated.evaluation.minChecking >= 0,
+  };
+}
+
+function advisorDebtReviewCard(option, selected = false) {
+  return `<article class="advisor-debt-option ${option.feasible ? "good" : "warn"} ${selected ? "selected" : ""}">
+    <div>
+      <span>${escapeHtml(option.title)}</span>
+      <strong>${escapeHtml(option.monthLabel)} · ${money(option.monthly, true)}/mes</strong>
+      <p>${escapeHtml(option.detail)}</p>
+    </div>
+    <dl>
+      <div><dt>Caja mínima</dt><dd>${money(option.minChecking, true)}</dd></div>
+      <div><dt>Liquidez final</dt><dd class="${option.netGain >= 0 ? "positive" : "negative"}">${option.netGain >= 0 ? "+" : ""}${money(option.netGain, true)}</dd></div>
+    </dl>
+    <button type="button" data-advisor-apply-debt-option="${selected ? "current" : "suggested"}" data-raw-mode="${escapeHtml(option.rawMode)}" data-duration="${escapeHtml(String(option.duration))}">
+      ${selected ? "Aplicar esta configuración" : "Aplicar sugerencia"}
+    </button>
+  </article>`;
+}
+
+function renderAdvisorDebtSandbox(ctx = virtualAdvisorContext()) {
+  populateAdvisorDebtControls(ctx);
+  const panel = qs("advisorDebtReview");
+  if (!panel) return;
+  const values = advisorDebtControlValues(ctx);
+  const target = values.target;
+  if (!target) {
+    panel.innerHTML = `<div class="empty-state compact">No hay deudas pendientes disponibles para simular.</div>`;
+    return;
+  }
+  const current = advisorDebtDecisionFromCurrent();
+  if (!current) {
+    panel.innerHTML = `<div class="advisor-debt-empty">
+      <strong>Introduce un importe pactado</strong>
+      <p>El asesor comparará opciones sin tocar el cuadro de mandos hasta que apliques una.</p>
+    </div>`;
+    return;
+  }
+  const evaluated = evaluateDebtDecisionItem(current);
+  const original = {
+    rawMode: values.rawMode,
+    duration: values.duration,
+    title: "Configuración actual",
+    detail: debtModeHelpText(values.rawMode),
+    decision: current,
+    monthly: evaluated.monthly,
+    minChecking: evaluated.evaluation.minChecking,
+    netGain: evaluated.netGain,
+    monthLabel: forecastMonths()[current.monthIndex]?.label || "-",
+    feasible: evaluated.evaluation.minChecking >= 0,
+  };
+  const suspended = debtTargetIsSuspended(target);
+  const options = [
+    advisorDebtOption("optimize", 1, "Pago único óptimo", suspended ? "Liquida deuda suspendida sin sumar cuota liberada ficticia." : "Cierra o reduce deuda y libera cuota después."),
+    advisorDebtOption("spread-optimize", 6, "Fraccionar 6 meses", "Reparte el pacto y busca inicio óptimo."),
+    advisorDebtOption("refinance-optimize", 12, "Reunificar 12 meses", "Cuota más suave a cambio de más plazo."),
+    advisorDebtOption("refinance-optimize", 24, "Reunificar 24 meses", "Menor presión mensual y más tiempo."),
+    suspended ? advisorDebtOption("retomar-optimize", 1, "Retomar pagos", "Calcula atrasos desde enero 2026 y retoma vencimiento original.") : null,
+  ].filter(Boolean);
+  const discount = Math.max(0, Number(current.originalPrincipal || 0) - Number(current.amount || 0));
+  panel.innerHTML = `<div class="advisor-debt-head">
+      <div>
+        <span>Deuda seleccionada</span>
+        <strong>${escapeHtml(target.entity)} · ${escapeHtml(target.type)}</strong>
+        <p>${escapeHtml(target.number || "")}${suspended ? " · pagos suspendidos: no se cuenta como ingreso al liquidar" : ""}</p>
+      </div>
+      <div><span>Mejora pactada</span><strong class="${discount ? "positive" : ""}">${money(discount, true)}</strong></div>
+      <div><span>Ratio deuda</span><strong>${escapeHtml(renderDebtRatioText(current))}</strong></div>
+    </div>
+    <div class="advisor-debt-options">
+      ${advisorDebtReviewCard(original, true)}
+      ${options.map((option) => advisorDebtReviewCard(option)).join("")}
+    </div>`;
+}
+
+function renderDebtRatioText(decision) {
+  const income12 = lastSimulation.length
+    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.income)
+    : 0;
+  const debt12 = lastSimulation.length
+    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.car + row.refi)
+    : 0;
+  const relief = Number(decision?.monthlyRelief || 0);
+  const before = income12 ? (debt12 / income12) * 100 : 0;
+  const after = income12 ? (Math.max(0, debt12 - relief) / income12) * 100 : 0;
+  return `${before.toFixed(1)}% -> ${after.toFixed(1)}%`;
+}
+
+function applyAdvisorDebtOption(button) {
+  const rawMode = button.dataset.rawMode || qs("advisorDebtMode")?.value || "optimize";
+  const duration = Number(button.dataset.duration || qs("advisorDebtDuration")?.value || 1);
+  const forceOptimize = button.dataset.advisorApplyDebtOption !== "current" || rawMode.includes("optimize");
+  const decision = advisorDebtDecisionFromCurrent({ rawModeOverride: rawMode, durationOverride: duration, forceOptimize });
+  applyDebtDecision(decision);
+}
+
 function virtualAdvisorActions(ctx) {
   const { today, plan, routeSummary, debtOptimization, bestStep, bestDebt, bestProject, summary, capacity } = ctx;
   const actions = [];
@@ -8054,6 +8272,7 @@ function renderVirtualAdvisor() {
   renderAdvisorKpis(ctx);
   renderAdvisorPriority(ctx);
   renderAdvisorStatus(ctx);
+  renderAdvisorDebtSandbox(ctx);
   renderAdvisorActions(ctx);
   renderAdvisorMonths(ctx);
   renderAdvisorModel(ctx);
@@ -10417,6 +10636,16 @@ async function init() {
     }
   });
   qs("virtual-advisor")?.addEventListener("click", (event) => {
+    const compareDebtButton = event.target.closest("#advisorDebtCompare");
+    if (compareDebtButton) {
+      renderAdvisorDebtSandbox();
+      return;
+    }
+    const applyDebtOptionButton = event.target.closest("[data-advisor-apply-debt-option]");
+    if (applyDebtOptionButton) {
+      applyAdvisorDebtOption(applyDebtOptionButton);
+      return;
+    }
     const routeSimButton = event.target.closest("[data-advisor-action='simulate-route']");
     if (routeSimButton) {
       applyAgentRouteSimulation();
@@ -10445,6 +10674,18 @@ async function init() {
       history.pushState(null, "", `#${navButton.dataset.homeNav}`);
       setActiveView(navButton.dataset.homeNav);
     }
+  });
+  ["advisorDebtTarget", "advisorDebtMode", "advisorDebtDuration", "advisorDebtMonth", "advisorDebtAmount"].forEach((id) => {
+    qs(id)?.addEventListener("change", () => {
+      if (id === "advisorDebtTarget") {
+        const target = debtTargetById(qs("advisorDebtTarget")?.value, { includePlanned: true });
+        if (qs("advisorDebtAmount")) qs("advisorDebtAmount").value = amountInputValue(Number(target?.currentPrincipal ?? target?.principal ?? 0));
+      }
+      renderAdvisorDebtSandbox();
+    });
+    qs(id)?.addEventListener("input", () => {
+      if (id !== "advisorDebtTarget") renderAdvisorDebtSandbox();
+    });
   });
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);
   qs("visualAddScope").addEventListener("change", updateVisualAddScopeUi);

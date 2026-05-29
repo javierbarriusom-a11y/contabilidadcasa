@@ -3590,6 +3590,184 @@ svg {
   line-height: 1.08;
 }
 
+.advisor-debt-sandbox {
+  border-left: 5px solid var(--blue);
+}
+
+.advisor-debt-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.38fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.advisor-debt-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.advisor-debt-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.advisor-debt-form label:first-child,
+.advisor-debt-form button {
+  grid-column: 1 / -1;
+}
+
+.advisor-debt-form span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.advisor-debt-form input,
+.advisor-debt-form select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 850;
+}
+
+.advisor-debt-form button,
+.advisor-debt-option button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font: inherit;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.advisor-debt-review {
+  min-width: 0;
+}
+
+.advisor-debt-empty {
+  min-height: 100%;
+  padding: 18px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.advisor-debt-empty strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 22px;
+}
+
+.advisor-debt-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.2fr) minmax(150px, 0.2fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.advisor-debt-head > div,
+.advisor-debt-option {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.advisor-debt-head > div {
+  padding: 12px;
+}
+
+.advisor-debt-head span,
+.advisor-debt-option span,
+.advisor-debt-option dt {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+.advisor-debt-head strong {
+  display: block;
+  margin: 6px 0 4px;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.advisor-debt-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.advisor-debt-option {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border-left: 5px solid var(--teal);
+}
+
+.advisor-debt-option.warn {
+  border-left-color: #b98918;
+}
+
+.advisor-debt-option.selected {
+  background: rgba(239, 246, 247, 0.72);
+}
+
+.advisor-debt-option strong {
+  display: block;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.advisor-debt-option p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 820;
+  line-height: 1.3;
+}
+
+.advisor-debt-option dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.advisor-debt-option dl div {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.advisor-debt-option dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
 .agent-decision-card {
   min-width: 0;
   padding: 14px;
@@ -5667,6 +5845,8 @@ tbody tr:hover {
   .agent-plan-summary,
   .agent-rec-card,
   .agent-month-strip,
+  .advisor-debt-grid,
+  .advisor-debt-head,
   .project-grid,
   .monthly-detail-grid,
   .debt-control-grid,
@@ -5739,6 +5919,10 @@ tbody tr:hover {
 }
 
 @media (max-width: 900px) {
+  .advisor-debt-options {
+    grid-template-columns: 1fr;
+  }
+
   .agent-route-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
