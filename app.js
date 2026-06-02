@@ -1118,22 +1118,26 @@ function monthFromInput(value) {
   const raw = String(value ?? "").trim();
   const months = selectableMonths();
   if (!raw) return null;
+  const withOriginalIndex = (month, fallbackIndex) => ({
+    ...month,
+    index: Number.isFinite(Number(month?.index)) ? Number(month.index) : fallbackIndex,
+  });
   const normalized = normalizedText(raw).replace(/\./g, "");
   const keyMatch = normalized.match(/^(\d{4})[-/](\d{1,2})$/);
   if (keyMatch) {
     const key = `${keyMatch[1]}-${String(Number(keyMatch[2])).padStart(2, "0")}`;
     const index = months.findIndex((month) => month.key === key);
-    return index >= 0 ? { ...months[index], index } : null;
+    return index >= 0 ? withOriginalIndex(months[index], index) : null;
   }
   const dateMatch = normalized.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})$/);
   if (dateMatch) {
     const year = Number(dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3]);
     const key = `${year}-${String(Number(dateMatch[2])).padStart(2, "0")}`;
     const index = months.findIndex((month) => month.key === key);
-    return index >= 0 ? { ...months[index], index } : null;
+    return index >= 0 ? withOriginalIndex(months[index], index) : null;
   }
   const index = months.findIndex((month) => normalizedText(month.label).replace(/\./g, "") === normalized);
-  return index >= 0 ? { ...months[index], index } : null;
+  return index >= 0 ? withOriginalIndex(months[index], index) : null;
 }
 
 function normalizeDataKind(value) {
@@ -2232,16 +2236,18 @@ function writeControls(nextState) {
 }
 
 function writeDerivedControls(rows) {
-  const next12 = rows.slice(0, Math.min(12, rows.length));
-  const activeRefiMonths = rows.filter((row) => row.refi > 0).length;
+  const activeRows = openSimulationRows(rows);
+  const visibleRows = activeRows.length ? activeRows : rows;
+  const next12 = visibleRows.slice(0, Math.min(12, visibleRows.length));
+  const activeRefiMonths = visibleRows.filter((row) => row.refi > 0).length;
   const values = {
-    startingAccountBalance: rows[0]?.startChecking || 0,
+    startingAccountBalance: visibleRows[0]?.startChecking || 0,
     monthlyIncome: averageRows(next12, (row) => row.income),
     coreSpend: averageRows(next12, (row) => row.coreSpend),
     carPayment: sumRows(next12, (row) => row.car),
     remainingHighRefiPayments: activeRefiMonths,
     refiFirstPayment: averageRows(next12, (row) => row.refi),
-    refiLaterPayment: sumRows(rows, (row) => row.refi),
+    refiLaterPayment: sumRows(visibleRows, (row) => row.refi),
   };
   Object.entries(values).forEach(([key, value]) => {
     qs(key).value = Number.isInteger(value) ? value : Number(value || 0).toFixed(2);
@@ -2727,6 +2733,11 @@ function renderCategoryChart() {
 }
 
 function renderAdvice(rows, baseRows = rows) {
+  const visibleRows = openSimulationRows(rows);
+  if (visibleRows.length) {
+    rows = visibleRows;
+    baseRows = rows.map((row) => baseRows[(row.index || 1) - 1] || row);
+  }
   const last = rows[rows.length - 1];
   const next12 = rows.slice(0, Math.min(12, rows.length));
   const avgSaving = rows.reduce((sum, row) => sum + row.saving, 0) / rows.length;
@@ -2827,6 +2838,38 @@ function forecastMonths() {
     const date = addMonths(start, i);
     return { index: i, key: monthKey(date), label: monthLabel(date) };
   });
+}
+
+function openMonthCutoffKey() {
+  return monthKey(new Date());
+}
+
+function isClosedMonthKey(key) {
+  return Boolean(key) && key < openMonthCutoffKey();
+}
+
+function openForecastMonths(months = forecastMonths()) {
+  const open = months.filter((month) => !isClosedMonthKey(month.key));
+  return open.length ? open : months.slice(-1);
+}
+
+function openSimulationItems(rows = lastSimulation, baseRows = rows) {
+  return rows
+    .map((row, index) => ({
+      row,
+      base: baseRows[index] || row,
+      index,
+    }))
+    .filter((item) => !isClosedMonthKey(item.row.detailMonthKey));
+}
+
+function openSimulationRows(rows = lastSimulation) {
+  return openSimulationItems(rows, rows).map((item) => item.row);
+}
+
+function firstOpenRows(rows = lastSimulation, count = 12) {
+  const openRows = openSimulationRows(rows);
+  return openRows.slice(0, Math.min(count, openRows.length));
 }
 
 function addProjectOutflow(outflows, project, startIndex) {
@@ -4032,11 +4075,12 @@ function renderDebtAgreementPreview() {
   const relief = debtTargetIsSuspended(target) || isDebtResumeMode(mode)
     ? 0
     : (parseAmount(qs("debtPayoffRelief")?.value) ?? debtMonthlyReliefForMode(target, mode));
-  const income12 = lastSimulation.length
-    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.income)
+  const next12 = firstOpenRows(lastSimulation, 12);
+  const income12 = next12.length
+    ? averageRows(next12, (row) => row.income)
     : 0;
-  const debt12 = lastSimulation.length
-    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.car + row.refi)
+  const debt12 = next12.length
+    ? averageRows(next12, (row) => row.car + row.refi)
     : 0;
   const ratioBefore = income12 ? debt12 / income12 : 0;
   const ratioAfter = income12 ? Math.max(0, debt12 - relief) / income12 : 0;
@@ -4062,8 +4106,9 @@ function debtControlStats() {
   const oldDebt = portfolioTotals.initialPrincipal;
   const oldMonthly = portfolioTotals.originalPayment;
   const remainingPlanDebt = lastBaseSimulation.length ? sumRows(lastBaseSimulation, (row) => row.refi) : Number(baseData?.sourcePlan?.debtServiceMonthlyTotal || 0);
-  const currentMonthly12 = lastBaseSimulation.length
-    ? averageRows(lastBaseSimulation.slice(0, Math.min(12, lastBaseSimulation.length)), (row) => row.refi)
+  const nextBase12 = firstOpenRows(lastBaseSimulation, 12);
+  const currentMonthly12 = nextBase12.length
+    ? averageRows(nextBase12, (row) => row.refi)
     : currentPayment.total;
   const liquidationTotal = debtLiquidations.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const principalCovered = debtLiquidations.reduce(
@@ -4096,15 +4141,16 @@ function handleAddDebtLiquidation() {
 
 function debtPriorityCandidates() {
   const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
+  const rows = openSimulationRows(lastSimulation);
   return debtTargetOptions()
     .filter((target) => !alreadyPlanned.has(target.id))
     .map((target) => {
       const principal = Number(target.currentPrincipal ?? target.principal ?? 0);
       const payment = Number(target.payment || 0);
       const suggestedRow =
-        lastSimulation.find((row) => Number(row.checking || 0) - principal > Math.max(0, Number(row.outflowsBeforeSaving || 0) * 0.35)) ||
-        lastSimulation.find((row) => Number(row.totalLiquidity || 0) - principal > Math.max(0, Number(row.outflowsBeforeSaving || 0))) ||
-        lastSimulation.at(-1);
+        rows.find((row) => Number(row.checking || 0) - principal > Math.max(0, Number(row.outflowsBeforeSaving || 0) * 0.35)) ||
+        rows.find((row) => Number(row.totalLiquidity || 0) - principal > Math.max(0, Number(row.outflowsBeforeSaving || 0))) ||
+        rows.at(-1);
       const pressure = principal ? payment / principal : 0;
       const monthPenalty = suggestedRow ? suggestedRow.index * 0.8 : 999;
       const priorityScore = pressure * 100000 + payment * 2 - principal / 1000 - monthPenalty;
@@ -4116,7 +4162,7 @@ function debtPriorityCandidates() {
 function renderDebtPayoffChart() {
   const svg = qs("debtPayoffChart");
   if (!svg) return;
-  const months = forecastMonths().slice(0, 36);
+  const months = openForecastMonths(forecastMonths()).slice(0, 36);
   const values = months.map((month) =>
     projectPlan.placements
       .filter((item) => item.source === "debt")
@@ -4445,7 +4491,8 @@ function renderProjectDecisionLedger(baseRows, rows) {
 }
 
 function monthlyFreeCapacity(rows) {
-  const sample = rows.slice(0, 12);
+  const openRows = openSimulationRows(rows);
+  const sample = (openRows.length ? openRows : rows).slice(0, 12);
   if (!sample.length) return 0;
   const avgNet = sumRows(sample, (row) => Number(row.netBeforeSaving || 0)) / sample.length;
   return round2(avgNet - Number(state?.recommendedSavings || 0));
@@ -4547,8 +4594,10 @@ function renderDecisionComparator(baseRows, rows) {
 }
 
 function renderExecutiveDecisionAlerts(rows) {
-  const minChecking = Math.min(...rows.map((row) => row.checking));
-  const avgIncome = averageRows(rows.slice(0, 12), (row) => row.income);
+  const openRows = openSimulationRows(rows);
+  const visibleRows = openRows.length ? openRows : rows;
+  const minChecking = visibleRows.length ? Math.min(...visibleRows.map((row) => row.checking)) : 0;
+  const avgIncome = averageRows(visibleRows.slice(0, 12), (row) => row.income);
   const debtRatio = avgIncome ? (currentDebtPaymentBreakdown().total / avgIncome) * 100 : 0;
   const bestAgreement = agentDebtPayoffCandidates().sort((a, b) => Number(b.agreementSavings || 0) - Number(a.agreementSavings || 0))[0];
   const alerts = [
@@ -4926,6 +4975,7 @@ function cashflowYear(row) {
 function groupCashflowByYear(rows, baseRows) {
   const groups = [];
   rows.forEach((row, index) => {
+    if (isClosedMonthKey(row.detailMonthKey)) return;
     const year = cashflowYear(row);
     let group = groups.find((item) => item.year === year);
     if (!group) {
@@ -5230,13 +5280,17 @@ function visualDefaultStartIndex() {
   return 0;
 }
 
-function selectableMonths() {
+function selectableMonths({ includeClosed = false } = {}) {
   try {
-    if (baseData && state) return forecastMonths();
+    if (baseData && state) {
+      const months = forecastMonths();
+      return includeClosed ? months : openForecastMonths(months);
+    }
   } catch (error) {
     // Fall back to the imported workbook months while the app is still booting.
   }
-  return baseData?.monthlyPlanning?.months || [];
+  const months = baseData?.monthlyPlanning?.months || [];
+  return includeClosed ? months : openForecastMonths(months);
 }
 
 function monthOptionsHtml(selectedKey = "", months = selectableMonths()) {
@@ -6089,7 +6143,7 @@ function previsionMetric(row) {
 }
 
 function previsionYears() {
-  return [...new Set(lastSimulation.map((row) => cashflowYear(row)))].filter(Boolean);
+  return [...new Set(openSimulationRows(lastSimulation).map((row) => cashflowYear(row)))].filter(Boolean);
 }
 
 function populatePrevisionYearSelect() {
@@ -6108,7 +6162,7 @@ function previsionRowsForYear(year) {
       planned: lastPlannedSimulation[index] || row,
       index,
     }))
-    .filter((item) => cashflowYear(item.row) === year);
+    .filter((item) => !isClosedMonthKey(item.row.detailMonthKey) && cashflowYear(item.row) === year);
 }
 
 function previsionRowsForMonths(months) {
@@ -6284,7 +6338,7 @@ function rangeKpiMetric(rows) {
 function renderVisualRangeKpis() {
   const panel = qs("visualRangeKpis");
   if (!panel) return;
-  const metrics = rangeKpiMetric(lastSimulation);
+  const metrics = rangeKpiMetric(openSimulationRows(lastSimulation));
   if (!metrics) {
     panel.innerHTML = "";
     return;
@@ -6472,8 +6526,14 @@ function buildSavingsAgentPlan(sourceRowsOverride = null) {
   };
 }
 
+function agentVisibleRows(plan) {
+  const rows = plan?.rows || [];
+  const visible = openSimulationRows(rows);
+  return visible.length ? visible : rows;
+}
+
 function agentYears(plan) {
-  return [...new Set(plan.rows.map((row) => String(cashflowYear(row))))].filter(Boolean);
+  return [...new Set(agentVisibleRows(plan).map((row) => String(cashflowYear(row))))].filter(Boolean);
 }
 
 function populateAgentYearSelect(plan) {
@@ -6486,7 +6546,7 @@ function populateAgentYearSelect(plan) {
 }
 
 function agentRowsForYear(plan, year) {
-  return plan.rows.filter((row) => String(cashflowYear(row)) === String(year));
+  return agentVisibleRows(plan).filter((row) => String(cashflowYear(row)) === String(year));
 }
 
 function agentStatusForRow(row) {
@@ -6499,8 +6559,9 @@ function agentStatusForRow(row) {
 function agentAffordabilityMonth(plan, amount, buffer = 0) {
   const threshold = Number(amount || 0) + Number(buffer || 0);
   const startingSavings = Number(accountBalancesFromState().mediolanum || 0);
-  return plan.rows.find((row, index) => {
-    const savingsBeforeMonth = index === 0 ? startingSavings : Number(plan.rows[index - 1]?.agentMediolanum || 0);
+  const rows = agentVisibleRows(plan);
+  return rows.find((row, index) => {
+    const savingsBeforeMonth = index === 0 ? startingSavings : Number(rows[index - 1]?.agentMediolanum || 0);
     return savingsBeforeMonth >= threshold;
   });
 }
@@ -6744,6 +6805,7 @@ function findAgentBestDebtPayoffStep(baseOutflows, candidates, startIndex = 0) {
   candidates.forEach((candidate) => {
     let bestForCandidate = null;
     for (let monthIndex = Math.max(0, startIndex); monthIndex < months.length; monthIndex += 1) {
+      if (isClosedMonthKey(months[monthIndex]?.key)) continue;
       const savingsBeforeMonth =
         monthIndex === 0 ? startingSavings : Number(currentPlan.rows[monthIndex - 1]?.agentMediolanum || 0);
       if (savingsBeforeMonth + 0.01 < candidate.principal) continue;
@@ -6940,8 +7002,9 @@ function agentLifeProjectRecommendations(plan) {
 }
 
 function agentInsightCards(plan, debtRecs, projectRecs) {
-  const firstShortage = plan.rows.find((row) => row.shortage > 0);
-  const nextTransfer = plan.rows.find((row) => row.transferToSavings > 0);
+  const rows = agentVisibleRows(plan);
+  const firstShortage = rows.find((row) => row.shortage > 0);
+  const nextTransfer = rows.find((row) => row.transferToSavings > 0);
   const topDebt = debtRecs[0];
   const topProject = projectRecs[0];
   const cards = [];
@@ -6970,8 +7033,9 @@ function agentInsightCards(plan, debtRecs, projectRecs) {
 }
 
 function agentTodayCards(plan) {
-  const today = plan.rows[0] || {};
-  const next = plan.rows[1] || {};
+  const rows = agentVisibleRows(plan);
+  const today = rows[0] || {};
+  const next = rows[1] || {};
   const transferableNow = Math.max(0, Number(today.transferToSavings || 0));
   const reserveGap = Math.max(0, round2(Number(today.requiredReserve || plan.caixaFloor) - Number(today.agentCaixa || 0)));
   const nextOutflows = Number(next.outflowsBeforeSaving || 0);
@@ -7022,7 +7086,7 @@ function renderAgentToday(plan) {
 function renderAgentQuarterPlan(plan) {
   const target = qs("agentQuarterPlan");
   if (!target) return;
-  const rows = plan.rows.slice(0, 3);
+  const rows = agentVisibleRows(plan).slice(0, 3);
   target.innerHTML = rows.length
     ? rows
         .map((row) => {
@@ -7046,8 +7110,9 @@ function renderAgentQuarterPlan(plan) {
 
 function agentPriorityQueue(plan, debtRecs, projectRecs) {
   const queue = [];
-  const firstShortage = plan.rows.find((row) => row.shortage > 0);
-  const firstTransfer = plan.rows.find((row) => row.transferToSavings > 0);
+  const rows = agentVisibleRows(plan);
+  const firstShortage = rows.find((row) => row.shortage > 0);
+  const firstTransfer = rows.find((row) => row.transferToSavings > 0);
   if (firstShortage) {
     queue.push({
       tone: "danger",
@@ -7122,13 +7187,14 @@ function renderAgentPriorityQueue(plan, debtRecs, projectRecs) {
 }
 
 function agentPlanSummary(plan) {
+  const visibleRows = agentVisibleRows(plan);
   const decisions = [
     ...projects.map((item) => ({ ...item, source: "project" })),
     ...debtLiquidations.map((item) => ({ ...item, source: "debt" })),
   ];
   const pending = decisions.filter((item) => !item.locked);
   const locked = decisions.filter((item) => item.locked);
-  const nextImpact = plan.rows.find((row) => Math.abs(Number(row.projectOutflow || 0)) >= 0.01);
+  const nextImpact = visibleRows.find((row) => Math.abs(Number(row.projectOutflow || 0)) >= 0.01);
   const pendingAmount = round2(sumRows(pending, (item) => decisionGrossCost(item)));
   const fixedAmount = round2(sumRows(locked, (item) => decisionGrossCost(item)));
   const debtCount = decisions.filter((item) => item.source === "debt").length;
@@ -7147,10 +7213,11 @@ function agentPlanSummary(plan) {
 }
 
 function agentTwelveMonthCapacity(plan) {
-  const rows = plan.rows.slice(0, 12);
-  const firstShortage = plan.rows.find((row) => row.shortage > 0);
-  const nextImpact = plan.rows.find((row) => Math.abs(Number(row.projectOutflow || 0)) >= 0.01);
-  const lowestReserveRow = plan.rows.reduce((lowest, row) => {
+  const visibleRows = agentVisibleRows(plan);
+  const rows = visibleRows.slice(0, 12);
+  const firstShortage = visibleRows.find((row) => row.shortage > 0);
+  const nextImpact = visibleRows.find((row) => Math.abs(Number(row.projectOutflow || 0)) >= 0.01);
+  const lowestReserveRow = visibleRows.reduce((lowest, row) => {
     if (!lowest) return row;
     return Number(row.agentCaixa || 0) - Number(row.requiredReserve || 0) <
       Number(lowest.agentCaixa || 0) - Number(lowest.requiredReserve || 0)
@@ -7171,7 +7238,7 @@ function renderAgentDecisionBoard(plan, debtRecs, projectRecs) {
   const target = qs("agentDecisionBoard");
   if (!target) return;
   const capacity = agentTwelveMonthCapacity(plan);
-  const today = plan.rows[0] || {};
+  const today = agentVisibleRows(plan)[0] || {};
   const topDebt = debtRecs[0];
   const topProject = projectRecs[0];
   const nextDecision = topDebt && (!topProject || topDebt.score > 7200)
@@ -7261,8 +7328,9 @@ function executiveToneForAmount(value) {
 function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
   const target = qs("agentExecutive");
   if (!target) return;
-  const today = plan.rows[0] || {};
-  const nextMonth = plan.rows[1] || {};
+  const rows = agentVisibleRows(plan);
+  const today = rows[0] || {};
+  const nextMonth = rows[1] || {};
   const planSummary = agentPlanSummary(plan);
   const capacity = agentTwelveMonthCapacity(plan);
   const firstDebtStep = debtOptimization?.steps?.[0] || null;
@@ -7719,8 +7787,9 @@ function virtualAdvisorContext() {
   const routeSummary = routeSimulationSummaryFromActive(plan) || routeSimulationSummaryFromOptimization(debtOptimization);
   const summary = agentPlanSummary(plan);
   const capacity = agentTwelveMonthCapacity(plan);
-  const today = plan.rows[0] || {};
-  const next = plan.rows[1] || {};
+  const visibleRows = agentVisibleRows(plan);
+  const today = visibleRows[0] || {};
+  const next = visibleRows[1] || {};
   const bestStep = debtOptimization?.steps?.[0] || null;
   const bestDebt = bestStep?.candidate || debtRecs[0] || null;
   const bestProject = projectRecs[0] || null;
@@ -8008,12 +8077,9 @@ function renderAdvisorDebtSandbox(ctx = virtualAdvisorContext()) {
 }
 
 function renderDebtRatioText(decision) {
-  const income12 = lastSimulation.length
-    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.income)
-    : 0;
-  const debt12 = lastSimulation.length
-    ? averageRows(lastSimulation.slice(0, Math.min(12, lastSimulation.length)), (row) => row.car + row.refi)
-    : 0;
+  const rows = firstOpenRows(lastSimulation, 12);
+  const income12 = rows.length ? averageRows(rows, (row) => row.income) : 0;
+  const debt12 = rows.length ? averageRows(rows, (row) => row.car + row.refi) : 0;
   const relief = Number(decision?.monthlyRelief || 0);
   const before = income12 ? (debt12 / income12) * 100 : 0;
   const after = income12 ? (Math.max(0, debt12 - relief) / income12) * 100 : 0;
@@ -8225,7 +8291,7 @@ function renderAdvisorActions(ctx) {
 function renderAdvisorMonths(ctx) {
   const target = qs("virtualAdvisorMonths");
   if (!target) return;
-  const rows = ctx.plan.rows.slice(0, 6);
+  const rows = agentVisibleRows(ctx.plan).slice(0, 6);
   target.innerHTML = rows
     .map((row) => {
       const status = agentStatusForRow(row);
@@ -8249,13 +8315,14 @@ function renderAdvisorModel(ctx) {
   const target = qs("virtualAdvisorModel");
   if (!target) return;
   const { summary, routeSummary, debtOptimization, bestDebt, bestProject, plan } = ctx;
+  const visibleRows = agentVisibleRows(plan);
   const modelItems = [
     ["Datos usados", "Cuadro de mandos + simulador + control de deuda + saldos", "Se recalcula al entrar en la sección o al aplicar una acción."],
     ["Planes considerados", `${summary.pending} pendientes, ${summary.locked} fijos`, summary.nextImpactAmount ? `${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}` : "Sin impacto próximo."],
     ["Deuda prioritaria", bestDebt ? `${bestDebt.entity} ${bestDebt.type}` : "Sin deuda viva", bestDebt ? `${money(bestDebt.principal, true)} · ${debtOptimization?.steps?.[0]?.monthLabel || bestDebt.monthLabel}` : "No hay objetivo optimizable."],
     ["Proyecto prioritario", bestProject ? bestProject.name : "Sin proyecto pendiente", bestProject ? `${money(bestProject.pot, true)}/mes · objetivo ${bestProject.monthLabel}` : "Añade proyectos para crear huchas."],
     ["Ruta completa", routeSummary ? `${routeSummary.count} paso(s)` : "Sin ruta", routeSummary ? `${routeSummary.firstMonth} - ${routeSummary.lastMonth}; caja mínima ${money(routeSummary.minCaixa, true)}` : "No aplicada ni sugerida."],
-    ["Horizonte", `${plan.rows[0]?.month || ""} - ${plan.rows.at(-1)?.month || ""}`, `Patrimonio neto final: ${money(plan.netWorth, true)}.`],
+    ["Horizonte", `${visibleRows[0]?.month || ""} - ${visibleRows.at(-1)?.month || ""}`, `Patrimonio neto final: ${money(plan.netWorth, true)}.`],
   ];
   target.innerHTML = modelItems
     .map(([label, value, note]) => `<div>
@@ -8404,7 +8471,8 @@ function medianValue(values) {
 }
 
 function savingsRows(months = 48) {
-  return lastSimulation.slice(0, Math.min(months, lastSimulation.length));
+  const rows = openSimulationRows(lastSimulation);
+  return rows.slice(0, Math.min(months, rows.length));
 }
 
 function savingsPlanningLineAverage(rows, predicate) {
@@ -9539,7 +9607,10 @@ function monthsInRange(startKey, endKey, sourceMonths = selectableMonths()) {
   const endIndex = endIndexRaw >= 0 ? endIndexRaw : months.length - 1;
   const from = Math.min(startIndex, endIndex);
   const to = Math.max(startIndex, endIndex);
-  return months.slice(from, to + 1).map((month, offset) => ({ ...month, index: from + offset }));
+  return months.slice(from, to + 1).map((month, offset) => ({
+    ...month,
+    index: Number.isFinite(Number(month.index)) ? Number(month.index) : from + offset,
+  }));
 }
 
 function updateSeriesPreview() {
@@ -9998,14 +10069,18 @@ function renderMonthlyDetails() {
 
 function populateSelectors(force = false) {
   const forecast = forecastMonths();
+  const openForecast = openForecastMonths(forecast);
   const planning = baseData.monthlyPlanning;
-  const signature = `${forecast.map((month) => month.key).join("|")}::${planning.months.map((month) => month.key).join("|")}`;
+  const openPlanningMonths = planning.months
+    .map((month, index) => ({ ...month, index }))
+    .filter((month) => !isClosedMonthKey(month.key));
+  const signature = `${openForecast.map((month) => month.key).join("|")}::${openPlanningMonths.map((month) => month.key).join("|")}`;
   if (!force && selectorSignature === signature) return;
   selectorSignature = signature;
   const previousProjectMonth = qs("projectMonth")?.value;
   const previousDebtMonth = qs("debtPayoffMonth")?.value;
   const previousDetailMonth = qs("detailMonth")?.value;
-  const projectOptions = forecast
+  const projectOptions = openForecast
     .map((month) => `<option value="${month.index}">${month.label}</option>`)
     .join("");
   qs("projectMonth").innerHTML = projectOptions;
@@ -10019,11 +10094,11 @@ function populateSelectors(force = false) {
     }
   }
 
-  const planningOptions = planning.months
-    .map((month, index) => `<option value="${index}">${month.label}</option>`)
+  const planningOptions = openPlanningMonths
+    .map((month) => `<option value="${month.index}">${month.label}</option>`)
     .join("");
   qs("detailMonth").innerHTML = planningOptions;
-  const forecastStartKey = forecast[0]?.key || baseData.metadata.forecastStart.slice(0, 7);
+  const forecastStartKey = openForecast[0]?.key || forecast[0]?.key || baseData.metadata.forecastStart.slice(0, 7);
   const defaultPlanningIndex = Math.max(
     0,
     planning.months.findIndex((month) => month.key === forecastStartKey),
@@ -10055,8 +10130,7 @@ function downloadCsv() {
     "Liquidez con proyectos",
     "Impacto liquidez",
   ];
-  const lines = lastSimulation.map((row, index) => {
-    const base = lastBaseSimulation[index] || row;
+  const lines = openSimulationItems(lastSimulation, lastBaseSimulation).map(({ row, base }) => {
     return [
       row.month,
       row.startLiquidity,
@@ -10090,9 +10164,10 @@ function downloadCsv() {
 }
 
 function homeRowsForHorizon() {
+  const rows = openSimulationRows(lastSimulation);
   const value = qs("homeHorizon")?.value || "12";
-  const count = value === "all" ? lastSimulation.length : Number(value || 12);
-  return lastSimulation.slice(0, Math.max(1, Math.min(count, lastSimulation.length)));
+  const count = value === "all" ? rows.length : Number(value || 12);
+  return rows.slice(0, Math.max(1, Math.min(count, rows.length)));
 }
 
 function homeStatusClass(value, warnAt = 0, dangerAt = 0) {
@@ -10140,7 +10215,7 @@ function renderHomeDashboard() {
   if (!qs("homeKpis")) return;
   const rows = homeRowsForHorizon();
   if (!rows.length) return;
-  const baseRows = lastBaseSimulation.slice(0, rows.length);
+  const baseRows = rows.map((row) => lastBaseSimulation[(row.index || 1) - 1] || row);
   const metrics = rangeKpiMetric(rows);
   const savings = savingsPlanCalculations();
   const debtStats = debtControlStats();
@@ -10378,8 +10453,10 @@ function renderActiveSection(viewId = viewFromHash()) {
 }
 
 function assistantDashboardContext() {
-  const rows = lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []);
-  const baseRows = lastBaseSimulation.length ? lastBaseSimulation : simulate();
+  const rawRows = lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []);
+  const rawBaseRows = lastBaseSimulation.length ? lastBaseSimulation : simulate();
+  const rows = openSimulationRows(rawRows);
+  const baseRows = rows.map((row) => rawBaseRows[(row.index || 1) - 1] || row);
   const next12 = rows.slice(0, 12);
   const metrics = rangeKpiMetric(rows);
   const savingsCalc = savingsPlanCalculations();
