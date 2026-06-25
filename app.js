@@ -10239,13 +10239,13 @@ function renderHomeDashboard() {
   const decisionStatus = decisionImpact < 0 ? "warn" : "good";
   const coverageStatus = savings.currentCoverage < 3 ? "danger" : savings.currentCoverage < 6 ? "warn" : "good";
   const runwayNote = metrics
-    ? `Punto más delicado: ${metrics.adjustedMinMonth}. Mínimo real ${money(metrics.min, true)}.`
+    ? `Mínimo ajustado: ${money(metrics.adjustedMin, true)} en ${metrics.adjustedMinMonth}.`
     : "Sin rango suficiente para calcular mínimos.";
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
-      label: "Caja mínima ajustada",
-      value: metrics ? money(metrics.adjustedMin, true) : "-",
+      label: "Liquidez de partida",
+      value: money(state.initialCash, true),
       note: runwayNote,
       status: adjustedStatus,
       cta: "Ver previsión",
