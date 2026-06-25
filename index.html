@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260602a" />
+    <link rel="stylesheet" href="styles.css?v=20260625b" />
   </head>
   <body>
     <div class="app-shell">
@@ -21,6 +21,7 @@
           <a href="#home" class="active">Inicio</a>
           <a href="#virtual-advisor">Asesor virtual</a>
           <a href="#visual-detail">Cuadro de mandos</a>
+          <a href="#debt-liquidation-plan">Plan deuda óptimo</a>
           <a href="#savings-agent">Agente ahorro</a>
           <a href="#debt-control">Control de deuda</a>
           <a href="#prevision">Previsión</a>
@@ -377,6 +378,37 @@
             </article>
 
             <article class="visual-range-kpis" id="visualRangeKpis"></article>
+          </section>
+
+          <section class="debt-liquidation-plan view-section" id="debt-liquidation-plan">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Plan deuda óptimo</p>
+                <h2>Liquidación, CIRBE y ASNEF</h2>
+                <p>Escenarios para cancelar deuda de consumo priorizando quitas, salida de ficheros y protección de caja.</p>
+              </div>
+              <div class="visual-controls">
+                <a class="secondary-button" href="#debt-control">Simular deuda</a>
+              </div>
+            </div>
+
+            <div class="debt-plan-kpis" id="debtPlanKpis"></div>
+            <div class="debt-plan-layout">
+              <article class="debt-plan-panel" id="debtPlanBestRoute"></article>
+              <article class="debt-plan-panel" id="debtPlanSources"></article>
+            </div>
+            <div class="debt-plan-scenarios" id="debtPlanScenarios"></div>
+            <article class="debt-plan-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Mes a mes</p>
+                  <h3>Ruta propuesta</h3>
+                </div>
+              </div>
+              <div class="table-wrap debt-plan-table-wrap">
+                <table class="debt-plan-table" id="debtPlanTable"></table>
+              </div>
+            </article>
           </section>
 
           <section class="savings-agent view-section" id="savings-agent">
@@ -1388,6 +1420,6 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
-    <script src="app.js?v=20260625a"></script>
+    <script src="app.js?v=20260625b"></script>
   </body>
 </html>

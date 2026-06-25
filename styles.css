@@ -812,6 +812,158 @@ main {
   color: var(--red);
 }
 
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.debt-liquidation-plan {
+  display: block;
+}
+
+.debt-plan-kpis,
+.debt-plan-scenarios {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.debt-plan-kpi,
+.debt-scenario-card,
+.debt-plan-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow-soft);
+}
+
+.debt-plan-kpi,
+.debt-scenario-card {
+  padding: 16px;
+}
+
+.debt-plan-kpi {
+  border-left: 5px solid var(--teal);
+}
+
+.debt-plan-kpi.warn,
+.debt-scenario-card.warn {
+  border-left-color: var(--amber);
+}
+
+.debt-plan-kpi.good,
+.debt-scenario-card.good {
+  border-left-color: var(--green);
+}
+
+.debt-plan-kpi span,
+.debt-scenario-card span,
+.debt-route-steps span,
+.debt-source-list span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.debt-plan-kpi strong,
+.debt-scenario-card strong {
+  display: block;
+  margin: 9px 0 8px;
+  color: var(--ink);
+  font-size: clamp(22px, 2.5vw, 34px);
+  line-height: 1;
+}
+
+.debt-plan-kpi p,
+.debt-scenario-card p,
+.debt-route-steps p,
+.debt-source-list small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.debt-plan-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.8fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.debt-plan-panel {
+  padding: 18px;
+}
+
+.debt-route-steps,
+.debt-source-list {
+  display: grid;
+  gap: 10px;
+}
+
+.debt-route-steps {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.debt-route-steps div,
+.debt-source-list div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.debt-route-steps strong,
+.debt-source-list strong {
+  display: block;
+  margin: 5px 0;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.debt-plan-table-wrap {
+  max-height: 560px;
+}
+
+.debt-plan-table {
+  min-width: 900px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.debt-plan-table th,
+.debt-plan-table td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.debt-plan-table th:first-child,
+.debt-plan-table td:first-child,
+.debt-plan-table th:last-child,
+.debt-plan-table td:last-child {
+  text-align: left;
+}
+
+.debt-plan-table tr.highlight td {
+  background: #fff8e8;
+  font-weight: 800;
+}
+
 .empty-state.compact {
   padding: 14px;
   border: 1px dashed var(--line);
@@ -5834,6 +5986,10 @@ tbody tr:hover {
   .analytics-grid,
   .home-kpi-grid,
   .home-layout,
+  .debt-plan-kpis,
+  .debt-plan-layout,
+  .debt-plan-scenarios,
+  .debt-route-steps,
   .agent-kpi-grid,
   .agent-decision-board,
   .agent-executive-grid,
@@ -6052,6 +6208,10 @@ tbody tr:hover {
   .hero-grid,
   .home-kpi-grid,
   .home-layout,
+  .debt-plan-kpis,
+  .debt-plan-layout,
+  .debt-plan-scenarios,
+  .debt-route-steps,
   .agent-kpi-grid,
   .agent-decision-board,
   .agent-optimization-summary,

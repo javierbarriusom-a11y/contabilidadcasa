@@ -106,6 +106,37 @@ const DEBT_PORTFOLIO = [
 const CURRENT_REUNIFIED_DEBT_PAYMENT = 259;
 const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 130;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
+const DEBT_LIQUIDATION_ASSUMPTIONS = {
+  baseStartingLiquidity: 13464.57,
+  targetReserve: 4000,
+  monthlyFundTarget: 2000,
+  monthlyReserveTarget: 800,
+  demandAmount: 12000,
+  demandMonth: "2027-02",
+  cirbe: {
+    december2025: { total: 177910, overdue: 0, interest: 0, available: 79320 },
+    may2026: { total: 152401, overdue: 10205, interest: 1253, available: 76271 },
+  },
+  asnef: [
+    { entity: "CaixaBank Payments", amount: 4397.67, rows: 5 },
+    { entity: "Bankinter Consumer", amount: 5036.72, rows: 2 },
+    { entity: "Wizink", amount: 1343.29, rows: 1 },
+  ],
+  settlements: [
+    { id: "caixa", wave: "g1", entity: "CaixaBank Payments", principal: 13411, discount: 0.35, source: "CIRBE mayo 2026" },
+    { id: "carrefour", wave: "g1", entity: "Carrefour", principal: 5774, discount: 0.40, source: "CIRBE mayo 2026" },
+    { id: "retail", wave: "g1", entity: "MediaMarkt + IKEA", principal: 3971.59, discount: 0.30, source: "Portfolio app" },
+    { id: "bankinter-credit", wave: "g2", entity: "Bankinter credito", principal: 16070, discount: 0.33, source: "CIRBE mayo 2026" },
+    { id: "bankinter-card", wave: "g2", entity: "Bankinter tarjeta", principal: 7613, discount: 0.40, source: "CIRBE mayo 2026" },
+    { id: "bankinter-other", wave: "g2", entity: "Bankinter resto", principal: 2006, discount: 0.30, source: "ASNEF/CIRBE" },
+  ],
+  wizink: {
+    principal: 8393,
+    discount: 0.30,
+    months: 96,
+    apr: 0,
+  },
+};
 const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
 const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
 const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
@@ -171,6 +202,10 @@ const viewTitles = {
   "visual-detail": {
     eyebrow: "Cuadro de mandos",
     title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
+  },
+  "debt-liquidation-plan": {
+    eyebrow: "Plan deuda óptimo",
+    title: "Prioriza quitas, CIRBE, ASNEF y colchón de caja",
   },
   "savings-agent": {
     eyebrow: "Agente ahorro",
@@ -10405,6 +10440,246 @@ function renderHomeDashboard() {
     </tbody>`;
 }
 
+function liquidationSettlementCost(item, discountPenalty = 0) {
+  const discount = Math.max(0, Number(item.discount || 0) - discountPenalty);
+  return round2(Number(item.principal || 0) * (1 - discount));
+}
+
+function liquidationGroupCost(wave, discountPenalty = 0) {
+  return round2(
+    sumRows(
+      DEBT_LIQUIDATION_ASSUMPTIONS.settlements.filter((item) => item.wave === wave),
+      (item) => liquidationSettlementCost(item, discountPenalty),
+    ),
+  );
+}
+
+function liquidationMonthDate(key) {
+  const [year, month] = String(key).split("-").map(Number);
+  return new Date(year, (month || 1) - 1, 1);
+}
+
+function liquidationShiftMonth(key, months) {
+  return monthKey(addMonths(liquidationMonthDate(key), months));
+}
+
+function liquidationComparableMonth(row) {
+  return row?.detailMonthKey || monthKey(addMonths(modelStartDate(), Number(row?.index || 1) - 1));
+}
+
+function liquidationPlanRows() {
+  const openRows = openSimulationRows(lastSimulation);
+  const rows = openRows.length ? openRows : lastSimulation;
+  return rows.filter((row) => liquidationComparableMonth(row) >= "2026-07").slice(0, 24);
+}
+
+function liquidationFreeCapacity(row, key) {
+  const modelFree = Math.max(0, Number(row.netBeforeSaving || 0));
+  const defaultFree =
+    key === "2026-07" ? 2167 :
+    key === "2026-12" || key === "2027-12" ? 5963 :
+    key === "2027-04" ? 9963 :
+    key >= "2028-01" ? 3181 :
+    2963;
+  return round2(Math.max(modelFree, defaultFree));
+}
+
+function buildLiquidationScenario({ label, demandDelay = 0, demandAmount = DEBT_LIQUIDATION_ASSUMPTIONS.demandAmount, discountPenalty = 0 } = {}) {
+  const assumptions = DEBT_LIQUIDATION_ASSUMPTIONS;
+  const balances = accountBalancesFromState();
+  const pendingImmediateCash = Math.max(0, round2(assumptions.baseStartingLiquidity - balances.total));
+  const startingLiquidity = round2(balances.total + Math.min(pendingImmediateCash, 3450));
+  const g1Cost = liquidationGroupCost("g1", discountPenalty);
+  const g2Cost = liquidationGroupCost("g2", discountPenalty);
+  const demandMonth = demandAmount > 0 ? liquidationShiftMonth(assumptions.demandMonth, demandDelay) : "";
+  const rows = liquidationPlanRows();
+  let fund = Math.max(0, round2(startingLiquidity - assumptions.targetReserve));
+  let reserve = Math.min(startingLiquidity, assumptions.targetReserve);
+  let g1Month = "";
+  let g2Month = "";
+  let g1Done = false;
+  let g2Done = false;
+  let minReserve = reserve;
+  const timeline = [];
+
+  rows.forEach((row) => {
+    const key = liquidationComparableMonth(row);
+    const free = liquidationFreeCapacity(row, key);
+    const fundContribution = g2Done ? 0 : Math.min(assumptions.monthlyFundTarget, Math.max(0, free - assumptions.monthlyReserveTarget));
+    const reserveContribution = Math.max(0, Math.min(assumptions.monthlyReserveTarget, free - fundContribution));
+    fund = round2(fund + fundContribution);
+    reserve = round2(reserve + reserveContribution);
+    const events = [];
+
+    if (key === demandMonth) {
+      fund = round2(fund + demandAmount);
+      events.push(`Demanda +${money(demandAmount)}`);
+    }
+
+    if (!g1Done && key >= "2026-11" && fund >= g1Cost) {
+      fund = round2(fund - g1Cost);
+      g1Done = true;
+      g1Month = row.month;
+      events.push(`Golpe 1 ${money(g1Cost)}`);
+    }
+
+    if (g1Done && !g2Done && fund >= g2Cost) {
+      fund = round2(fund - g2Cost);
+      g2Done = true;
+      g2Month = row.month;
+      reserve = round2(reserve + fund);
+      fund = 0;
+      events.push(`Golpe 2 ${money(g2Cost)}`);
+    }
+
+    if (g2Done && free > 0) {
+      reserve = round2(reserve + Math.max(0, free - reserveContribution - fundContribution));
+    }
+
+    minReserve = Math.min(minReserve, reserve);
+    timeline.push({
+      key,
+      month: row.month,
+      income: row.income,
+      outflows: Number(row.outflowsBeforeSaving || row.coreSpend + row.car + row.refi || 0),
+      free,
+      fundContribution,
+      reserveContribution,
+      fund,
+      reserve,
+      total: round2(fund + reserve),
+      events,
+    });
+  });
+
+  return {
+    label,
+    startingLiquidity,
+    pendingImmediateCash,
+    g1Cost,
+    g2Cost,
+    demandMonth,
+    demandAmount,
+    g1Month,
+    g2Month,
+    minReserve,
+    finalReserve: reserve,
+    finalLiquidity: round2(fund + reserve),
+    timeline,
+    complete: g1Done && g2Done,
+  };
+}
+
+function renderLiquidationMetric({ label, value, note, tone = "" }) {
+  return `<article class="debt-plan-kpi ${tone}">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value)}</strong>
+    <p>${escapeHtml(note)}</p>
+  </article>`;
+}
+
+function renderDebtLiquidationPlan() {
+  if (!qs("debtPlanKpis")) return;
+  const assumptions = DEBT_LIQUIDATION_ASSUMPTIONS;
+  const best = buildLiquidationScenario({ label: "Óptimo base" });
+  const delayed = buildLiquidationScenario({ label: "Demanda +2 meses", demandDelay: 2 });
+  const noDemand = buildLiquidationScenario({ label: "Sin demanda", demandAmount: 0 });
+  const worseDiscounts = buildLiquidationScenario({ label: "Quitas 10 pp peores", discountPenalty: 0.1 });
+  const scenarios = [best, delayed, noDemand, worseDiscounts];
+  const asnefTotal = round2(sumRows(assumptions.asnef, (item) => item.amount));
+  const wizinkPrincipal = round2(assumptions.wizink.principal * (1 - assumptions.wizink.discount));
+  const wizinkMonthly = round2(wizinkPrincipal / assumptions.wizink.months);
+  const cirbeReduction = round2(assumptions.cirbe.december2025.total - assumptions.cirbe.may2026.total);
+  const consumerDebt = round2(best.g1Cost + best.g2Cost + wizinkPrincipal);
+
+  qs("debtPlanKpis").innerHTML = [
+    renderLiquidationMetric({
+      label: "CIRBE declarado",
+      value: money(assumptions.cirbe.may2026.total, true),
+      note: `Baja ${money(cirbeReduction, true)} desde dic 2025; vencido ${money(assumptions.cirbe.may2026.overdue, true)}.`,
+      tone: "good",
+    }),
+    renderLiquidationMetric({
+      label: "ASNEF visible",
+      value: money(asnefTotal, true),
+      note: "Suma de la captura: CaixaBank, Bankinter y Wizink.",
+      tone: "warn",
+    }),
+    renderLiquidationMetric({
+      label: "Coste objetivo",
+      value: money(consumerDebt, true),
+      note: `Golpes + Wizink pactado. Quitas estimadas, no garantizadas.`,
+      tone: "warn",
+    }),
+    renderLiquidationMetric({
+      label: "Wizink pactado",
+      value: `${money(wizinkMonthly, true)}/mes`,
+      note: `30% quita, 96 meses, 0% interés. Capital pactado ${money(wizinkPrincipal, true)}.`,
+      tone: "good",
+    }),
+  ].join("");
+
+  qs("debtPlanBestRoute").innerHTML = `<div class="module-heading">
+      <div>
+        <p class="panel-kicker">Ruta recomendada</p>
+        <h3>${best.complete ? "Liquidar consumo en dos golpes" : "Acumular antes de ejecutar"}</h3>
+      </div>
+      <span class="status-pill ${best.complete ? "good" : "warn"}">${best.complete ? "Viable" : "Vigilar"}</span>
+    </div>
+    <div class="debt-route-steps">
+      <div><span>Ahora</span><strong>Separar fondo</strong><p>${money(Math.max(0, best.startingLiquidity - assumptions.targetReserve), true)} a liquidación y ${money(Math.min(best.startingLiquidity, assumptions.targetReserve), true)} de colchón.</p></div>
+      <div><span>Golpe 1</span><strong>${best.g1Month || "Pendiente"}</strong><p>CaixaBank Payments, Carrefour, MediaMarkt e IKEA: ${money(best.g1Cost, true)} estimados.</p></div>
+      <div><span>Demanda</span><strong>${best.demandMonth ? formatIsoDate(`${best.demandMonth}-01`) : "Sin ingreso"}</strong><p>Si entran ${money(best.demandAmount, true)}, 100% al fondo de liquidación.</p></div>
+      <div><span>Golpe 2</span><strong>${best.g2Month || "Pendiente"}</strong><p>Bankinter completo: ${money(best.g2Cost, true)} estimados. Después, solo hipotecas + Wizink pactado.</p></div>
+    </div>`;
+
+  qs("debtPlanSources").innerHTML = `<div class="module-heading">
+      <div>
+        <p class="panel-kicker">Fuentes y presión</p>
+        <h3>CIRBE + ASNEF</h3>
+      </div>
+    </div>
+    <div class="debt-source-list">
+      <div><span>CIRBE dic 2025</span><strong>${money(assumptions.cirbe.december2025.total, true)}</strong><small>Riesgo dispuesto total.</small></div>
+      <div><span>CIRBE mayo 2026</span><strong>${money(assumptions.cirbe.may2026.total, true)}</strong><small>Vencidos ${money(assumptions.cirbe.may2026.overdue, true)} + demora/gastos ${money(assumptions.cirbe.may2026.interest, true)}.</small></div>
+      ${assumptions.asnef
+        .map((item) => `<div><span>${escapeHtml(item.entity)}</span><strong>${money(item.amount, true)}</strong><small>${item.rows} apunte(s) visibles en ASNEF.</small></div>`)
+        .join("")}
+    </div>`;
+
+  qs("debtPlanScenarios").innerHTML = scenarios
+    .map(
+      (item) => `<article class="debt-scenario-card ${item.complete ? "good" : "warn"}">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.g2Month || "No cerrado en horizonte")}</strong>
+        <p>Golpe 1: ${escapeHtml(item.g1Month || "pendiente")} · colchón mínimo ${money(item.minReserve, true)} · cierre final ${money(item.finalLiquidity, true)}.</p>
+      </article>`,
+    )
+    .join("");
+
+  qs("debtPlanTable").innerHTML = `<thead><tr>
+      <th>Mes</th>
+      <th>Libre</th>
+      <th>Fondo</th>
+      <th>Colchón</th>
+      <th>Total</th>
+      <th>Evento</th>
+    </tr></thead>
+    <tbody>
+      ${best.timeline
+        .slice(0, 18)
+        .map((row) => `<tr class="${row.events.length ? "highlight" : ""}">
+          <td>${escapeHtml(row.month)}</td>
+          <td class="${row.free > 0 ? "positive" : "negative"}">${money(row.free, true)}</td>
+          <td>${money(row.fund, true)}</td>
+          <td>${money(row.reserve, true)}</td>
+          <td><strong>${money(row.total, true)}</strong></td>
+          <td>${row.events.length ? row.events.map(escapeHtml).join(" · ") : "-"}</td>
+        </tr>`)
+        .join("")}
+    </tbody>`;
+}
+
 function renderActiveSection(viewId = viewFromHash()) {
   if (!lastSimulation.length) return;
   switch (viewId) {
@@ -10413,6 +10688,9 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "visual-detail":
       renderVisualDetail();
+      break;
+    case "debt-liquidation-plan":
+      renderDebtLiquidationPlan();
       break;
     case "savings-agent":
       renderSavingsAgent();
