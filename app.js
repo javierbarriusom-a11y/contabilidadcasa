@@ -697,6 +697,7 @@ function saveScenarioSettings() {
     expenseFactor: state.expenseFactor,
     savingsPlan: scenarioSettings.savingsPlan || {},
     savingsAgent: scenarioSettings.savingsAgent || {},
+    executiveAdvisor: scenarioSettings.executiveAdvisor || {},
     migrations: scenarioSettings.migrations || {},
   };
   const serialized = JSON.stringify(next);
@@ -7844,6 +7845,7 @@ function executiveAdvisorSettings() {
 
 function saveExecutiveAdvisorSettingsFromControls() {
   const settings = executiveAdvisorSettings();
+  const caixaFloor = parseAmount(qs("executiveCaixaFloor")?.value);
   scenarioSettings.executiveAdvisor = {
     ...settings,
     carReserve: parseAmount(qs("executiveCarReserve")?.value) ?? settings.carReserve,
@@ -7852,7 +7854,8 @@ function saveExecutiveAdvisorSettingsFromControls() {
     tereCreditPayment: parseAmount(qs("executiveTereCreditPayment")?.value) ?? settings.tereCreditPayment,
     tereCreditMonths: settings.tereCreditMonths,
   };
-  setAgentCaixaFloor(qs("executiveCaixaFloor")?.value);
+  setAgentCaixaFloor(caixaFloor ?? agentCaixaFloor());
+  if (qs("agentCaixaFloor")) qs("agentCaixaFloor").value = amountInputValue(agentCaixaFloor());
   saveScenarioSettings();
   renderExecutiveAdvisor();
 }
@@ -11367,6 +11370,7 @@ async function init() {
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
   ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveTereCreditCapital", "executiveTereCreditPayment"].forEach((id) => {
+    qs(id)?.addEventListener("input", saveExecutiveAdvisorSettingsFromControls);
     qs(id)?.addEventListener("change", saveExecutiveAdvisorSettingsFromControls);
   });
   qs("executive-advisor")?.addEventListener("click", (event) => {
