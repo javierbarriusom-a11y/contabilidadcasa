@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260625b" />
+    <link rel="stylesheet" href="styles.css?v=20260626a" />
   </head>
   <body>
     <div class="app-shell">
@@ -19,6 +19,7 @@
 
         <nav class="side-nav">
           <a href="#home" class="active">Inicio</a>
+          <a href="#executive-advisor">Asesor ejecutivo</a>
           <a href="#virtual-advisor">Asesor virtual</a>
           <a href="#visual-detail">Cuadro de mandos</a>
           <a href="#debt-liquidation-plan">Plan deuda óptimo</a>
@@ -156,6 +157,97 @@
                 </div>
               </article>
             </div>
+          </section>
+
+          <section class="executive-advisor view-section" id="executive-advisor">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Asesor ejecutivo</p>
+                <h2>Qué hacer ahora</h2>
+                <p>Decisiones accionables para caja, deuda, ahorro en Mediolanum y compra de coche.</p>
+              </div>
+              <div class="visual-controls executive-controls">
+                <label>
+                  <span>Reserva CaixaBank</span>
+                  <input id="executiveCaixaFloor" type="number" step="50" min="0" value="2500" />
+                </label>
+                <label>
+                  <span>Colchón coche</span>
+                  <input id="executiveCarReserve" type="number" step="250" min="0" value="8000" />
+                </label>
+                <label>
+                  <span>Coste coche</span>
+                  <input id="executiveCarCost" type="number" step="500" min="0" value="25000" />
+                </label>
+                <label>
+                  <span>Crédito Tere</span>
+                  <input id="executiveTereCreditCapital" type="number" step="500" min="0" value="15000" />
+                </label>
+                <label>
+                  <span>Cuota Tere</span>
+                  <input id="executiveTereCreditPayment" type="number" step="25" min="0" value="320" />
+                </label>
+              </div>
+            </div>
+
+            <article class="executive-hero" id="executiveAdvisorHero"></article>
+
+            <div class="executive-grid">
+              <article class="executive-panel executive-actions-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Plan de acción</p>
+                    <h3>Decisiones inmediatas</h3>
+                  </div>
+                </div>
+                <div class="executive-action-list" id="executiveActionPlan"></div>
+              </article>
+
+              <article class="executive-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Dos cuentas</p>
+                    <h3>Qué queda en cada una</h3>
+                  </div>
+                </div>
+                <div class="executive-account-grid" id="executiveAccounts"></div>
+              </article>
+            </div>
+
+            <div class="executive-grid">
+              <article class="executive-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Deuda</p>
+                    <h3>Ruta óptima lista para decidir</h3>
+                    <p>Ordena acuerdos y amortizaciones sin bajar CaixaBank de la reserva operativa.</p>
+                  </div>
+                </div>
+                <div class="executive-debt-route" id="executiveDebtRoute"></div>
+              </article>
+
+              <article class="executive-panel executive-car-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Coche</p>
+                    <h3>Hucha y financiación de Tere</h3>
+                    <p>Decide si esperar a colchón, financiar parte o combinar ambas opciones.</p>
+                  </div>
+                </div>
+                <div id="executiveCarPlan"></div>
+              </article>
+            </div>
+
+            <article class="executive-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Próximos meses</p>
+                  <h3>Agenda ejecutiva</h3>
+                  <p>Meses donde se decide traspaso, deuda o coche con impacto en CaixaBank y Mediolanum.</p>
+                </div>
+              </div>
+              <div class="executive-month-strip" id="executiveMonthAgenda"></div>
+            </article>
           </section>
 
           <section class="visual-detail view-section" id="visual-detail">
@@ -1420,6 +1512,6 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
-    <script src="app.js?v=20260625b"></script>
+    <script src="app.js?v=20260626a"></script>
   </body>
 </html>

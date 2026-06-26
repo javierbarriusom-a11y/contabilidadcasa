@@ -3000,17 +3000,423 @@ svg {
 }
 
 .debt-control,
+.executive-advisor,
 .savings-agent,
 .virtual-advisor,
 .savings-plan {
   margin-top: 18px;
 }
 
+.executive-advisor,
 .savings-agent,
 .virtual-advisor {
   display: grid;
   gap: 16px;
   padding: 20px;
+}
+
+.executive-advisor {
+  --exec-good: #25805b;
+  --exec-warn: #bd8a19;
+  --exec-danger: #b84f49;
+}
+
+.executive-controls {
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+}
+
+.executive-controls input {
+  max-width: 160px;
+  text-align: right;
+}
+
+.executive-hero,
+.executive-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.executive-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(420px, 0.75fr);
+  gap: 18px;
+  align-items: stretch;
+  padding: 22px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #183e43 0%, #1d6f69 48%, #2b5088 100%);
+}
+
+.executive-hero.warn {
+  background: linear-gradient(135deg, #3d3518 0%, #78601c 48%, #294f7c 100%);
+}
+
+.executive-hero.danger {
+  background: linear-gradient(135deg, #4c1f24 0%, #8c3831 50%, #244f68 100%);
+}
+
+.executive-hero-main {
+  min-width: 0;
+}
+
+.executive-hero-main span,
+.executive-mini-card span,
+.executive-action-list span,
+.executive-route-summary span,
+.executive-debt-step span,
+.executive-car-kpis span,
+.executive-car-option span,
+.executive-month span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.executive-hero-main span,
+.executive-hero-metrics span {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.executive-hero-main h2 {
+  max-width: 980px;
+  margin: 8px 0 10px;
+  color: #ffffff;
+  font-size: clamp(30px, 3.6vw, 54px);
+  line-height: 1;
+}
+
+.executive-hero-main p {
+  max-width: 900px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(17px, 1.6vw, 24px);
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.executive-hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  align-self: stretch;
+}
+
+.executive-hero-metrics div {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.executive-hero-metrics strong {
+  display: block;
+  margin-top: 10px;
+  overflow-wrap: anywhere;
+  color: #ffffff;
+  font-size: clamp(18px, 1.7vw, 28px);
+  line-height: 1.05;
+}
+
+.executive-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(380px, 0.95fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.executive-panel {
+  padding: 18px;
+}
+
+.executive-panel .module-heading {
+  margin-bottom: 14px;
+}
+
+.executive-action-list {
+  display: grid;
+  gap: 10px;
+}
+
+.executive-action {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) minmax(160px, auto);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--exec-good);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.executive-action.warn {
+  border-left-color: var(--exec-warn);
+}
+
+.executive-action.danger {
+  border-left-color: var(--exec-danger);
+}
+
+.executive-action > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--teal);
+  font-size: 17px;
+}
+
+.executive-action.warn > span {
+  background: var(--exec-warn);
+}
+
+.executive-action.danger > span {
+  background: var(--exec-danger);
+}
+
+.executive-action strong,
+.executive-car-option strong,
+.executive-debt-step strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.executive-action p,
+.executive-mini-card p,
+.executive-car-option p,
+.executive-month p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.executive-action button,
+.executive-route-actions button,
+.executive-debt-step button,
+.executive-car-option button {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  background: var(--ink);
+  font-weight: 900;
+  white-space: normal;
+}
+
+.executive-action button.secondary,
+.executive-route-actions button.secondary {
+  border: 1px solid #ebc6c3;
+  color: var(--red);
+  background: #fff;
+}
+
+.executive-account-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.executive-mini-card,
+.executive-route-summary div,
+.executive-car-kpis div,
+.executive-month,
+.executive-car-option {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(239, 246, 247, 0.42);
+}
+
+.executive-mini-card strong,
+.executive-route-summary strong,
+.executive-car-kpis strong,
+.executive-month strong {
+  display: block;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: clamp(18px, 1.6vw, 26px);
+  line-height: 1.05;
+}
+
+.executive-route-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.executive-route-summary.active div {
+  background: rgba(92, 71, 131, 0.08);
+}
+
+.executive-route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.executive-debt-route {
+  display: grid;
+  gap: 10px;
+}
+
+.executive-debt-step {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(280px, 0.8fr) minmax(120px, auto);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--exec-warn);
+  border-radius: 8px;
+}
+
+.executive-debt-step > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--teal);
+  font-size: 16px;
+}
+
+.executive-debt-step p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.executive-debt-step dl,
+.executive-month dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.executive-debt-step dt,
+.executive-month dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.executive-debt-step dd,
+.executive-month dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 900;
+}
+
+.executive-car-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.executive-car-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.executive-car-option {
+  border-left: 5px solid var(--exec-good);
+}
+
+.executive-car-option.danger {
+  border-left-color: var(--exec-danger);
+}
+
+.executive-car-option button {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.executive-month-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.executive-month {
+  border-left: 5px solid var(--exec-good);
+}
+
+.executive-month.warn {
+  border-left-color: var(--exec-warn);
+}
+
+.executive-month.danger {
+  border-left-color: var(--exec-danger);
+}
+
+.executive-month dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 10px;
+}
+
+@media (max-width: 1380px) {
+  .executive-hero,
+  .executive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .executive-controls {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .executive-debt-step {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .executive-debt-step dl,
+  .executive-debt-step button {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .executive-controls,
+  .executive-hero-metrics,
+  .executive-account-grid,
+  .executive-route-summary,
+  .executive-car-kpis,
+  .executive-car-options,
+  .executive-month-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .executive-action {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .executive-action button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
 }
 
 .agent-kpi-grid {

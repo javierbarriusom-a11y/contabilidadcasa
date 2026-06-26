@@ -199,6 +199,10 @@ const viewTitles = {
     eyebrow: "Inicio",
     title: "Control diario de caja, deuda y decisiones",
   },
+  "executive-advisor": {
+    eyebrow: "Asesor ejecutivo",
+    title: "Qué hacer ahora con caja, deuda y coche",
+  },
   "visual-detail": {
     eyebrow: "Cuadro de mandos",
     title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
@@ -7814,6 +7818,407 @@ function prepareAgentProjectDecision(projectId) {
   });
 }
 
+const DEFAULT_EXECUTIVE_CAR_COST = 25000;
+const DEFAULT_EXECUTIVE_CAR_RESERVE = 8000;
+const DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL = 15000;
+const DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT = 320;
+const DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS = 60;
+
+function executiveAdvisorSettings() {
+  scenarioSettings.executiveAdvisor = scenarioSettings.executiveAdvisor || {};
+  const settings = scenarioSettings.executiveAdvisor;
+  return {
+    carCost: Number.isFinite(Number(settings.carCost)) ? round2(Number(settings.carCost)) : DEFAULT_EXECUTIVE_CAR_COST,
+    carReserve: Number.isFinite(Number(settings.carReserve)) ? round2(Number(settings.carReserve)) : DEFAULT_EXECUTIVE_CAR_RESERVE,
+    tereCreditCapital: Number.isFinite(Number(settings.tereCreditCapital))
+      ? round2(Number(settings.tereCreditCapital))
+      : DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL,
+    tereCreditPayment: Number.isFinite(Number(settings.tereCreditPayment))
+      ? round2(Number(settings.tereCreditPayment))
+      : DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT,
+    tereCreditMonths: Number.isFinite(Number(settings.tereCreditMonths))
+      ? Math.max(1, Number(settings.tereCreditMonths))
+      : DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS,
+  };
+}
+
+function saveExecutiveAdvisorSettingsFromControls() {
+  const settings = executiveAdvisorSettings();
+  scenarioSettings.executiveAdvisor = {
+    ...settings,
+    carReserve: parseAmount(qs("executiveCarReserve")?.value) ?? settings.carReserve,
+    carCost: parseAmount(qs("executiveCarCost")?.value) ?? settings.carCost,
+    tereCreditCapital: parseAmount(qs("executiveTereCreditCapital")?.value) ?? settings.tereCreditCapital,
+    tereCreditPayment: parseAmount(qs("executiveTereCreditPayment")?.value) ?? settings.tereCreditPayment,
+    tereCreditMonths: settings.tereCreditMonths,
+  };
+  setAgentCaixaFloor(qs("executiveCaixaFloor")?.value);
+  saveScenarioSettings();
+  renderExecutiveAdvisor();
+}
+
+function firstMonthReachingMediolanum(plan, amount) {
+  const rows = agentVisibleRows(plan);
+  const threshold = Math.max(0, Number(amount || 0));
+  if (!rows.length) return null;
+  if (threshold <= Number(accountBalancesFromState().mediolanum || 0)) return rows[0];
+  return rows.find((row) => Number(row.agentMediolanum || 0) >= threshold) || null;
+}
+
+function executiveAdvisorContext() {
+  const plan = buildSavingsAgentPlan();
+  const rows = agentVisibleRows(plan);
+  const today = rows[0] || {};
+  const next = rows[1] || {};
+  const balances = accountBalancesFromState();
+  const settings = executiveAdvisorSettings();
+  const debtOptimization = agentOptimalDebtPayoffPlan();
+  const routeSummary = routeSimulationSummaryFromActive(plan) || routeSimulationSummaryFromOptimization(debtOptimization);
+  const summary = agentPlanSummary(plan);
+  const capacity = agentTwelveMonthCapacity(plan);
+  const first12 = rows.slice(0, 12);
+  const avgIncome = first12.length ? averageRows(first12, (row) => row.income) : 0;
+  const avgDebt = first12.length ? averageRows(first12, (row) => row.car + row.refi) : 0;
+  const debtRatio = avgIncome ? (avgDebt / avgIncome) * 100 : 0;
+  const debtRatioWithTere = avgIncome ? ((avgDebt + settings.tereCreditPayment) / avgIncome) * 100 : 0;
+  const maxSafeTerePayment = Math.max(0, round2(avgIncome * 0.32 - avgDebt));
+  const bestDebtStep = debtOptimization?.steps?.[0] || null;
+  const bestDebt = bestDebtStep?.candidate || agentDebtRecommendations(plan)[0] || null;
+  const carReserveGap = Math.max(0, round2(settings.carReserve - Number(balances.mediolanum || 0)));
+  const rawCarPot = Number(capacity.avgTransfer12m || 0) * 0.35;
+  const carMonthlyPot = carReserveGap && rawCarPot > 0 ? round2(Math.min(carReserveGap, Math.max(150, rawCarPot))) : 0;
+  const carReserveMonth = firstMonthReachingMediolanum(plan, settings.carReserve);
+  const carWithCreditCashNeed = Math.max(0, round2(settings.carCost - settings.tereCreditCapital));
+  const carWithCreditMonth = firstMonthReachingMediolanum(plan, carWithCreditCashNeed);
+  const safeCredit = debtRatioWithTere <= 32 && settings.tereCreditPayment <= Math.max(1, maxSafeTerePayment);
+  return {
+    plan,
+    rows,
+    today,
+    next,
+    balances,
+    settings,
+    debtOptimization,
+    routeSummary,
+    summary,
+    capacity,
+    avgIncome,
+    avgDebt,
+    debtRatio,
+    debtRatioWithTere,
+    maxSafeTerePayment,
+    bestDebtStep,
+    bestDebt,
+    carReserveGap,
+    carMonthlyPot,
+    carReserveMonth,
+    carWithCreditCashNeed,
+    carWithCreditMonth,
+    safeCredit,
+  };
+}
+
+function executiveActionButton(item) {
+  if (item.action === "simulate-route") {
+    return `<button type="button" data-executive-action="simulate-route">${escapeHtml(item.label)}</button>`;
+  }
+  if (item.action === "clear-route") {
+    return `<button type="button" class="secondary" data-executive-action="clear-route">${escapeHtml(item.label)}</button>`;
+  }
+  if (item.debtId) {
+    return `<button type="button" data-executive-debt-target="${escapeHtml(item.debtId)}" data-executive-debt-month="${escapeHtml(String(item.monthIndex ?? ""))}" data-executive-debt-amount="${escapeHtml(String(item.amount ?? ""))}">${escapeHtml(item.label)}</button>`;
+  }
+  if (item.action === "car-project") {
+    return `<button type="button" data-executive-action="prepare-car-project">${escapeHtml(item.label)}</button>`;
+  }
+  if (item.action === "tere-credit") {
+    return `<button type="button" data-executive-action="prepare-tere-credit">${escapeHtml(item.label)}</button>`;
+  }
+  return `<button type="button" data-home-nav="${escapeHtml(item.target || "savings-agent")}">${escapeHtml(item.label)}</button>`;
+}
+
+function executivePrimaryDecision(ctx) {
+  const { today, plan, routeSummary, debtOptimization, bestDebt, bestDebtStep } = ctx;
+  if (Number(today.shortage || 0) > 0) {
+    return {
+      tone: "danger",
+      title: "No tomes decisiones nuevas hoy",
+      text: `Faltan ${money(today.shortage, true)} para mantener CaixaBank con la reserva operativa y los pagos del mes siguiente. Primero ajustaría gasto, ahorro o fecha de proyectos.`,
+      action: "Ver flujo",
+      target: "cashflow",
+    };
+  }
+  if (Number(today.transferToSavings || 0) > 0) {
+    return {
+      tone: "good",
+      title: `Traspasar ${money(today.transferToSavings, true)} a Mediolanum`,
+      text: `Después del traspaso CaixaBank queda en ${money(today.agentCaixa, true)} y Mediolanum en ${money(today.agentMediolanum, true)}. Se conserva reserva de ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      action: "Ver evolución",
+      target: "savings-agent",
+    };
+  }
+  if (routeSummary?.active) {
+    return {
+      tone: "warn",
+      title: "Validar ruta de deuda ya simulada",
+      text: `${routeSummary.count} decisión(es) impactan el cuadro de mandos. Revisa el flujo y fija solo las que vayas a ejecutar.`,
+      action: "Ver cuadro",
+      target: "visual-detail",
+    };
+  }
+  if (debtOptimization?.steps?.length) {
+    return {
+      tone: "warn",
+      title: "Simular toda la ruta de deuda",
+      text: `${debtOptimization.steps.length} paso(s), ${money(debtOptimization.totalPrincipal, true)} pactados hasta ${debtOptimization.lastMonth}. Es la mejor forma de ver impacto global antes de fijar nada.`,
+      action: "simulate-route",
+      label: "Simular ruta",
+    };
+  }
+  if (bestDebt) {
+    return {
+      tone: "warn",
+      title: `Preparar acuerdo ${bestDebt.entity}`,
+      text: `${money(bestDebtStep?.candidate?.principal ?? bestDebt.principal, true)} en ${bestDebtStep?.monthLabel || bestDebt.monthLabel}. Conviene compararlo en Control de deuda.`,
+      debtId: bestDebt.id,
+      monthIndex: bestDebtStep?.monthIndex ?? bestDebt.affordability?.agentIndex,
+      amount: bestDebtStep?.candidate?.principal ?? bestDebt.principal,
+      label: "Preparar deuda",
+    };
+  }
+  return {
+    tone: "neutral",
+    title: "Mantener disciplina de caja",
+    text: `No hay una acción urgente mejor que proteger CaixaBank en ${money(plan.caixaFloor, true)} y acumular ahorro en Mediolanum.`,
+    action: "savings-agent",
+    label: "Ver agente",
+  };
+}
+
+function executiveActions(ctx) {
+  const actions = [];
+  const primary = executivePrimaryDecision(ctx);
+  actions.push({
+    ...primary,
+    label: primary.label || primary.action || "Abrir",
+    rank: 1,
+  });
+  if (ctx.routeSummary?.active) {
+    actions.push({
+      tone: "warn",
+      title: "Ruta de deuda cargada temporalmente",
+      text: `${ctx.routeSummary.count} paso(s) de deuda ya afectan a saldos y flujo. Si era solo prueba, retírala antes de decidir coche.`,
+      action: "clear-route",
+      label: "Retirar simulación",
+      rank: 2,
+    });
+  } else if (ctx.debtOptimization?.steps?.length) {
+    actions.push({
+      tone: "warn",
+      title: "Ver deuda como plan completo",
+      text: `${money(ctx.debtOptimization.totalPrincipal, true)} pactados hasta ${ctx.debtOptimization.lastMonth}; caja mínima estimada ${money(ctx.debtOptimization.finalPlan?.minCaixa || 0, true)}.`,
+      action: "simulate-route",
+      label: "Simular ruta",
+      rank: 2,
+    });
+  }
+  actions.push({
+    tone: ctx.carReserveGap > 0 ? "good" : "neutral",
+    title: "Crear colchón coche",
+    text: ctx.carReserveGap > 0
+      ? `Faltan ${money(ctx.carReserveGap, true)} para el colchón de ${money(ctx.settings.carReserve, true)}. Reservaría ${money(ctx.carMonthlyPot, true)}/mes si la caja lo permite.`
+      : `El colchón coche de ${money(ctx.settings.carReserve, true)} ya estaría cubierto en Mediolanum.`,
+    action: "car-project",
+    label: "Preparar hucha",
+    rank: 3,
+  });
+  actions.push({
+    tone: ctx.safeCredit ? "good" : "danger",
+    title: "Financiación de Tere para coche",
+    text: ctx.safeCredit
+      ? `Con ${money(ctx.settings.tereCreditCapital, true)} de capital y cuota ${money(ctx.settings.tereCreditPayment, true)}, el ratio deuda estimado pasaría de ${ctx.debtRatio.toFixed(1)}% a ${ctx.debtRatioWithTere.toFixed(1)}%.`
+      : `Con cuota ${money(ctx.settings.tereCreditPayment, true)} el ratio subiría a ${ctx.debtRatioWithTere.toFixed(1)}%. Yo no lo aceptaría si supera el 32% o deja caja sin margen.`,
+    action: "tere-credit",
+    label: "Simular crédito",
+    rank: 4,
+  });
+  return actions;
+}
+
+function renderExecutiveHero(ctx) {
+  const target = qs("executiveAdvisorHero");
+  if (!target) return;
+  const decision = executivePrimaryDecision(ctx);
+  target.className = `executive-hero ${decision.tone}`;
+  target.innerHTML = `<div class="executive-hero-main">
+      <span>${decision.tone === "danger" ? "Prioridad: proteger caja" : decision.tone === "warn" ? "Prioridad: decidir deuda" : "Prioridad: ejecutar"}</span>
+      <h2>${escapeHtml(decision.title)}</h2>
+      <p>${escapeHtml(decision.text)}</p>
+    </div>
+    <div class="executive-hero-metrics">
+      <div><span>CaixaBank cierre</span><strong>${money(ctx.today.agentCaixa ?? ctx.balances.caixa, true)}</strong></div>
+      <div><span>Mediolanum cierre</span><strong>${money(ctx.today.agentMediolanum ?? ctx.balances.mediolanum, true)}</strong></div>
+      <div><span>Reserva requerida</span><strong>${money(ctx.today.requiredReserve || ctx.plan.caixaFloor, true)}</strong></div>
+    </div>`;
+}
+
+function renderExecutiveActions(ctx) {
+  const target = qs("executiveActionPlan");
+  if (!target) return;
+  target.innerHTML = executiveActions(ctx)
+    .map((item) => `<article class="executive-action ${item.tone}">
+      <span>${item.rank}</span>
+      <div>
+        <strong>${escapeHtml(item.title)}</strong>
+        <p>${escapeHtml(item.text)}</p>
+      </div>
+      ${executiveActionButton(item)}
+    </article>`)
+    .join("");
+}
+
+function renderExecutiveAccounts(ctx) {
+  const target = qs("executiveAccounts");
+  if (!target) return;
+  const rows = ctx.rows;
+  const first12 = rows.slice(0, 12);
+  const minCaixa12 = first12.length ? Math.min(...first12.map((row) => Number(row.agentCaixa || 0))) : Number(ctx.balances.caixa || 0);
+  const nextDebt = ctx.debtOptimization?.steps?.[0];
+  const cards = [
+    ["CaixaBank ahora", money(ctx.balances.caixa, true), `Reserva operativa configurada: ${money(ctx.plan.caixaFloor, true)}.`],
+    ["Mediolanum ahora", money(ctx.balances.mediolanum, true), "Cuenta de ahorro y huchas."],
+    ["CaixaBank tras decisión", money(ctx.today.agentCaixa ?? ctx.balances.caixa, true), `Después del mes abierto ${ctx.today.month || ""}.`],
+    ["Mediolanum tras decisión", money(ctx.today.agentMediolanum ?? ctx.balances.mediolanum, true), ctx.today.transferToSavings ? `Incluye traspaso ${money(ctx.today.transferToSavings, true)}.` : "Sin traspaso seguro este mes."],
+    ["Peor caja 12m", money(minCaixa12, true), "Debe quedar por encima de la reserva."],
+    ["Siguiente deuda", nextDebt ? `${nextDebt.monthLabel} · ${money(nextDebt.candidate.principal, true)}` : "Sin paso", nextDebt ? debtTargetDisplayName(nextDebt.candidate) : "No hay ruta pendiente."],
+  ];
+  target.innerHTML = cards
+    .map(([label, value, note]) => `<div class="executive-mini-card">
+      <span>${escapeHtml(label)}</span>
+      <strong>${typeof value === "string" ? escapeHtml(value) : value}</strong>
+      <p>${escapeHtml(note)}</p>
+    </div>`)
+    .join("");
+}
+
+function renderExecutiveDebtRoute(ctx) {
+  const target = qs("executiveDebtRoute");
+  if (!target) return;
+  const steps = ctx.debtOptimization?.steps || [];
+  const summary = ctx.routeSummary;
+  const header = `<div class="executive-route-summary ${summary?.active ? "active" : ""}">
+    <div><span>${summary?.active ? "Ruta simulada" : "Ruta sugerida"}</span><strong>${summary ? `${summary.count} paso(s)` : "Sin ruta"}</strong></div>
+    <div><span>Importe pactado</span><strong>${summary ? money(summary.total, true) : money(0, true)}</strong></div>
+    <div><span>Último paso</span><strong>${escapeHtml(summary?.lastMonth || "-")}</strong></div>
+    <div><span>Patrimonio vs base</span><strong class="${(summary?.netWorthDelta || 0) >= 0 ? "positive" : "negative"}">${summary ? money(summary.netWorthDelta, true) : money(0, true)}</strong></div>
+  </div>`;
+  const controls = summary?.active
+    ? `<button type="button" class="secondary" data-executive-action="clear-route">Retirar ruta simulada</button>`
+    : steps.length
+      ? `<button type="button" data-executive-action="simulate-route">Simular ruta completa en el dashboard</button>`
+      : "";
+  const rows = steps.slice(0, 6).map((step) => `<article class="executive-debt-step">
+    <span>${step.order}</span>
+    <div>
+      <strong>${escapeHtml(debtTargetDisplayName(step.candidate))}</strong>
+      <p>${escapeHtml(step.candidate.number || "")} · ${debtTargetIsSuspended(step.candidate) ? "pagos suspendidos; no suma ingreso ficticio" : `libera ${money(step.candidate.effectiveRelief || 0, true)}/mes`}</p>
+    </div>
+    <dl>
+      <div><dt>Mes</dt><dd>${escapeHtml(step.monthLabel)}</dd></div>
+      <div><dt>Pactado</dt><dd>${money(step.candidate.principal, true)}</dd></div>
+      <div><dt>Mejora</dt><dd class="positive">${money(step.candidate.agreementSavings || 0, true)}</dd></div>
+    </dl>
+    <button type="button" data-executive-debt-target="${escapeHtml(step.candidate.id)}" data-executive-debt-month="${escapeHtml(String(step.monthIndex))}" data-executive-debt-amount="${escapeHtml(String(step.candidate.principal))}">Preparar</button>
+  </article>`).join("");
+  target.innerHTML = `${header}${controls ? `<div class="executive-route-actions">${controls}</div>` : ""}${rows || `<div class="empty-state compact">No hay deuda optimizable pendiente.</div>`}`;
+}
+
+function renderExecutiveCarPlan(ctx) {
+  const target = qs("executiveCarPlan");
+  if (!target) return;
+  const monthNoCredit = ctx.carReserveMonth?.month || "No alcanzado";
+  const monthWithCredit = ctx.carWithCreditMonth?.month || "No alcanzado";
+  target.innerHTML = `<div class="executive-car-kpis">
+      <div><span>Coste objetivo</span><strong>${money(ctx.settings.carCost, true)}</strong></div>
+      <div><span>Colchón mínimo</span><strong>${money(ctx.settings.carReserve, true)}</strong></div>
+      <div><span>Falta de hucha</span><strong>${money(ctx.carReserveGap, true)}</strong></div>
+      <div><span>Hucha sugerida</span><strong>${money(ctx.carMonthlyPot, true)}/mes</strong></div>
+    </div>
+    <div class="executive-car-options">
+      <article class="executive-car-option good">
+        <span>Opción conservadora</span>
+        <strong>Comprar cuando Mediolanum cubra colchón</strong>
+        <p>Mes estimado: ${escapeHtml(monthNoCredit)}. Mantiene deuda baja y prioriza acuerdos pendientes.</p>
+        <button type="button" data-executive-action="prepare-car-project">Preparar hucha coche</button>
+      </article>
+      <article class="executive-car-option ${ctx.safeCredit ? "good" : "danger"}">
+        <span>Financiación Tere</span>
+        <strong>${money(ctx.settings.tereCreditCapital, true)} ahora · ${money(ctx.settings.tereCreditPayment, true)}/mes</strong>
+        <p>Mes estimado con crédito: ${escapeHtml(monthWithCredit)}. Ratio deuda: ${ctx.debtRatio.toFixed(1)}% -> ${ctx.debtRatioWithTere.toFixed(1)}%. Cuota máxima prudente: ${money(ctx.maxSafeTerePayment, true)}.</p>
+        <button type="button" data-executive-action="prepare-tere-credit">Simular financiación</button>
+      </article>
+    </div>`;
+}
+
+function renderExecutiveMonthAgenda(ctx) {
+  const target = qs("executiveMonthAgenda");
+  if (!target) return;
+  target.innerHTML = ctx.rows.slice(0, 6)
+    .map((row) => {
+      const status = agentStatusForRow(row);
+      return `<article class="executive-month ${status.tone}">
+        <div><span>${escapeHtml(row.month)}</span><strong>${escapeHtml(status.label)}</strong></div>
+        <dl>
+          <div><dt>Resultado</dt><dd class="${row.operatingResult >= 0 ? "positive" : "negative"}">${money(row.operatingResult, true)}</dd></div>
+          <div><dt>Traspaso</dt><dd>${money(row.transferToSavings, true)}</dd></div>
+          <div><dt>Caixa</dt><dd>${money(row.agentCaixa, true)}</dd></div>
+          <div><dt>Mediolanum</dt><dd>${money(row.agentMediolanum, true)}</dd></div>
+        </dl>
+      </article>`;
+    })
+    .join("");
+}
+
+function renderExecutiveAdvisor() {
+  if (!qs("executiveAdvisorHero")) return;
+  const ctx = executiveAdvisorContext();
+  if (qs("executiveCaixaFloor")) qs("executiveCaixaFloor").value = amountInputValue(ctx.plan.caixaFloor);
+  if (qs("executiveCarReserve")) qs("executiveCarReserve").value = amountInputValue(ctx.settings.carReserve);
+  if (qs("executiveCarCost")) qs("executiveCarCost").value = amountInputValue(ctx.settings.carCost);
+  if (qs("executiveTereCreditCapital")) qs("executiveTereCreditCapital").value = amountInputValue(ctx.settings.tereCreditCapital);
+  if (qs("executiveTereCreditPayment")) qs("executiveTereCreditPayment").value = amountInputValue(ctx.settings.tereCreditPayment);
+  renderExecutiveHero(ctx);
+  renderExecutiveActions(ctx);
+  renderExecutiveAccounts(ctx);
+  renderExecutiveDebtRoute(ctx);
+  renderExecutiveCarPlan(ctx);
+  renderExecutiveMonthAgenda(ctx);
+}
+
+function prepareExecutiveCarProject(useCredit = false) {
+  const settings = executiveAdvisorSettings();
+  history.pushState(null, "", "#simulator");
+  setActiveView("simulator");
+  window.requestAnimationFrame(() => {
+    clearProjectForm();
+    if (qs("projectKind")) qs("projectKind").value = useCredit ? "external-credit" : "standard";
+    if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "Tere";
+    if (qs("projectName")) qs("projectName").value = useCredit ? "Compra coche con financiación Tere" : "Colchón coche";
+    if (qs("projectAmount")) qs("projectAmount").value = amountInputValue(useCredit ? settings.carCost : settings.carReserve);
+    if (qs("projectDuration")) qs("projectDuration").value = "1";
+    if (qs("projectCreditCapital")) qs("projectCreditCapital").value = useCredit ? amountInputValue(settings.tereCreditCapital) : "";
+    if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = useCredit ? amountInputValue(settings.tereCreditPayment) : "";
+    if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = useCredit ? String(settings.tereCreditMonths) : "0";
+    if (qs("projectRecurringDelay")) qs("projectRecurringDelay").value = "same";
+    setProjectMode("optimize");
+    updateProjectKindUi();
+    updateProjectModeUi();
+    pendingProjectDecision = projectDecisionFromForm({ forceOptimize: true });
+    renderProjectPlanPreview();
+    renderProjectDecisionReview(pendingProjectDecision);
+  });
+}
+
 function virtualAdvisorContext() {
   const plan = buildSavingsAgentPlan();
   const debtRecs = agentDebtRecommendations(plan);
@@ -10686,6 +11091,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "home":
       renderHomeDashboard();
       break;
+    case "executive-advisor":
+      renderExecutiveAdvisor();
+      break;
     case "visual-detail":
       renderVisualDetail();
       break;
@@ -10958,6 +11366,44 @@ async function init() {
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
+  ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveTereCreditCapital", "executiveTereCreditPayment"].forEach((id) => {
+    qs(id)?.addEventListener("change", saveExecutiveAdvisorSettingsFromControls);
+  });
+  qs("executive-advisor")?.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-executive-action]");
+    if (actionButton) {
+      const action = actionButton.dataset.executiveAction;
+      if (action === "simulate-route") {
+        applyAgentRouteSimulation();
+        return;
+      }
+      if (action === "clear-route") {
+        clearAgentRouteSimulation();
+        return;
+      }
+      if (action === "prepare-car-project") {
+        prepareExecutiveCarProject(false);
+        return;
+      }
+      if (action === "prepare-tere-credit") {
+        prepareExecutiveCarProject(true);
+        return;
+      }
+    }
+    const debtButton = event.target.closest("[data-executive-debt-target]");
+    if (debtButton) {
+      prepareAgentDebtDecision(debtButton.dataset.executiveDebtTarget, {
+        monthIndex: debtButton.dataset.executiveDebtMonth,
+        amount: debtButton.dataset.executiveDebtAmount,
+      });
+      return;
+    }
+    const navButton = event.target.closest("[data-home-nav]");
+    if (navButton) {
+      history.pushState(null, "", `#${navButton.dataset.homeNav}`);
+      setActiveView(navButton.dataset.homeNav);
+    }
+  });
   qs("savings-agent")?.addEventListener("click", (event) => {
     const settingsButton = event.target.closest("[data-agent-debt-settings-save]");
     if (settingsButton) {
