@@ -2078,6 +2078,26 @@ function incomeTimingForRow(row, month, amount) {
   return { day: 8, source: "estimación alisada 1-15", label: dateWithMonthLabel(date, 8) };
 }
 
+function isEndOfMonthExpenseRow(row) {
+  const label = normalizedText(displayLabelForRow(row));
+  return (
+    label.includes("trastero") ||
+    label.includes("parking") ||
+    label.includes("psicologo") ||
+    /psicologo.*sergio|sergio.*psicologo/.test(label) ||
+    /pag[ao].*sergio|sergio.*pag[ao]/.test(label)
+  );
+}
+
+function expenseTimingForRow(row, month) {
+  const date = dateFromMonthKey(month.key);
+  if (isEndOfMonthExpenseRow(row)) {
+    const day = monthEndDate(date).getDate();
+    return { day, source: "regla gasto fin de mes", label: dateWithMonthLabel(date, day), endOfMonth: true };
+  }
+  return null;
+}
+
 function incomeEventsForMonth(month, forecastIndex, options = {}) {
   const useActuals = options.useActuals !== false;
   const incomeFactor = (state.incomeFactor ?? 1) * Math.pow(1 + state.annualIncomeGrowth / 100, forecastIndex / 12);
@@ -2122,6 +2142,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     expenseTotal: 0,
     prePayrollIncome: 0,
     variableOperationalSpend: 0,
+    endOfMonthSpend: 0,
     incomeEvents: [],
   };
 
@@ -2133,6 +2154,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     let sectionRefi = 0;
     let sectionPrePayrollIncome = 0;
     let sectionVariableOperationalSpend = 0;
+    let sectionEndOfMonthSpend = 0;
 
     calculationRows.forEach((row) => {
       const deleted = isPlanningRowDeleted(row, month, section.name);
@@ -2152,6 +2174,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
         if (isVariableOperationalRow(row)) sectionVariableOperationalSpend += value;
         sectionCoreSpend += value;
       }
+      if (expenseTimingForRow(row, month)?.endOfMonth) sectionEndOfMonthSpend += value;
     });
 
     if (section.kind === "income") {
@@ -2166,6 +2189,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     breakdown.refi += sectionRefi;
     breakdown.coreSpend += sectionCoreSpend;
     breakdown.variableOperationalSpend += sectionVariableOperationalSpend;
+    breakdown.endOfMonthSpend += sectionEndOfMonthSpend;
   });
 
   breakdown.incomeEvents = incomeEventsForMonth(month, forecastIndex, options);
@@ -2270,6 +2294,7 @@ function projectedAccountBalancesForStartIndex(startIndex) {
     const variableOperationalSpend = detail.variableOperationalSpend * expenseMultiplier;
     const fixedCoreSpend = Math.max(0, detail.coreSpend - detail.variableOperationalSpend) * expenseMultiplier;
     const coreSpend = fixedCoreSpend + variableOperationalSpend;
+    const endOfMonthOutflows = detail.endOfMonthSpend * expenseMultiplier;
     const outflowsBeforeSaving = coreSpend + detail.car + detail.refi;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
     const appliedSaving = state.autoCapSavings
@@ -2658,6 +2683,7 @@ function simulate(projectOutflows = [], options = {}) {
       refi,
       projectOutflow,
       outflowsBeforeSaving,
+      endOfMonthOutflows,
       prePayrollIncome,
       incomeEvents,
       firstIncomeDateLabel: incomeEvents[0]?.dateLabel || dateWithMonthLabel(monthDate, 8),
@@ -6296,9 +6322,11 @@ function handleVisualAddRow() {
 function previsionMetric(row) {
   const outflowsBeforeIncome =
     row.outflowsBeforeSaving ?? Number(row.coreSpend || 0) + Number(row.car || 0) + Number(row.refi || 0) + Number(row.projectOutflow || 0);
+  const lateOutflows = Math.max(0, Number(row.endOfMonthOutflows || 0));
+  const earlyOutflowsBeforeIncome = Math.max(0, outflowsBeforeIncome - lateOutflows);
   const result = row.netBeforeSaving ?? Number(row.totalLiquidity || 0) - Number(row.startLiquidity || 0);
   const max = Number(row.startLiquidity || 0) + result;
-  const min = Number(row.startLiquidity || 0) - outflowsBeforeIncome;
+  const min = Number(row.startLiquidity || 0) - earlyOutflowsBeforeIncome;
   const adjustedMin = min + Number(row.prePayrollIncome || 0);
   return {
     result,
