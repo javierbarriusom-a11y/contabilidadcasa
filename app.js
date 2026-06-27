@@ -70,6 +70,7 @@ let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
 let pendingProjectDecision = null;
 let agentDebtOptimizationCache = { key: "", value: null };
+let executiveAdvisorRenderTimer = null;
 let selectorSignature = "";
 let visualMonthSelectorSignature = "";
 let visualAddSectionSignature = "";
@@ -685,7 +686,6 @@ function saveMovementMappings() {
 
 function saveScenarioSettings() {
   if (!state) return;
-  const previous = JSON.stringify(scenarioSettings);
   const next = {
     currentScenario,
     recommendedSavings: state.recommendedSavings,
@@ -702,7 +702,7 @@ function saveScenarioSettings() {
   };
   const serialized = JSON.stringify(next);
   scenarioSettings = next;
-  if (serialized === previous) return;
+  if (serialized === storageGet(storageKey("scenarioSettings"), "")) return;
   storageSet(storageKey("scenarioSettings"), serialized);
   queueRemoteSave();
 }
@@ -7843,9 +7843,20 @@ function executiveAdvisorSettings() {
   };
 }
 
-function saveExecutiveAdvisorSettingsFromControls() {
+function scheduleExecutiveAdvisorRender() {
+  if (executiveAdvisorRenderTimer) window.clearTimeout(executiveAdvisorRenderTimer);
+  executiveAdvisorRenderTimer = window.setTimeout(() => {
+    executiveAdvisorRenderTimer = null;
+    if (viewFromHash() === "executive-advisor") renderExecutiveAdvisor();
+  }, 120);
+}
+
+function saveExecutiveAdvisorSettingsFromControls({ rerender = true } = {}) {
   const settings = executiveAdvisorSettings();
   const caixaFloor = parseAmount(qs("executiveCaixaFloor")?.value);
+  if (caixaFloor !== null) {
+    savingsAgentSettings().caixaFloor = Math.max(0, round2(caixaFloor));
+  }
   scenarioSettings.executiveAdvisor = {
     ...settings,
     carReserve: parseAmount(qs("executiveCarReserve")?.value) ?? settings.carReserve,
@@ -7854,10 +7865,10 @@ function saveExecutiveAdvisorSettingsFromControls() {
     tereCreditPayment: parseAmount(qs("executiveTereCreditPayment")?.value) ?? settings.tereCreditPayment,
     tereCreditMonths: settings.tereCreditMonths,
   };
-  setAgentCaixaFloor(caixaFloor ?? agentCaixaFloor());
+  agentDebtOptimizationCache = { key: "", value: null };
   if (qs("agentCaixaFloor")) qs("agentCaixaFloor").value = amountInputValue(agentCaixaFloor());
   saveScenarioSettings();
-  renderExecutiveAdvisor();
+  if (rerender) scheduleExecutiveAdvisorRender();
 }
 
 function firstMonthReachingMediolanum(plan, amount) {
@@ -11370,8 +11381,8 @@ async function init() {
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
   ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveTereCreditCapital", "executiveTereCreditPayment"].forEach((id) => {
-    qs(id)?.addEventListener("input", saveExecutiveAdvisorSettingsFromControls);
-    qs(id)?.addEventListener("change", saveExecutiveAdvisorSettingsFromControls);
+    qs(id)?.addEventListener("input", () => saveExecutiveAdvisorSettingsFromControls({ rerender: false }));
+    qs(id)?.addEventListener("change", () => saveExecutiveAdvisorSettingsFromControls({ rerender: true }));
   });
   qs("executive-advisor")?.addEventListener("click", (event) => {
     const actionButton = event.target.closest("[data-executive-action]");
