@@ -2650,6 +2650,7 @@ function simulate(projectOutflows = [], options = {}) {
     const carPayment = detail.car;
     const refi = detail.refi;
     const projectOutflow = Number(projectOutflows[i] || 0);
+    const endOfMonthOutflows = detail.endOfMonthSpend * expenseMultiplier;
     const outflowsBeforeSaving = coreSpend + carPayment + refi + projectOutflow;
     const incomeEvents = detail.incomeEvents || [];
     const monthDate = dateFromMonthKey(detail.monthKey);
