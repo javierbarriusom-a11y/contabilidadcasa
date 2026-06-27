@@ -449,7 +449,23 @@ main {
 }
 
 .view-section {
+  position: relative;
   animation: viewIn 180ms ease both;
+}
+
+.view-section.view-calculating::after {
+  content: "Actualizando cálculos...";
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 60;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(19, 31, 38, 0.94);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 18px 38px rgba(15, 31, 38, 0.18);
+  pointer-events: none;
 }
 
 @keyframes viewIn {

@@ -79,6 +79,13 @@ let dataEntryMonthSignature = "";
 let seriesEditorSignature = "";
 let simulationSignature = "";
 let renderFrame = 0;
+let activeViewRenderFrame = 0;
+let activeViewRenderTimer = 0;
+let activeViewRenderToken = 0;
+let heavyAdvisorTimer = 0;
+let advisorDebtRenderTimer = 0;
+let savingsAgentPlanCache = { key: "", value: null };
+const HEAVY_RENDER_VIEWS = new Set(["visual-detail", "executive-advisor", "savings-agent", "virtual-advisor"]);
 let expandedPlanningSections = {
   income: new Set(),
   expense: new Set(),
@@ -826,6 +833,45 @@ function viewFromHash() {
   return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
 }
 
+function markViewCalculating(viewId, active) {
+  const section = document.getElementById(viewId);
+  if (!section) return;
+  section.classList.toggle("view-calculating", Boolean(active));
+}
+
+function runActiveSectionRender(viewId, token) {
+  if (token !== activeViewRenderToken || viewFromHash() !== viewId) return;
+  renderActiveSection(viewId);
+  markViewCalculating(viewId, false);
+}
+
+function scheduleActiveSectionRender(viewId = viewFromHash()) {
+  activeViewRenderToken += 1;
+  const token = activeViewRenderToken;
+  if (activeViewRenderFrame) window.cancelAnimationFrame(activeViewRenderFrame);
+  if (activeViewRenderTimer) window.clearTimeout(activeViewRenderTimer);
+  if (heavyAdvisorTimer) window.clearTimeout(heavyAdvisorTimer);
+  activeViewRenderFrame = 0;
+  activeViewRenderTimer = 0;
+  heavyAdvisorTimer = 0;
+
+  if (!lastSimulation.length) return;
+
+  if (!HEAVY_RENDER_VIEWS.has(viewId)) {
+    renderActiveSection(viewId);
+    return;
+  }
+
+  markViewCalculating(viewId, true);
+  activeViewRenderFrame = window.requestAnimationFrame(() => {
+    activeViewRenderFrame = 0;
+    activeViewRenderTimer = window.setTimeout(() => {
+      activeViewRenderTimer = 0;
+      runActiveSectionRender(viewId, token);
+    }, 16);
+  });
+}
+
 function setActiveView(viewId = viewFromHash()) {
   document.querySelectorAll(".view-section").forEach((section) => {
     section.hidden = section.id !== viewId;
@@ -839,8 +885,8 @@ function setActiveView(viewId = viewFromHash()) {
   const copy = viewTitles[viewId] || viewTitles["visual-detail"];
   if (qs("viewEyebrow")) qs("viewEyebrow").textContent = copy.eyebrow;
   if (qs("viewTitle")) qs("viewTitle").textContent = copy.title;
-  renderActiveSection(viewId);
   window.scrollTo({ top: 0, behavior: "instant" });
+  scheduleActiveSectionRender(viewId);
 }
 
 function setupViewNavigation() {
@@ -2742,6 +2788,8 @@ function recomputeModelIfNeeded(force = false) {
     return;
   }
   simulationSignature = nextSignature;
+  savingsAgentPlanCache = { key: "", value: null };
+  agentDebtOptimizationCache = { key: "", value: null };
   lastBaseSimulation = simulate();
   projectPlan = buildProjectSchedule();
   lastSimulation = simulate(projectPlan.outflows);
@@ -6650,6 +6698,8 @@ function agentCaixaFloor() {
 function setAgentCaixaFloor(value) {
   const parsed = parseAmount(value);
   savingsAgentSettings().caixaFloor = parsed === null ? DEFAULT_AGENT_CAIXA_FLOOR : Math.max(0, round2(parsed));
+  savingsAgentPlanCache = { key: "", value: null };
+  agentDebtOptimizationCache = { key: "", value: null };
   saveScenarioSettings();
 }
 
@@ -6664,8 +6714,24 @@ function agentNextMonthReserve(sourceRows, index, caixaFloor = agentCaixaFloor()
   return round2(caixaFloor + Math.max(0, Number(next.outflowsBeforeSaving || 0)));
 }
 
+function savingsAgentPlanCacheKey(sourceRows) {
+  return JSON.stringify({
+    signature: simulationSignature || modelComputationSignature(),
+    caixaFloor: agentCaixaFloor(),
+    balances: accountBalancesFromState(),
+    rows: sourceRows.length,
+    first: sourceRows[0]?.detailMonthKey || "",
+    last: sourceRows.at(-1)?.detailMonthKey || "",
+    ending: round2(sourceRows.at(-1)?.totalLiquidity || 0),
+  });
+}
+
 function buildSavingsAgentPlan(sourceRowsOverride = null) {
   const sourceRows = sourceRowsOverride || (lastSimulation.length ? lastSimulation : simulate(projectPlan.outflows || []));
+  const cacheKey = sourceRowsOverride ? "" : savingsAgentPlanCacheKey(sourceRows);
+  if (!sourceRowsOverride && savingsAgentPlanCache.key === cacheKey && savingsAgentPlanCache.value) {
+    return savingsAgentPlanCache.value;
+  }
   const start = accountBalancesFromState();
   const caixaFloor = agentCaixaFloor();
   let caixa = Number(start.caixa || 0);
@@ -6709,7 +6775,7 @@ function buildSavingsAgentPlan(sourceRowsOverride = null) {
   const openDebtPrincipal = round2(sumRows(debtTargetOptions({ includePlanned: true }), (item) => Number(item.currentPrincipal || item.principal || 0)));
   const remainingDebt = Math.max(0, round2(openDebtPrincipal - plannedDebtPrincipal));
   const final = rows.at(-1) || {};
-  return {
+  const plan = {
     rows,
     caixaFloor,
     totalTransferred,
@@ -6726,12 +6792,51 @@ function buildSavingsAgentPlan(sourceRowsOverride = null) {
     minReserveCoverage: rows.length ? Math.min(...rows.map((row) => row.agentCaixa - row.requiredReserve)) : 0,
     maxSavings: rows.length ? Math.max(...rows.map((row) => row.agentMediolanum)) : start.mediolanum,
   };
+  if (!sourceRowsOverride) savingsAgentPlanCache = { key: cacheKey, value: plan };
+  return plan;
 }
 
 function agentVisibleRows(plan) {
   const rows = plan?.rows || [];
   const visible = openSimulationRows(rows);
   return visible.length ? visible : rows;
+}
+
+function immediateSavingsTransfer(plan, rows = agentVisibleRows(plan), balances = accountBalancesFromState()) {
+  const visibleRows = rows && rows.length ? rows : agentVisibleRows(plan);
+  const today = visibleRows[0] || {};
+  const next = visibleRows[1] || {};
+  const floor = Number(plan?.caixaFloor || agentCaixaFloor() || 0);
+  const nextOutflows = Math.max(0, Number(next.outflowsBeforeSaving || 0));
+  const reserve = Math.max(floor, Number(today.requiredReserve || 0), round2(floor + nextOutflows));
+  const caixaNow = Math.max(0, Number(balances?.caixa || 0));
+  const mediolanumNow = Math.max(0, Number(balances?.mediolanum || 0));
+  const projectedTransfer = Math.max(0, Number(today.transferToSavings || 0));
+  const amount = Math.max(0, round2(caixaNow - reserve));
+  const incomeReference = Math.max(0, averageRows(visibleRows.slice(0, 12), (row) => row.income));
+  const reviewThreshold = Math.max(15000, incomeReference * 2.5, reserve * 2);
+  const projectedLooksImpossible = projectedTransfer > caixaNow + 1;
+  const amountLooksUnusual = amount > reviewThreshold;
+  const needsReview = projectedLooksImpossible || amountLooksUnusual;
+  const reviewReason = projectedLooksImpossible
+    ? `La simulación de cierre propone ${money(projectedTransfer, true)}, más que el saldo actual de CaixaBank (${money(caixaNow, true)}).`
+    : amountLooksUnusual
+      ? `El traspaso inmediato supera el umbral de control (${money(reviewThreshold, true)}). Revisa el saldo manual antes de ejecutarlo.`
+      : "";
+  return {
+    amount,
+    reserve: round2(reserve),
+    caixaNow: round2(caixaNow),
+    mediolanumNow: round2(mediolanumNow),
+    caixaAfter: round2(caixaNow - amount),
+    mediolanumAfter: round2(mediolanumNow + amount),
+    projectedTransfer: round2(projectedTransfer),
+    projectedMonth: today.month || "",
+    projectedDateLabel: today.transferDateLabel || today.month || "cierre de mes",
+    nextOutflows: round2(nextOutflows),
+    needsReview,
+    reviewReason,
+  };
 }
 
 function agentYears(plan) {
@@ -6866,6 +6971,7 @@ function clearAgentRouteSimulation({ rerender = true, record = true } = {}) {
   const removed = agentRouteSimulationDecisions();
   if (!removed.length) return 0;
   debtLiquidations = debtLiquidations.filter((item) => !isAgentRouteSimulationDecision(item));
+  savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
   simulationSignature = "";
   if (record) {
@@ -6892,6 +6998,7 @@ function clearAgentRouteSimulation({ rerender = true, record = true } = {}) {
 function applyAgentRouteSimulation() {
   clearAgentRouteSimulation({ rerender: false, record: false });
   recomputeModelIfNeeded(true);
+  savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
   const optimization = agentOptimalDebtPayoffPlan();
   const steps = optimization?.steps || [];
@@ -7046,13 +7153,61 @@ function findAgentBestDebtPayoffStep(baseOutflows, candidates, startIndex = 0) {
   return evaluated.sort((a, b) => a.score - b.score)[0] || null;
 }
 
-function agentOptimalDebtPayoffPlan() {
-  const cacheKey = JSON.stringify({
+function agentDebtOptimizationCacheKey() {
+  return JSON.stringify({
     signature: simulationSignature || modelComputationSignature(),
     caixaFloor: agentCaixaFloor(),
     balances: accountBalancesFromState(),
     optimizer: agentDebtOptimizerSettings(),
   });
+}
+
+function cachedAgentDebtOptimization() {
+  const cacheKey = agentDebtOptimizationCacheKey();
+  return agentDebtOptimizationCache.key === cacheKey ? agentDebtOptimizationCache.value : null;
+}
+
+function emptyAgentDebtOptimization(plan = buildSavingsAgentPlan()) {
+  return {
+    baselinePlan: plan,
+    finalPlan: plan,
+    steps: [],
+    remaining: agentDebtPayoffCandidates(),
+    totalPrincipal: 0,
+    totalOriginalPrincipal: 0,
+    totalRelief: 0,
+    optimizedRemainingDebt: plan.remainingDebt || 0,
+    optimizedNetWorth: plan.netWorth || 0,
+    netWorthDelta: 0,
+    lastMonth: "Calculando",
+    pending: true,
+  };
+}
+
+function scheduleHeavyAdvisorRefresh(viewId = viewFromHash()) {
+  if (!HEAVY_RENDER_VIEWS.has(viewId) || heavyAdvisorTimer) return;
+  const token = activeViewRenderToken;
+  heavyAdvisorTimer = window.setTimeout(() => {
+    heavyAdvisorTimer = 0;
+    if (token !== activeViewRenderToken || viewFromHash() !== viewId) return;
+    agentOptimalDebtPayoffPlan();
+    if (token !== activeViewRenderToken || viewFromHash() !== viewId) return;
+    if (viewId === "virtual-advisor") renderVirtualAdvisor({ forceHeavy: true });
+    else if (viewId === "savings-agent") renderSavingsAgent({ forceHeavy: true });
+    else if (viewId === "executive-advisor") renderExecutiveAdvisor({ forceHeavy: true });
+  }, 650);
+}
+
+function scheduleAdvisorDebtSandboxRender(delay = 180) {
+  if (advisorDebtRenderTimer) window.clearTimeout(advisorDebtRenderTimer);
+  advisorDebtRenderTimer = window.setTimeout(() => {
+    advisorDebtRenderTimer = 0;
+    if (viewFromHash() === "virtual-advisor") renderAdvisorDebtSandbox(quickVirtualAdvisorContext());
+  }, delay);
+}
+
+function agentOptimalDebtPayoffPlan() {
+  const cacheKey = agentDebtOptimizationCacheKey();
   if (agentDebtOptimizationCache.key === cacheKey && agentDebtOptimizationCache.value) {
     return agentDebtOptimizationCache.value;
   }
@@ -7176,7 +7331,7 @@ function renderProjectSavingsProgress(project, compact = false, progressOverride
   </div>`;
 }
 
-function agentLifeProjectRecommendations(plan) {
+function agentLifeProjectRecommendations(plan, { allowEvaluation = true } = {}) {
   return projects
     .filter((project) => !project.locked && Number(decisionGrossCost(project)) > 0)
     .map((project) => {
@@ -7186,7 +7341,7 @@ function agentLifeProjectRecommendations(plan) {
       const monthsToGoal = Math.max(1, targetIndex + 1);
       const progress = projectSavingsProgress(project, plan);
       const pot = Number.isFinite(Number(progress.monthlyPot)) ? progress.monthlyPot : round2(amount / monthsToGoal);
-      const evaluation = evaluateProjectDecisionItem({ ...project, monthIndex: targetIndex });
+      const evaluation = allowEvaluation ? evaluateProjectDecisionItem({ ...project, monthIndex: targetIndex }) : null;
       return {
         ...project,
         amount,
@@ -7195,8 +7350,8 @@ function agentLifeProjectRecommendations(plan) {
         pot,
         progress,
         targetIndex,
-        minChecking: evaluation?.evaluation?.minChecking,
-        netGain: evaluation?.netGain,
+        minChecking: evaluation?.evaluation?.minChecking ?? targetRow?.agentCaixa,
+        netGain: evaluation?.netGain ?? 0,
       };
     })
     .sort((a, b) => (a.targetIndex ?? 999) - (b.targetIndex ?? 999))
@@ -7238,17 +7393,20 @@ function agentTodayCards(plan) {
   const rows = agentVisibleRows(plan);
   const today = rows[0] || {};
   const next = rows[1] || {};
-  const transferableNow = Math.max(0, Number(today.transferToSavings || 0));
+  const immediate = immediateSavingsTransfer(plan, rows);
+  const transferableNow = immediate.needsReview ? 0 : Math.max(0, Number(immediate.amount || 0));
   const reserveGap = Math.max(0, round2(Number(today.requiredReserve || plan.caixaFloor) - Number(today.agentCaixa || 0)));
   const nextOutflows = Number(next.outflowsBeforeSaving || 0);
   return [
     {
-      label: "Puedes traspasar hoy",
+      label: immediate.needsReview ? "Revisar saldo antes de traspasar" : "Puedes traspasar hoy",
       value: money(transferableNow, true),
-      detail: transferableNow
-        ? `Fecha sugerida ${today.transferDateLabel || today.month}; manteniendo ${money(plan.caixaFloor, true)} y cubriendo ${money(nextOutflows, true)} del mes siguiente.`
-        : "No hay excedente seguro; conserva la caja operativa.",
-      tone: transferableNow ? "good" : "warn",
+      detail: immediate.needsReview
+        ? immediate.reviewReason
+        : transferableNow
+          ? `Saldo actual CaixaBank menos reserva ${money(immediate.reserve, true)}; cubre ${money(nextOutflows, true)} del mes siguiente.`
+          : "No hay excedente seguro; conserva la caja operativa.",
+      tone: immediate.needsReview ? "danger" : transferableNow ? "good" : "warn",
     },
     {
       label: "Reserva protegida",
@@ -7440,7 +7598,9 @@ function renderAgentDecisionBoard(plan, debtRecs, projectRecs) {
   const target = qs("agentDecisionBoard");
   if (!target) return;
   const capacity = agentTwelveMonthCapacity(plan);
-  const today = agentVisibleRows(plan)[0] || {};
+  const rows = agentVisibleRows(plan);
+  const today = rows[0] || {};
+  const immediate = immediateSavingsTransfer(plan, rows);
   const topDebt = debtRecs[0];
   const topProject = projectRecs[0];
   const nextDecision = topDebt && (!topProject || topDebt.score > 7200)
@@ -7471,10 +7631,12 @@ function renderAgentDecisionBoard(plan, debtRecs, projectRecs) {
         };
   const cards = [
     {
-      title: "Traspaso prudente ahora",
-      value: money(today.transferToSavings || 0, true),
-      detail: `Después de reservar ${money(today.requiredReserve || plan.caixaFloor, true)} para CaixaBank.`,
-      tone: Number(today.transferToSavings || 0) > 0 ? "good" : "warn",
+      title: immediate.needsReview ? "Revisar saldo" : "Traspaso prudente ahora",
+      value: money(immediate.needsReview ? 0 : immediate.amount || 0, true),
+      detail: immediate.needsReview
+        ? immediate.reviewReason
+        : `Después de reservar ${money(immediate.reserve, true)} para CaixaBank.`,
+      tone: immediate.needsReview ? "danger" : Number(immediate.amount || 0) > 0 ? "good" : "warn",
     },
     {
       title: nextDecision.title,
@@ -7533,12 +7695,13 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
   const rows = agentVisibleRows(plan);
   const today = rows[0] || {};
   const nextMonth = rows[1] || {};
+  const immediate = immediateSavingsTransfer(plan, rows);
   const planSummary = agentPlanSummary(plan);
   const capacity = agentTwelveMonthCapacity(plan);
   const firstDebtStep = debtOptimization?.steps?.[0] || null;
   const bestDebt = firstDebtStep?.candidate || debtRecs[0] || null;
   const bestProject = projectRecs[0] || null;
-  const marginNow = round2(Number(today.agentCaixa || 0) - Number(today.requiredReserve || plan.caixaFloor));
+  const marginNow = round2(Number(immediate.caixaNow || 0) - Number(immediate.reserve || plan.caixaFloor));
   const nextImpactText = planSummary.nextImpactAmount
     ? `${money(planSummary.nextImpactAmount, true)} en ${planSummary.nextImpactMonth}`
     : "Sin impactos próximos cargados";
@@ -7552,11 +7715,19 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
       action: "Ver simulador",
       target: "simulator",
     });
-  } else if (today.transferToSavings > 0) {
+  } else if (immediate.needsReview) {
+    immediateActions.push({
+      tone: "danger",
+      title: "Revisar saldo antes de traspasar",
+      meta: immediate.reviewReason,
+      action: "Ver saldos",
+      target: "visual-detail",
+    });
+  } else if (immediate.amount > 0) {
     immediateActions.push({
       tone: "good",
       title: "Traspaso seguro a Mediolanum",
-      meta: `Mover ${money(today.transferToSavings, true)} el ${today.transferDateLabel || "cierre de mes"} y dejar CaixaBank cubriendo ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      meta: `Mover ${money(immediate.amount, true)} hoy y dejar CaixaBank cubriendo ${money(immediate.reserve, true)}.`,
       action: "Ver flujo",
       target: "cashflow",
     });
@@ -7619,7 +7790,7 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
       label: "Margen caja hoy",
       value: money(marginNow, true),
       tone: marginNow >= 0 ? "good" : "danger",
-      note: `Sobre reserva de ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      note: `Sobre reserva de ${money(immediate.reserve || plan.caixaFloor, true)}.`,
     },
     {
       label: "Pagos mes siguiente",
@@ -8027,6 +8198,7 @@ function saveExecutiveAdvisorSettingsFromControls({ rerender = true } = {}) {
     tereCreditPayment: parseAmount(qs("executiveTereCreditPayment")?.value) ?? settings.tereCreditPayment,
     tereCreditMonths: settings.tereCreditMonths,
   };
+  savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
   if (qs("agentCaixaFloor")) qs("agentCaixaFloor").value = amountInputValue(agentCaixaFloor());
   saveScenarioSettings();
@@ -8041,14 +8213,15 @@ function firstMonthReachingMediolanum(plan, amount) {
   return rows.find((row) => Number(row.agentMediolanum || 0) >= threshold) || null;
 }
 
-function executiveAdvisorContext() {
+function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
   const today = rows[0] || {};
   const next = rows[1] || {};
   const balances = accountBalancesFromState();
+  const immediateTransfer = immediateSavingsTransfer(plan, rows, balances);
   const settings = executiveAdvisorSettings();
-  const debtOptimization = agentOptimalDebtPayoffPlan();
+  const debtOptimization = allowHeavy ? agentOptimalDebtPayoffPlan() : (cachedAgentDebtOptimization() || emptyAgentDebtOptimization(plan));
   const routeSummary = routeSimulationSummaryFromActive(plan) || routeSimulationSummaryFromOptimization(debtOptimization);
   const summary = agentPlanSummary(plan);
   const capacity = agentTwelveMonthCapacity(plan);
@@ -8073,6 +8246,7 @@ function executiveAdvisorContext() {
     today,
     next,
     balances,
+    immediateTransfer,
     settings,
     debtOptimization,
     routeSummary,
@@ -8114,7 +8288,7 @@ function executiveActionButton(item) {
 }
 
 function executivePrimaryDecision(ctx) {
-  const { today, plan, routeSummary, debtOptimization, bestDebt, bestDebtStep } = ctx;
+  const { today, plan, routeSummary, debtOptimization, bestDebt, bestDebtStep, immediateTransfer } = ctx;
   if (Number(today.shortage || 0) > 0) {
     return {
       tone: "danger",
@@ -8124,11 +8298,20 @@ function executivePrimaryDecision(ctx) {
       target: "cashflow",
     };
   }
-  if (Number(today.transferToSavings || 0) > 0) {
+  if (immediateTransfer?.needsReview) {
+    return {
+      tone: "danger",
+      title: "Revisar saldo antes de traspasar",
+      text: `${immediateTransfer.reviewReason} No ejecutaría ningún traspaso hasta confirmar CaixaBank y Mediolanum reales.`,
+      action: "Ver saldos",
+      target: "visual-detail",
+    };
+  }
+  if (Number(immediateTransfer?.amount || 0) > 0) {
     return {
       tone: "good",
-      title: `Traspasar ${money(today.transferToSavings, true)} a Mediolanum`,
-      text: `Después del traspaso CaixaBank queda en ${money(today.agentCaixa, true)} y Mediolanum en ${money(today.agentMediolanum, true)}. Se conserva reserva de ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      title: `Traspasar ${money(immediateTransfer.amount, true)} a Mediolanum`,
+      text: `Después del traspaso CaixaBank queda en ${money(immediateTransfer.caixaAfter, true)} y Mediolanum en ${money(immediateTransfer.mediolanumAfter, true)}. Se conserva reserva de ${money(immediateTransfer.reserve, true)}.`,
       action: "Ver evolución",
       target: "savings-agent",
     };
@@ -8232,9 +8415,9 @@ function renderExecutiveHero(ctx) {
       <p>${escapeHtml(decision.text)}</p>
     </div>
     <div class="executive-hero-metrics">
-      <div><span>CaixaBank cierre</span><strong>${money(ctx.today.agentCaixa ?? ctx.balances.caixa, true)}</strong></div>
-      <div><span>Mediolanum cierre</span><strong>${money(ctx.today.agentMediolanum ?? ctx.balances.mediolanum, true)}</strong></div>
-      <div><span>Reserva requerida</span><strong>${money(ctx.today.requiredReserve || ctx.plan.caixaFloor, true)}</strong></div>
+      <div><span>CaixaBank tras acción</span><strong>${money(ctx.immediateTransfer?.caixaAfter ?? ctx.balances.caixa, true)}</strong></div>
+      <div><span>Mediolanum tras acción</span><strong>${money(ctx.immediateTransfer?.mediolanumAfter ?? ctx.balances.mediolanum, true)}</strong></div>
+      <div><span>Reserva inmediata</span><strong>${money(ctx.immediateTransfer?.reserve || ctx.today.requiredReserve || ctx.plan.caixaFloor, true)}</strong></div>
     </div>`;
 }
 
@@ -8267,8 +8450,8 @@ function renderExecutiveAccounts(ctx) {
   const cards = [
     ["CaixaBank ahora", money(ctx.balances.caixa, true), `Saldo a ${balanceDateText}. Reserva operativa: ${money(ctx.plan.caixaFloor, true)}.`],
     ["Mediolanum ahora", money(ctx.balances.mediolanum, true), `Saldo a ${balanceDateText}. Cuenta de ahorro y huchas.`],
-    ["CaixaBank tras decisión", money(ctx.today.agentCaixa ?? ctx.balances.caixa, true), `Cierre ${ctx.today.month || ""} (${ctx.today.transferDateLabel || "fin de mes"}).`],
-    ["Mediolanum tras decisión", money(ctx.today.agentMediolanum ?? ctx.balances.mediolanum, true), ctx.today.transferToSavings ? `Incluye traspaso ${money(ctx.today.transferToSavings, true)} el ${ctx.today.transferDateLabel || "fin de mes"}.` : "Sin traspaso seguro este mes."],
+    ["CaixaBank tras decisión", money(ctx.immediateTransfer?.caixaAfter ?? ctx.balances.caixa, true), `Reserva inmediata: ${money(ctx.immediateTransfer?.reserve || ctx.plan.caixaFloor, true)}.`],
+    ["Mediolanum tras decisión", money(ctx.immediateTransfer?.mediolanumAfter ?? ctx.balances.mediolanum, true), ctx.immediateTransfer?.needsReview ? "Pendiente de confirmar saldos antes de ejecutar." : ctx.immediateTransfer?.amount ? `Incluye traspaso ejecutable ${money(ctx.immediateTransfer.amount, true)}.` : "Sin traspaso seguro hoy."],
     ["Peor caja 12m", money(minCaixa12, true), minCaixaRow ? `${minCaixaRow.month} · ${minCaixaRow.transferDateLabel || "cierre de mes"}. Debe quedar sobre reserva.` : "Debe quedar por encima de la reserva."],
     ["Siguiente deuda", nextDebt ? `${nextDebt.monthLabel} · ${money(nextDebt.candidate.principal, true)}` : "Sin paso", nextDebt ? debtTargetDisplayName(nextDebt.candidate) : "No hay ruta pendiente."],
   ];
@@ -8359,9 +8542,10 @@ function renderExecutiveMonthAgenda(ctx) {
     .join("");
 }
 
-function renderExecutiveAdvisor() {
+function renderExecutiveAdvisor({ forceHeavy = false } = {}) {
   if (!qs("executiveAdvisorHero")) return;
-  const ctx = executiveAdvisorContext();
+  const hasOptimization = Boolean(cachedAgentDebtOptimization());
+  const ctx = executiveAdvisorContext({ allowHeavy: forceHeavy || hasOptimization });
   if (qs("executiveCaixaFloor")) qs("executiveCaixaFloor").value = amountInputValue(ctx.plan.caixaFloor);
   if (qs("executiveCarReserve")) qs("executiveCarReserve").value = amountInputValue(ctx.settings.carReserve);
   if (qs("executiveCarCost")) qs("executiveCarCost").value = amountInputValue(ctx.settings.carCost);
@@ -8373,6 +8557,7 @@ function renderExecutiveAdvisor() {
   renderExecutiveDebtRoute(ctx);
   renderExecutiveCarPlan(ctx);
   renderExecutiveMonthAgenda(ctx);
+  if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("executive-advisor");
 }
 
 function prepareExecutiveCarProject(useCredit = false) {
@@ -8399,17 +8584,18 @@ function prepareExecutiveCarProject(useCredit = false) {
   });
 }
 
-function virtualAdvisorContext() {
+function virtualAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const debtRecs = agentDebtRecommendations(plan);
-  const projectRecs = agentLifeProjectRecommendations(plan);
-  const debtOptimization = agentOptimalDebtPayoffPlan();
+  const projectRecs = agentLifeProjectRecommendations(plan, { allowEvaluation: allowHeavy });
+  const debtOptimization = allowHeavy ? agentOptimalDebtPayoffPlan() : (cachedAgentDebtOptimization() || emptyAgentDebtOptimization(plan));
   const routeSummary = routeSimulationSummaryFromActive(plan) || routeSimulationSummaryFromOptimization(debtOptimization);
   const summary = agentPlanSummary(plan);
   const capacity = agentTwelveMonthCapacity(plan);
   const visibleRows = agentVisibleRows(plan);
   const today = visibleRows[0] || {};
   const next = visibleRows[1] || {};
+  const immediateTransfer = immediateSavingsTransfer(plan, visibleRows);
   const bestStep = debtOptimization?.steps?.[0] || null;
   const bestDebt = bestStep?.candidate || debtRecs[0] || null;
   const bestProject = projectRecs[0] || null;
@@ -8423,6 +8609,7 @@ function virtualAdvisorContext() {
     capacity,
     today,
     next,
+    immediateTransfer,
     bestStep,
     bestDebt,
     bestProject,
@@ -8436,7 +8623,7 @@ function advisorStatusLabel(tone) {
 }
 
 function advisorMainRecommendation(ctx) {
-  const { plan, today, bestStep, bestDebt, bestProject, routeSummary, debtOptimization } = ctx;
+  const { plan, today, bestStep, bestDebt, bestProject, routeSummary, debtOptimization, immediateTransfer } = ctx;
   if (Number(today.shortage || 0) > 0) {
     return {
       tone: "danger",
@@ -8502,13 +8689,15 @@ function advisorMainRecommendation(ctx) {
     };
   }
   return {
-    tone: Number(today.transferToSavings || 0) > 0 ? "good" : "neutral",
+    tone: immediateTransfer?.needsReview ? "danger" : Number(immediateTransfer?.amount || 0) > 0 ? "good" : "neutral",
     label: "Sin bloqueo",
-    title: Number(today.transferToSavings || 0) > 0 ? "Priorizar traspaso prudente" : "Esperar al siguiente ingreso",
-    text: Number(today.transferToSavings || 0) > 0
-      ? `Puedes mover ${money(today.transferToSavings, true)} a Mediolanum dejando CaixaBank con ${money(today.requiredReserve || plan.caixaFloor, true)} para operar.`
+    title: immediateTransfer?.needsReview ? "Revisar saldo antes de actuar" : Number(immediateTransfer?.amount || 0) > 0 ? "Priorizar traspaso prudente" : "Esperar al siguiente ingreso",
+    text: immediateTransfer?.needsReview
+      ? `${immediateTransfer.reviewReason} No lo convertiría en acción hasta corregir el saldo.`
+      : Number(immediateTransfer?.amount || 0) > 0
+        ? `Puedes mover ${money(immediateTransfer.amount, true)} a Mediolanum dejando CaixaBank con ${money(immediateTransfer.reserve, true)} para operar.`
       : `Mantén CaixaBank cubierto en ${money(today.requiredReserve || plan.caixaFloor, true)} y revisa nuevos acuerdos cuando entre más caja.`,
-    metric: money(today.transferToSavings || 0, true),
+    metric: money(immediateTransfer?.needsReview ? 0 : immediateTransfer?.amount || 0, true),
     metricLabel: "traspaso seguro",
     action: "Ver evolución",
     target: "savings-agent",
@@ -8641,7 +8830,11 @@ function advisorDebtReviewCard(option, selected = false) {
   </article>`;
 }
 
-function renderAdvisorDebtSandbox(ctx = virtualAdvisorContext()) {
+function quickVirtualAdvisorContext() {
+  return virtualAdvisorContext({ allowHeavy: Boolean(cachedAgentDebtOptimization()) });
+}
+
+function renderAdvisorDebtSandbox(ctx = quickVirtualAdvisorContext(), { allowEvaluation = false } = {}) {
   populateAdvisorDebtControls(ctx);
   const panel = qs("advisorDebtReview");
   if (!panel) return;
@@ -8657,6 +8850,25 @@ function renderAdvisorDebtSandbox(ctx = virtualAdvisorContext()) {
       <strong>Introduce un importe pactado</strong>
       <p>El asesor comparará opciones sin tocar el cuadro de mandos hasta que apliques una.</p>
     </div>`;
+    return;
+  }
+  if (!allowEvaluation) {
+    const suspended = debtTargetIsSuspended(target);
+    const discount = Math.max(0, Number(current.originalPrincipal || 0) - Number(current.amount || 0));
+    panel.innerHTML = `<div class="advisor-debt-head">
+        <div>
+          <span>Deuda seleccionada</span>
+          <strong>${escapeHtml(target.entity)} · ${escapeHtml(target.type)}</strong>
+          <p>${escapeHtml(target.number || "")}${suspended ? " · pagos suspendidos: no se cuenta como ingreso al liquidar" : ""}</p>
+        </div>
+        <div><span>Mejora pactada</span><strong class="${discount ? "positive" : ""}">${money(discount, true)}</strong></div>
+        <div><span>Modalidad</span><strong>${escapeHtml(debtModeLabel(current.payoffMode))}</strong></div>
+      </div>
+      <div class="advisor-debt-empty compact">
+        <strong>Compara cuando quieras aplicar</strong>
+        <p>Para mantener la navegación fluida, las alternativas de mes óptimo, fraccionamiento, reunificación y retomar pagos se calculan al pulsar comparar.</p>
+        <button type="button" id="advisorDebtCompare">Comparar opciones</button>
+      </div>`;
     return;
   }
   const evaluated = evaluateDebtDecisionItem(current);
@@ -8772,11 +8984,19 @@ function virtualAdvisorActions(ctx) {
       projectId: bestProject.id,
     });
   }
-  if (Number(today.transferToSavings || 0) > 0) {
+  if (ctx.immediateTransfer?.needsReview) {
+    actions.push({
+      tone: "danger",
+      title: "Revisar saldo antes de traspasar",
+      text: ctx.immediateTransfer.reviewReason,
+      action: "Ver saldos",
+      target: "visual-detail",
+    });
+  } else if (Number(ctx.immediateTransfer?.amount || 0) > 0) {
     actions.push({
       tone: "good",
       title: "Traspaso prudente a Mediolanum",
-      text: `${money(today.transferToSavings, true)} el ${today.transferDateLabel || "cierre de mes"}, manteniendo reserva de ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      text: `${money(ctx.immediateTransfer.amount, true)} ahora, manteniendo reserva de ${money(ctx.immediateTransfer.reserve, true)}.`,
       action: "Ver evolución",
       target: "savings-agent",
     });
@@ -8822,7 +9042,7 @@ function renderAdvisorPriority(ctx) {
 function renderAdvisorKpis(ctx) {
   const target = qs("virtualAdvisorKpis");
   if (!target) return;
-  const { plan, today, summary, routeSummary, debtOptimization } = ctx;
+  const { plan, today, summary, routeSummary, debtOptimization, immediateTransfer } = ctx;
   const routeText = routeSummary?.active
     ? `${routeSummary.count} simulada(s)`
     : debtOptimization?.steps?.length
@@ -8833,7 +9053,7 @@ function renderAdvisorKpis(ctx) {
     ["Capacidad libre real", money(monthlyFreeCapacity(plan.rows || []), true), "Media 12m tras ahorro objetivo y decisiones cargadas.", executiveToneForAmount(monthlyFreeCapacity(plan.rows || []))],
     ["Planes en cálculo", `${summary.pending} pend. · ${summary.locked} fijo(s)`, summary.nextImpactAmount ? `Próximo: ${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}.` : "Sin impacto próximo.", summary.pending ? "warn" : "good"],
     ["Ruta deuda", routeText, routeSummary ? `Impacto patrimonio: ${money(routeSummary.netWorthDelta, true)}.` : "Sin deuda optimizable.", routeSummary ? "warn" : "neutral"],
-    ["Traspaso seguro", money(today.transferToSavings || 0, true), `Fecha: ${today.transferDateLabel || "cierre de mes"}. Reserva actual: ${money(today.requiredReserve || plan.caixaFloor, true)}.`, Number(today.transferToSavings || 0) > 0 ? "good" : "warn"],
+    ["Traspaso seguro", money(immediateTransfer?.needsReview ? 0 : immediateTransfer?.amount || 0, true), immediateTransfer?.needsReview ? immediateTransfer.reviewReason : `Reserva actual: ${money(immediateTransfer?.reserve || today.requiredReserve || plan.caixaFloor, true)}.`, immediateTransfer?.needsReview ? "danger" : Number(immediateTransfer?.amount || 0) > 0 ? "good" : "warn"],
   ];
   target.innerHTML = cards
     .map(([label, value, note, tone]) => `<article class="advisor-kpi ${tone}">
@@ -8953,27 +9173,32 @@ function renderAdvisorModel(ctx) {
     .join("");
 }
 
-function renderVirtualAdvisor() {
+function renderVirtualAdvisor({ forceHeavy = false } = {}) {
   if (!qs("virtualAdvisorKpis")) return;
-  const ctx = virtualAdvisorContext();
+  const hasOptimization = Boolean(cachedAgentDebtOptimization());
+  const ctx = virtualAdvisorContext({ allowHeavy: forceHeavy || hasOptimization });
   renderAdvisorKpis(ctx);
   renderAdvisorPriority(ctx);
   renderAdvisorStatus(ctx);
-  renderAdvisorDebtSandbox(ctx);
+  renderAdvisorDebtSandbox(ctx, { allowEvaluation: forceHeavy || hasOptimization });
   renderAdvisorActions(ctx);
   renderAdvisorMonths(ctx);
   renderAdvisorModel(ctx);
+  if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("virtual-advisor");
 }
 
-function renderSavingsAgent() {
+function renderSavingsAgent({ forceHeavy = false } = {}) {
   if (!qs("agentKpis")) return;
   const plan = buildSavingsAgentPlan();
   if (qs("agentCaixaFloor")) qs("agentCaixaFloor").value = amountInputValue(plan.caixaFloor);
   populateAgentYearSelect(plan);
   const selectedYear = qs("agentYear")?.value || agentYears(plan)[0];
   const debtRecs = agentDebtRecommendations(plan);
-  const projectRecs = agentLifeProjectRecommendations(plan);
-  const debtOptimization = agentOptimalDebtPayoffPlan();
+  const hasOptimization = Boolean(cachedAgentDebtOptimization());
+  const projectRecs = agentLifeProjectRecommendations(plan, { allowEvaluation: forceHeavy || hasOptimization });
+  const debtOptimization = forceHeavy || hasOptimization
+    ? agentOptimalDebtPayoffPlan()
+    : emptyAgentDebtOptimization(plan);
   const firstYearRows = agentRowsForYear(plan, selectedYear);
   const yearTransferred = sumRows(firstYearRows, (row) => row.transferToSavings);
   const yearResult = sumRows(firstYearRows, (row) => row.operatingResult);
@@ -9020,6 +9245,7 @@ function renderSavingsAgent() {
     ? projectRecs.map((item) => renderAgentRecommendationCard(item, "project")).join("")
     : `<div class="empty-state compact">No hay proyectos de vida pendientes. Añade uno en el simulador para que el agente calcule hucha y mes objetivo.</div>`;
   renderAgentTable(plan, selectedYear);
+  if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("savings-agent");
 }
 
 function renderPrevision() {
@@ -11418,7 +11644,7 @@ function render() {
   writeDerivedControls(lastSimulation);
   updateKpis(lastSimulation, lastBaseSimulation);
   renderAccountBalancePanels();
-  renderActiveSection();
+  scheduleActiveSectionRender();
 }
 
 function scheduleRender() {
@@ -11623,7 +11849,7 @@ async function init() {
   qs("virtual-advisor")?.addEventListener("click", (event) => {
     const compareDebtButton = event.target.closest("#advisorDebtCompare");
     if (compareDebtButton) {
-      renderAdvisorDebtSandbox();
+      renderAdvisorDebtSandbox(quickVirtualAdvisorContext(), { allowEvaluation: true });
       return;
     }
     const applyDebtOptionButton = event.target.closest("[data-advisor-apply-debt-option]");
@@ -11666,10 +11892,10 @@ async function init() {
         const target = debtTargetById(qs("advisorDebtTarget")?.value, { includePlanned: true });
         if (qs("advisorDebtAmount")) qs("advisorDebtAmount").value = amountInputValue(Number(target?.currentPrincipal ?? target?.principal ?? 0));
       }
-      renderAdvisorDebtSandbox();
+      renderAdvisorDebtSandbox(quickVirtualAdvisorContext(), { allowEvaluation: false });
     });
     qs(id)?.addEventListener("input", () => {
-      if (id !== "advisorDebtTarget") renderAdvisorDebtSandbox();
+      if (id !== "advisorDebtTarget") scheduleAdvisorDebtSandboxRender();
     });
   });
   qs("visualAddKind").addEventListener("change", populateVisualAddSections);
@@ -11729,7 +11955,7 @@ async function init() {
     if (renderFrame) window.cancelAnimationFrame(renderFrame);
     renderFrame = window.requestAnimationFrame(() => {
       renderFrame = 0;
-      renderActiveSection();
+      scheduleActiveSectionRender();
     });
   });
   updateProjectModeUi();
