@@ -279,6 +279,31 @@ function dateFromMonthKey(key) {
   return new Date(year, month - 1, 1);
 }
 
+function monthEndDate(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+function lastBusinessDayOfMonth(date) {
+  const result = monthEndDate(date);
+  while (result.getDay() === 0 || result.getDay() === 6) result.setDate(result.getDate() - 1);
+  return result;
+}
+
+function dateInMonth(date, day) {
+  const cappedDay = Math.min(Math.max(1, Number(day) || 1), monthEndDate(date).getDate());
+  return new Date(date.getFullYear(), date.getMonth(), cappedDay);
+}
+
+function shortDate(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" }).replace(/\./g, "");
+}
+
+function dateWithMonthLabel(date, day) {
+  return shortDate(dateInMonth(date, day));
+}
+
 function defaultBalanceDate() {
   return (
     baseData?.metadata?.generatedAt?.slice(0, 10) ||
@@ -1995,6 +2020,88 @@ function isPrePayrollIncomeRow(row) {
   return label === "local" || /(^|\b)(nomina|salario)\s+tere(\b|$)/.test(label) || /\btere\b.*\b(nomina|salario)\b/.test(label);
 }
 
+function incomeTimingFromMovements(row, month, amount) {
+  const label = normalizedText(displayLabelForRow(row));
+  const monthKeyValue = month?.key || "";
+  if (!label || !monthKeyValue || !amount) return null;
+  const candidates = (baseData?.transactions || [])
+    .filter((transaction) => transaction.month === monthKeyValue && Number(transaction.amount || 0) > 0)
+    .map((transaction) => {
+      const text = normalizedText(`${transaction.movement || ""} ${transaction.details || ""} ${transaction.category || ""}`);
+      const amountDistance = Math.abs(Number(transaction.amount || 0) - Number(amount || 0));
+      let score = 0;
+      if (label.includes("local") && (text.includes("ingreso recurrente 800") || text.includes("transfer inmediata"))) score += 5;
+      if ((label.includes("nomina") || label.includes("salario")) && text.includes("nomina")) score += 4;
+      if (label.includes("hacienda") && (text.includes("hacienda") || text.includes("tributaria") || text.includes("devoluciones tributaria"))) score += 4;
+      if (label.includes("wash") && text.includes("wash")) score += 4;
+      if (label.includes("bonus") && (text.includes("bonus") || text.includes("nomina"))) score += 2;
+      if (amountDistance <= 1) score += 3;
+      else if (amountDistance <= Math.max(10, Math.abs(amount) * 0.05)) score += 1;
+      return { transaction, score, amountDistance };
+    })
+    .filter((item) => item.score >= 5)
+    .sort((a, b) => b.score - a.score || a.amountDistance - b.amountDistance);
+  const best = candidates[0]?.transaction;
+  if (!best?.date) return null;
+  const date = new Date(best.date);
+  if (Number.isNaN(date.getTime())) return null;
+  return {
+    day: date.getDate(),
+    source: "movimiento real identificado",
+    label: shortDate(date),
+  };
+}
+
+function incomeTimingForRow(row, month, amount) {
+  const label = normalizedText(displayLabelForRow(row));
+  const date = dateFromMonthKey(month.key);
+  if (label.includes("local")) {
+    return { day: 1, source: "regla local", label: dateWithMonthLabel(date, 1) };
+  }
+  if (/(\bnomina\b|\bsalario\b).*\btere\b|\btere\b.*(\bnomina\b|\bsalario\b)/.test(label)) {
+    return { day: 25, source: "regla salario Tere", label: dateWithMonthLabel(date, 25) };
+  }
+  if (
+    label.includes("bonus") ||
+    label.includes("bono") ||
+    (date.getMonth() === 11 && (label.includes("hacienda") || label.includes("extra") || Number(amount || 0) >= 2500))
+  ) {
+    const day = date.getMonth() === 11 ? 15 : lastBusinessDayOfMonth(date).getDate();
+    return { day, source: date.getMonth() === 11 ? "regla bono diciembre" : "regla bonus Javi", label: dateWithMonthLabel(date, day) };
+  }
+  if (/(^|\b)(nomina|salario)\s+javi(\b|$)|\bjavi\b.*\b(nomina|salario)\b/.test(label)) {
+    const day = lastBusinessDayOfMonth(date).getDate();
+    return { day, source: "regla nómina Javi", label: dateWithMonthLabel(date, day) };
+  }
+  const movementTiming = incomeTimingFromMovements(row, month, amount);
+  if (movementTiming) return movementTiming;
+  return { day: 8, source: "estimación alisada 1-15", label: dateWithMonthLabel(date, 8) };
+}
+
+function incomeEventsForMonth(month, forecastIndex, options = {}) {
+  const useActuals = options.useActuals !== false;
+  const incomeFactor = (state.incomeFactor ?? 1) * Math.pow(1 + state.annualIncomeGrowth / 100, forecastIndex / 12);
+  const events = [];
+  planningSectionsForMonth("income", month).forEach((section) => {
+    section.rows.forEach((row) => {
+      if (isPlanningRowDeleted(row, month, section.name)) return;
+      const rawValue = useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
+      const amount = round2(Number(rawValue || 0) * incomeFactor);
+      if (!amount) return;
+      const timing = incomeTimingForRow(row, month, amount);
+      events.push({
+        concept: displayLabelForRow(row),
+        amount,
+        day: timing.day,
+        dateLabel: timing.label,
+        source: timing.source,
+      });
+    });
+  });
+  events.sort((a, b) => a.day - b.day || String(a.concept).localeCompare(String(b.concept)));
+  return events;
+}
+
 function planningMonthForDate(date, forecastIndex) {
   const planning = baseData.monthlyPlanning;
   const key = monthKey(date);
@@ -2015,6 +2122,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     expenseTotal: 0,
     prePayrollIncome: 0,
     variableOperationalSpend: 0,
+    incomeEvents: [],
   };
 
   planningSectionsForMonth(null, month).forEach((section) => {
@@ -2059,6 +2167,16 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     breakdown.coreSpend += sectionCoreSpend;
     breakdown.variableOperationalSpend += sectionVariableOperationalSpend;
   });
+
+  breakdown.incomeEvents = incomeEventsForMonth(month, forecastIndex, options);
+  if (breakdown.incomeEvents.length) {
+    const monthDate = dateFromMonthKey(month.key);
+    const payrollDay = lastBusinessDayOfMonth(monthDate).getDate();
+    breakdown.prePayrollIncome = sumRows(
+      breakdown.incomeEvents.filter((event) => event.day < payrollDay),
+      (event) => event.amount,
+    );
+  }
 
   return breakdown;
 }
@@ -2508,10 +2626,12 @@ function simulate(projectOutflows = [], options = {}) {
     const refi = detail.refi;
     const projectOutflow = Number(projectOutflows[i] || 0);
     const outflowsBeforeSaving = coreSpend + carPayment + refi + projectOutflow;
-    const prePayrollIncome =
-      detail.prePayrollIncome *
-      (state.incomeFactor ?? 1) *
-      Math.pow(1 + state.annualIncomeGrowth / 100, i / 12);
+    const incomeEvents = detail.incomeEvents || [];
+    const monthDate = dateFromMonthKey(detail.monthKey);
+    const payrollDate = lastBusinessDayOfMonth(monthDate);
+    const lastIncomeDay = incomeEvents.length ? Math.max(...incomeEvents.map((event) => Number(event.day || 1))) : payrollDate.getDate();
+    const prePayrollIncome = detail.prePayrollIncome;
+    const transferDateLabel = shortDate(payrollDate);
     const startChecking = checking;
     const startLiquidity = checking + savings;
     const availableBeforeSaving = checking + income - outflowsBeforeSaving;
@@ -2539,6 +2659,13 @@ function simulate(projectOutflows = [], options = {}) {
       projectOutflow,
       outflowsBeforeSaving,
       prePayrollIncome,
+      incomeEvents,
+      firstIncomeDateLabel: incomeEvents[0]?.dateLabel || dateWithMonthLabel(monthDate, 8),
+      mainPayrollDateLabel: shortDate(payrollDate),
+      lastIncomeDateLabel: dateWithMonthLabel(monthDate, lastIncomeDay),
+      transferDateLabel,
+      minDateLabel: dateWithMonthLabel(monthDate, 1),
+      adjustedMinDateLabel: shortDate(payrollDate),
       saving: appliedSaving,
       checking,
       savings,
@@ -6179,6 +6306,9 @@ function previsionMetric(row) {
     min,
     adjustedMax: max,
     adjustedMin,
+    minDateLabel: row.minDateLabel || row.firstIncomeDateLabel || row.month,
+    maxDateLabel: row.lastIncomeDateLabel || row.mainPayrollDateLabel || row.month,
+    adjustedMinDateLabel: row.adjustedMinDateLabel || row.mainPayrollDateLabel || row.month,
   };
 }
 
@@ -6367,10 +6497,13 @@ function rangeKpiMetric(rows) {
   return {
     min: minItem.metric.min,
     minMonth: minItem.row.month,
+    minDate: minItem.metric.minDateLabel,
     max: maxItem.metric.max,
     maxMonth: maxItem.row.month,
+    maxDate: maxItem.metric.maxDateLabel,
     adjustedMin: adjustedMinItem.metric.adjustedMin,
     adjustedMinMonth: adjustedMinItem.row.month,
+    adjustedMinDate: adjustedMinItem.metric.adjustedMinDateLabel,
     adjustedIncome: Number(adjustedMinItem.row.prePayrollIncome || 0),
   };
 }
@@ -6394,17 +6527,17 @@ function renderVisualRangeKpis() {
       <div class="range-kpi-card adjusted">
         <span>Min ajustado</span>
         <strong>${money(metrics.adjustedMin, true)}</strong>
-        <p>${escapeHtml(metrics.adjustedMinMonth)} · mínimo antes de nómina Javi, sumando Tere + local (${money(metrics.adjustedIncome, true)}).</p>
+        <p>${escapeHtml(metrics.adjustedMinMonth)} · ${escapeHtml(metrics.adjustedMinDate || "")} · antes de nómina Javi, sumando cobros previos (${money(metrics.adjustedIncome, true)}).</p>
       </div>
       <div class="range-kpi-card minimum">
         <span>Min</span>
         <strong>${money(metrics.min, true)}</strong>
-        <p>${escapeHtml(metrics.minMonth)} · peor punto de caja antes de cobrar los ingresos principales del mes.</p>
+        <p>${escapeHtml(metrics.minMonth)} · ${escapeHtml(metrics.minDate || "")} · peor punto antes de cobros del mes.</p>
       </div>
       <div class="range-kpi-card maximum">
         <span>Max</span>
         <strong>${money(metrics.max, true)}</strong>
-        <p>${escapeHtml(metrics.maxMonth)} · mayor liquidez estimada con proyectos, deuda y ahorro aplicados.</p>
+        <p>${escapeHtml(metrics.maxMonth)} · ${escapeHtml(metrics.maxDate || "")} · mayor liquidez estimada tras cobros.</p>
       </div>
     </div>`;
 }
@@ -7052,7 +7185,7 @@ function agentInsightCards(plan, debtRecs, projectRecs) {
     title: firstShortage ? "Hay meses sin caja suficiente" : "Regla de caja viable",
     text: firstShortage
       ? `${firstShortage.month}: faltarían ${money(firstShortage.shortage, true)} para cubrir la reserva operativa del mes siguiente. Revisa proyectos o ahorro antes de fijar más decisiones.`
-      : `CaixaBank retiene ${money(plan.caixaFloor, true)} más los pagos previstos del mes siguiente. Primer traspaso posible: ${nextTransfer ? `${money(nextTransfer.transferToSavings, true)} en ${nextTransfer.month}` : "sin excedente próximo"}.`,
+      : `CaixaBank retiene ${money(plan.caixaFloor, true)} más los pagos previstos del mes siguiente. Primer traspaso posible: ${nextTransfer ? `${money(nextTransfer.transferToSavings, true)} en ${nextTransfer.month} (${nextTransfer.transferDateLabel || "fin de mes"})` : "sin excedente próximo"}.`,
     tone: firstShortage ? "danger" : "good",
   });
   cards.push({
@@ -7084,7 +7217,7 @@ function agentTodayCards(plan) {
       label: "Puedes traspasar hoy",
       value: money(transferableNow, true),
       detail: transferableNow
-        ? `Manteniendo ${money(plan.caixaFloor, true)} y cubriendo ${money(nextOutflows, true)} del mes siguiente.`
+        ? `Fecha sugerida ${today.transferDateLabel || today.month}; manteniendo ${money(plan.caixaFloor, true)} y cubriendo ${money(nextOutflows, true)} del mes siguiente.`
         : "No hay excedente seguro; conserva la caja operativa.",
       tone: transferableNow ? "good" : "warn",
     },
@@ -7097,7 +7230,7 @@ function agentTodayCards(plan) {
     {
       label: "Resultado del mes",
       value: money(today.operatingResult || 0, true),
-      detail: `${escapeHtml(today.month || "Mes actual")} antes del traspaso automático a Mediolanum.`,
+      detail: `${escapeHtml(today.month || "Mes actual")} · cobros hasta ${today.lastIncomeDateLabel || today.mainPayrollDateLabel || "fin de mes"}; antes del traspaso automático.`,
       tone: Number(today.operatingResult || 0) >= 0 ? "good" : "danger",
     },
     {
@@ -7139,7 +7272,7 @@ function renderAgentQuarterPlan(plan) {
             <dl>
               <div><dt>Resultado</dt><dd class="${row.operatingResult < 0 ? "negative" : "positive"}">${money(row.operatingResult, true)}</dd></div>
               <div><dt>Reserva</dt><dd>${money(row.requiredReserve, true)}</dd></div>
-              <div><dt>Traspaso</dt><dd class="positive">${money(row.transferToSavings, true)}</dd></div>
+              <div><dt>Traspaso</dt><dd class="positive">${money(row.transferToSavings, true)}<small>${escapeHtml(row.transferDateLabel || "cierre de mes")}</small></dd></div>
               <div><dt>Mediolanum</dt><dd>${money(row.agentMediolanum, true)}</dd></div>
             </dl>
           </article>`;
@@ -7167,7 +7300,7 @@ function agentPriorityQueue(plan, debtRecs, projectRecs) {
       tone: "good",
       title: "Traspaso prudente a Mediolanum",
       meta: firstTransfer
-        ? `${money(firstTransfer.transferToSavings, true)} en ${firstTransfer.month}, manteniendo pagos del mes siguiente cubiertos.`
+        ? `${money(firstTransfer.transferToSavings, true)} el ${firstTransfer.transferDateLabel || firstTransfer.month}, manteniendo pagos del mes siguiente cubiertos.`
         : "Sin excedente inmediato: esperar al próximo ingreso antes de mover ahorro.",
       action: "Ver evolución",
       target: "savings-agent",
@@ -7394,7 +7527,7 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
     immediateActions.push({
       tone: "good",
       title: "Traspaso seguro a Mediolanum",
-      meta: `Mover ${money(today.transferToSavings, true)} y dejar CaixaBank cubriendo ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      meta: `Mover ${money(today.transferToSavings, true)} el ${today.transferDateLabel || "cierre de mes"} y dejar CaixaBank cubriendo ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
       action: "Ver flujo",
       target: "cashflow",
     });
@@ -7402,7 +7535,7 @@ function renderAgentExecutive(plan, debtRecs, projectRecs, debtOptimization) {
     immediateActions.push({
       tone: "warn",
       title: "Esperar a próximo ingreso",
-      meta: `Hoy la caja queda justa. Mantén CaixaBank en ${money(today.requiredReserve || plan.caixaFloor, true)} antes de transferir ahorro.`,
+      meta: `Hoy la caja queda justa. Próximo cierre de cobros: ${today.lastIncomeDateLabel || today.mainPayrollDateLabel || today.month}. Mantén CaixaBank en ${money(today.requiredReserve || plan.caixaFloor, true)} antes de transferir ahorro.`,
       action: "Ver previsión",
       target: "forecast",
     });
@@ -8096,14 +8229,18 @@ function renderExecutiveAccounts(ctx) {
   if (!target) return;
   const rows = ctx.rows;
   const first12 = rows.slice(0, 12);
-  const minCaixa12 = first12.length ? Math.min(...first12.map((row) => Number(row.agentCaixa || 0))) : Number(ctx.balances.caixa || 0);
+  const minCaixaRow = first12.length
+    ? first12.reduce((best, row) => (Number(row.agentCaixa || 0) < Number(best.agentCaixa || 0) ? row : best), first12[0])
+    : null;
+  const minCaixa12 = minCaixaRow ? Number(minCaixaRow.agentCaixa || 0) : Number(ctx.balances.caixa || 0);
   const nextDebt = ctx.debtOptimization?.steps?.[0];
+  const balanceDateText = state.balanceDate || defaultBalanceDate();
   const cards = [
-    ["CaixaBank ahora", money(ctx.balances.caixa, true), `Reserva operativa configurada: ${money(ctx.plan.caixaFloor, true)}.`],
-    ["Mediolanum ahora", money(ctx.balances.mediolanum, true), "Cuenta de ahorro y huchas."],
-    ["CaixaBank tras decisión", money(ctx.today.agentCaixa ?? ctx.balances.caixa, true), `Después del mes abierto ${ctx.today.month || ""}.`],
-    ["Mediolanum tras decisión", money(ctx.today.agentMediolanum ?? ctx.balances.mediolanum, true), ctx.today.transferToSavings ? `Incluye traspaso ${money(ctx.today.transferToSavings, true)}.` : "Sin traspaso seguro este mes."],
-    ["Peor caja 12m", money(minCaixa12, true), "Debe quedar por encima de la reserva."],
+    ["CaixaBank ahora", money(ctx.balances.caixa, true), `Saldo a ${balanceDateText}. Reserva operativa: ${money(ctx.plan.caixaFloor, true)}.`],
+    ["Mediolanum ahora", money(ctx.balances.mediolanum, true), `Saldo a ${balanceDateText}. Cuenta de ahorro y huchas.`],
+    ["CaixaBank tras decisión", money(ctx.today.agentCaixa ?? ctx.balances.caixa, true), `Cierre ${ctx.today.month || ""} (${ctx.today.transferDateLabel || "fin de mes"}).`],
+    ["Mediolanum tras decisión", money(ctx.today.agentMediolanum ?? ctx.balances.mediolanum, true), ctx.today.transferToSavings ? `Incluye traspaso ${money(ctx.today.transferToSavings, true)} el ${ctx.today.transferDateLabel || "fin de mes"}.` : "Sin traspaso seguro este mes."],
+    ["Peor caja 12m", money(minCaixa12, true), minCaixaRow ? `${minCaixaRow.month} · ${minCaixaRow.transferDateLabel || "cierre de mes"}. Debe quedar sobre reserva.` : "Debe quedar por encima de la reserva."],
     ["Siguiente deuda", nextDebt ? `${nextDebt.monthLabel} · ${money(nextDebt.candidate.principal, true)}` : "Sin paso", nextDebt ? debtTargetDisplayName(nextDebt.candidate) : "No hay ruta pendiente."],
   ];
   target.innerHTML = cards
@@ -8184,7 +8321,7 @@ function renderExecutiveMonthAgenda(ctx) {
         <div><span>${escapeHtml(row.month)}</span><strong>${escapeHtml(status.label)}</strong></div>
         <dl>
           <div><dt>Resultado</dt><dd class="${row.operatingResult >= 0 ? "positive" : "negative"}">${money(row.operatingResult, true)}</dd></div>
-          <div><dt>Traspaso</dt><dd>${money(row.transferToSavings, true)}</dd></div>
+          <div><dt>Traspaso</dt><dd>${money(row.transferToSavings, true)}<small>${escapeHtml(row.transferDateLabel || "cierre de mes")}</small></dd></div>
           <div><dt>Caixa</dt><dd>${money(row.agentCaixa, true)}</dd></div>
           <div><dt>Mediolanum</dt><dd>${money(row.agentMediolanum, true)}</dd></div>
         </dl>
@@ -8610,7 +8747,7 @@ function virtualAdvisorActions(ctx) {
     actions.push({
       tone: "good",
       title: "Traspaso prudente a Mediolanum",
-      text: `${money(today.transferToSavings, true)} manteniendo reserva de ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
+      text: `${money(today.transferToSavings, true)} el ${today.transferDateLabel || "cierre de mes"}, manteniendo reserva de ${money(today.requiredReserve || plan.caixaFloor, true)}.`,
       action: "Ver evolución",
       target: "savings-agent",
     });
@@ -8667,7 +8804,7 @@ function renderAdvisorKpis(ctx) {
     ["Capacidad libre real", money(monthlyFreeCapacity(plan.rows || []), true), "Media 12m tras ahorro objetivo y decisiones cargadas.", executiveToneForAmount(monthlyFreeCapacity(plan.rows || []))],
     ["Planes en cálculo", `${summary.pending} pend. · ${summary.locked} fijo(s)`, summary.nextImpactAmount ? `Próximo: ${money(summary.nextImpactAmount, true)} en ${summary.nextImpactMonth}.` : "Sin impacto próximo.", summary.pending ? "warn" : "good"],
     ["Ruta deuda", routeText, routeSummary ? `Impacto patrimonio: ${money(routeSummary.netWorthDelta, true)}.` : "Sin deuda optimizable.", routeSummary ? "warn" : "neutral"],
-    ["Traspaso seguro", money(today.transferToSavings || 0, true), `Reserva actual: ${money(today.requiredReserve || plan.caixaFloor, true)}.`, Number(today.transferToSavings || 0) > 0 ? "good" : "warn"],
+    ["Traspaso seguro", money(today.transferToSavings || 0, true), `Fecha: ${today.transferDateLabel || "cierre de mes"}. Reserva actual: ${money(today.requiredReserve || plan.caixaFloor, true)}.`, Number(today.transferToSavings || 0) > 0 ? "good" : "warn"],
   ];
   target.innerHTML = cards
     .map(([label, value, note, tone]) => `<article class="advisor-kpi ${tone}">
@@ -8757,7 +8894,7 @@ function renderAdvisorMonths(ctx) {
         <dl>
           <div><dt>Resultado</dt><dd class="${row.operatingResult < 0 ? "negative" : "positive"}">${money(row.operatingResult, true)}</dd></div>
           <div><dt>Proyectos/deuda</dt><dd>${money(row.projectOutflow, true)}</dd></div>
-          <div><dt>Traspaso</dt><dd class="positive">${money(row.transferToSavings, true)}</dd></div>
+          <div><dt>Traspaso</dt><dd class="positive">${money(row.transferToSavings, true)}<small>${escapeHtml(row.transferDateLabel || "cierre de mes")}</small></dd></div>
           <div><dt>Caja cierre</dt><dd>${money(row.agentCaixa, true)}</dd></div>
         </dl>
       </article>`;
@@ -8873,12 +9010,14 @@ function renderPrevision() {
   const minTotal = Math.min(...realMetrics.map((metric) => metric.min));
   const maxTotal = Math.max(...realMetrics.map((metric) => metric.max));
   const worstItem = items[realMetrics.findIndex((metric) => metric.adjustedMin === minAdjusted)] || items[0];
+  const minItem = items[realMetrics.findIndex((metric) => metric.min === minTotal)] || items[0];
+  const maxItem = items[realMetrics.findIndex((metric) => metric.max === maxTotal)] || items[0];
 
   qs("previsionSummary").innerHTML = [
     ["Resultado anual", money(resultYear, true), resultYear >= 0 ? "positive" : "negative"],
-    ["Saldo máximo", money(maxTotal, true), "positive"],
-    ["Mínimo", money(minTotal, true), minTotal < 0 ? "negative" : ""],
-    ["Mínimo ajustado", `${money(minAdjusted, true)} · ${worstItem.row.month}`, minAdjusted < 0 ? "negative" : ""],
+    ["Saldo máximo", `${money(maxTotal, true)} · ${maxItem.row.month} · ${previsionMetric(maxItem.row).maxDateLabel || ""}`, "positive"],
+    ["Mínimo", `${money(minTotal, true)} · ${minItem.row.month} · ${previsionMetric(minItem.row).minDateLabel || ""}`, minTotal < 0 ? "negative" : ""],
+    ["Mínimo ajustado", `${money(minAdjusted, true)} · ${worstItem.row.month} · ${previsionMetric(worstItem.row).adjustedMinDateLabel || ""}`, minAdjusted < 0 ? "negative" : ""],
   ]
     .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
     .join("");
@@ -10693,14 +10832,15 @@ function renderHomeDashboard() {
   const decisionStatus = decisionImpact < 0 ? "warn" : "good";
   const coverageStatus = savings.currentCoverage < 3 ? "danger" : savings.currentCoverage < 6 ? "warn" : "good";
   const runwayNote = metrics
-    ? `Mínimo ajustado: ${money(metrics.adjustedMin, true)} en ${metrics.adjustedMinMonth}.`
+    ? `Mínimo ajustado: ${money(metrics.adjustedMin, true)} en ${metrics.adjustedMinMonth} (${metrics.adjustedMinDate || "fecha estimada"}).`
     : "Sin rango suficiente para calcular mínimos.";
+  const balanceDateText = state.balanceDate || defaultBalanceDate();
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
       label: "Liquidez de partida",
       value: money(state.initialCash, true),
-      note: runwayNote,
+      note: `Saldo base a ${balanceDateText}. ${runwayNote}`,
       status: adjustedStatus,
       cta: "Ver previsión",
       target: "prevision",

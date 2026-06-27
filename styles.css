@@ -3329,6 +3329,18 @@ svg {
   font-weight: 900;
 }
 
+.executive-month dd small,
+.advisor-month dd small,
+.agent-month-card dd small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
 .executive-car-kpis {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
