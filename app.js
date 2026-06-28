@@ -6442,15 +6442,18 @@ function previsionRowsForMonths(months) {
     .filter((item) => monthKeys.has(item.row.detailMonthKey));
 }
 
-function previsionCell(value, mode = "") {
+function previsionCell(value, mode = "", item = null) {
   const klass = mode || (value < 0 ? "negative" : value > 0 ? "positive" : "");
-  return `<td class="${klass}">${money(value, true)}</td>`;
+  const monthAttrs = item?.row?.detailMonthKey
+    ? ` data-prevision-month-key="${escapeHtml(item.row.detailMonthKey)}" title="Ver detalle de ${escapeHtml(item.row.month)}"`
+    : "";
+  return `<td class="${klass}"${monthAttrs}>${money(value, true)}</td>`;
 }
 
 function renderPrevisionValueRow(label, items, getter, mode = "") {
   return `<tr>
     <td>${escapeHtml(label)}</td>
-    ${items.map((item) => previsionCell(getter(item), mode)).join("")}
+    ${items.map((item) => previsionCell(getter(item), mode, item)).join("")}
   </tr>`;
 }
 
@@ -10872,6 +10875,7 @@ function renderMonthlySummary() {
   if (!planning?.months?.length) return;
   const monthIndex = Number(qs("detailMonth").value || 0);
   const month = { ...planning.months[monthIndex], index: monthIndex };
+  const simulationRow = openSimulationRows(lastSimulation).find((row) => row.detailMonthKey === month.key);
   const totals = {
     income: 0,
     expense: 0,
@@ -10887,11 +10891,19 @@ function renderMonthlySummary() {
     });
   });
 
-  const net = totals.income - totals.expense;
+  const income = simulationRow ? Number(simulationRow.income || 0) : totals.income;
+  const baseExpense = simulationRow
+    ? Number(simulationRow.coreSpend || 0) + Number(simulationRow.car || 0) + Number(simulationRow.refi || 0)
+    : totals.expense;
+  const decisionImpact = simulationRow ? Number(simulationRow.projectOutflow || 0) : 0;
+  const net = simulationRow ? Number(simulationRow.netBeforeSaving || 0) : totals.income - totals.expense;
+  const saving = simulationRow ? Number(simulationRow.saving || 0) : 0;
   qs("monthlySummary").innerHTML = [
-    ["Ingresos del mes", money(totals.income, true), "positive"],
-    ["Gastos del mes", money(totals.expense, true), "negative"],
-    ["Neto antes de ahorrar", money(net, true), net >= 0 ? "positive" : "negative"],
+    ["Ingresos del mes", money(income, true), "positive"],
+    ["Gastos base + deuda", money(baseExpense, true), "negative"],
+    ["Decisiones/proyectos", money(decisionImpact, true), decisionImpact < 0 ? "positive" : decisionImpact > 0 ? "negative" : ""],
+    ["Resultado del mes", money(net, true), net >= 0 ? "positive" : "negative"],
+    ["Ahorro aplicado", money(saving, true), ""],
     ["Reales capturados", `${totals.actualRows} líneas`, ""],
   ]
     .map(
@@ -10899,6 +10911,19 @@ function renderMonthlySummary() {
         `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`,
     )
     .join("");
+}
+
+function selectMonthlyDetailByKey(monthKeyValue) {
+  const select = qs("detailMonth");
+  if (!select || !monthKeyValue) return false;
+  const planningIndex = baseData.monthlyPlanning.months.findIndex((month) => month.key === monthKeyValue);
+  if (planningIndex < 0) return false;
+  const option = [...select.options].find((item) => Number(item.value) === planningIndex);
+  if (!option) return false;
+  select.value = option.value;
+  renderMonthlyDetails();
+  qs("monthly-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  return true;
 }
 
 function renderIncomeDetails() {
@@ -11856,6 +11881,11 @@ async function init() {
     qs(id).addEventListener("change", handleVisualAccountBalanceInput);
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
+  qs("previsionTable")?.addEventListener("click", (event) => {
+    const cell = event.target.closest("[data-prevision-month-key]");
+    if (!cell) return;
+    selectMonthlyDetailByKey(cell.getAttribute("data-prevision-month-key"));
+  });
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
   ["executiveCaixaFloor", "executiveCarReserve", "executiveCarCost", "executiveTereCreditCapital", "executiveTereCreditPayment"].forEach((id) => {

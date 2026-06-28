@@ -5738,6 +5738,17 @@ svg {
   min-width: 1180px;
 }
 
+.prevision-table td[data-prevision-month-key] {
+  cursor: pointer;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.prevision-table td[data-prevision-month-key]:hover {
+  background: rgba(20, 151, 145, 0.1);
+}
+
 .prevision-table th:first-child,
 .prevision-table td:first-child {
   min-width: 260px;
