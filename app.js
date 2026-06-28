@@ -11411,6 +11411,67 @@ function renderLiquidationMetric({ label, value, note, tone = "" }) {
   </article>`;
 }
 
+function liquidationConnectedDebtDecisions() {
+  const decisions = (projectPlan?.placements || [])
+    .filter((item) => item.source === "debt")
+    .map((item) => ({
+      ...item,
+      grossCost: decisionGrossCost(item),
+      netCost: decisionNetCashCost(item),
+      fixed: Boolean(item.locked),
+      startLabel: item.monthLabel || forecastMonths()[Number(item.startIndex || 0)]?.label || "",
+    }))
+    .sort((a, b) => Number(a.startIndex || 0) - Number(b.startIndex || 0));
+  const fixed = decisions.filter((item) => item.fixed);
+  const pending = decisions.filter((item) => !item.fixed);
+  const grossCost = round2(sumRows(decisions, (item) => item.grossCost));
+  const fixedCost = round2(sumRows(fixed, (item) => item.grossCost));
+  const next = decisions[0] || null;
+  return {
+    decisions,
+    fixed,
+    pending,
+    grossCost,
+    fixedCost,
+    next,
+  };
+}
+
+function renderLiquidationConnectedDecisions(info) {
+  const items = info.decisions.slice(0, 5);
+  const nextText = info.next
+    ? `${info.next.startLabel}: ${money(info.next.grossCost, true)}`
+    : "Sin impactos de deuda cargados";
+  return `<section class="debt-connected-decisions">
+    <div class="debt-connected-head">
+      <div>
+        <p class="panel-kicker">Conexión con simulador</p>
+        <h4>Deuda ya considerada en el flujo</h4>
+      </div>
+      <span class="status-pill ${info.decisions.length ? "good" : "warn"}">${info.pending.length} pend. · ${info.fixed.length} fijo(s)</span>
+    </div>
+    <div class="debt-connected-metrics">
+      <div><span>Impacto cargado</span><strong>${money(info.grossCost, true)}</strong></div>
+      <div><span>Fijo en plan</span><strong>${money(info.fixedCost, true)}</strong></div>
+      <div><span>Próximo impacto</span><strong>${escapeHtml(nextText)}</strong></div>
+    </div>
+    ${
+      items.length
+        ? `<div class="debt-connected-list">
+            ${items
+              .map(
+                (item) => `<article>
+                  <strong>${escapeHtml(item.name || item.label || "Decisión de deuda")}</strong>
+                  <span>${escapeHtml(item.fixed ? "Fijo en plan" : "Pendiente de decisión")} · ${escapeHtml(item.startLabel || "sin mes")} · ${money(item.grossCost, true)}</span>
+                </article>`,
+              )
+              .join("")}
+          </div>`
+        : `<p class="debt-connected-empty">Todavía no hay amortizaciones o reunificaciones cargadas desde el simulador. La ruta usa solo los supuestos CIRBE/ASNEF y el flujo mensual base.</p>`
+    }
+  </section>`;
+}
+
 function renderDebtLiquidationPlan() {
   if (!qs("debtPlanKpis")) return;
   const assumptions = DEBT_LIQUIDATION_ASSUMPTIONS;
@@ -11424,6 +11485,8 @@ function renderDebtLiquidationPlan() {
   const wizinkMonthly = round2(wizinkPrincipal / assumptions.wizink.months);
   const cirbeReduction = round2(assumptions.cirbe.december2025.total - assumptions.cirbe.may2026.total);
   const consumerDebt = round2(best.g1Cost + best.g2Cost + wizinkPrincipal);
+  const connectedDebt = liquidationConnectedDebtDecisions();
+  const pendingStrategicCost = Math.max(0, round2(consumerDebt - connectedDebt.grossCost));
 
   qs("debtPlanKpis").innerHTML = [
     renderLiquidationMetric({
@@ -11439,9 +11502,9 @@ function renderDebtLiquidationPlan() {
       tone: "warn",
     }),
     renderLiquidationMetric({
-      label: "Coste objetivo",
-      value: money(consumerDebt, true),
-      note: `Golpes + Wizink pactado. Quitas estimadas, no garantizadas.`,
+      label: "Coste objetivo pendiente",
+      value: money(pendingStrategicCost, true),
+      note: `Objetivo ${money(consumerDebt, true)} menos decisiones de deuda ya cargadas (${money(connectedDebt.grossCost, true)}).`,
       tone: "warn",
     }),
     renderLiquidationMetric({
@@ -11464,7 +11527,8 @@ function renderDebtLiquidationPlan() {
       <div><span>Golpe 1</span><strong>${best.g1Month || "Pendiente"}</strong><p>CaixaBank Payments, Carrefour, MediaMarkt e IKEA: ${money(best.g1Cost, true)} estimados.</p></div>
       <div><span>Demanda</span><strong>${best.demandMonth ? formatIsoDate(`${best.demandMonth}-01`) : "Sin ingreso"}</strong><p>Si entran ${money(best.demandAmount, true)}, 100% al fondo de liquidación.</p></div>
       <div><span>Golpe 2</span><strong>${best.g2Month || "Pendiente"}</strong><p>Bankinter completo: ${money(best.g2Cost, true)} estimados. Después, solo hipotecas + Wizink pactado.</p></div>
-    </div>`;
+    </div>
+    ${renderLiquidationConnectedDecisions(connectedDebt)}`;
 
   qs("debtPlanSources").innerHTML = `<div class="module-heading">
       <div>
