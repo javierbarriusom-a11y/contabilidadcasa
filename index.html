@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260628c" />
+    <link rel="stylesheet" href="styles.css?v=20260628d" />
   </head>
   <body>
     <div class="app-shell">
@@ -20,6 +20,7 @@
         <nav class="side-nav">
           <a href="#home" class="active">Inicio</a>
           <a href="#executive-advisor">Asesor ejecutivo</a>
+          <a href="#new-life-simulation">Simulación nueva vida</a>
           <a href="#virtual-advisor">Asesor virtual</a>
           <a href="#visual-detail">Cuadro de mandos</a>
           <a href="#debt-liquidation-plan">Plan deuda óptimo</a>
@@ -247,6 +248,94 @@
                 </div>
               </div>
               <div class="executive-month-strip" id="executiveMonthAgenda"></div>
+            </article>
+          </section>
+
+          <section class="new-life-simulation view-section" id="new-life-simulation">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Simulación nueva vida</p>
+                <h2>Tablero familiar de decisiones</h2>
+                <p>Unifica deuda, coche, proyectos y traspasos para explicar qué hacer, cuándo hacerlo y qué impacto tiene en cada cuenta.</p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="secondary-button" data-new-life-action="simulate-route">Simular ruta deuda</button>
+                <button type="button" class="secondary-button" data-new-life-action="prepare-car-project">Preparar coche</button>
+              </div>
+            </div>
+
+            <article class="new-life-hero" id="newLifeHero"></article>
+            <div class="new-life-kpis" id="newLifeKpis"></div>
+
+            <div class="new-life-layout">
+              <article class="new-life-panel new-life-priority-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Decisiones listas</p>
+                    <h3>Qué haría y por qué</h3>
+                    <p>Orden ejecutivo conectado con el criterio de Plan deuda óptimo.</p>
+                  </div>
+                </div>
+                <div class="new-life-actions" id="newLifeActions"></div>
+              </article>
+
+              <article class="new-life-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Historia para casa</p>
+                    <h3>Explicación familiar</h3>
+                    <p>Lectura sencilla para alinear deuda, coche y colchón.</p>
+                  </div>
+                </div>
+                <div id="newLifeFamilyStory"></div>
+              </article>
+            </div>
+
+            <div class="new-life-layout">
+              <article class="new-life-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Comparador</p>
+                    <h3>Escenarios completos</h3>
+                    <p>Base, deuda óptima, coche con hucha y coche con financiación de Tere.</p>
+                  </div>
+                </div>
+                <div class="new-life-scenario-grid" id="newLifeScenarios"></div>
+              </article>
+
+              <article class="new-life-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Ruta deuda</p>
+                    <h3>Próximas liquidaciones</h3>
+                    <p>Usa el mismo criterio que Plan deuda óptimo.</p>
+                  </div>
+                </div>
+                <div class="new-life-debt-route" id="newLifeDebtRoute"></div>
+              </article>
+            </div>
+
+            <article class="new-life-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Calendario</p>
+                  <h3>Impacto mes a mes</h3>
+                  <p>Primeros 12 meses con traspasos, saldos y eventos de deuda/proyectos.</p>
+                </div>
+              </div>
+              <div class="table-wrap new-life-table-wrap">
+                <table class="new-life-table" id="newLifeTimeline"></table>
+              </div>
+            </article>
+
+            <article class="new-life-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Criterio</p>
+                  <h3>Reglas de decisión</h3>
+                </div>
+              </div>
+              <div class="new-life-rules" id="newLifeDecisionNotes"></div>
             </article>
           </section>
 
@@ -1512,6 +1601,6 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
-    <script src="app.js?v=20260628c"></script>
+    <script src="app.js?v=20260628d"></script>
   </body>
 </html>

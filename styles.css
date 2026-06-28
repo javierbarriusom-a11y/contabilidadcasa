@@ -6785,3 +6785,531 @@ tbody tr:hover {
     margin-top: 12px;
   }
 }
+
+.new-life-simulation {
+  --life-teal: #13756e;
+  --life-blue: #25588f;
+  --life-gold: #b88a21;
+  --life-red: #bb4f48;
+  --life-ink: #172229;
+}
+
+.new-life-hero,
+.new-life-panel,
+.debt-plan-strategy {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(18, 34, 40, 0.06);
+}
+
+.new-life-hero {
+  align-items: stretch;
+  background: linear-gradient(135deg, #126f68 0%, #25588f 100%);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+  margin-top: 18px;
+  padding: 24px;
+}
+
+.new-life-hero.warn {
+  background: linear-gradient(135deg, #8a6818 0%, #25588f 100%);
+}
+
+.new-life-hero.danger {
+  background: linear-gradient(135deg, #8d3c37 0%, #244f84 100%);
+}
+
+.new-life-hero-main,
+.new-life-kpi,
+.new-life-action,
+.new-life-scenario-card,
+.new-life-debt-step,
+.new-life-rule,
+.debt-plan-strategy-grid article {
+  min-width: 0;
+}
+
+.new-life-hero-main span {
+  color: rgba(255, 255, 255, 0.82);
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.new-life-hero-main h2 {
+  font-size: clamp(2rem, 4vw, 4.4rem);
+  line-height: 0.98;
+  margin: 10px 0 14px;
+  max-width: 980px;
+  overflow-wrap: anywhere;
+}
+
+.new-life-hero-main p {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(1rem, 1.35vw, 1.35rem);
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0 0 18px;
+  max-width: 980px;
+}
+
+.new-life-hero-main button,
+.new-life-action button,
+.new-life-debt-step button,
+.debt-plan-strategy-actions button {
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 950;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.new-life-hero-main button.secondary,
+.new-life-action button.secondary,
+.debt-plan-strategy-actions .secondary-button {
+  background: #fff;
+  border: 1px solid rgba(19, 117, 110, 0.32);
+  color: var(--life-teal);
+}
+
+.new-life-hero-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.new-life-hero-metrics div {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.new-life-hero-metrics span,
+.new-life-kpi span,
+.new-life-scenario-card span,
+.new-life-debt-step dt,
+.new-life-rule span,
+.debt-plan-strategy-grid span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.new-life-hero-metrics span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.new-life-hero-metrics strong,
+.new-life-kpi strong,
+.new-life-scenario-card strong,
+.new-life-debt-step dd,
+.debt-plan-strategy-grid strong {
+  display: block;
+  font-size: clamp(1.25rem, 2vw, 2rem);
+  line-height: 1.05;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+
+.new-life-hero-metrics small,
+.new-life-kpi small,
+.new-life-scenario-card small,
+.new-life-debt-step small,
+.new-life-rule p {
+  color: var(--muted);
+  display: block;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.new-life-hero-metrics small {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.new-life-kpis {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(6, minmax(150px, 1fr));
+  margin: 16px 0;
+}
+
+.new-life-kpi {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.new-life-kpi strong {
+  color: var(--life-ink);
+}
+
+.new-life-layout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin-top: 16px;
+}
+
+.new-life-panel {
+  padding: 18px;
+}
+
+.new-life-actions,
+.new-life-debt-route,
+.new-life-rules {
+  display: grid;
+  gap: 10px;
+}
+
+.new-life-action {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-left: 6px solid #2f8f5b;
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.new-life-action.warn {
+  border-left-color: var(--life-gold);
+}
+
+.new-life-action.danger {
+  border-left-color: var(--life-red);
+}
+
+.new-life-action.neutral {
+  border-left-color: #7d8b94;
+}
+
+.new-life-action > span {
+  align-items: center;
+  background: #159891;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  font-weight: 950;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.new-life-action.warn > span {
+  background: var(--life-gold);
+}
+
+.new-life-action.danger > span {
+  background: var(--life-red);
+}
+
+.new-life-action h3,
+.new-life-scenario-card h3,
+.new-life-rule h3,
+.debt-plan-strategy-grid h4 {
+  font-size: 1.05rem;
+  line-height: 1.12;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.new-life-action p,
+.new-life-scenario-card p,
+.new-life-debt-step p,
+.debt-plan-strategy p {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.new-life-story {
+  display: grid;
+  gap: 12px;
+}
+
+.new-life-story-step {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.new-life-story-step strong {
+  display: block;
+  font-size: 1.15rem;
+  line-height: 1.15;
+  margin-bottom: 5px;
+}
+
+.new-life-story-step p {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.new-life-scenario-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.new-life-scenario-card {
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--life-teal);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.new-life-scenario-card strong {
+  color: #287d50;
+}
+
+.new-life-debt-step {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--life-gold);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 38px minmax(0, 1fr) minmax(220px, 0.8fr) auto;
+  padding: 14px;
+}
+
+.new-life-debt-step > span {
+  align-items: center;
+  background: #159891;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  font-weight: 950;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.new-life-debt-step dl {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.new-life-debt-step dd {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.new-life-table-wrap {
+  max-height: 560px;
+  overflow: auto;
+}
+
+.new-life-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 1040px;
+  width: 100%;
+}
+
+.new-life-table th,
+.new-life-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 14px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.new-life-table th:first-child,
+.new-life-table td:first-child {
+  left: 0;
+  position: sticky;
+  text-align: left;
+  z-index: 1;
+}
+
+.new-life-table th:first-child {
+  background: #edf4f5;
+}
+
+.new-life-table td:first-child {
+  background: #fff;
+  font-weight: 950;
+}
+
+.new-life-table thead th {
+  background: #edf4f5;
+  color: #46545c;
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.new-life-table tbody tr:nth-child(even) td {
+  background: #f8fafb;
+}
+
+.new-life-table tbody tr:nth-child(even) td:first-child {
+  background: #f8fafb;
+}
+
+.new-life-rules {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.new-life-rule {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.new-life-rule strong {
+  color: var(--life-teal);
+  display: block;
+  font-size: 1.3rem;
+  line-height: 1.15;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+
+.debt-plan-strategy {
+  background: #f8fbfb;
+  margin: 16px 0;
+  padding: 18px;
+}
+
+.debt-plan-strategy-head {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.debt-plan-strategy-head h3 {
+  font-size: 1.45rem;
+  margin: 0 0 4px;
+}
+
+.debt-plan-strategy-head p {
+  color: var(--muted);
+  font-weight: 800;
+  margin: 0;
+}
+
+.debt-plan-strategy-badge {
+  background: #e8f4ee;
+  border: 1px solid rgba(47, 143, 91, 0.28);
+  border-radius: 999px;
+  color: #287d50;
+  flex: 0 0 auto;
+  font-weight: 950;
+  padding: 8px 12px;
+}
+
+.debt-plan-strategy-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.debt-plan-strategy-grid article {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.debt-plan-strategy-grid strong {
+  color: var(--life-ink);
+}
+
+.debt-plan-strategy-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.debt-plan-strategy-actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.debt-plan-strategy-actions small {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+@media (max-width: 1200px) {
+  .new-life-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .new-life-scenario-grid,
+  .new-life-rules,
+  .debt-plan-strategy-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .new-life-debt-step {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .new-life-debt-step dl,
+  .new-life-debt-step button {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .new-life-hero,
+  .new-life-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .new-life-hero-metrics,
+  .new-life-kpis,
+  .new-life-scenario-grid,
+  .new-life-rules,
+  .debt-plan-strategy-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .new-life-action {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .new-life-action button {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .debt-plan-strategy-head {
+    display: block;
+  }
+
+  .debt-plan-strategy-badge {
+    display: inline-block;
+    margin-top: 10px;
+  }
+}
