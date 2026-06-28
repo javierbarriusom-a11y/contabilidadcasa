@@ -269,6 +269,17 @@ function money(value, precise = false) {
   return (precise ? euroPrecise : euro).format(value || 0);
 }
 
+function safeCoverageMonths(amount, monthlyOutflow) {
+  const outflow = Number(monthlyOutflow || 0);
+  if (!Number.isFinite(outflow) || outflow <= 0) return null;
+  const coverage = Number(amount || 0) / outflow;
+  return Number.isFinite(coverage) ? coverage : null;
+}
+
+function coverageMonthsText(value, fallback = "N/D") {
+  return Number.isFinite(Number(value)) ? Number(value).toFixed(1) : fallback;
+}
+
 function monthLabel(date) {
   return date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
 }
@@ -2802,7 +2813,7 @@ function updateKpis(rows, baseRows = rows) {
   const baseLast = baseRows[baseRows.length - 1];
   const averageSaving = rows.reduce((sum, row) => sum + row.saving, 0) / rows.length;
   const firstOutflow = first.coreSpend + first.car + first.refi;
-  const bufferMonths = state.initialCash / firstOutflow;
+  const bufferMonths = safeCoverageMonths(state.initialCash, firstOutflow);
   const savingsRate = first.income ? averageSaving / first.income : 0;
   const oldCreditAverage = baseData.derived.oldCreditMonthlyAverageJanMar2026;
   qs("kpiInitial").textContent = money(state.initialCash, true);
@@ -2815,11 +2826,13 @@ function updateKpis(rows, baseRows = rows) {
     : "Sin decisiones cargadas";
   qs("kpiEndingDelta").className = endingDelta < 0 ? "negative" : "positive";
   qs("miniSavingsRate").textContent = `${(savingsRate * 100).toFixed(0)}%`;
-  qs("miniRunway").textContent = bufferMonths.toFixed(1);
+  qs("miniRunway").textContent = coverageMonthsText(bufferMonths);
   qs("miniDebtShift").textContent = money(oldCreditAverage);
 
   if (first.netBeforeSaving <= 0) {
     qs("scenarioStatus").textContent = "Necesita ajustar gasto o ahorro antes de ejecutarlo.";
+  } else if (bufferMonths === null) {
+    qs("scenarioStatus").textContent = "Sin gasto base en el primer mes abierto; colchón no calculable.";
   } else if (bufferMonths < state.emergencyBufferMonths) {
     qs("scenarioStatus").textContent = "Viable, pero conviene reforzar colchón al inicio.";
   } else if (projectPlan.placements.length && endingDelta < 0) {
@@ -2986,7 +2999,7 @@ function renderAdvice(rows, baseRows = rows) {
   const monthlyOutflow = averageRows(next12, (row) => row.coreSpend + row.car + row.refi);
   const avgNetBeforeSaving = averageRows(next12, (row) => row.netBeforeSaving);
   const bufferTarget = monthlyOutflow * state.emergencyBufferMonths;
-  const bufferMonths = state.initialCash / monthlyOutflow;
+  const bufferMonths = safeCoverageMonths(state.initialCash, monthlyOutflow);
   const avgIncome12 = averageRows(next12, (row) => row.income);
   const avgExpense12 = averageRows(next12, (row) => row.coreSpend + row.car + row.refi);
   const savingsRate = avgIncome12 ? avgSaving / avgIncome12 : 0;
@@ -3013,11 +3026,17 @@ function renderAdvice(rows, baseRows = rows) {
     });
   }
 
-  if (bufferMonths < state.emergencyBufferMonths) {
+  if (bufferMonths === null) {
+    list.push({
+      type: "warning",
+      title: "Colchón sin base de gasto",
+      body: "No hay gasto medio previsto en los próximos meses abiertos, así que la cobertura de colchón queda sin dato. Revisa si el mes cerrado o los gastos base están a cero.",
+    });
+  } else if (bufferMonths < state.emergencyBufferMonths) {
     list.push({
       type: "warning",
       title: "Prioriza colchón al principio",
-      body: `La liquidez inicial cubre ${bufferMonths.toFixed(1)} meses. Tu objetivo de ${state.emergencyBufferMonths} meses equivale a ${money(bufferTarget, true)}.`,
+      body: `La liquidez inicial cubre ${coverageMonthsText(bufferMonths)} meses. Tu objetivo de ${state.emergencyBufferMonths} meses equivale a ${money(bufferTarget, true)}.`,
     });
   } else {
     list.push({
