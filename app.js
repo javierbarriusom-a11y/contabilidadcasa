@@ -8977,6 +8977,7 @@ function defaultNewLifeDefinitiveState() {
     loanPayment: settings.tereCreditPayment || DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT,
     loanMonths: settings.tereCreditMonths || DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS,
     debtStrategy: "optimal",
+    confirmedFlow: false,
   };
 }
 
@@ -9063,6 +9064,7 @@ function newLifeDefinitiveDebtSteps(ctx, state) {
 
 function buildNewLifeDefinitiveFlow(ctx, override = {}) {
   const state = { ...ctx.state, ...override };
+  const applyLocalDecisions = state.confirmedFlow === true;
   const sourceRows = agentVisibleRows(ctx.plan).slice(0, Math.max(6, Number(state.horizon || 24)));
   const balances = ctx.balances || accountBalancesFromState();
   const startBalances = {
@@ -9075,7 +9077,7 @@ function buildNewLifeDefinitiveFlow(ctx, override = {}) {
   const targetProjectIndex = matchedProjectIndex >= 0
     ? matchedProjectIndex
     : Math.max(0, Math.min(sourceRows.length - 1, Number(state.projectMonthIndex || 0)));
-  const debtSteps = newLifeDefinitiveDebtSteps(ctx, state);
+  const debtSteps = applyLocalDecisions ? newLifeDefinitiveDebtSteps(ctx, state) : [];
   let caixa = startBalances.caixa;
   let mediolanum = startBalances.mediolanum;
   let totalTransfer = 0;
@@ -9091,20 +9093,20 @@ function buildNewLifeDefinitiveFlow(ctx, override = {}) {
     let loanIncome = 0;
     let loanPayment = 0;
 
-    if (state.projectMode === "credit" && index === targetProjectIndex && Number(state.loanCapital || 0) > 0) {
+    if (applyLocalDecisions && state.projectMode === "credit" && index === targetProjectIndex && Number(state.loanCapital || 0) > 0) {
       loanIncome = Number(state.loanCapital || 0);
       loanCapitalUsed = round2(loanCapitalUsed + loanIncome);
       events.push(`Crédito Tere +${money(loanIncome, true)}`);
     }
-    if (state.projectMode === "credit" && index >= targetProjectIndex && index < targetProjectIndex + Number(state.loanMonths || 0)) {
+    if (applyLocalDecisions && state.projectMode === "credit" && index >= targetProjectIndex && index < targetProjectIndex + Number(state.loanMonths || 0)) {
       loanPayment = Number(state.loanPayment || 0);
     }
-    if ((state.projectMode === "payment" || state.projectMode === "credit") && index === targetProjectIndex && Number(state.projectAmount || 0) > 0) {
+    if (applyLocalDecisions && (state.projectMode === "payment" || state.projectMode === "credit") && index === targetProjectIndex && Number(state.projectAmount || 0) > 0) {
       localOutflow += Number(state.projectAmount || 0);
       projectExecuted = true;
       events.push(`${state.projectName}: ${money(state.projectAmount, true)}`);
     }
-    if (state.projectMode === "savings" && index === targetProjectIndex && Number(state.projectAmount || 0) > 0) {
+    if (applyLocalDecisions && state.projectMode === "savings" && index === targetProjectIndex && Number(state.projectAmount || 0) > 0) {
       mediolanumOutflow += Number(state.projectAmount || 0);
       projectExecuted = true;
       events.push(`${state.projectName} desde Mediolanum`);
@@ -9168,10 +9170,10 @@ function buildNewLifeDefinitiveFlow(ctx, override = {}) {
 }
 
 function newLifeDefScenarioSummaries(ctx, state) {
-  const base = buildNewLifeDefinitiveFlow(ctx, { ...state, projectAmount: 0, debtStrategy: "none", loanCapital: 0, loanPayment: 0 });
-  const savings = buildNewLifeDefinitiveFlow(ctx, { ...state, projectMode: "savings", debtStrategy: "none" });
-  const credit = buildNewLifeDefinitiveFlow(ctx, { ...state, projectMode: "credit", debtStrategy: "none" });
-  const combined = buildNewLifeDefinitiveFlow(ctx, state);
+  const base = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectAmount: 0, debtStrategy: "none", loanCapital: 0, loanPayment: 0 });
+  const savings = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectMode: "savings", debtStrategy: "none" });
+  const credit = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectMode: "credit", debtStrategy: "none" });
+  const combined = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true });
   return [
     { key: "base", title: "Sin decisiones nuevas", flow: base, note: "Sirve como suelo para comparar." },
     { key: "savings", title: "Proyecto con hucha", flow: savings, note: "Compra desde Mediolanum cuando llegue el mes." },
@@ -9183,6 +9185,7 @@ function newLifeDefScenarioSummaries(ctx, state) {
 function renderLifeDefHero(ctx, flow) {
   const firstDebt = newLifeDefinitiveDebtSteps(ctx, flow.state)[0];
   const transferRow = flow.rows.find((row) => row.transfer > 0);
+  const isConfirmed = flow.displayConfirmed === true;
   const decision = firstDebt
     ? `Preparar ${debtTargetDisplayName(firstDebt.candidate)} en ${forecastMonths()[firstDebt.monthIndex]?.label || firstDebt.monthIndex}`
     : flow.state.projectAmount > 0
@@ -9190,10 +9193,11 @@ function renderLifeDefHero(ctx, flow) {
       : "Mantener caja y seguir acumulando ahorro";
   qs("lifeDefHero").innerHTML = `
     <div class="life-def-hero-main">
-      <span>Decisión ejecutiva</span>
+      <span>Decisión ejecutiva · ${isConfirmed ? "confirmada en flujo local" : "pendiente de confirmar"}</span>
       <h2>${escapeHtml(decision)}</h2>
-      <p>Con esta simulación CaixaBank no baja de ${money(flow.minCaixaRow?.caixa || 0, true)} y Mediolanum termina en ${money(flow.final?.mediolanum || 0, true)}. ${transferRow ? `Primer traspaso: ${money(transferRow.transfer, true)} en ${escapeHtml(transferRow.month)}.` : "No hay traspaso inmediato recomendable."}</p>
+      <p>${isConfirmed ? "Ya está reflejado en el flujo de esta sección." : "Todavía no se mete en el flujo de caja local."} Si lo confirmas, CaixaBank no baja de ${money(flow.minCaixaRow?.caixa || 0, true)} y Mediolanum termina en ${money(flow.final?.mediolanum || 0, true)}. ${transferRow ? `Primer traspaso: ${money(transferRow.transfer, true)} en ${escapeHtml(transferRow.month)}.` : "No hay traspaso inmediato recomendable."}</p>
       <div class="life-def-hero-actions">
+        <button type="button" data-life-def-action="${isConfirmed ? "unconfirm-flow" : "confirm-flow"}">${isConfirmed ? "Quitar del flujo local" : "Confirmar en flujo local"}</button>
         <button type="button" data-life-def-action="prepare-project">Llevar proyecto al simulador</button>
         <button type="button" class="secondary" data-life-def-action="prepare-debt">Preparar deuda sugerida</button>
       </div>
@@ -9202,6 +9206,63 @@ function renderLifeDefHero(ctx, flow) {
       <div><span>CaixaBank final</span><strong>${money(flow.final?.caixa || 0, true)}</strong><small>Reserva configurada ${money(flow.state.caixaFloor, true)}</small></div>
       <div><span>Mediolanum final</span><strong>${money(flow.final?.mediolanum || 0, true)}</strong><small>Ahorro separado tras decisiones</small></div>
       <div><span>Liquidez total</span><strong>${money(flow.final?.total || 0, true)}</strong><small>${flow.debtPaid ? `${money(flow.debtPaid, true)} a deuda` : "Sin deuda simulada"}</small></div>
+    </div>`;
+}
+
+function renderLifeDefStory(ctx, previewFlow, committedFlow) {
+  const state = previewFlow.state || {};
+  const firstDebt = newLifeDefinitiveDebtSteps(ctx, state)[0];
+  const reserveRow = committedFlow.rows[0] || previewFlow.rows[0] || {};
+  const transferRow = previewFlow.rows.find((row) => row.transfer > 0);
+  const projectMonth = previewFlow.projectMonthRow?.month || forecastMonths()[state.projectMonthIndex]?.label || "mes elegido";
+  const hasProject = Number(state.projectAmount || 0) > 0;
+  const isConfirmed = state.confirmedFlow === true;
+  const steps = [
+    {
+      title: "Primero protegemos la cuenta operativa",
+      text: `CaixaBank debe conservar ${money(reserveRow.requiredReserve || state.caixaFloor || 0, true)} antes de mover dinero a Mediolanum. ${transferRow ? `La primera transferencia prudente sería ${money(transferRow.transfer, true)} en ${transferRow.month}.` : "De momento no aparece un traspaso claro con la reserva elegida."}`,
+    },
+    {
+      title: firstDebt ? "Después atacamos la deuda con mejor hueco" : "Deuda en pausa",
+      text: firstDebt
+        ? `La primera deuda sugerida por el criterio óptimo es ${debtTargetDisplayName(firstDebt.candidate)} en ${forecastMonths()[firstDebt.monthIndex]?.label || "mes óptimo"}, por ${money(firstDebt.amount, true)}.`
+        : "No hay deuda seleccionada para esta simulación local.",
+    },
+    {
+      title: hasProject ? "El proyecto se convierte en objetivo familiar" : "Sin proyecto de vida cargado",
+      text: hasProject
+        ? `${state.projectName || "Proyecto"} necesita ${money(state.projectAmount, true)}. Modalidad: ${state.projectMode === "credit" ? `financiación de Tere con cuota ${money(state.loanPayment, true)}/mes` : state.projectMode === "payment" ? "pago único" : "hucha en Mediolanum"}; mes objetivo ${projectMonth}.`
+        : "Añade coche, reforma, vacaciones o cualquier objetivo para ver cuándo encaja sin romper caja.",
+    },
+    {
+      title: isConfirmed ? "Esto ya impacta el flujo local" : "Nada se incorpora hasta confirmar",
+      text: isConfirmed
+        ? "Los eventos de esta simulación ya se muestran en el flujo de caja local. Puedes quitarlos sin tocar el dashboard real."
+        : "La tabla inferior sigue limpia: no incluye deuda, coche ni financiación hasta que pulses Confirmar en flujo local.",
+    },
+  ];
+  qs("lifeDefStory").innerHTML = `
+    <div class="life-def-story-head">
+      <div>
+        <p class="panel-kicker">Historia para casa</p>
+        <h3>Explicación familiar</h3>
+        <p>Lectura sencilla para alinear deuda, coche y colchón sin mezclar simulación con decisión tomada.</p>
+      </div>
+      <span class="life-def-status ${isConfirmed ? "is-confirmed" : "is-pending"}">${isConfirmed ? "Confirmado en flujo" : "Pendiente de confirmar"}</span>
+    </div>
+    <div class="life-def-story-grid">
+      ${steps
+        .map(
+          (item, index) => `
+            <article>
+              <strong>${index + 1}</strong>
+              <div>
+                <h4>${escapeHtml(item.title)}</h4>
+                <p>${escapeHtml(item.text)}</p>
+              </div>
+            </article>`,
+        )
+        .join("")}
     </div>`;
 }
 
@@ -9303,7 +9364,9 @@ function renderLifeDefAccounts(flow) {
 }
 
 function renderLifeDefCashflow(flow) {
+  const confirmed = flow.state?.confirmedFlow === true;
   qs("lifeDefCashflow").innerHTML = `
+    <caption>${confirmed ? "Flujo local con decisiones confirmadas en esta pantalla." : "Flujo base local: las decisiones simuladas no se aplican hasta confirmar."}</caption>
     <thead>
       <tr>
         <th>Mes</th>
@@ -9344,25 +9407,35 @@ function renderNewLifeDefinitive({ forceHeavy = false, preserveControls = false 
   const state = loadNewLifeDefinitiveState();
   if (!preserveControls) populateNewLifeDefinitiveControls(state);
   const freshState = readNewLifeDefinitiveControls();
-  const flow = buildNewLifeDefinitiveFlow(ctx, freshState);
-  renderLifeDefHero(ctx, flow);
-  renderLifeDefKpis(ctx, flow);
-  renderLifeDefDecisions(ctx, flow);
+  const previewFlow = buildNewLifeDefinitiveFlow(ctx, { ...freshState, confirmedFlow: true });
+  previewFlow.state = freshState;
+  previewFlow.displayConfirmed = freshState.confirmedFlow === true;
+  const committedFlow = buildNewLifeDefinitiveFlow(ctx, freshState);
+  renderLifeDefHero(ctx, previewFlow);
+  renderLifeDefKpis(ctx, previewFlow);
+  renderLifeDefStory(ctx, previewFlow, committedFlow);
+  renderLifeDefDecisions(ctx, previewFlow);
   renderLifeDefScenarios(ctx, freshState);
-  renderLifeDefAccounts(flow);
-  renderLifeDefCashflow(flow);
+  renderLifeDefAccounts(previewFlow);
+  renderLifeDefCashflow(committedFlow);
   if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("new-life-definitive");
 }
 
-function refreshNewLifeDefinitiveFromControls() {
+function refreshNewLifeDefinitiveFromControls({ keepConfirmation = false } = {}) {
   const state = readNewLifeDefinitiveControls();
-  saveNewLifeDefinitiveState(state);
+  saveNewLifeDefinitiveState(keepConfirmation ? state : { ...state, confirmedFlow: false });
   renderNewLifeDefinitive({ forceHeavy: Boolean(cachedAgentDebtOptimization()), preserveControls: true });
 }
 
 function resetNewLifeDefinitive() {
   const state = defaultNewLifeDefinitiveState();
   saveNewLifeDefinitiveState(state);
+  renderNewLifeDefinitive({ forceHeavy: Boolean(cachedAgentDebtOptimization()) });
+}
+
+function setNewLifeDefinitiveFlowConfirmed(confirmed) {
+  const state = readNewLifeDefinitiveControls();
+  saveNewLifeDefinitiveState({ ...state, confirmedFlow: Boolean(confirmed) });
   renderNewLifeDefinitive({ forceHeavy: Boolean(cachedAgentDebtOptimization()) });
 }
 
@@ -13036,12 +13109,12 @@ async function init() {
   });
   qs("new-life-definitive")?.addEventListener("input", (event) => {
     if (event.target.closest("#lifeDefForm") || event.target.closest("#lifeDefHorizon")) {
-      refreshNewLifeDefinitiveFromControls();
+      refreshNewLifeDefinitiveFromControls({ keepConfirmation: Boolean(event.target.closest("#lifeDefHorizon")) });
     }
   });
   qs("new-life-definitive")?.addEventListener("change", (event) => {
     if (event.target.closest("#lifeDefForm") || event.target.closest("#lifeDefHorizon")) {
-      refreshNewLifeDefinitiveFromControls();
+      refreshNewLifeDefinitiveFromControls({ keepConfirmation: Boolean(event.target.closest("#lifeDefHorizon")) });
     }
   });
   qs("new-life-definitive")?.addEventListener("click", (event) => {
@@ -13050,6 +13123,14 @@ async function init() {
       const action = actionButton.dataset.lifeDefAction;
       if (action === "reset") {
         resetNewLifeDefinitive();
+        return;
+      }
+      if (action === "confirm-flow") {
+        setNewLifeDefinitiveFlowConfirmed(true);
+        return;
+      }
+      if (action === "unconfirm-flow") {
+        setNewLifeDefinitiveFlowConfirmed(false);
         return;
       }
       if (action === "prepare-project") {

@@ -7083,7 +7083,7 @@ tbody tr:hover {
 }
 
 .life-def-hero-actions {
-  grid-template-columns: repeat(2, minmax(0, max-content));
+  grid-template-columns: repeat(3, minmax(0, max-content));
 }
 
 .life-def-hero button,
@@ -7167,6 +7167,90 @@ tbody tr:hover {
 .life-def-panel {
   min-width: 0;
   padding: 18px;
+}
+
+.life-def-story {
+  margin: 0 0 18px;
+}
+
+.life-def-story-head {
+  align-items: start;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.life-def-story-head h3 {
+  margin: 0;
+}
+
+.life-def-story-head p {
+  color: var(--muted);
+  font-weight: 800;
+  margin: 4px 0 0;
+}
+
+.life-def-status {
+  border-radius: 999px;
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 950;
+  padding: 8px 12px;
+  text-transform: uppercase;
+}
+
+.life-def-status.is-pending {
+  background: #fff7e8;
+  color: #8a5d09;
+}
+
+.life-def-status.is-confirmed {
+  background: #e8f6ee;
+  color: #247247;
+}
+
+.life-def-story-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.life-def-story-grid article {
+  align-items: start;
+  background: #f7fbfb;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--life-def-teal);
+  border-radius: 10px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+  min-width: 0;
+  padding: 14px;
+}
+
+.life-def-story-grid strong {
+  align-items: center;
+  background: var(--life-def-teal);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 950;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.life-def-story-grid h4 {
+  font-size: 1rem;
+  margin: 0 0 4px;
+}
+
+.life-def-story-grid p {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0;
 }
 
 .life-def-form {
@@ -7310,6 +7394,16 @@ tbody tr:hover {
   width: 100%;
 }
 
+.life-def-table caption {
+  background: #f7fbfb;
+  border-bottom: 1px solid var(--line);
+  caption-side: top;
+  color: var(--muted);
+  font-weight: 950;
+  padding: 12px 14px;
+  text-align: left;
+}
+
 .life-def-table th,
 .life-def-table td {
   border-bottom: 1px solid var(--line);
@@ -7395,7 +7489,8 @@ tbody tr:hover {
   }
 
   .life-def-kpis,
-  .life-def-scenarios {
+  .life-def-scenarios,
+  .life-def-story-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -7404,9 +7499,14 @@ tbody tr:hover {
   .life-def-form,
   .life-def-kpis,
   .life-def-scenarios,
+  .life-def-story-grid,
   .life-def-account-pair,
   .life-def-hero-actions {
     grid-template-columns: 1fr;
+  }
+
+  .life-def-story-head {
+    display: grid;
   }
 
   .life-def-decision {
