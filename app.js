@@ -6733,17 +6733,29 @@ function agentCaixaFloor() {
   return Number.isFinite(value) && value >= 0 ? round2(value) : DEFAULT_AGENT_CAIXA_FLOOR;
 }
 
+function syncCaixaFloorControls({ preserveActive = true } = {}) {
+  const value = amountInputValue(agentCaixaFloor());
+  ["agentCaixaFloor", "executiveCaixaFloor", "lifeDefCaixaFloor"].forEach((id) => {
+    const input = qs(id);
+    if (!input) return;
+    if (preserveActive && input === document.activeElement) return;
+    input.value = value;
+  });
+}
+
 function setAgentCaixaFloor(value) {
   const parsed = parseAmount(value);
   savingsAgentSettings().caixaFloor = parsed === null ? DEFAULT_AGENT_CAIXA_FLOOR : Math.max(0, round2(parsed));
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
+  syncCaixaFloorControls();
   saveScenarioSettings();
 }
 
 function handleAgentCaixaFloorChange() {
   setAgentCaixaFloor(qs("agentCaixaFloor")?.value);
   renderSavingsAgent();
+  if (viewFromHash() === "new-life-definitive") renderNewLifeDefinitive();
 }
 
 function agentNextMonthReserve(sourceRows, index, caixaFloor = agentCaixaFloor()) {
@@ -8229,7 +8241,7 @@ function saveExecutiveAdvisorSettingsFromControls({ rerender = true } = {}) {
   const settings = executiveAdvisorSettings();
   const caixaFloor = parseAmount(qs("executiveCaixaFloor")?.value);
   if (caixaFloor !== null) {
-    savingsAgentSettings().caixaFloor = Math.max(0, round2(caixaFloor));
+    setAgentCaixaFloor(caixaFloor);
   }
   scenarioSettings.executiveAdvisor = {
     ...settings,
@@ -8241,7 +8253,7 @@ function saveExecutiveAdvisorSettingsFromControls({ rerender = true } = {}) {
   };
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
-  if (qs("agentCaixaFloor")) qs("agentCaixaFloor").value = amountInputValue(agentCaixaFloor());
+  syncCaixaFloorControls();
   saveScenarioSettings();
   if (rerender) scheduleExecutiveAdvisorRender();
 }
@@ -8985,14 +8997,21 @@ function loadNewLifeDefinitiveState() {
   const defaults = defaultNewLifeDefinitiveState();
   try {
     const saved = JSON.parse(storageGet(storageKey("new-life-definitive"), "{}"));
-    return { ...defaults, ...(saved && typeof saved === "object" ? saved : {}) };
+    return {
+      ...defaults,
+      ...(saved && typeof saved === "object" ? saved : {}),
+      caixaFloor: agentCaixaFloor() || defaults.caixaFloor,
+    };
   } catch {
     return defaults;
   }
 }
 
 function saveNewLifeDefinitiveState(state) {
-  storageSet(storageKey("new-life-definitive"), JSON.stringify(state));
+  storageSet(storageKey("new-life-definitive"), JSON.stringify({
+    ...state,
+    caixaFloor: agentCaixaFloor(),
+  }));
 }
 
 function readNewLifeDefinitiveControls() {
@@ -9000,7 +9019,7 @@ function readNewLifeDefinitiveControls() {
   return {
     ...current,
     horizon: Math.max(6, Number(qs("lifeDefHorizon")?.value || current.horizon || 24)),
-    caixaFloor: Math.max(0, parseAmount(qs("lifeDefCaixaFloor")?.value) ?? current.caixaFloor ?? 2500),
+    caixaFloor: agentCaixaFloor() || current.caixaFloor || 2500,
     transferMode: qs("lifeDefTransferMode")?.value || current.transferMode || "prudent",
     projectName: qs("lifeDefProjectName")?.value?.trim() || current.projectName || "Proyecto principal",
     projectAmount: Math.max(0, parseAmount(qs("lifeDefProjectAmount")?.value) ?? current.projectAmount ?? 0),
@@ -9026,7 +9045,12 @@ function populateNewLifeDefinitiveControls(state) {
     monthSelect.value = valid ? previous : monthSelect.options[0]?.value || "0";
   }
   if (qs("lifeDefHorizon")) qs("lifeDefHorizon").value = String(state.horizon || 24);
-  if (qs("lifeDefCaixaFloor")) qs("lifeDefCaixaFloor").value = amountInputValue(state.caixaFloor);
+  const lifeDefCaixaFloor = qs("lifeDefCaixaFloor");
+  if (lifeDefCaixaFloor) {
+    lifeDefCaixaFloor.value = amountInputValue(agentCaixaFloor() || state.caixaFloor);
+    lifeDefCaixaFloor.readOnly = true;
+    lifeDefCaixaFloor.setAttribute("aria-readonly", "true");
+  }
   if (qs("lifeDefTransferMode")) qs("lifeDefTransferMode").value = state.transferMode || "prudent";
   if (qs("lifeDefProjectName")) qs("lifeDefProjectName").value = state.projectName || "";
   if (qs("lifeDefProjectAmount")) qs("lifeDefProjectAmount").value = amountInputValue(state.projectAmount);

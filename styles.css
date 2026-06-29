@@ -7282,6 +7282,18 @@ tbody tr:hover {
   width: 100%;
 }
 
+.life-def-form input[readonly] {
+  background: #eef4f7;
+  color: var(--muted);
+}
+
+.life-def-form small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 .life-def-decisions {
   display: grid;
   gap: 12px;

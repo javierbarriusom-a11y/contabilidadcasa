@@ -408,8 +408,9 @@
                     <input id="lifeDefLoanMonths" type="number" min="0" step="1" />
                   </label>
                   <label>
-                    <span>Reserva mínima CaixaBank</span>
-                    <input id="lifeDefCaixaFloor" type="number" step="0.01" />
+                    <span>Reserva operativa común</span>
+                    <input id="lifeDefCaixaFloor" type="number" step="0.01" readonly aria-describedby="lifeDefCaixaFloorHint" />
+                    <small id="lifeDefCaixaFloorHint">Se cambia en Asesor ejecutivo y aplica a toda la app.</small>
                   </label>
                   <label>
                     <span>Estrategia deuda</span>
