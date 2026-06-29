@@ -443,13 +443,15 @@ h2 {
 }
 
 main {
-  width: min(1540px, 100%);
-  margin: 0 auto;
-  padding: 22px 34px 42px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(16px, 1.65vw, 28px) clamp(18px, 2vw, 38px) 42px;
 }
 
 .view-section {
   position: relative;
+  width: 100%;
   animation: viewIn 180ms ease both;
 }
 
@@ -7288,21 +7290,33 @@ tbody tr:hover {
 }
 
 .life-def-table-wrap {
-  max-height: 660px;
+  position: relative;
+  max-height: min(72vh, 760px);
   overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 1) 0, rgba(255, 255, 255, 0)) left top / 28px 100% no-repeat,
+    linear-gradient(270deg, rgba(255, 255, 255, 1) 0, rgba(255, 255, 255, 0)) right top / 28px 100% no-repeat,
+    #fff;
+  scrollbar-gutter: stable both-edges;
 }
 
 .life-def-table {
-  border-collapse: collapse;
-  min-width: 1180px;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: max(1180px, 100%);
+  table-layout: auto;
   width: 100%;
 }
 
 .life-def-table th,
 .life-def-table td {
   border-bottom: 1px solid var(--line);
+  display: table-cell;
   padding: 12px 14px;
   text-align: right;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
@@ -7310,20 +7324,52 @@ tbody tr:hover {
 .life-def-table td:first-child {
   background: #fff;
   left: 0;
+  min-width: 116px;
   position: sticky;
   text-align: left;
-  z-index: 1;
+  width: 116px;
+  z-index: 4;
 }
 
 .life-def-table thead th {
-  background: var(--soft);
+  background: #edf4f5;
+  box-shadow: inset 0 -1px 0 var(--line);
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 5;
 }
 
 .life-def-table thead th:first-child {
-  z-index: 3;
+  background: #edf4f5;
+  z-index: 6;
+}
+
+.life-def-table tbody td:first-child {
+  background: #fff;
+  box-shadow: 10px 0 16px rgba(18, 34, 40, 0.06);
+  font-weight: 950;
+}
+
+.life-def-table tbody tr:nth-child(even) td {
+  background: #fbfcfd;
+}
+
+.life-def-table tbody tr:nth-child(even) td:first-child {
+  background: #fbfcfd;
+}
+
+.life-def-table th:last-child,
+.life-def-table td:last-child {
+  min-width: min(520px, 34vw);
+  max-width: 560px;
+  text-align: left;
+  white-space: normal;
+}
+
+.life-def-table td:last-child {
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.25;
 }
 
 .life-def-table .positive {
@@ -7335,6 +7381,10 @@ tbody tr:hover {
 }
 
 .life-def-table tr.is-alert td {
+  background: #fff8ec;
+}
+
+.life-def-table tr.is-alert td:first-child {
   background: #fff8ec;
 }
 
