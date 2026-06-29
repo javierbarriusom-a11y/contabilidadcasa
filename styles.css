@@ -843,6 +843,12 @@ main {
   text-decoration: none;
 }
 
+.secondary-button.emphasis {
+  border-color: transparent;
+  background: var(--ink);
+  color: #fff;
+}
+
 .debt-liquidation-plan {
   display: block;
 }
@@ -948,6 +954,204 @@ main {
   color: var(--ink);
   font-size: 17px;
   font-weight: 900;
+}
+
+.debt-executive-hero {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 16px;
+  padding: 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #126c64 0%, #244c83 100%);
+  color: #fff;
+}
+
+.debt-executive-hero h3 {
+  margin: 4px 0 8px;
+  color: #fff;
+  font-size: clamp(26px, 3vw, 42px);
+  line-height: 1.02;
+}
+
+.debt-executive-hero p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.debt-executive-hero .panel-kicker {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.debt-executive-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.debt-executive-stats article {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.debt-executive-stats span,
+.debt-action-list > article > span,
+.debt-policy-card span {
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.debt-executive-stats strong {
+  display: block;
+  margin-top: 6px;
+  color: #fff;
+  font-size: clamp(20px, 2.2vw, 30px);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.debt-action-board {
+  margin-bottom: 16px;
+}
+
+.debt-action-board .module-heading {
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.debt-action-list {
+  display: grid;
+  gap: 10px;
+}
+
+.debt-action-list article {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.debt-action-list article.warn {
+  border-left-color: var(--amber);
+}
+
+.debt-action-list > article > span {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--teal);
+  color: #fff;
+  font-size: 16px;
+}
+
+.debt-action-list strong {
+  display: block;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.debt-action-list p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.debt-action-list button,
+.debt-action-list .secondary-button {
+  min-width: 150px;
+}
+
+.debt-route-heading {
+  margin-top: 8px;
+}
+
+.debt-policy-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--green);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.debt-policy-card.warn {
+  border-left-color: var(--amber);
+}
+
+.debt-policy-card span {
+  color: var(--muted);
+}
+
+.debt-policy-card strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.debt-policy-card p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.debt-policy-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.debt-policy-card div {
+  min-width: 0;
+}
+
+.debt-policy-card dl div {
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.debt-policy-card dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.debt-policy-card dd {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 950;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
 }
 
 .debt-connected-decisions {
@@ -6792,6 +6996,377 @@ tbody tr:hover {
   --life-gold: #b88a21;
   --life-red: #bb4f48;
   --life-ink: #172229;
+}
+
+.new-life-definitive {
+  --life-def-teal: #13756e;
+  --life-def-blue: #25588f;
+  --life-def-gold: #b88a21;
+  --life-def-purple: #5a4385;
+}
+
+.life-def-hero,
+.life-def-panel,
+.life-def-kpis article,
+.life-def-scenarios article,
+.life-def-accounts article {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 14px 36px rgba(18, 34, 40, 0.06);
+}
+
+.life-def-hero {
+  align-items: stretch;
+  background: linear-gradient(135deg, #126f68 0%, #25588f 100%);
+  color: #fff;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.85fr);
+  margin: 18px 0;
+  padding: 24px;
+}
+
+.life-def-hero-main h2 {
+  font-size: clamp(2.1rem, 4vw, 4.2rem);
+  line-height: 0.98;
+  margin: 8px 0 12px;
+  overflow-wrap: anywhere;
+}
+
+.life-def-hero-main span,
+.life-def-kpis span,
+.life-def-scenarios span,
+.life-def-accounts span,
+.life-def-decision h4 + p,
+.life-def-table th,
+.life-def-table td {
+  letter-spacing: 0;
+}
+
+.life-def-hero-main span,
+.life-def-hero-metrics span,
+.life-def-kpis span,
+.life-def-scenarios span,
+.life-def-accounts span,
+.life-def-table th {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.life-def-hero-main span,
+.life-def-hero-main p,
+.life-def-hero-metrics span,
+.life-def-hero-metrics small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.life-def-hero-main p {
+  font-size: clamp(1rem, 1.25vw, 1.28rem);
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 0 0 18px;
+}
+
+.life-def-hero-actions,
+.life-def-form,
+.life-def-kpis,
+.life-def-scenarios,
+.life-def-account-pair {
+  display: grid;
+  gap: 12px;
+}
+
+.life-def-hero-actions {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+}
+
+.life-def-hero button,
+.life-def-decision button {
+  background: var(--ink);
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 950;
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+.life-def-hero button.secondary {
+  background: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--life-def-teal);
+}
+
+.life-def-hero-metrics {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+.life-def-hero-metrics div {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.life-def-hero-metrics strong,
+.life-def-kpis strong,
+.life-def-scenarios strong,
+.life-def-accounts strong {
+  color: var(--ink);
+  display: block;
+  font-size: clamp(1.25rem, 2vw, 2rem);
+  line-height: 1.05;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.life-def-hero-metrics strong {
+  color: #fff;
+}
+
+.life-def-kpis {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.life-def-kpis article,
+.life-def-scenarios article,
+.life-def-accounts article {
+  min-width: 0;
+  padding: 16px;
+}
+
+.life-def-kpis small,
+.life-def-scenarios p,
+.life-def-accounts small,
+.life-def-transfer-list,
+.life-def-decision p {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.32;
+}
+
+.life-def-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+  margin-bottom: 18px;
+}
+
+.life-def-panel {
+  min-width: 0;
+  padding: 18px;
+}
+
+.life-def-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.life-def-form label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.life-def-form label span {
+  color: var(--muted);
+  font-weight: 950;
+}
+
+.life-def-form input,
+.life-def-form select {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 850;
+  min-height: 46px;
+  min-width: 0;
+  padding: 9px 12px;
+  width: 100%;
+}
+
+.life-def-decisions {
+  display: grid;
+  gap: 12px;
+}
+
+.life-def-decision {
+  align-items: center;
+  border: 1px solid var(--line);
+  border-left: 6px solid var(--life-def-teal);
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 14px;
+}
+
+.life-def-decision.warn {
+  border-left-color: var(--life-def-gold);
+}
+
+.life-def-rank {
+  align-items: center;
+  background: var(--life-def-teal);
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  font-weight: 950;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.life-def-decision.warn .life-def-rank {
+  background: var(--life-def-gold);
+}
+
+.life-def-decision h4 {
+  font-size: 1.15rem;
+  margin: 0 0 4px;
+  overflow-wrap: anywhere;
+}
+
+.life-def-decision p {
+  margin: 0;
+}
+
+.life-def-scenarios {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.life-def-scenarios dl {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 12px 0;
+}
+
+.life-def-scenarios dt {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.life-def-scenarios dd {
+  font-weight: 950;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.life-def-account-pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.life-def-transfer-list {
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+}
+
+.life-def-transfer-list div {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.life-def-table-wrap {
+  max-height: 660px;
+  overflow: auto;
+}
+
+.life-def-table {
+  border-collapse: collapse;
+  min-width: 1180px;
+  width: 100%;
+}
+
+.life-def-table th,
+.life-def-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 14px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.life-def-table th:first-child,
+.life-def-table td:first-child {
+  background: #fff;
+  left: 0;
+  position: sticky;
+  text-align: left;
+  z-index: 1;
+}
+
+.life-def-table thead th {
+  background: var(--soft);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.life-def-table thead th:first-child {
+  z-index: 3;
+}
+
+.life-def-table .positive {
+  color: var(--green);
+}
+
+.life-def-table .negative {
+  color: var(--red);
+}
+
+.life-def-table tr.is-alert td {
+  background: #fff8ec;
+}
+
+@media (max-width: 1180px) {
+  .life-def-hero,
+  .life-def-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .life-def-kpis,
+  .life-def-scenarios {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .life-def-form,
+  .life-def-kpis,
+  .life-def-scenarios,
+  .life-def-account-pair,
+  .life-def-hero-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .life-def-decision {
+    align-items: stretch;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .life-def-decision button {
+    grid-column: 1 / -1;
+  }
 }
 
 .new-life-hero,

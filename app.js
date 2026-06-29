@@ -85,7 +85,15 @@ let activeViewRenderToken = 0;
 let heavyAdvisorTimer = 0;
 let advisorDebtRenderTimer = 0;
 let savingsAgentPlanCache = { key: "", value: null };
-const HEAVY_RENDER_VIEWS = new Set(["visual-detail", "executive-advisor", "new-life-simulation", "debt-liquidation-plan", "savings-agent", "virtual-advisor"]);
+const HEAVY_RENDER_VIEWS = new Set([
+  "visual-detail",
+  "executive-advisor",
+  "new-life-simulation",
+  "new-life-definitive",
+  "debt-liquidation-plan",
+  "savings-agent",
+  "virtual-advisor",
+]);
 let expandedPlanningSections = {
   income: new Set(),
   expense: new Set(),
@@ -215,13 +223,17 @@ const viewTitles = {
     eyebrow: "Simulación nueva vida",
     title: "Decide coche, deuda y estabilidad con un único tablero",
   },
+  "new-life-definitive": {
+    eyebrow: "Simulación nueva vida definitiva",
+    title: "Simula proyectos, deuda y traspasos por cuenta antes de decidir",
+  },
   "visual-detail": {
     eyebrow: "Cuadro de mandos",
     title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
   },
   "debt-liquidation-plan": {
     eyebrow: "Plan deuda óptimo",
-    title: "Prioriza quitas, CIRBE, ASNEF y colchón de caja",
+    title: "Sal de deuda rápido sin romper caja ni objetivo coche",
   },
   "savings-agent": {
     eyebrow: "Agente ahorro",
@@ -7222,6 +7234,7 @@ function scheduleHeavyAdvisorRefresh(viewId = viewFromHash()) {
     else if (viewId === "savings-agent") renderSavingsAgent({ forceHeavy: true });
     else if (viewId === "executive-advisor") renderExecutiveAdvisor({ forceHeavy: true });
     else if (viewId === "new-life-simulation") renderNewLifeSimulation({ forceHeavy: true });
+    else if (viewId === "new-life-definitive") renderNewLifeDefinitive({ forceHeavy: true });
     else if (viewId === "debt-liquidation-plan") renderDebtLiquidationPlan();
   }, 650);
 }
@@ -8948,6 +8961,449 @@ function renderNewLifeSimulation({ forceHeavy = false } = {}) {
   renderNewLifeTimeline(ctx);
   renderNewLifeDecisionNotes(ctx);
   if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("new-life-simulation");
+}
+
+function defaultNewLifeDefinitiveState() {
+  const settings = executiveAdvisorSettings();
+  return {
+    horizon: 24,
+    caixaFloor: agentCaixaFloor() || 2500,
+    transferMode: "prudent",
+    projectName: "Coche familiar",
+    projectAmount: settings.carCost || DEFAULT_EXECUTIVE_CAR_COST,
+    projectMode: "savings",
+    projectMonthIndex: 6,
+    loanCapital: settings.tereCreditCapital || DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL,
+    loanPayment: settings.tereCreditPayment || DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT,
+    loanMonths: settings.tereCreditMonths || DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS,
+    debtStrategy: "optimal",
+  };
+}
+
+function loadNewLifeDefinitiveState() {
+  const defaults = defaultNewLifeDefinitiveState();
+  try {
+    const saved = JSON.parse(storageGet(storageKey("new-life-definitive"), "{}"));
+    return { ...defaults, ...(saved && typeof saved === "object" ? saved : {}) };
+  } catch {
+    return defaults;
+  }
+}
+
+function saveNewLifeDefinitiveState(state) {
+  storageSet(storageKey("new-life-definitive"), JSON.stringify(state));
+}
+
+function readNewLifeDefinitiveControls() {
+  const current = loadNewLifeDefinitiveState();
+  return {
+    ...current,
+    horizon: Math.max(6, Number(qs("lifeDefHorizon")?.value || current.horizon || 24)),
+    caixaFloor: Math.max(0, parseAmount(qs("lifeDefCaixaFloor")?.value) ?? current.caixaFloor ?? 2500),
+    transferMode: qs("lifeDefTransferMode")?.value || current.transferMode || "prudent",
+    projectName: qs("lifeDefProjectName")?.value?.trim() || current.projectName || "Proyecto principal",
+    projectAmount: Math.max(0, parseAmount(qs("lifeDefProjectAmount")?.value) ?? current.projectAmount ?? 0),
+    projectMode: qs("lifeDefProjectMode")?.value || current.projectMode || "savings",
+    projectMonthIndex: Math.max(0, Number(qs("lifeDefProjectMonth")?.value ?? current.projectMonthIndex ?? 0)),
+    loanCapital: Math.max(0, parseAmount(qs("lifeDefLoanCapital")?.value) ?? current.loanCapital ?? 0),
+    loanPayment: Math.max(0, parseAmount(qs("lifeDefLoanPayment")?.value) ?? current.loanPayment ?? 0),
+    loanMonths: Math.max(0, Number(qs("lifeDefLoanMonths")?.value || current.loanMonths || 0)),
+    debtStrategy: qs("lifeDefDebtStrategy")?.value || current.debtStrategy || "optimal",
+  };
+}
+
+function populateNewLifeDefinitiveControls(state) {
+  const months = openForecastMonths();
+  const monthSelect = qs("lifeDefProjectMonth");
+  if (monthSelect) {
+    const previous = String(state.projectMonthIndex ?? monthSelect.value ?? 0);
+    monthSelect.innerHTML = months
+      .slice(0, 72)
+      .map((month) => `<option value="${month.index}">${escapeHtml(month.label)}</option>`)
+      .join("");
+    const valid = [...monthSelect.options].some((option) => option.value === previous);
+    monthSelect.value = valid ? previous : monthSelect.options[0]?.value || "0";
+  }
+  if (qs("lifeDefHorizon")) qs("lifeDefHorizon").value = String(state.horizon || 24);
+  if (qs("lifeDefCaixaFloor")) qs("lifeDefCaixaFloor").value = amountInputValue(state.caixaFloor);
+  if (qs("lifeDefTransferMode")) qs("lifeDefTransferMode").value = state.transferMode || "prudent";
+  if (qs("lifeDefProjectName")) qs("lifeDefProjectName").value = state.projectName || "";
+  if (qs("lifeDefProjectAmount")) qs("lifeDefProjectAmount").value = amountInputValue(state.projectAmount);
+  if (qs("lifeDefProjectMode")) qs("lifeDefProjectMode").value = state.projectMode || "savings";
+  if (qs("lifeDefLoanCapital")) qs("lifeDefLoanCapital").value = amountInputValue(state.loanCapital);
+  if (qs("lifeDefLoanPayment")) qs("lifeDefLoanPayment").value = amountInputValue(state.loanPayment);
+  if (qs("lifeDefLoanMonths")) qs("lifeDefLoanMonths").value = String(state.loanMonths || 0);
+  if (qs("lifeDefDebtStrategy")) qs("lifeDefDebtStrategy").value = state.debtStrategy || "optimal";
+}
+
+function newLifeDefinitiveContext({ allowHeavy = true } = {}) {
+  const base = executiveAdvisorContext({ allowHeavy });
+  const state = loadNewLifeDefinitiveState();
+  const debtOptimization = allowHeavy ? base.debtOptimization : (cachedAgentDebtOptimization() || emptyAgentDebtOptimization(base.plan));
+  return {
+    ...base,
+    state,
+    debtOptimization,
+  };
+}
+
+function newLifeDefinitiveDebtSteps(ctx, state) {
+  if (state.debtStrategy === "none") return [];
+  const steps = ctx.debtOptimization?.steps || [];
+  const usable = state.debtStrategy === "next" ? steps.slice(0, 1) : steps;
+  return usable
+    .filter((step) => step?.candidate && Number(step.candidate.principal || 0) > 0)
+    .map((step) => ({
+      monthIndex: Number(step.monthIndex || 0),
+      label: `Deuda: ${debtTargetDisplayName(step.candidate)}`,
+      amount: Number(step.candidate.principal || 0),
+      candidate: step.candidate,
+    }));
+}
+
+function buildNewLifeDefinitiveFlow(ctx, override = {}) {
+  const state = { ...ctx.state, ...override };
+  const sourceRows = agentVisibleRows(ctx.plan).slice(0, Math.max(6, Number(state.horizon || 24)));
+  const balances = ctx.balances || accountBalancesFromState();
+  const startBalances = {
+    caixa: Number(balances.caixa || 0),
+    mediolanum: Number(balances.mediolanum || 0),
+  };
+  const caixaFloor = Math.max(0, Number(state.caixaFloor || ctx.plan.caixaFloor || 2500));
+  const selectedMonthKey = forecastMonths()[state.projectMonthIndex]?.key;
+  const matchedProjectIndex = sourceRows.findIndex((row) => row.detailMonthKey === selectedMonthKey);
+  const targetProjectIndex = matchedProjectIndex >= 0
+    ? matchedProjectIndex
+    : Math.max(0, Math.min(sourceRows.length - 1, Number(state.projectMonthIndex || 0)));
+  const debtSteps = newLifeDefinitiveDebtSteps(ctx, state);
+  let caixa = startBalances.caixa;
+  let mediolanum = startBalances.mediolanum;
+  let totalTransfer = 0;
+  let projectExecuted = false;
+  let debtPaid = 0;
+  let loanCapitalUsed = 0;
+  const rows = sourceRows.map((row, index) => {
+    const events = [];
+    const income = Number(row.income || 0);
+    const outflows = Number(row.outflowsBeforeSaving || row.coreSpend + row.car + row.refi + row.projectOutflow || 0);
+    let localOutflow = 0;
+    let mediolanumOutflow = 0;
+    let loanIncome = 0;
+    let loanPayment = 0;
+
+    if (state.projectMode === "credit" && index === targetProjectIndex && Number(state.loanCapital || 0) > 0) {
+      loanIncome = Number(state.loanCapital || 0);
+      loanCapitalUsed = round2(loanCapitalUsed + loanIncome);
+      events.push(`Crédito Tere +${money(loanIncome, true)}`);
+    }
+    if (state.projectMode === "credit" && index >= targetProjectIndex && index < targetProjectIndex + Number(state.loanMonths || 0)) {
+      loanPayment = Number(state.loanPayment || 0);
+    }
+    if ((state.projectMode === "payment" || state.projectMode === "credit") && index === targetProjectIndex && Number(state.projectAmount || 0) > 0) {
+      localOutflow += Number(state.projectAmount || 0);
+      projectExecuted = true;
+      events.push(`${state.projectName}: ${money(state.projectAmount, true)}`);
+    }
+    if (state.projectMode === "savings" && index === targetProjectIndex && Number(state.projectAmount || 0) > 0) {
+      mediolanumOutflow += Number(state.projectAmount || 0);
+      projectExecuted = true;
+      events.push(`${state.projectName} desde Mediolanum`);
+    }
+    debtSteps
+      .filter((step) => Number(step.monthIndex || 0) === index)
+      .forEach((step) => {
+        mediolanumOutflow += Number(step.amount || 0);
+        debtPaid = round2(debtPaid + Number(step.amount || 0));
+        events.push(step.label);
+      });
+
+    caixa = round2(caixa + income + loanIncome - outflows - localOutflow - loanPayment);
+    const next = sourceRows[index + 1] || {};
+    const nextOutflows = Math.max(0, Number(next.outflowsBeforeSaving || next.coreSpend + next.car + next.refi + next.projectOutflow || 0));
+    const requiredReserve = state.transferMode === "floor" ? caixaFloor : Math.max(caixaFloor, round2(caixaFloor + nextOutflows));
+    const transfer = Math.max(0, round2(caixa - requiredReserve));
+    caixa = round2(caixa - transfer);
+    mediolanum = round2(mediolanum + transfer - mediolanumOutflow);
+    totalTransfer = round2(totalTransfer + transfer);
+    const shortage = Math.max(0, round2(requiredReserve - caixa));
+    return {
+      ...row,
+      index,
+      income,
+      baseOutflows: outflows,
+      localOutflow: round2(localOutflow),
+      mediolanumOutflow: round2(mediolanumOutflow),
+      loanIncome: round2(loanIncome),
+      loanPayment: round2(loanPayment),
+      transfer,
+      requiredReserve,
+      caixa,
+      mediolanum,
+      total: round2(caixa + mediolanum),
+      shortage,
+      events,
+    };
+  });
+  const final = rows.at(-1) || {};
+  const minCaixaRow = rows.reduce((best, row) => (Number(row.caixa || 0) < Number(best.caixa || 0) ? row : best), rows[0] || {});
+  const maxMediolanumRow = rows.reduce((best, row) => (Number(row.mediolanum || 0) > Number(best.mediolanum || 0) ? row : best), rows[0] || {});
+  const projectMonthRow = rows[targetProjectIndex] || {};
+  const projectSavingsBeforeTarget = rows
+    .slice(0, targetProjectIndex + 1)
+    .reduce((sum, row) => sum + Number(row.transfer || 0), Number(balances.mediolanum || 0));
+  return {
+    state,
+    startBalances,
+    rows,
+    final,
+    minCaixaRow,
+    maxMediolanumRow,
+    totalTransfer,
+    debtPaid,
+    loanCapitalUsed,
+    projectExecuted,
+    projectMonthRow,
+    projectSavingsBeforeTarget: round2(projectSavingsBeforeTarget),
+  };
+}
+
+function newLifeDefScenarioSummaries(ctx, state) {
+  const base = buildNewLifeDefinitiveFlow(ctx, { ...state, projectAmount: 0, debtStrategy: "none", loanCapital: 0, loanPayment: 0 });
+  const savings = buildNewLifeDefinitiveFlow(ctx, { ...state, projectMode: "savings", debtStrategy: "none" });
+  const credit = buildNewLifeDefinitiveFlow(ctx, { ...state, projectMode: "credit", debtStrategy: "none" });
+  const combined = buildNewLifeDefinitiveFlow(ctx, state);
+  return [
+    { key: "base", title: "Sin decisiones nuevas", flow: base, note: "Sirve como suelo para comparar." },
+    { key: "savings", title: "Proyecto con hucha", flow: savings, note: "Compra desde Mediolanum cuando llegue el mes." },
+    { key: "credit", title: "Crédito Tere + proyecto", flow: credit, note: "Recibe capital y añade cuota mensual." },
+    { key: "combined", title: "Deuda + proyecto", flow: combined, note: "Aplica la configuración actual." },
+  ];
+}
+
+function renderLifeDefHero(ctx, flow) {
+  const firstDebt = newLifeDefinitiveDebtSteps(ctx, flow.state)[0];
+  const transferRow = flow.rows.find((row) => row.transfer > 0);
+  const decision = firstDebt
+    ? `Preparar ${debtTargetDisplayName(firstDebt.candidate)} en ${forecastMonths()[firstDebt.monthIndex]?.label || firstDebt.monthIndex}`
+    : flow.state.projectAmount > 0
+      ? `Reservar ${money(flow.state.projectAmount, true)} para ${flow.state.projectName}`
+      : "Mantener caja y seguir acumulando ahorro";
+  qs("lifeDefHero").innerHTML = `
+    <div class="life-def-hero-main">
+      <span>Decisión ejecutiva</span>
+      <h2>${escapeHtml(decision)}</h2>
+      <p>Con esta simulación CaixaBank no baja de ${money(flow.minCaixaRow?.caixa || 0, true)} y Mediolanum termina en ${money(flow.final?.mediolanum || 0, true)}. ${transferRow ? `Primer traspaso: ${money(transferRow.transfer, true)} en ${escapeHtml(transferRow.month)}.` : "No hay traspaso inmediato recomendable."}</p>
+      <div class="life-def-hero-actions">
+        <button type="button" data-life-def-action="prepare-project">Llevar proyecto al simulador</button>
+        <button type="button" class="secondary" data-life-def-action="prepare-debt">Preparar deuda sugerida</button>
+      </div>
+    </div>
+    <div class="life-def-hero-metrics">
+      <div><span>CaixaBank final</span><strong>${money(flow.final?.caixa || 0, true)}</strong><small>Reserva configurada ${money(flow.state.caixaFloor, true)}</small></div>
+      <div><span>Mediolanum final</span><strong>${money(flow.final?.mediolanum || 0, true)}</strong><small>Ahorro separado tras decisiones</small></div>
+      <div><span>Liquidez total</span><strong>${money(flow.final?.total || 0, true)}</strong><small>${flow.debtPaid ? `${money(flow.debtPaid, true)} a deuda` : "Sin deuda simulada"}</small></div>
+    </div>`;
+}
+
+function renderLifeDefKpis(ctx, flow) {
+  const projectReady = flow.state.projectMode === "savings" ? flow.projectSavingsBeforeTarget >= Number(flow.state.projectAmount || 0) : true;
+  const alerts = flow.rows.filter((row) => row.shortage > 0 || row.mediolanum < 0).length;
+  const kpis = [
+    ["Mínimo CaixaBank", money(flow.minCaixaRow?.caixa || 0, true), flow.minCaixaRow?.month || "Sin dato"],
+    ["Máximo Mediolanum", money(flow.maxMediolanumRow?.mediolanum || 0, true), flow.maxMediolanumRow?.month || "Sin dato"],
+    ["Traspasos acumulados", money(flow.totalTransfer, true), "De CaixaBank a Mediolanum"],
+    ["Proyecto", projectReady ? "Viable" : "Falta hucha", flow.projectMonthRow?.month || "Sin mes"],
+    ["Deuda simulada", money(flow.debtPaid, true), flow.state.debtStrategy === "none" ? "Sin deuda" : "Ruta local"],
+    ["Alertas", String(alerts), alerts ? "Revisar meses rojos" : "Sin roturas de caja"],
+  ];
+  qs("lifeDefKpis").innerHTML = kpis
+    .map(([label, value, detail]) => `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(detail)}</small></article>`)
+    .join("");
+}
+
+function renderLifeDefDecisions(ctx, flow) {
+  const transfer = flow.rows.find((row) => row.transfer > 0);
+  const firstDebt = newLifeDefinitiveDebtSteps(ctx, flow.state)[0];
+  const projectGap = Math.max(0, round2(Number(flow.state.projectAmount || 0) - flow.projectSavingsBeforeTarget));
+  const items = [
+    {
+      tone: "good",
+      title: transfer ? `Traspasar ${money(transfer.transfer, true)} en ${transfer.month}` : "No traspasar todavía",
+      text: transfer
+        ? `CaixaBank queda con ${money(transfer.caixa, true)} y cubre la reserva de ${money(transfer.requiredReserve, true)}.`
+        : "La caja no genera excedente claro con el criterio de reserva seleccionado.",
+      action: "Ver flujo",
+      nav: "lifeDefCashflow",
+    },
+    {
+      tone: projectGap ? "warn" : "good",
+      title: projectGap ? `Faltan ${money(projectGap, true)} para ${flow.state.projectName}` : `${flow.state.projectName} encaja`,
+      text: flow.state.projectMode === "credit"
+        ? `Con financiación: entra ${money(flow.state.loanCapital, true)} y pagas ${money(flow.state.loanPayment, true)}/mes.`
+        : `Objetivo ${money(flow.state.projectAmount, true)} en ${flow.projectMonthRow?.month || "mes elegido"}.`,
+      action: "Preparar proyecto",
+      lifeAction: "prepare-project",
+    },
+    {
+      tone: firstDebt ? "warn" : "good",
+      title: firstDebt ? `Preparar deuda: ${debtTargetDisplayName(firstDebt.candidate)}` : "Sin deuda nueva en esta simulación",
+      text: firstDebt
+        ? `${money(firstDebt.amount, true)} en ${forecastMonths()[firstDebt.monthIndex]?.label || "mes óptimo"}. No se fija en el plan hasta confirmarlo.`
+        : "Puedes activar una deuda en el selector para ver impacto en cuentas.",
+      action: firstDebt ? "Preparar deuda" : "Abrir deuda",
+      lifeAction: "prepare-debt",
+    },
+  ];
+  qs("lifeDefDecisions").innerHTML = items
+    .map(
+      (item, index) => `
+        <article class="life-def-decision ${item.tone}">
+          <div class="life-def-rank">${index + 1}</div>
+          <div>
+            <h4>${escapeHtml(item.title)}</h4>
+            <p>${escapeHtml(item.text)}</p>
+          </div>
+          <button type="button" ${item.lifeAction ? `data-life-def-action="${escapeHtml(item.lifeAction)}"` : `data-life-def-scroll="${escapeHtml(item.nav)}"`}>${escapeHtml(item.action)}</button>
+        </article>`,
+    )
+    .join("");
+}
+
+function renderLifeDefScenarios(ctx, state) {
+  const scenarios = newLifeDefScenarioSummaries(ctx, state);
+  qs("lifeDefScenarios").innerHTML = scenarios
+    .map(
+      (item) => `
+        <article>
+          <span>${escapeHtml(item.title)}</span>
+          <strong>${money(item.flow.final?.total || 0, true)}</strong>
+          <dl>
+            <div><dt>Caixa mín.</dt><dd>${money(item.flow.minCaixaRow?.caixa || 0, true)}</dd></div>
+            <div><dt>Mediolanum</dt><dd>${money(item.flow.final?.mediolanum || 0, true)}</dd></div>
+            <div><dt>Deuda</dt><dd>${money(item.flow.debtPaid || 0, true)}</dd></div>
+          </dl>
+          <p>${escapeHtml(item.note)}</p>
+        </article>`,
+    )
+    .join("");
+}
+
+function renderLifeDefAccounts(flow) {
+  const transferRows = flow.rows.filter((row) => row.transfer > 0).slice(0, 4);
+  qs("lifeDefAccounts").innerHTML = `
+    <div class="life-def-account-pair">
+      <article><span>CaixaBank inicio</span><strong>${money(flow.startBalances?.caixa || 0, true)}</strong><small>Cuenta operativa</small></article>
+      <article><span>Mediolanum inicio</span><strong>${money(flow.startBalances?.mediolanum || 0, true)}</strong><small>Ahorro separado</small></article>
+      <article><span>CaixaBank final</span><strong>${money(flow.final?.caixa || 0, true)}</strong><small>Tras reservas</small></article>
+      <article><span>Mediolanum final</span><strong>${money(flow.final?.mediolanum || 0, true)}</strong><small>Tras huchas/deuda</small></article>
+    </div>
+    <div class="life-def-transfer-list">
+      ${transferRows.length ? transferRows.map((row) => `<div><strong>${escapeHtml(row.month)}</strong><span>${money(row.transfer, true)} → Mediolanum</span></div>`).join("") : "<p>Sin traspasos recomendados en el horizonte.</p>"}
+    </div>`;
+}
+
+function renderLifeDefCashflow(flow) {
+  qs("lifeDefCashflow").innerHTML = `
+    <thead>
+      <tr>
+        <th>Mes</th>
+        <th>Ingresos</th>
+        <th>Gastos base</th>
+        <th>Decisiones</th>
+        <th>Traspaso</th>
+        <th>CaixaBank</th>
+        <th>Mediolanum</th>
+        <th>Total</th>
+        <th>Evento</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${flow.rows
+        .map((row) => {
+          const decisions = round2(row.localOutflow + row.mediolanumOutflow + row.loanPayment - row.loanIncome);
+          return `<tr class="${row.shortage || row.mediolanum < 0 ? "is-alert" : ""}">
+            <td>${escapeHtml(row.month)}</td>
+            <td class="positive">${money(row.income + row.loanIncome, true)}</td>
+            <td class="negative">${money(row.baseOutflows, true)}</td>
+            <td class="${decisions > 0 ? "negative" : decisions < 0 ? "positive" : ""}">${money(decisions, true)}</td>
+            <td>${money(row.transfer, true)}</td>
+            <td>${money(row.caixa, true)}</td>
+            <td>${money(row.mediolanum, true)}</td>
+            <td>${money(row.total, true)}</td>
+            <td>${row.events.length ? row.events.map(escapeHtml).join(" · ") : "-"}</td>
+          </tr>`;
+        })
+        .join("")}
+    </tbody>`;
+}
+
+function renderNewLifeDefinitive({ forceHeavy = false, preserveControls = false } = {}) {
+  if (!qs("lifeDefHero")) return;
+  const hasOptimization = Boolean(cachedAgentDebtOptimization());
+  const ctx = newLifeDefinitiveContext({ allowHeavy: forceHeavy || hasOptimization });
+  const state = loadNewLifeDefinitiveState();
+  if (!preserveControls) populateNewLifeDefinitiveControls(state);
+  const freshState = readNewLifeDefinitiveControls();
+  const flow = buildNewLifeDefinitiveFlow(ctx, freshState);
+  renderLifeDefHero(ctx, flow);
+  renderLifeDefKpis(ctx, flow);
+  renderLifeDefDecisions(ctx, flow);
+  renderLifeDefScenarios(ctx, freshState);
+  renderLifeDefAccounts(flow);
+  renderLifeDefCashflow(flow);
+  if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("new-life-definitive");
+}
+
+function refreshNewLifeDefinitiveFromControls() {
+  const state = readNewLifeDefinitiveControls();
+  saveNewLifeDefinitiveState(state);
+  renderNewLifeDefinitive({ forceHeavy: Boolean(cachedAgentDebtOptimization()), preserveControls: true });
+}
+
+function resetNewLifeDefinitive() {
+  const state = defaultNewLifeDefinitiveState();
+  saveNewLifeDefinitiveState(state);
+  renderNewLifeDefinitive({ forceHeavy: Boolean(cachedAgentDebtOptimization()) });
+}
+
+function prepareNewLifeDefinitiveProject() {
+  const state = readNewLifeDefinitiveControls();
+  history.pushState(null, "", "#simulator");
+  setActiveView("simulator");
+  window.requestAnimationFrame(() => {
+    clearProjectForm();
+    if (qs("projectKind")) qs("projectKind").value = state.projectMode === "credit" ? "external-credit" : "standard";
+    if (qs("projectCreditOwner")) qs("projectCreditOwner").value = "Tere";
+    if (qs("projectName")) qs("projectName").value = state.projectName;
+    if (qs("projectAmount")) qs("projectAmount").value = amountInputValue(state.projectAmount);
+    if (qs("projectDuration")) qs("projectDuration").value = "1";
+    if (qs("projectCreditCapital")) qs("projectCreditCapital").value = state.projectMode === "credit" ? amountInputValue(state.loanCapital) : "";
+    if (qs("projectRecurringAmount")) qs("projectRecurringAmount").value = state.projectMode === "credit" ? amountInputValue(state.loanPayment) : "";
+    if (qs("projectRecurringDuration")) qs("projectRecurringDuration").value = state.projectMode === "credit" ? String(state.loanMonths || 0) : "0";
+    if (qs("projectRecurringDelay")) qs("projectRecurringDelay").value = "same";
+    if (state.projectMode === "payment" && qs("projectModeManual")) qs("projectModeManual").click();
+    else setProjectMode("optimize");
+    if (qs("projectMonth")) qs("projectMonth").value = String(state.projectMonthIndex || 0);
+    updateProjectKindUi();
+    updateProjectModeUi();
+    pendingProjectDecision = projectDecisionFromForm({ forceOptimize: state.projectMode !== "payment" });
+    renderProjectPlanPreview();
+    renderProjectDecisionReview(pendingProjectDecision);
+  });
+}
+
+function prepareNewLifeDefinitiveDebt(ctx = newLifeDefinitiveContext({ allowHeavy: Boolean(cachedAgentDebtOptimization()) })) {
+  const state = readNewLifeDefinitiveControls();
+  const firstDebt = newLifeDefinitiveDebtSteps(ctx, state)[0];
+  if (!firstDebt?.candidate) {
+    history.pushState(null, "", "#debt-control");
+    setActiveView("debt-control");
+    return;
+  }
+  prepareAgentDebtDecision(firstDebt.candidate.id, {
+    monthIndex: firstDebt.monthIndex,
+    amount: firstDebt.amount,
+  });
 }
 
 function prepareExecutiveCarProject(useCredit = false) {
@@ -11914,6 +12370,197 @@ function renderDebtPlanStrategyFrame(optimization, agentPlan, connectedDebt) {
   </section>`;
 }
 
+function debtPlanSafeMoney(value, fallback = "Pendiente") {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? money(numeric, true) : fallback;
+}
+
+function debtPlanCarProject(agentPlan) {
+  const projectsToReview = agentLifeProjectRecommendations(agentPlan, { allowEvaluation: false });
+  return projectsToReview.find((project) => /coche|veh[ií]culo|auto/i.test(`${project.name || ""} ${project.label || ""}`)) || null;
+}
+
+function debtPlanStrategicContext({ best, optimization, agentPlan, connectedDebt, consumerDebt, pendingStrategicCost }) {
+  const activeSummary = routeSimulationSummaryFromActive(agentPlan);
+  const optimizationSummary = routeSimulationSummaryFromOptimization(optimization);
+  const summary = activeSummary || optimizationSummary;
+  const steps = optimization?.steps || [];
+  const firstStep = steps[0] || null;
+  const transfer = immediateSavingsTransfer(agentPlan);
+  const carProject = debtPlanCarProject(agentPlan);
+  const carProgress = carProject ? projectSavingsProgress(carProject, agentPlan) : null;
+  const finalPlan = optimization?.finalPlan || agentPlan;
+  const baselinePlan = optimization?.baselinePlan || agentPlan;
+  const routeCost = summary?.total ?? optimization?.totalPrincipal ?? 0;
+  const debtReduced = summary?.debtReduced ?? optimization?.totalOriginalPrincipal ?? 0;
+  const finalDebt = optimization?.optimizedRemainingDebt ?? agentPlan.remainingDebt ?? 0;
+  const reserveOk = Number(finalPlan.minReserveCoverage || 0) >= -0.01;
+  const carReadyAfterDebt = carProgress
+    ? Number(finalPlan.finalMediolanum || 0) >= Number(carProgress.amount || 0) + Number(agentPlan.caixaFloor || 0)
+    : false;
+  return {
+    activeSummary,
+    summary,
+    steps,
+    firstStep,
+    transfer,
+    carProject,
+    carProgress,
+    finalPlan,
+    baselinePlan,
+    routeCost,
+    debtReduced,
+    finalDebt,
+    pendingStrategicCost,
+    consumerDebt,
+    reserveOk,
+    carReadyAfterDebt,
+    routeMonth: summary?.lastMonth || optimization?.lastMonth || best.g2Month || "Sin fecha",
+  };
+}
+
+function renderDebtPlanExecutiveHero(context) {
+  const first = context.firstStep;
+  const firstName = first?.candidate ? debtTargetDisplayName(first.candidate) : "sin deuda candidata";
+  const active = Boolean(context.activeSummary);
+  const actionTitle = active
+    ? "Ruta óptima aplicada en simulación"
+    : first
+      ? `Siguiente decisión: ${firstName}`
+      : "Mantener caja y revisar deuda";
+  const actionText = active
+    ? `${context.activeSummary.count} paso(s) ya impactan en cuadro de mandos y flujo mensual. Último paso: ${escapeHtml(context.activeSummary.lastMonth || "sin fecha")}.`
+    : first
+      ? `Preparar ${money(first.candidate.principal, true)} en ${escapeHtml(first.monthLabel || "mes óptimo")}; no cuenta como ingreso porque los pagos están suspendidos.`
+      : "No hay deuda optimizable con el criterio actual. Mantén la reserva y revisa nuevos acuerdos.";
+  return `<section class="debt-executive-hero ${active ? "active" : ""}">
+    <div>
+      <p class="panel-kicker">Decisión ejecutiva</p>
+      <h3>${escapeHtml(actionTitle)}</h3>
+      <p>${actionText}</p>
+    </div>
+    <div class="debt-executive-stats">
+      <article><span>Coste ruta</span><strong>${debtPlanSafeMoney(context.routeCost)}</strong></article>
+      <article><span>Deuda reducida</span><strong>${debtPlanSafeMoney(context.debtReduced)}</strong></article>
+      <article><span>Fin estimado</span><strong>${escapeHtml(context.routeMonth)}</strong></article>
+      <article><span>Caja mínima</span><strong>${debtPlanSafeMoney(context.finalPlan.minCaixa)}</strong></article>
+    </div>
+  </section>`;
+}
+
+function renderDebtPlanActionBoard(context) {
+  const first = context.firstStep;
+  const routeButton = context.activeSummary
+    ? `<button type="button" class="secondary-button" data-debt-plan-action="clear-route">Retirar ruta simulada</button>`
+    : `<button type="button" class="secondary-button emphasis" data-debt-plan-action="simulate-route">Aplicar ruta óptima temporal</button>`;
+  const firstButton = first?.candidate
+    ? `<button type="button" class="secondary-button" data-debt-plan-target="${escapeHtml(first.candidate.id)}" data-debt-plan-month="${Number(first.monthIndex || 0)}" data-debt-plan-amount="${Number(first.candidate.principal || 0)}">Preparar primera deuda</button>`
+    : `<button type="button" class="secondary-button" data-home-nav="debt-control">Revisar deuda</button>`;
+  const transferLine = context.transfer.needsReview
+    ? `Traspaso en revisión: ${escapeHtml(context.transfer.reviewReason)}`
+    : `${money(context.transfer.amount, true)} traspasables ahora, dejando CaixaBank con ${money(context.transfer.caixaAfter, true)}.`;
+  const items = [
+    {
+      label: "1",
+      title: "Proteger caja antes de decidir",
+      text: `Reserva operativa ${money(context.transfer.reserve, true)}. ${transferLine}`,
+      action: `<button type="button" class="secondary-button" data-home-nav="executive-advisor">Ver caja</button>`,
+      tone: context.transfer.needsReview ? "warn" : "good",
+    },
+    {
+      label: "2",
+      title: first?.candidate ? `Negociar ${debtTargetDisplayName(first.candidate)}` : "No fijar deuda nueva todavía",
+      text: first?.candidate
+        ? `${money(first.candidate.principal, true)} en ${escapeHtml(first.monthLabel || "mes óptimo")}; mejora ${money(first.candidate.agreementSavings || 0, true)} frente a deuda original.`
+        : "Sin candidato claro con los datos actuales.",
+      action: firstButton,
+      tone: first?.candidate?.agreementSavings > 0 ? "good" : "warn",
+    },
+    {
+      label: "3",
+      title: context.carProject ? `Coche: esperar a ${context.carProgress?.targetLabel || "fecha objetivo"}` : "Crear objetivo coche",
+      text: context.carProject
+        ? `Hucha proyectada ${money(context.carProgress?.projected || 0, true)} de ${money(context.carProgress?.amount || 0, true)}. Prioridad: no adelantar si rompe la ruta de deuda.`
+        : "No hay proyecto de coche identificado. Crea un proyecto para que el plan lo compare contra deuda y caja.",
+      action: `<button type="button" class="secondary-button" data-home-nav="new-life-simulation">${context.carProject ? "Ver coche" : "Crear escenario"}</button>`,
+      tone: context.carReadyAfterDebt ? "good" : "warn",
+    },
+  ];
+  return `<section class="debt-action-board">
+    <div class="module-heading">
+      <div>
+        <p class="panel-kicker">Qué hacer ahora</p>
+        <h3>Acciones en orden</h3>
+      </div>
+      ${routeButton}
+    </div>
+    <div class="debt-action-list">
+      ${items
+        .map(
+          (item) => `<article class="${item.tone}">
+            <span>${escapeHtml(item.label)}</span>
+            <div>
+              <strong>${escapeHtml(item.title)}</strong>
+              <p>${item.text}</p>
+            </div>
+            ${item.action}
+          </article>`,
+        )
+        .join("")}
+    </div>
+  </section>`;
+}
+
+function renderDebtPlanPolicyCards(context, scenarios) {
+  const aggressive = {
+    title: "Deuda rápida",
+    badge: "Máxima limpieza",
+    body: `${context.steps.length || 0} amortización(es), fin ${context.routeMonth}. Coche solo cuando Mediolanum mantenga hucha y reserva.`,
+    kpis: [
+      ["Coste", debtPlanSafeMoney(context.routeCost)],
+      ["Deuda final", debtPlanSafeMoney(context.finalDebt)],
+      ["Caja mínima", debtPlanSafeMoney(context.finalPlan.minCaixa)],
+    ],
+    tone: "good",
+  };
+  const balanced = {
+    title: "Equilibrada",
+    badge: "Recomendada",
+    body: "Aplicar quitas con mejor relación mejora/caja y reservar hucha de coche sin bajar CaixaBank del umbral.",
+    kpis: [
+      ["Coche", context.carProgress?.targetLabel || "por definir"],
+      ["Mediolanum final", debtPlanSafeMoney(context.finalPlan.finalMediolanum)],
+      ["Reserva OK", context.reserveOk ? "Sí" : "Revisar"],
+    ],
+    tone: context.reserveOk ? "good" : "warn",
+  };
+  const stability = {
+    title: "Estabilidad primero",
+    badge: "Más prudente",
+    body: `Usar el plan CIRBE/ASNEF por golpes y retrasar decisiones si una entrada prevista no llega.`,
+    kpis: [
+      ["Golpe 1", scenarios[0]?.g1Month || "pend."],
+      ["Golpe 2", scenarios[0]?.g2Month || "pend."],
+      ["Colchón mín.", debtPlanSafeMoney(scenarios[0]?.minReserve)],
+    ],
+    tone: "warn",
+  };
+  return [aggressive, balanced, stability]
+    .map(
+      (item) => `<article class="debt-policy-card ${item.tone}">
+        <div>
+          <span>${escapeHtml(item.badge)}</span>
+          <strong>${escapeHtml(item.title)}</strong>
+          <p>${escapeHtml(item.body)}</p>
+        </div>
+        <dl>
+          ${item.kpis.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}
+        </dl>
+      </article>`,
+    )
+    .join("");
+}
+
 function renderDebtLiquidationPlan() {
   if (!qs("debtPlanKpis")) return;
   const assumptions = DEBT_LIQUIDATION_ASSUMPTIONS;
@@ -11932,46 +12579,51 @@ function renderDebtLiquidationPlan() {
   const hasOptimization = Boolean(cachedAgentDebtOptimization());
   const optimization = cachedAgentDebtOptimization() || emptyAgentDebtOptimization(agentPlan);
   const pendingStrategicCost = Math.max(0, round2(consumerDebt - connectedDebt.grossCost));
+  const strategicContext = debtPlanStrategicContext({ best, optimization, agentPlan, connectedDebt, consumerDebt, pendingStrategicCost });
 
   qs("debtPlanKpis").innerHTML = [
     renderLiquidationMetric({
-      label: "CIRBE declarado",
-      value: money(assumptions.cirbe.may2026.total, true),
-      note: `Baja ${money(cirbeReduction, true)} desde dic 2025; vencido ${money(assumptions.cirbe.may2026.overdue, true)}.`,
+      label: "Ruta óptima calculada",
+      value: strategicContext.routeMonth,
+      note: `${strategicContext.steps.length || 0} paso(s), coste ${money(strategicContext.routeCost, true)} y deuda reducida ${money(strategicContext.debtReduced, true)}.`,
       tone: "good",
     }),
     renderLiquidationMetric({
-      label: "ASNEF visible",
+      label: "Caja mínima con ruta",
+      value: money(strategicContext.finalPlan.minCaixa || 0, true),
+      note: `Umbral operativo ${money(agentPlan.caixaFloor, true)}; reserva ${strategicContext.reserveOk ? "respetada" : "a revisar"}.`,
+      tone: strategicContext.reserveOk ? "good" : "warn",
+    }),
+    renderLiquidationMetric({
+      label: "Coche y estabilidad",
+      value: strategicContext.carProject ? strategicContext.carProgress?.targetLabel || "Objetivo activo" : "Sin proyecto",
+      note: strategicContext.carProject
+        ? `Hucha ${money(strategicContext.carProgress?.projected || 0, true)} / ${money(strategicContext.carProgress?.amount || 0, true)}.`
+        : "Crea el proyecto coche para cruzarlo con la ruta de deuda.",
+      tone: "warn",
+    }),
+    renderLiquidationMetric({
+      label: "Presión externa",
       value: money(asnefTotal, true),
-      note: "Suma de la captura: CaixaBank, Bankinter y Wizink.",
+      note: `ASNEF visible; CIRBE mayo ${money(assumptions.cirbe.may2026.total, true)}. Wizink pactado: ${money(wizinkMonthly, true)}/mes.`,
       tone: "warn",
-    }),
-    renderLiquidationMetric({
-      label: "Coste objetivo pendiente",
-      value: money(pendingStrategicCost, true),
-      note: `Objetivo ${money(consumerDebt, true)} menos decisiones de deuda ya cargadas (${money(connectedDebt.grossCost, true)}).`,
-      tone: "warn",
-    }),
-    renderLiquidationMetric({
-      label: "Wizink pactado",
-      value: `${money(wizinkMonthly, true)}/mes`,
-      note: `30% quita, 96 meses, 0% interés. Capital pactado ${money(wizinkPrincipal, true)}.`,
-      tone: "good",
     }),
   ].join("");
 
-  qs("debtPlanBestRoute").innerHTML = `<div class="module-heading">
+  qs("debtPlanBestRoute").innerHTML = `${renderDebtPlanExecutiveHero(strategicContext)}
+    ${renderDebtPlanActionBoard(strategicContext)}
+    <div class="module-heading debt-route-heading">
       <div>
-        <p class="panel-kicker">Ruta recomendada</p>
-        <h3>${best.complete ? "Liquidar consumo en dos golpes" : "Acumular antes de ejecutar"}</h3>
+        <p class="panel-kicker">Marco de negociación</p>
+        <h3>${best.complete ? "Ruta por golpes para CIRBE/ASNEF" : "Acumular antes de ejecutar"}</h3>
       </div>
       <span class="status-pill ${best.complete ? "good" : "warn"}">${best.complete ? "Viable" : "Vigilar"}</span>
     </div>
     <div class="debt-route-steps">
       <div><span>Ahora</span><strong>Separar fondo</strong><p>${money(Math.max(0, best.startingLiquidity - assumptions.targetReserve), true)} a liquidación y ${money(Math.min(best.startingLiquidity, assumptions.targetReserve), true)} de colchón.</p></div>
       <div><span>Golpe 1</span><strong>${best.g1Month || "Pendiente"}</strong><p>CaixaBank Payments, Carrefour, MediaMarkt e IKEA: ${money(best.g1Cost, true)} estimados.</p></div>
-      <div><span>Demanda</span><strong>${best.demandMonth ? formatIsoDate(`${best.demandMonth}-01`) : "Sin ingreso"}</strong><p>Si entran ${money(best.demandAmount, true)}, 100% al fondo de liquidación.</p></div>
-      <div><span>Golpe 2</span><strong>${best.g2Month || "Pendiente"}</strong><p>Bankinter completo: ${money(best.g2Cost, true)} estimados. Después, solo hipotecas + Wizink pactado.</p></div>
+    <div><span>Demanda</span><strong>${best.demandMonth ? formatIsoDate(`${best.demandMonth}-01`) : "Sin ingreso"}</strong><p>Si entran ${money(best.demandAmount, true)}, 100% al fondo de liquidación.</p></div>
+    <div><span>Golpe 2</span><strong>${best.g2Month || "Pendiente"}</strong><p>Bankinter completo: ${money(best.g2Cost, true)} estimados. Después, solo hipotecas + Wizink pactado.</p></div>
     </div>
     ${renderDebtPlanStrategyFrame(optimization, agentPlan, connectedDebt)}
     ${renderLiquidationConnectedDecisions(connectedDebt)}`;
@@ -11979,7 +12631,7 @@ function renderDebtLiquidationPlan() {
   qs("debtPlanSources").innerHTML = `<div class="module-heading">
       <div>
         <p class="panel-kicker">Fuentes y presión</p>
-        <h3>CIRBE + ASNEF</h3>
+        <h3>Deuda externa y riesgos</h3>
       </div>
     </div>
     <div class="debt-source-list">
@@ -11990,15 +12642,7 @@ function renderDebtLiquidationPlan() {
         .join("")}
     </div>`;
 
-  qs("debtPlanScenarios").innerHTML = scenarios
-    .map(
-      (item) => `<article class="debt-scenario-card ${item.complete ? "good" : "warn"}">
-        <span>${escapeHtml(item.label)}</span>
-        <strong>${escapeHtml(item.g2Month || "No cerrado en horizonte")}</strong>
-        <p>Golpe 1: ${escapeHtml(item.g1Month || "pendiente")} · colchón mínimo ${money(item.minReserve, true)} · cierre final ${money(item.finalLiquidity, true)}.</p>
-      </article>`,
-    )
-    .join("");
+  qs("debtPlanScenarios").innerHTML = renderDebtPlanPolicyCards(strategicContext, scenarios);
 
   qs("debtPlanTable").innerHTML = `<thead><tr>
       <th>Mes</th>
@@ -12035,6 +12679,9 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "new-life-simulation":
       renderNewLifeSimulation();
+      break;
+    case "new-life-definitive":
+      renderNewLifeDefinitive();
       break;
     case "visual-detail":
       renderVisualDetail();
@@ -12387,7 +13034,48 @@ async function init() {
       setActiveView(navButton.dataset.homeNav);
     }
   });
+  qs("new-life-definitive")?.addEventListener("input", (event) => {
+    if (event.target.closest("#lifeDefForm") || event.target.closest("#lifeDefHorizon")) {
+      refreshNewLifeDefinitiveFromControls();
+    }
+  });
+  qs("new-life-definitive")?.addEventListener("change", (event) => {
+    if (event.target.closest("#lifeDefForm") || event.target.closest("#lifeDefHorizon")) {
+      refreshNewLifeDefinitiveFromControls();
+    }
+  });
+  qs("new-life-definitive")?.addEventListener("click", (event) => {
+    const actionButton = event.target.closest("[data-life-def-action]");
+    if (actionButton) {
+      const action = actionButton.dataset.lifeDefAction;
+      if (action === "reset") {
+        resetNewLifeDefinitive();
+        return;
+      }
+      if (action === "prepare-project") {
+        prepareNewLifeDefinitiveProject();
+        return;
+      }
+      if (action === "prepare-debt") {
+        prepareNewLifeDefinitiveDebt();
+        return;
+      }
+    }
+    const scrollButton = event.target.closest("[data-life-def-scroll]");
+    if (scrollButton) {
+      qs(scrollButton.dataset.lifeDefScroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
   qs("debt-liquidation-plan")?.addEventListener("click", (event) => {
+    const targetButton = event.target.closest("[data-debt-plan-target]");
+    if (targetButton) {
+      prepareAgentDebtDecision(targetButton.dataset.debtPlanTarget, {
+        monthIndex: targetButton.dataset.debtPlanMonth,
+        amount: targetButton.dataset.debtPlanAmount,
+      });
+      event.preventDefault();
+      return;
+    }
     const actionButton = event.target.closest("[data-debt-plan-action]");
     if (actionButton) {
       const action = actionButton.dataset.debtPlanAction;
