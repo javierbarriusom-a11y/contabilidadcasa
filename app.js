@@ -141,8 +141,6 @@ const DEBT_LIQUIDATION_ASSUMPTIONS = {
   ],
   settlements: [
     { id: "caixa", wave: "g1", entity: "CaixaBank Payments", principal: 13411, discount: 0.35, source: "CIRBE mayo 2026" },
-    { id: "carrefour", wave: "g1", entity: "Carrefour", principal: 5774, discount: 0.40, source: "CIRBE mayo 2026" },
-    { id: "retail", wave: "g1", entity: "MediaMarkt + IKEA", principal: 3971.59, discount: 0.30, source: "Portfolio app" },
     { id: "bankinter-credit", wave: "g2", entity: "Bankinter credito", principal: 16070, discount: 0.33, source: "CIRBE mayo 2026" },
     { id: "bankinter-card", wave: "g2", entity: "Bankinter tarjeta", principal: 7613, discount: 0.40, source: "CIRBE mayo 2026" },
     { id: "bankinter-other", wave: "g2", entity: "Bankinter resto", principal: 2006, discount: 0.30, source: "ASNEF/CIRBE" },
@@ -13147,33 +13145,28 @@ function carSavingsTargetAmount() {
 }
 
 function acceleratedDebtTargets() {
-  const visibleUnpaid = EQUIFAX_VISIBLE_UNPAID_DEBTS.map((item, index) => ({
-    id: `equifax-${index + 1}`,
-    entity: item.entity,
-    type: item.type,
-    amount: round2(item.amount),
-    payoffAmount: round2(item.amount),
-    priority: index + 1,
-    source: item.source,
-    note: "Limpiar impago visible antes de pedir financiación nueva.",
-    visibleDefault: true,
-  }));
+  const targetEntityPattern = /(caixabank payments|bankinter consumer)/;
+  const visibleUnpaid = EQUIFAX_VISIBLE_UNPAID_DEBTS.filter((item) => targetEntityPattern.test(normalizedText(item.entity))).map(
+    (item, index) => ({
+      id: `equifax-${index + 1}`,
+      entity: item.entity,
+      type: item.type,
+      amount: round2(item.amount),
+      payoffAmount: round2(item.amount),
+      priority: index + 1,
+      source: item.source,
+      note: "Limpiar impago visible antes de pedir financiación nueva.",
+      visibleDefault: true,
+    }),
+  );
   const visibleByEntity = visibleUnpaid.reduce((map, item) => {
     const key = normalizedText(item.entity);
     map[key] = round2((map[key] || 0) + item.payoffAmount);
     return map;
   }, {});
-  const strategicBase = [
-    ...DEBT_LIQUIDATION_ASSUMPTIONS.settlements,
-    {
-      id: "wizink",
-      wave: "g2",
-      entity: "Wizink acuerdo pactado",
-      principal: DEBT_LIQUIDATION_ASSUMPTIONS.wizink.principal,
-      discount: DEBT_LIQUIDATION_ASSUMPTIONS.wizink.discount,
-      source: "CIRBE/plan Wizink",
-    },
-  ];
+  const strategicBase = DEBT_LIQUIDATION_ASSUMPTIONS.settlements.filter((item) =>
+    ["caixa", "bankinter-credit", "bankinter-card", "bankinter-other"].includes(item.id),
+  );
   const strategic = strategicBase.map((item, index) => {
     const payoffAmount = round2(item.principal * (1 - item.discount));
     const entityKey = normalizedText(item.entity);
@@ -13302,12 +13295,13 @@ function renderAcceleratedDebtPlan() {
   const fast = buildAcceleratedDebtCarScenario("fast");
   const balanced = buildAcceleratedDebtCarScenario("balanced");
   const recommended = fast.remainingVisibleRisk <= balanced.remainingVisibleRisk ? fast : balanced;
+  const operativeEquifax = round2(sumRows(acceleratedDebtTargets().filter((item) => item.visibleDefault), (item) => item.amount));
   const sourceTotals = {
     cirbeDecember: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.december2025.total,
     cirbeMay: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.may2026.total,
     overdue: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.may2026.overdue,
     interest: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.may2026.interest,
-    equifax: sumRows(EQUIFAX_VISIBLE_UNPAID_DEBTS, (item) => item.amount),
+    equifax: operativeEquifax,
   };
   const compareCards = [fast, balanced]
     .map(
@@ -13330,12 +13324,12 @@ function renderAcceleratedDebtPlan() {
       <div><span>CIRBE dic 2025</span><strong>${money(sourceTotals.cirbeDecember, true)}</strong></div>
       <div><span>CIRBE mayo 2026</span><strong>${money(sourceTotals.cirbeMay, true)}</strong></div>
       <div><span>Vencido + demora</span><strong>${money(sourceTotals.overdue + sourceTotals.interest, true)}</strong></div>
-      <div><span>Equifax visible</span><strong>${money(sourceTotals.equifax, true)}</strong></div>
+      <div><span>Equifax operativo</span><strong>${money(sourceTotals.equifax, true)}</strong></div>
     </div>
     <div class="debt-accel-compare">${compareCards}</div>
     <div class="debt-accel-rule">
       <strong>Regla propuesta</strong>
-      <p>Hasta limpiar Equifax/ASNEF: ${Math.round(fast.earlyDebtShare * 100)}% del excedente protegido a colchón deuda y el resto a Coche. Después: ${Math.round(fast.laterDebtShare * 100)}% deuda / ${Math.round((1 - fast.laterDebtShare) * 100)}% Coche. Si un mes no hay excedente, no se amortiza.</p>
+      <p>Hasta limpiar CaixaBank Payments y Bankinter: ${Math.round(fast.earlyDebtShare * 100)}% del excedente protegido a colchón deuda y el resto a Coche. Wizink queda fuera porque ya está pactado a ${money(round2((DEBT_LIQUIDATION_ASSUMPTIONS.wizink.principal * (1 - DEBT_LIQUIDATION_ASSUMPTIONS.wizink.discount)) / DEBT_LIQUIDATION_ASSUMPTIONS.wizink.months), true)}/mes; Carrefour queda fuera por ser medio de pago actual.</p>
     </div>
     <div class="table-wrap debt-plan-table-wrap">
       <table class="debt-plan-table debt-accel-table">
@@ -13374,11 +13368,12 @@ function renderDebtLiquidationPlan() {
   const noDemand = buildLiquidationScenario({ label: "Sin demanda", demandAmount: 0 });
   const worseDiscounts = buildLiquidationScenario({ label: "Quitas 10 pp peores", discountPenalty: 0.1 });
   const scenarios = [best, delayed, noDemand, worseDiscounts];
-  const asnefTotal = round2(sumRows(assumptions.asnef, (item) => item.amount));
+  const operativeAsnef = assumptions.asnef.filter((item) => !normalizedText(item.entity).includes("wizink"));
+  const asnefTotal = round2(sumRows(operativeAsnef, (item) => item.amount));
   const wizinkPrincipal = round2(assumptions.wizink.principal * (1 - assumptions.wizink.discount));
   const wizinkMonthly = round2(wizinkPrincipal / assumptions.wizink.months);
   const cirbeReduction = round2(assumptions.cirbe.december2025.total - assumptions.cirbe.may2026.total);
-  const consumerDebt = round2(best.g1Cost + best.g2Cost + wizinkPrincipal);
+  const consumerDebt = round2(best.g1Cost + best.g2Cost);
   const connectedDebt = liquidationConnectedDebtDecisions();
   const agentPlan = buildSavingsAgentPlan();
   const hasOptimization = Boolean(cachedAgentDebtOptimization());
@@ -13410,7 +13405,7 @@ function renderDebtLiquidationPlan() {
     renderLiquidationMetric({
       label: "Presión externa",
       value: money(asnefTotal, true),
-      note: `ASNEF visible; CIRBE mayo ${money(assumptions.cirbe.may2026.total, true)}. Wizink pactado: ${money(wizinkMonthly, true)}/mes.`,
+      note: `ASNEF operativo; CIRBE mayo ${money(assumptions.cirbe.may2026.total, true)}. Wizink ya pactado: ${money(wizinkMonthly, true)}/mes.`,
       tone: "warn",
     }),
   ].join("");
@@ -13426,9 +13421,9 @@ function renderDebtLiquidationPlan() {
     </div>
     <div class="debt-route-steps">
       <div><span>Ahora</span><strong>Separar fondo</strong><p>${money(Math.max(0, best.startingLiquidity - assumptions.targetReserve), true)} a liquidación y ${money(Math.min(best.startingLiquidity, assumptions.targetReserve), true)} de colchón.</p></div>
-      <div><span>Golpe 1</span><strong>${best.g1Month || "Pendiente"}</strong><p>CaixaBank Payments, Carrefour, MediaMarkt e IKEA: ${money(best.g1Cost, true)} estimados.</p></div>
+      <div><span>Golpe 1</span><strong>${best.g1Month || "Pendiente"}</strong><p>CaixaBank Payments: ${money(best.g1Cost, true)} estimados. Carrefour queda fuera por uso operativo.</p></div>
     <div><span>Demanda</span><strong>${best.demandMonth ? formatIsoDate(`${best.demandMonth}-01`) : "Sin ingreso"}</strong><p>Si entran ${money(best.demandAmount, true)}, 100% al fondo de liquidación.</p></div>
-    <div><span>Golpe 2</span><strong>${best.g2Month || "Pendiente"}</strong><p>Bankinter completo: ${money(best.g2Cost, true)} estimados. Después, solo hipotecas + Wizink pactado.</p></div>
+    <div><span>Golpe 2</span><strong>${best.g2Month || "Pendiente"}</strong><p>Bankinter completo: ${money(best.g2Cost, true)} estimados. Después, mantener hipotecas + Wizink pactado.</p></div>
     </div>
     ${renderDebtPlanStrategyFrame(optimization, agentPlan, connectedDebt)}
     ${renderLiquidationConnectedDecisions(connectedDebt)}`;
@@ -13442,9 +13437,10 @@ function renderDebtLiquidationPlan() {
     <div class="debt-source-list">
       <div><span>CIRBE dic 2025</span><strong>${money(assumptions.cirbe.december2025.total, true)}</strong><small>Riesgo dispuesto total.</small></div>
       <div><span>CIRBE mayo 2026</span><strong>${money(assumptions.cirbe.may2026.total, true)}</strong><small>Vencidos ${money(assumptions.cirbe.may2026.overdue, true)} + demora/gastos ${money(assumptions.cirbe.may2026.interest, true)}.</small></div>
-      ${assumptions.asnef
+      ${operativeAsnef
         .map((item) => `<div><span>${escapeHtml(item.entity)}</span><strong>${money(item.amount, true)}</strong><small>${item.rows} apunte(s) visibles en ASNEF.</small></div>`)
         .join("")}
+      <div><span>Wizink</span><strong>${money(wizinkMonthly, true)}/mes</strong><small>Fuera del objetivo: ya pactado en cuota mensual.</small></div>
     </div>`;
 
   qs("debtPlanScenarios").innerHTML = renderDebtPlanPolicyCards(strategicContext, scenarios);
