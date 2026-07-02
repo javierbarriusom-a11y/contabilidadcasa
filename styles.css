@@ -3096,6 +3096,13 @@ svg {
   text-align: right;
 }
 
+.visual-line-row input.pending-change {
+  border-color: rgba(15, 143, 140, 0.45);
+  background: #f4fbfa;
+  color: var(--teal);
+  font-weight: 900;
+}
+
 .visual-year-cell {
   color: var(--ink);
   font-weight: 900;
@@ -5315,6 +5322,16 @@ svg {
   background: #f5fbfa;
 }
 
+.debt-product-card.planned {
+  border-left-color: var(--amber);
+  background: #fffaf0;
+}
+
+.debt-product-card.covered {
+  border-left-color: var(--green);
+  background: #f4fbf6;
+}
+
 .debt-product-title strong,
 .debt-product-title span,
 .debt-product-card p {
@@ -7254,7 +7271,55 @@ tbody tr:hover {
 }
 
 .life-def-form {
+  grid-template-columns: 1fr;
+}
+
+.life-def-subpanel {
+  background: #f8fbfc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 14px;
+}
+
+.life-def-subhead {
+  margin-bottom: 12px;
+}
+
+.life-def-subhead span {
+  color: var(--life-def-teal);
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.life-def-subhead strong {
+  color: var(--ink);
+  display: block;
+  font-size: 1.08rem;
+  font-weight: 950;
+  line-height: 1.15;
+  margin-top: 2px;
+}
+
+.life-def-subhead p {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.32;
+  margin: 5px 0 0;
+}
+
+.life-def-mini-form {
+  display: grid;
+  gap: 12px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-width: 0;
+}
+
+.life-def-wide {
+  grid-column: 1 / -1;
 }
 
 .life-def-form label {
@@ -7509,6 +7574,7 @@ tbody tr:hover {
 
 @media (max-width: 760px) {
   .life-def-form,
+  .life-def-mini-form,
   .life-def-kpis,
   .life-def-scenarios,
   .life-def-story-grid,

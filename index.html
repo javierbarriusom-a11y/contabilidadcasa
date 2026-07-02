@@ -375,58 +375,118 @@
                   </div>
                 </div>
                 <div class="life-def-form" id="lifeDefForm">
-                  <label>
-                    <span>Proyecto principal</span>
-                    <input id="lifeDefProjectName" type="text" placeholder="Ej. Coche familiar, reforma, vacaciones" />
-                  </label>
-                  <label>
-                    <span>Importe objetivo</span>
-                    <input id="lifeDefProjectAmount" type="number" step="0.01" />
-                  </label>
-                  <label>
-                    <span>Modalidad</span>
-                    <select id="lifeDefProjectMode">
-                      <option value="savings">Hucha en Mediolanum</option>
-                      <option value="payment">Pago único desde ahorro</option>
-                      <option value="credit">Financiación de Tere</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Mes objetivo</span>
-                    <select id="lifeDefProjectMonth"></select>
-                  </label>
-                  <label>
-                    <span>Capital financiado</span>
-                    <input id="lifeDefLoanCapital" type="number" step="0.01" />
-                  </label>
-                  <label>
-                    <span>Cuota financiación</span>
-                    <input id="lifeDefLoanPayment" type="number" step="0.01" />
-                  </label>
-                  <label>
-                    <span>Duración financiación</span>
-                    <input id="lifeDefLoanMonths" type="number" min="0" step="1" />
-                  </label>
-                  <label>
-                    <span>Reserva operativa común</span>
-                    <input id="lifeDefCaixaFloor" type="number" step="0.01" readonly aria-describedby="lifeDefCaixaFloorHint" />
-                    <small id="lifeDefCaixaFloorHint">Se cambia en Asesor ejecutivo y aplica a toda la app.</small>
-                  </label>
-                  <label>
-                    <span>Estrategia deuda</span>
-                    <select id="lifeDefDebtStrategy">
-                      <option value="none">No simular deuda</option>
-                      <option value="next">Solo próxima deuda óptima</option>
-                      <option value="optimal">Ruta óptima completa</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Modo de traspaso</span>
-                    <select id="lifeDefTransferMode">
-                      <option value="prudent">Prudente: cubre mes siguiente</option>
-                      <option value="floor">Solo reserva mínima</option>
-                    </select>
-                  </label>
+                  <section class="life-def-subpanel">
+                    <div class="life-def-subhead">
+                      <span>Proyectos no fijados</span>
+                      <strong>Coche y proyectos de vida</strong>
+                      <p>Simula hucha, pago único o financiación externa sin meterlo aún en el cuadro de mandos.</p>
+                    </div>
+                    <div class="life-def-mini-form">
+                      <label class="life-def-wide">
+                        <span>Proyecto pendiente</span>
+                        <select id="lifeDefProjectSource"></select>
+                      </label>
+                      <label>
+                        <span>Proyecto principal</span>
+                        <input id="lifeDefProjectName" type="text" placeholder="Ej. Coche familiar, reforma, vacaciones" />
+                      </label>
+                      <label>
+                        <span>Importe objetivo</span>
+                        <input id="lifeDefProjectAmount" type="number" step="0.01" />
+                      </label>
+                      <label>
+                        <span>Modalidad</span>
+                        <select id="lifeDefProjectMode">
+                          <option value="savings">Hucha en Mediolanum</option>
+                          <option value="payment">Pago único desde ahorro</option>
+                          <option value="credit">Financiación de Tere</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Mes objetivo</span>
+                        <select id="lifeDefProjectMonth"></select>
+                      </label>
+                      <label>
+                        <span>Capital financiado</span>
+                        <input id="lifeDefLoanCapital" type="number" step="0.01" />
+                      </label>
+                      <label>
+                        <span>Cuota financiación</span>
+                        <input id="lifeDefLoanPayment" type="number" step="0.01" />
+                      </label>
+                      <label>
+                        <span>Duración financiación</span>
+                        <input id="lifeDefLoanMonths" type="number" min="0" step="1" />
+                      </label>
+                    </div>
+                  </section>
+
+                  <section class="life-def-subpanel">
+                    <div class="life-def-subhead">
+                      <span>Deudas pendientes</span>
+                      <strong>Solo lo no fijado</strong>
+                      <p>Elige una deuda pendiente o usa la ruta óptima. Las deudas ya fijadas en el cuadro de mandos no se ofrecen aquí.</p>
+                    </div>
+                    <div class="life-def-mini-form">
+                      <label class="life-def-wide">
+                        <span>Deuda objetivo</span>
+                        <select id="lifeDefDebtTarget"></select>
+                      </label>
+                      <label class="life-def-wide">
+                        <span>Modalidad deuda</span>
+                        <select id="lifeDefDebtMode">
+                          <option value="none">No simular deuda</option>
+                          <option value="route-next">Ruta óptima · próxima deuda</option>
+                          <option value="route-full">Ruta óptima · completa</option>
+                          <option value="optimize">Amortización · mes óptimo</option>
+                          <option value="fixed">Amortización · mes manual</option>
+                          <option value="spread-optimize">Amortización fraccionada · inicio óptimo</option>
+                          <option value="spread">Amortización fraccionada · mes manual</option>
+                          <option value="refinance-optimize">Reunificación · inicio óptimo</option>
+                          <option value="refinance">Reunificación · mes manual</option>
+                          <option value="retomar-optimize">Retomar pagos · inicio óptimo</option>
+                          <option value="retomar">Retomar pagos · mes manual</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Importe pactado</span>
+                        <input id="lifeDefDebtAmount" type="number" step="0.01" />
+                      </label>
+                      <label>
+                        <span>Cuota / impacto mensual</span>
+                        <input id="lifeDefDebtRelief" type="number" step="0.01" />
+                      </label>
+                      <label>
+                        <span>Duración deuda</span>
+                        <input id="lifeDefDebtDuration" type="number" min="1" step="1" />
+                      </label>
+                      <label>
+                        <span>Mes deuda</span>
+                        <select id="lifeDefDebtMonth"></select>
+                      </label>
+                    </div>
+                  </section>
+
+                  <section class="life-def-subpanel life-def-settings-panel">
+                    <div class="life-def-subhead">
+                      <span>Criterios comunes</span>
+                      <strong>Caja y traspasos</strong>
+                    </div>
+                    <div class="life-def-mini-form">
+                      <label>
+                        <span>Reserva operativa común</span>
+                        <input id="lifeDefCaixaFloor" type="number" step="0.01" readonly aria-describedby="lifeDefCaixaFloorHint" />
+                        <small id="lifeDefCaixaFloorHint">Se cambia en Asesor ejecutivo y aplica a toda la app.</small>
+                      </label>
+                      <label>
+                        <span>Modo de traspaso</span>
+                        <select id="lifeDefTransferMode">
+                          <option value="prudent">Prudente: cubre mes siguiente</option>
+                          <option value="floor">Solo reserva mínima</option>
+                        </select>
+                      </label>
+                    </div>
+                  </section>
                 </div>
               </article>
 

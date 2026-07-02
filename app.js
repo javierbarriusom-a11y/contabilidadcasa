@@ -65,6 +65,7 @@ let expandedVisualYears = new Set();
 let visualDraftCells = {};
 let visualDraftLabels = {};
 let visualDraftDeletes = {};
+let visualDraftProjectCells = {};
 let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
@@ -581,6 +582,15 @@ function normalizeLoadedProjects() {
     next.recurringAmount = round2(Number(next.recurringAmount || 0));
     next.recurringDuration = Math.max(0, Number(next.recurringDuration || 0));
     next.recurringStartOffset = Math.max(0, Number(next.recurringStartOffset || 0));
+    if (next.monthlyOverrides && typeof next.monthlyOverrides === "object") {
+      next.monthlyOverrides = Object.fromEntries(
+        Object.entries(next.monthlyOverrides)
+          .filter(([key]) => /^\d{4}-\d{2}$/.test(key))
+          .map(([key, value]) => [key, round2(Number(value || 0))]),
+      );
+    } else {
+      delete next.monthlyOverrides;
+    }
     next.locked = Boolean(next.locked);
     if (!next.locked) delete next.lockedAt;
     if (project.mode !== "fixed" && project.mode !== "spread") return next;
@@ -2318,6 +2328,10 @@ function planningDetailSectionsForForecastIndex(forecastIndex) {
 }
 
 function scheduledDecisionMonthlyImpact(project, forecastIndex) {
+  const month = forecastMonths()[forecastIndex];
+  if (month?.key && project.monthlyOverrides && Object.prototype.hasOwnProperty.call(project.monthlyOverrides, month.key)) {
+    return Number(project.monthlyOverrides[month.key] || 0);
+  }
   const duration = Math.max(1, Number(project.duration || 1));
   const costActive = forecastIndex >= project.startIndex && forecastIndex < project.startIndex + duration;
   const cost = costActive ? Number(project.amount || 0) / duration : 0;
@@ -3865,8 +3879,30 @@ function removeDebtLiquidation(id) {
   render();
 }
 
+function plannedDebtPrincipalByTarget() {
+  const totals = new Map();
+  debtLiquidations.forEach((item) => {
+    if (!item.targetId || isDebtResumeMode(item.payoffMode || item.mode)) return;
+    const value = Number(item.targetPrincipal || item.originalPrincipal || item.amount || 0);
+    totals.set(item.targetId, round2((totals.get(item.targetId) || 0) + value));
+  });
+  return totals;
+}
+
 function debtPortfolioRows() {
-  return DEBT_PORTFOLIO;
+  const planned = plannedDebtPrincipalByTarget();
+  return DEBT_PORTFOLIO.map((row) => {
+    const plannedPrincipal = round2(planned.get(row.id) || 0);
+    const currentPrincipal = Math.max(0, round2(Number(row.currentPrincipal || 0) - plannedPrincipal));
+    return {
+      ...row,
+      rawCurrentPrincipal: Number(row.currentPrincipal || 0),
+      plannedPrincipal,
+      plannedInDashboard: plannedPrincipal > 0,
+      plannedCovered: plannedPrincipal > 0 && currentPrincipal <= 0,
+      currentPrincipal,
+    };
+  });
 }
 
 function installmentLabel(row) {
@@ -4388,10 +4424,6 @@ function debtControlStats() {
     ? averageRows(nextBase12, (row) => row.refi)
     : currentPayment.total;
   const liquidationTotal = debtLiquidations.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const principalCovered = debtLiquidations.reduce(
-    (sum, item) => sum + (isDebtResumeMode(item.payoffMode || item.mode) ? 0 : Number(item.targetPrincipal || item.amount || 0)),
-    0,
-  );
   const relief = debtLiquidations.reduce((sum, item) => sum + effectiveDebtDecisionMonthlyRelief(item), 0);
   return {
     oldDebt,
@@ -4401,7 +4433,7 @@ function debtControlStats() {
     remainingPlanDebt,
     currentMonthly12,
     liquidationTotal,
-    principalAfterAgreements: Math.max(0, portfolioTotals.currentPrincipal - principalCovered),
+    principalAfterAgreements: portfolioTotals.currentPrincipal,
     afterLiquidations: Math.max(0, remainingPlanDebt - liquidationTotal),
     monthlyAfterDecisions: Math.max(0, currentPayment.total - relief),
     monthlyRelief: Math.max(0, oldMonthly - currentMonthly12),
@@ -4529,18 +4561,30 @@ function renderDebtControl() {
   }
 
   if (qs("debtProductGrid")) {
-    const activeRows = debtPortfolioRows().filter((row) => Number(row.currentPrincipal || 0) > 0 || row.reunified);
+    const activeRows = debtPortfolioRows().filter((row) => Number(row.currentPrincipal || 0) > 0 || row.reunified || row.plannedInDashboard);
     qs("debtProductGrid").innerHTML = activeRows
       .map((row) => {
         const discount = Math.max(0, Number(row.initialPrincipal || 0) - Number(row.currentPrincipal || 0) - Number(row.amortized || 0));
         const suspended = debtTargetIsSuspended(row);
-        const status = row.reunified ? "Reunificada" : suspended ? "Suspendida / pendiente de acuerdo" : Number(row.currentPrincipal || 0) > 0 ? "Viva" : "Saldada";
+        const status = row.plannedCovered
+          ? "Incorporada al cuadro / liberada"
+          : row.plannedInDashboard
+            ? "Incorporada parcialmente al cuadro"
+            : row.reunified
+              ? "Reunificada"
+              : suspended
+                ? "Suspendida / pendiente de acuerdo"
+                : Number(row.currentPrincipal || 0) > 0
+                  ? "Viva"
+                  : "Saldada";
         const currentPaymentLabel = row.reunified
           ? `Incluida en ${money(CURRENT_REUNIFIED_DEBT_PAYMENT, true)}`
+          : row.plannedCovered
+            ? "Liberada en cuadro"
           : suspended
             ? "0,00 € suspendida"
             : money(row.currentPayment, true);
-        return `<article class="debt-product-card ${row.reunified ? "reunified" : ""}">
+        return `<article class="debt-product-card ${row.reunified ? "reunified" : ""} ${row.plannedCovered ? "covered" : row.plannedInDashboard ? "planned" : ""}">
           <div class="debt-product-title">
             <strong>${escapeHtml(row.entity)}</strong>
             <span>${escapeHtml(row.type)} · ${escapeHtml(row.number)}</span>
@@ -4551,7 +4595,7 @@ function renderDebtControl() {
             <div><span>Cuota antes</span><strong class="negative">${money(row.originalPayment, true)}</strong></div>
             <div><span>Cuota ahora</span><strong>${escapeHtml(currentPaymentLabel)}</strong></div>
           </div>
-          <p><b>${escapeHtml(status)}</b>${installmentLabel(row)}${discount ? ` · mejora ${money(discount, true)}` : ""}</p>
+          <p><b>${escapeHtml(status)}</b>${installmentLabel(row)}${row.plannedInDashboard ? ` · cargado ${money(row.plannedPrincipal, true)}` : ""}${discount ? ` · mejora ${money(discount, true)}` : ""}</p>
         </article>`;
       })
       .join("");
@@ -4805,8 +4849,9 @@ function decisionScenarioMetrics(label, placements) {
   const minChecking = Math.min(...rows.map((row) => row.checking));
   const finalSavings = rows[rows.length - 1]?.savings || 0;
   const finalLiquidity = rows[rows.length - 1]?.totalLiquidity || 0;
-  const debtPaid = round2(sumRows(placements.filter((item) => item.source === "debt"), (item) => Number(item.amount || item.principal || 0)));
-  const debtRemaining = Math.max(0, round2(debtPortfolioTotals().currentPrincipal - debtPaid));
+  const debtPaid = round2(sumRows(placements.filter((item) => item.source === "debt"), (item) => Number(item.targetPrincipal || item.amount || item.principal || 0)));
+  const rawDebtPrincipal = round2(sumRows(DEBT_PORTFOLIO, (item) => item.currentPrincipal));
+  const debtRemaining = Math.max(0, round2(rawDebtPrincipal - debtPaid));
   const firstImpact = placements
     .slice()
     .sort((a, b) => Number(a.startIndex || 0) - Number(b.startIndex || 0))
@@ -5946,6 +5991,51 @@ function projectRowsForVisualMonths(months) {
     .filter((project) => project.values.some((value) => value !== 0));
 }
 
+function visualProjectDraftCellKey(projectId, monthKey) {
+  return `${projectId}|${monthKey}`;
+}
+
+function visualProjectDraftForCell(projectId, monthKey) {
+  return visualDraftProjectCells[visualProjectDraftCellKey(projectId, monthKey)] || null;
+}
+
+function sourceDecisionForVisualProject(projectId) {
+  return projects.find((item) => item.id === projectId) || debtLiquidations.find((item) => item.id === projectId) || null;
+}
+
+function visualProjectCellValue(project, month, monthIndexByKey) {
+  const draft = visualProjectDraftForCell(project.id, month.key);
+  if (draft) return draft.value;
+  const forecastIndex = monthIndexByKey.get(month.key);
+  return forecastIndex !== undefined ? scheduledDecisionMonthlyImpact(project, forecastIndex) : 0;
+}
+
+function updateVisualProjectCell(input) {
+  const project = sourceDecisionForVisualProject(input.dataset.projectId);
+  const month = monthByKey(input.dataset.monthKey);
+  if (!project || !month) return;
+  const parsed = parseAmount(input.value);
+  const value = input.value === "" || parsed === null ? 0 : round2(parsed);
+  const placement = projectPlan.placements.find((item) => item.id === project.id) || project;
+  const monthIndexByKey = new Map(forecastMonths().map((item) => [item.key, item.index]));
+  const currentValue = visualProjectCellValue(placement, month, monthIndexByKey);
+  const key = visualProjectDraftCellKey(project.id, month.key);
+  if (Number(currentValue || 0) === value) {
+    delete visualDraftProjectCells[key];
+  } else {
+    visualDraftProjectCells[key] = {
+      projectId: project.id,
+      source: project.targetId ? "debt" : "project",
+      monthKey: month.key,
+      monthLabel: month.label,
+      value,
+      oldValue: currentValue,
+    };
+  }
+  input.value = value ? amountInputValue(value) : "";
+  renderVisualDetail();
+}
+
 function updateVisualCell(input) {
   const row = rowForSeriesKey(input.dataset.rowKey);
   const month = monthByKey(input.dataset.monthKey);
@@ -6025,7 +6115,7 @@ function applyVisualDeleteRow(rowKey, months) {
 
 function visualPendingCounts() {
   return {
-    cells: Object.keys(visualDraftCells).length,
+    cells: Object.keys(visualDraftCells).length + Object.keys(visualDraftProjectCells).length,
     labels: Object.keys(visualDraftLabels).length,
     deletes: Object.keys(visualDraftDeletes).length + Object.keys(visualDraftProjectDeletes).length,
     selected: visualSelectedRows.size,
@@ -6094,6 +6184,7 @@ function discardVisualChanges() {
   visualDraftCells = {};
   visualDraftLabels = {};
   visualDraftDeletes = {};
+  visualDraftProjectCells = {};
   visualDraftProjectDeletes = {};
   visualSelectedRows.clear();
   renderVisualDetail();
@@ -6138,6 +6229,34 @@ function saveVisualChanges() {
     savedLabels += 1;
   });
 
+  Object.values(visualDraftProjectCells).forEach((draft) => {
+    const applyDraft = (item) => {
+      const monthlyOverrides = { ...(item.monthlyOverrides || {}) };
+      monthlyOverrides[draft.monthKey] = round2(Number(draft.value || 0));
+      const placement = projectPlan.placements.find((candidate) => candidate.id === item.id);
+      if (!placement) return { ...item, monthlyOverrides };
+      const startIndex = Math.max(0, Number(placement.startIndex || item.monthIndex || 0));
+      const startMonth = forecastMonths()[startIndex];
+      return {
+        ...item,
+        monthlyOverrides,
+        mode: "fixed",
+        monthIndex: startIndex,
+        monthKey: startMonth?.key || item.monthKey,
+      };
+    };
+    if (projects.some((project) => project.id === draft.projectId)) {
+      projects = projects.map((project) => (project.id === draft.projectId ? applyDraft(project) : project));
+      projectsChanged = true;
+      savedCells += 1;
+      return;
+    }
+    if (debtLiquidations.some((item) => item.id === draft.projectId)) {
+      debtLiquidations = debtLiquidations.map((item) => (item.id === draft.projectId ? applyDraft(item) : item));
+      savedCells += 1;
+    }
+  });
+
   Object.keys(visualDraftDeletes).forEach((rowKey) => {
     if (applyVisualDeleteRow(rowKey, months)) customChanged = true;
     savedDeletes += 1;
@@ -6173,6 +6292,7 @@ function saveVisualChanges() {
   visualDraftCells = {};
   visualDraftLabels = {};
   visualDraftDeletes = {};
+  visualDraftProjectCells = {};
   visualDraftProjectDeletes = {};
   visualSelectedRows.clear();
   render();
@@ -6263,16 +6383,20 @@ function renderVisualDetail() {
   if (projectRows.length) {
     const projectSectionKey = "project:projects";
     const expanded = expandedVisualSections.has(projectSectionKey);
-    const monthIndexByKey = new Map(months.map((month, index) => [month.key, index]));
+    const monthIndexByKey = new Map(forecastMonths().map((month) => [month.key, month.index]));
     const sectionTotals = columns.map((column) =>
       sumColumnMonths(column, (month) => {
-        const monthIndex = monthIndexByKey.get(month.key);
-        return projectRows.reduce((sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : project.values[monthIndex] || 0), 0);
+        return projectRows.reduce(
+          (sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : visualProjectCellValue(project, month, monthIndexByKey)),
+          0,
+        );
       }),
     );
     totals.expense += sumColumnMonths({ months }, (month) => {
-      const monthIndex = monthIndexByKey.get(month.key);
-      return projectRows.reduce((sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : project.values[monthIndex] || 0), 0);
+      return projectRows.reduce(
+        (sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : visualProjectCellValue(project, month, monthIndexByKey)),
+        0,
+      );
     });
     totals.lines += projectRows.length;
     body.push(`<tr class="visual-section-row expense project-section ${expanded ? "expanded" : ""}" data-visual-section-row="${escapeHtml(projectSectionKey)}">
@@ -6305,9 +6429,11 @@ function renderVisualDetail() {
           </td>
           ${columns
             .map((column) => {
-              const value = sumColumnMonths(column, (month) => project.values[monthIndexByKey.get(month.key)] || 0);
+              const value = sumColumnMonths(column, (month) => visualProjectCellValue(project, month, monthIndexByKey));
               if (compactYears && column.kind === "year-summary") return `<td class="visual-year-cell negative">${value ? money(value, true) : ""}</td>`;
-              return `<td><input class="visual-amount-input derived-control" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" readonly /></td>`;
+              const month = column.months[0];
+              const draft = visualProjectDraftForCell(project.id, month.key);
+              return `<td><input class="visual-amount-input ${draft ? "pending-change" : ""}" data-visual-project-cell data-project-id="${escapeHtml(project.id)}" data-month-key="${month.key}" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" ${pendingDelete ? "disabled" : ""} /></td>`;
             })
             .join("")}
           <td>${actionCell}</td>
@@ -6339,6 +6465,9 @@ function renderVisualDetail() {
   });
   document.querySelectorAll("[data-visual-cell]").forEach((input) => {
     input.addEventListener("change", () => updateVisualCell(input));
+  });
+  document.querySelectorAll("[data-visual-project-cell]").forEach((input) => {
+    input.addEventListener("change", () => updateVisualProjectCell(input));
   });
   document.querySelectorAll("[data-visual-label-key]").forEach((input) => {
     input.addEventListener("change", () => updateVisualLabel(input));
@@ -6823,7 +6952,7 @@ function buildSavingsAgentPlan(sourceRowsOverride = null) {
     ),
   );
   const openDebtPrincipal = round2(sumRows(debtTargetOptions({ includePlanned: true }), (item) => Number(item.currentPrincipal || item.principal || 0)));
-  const remainingDebt = Math.max(0, round2(openDebtPrincipal - plannedDebtPrincipal));
+  const remainingDebt = Math.max(0, round2(openDebtPrincipal));
   const final = rows.at(-1) || {};
   const plan = {
     rows,
@@ -8180,7 +8309,13 @@ function prepareAgentDebtDecision(targetId, options = {}) {
     const rawMonthIndex = options.monthIndex;
     const hasSuggestedMonth = rawMonthIndex !== undefined && rawMonthIndex !== null && String(rawMonthIndex) !== "";
     const monthIndex = hasSuggestedMonth ? Number(rawMonthIndex) : NaN;
-    if (Number.isFinite(monthIndex) && monthIndex >= 0) {
+    const requestedMode = options.rawMode || "";
+    if (requestedMode && qs("debtPayoffMode")) {
+      qs("debtPayoffMode").value = requestedMode;
+      if (Number.isFinite(monthIndex) && monthIndex >= 0 && qs("debtPayoffMonth")) {
+        qs("debtPayoffMonth").value = String(monthIndex);
+      }
+    } else if (Number.isFinite(monthIndex) && monthIndex >= 0) {
       if (qs("debtPayoffMode")) qs("debtPayoffMode").value = "fixed";
       if (qs("debtPayoffMonth")) qs("debtPayoffMonth").value = String(monthIndex);
     } else if (qs("debtPayoffMode")) {
@@ -8189,6 +8324,10 @@ function prepareAgentDebtDecision(targetId, options = {}) {
     const amount = Number(options.amount);
     if (Number.isFinite(amount) && amount > 0 && qs("debtPayoffAmount")) {
       qs("debtPayoffAmount").value = amount.toFixed(2);
+    }
+    const duration = Number(options.duration);
+    if (Number.isFinite(duration) && duration > 0 && qs("debtPayoffDuration")) {
+      qs("debtPayoffDuration").value = String(Math.round(duration));
     }
     updateDebtModeUi();
     stageDebtDecision();
@@ -8988,7 +9127,14 @@ function defaultNewLifeDefinitiveState() {
     loanCapital: settings.tereCreditCapital || DEFAULT_EXECUTIVE_TERE_CREDIT_CAPITAL,
     loanPayment: settings.tereCreditPayment || DEFAULT_EXECUTIVE_TERE_CREDIT_PAYMENT,
     loanMonths: settings.tereCreditMonths || DEFAULT_EXECUTIVE_TERE_CREDIT_MONTHS,
+    projectSourceId: "custom",
     debtStrategy: "optimal",
+    debtMode: "route-full",
+    debtTargetId: "",
+    debtAmount: 0,
+    debtRelief: 0,
+    debtDuration: 1,
+    debtMonthIndex: 0,
     confirmedFlow: false,
   };
 }
@@ -9016,11 +9162,13 @@ function saveNewLifeDefinitiveState(state) {
 
 function readNewLifeDefinitiveControls() {
   const current = loadNewLifeDefinitiveState();
+  const selectedDebtMode = qs("lifeDefDebtMode")?.value || current.debtMode || lifeDefDebtModeFromLegacy(current.debtStrategy);
   return {
     ...current,
     horizon: Math.max(6, Number(qs("lifeDefHorizon")?.value || current.horizon || 24)),
     caixaFloor: agentCaixaFloor() || current.caixaFloor || 2500,
     transferMode: qs("lifeDefTransferMode")?.value || current.transferMode || "prudent",
+    projectSourceId: qs("lifeDefProjectSource")?.value || current.projectSourceId || "custom",
     projectName: qs("lifeDefProjectName")?.value?.trim() || current.projectName || "Proyecto principal",
     projectAmount: Math.max(0, parseAmount(qs("lifeDefProjectAmount")?.value) ?? current.projectAmount ?? 0),
     projectMode: qs("lifeDefProjectMode")?.value || current.projectMode || "savings",
@@ -9028,11 +9176,17 @@ function readNewLifeDefinitiveControls() {
     loanCapital: Math.max(0, parseAmount(qs("lifeDefLoanCapital")?.value) ?? current.loanCapital ?? 0),
     loanPayment: Math.max(0, parseAmount(qs("lifeDefLoanPayment")?.value) ?? current.loanPayment ?? 0),
     loanMonths: Math.max(0, Number(qs("lifeDefLoanMonths")?.value || current.loanMonths || 0)),
-    debtStrategy: qs("lifeDefDebtStrategy")?.value || current.debtStrategy || "optimal",
+    debtStrategy: qs("lifeDefDebtStrategy")?.value || lifeDefLegacyStrategyFromMode(selectedDebtMode),
+    debtMode: selectedDebtMode,
+    debtTargetId: qs("lifeDefDebtTarget")?.value || current.debtTargetId || "",
+    debtAmount: Math.max(0, parseAmount(qs("lifeDefDebtAmount")?.value) ?? current.debtAmount ?? 0),
+    debtRelief: Math.max(0, parseAmount(qs("lifeDefDebtRelief")?.value) ?? current.debtRelief ?? 0),
+    debtDuration: Math.max(1, Number(qs("lifeDefDebtDuration")?.value || current.debtDuration || 1)),
+    debtMonthIndex: Math.max(0, Number(qs("lifeDefDebtMonth")?.value ?? current.debtMonthIndex ?? 0)),
   };
 }
 
-function populateNewLifeDefinitiveControls(state) {
+function populateNewLifeDefinitiveControls(state, ctx = null) {
   const months = openForecastMonths();
   const monthSelect = qs("lifeDefProjectMonth");
   if (monthSelect) {
@@ -9044,6 +9198,16 @@ function populateNewLifeDefinitiveControls(state) {
     const valid = [...monthSelect.options].some((option) => option.value === previous);
     monthSelect.value = valid ? previous : monthSelect.options[0]?.value || "0";
   }
+  const debtMonthSelect = qs("lifeDefDebtMonth");
+  if (debtMonthSelect) {
+    const previous = String(state.debtMonthIndex ?? debtMonthSelect.value ?? 0);
+    debtMonthSelect.innerHTML = months
+      .slice(0, 72)
+      .map((month) => `<option value="${month.index}">${escapeHtml(month.label)}</option>`)
+      .join("");
+    const valid = [...debtMonthSelect.options].some((option) => option.value === previous);
+    debtMonthSelect.value = valid ? previous : debtMonthSelect.options[0]?.value || "0";
+  }
   if (qs("lifeDefHorizon")) qs("lifeDefHorizon").value = String(state.horizon || 24);
   const lifeDefCaixaFloor = qs("lifeDefCaixaFloor");
   if (lifeDefCaixaFloor) {
@@ -9052,13 +9216,191 @@ function populateNewLifeDefinitiveControls(state) {
     lifeDefCaixaFloor.setAttribute("aria-readonly", "true");
   }
   if (qs("lifeDefTransferMode")) qs("lifeDefTransferMode").value = state.transferMode || "prudent";
-  if (qs("lifeDefProjectName")) qs("lifeDefProjectName").value = state.projectName || "";
-  if (qs("lifeDefProjectAmount")) qs("lifeDefProjectAmount").value = amountInputValue(state.projectAmount);
-  if (qs("lifeDefProjectMode")) qs("lifeDefProjectMode").value = state.projectMode || "savings";
-  if (qs("lifeDefLoanCapital")) qs("lifeDefLoanCapital").value = amountInputValue(state.loanCapital);
-  if (qs("lifeDefLoanPayment")) qs("lifeDefLoanPayment").value = amountInputValue(state.loanPayment);
-  if (qs("lifeDefLoanMonths")) qs("lifeDefLoanMonths").value = String(state.loanMonths || 0);
-  if (qs("lifeDefDebtStrategy")) qs("lifeDefDebtStrategy").value = state.debtStrategy || "optimal";
+  const pendingProjects = lifeDefPendingProjectOptions();
+  const projectSourceSelect = qs("lifeDefProjectSource");
+  if (projectSourceSelect) {
+    const previous = state.projectSourceId || projectSourceSelect.value || "custom";
+    projectSourceSelect.innerHTML = [
+      `<option value="custom">Proyecto nuevo / coche familiar</option>`,
+      ...pendingProjects.map((project) => `<option value="${escapeHtml(project.id)}">${escapeHtml(project.name || "Proyecto")} · ${money(decisionGrossCost(project), true)}${project.monthLabel ? ` · ${escapeHtml(project.monthLabel)}` : ""}</option>`),
+    ].join("");
+    const valid = [...projectSourceSelect.options].some((option) => option.value === previous);
+    projectSourceSelect.value = valid ? previous : "custom";
+  }
+  const selectedProject = lifeDefProjectById(projectSourceSelect?.value || state.projectSourceId);
+  const projectValues = selectedProject ? lifeDefStateFromProject(selectedProject, state) : state;
+  if (monthSelect && projectValues.projectMonthIndex !== undefined) {
+    const projectMonthValue = String(projectValues.projectMonthIndex);
+    if ([...monthSelect.options].some((option) => option.value === projectMonthValue)) {
+      monthSelect.value = projectMonthValue;
+    }
+  }
+  if (qs("lifeDefProjectName")) qs("lifeDefProjectName").value = projectValues.projectName || "";
+  if (qs("lifeDefProjectAmount")) qs("lifeDefProjectAmount").value = amountInputValue(projectValues.projectAmount);
+  if (qs("lifeDefProjectMode")) qs("lifeDefProjectMode").value = projectValues.projectMode || "savings";
+  if (qs("lifeDefLoanCapital")) qs("lifeDefLoanCapital").value = amountInputValue(projectValues.loanCapital);
+  if (qs("lifeDefLoanPayment")) qs("lifeDefLoanPayment").value = amountInputValue(projectValues.loanPayment);
+  if (qs("lifeDefLoanMonths")) qs("lifeDefLoanMonths").value = String(projectValues.loanMonths || 0);
+  const debtTargets = lifeDefAvailableDebtTargets(ctx);
+  const debtTargetSelect = qs("lifeDefDebtTarget");
+  if (debtTargetSelect) {
+    const previous = state.debtTargetId || debtTargetSelect.value || debtTargets[0]?.id || "";
+    debtTargetSelect.innerHTML = debtTargets.length
+      ? debtTargets
+          .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.entity)} · ${escapeHtml(item.type)} · ${escapeHtml(item.number || "")} · ${money(item.currentPrincipal ?? item.principal, true)}</option>`)
+          .join("")
+      : `<option value="">Sin deudas pendientes no fijadas</option>`;
+    const valid = [...debtTargetSelect.options].some((option) => option.value === previous);
+    debtTargetSelect.value = valid ? previous : debtTargetSelect.options[0]?.value || "";
+  }
+  const selectedDebt = lifeDefDebtTargetById(ctx, debtTargetSelect?.value || state.debtTargetId);
+  if (qs("lifeDefDebtMode")) qs("lifeDefDebtMode").value = state.debtMode || lifeDefDebtModeFromLegacy(state.debtStrategy);
+  if (qs("lifeDefDebtAmount")) {
+    const amount = Number(state.debtAmount || 0) > 0 ? state.debtAmount : Number(selectedDebt?.currentPrincipal ?? selectedDebt?.principal ?? 0);
+    qs("lifeDefDebtAmount").value = amountInputValue(amount);
+  }
+  if (qs("lifeDefDebtRelief")) {
+    const relief = Number(state.debtRelief || 0) > 0 ? state.debtRelief : debtMonthlyReliefForMode(selectedDebt, state.debtMode || "optimize");
+    qs("lifeDefDebtRelief").value = amountInputValue(relief);
+  }
+  if (qs("lifeDefDebtDuration")) qs("lifeDefDebtDuration").value = String(Math.max(1, Number(state.debtDuration || 1)));
+}
+
+function lifeDefPendingProjectOptions() {
+  return projects
+    .filter((project) => !project.locked)
+    .filter((project) => Number(decisionGrossCost(project)) > 0 || Number(project.creditCapital || 0) > 0)
+    .filter((project) => project.source !== "debt");
+}
+
+function lifeDefProjectById(projectId) {
+  if (!projectId || projectId === "custom") return null;
+  return lifeDefPendingProjectOptions().find((project) => project.id === projectId) || null;
+}
+
+function lifeDefStateFromProject(project, fallback = {}) {
+  const monthIndex = Math.max(0, Number(project.monthIndex ?? fallback.projectMonthIndex ?? 0));
+  const projectMode =
+    project.projectKind === "external-credit" || Number(project.creditCapital || 0) > 0
+      ? "credit"
+      : project.mode === "fixed"
+        ? "payment"
+        : fallback.projectMode || "savings";
+  return {
+    ...fallback,
+    projectSourceId: project.id,
+    projectName: project.name || fallback.projectName || "Proyecto",
+    projectAmount: round2(Number(project.amount || 0)),
+    projectMode,
+    projectMonthIndex: monthIndex,
+    loanCapital: round2(Number(project.creditCapital || 0)),
+    loanPayment: round2(Number(project.recurringAmount || 0)),
+    loanMonths: Math.max(0, Number(project.recurringDuration || 0)),
+  };
+}
+
+function lifeDefDebtModeFromLegacy(strategy) {
+  if (strategy === "none") return "none";
+  if (strategy === "next") return "route-next";
+  return "route-full";
+}
+
+function lifeDefLegacyStrategyFromMode(mode) {
+  if (mode === "none") return "none";
+  if (mode === "route-next") return "next";
+  return mode === "route-full" ? "optimal" : "custom";
+}
+
+function lifeDefDebtModeIsRoute(mode) {
+  return mode === "route-next" || mode === "route-full";
+}
+
+function lifeDefAvailableDebtTargets(ctx = null) {
+  const lockedTargets = new Set(debtLiquidations.filter((item) => item.locked && item.targetId).map((item) => item.targetId));
+  const targets = debtTargetOptions({ includePlanned: true })
+    .filter((item) => item.id !== "plan-unificado")
+    .filter((item) => !lockedTargets.has(item.id))
+    .filter((item) => Number(item.currentPrincipal ?? item.principal ?? 0) > 0);
+  if (targets.length) return targets;
+  const seen = new Set();
+  return (ctx?.debtOptimization?.steps || [])
+    .map((step) => step?.candidate)
+    .filter((item) => item && item.id !== "plan-unificado" && !lockedTargets.has(item.id) && Number(item.currentPrincipal ?? item.principal ?? 0) > 0)
+    .filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    });
+}
+
+function lifeDefDebtTargetById(ctx, targetId) {
+  const targets = lifeDefAvailableDebtTargets(ctx);
+  return targets.find((item) => item.id === targetId) || targets[0] || null;
+}
+
+function lifeDefRouteDebtSteps(ctx, state) {
+  const lockedTargets = new Set(debtLiquidations.filter((item) => item.locked && item.targetId).map((item) => item.targetId));
+  const steps = (ctx.debtOptimization?.steps || [])
+    .filter((step) => step?.candidate && step.candidate.id !== "plan-unificado")
+    .filter((step) => !lockedTargets.has(step.candidate.id))
+    .filter((step) => Number(step.candidate.currentPrincipal ?? step.candidate.principal ?? 0) > 0);
+  const usable = (state.debtMode || lifeDefDebtModeFromLegacy(state.debtStrategy)) === "route-next" ? steps.slice(0, 1) : steps;
+  return usable.map((step) => ({
+    monthIndex: Number(step.monthIndex || 0),
+    label: `Deuda: ${debtTargetDisplayName(step.candidate)}`,
+    amount: Number(step.candidate.currentPrincipal ?? step.candidate.principal ?? 0),
+    candidate: step.candidate,
+    mode: "route",
+  }));
+}
+
+function lifeDefCustomDebtSteps(ctx, state) {
+  const mode = state.debtMode || "optimize";
+  const target = lifeDefDebtTargetById(ctx, state.debtTargetId);
+  if (!target) return [];
+  const targetPrincipal = Math.max(0, Number(target.currentPrincipal ?? target.principal ?? 0));
+  const amount = Math.max(0, Number(state.debtAmount || targetPrincipal));
+  if (!isDebtResumeMode(mode) && amount <= 0) return [];
+  const relief = debtMonthlyReliefForMode(target, mode) || Number(state.debtRelief || 0);
+  const duration = Math.max(1, Number(state.debtDuration || 1));
+  const optimized = mode.endsWith("-optimize") || mode === "optimize";
+  const best = optimized ? evaluateDebtCandidate(target, amount || targetPrincipal, relief, duration, "full", { resume: isDebtResumeMode(mode) }) : null;
+  const startIndex = Math.max(0, Number(best?.month?.index ?? state.debtMonthIndex ?? 0));
+  const labelBase = `Deuda: ${debtTargetDisplayName(target)}`;
+  if (isDebtResumeMode(mode)) {
+    const resume = debtResumePlan(target, startIndex);
+    const steps = [];
+    if (resume.arrears > 0) {
+      steps.push({
+        monthIndex: startIndex,
+        label: `${labelBase} · atrasos`,
+        amount: resume.arrears,
+        candidate: target,
+        mode,
+      });
+    }
+    const recurringMonths = Math.min(resume.recurringDuration || duration, Math.max(1, Number(state.horizon || 24)));
+    for (let offset = 0; offset < recurringMonths; offset += 1) {
+      steps.push({
+        monthIndex: startIndex + offset,
+        label: `${labelBase} · retomar cuota`,
+        amount: resume.recurringAmount,
+        candidate: target,
+        mode,
+      });
+    }
+    return steps;
+  }
+  const isMulti = isDebtMultiMonthMode(mode);
+  const months = isMulti ? duration : 1;
+  const monthlyAmount = round2(amount / months);
+  return Array.from({ length: months }, (_, offset) => ({
+    monthIndex: startIndex + offset,
+    label: `${labelBase}${isMulti ? ` · ${offset + 1}/${months}` : ""}`,
+    amount: offset === months - 1 ? round2(amount - monthlyAmount * (months - 1)) : monthlyAmount,
+    candidate: target,
+    mode,
+  }));
 }
 
 function newLifeDefinitiveContext({ allowHeavy = true } = {}) {
@@ -9073,17 +9415,9 @@ function newLifeDefinitiveContext({ allowHeavy = true } = {}) {
 }
 
 function newLifeDefinitiveDebtSteps(ctx, state) {
-  if (state.debtStrategy === "none") return [];
-  const steps = ctx.debtOptimization?.steps || [];
-  const usable = state.debtStrategy === "next" ? steps.slice(0, 1) : steps;
-  return usable
-    .filter((step) => step?.candidate && Number(step.candidate.principal || 0) > 0)
-    .map((step) => ({
-      monthIndex: Number(step.monthIndex || 0),
-      label: `Deuda: ${debtTargetDisplayName(step.candidate)}`,
-      amount: Number(step.candidate.principal || 0),
-      candidate: step.candidate,
-    }));
+  const mode = state.debtMode || lifeDefDebtModeFromLegacy(state.debtStrategy);
+  if (mode === "none") return [];
+  return lifeDefDebtModeIsRoute(mode) ? lifeDefRouteDebtSteps(ctx, state) : lifeDefCustomDebtSteps(ctx, state);
 }
 
 function buildNewLifeDefinitiveFlow(ctx, override = {}) {
@@ -9194,9 +9528,10 @@ function buildNewLifeDefinitiveFlow(ctx, override = {}) {
 }
 
 function newLifeDefScenarioSummaries(ctx, state) {
-  const base = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectAmount: 0, debtStrategy: "none", loanCapital: 0, loanPayment: 0 });
-  const savings = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectMode: "savings", debtStrategy: "none" });
-  const credit = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectMode: "credit", debtStrategy: "none" });
+  const noDebt = { debtStrategy: "none", debtMode: "none" };
+  const base = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectAmount: 0, ...noDebt, loanCapital: 0, loanPayment: 0 });
+  const savings = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectMode: "savings", ...noDebt });
+  const credit = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true, projectMode: "credit", ...noDebt });
   const combined = buildNewLifeDefinitiveFlow(ctx, { ...state, confirmedFlow: true });
   return [
     { key: "base", title: "Sin decisiones nuevas", flow: base, note: "Sirve como suelo para comparar." },
@@ -9293,12 +9628,13 @@ function renderLifeDefStory(ctx, previewFlow, committedFlow) {
 function renderLifeDefKpis(ctx, flow) {
   const projectReady = flow.state.projectMode === "savings" ? flow.projectSavingsBeforeTarget >= Number(flow.state.projectAmount || 0) : true;
   const alerts = flow.rows.filter((row) => row.shortage > 0 || row.mediolanum < 0).length;
+  const debtMode = flow.state.debtMode || lifeDefDebtModeFromLegacy(flow.state.debtStrategy);
   const kpis = [
     ["Mínimo CaixaBank", money(flow.minCaixaRow?.caixa || 0, true), flow.minCaixaRow?.month || "Sin dato"],
     ["Máximo Mediolanum", money(flow.maxMediolanumRow?.mediolanum || 0, true), flow.maxMediolanumRow?.month || "Sin dato"],
     ["Traspasos acumulados", money(flow.totalTransfer, true), "De CaixaBank a Mediolanum"],
     ["Proyecto", projectReady ? "Viable" : "Falta hucha", flow.projectMonthRow?.month || "Sin mes"],
-    ["Deuda simulada", money(flow.debtPaid, true), flow.state.debtStrategy === "none" ? "Sin deuda" : "Ruta local"],
+    ["Deuda simulada", money(flow.debtPaid, true), debtMode === "none" ? "Sin deuda" : "Ruta local"],
     ["Alertas", String(alerts), alerts ? "Revisar meses rojos" : "Sin roturas de caja"],
   ];
   qs("lifeDefKpis").innerHTML = kpis
@@ -9429,7 +9765,7 @@ function renderNewLifeDefinitive({ forceHeavy = false, preserveControls = false 
   const hasOptimization = Boolean(cachedAgentDebtOptimization());
   const ctx = newLifeDefinitiveContext({ allowHeavy: forceHeavy || hasOptimization });
   const state = loadNewLifeDefinitiveState();
-  if (!preserveControls) populateNewLifeDefinitiveControls(state);
+  if (!preserveControls) populateNewLifeDefinitiveControls(state, ctx);
   const freshState = readNewLifeDefinitiveControls();
   const previewFlow = buildNewLifeDefinitiveFlow(ctx, { ...freshState, confirmedFlow: true });
   previewFlow.state = freshState;
@@ -9497,9 +9833,13 @@ function prepareNewLifeDefinitiveDebt(ctx = newLifeDefinitiveContext({ allowHeav
     setActiveView("debt-control");
     return;
   }
+  const selectedMode = state.debtMode || lifeDefDebtModeFromLegacy(state.debtStrategy);
+  const handoffMode = lifeDefDebtModeIsRoute(selectedMode) || selectedMode === "fixed" ? "fixed" : selectedMode;
   prepareAgentDebtDecision(firstDebt.candidate.id, {
     monthIndex: firstDebt.monthIndex,
     amount: firstDebt.amount,
+    rawMode: handoffMode,
+    duration: state.debtDuration,
   });
 }
 
@@ -12833,7 +13173,7 @@ function assistantDashboardContext() {
   const metrics = rangeKpiMetric(rows);
   const savingsCalc = savingsPlanCalculations();
   const decisionImpact = rows.at(-1)?.totalLiquidity - (baseRows.at(-1)?.totalLiquidity || 0);
-  const debtOpen = DEBT_PORTFOLIO.filter((row) => Number(row.currentPrincipal || 0) > 0);
+  const debtOpen = debtPortfolioRows().filter((row) => Number(row.currentPrincipal || 0) > 0);
   const debtPriority = debtOpen
     .slice()
     .sort((a, b) => Number(b.originalPayment || 0) / Math.max(1, Number(b.currentPrincipal || 0)) - Number(a.originalPayment || 0) / Math.max(1, Number(a.currentPrincipal || 0)))
@@ -13138,6 +13478,26 @@ async function init() {
   });
   qs("new-life-definitive")?.addEventListener("change", (event) => {
     if (event.target.closest("#lifeDefForm") || event.target.closest("#lifeDefHorizon")) {
+      if (event.target.id === "lifeDefProjectSource") {
+        const selectedProject = lifeDefProjectById(event.target.value);
+        const state = selectedProject
+          ? lifeDefStateFromProject(selectedProject, { ...readNewLifeDefinitiveControls(), confirmedFlow: false })
+          : { ...readNewLifeDefinitiveControls(), projectSourceId: "custom", confirmedFlow: false };
+        saveNewLifeDefinitiveState(state);
+        renderNewLifeDefinitive({ forceHeavy: Boolean(cachedAgentDebtOptimization()) });
+        return;
+      }
+      if (event.target.id === "lifeDefDebtTarget" || event.target.id === "lifeDefDebtMode") {
+        const state = {
+          ...readNewLifeDefinitiveControls(),
+          debtAmount: 0,
+          debtRelief: 0,
+          confirmedFlow: false,
+        };
+        saveNewLifeDefinitiveState(state);
+        renderNewLifeDefinitive({ forceHeavy: Boolean(cachedAgentDebtOptimization()) });
+        return;
+      }
       refreshNewLifeDefinitiveFromControls({ keepConfirmation: Boolean(event.target.closest("#lifeDefHorizon")) });
     }
   });
