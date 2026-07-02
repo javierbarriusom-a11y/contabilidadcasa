@@ -154,6 +154,16 @@ const DEBT_LIQUIDATION_ASSUMPTIONS = {
     apr: 0,
   },
 };
+const EQUIFAX_VISIBLE_UNPAID_DEBTS = [
+  { entity: "CaixaBank Payments", type: "Préstamo personal", amount: 604.98, source: "Equifax 25/06/2026" },
+  { entity: "CaixaBank Payments", type: "Préstamo personal", amount: 955.96, source: "Equifax 25/06/2026" },
+  { entity: "CaixaBank Payments", type: "Préstamo personal", amount: 1126.08, source: "Equifax 25/06/2026" },
+  { entity: "CaixaBank Payments", type: "Tarjeta crédito", amount: 872.52, source: "Equifax 25/06/2026" },
+  { entity: "CaixaBank Payments", type: "Tarjeta crédito", amount: 838.13, source: "Equifax 25/06/2026" },
+  { entity: "Bankinter Consumer Finance", type: "Préstamo personal", amount: 2006.29, source: "Equifax 25/06/2026" },
+  { entity: "Bankinter Consumer Finance", type: "Tarjeta crédito", amount: 3030.43, source: "Equifax 25/06/2026" },
+  { entity: "Wizink", type: "Tarjeta crédito", amount: 1343.29, source: "Equifax 25/06/2026" },
+];
 const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
 const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
 const VARIABLE_OPERATIONAL_ROW_LABEL = "Gasto variable estimado";
@@ -6328,6 +6338,103 @@ function saveVisualChanges() {
   }
 }
 
+function rowsForVisualBudget(months) {
+  const byKey = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  const agentPlan = buildSavingsAgentPlan();
+  const agentByKey = new Map(agentVisibleRows(agentPlan).map((row) => [row.detailMonthKey, row]));
+  const debtPlan = buildAcceleratedDebtCarScenario("fast");
+  const debtByKey = new Map(debtPlan.rows.map((row) => [row.key, row]));
+  return months
+    .map((month) => {
+      const row = byKey.get(month.key);
+      if (!row) return null;
+      const agent = agentByKey.get(month.key) || {};
+      const debt = debtByKey.get(month.key) || {};
+      const fixedSpend = Math.max(0, round2(row.coreSpend - row.variableOperationalSpend));
+      const variableSpend = round2(row.variableOperationalSpend || 0);
+      const protectedSurplus = Math.max(0, round2(agent.transferToSavings || debt.available || 0));
+      return {
+        month: row.month,
+        income: round2(row.income || 0),
+        fixedSpend,
+        variableSpend,
+        debtService: round2(row.refi || 0),
+        carCurrent: round2(row.car || 0),
+        projects: round2(row.projectOutflow || 0),
+        debtBuffer: round2(debt.debtContribution || protectedSurplus * 0.85),
+        carBuffer: round2(debt.carContribution || protectedSurplus * 0.15),
+        protectedSurplus,
+      };
+    })
+    .filter(Boolean);
+}
+
+function renderMonthlyBudgetPanel(months = visualMonths()) {
+  const panel = qs("monthlyBudgetPanel");
+  if (!panel) return;
+  const rows = rowsForVisualBudget(months).slice(0, 6);
+  if (!rows.length) {
+    panel.innerHTML = `<div class="empty-state compact">No hay meses visibles para construir presupuesto.</div>`;
+    return;
+  }
+  const avg = (key) => round2(averageRows(rows, (row) => row[key]));
+  const avgIncome = avg("income");
+  const avgOperating = round2(avg("fixedSpend") + avg("variableSpend"));
+  const avgDebt = avg("debtService");
+  const avgDebtBuffer = avg("debtBuffer");
+  const avgCarBuffer = avg("carBuffer");
+  const avgFree = avg("protectedSurplus");
+  panel.innerHTML = `<div class="module-heading">
+      <div>
+        <p class="panel-kicker">Presupuesto mensual recomendado</p>
+        <h3>Gastos, colchón deuda y hucha Coche</h3>
+        <p>Se recalcula con los meses visibles, usando ingresos/gastos del cuadro de mandos y el excedente protegido por el agente.</p>
+      </div>
+    </div>
+    <div class="monthly-budget-kpis">
+      <div><span>Ingresos medios</span><strong>${money(avgIncome, true)}</strong></div>
+      <div><span>Gasto operativo</span><strong>${money(avgOperating, true)}</strong></div>
+      <div><span>Cuotas deuda</span><strong>${money(avgDebt, true)}</strong></div>
+      <div><span>Libre protegido</span><strong>${money(avgFree, true)}</strong></div>
+      <div><span>Colchón deuda</span><strong>${money(avgDebtBuffer, true)}</strong></div>
+      <div><span>Hucha Coche</span><strong>${money(avgCarBuffer, true)}</strong></div>
+    </div>
+    <div class="monthly-budget-rule">
+      <strong>Criterio de control</strong>
+      <p>Gasto variable objetivo: no superar ${money(avg("variableSpend"), true)} salvo que el mes cierre con excedente protegido. El dinero libre se reparte primero a deuda y en paralelo a Coche.</p>
+    </div>
+    <div class="table-wrap monthly-budget-table-wrap">
+      <table class="monthly-budget-table">
+        <thead><tr>
+          <th>Mes</th>
+          <th>Ingresos</th>
+          <th>Fijo hogar</th>
+          <th>Variable</th>
+          <th>Deuda/cuotas</th>
+          <th>Coche actual</th>
+          <th>Proyectos</th>
+          <th>Colchón deuda</th>
+          <th>Hucha Coche</th>
+        </tr></thead>
+        <tbody>
+          ${rows
+            .map((row) => `<tr>
+              <td>${escapeHtml(row.month)}</td>
+              <td class="positive">${money(row.income, true)}</td>
+              <td>${money(row.fixedSpend, true)}</td>
+              <td>${money(row.variableSpend, true)}</td>
+              <td>${money(row.debtService, true)}</td>
+              <td>${money(row.carCurrent, true)}</td>
+              <td>${money(row.projects, true)}</td>
+              <td><strong>${money(row.debtBuffer, true)}</strong></td>
+              <td><strong>${money(row.carBuffer, true)}</strong></td>
+            </tr>`)
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 function renderVisualDetail() {
   if (!qs("visualDetailTable")) return;
   populateVisualControls();
@@ -6476,6 +6583,7 @@ function renderVisualDetail() {
   ]
     .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
     .join("");
+  renderMonthlyBudgetPanel(months);
 
   qs("visualDetailTable").className = `visual-matrix ${compactYears ? "compact-years" : ""}`;
   qs("visualDetailTable").innerHTML = `<thead><tr><th>Partida</th>${monthHeaders}<th>Acción</th></tr></thead><tbody>${body.join("")}</tbody>`;
@@ -13028,6 +13136,236 @@ function renderDebtPlanPolicyCards(context, scenarios) {
     .join("");
 }
 
+function carSavingsTargetAmount() {
+  const carProject = [...projects, ...debtLiquidations, ...(projectPlan?.placements || [])].find((item) =>
+    normalizedText(`${item?.name || ""} ${item?.category || ""}`).includes("coche"),
+  );
+  const explicitAmount = Number(carProject?.amount || carProject?.targetAmount || carProject?.creditCapital || 0);
+  if (explicitAmount > 0) return round2(explicitAmount);
+  const incomeReference = averageRows(firstOpenRows(lastSimulation, 12), (row) => row.income);
+  return round2(Math.max(12000, Math.min(28000, incomeReference * 3.5)));
+}
+
+function acceleratedDebtTargets() {
+  const visibleUnpaid = EQUIFAX_VISIBLE_UNPAID_DEBTS.map((item, index) => ({
+    id: `equifax-${index + 1}`,
+    entity: item.entity,
+    type: item.type,
+    amount: round2(item.amount),
+    payoffAmount: round2(item.amount),
+    priority: index + 1,
+    source: item.source,
+    note: "Limpiar impago visible antes de pedir financiación nueva.",
+    visibleDefault: true,
+  }));
+  const visibleByEntity = visibleUnpaid.reduce((map, item) => {
+    const key = normalizedText(item.entity);
+    map[key] = round2((map[key] || 0) + item.payoffAmount);
+    return map;
+  }, {});
+  const strategicBase = [
+    ...DEBT_LIQUIDATION_ASSUMPTIONS.settlements,
+    {
+      id: "wizink",
+      wave: "g2",
+      entity: "Wizink acuerdo pactado",
+      principal: DEBT_LIQUIDATION_ASSUMPTIONS.wizink.principal,
+      discount: DEBT_LIQUIDATION_ASSUMPTIONS.wizink.discount,
+      source: "CIRBE/plan Wizink",
+    },
+  ];
+  const strategic = strategicBase.map((item, index) => {
+    const payoffAmount = round2(item.principal * (1 - item.discount));
+    const entityKey = normalizedText(item.entity);
+    const visibleOffset = Object.entries(visibleByEntity).reduce(
+      (sum, [key, amount]) => (entityKey.includes(key.split(" ")[0]) || key.includes(entityKey.split(" ")[0]) ? round2(sum + amount) : sum),
+      0,
+    );
+    const netPayoffAmount = Math.max(0, round2(payoffAmount - visibleOffset));
+    return {
+      id: `settlement-${item.id}`,
+      entity: item.entity,
+      type: item.wave === "g1" ? "Acuerdo prioritario" : "Acuerdo segunda ola",
+      amount: round2(item.principal),
+      payoffAmount: netPayoffAmount,
+      priority: 100 + index,
+      source: item.source,
+      note: `Objetivo con quita estimada del ${Math.round(item.discount * 100)}%${visibleOffset ? ", descontando lo limpiado en fichero" : ""}.`,
+      visibleDefault: false,
+    };
+  }).filter((item) => item.payoffAmount > 0);
+  const byKey = new Map();
+  [...visibleUnpaid, ...strategic].forEach((item) => {
+    const key = `${normalizedText(item.entity)}|${normalizedText(item.type)}|${Math.round(item.amount)}`;
+    if (!byKey.has(key)) byKey.set(key, item);
+  });
+  return [...byKey.values()].sort((a, b) => a.priority - b.priority || a.payoffAmount - b.payoffAmount);
+}
+
+function buildAcceleratedDebtCarScenario(profile = "fast") {
+  const plan = buildSavingsAgentPlan();
+  const rows = agentVisibleRows(plan).slice(0, 48);
+  const targets = acceleratedDebtTargets().map((item) => ({ ...item }));
+  const carTarget = carSavingsTargetAmount();
+  const visibleRiskTotal = round2(sumRows(targets.filter((item) => item.visibleDefault), (item) => item.payoffAmount));
+  const totalDebtTarget = round2(sumRows(targets, (item) => item.payoffAmount));
+  const settings =
+    profile === "balanced"
+      ? { label: "Equilibrado coche", earlyDebtShare: 0.7, laterDebtShare: 0.55, minimumCar: 250 }
+      : { label: "Acelerado deuda", earlyDebtShare: 0.85, laterDebtShare: 0.7, minimumCar: 150 };
+  let debtBuffer = 0;
+  let carBuffer = 0;
+  let paidDebt = 0;
+  let paidVisibleRisk = 0;
+  let targetIndex = 0;
+  const timeline = rows.map((row) => {
+    const openRisk = paidVisibleRisk + 0.01 < visibleRiskTotal;
+    const available = Math.max(0, round2(Number(row.transferToSavings || 0)));
+    const debtShare = openRisk ? settings.earlyDebtShare : settings.laterDebtShare;
+    const carMinimum = available > settings.minimumCar ? settings.minimumCar : Math.max(0, round2(available * 0.15));
+    const carContribution = Math.min(available, Math.max(carMinimum, round2(available * (1 - debtShare))));
+    const debtContribution = round2(available - carContribution);
+    debtBuffer = round2(debtBuffer + debtContribution);
+    carBuffer = round2(carBuffer + carContribution);
+    const events = [];
+
+    while (targetIndex < targets.length && debtBuffer + 0.01 >= targets[targetIndex].payoffAmount) {
+      const target = targets[targetIndex];
+      debtBuffer = round2(debtBuffer - target.payoffAmount);
+      paidDebt = round2(paidDebt + target.payoffAmount);
+      if (target.visibleDefault) paidVisibleRisk = round2(paidVisibleRisk + target.payoffAmount);
+      events.push(`Liquidar ${target.entity} (${money(target.payoffAmount, true)})`);
+      targetIndex += 1;
+    }
+
+    const nextTarget = targets[targetIndex];
+    const monthNote = events.length
+      ? events.join(" · ")
+      : nextTarget
+        ? `Acumular para ${nextTarget.entity}: faltan ${money(Math.max(0, nextTarget.payoffAmount - debtBuffer), true)}`
+        : carBuffer >= carTarget
+          ? "Deuda objetivo cubierta; coche listo sin financiación"
+          : "Dirigir excedente a Coche";
+
+    return {
+      month: row.month,
+      key: row.detailMonthKey,
+      income: row.income,
+      coreSpend: row.coreSpend,
+      refi: row.refi,
+      projectOutflow: row.projectOutflow,
+      available,
+      debtContribution,
+      carContribution,
+      debtBuffer,
+      carBuffer,
+      paidDebt,
+      paidVisibleRisk,
+      remainingDebt: Math.max(0, round2(totalDebtTarget - paidDebt)),
+      remainingVisibleRisk: Math.max(0, round2(visibleRiskTotal - paidVisibleRisk)),
+      nextTarget: nextTarget?.entity || "",
+      events,
+      monthNote,
+    };
+  });
+
+  const visibleClearRow = timeline.find((row) => row.remainingVisibleRisk <= 0);
+  const debtClearRow = timeline.find((row) => row.remainingDebt <= 0);
+  const carReadyRow = timeline.find((row) => row.carBuffer >= carTarget);
+  const totalAvailable = round2(sumRows(timeline, (row) => row.available));
+  const totalDebtContribution = round2(sumRows(timeline, (row) => row.debtContribution));
+  const totalCarContribution = round2(sumRows(timeline, (row) => row.carContribution));
+  return {
+    ...settings,
+    profile,
+    rows: timeline,
+    targets,
+    carTarget,
+    visibleRiskTotal,
+    totalDebtTarget,
+    totalAvailable,
+    totalDebtContribution,
+    totalCarContribution,
+    visibleClearMonth: visibleClearRow?.month || "Fuera de horizonte",
+    debtClearMonth: debtClearRow?.month || "Fuera de horizonte",
+    carReadyMonth: carReadyRow?.month || "Fuera de horizonte",
+    finalCarBuffer: round2(timeline.at(-1)?.carBuffer || 0),
+    finalDebtBuffer: round2(timeline.at(-1)?.debtBuffer || 0),
+    remainingDebt: round2(timeline.at(-1)?.remainingDebt ?? totalDebtTarget),
+    remainingVisibleRisk: round2(timeline.at(-1)?.remainingVisibleRisk ?? visibleRiskTotal),
+  };
+}
+
+function renderAcceleratedDebtPlan() {
+  const panel = qs("acceleratedDebtPlan");
+  if (!panel) return;
+  const fast = buildAcceleratedDebtCarScenario("fast");
+  const balanced = buildAcceleratedDebtCarScenario("balanced");
+  const recommended = fast.remainingVisibleRisk <= balanced.remainingVisibleRisk ? fast : balanced;
+  const sourceTotals = {
+    cirbeDecember: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.december2025.total,
+    cirbeMay: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.may2026.total,
+    overdue: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.may2026.overdue,
+    interest: DEBT_LIQUIDATION_ASSUMPTIONS.cirbe.may2026.interest,
+    equifax: sumRows(EQUIFAX_VISIBLE_UNPAID_DEBTS, (item) => item.amount),
+  };
+  const compareCards = [fast, balanced]
+    .map(
+      (item) => `<article class="debt-accel-card ${item.profile === recommended.profile ? "good" : "warn"}">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.visibleClearMonth)}</strong>
+        <p>Riesgo visible limpio. Coche: ${money(item.finalCarBuffer, true)} / ${money(item.carTarget, true)}. Deuda pendiente estimada: ${money(item.remainingDebt, true)}.</p>
+      </article>`,
+    )
+    .join("");
+  panel.innerHTML = `<div class="module-heading">
+      <div>
+        <p class="panel-kicker">Plan amortización acelerada + Coche</p>
+        <h3>Comparativa para decidir qué ruta mantener</h3>
+        <p>Usa el excedente protegido por el agente: primero limpia impagos visibles, mientras crea una hucha Coche paralela.</p>
+      </div>
+      <span class="status-pill good">${escapeHtml(recommended.label)}</span>
+    </div>
+    <div class="debt-accel-source-grid">
+      <div><span>CIRBE dic 2025</span><strong>${money(sourceTotals.cirbeDecember, true)}</strong></div>
+      <div><span>CIRBE mayo 2026</span><strong>${money(sourceTotals.cirbeMay, true)}</strong></div>
+      <div><span>Vencido + demora</span><strong>${money(sourceTotals.overdue + sourceTotals.interest, true)}</strong></div>
+      <div><span>Equifax visible</span><strong>${money(sourceTotals.equifax, true)}</strong></div>
+    </div>
+    <div class="debt-accel-compare">${compareCards}</div>
+    <div class="debt-accel-rule">
+      <strong>Regla propuesta</strong>
+      <p>Hasta limpiar Equifax/ASNEF: ${Math.round(fast.earlyDebtShare * 100)}% del excedente protegido a colchón deuda y el resto a Coche. Después: ${Math.round(fast.laterDebtShare * 100)}% deuda / ${Math.round((1 - fast.laterDebtShare) * 100)}% Coche. Si un mes no hay excedente, no se amortiza.</p>
+    </div>
+    <div class="table-wrap debt-plan-table-wrap">
+      <table class="debt-plan-table debt-accel-table">
+        <thead><tr>
+          <th>Mes</th>
+          <th>Libre protegido</th>
+          <th>Colchón deuda</th>
+          <th>Hucha Coche</th>
+          <th>Riesgo pendiente</th>
+          <th>Deuda pendiente</th>
+          <th>Acción</th>
+        </tr></thead>
+        <tbody>
+          ${recommended.rows
+            .slice(0, 24)
+            .map((row) => `<tr class="${row.events.length ? "highlight" : ""}">
+              <td>${escapeHtml(row.month)}</td>
+              <td>${money(row.available, true)}</td>
+              <td>${money(row.debtContribution, true)}</td>
+              <td>${money(row.carContribution, true)}</td>
+              <td>${money(row.remainingVisibleRisk, true)}</td>
+              <td>${money(row.remainingDebt, true)}</td>
+              <td>${escapeHtml(row.monthNote)}</td>
+            </tr>`)
+            .join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 function renderDebtLiquidationPlan() {
   if (!qs("debtPlanKpis")) return;
   const assumptions = DEBT_LIQUIDATION_ASSUMPTIONS;
@@ -13133,6 +13471,7 @@ function renderDebtLiquidationPlan() {
         .join("")}
     </tbody>`;
   if (!hasOptimization) scheduleHeavyAdvisorRefresh("debt-liquidation-plan");
+  renderAcceleratedDebtPlan();
 }
 
 function renderActiveSection(viewId = viewFromHash()) {
