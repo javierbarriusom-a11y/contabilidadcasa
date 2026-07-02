@@ -13160,7 +13160,8 @@ function acceleratedDebtTargets() {
     }),
   );
   const visibleByEntity = visibleUnpaid.reduce((map, item) => {
-    const key = normalizedText(item.entity);
+    const entity = normalizedText(item.entity);
+    const key = entity.includes("caixabank") ? "caixabank" : entity.includes("bankinter") ? "bankinter" : entity;
     map[key] = round2((map[key] || 0) + item.payoffAmount);
     return map;
   }, {});
@@ -13170,10 +13171,9 @@ function acceleratedDebtTargets() {
   const strategic = strategicBase.map((item, index) => {
     const payoffAmount = round2(item.principal * (1 - item.discount));
     const entityKey = normalizedText(item.entity);
-    const visibleOffset = Object.entries(visibleByEntity).reduce(
-      (sum, [key, amount]) => (entityKey.includes(key.split(" ")[0]) || key.includes(entityKey.split(" ")[0]) ? round2(sum + amount) : sum),
-      0,
-    );
+    const offsetKey = entityKey.includes("caixabank") ? "caixabank" : entityKey.includes("bankinter") ? "bankinter" : entityKey;
+    const visibleOffset = Math.min(payoffAmount, Number(visibleByEntity[offsetKey] || 0));
+    visibleByEntity[offsetKey] = round2(Math.max(0, Number(visibleByEntity[offsetKey] || 0) - visibleOffset));
     const netPayoffAmount = Math.max(0, round2(payoffAmount - visibleOffset));
     return {
       id: `settlement-${item.id}`,
