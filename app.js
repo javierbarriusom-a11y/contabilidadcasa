@@ -3879,12 +3879,38 @@ function removeDebtLiquidation(id) {
   render();
 }
 
+function debtPortfolioTargetForDecision(item) {
+  if (!item) return null;
+  if (item.targetId) return DEBT_PORTFOLIO.find((row) => row.id === item.targetId) || null;
+  const text = normalizedText(`${item.name || ""} ${item.label || ""} ${item.concept || ""}`);
+  if (!text) return null;
+  const candidates = DEBT_PORTFOLIO.filter((row) => {
+    if (Number(row.currentPrincipal || 0) <= 0) return false;
+    const entity = normalizedText(row.entity || "");
+    const type = normalizedText(row.type || "");
+    if (entity && !text.includes(entity)) return false;
+    if (type && !text.includes(type)) return false;
+    const digitGroups = String(row.number || "").match(/\d{4,}/g) || [];
+    return digitGroups.length ? digitGroups.some((group) => text.includes(group.slice(0, 4)) || text.includes(group)) : true;
+  });
+  return candidates.length === 1 ? candidates[0] : null;
+}
+
+function debtDecisionCoveredPrincipal(item, target) {
+  if (!item || !target || isDebtResumeMode(item.payoffMode || item.mode)) return 0;
+  const explicit = Number(item.targetPrincipal || item.originalPrincipal || 0);
+  if (explicit > 0) return explicit;
+  return Number(target.currentPrincipal || item.amount || 0);
+}
+
 function plannedDebtPrincipalByTarget() {
   const totals = new Map();
-  debtLiquidations.forEach((item) => {
-    if (!item.targetId || isDebtResumeMode(item.payoffMode || item.mode)) return;
-    const value = Number(item.targetPrincipal || item.originalPrincipal || item.amount || 0);
-    totals.set(item.targetId, round2((totals.get(item.targetId) || 0) + value));
+  [...debtLiquidations, ...projects].forEach((item) => {
+    const target = debtPortfolioTargetForDecision(item);
+    if (!target) return;
+    const value = debtDecisionCoveredPrincipal(item, target);
+    if (value <= 0) return;
+    totals.set(target.id, round2((totals.get(target.id) || 0) + value));
   });
   return totals;
 }
@@ -11910,10 +11936,14 @@ function upsertDebtRecord(record) {
   const duration = Math.max(1, Number(record.duration || 1));
   const payoffMode = normalizeDebtPayoffMode(record.mode || "fixed", duration);
   const monthIndex = forecastMonths().findIndex((item) => item.key === month.key);
+  const target = debtPortfolioTargetForDecision({ name: label });
   debtLiquidations.push({
     id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     name: label,
     amount: round2(amount),
+    targetId: target?.id || "",
+    targetPrincipal: target ? Number(target.currentPrincipal || 0) : 0,
+    originalPrincipal: target ? Number(target.currentPrincipal || 0) : 0,
     duration,
     mode: "fixed",
     payoffMode,
