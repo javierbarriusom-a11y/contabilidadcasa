@@ -2832,6 +2832,7 @@ function modelComputationSignature() {
 }
 
 function recomputeModelIfNeeded(force = false) {
+  pruneOutOfScopeAgentRouteSimulation();
   const nextSignature = modelComputationSignature();
   if (!force && simulationSignature === nextSignature && lastSimulation.length && lastBaseSimulation.length) {
     return;
@@ -7188,6 +7189,7 @@ function agentDebtRecommendations(plan) {
   const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
   const settings = agentDebtOptimizerSettings();
   return debtTargetOptions({ includePlanned: false })
+    .filter(isDebtPayoffPlanningTarget)
     .filter((item) => !alreadyPlanned.has(item.id) && Number(item.currentPrincipal || item.principal || 0) > 0)
     .map((item) => {
       const principal = round2(Number(item.currentPrincipal || item.principal || 0));
@@ -7215,9 +7217,36 @@ function agentDebtRecommendations(plan) {
     .slice(0, 5);
 }
 
+function isDebtPayoffPlanningTarget(item) {
+  const entity = normalizedText(item?.entity || "");
+  return entity.includes("caixabank payments") || entity.includes("caixabank pc") || entity.includes("bankinter");
+}
+
+function debtPayoffPactAmount(item) {
+  return round2(Number(item?.principal ?? item?.targetPrincipal ?? item?.amount ?? item?.currentPrincipal ?? 0));
+}
+
+function isOutOfScopeAgentRouteSimulationDecision(item) {
+  if (!isAgentRouteSimulationDecision(item)) return false;
+  const target = debtPortfolioTargetForDecision(item);
+  return target ? !isDebtPayoffPlanningTarget(target) : false;
+}
+
+function pruneOutOfScopeAgentRouteSimulation() {
+  const removed = debtLiquidations.filter(isOutOfScopeAgentRouteSimulationDecision);
+  if (!removed.length) return 0;
+  debtLiquidations = debtLiquidations.filter((item) => !isOutOfScopeAgentRouteSimulationDecision(item));
+  savingsAgentPlanCache = { key: "", value: null };
+  agentDebtOptimizationCache = { key: "", value: null };
+  simulationSignature = "";
+  saveDebtLiquidations();
+  return removed.length;
+}
+
 function agentDebtPayoffCandidates() {
   const alreadyPlanned = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
   return debtTargetOptions({ includePlanned: false })
+    .filter(isDebtPayoffPlanningTarget)
     .filter((item) => !alreadyPlanned.has(item.id) && Number(item.currentPrincipal || item.principal || 0) > 0)
     .map((item) => {
       const originalPrincipal = round2(Number(item.currentPrincipal || item.principal || 0));
@@ -9008,7 +9037,7 @@ function renderNewLifeKpis(ctx) {
   const target = qs("newLifeKpis");
   if (!target) return;
   const minLabel = ctx.minCaixaRow ? `${ctx.minCaixaRow.month} · ${ctx.minCaixaRow.transferDateLabel || "cierre"}` : "sin fecha";
-  const routeDebt = ctx.debtSummary?.debtReduced || ctx.debtOptimization?.totalOriginalPrincipal || 0;
+  const routeDebt = ctx.debtSummary?.total || ctx.debtOptimization?.totalPrincipal || 0;
   const cards = [
     ["Reserva CaixaBank", money(ctx.plan.caixaFloor, true), "Límite mínimo configurable antes de traspasar o ejecutar decisiones."],
     ["Traspaso prudente hoy", money(ctx.immediateTransfer?.amount || 0, true), ctx.immediateTransfer?.needsReview ? "Pendiente de confirmar saldo real." : "Solo si cubre pagos del mes siguiente."],
@@ -9450,6 +9479,7 @@ function lifeDefDebtModeIsRoute(mode) {
 function lifeDefAvailableDebtTargets(ctx = null) {
   const lockedTargets = new Set(debtLiquidations.filter((item) => item.locked && item.targetId).map((item) => item.targetId));
   const targets = debtTargetOptions({ includePlanned: true })
+    .filter(isDebtPayoffPlanningTarget)
     .filter((item) => item.id !== "plan-unificado")
     .filter((item) => !lockedTargets.has(item.id))
     .filter((item) => Number(item.currentPrincipal ?? item.principal ?? 0) > 0);
@@ -9457,7 +9487,7 @@ function lifeDefAvailableDebtTargets(ctx = null) {
   const seen = new Set();
   return (ctx?.debtOptimization?.steps || [])
     .map((step) => step?.candidate)
-    .filter((item) => item && item.id !== "plan-unificado" && !lockedTargets.has(item.id) && Number(item.currentPrincipal ?? item.principal ?? 0) > 0)
+    .filter((item) => item && isDebtPayoffPlanningTarget(item) && item.id !== "plan-unificado" && !lockedTargets.has(item.id) && debtPayoffPactAmount(item) > 0)
     .filter((item) => {
       if (seen.has(item.id)) return false;
       seen.add(item.id);
@@ -9474,13 +9504,14 @@ function lifeDefRouteDebtSteps(ctx, state) {
   const lockedTargets = new Set(debtLiquidations.filter((item) => item.locked && item.targetId).map((item) => item.targetId));
   const steps = (ctx.debtOptimization?.steps || [])
     .filter((step) => step?.candidate && step.candidate.id !== "plan-unificado")
+    .filter((step) => isDebtPayoffPlanningTarget(step.candidate))
     .filter((step) => !lockedTargets.has(step.candidate.id))
-    .filter((step) => Number(step.candidate.currentPrincipal ?? step.candidate.principal ?? 0) > 0);
+    .filter((step) => debtPayoffPactAmount(step.candidate) > 0);
   const usable = (state.debtMode || lifeDefDebtModeFromLegacy(state.debtStrategy)) === "route-next" ? steps.slice(0, 1) : steps;
   return usable.map((step) => ({
     monthIndex: Number(step.monthIndex || 0),
     label: `Deuda: ${debtTargetDisplayName(step.candidate)}`,
-    amount: Number(step.candidate.currentPrincipal ?? step.candidate.principal ?? 0),
+    amount: debtPayoffPactAmount(step.candidate),
     candidate: step.candidate,
     mode: "route",
   }));
