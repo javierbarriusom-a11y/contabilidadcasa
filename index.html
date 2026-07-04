@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260703a" />
+    <link rel="stylesheet" href="styles.css?v=20260704a" />
   </head>
   <body>
     <div class="app-shell">
@@ -668,19 +668,33 @@
                   <select id="visualEditRow"></select>
                 </label>
                 <label>
+                  <span>Acción</span>
+                  <select id="visualEditAction">
+                    <option value="amount">Modificar importes</option>
+                    <option value="rename">Cambiar título</option>
+                    <option value="amount-rename">Título + importes</option>
+                    <option value="delete">Borrar línea</option>
+                  </select>
+                </label>
+                <label id="visualEditModeField">
                   <span>Dato</span>
                   <select id="visualEditMode">
                     <option value="planned">Previsto</option>
                     <option value="actual">Real</option>
                   </select>
                 </label>
-                <label>
+                <label id="visualEditAmountField">
                   <span>Importe</span>
                   <input id="visualEditAmount" type="number" step="0.01" placeholder="0,00" />
+                </label>
+                <label id="visualEditLabelField">
+                  <span>Nuevo título</span>
+                  <input id="visualEditLabel" type="text" placeholder="Ej. Variables Javier" />
                 </label>
                 <label>
                   <span>Aplicar en</span>
                   <select id="visualEditScope">
+                    <option value="visible">Rango visible</option>
                     <option value="single">Un mes</option>
                     <option value="range">Rango</option>
                     <option value="multiple">Meses concretos</option>
@@ -1806,6 +1820,6 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
-    <script src="app.js?v=20260703a"></script>
+    <script src="app.js?v=20260704a"></script>
   </body>
 </html>

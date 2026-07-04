@@ -5740,21 +5740,48 @@ function populateVisualBulkEditor() {
     visualBulkEditorSignature = signature;
   }
   if ([...rowSelect.options].some((option) => option.value === previous)) rowSelect.value = previous;
+  syncVisualBulkEditLabel(false);
 }
 
 function updateVisualBulkEditScopeUi() {
   const scope = qs("visualEditScope")?.value || "single";
+  const action = qs("visualEditAction")?.value || "amount";
   const start = qs("visualEditStartMonth");
   const end = qs("visualEditEndMonth");
   const endField = qs("visualEditEndMonthField");
   const multiField = qs("visualEditMultiMonthField");
+  const modeField = qs("visualEditModeField");
+  const amountField = qs("visualEditAmountField");
+  const labelField = qs("visualEditLabelField");
   if (!start || !end || !endField || !multiField) return;
   const isRange = scope === "range";
   const isMultiple = scope === "multiple";
+  const usesMonths = action === "amount" || action === "amount-rename";
+  const usesAmount = action === "amount" || action === "amount-rename";
+  const usesLabel = action === "rename" || action === "amount-rename";
   endField.classList.toggle("is-hidden", !isRange);
   multiField.classList.toggle("is-hidden", !isMultiple);
-  start.closest("label")?.classList.toggle("is-hidden", isMultiple);
+  start.closest("label")?.classList.toggle("is-hidden", isMultiple || scope === "visible" || !usesMonths);
+  endField.classList.toggle("is-hidden", !isRange || !usesMonths);
+  multiField.classList.toggle("is-hidden", !isMultiple || !usesMonths);
+  modeField?.classList.toggle("is-hidden", !usesAmount);
+  amountField?.classList.toggle("is-hidden", !usesAmount);
+  labelField?.classList.toggle("is-hidden", !usesLabel);
+  qs("visualEditScope")?.closest("label")?.classList.toggle("is-hidden", !usesMonths);
   if (scope === "single") end.value = start.value;
+}
+
+function syncVisualBulkEditLabel(force = true) {
+  const input = qs("visualEditLabel");
+  if (!input) return;
+  const row = selectedVisualBulkEditRow();
+  if (!row) {
+    input.value = "";
+    input.placeholder = "Selecciona una partida";
+    return;
+  }
+  input.placeholder = displayLabelForRow(row);
+  if (force || !input.value.trim()) input.value = visualDraftLabels[seriesKeyForRow(row)]?.value || displayLabelForRow(row);
 }
 
 function selectedVisualBulkEditRow() {
@@ -5766,6 +5793,7 @@ function selectedVisualBulkEditRow() {
 function visualBulkEditTargetMonths() {
   const months = selectableMonths();
   const scope = qs("visualEditScope")?.value || "single";
+  if (scope === "visible") return visualMonths();
   if (scope === "multiple") {
     return [...(qs("visualEditMonths")?.selectedOptions || [])]
       .map((option) => monthByKey(option.value, months))
@@ -5778,9 +5806,12 @@ function visualBulkEditTargetMonths() {
 
 function stageVisualBulkEdit() {
   const row = selectedVisualBulkEditRow();
+  const action = qs("visualEditAction")?.value || "amount";
   const parsed = parseAmount(qs("visualEditAmount")?.value);
+  const nextLabel = String(qs("visualEditLabel")?.value || "").trim();
   const mode = qs("visualEditMode")?.value || "planned";
   const feedback = qs("visualBulkEditFeedback");
+  const rowKey = row ? seriesKeyForRow(row) : "";
   if (!row) {
     if (feedback) {
       feedback.textContent = "Selecciona una partida para modificar.";
@@ -5788,7 +5819,10 @@ function stageVisualBulkEdit() {
     }
     return;
   }
-  if (parsed === null) {
+  const needsAmount = action === "amount" || action === "amount-rename";
+  const needsLabel = action === "rename" || action === "amount-rename";
+  const needsMonths = action === "amount" || action === "amount-rename";
+  if (needsAmount && parsed === null) {
     if (feedback) {
       feedback.textContent = "Introduce el importe que quieres aplicar.";
       feedback.className = "inline-feedback warning";
@@ -5796,36 +5830,78 @@ function stageVisualBulkEdit() {
     qs("visualEditAmount")?.focus();
     return;
   }
-  const months = visualBulkEditTargetMonths();
-  if (!months.length) {
+  if (needsLabel && !nextLabel) {
+    if (feedback) {
+      feedback.textContent = "Introduce el nuevo título de la fila.";
+      feedback.className = "inline-feedback warning";
+    }
+    qs("visualEditLabel")?.focus();
+    return;
+  }
+  const months = needsMonths ? visualBulkEditTargetMonths() : [];
+  if (needsMonths && !months.length) {
     if (feedback) {
       feedback.textContent = "Selecciona al menos un mes.";
       feedback.className = "inline-feedback warning";
     }
     return;
   }
-  const value = round2(parsed);
-  months.forEach((month) => {
-    const key = visualDraftCellKey(seriesKeyForRow(row), month.key, mode);
-    const currentValue = mode === "planned" ? plannedValueForVisualRow(row, month) : actualAwareInfoForVisualRow(row, month).actual;
-    if (Number(currentValue ?? 0) === value && !(mode === "actual" && currentValue === null)) {
-      delete visualDraftCells[key];
-    } else {
-      visualDraftCells[key] = {
-        rowKey: seriesKeyForRow(row),
-        monthKey: month.key,
-        monthLabel: month.label,
-        mode,
-        label: displayLabelForRow(row),
-        value,
-        oldValue: currentValue,
+  if (action === "delete") {
+    visualDraftDeletes[rowKey] = {
+      rowKey,
+      label: displayLabelForRow(row),
+    };
+    Object.keys(visualDraftCells).forEach((key) => {
+      const draft = visualDraftCells[key];
+      if (draft.rowKey === rowKey && months.some((month) => month.key === draft.monthKey)) delete visualDraftCells[key];
+    });
+    visualSelectedRows.delete(rowKey);
+  }
+  if (needsLabel) {
+    if (nextLabel === displayLabelForRow(row)) delete visualDraftLabels[rowKey];
+    else {
+      visualDraftLabels[rowKey] = {
+        rowKey,
+        oldValue: displayLabelForRow(row),
+        value: nextLabel,
       };
     }
-  });
+  }
+  if (needsAmount) {
+    const value = round2(parsed);
+    months.forEach((month) => {
+      const key = visualDraftCellKey(rowKey, month.key, mode);
+      const currentValue = mode === "planned" ? plannedValueForVisualRow(row, month) : actualAwareInfoForVisualRow(row, month).actual;
+      if (Number(currentValue ?? 0) === value && !(mode === "actual" && currentValue === null)) {
+        delete visualDraftCells[key];
+      } else {
+        visualDraftCells[key] = {
+          rowKey,
+          monthKey: month.key,
+          monthLabel: month.label,
+          mode,
+          label: displayLabelForRow(row),
+          value,
+          oldValue: currentValue,
+        };
+      }
+    });
+  }
   if (feedback) {
-    const scopeText =
-      months.length === 1 ? months[0].label : `${months[0].label} - ${months.at(-1).label}${qs("visualEditScope")?.value === "multiple" ? ` (${months.length} meses concretos)` : ""}`;
-    feedback.textContent = `${displayLabelForRow(row)} preparado en ${scopeText}. Pulsa Guardar cambios para recalcular toda la app.`;
+    const scopeText = !needsMonths
+      ? "toda la fila"
+      : months.length === 1
+        ? months[0].label
+        : `${months[0].label} - ${months.at(-1).label}${qs("visualEditScope")?.value === "multiple" ? ` (${months.length} meses concretos)` : ""}`;
+    const actionText =
+      action === "delete"
+        ? "borrado preparado"
+        : action === "rename"
+          ? "título preparado"
+          : action === "amount-rename"
+            ? "título e importes preparados"
+            : "importes preparados";
+    feedback.textContent = `${displayLabelForRow(row)}: ${actionText} en ${scopeText}. Pulsa Guardar cambios para recalcular toda la app.`;
     feedback.className = "inline-feedback success";
   }
   expandedVisualSections.add(`${row.kind}:${row.sectionName}`);
@@ -13774,6 +13850,12 @@ async function init() {
   });
   qs("visualEditKind").addEventListener("change", () => {
     populateVisualBulkEditor();
+    syncVisualBulkEditLabel(true);
+    updateVisualBulkEditScopeUi();
+  });
+  qs("visualEditRow").addEventListener("change", () => syncVisualBulkEditLabel(true));
+  qs("visualEditAction").addEventListener("change", () => {
+    syncVisualBulkEditLabel(false);
     updateVisualBulkEditScopeUi();
   });
   qs("visualEditScope").addEventListener("change", updateVisualBulkEditScopeUi);

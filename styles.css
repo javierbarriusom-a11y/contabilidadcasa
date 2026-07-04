@@ -3010,7 +3010,7 @@ svg {
 
 .visual-bulk-edit-grid {
   display: grid;
-  grid-template-columns: 110px minmax(260px, 1.4fr) 120px 130px 130px 130px 130px auto;
+  grid-template-columns: 100px minmax(230px, 1.2fr) 150px 120px 130px minmax(190px, 1fr) 130px 130px 150px auto;
   gap: 9px;
   align-items: end;
 }
