@@ -6280,14 +6280,17 @@ function stageSelectedVisualDeletes() {
 function stageVisualProjectDelete(id) {
   const project = projects.find((item) => item.id === id) || debtLiquidations.find((item) => item.id === id);
   if (!project) return;
-  if (project.locked) {
-    if (qs("visualAddFeedback")) {
-      qs("visualAddFeedback").textContent = "Esta decisión está fija en el plan. Desbloquéala antes de eliminarla.";
-      qs("visualAddFeedback").className = "inline-feedback warning";
-    }
-    return;
+  visualDraftProjectDeletes[id] = {
+    id,
+    label: project.name || "Proyecto",
+    locked: Boolean(project.locked),
+  };
+  if (qs("visualAddFeedback")) {
+    qs("visualAddFeedback").textContent = project.locked
+      ? "Se retirará del plan al guardar. Su impacto dejará de entrar en cuadro de mandos, criterio de control y previsión."
+      : "Se borrará al guardar.";
+    qs("visualAddFeedback").className = "inline-feedback warning";
   }
-  visualDraftProjectDeletes[id] = { id, label: project.name || "Proyecto" };
   renderVisualDetail();
 }
 
@@ -6374,18 +6377,30 @@ function saveVisualChanges() {
   });
 
   Object.keys(visualDraftProjectDeletes).forEach((id) => {
-    if (projects.some((project) => project.id === id && project.locked)) return;
-    if (debtLiquidations.some((item) => item.id === id && item.locked)) return;
-    const before = projects.length;
+    const projectToRemove = projects.find((project) => project.id === id);
     projects = projects.filter((project) => project.id !== id);
-    if (projects.length !== before) {
+    if (projectToRemove) {
       projectsChanged = true;
       savedDeletes += 1;
+      recordDecisionEvent(
+        projectToRemove.locked ? "retirado del plan" : "cancelado",
+        { ...projectToRemove, source: "project" },
+        projectToRemove.locked
+          ? "Proyecto fijo retirado del plan; ya no impacta en caja."
+          : "Proyecto retirado del simulador.",
+      );
     }
-    const beforeDebt = debtLiquidations.length;
+    const debtToRemove = debtLiquidations.find((item) => item.id === id);
     debtLiquidations = debtLiquidations.filter((item) => item.id !== id);
-    if (debtLiquidations.length !== beforeDebt) {
+    if (debtToRemove) {
       savedDeletes += 1;
+      recordDecisionEvent(
+        debtToRemove.locked ? "retirado del plan" : "cancelado",
+        { ...debtToRemove, source: "debt" },
+        debtToRemove.locked
+          ? "Decisión fija de deuda retirada del plan; ya no impacta en caja."
+          : "Decisión de deuda retirada del plan.",
+      );
     }
   });
 
@@ -6626,7 +6641,8 @@ function renderVisualDetail() {
         const actionCell = locked
           ? `<div class="visual-action-stack">
               <span class="decision-lock-badge">Fijo</span>
-              <button class="visual-return-button" type="button" data-visual-project-unlock="${escapeHtml(project.id)}" data-visual-project-source="${source}">Devolver a simulador</button>
+              <button class="visual-return-button" type="button" data-visual-project-unlock="${escapeHtml(project.id)}" data-visual-project-source="${source}" ${pendingDelete ? "disabled" : ""}>Devolver a simulador</button>
+              <button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Retirar del plan"}</button>
             </div>`
           : `<button class="row-delete-button" type="button" data-visual-project-delete="${escapeHtml(project.id)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button>`;
         body.push(`<tr class="visual-line-row visual-project-row ${pendingDelete ? "pending-delete" : ""} ${locked ? "locked" : ""}">
