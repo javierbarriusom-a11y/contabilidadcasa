@@ -3164,6 +3164,30 @@ svg {
   --section-value: #eadcff;
 }
 
+.visual-section-row.visual-calculated-row {
+  --section-bg: #21343b;
+  --section-bg-hover: #2a424a;
+  --section-value: #f4fbfb;
+}
+
+.visual-section-row.visual-calculated-row.total-expense-section {
+  --section-bg: #5f2d27;
+  --section-bg-hover: #6e352d;
+  --section-value: #ffe7e2;
+}
+
+.visual-section-row.visual-calculated-row.result-section {
+  --section-bg: #23624f;
+  --section-bg-hover: #2a735d;
+  --section-value: #dcf9e7;
+}
+
+.visual-section-row.visual-calculated-row.transfer-section {
+  --section-bg: #31536f;
+  --section-bg-hover: #3a607e;
+  --section-value: #e6f3ff;
+}
+
 .visual-matrix tbody tr.visual-section-row:hover {
   background: var(--section-bg-hover);
 }
@@ -3208,6 +3232,13 @@ svg {
   border-color: transparent;
   background: transparent;
   transform: none;
+}
+
+.visual-calculated-label {
+  display: grid;
+  gap: 2px;
+  min-height: 34px;
+  align-content: center;
 }
 
 .visual-toggle {

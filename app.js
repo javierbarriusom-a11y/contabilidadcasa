@@ -6535,12 +6535,19 @@ function renderVisualDetail() {
   const monthHeaders = columns.map((column) => renderVisualColumnHeader(column)).join("");
   const body = [];
   const totals = { income: 0, expense: 0, realRows: 0, lines: 0 };
+  const incomeTotalsByColumn = columns.map(() => 0);
+  const expenseTotalsByColumn = columns.map(() => 0);
+  const incomeByMonth = new Map(months.map((month) => [month.key, 0]));
+  const expenseByMonth = new Map(months.map((month) => [month.key, 0]));
+  const simulationByMonth = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
 
   baseData.monthlyPlanning.sections.forEach((section) => {
     const rows = visualRowsForSection(section, months);
     if (!rows.length) return;
     const sectionKey = visualSectionKey(section);
     const expanded = expandedVisualSections.has(sectionKey);
+    const sectionName =
+      section.kind === "income" && normalizedText(section.name) === "ingresos" ? "Ingresos totales" : section.name;
     totals.lines += rows.length;
     rows.forEach((row) => {
       if (isVisualRowPendingDelete(seriesKeyForRow(row))) return;
@@ -6551,6 +6558,15 @@ function renderVisualDetail() {
     const sectionTotals = columns.map((column) =>
       sumColumnMonths(column, (month) => visualSectionTotal(section, rows, months, mode, month)),
     );
+    sectionTotals.forEach((value, index) => {
+      if (section.kind === "income") incomeTotalsByColumn[index] += value;
+      else expenseTotalsByColumn[index] += value;
+    });
+    months.forEach((month) => {
+      const value = visualSectionTotal(section, rows, months, mode, month);
+      const target = section.kind === "income" ? incomeByMonth : expenseByMonth;
+      target.set(month.key, round2((target.get(month.key) || 0) + value));
+    });
     const sectionRangeTotal = sumColumnMonths({ months }, (month) => visualSectionTotal(section, rows, months, mode, month));
     if (section.kind === "income") totals.income += sectionRangeTotal;
     else totals.expense += sectionRangeTotal;
@@ -6558,7 +6574,7 @@ function renderVisualDetail() {
       <td>
         <button class="visual-section-button" type="button" data-visual-section-toggle="${escapeHtml(sectionKey)}" aria-expanded="${expanded ? "true" : "false"}">
           <span class="visual-toggle">${expanded ? "-" : "+"}</span>
-          <span><strong>${escapeHtml(section.name)}</strong><small>${rows.length} líneas</small></span>
+          <span><strong>${escapeHtml(sectionName)}</strong><small>${rows.length} líneas</small></span>
         </button>
       </td>
       ${sectionTotals.map((value) => `<td class="${visualCellClass(section)}">${money(value, true)}</td>`).join("")}
@@ -6578,7 +6594,7 @@ function renderVisualDetail() {
             <input class="visual-select-row" data-visual-select-row="${escapeHtml(rowKey)}" type="checkbox" ${selected ? "checked" : ""} ${pendingDelete ? "disabled" : ""} aria-label="Seleccionar ${escapeHtml(label)}" />
             <div>
               <input class="visual-label-input" data-visual-label-key="${escapeHtml(rowKey)}" value="${escapeHtml(label)}" ${pendingDelete ? "disabled" : ""} />
-              <small>${escapeHtml(section.name)}${row.custom ? " · nuevo" : ""}${pendingDelete ? " · se borrará al guardar" : ""}</small>
+              <small>${escapeHtml(sectionName)}${row.custom ? " · nuevo" : ""}${pendingDelete ? " · se borrará al guardar" : ""}</small>
             </div>
           </div>
         </td>
@@ -6615,6 +6631,16 @@ function renderVisualDetail() {
         );
       }),
     );
+    sectionTotals.forEach((value, index) => {
+      expenseTotalsByColumn[index] += value;
+    });
+    months.forEach((month) => {
+      const value = projectRows.reduce(
+        (sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : visualProjectCellValue(project, month, monthIndexByKey)),
+        0,
+      );
+      expenseByMonth.set(month.key, round2((expenseByMonth.get(month.key) || 0) + value));
+    });
     totals.expense += sumColumnMonths({ months }, (month) => {
       return projectRows.reduce(
         (sum, project) => sum + (isVisualProjectPendingDelete(project.id) ? 0 : visualProjectCellValue(project, month, monthIndexByKey)),
@@ -6665,6 +6691,41 @@ function renderVisualDetail() {
       });
     }
   }
+
+  const renderCalculatedRow = (className, label, detail, values) => {
+    body.push(`<tr class="visual-section-row visual-calculated-row ${className}">
+      <td>
+        <div class="visual-calculated-label">
+          <strong>${escapeHtml(label)}</strong>
+          <small>${escapeHtml(detail)}</small>
+        </div>
+      </td>
+      ${values.map((value) => `<td>${money(value, true)}</td>`).join("")}
+      <td></td>
+    </tr>`);
+  };
+  const resultTotalsByColumn = incomeTotalsByColumn.map((value, index) => round2(value - expenseTotalsByColumn[index]));
+  const availableForTransferByMonth = (month) => {
+    const row = simulationByMonth.get(month.key);
+    const startingCaixa = Number(row?.startChecking ?? accountBalancesFromState().caixa ?? 0);
+    const income = Number(incomeByMonth.has(month.key) ? incomeByMonth.get(month.key) : row?.income || 0);
+    const expenses = Number(expenseByMonth.has(month.key) ? expenseByMonth.get(month.key) : row?.outflowsBeforeSaving || 0);
+    return Math.max(0, round2(startingCaixa + income - expenses - agentCaixaFloor()));
+  };
+  const availableForTransferByColumn = columns.map((column) => {
+    const values = column.months.map(availableForTransferByMonth).filter((value) => Number.isFinite(value));
+    if (!values.length) return 0;
+    return column.kind === "year-summary" ? Math.min(...values) : values[0];
+  });
+
+  renderCalculatedRow("total-expense-section", "Total gastos", "Suma de fijos, variables, suscripciones, financiaciones y proyectos.", expenseTotalsByColumn);
+  renderCalculatedRow("result-section", "Resultado a la fecha del cuadro", "Ingresos totales menos total de gastos del periodo visible.", resultTotalsByColumn);
+  renderCalculatedRow(
+    "transfer-section",
+    "Disponible para traspaso",
+    "CaixaBank estimado + ingresos - gastos - reserva operativa común.",
+    availableForTransferByColumn,
+  );
 
   qs("visualSummary").innerHTML = [
     ["Ingresos rango", money(totals.income, true), "positive"],
