@@ -6712,8 +6712,20 @@ function renderVisualDetail() {
     const expenses = Number(expenseByMonth.has(month.key) ? expenseByMonth.get(month.key) : row?.outflowsBeforeSaving || 0);
     return Math.max(0, round2(startingCaixa + income - expenses - agentCaixaFloor()));
   };
+  const nextMonthPlannedExpenses = (month) => {
+    const nextKey = monthKey(addMonths(dateFromMonthKey(month.key), 1));
+    const nextRow = simulationByMonth.get(nextKey);
+    return Math.max(0, round2(Number(nextRow?.outflowsBeforeSaving || 0)));
+  };
   const availableForTransferByColumn = columns.map((column) => {
     const values = column.months.map(availableForTransferByMonth).filter((value) => Number.isFinite(value));
+    if (!values.length) return 0;
+    return column.kind === "year-summary" ? Math.min(...values) : values[0];
+  });
+  const prudentAvailableForTransferByColumn = columns.map((column) => {
+    const values = column.months
+      .map((month) => Math.max(0, round2(availableForTransferByMonth(month) - nextMonthPlannedExpenses(month))))
+      .filter((value) => Number.isFinite(value));
     if (!values.length) return 0;
     return column.kind === "year-summary" ? Math.min(...values) : values[0];
   });
@@ -6725,6 +6737,12 @@ function renderVisualDetail() {
     "Disponible para traspaso",
     "CaixaBank estimado + ingresos - gastos - reserva operativa común.",
     availableForTransferByColumn,
+  );
+  renderCalculatedRow(
+    "transfer-prudent-section",
+    "Disponible para traspaso prudente",
+    "Disponible tras cubrir gastos del mes, reserva común y gastos previstos del mes siguiente.",
+    prudentAvailableForTransferByColumn,
   );
 
   qs("visualSummary").innerHTML = [
@@ -6770,7 +6788,58 @@ function renderVisualDetail() {
     );
   });
   renderVisualPrevision(months);
+  renderVisualBalanceEvolution(months, columns);
   renderVisualSavePanel();
+}
+
+function renderVisualBalanceEvolution(months = visualMonths(), columns = visualColumns(months)) {
+  const target = qs("visualBalanceEvolution");
+  if (!target) return;
+  const simulationByMonth = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  const closeRowForColumn = (column) =>
+    column.months
+      .map((month) => simulationByMonth.get(month.key))
+      .filter(Boolean)
+      .at(-1);
+  const rows = [
+    {
+      label: "CaixaBank",
+      detail: "Cuenta operativa prevista al cierre.",
+      className: "checking",
+      value: (row) => Number(row?.checking || 0),
+    },
+    {
+      label: "Mediolanum",
+      detail: "Ahorro separado previsto al cierre.",
+      className: "savings",
+      value: (row) => Number(row?.savings || 0),
+    },
+    {
+      label: "Liquidez total",
+      detail: "CaixaBank + Mediolanum.",
+      className: "total",
+      value: (row) => Number(row?.totalLiquidity || 0),
+    },
+  ];
+  const headers = columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join("");
+  const body = rows
+    .map((item) => {
+      const values = columns.map((column) => item.value(closeRowForColumn(column)));
+      return `<tr class="${escapeHtml(item.className)}">
+        <td>
+          <strong>${escapeHtml(item.label)}</strong>
+          <small>${escapeHtml(item.detail)}</small>
+        </td>
+        ${values.map((value) => `<td>${money(value, true)}</td>`).join("")}
+      </tr>`;
+    })
+    .join("");
+  target.innerHTML = `<div class="table-wrap visual-balance-evolution-wrap">
+    <table class="visual-balance-evolution-table ${visualTimeMode() === "year" ? "compact-years" : ""}">
+      <thead><tr><th>Cuenta</th>${headers}</tr></thead>
+      <tbody>${body}</tbody>
+    </table>
+  </div>`;
 }
 
 function handleVisualAddRow() {

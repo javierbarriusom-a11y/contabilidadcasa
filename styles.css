@@ -3188,6 +3188,12 @@ svg {
   --section-value: #e6f3ff;
 }
 
+.visual-section-row.visual-calculated-row.transfer-prudent-section {
+  --section-bg: #253f57;
+  --section-bg-hover: #2e4d68;
+  --section-value: #d9efff;
+}
+
 .visual-matrix tbody tr.visual-section-row:hover {
   background: var(--section-bg-hover);
 }
@@ -3397,21 +3403,92 @@ svg {
   padding: 16px;
 }
 
-.visual-prevision-panel .section-title {
+.visual-prevision-panel .section-title,
+.visual-balance-evolution-panel .section-title {
   margin-bottom: 12px;
 }
 
-.visual-prevision-panel h3 {
+.visual-prevision-panel h3,
+.visual-balance-evolution-panel h3 {
   margin: 0;
   font-size: 18px;
 }
 
-.visual-prevision-wrap {
+.visual-prevision-wrap,
+.visual-balance-evolution-wrap {
   max-height: 460px;
 }
 
-.visual-prevision-table {
+.visual-prevision-table,
+.visual-balance-evolution-table {
   min-width: 1180px;
+}
+
+.visual-balance-evolution-panel {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.visual-balance-evolution-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.visual-balance-evolution-table th,
+.visual-balance-evolution-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.visual-balance-evolution-table th:first-child,
+.visual-balance-evolution-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 220px;
+  text-align: left;
+  background: var(--surface-soft);
+}
+
+.visual-balance-evolution-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.visual-balance-evolution-table td {
+  color: var(--green);
+  font-weight: 900;
+}
+
+.visual-balance-evolution-table td:first-child {
+  color: var(--ink);
+}
+
+.visual-balance-evolution-table td:first-child strong,
+.visual-balance-evolution-table td:first-child small {
+  display: block;
+}
+
+.visual-balance-evolution-table td:first-child small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.visual-balance-evolution-table tr.total td {
+  background: #eef8f5;
 }
 
 .visual-range-kpis {
