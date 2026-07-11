@@ -3188,10 +3188,22 @@ svg {
   --section-value: #e6f3ff;
 }
 
+.visual-section-row.visual-calculated-row.transfer-adjusted-section {
+  --section-bg: #2d6072;
+  --section-bg-hover: #367085;
+  --section-value: #e1f8ff;
+}
+
 .visual-section-row.visual-calculated-row.transfer-prudent-section {
   --section-bg: #253f57;
   --section-bg-hover: #2e4d68;
   --section-value: #d9efff;
+}
+
+.visual-section-row.visual-calculated-row.transfer-prudent-adjusted-section {
+  --section-bg: #20394f;
+  --section-bg-hover: #294960;
+  --section-value: #d7f0ff;
 }
 
 .visual-matrix tbody tr.visual-section-row:hover {

@@ -6717,32 +6717,58 @@ function renderVisualDetail() {
     const nextRow = simulationByMonth.get(nextKey);
     return Math.max(0, round2(Number(nextRow?.outflowsBeforeSaving || 0)));
   };
-  const availableForTransferByColumn = columns.map((column) => {
-    const values = column.months.map(availableForTransferByMonth).filter((value) => Number.isFinite(value));
-    if (!values.length) return 0;
-    return column.kind === "year-summary" ? Math.min(...values) : values[0];
-  });
-  const prudentAvailableForTransferByColumn = columns.map((column) => {
-    const values = column.months
-      .map((month) => Math.max(0, round2(availableForTransferByMonth(month) - nextMonthPlannedExpenses(month))))
-      .filter((value) => Number.isFinite(value));
-    if (!values.length) return 0;
-    return column.kind === "year-summary" ? Math.min(...values) : values[0];
-  });
+  const tereSalaryRows = baseData.monthlyPlanning.sections
+    .filter((section) => section.kind === "income")
+    .flatMap((section) => visualRowsForSection(section, months))
+    .filter((row) => {
+      if (isVisualRowPendingDelete(seriesKeyForRow(row))) return false;
+      const label = normalizedText(visualDisplayLabel(row));
+      return label.includes("tere") && (label.includes("nomina") || label.includes("salario"));
+    });
+  const tereSalaryForMonth = (month) =>
+    round2(tereSalaryRows.reduce((sum, row) => sum + Number(visualCellValue(row, month, mode) || 0), 0));
+  const valueByColumn = (getter) =>
+    columns.map((column) => {
+      const values = column.months.map(getter).filter((value) => Number.isFinite(value));
+      if (!values.length) return 0;
+      return column.kind === "year-summary" ? Math.min(...values) : values[0];
+    });
+  const availableForTransferByColumn = valueByColumn(availableForTransferByMonth);
+  const prudentAvailableForTransferByColumn = valueByColumn((month) =>
+    Math.max(0, round2(availableForTransferByMonth(month) - nextMonthPlannedExpenses(month))),
+  );
+  const adjustedAvailableForTransferByColumn = valueByColumn((month) =>
+    Math.max(0, round2(availableForTransferByMonth(month) + tereSalaryForMonth(month))),
+  );
+  const prudentAdjustedAvailableForTransferByColumn = valueByColumn((month) =>
+    Math.max(0, round2(availableForTransferByMonth(month) + tereSalaryForMonth(month) - nextMonthPlannedExpenses(month))),
+  );
 
   renderCalculatedRow("total-expense-section", "Total gastos", "Suma de fijos, variables, suscripciones, financiaciones y proyectos.", expenseTotalsByColumn);
   renderCalculatedRow("result-section", "Resultado a la fecha del cuadro", "Ingresos totales menos total de gastos del periodo visible.", resultTotalsByColumn);
   renderCalculatedRow(
     "transfer-section",
     "Disponible para traspaso",
-    "CaixaBank estimado + ingresos - gastos - reserva operativa común.",
+    "Referencia: cierre estimado del mes. CaixaBank estimado + ingresos - gastos - reserva operativa común.",
     availableForTransferByColumn,
+  );
+  renderCalculatedRow(
+    "transfer-adjusted-section",
+    "Disponible para traspaso ajustado",
+    "Referencia: día 25 aprox. del mes, tras nómina Tere. Disponible + nómina Tere.",
+    adjustedAvailableForTransferByColumn,
   );
   renderCalculatedRow(
     "transfer-prudent-section",
     "Disponible para traspaso prudente",
-    "Disponible tras cubrir gastos del mes, reserva común y gastos previstos del mes siguiente.",
+    "Referencia: cierre estimado del mes, cubriendo también los gastos previstos del mes siguiente.",
     prudentAvailableForTransferByColumn,
+  );
+  renderCalculatedRow(
+    "transfer-prudent-adjusted-section",
+    "Disponible para traspaso prudente ajustado",
+    "Referencia: día 25 aprox. del mes, tras nómina Tere y cubriendo los gastos previstos del mes siguiente.",
+    prudentAdjustedAvailableForTransferByColumn,
   );
 
   qs("visualSummary").innerHTML = [
