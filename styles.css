@@ -3063,7 +3063,8 @@ svg {
 }
 
 .visual-table-wrap {
-  max-height: 720px;
+  max-height: min(88vh, 1280px);
+  min-height: min(58vh, 760px);
 }
 
 .visual-matrix {

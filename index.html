@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260704a" />
+    <link rel="stylesheet" href="styles.css?v=20260712a" />
   </head>
   <body>
     <div class="app-shell">
@@ -18,12 +18,12 @@
         </div>
 
         <nav class="side-nav">
-          <a href="#home" class="active">Inicio</a>
+          <a href="#visual-detail" class="active">Cuadro de mandos</a>
+          <a href="#home">Control diario</a>
           <a href="#executive-advisor">Asesor ejecutivo</a>
           <a href="#new-life-simulation">Simulación nueva vida</a>
           <a href="#new-life-definitive">Simulación nueva vida definitiva</a>
           <a href="#virtual-advisor">Asesor virtual</a>
-          <a href="#visual-detail">Cuadro de mandos</a>
           <a href="#debt-liquidation-plan">Plan deuda óptimo</a>
           <a href="#savings-agent">Agente ahorro</a>
           <a href="#debt-control">Control de deuda</a>
@@ -85,8 +85,8 @@
       <div class="workspace">
         <header class="topbar">
           <div>
-            <p class="eyebrow" id="viewEyebrow">Inicio</p>
-            <h1 id="viewTitle">Control diario de caja, deuda y decisiones</h1>
+            <p class="eyebrow" id="viewEyebrow">Cuadro de mandos</p>
+            <h1 id="viewTitle">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="source-note" id="sourceNote"></div>
         </header>
@@ -95,7 +95,7 @@
           <section class="home-dashboard view-section" id="home">
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker">Inicio</p>
+                <p class="panel-kicker">Control diario</p>
                 <h2>Centro de decisión diario</h2>
                 <p>Vista ejecutiva para decidir ahorro, deuda y proyectos con los datos actuales del modelo.</p>
               </div>
@@ -598,6 +598,19 @@
               </div>
             </div>
 
+            <article class="visual-range-kpis" id="visualRangeKpis"></article>
+
+            <article class="visual-balance-evolution-panel">
+              <div class="section-title compact">
+                <div>
+                  <p class="panel-kicker">Evolución prevista de saldos</p>
+                  <h3>CaixaBank y Mediolanum</h3>
+                  <p>Saldo previsto al cierre de cada mes o año visible, separando cuenta operativa y ahorro.</p>
+                </div>
+              </div>
+              <div id="visualBalanceEvolution"></div>
+            </article>
+
             <article class="account-balance-panel" id="visualBalancePanel">
               <div>
                 <p class="panel-kicker">Saldos</p>
@@ -631,8 +644,6 @@
             </article>
 
             <div class="expense-summary" id="visualSummary"></div>
-
-            <article class="monthly-budget-panel" id="monthlyBudgetPanel"></article>
 
             <article class="visual-save-panel" id="visualSavePanel">
               <div>
@@ -775,18 +786,7 @@
               </div>
             </article>
 
-            <article class="visual-balance-evolution-panel">
-              <div class="section-title compact">
-                <div>
-                  <p class="panel-kicker">Evolución prevista de saldos</p>
-                  <h3>CaixaBank y Mediolanum</h3>
-                  <p>Saldo previsto al cierre de cada mes o año visible, separando cuenta operativa y ahorro.</p>
-                </div>
-              </div>
-              <div id="visualBalanceEvolution"></div>
-            </article>
-
-            <article class="visual-range-kpis" id="visualRangeKpis"></article>
+            <article class="monthly-budget-panel" id="monthlyBudgetPanel"></article>
           </section>
 
           <section class="debt-liquidation-plan view-section" id="debt-liquidation-plan">
@@ -1831,6 +1831,6 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
-    <script src="app.js?v=20260704a"></script>
+    <script src="app.js?v=20260712a"></script>
   </body>
 </html>

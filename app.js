@@ -221,7 +221,7 @@ const USER_REMOVED_FINANCING_KEYS = new Set([
 
 const viewTitles = {
   home: {
-    eyebrow: "Inicio",
+    eyebrow: "Control diario",
     title: "Control diario de caja, deuda y decisiones",
   },
   "executive-advisor": {
@@ -872,10 +872,10 @@ function renderSyncPanel() {
 }
 
 function viewFromHash() {
-  const id = (window.location.hash || "#home").replace("#", "");
+  const id = (window.location.hash || "#visual-detail").replace("#", "");
   if (id === "overview") return "home";
   if (id === "monthly-detail") return "prevision";
-  return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
+  return document.getElementById(id)?.classList.contains("view-section") ? id : "visual-detail";
 }
 
 function markViewCalculating(viewId, active) {
