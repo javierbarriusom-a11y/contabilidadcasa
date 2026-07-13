@@ -2,6 +2,22 @@
 
 Copia de trabajo independiente del dashboard financiero familiar. Esta version se usa para evolucionar la arquitectura, la experiencia ejecutiva y el modelo de deuda sin alterar la aplicacion estable.
 
+## Estado de la evolución
+
+- Fase 0: copias verificables, contrato de estado y pruebas de regresión.
+- Fase 1: modelo canónico, identidades estables y vista de datos y auditoría.
+
+La documentación funcional de la fase actual está en [PHASE_1.md](PHASE_1.md).
+
+## Ejecutar y verificar
+
+```bash
+npm test
+python3 -m http.server 4182
+```
+
+Después abre `http://127.0.0.1:4182/index.html#data-audit`.
+
 ## Publicacion en GitHub Pages
 
 Este repositorio esta preparado para publicarse desde la rama `main` y la carpeta raiz (`/`) de GitHub Pages.

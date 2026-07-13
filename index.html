@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260712a" />
+    <link rel="stylesheet" href="styles.css?v=20260713c" />
   </head>
   <body>
     <div class="app-shell">
@@ -32,6 +32,7 @@
           <a href="#forecast">Proyección</a>
           <a href="#savings-plan">Plan ahorro</a>
           <a href="#data-entry">Carga de datos</a>
+          <a href="#data-audit">Datos y auditoría</a>
           <a href="#cashflow">Flujo mensual</a>
           <a href="#movements">Movimientos</a>
         </nav>
@@ -1725,6 +1726,79 @@
             </div>
           </section>
 
+          <section class="data-audit view-section" id="data-audit">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Confianza del modelo</p>
+                <h2>Datos y auditoría</h2>
+                <p>Inventario canónico, procedencia y trazabilidad de los datos que alimentan el dashboard.</p>
+              </div>
+              <div class="audit-actions">
+                <button id="rebuildCanonicalIndex" type="button">Reconstruir índice</button>
+                <button id="downloadCanonicalInventory" class="secondary" type="button">Descargar inventario</button>
+              </div>
+            </div>
+
+            <div class="audit-kpi-grid" id="auditKpis"></div>
+
+            <div class="audit-layout">
+              <article class="audit-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Procedencia</p>
+                    <h3>Qué sabemos y con qué certeza</h3>
+                  </div>
+                </div>
+                <div id="auditProvenance"></div>
+              </article>
+              <article class="audit-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Calidad</p>
+                    <h3>Controles automáticos</h3>
+                  </div>
+                </div>
+                <div id="auditQuality"></div>
+              </article>
+            </div>
+
+            <article class="audit-panel audit-inventory-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Inventario</p>
+                  <h3>Entidades persistidas</h3>
+                  <p>Los identificadores son estables aunque cambie el orden de las tablas o se recargue la aplicación.</p>
+                </div>
+              </div>
+              <div class="table-wrap audit-table-wrap">
+                <table class="audit-table">
+                  <thead>
+                    <tr>
+                      <th>Tipo</th>
+                      <th>Elemento</th>
+                      <th>Estado</th>
+                      <th>Procedencia</th>
+                      <th>Importe</th>
+                      <th>Mes / fecha</th>
+                      <th>ID canónico</th>
+                    </tr>
+                  </thead>
+                  <tbody id="auditEntityTable"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="audit-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Historial técnico</p>
+                  <h3>Últimos cambios detectados</h3>
+                </div>
+              </div>
+              <div class="audit-timeline" id="auditTimeline"></div>
+            </article>
+          </section>
+
           <section class="table-section view-section" id="cashflow">
             <div class="section-title with-action">
               <div>
@@ -1855,6 +1929,7 @@
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
     <script src="state-contract.js?v=20260713a"></script>
-    <script src="app.js?v=20260712a"></script>
+    <script src="canonical-state.js?v=20260713c"></script>
+    <script src="app.js?v=20260713c"></script>
   </body>
 </html>

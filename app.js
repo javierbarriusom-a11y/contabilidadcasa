@@ -51,6 +51,8 @@ let deletedPlanningRows = {};
 let seriesOverrides = {};
 let rowLabelOverrides = {};
 let movementMappings = {};
+let canonicalSnapshot = null;
+let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
 let editingProjectId = null;
 let memoryStorage = {};
@@ -219,6 +221,7 @@ const USER_REMOVED_FINANCING_KEYS = new Set([
   financingTemplateKey("Pass Carrefour Tere", "Financiacion express 5"),
   financingTemplateKey("Pass Carrefour Javi", "Financiacion express 1"),
 ]);
+const CANONICAL_STATE_KEY = "canonicalStateV1";
 
 const viewTitles = {
   home: {
@@ -276,6 +279,10 @@ const viewTitles = {
   "data-entry": {
     eyebrow: "Carga de datos",
     title: "Añade datos manuales, por lotes o desde Excel",
+  },
+  "data-audit": {
+    eyebrow: "Gobierno del dato",
+    title: "Comprueba qué dato manda, de dónde viene y qué ha cambiado",
   },
   cashflow: {
     eyebrow: "Flujo mensual",
@@ -472,11 +479,11 @@ function sourceStateKey() {
   return REMOTE_SOURCE_KEY;
 }
 
-function appStatePayload() {
-  return {
+function appStatePayload(options = {}) {
+  const payload = {
     version: 1,
     updatedAt: new Date().toISOString(),
-    sourceWorkbook: sourceStateKey(),
+    sourceWorkbook: baseData?.metadata?.sourceWorkbook || sourceStateKey(),
     workbookData: baseData?.metadata?.sourceWorkbookStatus === "Leído desde la app" ? baseData : null,
     projects,
     debtLiquidations,
@@ -492,6 +499,8 @@ function appStatePayload() {
     rowLabelOverrides,
     movementMappings,
   };
+  if (options.includeCanonical !== false) payload.canonicalSnapshot = canonicalSnapshot;
+  return payload;
 }
 
 function stateBackupSummaryMarkup(summary = {}) {
@@ -521,8 +530,9 @@ function downloadStateBackup() {
     return;
   }
   try {
+    refreshCanonicalSnapshot("backup");
     const envelope = window.FinanceStateContract.buildBackupEnvelope(appStatePayload(), {
-      appVersion: "phase-0",
+      appVersion: "phase-1",
     });
     const blob = new Blob([`${JSON.stringify(envelope, null, 2)}\n`], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -629,6 +639,10 @@ function applyPersistedPayload(payload = {}) {
   seriesOverrides = payload.seriesOverrides && typeof payload.seriesOverrides === "object" ? payload.seriesOverrides : {};
   rowLabelOverrides = payload.rowLabelOverrides && typeof payload.rowLabelOverrides === "object" ? payload.rowLabelOverrides : {};
   movementMappings = payload.movementMappings && typeof payload.movementMappings === "object" ? payload.movementMappings : {};
+  canonicalSnapshot =
+    payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
+      ? payload.canonicalSnapshot
+      : null;
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
 }
@@ -646,9 +660,150 @@ function saveLocalSnapshot() {
   storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
+  if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
+}
+
+function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
+  if (!window.FinanceCanonicalState) return canonicalSnapshot;
+  canonicalSnapshot = window.FinanceCanonicalState.buildCanonicalSnapshot(
+    appStatePayload({ includeCanonical: false }),
+    canonicalSnapshot,
+    { reason, force: Boolean(options.force) },
+  );
+  storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
+  return canonicalSnapshot;
+}
+
+function scheduleCanonicalRefresh(reason = "state-change") {
+  window.clearTimeout(canonicalRefreshTimer);
+  canonicalRefreshTimer = window.setTimeout(() => {
+    refreshCanonicalSnapshot(reason);
+    if (viewFromHash() === "data-audit") renderDataAudit();
+  }, 80);
+}
+
+const canonicalTypeLabels = {
+  projects: "Proyecto",
+  debtDecisions: "Decisión de deuda",
+  planningRows: "Partida",
+  actuals: "Dato real",
+  accounts: "Cuenta",
+  tombstones: "Eliminación",
+  seriesOverrides: "Ajuste mensual",
+  labelOverrides: "Renombre",
+  movementMappings: "Regla bancaria",
+  decisionEvents: "Evento de decisión",
+};
+
+const canonicalStatusLabels = {
+  simulated: "Simulado",
+  pending: "Pendiente",
+  approved: "Aprobado",
+  fixed: "Fijo en plan",
+  executed: "Ejecutado",
+  cancelled: "Cancelado",
+};
+
+const canonicalProvenanceLabels = {
+  verified: "Verificado",
+  declared: "Declarado",
+  estimated: "Estimado",
+  hypothetical: "Hipotético",
+};
+
+function canonicalRows(snapshot = canonicalSnapshot) {
+  return Object.entries(snapshot?.entities || {}).flatMap(([collection, rows]) =>
+    (Array.isArray(rows) ? rows : []).map((row) => ({ ...row, collection }))
+  );
+}
+
+function auditBreakdown(counts, labels, total, kind) {
+  return Object.entries(labels).map(([key, label]) => {
+    const value = Number(counts?.[key] || 0);
+    const percentage = total ? Math.round((value / total) * 100) : 0;
+    return `<div class="audit-breakdown-row">
+      <div><span class="audit-badge ${kind}-${escapeHtml(key)}">${escapeHtml(label)}</span><strong>${value}</strong></div>
+      <div class="audit-meter" aria-label="${escapeHtml(label)}: ${percentage}%"><span style="width:${percentage}%"></span></div>
+    </div>`;
+  }).join("");
+}
+
+function renderDataAudit() {
+  if (!window.FinanceCanonicalState) return;
+  const snapshot = refreshCanonicalSnapshot("audit-view");
+  if (!snapshot) return;
+  const rows = canonicalRows(snapshot);
+  const quality = snapshot.quality || {};
+  const generatedDate = new Date(snapshot.generatedAt || Date.now());
+  const generatedLabel = Number.isNaN(generatedDate.getTime())
+    ? "Sin fecha"
+    : generatedDate.toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" });
+  const verified = Number(quality.provenance?.verified || 0);
+
+  qs("auditKpis").innerHTML = [
+    ["Calidad del inventario", `${Number(quality.score || 0)}%`, `${Number(quality.issueCount || 0)} incidencia(s) detectada(s)`, Number(quality.score || 0) >= 90 ? "good" : "warn"],
+    ["Entidades persistidas", String(rows.length), "Proyectos, deuda, ajustes, reales y saldos", "neutral"],
+    ["Datos verificados", String(verified), `${rows.length ? Math.round((verified / rows.length) * 100) : 0}% del inventario tiene evidencia real`, "good"],
+    ["Última consolidación", generatedLabel, `Huella ${snapshot.fingerprint || "sin huella"}`, "neutral"],
+  ].map(([label, value, detail, tone]) => `<article class="audit-kpi ${tone}">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(value)}</strong>
+    <p>${escapeHtml(detail)}</p>
+  </article>`).join("");
+
+  qs("auditProvenance").innerHTML = auditBreakdown(quality.provenance, canonicalProvenanceLabels, rows.length, "provenance");
+  const issues = Array.isArray(quality.issues) ? quality.issues : [];
+  qs("auditQuality").innerHTML = issues.length
+    ? `<div class="audit-issue-list">${issues.map((issue) => `<div class="audit-issue ${escapeHtml(issue.severity || "warning")}">
+        <strong>${issue.code === "duplicate-identity" ? "Identidad duplicada" : "Dato incompleto"}</strong>
+        <span>${escapeHtml(issue.label || issue.entityId || "Revisar registro")}</span>
+      </div>`).join("")}</div>`
+    : `<div class="audit-empty good"><strong>Sin incidencias estructurales</strong><p>Todos los registros tienen identidad estable, estado, procedencia e importe válido.</p></div>`;
+
+  qs("auditEntityTable").innerHTML = rows.length
+    ? rows.slice().sort((a, b) => `${a.collection}-${a.label}`.localeCompare(`${b.collection}-${b.label}`, "es")).map((row) => `<tr>
+        <td>${escapeHtml(canonicalTypeLabels[row.collection] || row.kind || row.collection)}</td>
+        <td><strong>${escapeHtml(row.label || "Sin nombre")}</strong><small>${escapeHtml(row.source || "Sin fuente")}</small></td>
+        <td><span class="audit-badge status-${escapeHtml(row.status)}">${escapeHtml(canonicalStatusLabels[row.status] || row.status)}</span></td>
+        <td><span class="audit-badge provenance-${escapeHtml(row.provenance)}">${escapeHtml(canonicalProvenanceLabels[row.provenance] || row.provenance)}</span></td>
+        <td>${money(Number(row.amount || 0), true)}</td>
+        <td>${escapeHtml(row.monthKey || "-")}</td>
+        <td><code>${escapeHtml(row.id)}</code></td>
+      </tr>`).join("")
+    : `<tr><td colspan="7"><div class="audit-empty"><strong>Sin entidades persistidas</strong><p>El modelo base sigue operativo; aquí aparecerán datos cargados, editados o confirmados.</p></div></td></tr>`;
+
+  const trail = Array.isArray(snapshot.auditTrail) ? snapshot.auditTrail : [];
+  qs("auditTimeline").innerHTML = trail.length
+    ? trail.map((item) => {
+        const date = new Date(item.at || Date.now());
+        const dateLabel = Number.isNaN(date.getTime()) ? "Sin fecha" : date.toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" });
+        const changes = item.changes || {};
+        return `<div class="audit-timeline-item">
+          <span>${escapeHtml(dateLabel)}</span>
+          <div><strong>${escapeHtml(String(item.reason || "actualización").replaceAll("-", " "))}</strong>
+          <p>+${Number(changes.added || 0)} altas · ${Number(changes.changed || 0)} cambios · ${Number(changes.removed || 0)} bajas</p></div>
+          <code>${escapeHtml(item.fingerprint || "")}</code>
+        </div>`;
+      }).join("")
+    : `<div class="audit-empty"><strong>Sin cambios registrados</strong><p>La primera modificación generará una entrada de auditoría.</p></div>`;
+}
+
+function downloadCanonicalInventory() {
+  const snapshot = refreshCanonicalSnapshot("inventory-export");
+  if (!snapshot) return;
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `finanzas-casa-inventario-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function queueRemoteSave() {
+  scheduleCanonicalRefresh("state-change");
   if (!remoteUser || !supabaseClient) return;
   window.clearTimeout(remoteSaveTimer);
   remoteSaveTimer = window.setTimeout(() => {
@@ -671,6 +826,7 @@ function loadLocalState() {
       seriesOverrides: JSON.parse(storageGet(storageKey("seriesOverrides"), "{}")),
       rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
+      canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
     });
   } catch {
     projects = [];
@@ -685,6 +841,7 @@ function loadLocalState() {
     seriesOverrides = {};
     rowLabelOverrides = {};
     movementMappings = {};
+    canonicalSnapshot = null;
   }
 }
 
@@ -13911,6 +14068,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "data-entry":
       populateDataEntryControls();
       break;
+    case "data-audit":
+      renderDataAudit();
+      break;
     default:
       break;
   }
@@ -14040,6 +14200,7 @@ async function init() {
   ensureVariableOperationalSection();
   applyVariableOperationalMigration();
   applyVariableOperationalMayZeroDefault();
+  refreshCanonicalSnapshot(canonicalSnapshot ? "startup-validation" : "initial-migration");
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors(true);
@@ -14428,6 +14589,13 @@ async function init() {
     showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.");
   });
   qs("excelDataFile").addEventListener("change", handleExcelImport);
+  qs("rebuildCanonicalIndex")?.addEventListener("click", () => {
+    refreshCanonicalSnapshot("manual-rebuild", { force: true });
+    saveLocalSnapshot();
+    queueRemoteSave();
+    renderDataAudit();
+  });
+  qs("downloadCanonicalInventory")?.addEventListener("click", downloadCanonicalInventory);
   qs("detailMonth").addEventListener("change", renderMonthlyDetails);
   document.querySelectorAll('input[name="projectMode"]').forEach((input) => {
     input.addEventListener("change", () => {
