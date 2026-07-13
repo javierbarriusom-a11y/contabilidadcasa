@@ -1,6 +1,6 @@
-# Dashboard financiero familiar
+# Finanzas Casa DEF
 
-App estatica para consultar el dashboard financiero, simulador de escenarios, detalle mensual previsto vs real y flujo de caja.
+Copia de trabajo independiente del dashboard financiero familiar. Esta version se usa para evolucionar la arquitectura, la experiencia ejecutiva y el modelo de deuda sin alterar la aplicacion estable.
 
 ## Publicacion en GitHub Pages
 
@@ -9,7 +9,7 @@ Este repositorio esta preparado para publicarse desde la rama `main` y la carpet
 URL esperada tras activar Pages:
 
 ```text
-https://USUARIO.github.io/NOMBRE-REPO/
+https://javierbarriusom-a11y.github.io/finanzas-casa-def/
 ```
 
 ## Privacidad

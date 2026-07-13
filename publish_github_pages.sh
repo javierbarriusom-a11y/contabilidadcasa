@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_NAME="${1:-finanzas-casa-dashboard}"
+REPO_NAME="${1:-finanzas-casa-def}"
 VISIBILITY="${2:-}"
 
 if [[ "$VISIBILITY" != "public" && "$VISIBILITY" != "private" ]]; then
   echo "Uso: ./publish_github_pages.sh <nombre-repo> <public|private>"
-  echo "Ejemplo: ./publish_github_pages.sh finanzas-casa-dashboard public"
+  echo "Ejemplo: ./publish_github_pages.sh finanzas-casa-def public"
   echo
   echo "Aviso: GitHub Pages puede exponer la web publicamente. Este dashboard contiene datos financieros."
   exit 1

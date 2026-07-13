@@ -19,18 +19,18 @@ gh auth login --web
 3. Desde esta carpeta, ejecuta:
 
 ```bash
-./publish_github_pages.sh finanzas-casa-dashboard public
+./publish_github_pages.sh finanzas-casa-def public
 ```
 
 La URL final tendra este formato:
 
 ```text
-https://TU_USUARIO.github.io/finanzas-casa-dashboard/
+https://javierbarriusom-a11y.github.io/finanzas-casa-def/
 ```
 
 ## Opcion B: Subida manual
 
-1. Entra en GitHub y crea un repositorio nuevo llamado `finanzas-casa-dashboard`.
+1. Entra en GitHub y crea un repositorio nuevo llamado `finanzas-casa-def`.
 2. Sube los archivos del ZIP `dashboard-finanzas-casa-github-pages.zip` a la raiz del repositorio.
 3. Ve a `Settings` > `Pages`.
 4. En `Build and deployment`, selecciona:
