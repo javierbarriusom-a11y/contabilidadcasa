@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260713c" />
+    <link rel="stylesheet" href="styles.css?v=20260713d" />
   </head>
   <body>
     <div class="app-shell">
@@ -33,6 +33,7 @@
           <a href="#savings-plan">Plan ahorro</a>
           <a href="#data-entry">Carga de datos</a>
           <a href="#data-audit">Datos y auditoría</a>
+          <a href="#reconciliation">Conciliación</a>
           <a href="#cashflow">Flujo mensual</a>
           <a href="#movements">Movimientos</a>
         </nav>
@@ -1799,6 +1800,97 @@
             </article>
           </section>
 
+          <section class="reconciliation view-section" id="reconciliation">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Cierre y confianza</p>
+                <h2>Conciliación bancaria</h2>
+                <p>Una sola lectura para comprobar que extractos, partidas reales y saldos cuentan la misma historia.</p>
+              </div>
+              <div class="audit-actions">
+                <button id="openMovementReview" class="secondary" type="button">Revisar movimientos</button>
+                <button id="rebuildCanonicalLedger" type="button">Recalcular</button>
+                <button id="downloadCanonicalLedger" class="secondary" type="button">Descargar evidencia</button>
+              </div>
+            </div>
+
+            <div class="audit-kpi-grid" id="ledgerKpis"></div>
+            <div class="ledger-invariant-grid" id="ledgerInvariantSummary"></div>
+
+            <article class="ledger-panel ledger-month-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Cierre mensual</p>
+                  <h3>Banco frente a importes reales</h3>
+                  <p>Una diferencia indica movimientos pendientes de clasificar o reales aún no registrados.</p>
+                </div>
+              </div>
+              <div class="table-wrap ledger-table-wrap">
+                <table class="ledger-table">
+                  <thead>
+                    <tr>
+                      <th>Mes</th>
+                      <th>Ingresos banco</th>
+                      <th>Ingresos reales</th>
+                      <th>Diferencia</th>
+                      <th>Gastos banco</th>
+                      <th>Gastos reales</th>
+                      <th>Diferencia</th>
+                      <th>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ledgerMonthRows"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <div class="ledger-layout">
+              <article class="ledger-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Cola de trabajo</p>
+                    <h3>Movimientos sin clasificar</h3>
+                  </div>
+                </div>
+                <div class="ledger-list" id="ledgerUnclassified"></div>
+              </article>
+              <article class="ledger-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Control bancario</p>
+                    <h3>Continuidad de saldos</h3>
+                  </div>
+                </div>
+                <div class="ledger-list" id="ledgerBalanceChecks"></div>
+              </article>
+            </div>
+
+            <article class="ledger-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Diagnóstico</p>
+                  <h3>Diferencias por partida</h3>
+                  <p>Ordenadas por importe para resolver primero lo que más altera el resultado.</p>
+                </div>
+              </div>
+              <div class="table-wrap ledger-table-wrap">
+                <table class="ledger-table">
+                  <thead>
+                    <tr>
+                      <th>Mes</th>
+                      <th>Tipo</th>
+                      <th>Partida</th>
+                      <th>Banco</th>
+                      <th>Real</th>
+                      <th>Diferencia</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ledgerLineRows"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
           <section class="table-section view-section" id="cashflow">
             <div class="section-title with-action">
               <div>
@@ -1930,6 +2022,7 @@
     <script src="data.js?v=20260602a"></script>
     <script src="state-contract.js?v=20260713a"></script>
     <script src="canonical-state.js?v=20260713c"></script>
-    <script src="app.js?v=20260713c"></script>
+    <script src="canonical-ledger.js?v=20260713d"></script>
+    <script src="app.js?v=20260713d"></script>
   </body>
 </html>

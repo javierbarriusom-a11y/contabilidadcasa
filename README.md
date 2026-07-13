@@ -6,8 +6,9 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 
 - Fase 0: copias verificables, contrato de estado y pruebas de regresión.
 - Fase 1: modelo canónico, identidades estables y vista de datos y auditoría.
+- Fase 2: libro contable canónico, invariantes y conciliación banco vs. dato real.
 
-La documentación funcional de la fase actual está en [PHASE_1.md](PHASE_1.md).
+La documentación funcional de la fase actual está en [PHASE_2.md](PHASE_2.md).
 
 ## Ejecutar y verificar
 
@@ -16,7 +17,7 @@ npm test
 python3 -m http.server 4182
 ```
 
-Después abre `http://127.0.0.1:4182/index.html#data-audit`.
+Después abre `http://127.0.0.1:4182/index.html#reconciliation`.
 
 ## Publicacion en GitHub Pages
 

@@ -4335,6 +4335,182 @@ svg {
   .audit-actions button { flex: 1 1 160px; }
 }
 
+/* Phase 2: canonical ledger and bank reconciliation */
+.reconciliation {
+  display: grid;
+  gap: 18px;
+}
+
+.ledger-invariant-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ledger-invariant {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--amber);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.ledger-invariant.passed { border-left-color: var(--green); }
+
+.ledger-invariant > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  min-height: 26px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: #fff3dc;
+  color: #83530f;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.ledger-invariant.passed > span {
+  background: #e5f4eb;
+  color: #17623a;
+}
+
+.ledger-invariant p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ledger-panel {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.ledger-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.ledger-table-wrap {
+  max-height: min(58vh, 660px);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.ledger-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.ledger-table th,
+.ledger-table td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.ledger-table th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #edf4f6;
+  color: #43525a;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.ledger-table th:first-child,
+.ledger-table td:first-child,
+.ledger-table th:nth-child(2),
+.ledger-table td:nth-child(2),
+.ledger-table th:nth-child(3),
+.ledger-table td:nth-child(3) { text-align: left; }
+
+.ledger-table td small {
+  display: block;
+  max-width: 340px;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+}
+
+.ledger-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #fff3dc;
+  color: #83530f;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ledger-status.matched { background: #e5f4eb; color: #17623a; }
+.ledger-status.difference { background: #fbe8e7; color: #98342f; }
+.ledger-difference { color: var(--red); font-weight: 900; }
+
+.ledger-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ledger-list-item,
+.ledger-balance-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--amber);
+  border-radius: 6px;
+  background: var(--surface-soft);
+}
+
+.ledger-balance-item.passed { border-left-color: var(--green); }
+.ledger-balance-item.warning { border-left-color: var(--red); }
+.ledger-list-item > div,
+.ledger-balance-item > div { min-width: 0; }
+.ledger-list-item span,
+.ledger-balance-item span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .ledger-invariant-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .reconciliation .section-title,
+  .ledger-layout { display: grid; grid-template-columns: 1fr; }
+  .ledger-invariant-grid { grid-template-columns: 1fr; }
+  .ledger-list-item,
+  .ledger-balance-item { align-items: flex-start; flex-direction: column; }
+}
+
 .agent-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

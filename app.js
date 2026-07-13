@@ -52,6 +52,7 @@ let seriesOverrides = {};
 let rowLabelOverrides = {};
 let movementMappings = {};
 let canonicalSnapshot = null;
+let canonicalLedgerSnapshot = null;
 let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
 let editingProjectId = null;
@@ -222,6 +223,7 @@ const USER_REMOVED_FINANCING_KEYS = new Set([
   financingTemplateKey("Pass Carrefour Javi", "Financiacion express 1"),
 ]);
 const CANONICAL_STATE_KEY = "canonicalStateV1";
+const CANONICAL_LEDGER_KEY = "canonicalLedgerV1";
 
 const viewTitles = {
   home: {
@@ -283,6 +285,10 @@ const viewTitles = {
   "data-audit": {
     eyebrow: "Gobierno del dato",
     title: "Comprueba qué dato manda, de dónde viene y qué ha cambiado",
+  },
+  reconciliation: {
+    eyebrow: "Conciliación bancaria",
+    title: "Cuadra extractos, datos reales y saldos antes de decidir",
   },
   cashflow: {
     eyebrow: "Flujo mensual",
@@ -499,7 +505,10 @@ function appStatePayload(options = {}) {
     rowLabelOverrides,
     movementMappings,
   };
-  if (options.includeCanonical !== false) payload.canonicalSnapshot = canonicalSnapshot;
+  if (options.includeCanonical !== false) {
+    payload.canonicalSnapshot = canonicalSnapshot;
+    payload.canonicalLedgerSnapshot = canonicalLedgerSnapshot;
+  }
   return payload;
 }
 
@@ -531,8 +540,9 @@ function downloadStateBackup() {
   }
   try {
     refreshCanonicalSnapshot("backup");
+    refreshCanonicalLedger("backup");
     const envelope = window.FinanceStateContract.buildBackupEnvelope(appStatePayload(), {
-      appVersion: "phase-1",
+      appVersion: "phase-2",
     });
     const blob = new Blob([`${JSON.stringify(envelope, null, 2)}\n`], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -643,6 +653,10 @@ function applyPersistedPayload(payload = {}) {
     payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
       ? payload.canonicalSnapshot
       : null;
+  canonicalLedgerSnapshot =
+    payload.canonicalLedgerSnapshot?.schemaId === window.FinanceCanonicalLedger?.SCHEMA_ID
+      ? payload.canonicalLedgerSnapshot
+      : null;
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
 }
@@ -661,6 +675,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
+  if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
 }
 
 function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
@@ -674,11 +689,74 @@ function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
   return canonicalSnapshot;
 }
 
+function canonicalLedgerTransactions() {
+  return (baseData?.transactions || []).map((transaction, index) => {
+    const mapping = mappingForMovement(transaction);
+    return {
+      ...transaction,
+      sourceRow: transaction.statementOrder ?? index,
+      accountId: transaction.accountId || "caixabank",
+      mapping: mapping
+        ? {
+            status: "classified",
+            rowKey: seriesKeyForRow(mapping.row),
+            rowId: mapping.row.id,
+            label: displayLabelForRow(mapping.row),
+            sectionName: mapping.row.sectionName,
+            source: mapping.source,
+          }
+        : { status: "unclassified" },
+    };
+  });
+}
+
+function canonicalLedgerActuals() {
+  const rowsById = new Map(
+    ["income", "expense"].flatMap((kind) =>
+      availableSeriesRows(kind).map((row) => [`${kind}|${row.id}`, row]),
+    ),
+  );
+  return [
+    ...Object.entries(incomeActuals).map(([key, amount]) => ({ key, amount, kind: "income" })),
+    ...Object.entries(expenseActuals).map(([key, amount]) => ({ key, amount, kind: "expense" })),
+  ].flatMap(({ key, amount, kind }) => {
+    const separator = key.lastIndexOf("|");
+    if (separator < 0) return [];
+    const rowId = key.slice(0, separator);
+    const monthKeyValue = key.slice(separator + 1);
+    const row = rowsById.get(`${kind}|${rowId}`);
+    if (!row || !/^\d{4}-\d{2}$/.test(monthKeyValue) || !Number.isFinite(Number(amount))) return [];
+    return [{
+      id: `${kind}|${key}`,
+      kind,
+      rowId,
+      rowKey: seriesKeyForRow(row),
+      label: displayLabelForRow(row),
+      monthKey: monthKeyValue,
+      amount: Number(amount),
+      source: "detalle mensual previsto vs real",
+    }];
+  });
+}
+
+function refreshCanonicalLedger(reason = "state-change") {
+  if (!window.FinanceCanonicalLedger || !baseData) return canonicalLedgerSnapshot;
+  canonicalLedgerSnapshot = window.FinanceCanonicalLedger.buildLedgerSnapshot(
+    { transactions: canonicalLedgerTransactions(), actuals: canonicalLedgerActuals() },
+    canonicalLedgerSnapshot,
+    { reason },
+  );
+  storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
+  return canonicalLedgerSnapshot;
+}
+
 function scheduleCanonicalRefresh(reason = "state-change") {
   window.clearTimeout(canonicalRefreshTimer);
   canonicalRefreshTimer = window.setTimeout(() => {
     refreshCanonicalSnapshot(reason);
+    refreshCanonicalLedger(reason);
     if (viewFromHash() === "data-audit") renderDataAudit();
+    if (viewFromHash() === "reconciliation") renderReconciliation();
   }, 80);
 }
 
@@ -802,6 +880,121 @@ function downloadCanonicalInventory() {
   URL.revokeObjectURL(url);
 }
 
+const ledgerStatusLabels = {
+  matched: "Cuadrado",
+  difference: "Con diferencia",
+  "pending-classification": "Pendiente de clasificar",
+};
+
+function ledgerMonthLabel(monthKeyValue) {
+  if (!/^\d{4}-\d{2}$/.test(String(monthKeyValue || ""))) return String(monthKeyValue || "Sin mes");
+  const date = new Date(`${monthKeyValue}-01T12:00:00`);
+  return date.toLocaleDateString("es-ES", { month: "short", year: "2-digit" }).replace(".", "");
+}
+
+function ledgerDifferenceTotal(snapshot) {
+  return (snapshot?.reconciliation?.months || []).reduce(
+    (sum, row) => sum + Math.abs(Number(row.incomeDelta || 0)) + Math.abs(Number(row.expenseDelta || 0)),
+    0,
+  );
+}
+
+function renderLedgerInvariant(label, passed, detail) {
+  return `<article class="ledger-invariant ${passed ? "passed" : "warning"}">
+    <span aria-hidden="true">${passed ? "OK" : "REVISAR"}</span>
+    <div><strong>${escapeHtml(label)}</strong><p>${escapeHtml(detail)}</p></div>
+  </article>`;
+}
+
+function renderReconciliation() {
+  if (!window.FinanceCanonicalLedger) return;
+  const snapshot = refreshCanonicalLedger("reconciliation-view");
+  if (!snapshot) return;
+  const quality = snapshot.quality || {};
+  const months = snapshot.reconciliation?.months || [];
+  const lines = snapshot.reconciliation?.lines || [];
+  const entries = snapshot.entries || [];
+  const checks = snapshot.balanceChecks || [];
+  const differenceTotal = ledgerDifferenceTotal(snapshot);
+  const balancedMonths = months.filter((row) => row.status === "matched").length;
+
+  qs("ledgerKpis").innerHTML = [
+    ["Cobertura clasificada", `${Number(quality.coverage || 0)}%`, `${Number(quality.classifiedCount || 0)} de ${Number(quality.usableCount || 0)} movimientos útiles`, Number(quality.coverage || 0) >= 90 ? "good" : "warn"],
+    ["Pendientes", String(Number(quality.unclassifiedCount || 0)), "Movimientos bancarios sin partida confirmada", Number(quality.unclassifiedCount || 0) ? "warn" : "good"],
+    ["Diferencia banco vs real", money(differenceTotal, true), `${balancedMonths} de ${months.length} meses cuadran`, differenceTotal <= 0.02 ? "good" : "warn"],
+    ["Saltos de saldo", String(Number(quality.balanceGapCount || 0)), `${checks.reduce((sum, row) => sum + Number(row.checkedPairs || 0), 0)} pares de movimientos comprobados`, Number(quality.balanceGapCount || 0) ? "warn" : "good"],
+  ].map(([label, value, detail, tone]) => `<article class="audit-kpi ${tone}">
+    <span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><p>${escapeHtml(detail)}</p>
+  </article>`).join("");
+
+  const uniqueUsable = Number(quality.usableCount || 0) === Number(quality.transactionCount || 0);
+  const fullyMapped = Number(quality.unclassifiedCount || 0) === 0;
+  const balancesContinuous = Number(quality.balanceGapCount || 0) === 0;
+  const actualsReconciled = months.length > 0 && months.every((row) => row.status === "matched");
+  qs("ledgerInvariantSummary").innerHTML = [
+    renderLedgerInvariant("Sin duplicados", uniqueUsable, uniqueUsable ? "Cada movimiento se contabiliza una sola vez." : `${quality.duplicateCount} duplicado(s) se excluyen de los totales.`),
+    renderLedgerInvariant("Clasificación completa", fullyMapped, fullyMapped ? "Todos los movimientos tienen una partida canónica." : `${quality.unclassifiedCount} movimiento(s) requieren decisión.`),
+    renderLedgerInvariant("Continuidad del saldo", balancesContinuous, balancesContinuous ? "Los saldos del extracto siguen la aritmética bancaria." : `${quality.balanceGapCount} salto(s) necesitan revisar orden o filas ausentes.`),
+    renderLedgerInvariant("Banco igual a real", actualsReconciled, actualsReconciled ? "Los meses importados coinciden con los reales capturados." : `${months.length - balancedMonths} mes(es) tienen diferencias o clasificación pendiente.`),
+  ].join("");
+
+  qs("ledgerMonthRows").innerHTML = months.length
+    ? months.slice().reverse().map((row) => `<tr>
+        <td><strong>${escapeHtml(ledgerMonthLabel(row.monthKey))}</strong></td>
+        <td class="positive">${money(row.bankIncome, true)}</td>
+        <td>${money(row.actualIncome, true)}</td>
+        <td class="${Math.abs(row.incomeDelta) > 0.02 ? "ledger-difference" : ""}">${money(row.incomeDelta, true)}</td>
+        <td class="negative">${money(row.bankExpense, true)}</td>
+        <td>${money(row.actualExpense, true)}</td>
+        <td class="${Math.abs(row.expenseDelta) > 0.02 ? "ledger-difference" : ""}">${money(row.expenseDelta, true)}</td>
+        <td><span class="ledger-status ${escapeHtml(row.status)}">${escapeHtml(ledgerStatusLabels[row.status] || row.status)}</span></td>
+      </tr>`).join("")
+    : `<tr><td colspan="8"><div class="audit-empty"><strong>Sin extractos conciliables</strong><p>Importa movimientos bancarios para construir el control mensual.</p></div></td></tr>`;
+
+  const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");
+  qs("ledgerUnclassified").innerHTML = unclassified.length
+    ? unclassified.slice(0, 20).map((entry) => `<div class="ledger-list-item">
+        <div><strong>${escapeHtml(entry.description || "Movimiento sin descripción")}</strong><span>${escapeHtml(entry.date || entry.monthKey)} · ${escapeHtml(entry.accountId)}</span></div>
+        <strong class="${entry.kind === "income" ? "positive" : "negative"}">${entry.kind === "expense" ? "-" : "+"}${money(entry.amount, true)}</strong>
+      </div>`).join("")
+    : `<div class="audit-empty good"><strong>Todo clasificado</strong><p>No quedan movimientos pendientes de relacionar.</p></div>`;
+
+  qs("ledgerBalanceChecks").innerHTML = checks.length
+    ? checks.map((check) => `<div class="ledger-balance-item ${check.gaps.length ? "warning" : "passed"}">
+        <div><strong>${escapeHtml(check.accountId)}</strong><span>${check.transactionCount} movimientos · orden ${check.orientation === "newest-first" ? "más reciente primero" : "más antiguo primero"}</span></div>
+        <div><strong>${check.gaps.length} salto(s)</strong><span>Error acumulado ${money(check.totalError, true)}</span></div>
+      </div>`).join("")
+    : `<div class="audit-empty"><strong>Sin saldos bancarios</strong><p>El extracto no contiene saldo posterior para comprobar continuidad.</p></div>`;
+
+  const meaningfulLines = lines
+    .filter((line) => Math.abs(Number(line.delta || 0)) > 0.02)
+    .sort((a, b) => Math.abs(Number(b.delta || 0)) - Math.abs(Number(a.delta || 0)));
+  qs("ledgerLineRows").innerHTML = meaningfulLines.length
+    ? meaningfulLines.slice(0, 40).map((line) => `<tr>
+        <td>${escapeHtml(ledgerMonthLabel(line.monthKey))}</td>
+        <td>${line.kind === "income" ? "Ingreso" : "Gasto"}</td>
+        <td><strong>${escapeHtml(line.label || line.rowKey)}</strong><small>${escapeHtml(line.rowKey)}</small></td>
+        <td>${money(line.bankAmount, true)}</td>
+        <td>${money(line.actualAmount, true)}</td>
+        <td class="ledger-difference">${money(line.delta, true)}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="6"><div class="audit-empty good"><strong>Sin diferencias por partida</strong><p>Los importes bancarios clasificados coinciden con los reales capturados.</p></div></td></tr>`;
+}
+
+function downloadCanonicalLedger() {
+  const snapshot = refreshCanonicalLedger("ledger-export");
+  if (!snapshot) return;
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `finanzas-casa-conciliacion-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function queueRemoteSave() {
   scheduleCanonicalRefresh("state-change");
   if (!remoteUser || !supabaseClient) return;
@@ -827,6 +1020,7 @@ function loadLocalState() {
       rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
+      canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
     });
   } catch {
     projects = [];
@@ -842,6 +1036,7 @@ function loadLocalState() {
     rowLabelOverrides = {};
     movementMappings = {};
     canonicalSnapshot = null;
+    canonicalLedgerSnapshot = null;
   }
 }
 
@@ -14071,6 +14266,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "data-audit":
       renderDataAudit();
       break;
+    case "reconciliation":
+      renderReconciliation();
+      break;
     default:
       break;
   }
@@ -14201,6 +14399,7 @@ async function init() {
   applyVariableOperationalMigration();
   applyVariableOperationalMayZeroDefault();
   refreshCanonicalSnapshot(canonicalSnapshot ? "startup-validation" : "initial-migration");
+  refreshCanonicalLedger(canonicalLedgerSnapshot ? "startup-validation" : "initial-migration");
   document.documentElement.dataset.xlsxReady = window.XLSX && typeof window.XLSX.read === "function" ? "true" : "false";
   writeControls({ ...baseData.assumptions, autoCapSavings: true });
   populateSelectors(true);
@@ -14591,11 +14790,23 @@ async function init() {
   qs("excelDataFile").addEventListener("change", handleExcelImport);
   qs("rebuildCanonicalIndex")?.addEventListener("click", () => {
     refreshCanonicalSnapshot("manual-rebuild", { force: true });
+    refreshCanonicalLedger("manual-rebuild");
     saveLocalSnapshot();
     queueRemoteSave();
     renderDataAudit();
   });
   qs("downloadCanonicalInventory")?.addEventListener("click", downloadCanonicalInventory);
+  qs("rebuildCanonicalLedger")?.addEventListener("click", () => {
+    refreshCanonicalLedger("manual-rebuild");
+    saveLocalSnapshot();
+    queueRemoteSave();
+    renderReconciliation();
+  });
+  qs("downloadCanonicalLedger")?.addEventListener("click", downloadCanonicalLedger);
+  qs("openMovementReview")?.addEventListener("click", () => {
+    history.pushState(null, "", "#movements");
+    setActiveView("movements");
+  });
   qs("detailMonth").addEventListener("change", renderMonthlyDetails);
   document.querySelectorAll('input[name="projectMode"]').forEach((input) => {
     input.addEventListener("change", () => {
