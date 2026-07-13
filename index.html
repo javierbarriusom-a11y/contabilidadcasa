@@ -1817,6 +1817,28 @@
             <div class="audit-kpi-grid" id="ledgerKpis"></div>
             <div class="ledger-invariant-grid" id="ledgerInvariantSummary"></div>
 
+            <article class="ledger-panel canonical-engine-panel">
+              <div class="module-heading with-action">
+                <div>
+                  <p class="panel-kicker">Motor financiero único</p>
+                  <h3>Paridad, saldos e invariantes</h3>
+                  <p>El cálculo canónico solo gobierna el dashboard si reproduce el motor anterior y conserva todas las cuentas.</p>
+                </div>
+                <button id="verifyCanonicalEngine" class="secondary" type="button">Verificar ahora</button>
+              </div>
+              <div class="audit-kpi-grid" id="canonicalEngineKpis"></div>
+              <div class="ledger-invariant-grid" id="canonicalEngineInvariants"></div>
+              <details class="canonical-engine-details">
+                <summary id="canonicalEngineParitySummary">Pendiente de verificación</summary>
+                <div class="table-wrap ledger-table-wrap">
+                  <table class="ledger-table">
+                    <thead><tr><th>Escenario</th><th>Mes</th><th>Campo</th><th>Canónico</th><th>Anterior</th><th>Diferencia</th></tr></thead>
+                    <tbody id="canonicalEngineDifferenceRows"></tbody>
+                  </table>
+                </div>
+              </details>
+            </article>
+
             <article class="ledger-panel ledger-month-panel">
               <div class="module-heading">
                 <div>
@@ -2023,6 +2045,7 @@
     <script src="state-contract.js?v=20260713a"></script>
     <script src="canonical-state.js?v=20260713c"></script>
     <script src="canonical-ledger.js?v=20260713d"></script>
-    <script src="app.js?v=20260713d"></script>
+    <script src="canonical-engine.js?v=20260713e"></script>
+    <script src="app.js?v=20260713e"></script>
   </body>
 </html>

@@ -1,8 +1,8 @@
 {
   "name": "finanzas-casa-def",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
-  "description": "Dashboard financiero personal con pruebas de regresión y copias verificables.",
+  "description": "Dashboard financiero personal con motor canónico, conciliación y pruebas de regresión.",
   "scripts": {
     "test": "node --test tests/*.test.*",
     "baseline:capture": "node tools/capture-baseline.mjs"

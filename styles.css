@@ -4397,6 +4397,37 @@ svg {
   box-shadow: var(--shadow-soft);
 }
 
+.canonical-engine-panel {
+  display: grid;
+  gap: 14px;
+  border-top: 4px solid var(--teal);
+}
+
+.canonical-engine-panel .module-heading.with-action {
+  align-items: start;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.canonical-engine-details {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.canonical-engine-details summary {
+  cursor: pointer;
+  padding: 13px 15px;
+  background: var(--surface-soft);
+  color: var(--ink);
+  font-weight: 900;
+}
+
+@media (max-width: 760px) {
+  .canonical-engine-panel .module-heading.with-action { display: grid; grid-template-columns: 1fr; }
+}
+
 .ledger-layout {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -53,6 +53,7 @@ let rowLabelOverrides = {};
 let movementMappings = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
+let canonicalEngineRuns = { base: null, active: null, planned: null };
 let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
 let editingProjectId = null;
@@ -224,6 +225,7 @@ const USER_REMOVED_FINANCING_KEYS = new Set([
 ]);
 const CANONICAL_STATE_KEY = "canonicalStateV1";
 const CANONICAL_LEDGER_KEY = "canonicalLedgerV1";
+const CANONICAL_ENGINE_KEY = "canonicalEngineV1";
 
 const viewTitles = {
   home: {
@@ -485,6 +487,30 @@ function sourceStateKey() {
   return REMOTE_SOURCE_KEY;
 }
 
+function compactCanonicalEngineRun(run) {
+  if (!run || typeof run !== "object") return null;
+  return {
+    schemaId: run.schemaId,
+    generatedAt: run.generatedAt,
+    reason: run.reason,
+    fingerprint: run.fingerprint,
+    source: run.source,
+    sourceStatus: run.sourceStatus,
+    rowCount: Number(run.rowCount || run.rows?.length || run.invariants?.checkedRows || 0),
+    annualSummary: Array.isArray(run.annualSummary) ? run.annualSummary : [],
+    invariants: run.invariants || null,
+    parity: run.parity || null,
+    auditTrail: Array.isArray(run.auditTrail) ? run.auditTrail : [],
+  };
+}
+
+function compactCanonicalEngineRuns() {
+  return ["base", "active", "planned"].reduce((runs, key) => {
+    runs[key] = compactCanonicalEngineRun(canonicalEngineRuns[key]);
+    return runs;
+  }, {});
+}
+
 function appStatePayload(options = {}) {
   const payload = {
     version: 1,
@@ -508,6 +534,7 @@ function appStatePayload(options = {}) {
   if (options.includeCanonical !== false) {
     payload.canonicalSnapshot = canonicalSnapshot;
     payload.canonicalLedgerSnapshot = canonicalLedgerSnapshot;
+    payload.canonicalEngineRuns = compactCanonicalEngineRuns();
   }
   return payload;
 }
@@ -542,7 +569,7 @@ function downloadStateBackup() {
     refreshCanonicalSnapshot("backup");
     refreshCanonicalLedger("backup");
     const envelope = window.FinanceStateContract.buildBackupEnvelope(appStatePayload(), {
-      appVersion: "phase-2",
+      appVersion: "phase-3",
     });
     const blob = new Blob([`${JSON.stringify(envelope, null, 2)}\n`], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -657,6 +684,13 @@ function applyPersistedPayload(payload = {}) {
     payload.canonicalLedgerSnapshot?.schemaId === window.FinanceCanonicalLedger?.SCHEMA_ID
       ? payload.canonicalLedgerSnapshot
       : null;
+  canonicalEngineRuns = payload.canonicalEngineRuns && typeof payload.canonicalEngineRuns === "object"
+    ? ["base", "active", "planned"].reduce((runs, key) => {
+        const run = payload.canonicalEngineRuns[key];
+        runs[key] = run?.schemaId === window.FinanceCanonicalEngine?.SCHEMA_ID ? run : null;
+        return runs;
+      }, {})
+    : { base: null, active: null, planned: null };
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
 }
@@ -676,6 +710,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
+  if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
 }
 
 function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
@@ -906,6 +941,42 @@ function renderLedgerInvariant(label, passed, detail) {
   </article>`;
 }
 
+function renderCanonicalEngineStatus() {
+  const panel = qs("canonicalEngineKpis");
+  if (!panel) return;
+  const contexts = ["base", "active", "planned"];
+  const runs = contexts.map((key) => ({ key, run: canonicalEngineRuns[key] })).filter(({ run }) => run);
+  const active = canonicalEngineRuns.active;
+  const matched = runs.filter(({ run }) => run.sourceStatus === "canonical").length;
+  const maxDelta = runs.reduce((maximum, { run }) => Math.max(maximum, Number(run.parity?.maxDelta || 0)), 0);
+  const issueCount = runs.reduce((sum, { run }) => sum + Number(run.invariants?.issues?.length || 0), 0);
+  panel.innerHTML = [
+    ["Fuente del flujo", active?.sourceStatus === "canonical" ? "Motor canónico" : "Respaldo histórico", active ? `Escenario activo · ${Number(active.rowCount || active.rows?.length || active.invariants?.checkedRows || 0)} meses` : "Pendiente de calcular", active?.sourceStatus === "canonical" ? "good" : "warn"],
+    ["Escenarios conciliados", `${matched} / ${contexts.length}`, "Base, activo y previsto deben coincidir", matched === contexts.length ? "good" : "warn"],
+    ["Mayor diferencia", money(maxDelta, true), "Tolerancia de control: 0,02 €", maxDelta <= 0.02 ? "good" : "warn"],
+    ["Invariantes rotas", String(issueCount), "Continuidad, cuentas, liquidez y valores finitos", issueCount === 0 ? "good" : "warn"],
+  ].map(([label, value, detail, tone]) => `<article class="audit-kpi ${tone}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><p>${escapeHtml(detail)}</p></article>`).join("");
+
+  const checks = active?.invariants?.checks || {};
+  qs("canonicalEngineInvariants").innerHTML = [
+    renderLedgerInvariant("Valores finitos", Boolean(checks.finite), checks.finite ? "Ningún cálculo produce Infinity o NaN." : "Hay importes no finitos; se mantiene el motor histórico."),
+    renderLedgerInvariant("Conservación de cuentas", Boolean(checks.accountConservation), checks.accountConservation ? "CaixaBank + Mediolanum coincide con la liquidez total." : "Las cuentas no suman la liquidez mostrada."),
+    renderLedgerInvariant("Conservación de liquidez", Boolean(checks.liquidityConservation), checks.liquidityConservation ? "El resultado mensual explica el cambio de liquidez." : "Hay un movimiento sin contrapartida en el mes."),
+    renderLedgerInvariant("Continuidad mensual", Boolean(checks.continuity), checks.continuity ? "Cada cierre coincide con la apertura del mes siguiente." : "Existe un salto entre meses consecutivos."),
+  ].join("");
+
+  const differences = runs.flatMap(({ key, run }) => (run.parity?.differences || []).map((difference) => ({ ...difference, context: key })));
+  qs("canonicalEngineParitySummary").textContent = differences.length
+    ? `${differences.length} diferencia(s) detectada(s); la app usa respaldo histórico.`
+    : `${runs.length} escenario(s) verificado(s), sin diferencias por encima de 0,02 €.`;
+  const comparisonValue = (value, difference) => difference.delta == null
+    ? escapeHtml(String(value ?? "-"))
+    : money(value, true);
+  qs("canonicalEngineDifferenceRows").innerHTML = differences.length
+    ? differences.slice(0, 30).map((difference) => `<tr><td>${escapeHtml(difference.context)}</td><td>${escapeHtml(ledgerMonthLabel(difference.monthKey))}</td><td>${escapeHtml(difference.field)}</td><td>${comparisonValue(difference.canonical, difference)}</td><td>${comparisonValue(difference.legacy, difference)}</td><td class="ledger-difference">${difference.delta == null ? "-" : money(difference.delta, true)}</td></tr>`).join("")
+    : `<tr><td colspan="6"><div class="audit-empty good"><strong>Paridad completa</strong><p>El motor único reproduce el flujo anterior y queda habilitado como fuente de cálculo.</p></div></td></tr>`;
+}
+
 function renderReconciliation() {
   if (!window.FinanceCanonicalLedger) return;
   const snapshot = refreshCanonicalLedger("reconciliation-view");
@@ -937,6 +1008,7 @@ function renderReconciliation() {
     renderLedgerInvariant("Continuidad del saldo", balancesContinuous, balancesContinuous ? "Los saldos del extracto siguen la aritmética bancaria." : `${quality.balanceGapCount} salto(s) necesitan revisar orden o filas ausentes.`),
     renderLedgerInvariant("Banco igual a real", actualsReconciled, actualsReconciled ? "Los meses importados coinciden con los reales capturados." : `${months.length - balancedMonths} mes(es) tienen diferencias o clasificación pendiente.`),
   ].join("");
+  renderCanonicalEngineStatus();
 
   qs("ledgerMonthRows").innerHTML = months.length
     ? months.slice().reverse().map((row) => `<tr>
@@ -1021,6 +1093,7 @@ function loadLocalState() {
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
+      canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
     });
   } catch {
     projects = [];
@@ -1037,6 +1110,7 @@ function loadLocalState() {
     movementMappings = {};
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
+    canonicalEngineRuns = { base: null, active: null, planned: null };
   }
 }
 
@@ -3184,7 +3258,7 @@ function applyScenario(name) {
   render();
 }
 
-function simulate(projectOutflows = [], options = {}) {
+function simulateLegacy(projectOutflows = [], options = {}) {
   const rows = [];
   const start = modelStartDate();
   const startingBalances = accountBalancesFromState();
@@ -3259,6 +3333,70 @@ function simulate(projectOutflows = [], options = {}) {
   return rows;
 }
 
+function canonicalEngineInput(projectOutflows = [], options = {}) {
+  const start = modelStartDate();
+  const startingBalances = accountBalancesFromState();
+  const months = [];
+  for (let i = 0; i < modelMonthCount(); i += 1) {
+    const date = addMonths(start, i);
+    const detail = planningBreakdownForForecastMonth(i, date, options);
+    const incomeEvents = detail.incomeEvents || [];
+    const monthDate = dateFromMonthKey(detail.monthKey);
+    const payrollDate = lastBusinessDayOfMonth(monthDate);
+    const lastIncomeDay = incomeEvents.length
+      ? Math.max(...incomeEvents.map((event) => Number(event.day || 1)))
+      : payrollDate.getDate();
+    months.push({
+      index: i + 1,
+      month: monthLabel(date),
+      monthKey: detail.monthKey,
+      income: detail.income,
+      coreSpend: detail.coreSpend,
+      variableOperationalSpend: detail.variableOperationalSpend,
+      car: detail.car,
+      refi: detail.refi,
+      projectOutflow: Number(projectOutflows[i] || 0),
+      endOfMonthOutflows: detail.endOfMonthSpend,
+      prePayrollIncome: detail.prePayrollIncome,
+      incomeEvents,
+      firstIncomeDateLabel: incomeEvents[0]?.dateLabel || dateWithMonthLabel(monthDate, 8),
+      mainPayrollDateLabel: shortDate(payrollDate),
+      lastIncomeDateLabel: dateWithMonthLabel(monthDate, lastIncomeDay),
+      transferDateLabel: shortDate(payrollDate),
+      minDateLabel: dateWithMonthLabel(monthDate, 1),
+      adjustedMinDateLabel: shortDate(payrollDate),
+    });
+  }
+  return {
+    openingBalances: { checking: startingBalances.caixa, savings: startingBalances.mediolanum },
+    policy: {
+      incomeFactor: state.incomeFactor ?? 1,
+      annualIncomeGrowth: state.annualIncomeGrowth,
+      expenseFactor: state.expenseFactor ?? 1,
+      annualInflation: state.annualInflation,
+      plannedMonthlySaving: state.recommendedSavings,
+      autoCapSavings: state.autoCapSavings,
+    },
+    months,
+  };
+}
+
+function simulate(projectOutflows = [], options = {}) {
+  const engine = window.FinanceCanonicalEngine;
+  if (!engine) return simulateLegacy(projectOutflows, options);
+  const input = canonicalEngineInput(projectOutflows, options);
+  if (options.captureEngineRun === false) return engine.buildRows(input);
+  const context = ["base", "active", "planned"].includes(options.engineContext) ? options.engineContext : "active";
+  const snapshot = engine.buildSnapshot(input, canonicalEngineRuns[context], {
+    reason: `simulation-${context}`,
+  });
+  const legacyRows = simulateLegacy(projectOutflows, options);
+  snapshot.parity = engine.compareRows(snapshot.rows, legacyRows);
+  snapshot.sourceStatus = snapshot.invariants.valid && snapshot.parity.matched ? "canonical" : "legacy-fallback";
+  canonicalEngineRuns[context] = snapshot;
+  return snapshot.sourceStatus === "canonical" ? snapshot.rows : legacyRows;
+}
+
 function modelComputationSignature() {
   return JSON.stringify({
     end: `${MODEL_END_YEAR}-${MODEL_END_MONTH}`,
@@ -3300,10 +3438,10 @@ function recomputeModelIfNeeded(force = false) {
   simulationSignature = nextSignature;
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
-  lastBaseSimulation = simulate();
+  lastBaseSimulation = simulate([], { engineContext: "base" });
   projectPlan = buildProjectSchedule();
-  lastSimulation = simulate(projectPlan.outflows);
-  lastPlannedSimulation = simulate(projectPlan.outflows, { useActuals: false });
+  lastSimulation = simulate(projectPlan.outflows, { engineContext: "active" });
+  lastPlannedSimulation = simulate(projectPlan.outflows, { useActuals: false, engineContext: "planned" });
 }
 
 function updateKpis(rows, baseRows = rows) {
@@ -3847,7 +3985,7 @@ function decisionPeakMonthlyImpact(item) {
 }
 
 function evaluateOutflows(outflows) {
-  const rows = simulate(outflows);
+  const rows = simulate(outflows, { captureEngineRun: false, engineContext: "optimizer" });
   return {
     rows,
     ending: rows[rows.length - 1].totalLiquidity,
@@ -14800,6 +14938,12 @@ async function init() {
     refreshCanonicalLedger("manual-rebuild");
     saveLocalSnapshot();
     queueRemoteSave();
+    renderReconciliation();
+  });
+  qs("verifyCanonicalEngine")?.addEventListener("click", () => {
+    simulationSignature = "";
+    recomputeModelIfNeeded(true);
+    saveLocalSnapshot();
     renderReconciliation();
   });
   qs("downloadCanonicalLedger")?.addEventListener("click", downloadCanonicalLedger);

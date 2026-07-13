@@ -7,8 +7,9 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 - Fase 0: copias verificables, contrato de estado y pruebas de regresión.
 - Fase 1: modelo canónico, identidades estables y vista de datos y auditoría.
 - Fase 2: libro contable canónico, invariantes y conciliación banco vs. dato real.
+- Fase 3: motor financiero canónico, contrato de cálculo, paridad e invariantes mensuales.
 
-La documentación funcional de la fase actual está en [PHASE_2.md](PHASE_2.md).
+La documentación funcional de la fase actual está en [PHASE_3.md](PHASE_3.md).
 
 ## Ejecutar y verificar
 
