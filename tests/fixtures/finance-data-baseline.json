@@ -1,0 +1,33 @@
+{
+  "sourceWorkbook": "/Users/javier/Library/Mobile Documents/com~apple~CloudDocs/Documentos personales/Finanzas Plan 5/Contabilidad casa/Contabilidad Casa_2026_Mayo2026.xlsx",
+  "valuationDate": "2026-05-16",
+  "balances": {
+    "caixa": 15718.22,
+    "mediolanum": 1513.31,
+    "total": 17231.53
+  },
+  "assumptions": {
+    "initialCash": 17231.53,
+    "monthlyIncome": 6894,
+    "coreSpend": 2967,
+    "recommendedSavings": 3009.59
+  },
+  "counts": {
+    "months": 104,
+    "sections": 4,
+    "planningRows": 63,
+    "transactions": 1831,
+    "categories": 70,
+    "merchants": 15
+  },
+  "range": {
+    "firstMonth": "2026-05",
+    "lastMonth": "2034-12",
+    "firstTransaction": "2024-02-16",
+    "lastTransaction": "2026-04-20"
+  },
+  "plannedTotals": {
+    "income": 704333.63,
+    "expense": 245413.84
+  }
+}

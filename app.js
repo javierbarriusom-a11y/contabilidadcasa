@@ -70,6 +70,7 @@ let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
 let pendingProjectDecision = null;
+let pendingStateRestore = null;
 let agentDebtOptimizationCache = { key: "", value: null };
 let executiveAdvisorRenderTimer = null;
 let selectorSignature = "";
@@ -491,6 +492,113 @@ function appStatePayload() {
     rowLabelOverrides,
     movementMappings,
   };
+}
+
+function stateBackupSummaryMarkup(summary = {}) {
+  const workbookText = summary.workbookIncluded
+    ? `Libro incluido (${summary.workbookMonths || 0} meses)`
+    : "Usará el libro empaquetado de la app";
+  return `<div class="state-backup-summary">
+    <span><b>${summary.projects || 0}</b> proyecto(s)</span>
+    <span><b>${summary.debtDecisions || 0}</b> decisión(es) de deuda</span>
+    <span><b>${summary.incomeActuals || 0}</b> ingreso(s) real(es)</span>
+    <span><b>${summary.expenseActuals || 0}</b> gasto(s) real(es)</span>
+    <span><b>${summary.customRows || 0}</b> línea(s) personalizada(s)</span>
+    <span>${workbookText}</span>
+  </div>`;
+}
+
+function setStateBackupStatus(title, body, tone = "") {
+  const status = qs("stateBackupStatus");
+  if (!status) return;
+  status.className = `state-backup-status ${tone}`.trim();
+  status.innerHTML = `<strong>${title}</strong><div>${body}</div>`;
+}
+
+function downloadStateBackup() {
+  if (!window.FinanceStateContract) {
+    setStateBackupStatus("No se pudo crear la copia", "El validador de estado no está disponible.", "danger");
+    return;
+  }
+  try {
+    const envelope = window.FinanceStateContract.buildBackupEnvelope(appStatePayload(), {
+      appVersion: "phase-0",
+    });
+    const blob = new Blob([`${JSON.stringify(envelope, null, 2)}\n`], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const date = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `finanzas-casa-copia-${date}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setStateBackupStatus(
+      "Copia completa descargada",
+      `${date}. ${stateBackupSummaryMarkup(envelope.summary)}`,
+      "success",
+    );
+  } catch (error) {
+    setStateBackupStatus("No se pudo crear la copia", error.message, "danger");
+  }
+}
+
+async function handleStateBackupSelection(event) {
+  const file = event.target.files?.[0];
+  pendingStateRestore = null;
+  qs("confirmStateRestore").hidden = true;
+  qs("cancelStateRestore").hidden = true;
+  if (!file) return;
+  try {
+    const envelope = JSON.parse(await file.text());
+    const validation = window.FinanceStateContract?.validateBackupEnvelope(envelope);
+    if (!validation?.valid) throw new Error(validation?.errors?.join(" ") || "La copia no es válida.");
+    pendingStateRestore = envelope;
+    qs("confirmStateRestore").hidden = false;
+    qs("cancelStateRestore").hidden = false;
+    setStateBackupStatus(
+      `Copia validada: ${escapeHtml(file.name)}`,
+      `Creada ${new Date(envelope.createdAt).toLocaleString("es-ES")}. Revisa el contenido antes de sustituir los datos actuales.${stateBackupSummaryMarkup(validation.summary)}`,
+      "warning",
+    );
+  } catch (error) {
+    setStateBackupStatus("Copia rechazada", error.message, "danger");
+  }
+}
+
+function cancelStateRestore() {
+  pendingStateRestore = null;
+  qs("stateBackupFile").value = "";
+  qs("confirmStateRestore").hidden = true;
+  qs("cancelStateRestore").hidden = true;
+  setStateBackupStatus("Restauración cancelada", "Los datos actuales no se han modificado.");
+}
+
+function confirmStateRestore() {
+  if (!pendingStateRestore) return;
+  const validation = window.FinanceStateContract?.validateBackupEnvelope(pendingStateRestore);
+  if (!validation?.valid) {
+    setStateBackupStatus("Copia rechazada", validation?.errors?.join(" ") || "La copia ya no es válida.", "danger");
+    return;
+  }
+  applyPersistedPayload(pendingStateRestore.payload);
+  ensureCompleteFinancingSection();
+  repairFinancingSectionFromReference();
+  ensureVariableOperationalSection();
+  saveLocalSnapshot();
+  saveWorkbookOverride();
+  queueRemoteSave();
+  refreshFromPersistedState();
+  setStateBackupStatus(
+    "Restauración completada",
+    `El estado validado ya está activo y todas las secciones se han recalculado.${stateBackupSummaryMarkup(validation.summary)}`,
+    "success",
+  );
+  pendingStateRestore = null;
+  qs("stateBackupFile").value = "";
+  qs("confirmStateRestore").hidden = true;
+  qs("cancelStateRestore").hidden = true;
 }
 
 function applyPersistedPayload(payload = {}) {
@@ -14012,6 +14120,10 @@ async function init() {
   qs("manualDataKind").addEventListener("change", updateManualDataKindUi);
   qs("addManualData").addEventListener("click", handleManualData);
   qs("importBatchData").addEventListener("click", handleBatchImport);
+  qs("exportStateBackup")?.addEventListener("click", downloadStateBackup);
+  qs("stateBackupFile")?.addEventListener("change", handleStateBackupSelection);
+  qs("confirmStateRestore")?.addEventListener("click", confirmStateRestore);
+  qs("cancelStateRestore")?.addEventListener("click", cancelStateRestore);
   qs("seriesKind").addEventListener("change", populateSeriesEditor);
   qs("seriesRow").addEventListener("change", updateSeriesPreview);
   qs("seriesStartMonth").addEventListener("change", updateSeriesPreview);

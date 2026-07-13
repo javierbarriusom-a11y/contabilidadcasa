@@ -2659,6 +2659,106 @@ svg {
   line-height: 1.45;
 }
 
+.state-safety-card {
+  margin-top: 18px;
+}
+
+.state-safety-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.state-safety-actions button,
+.state-backup-picker {
+  min-height: 46px;
+  padding: 11px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.state-safety-actions button:first-child {
+  border-color: var(--ink);
+  color: #fff;
+  background: var(--ink);
+}
+
+.state-backup-picker {
+  display: inline-flex;
+  align-items: center;
+  color: var(--teal-dark);
+  background: #fff;
+}
+
+.state-backup-picker input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.state-safety-actions .restore-confirm {
+  color: #fff;
+  border-color: #287b4d;
+  background: #287b4d;
+}
+
+.state-safety-actions .restore-cancel {
+  color: var(--red);
+  border-color: #efc4bf;
+  background: #fff;
+}
+
+.state-backup-status {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--teal);
+  border-radius: 6px;
+  background: var(--surface-soft);
+}
+
+.state-backup-status.warning {
+  border-left-color: #c58918;
+  background: #fffaf0;
+}
+
+.state-backup-status.danger {
+  border-left-color: var(--red);
+  background: #fff6f5;
+}
+
+.state-backup-status.success {
+  border-left-color: #287b4d;
+  background: #f4fbf7;
+}
+
+.state-backup-status strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.state-backup-status p,
+.state-backup-status div {
+  margin: 0;
+  color: var(--muted);
+}
+
+.state-backup-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 14px;
+  margin-top: 10px;
+}
+
+.state-backup-summary span {
+  color: var(--ink);
+}
+
 .section-row td {
   color: var(--ink);
   background: #eef5f4;

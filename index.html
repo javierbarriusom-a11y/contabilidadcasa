@@ -1648,6 +1648,29 @@
               </article>
             </div>
 
+            <article class="data-card state-safety-card">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Seguridad de datos</p>
+                  <h3>Copia y restauración verificable</h3>
+                  <p>Guarda proyectos, deuda, ajustes, datos reales, saldos y el libro importado en un único fichero comprobable.</p>
+                </div>
+              </div>
+              <div class="state-safety-actions">
+                <button id="exportStateBackup" type="button">Descargar copia completa</button>
+                <label class="state-backup-picker">
+                  <span>Seleccionar copia</span>
+                  <input id="stateBackupFile" type="file" accept=".json,application/json" />
+                </label>
+                <button id="confirmStateRestore" class="restore-confirm" type="button" hidden>Confirmar restauración</button>
+                <button id="cancelStateRestore" class="restore-cancel" type="button" hidden>Cancelar</button>
+              </div>
+              <div class="state-backup-status" id="stateBackupStatus" role="status" aria-live="polite">
+                <strong>Estado protegido</strong>
+                <p>Descarga una copia antes de una importación o de un cambio importante.</p>
+              </div>
+            </article>
+
             <article class="data-card series-editor">
               <div class="module-heading">
                 <div>
@@ -1831,6 +1854,7 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
+    <script src="state-contract.js?v=20260713a"></script>
     <script src="app.js?v=20260712a"></script>
   </body>
 </html>
