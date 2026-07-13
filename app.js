@@ -54,6 +54,7 @@ let movementMappings = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
+let canonicalDecisionRun = null;
 let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
 let editingProjectId = null;
@@ -226,6 +227,7 @@ const USER_REMOVED_FINANCING_KEYS = new Set([
 const CANONICAL_STATE_KEY = "canonicalStateV1";
 const CANONICAL_LEDGER_KEY = "canonicalLedgerV1";
 const CANONICAL_ENGINE_KEY = "canonicalEngineV1";
+const CANONICAL_DECISIONS_KEY = "canonicalDecisionsV1";
 
 const viewTitles = {
   home: {
@@ -511,6 +513,22 @@ function compactCanonicalEngineRuns() {
   }, {});
 }
 
+function compactCanonicalDecisionRun(run) {
+  if (!run || typeof run !== "object") return null;
+  return {
+    schemaId: run.schemaId,
+    generatedAt: run.generatedAt,
+    reason: run.reason,
+    fingerprint: run.fingerprint,
+    sourceStatus: run.sourceStatus,
+    rowCount: Number(run.rowCount || run.months?.length || 0),
+    totals: run.totals || null,
+    invariants: run.invariants || null,
+    parity: run.parity || null,
+    auditTrail: Array.isArray(run.auditTrail) ? run.auditTrail : [],
+  };
+}
+
 function appStatePayload(options = {}) {
   const payload = {
     version: 1,
@@ -535,6 +553,7 @@ function appStatePayload(options = {}) {
     payload.canonicalSnapshot = canonicalSnapshot;
     payload.canonicalLedgerSnapshot = canonicalLedgerSnapshot;
     payload.canonicalEngineRuns = compactCanonicalEngineRuns();
+    payload.canonicalDecisionRun = compactCanonicalDecisionRun(canonicalDecisionRun);
   }
   return payload;
 }
@@ -691,6 +710,9 @@ function applyPersistedPayload(payload = {}) {
         return runs;
       }, {})
     : { base: null, active: null, planned: null };
+  canonicalDecisionRun = payload.canonicalDecisionRun?.schemaId === window.FinanceCanonicalDecisions?.SCHEMA_ID
+    ? payload.canonicalDecisionRun
+    : null;
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
 }
@@ -711,6 +733,7 @@ function saveLocalSnapshot() {
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
+  if (canonicalDecisionRun) storageSet(storageKey(CANONICAL_DECISIONS_KEY), JSON.stringify(compactCanonicalDecisionRun(canonicalDecisionRun)));
 }
 
 function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
@@ -946,29 +969,37 @@ function renderCanonicalEngineStatus() {
   if (!panel) return;
   const contexts = ["base", "active", "planned"];
   const runs = contexts.map((key) => ({ key, run: canonicalEngineRuns[key] })).filter(({ run }) => run);
+  const decisionRun = canonicalDecisionRun
+    ? { key: "decisiones", run: canonicalDecisionRun }
+    : null;
+  const allRuns = decisionRun ? [...runs, decisionRun] : runs;
   const active = canonicalEngineRuns.active;
-  const matched = runs.filter(({ run }) => run.sourceStatus === "canonical").length;
-  const maxDelta = runs.reduce((maximum, { run }) => Math.max(maximum, Number(run.parity?.maxDelta || 0)), 0);
-  const issueCount = runs.reduce((sum, { run }) => sum + Number(run.invariants?.issues?.length || 0), 0);
+  const matched = allRuns.filter(({ run }) => run.sourceStatus === "canonical").length;
+  const expectedRuns = contexts.length + 1;
+  const maxDelta = allRuns.reduce((maximum, { run }) => Math.max(maximum, Number(run.parity?.maxDelta || 0)), 0);
+  const issueCount = allRuns.reduce((sum, { run }) => sum + Number(run.invariants?.issues?.length || 0), 0);
   panel.innerHTML = [
     ["Fuente del flujo", active?.sourceStatus === "canonical" ? "Motor canónico" : "Respaldo histórico", active ? `Escenario activo · ${Number(active.rowCount || active.rows?.length || active.invariants?.checkedRows || 0)} meses` : "Pendiente de calcular", active?.sourceStatus === "canonical" ? "good" : "warn"],
-    ["Escenarios conciliados", `${matched} / ${contexts.length}`, "Base, activo y previsto deben coincidir", matched === contexts.length ? "good" : "warn"],
+    ["Escenarios conciliados", `${matched} / ${expectedRuns}`, "Base, activo, previsto y decisiones deben coincidir", matched === expectedRuns ? "good" : "warn"],
     ["Mayor diferencia", money(maxDelta, true), "Tolerancia de control: 0,02 €", maxDelta <= 0.02 ? "good" : "warn"],
     ["Invariantes rotas", String(issueCount), "Continuidad, cuentas, liquidez y valores finitos", issueCount === 0 ? "good" : "warn"],
   ].map(([label, value, detail, tone]) => `<article class="audit-kpi ${tone}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><p>${escapeHtml(detail)}</p></article>`).join("");
 
   const checks = active?.invariants?.checks || {};
+  const decisionChecks = canonicalDecisionRun?.invariants?.checks || {};
   qs("canonicalEngineInvariants").innerHTML = [
     renderLedgerInvariant("Valores finitos", Boolean(checks.finite), checks.finite ? "Ningún cálculo produce Infinity o NaN." : "Hay importes no finitos; se mantiene el motor histórico."),
     renderLedgerInvariant("Conservación de cuentas", Boolean(checks.accountConservation), checks.accountConservation ? "CaixaBank + Mediolanum coincide con la liquidez total." : "Las cuentas no suman la liquidez mostrada."),
     renderLedgerInvariant("Conservación de liquidez", Boolean(checks.liquidityConservation), checks.liquidityConservation ? "El resultado mensual explica el cambio de liquidez." : "Hay un movimiento sin contrapartida en el mes."),
     renderLedgerInvariant("Continuidad mensual", Boolean(checks.continuity), checks.continuity ? "Cada cierre coincide con la apertura del mes siguiente." : "Existe un salto entre meses consecutivos."),
+    renderLedgerInvariant("Conservación de decisiones", Boolean(decisionChecks.monthlyConservation), decisionChecks.monthlyConservation ? "Cada proyecto y deuda tiene contrapartida mensual completa." : "El calendario de decisiones contiene una diferencia."),
+    renderLedgerInvariant("Deudas sin duplicar", Boolean(decisionChecks.uniqueDebtTargets), decisionChecks.uniqueDebtTargets ? "Cada deuda aparece una sola vez en el calendario." : "Una deuda está programada más de una vez."),
   ].join("");
 
-  const differences = runs.flatMap(({ key, run }) => (run.parity?.differences || []).map((difference) => ({ ...difference, context: key })));
+  const differences = allRuns.flatMap(({ key, run }) => (run.parity?.differences || []).map((difference) => ({ ...difference, context: key })));
   qs("canonicalEngineParitySummary").textContent = differences.length
     ? `${differences.length} diferencia(s) detectada(s); la app usa respaldo histórico.`
-    : `${runs.length} escenario(s) verificado(s), sin diferencias por encima de 0,02 €.`;
+    : `${allRuns.length} escenario(s) verificado(s), sin diferencias por encima de 0,02 €.`;
   const comparisonValue = (value, difference) => difference.delta == null
     ? escapeHtml(String(value ?? "-"))
     : money(value, true);
@@ -1094,6 +1125,7 @@ function loadLocalState() {
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
       canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
+      canonicalDecisionRun: JSON.parse(storageGet(storageKey(CANONICAL_DECISIONS_KEY), "null")),
     });
   } catch {
     projects = [];
@@ -1111,6 +1143,7 @@ function loadLocalState() {
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
+    canonicalDecisionRun = null;
   }
 }
 
@@ -4078,7 +4111,11 @@ function buildProjectSchedule() {
     });
 
   placements.sort((a, b) => a.startIndex - b.startIndex);
-  return { outflows, placements };
+  const reconciled = canonicalDecisionScheduleForPlacements(placements, outflows, {
+    capture: true,
+    reason: "project-schedule",
+  });
+  return { outflows: reconciled.outflows, placements };
 }
 
 function evaluateProjectCandidate(project, mode = "full") {
@@ -5465,11 +5502,68 @@ function decisionOwnerSummary(decisions = []) {
   });
 }
 
-function decisionOutflowsForPlacements(placements) {
+function legacyDecisionOutflowsForPlacements(placements) {
   const months = forecastMonths();
   const outflows = Array(months.length).fill(0);
   placements.forEach((item) => addScheduledDecisionOutflow(outflows, item, Number(item.startIndex || item.monthIndex || 0)));
   return outflows;
+}
+
+function canonicalDebtTargetsForSchedule() {
+  return debtPortfolioRows().map((item) => ({
+    ...item,
+    id: String(item.id || item.number || ""),
+  }));
+}
+
+function canonicalDecisionScheduleForPlacements(placements, legacyOutflows = null, options = {}) {
+  const months = forecastMonths();
+  const legacy = Array.isArray(legacyOutflows)
+    ? legacyOutflows.slice()
+    : legacyDecisionOutflowsForPlacements(placements);
+  const decisionEngine = window.FinanceCanonicalDecisions;
+  if (!decisionEngine || !months.length) return { outflows: legacy, run: null };
+
+  const decisions = placements.map((item) => {
+    const startIndex = Number(item.startIndex ?? item.monthIndex ?? 0);
+    const resolved = item.source === "debt"
+      ? resolvedDebtDecisionForStart(item, startIndex)
+      : item;
+    return {
+      ...resolved,
+      startIndex,
+      lifecycleState: resolved.lifecycleState || resolved.decisionState || resolved.status || "pending",
+    };
+  });
+  const schedule = decisionEngine.buildSchedule({
+    months,
+    decisions,
+    debtTargets: canonicalDebtTargetsForSchedule(),
+  });
+  const parity = decisionEngine.compareOutflows(schedule.outflows, legacy);
+  const useCanonical = Boolean(schedule.invariants?.passed && parity.matched);
+  const run = {
+    ...schedule,
+    reason: options.reason || "decision-scenario",
+    sourceStatus: useCanonical ? "canonical" : "legacy-fallback",
+    rowCount: schedule.months.length,
+    parity,
+    auditTrail: [
+      {
+        at: new Date().toISOString(),
+        reason: options.reason || "decision-scenario",
+        status: useCanonical ? "canonical" : "legacy-fallback",
+        fingerprint: schedule.fingerprint,
+      },
+    ],
+  };
+  if (options.capture) canonicalDecisionRun = run;
+  return { outflows: useCanonical ? schedule.outflows : legacy, run };
+}
+
+function decisionOutflowsForPlacements(placements, options = {}) {
+  const legacy = legacyDecisionOutflowsForPlacements(placements);
+  return canonicalDecisionScheduleForPlacements(placements, legacy, options).outflows;
 }
 
 function decisionOutflowsExcluding(predicate) {
@@ -10489,8 +10583,16 @@ function buildNewLifeDefinitiveFlow(ctx, override = {}) {
     caixa = round2(caixa + income + loanIncome - outflows - localOutflow - loanPayment);
     const next = sourceRows[index + 1] || {};
     const nextOutflows = Math.max(0, Number(next.outflowsBeforeSaving || next.coreSpend + next.car + next.refi + next.projectOutflow || 0));
-    const requiredReserve = state.transferMode === "floor" ? caixaFloor : Math.max(caixaFloor, round2(caixaFloor + nextOutflows));
-    const transfer = Math.max(0, round2(caixa - requiredReserve));
+    const fallbackRequiredReserve = state.transferMode === "floor" ? caixaFloor : Math.max(caixaFloor, round2(caixaFloor + nextOutflows));
+    const transferPolicy = window.FinanceCanonicalDecisions?.transferForMonth({
+      checkingBeforeTransfer: caixa,
+      savingsBeforeTransfer: mediolanum,
+      reserveFloor: caixaFloor,
+      nextMonthOutflows: nextOutflows,
+      protectNextMonth: state.transferMode !== "floor",
+    });
+    const requiredReserve = Number(transferPolicy?.requiredReserve ?? fallbackRequiredReserve);
+    const transfer = Number(transferPolicy?.transfer ?? Math.max(0, round2(caixa - requiredReserve)));
     caixa = round2(caixa - transfer);
     mediolanum = round2(mediolanum + transfer - mediolanumOutflow);
     totalTransfer = round2(totalTransfer + transfer);
