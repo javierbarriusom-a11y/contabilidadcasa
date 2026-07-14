@@ -9,8 +9,9 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 - Fase 2: libro contable canónico, invariantes y conciliación banco vs. dato real.
 - Fase 3: motor financiero canónico, contrato de cálculo, paridad e invariantes mensuales.
 - Fase 4: calendario canónico de decisiones, deuda suspendida y política prudente de traspasos.
+- Fase 5: ciclo de aprobación, fijación, ejecución y cancelación con auditoría restaurable.
 
-La documentación funcional de la fase actual está en [PHASE_4.md](PHASE_4.md).
+La documentación funcional de la fase actual está en [PHASE_5.md](PHASE_5.md).
 
 ## Arquitectura canónica
 
@@ -18,6 +19,7 @@ La documentación funcional de la fase actual está en [PHASE_4.md](PHASE_4.md).
 - `canonical-ledger.js`: libro contable y conciliación bancaria.
 - `canonical-engine.js`: cálculo determinista de saldos y ahorro.
 - `canonical-decisions.js`: calendario de proyectos, deuda y traspasos entre cuentas.
+- `canonical-workflow.js`: estados, transiciones y auditoría de decisiones.
 - `app.js`: adaptación de la interfaz y fallback temporal contra los cálculos históricos.
 
 ## Ejecutar y verificar

@@ -55,6 +55,7 @@ let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
 let canonicalDecisionRun = null;
+let decisionWorkflow = null;
 let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
 let editingProjectId = null;
@@ -228,6 +229,7 @@ const CANONICAL_STATE_KEY = "canonicalStateV1";
 const CANONICAL_LEDGER_KEY = "canonicalLedgerV1";
 const CANONICAL_ENGINE_KEY = "canonicalEngineV1";
 const CANONICAL_DECISIONS_KEY = "canonicalDecisionsV1";
+const DECISION_WORKFLOW_KEY = "decisionWorkflowV1";
 
 const viewTitles = {
   home: {
@@ -554,6 +556,7 @@ function appStatePayload(options = {}) {
     payload.canonicalLedgerSnapshot = canonicalLedgerSnapshot;
     payload.canonicalEngineRuns = compactCanonicalEngineRuns();
     payload.canonicalDecisionRun = compactCanonicalDecisionRun(canonicalDecisionRun);
+    payload.decisionWorkflow = decisionWorkflow;
   }
   return payload;
 }
@@ -713,8 +716,12 @@ function applyPersistedPayload(payload = {}) {
   canonicalDecisionRun = payload.canonicalDecisionRun?.schemaId === window.FinanceCanonicalDecisions?.SCHEMA_ID
     ? payload.canonicalDecisionRun
     : null;
+  decisionWorkflow = payload.decisionWorkflow?.schemaId === window.FinanceDecisionWorkflow?.SCHEMA_ID
+    ? payload.decisionWorkflow
+    : null;
   currentScenario = scenarioSettings.currentScenario || "Base";
   normalizeLoadedProjects();
+  ensureDecisionWorkflowSnapshot({ persist: false });
 }
 
 function saveLocalSnapshot() {
@@ -734,6 +741,7 @@ function saveLocalSnapshot() {
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
   if (canonicalDecisionRun) storageSet(storageKey(CANONICAL_DECISIONS_KEY), JSON.stringify(compactCanonicalDecisionRun(canonicalDecisionRun)));
+  if (decisionWorkflow) storageSet(storageKey(DECISION_WORKFLOW_KEY), JSON.stringify(decisionWorkflow));
 }
 
 function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
@@ -1126,6 +1134,7 @@ function loadLocalState() {
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
       canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
       canonicalDecisionRun: JSON.parse(storageGet(storageKey(CANONICAL_DECISIONS_KEY), "null")),
+      decisionWorkflow: JSON.parse(storageGet(storageKey(DECISION_WORKFLOW_KEY), "null")),
     });
   } catch {
     projects = [];
@@ -1144,6 +1153,7 @@ function loadLocalState() {
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
     canonicalDecisionRun = null;
+    decisionWorkflow = null;
   }
 }
 
@@ -1166,7 +1176,10 @@ function normalizeLoadedProjects() {
     } else {
       delete next.monthlyOverrides;
     }
-    next.locked = Boolean(next.locked);
+    const lifecycleState = decisionLifecycleStatus(next);
+    if (next.lifecycleState !== lifecycleState || next.locked !== (lifecycleState === "fixed")) changed = true;
+    next.lifecycleState = lifecycleState;
+    next.locked = lifecycleState === "fixed";
     if (!next.locked) delete next.lockedAt;
     if (project.mode !== "fixed" && project.mode !== "spread") return next;
     if (next.monthKey) {
@@ -1241,46 +1254,248 @@ function recordDecisionEvent(status, item, note = "") {
   saveDecisionEvents();
 }
 
+const DECISION_WORKFLOW_LABELS = {
+  simulated: "Simulada",
+  pending: "Pendiente de decidir",
+  approved: "Aprobada",
+  fixed: "Fija en plan",
+  executed: "Ejecutada",
+  cancelled: "Cancelada",
+};
+
+function workflowDecisionId(source, id) {
+  return `${source === "debt" ? "debt" : "project"}:${String(id || "unknown")}`;
+}
+
+function decisionLifecycleStatus(item) {
+  const canonicalStatus = window.FinanceCanonicalState?.canonicalStatus;
+  if (!item) return "cancelled";
+  if (item.lifecycleState) return canonicalStatus ? canonicalStatus(item.lifecycleState, "approved") : item.lifecycleState;
+  if (item.executed) return "executed";
+  if (item.cancelled) return "cancelled";
+  if (item.locked) return "fixed";
+  return canonicalStatus ? canonicalStatus(item.status, "approved") : "approved";
+}
+
+function workflowEligibleDecision(item) {
+  return Boolean(item) && !isAgentRouteSimulationDecision(item);
+}
+
+function workflowDecisionInput(item, source, status = decisionLifecycleStatus(item)) {
+  const normalizedSource = source === "debt" ? "debt" : "project";
+  const legacyId = String(item?.id || item?.targetId || "");
+  const month = forecastMonths()[Math.max(0, Number(item?.monthIndex || 0))];
+  return {
+    workflowId: workflowDecisionId(normalizedSource, legacyId),
+    legacyId,
+    source: normalizedSource,
+    targetId: item?.targetId || "",
+    kind: item?.projectKind || item?.payoffMode || item?.mode || normalizedSource,
+    name: item?.name || item?.label || item?.entity || "Decisión",
+    owner: item?.creditOwner || item?.owner || inferDecisionOwner(item || {}),
+    amount: decisionGrossCost(item || {}),
+    monthKey: item?.monthKey || month?.key || "",
+    monthLabel: item?.monthLabel || month?.label || "",
+    status,
+    payload: { ...(item || {}), source: normalizedSource },
+  };
+}
+
+function saveDecisionWorkflow() {
+  if (!decisionWorkflow) return;
+  storageSet(storageKey(DECISION_WORKFLOW_KEY), JSON.stringify(decisionWorkflow));
+  queueRemoteSave();
+}
+
+function ensureDecisionWorkflowSnapshot(options = {}) {
+  const api = window.FinanceDecisionWorkflow;
+  if (!api) return null;
+  let snapshot = api.normalizeSnapshot(decisionWorkflow);
+  [
+    ...projects.filter(workflowEligibleDecision).map((item) => ({ item, source: "project" })),
+    ...debtLiquidations.filter(workflowEligibleDecision).map((item) => ({ item, source: "debt" })),
+  ].forEach(({ item, source }) => {
+    const imported = api.importDecision(snapshot, workflowDecisionInput(item, source), { preserveStatus: true });
+    snapshot = imported.snapshot;
+  });
+  decisionWorkflow = snapshot;
+  if (options.persist !== false) saveDecisionWorkflow();
+  return decisionWorkflow;
+}
+
+function amendWorkflowDecision(item, source, note = "Decisión actualizada.") {
+  const api = window.FinanceDecisionWorkflow;
+  if (!api || !workflowEligibleDecision(item)) return null;
+  ensureDecisionWorkflowSnapshot({ persist: false });
+  const input = workflowDecisionInput(item, source);
+  const imported = api.importDecision(decisionWorkflow, input, { preserveStatus: true });
+  decisionWorkflow = imported.snapshot;
+  const result = api.applyDecisionCommand(decisionWorkflow, {
+    id: `amend:${input.workflowId}:${Date.now()}`,
+    type: "amend",
+    decisionId: input.workflowId,
+    changes: input,
+    note,
+  });
+  if (result.ok) decisionWorkflow = result.snapshot;
+  saveDecisionWorkflow();
+  return result.ok ? result.decision : null;
+}
+
+function registerApprovedDecision(item, source, note) {
+  const api = window.FinanceDecisionWorkflow;
+  if (!api || !workflowEligibleDecision(item)) return null;
+  ensureDecisionWorkflowSnapshot({ persist: false });
+  const input = workflowDecisionInput(item, source, "pending");
+  const imported = api.importDecision(decisionWorkflow, input, { preserveStatus: true });
+  decisionWorkflow = imported.snapshot;
+  let decision = imported.decision;
+  if (imported.created || decision.status === "pending" || decision.status === "simulated") {
+    if (decision.status === "simulated") {
+      const pending = api.applyDecisionCommand(decisionWorkflow, {
+        id: `approve-pending:${decision.id}:${Date.now()}`,
+        type: "transition",
+        decisionId: decision.id,
+        toStatus: "pending",
+        note: "Decisión preparada para aprobación.",
+      });
+      if (pending.ok) {
+        decisionWorkflow = pending.snapshot;
+        decision = pending.decision;
+      }
+    }
+    const approved = api.applyDecisionCommand(decisionWorkflow, {
+      id: `approve:${decision.id}:${Date.now()}`,
+      type: "transition",
+      decisionId: decision.id,
+      toStatus: "approved",
+      note: note || "Decisión aprobada tras comparar alternativas.",
+    });
+    if (approved.ok) {
+      decisionWorkflow = approved.snapshot;
+      decision = approved.decision;
+    }
+  } else {
+    decision = amendWorkflowDecision(item, source, note) || decision;
+  }
+  saveDecisionWorkflow();
+  return decision;
+}
+
+function activeDecisionItem(source, id) {
+  return source === "debt"
+    ? debtLiquidations.find((item) => item.id === id)
+    : projects.find((item) => item.id === id);
+}
+
+function syncActiveDecisionState(source, id, status) {
+  const update = (item) => item.id === id
+    ? {
+        ...item,
+        lifecycleState: status,
+        locked: status === "fixed",
+        lockedAt: status === "fixed" ? item.lockedAt || new Date().toISOString() : undefined,
+      }
+    : item;
+  if (source === "debt") {
+    debtLiquidations = debtLiquidations.map(update);
+    saveDebtLiquidations();
+  } else {
+    projects = projects.map(update);
+    saveProjects();
+  }
+}
+
+function transitionDecisionLifecycle(source, id, toStatus, note = "", options = {}) {
+  const api = window.FinanceDecisionWorkflow;
+  const normalizedSource = source === "debt" ? "debt" : "project";
+  const item = activeDecisionItem(normalizedSource, id);
+  if (!api || !item || !workflowEligibleDecision(item)) return false;
+  ensureDecisionWorkflowSnapshot({ persist: false });
+  const input = workflowDecisionInput(item, normalizedSource);
+  const imported = api.importDecision(decisionWorkflow, input, { preserveStatus: true });
+  decisionWorkflow = imported.snapshot;
+  const result = api.applyDecisionCommand(decisionWorkflow, {
+    id: `transition:${input.workflowId}:${toStatus}:${Date.now()}`,
+    type: "transition",
+    decisionId: input.workflowId,
+    toStatus,
+    note,
+  });
+  if (!result.ok) return false;
+  decisionWorkflow = result.snapshot;
+  if (api.decisionAffectsPlan(toStatus)) {
+    syncActiveDecisionState(normalizedSource, id, toStatus);
+  } else {
+    if (normalizedSource === "debt") {
+      debtLiquidations = debtLiquidations.filter((candidate) => candidate.id !== id);
+      saveDebtLiquidations();
+    } else {
+      projects = projects.filter((candidate) => candidate.id !== id);
+      saveProjects();
+    }
+  }
+  saveDecisionWorkflow();
+  recordDecisionEvent(DECISION_WORKFLOW_LABELS[toStatus] || toStatus, { ...item, source: normalizedSource }, note);
+  if (editingProjectId === id) clearProjectForm();
+  if (options.render !== false) render();
+  return true;
+}
+
+function restoreWorkflowDecision(decisionId) {
+  const api = window.FinanceDecisionWorkflow;
+  ensureDecisionWorkflowSnapshot({ persist: false });
+  const decision = decisionWorkflow?.decisions?.find((item) => item.id === decisionId);
+  if (!api || !decision || decision.status !== "cancelled") return false;
+  let result = api.applyDecisionCommand(decisionWorkflow, {
+    id: `restore-pending:${decision.id}:${Date.now()}`,
+    type: "transition",
+    decisionId: decision.id,
+    toStatus: "pending",
+    note: "Decisión recuperada para volver a evaluarla.",
+  });
+  if (!result.ok) return false;
+  decisionWorkflow = result.snapshot;
+  result = api.applyDecisionCommand(decisionWorkflow, {
+    id: `restore-approved:${decision.id}:${Date.now()}`,
+    type: "transition",
+    decisionId: decision.id,
+    toStatus: "approved",
+    note: "Decisión devuelta al simulador.",
+  });
+  if (!result.ok) return false;
+  decisionWorkflow = result.snapshot;
+  const restored = {
+    ...(decision.payload || {}),
+    id: decision.legacyId,
+    lifecycleState: "approved",
+    locked: false,
+    lockedAt: undefined,
+  };
+  if (decision.source === "debt") {
+    if (!debtLiquidations.some((item) => item.id === restored.id)) debtLiquidations.push(restored);
+    saveDebtLiquidations();
+  } else {
+    if (!projects.some((item) => item.id === restored.id)) projects.push(restored);
+    saveProjects();
+  }
+  saveDecisionWorkflow();
+  recordDecisionEvent("devuelto a simulación", { ...restored, source: decision.source }, "Decisión cancelada recuperada.");
+  render();
+  return true;
+}
+
 function decisionLockedBadge(item) {
-  return item?.locked ? '<span class="decision-lock-badge">Fijo en plan</span>' : "";
+  return decisionLifecycleStatus(item) === "fixed" ? '<span class="decision-lock-badge">Fijo en plan</span>' : "";
 }
 
 function setDecisionLocked(source, id, locked) {
-  const stamp = locked ? new Date().toISOString() : null;
-  let changedItem = null;
-  if (source === "debt") {
-    debtLiquidations = debtLiquidations.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            locked: Boolean(locked),
-            lockedAt: stamp || undefined,
-          }
-        : item,
-    );
-    changedItem = debtLiquidations.find((item) => item.id === id);
-    saveDebtLiquidations();
-  } else {
-    projects = projects.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            locked: Boolean(locked),
-            lockedAt: stamp || undefined,
-          }
-        : item,
-    );
-    changedItem = projects.find((item) => item.id === id);
-    saveProjects();
-  }
-  if (changedItem) {
-    recordDecisionEvent(
-      locked ? "fijo en plan" : "devuelto a simulación",
-      { ...changedItem, source },
-      locked ? "La decisión queda bloqueada en el plan." : "La decisión vuelve a estar editable.",
-    );
-  }
-  render();
+  return transitionDecisionLifecycle(
+    source,
+    id,
+    locked ? "fixed" : "approved",
+    locked ? "La decisión queda bloqueada en el plan." : "La decisión vuelve a estar editable.",
+  );
 }
 
 function returnDecisionToSimulator(source, id) {
@@ -4047,9 +4262,11 @@ function buildProjectSchedule() {
   const placements = [];
   const optimizable = [];
 
+  const scheduleEligible = (item) =>
+    isAgentRouteSimulationDecision(item) || ["approved", "fixed"].includes(decisionLifecycleStatus(item));
   const scheduledItems = [
-    ...projects.map((project) => ({ ...project, source: "project" })),
-    ...debtLiquidations.map((item) => ({
+    ...projects.filter(scheduleEligible).map((project) => ({ ...project, source: "project" })),
+    ...debtLiquidations.filter(scheduleEligible).map((item) => ({
       ...item,
       source: "debt",
       mode: item.mode === "spread" || item.mode === "refinance" ? "fixed" : item.mode,
@@ -4217,15 +4434,20 @@ function applyProjectDecision(project) {
   const nextProject = {
     ...cleanProject,
     id: editingProjectId || `project-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    lifecycleState: "approved",
+    locked: false,
+    lockedAt: undefined,
   };
   if (editingProjectId) {
     const previous = projects.find((item) => item.id === editingProjectId);
-    if (previous?.locked) return;
+    if (decisionLifecycleStatus(previous) === "fixed") return;
     projects = projects.map((item) =>
-      item.id === editingProjectId ? { ...nextProject, locked: Boolean(item.locked), lockedAt: item.lockedAt } : item,
+      item.id === editingProjectId ? nextProject : item,
     );
+    registerApprovedDecision(nextProject, "project", "Proyecto modificado desde el simulador.");
     recordDecisionEvent("aprobado", { ...nextProject, source: "project" }, "Proyecto modificado desde el simulador.");
   } else {
+    registerApprovedDecision(nextProject, "project", "Proyecto incorporado tras comparar alternativas.");
     projects.push(nextProject);
     recordDecisionEvent("aprobado", { ...nextProject, source: "project" }, "Proyecto incorporado tras comparar alternativas.");
   }
@@ -4483,7 +4705,7 @@ function applyProjectReviewOption(button) {
 function editProject(id) {
   const project = projects.find((item) => item.id === id);
   if (!project) return;
-  if (project.locked) return;
+  if (decisionLifecycleStatus(project) === "fixed") return;
   editingProjectId = id;
   if (qs("projectKind")) qs("projectKind").value = project.projectKind || (Number(project.creditCapital || 0) > 0 ? "external-credit" : "standard");
   if (qs("projectCreditOwner")) qs("projectCreditOwner").value = project.creditOwner || "Tere";
@@ -4505,22 +4727,11 @@ function editProject(id) {
 }
 
 function removeProject(id) {
-  const project = projects.find((item) => item.id === id);
-  if (project?.locked) return;
-  if (editingProjectId === id) clearProjectForm();
-  projects = projects.filter((project) => project.id !== id);
-  recordDecisionEvent("cancelado", { ...project, source: "project" }, "Proyecto retirado del simulador.");
-  saveProjects();
-  render();
+  transitionDecisionLifecycle("project", id, "cancelled", "Proyecto retirado del simulador.");
 }
 
 function removeDebtLiquidation(id) {
-  const item = debtLiquidations.find((candidate) => candidate.id === id);
-  if (item?.locked) return;
-  debtLiquidations = debtLiquidations.filter((item) => item.id !== id);
-  recordDecisionEvent("cancelado", { ...item, source: "debt" }, "Decisión de deuda retirada del plan.");
-  saveDebtLiquidations();
-  render();
+  transitionDecisionLifecycle("debt", id, "cancelled", "Decisión de deuda retirada del plan.");
 }
 
 function debtPortfolioTargetForDecision(item) {
@@ -4925,7 +5136,10 @@ function applyDebtDecision(decision) {
   const nextDecision = {
     ...cleanDecision,
     id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    lifecycleState: "approved",
+    locked: false,
   };
+  registerApprovedDecision(nextDecision, "debt", "Decisión de deuda incorporada tras revisión previa.");
   debtLiquidations.push(nextDecision);
   recordDecisionEvent("aprobado", { ...nextDecision, source: "debt" }, "Decisión de deuda incorporada tras revisión previa.");
   resetDebtDecisionForm();
@@ -5307,10 +5521,11 @@ function renderDebtControl() {
           const detail = isDebtResumeMode(item.payoffMode || item.mode)
             ? `${debtModeLabel(item.payoffMode || item.mode)} · atrasos ${money(resolvedItem.amount || 0, true)} (${resolvedItem.resumeArrearsMonths || 0} mes(es)) · retoma ${money(resolvedItem.recurringAmount || 0, true)}/mes durante ${resolvedItem.recurringDuration || 0} mes(es) · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}.`
             : `${debtModeLabel(item.payoffMode || item.mode)} · pactado ${money(item.amount, true)} vs deuda ${money(item.originalPrincipal || item.targetPrincipal || item.amount, true)} · mejora ${money(item.discount || 0, true)} · desde ${escapeHtml(placement?.monthLabel || month?.label || "")}, ${item.duration} mes(es). Pago mensual: ${money(monthly, true)}. Cuota eliminada posterior: ${money(relief, true)} durante ${reliefMonths} mes(es).`;
-          const actions = item.locked
-            ? `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="false">Desbloquear</button>`
-            : `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="true">Fijar en plan</button><button data-remove-debt-liquidation="${escapeHtml(item.id)}">Quitar</button>`;
-          return `<div class="project-item debt-item ${item.locked ? "locked" : ""}">
+          const lifecycleState = decisionLifecycleStatus(item);
+          const actions = lifecycleState === "fixed"
+            ? `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="false">Desbloquear</button><button data-execute-debt-liquidation="${escapeHtml(item.id)}">Marcar ejecutada</button><button data-remove-debt-liquidation="${escapeHtml(item.id)}">Cancelar</button>`
+            : `<button class="lock-action" data-lock-debt-liquidation="${escapeHtml(item.id)}" data-lock-value="true">Fijar en plan</button><button data-remove-debt-liquidation="${escapeHtml(item.id)}">Cancelar</button>`;
+          return `<div class="project-item debt-item ${lifecycleState === "fixed" ? "locked" : ""}">
             <div>
               <strong>${escapeHtml(item.name)} ${decisionLockedBadge(item)}</strong>
               <p>${detail}</p>
@@ -5329,13 +5544,20 @@ function renderDebtControl() {
       setDecisionLocked("debt", button.dataset.lockDebtLiquidation, button.dataset.lockValue === "true"),
     );
   });
+  document.querySelectorAll("[data-execute-debt-liquidation]").forEach((button) => {
+    button.addEventListener("click", () =>
+      transitionDecisionLifecycle("debt", button.dataset.executeDebtLiquidation, "executed", "Decisión de deuda marcada como ejecutada."),
+    );
+  });
   renderDebtPayoffChart();
 }
 
 function handleClearProjects() {
   clearProjectForm();
-  projects = projects.filter((project) => project.locked);
-  saveProjects();
+  projects
+    .filter((project) => decisionLifecycleStatus(project) !== "fixed")
+    .map((project) => project.id)
+    .forEach((id) => transitionDecisionLifecycle("project", id, "cancelled", "Proyecto retirado al limpiar el simulador.", { render: false }));
   render();
 }
 
@@ -5390,12 +5612,13 @@ function renderProjectSimulator(baseRows, rows) {
             ? "Sin hueco plenamente cómodo; colocado en el mejor mes disponible"
             : "Mes optimizado automáticamente";
       const source = project.source === "debt" ? "debt" : "project";
-      const actions = project.locked
-        ? `<button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="${source}" data-lock-value="false">Desbloquear</button>`
+      const lifecycleState = decisionLifecycleStatus(project);
+      const actions = lifecycleState === "fixed"
+        ? `<button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="${source}" data-lock-value="false">Desbloquear</button><button data-execute-project="${escapeHtml(project.id)}" data-execute-project-source="${source}">Marcar ejecutada</button><button data-remove-project="${escapeHtml(project.id)}" data-remove-project-source="${source}">Cancelar</button>`
         : source === "debt"
-          ? `<button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="debt" data-lock-value="true">Fijar en plan</button><button data-remove-project="${escapeHtml(project.id)}" data-remove-project-source="debt">Quitar</button>`
-          : `<button data-edit-project="${escapeHtml(project.id)}">Editar</button><button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="project" data-lock-value="true">Fijar en plan</button><button data-remove-project="${escapeHtml(project.id)}" data-remove-project-source="project">Quitar</button>`;
-      return `<div class="project-item ${project.status === "warning" ? "warning" : ""} ${project.source === "debt" ? "debt-item" : ""} ${project.locked ? "locked" : ""}">
+          ? `<button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="debt" data-lock-value="true">Fijar en plan</button><button data-remove-project="${escapeHtml(project.id)}" data-remove-project-source="debt">Cancelar</button>`
+          : `<button data-edit-project="${escapeHtml(project.id)}">Editar</button><button class="lock-action" data-lock-project="${escapeHtml(project.id)}" data-lock-project-source="project" data-lock-value="true">Fijar en plan</button><button data-remove-project="${escapeHtml(project.id)}" data-remove-project-source="project">Cancelar</button>`;
+      return `<div class="project-item ${project.status === "warning" ? "warning" : ""} ${project.source === "debt" ? "debt-item" : ""} ${lifecycleState === "fixed" ? "locked" : ""}">
         <div>
           <strong>${escapeHtml(project.name)} ${decisionLockedBadge(project)}</strong>
           <p>${escapeHtml(projectKindLabel(project))} · ${money(totalCost, true)} total, desde ${project.monthLabel}. ${statusText}. Pico mensual: ${money(monthly, true)}.${creditText}${recurrenceText}</p>
@@ -5419,14 +5642,20 @@ function renderProjectSimulator(baseRows, rows) {
       setDecisionLocked(button.dataset.lockProjectSource, button.dataset.lockProject, button.dataset.lockValue === "true"),
     );
   });
+  document.querySelectorAll("[data-execute-project]").forEach((button) => {
+    button.addEventListener("click", () =>
+      transitionDecisionLifecycle(
+        button.dataset.executeProjectSource,
+        button.dataset.executeProject,
+        "executed",
+        "Decisión marcada como ejecutada.",
+      ),
+    );
+  });
 }
 
 function decisionStatusLabel(item) {
-  if (item.locked) return "Fijo en plan";
-  if (item.executed) return "Ejecutado";
-  if (item.cancelled) return "Cancelado";
-  if (item.source === "debt") return "Aprobado · deuda";
-  return item.mode === "fixed" ? "Aprobado · mes manual" : "Aprobado · mes óptimo";
+  return DECISION_WORKFLOW_LABELS[decisionLifecycleStatus(item)] || "Aprobada";
 }
 
 function renderProjectDecisionLedger(baseRows, rows) {
@@ -5436,8 +5665,8 @@ function renderProjectDecisionLedger(baseRows, rows) {
   const baseFinal = baseRows[baseRows.length - 1]?.totalLiquidity || 0;
   const final = rows[rows.length - 1]?.totalLiquidity || 0;
   const creditCapital = round2(sumRows(decisions, (item) => decisionCreditCapital(item)));
-  const locked = decisions.filter((item) => item.locked).length;
-  const pending = Math.max(0, decisions.length - locked);
+  const locked = decisions.filter((item) => decisionLifecycleStatus(item) === "fixed").length;
+  const pending = decisions.filter((item) => decisionLifecycleStatus(item) === "approved").length;
   const freeCapacity = monthlyFreeCapacity(rows);
   const ownerSummary = decisionOwnerSummary(decisions);
   if (!decisions.length) {
@@ -5471,7 +5700,7 @@ function renderProjectDecisionLedger(baseRows, rows) {
     <div class="decision-ledger-list">
       ${decisions
         .map(
-          (item) => `<div class="decision-ledger-row ${item.locked ? "locked" : ""}">
+          (item) => `<div class="decision-ledger-row ${decisionLifecycleStatus(item) === "fixed" ? "locked" : ""}">
             <span>${escapeHtml(decisionStatusLabel(item))}</span>
             <strong>${escapeHtml(item.name)}</strong>
             <small>${escapeHtml(projectKindLabel(item))} · ${escapeHtml(item.monthLabel || "")} · neto ${decisionNetCashCost(item) >= 0 ? "" : "+"}${money(decisionNetCashCost(item), true)}</small>
@@ -5532,7 +5761,7 @@ function canonicalDecisionScheduleForPlacements(placements, legacyOutflows = nul
     return {
       ...resolved,
       startIndex,
-      lifecycleState: resolved.lifecycleState || resolved.decisionState || resolved.status || "pending",
+      lifecycleState: resolved.lifecycleState || resolved.decisionState || "approved",
     };
   });
   const schedule = decisionEngine.buildSchedule({
@@ -5676,19 +5905,17 @@ function renderExecutiveDecisionAlerts(rows) {
 function renderDecisionHistory() {
   const target = qs("decisionHistory");
   if (!target) return;
-  const current = (projectPlan.placements || []).map((item) => ({
-    date: item.lockedAt || "",
-    name: item.name,
-    status: decisionStatusLabel(item),
-    amount: decisionGrossCost(item),
-    monthLabel: item.monthLabel,
-    owner: item.creditOwner || inferDecisionOwner(item),
-  }));
+  const snapshot = ensureDecisionWorkflowSnapshot({ persist: false });
+  const workflowItems = (snapshot?.decisions || [])
+    .slice()
+    .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")));
+  const activeStatuses = new Set(["approved", "fixed"]);
+  const current = workflowItems.filter((item) => activeStatuses.has(item.status));
   if (pendingProjectDecision) {
     current.unshift({
-      date: "",
+      id: "pending-project",
       name: pendingProjectDecision.name,
-      status: "Simulado · pendiente de decidir",
+      status: "simulated",
       amount: decisionGrossCost(pendingProjectDecision),
       monthLabel: forecastMonths()[pendingProjectDecision.monthIndex || 0]?.label || "",
       owner: pendingProjectDecision.creditOwner || inferDecisionOwner(pendingProjectDecision),
@@ -5696,15 +5923,16 @@ function renderDecisionHistory() {
   }
   if (pendingDebtDecision) {
     current.unshift({
-      date: "",
+      id: "pending-debt",
       name: pendingDebtDecision.name,
-      status: "Simulado · pendiente de decidir",
+      status: "simulated",
       amount: decisionGrossCost(pendingDebtDecision),
       monthLabel: forecastMonths()[pendingDebtDecision.monthIndex || 0]?.label || "",
       owner: inferDecisionOwner(pendingDebtDecision),
     });
   }
-  const events = decisionEvents.slice(0, 12);
+  const archive = workflowItems.filter((item) => !activeStatuses.has(item.status));
+  const events = (snapshot?.events || []).slice().reverse().slice(0, 12);
   target.innerHTML = `<article class="decision-history-card">
     <div class="decision-history-head">
       <div>
@@ -5718,17 +5946,26 @@ function renderDecisionHistory() {
       <div>
         <span>Estado actual</span>
         ${current.length ? current
-          .map((item) => `<p><b>${escapeHtml(item.status)}</b> · ${escapeHtml(item.name)} · ${escapeHtml(item.owner)} · ${money(item.amount, true)} · ${escapeHtml(item.monthLabel || "-")}</p>`)
+          .map((item) => `<p><b>${escapeHtml(DECISION_WORKFLOW_LABELS[item.status] || item.status)}</b> · ${escapeHtml(item.name)} · ${escapeHtml(item.owner || "Hogar")} · ${money(item.amount, true)} · ${escapeHtml(item.monthLabel || "-")}</p>`)
           .join("") : "<p>Sin decisiones activas.</p>"}
       </div>
       <div>
-        <span>Últimos movimientos</span>
-        ${events.length ? events
-          .map((item) => `<p><b>${escapeHtml(item.status)}</b> · ${escapeHtml(item.name)} · ${escapeHtml(item.owner || "Hogar")} · ${money(item.amount, true)} · ${escapeHtml(item.note || "")}</p>`)
-          .join("") : "<p>Aún no hay historial guardado.</p>"}
+        <span>Archivadas y recuperables</span>
+        ${archive.length ? archive
+          .map((item) => `<p class="decision-history-entry"><span><b>${escapeHtml(DECISION_WORKFLOW_LABELS[item.status] || item.status)}</b> · ${escapeHtml(item.name)} · ${money(item.amount, true)}</span>${item.status === "cancelled" ? `<button type="button" data-restore-workflow-decision="${escapeHtml(item.id)}">Restaurar</button>` : ""}</p>`)
+          .join("") : "<p>Sin decisiones archivadas.</p>"}
       </div>
     </div>
+    <details class="decision-history-events">
+      <summary>Ver trazabilidad (${events.length})</summary>
+      ${events.length ? events
+        .map((item) => `<p><b>${escapeHtml(DECISION_WORKFLOW_LABELS[item.toStatus] || item.type)}</b> · ${escapeHtml(item.note || "Sin nota")} · ${escapeHtml(String(item.at || "").slice(0, 10))}</p>`)
+        .join("") : "<p>Aún no hay movimientos registrados.</p>"}
+    </details>
   </article>`;
+  target.querySelectorAll("[data-restore-workflow-decision]").forEach((button) => {
+    button.addEventListener("click", () => restoreWorkflowDecision(button.dataset.restoreWorkflowDecision));
+  });
 }
 
 function renderProjectGlobalImpact(baseRows, rows) {
@@ -7069,31 +7306,22 @@ function saveVisualChanges() {
   });
 
   Object.keys(visualDraftProjectDeletes).forEach((id) => {
-    const projectToRemove = projects.find((project) => project.id === id);
-    projects = projects.filter((project) => project.id !== id);
-    if (projectToRemove) {
-      projectsChanged = true;
-      savedDeletes += 1;
-      recordDecisionEvent(
-        projectToRemove.locked ? "retirado del plan" : "cancelado",
-        { ...projectToRemove, source: "project" },
-        projectToRemove.locked
-          ? "Proyecto fijo retirado del plan; ya no impacta en caja."
-          : "Proyecto retirado del simulador.",
-      );
-    }
-    const debtToRemove = debtLiquidations.find((item) => item.id === id);
-    debtLiquidations = debtLiquidations.filter((item) => item.id !== id);
-    if (debtToRemove) {
-      savedDeletes += 1;
-      recordDecisionEvent(
-        debtToRemove.locked ? "retirado del plan" : "cancelado",
-        { ...debtToRemove, source: "debt" },
-        debtToRemove.locked
-          ? "Decisión fija de deuda retirada del plan; ya no impacta en caja."
-          : "Decisión de deuda retirada del plan.",
-      );
-    }
+    const source = projects.some((project) => project.id === id)
+      ? "project"
+      : debtLiquidations.some((item) => item.id === id)
+        ? "debt"
+        : null;
+    if (!source) return;
+    const removed = transitionDecisionLifecycle(
+      source,
+      id,
+      "cancelled",
+      source === "debt"
+        ? "Decisión de deuda retirada desde el Cuadro de mandos."
+        : "Proyecto retirado desde el Cuadro de mandos.",
+      { render: false },
+    );
+    if (removed) savedDeletes += 1;
   });
 
   if (savedCells || savedDeletes) saveSeriesOverrides();

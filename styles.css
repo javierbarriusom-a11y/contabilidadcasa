@@ -2006,6 +2006,50 @@ select:focus {
   color: var(--ink);
 }
 
+.decision-history-entry {
+  align-items: center;
+  display: flex;
+  gap: 0.65rem;
+  justify-content: space-between;
+}
+
+.decision-history-entry > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-transform: none;
+}
+
+.decision-history-entry button {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--teal);
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0.4rem 0.6rem;
+}
+
+.decision-history-events {
+  border-top: 1px solid var(--line);
+  margin-top: 0.8rem;
+  padding-top: 0.75rem;
+}
+
+.decision-history-events summary {
+  color: var(--teal);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.decision-history-events p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  margin: 0.55rem 0 0;
+}
+
 .project-list {
   display: grid;
   gap: 10px;
