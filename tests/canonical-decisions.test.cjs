@@ -19,7 +19,7 @@ test("combina pago inicial, recurrencia y financiación externa sin perder contr
       recurringDuration: 3,
       recurringStartOffset: 1,
       startIndex: 1,
-      status: "pending",
+      status: "approved",
     }],
   });
 
@@ -107,11 +107,23 @@ test("ignora decisiones canceladas o ejecutadas", () => {
   assert.deepEqual(schedule.outflows, [0, 0, 0, 0, 0, 0]);
 });
 
+test("las decisiones simuladas o pendientes no alteran el plan", () => {
+  const schedule = decisions.buildSchedule({
+    months,
+    decisions: [
+      { id: "simulated", amount: 500, status: "simulated" },
+      { id: "pending", amount: 900, status: "pending" },
+    ],
+  });
+  assert.deepEqual(schedule.outflows, [0, 0, 0, 0, 0, 0]);
+  assert.deepEqual(schedule.decisions, []);
+});
+
 test("impide programar dos veces la misma deuda", () => {
   const schedule = decisions.buildSchedule({
     months,
     decisions: [
-      { id: "one", source: "debt", targetId: "same", amount: 100, status: "pending" },
+      { id: "one", source: "debt", targetId: "same", amount: 100, status: "approved" },
       { id: "two", source: "debt", targetId: "same", amount: 200, status: "fixed" },
     ],
   });

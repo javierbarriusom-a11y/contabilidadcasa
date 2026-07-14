@@ -1,0 +1,98 @@
+{
+  "openingBalances": {
+    "checking": 7200,
+    "savings": 1800
+  },
+  "policy": {
+    "incomeFactor": 1,
+    "annualIncomeGrowth": 0,
+    "expenseFactor": 1,
+    "annualInflation": 0,
+    "plannedMonthlySaving": 800,
+    "autoCapSavings": true
+  },
+  "months": [
+    {
+      "month": "jul 26",
+      "monthKey": "2026-07",
+      "income": 5000,
+      "coreSpend": 2800,
+      "variableOperationalSpend": 700,
+      "car": 0,
+      "refi": 300
+    },
+    {
+      "month": "ago 26",
+      "monthKey": "2026-08",
+      "income": 5000,
+      "coreSpend": 2950,
+      "variableOperationalSpend": 750,
+      "car": 0,
+      "refi": 300
+    },
+    {
+      "month": "sept 26",
+      "monthKey": "2026-09",
+      "income": 5200,
+      "coreSpend": 2850,
+      "variableOperationalSpend": 700,
+      "car": 0,
+      "refi": 300
+    },
+    {
+      "month": "oct 26",
+      "monthKey": "2026-10",
+      "income": 5000,
+      "coreSpend": 2800,
+      "variableOperationalSpend": 700,
+      "car": 0,
+      "refi": 300
+    }
+  ],
+  "debtTargets": [
+    {
+      "id": "debt-suspended",
+      "currentPrincipal": 1200,
+      "currentPayment": 0,
+      "originalPayment": 120,
+      "remainingInstallments": 10,
+      "reunified": false
+    }
+  ],
+  "decisions": [
+    {
+      "id": "project-pending",
+      "source": "project",
+      "name": "Proyecto pendiente",
+      "amount": 600,
+      "monthKey": "2026-07",
+      "status": "pending"
+    },
+    {
+      "id": "project-approved",
+      "source": "project",
+      "name": "Proyecto aprobado",
+      "amount": 900,
+      "monthKey": "2026-08",
+      "status": "approved"
+    },
+    {
+      "id": "debt-fixed",
+      "source": "debt",
+      "targetId": "debt-suspended",
+      "name": "Acuerdo de deuda",
+      "amount": 1200,
+      "monthKey": "2026-09",
+      "status": "fixed",
+      "monthlyRelief": 120
+    },
+    {
+      "id": "project-executed",
+      "source": "project",
+      "name": "Proyecto ya ejecutado",
+      "amount": 400,
+      "monthKey": "2026-10",
+      "status": "executed"
+    }
+  ]
+}

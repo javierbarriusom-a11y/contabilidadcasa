@@ -7,8 +7,7 @@
 
   const SCHEMA_ID = "finance-canonical-decisions/v1";
   const TOLERANCE = 0.02;
-  const ACTIVE_STATES = new Set(["simulated", "pending", "approved", "fixed", "optimized", "warning", "debt"]);
-  const INACTIVE_STATES = new Set(["executed", "cancelled", "discarded", "deleted"]);
+  const ACTIVE_STATES = new Set(["approved", "fixed"]);
 
   function number(value, fallback = 0) {
     const parsed = Number(value);
@@ -30,8 +29,7 @@
 
   function shouldSchedule(decision = {}) {
     const state = normalizedState(decision);
-    if (INACTIVE_STATES.has(state)) return false;
-    return ACTIVE_STATES.has(state) || !state;
+    return ACTIVE_STATES.has(state);
   }
 
   function isResumeMode(mode) {

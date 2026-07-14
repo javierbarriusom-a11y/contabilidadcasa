@@ -10,8 +10,9 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 - Fase 3: motor financiero canónico, contrato de cálculo, paridad e invariantes mensuales.
 - Fase 4: calendario canónico de decisiones, deuda suspendida y política prudente de traspasos.
 - Fase 5: ciclo de aprobación, fijación, ejecución y cancelación con auditoría restaurable.
+- Fase 6: corte definitivo al motor canónico y aceptación integral anonimizada.
 
-La documentación funcional de la fase actual está en [PHASE_5.md](PHASE_5.md).
+La documentación funcional de la fase actual está en [PHASE_6.md](PHASE_6.md).
 
 ## Arquitectura canónica
 
@@ -20,7 +21,9 @@ La documentación funcional de la fase actual está en [PHASE_5.md](PHASE_5.md).
 - `canonical-engine.js`: cálculo determinista de saldos y ahorro.
 - `canonical-decisions.js`: calendario de proyectos, deuda y traspasos entre cuentas.
 - `canonical-workflow.js`: estados, transiciones y auditoría de decisiones.
-- `app.js`: adaptación de la interfaz y fallback temporal contra los cálculos históricos.
+- `app.js`: adaptación de la interfaz al motor canónico y diagnóstico histórico opcional.
+
+El motor histórico no participa en la ejecución normal. Una invariante rota bloquea el cálculo en lugar de sustituirlo silenciosamente por otra regla.
 
 ## Ejecutar y verificar
 

@@ -55,6 +55,7 @@ let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
 let canonicalDecisionRun = null;
+let canonicalDiagnosticsEnabled = false;
 let decisionWorkflow = null;
 let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
@@ -709,13 +710,18 @@ function applyPersistedPayload(payload = {}) {
   canonicalEngineRuns = payload.canonicalEngineRuns && typeof payload.canonicalEngineRuns === "object"
     ? ["base", "active", "planned"].reduce((runs, key) => {
         const run = payload.canonicalEngineRuns[key];
-        runs[key] = run?.schemaId === window.FinanceCanonicalEngine?.SCHEMA_ID ? run : null;
+        runs[key] =
+          run?.schemaId === window.FinanceCanonicalEngine?.SCHEMA_ID && run?.sourceStatus === "canonical"
+            ? run
+            : null;
         return runs;
       }, {})
     : { base: null, active: null, planned: null };
-  canonicalDecisionRun = payload.canonicalDecisionRun?.schemaId === window.FinanceCanonicalDecisions?.SCHEMA_ID
-    ? payload.canonicalDecisionRun
-    : null;
+  canonicalDecisionRun =
+    payload.canonicalDecisionRun?.schemaId === window.FinanceCanonicalDecisions?.SCHEMA_ID &&
+    payload.canonicalDecisionRun?.sourceStatus === "canonical"
+      ? payload.canonicalDecisionRun
+      : null;
   decisionWorkflow = payload.decisionWorkflow?.schemaId === window.FinanceDecisionWorkflow?.SCHEMA_ID
     ? payload.decisionWorkflow
     : null;
@@ -982,21 +988,21 @@ function renderCanonicalEngineStatus() {
     : null;
   const allRuns = decisionRun ? [...runs, decisionRun] : runs;
   const active = canonicalEngineRuns.active;
-  const matched = allRuns.filter(({ run }) => run.sourceStatus === "canonical").length;
-  const expectedRuns = contexts.length + 1;
-  const maxDelta = allRuns.reduce((maximum, { run }) => Math.max(maximum, Number(run.parity?.maxDelta || 0)), 0);
+  const diagnosticRuns = allRuns.filter(({ run }) => run.parity);
+  const matched = diagnosticRuns.filter(({ run }) => run.parity?.matched).length;
+  const maxDelta = diagnosticRuns.reduce((maximum, { run }) => Math.max(maximum, Number(run.parity?.maxDelta || 0)), 0);
   const issueCount = allRuns.reduce((sum, { run }) => sum + Number(run.invariants?.issues?.length || 0), 0);
   panel.innerHTML = [
-    ["Fuente del flujo", active?.sourceStatus === "canonical" ? "Motor canónico" : "Respaldo histórico", active ? `Escenario activo · ${Number(active.rowCount || active.rows?.length || active.invariants?.checkedRows || 0)} meses` : "Pendiente de calcular", active?.sourceStatus === "canonical" ? "good" : "warn"],
-    ["Escenarios conciliados", `${matched} / ${expectedRuns}`, "Base, activo, previsto y decisiones deben coincidir", matched === expectedRuns ? "good" : "warn"],
-    ["Mayor diferencia", money(maxDelta, true), "Tolerancia de control: 0,02 €", maxDelta <= 0.02 ? "good" : "warn"],
+    ["Fuente del flujo", active ? "Motor canónico" : "Pendiente", active ? `Escenario activo · ${Number(active.rowCount || active.rows?.length || active.invariants?.checkedRows || 0)} meses` : "Pendiente de calcular", active ? "good" : "warn"],
+    ["Diagnóstico histórico", diagnosticRuns.length ? `${matched} / ${diagnosticRuns.length}` : "No ejecutado", "Comparación opcional; nunca sustituye al motor canónico", !diagnosticRuns.length || matched === diagnosticRuns.length ? "good" : "warn"],
+    ["Mayor diferencia", diagnosticRuns.length ? money(maxDelta, true) : "-", "Tolerancia diagnóstica: 0,02 €", !diagnosticRuns.length || maxDelta <= 0.02 ? "good" : "warn"],
     ["Invariantes rotas", String(issueCount), "Continuidad, cuentas, liquidez y valores finitos", issueCount === 0 ? "good" : "warn"],
   ].map(([label, value, detail, tone]) => `<article class="audit-kpi ${tone}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><p>${escapeHtml(detail)}</p></article>`).join("");
 
   const checks = active?.invariants?.checks || {};
   const decisionChecks = canonicalDecisionRun?.invariants?.checks || {};
   qs("canonicalEngineInvariants").innerHTML = [
-    renderLedgerInvariant("Valores finitos", Boolean(checks.finite), checks.finite ? "Ningún cálculo produce Infinity o NaN." : "Hay importes no finitos; se mantiene el motor histórico."),
+    renderLedgerInvariant("Valores finitos", Boolean(checks.finite), checks.finite ? "Ningún cálculo produce Infinity o NaN." : "Hay importes no finitos; el motor canónico ha bloqueado el cálculo."),
     renderLedgerInvariant("Conservación de cuentas", Boolean(checks.accountConservation), checks.accountConservation ? "CaixaBank + Mediolanum coincide con la liquidez total." : "Las cuentas no suman la liquidez mostrada."),
     renderLedgerInvariant("Conservación de liquidez", Boolean(checks.liquidityConservation), checks.liquidityConservation ? "El resultado mensual explica el cambio de liquidez." : "Hay un movimiento sin contrapartida en el mes."),
     renderLedgerInvariant("Continuidad mensual", Boolean(checks.continuity), checks.continuity ? "Cada cierre coincide con la apertura del mes siguiente." : "Existe un salto entre meses consecutivos."),
@@ -1005,15 +1011,17 @@ function renderCanonicalEngineStatus() {
   ].join("");
 
   const differences = allRuns.flatMap(({ key, run }) => (run.parity?.differences || []).map((difference) => ({ ...difference, context: key })));
-  qs("canonicalEngineParitySummary").textContent = differences.length
-    ? `${differences.length} diferencia(s) detectada(s); la app usa respaldo histórico.`
-    : `${allRuns.length} escenario(s) verificado(s), sin diferencias por encima de 0,02 €.`;
+  qs("canonicalEngineParitySummary").textContent = !diagnosticRuns.length
+    ? "Diagnóstico histórico no ejecutado. El motor canónico sigue siendo la única fuente de cálculo."
+    : differences.length
+      ? `${differences.length} diferencia(s) en la referencia diagnóstica; la fuente sigue siendo canónica.`
+      : `${diagnosticRuns.length} escenario(s) comparado(s), sin diferencias por encima de 0,02 €.`;
   const comparisonValue = (value, difference) => difference.delta == null
     ? escapeHtml(String(value ?? "-"))
     : money(value, true);
   qs("canonicalEngineDifferenceRows").innerHTML = differences.length
     ? differences.slice(0, 30).map((difference) => `<tr><td>${escapeHtml(difference.context)}</td><td>${escapeHtml(ledgerMonthLabel(difference.monthKey))}</td><td>${escapeHtml(difference.field)}</td><td>${comparisonValue(difference.canonical, difference)}</td><td>${comparisonValue(difference.legacy, difference)}</td><td class="ledger-difference">${difference.delta == null ? "-" : money(difference.delta, true)}</td></tr>`).join("")
-    : `<tr><td colspan="6"><div class="audit-empty good"><strong>Paridad completa</strong><p>El motor único reproduce el flujo anterior y queda habilitado como fuente de cálculo.</p></div></td></tr>`;
+    : `<tr><td colspan="6"><div class="audit-empty good"><strong>${diagnosticRuns.length ? "Paridad completa" : "Sin diagnóstico"}</strong><p>${diagnosticRuns.length ? "La referencia histórica coincide con el motor canónico." : "Pulsa Comparar con histórico para generar evidencia opcional."}</p></div></td></tr>`;
 }
 
 function renderReconciliation() {
@@ -3506,7 +3514,7 @@ function applyScenario(name) {
   render();
 }
 
-function simulateLegacy(projectOutflows = [], options = {}) {
+function simulateHistoricalReference(projectOutflows = [], options = {}) {
   const rows = [];
   const start = modelStartDate();
   const startingBalances = accountBalancesFromState();
@@ -3581,6 +3589,20 @@ function simulateLegacy(projectOutflows = [], options = {}) {
   return rows;
 }
 
+function requiredCanonicalEngine() {
+  const engine = window.FinanceCanonicalEngine;
+  if (!engine) throw new Error("Motor financiero canónico no disponible.");
+  return engine;
+}
+
+function assertCanonicalSnapshot(snapshot, context) {
+  if (snapshot?.invariants?.valid) return;
+  const issues = (snapshot?.invariants?.issues || [])
+    .map((issue) => issue.type || issue.message || "invariante desconocida")
+    .join(", ");
+  throw new Error(`El motor financiero canónico no supera sus invariantes en ${context}${issues ? `: ${issues}` : "."}`);
+}
+
 function canonicalEngineInput(projectOutflows = [], options = {}) {
   const start = modelStartDate();
   const startingBalances = accountBalancesFromState();
@@ -3630,19 +3652,25 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
 }
 
 function simulate(projectOutflows = [], options = {}) {
-  const engine = window.FinanceCanonicalEngine;
-  if (!engine) return simulateLegacy(projectOutflows, options);
+  const engine = requiredCanonicalEngine();
   const input = canonicalEngineInput(projectOutflows, options);
-  if (options.captureEngineRun === false) return engine.buildRows(input);
+  if (options.captureEngineRun === false) {
+    const rows = engine.buildRows(input);
+    const invariants = engine.validateRows(rows);
+    if (!invariants.valid) assertCanonicalSnapshot({ invariants }, options.engineContext || "cálculo auxiliar");
+    return rows;
+  }
   const context = ["base", "active", "planned"].includes(options.engineContext) ? options.engineContext : "active";
   const snapshot = engine.buildSnapshot(input, canonicalEngineRuns[context], {
     reason: `simulation-${context}`,
   });
-  const legacyRows = simulateLegacy(projectOutflows, options);
-  snapshot.parity = engine.compareRows(snapshot.rows, legacyRows);
-  snapshot.sourceStatus = snapshot.invariants.valid && snapshot.parity.matched ? "canonical" : "legacy-fallback";
+  assertCanonicalSnapshot(snapshot, context);
+  snapshot.parity = canonicalDiagnosticsEnabled
+    ? engine.compareRows(snapshot.rows, simulateHistoricalReference(projectOutflows, options))
+    : null;
+  snapshot.sourceStatus = "canonical";
   canonicalEngineRuns[context] = snapshot;
-  return snapshot.sourceStatus === "canonical" ? snapshot.rows : legacyRows;
+  return snapshot.rows;
 }
 
 function modelComputationSignature() {
@@ -5731,7 +5759,7 @@ function decisionOwnerSummary(decisions = []) {
   });
 }
 
-function legacyDecisionOutflowsForPlacements(placements) {
+function historicalDecisionOutflowsForPlacements(placements) {
   const months = forecastMonths();
   const outflows = Array(months.length).fill(0);
   placements.forEach((item) => addScheduledDecisionOutflow(outflows, item, Number(item.startIndex || item.monthIndex || 0)));
@@ -5745,13 +5773,19 @@ function canonicalDebtTargetsForSchedule() {
   }));
 }
 
-function canonicalDecisionScheduleForPlacements(placements, legacyOutflows = null, options = {}) {
+function canonicalPlacementLifecycleState(item = {}) {
+  const explicit = item.lifecycleState || item.decisionState;
+  if (explicit) return String(explicit).trim().toLowerCase();
+  const status = String(item.status || "").trim().toLowerCase();
+  const lifecycleStates = new Set(["simulated", "pending", "approved", "fixed", "executed", "cancelled", "discarded", "deleted"]);
+  return lifecycleStates.has(status) ? status : "approved";
+}
+
+function canonicalDecisionScheduleForPlacements(placements, historicalOutflows = null, options = {}) {
   const months = forecastMonths();
-  const legacy = Array.isArray(legacyOutflows)
-    ? legacyOutflows.slice()
-    : legacyDecisionOutflowsForPlacements(placements);
   const decisionEngine = window.FinanceCanonicalDecisions;
-  if (!decisionEngine || !months.length) return { outflows: legacy, run: null };
+  if (!decisionEngine) throw new Error("Calendario canónico de decisiones no disponible.");
+  if (!months.length) throw new Error("No hay meses disponibles para programar decisiones.");
 
   const decisions = placements.map((item) => {
     const startIndex = Number(item.startIndex ?? item.monthIndex ?? 0);
@@ -5761,7 +5795,7 @@ function canonicalDecisionScheduleForPlacements(placements, legacyOutflows = nul
     return {
       ...resolved,
       startIndex,
-      lifecycleState: resolved.lifecycleState || resolved.decisionState || "approved",
+      lifecycleState: canonicalPlacementLifecycleState(resolved),
     };
   });
   const schedule = decisionEngine.buildSchedule({
@@ -5769,30 +5803,41 @@ function canonicalDecisionScheduleForPlacements(placements, legacyOutflows = nul
     decisions,
     debtTargets: canonicalDebtTargetsForSchedule(),
   });
-  const parity = decisionEngine.compareOutflows(schedule.outflows, legacy);
-  const useCanonical = Boolean(schedule.invariants?.passed && parity.matched);
+  if (!schedule.invariants?.passed) {
+    const issues = (schedule.invariants?.issues || [])
+      .map((issue) => issue.type || issue.message || "invariante desconocida")
+      .join(", ");
+    throw new Error(`El calendario canónico de decisiones no supera sus invariantes${issues ? `: ${issues}` : "."}`);
+  }
+  const parity = canonicalDiagnosticsEnabled
+    ? decisionEngine.compareOutflows(
+      schedule.outflows,
+      Array.isArray(historicalOutflows)
+        ? historicalOutflows.slice()
+        : historicalDecisionOutflowsForPlacements(placements),
+    )
+    : null;
   const run = {
     ...schedule,
     reason: options.reason || "decision-scenario",
-    sourceStatus: useCanonical ? "canonical" : "legacy-fallback",
+    sourceStatus: "canonical",
     rowCount: schedule.months.length,
     parity,
     auditTrail: [
       {
         at: new Date().toISOString(),
         reason: options.reason || "decision-scenario",
-        status: useCanonical ? "canonical" : "legacy-fallback",
+        status: "canonical",
         fingerprint: schedule.fingerprint,
       },
     ],
   };
   if (options.capture) canonicalDecisionRun = run;
-  return { outflows: useCanonical ? schedule.outflows : legacy, run };
+  return { outflows: schedule.outflows, run };
 }
 
 function decisionOutflowsForPlacements(placements, options = {}) {
-  const legacy = legacyDecisionOutflowsForPlacements(placements);
-  return canonicalDecisionScheduleForPlacements(placements, legacy, options).outflows;
+  return canonicalDecisionScheduleForPlacements(placements, null, options).outflows;
 }
 
 function decisionOutflowsExcluding(predicate) {
@@ -15271,9 +15316,14 @@ async function init() {
     renderReconciliation();
   });
   qs("verifyCanonicalEngine")?.addEventListener("click", () => {
-    simulationSignature = "";
-    recomputeModelIfNeeded(true);
-    saveLocalSnapshot();
+    canonicalDiagnosticsEnabled = true;
+    try {
+      simulationSignature = "";
+      recomputeModelIfNeeded(true);
+      saveLocalSnapshot();
+    } finally {
+      canonicalDiagnosticsEnabled = false;
+    }
     renderReconciliation();
   });
   qs("downloadCanonicalLedger")?.addEventListener("click", downloadCanonicalLedger);
