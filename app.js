@@ -716,6 +716,61 @@ function confirmStateRestore() {
   qs("cancelStateRestore").hidden = true;
 }
 
+async function prepareCloudSnapshotRestore() {
+  if (!supabaseClient || !remoteUser) {
+    setStateBackupStatus(
+      "Inicia sesión para recuperar versiones",
+      "Las versiones en la nube están asociadas a tu usuario de Supabase.",
+      "warning",
+    );
+    return;
+  }
+  setStateBackupStatus("Buscando una versión anterior", "Consultando las copias verificadas de Supabase...");
+  const result = await supabaseClient
+    .from("finance_state_snapshots")
+    .select("state, created_at, fingerprint")
+    .eq("source_key", sourceStateKey())
+    .order("created_at", { ascending: false })
+    .limit(10);
+  const store = window.FinanceCanonicalSupabaseStore;
+  if (result.error) {
+    const message = store?.isMissingSchemaError(result.error)
+      ? "Instala primero el esquema normalizado de Supabase incluido con la app."
+      : result.error.message;
+    setStateBackupStatus("No se pudo recuperar la versión", message, "danger");
+    return;
+  }
+  const snapshots = result.data || [];
+  const verifiedSnapshots = snapshots.filter((item) => store?.verifySnapshot(item).valid);
+  const currentFingerprint = verifiedSnapshots[0]?.fingerprint;
+  const previous = verifiedSnapshots.slice(1).find((item) => item.fingerprint !== currentFingerprint) || verifiedSnapshots[1];
+  if (!previous?.state) {
+    setStateBackupStatus(
+      "Todavía no hay una versión anterior",
+      "Realiza al menos dos sincronizaciones con cambios distintos para poder volver atrás.",
+      "warning",
+    );
+    return;
+  }
+  try {
+    pendingStateRestore = window.FinanceStateContract.buildBackupEnvelope(previous.state, {
+      appVersion: "phase-10-cloud-restore",
+      createdAt: previous.created_at,
+    });
+    const validation = window.FinanceStateContract.validateBackupEnvelope(pendingStateRestore);
+    if (!validation.valid) throw new Error(validation.errors.join(" "));
+    qs("confirmStateRestore").hidden = false;
+    qs("cancelStateRestore").hidden = false;
+    setStateBackupStatus(
+      `Versión preparada: ${new Date(previous.created_at).toLocaleString("es-ES")}`,
+      `Nada ha cambiado todavía. Confirma para crear un nuevo estado basado en esta versión.${stateBackupSummaryMarkup(validation.summary)}`,
+      "warning",
+    );
+  } catch (error) {
+    setStateBackupStatus("La versión no superó la validación", error.message, "danger");
+  }
+}
+
 function applyPersistedPayload(payload = {}) {
   selectorSignature = "";
   visualMonthSelectorSignature = "";
@@ -1887,47 +1942,149 @@ function refreshFromPersistedState() {
 async function loadRemoteState() {
   if (!supabaseClient || !remoteUser) return;
   updateSyncUi("Cargando datos guardados en Supabase...", "cloud");
-  const { data, error } = await supabaseClient
-    .from("finance_dashboard_states")
-    .select("state, updated_at")
-    .eq("source_key", sourceStateKey())
-    .maybeSingle();
+  const normalizedStore = window.FinanceCanonicalSupabaseStore;
+  const [legacyResult, normalizedResult] = await Promise.all([
+    supabaseClient
+      .from("finance_dashboard_states")
+      .select("state, updated_at")
+      .eq("source_key", sourceStateKey())
+      .maybeSingle(),
+    normalizedStore
+      ? supabaseClient
+        .from("finance_state_snapshots")
+        .select("state, created_at, fingerprint")
+        .eq("source_key", sourceStateKey())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+  const normalizedMissing = normalizedStore?.isMissingSchemaError(normalizedResult.error);
+  const normalizedVerification = normalizedStore?.verifySnapshot(normalizedResult.data);
+  const usableNormalized = normalizedResult.error && !normalizedMissing
+    ? null
+    : normalizedVerification?.valid ? normalizedResult.data : null;
+  const candidates = [
+    legacyResult.data?.state ? { state: legacyResult.data.state, at: legacyResult.data.updated_at, mode: "compatibilidad" } : null,
+    usableNormalized?.state ? { state: usableNormalized.state, at: usableNormalized.created_at, mode: "normalizado" } : null,
+  ].filter(Boolean).sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
 
-  if (error) {
-    updateSyncUi(`No se pudo cargar Supabase: ${error.message}`, "warn");
-    return;
-  }
-
-  if (data?.state) {
-    applyPersistedPayload(data.state);
+  if (candidates[0]?.state) {
+    applyPersistedPayload(candidates[0].state);
     ensureCompleteFinancingSection();
     repairFinancingSectionFromReference();
     ensureVariableOperationalSection();
     applyVariableOperationalMigration();
     saveLocalSnapshot();
     refreshFromPersistedState();
-    updateSyncUi(`Sincronizado. Último cambio: ${new Date(data.updated_at).toLocaleString("es-ES")}.`, "cloud");
+    const integrityNote = normalizedResult.data && !normalizedVerification?.valid
+      ? " La copia normalizada no superó la verificación y se ignoró."
+      : "";
+    const schemaNote = normalizedMissing ? " Esquema normalizado pendiente de instalar." : integrityNote;
+    updateSyncUi(
+      `Sincronizado en modo ${candidates[0].mode}. Último cambio: ${new Date(candidates[0].at).toLocaleString("es-ES")}.${schemaNote}`,
+      normalizedMissing ? "warn" : "cloud",
+    );
+    return;
+  }
+
+  const loadError = legacyResult.error || (!normalizedMissing && normalizedResult.error);
+  if (loadError) {
+    updateSyncUi(`No se pudo cargar Supabase: ${loadError.message}`, "warn");
     return;
   }
 
   await saveRemoteState(true);
 }
 
+async function saveNormalizedRemoteState(payload) {
+  const store = window.FinanceCanonicalSupabaseStore;
+  if (!store) return { mode: "legacy", reason: "adapter-unavailable" };
+  const bundle = store.buildNormalizedBundle(payload, {
+    userId: remoteUser.id,
+    sourceKey: sourceStateKey(),
+  });
+  const startResult = await supabaseClient.from("finance_sync_runs").insert(bundle.syncRun);
+  if (startResult.error) {
+    if (store.isMissingSchemaError(startResult.error)) return { mode: "legacy", reason: "schema-missing" };
+    throw startResult.error;
+  }
+
+  try {
+    for (const [tableName, rows] of Object.entries(bundle.projections)) {
+      if (rows.length) {
+        const upsertResult = await supabaseClient
+          .from(tableName)
+          .upsert(rows, { onConflict: "user_id,source_key,entity_id" });
+        if (upsertResult.error) throw upsertResult.error;
+      }
+      const deactivateResult = await supabaseClient
+        .from(tableName)
+        .update({ active: false, sync_id: bundle.syncId })
+        .eq("user_id", remoteUser.id)
+        .eq("source_key", sourceStateKey())
+        .neq("sync_id", bundle.syncId)
+        .eq("active", true);
+      if (deactivateResult.error) throw deactivateResult.error;
+    }
+
+    const events = bundle.appendOnly.finance_decision_events;
+    if (events.length) {
+      const eventResult = await supabaseClient
+        .from("finance_decision_events")
+        .upsert(events, { onConflict: "user_id,source_key,event_key", ignoreDuplicates: true });
+      if (eventResult.error) throw eventResult.error;
+    }
+    const reconciliationResult = await supabaseClient
+      .from("finance_reconciliation_runs")
+      .insert(bundle.appendOnly.finance_reconciliation_runs);
+    if (reconciliationResult.error) throw reconciliationResult.error;
+    const snapshotResult = await supabaseClient.from("finance_state_snapshots").insert(bundle.snapshotRow);
+    if (snapshotResult.error) throw snapshotResult.error;
+    const completeResult = await supabaseClient
+      .from("finance_sync_runs")
+      .update({ status: "complete", completed_at: new Date().toISOString() })
+      .eq("id", bundle.syncId);
+    if (completeResult.error) throw completeResult.error;
+    return { mode: "normalized", fingerprint: bundle.fingerprint, entityCount: bundle.syncRun.entity_count };
+  } catch (error) {
+    await supabaseClient
+      .from("finance_sync_runs")
+      .update({ status: "failed", completed_at: new Date().toISOString(), metadata: { error: error.message } })
+      .eq("id", bundle.syncId);
+    if (store.isMissingSchemaError(error)) return { mode: "legacy", reason: "schema-incomplete" };
+    throw error;
+  }
+}
+
 async function saveRemoteState(force = false) {
   if (!supabaseClient || !remoteUser || remoteSaveInFlight) return;
   remoteSaveInFlight = true;
   if (!force) updateSyncUi("Guardando cambios en Supabase...", "cloud");
-  const { error } = await supabaseClient.from("finance_dashboard_states").upsert(
-    {
-      user_id: remoteUser.id,
-      source_key: sourceStateKey(),
-      state: appStatePayload(),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,source_key" },
-  );
-  remoteSaveInFlight = false;
-  updateSyncUi(error ? `No se pudo guardar: ${error.message}` : "Cambios sincronizados con Supabase.", error ? "warn" : "cloud");
+  try {
+    refreshCanonicalSnapshot("remote-save");
+    refreshCanonicalLedger("remote-save");
+    const payload = appStatePayload();
+    const legacyResult = await supabaseClient.from("finance_dashboard_states").upsert(
+      {
+        user_id: remoteUser.id,
+        source_key: sourceStateKey(),
+        state: payload,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,source_key" },
+    );
+    if (legacyResult.error) throw legacyResult.error;
+    const normalizedResult = await saveNormalizedRemoteState(payload);
+    const detail = normalizedResult.mode === "normalized"
+      ? ` ${normalizedResult.entityCount} entidades normalizadas y copia versionada.`
+      : " Guardado compatible; instala el esquema normalizado para activar auditoría y versiones.";
+    updateSyncUi(`Cambios sincronizados con Supabase.${detail}`, normalizedResult.mode === "normalized" ? "cloud" : "warn");
+  } catch (error) {
+    updateSyncUi(`No se pudo guardar: ${error.message}`, "warn");
+  } finally {
+    remoteSaveInFlight = false;
+  }
 }
 
 async function handleSyncAuth(mode) {
@@ -15556,6 +15713,7 @@ async function init() {
   qs("addManualData").addEventListener("click", handleManualData);
   qs("importBatchData").addEventListener("click", handleBatchImport);
   qs("exportStateBackup")?.addEventListener("click", downloadStateBackup);
+  qs("prepareCloudRestore")?.addEventListener("click", prepareCloudSnapshotRestore);
   qs("stateBackupFile")?.addEventListener("change", handleStateBackupSelection);
   qs("confirmStateRestore")?.addEventListener("click", confirmStateRestore);
   qs("cancelStateRestore")?.addEventListener("click", cancelStateRestore);

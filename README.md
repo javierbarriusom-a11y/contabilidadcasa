@@ -14,8 +14,9 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 - Fase 7: tesorería diaria canónica, fechas, mínimos intrames y paridad con el cierre mensual.
 - Fase 8: contratos de deuda completos, pagos suspendidos, mora estimada y plan reunificado.
 - Fase 9: comparador trazable de acuerdos y confirmación explícita antes de afectar al plan.
+- Fase 10: persistencia Supabase normalizada, auditoría inmutable y restauración versionada.
 
-La documentación funcional de la fase actual está en [PHASE_9.md](PHASE_9.md).
+La documentación funcional de la fase actual está en [PHASE_10.md](PHASE_10.md). El estado completo del backlog está en [BACKLOG_STATUS.md](BACKLOG_STATUS.md).
 
 ## Arquitectura canónica
 
@@ -27,6 +28,7 @@ La documentación funcional de la fase actual está en [PHASE_9.md](PHASE_9.md).
 - `canonical-daily-engine.js`: calendario diario de cobros, pagos, traspasos y mínimos de caja.
 - `canonical-debt-contracts.js`: normalización y validación de contratos y acuerdos de deuda.
 - `canonical-debt-comparator.js`: comparación de pago único, fraccionado, reunificación, retoma o espera.
+- `canonical-supabase-store.js`: proyección normalizada, huellas de contenido y copias versionadas para Supabase.
 - `app.js`: adaptación de la interfaz al motor canónico y diagnóstico histórico opcional.
 
 El motor histórico no participa en la ejecución normal. Una invariante rota bloquea el cálculo en lugar de sustituirlo silenciosamente por otra regla.
@@ -39,6 +41,17 @@ python3 -m http.server 4182
 ```
 
 Después abre `http://127.0.0.1:4182/index.html#reconciliation`.
+
+## Activar la persistencia normalizada
+
+La app mantiene compatibilidad con `finance_dashboard_states` y puede seguir funcionando mientras se despliega el nuevo esquema. Para activar cuentas, movimientos, partidas, deudas, proyectos, decisiones, auditoría y copias por separado:
+
+1. Abre el editor SQL del proyecto Supabase.
+2. Ejecuta el contenido completo de `supabase_schema.sql`.
+3. Inicia sesión en la app y pulsa `Sincronizar`.
+4. Comprueba en `finance_sync_runs` que el último registro tiene estado `complete`.
+
+Cada sincronización conserva además una copia completa en `finance_state_snapshots`. `Recuperar versión anterior` restaura creando una versión nueva: no sobrescribe ni borra el historial.
 
 ## Publicacion en GitHub Pages
 
@@ -56,8 +69,4 @@ La app contiene datos financieros personales dentro de `data.js`. Si se publica 
 
 ## Actualizar datos
 
-Cuando se regenere el dashboard desde el Excel:
-
-1. Copiar de nuevo `index.html`, `app.js`, `data.js` y `styles.css` desde la carpeta `app`.
-2. Hacer commit y push a `main`.
-3. GitHub Pages actualizara la web automaticamente.
+Las importaciones se confirman desde la propia app y actualizan el modelo canónico. Para publicar código, haz commit y push a `main`; GitHub Pages actualizará la web automáticamente.
