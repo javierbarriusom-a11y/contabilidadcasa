@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260714a" />
+    <link rel="stylesheet" href="styles.css?v=20260715a" />
   </head>
   <body>
     <div class="app-shell">
@@ -1839,6 +1839,27 @@
               </details>
             </article>
 
+            <article class="ledger-panel canonical-engine-panel daily-engine-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Auditoria dia a dia</p>
+                  <h3>Fechas, cuentas y minimos auditados</h3>
+                  <p>Desglosa el mismo flujo canonico por fecha de cobro, pago y traspaso para comprobar el punto de caja mas delicado.</p>
+                </div>
+              </div>
+              <div class="audit-kpi-grid" id="canonicalDailyEngineKpis"></div>
+              <div class="ledger-invariant-grid" id="canonicalDailyEngineInvariants"></div>
+              <details class="canonical-engine-details">
+                <summary id="canonicalDailyEngineSummary">Auditoria diaria pendiente</summary>
+                <div class="table-wrap ledger-table-wrap">
+                  <table class="ledger-table">
+                    <thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Ahorro</th><th>Cierre CaixaBank</th><th>Cierre Mediolanum</th><th>Minimo</th><th>Estado</th></tr></thead>
+                    <tbody id="canonicalDailyEngineRows"></tbody>
+                  </table>
+                </div>
+              </details>
+            </article>
+
             <article class="ledger-panel ledger-month-panel">
               <div class="module-heading">
                 <div>
@@ -2043,11 +2064,14 @@
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
     <script src="state-contract.js?v=20260713a"></script>
-    <script src="canonical-state.js?v=20260713c"></script>
+    <script src="canonical-state.js?v=20260714e"></script>
     <script src="canonical-ledger.js?v=20260713d"></script>
     <script src="canonical-engine.js?v=20260713e"></script>
-    <script src="canonical-decisions.js?v=20260714b"></script>
+    <script src="canonical-daily-engine.js?v=20260714a"></script>
+    <script src="canonical-debt-contracts.js?v=20260714b"></script>
+    <script src="canonical-debt-comparator.js?v=20260715a"></script>
+    <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-workflow.js?v=20260714a"></script>
-    <script src="app.js?v=20260714b"></script>
+    <script src="app.js?v=20260715a"></script>
   </body>
 </html>

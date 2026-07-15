@@ -6,7 +6,7 @@
   "use strict";
 
   const SCHEMA_ID = "finanzas-casa-canonical";
-  const SCHEMA_VERSION = 1;
+  const SCHEMA_VERSION = 2;
   const STATUSES = ["simulated", "pending", "approved", "fixed", "executed", "cancelled"];
   const PROVENANCE = ["verified", "declared", "estimated", "hypothetical"];
   const STATUS_ALIASES = {
@@ -134,6 +134,38 @@
       monthKey: item.monthKey || item.startMonthKey || "",
       owner: item.owner || "household",
       mode: item.payoffMode || item.mode || "",
+    });
+  }
+
+  function debtContractEntity(item, index) {
+    const contract = item || {};
+    const statusByPaymentStatus = {
+      settled: "executed",
+      reunified: "fixed",
+      active: "approved",
+      suspended: "pending",
+    };
+    const identity = contract.id || [contract.entity, contract.type, contract.number, index];
+    return finishEntity({
+      id: stableId("debt-contract", identity),
+      kind: "debt-contract",
+      legacyId: contract.id || "",
+      label: [contract.entity, contract.type, contract.number].filter(Boolean).join(" · ") || `Contrato ${index + 1}`,
+      status: canonicalStatus(statusByPaymentStatus[contract.paymentStatus] || contract.status, "pending"),
+      provenance: contract.provenance || "declared",
+      source: contract.source || "debt-portfolio",
+      amount: numeric(contract.currentPrincipal),
+      monthKey: contract.suspensionStart || contract.maturityMonth || "",
+      owner: contract.owner || "household",
+      paymentStatus: contract.paymentStatus || "",
+      currentPayment: numeric(contract.currentPayment),
+      scheduledPayment: numeric(contract.scheduledPayment),
+      originalPayment: numeric(contract.originalPayment),
+      arrearsMonths: numeric(contract.arrearsMonths),
+      arrearsEstimated: numeric(contract.arrearsEstimated),
+      remainingInstallments: numeric(contract.remainingInstallments),
+      agreement: contract.agreement || null,
+      reunified: Boolean(contract.reunified),
     });
   }
 
@@ -323,6 +355,7 @@
     const entities = {
       projects: dedupe((payload.projects || []).map(projectEntity), issues),
       debtDecisions: dedupe((payload.debtLiquidations || []).map(debtEntity), issues),
+      debtContracts: dedupe((payload.debtContracts || []).map(debtContractEntity), issues),
       planningRows: dedupe((payload.customPlanningRows || []).map(planningEntity), issues),
       actuals: dedupe([
         ...actualEntities(payload.incomeActuals, "income"),

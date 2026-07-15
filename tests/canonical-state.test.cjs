@@ -59,6 +59,46 @@ test("una decisión de deuda conserva identidad aunque cambien nombre y modalida
   assert.equal(second.auditTrail[0].changes.changed, 1);
 });
 
+test("los contratos de deuda conservan suspensión, atrasos y reunificación como estados distintos", () => {
+  const snapshot = canonical.buildCanonicalSnapshot(payload({
+    debtContracts: [
+      {
+        id: "wizink-suspendida",
+        entity: "Wizink",
+        type: "Tarjeta",
+        number: "5267",
+        currentPrincipal: 7381.63,
+        currentPayment: 0,
+        scheduledPayment: 0,
+        paymentStatus: "suspended",
+        paymentsSuspended: true,
+        arrearsMonths: 6,
+        arrearsEstimated: 1150.32,
+      },
+      {
+        id: "cetelem-reunificado",
+        entity: "Cetelem",
+        type: "Plan reunificado",
+        number: "reunificacion-cetelem",
+        currentPrincipal: 20614.41,
+        currentPayment: 259,
+        scheduledPayment: 259,
+        paymentStatus: "reunified",
+        reunified: true,
+      },
+    ],
+  }));
+
+  const suspended = snapshot.entities.debtContracts.find((item) => item.legacyId === "wizink-suspendida");
+  const reunified = snapshot.entities.debtContracts.find((item) => item.legacyId === "cetelem-reunificado");
+
+  assert.equal(suspended.status, "pending");
+  assert.equal(suspended.currentPayment, 0);
+  assert.equal(suspended.arrearsEstimated, 1150.32);
+  assert.equal(reunified.status, "fixed");
+  assert.equal(reunified.currentPayment, 259);
+});
+
 test("la migración inventaría todas las colecciones persistidas", () => {
   const snapshot = canonical.buildCanonicalSnapshot(payload({
     projects: [{ id: "p1", name: "Lavadora", amount: 900, status: "pendiente" }],

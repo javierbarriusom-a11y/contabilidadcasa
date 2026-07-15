@@ -54,6 +54,7 @@ let movementMappings = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
+let canonicalDailyEngineRuns = { base: null, active: null, planned: null };
 let canonicalDecisionRun = null;
 let canonicalDiagnosticsEnabled = false;
 let decisionWorkflow = null;
@@ -76,6 +77,7 @@ let visualDraftProjectCells = {};
 let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
+let pendingDebtReviewOptions = new Map();
 let pendingProjectDecision = null;
 let pendingStateRestore = null;
 let agentDebtOptimizationCache = { key: "", value: null };
@@ -131,6 +133,8 @@ const DEBT_PORTFOLIO = [
 const CURRENT_REUNIFIED_DEBT_PAYMENT = 259;
 const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 130;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
+const DebtContracts = globalThis.FinanceDebtContracts || null;
+const DebtComparator = globalThis.FinanceDebtComparator || null;
 const DEBT_LIQUIDATION_ASSUMPTIONS = {
   baseStartingLiquidity: 13464.57,
   targetReserve: 4000,
@@ -229,6 +233,7 @@ const USER_REMOVED_FINANCING_KEYS = new Set([
 const CANONICAL_STATE_KEY = "canonicalStateV1";
 const CANONICAL_LEDGER_KEY = "canonicalLedgerV1";
 const CANONICAL_ENGINE_KEY = "canonicalEngineV1";
+const CANONICAL_DAILY_ENGINE_KEY = "canonicalDailyEngineV1";
 const CANONICAL_DECISIONS_KEY = "canonicalDecisionsV1";
 const DECISION_WORKFLOW_KEY = "decisionWorkflowV1";
 
@@ -358,8 +363,21 @@ function dateInMonth(date, day) {
   return new Date(date.getFullYear(), date.getMonth(), cappedDay);
 }
 
+function isoLocalDate(value) {
+  const date = value instanceof Date ? value : localDateFromIso(value);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function localDateFromIso(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 function shortDate(value) {
-  const date = value instanceof Date ? value : new Date(value);
+  const date = value instanceof Date ? value : localDateFromIso(value) || new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "2-digit" }).replace(/\./g, "");
 }
@@ -516,6 +534,31 @@ function compactCanonicalEngineRuns() {
   }, {});
 }
 
+function compactCanonicalDailyRun(run) {
+  if (!run || typeof run !== "object") return null;
+  return {
+    schemaId: run.schemaId || run.schema,
+    generatedAt: run.generatedAt,
+    fingerprint: run.fingerprint,
+    sourceStatus: run.sourceStatus,
+    monthlyFingerprint: run.monthlyFingerprint || "",
+    rowCount: Number(run.rowCount || run.rows?.length || 0),
+    eventCount: Number(run.eventCount || 0),
+    policy: run.policy || null,
+    monthly: Array.isArray(run.monthly) ? run.monthly : [],
+    confidence: run.confidence || null,
+    invariants: run.invariants || null,
+    auditTrail: Array.isArray(run.auditTrail) ? run.auditTrail : [],
+  };
+}
+
+function compactCanonicalDailyRuns() {
+  return ["base", "active", "planned"].reduce((runs, key) => {
+    runs[key] = compactCanonicalDailyRun(canonicalDailyEngineRuns[key]);
+    return runs;
+  }, {});
+}
+
 function compactCanonicalDecisionRun(run) {
   if (!run || typeof run !== "object") return null;
   return {
@@ -551,11 +594,13 @@ function appStatePayload(options = {}) {
     seriesOverrides,
     rowLabelOverrides,
     movementMappings,
+    debtContracts: canonicalDebtContractRows(),
   };
   if (options.includeCanonical !== false) {
     payload.canonicalSnapshot = canonicalSnapshot;
     payload.canonicalLedgerSnapshot = canonicalLedgerSnapshot;
     payload.canonicalEngineRuns = compactCanonicalEngineRuns();
+    payload.canonicalDailyEngineRuns = compactCanonicalDailyRuns();
     payload.canonicalDecisionRun = compactCanonicalDecisionRun(canonicalDecisionRun);
     payload.decisionWorkflow = decisionWorkflow;
   }
@@ -717,6 +762,17 @@ function applyPersistedPayload(payload = {}) {
         return runs;
       }, {})
     : { base: null, active: null, planned: null };
+  canonicalDailyEngineRuns = payload.canonicalDailyEngineRuns && typeof payload.canonicalDailyEngineRuns === "object"
+    ? ["base", "active", "planned"].reduce((runs, key) => {
+        const run = payload.canonicalDailyEngineRuns[key];
+        runs[key] =
+          (run?.schemaId || run?.schema) === window.FinanceCanonicalDailyEngine?.SCHEMA_ID &&
+          run?.sourceStatus === "canonical-daily"
+            ? run
+            : null;
+        return runs;
+      }, {})
+    : { base: null, active: null, planned: null };
   canonicalDecisionRun =
     payload.canonicalDecisionRun?.schemaId === window.FinanceCanonicalDecisions?.SCHEMA_ID &&
     payload.canonicalDecisionRun?.sourceStatus === "canonical"
@@ -746,6 +802,7 @@ function saveLocalSnapshot() {
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
+  if (canonicalDailyEngineRuns) storageSet(storageKey(CANONICAL_DAILY_ENGINE_KEY), JSON.stringify(compactCanonicalDailyRuns()));
   if (canonicalDecisionRun) storageSet(storageKey(CANONICAL_DECISIONS_KEY), JSON.stringify(compactCanonicalDecisionRun(canonicalDecisionRun)));
   if (decisionWorkflow) storageSet(storageKey(DECISION_WORKFLOW_KEY), JSON.stringify(decisionWorkflow));
 }
@@ -1024,6 +1081,58 @@ function renderCanonicalEngineStatus() {
     : `<tr><td colspan="6"><div class="audit-empty good"><strong>${diagnosticRuns.length ? "Paridad completa" : "Sin diagnóstico"}</strong><p>${diagnosticRuns.length ? "La referencia histórica coincide con el motor canónico." : "Pulsa Comparar con histórico para generar evidencia opcional."}</p></div></td></tr>`;
 }
 
+function renderCanonicalDailyEngineStatus() {
+  const panel = qs("canonicalDailyEngineKpis");
+  if (!panel) return;
+  const run = canonicalDailyEngineRuns.active;
+  const invariantPanel = qs("canonicalDailyEngineInvariants");
+  const summary = qs("canonicalDailyEngineSummary");
+  const rowsTarget = qs("canonicalDailyEngineRows");
+  if (!run) {
+    panel.innerHTML = `<div class="audit-empty"><strong>Auditoría diaria pendiente</strong><p>El calendario se genera al calcular el escenario activo.</p></div>`;
+    if (invariantPanel) invariantPanel.innerHTML = "";
+    if (summary) summary.textContent = "Sin calendario diario disponible";
+    if (rowsTarget) rowsTarget.innerHTML = `<tr><td colspan="8"><div class="audit-empty">Calcula el escenario activo para auditar fechas y saldos diarios.</div></td></tr>`;
+    return;
+  }
+  const monthly = run.monthly || [];
+  const checks = run.invariants?.checks || {};
+  const matched = monthly.filter((row) => row.matched).length;
+  const minimum = monthly.reduce((selected, row) => !selected || Number(row.minTotal || 0) < Number(selected.minTotal || 0) ? row : selected, null);
+  const confidence = run.confidence || {};
+  panel.innerHTML = [
+    ["Días auditados", String(Number(run.rowCount || run.rows?.length || 0)), `${Number(run.eventCount || 0)} eventos con fecha y cuenta`, "good"],
+    ["Cierres que cuadran", `${matched} / ${monthly.length}`, "El cierre diario coincide con el flujo mensual canónico", matched === monthly.length ? "good" : "warn"],
+    ["Mínimo diario", minimum ? money(minimum.minTotal, true) : "-", minimum ? `${ledgerMonthLabel(minimum.monthKey)} · ${shortDate(minimum.minTotalDate)} · ${minimum.minTotalEvent || "sin evento"}` : "Sin meses auditados", minimum && Number(minimum.minTotal || 0) >= Number(run.policy?.operatingReserve || 0) ? "good" : "warn"],
+    ["Confianza observada", String(Number(confidence.observed || 0)), `${Number(confidence.rule || 0)} reglas y ${Number(confidence.estimated || 0)} estimaciones`, "good"],
+  ].map(([label, value, detail, tone]) => `<article class="audit-kpi ${tone}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><p>${escapeHtml(detail)}</p></article>`).join("");
+
+  if (invariantPanel) {
+    invariantPanel.innerHTML = [
+      renderLedgerInvariant("Valores finitos", Boolean(checks.finite), checks.finite ? "Todos los eventos y saldos diarios tienen importes válidos." : "Hay un importe diario no válido."),
+      renderLedgerInvariant("Conservación diaria", Boolean(checks.dailyConservation), checks.dailyConservation ? "Ingresos menos gastos explican el saldo total de cada día." : "Hay un movimiento diario sin contrapartida."),
+      renderLedgerInvariant("Continuidad diaria", Boolean(checks.continuity), checks.continuity ? "Cada apertura coincide con el cierre del día anterior." : "Existe un salto entre días consecutivos."),
+      renderLedgerInvariant("Paridad mensual", Boolean(checks.monthlyParity), checks.monthlyParity ? "El detalle por fecha y el motor mensual cierran igual." : "Hay una diferencia entre el calendario diario y el flujo mensual."),
+      renderLedgerInvariant("Traspasos neutros", Boolean(checks.transferConservation), checks.transferConservation ? "Mover dinero entre cuentas no altera la liquidez total." : "Un traspaso altera indebidamente la liquidez."),
+    ].join("");
+  }
+  if (summary) summary.textContent = `${matched} de ${monthly.length} meses auditados coinciden con el motor mensual. Muestra los cierres y el punto mínimo de cada mes.`;
+  if (rowsTarget) {
+    rowsTarget.innerHTML = monthly.length
+      ? monthly.map((row) => `<tr>
+          <td><strong>${escapeHtml(ledgerMonthLabel(row.monthKey))}</strong></td>
+          <td class="positive">${money(row.income, true)}</td>
+          <td class="negative">${money(row.outflowsBeforeSaving, true)}</td>
+          <td>${money(row.saving, true)}</td>
+          <td>${money(row.closingChecking, true)}</td>
+          <td>${money(row.closingSavings, true)}</td>
+          <td>${money(row.minTotal, true)}<small>${escapeHtml(shortDate(row.minTotalDate))} · ${escapeHtml(row.minTotalEvent || "apertura")}</small></td>
+          <td><span class="ledger-status ${row.matched ? "matched" : "difference"}">${row.matched ? "Cuadrado" : "Revisar"}</span></td>
+        </tr>`).join("")
+      : `<tr><td colspan="8"><div class="audit-empty">No hay meses que auditar.</div></td></tr>`;
+  }
+}
+
 function renderReconciliation() {
   if (!window.FinanceCanonicalLedger) return;
   const snapshot = refreshCanonicalLedger("reconciliation-view");
@@ -1056,6 +1165,7 @@ function renderReconciliation() {
     renderLedgerInvariant("Banco igual a real", actualsReconciled, actualsReconciled ? "Los meses importados coinciden con los reales capturados." : `${months.length - balancedMonths} mes(es) tienen diferencias o clasificación pendiente.`),
   ].join("");
   renderCanonicalEngineStatus();
+  renderCanonicalDailyEngineStatus();
 
   qs("ledgerMonthRows").innerHTML = months.length
     ? months.slice().reverse().map((row) => `<tr>
@@ -1141,6 +1251,7 @@ function loadLocalState() {
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
       canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
+      canonicalDailyEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_DAILY_ENGINE_KEY), "null")),
       canonicalDecisionRun: JSON.parse(storageGet(storageKey(CANONICAL_DECISIONS_KEY), "null")),
       decisionWorkflow: JSON.parse(storageGet(storageKey(DECISION_WORKFLOW_KEY), "null")),
     });
@@ -1160,6 +1271,7 @@ function loadLocalState() {
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
+    canonicalDailyEngineRuns = { base: null, active: null, planned: null };
     canonicalDecisionRun = null;
     decisionWorkflow = null;
   }
@@ -2901,6 +3013,11 @@ function isPrePayrollIncomeRow(row) {
   return label === "local" || /(^|\b)(nomina|salario)\s+tere(\b|$)/.test(label) || /\btere\b.*\b(nomina|salario)\b/.test(label);
 }
 
+function isMainPayrollIncomeRow(row) {
+  const label = normalizedText(displayLabelForRow(row));
+  return /(^|\b)(nomina|salario)\s+javi(\b|$)|\bjavi\b.*\b(nomina|salario)\b/.test(label);
+}
+
 function incomeTimingFromMovements(row, month, amount) {
   const label = normalizedText(displayLabelForRow(row));
   const monthKeyValue = month?.key || "";
@@ -2924,12 +3041,15 @@ function incomeTimingFromMovements(row, month, amount) {
     .sort((a, b) => b.score - a.score || a.amountDistance - b.amountDistance);
   const best = candidates[0]?.transaction;
   if (!best?.date) return null;
-  const date = new Date(best.date);
-  if (Number.isNaN(date.getTime())) return null;
+  const date = localDateFromIso(best.date) || new Date(best.date);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
   return {
     day: date.getDate(),
+    date: isoLocalDate(date),
     source: "movimiento real identificado",
     label: shortDate(date),
+    confidence: "observed",
+    role: "",
   };
 }
 
@@ -2937,10 +3057,10 @@ function incomeTimingForRow(row, month, amount) {
   const label = normalizedText(displayLabelForRow(row));
   const date = dateFromMonthKey(month.key);
   if (label.includes("local")) {
-    return { day: 1, source: "regla local", label: dateWithMonthLabel(date, 1) };
+    return { day: 1, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 1, 12)), source: "regla local", label: dateWithMonthLabel(date, 1), confidence: "rule", role: "" };
   }
   if (/(\bnomina\b|\bsalario\b).*\btere\b|\btere\b.*(\bnomina\b|\bsalario\b)/.test(label)) {
-    return { day: 25, source: "regla salario Tere", label: dateWithMonthLabel(date, 25) };
+    return { day: 25, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 25, 12)), source: "regla salario Tere", label: dateWithMonthLabel(date, 25), confidence: "rule", role: "" };
   }
   if (
     label.includes("bonus") ||
@@ -2948,15 +3068,15 @@ function incomeTimingForRow(row, month, amount) {
     (date.getMonth() === 11 && (label.includes("hacienda") || label.includes("extra") || Number(amount || 0) >= 2500))
   ) {
     const day = date.getMonth() === 11 ? 15 : lastBusinessDayOfMonth(date).getDate();
-    return { day, source: date.getMonth() === 11 ? "regla bono diciembre" : "regla bonus Javi", label: dateWithMonthLabel(date, day) };
+    return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: date.getMonth() === 11 ? "regla bono diciembre" : "regla bonus Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "" };
   }
-  if (/(^|\b)(nomina|salario)\s+javi(\b|$)|\bjavi\b.*\b(nomina|salario)\b/.test(label)) {
+  if (isMainPayrollIncomeRow(row)) {
     const day = lastBusinessDayOfMonth(date).getDate();
-    return { day, source: "regla nómina Javi", label: dateWithMonthLabel(date, day) };
+    return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla nómina Javi", label: dateWithMonthLabel(date, day), confidence: "rule", role: "main-payroll" };
   }
   const movementTiming = incomeTimingFromMovements(row, month, amount);
   if (movementTiming) return movementTiming;
-  return { day: 8, source: "estimación alisada 1-15", label: dateWithMonthLabel(date, 8) };
+  return { day: 8, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 8, 12)), source: "estimación alisada 1-15", label: dateWithMonthLabel(date, 8), confidence: "estimated", role: "" };
 }
 
 function isEndOfMonthExpenseRow(row) {
@@ -2970,13 +3090,38 @@ function isEndOfMonthExpenseRow(row) {
   );
 }
 
-function expenseTimingForRow(row, month) {
+function expenseTimingFromMovements(row, month, amount) {
+  const label = normalizedText(displayLabelForRow(row));
+  const tokens = label.split(/\s+/).filter((token) => token.length >= 4 && !["gasto", "cuota", "pago", "tarjeta"].includes(token));
+  if (!month?.key || !tokens.length || !Number(amount || 0)) return null;
+  const candidates = (baseData?.transactions || [])
+    .filter((transaction) => transaction.month === month.key && Number(transaction.amount || 0) < 0)
+    .map((transaction) => {
+      const text = normalizedText(`${transaction.movement || ""} ${transaction.details || ""} ${transaction.category || ""}`);
+      const tokenHits = tokens.filter((token) => text.includes(token)).length;
+      const amountDistance = Math.abs(Math.abs(Number(transaction.amount || 0)) - Math.abs(Number(amount || 0)));
+      let score = tokenHits * 3;
+      if (amountDistance <= 0.02) score += 4;
+      else if (amountDistance <= Math.max(2, Math.abs(amount) * 0.03)) score += 2;
+      return { transaction, score, amountDistance };
+    })
+    .filter((item) => item.score >= 5)
+    .sort((a, b) => b.score - a.score || a.amountDistance - b.amountDistance);
+  const best = candidates[0]?.transaction;
+  const date = localDateFromIso(best?.date) || (best?.date ? new Date(best.date) : null);
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  return { day: date.getDate(), date: isoLocalDate(date), source: "movimiento real identificado", label: shortDate(date), confidence: "observed", role: "" };
+}
+
+function expenseTimingForRow(row, month, amount) {
   const date = dateFromMonthKey(month.key);
   if (isEndOfMonthExpenseRow(row)) {
     const day = monthEndDate(date).getDate();
-    return { day, source: "regla gasto fin de mes", label: dateWithMonthLabel(date, day), endOfMonth: true };
+    return { day, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), day, 12)), source: "regla gasto fin de mes", label: dateWithMonthLabel(date, day), confidence: "rule", role: "", endOfMonth: true };
   }
-  return null;
+  const movementTiming = expenseTimingFromMovements(row, month, amount);
+  if (movementTiming) return movementTiming;
+  return { day: 8, date: isoLocalDate(new Date(date.getFullYear(), date.getMonth(), 8, 12)), source: "estimación alisada 1-15", label: dateWithMonthLabel(date, 8), confidence: "estimated", role: "" };
 }
 
 function incomeEventsForMonth(month, forecastIndex, options = {}) {
@@ -2994,8 +3139,11 @@ function incomeEventsForMonth(month, forecastIndex, options = {}) {
         concept: displayLabelForRow(row),
         amount,
         day: timing.day,
+        date: timing.date,
         dateLabel: timing.label,
         source: timing.source,
+        confidence: timing.confidence,
+        role: timing.role,
       });
     });
   });
@@ -3025,6 +3173,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
     variableOperationalSpend: 0,
     endOfMonthSpend: 0,
     incomeEvents: [],
+    expenseEvents: [],
   };
 
   planningSectionsForMonth(null, month).forEach((section) => {
@@ -3047,15 +3196,35 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
       }
       if (section.kind !== "expense") return;
 
+      let field = "fixedCoreSpend";
       if (isCarPlanningRow(row)) {
         sectionCar += value;
+        field = "car";
       } else if (isFinancingPlanningRow(section, row)) {
         sectionRefi += value;
+        field = "refi";
       } else {
-        if (isVariableOperationalRow(row)) sectionVariableOperationalSpend += value;
+        if (isVariableOperationalRow(row)) {
+          sectionVariableOperationalSpend += value;
+          field = "variableOperationalSpend";
+        }
         sectionCoreSpend += value;
       }
-      if (expenseTimingForRow(row, month)?.endOfMonth) sectionEndOfMonthSpend += value;
+      if (value) {
+        const timing = expenseTimingForRow(row, month, value);
+        breakdown.expenseEvents.push({
+          concept: displayLabelForRow(row),
+          amount: round2(value),
+          field,
+          day: timing.day,
+          date: timing.date,
+          dateLabel: timing.label,
+          source: timing.source,
+          confidence: timing.confidence,
+          role: timing.role,
+        });
+        if (timing.endOfMonth) sectionEndOfMonthSpend += value;
+      }
     });
 
     if (section.kind === "income") {
@@ -3603,6 +3772,202 @@ function assertCanonicalSnapshot(snapshot, context) {
   throw new Error(`El motor financiero canónico no supera sus invariantes en ${context}${issues ? `: ${issues}` : "."}`);
 }
 
+function requiredCanonicalDailyEngine() {
+  const engine = window.FinanceCanonicalDailyEngine;
+  if (!engine) throw new Error("Auditoría diaria canónica no disponible.");
+  return engine;
+}
+
+function assertCanonicalDailySnapshot(snapshot, context) {
+  if (snapshot?.invariants?.valid) return;
+  const issues = (snapshot?.invariants?.issues || [])
+    .map((issue) => issue.type || issue.message || "invariante desconocida")
+    .join(", ");
+  throw new Error(`La auditoría diaria no supera sus invariantes en ${context}${issues ? `: ${issues}` : "."}`);
+}
+
+function dailyAuditFallbackDate(monthKeyValue, day = 8) {
+  const monthDate = dateFromMonthKey(monthKeyValue);
+  if (!(monthDate instanceof Date) || Number.isNaN(monthDate.getTime())) return "";
+  return isoLocalDate(dateInMonth(monthDate, day));
+}
+
+function pushDailyAuditEvent(events, month, input = {}) {
+  const amount = round2(Number(input.amount || 0));
+  if (Math.abs(amount) < 0.005) return;
+  const eventIndex = events.length + 1;
+  events.push({
+    id: `daily-${month.monthKey}-${input.field || input.kind || "event"}-${eventIndex}`,
+    date: input.date || dailyAuditFallbackDate(month.monthKey, input.day || 8),
+    kind: input.kind || "outflow",
+    field: input.field || "fixedCoreSpend",
+    label: input.label || "Movimiento estimado",
+    amount,
+    accountId: input.accountId || "checking",
+    fromAccountId: input.fromAccountId || "checking",
+    toAccountId: input.toAccountId || "savings",
+    source: input.source || "motor mensual canónico",
+    confidence: input.confidence || "estimated",
+    role: input.role || "",
+    priority: Number(input.priority ?? 50),
+    sequence: eventIndex,
+  });
+}
+
+function distributeDailyAuditEvents(events, month, items, target, defaults = {}) {
+  const amountTarget = round2(Number(target || 0));
+  if (Math.abs(amountTarget) < 0.005) return;
+  const usable = (items || []).filter((item) => Math.abs(Number(item?.amount || 0)) >= 0.005);
+  const sourceTotal = usable.reduce((sum, item) => sum + Math.abs(Number(item.amount || 0)), 0);
+  if (!usable.length || sourceTotal < 0.005) {
+    pushDailyAuditEvent(events, month, { ...defaults, amount: amountTarget });
+    return;
+  }
+  let assigned = 0;
+  usable.forEach((item, index) => {
+    const amount = index === usable.length - 1
+      ? round2(amountTarget - assigned)
+      : round2(amountTarget * (Math.abs(Number(item.amount || 0)) / sourceTotal));
+    assigned = round2(assigned + amount);
+    pushDailyAuditEvent(events, month, {
+      ...defaults,
+      amount,
+      date: item.date || defaults.date,
+      label: item.concept || item.label || defaults.label,
+      source: item.source || defaults.source,
+      confidence: item.confidence || defaults.confidence,
+      role: item.role || defaults.role,
+    });
+  });
+}
+
+function canonicalDailyInput(monthlyInput, rows) {
+  const events = [];
+  const months = (monthlyInput.months || []).map((month, index) => {
+    const row = rows[index] || {};
+    const payrollDate = month.mainPayrollDate || dailyAuditFallbackDate(month.monthKey, lastBusinessDayOfMonth(dateFromMonthKey(month.monthKey)).getDate());
+    const fixedCoreSpend = round2(Number(row.fixedCoreSpend ?? Math.max(0, Number(row.coreSpend || 0) - Number(row.variableOperationalSpend || 0))));
+    const variableOperationalSpend = round2(Number(row.variableOperationalSpend || 0));
+    const car = round2(Number(row.car || 0));
+    const refi = round2(Number(row.refi || 0));
+    const projectOutflow = round2(Number(row.projectOutflow || 0));
+    const incomeEvents = month.incomeEvents || [];
+    const expenseEvents = month.expenseEvents || [];
+
+    distributeDailyAuditEvents(events, month, incomeEvents, row.income, {
+      kind: "income",
+      field: "income",
+      accountId: "checking",
+      label: "Ingresos del mes",
+      date: dailyAuditFallbackDate(month.monthKey, 8),
+      source: "planificación mensual",
+      confidence: "estimated",
+      priority: 20,
+    });
+    distributeDailyAuditEvents(events, month, expenseEvents.filter((event) => event.field === "fixedCoreSpend"), fixedCoreSpend, {
+      kind: "outflow",
+      field: "fixedCoreSpend",
+      accountId: "checking",
+      label: "Gastos fijos",
+      date: dailyAuditFallbackDate(month.monthKey, 8),
+      source: "planificación mensual",
+      confidence: "estimated",
+      priority: 40,
+    });
+    distributeDailyAuditEvents(events, month, expenseEvents.filter((event) => event.field === "variableOperationalSpend"), variableOperationalSpend, {
+      kind: "outflow",
+      field: "variableOperationalSpend",
+      accountId: "checking",
+      label: "Gastos variables",
+      date: dailyAuditFallbackDate(month.monthKey, 8),
+      source: "planificación mensual",
+      confidence: "estimated",
+      priority: 45,
+    });
+    distributeDailyAuditEvents(events, month, expenseEvents.filter((event) => event.field === "car"), car, {
+      kind: "outflow",
+      field: "car",
+      accountId: "checking",
+      label: "Coche",
+      date: dailyAuditFallbackDate(month.monthKey, 8),
+      source: "planificación mensual",
+      confidence: "estimated",
+      priority: 50,
+    });
+    distributeDailyAuditEvents(events, month, expenseEvents.filter((event) => event.field === "refi"), refi, {
+      kind: "outflow",
+      field: "refi",
+      accountId: "checking",
+      label: "Financiación",
+      date: dailyAuditFallbackDate(month.monthKey, 8),
+      source: "planificación mensual",
+      confidence: "estimated",
+      priority: 55,
+    });
+    pushDailyAuditEvent(events, month, {
+      kind: "outflow",
+      field: "projectOutflow",
+      accountId: "checking",
+      label: "Proyecto o decisión",
+      amount: projectOutflow,
+      date: payrollDate,
+      source: "calendario de decisiones",
+      confidence: "rule",
+      priority: 60,
+    });
+    pushDailyAuditEvent(events, month, {
+      kind: "transfer",
+      field: "saving",
+      fromAccountId: "checking",
+      toAccountId: "savings",
+      label: "Traspaso a Mediolanum",
+      amount: Number(row.saving || 0),
+      date: payrollDate,
+      source: "política de ahorro",
+      confidence: "rule",
+      role: "main-payroll",
+      priority: 90,
+    });
+
+    return {
+      monthKey: month.monthKey,
+      label: month.month,
+      mainPayrollDate: payrollDate,
+      expected: {
+        income: round2(Number(row.income || 0)),
+        outflowsBeforeSaving: round2(Number(row.outflowsBeforeSaving || 0)),
+        saving: round2(Number(row.saving || 0)),
+        closingChecking: round2(Number(row.checking || 0)),
+        closingSavings: round2(Number(row.savings || 0)),
+        closingLiquidity: round2(Number(row.totalLiquidity || 0)),
+      },
+    };
+  });
+  return {
+    openingBalances: monthlyInput.openingBalances,
+    policy: { operatingReserve: Number(state.operatingReserve || 0) },
+    months,
+    events,
+    startDate: months.length ? `${months[0].monthKey}-01` : "",
+    endDate: months.length ? isoLocalDate(monthEndDate(dateFromMonthKey(months.at(-1).monthKey))) : "",
+  };
+}
+
+function refreshCanonicalDailyAudit(monthlyInput, rows, context) {
+  const engine = requiredCanonicalDailyEngine();
+  const monthlyRun = canonicalEngineRuns[context];
+  const previous = canonicalDailyEngineRuns[context];
+  if (previous?.monthlyFingerprint && previous.monthlyFingerprint === monthlyRun?.fingerprint && previous?.invariants?.valid) return previous;
+  const input = canonicalDailyInput(monthlyInput, rows);
+  const snapshot = engine.buildSnapshot(input, previous, { reason: `simulation-${context}` });
+  snapshot.schemaId = engine.SCHEMA_ID;
+  snapshot.monthlyFingerprint = monthlyRun?.fingerprint || "";
+  snapshot.sourceStatus = "canonical-daily";
+  assertCanonicalDailySnapshot(snapshot, context);
+  canonicalDailyEngineRuns[context] = snapshot;
+  return snapshot;
+}
+
 function canonicalEngineInput(projectOutflows = [], options = {}) {
   const start = modelStartDate();
   const startingBalances = accountBalancesFromState();
@@ -3629,6 +3994,8 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
       endOfMonthOutflows: detail.endOfMonthSpend,
       prePayrollIncome: detail.prePayrollIncome,
       incomeEvents,
+      expenseEvents: detail.expenseEvents || [],
+      mainPayrollDate: isoLocalDate(payrollDate),
       firstIncomeDateLabel: incomeEvents[0]?.dateLabel || dateWithMonthLabel(monthDate, 8),
       mainPayrollDateLabel: shortDate(payrollDate),
       lastIncomeDateLabel: dateWithMonthLabel(monthDate, lastIncomeDay),
@@ -3670,6 +4037,7 @@ function simulate(projectOutflows = [], options = {}) {
     : null;
   snapshot.sourceStatus = "canonical";
   canonicalEngineRuns[context] = snapshot;
+  if (context === "active") refreshCanonicalDailyAudit(input, snapshot.rows, context);
   return snapshot.rows;
 }
 
@@ -4108,8 +4476,14 @@ function debtTargetIsSuspended(target) {
   return (
     Boolean(target) &&
     !target.reunified &&
-    Number(target.currentPrincipal ?? target.principal ?? 0) > 0 &&
-    Number(target.currentPayment || 0) <= 0
+    (
+      target.paymentStatus === "suspended" ||
+      target.paymentsSuspended === true ||
+      (
+        Number(target.currentPrincipal ?? target.principal ?? 0) > 0 &&
+        Number(target.currentPayment || 0) <= 0
+      )
+    )
   );
 }
 
@@ -4133,7 +4507,11 @@ function monthDistance(fromDate, toDate) {
   return (toDate.getFullYear() - fromDate.getFullYear()) * 12 + (toDate.getMonth() - fromDate.getMonth());
 }
 
-function suspendedDebtArrearsMonths(startIndex = 0) {
+function suspendedDebtArrearsMonths(target, startIndex = 0) {
+  if (DebtContracts) {
+    const startDate = addMonths(modelStartDate(), Math.max(0, Number(startIndex || 0)));
+    return DebtContracts.estimateArrears(target || {}, monthKey(startDate)).months;
+  }
   const arrearsStart = new Date(2026, 0, 1);
   const startDate = addMonths(modelStartDate(), Math.max(0, Number(startIndex || 0)));
   return Math.max(0, monthDistance(arrearsStart, startDate));
@@ -4150,8 +4528,12 @@ function debtResumeRemainingMonths(target, startIndex = 0) {
 }
 
 function debtResumePlan(target, startIndex = 0) {
+  if (DebtContracts) {
+    const startDate = addMonths(modelStartDate(), Math.max(0, Number(startIndex || 0)));
+    return DebtContracts.resumePlan(target || {}, { startMonthKey: monthKey(startDate) });
+  }
   const originalPayment = round2(Number(target?.originalPayment || 0));
-  const arrearsMonths = suspendedDebtArrearsMonths(startIndex);
+  const arrearsMonths = suspendedDebtArrearsMonths(target, startIndex);
   const arrears = round2(originalPayment * arrearsMonths);
   const recurringDuration = debtResumeRemainingMonths(target, startIndex);
   return {
@@ -4764,10 +5146,11 @@ function removeDebtLiquidation(id) {
 
 function debtPortfolioTargetForDecision(item) {
   if (!item) return null;
-  if (item.targetId) return DEBT_PORTFOLIO.find((row) => row.id === item.targetId) || null;
+  const contracts = debtContractSourceRows();
+  if (item.targetId) return contracts.find((row) => row.id === item.targetId) || null;
   const text = normalizedText(`${item.name || ""} ${item.label || ""} ${item.concept || ""}`);
   if (!text) return null;
-  const candidates = DEBT_PORTFOLIO.filter((row) => {
+  const candidates = contracts.filter((row) => {
     if (Number(row.currentPrincipal || 0) <= 0) return false;
     const entity = normalizedText(row.entity || "");
     const type = normalizedText(row.type || "");
@@ -4777,6 +5160,49 @@ function debtPortfolioTargetForDecision(item) {
     return digitGroups.length ? digitGroups.some((group) => text.includes(group.slice(0, 4)) || text.includes(group)) : true;
   });
   return candidates.length === 1 ? candidates[0] : null;
+}
+
+function debtContractBundle() {
+  if (!DebtContracts) return { contracts: DEBT_PORTFOLIO, unifiedPlan: null };
+  return DebtContracts.normalizeContracts(DEBT_PORTFOLIO, {
+    asOfMonthKey: monthKey(modelStartDate()),
+    reunifiedPayment: CURRENT_REUNIFIED_DEBT_PAYMENT,
+    reunifiedInstallments: CURRENT_REUNIFIED_DEBT_INSTALLMENTS,
+    reunifiedCost: CURRENT_REUNIFIED_DEBT_COST,
+  });
+}
+
+function debtContractSourceRows() {
+  return debtContractBundle().contracts;
+}
+
+function canonicalDebtContractRows() {
+  const bundle = debtContractBundle();
+  if (!bundle.unifiedPlan) return bundle.contracts;
+  const plan = bundle.unifiedPlan;
+  return [
+    ...bundle.contracts,
+    {
+      ...plan,
+      id: "debt-reunified-cetelem",
+      entity: "Cetelem",
+      type: "Plan reunificado",
+      number: "reunificacion-cetelem",
+      initialPrincipal: plan.currentPrincipal,
+      originalPayment: plan.scheduledPayment,
+      currentPayment: plan.currentPayment,
+      contractualPayment: plan.scheduledPayment,
+      paymentsSuspended: false,
+      maturity: "",
+      agreement: {
+        settlementAmount: plan.totalCost,
+        payment: plan.scheduledPayment,
+        duration: plan.remainingInstallments,
+        source: "plan-refinanciacion",
+      },
+      source: "refinanciacion-declarada",
+    },
+  ];
 }
 
 function debtDecisionCoveredPrincipal(item, target) {
@@ -4800,7 +5226,7 @@ function plannedDebtPrincipalByTarget() {
 
 function debtPortfolioRows() {
   const planned = plannedDebtPrincipalByTarget();
-  return DEBT_PORTFOLIO.map((row) => {
+  return debtContractSourceRows().map((row) => {
     const plannedPrincipal = round2(planned.get(row.id) || 0);
     const currentPrincipal = Math.max(0, round2(Number(row.currentPrincipal || 0) - plannedPrincipal));
     return {
@@ -4824,7 +5250,7 @@ function debtPortfolioTotals(rows = debtPortfolioRows()) {
   return {
     initialPrincipal: round2(sumRows(rows, (item) => item.initialPrincipal)),
     originalPayment: round2(sumRows(rows, (item) => item.originalPayment)),
-    currentPayment: round2(CURRENT_REUNIFIED_DEBT_PAYMENT + sumRows(rows.filter((item) => !item.reunified), (item) => item.currentPayment)),
+    currentPayment: round2(CURRENT_REUNIFIED_DEBT_PAYMENT + sumRows(rows.filter((item) => !item.reunified), (item) => item.scheduledPayment ?? item.currentPayment ?? 0)),
     amortized: round2(sumRows(rows, (item) => item.amortized)),
     currentPrincipal: round2(sumRows(rows, (item) => item.currentPrincipal)),
     reunifiedPrincipal: round2(sumRows(rows.filter((item) => item.reunified), (item) => item.initialPrincipal)),
@@ -4845,7 +5271,7 @@ function currentOutsideDebtPayment() {
 
 function currentDebtPaymentBreakdown() {
   const unified = CURRENT_REUNIFIED_DEBT_PAYMENT;
-  const outside = round2(sumRows(debtPortfolioRows().filter((item) => !item.reunified), (item) => item.currentPayment));
+  const outside = round2(sumRows(debtPortfolioRows().filter((item) => !item.reunified), (item) => item.scheduledPayment ?? item.currentPayment ?? 0));
   return {
     unified: round2(unified),
     outside,
@@ -5005,7 +5431,8 @@ function evaluateDebtCandidate(target, amount, relief, duration = 1, mode = "ful
     addScheduledDecisionOutflow(candidate, item, month.index);
     const evaluation = evaluateOutflows(candidate);
     const netGain = evaluation.ending - baseline.ending;
-    const feasible = evaluation.minChecking > Math.max(0, relief);
+    const reserve = typeof agentCaixaFloor === "function" ? agentCaixaFloor() : 0;
+    const feasible = evaluation.minChecking >= reserve;
     const discount = Math.max(0, Number(target?.currentPrincipal ?? target?.principal ?? 0) - Number(amount || 0));
     const totalCost = decisionGrossCost(item);
     const score = options.resume
@@ -5122,26 +5549,189 @@ function updateDebtConfirmState() {
   confirm.textContent = pendingDebtDecision ? "Confirmar y aplicar" : "Primero compara la decisión";
 }
 
-function debtReviewOptionCard(option, selected = false) {
-  const klass = option.feasible ? "good" : "warn";
-  return `<article class="debt-review-card ${klass} ${selected ? "selected" : ""}">
-    <span>${escapeHtml(option.title)}</span>
-    <strong>${escapeHtml(option.monthLabel)} · ${money(option.monthly, true)}/mes</strong>
+function debtComparisonStrategy(rawMode = "optimize") {
+  if (!DebtComparator) return rawMode;
+  if (isDebtResumeMode(rawMode)) return DebtComparator.STRATEGIES.RESUME;
+  if (isDebtRefinanceMode(rawMode)) return DebtComparator.STRATEGIES.REFINANCE;
+  if (rawMode === "spread" || rawMode === "spread-optimize") return DebtComparator.STRATEGIES.INSTALLMENTS;
+  return DebtComparator.STRATEGIES.SINGLE;
+}
+
+function debtDecisionCloseIndex(item) {
+  const months = forecastMonths();
+  if (!months.length || !item) return null;
+  return Math.min(months.length - 1, Math.max(0, Number(item.monthIndex || 0)) + decisionWindowMonths(item) - 1);
+}
+
+function debtDecisionComparisonAlternative(id, label, detail, decision, targetPrincipal) {
+  if (!decision) return null;
+  const result = evaluateDebtDecisionItem(decision);
+  const closeIndex = debtDecisionCloseIndex(decision);
+  return {
+    id,
+    strategy: debtComparisonStrategy(decision.payoffMode),
+    label,
+    detail,
+    startIndex: Number(decision.monthIndex || 0),
+    startLabel: forecastMonths()[decision.monthIndex || 0]?.label || "-",
+    duration: decisionWindowMonths(decision),
+    closeIndex,
+    closeLabel: closeIndex === null ? "-" : (forecastMonths()[closeIndex]?.label || "-"),
+    monthlyPayment: result.monthly,
+    totalCost: decisionGrossCost(decision),
+    remainingDebt: 0,
+    minChecking: result.evaluation.minChecking,
+    minLiquidity: result.evaluation.minLiquidity,
+    finalLiquidityImpact: result.netGain,
+    payload: decision,
+    principal: targetPrincipal,
+  };
+}
+
+function buildDebtReviewComparison(decision, target) {
+  if (!DebtComparator || !decision || !target) return null;
+  const months = forecastMonths();
+  const baselineOutflows = projectPlan?.outflows?.length === months.length
+    ? projectPlan.outflows.slice()
+    : Array(months.length).fill(0);
+  const baseline = evaluateOutflows(baselineOutflows);
+  const targetPrincipal = round2(Number(target.currentPrincipal ?? target.principal ?? decision.originalPrincipal ?? decision.amount));
+  const suspended = debtTargetIsSuspended(target);
+  const alternatives = [{
+    id: "no-action",
+    strategy: DebtComparator.STRATEGIES.NO_ACTION,
+    label: "No actuar por ahora",
+    detail: "Mantiene la deuda pendiente y no compromete caja. Es la referencia para comparar todas las modalidades.",
+    startIndex: 0,
+    startLabel: "Ahora",
+    duration: 0,
+    closeIndex: null,
+    closeLabel: "Sin cierre",
+    monthlyPayment: 0,
+    totalCost: 0,
+    remainingDebt: targetPrincipal,
+    minChecking: baseline.minChecking,
+    minLiquidity: baseline.minLiquidity,
+    finalLiquidityImpact: 0,
+    payload: null,
+  }];
+  const configured = debtDecisionComparisonAlternative(
+    "configured",
+    `Opción configurada · ${debtModeLabel(decision.payoffMode)}`,
+    "Respeta exactamente el importe, modalidad y mes elegidos en el formulario.",
+    decision,
+    targetPrincipal,
+  );
+  if (configured) alternatives.push(configured);
+
+  const definitions = [
+    {
+      id: "single-optimal",
+      label: "Pago único óptimo",
+      rawMode: "optimize",
+      duration: 1,
+      detail: suspended
+        ? "Liquida la deuda suspendida sin inventar un ingreso por la cuota que hoy no se paga."
+        : "Liquida la deuda en un mes y elimina la cuota posterior dentro de su vigencia real.",
+    },
+    {
+      id: "installments-6",
+      label: "Fraccionar en 6 meses",
+      rawMode: "spread-optimize",
+      duration: 6,
+      detail: "Reparte el importe pactado en seis cargos y busca el inicio que mejor protege la reserva.",
+    },
+    {
+      id: "refinance-12",
+      label: "Reunificar a 12 meses",
+      rawMode: "refinance-optimize",
+      duration: 12,
+      detail: "Reduce la presión mensual y cierra el acuerdo en un año, sin tratar cuotas suspendidas como ingreso.",
+    },
+    {
+      id: "refinance-24",
+      label: "Reunificar a 24 meses",
+      rawMode: "refinance-optimize",
+      duration: 24,
+      detail: "Minimiza el cargo mensual a cambio de mantener el compromiso durante dos años.",
+    },
+    suspended
+      ? {
+          id: "resume-optimal",
+          label: "Retomar pagos",
+          rawMode: "retomar-optimize",
+          duration: 1,
+          detail: "Paga atrasos desde enero de 2026 y retoma la cuota original hasta el vencimiento contractual.",
+        }
+      : null,
+  ].filter(Boolean);
+
+  const configuredSignature = configured
+    ? `${configured.strategy}|${configured.startIndex}|${configured.duration}|${configured.totalCost}`
+    : "";
+  definitions.forEach((definition) => {
+    const candidate = debtDecisionFromValues({
+      targetId: target.id,
+      name: decision.name,
+      amount: decision.amount,
+      relief: decision.monthlyRelief,
+      rawMode: definition.rawMode,
+      monthIndex: decision.monthIndex,
+      duration: definition.duration,
+      forceOptimize: true,
+    });
+    const alternative = debtDecisionComparisonAlternative(
+      definition.id,
+      definition.label,
+      definition.detail,
+      candidate,
+      targetPrincipal,
+    );
+    if (!alternative) return;
+    const signature = `${alternative.strategy}|${alternative.startIndex}|${alternative.duration}|${alternative.totalCost}`;
+    if (signature !== configuredSignature) alternatives.push(alternative);
+  });
+
+  const comparison = DebtComparator.compareAgreements({
+    contractId: target.id,
+    principal: targetPrincipal,
+    reserve: agentCaixaFloor(),
+    alternatives,
+  });
+  pendingDebtReviewOptions = new Map(
+    comparison.alternatives.map((option) => [option.id, { strategy: option.strategy, decision: option.payload }]),
+  );
+  return comparison;
+}
+
+function debtReviewOptionCard(option, selected = false, recommended = false) {
+  const klass = option.reserveSafe ? "good" : "warn";
+  const reference = option.isReference ? "reference" : "";
+  const actionLabel = option.isReference
+    ? "No comprometer caja"
+    : recommended
+      ? "Aplicar recomendación"
+      : selected
+        ? "Aplicar opción configurada"
+        : "Aplicar esta alternativa";
+  return `<article class="debt-review-card ${klass} ${selected ? "selected" : ""} ${recommended ? "recommended" : ""} ${reference}">
+    <span>${escapeHtml(option.label)}${recommended ? " · recomendada" : ""}</span>
+    <strong>${escapeHtml(option.startLabel)}${option.duration ? ` · ${money(option.monthlyPayment, true)}/mes` : ""}</strong>
     <p>${escapeHtml(option.detail)}</p>
-    <div>
-      <small>Caja mínima</small><b>${money(option.minChecking, true)}</b>
+    <div class="debt-review-metrics">
+      <div><small>Coste total</small><b>${money(option.totalCost, true)}</b></div>
+      <div><small>Cierre deuda</small><b>${escapeHtml(option.closeLabel)}</b></div>
+      <div><small>Caja mínima</small><b>${money(option.minChecking, true)}</b></div>
+      <div><small>Margen reserva</small><b class="${option.reserveMargin < 0 ? "negative" : "positive"}">${option.reserveMargin >= 0 ? "+" : ""}${money(option.reserveMargin, true)}</b></div>
+      <div><small>Impacto final</small><b>${option.finalLiquidityImpact >= 0 ? "+" : ""}${money(option.finalLiquidityImpact, true)}</b></div>
     </div>
-    <div>
-      <small>Liquidez final</small><b>${option.netGain >= 0 ? "+" : ""}${money(option.netGain, true)}</b>
-    </div>
-    <button type="button" data-apply-debt-option="${escapeHtml(option.key || "")}" data-raw-mode="${escapeHtml(option.rawMode || "")}" data-duration="${escapeHtml(String(option.duration || 1))}">
-      ${selected ? "Aplicar opción original" : "Aplicar esta sugerencia"}
-    </button>
+    <button type="button" data-apply-debt-option="${escapeHtml(option.id)}">${actionLabel}</button>
   </article>`;
 }
 
 function resetDebtDecisionForm() {
   pendingDebtDecision = null;
+  pendingDebtReviewOptions = new Map();
   if (qs("debtPayoffName")) qs("debtPayoffName").value = "";
   if (qs("debtPayoffAmount")) qs("debtPayoffAmount").value = "";
   if (qs("debtPayoffRelief")) qs("debtPayoffRelief").value = "";
@@ -5176,22 +5766,21 @@ function applyDebtDecision(decision) {
 }
 
 function applyDebtReviewOption(button) {
-  const key = button.dataset.applyDebtOption;
-  const decision =
-    key === "original"
-      ? pendingDebtDecision || debtDecisionFromForm()
-      : debtDecisionFromForm({
-          rawModeOverride: button.dataset.rawMode,
-          durationOverride: Number(button.dataset.duration || 1),
-          forceOptimize: true,
-        });
-  applyDebtDecision(decision);
+  const choice = pendingDebtReviewOptions.get(button.dataset.applyDebtOption);
+  if (!choice) return;
+  if (choice.strategy === DebtComparator?.STRATEGIES.NO_ACTION) {
+    resetDebtDecisionForm();
+    renderDebtDecisionReview(null);
+    return;
+  }
+  applyDebtDecision(choice.decision);
 }
 
 function renderDebtDecisionReview(decision = pendingDebtDecision) {
   const panel = qs("debtDecisionReview");
   if (!panel) return;
   if (!decision) {
+    pendingDebtReviewOptions = new Map();
     panel.innerHTML = `<div class="debt-review-empty">
       <strong>Compara antes de aplicar</strong>
       <p>Elige deuda, importe pactado y modalidad. La decisión no afectará al resto de secciones hasta que confirmes.</p>
@@ -5199,35 +5788,15 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
     updateDebtConfirmState();
     return;
   }
-  const target = selectedDebtTarget();
-  const currentEval = evaluateDebtDecisionItem(decision);
-  const targetPrincipal = Number(target?.currentPrincipal ?? target?.principal ?? decision.originalPrincipal ?? decision.amount);
+  const target = debtTargetById(decision.targetId) || selectedDebtTarget();
+  const comparison = buildDebtReviewComparison(decision, target);
+  if (!comparison) {
+    panel.innerHTML = `<div class="debt-review-empty"><strong>Comparador no disponible</strong><p>Recarga la aplicación para activar el motor canónico de acuerdos.</p></div>`;
+    updateDebtConfirmState();
+    return;
+  }
+  const currentOption = comparison.alternatives.find((option) => option.id === "configured") || comparison.recommended;
   const suspended = debtTargetIsSuspended(target);
-  const variants = [
-    { title: "Pago único óptimo", rawMode: "optimize", duration: 1, detail: suspended ? "Liquida deuda suspendida; no genera alivio mensual porque hoy no se paga cuota." : "Liquida en un solo mes y elimina cuota después." },
-    { title: "Fraccionar 6 meses", rawMode: "spread-optimize", duration: 6, detail: "Divide el importe pactado y busca inicio óptimo." },
-    { title: "Reunificar 12 meses", rawMode: "refinance-optimize", duration: 12, detail: "Menos presión mensual, más tiempo hasta cerrar el acuerdo." },
-    { title: "Reunificar 24 meses", rawMode: "refinance-optimize", duration: 24, detail: "Menor cuota mensual, impacto más suave en caja." },
-    suspended
-      ? { title: "Retomar pagos", rawMode: "retomar-optimize", duration: 1, detail: "Paga atrasos desde enero 2026 y retoma la cuota original hasta vencimiento." }
-      : null,
-  ]
-    .filter(Boolean)
-    .filter((option) => targetPrincipal > 0 || option.rawMode !== "optimize")
-    .map((option) => {
-      const candidate = debtDecisionFromForm({ rawModeOverride: option.rawMode, durationOverride: option.duration, forceOptimize: true });
-      if (!candidate) return null;
-      const evaluation = evaluateDebtDecisionItem(candidate);
-      return {
-        ...option,
-        monthly: evaluation.monthly,
-        minChecking: evaluation.evaluation.minChecking,
-        netGain: evaluation.netGain,
-        monthLabel: forecastMonths()[candidate.monthIndex]?.label || "-",
-        feasible: evaluation.evaluation.minChecking >= 0,
-      };
-    })
-    .filter(Boolean);
   const currentMonth = forecastMonths()[decision.monthIndex]?.label || "-";
   const discountPct = decision.originalPrincipal ? decision.discount / decision.originalPrincipal : 0;
   const resumeText = isDebtResumeMode(decision.payoffMode)
@@ -5235,18 +5804,6 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
     : suspended
       ? `<p class="debt-review-note">Pagos suspendidos: esta liquidación no crea flujo positivo posterior. La cuota original solo se usa si eliges “retomar”.</p>`
       : "";
-  const originalOption = {
-    key: "original",
-    title: "Opción original",
-    rawMode: decision.payoffMode,
-    duration: decision.duration,
-    detail: "Aplica exactamente la modalidad y el mes que has configurado arriba.",
-    monthly: currentEval.monthly,
-    minChecking: currentEval.evaluation.minChecking,
-    netGain: currentEval.netGain,
-    monthLabel: currentMonth,
-    feasible: currentEval.evaluation.minChecking >= 0,
-  };
   panel.innerHTML = `<div class="debt-review-head">
       <div>
         <p class="panel-kicker">Revisión previa</p>
@@ -5259,14 +5816,19 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
       <div><span>Deuda original</span><strong>${money(decision.originalPrincipal, true)}</strong></div>
       <div><span>Importe pactado</span><strong>${money(decision.amount, true)}</strong></div>
       <div><span>Mejora</span><strong class="${decision.discount ? "positive" : ""}">${money(decision.discount, true)} · ${(discountPct * 100).toFixed(1)}%</strong></div>
-      <div><span>Opción seleccionada</span><strong>${money(currentEval.monthly, true)}/mes</strong></div>
-      <div><span>Caja mínima</span><strong class="${currentEval.evaluation.minChecking < 0 ? "negative" : "positive"}">${money(currentEval.evaluation.minChecking, true)}</strong></div>
-      <div><span>Liquidez final</span><strong>${currentEval.netGain >= 0 ? "+" : ""}${money(currentEval.netGain, true)}</strong></div>
+      <div><span>Opción seleccionada</span><strong>${money(currentOption.monthlyPayment, true)}/mes</strong></div>
+      <div><span>Caja mínima</span><strong class="${currentOption.reserveSafe ? "positive" : "negative"}">${money(currentOption.minChecking, true)}</strong></div>
+      <div><span>Reserva común</span><strong>${money(comparison.reserve, true)}</strong></div>
     </div>
     ${resumeText}
+    <div class="debt-review-rule ${comparison.recommended.isReference ? "warn" : "good"}">
+      <div><span>Recomendación canónica</span><strong>${escapeHtml(comparison.recommended.label)}</strong></div>
+      <p>${escapeHtml(comparison.reason)}</p>
+    </div>
     <div class="debt-review-options">
-      ${debtReviewOptionCard(originalOption, true)}
-      ${variants.map((option) => debtReviewOptionCard({ ...option, key: "suggested" })).join("")}
+      ${comparison.alternatives
+        .map((option) => debtReviewOptionCard(option, option.id === "configured", option.id === comparison.recommendedId))
+        .join("")}
     </div>`;
   panel.querySelectorAll("[data-apply-debt-option]").forEach((button) => {
     button.addEventListener("click", () => applyDebtReviewOption(button));
@@ -5851,7 +6413,7 @@ function decisionScenarioMetrics(label, placements) {
   const finalSavings = rows[rows.length - 1]?.savings || 0;
   const finalLiquidity = rows[rows.length - 1]?.totalLiquidity || 0;
   const debtPaid = round2(sumRows(placements.filter((item) => item.source === "debt"), (item) => Number(item.targetPrincipal || item.amount || item.principal || 0)));
-  const rawDebtPrincipal = round2(sumRows(DEBT_PORTFOLIO, (item) => item.currentPrincipal));
+  const rawDebtPrincipal = debtPortfolioTotals().currentPrincipal;
   const debtRemaining = Math.max(0, round2(rawDebtPrincipal - debtPaid));
   const firstImpact = placements
     .slice()

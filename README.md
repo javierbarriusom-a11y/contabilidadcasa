@@ -11,8 +11,11 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 - Fase 4: calendario canónico de decisiones, deuda suspendida y política prudente de traspasos.
 - Fase 5: ciclo de aprobación, fijación, ejecución y cancelación con auditoría restaurable.
 - Fase 6: corte definitivo al motor canónico y aceptación integral anonimizada.
+- Fase 7: tesorería diaria canónica, fechas, mínimos intrames y paridad con el cierre mensual.
+- Fase 8: contratos de deuda completos, pagos suspendidos, mora estimada y plan reunificado.
+- Fase 9: comparador trazable de acuerdos y confirmación explícita antes de afectar al plan.
 
-La documentación funcional de la fase actual está en [PHASE_6.md](PHASE_6.md).
+La documentación funcional de la fase actual está en [PHASE_9.md](PHASE_9.md).
 
 ## Arquitectura canónica
 
@@ -21,6 +24,9 @@ La documentación funcional de la fase actual está en [PHASE_6.md](PHASE_6.md).
 - `canonical-engine.js`: cálculo determinista de saldos y ahorro.
 - `canonical-decisions.js`: calendario de proyectos, deuda y traspasos entre cuentas.
 - `canonical-workflow.js`: estados, transiciones y auditoría de decisiones.
+- `canonical-daily-engine.js`: calendario diario de cobros, pagos, traspasos y mínimos de caja.
+- `canonical-debt-contracts.js`: normalización y validación de contratos y acuerdos de deuda.
+- `canonical-debt-comparator.js`: comparación de pago único, fraccionado, reunificación, retoma o espera.
 - `app.js`: adaptación de la interfaz al motor canónico y diagnóstico histórico opcional.
 
 El motor histórico no participa en la ejecución normal. Una invariante rota bloquea el cálculo en lugar de sustituirlo silenciosamente por otra regla.

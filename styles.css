@@ -6440,12 +6440,68 @@ svg {
 
 .debt-review-options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 8px;
 }
 
 .debt-review-card {
   border-left: 4px solid var(--green);
+}
+
+.debt-review-rule {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(240px, 1.3fr);
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  padding: 11px 12px;
+  border: 1px solid #cfe2dd;
+  border-left: 4px solid var(--green);
+  border-radius: 8px;
+  background: #f4fbf7;
+}
+
+.debt-review-rule.warn {
+  border-color: #ead7ad;
+  border-left-color: #bf7a13;
+  background: #fff9ef;
+}
+
+.debt-review-rule span,
+.debt-review-rule strong {
+  display: block;
+}
+
+.debt-review-rule span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.debt-review-rule strong {
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.debt-review-rule p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.debt-review-card.recommended {
+  border-color: var(--teal);
+  background: #f4fbfa;
+  box-shadow: 0 0 0 2px rgb(17 144 142 / 12%);
+}
+
+.debt-review-card.reference {
+  border-left-color: #8a949a;
+  background: #f7f9fa;
 }
 
 .debt-review-card.warn {
@@ -6467,6 +6523,29 @@ svg {
   background: var(--ink);
   font-size: 12px;
   font-weight: 900;
+}
+
+.debt-review-card.recommended button {
+  background: var(--teal);
+}
+
+.debt-review-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.debt-review-metrics > div {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.debt-review-metrics > div:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .debt-review-card.selected button {

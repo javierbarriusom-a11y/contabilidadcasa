@@ -37,7 +37,11 @@
   }
 
   function isSuspendedTarget(target) {
-    return Boolean(target) && !target.reunified && number(target.currentPrincipal ?? target.principal) > 0 && number(target.currentPayment) <= 0;
+    return Boolean(target) && !target.reunified && (
+      target.paymentStatus === "suspended" ||
+      target.paymentsSuspended === true ||
+      (number(target.currentPrincipal ?? target.principal) > 0 && number(target.currentPayment) <= 0)
+    );
   }
 
   function normalizeTarget(raw = {}) {
@@ -46,9 +50,12 @@
       id: String(raw.id || raw.targetId || ""),
       currentPrincipal: Math.max(0, number(raw.currentPrincipal ?? raw.principal)),
       currentPayment: Math.max(0, number(raw.currentPayment ?? raw.payment)),
+      scheduledPayment: Math.max(0, number(raw.scheduledPayment ?? raw.currentPayment ?? raw.payment)),
       originalPayment: Math.max(0, number(raw.originalPayment ?? raw.payment)),
       remainingInstallments: Math.max(0, number(raw.remainingInstallments)),
       reunified: Boolean(raw.reunified),
+      paymentStatus: String(raw.paymentStatus || ""),
+      paymentsSuspended: Boolean(raw.paymentsSuspended),
     };
   }
 
