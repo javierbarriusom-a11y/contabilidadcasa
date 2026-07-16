@@ -1,6 +1,6 @@
 # Hoja de ruta de ejecucion
 
-Fecha base: 15 de julio de 2026.
+Fecha base: 15 de julio de 2026. Ultima validacion UX: 16 de julio de 2026.
 
 Esta hoja distingue entre codigo existente y funcionalidad realmente terminada. Una fase solo se
 marca como completada cuando cumple sus criterios de aceptacion, tiene pruebas y no deja una ruta
@@ -78,7 +78,7 @@ Una fase se considera verificada cuando:
 | UX-3 | Centro unico de acciones | Fusiona agente ejecutivo, cola y asesor; prioriza, explica y ejecuta con un solo patron de confirmacion | Verificado |
 | UX-4 | Modo familiar | Selector Javi/Tere/Hogar persistente que cambia cifras, titularidad y capacidad sin duplicar datos | Verificado |
 | UX-5 | Centro de alertas | Crear, editar, pausar y revisar alertas con estado, umbral, fecha y accion recomendada | Verificado |
-| UX-6 | Validacion y simplificacion | Pruebas con tareas clave, accesibilidad, responsive, rendimiento y retirada de duplicidades validadas | Pendiente |
+| UX-6 | Validacion y simplificacion | Pruebas con tareas clave, accesibilidad, responsive, rendimiento y retirada de duplicidades validadas | Verificado |
 
 ## Orden de ejecucion recomendado
 
@@ -111,4 +111,4 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 | UX-3 | Verificado | Registro unificado de acciones reutilizado por Hoy y asesores; revision previa con impacto y confirmacion comun | Revision abierta en navegador, confirmacion y destino Agente ahorro verificados; sin mutacion antes de confirmar | Retirar paneles redundantes queda para UX-6 tras uso real | UX-4 |
 | UX-4 | Verificado | Selector Hogar/Javi/Tere persistente, agregacion por titular y resumen de ingresos, gastos y margen en Hoy | Cambio Hogar/Tere comprobado en navegador; persistencia tras recarga; 66 pruebas de dominio y UX en verde | La obligatoriedad de titular en el modelo normalizado sigue en P2-2 | UX-5 |
 | UX-5 | Verificado | Centro de alertas con alta, edicion, pausa/reactivacion, eliminacion, umbral, revision, frecuencia y accion recomendada | Ciclo crear-pausar-recargar-eliminar comprobado en navegador; estado limpio de 3 reglas; responsive 390x844 sin desbordamiento | Los canales externos de aviso siguen en P2-3 | UX-6 |
-| UX-6 | Pendiente | QA responsive puntual de UX-2 a UX-5 ya completado | Desktop y movil sin desbordamiento en Hoy, Centro de acciones, modo familiar y alertas | Falta auditoria global de accesibilidad, rendimiento y retirada de paneles redundantes | UX-6 |
+| UX-6 | Verificado | Navegacion movil compacta, enlace para saltar al contenido, foco visible y gestionado tras cada cambio de vista, estado accesible de calculo, titulos de documento por seccion, movimiento reducido y deduplicacion del render pesado | QA real en 1280x720 y 390x844: menu abre/cierra, foco llega al H1 incluso tras calculo diferido, sin desbordamiento horizontal ni errores de consola; 73 pruebas en verde | La retirada definitiva de herramientas avanzadas redundantes requiere validar uso real; no bloquea la experiencia principal | P0-1 |

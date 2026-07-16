@@ -4,17 +4,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260716n" />
+    <link rel="stylesheet" href="styles.css?v=20260716p" />
   </head>
   <body>
+    <a class="skip-link" href="#mainContent">Saltar al contenido</a>
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Navegación principal">
+      <aside class="sidebar" id="primarySidebar" aria-label="Navegación principal">
         <div class="brand-block">
           <div class="brand-mark">FC</div>
           <div>
             <p>Finanzas Casa</p>
             <strong>Plan 2026-2036</strong>
           </div>
+          <button class="mobile-nav-toggle" id="mobileNavToggle" type="button" aria-expanded="false" aria-controls="primarySidebar">Menú</button>
         </div>
 
         <nav class="side-nav" aria-label="Áreas de la aplicación">
@@ -129,12 +131,13 @@
         <header class="topbar">
           <div>
             <p class="eyebrow" id="viewEyebrow">Cuadro de mandos</p>
-            <h1 id="viewTitle">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
+            <h1 id="viewTitle" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="source-note" id="sourceNote"></div>
         </header>
 
-        <main>
+        <main id="mainContent" tabindex="-1">
+          <p class="sr-only" id="appLiveStatus" role="status" aria-live="polite" aria-atomic="true"></p>
           <section class="home-dashboard view-section" id="home">
             <div class="section-title with-action">
               <div>
@@ -2170,6 +2173,7 @@
     <script src="canonical-workflow.js?v=20260714a"></script>
     <script src="canonical-supabase-store.js?v=20260715a"></script>
     <script src="ux-settings.js?v=20260716a"></script>
-    <script src="app.js?v=20260716n"></script>
+    <script src="ux-shell.js?v=20260716a"></script>
+    <script src="app.js?v=20260716p"></script>
   </body>
 </html>

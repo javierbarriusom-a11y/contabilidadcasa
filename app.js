@@ -19,6 +19,7 @@ const derivedControlIds = [
 const MODEL_END_YEAR = 2036;
 const MODEL_END_MONTH = 11;
 const UxSettings = globalThis.FinanceUxSettings || null;
+const UxShell = globalThis.FinanceUxShell || null;
 
 const euro = new Intl.NumberFormat("es-ES", {
   style: "currency",
@@ -97,6 +98,11 @@ let activeViewRenderFrame = 0;
 let activeViewRenderTimer = 0;
 let activeViewRenderToken = 0;
 let heavyAdvisorTimer = 0;
+let applicationRenderRevision = 0;
+let activeViewId = "";
+let lastActiveViewRendered = "";
+let activeViewRenderRevision = -1;
+let pendingViewFocusId = "";
 let advisorDebtRenderTimer = 0;
 let savingsAgentPlanCache = { key: "", value: null };
 const HEAVY_RENDER_VIEWS = new Set([
@@ -1843,19 +1849,67 @@ function viewFromHash() {
   return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
 }
 
+function announceStatus(message) {
+  const status = qs("appLiveStatus");
+  if (!status || !message) return;
+  status.textContent = "";
+  window.setTimeout(() => {
+    status.textContent = message;
+  }, 10);
+}
+
+function activeViewTitle(viewId) {
+  return (viewTitles[viewId] || viewTitles.home).title;
+}
+
+function shouldRenderActiveSection(viewId, force = false) {
+  const input = {
+    viewId,
+    lastView: lastActiveViewRendered,
+    revision: applicationRenderRevision,
+    lastRevision: activeViewRenderRevision,
+    force,
+  };
+  return UxShell?.shouldRenderView
+    ? UxShell.shouldRenderView(input)
+    : force || viewId !== lastActiveViewRendered || applicationRenderRevision !== activeViewRenderRevision;
+}
+
+function recordActiveSectionRender(viewId, revision = applicationRenderRevision) {
+  lastActiveViewRendered = viewId;
+  activeViewRenderRevision = revision;
+}
+
+function focusActiveViewHeading(viewId) {
+  if (pendingViewFocusId !== viewId || viewFromHash() !== viewId) return;
+  const heading = qs("viewTitle");
+  pendingViewFocusId = "";
+  window.requestAnimationFrame(() => heading?.focus({ preventScroll: true }));
+}
+
 function markViewCalculating(viewId, active) {
   const section = document.getElementById(viewId);
   if (!section) return;
-  section.classList.toggle("view-calculating", Boolean(active));
+  const isActive = Boolean(active);
+  const wasActive = section.classList.contains("view-calculating");
+  section.classList.toggle("view-calculating", isActive);
+  if (isActive) section.setAttribute("aria-busy", "true");
+  else section.removeAttribute("aria-busy");
+  if (wasActive !== isActive) {
+    const fallback = isActive ? `Calculando ${activeViewTitle(viewId)}.` : `${activeViewTitle(viewId)} lista.`;
+    announceStatus(UxShell?.statusMessage?.(activeViewTitle(viewId), { busy: isActive }) || fallback);
+  }
 }
 
-function runActiveSectionRender(viewId, token) {
-  if (token !== activeViewRenderToken || viewFromHash() !== viewId) return;
+function runActiveSectionRender(viewId, token, revision) {
+  if (token !== activeViewRenderToken || viewFromHash() !== viewId || revision !== applicationRenderRevision) return;
   renderActiveSection(viewId);
+  recordActiveSectionRender(viewId, revision);
   markViewCalculating(viewId, false);
+  focusActiveViewHeading(viewId);
 }
 
-function scheduleActiveSectionRender(viewId = viewFromHash()) {
+function scheduleActiveSectionRender(viewId = viewFromHash(), { force = false } = {}) {
   activeViewRenderToken += 1;
   const token = activeViewRenderToken;
   if (activeViewRenderFrame) window.cancelAnimationFrame(activeViewRenderFrame);
@@ -1865,10 +1919,22 @@ function scheduleActiveSectionRender(viewId = viewFromHash()) {
   activeViewRenderTimer = 0;
   heavyAdvisorTimer = 0;
 
-  if (!lastSimulation.length) return;
+  if (!lastSimulation.length) {
+    focusActiveViewHeading(viewId);
+    return;
+  }
+  if (!shouldRenderActiveSection(viewId, force)) {
+    markViewCalculating(viewId, false);
+    focusActiveViewHeading(viewId);
+    return;
+  }
+
+  const revision = applicationRenderRevision;
 
   if (!HEAVY_RENDER_VIEWS.has(viewId)) {
     renderActiveSection(viewId);
+    recordActiveSectionRender(viewId, revision);
+    focusActiveViewHeading(viewId);
     return;
   }
 
@@ -1877,12 +1943,31 @@ function scheduleActiveSectionRender(viewId = viewFromHash()) {
     activeViewRenderFrame = 0;
     activeViewRenderTimer = window.setTimeout(() => {
       activeViewRenderTimer = 0;
-      runActiveSectionRender(viewId, token);
+      runActiveSectionRender(viewId, token, revision);
     }, 16);
   });
 }
 
-function setActiveView(viewId = viewFromHash()) {
+function setMobileNavOpen(open) {
+  const sidebar = qs("primarySidebar");
+  const toggle = qs("mobileNavToggle");
+  if (!sidebar || !toggle) return;
+  const shouldOpen = Boolean(open);
+  sidebar.classList.toggle("mobile-open", shouldOpen);
+  toggle.setAttribute("aria-expanded", String(shouldOpen));
+  toggle.textContent = shouldOpen ? "Cerrar" : "Menú";
+}
+
+function setupMobileNavigation() {
+  const toggle = qs("mobileNavToggle");
+  toggle?.addEventListener("click", () => {
+    setMobileNavOpen(toggle.getAttribute("aria-expanded") !== "true");
+  });
+}
+
+function setActiveView(viewId = viewFromHash(), { focus = false, announce = true } = {}) {
+  const viewChanged = activeViewId !== viewId;
+  activeViewId = viewId;
   document.querySelectorAll(".view-section").forEach((section) => {
     section.hidden = section.id !== viewId;
   });
@@ -1900,12 +1985,17 @@ function setActiveView(viewId = viewFromHash()) {
   }
   const copy = viewTitles[viewId] || viewTitles.home;
   if (qs("viewEyebrow")) qs("viewEyebrow").textContent = copy.eyebrow;
-  if (qs("viewTitle")) qs("viewTitle").textContent = copy.title;
-  window.scrollTo({ top: 0, behavior: "instant" });
+  const viewTitle = qs("viewTitle");
+  if (viewTitle) viewTitle.textContent = copy.title;
+  document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
+  if (viewChanged) window.scrollTo({ top: 0, behavior: "instant" });
+  if (focus && viewChanged && viewTitle) pendingViewFocusId = viewId;
+  if (announce && viewChanged) announceStatus(`${copy.title} abierta.`);
   scheduleActiveSectionRender(viewId);
 }
 
 function setupViewNavigation() {
+  setupMobileNavigation();
   document.querySelectorAll(".side-nav a").forEach((link) => {
     link.addEventListener("click", (event) => {
       const href = link.getAttribute("href");
@@ -1914,12 +2004,15 @@ function setupViewNavigation() {
       if (!document.getElementById(viewId)?.classList.contains("view-section")) return;
       event.preventDefault();
       history.pushState(null, "", href);
-      setActiveView(viewId);
+      setMobileNavOpen(false);
+      setActiveView(viewId, { focus: true });
     });
   });
-  window.addEventListener("hashchange", () => setActiveView());
-  window.addEventListener("popstate", () => setActiveView());
-  setActiveView();
+  window.addEventListener("hashchange", () => {
+    setMobileNavOpen(false);
+    setActiveView(viewFromHash(), { focus: true });
+  });
+  setActiveView(viewFromHash(), { focus: false, announce: false });
 }
 
 function updateSourceNote() {
@@ -16017,6 +16110,7 @@ function toggleAssistant(open) {
 }
 
 function render() {
+  applicationRenderRevision += 1;
   ensureUxSettingsState();
   readStateFromControls();
   ensureVariableOperationalSection();
@@ -16515,7 +16609,8 @@ async function init() {
     if (renderFrame) window.cancelAnimationFrame(renderFrame);
     renderFrame = window.requestAnimationFrame(() => {
       renderFrame = 0;
-      scheduleActiveSectionRender();
+      if (window.innerWidth > 860) setMobileNavOpen(false);
+      scheduleActiveSectionRender(viewFromHash(), { force: true });
     });
   });
   updateProjectModeUi();
