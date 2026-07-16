@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260715a" />
+    <link rel="stylesheet" href="styles.css?v=20260716k" />
   </head>
   <body>
     <div class="app-shell">
@@ -17,25 +17,52 @@
           </div>
         </div>
 
-        <nav class="side-nav">
-          <a href="#visual-detail" class="active">Cuadro de mandos</a>
-          <a href="#home">Control diario</a>
-          <a href="#executive-advisor">Asesor ejecutivo</a>
-          <a href="#new-life-simulation">Simulación nueva vida</a>
-          <a href="#new-life-definitive">Simulación nueva vida definitiva</a>
-          <a href="#virtual-advisor">Asesor virtual</a>
-          <a href="#debt-liquidation-plan">Plan deuda óptimo</a>
-          <a href="#savings-agent">Agente ahorro</a>
-          <a href="#debt-control">Control de deuda</a>
-          <a href="#prevision">Previsión</a>
-          <a href="#simulator">Simulador</a>
-          <a href="#forecast">Proyección</a>
-          <a href="#savings-plan">Plan ahorro</a>
-          <a href="#data-entry">Carga de datos</a>
-          <a href="#data-audit">Datos y auditoría</a>
-          <a href="#reconciliation">Conciliación</a>
-          <a href="#cashflow">Flujo mensual</a>
-          <a href="#movements">Movimientos</a>
+        <nav class="side-nav" aria-label="Áreas de la aplicación">
+          <p class="nav-section-label">Principal</p>
+          <a href="#home" class="nav-primary-link active">
+            <span>Hoy</span>
+            <small>Decisiones y caja de este momento</small>
+          </a>
+          <a href="#new-life-definitive" class="nav-primary-link">
+            <span>Plan familiar</span>
+            <small>Deuda, coche y estabilidad</small>
+          </a>
+          <a href="#new-life-simulation" class="nav-primary-link">
+            <span>Deuda y proyectos</span>
+            <small>Comparar antes de decidir</small>
+          </a>
+          <a href="#movements" class="nav-primary-link">
+            <span>Movimientos</span>
+            <small>Reales, extractos y clasificación</small>
+          </a>
+
+          <details class="nav-disclosure" id="advancedNav">
+            <summary>
+              <span>Herramientas avanzadas</span>
+              <small>Análisis, simulación y datos</small>
+            </summary>
+            <div class="advanced-nav-links">
+              <p class="advanced-nav-label">Decidir</p>
+              <a href="#executive-advisor">Asesor ejecutivo</a>
+              <a href="#virtual-advisor">Asesor virtual</a>
+              <a href="#debt-liquidation-plan">Plan deuda óptimo</a>
+              <a href="#savings-agent">Agente ahorro</a>
+              <a href="#debt-control">Control de deuda</a>
+              <a href="#simulator">Simulador</a>
+
+              <p class="advanced-nav-label">Analizar</p>
+              <a href="#visual-detail">Cuadro de mandos</a>
+              <a href="#prevision">Previsión</a>
+              <a href="#forecast">Proyección</a>
+              <a href="#savings-plan">Plan ahorro</a>
+              <a href="#cashflow">Flujo mensual</a>
+
+              <p class="advanced-nav-label">Datos</p>
+              <a href="#data-entry">Carga de datos</a>
+              <a href="#data-audit">Datos y auditoría</a>
+              <a href="#reconciliation">Conciliación</a>
+            </div>
+          </details>
         </nav>
 
         <div class="sidebar-card">
@@ -97,9 +124,9 @@
           <section class="home-dashboard view-section" id="home">
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker">Control diario</p>
-                <h2>Centro de decisión diario</h2>
-                <p>Vista ejecutiva para decidir ahorro, deuda y proyectos con los datos actuales del modelo.</p>
+                <p class="panel-kicker">Hoy</p>
+                <h2>Qué necesita tu atención</h2>
+                <p>Saldo, capacidad, siguiente riesgo y tres decisiones priorizadas con los datos actuales.</p>
               </div>
               <div class="visual-controls">
                 <label>
@@ -120,8 +147,8 @@
               <article class="home-panel home-main-panel">
                 <div class="module-heading">
                   <div>
-                    <p class="panel-kicker">Lectura prioritaria</p>
-                    <h3>Qué haría ahora</h3>
+                    <p class="panel-kicker">Situación actual</p>
+                    <h3>Lectura de hoy</h3>
                   </div>
                 </div>
                 <div class="home-insight-list" id="homeInsights"></div>
@@ -130,8 +157,8 @@
               <article class="home-panel">
                 <div class="module-heading">
                   <div>
-                    <p class="panel-kicker">Acciones</p>
-                    <h3>Planificador rápido</h3>
+                    <p class="panel-kicker">Centro único</p>
+                    <h3>Tres decisiones</h3>
                   </div>
                 </div>
                 <div class="home-action-grid" id="homeActions"></div>
@@ -142,8 +169,8 @@
               <article class="home-panel">
                 <div class="module-heading">
                   <div>
-                    <p class="panel-kicker">Deuda y proyectos</p>
-                    <h3>Prioridades recomendadas</h3>
+                    <p class="panel-kicker">Contexto</p>
+                    <h3>Próximos hitos</h3>
                   </div>
                 </div>
                 <div class="home-priority-list" id="homePriorities"></div>
@@ -152,7 +179,7 @@
               <article class="home-panel">
                 <div class="module-heading">
                   <div>
-                    <p class="panel-kicker">Próximos meses</p>
+                    <p class="panel-kicker">Riesgo</p>
                     <h3>Meses a vigilar</h3>
                   </div>
                 </div>
@@ -2056,6 +2083,14 @@
               </div>
             </div>
           </aside>
+          <dialog class="action-review-dialog" id="unifiedActionDialog">
+            <button class="action-review-close" id="unifiedActionClose" type="button" aria-label="Cerrar revisión">×</button>
+            <div id="unifiedActionReview"></div>
+            <div class="action-review-buttons">
+              <button type="button" class="secondary-button" id="unifiedActionCancel">Cancelar</button>
+              <button type="button" id="unifiedActionConfirm">Continuar simulación</button>
+            </div>
+          </dialog>
         </main>
       </div>
     </div>
@@ -2074,6 +2109,6 @@
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-workflow.js?v=20260714a"></script>
     <script src="canonical-supabase-store.js?v=20260715a"></script>
-    <script src="app.js?v=20260715b"></script>
+    <script src="app.js?v=20260716k"></script>
   </body>
 </html>

@@ -79,6 +79,8 @@ let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
 let pendingDebtReviewOptions = new Map();
 let pendingProjectDecision = null;
+let unifiedActionRegistry = new Map();
+let pendingUnifiedActionId = "";
 let pendingStateRestore = null;
 let agentDebtOptimizationCache = { key: "", value: null };
 let executiveAdvisorRenderTimer = null;
@@ -1829,10 +1831,10 @@ function renderSyncPanel() {
 }
 
 function viewFromHash() {
-  const id = (window.location.hash || "#visual-detail").replace("#", "");
+  const id = (window.location.hash || "#home").replace("#", "");
   if (id === "overview") return "home";
   if (id === "monthly-detail") return "prevision";
-  return document.getElementById(id)?.classList.contains("view-section") ? id : "visual-detail";
+  return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
 }
 
 function markViewCalculating(viewId, active) {
@@ -1884,7 +1886,13 @@ function setActiveView(viewId = viewFromHash()) {
     if (isActive) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
-  const copy = viewTitles[viewId] || viewTitles["visual-detail"];
+  const advancedNav = qs("advancedNav");
+  if (advancedNav) {
+    const containsActiveView = Boolean(advancedNav.querySelector("a.active"));
+    advancedNav.classList.toggle("contains-active", containsActiveView);
+    if (containsActiveView) advancedNav.open = true;
+  }
+  const copy = viewTitles[viewId] || viewTitles.home;
   if (qs("viewEyebrow")) qs("viewEyebrow").textContent = copy.eyebrow;
   if (qs("viewTitle")) qs("viewTitle").textContent = copy.title;
   window.scrollTo({ top: 0, behavior: "instant" });
@@ -10689,6 +10697,168 @@ function executiveActions(ctx) {
   return actions;
 }
 
+const UNIFIED_ACTION_COMMANDS = new Set(["simulate-route", "clear-route", "car-project", "tere-credit"]);
+
+function unifiedActionKey(item) {
+  if (item.debtId) return `debt:${item.debtId}:${item.monthIndex ?? ""}:${round2(Number(item.amount || 0))}`;
+  if (item.projectId) return `project:${item.projectId}`;
+  if (UNIFIED_ACTION_COMMANDS.has(item.action)) return `command:${item.action}`;
+  return `target:${item.target || item.action || item.title || "unknown"}`;
+}
+
+function unifiedActionId(key) {
+  let hash = 0;
+  String(key).split("").forEach((character) => {
+    hash = ((hash << 5) - hash + character.charCodeAt(0)) | 0;
+  });
+  return `action-${Math.abs(hash)}`;
+}
+
+function unifiedActionCenterModel({ context = null } = {}) {
+  const ctx = context || executiveAdvisorContext({ allowHeavy: false });
+  const seen = new Set();
+  const actions = executiveActions(ctx)
+    .filter((item) => {
+      const key = unifiedActionKey(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 3)
+    .map((item, index) => {
+      const key = unifiedActionKey(item);
+      const command = UNIFIED_ACTION_COMMANDS.has(item.action) ? item.action : "";
+      return {
+        ...item,
+        id: unifiedActionId(key),
+        key,
+        rank: index + 1,
+        command,
+        target: item.target || (!command && !item.debtId && !item.projectId ? item.action : ""),
+        label: item.label || item.action || "Revisar",
+      };
+    });
+  actions.forEach((item) => unifiedActionRegistry.set(item.id, item));
+  return { context: ctx, actions, asOf: state.balanceDate || defaultBalanceDate() };
+}
+
+function renderUnifiedAction(item) {
+  return `<article class="unified-action ${escapeHtml(item.tone || "neutral")}">
+    <span>${item.rank}</span>
+    <div>
+      <strong>${escapeHtml(item.title)}</strong>
+      <p>${escapeHtml(item.text)}</p>
+    </div>
+    <details class="unified-action-review">
+      <summary>Revisar acción</summary>
+      <div class="unified-action-review-body">
+        <strong>Qué ocurrirá</strong>
+        <p>${escapeHtml(unifiedActionImpact(item))}</p>
+        <button type="button" data-unified-confirm-id="${escapeHtml(item.id)}">${item.debtId || item.projectId || item.command ? "Continuar simulación" : "Abrir sección"}</button>
+      </div>
+    </details>
+  </article>`;
+}
+
+function bindUnifiedActionButtons(container) {
+  if (!container || window.__unifiedActionDelegationBound) return;
+  window.__unifiedActionDelegationBound = true;
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest?.("[data-unified-confirm-id]");
+    if (!button) return;
+    event.preventDefault();
+    let item = unifiedActionRegistry.get(button.dataset.unifiedConfirmId);
+    if (!item) {
+      unifiedActionCenterModel();
+      item = unifiedActionRegistry.get(button.dataset.unifiedConfirmId);
+    }
+    executeUnifiedAction(item);
+  });
+}
+
+function unifiedActionImpact(item) {
+  if (item.debtId) {
+    return `Preparará una simulación de deuda por ${money(item.amount || 0, true)} en ${forecastMonths()[item.monthIndex]?.label || "el mes recomendado"}. No se fija hasta que confirmes la alternativa en Control de deuda.`;
+  }
+  if (item.command === "simulate-route") return "Añadirá temporalmente la ruta completa al cálculo para comparar caja, ahorro y deuda. Podrás retirarla sin fijar ninguna decisión.";
+  if (item.command === "clear-route") return "Retirará la ruta temporal del cálculo. Las decisiones ya fijadas no se modificarán.";
+  if (item.command === "car-project") return "Abrirá una propuesta editable de hucha para coche. No cambia el cuadro de mandos hasta que la confirmes.";
+  if (item.command === "tere-credit") return "Abrirá una simulación editable del crédito de Tere y su cuota. No se incorporará al plan sin confirmación.";
+  return `Abrirá ${viewTitles[item.target]?.eyebrow || viewTitles[item.target]?.title || "la sección relacionada"} sin modificar datos.`;
+}
+
+function openUnifiedActionReview(actionId) {
+  let item = unifiedActionRegistry.get(actionId);
+  if (!item) {
+    unifiedActionCenterModel();
+    item = unifiedActionRegistry.get(actionId);
+  }
+  const dialog = qs("unifiedActionDialog");
+  const content = qs("unifiedActionReview");
+  const confirm = qs("unifiedActionConfirm");
+  if (!item || !dialog || !content || !confirm) return;
+  pendingUnifiedActionId = actionId;
+  content.innerHTML = `<span class="action-review-rank">Decisión ${item.rank}</span>
+    <h3>${escapeHtml(item.title)}</h3>
+    <p>${escapeHtml(item.text)}</p>
+    <div class="action-review-impact"><strong>Qué ocurrirá</strong><p>${escapeHtml(unifiedActionImpact(item))}</p></div>`;
+  confirm.textContent = item.debtId || item.projectId || item.command ? "Continuar simulación" : "Abrir sección";
+  if (dialog.open) return;
+  try {
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+  } catch {
+    dialog.setAttribute("open", "");
+  }
+}
+
+window.openUnifiedActionReview = openUnifiedActionReview;
+
+function closeUnifiedActionReview() {
+  const dialog = qs("unifiedActionDialog");
+  pendingUnifiedActionId = "";
+  if (dialog?.open && typeof dialog.close === "function") dialog.close();
+  else dialog?.removeAttribute("open");
+}
+
+// La revisión de acciones debe estar disponible aunque la inicialización asíncrona
+// de las herramientas avanzadas todavía no haya terminado.
+if (!window.__unifiedActionReviewBound) {
+  window.__unifiedActionReviewBound = true;
+  qs("unifiedActionClose")?.addEventListener("click", closeUnifiedActionReview);
+  qs("unifiedActionCancel")?.addEventListener("click", closeUnifiedActionReview);
+  qs("unifiedActionConfirm")?.addEventListener("click", () => {
+    executeUnifiedAction(unifiedActionRegistry.get(pendingUnifiedActionId));
+  });
+  qs("unifiedActionDialog")?.addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) closeUnifiedActionReview();
+  });
+  qs("unifiedActionDialog")?.addEventListener("close", () => {
+    pendingUnifiedActionId = "";
+  });
+}
+
+function executeUnifiedAction(item) {
+  if (!item) return;
+  closeUnifiedActionReview();
+  if (item.debtId) {
+    prepareAgentDebtDecision(item.debtId, { monthIndex: item.monthIndex, amount: item.amount });
+    return;
+  }
+  if (item.projectId) {
+    prepareAgentProjectDecision(item.projectId);
+    return;
+  }
+  if (item.command === "simulate-route") return applyAgentRouteSimulation();
+  if (item.command === "clear-route") return clearAgentRouteSimulation();
+  if (item.command === "car-project") return prepareExecutiveCarProject(false);
+  if (item.command === "tere-credit") return prepareExecutiveCarProject(true);
+  const target = item.target || "home";
+  if (!document.getElementById(target)?.classList.contains("view-section")) return;
+  history.pushState(null, "", `#${target}`);
+  setActiveView(target);
+}
+
 function renderExecutiveHero(ctx) {
   const target = qs("executiveAdvisorHero");
   if (!target) return;
@@ -10709,16 +10879,9 @@ function renderExecutiveHero(ctx) {
 function renderExecutiveActions(ctx) {
   const target = qs("executiveActionPlan");
   if (!target) return;
-  target.innerHTML = executiveActions(ctx)
-    .map((item) => `<article class="executive-action ${item.tone}">
-      <span>${item.rank}</span>
-      <div>
-        <strong>${escapeHtml(item.title)}</strong>
-        <p>${escapeHtml(item.text)}</p>
-      </div>
-      ${executiveActionButton(item)}
-    </article>`)
-    .join("");
+  target.classList.add("unified-action-list");
+  target.innerHTML = unifiedActionCenterModel({ context: ctx }).actions.map(renderUnifiedAction).join("");
+  bindUnifiedActionButtons(target);
 }
 
 function renderExecutiveAccounts(ctx) {
@@ -12499,19 +12662,12 @@ function renderAdvisorStatus(ctx) {
 function renderAdvisorActions(ctx) {
   const target = qs("virtualAdvisorActions");
   if (!target) return;
-  const actions = virtualAdvisorActions(ctx);
+  const actions = unifiedActionCenterModel().actions;
+  target.classList.add("unified-action-list");
   target.innerHTML = actions.length
-    ? actions
-        .map((item, index) => `<article class="advisor-action ${item.tone}">
-          <span>${index + 1}</span>
-          <div>
-            <strong>${escapeHtml(item.title)}</strong>
-            <p>${escapeHtml(item.text)}</p>
-          </div>
-          ${advisorActionButton(item)}
-        </article>`)
-        .join("")
+    ? actions.map(renderUnifiedAction).join("")
     : `<div class="empty-state compact">Sin acciones necesarias ahora mismo.</div>`;
+  bindUnifiedActionButtons(target);
 }
 
 function renderAdvisorMonths(ctx) {
@@ -14475,18 +14631,23 @@ function renderHomeDashboard() {
   if (!qs("homeKpis")) return;
   const rows = homeRowsForHorizon();
   if (!rows.length) return;
-  const baseRows = rows.map((row) => lastBaseSimulation[(row.index || 1) - 1] || row);
+  const actionCenter = unifiedActionCenterModel();
+  const actionCtx = actionCenter.context || {};
+  const executiveRows = actionCtx.rows || [];
+  const executiveToday = actionCtx.today || {};
+  const balances = actionCtx.balances || accountBalancesFromState();
+  const capacity = actionCtx.capacity || {};
+  const protectedReserve = round2(Number(
+    executiveToday.requiredReserve || actionCtx.immediateTransfer?.reserve || agentCaixaFloor(),
+  ));
+  const freeCapacity = round2(Number(capacity.avgTransfer12m || 0));
+  const nextRiskRow = executiveRows.find((row) =>
+    Number(row.shortage || 0) > 0 ||
+    Number(row.agentCaixa || row.caixa || 0) < Number(row.requiredReserve || protectedReserve),
+  );
   const metrics = rangeKpiMetric(rows);
   const savings = savingsPlanCalculations();
   const debtStats = debtControlStats();
-  const firstRow = rows[0];
-  const lastRow = rows.at(-1);
-  const baseLastRow = baseRows.at(-1) || lastRow;
-  const decisionImpact = round2(Number(lastRow?.totalLiquidity || 0) - Number(baseLastRow?.totalLiquidity || 0));
-  const avgNet = round2(averageRows(rows, (row) => row.netBeforeSaving));
-  const avgSaving = round2(averageRows(rows, (row) => row.saving));
-  const avgProjects = round2(averageRows(rows, (row) => row.projectOutflow));
-  const totalProjects = round2(sumRows(rows, (row) => row.projectOutflow));
   const debtPriorities = debtPriorityCandidates().slice(0, 3);
   const loadedDecisions = projectPlan.placements || [];
   const nextSensitiveMonths = rows
@@ -14496,45 +14657,48 @@ function renderHomeDashboard() {
   const adjustedWarn = Math.max(0, savings.emergencyFundTarget * 0.35);
   const adjustedStatus = metrics ? homeStatusClass(metrics.adjustedMin, adjustedWarn, 0) : "warn";
   const debtRatioStatus = savings.debtToIncomeRatio > 0.32 ? "danger" : savings.debtToIncomeRatio > 0.26 ? "warn" : "good";
-  const decisionStatus = decisionImpact < 0 ? "warn" : "good";
   const coverageStatus = savings.currentCoverage < 3 ? "danger" : savings.currentCoverage < 6 ? "warn" : "good";
   const runwayNote = metrics
     ? `Mínimo ajustado: ${money(metrics.adjustedMin, true)} en ${metrics.adjustedMinMonth} (${metrics.adjustedMinDate || "fecha estimada"}).`
     : "Sin rango suficiente para calcular mínimos.";
-  const balanceDateText = state.balanceDate || defaultBalanceDate();
+  const balanceDateText = actionCenter.asOf;
+  const reserveMargin = round2(Number(balances.caixa || 0) - protectedReserve);
+  const riskStatus = nextRiskRow ? "warn" : "good";
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
-      label: "Liquidez de partida",
-      value: money(state.initialCash, true),
-      note: `Saldo base a ${balanceDateText}. ${runwayNote}`,
+      label: "Liquidez hoy",
+      value: money(balances.total, true),
+      note: `A ${balanceDateText}: CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.`,
       status: adjustedStatus,
-      cta: "Ver previsión",
+      cta: "Ver saldos",
+      target: "visual-detail",
+    }),
+    renderHomeKpi({
+      label: "Capacidad libre real",
+      value: money(freeCapacity, true),
+      note: "Media mensual disponible durante 12 meses tras gastos, deuda, proyectos y reserva.",
+      status: freeCapacity < 0 ? "danger" : freeCapacity < 250 ? "warn" : "good",
+      cta: "Ver flujo",
+      target: "cashflow",
+    }),
+    renderHomeKpi({
+      label: "Reserva protegida",
+      value: money(protectedReserve, true),
+      note: `CaixaBank conserva hoy ${money(Math.max(0, reserveMargin), true)} por encima del mínimo operativo.`,
+      status: reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good",
+      cta: "Ajustar reserva",
+      target: "executive-advisor",
+    }),
+    renderHomeKpi({
+      label: "Próximo riesgo",
+      value: nextRiskRow?.month || "Sin déficit",
+      note: nextRiskRow
+        ? `Faltarían ${money(nextRiskRow.shortage || 0, true)} para conservar su reserva de ${money(nextRiskRow.requiredReserve || protectedReserve, true)}.`
+        : `La reserva se mantiene en el horizonte analizado. ${runwayNote}`,
+      status: riskStatus,
+      cta: "Revisar previsión",
       target: "prevision",
-    }),
-    renderHomeKpi({
-      label: "Margen medio antes de ahorrar",
-      value: money(avgNet, true),
-      note: `Ahorro aplicado medio: ${money(avgSaving, true)} al mes.`,
-      status: avgNet > savings.recommendedSaving ? "good" : "warn",
-      cta: "Ajustar ahorro",
-      target: "savings-plan",
-    }),
-    renderHomeKpi({
-      label: "Deuda viva",
-      value: money(debtStats.portfolioTotals.currentPrincipal, true),
-      note: `Pago actual estimado: ${money(debtStats.currentPayment.total, true)}/mes. Ratio ${(savings.debtToIncomeRatio * 100).toFixed(1)}%.`,
-      status: debtRatioStatus,
-      cta: "Simular deuda",
-      target: "debt-control",
-    }),
-    renderHomeKpi({
-      label: "Impacto de decisiones",
-      value: `${decisionImpact >= 0 ? "+" : ""}${money(decisionImpact, true)}`,
-      note: `${loadedDecisions.length} decisión(es), ${money(totalProjects, true)} de impacto en el horizonte visible.`,
-      status: decisionStatus,
-      cta: "Ver simulador",
-      target: "simulator",
     }),
   ].join("");
 
@@ -14573,74 +14737,32 @@ function renderHomeDashboard() {
       cta: "Optimizar",
     });
   }
-  if (avgProjects > 0) {
+  if (loadedDecisions.length > 0) {
     mainInsights.push({
       title: "Proyectos ya influyen en el plan",
-      text: `El impacto medio de proyectos/deuda simulada es ${money(avgProjects, true)}/mes en este horizonte. Compáralo con el escenario sin decisiones antes de confirmar.`,
-      status: decisionImpact < 0 ? "warn" : "good",
+      text: `${loadedDecisions.length} decisión(es) están incorporadas o en evaluación. Revisa su estado antes de asumir nuevos compromisos.`,
+      status: "warn",
       target: "prevision",
       cta: "Comparar",
     });
   }
   qs("homeInsights").innerHTML = mainInsights.map(renderHomeInsight).join("");
 
-  const bestProjectMonth = rows
-    .map((row) => ({ row, metric: previsionMetric(row) }))
-    .sort((a, b) => b.metric.adjustedMin - a.metric.adjustedMin)[0];
-  qs("homeActions").innerHTML = [
-    renderHomeAction(
-      {
-        title: "Ahorro sugerido",
-        value: money(savings.recommendedSaving, true),
-        detail: `Potencial medio: ${money(savings.monthlySavingPotential, true)}/mes`,
-        target: "savings-plan",
-        tone: "good",
-      },
-    ),
-    renderHomeAction({
-      title: "Mejor mes para proyecto",
-      value: bestProjectMonth?.row.month || "-",
-      detail: `Mínimo ajustado estimado: ${money(bestProjectMonth?.metric.adjustedMin || 0, true)}`,
-      target: "simulator",
-      tone: "neutral",
-    }),
-    renderHomeAction({
-      title: "Revisar movimientos",
-      value: money(Number(firstRow?.startLiquidity || 0), true),
-      detail: "Actualiza saldos reales y clasificación bancaria",
-      target: "movements",
-      tone: "neutral",
-    }),
-    renderHomeAction({
-      title: "Editar cuadro",
-      value: firstRow?.month || "Mes actual",
-      detail: "Previstos, reales y nuevas líneas",
-      target: "visual-detail",
-      tone: "neutral",
-    }),
-  ].join("");
+  const actionTarget = qs("homeActions");
+  actionTarget.classList.add("unified-action-list");
+  actionTarget.innerHTML = actionCenter.actions.length
+    ? actionCenter.actions.map(renderUnifiedAction).join("")
+    : `<div class="empty-state compact">Sin acciones necesarias ahora mismo.</div>`;
+  bindUnifiedActionButtons(actionTarget);
 
-  const debtPriorityHtml = debtPriorities.map((item, index) =>
-    renderHomePriority({
-      title: `${index + 1}. ${debtTargetDisplayName(item.target)}`,
-      meta: `Mejor hueco: ${item.best?.month?.label || "por calcular"} · cuota ${money(item.payment, true)}/mes`,
-      value: money(item.principal, true),
-      target: "debt-control",
-      status: index === 0 ? "warn" : "neutral",
-    }),
-  );
-  const decisionPriorityHtml = loadedDecisions.slice(0, 3).map((item) =>
-    renderHomePriority({
-      title: `${item.source === "debt" ? "Deuda" : "Proyecto"} · ${item.name || "Sin nombre"}`,
-      meta: `${forecastMonths()[item.startIndex]?.label || "sin mes"} · ${item.duration || 1} mes(es)`,
-      value: money(Number(item.amount || 0), true),
-      target: item.source === "debt" ? "debt-control" : "simulator",
-      status: "neutral",
-    }),
-  );
-  qs("homePriorities").innerHTML =
-    [...debtPriorityHtml, ...decisionPriorityHtml].join("") ||
-    `<div class="empty-state compact">No hay decisiones pendientes: puedes crear un proyecto o simular una amortización.</div>`;
+  const nextDebt = debtPriorities[0];
+  qs("homePriorities").innerHTML = [
+    `<div class="home-context-item"><span>Decisiones en plan</span><strong>${loadedDecisions.length}</strong><small>Simuladas, propuestas o fijadas en el modelo actual.</small></div>`,
+    nextDebt
+      ? `<div class="home-context-item"><span>Siguiente deuda candidata</span><strong>${escapeHtml(debtTargetDisplayName(nextDebt.target))}</strong><small>${money(nextDebt.principal, true)} pendientes · mejor hueco ${escapeHtml(nextDebt.best?.month?.label || "por calcular")}.</small></div>`
+      : `<div class="home-context-item"><span>Deuda candidata</span><strong>Sin propuesta</strong><small>No hay una deuda disponible para preparar ahora.</small></div>`,
+    `<div class="home-context-item"><span>Horizonte visible</span><strong>${rows.length} meses</strong><small>Ratio deuda/ingresos ${(savings.debtToIncomeRatio * 100).toFixed(1)}% · pago estimado ${money(debtStats.currentPayment.total, true)}/mes.</small></div>`,
+  ].join("");
 
   qs("homeMonthTable").innerHTML = `<thead><tr>
       <th>Mes</th>
