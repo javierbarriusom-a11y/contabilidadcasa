@@ -18,6 +18,7 @@ const derivedControlIds = [
 
 const MODEL_END_YEAR = 2036;
 const MODEL_END_MONTH = 11;
+const UxSettings = globalThis.FinanceUxSettings || null;
 
 const euro = new Intl.NumberFormat("es-ES", {
   style: "currency",
@@ -271,6 +272,10 @@ const viewTitles = {
   "virtual-advisor": {
     eyebrow: "Asesor virtual",
     title: "Prioriza decisiones con una lectura accionable del plan",
+  },
+  "alerts-center": {
+    eyebrow: "Centro de alertas",
+    title: "Anticipa riesgos de caja, deuda y capacidad libre",
   },
   "debt-control": {
     eyebrow: "Control de deuda",
@@ -1723,6 +1728,7 @@ function saveMovementMappings() {
 function saveScenarioSettings() {
   if (!state) return;
   const next = {
+    ...scenarioSettings,
     currentScenario,
     recommendedSavings: state.recommendedSavings,
     annualInflation: state.annualInflation,
@@ -14627,6 +14633,295 @@ function renderHomePriority({ title, meta, value, target, status = "neutral" }) 
   </button>`;
 }
 
+const UX_ALERT_METRICS = {
+  caixaBalance: { label: "Saldo CaixaBank", format: (value) => money(value, true) },
+  minimumCash12m: { label: "Caja mínima 12 meses", format: (value) => money(value, true) },
+  debtRatio: { label: "Ratio deuda / ingresos", format: (value) => `${Number(value || 0).toFixed(1)}%` },
+  freeCapacity: { label: "Capacidad libre mensual", format: (value) => money(value, true) },
+};
+
+function uxDateAfterDays(days = 30) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function defaultUxAlerts() {
+  const now = new Date().toISOString();
+  const reserve = Math.max(0, Number(agentCaixaFloor() || 2200));
+  return [
+    {
+      id: "alert-caixa-reserve",
+      name: "CaixaBank por debajo de la reserva",
+      metric: "caixaBalance",
+      operator: "below",
+      threshold: reserve,
+      action: "Reducir el traspaso a Mediolanum o aplazar salidas hasta recuperar la reserva operativa.",
+      reviewDate: uxDateAfterDays(30),
+      frequency: "daily",
+      paused: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "alert-debt-ratio",
+      name: "Ratio de deuda elevado",
+      metric: "debtRatio",
+      operator: "above",
+      threshold: 32,
+      action: "No asumir nueva financiación y comparar amortización, espera o negociación.",
+      reviewDate: uxDateAfterDays(30),
+      frequency: "monthly",
+      paused: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "alert-free-capacity",
+      name: "Capacidad libre insuficiente",
+      metric: "freeCapacity",
+      operator: "below",
+      threshold: 500,
+      action: "Revisar gasto variable, ahorro objetivo y proyectos todavía no fijados.",
+      reviewDate: uxDateAfterDays(30),
+      frequency: "weekly",
+      paused: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
+function ensureUxSettingsState() {
+  if (!UxSettings) return;
+  scenarioSettings.familyContext = UxSettings.normalizeFamilyContext(scenarioSettings.familyContext);
+  const alerts = Array.isArray(scenarioSettings.alerts)
+    ? scenarioSettings.alerts
+    : defaultUxAlerts();
+  scenarioSettings.alerts = alerts.map((alert) => UxSettings.normalizeAlert(alert));
+}
+
+function currentFamilyContext() {
+  return UxSettings ? UxSettings.normalizeFamilyContext(scenarioSettings.familyContext) : "household";
+}
+
+function familyContextMeta(context = currentFamilyContext()) {
+  return {
+    household: {
+      label: "Hogar",
+      note: "Incluye todos los ingresos y gastos de la unidad familiar.",
+    },
+    javi: {
+      label: "Javi",
+      note: "Ingresos de Javi y la mitad de los gastos compartidos.",
+    },
+    tere: {
+      label: "Tere",
+      note: "Ingresos de Tere y la mitad de los gastos compartidos.",
+    },
+  }[context];
+}
+
+function renderFamilyContextSwitch() {
+  const current = currentFamilyContext();
+  document.querySelectorAll("[data-family-context]").forEach((button) => {
+    const active = button.dataset.familyContext === current;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  const note = qs("familyContextNote");
+  if (note) note.textContent = familyContextMeta(current).note;
+}
+
+function setFamilyContext(context) {
+  if (!UxSettings) return;
+  scenarioSettings.familyContext = UxSettings.normalizeFamilyContext(context);
+  saveScenarioSettings();
+  renderFamilyContextSwitch();
+  renderHomeDashboard();
+  if (viewFromHash() === "alerts-center") renderAlertsCenter();
+}
+
+function familyContextSnapshot() {
+  if (!UxSettings) return { context: "household", income: 0, expenses: 0, net: 0, months: [] };
+  const months = openForecastMonths().slice(0, 12);
+  return UxSettings.aggregateFamilyContext({
+    months,
+    context: currentFamilyContext(),
+    sectionsForMonth: (kind, month) => planningSectionsForMonth(kind, month),
+    valueForRow: (row, month) => plannedValueForRow(row, month),
+  });
+}
+
+function alertMetricSnapshot() {
+  const actionContext = unifiedActionCenterModel().context || {};
+  const rows = (actionContext.rows || []).slice(0, 12);
+  const balances = actionContext.balances || accountBalancesFromState();
+  const savings = savingsPlanCalculations();
+  const minimumCash12m = rows.length
+    ? Math.min(...rows.map((row) => Number(row.agentCaixa ?? row.caixa ?? balances.caixa ?? 0)))
+    : Number(balances.caixa || 0);
+  return {
+    caixaBalance: round2(Number(balances.caixa || 0)),
+    minimumCash12m: round2(minimumCash12m),
+    debtRatio: round2(Number(savings.debtToIncomeRatio || 0) * 100),
+    freeCapacity: round2(Number(actionContext.capacity?.avgTransfer12m || 0)),
+  };
+}
+
+function evaluatedUxAlerts() {
+  if (!UxSettings) return [];
+  ensureUxSettingsState();
+  const snapshot = alertMetricSnapshot();
+  return scenarioSettings.alerts.map((alert) => UxSettings.evaluateAlert(alert, snapshot));
+}
+
+function alertStatusMeta(alert) {
+  if (alert.paused) return { label: "Pausada", tone: "neutral" };
+  if (alert.triggered) return { label: "Actuar", tone: "danger" };
+  if (alert.overdue) return { label: "Revisar", tone: "warn" };
+  return { label: "En control", tone: "good" };
+}
+
+function renderHomeFamilyAndAlerts() {
+  const familyTarget = qs("homeFamilySummary");
+  if (familyTarget) {
+    const family = familyContextSnapshot();
+    const meta = familyContextMeta(family.context);
+    const averageDivisor = Math.max(1, family.months.length);
+    familyTarget.innerHTML = `<div class="home-context-head">
+        <div><p class="panel-kicker">Modo familiar · ${escapeHtml(meta.label)}</p><h3>Capacidad por titular</h3></div>
+        <span class="status-pill ${family.net >= 0 ? "good" : "danger"}">${family.months.length} meses</span>
+      </div>
+      <div class="home-family-grid">
+        <div><span>Ingresos medios</span><strong>${money(family.income / averageDivisor, true)}</strong></div>
+        <div><span>Gastos imputados</span><strong>${money(family.expenses / averageDivisor, true)}</strong></div>
+        <div><span>Margen medio</span><strong>${money(family.net / averageDivisor, true)}</strong></div>
+      </div>
+      <p>${escapeHtml(meta.note)} Cambia la vista desde el selector lateral.</p>`;
+  }
+
+  const alertTarget = qs("homeAlertSummary");
+  if (alertTarget) {
+    const alerts = evaluatedUxAlerts();
+    const attention = alerts.filter((alert) => alert.triggered || alert.overdue);
+    const first = attention[0];
+    const metric = first ? UX_ALERT_METRICS[first.metric] : null;
+    alertTarget.innerHTML = `<div class="home-context-head">
+        <div><p class="panel-kicker">Alertas configurables</p><h3>${attention.length ? `${attention.length} requieren atención` : "Todo bajo control"}</h3></div>
+        <span class="status-pill ${attention.length ? "warn" : "good"}">${alerts.filter((alert) => !alert.paused).length} activas</span>
+      </div>
+      <p>${first ? `${escapeHtml(first.name)}: ${escapeHtml(metric?.format(first.value) || String(first.value ?? "sin dato"))}.` : "No hay umbrales rebasados ni revisiones vencidas."}</p>
+      <button type="button" class="secondary-button" data-home-nav="alerts-center">Configurar alertas</button>`;
+  }
+}
+
+function alertRuleOptions(selected, options) {
+  return options.map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
+}
+
+function renderAlertRule(alert) {
+  const status = alertStatusMeta(alert);
+  const metric = UX_ALERT_METRICS[alert.metric] || UX_ALERT_METRICS.caixaBalance;
+  return `<article class="alert-rule-card ${status.tone}" data-alert-id="${escapeHtml(alert.id)}">
+    <div class="alert-rule-head">
+      <div><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(alert.name)}</strong></div>
+      <span class="status-pill ${status.tone}">${status.label}</span>
+    </div>
+    <div class="alert-rule-form">
+      <label><span>Nombre</span><input data-alert-field="name" value="${escapeHtml(alert.name)}" /></label>
+      <label><span>Indicador</span><select data-alert-field="metric">${alertRuleOptions(alert.metric, Object.entries(UX_ALERT_METRICS).map(([key, value]) => [key, value.label]))}</select></label>
+      <label><span>Condición</span><select data-alert-field="operator">${alertRuleOptions(alert.operator, [["below", "Por debajo de"], ["above", "Por encima de"]])}</select></label>
+      <label><span>Umbral</span><input data-alert-field="threshold" type="number" step="0.01" value="${Number(alert.threshold || 0)}" /></label>
+      <label><span>Revisión</span><input data-alert-field="reviewDate" type="date" value="${escapeHtml(alert.reviewDate)}" /></label>
+      <label><span>Frecuencia</span><select data-alert-field="frequency">${alertRuleOptions(alert.frequency, [["daily", "Diaria"], ["weekly", "Semanal"], ["monthly", "Mensual"]])}</select></label>
+      <label class="alert-action-field"><span>Acción recomendada</span><input data-alert-field="action" value="${escapeHtml(alert.action)}" /></label>
+    </div>
+    <div class="alert-rule-result">
+      <div><span>Valor actual</span><strong>${escapeHtml(metric.format(alert.value))}</strong></div>
+      <p><span>Qué hacer</span>${escapeHtml(alert.action)}</p>
+    </div>
+    <div class="alert-rule-actions">
+      <button type="button" class="ghost-button" data-alert-action="toggle">${alert.paused ? "Reactivar" : "Pausar"}</button>
+      <button type="button" class="ghost-button danger" data-alert-action="delete">Eliminar</button>
+      <button type="button" data-alert-action="save">Guardar regla</button>
+    </div>
+  </article>`;
+}
+
+function renderAlertsCenter() {
+  const target = qs("alertRuleList");
+  if (!target) return;
+  const alerts = evaluatedUxAlerts();
+  const attention = alerts.filter((alert) => alert.triggered || alert.overdue);
+  const active = alerts.filter((alert) => !alert.paused);
+  const nextReview = active
+    .filter((alert) => alert.reviewDate)
+    .sort((a, b) => a.reviewDate.localeCompare(b.reviewDate))[0];
+  const kpis = qs("alertKpis");
+  if (kpis) {
+    kpis.innerHTML = `<article><span>Reglas activas</span><strong>${active.length}</strong><small>${alerts.length - active.length} pausada(s)</small></article>
+      <article class="${attention.length ? "warn" : "good"}"><span>Requieren atención</span><strong>${attention.length}</strong><small>Umbral o revisión</small></article>
+      <article><span>Próxima revisión</span><strong>${nextReview ? escapeHtml(nextReview.reviewDate) : "Sin fecha"}</strong><small>${nextReview ? escapeHtml(nextReview.name) : "Añade una fecha a una regla"}</small></article>`;
+  }
+  target.innerHTML = alerts.length
+    ? alerts.map(renderAlertRule).join("")
+    : `<div class="empty-state">No hay alertas configuradas. Añade una regla para vigilar caja, deuda o capacidad libre.</div>`;
+}
+
+function addUxAlert() {
+  ensureUxSettingsState();
+  scenarioSettings.alerts.push(UxSettings.normalizeAlert({
+    id: `alert-custom-${Date.now()}`,
+    name: "Nueva alerta de caja",
+    metric: "minimumCash12m",
+    operator: "below",
+    threshold: agentCaixaFloor(),
+    action: "Revisar traspasos, gastos próximos y reserva antes de ejecutar nuevas decisiones.",
+    reviewDate: uxDateAfterDays(30),
+    frequency: "weekly",
+  }));
+  saveScenarioSettings();
+  renderAlertsCenter();
+  renderHomeFamilyAndAlerts();
+}
+
+function handleAlertRuleAction(event) {
+  const button = event.target.closest("[data-alert-action]");
+  const card = event.target.closest("[data-alert-id]");
+  if (!button || !card || !UxSettings) return;
+  const id = card.dataset.alertId;
+  const index = scenarioSettings.alerts.findIndex((alert) => alert.id === id);
+  if (index < 0) return;
+  const action = button.dataset.alertAction;
+  if (action === "delete") {
+    if (!window.confirm("¿Eliminar esta alerta?")) return;
+    scenarioSettings.alerts.splice(index, 1);
+  } else if (action === "toggle") {
+    scenarioSettings.alerts[index] = UxSettings.normalizeAlert({
+      ...scenarioSettings.alerts[index],
+      paused: !scenarioSettings.alerts[index].paused,
+      updatedAt: new Date().toISOString(),
+    });
+  } else if (action === "save") {
+    const field = (name) => card.querySelector(`[data-alert-field="${name}"]`)?.value;
+    scenarioSettings.alerts[index] = UxSettings.normalizeAlert({
+      ...scenarioSettings.alerts[index],
+      name: field("name"),
+      metric: field("metric"),
+      operator: field("operator"),
+      threshold: parseAmount(field("threshold")),
+      action: field("action"),
+      reviewDate: field("reviewDate"),
+      frequency: field("frequency"),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+  saveScenarioSettings();
+  renderAlertsCenter();
+  renderHomeFamilyAndAlerts();
+}
+
 function renderHomeDashboard() {
   if (!qs("homeKpis")) return;
   const rows = homeRowsForHorizon();
@@ -14786,6 +15081,7 @@ function renderHomeDashboard() {
         })
         .join("")}
     </tbody>`;
+  renderHomeFamilyAndAlerts();
 }
 
 function liquidationSettlementCost(item, discountPenalty = 0) {
@@ -15569,6 +15865,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "home":
       renderHomeDashboard();
       break;
+    case "alerts-center":
+      renderAlertsCenter();
+      break;
     case "executive-advisor":
       renderExecutiveAdvisor();
       break;
@@ -15718,6 +16017,7 @@ function toggleAssistant(open) {
 }
 
 function render() {
+  ensureUxSettingsState();
   readStateFromControls();
   ensureVariableOperationalSection();
   populateSelectors();
@@ -15725,6 +16025,7 @@ function render() {
   writeDerivedControls(lastSimulation);
   updateKpis(lastSimulation, lastBaseSimulation);
   renderAccountBalancePanels();
+  renderFamilyContextSwitch();
   scheduleActiveSectionRender();
 }
 
@@ -15759,6 +16060,13 @@ async function init() {
   populateSelectors(true);
   updateSourceNote();
   qs("scenarioName").textContent = currentScenario;
+
+  qs("familyContextSwitch")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-family-context]");
+    if (button) setFamilyContext(button.dataset.familyContext);
+  });
+  qs("addAlertRule")?.addEventListener("click", addUxAlert);
+  qs("alertRuleList")?.addEventListener("click", handleAlertRuleAction);
 
   controls.forEach((key) => qs(key).addEventListener("input", scheduleRender));
   qs("balanceDate").addEventListener("change", () => {

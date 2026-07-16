@@ -55,8 +55,8 @@ Una fase se considera verificada cuando:
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
 | P2-1 | Huchas vinculadas a objetivos | Existen huchas simuladas y progreso parcial | Aportaciones reales conciliadas, progreso, fecha objetivo, ejecucion y cancelacion sin duplicar flujo | Pendiente |
-| P2-2 | Modelo familiar Javi/Tere/Hogar | Hay campos de titularidad dispersos | Titular obligatorio, filtros y capacidad individual/familiar; presentacion global en UX-4 | Pendiente |
-| P2-3 | Alertas configurables | Hay avisos calculados y reglas fijas | Umbral, canal, frecuencia, activacion y silenciamiento persistidos; interfaz en UX-5 | Pendiente |
+| P2-2 | Modelo familiar Javi/Tere/Hogar | Selector y agregacion familiar ya operativos; la titularidad aun se infiere cuando falta en el dato | Titular obligatorio, filtros y capacidad individual/familiar; presentacion global en UX-4 | Parcial |
+| P2-3 | Alertas configurables | Reglas persistentes con umbral, frecuencia, activacion, pausa y accion recomendada; falta canal externo | Umbral, canal, frecuencia, activacion y silenciamiento persistidos; interfaz en UX-5 | Parcial |
 | P2-4 | Indicadores de comportamiento | Hay medias y desviaciones aisladas | Tendencias, recurrencia, anomalias y explicacion basada solo en movimientos conciliados | Pendiente |
 | P2-5 | Documentos de acuerdos | No implementado | Adjuntos privados, fecha limite, estado de verificacion, notas y enlace con deuda/acuerdo | Pendiente |
 | P2-6 | Exportacion para asesor | Exportaciones parciales | Paquete PDF/Excel versionado con deuda, caja, escenarios, procedencia y advertencias | Pendiente |
@@ -76,8 +76,8 @@ Una fase se considera verificada cuando:
 | UX-1 | Navegacion con cinco areas principales | Menu: Hoy, Plan familiar, Deuda y proyectos, Movimientos, Herramientas avanzadas; las vistas actuales quedan dentro de la ultima | Verificado |
 | UX-2 | Landing Hoy | Saldo y fecha, tres decisiones accionables, proximo riesgo y capacidad libre entendibles en menos de 30 segundos | Verificado |
 | UX-3 | Centro unico de acciones | Fusiona agente ejecutivo, cola y asesor; prioriza, explica y ejecuta con un solo patron de confirmacion | Verificado |
-| UX-4 | Modo familiar | Selector Javi/Tere/Hogar persistente que cambia cifras, titularidad y capacidad sin duplicar datos | Pendiente |
-| UX-5 | Centro de alertas | Crear, editar, pausar y revisar alertas con estado, umbral, fecha y accion recomendada | Pendiente |
+| UX-4 | Modo familiar | Selector Javi/Tere/Hogar persistente que cambia cifras, titularidad y capacidad sin duplicar datos | Verificado |
+| UX-5 | Centro de alertas | Crear, editar, pausar y revisar alertas con estado, umbral, fecha y accion recomendada | Verificado |
 | UX-6 | Validacion y simplificacion | Pruebas con tareas clave, accesibilidad, responsive, rendimiento y retirada de duplicidades validadas | Pendiente |
 
 ## Orden de ejecucion recomendado
@@ -109,6 +109,6 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 | UX-1 | Verificado | Cinco areas principales, apertura en Hoy y herramientas avanzadas agrupadas por decidir, analizar y datos | Navegacion por hash compatible; validacion desktop y movil | Validar el modelo mental con uso real | UX-2 |
 | UX-2 | Verificado | Landing Hoy con liquidez fechada, capacidad libre, reserva, proximo riesgo, tres decisiones y meses sensibles | Navegacion real por hash; lectura y CTA comprobados en navegador; 3 decisiones visibles | El contenido depende de la calidad del modelo de lectura P1-8 | UX-3 |
 | UX-3 | Verificado | Registro unificado de acciones reutilizado por Hoy y asesores; revision previa con impacto y confirmacion comun | Revision abierta en navegador, confirmacion y destino Agente ahorro verificados; sin mutacion antes de confirmar | Retirar paneles redundantes queda para UX-6 tras uso real | UX-4 |
-| UX-4 | Pendiente | - | - | Requiere contexto familiar persistente sin duplicar datos | UX-4 |
-| UX-5 | Pendiente | - | - | Requiere reglas configurables y persistencia | UX-5 |
-| UX-6 | Pendiente | - | - | Validacion final tras UX-4/UX-5 | UX-6 |
+| UX-4 | Verificado | Selector Hogar/Javi/Tere persistente, agregacion por titular y resumen de ingresos, gastos y margen en Hoy | Cambio Hogar/Tere comprobado en navegador; persistencia tras recarga; 66 pruebas de dominio y UX en verde | La obligatoriedad de titular en el modelo normalizado sigue en P2-2 | UX-5 |
+| UX-5 | Verificado | Centro de alertas con alta, edicion, pausa/reactivacion, eliminacion, umbral, revision, frecuencia y accion recomendada | Ciclo crear-pausar-recargar-eliminar comprobado en navegador; estado limpio de 3 reglas; responsive 390x844 sin desbordamiento | Los canales externos de aviso siguen en P2-3 | UX-6 |
+| UX-6 | Pendiente | QA responsive puntual de UX-2 a UX-5 ya completado | Desktop y movil sin desbordamiento en Hoy, Centro de acciones, modo familiar y alertas | Falta auditoria global de accesibilidad, rendimiento y retirada de paneles redundantes | UX-6 |

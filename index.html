@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260716k" />
+    <link rel="stylesheet" href="styles.css?v=20260716n" />
   </head>
   <body>
     <div class="app-shell">
@@ -49,6 +49,7 @@
               <a href="#savings-agent">Agente ahorro</a>
               <a href="#debt-control">Control de deuda</a>
               <a href="#simulator">Simulador</a>
+              <a href="#alerts-center">Centro de alertas</a>
 
               <p class="advanced-nav-label">Analizar</p>
               <a href="#visual-detail">Cuadro de mandos</a>
@@ -64,6 +65,19 @@
             </div>
           </details>
         </nav>
+
+        <section class="family-context-card" aria-labelledby="familyContextTitle">
+          <div>
+            <span>Vista familiar</span>
+            <strong id="familyContextTitle">¿A quién analizamos?</strong>
+          </div>
+          <div class="family-context-switch" id="familyContextSwitch" role="group" aria-label="Contexto familiar">
+            <button type="button" data-family-context="household" class="active">Hogar</button>
+            <button type="button" data-family-context="javi">Javi</button>
+            <button type="button" data-family-context="tere">Tere</button>
+          </div>
+          <small id="familyContextNote">Todas las cuentas, ingresos, gastos y deudas del hogar.</small>
+        </section>
 
         <div class="sidebar-card">
           <span>Escenario activo</span>
@@ -188,6 +202,52 @@
                 </div>
               </article>
             </div>
+
+            <div class="home-layout home-context-layout">
+              <article class="home-panel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Modo familiar</p>
+                    <h3 id="homeFamilyTitle">Lectura del hogar</h3>
+                  </div>
+                </div>
+                <div class="home-family-summary" id="homeFamilySummary"></div>
+              </article>
+
+              <article class="home-panel">
+                <div class="module-heading with-inline-action">
+                  <div>
+                    <p class="panel-kicker">Alertas configurables</p>
+                    <h3>Señales que requieren revisión</h3>
+                  </div>
+                  <button type="button" class="secondary-button compact-button" data-home-nav="alerts-center">Configurar</button>
+                </div>
+                <div class="home-alert-summary" id="homeAlertSummary"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="alerts-center view-section" id="alerts-center">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Centro de alertas</p>
+                <h2>Controla los límites que no quieres romper</h2>
+                <p>Define umbrales de caja, deuda y capacidad; pausa una regla o marca su próxima revisión sin perder su historial.</p>
+              </div>
+              <button id="addAlertRule" type="button">Nueva alerta</button>
+            </div>
+
+            <div class="alert-kpi-grid" id="alertKpis"></div>
+
+            <article class="alerts-panel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Reglas activas</p>
+                  <h3>Umbrales y revisiones</h3>
+                </div>
+              </div>
+              <div class="alert-rule-list" id="alertRuleList"></div>
+            </article>
           </section>
 
           <section class="executive-advisor view-section" id="executive-advisor">
@@ -2109,6 +2169,7 @@
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-workflow.js?v=20260714a"></script>
     <script src="canonical-supabase-store.js?v=20260715a"></script>
-    <script src="app.js?v=20260716k"></script>
+    <script src="ux-settings.js?v=20260716a"></script>
+    <script src="app.js?v=20260716n"></script>
   </body>
 </html>

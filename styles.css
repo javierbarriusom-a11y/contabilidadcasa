@@ -9450,3 +9450,336 @@ tbody tr:hover {
     width: 100%;
   }
 }
+
+/* UX-4: contexto familiar */
+.family-context-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.family-context-card > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.family-context-card > div:first-child span,
+.family-context-card small {
+  color: rgba(230, 244, 245, 0.72);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.family-context-card > div:first-child span {
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.family-context-card strong {
+  color: #fff;
+  font-size: 0.96rem;
+}
+
+.family-context-switch {
+  background: rgba(4, 22, 27, 0.34);
+  border-radius: 6px;
+  display: grid;
+  gap: 3px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 3px;
+}
+
+.family-context-switch button {
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  color: rgba(239, 249, 249, 0.72);
+  font-size: 0.78rem;
+  min-height: 34px;
+  padding: 6px;
+}
+
+.family-context-switch button:hover,
+.family-context-switch button:focus-visible {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.family-context-switch button.active {
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(4, 22, 27, 0.2);
+  color: #0f7778;
+}
+
+.home-context-layout {
+  align-items: stretch;
+}
+
+.home-family-summary,
+.home-alert-summary {
+  display: grid;
+  gap: 14px;
+  height: 100%;
+}
+
+.home-context-head {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.home-context-head h3 {
+  font-size: 1.08rem;
+  margin: 2px 0 0;
+}
+
+.home-family-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.home-family-grid > div {
+  background: #f4f8f8;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.home-family-grid span,
+.alert-kpi-grid span,
+.alert-rule-result span,
+.alert-rule-form label > span {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.home-family-grid strong {
+  font-size: clamp(1rem, 1.5vw, 1.3rem);
+  overflow-wrap: anywhere;
+}
+
+.home-family-summary > p,
+.home-alert-summary > p {
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.home-alert-summary .secondary-button {
+  justify-self: start;
+}
+
+/* UX-5: alertas configurables */
+.alert-kpi-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.alert-kpi-grid article {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.alert-kpi-grid article.warn {
+  border-left-color: #c48a18;
+}
+
+.alert-kpi-grid article.good {
+  border-left-color: #2f8a55;
+}
+
+.alert-kpi-grid strong {
+  font-size: clamp(1.25rem, 2.4vw, 2rem);
+  line-height: 1.05;
+  overflow-wrap: anywhere;
+}
+
+.alert-kpi-grid small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.alerts-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.alert-rule-list {
+  display: grid;
+  gap: 12px;
+}
+
+.alert-rule-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.alert-rule-card.danger {
+  border-left-color: #ca4b45;
+}
+
+.alert-rule-card.warn {
+  border-left-color: #c48a18;
+}
+
+.alert-rule-card.neutral {
+  border-left-color: #8a979b;
+}
+
+.alert-rule-head,
+.alert-rule-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.alert-rule-head > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.alert-rule-head > div span {
+  color: var(--teal);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.alert-rule-head strong {
+  font-size: 1.08rem;
+  overflow-wrap: anywhere;
+}
+
+.alert-rule-form {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(160px, 1.4fr) minmax(140px, 1fr) minmax(130px, 0.9fr) minmax(110px, 0.7fr) minmax(140px, 0.9fr) minmax(120px, 0.8fr);
+}
+
+.alert-rule-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.alert-rule-form input,
+.alert-rule-form select {
+  min-width: 0;
+  width: 100%;
+}
+
+.alert-rule-form .alert-action-field {
+  grid-column: span 2;
+}
+
+.alert-rule-result {
+  align-items: start;
+  background: #f3f8f8;
+  border-radius: 6px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(140px, 0.35fr) minmax(260px, 1fr);
+  padding: 10px 12px;
+}
+
+.alert-rule-result > div,
+.alert-rule-result p {
+  margin: 0;
+}
+
+.alert-rule-result span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.alert-rule-result p {
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.alert-rule-result strong {
+  font-size: 1.1rem;
+}
+
+.alert-rule-actions {
+  justify-content: flex-end;
+}
+
+.alert-rule-actions .danger {
+  color: #b63e39;
+}
+
+@media (max-width: 1180px) {
+  .alert-rule-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .home-family-grid,
+  .alert-kpi-grid,
+  .alert-rule-form {
+    grid-template-columns: 1fr;
+  }
+
+  .home-context-head,
+  .alert-rule-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .alert-rule-actions {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .alert-rule-actions button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .alert-rule-form .alert-action-field {
+    grid-column: auto;
+  }
+
+  .alert-rule-result {
+    grid-template-columns: 1fr;
+  }
+
+  .alerts-center .section-title.with-action {
+    align-items: stretch;
+  }
+
+  .alerts-center .section-title.with-action > button {
+    width: 100%;
+  }
+}
