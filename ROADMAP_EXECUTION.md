@@ -11,9 +11,11 @@ legada capaz de producir un resultado distinto.
 - Se ejecuta una sola fase cada vez.
 - Al cerrar una fase se actualiza este documento y se entrega la matriz completa en el chat.
 - Cada cierre incluye: cambios, pruebas, evidencia visual, riesgos y trabajo pendiente.
-- Estados permitidos: `Pendiente`, `En curso`, `Implementado`, `Verificado`, `Bloqueado`.
+- Estados permitidos: `Pendiente`, `Parcial`, `En curso`, `Implementado`, `Verificado`, `Bloqueado`.
 - `Implementado` significa que el codigo existe; `Verificado` significa que el comportamiento ha
   sido probado de extremo a extremo.
+- `Parcial` significa que existe una base funcional o tecnica, pero aun no cumple todo el criterio
+  de aceptacion o conserva dependencias/rutas heredadas.
 
 ## Criterio global de terminado
 
@@ -26,40 +28,54 @@ Una fase se considera verificada cuando:
 5. Las invariantes financieras y las pruebas funcionales pasan.
 6. La experiencia se valida en escritorio y movil sin desbordamientos ni bloqueos.
 
+## Resumen ejecutivo de estado
+
+Fecha de inventario: 17 de julio de 2026. `Realizado` equivale a `Verificado`: no basta con que el
+codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
+
+| Bloque | Fases | Realizados | Parciales | Pendientes | Objetivo |
+| --- | --- | --- | --- | --- | --- |
+| P0 | P0-1 a P0-6 | 0 | 6: P0-1 a P0-6 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
+| P1 | P1-1 a P1-8 | 0 | 8: P1-1 a P1-8 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
+| P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
+| P3 | P3-1 a P3-3 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
+| UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
+| **Total** | **29 fases** | **12** | **14** | **3** | **La experiencia principal y P2 estan verificados; la siguiente prioridad es cerrar P0** |
+
 ## P0 - Integridad estructural
 
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
-| P0-1 | Libro mayor canonico e identificadores estables | Hay libro e IDs, pero parte del estado legado sigue generando entidades y reapariciones | Todo real nace en el libro mayor; deduplicacion y bajas usan IDs estables; una eliminacion no reaparece tras recargar o importar | Pendiente |
-| P0-2 | Supabase normalizado como fuente autoritativa | Esquema activo y 2338 entidades sincronizadas, pero existe lectura/escritura compatible con `finance_dashboard_states` | Lectura primaria desde tablas normalizadas; legado solo como migracion/fallback controlado; prueba de recarga en dos sesiones | Pendiente |
-| P0-3 | Maquina de estados y registro inmutable | Existe workflow canonico, pero no todas las mutaciones pasan por comandos y eventos | Deudas, proyectos, acuerdos e importaciones usan transiciones comunes; cada cambio genera evento append-only antes/despues | Pendiente |
-| P0-4 | Motor unico de calculo | Existe motor canonico y comparador con el historico, pero quedan calculos directos en vistas | Todas las vistas consumen un unico resultado diario/mensual; el motor legado deja de decidir cifras | Pendiente |
-| P0-5 | Reconciliacion e invariantes como barrera | Hay vista e invariantes, pero no bloquean todos los guardados/publicaciones incoherentes | Diferencias banco-presupuesto-simulacion visibles; no se confirma ni publica un estado que rompa invariantes | Pendiente |
-| P0-6 | Copias, restauracion y seguridad de version | Hay snapshots locales/remotos, pero falta restauracion guiada y validacion completa | Selector de versiones, vista previa, restauracion transaccional y prueba de recuperacion sin perdida | Pendiente |
+| P0-1 | Libro mayor canonico e identificadores estables | Hay libro e IDs, pero parte del estado legado sigue generando entidades y reapariciones | Todo real nace en el libro mayor; deduplicacion y bajas usan IDs estables; una eliminacion no reaparece tras recargar o importar | Parcial |
+| P0-2 | Supabase normalizado como fuente autoritativa | Esquema activo y 2338 entidades sincronizadas, pero existe lectura/escritura compatible con `finance_dashboard_states` | Lectura primaria desde tablas normalizadas; legado solo como migracion/fallback controlado; prueba de recarga en dos sesiones | Parcial |
+| P0-3 | Maquina de estados y registro inmutable | Existe workflow canonico, pero no todas las mutaciones pasan por comandos y eventos | Deudas, proyectos, acuerdos e importaciones usan transiciones comunes; cada cambio genera evento append-only antes/despues | Parcial |
+| P0-4 | Motor unico de calculo | Existe motor canonico y comparador con el historico, pero quedan calculos directos en vistas | Todas las vistas consumen un unico resultado diario/mensual; el motor legado deja de decidir cifras | Parcial |
+| P0-5 | Reconciliacion e invariantes como barrera | Hay vista e invariantes, pero no bloquean todos los guardados/publicaciones incoherentes | Diferencias banco-presupuesto-simulacion visibles; no se confirma ni publica un estado que rompa invariantes | Parcial |
+| P0-6 | Copias, restauracion y seguridad de version | Hay snapshots locales/remotos, pero falta restauracion guiada y validacion completa | Selector de versiones, vista previa, restauracion transaccional y prueba de recuperacion sin perdida | Parcial |
 
 ## P1 - Decision y tesoreria
 
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
-| P1-1 | Motor diario de tesoreria y reserva unica | Calendario diario y reserva existen parcialmente | Cobros/pagos por fecha, cobertura hasta siguiente ingreso y una reserva global editable usada por toda la app | Pendiente |
-| P1-2 | Contratos de deuda completos | Hay capital, cuota y algunos estados; faltan campos y calidad uniforme | Capital, mora, TAE, suspension, vencimiento, titular, acuerdo y procedencia obligatorios o marcados como desconocidos | Pendiente |
-| P1-3 | Comparador de acuerdos | Existen modalidades en control de deuda | Pago unico, fraccionado, reunificacion, retomar y no actuar comparados con caja, patrimonio, registros y alternativa actuar/esperar/negociar | Pendiente |
-| P1-4 | Optimizacion multiobjetivo explicable | Hay rutas optimas heuristicas | Frontera deuda-caja-colchon-coche, restricciones duras y explicacion de por que una opcion domina a otra | Pendiente |
-| P1-5 | Escenarios probabilisticos | Hay escenarios deterministas y ajustes | Optimista, base y tension calibrados; horizontes superiores a 24 meses se muestran como bandas/rangos | Pendiente |
-| P1-6 | Calidad, procedencia y cierre mensual | Hay metadatos parciales y meses cerrados de forma incompleta | Cada KPI indica fuente, fecha, confianza y metodo; cierre remoto congela reales y arrastra solo previsiones | Pendiente |
-| P1-7 | Importacion segura con deshacer | Hay seleccion, vista previa y confirmaciones parciales | Comparar antes/despues, validar, confirmar, registrar lote y deshacer local/remoto por snapshot | Pendiente |
-| P1-8 | Modelo de lectura para Hoy y acciones | Hay Control diario, asesores y colas redundantes | API interna unica que devuelve tres decisiones, alertas, capacidad libre y contexto; la UI se completa en UX-2/UX-3 | Pendiente |
+| P1-1 | Motor diario de tesoreria y reserva unica | Calendario diario y reserva existen parcialmente | Cobros/pagos por fecha, cobertura hasta siguiente ingreso y una reserva global editable usada por toda la app | Parcial |
+| P1-2 | Contratos de deuda completos | Hay capital, cuota y algunos estados; faltan campos y calidad uniforme | Capital, mora, TAE, suspension, vencimiento, titular, acuerdo y procedencia obligatorios o marcados como desconocidos | Parcial |
+| P1-3 | Comparador de acuerdos | Existen modalidades en control de deuda | Pago unico, fraccionado, reunificacion, retomar y no actuar comparados con caja, patrimonio, registros y alternativa actuar/esperar/negociar | Parcial |
+| P1-4 | Optimizacion multiobjetivo explicable | Hay rutas optimas heuristicas | Frontera deuda-caja-colchon-coche, restricciones duras y explicacion de por que una opcion domina a otra | Parcial |
+| P1-5 | Escenarios probabilisticos | Hay escenarios deterministas y ajustes | Optimista, base y tension calibrados; horizontes superiores a 24 meses se muestran como bandas/rangos | Parcial |
+| P1-6 | Calidad, procedencia y cierre mensual | Hay metadatos parciales y meses cerrados de forma incompleta | Cada KPI indica fuente, fecha, confianza y metodo; cierre remoto congela reales y arrastra solo previsiones | Parcial |
+| P1-7 | Importacion segura con deshacer | Hay seleccion, vista previa y confirmaciones parciales | Comparar antes/despues, validar, confirmar, registrar lote y deshacer local/remoto por snapshot | Parcial |
+| P1-8 | Modelo de lectura para Hoy y acciones | Hoy y el registro unificado de acciones ya consumen una lectura comun, pero su calidad depende de cerrar P0/P1 | API interna unica que devuelve tres decisiones, alertas, capacidad libre y contexto; la UI se completa en UX-2/UX-3 | Parcial |
 
 ## P2 - Planificacion familiar
 
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
-| P2-1 | Huchas vinculadas a objetivos | Existen huchas simuladas y progreso parcial | Aportaciones reales conciliadas, progreso, fecha objetivo, ejecucion y cancelacion sin duplicar flujo | Pendiente |
-| P2-2 | Modelo familiar Javi/Tere/Hogar | Selector y agregacion familiar ya operativos; la titularidad aun se infiere cuando falta en el dato | Titular obligatorio, filtros y capacidad individual/familiar; presentacion global en UX-4 | Parcial |
-| P2-3 | Alertas configurables | Reglas persistentes con umbral, frecuencia, activacion, pausa y accion recomendada; falta canal externo | Umbral, canal, frecuencia, activacion y silenciamiento persistidos; interfaz en UX-5 | Parcial |
-| P2-4 | Indicadores de comportamiento | Hay medias y desviaciones aisladas | Tendencias, recurrencia, anomalias y explicacion basada solo en movimientos conciliados | Pendiente |
-| P2-5 | Documentos de acuerdos | No implementado | Adjuntos privados, fecha limite, estado de verificacion, notas y enlace con deuda/acuerdo | Pendiente |
-| P2-6 | Exportacion para asesor | Exportaciones parciales | Paquete PDF/Excel versionado con deuda, caja, escenarios, procedencia y advertencias | Pendiente |
+| P2-1 | Huchas vinculadas a objetivos | Huchas con aportaciones manuales o conciliadas, progreso, fecha objetivo, pausa, ejecucion y cancelacion | Aportaciones reales conciliadas, progreso, fecha objetivo, ejecucion y cancelacion sin duplicar flujo | Verificado |
+| P2-2 | Modelo familiar Javi/Tere/Hogar | Titularidad Javi/Tere/Hogar asignable a ingresos, gastos y deudas, con inferencia inicial y persistencia | Titular obligatorio, filtros y capacidad individual/familiar; presentacion global en UX-4 | Verificado |
+| P2-3 | Alertas configurables | Canal app, notificacion de navegador y preparacion de email; umbral, frecuencia, activacion y silenciamiento persistidos | Umbral, canal, frecuencia, activacion y silenciamiento persistidos; interfaz en UX-5 | Verificado |
+| P2-4 | Indicadores de comportamiento | Tendencias, recurrencia y anomalias calculadas exclusivamente sobre movimientos conciliados | Tendencias, recurrencia, anomalias y explicacion basada solo en movimientos conciliados | Verificado |
+| P2-5 | Documentos de acuerdos | Adjuntos privados en IndexedDB, ficha sincronizable, fecha limite, verificacion, notas y enlace con deuda | Adjuntos privados, fecha limite, estado de verificacion, notas y enlace con deuda/acuerdo | Verificado |
+| P2-6 | Exportacion para asesor | Paquete PDF y Excel versionado con caja, cuentas, deuda, huchas, movimientos, alertas, documentos y procedencia | Paquete PDF/Excel versionado con deuda, caja, escenarios, procedencia y advertencias | Verificado |
 
 ## P3 - Servicios externos
 
@@ -97,15 +113,29 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 
 | Fase | Estado | Entregables completados | Pruebas/evidencia | Pendiente o riesgo | Siguiente fase |
 | --- | --- | --- | --- | --- | --- |
-| P0-1 | Pendiente | - | - | Estado legado aun puede recrear datos | P0-1 |
-| P0-2 | Pendiente | Esquema Supabase activo y sincronizacion normalizada confirmada como punto de partida | Mensaje de 2338 entidades normalizadas | Dualidad normalizado/legado | - |
-| P0-3 | Pendiente | - | - | Mutaciones fuera del workflow | - |
-| P0-4 | Pendiente | - | - | Calculos directos y motor legado | - |
-| P0-5 | Pendiente | - | - | Invariantes no bloqueantes en todos los flujos | - |
-| P0-6 | Pendiente | - | - | Restauracion no guiada | - |
-| P1 | Pendiente | - | - | Depende de P0 | - |
-| P2 | Pendiente | - | - | Depende de P0/P1 | - |
-| P3 | Pendiente | - | - | Dependencias externas | - |
+| P0-1 | Parcial | Libro mayor canonico e IDs estables implantados | Pruebas de deduplicacion, identidad y conciliacion | El estado legado aun puede recrear datos | P0-1 |
+| P0-2 | Parcial | Esquema Supabase activo y sincronizacion normalizada confirmada como punto de partida | 2338 entidades normalizadas y copia versionada | Retirar la dualidad normalizado/legado y probar dos sesiones | P0-2 |
+| P0-3 | Parcial | Workflow canonico y eventos append-only disponibles | Pruebas de transiciones e idempotencia | Aun hay mutaciones fuera del workflow | P0-3 |
+| P0-4 | Parcial | Motor mensual, diario y calendario canonicos implantados | Invariantes y corte canonico cubiertos por pruebas | Eliminar los calculos directos restantes en vistas | P0-4 |
+| P0-5 | Parcial | Vista de conciliacion e invariantes financieras disponibles | Pruebas de continuidad, saldos y valores finitos | Convertir invariantes en barrera de todos los guardados | P0-5 |
+| P0-6 | Parcial | Copias locales/remotas, checksum y restauracion en dos pasos | Pruebas de copia manipulada y restauracion local | Completar selector remoto y restauracion transaccional | P0-6 |
+| P1-1 | Parcial | Motor diario, fechas de cobro/pago y reserva comun | Paridad diaria/mensual e invariantes de tesoreria | Completar cobertura aprendida hasta el siguiente ingreso | P1-1 |
+| P1-2 | Parcial | Contratos de deuda normalizados y estados de pago | Pruebas de suspension, reunificacion, atrasos y retoma | Completar TAE, mora, titular y procedencia obligatoria | P1-2 |
+| P1-3 | Parcial | Comparador de no actuar, pago, fraccionamiento, reunificacion y retoma | Pruebas de reserva, coste, cierre y recomendacion | Incorporar efectos legales/fiscales verificados | P1-3 |
+| P1-4 | Parcial | Rutas heuristicas con restricciones de caja, deuda y coche | Escenarios y recomendaciones visibles | Falta frontera multiobjetivo explicita y explicable | P1-4 |
+| P1-5 | Parcial | Escenarios deterministas y horizonte por rangos | Comparativas base y tension existentes | Calibrar probabilidades con historico conciliado | P1-5 |
+| P1-6 | Parcial | Metadatos de fecha/procedencia y cierre mensual parcial | Fechas y estados visibles en varios KPI | Completar confianza por KPI y cierre remoto transaccional | P1-6 |
+| P1-7 | Parcial | Seleccion, vista previa y confirmacion de importaciones | Flujos de importacion y snapshots disponibles | Deshacer remoto por lote y comparacion integral antes/despues | P1-7 |
+| P1-8 | Parcial | Lectura comun para Hoy y registro unificado de acciones | UX-2/UX-3 verificadas en navegador | Cerrar la dependencia de calidad con P0/P1 | P1-8 |
+| P2-1 | Verificado | Huchas con aportaciones manuales/conciliadas, progreso, pausa, ejecucion y cancelacion | Pruebas de deduplicacion global por movimiento y panel validado en navegador | Ninguno; automatizar aportaciones bancarias depende de P3-1 | P2-2 |
+| P2-2 | Verificado | Titular obligatorio y editable para series y deudas; selector Hogar/Javi/Tere persistente | Inferencia, reasignacion y agregacion familiar cubiertas por pruebas y navegador | Ninguno | P2-3 |
+| P2-3 | Verificado | Canales app, navegador y preparacion de email; frecuencia y silenciamiento persistidos | Panel de canales validado sin errores de consola; reglas UX-5 ya verificadas | El envio autonomo servidor queda fuera de P2 y depende de P3 | P2-4 |
+| P2-4 | Verificado | Tendencias, recurrencia y anomalias sobre movimientos conciliados | Prueba que excluye movimientos no conciliados y panel validado en navegador | Ninguno | P2-5 |
+| P2-5 | Verificado | Adjuntos privados locales, metadatos sincronizables, fecha limite, notas, verificacion y deuda vinculada | IndexedDB para archivo; modelo documental normalizado y panel validado en navegador | Sincronizar binarios entre dispositivos requeriria almacenamiento privado remoto opcional | P2-6 |
+| P2-6 | Verificado | Exportacion PDF y libro Excel versionados con caja, deuda, huchas, movimientos, alertas, documentos y procedencia | Generadores incluidos, modelo de exportacion trazable y botones disponibles en navegador | Ninguno | P3-1 |
+| P3-1 | Pendiente | Importacion bancaria manual como fallback | - | Requiere proveedor PSD2, consentimiento y seguridad | P3-1 |
+| P3-2 | Pendiente | Asistentes locales basados en reglas | - | Falta backend privado de IA con respuestas trazables | P3-2 |
+| P3-3 | Pendiente | Patron de revision/confirmacion disponible en acciones de UI | - | Falta conectarlo a un asistente real y auditar sus borradores | P3-3 |
 | UX-1 | Verificado | Cinco areas principales, apertura en Hoy y herramientas avanzadas agrupadas por decidir, analizar y datos | Navegacion por hash compatible; validacion desktop y movil | Validar el modelo mental con uso real | UX-2 |
 | UX-2 | Verificado | Landing Hoy con liquidez fechada, capacidad libre, reserva, proximo riesgo, tres decisiones y meses sensibles | Navegacion real por hash; lectura y CTA comprobados en navegador; 3 decisiones visibles | El contenido depende de la calidad del modelo de lectura P1-8 | UX-3 |
 | UX-3 | Verificado | Registro unificado de acciones reutilizado por Hoy y asesores; revision previa con impacto y confirmacion comun | Revision abierta en navegador, confirmacion y destino Agente ahorro verificados; sin mutacion antes de confirmar | Retirar paneles redundantes queda para UX-6 tras uso real | UX-4 |

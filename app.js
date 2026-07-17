@@ -14841,7 +14841,11 @@ function familyContextSnapshot() {
   return UxSettings.aggregateFamilyContext({
     months,
     context: currentFamilyContext(),
-    sectionsForMonth: (kind, month) => planningSectionsForMonth(kind, month),
+    sectionsForMonth: (kind, month) =>
+      planningSectionsForMonth(kind, month).map((section) => ({
+        ...section,
+        rows: section.rows.map((row) => ({ ...row, owner: p2OwnerForPlanningRow(row) })),
+      })),
     valueForRow: (row, month) => plannedValueForRow(row, month),
   });
 }
@@ -14868,6 +14872,130 @@ function evaluatedUxAlerts() {
   const snapshot = alertMetricSnapshot();
   return scenarioSettings.alerts.map((alert) => UxSettings.evaluateAlert(alert, snapshot));
 }
+
+function p2State() {
+  const raw = scenarioSettings?.p2 || {};
+  return window.P2Domain ? window.P2Domain.normalizeState(raw) : raw;
+}
+
+function saveP2State(next) {
+  scenarioSettings.p2 = window.P2Domain ? window.P2Domain.normalizeState(next) : next;
+  saveScenarioSettings();
+  return scenarioSettings.p2;
+}
+
+function p2OwnerForPlanningRow(row) {
+  const key = seriesKeyForRow(row);
+  const saved = p2State().ownership?.[key];
+  if (saved) return saved;
+  return window.P2Domain ? window.P2Domain.inferOwner(displayLabelForRow(row), key) : "household";
+}
+
+function p2SeriesRows(kind) {
+  return availableSeriesRows(kind).map((row) => ({
+    key: seriesKeyForRow(row),
+    kind,
+    id: row.id,
+    label: displayLabelForRow(row),
+    sectionName: row.sectionName,
+    owner: p2OwnerForPlanningRow(row),
+  }));
+}
+
+function p2MovementRows() {
+  return (baseData?.transactions || []).map((transaction) => {
+    const mapping = mappingForMovement(transaction);
+    const rowKey = mapping?.row ? seriesKeyForRow(mapping.row) : "";
+    const label = mapping?.row ? displayLabelForRow(mapping.row) : transaction.movement || transaction.details || "Movimiento";
+    return {
+      id: transactionIdentity(transaction),
+      date: transaction.date || "",
+      month: transaction.month || String(transaction.date || "").slice(0, 7),
+      label,
+      bankLabel: transaction.movement || "",
+      details: transaction.details || "",
+      amount: Number(transaction.amount || 0),
+      balance: transaction.balance,
+      kind: mapping?.kind || (Number(transaction.amount || 0) >= 0 ? "income" : "expense"),
+      rowKey,
+      category: mapping?.row?.sectionName || mapping?.row?.category || "Sin conciliar",
+      owner: rowKey ? p2State().ownership?.[rowKey] || window.P2Domain?.inferOwner(label, rowKey) || "household" : "household",
+      reconciled: Boolean(mapping?.row),
+      source: transaction.source || "extracto bancario",
+    };
+  });
+}
+
+function p2DebtRows() {
+  return canonicalDebtContractRows().map((row) => ({
+    id: row.id,
+    entity: row.entity || "Entidad",
+    type: row.type || "Deuda",
+    number: row.number || "",
+    currentPrincipal: Number(row.currentPrincipal || 0),
+    currentPayment: Number(row.currentPayment || row.contractualPayment || row.originalPayment || 0),
+    owner: p2State().ownership?.[`debt|${row.id}`] || window.P2Domain?.inferOwner(`${row.entity} ${row.number}`, row.id) || "household",
+    source: row.source || "cartera declarada",
+  }));
+}
+
+function p2ExportModel(version = p2State().exportVersion || 1) {
+  const p2 = p2State();
+  const accounts = accountBalancesFromState();
+  const movements = p2MovementRows();
+  const alerts = evaluatedUxAlerts();
+  const behavior = window.P2Domain?.behaviorAnalytics(movements, (row) => row.reconciled) || {};
+  const debts = p2DebtRows();
+  const generatedAt = new Date().toISOString();
+  const goals = p2.goals.map((goal) => window.P2Domain?.goalSnapshot(goal) || goal);
+  const summary = [
+    { indicador: "Liquidez total", valor: accounts.total, fecha: state?.balanceDate || generatedAt.slice(0, 10) },
+    { indicador: "CaixaBank", valor: accounts.caixa, fecha: state?.balanceDate || generatedAt.slice(0, 10) },
+    { indicador: "Mediolanum", valor: accounts.mediolanum, fecha: state?.balanceDate || generatedAt.slice(0, 10) },
+    { indicador: "Deuda pendiente", valor: round2(debts.reduce((sum, row) => sum + row.currentPrincipal, 0)), fecha: generatedAt.slice(0, 10) },
+    { indicador: "Gasto conciliado analizado", valor: behavior.reconciledAmount || 0, fecha: generatedAt.slice(0, 10) },
+  ];
+  return {
+    version,
+    generatedAt,
+    summary,
+    accounts: [
+      { cuenta: "CaixaBank", saldo: accounts.caixa, fecha: state?.balanceDate || "" },
+      { cuenta: "Mediolanum", saldo: accounts.mediolanum, fecha: state?.balanceDate || "" },
+      { cuenta: "Total", saldo: accounts.total, fecha: state?.balanceDate || "" },
+    ],
+    debts,
+    goals,
+    movements,
+    alerts,
+    documents: p2.documents,
+    provenance: [
+      { elemento: "Saldos", fuente: state?.balanceMode === "manual" ? "saldo real introducido" : "motor por fecha", confianza: state?.balanceMode === "manual" ? "verificado por usuario" : "estimado" },
+      { elemento: "Movimientos", fuente: "extractos importados y diccionario de conciliación", confianza: `${movements.filter((row) => row.reconciled).length}/${movements.length} conciliados` },
+      { elemento: "Deudas", fuente: "contratos y cartera declarada", confianza: "declarado; validar documentación contractual" },
+      { elemento: "Comportamiento", fuente: behavior.provenance || "movimientos conciliados", confianza: "calculado" },
+    ],
+    pdfLines: [
+      ...summary.map((row) => `${row.indicador}: ${money(row.valor, true)} (${row.fecha})`),
+      `Objetivos activos: ${goals.length}`,
+      `Deudas activas: ${debts.filter((row) => row.currentPrincipal > 0).length}`,
+      `Alertas que requieren atención: ${alerts.filter((row) => row.triggered || row.overdue).length}`,
+      `Movimientos conciliados: ${movements.filter((row) => row.reconciled).length} de ${movements.length}`,
+    ],
+  };
+}
+
+window.FinanceP2Bridge = {
+  getState: p2State,
+  saveState: saveP2State,
+  months: () => selectableMonths().map((month) => ({ key: month.key, label: month.label })),
+  seriesRows: p2SeriesRows,
+  movements: p2MovementRows,
+  debts: p2DebtRows,
+  accounts: accountBalancesFromState,
+  alerts: evaluatedUxAlerts,
+  exportModel: p2ExportModel,
+};
 
 function alertStatusMeta(alert) {
   if (alert.paused) return { label: "Pausada", tone: "neutral" };
@@ -16018,6 +16146,7 @@ function renderActiveSection(viewId = viewFromHash()) {
     default:
       break;
   }
+  window.dispatchEvent(new CustomEvent("finance:view-rendered", { detail: { viewId } }));
 }
 
 function assistantDashboardContext() {
