@@ -40,14 +40,14 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 | P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
 | P3 | P3-1 a P3-3 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
 | UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
-| **Total** | **29 fases** | **12** | **14** | **3** | **La experiencia principal y P2 estan verificados; la siguiente prioridad es cerrar P0** |
+| **Total** | **29 fases** | **12** | **14** | **3** | **La experiencia principal y P2 estan verificados; P0-1/P0-2 quedan listos para activar y comprobar contra Supabase** |
 
 ## P0 - Integridad estructural
 
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
-| P0-1 | Libro mayor canonico e identificadores estables | Hay libro e IDs, pero parte del estado legado sigue generando entidades y reapariciones | Todo real nace en el libro mayor; deduplicacion y bajas usan IDs estables; una eliminacion no reaparece tras recargar o importar | Parcial |
-| P0-2 | Supabase normalizado como fuente autoritativa | Esquema activo y 2338 entidades sincronizadas, pero existe lectura/escritura compatible con `finance_dashboard_states` | Lectura primaria desde tablas normalizadas; legado solo como migracion/fallback controlado; prueba de recarga en dos sesiones | Parcial |
+| P0-1 | Libro mayor canonico e identificadores estables | Hay libro e IDs, pero parte del estado legado sigue generando entidades y reapariciones | Todo real nace en el libro mayor; deduplicacion y bajas usan IDs estables; una eliminacion no reaparece tras recargar o importar | Parcial - validado local |
+| P0-2 | Supabase normalizado como fuente autoritativa | Esquema activo y 2338 entidades sincronizadas, pero existe lectura/escritura compatible con `finance_dashboard_states` | Lectura primaria desde tablas normalizadas; legado solo como migracion/fallback controlado; prueba de recarga en dos sesiones | Parcial - activacion remota pendiente |
 | P0-3 | Maquina de estados y registro inmutable | Existe workflow canonico, pero no todas las mutaciones pasan por comandos y eventos | Deudas, proyectos, acuerdos e importaciones usan transiciones comunes; cada cambio genera evento append-only antes/despues | Parcial |
 | P0-4 | Motor unico de calculo | Existe motor canonico y comparador con el historico, pero quedan calculos directos en vistas | Todas las vistas consumen un unico resultado diario/mensual; el motor legado deja de decidir cifras | Parcial |
 | P0-5 | Reconciliacion e invariantes como barrera | Hay vista e invariantes, pero no bloquean todos los guardados/publicaciones incoherentes | Diferencias banco-presupuesto-simulacion visibles; no se confirma ni publica un estado que rompa invariantes | Parcial |
@@ -113,8 +113,8 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 
 | Fase | Estado | Entregables completados | Pruebas/evidencia | Pendiente o riesgo | Siguiente fase |
 | --- | --- | --- | --- | --- | --- |
-| P0-1 | Parcial | Libro mayor canonico e IDs estables implantados | Pruebas de deduplicacion, identidad y conciliacion | El estado legado aun puede recrear datos | P0-1 |
-| P0-2 | Parcial | Esquema Supabase activo y sincronizacion normalizada confirmada como punto de partida | 2338 entidades normalizadas y copia versionada | Retirar la dualidad normalizado/legado y probar dos sesiones | P0-2 |
+| P0-1 | Parcial - validado local | IDs semanticos para partidas, deudas, proyectos y decisiones; deduplicacion y bajas canonicas | 83 pruebas: identidad estable, deduplicacion y borrado que no reaparece | Validar una recarga real despues de activar la migracion remota | P0-2 |
+| P0-2 | Parcial - activacion remota pendiente | Puntero `finance_source_heads`; la copia normalizada activa manda y el legado solo migra | 83 pruebas: puntero activo, recuperacion ante copia corrupta y checksum | Ejecutar `migrations/20260717_p0_source_head.sql` y comprobar dos sesiones contra Supabase | P0-3 |
 | P0-3 | Parcial | Workflow canonico y eventos append-only disponibles | Pruebas de transiciones e idempotencia | Aun hay mutaciones fuera del workflow | P0-3 |
 | P0-4 | Parcial | Motor mensual, diario y calendario canonicos implantados | Invariantes y corte canonico cubiertos por pruebas | Eliminar los calculos directos restantes en vistas | P0-4 |
 | P0-5 | Parcial | Vista de conciliacion e invariantes financieras disponibles | Pruebas de continuidad, saldos y valores finitos | Convertir invariantes en barrera de todos los guardados | P0-5 |

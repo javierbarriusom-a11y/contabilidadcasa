@@ -16,6 +16,7 @@ const normalizedTables = [
   "finance_decision_events",
   "finance_reconciliation_runs",
   "finance_state_snapshots",
+  "finance_source_heads",
   "finance_audit_log",
 ];
 
@@ -44,6 +45,13 @@ test("eventos, conciliaciones, copias y auditoría son append-only para el clien
   assert.match(schema, /grant select on public\.finance_audit_log to authenticated/);
   assert.doesNotMatch(schema, /grant select, insert, update on public\.finance_decision_events/);
   assert.doesNotMatch(schema, /grant select, insert, update on public\.finance_state_snapshots/);
+});
+
+test("el puntero activo solo permite al usuario seleccionar su copia normalizada", () => {
+  assert.match(schema, /create table if not exists public\.finance_source_heads/);
+  assert.match(schema, /source_key text not null/);
+  assert.match(schema, /snapshot_id uuid not null references public\.finance_state_snapshots/);
+  assert.match(schema, /grant select, insert, update on public\.finance_source_heads to authenticated/);
 });
 
 test("la auditoría registra antes y después mediante trigger", () => {

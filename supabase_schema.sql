@@ -119,6 +119,19 @@ create table if not exists public.finance_state_snapshots (
   created_at timestamptz not null default now()
 );
 
+-- The active pointer makes the normalized snapshot store authoritative. Legacy
+-- dashboard state is retained only as a one-time migration fallback.
+create table if not exists public.finance_source_heads (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  source_key text not null,
+  sync_id uuid references public.finance_sync_runs(id) on delete set null,
+  snapshot_id uuid not null references public.finance_state_snapshots(id) on delete restrict,
+  fingerprint text not null,
+  schema_version text not null,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, source_key)
+);
+
 create table if not exists public.finance_audit_log (
   id bigint generated always as identity primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -135,6 +148,8 @@ create table if not exists public.finance_audit_log (
 
 create index if not exists finance_snapshots_latest_idx
   on public.finance_state_snapshots (user_id, source_key, created_at desc);
+create index if not exists finance_source_heads_snapshot_idx
+  on public.finance_source_heads (snapshot_id);
 create index if not exists finance_audit_entity_idx
   on public.finance_audit_log (user_id, source_key, table_name, entity_id, changed_at desc);
 create index if not exists finance_ledger_month_idx
@@ -228,7 +243,7 @@ begin
     'finance_sync_runs', 'finance_accounts', 'finance_concepts',
     'finance_ledger_entries', 'finance_debts', 'finance_projects',
     'finance_decisions', 'finance_decision_events',
-    'finance_reconciliation_runs', 'finance_state_snapshots',
+    'finance_reconciliation_runs', 'finance_state_snapshots', 'finance_source_heads',
     'finance_audit_log'
   ] loop
     execute format('alter table public.%I enable row level security', table_name);
@@ -249,7 +264,7 @@ begin
     'finance_sync_runs', 'finance_accounts', 'finance_concepts',
     'finance_ledger_entries', 'finance_debts', 'finance_projects',
     'finance_decisions', 'finance_decision_events',
-    'finance_reconciliation_runs', 'finance_state_snapshots'
+    'finance_reconciliation_runs', 'finance_state_snapshots', 'finance_source_heads'
   ] loop
     execute format('drop policy if exists %I on public.%I', table_name || '_insert_own', table_name);
     execute format(
@@ -267,7 +282,7 @@ begin
   foreach table_name in array array[
     'finance_sync_runs', 'finance_accounts', 'finance_concepts',
     'finance_ledger_entries', 'finance_debts', 'finance_projects',
-    'finance_decisions'
+    'finance_decisions', 'finance_source_heads'
   ] loop
     execute format('drop policy if exists %I on public.%I', table_name || '_update_own', table_name);
     execute format(
@@ -288,4 +303,5 @@ grant select, insert, update on public.finance_decisions to authenticated;
 grant select, insert on public.finance_decision_events to authenticated;
 grant select, insert on public.finance_reconciliation_runs to authenticated;
 grant select, insert on public.finance_state_snapshots to authenticated;
+grant select, insert, update on public.finance_source_heads to authenticated;
 grant select on public.finance_audit_log to authenticated;

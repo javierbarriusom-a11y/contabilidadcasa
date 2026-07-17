@@ -6,7 +6,7 @@
   "use strict";
 
   const SCHEMA_ID = "finanzas-casa-canonical";
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
   const STATUSES = ["simulated", "pending", "approved", "fixed", "executed", "cancelled"];
   const PROVENANCE = ["verified", "declared", "estimated", "hypothetical"];
   const STATUS_ALIASES = {
@@ -95,12 +95,16 @@
     return { ...normalized, fingerprint: entityFingerprint(normalized) };
   }
 
+  function semanticFallback(prefix, item) {
+    return `${prefix} ${hashText(stableStringify(item || {}))}`;
+  }
+
   function projectEntity(item, index) {
-    const label = item.name || item.label || `Proyecto ${index + 1}`;
+    const label = item.name || item.label || semanticFallback("Proyecto", item);
     const legacyIdentity = item.id || item.targetId || "";
     const identity = legacyIdentity
       ? ["legacy", legacyIdentity]
-      : ["semantic", item.projectKind || item.kind || "project", item.source || "project", label || index];
+      : ["semantic", item.projectKind || item.kind || "project", item.source || "project", label];
     return finishEntity({
       id: stableId("project", identity),
       kind: "project",
@@ -116,7 +120,7 @@
   }
 
   function debtEntity(item, index) {
-    const label = item.name || item.label || item.entity || `Deuda ${index + 1}`;
+    const label = item.name || item.label || item.entity || semanticFallback("Deuda", item);
     const legacyIdentity = item.id || item.targetId || item.debtId || "";
     const identity = legacyIdentity
       ? ["legacy", legacyIdentity]
@@ -145,12 +149,20 @@
       active: "approved",
       suspended: "pending",
     };
-    const identity = contract.id || [contract.entity, contract.type, contract.number, index];
+    const identity = contract.id || [
+      contract.entity,
+      contract.type,
+      contract.number,
+      contract.owner,
+      contract.originalPrincipal,
+      contract.currentPrincipal,
+      contract.maturityMonth,
+    ];
     return finishEntity({
       id: stableId("debt-contract", identity),
       kind: "debt-contract",
       legacyId: contract.id || "",
-      label: [contract.entity, contract.type, contract.number].filter(Boolean).join(" · ") || `Contrato ${index + 1}`,
+      label: [contract.entity, contract.type, contract.number].filter(Boolean).join(" · ") || semanticFallback("Contrato", contract),
       status: canonicalStatus(statusByPaymentStatus[contract.paymentStatus] || contract.status, "pending"),
       provenance: contract.provenance || "declared",
       source: contract.source || "debt-portfolio",
@@ -169,13 +181,20 @@
     });
   }
 
-  function planningEntity(item, index) {
-    const label = item.label || item.name || item.concept || `Partida ${index + 1}`;
+  function planningRowIdentity(item = {}) {
+    const label = item.label || item.name || item.concept || semanticFallback("Partida", item);
     const kind = item.kind || item.type || "expense";
     const section = item.section || item.group || "";
     const legacyIdentity = item.rowId || item.id || "";
+    return stableId("planning-row", legacyIdentity ? ["legacy", legacyIdentity] : ["semantic", kind, section, label]);
+  }
+
+  function planningEntity(item, index) {
+    const label = item.label || item.name || item.concept || semanticFallback("Partida", item);
+    const kind = item.kind || item.type || "expense";
+    const section = item.section || item.group || "";
     return finishEntity({
-      id: stableId("planning-row", legacyIdentity ? ["legacy", legacyIdentity] : ["semantic", kind, section, label]),
+      id: planningRowIdentity(item),
       kind: "planning-row",
       legacyId: item.id || item.rowId || "",
       label,
@@ -302,7 +321,7 @@
 
   function decisionEventEntities(values) {
     return (values || []).map((item, index) => finishEntity({
-      id: stableId("decision-event", item.id || [item.date || "", item.itemId || "", item.name || index]),
+      id: stableId("decision-event", item.id || [item.date || "", item.itemId || "", item.name || semanticFallback("Evento", item)]),
       kind: "decision-event",
       legacyId: item.id || "",
       referenceId: item.itemId || "",
@@ -317,15 +336,70 @@
     }));
   }
 
+  function candidateRank(item = {}) {
+    const revision = numeric(item.revision ?? item.version ?? item.sequence);
+    const timestamp = Date.parse(item.updatedAt || item.updated_at || item.modifiedAt || item.createdAt || "") || 0;
+    return [revision, timestamp, stableStringify(item)];
+  }
+
+  function compareCandidates(left, right) {
+    const a = candidateRank(left);
+    const b = candidateRank(right);
+    if (a[0] !== b[0]) return a[0] - b[0];
+    if (a[1] !== b[1]) return a[1] - b[1];
+    return a[2].localeCompare(b[2]);
+  }
+
+  function stableDedupeRows(values, identity) {
+    const rows = Array.isArray(values) ? values : [];
+    const byId = new Map();
+    rows.forEach((row, index) => {
+      const id = identity(row || {}, index);
+      const current = byId.get(id);
+      if (!current || compareCandidates(current, row || {}) < 0) byId.set(id, row || {});
+    });
+    return Array.from(byId.entries())
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([, row]) => row);
+  }
+
+  function canonicalizePayload(payload = {}) {
+    const rawDeletedPlanningRows = payload.deletedPlanningRows || {};
+    const deletedEntries = Array.isArray(rawDeletedPlanningRows)
+      ? rawDeletedPlanningRows.filter(Boolean).map((key) => [String(key), true])
+      : Object.entries(rawDeletedPlanningRows);
+    const deletedPlanningRows = Object.fromEntries(
+      deletedEntries
+        .filter(([key, value]) => Boolean(key) && Boolean(value))
+        .sort(([left], [right]) => left.localeCompare(right)),
+    );
+    const deletedIds = new Set(Object.keys(deletedPlanningRows));
+    const planningRows = stableDedupeRows(payload.customPlanningRows, (row) => planningRowIdentity(row))
+      .filter((row) => {
+        const legacyId = String(row.rowId || row.id || "");
+        return !deletedIds.has(legacyId) && !deletedIds.has(planningRowIdentity(row));
+      });
+    return {
+      ...payload,
+      projects: stableDedupeRows(payload.projects, (row, index) => projectEntity(row, index).id),
+      debtLiquidations: stableDedupeRows(payload.debtLiquidations, (row, index) => debtEntity(row, index).id),
+      debtContracts: stableDedupeRows(payload.debtContracts, (row, index) => debtContractEntity(row, index).id),
+      decisionEvents: stableDedupeRows(payload.decisionEvents, (row, index) => decisionEventEntities([row], index)[0].id),
+      customPlanningRows: planningRows,
+      deletedPlanningRows,
+    };
+  }
+
   function dedupe(collection, issues) {
     const byId = new Map();
     collection.forEach((entity) => {
       if (byId.has(entity.id)) {
         issues.push({ code: "duplicate-identity", severity: "warning", entityId: entity.id, label: entity.label });
       }
-      byId.set(entity.id, entity);
+      const current = byId.get(entity.id);
+      if (!current || compareCandidates(current, entity) < 0) byId.set(entity.id, entity);
     });
-    return Array.from(byId.values());
+    return Array.from(byId.values()).sort((left, right) => left.id.localeCompare(right.id));
   }
 
   function entityMap(snapshot) {
@@ -351,22 +425,23 @@
   }
 
   function buildCanonicalSnapshot(payload = {}, previous = null, meta = {}) {
+    const canonicalPayload = canonicalizePayload(payload);
     const issues = [];
     const entities = {
-      projects: dedupe((payload.projects || []).map(projectEntity), issues),
-      debtDecisions: dedupe((payload.debtLiquidations || []).map(debtEntity), issues),
-      debtContracts: dedupe((payload.debtContracts || []).map(debtContractEntity), issues),
-      planningRows: dedupe((payload.customPlanningRows || []).map(planningEntity), issues),
+      projects: dedupe((canonicalPayload.projects || []).map(projectEntity), issues),
+      debtDecisions: dedupe((canonicalPayload.debtLiquidations || []).map(debtEntity), issues),
+      debtContracts: dedupe((canonicalPayload.debtContracts || []).map(debtContractEntity), issues),
+      planningRows: dedupe((canonicalPayload.customPlanningRows || []).map(planningEntity), issues),
       actuals: dedupe([
-        ...actualEntities(payload.incomeActuals, "income"),
-        ...actualEntities(payload.expenseActuals, "expense"),
+        ...actualEntities(canonicalPayload.incomeActuals, "income"),
+        ...actualEntities(canonicalPayload.expenseActuals, "expense"),
       ], issues),
-      accounts: dedupe(accountEntities(payload.balanceSettings || {}), issues),
-      tombstones: dedupe(tombstoneEntities(payload.deletedPlanningRows || {}), issues),
-      seriesOverrides: dedupe(seriesOverrideEntities(payload.seriesOverrides || {}), issues),
-      labelOverrides: dedupe(labelOverrideEntities(payload.rowLabelOverrides || {}), issues),
-      movementMappings: dedupe(movementMappingEntities(payload.movementMappings || {}), issues),
-      decisionEvents: dedupe(decisionEventEntities(payload.decisionEvents || []), issues),
+      accounts: dedupe(accountEntities(canonicalPayload.balanceSettings || {}), issues),
+      tombstones: dedupe(tombstoneEntities(canonicalPayload.deletedPlanningRows || {}), issues),
+      seriesOverrides: dedupe(seriesOverrideEntities(canonicalPayload.seriesOverrides || {}), issues),
+      labelOverrides: dedupe(labelOverrideEntities(canonicalPayload.rowLabelOverrides || {}), issues),
+      movementMappings: dedupe(movementMappingEntities(canonicalPayload.movementMappings || {}), issues),
+      decisionEvents: dedupe(decisionEventEntities(canonicalPayload.decisionEvents || []), issues),
     };
     Object.values(entities).flat().forEach((entity) => {
       if (!entity.label) issues.push({ code: "missing-label", severity: "error", entityId: entity.id });
@@ -388,8 +463,8 @@
       generatedAt,
       fingerprint,
       source: {
-        sourceWorkbook: payload.sourceWorkbook || "",
-        updatedAt: payload.updatedAt || generatedAt,
+        sourceWorkbook: canonicalPayload.sourceWorkbook || "",
+        updatedAt: canonicalPayload.updatedAt || generatedAt,
       },
       entities,
       quality: {
@@ -428,6 +503,8 @@
     stableStringify,
     canonicalStatus,
     canonicalProvenance,
+    planningRowIdentity,
+    canonicalizePayload,
     buildCanonicalSnapshot,
     validateTransition,
   };

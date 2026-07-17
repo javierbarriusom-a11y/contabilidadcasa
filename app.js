@@ -589,7 +589,7 @@ function compactCanonicalDecisionRun(run) {
 }
 
 function appStatePayload(options = {}) {
-  const payload = {
+  const rawPayload = {
     version: 1,
     updatedAt: new Date().toISOString(),
     sourceWorkbook: baseData?.metadata?.sourceWorkbook || sourceStateKey(),
@@ -609,6 +609,9 @@ function appStatePayload(options = {}) {
     movementMappings,
     debtContracts: canonicalDebtContractRows(),
   };
+  const payload = window.FinanceCanonicalState?.canonicalizePayload
+    ? window.FinanceCanonicalState.canonicalizePayload(rawPayload)
+    : rawPayload;
   if (options.includeCanonical !== false) {
     payload.canonicalSnapshot = canonicalSnapshot;
     payload.canonicalLedgerSnapshot = canonicalLedgerSnapshot;
@@ -785,6 +788,9 @@ async function prepareCloudSnapshotRestore() {
 }
 
 function applyPersistedPayload(payload = {}) {
+  payload = window.FinanceCanonicalState?.canonicalizePayload
+    ? window.FinanceCanonicalState.canonicalizePayload(payload)
+    : payload;
   selectorSignature = "";
   visualMonthSelectorSignature = "";
   visualAddSectionSignature = "";
@@ -2050,7 +2056,7 @@ async function loadRemoteState() {
   if (!supabaseClient || !remoteUser) return;
   updateSyncUi("Cargando datos guardados en Supabase...", "cloud");
   const normalizedStore = window.FinanceCanonicalSupabaseStore;
-  const [legacyResult, normalizedResult] = await Promise.all([
+  const [legacyResult, headResult, snapshotsResult] = await Promise.all([
     supabaseClient
       .from("finance_dashboard_states")
       .select("state, updated_at")
@@ -2058,44 +2064,68 @@ async function loadRemoteState() {
       .maybeSingle(),
     normalizedStore
       ? supabaseClient
-        .from("finance_state_snapshots")
-        .select("state, created_at, fingerprint")
+        .from("finance_source_heads")
+        .select("snapshot_id, fingerprint, schema_version, updated_at")
         .eq("source_key", sourceStateKey())
-        .order("created_at", { ascending: false })
-        .limit(1)
         .maybeSingle()
       : Promise.resolve({ data: null, error: null }),
+    normalizedStore
+      ? supabaseClient
+        .from("finance_state_snapshots")
+        .select("id, state, created_at, fingerprint")
+        .eq("source_key", sourceStateKey())
+        .order("created_at", { ascending: false })
+        .limit(8)
+      : Promise.resolve({ data: [], error: null }),
   ]);
-  const normalizedMissing = normalizedStore?.isMissingSchemaError(normalizedResult.error);
-  const normalizedVerification = normalizedStore?.verifySnapshot(normalizedResult.data);
-  const usableNormalized = normalizedResult.error && !normalizedMissing
-    ? null
-    : normalizedVerification?.valid ? normalizedResult.data : null;
-  const candidates = [
-    legacyResult.data?.state ? { state: legacyResult.data.state, at: legacyResult.data.updated_at, mode: "compatibilidad" } : null,
-    usableNormalized?.state ? { state: usableNormalized.state, at: usableNormalized.created_at, mode: "normalizado" } : null,
-  ].filter(Boolean).sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+  const activeSnapshotId = headResult.data?.snapshot_id;
+  const activeSnapshotResult = normalizedStore && activeSnapshotId
+    ? await supabaseClient
+      .from("finance_state_snapshots")
+      .select("id, state, created_at, fingerprint")
+      .eq("id", activeSnapshotId)
+      .maybeSingle()
+    : { data: null, error: null };
+  const headMissing = normalizedStore?.isMissingSchemaError(headResult.error);
+  const snapshotsMissing = normalizedStore?.isMissingSchemaError(snapshotsResult.error);
+  const normalizedMissing = Boolean(headMissing || snapshotsMissing);
+  const normalizedError = [headResult.error, snapshotsResult.error, activeSnapshotResult.error]
+    .find((error) => error && !normalizedStore?.isMissingSchemaError(error));
+  const authoritative = normalizedStore
+    ? normalizedStore.selectAuthoritativeState({
+        head: headResult.error ? null : headResult.data,
+        snapshots: [
+          ...(activeSnapshotResult.error || !activeSnapshotResult.data ? [] : [activeSnapshotResult.data]),
+          ...(snapshotsResult.error ? [] : snapshotsResult.data || []),
+        ],
+        legacy: legacyResult.data,
+      })
+    : legacyResult.data?.state
+      ? { mode: "compatibilidad", source: "legacy", state: legacyResult.data.state, requiresMigration: false }
+      : { state: null };
 
-  if (candidates[0]?.state) {
-    applyPersistedPayload(candidates[0].state);
+  if (authoritative.state) {
+    applyPersistedPayload(authoritative.state);
     ensureCompleteFinancingSection();
     repairFinancingSectionFromReference();
     ensureVariableOperationalSection();
     applyVariableOperationalMigration();
     saveLocalSnapshot();
     refreshFromPersistedState();
-    const integrityNote = normalizedResult.data && !normalizedVerification?.valid
-      ? " La copia normalizada no superó la verificación y se ignoró."
+    const at = authoritative.snapshot?.created_at || legacyResult.data?.updated_at;
+    const integrityNote = authoritative.source === "normalized-snapshot-recovery"
+      ? " Recuperado desde la última copia normalizada verificada."
       : "";
-    const schemaNote = normalizedMissing ? " Esquema normalizado pendiente de instalar." : integrityNote;
+    const schemaNote = normalizedMissing ? " Esquema normalizado pendiente de completar." : integrityNote;
     updateSyncUi(
-      `Sincronizado en modo ${candidates[0].mode}. Último cambio: ${new Date(candidates[0].at).toLocaleString("es-ES")}.${schemaNote}`,
+      `Sincronizado en modo ${authoritative.mode}. Último cambio: ${at ? new Date(at).toLocaleString("es-ES") : "sin fecha"}.${schemaNote}`,
       normalizedMissing ? "warn" : "cloud",
     );
+    if (authoritative.requiresMigration && !normalizedMissing) await saveRemoteState(true);
     return;
   }
 
-  const loadError = legacyResult.error || (!normalizedMissing && normalizedResult.error);
+  const loadError = legacyResult.error || normalizedError;
   if (loadError) {
     updateSyncUi(`No se pudo cargar Supabase: ${loadError.message}`, "warn");
     return;
@@ -2148,6 +2178,10 @@ async function saveNormalizedRemoteState(payload) {
     if (reconciliationResult.error) throw reconciliationResult.error;
     const snapshotResult = await supabaseClient.from("finance_state_snapshots").insert(bundle.snapshotRow);
     if (snapshotResult.error) throw snapshotResult.error;
+    const headResult = await supabaseClient
+      .from("finance_source_heads")
+      .upsert(bundle.sourceHead, { onConflict: "user_id,source_key" });
+    if (headResult.error) throw headResult.error;
     const completeResult = await supabaseClient
       .from("finance_sync_runs")
       .update({ status: "complete", completed_at: new Date().toISOString() })
@@ -2172,17 +2206,19 @@ async function saveRemoteState(force = false) {
     refreshCanonicalSnapshot("remote-save");
     refreshCanonicalLedger("remote-save");
     const payload = appStatePayload();
-    const legacyResult = await supabaseClient.from("finance_dashboard_states").upsert(
-      {
-        user_id: remoteUser.id,
-        source_key: sourceStateKey(),
-        state: payload,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,source_key" },
-    );
-    if (legacyResult.error) throw legacyResult.error;
     const normalizedResult = await saveNormalizedRemoteState(payload);
+    if (normalizedResult.mode !== "normalized") {
+      const legacyResult = await supabaseClient.from("finance_dashboard_states").upsert(
+        {
+          user_id: remoteUser.id,
+          source_key: sourceStateKey(),
+          state: payload,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,source_key" },
+      );
+      if (legacyResult.error) throw legacyResult.error;
+    }
     const detail = normalizedResult.mode === "normalized"
       ? ` ${normalizedResult.entityCount} entidades normalizadas y copia versionada.`
       : " Guardado compatible; instala el esquema normalizado para activar auditoría y versiones.";

@@ -100,3 +100,40 @@ test("conserva todos los eventos de una misma decisión en el registro inmutable
   assert.equal(new Set(events.map((event) => event.event_key)).size, 2);
   assert.deepEqual(events.map((event) => event.event_type), ["proposed", "approved"]);
 });
+
+test("el puntero activo manda sobre una instantánea más reciente", () => {
+  const active = store.buildNormalizedBundle(payload(), {
+    userId: "u", sourceKey: "home", syncId: "sync-active", snapshotId: "active", now: "2026-07-15T10:00:00.000Z",
+  }).snapshotRow;
+  const newerPayload = payload();
+  newerPayload.sourceWorkbook = "Copia antigua más reciente.xlsx";
+  const newer = store.buildNormalizedBundle(newerPayload, {
+    userId: "u", sourceKey: "home", syncId: "sync-newer", snapshotId: "newer", now: "2026-07-16T10:00:00.000Z",
+  }).snapshotRow;
+
+  const selected = store.selectAuthoritativeState({
+    head: { snapshot_id: "active", fingerprint: active.fingerprint },
+    snapshots: [newer, active],
+    legacy: { state: newerPayload },
+  });
+
+  assert.equal(selected.source, "normalized-head");
+  assert.equal(selected.snapshot.id, "active");
+  assert.equal(selected.state.sourceWorkbook, "Contabilidad.xlsx");
+});
+
+test("un puntero activo corrupto recupera una copia verificada sin usar el legado", () => {
+  const valid = store.buildNormalizedBundle(payload(), {
+    userId: "u", sourceKey: "home", syncId: "sync-valid", snapshotId: "valid", now: "2026-07-15T10:00:00.000Z",
+  }).snapshotRow;
+  const corrupt = { ...valid, id: "corrupt", fingerprint: "not-the-right-fingerprint", created_at: "2026-07-16T10:00:00.000Z" };
+  const selected = store.selectAuthoritativeState({
+    head: { snapshot_id: "corrupt", fingerprint: "not-the-right-fingerprint" },
+    snapshots: [corrupt, valid],
+    legacy: { state: { sourceWorkbook: "No debe ganar.xlsx" } },
+  });
+
+  assert.equal(selected.source, "normalized-snapshot-recovery");
+  assert.equal(selected.snapshot.id, "valid");
+  assert.equal(selected.integrityIssue, "active-head-invalid");
+});

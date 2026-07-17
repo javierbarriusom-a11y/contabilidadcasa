@@ -153,6 +153,31 @@ test("reales, borrados y estados heredados reciben semántica consistente", () =
   assert.equal(snapshot.entities.seriesOverrides[0].provenance, "verified");
 });
 
+test("un borrado heredado en formato lista no permite que la partida reaparezca", () => {
+  const cleaned = canonical.canonicalizePayload(payload({
+    deletedPlanningRows: ["row-luz"],
+    customPlanningRows: [
+      { id: "row-luz", label: "Luz", kind: "expense", amount: 90 },
+      { id: "row-agua", label: "Agua", kind: "expense", amount: 35 },
+    ],
+  }));
+
+  assert.deepEqual(cleaned.deletedPlanningRows, { "row-luz": true });
+  assert.deepEqual(cleaned.customPlanningRows.map((row) => row.id), ["row-agua"]);
+});
+
+test("la normalización conserva solo una versión de cada partida personalizada", () => {
+  const cleaned = canonical.canonicalizePayload(payload({
+    customPlanningRows: [
+      { id: "row-luz", label: "Luz", kind: "expense", amount: 90, updatedAt: "2026-07-01T10:00:00.000Z" },
+      { id: "row-luz", label: "Luz", kind: "expense", amount: 95, updatedAt: "2026-07-02T10:00:00.000Z" },
+    ],
+  }));
+
+  assert.equal(cleaned.customPlanningRows.length, 1);
+  assert.equal(cleaned.customPlanningRows[0].amount, 95);
+});
+
 test("el historial distingue altas, cambios y bajas sin duplicar huellas idénticas", () => {
   const first = canonical.buildCanonicalSnapshot(payload({ projects: [{ id: "p1", name: "Proyecto", amount: 100 }] }), null, {
     now: "2026-07-13T10:00:00.000Z",

@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
-  const SCHEMA_ID = "finance-normalized-store-v1";
+  const SCHEMA_ID = "finance-normalized-store-v2";
 
   function text(value) {
     return String(value ?? "").trim();
@@ -127,6 +127,7 @@
   function buildNormalizedBundle(payload = {}, options = {}) {
     const now = options.now || new Date().toISOString();
     const syncId = options.syncId || createUuid("finance-sync");
+    const snapshotId = options.snapshotId || createUuid("finance-snapshot");
     const context = {
       userId: options.userId,
       sourceKey: options.sourceKey || payload.sourceWorkbook || "finance-dashboard",
@@ -199,7 +200,7 @@
         metadata: { payloadVersion: payload.version || 1, sourceWorkbook: payload.sourceWorkbook || "" },
       },
       snapshotRow: {
-        id: options.snapshotId || createUuid("finance-snapshot"),
+        id: snapshotId,
         user_id: context.userId,
         source_key: context.sourceKey,
         sync_id: syncId,
@@ -208,6 +209,15 @@
         checksum: fingerprint,
         state: payload,
         created_at: now,
+      },
+      sourceHead: {
+        user_id: context.userId,
+        source_key: context.sourceKey,
+        sync_id: syncId,
+        snapshot_id: snapshotId,
+        fingerprint,
+        schema_version: SCHEMA_ID,
+        updated_at: now,
       },
       projections,
       appendOnly: {
@@ -257,6 +267,56 @@
       || message.includes("relation") && message.includes("does not exist");
   }
 
+  function selectAuthoritativeState({ head, snapshots, legacy } = {}) {
+    const allSnapshots = (Array.isArray(snapshots) ? snapshots : snapshots ? [snapshots] : [])
+      .filter(Boolean)
+      .sort((left, right) => text(right.created_at).localeCompare(text(left.created_at)));
+    const verifiedSnapshots = allSnapshots.filter((snapshot) => verifySnapshot(snapshot).valid);
+    const headSnapshotId = text(head?.snapshot_id);
+    const pointedSnapshot = headSnapshotId
+      ? allSnapshots.find((snapshot) => text(snapshot.id) === headSnapshotId)
+      : null;
+    const pointedVerification = verifySnapshot(pointedSnapshot);
+    const fingerprintMatches = !text(head?.fingerprint)
+      || text(head?.fingerprint) === text(pointedSnapshot?.fingerprint);
+
+    if (pointedSnapshot?.state && pointedVerification.valid && fingerprintMatches) {
+      return {
+        mode: "normalizado",
+        source: "normalized-head",
+        state: pointedSnapshot.state,
+        snapshot: pointedSnapshot,
+        requiresMigration: false,
+      };
+    }
+    if (verifiedSnapshots[0]?.state) {
+      return {
+        mode: "normalizado",
+        source: "normalized-snapshot-recovery",
+        state: verifiedSnapshots[0].state,
+        snapshot: verifiedSnapshots[0],
+        requiresMigration: false,
+        integrityIssue: headSnapshotId ? "active-head-invalid" : null,
+      };
+    }
+    if (legacy?.state) {
+      return {
+        mode: "compatibilidad",
+        source: "legacy-migration",
+        state: legacy.state,
+        snapshot: null,
+        requiresMigration: true,
+      };
+    }
+    return {
+      mode: "vacío",
+      source: "empty",
+      state: null,
+      snapshot: null,
+      requiresMigration: false,
+    };
+  }
+
   return {
     SCHEMA_ID,
     stableStringify,
@@ -266,5 +326,6 @@
     createUuid,
     buildNormalizedBundle,
     isMissingSchemaError,
+    selectAuthoritativeState,
   };
 });
