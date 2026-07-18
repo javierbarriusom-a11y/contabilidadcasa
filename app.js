@@ -1461,6 +1461,20 @@ function workflowDecisionId(source, id) {
   return `${source === "debt" ? "debt" : "project"}:${String(id || "unknown")}`;
 }
 
+function workflowCommandId(type, decision, details = {}) {
+  const parts = [
+    type,
+    decision?.id || details.decisionId || "",
+    Number(decision?.revision || 1),
+    details.toStatus || "",
+    details.scope || "",
+  ];
+  const stableId = window.FinanceCanonicalState?.stableId;
+  return stableId
+    ? stableId("workflow-command", parts)
+    : `workflow-command:${parts.map((part) => String(part ?? "").trim().toLowerCase()).join(":")}`;
+}
+
 function decisionLifecycleStatus(item) {
   const canonicalStatus = window.FinanceCanonicalState?.canonicalStatus;
   if (!item) return "cancelled";
@@ -1525,7 +1539,7 @@ function amendWorkflowDecision(item, source, note = "Decisión actualizada.") {
   const imported = api.importDecision(decisionWorkflow, input, { preserveStatus: true });
   decisionWorkflow = imported.snapshot;
   const result = api.applyDecisionCommand(decisionWorkflow, {
-    id: `amend:${input.workflowId}:${Date.now()}`,
+    id: workflowCommandId("amend", imported.decision, { scope: "source-sync" }),
     type: "amend",
     decisionId: input.workflowId,
     changes: input,
@@ -1547,7 +1561,7 @@ function registerApprovedDecision(item, source, note) {
   if (imported.created || decision.status === "pending" || decision.status === "simulated") {
     if (decision.status === "simulated") {
       const pending = api.applyDecisionCommand(decisionWorkflow, {
-        id: `approve-pending:${decision.id}:${Date.now()}`,
+        id: workflowCommandId("approve-pending", decision, { toStatus: "pending" }),
         type: "transition",
         decisionId: decision.id,
         toStatus: "pending",
@@ -1559,7 +1573,7 @@ function registerApprovedDecision(item, source, note) {
       }
     }
     const approved = api.applyDecisionCommand(decisionWorkflow, {
-      id: `approve:${decision.id}:${Date.now()}`,
+      id: workflowCommandId("approve", decision, { toStatus: "approved" }),
       type: "transition",
       decisionId: decision.id,
       toStatus: "approved",
@@ -1610,7 +1624,7 @@ function transitionDecisionLifecycle(source, id, toStatus, note = "", options = 
   const imported = api.importDecision(decisionWorkflow, input, { preserveStatus: true });
   decisionWorkflow = imported.snapshot;
   const result = api.applyDecisionCommand(decisionWorkflow, {
-    id: `transition:${input.workflowId}:${toStatus}:${Date.now()}`,
+    id: workflowCommandId("transition", imported.decision, { toStatus }),
     type: "transition",
     decisionId: input.workflowId,
     toStatus,
@@ -1642,7 +1656,7 @@ function restoreWorkflowDecision(decisionId) {
   const decision = decisionWorkflow?.decisions?.find((item) => item.id === decisionId);
   if (!api || !decision || decision.status !== "cancelled") return false;
   let result = api.applyDecisionCommand(decisionWorkflow, {
-    id: `restore-pending:${decision.id}:${Date.now()}`,
+    id: workflowCommandId("restore-pending", decision, { toStatus: "pending" }),
     type: "transition",
     decisionId: decision.id,
     toStatus: "pending",
@@ -1651,7 +1665,7 @@ function restoreWorkflowDecision(decisionId) {
   if (!result.ok) return false;
   decisionWorkflow = result.snapshot;
   result = api.applyDecisionCommand(decisionWorkflow, {
-    id: `restore-approved:${decision.id}:${Date.now()}`,
+    id: workflowCommandId("restore-approved", result.decision || decision, { toStatus: "approved" }),
     type: "transition",
     decisionId: decision.id,
     toStatus: "approved",

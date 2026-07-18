@@ -17,6 +17,20 @@ test("importar la misma decisión no crea duplicados", () => {
   const second = workflow.importDecision(first.snapshot, { id: "debt-1", source: "debt", name: "Wizink actualizada" });
   assert.equal(second.snapshot.decisions.length, 1);
   assert.equal(second.decision.name, "Wizink actualizada");
+  assert.equal(second.snapshot.events.length, 2);
+  assert.equal(second.snapshot.events[1].before.name, "Wizink");
+  assert.equal(second.snapshot.events[1].after.name, "Wizink actualizada");
+});
+
+test("reimportar el mismo contenido es idempotente y no ensucia el registro", () => {
+  const first = workflow.importDecision(workflow.createWorkflowSnapshot(), { id: "debt-1", source: "debt", name: "Wizink" });
+  const second = workflow.importDecision(first.snapshot, { id: "debt-1", source: "debt", name: "Wizink" });
+  assert.equal(second.idempotent, true);
+  assert.equal(second.decision.revision, 1);
+  assert.equal(second.snapshot.events.length, 1);
+  assert.equal(second.snapshot.events[0].type, "import");
+  assert.equal(second.snapshot.events[0].before, null);
+  assert.equal(second.snapshot.events[0].after.name, "Wizink");
 });
 
 test("la ruta aprobada, fija y ejecutada queda auditada", () => {
@@ -33,7 +47,10 @@ test("la ruta aprobada, fija y ejecutada queda auditada", () => {
     snapshot = result.snapshot;
   }
   assert.equal(snapshot.decisions[0].status, "executed");
-  assert.deepEqual(snapshot.events.map((event) => event.toStatus), ["approved", "fixed", "executed"]);
+  assert.deepEqual(
+    snapshot.events.filter((event) => event.type === "transition").map((event) => event.toStatus),
+    ["approved", "fixed", "executed"]
+  );
   assert.equal(workflow.decisionAffectsPlan("executed"), false);
 });
 
@@ -54,7 +71,7 @@ test("un comando repetido es idempotente", () => {
   const second = workflow.applyDecisionCommand(first.snapshot, command);
   assert.equal(second.ok, true);
   assert.equal(second.idempotent, true);
-  assert.equal(second.snapshot.events.length, 1);
+  assert.equal(second.snapshot.events.filter((event) => event.type === "transition").length, 1);
 });
 
 test("cancelar conserva la decisión y permite devolverla a pendiente", () => {
@@ -86,6 +103,21 @@ test("amend incrementa revisión sin alterar estado", () => {
   assert.equal(result.decision.amount, 18000);
   assert.equal(result.decision.status, "approved");
   assert.equal(result.decision.revision, 2);
+  assert.equal(result.event.before.amount, 25000);
+  assert.equal(result.event.after.amount, 18000);
+});
+
+test("amend sin cambio es idempotente y conserva la revisión", () => {
+  const result = workflow.applyDecisionCommand(imported("approved"), {
+    id: "amend-noop",
+    type: "amend",
+    decisionId: "project-1",
+    changes: { amount: 25000 },
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.idempotent, true);
+  assert.equal(result.decision.revision, 1);
+  assert.equal(result.snapshot.events.length, 1);
 });
 
 test("solo aprobado y fijo afectan al plan", () => {

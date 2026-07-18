@@ -28,6 +28,17 @@
     return stateApi?.canonicalStatus ? stateApi.canonicalStatus(value, fallback) : String(value || fallback);
   }
 
+  function stableSerialize(value) {
+    if (Array.isArray(value)) return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
+    if (value && typeof value === "object") {
+      return `{${Object.keys(value)
+        .sort()
+        .map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`)
+        .join(",")}}`;
+    }
+    return JSON.stringify(value ?? null);
+  }
+
   function createWorkflowSnapshot(seed = {}) {
     return {
       schemaId: SCHEMA_ID,
@@ -73,6 +84,55 @@
     };
   }
 
+  // This is the immutable, business-facing view captured in every event. Timestamps
+  // remain on the event itself so replays can compare actual decisions deterministically.
+  function auditDecision(decision) {
+    if (!decision) return null;
+    return {
+      id: decision.id,
+      source: decision.source,
+      legacyId: decision.legacyId,
+      targetId: decision.targetId,
+      kind: decision.kind,
+      name: decision.name,
+      owner: decision.owner,
+      amount: Number(decision.amount || 0),
+      monthKey: decision.monthKey,
+      monthLabel: decision.monthLabel,
+      status: decision.status,
+      payload: { ...(decision.payload || {}) },
+      revision: Number(decision.revision || 1),
+    };
+  }
+
+  function sameAuditDecision(left, right) {
+    const comparable = (decision) => {
+      const snapshot = auditDecision(decision);
+      if (snapshot) delete snapshot.revision;
+      return snapshot;
+    };
+    return stableSerialize(comparable(left)) === stableSerialize(comparable(right));
+  }
+
+  function appendEvent(snapshot, event) {
+    snapshot.events = [...snapshot.events, event].slice(-MAX_EVENTS);
+  }
+
+  function buildEvent(commandId, type, before, after, options = {}) {
+    return {
+      id: stableId(["event", commandId]),
+      commandId,
+      decisionId: after?.id || before?.id || "",
+      type,
+      fromStatus: before?.status || null,
+      toStatus: after?.status || null,
+      at: options.at,
+      note: String(options.note || ""),
+      before: auditDecision(before),
+      after: auditDecision(after),
+    };
+  }
+
   function importDecision(snapshot, input, options = {}) {
     const next = normalizeSnapshot(snapshot);
     const incoming = normalizeDecision(input, options.at);
@@ -83,8 +143,11 @@
     );
     if (index === -1) {
       next.decisions.push(incoming);
-      next.updatedAt = nowIso(options.at);
-      return { snapshot: next, decision: incoming, created: true };
+      const at = nowIso(options.at);
+      const commandId = stableId(["import", incoming.id, incoming.revision, stableSerialize(auditDecision(incoming))]);
+      appendEvent(next, buildEvent(commandId, "import", null, incoming, { at, note: "Decisión incorporada al registro canónico." }));
+      next.updatedAt = at;
+      return { snapshot: next, decision: incoming, created: true, idempotent: false };
     }
     const existing = next.decisions[index];
     const merged = {
@@ -96,9 +159,17 @@
       revision: Math.max(1, Number(existing.revision || 1)),
       payload: { ...(existing.payload || {}), ...(incoming.payload || {}) },
     };
+    if (sameAuditDecision(existing, merged)) {
+      return { snapshot: next, decision: existing, created: false, idempotent: true };
+    }
+    const at = nowIso(options.at);
+    merged.updatedAt = at;
+    merged.revision = Number(existing.revision || 1) + 1;
     next.decisions[index] = merged;
-    next.updatedAt = nowIso(options.at);
-    return { snapshot: next, decision: merged, created: false };
+    const commandId = stableId(["sync", existing.id, merged.revision, stableSerialize(auditDecision(merged))]);
+    appendEvent(next, buildEvent(commandId, "sync", existing, merged, { at, note: "Decisión sincronizada desde su origen." }));
+    next.updatedAt = at;
+    return { snapshot: next, decision: merged, created: false, idempotent: false };
   }
 
   function appendCommand(next, commandId) {
@@ -134,18 +205,16 @@
         updatedAt: at,
         revision: Number(current.revision || 1) + 1,
       };
+      if (sameAuditDecision(current, amended)) {
+        appendCommand(next, commandId);
+        return { ok: true, idempotent: true, snapshot: next, decision: current, event: null };
+      }
       next.decisions[index] = amended;
-      const event = {
-        id: stableId(["event", commandId]),
-        commandId,
-        decisionId: current.id,
-        type: "amend",
-        fromStatus: current.status,
-        toStatus: current.status,
+      const event = buildEvent(commandId, "amend", current, amended, {
         at,
         note: String(command.note || "Decisión actualizada."),
-      };
-      next.events = [...next.events, event].slice(-MAX_EVENTS);
+      });
+      appendEvent(next, event);
       appendCommand(next, commandId);
       next.updatedAt = at;
       return { ok: true, idempotent: false, snapshot: next, decision: amended, event };
@@ -172,17 +241,11 @@
       revision: Number(current.revision || 1) + 1,
     };
     next.decisions[index] = updated;
-    const event = {
-      id: stableId(["event", commandId]),
-      commandId,
-      decisionId: current.id,
-      type: "transition",
-      fromStatus: current.status,
-      toStatus,
+    const event = buildEvent(commandId, "transition", current, updated, {
       at,
       note: String(command.note || ""),
-    };
-    next.events = [...next.events, event].slice(-MAX_EVENTS);
+    });
+    appendEvent(next, event);
     appendCommand(next, commandId);
     next.updatedAt = at;
     return { ok: true, idempotent: false, snapshot: next, decision: updated, event };
@@ -198,6 +261,8 @@
     createWorkflowSnapshot,
     normalizeSnapshot,
     normalizeDecision,
+    auditDecision,
+    sameAuditDecision,
     importDecision,
     applyDecisionCommand,
     decisionAffectsPlan,
