@@ -59,6 +59,7 @@ let canonicalEngineRuns = { base: null, active: null, planned: null };
 let canonicalScenarioResults = { base: null, active: null, planned: null };
 let canonicalDailyEngineRuns = { base: null, active: null, planned: null };
 let canonicalDecisionRun = null;
+let canonicalCommitBarrier = null;
 let canonicalDiagnosticsEnabled = false;
 let decisionWorkflow = null;
 let canonicalRefreshTimer = 0;
@@ -955,6 +956,37 @@ function refreshCanonicalLedger(reason = "state-change") {
   return canonicalLedgerSnapshot;
 }
 
+function evaluateCanonicalCommitBarrier(context = "state-change") {
+  if (!window.FinanceCanonicalCommitBarrier) return null;
+  recomputeModelIfNeeded();
+  refreshCanonicalSnapshot(`commit-barrier:${context}`, { force: true });
+  refreshCanonicalLedger(`commit-barrier:${context}`);
+  canonicalCommitBarrier = window.FinanceCanonicalCommitBarrier.evaluateCommitBarrier({
+    context,
+    snapshot: canonicalSnapshot,
+    ledgerSnapshot: canonicalLedgerSnapshot,
+    engineRuns: canonicalEngineRuns,
+    dailyEngineRuns: canonicalDailyEngineRuns,
+    decisionRun: canonicalDecisionRun,
+  });
+  return canonicalCommitBarrier;
+}
+
+function ensureCanonicalCommitBarrier(context = "remote-sync") {
+  const result = evaluateCanonicalCommitBarrier(context);
+  if (!result) {
+    const error = new Error("No se ha podido cargar la validación canónica. Tus cambios siguen guardados en este equipo, pero no se sincronizarán hasta que el control esté disponible.");
+    error.code = "CANONICAL_COMMIT_BLOCKED";
+    throw error;
+  }
+  if (result.valid) return result;
+  const labels = result.blockers.slice(0, 3).map((item) => item.title).join("; ");
+  const error = new Error(labels || "El motor canónico detectó una incoherencia.");
+  error.code = "CANONICAL_COMMIT_BLOCKED";
+  error.barrier = result;
+  throw error;
+}
+
 function scheduleCanonicalRefresh(reason = "state-change") {
   window.clearTimeout(canonicalRefreshTimer);
   canonicalRefreshTimer = window.setTimeout(() => {
@@ -1209,6 +1241,30 @@ function renderCanonicalDailyEngineStatus() {
   }
 }
 
+function renderCanonicalCommitBarrierStatus() {
+  const target = qs("canonicalCommitBarrierSummary");
+  if (!target || !window.FinanceCanonicalCommitBarrier) return;
+  const result = evaluateCanonicalCommitBarrier("reconciliation-view");
+  if (!result) return;
+  const status = result.status === "blocked" ? "blocked" : result.status === "warning" ? "warning" : "ready";
+  const title = status === "blocked"
+    ? "Sincronización bloqueada"
+    : status === "warning"
+      ? "Sincronización permitida con avisos"
+      : "Lista para sincronizar";
+  const detail = status === "blocked"
+    ? "Corrige los bloqueos antes de publicar una versión compartida. Tus cambios locales no se pierden."
+    : status === "warning"
+      ? "Los avisos no frenan la sincronización, pero conviene revisarlos antes de decidir."
+      : "El motor mensual, diario y de decisiones ha superado las comprobaciones de publicación.";
+  const items = [...result.blockers, ...result.warnings].slice(0, 6);
+  target.innerHTML = `<article class="commit-barrier-overview ${status}">
+    <span>Estado de publicación</span><strong>${escapeHtml(title)}</strong><p>${escapeHtml(detail)}</p>
+  </article><ul class="commit-barrier-list">${items.length
+    ? items.map((item) => `<li class="commit-barrier-item ${escapeHtml(item.level)}"><span>${item.level === "blocker" ? "Bloqueo" : "Aviso"}</span><strong>${escapeHtml(item.title)}</strong><p>${escapeHtml(item.detail)}</p></li>`).join("")
+    : `<li class="commit-barrier-item ok"><span>Correcto</span><strong>Sin bloqueos ni avisos críticos</strong><p>La versión local puede guardarse en Supabase con trazabilidad.</p></li>`}</ul>`;
+}
+
 function renderReconciliation() {
   if (!window.FinanceCanonicalLedger) return;
   const snapshot = refreshCanonicalLedger("reconciliation-view");
@@ -1242,6 +1298,7 @@ function renderReconciliation() {
   ].join("");
   renderCanonicalEngineStatus();
   renderCanonicalDailyEngineStatus();
+  renderCanonicalCommitBarrierStatus();
 
   qs("ledgerMonthRows").innerHTML = months.length
     ? months.slice().reverse().map((row) => `<tr>
@@ -2220,8 +2277,7 @@ async function saveRemoteState(force = false) {
   remoteSaveInFlight = true;
   if (!force) updateSyncUi("Guardando cambios en Supabase...", "cloud");
   try {
-    refreshCanonicalSnapshot("remote-save");
-    refreshCanonicalLedger("remote-save");
+    const barrier = ensureCanonicalCommitBarrier("remote-save");
     const payload = appStatePayload();
     const normalizedResult = await saveNormalizedRemoteState(payload);
     if (normalizedResult.mode !== "normalized") {
@@ -2239,9 +2295,13 @@ async function saveRemoteState(force = false) {
     const detail = normalizedResult.mode === "normalized"
       ? ` ${normalizedResult.entityCount} entidades normalizadas y copia versionada.`
       : " Guardado compatible; instala el esquema normalizado para activar auditoría y versiones.";
-    updateSyncUi(`Cambios sincronizados con Supabase.${detail}`, normalizedResult.mode === "normalized" ? "cloud" : "warn");
+    const validation = barrier?.summary?.warningCount
+      ? ` Validación canónica con ${barrier.summary.warningCount} aviso(s).`
+      : " Validación canónica correcta.";
+    updateSyncUi(`Cambios sincronizados con Supabase.${detail}${validation}`, normalizedResult.mode === "normalized" ? "cloud" : "warn");
   } catch (error) {
-    updateSyncUi(`No se pudo guardar: ${error.message}`, "warn");
+    const prefix = error?.code === "CANONICAL_COMMIT_BLOCKED" ? "Sincronización bloqueada: " : "No se pudo guardar: ";
+    updateSyncUi(`${prefix}${error.message}`, "warn");
   } finally {
     remoteSaveInFlight = false;
   }
@@ -4406,7 +4466,7 @@ function modelComputationSignature() {
 function recomputeModelIfNeeded(force = false) {
   pruneOutOfScopeAgentRouteSimulation();
   const nextSignature = modelComputationSignature();
-  if (!force && simulationSignature === nextSignature && canonicalScenarioRows("active").length && canonicalScenarioRows("base").length) {
+  if (!force && simulationSignature === nextSignature && canonicalScenarioRows("active").length && canonicalScenarioRows("base").length && canonicalScenarioRows("planned").length) {
     return;
   }
   simulationSignature = nextSignature;

@@ -1,20 +1,27 @@
 # Estado del backlog financiero
 
-Fecha de corte: 15 de julio de 2026.
+Fecha de corte: 18 de julio de 2026.
 
 ## P0 - Integridad estructural
 
 | Mejora | Estado | Evidencia |
 | --- | --- | --- |
 | Libro mayor canónico | Entregado | `canonical-ledger.js` y conciliación |
-| Modelo normalizado en Supabase | Código entregado, activación SQL pendiente | `canonical-supabase-store.js`, `supabase_schema.sql` |
+| Modelo normalizado en Supabase | Entregado y activado | `canonical-supabase-store.js`, `supabase_schema.sql` y sincronización normalizada confirmada |
 | Identificador único | Entregado | IDs estables en estado, libro y decisiones |
 | Máquina de estados común | Entregado | `canonical-workflow.js` |
 | Motor único de cálculo | Entregado | `canonical-engine.js` y corte del motor histórico |
 | Reconciliación automática | Entregado | vista y contrato de conciliación |
-| Pruebas de invariantes | Entregado | batería Node de invariantes mensuales y diarios |
+| Pruebas de invariantes y puerta de sincronización (P0-5) | Entregado | batería Node mensual, diaria y de decisiones; Supabase se bloquea solo ante incoherencias canónicas |
 | Registro inmutable | Entregado en esquema | eventos append-only y `finance_audit_log` |
 | Copias y restauración | Entregado | copias locales y remotas versionadas |
+
+### P0-5 - Puerta de sincronización
+
+- `canonical-commit-barrier.js` evalúa los tres escenarios mensuales, el motor diario, las decisiones compuestas, el estado canónico y la calidad disponible del libro mayor.
+- Una incoherencia bloquea únicamente la publicación compartida: los cambios y borradores continúan guardándose en el equipo.
+- Conciliación muestra el estado, las comprobaciones superadas y cualquier impedimento antes de pulsar **Sincronizar**.
+- Cobertura automatizada: escenarios ausentes, diferencias diaria/mensual, deuda duplicada y errores críticos declarados.
 
 ## P1 - Decisión y tesorería
 

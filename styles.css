@@ -4590,6 +4590,73 @@ body {
   border-top: 4px solid var(--teal);
 }
 
+.canonical-commit-panel {
+  border-top-color: #356ba8;
+}
+
+.commit-barrier-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.25fr);
+  gap: 12px;
+}
+
+.commit-barrier-overview,
+.commit-barrier-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.commit-barrier-overview {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.commit-barrier-overview.ready,
+.commit-barrier-item.ok { border-left: 4px solid #278a54; }
+.commit-barrier-overview.warning,
+.commit-barrier-item.warning { border-left: 4px solid #c98516; }
+.commit-barrier-overview.blocked,
+.commit-barrier-item.blocker { border-left: 4px solid #c54d49; }
+
+.commit-barrier-overview span,
+.commit-barrier-item span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.commit-barrier-overview strong {
+  color: var(--ink);
+  font-size: 20px;
+}
+
+.commit-barrier-overview p,
+.commit-barrier-item p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.commit-barrier-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commit-barrier-item {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+}
+
+.commit-barrier-item strong { color: var(--ink); }
+
 .canonical-engine-panel .module-heading.with-action {
   align-items: start;
   display: flex;
@@ -4613,6 +4680,7 @@ body {
 
 @media (max-width: 760px) {
   .canonical-engine-panel .module-heading.with-action { display: grid; grid-template-columns: 1fr; }
+  .commit-barrier-grid { grid-template-columns: 1fr; }
 }
 
 .ledger-layout {
