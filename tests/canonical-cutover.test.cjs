@@ -1,7 +1,7 @@
-const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const test = require("node:test");
 
 const engine = require("../canonical-engine.js");
 const decisions = require("../canonical-decisions.js");
@@ -11,6 +11,7 @@ const fixture = JSON.parse(fs.readFileSync(
   path.join(__dirname, "fixtures", "anonymized-household.json"),
   "utf8",
 ));
+const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 
 function workflowFrom(items) {
   return items.reduce((snapshot, item) => workflow.importDecision(snapshot, item, {
@@ -72,9 +73,15 @@ test("la migración canónica completa respeta estados, deuda suspendida y conse
 });
 
 test("la aplicación no contiene una ruta de ejecución normal hacia el motor histórico", () => {
-  const source = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
-  assert.equal(source.includes("legacy-fallback"), false);
-  assert.equal(source.includes("simulateLegacy"), false);
-  assert.match(source, /requiredCanonicalEngine\(\)/);
-  assert.match(source, /canonicalDiagnosticsEnabled/);
+  assert.equal(appSource.includes("legacy-fallback"), false);
+  assert.equal(appSource.includes("simulateLegacy"), false);
+  assert.match(appSource, /requiredCanonicalEngine\(\)/);
+  assert.match(appSource, /canonicalDiagnosticsEnabled/);
+});
+
+test("la app delega cada simulación al escenario canónico", () => {
+  assert.match(appSource, /function computeCanonicalScenario\(/);
+  assert.match(appSource, /engine\.buildScenario\(/);
+  assert.match(appSource, /function simulate\([\s\S]*?return computeCanonicalScenario\(projectOutflows, options\)\.rows;/);
+  assert.doesNotMatch(appSource, /engine\.buildRows\(/);
 });

@@ -253,12 +253,29 @@
     };
   }
 
+  // A scenario is the single public calculation contract consumed by the app.
+  // The snapshot remains available for audit and persistence compatibility.
+  function buildScenario(input = {}, previousSnapshot = null, meta = {}) {
+    const snapshot = buildSnapshot(input, previousSnapshot, meta);
+    return {
+      schemaId: SCHEMA_ID,
+      source: "canonical-engine",
+      generatedAt: snapshot.generatedAt,
+      fingerprint: snapshot.fingerprint,
+      snapshot,
+      rows: snapshot.rows,
+      annualSummary: snapshot.annualSummary,
+      invariants: snapshot.invariants,
+    };
+  }
+
   return {
     SCHEMA_ID,
     TOLERANCE,
     NUMERIC_FIELDS,
     buildRows,
     buildSnapshot,
+    buildScenario,
     validateRows,
     compareRows,
   };

@@ -139,3 +139,15 @@ test("el resumen anual usa cierres de cuenta y suma los flujos", () => {
   assert.equal(summary.closingSavings, 900);
   assert.equal(summary.closingLiquidity, 3350);
 });
+
+test("el escenario canónico expone filas, resumen e invariantes desde la misma instantánea", () => {
+  const scenario = engine.buildScenario(inputFixture(), null, {
+    reason: "scenario-test",
+    generatedAt: "2026-07-18T10:00:00.000Z",
+  });
+
+  assert.equal(scenario.source, "canonical-engine");
+  assert.strictEqual(scenario.rows, scenario.snapshot.rows);
+  assert.deepEqual(scenario.annualSummary, scenario.snapshot.annualSummary);
+  assert.equal(scenario.invariants.valid, true);
+});

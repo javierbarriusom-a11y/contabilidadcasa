@@ -56,6 +56,7 @@ let movementMappings = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
+let canonicalScenarioResults = { base: null, active: null, planned: null };
 let canonicalDailyEngineRuns = { base: null, active: null, planned: null };
 let canonicalDecisionRun = null;
 let canonicalDiagnosticsEnabled = false;
@@ -836,6 +837,7 @@ function applyPersistedPayload(payload = {}) {
         return runs;
       }, {})
     : { base: null, active: null, planned: null };
+  canonicalScenarioResults = { base: null, active: null, planned: null };
   canonicalDailyEngineRuns = payload.canonicalDailyEngineRuns && typeof payload.canonicalDailyEngineRuns === "object"
     ? ["base", "active", "planned"].reduce((runs, key) => {
         const run = payload.canonicalDailyEngineRuns[key];
@@ -1345,6 +1347,7 @@ function loadLocalState() {
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
+    canonicalScenarioResults = { base: null, active: null, planned: null };
     canonicalDailyEngineRuns = { base: null, active: null, planned: null };
     canonicalDecisionRun = null;
     decisionWorkflow = null;
@@ -4332,27 +4335,40 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
   };
 }
 
-function simulate(projectOutflows = [], options = {}) {
+function canonicalScenarioRows(context = "active") {
+  const result = canonicalScenarioResults[context];
+  return Array.isArray(result?.rows) ? result.rows : [];
+}
+
+function computeCanonicalScenario(projectOutflows = [], options = {}) {
   const engine = requiredCanonicalEngine();
   const input = canonicalEngineInput(projectOutflows, options);
-  if (options.captureEngineRun === false) {
-    const rows = engine.buildRows(input);
-    const invariants = engine.validateRows(rows);
-    if (!invariants.valid) assertCanonicalSnapshot({ invariants }, options.engineContext || "cálculo auxiliar");
-    return rows;
-  }
-  const context = ["base", "active", "planned"].includes(options.engineContext) ? options.engineContext : "active";
-  const snapshot = engine.buildSnapshot(input, canonicalEngineRuns[context], {
-    reason: `simulation-${context}`,
+  const persistedContext = ["base", "active", "planned"].includes(options.engineContext)
+    ? options.engineContext
+    : null;
+  const context = persistedContext || "active";
+  const previousSnapshot = persistedContext ? canonicalEngineRuns[context] : null;
+  const scenario = engine.buildScenario(input, previousSnapshot, {
+    reason: `simulation-${persistedContext || "auxiliary"}`,
   });
+  const snapshot = scenario.snapshot;
   assertCanonicalSnapshot(snapshot, context);
   snapshot.parity = canonicalDiagnosticsEnabled
     ? engine.compareRows(snapshot.rows, simulateHistoricalReference(projectOutflows, options))
     : null;
   snapshot.sourceStatus = "canonical";
-  canonicalEngineRuns[context] = snapshot;
-  if (context === "active") refreshCanonicalDailyAudit(input, snapshot.rows, context);
-  return snapshot.rows;
+  scenario.sourceStatus = "canonical";
+  if (persistedContext && options.captureEngineRun !== false) {
+    canonicalEngineRuns[context] = snapshot;
+    canonicalScenarioResults[context] = scenario;
+    if (context === "active") scenario.daily = refreshCanonicalDailyAudit(input, scenario.rows, context);
+  }
+  return scenario;
+}
+
+// Legacy callers receive canonical rows. They no longer run a separate model.
+function simulate(projectOutflows = [], options = {}) {
+  return computeCanonicalScenario(projectOutflows, options).rows;
 }
 
 function modelComputationSignature() {
@@ -4390,16 +4406,19 @@ function modelComputationSignature() {
 function recomputeModelIfNeeded(force = false) {
   pruneOutOfScopeAgentRouteSimulation();
   const nextSignature = modelComputationSignature();
-  if (!force && simulationSignature === nextSignature && lastSimulation.length && lastBaseSimulation.length) {
+  if (!force && simulationSignature === nextSignature && canonicalScenarioRows("active").length && canonicalScenarioRows("base").length) {
     return;
   }
   simulationSignature = nextSignature;
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
-  lastBaseSimulation = simulate([], { engineContext: "base" });
+  const baseScenario = computeCanonicalScenario([], { engineContext: "base" });
+  lastBaseSimulation = baseScenario.rows;
   projectPlan = buildProjectSchedule();
-  lastSimulation = simulate(projectPlan.outflows, { engineContext: "active" });
-  lastPlannedSimulation = simulate(projectPlan.outflows, { useActuals: false, engineContext: "planned" });
+  const activeScenario = computeCanonicalScenario(projectPlan.outflows, { engineContext: "active" });
+  const plannedScenario = computeCanonicalScenario(projectPlan.outflows, { useActuals: false, engineContext: "planned" });
+  lastSimulation = activeScenario.rows;
+  lastPlannedSimulation = plannedScenario.rows;
 }
 
 function updateKpis(rows, baseRows = rows) {
