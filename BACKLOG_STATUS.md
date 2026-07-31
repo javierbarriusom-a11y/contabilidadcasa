@@ -49,8 +49,7 @@ conflictos remotos o un despliegue defectuoso.
 | Una reconciliación incorrecta ante conflicto puede descartar una revisión | A0-5 compara fechas y huellas y ofrece continuar localmente, descargar o elegir la nube | Una elección equivocada del usuario todavía puede requerir restauración | Conservar copia exportable, confirmación explícita e historial de versiones |
 | Un despliegue defectuoso puede afectar al sitio público | Pages publica mediante Actions después de pruebas, privacidad y smoke test; el rollback fue ensayado | Una regresión no cubierta por las pruebas podría llegar a producción | Mantener la puerta CI, el monitor publicado y el procedimiento de reversión |
 | La aplicación publicada trata información financiera sensible | El artefacto público contiene solo datos sintéticos y la revisión de privacidad bloquea patrones prohibidos | Una futura incorporación accidental de datos personales sería crítica | Mantener lista cerrada del artefacto y revisión de privacidad obligatoria |
-| Falta conciliación exhaustiva del libro remoto | La copia completa está verificada, no el contraste de cada fila proyectada | No hay evidencia completa de igualdad entre libro local y tabla remota | Verificación por conteo, ID, importe y huella |
-| El cierre mensual remoto no es transaccional | P1-6 continúa parcial | Un mes cerrado podría modificarse o arrastrarse de forma incoherente | Función transaccional, bloqueo y auditoría |
+| La reapertura de meses aún no está disponible | E4 congela y recupera el cierre, pero A1-3 sigue pendiente | Una corrección posterior exige restaurar una versión completa | Implementar reapertura confirmada como nueva revisión append-only en E5 |
 | La documentación de estado diverge | Roadmap, estado y backlog usan fechas y estados distintos | Puede priorizarse trabajo ya terminado o darse por cerrado trabajo parcial | Una matriz canónica y revisión en cada cierre |
 
 ## 4. Orden de ejecución propuesto
@@ -94,8 +93,8 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 
 | ID | Relación | Desarrollo | Estado | Prioridad | Criterio de aceptación |
 | --- | --- | --- | --- | --- | --- |
-| A1-1 | P0 seguimiento | Conciliación remota exhaustiva del libro | Implementado | Crítica | El libro local y `finance_ledger_entries` coinciden en activos, conteo, IDs, importes y huella; se conserva evidencia anonimizada |
-| A1-2 | P1-6 | Cierre mensual transaccional | Implementado | Crítica | Cerrar un mes congela reales de forma atómica, registra auditoría y arrastra únicamente previsiones al mes siguiente |
+| A1-1 | P0 seguimiento | Conciliación remota exhaustiva del libro | Verificado | Crítica | El libro local y `finance_ledger_entries` coinciden en activos, conteo, IDs, importes y huella; se conserva evidencia anonimizada |
+| A1-2 | P1-6 | Cierre mensual transaccional | Verificado | Crítica | Cerrar un mes congela reales de forma atómica, registra auditoría y arrastra únicamente previsiones al mes siguiente |
 | A1-3 | P1-6 | Reapertura controlada de mes | Pendiente | Alta | Solo una acción confirmada crea una nueva revisión; nunca modifica el cierre histórico y deja motivo y antes/después |
 | A1-4 | P1-7 | Deshacer importación por lote | Parcial | Alta | Cada lote tiene identidad, vista previa y snapshot; deshacer local o remoto restaura una nueva versión sin borrar historial |
 | A1-5 | P0/P1 | Eliminar fallback remoto silencioso | Parcial | Alta | Si falta el esquema normalizado se informa y se conserva localmente; el legado solo se usa mediante una migración explícita y comprobable |
@@ -173,13 +172,12 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Continuar con **E4: integridad remota y cierre mensual** sin degradar E1, E2 ni E3. En concreto:
+Continuar con **E5: reapertura, deshacer, migración y copias operativas**, empezando por A1-3:
 
-1. conciliar el libro local y `finance_ledger_entries` por conteo, ID, importe y huella;
-2. conservar evidencia anonimizada de la igualdad remota;
-3. implementar el cierre mensual transaccional con auditoría;
-4. bloquear cambios incoherentes sobre meses cerrados;
-5. probar el cierre y la recuperación en dos sesiones autenticadas.
+1. diseñar la reapertura como una revisión nueva sin modificar el cierre histórico;
+2. exigir motivo, vista previa y confirmación;
+3. conservar antes/después y verificar la operación en dos sesiones;
+4. completar después deshacer por lote, retirada del fallback y política de retención.
 
 E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobación pública, monitor manual
 y prueba de rollback no destructiva entre revisiones seguras.
@@ -188,8 +186,8 @@ de recuperación y copia con huella, y comprobación del service worker y el man
 La suite de cierre de E3 pasa con 113/113 pruebas; `version.json` identifica la revisión pública
 `e149c9c` y no queda desarrollo local pendiente antes de iniciar E4.
 
-E4 está implementada localmente: cada sincronización contrasta las filas activas del libro remoto por
-conteo, ID, importe y huella, y conserva un resumen anonimizado. El cierre mensual crea de forma
-atómica una nueva copia, un registro append-only y un nuevo puntero, bloqueando sesiones obsoletas y
-la edición posterior de reales. La suite pasa con 117/117 pruebas. Falta desplegar el esquema y
-validar ambas operaciones con dos sesiones autenticadas antes de marcar E4 como verificada.
+E4 quedó verificada el 31/07/2026. La conciliación autenticada contrastó el libro remoto completo por
+conteo, ID, importe y huella. El cierre transaccional de julio creó una copia recuperable y un registro
+append-only en Supabase; tras recargar, la aplicación recuperó el cierre desde el registro inmutable,
+bloqueó una repetición y mantuvo visibles los datos históricos. La suite de cierre pasa con 125/125
+pruebas, además de construcción, privacidad y smoke test.
