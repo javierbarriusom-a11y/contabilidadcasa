@@ -77,6 +77,10 @@ pública sirve el artefacto demo y `version.json`.
 - El 31/07/2026 Pages cambió de `build_type: legacy` a `workflow`; el commit funcional de E2
   `23d07dd` quedó publicado en `origin/main`. La primera ejecución de CI detectó una opción de caché
   incompatible con la ausencia de `package-lock.json`; se retiró antes de reintentar el despliegue.
+- El despliegue corregido `6396fde` superó la puerta completa y la URL pública sirvió el paquete demo
+  junto con un `version.json` que identifica ese commit. El primer disparo manual del monitor confirmó
+  la disponibilidad, pero expuso un código 23 de `curl` por cierre temprano de tubería; el monitor se
+  ajustó para descargar y validar cada recurso por separado.
 - La puerta local `npm run verify` pasa completa: 109 pruebas, construcción de `dist/`, revisión de
   privacidad y smoke test. `git diff --check` también pasa.
 - QA del artefacto `dist/`: escritorio a 1280 px y móvil a 390×844, sin desbordamiento horizontal ni

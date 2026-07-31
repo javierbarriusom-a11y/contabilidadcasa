@@ -17,7 +17,10 @@ jobs:
           SITE_URL: https://javierbarriusom-a11y.github.io/finanzas-casa-def
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/" | grep -q '<main id="mainContent"'
-          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/app.js" >/dev/null
-          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/data.js" | grep -q '"publicDemo":true'
-          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/version.json" | grep -q '"version"'
+          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/" --output "$RUNNER_TEMP/site-index.html"
+          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/app.js" --output "$RUNNER_TEMP/site-app.js"
+          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/data.js" --output "$RUNNER_TEMP/site-data.js"
+          curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/version.json" --output "$RUNNER_TEMP/site-version.json"
+          grep -q '<main id="mainContent"' "$RUNNER_TEMP/site-index.html"
+          grep -q '"publicDemo":true' "$RUNNER_TEMP/site-data.js"
+          grep -q '"version"' "$RUNNER_TEMP/site-version.json"
