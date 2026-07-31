@@ -10,12 +10,12 @@ Fecha de revisión: 31 de julio de 2026.
 - UX-1 a UX-6 verificadas: navegación principal, vista Hoy, centro de acciones, modo familiar, centro de alertas, accesibilidad y responsive.
 - Puerta de invariantes para impedir la publicación remota de estados canónicos incoherentes.
 - Cola remota verificada con dos sesiones autenticadas: conserva el último cambio durante una escritura, bloquea una sesión obsoleta y recupera la revisión vigente al recargar.
+- Control optimista y cola remota consolidados en Git mediante `cedac92` (`fix: protect remote saves across sessions`).
 - La suite local actual pasa completa: 100 pruebas, 0 fallos.
 
 ## Pendiente
 
 - Completar la verificación remota de P0-1: crear y eliminar una entidad de prueba, recargar en dos sesiones y confirmar que la baja no reaparece.
-- Consolidar en Git la cola de guardado remoto y el control optimista ya verificados contra Supabase.
 - Cerrar P0-5 para todos los guardados/publicaciones y completar P0-6 con selector remoto y restauración transaccional guiada.
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos, procedencia/confianza por KPI, cierre mensual remoto y deshacer importaciones por lote.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
@@ -23,7 +23,7 @@ Fecha de revisión: 31 de julio de 2026.
 
 ## Próximo paso
 
-Cerrar P0-1 con una prueba remota de baja: crear una entidad identificable de prueba, sincronizarla, eliminarla, recargar desde las dos sesiones y confirmar que no reaparece. Después consolidar los cambios en Git y abordar el cierre mensual transaccional.
+Cerrar P0-1 con una prueba remota de baja: crear una entidad identificable de prueba, sincronizarla, eliminarla, recargar desde las dos sesiones y confirmar que no reaparece. Si pasa, actualizar P0-1 y continuar con P0-5/P0-6 antes del cierre mensual transaccional.
 
 ## Decisiones importantes
 
@@ -42,8 +42,8 @@ Cerrar P0-1 con una prueba remota de baja: crear una entidad identificable de pr
 - La cobertura de procedencia y confianza no alcanza todavía todos los KPI; los efectos legales y fiscales requieren fuentes verificadas y revisión profesional.
 - La documentación de backlog y la hoja de ruta discrepan en varios estados y fechas de corte, por lo que `ROADMAP_EXECUTION.md` se toma como criterio conservador de finalización.
 
-## Último commit estable
+## Último commit funcional verificado
 
-- `fc7e04d` — `feat: gate remote sync with canonical invariants` (18 de julio de 2026).
-- Es el `HEAD` compartido por `main`, `origin/main` y la rama actual `fix/persistence-save-queue`.
-- Los cambios locales posteriores de la cola de guardado remoto no forman parte aún de este commit estable.
+- `cedac92` — `fix: protect remote saves across sessions` (31 de julio de 2026).
+- Es el commit funcional verificado de la rama `fix/persistence-save-queue`; incluye la cola, el control optimista, el bloqueo de sesiones obsoletas, las pruebas y la actualización de P0-2.
+- `main` y `origin/main` permanecen en `fc7e04d` hasta integrar esta rama.
