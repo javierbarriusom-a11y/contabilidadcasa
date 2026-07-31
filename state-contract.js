@@ -18,6 +18,7 @@
     "rowLabelOverrides",
     "movementMappings",
   ];
+  const OPTIONAL_OBJECT_FIELDS = ["debtRoadmapState"];
 
   function isPlainObject(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -75,6 +76,9 @@
     OBJECT_FIELDS.forEach((field) => {
       if (!isPlainObject(payload[field])) errors.push(`El campo ${field} debe ser un objeto.`);
     });
+    OPTIONAL_OBJECT_FIELDS.forEach((field) => {
+      if (payload[field] !== undefined && !isPlainObject(payload[field])) errors.push(`El campo ${field} debe ser un objeto.`);
+    });
     if (payload.workbookData !== null && payload.workbookData !== undefined) {
       if (!isPlainObject(payload.workbookData) || !payload.workbookData.metadata || !payload.workbookData.monthlyPlanning) {
         errors.push("Los datos del libro incluidos no tienen la estructura esperada.");
@@ -94,6 +98,7 @@
       customRows: Array.isArray(payload.customPlanningRows) ? payload.customPlanningRows.length : 0,
       incomeActuals: isPlainObject(payload.incomeActuals) ? Object.keys(payload.incomeActuals).length : 0,
       expenseActuals: isPlainObject(payload.expenseActuals) ? Object.keys(payload.expenseActuals).length : 0,
+      debtRoadmapFields: isPlainObject(payload.debtRoadmapState) ? Object.keys(payload.debtRoadmapState).length : 0,
       workbookIncluded: Boolean(workbook),
       workbookMonths: workbook?.monthlyPlanning?.months?.length || 0,
       sourceWorkbook: payload.sourceWorkbook || workbook?.metadata?.sourceWorkbook || "",

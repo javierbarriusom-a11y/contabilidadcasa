@@ -14,7 +14,7 @@ Fecha de corte: 18 de julio de 2026.
 | Reconciliación automática | Entregado | vista y contrato de conciliación |
 | Pruebas de invariantes y puerta de sincronización (P0-5) | Entregado | batería Node mensual, diaria y de decisiones; Supabase se bloquea solo ante incoherencias canónicas |
 | Registro inmutable | Entregado en esquema | eventos append-only y `finance_audit_log` |
-| Copias y restauración | Entregado | copias locales y remotas versionadas |
+| Copias y restauración | Implementado, pendiente de verificación remota | selector, vista previa, clonación transaccional y copias locales/remotas versionadas |
 
 ### P0-5 - Puerta de sincronización
 

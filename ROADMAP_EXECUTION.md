@@ -33,14 +33,14 @@ Una fase se considera verificada cuando:
 Fecha de inventario: 18 de julio de 2026. `Realizado` equivale a `Verificado`: no basta con que el
 codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 
-| Bloque | Fases | Realizados | Parciales | Pendientes | Objetivo |
-| --- | --- | --- | --- | --- | --- |
-| P0 | P0-1 a P0-6 | 5: P0-1 a P0-5 | 1: P0-6 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
-| P1 | P1-1 a P1-8 | 0 | 8: P1-1 a P1-8 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
-| P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
-| P3 | P3-1 a P3-3 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
-| UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
-| **Total** | **29 fases** | **17** | **9** | **3** | **La experiencia principal, P2 y P0-1 a P0-5 estan verificados; P0-6 es el siguiente cierre estructural** |
+| Bloque | Fases | Realizados | Implementados | Parciales | Pendientes | Objetivo |
+| --- | --- | --- | --- | --- | --- | --- |
+| P0 | P0-1 a P0-6 | 5: P0-1 a P0-5 | 1: P0-6 | 0 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
+| P1 | P1-1 a P1-8 | 0 | 0 | 8: P1-1 a P1-8 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
+| P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
+| P3 | P3-1 a P3-3 | 0 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
+| UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
+| **Total** | **29 fases** | **17** | **1** | **8** | **3** | **La experiencia principal, P2 y P0-1 a P0-5 estan verificados; P0-6 espera despliegue y prueba remota** |
 
 ## P0 - Integridad estructural
 
@@ -51,7 +51,7 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 | P0-3 | Maquina de estados y registro inmutable | Workflow canonico disponible | Deudas, proyectos, acuerdos e importaciones usan transiciones comunes; cada cambio real genera evento append-only con antes/despues y los reintentos son idempotentes | Verificado |
 | P0-4 | Motor unico de calculo | Escenarios canonicos base, activo y planificado; las vistas mantienen aliases de compatibilidad | Todas las vistas consumen un unico resultado diario/mensual; el motor legado deja de decidir cifras | Verificado |
 | P0-5 | Reconciliacion e invariantes como barrera | Hay vista e invariantes, pero no bloquean todos los guardados/publicaciones incoherentes | Diferencias banco-presupuesto-simulacion visibles; no se confirma ni publica un estado que rompa invariantes | Verificado |
-| P0-6 | Copias, restauracion y seguridad de version | Hay snapshots locales/remotos, pero falta restauracion guiada y validacion completa | Selector de versiones, vista previa, restauracion transaccional y prueba de recuperacion sin perdida | Parcial |
+| P0-6 | Copias, restauracion y seguridad de version | Hay snapshots locales/remotos, pero falta restauracion guiada y validacion completa | Selector de versiones, vista previa, restauracion transaccional y prueba de recuperacion sin perdida | Implementado |
 
 ## P1 - Decision y tesoreria
 
@@ -126,7 +126,7 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 | P0-3 | Verificado | Eventos inmutables de importacion, sincronizacion, enmienda y transicion con instantanea antes/despues; comandos deterministas sin duplicados | Pruebas de transiciones, importacion, enmienda, idempotencia y sintaxis; publicacion posterior | Quedan mutaciones de datos base para P0-4/P0-5, fuera del ciclo de vida de decisiones | P0-4 |
 | P0-4 | Verificado | Escenarios base, activo y planificado emitidos por el motor canonico; el calendario diario activo parte del mismo resultado mensual | 87 pruebas: contrato de escenario, corte que impide invocar `buildRows` desde la app, invariantes, paridad y calendario diario/mensual | `lastSimulation` y equivalentes permanecen como aliases de lectura para vistas existentes; no ejecutan calculos | P0-5 |
 | P0-5 | Verificado | Vista de conciliacion y barrera canonica antes de publicar en Supabase | Pruebas de escenarios ausentes, paridad diaria/mensual, deuda duplicada y errores criticos | Ninguno | P0-6 |
-| P0-6 | Parcial | Copias locales/remotas, checksum y restauracion en dos pasos | Pruebas de copia manipulada y restauracion local | Completar selector remoto y restauracion transaccional | P0-6 |
+| P0-6 | Implementado | Selector remoto, comparacion antes/despues y funcion transaccional que clona la version elegida y mueve el puntero con control optimista | 31/07/2026: 104 pruebas locales y QA de la interfaz; historial inmutable cubierto por esquema y pruebas estructurales | Aplicar el esquema en Supabase y ejecutar restauracion autenticada completa antes de marcar Verificado | P0-6 |
 | P1-1 | Parcial | Motor diario, fechas de cobro/pago y reserva comun | Paridad diaria/mensual e invariantes de tesoreria | Completar cobertura aprendida hasta el siguiente ingreso | P1-1 |
 | P1-2 | Parcial | Contratos de deuda normalizados y estados de pago | Pruebas de suspension, reunificacion, atrasos y retoma | Completar TAE, mora, titular y procedencia obligatoria | P1-2 |
 | P1-3 | Parcial | Comparador de no actuar, pago, fraccionamiento, reunificacion y retoma | Pruebas de reserva, coste, cierre y recomendacion | Incorporar efectos legales/fiscales verificados | P1-3 |

@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260716p" />
+    <link rel="stylesheet" href="styles.css?v=20260731b" />
     <link rel="stylesheet" href="p2.css?v=20260717a" />
   </head>
   <body>
@@ -26,9 +26,9 @@
             <span>Hoy</span>
             <small>Decisiones y caja de este momento</small>
           </a>
-          <a href="#update-data" class="nav-primary-link">
+          <a href="#visual-detail" class="nav-primary-link">
             <span>Actualizar</span>
-            <small>Registrar lo ocurrido este mes</small>
+            <small>Revisar partidas, resultados y mínimos</small>
           </a>
           <a href="#new-life-definitive" class="nav-primary-link">
             <span>Plan familiar</span>
@@ -37,6 +37,10 @@
           <a href="#new-life-simulation" class="nav-primary-link">
             <span>Deuda y proyectos</span>
             <small>Comparar antes de decidir</small>
+          </a>
+          <a href="#debt-roadmap" class="nav-primary-link">
+            <span>Plan de deuda</span>
+            <small>Negociación y seguimiento independiente</small>
           </a>
           <details class="nav-disclosure" id="advancedNav">
             <summary>
@@ -54,13 +58,13 @@
               <a href="#alerts-center">Centro de alertas</a>
 
               <p class="advanced-nav-label">Analizar</p>
-              <a href="#visual-detail">Cuadro de mandos</a>
               <a href="#prevision">Previsión</a>
               <a href="#forecast">Proyección</a>
               <a href="#savings-plan">Plan ahorro</a>
               <a href="#cashflow">Flujo mensual</a>
 
               <p class="advanced-nav-label">Datos</p>
+              <a href="#update-data">Registrar reales del mes</a>
               <a href="#data-entry">Carga de datos</a>
               <a href="#movements">Movimientos</a>
               <a href="#data-audit">Datos y auditoría</a>
@@ -433,6 +437,24 @@
             </article>
           </section>
 
+          <section class="debt-roadmap-view view-section" id="debt-roadmap">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker">Módulo independiente</p>
+                <h2>Plan visual de deuda</h2>
+                <p>Espacio de negociación y seguimiento separado del motor financiero. Sus cambios se incluyen en las copias versionadas y en la sincronización con Supabase.</p>
+              </div>
+              <span class="sync-badge">Sincronizado con el estado</span>
+            </div>
+            <iframe
+              id="debtRoadmapFrame"
+              class="debt-roadmap-frame"
+              src="debt-roadmap.html?v=20260731a"
+              title="Plan visual de deuda"
+              loading="lazy"
+            ></iframe>
+          </section>
+
           <section class="new-life-definitive view-section" id="new-life-definitive">
             <div class="section-title with-action">
               <div>
@@ -661,9 +683,9 @@
 
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker">Cuadro de mandos</p>
-                <h2>Cuadro de mandos</h2>
-                <p>Matriz editable por meses abiertos. Los meses cerrados quedan como histórico y arrastran saldos/resultados al modelo.</p>
+                <p class="panel-kicker">Actualizar previsiones</p>
+                <h2>Partidas previstas, resultados y mínimos</h2>
+                <p>Actualiza los importes previstos según cambia la realidad y comprueba su impacto a lo largo del tiempo. Los meses cerrados quedan como histórico y arrastran saldos y resultados al modelo.</p>
               </div>
               <div class="visual-controls">
                 <label>
@@ -1751,7 +1773,12 @@
               </div>
               <div class="state-safety-actions">
                 <button id="exportStateBackup" type="button">Descargar copia completa</button>
-                <button id="prepareCloudRestore" class="restore-cloud" type="button">Recuperar versión anterior</button>
+                <button id="prepareCloudRestore" class="restore-cloud" type="button">Buscar versiones en Supabase</button>
+                <label class="cloud-restore-picker" id="cloudRestoreVersionField" hidden>
+                  <span>Versión</span>
+                  <select id="cloudRestoreVersion"></select>
+                </label>
+                <button id="previewCloudRestore" class="restore-cloud" type="button" hidden>Previsualizar versión</button>
                 <label class="state-backup-picker">
                   <span>Seleccionar copia</span>
                   <input id="stateBackupFile" type="file" accept=".json,application/json" />
@@ -2174,7 +2201,7 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260602a"></script>
-    <script src="state-contract.js?v=20260713a"></script>
+    <script src="state-contract.js?v=20260731b"></script>
     <script src="canonical-state.js?v=20260717p0"></script>
     <script src="canonical-ledger.js?v=20260713d"></script>
     <script src="canonical-engine.js?v=20260713e"></script>
@@ -2185,13 +2212,14 @@
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>
     <script src="canonical-workflow.js?v=20260714a"></script>
     <script src="canonical-supabase-store.js?v=20260717p0"></script>
+    <script src="snapshot-restore.js?v=20260731a"></script>
     <script src="remote-save-queue.js?v=20260731a"></script>
     <script src="ux-settings.js?v=20260716a"></script>
     <script src="ux-shell.js?v=20260716a"></script>
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260731a"></script>
+    <script src="app.js?v=20260731b"></script>
     <script src="p2-ui.js?v=20260717a"></script>
   </body>
 </html>

@@ -52,6 +52,9 @@ test("el puntero activo solo permite al usuario seleccionar su copia normalizada
   assert.match(schema, /source_key text not null/);
   assert.match(schema, /snapshot_id uuid not null references public\.finance_state_snapshots/);
   assert.match(schema, /grant select, insert, update on public\.finance_source_heads to authenticated/);
+  assert.match(schema, /create or replace function public\.restore_finance_snapshot/);
+  assert.match(schema, /for update/);
+  assert.match(schema, /grant execute on function public\.restore_finance_snapshot/);
 });
 
 test("la auditoría registra antes y después mediante trigger", () => {

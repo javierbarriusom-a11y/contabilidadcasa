@@ -213,6 +213,81 @@ begin
 end;
 $$;
 
+-- Restoring never rewrites an old snapshot. It clones the selected version and
+-- moves the authoritative pointer under the same database transaction. The
+-- expected head prevents an obsolete browser session from restoring over a
+-- newer revision.
+create or replace function public.restore_finance_snapshot(
+  p_source_key text,
+  p_target_snapshot_id uuid,
+  p_expected_head_snapshot_id uuid,
+  p_new_snapshot_id uuid,
+  p_new_sync_id uuid
+)
+returns table (snapshot_id uuid, fingerprint text, restored_from uuid, created_at timestamptz)
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  target_snapshot public.finance_state_snapshots%rowtype;
+  current_head_snapshot_id uuid;
+  restored_at timestamptz := now();
+begin
+  select * into target_snapshot
+  from public.finance_state_snapshots
+  where id = p_target_snapshot_id
+    and user_id = auth.uid()
+    and source_key = p_source_key;
+
+  if not found then
+    raise exception 'La versión solicitada no existe o no pertenece al usuario.' using errcode = 'P0002';
+  end if;
+
+  select h.snapshot_id into current_head_snapshot_id
+  from public.finance_source_heads h
+  where h.user_id = auth.uid() and h.source_key = p_source_key
+  for update;
+
+  if current_head_snapshot_id is distinct from p_expected_head_snapshot_id then
+    raise exception 'Otra sesión publicó una revisión más reciente.' using errcode = '40001';
+  end if;
+
+  insert into public.finance_sync_runs (
+    id, user_id, source_key, status, schema_version, fingerprint,
+    entity_count, started_at, completed_at, metadata
+  ) values (
+    p_new_sync_id, auth.uid(), p_source_key, 'complete',
+    'finanzas-casa-supabase-v1', target_snapshot.fingerprint,
+    coalesce((target_snapshot.state #>> '{canonicalSnapshot,quality,entityCount}')::integer, 0),
+    restored_at, restored_at,
+    jsonb_build_object('operation', 'restore', 'restoredFrom', p_target_snapshot_id)
+  );
+
+  insert into public.finance_state_snapshots (
+    id, user_id, source_key, sync_id, version, fingerprint, checksum, state, created_at
+  ) values (
+    p_new_snapshot_id, auth.uid(), p_source_key, p_new_sync_id,
+    target_snapshot.version, target_snapshot.fingerprint, target_snapshot.checksum,
+    target_snapshot.state, restored_at
+  );
+
+  update public.finance_source_heads
+  set sync_id = p_new_sync_id,
+      snapshot_id = p_new_snapshot_id,
+      fingerprint = target_snapshot.fingerprint,
+      schema_version = 'finanzas-casa-supabase-v1',
+      updated_at = restored_at
+  where user_id = auth.uid() and source_key = p_source_key;
+
+  if not found then
+    raise exception 'No existe un puntero remoto que restaurar.' using errcode = 'P0002';
+  end if;
+
+  return query select p_new_snapshot_id, target_snapshot.fingerprint, p_target_snapshot_id, restored_at;
+end;
+$$;
+
 do $$
 declare
   table_name text;
@@ -305,3 +380,4 @@ grant select, insert on public.finance_reconciliation_runs to authenticated;
 grant select, insert on public.finance_state_snapshots to authenticated;
 grant select, insert, update on public.finance_source_heads to authenticated;
 grant select on public.finance_audit_log to authenticated;
+grant execute on function public.restore_finance_snapshot(text, uuid, uuid, uuid, uuid) to authenticated;

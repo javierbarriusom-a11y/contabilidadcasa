@@ -21,6 +21,7 @@ function validPayload() {
     seriesOverrides: {},
     rowLabelOverrides: {},
     movementMappings: {},
+    debtRoadmapState: { profile: "base", tasks: [{ title: "Solicitar CIRBE", status: "Pendiente" }] },
   };
 }
 
@@ -35,6 +36,7 @@ test("la copia completa supera una ida y vuelta verificable", () => {
   assert.equal(result.valid, true);
   assert.deepEqual(parsed.payload, payload);
   assert.equal(result.summary.projects, 1);
+  assert.equal(result.summary.debtRoadmapFields, 2);
 });
 
 test("una copia alterada se rechaza por checksum", () => {
@@ -53,4 +55,11 @@ test("el contrato rechaza tipos incorrectos y números no finitos", () => {
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /projects/);
   assert.match(result.errors.join(" "), /no finito/);
+});
+
+test("las copias anteriores sin plan de deuda siguen siendo restaurables", () => {
+  const payload = validPayload();
+  delete payload.debtRoadmapState;
+  const backup = contract.buildBackupEnvelope(payload);
+  assert.equal(contract.validateBackupEnvelope(backup).valid, true);
 });

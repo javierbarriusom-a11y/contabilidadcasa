@@ -2548,6 +2548,32 @@ svg {
   margin-top: 0;
 }
 
+.debt-roadmap-view {
+  min-width: 0;
+}
+
+.debt-roadmap-view .sync-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #b9dfdb;
+  border-radius: 999px;
+  background: #eaf8f6;
+  color: #08786f;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.debt-roadmap-frame {
+  display: block;
+  width: 100%;
+  min-height: 1200px;
+  border: 1px solid var(--border-color, #d8e2e7);
+  border-radius: 18px;
+  background: #eef3f6;
+}
+
 #downloadCsv {
   background: var(--ink);
   border-color: var(--ink);
@@ -2826,7 +2852,8 @@ svg {
 }
 
 .state-safety-actions button,
-.state-backup-picker {
+.state-backup-picker,
+.cloud-restore-picker {
   min-height: 46px;
   padding: 11px 16px;
   border: 1px solid var(--line);
@@ -2847,6 +2874,38 @@ svg {
   align-items: center;
   color: var(--teal-dark);
   background: #fff;
+}
+
+.cloud-restore-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  background: #fff;
+  cursor: default;
+}
+
+.cloud-restore-picker select {
+  min-width: 250px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+}
+
+.restore-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.restore-preview-grid span {
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  font-size: 12px;
 }
 
 .state-backup-picker input {

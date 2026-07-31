@@ -53,6 +53,7 @@ let deletedPlanningRows = {};
 let seriesOverrides = {};
 let rowLabelOverrides = {};
 let movementMappings = {};
+let debtRoadmapState = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -90,6 +91,7 @@ let pendingProjectDecision = null;
 let unifiedActionRegistry = new Map();
 let pendingUnifiedActionId = "";
 let pendingStateRestore = null;
+let cloudRestoreSnapshots = [];
 let agentDebtOptimizationCache = { key: "", value: null };
 let executiveAdvisorRenderTimer = null;
 let selectorSignature = "";
@@ -274,8 +276,12 @@ const viewTitles = {
     title: "Simula proyectos, deuda y traspasos por cuenta antes de decidir",
   },
   "visual-detail": {
-    eyebrow: "Cuadro de mandos",
-    title: "Planifica liquidez, ahorro y refinanciación desde la fecha de análisis",
+    eyebrow: "Actualizar previsiones",
+    title: "Actualiza partidas y revisa resultados y mínimos",
+  },
+  "debt-roadmap": {
+    eyebrow: "Plan de deuda",
+    title: "Negocia y sigue la deuda en un espacio independiente",
   },
   "debt-liquidation-plan": {
     eyebrow: "Plan deuda óptimo",
@@ -617,6 +623,7 @@ function appStatePayload(options = {}) {
     seriesOverrides,
     rowLabelOverrides,
     movementMappings,
+    debtRoadmapState,
     debtContracts: canonicalDebtContractRows(),
   };
   const payload = window.FinanceCanonicalState?.canonicalizePayload
@@ -643,6 +650,7 @@ function stateBackupSummaryMarkup(summary = {}) {
     <span><b>${summary.incomeActuals || 0}</b> ingreso(s) real(es)</span>
     <span><b>${summary.expenseActuals || 0}</b> gasto(s) real(es)</span>
     <span><b>${summary.customRows || 0}</b> línea(s) personalizada(s)</span>
+    <span><b>${summary.debtRoadmapFields || 0}</b> campo(s) del plan de deuda</span>
     <span>${workbookText}</span>
   </div>`;
 }
@@ -716,30 +724,83 @@ function cancelStateRestore() {
   setStateBackupStatus("Restauración cancelada", "Los datos actuales no se han modificado.");
 }
 
-function confirmStateRestore() {
+function cloudRestoreErrorMessage(error) {
+  const message = error?.message || String(error || "");
+  if (error?.code === "PGRST202" || message.toLowerCase().includes("restore_finance_snapshot")) {
+    return "Actualiza el esquema de Supabase para activar la restauración transaccional.";
+  }
+  if (error?.code === "40001" || message.includes("revisión más reciente")) {
+    return "Otra sesión publicó cambios. Recarga las versiones antes de restaurar.";
+  }
+  return message;
+}
+
+async function restoreCloudSnapshotTransaction(envelope) {
+  const source = envelope.cloudRestore;
+  if (!source || !supabaseClient || !remoteUser) throw new Error("La sesión remota ya no está disponible.");
+  if (!remoteHeadKnown || remoteHeadSnapshotId !== source.expectedHeadSnapshotId) {
+    const error = new Error("La revisión remota cambió desde la vista previa.");
+    error.code = "40001";
+    throw error;
+  }
+  const queueStatus = remoteSaveQueue?.snapshot();
+  if (queueStatus?.pending || queueStatus?.running) {
+    throw new Error("Hay cambios locales pendientes de sincronizar. Sincronízalos antes de restaurar una versión.");
+  }
+  const newSnapshotId = crypto.randomUUID();
+  const newSyncId = crypto.randomUUID();
+  const result = await supabaseClient.rpc("restore_finance_snapshot", {
+    p_source_key: sourceStateKey(),
+    p_target_snapshot_id: source.snapshotId,
+    p_expected_head_snapshot_id: source.expectedHeadSnapshotId,
+    p_new_snapshot_id: newSnapshotId,
+    p_new_sync_id: newSyncId,
+  });
+  if (result.error) throw result.error;
+  remoteHeadSnapshotId = newSnapshotId;
+  remoteHeadKnown = true;
+  window.clearTimeout(remoteSaveTimer);
+  remoteSaveQueue?.reset();
+  return { newSnapshotId, newSyncId };
+}
+
+async function confirmStateRestore() {
   if (!pendingStateRestore) return;
   const validation = window.FinanceStateContract?.validateBackupEnvelope(pendingStateRestore);
   if (!validation?.valid) {
     setStateBackupStatus("Copia rechazada", validation?.errors?.join(" ") || "La copia ya no es válida.", "danger");
     return;
   }
-  applyPersistedPayload(pendingStateRestore.payload);
-  ensureCompleteFinancingSection();
-  repairFinancingSectionFromReference();
-  ensureVariableOperationalSection();
-  saveLocalSnapshot();
-  saveWorkbookOverride();
-  queueRemoteSave();
-  refreshFromPersistedState();
-  setStateBackupStatus(
-    "Restauración completada",
-    `El estado validado ya está activo y todas las secciones se han recalculado.${stateBackupSummaryMarkup(validation.summary)}`,
-    "success",
-  );
-  pendingStateRestore = null;
-  qs("stateBackupFile").value = "";
-  qs("confirmStateRestore").hidden = true;
-  qs("cancelStateRestore").hidden = true;
+  const cloudRestore = Boolean(pendingStateRestore.cloudRestore);
+  const confirmButton = qs("confirmStateRestore");
+  confirmButton.disabled = true;
+  try {
+    if (cloudRestore) {
+      setStateBackupStatus("Restaurando en Supabase", "Creando una versión nueva y moviendo el puntero activo de forma transaccional...");
+      await restoreCloudSnapshotTransaction(pendingStateRestore);
+    }
+    applyPersistedPayload(pendingStateRestore.payload);
+    ensureCompleteFinancingSection();
+    repairFinancingSectionFromReference();
+    ensureVariableOperationalSection();
+    saveLocalSnapshot();
+    saveWorkbookOverride();
+    if (!cloudRestore) queueRemoteSave();
+    refreshFromPersistedState();
+    setStateBackupStatus(
+      "Restauración completada",
+      `${cloudRestore ? "Supabase conserva la versión elegida como una revisión nueva; el historial anterior sigue intacto. " : ""}El estado validado ya está activo y todas las secciones se han recalculado.${stateBackupSummaryMarkup(validation.summary)}`,
+      "success",
+    );
+    pendingStateRestore = null;
+    qs("stateBackupFile").value = "";
+    qs("confirmStateRestore").hidden = true;
+    qs("cancelStateRestore").hidden = true;
+  } catch (error) {
+    setStateBackupStatus("No se completó la restauración", cloudRestoreErrorMessage(error), "danger");
+  } finally {
+    confirmButton.disabled = false;
+  }
 }
 
 async function prepareCloudSnapshotRestore() {
@@ -751,10 +812,13 @@ async function prepareCloudSnapshotRestore() {
     );
     return;
   }
-  setStateBackupStatus("Buscando una versión anterior", "Consultando las copias verificadas de Supabase...");
+  pendingStateRestore = null;
+  qs("confirmStateRestore").hidden = true;
+  qs("cancelStateRestore").hidden = true;
+  setStateBackupStatus("Buscando versiones", "Consultando las copias verificadas de Supabase...");
   const result = await supabaseClient
     .from("finance_state_snapshots")
-    .select("state, created_at, fingerprint")
+    .select("id, state, created_at, fingerprint")
     .eq("source_key", sourceStateKey())
     .order("created_at", { ascending: false })
     .limit(10);
@@ -766,11 +830,8 @@ async function prepareCloudSnapshotRestore() {
     setStateBackupStatus("No se pudo recuperar la versión", message, "danger");
     return;
   }
-  const snapshots = result.data || [];
-  const verifiedSnapshots = snapshots.filter((item) => store?.verifySnapshot(item).valid);
-  const currentFingerprint = verifiedSnapshots[0]?.fingerprint;
-  const previous = verifiedSnapshots.slice(1).find((item) => item.fingerprint !== currentFingerprint) || verifiedSnapshots[1];
-  if (!previous?.state) {
+  cloudRestoreSnapshots = (result.data || []).filter((item) => store?.verifySnapshot(item).valid);
+  if (cloudRestoreSnapshots.length < 2) {
     setStateBackupStatus(
       "Todavía no hay una versión anterior",
       "Realiza al menos dos sincronizaciones con cambios distintos para poder volver atrás.",
@@ -778,18 +839,38 @@ async function prepareCloudSnapshotRestore() {
     );
     return;
   }
+  const choices = cloudRestoreSnapshots.filter((item) => item.id !== remoteHeadSnapshotId);
+  const select = qs("cloudRestoreVersion");
+  select.innerHTML = choices.map((snapshot, index) => `<option value="${escapeHtml(snapshot.id)}">${index + 1}. ${new Date(snapshot.created_at).toLocaleString("es-ES")}</option>`).join("");
+  qs("cloudRestoreVersionField").hidden = false;
+  qs("previewCloudRestore").hidden = false;
+  setStateBackupStatus(
+    `${choices.length} versión(es) recuperables`,
+    "Selecciona una fecha y pulsa Previsualizar. Nada cambiará hasta la confirmación final.",
+  );
+}
+
+function previewSelectedCloudSnapshotRestore() {
+  const selected = cloudRestoreSnapshots.find((snapshot) => snapshot.id === qs("cloudRestoreVersion")?.value);
+  if (!selected?.state) return;
   try {
-    pendingStateRestore = window.FinanceStateContract.buildBackupEnvelope(previous.state, {
+    pendingStateRestore = window.FinanceStateContract.buildBackupEnvelope(selected.state, {
       appVersion: "phase-10-cloud-restore",
-      createdAt: previous.created_at,
+      createdAt: selected.created_at,
     });
+    pendingStateRestore.cloudRestore = {
+      snapshotId: selected.id,
+      expectedHeadSnapshotId: remoteHeadSnapshotId,
+    };
     const validation = window.FinanceStateContract.validateBackupEnvelope(pendingStateRestore);
     if (!validation.valid) throw new Error(validation.errors.join(" "));
+    const preview = window.FinanceSnapshotRestore.buildSnapshotPreview(appStatePayload(), selected.state);
+    const rows = preview.metrics.map((metric) => `<span><b>${escapeHtml(metric.label)}</b><br>${metric.before} → ${metric.after}${metric.changed ? ` (${metric.delta > 0 ? "+" : ""}${metric.delta})` : " · sin cambio"}</span>`).join("");
     qs("confirmStateRestore").hidden = false;
     qs("cancelStateRestore").hidden = false;
     setStateBackupStatus(
-      `Versión preparada: ${new Date(previous.created_at).toLocaleString("es-ES")}`,
-      `Nada ha cambiado todavía. Confirma para crear un nuevo estado basado en esta versión.${stateBackupSummaryMarkup(validation.summary)}`,
+      `Vista previa: ${new Date(selected.created_at).toLocaleString("es-ES")}`,
+      `Nada ha cambiado todavía. Al confirmar se creará una nueva versión restaurada, sin borrar el historial.<div class="restore-preview-grid">${rows}</div>`,
       "warning",
     );
   } catch (error) {
@@ -828,6 +909,7 @@ function applyPersistedPayload(payload = {}) {
   seriesOverrides = payload.seriesOverrides && typeof payload.seriesOverrides === "object" ? payload.seriesOverrides : {};
   rowLabelOverrides = payload.rowLabelOverrides && typeof payload.rowLabelOverrides === "object" ? payload.rowLabelOverrides : {};
   movementMappings = payload.movementMappings && typeof payload.movementMappings === "object" ? payload.movementMappings : {};
+  debtRoadmapState = payload.debtRoadmapState && typeof payload.debtRoadmapState === "object" ? payload.debtRoadmapState : {};
   canonicalSnapshot =
     payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
       ? payload.canonicalSnapshot
@@ -884,12 +966,40 @@ function saveLocalSnapshot() {
   storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
+  storageSet(storageKey("debtRoadmapState"), JSON.stringify(debtRoadmapState));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
   if (canonicalDailyEngineRuns) storageSet(storageKey(CANONICAL_DAILY_ENGINE_KEY), JSON.stringify(compactCanonicalDailyRuns()));
   if (canonicalDecisionRun) storageSet(storageKey(CANONICAL_DECISIONS_KEY), JSON.stringify(compactCanonicalDecisionRun(canonicalDecisionRun)));
   if (decisionWorkflow) storageSet(storageKey(DECISION_WORKFLOW_KEY), JSON.stringify(decisionWorkflow));
+}
+
+function sendDebtRoadmapState() {
+  const frame = qs("debtRoadmapFrame");
+  if (!frame?.contentWindow) return;
+  frame.contentWindow.postMessage({ type: "finance-debt-roadmap-hydrate", payload: debtRoadmapState }, window.location.origin);
+}
+
+function setupDebtRoadmapBridge() {
+  const frame = qs("debtRoadmapFrame");
+  if (!frame) return;
+  frame.addEventListener("load", sendDebtRoadmapState);
+  window.addEventListener("message", (event) => {
+    if (event.origin !== window.location.origin || event.source !== frame.contentWindow) return;
+    if (event.data?.type === "finance-debt-roadmap-ready") {
+      sendDebtRoadmapState();
+      return;
+    }
+    if (event.data?.type === "finance-debt-roadmap-height") {
+      const height = Math.min(12000, Math.max(900, Number(event.data.height || 0)));
+      frame.style.height = `${height}px`;
+      return;
+    }
+    if (event.data?.type !== "finance-debt-roadmap-state" || !event.data.payload || typeof event.data.payload !== "object") return;
+    debtRoadmapState = JSON.parse(JSON.stringify(event.data.payload));
+    queueRemoteSave();
+  });
 }
 
 function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
@@ -1391,6 +1501,7 @@ function loadLocalState() {
       seriesOverrides: JSON.parse(storageGet(storageKey("seriesOverrides"), "{}")),
       rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
+      debtRoadmapState: JSON.parse(storageGet(storageKey("debtRoadmapState"), "{}")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
       canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
@@ -1411,6 +1522,7 @@ function loadLocalState() {
     seriesOverrides = {};
     rowLabelOverrides = {};
     movementMappings = {};
+    debtRoadmapState = {};
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -2134,6 +2246,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
 
 function setupViewNavigation() {
   setupMobileNavigation();
+  setupDebtRoadmapBridge();
   document.querySelectorAll(".side-nav a").forEach((link) => {
     link.addEventListener("click", (event) => {
       const href = link.getAttribute("href");
@@ -2182,6 +2295,7 @@ function refreshFromPersistedState() {
     button.classList.toggle("active", label === currentScenario);
   });
   render();
+  sendDebtRoadmapState();
 }
 
 async function loadRemoteStateOnce() {
@@ -16616,6 +16730,7 @@ async function init() {
   qs("importBatchData").addEventListener("click", handleBatchImport);
   qs("exportStateBackup")?.addEventListener("click", downloadStateBackup);
   qs("prepareCloudRestore")?.addEventListener("click", prepareCloudSnapshotRestore);
+  qs("previewCloudRestore")?.addEventListener("click", previewSelectedCloudSnapshotRestore);
   qs("stateBackupFile")?.addEventListener("change", handleStateBackupSelection);
   qs("confirmStateRestore")?.addEventListener("click", confirmStateRestore);
   qs("cancelStateRestore")?.addEventListener("click", cancelStateRestore);

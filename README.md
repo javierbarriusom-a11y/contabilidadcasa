@@ -18,6 +18,8 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 
 La documentación funcional de la fase actual está en [PHASE_10.md](PHASE_10.md). El estado completo del backlog está en [BACKLOG_STATUS.md](BACKLOG_STATUS.md).
 
+La navegación principal usa `Actualizar` como matriz temporal de partidas previstas, resultados y mínimos. El plan visual de deuda se mantiene como módulo independiente y sincroniza su estado dentro de las copias versionadas, sin alimentar todavía el motor canónico.
+
 ## Arquitectura canónica
 
 - `canonical-state.js`: contrato persistido e inventario de colecciones.
