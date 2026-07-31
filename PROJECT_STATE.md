@@ -15,20 +15,20 @@ Fecha de revisión: 31 de julio de 2026.
 - Navegación operativa reorganizada: `Actualizar` queda tras `Hoy` para registrar reales uno a uno y `Movimientos` pasa al bloque Datos tras `Carga de datos`.
 - `Actualizar` abre la matriz temporal editable del Cuadro de mandos, con importes previstos, impacto futuro, resultados y mínimos; el registro individual de reales sigue disponible en Datos.
 - El plan visual de deuda sin WiZink se ha incorporado como sección independiente tras `Deuda y proyectos`; su estado forma parte de la copia local y del payload sincronizado con Supabase.
-- P0-6 está implementado en código con selector remoto, vista previa comparativa y función SQL transaccional que clona la versión elegida y mueve el puntero activo sin borrar historial.
+- P0-6 está verificado de extremo a extremo: el selector remoto, la vista previa comparativa y `restore_finance_snapshot` crean una versión nueva, mueven el puntero activo y conservan el historial.
+- La función de restauración está desplegada en el Supabase real y se ejecutó con rol `authenticated` y `auth.uid()` del usuario. La recuperación generó un snapshot nuevo idéntico al objetivo, actualizó la cabecera, completó el registro de sincronización y preservó las 234 versiones existentes tras la operación.
 - La suite local actual pasa completa: 104 pruebas, 0 fallos.
 - El commit funcional `787c3db` está publicado en `origin/main` y desplegado correctamente mediante GitHub Pages desde la raíz de `main`, con HTTPS activo.
 
 ## Pendiente
 
-- Aplicar el `supabase_schema.sql` actualizado y verificar P0-6 de extremo a extremo con una restauración autenticada entre dos versiones reales.
 - Hacer una conciliación autenticada fila por fila entre el libro canónico local y `finance_ledger_entries` (conteo, IDs, importes y huella). La evidencia actual confirma el flujo remoto y la copia completa, pero no documenta este contraste exhaustivo de todos los movimientos.
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos, procedencia/confianza por KPI, cierre mensual remoto y deshacer importaciones por lote.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Desplegar la función `restore_finance_snapshot` en Supabase y verificar una recuperación autenticada sin pérdida. Después, abordar el cierre mensual transaccional y la conciliación remota exhaustiva de movimientos.
+Abordar el cierre mensual transaccional y la conciliación remota exhaustiva de movimientos.
 
 ## Decisiones importantes
 
@@ -47,12 +47,12 @@ Desplegar la función `restore_finance_snapshot` en Supabase y verificar una rec
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - No consta pérdida de movimientos en pruebas ni en la verificación remota documentada, pero falta conservar evidencia de un recuento remoto exhaustivo por ID e importe; por ello no se da por cerrada todavía esa confirmación.
-- La restauración remota transaccional está implementada pero pendiente de desplegar y verificar en el Supabase real; el cierre mensual remoto y el deshacer remoto por lote siguen incompletos.
+- La restauración remota transaccional está desplegada y verificada sin pérdida en el Supabase real; el cierre mensual remoto y el deshacer remoto por lote siguen incompletos.
 - La cobertura de procedencia y confianza no alcanza todavía todos los KPI; los efectos legales y fiscales requieren fuentes verificadas y revisión profesional.
 - La documentación de backlog y la hoja de ruta discrepan en varios estados y fechas de corte, por lo que `ROADMAP_EXECUTION.md` se toma como criterio conservador de finalización.
 
 ## Último commit estable
 
-- `787c3db` — `feat: add debt roadmap and transactional snapshot restore` (31 de julio de 2026).
-- Es el último commit funcional publicado en `main` y `origin/main`; GitHub Pages sirve ese contenido correctamente.
-- Tras el commit documental de cierre, quedará pendiente publicar ese resumen. El único archivo local ajeno al commit es la carpeta `.agents/` sin seguimiento, que se ha preservado.
+- `f7bff25` — `docs: close session after pages deployment` (31 de julio de 2026).
+- Es el último commit publicado en `main` y `origin/main`; GitHub Pages sirve correctamente el contenido funcional de `787c3db`.
+- El único archivo local ajeno a los commits es la carpeta `.agents/` sin seguimiento, que se ha preservado.
