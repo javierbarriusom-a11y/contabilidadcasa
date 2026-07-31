@@ -17,6 +17,7 @@ Fecha de revisión: 31 de julio de 2026.
 - El plan visual de deuda sin WiZink se ha incorporado como sección independiente tras `Deuda y proyectos`; su estado forma parte de la copia local y del payload sincronizado con Supabase.
 - P0-6 está implementado en código con selector remoto, vista previa comparativa y función SQL transaccional que clona la versión elegida y mueve el puntero activo sin borrar historial.
 - La suite local actual pasa completa: 104 pruebas, 0 fallos.
+- El commit funcional `787c3db` está publicado en `origin/main` y desplegado correctamente mediante GitHub Pages desde la raíz de `main`, con HTTPS activo.
 
 ## Pendiente
 
@@ -43,6 +44,7 @@ Desplegar la función `restore_finance_snapshot` en Supabase y verificar una rec
 ## Errores conocidos y riesgos
 
 - No hay fallos automatizados conocidos en el estado local revisado (104/104 pruebas pasan).
+- La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - No consta pérdida de movimientos en pruebas ni en la verificación remota documentada, pero falta conservar evidencia de un recuento remoto exhaustivo por ID e importe; por ello no se da por cerrada todavía esa confirmación.
 - La restauración remota transaccional está implementada pero pendiente de desplegar y verificar en el Supabase real; el cierre mensual remoto y el deshacer remoto por lote siguen incompletos.
@@ -51,6 +53,6 @@ Desplegar la función `restore_finance_snapshot` en Supabase y verificar una rec
 
 ## Último commit estable
 
-- `e0f327d` — `feat: add monthly update workspace` (31 de julio de 2026).
-- `main` y `origin/main` apuntan a ese commit al iniciar esta sesión.
-- Quedan cambios locales sin commit de esta sesión y la carpeta `.agents/` sin seguimiento, que se ha preservado.
+- `787c3db` — `feat: add debt roadmap and transactional snapshot restore` (31 de julio de 2026).
+- Es el último commit funcional publicado en `main` y `origin/main`; GitHub Pages sirve ese contenido correctamente.
+- Tras el commit documental de cierre, quedará pendiente publicar ese resumen. El único archivo local ajeno al commit es la carpeta `.agents/` sin seguimiento, que se ha preservado.
