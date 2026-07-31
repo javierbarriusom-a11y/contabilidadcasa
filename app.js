@@ -3005,13 +3005,24 @@ function actualAwareInfo(row, month) {
   const hasOverrideActual = override?.actual !== undefined && override?.actual !== "";
   const hasActual = hasOverrideActual || (stored !== undefined && stored !== "");
   const actual = hasOverrideActual ? Number(override.actual) : hasActual ? Number(stored) : null;
+  const status = override?.actualStatus === "cancelled" ? "cancelled" : hasActual ? "realized" : "pending";
   return {
     planned,
     actual,
     hasActual,
-    value: hasActual ? actual : planned,
-    source: hasActual ? "Real" : "Previsto",
+    status,
+    value: status === "cancelled" ? 0 : hasActual ? actual : planned,
+    source: status === "cancelled" ? "Cancelado" : hasActual ? "Realizado" : "Pendiente",
   };
+}
+
+function forwardPlanningInfo(row, month) {
+  const info = actualAwareInfo(row, month);
+  const isManualStartMonth = state?.balanceMode === "manual" && month?.key === monthKey(modelStartDate());
+  if (isManualStartMonth && info.status === "realized") {
+    return { ...info, value: 0, source: "Realizado · incluido en saldo" };
+  }
+  return info;
 }
 
 function escapeHtml(value) {
@@ -4008,7 +4019,7 @@ function incomeEventsForMonth(month, forecastIndex, options = {}) {
   planningSectionsForMonth("income", month).forEach((section) => {
     section.rows.forEach((row) => {
       if (isPlanningRowDeleted(row, month, section.name)) return;
-      const rawValue = useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
+      const rawValue = useActuals ? forwardPlanningInfo(row, month).value : plannedValueForRow(row, month);
       const amount = round2(Number(rawValue || 0) * incomeFactor);
       if (!amount) return;
       const timing = incomeTimingForRow(row, month, amount);
@@ -4065,7 +4076,7 @@ function planningBreakdownForForecastMonth(forecastIndex, date, options = {}) {
 
     calculationRows.forEach((row) => {
       const deleted = isPlanningRowDeleted(row, month, section.name);
-      const value = deleted ? 0 : useActuals ? actualAwareValue(row, month) : plannedValueForRow(row, month);
+      const value = deleted ? 0 : useActuals ? forwardPlanningInfo(row, month).value : plannedValueForRow(row, month);
       rowTotal += value;
       if (section.kind === "income") {
         if (isPrePayrollIncomeRow(row)) sectionPrePayrollIncome += value;
@@ -4377,6 +4388,13 @@ function renderAccountBalancePanels() {
   if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = balances.caixa.toFixed(2);
   if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = balances.mediolanum.toFixed(2);
   if (qs("visualTotalBalance")) qs("visualTotalBalance").value = balances.total.toFixed(2);
+  if (qs("visualBalanceDateLabel")) qs("visualBalanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
+  if (qs("balanceDateLabel")) qs("balanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
+  if (qs("visualBalanceDateHint")) {
+    qs("visualBalanceDateHint").textContent = mode === "manual"
+      ? "Los importes no se recalculan: la fecha indica desde cuándo proyectar. Los reales ya ocurridos quedan en el histórico y no se suman otra vez."
+      : "La fecha calcula el saldo estimado y determina desde cuándo comienza la previsión.";
+  }
   if (qs("overviewBalanceBreakdown")) {
     qs("overviewBalanceBreakdown").innerHTML = [
       ["CaixaBank", balances.caixa],
@@ -8750,8 +8768,13 @@ function saveVisualChanges() {
     const next = { ...(seriesOverrides[key] || {}) };
     delete next.deleted;
     if (draft.mode === "planned") next.planned = draft.value;
-    else next.actual = draft.value;
-    seriesOverrides[key] = next;
+    else {
+      actualsForKind(row.kind)[actualKeyForRow(row, month)] = draft.value;
+      delete next.actual;
+      delete next.actualStatus;
+    }
+    if (Object.keys(next).length) seriesOverrides[key] = next;
+    else delete seriesOverrides[key];
     savedCells += 1;
   });
 
@@ -8825,7 +8848,11 @@ function saveVisualChanges() {
     if (removed) savedDeletes += 1;
   });
 
-  if (savedCells || savedDeletes) saveSeriesOverrides();
+  if (savedCells || savedDeletes) {
+    storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
+    storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
+    saveSeriesOverrides();
+  }
   if (savedDeletes) saveDeletedPlanningRows();
   if (savedLabels) saveRowLabelOverrides();
   if (customChanged) saveCustomPlanningRows();
@@ -9031,6 +9058,7 @@ function renderVisualDetail() {
             const placeholder = mode === "actual" && info.planned ? `prev. ${money(info.planned, true)}` : "";
             return `<td>
               <input class="visual-amount-input" data-visual-cell data-row-key="${escapeHtml(rowKey)}" data-month-key="${month.key}" data-mode="${mode}" type="number" step="0.01" value="${amountInputValue(value)}" placeholder="${placeholder}" ${pendingDelete ? "disabled" : ""} />
+              ${mode === "actual" ? `<small class="visual-actual-status ${escapeHtml(info.status || "pending")}">${escapeHtml(info.source || "Pendiente")}</small>` : ""}
             </td>`;
           })
           .join("")}

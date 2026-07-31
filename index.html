@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
     <link rel="manifest" href="manifest.webmanifest?v=20260731e3" />
-    <link rel="stylesheet" href="styles.css?v=20260731e3" />
+    <link rel="stylesheet" href="styles.css?v=20260731e4c" />
     <link rel="stylesheet" href="p2.css?v=20260717a" />
   </head>
   <body>
@@ -741,7 +741,7 @@
               </div>
               <div class="account-balance-grid">
                 <label>
-                  <span>Fecha</span>
+                  <span id="visualBalanceDateLabel">Fecha del saldo</span>
                   <input id="visualBalanceDate" type="date" />
                 </label>
                 <label>
@@ -764,6 +764,7 @@
                   <input id="visualTotalBalance" type="number" step="0.01" readonly />
                 </label>
               </div>
+              <p class="data-hint" id="visualBalanceDateHint">La fecha sitúa el saldo dentro del calendario de cobros y pagos.</p>
             </article>
 
             <div class="expense-summary" id="visualSummary"></div>
@@ -1490,7 +1491,7 @@
                       <legend>Liquidez e ingresos</legend>
                       <div class="controls-grid two">
                         <label>
-                          <span>Fecha de saldo</span>
+                          <span id="balanceDateLabel">Fecha de saldo</span>
                           <input id="balanceDate" type="date" />
                         </label>
                         <label>
@@ -2257,7 +2258,7 @@
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260731e4b"></script>
+    <script src="app.js?v=20260731e4c"></script>
     <script src="p2-ui.js?v=20260717a"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

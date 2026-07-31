@@ -4571,6 +4571,16 @@ svg {
   overflow-wrap: anywhere;
 }
 
+.visual-actual-status {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.visual-actual-status.realized { color: var(--green); }
+.visual-actual-status.cancelled { color: var(--red); }
+
 .audit-timeline-item {
   display: grid;
   grid-template-columns: minmax(130px, 0.45fr) minmax(220px, 1fr) minmax(100px, 0.45fr);
