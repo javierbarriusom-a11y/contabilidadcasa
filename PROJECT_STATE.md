@@ -32,21 +32,20 @@ Fecha de revisión: 31 de julio de 2026.
   existe un monitor programado de HTTPS, recursos críticos y versión.
 - La caché de `data.js`, `app.js` y el plan visual de deuda se invalida mediante una versión nueva para
   evitar que visitas anteriores conserven recursos estáticos antiguos.
+- E2 está verificada en producción: Pages publica mediante Actions, la URL sirve únicamente el paquete
+  demo permitido, `version.json` identifica la revisión, el monitor manual pasa y un revert no destructivo
+  entre revisiones seguras superó nuevamente las 109 pruebas, privacidad y smoke test.
 
 ## Pendiente
 
 - Hacer una conciliación autenticada fila por fila entre el libro canónico local y `finance_ledger_entries` (conteo, IDs, importes y huella). La evidencia actual confirma el flujo remoto y la copia completa, pero no documenta este contraste exhaustivo de todos los movimientos.
-- Publicar E2 con autorización: GitHub Pages sigue en modo heredado y la URL pública todavía sirve el
-  paquete anterior. Tras el despliegue faltan la comprobación pública, el monitor manual y un rollback
-  real entre revisiones posteriores a la retirada de datos personales.
 - Completar E3: apertura offline del shell, recuperación guiada y copia de emergencia reimportable.
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos, procedencia/confianza por KPI, cierre mensual remoto y deshacer importaciones por lote.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Autorizar commit y push de E2, cambiar Pages a GitHub Actions y verificar inmediatamente que la URL
-pública sirve el artefacto demo y `version.json`.
+Abordar E3: apertura offline segura, recuperación guiada y copia de emergencia reimportable.
 
 ## Decisiones importantes
 
@@ -81,6 +80,10 @@ pública sirve el artefacto demo y `version.json`.
   junto con un `version.json` que identifica ese commit. El primer disparo manual del monitor confirmó
   la disponibilidad, pero expuso un código 23 de `curl` por cierre temprano de tubería; el monitor se
   ajustó para descargar y validar cada recurso por separado.
+- La revisión `048a48b` desplegó el monitor corregido; su ejecución manual comprobó HTTPS, arranque,
+  `app.js`, paquete demo y `version.json` sin fallos.
+- La prueba de rollback creó un revert aislado de `048a48b` en un worktree temporal, ejecutó de nuevo
+  `npm run verify` con 109/109 pruebas y eliminó el worktree sin alterar `main` ni el sitio publicado.
 - La puerta local `npm run verify` pasa completa: 109 pruebas, construcción de `dist/`, revisión de
   privacidad y smoke test. `git diff --check` también pasa.
 - QA del artefacto `dist/`: escritorio a 1280 px y móvil a 390×844, sin desbordamiento horizontal ni
