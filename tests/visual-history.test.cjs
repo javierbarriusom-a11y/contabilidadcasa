@@ -26,3 +26,10 @@ test("un mes ya cerrado no ofrece repetir el cierre", () => {
   assert.match(app, /currentClosure \? "Mes actual cerrado" : "Cerrar mes actual"/);
   assert.match(app, /ensureRemoteSaveQueue\(\)\.acknowledge\(closedAt\)/);
 });
+
+test("el arranque recupera cierres desde el registro inmutable remoto", () => {
+  assert.match(app, /from\("finance_month_closures"\)/);
+  assert.match(app, /closuresByMonth\.set\(row\.month_key/);
+  assert.match(app, /status: "closed"/);
+  assert.match(app, /monthClosures: \[\.\.\.closuresByMonth\.values\(\)\]/);
+});

@@ -2473,7 +2473,7 @@ async function loadRemoteStateOnce() {
   if (!supabaseClient || !remoteUser) return;
   updateSyncUi("Cargando datos guardados en Supabase...", "cloud");
   const normalizedStore = window.FinanceCanonicalSupabaseStore;
-  const [legacyResult, headResult, snapshotsResult] = await Promise.all([
+  const [legacyResult, headResult, snapshotsResult, closuresResult] = await Promise.all([
     supabaseClient
       .from("finance_dashboard_states")
       .select("state, updated_at")
@@ -2494,6 +2494,13 @@ async function loadRemoteStateOnce() {
         .order("created_at", { ascending: false })
         .limit(8)
       : Promise.resolve({ data: [], error: null }),
+    normalizedStore
+      ? supabaseClient
+        .from("finance_month_closures")
+        .select("id, month_key, snapshot_id, reason, closed_at")
+        .eq("source_key", sourceStateKey())
+        .order("closed_at", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
   ]);
   const activeSnapshotId = headResult.data?.snapshot_id;
   const activeSnapshotResult = normalizedStore && activeSnapshotId
@@ -2505,8 +2512,9 @@ async function loadRemoteStateOnce() {
     : { data: null, error: null };
   const headMissing = normalizedStore?.isMissingSchemaError(headResult.error);
   const snapshotsMissing = normalizedStore?.isMissingSchemaError(snapshotsResult.error);
-  const normalizedMissing = Boolean(headMissing || snapshotsMissing);
-  const normalizedError = [headResult.error, snapshotsResult.error, activeSnapshotResult.error]
+  const closuresMissing = normalizedStore?.isMissingSchemaError(closuresResult.error);
+  const normalizedMissing = Boolean(headMissing || snapshotsMissing || closuresMissing);
+  const normalizedError = [headResult.error, snapshotsResult.error, closuresResult.error, activeSnapshotResult.error]
     .find((error) => error && !normalizedStore?.isMissingSchemaError(error));
   remoteHeadKnown = Boolean(normalizedStore && !headResult.error);
   remoteHeadSnapshotId = remoteHeadKnown ? headResult.data?.snapshot_id || null : null;
@@ -2523,6 +2531,28 @@ async function loadRemoteStateOnce() {
       ? { mode: "compatibilidad", source: "legacy", state: legacyResult.data.state, requiresMigration: false }
       : { state: null };
   const authoritativeUpdatedAt = authoritative.snapshot?.created_at || legacyResult.data?.updated_at || "";
+  if (authoritative.state && !closuresResult.error && Array.isArray(closuresResult.data)) {
+    const stateClosures = Array.isArray(authoritative.state.monthClosures) ? authoritative.state.monthClosures : [];
+    const closuresByMonth = new Map(stateClosures.map((item) => [item.monthKey, item]));
+    closuresResult.data.forEach((row) => {
+      const existing = closuresByMonth.get(row.month_key) || {};
+      closuresByMonth.set(row.month_key, {
+        ...existing,
+        schemaId: existing.schemaId || "finance-month-close-v1",
+        id: row.id,
+        monthKey: row.month_key,
+        status: "closed",
+        closedAt: row.closed_at,
+        reason: row.reason || existing.reason || "Cierre mensual confirmado",
+        snapshotId: row.snapshot_id,
+        actuals: existing.actuals || { income: {}, expense: {} },
+      });
+    });
+    authoritative.state = {
+      ...authoritative.state,
+      monthClosures: [...closuresByMonth.values()].sort((left, right) => left.monthKey.localeCompare(right.monthKey)),
+    };
+  }
 
   if (durableResumeRecord) {
     const queue = ensureRemoteSaveQueue();
