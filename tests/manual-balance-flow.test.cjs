@@ -19,5 +19,8 @@ test("Actualizar explica la función de la fecha cuando el saldo es manual", () 
   assert.match(html, /id="visualBalanceDateLabel"/);
   assert.match(html, /id="visualBalanceDateHint"/);
   assert.match(appSource, /Fecha del saldo real/);
-  assert.match(appSource, /Los importes no se recalculan/);
+  assert.match(appSource, /La fecha se registra automáticamente al actualizar el saldo/);
+  assert.match(appSource, /input\.disabled = !auto/);
+  assert.match(appSource, /state\.balanceDate = isoLocalDate\(new Date\(\)\)/);
+  assert.match(appSource, /if \(state\.balanceMode === "auto"\) state\.balanceDate = isoLocalDate\(new Date\(\)\)/);
 });

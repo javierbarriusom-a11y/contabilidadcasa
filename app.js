@@ -4295,11 +4295,19 @@ function updateBalanceModeUi() {
     input.readOnly = auto;
     input.classList.toggle("derived-control", auto);
   });
+  ["balanceDate", "visualBalanceDate"].forEach((id) => {
+    const input = qs(id);
+    if (!input) return;
+    input.disabled = !auto;
+    input.classList.toggle("derived-control", !auto);
+  });
 }
 
 function applyBalanceModeChange() {
   const mode = qs("balanceMode").value || "auto";
-  state.balanceDate = qs("balanceDate").value || defaultBalanceDate();
+  state.balanceDate = isoLocalDate(new Date());
+  qs("balanceDate").value = state.balanceDate;
+  if (qs("visualBalanceDate")) qs("visualBalanceDate").value = state.balanceDate;
   state.balanceMode = mode;
   if (mode === "manual") {
     const fallback = accountBalancesFromState();
@@ -4340,6 +4348,7 @@ function writeControls(nextState) {
   state = { ...nextState, ...scenarioSettings };
   state.balanceDate = state.balanceDate || balanceSettings.balanceDate || defaultBalanceDate();
   state.balanceMode = state.balanceMode || balanceSettings.balanceMode || "auto";
+  if (state.balanceMode === "auto") state.balanceDate = isoLocalDate(new Date());
   if (state.balanceMode === "manual") {
     const base = baseAccountBalances();
     setStateAccountBalances({
@@ -4392,7 +4401,7 @@ function renderAccountBalancePanels() {
   if (qs("balanceDateLabel")) qs("balanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
   if (qs("visualBalanceDateHint")) {
     qs("visualBalanceDateHint").textContent = mode === "manual"
-      ? "Los importes no se recalculan: la fecha indica desde cuándo proyectar. Los reales ya ocurridos quedan en el histórico y no se suman otra vez."
+      ? "La fecha se registra automáticamente al actualizar el saldo. Los reales ya ocurridos quedan en el histórico y no se suman otra vez."
       : "La fecha calcula el saldo estimado y determina desde cuándo comienza la previsión.";
   }
   if (qs("overviewBalanceBreakdown")) {
@@ -4430,7 +4439,8 @@ function handleVisualAccountBalanceInput() {
   qs("balanceMode").value = "manual";
   qs("visualBalanceMode").value = "manual";
   state.balanceMode = "manual";
-  state.balanceDate = qs("visualBalanceDate").value || qs("balanceDate").value || defaultBalanceDate();
+  state.balanceDate = isoLocalDate(new Date());
+  qs("visualBalanceDate").value = state.balanceDate;
   qs("balanceDate").value = state.balanceDate;
   setStateAccountBalances({
     caixa: parseAmount(qs("visualCaixaBalance").value) ?? 0,
