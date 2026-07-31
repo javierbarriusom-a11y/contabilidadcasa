@@ -134,7 +134,21 @@
       return snapshot();
     }
 
-    return { request, flush, snapshot, reset, hydrate };
+    function acknowledge(at = new Date().toISOString()) {
+      if (running) throw new Error("No se puede confirmar una revisión durante una escritura.");
+      clearRetry();
+      requestedRevision += 1;
+      persistedRevision = requestedRevision;
+      inFlightRevision = 0;
+      retryAttempt = 0;
+      retryScheduled = false;
+      lastError = null;
+      lastPersistedAt = at;
+      notify();
+      return snapshot();
+    }
+
+    return { request, flush, snapshot, reset, hydrate, acknowledge };
   }
 
   return { createRemoteSaveQueue };

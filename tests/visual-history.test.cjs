@@ -20,3 +20,9 @@ test("los importes históricos permanecen visibles pero no editables", () => {
   assert.match(app, /pendingDelete \|\| historical \? "disabled"/);
   assert.match(app, /Histórico · solo lectura/);
 });
+
+test("un mes ya cerrado no ofrece repetir el cierre", () => {
+  assert.match(app, /closeButton\.disabled = Boolean\(currentClosure\)/);
+  assert.match(app, /currentClosure \? "Mes actual cerrado" : "Cerrar mes actual"/);
+  assert.match(app, /ensureRemoteSaveQueue\(\)\.acknowledge\(closedAt\)/);
+});

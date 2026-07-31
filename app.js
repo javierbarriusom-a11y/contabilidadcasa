@@ -1546,6 +1546,18 @@ function renderReconciliation() {
         <td class="ledger-difference">${money(line.delta, true)}</td>
       </tr>`).join("")
     : `<tr><td colspan="6"><div class="audit-empty good"><strong>Sin diferencias por partida</strong><p>Los importes bancarios clasificados coinciden con los reales capturados.</p></div></td></tr>`;
+
+  const currentMonthKey = openMonthCutoffKey();
+  const currentClosure = monthClosures.find((item) => item.monthKey === currentMonthKey && item.status === "closed");
+  const closeButton = qs("closeCurrentMonth");
+  const closeStatus = qs("monthCloseStatus");
+  if (closeButton) {
+    closeButton.disabled = Boolean(currentClosure);
+    closeButton.textContent = currentClosure ? "Mes actual cerrado" : "Cerrar mes actual";
+  }
+  if (currentClosure && closeStatus) {
+    closeStatus.textContent = `${currentMonthKey} cerrado. Los reales quedan congelados en una versión recuperable.`;
+  }
 }
 
 function downloadCanonicalLedger() {
@@ -2744,6 +2756,7 @@ async function closeCurrentMonthTransaction() {
     if (result.error) throw result.error;
     monthClosures = nextPayload.monthClosures;
     remoteHeadSnapshotId = newSnapshotId;
+    ensureRemoteSaveQueue().acknowledge(closedAt);
     saveLocalSnapshot();
     renderReconciliation();
     if (status) status.textContent = `${month} cerrado. Los reales quedan congelados en una versión recuperable.`;

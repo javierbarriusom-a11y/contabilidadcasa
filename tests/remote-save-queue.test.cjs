@@ -124,6 +124,21 @@ test("recupera un conflicto pendiente sin lanzar una escritura", async () => {
   assert.equal(writes, 0);
 });
 
+test("una escritura transaccional externa actualiza la revisión sincronizada", () => {
+  const states = [];
+  const queue = createRemoteSaveQueue({
+    write: async () => {},
+    onChange: (state) => states.push(state),
+  });
+  const closedAt = "2026-07-31T20:34:00.000Z";
+  const state = queue.acknowledge(closedAt);
+  assert.equal(state.requestedRevision, 1);
+  assert.equal(state.persistedRevision, 1);
+  assert.equal(state.pending, false);
+  assert.equal(state.lastPersistedAt, closedAt);
+  assert.equal(states.at(-1).lastPersistedAt, closedAt);
+});
+
 test("el puntero remoto se mueve solo si conserva la revisión que cargó la sesión", () => {
   assert.match(appSource, /\.eq\("snapshot_id", remoteHeadSnapshotId\)/);
   assert.match(appSource, /if \(!headResult\.error && !headResult\.data\)/);
