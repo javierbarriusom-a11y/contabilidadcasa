@@ -74,8 +74,9 @@ pública sirve el artefacto demo y `version.json`.
   copia local normal; no se introdujeron datos de prueba en el proyecto remoto.
 - La cobertura de procedencia y confianza no alcanza todavía todos los KPI; los efectos legales y fiscales requieren fuentes verificadas y revisión profesional.
 - La documentación de backlog y la hoja de ruta discrepan en varios estados y fechas de corte, por lo que `ROADMAP_EXECUTION.md` se toma como criterio conservador de finalización.
-- El 31/07/2026 la API de Pages informó `build_type: legacy` y la URL pública siguió sirviendo el
-  `data.js` anterior. La corrección local no elimina esa exposición hasta que se autoricen commit y push.
+- El 31/07/2026 Pages cambió de `build_type: legacy` a `workflow`; el commit funcional de E2
+  `23d07dd` quedó publicado en `origin/main`. La primera ejecución de CI detectó una opción de caché
+  incompatible con la ausencia de `package-lock.json`; se retiró antes de reintentar el despliegue.
 - La puerta local `npm run verify` pasa completa: 109 pruebas, construcción de `dist/`, revisión de
   privacidad y smoke test. `git diff --check` también pasa.
 - QA del artefacto `dist/`: escritorio a 1280 px y móvil a 390×844, sin desbordamiento horizontal ni
@@ -90,5 +91,5 @@ pública sirve el artefacto demo y `version.json`.
 - La rama de trabajo es `main`; antes de esta revisión estaba sincronizada con `origin/main`.
 - El único archivo local ajeno a los commits sigue siendo la carpeta `.agents/` sin seguimiento, que
   se ha preservado.
-- Hay cambios locales sin commit de E2 en datos demo, constantes anonimizadas, artefacto limitado,
-  workflows, pruebas y documentación. No se ha creado commit ni hecho push.
+- E2 quedó consolidada en `23d07dd` y publicada en `origin/main`; tras el ajuste del workflow solo se
+  conserva sin seguimiento la carpeta local `.agents/`.
