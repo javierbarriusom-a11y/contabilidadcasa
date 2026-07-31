@@ -57,4 +57,3 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request, { ignoreSearch: true }).then((cached) => cached || fetch(event.request)),
   );
 });
-
