@@ -1,0 +1,12 @@
+{
+  "name": "Finanzas Casa",
+  "short_name": "Finanzas",
+  "description": "Planificación financiera familiar con copia local recuperable.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#0b1f33",
+  "lang": "es"
+}
+

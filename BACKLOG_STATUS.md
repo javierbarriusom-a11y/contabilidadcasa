@@ -65,12 +65,12 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 | A0-1 | Arranque local primero y modo degradado | Verificado | Crítica | La interfaz carga el último estado local antes de esperar a Supabase; un error remoto no bloquea la app y queda explicado al usuario |
 | A0-2 | Buzón remoto persistente | Verificado | Crítica | Las revisiones pendientes sobreviven a recarga, cierre y reinicio; al volver la red se reanudan en orden y sin duplicados |
 | A0-3 | Indicador global de durabilidad | Verificado | Crítica | Toda pantalla muestra uno de cuatro estados inequívocos: guardado local, pendiente remoto, sincronizado o conflicto; incluye hora y acción recomendada |
-| A0-4 | Apertura offline del shell | Pendiente | Alta | Tras una primera visita, la app abre sin red con recursos versionados; no se almacenan credenciales ni respuestas privadas en caché compartida |
-| A0-5 | Recuperación guiada al iniciar | Pendiente | Alta | Si hay cola pendiente, copia local más reciente o conflicto, la app compara fechas y huellas y permite continuar, recargar o restaurar sin sobrescritura silenciosa |
+| A0-4 | Apertura offline del shell | Implementado | Alta | Tras una primera visita, la app abre sin red con recursos versionados; no se almacenan credenciales ni respuestas privadas en caché compartida |
+| A0-5 | Recuperación guiada al iniciar | Implementado | Alta | Si hay cola pendiente, copia local más reciente o conflicto, la app compara fechas y huellas y permite continuar, recargar o restaurar sin sobrescritura silenciosa |
 | A0-6 | Puerta de despliegue y rollback | Verificado | Crítica | CI ejecuta pruebas y smoke test; el despliegue solo publica si pasan; existe un procedimiento probado para volver a la última versión estable |
 | A0-7 | Comprobación de disponibilidad publicada | Verificado | Alta | Se valida periódicamente HTTPS, carga de recursos, inicio de la app y versión servida; los fallos generan una alerta utilizable |
 | A0-8 | Privacidad del artefacto web | Verificado | Crítica | El sitio publicado no contiene datos financieros personales en sus archivos estáticos; se documentan visibilidad, autenticación y rotación de secretos |
-| A0-9 | Exportación y copia de emergencia | Pendiente | Alta | El usuario puede descargar una copia completa verificada y reimportarla en un perfil limpio; la prueba demuestra igualdad de huella |
+| A0-9 | Exportación y copia de emergencia | Implementado | Alta | El usuario puede descargar una copia completa verificada y reimportarla en un perfil limpio; la prueba demuestra igualdad de huella |
 
 #### Pruebas mínimas de A0
 

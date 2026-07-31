@@ -35,17 +35,25 @@ Fecha de revisión: 31 de julio de 2026.
 - E2 está verificada en producción: Pages publica mediante Actions, la URL sirve únicamente el paquete
   demo permitido, `version.json` identifica la revisión, el monitor manual pasa y un revert no destructivo
   entre revisiones seguras superó nuevamente las 109 pruebas, privacidad y smoke test.
+- E3 está implementada y verificada localmente: un service worker cachea solo el shell público del mismo
+  origen, excluye Supabase y recursos remotos, y permitió reabrir la aplicación después de apagar por
+  completo el servidor local.
+- El arranque con cola pendiente o conflicto ya no publica ni sustituye silenciosamente: compara fechas
+  y huellas y permite reanudar, continuar localmente, descargar la copia o elegir la nube.
+- La copia de emergencia usa un sobre versionado con checksum, vista previa y confirmación; la prueba de
+  ida y vuelta conserva el payload y su huella en un perfil limpio simulado.
 
 ## Pendiente
 
 - Hacer una conciliación autenticada fila por fila entre el libro canónico local y `finance_ledger_entries` (conteo, IDs, importes y huella). La evidencia actual confirma el flujo remoto y la copia completa, pero no documenta este contraste exhaustivo de todos los movimientos.
-- Completar E3: apertura offline del shell, recuperación guiada y copia de emergencia reimportable.
+- Publicar E3 y repetir en la URL de Pages la apertura offline, la recuperación guiada y la reimportación
+  de una copia anonimizada antes de marcar A0-4, A0-5 y A0-9 como verificados.
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos, procedencia/confianza por KPI, cierre mensual remoto y deshacer importaciones por lote.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Abordar E3: apertura offline segura, recuperación guiada y copia de emergencia reimportable.
+Autorizar commit y push de E3; después verificar la instalación offline y la recuperación guiada en Pages.
 
 ## Decisiones importantes
 
@@ -60,7 +68,7 @@ Abordar E3: apertura offline segura, recuperación guiada y copia de emergencia 
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en el estado local revisado (109/109 pruebas pasan).
+- No hay fallos automatizados conocidos en el estado local revisado (113/113 pruebas pasan).
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - No consta pérdida de movimientos en pruebas ni en la verificación remota documentada, pero falta conservar evidencia de un recuento remoto exhaustivo por ID e importe; por ello no se da por cerrada todavía esa confirmación.
@@ -84,10 +92,13 @@ Abordar E3: apertura offline segura, recuperación guiada y copia de emergencia 
   `app.js`, paquete demo y `version.json` sin fallos.
 - La prueba de rollback creó un revert aislado de `048a48b` en un worktree temporal, ejecutó de nuevo
   `npm run verify` con 109/109 pruebas y eliminó el worktree sin alterar `main` ni el sitio publicado.
-- La puerta local `npm run verify` pasa completa: 109 pruebas, construcción de `dist/`, revisión de
+- La puerta local `npm run verify` pasa completa: 113 pruebas, construcción de `dist/`, revisión de
   privacidad y smoke test. `git diff --check` también pasa.
 - QA del artefacto `dist/`: escritorio a 1280 px y móvil a 390×844, sin desbordamiento horizontal ni
   errores de consola; el menú móvil abre correctamente.
+- QA E3 local: tras una visita inicial se apagó el servidor y el shell reabrió sin red en escritorio y
+  a 390×844, sin errores de consola ni desbordamiento horizontal. La interfaz de recuperación queda
+  disponible en ambos tamaños.
 
 ## Último commit estable
 
@@ -100,3 +111,5 @@ Abordar E3: apertura offline segura, recuperación guiada y copia de emergencia 
   se ha preservado.
 - E2 quedó consolidada en `23d07dd` y publicada en `origin/main`; tras el ajuste del workflow solo se
   conserva sin seguimiento la carpeta local `.agents/`.
+- E3 mantiene cambios locales sin commit en el shell offline, la guía de recuperación, pruebas y
+  documentación. `.agents/` sigue fuera del alcance.

@@ -137,8 +137,9 @@ test("una misma sesión no dispara dos cargas remotas simultáneas", () => {
   assert.match(appSource, /if \(remoteUser && \(remoteLoadPromise \|\| remoteLoadedUserId === remoteUser\.id\)\) return/);
 });
 
-test("el arranque consulta la bandeja durable antes de cargar la nube", () => {
+test("el arranque consulta la bandeja durable y exige una decisión antes de reconciliar", () => {
   assert.match(appSource, /await readDurableRemoteSave\(\);\s*await loadRemoteState\(\);/);
   assert.match(appSource, /expectedHead !== remoteHeadSnapshotId/);
-  assert.match(appSource, /Reanudando cambios locales pendientes de la sesión anterior/);
+  assert.match(appSource, /showStartupRecovery\(durableResumeRecord, authoritative, authoritativeUpdatedAt\)/);
+  assert.doesNotMatch(appSource, /Reanudando cambios locales pendientes de la sesión anterior/);
 });

@@ -3,8 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
-    <link rel="stylesheet" href="styles.css?v=20260731e1" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260731e3" />
+    <link rel="stylesheet" href="styles.css?v=20260731e3" />
     <link rel="stylesheet" href="p2.css?v=20260717a" />
   </head>
   <body>
@@ -2207,7 +2209,24 @@
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>
     <script src="supabase-config.js?v=20260602a"></script>
     <script src="data.js?v=20260731e2"></script>
-    <script src="state-contract.js?v=20260731b"></script>
+    <dialog class="startup-recovery-dialog" id="startupRecoveryDialog" aria-labelledby="startupRecoveryTitle">
+      <div class="startup-recovery-card">
+        <p class="panel-kicker">Recuperación segura</p>
+        <h2 id="startupRecoveryTitle">Hay trabajo de una sesión anterior</h2>
+        <p id="startupRecoverySummary"></p>
+        <div class="startup-recovery-comparison" id="startupRecoveryComparison"></div>
+        <div class="startup-recovery-actions">
+          <button type="button" id="recoveryResumeSync">Reanudar sincronización</button>
+          <button type="button" class="secondary-button" id="recoveryContinueLocal">Continuar con la copia local</button>
+          <button type="button" class="secondary-button" id="recoveryDownloadLocal">Descargar copia local</button>
+          <button type="button" class="danger-button" id="recoveryUseRemote">Usar la versión de la nube</button>
+        </div>
+        <p class="data-hint">Nada se sustituye sin elegir una acción. Descargar la copia local permite conservar ambas versiones.</p>
+      </div>
+    </dialog>
+
+    <script src="state-contract.js?v=20260731e3"></script>
+    <script src="recovery-guide.js?v=20260731e3"></script>
     <script src="canonical-state.js?v=20260717p0"></script>
     <script src="canonical-ledger.js?v=20260713d"></script>
     <script src="canonical-engine.js?v=20260713e"></script>
@@ -2226,7 +2245,12 @@
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260731e2"></script>
+    <script src="app.js?v=20260731e3"></script>
     <script src="p2-ui.js?v=20260717a"></script>
+    <script>
+      if ("serviceWorker" in navigator && location.protocol !== "file:") {
+        navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+      }
+    </script>
   </body>
 </html>

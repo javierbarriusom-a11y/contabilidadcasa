@@ -95,6 +95,7 @@ let unifiedActionRegistry = new Map();
 let pendingUnifiedActionId = "";
 let pendingStateRestore = null;
 let cloudRestoreSnapshots = [];
+let startupRecoveryContext = null;
 let agentDebtOptimizationCache = { key: "", value: null };
 let executiveAdvisorRenderTimer = null;
 let selectorSignature = "";
@@ -646,6 +647,20 @@ function setStateBackupStatus(title, body, tone = "") {
   status.innerHTML = `<strong>${title}</strong><div>${body}</div>`;
 }
 
+function downloadBackupEnvelope(envelope, filenamePrefix = "finanzas-casa-copia") {
+  const blob = new Blob([`${JSON.stringify(envelope, null, 2)}\n`], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const date = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = `${filenamePrefix}-${date}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  return date;
+}
+
 function downloadStateBackup() {
   if (!window.FinanceStateContract) {
     setStateBackupStatus("No se pudo crear la copia", "El validador de estado no está disponible.", "danger");
@@ -655,18 +670,9 @@ function downloadStateBackup() {
     refreshCanonicalSnapshot("backup");
     refreshCanonicalLedger("backup");
     const envelope = window.FinanceStateContract.buildBackupEnvelope(appStatePayload(), {
-      appVersion: "phase-3",
+      appVersion: "e3-emergency-backup",
     });
-    const blob = new Blob([`${JSON.stringify(envelope, null, 2)}\n`], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const date = new Date().toISOString().slice(0, 10);
-    link.href = url;
-    link.download = `finanzas-casa-copia-${date}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    const date = downloadBackupEnvelope(envelope);
     setStateBackupStatus(
       "Copia completa descargada",
       `${date}. ${stateBackupSummaryMarkup(envelope.summary)}`,
@@ -675,6 +681,99 @@ function downloadStateBackup() {
   } catch (error) {
     setStateBackupStatus("No se pudo crear la copia", error.message, "danger");
   }
+}
+
+function recoveryPayloadFingerprint(payload) {
+  const contract = window.FinanceStateContract;
+  if (!contract || !payload) return "";
+  return contract.fnv1a32(contract.stableStringify(payload));
+}
+
+function closeStartupRecovery() {
+  const dialog = qs("startupRecoveryDialog");
+  if (dialog?.open) dialog.close();
+  startupRecoveryContext = null;
+}
+
+function showStartupRecovery(record, authoritative, remoteUpdatedAt = "") {
+  const guide = window.FinanceRecoveryGuide;
+  const dialog = qs("startupRecoveryDialog");
+  if (!guide || !dialog || !record) return false;
+  const assessment = guide.assessRecovery({
+    pendingRecord: record,
+    remoteHeadKnown,
+    remoteHeadSnapshotId,
+    remoteUpdatedAt,
+    localFingerprint: recoveryPayloadFingerprint(record.payload),
+    remoteFingerprint: authoritative?.snapshot?.fingerprint || recoveryPayloadFingerprint(authoritative?.state),
+  });
+  if (!assessment.required) return false;
+  startupRecoveryContext = { assessment, record, authoritative };
+  qs("startupRecoveryTitle").textContent = assessment.kind === "conflict"
+    ? "Hay dos versiones que necesitan tu decisión"
+    : "Hay cambios pendientes de una sesión anterior";
+  qs("startupRecoverySummary").textContent = assessment.kind === "conflict"
+    ? "La nube cambió desde que se guardó la copia local. Ninguna versión se sustituirá automáticamente."
+    : "La copia local puede reanudar su sincronización, conservarse sin publicar o compararse con la nube.";
+  const formatDate = (value) => value ? new Date(value).toLocaleString("es-ES") : "Fecha no disponible";
+  qs("startupRecoveryComparison").innerHTML = `
+    <article><span>Copia local</span><strong>${formatDate(assessment.localAt)}</strong><small>Huella ${escapeHtml(assessment.localFingerprint)}</small></article>
+    <article><span>Versión de la nube</span><strong>${formatDate(assessment.remoteAt)}</strong><small>Huella ${escapeHtml(assessment.remoteFingerprint)}</small></article>`;
+  qs("recoveryResumeSync").hidden = !assessment.options.includes("resume-sync");
+  qs("recoveryUseRemote").hidden = !authoritative?.state;
+  dialog.showModal();
+  return true;
+}
+
+function applyRecoveryPayload(payload) {
+  if (!payload) return;
+  applyPersistedPayload(payload);
+  ensureCompleteFinancingSection();
+  repairFinancingSectionFromReference();
+  ensureVariableOperationalSection();
+  saveLocalSnapshot();
+  refreshFromPersistedState();
+}
+
+async function resumeStartupRecoverySync() {
+  const context = startupRecoveryContext;
+  if (!context) return;
+  applyRecoveryPayload(context.record.payload);
+  const revision = Math.max(1, Number(context.record.revision || 1));
+  ensureRemoteSaveQueue().hydrate({ requestedRevision: revision, persistedRevision: 0 });
+  closeStartupRecovery();
+  updateSyncUi("Reanudando los cambios locales pendientes...", "local");
+  await ensureRemoteSaveQueue().flush();
+}
+
+function continueStartupRecoveryLocal() {
+  const context = startupRecoveryContext;
+  if (!context) return;
+  applyRecoveryPayload(context.record.payload);
+  closeStartupRecovery();
+  updateSyncUi("Continúas con la copia local. La revisión pendiente sigue protegida y no se publicará hasta resolverla.", "warn");
+}
+
+function downloadStartupRecoveryLocal() {
+  const context = startupRecoveryContext;
+  if (!context?.record?.payload || !window.FinanceStateContract) return;
+  const envelope = window.FinanceStateContract.buildBackupEnvelope(context.record.payload, {
+    appVersion: "e3-startup-recovery",
+    createdAt: context.record.savedAt,
+  });
+  downloadBackupEnvelope(envelope, "finanzas-casa-recuperacion-local");
+  qs("startupRecoverySummary").textContent = "Copia local descargada. Ya puedes conservarla y elegir cómo continuar.";
+}
+
+async function useRemoteStartupRecovery() {
+  const context = startupRecoveryContext;
+  if (!context?.authoritative?.state) return;
+  applyRecoveryPayload(context.authoritative.state);
+  await ensureDurableOutbox().remove(durableOutboxId());
+  durableResumeRecord = null;
+  remoteSaveQueue?.reset();
+  closeStartupRecovery();
+  updateSyncUi("Versión de la nube cargada. La cola local anterior se retiró tras tu confirmación.", "cloud");
 }
 
 async function handleStateBackupSelection(event) {
@@ -2405,6 +2504,7 @@ async function loadRemoteStateOnce() {
     : legacyResult.data?.state
       ? { mode: "compatibilidad", source: "legacy", state: legacyResult.data.state, requiresMigration: false }
       : { state: null };
+  const authoritativeUpdatedAt = authoritative.snapshot?.created_at || legacyResult.data?.updated_at || "";
 
   if (durableResumeRecord) {
     const queue = ensureRemoteSaveQueue();
@@ -2417,19 +2517,11 @@ async function loadRemoteStateOnce() {
       });
       queue.hydrate({ requestedRevision: pendingRevision, persistedRevision: 0, lastError: conflict });
       updateSyncUi("Hay cambios locales pendientes y la nube contiene otra revisión. La copia local sigue activa; revisa el conflicto antes de sincronizar.", "warn");
-      return;
+    } else {
+      queue.hydrate({ requestedRevision: pendingRevision, persistedRevision: 0 });
+      updateSyncUi("Hay cambios locales pendientes de la sesión anterior. Elige cómo recuperarlos.", "local");
     }
-    if (durableResumeRecord.payload) {
-      applyPersistedPayload(durableResumeRecord.payload);
-      ensureCompleteFinancingSection();
-      repairFinancingSectionFromReference();
-      ensureVariableOperationalSection();
-      saveLocalSnapshot();
-      refreshFromPersistedState();
-    }
-    queue.hydrate({ requestedRevision: pendingRevision, persistedRevision: 0 });
-    updateSyncUi("Reanudando cambios locales pendientes de la sesión anterior...", "local");
-    await queue.flush();
+    showStartupRecovery(durableResumeRecord, authoritative, authoritativeUpdatedAt);
     return;
   }
 
@@ -2441,7 +2533,7 @@ async function loadRemoteStateOnce() {
     applyVariableOperationalMigration();
     saveLocalSnapshot();
     refreshFromPersistedState();
-    const at = authoritative.snapshot?.created_at || legacyResult.data?.updated_at;
+    const at = authoritativeUpdatedAt;
     const integrityNote = authoritative.source === "normalized-snapshot-recovery"
       ? " Recuperado desde la última copia normalizada verificada."
       : "";
@@ -16824,6 +16916,10 @@ async function init() {
   qs("stateBackupFile")?.addEventListener("change", handleStateBackupSelection);
   qs("confirmStateRestore")?.addEventListener("click", confirmStateRestore);
   qs("cancelStateRestore")?.addEventListener("click", cancelStateRestore);
+  qs("recoveryResumeSync")?.addEventListener("click", resumeStartupRecoverySync);
+  qs("recoveryContinueLocal")?.addEventListener("click", continueStartupRecoveryLocal);
+  qs("recoveryDownloadLocal")?.addEventListener("click", downloadStartupRecoveryLocal);
+  qs("recoveryUseRemote")?.addEventListener("click", useRemoteStartupRecovery);
   qs("seriesKind").addEventListener("change", populateSeriesEditor);
   qs("seriesRow").addEventListener("change", updateSeriesPreview);
   qs("seriesStartMonth").addEventListener("change", updateSeriesPreview);
