@@ -2644,16 +2644,26 @@ async function saveNormalizedRemoteState(payload) {
       if (deactivateResult.error) throw deactivateResult.error;
     }
 
-    const ledgerReadResult = await supabaseClient
-      .from("finance_ledger_entries")
-      .select("entity_id, amount, active")
-      .eq("user_id", remoteUser.id)
-      .eq("source_key", sourceStateKey())
-      .eq("active", true);
-    if (ledgerReadResult.error) throw ledgerReadResult.error;
+    const remoteLedgerRows = [];
+    const ledgerPageSize = 1000;
+    for (let page = 0; ; page += 1) {
+      const from = page * ledgerPageSize;
+      const ledgerReadResult = await supabaseClient
+        .from("finance_ledger_entries")
+        .select("entity_id, amount, active")
+        .eq("user_id", remoteUser.id)
+        .eq("source_key", sourceStateKey())
+        .eq("active", true)
+        .order("entity_id", { ascending: true })
+        .range(from, from + ledgerPageSize - 1);
+      if (ledgerReadResult.error) throw ledgerReadResult.error;
+      const pageRows = ledgerReadResult.data || [];
+      remoteLedgerRows.push(...pageRows);
+      if (pageRows.length < ledgerPageSize) break;
+    }
     const ledgerEvidence = store.reconcileLedgerRows(
       bundle.projections.finance_ledger_entries,
-      ledgerReadResult.data || [],
+      remoteLedgerRows,
     );
     if (!ledgerEvidence.valid) {
       const error = new Error("La conciliación remota del libro no coincide por conteo, identificador, importe o huella.");
