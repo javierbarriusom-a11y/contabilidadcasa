@@ -2544,6 +2544,10 @@ svg {
   margin-top: 18px;
 }
 
+.update-data-view {
+  margin-top: 0;
+}
+
 #downloadCsv {
   background: var(--ink);
   border-color: var(--ink);

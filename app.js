@@ -257,6 +257,10 @@ const viewTitles = {
     eyebrow: "Control diario",
     title: "Control diario de caja, deuda y decisiones",
   },
+  "update-data": {
+    eyebrow: "Actualización del mes",
+    title: "Registra ingresos y gastos según van ocurriendo",
+  },
   "executive-advisor": {
     eyebrow: "Asesor ejecutivo",
     title: "Qué hacer ahora con caja, deuda y coche",
@@ -1979,7 +1983,7 @@ function renderSyncPanel() {
 function viewFromHash() {
   const id = (window.location.hash || "#home").replace("#", "");
   if (id === "overview") return "home";
-  if (id === "monthly-detail") return "prevision";
+  if (id === "monthly-detail") return "update-data";
   return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
 }
 
@@ -4120,9 +4124,9 @@ function applyHelpTooltips() {
   qs("downloadCsv")?.setAttribute("data-help", "Descarga el flujo mensual completo con importes con y sin proyectos.");
   qs("projectGlobalSummary")?.setAttribute("data-help", "Compara el recorrido completo con y sin proyectos, no solo el mes en que se cargan.");
   qs("cashflow")?.querySelector(".section-title")?.setAttribute("data-help", "Cada año se puede abrir y cada mes despliega el detalle de ingresos, gastos, deuda y proyectos.");
-  qs("monthly-detail")
+  qs("update-data")
     ?.querySelector(".section-title")
-    ?.setAttribute("data-help", "Aquí puedes registrar importes reales por línea. Esos reales alimentan el simulador y el flujo de caja.");
+    ?.setAttribute("data-help", "Registra aquí cada importe real del mes. El dato actualiza el Cuadro de mandos, el simulador y el flujo de caja.");
   qs("movementExcelFile")
     ?.closest(".movement-import-card")
     ?.setAttribute("data-help", "Importa un extracto bancario. La app aprende cómo relacionar cada movimiento con las partidas del Cuadro de mandos y usa el saldo más reciente como saldo real de CaixaBank.");
@@ -14786,8 +14790,9 @@ function selectMonthlyDetailByKey(monthKeyValue) {
   const option = [...select.options].find((item) => Number(item.value) === planningIndex);
   if (!option) return false;
   select.value = option.value;
+  history.pushState(null, "", "#update-data");
+  setActiveView("update-data", { focus: true });
   renderMonthlyDetails();
-  qs("monthly-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
   return true;
 }
 
@@ -16328,6 +16333,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "home":
       renderHomeDashboard();
       break;
+    case "update-data":
+      renderMonthlyDetails();
+      break;
     case "alerts-center":
       renderAlertsCenter();
       break;
@@ -16357,7 +16365,6 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "prevision":
       renderPrevision();
-      renderMonthlyDetails();
       break;
     case "simulator":
       renderProjectSimulator(lastBaseSimulation, lastSimulation);

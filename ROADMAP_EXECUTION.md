@@ -35,22 +35,22 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 
 | Bloque | Fases | Realizados | Parciales | Pendientes | Objetivo |
 | --- | --- | --- | --- | --- | --- |
-| P0 | P0-1 a P0-6 | 3: P0-2, P0-3, P0-4 | 3: P0-1, P0-5, P0-6 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
+| P0 | P0-1 a P0-6 | 5: P0-1 a P0-5 | 1: P0-6 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
 | P1 | P1-1 a P1-8 | 0 | 8: P1-1 a P1-8 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
 | P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
 | P3 | P3-1 a P3-3 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
 | UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
-| **Total** | **29 fases** | **15** | **11** | **3** | **La experiencia principal, P2 y P0-2/P0-3/P0-4 estan verificados; P0-1 queda pendiente de la prueba remota de baja** |
+| **Total** | **29 fases** | **17** | **9** | **3** | **La experiencia principal, P2 y P0-1 a P0-5 estan verificados; P0-6 es el siguiente cierre estructural** |
 
 ## P0 - Integridad estructural
 
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
-| P0-1 | Libro mayor canonico e identificadores estables | Hay libro e IDs, pero parte del estado legado sigue generando entidades y reapariciones | Todo real nace en el libro mayor; deduplicacion y bajas usan IDs estables; una eliminacion no reaparece tras recargar o importar | Parcial - validado local |
+| P0-1 | Libro mayor canonico e identificadores estables | Hay libro e IDs, pero parte del estado legado sigue generando entidades y reapariciones | Todo real nace en el libro mayor; deduplicacion y bajas usan IDs estables; una eliminacion no reaparece tras recargar o importar | Verificado |
 | P0-2 | Supabase normalizado como fuente autoritativa | Esquema activo y 2338 entidades sincronizadas, pero existe lectura/escritura compatible con `finance_dashboard_states` | Lectura primaria desde tablas normalizadas; legado solo como migracion/fallback controlado; prueba de recarga en dos sesiones | Verificado |
 | P0-3 | Maquina de estados y registro inmutable | Workflow canonico disponible | Deudas, proyectos, acuerdos e importaciones usan transiciones comunes; cada cambio real genera evento append-only con antes/despues y los reintentos son idempotentes | Verificado |
 | P0-4 | Motor unico de calculo | Escenarios canonicos base, activo y planificado; las vistas mantienen aliases de compatibilidad | Todas las vistas consumen un unico resultado diario/mensual; el motor legado deja de decidir cifras | Verificado |
-| P0-5 | Reconciliacion e invariantes como barrera | Hay vista e invariantes, pero no bloquean todos los guardados/publicaciones incoherentes | Diferencias banco-presupuesto-simulacion visibles; no se confirma ni publica un estado que rompa invariantes | Parcial |
+| P0-5 | Reconciliacion e invariantes como barrera | Hay vista e invariantes, pero no bloquean todos los guardados/publicaciones incoherentes | Diferencias banco-presupuesto-simulacion visibles; no se confirma ni publica un estado que rompa invariantes | Verificado |
 | P0-6 | Copias, restauracion y seguridad de version | Hay snapshots locales/remotos, pero falta restauracion guiada y validacion completa | Selector de versiones, vista previa, restauracion transaccional y prueba de recuperacion sin perdida | Parcial |
 
 ## P1 - Decision y tesoreria
@@ -121,11 +121,11 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 
 | Fase | Estado | Entregables completados | Pruebas/evidencia | Pendiente o riesgo | Siguiente fase |
 | --- | --- | --- | --- | --- | --- |
-| P0-1 | Parcial - validado local | IDs semanticos para partidas, deudas, proyectos y decisiones; deduplicacion y bajas canonicas | 83 pruebas: identidad estable, deduplicacion y borrado que no reaparece | Validar una recarga real despues de activar la migracion remota | P0-2 |
-| P0-2 | Verificado | Puntero `finance_source_heads`; la copia normalizada activa manda, el legado solo migra y una sesion obsoleta no puede mover el puntero | 100 pruebas locales y prueba autenticada en dos sesiones: cambios solapados, bloqueo de revision obsoleta y recarga de la revision vigente | La baja que no reaparece permanece como criterio especifico de P0-1 | P0-3 |
+| P0-1 | Verificado | IDs semanticos para partidas, deudas, proyectos y decisiones; deduplicacion y bajas canonicas | 31/07/2026: alta y baja de una partida temporal sincronizadas; la baja no reaparecio tras recarga ni en una segunda sesion autenticada | Ninguno | P0-2 |
+| P0-2 | Verificado | Puntero `finance_source_heads`; la copia normalizada activa manda, el legado solo migra y una sesion obsoleta no puede mover el puntero | Prueba autenticada en dos sesiones: cambios solapados, bloqueo de revision obsoleta y recarga de la revision vigente | Ninguno | P0-3 |
 | P0-3 | Verificado | Eventos inmutables de importacion, sincronizacion, enmienda y transicion con instantanea antes/despues; comandos deterministas sin duplicados | Pruebas de transiciones, importacion, enmienda, idempotencia y sintaxis; publicacion posterior | Quedan mutaciones de datos base para P0-4/P0-5, fuera del ciclo de vida de decisiones | P0-4 |
 | P0-4 | Verificado | Escenarios base, activo y planificado emitidos por el motor canonico; el calendario diario activo parte del mismo resultado mensual | 87 pruebas: contrato de escenario, corte que impide invocar `buildRows` desde la app, invariantes, paridad y calendario diario/mensual | `lastSimulation` y equivalentes permanecen como aliases de lectura para vistas existentes; no ejecutan calculos | P0-5 |
-| P0-5 | Parcial | Vista de conciliacion e invariantes financieras disponibles | Pruebas de continuidad, saldos y valores finitos | Convertir invariantes en barrera de todos los guardados | P0-5 |
+| P0-5 | Verificado | Vista de conciliacion y barrera canonica antes de publicar en Supabase | Pruebas de escenarios ausentes, paridad diaria/mensual, deuda duplicada y errores criticos | Ninguno | P0-6 |
 | P0-6 | Parcial | Copias locales/remotas, checksum y restauracion en dos pasos | Pruebas de copia manipulada y restauracion local | Completar selector remoto y restauracion transaccional | P0-6 |
 | P1-1 | Parcial | Motor diario, fechas de cobro/pago y reserva comun | Paridad diaria/mensual e invariantes de tesoreria | Completar cobertura aprendida hasta el siguiente ingreso | P1-1 |
 | P1-2 | Parcial | Contratos de deuda normalizados y estados de pago | Pruebas de suspension, reunificacion, atrasos y retoma | Completar TAE, mora, titular y procedencia obligatoria | P1-2 |

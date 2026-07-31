@@ -26,6 +26,10 @@
             <span>Hoy</span>
             <small>Decisiones y caja de este momento</small>
           </a>
+          <a href="#update-data" class="nav-primary-link">
+            <span>Actualizar</span>
+            <small>Registrar lo ocurrido este mes</small>
+          </a>
           <a href="#new-life-definitive" class="nav-primary-link">
             <span>Plan familiar</span>
             <small>Deuda, coche y estabilidad</small>
@@ -34,11 +38,6 @@
             <span>Deuda y proyectos</span>
             <small>Comparar antes de decidir</small>
           </a>
-          <a href="#movements" class="nav-primary-link">
-            <span>Movimientos</span>
-            <small>Reales, extractos y clasificación</small>
-          </a>
-
           <details class="nav-disclosure" id="advancedNav">
             <summary>
               <span>Herramientas avanzadas</span>
@@ -63,6 +62,7 @@
 
               <p class="advanced-nav-label">Datos</p>
               <a href="#data-entry">Carga de datos</a>
+              <a href="#movements">Movimientos</a>
               <a href="#data-audit">Datos y auditoría</a>
               <a href="#reconciliation">Conciliación</a>
             </div>
@@ -1248,13 +1248,14 @@
             <div class="table-wrap prevision-table-wrap">
               <table class="prevision-table" id="previsionTable"></table>
             </div>
+          </section>
 
-            <section class="table-section overview-monthly-panel prevision-monthly-panel" id="monthly-detail">
+          <section class="table-section overview-monthly-panel update-data-view view-section" id="update-data">
               <div class="section-title with-action">
                 <div>
-                  <p class="panel-kicker">Contabilidad New Life</p>
-                  <h2>Detalle mensual previsto vs real</h2>
-                  <p>Un solo mes sincroniza ingresos, gastos, decisiones y proyectos; abre cada partida para registrar importes reales.</p>
+                  <p class="panel-kicker">Actualización individual</p>
+                  <h2>Actualizar el mes según ocurre</h2>
+                  <p>Vista operativa del Cuadro de mandos: registra cada ingreso o gasto real y comprueba al momento su desviación frente a lo previsto.</p>
                 </div>
                 <label class="month-picker">
                   <span>Mes</span>
@@ -1328,7 +1329,6 @@
                 </article>
               </div>
             </section>
-          </section>
 
           <section class="decision-studio view-section" id="simulator">
             <div class="section-title with-action">
