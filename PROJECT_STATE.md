@@ -42,18 +42,18 @@ Fecha de revisión: 31 de julio de 2026.
   y huellas y permite reanudar, continuar localmente, descargar la copia o elegir la nube.
 - La copia de emergencia usa un sobre versionado con checksum, vista previa y confirmación; la prueba de
   ida y vuelta conserva el payload y su huella en un perfil limpio simulado.
+- E3 está publicada y verificada en Pages mediante `4894b8a`: el service worker y el manifiesto se sirven
+  correctamente, el navegador abre la interfaz sin errores y la revisión pública conserva el shell demo.
 
 ## Pendiente
 
 - Hacer una conciliación autenticada fila por fila entre el libro canónico local y `finance_ledger_entries` (conteo, IDs, importes y huella). La evidencia actual confirma el flujo remoto y la copia completa, pero no documenta este contraste exhaustivo de todos los movimientos.
-- Publicar E3 y repetir en la URL de Pages la apertura offline, la recuperación guiada y la reimportación
-  de una copia anonimizada antes de marcar A0-4, A0-5 y A0-9 como verificados.
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos, procedencia/confianza por KPI, cierre mensual remoto y deshacer importaciones por lote.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Autorizar commit y push de E3; después verificar la instalación offline y la recuperación guiada en Pages.
+Abordar E4: conciliación remota exhaustiva del libro y cierre mensual transaccional.
 
 ## Decisiones importantes
 
@@ -99,6 +99,8 @@ Autorizar commit y push de E3; después verificar la instalación offline y la r
 - QA E3 local: tras una visita inicial se apagó el servidor y el shell reabrió sin red en escritorio y
   a 390×844, sin errores de consola ni desbordamiento horizontal. La interfaz de recuperación queda
   disponible en ambos tamaños.
+- QA E3 publicado: `version.json` sirvió `4894b8a`, Pages entregó el service worker y el manifiesto con
+  ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
 ## Último commit estable
 
@@ -111,5 +113,5 @@ Autorizar commit y push de E3; después verificar la instalación offline y la r
   se ha preservado.
 - E2 quedó consolidada en `23d07dd` y publicada en `origin/main`; tras el ajuste del workflow solo se
   conserva sin seguimiento la carpeta local `.agents/`.
-- E3 mantiene cambios locales sin commit en el shell offline, la guía de recuperación, pruebas y
-  documentación. `.agents/` sigue fuera del alcance.
+- E3 quedó consolidada mediante `d361fc8` y el ajuste de formato `4894b8a`, ambos publicados en
+  `origin/main`. Solo `.agents/` permanece sin seguimiento y fuera del alcance.
