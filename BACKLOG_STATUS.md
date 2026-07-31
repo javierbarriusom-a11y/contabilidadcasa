@@ -46,8 +46,7 @@ conflictos remotos o un despliegue defectuoso.
 | Riesgo | Evidencia actual | Impacto | Tratamiento propuesto |
 | --- | --- | --- | --- |
 | La aplicación depende de la red para descargar su interfaz | No existe `service worker` ni manifiesto PWA | Una caída de GitHub Pages o la falta de conexión impiden abrir una sesión nueva | Añadir caché segura del shell y arranque offline |
-| Los reintentos remotos pendientes viven en memoria | `remote-save-queue.js` conserva la cola en variables JavaScript | Al cerrar la pestaña se pierde el reintento, aunque quede copia local | Buzón persistente en IndexedDB y reanudación automática |
-| El usuario puede no distinguir copia local y remota | Hay estado de sincronización, pero falta un indicador global de durabilidad | Riesgo de cerrar creyendo que el cambio ya está remoto | Estado visible: local, pendiente, sincronizado o conflicto |
+| Un conflicto remoto requiere todavía recuperación guiada | La cola durable conserva la copia local y bloquea la sobrescritura, pero A0-5 sigue pendiente | El usuario debe decidir cómo reconciliar dos revisiones divergentes | Comparación de fechas y huellas con opciones seguras de continuar, recargar o restaurar |
 | El despliegue depende directamente de `main` | GitHub Pages sirve la raíz de `main` | Un cambio defectuoso puede afectar la aplicación disponible | Puerta CI, comprobación publicada y procedimiento de reversión |
 | Hay datos financieros en una web publicada | `data.js` contiene datos personales y Pages puede ser público | Riesgo alto de exposición, independiente de la autenticación de Supabase | Retirar datos personales del artefacto público y revisar acceso |
 | Falta conciliación exhaustiva del libro remoto | La copia completa está verificada, no el contraste de cada fila proyectada | No hay evidencia completa de igualdad entre libro local y tabla remota | Verificación por conteo, ID, importe y huella |
@@ -174,13 +173,13 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Comenzar por **E1: continuidad entre sesiones**. En concreto:
+Continuar con **E2: despliegue y privacidad** sin degradar E1. En concreto:
 
-1. diseñar el contrato de una operación pendiente persistida;
-2. mover la cola remota desde memoria a IndexedDB sin cambiar el guardado local existente;
-3. cargar primero la copia local y reanudar la cola después de autenticar;
-4. mostrar el estado global de durabilidad;
-5. verificar cierre y reapertura con red disponible, sin red y con conflicto remoto.
+1. añadir una puerta CI que ejecute pruebas y una comprobación mínima de carga;
+2. documentar y probar un rollback a la última versión estable;
+3. comprobar periódicamente HTTPS, recursos críticos, arranque y versión publicada;
+4. retirar los datos financieros personales de los archivos estáticos servidos por GitHub Pages;
+5. verificar el artefacto publicado y conservar evidencia de que no contiene datos ni credenciales.
 
-Hasta completar E1, el cierre mensual y las nuevas integraciones deben mantenerse detrás de esta
-prioridad para no aumentar la superficie de pérdida o indisponibilidad.
+E3 y el cierre mensual deben comenzar después de asegurar que la publicación de E2 es controlada,
+observable y no expone información personal.

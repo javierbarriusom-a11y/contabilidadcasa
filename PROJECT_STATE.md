@@ -72,7 +72,7 @@ Abordar E2 — despliegue y privacidad sin degradar la continuidad verificada en
 - `f7e8144` — `feat: preserve remote saves across sessions` (31 de julio de 2026).
 - Contiene la entrega funcional E1, sus pruebas unitarias, el escenario E2E reproducible y el backlog actualizado.
 - La suite local pasa con 109 pruebas y 0 fallos; `git diff --check` también pasa.
-- El cierre documental se publica a continuación en un commit separado para poder registrar el hash
-  funcional real sin reescribirlo.
-- Tras el cierre, el único archivo local ajeno a los commits debe seguir siendo la carpeta `.agents/`
-  sin seguimiento, que se ha preservado.
+- El cierre documental anterior quedó publicado mediante `9f7777d` (`docs: close E1 continuity session`).
+- La rama de trabajo es `main`; antes de esta revisión estaba sincronizada con `origin/main`.
+- El único archivo local ajeno a los commits sigue siendo la carpeta `.agents/` sin seguimiento, que
+  se ha preservado.
