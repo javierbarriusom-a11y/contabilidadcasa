@@ -63,6 +63,26 @@ test("la huella es estable aunque cambien identificadores de sincronización", (
   assert.equal(store.verifySnapshot(first.snapshotRow).valid, true);
 });
 
+test("concilia el libro remoto por conteo, ID, importe y huella", () => {
+  const expected = [
+    { entity_id: "b", amount: 20, active: true },
+    { entity_id: "a", amount: 10, active: true },
+  ];
+  const equal = store.reconcileLedgerRows(expected, [...expected].reverse());
+  assert.equal(equal.valid, true);
+  assert.equal(equal.expectedCount, 2);
+  assert.equal(equal.expectedFingerprint, equal.remoteFingerprint);
+
+  const mismatch = store.reconcileLedgerRows(expected, [
+    { entity_id: "a", amount: 11, active: true },
+    { entity_id: "c", amount: 20, active: true },
+  ]);
+  assert.equal(mismatch.valid, false);
+  assert.deepEqual(mismatch.missingIds, ["b"]);
+  assert.deepEqual(mismatch.unexpectedIds, ["c"]);
+  assert.deepEqual(mismatch.amountMismatchIds, ["a"]);
+});
+
 test("rechaza una copia cuyo contenido no coincide con su huella", () => {
   const bundle = store.buildNormalizedBundle(payload(), {
     userId: "u",

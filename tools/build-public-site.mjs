@@ -24,6 +24,7 @@ const files = [
   "canonical-commit-barrier.js",
   "canonical-workflow.js",
   "canonical-supabase-store.js",
+  "canonical-month-close.js",
   "snapshot-restore.js",
   "durable-outbox.js",
   "remote-save-queue.js",

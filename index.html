@@ -1947,6 +1947,17 @@
             <article class="ledger-panel canonical-engine-panel">
               <div class="module-heading with-action">
                 <div>
+                  <p class="panel-kicker">Cierre mensual seguro</p>
+                  <h3>Congelar datos reales del mes</h3>
+                  <p id="monthCloseStatus">El cierre crea una versión nueva y exige que ninguna otra sesión haya publicado antes.</p>
+                </div>
+                <button id="closeCurrentMonth" type="button">Cerrar mes actual</button>
+              </div>
+            </article>
+
+            <article class="ledger-panel canonical-engine-panel">
+              <div class="module-heading with-action">
+                <div>
                   <p class="panel-kicker">Motor financiero único</p>
                   <h3>Paridad, saldos e invariantes</h3>
                   <p>El cálculo canónico gobierna el dashboard. La comparación histórica es un diagnóstico bajo demanda y nunca cambia la fuente de cálculo.</p>
@@ -2236,7 +2247,8 @@
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>
     <script src="canonical-workflow.js?v=20260714a"></script>
-    <script src="canonical-supabase-store.js?v=20260717p0"></script>
+    <script src="canonical-supabase-store.js?v=20260731e4"></script>
+    <script src="canonical-month-close.js?v=20260731e4"></script>
     <script src="snapshot-restore.js?v=20260731a"></script>
     <script src="durable-outbox.js?v=20260731e1"></script>
     <script src="remote-save-queue.js?v=20260731e1"></script>
@@ -2245,7 +2257,7 @@
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260731e3"></script>
+    <script src="app.js?v=20260731e4"></script>
     <script src="p2-ui.js?v=20260717a"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

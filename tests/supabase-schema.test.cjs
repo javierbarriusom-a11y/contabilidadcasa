@@ -15,6 +15,7 @@ const normalizedTables = [
   "finance_decisions",
   "finance_decision_events",
   "finance_reconciliation_runs",
+  "finance_month_closures",
   "finance_state_snapshots",
   "finance_source_heads",
   "finance_audit_log",
@@ -55,6 +56,19 @@ test("el puntero activo solo permite al usuario seleccionar su copia normalizada
   assert.match(schema, /create or replace function public\.restore_finance_snapshot/);
   assert.match(schema, /for update/);
   assert.match(schema, /grant execute on function public\.restore_finance_snapshot/);
+});
+
+test("el cierre mensual es transaccional, append-only y protegido contra sesiones obsoletas", () => {
+  assert.match(schema, /create table if not exists public\.finance_month_closures/);
+  assert.match(schema, /unique \(user_id, source_key, month_key\)/);
+  assert.match(schema, /create or replace function public\.close_finance_month/);
+  assert.match(schema, /from public\.finance_source_heads h[\s\S]*for update/);
+  assert.match(schema, /current_head_snapshot_id is distinct from p_expected_head_snapshot_id/);
+  assert.match(schema, /insert into public\.finance_state_snapshots/);
+  assert.match(schema, /insert into public\.finance_month_closures/);
+  assert.match(schema, /grant select on public\.finance_month_closures to authenticated/);
+  assert.match(schema, /revoke execute on function public\.close_finance_month[\s\S]*from public/);
+  assert.doesNotMatch(schema, /grant select, insert on public\.finance_month_closures/);
 });
 
 test("la auditoría registra antes y después mediante trigger", () => {

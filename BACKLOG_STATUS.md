@@ -94,8 +94,8 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 
 | ID | Relación | Desarrollo | Estado | Prioridad | Criterio de aceptación |
 | --- | --- | --- | --- | --- | --- |
-| A1-1 | P0 seguimiento | Conciliación remota exhaustiva del libro | Pendiente | Crítica | El libro local y `finance_ledger_entries` coinciden en activos, conteo, IDs, importes y huella; se conserva evidencia anonimizada |
-| A1-2 | P1-6 | Cierre mensual transaccional | Parcial | Crítica | Cerrar un mes congela reales de forma atómica, registra auditoría y arrastra únicamente previsiones al mes siguiente |
+| A1-1 | P0 seguimiento | Conciliación remota exhaustiva del libro | Implementado | Crítica | El libro local y `finance_ledger_entries` coinciden en activos, conteo, IDs, importes y huella; se conserva evidencia anonimizada |
+| A1-2 | P1-6 | Cierre mensual transaccional | Implementado | Crítica | Cerrar un mes congela reales de forma atómica, registra auditoría y arrastra únicamente previsiones al mes siguiente |
 | A1-3 | P1-6 | Reapertura controlada de mes | Pendiente | Alta | Solo una acción confirmada crea una nueva revisión; nunca modifica el cierre histórico y deja motivo y antes/después |
 | A1-4 | P1-7 | Deshacer importación por lote | Parcial | Alta | Cada lote tiene identidad, vista previa y snapshot; deshacer local o remoto restaura una nueva versión sin borrar historial |
 | A1-5 | P0/P1 | Eliminar fallback remoto silencioso | Parcial | Alta | Si falta el esquema normalizado se informa y se conserva localmente; el legado solo se usa mediante una migración explícita y comprobable |
@@ -187,3 +187,9 @@ E3 quedó verificada el 31/07/2026 mediante reapertura real sin servidor, valida
 de recuperación y copia con huella, y comprobación del service worker y el manifiesto publicados.
 La suite de cierre de E3 pasa con 113/113 pruebas; `version.json` identifica la revisión pública
 `e149c9c` y no queda desarrollo local pendiente antes de iniciar E4.
+
+E4 está implementada localmente: cada sincronización contrasta las filas activas del libro remoto por
+conteo, ID, importe y huella, y conserva un resumen anonimizado. El cierre mensual crea de forma
+atómica una nueva copia, un registro append-only y un nuevo puntero, bloqueando sesiones obsoletas y
+la edición posterior de reales. La suite pasa con 117/117 pruebas. Falta desplegar el esquema y
+validar ambas operaciones con dos sesiones autenticadas antes de marcar E4 como verificada.

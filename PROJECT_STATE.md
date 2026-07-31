@@ -44,16 +44,22 @@ Fecha de revisión: 31 de julio de 2026.
   ida y vuelta conserva el payload y su huella en un perfil limpio simulado.
 - E3 está publicada y verificada en Pages mediante `e149c9c`: el service worker y el manifiesto se sirven
   correctamente, el navegador abre la interfaz sin errores y la revisión pública conserva el shell demo.
+- E4 está implementada localmente: la sincronización comprueba `finance_ledger_entries` por conteo,
+  identificador, importe y huella, y el cierre mensual transaccional conserva una copia nueva, auditoría
+  append-only y control optimista frente a sesiones obsoletas.
+- Los meses cerrados bloquean la edición posterior de reales; el cierre exige motivo y confirmación y
+  mantiene una versión recuperable. La caché pública incluye el nuevo módulo con versión E4.
 
 ## Pendiente
 
 - Hacer una conciliación autenticada fila por fila entre el libro canónico local y `finance_ledger_entries` (conteo, IDs, importes y huella). La evidencia actual confirma el flujo remoto y la copia completa, pero no documenta este contraste exhaustivo de todos los movimientos.
+- Desplegar el esquema E4 en Supabase y ejecutar la conciliación exhaustiva autenticada, conservando la evidencia anonimizada generada por la aplicación.
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos, procedencia/confianza por KPI, cierre mensual remoto y deshacer importaciones por lote.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Abordar E4: conciliación remota exhaustiva del libro y cierre mensual transaccional.
+Desplegar y verificar E4 con dos sesiones autenticadas: conciliación remota exhaustiva y cierre mensual transaccional.
 
 ## Decisiones importantes
 
@@ -68,11 +74,11 @@ Abordar E4: conciliación remota exhaustiva del libro y cierre mensual transacci
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en el estado local revisado (113/113 pruebas pasan).
+- No hay fallos automatizados conocidos en el estado local revisado (117/117 pruebas pasan).
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - No consta pérdida de movimientos en pruebas ni en la verificación remota documentada, pero falta conservar evidencia de un recuento remoto exhaustivo por ID e importe; por ello no se da por cerrada todavía esa confirmación.
-- La restauración remota transaccional está desplegada y verificada sin pérdida en el Supabase real; el cierre mensual remoto y el deshacer remoto por lote siguen incompletos.
+- La restauración remota transaccional está desplegada y verificada sin pérdida en el Supabase real; el cierre mensual está implementado localmente pero falta desplegarlo y validarlo en el Supabase real. El deshacer remoto por lote sigue incompleto.
 - E1 fue comprobada en navegador real contra un servicio remoto local controlado: durante la caída el
   servidor recibió cero escrituras; tras cerrar y reabrir recibió exactamente una; una tercera apertura
   confirmó la bandeja vacía. No hubo errores de consola.
@@ -92,7 +98,7 @@ Abordar E4: conciliación remota exhaustiva del libro y cierre mensual transacci
   `app.js`, paquete demo y `version.json` sin fallos.
 - La prueba de rollback creó un revert aislado de `048a48b` en un worktree temporal, ejecutó de nuevo
   `npm run verify` con 109/109 pruebas y eliminó el worktree sin alterar `main` ni el sitio publicado.
-- La puerta local `npm run verify` pasa completa: 113 pruebas, construcción de `dist/`, revisión de
+- La puerta local `npm run verify` pasa completa: 117 pruebas, construcción de `dist/`, revisión de
   privacidad y smoke test. `git diff --check` también pasa.
 - QA del artefacto `dist/`: escritorio a 1280 px y móvil a 390×844, sin desbordamiento horizontal ni
   errores de consola; el menú móvil abre correctamente.
@@ -104,8 +110,8 @@ Abordar E4: conciliación remota exhaustiva del libro y cierre mensual transacci
 
 ## Último commit estable
 
-- `e149c9c` — `docs: close E3 offline recovery` (31 de julio de 2026), publicado en `origin/main` y verificado en GitHub Pages.
+- `b9e87fa` — `docs: close validated E3 session` (31 de julio de 2026), publicado en `origin/main`; la revisión pública funcional E3 verificada sigue siendo `e149c9c`.
 - La entrega funcional E3 quedó consolidada en `d361fc8` y su normalización de formato en `4894b8a`.
-- La puerta local pasa con 113 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
+- La puerta local pasa con 117 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
 - La rama de trabajo es `main` y está sincronizada con `origin/main` al iniciar este cierre.
-- No queda trabajo funcional local pendiente. La carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.
+- E4 queda pendiente de despliegue y validación autenticada. Sus cambios funcionales y documentales están locales y sin commit. La carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.

@@ -124,6 +124,38 @@
     return Array.from(byId.values());
   }
 
+  function ledgerComparableRow(row = {}) {
+    return {
+      entityId: text(row.entity_id || row.id || row.entryId),
+      amount: numeric(row.amount),
+      active: row.active !== false,
+    };
+  }
+
+  function reconcileLedgerRows(expectedRows = [], remoteRows = []) {
+    const expected = expectedRows.map(ledgerComparableRow).filter((row) => row.active).sort((a, b) => a.entityId.localeCompare(b.entityId));
+    const remote = remoteRows.map(ledgerComparableRow).filter((row) => row.active).sort((a, b) => a.entityId.localeCompare(b.entityId));
+    const expectedById = new Map(expected.map((row) => [row.entityId, row]));
+    const remoteById = new Map(remote.map((row) => [row.entityId, row]));
+    const missingIds = expected.filter((row) => !remoteById.has(row.entityId)).map((row) => row.entityId);
+    const unexpectedIds = remote.filter((row) => !expectedById.has(row.entityId)).map((row) => row.entityId);
+    const amountMismatchIds = expected.filter((row) => remoteById.has(row.entityId)
+      && numeric(remoteById.get(row.entityId).amount) !== numeric(row.amount)).map((row) => row.entityId);
+    const expectedFingerprint = hashText(stableStringify(expected));
+    const remoteFingerprint = hashText(stableStringify(remote));
+    return {
+      valid: expected.length === remote.length && !missingIds.length && !unexpectedIds.length && !amountMismatchIds.length
+        && expectedFingerprint === remoteFingerprint,
+      expectedCount: expected.length,
+      remoteCount: remote.length,
+      expectedFingerprint,
+      remoteFingerprint,
+      missingIds,
+      unexpectedIds,
+      amountMismatchIds,
+    };
+  }
+
   function buildNormalizedBundle(payload = {}, options = {}) {
     const now = options.now || new Date().toISOString();
     const syncId = options.syncId || createUuid("finance-sync");
@@ -323,6 +355,7 @@
     hashText,
     fingerprintPayload,
     verifySnapshot,
+    reconcileLedgerRows,
     createUuid,
     buildNormalizedBundle,
     isMissingSchemaError,

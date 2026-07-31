@@ -119,6 +119,20 @@ create table if not exists public.finance_state_snapshots (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.finance_month_closures (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  source_key text not null,
+  month_key text not null check (month_key ~ '^\d{4}-(0[1-9]|1[0-2])$'),
+  sync_id uuid not null references public.finance_sync_runs(id),
+  snapshot_id uuid not null references public.finance_state_snapshots(id),
+  fingerprint text not null,
+  reason text not null,
+  closed_at timestamptz not null default now(),
+  data jsonb not null default '{}'::jsonb,
+  unique (user_id, source_key, month_key)
+);
+
 -- The active pointer makes the normalized snapshot store authoritative. Legacy
 -- dashboard state is retained only as a one-time migration fallback.
 create table if not exists public.finance_source_heads (
@@ -154,6 +168,8 @@ create index if not exists finance_audit_entity_idx
   on public.finance_audit_log (user_id, source_key, table_name, entity_id, changed_at desc);
 create index if not exists finance_ledger_month_idx
   on public.finance_ledger_entries (user_id, source_key, month_key) where active;
+create index if not exists finance_month_closures_idx
+  on public.finance_month_closures (user_id, source_key, month_key desc);
 
 create or replace function public.finance_touch_updated_at()
 returns trigger
@@ -288,6 +304,68 @@ begin
 end;
 $$;
 
+create or replace function public.close_finance_month(
+  p_source_key text, p_month_key text, p_expected_head_snapshot_id uuid,
+  p_new_snapshot_id uuid, p_new_sync_id uuid, p_closure_id uuid,
+  p_fingerprint text, p_state jsonb, p_reason text
+)
+returns table (snapshot_id uuid, fingerprint text, month_key text, closed_at timestamptz)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_head_snapshot_id uuid;
+  operation_at timestamptz := now();
+begin
+  if p_month_key !~ '^\d{4}-(0[1-9]|1[0-2])$' then
+    raise exception 'El mes de cierre no es válido.' using errcode = '22007';
+  end if;
+  if coalesce(trim(p_reason), '') = '' then
+    raise exception 'El cierre requiere un motivo.' using errcode = '22023';
+  end if;
+
+  select h.snapshot_id into current_head_snapshot_id
+  from public.finance_source_heads h
+  where h.user_id = auth.uid() and h.source_key = p_source_key
+  for update;
+  if not found then
+    raise exception 'No existe un puntero remoto que cerrar.' using errcode = 'P0002';
+  end if;
+  if current_head_snapshot_id is distinct from p_expected_head_snapshot_id then
+    raise exception 'Otra sesión publicó una revisión más reciente.' using errcode = '40001';
+  end if;
+  if exists (select 1 from public.finance_month_closures c
+    where c.user_id = auth.uid() and c.source_key = p_source_key and c.month_key = p_month_key) then
+    raise exception 'El mes ya está cerrado.' using errcode = '23505';
+  end if;
+
+  insert into public.finance_sync_runs (
+    id, user_id, source_key, status, schema_version, fingerprint,
+    entity_count, started_at, completed_at, metadata
+  ) values (
+    p_new_sync_id, auth.uid(), p_source_key, 'complete', 'finance-normalized-store-v2',
+    p_fingerprint, 0, operation_at, operation_at,
+    jsonb_build_object('operation', 'month-close', 'monthKey', p_month_key)
+  );
+  insert into public.finance_state_snapshots (
+    id, user_id, source_key, sync_id, version, fingerprint, checksum, state, created_at
+  ) values (p_new_snapshot_id, auth.uid(), p_source_key, p_new_sync_id, 1,
+    p_fingerprint, p_fingerprint, p_state, operation_at);
+  insert into public.finance_month_closures (
+    id, user_id, source_key, month_key, sync_id, snapshot_id,
+    fingerprint, reason, closed_at, data
+  ) values (p_closure_id, auth.uid(), p_source_key, p_month_key, p_new_sync_id,
+    p_new_snapshot_id, p_fingerprint, trim(p_reason), operation_at,
+    jsonb_build_object('expectedHeadSnapshotId', p_expected_head_snapshot_id));
+  update public.finance_source_heads
+  set sync_id = p_new_sync_id, snapshot_id = p_new_snapshot_id,
+      fingerprint = p_fingerprint, schema_version = 'finance-normalized-store-v2', updated_at = operation_at
+  where user_id = auth.uid() and source_key = p_source_key;
+  return query select p_new_snapshot_id, p_fingerprint, p_month_key, operation_at;
+end;
+$$;
+
 do $$
 declare
   table_name text;
@@ -318,7 +396,7 @@ begin
     'finance_sync_runs', 'finance_accounts', 'finance_concepts',
     'finance_ledger_entries', 'finance_debts', 'finance_projects',
     'finance_decisions', 'finance_decision_events',
-    'finance_reconciliation_runs', 'finance_state_snapshots', 'finance_source_heads',
+    'finance_reconciliation_runs', 'finance_month_closures', 'finance_state_snapshots', 'finance_source_heads',
     'finance_audit_log'
   ] loop
     execute format('alter table public.%I enable row level security', table_name);
@@ -377,7 +455,10 @@ grant select, insert, update on public.finance_projects to authenticated;
 grant select, insert, update on public.finance_decisions to authenticated;
 grant select, insert on public.finance_decision_events to authenticated;
 grant select, insert on public.finance_reconciliation_runs to authenticated;
+grant select on public.finance_month_closures to authenticated;
 grant select, insert on public.finance_state_snapshots to authenticated;
 grant select, insert, update on public.finance_source_heads to authenticated;
 grant select on public.finance_audit_log to authenticated;
 grant execute on function public.restore_finance_snapshot(text, uuid, uuid, uuid, uuid) to authenticated;
+revoke execute on function public.close_finance_month(text, text, uuid, uuid, uuid, uuid, text, jsonb, text) from public;
+grant execute on function public.close_finance_month(text, text, uuid, uuid, uuid, uuid, text, jsonb, text) to authenticated;

@@ -46,6 +46,7 @@ let decisionEvents = [];
 let projectPlan = { outflows: [], placements: [] };
 let incomeActuals = {};
 let expenseActuals = {};
+let monthClosures = [];
 let balanceSettings = {};
 let scenarioSettings = {};
 let customPlanningRows = [];
@@ -601,6 +602,7 @@ function appStatePayload(options = {}) {
     savingsPlan: scenarioSettings.savingsPlan || {},
     incomeActuals,
     expenseActuals,
+    monthClosures,
     balanceSettings,
     scenarioSettings,
     customPlanningRows,
@@ -984,6 +986,7 @@ function applyPersistedPayload(payload = {}) {
   decisionEvents = Array.isArray(payload.decisionEvents) ? payload.decisionEvents : [];
   incomeActuals = payload.incomeActuals && typeof payload.incomeActuals === "object" ? payload.incomeActuals : {};
   expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
+  monthClosures = Array.isArray(payload.monthClosures) ? payload.monthClosures : [];
   balanceSettings = payload.balanceSettings && typeof payload.balanceSettings === "object" ? payload.balanceSettings : {};
   scenarioSettings = payload.scenarioSettings && typeof payload.scenarioSettings === "object" ? payload.scenarioSettings : {};
   customPlanningRows = Array.isArray(payload.customPlanningRows) ? payload.customPlanningRows : [];
@@ -1042,6 +1045,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("decisionEvents"), JSON.stringify(decisionEvents));
   storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
   storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
+  storageSet(storageKey("monthClosures"), JSON.stringify(monthClosures));
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
   storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
   storageSet(storageKey("customPlanningRows"), JSON.stringify(customPlanningRows));
@@ -1581,6 +1585,7 @@ function loadLocalState() {
       decisionEvents: JSON.parse(storageGet(storageKey("decisionEvents"), "[]")),
       incomeActuals: JSON.parse(storageGet(storageKey("incomeActuals"), "{}")),
       expenseActuals: JSON.parse(storageGet(storageKey("expenseActuals"), "{}")),
+      monthClosures: JSON.parse(storageGet(storageKey("monthClosures"), "[]")),
       balanceSettings: JSON.parse(storageGet(storageKey("balanceSettings"), "{}")),
       scenarioSettings: JSON.parse(storageGet(storageKey("scenarioSettings"), "{}")),
       customPlanningRows: JSON.parse(storageGet(storageKey("customPlanningRows"), "[]")),
@@ -1602,6 +1607,7 @@ function loadLocalState() {
     decisionEvents = [];
     incomeActuals = {};
     expenseActuals = {};
+    monthClosures = [];
     balanceSettings = {};
     scenarioSettings = {};
     customPlanningRows = [];
@@ -2638,6 +2644,31 @@ async function saveNormalizedRemoteState(payload) {
       if (deactivateResult.error) throw deactivateResult.error;
     }
 
+    const ledgerReadResult = await supabaseClient
+      .from("finance_ledger_entries")
+      .select("entity_id, amount, active")
+      .eq("user_id", remoteUser.id)
+      .eq("source_key", sourceStateKey())
+      .eq("active", true);
+    if (ledgerReadResult.error) throw ledgerReadResult.error;
+    const ledgerEvidence = store.reconcileLedgerRows(
+      bundle.projections.finance_ledger_entries,
+      ledgerReadResult.data || [],
+    );
+    if (!ledgerEvidence.valid) {
+      const error = new Error("La conciliación remota del libro no coincide por conteo, identificador, importe o huella.");
+      error.code = "REMOTE_LEDGER_MISMATCH";
+      error.retryable = false;
+      throw error;
+    }
+    bundle.appendOnly.finance_reconciliation_runs[0].fingerprint = ledgerEvidence.remoteFingerprint;
+    bundle.appendOnly.finance_reconciliation_runs[0].data.remoteLedgerEvidence = {
+      valid: true,
+      expectedCount: ledgerEvidence.expectedCount,
+      remoteCount: ledgerEvidence.remoteCount,
+      fingerprint: ledgerEvidence.remoteFingerprint,
+    };
+
     const events = bundle.appendOnly.finance_decision_events;
     if (events.length) {
       const eventResult = await supabaseClient
@@ -2662,6 +2693,52 @@ async function saveNormalizedRemoteState(payload) {
       .eq("id", bundle.syncId);
     if (store.isMissingSchemaError(error)) return { mode: "legacy", reason: "schema-incomplete" };
     throw error;
+  }
+}
+
+async function closeCurrentMonthTransaction() {
+  const month = openMonthCutoffKey();
+  const status = qs("monthCloseStatus");
+  if (!remoteUser || !supabaseClient || !remoteHeadSnapshotId) {
+    if (status) status.textContent = "Inicia sesión y sincroniza una versión antes de cerrar el mes.";
+    return;
+  }
+  if (isClosedMonthKey(month)) {
+    if (status) status.textContent = `${month} ya está cerrado.`;
+    return;
+  }
+  const reason = window.prompt("Motivo del cierre mensual:", "Mes conciliado y revisado");
+  if (!reason?.trim()) return;
+  if (!window.confirm(`Cerrar ${month} congelará sus datos reales. Se conservará una copia recuperable. ¿Continuar?`)) return;
+  const closeAdapter = window.FinanceCanonicalMonthClose;
+  const store = window.FinanceCanonicalSupabaseStore;
+  try {
+    const closedAt = new Date().toISOString();
+    const closureId = store.createUuid(`month-close-${month}`);
+    const nextPayload = closeAdapter.closeMonth(appStatePayload(), month, { id: closureId, closedAt, reason });
+    const fingerprint = store.fingerprintPayload(nextPayload);
+    const newSnapshotId = store.createUuid("month-close-snapshot");
+    const newSyncId = store.createUuid("month-close-sync");
+    if (status) status.textContent = `Cerrando ${month} de forma transaccional…`;
+    const result = await supabaseClient.rpc("close_finance_month", {
+      p_source_key: sourceStateKey(),
+      p_month_key: month,
+      p_expected_head_snapshot_id: remoteHeadSnapshotId,
+      p_new_snapshot_id: newSnapshotId,
+      p_new_sync_id: newSyncId,
+      p_closure_id: closureId,
+      p_fingerprint: fingerprint,
+      p_state: nextPayload,
+      p_reason: reason.trim(),
+    });
+    if (result.error) throw result.error;
+    monthClosures = nextPayload.monthClosures;
+    remoteHeadSnapshotId = newSnapshotId;
+    saveLocalSnapshot();
+    renderReconciliation();
+    if (status) status.textContent = `${month} cerrado. Los reales quedan congelados en una versión recuperable.`;
+  } catch (error) {
+    if (status) status.textContent = `No se cerró el mes: ${error.message}`;
   }
 }
 
@@ -5193,7 +5270,8 @@ function openMonthCutoffKey() {
 }
 
 function isClosedMonthKey(key) {
-  return Boolean(key) && key < openMonthCutoffKey();
+  return Boolean(key) && (key < openMonthCutoffKey()
+    || monthClosures.some((item) => item.monthKey === key && item.status === "closed"));
 }
 
 function openForecastMonths(months = forecastMonths()) {
@@ -14198,6 +14276,7 @@ function applyMovementMappingsToActuals() {
     if (!mapping) return;
     const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
     if (!month) return;
+    if (isClosedMonthKey(month.key)) return;
     const key = actualKeyForRow(mapping.row, month);
     const amount = mapping.kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
     monthlyTotals[mapping.kind].set(key, round2((monthlyTotals[mapping.kind].get(key) || 0) + amount));
@@ -14385,6 +14464,7 @@ function renderPlanningDetails({
   if (!planning?.months?.length) return;
   const monthIndex = Number(qs(monthSelectId).value || 0);
   const month = { ...planning.months[monthIndex], index: monthIndex };
+  const monthClosed = isClosedMonthKey(month.key);
   let totalPlanned = 0;
   let capturedActual = 0;
   let capturedPlanned = 0;
@@ -14442,9 +14522,9 @@ function renderPlanningDetails({
           <td>${escapeHtml(section.name)}</td>
           <td>${escapeHtml(displayLabelForRow(row))}${row.custom ? " <small>nuevo</small>" : ""}</td>
           <td>${money(planned, true)}</td>
-          <td><input ${actualDataKey}="${key}" type="number" step="0.01" value="${info.hasActual ? actual : ""}" placeholder="Real" /></td>
+          <td><input ${actualDataKey}="${key}" type="number" step="0.01" value="${info.hasActual ? actual : ""}" placeholder="Real" ${monthClosed ? "disabled" : ""} /></td>
           <td class="${varianceClass}">${info.hasActual ? money(variance, true) : ""}</td>
-          <td><button type="button" class="row-delete-button" data-delete-planning-row="${escapeHtml(deleteKey)}">Eliminar</button></td>
+          <td><button type="button" class="row-delete-button" data-delete-planning-row="${escapeHtml(deleteKey)}" ${monthClosed ? "disabled" : ""}>Eliminar</button></td>
         </tr>`);
       });
     });
@@ -14981,6 +15061,10 @@ async function handleExcelImport(event) {
 
 function handleAddCustomConcept(kind) {
   const month = selectedPlanningMonth();
+  if (isClosedMonthKey(month?.key)) {
+    announceStatus("El mes está cerrado y no admite nuevos datos.");
+    return;
+  }
   const sectionName = qs(`${kind}CustomSection`).value;
   const labelInput = qs(`${kind}CustomLabel`);
   const plannedInput = qs(`${kind}CustomPlanned`);
@@ -15018,6 +15102,7 @@ function handleAddCustomConcept(kind) {
 
 function deletePlanningRow(rawKey) {
   const [kind, rowId, monthKeyValue] = rawKey.split("|");
+  if (isClosedMonthKey(monthKeyValue)) return;
   const actuals = actualsForKind(kind);
   delete actuals[`${rowId}|${monthKeyValue}`];
   saveActualsForKind(kind)();
@@ -17250,6 +17335,7 @@ async function init() {
     renderReconciliation();
   });
   qs("downloadCanonicalLedger")?.addEventListener("click", downloadCanonicalLedger);
+  qs("closeCurrentMonth")?.addEventListener("click", closeCurrentMonthTransaction);
   qs("openMovementReview")?.addEventListener("click", () => {
     history.pushState(null, "", "#movements");
     setActiveView("movements");

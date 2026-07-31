@@ -8,6 +8,7 @@
   const BACKUP_FORMAT = "finanzas-casa-backup";
   const BACKUP_VERSION = 1;
   const ARRAY_FIELDS = ["projects", "debtLiquidations", "decisionEvents", "customPlanningRows"];
+  const OPTIONAL_ARRAY_FIELDS = ["monthClosures"];
   const OBJECT_FIELDS = [
     "incomeActuals",
     "expenseActuals",
@@ -72,6 +73,9 @@
     if (Number(payload.version) !== 1) errors.push("La versión interna del estado no es compatible.");
     ARRAY_FIELDS.forEach((field) => {
       if (!Array.isArray(payload[field])) errors.push(`El campo ${field} debe ser una lista.`);
+    });
+    OPTIONAL_ARRAY_FIELDS.forEach((field) => {
+      if (payload[field] !== undefined && !Array.isArray(payload[field])) errors.push(`El campo ${field} debe ser una lista.`);
     });
     OBJECT_FIELDS.forEach((field) => {
       if (!isPlainObject(payload[field])) errors.push(`El campo ${field} debe ser un objeto.`);
