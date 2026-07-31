@@ -1,6 +1,6 @@
 # Hoja de ruta de ejecucion
 
-Fecha base: 15 de julio de 2026. Ultima validacion UX: 16 de julio de 2026.
+Fecha base: 15 de julio de 2026. Ultima validacion de dominio: 30 de julio de 2026. Ultima validacion UX: 16 de julio de 2026.
 
 Esta hoja distingue entre codigo existente y funcionalidad realmente terminada. Una fase solo se
 marca como completada cuando cumple sus criterios de aceptacion, tiene pruebas y no deja una ruta
@@ -35,19 +35,19 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 
 | Bloque | Fases | Realizados | Parciales | Pendientes | Objetivo |
 | --- | --- | --- | --- | --- | --- |
-| P0 | P0-1 a P0-6 | 2: P0-3, P0-4 | 4: P0-1, P0-2, P0-5, P0-6 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
+| P0 | P0-1 a P0-6 | 3: P0-2, P0-3, P0-4 | 3: P0-1, P0-5, P0-6 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
 | P1 | P1-1 a P1-8 | 0 | 8: P1-1 a P1-8 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
 | P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
 | P3 | P3-1 a P3-3 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
 | UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
-| **Total** | **29 fases** | **14** | **12** | **3** | **La experiencia principal, P2 y P0-3/P0-4 estan verificados; P0-1/P0-2 quedan listos para comprobar contra Supabase** |
+| **Total** | **29 fases** | **15** | **11** | **3** | **La experiencia principal, P2 y P0-2/P0-3/P0-4 estan verificados; P0-1 queda pendiente de la prueba remota de baja** |
 
 ## P0 - Integridad estructural
 
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
 | P0-1 | Libro mayor canonico e identificadores estables | Hay libro e IDs, pero parte del estado legado sigue generando entidades y reapariciones | Todo real nace en el libro mayor; deduplicacion y bajas usan IDs estables; una eliminacion no reaparece tras recargar o importar | Parcial - validado local |
-| P0-2 | Supabase normalizado como fuente autoritativa | Esquema activo y 2338 entidades sincronizadas, pero existe lectura/escritura compatible con `finance_dashboard_states` | Lectura primaria desde tablas normalizadas; legado solo como migracion/fallback controlado; prueba de recarga en dos sesiones | Parcial - activacion remota pendiente |
+| P0-2 | Supabase normalizado como fuente autoritativa | Esquema activo y 2338 entidades sincronizadas, pero existe lectura/escritura compatible con `finance_dashboard_states` | Lectura primaria desde tablas normalizadas; legado solo como migracion/fallback controlado; prueba de recarga en dos sesiones | Verificado |
 | P0-3 | Maquina de estados y registro inmutable | Workflow canonico disponible | Deudas, proyectos, acuerdos e importaciones usan transiciones comunes; cada cambio real genera evento append-only con antes/despues y los reintentos son idempotentes | Verificado |
 | P0-4 | Motor unico de calculo | Escenarios canonicos base, activo y planificado; las vistas mantienen aliases de compatibilidad | Todas las vistas consumen un unico resultado diario/mensual; el motor legado deja de decidir cifras | Verificado |
 | P0-5 | Reconciliacion e invariantes como barrera | Hay vista e invariantes, pero no bloquean todos los guardados/publicaciones incoherentes | Diferencias banco-presupuesto-simulacion visibles; no se confirma ni publica un estado que rompa invariantes | Parcial |
@@ -96,6 +96,14 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 | UX-5 | Centro de alertas | Crear, editar, pausar y revisar alertas con estado, umbral, fecha y accion recomendada | Verificado |
 | UX-6 | Validacion y simplificacion | Pruebas con tareas clave, accesibilidad, responsive, rendimiento y retirada de duplicidades validadas | Verificado |
 
+### Incidencia de persistencia (31 de julio de 2026)
+
+- Implementada una cola remota de escritor unico: los cambios guardan primero la copia local, reciben una revision y no se descartan si otra sincronizacion esta en curso.
+- La cola vuelve a capturar el estado mas reciente, reintenta los fallos de red y muestra revision pendiente, activa o persistida en el panel.
+- El puntero remoto usa control optimista: una sesion solo publica si `finance_source_heads` conserva la revision que cargo; los conflictos quedan pendientes sin reintento destructivo.
+- 100 pruebas pasan, incluidas concurrencia durante una escritura, reintento tras fallo, conflicto remoto no reintentable y carga remota deduplicada.
+- Estado: `Verificado`. En Supabase de prueba, `4182` persistio dos cambios solapados hasta la revision 4, `4183` intento publicar desde una revision obsoleta y quedo bloqueada, y la recarga recupero el valor restaurado en la revision 5.
+
 ## Orden de ejecucion recomendado
 
 1. P0-1 a P0-6: cerrar la integridad y la fuente de verdad.
@@ -114,7 +122,7 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 | Fase | Estado | Entregables completados | Pruebas/evidencia | Pendiente o riesgo | Siguiente fase |
 | --- | --- | --- | --- | --- | --- |
 | P0-1 | Parcial - validado local | IDs semanticos para partidas, deudas, proyectos y decisiones; deduplicacion y bajas canonicas | 83 pruebas: identidad estable, deduplicacion y borrado que no reaparece | Validar una recarga real despues de activar la migracion remota | P0-2 |
-| P0-2 | Parcial - activacion remota pendiente | Puntero `finance_source_heads`; la copia normalizada activa manda y el legado solo migra | 83 pruebas: puntero activo, recuperacion ante copia corrupta y checksum | Ejecutar `migrations/20260717_p0_source_head.sql` y comprobar dos sesiones contra Supabase | P0-3 |
+| P0-2 | Verificado | Puntero `finance_source_heads`; la copia normalizada activa manda, el legado solo migra y una sesion obsoleta no puede mover el puntero | 100 pruebas locales y prueba autenticada en dos sesiones: cambios solapados, bloqueo de revision obsoleta y recarga de la revision vigente | La baja que no reaparece permanece como criterio especifico de P0-1 | P0-3 |
 | P0-3 | Verificado | Eventos inmutables de importacion, sincronizacion, enmienda y transicion con instantanea antes/despues; comandos deterministas sin duplicados | Pruebas de transiciones, importacion, enmienda, idempotencia y sintaxis; publicacion posterior | Quedan mutaciones de datos base para P0-4/P0-5, fuera del ciclo de vida de decisiones | P0-4 |
 | P0-4 | Verificado | Escenarios base, activo y planificado emitidos por el motor canonico; el calendario diario activo parte del mismo resultado mensual | 87 pruebas: contrato de escenario, corte que impide invocar `buildRows` desde la app, invariantes, paridad y calendario diario/mensual | `lastSimulation` y equivalentes permanecen como aliases de lectura para vistas existentes; no ejecutan calculos | P0-5 |
 | P0-5 | Parcial | Vista de conciliacion e invariantes financieras disponibles | Pruebas de continuidad, saldos y valores finitos | Convertir invariantes en barrera de todos los guardados | P0-5 |

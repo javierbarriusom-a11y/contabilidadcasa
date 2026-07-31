@@ -29,6 +29,7 @@ La documentación funcional de la fase actual está en [PHASE_10.md](PHASE_10.md
 - `canonical-debt-contracts.js`: normalización y validación de contratos y acuerdos de deuda.
 - `canonical-debt-comparator.js`: comparación de pago único, fraccionado, reunificación, retoma o espera.
 - `canonical-supabase-store.js`: proyección normalizada, huellas de contenido y copias versionadas para Supabase.
+- `remote-save-queue.js`: cola de escritor único con revisiones pendientes, reintentos de red y bloqueo de conflictos entre sesiones mediante el puntero remoto.
 - `app.js`: adaptación de la interfaz al motor canónico y diagnóstico histórico opcional.
 
 El motor histórico no participa en la ejecución normal. Una invariante rota bloquea el cálculo en lugar de sustituirlo silenciosamente por otra regla.

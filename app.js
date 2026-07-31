@@ -69,7 +69,11 @@ let memoryStorage = {};
 let supabaseClient = null;
 let remoteUser = null;
 let remoteSaveTimer = null;
-let remoteSaveInFlight = false;
+let remoteSaveQueue = null;
+let remoteHeadSnapshotId = null;
+let remoteHeadKnown = false;
+let remoteLoadPromise = null;
+let remoteLoadedUserId = null;
 let selectedCashflowIndex = null;
 let expandedCashflowYears = new Set();
 let expandedVisualSections = new Set();
@@ -1358,11 +1362,13 @@ function downloadCanonicalLedger() {
 }
 
 function queueRemoteSave() {
+  saveLocalSnapshot();
   scheduleCanonicalRefresh("state-change");
   if (!remoteUser || !supabaseClient) return;
+  ensureRemoteSaveQueue().request();
   window.clearTimeout(remoteSaveTimer);
   remoteSaveTimer = window.setTimeout(() => {
-    saveRemoteState();
+    ensureRemoteSaveQueue().flush();
   }, 650);
 }
 
@@ -1882,6 +1888,53 @@ function updateSyncUi(message, tone = "local") {
   status.textContent = message;
 }
 
+function remoteSaveStatusChanged(queueState) {
+  if (!remoteUser) return;
+  if (queueState.running) {
+    updateSyncUi(`Guardando revisión ${queueState.inFlightRevision} en Supabase...`, "cloud");
+    return;
+  }
+  if (queueState.lastError) {
+    if (queueState.lastError?.code === "REMOTE_WRITE_CONFLICT") {
+      updateSyncUi(
+        "Otra sesión publicó cambios más recientes. Recarga antes de volver a guardar; tu versión local está a salvo.",
+        "warn",
+      );
+      return;
+    }
+    const prefix = queueState.lastError?.code === "CANONICAL_COMMIT_BLOCKED"
+      ? "Sincronización bloqueada"
+      : "Error de sincronización";
+    updateSyncUi(
+      `${prefix}: ${queueState.lastError.message}.${queueState.retryScheduled ? ` Reintento ${queueState.retryAttempt} pendiente;` : ""} La versión local está a salvo.`,
+      "warn",
+    );
+    return;
+  }
+  if (queueState.pending) {
+    updateSyncUi(`Revisión ${queueState.requestedRevision} pendiente de sincronizar; guardada en este equipo.`, "local");
+    return;
+  }
+  if (queueState.lastPersistedAt) {
+    updateSyncUi(
+      `Revisión ${queueState.persistedRevision} sincronizada. Último guardado: ${new Date(queueState.lastPersistedAt).toLocaleString("es-ES")}.`,
+      "cloud",
+    );
+  }
+}
+
+function ensureRemoteSaveQueue() {
+  if (remoteSaveQueue) return remoteSaveQueue;
+  const factory = window.FinanceRemoteSaveQueue?.createRemoteSaveQueue;
+  if (!factory) throw new Error("No se pudo iniciar la cola segura de sincronización.");
+  remoteSaveQueue = factory({
+    capture: () => appStatePayload(),
+    write: (payload) => persistRemotePayload(payload),
+    onChange: remoteSaveStatusChanged,
+  });
+  return remoteSaveQueue;
+}
+
 function syncErrorMessage(error) {
   const message = error?.message || String(error || "");
   const normalized = message.toLowerCase();
@@ -1916,6 +1969,7 @@ function renderSyncPanel() {
   form.hidden = Boolean(remoteUser);
   session.hidden = !remoteUser;
   user.textContent = remoteUser?.email || "";
+  if (remoteUser && (remoteLoadPromise || remoteLoadedUserId === remoteUser.id)) return;
   updateSyncUi(
     remoteUser ? "Cambios sincronizados con Supabase." : "Entra para guardar cambios en la nube.",
     remoteUser ? "cloud" : "local",
@@ -2126,7 +2180,7 @@ function refreshFromPersistedState() {
   render();
 }
 
-async function loadRemoteState() {
+async function loadRemoteStateOnce() {
   if (!supabaseClient || !remoteUser) return;
   updateSyncUi("Cargando datos guardados en Supabase...", "cloud");
   const normalizedStore = window.FinanceCanonicalSupabaseStore;
@@ -2165,6 +2219,8 @@ async function loadRemoteState() {
   const normalizedMissing = Boolean(headMissing || snapshotsMissing);
   const normalizedError = [headResult.error, snapshotsResult.error, activeSnapshotResult.error]
     .find((error) => error && !normalizedStore?.isMissingSchemaError(error));
+  remoteHeadKnown = Boolean(normalizedStore && !headResult.error);
+  remoteHeadSnapshotId = remoteHeadKnown ? headResult.data?.snapshot_id || null : null;
   const authoritative = normalizedStore
     ? normalizedStore.selectAuthoritativeState({
         head: headResult.error ? null : headResult.data,
@@ -2208,6 +2264,22 @@ async function loadRemoteState() {
   await saveRemoteState(true);
 }
 
+function loadRemoteState() {
+  if (!supabaseClient || !remoteUser) return Promise.resolve();
+  if (remoteLoadedUserId === remoteUser.id) return Promise.resolve();
+  if (remoteLoadPromise) return remoteLoadPromise;
+  const loadingUserId = remoteUser.id;
+  remoteLoadPromise = loadRemoteStateOnce()
+    .then((result) => {
+      if (remoteUser?.id === loadingUserId) remoteLoadedUserId = loadingUserId;
+      return result;
+    })
+    .finally(() => {
+      remoteLoadPromise = null;
+    });
+  return remoteLoadPromise;
+}
+
 async function saveNormalizedRemoteState(payload) {
   const store = window.FinanceCanonicalSupabaseStore;
   if (!store) return { mode: "legacy", reason: "adapter-unavailable" };
@@ -2222,6 +2294,42 @@ async function saveNormalizedRemoteState(payload) {
   }
 
   try {
+    const snapshotResult = await supabaseClient.from("finance_state_snapshots").insert(bundle.snapshotRow);
+    if (snapshotResult.error) throw snapshotResult.error;
+
+    let headResult;
+    if (!remoteHeadKnown) {
+      const error = new Error("No se conoce la revisión remota de partida; recarga antes de guardar.");
+      error.code = "REMOTE_WRITE_CONFLICT";
+      error.retryable = false;
+      throw error;
+    } else if (remoteHeadSnapshotId) {
+      headResult = await supabaseClient
+        .from("finance_source_heads")
+        .update(bundle.sourceHead)
+        .eq("user_id", remoteUser.id)
+        .eq("source_key", sourceStateKey())
+        .eq("snapshot_id", remoteHeadSnapshotId)
+        .select("snapshot_id")
+        .maybeSingle();
+      if (!headResult.error && !headResult.data) {
+        const error = new Error("Otra sesión publicó una revisión más reciente.");
+        error.code = "REMOTE_WRITE_CONFLICT";
+        error.retryable = false;
+        throw error;
+      }
+    } else {
+      headResult = await supabaseClient.from("finance_source_heads").insert(bundle.sourceHead);
+      if (headResult.error?.code === "23505") {
+        const error = new Error("Otra sesión creó la primera revisión antes que esta sesión.");
+        error.code = "REMOTE_WRITE_CONFLICT";
+        error.retryable = false;
+        throw error;
+      }
+    }
+    if (headResult.error) throw headResult.error;
+    remoteHeadSnapshotId = bundle.sourceHead.snapshot_id;
+
     for (const [tableName, rows] of Object.entries(bundle.projections)) {
       if (rows.length) {
         const upsertResult = await supabaseClient
@@ -2250,12 +2358,6 @@ async function saveNormalizedRemoteState(payload) {
       .from("finance_reconciliation_runs")
       .insert(bundle.appendOnly.finance_reconciliation_runs);
     if (reconciliationResult.error) throw reconciliationResult.error;
-    const snapshotResult = await supabaseClient.from("finance_state_snapshots").insert(bundle.snapshotRow);
-    if (snapshotResult.error) throw snapshotResult.error;
-    const headResult = await supabaseClient
-      .from("finance_source_heads")
-      .upsert(bundle.sourceHead, { onConflict: "user_id,source_key" });
-    if (headResult.error) throw headResult.error;
     const completeResult = await supabaseClient
       .from("finance_sync_runs")
       .update({ status: "complete", completed_at: new Date().toISOString() })
@@ -2272,13 +2374,8 @@ async function saveNormalizedRemoteState(payload) {
   }
 }
 
-async function saveRemoteState(force = false) {
-  if (!supabaseClient || !remoteUser || remoteSaveInFlight) return;
-  remoteSaveInFlight = true;
-  if (!force) updateSyncUi("Guardando cambios en Supabase...", "cloud");
-  try {
+async function persistRemotePayload(payload) {
     const barrier = ensureCanonicalCommitBarrier("remote-save");
-    const payload = appStatePayload();
     const normalizedResult = await saveNormalizedRemoteState(payload);
     if (normalizedResult.mode !== "normalized") {
       const legacyResult = await supabaseClient.from("finance_dashboard_states").upsert(
@@ -2298,13 +2395,14 @@ async function saveRemoteState(force = false) {
     const validation = barrier?.summary?.warningCount
       ? ` Validación canónica con ${barrier.summary.warningCount} aviso(s).`
       : " Validación canónica correcta.";
-    updateSyncUi(`Cambios sincronizados con Supabase.${detail}${validation}`, normalizedResult.mode === "normalized" ? "cloud" : "warn");
-  } catch (error) {
-    const prefix = error?.code === "CANONICAL_COMMIT_BLOCKED" ? "Sincronización bloqueada: " : "No se pudo guardar: ";
-    updateSyncUi(`${prefix}${error.message}`, "warn");
-  } finally {
-    remoteSaveInFlight = false;
-  }
+    return { detail, validation, mode: normalizedResult.mode };
+}
+
+async function saveRemoteState(force = false) {
+  if (!supabaseClient || !remoteUser) return;
+  const queue = ensureRemoteSaveQueue();
+  queue.request({ immediate: force });
+  return queue.flush();
 }
 
 async function handleSyncAuth(mode) {
@@ -2360,6 +2458,12 @@ async function handleSyncLogout() {
   if (!supabaseClient) return;
   await supabaseClient.auth.signOut();
   remoteUser = null;
+  remoteSaveQueue?.reset();
+  remoteSaveQueue = null;
+  remoteHeadSnapshotId = null;
+  remoteHeadKnown = false;
+  remoteLoadPromise = null;
+  remoteLoadedUserId = null;
   renderSyncPanel();
 }
 
@@ -2374,7 +2478,16 @@ async function setupSupabaseSync() {
   if (remoteUser) await loadRemoteState();
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+    const previousUserId = remoteUser?.id || null;
     remoteUser = session?.user || null;
+    if (!remoteUser || (previousUserId && previousUserId !== remoteUser.id)) {
+      remoteSaveQueue?.reset();
+      remoteSaveQueue = null;
+      remoteHeadSnapshotId = null;
+      remoteHeadKnown = false;
+      remoteLoadPromise = null;
+      remoteLoadedUserId = null;
+    }
     renderSyncPanel();
     if (remoteUser) await loadRemoteState();
   });
