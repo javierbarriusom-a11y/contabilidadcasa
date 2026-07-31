@@ -45,10 +45,10 @@ conflictos remotos o un despliegue defectuoso.
 
 | Riesgo | Evidencia actual | Impacto | Tratamiento propuesto |
 | --- | --- | --- | --- |
-| La aplicación depende de la red para descargar su interfaz | No existe `service worker` ni manifiesto PWA | Una caída de GitHub Pages o la falta de conexión impiden abrir una sesión nueva | Añadir caché segura del shell y arranque offline |
-| Un conflicto remoto requiere todavía recuperación guiada | La cola durable conserva la copia local y bloquea la sobrescritura, pero A0-5 sigue pendiente | El usuario debe decidir cómo reconciliar dos revisiones divergentes | Comparación de fechas y huellas con opciones seguras de continuar, recargar o restaurar |
-| El despliegue depende directamente de `main` | GitHub Pages sirve la raíz de `main` | Un cambio defectuoso puede afectar la aplicación disponible | Puerta CI, comprobación publicada y procedimiento de reversión |
-| Hay datos financieros en una web publicada | `data.js` contiene datos personales y Pages puede ser público | Riesgo alto de exposición, independiente de la autenticación de Supabase | Retirar datos personales del artefacto público y revisar acceso |
+| La caché offline requiere versionado disciplinado | El `service worker` y el manifiesto están publicados y el shell abre sin servidor tras una primera visita | Una caché obsoleta podría retrasar la entrega de recursos nuevos | Mantener recursos versionados y comprobar el arranque offline en cada cambio del shell |
+| Una reconciliación incorrecta ante conflicto puede descartar una revisión | A0-5 compara fechas y huellas y ofrece continuar localmente, descargar o elegir la nube | Una elección equivocada del usuario todavía puede requerir restauración | Conservar copia exportable, confirmación explícita e historial de versiones |
+| Un despliegue defectuoso puede afectar al sitio público | Pages publica mediante Actions después de pruebas, privacidad y smoke test; el rollback fue ensayado | Una regresión no cubierta por las pruebas podría llegar a producción | Mantener la puerta CI, el monitor publicado y el procedimiento de reversión |
+| La aplicación publicada trata información financiera sensible | El artefacto público contiene solo datos sintéticos y la revisión de privacidad bloquea patrones prohibidos | Una futura incorporación accidental de datos personales sería crítica | Mantener lista cerrada del artefacto y revisión de privacidad obligatoria |
 | Falta conciliación exhaustiva del libro remoto | La copia completa está verificada, no el contraste de cada fila proyectada | No hay evidencia completa de igualdad entre libro local y tabla remota | Verificación por conteo, ID, importe y huella |
 | El cierre mensual remoto no es transaccional | P1-6 continúa parcial | Un mes cerrado podría modificarse o arrastrarse de forma incoherente | Función transaccional, bloqueo y auditoría |
 | La documentación de estado diverge | Roadmap, estado y backlog usan fechas y estados distintos | Puede priorizarse trabajo ya terminado o darse por cerrado trabajo parcial | Una matriz canónica y revisión en cada cierre |
@@ -185,3 +185,5 @@ E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobació
 y prueba de rollback no destructiva entre revisiones seguras.
 E3 quedó verificada el 31/07/2026 mediante reapertura real sin servidor, validación responsive, pruebas
 de recuperación y copia con huella, y comprobación del service worker y el manifiesto publicados.
+La suite de cierre de E3 pasa con 113/113 pruebas; `version.json` identifica la revisión pública
+`e149c9c` y no queda desarrollo local pendiente antes de iniciar E4.

@@ -17,8 +17,8 @@ Fecha de revisión: 31 de julio de 2026.
 - El plan visual de deuda sin WiZink se ha incorporado como sección independiente tras `Deuda y proyectos`; su estado forma parte de la copia local y del payload sincronizado con Supabase.
 - P0-6 está verificado de extremo a extremo: el selector remoto, la vista previa comparativa y `restore_finance_snapshot` crean una versión nueva, mueven el puntero activo y conservan el historial.
 - La función de restauración está desplegada en el Supabase real y se ejecutó con rol `authenticated` y `auth.uid()` del usuario. La recuperación generó un snapshot nuevo idéntico al objetivo, actualizó la cabecera, completó el registro de sincronización y preservó las 234 versiones existentes tras la operación.
-- La suite local actual pasa completa: 109 pruebas, 0 fallos.
-- El commit funcional `787c3db` está publicado en `origin/main` y desplegado correctamente mediante GitHub Pages desde la raíz de `main`, con HTTPS activo.
+- La suite local actual pasa completa: 113 pruebas, 0 fallos.
+- La revisión estable `e149c9c` está publicada en `origin/main` y desplegada con HTTPS mediante el workflow de GitHub Pages, después de superar pruebas, privacidad y smoke test.
 - E1 — Continuidad entre sesiones está verificada: la aplicación carga primero la copia local, conserva
   en IndexedDB una bandeja de salida por usuario y fuente, reanuda revisiones pendientes y detiene la
   publicación ante un conflicto remoto sin sobrescribir el estado local.
@@ -42,7 +42,7 @@ Fecha de revisión: 31 de julio de 2026.
   y huellas y permite reanudar, continuar localmente, descargar la copia o elegir la nube.
 - La copia de emergencia usa un sobre versionado con checksum, vista previa y confirmación; la prueba de
   ida y vuelta conserva el payload y su huella en un perfil limpio simulado.
-- E3 está publicada y verificada en Pages mediante `4894b8a`: el service worker y el manifiesto se sirven
+- E3 está publicada y verificada en Pages mediante `e149c9c`: el service worker y el manifiesto se sirven
   correctamente, el navegador abre la interfaz sin errores y la revisión pública conserva el shell demo.
 
 ## Pendiente
@@ -99,19 +99,13 @@ Abordar E4: conciliación remota exhaustiva del libro y cierre mensual transacci
 - QA E3 local: tras una visita inicial se apagó el servidor y el shell reabrió sin red en escritorio y
   a 390×844, sin errores de consola ni desbordamiento horizontal. La interfaz de recuperación queda
   disponible en ambos tamaños.
-- QA E3 publicado: `version.json` sirvió `4894b8a`, Pages entregó el service worker y el manifiesto con
+- QA E3 publicado: `version.json` sirvió `e149c9c`, Pages entregó el service worker y el manifiesto con
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
 ## Último commit estable
 
-- `f7e8144` — `feat: preserve remote saves across sessions` (31 de julio de 2026).
-- Contiene la entrega funcional E1, sus pruebas unitarias, el escenario E2E reproducible y el backlog actualizado.
-- La suite local pasa con 109 pruebas y 0 fallos; `git diff --check` también pasa.
-- El cierre documental anterior quedó publicado mediante `9f7777d` (`docs: close E1 continuity session`).
-- La rama de trabajo es `main`; antes de esta revisión estaba sincronizada con `origin/main`.
-- El único archivo local ajeno a los commits sigue siendo la carpeta `.agents/` sin seguimiento, que
-  se ha preservado.
-- E2 quedó consolidada en `23d07dd` y publicada en `origin/main`; tras el ajuste del workflow solo se
-  conserva sin seguimiento la carpeta local `.agents/`.
-- E3 quedó consolidada mediante `d361fc8` y el ajuste de formato `4894b8a`, ambos publicados en
-  `origin/main`. Solo `.agents/` permanece sin seguimiento y fuera del alcance.
+- `e149c9c` — `docs: close E3 offline recovery` (31 de julio de 2026), publicado en `origin/main` y verificado en GitHub Pages.
+- La entrega funcional E3 quedó consolidada en `d361fc8` y su normalización de formato en `4894b8a`.
+- La puerta local pasa con 113 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
+- La rama de trabajo es `main` y está sincronizada con `origin/main` al iniciar este cierre.
+- No queda trabajo funcional local pendiente. La carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.
