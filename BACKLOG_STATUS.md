@@ -67,9 +67,9 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 | A0-3 | Indicador global de durabilidad | Verificado | Crítica | Toda pantalla muestra uno de cuatro estados inequívocos: guardado local, pendiente remoto, sincronizado o conflicto; incluye hora y acción recomendada |
 | A0-4 | Apertura offline del shell | Pendiente | Alta | Tras una primera visita, la app abre sin red con recursos versionados; no se almacenan credenciales ni respuestas privadas en caché compartida |
 | A0-5 | Recuperación guiada al iniciar | Pendiente | Alta | Si hay cola pendiente, copia local más reciente o conflicto, la app compara fechas y huellas y permite continuar, recargar o restaurar sin sobrescritura silenciosa |
-| A0-6 | Puerta de despliegue y rollback | Pendiente | Crítica | CI ejecuta pruebas y smoke test; el despliegue solo publica si pasan; existe un procedimiento probado para volver a la última versión estable |
-| A0-7 | Comprobación de disponibilidad publicada | Pendiente | Alta | Se valida periódicamente HTTPS, carga de recursos, inicio de la app y versión servida; los fallos generan una alerta utilizable |
-| A0-8 | Privacidad del artefacto web | Pendiente | Crítica | El sitio publicado no contiene datos financieros personales en sus archivos estáticos; se documentan visibilidad, autenticación y rotación de secretos |
+| A0-6 | Puerta de despliegue y rollback | Implementado | Crítica | CI ejecuta pruebas y smoke test; el despliegue solo publica si pasan; existe un procedimiento probado para volver a la última versión estable |
+| A0-7 | Comprobación de disponibilidad publicada | Implementado | Alta | Se valida periódicamente HTTPS, carga de recursos, inicio de la app y versión servida; los fallos generan una alerta utilizable |
+| A0-8 | Privacidad del artefacto web | Implementado | Crítica | El sitio publicado no contiene datos financieros personales en sus archivos estáticos; se documentan visibilidad, autenticación y rotación de secretos |
 | A0-9 | Exportación y copia de emergencia | Pendiente | Alta | El usuario puede descargar una copia completa verificada y reimportarla en un perfil limpio; la prueba demuestra igualdad de huella |
 
 #### Pruebas mínimas de A0
@@ -173,13 +173,13 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Continuar con **E2: despliegue y privacidad** sin degradar E1. En concreto:
+Completar la verificación publicada de **E2: despliegue y privacidad** sin degradar E1. En concreto:
 
-1. añadir una puerta CI que ejecute pruebas y una comprobación mínima de carga;
-2. documentar y probar un rollback a la última versión estable;
-3. comprobar periódicamente HTTPS, recursos críticos, arranque y versión publicada;
-4. retirar los datos financieros personales de los archivos estáticos servidos por GitHub Pages;
-5. verificar el artefacto publicado y conservar evidencia de que no contiene datos ni credenciales.
+1. publicar mediante GitHub Actions el artefacto limitado y anonimizado ya implementado;
+2. confirmar que Pages dejó de usar el modo heredado `Deploy from a branch`;
+3. ejecutar manualmente la comprobación de disponibilidad tras el despliegue;
+4. verificar en la URL pública la marca demo, los recursos críticos y la versión servida;
+5. probar un revert no destructivo entre revisiones posteriores a la retirada de datos personales.
 
 E3 y el cierre mensual deben comenzar después de asegurar que la publicación de E2 es controlada,
 observable y no expone información personal.

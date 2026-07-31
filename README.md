@@ -58,7 +58,7 @@ Cada sincronización conserva además una copia completa en `finance_state_snaps
 
 ## Publicacion en GitHub Pages
 
-Este repositorio esta preparado para publicarse desde la rama `main` y la carpeta raiz (`/`) de GitHub Pages.
+Este repositorio se publica mediante GitHub Actions desde un artefacto verificado y de contenido limitado.
 
 URL esperada tras activar Pages:
 
@@ -68,8 +68,14 @@ https://javierbarriusom-a11y.github.io/finanzas-casa-def/
 
 ## Privacidad
 
-La app contiene datos financieros personales dentro de `data.js`. Si se publica con GitHub Pages, la web quedara accesible desde internet segun la visibilidad configurada en GitHub Pages.
+El artefacto público contiene únicamente una demostración sintética. Los datos reales se cargan desde
+el navegador, una importación explícita o la sesión privada de Supabase; no deben añadirse al repositorio.
+`npm run verify` bloquea la publicación si detecta patrones sensibles conocidos.
+
+La publicación usa exclusivamente `dist/`, generado con una lista cerrada de recursos. La documentación
+interna, las pruebas y las herramientas no forman parte del sitio.
 
 ## Actualizar datos
 
-Las importaciones se confirman desde la propia app y actualizan el modelo canónico. Para publicar código, haz commit y push a `main`; GitHub Pages actualizará la web automáticamente.
+Las importaciones se confirman desde la propia app y actualizan el modelo canónico. La fuente de Pages
+debe ser **GitHub Actions**; un push a `main` solo se despliega si supera toda la verificación.

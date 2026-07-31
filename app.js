@@ -135,64 +135,45 @@ const REMOTE_SOURCE_KEY = "finance-dashboard-main";
 const AGENT_ROUTE_SIMULATION_TAG = "agent-optimal-debt-route";
 
 const DEBT_PORTFOLIO = [
-  { entity: "Cetelem", type: "Crédito", number: "40037624105825", initialPrincipal: 1547.08, originalPayment: 262.34, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
-  { entity: "Cetelem", type: "Crédito", number: "40037624105827", initialPrincipal: 3559.33, originalPayment: 212.03, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
-  { entity: "Cetelem", type: "Tarjeta", number: "5100341635315001", initialPrincipal: 7508, originalPayment: 256.98, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
-  { entity: "Cetelem", type: "Tarjeta", number: "5100341647655006", initialPrincipal: 8000, originalPayment: 289.62, currentPayment: 259, reunified: true, amortized: 0, currentPrincipal: 0, maturity: "", remainingInstallments: 130 },
-  { entity: "Wizink", type: "Tarjeta", number: "5267 5209 1552 8008", initialPrincipal: 7381.63, originalPayment: 191.72, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 7381.63, maturity: "", remainingInstallments: 0 },
-  { entity: "Wizink", type: "Tarjeta", number: "5489 1808 1365 8688", initialPrincipal: 3117.23, originalPayment: 114.37, currentPayment: 0, reunified: false, amortized: 1300, currentPrincipal: 0, maturity: "", remainingInstallments: 0 },
-  { entity: "Bankintercard", type: "Crédito", number: "0128/9830/051.1130377", initialPrincipal: 14975.01, originalPayment: 426.49, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 14975.01, maturity: "19/8/29", remainingInstallments: 46 },
-  { entity: "Bankintercard", type: "Tarjeta", number: "4966630612068823", initialPrincipal: 6477.07, originalPayment: 508.2, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 6477.07, maturity: "", remainingInstallments: 15 },
-  { entity: "Mediamarkt", type: "Tarjeta", number: "4010 2111 8083 0013", initialPrincipal: 1376.71, originalPayment: 115, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 1376.71, maturity: "", remainingInstallments: 15 },
-  { entity: "Ikea", type: "Tarjeta", number: "4552 4698 2929 5014", initialPrincipal: 2594.88, originalPayment: 120, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 2594.88, maturity: "", remainingInstallments: 15 },
-  { entity: "Caixabank PC", type: "Crédito", number: "8197109", initialPrincipal: 464.62, originalPayment: 86.41, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 464.62, maturity: "30/7/26", remainingInstallments: 6 },
-  { entity: "Caixabank PC", type: "Crédito", number: "40354", initialPrincipal: 2195.07, originalPayment: 167.68, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 2195.07, maturity: "30/3/27", remainingInstallments: 14 },
-  { entity: "Caixabank PC", type: "Crédito", number: "40353", initialPrincipal: 491.6, originalPayment: 159.72, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 491.6, maturity: "30/4/26", remainingInstallments: 3 },
+  { entity: "Entidad A", type: "Crédito", number: "DEMO-A", initialPrincipal: 6000, originalPayment: 180, currentPayment: 180, reunified: true, amortized: 0, currentPrincipal: 6000, maturity: "", remainingInstallments: 36 },
+  { entity: "Entidad B", type: "Tarjeta", number: "DEMO-B", initialPrincipal: 3500, originalPayment: 140, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 3500, maturity: "", remainingInstallments: 30 },
+  { entity: "Entidad C", type: "Crédito", number: "DEMO-C", initialPrincipal: 2500, originalPayment: 100, currentPayment: 0, reunified: false, amortized: 0, currentPrincipal: 2500, maturity: "", remainingInstallments: 24 },
 ].map((item, index) => ({ ...item, id: `debt-${index + 1}` }));
 
-const CURRENT_REUNIFIED_DEBT_PAYMENT = 259;
-const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 130;
+const CURRENT_REUNIFIED_DEBT_PAYMENT = 180;
+const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 36;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
 const DebtContracts = globalThis.FinanceDebtContracts || null;
 const DebtComparator = globalThis.FinanceDebtComparator || null;
 const DEBT_LIQUIDATION_ASSUMPTIONS = {
-  baseStartingLiquidity: 13464.57,
-  targetReserve: 4000,
-  monthlyFundTarget: 2000,
-  monthlyReserveTarget: 800,
-  demandAmount: 12000,
+  baseStartingLiquidity: 9000,
+  targetReserve: 3000,
+  monthlyFundTarget: 900,
+  monthlyReserveTarget: 500,
+  demandAmount: 4000,
   demandMonth: "2027-02",
   cirbe: {
-    december2025: { total: 177910, overdue: 0, interest: 0, available: 79320 },
-    may2026: { total: 152401, overdue: 10205, interest: 1253, available: 76271 },
+    december2025: { total: 24000, overdue: 0, interest: 0, available: 9000 },
+    may2026: { total: 18000, overdue: 1500, interest: 200, available: 7000 },
   },
   asnef: [
-    { entity: "CaixaBank Payments", amount: 4397.67, rows: 5 },
-    { entity: "Bankinter Consumer", amount: 5036.72, rows: 2 },
-    { entity: "Wizink", amount: 1343.29, rows: 1 },
+    { entity: "Entidad A", amount: 1200, rows: 2 },
+    { entity: "Entidad B", amount: 900, rows: 1 },
   ],
   settlements: [
-    { id: "caixa", wave: "g1", entity: "CaixaBank Payments", principal: 13411, discount: 0.35, source: "CIRBE mayo 2026" },
-    { id: "bankinter-credit", wave: "g2", entity: "Bankinter credito", principal: 16070, discount: 0.33, source: "CIRBE mayo 2026" },
-    { id: "bankinter-card", wave: "g2", entity: "Bankinter tarjeta", principal: 7613, discount: 0.40, source: "CIRBE mayo 2026" },
-    { id: "bankinter-other", wave: "g2", entity: "Bankinter resto", principal: 2006, discount: 0.30, source: "ASNEF/CIRBE" },
+    { id: "entity-a", wave: "g1", entity: "Entidad A", principal: 6000, discount: 0.35, source: "Ejemplo anonimizado" },
+    { id: "entity-b", wave: "g2", entity: "Entidad B", principal: 3500, discount: 0.30, source: "Ejemplo anonimizado" },
   ],
   wizink: {
-    principal: 8393,
+    principal: 2500,
     discount: 0.30,
     months: 96,
     apr: 0,
   },
 };
 const EQUIFAX_VISIBLE_UNPAID_DEBTS = [
-  { entity: "CaixaBank Payments", type: "Préstamo personal", amount: 604.98, source: "Equifax 25/06/2026" },
-  { entity: "CaixaBank Payments", type: "Préstamo personal", amount: 955.96, source: "Equifax 25/06/2026" },
-  { entity: "CaixaBank Payments", type: "Préstamo personal", amount: 1126.08, source: "Equifax 25/06/2026" },
-  { entity: "CaixaBank Payments", type: "Tarjeta crédito", amount: 872.52, source: "Equifax 25/06/2026" },
-  { entity: "CaixaBank Payments", type: "Tarjeta crédito", amount: 838.13, source: "Equifax 25/06/2026" },
-  { entity: "Bankinter Consumer Finance", type: "Préstamo personal", amount: 2006.29, source: "Equifax 25/06/2026" },
-  { entity: "Bankinter Consumer Finance", type: "Tarjeta crédito", amount: 3030.43, source: "Equifax 25/06/2026" },
-  { entity: "Wizink", type: "Tarjeta crédito", amount: 1343.29, source: "Equifax 25/06/2026" },
+  { entity: "Entidad A", type: "Préstamo personal", amount: 1200, source: "Ejemplo anonimizado" },
+  { entity: "Entidad B", type: "Tarjeta de crédito", amount: 900, source: "Ejemplo anonimizado" },
 ];
 const VARIABLE_OPERATIONAL_SECTION = "Gastos variables";
 const VARIABLE_OPERATIONAL_ROW_ID = "variable-operational-spend";
@@ -3103,11 +3084,11 @@ function classifyTransaction(row) {
   const hasAny = (needles) => needles.some((needle) => text.includes(needle));
   if (amount > 0) {
     if (text.includes("NOMINA")) return "Ingresos nomina";
-    if (text.includes("JESUS SANTOS")) return "Ingreso recurrente 800";
+    if (text.includes("INGRESO RECURRENTE")) return "Ingreso recurrente";
     if (hasAny(["DEVOLUCION", "DEVOLUCIONES", "TARJ.FINANC.RECIBO", "LIQUID.VISA", "BANKINTER CONS", "WIZINK", "BANCO CETELEM", "ABON.TARJ.CREDITO"])) return "Devoluciones/creditos";
     return "Otros ingresos";
   }
-  if (hasAny(["PZ FINANZ", "JAVIER BARRIUSO M"])) return "Refinanciacion";
+  if (hasAny(["REFINANCIACION", "CUOTA ACUERDO"])) return "Refinanciacion";
   if (text.includes("BMW BANK")) return "Coche";
   if (hasAny(["RECIBO ENTIDAD DE FINANCIACION", "RECIBO ENTIDAD DE FINANCIACIÓN", "FINANCIE", "FIN.EL CORTE", "ECITC", "ECIVP", "CRD010", "BANKINTER CONS", "LIQUID.VISA ORO", "WIZINK", "CAIXABANK PAYM", "PRS304", "VISA GO", "MYCARD", "LC ASSET"])) return "Creditos antiguos";
   if (text.includes("MASTER BASICA")) return "Tarjeta Mastercard";

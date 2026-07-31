@@ -5,6 +5,11 @@
   "description": "Dashboard financiero personal con motor canónico, conciliación y pruebas de regresión.",
   "scripts": {
     "test": "node --test tests/*.test.*",
+    "build:demo": "node tools/build-public-demo-data.mjs",
+    "build:site": "npm run build:demo && node tools/build-public-site.mjs",
+    "test:privacy": "node tools/check-public-privacy.mjs",
+    "test:smoke": "node tools/smoke-public.mjs",
+    "verify": "npm test && npm run build:site && npm run test:privacy && npm run test:smoke",
     "baseline:capture": "node tools/capture-baseline.mjs"
   }
 }
