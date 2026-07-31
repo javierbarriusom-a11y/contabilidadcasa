@@ -4580,6 +4580,25 @@ svg {
 
 .visual-actual-status.realized { color: var(--green); }
 .visual-actual-status.cancelled { color: var(--red); }
+.visual-actual-status.historical { color: #64747c; }
+
+.visual-historical-header {
+  background: #e7ecef;
+  color: #53636b;
+}
+
+.visual-historical-header small {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+
+.visual-amount-input.historical-value:disabled {
+  background: #eef2f3;
+  color: #53636b;
+  opacity: 1;
+}
 
 .audit-timeline-item {
   display: grid;

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
     <link rel="manifest" href="manifest.webmanifest?v=20260731e3" />
-    <link rel="stylesheet" href="styles.css?v=20260731e4e" />
+    <link rel="stylesheet" href="styles.css?v=20260731e4f" />
     <link rel="stylesheet" href="p2.css?v=20260717a" />
   </head>
   <body>
@@ -693,9 +693,17 @@
               <div>
                 <p class="panel-kicker">Actualizar previsiones</p>
                 <h2>Partidas previstas, resultados y mínimos</h2>
-                <p>Actualiza los importes previstos según cambia la realidad y comprueba su impacto a lo largo del tiempo. Los meses cerrados quedan como histórico y arrastran saldos y resultados al modelo.</p>
+                <p>Alterna entre previsto y real. Los meses cerrados siguen visibles como histórico de solo lectura; los meses abiertos permiten registrar lo ocurrido sin borrar la previsión.</p>
               </div>
               <div class="visual-controls">
+                <label>
+                  <span>Periodo</span>
+                  <select id="visualPeriodMode">
+                    <option value="all">Plan e histórico</option>
+                    <option value="open">Solo meses abiertos</option>
+                    <option value="closed">Solo histórico</option>
+                  </select>
+                </label>
                 <label>
                   <span>Vista</span>
                   <select id="visualTimeMode">
@@ -712,7 +720,7 @@
                   <select id="visualEndMonth"></select>
                 </label>
                 <label>
-                  <span>Editar</span>
+                  <span>Valores</span>
                   <select id="visualValueMode">
                     <option value="planned">Previsto</option>
                     <option value="actual">Real</option>
@@ -2258,7 +2266,7 @@
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260731e4e"></script>
+    <script src="app.js?v=20260731e4f"></script>
     <script src="p2-ui.js?v=20260717a"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

@@ -8095,6 +8095,29 @@ function visualDefaultStartIndex() {
   return 0;
 }
 
+function allVisualMonths() {
+  const byKey = new Map();
+  (baseData?.monthlyPlanning?.months || []).forEach((month, index) => {
+    byKey.set(month.key, { ...month, planningIndex: index });
+  });
+  try {
+    forecastMonths().forEach((month) => {
+      if (!byKey.has(month.key)) byKey.set(month.key, month);
+    });
+  } catch (error) {
+    // The imported planning months are enough while the model is booting.
+  }
+  return [...byKey.values()].sort((left, right) => left.key.localeCompare(right.key));
+}
+
+function visualSelectableMonths() {
+  const periodMode = qs("visualPeriodMode")?.value || "all";
+  const months = allVisualMonths();
+  if (periodMode === "open") return months.filter((month) => !isClosedMonthKey(month.key));
+  if (periodMode === "closed") return months.filter((month) => isClosedMonthKey(month.key));
+  return months;
+}
+
 function selectableMonths({ includeClosed = false } = {}) {
   try {
     if (baseData && state) {
@@ -8115,35 +8138,37 @@ function monthOptionsHtml(selectedKey = "", months = selectableMonths()) {
 }
 
 function populateVisualControls() {
-  const months = selectableMonths();
-  if (!months.length || !qs("visualStartMonth")) return;
+  const viewMonths = visualSelectableMonths();
+  const editMonths = selectableMonths();
+  if (!viewMonths.length || !qs("visualStartMonth")) return;
   const timeMode = qs("visualTimeMode")?.value || "year";
   const defaultStart = visualDefaultStartIndex();
-  const defaultEnd = timeMode === "year" ? months.length - 1 : Math.min(defaultStart + 17, months.length - 1);
-  const selectIds = [
-    "visualStartMonth",
-    "visualEndMonth",
+  const defaultEnd = timeMode === "year" ? viewMonths.length - 1 : Math.min(defaultStart + 17, viewMonths.length - 1);
+  const populateMonthSelects = (selectIds, months, startIndex, endIndex) => {
+    const monthSignature = months.map((month) => month.key).join("|");
+    selectIds.forEach((id) => {
+      const select = qs(id);
+      if (!select) return;
+      const previous = select.value;
+      const fallbackIndex = id.includes("End") ? endIndex : startIndex;
+      const selected = months.some((month) => month.key === previous) ? previous : months[fallbackIndex]?.key;
+      if (select.dataset.monthSignature !== monthSignature) {
+        select.innerHTML = monthOptionsHtml("", months);
+        select.dataset.monthSignature = monthSignature;
+      }
+      select.value = selected;
+    });
+  };
+  populateMonthSelects(["visualStartMonth", "visualEndMonth"], viewMonths, defaultStart, defaultEnd);
+  const editDefaultEnd = timeMode === "year" ? editMonths.length - 1 : Math.min(17, editMonths.length - 1);
+  populateMonthSelects([
     "visualAddStartMonth",
     "visualAddEndMonth",
     "visualEditStartMonth",
     "visualEditEndMonth",
     "visualEditMonths",
-  ];
-  const monthSignature = months.map((month) => month.key).join("|");
-  const optionHtml = visualMonthSelectorSignature === monthSignature ? null : monthOptionsHtml("", months);
-  selectIds.forEach((id) => {
-    const select = qs(id);
-    if (!select) return;
-    const previous = select.value;
-    const fallbackIndex = id.includes("End") ? defaultEnd : defaultStart;
-    const selected = months.some((month) => month.key === previous) ? previous : months[fallbackIndex]?.key;
-    if (select.dataset.monthSignature !== monthSignature) {
-      select.innerHTML = optionHtml ?? monthOptionsHtml("", months);
-      select.dataset.monthSignature = monthSignature;
-    }
-    select.value = selected;
-  });
-  visualMonthSelectorSignature = monthSignature;
+  ], editMonths, 0, editDefaultEnd);
+  visualMonthSelectorSignature = `${viewMonths.map((month) => month.key).join("|")}::${editMonths.map((month) => month.key).join("|")}`;
   populateVisualAddSections();
   populateVisualBulkEditor();
   updateVisualAddScopeUi();
@@ -8367,7 +8392,7 @@ function stageVisualBulkEdit() {
 }
 
 function visualMonths() {
-  const months = selectableMonths();
+  const months = visualSelectableMonths();
   const startKey = qs("visualStartMonth")?.value || months[visualDefaultStartIndex()]?.key;
   const defaultEndIndex = (qs("visualTimeMode")?.value || "year") === "year" ? months.length - 1 : Math.min(visualDefaultStartIndex() + 17, months.length - 1);
   const endKey = qs("visualEndMonth")?.value || months[defaultEndIndex]?.key;
@@ -8428,7 +8453,8 @@ function renderVisualColumnHeader(column) {
       </button>
     </th>`;
   }
-  return `<th class="${column.kind === "month" && visualTimeMode() === "year" ? "visual-month-header" : ""}">${escapeHtml(column.label)}</th>`;
+  const historical = column.kind === "month" && column.months.every((month) => isClosedMonthKey(month.key));
+  return `<th class="${column.kind === "month" && visualTimeMode() === "year" ? "visual-month-header" : ""} ${historical ? "visual-historical-header" : ""}">${escapeHtml(column.label)}${historical ? "<small>Histórico</small>" : ""}</th>`;
 }
 
 function toggleVisualYear(year) {
@@ -9065,10 +9091,11 @@ function renderVisualDetail() {
             const month = column.months[0];
             const info = actualAwareInfoForVisualRow(row, month);
             const value = visualCellValue(row, month, mode);
+            const historical = isClosedMonthKey(month.key);
             const placeholder = mode === "actual" && info.planned ? `prev. ${money(info.planned, true)}` : "";
             return `<td>
-              <input class="visual-amount-input" data-visual-cell data-row-key="${escapeHtml(rowKey)}" data-month-key="${month.key}" data-mode="${mode}" type="number" step="0.01" value="${amountInputValue(value)}" placeholder="${placeholder}" ${pendingDelete ? "disabled" : ""} />
-              ${mode === "actual" ? `<small class="visual-actual-status ${escapeHtml(info.status || "pending")}">${escapeHtml(info.source || "Pendiente")}</small>` : ""}
+              <input class="visual-amount-input ${historical ? "historical-value" : ""}" data-visual-cell data-row-key="${escapeHtml(rowKey)}" data-month-key="${month.key}" data-mode="${mode}" type="number" step="0.01" value="${amountInputValue(value)}" placeholder="${placeholder}" ${pendingDelete || historical ? "disabled" : ""} />
+              ${historical ? `<small class="visual-actual-status historical">Histórico · solo lectura</small>` : mode === "actual" ? `<small class="visual-actual-status ${escapeHtml(info.status || "pending")}">${escapeHtml(info.source || "Pendiente")}</small>` : ""}
             </td>`;
           })
           .join("")}
@@ -9142,7 +9169,8 @@ function renderVisualDetail() {
               if (compactYears && column.kind === "year-summary") return `<td class="visual-year-cell negative">${value ? money(value, true) : ""}</td>`;
               const month = column.months[0];
               const draft = visualProjectDraftForCell(project.id, month.key);
-              return `<td><input class="visual-amount-input ${draft ? "pending-change" : ""}" data-visual-project-cell data-project-id="${escapeHtml(project.id)}" data-month-key="${month.key}" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" ${pendingDelete ? "disabled" : ""} /></td>`;
+              const historical = isClosedMonthKey(month.key);
+              return `<td><input class="visual-amount-input ${draft ? "pending-change" : ""} ${historical ? "historical-value" : ""}" data-visual-project-cell data-project-id="${escapeHtml(project.id)}" data-month-key="${month.key}" type="number" step="0.01" value="${value ? amountInputValue(value) : ""}" ${pendingDelete || historical ? "disabled" : ""} />${historical ? `<small class="visual-actual-status historical">Histórico · solo lectura</small>` : ""}</td>`;
             })
             .join("")}
           <td>${actionCell}</td>
@@ -17058,7 +17086,7 @@ async function init() {
   qs("seriesStartMonth").addEventListener("change", updateSeriesPreview);
   qs("seriesEndMonth").addEventListener("change", updateSeriesPreview);
   qs("applySeriesChange").addEventListener("click", applySeriesChange);
-  ["visualTimeMode", "visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
+  ["visualPeriodMode", "visualTimeMode", "visualStartMonth", "visualEndMonth", "visualValueMode"].forEach((id) => {
     qs(id).addEventListener("change", renderVisualDetail);
   });
   qs("visualEditKind").addEventListener("change", () => {
