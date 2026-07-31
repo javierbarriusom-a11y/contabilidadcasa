@@ -97,6 +97,33 @@ test("un conflicto remoto queda pendiente sin reintentar automáticamente", asyn
   assert.equal(scheduled.length, 0);
 });
 
+test("recupera una revisión pendiente al abrir una sesión nueva", async () => {
+  const writes = [];
+  const queue = createRemoteSaveQueue({
+    capture: () => ({ local: "conservado" }),
+    write: async (payload, revision) => writes.push({ payload, revision }),
+  });
+
+  queue.hydrate({ requestedRevision: 4, persistedRevision: 0 });
+  assert.equal(queue.snapshot().pending, true);
+  await queue.flush();
+
+  assert.deepEqual(writes, [{ payload: { local: "conservado" }, revision: 4 }]);
+  assert.equal(queue.snapshot().pending, false);
+});
+
+test("recupera un conflicto pendiente sin lanzar una escritura", async () => {
+  let writes = 0;
+  const conflict = Object.assign(new Error("conflicto"), { code: "REMOTE_WRITE_CONFLICT", retryable: false });
+  const queue = createRemoteSaveQueue({ write: async () => { writes += 1; } });
+
+  queue.hydrate({ requestedRevision: 2, persistedRevision: 0, lastError: conflict });
+
+  assert.equal(queue.snapshot().pending, true);
+  assert.equal(queue.snapshot().lastError.code, "REMOTE_WRITE_CONFLICT");
+  assert.equal(writes, 0);
+});
+
 test("el puntero remoto se mueve solo si conserva la revisión que cargó la sesión", () => {
   assert.match(appSource, /\.eq\("snapshot_id", remoteHeadSnapshotId\)/);
   assert.match(appSource, /if \(!headResult\.error && !headResult\.data\)/);
@@ -108,4 +135,10 @@ test("una misma sesión no dispara dos cargas remotas simultáneas", () => {
   assert.match(appSource, /if \(remoteLoadedUserId === remoteUser\.id\) return Promise\.resolve\(\)/);
   assert.match(appSource, /if \(remoteLoadPromise\) return remoteLoadPromise/);
   assert.match(appSource, /if \(remoteUser && \(remoteLoadPromise \|\| remoteLoadedUserId === remoteUser\.id\)\) return/);
+});
+
+test("el arranque consulta la bandeja durable antes de cargar la nube", () => {
+  assert.match(appSource, /await readDurableRemoteSave\(\);\s*await loadRemoteState\(\);/);
+  assert.match(appSource, /expectedHead !== remoteHeadSnapshotId/);
+  assert.match(appSource, /Reanudando cambios locales pendientes de la sesión anterior/);
 });

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Prueba E1 — continuidad</title>
+    <style>
+      body { max-width: 680px; margin: 40px auto; padding: 0 20px; font: 16px/1.5 system-ui, sans-serif; }
+      label, button { display: block; margin-top: 16px; }
+      input, button { box-sizing: border-box; width: 100%; padding: 10px; font: inherit; }
+      #status { padding: 12px; border-radius: 8px; background: #eef5f4; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Prueba E1 — continuidad entre sesiones</h1>
+      <p id="status" role="status" data-state="starting">Iniciando…</p>
+      <label for="testValue">Cambio local</label>
+      <input id="testValue" value="" />
+      <button id="saveChange" type="button">Guardar y sincronizar</button>
+    </main>
+    <script src="/durable-outbox.js"></script>
+    <script src="/remote-save-queue.js"></script>
+    <script>
+      const operationId = "e1-test-user:e1-continuity";
+      const outbox = FinanceDurableOutbox.createDurableOutbox({ indexedDB: window.indexedDB, storage: window.localStorage });
+      const status = document.querySelector("#status");
+      let pendingPayload = null;
+
+      function setStatus(state, message) {
+        status.dataset.state = state;
+        status.textContent = message;
+      }
+
+      const queue = FinanceRemoteSaveQueue.createRemoteSaveQueue({
+        capture: () => pendingPayload,
+        retryDelays: [60000],
+        write: async (payload, revision) => {
+          const response = await fetch("/api/sync", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ payload, revision }),
+          });
+          if (!response.ok) throw new Error("servicio remoto no disponible");
+          await outbox.remove(operationId, revision);
+        },
+        onChange: (state) => {
+          if (state.running) setStatus("syncing", `Sincronizando revisión ${state.inFlightRevision}…`);
+          else if (state.lastError) setStatus("pending", "Pendiente remoto; copia local a salvo.");
+          else if (state.pending) setStatus("pending", "Pendiente remoto; copia local a salvo.");
+          else if (state.lastPersistedAt) setStatus("synced", `Sincronizado: ${pendingPayload?.value || "sin valor"}`);
+        },
+      });
+
+      async function resume() {
+        const record = await outbox.get(operationId);
+        if (!record) {
+          setStatus("ready", "Sin operaciones pendientes.");
+          return;
+        }
+        pendingPayload = record.payload;
+        document.querySelector("#testValue").value = pendingPayload?.value || "";
+        queue.hydrate({ requestedRevision: Math.max(1, Number(record.revision || 1)), persistedRevision: 0 });
+        await queue.flush();
+      }
+
+      document.querySelector("#saveChange").addEventListener("click", async () => {
+        pendingPayload = {
+          value: document.querySelector("#testValue").value,
+          changeId: crypto.randomUUID(),
+          savedAt: new Date().toISOString(),
+        };
+        const revision = queue.request();
+        await outbox.put({
+          id: operationId,
+          userId: "e1-test-user",
+          sourceKey: "e1-continuity",
+          revision,
+          baseHeadSnapshotId: "controlled-head",
+          payload: pendingPayload,
+        });
+        await queue.flush();
+      });
+
+      resume().catch((error) => setStatus("error", error.message));
+    </script>
+  </body>
+</html>

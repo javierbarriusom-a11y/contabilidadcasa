@@ -71,6 +71,9 @@ let supabaseClient = null;
 let remoteUser = null;
 let remoteSaveTimer = null;
 let remoteSaveQueue = null;
+let durableOutbox = null;
+let durableResumeRecord = null;
+let durableOutboxWarning = "";
 let remoteHeadSnapshotId = null;
 let remoteHeadKnown = false;
 let remoteLoadPromise = null;
@@ -1478,8 +1481,12 @@ function downloadCanonicalLedger() {
 function queueRemoteSave() {
   saveLocalSnapshot();
   scheduleCanonicalRefresh("state-change");
-  if (!remoteUser || !supabaseClient) return;
-  ensureRemoteSaveQueue().request();
+  if (!remoteUser || !supabaseClient) {
+    updateSyncUi("Cambios guardados en este equipo. Inicia sesión para sincronizarlos.", "local");
+    return;
+  }
+  const revision = ensureRemoteSaveQueue().request();
+  void stageDurableRemoteSave(revision);
   window.clearTimeout(remoteSaveTimer);
   remoteSaveTimer = window.setTimeout(() => {
     ensureRemoteSaveQueue().flush();
@@ -2002,6 +2009,59 @@ function updateSyncUi(message, tone = "local") {
   badge.classList.toggle("sync-warn", tone === "warn");
   badge.textContent = tone === "cloud" ? "Nube" : tone === "warn" ? "Aviso" : "Local";
   status.textContent = message;
+  const durability = qs("durabilityStatus");
+  const durabilityBadge = qs("durabilityBadge");
+  const durabilityText = qs("durabilityText");
+  if (!durability || !durabilityBadge || !durabilityText) return;
+  durability.classList.toggle("durability-cloud", tone === "cloud");
+  durability.classList.toggle("durability-warn", tone === "warn");
+  durability.classList.toggle("durability-local", tone === "local");
+  durabilityBadge.textContent = tone === "cloud" ? "Sincronizado" : tone === "warn" ? "Revisar" : "Local";
+  durabilityText.textContent = message;
+}
+
+function durableOutboxId(userId = remoteUser?.id) {
+  return userId ? `${userId}:${sourceStateKey()}` : "";
+}
+
+function ensureDurableOutbox() {
+  if (durableOutbox) return durableOutbox;
+  const factory = window.FinanceDurableOutbox?.createDurableOutbox;
+  if (!factory) throw new Error("No se pudo iniciar la bandeja persistente de sincronización.");
+  durableOutbox = factory({ indexedDB: window.indexedDB, storage: window.localStorage });
+  return durableOutbox;
+}
+
+async function stageDurableRemoteSave(revision, payload = appStatePayload(), baseHeadSnapshotId = remoteHeadSnapshotId) {
+  if (!remoteUser) return null;
+  return ensureDurableOutbox().put({
+    id: durableOutboxId(),
+    userId: remoteUser.id,
+    sourceKey: sourceStateKey(),
+    revision,
+    baseHeadSnapshotId: baseHeadSnapshotId ?? null,
+    payload,
+  });
+}
+
+async function clearDurableRemoteSave(revision) {
+  if (!remoteUser) return;
+  const outbox = ensureDurableOutbox();
+  const id = durableOutboxId();
+  const current = await outbox.get(id);
+  if (current && Number(current.revision || 0) > Number(revision)) {
+    await outbox.put({ ...current, baseHeadSnapshotId: remoteHeadSnapshotId ?? null });
+    durableResumeRecord = current;
+    return;
+  }
+  await outbox.remove(id, revision);
+  durableResumeRecord = null;
+}
+
+async function readDurableRemoteSave() {
+  if (!remoteUser) return null;
+  durableResumeRecord = await ensureDurableOutbox().get(durableOutboxId());
+  return durableResumeRecord;
 }
 
 function remoteSaveStatusChanged(queueState) {
@@ -2031,6 +2091,10 @@ function remoteSaveStatusChanged(queueState) {
     updateSyncUi(`Revisión ${queueState.requestedRevision} pendiente de sincronizar; guardada en este equipo.`, "local");
     return;
   }
+  if (durableOutboxWarning) {
+    updateSyncUi(`La nube está actualizada, pero no se pudo limpiar la bandeja local: ${durableOutboxWarning}. La copia local sigue a salvo.`, "warn");
+    return;
+  }
   if (queueState.lastPersistedAt) {
     updateSyncUi(
       `Revisión ${queueState.persistedRevision} sincronizada. Último guardado: ${new Date(queueState.lastPersistedAt).toLocaleString("es-ES")}.`,
@@ -2045,7 +2109,16 @@ function ensureRemoteSaveQueue() {
   if (!factory) throw new Error("No se pudo iniciar la cola segura de sincronización.");
   remoteSaveQueue = factory({
     capture: () => appStatePayload(),
-    write: (payload) => persistRemotePayload(payload),
+    write: async (payload, revision) => {
+      const result = await persistRemotePayload(payload);
+      try {
+        await clearDurableRemoteSave(revision);
+        durableOutboxWarning = "";
+      } catch (error) {
+        durableOutboxWarning = error?.message || "error de almacenamiento";
+      }
+      return result;
+    },
     onChange: remoteSaveStatusChanged,
   });
   return remoteSaveQueue;
@@ -2352,6 +2425,33 @@ async function loadRemoteStateOnce() {
       ? { mode: "compatibilidad", source: "legacy", state: legacyResult.data.state, requiresMigration: false }
       : { state: null };
 
+  if (durableResumeRecord) {
+    const queue = ensureRemoteSaveQueue();
+    const pendingRevision = Math.max(1, Number(durableResumeRecord.revision || 1));
+    const expectedHead = durableResumeRecord.baseHeadSnapshotId ?? null;
+    if (!remoteHeadKnown || expectedHead !== remoteHeadSnapshotId) {
+      const conflict = Object.assign(new Error("Otra sesión publicó cambios desde la última copia local."), {
+        code: "REMOTE_WRITE_CONFLICT",
+        retryable: false,
+      });
+      queue.hydrate({ requestedRevision: pendingRevision, persistedRevision: 0, lastError: conflict });
+      updateSyncUi("Hay cambios locales pendientes y la nube contiene otra revisión. La copia local sigue activa; revisa el conflicto antes de sincronizar.", "warn");
+      return;
+    }
+    if (durableResumeRecord.payload) {
+      applyPersistedPayload(durableResumeRecord.payload);
+      ensureCompleteFinancingSection();
+      repairFinancingSectionFromReference();
+      ensureVariableOperationalSection();
+      saveLocalSnapshot();
+      refreshFromPersistedState();
+    }
+    queue.hydrate({ requestedRevision: pendingRevision, persistedRevision: 0 });
+    updateSyncUi("Reanudando cambios locales pendientes de la sesión anterior...", "local");
+    await queue.flush();
+    return;
+  }
+
   if (authoritative.state) {
     applyPersistedPayload(authoritative.state);
     ensureCompleteFinancingSection();
@@ -2519,7 +2619,8 @@ async function persistRemotePayload(payload) {
 async function saveRemoteState(force = false) {
   if (!supabaseClient || !remoteUser) return;
   const queue = ensureRemoteSaveQueue();
-  queue.request({ immediate: force });
+  const revision = queue.request();
+  await stageDurableRemoteSave(revision);
   return queue.flush();
 }
 
@@ -2582,6 +2683,7 @@ async function handleSyncLogout() {
   remoteHeadKnown = false;
   remoteLoadPromise = null;
   remoteLoadedUserId = null;
+  durableResumeRecord = null;
   renderSyncPanel();
 }
 
@@ -2593,7 +2695,10 @@ async function setupSupabaseSync() {
   const { data } = await supabaseClient.auth.getSession();
   remoteUser = data.session?.user || null;
   renderSyncPanel();
-  if (remoteUser) await loadRemoteState();
+  if (remoteUser) {
+    await readDurableRemoteSave();
+    await loadRemoteState();
+  }
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
     const previousUserId = remoteUser?.id || null;
@@ -2605,9 +2710,13 @@ async function setupSupabaseSync() {
       remoteHeadKnown = false;
       remoteLoadPromise = null;
       remoteLoadedUserId = null;
+      durableResumeRecord = null;
     }
     renderSyncPanel();
-    if (remoteUser) await loadRemoteState();
+    if (remoteUser) {
+      await readDurableRemoteSave();
+      await loadRemoteState();
+    }
   });
 }
 

@@ -120,7 +120,21 @@
       notify();
     }
 
-    return { request, flush, snapshot, reset };
+    function hydrate(state = {}) {
+      if (running) throw new Error("No se puede recuperar la cola durante una escritura.");
+      clearRetry();
+      requestedRevision = Math.max(0, Number(state.requestedRevision || 0));
+      persistedRevision = Math.min(requestedRevision, Math.max(0, Number(state.persistedRevision || 0)));
+      inFlightRevision = 0;
+      retryAttempt = Math.max(0, Number(state.retryAttempt || 0));
+      retryScheduled = false;
+      lastError = state.lastError || null;
+      lastPersistedAt = state.lastPersistedAt || null;
+      notify();
+      return snapshot();
+    }
+
+    return { request, flush, snapshot, reset, hydrate };
   }
 
   return { createRemoteSaveQueue };
