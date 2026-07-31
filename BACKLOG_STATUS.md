@@ -149,7 +149,7 @@ para abrir la app o consultar la última copia local.
 | E1 | A0-1, A0-2 y A0-3 | El trabajo local sobrevive entre sesiones y el usuario sabe si está sincronizado |
 | E2 | A0-6, A0-7 y A0-8 | Publicación controlada, observable y sin datos personales estáticos |
 | E3 | A0-4, A0-5 y A0-9 | Apertura offline y recuperación guiada verificadas |
-| E4 | A1-1 y A1-2 | Libro remoto conciliado y cierre mensual seguro |
+| E4 | A1-1 y A1-2 | Verificada: libro remoto conciliado y cierre mensual seguro |
 | E5 | A1-3 a A1-6 | Reapertura, deshacer, migración y copias operativas |
 | E6 | A2-1, A2-2, A2-6 y A2-8 | Datos ejecutivos completos, trazables y consistentes |
 | E7 | A2-3, A2-4, A2-5 y A2-7 | Comparación financiera avanzada y segura |

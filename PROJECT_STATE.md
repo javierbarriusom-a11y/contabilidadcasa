@@ -17,8 +17,8 @@ Fecha de revisión: 31 de julio de 2026.
 - El plan visual de deuda sin WiZink se ha incorporado como sección independiente tras `Deuda y proyectos`; su estado forma parte de la copia local y del payload sincronizado con Supabase.
 - P0-6 está verificado de extremo a extremo: el selector remoto, la vista previa comparativa y `restore_finance_snapshot` crean una versión nueva, mueven el puntero activo y conservan el historial.
 - La función de restauración está desplegada en el Supabase real y se ejecutó con rol `authenticated` y `auth.uid()` del usuario. La recuperación generó un snapshot nuevo idéntico al objetivo, actualizó la cabecera, completó el registro de sincronización y preservó las 234 versiones existentes tras la operación.
-- La suite local actual pasa completa: 113 pruebas, 0 fallos.
-- La revisión estable `e149c9c` está publicada en `origin/main` y desplegada con HTTPS mediante el workflow de GitHub Pages, después de superar pruebas, privacidad y smoke test.
+- La suite local actual pasa completa: 125 pruebas, 0 fallos.
+- La revisión estable `2c793d4` está publicada en `origin/main`; el cierre funcional de E4 quedó consolidado en `d32b02a` y superó pruebas, privacidad y smoke test.
 - E1 — Continuidad entre sesiones está verificada: la aplicación carga primero la copia local, conserva
   en IndexedDB una bandeja de salida por usuario y fuente, reanuda revisiones pendientes y detiene la
   publicación ante un conflicto remoto sin sobrescribir el estado local.
@@ -109,6 +109,6 @@ Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirma
 
 ## Último commit estable
 
-- `d32b02a` — `fix: recover monthly closures from remote audit log` (31 de julio de 2026), publicado en `origin/main` y verificado tras recarga autenticada.
+- `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 125 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main`; los cambios documentales de cierre de E4 están locales y pendientes de commit. La carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.
+- La rama de trabajo es `main` y está sincronizada con `origin/main` al iniciar este cierre. No hay cambios funcionales pendientes; la carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.
