@@ -20,6 +20,7 @@ const MODEL_END_YEAR = 2036;
 const MODEL_END_MONTH = 11;
 const UxSettings = globalThis.FinanceUxSettings || null;
 const UxShell = globalThis.FinanceUxShell || null;
+const E11bInbox = globalThis.FinanceCanonicalE11b || null;
 
 const euro = new Intl.NumberFormat("es-ES", {
   style: "currency",
@@ -48,6 +49,10 @@ let incomeActuals = {};
 let expenseActuals = {};
 let monthClosures = [];
 let importBatches = [];
+let dataInbox = [];
+let updateReceipts = [];
+let e11bSettings = { enabled: true };
+let pendingE11bApply = null;
 let pendingLegacyMigrationState = null;
 let balanceSettings = {};
 let scenarioSettings = {};
@@ -616,6 +621,9 @@ function appStatePayload(options = {}) {
     expenseActuals,
     monthClosures,
     importBatches,
+    dataInbox,
+    updateReceipts,
+    e11b: { schemaId: E11bInbox?.SCHEMA_ID || "finance-e11b-update-inbox/v1", enabled: e11bSettings.enabled !== false },
     balanceSettings,
     scenarioSettings,
     customPlanningRows,
@@ -998,6 +1006,7 @@ function previewSelectedCloudSnapshotRestore() {
 }
 
 function applyPersistedPayload(payload = {}) {
+  payload = E11bInbox?.migratePayload ? E11bInbox.migratePayload(payload) : payload;
   payload = window.FinanceCanonicalState?.canonicalizePayload
     ? window.FinanceCanonicalState.canonicalizePayload(payload)
     : payload;
@@ -1022,6 +1031,9 @@ function applyPersistedPayload(payload = {}) {
   expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
   monthClosures = Array.isArray(payload.monthClosures) ? payload.monthClosures : [];
   importBatches = Array.isArray(payload.importBatches) ? payload.importBatches : [];
+  dataInbox = Array.isArray(payload.dataInbox) ? payload.dataInbox : [];
+  updateReceipts = Array.isArray(payload.updateReceipts) ? payload.updateReceipts : [];
+  e11bSettings = payload.e11b && typeof payload.e11b === "object" ? payload.e11b : { enabled: true };
   balanceSettings = payload.balanceSettings && typeof payload.balanceSettings === "object" ? payload.balanceSettings : {};
   scenarioSettings = payload.scenarioSettings && typeof payload.scenarioSettings === "object" ? payload.scenarioSettings : {};
   customPlanningRows = Array.isArray(payload.customPlanningRows) ? payload.customPlanningRows : [];
@@ -1082,6 +1094,9 @@ function saveLocalSnapshot() {
   storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
   storageSet(storageKey("monthClosures"), JSON.stringify(monthClosures));
   storageSet(storageKey("importBatches"), JSON.stringify(importBatches));
+  storageSet(storageKey("dataInbox"), JSON.stringify(dataInbox));
+  storageSet(storageKey("updateReceipts"), JSON.stringify(updateReceipts));
+  storageSet(storageKey("e11b"), JSON.stringify(e11bSettings));
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
   storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
   storageSet(storageKey("customPlanningRows"), JSON.stringify(customPlanningRows));
@@ -1652,6 +1667,20 @@ function renderReconciliation() {
       </div>`).join("")
     : `<div class="audit-empty good"><strong>Todo clasificado</strong><p>No quedan movimientos pendientes de relacionar.</p></div>`;
 
+  const taskTarget = qs("reconciliationTasks");
+  if (taskTarget && E11bInbox) {
+    const tasks = E11bInbox.reconciliationTasks({
+      unclassified,
+      differences: lines.filter((line) => Math.abs(Number(line.delta || 0)) > 0.02),
+      balanceGaps: checks.flatMap((check) => (check.gaps || []).map((gap, index) => ({ ...gap, id: `${check.accountId}-${index}`, accountId: check.accountId }))),
+    });
+    taskTarget.innerHTML = tasks.length ? tasks.slice(0, 12).map((task) => `<article class="e11b-task-item"><div><strong>${escapeHtml(task.label)}</strong><p>${task.cause === "unclassified" ? "Movimiento sin partida" : task.cause === "balance-gap" ? "Salto en la continuidad del saldo" : "Banco y real no coinciden"}. Abrir no modifica datos.</p></div><button type="button" class="secondary" data-e11b-task-target="${escapeHtml(task.target)}">${task.action === "classify" ? "Clasificar" : task.action === "adjust-balance" ? "Revisar saldo" : "Corregir real"}</button></article>`).join("") : `<div class="audit-empty good"><strong>Sin tareas pendientes</strong><p>Clasificación, saldos e importes reales están conciliados.</p></div>`;
+    taskTarget.querySelectorAll("[data-e11b-task-target]").forEach((button) => button.addEventListener("click", () => {
+      const target = button.dataset.e11bTaskTarget;
+      history.pushState(null, "", `#${target}`); setActiveView(target, { focus: true });
+    }));
+  }
+
   qs("ledgerBalanceChecks").innerHTML = checks.length
     ? checks.map((check) => `<div class="ledger-balance-item ${check.gaps.length ? "warning" : "passed"}">
         <div><strong>${escapeHtml(check.accountId)}</strong><span>${check.transactionCount} movimientos · orden ${check.orientation === "newest-first" ? "más reciente primero" : "más antiguo primero"}</span></div>
@@ -1727,6 +1756,9 @@ function loadLocalState() {
       expenseActuals: JSON.parse(storageGet(storageKey("expenseActuals"), "{}")),
       monthClosures: JSON.parse(storageGet(storageKey("monthClosures"), "[]")),
       importBatches: JSON.parse(storageGet(storageKey("importBatches"), "[]")),
+      dataInbox: JSON.parse(storageGet(storageKey("dataInbox"), "[]")),
+      updateReceipts: JSON.parse(storageGet(storageKey("updateReceipts"), "[]")),
+      e11b: JSON.parse(storageGet(storageKey("e11b"), "{}")),
       balanceSettings: JSON.parse(storageGet(storageKey("balanceSettings"), "{}")),
       scenarioSettings: JSON.parse(storageGet(storageKey("scenarioSettings"), "{}")),
       customPlanningRows: JSON.parse(storageGet(storageKey("customPlanningRows"), "[]")),
@@ -1750,6 +1782,9 @@ function loadLocalState() {
     expenseActuals = {};
     monthClosures = [];
     importBatches = [];
+    dataInbox = [];
+    updateReceipts = [];
+    e11bSettings = { enabled: true };
     balanceSettings = {};
     scenarioSettings = {};
     customPlanningRows = [];
@@ -14857,28 +14892,49 @@ async function handleMovementExcelImport(event) {
       qs("movementImportStatus").innerHTML = `<strong>Sin movimientos detectados</strong><p>El fichero debe incluir una hoja Movimientos_cuenta con Fecha, Movimiento, Importe y Saldo.</p>`;
       return;
     }
-    baseData.transactions = mergeTransactions(baseData.transactions || [], imported);
-    refreshMovementRollups();
-    const latest = latestStatementBalance(imported);
-    const balances = applyMovementBalance(latest);
-    const appliedActuals = applyMovementMappingsToActuals();
-    pendingMovementMappings = buildPendingMovementMappings(imported);
-    saveWorkbookOverride();
-    saveIncomeActuals();
-    saveExpenseActuals();
-    saveLocalSnapshot();
-    queueRemoteSave();
-    refreshAllSectionsAfterDataChange();
-    const balanceText = balances
-      ? `Saldo CaixaBank actualizado a ${money(balances.caixa, true)} con fecha ${formatIsoDate(latest.date)}.`
-      : "No se encontró saldo final utilizable en el fichero.";
-    qs("movementImportStatus").innerHTML = `<strong>${imported.length} movimiento(s) importado(s)</strong><p>${balanceText} ${appliedActuals} real(es) aplicados. ${pendingMovementMappings.length} relación(es) pendiente(s).</p>`;
-    renderMovementImportReview();
+    const before = baseData.transactions || [];
+    const merged = mergeTransactions(before, imported);
+    const comparison = E7Analysis?.compareImport(before, merged, { invariants: { finiteMovements: imported.every((row) => Number.isFinite(Number(row.amount))) } }) || { valid: true, additions: imported, changes: [], duplicates: [], removals: [] };
+    const inboxItem = addE11bInboxItem({ source: "bank-statement", fileName: file.name, sourceLabel: file.name, bankStatement: true, rows: imported, comparison, legacyAdapter: "movement-import" });
+    pendingE11bApply = { imported, inboxItem };
+    qs("movementImportStatus").innerHTML = `<strong>Vista previa · aún no se ha incorporado nada</strong><p>${comparison.additions?.length || 0} alta(s), ${comparison.duplicates?.length || 0} duplicado(s) y ${buildPendingMovementMappings(imported).length} relación(es) por revisar.</p><div class="data-actions"><button id="confirmMovementInbox" type="button" ${comparison.valid === false ? "disabled" : ""}>Confirmar extracto</button><button id="cancelMovementInbox" class="secondary" type="button">Cancelar</button></div>`;
+    qs("confirmMovementInbox")?.addEventListener("click", applyStagedMovementImport);
+    qs("cancelMovementInbox")?.addEventListener("click", () => {
+      pendingE11bApply = null;
+      if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
+      saveLocalSnapshot(); renderE11bStatus();
+      qs("movementImportStatus").innerHTML = `<strong>Importación cancelada</strong><p>El extracto se descartó sin modificar los datos.</p>`;
+    });
   } catch (error) {
     qs("movementImportStatus").innerHTML = `<strong>No se pudo importar el extracto</strong><p>${escapeHtml(error.message || "Revisa el formato del Excel.")}</p>`;
   } finally {
     event.target.value = "";
   }
+}
+
+function applyStagedMovementImport() {
+  const pending = pendingE11bApply;
+  if (!pending?.imported?.length) return;
+  const beforeState = appStatePayload({ includeCanonical: false });
+  const imported = pending.imported;
+  baseData.transactions = mergeTransactions(baseData.transactions || [], imported);
+  refreshMovementRollups();
+  const latest = latestStatementBalance(imported);
+  const balances = applyMovementBalance(latest);
+  const appliedActuals = applyMovementMappingsToActuals();
+  pendingMovementMappings = buildPendingMovementMappings(imported);
+  saveWorkbookOverride(); saveIncomeActuals(); saveExpenseActuals();
+  const batch = window.FinanceCanonicalE5?.createImportBatch(beforeState, appStatePayload({ includeCanonical: false }), {
+    sourceLabel: pending.inboxItem?.sourceLabel || "Extracto bancario", reason: pending.inboxItem?.sourceLabel || "Extracto bancario", recordCount: imported.length,
+    afterFingerprint: window.FinanceCanonicalSupabaseStore?.fingerprintPayload(appStatePayload({ includeCanonical: false })),
+  });
+  if (batch) importBatches.push(batch);
+  saveLocalSnapshot(); queueRemoteSave(); refreshAllSectionsAfterDataChange();
+  applyE11bReceipt(pending.inboxItem, { batchId: batch?.id || "", changed: { records: imported.length, movements: imported.length, actuals: appliedActuals, balances: balances ? 1 : 0 } });
+  const balanceText = balances ? `Saldo CaixaBank actualizado a ${money(balances.caixa, true)} con fecha ${formatIsoDate(latest.date)}.` : "No se encontró saldo final utilizable.";
+  qs("movementImportStatus").innerHTML = `<strong>Extracto confirmado</strong><p>${imported.length} movimiento(s). ${balanceText} ${appliedActuals} real(es) recalculados; ${pendingMovementMappings.length} relación(es) pendientes.</p>`;
+  pendingE11bApply = null;
+  renderMovementImportReview();
 }
 
 function formatIsoDate(value) {
@@ -15298,7 +15354,7 @@ function refreshAllSectionsAfterDataChange() {
   seriesEditorSignature = "";
   simulationSignature = "";
   render();
-  if (viewFromHash() === "data-entry") populateDataEntryControls();
+  if (viewFromHash() === "data-entry") { populateDataEntryControls(); renderE11bStatus(); }
 }
 
 function findPlanningRow(kind, sectionName, label, month) {
@@ -15443,6 +15499,68 @@ function processDataRecords(records, sourceLabel = "datos") {
     `Origen: ${sourceLabel}. ${planningRows} concepto(s), ${projectRows} proyecto(s) y ${debtRows} liquidación(es) de deuda procesados. ${fullRefreshMessage()}${warningText}`,
     warnings.length ? "warning" : "",
   );
+  return { imported, projectRows, debtRows, planningRows, warnings, batchId: importBatches.at(-1)?.id || "" };
+}
+
+function e11bAreaLabel(key) {
+  return { balances: "Saldos", movements: "Movimientos", actuals: "Reales", forecast: "Previsión", debt: "Deuda" }[key] || key;
+}
+
+function renderE11bStatus() {
+  if (!E11bInbox) return;
+  const toggle = qs("toggleDataInbox");
+  if (toggle) {
+    const enabled = e11bSettings.enabled !== false;
+    toggle.textContent = enabled ? "Bandeja activa" : "Compatibilidad clásica";
+    toggle.setAttribute("aria-pressed", String(enabled));
+  }
+  const summary = qs("dataInboxSummary");
+  if (summary) {
+    const items = dataInbox.slice(-4).reverse();
+    summary.innerHTML = items.length ? items.map((item) => {
+      const counts = item.comparison || {};
+      const status = { ready: "Lista para confirmar", blocked: "Requiere revisión", applied: "Aplicada", undone: "Deshecha", discarded: "Descartada" }[item.status] || item.status;
+      return `<article class="e11b-inbox-item"><strong>${escapeHtml(item.sourceLabel)} · ${escapeHtml(status)}</strong><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
+    }).join("") : `<article class="e11b-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
+  }
+  const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: String(key).match(/\d{4}-\d{2}/)?.[0] ? `${String(key).match(/\d{4}-\d{2}/)[0]}-01` : "" }));
+  const report = E11bInbox.freshness({
+    balanceDate: state?.balanceDate || balanceSettings.balanceDate || "",
+    movements: baseData?.transactions || [], actuals: actualMonths,
+    forecastDate: baseData?.metadata?.generatedAt?.slice(0, 10) || "",
+    debtDate: canonicalDebtContractRows().length ? (baseData?.metadata?.generatedAt?.slice(0, 10) || "") : "",
+  }, { asOf: new Date().toISOString().slice(0, 10) });
+  const freshness = qs("updateFreshness");
+  if (freshness) freshness.innerHTML = Object.entries(report.areas).map(([key, area]) => `<article class="e11b-freshness-item"><strong>${escapeHtml(e11bAreaLabel(key))}</strong><p>${area.through ? `Hasta ${escapeHtml(formatIsoDate(area.through))}` : `Falta ${escapeHtml(area.missing.join(", "))}`} · ${area.status === "current" ? "al día" : area.status === "stale" ? "revisar frescura" : "incompleto"}</p></article>`).join("");
+}
+
+function addE11bInboxItem(input) {
+  if (!E11bInbox || e11bSettings.enabled === false) return null;
+  const item = E11bInbox.buildInboxItem(input);
+  dataInbox.push(item);
+  saveLocalSnapshot();
+  renderE11bStatus();
+  return item;
+}
+
+function applyE11bReceipt(item, result = {}) {
+  if (!item || !E11bInbox) return;
+  const latestBatch = result.batchId || importBatches.filter((batch) => batch.status === "applied").at(-1)?.id || "";
+  const receiptId = `receipt-${Date.now()}`;
+  const applied = E11bInbox.transition(item, "applied", { batchId: latestBatch, receiptId });
+  dataInbox = dataInbox.map((entry) => entry.id === item.id ? applied : entry);
+  const receipt = E11bInbox.buildReceipt(applied, { ...result, batchId: latestBatch, recalculated: ["cuadro de mandos", "conciliación", "previsión", "deuda y ahorro"] }, { id: receiptId });
+  updateReceipts.push(receipt);
+  saveLocalSnapshot();
+  renderE11bStatus();
+  showImportLog("Actualización confirmada", `${receipt.changed.records} registro(s) incorporados. Se recalcularon ${receipt.recalculated.join(", ")}. ${receipt.undoAvailable ? "Puedes deshacer el lote desde esta pantalla." : "La revisión queda registrada."}`, "success");
+}
+
+function toggleE11bInbox() {
+  e11bSettings = { ...e11bSettings, enabled: e11bSettings.enabled === false };
+  saveLocalSnapshot();
+  renderE11bStatus();
+  showImportLog(e11bSettings.enabled ? "Bandeja previa activada" : "Compatibilidad clásica activada", e11bSettings.enabled ? "Las nuevas importaciones volverán a pasar por el asistente común." : "Los flujos anteriores siguen disponibles; no se ha perdido ninguna entrada.", "warning");
 }
 
 async function undoLastImportBatch() {
@@ -15456,6 +15574,8 @@ async function undoLastImportBatch() {
   });
   if (!reason) return;
   try {
+    const undoneInbox = dataInbox.find((item) => item.batchId === batch.id && item.status === "applied");
+    const previousReceipt = updateReceipts.find((item) => item.batchId === batch.id);
     const next = window.FinanceCanonicalE5.undoImportBatch(appStatePayload({ includeCanonical: false }), batch.id, { reason });
     if (remoteUser && remoteHeadSnapshotId) {
       const store = window.FinanceCanonicalSupabaseStore;
@@ -15468,7 +15588,10 @@ async function undoLastImportBatch() {
       if (result.error) throw result.error;
       remoteHeadSnapshotId = newSnapshotId;
     }
-    applyPersistedPayload(next); saveLocalSnapshot(); refreshFromPersistedState();
+    applyPersistedPayload(next);
+    if (undoneInbox) dataInbox = dataInbox.map((item) => item.id === undoneInbox.id ? { ...undoneInbox, status: "undone", step: "undone", undoneAt: new Date().toISOString(), undoReason: reason } : item);
+    if (previousReceipt && !updateReceipts.some((item) => item.id === previousReceipt.id)) updateReceipts.push({ ...previousReceipt, undoneAt: new Date().toISOString(), undoReason: reason });
+    saveLocalSnapshot(); refreshFromPersistedState(); renderE11bStatus();
     showImportLog("Importación deshecha", "Se creó una revisión nueva; el lote y su estado anterior siguen en el historial.");
   } catch (error) { showImportLog("No se pudo deshacer", error.message, "danger"); }
 }
@@ -15568,6 +15691,7 @@ function stageE7Import(records, sourceLabel) {
   const comparison = E7Analysis.compareImport(before, [...merged.values(), ...incoming.filter((item, index) => incoming.findIndex((other) => other.id === item.id) !== index)], {
     invariants: { recognizableRows: incoming.every((item) => item.label && item.month) },
   });
+  const inboxItem = addE11bInboxItem({ source: sourceLabel === "lote pegado" ? "pasted-table" : "csv", sourceLabel, rows: incoming, comparison, legacyAdapter: "processDataRecords" });
   pendingE7Import = { records, sourceLabel, comparison };
   const log = qs("dataImportLog");
   log.classList.toggle("danger", !comparison.valid);
@@ -15576,10 +15700,15 @@ function stageE7Import(records, sourceLabel) {
     <div class="data-actions"><button id="confirmE7Import" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar e importar</button><button id="cancelE7Import" class="secondary" type="button">Cancelar</button></div>`;
   qs("confirmE7Import")?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
-    if (pending) processDataRecords(pending.records, pending.sourceLabel);
+    if (pending) {
+      const result = processDataRecords(pending.records, pending.sourceLabel);
+      applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.imported } });
+    }
   });
   qs("cancelE7Import")?.addEventListener("click", () => {
     pendingE7Import = null;
+    if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
+    saveLocalSnapshot(); renderE11bStatus();
     showImportLog("Importación cancelada", "La vista previa se descartó sin modificar los datos.");
   });
 }
@@ -15594,6 +15723,7 @@ function stageE7Workbook(nextData, fileName) {
       finiteMovements: after.every((item) => Number.isFinite(item.amount)),
     },
   });
+  const inboxItem = addE11bInboxItem({ source: "excel-workbook", fileName, sourceLabel: fileName, rows: after, comparison, legacyAdapter: "applyImportedWorkbookData" });
   pendingE7Import = { nextData, sourceLabel: fileName, comparison, kind: "workbook" };
   const log = qs("dataImportLog");
   log.classList.toggle("danger", !comparison.valid);
@@ -15602,10 +15732,15 @@ function stageE7Workbook(nextData, fileName) {
     <div class="data-actions"><button id="confirmE7Workbook" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar y sustituir modelo</button><button id="cancelE7Workbook" class="secondary" type="button">Cancelar</button></div>`;
   qs("confirmE7Workbook")?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
-    if (pending?.nextData) applyImportedWorkbookData(pending.nextData, pending.sourceLabel);
+    if (pending?.nextData) {
+      const result = applyImportedWorkbookData(pending.nextData, pending.sourceLabel);
+      applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.recordCount, movements: result.movementCount } });
+    }
   });
   qs("cancelE7Workbook")?.addEventListener("click", () => {
     pendingE7Import = null;
+    if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
+    saveLocalSnapshot(); renderE11bStatus();
     showImportLog("Importación cancelada", "El libro se descartó sin sustituir el modelo actual.");
   });
 }
@@ -15620,6 +15755,7 @@ function handleBatchImport() {
 }
 
 function applyImportedWorkbookData(nextData, fileName) {
+  const beforeState = appStatePayload({ includeCanonical: false });
   baseData = nextData;
   ensureCompleteFinancingSection();
   ensureVariableOperationalSection();
@@ -15643,11 +15779,17 @@ function applyImportedWorkbookData(nextData, fileName) {
   const monthCount = baseData.monthlyPlanning?.months?.length || 0;
   const sectionCount = baseData.monthlyPlanning?.sections?.length || 0;
   const transactionCount = baseData.transactions?.length || 0;
+  const batch = window.FinanceCanonicalE5?.createImportBatch(beforeState, appStatePayload({ includeCanonical: false }), {
+    sourceLabel: fileName, reason: fileName, recordCount: transactionCount + sectionCount,
+    afterFingerprint: window.FinanceCanonicalSupabaseStore?.fingerprintPayload(appStatePayload({ includeCanonical: false })),
+  });
+  if (batch) { importBatches.push(batch); saveLocalSnapshot(); queueRemoteSave(); }
   showImportLog(
     "Libro Excel cargado completo",
     `${fileName}: ${monthCount} meses, ${sectionCount} bloques de planificación y ${transactionCount} movimientos incorporados al modelo. ${fullRefreshMessage()}`,
     "success",
   );
+  return { batchId: batch?.id || "", recordCount: transactionCount + sectionCount, movementCount: transactionCount };
 }
 
 async function handleExcelImport(event) {
@@ -17481,6 +17623,7 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "data-entry":
       populateDataEntryControls();
+      renderE11bStatus();
       break;
     case "data-audit":
       renderDataAudit();
@@ -17716,6 +17859,7 @@ async function init() {
   qs("addManualData").addEventListener("click", handleManualData);
   qs("importBatchData").addEventListener("click", handleBatchImport);
   qs("undoLastImport")?.addEventListener("click", undoLastImportBatch);
+  qs("toggleDataInbox")?.addEventListener("click", toggleE11bInbox);
   qs("exportStateBackup")?.addEventListener("click", downloadStateBackup);
   qs("prepareCloudRestore")?.addEventListener("click", prepareCloudSnapshotRestore);
   qs("previewCloudRestore")?.addEventListener("click", previewSelectedCloudSnapshotRestore);

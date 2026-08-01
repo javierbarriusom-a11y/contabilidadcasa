@@ -8,7 +8,7 @@
   const BACKUP_FORMAT = "finanzas-casa-backup";
   const BACKUP_VERSION = 1;
   const ARRAY_FIELDS = ["projects", "debtLiquidations", "decisionEvents", "customPlanningRows"];
-  const OPTIONAL_ARRAY_FIELDS = ["monthClosures"];
+  const OPTIONAL_ARRAY_FIELDS = ["monthClosures", "importBatches", "dataInbox", "updateReceipts"];
   const OBJECT_FIELDS = [
     "incomeActuals",
     "expenseActuals",
@@ -19,7 +19,7 @@
     "rowLabelOverrides",
     "movementMappings",
   ];
-  const OPTIONAL_OBJECT_FIELDS = ["debtRoadmapState"];
+  const OPTIONAL_OBJECT_FIELDS = ["debtRoadmapState", "e11b"];
 
   function isPlainObject(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return false;

@@ -3057,6 +3057,17 @@ svg {
   line-height: 1.45;
 }
 
+.e11b-inbox-card { grid-column: 1 / -1; }
+.e11b-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin: .8rem 0; padding: 0; list-style: none; }
+.e11b-steps li { border: 1px solid var(--line); border-radius: 999px; padding: .55rem .75rem; background: var(--surface-soft); font-weight: 700; text-align: center; }
+.e11b-inbox-summary, .e11b-freshness { display: grid; gap: .65rem; }
+.e11b-inbox-item, .e11b-freshness-item, .e11b-task-item { border: 1px solid var(--line); border-radius: 14px; padding: .8rem; background: var(--surface); }
+.e11b-inbox-item p, .e11b-freshness-item p, .e11b-task-item p { margin: .3rem 0 0; color: var(--muted); }
+.e11b-freshness { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: .8rem; }
+.e11b-task-list { display: grid; gap: .65rem; }
+.e11b-task-item { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+@media (max-width: 760px) { .e11b-steps, .e11b-freshness { grid-template-columns: 1fr; } .e11b-task-item { align-items: stretch; flex-direction: column; } }
+
 .state-safety-card {
   margin-top: 18px;
 }

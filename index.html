@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
     <link rel="manifest" href="manifest.webmanifest?v=20260731e3" />
-    <link rel="stylesheet" href="styles.css?v=20260801e11a2" />
+    <link rel="stylesheet" href="styles.css?v=20260801e11b1" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
   </head>
   <body>
@@ -1784,6 +1784,22 @@
               </div>
             </div>
 
+            <article class="data-card e11b-inbox-card" aria-labelledby="dataInboxTitle">
+              <div class="module-heading with-action">
+                <div>
+                  <p class="panel-kicker">Bandeja previa común</p>
+                  <h3 id="dataInboxTitle">Revisar antes de incorporar</h3>
+                  <p>CSV, Excel, tablas pegadas y extractos siguen el mismo recorrido: detectar, comparar, confirmar y recibir justificante.</p>
+                </div>
+                <button id="toggleDataInbox" class="secondary" type="button" aria-pressed="true">Bandeja activa</button>
+              </div>
+              <ol class="e11b-steps" aria-label="Pasos del asistente">
+                <li>1. Origen</li><li>2. Columnas</li><li>3. Comparación</li><li>4. Confirmación</li>
+              </ol>
+              <div id="dataInboxSummary" class="e11b-inbox-summary" role="status" aria-live="polite"></div>
+              <div id="updateFreshness" class="e11b-freshness"></div>
+            </article>
+
             <div class="data-import-grid">
               <article class="data-card">
                 <div class="module-heading">
@@ -2079,6 +2095,10 @@
 
             <div class="audit-kpi-grid" id="ledgerKpis"></div>
             <div class="ledger-invariant-grid" id="ledgerInvariantSummary"></div>
+            <article class="ledger-panel e11b-task-panel">
+              <div class="module-heading"><div><p class="panel-kicker">Siguiente acción segura</p><h3>Conciliación por tareas</h3><p>Las diferencias se agrupan por causa; abrir una tarea no escribe ni corrige nada automáticamente.</p></div></div>
+              <div id="reconciliationTasks" class="e11b-task-list"></div>
+            </article>
 
             <article class="ledger-panel canonical-engine-panel">
               <div class="module-heading with-action">
@@ -2409,6 +2429,7 @@
     <script src="canonical-e9-notifications.js?v=20260801e9a"></script>
     <script src="canonical-e9-banking.js?v=20260801e9b"></script>
     <script src="canonical-e9-bank-import.js?v=20260801e9b"></script>
+    <script src="canonical-e11b-inbox.js?v=20260801e11b1"></script>
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>
     <script src="canonical-workflow.js?v=20260714a"></script>
@@ -2423,7 +2444,7 @@
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260801e11a"></script>
+    <script src="app.js?v=20260801e11b1"></script>
     <script src="p2-ui.js?v=20260801e9c"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
