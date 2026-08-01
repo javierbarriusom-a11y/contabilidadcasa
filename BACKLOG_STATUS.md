@@ -206,3 +206,7 @@ La puerta local pasa con 136/136 pruebas, construcción pública, privacidad y s
 
 El cierre completo de E5 quedó publicado en `origin/main` mediante `4431939`. La validación de cierre
 del 01/08/2026 repitió con éxito 136/136 pruebas, construcción, privacidad, smoke test y `git diff --check`.
+
+E6 quedó cerrada y publicada en `origin/main` mediante `e51fe07` el 01/08/2026. La validación final repitió
+148/148 pruebas, construcción pública, privacidad, smoke test y `git diff --check`; Actions completó el
+despliegue y Pages sirve `version.json` con la revisión `e51fe07`. El siguiente objetivo es E7.

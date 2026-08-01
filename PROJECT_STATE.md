@@ -119,11 +119,12 @@ Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explic
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en el estado local revisado (136/136 pruebas pasan).
+- No hay fallos automatizados conocidos en el estado local revisado (148/148 pruebas pasan).
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
   recuperación autenticadas están verificadas.
-- La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
+- La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de `e51fe07` completado
+  con éxito y `version.json` sirviendo esa revisión pública.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - La conciliación, el cierre, la reapertura, el deshacer por lote y la verificación de copias están
   desplegados y aceptados en el Supabase real. Durante la aceptación se corrigieron referencias SQL
@@ -137,7 +138,8 @@ Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explic
   la migración explícita conservando una copia local antes de elegir entre revisiones.
 - Durante el QA previo, el navegador local recuperó una sesión Supabase ya autenticada y sincronizó la
   copia local normal; no se introdujeron datos de prueba en el proyecto remoto.
-- La cobertura de procedencia y confianza no alcanza todavía todos los KPI; los efectos legales y fiscales requieren fuentes verificadas y revisión profesional.
+- Todos los KPI ejecutivos exponen procedencia y confianza; los que carecen de respaldo suficiente quedan
+  marcados con confianza baja. Los efectos legales y fiscales de E7 requieren fuentes verificadas y revisión profesional.
 - La documentación de backlog y la hoja de ruta discrepan en varios estados y fechas de corte, por lo que `ROADMAP_EXECUTION.md` se toma como criterio conservador de finalización.
 - El 31/07/2026 Pages cambió de `build_type: legacy` a `workflow`; el commit funcional de E2
   `23d07dd` quedó publicado en `origin/main`. La primera ejecución de CI detectó una opción de caché
@@ -162,8 +164,12 @@ Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explic
 
 ## Último commit estable
 
-- El último commit estable es `41b2060` en `main` y `origin/main`. El cierre E6 está únicamente en cambios
-  locales sin commit; `.agents/` continúa sin seguimiento y debe preservarse fuera de la entrega.
+- El último commit estable es `e51fe07` (`feat: complete and verify E6 executive data quality`) en `main`
+  y `origin/main`. No quedan cambios de producto pendientes; `.agents/` continúa sin seguimiento y debe
+  preservarse fuera de cualquier entrega.
+
+- `e51fe07` — cierre funcional y documental de E6 (1 de agosto de 2026), publicado y desplegado en Pages;
+  incluye la interfaz de cobertura/calidad, persistencia, recuperación autenticada y 148 pruebas.
 
 - `4431939` — `feat: verify and close E5 remote recovery` (1 de agosto de 2026), publicado en
   `origin/main`; incluye la aceptación remota, las correcciones SQL, el diálogo accesible y el cierre documental.
@@ -176,6 +182,6 @@ Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explic
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 136 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main` y está sincronizada con `origin/main` en `4431939` antes de este cierre
+- La rama de trabajo es `main` y está sincronizada con `origin/main` en `e51fe07` antes de este cierre
   documental. No hay cambios de producto pendientes; la carpeta `.agents/` sigue sin seguimiento,
   preservada y fuera de cualquier commit propuesto.
