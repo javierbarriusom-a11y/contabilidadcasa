@@ -163,6 +163,34 @@
     bindFamilyExportEvents(target, rows);
   }
 
+  function renderE9ActivationStatus() {
+    const target = mount("data-entry", "e9-activation-status", "beforeend", panel(
+      "e9-activation-status",
+      "E9 · Servicios opcionales",
+      "Pendientes de activación externa",
+      "Los contratos de seguridad están preparados localmente, pero estos servicios todavía no tratan ni comparten datos reales.",
+    ));
+    if (!target) return;
+    const services = [
+      ["Hogar compartido", "Sin invitaciones ni acceso remoto", "Requiere políticas desplegadas y prueba con dos cuentas independientes."],
+      ["Asistente y borradores", "OpenAI API sin conectar", "Se activará desde backend privado, sin almacenamiento, tras elegir el modelo mediante pruebas."],
+      ["Avisos en segundo plano", "Web push remoto desactivado", "Las notificaciones del navegador actuales siguen siendo pruebas locales."],
+      ["Banca e importación", "Sin cuentas conectadas", "CSV, Excel y entrada manual siguen disponibles hasta contratar y validar el proveedor PSD2."],
+    ];
+    target.querySelector("[data-p2-body]").innerHTML = `
+      <div class="e9-activation-grid">${services.map(([name, stateLabel, detail]) => `
+        <article class="e9-activation-card">
+          <span class="e9-pending-badge">Pendiente de activación</span>
+          <h4>${esc(name)}</h4>
+          <strong>${esc(stateLabel)}</strong>
+          <p>${esc(detail)}</p>
+        </article>`).join("")}</div>
+      <div class="p2-notice e9-activation-note">
+        <strong>La publicación es segura con estos servicios desactivados.</strong>
+        <p>No se ha compartido ningún dato, no hay conexiones bancarias y ninguna acción remota puede escribir en el plan.</p>
+      </div>`;
+  }
+
   function familyRow(row, p2) {
     const typeLabel = row.kind === "income" ? "Ingreso" : row.kind === "debt" ? "Deuda" : "Gasto";
     return `<tr data-owner-row="${esc(p2.ownership[row.key])}"><td>${typeLabel}</td><td><strong>${esc(row.label)}</strong><br><small>${esc(row.sectionName || "")}</small></td><td><select class="p2-owner-select" data-owner-key="${esc(row.key)}">${ownerOptions(p2.ownership[row.key])}</select></td><td><code>${esc(row.key)}</code></td></tr>`;
@@ -265,7 +293,7 @@
     const target = mount("alerts-center", "p2-alert-channels", "beforeend", panel("p2-alert-channels", "Entrega y silencios", "Canales configurables", "Elige cómo recibir cada alerta. Navegador usa notificaciones del dispositivo; email prepara un mensaje para enviar sin compartir datos automáticamente."));
     if (!target) return;
     const p2 = state(); const alerts = bridge().alerts();
-    target.querySelector("[data-p2-body]").innerHTML = `<div data-alert-notice></div><div class="p2-list">${alerts.map((alert) => {
+    target.querySelector("[data-p2-body]").innerHTML = `<div class="p2-notice"><strong>Web push remoto desactivado.</strong><p>Las pruebas del navegador son locales. No se enviarán avisos en segundo plano hasta desplegar el backend y conceder consentimiento.</p></div><div data-alert-notice></div><div class="p2-list">${alerts.map((alert) => {
       const delivery = p2.alertDeliveries[alert.id] || { channel: "app", externalTarget: "", muteUntil: "" };
       const muted = domain().alertMuted(delivery);
       return `<div class="p2-item" data-alert-id="${esc(alert.id)}"><div class="p2-item-head"><div><h4>${esc(alert.name || alert.label || "Alerta")}</h4><p class="p2-help">${alert.triggered ? "Umbral superado" : alert.overdue ? "Revisión vencida" : "En control"}</p></div><span class="p2-status${alert.triggered ? " danger" : alert.overdue || muted ? " warn" : ""}">${muted ? "Silenciada" : alert.triggered ? "Actuar" : "Activa"}</span></div><div class="p2-grid three"><label class="p2-field"><span>Canal</span><select name="channel"><option value="app" ${delivery.channel === "app" ? "selected" : ""}>En la app</option><option value="browser" ${delivery.channel === "browser" ? "selected" : ""}>Notificación navegador</option><option value="email" ${delivery.channel === "email" ? "selected" : ""}>Preparar email</option></select></label><label class="p2-field"><span>Email destino</span><input name="externalTarget" type="email" value="${esc(delivery.externalTarget || "")}" placeholder="familia@correo.com" /></label><label class="p2-field"><span>Silenciar hasta</span><input name="muteUntil" type="date" value="${esc(delivery.muteUntil || "")}" /></label></div><div class="p2-actions"><button class="p2-button" type="button" data-alert-save>Guardar canal</button><button class="p2-button secondary" type="button" data-alert-test>Probar</button></div></div>`;
@@ -290,7 +318,7 @@
   function render(viewId) {
     if (!bridge() || !domain()) return;
     if (viewId === "savings-agent") renderGoals();
-    if (viewId === "data-entry") renderFamilyAndExport();
+    if (viewId === "data-entry") { renderFamilyAndExport(); renderE9ActivationStatus(); }
     if (viewId === "movements") renderBehavior();
     if (viewId === "debt-control") renderDocuments();
     if (viewId === "alerts-center") renderAlertChannels();

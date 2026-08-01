@@ -29,9 +29,9 @@ conflictos remotos o un despliegue defectuoso.
 | P0 Integridad estructural | 6 | 6 | 0 | 0 | 0 | Base canónica, sincronización y restauración verificadas |
 | P1 Decisión y tesorería | 8 | 8 | 0 | 0 | 0 | E6 y E7 están verificadas de extremo a extremo |
 | P2 Planificación familiar | 6 | 6 | 0 | 0 | 0 | Funcionalidad verificada; quedan mejoras no bloqueantes |
-| P3 Servicios externos | 3 | 0 | 0 | 0 | 3 | Requiere diseño privado y proveedores externos |
+| P3 Servicios externos | 3 | 0 | 3 | 0 | 0 | Contratos locales implementados; activación y aceptación externas pendientes |
 | UX Experiencia principal | 6 | 6 | 0 | 0 | 0 | Experiencia principal verificada en escritorio y móvil |
-| **Total roadmap inicial** | **29** | **26** | **0** | **0** | **3** | **El siguiente trabajo no debe reabrir lo ya verificado** |
+| **Total roadmap inicial** | **29** | **26** | **3** | **0** | **0** | **E9 no pasa a verificado hasta activar y aceptar cada servicio externo** |
 
 ### Correcciones respecto al backlog anterior
 
@@ -141,12 +141,12 @@ para abrir la app o consultar la última copia local.
 
 | ID | Fase | Desarrollo | Estado | Prioridad | Condición previa |
 | --- | --- | --- | --- | --- | --- |
-| A4-1 | P3-1 | Capa de conexión bancaria regulada y solo lectura | Pendiente externo | Baja | Proveedor PSD2, consentimiento revocable, evaluación de seguridad y fallback manual probado |
-| A4-2 | Nuevo | Importación bancaria programada | Pendiente | Baja | A4-1 y deduplicación idempotente; nunca modifica decisiones automáticamente |
-| A4-3 | P3-2 | Asistente privado y trazable | Pendiente externo | Baja | Backend privado, minimización de datos, autenticación y respuestas reproducibles con fuentes |
-| A4-4 | P3-3 | Borradores conversacionales confirmables | Pendiente | Baja | A4-3; toda escritura muestra antes/después, exige confirmación y genera auditoría |
-| A4-5 | Nuevo | Notificaciones remotas opcionales | Pendiente | Baja | Backend seguro, consentimiento por canal y ausencia de importes sensibles en notificaciones bloqueadas |
-| A4-6 | Nuevo | Presupuestos y escenarios compartidos del hogar | Pendiente | Baja | Modelo de permisos, titularidad, conflictos y revocación; sin compartir credenciales |
+| A4-1 | P3-1 | Capa de conexión bancaria regulada y solo lectura | Implementado | Baja | Contrato y fallback local listos; pendiente contratar proveedor PSD2 y aceptar consentimiento/revocación reales |
+| A4-2 | Nuevo | Importación bancaria programada | Implementado | Baja | Bandeja idempotente y programación listas; pendiente backend, proveedor y aceptación real |
+| A4-3 | P3-2 | Asistente privado y trazable | Implementado | Baja | Decidido OpenAI Responses API desde backend privado y sin almacenamiento; pendiente elegir modelo y conectar |
+| A4-4 | P3-3 | Borradores conversacionales confirmables | Implementado | Baja | Catálogo, vista previa y doble confirmación listos; la ejecución remota permanece desactivada |
+| A4-5 | Nuevo | Notificaciones remotas opcionales | Implementado | Baja | Contrato seguro y preferencias listos; pendiente backend web push y consentimiento real |
+| A4-6 | Nuevo | Presupuestos y escenarios compartidos del hogar | Implementado | Baja | Permisos, invitaciones y revocación definidos; pendiente desplegar políticas y probar dos cuentas |
 
 ## 5. Secuencia recomendada de entregas
 
@@ -160,7 +160,7 @@ para abrir la app o consultar la última copia local.
 | E6 | A2-1, A2-2, A2-6 y A2-8 | Verificada: datos ejecutivos completos, trazables y consistentes |
 | E7 | A2-3, A2-4, A2-5 y A2-7 | Comparación financiera avanzada y segura |
 | E8 | A3-1 a A3-7 | Verificada: mejoras operativas, privadas, accesibles y medibles sin reabrir bloques cerrados |
-| E9 | A4 con decisiones independientes | Integraciones externas opcionales y desacopladas |
+| E9 | A4 con decisiones independientes | Implementada localmente y publicable desactivada; activación externa pendiente por servicio |
 
 ## 6. Puerta de aceptación para cada entrega
 
@@ -178,7 +178,9 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Valorar **E9** y P3 solo con proveedor, backend privado, consentimiento y fallback local definidos.
+Preparar un commit pequeño y reversible de **E9 desactivada**, publicarlo tras autorización y activar
+después cada servicio por separado. La primera activación recomendada es el backend privado de OpenAI;
+la conexión PSD2 y la importación programada quedan al final por depender del proveedor bancario.
 
 E7 quedó verificada el 01/08/2026: dos sesiones protegieron el puntero remoto; un lote sintético se
 previsualizó, importó, recuperó tras recarga y deshizo; una restauración creó una revisión nueva y

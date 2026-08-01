@@ -17493,13 +17493,15 @@ function renderAssistantAnswer(question) {
   const ctx = assistantDashboardContext();
   const answer = assistantRecommendationForQuestion(question, ctx);
   const sectionName = viewTitles[viewFromHash()]?.eyebrow || "Dashboard";
+  const disclosure = window.FinanceCanonicalE9Assistant?.localDisclosure(unifiedActionCenterModel().readModel || {});
   return `<strong>${escapeHtml(sectionName)} · análisis con datos actuales</strong>
     <ul>${answer.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
     <div class="assistant-mini-kpis">
       <span>Mín: <b>${ctx.metrics ? money(ctx.metrics.min, true) : "-"}</b></span>
       <span>Ajustado: <b>${ctx.metrics ? money(ctx.metrics.adjustedMin, true) : "-"}</b></span>
       <span>Ahorro sugerido: <b>${money(ctx.savingsCalc.recommendedSaving, true)}</b></span>
-    </div>`;
+    </div>
+    <p class="data-hint">${escapeHtml(disclosure?.detail || "Asistente externo desactivado · análisis local basado en reglas")}. No modifica ningún dato. Los borradores conversacionales remotos también permanecen desactivados.</p>`;
 }
 
 function handleAssistantAsk(promptText = "") {

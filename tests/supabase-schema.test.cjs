@@ -19,6 +19,8 @@ const normalizedTables = [
   "finance_state_snapshots",
   "finance_source_heads",
   "finance_audit_log",
+  "finance_external_consents",
+  "finance_external_events",
 ];
 
 test("el esquema incluye todas las entidades normalizadas y conserva compatibilidad", () => {
@@ -92,4 +94,14 @@ test("la auditoría registra antes y después mediante trigger", () => {
 test("la auditoría no bloquea la cascada al eliminar un usuario", () => {
   assert.match(schema, /not exists \(select 1 from auth\.users where id = row_user\)/);
   assert.match(schema, /if tg_op = 'DELETE' then return old; end if/);
+});
+
+test("E9-0 persiste consentimientos sin exponer secretos y conserva eventos append-only", () => {
+  assert.match(schema, /create table if not exists public\.finance_external_consents/);
+  assert.match(schema, /create table if not exists public\.finance_external_events/);
+  assert.match(schema, /status text not null check \(status in \('active','revoked','expired'\)\)/);
+  assert.match(schema, /grant select, insert, update on public\.finance_external_consents to authenticated/);
+  assert.match(schema, /grant select, insert on public\.finance_external_events to authenticated/);
+  assert.doesNotMatch(schema, /grant select, insert, update on public\.finance_external_events/);
+  assert.doesNotMatch(schema, /finance_external_(consents|events)[\s\S]{0,500}(access_token|refresh_token|client_secret)/i);
 });

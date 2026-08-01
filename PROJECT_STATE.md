@@ -132,15 +132,29 @@ Fecha de revisión: 1 de agosto de 2026.
   no quede bloqueada por una auditoría con clave foránea ya eliminada.
 - E8 quedó publicada en `origin/main` mediante `939acc6` y `dfe3bb2`. El workflow de cierre
   `30698057298` completó correctamente la verificación y el despliegue de GitHub Pages.
+- E9 está implementada localmente con servicios externos apagados por defecto: fundamento común de
+  consentimiento y minimización, hogar compartido, asistente, borradores confirmables, web push,
+  conexión PSD2 de solo lectura e importación bancaria programada e idempotente.
+- La decisión de IA queda registrada como «OpenAI API, Responses API, almacenamiento desactivado y
+  backend privado». El modelo se elegirá más adelante mediante pruebas de calidad, coste y latencia.
+- La interfaz reúne las dependencias externas en un panel gris de «Pendiente de activación» y conserva
+  CSV, Excel, entrada manual, alertas locales y asistente local. No ofrece conexiones, invitaciones ni
+  acciones remotas prematuras y no se ha compartido ningún dato.
+- La puerta local E9 pasa con 229 pruebas, accesibilidad estructural, rendimiento con 10.000 filas,
+  construcción pública, privacidad, smoke test y `git diff --check`. El panel se validó a 1280 px y
+  390×844 sin errores de consola ni desbordamiento horizontal.
 
 ## Pendiente
 
-- P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
+- E9 requiere activación y aceptación externa por servicio: desplegar el backend privado, elegir el
+  modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
+  PSD2 antes de habilitar la importación programada.
 
 ## Próximo paso
 
-Valorar E9 y P3 como decisiones independientes, empezando solo cuando exista proveedor externo, diseño
-privado y consentimiento explícito que no conviertan ningún servicio remoto en requisito de arranque.
+Revisar el diff y preparar el commit reversible de E9 desactivada. Commit, push y publicación requieren
+autorizaciones expresas; después se activará cada servicio de forma independiente, dejando PSD2 y la
+importación programada para el final.
 
 ## Decisiones importantes
 
@@ -157,7 +171,7 @@ privado y consentimiento explícito que no conviertan ningún servicio remoto en
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en el estado local revisado (148/148 pruebas pasan).
+- No hay fallos automatizados conocidos en el estado local revisado (229/229 pruebas pasan).
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
   recuperación autenticadas están verificadas.
@@ -211,9 +225,9 @@ privado y consentimiento explícito que no conviertan ningún servicio remoto en
 
 ## Último commit estable
 
-- El último commit estable es `dfe3bb2` (`docs: verify and close E8 remote acceptance`) en `main`
-  y `origin/main`. Incluye el cierre remoto y las correcciones de aceptación de E8; el workflow
-  `30698057298` verificó y desplegó correctamente GitHub Pages.
+- El último commit estable es `4ffe3b5` (`docs: record published E8 closure`) en `main` y
+  `origin/main`. Documenta la publicación de E8; el cierre remoto funcional anterior es `dfe3bb2` y
+  el workflow `30698057298` verificó y desplegó correctamente GitHub Pages.
 - `939acc6` — `feat: implement E8 operational improvements` (1 de agosto de 2026), publicado en
   `origin/main`; contiene la implementación funcional de A3-1 a A3-7.
 
@@ -231,6 +245,6 @@ privado y consentimiento explícito que no conviertan ningún servicio remoto en
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 136 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- Antes de este cierre documental, `main` está sincronizada con `origin/main` en `dfe3bb2`. No quedan
-  cambios de producto pendientes. Este cierre modifica únicamente `PROJECT_STATE.md` y
-  `BACKLOG_STATUS.md`; `.agents/` continúa sin seguimiento y queda excluida del commit propuesto.
+- Antes de este cierre documental, `main` conserva como base estable `4ffe3b5` y el trabajo E9 sigue
+  únicamente en el árbol local, pendiente de commit. `.agents/` continúa sin seguimiento y queda
+  excluida del commit propuesto.

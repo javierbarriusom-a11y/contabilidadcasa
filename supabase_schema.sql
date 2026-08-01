@@ -192,6 +192,35 @@ create table if not exists public.finance_audit_log (
   sync_id uuid references public.finance_sync_runs(id)
 );
 
+-- E9-0: consentimientos explícitos y auditoría de servicios externos. Estas
+-- tablas no guardan secretos, tokens ni credenciales de proveedor.
+create table if not exists public.finance_external_consents (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  source_key text not null,
+  service text not null check (service in ('household','assistant','actions','notifications','banking')),
+  purpose text not null check (length(trim(purpose)) > 0),
+  scopes jsonb not null default '[]'::jsonb check (jsonb_typeof(scopes) = 'array'),
+  status text not null check (status in ('active','revoked','expired')),
+  granted_at timestamptz not null default now(),
+  expires_at timestamptz,
+  revoked_at timestamptz,
+  updated_at timestamptz not null default now(),
+  unique (user_id, source_key, service, id),
+  check ((status = 'revoked' and revoked_at is not null) or status <> 'revoked')
+);
+
+create table if not exists public.finance_external_events (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  source_key text not null,
+  service text not null check (service in ('household','assistant','actions','notifications','banking')),
+  event_type text not null,
+  consent_id uuid references public.finance_external_consents(id) on delete set null,
+  details jsonb not null default '{}'::jsonb,
+  occurred_at timestamptz not null default now()
+);
+
 create index if not exists finance_snapshots_latest_idx
   on public.finance_state_snapshots (user_id, source_key, created_at desc);
 create index if not exists finance_source_heads_snapshot_idx
@@ -518,7 +547,7 @@ begin
     'finance_decisions', 'finance_decision_events',
     'finance_reconciliation_runs', 'finance_month_closures', 'finance_month_reopenings',
     'finance_import_batches', 'finance_backup_checks', 'finance_state_snapshots', 'finance_source_heads',
-    'finance_audit_log'
+    'finance_audit_log', 'finance_external_consents', 'finance_external_events'
   ] loop
     execute format('alter table public.%I enable row level security', table_name);
     execute format('drop policy if exists %I on public.%I', table_name || '_select_own', table_name);
@@ -539,6 +568,7 @@ begin
     'finance_ledger_entries', 'finance_debts', 'finance_projects',
     'finance_decisions', 'finance_decision_events',
     'finance_reconciliation_runs', 'finance_import_batches', 'finance_state_snapshots', 'finance_source_heads'
+    , 'finance_external_consents', 'finance_external_events'
   ] loop
     execute format('drop policy if exists %I on public.%I', table_name || '_insert_own', table_name);
     execute format(
@@ -557,6 +587,7 @@ begin
     'finance_sync_runs', 'finance_accounts', 'finance_concepts',
     'finance_ledger_entries', 'finance_debts', 'finance_projects',
     'finance_decisions', 'finance_source_heads'
+    , 'finance_external_consents'
   ] loop
     execute format('drop policy if exists %I on public.%I', table_name || '_update_own', table_name);
     execute format(
@@ -583,6 +614,8 @@ grant select on public.finance_backup_checks to authenticated;
 grant select, insert on public.finance_state_snapshots to authenticated;
 grant select, insert, update on public.finance_source_heads to authenticated;
 grant select on public.finance_audit_log to authenticated;
+grant select, insert, update on public.finance_external_consents to authenticated;
+grant select, insert on public.finance_external_events to authenticated;
 grant execute on function public.restore_finance_snapshot(text, uuid, uuid, uuid, uuid) to authenticated;
 revoke execute on function public.reopen_finance_month(text, text, uuid, uuid, uuid, uuid, uuid, text, jsonb, text) from public;
 grant execute on function public.reopen_finance_month(text, text, uuid, uuid, uuid, uuid, uuid, text, jsonb, text) to authenticated;
