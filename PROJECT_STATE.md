@@ -52,6 +52,9 @@ Fecha de revisión: 1 de agosto de 2026.
 - La suite local de cierre pasa completa: 125 pruebas, construcción pública, privacidad y smoke test.
 - La interfaz distingue ya los cambios pendientes de la matriz temporal del guardado automático de
   reales: muestra confirmación al salir de una casilla y exige «Preparar cambio pendiente» en el ajuste rápido.
+- El Cuadro de mandos separa «Planificar futuro» de «Registrar lo ocurrido» y muestra por partida el
+  previsto, el real y el importe usado por el cálculo. Un real vacío recupera la previsión y un cero
+  explícito permanece como real; la cobertura automatizada asciende a 127 pruebas.
 
 ## Pendiente
 
@@ -76,7 +79,7 @@ Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirma
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en el estado local revisado (125/125 pruebas pasan).
+- No hay fallos automatizados conocidos en el estado local revisado (127/127 pruebas pasan).
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - La conciliación remota exhaustiva y el cierre mensual transaccional están desplegados y verificados en el Supabase real. El deshacer remoto por lote y la reapertura controlada siguen pendientes para E5.
@@ -99,7 +102,7 @@ Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirma
   `app.js`, paquete demo y `version.json` sin fallos.
 - La prueba de rollback creó un revert aislado de `048a48b` en un worktree temporal, ejecutó de nuevo
   `npm run verify` con 109/109 pruebas y eliminó el worktree sin alterar `main` ni el sitio publicado.
-- La puerta local `npm run verify` pasa completa tras la aclaración del guardado: 125 pruebas, construcción de `dist/`, revisión de
+- La puerta local `npm run verify` pasa completa tras el rediseño previsto/real/usado: 127 pruebas, construcción de `dist/`, revisión de
   privacidad y smoke test. `git diff --check` también pasa.
 - QA del artefacto `dist/`: escritorio a 1280 px y móvil a 390×844, sin desbordamiento horizontal ni
   errores de consola; el menú móvil abre correctamente.
@@ -111,7 +114,8 @@ Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirma
 
 ## Último commit estable
 
+- `c44563a` — `feat: clarify planned actual and calculated dashboard values` (1 de agosto de 2026), validado localmente antes de publicar.
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
-- La puerta local pasa con 125 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
+- La puerta local pasa con 127 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
 - La rama de trabajo es `main` y está sincronizada con `origin/main` al iniciar este cierre. No hay cambios funcionales pendientes; la carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.
