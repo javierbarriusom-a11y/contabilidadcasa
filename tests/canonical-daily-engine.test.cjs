@@ -64,3 +64,41 @@ test("la auditoria marca una paridad mensual incorrecta", () => {
   assert.equal(snapshot.invariants.valid, false);
   assert.ok(snapshot.invariants.issues.some((issue) => issue.type === "monthly-parity"));
 });
+
+test("aprende la cobertura hasta el siguiente ingreso solo de movimientos conciliados", () => {
+  const movements = [
+    { date: "2026-05-25", amount: 2000, reconciled: true, kind: "income" },
+    { date: "2026-06-25", amount: 2100, reconciled: true, kind: "income" },
+    { date: "2026-07-25", amount: 2050, reconciled: true, kind: "income" },
+    { date: "2026-07-10", amount: -300, reconciled: true, kind: "outflow" },
+    { date: "2026-07-11", amount: -9999, reconciled: false, kind: "outflow" },
+  ];
+  const learned = dailyEngine.learnCashflowPatterns(movements);
+  assert.equal(learned.typicalIncomeDay, 25);
+  assert.equal(learned.incomeCount, 3);
+  assert.equal(learned.reconciledMovementCount, 4);
+  assert.equal(learned.confidence, "rule");
+
+  const coverage = dailyEngine.coverageUntilNextIncome({
+    asOfDate: "2026-08-20",
+    checkingBalance: 500,
+    movements,
+    override: { dailyOutflow: 50 },
+  });
+  assert.equal(coverage.nextIncomeDate, "2026-08-25");
+  assert.equal(coverage.days, 5);
+  assert.equal(coverage.required, 250);
+  assert.equal(coverage.covered, true);
+  assert.equal(coverage.editable, true);
+});
+
+test("una fecha manual prevalece y queda identificada como ajuste", () => {
+  const coverage = dailyEngine.coverageUntilNextIncome({
+    asOfDate: "2026-08-20",
+    checkingBalance: 100,
+    override: { nextIncomeDate: "2026-08-24", dailyOutflow: 40 },
+  });
+  assert.equal(coverage.source, "manual-override");
+  assert.equal(coverage.confidence, "observed");
+  assert.equal(coverage.margin, -60);
+});

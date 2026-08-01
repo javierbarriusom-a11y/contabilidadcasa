@@ -82,3 +82,37 @@ test("el plan retomar suma atrasos y mantiene el vencimiento contractual", () =>
   assert.ok(plan.recurringDuration >= 37);
   assert.ok(plan.total > contract.currentPrincipal);
 });
+
+test("la calidad contractual hace visibles los datos obligatorios desconocidos", () => {
+  const contract = DebtContracts.normalizeContract({
+    id: "incomplete",
+    entity: "Entidad",
+    currentPrincipal: 1000,
+    currentPayment: 100,
+  });
+  assert.equal(contract.dataQuality.complete, false);
+  assert.ok(contract.dataQuality.missing.includes("apr"));
+  assert.ok(contract.dataQuality.missing.includes("maturity"));
+  assert.ok(contract.dataQuality.missing.includes("owner"));
+  const validation = DebtContracts.validateContracts([contract]);
+  assert.equal(validation.valid, true);
+  assert.ok(validation.issues.some((item) => item.code === "missing-required-field" && item.field === "apr"));
+});
+
+test("un contrato documentado alcanza calidad completa", () => {
+  const contract = DebtContracts.normalizeContract({
+    id: "complete",
+    entity: "Entidad",
+    currentPrincipal: 1000,
+    currentPayment: 100,
+    apr: 7.5,
+    maturityMonth: "2027-08",
+    owner: "javi",
+    provenance: "verified",
+    source: "contract-pdf",
+    agreement: { status: "none" },
+  });
+  assert.equal(contract.apr, 7.5);
+  assert.equal(contract.dataQuality.complete, true);
+  assert.equal(contract.dataQuality.confidence, "high");
+});

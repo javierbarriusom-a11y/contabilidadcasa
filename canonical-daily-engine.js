@@ -65,6 +65,79 @@
     return CONFIDENCE_LEVELS.includes(confidence) ? confidence : "estimated";
   }
 
+  function median(values = []) {
+    const sorted = values.map(Number).filter(Number.isFinite).sort((left, right) => left - right);
+    if (!sorted.length) return null;
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : round((sorted[middle - 1] + sorted[middle]) / 2);
+  }
+
+  function learnCashflowPatterns(movements = []) {
+    const reconciled = movements
+      .filter((item) => item?.reconciled === true)
+      .map((item) => ({ ...item, date: isoDate(item.date), amount: round(item.amount) }))
+      .filter((item) => item.date && item.amount !== 0);
+    const income = reconciled.filter((item) => item.kind === "income" || item.amount > 0);
+    const outflows = reconciled.filter((item) => item.kind === "outflow" || item.amount < 0);
+    const incomeDays = income.map((item) => Number(item.date.slice(8, 10)));
+    const observedMonths = new Set(reconciled.map((item) => item.date.slice(0, 7))).size;
+    const confidence = observedMonths >= 6 && income.length >= 6
+      ? "observed"
+      : observedMonths >= 3 && income.length >= 3 ? "rule" : "estimated";
+    return {
+      source: "reconciled-ledger",
+      observedMonths,
+      reconciledMovementCount: reconciled.length,
+      incomeCount: income.length,
+      outflowCount: outflows.length,
+      typicalIncomeDay: median(incomeDays),
+      typicalIncomeAmount: median(income.map((item) => Math.abs(item.amount))),
+      typicalDailyOutflow: outflows.length
+        ? round(outflows.reduce((sum, item) => sum + Math.abs(item.amount), 0) / Math.max(1, observedMonths * 30))
+        : null,
+      confidence,
+      editable: true,
+    };
+  }
+
+  function coverageUntilNextIncome({ asOfDate, checkingBalance = 0, events = [], movements = [], override = {} } = {}) {
+    const asOf = isoDate(asOfDate);
+    const learned = learnCashflowPatterns(movements);
+    const futureIncome = events
+      .map(normalizeEvent)
+      .filter((item) => item.date > asOf && item.kind === "income")
+      .sort((left, right) => left.date.localeCompare(right.date))[0];
+    let nextIncomeDate = isoDate(override.nextIncomeDate) || futureIncome?.date || "";
+    if (!nextIncomeDate && learned.typicalIncomeDay) {
+      const base = utcDate(asOf);
+      if (base) {
+        const candidate = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), learned.typicalIncomeDay, 12));
+        if (isoDate(candidate) <= asOf) candidate.setUTCMonth(candidate.getUTCMonth() + 1);
+        nextIncomeDate = isoDate(candidate);
+      }
+    }
+    const dailyOutflow = number(override.dailyOutflow, learned.typicalDailyOutflow);
+    const days = nextIncomeDate && asOf
+      ? Math.max(0, Math.round((utcDate(nextIncomeDate) - utcDate(asOf)) / 86400000))
+      : null;
+    const required = days === null || !Number.isFinite(dailyOutflow) ? null : round(days * dailyOutflow);
+    const balance = round(checkingBalance);
+    return {
+      asOfDate: asOf,
+      nextIncomeDate,
+      days,
+      dailyOutflow: Number.isFinite(dailyOutflow) ? round(dailyOutflow) : null,
+      required,
+      balance,
+      margin: required === null ? null : round(balance - required),
+      covered: required === null ? null : balance >= required,
+      source: override.nextIncomeDate || override.dailyOutflow !== undefined ? "manual-override" : futureIncome ? "canonical-events" : learned.source,
+      confidence: override.nextIncomeDate || override.dailyOutflow !== undefined ? "observed" : futureIncome?.confidence || learned.confidence,
+      learned,
+      editable: true,
+    };
+  }
+
   function normalizeEvent(event, index) {
     const kind = ["income", "outflow", "transfer"].includes(event?.kind) ? event.kind : "outflow";
     const date = isoDate(event?.date);
@@ -371,6 +444,8 @@
     SCHEMA_ID,
     TOLERANCE,
     normalizeInput,
+    learnCashflowPatterns,
+    coverageUntilNextIncome,
     buildRows,
     aggregateMonths,
     validateRows,

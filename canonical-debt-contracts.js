@@ -75,6 +75,33 @@
     };
   }
 
+  function known(value) {
+    return value !== undefined && value !== null && String(value).trim() !== "" && String(value).toLowerCase() !== "unknown";
+  }
+
+  function contractQuality(contract = {}, raw = {}) {
+    const agreementKnown = contract.agreement?.status === "none" || known(contract.agreement?.source);
+    const fields = {
+      capital: contract.currentPrincipal > 0 || contract.paymentStatus === "settled",
+      arrears: known(raw.arrearsAmount) || contract.paymentStatus !== "suspended" || contract.arrearsEstimated > 0,
+      apr: known(raw.apr ?? raw.tae),
+      suspension: contract.paymentStatus !== "suspended" || known(contract.suspensionStart),
+      maturity: known(contract.maturityMonth),
+      owner: known(raw.owner),
+      agreement: agreementKnown,
+      provenance: known(raw.provenance) && known(raw.source),
+    };
+    const missing = Object.entries(fields).filter(([, complete]) => !complete).map(([field]) => field);
+    const completeness = Math.round(((Object.keys(fields).length - missing.length) / Object.keys(fields).length) * 100);
+    return {
+      fields,
+      missing,
+      completeness,
+      confidence: completeness === 100 ? "high" : completeness >= 75 ? "medium" : "low",
+      complete: missing.length === 0,
+    };
+  }
+
   function normalizeContract(raw = {}, index = 0, options = {}) {
     const initialPrincipal = nonNegative(raw.initialPrincipal ?? raw.originalPrincipal ?? raw.principal);
     const currentPrincipal = nonNegative(raw.currentPrincipal ?? raw.principal ?? initialPrincipal);
@@ -111,9 +138,11 @@
       provenance: raw.provenance || "declared",
       source: raw.source || "workbook",
       owner: raw.owner || "household",
+      apr: known(raw.apr ?? raw.tae) ? nonNegative(raw.apr ?? raw.tae) : null,
     };
     const arrears = estimateArrears(contract, options.asOfMonthKey);
-    return { ...contract, arrearsMonths: arrears.months, arrearsEstimated: arrears.amount };
+    const normalized = { ...contract, arrearsMonths: arrears.months, arrearsEstimated: arrears.amount };
+    return { ...normalized, dataQuality: contractQuality(normalized, raw) };
   }
 
   function estimateArrears(contract = {}, asOfMonthKey = "") {
@@ -137,6 +166,9 @@
       if (contract.paymentStatus === "suspended" && contract.scheduledPayment !== 0) {
         issues.push({ severity: "error", code: "suspended-with-scheduled-payment", contractId: contract.id });
       }
+      (contract.dataQuality?.missing || []).forEach((field) => {
+        issues.push({ severity: "warning", code: "missing-required-field", field, contractId: contract.id });
+      });
     });
     return { valid: !issues.some((item) => item.severity === "error"), issues };
   }
@@ -204,6 +236,7 @@
     normalizeContract,
     normalizeContracts,
     validateContracts,
+    contractQuality,
     resumePlan,
     summarizeContracts,
   };

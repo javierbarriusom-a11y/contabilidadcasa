@@ -148,6 +148,7 @@ const CURRENT_REUNIFIED_DEBT_PAYMENT = 180;
 const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 36;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
 const DebtContracts = globalThis.FinanceDebtContracts || null;
+const ExecutiveReadModel = globalThis.FinanceExecutiveReadModel || null;
 const DebtComparator = globalThis.FinanceDebtComparator || null;
 const DEBT_LIQUIDATION_ASSUMPTIONS = {
   baseStartingLiquidity: 9000,
@@ -11704,7 +11705,48 @@ function unifiedActionCenterModel({ context = null } = {}) {
       };
     });
   actions.forEach((item) => unifiedActionRegistry.set(item.id, item));
-  return { context: ctx, actions, asOf: state.balanceDate || defaultBalanceDate() };
+  const asOf = state.balanceDate || defaultBalanceDate();
+  const balances = ctx.balances || accountBalancesFromState();
+  const today = ctx.today || {};
+  const readModel = ExecutiveReadModel?.build({
+    asOf,
+    actions,
+    capacity: ctx.capacity || {},
+    context: { family: currentFamilyContext(), reserve: Number(today.requiredReserve || ctx.plan?.caixaFloor || 0) },
+    metrics: {
+      liquidity: {
+        label: "Liquidez hoy",
+        value: Number(balances.total || 0),
+        unit: "EUR",
+        asOf,
+        source: state?.balanceMode === "manual" ? "declared-balances" : "canonical-balance-engine",
+        method: "sum-active-accounts",
+        coverage: "checking+savings",
+        confidence: state?.balanceMode === "manual" ? "high" : "medium",
+      },
+      freeCapacity: {
+        label: "Capacidad libre real",
+        value: Number(ctx.capacity?.avgTransfer12m || 0),
+        unit: "EUR/month",
+        asOf,
+        source: "canonical-monthly-plan",
+        method: "average-safe-transfer-12m",
+        coverage: `${Math.min(12, (ctx.rows || []).length)} months`,
+        confidence: (ctx.rows || []).length >= 12 ? "high" : "medium",
+      },
+      protectedReserve: {
+        label: "Reserva protegida",
+        value: Number(today.requiredReserve || ctx.plan?.caixaFloor || 0),
+        unit: "EUR",
+        asOf,
+        source: "canonical-daily-and-monthly-plan",
+        method: "max-policy-and-next-outflows",
+        coverage: "until-next-income",
+        confidence: today.estimatedEventCount > 0 ? "medium" : "high",
+      },
+    },
+  }) || null;
+  return { context: ctx, actions: readModel?.decisions || actions, asOf, readModel };
 }
 
 function renderUnifiedAction(item) {

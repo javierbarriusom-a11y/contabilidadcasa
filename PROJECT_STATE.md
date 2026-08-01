@@ -75,16 +75,26 @@ Fecha de revisión: 1 de agosto de 2026.
 - Los cuadros nativos de las operaciones E5 se sustituyeron por un diálogo accesible con motivo obligatorio.
 - El cierre completo de E5 quedó publicado en `origin/main` mediante `4431939`
   (`feat: verify and close E5 remote recovery`).
+- E6 queda iniciada localmente con contratos canónicos para aprender patrones de caja únicamente desde
+  movimientos conciliados, calcular cobertura hasta el siguiente ingreso y admitir ajustes manuales.
+- Los contratos de deuda exponen una matriz de calidad para capital, mora, TAE, suspensión, vencimiento,
+  titular, acuerdo y procedencia; los datos ausentes permanecen visibles como avisos y no se inventan.
+- Hoy y el centro de acciones consumen ya una lectura ejecutiva común y versionada. Sus KPI incluyen
+  fecha, fuente, método, cobertura y confianza, y el contrato limita la salida a tres decisiones ordenadas.
+- La puerta local de este avance E6 pasa completa con 142 pruebas, construcción pública, privacidad,
+  smoke test y `git diff --check`; Hoy fue validado sin errores ni desbordamiento en escritorio y 390×844.
 
 ## Pendiente
 
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos y procedencia/confianza por KPI.
+- Completar la aceptación de E6: mostrar en la interfaz la edición de cobertura y la calidad de deuda/KPI,
+  persistir los ajustes y verificar guardar, cerrar, reabrir y recuperar antes de marcar A2-1, A2-2, A2-6 y A2-8 como verificados.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Iniciar E6 por A2-1, A2-2, A2-6 y A2-8: completar cobertura diaria aprendida, calidad obligatoria de
-contratos de deuda, procedencia y confianza de KPI, y el contrato único consumido por Hoy y acciones.
+Continuar E6 exponiendo en Hoy y el centro de calidad los contratos ya implementados: edición manual de
+cobertura, campos desconocidos de deuda y ficha de procedencia/confianza por KPI; después validar persistencia y recuperación.
 
 ## Decisiones importantes
 
@@ -103,6 +113,9 @@ contratos de deuda, procedencia y confianza de KPI, y el contrato único consumi
 
 - No hay fallos automatizados conocidos en el estado local revisado (136/136 pruebas pasan).
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
+- No hay fallos automatizados conocidos en el avance local de E6; la suite asciende a 142/142 pruebas.
+- E6 sigue en curso: los contratos y cálculos están implementados, pero su detalle de calidad y edición
+  todavía no está expuesto por completo en la interfaz ni aceptado con persistencia y recuperación.
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - La conciliación, el cierre, la reapertura, el deshacer por lote y la verificación de copias están
@@ -141,6 +154,9 @@ contratos de deuda, procedencia y confianza de KPI, y el contrato único consumi
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
 ## Último commit estable
+
+- El último commit estable sigue siendo `2b1d413` en `main` y `origin/main`. El avance E6 está únicamente
+  en cambios locales sin commit; `.agents/` continúa sin seguimiento y debe preservarse fuera de la entrega.
 
 - `4431939` — `feat: verify and close E5 remote recovery` (1 de agosto de 2026), publicado en
   `origin/main`; incluye la aceptación remota, las correcciones SQL, el diálogo accesible y el cierre documental.

@@ -113,6 +113,12 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 | A2-7 | P1-7 | Comparación integral antes/después | Parcial | Alta | Antes de importar se muestran altas, cambios, duplicados, bajas, efectos mensuales e invariantes |
 | A2-8 | P1-8 | Contrato único para Hoy y acciones | Parcial | Alta | Una API interna versionada entrega decisiones, alertas, capacidad y contexto; todas las vistas consumen la misma lectura |
 
+Avance local del 01/08/2026: A2-1 dispone de aprendizaje exclusivo desde movimientos conciliados y cálculo
+editable hasta el siguiente ingreso; A2-2 evalúa los ocho campos obligatorios sin inventar ausentes; A2-6
+añade metadatos uniformes a los KPI; y A2-8 incorpora `finance-executive-read-model/v1`, consumido por Hoy
+y el centro de acciones. Se mantienen como parciales hasta exponer la edición y la calidad completa en la
+interfaz y superar aceptación con persistencia, cierre, reapertura y recuperación.
+
 ### A3 — Mejoras sobre bloques ya verificados
 
 Estas mejoras no reabren P2 ni UX. Deben tener identificador propio y no degradar sus criterios ya
@@ -173,8 +179,8 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Iniciar **E6: datos ejecutivos completos, trazables y consistentes**, empezando por A2-1, A2-2,
-A2-6 y A2-8 sin reabrir los bloques ya verificados.
+Continuar **E6: datos ejecutivos completos, trazables y consistentes** exponiendo en la interfaz la
+edición de cobertura y la calidad de deuda/KPI ya disponibles en los contratos canónicos, sin reabrir los bloques verificados.
 
 E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobación pública, monitor manual
 y prueba de rollback no destructiva entre revisiones seguras.
