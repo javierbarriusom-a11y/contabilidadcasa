@@ -73,6 +73,8 @@ Fecha de revisión: 1 de agosto de 2026.
 - La aceptación confirmó el bloqueo optimista de una sesión obsoleta, la migración heredada únicamente
   mediante confirmación explícita y 306/306 copias con huella válida; la muestra restaurable quedó registrada.
 - Los cuadros nativos de las operaciones E5 se sustituyeron por un diálogo accesible con motivo obligatorio.
+- El cierre completo de E5 quedó publicado en `origin/main` mediante `4431939`
+  (`feat: verify and close E5 remote recovery`).
 
 ## Pendiente
 
@@ -110,6 +112,9 @@ contratos de deuda, procedencia y confianza de KPI, y el contrato único consumi
   servidor recibió cero escrituras; tras cerrar y reabrir recibió exactamente una; una tercera apertura
   confirmó la bandeja vacía. No hubo errores de consola.
 - La validación visual del indicador global pasó en escritorio y a 390 px sin desbordamiento horizontal.
+- Tras la publicación, una pestaña mostró el aviso de formato remoto antiguo. El aviso es protector:
+  no carga ni sobrescribe automáticamente; primero debe recargarse el shell y, si persiste, ejecutar
+  la migración explícita conservando una copia local antes de elegir entre revisiones.
 - Durante el QA previo, el navegador local recuperó una sesión Supabase ya autenticada y sincronizó la
   copia local normal; no se introdujeron datos de prueba en el proyecto remoto.
 - La cobertura de procedencia y confianza no alcanza todavía todos los KPI; los efectos legales y fiscales requieren fuentes verificadas y revisión profesional.
@@ -137,6 +142,8 @@ contratos de deuda, procedencia y confianza de KPI, y el contrato único consumi
 
 ## Último commit estable
 
+- `4431939` — `feat: verify and close E5 remote recovery` (1 de agosto de 2026), publicado en
+  `origin/main`; incluye la aceptación remota, las correcciones SQL, el diálogo accesible y el cierre documental.
 - `29bfd93` — `docs: close E5 implementation session` (1 de agosto de 2026), publicado en `origin/main` y base de la aceptación remota actual.
 - `6b452d5` — `feat: implement E5 operational recovery controls` (1 de agosto de 2026), publicado en `origin/main`; la puerta local de cierre pasa con 135 pruebas, construcción, privacidad y smoke test.
 - `c4eeb01` — `docs: close dashboard workflow session` (1 de agosto de 2026), base estable anterior.
@@ -146,6 +153,6 @@ contratos de deuda, procedencia y confianza de KPI, y el contrato único consumi
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 136 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main` y partió sincronizada con `origin/main` en `29bfd93`. Quedan cambios
-  locales sin commit en código, esquema, pruebas y documentación de cierre; la carpeta `.agents/`
-  sigue sin seguimiento, preservada y fuera de cualquier commit propuesto.
+- La rama de trabajo es `main` y está sincronizada con `origin/main` en `4431939` antes de este cierre
+  documental. No hay cambios de producto pendientes; la carpeta `.agents/` sigue sin seguimiento,
+  preservada y fuera de cualquier commit propuesto.

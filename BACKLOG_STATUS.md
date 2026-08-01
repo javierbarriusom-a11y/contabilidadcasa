@@ -45,7 +45,7 @@ conflictos remotos o un despliegue defectuoso.
 
 | Riesgo | Evidencia actual | Impacto | Tratamiento propuesto |
 | --- | --- | --- | --- |
-| La caché offline requiere versionado disciplinado | El `service worker` y el manifiesto están publicados y el shell abre sin servidor tras una primera visita | Una caché obsoleta podría retrasar la entrega de recursos nuevos | Mantener recursos versionados y comprobar el arranque offline en cada cambio del shell |
+| La caché offline requiere versionado disciplinado | Tras publicar E5 una pestaña mostró todavía el aviso de formato remoto antiguo; el shell abre sin servidor tras una primera visita | Una caché obsoleta puede retrasar recursos nuevos o mostrar una migración ya atendida | Mantener recursos versionados, recargar el shell antes de migrar y comprobar el arranque offline en cada cambio |
 | Una reconciliación incorrecta ante conflicto puede descartar una revisión | A0-5 compara fechas y huellas y ofrece continuar localmente, descargar o elegir la nube | Una elección equivocada del usuario todavía puede requerir restauración | Conservar copia exportable, confirmación explícita e historial de versiones |
 | Un despliegue defectuoso puede afectar al sitio público | Pages publica mediante Actions después de pruebas, privacidad y smoke test; el rollback fue ensayado | Una regresión no cubierta por las pruebas podría llegar a producción | Mantener la puerta CI, el monitor publicado y el procedimiento de reversión |
 | La aplicación publicada trata información financiera sensible | El artefacto público contiene solo datos sintéticos y la revisión de privacidad bloquea patrones prohibidos | Una futura incorporación accidental de datos personales sería crítica | Mantener lista cerrada del artefacto y revisión de privacidad obligatoria |
@@ -200,5 +200,5 @@ cerró, reabrió y volvió a cerrar agosto; importó y deshizo un lote temporal;
 explícita y el conflicto seguro entre sesiones; y registró 306/306 copias válidas con muestra restaurable.
 La puerta local pasa con 136/136 pruebas, construcción pública, privacidad y smoke test.
 
-El código E5 quedó publicado en `origin/main` mediante `6b452d5`. La validación de cierre del
-01/08/2026 repitió con éxito 136/136 pruebas, construcción, privacidad, smoke test y `git diff --check`.
+El cierre completo de E5 quedó publicado en `origin/main` mediante `4431939`. La validación de cierre
+del 01/08/2026 repitió con éxito 136/136 pruebas, construcción, privacidad, smoke test y `git diff --check`.
