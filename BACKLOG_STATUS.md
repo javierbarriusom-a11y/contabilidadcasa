@@ -226,3 +226,5 @@ cifrados, accesibilidad automatizada y un presupuesto probado con 10.000 filas. 
 el QA pasó en escritorio y móvil. El bucket privado y sus políticas RLS se desplegaron en Supabase; una
 cuenta sintética confirmó subida cifrada, descarga y descifrado desde otra sesión, recuperación,
 restauración y borrado definitivo. El objeto, la cuenta y sus revisiones temporales quedaron eliminados.
+La implementación `939acc6` y el cierre remoto `dfe3bb2` están publicados en `origin/main`; el workflow
+`30698057298` completó correctamente la verificación y el despliegue de GitHub Pages.

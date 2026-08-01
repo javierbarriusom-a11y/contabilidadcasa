@@ -130,6 +130,8 @@ Fecha de revisión: 1 de agosto de 2026.
 - La aceptación dejó el bucket sin el objeto sintético y eliminó la cuenta temporal y sus revisiones.
   Durante la limpieza se corrigió `finance_append_audit` para que una cascada autorizada de `auth.users`
   no quede bloqueada por una auditoría con clave foránea ya eliminada.
+- E8 quedó publicada en `origin/main` mediante `939acc6` y `dfe3bb2`. El workflow de cierre
+  `30698057298` completó correctamente la verificación y el despliegue de GitHub Pages.
 
 ## Pendiente
 
@@ -184,6 +186,8 @@ privado y consentimiento explícito que no conviertan ningún servicio remoto en
 - A3-5 está verificada en el Supabase real. El objeto sintético se descargó y descifró desde una segunda
   sesión, se restauró después de moverlo a recuperación y terminó borrado; la cuenta temporal también
   quedó eliminada sin afectar al usuario real.
+- El workflow de cierre de E8 terminó correctamente. GitHub avisa de la futura retirada de Node.js 20
+  en algunas acciones y ya fuerza Node.js 24; es un aviso no bloqueante que conviene vigilar al actualizar CI.
 - El 31/07/2026 Pages cambió de `build_type: legacy` a `workflow`; el commit funcional de E2
   `23d07dd` quedó publicado en `origin/main`. La primera ejecución de CI detectó una opción de caché
   incompatible con la ausencia de `package-lock.json`; se retiró antes de reintentar el despliegue.
@@ -207,9 +211,11 @@ privado y consentimiento explícito que no conviertan ningún servicio remoto en
 
 ## Último commit estable
 
-- El último commit estable es `ba56333` (`feat: implement E7 advanced financial comparison`) en `main`
-  y `origin/main`. Está publicado en GitHub Pages y superó aceptación autenticada, puerta local,
-  despliegue y monitor de disponibilidad; `.agents/` permanece fuera de la entrega.
+- El último commit estable es `dfe3bb2` (`docs: verify and close E8 remote acceptance`) en `main`
+  y `origin/main`. Incluye el cierre remoto y las correcciones de aceptación de E8; el workflow
+  `30698057298` verificó y desplegó correctamente GitHub Pages.
+- `939acc6` — `feat: implement E8 operational improvements` (1 de agosto de 2026), publicado en
+  `origin/main`; contiene la implementación funcional de A3-1 a A3-7.
 
 - `e51fe07` — cierre funcional y documental de E6 (1 de agosto de 2026), publicado y desplegado en Pages;
   incluye la interfaz de cobertura/calidad, persistencia, recuperación autenticada y 148 pruebas.
@@ -225,11 +231,6 @@ privado y consentimiento explícito que no conviertan ningún servicio remoto en
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 136 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main` y está sincronizada con `origin/main` en `ba56333` antes de este cierre
-  documental. No hay cambios de producto pendientes; la carpeta `.agents/` sigue sin seguimiento,
-  preservada y fuera de cualquier commit propuesto.
-- No quedan cambios de producto pendientes. El cierre documental actualiza `PROJECT_STATE.md` y
-  `BACKLOG_STATUS.md`; `.agents/` continúa sin seguimiento y excluida de cualquier commit.
-- La implementación E8 está consolidada localmente en `939acc6`; el cierre remoto y sus correcciones
-  permanecen sin commit. La rama `main` está un commit por delante de `origin/main`; `.agents/` continúa
-  sin seguimiento y debe quedar excluida.
+- Antes de este cierre documental, `main` está sincronizada con `origin/main` en `dfe3bb2`. No quedan
+  cambios de producto pendientes. Este cierre modifica únicamente `PROJECT_STATE.md` y
+  `BACKLOG_STATUS.md`; `.agents/` continúa sin seguimiento y queda excluida del commit propuesto.
