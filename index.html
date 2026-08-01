@@ -779,9 +779,9 @@
 
             <article class="visual-save-panel" id="visualSavePanel">
               <div>
-                <p class="panel-kicker">Edición pendiente</p>
+                <p class="panel-kicker">Cambios de la tabla principal</p>
                 <h3 id="visualSaveTitle">Sin cambios pendientes</h3>
-                <p id="visualSaveSummary">Edita importes, nombres o selecciona partidas para borrar antes de guardar.</p>
+                <p id="visualSaveSummary">Aquí solo aparecen los cambios preparados en esta tabla. Los reales de «Actualizar el mes según ocurre» se guardan automáticamente y no pasan por este panel.</p>
               </div>
               <div class="visual-save-actions">
                 <button id="visualBulkDelete" type="button" class="ghost-button">Borrar seleccionadas</button>
@@ -855,7 +855,7 @@
                   <span>Meses concretos</span>
                   <select id="visualEditMonths" multiple size="4"></select>
                 </label>
-                <button id="visualStageBulkEdit" type="button">Preparar cambio</button>
+                <button id="visualStageBulkEdit" type="button">Preparar cambio pendiente</button>
               </div>
               <p class="inline-feedback" id="visualBulkEditFeedback"></p>
             </article>
@@ -1294,13 +1294,14 @@
                 <div>
                   <p class="panel-kicker">Actualización individual</p>
                   <h2>Actualizar el mes según ocurre</h2>
-                  <p>Vista operativa del Cuadro de mandos: registra cada ingreso o gasto real y comprueba al momento su desviación frente a lo previsto.</p>
+                  <p>Introduce cada ingreso o gasto real. Se guarda automáticamente al salir de la casilla y no aparecerá en el panel «Cambios pendientes» de la tabla principal.</p>
                 </div>
                 <label class="month-picker">
                   <span>Mes</span>
                   <select id="detailMonth"></select>
                 </label>
               </div>
+              <p class="inline-feedback success" id="detailAutoSaveStatus">Guardado automático activo: escribe el importe real y sal de la casilla con Tab, Enter o un clic fuera.</p>
               <div class="expense-summary monthly-summary" id="monthlySummary"></div>
               <div class="monthly-detail-grid">
                 <article class="monthly-detail-panel" id="income-detail">

@@ -8777,7 +8777,7 @@ function renderVisualSavePanel() {
   if (counts.selected) parts.push(`${counts.selected} seleccionada(s)`);
   qs("visualSaveSummary").textContent = parts.length
     ? `Se guardarán: ${parts.join(", ")}. Los cambios afectarán a Cuadro de mandos, Previsión, flujo de caja, simulador y detalle mensual.`
-    : "Edita importes, nombres o selecciona partidas para borrar antes de guardar.";
+    : "Aquí solo aparecen los cambios preparados en esta tabla. Los reales de «Actualizar el mes según ocurre» se guardan automáticamente.";
   qs("visualSavePanel").classList.toggle("has-pending", pending > 0 || counts.selected > 0);
   qs("visualSaveChanges").disabled = pending === 0;
   qs("visualDiscardChanges").disabled = pending === 0 && counts.selected === 0;
@@ -14685,6 +14685,7 @@ function renderPlanningDetails({
 
   document.querySelectorAll(`[${actualDataKey}]`).forEach((input) => {
     input.addEventListener("change", () => {
+      const removed = input.value === "";
       if (input.value === "") {
         delete actuals[input.getAttribute(actualDataKey)];
       } else {
@@ -14692,6 +14693,13 @@ function renderPlanningDetails({
       }
       saveActuals();
       renderAgain();
+      const status = qs("detailAutoSaveStatus");
+      if (status) {
+        status.textContent = removed
+          ? `Real eliminado en ${month.label}. La partida vuelve a usar el importe previsto.`
+          : `Real guardado automáticamente en ${month.label}. No necesitas pulsar «Guardar cambios».`;
+        status.className = "inline-feedback success";
+      }
     });
   });
 
