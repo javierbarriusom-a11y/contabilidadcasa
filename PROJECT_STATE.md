@@ -57,16 +57,26 @@ Fecha de revisión: 1 de agosto de 2026.
   explícito permanece como real; la cobertura automatizada asciende a 127 pruebas.
 - El rediseño previsto/real/usado y la aclaración del guardado están publicados en `origin/main`; el
   cierre del 01/08/2026 repitió con éxito pruebas, construcción, privacidad y smoke test.
+- E5 está implementada localmente de A1-3 a A1-6: reapertura de mes y deshacer importaciones crean
+  revisiones nuevas con motivo, vista previa, confirmación, auditoría y control de concurrencia.
+- La persistencia ya no escribe silenciosamente en `finance_dashboard_states`: si falta el esquema
+  normalizado conserva la copia local y exige una migración explícita confirmada.
+- Las copias disponen de política operativa: 30 revisiones recientes, una muestra mensual durante
+  24 meses y protección permanente de cierres, reaperturas, importaciones, deshacer y restauraciones.
+  La comprobación valida huellas, registra el resultado y ensaya una copia de muestra sin borrado automático.
+- La puerta local de E5 pasa completa: 135 pruebas, construcción pública, privacidad, smoke test y
+  `git diff --check`; la interfaz fue validada sin errores ni desbordamiento en escritorio y a 390×844.
 
 ## Pendiente
 
-- Completar E5: reapertura controlada de mes, deshacer importaciones por lote, retirada del fallback remoto silencioso y política de retención/verificación de copias.
+- Desplegar el esquema E5 en Supabase y verificar A1-3 a A1-6 con sesión autenticada y dos navegadores antes de marcar E5 como verificada.
 - Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos y procedencia/confianza por KPI.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirmada y auditable.
+Desplegar `supabase_schema.sql` y ejecutar la aceptación remota de E5: reabrir y volver a cerrar un mes,
+deshacer un lote, confirmar el bloqueo del legado en una segunda sesión y registrar una verificación de copias.
 
 ## Decisiones importantes
 
@@ -76,12 +86,15 @@ Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirma
 - P0-5 se considera completada por la implementación, sus pruebas y la validación remota; roadmap y estado del proyecto ya están alineados.
 - Supabase normalizado debe ser la fuente autoritativa; `finance_dashboard_states` queda solo para migración o fallback controlado.
 - Las operaciones destructivas requieren confirmación, auditoría y recuperación mediante versiones; restaurar crea una versión nueva y no borra el historial.
+- La retención nunca borra automáticamente: solo identifica candidatas para revisión manual y protege las revisiones operativas.
+- Los datos heredados solo se migran mediante una acción explícita; un error del esquema normalizado no autoriza escritura remota compatible.
 - El plan visual de deuda se mantiene aislado del motor canónico hasta revisar su integración de datos al terminar la hoja de ruta, pero se conserva dentro del estado versionado compartido.
 - Las decisiones financieras protegen reserva y pagos hasta el siguiente ingreso; la deuda suspendida no libera ahorro ficticio y los horizontes mayores de 24 meses se expresan como rangos.
 
 ## Errores conocidos y riesgos
 
 - No hay fallos automatizados conocidos en el estado local revisado (127/127 pruebas pasan).
+- No hay fallos automatizados conocidos en E5 (135/135 pruebas pasan), pero el nuevo SQL aún no se ha desplegado ni probado de extremo a extremo en el Supabase real.
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - La conciliación remota exhaustiva y el cierre mensual transaccional están desplegados y verificados en el Supabase real. El deshacer remoto por lote y la reapertura controlada siguen pendientes para E5.
@@ -116,9 +129,11 @@ Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirma
 
 ## Último commit estable
 
+- `c4eeb01` — `docs: close dashboard workflow session` (1 de agosto de 2026), publicado en `origin/main` y base de la implementación local de E5.
+
 - `cceb3c2` — `docs: record dashboard value workflow` (1 de agosto de 2026), publicado en `origin/main`.
 - `c44563a` — `feat: clarify planned actual and calculated dashboard values` (1 de agosto de 2026), validado localmente antes de publicar.
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 127 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main` y estaba sincronizada con `origin/main` en `cceb3c2` al iniciar este cierre. No hay cambios funcionales pendientes; la carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.
+- La rama de trabajo es `main` y estaba sincronizada con `origin/main` en `c4eeb01` al iniciar E5. Los cambios de E5 permanecen locales y sin commit; la carpeta `.agents/` sigue sin seguimiento, preservada y fuera de la entrega.

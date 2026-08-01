@@ -127,7 +127,8 @@
           <div class="sync-session" id="syncSession" hidden>
             <span id="syncUser"></span>
             <div class="sync-actions">
-              <button id="syncNow" type="button">Sincronizar</button>
+                <button id="syncNow" type="button">Sincronizar</button>
+                <button id="migrateLegacyRemote" type="button" hidden>Migrar datos antiguos</button>
               <button id="syncLogout" type="button">Salir</button>
             </div>
           </div>
@@ -1798,6 +1799,7 @@
                   <select id="cloudRestoreVersion"></select>
                 </label>
                 <button id="previewCloudRestore" class="restore-cloud" type="button" hidden>Previsualizar versión</button>
+                <button id="verifyCloudBackups" class="restore-cloud" type="button">Verificar copias</button>
                 <label class="state-backup-picker">
                   <span>Seleccionar copia</span>
                   <input id="stateBackupFile" type="file" accept=".json,application/json" />
@@ -1862,6 +1864,9 @@
             <div class="data-import-log" id="dataImportLog">
               <strong>Sin importaciones en esta sesión</strong>
               <p>Cuando cargues datos verás aquí el resumen y los avisos.</p>
+            </div>
+            <div class="data-actions">
+              <button id="undoLastImport" class="secondary" type="button">Deshacer último lote</button>
             </div>
           </section>
 
@@ -1962,7 +1967,10 @@
                   <h3>Congelar datos reales del mes</h3>
                   <p id="monthCloseStatus">El cierre crea una versión nueva y exige que ninguna otra sesión haya publicado antes.</p>
                 </div>
-                <button id="closeCurrentMonth" type="button">Cerrar mes actual</button>
+                <div class="audit-actions">
+                  <button id="reopenLatestMonth" class="secondary" type="button">Reabrir último mes</button>
+                  <button id="closeCurrentMonth" type="button">Cerrar mes actual</button>
+                </div>
               </div>
             </article>
 
@@ -2260,6 +2268,7 @@
     <script src="canonical-workflow.js?v=20260714a"></script>
     <script src="canonical-supabase-store.js?v=20260731e4"></script>
     <script src="canonical-month-close.js?v=20260731e4"></script>
+    <script src="canonical-e5-operations.js?v=20260801e5"></script>
     <script src="snapshot-restore.js?v=20260731a"></script>
     <script src="durable-outbox.js?v=20260731e1"></script>
     <script src="remote-save-queue.js?v=20260731e4h"></script>

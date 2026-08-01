@@ -157,3 +157,14 @@ test("un puntero activo corrupto recupera una copia verificada sin usar el legad
   assert.equal(selected.snapshot.id, "valid");
   assert.equal(selected.integrityIssue, "active-head-invalid");
 });
+
+test("el legado exige una migración explícita cuando no hay copia normalizada", () => {
+  const legacy = { state: { sourceWorkbook: "Antiguo.xlsx" } };
+  const blocked = store.selectAuthoritativeState({ legacy });
+  assert.equal(blocked.source, "legacy-migration-required");
+  assert.equal(blocked.state, null);
+  assert.equal(blocked.requiresMigration, true);
+  const approved = store.selectAuthoritativeState({ legacy, allowLegacyMigration: true });
+  assert.equal(approved.source, "legacy-migration");
+  assert.equal(approved.state.sourceWorkbook, "Antiguo.xlsx");
+});

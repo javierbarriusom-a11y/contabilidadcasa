@@ -95,10 +95,10 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 | --- | --- | --- | --- | --- | --- |
 | A1-1 | P0 seguimiento | Conciliación remota exhaustiva del libro | Verificado | Crítica | El libro local y `finance_ledger_entries` coinciden en activos, conteo, IDs, importes y huella; se conserva evidencia anonimizada |
 | A1-2 | P1-6 | Cierre mensual transaccional | Verificado | Crítica | Cerrar un mes congela reales de forma atómica, registra auditoría y arrastra únicamente previsiones al mes siguiente |
-| A1-3 | P1-6 | Reapertura controlada de mes | Pendiente | Alta | Solo una acción confirmada crea una nueva revisión; nunca modifica el cierre histórico y deja motivo y antes/después |
-| A1-4 | P1-7 | Deshacer importación por lote | Parcial | Alta | Cada lote tiene identidad, vista previa y snapshot; deshacer local o remoto restaura una nueva versión sin borrar historial |
-| A1-5 | P0/P1 | Eliminar fallback remoto silencioso | Parcial | Alta | Si falta el esquema normalizado se informa y se conserva localmente; el legado solo se usa mediante una migración explícita y comprobable |
-| A1-6 | Operación | Retención y verificación de copias | Pendiente | Media | Existe política de retención, comprobación periódica de huellas y restauración de muestra sin pérdida |
+| A1-3 | P1-6 | Reapertura controlada de mes | Implementado | Alta | Implementado localmente: confirmación, motivo, antes/después y nueva revisión sin modificar el cierre; falta aceptación remota en dos sesiones |
+| A1-4 | P1-7 | Deshacer importación por lote | Implementado | Alta | Cada lote conserva identidad y estado anterior; deshacer local/remoto crea una revisión nueva; falta aceptación remota |
+| A1-5 | P0/P1 | Eliminar fallback remoto silencioso | Implementado | Alta | El fallo normalizado conserva localmente y bloquea la escritura heredada; la migración es explícita; falta comprobarlo contra el esquema desplegado |
+| A1-6 | Operación | Retención y verificación de copias | Implementado | Media | Política 30/24, operaciones protegidas, huellas y muestra restaurable implementadas; falta registrar la primera verificación remota |
 
 ### A2 — Completar decisión y tesorería
 
@@ -151,7 +151,7 @@ para abrir la app o consultar la última copia local.
 | E2 | A0-6, A0-7 y A0-8 | Publicación controlada, observable y sin datos personales estáticos |
 | E3 | A0-4, A0-5 y A0-9 | Apertura offline y recuperación guiada verificadas |
 | E4 | A1-1 y A1-2 | Verificada: libro remoto conciliado y cierre mensual seguro |
-| E5 | A1-3 a A1-6 | Reapertura, deshacer, migración y copias operativas |
+| E5 | A1-3 a A1-6 | Implementada localmente; pendiente de despliegue y aceptación autenticada |
 | E6 | A2-1, A2-2, A2-6 y A2-8 | Datos ejecutivos completos, trazables y consistentes |
 | E7 | A2-3, A2-4, A2-5 y A2-7 | Comparación financiera avanzada y segura |
 | E8 | A3 según uso real | Mejoras incrementales sin reabrir bloques cerrados |
@@ -173,12 +173,12 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Continuar con **E5: reapertura, deshacer, migración y copias operativas**, empezando por A1-3:
+Completar la aceptación remota de **E5: reapertura, deshacer, migración y copias operativas**:
 
-1. diseñar la reapertura como una revisión nueva sin modificar el cierre histórico;
-2. exigir motivo, vista previa y confirmación;
-3. conservar antes/después y verificar la operación en dos sesiones;
-4. completar después deshacer por lote, retirada del fallback y política de retención.
+1. desplegar `supabase_schema.sql` en el proyecto privado;
+2. reabrir y volver a cerrar un mes con dos sesiones;
+3. importar y deshacer un lote comprobando la nueva revisión;
+4. confirmar la migración explícita y registrar una verificación de copias.
 
 E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobación pública, monitor manual
 y prueba de rollback no destructiva entre revisiones seguras.
@@ -197,4 +197,9 @@ A3-8 quedó verificada el 01/08/2026 sin reabrir las fases UX ya cerradas. La ma
 «Planificar futuro» de «Registrar lo ocurrido», expone previsto, real y valor usado, guarda los reales
 individuales automáticamente y conserva los cambios de planificación como borrador confirmable. La
 regla vacío = usar previsto y cero = real cero está cubierta por pruebas. La puerta completa pasa con
-127/127 pruebas, construcción pública, privacidad y smoke test. E5 continúa como siguiente entrega.
+127/127 pruebas, construcción pública, privacidad y smoke test. La aceptación remota de E5 es el siguiente cierre.
+
+E5 quedó implementada localmente el 01/08/2026. La puerta completa pasa con 135/135 pruebas,
+construcción pública, privacidad y smoke test. El QA real pasó en escritorio y a 390×844 sin errores
+de consola ni desbordamiento. Su estado no sube a Verificado hasta desplegar el SQL y completar la
+aceptación autenticada de A1-3 a A1-6 en Supabase.

@@ -25,6 +25,7 @@ const files = [
   "canonical-workflow.js",
   "canonical-supabase-store.js",
   "canonical-month-close.js",
+  "canonical-e5-operations.js",
   "snapshot-restore.js",
   "durable-outbox.js",
   "remote-save-queue.js",

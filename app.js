@@ -47,6 +47,8 @@ let projectPlan = { outflows: [], placements: [] };
 let incomeActuals = {};
 let expenseActuals = {};
 let monthClosures = [];
+let importBatches = [];
+let pendingLegacyMigrationState = null;
 let balanceSettings = {};
 let scenarioSettings = {};
 let customPlanningRows = [];
@@ -603,6 +605,7 @@ function appStatePayload(options = {}) {
     incomeActuals,
     expenseActuals,
     monthClosures,
+    importBatches,
     balanceSettings,
     scenarioSettings,
     customPlanningRows,
@@ -987,6 +990,7 @@ function applyPersistedPayload(payload = {}) {
   incomeActuals = payload.incomeActuals && typeof payload.incomeActuals === "object" ? payload.incomeActuals : {};
   expenseActuals = payload.expenseActuals && typeof payload.expenseActuals === "object" ? payload.expenseActuals : {};
   monthClosures = Array.isArray(payload.monthClosures) ? payload.monthClosures : [];
+  importBatches = Array.isArray(payload.importBatches) ? payload.importBatches : [];
   balanceSettings = payload.balanceSettings && typeof payload.balanceSettings === "object" ? payload.balanceSettings : {};
   scenarioSettings = payload.scenarioSettings && typeof payload.scenarioSettings === "object" ? payload.scenarioSettings : {};
   customPlanningRows = Array.isArray(payload.customPlanningRows) ? payload.customPlanningRows : [];
@@ -1046,6 +1050,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("incomeActuals"), JSON.stringify(incomeActuals));
   storageSet(storageKey("expenseActuals"), JSON.stringify(expenseActuals));
   storageSet(storageKey("monthClosures"), JSON.stringify(monthClosures));
+  storageSet(storageKey("importBatches"), JSON.stringify(importBatches));
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
   storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
   storageSet(storageKey("customPlanningRows"), JSON.stringify(customPlanningRows));
@@ -1548,7 +1553,9 @@ function renderReconciliation() {
     : `<tr><td colspan="6"><div class="audit-empty good"><strong>Sin diferencias por partida</strong><p>Los importes bancarios clasificados coinciden con los reales capturados.</p></div></td></tr>`;
 
   const currentMonthKey = openMonthCutoffKey();
-  const currentClosure = monthClosures.find((item) => item.monthKey === currentMonthKey && item.status === "closed");
+  const currentClosure = isClosedMonthKey(currentMonthKey)
+    ? window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, currentMonthKey)
+    : null;
   const closeButton = qs("closeCurrentMonth");
   const closeStatus = qs("monthCloseStatus");
   if (closeButton) {
@@ -1598,6 +1605,7 @@ function loadLocalState() {
       incomeActuals: JSON.parse(storageGet(storageKey("incomeActuals"), "{}")),
       expenseActuals: JSON.parse(storageGet(storageKey("expenseActuals"), "{}")),
       monthClosures: JSON.parse(storageGet(storageKey("monthClosures"), "[]")),
+      importBatches: JSON.parse(storageGet(storageKey("importBatches"), "[]")),
       balanceSettings: JSON.parse(storageGet(storageKey("balanceSettings"), "{}")),
       scenarioSettings: JSON.parse(storageGet(storageKey("scenarioSettings"), "{}")),
       customPlanningRows: JSON.parse(storageGet(storageKey("customPlanningRows"), "[]")),
@@ -1620,6 +1628,7 @@ function loadLocalState() {
     incomeActuals = {};
     expenseActuals = {};
     monthClosures = [];
+    importBatches = [];
     balanceSettings = {};
     scenarioSettings = {};
     customPlanningRows = [];
@@ -2531,26 +2540,26 @@ async function loadRemoteStateOnce() {
       ? { mode: "compatibilidad", source: "legacy", state: legacyResult.data.state, requiresMigration: false }
       : { state: null };
   const authoritativeUpdatedAt = authoritative.snapshot?.created_at || legacyResult.data?.updated_at || "";
+  pendingLegacyMigrationState = authoritative.legacyState || null;
   if (authoritative.state && !closuresResult.error && Array.isArray(closuresResult.data)) {
     const stateClosures = Array.isArray(authoritative.state.monthClosures) ? authoritative.state.monthClosures : [];
-    const closuresByMonth = new Map(stateClosures.map((item) => [item.monthKey, item]));
+    const closureOperations = stateClosures.slice();
     closuresResult.data.forEach((row) => {
-      const existing = closuresByMonth.get(row.month_key) || {};
-      closuresByMonth.set(row.month_key, {
-        ...existing,
-        schemaId: existing.schemaId || "finance-month-close-v1",
+      if (closureOperations.some((item) => item.id === row.id)) return;
+      closureOperations.push({
+        schemaId: "finance-month-close-v1",
         id: row.id,
         monthKey: row.month_key,
         status: "closed",
         closedAt: row.closed_at,
-        reason: row.reason || existing.reason || "Cierre mensual confirmado",
+        reason: row.reason || "Cierre mensual confirmado",
         snapshotId: row.snapshot_id,
-        actuals: existing.actuals || { income: {}, expense: {} },
+        actuals: { income: {}, expense: {} },
       });
     });
     authoritative.state = {
       ...authoritative.state,
-      monthClosures: [...closuresByMonth.values()].sort((left, right) => left.monthKey.localeCompare(right.monthKey)),
+      monthClosures: closureOperations.sort((left, right) => String(left.occurredAt || left.reopenedAt || left.closedAt).localeCompare(String(right.occurredAt || right.reopenedAt || right.closedAt))),
     };
   }
 
@@ -2594,6 +2603,12 @@ async function loadRemoteStateOnce() {
     return;
   }
 
+  if (authoritative.requiresMigration && pendingLegacyMigrationState) {
+    updateSyncUi("Hay datos en el formato remoto antiguo. No se cargarán ni sobrescribirán automáticamente; usa Migrar datos antiguos para revisarlos y crear la primera versión normalizada.", "warn");
+    qs("migrateLegacyRemote")?.removeAttribute("hidden");
+    return;
+  }
+
   const loadError = legacyResult.error || normalizedError;
   if (loadError) {
     updateSyncUi(`No se pudo cargar Supabase: ${loadError.message}`, "warn");
@@ -2601,6 +2616,19 @@ async function loadRemoteStateOnce() {
   }
 
   await saveRemoteState(true);
+}
+
+async function migrateLegacyRemoteState() {
+  if (!pendingLegacyMigrationState || !remoteUser || !supabaseClient) return;
+  if (!window.confirm("Se creará una primera versión normalizada a partir de los datos remotos antiguos. La tabla antigua no se modificará. ¿Continuar?")) return;
+  applyPersistedPayload(pendingLegacyMigrationState);
+  refreshCanonicalSnapshot("explicit-legacy-migration");
+  refreshCanonicalLedger("explicit-legacy-migration");
+  remoteHeadKnown = true;
+  remoteHeadSnapshotId = null;
+  await saveRemoteState(true);
+  pendingLegacyMigrationState = null;
+  qs("migrateLegacyRemote")?.setAttribute("hidden", "");
 }
 
 function loadRemoteState() {
@@ -2621,14 +2649,14 @@ function loadRemoteState() {
 
 async function saveNormalizedRemoteState(payload) {
   const store = window.FinanceCanonicalSupabaseStore;
-  if (!store) return { mode: "legacy", reason: "adapter-unavailable" };
+  if (!store) return { mode: "blocked", reason: "adapter-unavailable" };
   const bundle = store.buildNormalizedBundle(payload, {
     userId: remoteUser.id,
     sourceKey: sourceStateKey(),
   });
   const startResult = await supabaseClient.from("finance_sync_runs").insert(bundle.syncRun);
   if (startResult.error) {
-    if (store.isMissingSchemaError(startResult.error)) return { mode: "legacy", reason: "schema-missing" };
+    if (store.isMissingSchemaError(startResult.error)) return { mode: "blocked", reason: "schema-missing" };
     throw startResult.error;
   }
 
@@ -2721,6 +2749,12 @@ async function saveNormalizedRemoteState(payload) {
       fingerprint: ledgerEvidence.remoteFingerprint,
     };
 
+    const importBatchRows = bundle.appendOnly.finance_import_batches;
+    if (importBatchRows.length) {
+      const batchResult = await supabaseClient.from("finance_import_batches")
+        .upsert(importBatchRows, { onConflict: "user_id,source_key,id" });
+      if (batchResult.error) throw batchResult.error;
+    }
     const events = bundle.appendOnly.finance_decision_events;
     if (events.length) {
       const eventResult = await supabaseClient
@@ -2743,7 +2777,7 @@ async function saveNormalizedRemoteState(payload) {
       .from("finance_sync_runs")
       .update({ status: "failed", completed_at: new Date().toISOString(), metadata: { error: error.message } })
       .eq("id", bundle.syncId);
-    if (store.isMissingSchemaError(error)) return { mode: "legacy", reason: "schema-incomplete" };
+    if (store.isMissingSchemaError(error)) return { mode: "blocked", reason: "schema-incomplete" };
     throw error;
   }
 }
@@ -2795,24 +2829,52 @@ async function closeCurrentMonthTransaction() {
   }
 }
 
+async function reopenLatestMonthTransaction() {
+  const status = qs("monthCloseStatus");
+  const e5 = window.FinanceCanonicalE5;
+  const closed = monthClosures.filter((item) => item.status === "closed" && isClosedMonthKey(item.monthKey))
+    .sort((a, b) => String(b.closedAt || b.occurredAt).localeCompare(String(a.closedAt || a.occurredAt)))[0];
+  if (!closed) { if (status) status.textContent = "No hay ningún mes cerrado que se pueda reabrir."; return; }
+  if (!remoteUser || !supabaseClient || !remoteHeadSnapshotId) { if (status) status.textContent = "Inicia sesión y sincroniza antes de reabrir."; return; }
+  const reason = window.prompt(`Motivo para reabrir ${closed.monthKey}:`, "Corrección posterior al cierre");
+  if (!reason?.trim()) return;
+  const preview = `Se conservará el cierre ${closed.id} y se creará una revisión nueva que permitirá corregir ${closed.monthKey}.`;
+  if (!window.confirm(`${preview}\n\n¿Confirmar reapertura?`)) return;
+  try {
+    const reopenedAt = new Date().toISOString();
+    const operationId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen");
+    const nextPayload = e5.reopenMonth(appStatePayload(), closed.monthKey, { id: operationId, reopenedAt, reason });
+    const fingerprint = window.FinanceCanonicalSupabaseStore.fingerprintPayload(nextPayload);
+    const newSnapshotId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen-snapshot");
+    const newSyncId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen-sync");
+    if (status) status.textContent = `Reabriendo ${closed.monthKey} de forma transaccional…`;
+    const result = await supabaseClient.rpc("reopen_finance_month", {
+      p_source_key: sourceStateKey(), p_month_key: closed.monthKey,
+      p_expected_head_snapshot_id: remoteHeadSnapshotId, p_closed_operation_id: closed.id,
+      p_new_snapshot_id: newSnapshotId, p_new_sync_id: newSyncId, p_reopening_id: operationId,
+      p_fingerprint: fingerprint, p_state: nextPayload, p_reason: reason.trim(),
+    });
+    if (result.error) throw result.error;
+    monthClosures = nextPayload.monthClosures;
+    remoteHeadSnapshotId = newSnapshotId;
+    ensureRemoteSaveQueue().acknowledge(reopenedAt);
+    saveLocalSnapshot(); renderReconciliation();
+    if (status) status.textContent = `${closed.monthKey} reabierto como revisión nueva. El cierre histórico se conserva.`;
+  } catch (error) { if (status) status.textContent = `No se reabrió el mes: ${error.message}`; }
+}
+
 async function persistRemotePayload(payload) {
     const barrier = ensureCanonicalCommitBarrier("remote-save");
     const normalizedResult = await saveNormalizedRemoteState(payload);
     if (normalizedResult.mode !== "normalized") {
-      const legacyResult = await supabaseClient.from("finance_dashboard_states").upsert(
-        {
-          user_id: remoteUser.id,
-          source_key: sourceStateKey(),
-          state: payload,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id,source_key" },
-      );
-      if (legacyResult.error) throw legacyResult.error;
+      const error = new Error("El esquema normalizado no está disponible. Los cambios siguen guardados localmente; instala el esquema y ejecuta la migración explícita.");
+      error.code = "NORMALIZED_SCHEMA_REQUIRED";
+      error.retryable = false;
+      throw error;
     }
     const detail = normalizedResult.mode === "normalized"
       ? ` ${normalizedResult.entityCount} entidades normalizadas y copia versionada.`
-      : " Guardado compatible; instala el esquema normalizado para activar auditoría y versiones.";
+      : "";
     const validation = barrier?.summary?.warningCount
       ? ` Validación canónica con ${barrier.summary.warningCount} aviso(s).`
       : " Validación canónica correcta.";
@@ -5351,8 +5413,10 @@ function openMonthCutoffKey() {
 }
 
 function isClosedMonthKey(key) {
-  return Boolean(key) && (key < openMonthCutoffKey()
-    || monthClosures.some((item) => item.monthKey === key && item.status === "closed"));
+  if (!key) return false;
+  const operation = window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, key);
+  if (operation) return operation.status === "closed";
+  return key < openMonthCutoffKey();
 }
 
 function openForecastMonths(months = forecastMonths()) {
@@ -15066,6 +15130,7 @@ function upsertDebtRecord(record) {
 }
 
 function processDataRecords(records, sourceLabel = "datos") {
+  const beforeState = appStatePayload({ includeCanonical: false });
   let imported = 0;
   let projectRows = 0;
   let debtRows = 0;
@@ -15094,12 +15159,64 @@ function processDataRecords(records, sourceLabel = "datos") {
   saveDebtLiquidations();
   refreshAllSectionsAfterDataChange();
 
+  if (imported > 0 && sourceLabel !== "entrada manual") {
+    const e5 = window.FinanceCanonicalE5;
+    const batch = e5.createImportBatch(beforeState, appStatePayload({ includeCanonical: false }), {
+      sourceLabel, reason: sourceLabel, recordCount: imported,
+      afterFingerprint: window.FinanceCanonicalSupabaseStore?.fingerprintPayload(appStatePayload({ includeCanonical: false })),
+    });
+    importBatches.push(batch);
+    saveLocalSnapshot();
+    queueRemoteSave();
+  }
+
   const warningText = warnings.length ? ` Avisos: ${warnings.slice(0, 4).join(" · ")}${warnings.length > 4 ? "..." : ""}` : "";
   showImportLog(
     `${imported} registro(s) importado(s)`,
     `Origen: ${sourceLabel}. ${planningRows} concepto(s), ${projectRows} proyecto(s) y ${debtRows} liquidación(es) de deuda procesados. ${fullRefreshMessage()}${warningText}`,
     warnings.length ? "warning" : "",
   );
+}
+
+async function undoLastImportBatch() {
+  const batch = importBatches.filter((item) => item.status === "applied").slice(-1)[0];
+  if (!batch) { showImportLog("Nada que deshacer", "No hay lotes aplicados pendientes de deshacer.", "warning"); return; }
+  const reason = window.prompt(`Motivo para deshacer ${batch.sourceLabel}:`, "Importación incorrecta");
+  if (!reason?.trim()) return;
+  if (!window.confirm(`Se restaurará el estado anterior al lote de ${batch.recordCount} registro(s) y se conservará una revisión auditable. ¿Continuar?`)) return;
+  try {
+    const next = window.FinanceCanonicalE5.undoImportBatch(appStatePayload({ includeCanonical: false }), batch.id, { reason });
+    if (remoteUser && remoteHeadSnapshotId) {
+      const store = window.FinanceCanonicalSupabaseStore;
+      const newSnapshotId = store.createUuid("import-undo-snapshot");
+      const result = await supabaseClient.rpc("undo_finance_import_batch", {
+        p_source_key: sourceStateKey(), p_batch_id: batch.id, p_expected_head_snapshot_id: remoteHeadSnapshotId,
+        p_new_snapshot_id: newSnapshotId, p_new_sync_id: store.createUuid("import-undo-sync"),
+        p_fingerprint: store.fingerprintPayload(next), p_state: next, p_reason: reason.trim(),
+      });
+      if (result.error) throw result.error;
+      remoteHeadSnapshotId = newSnapshotId;
+    }
+    applyPersistedPayload(next); saveLocalSnapshot(); refreshFromPersistedState();
+    showImportLog("Importación deshecha", "Se creó una revisión nueva; el lote y su estado anterior siguen en el historial.");
+  } catch (error) { showImportLog("No se pudo deshacer", error.message, "danger"); }
+}
+
+async function verifyCloudBackups() {
+  if (!supabaseClient || !remoteUser) { setStateBackupStatus("Inicia sesión", "La verificación necesita acceder a tus copias privadas.", "warning"); return; }
+  const result = await supabaseClient.from("finance_state_snapshots")
+    .select("id,state,fingerprint,created_at,sync_id").eq("source_key", sourceStateKey()).order("created_at", { ascending: false }).limit(100);
+  if (result.error) { setStateBackupStatus("No se pudieron verificar las copias", result.error.message, "danger"); return; }
+  const store = window.FinanceCanonicalSupabaseStore;
+  const report = window.FinanceCanonicalE5.verifySnapshotSet(result.data || [], (row) => store.verifySnapshot(row));
+  const plan = window.FinanceCanonicalE5.buildRetentionPlan((result.data || []).map((row) => ({ ...row, operation: row.state?.operation })), {});
+  const sample = report.results.find((item) => item.valid)?.id || null;
+  const check = await supabaseClient.rpc("record_finance_backup_check", {
+    p_source_key: sourceStateKey(), p_checked_count: report.checked, p_valid_count: report.valid,
+    p_invalid_ids: report.invalid.map((item) => item.id), p_sample_snapshot_id: sample,
+  });
+  if (check.error) { setStateBackupStatus("Verificación local completada", `${report.valid}/${report.checked} copias válidas, pero Supabase no pudo registrar el control: ${check.error.message}`, "warning"); return; }
+  setStateBackupStatus("Copias verificadas", `${report.valid}/${report.checked} huellas válidas. ${plan.retained.length} copias protegidas por la política; ${plan.candidates.length} candidatas a revisión manual. Nunca se borran automáticamente.`, report.invalid.length ? "danger" : "success");
 }
 
 function handleManualData() {
@@ -17100,6 +17217,7 @@ async function init() {
   qs("syncResend").addEventListener("click", handleResendConfirmation);
   qs("syncLogout").addEventListener("click", handleSyncLogout);
   qs("syncNow").addEventListener("click", () => saveRemoteState(true));
+  qs("migrateLegacyRemote")?.addEventListener("click", migrateLegacyRemoteState);
   qs("addProject").addEventListener("click", handleAddProject);
   qs("cancelProjectEdit").addEventListener("click", () => {
     clearProjectForm();
@@ -17153,9 +17271,11 @@ async function init() {
   qs("manualDataKind").addEventListener("change", updateManualDataKindUi);
   qs("addManualData").addEventListener("click", handleManualData);
   qs("importBatchData").addEventListener("click", handleBatchImport);
+  qs("undoLastImport")?.addEventListener("click", undoLastImportBatch);
   qs("exportStateBackup")?.addEventListener("click", downloadStateBackup);
   qs("prepareCloudRestore")?.addEventListener("click", prepareCloudSnapshotRestore);
   qs("previewCloudRestore")?.addEventListener("click", previewSelectedCloudSnapshotRestore);
+  qs("verifyCloudBackups")?.addEventListener("click", verifyCloudBackups);
   qs("stateBackupFile")?.addEventListener("change", handleStateBackupSelection);
   qs("confirmStateRestore")?.addEventListener("click", confirmStateRestore);
   qs("cancelStateRestore")?.addEventListener("click", cancelStateRestore);
@@ -17494,6 +17614,7 @@ async function init() {
   });
   qs("downloadCanonicalLedger")?.addEventListener("click", downloadCanonicalLedger);
   qs("closeCurrentMonth")?.addEventListener("click", closeCurrentMonthTransaction);
+  qs("reopenLatestMonth")?.addEventListener("click", reopenLatestMonthTransaction);
   qs("openMovementReview")?.addEventListener("click", () => {
     history.pushState(null, "", "#movements");
     setActiveView("movements");

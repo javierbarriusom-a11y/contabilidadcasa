@@ -23,7 +23,9 @@
   function closeMonth(payload = {}, monthKey, metadata = {}) {
     if (!validMonthKey(monthKey)) throw new Error("El mes de cierre no es válido.");
     const closures = Array.isArray(payload.monthClosures) ? payload.monthClosures : [];
-    if (closures.some((item) => item.monthKey === monthKey && item.status === "closed")) {
+    const latest = closures.filter((item) => item.monthKey === monthKey).slice()
+      .sort((a, b) => text(b.occurredAt || b.reopenedAt || b.closedAt).localeCompare(text(a.occurredAt || a.reopenedAt || a.closedAt)))[0];
+    if (latest?.status === "closed") {
       throw new Error("El mes ya está cerrado.");
     }
     const closedAt = metadata.closedAt || new Date().toISOString();
@@ -37,6 +39,8 @@
       monthKey,
       status: "closed",
       closedAt,
+      occurredAt: closedAt,
+      operation: "month-close",
       reason: text(metadata.reason || "Cierre mensual confirmado"),
       actuals: { income: incomeActuals, expense: expenseActuals },
     };
@@ -44,8 +48,10 @@
   }
 
   function isMonthClosed(payload = {}, monthKey) {
-    return Array.isArray(payload.monthClosures)
-      && payload.monthClosures.some((item) => item.monthKey === monthKey && item.status === "closed");
+    const latest = (Array.isArray(payload.monthClosures) ? payload.monthClosures : [])
+      .filter((item) => item.monthKey === monthKey).slice()
+      .sort((a, b) => text(b.occurredAt || b.reopenedAt || b.closedAt).localeCompare(text(a.occurredAt || a.reopenedAt || a.closedAt)))[0];
+    return latest?.status === "closed";
   }
 
   return { SCHEMA_ID, actualMonthKey, closeMonth, isMonthClosed, validMonthKey };

@@ -253,6 +253,14 @@
       },
       projections,
       appendOnly: {
+        finance_import_batches: (Array.isArray(payload.importBatches) ? payload.importBatches : []).map((batch) => ({
+          id: text(batch.id), user_id: context.userId, source_key: context.sourceKey,
+          sync_id: context.syncId, status: text(batch.status || "applied"),
+          source_label: text(batch.sourceLabel || "Importación"), reason: text(batch.reason),
+          record_count: numeric(batch.recordCount), before_state: batch.beforeState || {},
+          after_fingerprint: text(batch.afterFingerprint), created_at: batch.createdAt || now,
+          undone_at: batch.undoneAt || null, undo_reason: text(batch.undoReason),
+        })).filter((batch) => batch.id),
         finance_decision_events: decisionEvents.map((row) => ({
           id: createUuid(row.entity_id),
           user_id: row.user_id,
@@ -299,7 +307,7 @@
       || message.includes("relation") && message.includes("does not exist");
   }
 
-  function selectAuthoritativeState({ head, snapshots, legacy } = {}) {
+  function selectAuthoritativeState({ head, snapshots, legacy, allowLegacyMigration = false } = {}) {
     const allSnapshots = (Array.isArray(snapshots) ? snapshots : snapshots ? [snapshots] : [])
       .filter(Boolean)
       .sort((left, right) => text(right.created_at).localeCompare(text(left.created_at)));
@@ -331,11 +339,21 @@
         integrityIssue: headSnapshotId ? "active-head-invalid" : null,
       };
     }
-    if (legacy?.state) {
+    if (legacy?.state && allowLegacyMigration) {
       return {
         mode: "compatibilidad",
         source: "legacy-migration",
         state: legacy.state,
+        snapshot: null,
+        requiresMigration: true,
+      };
+    }
+    if (legacy?.state) {
+      return {
+        mode: "migración requerida",
+        source: "legacy-migration-required",
+        state: null,
+        legacyState: legacy.state,
         snapshot: null,
         requiresMigration: true,
       };

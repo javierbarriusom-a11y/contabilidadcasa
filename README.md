@@ -56,6 +56,13 @@ La app mantiene compatibilidad con `finance_dashboard_states` y puede seguir fun
 
 Cada sincronización conserva además una copia completa en `finance_state_snapshots`. `Recuperar versión anterior` restaura creando una versión nueva: no sobrescribe ni borra el historial.
 
+## Operaciones E5
+
+- Reabrir un mes y deshacer una importación requieren motivo, vista previa y confirmación; ambas acciones crean una revisión nueva.
+- Si el esquema normalizado no está disponible, la app conserva los cambios localmente y no escribe en la tabla heredada. La migración antigua se inicia solo con el botón de confirmación.
+- `Verificar copias` comprueba huellas y una muestra restaurable. La política conserva 30 revisiones recientes, una mensual durante 24 meses y todas las operaciones críticas; no elimina copias automáticamente.
+- Para activar E5 en Supabase, vuelve a ejecutar `supabase_schema.sql` antes de usar estas operaciones remotas.
+
 ## Publicacion en GitHub Pages
 
 Este repositorio se publica mediante GitHub Actions desde un artefacto verificado y de contenido limitado.

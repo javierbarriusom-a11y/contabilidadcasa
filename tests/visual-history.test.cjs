@@ -43,7 +43,13 @@ test("un mes ya cerrado no ofrece repetir el cierre", () => {
 
 test("el arranque recupera cierres desde el registro inmutable remoto", () => {
   assert.match(app, /from\("finance_month_closures"\)/);
-  assert.match(app, /closuresByMonth\.set\(row\.month_key/);
+  assert.match(app, /closureOperations\.push/);
   assert.match(app, /status: "closed"/);
-  assert.match(app, /monthClosures: \[\.\.\.closuresByMonth\.values\(\)\]/);
+  assert.match(app, /monthClosures: closureOperations\.sort/);
+});
+
+test("E5 permite reabrir sin borrar el cierre histórico", () => {
+  assert.match(html, /id="reopenLatestMonth"/);
+  assert.match(app, /rpc\("reopen_finance_month"/);
+  assert.match(app, /El cierre histórico se conserva/);
 });

@@ -60,7 +60,8 @@ test("el puntero activo solo permite al usuario seleccionar su copia normalizada
 
 test("el cierre mensual es transaccional, append-only y protegido contra sesiones obsoletas", () => {
   assert.match(schema, /create table if not exists public\.finance_month_closures/);
-  assert.match(schema, /unique \(user_id, source_key, month_key\)/);
+  assert.match(schema, /drop constraint if exists finance_month_closures_user_id_source_key_month_key_key/);
+  assert.match(schema, /max\(r\.reopened_at\)/);
   assert.match(schema, /create or replace function public\.close_finance_month/);
   assert.match(schema, /from public\.finance_source_heads h[\s\S]*for update/);
   assert.match(schema, /current_head_snapshot_id is distinct from p_expected_head_snapshot_id/);
@@ -69,6 +70,16 @@ test("el cierre mensual es transaccional, append-only y protegido contra sesione
   assert.match(schema, /grant select on public\.finance_month_closures to authenticated/);
   assert.match(schema, /revoke execute on function public\.close_finance_month[\s\S]*from public/);
   assert.doesNotMatch(schema, /grant select, insert on public\.finance_month_closures/);
+});
+
+test("E5 añade reapertura, deshacer y verificación de copias como operaciones transaccionales", () => {
+  assert.match(schema, /create table if not exists public\.finance_month_reopenings/);
+  assert.match(schema, /create table if not exists public\.finance_import_batches/);
+  assert.match(schema, /create table if not exists public\.finance_backup_checks/);
+  assert.match(schema, /create or replace function public\.reopen_finance_month/);
+  assert.match(schema, /create or replace function public\.undo_finance_import_batch/);
+  assert.match(schema, /create or replace function public\.record_finance_backup_check/);
+  assert.match(schema, /Otra sesión publicó una revisión más reciente/);
 });
 
 test("la auditoría registra antes y después mediante trigger", () => {
