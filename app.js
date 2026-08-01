@@ -93,6 +93,8 @@ let visualDraftProjectDeletes = {};
 let visualSelectedRows = new Set();
 let pendingDebtDecision = null;
 let pendingDebtReviewOptions = new Map();
+let pendingDebtComparisonFrontier = [];
+let pendingE7Import = null;
 let pendingProjectDecision = null;
 let unifiedActionRegistry = new Map();
 let pendingUnifiedActionId = "";
@@ -150,6 +152,7 @@ const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REU
 const DebtContracts = globalThis.FinanceDebtContracts || null;
 const ExecutiveReadModel = globalThis.FinanceExecutiveReadModel || null;
 const DebtComparator = globalThis.FinanceDebtComparator || null;
+const E7Analysis = globalThis.FinanceCanonicalE7 || null;
 const DEBT_LIQUIDATION_ASSUMPTIONS = {
   baseStartingLiquidity: 9000,
   targetReserve: 3000,
@@ -1362,10 +1365,16 @@ function renderE6KpiQuality() {
   if (!target) return;
   const model = unifiedActionCenterModel().readModel;
   const metrics = Object.values(model?.metrics || {});
-  target.innerHTML = metrics.length ? `<div class="e6-quality-list">${metrics.map((item) => `<article class="e6-quality-card">
+  const ledgerEntries = canonicalLedgerSnapshot?.entries || [];
+  const calibrated = E7Analysis?.calibrateScenarios(ledgerEntries.map((entry) => ({
+    ...entry,
+    reconciled: entry.reconciled === true || entry.status === "matched" || entry.reconciliationStatus === "matched",
+  })), { horizonMonths: forecastMonths().length });
+  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} mes(es) · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
+  target.innerHTML = (metrics.length ? `<div class="e6-quality-list">${metrics.map((item) => `<article class="e6-quality-card">
     <header><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${item.confidence === "high" ? "good" : item.confidence === "medium" ? "warn" : "danger"}">${escapeHtml(item.confidence)}</span></header>
     <dl><dt>Fecha</dt><dd>${escapeHtml(item.asOf)}</dd><dt>Fuente</dt><dd>${escapeHtml(item.source)}</dd><dt>Método</dt><dd>${escapeHtml(item.method)}</dd><dt>Cobertura</dt><dd>${escapeHtml(item.coverage)}</dd></dl>
-  </article>`).join("")}</div>` : `<div class="audit-empty"><strong>Sin lectura ejecutiva</strong><p>Calcula el escenario para generar los KPI.</p></div>`;
+  </article>`).join("")}</div>` : `<div class="audit-empty"><strong>Sin lectura ejecutiva</strong><p>Calcula el escenario para generar los KPI.</p></div>`) + scenarioHtml;
 }
 
 function downloadCanonicalInventory() {
@@ -2813,7 +2822,7 @@ async function saveNormalizedRemoteState(payload) {
     const importBatchRows = bundle.appendOnly.finance_import_batches;
     if (importBatchRows.length) {
       const batchResult = await supabaseClient.from("finance_import_batches")
-        .upsert(importBatchRows, { onConflict: "user_id,source_key,id" });
+        .upsert(importBatchRows, { onConflict: "user_id,source_key,id", ignoreDuplicates: true });
       if (batchResult.error) throw batchResult.error;
     }
     const events = bundle.appendOnly.finance_decision_events;
@@ -6796,6 +6805,15 @@ function buildDebtReviewComparison(decision, target) {
     reserve: agentCaixaFloor(),
     alternatives,
   });
+  if (E7Analysis) {
+    comparison.frontier = E7Analysis.paretoFrontier(comparison.alternatives.map((option) => ({
+      ...option,
+      carFund: Number(option.payload?.carFund || 0),
+    })), { reserve: comparison.reserve });
+    comparison.legalEffects = E7Analysis.buildAgreementEffects(decision.payoffMode === "fixed" ? "single-payment" : debtComparisonStrategy(decision.payoffMode), {
+      debtReduction: decision.discount,
+    });
+  }
   pendingDebtReviewOptions = new Map(
     comparison.alternatives.map((option) => [option.id, { strategy: option.strategy, decision: option.payload }]),
   );
@@ -6812,8 +6830,9 @@ function debtReviewOptionCard(option, selected = false, recommended = false) {
       : selected
         ? "Aplicar opción configurada"
         : "Aplicar esta alternativa";
+  const frontier = pendingDebtComparisonFrontier?.includes(option.id);
   return `<article class="debt-review-card ${klass} ${selected ? "selected" : ""} ${recommended ? "recommended" : ""} ${reference}">
-    <span>${escapeHtml(option.label)}${recommended ? " · recomendada" : ""}</span>
+    <span>${escapeHtml(option.label)}${recommended ? " · recomendada" : ""}${frontier ? " · frontera eficiente" : ""}</span>
     <strong>${escapeHtml(option.startLabel)}${option.duration ? ` · ${money(option.monthlyPayment, true)}/mes` : ""}</strong>
     <p>${escapeHtml(option.detail)}</p>
     <div class="debt-review-metrics">
@@ -6894,6 +6913,7 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
     return;
   }
   const currentOption = comparison.alternatives.find((option) => option.id === "configured") || comparison.recommended;
+  pendingDebtComparisonFrontier = comparison.frontier?.frontierIds || [];
   const suspended = debtTargetIsSuspended(target);
   const currentMonth = forecastMonths()[decision.monthIndex]?.label || "-";
   const discountPct = decision.originalPrincipal ? decision.discount / decision.originalPrincipal : 0;
@@ -6922,12 +6942,18 @@ function renderDebtDecisionReview(decision = pendingDebtDecision) {
     <div class="debt-review-rule ${comparison.recommended.isReference ? "warn" : "good"}">
       <div><span>Recomendación canónica</span><strong>${escapeHtml(comparison.recommended.label)}</strong></div>
       <p>${escapeHtml(comparison.reason)}</p>
+      ${comparison.frontier ? `<p>${escapeHtml(comparison.frontier.reason)} “Frontera eficiente” significa que ninguna opción viable mejora todos los objetivos a la vez.</p>` : ""}
     </div>
     <div class="debt-review-options">
       ${comparison.alternatives
         .map((option) => debtReviewOptionCard(option, option.id === "configured", option.id === comparison.recommendedId))
         .join("")}
-    </div>`;
+    </div>
+    ${comparison.legalEffects?.length ? `<div class="e7-effects" aria-label="Efectos legales y fiscales por revisar">
+      <strong>Efectos legales y fiscales</strong>
+      ${comparison.legalEffects.map((effect) => `<article><span>${escapeHtml(effect.title)}</span><p>${escapeHtml(effect.summary)}</p>${effect.source ? `<a href="${escapeHtml(effect.source.url)}" target="_blank" rel="noreferrer">${escapeHtml(effect.source.authority)} · consultado ${escapeHtml(effect.source.checkedAt)}</a>` : ""}</article>`).join("")}
+      <p class="debt-review-note">${escapeHtml(E7Analysis.PROFESSIONAL_WARNING)}</p>
+    </div>` : ""}`;
   panel.querySelectorAll("[data-apply-debt-option]").forEach((button) => {
     button.addEventListener("click", () => applyDebtReviewOption(button));
   });
@@ -8629,7 +8655,8 @@ function renderVisualColumnHeader(column) {
       </button>
     </th>`;
   }
-  const historical = column.kind === "month" && column.months.every((month) => isClosedMonthKey(month.key));
+  const columnMonths = Array.isArray(column.months) ? column.months : [];
+  const historical = column.kind === "month" && columnMonths.length > 0 && columnMonths.every((month) => isClosedMonthKey(month.key));
   return `<th class="${column.kind === "month" && visualTimeMode() === "year" ? "visual-month-header" : ""} ${historical ? "visual-historical-header" : ""}">${escapeHtml(column.label)}${historical ? "<small>Histórico</small>" : ""}</th>`;
 }
 
@@ -15443,13 +15470,91 @@ function parseTabularText(text) {
   });
 }
 
+function comparableImportRecord(record = {}, index = 0) {
+  const kind = normalizeDataKind(record.kind);
+  const month = monthFromInput(record.month)?.key || String(record.month || "");
+  const label = String(record.label || record.concept || "").trim();
+  const sectionName = String(record.sectionName || (kind === "income" ? "INGRESOS" : "GASTOS FIJOS")).trim();
+  return {
+    id: [kind, month, normalizedText(sectionName), normalizedText(label)].join("|"),
+    kind, month, sectionName, label,
+    planned: parseAmount(record.planned), actual: parseAmount(record.actual),
+    amount: parseAmount(record.actual ?? record.planned ?? record.amount) || 0,
+    sourceIndex: index,
+  };
+}
+
+function currentComparableImportRecords() {
+  const planning = customPlanningRows.map((row, index) => comparableImportRecord({
+    kind: row.kind, month: row.monthKey, sectionName: row.sectionName, label: displayLabelForRow(row), planned: row.plannedValue,
+  }, index));
+  const projectRows = projects.map((item, index) => comparableImportRecord({
+    kind: "project", month: item.monthKey, label: item.name, amount: item.amount,
+  }, planning.length + index));
+  const debtRows = debtLiquidations.map((item, index) => comparableImportRecord({
+    kind: "debt", month: item.monthKey, label: item.name, amount: item.amount,
+  }, planning.length + projectRows.length + index));
+  return [...planning, ...projectRows, ...debtRows];
+}
+
+function stageE7Import(records, sourceLabel) {
+  if (!E7Analysis) { processDataRecords(records, sourceLabel); return; }
+  const before = currentComparableImportRecords();
+  const incoming = records.map(comparableImportRecord);
+  const merged = new Map(before.map((item) => [item.id, item]));
+  incoming.forEach((item) => merged.set(item.id, item));
+  const comparison = E7Analysis.compareImport(before, [...merged.values(), ...incoming.filter((item, index) => incoming.findIndex((other) => other.id === item.id) !== index)], {
+    invariants: { recognizableRows: incoming.every((item) => item.label && item.month) },
+  });
+  pendingE7Import = { records, sourceLabel, comparison };
+  const log = qs("dataImportLog");
+  log.classList.toggle("danger", !comparison.valid);
+  log.innerHTML = `<strong>Vista previa · todavía no se ha importado nada</strong>
+    <p>${comparison.additions.length} alta(s), ${comparison.changes.length} cambio(s), ${comparison.duplicates.length} duplicado(s) y ${comparison.removals.length} baja(s). Impacto agregado del lote: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Invariantes: ${comparison.valid ? "correctas" : "requieren revisión"}.</p>
+    <div class="data-actions"><button id="confirmE7Import" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar e importar</button><button id="cancelE7Import" class="secondary" type="button">Cancelar</button></div>`;
+  qs("confirmE7Import")?.addEventListener("click", () => {
+    const pending = pendingE7Import; pendingE7Import = null;
+    if (pending) processDataRecords(pending.records, pending.sourceLabel);
+  });
+  qs("cancelE7Import")?.addEventListener("click", () => {
+    pendingE7Import = null;
+    showImportLog("Importación cancelada", "La vista previa se descartó sin modificar los datos.");
+  });
+}
+
+function stageE7Workbook(nextData, fileName) {
+  if (!E7Analysis) { applyImportedWorkbookData(nextData, fileName); return; }
+  const before = (baseData?.transactions || []).map((item, index) => ({ ...item, id: item.id || `movement-${index}`, amount: Number(item.amount || 0) }));
+  const after = (nextData?.transactions || []).map((item, index) => ({ ...item, id: item.id || `movement-${index}`, amount: Number(item.amount || 0) }));
+  const comparison = E7Analysis.compareImport(before, after, {
+    invariants: {
+      hasPlanning: Boolean(nextData?.monthlyPlanning?.months?.length && nextData?.monthlyPlanning?.sections?.length),
+      finiteMovements: after.every((item) => Number.isFinite(item.amount)),
+    },
+  });
+  pendingE7Import = { nextData, sourceLabel: fileName, comparison, kind: "workbook" };
+  const log = qs("dataImportLog");
+  log.classList.toggle("danger", !comparison.valid);
+  log.innerHTML = `<strong>Vista previa del libro · todavía no se ha sustituido el modelo</strong>
+    <p>${comparison.additions.length} alta(s), ${comparison.changes.length} cambio(s), ${comparison.duplicates.length} duplicado(s) y ${comparison.removals.length} baja(s) en movimientos. Impacto agregado: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Planificación e importes: ${comparison.valid ? "válidos" : "requieren revisión"}.</p>
+    <div class="data-actions"><button id="confirmE7Workbook" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar y sustituir modelo</button><button id="cancelE7Workbook" class="secondary" type="button">Cancelar</button></div>`;
+  qs("confirmE7Workbook")?.addEventListener("click", () => {
+    const pending = pendingE7Import; pendingE7Import = null;
+    if (pending?.nextData) applyImportedWorkbookData(pending.nextData, pending.sourceLabel);
+  });
+  qs("cancelE7Workbook")?.addEventListener("click", () => {
+    pendingE7Import = null;
+    showImportLog("Importación cancelada", "El libro se descartó sin sustituir el modelo actual.");
+  });
+}
+
 function handleBatchImport() {
   const records = parseTabularText(qs("batchDataInput").value);
   if (!records.length) {
     showImportLog("No hay datos importables", "Pega una tabla con cabeceras y al menos una línea.", "danger");
     return;
   }
-  processDataRecords(records, "lote pegado");
+  stageE7Import(records, "lote pegado");
 }
 
 function applyImportedWorkbookData(nextData, fileName) {
@@ -15494,7 +15599,7 @@ async function handleExcelImport(event) {
       showImportLog("Fichero vacío", "No se han encontrado filas importables.", "danger");
       return;
     }
-    processDataRecords(records, file.name);
+    stageE7Import(records, file.name);
     event.target.value = "";
     return;
   }
@@ -15505,7 +15610,7 @@ async function handleExcelImport(event) {
   const buffer = await file.arrayBuffer();
   const workbook = window.XLSX.read(buffer, { type: "array" });
   try {
-    applyImportedWorkbookData(buildFinanceDataFromWorkbook(workbook, file.name), file.name);
+    stageE7Workbook(buildFinanceDataFromWorkbook(workbook, file.name), file.name);
   } catch (error) {
     showImportLog(
       "No se pudo cargar el libro completo",

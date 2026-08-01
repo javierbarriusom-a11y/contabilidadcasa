@@ -36,11 +36,11 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 | Bloque | Fases | Realizados | Implementados | Parciales | Pendientes | Objetivo |
 | --- | --- | --- | --- | --- | --- | --- |
 | P0 | P0-1 a P0-6 | 6: P0-1 a P0-6 | 0 | 0 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
-| P1 | P1-1 a P1-8 | 4: P1-1, P1-2, P1-6 y P1-8 | 0 | 4: P1-3, P1-4, P1-5 y P1-7 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
+| P1 | P1-1 a P1-8 | 8: P1-1 a P1-8 | 0 | 0 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
 | P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
 | P3 | P3-1 a P3-3 | 0 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
 | UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
-| **Total** | **29 fases** | **22** | **0** | **4** | **3** | **P0, P2, UX y E6 estan verificados; E7 es el siguiente objetivo** |
+| **Total** | **29 fases** | **26** | **0** | **0** | **3** | **P0, P1, P2 y UX están verificados; E8 es el siguiente objetivo** |
 
 ## P0 - Integridad estructural
 
@@ -129,11 +129,11 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 | P0-6 | Verificado | Selector remoto, comparacion antes/despues y restauracion transaccional como version nueva | Restauracion autenticada completa en Supabase, puntero actualizado e historial preservado | Ninguno | P1-1 |
 | P1-1 | Verificado | Cobertura aprendida y editable hasta el siguiente ingreso, derivada solo de movimientos conciliados | Pruebas de contratos y aceptación remota guardar-recargar-restablecer | Ninguno | P1-2 |
 | P1-2 | Verificado | Ocho campos contractuales de deuda y desconocidos visibles | Pruebas de calidad y validación de interfaz | Ninguno | P1-3 |
-| P1-3 | Parcial | Comparador de no actuar, pago, fraccionamiento, reunificacion y retoma | Pruebas de reserva, coste, cierre y recomendacion | Incorporar efectos legales/fiscales verificados | P1-3 |
-| P1-4 | Parcial | Rutas heuristicas con restricciones de caja, deuda y coche | Escenarios y recomendaciones visibles | Falta frontera multiobjetivo explicita y explicable | P1-4 |
-| P1-5 | Parcial | Escenarios deterministas y horizonte por rangos | Comparativas base y tension existentes | Calibrar probabilidades con historico conciliado | P1-5 |
+| P1-3 | Verificado | Comparador con efectos legales/fiscales, fuente BOE, fecha, jurisdicción y advertencia profesional | Contrato E7, pruebas y aceptación autenticada | Ninguno | P1-4 |
+| P1-4 | Verificado | Frontera no dominada entre deuda, caja, colchón y coche con restricciones explícitas | Contrato E7, pruebas de dominancia/reserva y navegador | Ninguno | P1-5 |
+| P1-5 | Verificado | Escenarios calibrados solo con histórico conciliado, confianza y bandas para más de 24 meses | Contrato E7, pruebas de muestra/confianza y navegador | Ninguno | P1-6 |
 | P1-6 | Verificado | Fuente, fecha, metodo, cobertura y confianza visibles por KPI; cierre mensual remoto ya verificado | Pruebas de lectura y aceptación de interfaz/persistencia | Ninguno | P1-7 |
-| P1-7 | Parcial | Seleccion, vista previa y confirmacion de importaciones | Flujos de importacion y snapshots disponibles | Deshacer remoto por lote y comparacion integral antes/despues | P1-7 |
+| P1-7 | Verificado | Vista previa integral antes/después para lotes, CSV y libros completos; confirmación separada y deshacer existente | Importar, recargar, conflicto, deshacer y restaurar comprobados en Supabase | Ninguno | P1-8 |
 | P1-8 | Verificado | `finance-executive-read-model/v1` común para Hoy y acciones | Tres decisiones y metadatos uniformes comprobados en navegador | Ninguno | P2-1 |
 | P2-1 | Verificado | Huchas con aportaciones manuales/conciliadas, progreso, pausa, ejecucion y cancelacion | Pruebas de deduplicacion global por movimiento y panel validado en navegador | Ninguno; automatizar aportaciones bancarias depende de P3-1 | P2-2 |
 | P2-2 | Verificado | Titular obligatorio y editable para series y deudas; selector Hogar/Javi/Tere persistente | Inferencia, reasignacion y agregacion familiar cubiertas por pruebas y navegador | Ninguno | P2-3 |

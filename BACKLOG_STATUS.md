@@ -24,14 +24,14 @@ conflictos remotos o un despliegue defectuoso.
 
 ## 2. Situación consolidada
 
-| Bloque | Fases | Verificado | Parcial | Pendiente | Lectura actual |
-| --- | ---: | ---: | ---: | ---: | --- |
-| P0 Integridad estructural | 6 | 6 | 0 | 0 | Base canónica, sincronización y restauración verificadas |
-| P1 Decisión y tesorería | 8 | 4 | 4 | 0 | E6 verifica cobertura, deuda, KPI y lectura ejecutiva; E7 completa comparación avanzada |
-| P2 Planificación familiar | 6 | 6 | 0 | 0 | Funcionalidad verificada; quedan mejoras no bloqueantes |
-| P3 Servicios externos | 3 | 0 | 0 | 3 | Requiere diseño privado y proveedores externos |
-| UX Experiencia principal | 6 | 6 | 0 | 0 | Experiencia principal verificada en escritorio y móvil |
-| **Total roadmap inicial** | **29** | **22** | **4** | **3** | **El siguiente trabajo no debe reabrir lo ya verificado** |
+| Bloque | Fases | Verificado | Implementado | Parcial | Pendiente | Lectura actual |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| P0 Integridad estructural | 6 | 6 | 0 | 0 | 0 | Base canónica, sincronización y restauración verificadas |
+| P1 Decisión y tesorería | 8 | 8 | 0 | 0 | 0 | E6 y E7 están verificadas de extremo a extremo |
+| P2 Planificación familiar | 6 | 6 | 0 | 0 | 0 | Funcionalidad verificada; quedan mejoras no bloqueantes |
+| P3 Servicios externos | 3 | 0 | 0 | 0 | 3 | Requiere diseño privado y proveedores externos |
+| UX Experiencia principal | 6 | 6 | 0 | 0 | 0 | Experiencia principal verificada en escritorio y móvil |
+| **Total roadmap inicial** | **29** | **26** | **0** | **0** | **3** | **El siguiente trabajo no debe reabrir lo ya verificado** |
 
 ### Correcciones respecto al backlog anterior
 
@@ -106,11 +106,11 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 | --- | --- | --- | --- | --- | --- |
 | A2-1 | P1-1 | Cobertura aprendida hasta el siguiente ingreso | Verificado | Alta | Fechas y patrones se derivan solo de movimientos conciliados, con confianza visible y edición manual |
 | A2-2 | P1-2 | Calidad obligatoria de contratos de deuda | Verificado | Alta | Capital, mora, TAE, suspensión, vencimiento, titular, acuerdo y procedencia están informados o marcados como desconocidos |
-| A2-3 | P1-3 | Efectos legales y fiscales del comparador | Parcial | Media | Cada efecto tiene fuente, fecha, jurisdicción y advertencia profesional; no se presenta como certeza sin respaldo |
-| A2-4 | P1-4 | Frontera multiobjetivo explicable | Parcial | Media | Se muestran alternativas no dominadas entre deuda, caja, colchón y coche, con restricciones y razón de preferencia |
-| A2-5 | P1-5 | Escenarios probabilísticos calibrados | Parcial | Media | Optimista, base y tensión se calibran con histórico conciliado; más de 24 meses se expresa como bandas |
+| A2-3 | P1-3 | Efectos legales y fiscales del comparador | Verificado | Media | Cada efecto tiene fuente, fecha, jurisdicción y advertencia profesional; no se presenta como certeza sin respaldo |
+| A2-4 | P1-4 | Frontera multiobjetivo explicable | Verificado | Media | Se muestran alternativas no dominadas entre deuda, caja, colchón y coche, con restricciones y razón de preferencia |
+| A2-5 | P1-5 | Escenarios probabilísticos calibrados | Verificado | Media | Optimista, base y tensión se calibran con histórico conciliado; más de 24 meses se expresa como bandas |
 | A2-6 | P1-6 | Procedencia y confianza de cada KPI | Verificado | Alta | Todo KPI ejecutivo muestra fuente, fecha, método, cobertura y nivel de confianza |
-| A2-7 | P1-7 | Comparación integral antes/después | Parcial | Alta | Antes de importar se muestran altas, cambios, duplicados, bajas, efectos mensuales e invariantes |
+| A2-7 | P1-7 | Comparación integral antes/después | Verificado | Alta | Antes de importar se muestran altas, cambios, duplicados, bajas, efectos mensuales e invariantes |
 | A2-8 | P1-8 | Contrato único para Hoy y acciones | Verificado | Alta | Una API interna versionada entrega decisiones, alertas, capacidad y contexto; todas las vistas consumen la misma lectura |
 
 Aceptación del 01/08/2026: la interfaz expone edición de cobertura, desconocidos y calidad de deuda y
@@ -178,7 +178,11 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Continuar **E7: comparación financiera avanzada y segura** con A2-3, A2-4, A2-5 y A2-7, sin reabrir E6.
+Iniciar **E8** con mejoras A3 priorizadas por uso real, sin reabrir E6 ni E7.
+
+E7 quedó verificada el 01/08/2026: dos sesiones protegieron el puntero remoto; un lote sintético se
+previsualizó, importó, recuperó tras recarga y deshizo; una restauración creó una revisión nueva y
+conservó 19 copias recuperables. La regresión final pasó con 161 pruebas y sin datos sintéticos activos.
 
 E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobación pública, monitor manual
 y prueba de rollback no destructiva entre revisiones seguras.

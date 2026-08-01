@@ -94,15 +94,30 @@ Fecha de revisión: 1 de agosto de 2026.
 - La restauración confirmada retira ahora la revisión local pendiente que expresamente sustituye, evitando
   que la cola local bloquee una recuperación autorizada. La consulta mantiene 20 copias para atravesar tandas
   recientes inválidas.
+- El scroll de escritorio es único para navegación y contenido: la rueda sobre la barra lateral desplaza
+  la página; el menú móvil conserva su desplazamiento interno. La comprobación real pasó a 1280 px y
+  390×844 sin desbordamiento horizontal.
+- E7 está verificada de extremo a extremo: el comparador expone efectos legales/fiscales con fuente oficial,
+  fecha, jurisdicción y advertencia profesional; calcula una frontera no dominada; calibra escenarios
+  solo con histórico conciliado; y exige una comparación integral antes/después antes de aplicar CSV,
+  lotes pegados o libros XLS/XLSX completos.
+- La caché offline se versionó para incluir el contrato E7. La puerta local pasa con 161 pruebas,
+  construcción pública, privacidad, smoke test y `git diff --check`; la interfaz se validó sin errores
+  de consola en un origen limpio.
+- La aceptación autenticada de E7 importó y recuperó un lote sintético tras recargar, bloqueó una sesión
+  obsoleta sin sobrescribir, deshizo el lote mediante una revisión nueva y restauró una copia anterior
+  conservando 19 versiones recuperables. El estado final no contiene los dos conceptos sintéticos usados.
+- La aceptación detectó y corrigió un reintento que intentaba actualizar `finance_import_batches` después
+  de deshacer. El guardado general inserta ahora lotes nuevos sin modificar duplicados; solo la RPC
+  transaccional autorizada cambia su estado. La repetición importación-deshacer-recarga pasó sin errores RLS.
 
 ## Pendiente
 
-- Completar E7: efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos y comparación integral antes/después.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explicable y segura.
+Priorizar E8 según uso real, comenzando por mejoras incrementales que no reabran bloques verificados.
 
 ## Decisiones importantes
 
@@ -140,6 +155,8 @@ Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explic
   copia local normal; no se introdujeron datos de prueba en el proyecto remoto.
 - Todos los KPI ejecutivos exponen procedencia y confianza; los que carecen de respaldo suficiente quedan
   marcados con confianza baja. Los efectos legales y fiscales de E7 requieren fuentes verificadas y revisión profesional.
+- La capa legal/fiscal E7 es informativa: no calcula automáticamente una obligación tributaria ni sustituye
+  asesoramiento. Las referencias BOE quedaron consultadas el 01/08/2026 y deben revisarse si cambia la norma.
 - La documentación de backlog y la hoja de ruta discrepan en varios estados y fechas de corte, por lo que `ROADMAP_EXECUTION.md` se toma como criterio conservador de finalización.
 - El 31/07/2026 Pages cambió de `build_type: legacy` a `workflow`; el commit funcional de E2
   `23d07dd` quedó publicado en `origin/main`. La primera ejecución de CI detectó una opción de caché
@@ -162,11 +179,11 @@ Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explic
 - QA E3 publicado: `version.json` sirvió `e149c9c`, Pages entregó el service worker y el manifiesto con
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
-## Último commit estable
+## Entrega estable y base anterior
 
-- El último commit estable es `e51fe07` (`feat: complete and verify E6 executive data quality`) en `main`
-  y `origin/main`. No quedan cambios de producto pendientes; `.agents/` continúa sin seguimiento y debe
-  preservarse fuera de cualquier entrega.
+- La base estable anterior a E7 es `7851a21` (`docs: close verified E6 session`) en `main` y
+  `origin/main`. La entrega E7 verificada se consolida con el mensaje
+  `feat: implement E7 advanced financial comparison`; `.agents/` permanece fuera de la entrega.
 
 - `e51fe07` — cierre funcional y documental de E6 (1 de agosto de 2026), publicado y desplegado en Pages;
   incluye la interfaz de cobertura/calidad, persistencia, recuperación autenticada y 148 pruebas.
@@ -185,3 +202,5 @@ Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explic
 - La rama de trabajo es `main` y está sincronizada con `origin/main` en `e51fe07` antes de este cierre
   documental. No hay cambios de producto pendientes; la carpeta `.agents/` sigue sin seguimiento,
   preservada y fuera de cualquier commit propuesto.
+- La entrega E7 incluye `app.js`, `index.html`, `styles.css`, `service-worker.js`,
+  `tools/build-public-site.mjs`, el contrato y pruebas E7 y esta documentación.
