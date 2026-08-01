@@ -15,6 +15,20 @@ test("la matriz permite consultar plan, meses abiertos e histórico", () => {
   assert.match(app, /periodMode === "closed"/);
 });
 
+test("la matriz separa planificación, registro real y valor usado", () => {
+  assert.match(html, /value="planned">Planificar futuro/);
+  assert.match(html, /value="actual">Registrar lo ocurrido/);
+  assert.match(app, /Previsto pendiente/);
+  assert.match(app, /Real registrado/);
+  assert.match(app, /Usado \$\{money\(usedValue, true\)\}/);
+});
+
+test("un real vacío vuelve al previsto y un cero permanece como real", () => {
+  assert.match(app, /if \(input\.value === "" \|\| parsed === null\) delete actuals\[actualKey\]/);
+  assert.match(app, /else actuals\[actualKey\] = round2\(parsed\)/);
+  assert.match(app, /saveActualsForKind\(row\.kind\)\(\)/);
+});
+
 test("los importes históricos permanecen visibles pero no editables", () => {
   assert.match(app, /historical = isClosedMonthKey\(month\.key\)/);
   assert.match(app, /pendingDelete \|\| historical \? "disabled"/);

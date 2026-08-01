@@ -3314,6 +3314,23 @@ svg {
   background: #ffffff;
 }
 
+.visual-work-mode-help {
+  margin: -4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #bedbd7;
+  border-radius: 8px;
+  color: #235c59;
+  background: #f1faf8;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.visual-work-mode-help.actual {
+  border-color: #b8d2e2;
+  color: #28566f;
+  background: #f2f8fc;
+}
+
 .visual-save-panel.has-pending {
   border-color: rgba(12, 139, 135, 0.4);
   background: #f4fbfa;
@@ -4576,6 +4593,19 @@ svg {
   margin-top: 4px;
   color: var(--muted);
   font-size: 0.72rem;
+}
+
+.visual-value-context {
+  display: grid;
+  gap: 1px;
+  margin-top: 5px;
+  color: #68777e;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
+.visual-value-context strong {
+  color: #253b45;
 }
 
 .visual-actual-status.realized { color: var(--green); }

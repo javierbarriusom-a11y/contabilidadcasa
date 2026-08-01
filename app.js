@@ -8679,8 +8679,24 @@ function updateVisualCell(input) {
   const month = monthByKey(input.dataset.monthKey);
   if (!row || !month) return;
   const parsed = parseAmount(input.value);
-  const value = input.value === "" || parsed === null ? 0 : round2(parsed);
   const mode = input.dataset.mode;
+  if (mode === "actual") {
+    const actuals = actualsForKind(row.kind);
+    const actualKey = actualKeyForRow(row, month);
+    if (input.value === "" || parsed === null) delete actuals[actualKey];
+    else actuals[actualKey] = round2(parsed);
+    saveActualsForKind(row.kind)();
+    render();
+    const feedback = qs("visualAddFeedback");
+    if (feedback) {
+      feedback.textContent = input.value === "" || parsed === null
+        ? `Real eliminado en ${month.label}. ${displayLabelForRow(row)} vuelve a usar el previsto.`
+        : `Real guardado automáticamente en ${month.label}. El escenario actualizado ya usa este importe.`;
+      feedback.className = "inline-feedback success";
+    }
+    return;
+  }
+  const value = input.value === "" || parsed === null ? 0 : round2(parsed);
   const key = visualDraftCellKey(input.dataset.rowKey, month.key, mode);
   const currentValue = mode === "planned" ? plannedValueForVisualRow(row, month) : actualAwareInfoForVisualRow(row, month).actual;
   if (Number(currentValue ?? 0) === value && !(mode === "actual" && currentValue === null)) {
@@ -8769,7 +8785,7 @@ function renderVisualSavePanel() {
   if (!qs("visualSavePanel")) return;
   const counts = visualPendingCounts();
   const pending = counts.cells + counts.labels + counts.deletes;
-  qs("visualSaveTitle").textContent = pending ? `${pending} cambio(s) pendiente(s)` : "Sin cambios pendientes";
+  qs("visualSaveTitle").textContent = pending ? `${pending} cambio(s) pendiente(s)` : "Planificación guardada";
   const parts = [];
   if (counts.cells) parts.push(`${counts.cells} importe(s)`);
   if (counts.labels) parts.push(`${counts.labels} nombre(s)`);
@@ -8777,7 +8793,7 @@ function renderVisualSavePanel() {
   if (counts.selected) parts.push(`${counts.selected} seleccionada(s)`);
   qs("visualSaveSummary").textContent = parts.length
     ? `Se guardarán: ${parts.join(", ")}. Los cambios afectarán a Cuadro de mandos, Previsión, flujo de caja, simulador y detalle mensual.`
-    : "Aquí solo aparecen los cambios preparados en esta tabla. Los reales de «Actualizar el mes según ocurre» se guardan automáticamente.";
+    : "Los importes reales se guardan automáticamente. Aquí solo se confirman previsiones, cambios masivos, nombres y borrados.";
   qs("visualSavePanel").classList.toggle("has-pending", pending > 0 || counts.selected > 0);
   qs("visualSaveChanges").disabled = pending === 0;
   qs("visualDiscardChanges").disabled = pending === 0 && counts.selected === 0;
@@ -9059,6 +9075,13 @@ function renderVisualDetail() {
   const columns = visualColumns(months);
   const compactYears = visualTimeMode() === "year";
   const mode = qs("visualValueMode")?.value || "planned";
+  const modeHelp = qs("visualWorkModeHelp");
+  if (modeHelp) {
+    modeHelp.innerHTML = mode === "actual"
+      ? `<strong>Registrar lo ocurrido:</strong> escribe el real y sal de la casilla. Se guarda automáticamente. Vacío significa «todavía no hay real»; escribir 0 significa «no ocurrió».`
+      : `<strong>Planificar futuro:</strong> ajusta los importes previstos. Quedarán como borrador hasta que pulses «Guardar cambios».`;
+    modeHelp.className = `visual-work-mode-help ${mode}`;
+  }
   const monthHeaders = columns.map((column) => renderVisualColumnHeader(column)).join("");
   const body = [];
   const totals = { income: 0, expense: 0, realRows: 0, lines: 0 };
@@ -9128,17 +9151,25 @@ function renderVisualDetail() {
         ${columns
           .map((column) => {
             if (compactYears && column.kind === "year-summary") {
-              const value = sumColumnMonths(column, (month) => visualCellValue(row, month, mode));
-              return `<td class="visual-year-cell ${value < 0 ? "negative" : value > 0 ? "positive" : ""}">${value ? money(value, true) : ""}</td>`;
+              const value = sumColumnMonths(column, (month) => mode === "actual"
+                ? actualAwareInfoForVisualRow(row, month).value
+                : visualCellValue(row, month, mode));
+              return `<td class="visual-year-cell ${value < 0 ? "negative" : value > 0 ? "positive" : ""}">${value ? money(value, true) : ""}<small>${mode === "actual" ? "Usado en el cálculo" : "Previsto"}</small></td>`;
             }
             const month = column.months[0];
             const info = actualAwareInfoForVisualRow(row, month);
             const value = visualCellValue(row, month, mode);
             const historical = isClosedMonthKey(month.key);
             const placeholder = mode === "actual" && info.planned ? `prev. ${money(info.planned, true)}` : "";
+            const usedValue = info.hasActual ? Number(info.actual || 0) : Number(info.planned || 0);
+            const statusLabel = info.hasActual ? "Real registrado" : "Previsto pendiente";
             return `<td>
               <input class="visual-amount-input ${historical ? "historical-value" : ""}" data-visual-cell data-row-key="${escapeHtml(rowKey)}" data-month-key="${month.key}" data-mode="${mode}" type="number" step="0.01" value="${amountInputValue(value)}" placeholder="${placeholder}" ${pendingDelete || historical ? "disabled" : ""} />
-              ${historical ? `<small class="visual-actual-status historical">Histórico · solo lectura</small>` : mode === "actual" ? `<small class="visual-actual-status ${escapeHtml(info.status || "pending")}">${escapeHtml(info.source || "Pendiente")}</small>` : ""}
+              ${historical
+                ? `<small class="visual-actual-status historical">Mes cerrado · usado ${money(usedValue, true)}</small>`
+                : mode === "actual"
+                  ? `<small class="visual-value-context"><span>Previsto ${money(info.planned, true)}</span><span>Real ${info.hasActual ? money(info.actual, true) : "—"}</span><strong>Usado ${money(usedValue, true)}</strong></small><small class="visual-actual-status ${info.hasActual ? "realized" : "pending"}">${statusLabel}</small>`
+                  : `<small class="visual-value-context"><strong>Usado ${money(usedValue, true)}</strong><span>${info.hasActual ? "por real registrado" : "por previsión"}</span></small>`}
             </td>`;
           })
           .join("")}
