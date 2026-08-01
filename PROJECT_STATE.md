@@ -165,7 +165,7 @@ Fecha de revisión: 1 de agosto de 2026.
 - El cierre posterior al push repitió la puerta completa con 232/232 pruebas y `git diff --check`. El
   commit `992a678` está en `main` y `origin/main`; la publicación de GitHub Pages no se volvió a comprobar
   en esta sesión y no se presenta como validada.
-- E11b está implementada y verificada localmente mediante `989f20d`: tablas pegadas, CSV, libros Excel
+- E11b está implementada, verificada y publicada mediante `989f20d`: tablas pegadas, CSV, libros Excel
   y extractos bancarios pasan por una bandeja previa común con comparación y confirmación antes de
   modificar saldos, reales o movimientos.
 - El flujo genera recibos recuperables, permite deshacer por lote, agrupa la conciliación en tareas
@@ -261,15 +261,15 @@ la línea base explicable y las pruebas de paridad. E10 queda para el final.
 
 ## Último commit estable
 
+- El último commit estable del repositorio es `1cb3a5a` (`docs: record E11b publication`) en `main` y
+  `origin/main`. No quedan cambios locales del producto pendientes de commit.
 - El último commit funcional estable es `989f20d` (`feat: implement E11b guided import workflow`) en
   `main` y `origin/main`. La puerta completa local y el QA responsive pasan.
 - El cierre documental E11b es `ea18151` (`docs: close validated E11b session`) en `main` y
   `origin/main`. `.agents/` continúa sin seguimiento, pertenece a las instrucciones locales de trabajo
   y queda excluida de los commits.
-- El último commit estable del repositorio es `992a678` (`feat: implement E11a guided data updates`) en
+- El último commit estable de E11a es `992a678` (`feat: implement E11a guided data updates`) en
   `main` y `origin/main`.
-- Cambios locales pendientes: este cierre documental en `PROJECT_STATE.md` y
-  `BACKLOG_PRODUCT_EVOLUTION.md`. `.agents/` continúa sin seguimiento y debe excluirse.
 - El último commit estable es `ef57e9b` (`feat: prepare E9 external integrations safely`) en `main` y
   `origin/main`. El workflow `30712474715` verificó y desplegó correctamente GitHub Pages.
 - `939acc6` — `feat: implement E8 operational improvements` (1 de agosto de 2026), publicado en

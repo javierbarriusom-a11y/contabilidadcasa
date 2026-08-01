@@ -250,9 +250,10 @@ Una entrega solo puede marcarse como verificada cuando cumple, según su alcance
 «Actualizar mis datos» guía los cinco flujos actuales, expone previsto/real/usado, diferencia las reglas
 de guardado y recomienda el siguiente paso según frescura, movimientos, conciliación y cambios pendientes.
 
-**E11b verificada localmente mediante `989f20d` el 1 de agosto de 2026:** tablas pegadas, CSV, libros
-Excel y extractos comparten bandeja previa, comparación y confirmación; el flujo conserva recibo,
-deshacer, conciliación por tareas, frescura y compatibilidad con copias anteriores y vías clásicas.
+**E11b verificada y publicada mediante `989f20d`, con cierre en `1cb3a5a`, el 1 de agosto de 2026:**
+tablas pegadas, CSV, libros Excel y extractos comparten bandeja previa, comparación y confirmación; el
+flujo conserva recibo, deshacer, conciliación por tareas, frescura y compatibilidad con copias
+anteriores y vías clásicas.
 
 Iniciar **E12a** aprobando antes de implementar el contrato único de forecast, el registro central de
 supuestos, la línea base explicable y las pruebas de paridad. E10 y la definición técnica de
