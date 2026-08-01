@@ -96,6 +96,23 @@ test("rechaza una copia cuyo contenido no coincide con su huella", () => {
   assert.equal(verification.reason, "fingerprint-mismatch");
 });
 
+test("la copia E6 usa la misma representación JSON para huella y recuperación", () => {
+  const e6Payload = payload();
+  e6Payload.scenarioSettings = {
+    e6Coverage: { nextIncomeDate: "2026-08-25", dailyOutflow: 42.5 },
+    optionalValue: undefined,
+  };
+  const bundle = store.buildNormalizedBundle(e6Payload, {
+    userId: "00000000-0000-4000-8000-000000000001",
+    sourceKey: "test-source",
+    now: "2026-08-01T12:00:00.000Z",
+  });
+  const transported = JSON.parse(JSON.stringify(bundle.snapshotRow));
+  assert.equal(store.verifySnapshot(transported).valid, true);
+  assert.deepEqual(transported.state.scenarioSettings.e6Coverage, e6Payload.scenarioSettings.e6Coverage);
+  assert.equal("optionalValue" in transported.state.scenarioSettings, false);
+});
+
 test("detecta tablas normalizadas todavía no instaladas", () => {
   assert.equal(store.isMissingSchemaError({ code: "42P01", message: "relation does not exist" }), true);
   assert.equal(store.isMissingSchemaError({ code: "PGRST205", message: "Could not find the table" }), true);

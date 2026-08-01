@@ -83,18 +83,26 @@ Fecha de revisión: 1 de agosto de 2026.
   fecha, fuente, método, cobertura y confianza, y el contrato limita la salida a tres decisiones ordenadas.
 - La puerta local de este avance E6 pasa completa con 142 pruebas, construcción pública, privacidad,
   smoke test y `git diff --check`; Hoy fue validado sin errores ni desbordamiento en escritorio y 390×844.
+- E6 está verificada de extremo a extremo: Hoy permite editar y retirar la cobertura aprendida; Datos y
+  auditoría muestran los campos desconocidos y la calidad de cada deuda, además de fuente, fecha, método,
+  cobertura y confianza de los KPI mediante una lectura ejecutiva única y versionada.
+- La aceptación autenticada guardó y sincronizó un ajuste de cobertura, lo recuperó después de recargar,
+  restauró el aprendizaje automático y volvió a recuperarlo vacío. La suite completa pasa con 148 pruebas,
+  construcción pública, privacidad, smoke test y `git diff --check`.
+- Se restauró en Supabase la copia remota válida más reciente del 01/08/2026 07:11:45 mediante una revisión
+  nueva. La vista previa y la autorización confirmaron eliminar un gasto real; el historial anterior se conserva.
+- La restauración confirmada retira ahora la revisión local pendiente que expresamente sustituye, evitando
+  que la cola local bloquee una recuperación autorizada. La consulta mantiene 20 copias para atravesar tandas
+  recientes inválidas.
 
 ## Pendiente
 
-- Completar P1: cobertura diaria aprendida, datos obligatorios de deuda, efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos y procedencia/confianza por KPI.
-- Completar la aceptación de E6: mostrar en la interfaz la edición de cobertura y la calidad de deuda/KPI,
-  persistir los ajustes y verificar guardar, cerrar, reabrir y recuperar antes de marcar A2-1, A2-2, A2-6 y A2-8 como verificados.
+- Completar E7: efectos legales/fiscales, frontera multiobjetivo, escenarios probabilísticos y comparación integral antes/después.
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
 
 ## Próximo paso
 
-Continuar E6 exponiendo en Hoy y el centro de calidad los contratos ya implementados: edición manual de
-cobertura, campos desconocidos de deuda y ficha de procedencia/confianza por KPI; después validar persistencia y recuperación.
+Iniciar E7 con A2-3, A2-4, A2-5 y A2-7: comparación financiera avanzada, explicable y segura.
 
 ## Decisiones importantes
 
@@ -113,9 +121,8 @@ cobertura, campos desconocidos de deuda y ficha de procedencia/confianza por KPI
 
 - No hay fallos automatizados conocidos en el estado local revisado (136/136 pruebas pasan).
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
-- No hay fallos automatizados conocidos en el avance local de E6; la suite asciende a 142/142 pruebas.
-- E6 sigue en curso: los contratos y cálculos están implementados, pero su detalle de calidad y edición
-  todavía no está expuesto por completo en la interfaz ni aceptado con persistencia y recuperación.
+- No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
+  recuperación autenticadas están verificadas.
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - La conciliación, el cierre, la reapertura, el deshacer por lote y la verificación de copias están
@@ -155,8 +162,8 @@ cobertura, campos desconocidos de deuda y ficha de procedencia/confianza por KPI
 
 ## Último commit estable
 
-- El último commit estable sigue siendo `2b1d413` en `main` y `origin/main`. El avance E6 está únicamente
-  en cambios locales sin commit; `.agents/` continúa sin seguimiento y debe preservarse fuera de la entrega.
+- El último commit estable es `41b2060` en `main` y `origin/main`. El cierre E6 está únicamente en cambios
+  locales sin commit; `.agents/` continúa sin seguimiento y debe preservarse fuera de la entrega.
 
 - `4431939` — `feat: verify and close E5 remote recovery` (1 de agosto de 2026), publicado en
   `origin/main`; incluye la aceptación remota, las correcciones SQL, el diálogo accesible y el cierre documental.

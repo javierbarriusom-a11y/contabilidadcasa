@@ -27,18 +27,18 @@ conflictos remotos o un despliegue defectuoso.
 | Bloque | Fases | Verificado | Parcial | Pendiente | Lectura actual |
 | --- | ---: | ---: | ---: | ---: | --- |
 | P0 Integridad estructural | 6 | 6 | 0 | 0 | Base canónica, sincronización y restauración verificadas |
-| P1 Decisión y tesorería | 8 | 0 | 8 | 0 | Base funcional disponible; faltan cierres y calidad completa |
+| P1 Decisión y tesorería | 8 | 4 | 4 | 0 | E6 verifica cobertura, deuda, KPI y lectura ejecutiva; E7 completa comparación avanzada |
 | P2 Planificación familiar | 6 | 6 | 0 | 0 | Funcionalidad verificada; quedan mejoras no bloqueantes |
 | P3 Servicios externos | 3 | 0 | 0 | 3 | Requiere diseño privado y proveedores externos |
 | UX Experiencia principal | 6 | 6 | 0 | 0 | Experiencia principal verificada en escritorio y móvil |
-| **Total roadmap inicial** | **29** | **18** | **8** | **3** | **El siguiente trabajo no debe reabrir lo ya verificado** |
+| **Total roadmap inicial** | **29** | **22** | **4** | **3** | **El siguiente trabajo no debe reabrir lo ya verificado** |
 
 ### Correcciones respecto al backlog anterior
 
 - P0-1 a P0-6 están verificados. P0-6 incluye restauración autenticada y transaccional en Supabase.
 - P2-1 a P2-6 están verificados; el backlog anterior todavía los describía como parciales o pendientes.
 - UX-1 a UX-6 están verificados, aunque el backlog anterior no los mantenía como bloque propio.
-- P1-1 a P1-8 siguen parciales: tener componentes implementados no completa sus criterios globales.
+- P1-1, P1-2, P1-6 y P1-8 están verificados; P1-3, P1-4, P1-5 y P1-7 continúan parciales para E7.
 - P3-3 se mantiene separado de P3-2 porque preparar acciones seguras es distinto de responder consultas.
 
 ## 3. Riesgos actuales que condicionan el orden
@@ -104,20 +104,19 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 
 | ID | Fase | Desarrollo pendiente | Estado | Prioridad | Criterio de aceptación resumido |
 | --- | --- | --- | --- | --- | --- |
-| A2-1 | P1-1 | Cobertura aprendida hasta el siguiente ingreso | Parcial | Alta | Fechas y patrones se derivan solo de movimientos conciliados, con confianza visible y edición manual |
-| A2-2 | P1-2 | Calidad obligatoria de contratos de deuda | Parcial | Alta | Capital, mora, TAE, suspensión, vencimiento, titular, acuerdo y procedencia están informados o marcados como desconocidos |
+| A2-1 | P1-1 | Cobertura aprendida hasta el siguiente ingreso | Verificado | Alta | Fechas y patrones se derivan solo de movimientos conciliados, con confianza visible y edición manual |
+| A2-2 | P1-2 | Calidad obligatoria de contratos de deuda | Verificado | Alta | Capital, mora, TAE, suspensión, vencimiento, titular, acuerdo y procedencia están informados o marcados como desconocidos |
 | A2-3 | P1-3 | Efectos legales y fiscales del comparador | Parcial | Media | Cada efecto tiene fuente, fecha, jurisdicción y advertencia profesional; no se presenta como certeza sin respaldo |
 | A2-4 | P1-4 | Frontera multiobjetivo explicable | Parcial | Media | Se muestran alternativas no dominadas entre deuda, caja, colchón y coche, con restricciones y razón de preferencia |
 | A2-5 | P1-5 | Escenarios probabilísticos calibrados | Parcial | Media | Optimista, base y tensión se calibran con histórico conciliado; más de 24 meses se expresa como bandas |
-| A2-6 | P1-6 | Procedencia y confianza de cada KPI | Parcial | Alta | Todo KPI ejecutivo muestra fuente, fecha, método, cobertura y nivel de confianza |
+| A2-6 | P1-6 | Procedencia y confianza de cada KPI | Verificado | Alta | Todo KPI ejecutivo muestra fuente, fecha, método, cobertura y nivel de confianza |
 | A2-7 | P1-7 | Comparación integral antes/después | Parcial | Alta | Antes de importar se muestran altas, cambios, duplicados, bajas, efectos mensuales e invariantes |
-| A2-8 | P1-8 | Contrato único para Hoy y acciones | Parcial | Alta | Una API interna versionada entrega decisiones, alertas, capacidad y contexto; todas las vistas consumen la misma lectura |
+| A2-8 | P1-8 | Contrato único para Hoy y acciones | Verificado | Alta | Una API interna versionada entrega decisiones, alertas, capacidad y contexto; todas las vistas consumen la misma lectura |
 
-Avance local del 01/08/2026: A2-1 dispone de aprendizaje exclusivo desde movimientos conciliados y cálculo
-editable hasta el siguiente ingreso; A2-2 evalúa los ocho campos obligatorios sin inventar ausentes; A2-6
-añade metadatos uniformes a los KPI; y A2-8 incorpora `finance-executive-read-model/v1`, consumido por Hoy
-y el centro de acciones. Se mantienen como parciales hasta exponer la edición y la calidad completa en la
-interfaz y superar aceptación con persistencia, cierre, reapertura y recuperación.
+Aceptación del 01/08/2026: la interfaz expone edición de cobertura, desconocidos y calidad de deuda y
+procedencia/confianza de KPI; Hoy y acciones consumen `finance-executive-read-model/v1`. Un ajuste manual
+se guardó y sincronizó, reapareció tras recargar y el retorno al aprendizaje automático también se recuperó.
+La restauración remota creó una revisión nueva, conservó el historial y aplicó la pérdida previamente autorizada.
 
 ### A3 — Mejoras sobre bloques ya verificados
 
@@ -158,7 +157,7 @@ para abrir la app o consultar la última copia local.
 | E3 | A0-4, A0-5 y A0-9 | Apertura offline y recuperación guiada verificadas |
 | E4 | A1-1 y A1-2 | Verificada: libro remoto conciliado y cierre mensual seguro |
 | E5 | A1-3 a A1-6 | Verificada: reapertura, deshacer, migración y copias aceptadas en Supabase |
-| E6 | A2-1, A2-2, A2-6 y A2-8 | Datos ejecutivos completos, trazables y consistentes |
+| E6 | A2-1, A2-2, A2-6 y A2-8 | Verificada: datos ejecutivos completos, trazables y consistentes |
 | E7 | A2-3, A2-4, A2-5 y A2-7 | Comparación financiera avanzada y segura |
 | E8 | A3 según uso real | Mejoras incrementales sin reabrir bloques cerrados |
 | E9 | A4 con decisiones independientes | Integraciones externas opcionales y desacopladas |
@@ -179,8 +178,7 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Continuar **E6: datos ejecutivos completos, trazables y consistentes** exponiendo en la interfaz la
-edición de cobertura y la calidad de deuda/KPI ya disponibles en los contratos canónicos, sin reabrir los bloques verificados.
+Continuar **E7: comparación financiera avanzada y segura** con A2-3, A2-4, A2-5 y A2-7, sin reabrir E6.
 
 E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobación pública, monitor manual
 y prueba de rollback no destructiva entre revisiones seguras.

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
     <link rel="manifest" href="manifest.webmanifest?v=20260731e3" />
-    <link rel="stylesheet" href="styles.css?v=20260731e4h" />
+    <link rel="stylesheet" href="styles.css?v=20260801e6b" />
     <link rel="stylesheet" href="p2.css?v=20260717a" />
   </head>
   <body>
@@ -173,6 +173,28 @@
             </div>
 
             <div class="home-kpi-grid" id="homeKpis"></div>
+
+            <article class="home-panel e6-coverage-panel" id="e6CoveragePanel">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Cobertura aprendida</p>
+                  <h3>Hasta el siguiente ingreso</h3>
+                  <p>Se calcula solo con movimientos conciliados. Puedes corregir fecha o gasto diario sin perder la estimación aprendida.</p>
+                </div>
+                <span class="status-pill" id="e6CoverageStatus">Calculando</span>
+              </div>
+              <div class="e6-coverage-grid">
+                <div class="e6-coverage-summary" id="e6CoverageSummary"></div>
+                <form class="e6-coverage-form" id="e6CoverageForm">
+                  <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
+                  <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
+                  <div class="dialog-actions">
+                    <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
+                    <button type="submit">Guardar ajuste</button>
+                  </div>
+                </form>
+              </div>
+            </article>
 
             <div class="home-layout">
               <article class="home-panel home-main-panel">
@@ -1906,6 +1928,21 @@
               </article>
             </div>
 
+            <div class="audit-layout">
+              <article class="audit-panel">
+                <div class="module-heading">
+                  <div><p class="panel-kicker">Contratos de deuda</p><h3>Campos conocidos y desconocidos</h3></div>
+                </div>
+                <div id="e6DebtQuality"></div>
+              </article>
+              <article class="audit-panel">
+                <div class="module-heading">
+                  <div><p class="panel-kicker">Indicadores ejecutivos</p><h3>Fuente y confianza de cada KPI</h3></div>
+                </div>
+                <div id="e6KpiQuality"></div>
+              </article>
+            </div>
+
             <article class="audit-panel audit-inventory-panel">
               <div class="module-heading">
                 <div>
@@ -2283,7 +2320,7 @@
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>
     <script src="canonical-workflow.js?v=20260714a"></script>
-    <script src="canonical-supabase-store.js?v=20260731e4"></script>
+    <script src="canonical-supabase-store.js?v=20260801e6c"></script>
     <script src="canonical-month-close.js?v=20260731e4"></script>
     <script src="canonical-e5-operations.js?v=20260801e5"></script>
     <script src="snapshot-restore.js?v=20260731a"></script>
@@ -2294,7 +2331,7 @@
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260801e6a"></script>
+    <script src="app.js?v=20260801e6k"></script>
     <script src="p2-ui.js?v=20260717a"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

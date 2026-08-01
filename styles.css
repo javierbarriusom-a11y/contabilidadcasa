@@ -840,6 +840,21 @@ main {
   transform: translateY(-1px);
 }
 
+.e6-coverage-panel { margin-bottom: 1rem; }
+.e6-coverage-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 1rem; }
+.e6-coverage-summary, .e6-quality-card { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; background: var(--surface-soft); }
+.e6-coverage-summary strong { display: block; font-size: 1.5rem; margin: .3rem 0; }
+.e6-coverage-summary p, .e6-quality-card p { margin: .35rem 0 0; color: var(--muted); }
+.e6-coverage-form { display: grid; gap: .75rem; }
+.e6-coverage-form label { display: grid; gap: .35rem; }
+.e6-quality-list { display: grid; gap: .75rem; }
+.e6-quality-card header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.e6-quality-card dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: .75rem 0 0; }
+.e6-quality-card dt { color: var(--muted); }
+.e6-quality-card dd { margin: 0; overflow-wrap: anywhere; }
+.home-kpi-meta { margin-top: .65rem; font-size: .78rem; color: var(--muted); }
+@media (max-width: 760px) { .e6-coverage-grid { grid-template-columns: 1fr; } }
+
 .home-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);

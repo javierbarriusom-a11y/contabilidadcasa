@@ -36,11 +36,11 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 | Bloque | Fases | Realizados | Implementados | Parciales | Pendientes | Objetivo |
 | --- | --- | --- | --- | --- | --- | --- |
 | P0 | P0-1 a P0-6 | 6: P0-1 a P0-6 | 0 | 0 | 0 | Fuente unica, integridad, motor canonico, auditoria y restauracion |
-| P1 | P1-1 a P1-8 | 0 | 0 | 8: P1-1 a P1-8 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
+| P1 | P1-1 a P1-8 | 4: P1-1, P1-2, P1-6 y P1-8 | 0 | 4: P1-3, P1-4, P1-5 y P1-7 | 0 | Tesoreria diaria, deuda, optimizacion, escenarios, cierres e importacion |
 | P2 | P2-1 a P2-6 | 6: P2-1 a P2-6 | 0 | 0 | 0 | Huchas, familia, alertas, comportamiento, documentos y exportacion |
 | P3 | P3-1 a P3-3 | 0 | 0 | 0 | 3: P3-1 a P3-3 | Conexion bancaria y asistente financiero real |
 | UX | UX-1 a UX-6 | 6: UX-1 a UX-6 | 0 | 0 | 0 | Nueva navegacion, Hoy, acciones, familia, alertas y validacion |
-| **Total** | **29 fases** | **18** | **0** | **8** | **3** | **La experiencia principal, P2 y P0 estan verificados; E5 está implementada localmente** |
+| **Total** | **29 fases** | **22** | **0** | **4** | **3** | **P0, P2, UX y E6 estan verificados; E7 es el siguiente objetivo** |
 
 ## P0 - Integridad estructural
 
@@ -57,14 +57,14 @@ codigo exista, debe superar el criterio de aceptacion de extremo a extremo.
 
 | Fase | Alcance | Situacion inicial | Criterio de aceptacion | Estado |
 | --- | --- | --- | --- | --- |
-| P1-1 | Motor diario de tesoreria y reserva unica | Calendario diario y reserva existen parcialmente | Cobros/pagos por fecha, cobertura hasta siguiente ingreso y una reserva global editable usada por toda la app | Parcial |
-| P1-2 | Contratos de deuda completos | Hay capital, cuota y algunos estados; faltan campos y calidad uniforme | Capital, mora, TAE, suspension, vencimiento, titular, acuerdo y procedencia obligatorios o marcados como desconocidos | Parcial |
+| P1-1 | Motor diario de tesoreria y reserva unica | Calendario diario y reserva existen parcialmente | Cobros/pagos por fecha, cobertura hasta siguiente ingreso y una reserva global editable usada por toda la app | Verificado |
+| P1-2 | Contratos de deuda completos | Hay capital, cuota y algunos estados; faltan campos y calidad uniforme | Capital, mora, TAE, suspension, vencimiento, titular, acuerdo y procedencia obligatorios o marcados como desconocidos | Verificado |
 | P1-3 | Comparador de acuerdos | Existen modalidades en control de deuda | Pago unico, fraccionado, reunificacion, retomar y no actuar comparados con caja, patrimonio, registros y alternativa actuar/esperar/negociar | Parcial |
 | P1-4 | Optimizacion multiobjetivo explicable | Hay rutas optimas heuristicas | Frontera deuda-caja-colchon-coche, restricciones duras y explicacion de por que una opcion domina a otra | Parcial |
 | P1-5 | Escenarios probabilisticos | Hay escenarios deterministas y ajustes | Optimista, base y tension calibrados; horizontes superiores a 24 meses se muestran como bandas/rangos | Parcial |
-| P1-6 | Calidad, procedencia y cierre mensual | Hay metadatos parciales y meses cerrados de forma incompleta | Cada KPI indica fuente, fecha, confianza y metodo; cierre remoto congela reales y arrastra solo previsiones | Parcial |
+| P1-6 | Calidad, procedencia y cierre mensual | Hay metadatos parciales y meses cerrados de forma incompleta | Cada KPI indica fuente, fecha, confianza y metodo; cierre remoto congela reales y arrastra solo previsiones | Verificado |
 | P1-7 | Importacion segura con deshacer | Hay seleccion, vista previa y confirmaciones parciales | Comparar antes/despues, validar, confirmar, registrar lote y deshacer local/remoto por snapshot | Parcial |
-| P1-8 | Modelo de lectura para Hoy y acciones | Hoy y el registro unificado de acciones ya consumen una lectura comun, pero su calidad depende de cerrar P0/P1 | API interna unica que devuelve tres decisiones, alertas, capacidad libre y contexto; la UI se completa en UX-2/UX-3 | Parcial |
+| P1-8 | Modelo de lectura para Hoy y acciones | Hoy y el registro unificado de acciones ya consumen una lectura comun, pero su calidad depende de cerrar P0/P1 | API interna unica que devuelve tres decisiones, alertas, capacidad libre y contexto; la UI se completa en UX-2/UX-3 | Verificado |
 
 ## P2 - Planificacion familiar
 
@@ -127,14 +127,14 @@ Esta es la tabla que se devolvera actualizada al cerrar cada fase.
 | P0-4 | Verificado | Escenarios base, activo y planificado emitidos por el motor canonico; el calendario diario activo parte del mismo resultado mensual | 87 pruebas: contrato de escenario, corte que impide invocar `buildRows` desde la app, invariantes, paridad y calendario diario/mensual | `lastSimulation` y equivalentes permanecen como aliases de lectura para vistas existentes; no ejecutan calculos | P0-5 |
 | P0-5 | Verificado | Vista de conciliacion y barrera canonica antes de publicar en Supabase | Pruebas de escenarios ausentes, paridad diaria/mensual, deuda duplicada y errores criticos | Ninguno | P0-6 |
 | P0-6 | Verificado | Selector remoto, comparacion antes/despues y restauracion transaccional como version nueva | Restauracion autenticada completa en Supabase, puntero actualizado e historial preservado | Ninguno | P1-1 |
-| P1-1 | Parcial | Motor diario, fechas de cobro/pago y reserva comun | Paridad diaria/mensual e invariantes de tesoreria | Completar cobertura aprendida hasta el siguiente ingreso | P1-1 |
-| P1-2 | Parcial | Contratos de deuda normalizados y estados de pago | Pruebas de suspension, reunificacion, atrasos y retoma | Completar TAE, mora, titular y procedencia obligatoria | P1-2 |
+| P1-1 | Verificado | Cobertura aprendida y editable hasta el siguiente ingreso, derivada solo de movimientos conciliados | Pruebas de contratos y aceptación remota guardar-recargar-restablecer | Ninguno | P1-2 |
+| P1-2 | Verificado | Ocho campos contractuales de deuda y desconocidos visibles | Pruebas de calidad y validación de interfaz | Ninguno | P1-3 |
 | P1-3 | Parcial | Comparador de no actuar, pago, fraccionamiento, reunificacion y retoma | Pruebas de reserva, coste, cierre y recomendacion | Incorporar efectos legales/fiscales verificados | P1-3 |
 | P1-4 | Parcial | Rutas heuristicas con restricciones de caja, deuda y coche | Escenarios y recomendaciones visibles | Falta frontera multiobjetivo explicita y explicable | P1-4 |
 | P1-5 | Parcial | Escenarios deterministas y horizonte por rangos | Comparativas base y tension existentes | Calibrar probabilidades con historico conciliado | P1-5 |
-| P1-6 | Parcial | Metadatos de fecha/procedencia y cierre mensual parcial | Fechas y estados visibles en varios KPI | Completar confianza por KPI y cierre remoto transaccional | P1-6 |
+| P1-6 | Verificado | Fuente, fecha, metodo, cobertura y confianza visibles por KPI; cierre mensual remoto ya verificado | Pruebas de lectura y aceptación de interfaz/persistencia | Ninguno | P1-7 |
 | P1-7 | Parcial | Seleccion, vista previa y confirmacion de importaciones | Flujos de importacion y snapshots disponibles | Deshacer remoto por lote y comparacion integral antes/despues | P1-7 |
-| P1-8 | Parcial | Lectura comun para Hoy y registro unificado de acciones | UX-2/UX-3 verificadas en navegador | Cerrar la dependencia de calidad con P0/P1 | P1-8 |
+| P1-8 | Verificado | `finance-executive-read-model/v1` común para Hoy y acciones | Tres decisiones y metadatos uniformes comprobados en navegador | Ninguno | P2-1 |
 | P2-1 | Verificado | Huchas con aportaciones manuales/conciliadas, progreso, pausa, ejecucion y cancelacion | Pruebas de deduplicacion global por movimiento y panel validado en navegador | Ninguno; automatizar aportaciones bancarias depende de P3-1 | P2-2 |
 | P2-2 | Verificado | Titular obligatorio y editable para series y deudas; selector Hogar/Javi/Tere persistente | Inferencia, reasignacion y agregacion familiar cubiertas por pruebas y navegador | Ninguno | P2-3 |
 | P2-3 | Verificado | Canales app, navegador y preparacion de email; frecuencia y silenciamiento persistidos | Panel de canales validado sin errores de consola; reglas UX-5 ya verificadas | El envio autonomo servidor queda fuera de P2 y depende de P3 | P2-4 |

@@ -63,3 +63,17 @@ test("las copias anteriores sin plan de deuda siguen siendo restaurables", () =>
   const backup = contract.buildBackupEnvelope(payload);
   assert.equal(contract.validateBackupEnvelope(backup).valid, true);
 });
+
+test("los ajustes E6 sobreviven a exportar, cerrar y recuperar una copia", () => {
+  const payload = validPayload();
+  payload.scenarioSettings.e6Coverage = {
+    nextIncomeDate: "2026-08-25",
+    dailyOutflow: 42.5,
+    updatedAt: "2026-08-01T12:00:00.000Z",
+  };
+  const backup = contract.buildBackupEnvelope(payload, { createdAt: "2026-08-01T12:01:00.000Z" });
+  const reopened = JSON.parse(JSON.stringify(backup));
+  const result = contract.validateBackupEnvelope(reopened);
+  assert.equal(result.valid, true);
+  assert.deepEqual(reopened.payload.scenarioSettings.e6Coverage, payload.scenarioSettings.e6Coverage);
+});

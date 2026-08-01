@@ -850,10 +850,10 @@ async function restoreCloudSnapshotTransaction(envelope) {
     error.code = "40001";
     throw error;
   }
-  const queueStatus = remoteSaveQueue?.snapshot();
-  if (queueStatus?.pending || queueStatus?.running) {
-    throw new Error("Hay cambios locales pendientes de sincronizar. Sincronízalos antes de restaurar una versión.");
-  }
+  window.clearTimeout(remoteSaveTimer);
+  await ensureDurableOutbox().remove(durableOutboxId());
+  durableResumeRecord = null;
+  remoteSaveQueue?.reset();
   const newSnapshotId = crypto.randomUUID();
   const newSyncId = crypto.randomUUID();
   const result = await supabaseClient.rpc("restore_finance_snapshot", {
@@ -866,7 +866,6 @@ async function restoreCloudSnapshotTransaction(envelope) {
   if (result.error) throw result.error;
   remoteHeadSnapshotId = newSnapshotId;
   remoteHeadKnown = true;
-  window.clearTimeout(remoteSaveTimer);
   remoteSaveQueue?.reset();
   return { newSnapshotId, newSyncId };
 }
@@ -928,7 +927,7 @@ async function prepareCloudSnapshotRestore() {
     .select("id, state, created_at, fingerprint")
     .eq("source_key", sourceStateKey())
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(20);
   const store = window.FinanceCanonicalSupabaseStore;
   if (result.error) {
     const message = store?.isMissingSchemaError(result.error)
@@ -1303,6 +1302,8 @@ function renderDataAudit() {
         <span>${escapeHtml(issue.label || issue.entityId || "Revisar registro")}</span>
       </div>`).join("")}</div>`
     : `<div class="audit-empty good"><strong>Sin incidencias estructurales</strong><p>Todos los registros tienen identidad estable, estado, procedencia e importe válido.</p></div>`;
+  renderE6DebtQuality();
+  renderE6KpiQuality();
 
   qs("auditEntityTable").innerHTML = rows.length
     ? rows.slice().sort((a, b) => `${a.collection}-${a.label}`.localeCompare(`${b.collection}-${b.label}`, "es")).map((row) => `<tr>
@@ -1330,6 +1331,41 @@ function renderDataAudit() {
         </div>`;
       }).join("")
     : `<div class="audit-empty"><strong>Sin cambios registrados</strong><p>La primera modificación generará una entrada de auditoría.</p></div>`;
+}
+
+const e6DebtFieldLabels = {
+  capital: "Capital",
+  arrears: "Mora",
+  apr: "TAE",
+  suspension: "Suspensión",
+  maturity: "Vencimiento",
+  owner: "Titular",
+  agreement: "Acuerdo",
+  provenance: "Procedencia",
+};
+
+function renderE6DebtQuality() {
+  const target = qs("e6DebtQuality");
+  if (!target || !DebtContracts) return;
+  const contracts = canonicalDebtContractRows();
+  target.innerHTML = contracts.length ? `<div class="e6-quality-list">${contracts.map((contract) => {
+    const quality = contract.dataQuality || DebtContracts.contractQuality(contract, contract);
+    const missing = quality.missing || [];
+    return `<article class="e6-quality-card"><header><strong>${escapeHtml(`${contract.entity} ${contract.type}`)}</strong><span class="status-pill ${quality.complete ? "good" : quality.completeness >= 75 ? "warn" : "danger"}">${quality.completeness}%</span></header>
+      <p>${missing.length ? `Desconocido: ${missing.map((field) => e6DebtFieldLabels[field] || field).join(", ")}.` : "Contrato completo para el análisis."}</p>
+      <p>Confianza ${escapeHtml(quality.confidence)} · fuente ${escapeHtml(contract.source || "desconocida")}.</p></article>`;
+  }).join("")}</div>` : `<div class="audit-empty"><strong>Sin contratos</strong><p>No hay deuda que revisar.</p></div>`;
+}
+
+function renderE6KpiQuality() {
+  const target = qs("e6KpiQuality");
+  if (!target) return;
+  const model = unifiedActionCenterModel().readModel;
+  const metrics = Object.values(model?.metrics || {});
+  target.innerHTML = metrics.length ? `<div class="e6-quality-list">${metrics.map((item) => `<article class="e6-quality-card">
+    <header><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${item.confidence === "high" ? "good" : item.confidence === "medium" ? "warn" : "danger"}">${escapeHtml(item.confidence)}</span></header>
+    <dl><dt>Fecha</dt><dd>${escapeHtml(item.asOf)}</dd><dt>Fuente</dt><dd>${escapeHtml(item.source)}</dd><dt>Método</dt><dd>${escapeHtml(item.method)}</dd><dt>Cobertura</dt><dd>${escapeHtml(item.coverage)}</dd></dl>
+  </article>`).join("")}</div>` : `<div class="audit-empty"><strong>Sin lectura ejecutiva</strong><p>Calcula el escenario para generar los KPI.</p></div>`;
 }
 
 function downloadCanonicalInventory() {
@@ -2520,7 +2556,7 @@ async function loadRemoteStateOnce() {
         .select("id, state, created_at, fingerprint")
         .eq("source_key", sourceStateKey())
         .order("created_at", { ascending: false })
-        .limit(8)
+        .limit(20)
       : Promise.resolve({ data: [], error: null }),
     normalizedStore
       ? supabaseClient
@@ -11708,6 +11744,7 @@ function unifiedActionCenterModel({ context = null } = {}) {
   const asOf = state.balanceDate || defaultBalanceDate();
   const balances = ctx.balances || accountBalancesFromState();
   const today = ctx.today || {};
+  const coverage = executiveCoverageSnapshot(asOf, balances.caixa);
   const readModel = ExecutiveReadModel?.build({
     asOf,
     actions,
@@ -11744,9 +11781,76 @@ function unifiedActionCenterModel({ context = null } = {}) {
         coverage: "until-next-income",
         confidence: today.estimatedEventCount > 0 ? "medium" : "high",
       },
+      nextIncomeCoverage: {
+        label: "Cobertura hasta el siguiente ingreso",
+        value: coverage.margin,
+        unit: "EUR",
+        asOf,
+        source: coverage.source,
+        method: "checking-minus-learned-outflows-until-next-income",
+        coverage: coverage.days === null ? "unknown" : `${coverage.days} days`,
+        confidence: coverage.confidence === "observed" ? "high" : coverage.confidence === "rule" ? "medium" : "low",
+      },
     },
   }) || null;
-  return { context: ctx, actions: readModel?.decisions || actions, asOf, readModel };
+  return { context: ctx, actions: readModel?.decisions || actions, asOf, readModel, coverage };
+}
+
+function e6CoverageSettings() {
+  const raw = scenarioSettings?.e6Coverage || {};
+  return {
+    nextIncomeDate: String(raw.nextIncomeDate || ""),
+    dailyOutflow: raw.dailyOutflow === "" || raw.dailyOutflow === undefined ? null : Number(raw.dailyOutflow),
+  };
+}
+
+function executiveCoverageSnapshot(asOf = state?.balanceDate || defaultBalanceDate(), checkingBalance = accountBalancesFromState().caixa) {
+  const engine = window.FinanceCanonicalDailyEngine;
+  if (!engine?.coverageUntilNextIncome) return { days: null, margin: null, covered: null, confidence: "estimated", source: "unknown", learned: {} };
+  const events = (canonicalDailyEngineRuns.active?.rows || []).flatMap((row) => row.events || []);
+  const override = e6CoverageSettings();
+  return engine.coverageUntilNextIncome({
+    asOfDate: asOf,
+    checkingBalance,
+    events,
+    movements: p2MovementRows(),
+    override: {
+      ...(override.nextIncomeDate ? { nextIncomeDate: override.nextIncomeDate } : {}),
+      ...(Number.isFinite(override.dailyOutflow) ? { dailyOutflow: override.dailyOutflow } : {}),
+    },
+  });
+}
+
+function renderE6Coverage(coverage = executiveCoverageSnapshot()) {
+  const panel = qs("e6CoveragePanel");
+  if (!panel) return;
+  const status = qs("e6CoverageStatus");
+  const tone = coverage.covered === true ? "good" : coverage.covered === false ? "danger" : "warn";
+  status.className = `status-pill ${tone}`;
+  status.textContent = coverage.covered === true ? "Cubierto" : coverage.covered === false ? "Falta cobertura" : "Datos insuficientes";
+  qs("e6CoverageSummary").innerHTML = `<span>Margen previsto</span><strong>${coverage.margin === null ? "Sin dato" : money(coverage.margin, true)}</strong>
+    <p>${coverage.days === null ? "No se ha podido determinar el siguiente ingreso." : `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`}</p>
+    <p>Fuente: ${escapeHtml(coverage.source)} · confianza: ${escapeHtml(coverage.confidence)} · ${Number(coverage.learned?.reconciledMovementCount || 0)} movimientos conciliados.</p>`;
+  const settings = e6CoverageSettings();
+  qs("e6NextIncomeDate").value = settings.nextIncomeDate || coverage.nextIncomeDate || "";
+  qs("e6DailyOutflow").value = Number.isFinite(settings.dailyOutflow) ? amountInputValue(settings.dailyOutflow) : Number.isFinite(coverage.dailyOutflow) ? amountInputValue(coverage.dailyOutflow) : "";
+}
+
+function saveE6Coverage(event) {
+  event?.preventDefault();
+  scenarioSettings.e6Coverage = {
+    nextIncomeDate: qs("e6NextIncomeDate")?.value || "",
+    dailyOutflow: parseAmount(qs("e6DailyOutflow")?.value),
+    updatedAt: new Date().toISOString(),
+  };
+  saveScenarioSettings();
+  renderHomeDashboard();
+}
+
+function resetE6Coverage() {
+  scenarioSettings.e6Coverage = {};
+  saveScenarioSettings();
+  renderHomeDashboard();
 }
 
 function renderUnifiedAction(item) {
@@ -15672,11 +15776,12 @@ function homeStatusClass(value, warnAt = 0, dangerAt = 0) {
   return "good";
 }
 
-function renderHomeKpi({ label, value, note, status = "good", cta, target }) {
+function renderHomeKpi({ label, value, note, status = "good", cta, target, metadata }) {
   return `<article class="home-kpi-card ${status}">
     <span>${escapeHtml(label)}</span>
     <strong>${escapeHtml(value)}</strong>
     <p>${escapeHtml(note)}</p>
+    ${metadata ? `<p class="home-kpi-meta">${escapeHtml(`Fuente: ${metadata.source} · ${metadata.asOf} · confianza ${metadata.confidence}`)}</p>` : ""}
     ${cta ? `<button type="button" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
   </article>`;
 }
@@ -16170,6 +16275,7 @@ function renderHomeDashboard() {
       status: adjustedStatus,
       cta: "Ver saldos",
       target: "visual-detail",
+      metadata: actionCenter.readModel?.metrics?.liquidity,
     }),
     renderHomeKpi({
       label: "Capacidad libre real",
@@ -16178,6 +16284,7 @@ function renderHomeDashboard() {
       status: freeCapacity < 0 ? "danger" : freeCapacity < 250 ? "warn" : "good",
       cta: "Ver flujo",
       target: "cashflow",
+      metadata: actionCenter.readModel?.metrics?.freeCapacity,
     }),
     renderHomeKpi({
       label: "Reserva protegida",
@@ -16186,6 +16293,7 @@ function renderHomeDashboard() {
       status: reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good",
       cta: "Ajustar reserva",
       target: "executive-advisor",
+      metadata: actionCenter.readModel?.metrics?.protectedReserve,
     }),
     renderHomeKpi({
       label: "Próximo riesgo",
@@ -16196,8 +16304,10 @@ function renderHomeDashboard() {
       status: riskStatus,
       cta: "Revisar previsión",
       target: "prevision",
+      metadata: actionCenter.readModel?.metrics?.nextIncomeCoverage,
     }),
   ].join("");
+  renderE6Coverage(actionCenter.coverage);
 
   const mainInsights = [];
   if (metrics?.adjustedMin < 0) {
@@ -17273,6 +17383,8 @@ async function init() {
   });
   qs("addAlertRule")?.addEventListener("click", addUxAlert);
   qs("alertRuleList")?.addEventListener("click", handleAlertRuleAction);
+  qs("e6CoverageForm")?.addEventListener("submit", saveE6Coverage);
+  qs("e6CoverageReset")?.addEventListener("click", resetE6Coverage);
 
   controls.forEach((key) => qs(key).addEventListener("input", scheduleRender));
   qs("balanceDate").addEventListener("change", () => {

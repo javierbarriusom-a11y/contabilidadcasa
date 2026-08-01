@@ -213,7 +213,8 @@
       data: { occurredAt: event.at || event.date || now, eventType: event.type || event.kind || "decision-event" },
     }));
 
-    const fingerprint = fingerprintPayload(payload);
+    const persistedPayload = JSON.parse(JSON.stringify(payload));
+    const fingerprint = fingerprintPayload(persistedPayload);
     const entityCount = Object.values(projections).reduce((total, rows) => total + rows.length, 0);
 
     return {
@@ -239,7 +240,7 @@
         version: Number(payload.version || 1),
         fingerprint,
         checksum: fingerprint,
-        state: payload,
+        state: persistedPayload,
         created_at: now,
       },
       sourceHead: {
