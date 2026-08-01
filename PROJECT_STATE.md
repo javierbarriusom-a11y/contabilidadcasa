@@ -132,7 +132,7 @@ Fecha de revisión: 1 de agosto de 2026.
   no quede bloqueada por una auditoría con clave foránea ya eliminada.
 - E8 quedó publicada en `origin/main` mediante `939acc6` y `dfe3bb2`. El workflow de cierre
   `30698057298` completó correctamente la verificación y el despliegue de GitHub Pages.
-- E9 está implementada localmente con servicios externos apagados por defecto: fundamento común de
+- E9 está implementada y publicada con servicios externos apagados por defecto: fundamento común de
   consentimiento y minimización, hogar compartido, asistente, borradores confirmables, web push,
   conexión PSD2 de solo lectura e importación bancaria programada e idempotente.
 - La decisión de IA queda registrada como «OpenAI API, Responses API, almacenamiento desactivado y
@@ -143,18 +143,23 @@ Fecha de revisión: 1 de agosto de 2026.
 - La puerta local E9 pasa con 229 pruebas, accesibilidad estructural, rendimiento con 10.000 filas,
   construcción pública, privacidad, smoke test y `git diff --check`. El panel se validó a 1280 px y
   390×844 sin errores de consola ni desbordamiento horizontal.
+- E9 queda verificada como publicación segura mediante `ef57e9b`: el workflow `30712474715` terminó
+  correctamente, Pages figura como `built` con HTTPS obligatorio y `version.json` sirve el SHA completo
+  `ef57e9bf361fef67247648e222d5cebf7c981ccd`.
+- El QA publicado confirmó cuatro tarjetas grises, dos columnas a 1280 px y una columna a 390×844, sin
+  desbordamiento ni errores de consola. Una sesión con caché E8 necesitó una recarga para activar el
+  service worker e9c; la segunda carga mostró el shell E9 correcto.
 
 ## Pendiente
 
-- E9 requiere activación y aceptación externa por servicio: desplegar el backend privado, elegir el
+- E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada.
 
 ## Próximo paso
 
-Revisar el diff y preparar el commit reversible de E9 desactivada. Commit, push y publicación requieren
-autorizaciones expresas; después se activará cada servicio de forma independiente, dejando PSD2 y la
-importación programada para el final.
+Preparar E10 por activaciones independientes, empezando por backend privado y OpenAI y dejando PSD2 y
+la importación programada para el final. E9 no se reabre: permanece como base publicada, segura y local.
 
 ## Decisiones importantes
 
@@ -179,6 +184,9 @@ importación programada para el final.
   con éxito y `version.json` sirviendo esa revisión pública.
 - La validación de cierre E7 confirmó el workflow de `ba56333`, la revisión pública exacta, el contrato
   E7, el shell e7b y el monitor manual de disponibilidad sin fallos.
+- La validación publicada E9 confirmó el workflow `30712474715`, Pages `built`, el SHA exacto en
+  `version.json`, los recursos E9 y el panel gris responsive. La actualización desde una caché E8 exige
+  una recarga para que el service worker e9c tome el control.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - La conciliación, el cierre, la reapertura, el deshacer por lote y la verificación de copias están
   desplegados y aceptados en el Supabase real. Durante la aceptación se corrigieron referencias SQL
@@ -225,9 +233,8 @@ importación programada para el final.
 
 ## Último commit estable
 
-- El último commit estable es `4ffe3b5` (`docs: record published E8 closure`) en `main` y
-  `origin/main`. Documenta la publicación de E8; el cierre remoto funcional anterior es `dfe3bb2` y
-  el workflow `30698057298` verificó y desplegó correctamente GitHub Pages.
+- El último commit estable es `ef57e9b` (`feat: prepare E9 external integrations safely`) en `main` y
+  `origin/main`. El workflow `30712474715` verificó y desplegó correctamente GitHub Pages.
 - `939acc6` — `feat: implement E8 operational improvements` (1 de agosto de 2026), publicado en
   `origin/main`; contiene la implementación funcional de A3-1 a A3-7.
 
@@ -245,6 +252,6 @@ importación programada para el final.
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 136 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- Antes de este cierre documental, `main` conserva como base estable `4ffe3b5` y el trabajo E9 sigue
-  únicamente en el árbol local, pendiente de commit. `.agents/` continúa sin seguimiento y queda
-  excluida del commit propuesto.
+- Antes de este cierre documental, `main` y `origin/main` están sincronizadas en `ef57e9b`. Solo este
+  cierre de publicación modifica `PROJECT_STATE.md` y `BACKLOG_STATUS.md`; `.agents/` continúa sin
+  seguimiento y queda excluida del commit propuesto.

@@ -29,9 +29,10 @@ conflictos remotos o un despliegue defectuoso.
 | P0 Integridad estructural | 6 | 6 | 0 | 0 | 0 | Base canónica, sincronización y restauración verificadas |
 | P1 Decisión y tesorería | 8 | 8 | 0 | 0 | 0 | E6 y E7 están verificadas de extremo a extremo |
 | P2 Planificación familiar | 6 | 6 | 0 | 0 | 0 | Funcionalidad verificada; quedan mejoras no bloqueantes |
-| P3 Servicios externos | 3 | 0 | 3 | 0 | 0 | Contratos locales implementados; activación y aceptación externas pendientes |
+| P3 Servicios externos | 3 | 3 | 0 | 0 | 0 | Contratos opcionales publicados y verificados con todos los servicios apagados |
+| E10 Activación externa | 6 | 0 | 0 | 0 | 6 | Activaciones independientes pendientes de proveedor, backend y aceptación real |
 | UX Experiencia principal | 6 | 6 | 0 | 0 | 0 | Experiencia principal verificada en escritorio y móvil |
-| **Total roadmap inicial** | **29** | **26** | **3** | **0** | **0** | **E9 no pasa a verificado hasta activar y aceptar cada servicio externo** |
+| **Total ampliado** | **35** | **29** | **0** | **0** | **6** | **E9 queda cerrada; la activación externa se controla por separado en E10** |
 
 ### Correcciones respecto al backlog anterior
 
@@ -134,19 +135,33 @@ verificados.
 | A3-7 | Rendimiento con datos crecientes | Media | Presupuesto medible de carga y render; pruebas con un volumen superior al actual sin bloqueo de la interfaz |
 | A3-8 | Flujo inequívoco de previsto, real y valor usado | Alta | Verificada el 01/08/2026: el Cuadro de mandos separa planificación y registro, muestra el importe usado y distingue real vacío de real cero sin alterar el motor financiero |
 
-### A4 — Servicios externos y nuevos desarrollos
+### A4 — Contratos seguros para servicios opcionales (E9)
 
 No se inicia este bloque hasta cerrar A0 y A1. Ningún servicio externo puede convertirse en requisito
 para abrir la app o consultar la última copia local.
 
 | ID | Fase | Desarrollo | Estado | Prioridad | Condición previa |
 | --- | --- | --- | --- | --- | --- |
-| A4-1 | P3-1 | Capa de conexión bancaria regulada y solo lectura | Implementado | Baja | Contrato y fallback local listos; pendiente contratar proveedor PSD2 y aceptar consentimiento/revocación reales |
-| A4-2 | Nuevo | Importación bancaria programada | Implementado | Baja | Bandeja idempotente y programación listas; pendiente backend, proveedor y aceptación real |
-| A4-3 | P3-2 | Asistente privado y trazable | Implementado | Baja | Decidido OpenAI Responses API desde backend privado y sin almacenamiento; pendiente elegir modelo y conectar |
-| A4-4 | P3-3 | Borradores conversacionales confirmables | Implementado | Baja | Catálogo, vista previa y doble confirmación listos; la ejecución remota permanece desactivada |
-| A4-5 | Nuevo | Notificaciones remotas opcionales | Implementado | Baja | Contrato seguro y preferencias listos; pendiente backend web push y consentimiento real |
-| A4-6 | Nuevo | Presupuestos y escenarios compartidos del hogar | Implementado | Baja | Permisos, invitaciones y revocación definidos; pendiente desplegar políticas y probar dos cuentas |
+| A4-1 | P3-1 | Contrato bancario regulado, solo lectura y con fallback manual | Verificado | Baja | Publicado desactivado; no expone conexión ni bloquea CSV, Excel o entrada manual |
+| A4-2 | Nuevo | Contrato de importación programada idempotente y previa al libro | Verificado | Baja | Publicado desactivado; nunca modifica el libro ni decisiones automáticamente |
+| A4-3 | P3-2 | Contrato de asistente privado, mínimo y trazable | Verificado | Baja | OpenAI Responses API queda sin conectar; el asistente local continúa disponible |
+| A4-4 | P3-3 | Catálogo cerrado de borradores con vista previa y confirmación | Verificado | Baja | Publicado sin ejecución remota ni escritura directa |
+| A4-5 | Nuevo | Contrato de notificaciones remotas genéricas y opcionales | Verificado | Baja | Web push permanece apagado; solo funcionan pruebas locales del navegador |
+| A4-6 | Nuevo | Modelo de permisos, invitaciones y revocación del hogar | Verificado | Baja | Publicado sin invitaciones, miembros remotos ni datos compartidos |
+
+### A5 — Activación y aceptación de servicios externos (E10)
+
+E10 no reabre E9: activa cada dependencia externa de forma independiente y conserva siempre el modo
+local. Ningún servicio pasa a `Verificado` por disponer únicamente de contrato o pruebas simuladas.
+
+| ID | Servicio | Estado | Prioridad | Criterio de aceptación |
+| --- | --- | --- | --- | --- |
+| A5-1 | Backend privado y OpenAI Responses API | Pendiente | Media | Autenticación, minimización, almacenamiento desactivado, fuentes y prueba real sin escritura |
+| A5-2 | Selección del modelo OpenAI | Pendiente | Media | Comparación reproducible de calidad, coste y latencia antes de fijar el modelo |
+| A5-3 | Hogar compartido | Pendiente | Baja | Políticas desplegadas y prueba real de invitación, conflicto y revocación con dos cuentas |
+| A5-4 | Web push | Pendiente | Baja | Consentimiento real, mensaje genérico bloqueado, silencios, revocación y backend seguro |
+| A5-5 | Conexión bancaria PSD2 | Pendiente | Baja | Proveedor contratado, cobertura y precio aceptados, consentimiento revocable y solo lectura verificados |
+| A5-6 | Importación bancaria programada | Pendiente | Baja | A5-5 verificada; ejecución idempotente real, bandeja previa y ausencia de escrituras automáticas en el libro |
 
 ## 5. Secuencia recomendada de entregas
 
@@ -160,7 +175,8 @@ para abrir la app o consultar la última copia local.
 | E6 | A2-1, A2-2, A2-6 y A2-8 | Verificada: datos ejecutivos completos, trazables y consistentes |
 | E7 | A2-3, A2-4, A2-5 y A2-7 | Comparación financiera avanzada y segura |
 | E8 | A3-1 a A3-7 | Verificada: mejoras operativas, privadas, accesibles y medibles sin reabrir bloques cerrados |
-| E9 | A4 con decisiones independientes | Implementada localmente y publicable desactivada; activación externa pendiente por servicio |
+| E9 | A4-1 a A4-6 | Verificada y publicada con todas las integraciones externas desactivadas |
+| E10 | A5-1 a A5-6 | Activación y aceptación independiente de proveedores y servicios externos |
 
 ## 6. Puerta de aceptación para cada entrega
 
@@ -178,9 +194,14 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Preparar un commit pequeño y reversible de **E9 desactivada**, publicarlo tras autorización y activar
-después cada servicio por separado. La primera activación recomendada es el backend privado de OpenAI;
-la conexión PSD2 y la importación programada quedan al final por depender del proveedor bancario.
+Planificar **E10** sin reabrir E9. La primera activación recomendada es el backend privado de OpenAI y
+la selección posterior del modelo; hogar y web push continúan después. La conexión PSD2 y la importación
+programada quedan al final por depender del proveedor bancario.
+
+E9 quedó publicada y verificada el 01/08/2026 mediante `ef57e9b`. El workflow `30712474715` completó
+la puerta y el despliegue; Pages sirvió `version.json` con el SHA exacto, los contratos E9 y el shell
+e9c. El panel gris pasó QA a 1280 px y 390×844 sin errores ni desbordamiento. Una sesión con caché E8
+necesitó recargar una vez para activar el nuevo service worker; la segunda carga sirvió correctamente E9.
 
 E7 quedó verificada el 01/08/2026: dos sesiones protegieron el puntero remoto; un lote sintético se
 previsualizó, importó, recuperó tras recarga y deshizo; una restauración creó una revisión nueva y
