@@ -17,7 +17,7 @@ Fecha de revisión: 1 de agosto de 2026.
 - El plan visual de deuda sin WiZink se ha incorporado como sección independiente tras `Deuda y proyectos`; su estado forma parte de la copia local y del payload sincronizado con Supabase.
 - P0-6 está verificado de extremo a extremo: el selector remoto, la vista previa comparativa y `restore_finance_snapshot` crean una versión nueva, mueven el puntero activo y conservan el historial.
 - La función de restauración está desplegada en el Supabase real y se ejecutó con rol `authenticated` y `auth.uid()` del usuario. La recuperación generó un snapshot nuevo idéntico al objetivo, actualizó la cabecera, completó el registro de sincronización y preservó las 234 versiones existentes tras la operación.
-- La suite local actual pasa completa: 127 pruebas, 0 fallos.
+- La suite local actual pasa completa: 135 pruebas, 0 fallos.
 - La revisión estable `2c793d4` está publicada en `origin/main`; el cierre funcional de E4 quedó consolidado en `d32b02a` y superó pruebas, privacidad y smoke test.
 - E1 — Continuidad entre sesiones está verificada: la aplicación carga primero la copia local, conserva
   en IndexedDB una bandeja de salida por usuario y fuente, reanuda revisiones pendientes y detiene la
@@ -66,6 +66,8 @@ Fecha de revisión: 1 de agosto de 2026.
   La comprobación valida huellas, registra el resultado y ensaya una copia de muestra sin borrado automático.
 - La puerta local de E5 pasa completa: 135 pruebas, construcción pública, privacidad, smoke test y
   `git diff --check`; la interfaz fue validada sin errores ni desbordamiento en escritorio y a 390×844.
+- La implementación local de E5 está consolidada y publicada en `origin/main` mediante `6b452d5`
+  (`feat: implement E5 operational recovery controls`).
 
 ## Pendiente
 
@@ -93,11 +95,11 @@ deshacer un lote, confirmar el bloqueo del legado en una segunda sesión y regis
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en el estado local revisado (127/127 pruebas pasan).
+- No hay fallos automatizados conocidos en el estado local revisado (135/135 pruebas pasan).
 - No hay fallos automatizados conocidos en E5 (135/135 pruebas pasan), pero el nuevo SQL aún no se ha desplegado ni probado de extremo a extremo en el Supabase real.
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de despliegue completado con éxito y la presencia pública de `Actualizar`, `Plan de deuda` y los recursos versionados actuales.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
-- La conciliación remota exhaustiva y el cierre mensual transaccional están desplegados y verificados en el Supabase real. El deshacer remoto por lote y la reapertura controlada siguen pendientes para E5.
+- La conciliación remota exhaustiva y el cierre mensual transaccional están desplegados y verificados en el Supabase real. E5 está publicada en Git, pero su SQL, el deshacer remoto por lote y la reapertura controlada siguen pendientes de despliegue y aceptación en Supabase.
 - E1 fue comprobada en navegador real contra un servicio remoto local controlado: durante la caída el
   servidor recibió cero escrituras; tras cerrar y reabrir recibió exactamente una; una tercera apertura
   confirmó la bandeja vacía. No hubo errores de consola.
@@ -129,11 +131,12 @@ deshacer un lote, confirmar el bloqueo del legado en una segunda sesión y regis
 
 ## Último commit estable
 
-- `c4eeb01` — `docs: close dashboard workflow session` (1 de agosto de 2026), publicado en `origin/main` y base de la implementación local de E5.
+- `6b452d5` — `feat: implement E5 operational recovery controls` (1 de agosto de 2026), publicado en `origin/main`; la puerta local de cierre pasa con 135 pruebas, construcción, privacidad y smoke test.
+- `c4eeb01` — `docs: close dashboard workflow session` (1 de agosto de 2026), base estable anterior.
 
 - `cceb3c2` — `docs: record dashboard value workflow` (1 de agosto de 2026), publicado en `origin/main`.
 - `c44563a` — `feat: clarify planned actual and calculated dashboard values` (1 de agosto de 2026), validado localmente antes de publicar.
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
-- La puerta local pasa con 127 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main` y estaba sincronizada con `origin/main` en `c4eeb01` al iniciar E5. Los cambios de E5 permanecen locales y sin commit; la carpeta `.agents/` sigue sin seguimiento, preservada y fuera de la entrega.
+- La puerta local pasa con 135 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
+- La rama de trabajo es `main` y estaba sincronizada con `origin/main` en `6b452d5` al preparar este cierre. Solo se modifican estos documentos de estado; la carpeta `.agents/` sigue sin seguimiento, preservada y fuera de los commits.

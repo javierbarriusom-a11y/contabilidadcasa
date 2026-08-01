@@ -49,7 +49,7 @@ conflictos remotos o un despliegue defectuoso.
 | Una reconciliación incorrecta ante conflicto puede descartar una revisión | A0-5 compara fechas y huellas y ofrece continuar localmente, descargar o elegir la nube | Una elección equivocada del usuario todavía puede requerir restauración | Conservar copia exportable, confirmación explícita e historial de versiones |
 | Un despliegue defectuoso puede afectar al sitio público | Pages publica mediante Actions después de pruebas, privacidad y smoke test; el rollback fue ensayado | Una regresión no cubierta por las pruebas podría llegar a producción | Mantener la puerta CI, el monitor publicado y el procedimiento de reversión |
 | La aplicación publicada trata información financiera sensible | El artefacto público contiene solo datos sintéticos y la revisión de privacidad bloquea patrones prohibidos | Una futura incorporación accidental de datos personales sería crítica | Mantener lista cerrada del artefacto y revisión de privacidad obligatoria |
-| La reapertura de meses aún no está disponible | E4 congela y recupera el cierre, pero A1-3 sigue pendiente | Una corrección posterior exige restaurar una versión completa | Implementar reapertura confirmada como nueva revisión append-only en E5 |
+| La reapertura de meses aún no está desplegada | A1-3 está implementada y publicada en Git, pero el SQL E5 no se ha aplicado al Supabase real | La interfaz remota no puede aceptar todavía una reapertura | Desplegar el esquema y completar la aceptación autenticada en dos sesiones |
 | La documentación de estado diverge | Roadmap, estado y backlog usan fechas y estados distintos | Puede priorizarse trabajo ya terminado o darse por cerrado trabajo parcial | Una matriz canónica y revisión en cada cierre |
 
 ## 4. Orden de ejecución propuesto
@@ -203,3 +203,6 @@ E5 quedó implementada localmente el 01/08/2026. La puerta completa pasa con 135
 construcción pública, privacidad y smoke test. El QA real pasó en escritorio y a 390×844 sin errores
 de consola ni desbordamiento. Su estado no sube a Verificado hasta desplegar el SQL y completar la
 aceptación autenticada de A1-3 a A1-6 en Supabase.
+
+El código E5 quedó publicado en `origin/main` mediante `6b452d5`. La validación de cierre del
+01/08/2026 repitió con éxito 135/135 pruebas, construcción, privacidad, smoke test y `git diff --check`.
