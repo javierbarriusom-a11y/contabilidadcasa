@@ -88,3 +88,8 @@ test("la auditoría registra antes y después mediante trigger", () => {
   assert.match(schema, /after insert or update or delete/);
   assert.match(schema, /if tg_op = 'DELETE' then\s+row_user := old\.user_id/);
 });
+
+test("la auditoría no bloquea la cascada al eliminar un usuario", () => {
+  assert.match(schema, /not exists \(select 1 from auth\.users where id = row_user\)/);
+  assert.match(schema, /if tg_op = 'DELETE' then return old; end if/);
+});

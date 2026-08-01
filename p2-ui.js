@@ -243,11 +243,21 @@
           if (!blob && doc?.storage === "cloud") { const encrypted = await bridge().downloadPrivateAttachment(doc.remotePath); blob = await root.P2PrivateStore.decrypt(encrypted, card.querySelector("[data-document-key]")?.value); }
           if (!blob) return notice(target.querySelector("[data-document-notice]"), "El archivo privado no está en este dispositivo.", true);
           const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = doc.fileName; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+          notice(target.querySelector("[data-document-notice]"), `Archivo descifrado y preparado: ${doc.fileName}.`);
         } catch (error) { notice(target.querySelector("[data-document-notice]"), `No se pudo descargar: ${error.message}`, true); }
       });
-      card.querySelector("[data-document-delete]")?.addEventListener("click", async () => { if (!confirm("¿Mover esta evidencia a recuperación durante 30 días?")) return; const p2 = state(); const deletedAt = new Date(); const recoverUntil = new Date(deletedAt.getTime() + 30 * 86400000); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: deletedAt.toISOString(), recoverUntil: recoverUntil.toISOString().slice(0, 10) }) : item) }); renderDocuments(); });
+      card.querySelector("[data-document-delete]")?.addEventListener("click", (event) => {
+        const button = event.currentTarget;
+        if (button.dataset.confirming !== "true") { button.dataset.confirming = "true"; button.textContent = "Confirmar recuperación 30 días"; notice(target.querySelector("[data-document-notice]"), "Pulsa de nuevo para mover el archivo a recuperación; todavía no se ha modificado nada."); return; }
+        const p2 = state(); const deletedAt = new Date(); const recoverUntil = new Date(deletedAt.getTime() + 30 * 86400000); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: deletedAt.toISOString(), recoverUntil: recoverUntil.toISOString().slice(0, 10) }) : item) }); renderDocuments();
+      });
       card.querySelector("[data-document-restore]")?.addEventListener("click", () => { const p2 = state(); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: "", recoverUntil: "" }) : item) }); renderDocuments(); });
-      card.querySelector("[data-document-purge]")?.addEventListener("click", async () => { if (!confirm("¿Eliminar definitivamente esta evidencia? Esta acción no se puede deshacer.")) return; const doc = state().documents.find((item) => item.id === id); if (doc?.remotePath) await bridge().purgePrivateAttachment(doc.remotePath); await root.P2PrivateStore.remove(id); const p2 = state(); save({ ...p2, documents: p2.documents.filter((item) => item.id !== id) }); renderDocuments(); });
+      card.querySelector("[data-document-purge]")?.addEventListener("click", async (event) => {
+        const button = event.currentTarget;
+        if (button.dataset.confirming !== "true") { button.dataset.confirming = "true"; button.textContent = "Confirmar borrado definitivo"; notice(target.querySelector("[data-document-notice]"), "Pulsa de nuevo para borrar el archivo definitivamente; todavía no se ha modificado nada.", true); return; }
+        try { const doc = state().documents.find((item) => item.id === id); if (doc?.remotePath) await bridge().purgePrivateAttachment(doc.remotePath); await root.P2PrivateStore.remove(id); const p2 = state(); save({ ...p2, documents: p2.documents.filter((item) => item.id !== id) }); renderDocuments(); }
+        catch (error) { notice(target.querySelector("[data-document-notice]"), `No se pudo eliminar: ${error.message}`, true); }
+      });
     });
   }
 

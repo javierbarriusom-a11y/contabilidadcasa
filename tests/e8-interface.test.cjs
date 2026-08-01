@@ -29,6 +29,9 @@ test("los adjuntos remotos se cifran, limitan y permiten recuperación", () => {
   assert.match(p2, /10 \* 1024 \* 1024/);
   assert.match(p2, /recuperable hasta/);
   assert.match(p2, /data-document-restore/);
+  assert.match(p2, /Archivo descifrado y preparado/);
+  assert.match(p2, /Confirmar recuperación 30 días/);
+  assert.match(p2, /Confirmar borrado definitivo/);
   assert.match(schema, /finance-private-attachments/);
   assert.match(schema, /storage\.foldername/);
 });

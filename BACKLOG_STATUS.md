@@ -159,7 +159,7 @@ para abrir la app o consultar la última copia local.
 | E5 | A1-3 a A1-6 | Verificada: reapertura, deshacer, migración y copias aceptadas en Supabase |
 | E6 | A2-1, A2-2, A2-6 y A2-8 | Verificada: datos ejecutivos completos, trazables y consistentes |
 | E7 | A2-3, A2-4, A2-5 y A2-7 | Comparación financiera avanzada y segura |
-| E8 | A3 según uso real | Mejoras incrementales sin reabrir bloques cerrados |
+| E8 | A3-1 a A3-7 | Verificada: mejoras operativas, privadas, accesibles y medibles sin reabrir bloques cerrados |
 | E9 | A4 con decisiones independientes | Integraciones externas opcionales y desacopladas |
 
 ## 6. Puerta de aceptación para cada entrega
@@ -178,7 +178,7 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Iniciar **E8** con mejoras A3 priorizadas por uso real, sin reabrir E6 ni E7.
+Valorar **E9** y P3 solo con proveedor, backend privado, consentimiento y fallback local definidos.
 
 E7 quedó verificada el 01/08/2026: dos sesiones protegieron el puntero remoto; un lote sintético se
 previsualizó, importó, recuperó tras recarga y deshizo; una restauración creó una revisión nueva y
@@ -219,10 +219,10 @@ E6 quedó cerrada y publicada en `origin/main` mediante `e51fe07` el 01/08/2026.
 148/148 pruebas, construcción pública, privacidad, smoke test y `git diff --check`; Actions completó el
 despliegue y Pages sirve `version.json` con la revisión `e51fe07`. El siguiente objetivo es E7.
 
-E8 quedó implementada localmente el 01/08/2026 con A3-1 a A3-7. La entrega reúne historial operativo,
+E8 quedó verificada de extremo a extremo el 01/08/2026 con A3-1 a A3-7. La entrega reúne historial operativo,
 comparación detallada de versiones, centro de calidad, acciones seguras desde alertas, adjuntos privados
 cifrados, accesibilidad automatizada y un presupuesto probado con 10.000 filas. La puerta local pasa con
-171/171 pruebas, construcción, privacidad, smoke test, accesibilidad, rendimiento y `git diff --check`;
-el QA pasó en escritorio y móvil. A3-5 conserva estado de `Implementado` hasta desplegar las políticas del
-bucket privado y completar una aceptación autenticada multidispositivo; por ello E8 todavía no se marca
-como `Verificado` de extremo a extremo.
+172/172 pruebas, construcción, privacidad, smoke test, accesibilidad, rendimiento y `git diff --check`;
+el QA pasó en escritorio y móvil. El bucket privado y sus políticas RLS se desplegaron en Supabase; una
+cuenta sintética confirmó subida cifrada, descarga y descifrado desde otra sesión, recuperación,
+restauración y borrado definitivo. El objeto, la cuenta y sus revisiones temporales quedaron eliminados.

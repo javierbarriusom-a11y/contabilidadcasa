@@ -326,6 +326,13 @@ begin
     return new;
   end if;
 
+  -- During an auth.users cascade the parent is already gone, so an audit row
+  -- with the deleted user_id would violate its foreign key and block cleanup.
+  if not exists (select 1 from auth.users where id = row_user) then
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+  end if;
+
   insert into public.finance_audit_log (
     user_id, source_key, table_name, entity_id, action,
     before_data, after_data, changed_by, sync_id
