@@ -218,3 +218,11 @@ del 01/08/2026 repitió con éxito 136/136 pruebas, construcción, privacidad, s
 E6 quedó cerrada y publicada en `origin/main` mediante `e51fe07` el 01/08/2026. La validación final repitió
 148/148 pruebas, construcción pública, privacidad, smoke test y `git diff --check`; Actions completó el
 despliegue y Pages sirve `version.json` con la revisión `e51fe07`. El siguiente objetivo es E7.
+
+E8 quedó implementada localmente el 01/08/2026 con A3-1 a A3-7. La entrega reúne historial operativo,
+comparación detallada de versiones, centro de calidad, acciones seguras desde alertas, adjuntos privados
+cifrados, accesibilidad automatizada y un presupuesto probado con 10.000 filas. La puerta local pasa con
+171/171 pruebas, construcción, privacidad, smoke test, accesibilidad, rendimiento y `git diff --check`;
+el QA pasó en escritorio y móvil. A3-5 conserva estado de `Implementado` hasta desplegar las políticas del
+bucket privado y completar una aceptación autenticada multidispositivo; por ello E8 todavía no se marca
+como `Verificado` de extremo a extremo.

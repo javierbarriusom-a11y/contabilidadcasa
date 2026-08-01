@@ -100,6 +100,8 @@ let unifiedActionRegistry = new Map();
 let pendingUnifiedActionId = "";
 let pendingStateRestore = null;
 let cloudRestoreSnapshots = [];
+let e8RemoteHistory = { snapshots: [], syncEvents: [] };
+let e8RemoteHistoryLoading = false;
 let startupRecoveryContext = null;
 let agentDebtOptimizationCache = { key: "", value: null };
 let executiveAdvisorRenderTimer = null;
@@ -798,6 +800,7 @@ async function useRemoteStartupRecovery() {
   applyRecoveryPayload(context.authoritative.state);
   await ensureDurableOutbox().remove(durableOutboxId());
   durableResumeRecord = null;
+  e8RemoteHistory = { snapshots: [], syncEvents: [] };
   remoteSaveQueue?.reset();
   closeStartupRecovery();
   updateSyncUi("Versión de la nube cargada. La cola local anterior se retiró tras tu confirmación.", "cloud");
@@ -975,11 +978,14 @@ function previewSelectedCloudSnapshotRestore() {
     if (!validation.valid) throw new Error(validation.errors.join(" "));
     const preview = window.FinanceSnapshotRestore.buildSnapshotPreview(appStatePayload(), selected.state);
     const rows = preview.metrics.map((metric) => `<span><b>${escapeHtml(metric.label)}</b><br>${metric.before} → ${metric.after}${metric.changed ? ` (${metric.delta > 0 ? "+" : ""}${metric.delta})` : " · sin cambio"}</span>`).join("");
+    const detailed = window.FinanceCanonicalE8?.compareVersions(appStatePayload(), selected.state);
+    const groupLabels = { accounts: "Cuentas", movements: "Movimientos", debts: "Deuda", projects: "Proyectos", adjustments: "Ajustes" };
+    const detailedRows = detailed ? Object.entries(detailed.groups).map(([key, group]) => `<span><b>${groupLabels[key] || key}</b><br>+${group.added.length} altas · ${group.changed.length} cambios · −${group.removed.length} bajas</span>`).join("") : "";
     qs("confirmStateRestore").hidden = false;
     qs("cancelStateRestore").hidden = false;
     setStateBackupStatus(
       `Vista previa: ${new Date(selected.created_at).toLocaleString("es-ES")}`,
-      `Nada ha cambiado todavía. Al confirmar se creará una nueva versión restaurada, sin borrar el historial.<div class="restore-preview-grid">${rows}</div>`,
+      `Nada ha cambiado todavía. Al confirmar se creará una nueva versión restaurada, sin borrar el historial.<div class="restore-preview-grid">${rows}${detailedRows}</div>`,
       "warning",
     );
   } catch (error) {
@@ -1334,6 +1340,53 @@ function renderDataAudit() {
         </div>`;
       }).join("")
     : `<div class="audit-empty"><strong>Sin cambios registrados</strong><p>La primera modificación generará una entrada de auditoría.</p></div>`;
+  renderE8AuditExtensions(snapshot, rows);
+}
+
+function renderE8AuditExtensions(snapshot, rows) {
+  const e8 = window.FinanceCanonicalE8;
+  if (!e8) return;
+  const started = performance.now();
+  const movements = p2MovementRows();
+  const debtQuality = canonicalDebtContractRows().map((contract) => {
+    const quality = contract.dataQuality || DebtContracts?.contractQuality(contract, contract) || {};
+    return { id: contract.id, label: `${contract.entity || "Deuda"} ${contract.type || ""}`.trim(), unknownFields: quality.missing || [] };
+  });
+  const executive = Object.values(unifiedActionCenterModel().readModel?.metrics || {});
+  const quality = e8.qualityCenter({ canonicalIssues: snapshot?.quality?.issues, debtQuality, kpis: executive, movements });
+  const qualityTarget = qs("e8QualityCenter");
+  if (qualityTarget) qualityTarget.innerHTML = quality.issues.length
+    ? `<div class="audit-issue-list">${quality.issues.slice(0, 50).map((issue) => `<button type="button" class="audit-issue ${escapeHtml(issue.severity)}" data-e8-quality-target="${escapeHtml(issue.target)}"><strong>${escapeHtml(issue.kind)}</strong><span>${escapeHtml(issue.label)}</span></button>`).join("")}</div>${quality.total > 50 ? `<p>Se muestran 50 de ${quality.total} incidencias.</p>` : ""}`
+    : `<div class="audit-empty good"><strong>Calidad completa</strong><p>No hay elementos pendientes en las fuentes revisadas.</p></div>`;
+  const queueState = remoteSaveQueue?.snapshot?.();
+  const localConflict = queueState?.lastError?.code === "REMOTE_WRITE_CONFLICT"
+    ? [{ id: "local-conflict", created_at: new Date().toISOString(), status: "conflict" }]
+    : [];
+  const timeline = e8.operationalTimeline({ snapshots: e8RemoteHistory.snapshots, syncEvents: [...e8RemoteHistory.syncEvents, ...localConflict], closures: monthClosures, auditTrail: snapshot?.auditTrail });
+  const timelineTarget = qs("e8OperationalTimeline");
+  if (timelineTarget) timelineTarget.innerHTML = timeline.length
+    ? timeline.slice(0, 30).map((item) => `<div class="audit-timeline-item"><span>${escapeHtml(new Date(item.at).toLocaleString("es-ES"))}</span><div><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.type)} · ${escapeHtml(item.status)}</p></div></div>`).join("")
+    : `<div class="audit-empty"><strong>Sin eventos operativos</strong></div>`;
+  const payloadBytes = new TextEncoder().encode(JSON.stringify(appStatePayload({ includeCanonical: false }))).length;
+  const budget = e8.performanceBudget({ rowCount: rows.length + movements.length, renderMs: performance.now() - started, payloadBytes });
+  const budgetTarget = qs("e8PerformanceBudget");
+  if (budgetTarget) budgetTarget.innerHTML = `<div class="audit-kpi-grid"><article class="audit-kpi ${budget.checks.rowCount ? "good" : "warn"}"><span>Filas</span><strong>${budget.measured.rowCount}</strong><p>Límite ${budget.limits.rowCount}</p></article><article class="audit-kpi ${budget.checks.renderMs ? "good" : "warn"}"><span>Preparación</span><strong>${budget.measured.renderMs.toFixed(1)} ms</strong><p>Límite ${budget.limits.renderMs} ms</p></article><article class="audit-kpi ${budget.checks.payloadBytes ? "good" : "warn"}"><span>Estado</span><strong>${(budget.measured.payloadBytes / 1024).toFixed(0)} KB</strong><p>Límite ${(budget.limits.payloadBytes / 1024 / 1024).toFixed(0)} MB</p></article></div>`;
+  loadE8RemoteHistory();
+}
+
+async function loadE8RemoteHistory() {
+  if (!supabaseClient || !remoteUser || e8RemoteHistoryLoading || e8RemoteHistory.snapshots.length) return;
+  e8RemoteHistoryLoading = true;
+  try {
+    const [snapshots, syncEvents] = await Promise.all([
+      supabaseClient.from("finance_state_snapshots").select("id,created_at,fingerprint,state").eq("source_key", sourceStateKey()).order("created_at", { ascending: false }).limit(30),
+      supabaseClient.from("finance_sync_runs").select("id,status,started_at,completed_at,metadata").eq("source_key", sourceStateKey()).order("started_at", { ascending: false }).limit(30),
+    ]);
+    if (!snapshots.error && !syncEvents.error) {
+      e8RemoteHistory = { snapshots: snapshots.data || [], syncEvents: (syncEvents.data || []).map((row) => ({ ...row, created_at: row.completed_at || row.started_at, status: row.status === "failed" ? "conflict" : row.status })) };
+      if (viewFromHash() === "data-audit") renderDataAudit();
+    }
+  } finally { e8RemoteHistoryLoading = false; }
 }
 
 const e6DebtFieldLabels = {
@@ -3054,6 +3107,7 @@ async function setupSupabaseSync() {
       remoteLoadPromise = null;
       remoteLoadedUserId = null;
       durableResumeRecord = null;
+      e8RemoteHistory = { snapshots: [], syncEvents: [] };
     }
     renderSyncPanel();
     if (remoteUser) {
@@ -16186,6 +16240,25 @@ window.FinanceP2Bridge = {
   accounts: accountBalancesFromState,
   alerts: evaluatedUxAlerts,
   exportModel: p2ExportModel,
+  privateCloudAvailable: () => Boolean(supabaseClient && remoteUser),
+  uploadPrivateAttachment: async (id, blob) => {
+    if (!supabaseClient || !remoteUser) throw new Error("Inicia sesión para sincronizar el adjunto privado");
+    const path = `${remoteUser.id}/${id}.encrypted`;
+    const result = await supabaseClient.storage.from("finance-private-attachments").upload(path, blob, { upsert: true, contentType: blob.type });
+    if (result.error) throw result.error;
+    return path;
+  },
+  downloadPrivateAttachment: async (path) => {
+    if (!supabaseClient || !remoteUser) throw new Error("Inicia sesión para recuperar el adjunto privado");
+    const result = await supabaseClient.storage.from("finance-private-attachments").download(path);
+    if (result.error) throw result.error;
+    return result.data;
+  },
+  purgePrivateAttachment: async (path) => {
+    if (!supabaseClient || !remoteUser) throw new Error("Inicia sesión para eliminar el adjunto privado");
+    const result = await supabaseClient.storage.from("finance-private-attachments").remove([path]);
+    if (result.error) throw result.error;
+  },
 };
 
 function alertStatusMeta(alert) {
@@ -16235,6 +16308,7 @@ function alertRuleOptions(selected, options) {
 function renderAlertRule(alert) {
   const status = alertStatusMeta(alert);
   const metric = UX_ALERT_METRICS[alert.metric] || UX_ALERT_METRICS.caixaBalance;
+  const quickAction = window.FinanceCanonicalE8?.alertQuickAction(alert);
   return `<article class="alert-rule-card ${status.tone}" data-alert-id="${escapeHtml(alert.id)}">
     <div class="alert-rule-head">
       <div><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(alert.name)}</strong></div>
@@ -16254,6 +16328,7 @@ function renderAlertRule(alert) {
       <p><span>Qué hacer</span>${escapeHtml(alert.action)}</p>
     </div>
     <div class="alert-rule-actions">
+      ${quickAction ? `<button type="button" class="ghost-button" data-alert-action="prepare" data-alert-target="${escapeHtml(quickAction.target)}">${escapeHtml(quickAction.label)}</button>` : ""}
       <button type="button" class="ghost-button" data-alert-action="toggle">${alert.paused ? "Reactivar" : "Pausar"}</button>
       <button type="button" class="ghost-button danger" data-alert-action="delete">Eliminar</button>
       <button type="button" data-alert-action="save">Guardar regla</button>
@@ -16306,7 +16381,13 @@ function handleAlertRuleAction(event) {
   const index = scenarioSettings.alerts.findIndex((alert) => alert.id === id);
   if (index < 0) return;
   const action = button.dataset.alertAction;
-  if (action === "delete") {
+  if (action === "prepare") {
+    const target = button.dataset.alertTarget || "data-audit";
+    announceStatus("Abriendo la revisión. Ningún dato se ha modificado.");
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target, { focus: true });
+    return;
+  } else if (action === "delete") {
     if (!window.confirm("¿Eliminar esta alerta?")) return;
     scenarioSettings.alerts.splice(index, 1);
   } else if (action === "toggle") {
@@ -17890,6 +17971,12 @@ async function init() {
     renderDataAudit();
   });
   qs("downloadCanonicalInventory")?.addEventListener("click", downloadCanonicalInventory);
+  qs("data-audit")?.addEventListener("click", (event) => {
+    const target = event.target.closest("[data-e8-quality-target]")?.dataset.e8QualityTarget;
+    if (!target) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target, { focus: true });
+  });
   qs("rebuildCanonicalLedger")?.addEventListener("click", () => {
     refreshCanonicalLedger("manual-rebuild");
     saveLocalSnapshot();

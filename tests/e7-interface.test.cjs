@@ -45,8 +45,9 @@ test("Actualizar tolera cabeceras agregadas sin una lista mensual explícita", (
 });
 
 test("el shell offline versiona e incluye el contrato E7", () => {
-  assert.match(serviceWorker, /finanzas-casa-shell-20260801-e7b/);
+  assert.match(serviceWorker, /finanzas-casa-shell-20260801-e8a/);
   assert.match(serviceWorker, /canonical-e7-analysis\.js/);
+  assert.match(serviceWorker, /canonical-e8-operations\.js/);
 });
 
 test("el guardado general no intenta actualizar lotes que solo cambian mediante RPC", () => {

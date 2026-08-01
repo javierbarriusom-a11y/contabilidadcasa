@@ -1,0 +1,13 @@
+import fs from "node:fs";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const E8 = require("../canonical-e8-operations.js");
+const rows = Array.from({ length: 10000 }, (_, index) => ({ id: `movement-${index}`, amount: index, month: `2026-${String(index % 12 + 1).padStart(2, "0")}` }));
+const started = performance.now();
+const result = E8.collectionDiff(rows, rows.map((row, index) => index === 9999 ? { ...row, amount: -1 } : row));
+const elapsed = performance.now() - started;
+if (result.count !== 1) throw new Error("La prueba de volumen perdió cambios");
+if (elapsed > 500) throw new Error(`Comparar 10.000 filas tardó ${elapsed.toFixed(1)} ms`);
+const assets = ["app.js", "styles.css", "data.js"].reduce((sum, name) => sum + fs.statSync(new URL(`../${name}`, import.meta.url)).size, 0);
+if (assets > 5 * 1024 * 1024) throw new Error(`Los recursos principales superan 5 MB: ${assets}`);
+console.log(`Rendimiento verificado: 10.000 filas en ${elapsed.toFixed(1)} ms; recursos ${(assets / 1024).toFixed(0)} KB.`);

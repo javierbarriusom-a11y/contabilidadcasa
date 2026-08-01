@@ -197,6 +197,11 @@
       verified: Boolean(document.verified),
       notes: text(document.notes),
       deviceOnly: document.deviceOnly !== false,
+      storage: document.storage === "cloud" ? "cloud" : "device",
+      encrypted: Boolean(document.encrypted),
+      remotePath: text(document.remotePath),
+      deletedAt: text(document.deletedAt),
+      recoverUntil: text(document.recoverUntil),
       createdAt: text(document.createdAt) || new Date().toISOString(),
       updatedAt: text(document.updatedAt) || new Date().toISOString(),
     };

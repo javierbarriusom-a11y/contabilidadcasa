@@ -115,14 +115,26 @@ Fecha de revisión: 1 de agosto de 2026.
   `ba56333577db65e2c6dcf870663c302cfe25152d`.
 - La comprobación pública confirmó el contrato E7, `app.js` e7b, el service worker e7b y los recursos
   críticos. El monitor manual `Published availability` de `ba56333` terminó con éxito.
+- E8 está implementada localmente de A3-1 a A3-7: historial operativo unificado, comparación detallada
+  de versiones, centro de calidad, acciones seguras desde alertas, adjuntos cifrados privados,
+  accesibilidad continua y presupuesto de rendimiento con 10.000 filas.
+- Los adjuntos multidispositivo usan AES-GCM con clave derivada mediante PBKDF2; la clave no se guarda ni
+  se sincroniza. El esquema define un bucket privado, límite de tamaño, aislamiento por usuario y
+  eliminación recuperable durante 30 días antes del borrado definitivo.
+- La puerta local E8 pasa completa con 171 pruebas, accesibilidad estructural, prueba de rendimiento,
+  construcción pública, privacidad, smoke test y `git diff --check`. El QA pasó a 1280 px y 390×844 sin
+  errores de consola ni desbordamiento horizontal.
 
 ## Pendiente
 
 - P3 sigue pendiente: proveedor bancario regulado, backend privado de IA y acciones conversacionales confirmables y auditadas.
+- E8 requiere desplegar el bloque nuevo de `supabase_schema.sql` y ejecutar una aceptación autenticada de
+  subida, descarga, descifrado, recuperación y borrado definitivo antes de considerarla verificada remotamente.
 
 ## Próximo paso
 
-Priorizar E8 según uso real, comenzando por mejoras incrementales que no reabran bloques verificados.
+Verificar E8 en Supabase real: desplegar el bucket privado y sus políticas, probar un adjunto sintético
+cifrado desde dos sesiones y confirmar recuperación y borrado sin exponer la clave.
 
 ## Decisiones importantes
 
@@ -165,6 +177,8 @@ Priorizar E8 según uso real, comenzando por mejoras incrementales que no reabra
 - La capa legal/fiscal E7 es informativa: no calcula automáticamente una obligación tributaria ni sustituye
   asesoramiento. Las referencias BOE quedaron consultadas el 01/08/2026 y deben revisarse si cambia la norma.
 - La documentación de backlog y la hoja de ruta discrepan en varios estados y fechas de corte, por lo que `ROADMAP_EXECUTION.md` se toma como criterio conservador de finalización.
+- A3-5 está implementada y validada localmente, pero no se presenta aún como verificada de extremo a
+  extremo: el repositorio no dispone de CLI de Supabase enlazada para desplegar y aceptar el bucket real.
 - El 31/07/2026 Pages cambió de `build_type: legacy` a `workflow`; el commit funcional de E2
   `23d07dd` quedó publicado en `origin/main`. La primera ejecución de CI detectó una opción de caché
   incompatible con la ausencia de `package-lock.json`; se retiró antes de reintentar el despliegue.
@@ -211,3 +225,5 @@ Priorizar E8 según uso real, comenzando por mejoras incrementales que no reabra
   preservada y fuera de cualquier commit propuesto.
 - No quedan cambios de producto pendientes. El cierre documental actualiza `PROJECT_STATE.md` y
   `BACKLOG_STATUS.md`; `.agents/` continúa sin seguimiento y excluida de cualquier commit.
+- La rama sigue en `main` y sincronizada con `origin/main` en `9171643` antes de E8. Los cambios E8 y este
+  cierre permanecen locales y sin commit; `.agents/` continúa sin seguimiento y debe quedar excluida.

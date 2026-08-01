@@ -585,3 +585,23 @@ revoke execute on function public.record_finance_backup_check(text, integer, int
 grant execute on function public.record_finance_backup_check(text, integer, integer, jsonb, uuid) to authenticated;
 revoke execute on function public.close_finance_month(text, text, uuid, uuid, uuid, uuid, text, jsonb, text) from public;
 grant execute on function public.close_finance_month(text, text, uuid, uuid, uuid, uuid, text, jsonb, text) to authenticated;
+
+-- E8: binarios cifrados en un bucket privado. El primer segmento de la ruta debe ser auth.uid().
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('finance-private-attachments', 'finance-private-attachments', false, 15728640, array['application/vnd.finanzas-casa.encrypted+json'])
+on conflict (id) do update set public = false, file_size_limit = 15728640,
+  allowed_mime_types = array['application/vnd.finanzas-casa.encrypted+json'];
+
+drop policy if exists finance_private_attachments_select_own on storage.objects;
+create policy finance_private_attachments_select_own on storage.objects for select to authenticated
+using (bucket_id = 'finance-private-attachments' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists finance_private_attachments_insert_own on storage.objects;
+create policy finance_private_attachments_insert_own on storage.objects for insert to authenticated
+with check (bucket_id = 'finance-private-attachments' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists finance_private_attachments_update_own on storage.objects;
+create policy finance_private_attachments_update_own on storage.objects for update to authenticated
+using (bucket_id = 'finance-private-attachments' and (storage.foldername(name))[1] = (select auth.uid())::text)
+with check (bucket_id = 'finance-private-attachments' and (storage.foldername(name))[1] = (select auth.uid())::text);
+drop policy if exists finance_private_attachments_delete_own on storage.objects;
+create policy finance_private_attachments_delete_own on storage.objects for delete to authenticated
+using (bucket_id = 'finance-private-attachments' and (storage.foldername(name))[1] = (select auth.uid())::text);

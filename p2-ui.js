@@ -195,7 +195,7 @@
   }
 
   function renderDocuments() {
-    const target = mount("debt-control", "p2-documents", "beforeend", panel("p2-documents", "Expediente privado", "Documentos de acuerdos", "Guarda ofertas, llamadas y evidencias ligadas a una deuda. El archivo permanece en el almacenamiento privado de este dispositivo; solo se sincroniza la ficha."));
+    const target = mount("debt-control", "p2-documents", "beforeend", panel("p2-documents", "Expediente privado", "Documentos de acuerdos", "Guarda evidencias localmente o cifra el archivo antes de enviarlo al almacenamiento privado. La clave nunca se guarda ni se sincroniza."));
     if (!target) return;
     const p2 = state(); const debts = bridge().debts().filter((row) => row.currentPrincipal > 0);
     target.querySelector("[data-p2-body]").innerHTML = `
@@ -205,6 +205,8 @@
         <label class="p2-field"><span>Tipo</span><select name="status"><option value="offer">Oferta</option><option value="call">Llamada</option><option value="evidence">Evidencia</option><option value="signed">Firmado</option></select></label>
         <label class="p2-field"><span>Fecha límite</span><input name="deadline" type="date" /></label>
         <label class="p2-field"><span>Archivo</span><input name="file" type="file" /></label>
+        <label class="p2-field"><span>Almacenamiento</span><select name="storage"><option value="device">Solo este dispositivo</option><option value="cloud">Privado multidispositivo</option></select></label>
+        <label class="p2-field"><span>Clave privada (solo nube)</span><input name="cloudKey" type="password" minlength="12" autocomplete="new-password" placeholder="12 caracteres o más" /></label>
         <label class="p2-field"><span>Notas</span><textarea name="notes"></textarea></label>
         <label class="p2-field"><span>Validación</span><select name="verified"><option value="false">Pendiente de verificar</option><option value="true">Verificado por usuario</option></select></label>
         <div class="p2-actions"><button class="p2-button" type="submit">Guardar evidencia</button></div>
@@ -215,23 +217,37 @@
 
   function documentCard(doc, debts) {
     const debt = debts.find((row) => row.id === doc.debtId);
-    return `<div class="p2-item" data-document-id="${esc(doc.id)}"><div class="p2-item-head"><div><h4>${esc(doc.title)}</h4><p class="p2-help">${esc(debt ? `${debt.entity} · ${debt.number}` : doc.debtId)} · ${esc(doc.fileName || "sin archivo")}</p></div><span class="p2-status${doc.verified ? "" : " warn"}">${doc.verified ? "Verificado" : "Pendiente"}</span></div><p class="p2-help">Límite: ${esc(doc.deadline || "sin fecha")} · ${esc(doc.notes || "sin notas")}</p><div class="p2-actions"><button class="p2-button secondary" type="button" data-document-download ${doc.fileName ? "" : "disabled"}>Descargar</button><button class="p2-button danger" type="button" data-document-delete>Eliminar</button></div></div>`;
+    const deleted = Boolean(doc.deletedAt);
+    return `<div class="p2-item" data-document-id="${esc(doc.id)}"><div class="p2-item-head"><div><h4>${esc(doc.title)}</h4><p class="p2-help">${esc(debt ? `${debt.entity} · ${debt.number}` : doc.debtId)} · ${esc(doc.fileName || "sin archivo")} · ${doc.storage === "cloud" ? "cifrado en nube privada" : "solo dispositivo"}</p></div><span class="p2-status${deleted || !doc.verified ? " warn" : ""}">${deleted ? "Recuperable" : doc.verified ? "Verificado" : "Pendiente"}</span></div><p class="p2-help">${deleted ? `Eliminado; recuperable hasta ${esc(doc.recoverUntil)}.` : `Límite: ${esc(doc.deadline || "sin fecha")} · ${esc(doc.notes || "sin notas")}`}</p>${doc.storage === "cloud" && !deleted ? '<label class="p2-field"><span>Clave para descargar</span><input data-document-key type="password" minlength="12" autocomplete="off" /></label>' : ""}<div class="p2-actions">${deleted ? '<button class="p2-button secondary" type="button" data-document-restore>Recuperar</button><button class="p2-button danger" type="button" data-document-purge>Eliminar definitivamente</button>' : `<button class="p2-button secondary" type="button" data-document-download ${doc.fileName ? "" : "disabled"}>Descargar</button><button class="p2-button danger" type="button" data-document-delete>Eliminar</button>`}</div></div>`;
   }
 
   function bindDocumentEvents(target) {
     target.querySelector("[data-document-form]")?.addEventListener("submit", async (event) => {
       event.preventDefault(); const form = event.currentTarget; const values = Object.fromEntries(new FormData(form)); const file = form.elements.file.files[0];
-      const doc = domain().normalizeDocument({ ...values, id: uid("document"), verified: values.verified === "true", fileName: file?.name || "", mimeType: file?.type || "", size: file?.size || 0, deviceOnly: true });
-      try { if (file) await root.P2PrivateStore.put(doc.id, file); const p2 = state(); save({ ...p2, documents: [...p2.documents, doc] }); renderDocuments(); } catch (error) { notice(target.querySelector("[data-document-notice]"), `No se pudo guardar: ${error.message}`, true); }
+      let doc = domain().normalizeDocument({ ...values, id: uid("document"), verified: values.verified === "true", fileName: file?.name || "", mimeType: file?.type || "", size: file?.size || 0, deviceOnly: values.storage !== "cloud", storage: values.storage, encrypted: values.storage === "cloud" });
+      try {
+        if (file && file.size > 10 * 1024 * 1024) throw new Error("El archivo supera el límite privado de 10 MB");
+        if (file && values.storage === "cloud") {
+          const encrypted = await root.P2PrivateStore.encrypt(file, values.cloudKey);
+          const remotePath = await bridge().uploadPrivateAttachment(doc.id, encrypted);
+          doc = domain().normalizeDocument({ ...doc, remotePath });
+        } else if (file) await root.P2PrivateStore.put(doc.id, file);
+        const p2 = state(); save({ ...p2, documents: [...p2.documents, doc] }); renderDocuments();
+      } catch (error) { notice(target.querySelector("[data-document-notice]"), `No se pudo guardar: ${error.message}`, true); }
     });
     target.querySelectorAll("[data-document-id]").forEach((card) => {
       const id = card.dataset.documentId;
       card.querySelector("[data-document-download]")?.addEventListener("click", async () => {
-        const doc = state().documents.find((item) => item.id === id); const blob = await root.P2PrivateStore.get(id);
-        if (!blob) return notice(target.querySelector("[data-document-notice]"), "El archivo privado no está en este dispositivo.", true);
-        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = doc.fileName; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        try {
+          const doc = state().documents.find((item) => item.id === id); let blob = await root.P2PrivateStore.get(id);
+          if (!blob && doc?.storage === "cloud") { const encrypted = await bridge().downloadPrivateAttachment(doc.remotePath); blob = await root.P2PrivateStore.decrypt(encrypted, card.querySelector("[data-document-key]")?.value); }
+          if (!blob) return notice(target.querySelector("[data-document-notice]"), "El archivo privado no está en este dispositivo.", true);
+          const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = doc.fileName; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        } catch (error) { notice(target.querySelector("[data-document-notice]"), `No se pudo descargar: ${error.message}`, true); }
       });
-      card.querySelector("[data-document-delete]")?.addEventListener("click", async () => { if (!confirm("¿Eliminar esta evidencia?")) return; await root.P2PrivateStore.remove(id); const p2 = state(); save({ ...p2, documents: p2.documents.filter((item) => item.id !== id) }); renderDocuments(); });
+      card.querySelector("[data-document-delete]")?.addEventListener("click", async () => { if (!confirm("¿Mover esta evidencia a recuperación durante 30 días?")) return; const p2 = state(); const deletedAt = new Date(); const recoverUntil = new Date(deletedAt.getTime() + 30 * 86400000); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: deletedAt.toISOString(), recoverUntil: recoverUntil.toISOString().slice(0, 10) }) : item) }); renderDocuments(); });
+      card.querySelector("[data-document-restore]")?.addEventListener("click", () => { const p2 = state(); save({ ...p2, documents: p2.documents.map((item) => item.id === id ? domain().normalizeDocument({ ...item, deletedAt: "", recoverUntil: "" }) : item) }); renderDocuments(); });
+      card.querySelector("[data-document-purge]")?.addEventListener("click", async () => { if (!confirm("¿Eliminar definitivamente esta evidencia? Esta acción no se puede deshacer.")) return; const doc = state().documents.find((item) => item.id === id); if (doc?.remotePath) await bridge().purgePrivateAttachment(doc.remotePath); await root.P2PrivateStore.remove(id); const p2 = state(); save({ ...p2, documents: p2.documents.filter((item) => item.id !== id) }); renderDocuments(); });
     });
   }
 
