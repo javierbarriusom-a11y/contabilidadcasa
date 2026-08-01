@@ -246,7 +246,7 @@ Una entrega solo puede marcarse como verificada cuando cumple, según su alcance
 
 ## 8. Próximo paso concreto
 
-**E11a verificada localmente el 1 de agosto de 2026:** el centro «Actualizar mis datos» guía los cinco
+**E11a verificada y publicada en `origin/main` mediante `992a678` el 1 de agosto de 2026:** el centro «Actualizar mis datos» guía los cinco
 flujos actuales, expone previsto/real/usado, diferencia las reglas de guardado y recomienda el siguiente
 paso según frescura, movimientos, conciliación y cambios pendientes.
 

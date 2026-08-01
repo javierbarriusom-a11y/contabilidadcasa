@@ -151,17 +151,20 @@ Fecha de revisión: 1 de agosto de 2026.
   service worker e9c; la segunda carga mostró el shell E9 correcto.
 - Se creó `BACKLOG_PRODUCT_EVOLUTION.md` como referencia para la evolución posterior a E9. E10 queda
   expresamente para el final y el producto local avanza primero por datos, forecast, escenarios y deuda.
-- E11a está implementada y verificada localmente: `Actualizar` abre un centro guiado para saldos,
+- E11a está implementada, verificada y publicada en `origin/main` mediante `992a678`: `Actualizar` abre un centro guiado para saldos,
   reales, movimientos, previsiones, cargas masivas y conciliación; cada ruta explica su guardado y
   muestra frescura y siguiente paso recomendado.
 - La semántica previsto/real/usado es visible también en el registro mensual. La aplicación mantiene
   vacío como «sin real», cero como real explícito y diferencia el guardado automático de reales de la
   confirmación de cambios futuros.
-- La puerta completa de E11a pasa con 232 pruebas, accesibilidad estructural, rendimiento con 10.000
+- La puerta completa de cierre de E11a pasa con 232 pruebas, accesibilidad estructural, rendimiento con 10.000
   filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA pasó a 1280 px y
   390×844 sin errores de consola ni desbordamiento horizontal.
 - El shell offline se versionó como e11a2. Durante el QA se corrigió el menú móvil cerrado, que heredaba
   una altura mínima de pantalla completa y desplazaba el contenido fuera de la primera vista.
+- El cierre posterior al push repitió la puerta completa con 232/232 pruebas y `git diff --check`. El
+  commit `992a678` está en `main` y `origin/main`; la publicación de GitHub Pages no se volvió a comprobar
+  en esta sesión y no se presenta como validada.
 
 ## Pendiente
 
@@ -249,10 +252,10 @@ previa común, con comparación, confirmación, recibo y deshacer. E10 queda par
 
 ## Último commit estable
 
-- El último commit estable del repositorio es `504b759` (`docs: verify E9 publication and plan E10`) en
-  `main` y `origin/main`. E11a está validada localmente y todavía no se ha consolidado en Git.
-- Cambios locales de E11a pendientes de commit: aplicación, interfaz, estilos, service worker, pruebas,
-  nuevo backlog y este cierre documental. `.agents/` continúa sin seguimiento y debe excluirse.
+- El último commit estable del repositorio es `992a678` (`feat: implement E11a guided data updates`) en
+  `main` y `origin/main`.
+- Cambios locales pendientes: este cierre documental en `PROJECT_STATE.md` y
+  `BACKLOG_PRODUCT_EVOLUTION.md`. `.agents/` continúa sin seguimiento y debe excluirse.
 - El último commit estable es `ef57e9b` (`feat: prepare E9 external integrations safely`) en `main` y
   `origin/main`. El workflow `30712474715` verificó y desplegó correctamente GitHub Pages.
 - `939acc6` — `feat: implement E8 operational improvements` (1 de agosto de 2026), publicado en
