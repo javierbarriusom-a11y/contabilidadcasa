@@ -262,11 +262,10 @@ la línea base explicable y las pruebas de paridad. E10 queda para el final.
 ## Último commit estable
 
 - El último commit funcional estable es `989f20d` (`feat: implement E11b guided import workflow`) en
-  `main`. La puerta completa local y el QA responsive pasan; el push a `origin/main` se realizará con
-  este cierre documental ya validado.
-- Cambios locales pendientes al preparar este cierre: `PROJECT_STATE.md` y
-  `BACKLOG_PRODUCT_EVOLUTION.md`. `.agents/` continúa sin seguimiento, pertenece a las instrucciones
-  locales de trabajo y queda excluida de los commits.
+  `main` y `origin/main`. La puerta completa local y el QA responsive pasan.
+- El cierre documental E11b es `ea18151` (`docs: close validated E11b session`) en `main` y
+  `origin/main`. `.agents/` continúa sin seguimiento, pertenece a las instrucciones locales de trabajo
+  y queda excluida de los commits.
 - El último commit estable del repositorio es `992a678` (`feat: implement E11a guided data updates`) en
   `main` y `origin/main`.
 - Cambios locales pendientes: este cierre documental en `PROJECT_STATE.md` y
