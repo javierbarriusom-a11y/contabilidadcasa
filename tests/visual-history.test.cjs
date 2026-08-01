@@ -53,3 +53,10 @@ test("E5 permite reabrir sin borrar el cierre histórico", () => {
   assert.match(app, /rpc\("reopen_finance_month"/);
   assert.match(app, /El cierre histórico se conserva/);
 });
+
+test("E5 confirma sus operaciones con un diálogo accesible y motivo obligatorio", () => {
+  assert.match(html, /id="operationConfirmDialog"/);
+  assert.match(html, /id="operationConfirmReason"[^>]*required/);
+  assert.match(app, /function requestOperationConfirmation/);
+  assert.doesNotMatch(app, /window\.prompt/);
+});

@@ -700,6 +700,24 @@ function closeStartupRecovery() {
   startupRecoveryContext = null;
 }
 
+function requestOperationConfirmation({ title, message, defaultReason = "", confirmLabel = "Confirmar" }) {
+  const dialog = qs("operationConfirmDialog");
+  const reasonInput = qs("operationConfirmReason");
+  if (!dialog || !reasonInput) return Promise.resolve("");
+  qs("operationConfirmTitle").textContent = title;
+  qs("operationConfirmMessage").textContent = message;
+  qs("operationConfirmSubmit").textContent = confirmLabel;
+  reasonInput.value = defaultReason;
+  return new Promise((resolve) => {
+    dialog.addEventListener("close", () => {
+      resolve(dialog.returnValue === "confirm" ? reasonInput.value.trim() : "");
+    }, { once: true });
+    dialog.showModal();
+    reasonInput.focus();
+    reasonInput.select();
+  });
+}
+
 function showStartupRecovery(record, authoritative, remoteUpdatedAt = "") {
   const guide = window.FinanceRecoveryGuide;
   const dialog = qs("startupRecoveryDialog");
@@ -2620,7 +2638,13 @@ async function loadRemoteStateOnce() {
 
 async function migrateLegacyRemoteState() {
   if (!pendingLegacyMigrationState || !remoteUser || !supabaseClient) return;
-  if (!window.confirm("Se creará una primera versión normalizada a partir de los datos remotos antiguos. La tabla antigua no se modificará. ¿Continuar?")) return;
+  const reason = await requestOperationConfirmation({
+    title: "Migrar datos antiguos",
+    message: "Se creará una primera versión normalizada. La tabla antigua no se modificará.",
+    defaultReason: "Migración explícita al esquema normalizado E5",
+    confirmLabel: "Crear versión normalizada",
+  });
+  if (!reason) return;
   applyPersistedPayload(pendingLegacyMigrationState);
   refreshCanonicalSnapshot("explicit-legacy-migration");
   refreshCanonicalLedger("explicit-legacy-migration");
@@ -2793,9 +2817,13 @@ async function closeCurrentMonthTransaction() {
     if (status) status.textContent = `${month} ya está cerrado.`;
     return;
   }
-  const reason = window.prompt("Motivo del cierre mensual:", "Mes conciliado y revisado");
-  if (!reason?.trim()) return;
-  if (!window.confirm(`Cerrar ${month} congelará sus datos reales. Se conservará una copia recuperable. ¿Continuar?`)) return;
+  const reason = await requestOperationConfirmation({
+    title: `Cerrar ${month}`,
+    message: `Se congelarán los datos reales de ${month} y se conservará una copia recuperable.`,
+    defaultReason: "Mes conciliado y revisado",
+    confirmLabel: "Cerrar mes",
+  });
+  if (!reason) return;
   const closeAdapter = window.FinanceCanonicalMonthClose;
   const store = window.FinanceCanonicalSupabaseStore;
   try {
@@ -2836,10 +2864,14 @@ async function reopenLatestMonthTransaction() {
     .sort((a, b) => String(b.closedAt || b.occurredAt).localeCompare(String(a.closedAt || a.occurredAt)))[0];
   if (!closed) { if (status) status.textContent = "No hay ningún mes cerrado que se pueda reabrir."; return; }
   if (!remoteUser || !supabaseClient || !remoteHeadSnapshotId) { if (status) status.textContent = "Inicia sesión y sincroniza antes de reabrir."; return; }
-  const reason = window.prompt(`Motivo para reabrir ${closed.monthKey}:`, "Corrección posterior al cierre");
-  if (!reason?.trim()) return;
   const preview = `Se conservará el cierre ${closed.id} y se creará una revisión nueva que permitirá corregir ${closed.monthKey}.`;
-  if (!window.confirm(`${preview}\n\n¿Confirmar reapertura?`)) return;
+  const reason = await requestOperationConfirmation({
+    title: `Reabrir ${closed.monthKey}`,
+    message: preview,
+    defaultReason: "Corrección posterior al cierre",
+    confirmLabel: "Reabrir mes",
+  });
+  if (!reason) return;
   try {
     const reopenedAt = new Date().toISOString();
     const operationId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen");
@@ -15181,9 +15213,13 @@ function processDataRecords(records, sourceLabel = "datos") {
 async function undoLastImportBatch() {
   const batch = importBatches.filter((item) => item.status === "applied").slice(-1)[0];
   if (!batch) { showImportLog("Nada que deshacer", "No hay lotes aplicados pendientes de deshacer.", "warning"); return; }
-  const reason = window.prompt(`Motivo para deshacer ${batch.sourceLabel}:`, "Importación incorrecta");
-  if (!reason?.trim()) return;
-  if (!window.confirm(`Se restaurará el estado anterior al lote de ${batch.recordCount} registro(s) y se conservará una revisión auditable. ¿Continuar?`)) return;
+  const reason = await requestOperationConfirmation({
+    title: `Deshacer ${batch.sourceLabel}`,
+    message: `Se restaurará el estado anterior al lote de ${batch.recordCount} registro(s) y se conservará una revisión auditable.`,
+    defaultReason: "Importación incorrecta",
+    confirmLabel: "Deshacer lote",
+  });
+  if (!reason) return;
   try {
     const next = window.FinanceCanonicalE5.undoImportBatch(appStatePayload({ includeCanonical: false }), batch.id, { reason });
     if (remoteUser && remoteHeadSnapshotId) {

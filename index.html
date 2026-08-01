@@ -2255,6 +2255,22 @@
       </div>
     </dialog>
 
+    <dialog class="action-review-dialog" id="operationConfirmDialog" aria-labelledby="operationConfirmTitle">
+      <form method="dialog">
+        <p class="panel-kicker">Operación protegida</p>
+        <h2 id="operationConfirmTitle">Confirmar operación</h2>
+        <p id="operationConfirmMessage"></p>
+        <label>
+          <span>Motivo</span>
+          <input id="operationConfirmReason" type="text" required />
+        </label>
+        <div class="dialog-actions">
+          <button value="cancel" class="secondary" type="submit">Cancelar</button>
+          <button value="confirm" id="operationConfirmSubmit" type="submit">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="state-contract.js?v=20260731e3"></script>
     <script src="recovery-guide.js?v=20260731e3"></script>
     <script src="canonical-state.js?v=20260717p0"></script>
@@ -2277,7 +2293,7 @@
     <script src="p2-domain.js?v=20260717a"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260731e4h"></script>
+    <script src="app.js?v=20260801e5b"></script>
     <script src="p2-ui.js?v=20260717a"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

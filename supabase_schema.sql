@@ -225,17 +225,17 @@ begin
   if p_month_key !~ '^\d{4}-(0[1-9]|1[0-2])$' or coalesce(trim(p_reason), '') = '' then
     raise exception 'Mes o motivo de reapertura no válido.' using errcode = '22023';
   end if;
-  select snapshot_id into current_head from public.finance_source_heads
-    where user_id = auth.uid() and source_key = p_source_key for update;
+  select h.snapshot_id into current_head from public.finance_source_heads h
+    where h.user_id = auth.uid() and h.source_key = p_source_key for update;
   if not found then raise exception 'No existe un puntero remoto.' using errcode = 'P0002'; end if;
   if current_head is distinct from p_expected_head_snapshot_id then
     raise exception 'Otra sesión publicó una revisión más reciente.' using errcode = '40001';
   end if;
-  if not exists (select 1 from public.finance_month_closures where id = p_closed_operation_id
-    and user_id = auth.uid() and source_key = p_source_key and month_key = p_month_key) then
+  if not exists (select 1 from public.finance_month_closures c where c.id = p_closed_operation_id
+    and c.user_id = auth.uid() and c.source_key = p_source_key and c.month_key = p_month_key) then
     raise exception 'El cierre que se quiere reabrir no existe.' using errcode = 'P0002';
   end if;
-  if exists (select 1 from public.finance_month_reopenings where closed_operation_id = p_closed_operation_id) then
+  if exists (select 1 from public.finance_month_reopenings r where r.closed_operation_id = p_closed_operation_id) then
     raise exception 'Este cierre ya fue reabierto.' using errcode = '23505';
   end if;
   insert into public.finance_sync_runs (id,user_id,source_key,status,schema_version,fingerprint,entity_count,started_at,completed_at,metadata)
@@ -260,8 +260,8 @@ language plpgsql security definer set search_path = public as $$
 declare current_head uuid; operation_at timestamptz := now();
 begin
   if coalesce(trim(p_reason), '') = '' then raise exception 'Deshacer requiere un motivo.' using errcode='22023'; end if;
-  select snapshot_id into current_head from public.finance_source_heads
-    where user_id=auth.uid() and source_key=p_source_key for update;
+  select h.snapshot_id into current_head from public.finance_source_heads h
+    where h.user_id=auth.uid() and h.source_key=p_source_key for update;
   if current_head is distinct from p_expected_head_snapshot_id then raise exception 'Otra sesión publicó una revisión más reciente.' using errcode='40001'; end if;
   if not exists (select 1 from public.finance_import_batches where user_id=auth.uid() and source_key=p_source_key and id=p_batch_id and status='applied') then
     raise exception 'El lote no existe o ya fue deshecho.' using errcode='P0002'; end if;

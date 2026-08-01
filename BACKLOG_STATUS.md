@@ -49,7 +49,7 @@ conflictos remotos o un despliegue defectuoso.
 | Una reconciliación incorrecta ante conflicto puede descartar una revisión | A0-5 compara fechas y huellas y ofrece continuar localmente, descargar o elegir la nube | Una elección equivocada del usuario todavía puede requerir restauración | Conservar copia exportable, confirmación explícita e historial de versiones |
 | Un despliegue defectuoso puede afectar al sitio público | Pages publica mediante Actions después de pruebas, privacidad y smoke test; el rollback fue ensayado | Una regresión no cubierta por las pruebas podría llegar a producción | Mantener la puerta CI, el monitor publicado y el procedimiento de reversión |
 | La aplicación publicada trata información financiera sensible | El artefacto público contiene solo datos sintéticos y la revisión de privacidad bloquea patrones prohibidos | Una futura incorporación accidental de datos personales sería crítica | Mantener lista cerrada del artefacto y revisión de privacidad obligatoria |
-| La reapertura de meses aún no está desplegada | A1-3 está implementada y publicada en Git, pero el SQL E5 no se ha aplicado al Supabase real | La interfaz remota no puede aceptar todavía una reapertura | Desplegar el esquema y completar la aceptación autenticada en dos sesiones |
+| Las operaciones E5 afectan al estado compartido | A1-3 a A1-6 están desplegadas y verificadas con revisiones nuevas y control optimista | Una sesión obsoleta no puede publicar hasta recargar | Mantener vista previa, motivo, copia y prueba de dos sesiones en cambios futuros |
 | La documentación de estado diverge | Roadmap, estado y backlog usan fechas y estados distintos | Puede priorizarse trabajo ya terminado o darse por cerrado trabajo parcial | Una matriz canónica y revisión en cada cierre |
 
 ## 4. Orden de ejecución propuesto
@@ -95,10 +95,10 @@ perder trabajo y que un despliegue o servicio externo no deje inutilizable la ap
 | --- | --- | --- | --- | --- | --- |
 | A1-1 | P0 seguimiento | Conciliación remota exhaustiva del libro | Verificado | Crítica | El libro local y `finance_ledger_entries` coinciden en activos, conteo, IDs, importes y huella; se conserva evidencia anonimizada |
 | A1-2 | P1-6 | Cierre mensual transaccional | Verificado | Crítica | Cerrar un mes congela reales de forma atómica, registra auditoría y arrastra únicamente previsiones al mes siguiente |
-| A1-3 | P1-6 | Reapertura controlada de mes | Implementado | Alta | Implementado localmente: confirmación, motivo, antes/después y nueva revisión sin modificar el cierre; falta aceptación remota en dos sesiones |
-| A1-4 | P1-7 | Deshacer importación por lote | Implementado | Alta | Cada lote conserva identidad y estado anterior; deshacer local/remoto crea una revisión nueva; falta aceptación remota |
-| A1-5 | P0/P1 | Eliminar fallback remoto silencioso | Implementado | Alta | El fallo normalizado conserva localmente y bloquea la escritura heredada; la migración es explícita; falta comprobarlo contra el esquema desplegado |
-| A1-6 | Operación | Retención y verificación de copias | Implementado | Media | Política 30/24, operaciones protegidas, huellas y muestra restaurable implementadas; falta registrar la primera verificación remota |
+| A1-3 | P1-6 | Reapertura controlada de mes | Verificado | Alta | Agosto se cerró, reabrió y volvió a cerrar con motivo, revisión nueva y cierre histórico conservado; una sesión obsoleta no pudo sustituir el puntero |
+| A1-4 | P1-7 | Deshacer importación por lote | Verificado | Alta | Un lote temporal se sincronizó y se deshizo remotamente; el lote quedó auditado como `undone` y el estado anterior se recuperó |
+| A1-5 | P0/P1 | Eliminar fallback remoto silencioso | Verificado | Alta | El legado quedó bloqueado hasta ejecutar la migración explícita; un conflicto posterior conservó la copia local y exigió elegir la nube |
+| A1-6 | Operación | Retención y verificación de copias | Verificado | Media | 306/306 copias superaron huella y contenido; se registró una comprobación autenticada con muestra restaurable y sin borrado automático |
 
 ### A2 — Completar decisión y tesorería
 
@@ -151,7 +151,7 @@ para abrir la app o consultar la última copia local.
 | E2 | A0-6, A0-7 y A0-8 | Publicación controlada, observable y sin datos personales estáticos |
 | E3 | A0-4, A0-5 y A0-9 | Apertura offline y recuperación guiada verificadas |
 | E4 | A1-1 y A1-2 | Verificada: libro remoto conciliado y cierre mensual seguro |
-| E5 | A1-3 a A1-6 | Implementada localmente; pendiente de despliegue y aceptación autenticada |
+| E5 | A1-3 a A1-6 | Verificada: reapertura, deshacer, migración y copias aceptadas en Supabase |
 | E6 | A2-1, A2-2, A2-6 y A2-8 | Datos ejecutivos completos, trazables y consistentes |
 | E7 | A2-3, A2-4, A2-5 y A2-7 | Comparación financiera avanzada y segura |
 | E8 | A3 según uso real | Mejoras incrementales sin reabrir bloques cerrados |
@@ -173,12 +173,8 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Completar la aceptación remota de **E5: reapertura, deshacer, migración y copias operativas**:
-
-1. desplegar `supabase_schema.sql` en el proyecto privado;
-2. reabrir y volver a cerrar un mes con dos sesiones;
-3. importar y deshacer un lote comprobando la nueva revisión;
-4. confirmar la migración explícita y registrar una verificación de copias.
+Iniciar **E6: datos ejecutivos completos, trazables y consistentes**, empezando por A2-1, A2-2,
+A2-6 y A2-8 sin reabrir los bloques ya verificados.
 
 E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobación pública, monitor manual
 y prueba de rollback no destructiva entre revisiones seguras.
@@ -197,12 +193,12 @@ A3-8 quedó verificada el 01/08/2026 sin reabrir las fases UX ya cerradas. La ma
 «Planificar futuro» de «Registrar lo ocurrido», expone previsto, real y valor usado, guarda los reales
 individuales automáticamente y conserva los cambios de planificación como borrador confirmable. La
 regla vacío = usar previsto y cero = real cero está cubierta por pruebas. La puerta completa pasa con
-127/127 pruebas, construcción pública, privacidad y smoke test. La aceptación remota de E5 es el siguiente cierre.
+127/127 pruebas, construcción pública, privacidad y smoke test. E5 quedó verificada después de este cierre.
 
-E5 quedó implementada localmente el 01/08/2026. La puerta completa pasa con 135/135 pruebas,
-construcción pública, privacidad y smoke test. El QA real pasó en escritorio y a 390×844 sin errores
-de consola ni desbordamiento. Su estado no sube a Verificado hasta desplegar el SQL y completar la
-aceptación autenticada de A1-3 a A1-6 en Supabase.
+E5 quedó verificada el 01/08/2026. El esquema se desplegó en Supabase y la aceptación autenticada
+cerró, reabrió y volvió a cerrar agosto; importó y deshizo un lote temporal; confirmó la migración
+explícita y el conflicto seguro entre sesiones; y registró 306/306 copias válidas con muestra restaurable.
+La puerta local pasa con 136/136 pruebas, construcción pública, privacidad y smoke test.
 
 El código E5 quedó publicado en `origin/main` mediante `6b452d5`. La validación de cierre del
-01/08/2026 repitió con éxito 135/135 pruebas, construcción, privacidad, smoke test y `git diff --check`.
+01/08/2026 repitió con éxito 136/136 pruebas, construcción, privacidad, smoke test y `git diff --check`.
