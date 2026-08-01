@@ -9,7 +9,7 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
 test("Actualizar abre la matriz temporal y Movimientos queda dentro de Datos", () => {
   const home = html.indexOf('href="#home"');
-  const update = html.indexOf('href="#visual-detail"');
+  const update = html.indexOf('href="#update-hub"');
   const primaryPlan = html.indexOf('href="#new-life-definitive"');
   const debtProjects = html.indexOf('href="#new-life-simulation"');
   const debtRoadmap = html.indexOf('href="#debt-roadmap"');
@@ -22,7 +22,9 @@ test("Actualizar abre la matriz temporal y Movimientos queda dentro de Datos", (
   assert.ok(debtProjects < debtRoadmap, "Plan de deuda debe aparecer tras Deuda y proyectos");
   assert.ok(dataLabel < dataEntry && dataEntry < movements && movements < dataAudit, "Movimientos debe estar tras Carga de datos");
   assert.match(html, /id="visual-detail"[^>]*view-section|view-section[^>]*id="visual-detail"/);
+  assert.match(html, /id="update-hub"[^>]*view-section|view-section[^>]*id="update-hub"/);
   assert.match(html, /id="debt-roadmap"[^>]*view-section|view-section[^>]*id="debt-roadmap"/);
   assert.match(app, /case "update-data":\s*renderMonthlyDetails\(\)/);
   assert.match(app, /case "visual-detail":\s*renderVisualDetail\(\)/);
+  assert.match(app, /case "update-hub":\s*renderUpdateHub\(\)/);
 });

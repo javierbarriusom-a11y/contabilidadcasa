@@ -257,6 +257,10 @@ const viewTitles = {
     eyebrow: "Actualización del mes",
     title: "Registra ingresos y gastos según van ocurriendo",
   },
+  "update-hub": {
+    eyebrow: "Actualizar mis datos",
+    title: "Pon al día saldos, movimientos, reales o previsiones",
+  },
   "executive-advisor": {
     eyebrow: "Asesor ejecutivo",
     title: "Qué hacer ahora con caja, deuda y coche",
@@ -14966,6 +14970,7 @@ function renderPlanningDetails({
       capturedActual += sectionActual;
       capturedPlanned += sectionCapturedPlanned;
       const sectionVariance = sectionCapturedRows ? sectionActual - sectionCapturedPlanned : "";
+      const sectionUsed = section.rows.reduce((sum, row) => sum + actualAwareInfo(row, month).value, 0);
       const sectionVarianceClass = varianceClassForKind(kind, sectionVariance);
       html.push(
         `<tr class="section-row planning-section-row ${expanded ? "expanded" : ""}">
@@ -14976,6 +14981,7 @@ function renderPlanningDetails({
           </td>
           <td>${money(sectionPlanned, true)}</td>
           <td>${sectionCapturedRows ? money(sectionActual, true) : ""}</td>
+          <td><strong>${money(sectionUsed, true)}</strong></td>
           <td class="${sectionVarianceClass}">${sectionCapturedRows ? money(sectionVariance, true) : ""}</td>
           <td></td>
         </tr>`,
@@ -14989,6 +14995,7 @@ function renderPlanningDetails({
         const key = actualKeyForRow(row, month);
         const deleteKey = deleteKeyForRow(row, month);
         const actual = info.hasActual ? Number(info.actual || 0) : "";
+        const used = Number(info.value || 0);
         const variance = info.hasActual ? Number(actual) - planned : "";
         const varianceClass = varianceClassForKind(kind, variance);
         html.push(`<tr class="planning-line-row ${row.custom ? "custom-line" : ""}" data-parent-section="${escapeHtml(sectionKey)}">
@@ -14996,6 +15003,7 @@ function renderPlanningDetails({
           <td>${escapeHtml(displayLabelForRow(row))}${row.custom ? " <small>nuevo</small>" : ""}</td>
           <td>${money(planned, true)}</td>
           <td><input ${actualDataKey}="${key}" type="number" step="0.01" value="${info.hasActual ? actual : ""}" placeholder="Real" ${monthClosed ? "disabled" : ""} /></td>
+          <td><strong>${money(used, true)}</strong><small class="detail-used-source">${info.hasActual ? "usa el real" : "usa el previsto"}</small></td>
           <td class="${varianceClass}">${info.hasActual ? money(variance, true) : ""}</td>
           <td><button type="button" class="row-delete-button" data-delete-planning-row="${escapeHtml(deleteKey)}" ${monthClosed ? "disabled" : ""}>Eliminar</button></td>
         </tr>`);
@@ -15824,6 +15832,61 @@ function renderMonthlyDetails() {
   renderMonthlySummary();
   renderIncomeDetails();
   renderExpenseDetails();
+}
+
+function renderUpdateHub() {
+  if (!qs("update-hub") || !baseData?.monthlyPlanning?.months?.length) return;
+  const planning = baseData.monthlyPlanning;
+  const openMonths = planning.months
+    .map((month, index) => ({ ...month, index }))
+    .filter((month) => !isClosedMonthKey(month.key));
+  const modelMonthKey = monthKey(modelStartDate());
+  const month = openMonths.find((item) => item.key === modelMonthKey) || openMonths[0] || { ...planning.months[0], index: 0 };
+  let lines = 0;
+  let actuals = 0;
+  planningSectionsForMonth(null, month).forEach((section) => {
+    section.rows.forEach((row) => {
+      lines += 1;
+      if (actualAwareInfo(row, month).hasActual) actuals += 1;
+    });
+  });
+  const movementRows = Array.isArray(baseData.transactions) ? baseData.transactions : [];
+  const latestMovementDate = movementRows.reduce((latest, row) => String(row.date || "") > latest ? String(row.date || "") : latest, "");
+  const pendingCounts = visualPendingCounts();
+  const pendingPlanning = pendingCounts.cells + pendingCounts.labels + pendingCounts.deletes;
+  const snapshot = refreshCanonicalLedger("update-hub");
+  const reconciliationMonths = snapshot?.reconciliation?.months || [];
+  const differences = reconciliationMonths.filter((item) => item.status !== "matched").length;
+
+  qs("updateBalanceFreshness").textContent = `Saldo ${state?.balanceMode === "manual" ? "real" : "calculado"} a ${formatIsoDate(state?.balanceDate || defaultBalanceDate())}.`;
+  qs("updateActualFreshness").textContent = `${month.label}: ${actuals} de ${lines} partidas tienen un real registrado.`;
+  qs("updateMovementFreshness").textContent = movementRows.length
+    ? `${movementRows.length} movimientos; el más reciente es del ${formatIsoDate(latestMovementDate)}.`
+    : "Todavía no hay movimientos importados.";
+  qs("updatePlanningFreshness").textContent = pendingPlanning
+    ? `${pendingPlanning} cambio(s) de planificación pendientes de guardar.`
+    : "No hay cambios de planificación pendientes.";
+  qs("updateReconciliationFreshness").textContent = reconciliationMonths.length
+    ? `${differences} de ${reconciliationMonths.length} meses necesitan revisión.`
+    : "Importa movimientos para comparar banco y reales.";
+
+  let nextTitle = "Los datos esenciales están disponibles";
+  let nextBody = `Puedes registrar los reales de ${month.label} o ajustar el plan futuro.`;
+  let target = "update-data";
+  if (pendingPlanning) {
+    nextTitle = "Tienes planificación sin confirmar";
+    nextBody = "Revisa los cambios pendientes y guárdalos o descártalos antes de preparar otros cambios masivos.";
+    target = "visual-detail";
+  } else if (!movementRows.length) {
+    nextTitle = "Siguiente paso recomendado: importar movimientos";
+    nextBody = "El extracto permite actualizar el saldo real y comprobar los importes registrados.";
+    target = "movements";
+  } else if (differences) {
+    nextTitle = "Siguiente paso recomendado: revisar diferencias";
+    nextBody = `${differences} mes(es) todavía no cuadran entre movimientos y datos reales.`;
+    target = "reconciliation";
+  }
+  qs("updateNextStep").innerHTML = `<div><p class="panel-kicker">Siguiente paso sugerido</p><h3>${escapeHtml(nextTitle)}</h3><p>${escapeHtml(nextBody)}</p></div><button type="button" data-home-nav="${escapeHtml(target)}">Continuar</button>`;
 }
 
 function populateSelectors(force = false) {
@@ -17366,6 +17429,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "update-data":
       renderMonthlyDetails();
       break;
+    case "update-hub":
+      renderUpdateHub();
+      break;
     case "alerts-center":
       renderAlertsCenter();
       break;
@@ -17959,6 +18025,13 @@ async function init() {
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
     history.pushState(null, "", `#${target}`);
     setActiveView(target);
+  });
+  qs("update-hub")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-home-nav]");
+    const target = button?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target, { focus: true });
   });
   qs("clearBatchData").addEventListener("click", () => {
     qs("batchDataInput").value = "";
