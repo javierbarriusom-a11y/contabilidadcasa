@@ -246,12 +246,17 @@ Una entrega solo puede marcarse como verificada cuando cumple, según su alcance
 
 ## 8. Próximo paso concreto
 
-**E11a verificada y publicada en `origin/main` mediante `992a678` el 1 de agosto de 2026:** el centro «Actualizar mis datos» guía los cinco
-flujos actuales, expone previsto/real/usado, diferencia las reglas de guardado y recomienda el siguiente
-paso según frescura, movimientos, conciliación y cambios pendientes.
+**E11a verificada y publicada en `origin/main` mediante `992a678` el 1 de agosto de 2026:** el centro
+«Actualizar mis datos» guía los cinco flujos actuales, expone previsto/real/usado, diferencia las reglas
+de guardado y recomienda el siguiente paso según frescura, movimientos, conciliación y cambios pendientes.
 
-Iniciar **E11b** con el asistente de importación por pasos y la bandeja previa común. E10 y la definición
-técnica de **A5-1/A5-2** quedan expresamente para el final.
+**E11b verificada localmente mediante `989f20d` el 1 de agosto de 2026:** tablas pegadas, CSV, libros
+Excel y extractos comparten bandeja previa, comparación y confirmación; el flujo conserva recibo,
+deshacer, conciliación por tareas, frescura y compatibilidad con copias anteriores y vías clásicas.
+
+Iniciar **E12a** aprobando antes de implementar el contrato único de forecast, el registro central de
+supuestos, la línea base explicable y las pruebas de paridad. E10 y la definición técnica de
+**A5-1/A5-2** quedan expresamente para el final.
 
 Antes de implementar E12 se debe aprobar el contrato de forecast; antes de E14 se debe completar el
 inventario de campos del plan visual de deuda. Ninguna de estas tareas requiere retirar las pantallas

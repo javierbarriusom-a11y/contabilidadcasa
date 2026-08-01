@@ -165,11 +165,20 @@ Fecha de revisión: 1 de agosto de 2026.
 - El cierre posterior al push repitió la puerta completa con 232/232 pruebas y `git diff --check`. El
   commit `992a678` está en `main` y `origin/main`; la publicación de GitHub Pages no se volvió a comprobar
   en esta sesión y no se presenta como validada.
+- E11b está implementada y verificada localmente mediante `989f20d`: tablas pegadas, CSV, libros Excel
+  y extractos bancarios pasan por una bandeja previa común con comparación y confirmación antes de
+  modificar saldos, reales o movimientos.
+- El flujo genera recibos recuperables, permite deshacer por lote, agrupa la conciliación en tareas
+  seguras y muestra frescura de saldos, movimientos, reales, previsión y deuda. Las copias anteriores
+  se migran sin pérdida y la bandeja puede desactivarse conservando los flujos clásicos.
+- La puerta completa de E11b pasa con 242/242 pruebas, accesibilidad estructural, rendimiento con 10.000
+  filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA en navegador real a
+  390×844 no mostró errores de consola ni desbordamiento horizontal.
+- El shell offline se versionó como e11b1 e incluye el nuevo contrato. Una primera carga controlada por
+  la caché e11a necesitó recargar para activar el nuevo service worker; la segunda carga sirvió E11b.
 
 ## Pendiente
 
-- E11b: asistente de importación por pasos, conciliación orientada a tareas, recibo de actualización,
-  frescura/cobertura completa y compatibilidad gradual de la nueva bandeja.
 - E12 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
@@ -177,8 +186,8 @@ Fecha de revisión: 1 de agosto de 2026.
 
 ## Próximo paso
 
-Iniciar E11b sin retirar los flujos actuales: diseñar primero el asistente de importación y la bandeja
-previa común, con comparación, confirmación, recibo y deshacer. E10 queda para el final.
+Iniciar E12a definiendo y aprobando primero el contrato único de forecast, su registro de supuestos,
+la línea base explicable y las pruebas de paridad. E10 queda para el final.
 
 ## Decisiones importantes
 
@@ -195,7 +204,7 @@ previa común, con comparación, confirmación, recibo y deshacer. E10 queda par
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en el estado local revisado (229/229 pruebas pasan).
+- No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
   recuperación autenticadas están verificadas.
@@ -252,6 +261,12 @@ previa común, con comparación, confirmación, recibo y deshacer. E10 queda par
 
 ## Último commit estable
 
+- El último commit funcional estable es `989f20d` (`feat: implement E11b guided import workflow`) en
+  `main`. La puerta completa local y el QA responsive pasan; el push a `origin/main` se realizará con
+  este cierre documental ya validado.
+- Cambios locales pendientes al preparar este cierre: `PROJECT_STATE.md` y
+  `BACKLOG_PRODUCT_EVOLUTION.md`. `.agents/` continúa sin seguimiento, pertenece a las instrucciones
+  locales de trabajo y queda excluida de los commits.
 - El último commit estable del repositorio es `992a678` (`feat: implement E11a guided data updates`) en
   `main` y `origin/main`.
 - Cambios locales pendientes: este cierre documental en `PROJECT_STATE.md` y
