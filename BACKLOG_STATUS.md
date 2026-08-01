@@ -184,6 +184,10 @@ E7 quedó verificada el 01/08/2026: dos sesiones protegieron el puntero remoto; 
 previsualizó, importó, recuperó tras recarga y deshizo; una restauración creó una revisión nueva y
 conservó 19 copias recuperables. La regresión final pasó con 161 pruebas y sin datos sintéticos activos.
 
+El commit funcional `ba56333` quedó publicado en GitHub Pages el 01/08/2026. El workflow de despliegue,
+la revisión pública de `version.json`, el contrato E7, el shell e7b y el monitor manual de disponibilidad
+pasaron correctamente. E7 queda cerrada; el siguiente bloque es E8 según uso real.
+
 E2 quedó verificada el 31/07/2026 mediante despliegue por Actions, comprobación pública, monitor manual
 y prueba de rollback no destructiva entre revisiones seguras.
 E3 quedó verificada el 31/07/2026 mediante reapertura real sin servidor, validación responsive, pruebas

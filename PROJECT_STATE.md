@@ -110,6 +110,11 @@ Fecha de revisión: 1 de agosto de 2026.
 - La aceptación detectó y corrigió un reintento que intentaba actualizar `finance_import_batches` después
   de deshacer. El guardado general inserta ahora lotes nuevos sin modificar duplicados; solo la RPC
   transaccional autorizada cambia su estado. La repetición importación-deshacer-recarga pasó sin errores RLS.
+- E7 está publicada en GitHub Pages mediante `ba56333`. El workflow de despliegue terminó correctamente,
+  Pages figura en estado `built` con HTTPS obligatorio y `version.json` sirve la revisión completa
+  `ba56333577db65e2c6dcf870663c302cfe25152d`.
+- La comprobación pública confirmó el contrato E7, `app.js` e7b, el service worker e7b y los recursos
+  críticos. El monitor manual `Published availability` de `ba56333` terminó con éxito.
 
 ## Pendiente
 
@@ -140,6 +145,8 @@ Priorizar E8 según uso real, comenzando por mejoras incrementales que no reabra
   recuperación autenticadas están verificadas.
 - La validación de cierre confirmó GitHub Pages en estado `built`, el workflow de `e51fe07` completado
   con éxito y `version.json` sirviendo esa revisión pública.
+- La validación de cierre E7 confirmó el workflow de `ba56333`, la revisión pública exacta, el contrato
+  E7, el shell e7b y el monitor manual de disponibilidad sin fallos.
 - La concurrencia entre sesiones queda protegida mediante comparación del puntero `finance_source_heads`; una sesión obsoleta conserva su copia local y exige recarga en vez de sobrescribir la revisión vigente.
 - La conciliación, el cierre, la reapertura, el deshacer por lote y la verificación de copias están
   desplegados y aceptados en el Supabase real. Durante la aceptación se corrigieron referencias SQL
@@ -179,11 +186,11 @@ Priorizar E8 según uso real, comenzando por mejoras incrementales que no reabra
 - QA E3 publicado: `version.json` sirvió `e149c9c`, Pages entregó el service worker y el manifiesto con
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
-## Entrega estable y base anterior
+## Último commit estable
 
-- La base estable anterior a E7 es `7851a21` (`docs: close verified E6 session`) en `main` y
-  `origin/main`. La entrega E7 verificada se consolida con el mensaje
-  `feat: implement E7 advanced financial comparison`; `.agents/` permanece fuera de la entrega.
+- El último commit estable es `ba56333` (`feat: implement E7 advanced financial comparison`) en `main`
+  y `origin/main`. Está publicado en GitHub Pages y superó aceptación autenticada, puerta local,
+  despliegue y monitor de disponibilidad; `.agents/` permanece fuera de la entrega.
 
 - `e51fe07` — cierre funcional y documental de E6 (1 de agosto de 2026), publicado y desplegado en Pages;
   incluye la interfaz de cobertura/calidad, persistencia, recuperación autenticada y 148 pruebas.
@@ -199,8 +206,8 @@ Priorizar E8 según uso real, comenzando por mejoras incrementales que no reabra
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 136 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main` y está sincronizada con `origin/main` en `e51fe07` antes de este cierre
+- La rama de trabajo es `main` y está sincronizada con `origin/main` en `ba56333` antes de este cierre
   documental. No hay cambios de producto pendientes; la carpeta `.agents/` sigue sin seguimiento,
   preservada y fuera de cualquier commit propuesto.
-- La entrega E7 incluye `app.js`, `index.html`, `styles.css`, `service-worker.js`,
-  `tools/build-public-site.mjs`, el contrato y pruebas E7 y esta documentación.
+- No quedan cambios de producto pendientes. El cierre documental actualiza `PROJECT_STATE.md` y
+  `BACKLOG_STATUS.md`; `.agents/` continúa sin seguimiento y excluida de cualquier commit.
