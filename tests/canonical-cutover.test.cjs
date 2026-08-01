@@ -4,6 +4,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const engine = require("../canonical-engine.js");
+const forecast = require("../canonical-forecast.js");
 const decisions = require("../canonical-decisions.js");
 const workflow = require("../canonical-workflow.js");
 
@@ -84,4 +85,11 @@ test("la app delega cada simulación al escenario canónico", () => {
   assert.match(appSource, /engine\.buildScenario\(/);
   assert.match(appSource, /function simulate\([\s\S]*?return computeCanonicalScenario\(projectOutflows, options\)\.rows;/);
   assert.doesNotMatch(appSource, /engine\.buildRows\(/);
+});
+
+test("E12a envuelve cada escenario con el forecast canónico y expone su serie a las vistas", () => {
+  assert.equal(forecast.SCHEMA_ID, "finance-canonical-forecast/v1");
+  assert.match(appSource, /requiredCanonicalForecast\(\)\.buildForecast\(/);
+  assert.match(appSource, /result\?\.forecast\?\.series/);
+  assert.match(appSource, /El forecast canónico no mantiene la paridad/);
 });

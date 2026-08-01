@@ -4945,6 +4945,12 @@ function requiredCanonicalEngine() {
   return engine;
 }
 
+function requiredCanonicalForecast() {
+  const forecast = window.FinanceCanonicalForecast;
+  if (!forecast) throw new Error("Contrato canónico de forecast no disponible.");
+  return forecast;
+}
+
 function assertCanonicalSnapshot(snapshot, context) {
   if (snapshot?.invariants?.valid) return;
   const issues = (snapshot?.invariants?.issues || [])
@@ -5201,7 +5207,9 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
 
 function canonicalScenarioRows(context = "active") {
   const result = canonicalScenarioResults[context];
-  return Array.isArray(result?.rows) ? result.rows : [];
+  return Array.isArray(result?.forecast?.series)
+    ? result.forecast.series.map((month, index) => ({ ...result.rows[index], forecast: month }))
+    : Array.isArray(result?.rows) ? result.rows : [];
 }
 
 function computeCanonicalScenario(projectOutflows = [], options = {}) {
@@ -5215,6 +5223,14 @@ function computeCanonicalScenario(projectOutflows = [], options = {}) {
   const scenario = engine.buildScenario(input, previousSnapshot, {
     reason: `simulation-${persistedContext || "auxiliary"}`,
   });
+  scenario.forecast = requiredCanonicalForecast().buildForecast(
+    input,
+    scenario,
+    scenarioSettings.forecastAssumptions || {},
+    { reason: `forecast-${persistedContext || "auxiliary"}` },
+  );
+  if (!scenario.forecast.valid) throw new Error(`El forecast canónico no mantiene la paridad en ${context}.`);
+  scenarioSettings.forecastAssumptions = scenario.forecast.assumptions;
   const snapshot = scenario.snapshot;
   assertCanonicalSnapshot(snapshot, context);
   snapshot.parity = canonicalDiagnosticsEnabled

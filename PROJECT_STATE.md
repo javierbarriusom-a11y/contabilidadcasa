@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 1 de agosto de 2026.
+Fecha de revisión: 2 de agosto de 2026.
 
 ## Terminado
 
@@ -176,18 +176,25 @@ Fecha de revisión: 1 de agosto de 2026.
   390×844 no mostró errores de consola ni desbordamiento horizontal.
 - El shell offline se versionó como e11b1 e incluye el nuevo contrato. Una primera carga controlada por
   la caché e11a necesitó recargar para activar el nuevo service worker; la segunda carga sirvió E11b.
+- E12a está implementada y validada localmente: `finance-canonical-forecast/v1` envuelve el motor mensual
+  sin introducir un cálculo alternativo, registra ocho supuestos versionados y expone una serie mensual
+  explicable con recurrencia, deuda, proyectos y ajustes.
+- Las vistas actuales consumen la serie E12a conservando sus cifras; una barrera de paridad bloquea el
+  forecast si ingresos, salidas, ahorro o saldos difieren más de dos céntimos del motor canónico.
+- La puerta completa pasa con 247/247 pruebas, accesibilidad estructural, rendimiento con 10.000 filas,
+  construcción pública, privacidad, smoke test y `git diff --check`.
 
 ## Pendiente
 
-- E12 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E12b y E13 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Iniciar E12a definiendo y aprobando primero el contrato único de forecast, su registro de supuestos,
-la línea base explicable y las pruebas de paridad. E10 queda para el final.
+Comprobar la publicación y el arranque real del shell E12a; después iniciar E13a sobre el contrato de
+forecast ya consolidado. E12b y E10 mantienen su orden posterior en el backlog.
 
 ## Decisiones importantes
 
@@ -201,9 +208,13 @@ la línea base explicable y las pruebas de paridad. E10 queda para el final.
 - Los datos heredados solo se migran mediante una acción explícita; un error del esquema normalizado no autoriza escritura remota compatible.
 - El plan visual de deuda se mantiene aislado del motor canónico hasta revisar su integración de datos al terminar la hoja de ruta, pero se conserva dentro del estado versionado compartido.
 - Las decisiones financieras protegen reserva y pagos hasta el siguiente ingreso; la deuda suspendida no libera ahorro ficticio y los horizontes mayores de 24 meses se expresan como rangos.
+- El forecast E12a es una capa de lectura sobre el motor mensual: no recalcula cifras, no aplica supuestos
+  por sí solo y exige paridad antes de entregar una serie a las vistas.
 
 ## Errores conocidos y riesgos
 
+- No hay fallos automatizados conocidos en E12a: 247/247 pruebas y la puerta completa pasan. La
+  publicación y el arranque en navegador del shell e12a1 quedan pendientes de comprobar tras el push.
 - No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
@@ -261,6 +272,9 @@ la línea base explicable y las pruebas de paridad. E10 queda para el final.
 
 ## Último commit estable
 
+- La implementación E12a queda validada localmente en `main` y preparada para el commit autorizado de
+  esta sesión. Antes del commit solo permanecen sus archivos de producto y `.agents/`, que se excluye.
+- La revisión estable anterior es `2b9cd8d` (`docs: finalize E11b session state`) en `main` y `origin/main`.
 - El último commit estable del repositorio es `1cb3a5a` (`docs: record E11b publication`) en `main` y
   `origin/main`. No quedan cambios locales del producto pendientes de commit.
 - El último commit funcional estable es `989f20d` (`feat: implement E11b guided import workflow`) en
