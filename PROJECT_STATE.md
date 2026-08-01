@@ -17,7 +17,7 @@ Fecha de revisión: 1 de agosto de 2026.
 - El plan visual de deuda sin WiZink se ha incorporado como sección independiente tras `Deuda y proyectos`; su estado forma parte de la copia local y del payload sincronizado con Supabase.
 - P0-6 está verificado de extremo a extremo: el selector remoto, la vista previa comparativa y `restore_finance_snapshot` crean una versión nueva, mueven el puntero activo y conservan el historial.
 - La función de restauración está desplegada en el Supabase real y se ejecutó con rol `authenticated` y `auth.uid()` del usuario. La recuperación generó un snapshot nuevo idéntico al objetivo, actualizó la cabecera, completó el registro de sincronización y preservó las 234 versiones existentes tras la operación.
-- La suite local actual pasa completa: 125 pruebas, 0 fallos.
+- La suite local actual pasa completa: 127 pruebas, 0 fallos.
 - La revisión estable `2c793d4` está publicada en `origin/main`; el cierre funcional de E4 quedó consolidado en `d32b02a` y superó pruebas, privacidad y smoke test.
 - E1 — Continuidad entre sesiones está verificada: la aplicación carga primero la copia local, conserva
   en IndexedDB una bandeja de salida por usuario y fuente, reanuda revisiones pendientes y detiene la
@@ -55,6 +55,8 @@ Fecha de revisión: 1 de agosto de 2026.
 - El Cuadro de mandos separa «Planificar futuro» de «Registrar lo ocurrido» y muestra por partida el
   previsto, el real y el importe usado por el cálculo. Un real vacío recupera la previsión y un cero
   explícito permanece como real; la cobertura automatizada asciende a 127 pruebas.
+- El rediseño previsto/real/usado y la aclaración del guardado están publicados en `origin/main`; el
+  cierre del 01/08/2026 repitió con éxito pruebas, construcción, privacidad y smoke test.
 
 ## Pendiente
 
@@ -114,8 +116,9 @@ Iniciar E5 por la reapertura controlada de un mes como revisión nueva, confirma
 
 ## Último commit estable
 
+- `cceb3c2` — `docs: record dashboard value workflow` (1 de agosto de 2026), publicado en `origin/main`.
 - `c44563a` — `feat: clarify planned actual and calculated dashboard values` (1 de agosto de 2026), validado localmente antes de publicar.
 - `43e1124` — `fix: clarify dashboard save behavior` (1 de agosto de 2026), validado localmente antes de publicar.
 - `2c793d4` — `docs: close validated E4 delivery` (31 de julio de 2026), publicado en `origin/main`; la revisión funcional `d32b02a` fue verificada tras recarga autenticada.
 - La puerta local pasa con 127 pruebas, construcción de `dist/`, revisión de privacidad y smoke test; `git diff --check` también pasa.
-- La rama de trabajo es `main` y está sincronizada con `origin/main` al iniciar este cierre. No hay cambios funcionales pendientes; la carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.
+- La rama de trabajo es `main` y estaba sincronizada con `origin/main` en `cceb3c2` al iniciar este cierre. No hay cambios funcionales pendientes; la carpeta `.agents/` permanece sin seguimiento, preservada y fuera de los commits.

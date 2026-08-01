@@ -1,6 +1,6 @@
 # Backlog maestro de Finanzas Casa DEF
 
-Fecha de referencia: 31 de julio de 2026.
+Fecha de referencia: 1 de agosto de 2026.
 
 Este documento sustituye al backlog anterior como referencia operativa. Parte del roadmap inicial,
 del estado real documentado en `PROJECT_STATE.md`, del código y de las pruebas existentes. Su orden
@@ -127,6 +127,7 @@ verificados.
 | A3-5 | Adjuntos privados multidispositivo | Baja | Binarios cifrados en almacenamiento privado, con permisos, límites y eliminación recuperable |
 | A3-6 | Accesibilidad continua automatizada | Media | Pruebas básicas de teclado, foco, nombres accesibles, contraste y desbordamiento entran en CI |
 | A3-7 | Rendimiento con datos crecientes | Media | Presupuesto medible de carga y render; pruebas con un volumen superior al actual sin bloqueo de la interfaz |
+| A3-8 | Flujo inequívoco de previsto, real y valor usado | Alta | Verificada el 01/08/2026: el Cuadro de mandos separa planificación y registro, muestra el importe usado y distingue real vacío de real cero sin alterar el motor financiero |
 
 ### A4 — Servicios externos y nuevos desarrollos
 
@@ -191,3 +192,9 @@ conteo, ID, importe y huella. El cierre transaccional de julio creó una copia r
 append-only en Supabase; tras recargar, la aplicación recuperó el cierre desde el registro inmutable,
 bloqueó una repetición y mantuvo visibles los datos históricos. La suite de cierre pasa con 125/125
 pruebas, además de construcción, privacidad y smoke test.
+
+A3-8 quedó verificada el 01/08/2026 sin reabrir las fases UX ya cerradas. La matriz distingue
+«Planificar futuro» de «Registrar lo ocurrido», expone previsto, real y valor usado, guarda los reales
+individuales automáticamente y conserva los cambios de planificación como borrador confirmable. La
+regla vacío = usar previsto y cero = real cero está cubierta por pruebas. La puerta completa pasa con
+127/127 pruebas, construcción pública, privacidad y smoke test. E5 continúa como siguiente entrega.
