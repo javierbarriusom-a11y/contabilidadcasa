@@ -56,6 +56,7 @@ let pendingE11bApply = null;
 let pendingLegacyMigrationState = null;
 let balanceSettings = {};
 let scenarioSettings = {};
+let e13ScenarioEvents = [];
 let customPlanningRows = [];
 let deletedPlanningRows = {};
 let seriesOverrides = {};
@@ -12602,6 +12603,71 @@ function renderNewLifeDecisionNotes(ctx) {
   target.innerHTML = notes.map((note) => `<article>${escapeHtml(note)}</article>`).join("");
 }
 
+function e13EventLabel(type) {
+  return {
+    "income-loss": "Pérdida de ingreso",
+    expense: "Gasto extraordinario",
+    car: "Coche",
+    move: "Mudanza",
+    debt: "Pago de deuda",
+  }[type] || "Evento";
+}
+
+function renderE13ScenarioLab() {
+  const comparison = qs("e13ScenarioComparison");
+  const monthSelect = qs("e13EventMonth");
+  if (!comparison || !monthSelect) return;
+  const forecast = canonicalScenarioResults.base?.forecast;
+  const E13 = window.FinanceCanonicalE13;
+  if (!forecast || !E13) {
+    comparison.innerHTML = '<div class="empty-state compact">El forecast canónico todavía no está disponible.</div>';
+    return;
+  }
+  const previousMonth = monthSelect.value;
+  monthSelect.innerHTML = forecast.series.map((month) => `<option value="${escapeHtml(month.monthKey)}">${escapeHtml(month.label || month.monthKey)}</option>`).join("");
+  if (forecast.series.some((month) => month.monthKey === previousMonth)) monthSelect.value = previousMonth;
+  const lab = E13.buildLab(forecast, e13ScenarioEvents, { generatedAt: forecast.generatedAt });
+  qs("e13EventList").innerHTML = lab.events.length
+    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${money(event.amount, true)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
+    : '<span class="e13-empty-events">Sin eventos añadidos. Los tres escenarios muestran solo sus supuestos base.</span>';
+  comparison.innerHTML = `<div class="e13-comparison-head" role="row">
+      <span>Escenario</span><span>Caja mínima</span><span>Meses negativos</span><span>Ahorro final</span><span>Deuda simulada</span><span>Recuperación</span>
+    </div>${lab.scenarios.map((scenario) => `<div class="e13-comparison-row e13-${escapeHtml(scenario.id)}" role="row">
+      <strong>${escapeHtml(scenario.label)}</strong>
+      <span class="${scenario.metrics.minChecking < 0 ? "negative" : "positive"}">${money(scenario.metrics.minChecking, true)}</span>
+      <span>${scenario.metrics.negativeMonths}</span>
+      <span>${money(scenario.metrics.finalSavings, true)}</span>
+      <span>${money(scenario.metrics.debtImpact, true)}</span>
+      <span>${scenario.metrics.recoveryMonth === null ? "Sin ruptura" : scenario.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(scenario.metrics.recoveryMonth)}</span>
+    </div>`).join("")}`;
+  qs("e13ScenarioStatus").textContent = `${lab.events.length} evento(s) temporal(es). Huella del forecast: ${lab.sourceForecastFingerprint}. Nada se ha guardado.`;
+}
+
+function addE13ScenarioEvent() {
+  const type = qs("e13EventType")?.value || "expense";
+  const amount = Math.max(0, parseAmount(qs("e13EventAmount")?.value) ?? 0);
+  const monthKeyValue = qs("e13EventMonth")?.value || "";
+  const duration = Math.max(1, Math.round(Number(qs("e13EventDuration")?.value || 1)));
+  if (!amount || !monthKeyValue) {
+    qs("e13ScenarioStatus").textContent = "Indica mes e importe para añadir el evento.";
+    return;
+  }
+  e13ScenarioEvents = [...e13ScenarioEvents, {
+    id: `e13-${Date.now()}-${e13ScenarioEvents.length + 1}`,
+    type,
+    label: e13EventLabel(type),
+    amount,
+    monthKey: monthKeyValue,
+    duration,
+  }];
+  renderE13ScenarioLab();
+}
+
+function removeE13ScenarioEvent(id) {
+  e13ScenarioEvents = e13ScenarioEvents.filter((event) => event.id !== id);
+  renderE13ScenarioLab();
+}
+
 function renderNewLifeSimulation({ forceHeavy = false } = {}) {
   if (!qs("newLifeHero")) return;
   const hasOptimization = Boolean(cachedAgentDebtOptimization());
@@ -12614,6 +12680,7 @@ function renderNewLifeSimulation({ forceHeavy = false } = {}) {
   renderNewLifeDebtRoute(ctx);
   renderNewLifeTimeline(ctx);
   renderNewLifeDecisionNotes(ctx);
+  renderE13ScenarioLab();
   if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("new-life-simulation");
 }
 
@@ -17962,6 +18029,11 @@ async function init() {
     }
   });
   qs("new-life-simulation")?.addEventListener("click", (event) => {
+    const removeScenarioEvent = event.target.closest("[data-e13-remove]");
+    if (removeScenarioEvent) {
+      removeE13ScenarioEvent(removeScenarioEvent.dataset.e13Remove);
+      return;
+    }
     const actionButton = event.target.closest("[data-new-life-action]");
     if (actionButton) {
       const action = actionButton.dataset.newLifeAction;
@@ -17995,6 +18067,10 @@ async function init() {
       history.pushState(null, "", `#${navButton.dataset.homeNav}`);
       setActiveView(navButton.dataset.homeNav);
     }
+  });
+  qs("e13EventBuilder")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    addE13ScenarioEvent();
   });
   qs("new-life-definitive")?.addEventListener("input", (event) => {
     if (event.target.closest("#lifeDefForm") || event.target.closest("#lifeDefHorizon")) {

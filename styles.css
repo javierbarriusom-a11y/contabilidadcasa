@@ -9132,6 +9132,94 @@ tbody tr:hover {
   box-shadow: 0 16px 40px rgba(18, 34, 40, 0.06);
 }
 
+.e13-scenario-lab {
+  margin-top: 18px;
+}
+
+.e13-event-builder {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  margin-top: 14px;
+}
+
+.e13-event-builder label {
+  display: grid;
+  gap: 6px;
+}
+
+.e13-event-builder label span,
+.e13-comparison-head {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.e13-event-builder input,
+.e13-event-builder select {
+  min-width: 0;
+  width: 100%;
+}
+
+.e13-event-builder button {
+  align-self: end;
+  min-height: 44px;
+}
+
+.e13-event-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.e13-event-chip,
+.e13-empty-events {
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  padding: 8px 12px;
+}
+
+.e13-event-chip button {
+  background: transparent;
+  border: 0;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 8px;
+  padding: 0 2px;
+}
+
+.e13-comparison {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.e13-comparison-head,
+.e13-comparison-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1.1fr repeat(5, minmax(0, 1fr));
+  padding: 12px 14px;
+}
+
+.e13-comparison-head {
+  background: #f3f6f6;
+}
+
+.e13-comparison-row + .e13-comparison-row {
+  border-top: 1px solid var(--line);
+}
+
+.e13-comparison-row.e13-stress {
+  background: #fff7f5;
+}
+
 .new-life-hero {
   align-items: stretch;
   background: linear-gradient(135deg, #126f68 0%, #25588f 100%);
@@ -9611,6 +9699,23 @@ tbody tr:hover {
 }
 
 @media (max-width: 900px) {
+  .e13-event-builder {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .e13-event-builder button {
+    grid-column: 1 / -1;
+  }
+
+  .e13-comparison {
+    overflow-x: auto;
+  }
+
+  .e13-comparison-head,
+  .e13-comparison-row {
+    min-width: 760px;
+  }
+
   .new-life-hero,
   .new-life-layout {
     grid-template-columns: 1fr;

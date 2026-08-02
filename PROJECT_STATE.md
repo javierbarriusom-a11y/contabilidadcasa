@@ -176,25 +176,35 @@ Fecha de revisión: 2 de agosto de 2026.
   390×844 no mostró errores de consola ni desbordamiento horizontal.
 - El shell offline se versionó como e11b1 e incluye el nuevo contrato. Una primera carga controlada por
   la caché e11a necesitó recargar para activar el nuevo service worker; la segunda carga sirvió E11b.
-- E12a está implementada y validada localmente: `finance-canonical-forecast/v1` envuelve el motor mensual
+- E12a está implementada, publicada y verificada: `finance-canonical-forecast/v1` envuelve el motor mensual
   sin introducir un cálculo alternativo, registra ocho supuestos versionados y expone una serie mensual
   explicable con recurrencia, deuda, proyectos y ajustes.
 - Las vistas actuales consumen la serie E12a conservando sus cifras; una barrera de paridad bloquea el
   forecast si ingresos, salidas, ahorro o saldos difieren más de dos céntimos del motor canónico.
 - La puerta completa pasa con 247/247 pruebas, accesibilidad estructural, rendimiento con 10.000 filas,
   construcción pública, privacidad, smoke test y `git diff --check`.
+- GitHub Pages sirve el commit `6269093`; el workflow `30724247136` y el monitor manual
+  `30724361841` terminaron correctamente. El shell e12a1 tomó el control tras una recarga desde la caché
+  anterior y pasó QA a 1280 px y 390×844 sin errores ni desbordamiento.
+- E13a está implementada y validada localmente mediante `finance-e13-scenario-lab/v1`: genera base,
+  favorable y tensión desde el forecast canónico, admite pérdida de ingreso, gasto extraordinario,
+  coche, mudanza y deuda, y compara caja mínima, meses negativos, ahorro, deuda y recuperación.
+- Los eventos E13a viven únicamente en memoria y recalculan una copia temporal; no usan almacenamiento,
+  guardado remoto ni sincronización. La puerta completa pasa con 252/252 pruebas y el QA local pasó en
+  escritorio y móvil sin errores de consola ni desbordamiento horizontal.
 
 ## Pendiente
 
-- E12b y E13 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E12b, E13b y E14 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Comprobar la publicación y el arranque real del shell E12a; después iniciar E13a sobre el contrato de
-forecast ya consolidado. E12b y E10 mantienen su orden posterior en el backlog.
+Comprobar la publicación y el arranque real del shell E13a; después iniciar E14a con el inventario y
+mapeo del plan visual de deuda y un adaptador canónico de solo lectura. E12b/E13b y E10 mantienen su
+orden posterior en el backlog.
 
 ## Decisiones importantes
 
@@ -210,11 +220,15 @@ forecast ya consolidado. E12b y E10 mantienen su orden posterior en el backlog.
 - Las decisiones financieras protegen reserva y pagos hasta el siguiente ingreso; la deuda suspendida no libera ahorro ficticio y los horizontes mayores de 24 meses se expresan como rangos.
 - El forecast E12a es una capa de lectura sobre el motor mensual: no recalcula cifras, no aplica supuestos
   por sí solo y exige paridad antes de entregar una serie a las vistas.
+- E13a es deliberadamente efímera y de solo lectura: simular no crea revisiones ni altera el plan vigente;
+  guardar y promover escenarios queda fuera de alcance hasta E13b/A8-7 y A8-8.
 
 ## Errores conocidos y riesgos
 
-- No hay fallos automatizados conocidos en E12a: 247/247 pruebas y la puerta completa pasan. La
-  publicación y el arranque en navegador del shell e12a1 quedan pendientes de comprobar tras el push.
+- No hay fallos automatizados conocidos en E12a; su publicación, disponibilidad y arranque responsive
+  están verificados.
+- No hay fallos automatizados conocidos en E13a: 252/252 pruebas y la puerta completa pasan. Su
+  publicación y arranque real quedan pendientes de comprobar después del push.
 - No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
@@ -272,9 +286,11 @@ forecast ya consolidado. E12b y E10 mantienen su orden posterior en el backlog.
 
 ## Último commit estable
 
-- La implementación E12a queda validada localmente en `main` y preparada para el commit autorizado de
-  esta sesión. Antes del commit solo permanecen sus archivos de producto y `.agents/`, que se excluye.
-- La revisión estable anterior es `2b9cd8d` (`docs: finalize E11b session state`) en `main` y `origin/main`.
+- La revisión estable actual es `6269093` (`feat: implement E12a canonical forecast`) en `main` y
+  `origin/main`, publicada y verificada en GitHub Pages.
+- La implementación E13a queda validada localmente en `main` y preparada para el commit autorizado de
+  esta sesión. Antes del commit solo permanecen sus archivos de producto, este cierre documental y
+  `.agents/`, que se excluye.
 - El último commit estable del repositorio es `1cb3a5a` (`docs: record E11b publication`) en `main` y
   `origin/main`. No quedan cambios locales del producto pendientes de commit.
 - El último commit funcional estable es `989f20d` (`feat: implement E11b guided import workflow`) en
