@@ -12649,7 +12649,51 @@ function renderE13ScenarioLab() {
       <span>${money(scenario.metrics.debtImpact, true)}</span>
       <span>${scenario.metrics.recoveryMonth === null ? "Sin ruptura" : scenario.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(scenario.metrics.recoveryMonth)}</span>
     </div>`).join("")}`;
-  qs("e13ScenarioStatus").textContent = `${lab.events.length} evento(s) temporal(es). Huella del forecast: ${lab.sourceForecastFingerprint}. Nada se ha guardado.`;
+  const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
+  const history = [...matchedMonths.values()].map((month) => ({ monthKey: month.monthKey, conceptId: "monthly-net", label: "Flujo mensual", planned: (() => { const row = forecast.series.find((item) => item.monthKey === month.monthKey); return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN; })(), actual: Number(month.bankIncome) - Number(month.bankExpense), amount: Number(month.bankIncome) - Number(month.bankExpense), reconciled: true }));
+  const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
+  const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
+  const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
+  const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
+  qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
+    <article class="e6-quality-card"><header><strong>Aprendizaje E12b</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p>Solo meses conciliados · confianza ${escapeHtml(learning.deviations[0]?.confidence || "low")} · ${learning.deviations.length ? `ajuste sugerido ${money(learning.deviations[0].suggestedAdjustment, true)}, pendiente de confirmar` : "sin ajuste aplicable"}.</p></article>
+    <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
+    <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
+    <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>
+  </div>`;
+  let localSaved = [];
+  try { localSaved = JSON.parse(storageGet(storageKey("e13SavedScenarios"), "[]")); } catch { localSaved = []; }
+  const saved = Array.isArray(scenarioSettings.e13SavedScenarios) && scenarioSettings.e13SavedScenarios.length
+    ? scenarioSettings.e13SavedScenarios
+    : Array.isArray(localSaved) ? localSaved : [];
+  if (saved.length && !scenarioSettings.e13SavedScenarios?.length) scenarioSettings.e13SavedScenarios = saved;
+  qs("e13SavedScenarios").innerHTML = saved.length ? saved.map((item) => `<article class="e13-event-chip"><b>${escapeHtml(item.name)}</b> · ${escapeHtml(item.savedAt.slice(0, 10))} · huella ${escapeHtml(item.sourceForecastFingerprint)}<button type="button" data-e13-rerun="${escapeHtml(item.id)}">Recalcular copia</button></article>`).join("") : '<span class="e13-empty-events">Todavía no hay escenarios guardados.</span>';
+  qs("e13ScenarioStatus").textContent = `${lab.events.length} evento(s) temporal(es). Huella del forecast: ${lab.sourceForecastFingerprint}. Simular no modifica el plan.`;
+}
+
+function saveE13ReproducibleScenario() {
+  const forecast = canonicalScenarioResults.base?.forecast;
+  const E13 = window.FinanceCanonicalE13;
+  if (!forecast || !E13) return;
+  const saved = E13.saveScenario(forecast, e13ScenarioEvents, { name: `Escenario ${new Date().toLocaleString("es-ES")}` });
+  scenarioSettings.e13SavedScenarios = [...(Array.isArray(scenarioSettings.e13SavedScenarios) ? scenarioSettings.e13SavedScenarios : []), saved].slice(-20);
+  storageSet(storageKey("e13SavedScenarios"), JSON.stringify(scenarioSettings.e13SavedScenarios));
+  saveScenarioSettings();
+  renderE13ScenarioLab();
+  qs("e13ScenarioStatus").textContent = "Escenario guardado como copia reproducible. El plan vigente no se ha modificado.";
+}
+
+function rerunE13SavedScenario(id) {
+  const forecast = canonicalScenarioResults.base?.forecast;
+  let localSaved = [];
+  try { localSaved = JSON.parse(storageGet(storageKey("e13SavedScenarios"), "[]")); } catch { localSaved = []; }
+  const saved = (scenarioSettings.e13SavedScenarios || localSaved).find((item) => item.id === id);
+  if (!forecast || !saved) return;
+  const rerun = window.FinanceCanonicalE13.recalculateSavedScenario(saved, forecast);
+  e13ScenarioEvents = rerun.recalculated.events;
+  renderE13ScenarioLab();
+  qs("e13ScenarioStatus").textContent = `Copia recalculada contra la huella ${rerun.currentForecastFingerprint}; el original permanece intacto.`;
 }
 
 function addE13ScenarioEvent() {
@@ -18039,6 +18083,15 @@ async function init() {
     }
   });
   qs("new-life-simulation")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-e13-save]")) {
+      saveE13ReproducibleScenario();
+      return;
+    }
+    const rerunScenario = event.target.closest("[data-e13-rerun]");
+    if (rerunScenario) {
+      rerunE13SavedScenario(rerunScenario.dataset.e13Rerun);
+      return;
+    }
     const removeScenarioEvent = event.target.closest("[data-e13-remove]");
     if (removeScenarioEvent) {
       removeE13ScenarioEvent(removeScenarioEvent.dataset.e13Remove);

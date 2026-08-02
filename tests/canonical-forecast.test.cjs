@@ -78,5 +78,27 @@ test("el contrato E12a se carga antes que la app y forma parte del shell offline
   const worker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
   assert.ok(html.indexOf("canonical-forecast.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-forecast\.js/);
-  assert.match(worker, /finanzas-casa-shell-20260802-e14a1/);
+  assert.match(worker, /finanzas-casa-shell-20260802-e13b2/);
+});
+
+test("E12b aprende desviaciones y estacionalidad solo de histórico conciliado", () => {
+  const learned = forecast.learnFromHistory([
+    { monthKey: "2026-01", conceptId: "salary", label: "Nómina", planned: 2000, actual: 2100, reconciled: true },
+    { monthKey: "2026-02", conceptId: "salary", label: "Nómina", planned: 2000, actual: 2200, reconciled: true },
+    { monthKey: "2026-03", conceptId: "salary", planned: 2000, actual: 9000, reconciled: false },
+  ], { generatedAt: "2026-08-02T12:00:00.000Z" });
+  assert.equal(learned.schemaId, forecast.LEARNING_SCHEMA_ID);
+  assert.equal(learned.includedRecords, 2);
+  assert.equal(learned.excludedRecords, 1);
+  assert.equal(learned.deviations[0].suggestedAdjustment, 150);
+  assert.equal(learned.deviations[0].confirmRequired, true);
+  assert.equal(learned.deviations[0].applied, false);
+});
+
+test("E12b adapta el horizonte sin mostrar puntos falsamente precisos a largo plazo", () => {
+  const series = Array.from({ length: 40 }, (_, index) => ({ monthKey: `${2026 + Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`, totals: { closingLiquidity: 1000 + index } }));
+  const horizon = forecast.adaptiveHorizon(series, { monthlyUntil: 12, quarterlyUntil: 36 });
+  assert.equal(horizon[0].resolution, "month");
+  assert.equal(horizon.find((item) => item.resolution === "quarter").display, "range");
+  assert.equal(horizon.at(-1).resolution, "year");
 });

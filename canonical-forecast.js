@@ -7,6 +7,7 @@
 
   const SCHEMA_ID = "finance-canonical-forecast/v1";
   const ASSUMPTIONS_SCHEMA_ID = "finance-forecast-assumptions/v1";
+  const LEARNING_SCHEMA_ID = "finance-forecast-learning/v1";
   const TOLERANCE = 0.02;
 
   function number(value) {
@@ -151,5 +152,65 @@
     };
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, TOLERANCE, buildAssumptionRegistry, buildForecast, validateParity };
+  function confidence(sample) {
+    return sample >= 12 ? "high" : sample >= 6 ? "medium" : "low";
+  }
+
+  function learnFromHistory(records = [], metadata = {}) {
+    const usable = records.filter((record) => record?.reconciled === true && /^\d{4}-\d{2}$/.test(text(record.monthKey)));
+    const concepts = new Map();
+    usable.forEach((record) => {
+      const conceptId = text(record.conceptId || record.rowKey || record.label || "unclassified");
+      if (!concepts.has(conceptId)) concepts.set(conceptId, { conceptId, label: text(record.label || conceptId), rows: [] });
+      concepts.get(conceptId).rows.push(record);
+    });
+    const deviations = [...concepts.values()].map((concept) => {
+      const comparable = concept.rows.filter((row) => Number.isFinite(Number(row.planned)) && Number.isFinite(Number(row.actual)));
+      const deltas = comparable.map((row) => number(row.actual) - number(row.planned));
+      const averageDelta = deltas.length ? round(deltas.reduce((sum, value) => sum + value, 0) / deltas.length) : 0;
+      return {
+        conceptId: concept.conceptId, label: concept.label, sampleMonths: comparable.length,
+        averageDelta, suggestedAdjustment: averageDelta, confidence: confidence(comparable.length),
+        confirmRequired: true, applied: false,
+      };
+    }).filter((item) => item.sampleMonths > 0);
+    const monthly = Array.from({ length: 12 }, (_, month) => ({ month: month + 1, values: [] }));
+    usable.forEach((record) => monthly[Number(record.monthKey.slice(5, 7)) - 1]?.values.push(Math.abs(number(record.actual ?? record.amount))));
+    const allValues = monthly.flatMap((item) => item.values);
+    const overall = allValues.length ? allValues.reduce((sum, value) => sum + value, 0) / allValues.length : 0;
+    const seasonality = monthly.map((item) => ({
+      month: item.month, sampleSize: item.values.length,
+      factor: overall && item.values.length ? round((item.values.reduce((sum, value) => sum + value, 0) / item.values.length) / overall) : 1,
+      confidence: confidence(item.values.length),
+    }));
+    return {
+      schemaId: LEARNING_SCHEMA_ID, generatedAt: metadata.generatedAt || new Date().toISOString(),
+      source: "reconciled-ledger-only", includedRecords: usable.length, excludedRecords: records.length - usable.length,
+      deviations, seasonality, warning: usable.length < 6 ? "Muestra insuficiente: no apliques ajustes sin revisión manual." : "",
+    };
+  }
+
+  function adaptiveHorizon(series = [], options = {}) {
+    const monthlyUntil = Math.max(1, Math.round(number(options.monthlyUntil) || 12));
+    const quarterlyUntil = Math.max(monthlyUntil, Math.round(number(options.quarterlyUntil) || 36));
+    const groups = [];
+    series.forEach((row, index) => {
+      const period = index < monthlyUntil ? row.monthKey
+        : index < quarterlyUntil ? `${text(row.monthKey).slice(0, 4)}-T${Math.floor((Number(text(row.monthKey).slice(5, 7)) - 1) / 3) + 1}`
+          : text(row.monthKey).slice(0, 4);
+      let group = groups.find((item) => item.period === period);
+      if (!group) { group = { period, resolution: index < monthlyUntil ? "month" : index < quarterlyUntil ? "quarter" : "year", rows: [] }; groups.push(group); }
+      group.rows.push(row);
+    });
+    return groups.map((group) => {
+      const liquidity = group.rows.map((row) => number(row.totals?.closingLiquidity));
+      return { period: group.period, resolution: group.resolution, sampleMonths: group.rows.length,
+        minLiquidity: liquidity.length ? round(Math.min(...liquidity)) : 0,
+        maxLiquidity: liquidity.length ? round(Math.max(...liquidity)) : 0,
+        closingLiquidity: liquidity.length ? round(liquidity.at(-1)) : 0,
+        display: group.resolution === "month" ? "point" : "range" };
+    });
+  }
+
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon };
 });

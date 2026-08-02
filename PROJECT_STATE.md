@@ -216,18 +216,24 @@ Fecha de revisión: 2 de agosto de 2026.
 - El workflow de Pages usa ya las acciones con Node.js 24: `configure-pages@v6`,
   `upload-pages-artifact@v5` y `deploy-pages@v5`. La ejecución `30731502159` pasó verificación y despliegue
   sin anotaciones de Node.js 20; la puerta completa mantiene 260/260 pruebas y el YAML es válido.
+- E12b/E13b están verificadas localmente: el forecast aprende desviaciones y estacionalidad únicamente
+  desde meses conciliados, adapta el horizonte y el laboratorio añade percentiles prudentes, reglas de
+  correlación, sensibilidad y escenarios guardados reproducibles sin promoverlos al plan.
+- La aceptación a 1280 px y 390×844 confirmó ausencia de errores y desbordamiento. Un escenario se guardó,
+  recuperó tras recargar y recalculó como copia conservando el original. La puerta completa pasa con
+  266/266 pruebas, accesibilidad, rendimiento, construcción, privacidad, smoke test y `git diff --check`.
 
 ## Pendiente
 
-- E12b, E13b, E14b y E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E14b y E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Iniciar E12b/E13b con aprendizaje de desviaciones, estacionalidad, simulación prudente, riesgos
-simultáneos, sensibilidad y escenarios reproducibles. E14b y E10 mantienen su orden posterior.
+Iniciar E14b con ofertas y negociación, optimización bajo restricciones reales, integración con
+escenarios, aplicación confirmada y retirada gradual del `iframe`. E10 se mantiene al final.
 
 ## Decisiones importantes
 
@@ -243,8 +249,8 @@ simultáneos, sensibilidad y escenarios reproducibles. E14b y E10 mantienen su o
 - Las decisiones financieras protegen reserva y pagos hasta el siguiente ingreso; la deuda suspendida no libera ahorro ficticio y los horizontes mayores de 24 meses se expresan como rangos.
 - El forecast E12a es una capa de lectura sobre el motor mensual: no recalcula cifras, no aplica supuestos
   por sí solo y exige paridad antes de entregar una serie a las vistas.
-- E13a es deliberadamente efímera y de solo lectura: simular no crea revisiones ni altera el plan vigente;
-  guardar y promover escenarios queda fuera de alcance hasta E13b/A8-7 y A8-8.
+- Simular continúa siendo efímero y de solo lectura. E13b permite guardar una copia reproducible y
+  recalcularla sin sobrescribir el original; promoverla al plan sigue fuera de alcance y exige A8-8.
 - E14a aplica una frontera equivalente: el adaptador clona sus entradas, solo envía lecturas al `iframe`
   y excluye del guardado los campos canónicos. Tareas, notas y supuestos continúan versionados; aplicar
   ofertas o estrategias al plan requiere E14b y confirmación recuperable.
@@ -259,6 +265,8 @@ simultáneos, sensibilidad y escenarios reproducibles. E14b y E10 mantienen su o
 - No hay fallos automatizados conocidos en E14a. El navegador de inspección registró un error de
   `MutationObserver` generado por el entorno de control; el repositorio no contiene ese API y pruebas,
   construcción y smoke test no reproducen un fallo de aplicación.
+- No hay fallos conocidos en E12b/E13b. Durante el QA se detectó que el primer escenario guardado podía
+  desaparecer tras recargar; se añadió una copia local dedicada y la repetición confirmó su recuperación.
 - No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
