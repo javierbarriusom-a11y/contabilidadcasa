@@ -258,13 +258,13 @@ anteriores y vías clásicas.
 **E12a verificada y publicada mediante `6269093`:** el contrato único de forecast, el registro central
 de supuestos, la línea base explicable y la paridad alimentan las vistas actuales sin un segundo motor.
 
-**E13a implementada y publicada mediante `e5ad5ef`, con aceptación pendiente:** Pages, `version.json`
-y el monitor pasan, pero una pestaña con e12a1 conservó el `app.js` anterior al instalar el shell
-e13a1. La corrección e13a2 fuerza la revalidación de cada recurso y debe publicarse y aceptarse antes
-de marcar E13a como verificada.
+**E13a verificada y publicada mediante `e5ad5ef`, con corrección de caché `26b26fb`:** el laboratorio
+compara base, favorable y tensión, admite eventos temporales y no escribe en el plan. Pages,
+`version.json`, el monitor y el QA responsive pasan. La actualización desde una sesión con e12a1 quedó
+aceptada después de que e13a2 forzara la revalidación de cada recurso.
 
-El siguiente paso es publicar y comprobar e13a2. Después comienza **E14a** con el inventario de campos
-del plan visual de deuda y el adaptador canónico de solo lectura. E10 y **A5-1/A5-2** quedan al final.
+El siguiente paso es **E14a**, con el inventario de campos del plan visual de deuda y el adaptador
+canónico de solo lectura. E10 y **A5-1/A5-2** quedan al final.
 
 Antes de E14 se debe completar el inventario de campos del plan visual de deuda. No se retirarán las
 pantallas actuales mientras se construyen y verifican sus sustitutas.
