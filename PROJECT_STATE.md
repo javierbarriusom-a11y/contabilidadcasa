@@ -192,6 +192,11 @@ Fecha de revisión: 2 de agosto de 2026.
 - Los eventos E13a viven únicamente en memoria y recalculan una copia temporal; no usan almacenamiento,
   guardado remoto ni sincronización. La puerta completa pasa con 252/252 pruebas y el QA local pasó en
   escritorio y móvil sin errores de consola ni desbordamiento horizontal.
+- El commit E13a `e5ad5ef` está publicado: el workflow `30724627149`, Pages con HTTPS y el monitor
+  `30724683958` terminaron correctamente, y `version.json` sirve el SHA exacto.
+- La aceptación en navegador detectó que el shell e13a1 podía llenar su caché nueva con un `app.js`
+  antiguo del caché HTTP. La corrección e13a2 fuerza `cache: reload` al descargar cada recurso y pasa
+  localmente la puerta completa con 252/252 pruebas.
 
 ## Pendiente
 
@@ -202,9 +207,8 @@ Fecha de revisión: 2 de agosto de 2026.
 
 ## Próximo paso
 
-Comprobar la publicación y el arranque real del shell E13a; después iniciar E14a con el inventario y
-mapeo del plan visual de deuda y un adaptador canónico de solo lectura. E12b/E13b y E10 mantienen su
-orden posterior en el backlog.
+Publicar la corrección del shell e13a2 y repetir la aceptación desde la pestaña que conserva e12a1.
+Solo después de comprobar que carga el laboratorio E13a en escritorio y móvil se iniciará E14a.
 
 ## Decisiones importantes
 
@@ -227,8 +231,10 @@ orden posterior en el backlog.
 
 - No hay fallos automatizados conocidos en E12a; su publicación, disponibilidad y arranque responsive
   están verificados.
-- No hay fallos automatizados conocidos en E13a: 252/252 pruebas y la puerta completa pasan. Su
-  publicación y arranque real quedan pendientes de comprobar después del push.
+- No hay fallos automatizados conocidos en E13a: 252/252 pruebas y la puerta completa pasan.
+- E13a todavía no está verificada de extremo a extremo: aunque Pages y el monitor sirven `e5ad5ef`,
+  una actualización desde e12a1 conservó el `app.js` anterior. La corrección e13a2 está validada
+  localmente y pendiente de commit, push y aceptación publicada.
 - No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
@@ -288,9 +294,10 @@ orden posterior en el backlog.
 
 - La revisión estable actual es `6269093` (`feat: implement E12a canonical forecast`) en `main` y
   `origin/main`, publicada y verificada en GitHub Pages.
-- La implementación E13a queda validada localmente en `main` y preparada para el commit autorizado de
-  esta sesión. Antes del commit solo permanecen sus archivos de producto, este cierre documental y
-  `.agents/`, que se excluye.
+- `e5ad5ef` (`feat: implement E13a scenario lab`) está en `main` y `origin/main`, pero no se considera
+  todavía estable por el fallo de actualización de caché detectado durante la aceptación.
+- Quedan sin commit la corrección e13a2, sus pruebas y esta actualización documental. `.agents/`
+  continúa sin seguimiento y debe excluirse.
 - El último commit estable del repositorio es `1cb3a5a` (`docs: record E11b publication`) en `main` y
   `origin/main`. No quedan cambios locales del producto pendientes de commit.
 - El último commit funcional estable es `989f20d` (`feat: implement E11b guided import workflow`) en

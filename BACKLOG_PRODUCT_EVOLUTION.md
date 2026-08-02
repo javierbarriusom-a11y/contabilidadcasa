@@ -255,10 +255,16 @@ tablas pegadas, CSV, libros Excel y extractos comparten bandeja previa, comparac
 flujo conserva recibo, deshacer, conciliación por tareas, frescura y compatibilidad con copias
 anteriores y vías clásicas.
 
-Iniciar **E12a** aprobando antes de implementar el contrato único de forecast, el registro central de
-supuestos, la línea base explicable y las pruebas de paridad. E10 y la definición técnica de
-**A5-1/A5-2** quedan expresamente para el final.
+**E12a verificada y publicada mediante `6269093`:** el contrato único de forecast, el registro central
+de supuestos, la línea base explicable y la paridad alimentan las vistas actuales sin un segundo motor.
 
-Antes de implementar E12 se debe aprobar el contrato de forecast; antes de E14 se debe completar el
-inventario de campos del plan visual de deuda. Ninguna de estas tareas requiere retirar las pantallas
-actuales mientras se construyen y verifican sus sustitutas.
+**E13a implementada y publicada mediante `e5ad5ef`, con aceptación pendiente:** Pages, `version.json`
+y el monitor pasan, pero una pestaña con e12a1 conservó el `app.js` anterior al instalar el shell
+e13a1. La corrección e13a2 fuerza la revalidación de cada recurso y debe publicarse y aceptarse antes
+de marcar E13a como verificada.
+
+El siguiente paso es publicar y comprobar e13a2. Después comienza **E14a** con el inventario de campos
+del plan visual de deuda y el adaptador canónico de solo lectura. E10 y **A5-1/A5-2** quedan al final.
+
+Antes de E14 se debe completar el inventario de campos del plan visual de deuda. No se retirarán las
+pantallas actuales mientras se construyen y verifican sus sustitutas.

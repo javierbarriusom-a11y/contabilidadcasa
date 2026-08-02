@@ -1,4 +1,4 @@
-const CACHE_NAME = "finanzas-casa-shell-20260802-e13a1";
+const CACHE_NAME = "finanzas-casa-shell-20260802-e13a2";
 const SHELL_URLS = [
   "./",
   "./index.html",
@@ -46,8 +46,17 @@ const SHELL_URLS = [
   "./vendor/xlsx.full.min.js",
 ];
 
+async function precacheFreshShell() {
+  const cache = await caches.open(CACHE_NAME);
+  await Promise.all(SHELL_URLS.map(async (url) => {
+    const response = await fetch(new Request(url, { cache: "reload" }));
+    if (!response.ok) throw new Error(`No se pudo actualizar el recurso ${url}.`);
+    await cache.put(url, response);
+  }));
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)));
+  event.waitUntil(precacheFreshShell());
   self.skipWaiting();
 });
 

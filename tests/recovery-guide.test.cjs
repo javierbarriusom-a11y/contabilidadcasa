@@ -36,6 +36,9 @@ test("el service worker solo precachea shell local y excluye Supabase", () => {
   assert.doesNotMatch(source, /cdn\.jsdelivr\.net/);
   assert.match(source, /url\.origin !== self\.location\.origin/);
   assert.match(source, /event\.request\.method !== "GET"/);
+  assert.match(source, /cache:\s*"reload"/);
+  assert.match(source, /precacheFreshShell/);
+  assert.doesNotMatch(source, /cache\.addAll/);
 });
 
 test("la interfaz registra el modo offline y ofrece las cuatro decisiones de recuperación", () => {
