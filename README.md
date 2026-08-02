@@ -18,7 +18,7 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 
 La documentación funcional de la fase actual está en [PHASE_10.md](PHASE_10.md). El estado completo del backlog está en [BACKLOG_STATUS.md](BACKLOG_STATUS.md).
 
-La navegación principal usa `Actualizar` como matriz temporal de partidas previstas, resultados y mínimos. El plan visual de deuda se mantiene como módulo independiente y sincroniza su estado dentro de las copias versionadas, sin alimentar todavía el motor canónico.
+La navegación principal usa `Actualizar` como matriz temporal de partidas previstas, resultados y mínimos. El plan visual de deuda consume contratos, liquidez, capacidad y forecast canónicos mediante un adaptador de solo lectura; únicamente sus tareas, notas y supuestos propios se sincronizan dentro de las copias versionadas.
 
 ## Arquitectura canónica
 
@@ -29,6 +29,7 @@ La navegación principal usa `Actualizar` como matriz temporal de partidas previ
 - `canonical-workflow.js`: estados, transiciones y auditoría de decisiones.
 - `canonical-daily-engine.js`: calendario diario de cobros, pagos, traspasos y mínimos de caja.
 - `canonical-debt-contracts.js`: normalización y validación de contratos y acuerdos de deuda.
+- `canonical-e14-debt-adapter.js`: inventario, lectura canónica del plan visual y contrato común de estrategia de deuda.
 - `canonical-debt-comparator.js`: comparación de pago único, fraccionado, reunificación, retoma o espera.
 - `canonical-supabase-store.js`: proyección normalizada, huellas de contenido y copias versionadas para Supabase.
 - `remote-save-queue.js`: cola de escritor único con revisiones pendientes, reintentos de red y bloqueo de conflictos entre sesiones mediante el puntero remoto.

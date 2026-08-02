@@ -158,6 +158,7 @@ const CURRENT_REUNIFIED_DEBT_PAYMENT = 180;
 const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 36;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
 const DebtContracts = globalThis.FinanceDebtContracts || null;
+const E14DebtAdapter = globalThis.FinanceCanonicalE14DebtAdapter || null;
 const ExecutiveReadModel = globalThis.FinanceExecutiveReadModel || null;
 const DebtComparator = globalThis.FinanceDebtComparator || null;
 const E7Analysis = globalThis.FinanceCanonicalE7 || null;
@@ -1117,7 +1118,15 @@ function saveLocalSnapshot() {
 function sendDebtRoadmapState() {
   const frame = qs("debtRoadmapFrame");
   if (!frame?.contentWindow) return;
-  frame.contentWindow.postMessage({ type: "finance-debt-roadmap-hydrate", payload: debtRoadmapState }, window.location.origin);
+  const canonical = E14DebtAdapter?.buildReadModel({
+    roadmapState: debtRoadmapState,
+    contracts: canonicalDebtContractRows(),
+    forecast: canonicalScenarioResults.active?.forecast,
+  }) || null;
+  frame.contentWindow.postMessage({
+    type: "finance-debt-roadmap-hydrate",
+    payload: { state: debtRoadmapState, canonical },
+  }, window.location.origin);
 }
 
 function setupDebtRoadmapBridge() {
@@ -17823,6 +17832,7 @@ function render() {
   renderAccountBalancePanels();
   renderFamilyContextSwitch();
   scheduleActiveSectionRender();
+  sendDebtRoadmapState();
 }
 
 function scheduleRender() {

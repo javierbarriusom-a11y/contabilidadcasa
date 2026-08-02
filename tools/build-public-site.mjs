@@ -21,6 +21,7 @@ const files = [
   "canonical-e13-scenarios.js",
   "canonical-daily-engine.js",
   "canonical-debt-contracts.js",
+  "canonical-e14-debt-adapter.js",
   "executive-read-model.js",
   "canonical-debt-comparator.js",
   "canonical-e7-analysis.js",
