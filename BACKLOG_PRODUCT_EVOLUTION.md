@@ -269,12 +269,13 @@ los datos canónicos quedan bloqueados y excluidos de las escrituras del `iframe
 estrategia cubre quita, pago único, refinanciación, suspensión, mora, reanudación y espera. La puerta
 completa pasa con 260/260 pruebas y QA responsive sin desbordamiento.
 
-**E12b/E13b verificadas localmente el 2 de agosto de 2026:** el forecast aprende desviaciones y
+**E12b/E13b verificadas y publicadas en `origin/main` mediante `bdf6367` el 2 de agosto de 2026:** el forecast aprende desviaciones y
 estacionalidad solo desde meses conciliados, adapta el horizonte sin falsa precisión y el laboratorio
 expone simulación prudente, reglas de correlación, sensibilidad y escenarios guardados reproducibles.
 La puerta completa pasa con 266/266 pruebas, accesibilidad, rendimiento con 10.000 filas, construcción,
 privacidad y smoke test. El QA a 1280 px y 390×844 no mostró errores ni desbordamiento; guardar, recargar
-y recalcular una copia conservó el original y no modificó el plan vigente.
+y recalcular una copia conservó el original y no modificó el plan vigente. La publicación de GitHub
+Pages todavía no se ha comprobado y no se presenta como validada.
 
 El siguiente paso es **E14b** para ofertas, optimización, integración con escenarios y aplicación
 confirmada. E10 y **A5-1/A5-2** quedan al final.

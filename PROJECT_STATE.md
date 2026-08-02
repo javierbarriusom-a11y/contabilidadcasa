@@ -222,6 +222,8 @@ Fecha de revisión: 2 de agosto de 2026.
 - La aceptación a 1280 px y 390×844 confirmó ausencia de errores y desbordamiento. Un escenario se guardó,
   recuperó tras recargar y recalculó como copia conservando el original. La puerta completa pasa con
   266/266 pruebas, accesibilidad, rendimiento, construcción, privacidad, smoke test y `git diff --check`.
+- La implementación y su documentación quedaron publicadas en `origin/main` mediante `bdf6367`
+  (`feat: complete E12b and E13b forecasting`). GitHub Pages no se comprobó en este cierre.
 
 ## Pendiente
 
@@ -325,6 +327,9 @@ escenarios, aplicación confirmada y retirada gradual del `iframe`. E10 se manti
 
 ## Último commit estable
 
+- La revisión estable actual es `bdf6367` (`feat: complete E12b and E13b forecasting`) en `main` y
+  `origin/main`. Contiene E12b/E13b, sus pruebas y documentación. Solo este cierre documental queda
+  sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 - La revisión estable actual es `590e9aa` (`ci: migrate Pages actions to Node 24`) en `main` y
   `origin/main`. El workflow `30731502159` verificó y desplegó Pages correctamente. Solo este cierre
   documental queda sin commit; `.agents/` continúa sin seguimiento y queda excluida.
