@@ -202,18 +202,29 @@ Fecha de revisión: 2 de agosto de 2026.
   actualizó a E13a tras una recarga y el QA pasó a 1280 px y 390×844 sin errores ni desbordamiento.
 - E13a queda verificada de extremo a extremo. El laboratorio publicado creó un evento temporal, recalculó
   base, favorable y tensión y confirmó expresamente que no guardó ni modificó el plan.
+- E14a está implementada, validada y publicada en `origin/main` mediante `a0a65c7`: el plan visual recibe
+  contratos, liquidez, capacidad y forecast desde `finance-e14-debt-roadmap-read-model/v1` sin escribir
+  esos campos en `debtRoadmapState` ni modificar el estado canónico.
+- El inventario E14a clasifica cada campo como canónico, operativo, supuesto o nota. Las correspondencias
+  de Entidad A y Entidad B solo se aplican si existe un contrato único; un forecast inválido o cualquier
+  correspondencia ambigua conserva el valor anterior y no activa una migración automática.
+- `finance-debt-strategy/v1` normaliza quita, pago único, refinanciación, suspensión, mora, reanudación de
+  pagos y espera. E14a solo valida y expone estrategias; su aplicación confirmada continúa fuera de alcance.
+- La puerta completa E14a pasa con 260/260 pruebas, accesibilidad, rendimiento con 10.000 filas,
+  construcción pública, privacidad, smoke test y `git diff --check`. El QA pasó a 1280 px y 390×844 sin
+  desbordamiento horizontal y confirmó los controles canónicos bloqueados.
 
 ## Pendiente
 
-- E12b, E13b y E14 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E12b, E13b, E14b y E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Iniciar E14a con el inventario y mapeo de los campos del plan visual de deuda y un adaptador canónico de
-solo lectura. E12b/E13b y E10 mantienen su orden posterior en el backlog.
+Iniciar E12b/E13b con aprendizaje de desviaciones, estacionalidad, simulación prudente, riesgos
+simultáneos, sensibilidad y escenarios reproducibles. E14b y E10 mantienen su orden posterior.
 
 ## Decisiones importantes
 
@@ -231,6 +242,9 @@ solo lectura. E12b/E13b y E10 mantienen su orden posterior en el backlog.
   por sí solo y exige paridad antes de entregar una serie a las vistas.
 - E13a es deliberadamente efímera y de solo lectura: simular no crea revisiones ni altera el plan vigente;
   guardar y promover escenarios queda fuera de alcance hasta E13b/A8-7 y A8-8.
+- E14a aplica una frontera equivalente: el adaptador clona sus entradas, solo envía lecturas al `iframe`
+  y excluye del guardado los campos canónicos. Tareas, notas y supuestos continúan versionados; aplicar
+  ofertas o estrategias al plan requiere E14b y confirmación recuperable.
 
 ## Errores conocidos y riesgos
 
@@ -239,6 +253,9 @@ solo lectura. E12b/E13b y E10 mantienen su orden posterior en el backlog.
 - No hay fallos automatizados conocidos en E13a: 252/252 pruebas y la puerta completa pasan.
 - No hay fallos conocidos en E13a. La actualización defectuosa de e13a1 quedó corregida y aceptada
   públicamente mediante e13a2.
+- No hay fallos automatizados conocidos en E14a. El navegador de inspección registró un error de
+  `MutationObserver` generado por el entorno de control; el repositorio no contiene ese API y pruebas,
+  construcción y smoke test no reproducen un fallo de aplicación.
 - No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
@@ -296,6 +313,10 @@ solo lectura. E12b/E13b y E10 mantienen su orden posterior en el backlog.
 
 ## Último commit estable
 
+- El último commit funcional estable es `a0a65c7` (`feat: integrate canonical debt roadmap`) en `main` y
+  `origin/main`. Contiene E14a, su inventario, adaptador de solo lectura, contrato de estrategia, pruebas y
+  shell offline versionado. Antes del commit documental solo quedan estos cambios de cierre; `.agents/`
+  continúa sin seguimiento y queda excluida.
 - La revisión estable actual es `26b26fb` (`fix: refresh offline shell assets on upgrade`) en `main` y
   `origin/main`, publicada y verificada en GitHub Pages. Incluye el cierre técnico de E13a sobre
   `e5ad5ef` (`feat: implement E13a scenario lab`).

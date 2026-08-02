@@ -263,8 +263,11 @@ compara base, favorable y tensión, admite eventos temporales y no escribe en el
 `version.json`, el monitor y el QA responsive pasan. La actualización desde una sesión con e12a1 quedó
 aceptada después de que e13a2 forzara la revalidación de cada recurso.
 
-El siguiente paso es **E14a**, con el inventario de campos del plan visual de deuda y el adaptador
-canónico de solo lectura. E10 y **A5-1/A5-2** quedan al final.
+**E14a implementada, validada y publicada mediante `a0a65c7`:** el inventario clasifica los campos del
+plan visual, el adaptador enlaza únicamente contratos inequívocos y un forecast con paridad válida, y
+los datos canónicos quedan bloqueados y excluidos de las escrituras del `iframe`. El contrato común de
+estrategia cubre quita, pago único, refinanciación, suspensión, mora, reanudación y espera. La puerta
+completa pasa con 260/260 pruebas y QA responsive sin desbordamiento.
 
-Antes de E14 se debe completar el inventario de campos del plan visual de deuda. No se retirarán las
-pantallas actuales mientras se construyen y verifican sus sustitutas.
+El siguiente paso es **E12b/E13b**. Después continúa E14b para ofertas, optimización, integración con
+escenarios y aplicación confirmada. E10 y **A5-1/A5-2** quedan al final.
