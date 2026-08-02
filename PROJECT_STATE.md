@@ -213,6 +213,9 @@ Fecha de revisión: 2 de agosto de 2026.
 - La puerta completa E14a pasa con 260/260 pruebas, accesibilidad, rendimiento con 10.000 filas,
   construcción pública, privacidad, smoke test y `git diff --check`. El QA pasó a 1280 px y 390×844 sin
   desbordamiento horizontal y confirmó los controles canónicos bloqueados.
+- El workflow de Pages está actualizado localmente a las acciones con Node.js 24: `configure-pages@v6`,
+  `upload-pages-artifact@v5` y `deploy-pages@v5`. La puerta completa mantiene 260/260 pruebas y el YAML
+  es válido; la ejecución remota que confirmará la retirada del aviso queda pendiente del push.
 
 ## Pendiente
 
@@ -288,8 +291,9 @@ simultáneos, sensibilidad y escenarios reproducibles. E14b y E10 mantienen su o
 - A3-5 está verificada en el Supabase real. El objeto sintético se descargó y descifró desde una segunda
   sesión, se restauró después de moverlo a recuperación y terminó borrado; la cuenta temporal también
   quedó eliminada sin afectar al usuario real.
-- El workflow de cierre de E8 terminó correctamente. GitHub avisa de la futura retirada de Node.js 20
-  en algunas acciones y ya fuerza Node.js 24; es un aviso no bloqueante que conviene vigilar al actualizar CI.
+- El workflow de cierre de E8 terminó correctamente. El aviso posterior por acciones basadas en Node.js 20
+  queda atendido localmente mediante las versiones mayores que usan Node.js 24; falta confirmar el workflow
+  remoto después de publicar este mantenimiento.
 - El 31/07/2026 Pages cambió de `build_type: legacy` a `workflow`; el commit funcional de E2
   `23d07dd` quedó publicado en `origin/main`. La primera ejecución de CI detectó una opción de caché
   incompatible con la ausencia de `package-lock.json`; se retiró antes de reintentar el despliegue.
@@ -313,6 +317,9 @@ simultáneos, sensibilidad y escenarios reproducibles. E14b y E10 mantienen su o
 
 ## Último commit estable
 
+- La revisión estable actual es `97c4ae7` (`docs: close validated E14a session`) en `main` y
+  `origin/main`. Quedan sin commit únicamente la actualización de acciones de Pages y este cierre
+  documental; `.agents/` continúa sin seguimiento y queda excluida.
 - El último commit funcional estable es `a0a65c7` (`feat: integrate canonical debt roadmap`) en `main` y
   `origin/main`. Contiene E14a, su inventario, adaptador de solo lectura, contrato de estrategia, pruebas y
   shell offline versionado. Antes del commit documental solo quedan estos cambios de cierre; `.agents/`
