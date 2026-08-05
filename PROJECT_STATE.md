@@ -349,7 +349,7 @@ trazables y presupuesto de riesgo. E10 se mantiene al final.
 
 ## Último commit estable
 
-- Sin commit: cierre de E15 en `canonical-e15-goals.js`, interfaz de objetivos, shell offline, pruebas y documentación. La rama sigue en `main` sobre `31238f1`; `.agents/` continúa sin seguimiento y queda excluida.
+- E15 quedó consolidada y publicada mediante `5b1ef69` (`feat: implement E15 goals and monthly review`) en `main` y `origin/main`. No quedan cambios del producto sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 - E14 quedó consolidada en `6603e51` (`feat: verify E14 debt roadmap parity`) y publicada en `main` y
   `origin/main`. No quedan cambios locales del producto sin commit; `.agents/` continúa sin seguimiento
   y queda excluida.
