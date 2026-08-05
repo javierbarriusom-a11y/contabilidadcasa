@@ -114,6 +114,40 @@
     });
   }
 
+  function renderE16Monitoring() {
+    const api = root.FinanceCanonicalE16;
+    const input = bridge()?.e16Input?.();
+    if (!api || !input) return;
+    const target = mount("home", "e16-monitoring", "beforeend", panel("e16-monitoring", "E16 · seguimiento predictivo", "Alertas y explicaciones", "El seguimiento anticipa riesgos y explica su evidencia; no cambia el plan ni toma decisiones por ti."));
+    if (!target) return;
+    const p2 = state();
+    const model = api.buildReadModel(input);
+    const budget = model.alerts.riskBudget;
+    const alerts = model.alerts.alerts;
+    const changes = [...model.changes.movements.map((item) => `${item.label}: ${euro(item.amount)}`), ...model.changes.deviations.map((item) => `${item.label}: ${euro(item.delta)}`), ...model.changes.assumptions.map((item) => item.label), ...model.changes.goals.map((item) => item.label)];
+    target.querySelector("[data-p2-body]").innerHTML = `
+      <form class="p2-form p2-grid three" data-e16-budget-form>
+        <label class="p2-field"><span>Caja mínima (€)</span><input name="minimumLiquidity" type="number" min="0" step="0.01" value="${esc(budget.minimumLiquidity)}" /></label>
+        <label class="p2-field"><span>Variación mensual máxima (€)</span><input name="maximumMonthlyVariation" type="number" min="0" step="0.01" value="${esc(budget.maximumMonthlyVariation)}" /></label>
+        <label class="p2-field"><span>Ratio máximo de deuda (%)</span><input name="maximumDebtRatio" type="number" min="0" max="100" step="0.01" value="${esc(budget.maximumDebtRatio)}" /></label>
+        <div class="p2-actions"><button class="p2-button" type="submit">Guardar presupuesto de riesgo</button></div>
+      </form>
+      <div data-e16-notice></div>
+      <div class="p2-kpis"><div class="p2-kpi"><span>Alertas anticipadas</span><strong>${alerts.length}</strong></div><div class="p2-kpi"><span>Error medio</span><strong>${euro(model.quality.meanAbsoluteError)}</strong></div><div class="p2-kpi"><span>Muestras completas</span><strong>${model.quality.samples}</strong></div><div class="p2-kpi"><span>Confianza</span><strong>${esc(model.quality.confidence)}</strong></div></div>
+      <section class="p2-list"><h4>Alertas anticipadas de caja</h4>${alerts.length ? alerts.map((item) => `<article class="p2-item"><div class="p2-item-head"><strong>${esc(item.monthKey)} · ${esc(item.severity)}</strong><span class="p2-status${item.severity === "critical" ? " danger" : " warn"}">${esc(item.confidence)}</span></div><p>${esc(item.message)}</p><p class="p2-help">${esc(item.evidence.join(" · "))}</p></article>`).join("") : '<div class="p2-empty">No hay riesgos que superen el presupuesto configurado.</div>'}</section>
+      <section class="p2-list"><h4>Qué cambió desde la última revisión</h4><p class="p2-help">${esc(model.changes.summary)}</p>${changes.length ? changes.map((item) => `<div class="p2-contribution"><span>${esc(item)}</span></div>`).join("") : '<div class="p2-empty">No hay cambios comparables todavía.</div>'}</section>
+      <section class="p2-list"><h4>Calidad de predicción</h4><p class="p2-help">${esc(model.quality.note)} Sesgo: ${euro(model.quality.bias)}.</p>${model.quality.categories.length ? model.quality.categories.map((item) => `<div class="p2-contribution"><span>${esc(item.category)}</span><strong>${euro(item.meanAbsoluteError)} · ${item.samples} muestras</strong></div>`).join("") : ""}</section>
+      <section class="p2-list"><h4>Recomendaciones trazables</h4>${model.recommendations.recommendations.map((item) => `<article class="p2-item"><strong>${esc(item.action)}</strong><p>${esc(item.message)}</p><p class="p2-help">Evidencia: ${esc(item.evidence.join(" · "))}. Alternativas: ${esc(item.alternatives.join(" · "))}.</p></article>`).join("") || '<div class="p2-empty">No hay recomendaciones nuevas.</div>'}<p class="p2-help">${esc(model.recommendations.note)}</p></section>`;
+    target.querySelector("[data-e16-budget-form]")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(event.currentTarget));
+      const nextBudget = api.normalizeRiskBudget(values);
+      save({ ...p2, e16: { ...p2.e16, riskBudget: nextBudget } });
+      notice(target.querySelector("[data-e16-notice]"), "Presupuesto de riesgo guardado. El plan no se ha modificado.");
+      renderE16Monitoring();
+    });
+  }
+
   function bindGoalEvents(target) {
     target.querySelector("[data-goal-form]")?.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -344,6 +378,7 @@
   function render(viewId) {
     if (!bridge() || !domain()) return;
     if (viewId === "savings-agent") renderGoals();
+    if (viewId === "home") renderE16Monitoring();
     if (viewId === "data-entry") { renderFamilyAndExport(); renderE9ActivationStatus(); }
     if (viewId === "movements") renderBehavior();
     if (viewId === "debt-control") renderDocuments();

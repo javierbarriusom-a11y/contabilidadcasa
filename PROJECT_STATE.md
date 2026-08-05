@@ -4,6 +4,10 @@ Fecha de revisión: 5 de agosto de 2026.
 
 ## Terminado
 
+- E16 queda implementada localmente de A11-1 a A11-5: `finance-e16-monitoring/v1` calcula alertas anticipadas de caja, variaciones y ratio de deuda con horizonte, confianza y evidencia; resume cambios desde la última revisión; mide error y sesgo solo con muestras completas; y entrega recomendaciones trazables de solo lectura. El panel Hoy permite configurar el presupuesto de riesgo sin modificar el plan. La implementación sigue pendiente de aceptación integral en navegador antes de marcarse como verificada.
+- La documentación operativa queda reconciliada: `BACKLOG_STATUS.md` registra E16 como implementada y `ROADMAP_EXECUTION.md` preserva el plan histórico de julio bajo una cabecera que remite al backlog maestro para los estados vigentes.
+- La puerta local de E16 pasa con 289/289 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El empaquetado público incluye explícitamente los contratos E15 y E16 y el shell offline se versionó como `e16a1`.
+
 - E15 queda verificada localmente: los objetivos conservan prioridad, titular, flexibilidad y fuente de financiación; el calendario reúne forecast, cuotas, vencimientos y revisiones; las aportaciones y conflictos respetan capacidad y reserva sin aplicar movimientos automáticamente; y la revisión mensual se registra con confirmación.
 - La puerta local de E15 pasa con 283/283 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA local a 1280×720 y 390×844 mostró el panel E15, sin errores de consola ni desbordamiento horizontal. El shell offline se versionó como `e15a1`.
 - Arquitectura canónica implantada para estado, libro mayor, cálculo mensual y diario, decisiones, workflow, deuda, comparación de acuerdos y persistencia normalizada.
@@ -244,17 +248,21 @@ Fecha de revisión: 5 de agosto de 2026.
 
 ## Pendiente
 
-- E16 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E16 requiere aceptación integral en navegador: comprobar en escritorio y móvil la configuración del presupuesto de riesgo, las alertas, el resumen de cambios y la recuperación tras recargar antes de pasar a `Verificado`.
+- E17 y E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`; E18 continúa aplicándose como control transversal en cada entrega.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Iniciar E16 con alertas predictivas, explicación de cambios, calidad de predicción, recomendaciones
-trazables y presupuesto de riesgo. E10 se mantiene al final.
+Validar E16 en navegador real, incluyendo escritorio, móvil y recarga de su presupuesto de riesgo. Si
+la aceptación pasa, actualizar su estado a `Verificado`; E17 será entonces el siguiente objetivo. E10
+se mantiene al final.
 
 ## Decisiones importantes
+
+- E16 es una capa de lectura: alerta, explica y propone alternativas, pero no altera el forecast, las decisiones ni los datos financieros. El presupuesto de riesgo solo ordena la atención del usuario.
 
 - El estado y los motores canónicos son la única fuente de verdad; el motor histórico no decide cifras ni actúa como fallback silencioso.
 - `Implementado` no equivale a `Verificado`: el cierre exige pruebas extremo a extremo, persistencia, restauración y validación en escritorio y móvil.
@@ -278,6 +286,8 @@ trazables y presupuesto de riesgo. E10 se mantiene al final.
   como una diferencia silenciosa.
 
 ## Errores conocidos y riesgos
+
+- E16 no debe presentarse todavía como verificada: su contrato y su puerta local pasan, pero falta el QA visual y de persistencia del presupuesto de riesgo en navegador real.
 
 - No hay fallos automatizados conocidos en E12a; su publicación, disponibilidad y arranque responsive
   están verificados.
@@ -348,6 +358,8 @@ trazables y presupuesto de riesgo. E10 se mantiene al final.
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
 ## Último commit estable
+
+- La última revisión estable sigue siendo `8388c9d` (`docs: close E15 implementation session`) en `main` y `origin/main`. E16 y la reconciliación documental quedan como cambios locales sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 
 - E15 quedó consolidada y publicada mediante `5b1ef69` (`feat: implement E15 goals and monthly review`) en `main` y `origin/main`. No quedan cambios del producto sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 - E14 quedó consolidada en `6603e51` (`feat: verify E14 debt roadmap parity`) y publicada en `main` y

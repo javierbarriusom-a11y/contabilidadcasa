@@ -25,6 +25,8 @@ const files = [
   "legacy-debt-roadmap-engine.js",
   "canonical-e14-operations.js",
   "canonical-e14-parity.js",
+  "canonical-e15-goals.js",
+  "canonical-e16-monitoring.js",
   "executive-read-model.js",
   "canonical-debt-comparator.js",
   "canonical-e7-analysis.js",

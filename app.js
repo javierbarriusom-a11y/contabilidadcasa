@@ -16774,6 +16774,22 @@ window.FinanceP2Bridge = {
     const monthlyCapacity = capacityRows.length ? round2(capacityRows.reduce((sum, value) => sum + value, 0) / capacityRows.length) : 0;
     return { forecast, debts: p2DebtRows(), monthlyCapacity, reserve: Number(state?.operatingReserve || 0), startMonth: forecast.series?.[0]?.monthKey || "" };
   },
+  e16Input: () => {
+    const p2 = p2State();
+    const planning = window.FinanceP2Bridge.goalPlanning();
+    const lastReview = (p2.e15?.reviews || []).slice().sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0];
+    const monthlyDebt = p2DebtRows().reduce((sum, debt) => sum + Math.max(0, Number(debt.currentPayment || 0)), 0);
+    const monthlyIncome = Math.max(0, Number(state?.baseHouseholdIncome || baseData?.assumptions?.monthlyIncome || 0));
+    return {
+      ...planning,
+      movements: p2MovementRows(),
+      goals: p2.goals.map((goal) => window.P2Domain?.goalSnapshot(goal) || goal),
+      lastReview,
+      riskBudget: p2.e16?.riskBudget,
+      predictionSamples: p2.e16?.predictionSamples || [],
+      debtRatio: monthlyIncome ? round2((monthlyDebt / monthlyIncome) * 100) : 0,
+    };
+  },
   alerts: evaluatedUxAlerts,
   exportModel: p2ExportModel,
   privateCloudAvailable: () => Boolean(supabaseClient && remoteUser),

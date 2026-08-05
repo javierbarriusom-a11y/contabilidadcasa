@@ -232,6 +232,14 @@
       e15: state.e15 && typeof state.e15 === "object" ? {
         reviews: (Array.isArray(state.e15.reviews) ? state.e15.reviews : []).slice(-24).map((review) => ({ monthKey: text(review.monthKey), completedAt: text(review.completedAt), notes: text(review.notes) })),
       } : { reviews: [] },
+      e16: state.e16 && typeof state.e16 === "object" ? {
+        riskBudget: {
+          minimumLiquidity: Math.max(0, round2(number(state.e16.riskBudget?.minimumLiquidity))),
+          maximumMonthlyVariation: Math.max(0, round2(number(state.e16.riskBudget?.maximumMonthlyVariation))),
+          maximumDebtRatio: Math.max(0, round2(number(state.e16.riskBudget?.maximumDebtRatio, 40))),
+        },
+        predictionSamples: (Array.isArray(state.e16.predictionSamples) ? state.e16.predictionSamples : []).slice(-120).map((sample) => ({ ...sample })),
+      } : { riskBudget: { minimumLiquidity: 0, maximumMonthlyVariation: 0, maximumDebtRatio: 40 }, predictionSamples: [] },
     };
   }
 

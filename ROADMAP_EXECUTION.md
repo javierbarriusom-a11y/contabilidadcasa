@@ -1,6 +1,24 @@
 # Hoja de ruta de ejecucion
 
-Fecha base: 15 de julio de 2026. Ultima validacion de dominio: 30 de julio de 2026. Ultima validacion UX: 16 de julio de 2026.
+Fecha base: 15 de julio de 2026. Última reconciliación operativa: 5 de agosto de 2026.
+
+## Estado operativo vigente
+
+Esta hoja conserva a continuación el plan y las evidencias históricas de julio. Para evitar que ese
+histórico se interprete como estado actual, `BACKLOG_STATUS.md` es la fuente operativa de estados y
+`PROJECT_STATE.md` registra el último cierre de sesión.
+
+| Entregas | Estado vigente | Referencia |
+| --- | --- | --- |
+| E1-E9 | Verificado | Base canónica, recuperación y contratos externos seguros cerrados |
+| E10 | Pendiente, al final | Activación real de servicios externos, sin bloquear el producto local |
+| E11-E15 | Verificado | Entrada, forecast, escenarios, deuda y objetivos completados |
+| E16 | Implementado; pendiente de aceptación | Seguimiento predictivo A11-1 a A11-5 |
+| E17 | Pendiente | Simplificación por tareas A12-1 a A12-5 |
+| E18 | Continuo | Rendimiento, migraciones, pruebas y observabilidad en cada entrega |
+
+La sección «Resumen ejecutivo de estado» que sigue es una fotografía histórica del 18 de julio de
+2026; no debe utilizarse para priorizar ni para reabrir entregas verificadas.
 
 Esta hoja distingue entre codigo existente y funcionalidad realmente terminada. Una fase solo se
 marca como completada cuando cumple sus criterios de aceptacion, tiene pruebas y no deja una ruta

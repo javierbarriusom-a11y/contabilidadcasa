@@ -33,6 +33,8 @@ La navegación principal usa `Actualizar` como matriz temporal de partidas previ
 - `canonical-daily-engine.js`: calendario diario de cobros, pagos, traspasos y mínimos de caja.
 - `canonical-debt-contracts.js`: normalización y validación de contratos y acuerdos de deuda.
 - `canonical-e14-debt-adapter.js`: inventario, lectura canónica del plan visual y contrato común de estrategia de deuda.
+- `canonical-e15-goals.js`: objetivos, calendario financiero, aportaciones prudentes y revisión mensual confirmable.
+- `canonical-e16-monitoring.js`: alertas anticipadas, explicación de cambios, calidad de predicción y recomendaciones trazables de solo lectura.
 - `canonical-debt-comparator.js`: comparación de pago único, fraccionado, reunificación, retoma o espera.
 - `canonical-supabase-store.js`: proyección normalizada, huellas de contenido y copias versionadas para Supabase.
 - `remote-save-queue.js`: cola de escritor único con revisiones pendientes, reintentos de red y bloqueo de conflictos entre sesiones mediante el puntero remoto.
