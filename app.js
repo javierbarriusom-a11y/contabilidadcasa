@@ -16767,6 +16767,13 @@ window.FinanceP2Bridge = {
   movements: p2MovementRows,
   debts: p2DebtRows,
   accounts: accountBalancesFromState,
+  goalPlanning: () => {
+    const forecast = canonicalScenarioResults.active?.forecast || canonicalScenarioResults.base?.forecast || { series: [] };
+    const rows = canonicalScenarioResults.active?.rows || canonicalScenarioResults.base?.rows || [];
+    const capacityRows = rows.slice(0, 12).map((row) => Math.max(0, Number(row.netBeforeSaving || 0)));
+    const monthlyCapacity = capacityRows.length ? round2(capacityRows.reduce((sum, value) => sum + value, 0) / capacityRows.length) : 0;
+    return { forecast, debts: p2DebtRows(), monthlyCapacity, reserve: Number(state?.operatingReserve || 0), startMonth: forecast.series?.[0]?.monthKey || "" };
+  },
   alerts: evaluatedUxAlerts,
   exportModel: p2ExportModel,
   privateCloudAvailable: () => Boolean(supabaseClient && remoteUser),

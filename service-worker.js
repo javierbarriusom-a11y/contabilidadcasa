@@ -1,4 +1,4 @@
-const CACHE_NAME = "finanzas-casa-shell-20260805-e14parity1";
+const CACHE_NAME = "finanzas-casa-shell-20260805-e15a1";
 const SHELL_URLS = [
   "./",
   "./index.html",
@@ -19,6 +19,7 @@ const SHELL_URLS = [
   "./legacy-debt-roadmap-engine.js",
   "./canonical-e14-operations.js",
   "./canonical-e14-parity.js",
+  "./canonical-e15-goals.js",
   "./executive-read-model.js",
   "./canonical-debt-comparator.js",
   "./canonical-e7-analysis.js",

@@ -64,11 +64,15 @@
         <label class="p2-field"><span>Tipo</span><select name="type"><option value="emergency">Emergencia</option><option value="car">Coche</option><option value="project">Proyecto</option><option value="other">Otro</option></select></label>
         <label class="p2-field"><span>Titular</span><select name="owner">${ownerOptions("household")}</select></label>
         <label class="p2-field"><span>Fecha objetivo</span><input name="targetDate" type="date" /></label>
+        <label class="p2-field"><span>Prioridad</span><select name="priority"><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium" selected>Media</option><option value="low">Baja</option></select></label>
+        <label class="p2-field"><span>Flexibilidad</span><select name="flexibility"><option value="flexible">Flexible</option><option value="fixed">Fija</option></select></label>
+        <label class="p2-field"><span>Fuente</span><select name="fundingSource"><option value="savings">Ahorro</option><option value="income">Ingresos</option><option value="debt">Financiación</option><option value="other">Otra</option></select></label>
         <div class="p2-actions"><button class="p2-button" type="submit">Crear hucha</button></div>
       </form>
       <div data-goal-notice></div>
       <div class="p2-list" data-goal-list>${snapshots.length ? snapshots.map(goalCard).join("") : '<div class="p2-empty">Aún no hay huchas. Crea la primera y vincula aportaciones reales.</div>'}</div>`;
     bindGoalEvents(target);
+    renderE15Planning();
   }
 
   function goalCard(goal) {
@@ -77,6 +81,7 @@
       <div class="p2-item-head"><div><h4>${esc(goal.name)}</h4><p class="p2-help">${ownerLabel(goal.owner)} · ${goal.targetDate ? `objetivo ${shortDate(goal.targetDate)}` : "sin fecha objetivo"}</p></div><span class="p2-status${goal.status === "paused" ? " warn" : ""}">${esc(goal.status)}</span></div>
       <div class="p2-progress" aria-label="Progreso ${goal.progress}%"><span style="width:${goal.progress}%"></span></div>
       <div class="p2-grid three"><div class="p2-kpi"><span>Acumulado real</span><strong>${euro(goal.saved)}</strong></div><div class="p2-kpi"><span>Objetivo</span><strong>${euro(goal.target)}</strong></div><div class="p2-kpi"><span>Falta</span><strong>${euro(goal.remaining)}</strong></div></div>
+      <p class="p2-help">Prioridad ${esc(goal.priority)} · fecha ${goal.flexibility === "fixed" ? "fija" : "flexible"} · fuente ${esc(goal.fundingSource)}</p>
       <form class="p2-form p2-grid three" data-contribution-form>
         <label class="p2-field"><span>Origen</span><select name="source"><option value="manual">Aportación manual</option><option value="movement">Movimiento conciliado</option></select></label>
         <label class="p2-field" data-manual-field><span>Importe</span><input name="amount" type="number" min="0" step="0.01" /></label>
@@ -86,6 +91,27 @@
       </form>
       <div class="p2-contributions">${goal.contributions.length ? goal.contributions.slice().reverse().map((item) => `<div class="p2-contribution"><span>${esc(item.label)}</span><strong>${euro(item.amount)}</strong><small>${esc(item.date || item.month || item.source)}</small><button type="button" data-contribution-delete="${esc(item.id)}">Quitar</button></div>`).join("") : '<p class="p2-help">Sin aportaciones registradas.</p>'}</div>
     </section>`;
+  }
+
+  function renderE15Planning() {
+    const api = root.FinanceCanonicalE15;
+    const planning = bridge()?.goalPlanning?.();
+    if (!api || !planning) return;
+    const target = mount("savings-agent", "e15-planning", "beforeend", panel("e15-planning", "E15 · objetivos y calendario", "Capacidad futura y revisión mensual", "Las propuestas respetan caja, deuda y reserva; no cambian el plan sin confirmación."));
+    if (!target) return;
+    const p2 = state();
+    const plan = api.contributionPlan({ ...planning, goals: p2.goals });
+    const conflicts = api.detectConflicts(plan);
+    const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [] });
+    const currentMonth = calendar.rows[0]?.monthKey || "";
+    target.querySelector("[data-p2-body]").innerHTML = `<div class="p2-kpis"><div class="p2-kpi"><span>Capacidad mensual</span><strong>${euro(plan.monthlyCapacity)}</strong></div><div class="p2-kpi"><span>Reserva</span><strong>${euro(plan.reserve)}</strong></div><div class="p2-kpi"><span>Conflictos</span><strong>${conflicts.conflicts.length}</strong></div><div class="p2-kpi"><span>Sin asignar</span><strong>${euro(plan.unassignedCapacity)}</strong></div></div><div class="p2-list">${plan.plans.length ? plan.plans.map((goal) => `<section class="p2-item"><div class="p2-item-head"><div><h4>${esc(goal.name)}</h4><p class="p2-help">${goal.months} meses · ${esc(goal.priority)}</p></div><span class="p2-status${goal.delayed ? " warn" : ""}">${goal.delayed ? "Revisar" : "Compatible"}</span></div><p><strong>${euro(goal.proposedMonthly)}/mes</strong> de ${euro(goal.requiredMonthly)}/mes.</p><p class="p2-help">${esc(goal.explanation)}</p></section>`).join("") : '<div class="p2-empty">Crea un objetivo para calcular aportaciones.</div>'}</div><div class="p2-list">${conflicts.conflicts.length ? conflicts.conflicts.map((item) => `<div class="p2-contribution"><span>${esc(item.goal)} · faltan ${euro(item.shortage)}/mes</span><small>${esc(item.alternatives.join(" · "))}</small></div>`).join("") : '<p class="p2-help">No hay conflictos de capacidad.</p>'}</div><div class="p2-list">${calendar.rows.slice(0, 12).map((row) => `<div class="p2-contribution"><span><strong>${esc(row.label)}</strong> · cierre ${euro(row.closingLiquidity)}</span><small>${esc(row.events.map((event) => event.label).join(" · "))}</small></div>`).join("")}</div><div class="p2-actions"><button class="p2-button secondary" type="button" data-e15-review>Registrar revisión de ${esc(currentMonth || "este mes")}</button></div>`;
+    target.querySelector("[data-e15-review]")?.addEventListener("click", () => {
+      if (!currentMonth) return;
+      const latest = state();
+      const reviews = (latest.e15?.reviews || []).filter((item) => item.monthKey !== currentMonth);
+      save({ ...latest, e15: { ...latest.e15, reviews: [...reviews, { monthKey: currentMonth, completedAt: new Date().toISOString(), notes: "Revisión E15" }] } });
+      renderE15Planning();
+    });
   }
 
   function bindGoalEvents(target) {

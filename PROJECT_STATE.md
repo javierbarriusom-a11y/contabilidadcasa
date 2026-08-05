@@ -4,6 +4,8 @@ Fecha de revisión: 5 de agosto de 2026.
 
 ## Terminado
 
+- E15 queda verificada localmente: los objetivos conservan prioridad, titular, flexibilidad y fuente de financiación; el calendario reúne forecast, cuotas, vencimientos y revisiones; las aportaciones y conflictos respetan capacidad y reserva sin aplicar movimientos automáticamente; y la revisión mensual se registra con confirmación.
+- La puerta local de E15 pasa con 283/283 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA local a 1280×720 y 390×844 mostró el panel E15, sin errores de consola ni desbordamiento horizontal. El shell offline se versionó como `e15a1`.
 - Arquitectura canónica implantada para estado, libro mayor, cálculo mensual y diario, decisiones, workflow, deuda, comparación de acuerdos y persistencia normalizada.
 - P0-1 a P0-5 verificados: libro e identidades estables, Supabase autoritativo, auditoría inmutable, motor único e invariantes como barrera de sincronización.
 - P2-1 a P2-6 verificados: huchas, modelo Javi/Tere/Hogar, alertas, indicadores de comportamiento, documentos y exportación para asesor.
@@ -242,15 +244,15 @@ Fecha de revisión: 5 de agosto de 2026.
 
 ## Pendiente
 
-- E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E16 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Iniciar E15 con objetivos, calendario, aportaciones, conflictos y revisión mensual conectados con el
-forecast y la deuda. E10 se mantiene al final.
+Iniciar E16 con alertas predictivas, explicación de cambios, calidad de predicción, recomendaciones
+trazables y presupuesto de riesgo. E10 se mantiene al final.
 
 ## Decisiones importantes
 
@@ -347,6 +349,7 @@ forecast y la deuda. E10 se mantiene al final.
 
 ## Último commit estable
 
+- Sin commit: cierre de E15 en `canonical-e15-goals.js`, interfaz de objetivos, shell offline, pruebas y documentación. La rama sigue en `main` sobre `31238f1`; `.agents/` continúa sin seguimiento y queda excluida.
 - E14 quedó consolidada en `6603e51` (`feat: verify E14 debt roadmap parity`) y publicada en `main` y
   `origin/main`. No quedan cambios locales del producto sin commit; `.agents/` continúa sin seguimiento
   y queda excluida.

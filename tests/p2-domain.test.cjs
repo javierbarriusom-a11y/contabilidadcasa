@@ -70,3 +70,14 @@ test("los documentos y exportaciones quedan normalizados y versionados", () => {
   assert.equal(state.exportVersion, 4);
   assert.equal(state.exportHistory[0].format, "xlsx");
 });
+
+test("los objetivos E15 conservan prioridad, flexibilidad, financiación y revisión mensual", () => {
+  const state = P2.normalizeState({
+    goals: [{ id: "car", name: "Coche", target: 10000, priority: "high", flexibility: "fixed", fundingSource: "income" }],
+    e15: { reviews: [{ monthKey: "2026-08", completedAt: "2026-08-05T10:00:00Z", notes: "Conciliado" }] },
+  });
+  assert.equal(state.goals[0].priority, "high");
+  assert.equal(state.goals[0].flexibility, "fixed");
+  assert.equal(state.goals[0].fundingSource, "income");
+  assert.equal(state.e15.reviews[0].monthKey, "2026-08");
+});

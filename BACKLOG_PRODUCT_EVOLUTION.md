@@ -277,5 +277,13 @@ privacidad y smoke test. El QA a 1280 px y 390×844 no mostró errores ni desbor
 y recalcular una copia conservó el original y no modificó el plan vigente. La publicación de GitHub
 Pages todavía no se ha comprobado y no se presenta como validada.
 
-El siguiente paso es **E14b** para ofertas, optimización, integración con escenarios y aplicación
-confirmada. E10 y **A5-1/A5-2** quedan al final.
+**E14b verificada y cerrada mediante `6603e51`, con cierre documental `31238f1`:** ofertas,
+optimización con restricciones reales, integración con escenarios, aplicación confirmada y paridad A/B
+del plan heredado están comprobadas. El `iframe` se conserva como respaldo.
+
+**E15 verificada localmente el 5 de agosto de 2026:** objetivos con prioridad, titular, flexibilidad y
+fuente de financiación; calendario unido al forecast y la deuda; aportaciones prudentes, conflictos
+explicados y revisión mensual confirmable. La puerta completa pasa con 283 pruebas, accesibilidad,
+rendimiento, construcción pública, privacidad y smoke test.
+
+El siguiente paso es **E16** para alertas predictivas y explicaciones. E10 y **A5-1/A5-2** quedan al final.

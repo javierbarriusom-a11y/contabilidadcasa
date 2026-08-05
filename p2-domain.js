@@ -49,6 +49,9 @@
       name: text(goal.name) || "Nuevo objetivo",
       type: ["emergency", "car", "project", "other"].includes(goal.type) ? goal.type : "other",
       owner: normalizeOwner(goal.owner, goal.name),
+      priority: ["critical", "high", "medium", "low"].includes(goal.priority) ? goal.priority : "medium",
+      flexibility: ["fixed", "flexible"].includes(goal.flexibility) ? goal.flexibility : "flexible",
+      fundingSource: ["savings", "income", "debt", "other"].includes(goal.fundingSource) ? goal.fundingSource : "savings",
       target: round2(target),
       targetDate: text(goal.targetDate),
       status: ["active", "completed", "paused", "cancelled"].includes(goal.status) ? goal.status : "active",
@@ -226,6 +229,9 @@
       })),
       alertDeliveries:
         state.alertDeliveries && typeof state.alertDeliveries === "object" ? { ...state.alertDeliveries } : {},
+      e15: state.e15 && typeof state.e15 === "object" ? {
+        reviews: (Array.isArray(state.e15.reviews) ? state.e15.reviews : []).slice(-24).map((review) => ({ monthKey: text(review.monthKey), completedAt: text(review.completedAt), notes: text(review.notes) })),
+      } : { reviews: [] },
     };
   }
 
