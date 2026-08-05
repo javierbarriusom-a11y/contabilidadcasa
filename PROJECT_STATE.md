@@ -359,7 +359,7 @@ se mantiene al final.
 
 ## Último commit estable
 
-- La última revisión estable sigue siendo `8388c9d` (`docs: close E15 implementation session`) en `main` y `origin/main`. E16 y la reconciliación documental quedan como cambios locales sin commit; `.agents/` continúa sin seguimiento y queda excluida.
+- E16 queda publicada en `main` y `origin/main` mediante `379ccc2` (`feat: implement E16 predictive monitoring`). No quedan cambios locales del producto sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 
 - E15 quedó consolidada y publicada mediante `5b1ef69` (`feat: implement E15 goals and monthly review`) en `main` y `origin/main`. No quedan cambios del producto sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 - E14 quedó consolidada en `6603e51` (`feat: verify E14 debt roadmap parity`) y publicada en `main` y
