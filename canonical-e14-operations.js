@@ -77,11 +77,12 @@
     const amount = Math.max(0, round2(strategy.settlementAmount ?? strategy.amount));
     const term = Math.max(1, Math.floor(number(strategy.termMonths ?? strategy.duration) || 1));
     const installment = Math.max(0, round2(strategy.installment ?? strategy.payment)) || round2(amount / term);
+    const upfront = Math.max(0, round2(strategy.upfrontAmount ?? strategy.lumpSum));
     const payments = [];
     if (kind === "single-payment") payments.push({ monthKey: series[startIndex]?.monthKey || start, amount, kind });
     if (kind === "refinancing" || kind === "resume-payments") {
       for (let offset = 0; offset < term; offset += 1) {
-        payments.push({ monthKey: series[startIndex + offset]?.monthKey || addMonths(start, offset), amount: installment, kind });
+        payments.push({ monthKey: series[startIndex + offset]?.monthKey || addMonths(start, offset), amount: round2(installment + (offset === 0 ? upfront : 0)), kind });
       }
     }
     return payments.filter((item) => item.monthKey && item.amount > 0);
@@ -105,6 +106,21 @@
       strategy: clone(strategy), payments, rows, totalCost: cost,
       minimumLiquidity: round2(minimumLiquidity), negativeMonths,
       durationMonths: payments.length, feasible: negativeMonths === 0,
+    };
+  }
+
+  function simulatePortfolio(strategies = [], forecast = {}) {
+    const series = Array.isArray(forecast.series) ? forecast.series : [];
+    const payments = (Array.isArray(strategies) ? strategies : []).flatMap((strategy) => paymentSchedule(strategy, forecast));
+    const byMonth = new Map();
+    payments.forEach((payment) => byMonth.set(payment.monthKey, round2((byMonth.get(payment.monthKey) || 0) + payment.amount)));
+    const rows = series.map((month) => ({ monthKey: month.monthKey, payment: byMonth.get(month.monthKey) || 0 }));
+    const paidRows = rows.map((row, index) => row.payment > 0 ? index + 1 : 0);
+    return {
+      schemaId: `${SCHEMA_ID}/portfolio-simulation/v1`, readOnly: true, writesPlan: false,
+      payments, rows, totalCost: round2(rows.reduce((sum, row) => sum + row.payment, 0)),
+      peakPayment: round2(Math.max(0, ...rows.map((row) => row.payment))),
+      durationMonths: Math.max(0, ...paidRows),
     };
   }
 
@@ -168,5 +184,5 @@
     };
   }
 
-  return { SCHEMA_ID, OFFER_SCHEMA_ID, APPLICATION_SCHEMA_ID, REQUIRED_DOCUMENTS, normalizeOffer, paymentSchedule, simulateStrategy, toScenarioEvents, optimize, prepareApplication };
+  return { SCHEMA_ID, OFFER_SCHEMA_ID, APPLICATION_SCHEMA_ID, REQUIRED_DOCUMENTS, normalizeOffer, paymentSchedule, simulateStrategy, simulatePortfolio, toScenarioEvents, optimize, prepareApplication };
 });

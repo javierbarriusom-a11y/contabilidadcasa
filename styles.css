@@ -10502,6 +10502,8 @@ tbody tr:hover {
 .e14b-offer, .e14b-option { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft, #f7fafb); }
 .e14b-offer header, .e14b-option header { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 .e14b-offer p, .e14b-option p { margin: 6px 0 0; color: var(--muted); }
+.e14b-parity { margin-top: 14px; }
+.e14b-parity ul { margin: 8px 0 0; padding-left: 20px; }
 .e14b-option.good { border-color: #79b78f; }
 .e14b-option.warn { border-color: #e2b15b; }
 .e14b-legacy { margin-top: 18px; }

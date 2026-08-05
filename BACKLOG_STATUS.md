@@ -32,15 +32,15 @@ mantiene `Parcial` hasta verificar todos sus tramos.
 | E13a | A8-1, A8-2 y A8-5 | Verificado | Laboratorio efímero de escenarios publicado y sin escrituras |
 | E13b | A8-3, A8-4, A8-6 y A8-7 | Verificado | Simulación prudente, sensibilidad y escenarios recuperables aceptados en escritorio y móvil |
 | E14a | A9-1 a A9-3 | Verificado | Inventario, adaptador canónico de solo lectura y contrato de estrategia publicados |
-| E14b | A9-4 a A9-8 | Parcial | Ofertas, optimización, escenarios y aplicación confirmada verificadas; resta la paridad completa antes de retirar el iframe |
+| E14b | A9-4 a A9-8 | Verificado | Ofertas, optimización, escenarios, aplicación confirmada y paridad del plan heredado verificadas |
 | E15 | A10-1 a A10-5 | Pendiente | Objetivos, calendario, aportaciones, conflictos y revisión mensual |
 | E16 | A11-1 a A11-5 | Pendiente | Alertas predictivas, explicación de cambios y seguimiento del error |
 | E17 | A12-1 a A12-5 | Pendiente | Simplificación de navegación y ayuda por tareas |
 | E18 | A13-1 a A13-6 | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad acompañan cada entrega |
 
-Resumen actual: E1-E9, E11, E12 y E13 están verificadas. E14 continúa parcial: E14a y A9-4 a A9-7
-de E14b están verificadas; A9-8 mantiene el iframe hasta comprobar paridad financiera. Después siguen
-E15, E16/E17 y la evolución continua de E18; E10 se mantiene al final.
+Resumen actual: E1-E9 y E11-E14 están verificadas. La paridad A/B del plan heredado se comprueba frente
+al contrato canónico y el iframe permanece como respaldo. Después siguen E15, E16/E17 y la evolución
+continua de E18; E10 se mantiene al final.
 
 ### Tareas de la entrega activa E14b
 
@@ -50,7 +50,7 @@ E15, E16/E17 y la evolución continua de E18; E10 se mantiene al final.
 | A9-5 | Optimizador con restricciones reales | Verificado | Alta | Prioriza deuda respetando colchón, liquidez mínima, vencimientos, mora y proyectos; expone alternativas no dominadas y sus motivos |
 | A9-6 | Integración con escenarios | Verificado | Alta | Permite probar cada estrategia de deuda en E13 y muestra impacto mensual, peor caja, duración y coste total |
 | A9-7 | Aplicación confirmada al plan | Verificado | Crítica | Solo una estrategia aceptada crea eventos futuros, tras vista previa, documentos mínimos, confirmación y una revisión recuperable |
-| A9-8 | Migración y retirada gradual del `iframe` | Parcial | Media | Conserva datos y mantiene accesible el plan aislado; falta comprobar paridad financiera completa antes de retirarlo |
+| A9-8 | Migración y retirada gradual del `iframe` | Verificado | Media | Extrae el motor heredado, compara pagos, coste, pico y duración a 0,01 €; conserva datos y mantiene el iframe accesible como respaldo |
 
 ## 1. Reglas de gobierno
 
@@ -86,7 +86,7 @@ E15, E16/E17 y la evolución continua de E18; E10 se mantiene al final.
 | E11 | Verificado | Centro de actualización, bandeja de entradas, importación y conciliación completados |
 | E12 | Verificado | Forecast canónico, aprendizaje, estacionalidad y horizonte adaptativo completados |
 | E13 | Verificado | Laboratorio, simulación prudente, correlación, sensibilidad y escenarios reproducibles completados |
-| E14 | Parcial | E14a y A9-4 a A9-7 de E14b están verificadas; A9-8 continúa abierta para completar la paridad financiera |
+| E14 | Verificado | E14a y E14b están verificadas; la paridad A/B del plan heredado queda automatizada y el iframe se conserva como respaldo |
 | E15 | Pendiente | Objetivos, calendario, aportaciones, conflictos y revisión mensual no iniciados |
 | E16 | Pendiente | Seguimiento predictivo y explicaciones no iniciados |
 | E17 | Pendiente | Simplificación de la experiencia por tareas no iniciada |
@@ -252,8 +252,8 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Completar **A9-8 de E14b**: comparar la salida financiera del plan visual heredado y del contrato canónico
-antes de retirar el `iframe`. E10 permanece al final y no bloquea estas mejoras locales.
+Iniciar **E15**: objetivos, calendario, aportaciones, conflictos y revisión mensual conectados con el
+forecast y la deuda. E10 permanece al final y no bloquea estas mejoras locales.
 
 E9 quedó publicada y verificada el 01/08/2026 mediante `ef57e9b`. El workflow `30712474715` completó
 la puerta y el despliegue; Pages sirvió `version.json` con el SHA exacto, los contratos E9 y el shell

@@ -27,6 +27,17 @@ test("E14b carga el contrato de operaciones y mantiene el plan visual como compa
   assert.match(app, /requestOperationConfirmation\(\{/);
 });
 
+test("A9-8 extrae el motor histórico y bloquea retirar el iframe sin paridad", () => {
+  assert.match(html, /legacy-debt-roadmap-engine\.js/);
+  assert.match(html, /canonical-e14-parity\.js/);
+  assert.match(worker, /legacy-debt-roadmap-engine\.js/);
+  assert.match(worker, /canonical-e14-parity\.js/);
+  assert.match(roadmap, /FinanceLegacyDebtRoadmapEngine/);
+  assert.match(app, /renderE14bParity/);
+  assert.match(app, /Alcance verificado: Entidad A\/B/);
+  assert.match(roadmap, /notifyParent\(\);reportHeight\(\)/);
+});
+
 test("el puente entrega un sobre canónico de solo lectura al iframe", () => {
   assert.match(app, /E14DebtAdapter\?\.buildReadModel/);
   assert.match(app, /payload: \{ state: debtRoadmapState, canonical \}/);

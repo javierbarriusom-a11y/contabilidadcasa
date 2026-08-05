@@ -234,21 +234,23 @@ Fecha de revisión: 5 de agosto de 2026.
   filas, construcción pública, privacidad, smoke test y `git diff --check`. El shell offline incluye el
   nuevo contrato de operaciones.
 - Se añadió un manual de usuario en Markdown y Word enlazado desde `README.md`.
+- A9-8 completa la migración gradual: el motor A/B del `iframe` se extrae como función pura y se ejecuta
+  en paralelo con el contrato canónico. La comparación bloquea una retirada ante cualquier diferencia
+  superior a 0,01 € en pagos mensuales, coste total, pico o duración; el iframe sigue disponible como respaldo.
+- La puerta local final de E14 pasa con 276/276 pruebas, accesibilidad estructural, rendimiento con
+  10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`.
 
 ## Pendiente
 
-- E14b está parcialmente verificada: A9-4 a A9-7 ya registran ofertas, optimizan con restricciones,
-  simulan en E13 y aplican solo decisiones documentadas y confirmadas. A9-8 permanece abierta hasta
-  comparar la salida financiera del plan visual heredado y del contrato canónico antes de retirar el `iframe`.
-  E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Completar A9-8 de E14b con una comparación explícita de paridad financiera entre el plan visual heredado
-y el contrato canónico, manteniendo el `iframe` disponible hasta entonces. E10 se mantiene al final.
+Iniciar E15 con objetivos, calendario, aportaciones, conflictos y revisión mensual conectados con el
+forecast y la deuda. E10 se mantiene al final.
 
 ## Decisiones importantes
 
@@ -269,6 +271,9 @@ y el contrato canónico, manteniendo el `iframe` disponible hasta entonces. E10 
 - E14a aplica una frontera equivalente: el adaptador clona sus entradas, solo envía lecturas al `iframe`
   y excluye del guardado los campos canónicos. Tareas, notas y supuestos continúan versionados; aplicar
   ofertas o estrategias al plan requiere E14b y confirmación recuperable.
+- La paridad E14 compara solo Entidad A/B porque ese es el alcance financiero histórico del iframe;
+  Entidad C permanece en el contrato canónico y se declara expresamente fuera de la comparación, nunca
+  como una diferencia silenciosa.
 
 ## Errores conocidos y riesgos
 
@@ -282,9 +287,8 @@ y el contrato canónico, manteniendo el `iframe` disponible hasta entonces. E10 
   construcción y smoke test no reproducen un fallo de aplicación.
 - No hay fallos conocidos en E12b/E13b. Durante el QA se detectó que el primer escenario guardado podía
   desaparecer tras recargar; se añadió una copia local dedicada y la repetición confirmó su recuperación.
-- A9-8 de E14b no está cerrada: el `iframe` heredado continúa accesible y aislado, pero su simulador
-  histórico aún necesita una comparación explícita de paridad financiera con el contrato canónico antes
-  de retirarse.
+- No hay fallos automatizados conocidos en E14. El iframe histórico se conserva como respaldo; cualquier
+  divergencia futura de A/B superior a 0,01 € bloqueará su retirada.
 - No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y

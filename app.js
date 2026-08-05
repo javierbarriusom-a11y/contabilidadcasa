@@ -160,6 +160,7 @@ const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REU
 const DebtContracts = globalThis.FinanceDebtContracts || null;
 const E14DebtAdapter = globalThis.FinanceCanonicalE14DebtAdapter || null;
 const E14DebtOperations = globalThis.FinanceCanonicalE14Operations || null;
+const E14DebtParity = globalThis.FinanceCanonicalE14Parity || null;
 const ExecutiveReadModel = globalThis.FinanceExecutiveReadModel || null;
 const DebtComparator = globalThis.FinanceDebtComparator || null;
 const E7Analysis = globalThis.FinanceCanonicalE7 || null;
@@ -1187,6 +1188,42 @@ function e14bStrategyForOffer(offer) {
   };
 }
 
+function e14bLegacyParityConfig() {
+  const state = debtRoadmapState && typeof debtRoadmapState === "object" ? debtRoadmapState : {};
+  const canonical = E14DebtAdapter?.buildReadModel({
+    roadmapState: state,
+    contracts: canonicalDebtContractRows(),
+    forecast: e14bForecast(),
+  });
+  const values = canonical?.canonicalValues || {};
+  const required = ["cb_strategy", "bk_strategy", "cb_discount", "bk_discount", "cb_start", "bk_start", "cb_term", "bk_term"];
+  if (!canonical?.forecast?.valid || required.some((key) => state[key] === undefined)) return { config: null, reason: "El plan visual heredado aún no ha entregado sus supuestos completos." };
+  return {
+    config: {
+      months: Math.max(12, Number(state.fc_months || 60)), capacity: Number(values.monthly || 0),
+      liquidity: Number(values.liquidity || 0), preserveCash: Number(state.preserveCash || 0), baseMonth: values.baseMonth,
+      accounts: [
+        { amount: values.cb_amount, strategy: state.cb_strategy, discount: state.cb_discount, start: state.cb_start, lump: state.cb_lump, apr: state.cb_apr, term: state.cb_term, financePct: state.cb_finance_pct },
+        { amount: values.bk_amount, strategy: state.bk_strategy, discount: state.bk_discount, start: state.bk_start, lump: state.bk_lump, apr: state.bk_apr, term: state.bk_term, financePct: state.bk_finance_pct },
+      ],
+    },
+    reason: "",
+  };
+}
+
+function renderE14bParity() {
+  const container = qs("e14bParity");
+  if (!container) return;
+  if (!E14DebtParity) { container.innerHTML = "<p class=\"e14b-status\">El comparador de paridad no está disponible.</p>"; return; }
+  const entityC = canonicalDebtContractRows().find((contract) => normalizedText(contract.entity) === "entidad c" && Number(contract.currentPrincipal || 0) > 0);
+  const { config, reason } = e14bLegacyParityConfig();
+  if (!config) { container.innerHTML = `<p class="e14b-status">Paridad pendiente: ${escapeHtml(reason)}</p>`; return; }
+  const parity = E14DebtParity.compare(config);
+  const differences = parity.differences.length ? `<ul>${parity.differences.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : "<p>Pagos mensuales, coste total, pico y duración coinciden con tolerancia de 0,01 €.</p>";
+  const scope = entityC ? `<p>Alcance verificado: Entidad A/B. Entidad C (${money(entityC.currentPrincipal, true)}) es canónica y no pertenecía al cálculo histórico; queda fuera de esta comparación de migración.</p>` : "";
+  container.innerHTML = `<article class="e14b-option ${parity.valid ? "good" : "warn"}"><header><strong>Paridad financiera del plan heredado</strong><span>${parity.valid ? "Verificada" : "Diferencias detectadas"}</span></header>${differences}${scope}</article>`;
+}
+
 function e14bSetStatus(message) {
   const status = qs("e14bStatus");
   if (status) status.textContent = message;
@@ -1206,6 +1243,7 @@ function renderE14bPanel() {
   qs("e14bOffers").innerHTML = offers.length
     ? offers.map((offer) => `<article class="e14b-offer ${offer.id === selected?.id ? "selected" : ""}"><header><strong>${escapeHtml(offer.counterpart || "Sin contraparte")}</strong><span>${escapeHtml(offer.status)}</span></header><p>${money(offer.amount, true)} · vence ${escapeHtml(offer.expiresAt || "sin fecha")} · documentación ${offer.documents?.length || 0}/3</p><button type="button" class="secondary-button" data-e14b-select-offer="${escapeHtml(offer.id)}">${offer.id === selected?.id ? "Oferta seleccionada" : "Seleccionar"}</button></article>`).join("")
     : "<p class=\"e14b-status\">Todavía no hay ofertas registradas. Añade una para compararla con el plan vigente.</p>";
+  renderE14bParity();
   if (!selected || !forecast?.valid) {
     qs("e14bComparison").innerHTML = !forecast?.valid ? "<p class=\"e14b-status\">El forecast canónico todavía no está disponible para comparar.</p>" : "";
     return;
