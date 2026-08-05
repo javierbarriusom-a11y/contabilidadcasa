@@ -343,9 +343,9 @@ y el contrato canónico, manteniendo el `iframe` disponible hasta entonces. E10 
 
 ## Último commit estable
 
-- En el cierre local de E14b, la rama es `main` y el último commit estable previo es `f3bf74b`
-  (`docs: close validated E12b and E13b session`). Quedan preparados para commit los cambios E14b, la
-  actualización de estado y los manuales; `.agents/` continúa sin seguimiento y queda excluida.
+- La sesión E14b quedó consolidada en `98f1c71` (`feat: implement E14b debt operations`) y publicada
+  en `main` y `origin/main`. No quedan cambios locales del producto sin commit; `.agents/` continúa sin
+  seguimiento y queda excluida.
 
 - La revisión estable actual es `bdf6367` (`feat: complete E12b and E13b forecasting`) en `main` y
   `origin/main`. Contiene E12b/E13b, sus pruebas y documentación. Solo este cierre documental queda
