@@ -347,9 +347,9 @@ forecast y la deuda. E10 se mantiene al final.
 
 ## Último commit estable
 
-- La sesión E14b quedó consolidada en `98f1c71` (`feat: implement E14b debt operations`) y publicada
-  en `main` y `origin/main`. No quedan cambios locales del producto sin commit; `.agents/` continúa sin
-  seguimiento y queda excluida.
+- E14 quedó consolidada en `6603e51` (`feat: verify E14 debt roadmap parity`) y publicada en `main` y
+  `origin/main`. No quedan cambios locales del producto sin commit; `.agents/` continúa sin seguimiento
+  y queda excluida.
 
 - La revisión estable actual es `bdf6367` (`feat: complete E12b and E13b forecasting`) en `main` y
   `origin/main`. Contiene E12b/E13b, sus pruebas y documentación. Solo este cierre documental queda
