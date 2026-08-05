@@ -159,6 +159,7 @@ const CURRENT_REUNIFIED_DEBT_INSTALLMENTS = 36;
 const CURRENT_REUNIFIED_DEBT_COST = CURRENT_REUNIFIED_DEBT_PAYMENT * CURRENT_REUNIFIED_DEBT_INSTALLMENTS;
 const DebtContracts = globalThis.FinanceDebtContracts || null;
 const E14DebtAdapter = globalThis.FinanceCanonicalE14DebtAdapter || null;
+const E14DebtOperations = globalThis.FinanceCanonicalE14Operations || null;
 const ExecutiveReadModel = globalThis.FinanceExecutiveReadModel || null;
 const DebtComparator = globalThis.FinanceDebtComparator || null;
 const E7Analysis = globalThis.FinanceCanonicalE7 || null;
@@ -1148,6 +1149,155 @@ function setupDebtRoadmapBridge() {
     debtRoadmapState = JSON.parse(JSON.stringify(event.data.payload));
     queueRemoteSave();
   });
+}
+
+function e14bWorkspace() {
+  scenarioSettings.e14Debt = scenarioSettings.e14Debt && typeof scenarioSettings.e14Debt === "object" ? scenarioSettings.e14Debt : {};
+  const state = scenarioSettings.e14Debt;
+  state.offers = Array.isArray(state.offers) ? state.offers : [];
+  state.selectedOfferId = String(state.selectedOfferId || "");
+  return state;
+}
+
+function e14bForecast() {
+  return canonicalScenarioResults.active?.forecast || canonicalScenarioResults.base?.forecast || null;
+}
+
+function e14bSelectedOffer() {
+  const workspace = e14bWorkspace();
+  return workspace.offers.find((offer) => offer.id === workspace.selectedOfferId) || workspace.offers.at(-1) || null;
+}
+
+function e14bStrategyForOffer(offer) {
+  if (!offer) return null;
+  const forecast = e14bForecast();
+  const contract = debtTargetById(offer.contractId, { includePlanned: true });
+  return {
+    id: `strategy-${offer.id}`,
+    label: `Oferta ${offer.counterpart || "sin contraparte"}`,
+    contractId: offer.contractId,
+    type: offer.paymentType,
+    settlementAmount: offer.amount,
+    installment: offer.installment,
+    termMonths: offer.termMonths,
+    startMonth: forecast?.series?.[0]?.monthKey || "",
+    maturityMonth: contract?.maturityMonth || contract?.maturity,
+    arrears: contract?.arrearsEstimated || 0,
+    paymentStatus: contract?.paymentStatus || (debtTargetIsSuspended(contract) ? "suspended" : "active"),
+  };
+}
+
+function e14bSetStatus(message) {
+  const status = qs("e14bStatus");
+  if (status) status.textContent = message;
+}
+
+function renderE14bPanel() {
+  if (!qs("e14bContract") || !E14DebtOperations) return;
+  const targets = debtTargetOptions({ includePlanned: true });
+  const select = qs("e14bContract");
+  const previous = select.value;
+  select.innerHTML = targets.map((target) => `<option value="${escapeHtml(target.id)}">${escapeHtml(target.entity)} · ${escapeHtml(target.type)} · ${money(target.currentPrincipal ?? target.principal, true)}</option>`).join("");
+  select.value = targets.some((target) => target.id === previous) ? previous : targets[0]?.id || "";
+  const workspace = e14bWorkspace();
+  const forecast = e14bForecast();
+  const offers = workspace.offers;
+  const selected = e14bSelectedOffer();
+  qs("e14bOffers").innerHTML = offers.length
+    ? offers.map((offer) => `<article class="e14b-offer ${offer.id === selected?.id ? "selected" : ""}"><header><strong>${escapeHtml(offer.counterpart || "Sin contraparte")}</strong><span>${escapeHtml(offer.status)}</span></header><p>${money(offer.amount, true)} · vence ${escapeHtml(offer.expiresAt || "sin fecha")} · documentación ${offer.documents?.length || 0}/3</p><button type="button" class="secondary-button" data-e14b-select-offer="${escapeHtml(offer.id)}">${offer.id === selected?.id ? "Oferta seleccionada" : "Seleccionar"}</button></article>`).join("")
+    : "<p class=\"e14b-status\">Todavía no hay ofertas registradas. Añade una para compararla con el plan vigente.</p>";
+  if (!selected || !forecast?.valid) {
+    qs("e14bComparison").innerHTML = !forecast?.valid ? "<p class=\"e14b-status\">El forecast canónico todavía no está disponible para comparar.</p>" : "";
+    return;
+  }
+  const strategies = offers.map(e14bStrategyForOffer).filter(Boolean);
+  const reserve = Math.max(0, Number(agentCaixaFloor?.() || 0));
+  const optimization = E14DebtOperations.optimize({ forecast, reserve, strategies });
+  const strategy = e14bStrategyForOffer(selected);
+  const simulation = E14DebtOperations.simulateStrategy(strategy, forecast);
+  const e13 = window.FinanceCanonicalE13?.buildLab(forecast, E14DebtOperations.toScenarioEvents(strategy, forecast));
+  workspace.lastComparison = {
+    selectedOfferId: selected.id,
+    recommendedId: optimization.recommendedId,
+    reserve,
+    totalCost: simulation.totalCost,
+    minimumLiquidity: simulation.minimumLiquidity,
+    durationMonths: simulation.durationMonths,
+    generatedAt: new Date().toISOString(),
+  };
+  const base = e13?.scenarios?.find((item) => item.id === "base")?.metrics;
+  const alternatives = optimization.candidates.map((candidate) => `<li>${escapeHtml(candidate.id)}: ${money(candidate.totalCost, true)}, caja mínima ${money(candidate.minimumLiquidity, true)}, ${candidate.eligible ? (optimization.frontierIds.includes(candidate.id) ? "no dominada" : "dominada por otra alternativa segura") : escapeHtml(candidate.constraintIssues.concat(candidate.reserveSafe ? [] : ["reserve-broken"]).join(", "))}</li>`).join("");
+  qs("e14bComparison").innerHTML = `<article class="e14b-option ${simulation.minimumLiquidity >= reserve ? "good" : "warn"}"><header><strong>Oferta seleccionada · ${escapeHtml(selected.counterpart)}</strong><span>${simulation.minimumLiquidity >= reserve ? "Reserva protegida" : "Reserva insuficiente"}</span></header><p>Coste total ${money(simulation.totalCost, true)} · caja mínima ${money(simulation.minimumLiquidity, true)} · ${simulation.durationMonths} mes(es) · ${simulation.negativeMonths} mes(es) negativos.</p><p>Escenario E13 de solo lectura: caja mínima ${money(base?.minChecking || 0, true)} · recuperación ${escapeHtml(base?.recoveryMonth || "sin ruptura")} · no ha modificado el plan.</p><p>${escapeHtml(optimization.reason)} ${optimization.recommendedId ? `Recomendada: ${escapeHtml(optimization.recommendedId)}.` : ""}</p><p><strong>Alternativas y restricciones</strong></p><ul>${alternatives}</ul></article>`;
+}
+
+function saveE14bOffer() {
+  if (!E14DebtOperations) return;
+  const contract = debtTargetById(qs("e14bContract")?.value, { includePlanned: true });
+  const documents = [
+    qs("e14bDocumentOffer")?.checked ? "offer" : "",
+    qs("e14bDocumentAuthority")?.checked ? "identity-or-authority" : "",
+    qs("e14bDocumentTerms")?.checked ? "payment-terms" : "",
+  ].filter(Boolean);
+  const offer = E14DebtOperations.normalizeOffer({
+    id: `offer-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    contractId: contract?.id,
+    counterpart: qs("e14bCounterpart")?.value,
+    expiresAt: qs("e14bExpiresAt")?.value,
+    amount: parseAmount(qs("e14bAmount")?.value),
+    paymentType: qs("e14bPaymentType")?.value,
+    installment: parseAmount(qs("e14bInstallment")?.value),
+    termMonths: Number(qs("e14bTermMonths")?.value || 1),
+    documents,
+    status: qs("e14bAccepted")?.checked ? "accepted" : "received",
+  }, contract || {});
+  if (!offer.valid) { e14bSetStatus(`No se guardó la oferta: ${offer.issues.join(", ")}.`); return; }
+  const workspace = e14bWorkspace();
+  workspace.offers.push(offer);
+  workspace.selectedOfferId = offer.id;
+  queueRemoteSave();
+  renderE14bPanel();
+  e14bSetStatus("Oferta guardada. Todavía no se ha creado ningún evento en el plan.");
+}
+
+function compareE14bOffer() {
+  const offer = e14bSelectedOffer();
+  if (!offer) { e14bSetStatus("Guarda o selecciona una oferta antes de comparar."); return; }
+  renderE14bPanel();
+  e14bSetStatus("Comparación actualizada contra el forecast y el laboratorio E13. Sigue siendo de solo lectura.");
+}
+
+async function applyE14bOffer() {
+  const offer = e14bSelectedOffer();
+  const forecast = e14bForecast();
+  const target = debtTargetById(offer?.contractId, { includePlanned: true });
+  if (!offer || !forecast || !target || !E14DebtOperations) { e14bSetStatus("Selecciona una oferta y una deuda válidas antes de aplicar."); return; }
+  const strategy = e14bStrategyForOffer(offer);
+  const simulation = E14DebtOperations.simulateStrategy(strategy, forecast);
+  const reserve = Math.max(0, Number(agentCaixaFloor?.() || 0));
+  const reason = await requestOperationConfirmation({
+    title: "Aplicar estrategia de deuda",
+    message: `Se creará una revisión recuperable para ${offer.counterpart} por ${money(offer.amount, true)}. La vista previa estima una caja mínima de ${money(simulation.minimumLiquidity, true)} frente a una reserva de ${money(reserve, true)}.`,
+    defaultReason: "Oferta de deuda aceptada tras revisión documental",
+    confirmLabel: "Aplicar al plan",
+  });
+  if (!reason) return;
+  const application = E14DebtOperations.prepareApplication({ offer, contract: target, strategy, reason, simulation: { ...simulation, reserveSafe: simulation.minimumLiquidity >= reserve } });
+  if (!application.valid) { e14bSetStatus(`No se aplicó: ${application.issues.join(", ")}.`); return; }
+  if (debtLiquidations.some((item) => item.targetId === target.id)) { e14bSetStatus("Esta deuda ya tiene una decisión aplicada; revísala o deshazla antes de duplicarla."); return; }
+  const monthIndex = Math.max(0, forecast.series.findIndex((month) => month.monthKey === strategy.startMonth));
+  const rawMode = offer.paymentType === "refinancing" ? "refinance" : offer.paymentType === "resume-payments" ? "retomar" : "fixed";
+  const decision = debtDecisionFromValues({
+    targetId: target.id,
+    name: `E14b · ${offer.counterpart} · ${target.entity}`,
+    amount: offer.amount,
+    relief: debtTargetIsSuspended(target) ? 0 : debtMonthlyReliefForMode(target, rawMode),
+    rawMode,
+    monthIndex,
+    duration: Math.max(1, offer.termMonths || 1),
+  });
+  decision.e14Application = { ...application, appliedAt: new Date().toISOString(), simulation: { totalCost: simulation.totalCost, minimumLiquidity: simulation.minimumLiquidity, negativeMonths: simulation.negativeMonths } };
+  applyDebtDecision(decision);
+  e14bSetStatus("Estrategia aplicada tras confirmación. Se creó una decisión recuperable y se conserva la oferta original.");
 }
 
 function refreshCanonicalSnapshot(reason = "state-change", options = {}) {
@@ -17722,6 +17872,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "new-life-definitive":
       renderNewLifeDefinitive();
       break;
+    case "debt-roadmap":
+      renderE14bPanel();
+      break;
     case "visual-detail":
       renderVisualDetail();
       break;
@@ -17919,6 +18072,16 @@ async function init() {
   qs("alertRuleList")?.addEventListener("click", handleAlertRuleAction);
   qs("e6CoverageForm")?.addEventListener("submit", saveE6Coverage);
   qs("e6CoverageReset")?.addEventListener("click", resetE6Coverage);
+  qs("e14bSaveOffer")?.addEventListener("click", saveE14bOffer);
+  qs("e14bCompare")?.addEventListener("click", compareE14bOffer);
+  qs("e14bApply")?.addEventListener("click", applyE14bOffer);
+  qs("e14bOffers")?.addEventListener("click", (event) => {
+    const id = event.target.closest("[data-e14b-select-offer]")?.dataset.e14bSelectOffer;
+    if (!id) return;
+    e14bWorkspace().selectedOfferId = id;
+    queueRemoteSave();
+    renderE14bPanel();
+  });
 
   controls.forEach((key) => qs(key).addEventListener("input", scheduleRender));
   qs("balanceDate").addEventListener("change", () => {

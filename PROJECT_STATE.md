@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 2 de agosto de 2026.
+Fecha de revisión: 5 de agosto de 2026.
 
 ## Terminado
 
@@ -224,18 +224,31 @@ Fecha de revisión: 2 de agosto de 2026.
   266/266 pruebas, accesibilidad, rendimiento, construcción, privacidad, smoke test y `git diff --check`.
 - La implementación y su documentación quedaron publicadas en `origin/main` mediante `bdf6367`
   (`feat: complete E12b and E13b forecasting`). GitHub Pages no se comprobó en este cierre.
+- E14b completa A9-4 a A9-7: las ofertas normalizadas conservan contraparte, vigencia, documentos y
+  condiciones; el optimizador compara alternativas no dominadas contra la reserva, vencimiento, mora y
+  proyectos del forecast; y cada estrategia se evalúa como un escenario E13 de solo lectura.
+- Una estrategia solo se incorpora al plan tras comprobar oferta aceptada, documentación mínima, reserva,
+  motivo y confirmación accesible. La decisión resultante conserva la oferta y la simulación para que sea
+  recuperable mediante el flujo de revisiones existente.
+- La puerta local de E14b pasa con 272/272 pruebas, accesibilidad estructural, rendimiento con 10.000
+  filas, construcción pública, privacidad, smoke test y `git diff --check`. El shell offline incluye el
+  nuevo contrato de operaciones.
+- Se añadió un manual de usuario en Markdown y Word enlazado desde `README.md`.
 
 ## Pendiente
 
-- E14b y E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
+- E14b está parcialmente verificada: A9-4 a A9-7 ya registran ofertas, optimizan con restricciones,
+  simulan en E13 y aplican solo decisiones documentadas y confirmadas. A9-8 permanece abierta hasta
+  comparar la salida financiera del plan visual heredado y del contrato canónico antes de retirar el `iframe`.
+  E15 a E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Iniciar E14b con ofertas y negociación, optimización bajo restricciones reales, integración con
-escenarios, aplicación confirmada y retirada gradual del `iframe`. E10 se mantiene al final.
+Completar A9-8 de E14b con una comparación explícita de paridad financiera entre el plan visual heredado
+y el contrato canónico, manteniendo el `iframe` disponible hasta entonces. E10 se mantiene al final.
 
 ## Decisiones importantes
 
@@ -269,6 +282,9 @@ escenarios, aplicación confirmada y retirada gradual del `iframe`. E10 se manti
   construcción y smoke test no reproducen un fallo de aplicación.
 - No hay fallos conocidos en E12b/E13b. Durante el QA se detectó que el primer escenario guardado podía
   desaparecer tras recargar; se añadió una copia local dedicada y la repetición confirmó su recuperación.
+- A9-8 de E14b no está cerrada: el `iframe` heredado continúa accesible y aislado, pero su simulador
+  histórico aún necesita una comparación explícita de paridad financiera con el contrato canónico antes
+  de retirarse.
 - No hay fallos automatizados conocidos en el cierre E11b: 242/242 pruebas y la puerta completa pasan.
 - No hay fallos automatizados conocidos en E5; el esquema y las operaciones remotas están verificados.
 - No hay fallos automatizados conocidos en E6; la suite asciende a 148/148 pruebas y la persistencia y
@@ -326,6 +342,10 @@ escenarios, aplicación confirmada y retirada gradual del `iframe`. E10 se manti
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
 ## Último commit estable
+
+- En el cierre local de E14b, la rama es `main` y el último commit estable previo es `f3bf74b`
+  (`docs: close validated E12b and E13b session`). Quedan preparados para commit los cambios E14b, la
+  actualización de estado y los manuales; `.agents/` continúa sin seguimiento y queda excluida.
 
 - La revisión estable actual es `bdf6367` (`feat: complete E12b and E13b forecasting`) en `main` y
   `origin/main`. Contiene E12b/E13b, sus pruebas y documentación. Solo este cierre documental queda

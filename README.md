@@ -16,7 +16,10 @@ Copia de trabajo independiente del dashboard financiero familiar. Esta version s
 - Fase 9: comparador trazable de acuerdos y confirmación explícita antes de afectar al plan.
 - Fase 10: persistencia Supabase normalizada, auditoría inmutable y restauración versionada.
 
-La documentación funcional de la fase actual está en [PHASE_10.md](PHASE_10.md). El estado completo del backlog está en [BACKLOG_STATUS.md](BACKLOG_STATUS.md).
+La guía práctica para trabajar con la aplicación está disponible en
+[Markdown](MANUAL_USUARIO.md) y en [Word](MANUAL_USUARIO_FINANZAS_CASA.docx).
+La documentación funcional de la fase actual está en [PHASE_10.md](PHASE_10.md) y el estado completo
+del backlog está en [BACKLOG_STATUS.md](BACKLOG_STATUS.md).
 
 La navegación principal usa `Actualizar` como matriz temporal de partidas previstas, resultados y mínimos. El plan visual de deuda consume contratos, liquidez, capacidad y forecast canónicos mediante un adaptador de solo lectura; únicamente sus tareas, notas y supuestos propios se sincronizan dentro de las copias versionadas.
 

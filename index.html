@@ -566,19 +566,38 @@
           <section class="debt-roadmap-view view-section" id="debt-roadmap">
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker">Conectado en solo lectura</p>
+                <p class="panel-kicker">E14b · negociación y aplicación segura</p>
                 <h2>Plan visual de deuda</h2>
-                <p>Lee contratos, liquidez, capacidad y forecast canónicos sin modificarlos. Sus tareas, notas y supuestos se incluyen en las copias versionadas y en la sincronización con Supabase.</p>
+                <p>Registra ofertas, compara estrategias contra el forecast y aplica solo una decisión confirmada y recuperable. El plan visual anterior permanece disponible durante la migración.</p>
               </div>
-              <span class="sync-badge">Sincronizado con el estado</span>
+              <span class="sync-badge">Migración gradual</span>
             </div>
+            <article class="e14b-native-panel" aria-labelledby="e14bTitle">
+              <div class="module-heading"><div><p class="panel-kicker">Nuevo flujo canónico</p><h3 id="e14bTitle">Ofertas, optimización y simulación</h3><p>La comparación no escribe en el plan. Para aplicar se exige una oferta aceptada, documentos mínimos, reserva protegida y confirmación con motivo.</p></div></div>
+              <div class="e14b-form">
+                <label><span>Deuda</span><select id="e14bContract"></select></label>
+                <label><span>Contraparte</span><input id="e14bCounterpart" type="text" placeholder="Entidad o gestora" /></label>
+                <label><span>Vigencia hasta</span><input id="e14bExpiresAt" type="month" /></label>
+                <label><span>Importe total pactado</span><input id="e14bAmount" type="number" min="0" step="0.01" /></label>
+                <label><span>Modalidad</span><select id="e14bPaymentType"><option value="single-payment">Pago único</option><option value="refinancing">Refinanciación</option><option value="resume-payments">Retomar pagos</option></select></label>
+                <label><span>Cuota mensual</span><input id="e14bInstallment" type="number" min="0" step="0.01" /></label>
+                <label><span>Duración (meses)</span><input id="e14bTermMonths" type="number" min="1" step="1" value="1" /></label>
+              </div>
+              <fieldset class="e14b-documents"><legend>Documentación disponible</legend><label><input id="e14bDocumentOffer" type="checkbox" /> Oferta o acuerdo</label><label><input id="e14bDocumentAuthority" type="checkbox" /> Identidad o mandato</label><label><input id="e14bDocumentTerms" type="checkbox" /> Condiciones de pago</label><label><input id="e14bAccepted" type="checkbox" /> Oferta aceptada expresamente</label></fieldset>
+              <div class="e14b-actions"><button id="e14bSaveOffer" type="button">Guardar oferta para comparar</button><button id="e14bCompare" class="secondary-button" type="button">Optimizar y simular</button><button id="e14bApply" class="danger-button" type="button">Aplicar estrategia confirmada</button></div>
+              <p id="e14bStatus" class="e14b-status" role="status"></p>
+              <div id="e14bOffers" class="e14b-offers"></div>
+              <div id="e14bComparison" class="e14b-comparison"></div>
+            </article>
+            <details class="e14b-legacy"><summary>Plan visual anterior (compatibilidad durante la migración)</summary><p>Se conserva para consultar tareas, notas y supuestos anteriores. Los datos canónicos no pueden editarse desde este módulo.</p>
             <iframe
               id="debtRoadmapFrame"
               class="debt-roadmap-frame"
-              src="debt-roadmap.html?v=20260731e2"
+              src="debt-roadmap.html?v=20260805e14b1"
               title="Plan visual de deuda"
               loading="lazy"
             ></iframe>
+            </details>
           </section>
 
           <section class="new-life-definitive view-section" id="new-life-definitive">
@@ -2453,6 +2472,7 @@
     <script src="canonical-daily-engine.js?v=20260714a"></script>
     <script src="canonical-debt-contracts.js?v=20260714b"></script>
     <script src="canonical-e14-debt-adapter.js?v=20260802e14a1"></script>
+    <script src="canonical-e14-operations.js?v=20260805e14b1"></script>
     <script src="executive-read-model.js?v=20260801e6a"></script>
     <script src="canonical-debt-comparator.js?v=20260715a"></script>
     <script src="canonical-e7-analysis.js?v=20260801e7a"></script>

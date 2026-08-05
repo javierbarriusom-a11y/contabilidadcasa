@@ -9,7 +9,7 @@ conflictos remotos o un despliegue defectuoso.
 
 ## 0. Estado maestro de entregas
 
-Esta tabla reconcilia el historial E1-E9 con el backlog de evolución posterior. Para el detalle de
+Esta tabla reconcilia el historial E1-E9 con las entregas E10-E18 del backlog de evolución. Para el detalle de
 E10-E18, la referencia vigente es `BACKLOG_PRODUCT_EVOLUTION.md`. Una entrega dividida en tramos se
 mantiene `Parcial` hasta verificar todos sus tramos.
 
@@ -32,26 +32,25 @@ mantiene `Parcial` hasta verificar todos sus tramos.
 | E13a | A8-1, A8-2 y A8-5 | Verificado | Laboratorio efímero de escenarios publicado y sin escrituras |
 | E13b | A8-3, A8-4, A8-6 y A8-7 | Verificado | Simulación prudente, sensibilidad y escenarios recuperables aceptados en escritorio y móvil |
 | E14a | A9-1 a A9-3 | Verificado | Inventario, adaptador canónico de solo lectura y contrato de estrategia publicados |
-| E14b | A9-4 a A9-8 | Pendiente | Ofertas, optimización, escenarios, aplicación confirmada y retirada gradual del iframe |
+| E14b | A9-4 a A9-8 | Parcial | Ofertas, optimización, escenarios y aplicación confirmada verificadas; resta la paridad completa antes de retirar el iframe |
 | E15 | A10-1 a A10-5 | Pendiente | Objetivos, calendario, aportaciones, conflictos y revisión mensual |
 | E16 | A11-1 a A11-5 | Pendiente | Alertas predictivas, explicación de cambios y seguimiento del error |
 | E17 | A12-1 a A12-5 | Pendiente | Simplificación de navegación y ayuda por tareas |
 | E18 | A13-1 a A13-6 | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad acompañan cada entrega |
 
-Resumen actual: E1-E9, E11, E12 y E13 están verificadas. E14 continúa parcial, con E14a verificada y
-E14b pendiente. Después siguen E15, E16/E17 y la evolución continua de E18; E10 se mantiene al final.
+Resumen actual: E1-E9, E11, E12 y E13 están verificadas. E14 continúa parcial: E14a y A9-4 a A9-7
+de E14b están verificadas; A9-8 mantiene el iframe hasta comprobar paridad financiera. Después siguen
+E15, E16/E17 y la evolución continua de E18; E10 se mantiene al final.
 
-### Tareas de la entrega activa E12b/E13b
+### Tareas de la entrega activa E14b
 
-| ID | Entrega | Descripción | Estado | Resultado verificado |
+| ID | Desarrollo | Estado | Prioridad | Criterio de aceptación |
 | --- | --- | --- | --- | --- |
-| A7-4 | E12b | Aprendizaje de desviaciones | Verificado | Compara previsto y real por concepto y propone correcciones futuras que solo se aplican tras confirmación |
-| A7-5 | E12b | Estacionalidad e ingresos irregulares | Verificado | Detecta patrones únicamente con histórico conciliado suficiente, mostrando tamaño de muestra y confianza |
-| A7-6 | E12b | Horizonte adaptativo | Verificado | Ofrece detalle mensual a corto plazo y bandas trimestrales o anuales a largo plazo sin falsa precisión |
-| A8-3 | E13b | Simulación probabilística prudente | Verificado | Usa histórico suficiente o rangos manuales justificados y muestra percentiles, muestra y advertencias |
-| A8-4 | E13b | Riesgos simultáneos y correlación | Verificado | Evita combinaciones incompatibles y documenta dependencias o ausencia de reglas entre riesgos |
-| A8-6 | E13b | Sensibilidad y factores dominantes | Verificado | Identifica los tres supuestos con mayor impacto y el umbral estimado que rompería el plan |
-| A8-7 | E13b | Escenarios guardados y reproducibles | Verificado | Conserva versión de datos y supuestos, mantiene el original y recalcula una copia contra datos nuevos |
+| A9-4 | Ofertas y negociación | Verificado | Alta | Registra oferta, contraparte, vigencia, documentación y condiciones; compara coste total, caja y riesgos frente al plan vigente |
+| A9-5 | Optimizador con restricciones reales | Verificado | Alta | Prioriza deuda respetando colchón, liquidez mínima, vencimientos, mora y proyectos; expone alternativas no dominadas y sus motivos |
+| A9-6 | Integración con escenarios | Verificado | Alta | Permite probar cada estrategia de deuda en E13 y muestra impacto mensual, peor caja, duración y coste total |
+| A9-7 | Aplicación confirmada al plan | Verificado | Crítica | Solo una estrategia aceptada crea eventos futuros, tras vista previa, documentos mínimos, confirmación y una revisión recuperable |
+| A9-8 | Migración y retirada gradual del `iframe` | Parcial | Media | Conserva datos y mantiene accesible el plan aislado; falta comprobar paridad financiera completa antes de retirarlo |
 
 ## 1. Reglas de gobierno
 
@@ -78,14 +77,27 @@ E14b pendiente. Después siguen E15, E16/E17 y la evolución continua de E18; E1
 | P3 Servicios externos | 3 | 3 | 0 | 0 | 0 | Contratos opcionales publicados y verificados con todos los servicios apagados |
 | E10 Activación externa | 6 | 0 | 0 | 0 | 6 | Activaciones independientes pendientes de proveedor, backend y aceptación real |
 | UX Experiencia principal | 6 | 6 | 0 | 0 | 0 | Experiencia principal verificada en escritorio y móvil |
-| **Total ampliado** | **35** | **29** | **0** | **0** | **6** | **E9 queda cerrada; la activación externa se controla por separado en E10** |
+| **Total ampliado** | **35** | **29** | **0** | **0** | **6** | **La base E1-E9 está cerrada; las seis activaciones externas de E10 siguen aplazadas** |
+
+### Situación del ciclo de evolución E11-E18
+
+| Entrega | Estado | Lectura actual |
+| --- | --- | --- |
+| E11 | Verificado | Centro de actualización, bandeja de entradas, importación y conciliación completados |
+| E12 | Verificado | Forecast canónico, aprendizaje, estacionalidad y horizonte adaptativo completados |
+| E13 | Verificado | Laboratorio, simulación prudente, correlación, sensibilidad y escenarios reproducibles completados |
+| E14 | Parcial | E14a y A9-4 a A9-7 de E14b están verificadas; A9-8 continúa abierta para completar la paridad financiera |
+| E15 | Pendiente | Objetivos, calendario, aportaciones, conflictos y revisión mensual no iniciados |
+| E16 | Pendiente | Seguimiento predictivo y explicaciones no iniciados |
+| E17 | Pendiente | Simplificación de la experiencia por tareas no iniciada |
+| E18 | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad deben acompañar cada entrega |
 
 ### Correcciones respecto al backlog anterior
 
 - P0-1 a P0-6 están verificados. P0-6 incluye restauración autenticada y transaccional en Supabase.
 - P2-1 a P2-6 están verificados; el backlog anterior todavía los describía como parciales o pendientes.
 - UX-1 a UX-6 están verificados, aunque el backlog anterior no los mantenía como bloque propio.
-- P1-1, P1-2, P1-6 y P1-8 están verificados; P1-3, P1-4, P1-5 y P1-7 continúan parciales para E7.
+- P1-1 a P1-8 están verificados tras el cierre de E6 y E7.
 - P3-3 se mantiene separado de P3-2 porque preparar acciones seguras es distinto de responder consultas.
 
 ## 3. Riesgos actuales que condicionan el orden
@@ -240,8 +252,8 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Iniciar **E14b**: ofertas y negociación, optimización con restricciones reales, integración con escenarios,
-aplicación confirmada y retirada gradual del `iframe`. E10 permanece al final y no bloquea estas mejoras locales.
+Completar **A9-8 de E14b**: comparar la salida financiera del plan visual heredado y del contrato canónico
+antes de retirar el `iframe`. E10 permanece al final y no bloquea estas mejoras locales.
 
 E9 quedó publicada y verificada el 01/08/2026 mediante `ef57e9b`. El workflow `30712474715` completó
 la puerta y el despliegue; Pages sirvió `version.json` con el SHA exacto, los contratos E9 y el shell

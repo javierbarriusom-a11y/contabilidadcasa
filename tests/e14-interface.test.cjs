@@ -16,6 +16,17 @@ test("E14a carga y publica el adaptador antes de la aplicación", () => {
   assert.match(worker, /canonical-e14-debt-adapter\.js/);
 });
 
+test("E14b carga el contrato de operaciones y mantiene el plan visual como compatibilidad", () => {
+  assert.ok(html.indexOf("canonical-e14-operations.js") < html.indexOf("app.js"));
+  assert.match(worker, /canonical-e14-operations\.js/);
+  assert.match(html, /id="e14bSaveOffer"/);
+  assert.match(html, /id="e14bApply"/);
+  assert.match(html, /Plan visual anterior \(compatibilidad durante la migración\)/);
+  assert.match(app, /E14DebtOperations\.optimize/);
+  assert.match(app, /FinanceCanonicalE13\?\.buildLab/);
+  assert.match(app, /requestOperationConfirmation\(\{/);
+});
+
 test("el puente entrega un sobre canónico de solo lectura al iframe", () => {
   assert.match(app, /E14DebtAdapter\?\.buildReadModel/);
   assert.match(app, /payload: \{ state: debtRoadmapState, canonical \}/);
