@@ -393,9 +393,10 @@ previa, confirmación y deshacer. Ningún paso puede retirar el modo local ni es
 
 ## Último commit estable
 
-- En el momento de este cierre, la base estable es `bc59b49` (`docs: finalize E18 session state`) en `main`;
-  el commit de esta sesión incluirá la base A5 y su documentación. `.agents/` permanece sin seguimiento y
-  queda excluida.
+- El commit técnico de este cierre es `f84b1b0` (`feat: add safe external activation foundation`) en `main`;
+  incluye A5-1 a A5-4, sus pruebas y el plan de activación. `.agents/` permanece sin seguimiento y queda
+  excluida.
+- Cambios locales sin commit: únicamente `.agents/`, que pertenece a las instrucciones locales y no se publica.
 
 - E18 queda consolidada y publicada mediante `eee8c2a` (`feat: close E18 platform safeguards`) y su cierre
   documental mediante `8ee5a54` en `main` y `origin/main`; `.agents/` permanece sin seguimiento y queda excluida.
