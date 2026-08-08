@@ -13,7 +13,7 @@ test("E13a carga su contrato después del forecast y antes de la aplicación", (
   assert.ok(html.indexOf("canonical-forecast.js") < html.indexOf("canonical-e13-scenarios.js"));
   assert.ok(html.indexOf("canonical-e13-scenarios.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-e13-scenarios\.js/);
-  assert.match(worker, /finanzas-casa-shell-20260805-e16a2/);
+  assert.match(worker, /finanzas-casa-shell-20260808-e17a1/);
 });
 
 test("el laboratorio ofrece eventos, comparación y aviso inequívoco de solo simulación", () => {

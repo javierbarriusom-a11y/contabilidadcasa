@@ -286,4 +286,13 @@ fuente de financiación; calendario unido al forecast y la deuda; aportaciones p
 explicados y revisión mensual confirmable. La puerta completa pasa con 283 pruebas, accesibilidad,
 rendimiento, construcción pública, privacidad y smoke test.
 
-El siguiente paso es **E16** para alertas predictivas y explicaciones. E10 y **A5-1/A5-2** quedan al final.
+**E16 verificada el 8 de agosto de 2026:** alertas tempranas, cambios desde la última revisión, calidad
+predictiva, recomendaciones trazables y presupuesto de riesgo quedan aceptados con persistencia, recarga
+y recuperación remota sin conflicto repetido.
+
+**E17 verificada localmente el 8 de agosto de 2026:** «Hoy, Actualizar, Prever, Decidir» forman la
+navegación principal; las herramientas avanzadas quedan en segundo nivel; una guía de pantalla, lanzador,
+ayuda local y preferencias recuperables reducen la complejidad sin alterar datos. La puerta completa pasa
+con 293 pruebas y el QA del artefacto público a 1280×720 y 390×844 no mostró desbordamiento.
+
+El siguiente paso es **E18** de forma incremental. E10 y **A5-1/A5-2** quedan al final.

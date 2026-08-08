@@ -348,6 +348,111 @@ const viewTitles = {
   },
 };
 
+const E17_PREFERENCES_KEY = "e17-navigation-preferences";
+const e17Tasks = [
+  { target: "home", label: "Hoy", group: "main", keywords: "inicio caja alertas decisiones hoy riesgo" },
+  { target: "update-hub", label: "Actualizar datos", group: "main", keywords: "saldos reales importar excel csv movimientos previsiones" },
+  { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
+  { target: "new-life-definitive", label: "Decidir", group: "main", keywords: "decisiones deuda coche proyectos traspasos" },
+  { target: "new-life-simulation", label: "Escenarios de vida y deuda", group: "analysis", keywords: "escenario simulacion imprevisto favorable tension" },
+  { target: "debt-roadmap", label: "Plan de deuda", group: "analysis", keywords: "deuda negociar ofertas cuota refinanciacion" },
+  { target: "savings-agent", label: "Objetivos y ahorro", group: "analysis", keywords: "objetivos huchas aportaciones ahorro" },
+  { target: "movements", label: "Movimientos", group: "data", keywords: "movimientos banco categorias buscar" },
+  { target: "reconciliation", label: "Conciliar", group: "data", keywords: "conciliacion extracto saldo diferencias" },
+  { target: "data-entry", label: "Carga de datos", group: "data", keywords: "importar csv excel datos lote" },
+  { target: "data-audit", label: "Datos y auditoría", group: "data", keywords: "calidad procedencia auditoria confianza" },
+  { target: "alerts-center", label: "Centro de alertas", group: "analysis", keywords: "alertas riesgo caja deuda capacidad" },
+];
+
+const e17Guidance = {
+  home: ["Para qué sirve", "Revisar primero caja, riesgos y las tres decisiones de hoy.", "Solo lectura", "Abrir Actualizar si falta un saldo o movimiento."],
+  "update-hub": ["Para qué sirve", "Poner al día saldos, movimientos, reales, previsiones e importaciones.", "Puede guardar cambios", "Elige una ruta y confirma el recibo antes de continuar."],
+  forecast: ["Para qué sirve", "Entender la evolución futura de liquidez y gasto.", "Solo lectura", "Abre Escenarios si quieres probar un cambio sin tocar el plan."],
+  "new-life-definitive": ["Para qué sirve", "Preparar una decisión de proyecto, deuda o traspaso con su impacto completo.", "Requiere confirmación", "Revisa la comparación antes de preparar cualquier cambio."],
+  "new-life-simulation": ["Para qué sirve", "Comparar escenarios de coche, deuda y estabilidad sin modificar el plan.", "Solo lectura", "Guarda o vuelve a calcular el escenario que quieras estudiar."],
+  "debt-roadmap": ["Para qué sirve", "Consultar las ofertas y la estrategia de deuda con datos canónicos.", "Requiere confirmación", "Compara las alternativas antes de aplicar una estrategia."],
+};
+
+function e17Preferences() {
+  try {
+    return { analysis: true, assistants: true, data: true, ...JSON.parse(storageGet(storageKey(E17_PREFERENCES_KEY), "{}")) };
+  } catch {
+    return { analysis: true, assistants: true, data: true };
+  }
+}
+
+function applyE17Preferences(preferences = e17Preferences()) {
+  document.querySelectorAll("[data-e17-group]").forEach((link) => {
+    link.hidden = preferences[link.dataset.e17Group] === false;
+  });
+  document.querySelectorAll("[data-e17-preference]").forEach((input) => {
+    input.checked = preferences[input.dataset.e17Preference] !== false;
+  });
+}
+
+function renderE17ViewGuide(viewId = viewFromHash()) {
+  const target = qs("e17ViewGuide");
+  if (!target) return;
+  const guide = e17Guidance[viewId] || ["Para qué sirve", activeViewTitle(viewId), "Consulta o edición", "Usa Buscar o abrir para ir directamente a la siguiente tarea."];
+  const balanceDate = state?.balanceDate || baseData?.metadata?.forecastStart || "la copia actual";
+  const nextLiquidity = lastSimulation[0]?.totalLiquidity;
+  const example = Number.isFinite(Number(nextLiquidity))
+    ? `Ejemplo con tus datos: la liquidez del primer mes previsto es ${money(nextLiquidity, true)}.`
+    : "Ejemplo: los importes mostrados siempre se calculan con la copia actual.";
+  target.innerHTML = `<div><strong>${escapeHtml(guide[0])}</strong><span>${escapeHtml(guide[1])}</span></div><div><strong>Estado</strong><span>${escapeHtml(guide[2])} · datos con fecha de análisis ${escapeHtml(balanceDate)}.</span></div><div><strong>Siguiente paso</strong><span>${escapeHtml(guide[3])}</span></div><button type="button" class="secondary" data-e17-open="help">Ayuda contextual</button><p class="sr-only" id="e17CurrentExample">${escapeHtml(example)}</p>`;
+}
+
+function navigateE17(target) {
+  if (!document.getElementById(target)?.classList.contains("view-section")) return;
+  history.pushState(null, "", `#${target}`);
+  setMobileNavOpen(false);
+  setActiveView(target, { focus: true });
+}
+
+function renderE17Launcher(query = "") {
+  const results = qs("e17LauncherResults");
+  if (!results) return;
+  const term = normalizedText(query);
+  const matches = e17Tasks.filter((item) => !term || normalizedText(`${item.label} ${item.keywords}`).includes(term));
+  results.innerHTML = matches.length
+    ? matches.map((item) => `<button type="button" data-e17-target="${escapeHtml(item.target)}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.keywords.split(" ").slice(0, 4).join(" · "))}</span></button>`).join("")
+    : "<p>No encuentro esa tarea. Prueba con deuda, movimientos, objetivos o conciliar.</p>";
+}
+
+function openE17Dialog(kind) {
+  if (kind === "help") {
+    const example = qs("e17CurrentExample")?.textContent || "La ayuda usa únicamente la información ya cargada en este navegador.";
+    announceStatus(`${example} La pantalla actual no envía datos fuera.`);
+    return;
+  }
+  const dialog = qs(kind === "preferences" ? "e17PreferencesDialog" : "e17LauncherDialog");
+  if (!dialog) return;
+  if (kind === "preferences") applyE17Preferences();
+  else { renderE17Launcher(); window.setTimeout(() => qs("e17LauncherSearch")?.focus(), 0); }
+  dialog.showModal();
+}
+
+function setupE17Experience() {
+  applyE17Preferences();
+  document.addEventListener("click", (event) => {
+    const open = event.target.closest("[data-e17-open]");
+    if (open) { openE17Dialog(open.dataset.e17Open); return; }
+    if (event.target.closest("[data-e17-close]")) { event.target.closest("dialog")?.close(); return; }
+    const result = event.target.closest("[data-e17-target]");
+    if (result) { qs("e17LauncherDialog")?.close(); navigateE17(result.dataset.e17Target); }
+  });
+  qs("e17LauncherSearch")?.addEventListener("input", (event) => renderE17Launcher(event.target.value));
+  qs("e17SavePreferences")?.addEventListener("click", () => {
+    const preferences = Object.fromEntries([...document.querySelectorAll("[data-e17-preference]")].map((input) => [input.dataset.e17Preference, input.checked]));
+    storageSet(storageKey(E17_PREFERENCES_KEY), JSON.stringify(preferences));
+    applyE17Preferences(preferences); qs("e17PreferencesDialog")?.close();
+  });
+  qs("e17ResetPreferences")?.addEventListener("click", () => {
+    const preferences = { analysis: true, assistants: true, data: true };
+    storageSet(storageKey(E17_PREFERENCES_KEY), JSON.stringify(preferences)); applyE17Preferences(preferences);
+  });
+}
+
 function qs(id) {
   return document.getElementById(id);
 }
@@ -2783,6 +2888,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   const viewTitle = qs("viewTitle");
   if (viewTitle) viewTitle.textContent = copy.title;
   document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
+  renderE17ViewGuide(viewId);
   if (viewChanged) window.scrollTo({ top: 0, behavior: "instant" });
   if (focus && viewChanged && viewTitle) pendingViewFocusId = viewId;
   if (announce && viewChanged) announceStatus(`${copy.title} abierta.`);
@@ -18650,6 +18756,7 @@ async function init() {
   });
   updateProjectModeUi();
   updateDebtModeUi();
+  setupE17Experience();
   setupViewNavigation();
   render();
   await setupSupabaseSync();

@@ -1,6 +1,6 @@
 # Backlog maestro de Finanzas Casa DEF
 
-Fecha de referencia: 5 de agosto de 2026.
+Fecha de referencia: 8 de agosto de 2026.
 
 Este documento sustituye al backlog anterior como referencia operativa. Parte del roadmap inicial,
 del estado real documentado en `PROJECT_STATE.md`, del código y de las pruebas existentes. Su orden
@@ -13,34 +13,34 @@ Esta tabla reconcilia el historial E1-E9 con las entregas E10-E18 del backlog de
 E10-E18, la referencia vigente es `BACKLOG_PRODUCT_EVOLUTION.md`. Una entrega dividida en tramos se
 mantiene `Parcial` hasta verificar todos sus tramos.
 
-| Entrega | Tareas asociadas | Estado | Evidencia o pendiente principal |
-| --- | --- | --- | --- |
-| E1 | A0-1 a A0-3 | Verificado | Continuidad local, buzón remoto e indicador de durabilidad aceptados |
-| E2 | A0-6 a A0-8 | Verificado | Despliegue, monitor y privacidad del artefacto público aceptados |
-| E3 | A0-4, A0-5 y A0-9 | Verificado | Apertura offline, recuperación guiada y copia de emergencia aceptadas |
-| E4 | A1-1 y A1-2 | Verificado | Conciliación remota y cierre mensual aceptados en Supabase |
-| E5 | A1-3 a A1-6 | Verificado | Reapertura, deshacer, migración y copias aceptadas en Supabase |
-| E6 | A2-1, A2-2, A2-6 y A2-8 | Verificado | Lectura ejecutiva, calidad y trazabilidad verificadas |
-| E7 | A2-3 a A2-5 y A2-7 | Verificado | Comparación financiera avanzada, importación y recuperación verificadas |
-| E8 | A3-1 a A3-7 | Verificado | Mejoras operativas, adjuntos privados, accesibilidad y rendimiento verificados |
-| E9 | A4-1 a A4-6 | Verificado | Contratos externos publicados de forma segura y desactivados |
-| E10 | A5-1 a A5-6 | Pendiente | Activación externa aplazada hasta consolidar el producto local |
-| E11a | A6-1 a A6-3 | Verificado | Centro guiado y semántica previsto/real/usado publicados |
-| E11b | A6-4 a A6-8 | Verificado | Bandeja, importación, conciliación, recibos y compatibilidad publicados |
-| E12a | A7-1 a A7-3 y A7-7 | Verificado | Forecast canónico, supuestos, explicación y paridad publicados |
-| E12b | A7-4 a A7-6 | Verificado | Aprendizaje, estacionalidad y horizonte adaptativo aceptados en escritorio y móvil |
-| E13a | A8-1, A8-2 y A8-5 | Verificado | Laboratorio efímero de escenarios publicado y sin escrituras |
-| E13b | A8-3, A8-4, A8-6 y A8-7 | Verificado | Simulación prudente, sensibilidad y escenarios recuperables aceptados en escritorio y móvil |
-| E14a | A9-1 a A9-3 | Verificado | Inventario, adaptador canónico de solo lectura y contrato de estrategia publicados |
-| E14b | A9-4 a A9-8 | Verificado | Ofertas, optimización, escenarios, aplicación confirmada y paridad del plan heredado verificadas |
-| E15 | A10-1 a A10-5 | Verificado | Objetivos canónicos, calendario, aportaciones prudentes, conflictos y revisión mensual confirmable |
-| E16 | A11-1 a A11-5 | Verificado | Seguimiento predictivo aceptado: alertas y recomendaciones visibles, presupuesto persistente tras recarga y recuperación remota sin conflicto repetido |
-| E17 | A12-1 a A12-5 | Pendiente | Simplificación de navegación y ayuda por tareas |
-| E18 | A13-1 a A13-6 | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad acompañan cada entrega |
+| Entrega | Tareas asociadas | Descripción de las tareas | Estado | Evidencia o pendiente principal |
+| --- | --- | --- | --- | --- |
+| E1 | A0-1 a A0-3 | Arranque local, cola remota persistente e indicador de durabilidad | Verificado | Continuidad local, buzón remoto e indicador de durabilidad aceptados |
+| E2 | A0-6 a A0-8 | Puerta de despliegue, monitor y privacidad del artefacto público | Verificado | Despliegue, monitor y privacidad del artefacto público aceptados |
+| E3 | A0-4, A0-5 y A0-9 | Apertura offline, recuperación guiada y copia de emergencia | Verificado | Apertura offline, recuperación guiada y copia de emergencia aceptadas |
+| E4 | A1-1 y A1-2 | Conciliación del libro remoto y cierre mensual transaccional | Verificado | Conciliación remota y cierre mensual aceptados en Supabase |
+| E5 | A1-3 a A1-6 | Reapertura, deshacer importaciones, migración y copias | Verificado | Reapertura, deshacer, migración y copias aceptadas en Supabase |
+| E6 | A2-1, A2-2, A2-6 y A2-8 | Cobertura, calidad de deuda, procedencia de KPI y lectura ejecutiva | Verificado | Lectura ejecutiva, calidad y trazabilidad verificadas |
+| E7 | A2-3 a A2-5 y A2-7 | Comparación financiera, escenarios e importación segura | Verificado | Comparación financiera avanzada, importación y recuperación verificadas |
+| E8 | A3-1 a A3-7 | Historial, calidad, acciones seguras, adjuntos, accesibilidad y rendimiento | Verificado | Mejoras operativas, adjuntos privados, accesibilidad y rendimiento verificados |
+| E9 | A4-1 a A4-6 | Contratos seguros para los servicios externos opcionales | Verificado | Contratos externos publicados de forma segura y desactivados |
+| E10 | A5-1 a A5-6 | Activación real de IA, hogar, push, PSD2 e importación programada | Pendiente | Activación externa aplazada hasta consolidar el producto local |
+| E11a | A6-1 a A6-3 | Centro guiado y vocabulario único de previsto, real y usado | Verificado | Centro guiado y semántica previsto/real/usado publicados |
+| E11b | A6-4 a A6-8 | Importación, conciliación, recibos, frescura y compatibilidad | Verificado | Bandeja, importación, conciliación, recibos y compatibilidad publicados |
+| E12a | A7-1 a A7-3 y A7-7 | Forecast canónico, supuestos, explicación y paridad | Verificado | Forecast canónico, supuestos, explicación y paridad publicados |
+| E12b | A7-4 a A7-6 | Aprendizaje de desviaciones, estacionalidad y horizonte adaptativo | Verificado | Aprendizaje, estacionalidad y horizonte adaptativo aceptados en escritorio y móvil |
+| E13a | A8-1, A8-2 y A8-5 | Escenarios base, favorables y de tensión con comparador | Verificado | Laboratorio efímero de escenarios publicado y sin escrituras |
+| E13b | A8-3, A8-4, A8-6 y A8-7 | Simulación prudente, correlación, sensibilidad y escenarios guardados | Verificado | Simulación prudente, sensibilidad y escenarios recuperables aceptados en escritorio y móvil |
+| E14a | A9-1 a A9-3 | Inventario, adaptador de solo lectura y estrategia de deuda | Verificado | Inventario, adaptador canónico de solo lectura y contrato de estrategia publicados |
+| E14b | A9-4 a A9-8 | Ofertas, optimización, escenarios, aplicación y migración de deuda | Verificado | Ofertas, optimización, escenarios, aplicación confirmada y paridad del plan heredado verificadas |
+| E15 | A10-1 a A10-5 | Objetivos, calendario, aportaciones, conflictos y revisión mensual | Verificado | Objetivos canónicos, calendario, aportaciones prudentes, conflictos y revisión mensual confirmable |
+| E16 | A11-1 a A11-5 | Alertas, cambios, calidad predictiva, recomendaciones y presupuesto de riesgo | Verificado | Seguimiento predictivo aceptado: alertas y recomendaciones visibles, presupuesto persistente tras recarga y recuperación remota sin conflicto repetido |
+| E17 | A12-1 a A12-5 | Navegación por tareas, estado, lanzador, ayuda y personalización | Verificado | Aceptación en escritorio a 1280×720 y móvil a 390×844, sin desbordamiento; lanzador y personalización comprobados |
+| E18 | A13-1 a A13-6 | Arquitectura, rendimiento, telemetría, migraciones, pruebas y manual | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad acompañan cada entrega |
 
-Resumen actual: E1-E9 y E11-E16 están verificadas. La paridad A/B del plan heredado se comprueba frente
-al contrato canónico y el iframe permanece como respaldo. Después siguen E17 y la evolución continua
-de E18; E10 se mantiene al final.
+Resumen actual: E1-E9 y E11-E17 están verificadas. La paridad A/B del plan heredado se comprueba frente
+al contrato canónico y el iframe permanece como respaldo. Sigue la evolución continua de E18; E10 se
+mantiene al final.
 
 ### Tareas verificadas de E15
 
@@ -61,6 +61,16 @@ de E18; E10 se mantiene al final.
 | A11-3 | Calidad de predicción | Verificado | Media | Calcula error absoluto y sesgo solo con periodos completos; en ausencia de muestras lo comunica sin inventar precisión |
 | A11-4 | Recomendaciones trazables | Verificado | Media | Las recomendaciones presentan evidencia y alternativas en la interfaz, sin rutas de ejecución automática |
 | A11-5 | Presupuesto de riesgo | Verificado | Media | Un umbral de caja genera alertas, se conserva tras recargar y se restaura sin modificar el plan; la recuperación remota no reabre el conflicto |
+
+### Tareas verificadas de E17
+
+| ID | Desarrollo | Estado | Prioridad | Evidencia local |
+| --- | --- | --- | --- | --- |
+| A12-1 | Navegación «Hoy, Actualizar, Prever, Decidir» | Verificado | Alta | Las cuatro tareas pasan al primer nivel; análisis, asistentes y datos quedan en Herramientas avanzadas, comprobado en escritorio y móvil |
+| A12-2 | Estado y acción siguiente por pantalla | Verificado | Alta | La guía superior explica finalidad, estado de edición, fecha de análisis y siguiente paso de cada vista |
+| A12-3 | Búsqueda y lanzador de acciones | Verificado | Media | «Buscar o abrir» filtra tareas de caja, datos, deuda, objetivos, movimientos y conciliación sin cambiar datos |
+| A12-4 | Ayuda contextual con ejemplos propios | Verificado | Media | La ayuda usa únicamente la copia cargada y anuncia un ejemplo basado en la liquidez prevista, sin enviar información fuera |
+| A12-5 | Personalización progresiva | Verificado | Baja | El usuario puede ocultar grupos avanzados por navegador y recuperar siempre la navegación completa; no modifica datos financieros |
 
 ## 1. Reglas de gobierno
 
@@ -99,7 +109,7 @@ de E18; E10 se mantiene al final.
 | E14 | Verificado | E14a y E14b están verificadas; la paridad A/B del plan heredado queda automatizada y el iframe se conserva como respaldo |
 | E15 | Verificado | Objetivos, calendario, aportaciones prudentes, conflictos y revisión mensual confirmable completados |
 | E16 | Verificado | Alertas, cambios, calidad de predicción, recomendaciones y presupuesto de riesgo aceptados con persistencia y recarga |
-| E17 | Pendiente | Simplificación de la experiencia por tareas no iniciada |
+| E17 | Verificado | Navegación por tareas, guía, lanzador, ayuda local y personalización aceptados en escritorio y móvil |
 | E18 | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad deben acompañar cada entrega |
 
 ### Correcciones respecto al backlog anterior
@@ -262,8 +272,8 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Iniciar **E17**: simplificación de navegación y ayuda por tareas. E18 se mantiene como control
-transversal y E10 permanece al final.
+Iniciar **E18** de forma incremental: separar componentes del monolito de interfaz y añadir pruebas
+visuales de los flujos críticos. E10 permanece al final.
 
 E9 quedó publicada y verificada el 01/08/2026 mediante `ef57e9b`. El workflow `30712474715` completó
 la puerta y el despliegue; Pages sirvió `version.json` con el SHA exacto, los contratos E9 y el shell

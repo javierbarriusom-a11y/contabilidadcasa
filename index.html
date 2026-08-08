@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
-    <link rel="manifest" href="manifest.webmanifest?v=20260731e3" />
-    <link rel="stylesheet" href="styles.css?v=20260801e11b1" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260808e17a1" />
+    <link rel="stylesheet" href="styles.css?v=20260808e17a1" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
   </head>
   <body>
@@ -32,18 +32,18 @@
             <span>Actualizar</span>
             <small>Datos, saldos, reales e importaciones</small>
           </a>
+          <a href="#forecast" class="nav-primary-link">
+            <span>Prever</span>
+            <small>Forecast, escenarios y riesgos</small>
+          </a>
           <a href="#new-life-definitive" class="nav-primary-link">
-            <span>Plan familiar</span>
-            <small>Deuda, coche y estabilidad</small>
+            <span>Decidir</span>
+            <small>Deuda, objetivos y decisiones seguras</small>
           </a>
-          <a href="#new-life-simulation" class="nav-primary-link">
-            <span>Deuda y proyectos</span>
-            <small>Comparar antes de decidir</small>
-          </a>
-          <a href="#debt-roadmap" class="nav-primary-link">
-            <span>Plan de deuda</span>
-            <small>Negociación con datos canónicos</small>
-          </a>
+          <div class="e17-nav-actions">
+            <button type="button" class="e17-nav-button" data-e17-open="launcher">Buscar o abrir</button>
+            <button type="button" class="e17-nav-button" data-e17-open="preferences">Personalizar</button>
+          </div>
           <details class="nav-disclosure" id="advancedNav">
             <summary>
               <span>Herramientas avanzadas</span>
@@ -51,26 +51,28 @@
             </summary>
             <div class="advanced-nav-links">
               <p class="advanced-nav-label">Decidir</p>
-              <a href="#executive-advisor">Asesor ejecutivo</a>
-              <a href="#virtual-advisor">Asesor virtual</a>
-              <a href="#debt-liquidation-plan">Plan deuda óptimo</a>
-              <a href="#savings-agent">Agente ahorro</a>
-              <a href="#debt-control">Control de deuda</a>
-              <a href="#simulator">Simulador</a>
-              <a href="#alerts-center">Centro de alertas</a>
+              <a href="#new-life-simulation" data-e17-group="analysis">Escenarios de vida y deuda</a>
+              <a href="#debt-roadmap" data-e17-group="analysis">Plan de deuda</a>
+              <a href="#executive-advisor" data-e17-group="assistants">Asesor ejecutivo</a>
+              <a href="#virtual-advisor" data-e17-group="assistants">Asesor virtual</a>
+              <a href="#debt-liquidation-plan" data-e17-group="analysis">Plan deuda óptimo</a>
+              <a href="#savings-agent" data-e17-group="analysis">Agente ahorro y objetivos</a>
+              <a href="#debt-control" data-e17-group="analysis">Control de deuda</a>
+              <a href="#simulator" data-e17-group="analysis">Simulador</a>
+              <a href="#alerts-center" data-e17-group="analysis">Centro de alertas</a>
 
               <p class="advanced-nav-label">Analizar</p>
-              <a href="#prevision">Previsión</a>
-              <a href="#forecast">Proyección</a>
-              <a href="#savings-plan">Plan ahorro</a>
-              <a href="#cashflow">Flujo mensual</a>
+              <a href="#prevision" data-e17-group="analysis">Previsión mensual</a>
+              <a href="#forecast" data-e17-group="analysis">Proyección</a>
+              <a href="#savings-plan" data-e17-group="analysis">Plan ahorro</a>
+              <a href="#cashflow" data-e17-group="analysis">Flujo mensual</a>
 
               <p class="advanced-nav-label">Datos</p>
-              <a href="#update-data">Registrar reales del mes</a>
-              <a href="#data-entry">Carga de datos</a>
-              <a href="#movements">Movimientos</a>
-              <a href="#data-audit">Datos y auditoría</a>
-              <a href="#reconciliation">Conciliación</a>
+              <a href="#update-data" data-e17-group="data">Registrar reales del mes</a>
+              <a href="#data-entry" data-e17-group="data">Carga de datos</a>
+              <a href="#movements" data-e17-group="data">Movimientos</a>
+              <a href="#data-audit" data-e17-group="data">Datos y auditoría</a>
+              <a href="#reconciliation" data-e17-group="data">Conciliación</a>
             </div>
           </details>
         </nav>
@@ -149,6 +151,7 @@
             <div class="source-note" id="sourceNote"></div>
           </div>
         </header>
+        <section class="e17-view-guide" id="e17ViewGuide" aria-label="Guía de la pantalla actual"></section>
 
         <main id="mainContent" tabindex="-1">
           <p class="sr-only" id="appLiveStatus" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -2463,6 +2466,23 @@
       </form>
     </dialog>
 
+    <dialog class="e17-dialog" id="e17LauncherDialog" aria-labelledby="e17LauncherTitle">
+      <div class="e17-dialog-head"><div><p class="panel-kicker">Lanzador de acciones</p><h2 id="e17LauncherTitle">¿Qué quieres hacer?</h2></div><button type="button" data-e17-close aria-label="Cerrar">×</button></div>
+      <label class="e17-search-label"><span>Busca una tarea, concepto o sección</span><input id="e17LauncherSearch" type="search" placeholder="Ej.: deuda, movimientos, objetivos, conciliar" autocomplete="off" /></label>
+      <div class="e17-launcher-results" id="e17LauncherResults" aria-live="polite"></div>
+    </dialog>
+    <dialog class="e17-dialog" id="e17PreferencesDialog" aria-labelledby="e17PreferencesTitle">
+      <div class="e17-dialog-head"><div><p class="panel-kicker">Personalización progresiva</p><h2 id="e17PreferencesTitle">Muestra solo lo que usas</h2></div><button type="button" data-e17-close aria-label="Cerrar">×</button></div>
+      <p>Esto cambia solo la navegación de este navegador; no modifica ni oculta tus datos financieros.</p>
+      <fieldset class="e17-preferences" id="e17PreferencesFields">
+        <legend>Herramientas avanzadas visibles</legend>
+        <label><input type="checkbox" data-e17-preference="analysis" checked /> Análisis y simulación</label>
+        <label><input type="checkbox" data-e17-preference="assistants" checked /> Asistentes y recomendaciones</label>
+        <label><input type="checkbox" data-e17-preference="data" checked /> Datos, auditoría y conciliación</label>
+      </fieldset>
+      <div class="dialog-actions"><button type="button" class="secondary" id="e17ResetPreferences">Ver navegación completa</button><button type="button" id="e17SavePreferences">Guardar preferencias</button></div>
+    </dialog>
+
     <script src="state-contract.js?v=20260731e3"></script>
     <script src="recovery-guide.js?v=20260731e3"></script>
     <script src="canonical-state.js?v=20260717p0"></script>
@@ -2504,7 +2524,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260805e16a2"></script>
+    <script src="app.js?v=20260808e17a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

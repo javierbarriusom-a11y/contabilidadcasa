@@ -4,6 +4,8 @@ Fecha de revisión: 8 de agosto de 2026.
 
 ## Terminado
 
+- E17 queda verificada de A12-1 a A12-5: la navegación prioriza «Hoy, Actualizar, Prever, Decidir»; cada vista declara finalidad, estado y siguiente paso; el lanzador encuentra tareas de deuda, objetivos, movimientos y conciliación; la ayuda contextual usa únicamente la copia local; y la personalización de módulos avanzados se conserva solo en el navegador y siempre se puede restablecer.
+- La puerta local E17 pasa con 293/293 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA visual del artefacto `dist/` pasó a 1280×720 y 390×844, sin desbordamiento; el menú móvil mostró las cuatro tareas y el lanzador filtró «deuda» correctamente.
 - E16 queda verificada de A11-1 a A11-5: `finance-e16-monitoring/v1` calcula alertas anticipadas de caja, variaciones y ratio de deuda con horizonte, confianza y evidencia; resume cambios desde la última revisión; mide error y sesgo solo con muestras completas; y entrega recomendaciones trazables de solo lectura. En la aceptación, el panel Hoy se mostró en escritorio y a 400 px; un presupuesto de riesgo generó alertas, persistió tras recargar y se restauró al valor inicial.
 - La recuperación de nube no vuelve a crear un cambio pendiente cuando el iframe de deuda devuelve exactamente el estado que acaba de hidratar. El tratamiento del estado idéntico queda cubierto por una regresión automatizada.
 - La documentación operativa queda reconciliada: `BACKLOG_STATUS.md` y `ROADMAP_EXECUTION.md` registran E16 como verificada y preservan el histórico de julio.
@@ -249,19 +251,21 @@ Fecha de revisión: 8 de agosto de 2026.
 
 ## Pendiente
 
-- E17 y E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`; E18 continúa aplicándose como control transversal en cada entrega.
+- E18 permanece como control transversal de rendimiento, migraciones, pruebas y observabilidad.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Iniciar E17, simplificando la navegación y la ayuda por tareas. E18 acompaña cada entrega como
-control transversal; E10 se mantiene al final.
+Planificar E18 de forma incremental, empezando por la separación gradual del monolito de interfaz y las
+pruebas visuales de los flujos críticos. E10 se mantiene al final.
 
 ## Decisiones importantes
 
 - E16 es una capa de lectura: alerta, explica y propone alternativas, pero no altera el forecast, las decisiones ni los datos financieros. El presupuesto de riesgo solo ordena la atención del usuario.
+
+- E17 no cambia datos financieros: la navegación, el lanzador, la ayuda y las preferencias de módulos son capas locales de interfaz; las preferencias permanecen en este navegador y el restablecimiento muestra siempre la navegación completa.
 
 - El estado y los motores canónicos son la única fuente de verdad; el motor histórico no decide cifras ni actúa como fallback silencioso.
 - `Implementado` no equivale a `Verificado`: el cierre exige pruebas extremo a extremo, persistencia, restauración y validación en escritorio y móvil.
@@ -287,6 +291,8 @@ control transversal; E10 se mantiene al final.
 ## Errores conocidos y riesgos
 
 - No hay fallos conocidos en E16: la aceptación visual, la persistencia del presupuesto y la recarga han quedado comprobadas. La recuperación remota ignora ecos idénticos del iframe de deuda para que no reaparezca un conflicto ya resuelto.
+
+- No hay fallos conocidos en E17. Durante la primera comprobación el navegador integrado retuvo un shell anterior; la aceptación se repitió contra el artefacto recién construido bajo `dist/`, fuera de esa caché, y confirmó la versión E17 en escritorio y móvil.
 
 - No hay fallos automatizados conocidos en E12a; su publicación, disponibilidad y arranque responsive
   están verificados.
@@ -357,6 +363,8 @@ control transversal; E10 se mantiene al final.
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
 ## Último commit estable
+
+- La entrega E17 está validada localmente y preparada para consolidarse en `main`; el cierre incluye interfaz, caché offline, pruebas y documentación. `.agents/` permanece sin seguimiento y queda excluida.
 
 - La base publicada de E16 está en `main` y `origin/main` mediante `379ccc2` (`feat: implement E16 predictive monitoring`) y su documentación mediante `4910b7d`. El cierre de aceptación, la corrección de recuperación, las pruebas y la documentación se publicaron en `065d85f` (`fix: prevent repeated cloud recovery conflict`); `.agents/` continúa sin seguimiento y queda excluida.
 
