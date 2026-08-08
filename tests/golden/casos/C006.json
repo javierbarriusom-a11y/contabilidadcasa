@@ -1,0 +1,28 @@
+{
+  "id": "C006",
+  "titulo": "Refinanciación con alargamiento",
+  "proteje": "Cuota baja, coste total sube (contraintuitivo)",
+  "dataset": "D1-hogar-base",
+  "estado": "computable",
+  "motoresAplicables": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "entrada": {
+    "baseMonth": "2026-08",
+    "months": 60,
+    "capacity": 1000,
+    "accounts": [
+      {
+        "amount": 7300,
+        "strategy": "refi",
+        "discount": 0,
+        "start": 1,
+        "apr": 9.5,
+        "term": 46,
+        "financePct": 100
+      }
+    ]
+  },
+  "notas": "El caso de comparación (plazo alargado a 72 meses, mismo principal y TIN) se registra aparte en C006-alargado dentro del informe de paridad: coste total 9.605,52 € frente a 8.738,16 € del plazo original, con cuota mensual menor (133,41 € frente a 189,96 €)."
+}

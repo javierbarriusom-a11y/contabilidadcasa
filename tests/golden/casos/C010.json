@@ -1,0 +1,28 @@
+{
+  "id": "C010",
+  "titulo": "Tipo variable con deltaTipoVariable = +100 pb",
+  "proteje": "Sensibilidad a tipos",
+  "dataset": "D1-hogar-base",
+  "estado": "computable",
+  "motoresAplicables": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "entrada": {
+    "baseMonth": "2026-08",
+    "months": 46,
+    "capacity": 1000,
+    "accounts": [
+      {
+        "amount": 7300,
+        "strategy": "refi",
+        "discount": 0,
+        "start": 1,
+        "apr": 10.5,
+        "term": 46,
+        "financePct": 100
+      }
+    ]
+  },
+  "notas": "Comparado contra C006 (mismo principal y plazo a 9,5 %): +100 pb sube el coste total de 8.738,16 € a 8.898,70 € (+160,54 €). Es la evidencia real que fija I-08 (monotonía de tipo) antes de que exista el motor de Escenario."
+}

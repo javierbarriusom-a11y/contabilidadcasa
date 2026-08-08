@@ -1,0 +1,29 @@
+{
+  "id": "C002",
+  "titulo": "Amortización parcial",
+  "proteje": "Recorte de cuadro sin cierre",
+  "dataset": "D1-hogar-base",
+  "estado": "computable",
+  "motoresAplicables": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "entrada": {
+    "baseMonth": "2026-08",
+    "months": 46,
+    "capacity": 1000,
+    "accounts": [
+      {
+        "amount": 7300,
+        "strategy": "hybrid",
+        "discount": 0,
+        "start": 6,
+        "lump": 2000,
+        "apr": 9.5,
+        "term": 40,
+        "financePct": 100
+      }
+    ]
+  },
+  "notas": "El motor legado no distingue «amortización parcial» de «pago inicial + financiación» (hybrid); se usa hybrid con lump < importe total como equivalente."
+}

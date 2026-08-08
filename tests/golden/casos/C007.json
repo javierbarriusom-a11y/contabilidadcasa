@@ -1,0 +1,28 @@
+{
+  "id": "C007",
+  "titulo": "Retomar pagos suspendidos",
+  "proteje": "Reactivación de calendario",
+  "dataset": "D2-hogar-apalancado",
+  "estado": "computable",
+  "motoresAplicables": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "entrada": {
+    "baseMonth": "2026-08",
+    "months": 40,
+    "capacity": 1000,
+    "accounts": [
+      {
+        "amount": 3600,
+        "strategy": "refi",
+        "discount": 0,
+        "start": 8,
+        "apr": 11,
+        "term": 32,
+        "financePct": 100
+      }
+    ]
+  },
+  "notas": "El motor legado no distingue «reanudar tras suspensión» de «financiar desde el mes 8»: el resultado numérico es idéntico porque no modela el histórico de meses suspendidos, solo el calendario desde `start`."
+}

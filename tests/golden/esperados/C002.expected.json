@@ -1,0 +1,16 @@
+{
+  "id": "C002",
+  "tolerancia": 0.01,
+  "kpisEsperados": {
+    "totalPaid": 8204,
+    "totalLump": 2000,
+    "peak": 2155.1,
+    "durationMonths": 45
+  },
+  "paridadLegadoVsCanonico": {
+    "valid": true,
+    "differences": [],
+    "legacyTotalPaid": 8204,
+    "canonicalTotalCost": 8204
+  }
+}

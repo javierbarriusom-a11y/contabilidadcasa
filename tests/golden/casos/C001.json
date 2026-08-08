@@ -1,0 +1,26 @@
+{
+  "id": "C001",
+  "titulo": "Amortización total, mes manual",
+  "proteje": "Cierre de deuda, liberación de cuota",
+  "dataset": "D1-hogar-base",
+  "estado": "computable",
+  "motoresAplicables": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "entrada": {
+    "baseMonth": "2026-08",
+    "months": 60,
+    "capacity": 1000,
+    "accounts": [
+      {
+        "amount": 7300,
+        "strategy": "settlement",
+        "discount": 0,
+        "start": 6,
+        "lump": 7300
+      }
+    ]
+  },
+  "notas": ""
+}

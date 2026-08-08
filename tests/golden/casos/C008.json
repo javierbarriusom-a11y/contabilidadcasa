@@ -1,0 +1,27 @@
+{
+  "id": "C008",
+  "titulo": "Acuerdo con quita",
+  "proteje": "Cierre por importe < principal",
+  "dataset": "D2-hogar-apalancado",
+  "estado": "computable",
+  "motoresAplicables": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations",
+    "canonical-debt-comparator"
+  ],
+  "entrada": {
+    "baseMonth": "2026-08",
+    "months": 24,
+    "capacity": 1000,
+    "accounts": [
+      {
+        "amount": 5600,
+        "strategy": "settlement",
+        "discount": 26.79,
+        "start": 3,
+        "lump": 4100
+      }
+    ]
+  },
+  "notas": "Es también el caso usado para probar canonical-debt-comparator.compareAgreements(): alimentado con este mismo total (4.100 €) como alternativa frente a «no actuar», la recomienda siempre que respete la reserva operativa."
+}

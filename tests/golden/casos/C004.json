@@ -1,0 +1,12 @@
+{
+  "id": "C004",
+  "titulo": "Amortización fraccionada, 6 meses",
+  "proteje": "Recorte progresivo",
+  "dataset": "D1-hogar-base",
+  "estado": "gap_funcional",
+  "motoresConsultados": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "motivo": "legacy-debt-roadmap-engine.simulate() aplica como máximo un `lump` por cuenta, en el mes `start`. No existe un mecanismo para varias amortizaciones parciales sucesivas dentro del mismo contrato."
+}

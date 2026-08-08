@@ -1,0 +1,13 @@
+{
+  "id": "C003",
+  "titulo": "Amortización, mes óptimo",
+  "proteje": "Búsqueda respeta guardarraíl duro",
+  "dataset": "D1-hogar-base",
+  "estado": "gap_funcional",
+  "motoresConsultados": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations",
+    "canonical-debt-comparator"
+  ],
+  "motivo": "Ninguno de los tres motores actuales busca un mes óptimo: todos exigen un mes explícito (`start`). La búsqueda con guardarraíles es una capacidad nueva de E20 (planificacion.modo = \"optimo\"), no una migración de código existente."
+}

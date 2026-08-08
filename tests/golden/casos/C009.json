@@ -1,0 +1,28 @@
+{
+  "id": "C009",
+  "titulo": "Deuda sin TIN",
+  "proteje": "Advertencia presente, coste = 0, no crash",
+  "dataset": "D2-hogar-apalancado",
+  "estado": "computable",
+  "motoresAplicables": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "entrada": {
+    "baseMonth": "2026-08",
+    "months": 24,
+    "capacity": 1000,
+    "accounts": [
+      {
+        "amount": 2400,
+        "strategy": "refi",
+        "discount": 0,
+        "start": 1,
+        "apr": 0,
+        "term": 24,
+        "financePct": 100
+      }
+    ]
+  },
+  "notas": "Con apr:0, paymentFor() reparte el principal a partes iguales sin interés: totalPaid == principal exactamente. Ninguno de los dos motores emite hoy una advertencia explícita de «TIN desconocido»: queda registrado como hallazgo, no como hueco (no hay crash, pero tampoco hay aviso)."
+}

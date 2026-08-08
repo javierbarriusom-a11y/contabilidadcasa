@@ -1,0 +1,12 @@
+{
+  "id": "C005",
+  "titulo": "Reunificación de 3 deudas",
+  "proteje": "Cierre múltiple + apertura, comisiones",
+  "dataset": "D2-hogar-apalancado",
+  "estado": "gap_funcional",
+  "motoresConsultados": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations"
+  ],
+  "motivo": "legacy-debt-roadmap-engine trata cada elemento de `accounts[]` de forma independiente; no existe una estrategia que combine el capital de varias cuentas en una nueva. canonical-e14-operations tampoco expone una operación N:1 hoy. Es exactamente el tipo de decisión (`reunificacion`) que introduce el esquema de E19-0 y que E20 deberá implementar de cero, no migrar."
+}
