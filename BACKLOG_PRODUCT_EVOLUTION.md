@@ -203,6 +203,20 @@ Objetivo: que el crecimiento funcional no degrade rendimiento, mantenibilidad, p
 | A13-5 | Pruebas visuales de los flujos críticos | Alta | Actualizar, importar, proyectar, simular, aplicar deuda y recuperar se validan en escritorio y móvil |
 | A13-6 | Manual operativo dentro de la app | Media | Exportación, recuperación, conflictos, cierres y servicios externos tienen instrucciones accesibles sin conexión |
 
+**Inicio de E18 el 8 de agosto de 2026:** A13-4 y A13-5 quedan parcialmente implantadas. Las copias
+históricas íntegras se migran antes de restaurarse y las alteradas se rechazan por checksum; una puerta de
+contrato cubre actualizar, importar, proyectar, simular, aplicar deuda y recuperar. El QA local pasó en
+1280×720 y 390×844 sin errores de consola. Aún faltan fixtures históricos completos y capturas comparables
+automatizadas para cerrar ambas tareas.
+
+**Segundo avance de E18 el 8 de agosto de 2026:** A13-1 y A13-2 quedan parcialmente implantadas. La
+experiencia E17 se separa en `e17-experience.js`, preservando la paridad del lanzador y la guía. El
+presupuesto local mide forecast y escenarios con 10.000 periodos en 58,1 ms, por debajo del límite de 1 s.
+
+**Tercer avance de E18 el 8 de agosto de 2026:** A13-3 y A13-6 quedan parcialmente implantadas con
+telemetría local mínima (tipo y fecha, sin contenido financiero ni red) y una guía operativa disponible sin
+conexión para importación, recuperación, conflictos, cierres y servicios externos.
+
 ## 5. Secuencia de entregas recomendada
 
 | Orden | Entrega publicable | Alcance | Resultado útil inmediato |

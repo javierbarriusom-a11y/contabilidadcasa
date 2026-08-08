@@ -7,6 +7,7 @@
 
   const BACKUP_FORMAT = "finanzas-casa-backup";
   const BACKUP_VERSION = 1;
+  const PAYLOAD_VERSION = 1;
   const ARRAY_FIELDS = ["projects", "debtLiquidations", "decisionEvents", "customPlanningRows"];
   const OPTIONAL_ARRAY_FIELDS = ["monthClosures", "importBatches", "dataInbox", "updateReceipts"];
   const OBJECT_FIELDS = [
@@ -70,7 +71,7 @@
   function validatePayload(payload) {
     const errors = [];
     if (!isPlainObject(payload)) return { valid: false, errors: ["El estado no es un objeto válido."] };
-    if (Number(payload.version) !== 1) errors.push("La versión interna del estado no es compatible.");
+    if (Number(payload.version) !== PAYLOAD_VERSION) errors.push("La versión interna del estado no es compatible.");
     ARRAY_FIELDS.forEach((field) => {
       if (!Array.isArray(payload[field])) errors.push(`El campo ${field} debe ser una lista.`);
     });
@@ -91,6 +92,30 @@
     const invalidNumberPath = findInvalidNumber(payload);
     if (invalidNumberPath) errors.push(`Hay un número no finito en ${invalidNumberPath}.`);
     return { valid: errors.length === 0, errors };
+  }
+
+  function migratePayload(payload = {}) {
+    if (!isPlainObject(payload)) throw new Error("El estado no es un objeto válido.");
+    const migrated = clone(payload);
+    ARRAY_FIELDS.forEach((field) => {
+      if (!Array.isArray(migrated[field])) migrated[field] = [];
+    });
+    OPTIONAL_ARRAY_FIELDS.forEach((field) => {
+      if (!Array.isArray(migrated[field])) migrated[field] = [];
+    });
+    OBJECT_FIELDS.forEach((field) => {
+      if (!isPlainObject(migrated[field])) migrated[field] = {};
+    });
+    OPTIONAL_OBJECT_FIELDS.forEach((field) => {
+      if (migrated[field] !== undefined && !isPlainObject(migrated[field])) delete migrated[field];
+    });
+    if (migrated.workbookData === undefined) migrated.workbookData = null;
+    if (migrated.updatedAt === undefined) migrated.updatedAt = "";
+    if (migrated.sourceWorkbook === undefined) migrated.sourceWorkbook = "";
+    migrated.version = PAYLOAD_VERSION;
+    const validation = validatePayload(migrated);
+    if (!validation.valid) throw new Error(validation.errors.join(" "));
+    return migrated;
   }
 
   function summarizePayload(payload) {
@@ -149,13 +174,31 @@
     };
   }
 
+  function migrateBackupEnvelope(envelope, metadata = {}) {
+    if (!isPlainObject(envelope)) throw new Error("El fichero no contiene una copia válida.");
+    if (envelope.format !== BACKUP_FORMAT) throw new Error("El formato de la copia no pertenece a Finanzas Casa.");
+    if (Number(envelope.formatVersion) !== BACKUP_VERSION) throw new Error("La versión de la copia no es compatible.");
+    const expected = fnv1a32(stableStringify(envelope.payload));
+    if (envelope.checksum?.algorithm !== "fnv1a32" || envelope.checksum?.value !== expected) {
+      throw new Error("La copia está incompleta o ha sido modificada (checksum incorrecto).");
+    }
+    const payload = migratePayload(envelope.payload);
+    return buildBackupEnvelope(payload, {
+      createdAt: envelope.createdAt || metadata.createdAt,
+      appVersion: metadata.appVersion || envelope.appVersion || "local",
+    });
+  }
+
   return {
     BACKUP_FORMAT,
     BACKUP_VERSION,
+    PAYLOAD_VERSION,
     buildBackupEnvelope,
     fnv1a32,
     stableStringify,
     summarizePayload,
+    migrateBackupEnvelope,
+    migratePayload,
     validateBackupEnvelope,
     validatePayload,
   };

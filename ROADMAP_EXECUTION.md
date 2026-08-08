@@ -15,7 +15,20 @@ histórico se interprete como estado actual, `BACKLOG_STATUS.md` es la fuente op
 | E11-E17 | Verificado | Entrada, forecast, escenarios, deuda, objetivos, seguimiento predictivo y experiencia por tareas completados |
 | E16 | Verificado | Seguimiento predictivo A11-1 a A11-5 aceptado con persistencia y recarga |
 | E17 | Verificado | Simplificación por tareas A12-1 a A12-5 aceptada en escritorio y móvil |
-| E18 | Continuo | Rendimiento, migraciones, pruebas y observabilidad en cada entrega |
+| E18 | Parcial continuo | Migración verificable y puerta de flujos críticos iniciadas; rendimiento, observabilidad y mantenibilidad continúan |
+
+## Plan de cierre vigente: E18 y E10
+
+1. **Cerrar E18 antes de activar proveedores:** completar fixtures de migración, capturas comparables de los
+   seis flujos críticos, métricas locales de tiempos/fallos, enlaces contextuales de la guía y nuevas
+   extracciones de `app.js`. Cada tramo conserva pruebas de paridad, modo offline y recuperación.
+2. **Puerta E18:** validar en escritorio y móvil, con 10.000 periodos, accesibilidad, privacidad, restauración
+   y artefacto público antes de considerar la plataforma cerrada.
+3. **Activar E10 por dependencias y con autorización específica:** A5-1 backend privado/Responses API;
+   A5-2 selección reproducible de modelo; A5-3 hogar compartido; A5-4 web push; A5-5 proveedor PSD2;
+   A5-6 importación programada idempotente. Cada servicio seguirá siendo opcional y no bloqueará el modo local.
+4. **Cierre de proyecto:** aceptar cada servicio en una prueba real, con privacidad, recuperación y dos
+   sesiones cuando haya estado compartido; alinear backlog, estado y roadmap, y publicar solo con autorización.
 
 La sección «Resumen ejecutivo de estado» que sigue es una fotografía histórica del 18 de julio de
 2026; no debe utilizarse para priorizar ni para reabrir entregas verificadas.

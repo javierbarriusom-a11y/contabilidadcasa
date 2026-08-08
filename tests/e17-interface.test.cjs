@@ -28,13 +28,15 @@ test("E17 ofrece estado, ayuda contextual, lanzador y preferencias locales", () 
   assert.match(app, /function renderE17Launcher/);
   assert.match(app, /function applyE17Preferences/);
   assert.match(app, /E17_PREFERENCES_KEY/);
+  assert.match(html, /e17-experience\.js/);
+  assert.match(app, /FinanceE17Experience/);
   assert.match(app, /storageSet\(storageKey\(E17_PREFERENCES_KEY\)/);
   assert.match(app, /La pantalla actual no envía datos fuera/);
   assert.match(css, /\.e17-view-guide/);
 });
 
 test("E17 queda disponible con el shell offline versionado", () => {
-  assert.match(worker, /20260808-e17a1/);
-  assert.match(html, /app\.js\?v=20260808e17a1/);
-  assert.match(html, /styles\.css\?v=20260808e17a1/);
+  assert.match(worker, /20260808-e18a3/);
+  assert.match(html, /app\.js\?v=20260808e18a3/);
+  assert.match(html, /styles\.css\?v=20260808e18a3/);
 });

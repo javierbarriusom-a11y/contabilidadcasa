@@ -4,6 +4,14 @@ Fecha de revisión: 8 de agosto de 2026.
 
 ## Terminado
 
+- E18 queda iniciada como plataforma transversal: A13-1 extrae navegación, guía y lanzador a
+  `e17-experience.js`; A13-2 mide forecast y escenarios con 10.000 periodos en 58,1 ms; A13-3 conserva
+  localmente solo tipo y fecha de eventos técnicos; A13-4 migra copias íntegras y rechaza alteraciones; A13-5
+  cubre seis flujos críticos y pasó QA local a 1280×720 y 390×844; A13-6 añade guía offline.
+- La puerta local E18 pasa con 298 pruebas, accesibilidad estructural, rendimiento ampliado, construcción
+  pública, privacidad, smoke test y `git diff --check`. E18 sigue parcial: faltan las evidencias comparables
+  automatizadas, fixtures históricos completos, métricas de fallos/tiempos y más extracciones por dominio.
+
 - E17 queda verificada de A12-1 a A12-5: la navegación prioriza «Hoy, Actualizar, Prever, Decidir»; cada vista declara finalidad, estado y siguiente paso; el lanzador encuentra tareas de deuda, objetivos, movimientos y conciliación; la ayuda contextual usa únicamente la copia local; y la personalización de módulos avanzados se conserva solo en el navegador y siempre se puede restablecer.
 - La puerta local E17 pasa con 293/293 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA visual del artefacto `dist/` pasó a 1280×720 y 390×844, sin desbordamiento; el menú móvil mostró las cuatro tareas y el lanzador filtró «deuda» correctamente.
 - E16 queda verificada de A11-1 a A11-5: `finance-e16-monitoring/v1` calcula alertas anticipadas de caja, variaciones y ratio de deuda con horizonte, confianza y evidencia; resume cambios desde la última revisión; mide error y sesgo solo con muestras completas; y entrega recomendaciones trazables de solo lectura. En la aceptación, el panel Hoy se mostró en escritorio y a 400 px; un presupuesto de riesgo generó alertas, persistió tras recargar y se restauró al valor inicial.
@@ -251,15 +259,17 @@ Fecha de revisión: 8 de agosto de 2026.
 
 ## Pendiente
 
-- E18 permanece como control transversal de rendimiento, migraciones, pruebas y observabilidad.
+- E18 permanece parcial y transversal: cerrar sus seis tareas con pruebas visuales comparables, fixtures de
+  migración históricos, métricas locales agregadas, guía contextual y separación adicional del monolito.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
   PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
 
 ## Próximo paso
 
-Planificar E18 de forma incremental, empezando por la separación gradual del monolito de interfaz y las
-pruebas visuales de los flujos críticos. E10 se mantiene al final.
+Cerrar E18 de forma incremental y, solo después, activar E10 por dependencias: backend privado/Responses,
+evaluación del modelo, hogar, push, PSD2 e importación programada. Cada activación externa requiere autoridad
+específica, prueba real y mantiene el modo local.
 
 ## Decisiones importantes
 

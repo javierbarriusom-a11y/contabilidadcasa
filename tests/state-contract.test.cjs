@@ -77,3 +77,38 @@ test("los ajustes E6 sobreviven a exportar, cerrar y recuperar una copia", () =>
   assert.equal(result.valid, true);
   assert.deepEqual(reopened.payload.scenarioSettings.e6Coverage, payload.scenarioSettings.e6Coverage);
 });
+
+test("una copia histórica íntegra se migra antes de restaurarse", () => {
+  const legacyPayload = validPayload();
+  delete legacyPayload.version;
+  delete legacyPayload.workbookData;
+  delete legacyPayload.dataInbox;
+  delete legacyPayload.updateReceipts;
+  const legacyEnvelope = {
+    format: contract.BACKUP_FORMAT,
+    formatVersion: contract.BACKUP_VERSION,
+    createdAt: "2026-07-13T10:00:00.000Z",
+    appVersion: "phase-0",
+    checksum: { algorithm: "fnv1a32", value: contract.fnv1a32(contract.stableStringify(legacyPayload)) },
+    payload: legacyPayload,
+  };
+
+  const migrated = contract.migrateBackupEnvelope(legacyEnvelope);
+  assert.equal(migrated.payload.version, contract.PAYLOAD_VERSION);
+  assert.equal(migrated.payload.workbookData, null);
+  assert.deepEqual(migrated.payload.dataInbox, []);
+  assert.deepEqual(migrated.payload.updateReceipts, []);
+  assert.equal(contract.validateBackupEnvelope(migrated).valid, true);
+});
+
+test("una copia histórica alterada se rechaza antes de migrarla", () => {
+  const legacyPayload = validPayload();
+  delete legacyPayload.version;
+  const legacyEnvelope = {
+    format: contract.BACKUP_FORMAT,
+    formatVersion: contract.BACKUP_VERSION,
+    checksum: { algorithm: "fnv1a32", value: contract.fnv1a32(contract.stableStringify(legacyPayload)) },
+    payload: { ...legacyPayload, sourceWorkbook: "alterado" },
+  };
+  assert.throws(() => contract.migrateBackupEnvelope(legacyEnvelope), /checksum/i);
+});

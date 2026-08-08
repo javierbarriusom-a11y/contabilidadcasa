@@ -21,6 +21,8 @@ const MODEL_END_MONTH = 11;
 const UxSettings = globalThis.FinanceUxSettings || null;
 const UxShell = globalThis.FinanceUxShell || null;
 const E11bInbox = globalThis.FinanceCanonicalE11b || null;
+const E17Experience = globalThis.FinanceE17Experience || null;
+const E18Health = globalThis.FinanceE18Health || null;
 
 const euro = new Intl.NumberFormat("es-ES", {
   style: "currency",
@@ -349,29 +351,6 @@ const viewTitles = {
 };
 
 const E17_PREFERENCES_KEY = "e17-navigation-preferences";
-const e17Tasks = [
-  { target: "home", label: "Hoy", group: "main", keywords: "inicio caja alertas decisiones hoy riesgo" },
-  { target: "update-hub", label: "Actualizar datos", group: "main", keywords: "saldos reales importar excel csv movimientos previsiones" },
-  { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
-  { target: "new-life-definitive", label: "Decidir", group: "main", keywords: "decisiones deuda coche proyectos traspasos" },
-  { target: "new-life-simulation", label: "Escenarios de vida y deuda", group: "analysis", keywords: "escenario simulacion imprevisto favorable tension" },
-  { target: "debt-roadmap", label: "Plan de deuda", group: "analysis", keywords: "deuda negociar ofertas cuota refinanciacion" },
-  { target: "savings-agent", label: "Objetivos y ahorro", group: "analysis", keywords: "objetivos huchas aportaciones ahorro" },
-  { target: "movements", label: "Movimientos", group: "data", keywords: "movimientos banco categorias buscar" },
-  { target: "reconciliation", label: "Conciliar", group: "data", keywords: "conciliacion extracto saldo diferencias" },
-  { target: "data-entry", label: "Carga de datos", group: "data", keywords: "importar csv excel datos lote" },
-  { target: "data-audit", label: "Datos y auditoría", group: "data", keywords: "calidad procedencia auditoria confianza" },
-  { target: "alerts-center", label: "Centro de alertas", group: "analysis", keywords: "alertas riesgo caja deuda capacidad" },
-];
-
-const e17Guidance = {
-  home: ["Para qué sirve", "Revisar primero caja, riesgos y las tres decisiones de hoy.", "Solo lectura", "Abrir Actualizar si falta un saldo o movimiento."],
-  "update-hub": ["Para qué sirve", "Poner al día saldos, movimientos, reales, previsiones e importaciones.", "Puede guardar cambios", "Elige una ruta y confirma el recibo antes de continuar."],
-  forecast: ["Para qué sirve", "Entender la evolución futura de liquidez y gasto.", "Solo lectura", "Abre Escenarios si quieres probar un cambio sin tocar el plan."],
-  "new-life-definitive": ["Para qué sirve", "Preparar una decisión de proyecto, deuda o traspaso con su impacto completo.", "Requiere confirmación", "Revisa la comparación antes de preparar cualquier cambio."],
-  "new-life-simulation": ["Para qué sirve", "Comparar escenarios de coche, deuda y estabilidad sin modificar el plan.", "Solo lectura", "Guarda o vuelve a calcular el escenario que quieras estudiar."],
-  "debt-roadmap": ["Para qué sirve", "Consultar las ofertas y la estrategia de deuda con datos canónicos.", "Requiere confirmación", "Compara las alternativas antes de aplicar una estrategia."],
-};
 
 function e17Preferences() {
   try {
@@ -393,7 +372,7 @@ function applyE17Preferences(preferences = e17Preferences()) {
 function renderE17ViewGuide(viewId = viewFromHash()) {
   const target = qs("e17ViewGuide");
   if (!target) return;
-  const guide = e17Guidance[viewId] || ["Para qué sirve", activeViewTitle(viewId), "Consulta o edición", "Usa Buscar o abrir para ir directamente a la siguiente tarea."];
+  const guide = E17Experience?.guidanceFor(viewId, ["Para qué sirve", activeViewTitle(viewId), "Consulta o edición", "Usa Buscar o abrir para ir directamente a la siguiente tarea."]) || ["Para qué sirve", activeViewTitle(viewId), "Consulta o edición", "Usa Buscar o abrir para ir directamente a la siguiente tarea."];
   const balanceDate = state?.balanceDate || baseData?.metadata?.forecastStart || "la copia actual";
   const nextLiquidity = lastSimulation[0]?.totalLiquidity;
   const example = Number.isFinite(Number(nextLiquidity))
@@ -413,7 +392,7 @@ function renderE17Launcher(query = "") {
   const results = qs("e17LauncherResults");
   if (!results) return;
   const term = normalizedText(query);
-  const matches = e17Tasks.filter((item) => !term || normalizedText(`${item.label} ${item.keywords}`).includes(term));
+  const matches = E17Experience?.findTasks(query, normalizedText) || [];
   results.innerHTML = matches.length
     ? matches.map((item) => `<button type="button" data-e17-target="${escapeHtml(item.target)}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.keywords.split(" ").slice(0, 4).join(" · "))}</span></button>`).join("")
     : "<p>No encuentro esa tarea. Prueba con deuda, movimientos, objetivos o conciliar.</p>";
@@ -934,7 +913,8 @@ async function handleStateBackupSelection(event) {
   qs("cancelStateRestore").hidden = true;
   if (!file) return;
   try {
-    const envelope = JSON.parse(await file.text());
+    const sourceEnvelope = JSON.parse(await file.text());
+    const envelope = window.FinanceStateContract?.migrateBackupEnvelope(sourceEnvelope);
     const validation = window.FinanceStateContract?.validateBackupEnvelope(envelope);
     if (!validation?.valid) throw new Error(validation?.errors?.join(" ") || "La copia no es válida.");
     pendingStateRestore = envelope;
@@ -1115,6 +1095,9 @@ function previewSelectedCloudSnapshotRestore() {
 }
 
 function applyPersistedPayload(payload = {}) {
+  payload = window.FinanceStateContract?.migratePayload
+    ? window.FinanceStateContract.migratePayload(payload)
+    : payload;
   payload = E11bInbox?.migratePayload ? E11bInbox.migratePayload(payload) : payload;
   payload = window.FinanceCanonicalState?.canonicalizePayload
     ? window.FinanceCanonicalState.canonicalizePayload(payload)
@@ -2046,6 +2029,7 @@ function downloadCanonicalLedger() {
 }
 
 function queueRemoteSave() {
+  E18Health?.record("remote-save-requested");
   saveLocalSnapshot();
   scheduleCanonicalRefresh("state-change");
   if (!remoteUser || !supabaseClient) {
@@ -2866,6 +2850,7 @@ function setupMobileNavigation() {
 }
 
 function setActiveView(viewId = viewFromHash(), { focus = false, announce = true } = {}) {
+  E18Health?.record(`view:${viewId}`);
   const viewChanged = activeViewId !== viewId;
   activeViewId = viewId;
   document.querySelectorAll(".view-section").forEach((section) => {
