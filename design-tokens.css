@@ -175,11 +175,21 @@
 .e19-kpi {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   background: var(--e19-surface);
   border: 1px solid var(--e19-border);
+  border-left: 4px solid transparent;
   border-radius: var(--e19-radius-md);
   padding: 14px 16px;
+  min-height: 148px;
+}
+
+.e19-kpi.is-warn {
+  border-left-color: var(--e19-warning);
+}
+
+.e19-kpi.is-danger {
+  border-left-color: var(--e19-danger);
 }
 
 .e19-kpi-label {
@@ -191,6 +201,24 @@
   font: 800 var(--e19-text-xl) / 1.1 var(--e19-font-sans);
   color: var(--e19-heading);
   font-variant-numeric: tabular-nums;
+}
+
+.e19-kpi-note {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  line-height: 1.4;
+}
+
+.e19-kpi-meta {
+  margin: 0;
+  font-size: 11px;
+  color: var(--e19-faint);
+}
+
+.e19-kpi-cta {
+  align-self: flex-start;
+  margin-top: auto;
 }
 
 .e19-kpi-delta {
@@ -208,6 +236,91 @@
 
 .e19-kpi-delta.is-warn {
   color: var(--e19-warning);
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Lectura de hoy (insights) y contexto compacto                                                 */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-insight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  background: var(--e19-surface-soft);
+  border: 1px solid var(--e19-border);
+  border-left: 4px solid var(--e19-success);
+  border-radius: var(--e19-radius-md);
+}
+
+.e19-insight.is-warn {
+  border-left-color: var(--e19-warning);
+}
+
+.e19-insight.is-danger {
+  border-left-color: var(--e19-danger);
+}
+
+.e19-insight strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--e19-text-md);
+  color: var(--e19-ink);
+}
+
+.e19-insight p {
+  margin: 0;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-base);
+  line-height: 1.45;
+}
+
+.e19-context-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-soft);
+}
+
+.e19-context-item span {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-context-item strong {
+  font-size: var(--e19-text-md);
+  color: var(--e19-heading);
+  font-weight: 700;
+}
+
+.e19-context-item small {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  line-height: 1.4;
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Aplicación a «Hoy» (E19-2) — todo bajo .e19-home para no afectar a otras vistas que también    */
+/* usan .home-panel, .panel-kicker o .module-heading h3 fuera de esta pantalla.                   */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-home .home-panel {
+  border-color: var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  background: var(--e19-surface);
+  box-shadow: var(--e19-shadow-card);
+}
+
+.e19-home .panel-kicker {
+  color: var(--e19-eyebrow);
+}
+
+.e19-home .module-heading h3 {
+  color: var(--e19-heading);
 }
 
 /* -------------------------------------------------------------------------------------------- */

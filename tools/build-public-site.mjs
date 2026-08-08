@@ -8,6 +8,7 @@ const files = [
   "index.html",
   "styles.css",
   "p2.css",
+  "design-tokens.css",
   "data.js",
   "app.js",
   "state-contract.js",

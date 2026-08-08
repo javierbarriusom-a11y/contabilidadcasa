@@ -8,6 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260808e19a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -156,12 +157,12 @@
 
         <main id="mainContent" tabindex="-1">
           <p class="sr-only" id="appLiveStatus" role="status" aria-live="polite" aria-atomic="true"></p>
-          <section class="home-dashboard view-section" id="home">
+          <section class="home-dashboard view-section e19-home" id="home">
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker">Hoy</p>
-                <h2>Qué necesita tu atención</h2>
-                <p>Saldo, capacidad, siguiente riesgo y tres decisiones priorizadas con los datos actuales.</p>
+                <p class="panel-kicker e19-eyebrow">Hoy</p>
+                <h2 class="e19-heading">Qué necesita tu atención</h2>
+                <p class="e19-subtitle">Saldo, capacidad, siguiente riesgo y tres decisiones priorizadas con los datos actuales.</p>
               </div>
               <div class="visual-controls">
                 <label>
@@ -2537,7 +2538,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260808e18a4"></script>
+    <script src="app.js?v=20260808e19a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

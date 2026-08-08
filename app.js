@@ -16580,22 +16580,24 @@ function homeStatusClass(value, warnAt = 0, dangerAt = 0) {
 }
 
 function renderHomeKpi({ label, value, note, status = "good", cta, target, metadata }) {
-  return `<article class="home-kpi-card ${status}">
-    <span>${escapeHtml(label)}</span>
-    <strong>${escapeHtml(value)}</strong>
-    <p>${escapeHtml(note)}</p>
-    ${metadata ? `<p class="home-kpi-meta">${escapeHtml(`Fuente: ${metadata.source} · ${metadata.asOf} · confianza ${metadata.confidence}`)}</p>` : ""}
-    ${cta ? `<button type="button" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
+  const statusClass = status === "danger" ? "is-danger" : status === "warn" ? "is-warn" : "is-good";
+  return `<article class="e19-kpi ${statusClass}">
+    <span class="e19-kpi-label">${escapeHtml(label)}</span>
+    <strong class="e19-kpi-value">${escapeHtml(value)}</strong>
+    <p class="e19-kpi-note">${escapeHtml(note)}</p>
+    ${metadata ? `<p class="e19-kpi-meta">${escapeHtml(`Fuente: ${metadata.source} · ${metadata.asOf} · confianza ${metadata.confidence}`)}</p>` : ""}
+    ${cta ? `<button type="button" class="e19-btn e19-btn-secondary e19-kpi-cta" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
   </article>`;
 }
 
 function renderHomeInsight({ title, text, status = "good", target, cta }) {
-  return `<div class="home-insight ${status}">
+  const statusClass = status === "danger" ? "is-danger" : status === "warn" ? "is-warn" : "is-good";
+  return `<div class="e19-insight ${statusClass}">
     <div>
       <strong>${escapeHtml(title)}</strong>
       <p>${escapeHtml(text)}</p>
     </div>
-    ${cta ? `<button type="button" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
+    ${cta ? `<button type="button" class="e19-btn e19-btn-secondary" data-home-nav="${escapeHtml(target || "")}">${escapeHtml(cta)}</button>` : ""}
   </div>`;
 }
 
@@ -17217,11 +17219,11 @@ function renderHomeDashboard() {
 
   const nextDebt = debtPriorities[0];
   qs("homePriorities").innerHTML = [
-    `<div class="home-context-item"><span>Decisiones en plan</span><strong>${loadedDecisions.length}</strong><small>Simuladas, propuestas o fijadas en el modelo actual.</small></div>`,
+    `<div class="e19-context-item"><span>Decisiones en plan</span><strong>${loadedDecisions.length}</strong><small>Simuladas, propuestas o fijadas en el modelo actual.</small></div>`,
     nextDebt
-      ? `<div class="home-context-item"><span>Siguiente deuda candidata</span><strong>${escapeHtml(debtTargetDisplayName(nextDebt.target))}</strong><small>${money(nextDebt.principal, true)} pendientes · mejor hueco ${escapeHtml(nextDebt.best?.month?.label || "por calcular")}.</small></div>`
-      : `<div class="home-context-item"><span>Deuda candidata</span><strong>Sin propuesta</strong><small>No hay una deuda disponible para preparar ahora.</small></div>`,
-    `<div class="home-context-item"><span>Horizonte visible</span><strong>${rows.length} meses</strong><small>Ratio deuda/ingresos ${(savings.debtToIncomeRatio * 100).toFixed(1)}% · pago estimado ${money(debtStats.currentPayment.total, true)}/mes.</small></div>`,
+      ? `<div class="e19-context-item"><span>Siguiente deuda candidata</span><strong>${escapeHtml(debtTargetDisplayName(nextDebt.target))}</strong><small>${money(nextDebt.principal, true)} pendientes · mejor hueco ${escapeHtml(nextDebt.best?.month?.label || "por calcular")}.</small></div>`
+      : `<div class="e19-context-item"><span>Deuda candidata</span><strong>Sin propuesta</strong><small>No hay una deuda disponible para preparar ahora.</small></div>`,
+    `<div class="e19-context-item"><span>Horizonte visible</span><strong>${rows.length} meses</strong><small>Ratio deuda/ingresos ${(savings.debtToIncomeRatio * 100).toFixed(1)}% · pago estimado ${money(debtStats.currentPayment.total, true)}/mes.</small></div>`,
   ].join("");
 
   qs("homeMonthTable").innerHTML = `<thead><tr>
