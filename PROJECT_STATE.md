@@ -364,7 +364,7 @@ pruebas visuales de los flujos críticos. E10 se mantiene al final.
 
 ## Último commit estable
 
-- La entrega E17 está validada localmente y preparada para consolidarse en `main`; el cierre incluye interfaz, caché offline, pruebas y documentación. `.agents/` permanece sin seguimiento y queda excluida.
+- E17 quedó consolidada y publicada en `main` y `origin/main` mediante `4d3a845` (`feat: complete E17 task-focused experience`). El cierre incluye interfaz, caché offline, pruebas y documentación; `.agents/` permanece sin seguimiento y queda excluida.
 
 - La base publicada de E16 está en `main` y `origin/main` mediante `379ccc2` (`feat: implement E16 predictive monitoring`) y su documentación mediante `4910b7d`. El cierre de aceptación, la corrección de recuperación, las pruebas y la documentación se publicaron en `065d85f` (`fix: prevent repeated cloud recovery conflict`); `.agents/` continúa sin seguimiento y queda excluida.
 

@@ -290,7 +290,7 @@ rendimiento, construcción pública, privacidad y smoke test.
 predictiva, recomendaciones trazables y presupuesto de riesgo quedan aceptados con persistencia, recarga
 y recuperación remota sin conflicto repetido.
 
-**E17 verificada localmente el 8 de agosto de 2026:** «Hoy, Actualizar, Prever, Decidir» forman la
+**E17 verificada y publicada mediante `4d3a845` el 8 de agosto de 2026:** «Hoy, Actualizar, Prever, Decidir» forman la
 navegación principal; las herramientas avanzadas quedan en segundo nivel; una guía de pantalla, lanzador,
 ayuda local y preferencias recuperables reducen la complejidad sin alterar datos. La puerta completa pasa
 con 293 pruebas y el QA del artefacto público a 1280×720 y 390×844 no mostró desbordamiento.
