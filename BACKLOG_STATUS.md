@@ -91,7 +91,7 @@ está implantada, pero ninguna tarea queda todavía verificada con su alcance am
 - Estados contrastados con `PROJECT_STATE.md`, `ROADMAP_EXECUTION.md` y el historial reciente de Git:
   E1-E9 y E11-E17 continúan `Verificado`; E10 continúa `Pendiente`; E18 pasa a `Parcial continuo`.
 - A5-1 a A5-6 siguen `Pendiente`: no hay evidencia de activación real de proveedores ni se ha modificado
-  su aplazamiento al final del proyecto. A13-1, A13-2, A13-4 y A13-5 pasan a `Parcial`; A13-3 y A13-6 siguen `Pendiente`.
+  su aplazamiento al final del proyecto. A13-1 a A13-6 están en `Parcial`; ninguna tarea de E18 queda aún verificada.
 - La base de A13-4 migra copias íntegramente verificadas antes de restaurarlas y rechaza alteraciones; la de
   A13-5 cubre los seis flujos críticos por contrato y se comprobó localmente a 1280×720 y 390×844 sin errores de consola.
 
