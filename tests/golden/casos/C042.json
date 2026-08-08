@@ -1,0 +1,11 @@
+{
+  "id": "C042",
+  "titulo": "Dos amortizaciones sobre la misma deuda, la segunda ya cerrada",
+  "proteje": "Conflicto bloqueante",
+  "dataset": "D1-hogar-base",
+  "estado": "gap_funcional",
+  "motoresConsultados": [
+    "canonical-scenario-schema"
+  ],
+  "motivo": "Detectar que la segunda amortización llega sobre una deuda YA cerrada por la primera exige saber si la primera amortización cierra la deuda (depende de su importe frente al principal, que el esquema no valida de forma cruzada a propósito: deudaId es opaco para el validador de esquema, ver doc §3). Es responsabilidad del motor de Escenario (§2.3 regla 3: 'una amortización sobre una deuda ya cerrada por otra decisión genera un conflicto bloqueante'), no del esquema estructural que ya existe."
+}

@@ -1,0 +1,50 @@
+{
+  "id": "C045",
+  "titulo": "Ciclo en dependeDe",
+  "proteje": "Error de validación, no bucle infinito",
+  "estado": "computable",
+  "motoresAplicables": [
+    "canonical-scenario-schema.resolveExecutionOrder"
+  ],
+  "entrada": {
+    "decisiones": [
+      {
+        "id": "dec_RD2QC1PB0NAZM9YK8XJ7WH6VG5",
+        "tipo": "amortizacion",
+        "titulo": "Decisión amortizacion",
+        "activa": true,
+        "orden": 0,
+        "planificacion": {
+          "modo": "optimo"
+        },
+        "params": {
+          "deudaId": "d1-entidad-a",
+          "importe": 1000
+        },
+        "dependeDe": [
+          "dec_ZNB1QD3SF5VH7XK9ZNB1QD3SF5"
+        ]
+      },
+      {
+        "id": "dec_ZNB1QD3SF5VH7XK9ZNB1QD3SF5",
+        "tipo": "traspaso",
+        "titulo": "Decisión traspaso",
+        "activa": true,
+        "orden": 1,
+        "planificacion": {
+          "modo": "optimo"
+        },
+        "params": {
+          "origen": "caixabank",
+          "destino": "mediolanum",
+          "importe": 300,
+          "mes": "2026-09"
+        },
+        "dependeDe": [
+          "dec_RD2QC1PB0NAZM9YK8XJ7WH6VG5"
+        ]
+      }
+    ]
+  },
+  "notas": "A depende de B y B depende de A. validateEscenario() ya rechaza este escenario con el código dependency-cycle (día 1, T-META y caso C045 originales); aquí se confirma además que resolveExecutionOrder() termina — no entra en bucle infinito — y reporta hasCycle:true con ambos identificadores sin resolver."
+}

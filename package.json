@@ -8,6 +8,7 @@
     "build:demo": "node tools/build-public-demo-data.mjs",
     "golden:datasets": "node tools/build-golden-datasets.mjs",
     "golden:debt-cases": "node tools/build-golden-debt-cases.mjs",
+    "golden:combined-cases": "node tools/build-golden-combined-cases.mjs",
     "build:site": "npm run build:demo && node tools/build-public-site.mjs",
     "test:privacy": "node tools/check-public-privacy.mjs",
     "test:smoke": "node tools/smoke-public.mjs",

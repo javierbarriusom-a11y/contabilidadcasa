@@ -1,0 +1,13 @@
+{
+  "id": "C041",
+  "titulo": "Las mismas dos decisiones (C040) en orden inverso",
+  "proteje": "La dependencia del orden es real y correcta",
+  "dataset": "D1-hogar-base",
+  "estado": "gap_funcional",
+  "motoresConsultados": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations",
+    "canonical-scenario-schema"
+  ],
+  "motivo": "Mismo motivo que C040: sin motor que comparta estado entre decisiones, no hay nada que comparar entre 'amortizar y luego comprar' y 'comprar y luego amortizar'. La infraestructura de orden (resolveExecutionOrder, ver C044) ya decide QUÉ decisión se resuelve primero; lo que falta es el motor que calcule un resultado distinto según ese orden."
+}

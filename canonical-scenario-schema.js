@@ -531,6 +531,62 @@
     });
   }
 
+  // Orden de resolución real de las decisiones (§2.3 regla 1 del modelo de Escenario: "se
+  // resuelven por orden ascendente, respetando dependeDe"). No simula nada financiero — es pura
+  // teoría de grafos (orden topológico de Kahn, desempatado por el campo `orden` declarado) — así
+  // que es verificable hoy sin esperar al motor de Escenario de E20. Sirve para el caso dorado
+  // C044: cuando `orden` y `dependeDe` se contradicen, el orden topológico gana, nunca `orden`.
+  function orderOf(decision) {
+    const value = Number(decision?.orden);
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  function resolveExecutionOrder(decisiones) {
+    const byId = new Map();
+    (Array.isArray(decisiones) ? decisiones : []).forEach((decision) => {
+      if (isPlainObject(decision) && typeof decision.id === "string") byId.set(decision.id, decision);
+    });
+
+    const inDegree = new Map();
+    const dependents = new Map();
+    byId.forEach((decision, id) => {
+      const deps = (Array.isArray(decision.dependeDe) ? decision.dependeDe : []).filter((depId) => byId.has(depId));
+      inDegree.set(id, deps.length);
+      deps.forEach((depId) => {
+        if (!dependents.has(depId)) dependents.set(depId, []);
+        dependents.get(depId).push(id);
+      });
+    });
+
+    const declaredOrder = Array.from(byId.keys()).sort((a, b) => orderOf(byId.get(a)) - orderOf(byId.get(b)) || a.localeCompare(b));
+
+    const available = [];
+    inDegree.forEach((degree, id) => { if (degree === 0) available.push(id); });
+    const resolvedOrder = [];
+    const remaining = new Set(byId.keys());
+    while (available.length) {
+      available.sort((a, b) => orderOf(byId.get(a)) - orderOf(byId.get(b)) || a.localeCompare(b));
+      const next = available.shift();
+      resolvedOrder.push(next);
+      remaining.delete(next);
+      (dependents.get(next) || []).forEach((depId) => {
+        inDegree.set(depId, inDegree.get(depId) - 1);
+        if (inDegree.get(depId) === 0) available.push(depId);
+      });
+    }
+
+    const hasCycle = remaining.size > 0;
+    const declaredOrderMatches = !hasCycle && declaredOrder.every((id, index) => id === resolvedOrder[index]);
+
+    return {
+      hasCycle,
+      unresolved: hasCycle ? Array.from(remaining) : [],
+      declaredOrder,
+      resolvedOrder: hasCycle ? null : resolvedOrder,
+      declaredOrderMatches,
+    };
+  }
+
   function validateDecisiones(decisiones, path, issues) {
     if (!Array.isArray(decisiones)) {
       error(issues, path, "invalid-type", `${path} debe ser un array.`);
@@ -622,5 +678,6 @@
     validateEscenario,
     validateDecision,
     validateDecisionParams,
+    resolveExecutionOrder,
   };
 });

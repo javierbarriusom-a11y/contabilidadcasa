@@ -1,0 +1,13 @@
+{
+  "id": "C040",
+  "titulo": "Amortizar en M6 + comprar en M9 usando la cuota liberada",
+  "proteje": "Efecto cascada",
+  "dataset": "D1-hogar-base",
+  "estado": "gap_funcional",
+  "motoresConsultados": [
+    "legacy-debt-roadmap-engine",
+    "canonical-e14-operations",
+    "canonical-scenario-schema"
+  ],
+  "motivo": "Ningún motor actual conoce el margen mensual liberado por cerrar una deuda ni lo reinyecta en la capacidad disponible para una compra posterior: cada motor de deuda calcula su propio cuadro de forma aislada del resto del plan (ingresos, otros gastos, otras decisiones). Simular la cascada real (cerrar deuda → más margen mensual → financiar mejor la compra) exige el motor de Escenario de E20, que sí comparte estado entre decisiones resueltas en orden."
+}

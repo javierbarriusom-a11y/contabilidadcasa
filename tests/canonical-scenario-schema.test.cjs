@@ -339,3 +339,44 @@ test("registerMigration exige al menos un ejemplo real (T-META-03)", () => {
     migrations.registerMigration("1.0", "1.1", (value) => value, []);
   }, /ejemplo real/);
 });
+
+test("C044 · resolveExecutionOrder: cuando orden y dependeDe se contradicen, gana el orden topológico", () => {
+  const idA = makeId("dec", 21);
+  const idB = makeId("dec", 22);
+  const idC = makeId("dec", 23);
+  const decisiones = [
+    decision("amortizacion", VALID_PARAMS_BY_TYPE.amortizacion, { id: idA, orden: 1 }),
+    decision("traspaso", VALID_PARAMS_BY_TYPE.traspaso, { id: idB, orden: 2, dependeDe: [idC] }),
+    decision("compra", VALID_PARAMS_BY_TYPE.compra, { id: idC, orden: 3 }),
+  ];
+  const result = schema.resolveExecutionOrder(decisiones);
+  assert.equal(result.hasCycle, false);
+  assert.deepEqual(result.declaredOrder, [idA, idB, idC], "el orden declarado ingenuo ignora la dependencia");
+  assert.deepEqual(result.resolvedOrder, [idA, idC, idB], "el orden real debe colocar C antes que B porque B depende de C");
+  assert.equal(result.declaredOrderMatches, false, "orden y dependeDe se contradicen: no deberían coincidir");
+});
+
+test("resolveExecutionOrder: sin conflictos entre orden y dependeDe, ambos coinciden", () => {
+  const idA = makeId("dec", 24);
+  const idB = makeId("dec", 25);
+  const decisiones = [
+    decision("amortizacion", VALID_PARAMS_BY_TYPE.amortizacion, { id: idA, orden: 0 }),
+    decision("traspaso", VALID_PARAMS_BY_TYPE.traspaso, { id: idB, orden: 1, dependeDe: [idA] }),
+  ];
+  const result = schema.resolveExecutionOrder(decisiones);
+  assert.equal(result.declaredOrderMatches, true);
+  assert.deepEqual(result.resolvedOrder, [idA, idB]);
+});
+
+test("C045 (revisitado) · resolveExecutionOrder detecta el ciclo y no entra en bucle infinito", () => {
+  const idA = makeId("dec", 26);
+  const idB = makeId("dec", 27);
+  const decisiones = [
+    decision("amortizacion", VALID_PARAMS_BY_TYPE.amortizacion, { id: idA, orden: 0, dependeDe: [idB] }),
+    decision("traspaso", VALID_PARAMS_BY_TYPE.traspaso, { id: idB, orden: 1, dependeDe: [idA] }),
+  ];
+  const result = schema.resolveExecutionOrder(decisiones);
+  assert.equal(result.hasCycle, true);
+  assert.equal(result.resolvedOrder, null);
+  assert.deepEqual(new Set(result.unresolved), new Set([idA, idB]));
+});

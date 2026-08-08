@@ -1,0 +1,61 @@
+{
+  "id": "C044",
+  "titulo": "Dependencia declarada con orden contradictorio",
+  "proteje": "Orden topológico gana",
+  "estado": "computable",
+  "motoresAplicables": [
+    "canonical-scenario-schema.resolveExecutionOrder"
+  ],
+  "entrada": {
+    "decisiones": [
+      {
+        "id": "dec_WDYF0H2K4N6Q8SAVCXEZG1J3M5",
+        "tipo": "amortizacion",
+        "titulo": "Decisión amortizacion",
+        "activa": true,
+        "orden": 1,
+        "planificacion": {
+          "modo": "optimo"
+        },
+        "params": {
+          "deudaId": "d1-entidad-a",
+          "importe": 1000
+        }
+      },
+      {
+        "id": "dec_3N7SBXF1K5Q9VDZH3N7SBXF1K5",
+        "tipo": "traspaso",
+        "titulo": "Decisión traspaso",
+        "activa": true,
+        "orden": 2,
+        "planificacion": {
+          "modo": "optimo"
+        },
+        "params": {
+          "origen": "caixabank",
+          "destino": "mediolanum",
+          "importe": 300,
+          "mes": "2026-09"
+        },
+        "dependeDe": [
+          "dec_AXG3P9WF2N8VE1M7TD0K6SCZJ5"
+        ]
+      },
+      {
+        "id": "dec_AXG3P9WF2N8VE1M7TD0K6SCZJ5",
+        "tipo": "compra",
+        "titulo": "Decisión compra",
+        "activa": true,
+        "orden": 3,
+        "planificacion": {
+          "modo": "optimo"
+        },
+        "params": {
+          "nombre": "Coche",
+          "importe": 5000
+        }
+      }
+    ]
+  },
+  "notas": "B declara orden:2 pero depende de C (orden:3). El orden declarado ingenuo (A,B,C) es inválido porque ejecutaría B antes que su propia dependencia. resolveExecutionOrder() resuelve (A,C,B): el orden topológico gana sobre el campo `orden`, tal como exige §2.3 regla 1 del modelo de Escenario."
+}

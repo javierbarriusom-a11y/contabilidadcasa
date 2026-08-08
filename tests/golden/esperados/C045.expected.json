@@ -1,0 +1,16 @@
+{
+  "id": "C045",
+  "resolucion": {
+    "hasCycle": true,
+    "declaredOrder": [
+      "dec_RD2QC1PB0NAZM9YK8XJ7WH6VG5",
+      "dec_ZNB1QD3SF5VH7XK9ZNB1QD3SF5"
+    ],
+    "resolvedOrder": null,
+    "declaredOrderMatches": false,
+    "unresolved": [
+      "dec_RD2QC1PB0NAZM9YK8XJ7WH6VG5",
+      "dec_ZNB1QD3SF5VH7XK9ZNB1QD3SF5"
+    ]
+  }
+}

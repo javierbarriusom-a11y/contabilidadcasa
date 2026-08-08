@@ -2,6 +2,49 @@
 
 Fecha de revisión: 8 de agosto de 2026.
 
+## Cierre de sesión — E19-0, dataset dorado y esquemas validables
+
+- E19-0 queda completo y verificado: es la fase de fundación de la nueva propuesta de rediseño
+  visual y evolución funcional (piel visual E19, motor de Escenario unificado E20, presupuesto por
+  bloque E21, deuda y cuadro de mandos con impacto E22), acordada con el usuario junto a un
+  documento de diseño visual y tres documentos de diseño funcional (esquemas y dataset dorado,
+  presupuestos, modelo de Escenario).
+- Día 1: `canonical-scenario-schema.js` valida el objeto Escenario y sus 13 tipos de Decisión
+  (`additionalProperties:false` en cada nivel, un bloque if/then por tipo, detección de ciclos en
+  `dependeDe`). `migrations/scenario-schema-migrations.js` deja el registro de migraciones listo
+  para cuando exista una v1.1.
+- Día 2: tres datasets sintéticos y anonimizados a 120 meses (D1-hogar-base, D2-hogar-apalancado,
+  D3-hogar-holgado; titulares T1/T2, entidades Banco Operativo/Banco Ahorro y Entidad A-D),
+  ejecutables desde el primer día contra `canonical-engine.js` y `canonical-debt-contracts.js`.
+- Día 3: los 10 casos dorados de deuda (C001-C010) ejecutados contra los tres motores reales que
+  hoy calculan deuda de forma independiente. 7 de 10 coinciden exactamente; 3 quedan documentados
+  como hueco funcional (C003 mes óptimo, C004 amortización fraccionada, C005 reunificación) en vez
+  de forzar un resultado inventado. Detalle en `E19_INFORME_PARIDAD_DEUDA.md`.
+- Día 4: invariantes I-01 a I-09 verificadas por generación aleatoria contra el código real
+  (`canonical-scenario-invariants.js`), no solo casos escritos a mano. La primera tanda de 40
+  casos aleatorios de I-07 encontró un error real en `legacy-debt-roadmap-engine.js`: podía
+  reportar que una deuda tardaba más en pagarse al amortizar más, por leer el saldo mutable del
+  último mes simulado en vez del histórico de cada fila. Corregido en un único punto, sin afectar
+  a `totalPaid`/`totalLump`/`peak`; el caso dorado C007 del día 3 ya lo exhibía sin que el informe
+  de ese día lo detectara. Detalle en `E19_INVARIANTES.md`.
+- Día 5: casos combinados C040-C045. `resolveExecutionOrder()` (nuevo en
+  `canonical-scenario-schema.js`) resuelve el orden real de las decisiones por teoría de grafos
+  pura, sin esperar al motor de Escenario: verificado contra C044 (el orden topológico gana sobre
+  el `orden` declarado cuando se contradicen) y C045 (ciclo detectado sin bucle infinito). C040 a
+  C043 quedan como hueco funcional documentado: exigen que un motor comparta estado financiero
+  entre decisiones resueltas en orden, que es exactamente lo que E20 debe construir.
+- Informe final y recomendación de orden para E20 en `E19_INFORME_FINAL.md`: cinco de los seis
+  tipos de decisión más usados ya están en paridad y pueden envolverse sin reescribir; reunificación
+  y conflictos bloqueantes son el riesgo real de F1; el efecto cascada entre decisiones (C040/C041)
+  debería ser el criterio de aceptación de F1, no un extra.
+- La puerta local pasa con 378 pruebas (375 pass, 3 `test.todo` explícitos citando a E20-0),
+  accesibilidad, rendimiento, construcción pública, privacidad, smoke test y `git diff --check`.
+  Ningún dato real en ningún fixture, verificado por prueba automatizada.
+- Se creó la rama `checkpoint-pre-e19-rediseno` en GitHub (apuntando a `aecc450`, el commit estable
+  previo a este trabajo) como punto de restauración si hiciera falta partir de cero.
+- Trabajo publicado en la rama `claude/repo-analysis-3dupjd` mediante el PR #1 (borrador), sin
+  fusionar a `main` todavía.
+
 ## Cierre de sesión — A5-2 a A5-4
 
 - A5-2 queda implementada localmente con un benchmark reproducible sobre casos anonimizados: calidad,

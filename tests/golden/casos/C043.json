@@ -1,0 +1,11 @@
+{
+  "id": "C043",
+  "titulo": "Reunificación + amortización de una deuda incluida en ella",
+  "proteje": "Conflicto bloqueante",
+  "dataset": "D2-hogar-apalancado",
+  "estado": "gap_funcional",
+  "motoresConsultados": [
+    "canonical-scenario-schema"
+  ],
+  "motivo": "Mismo motivo que C042 y coherente con el hueco ya documentado en C005 (día 3): ni el esquema ni ningún motor actual saben qué deudaIds quedan absorbidas por una reunificación. El propio esquema exige deudaIds como array de cadenas opacas (§3), sin cruzarlas contra otras decisiones del mismo escenario — esa validación cruzada es del motor de Escenario, no del esquema."
+}

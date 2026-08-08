@@ -1,0 +1,18 @@
+{
+  "id": "C044",
+  "resolucion": {
+    "hasCycle": false,
+    "declaredOrder": [
+      "dec_WDYF0H2K4N6Q8SAVCXEZG1J3M5",
+      "dec_3N7SBXF1K5Q9VDZH3N7SBXF1K5",
+      "dec_AXG3P9WF2N8VE1M7TD0K6SCZJ5"
+    ],
+    "resolvedOrder": [
+      "dec_WDYF0H2K4N6Q8SAVCXEZG1J3M5",
+      "dec_AXG3P9WF2N8VE1M7TD0K6SCZJ5",
+      "dec_3N7SBXF1K5Q9VDZH3N7SBXF1K5"
+    ],
+    "declaredOrderMatches": false,
+    "unresolved": []
+  }
+}
