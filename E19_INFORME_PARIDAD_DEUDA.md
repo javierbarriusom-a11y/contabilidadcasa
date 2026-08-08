@@ -60,6 +60,23 @@ reutiliza exactamente ese arnés para los 10 casos, en vez de construir uno nuev
    `planificacion.modo: "optimo"`); son precisamente los tipos de decisión que E20 debe implementar
    de cero, no migrar desde un motor existente.
 
+### 3.1 Corrección posterior (día 4): C007 no estaba realmente en paridad
+
+Al construir las invariantes con generación aleatoria (día 4, ver `E19_INVARIANTES.md`) apareció
+un caso que amortizaba una cuenta `hybrid` con importe y plazo mayores que los usados aquí y que
+el motor heredado reportaba con una duración superior a la real. La causa: `durationMonths` en
+`legacy-debt-roadmap-engine.js` leía el array de saldos mutable del final de la simulación en vez
+del saldo histórico de cada mes, así que un residuo de coma flotante podía dejar una deuda ya
+pagada «viva» durante el resto del horizonte. Se corrigió en `legacy-debt-roadmap-engine.js`
+(un único punto, sin tocar `totalPaid`, `totalLump` ni `peak`).
+
+Al volver a generar los casos con el motor corregido, **C007 cambió**: su duración pasó de 40 a 39
+meses y `paridadLegadoVsCanonico.valid` pasó de `false` (con `duration:40!=39`) a `true`. La tabla
+del §2 y este informe ya reflejan el resultado corregido. Es la prueba de que el propio ejercicio
+del dataset dorado encuentra divergencias reales incluso en un caso que este mismo informe había
+marcado como «✅ coincide» — la comparación de §2 se basaba en `totalPaid`, no en la duración, y
+por eso no lo detectó hasta que las invariantes lo generalizaron con casos aleatorios.
+
 ## 4. Consecuencia para el orden de E20
 
 - **F1 (esquema + motor determinista) no puede limitarse a envolver el motor heredado.** Para

@@ -72,7 +72,12 @@
     const totalPaid = round2(rows.reduce((sum, row) => sum + row.total, 0));
     const totalLump = round2(accounts.reduce((sum, account) => sum + account.lump, 0));
     const peak = round2(Math.max(0, ...rows.map((row) => row.total)));
-    const durationMonths = rows.reduce((last, row, index) => row.total > 0 || balances.some((value) => value > 0) ? index + 1 : last, 0);
+    // Usa el saldo de cada fila (`row.balances`, congelado en el momento de esa fila), no el
+    // array `balances` mutable de más arriba: por construcción, al terminar el bucle ese array
+    // refleja el saldo del ÚLTIMO mes simulado para cualquier índice de fila, así que una deuda
+    // ya liquidada podía parecer viva durante todo el resto del horizonte si un residuo de coma
+    // flotante dejaba el saldo final en un valor positivo ínfimo en vez de exactamente cero.
+    const durationMonths = rows.reduce((last, row, index) => row.total > 0 || row.balances.some((value) => value > 0) ? index + 1 : last, 0);
     return { schemaId: "finance-legacy-debt-roadmap/v1", readOnly: true, accounts, rows, totalPaid, totalLump, peak, durationMonths };
   }
 
