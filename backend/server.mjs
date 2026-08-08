@@ -5,22 +5,44 @@ const port = Number(process.env.PORT || 8787);
 const authVerifyUrl = String(process.env.FINANCE_AUTH_VERIFY_URL || "").trim();
 const apiKey = String(process.env.OPENAI_API_KEY || "").trim();
 const enabled = process.env.FINANCE_EXTERNAL_ENABLED === "true";
+const remoteTimeoutMs = Math.max(1, Number(process.env.FINANCE_REMOTE_TIMEOUT_MS || 10000));
+const serviceNames = ["household", "assistant", "actions", "notifications", "banking"];
+const serviceEnabled = Object.fromEntries(serviceNames.map((service) => {
+  const variable = `FINANCE_${service.toUpperCase()}_ENABLED`;
+  return [service, enabled && (process.env[variable] === undefined || process.env[variable] === "true")];
+}));
+
+async function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), remoteTimeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function authorize(request, service, scopes) {
   if (!authVerifyUrl) return { allowed: false, reason: "auth-verifier-not-configured" };
   const authorization = request.headers?.authorization || "";
   if (!authorization.startsWith("Bearer ")) return { allowed: false, reason: "bearer-required" };
-  const response = await fetch(authVerifyUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization },
-    body: JSON.stringify({ service, scopes }),
-  });
-  if (!response.ok) return { allowed: false, reason: "auth-verifier-rejected" };
-  return response.json();
+  try {
+    const response = await fetchWithTimeout(authVerifyUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization },
+      body: JSON.stringify({ service, scopes }),
+    });
+    if (!response.ok) return { allowed: false, reason: "auth-verifier-rejected" };
+    return response.json();
+  } catch {
+    return { allowed: false, reason: "auth-verifier-unavailable" };
+  }
 }
 
 const app = createPrivateBackend({
   enabled,
+  serviceEnabled,
+  remoteTimeoutMs,
   apiKey,
   model: process.env.OPENAI_MODEL,
   authorize,
@@ -39,7 +61,7 @@ function readBody(request) {
 const server = http.createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/health") {
     response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify({ schemaId: app.SCHEMA_ID, enabled: app.config.enabled, modelConfigured: Boolean(app.config.model), authConfigured: Boolean(authVerifyUrl) }));
+    response.end(JSON.stringify({ schemaId: app.SCHEMA_ID, enabled: app.config.enabled, serviceEnabled: app.config.serviceEnabled, modelConfigured: Boolean(app.config.model), authConfigured: Boolean(authVerifyUrl), remoteTimeoutMs: app.config.remoteTimeoutMs }));
     return;
   }
   try {

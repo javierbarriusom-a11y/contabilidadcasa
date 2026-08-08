@@ -31,3 +31,33 @@ test("hogar y notificaciones exigen autorización y permanecen en fallback si no
   assert.equal(response.status, 403);
   assert.equal(response.body.fallback, "local");
 });
+
+test("cada servicio externo puede apagarse de forma independiente", async () => {
+  const app = backend.createPrivateBackend({
+    enabled: true,
+    serviceEnabled: { assistant: false, notifications: true },
+    authorize: async () => ({ allowed: true, userId: "u1" }),
+    pushCommand: async () => ({ sent: false }),
+  });
+  const assistantResponse = await app.handle({ method: "POST", path: "/v1/assistant/query", body: { question: "¿Cómo está la caja?", readModel } });
+  const pushResponse = await app.handle({ method: "POST", path: "/v1/notifications/command", body: { type: "deliver" } });
+  assert.equal(assistantResponse.status, 503);
+  assert.equal(assistantResponse.body.fallback, "local");
+  assert.equal(pushResponse.status, 200);
+});
+
+test("un proveedor que supera el tiempo límite vuelve al fallback local", async () => {
+  const app = backend.createPrivateBackend({
+    enabled: true,
+    remoteTimeoutMs: 5,
+    model: "model-pinned",
+    apiKey: "secret-value",
+    authorize: async () => ({ allowed: true, userId: "u1" }),
+    fetch: async (_url, options) => new Promise((resolve, reject) => {
+      options.signal.addEventListener("abort", () => { const error = new Error("aborted"); error.name = "AbortError"; reject(error); });
+    }),
+  });
+  const response = await app.handle({ method: "POST", path: "/v1/assistant/query", body: { question: "¿Cómo está la caja?", readModel } });
+  assert.equal(response.status, 502);
+  assert.equal(response.body.fallback, "local");
+});
