@@ -12,8 +12,8 @@ histórico se interprete como estado actual, `BACKLOG_STATUS.md` es la fuente op
 | --- | --- | --- |
 | E1-E9 | Verificado | Base canónica, recuperación y contratos externos seguros cerrados |
 | E10 | Pendiente, al final | Activación real de servicios externos, sin bloquear el producto local |
-| E11-E15 | Verificado | Entrada, forecast, escenarios, deuda y objetivos completados |
-| E16 | Implementado; pendiente de aceptación | Seguimiento predictivo A11-1 a A11-5 |
+| E11-E16 | Verificado | Entrada, forecast, escenarios, deuda, objetivos y seguimiento predictivo completados |
+| E16 | Verificado | Seguimiento predictivo A11-1 a A11-5 aceptado con persistencia y recarga |
 | E17 | Pendiente | Simplificación por tareas A12-1 a A12-5 |
 | E18 | Continuo | Rendimiento, migraciones, pruebas y observabilidad en cada entrega |
 

@@ -34,13 +34,13 @@ mantiene `Parcial` hasta verificar todos sus tramos.
 | E14a | A9-1 a A9-3 | Verificado | Inventario, adaptador canónico de solo lectura y contrato de estrategia publicados |
 | E14b | A9-4 a A9-8 | Verificado | Ofertas, optimización, escenarios, aplicación confirmada y paridad del plan heredado verificadas |
 | E15 | A10-1 a A10-5 | Verificado | Objetivos canónicos, calendario, aportaciones prudentes, conflictos y revisión mensual confirmable |
-| E16 | A11-1 a A11-5 | Implementado | Contrato de seguimiento predictivo local, presupuesto de riesgo y recomendaciones trazables; pendiente de aceptación integral |
+| E16 | A11-1 a A11-5 | Verificado | Seguimiento predictivo aceptado: alertas y recomendaciones visibles, presupuesto persistente tras recarga y recuperación remota sin conflicto repetido |
 | E17 | A12-1 a A12-5 | Pendiente | Simplificación de navegación y ayuda por tareas |
 | E18 | A13-1 a A13-6 | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad acompañan cada entrega |
 
-Resumen actual: E1-E9 y E11-E15 están verificadas. La paridad A/B del plan heredado se comprueba frente
-al contrato canónico y el iframe permanece como respaldo. Después siguen E16/E17 y la evolución
-continua de E18; E10 se mantiene al final.
+Resumen actual: E1-E9 y E11-E16 están verificadas. La paridad A/B del plan heredado se comprueba frente
+al contrato canónico y el iframe permanece como respaldo. Después siguen E17 y la evolución continua
+de E18; E10 se mantiene al final.
 
 ### Tareas verificadas de E15
 
@@ -52,15 +52,15 @@ continua de E18; E10 se mantiene al final.
 | A10-4 | Conflictos entre objetivos | Verificado | Media | Detecta capacidad insuficiente y ofrece alternativas de fecha, importe o prioridad según la flexibilidad |
 | A10-5 | Revisión mensual guiada | Verificado | Alta | Registra una revisión local confirmable y orienta conciliación, desviaciones, forecast y decisiones del mes siguiente |
 
-### Tareas implementadas de E16
+### Tareas verificadas de E16
 
 | ID | Desarrollo | Estado | Prioridad | Evidencia actual |
 | --- | --- | --- | --- | --- |
-| A11-1 | Alertas anticipadas de caja | Implementado | Alta | El contrato señala caja, variación y ratio de deuda con horizonte, confianza y evidencia del forecast; pendiente de aceptación en navegador |
-| A11-2 | «Qué cambió» desde la última revisión | Implementado | Alta | Resume movimientos, desviaciones, supuestos y objetivos desde la última revisión registrada, sin alterar datos |
-| A11-3 | Calidad de predicción | Implementado | Media | Calcula error absoluto y sesgo por categoría solo con periodos completos; declara cuando faltan muestras |
-| A11-4 | Recomendaciones trazables | Implementado | Media | Cada recomendación enlaza evidencias y alternativas, exige confirmación cuando procede y nunca ejecuta cambios |
-| A11-5 | Presupuesto de riesgo | Implementado | Media | Permite guardar umbrales de caja, variación y deuda para ordenar los avisos; no modifica el plan |
+| A11-1 | Alertas anticipadas de caja | Verificado | Alta | Las alertas de caja, variación y ratio muestran horizonte, confianza y evidencia en la vista Hoy, en escritorio y a 400 px |
+| A11-2 | «Qué cambió» desde la última revisión | Verificado | Alta | El panel explica los cambios disponibles sin alterar datos y declara de forma explícita la ausencia de revisión comparable |
+| A11-3 | Calidad de predicción | Verificado | Media | Calcula error absoluto y sesgo solo con periodos completos; en ausencia de muestras lo comunica sin inventar precisión |
+| A11-4 | Recomendaciones trazables | Verificado | Media | Las recomendaciones presentan evidencia y alternativas en la interfaz, sin rutas de ejecución automática |
+| A11-5 | Presupuesto de riesgo | Verificado | Media | Un umbral de caja genera alertas, se conserva tras recargar y se restaura sin modificar el plan; la recuperación remota no reabre el conflicto |
 
 ## 1. Reglas de gobierno
 
@@ -98,7 +98,7 @@ continua de E18; E10 se mantiene al final.
 | E13 | Verificado | Laboratorio, simulación prudente, correlación, sensibilidad y escenarios reproducibles completados |
 | E14 | Verificado | E14a y E14b están verificadas; la paridad A/B del plan heredado queda automatizada y el iframe se conserva como respaldo |
 | E15 | Verificado | Objetivos, calendario, aportaciones prudentes, conflictos y revisión mensual confirmable completados |
-| E16 | Implementado | Alertas, cambios, calidad de predicción, recomendaciones y presupuesto de riesgo implementados; falta aceptación integral |
+| E16 | Verificado | Alertas, cambios, calidad de predicción, recomendaciones y presupuesto de riesgo aceptados con persistencia y recarga |
 | E17 | Pendiente | Simplificación de la experiencia por tareas no iniciada |
 | E18 | Pendiente continuo | Robustez, rendimiento, migraciones y observabilidad deben acompañar cada entrega |
 
@@ -262,8 +262,8 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Iniciar **E16**: alertas predictivas, explicación de cambios, calidad de predicción, recomendaciones
-trazables y presupuesto de riesgo. E10 permanece al final y no bloquea estas mejoras locales.
+Iniciar **E17**: simplificación de navegación y ayuda por tareas. E18 se mantiene como control
+transversal y E10 permanece al final.
 
 E9 quedó publicada y verificada el 01/08/2026 mediante `ef57e9b`. El workflow `30712474715` completó
 la puerta y el despliegue; Pages sirvió `version.json` con el SHA exacto, los contratos E9 y el shell

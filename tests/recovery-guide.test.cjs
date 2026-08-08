@@ -50,3 +50,9 @@ test("la interfaz registra el modo offline y ofrece las cuatro decisiones de rec
   assert.match(html, /id="recoveryDownloadLocal"/);
   assert.match(html, /id="recoveryUseRemote"/);
 });
+
+test("la hidratación del plan de deuda no crea una escritura si el iframe devuelve el mismo estado", () => {
+  const app = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
+  assert.match(app, /function debtRoadmapStatesMatch/);
+  assert.match(app, /if \(debtRoadmapStatesMatch\(debtRoadmapState, nextState\)\) return;/);
+});

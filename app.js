@@ -1131,6 +1131,15 @@ function sendDebtRoadmapState() {
   }, window.location.origin);
 }
 
+function debtRoadmapStatesMatch(left, right) {
+  const stringify = window.FinanceStateContract?.stableStringify;
+  try {
+    return stringify ? stringify(left || {}) === stringify(right || {}) : JSON.stringify(left || {}) === JSON.stringify(right || {});
+  } catch {
+    return false;
+  }
+}
+
 function setupDebtRoadmapBridge() {
   const frame = qs("debtRoadmapFrame");
   if (!frame) return;
@@ -1147,7 +1156,9 @@ function setupDebtRoadmapBridge() {
       return;
     }
     if (event.data?.type !== "finance-debt-roadmap-state" || !event.data.payload || typeof event.data.payload !== "object") return;
-    debtRoadmapState = JSON.parse(JSON.stringify(event.data.payload));
+    const nextState = JSON.parse(JSON.stringify(event.data.payload));
+    if (debtRoadmapStatesMatch(debtRoadmapState, nextState)) return;
+    debtRoadmapState = nextState;
     queueRemoteSave();
   });
 }

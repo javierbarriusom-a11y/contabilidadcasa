@@ -1,12 +1,13 @@
 # Estado del proyecto
 
-Fecha de revisión: 5 de agosto de 2026.
+Fecha de revisión: 8 de agosto de 2026.
 
 ## Terminado
 
-- E16 queda implementada localmente de A11-1 a A11-5: `finance-e16-monitoring/v1` calcula alertas anticipadas de caja, variaciones y ratio de deuda con horizonte, confianza y evidencia; resume cambios desde la última revisión; mide error y sesgo solo con muestras completas; y entrega recomendaciones trazables de solo lectura. El panel Hoy permite configurar el presupuesto de riesgo sin modificar el plan. La implementación sigue pendiente de aceptación integral en navegador antes de marcarse como verificada.
-- La documentación operativa queda reconciliada: `BACKLOG_STATUS.md` registra E16 como implementada y `ROADMAP_EXECUTION.md` preserva el plan histórico de julio bajo una cabecera que remite al backlog maestro para los estados vigentes.
-- La puerta local de E16 pasa con 289/289 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El empaquetado público incluye explícitamente los contratos E15 y E16 y el shell offline se versionó como `e16a1`.
+- E16 queda verificada de A11-1 a A11-5: `finance-e16-monitoring/v1` calcula alertas anticipadas de caja, variaciones y ratio de deuda con horizonte, confianza y evidencia; resume cambios desde la última revisión; mide error y sesgo solo con muestras completas; y entrega recomendaciones trazables de solo lectura. En la aceptación, el panel Hoy se mostró en escritorio y a 400 px; un presupuesto de riesgo generó alertas, persistió tras recargar y se restauró al valor inicial.
+- La recuperación de nube no vuelve a crear un cambio pendiente cuando el iframe de deuda devuelve exactamente el estado que acaba de hidratar. El tratamiento del estado idéntico queda cubierto por una regresión automatizada.
+- La documentación operativa queda reconciliada: `BACKLOG_STATUS.md` y `ROADMAP_EXECUTION.md` registran E16 como verificada y preservan el histórico de julio.
+- La puerta local pasa con 290/290 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El empaquetado público incluye explícitamente los contratos E15 y E16 y el shell offline se versionó como `e16a2`.
 
 - E15 queda verificada localmente: los objetivos conservan prioridad, titular, flexibilidad y fuente de financiación; el calendario reúne forecast, cuotas, vencimientos y revisiones; las aportaciones y conflictos respetan capacidad y reserva sin aplicar movimientos automáticamente; y la revisión mensual se registra con confirmación.
 - La puerta local de E15 pasa con 283/283 pruebas, accesibilidad estructural, rendimiento con 10.000 filas, construcción pública, privacidad, smoke test y `git diff --check`. El QA local a 1280×720 y 390×844 mostró el panel E15, sin errores de consola ni desbordamiento horizontal. El shell offline se versionó como `e15a1`.
@@ -248,7 +249,6 @@ Fecha de revisión: 5 de agosto de 2026.
 
 ## Pendiente
 
-- E16 requiere aceptación integral en navegador: comprobar en escritorio y móvil la configuración del presupuesto de riesgo, las alertas, el resumen de cambios y la recuperación tras recargar antes de pasar a `Verificado`.
 - E17 y E18 permanecen pendientes según `BACKLOG_PRODUCT_EVOLUTION.md`; E18 continúa aplicándose como control transversal en cada entrega.
 - E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
   modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
@@ -256,9 +256,8 @@ Fecha de revisión: 5 de agosto de 2026.
 
 ## Próximo paso
 
-Validar E16 en navegador real, incluyendo escritorio, móvil y recarga de su presupuesto de riesgo. Si
-la aceptación pasa, actualizar su estado a `Verificado`; E17 será entonces el siguiente objetivo. E10
-se mantiene al final.
+Iniciar E17, simplificando la navegación y la ayuda por tareas. E18 acompaña cada entrega como
+control transversal; E10 se mantiene al final.
 
 ## Decisiones importantes
 
@@ -287,7 +286,7 @@ se mantiene al final.
 
 ## Errores conocidos y riesgos
 
-- E16 no debe presentarse todavía como verificada: su contrato y su puerta local pasan, pero falta el QA visual y de persistencia del presupuesto de riesgo en navegador real.
+- No hay fallos conocidos en E16: la aceptación visual, la persistencia del presupuesto y la recarga han quedado comprobadas. La recuperación remota ignora ecos idénticos del iframe de deuda para que no reaparezca un conflicto ya resuelto.
 
 - No hay fallos automatizados conocidos en E12a; su publicación, disponibilidad y arranque responsive
   están verificados.
@@ -359,7 +358,7 @@ se mantiene al final.
 
 ## Último commit estable
 
-- E16 queda publicada en `main` y `origin/main` mediante `379ccc2` (`feat: implement E16 predictive monitoring`). No quedan cambios locales del producto sin commit; `.agents/` continúa sin seguimiento y queda excluida.
+- La base publicada de E16 está en `main` y `origin/main` mediante `379ccc2` (`feat: implement E16 predictive monitoring`) y su documentación mediante `4910b7d`. El cierre de aceptación incorpora la corrección de recuperación, las pruebas y la documentación en la revisión preparada sobre `main`; `.agents/` continúa sin seguimiento y queda excluida.
 
 - E15 quedó consolidada y publicada mediante `5b1ef69` (`feat: implement E15 goals and monthly review`) en `main` y `origin/main`. No quedan cambios del producto sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 - E14 quedó consolidada en `6603e51` (`feat: verify E14 debt roadmap parity`) y publicada en `main` y

@@ -12,7 +12,7 @@ const ui = read("p2-ui.js");
 test("E16 carga su contrato antes de la interfaz y se conserva sin conexión", () => {
   assert.ok(html.indexOf("canonical-e16-monitoring.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-e16-monitoring\.js/);
-  assert.match(worker, /e16a1/);
+  assert.match(worker, /e16a2/);
 });
 
 test("E16 muestra alertas, cambios, calidad, recomendaciones y presupuesto de riesgo", () => {
