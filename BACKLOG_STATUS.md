@@ -38,9 +38,8 @@ mantiene `Parcial` hasta verificar todos sus tramos.
 | E17 | A12-1 a A12-5 | Navegación por tareas, estado, lanzador, ayuda y personalización | Verificado | Aceptación en escritorio a 1280×720 y móvil a 390×844, sin desbordamiento; lanzador y personalización comprobados |
 | E18 | A13-1 a A13-6 | Arquitectura, rendimiento, telemetría, migraciones, pruebas y manual | Verificado | Fixtures históricos, métricas locales, guía contextual y doce capturas comparables aceptadas |
 
-Resumen actual: E1-E9 y E11-E17 están verificadas. La paridad A/B del plan heredado se comprueba frente
-al contrato canónico y el iframe permanece como respaldo. Sigue la evolución continua de E18; E10 se
-mantiene al final.
+Resumen actual: E1-E9 y E11-E18 están verificadas. La paridad A/B del plan heredado se comprueba frente
+al contrato canónico y el iframe permanece como respaldo. E10 se mantiene al final.
 
 ### Tareas verificadas de E15
 

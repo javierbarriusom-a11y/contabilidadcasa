@@ -370,8 +370,8 @@ específica, prueba real y mantiene el modo local.
 
 ## Último commit estable
 
-- E18 queda pendiente de consolidar en Git tras la verificación local; `.agents/` permanece sin seguimiento y
-  queda excluida.
+- E18 queda consolidada y publicada mediante `eee8c2a` (`feat: close E18 platform safeguards`) en `main` y
+  `origin/main`; `.agents/` permanece sin seguimiento y queda excluida.
 
 - E17 quedó consolidada y publicada en `main` y `origin/main` mediante `4d3a845` (`feat: complete E17 task-focused experience`). El cierre incluye interfaz, caché offline, pruebas y documentación; `.agents/` permanece sin seguimiento y queda excluida.
 
