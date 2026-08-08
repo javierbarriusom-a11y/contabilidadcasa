@@ -29,6 +29,15 @@
     "debt-roadmap": ["Para qué sirve", "Consultar las ofertas y la estrategia de deuda con datos canónicos.", "Requiere confirmación", "Compara las alternativas antes de aplicar una estrategia."],
   });
 
+  const GUIDE_TOPICS = Object.freeze({
+    "update-hub": ["Actualizar datos", "Registra un saldo, un real o una previsión según el dato disponible. Las importaciones pasan siempre por una vista previa y confirmación."],
+    "data-entry": ["Importar con seguridad", "Carga CSV o Excel en la bandeja previa, revisa duplicados y diferencias, y confirma antes de que el libro cambie."],
+    forecast: ["Proyectar", "La proyección es de solo lectura. Revisa fuente, fecha y confianza antes de usarla para decidir."],
+    "new-life-simulation": ["Simular", "Los escenarios son una prueba aislada: compara alternativas y guarda solo lo que quieras recuperar más tarde."],
+    "debt-control": ["Aplicar deuda", "Compara la estrategia, protege la reserva y confirma con motivo. La aplicación crea una revisión recuperable."],
+    reconciliation: ["Recuperar y conciliar", "Compara antes de restaurar, conserva una copia descargable y elige explícitamente entre tu versión local y la nube si hay conflicto."],
+  });
+
   function findTasks(query, normalize = (value) => String(value || "").toLowerCase()) {
     const term = normalize(query);
     return TASKS.filter((item) => !term || normalize(`${item.label} ${item.keywords}`).includes(term));
@@ -38,5 +47,9 @@
     return GUIDANCE[viewId] || fallback;
   }
 
-  return { TASKS, GUIDANCE, findTasks, guidanceFor };
+  function guideTopicFor(viewId) {
+    return GUIDE_TOPICS[viewId] || ["Guía operativa", "Esta pantalla usa solo la copia local hasta que confirmes una operación. Puedes volver atrás sin perder el estado actual."];
+  }
+
+  return { TASKS, GUIDANCE, GUIDE_TOPICS, findTasks, guidanceFor, guideTopicFor };
 });

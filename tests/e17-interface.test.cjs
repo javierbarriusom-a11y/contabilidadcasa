@@ -36,7 +36,13 @@ test("E17 ofrece estado, ayuda contextual, lanzador y preferencias locales", () 
 });
 
 test("E17 queda disponible con el shell offline versionado", () => {
-  assert.match(worker, /20260808-e18a3/);
-  assert.match(html, /app\.js\?v=20260808e18a3/);
-  assert.match(html, /styles\.css\?v=20260808e18a3/);
+  assert.match(worker, /20260808-e18a4/);
+  assert.match(html, /app\.js\?v=20260808e18a4/);
+  assert.match(html, /styles\.css\?v=20260808e18a4/);
+});
+
+test("E18 enlaza una guía offline específica desde cada flujo crítico", () => {
+  assert.match(app, /data-e17-open="guide"/);
+  assert.match(app, /guideTopicFor\(activeViewId\)/);
+  assert.match(html, /id="e17FlowGuideDialog"/);
 });

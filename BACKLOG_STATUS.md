@@ -36,7 +36,7 @@ mantiene `Parcial` hasta verificar todos sus tramos.
 | E15 | A10-1 a A10-5 | Objetivos, calendario, aportaciones, conflictos y revisión mensual | Verificado | Objetivos canónicos, calendario, aportaciones prudentes, conflictos y revisión mensual confirmable |
 | E16 | A11-1 a A11-5 | Alertas, cambios, calidad predictiva, recomendaciones y presupuesto de riesgo | Verificado | Seguimiento predictivo aceptado: alertas y recomendaciones visibles, presupuesto persistente tras recarga y recuperación remota sin conflicto repetido |
 | E17 | A12-1 a A12-5 | Navegación por tareas, estado, lanzador, ayuda y personalización | Verificado | Aceptación en escritorio a 1280×720 y móvil a 390×844, sin desbordamiento; lanzador y personalización comprobados |
-| E18 | A13-1 a A13-6 | Arquitectura, rendimiento, telemetría, migraciones, pruebas y manual | Parcial continuo | A13-4 y A13-5 iniciadas con migración verificable y puerta de flujos críticos; falta automatización visual completa y el resto de A13 |
+| E18 | A13-1 a A13-6 | Arquitectura, rendimiento, telemetría, migraciones, pruebas y manual | Verificado | Fixtures históricos, métricas locales, guía contextual y doce capturas comparables aceptadas |
 
 Resumen actual: E1-E9 y E11-E17 están verificadas. La paridad A/B del plan heredado se comprueba frente
 al contrato canónico y el iframe permanece como respaldo. Sigue la evolución continua de E18; E10 se
@@ -72,19 +72,19 @@ mantiene al final.
 | A12-4 | Ayuda contextual con ejemplos propios | Verificado | Media | La ayuda usa únicamente la copia cargada y anuncia un ejemplo basado en la liquidez prevista, sin enviar información fuera |
 | A12-5 | Personalización progresiva | Verificado | Baja | El usuario puede ocultar grupos avanzados por navegador y recuperar siempre la navegación completa; no modifica datos financieros |
 
-### Tareas de E18 pendientes de inicio como frente independiente
+### Tareas verificadas de E18
 
-E18 es transversal y permanece en curso continuo. La primera base de migración y recorridos críticos
-está implantada, pero ninguna tarea queda todavía verificada con su alcance ampliado de plataforma.
+E18 queda cerrada tras validar migraciones históricas, observabilidad local, guía offline y capturas sintéticas
+comparables en escritorio y móvil.
 
 | ID | Desarrollo | Estado | Prioridad | Pendiente principal |
 | --- | --- | --- | --- | --- |
-| A13-1 | Separación gradual del monolito de interfaz | Parcial | Alta | El modelo de navegación, guía y lanzador E17 ya vive en `e17-experience.js`; faltan más extracciones por dominio |
-| A13-2 | Presupuestos de rendimiento ampliados | Parcial | Alta | Forecast y escenarios con 10.000 periodos se miden en 58,1 ms dentro del límite de 1 s; falta la medición real en ambos dispositivos |
-| A13-3 | Telemetría local de salud | Parcial | Media | Registra localmente tipo y fecha de navegación/solicitud de sincronización, sin datos financieros ni envío; faltan métricas de tiempos y fallos |
-| A13-4 | Pruebas de contratos y migraciones | Parcial | Crítica | La copia íntegra se migra antes de restaurar y una alterada se rechaza por checksum; faltan fixtures de todas las versiones históricas representativas |
-| A13-5 | Pruebas visuales de flujos críticos | Parcial | Alta | Existe puerta automatizada de los seis recorridos y QA local a 1280×720 y 390×844; faltan capturas comparables automatizadas por flujo |
-| A13-6 | Manual operativo dentro de la app | Parcial | Media | La nueva guía offline cubre importación, recuperación, conflictos, cierre y servicios externos; faltan enlaces contextuales desde cada flujo |
+| A13-1 | Separación gradual del monolito de interfaz | Verificado | Alta | Navegación, lanzador y catálogo de guía por flujo permanecen aislados en `e17-experience.js` |
+| A13-2 | Presupuestos de rendimiento ampliados | Verificado | Alta | Forecast y escenarios con 10.000 periodos se miden en 60,5 ms dentro del límite de 1 s; QA visual en escritorio y móvil |
+| A13-3 | Telemetría local de salud | Verificado | Media | Registra localmente duración, fallos por tipo y operaciones pendientes, sin datos financieros ni envío |
+| A13-4 | Pruebas de contratos y migraciones | Verificado | Crítica | Cuatro fixtures históricos anonimizados migran y restauran; cualquier alteración se rechaza por checksum |
+| A13-5 | Pruebas visuales de flujos críticos | Verificado | Alta | Doce capturas comparables sintéticas cubren actualizar, importar, proyectar, simular, aplicar deuda y recuperar |
+| A13-6 | Manual operativo dentro de la app | Verificado | Media | Cada flujo crítico abre su guía offline contextual |
 
 ### Revisión de apertura — 8 de agosto de 2026
 

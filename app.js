@@ -378,7 +378,7 @@ function renderE17ViewGuide(viewId = viewFromHash()) {
   const example = Number.isFinite(Number(nextLiquidity))
     ? `Ejemplo con tus datos: la liquidez del primer mes previsto es ${money(nextLiquidity, true)}.`
     : "Ejemplo: los importes mostrados siempre se calculan con la copia actual.";
-  target.innerHTML = `<div><strong>${escapeHtml(guide[0])}</strong><span>${escapeHtml(guide[1])}</span></div><div><strong>Estado</strong><span>${escapeHtml(guide[2])} · datos con fecha de análisis ${escapeHtml(balanceDate)}.</span></div><div><strong>Siguiente paso</strong><span>${escapeHtml(guide[3])}</span></div><button type="button" class="secondary" data-e17-open="help">Ayuda contextual</button><p class="sr-only" id="e17CurrentExample">${escapeHtml(example)}</p>`;
+  target.innerHTML = `<div><strong>${escapeHtml(guide[0])}</strong><span>${escapeHtml(guide[1])}</span></div><div><strong>Estado</strong><span>${escapeHtml(guide[2])} · datos con fecha de análisis ${escapeHtml(balanceDate)}.</span></div><div><strong>Siguiente paso</strong><span>${escapeHtml(guide[3])}</span></div><button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button><p class="sr-only" id="e17CurrentExample">${escapeHtml(example)}</p>`;
 }
 
 function navigateE17(target) {
@@ -399,6 +399,15 @@ function renderE17Launcher(query = "") {
 }
 
 function openE17Dialog(kind) {
+  if (kind === "guide") {
+    const dialog = qs("e17FlowGuideDialog");
+    const topic = E17Experience?.guideTopicFor(activeViewId) || ["Guía operativa", "Consulta la guía local antes de confirmar una operación."];
+    if (!dialog) return;
+    qs("e17FlowGuideTitle").textContent = topic[0];
+    qs("e17FlowGuideBody").textContent = topic[1];
+    dialog.showModal();
+    return;
+  }
   if (kind === "help") {
     const example = qs("e17CurrentExample")?.textContent || "La ayuda usa únicamente la información ya cargada en este navegador.";
     announceStatus(`${example} La pantalla actual no envía datos fuera.`);
@@ -2626,12 +2635,14 @@ async function readDurableRemoteSave() {
 }
 
 function remoteSaveStatusChanged(queueState) {
+  E18Health?.recordPending(queueState.pending ? 1 : 0);
   if (!remoteUser) return;
   if (queueState.running) {
     updateSyncUi(`Guardando revisión ${queueState.inFlightRevision} en Supabase...`, "cloud");
     return;
   }
   if (queueState.lastError) {
+    E18Health?.recordFailure("remote-save");
     if (queueState.lastError?.code === "REMOTE_WRITE_CONFLICT") {
       updateSyncUi(
         "Otra sesión publicó cambios más recientes. Recarga antes de volver a guardar; tu versión local está a salvo.",
@@ -2923,6 +2934,7 @@ function initSupabaseClient() {
 }
 
 function refreshFromPersistedState() {
+  const started = performance.now();
   updateSourceNote();
   writeControls({ ...baseData.assumptions, ...scenarioSettings, autoCapSavings: scenarioSettings.autoCapSavings ?? true });
   qs("scenarioName").textContent = currentScenario;
@@ -2932,6 +2944,7 @@ function refreshFromPersistedState() {
   });
   render();
   sendDebtRoadmapState();
+  E18Health?.recordDuration("state-refresh", performance.now() - started);
 }
 
 async function loadRemoteStateOnce() {
