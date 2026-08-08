@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finanzas Casa · Sistema de diseño E19</title>
+<link rel="stylesheet" href="design-tokens.css">
+<style>
+  body {
+    margin: 0;
+    background: var(--e19-canvas);
+    color: var(--e19-ink);
+    font-family: var(--e19-font-sans);
+  }
+  .page {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 40px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  .page-head {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  section h2 {
+    font: 700 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
+    color: var(--e19-heading);
+    margin: 0 0 14px;
+  }
+  .swatch-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+  }
+  .swatch {
+    border-radius: var(--e19-radius-sm);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    font-size: 11px;
+    border: 1px solid var(--e19-border-strong);
+  }
+  .swatch b {
+    display: block;
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .type-scale > div {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    padding: 8px 0;
+    border-top: 1px solid var(--e19-border);
+  }
+  .type-scale > div:first-child {
+    border-top: none;
+  }
+  .type-scale code {
+    width: 130px;
+    flex: none;
+    font-family: var(--e19-font-mono);
+    font-size: 11px;
+    color: var(--e19-muted);
+  }
+  .e19-impact-bar {
+    flex-wrap: wrap;
+    row-gap: 14px;
+  }
+  @media (max-width: 640px) {
+    .swatch-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .kpi-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .type-scale > div {
+      flex-direction: column;
+      gap: 4px;
+    }
+    .type-scale code {
+      width: auto;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-head">
+    <span class="e19-eyebrow">Sistema de diseño · E19-1</span>
+    <h1 class="e19-heading">Fundamentos de la piel visual</h1>
+    <p class="e19-subtitle">Tokens y componentes compartidos extraídos de los mockups. Esta página no forma parte de la navegación de la app: es la referencia viva que las siguientes fases (E19-2 en adelante) usarán al migrar cada pantalla real. Cargar <code>design-tokens.css</code> no cambia el aspecto de ninguna pantalla existente.</p>
+  </div>
+
+  <section>
+    <h2>Color — con significado fijo</h2>
+    <div class="swatch-row">
+      <div class="swatch" style="background:var(--e19-accent-strong);color:#fff;border-color:var(--e19-accent-strong)"><b>Fondo fuerte</b><span>#0B1A30</span></div>
+      <div class="swatch" style="background:var(--e19-accent);color:#fff;border-color:var(--e19-accent)"><b>Interactivo</b><span>#0072E3</span></div>
+      <div class="swatch" style="background:var(--e19-success);color:#fff;border-color:var(--e19-success)"><b>Favorable</b><span>#1F9D55</span></div>
+      <div class="swatch" style="background:var(--e19-warning);color:#fff;border-color:var(--e19-warning)"><b>Atención</b><span>#C78B12</span></div>
+      <div class="swatch" style="background:var(--e19-debt);color:#fff;border-color:var(--e19-debt)"><b>Deuda / gasto</b><span>#AD725B</span></div>
+      <div class="swatch" style="background:var(--e19-danger);color:#fff;border-color:var(--e19-danger)"><b>Límite roto</b><span>#C13B3B</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tipografía</h2>
+    <div class="type-scale">
+      <div><code>e19-eyebrow</code><span class="e19-eyebrow">Cuadro de mandos · 2026</span></div>
+      <div><code>e19-heading</code><span class="e19-heading" style="font-size:22px">Aguantas 34 días sin cobrar nada</span></div>
+      <div><code>e19-subtitle</code><span class="e19-subtitle">Con 4.280 € en CaixaBank y un gasto medio de 126 €/día.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Botones</h2>
+    <div class="row">
+      <button class="e19-btn e19-btn-primary" type="button">Guardar cambio</button>
+      <button class="e19-btn e19-btn-secondary" type="button">Descartar</button>
+      <button class="e19-btn e19-btn-dark" type="button">Aplicar la recomendada</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tarjetas KPI</h2>
+    <div class="kpi-row">
+      <div class="e19-kpi">
+        <span class="e19-kpi-label">CaixaBank · operativa</span>
+        <span class="e19-kpi-value">4.280 €</span>
+        <span class="e19-kpi-delta is-up">+310 € vs. previsto</span>
+      </div>
+      <div class="e19-kpi">
+        <span class="e19-kpi-label">Deuda viva</span>
+        <span class="e19-kpi-value" style="color:var(--e19-debt)">18.900 €</span>
+        <span class="e19-kpi-delta" style="color:var(--e19-muted);font-weight:400">4 contratos · 612 €/mes</span>
+      </div>
+      <div class="e19-kpi">
+        <span class="e19-kpi-label">Margen del mes</span>
+        <span class="e19-kpi-value">+540 €</span>
+        <span class="e19-kpi-delta is-warn">Septiembre baja a −80 €</span>
+      </div>
+      <div class="e19-kpi">
+        <span class="e19-kpi-label">Mínimo del horizonte</span>
+        <span class="e19-kpi-value" style="color:var(--e19-danger)">570 €</span>
+        <span class="e19-kpi-delta is-down">−1.010 € vs. guardado</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Insignias de escenario</h2>
+    <div class="row">
+      <span class="e19-badge e19-badge-success">Aplicado</span>
+      <span class="e19-badge e19-badge-accent">Recomendado</span>
+      <span class="e19-badge e19-badge-neutral">Guardado</span>
+      <span class="e19-badge e19-badge-warning">Requiere decisión</span>
+      <span class="e19-badge e19-badge-danger">Bajo reserva</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Pills de riesgo (fases de entrega)</h2>
+    <div class="row">
+      <span class="e19-pill e19-pill-safe">Sin riesgo</span>
+      <span class="e19-pill e19-pill-warn">Detrás de bandera</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tabla con jerarquía por fila</h2>
+    <div class="e19-card" style="overflow:hidden">
+      <table class="e19-table">
+        <thead>
+          <tr><th>Partida</th><th>Jul 26</th><th>Ago 26</th><th>Sept 26</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Ingresos totales</td><td>5.250,00</td><td>6.050,00</td><td>6.050,00</td></tr>
+          <tr class="is-highlighted"><td>Colegio · matrícula</td><td>—</td><td>520,00</td><td>380,00</td></tr>
+          <tr><td>Total gastos</td><td>235,48</td><td>4.618,97</td><td>3.535,50</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Barra de impacto (pie fijo)</h2>
+    <div class="e19-impact-bar">
+      <dl>
+        <dt>Mínimo 2026</dt>
+        <dd><span class="was">1.580,47</span>1.430,47 €</dd>
+      </dl>
+      <dl>
+        <dt>Meses bajo reserva</dt>
+        <dd><span class="was">1</span>3</dd>
+      </dl>
+      <dl>
+        <dt>Sin deuda</dt>
+        <dd style="color:#8fd3ac">oct 2029 · sin cambio</dd>
+      </dl>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
