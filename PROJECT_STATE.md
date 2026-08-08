@@ -358,7 +358,7 @@ control transversal; E10 se mantiene al final.
 
 ## Último commit estable
 
-- La base publicada de E16 está en `main` y `origin/main` mediante `379ccc2` (`feat: implement E16 predictive monitoring`) y su documentación mediante `4910b7d`. El cierre de aceptación incorpora la corrección de recuperación, las pruebas y la documentación en la revisión preparada sobre `main`; `.agents/` continúa sin seguimiento y queda excluida.
+- La base publicada de E16 está en `main` y `origin/main` mediante `379ccc2` (`feat: implement E16 predictive monitoring`) y su documentación mediante `4910b7d`. El cierre de aceptación, la corrección de recuperación, las pruebas y la documentación se publicaron en `065d85f` (`fix: prevent repeated cloud recovery conflict`); `.agents/` continúa sin seguimiento y queda excluida.
 
 - E15 quedó consolidada y publicada mediante `5b1ef69` (`feat: implement E15 goals and monthly review`) en `main` y `origin/main`. No quedan cambios del producto sin commit; `.agents/` continúa sin seguimiento y queda excluida.
 - E14 quedó consolidada en `6603e51` (`feat: verify E14 debt roadmap parity`) y publicada en `main` y
