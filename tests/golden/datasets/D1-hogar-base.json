@@ -1,0 +1,1152 @@
+{
+  "id": "D1-hogar-base",
+  "descripcion": "Plan realista a 120 meses: dos titulares con paga extra en junio/diciembre, dos deudas moderadas y servibles, colchón por encima de la reserva.",
+  "datasetVersion": "golden-d1-hogar-base-v1",
+  "generatedAt": "2026-08-08T00:00:00.000Z",
+  "synthetic": true,
+  "notaAnonimizacion": "Titulares T1/T2, cuentas «Banco Operativo»/«Banco Ahorro», deudas «Entidad A-D». No contiene datos reales.",
+  "fechaCorte": "2026-08-01",
+  "horizonteMeses": 120,
+  "composicionIngreso": [
+    {
+      "titular": "T1",
+      "salarioBase": 2350
+    },
+    {
+      "titular": "T2",
+      "salarioBase": 1870
+    }
+  ],
+  "engineInput": {
+    "openingBalances": {
+      "checking": 4200,
+      "savings": 9500
+    },
+    "policy": {
+      "incomeFactor": 1,
+      "annualIncomeGrowth": 1.2,
+      "expenseFactor": 1,
+      "annualInflation": 2.5,
+      "plannedMonthlySaving": 300,
+      "autoCapSavings": true
+    },
+    "months": [
+      {
+        "month": "ago 26",
+        "monthKey": "2026-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "sept 26",
+        "monthKey": "2026-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "oct 26",
+        "monthKey": "2026-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "nov 26",
+        "monthKey": "2026-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "dic 26",
+        "monthKey": "2026-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "ene 27",
+        "monthKey": "2027-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "feb 27",
+        "monthKey": "2027-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "mar 27",
+        "monthKey": "2027-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "abr 27",
+        "monthKey": "2027-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "may 27",
+        "monthKey": "2027-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "jun 27",
+        "monthKey": "2027-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "jul 27",
+        "monthKey": "2027-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "ago 27",
+        "monthKey": "2027-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "sept 27",
+        "monthKey": "2027-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "oct 27",
+        "monthKey": "2027-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "nov 27",
+        "monthKey": "2027-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "dic 27",
+        "monthKey": "2027-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "ene 28",
+        "monthKey": "2028-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "feb 28",
+        "monthKey": "2028-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "mar 28",
+        "monthKey": "2028-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "abr 28",
+        "monthKey": "2028-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "may 28",
+        "monthKey": "2028-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "jun 28",
+        "monthKey": "2028-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "jul 28",
+        "monthKey": "2028-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "ago 28",
+        "monthKey": "2028-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "sept 28",
+        "monthKey": "2028-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "oct 28",
+        "monthKey": "2028-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "nov 28",
+        "monthKey": "2028-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "dic 28",
+        "monthKey": "2028-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "ene 29",
+        "monthKey": "2029-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "feb 29",
+        "monthKey": "2029-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "mar 29",
+        "monthKey": "2029-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 305
+      },
+      {
+        "month": "abr 29",
+        "monthKey": "2029-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "may 29",
+        "monthKey": "2029-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "jun 29",
+        "monthKey": "2029-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "jul 29",
+        "monthKey": "2029-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "ago 29",
+        "monthKey": "2029-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "sept 29",
+        "monthKey": "2029-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "oct 29",
+        "monthKey": "2029-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "nov 29",
+        "monthKey": "2029-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "dic 29",
+        "monthKey": "2029-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "ene 30",
+        "monthKey": "2030-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "feb 30",
+        "monthKey": "2030-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "mar 30",
+        "monthKey": "2030-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "abr 30",
+        "monthKey": "2030-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "may 30",
+        "monthKey": "2030-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 185
+      },
+      {
+        "month": "jun 30",
+        "monthKey": "2030-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jul 30",
+        "monthKey": "2030-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ago 30",
+        "monthKey": "2030-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "sept 30",
+        "monthKey": "2030-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "oct 30",
+        "monthKey": "2030-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "nov 30",
+        "monthKey": "2030-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "dic 30",
+        "monthKey": "2030-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ene 31",
+        "monthKey": "2031-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "feb 31",
+        "monthKey": "2031-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "mar 31",
+        "monthKey": "2031-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "abr 31",
+        "monthKey": "2031-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "may 31",
+        "monthKey": "2031-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jun 31",
+        "monthKey": "2031-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jul 31",
+        "monthKey": "2031-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ago 31",
+        "monthKey": "2031-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "sept 31",
+        "monthKey": "2031-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "oct 31",
+        "monthKey": "2031-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "nov 31",
+        "monthKey": "2031-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "dic 31",
+        "monthKey": "2031-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ene 32",
+        "monthKey": "2032-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "feb 32",
+        "monthKey": "2032-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "mar 32",
+        "monthKey": "2032-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "abr 32",
+        "monthKey": "2032-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "may 32",
+        "monthKey": "2032-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jun 32",
+        "monthKey": "2032-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jul 32",
+        "monthKey": "2032-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ago 32",
+        "monthKey": "2032-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "sept 32",
+        "monthKey": "2032-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "oct 32",
+        "monthKey": "2032-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "nov 32",
+        "monthKey": "2032-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "dic 32",
+        "monthKey": "2032-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ene 33",
+        "monthKey": "2033-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "feb 33",
+        "monthKey": "2033-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "mar 33",
+        "monthKey": "2033-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "abr 33",
+        "monthKey": "2033-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "may 33",
+        "monthKey": "2033-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jun 33",
+        "monthKey": "2033-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jul 33",
+        "monthKey": "2033-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ago 33",
+        "monthKey": "2033-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "sept 33",
+        "monthKey": "2033-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "oct 33",
+        "monthKey": "2033-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "nov 33",
+        "monthKey": "2033-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "dic 33",
+        "monthKey": "2033-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ene 34",
+        "monthKey": "2034-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "feb 34",
+        "monthKey": "2034-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "mar 34",
+        "monthKey": "2034-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "abr 34",
+        "monthKey": "2034-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "may 34",
+        "monthKey": "2034-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jun 34",
+        "monthKey": "2034-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jul 34",
+        "monthKey": "2034-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ago 34",
+        "monthKey": "2034-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "sept 34",
+        "monthKey": "2034-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "oct 34",
+        "monthKey": "2034-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "nov 34",
+        "monthKey": "2034-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "dic 34",
+        "monthKey": "2034-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ene 35",
+        "monthKey": "2035-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "feb 35",
+        "monthKey": "2035-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "mar 35",
+        "monthKey": "2035-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "abr 35",
+        "monthKey": "2035-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "may 35",
+        "monthKey": "2035-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jun 35",
+        "monthKey": "2035-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jul 35",
+        "monthKey": "2035-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ago 35",
+        "monthKey": "2035-08",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "sept 35",
+        "monthKey": "2035-09",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "oct 35",
+        "monthKey": "2035-10",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "nov 35",
+        "monthKey": "2035-11",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "dic 35",
+        "monthKey": "2035-12",
+        "income": 6330,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "ene 36",
+        "monthKey": "2036-01",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "feb 36",
+        "monthKey": "2036-02",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "mar 36",
+        "monthKey": "2036-03",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "abr 36",
+        "monthKey": "2036-04",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "may 36",
+        "monthKey": "2036-05",
+        "income": 4220,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jun 36",
+        "monthKey": "2036-06",
+        "income": 6330,
+        "coreSpend": 1970,
+        "variableOperationalSpend": 520,
+        "car": 0,
+        "refi": 0
+      },
+      {
+        "month": "jul 36",
+        "monthKey": "2036-07",
+        "income": 4220,
+        "coreSpend": 2032.4,
+        "variableOperationalSpend": 582.4,
+        "car": 0,
+        "refi": 0
+      }
+    ]
+  },
+  "debtContracts": [
+    {
+      "id": "d1-entidad-a",
+      "entity": "Entidad A",
+      "type": "Crédito al consumo",
+      "initialPrincipal": 9000,
+      "currentPrincipal": 7300,
+      "originalPayment": 185,
+      "currentPayment": 185,
+      "apr": 0.095,
+      "remainingInstallments": 46,
+      "maturityMonth": "2030-05",
+      "owner": "household",
+      "paymentStatus": "active"
+    },
+    {
+      "id": "d1-entidad-b",
+      "entity": "Entidad B",
+      "type": "Crédito al consumo",
+      "initialPrincipal": 5000,
+      "currentPrincipal": 3600,
+      "originalPayment": 120,
+      "currentPayment": 120,
+      "apr": 0.11,
+      "remainingInstallments": 32,
+      "maturityMonth": "2029-03",
+      "owner": "household",
+      "paymentStatus": "active"
+    }
+  ],
+  "guardarrailesReferencia": {
+    "reservaOperativaCuentaOperativa": 3000,
+    "colchonMinimoMeses": 3,
+    "ratioCuotaIngresoMax": 0.35,
+    "saldoMinimoAbsoluto": 500
+  }
+}
