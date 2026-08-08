@@ -24,7 +24,7 @@ mantiene `Parcial` hasta verificar todos sus tramos.
 | E7 | A2-3 a A2-5 y A2-7 | Comparación financiera, escenarios e importación segura | Verificado | Comparación financiera avanzada, importación y recuperación verificadas |
 | E8 | A3-1 a A3-7 | Historial, calidad, acciones seguras, adjuntos, accesibilidad y rendimiento | Verificado | Mejoras operativas, adjuntos privados, accesibilidad y rendimiento verificados |
 | E9 | A4-1 a A4-6 | Contratos seguros para los servicios externos opcionales | Verificado | Contratos externos publicados de forma segura y desactivados |
-| E10 | A5-1 a A5-6 | Activación real de IA, hogar, push, PSD2 e importación programada | Pendiente | Activación externa aplazada hasta consolidar el producto local |
+| E10 | A5-1 a A5-6 | Activación real de IA, hogar, push, PSD2 e importación programada | Parcial | A5-1 a A5-4 tienen base local verificada; falta aceptación externa real y A5-5/A5-6 |
 | E11a | A6-1 a A6-3 | Centro guiado y vocabulario único de previsto, real y usado | Verificado | Centro guiado y semántica previsto/real/usado publicados |
 | E11b | A6-4 a A6-8 | Importación, conciliación, recibos, frescura y compatibilidad | Verificado | Bandeja, importación, conciliación, recibos y compatibilidad publicados |
 | E12a | A7-1 a A7-3 y A7-7 | Forecast canónico, supuestos, explicación y paridad | Verificado | Forecast canónico, supuestos, explicación y paridad publicados |
@@ -85,12 +85,14 @@ comparables en escritorio y móvil.
 | A13-5 | Pruebas visuales de flujos críticos | Verificado | Alta | Doce capturas comparables sintéticas cubren actualizar, importar, proyectar, simular, aplicar deuda y recuperar |
 | A13-6 | Manual operativo dentro de la app | Verificado | Media | Cada flujo crítico abre su guía offline contextual |
 
-### Revisión de apertura — 8 de agosto de 2026
+### Revisión de cierre local A5 — 8 de agosto de 2026
 
 - Estados contrastados con `PROJECT_STATE.md`, `ROADMAP_EXECUTION.md` y el historial reciente de Git:
-  E1-E9 y E11-E17 continúan `Verificado`; E10 continúa `Pendiente`; E18 pasa a `Parcial continuo`.
-- A5-1 a A5-6 siguen `Pendiente`: no hay evidencia de activación real de proveedores ni se ha modificado
-  su aplazamiento al final del proyecto. A13-1 a A13-6 están en `Parcial`; ninguna tarea de E18 queda aún verificada.
+  E1-E9 y E11-E18 continúan `Verificado`; E10 pasa a `Parcial` por la base local de A5-1 a A5-4.
+- A5-1 a A5-4 están implementadas localmente y cubiertas por 310 pruebas, privacidad, build y smoke test,
+  pero siguen sin aceptación externa real. A5-5 y A5-6 continúan pendientes.
+- La secuencia optimizada queda: benchmark A5-2, backend A5-1, hogar A5-3, push A5-4, proveedor PSD2 A5-5
+  e importación programada A5-6. Cada servicio conserva el modo local, las confirmaciones y la recuperación.
 - La base de A13-4 migra copias íntegramente verificadas antes de restaurarlas y rechaza alteraciones; la de
   A13-5 cubre los seis flujos críticos por contrato y se comprobó localmente a 1280×720 y 390×844 sin errores de consola.
 
@@ -117,9 +119,9 @@ comparables en escritorio y móvil.
 | P1 Decisión y tesorería | 8 | 8 | 0 | 0 | 0 | E6 y E7 están verificadas de extremo a extremo |
 | P2 Planificación familiar | 6 | 6 | 0 | 0 | 0 | Funcionalidad verificada; quedan mejoras no bloqueantes |
 | P3 Servicios externos | 3 | 3 | 0 | 0 | 0 | Contratos opcionales publicados y verificados con todos los servicios apagados |
-| E10 Activación externa | 6 | 0 | 0 | 0 | 6 | Activaciones independientes pendientes de proveedor, backend y aceptación real |
+| E10 Activación externa | 6 | 0 | 4 | 0 | 2 | A5-1 a A5-4 implementadas localmente; faltan activación y aceptación externa, A5-5 y A5-6 |
 | UX Experiencia principal | 6 | 6 | 0 | 0 | 0 | Experiencia principal verificada en escritorio y móvil |
-| **Total ampliado** | **35** | **29** | **0** | **0** | **6** | **La base E1-E9 está cerrada; las seis activaciones externas de E10 siguen aplazadas** |
+| **Total ampliado** | **35** | **29** | **4** | **0** | **2** | **E10 tiene base local para A5-1 a A5-4; la aceptación externa y banca siguen pendientes** |
 
 ### Situación del ciclo de evolución E11-E18
 
@@ -256,10 +258,10 @@ local. Ningún servicio pasa a `Verificado` por disponer únicamente de contrato
 
 | ID | Servicio | Estado | Prioridad | Criterio de aceptación |
 | --- | --- | --- | --- | --- |
-| A5-1 | Backend privado y OpenAI Responses API | Pendiente | Media | Autenticación, minimización, almacenamiento desactivado, fuentes y prueba real sin escritura |
-| A5-2 | Selección del modelo OpenAI | Pendiente | Media | Comparación reproducible de calidad, coste y latencia antes de fijar el modelo |
-| A5-3 | Hogar compartido | Pendiente | Baja | Políticas desplegadas y prueba real de invitación, conflicto y revocación con dos cuentas |
-| A5-4 | Web push | Pendiente | Baja | Consentimiento real, mensaje genérico bloqueado, silencios, revocación y backend seguro |
+| A5-1 | Backend privado y OpenAI Responses API | Implementado | Media | Base local con backend Node, autenticación delegada, `store:false`, salida estructurada y fallback; falta despliegue y prueba real |
+| A5-2 | Selección del modelo OpenAI | Implementado | Media | Benchmark reproducible local; falta ejecutar con conjunto aprobado y fijar modelo |
+| A5-3 | Hogar compartido | Implementado | Baja | Invitaciones hashadas, permisos, conflictos y revocación locales; falta prueba real con dos cuentas |
+| A5-4 | Web push | Implementado | Baja | Cifrado, consentimiento, silencios, baja y deduplicación locales; falta backend/proveedor y prueba real |
 | A5-5 | Conexión bancaria PSD2 | Pendiente | Baja | Proveedor contratado, cobertura y precio aceptados, consentimiento revocable y solo lectura verificados |
 | A5-6 | Importación bancaria programada | Pendiente | Baja | A5-5 verificada; ejecución idempotente real, bandeja previa y ausencia de escrituras automáticas en el libro |
 

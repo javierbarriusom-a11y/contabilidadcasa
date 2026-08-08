@@ -2,6 +2,21 @@
 
 Fecha de revisión: 8 de agosto de 2026.
 
+## Cierre de sesión — A5-2 a A5-4
+
+- A5-2 queda implementada localmente con un benchmark reproducible sobre casos anonimizados: calidad,
+  coste medio, p95 de latencia y selección estable por valor.
+- A5-1 queda implementada localmente con backend privado Node y Responses API: payload mínimo, autenticación
+  delegada, `store: false`, salida JSON estructurada, trazabilidad y fallback local. El endpoint permanece
+  desactivado hasta configurar un verificador de sesión y secretos fuera del repositorio.
+- A5-3 queda implementada localmente con invitaciones de token opaco y hashado, permisos por áreas, control
+  optimista de revisión y revocación.
+- A5-4 queda implementada localmente con suscripciones push cifradas, consentimiento, silencios, deduplicación,
+  revocación y mensajes genéricos sin datos financieros.
+- La aplicación sigue siendo utilizable con red, backend y servicios externos apagados.
+- Validaciones: 310/310 pruebas, `node --check backend/server.mjs`, privacidad, build público, smoke test y
+  `git diff --check` pasan. La salud del backend se comprobó con `enabled: false`.
+
 ## Terminado
 
 - E18 queda verificada: la experiencia y guía por flujo están aisladas en `e17-experience.js`; el presupuesto
@@ -257,15 +272,17 @@ Fecha de revisión: 8 de agosto de 2026.
 
 ## Pendiente
 
-- E10 reúne la activación y aceptación externa por servicio: desplegar el backend privado, elegir el
-  modelo de OpenAI, desplegar políticas de hogar y web push y, al final, contratar y validar el proveedor
-  PSD2 antes de habilitar la importación programada. Por decisión de producto se ejecutará al final.
+- E10 queda parcialmente implementada: A5-1 a A5-4 tienen base local y contratos de activación, pero no
+  pasan a `Verificado` hasta completar pruebas externas autenticadas. A5-5 requiere contratar y validar
+  un proveedor PSD2; A5-6 depende de A5-5 y conserva la bandeja previa como única entrada al libro.
 
 ## Próximo paso
 
-Activar E10 por dependencias: backend privado/Responses,
-evaluación del modelo, hogar, push, PSD2 e importación programada. Cada activación externa requiere autoridad
-específica, prueba real y mantiene el modo local.
+Cerrar E10 por dependencias y con entregas reversibles: (1) ejecutar A5-2 con el conjunto anonimizado aprobado
+y fijar el modelo; (2) desplegar A5-1 con verificador de sesión, límites y prueba real sin escrituras; (3)
+aceptar A5-3 con dos cuentas, conflicto, restauración y revocación; (4) aceptar A5-4 con consentimiento,
+silencios y baja; (5) contratar y verificar A5-5; (6) activar A5-6 con cursor/huella idempotente, bandeja
+previa, confirmación y deshacer. Ningún paso puede retirar el modo local ni escribir automáticamente en el libro.
 
 ## Decisiones importantes
 
@@ -293,6 +310,10 @@ específica, prueba real y mantiene el modo local.
 - La paridad E14 compara solo Entidad A/B porque ese es el alcance financiero histórico del iframe;
   Entidad C permanece en el contrato canónico y se declara expresamente fuera de la comparación, nunca
   como una diferencia silenciosa.
+- Las integraciones externas se activan en orden A5-2 → A5-1 → A5-3 → A5-4 → A5-5 → A5-6. El modelo
+  elegido no será fuente de verdad; hogar, push y banca solo ampliarán capacidades opt-in.
+- El backend rechaza peticiones si no existe un verificador de sesión configurado; no se acepta una
+  identidad declarada por el navegador ni se guardan claves o conversaciones en el repositorio.
 
 ## Errores conocidos y riesgos
 
@@ -341,6 +362,8 @@ específica, prueba real y mantiene el modo local.
 - La capa legal/fiscal E7 es informativa: no calcula automáticamente una obligación tributaria ni sustituye
   asesoramiento. Las referencias BOE quedaron consultadas el 01/08/2026 y deben revisarse si cambia la norma.
 - La documentación de backlog y la hoja de ruta discrepan en varios estados y fechas de corte, por lo que `ROADMAP_EXECUTION.md` se toma como criterio conservador de finalización.
+- La aceptación externa de A5-1 a A5-4 aún no está ejecutada: faltan verificador de sesión, secretos de
+  despliegue, dos cuentas autenticadas y proveedor de push. No se presenta la base local como activación real.
 - A3-5 está verificada en el Supabase real. El objeto sintético se descargó y descifró desde una segunda
   sesión, se restauró después de moverlo a recuperación y terminó borrado; la cuenta temporal también
   quedó eliminada sin afectar al usuario real.
@@ -369,6 +392,10 @@ específica, prueba real y mantiene el modo local.
   ámbito relativo correcto, y la carga real en navegador no mostró errores de consola ni desbordamiento.
 
 ## Último commit estable
+
+- En el momento de este cierre, la base estable es `bc59b49` (`docs: finalize E18 session state`) en `main`;
+  el commit de esta sesión incluirá la base A5 y su documentación. `.agents/` permanece sin seguimiento y
+  queda excluida.
 
 - E18 queda consolidada y publicada mediante `eee8c2a` (`feat: close E18 platform safeguards`) y su cierre
   documental mediante `8ee5a54` en `main` y `origin/main`; `.agents/` permanece sin seguimiento y queda excluida.
