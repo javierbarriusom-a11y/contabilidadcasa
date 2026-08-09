@@ -693,3 +693,63 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* -------------------------------------------------------------------------------------------- */
+/* Pantalla «Prever» (E19-5)                                                                     */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-forecast .chart-chip {
+  border-color: var(--e19-accent-soft-border);
+  background: var(--e19-accent-soft);
+  color: var(--e19-accent-hover);
+}
+
+@media (max-width: 480px) {
+  .e19-forecast .chart-panel .section-title {
+    flex-wrap: wrap;
+  }
+}
+
+.e19-prevision .account-balance-chip {
+  border-color: var(--e19-border);
+  background: var(--e19-surface-soft);
+  border-radius: var(--e19-radius-md);
+}
+
+.e19-prevision .account-balance-chip span {
+  color: var(--e19-muted);
+  font: 700 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+}
+
+.e19-prevision .account-balance-chip strong {
+  color: var(--e19-ink);
+  font: 800 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
+}
+
+.e19-prevision .expense-summary-card {
+  border-color: var(--e19-border);
+  background: var(--e19-surface-soft);
+  border-radius: var(--e19-radius-md);
+}
+
+.e19-prevision .expense-summary-card span {
+  color: var(--e19-muted);
+  font: 700 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+}
+
+.e19-prevision .expense-summary-card strong {
+  font: 800 var(--e19-text-md) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.e19-prevision .prevision-table thead th {
+  background: var(--e19-surface-sunken);
+  color: var(--e19-muted);
+  font: 700 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.e19-prevision .prevision-table td[data-prevision-month-key]:hover {
+  background: var(--e19-accent-soft);
+}
