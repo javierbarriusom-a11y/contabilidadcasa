@@ -2,6 +2,38 @@
 
 Fecha de revisión: 9 de agosto de 2026.
 
+## Cierre de sesión — E20-0, día 2: efecto cascada y cierre de I-09
+
+- `canonical-scenario-engine.js` gana `resolveEscenario(decisiones, context)`: compone la serie
+  mensual real delegando en `canonical-engine.buildRows` — no reimplementa la aritmética de
+  liquidez, solo transforma `months[]` según las decisiones resueltas, igual que el resto de
+  módulos E14 envuelven en vez de sustituir. Cada deuda tocada por una decisión reemplaza su
+  aportación a `refi` desde el mes resuelto en adelante (los meses anteriores quedan intactos por
+  construcción, delta cero); una `compra` aporta a `projectOutflow`, de golpe o financiada.
+- **I-09 (escenario vacío ≡ Plan canónico) queda cerrada**: con 0 decisiones, `resolveEscenario`
+  reproduce exactamente `Engine.buildRows(baseInput)`, verificado con una prueba directa además de
+  la de `tests/canonical-scenario-invariants.test.cjs`. Ya no queda ningún `test.todo` pendiente:
+  las 9 invariantes verificables sin guardarraíles/Monte Carlo/presupuesto (I-01 a I-09) están
+  todas cubiertas hoy.
+- **C040/C041 (efecto cascada, el criterio de aceptación real de E20-0 según** `E19_INFORME_FINAL.md` **§4) quedan resueltos**: cuando el escenario declara
+  `guardarrailes.saldoMinimoAbsoluto`, cada decisión con efecto en la serie se comprueba contra la
+  liquidez mínima resultante hasta ese punto de la resolución — y se rechaza explícitamente
+  (`guardarril-incumplido`) si la rompe, en vez de aceptarla en silencio. Una prueba con las mismas
+  dos decisiones (amortizar una deuda + comprar financiado) en los dos órdenes de resolución
+  produce resultados distintos: la compra se aplica cuando se resuelve después de amortizar (la
+  cuota liberada deja liquidez mínima suficiente) y se rechaza cuando se resuelve antes (sin la
+  cuota liberada, la misma compra rompería el guardarraíl) — el resultado numérico final difiere
+  según el orden, y ambos son correctos respecto al guardarraíl declarado.
+- Simplificaciones documentadas del día 2 (no afectan a los cinco tipos de deuda ni a compra en sí,
+  solo a su detalle financiero): solo se compone la serie de decisiones con
+  `planificacion.modo === "manual"` (mes resuelto explícito) — `modo:"optimo"` sigue fuera de
+  alcance (C003, aplazado a F2/F3); reunificación y refinanciación no modelan comisiones como flujo
+  de caja aparte; `retomar_pagos` no recalcula duración tras la suspensión.
+- 393 pruebas (393 pass, 0 `test.todo`), `npm run verify` en verde: tests, accesibilidad,
+  rendimiento, construcción pública, privacidad y smoke test.
+- Trabajo pendiente de publicar en la rama `claude/repo-analysis-3dupjd` mediante el PR #1
+  (borrador).
+
 ## Cierre de sesión — E20-0, día 1: motor de resolución de decisiones sobre deuda
 
 - Arranca el bloque 2 (E20, motor de Escenario unificado) siguiendo la recomendación de

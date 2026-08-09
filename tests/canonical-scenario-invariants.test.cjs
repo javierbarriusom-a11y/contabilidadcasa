@@ -46,7 +46,7 @@ test("T-META · el catálogo declara las 15 invariantes y ninguna verificable ho
     assert.ok(ids.includes(`I-${String(index).padStart(2, "0")}`), `Falta I-${index} en el catálogo`);
   }
   const verificablesHoy = invariants.INVARIANTS.filter((item) => item.verificableHoy).map((item) => item.id);
-  assert.deepEqual(verificablesHoy.sort(), ["I-01", "I-02", "I-03", "I-04", "I-05", "I-06", "I-07", "I-08"]);
+  assert.deepEqual(verificablesHoy.sort(), ["I-01", "I-02", "I-03", "I-04", "I-05", "I-06", "I-07", "I-08", "I-09"]);
 });
 
 test("I-01 · determinismo — legacy-debt-roadmap-engine.simulate(config) es idéntico en dos ejecuciones", () => {
@@ -187,4 +187,14 @@ test("I-06 · conmutatividad de independientes — canonical-scenario-engine da 
   // Cobertura exhaustiva por generación aleatoria (40 casos): tests/canonical-scenario-engine.test.cjs
 });
 
-test.todo("I-09 · escenario vacío ≡ base — pendiente del motor de Escenario (E20-0, día 2): canonical-scenario-engine resuelve el estado de las deudas pero todavía no compone la serie mensual del forecast que hay que comparar contra el Plan canónico");
+test("I-09 · escenario vacío ≡ base — con 0 decisiones, canonical-scenario-engine.resolveEscenario reproduce exactamente Engine.buildRows(baseInput)", () => {
+  const baseInput = {
+    openingBalances: { checking: 3000, savings: 0 },
+    policy: { incomeFactor: 1, annualIncomeGrowth: 0, expenseFactor: 1, annualInflation: 0, plannedMonthlySaving: 0, autoCapSavings: false },
+    months: [{ monthKey: "2026-01", income: 3000, coreSpend: 2700, variableOperationalSpend: 0, car: 0, refi: 300, projectOutflow: 0 }],
+  };
+  const result = scenarioEngine.resolveEscenario([], { debtContracts: [], baseInput });
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.series, engine.buildRows(baseInput));
+  // Cobertura adicional (efecto cascada C040/C041, cierre de deuda): tests/canonical-scenario-engine.test.cjs
+});

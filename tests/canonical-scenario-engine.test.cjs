@@ -2,7 +2,34 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const engine = require("../canonical-scenario-engine.js");
+const canonicalEngine = require("../canonical-engine.js");
 const { mulberry32, rangeFactory, intRangeFactory, pickFactory } = require("./golden/prng.cjs");
+
+const MONTH_KEYS = ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11", "2026-12"];
+
+function cascadeBaseInput() {
+  return {
+    openingBalances: { checking: 3000, savings: 0 },
+    policy: { incomeFactor: 1, annualIncomeGrowth: 0, expenseFactor: 1, annualInflation: 0, plannedMonthlySaving: 0, autoCapSavings: false },
+    months: MONTH_KEYS.map((monthKey) => ({ monthKey, income: 3000, coreSpend: 2700, variableOperationalSpend: 0, car: 0, refi: 300, projectOutflow: 0 })),
+  };
+}
+
+function cascadeDebtContracts() {
+  return [{ id: "A", paymentStatus: "active", currentPrincipal: 900, currentPayment: 300, remainingInstallments: 12, apr: 8 }];
+}
+
+function amortizaDecision(orden) {
+  return { id: "amortiza", tipo: "amortizacion", activa: true, orden, planificacion: { modo: "manual", mesManual: "2026-06" }, params: { deudaId: "A", importe: 900 } };
+}
+
+function compraDecision(orden) {
+  return {
+    id: "compra", tipo: "compra", activa: true, orden,
+    planificacion: { modo: "manual", mesManual: "2026-09" },
+    params: { nombre: "Compra", importe: 900, financiacion: { principal: 900, TIN: 0.1, cuota: 900, plazo: 3 } },
+  };
+}
 
 function contract(overrides = {}) {
   return {
@@ -205,4 +232,56 @@ test("I-06 · conmutatividad de independientes — dos decisiones sobre deudas d
     const normalize = (res) => Object.fromEntries(res.debtStateFinal.map((item) => [item.id, { principal: item.currentPrincipal, status: item.paymentStatus }]));
     assert.deepEqual(normalize(forward), normalize(reversed), `trial ${trial}`);
   }
+});
+
+test("I-09 · escenario vacío ≡ Plan canónico — con 0 decisiones, resolveEscenario reproduce exactamente Engine.buildRows(baseInput)", () => {
+  const baseInput = cascadeBaseInput();
+  const result = engine.resolveEscenario([], { debtContracts: cascadeDebtContracts(), baseInput });
+  assert.equal(result.valid, true);
+  const expected = canonicalEngine.buildRows(baseInput);
+  assert.deepEqual(result.series, expected);
+  assert.deepEqual(result.months, baseInput.months);
+});
+
+test("día 2 · una amortización total libera la cuota mensual desde el mes siguiente al resuelto", () => {
+  const result = engine.resolveEscenario([amortizaDecision(1)], { debtContracts: cascadeDebtContracts(), baseInput: cascadeBaseInput() });
+  assert.equal(result.valid, true);
+  assert.equal(result.resultados[0].resultado, "aplicada");
+  const byMonth = Object.fromEntries(result.months.map((month) => [month.monthKey, month.refi]));
+  assert.equal(byMonth["2026-05"], 300, "mayo (antes de amortizar) no debe cambiar");
+  assert.equal(byMonth["2026-06"], 1200, "junio paga la cuota normal (300) más el pago único (900)");
+  assert.equal(byMonth["2026-07"], 0, "julio ya no arrastra la cuota: la deuda quedó cerrada en junio");
+});
+
+test("C040/C041 · las mismas dos decisiones (amortizar + comprar financiado) dan resultados distintos y correctos según el orden de resolución", () => {
+  const guardarrailes = { saldoMinimoAbsoluto: 600 };
+
+  // C040: se resuelve primero la amortización (orden 1) y después la compra (orden 2). Para
+  // cuando se comprueba la compra contra el guardarraíl, la deuda ya está cerrada y la cuota
+  // liberada desde julio hace que la liquidez mínima resultante (900 €) sea suficiente.
+  const ordenAmortizaPrimero = engine.resolveEscenario(
+    [amortizaDecision(1), compraDecision(2)],
+    { debtContracts: cascadeDebtContracts(), baseInput: cascadeBaseInput(), guardarrailes },
+  );
+  const resultadosA = Object.fromEntries(ordenAmortizaPrimero.resultados.map((item) => [item.id, item.resultado]));
+  assert.equal(resultadosA.amortiza, "aplicada");
+  assert.equal(resultadosA.compra, "aplicada");
+  assert.equal(Math.min(...ordenAmortizaPrimero.series.map((row) => row.totalLiquidity)), 900);
+
+  // C041: mismas dos decisiones, orden de resolución invertido (la compra se resuelve primero).
+  // En ese punto la deuda todavía no se ha amortizado, así que la misma compra financiada rompe
+  // el guardarraíl (liquidez mínima resultante 300 € < 600 €) y se rechaza explícitamente — nunca
+  // se aplica en silencio con un número peor del que el usuario aprobaría.
+  const ordenCompraPrimero = engine.resolveEscenario(
+    [amortizaDecision(2), compraDecision(1)],
+    { debtContracts: cascadeDebtContracts(), baseInput: cascadeBaseInput(), guardarrailes },
+  );
+  const resultadosB = Object.fromEntries(ordenCompraPrimero.resultados.map((item) => [item.id, item.resultado]));
+  assert.equal(resultadosB.compra, "guardarril-incumplido");
+  assert.equal(resultadosB.amortiza, "aplicada", "la amortización en solitario sigue siendo viable");
+  assert.equal(Math.min(...ordenCompraPrimero.series.map((row) => row.totalLiquidity)), 2100);
+
+  // El mismo par de decisiones, en los dos órdenes: resultados distintos (la compra se aplica en
+  // un caso y se rechaza en el otro) y ambos correctos respecto al guardarraíl declarado.
+  assert.notDeepEqual(ordenAmortizaPrimero.months, ordenCompraPrimero.months);
 });
