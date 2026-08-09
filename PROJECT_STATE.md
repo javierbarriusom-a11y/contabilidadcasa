@@ -1,6 +1,38 @@
 # Estado del proyecto
 
-Fecha de revisión: 8 de agosto de 2026.
+Fecha de revisión: 9 de agosto de 2026.
+
+## Cierre de sesión — E20-0, día 1: motor de resolución de decisiones sobre deuda
+
+- Arranca el bloque 2 (E20, motor de Escenario unificado) siguiendo la recomendación de
+  `E19_INFORME_FINAL.md` §4: `canonical-scenario-engine.js` es nuevo (no sustituye nada en
+  producción todavía; no está enlazado desde `index.html` ni el service worker, igual que
+  `canonical-scenario-schema.js` en E19-0), y envuelve los cinco tipos de decisión de deuda que ya
+  estaban en paridad exacta (amortización total/parcial, refinanciación, retomar pagos, acuerdo de
+  quita) más reunificación, construida de cero como anticipaba el informe (caso dorado C005).
+- El motor resuelve únicamente el estado de las deudas por ahora: filtra las decisiones inactivas
+  antes de ejecutar nada (I-05), usa `resolveExecutionOrder()` de E19-0 tal cual para el orden real
+  de ejecución, y detecta conflictos bloqueantes explícitos en vez de calcular un número
+  silenciosamente incorrecto — una decisión sobre una deuda ya cerrada por OTRA decisión de ese
+  mismo escenario se rechaza con un código propio (`conflicto-bloqueante`), distinto del de una
+  deuda que ya estaba cerrada al importar el escenario (`deuda-ya-cerrada`). Cubre los casos dorados
+  C005, C042 y C043, documentados en el día 3/5 de E19-0 como huecos funcionales.
+- Todavía no compone la serie mensual del forecast (`canonical-engine`): eso es lo que exige el
+  efecto cascada de C040/C041 (amortizar libera cuota, la cuota liberada financia una compra
+  posterior) y queda para el día 2. Los tipos de decisión que no tocan deuda (compra, proyecto,
+  cambio de ingreso/gasto, traspaso, imprevisto) y `amortizacion_fraccionada` (aplazada a F2/F3 por
+  el informe) se marcan explícitamente como `tipo-no-soportado-aun`, nunca se ignoran en silencio.
+- I-05 (neutralidad de inactivas) e I-06 (conmutatividad de independientes) quedan verificadas hoy
+  a nivel de estado de deudas, con 40 casos aleatorios cada una además de los casos fijos; sus
+  `test.todo` en `tests/canonical-scenario-invariants.test.cjs` se sustituyen por pruebas reales y
+  el catálogo de `canonical-scenario-invariants.js` se actualiza (`verificableHoy: true` para
+  ambas). I-09 (escenario vacío ≡ Plan canónico) sigue como `test.todo` explícito citando el día 2,
+  porque comparar contra el Plan canónico exige la serie mensual que todavía no existe — no se
+  cierra por omisión.
+- 390 pruebas (389 pass, 1 `test.todo` explícito citando E20-0 día 2), `npm run verify` en verde:
+  tests, accesibilidad, rendimiento, construcción pública, privacidad y smoke test.
+- Trabajo pendiente de publicar en la rama `claude/repo-analysis-3dupjd` mediante el PR #1
+  (borrador), que también cierra el bloque 1 (piel visual E19).
 
 ## Cierre de sesión — E19-0, dataset dorado y esquemas validables
 

@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const invariants = require("../canonical-scenario-invariants.js");
 const legacy = require("../legacy-debt-roadmap-engine.js");
 const engine = require("../canonical-engine.js");
+const scenarioEngine = require("../canonical-scenario-engine.js");
 const { mulberry32, rangeFactory, intRangeFactory } = require("./golden/prng.cjs");
 
 const TRIALS = 40;
@@ -45,7 +46,7 @@ test("T-META · el catálogo declara las 15 invariantes y ninguna verificable ho
     assert.ok(ids.includes(`I-${String(index).padStart(2, "0")}`), `Falta I-${index} en el catálogo`);
   }
   const verificablesHoy = invariants.INVARIANTS.filter((item) => item.verificableHoy).map((item) => item.id);
-  assert.deepEqual(verificablesHoy.sort(), ["I-01", "I-02", "I-03", "I-04", "I-07", "I-08"]);
+  assert.deepEqual(verificablesHoy.sort(), ["I-01", "I-02", "I-03", "I-04", "I-05", "I-06", "I-07", "I-08"]);
 });
 
 test("I-01 · determinismo — legacy-debt-roadmap-engine.simulate(config) es idéntico en dos ejecuciones", () => {
@@ -159,6 +160,31 @@ test("presupuesto de rendimiento · canonical-engine.buildScenario con 120 meses
   assert.ok(elapsedMs < 150, `buildScenario tardó ${elapsedMs.toFixed(2)} ms, por encima del umbral de 150 ms`);
 });
 
-test.todo("I-05 · neutralidad de inactivas — pendiente del motor de Escenario (E20-0): no existe hoy el concepto de decisión activa/inactiva ejecutable");
-test.todo("I-06 · conmutatividad de independientes — pendiente del motor de Escenario (E20-0): no existe hoy una resolución ordenada de decisiones");
-test.todo("I-09 · escenario vacío ≡ base — pendiente del motor de Escenario (E20-0): no existe hoy un `motor(Escenario)` que comparar contra el Plan canónico");
+test("I-05 · neutralidad de inactivas — canonical-scenario-engine ignora por completo una decisión con activa:false", () => {
+  const result = scenarioEngine.resolveDecisiones(
+    [{ id: "d1", tipo: "amortizacion", activa: false, orden: 0, params: { deudaId: "A", importe: 5000 } }],
+    { debtContracts: [{ id: "A", paymentStatus: "active", currentPrincipal: 3000, currentPayment: 200, remainingInstallments: 15, apr: 8 }] },
+  );
+  assert.equal(result.resultados[0].resultado, "inactiva");
+  const debtA = result.debtStateFinal.find((item) => item.id === "A");
+  assert.equal(debtA.currentPrincipal, 3000, "una decisión inactiva no debe mutar el estado de la deuda");
+  // Cobertura exhaustiva por generación aleatoria (40 casos): tests/canonical-scenario-engine.test.cjs
+});
+
+test("I-06 · conmutatividad de independientes — canonical-scenario-engine da el mismo estado final sea cual sea el orden declarado de dos decisiones sobre deudas distintas", () => {
+  const debtContracts = () => [
+    { id: "A", paymentStatus: "active", currentPrincipal: 4000, currentPayment: 200, remainingInstallments: 20, apr: 8 },
+    { id: "B", paymentStatus: "active", currentPrincipal: 2500, currentPayment: 150, remainingInstallments: 15, apr: 6 },
+  ];
+  const decisiones = [
+    { id: "dA", tipo: "amortizacion", activa: true, orden: 5, params: { deudaId: "A", importe: 1000, parcial: true } },
+    { id: "dB", tipo: "amortizacion", activa: true, orden: 1, params: { deudaId: "B", importe: 500, parcial: true } },
+  ];
+  const forward = scenarioEngine.resolveDecisiones(decisiones, { debtContracts: debtContracts() });
+  const reversed = scenarioEngine.resolveDecisiones(decisiones.slice().reverse(), { debtContracts: debtContracts() });
+  const normalize = (res) => Object.fromEntries(res.debtStateFinal.map((item) => [item.id, item.currentPrincipal]));
+  assert.deepEqual(normalize(forward), normalize(reversed));
+  // Cobertura exhaustiva por generación aleatoria (40 casos): tests/canonical-scenario-engine.test.cjs
+});
+
+test.todo("I-09 · escenario vacío ≡ base — pendiente del motor de Escenario (E20-0, día 2): canonical-scenario-engine resuelve el estado de las deudas pero todavía no compone la serie mensual del forecast que hay que comparar contra el Plan canónico");
