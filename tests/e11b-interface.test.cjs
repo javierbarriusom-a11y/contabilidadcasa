@@ -12,12 +12,12 @@ const state = read("state-contract.js");
 test("E11b carga su contrato antes de la aplicación y funciona offline", () => {
   assert.ok(html.indexOf("canonical-e11b-inbox.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-e11b-inbox\.js/);
-  assert.match(worker, /finanzas-casa-shell-20260808-e19a2/);
+  assert.match(worker, /finanzas-casa-shell-20260808-e19a3/);
 });
 
 test("la bandeja común explica los cuatro pasos y puede desactivarse sin retirar flujos", () => {
   assert.match(html, /Bandeja previa común/);
-  assert.match(html, /1\. Origen[\s\S]*2\. Columnas[\s\S]*3\. Comparación[\s\S]*4\. Confirmación/);
+  assert.match(html, /e19-stepper-badge">1<\/span>Origen[\s\S]*e19-stepper-badge">2<\/span>Columnas[\s\S]*e19-stepper-badge">3<\/span>Comparación[\s\S]*e19-stepper-badge">4<\/span>Confirmación/);
   assert.match(app, /function toggleE11bInbox/);
   assert.match(app, /Compatibilidad clásica activada/);
   assert.match(html, /excelDataFile/);

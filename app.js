@@ -15956,11 +15956,12 @@ function renderE11bStatus() {
   const summary = qs("dataInboxSummary");
   if (summary) {
     const items = dataInbox.slice(-4).reverse();
+    const badgeClass = { ready: "e19-badge-accent", blocked: "e19-badge-warning", applied: "e19-badge-success", undone: "e19-badge-neutral", discarded: "e19-badge-neutral" };
     summary.innerHTML = items.length ? items.map((item) => {
       const counts = item.comparison || {};
       const status = { ready: "Lista para confirmar", blocked: "Requiere revisión", applied: "Aplicada", undone: "Deshecha", discarded: "Descartada" }[item.status] || item.status;
-      return `<article class="e11b-inbox-item"><strong>${escapeHtml(item.sourceLabel)} · ${escapeHtml(status)}</strong><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
-    }).join("") : `<article class="e11b-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
+      return `<article class="e19-inbox-item"><div class="e19-inbox-item-head"><strong>${escapeHtml(item.sourceLabel)}</strong><span class="e19-badge ${badgeClass[item.status] || "e19-badge-neutral"}">${escapeHtml(status)}</span></div><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
+    }).join("") : `<article class="e19-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
   }
   const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: String(key).match(/\d{4}-\d{2}/)?.[0] ? `${String(key).match(/\d{4}-\d{2}/)[0]}-01` : "" }));
   const report = E11bInbox.freshness({
@@ -15970,7 +15971,11 @@ function renderE11bStatus() {
     debtDate: canonicalDebtContractRows().length ? (baseData?.metadata?.generatedAt?.slice(0, 10) || "") : "",
   }, { asOf: new Date().toISOString().slice(0, 10) });
   const freshness = qs("updateFreshness");
-  if (freshness) freshness.innerHTML = Object.entries(report.areas).map(([key, area]) => `<article class="e11b-freshness-item"><strong>${escapeHtml(e11bAreaLabel(key))}</strong><p>${area.through ? `Hasta ${escapeHtml(formatIsoDate(area.through))}` : `Falta ${escapeHtml(area.missing.join(", "))}`} · ${area.status === "current" ? "al día" : area.status === "stale" ? "revisar frescura" : "incompleto"}</p></article>`).join("");
+  if (freshness) freshness.innerHTML = Object.entries(report.areas).map(([key, area]) => {
+    const pillClass = area.status === "current" ? "e19-pill-safe" : "e19-pill-warn";
+    const pillLabel = area.status === "current" ? "al día" : area.status === "stale" ? "revisar frescura" : "incompleto";
+    return `<article class="e19-freshness-item"><strong>${escapeHtml(e11bAreaLabel(key))}</strong><p>${area.through ? `Hasta ${escapeHtml(formatIsoDate(area.through))}` : `Falta ${escapeHtml(area.missing.join(", "))}`}</p><span class="e19-pill ${pillClass}">${pillLabel}</span></article>`;
+  }).join("");
 }
 
 function addE11bInboxItem(input) {

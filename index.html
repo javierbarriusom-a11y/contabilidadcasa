@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260808e19a2" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260808e19a3" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1832,26 +1832,29 @@
             </div>
           </section>
 
-          <section class="data-workbench view-section" id="data-entry">
+          <section class="data-workbench view-section e19-data-entry" id="data-entry">
             <div class="section-title">
               <div>
-                <p class="panel-kicker">Entrada operativa</p>
-                <h2>Cargar datos manuales, lotes o Excel</h2>
-                <p>Todo lo que cargues aquí actualiza cuadro de mandos, control de deuda, previsión, simulador, plan ahorro, flujo y movimientos.</p>
+                <p class="panel-kicker e19-eyebrow">Entrada operativa</p>
+                <h2 class="e19-heading">Cargar datos manuales, lotes o Excel</h2>
+                <p class="e19-subtitle">Todo lo que cargues aquí actualiza cuadro de mandos, control de deuda, previsión, simulador, plan ahorro, flujo y movimientos.</p>
               </div>
             </div>
 
-            <article class="data-card e11b-inbox-card" aria-labelledby="dataInboxTitle">
+            <article class="data-card e11b-inbox-card e19-card" aria-labelledby="dataInboxTitle">
               <div class="module-heading with-action">
                 <div>
                   <p class="panel-kicker">Bandeja previa común</p>
                   <h3 id="dataInboxTitle">Revisar antes de incorporar</h3>
                   <p>CSV, Excel, tablas pegadas y extractos siguen el mismo recorrido: detectar, comparar, confirmar y recibir justificante.</p>
                 </div>
-                <button id="toggleDataInbox" class="secondary" type="button" aria-pressed="true">Bandeja activa</button>
+                <button id="toggleDataInbox" class="secondary e19-btn e19-btn-secondary" type="button" aria-pressed="true">Bandeja activa</button>
               </div>
-              <ol class="e11b-steps" aria-label="Pasos del asistente">
-                <li>1. Origen</li><li>2. Columnas</li><li>3. Comparación</li><li>4. Confirmación</li>
+              <ol class="e11b-steps e19-stepper" aria-label="Pasos del asistente">
+                <li><span class="e19-stepper-badge">1</span>Origen</li>
+                <li><span class="e19-stepper-badge">2</span>Columnas</li>
+                <li><span class="e19-stepper-badge">3</span>Comparación</li>
+                <li><span class="e19-stepper-badge">4</span>Confirmación</li>
               </ol>
               <div id="dataInboxSummary" class="e11b-inbox-summary" role="status" aria-live="polite"></div>
               <div id="updateFreshness" class="e11b-freshness"></div>
@@ -2538,7 +2541,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260808e19a2"></script>
+    <script src="app.js?v=20260808e19a3"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
