@@ -117,11 +117,11 @@ test("una decisión sobre una deuda ya cerrada antes de importar el escenario us
   assert.equal(result.resultados[0].resultado, "deuda-ya-cerrada");
 });
 
-test("tipos de decisión aún no soportados en el día 1 (compra, amortización fraccionada) se marcan explícitamente", () => {
+test("tipos de decisión que no tocan deuda (compra, proyecto...) siguen marcados como no soportados por resolveDecisiones", () => {
   const result = engine.resolveDecisiones(
     [
       { id: "d1", tipo: "compra", activa: true, orden: 0, params: { nombre: "Coche", importe: 12000 } },
-      { id: "d2", tipo: "amortizacion_fraccionada", activa: true, orden: 1, params: { deudaId: "A", importeMensual: 100, meses: 6 } },
+      { id: "d2", tipo: "proyecto", activa: true, orden: 1, params: { nombre: "Fondo", importeObjetivo: 3000, modalidad: "hucha", mesObjetivo: "2026-12" } },
     ],
     { debtContracts: [contract({ id: "A" })] },
   );
@@ -284,4 +284,83 @@ test("C040/C041 · las mismas dos decisiones (amortizar + comprar financiado) da
   // El mismo par de decisiones, en los dos órdenes: resultados distintos (la compra se aplica en
   // un caso y se rechaza en el otro) y ambos correctos respecto al guardarraíl declarado.
   assert.notDeepEqual(ordenAmortizaPrimero.months, ordenCompraPrimero.months);
+});
+
+test("C004 · amortización fraccionada (día 1): agota el principal antes de completar los meses declarados y cierra la deuda", () => {
+  const result = engine.resolveDecisiones(
+    [{ id: "d1", tipo: "amortizacion_fraccionada", activa: true, orden: 0, params: { deudaId: "A", importeMensual: 500, meses: 6 } }],
+    { debtContracts: [contract({ id: "A", currentPrincipal: 1200 })] },
+  );
+  assert.equal(result.resultados[0].resultado, "aplicada");
+  assert.equal(result.resultados[0].efecto, "cierre-total-fraccionado");
+  const debtA = result.debtStateFinal.find((item) => item.id === "A");
+  assert.equal(debtA.paymentStatus, "settled");
+  assert.equal(debtA.currentPrincipal, 0);
+});
+
+test("C004 · amortización fraccionada (día 1): si no alcanza el principal en los meses declarados, la deuda sigue activa con el principal reducido", () => {
+  const result = engine.resolveDecisiones(
+    [{ id: "d1", tipo: "amortizacion_fraccionada", activa: true, orden: 0, params: { deudaId: "A", importeMensual: 200, meses: 6 } }],
+    { debtContracts: [contract({ id: "A", currentPrincipal: 5000 })] },
+  );
+  const debtA = result.debtStateFinal.find((item) => item.id === "A");
+  assert.equal(debtA.paymentStatus, "active");
+  assert.equal(debtA.currentPrincipal, 3800);
+});
+
+test("C004 · amortización fraccionada (día 2): la cuota extra aparece solo mientras dura, y la deuda cierra en el mes real (no en el declarado)", () => {
+  const result = engine.resolveEscenario(
+    [{ id: "frac", tipo: "amortizacion_fraccionada", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-03" }, params: { deudaId: "A", importeMensual: 300, meses: 6 } }],
+    { debtContracts: cascadeDebtContracts(), baseInput: cascadeBaseInput() },
+  );
+  assert.equal(result.resultados[0].resultado, "aplicada");
+  assert.equal(result.resultados[0].efecto, "cierre-total-fraccionado", "900€ de principal se agotan en 3 meses, no en los 6 declarados");
+  const byMonth = Object.fromEntries(result.months.map((month) => [month.monthKey, month.refi]));
+  assert.equal(byMonth["2026-02"], 300, "febrero, antes de empezar, no cambia");
+  assert.equal(byMonth["2026-03"], 600, "cuota normal (300) + extra fraccionada (300)");
+  assert.equal(byMonth["2026-04"], 600);
+  assert.equal(byMonth["2026-05"], 600, "tercer y último mes de la fraccionada: el principal se agota aquí");
+  assert.equal(byMonth["2026-06"], 0, "la deuda ya está cerrada, no llega a los 6 meses declarados");
+});
+
+test("C003 · mes óptimo sin guardarraíles declarados usa directamente el primer mes del horizonte", () => {
+  const result = engine.resolveEscenario(
+    [{ id: "compra", tipo: "compra", activa: true, orden: 1, planificacion: { modo: "optimo" }, params: { nombre: "Compra", importe: 500 } }],
+    { debtContracts: cascadeDebtContracts(), baseInput: cascadeBaseInput() },
+  );
+  assert.equal(result.resultados[0].resultado, "aplicada");
+  assert.equal(result.resultados[0].mesResuelto, "2026-01");
+});
+
+test("C003 · mes óptimo busca el primer mes viable respetando el guardarraíl — y se beneficia de una amortización resuelta antes", () => {
+  const guardarrailes = { saldoMinimoAbsoluto: 600 };
+  const compraOptimo = {
+    id: "compra", tipo: "compra", activa: true, orden: 2,
+    planificacion: { modo: "optimo" },
+    params: { nombre: "Compra", importe: 900, financiacion: { principal: 900, TIN: 0.1, cuota: 900, plazo: 3 } },
+  };
+  const result = engine.resolveEscenario(
+    [amortizaDecision(1), compraOptimo],
+    { debtContracts: cascadeDebtContracts(), baseInput: cascadeBaseInput(), guardarrailes },
+  );
+  const resultados = Object.fromEntries(result.resultados.map((item) => [item.id, item]));
+  assert.equal(resultados.amortiza.resultado, "aplicada");
+  assert.equal(resultados.compra.resultado, "aplicada");
+  // Ni enero (antes de amortizar, sin margen liberado) ni los meses intermedios son viables: el
+  // buscador encuentra agosto, dos meses después de que julio empiece a liberar la cuota.
+  assert.equal(resultados.compra.mesResuelto, "2026-08");
+  assert.equal(Math.min(...result.series.map((row) => row.totalLiquidity)), 600);
+});
+
+test("C003 · mes óptimo se rechaza explícitamente (sin-mes-viable) cuando ningún mes del horizonte respeta el guardarraíl", () => {
+  const result = engine.resolveEscenario(
+    [{
+      id: "compra", tipo: "compra", activa: true, orden: 1,
+      planificacion: { modo: "optimo" },
+      params: { nombre: "Compra", importe: 900, financiacion: { principal: 900, TIN: 0.1, cuota: 900, plazo: 3 } },
+    }],
+    { debtContracts: cascadeDebtContracts(), baseInput: cascadeBaseInput(), guardarrailes: { saldoMinimoAbsoluto: 1000000 } },
+  );
+  assert.equal(result.resultados[0].resultado, "sin-mes-viable");
+  assert.deepEqual(result.months, cascadeBaseInput().months, "un rechazo no debe dejar ningún rastro en la serie");
 });

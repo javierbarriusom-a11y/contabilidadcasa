@@ -31,9 +31,21 @@
   // de amortizar una deuda y viable después, porque la cuota liberada cambia la liquidez mínima
   // disponible en ese punto de la resolución, no solo el total final.
   //
-  // Simplificaciones documentadas del día 2 (no aplican a los cinco tipos de deuda ni a compra):
-  //   - Solo se compone la serie de decisiones con `planificacion.modo === "manual"` (mes resuelto
-  //     explícito); `modo:"optimo"` sigue fuera de alcance (C003, aplazado a F2/F3).
+  // Día 3: las dos piezas que E19_INFORME_FINAL.md §4 recomendaba aplazar a F2/F3 por no bloquear
+  // que F1 fuera útil con los otros cinco tipos — ya no aplazadas, a petición expresa del usuario.
+  //   - `amortizacion_fraccionada` (C004): igual que una amortización, pero como pago mensual
+  //     recurrente durante `meses` en vez de un único golpe. Si `importeMensual * meses` alcanza el
+  //     principal antes de agotar `meses`, la deuda cierra anticipadamente (en el mes real en que se
+  //     agota, no en el mes declarado); si no, la deuda sigue activa con el principal reducido y su
+  //     cuota original intacta — la misma simplificación que ya usaba la amortización parcial.
+  //   - `planificacion.modo === "optimo"` (C003, mes óptimo): busca, entre los meses del horizonte
+  //     y en orden cronológico, el primero en el que la decisión pueda aplicarse sin romper
+  //     `guardarrailes.saldoMinimoAbsoluto`. Es una interpretación deliberadamente limitada de
+  //     «óptimo» (el primer mes viable, no el más barato ni el de mejor VAN); sin guardarraíles
+  //     declarados no hay nada que buscar y se usa directamente el primer mes del horizonte. Si
+  //     ningún mes es viable, se rechaza explícitamente (`sin-mes-viable`) en vez de forzar uno.
+  //
+  // Simplificaciones que siguen en pie (no aplican a los seis tipos de deuda ni a compra):
   //   - Reunificación y refinanciación no modelan comisiones como flujo de caja aparte (el campo
   //     `comisiones` existe en el esquema pero no se usa todavía).
   //   - `retomar_pagos` no recalcula duración; reutiliza `remainingInstallments` original.
@@ -42,9 +54,10 @@
   const SCHEMA_ID = "finance-e20-scenario-engine/v1";
 
   // Los cinco tipos de decisión de deuda que E19_INFORME_FINAL.md §4 confirma en paridad exacta
-  // hoy entre el motor heredado y el canónico, más reunificación (construida de cero, no migrada).
+  // hoy entre el motor heredado y el canónico, más reunificación y amortización fraccionada,
+  // construidas de cero (ninguna de las dos es una migración de código existente).
   const DEBT_DECISION_TYPES = Object.freeze([
-    "amortizacion", "refinanciacion", "retomar_pagos", "acuerdo_quita", "reunificacion",
+    "amortizacion", "amortizacion_fraccionada", "refinanciacion", "retomar_pagos", "acuerdo_quita", "reunificacion",
   ]);
 
   function number(value) {
@@ -82,6 +95,7 @@
         closedByDecisionId: null,
         scheduleEffectiveFrom: null,
         lumpSumAt: null,
+        fraccionadaAt: null,
         original: { paymentStatus: base.paymentStatus, currentPayment: number(base.currentPayment), remainingInstallments: Math.max(0, Math.floor(number(base.remainingInstallments))) },
       });
     });
@@ -104,11 +118,19 @@
     return null;
   }
 
-  // El mes en que una decisión surte efecto en la serie mensual. Solo modo:"manual" se compone hoy
-  // (ver cabecera del módulo, día 2) — modo:"optimo" no aporta mes resuelto y su efecto se limita al
-  // estado de la deuda, igual que en el día 1.
+  // El mes en que una decisión surte efecto en la serie mensual: el ya resuelto (por el usuario en
+  // modo:"manual", o por la búsqueda de mes óptimo en `resolveEscenario`, día 3) o `mesManual` si
+  // `mesResuelto` no está todavía. Sin ninguno de los dos (modo:"optimo" resuelto solo con
+  // `resolveDecisiones`, día 1, sin contexto de forecast), el efecto se limita al estado de la deuda.
   function resolvedMonthOf(decision) {
     return decision.planificacion?.mesResuelto || decision.planificacion?.mesManual || null;
+  }
+
+  function addMonthsToKey(monthKey, offset) {
+    const match = String(monthKey || "").match(/^(\d{4})-(\d{2})/);
+    if (!match) return "";
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1 + Math.max(0, Math.floor(offset)), 1));
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
   }
 
   function closeContract(contract, decisionId, resolvedMonth) {
@@ -136,6 +158,28 @@
       return { resultado: "aplicada", efecto: "cierre-total" };
     }
     return { resultado: "aplicada", efecto: "amortizacion-parcial" };
+  }
+
+  // Nueva (no migrada, caso dorado C004): pago mensual recurrente de `importeMensual` durante
+  // `meses`. Si agota el principal antes de completar `meses`, la deuda cierra en el mes real en
+  // que eso ocurre (no en el mes declarado, que puede ser mayor); si no, sigue activa con el
+  // principal reducido y su cuota original intacta, igual que la amortización parcial.
+  function applyAmortizacionFraccionada(decision, debtState) {
+    const contract = debtState.get(decision.params.deudaId);
+    const importeMensual = number(decision.params.importeMensual);
+    const mesesDeclarados = Math.max(1, Math.floor(number(decision.params.meses)));
+    const resolvedMonth = resolvedMonthOf(decision);
+    const capacidadTotal = round2(importeMensual * mesesDeclarados);
+    const cierraAnticipado = importeMensual > 0 && capacidadTotal >= contract.currentPrincipal;
+    const mesesReales = cierraAnticipado ? Math.max(1, Math.ceil(contract.currentPrincipal / importeMensual)) : mesesDeclarados;
+    if (resolvedMonth) contract.fraccionadaAt = { startMonth: resolvedMonth, monthlyAmount: importeMensual, meses: mesesReales };
+    if (cierraAnticipado) {
+      const lastMonth = resolvedMonth ? addMonthsToKey(resolvedMonth, mesesReales - 1) : null;
+      closeContract(contract, decision.id, lastMonth);
+      return { resultado: "aplicada", efecto: "cierre-total-fraccionado" };
+    }
+    contract.currentPrincipal = round2(Math.max(0, contract.currentPrincipal - capacidadTotal));
+    return { resultado: "aplicada", efecto: "amortizacion-fraccionada-parcial" };
   }
 
   function applyRefinanciacion(decision, debtState) {
@@ -192,6 +236,7 @@
       closedByDecisionId: null,
       scheduleEffectiveFrom: resolvedMonth,
       lumpSumAt: null,
+      fraccionadaAt: null,
       original: { paymentStatus: "settled", currentPayment: 0, remainingInstallments: 0 },
       __synthetic: true,
     });
@@ -200,6 +245,7 @@
 
   const APPLIERS = Object.freeze({
     amortizacion: applyAmortizacion,
+    amortizacion_fraccionada: applyAmortizacionFraccionada,
     refinanciacion: applyRefinanciacion,
     retomar_pagos: applyRetomarPagos,
     acuerdo_quita: applyAcuerdoQuita,
@@ -301,6 +347,12 @@
     if (contract.lumpSumAt) {
       schedule.set(contract.lumpSumAt.monthKey, round2((schedule.get(contract.lumpSumAt.monthKey) || 0) + contract.lumpSumAt.amount));
     }
+    if (contract.fraccionadaAt) {
+      for (let offset = 0; offset < contract.fraccionadaAt.meses; offset += 1) {
+        const monthKey = addMonthsToKey(contract.fraccionadaAt.startMonth, offset);
+        schedule.set(monthKey, round2((schedule.get(monthKey) || 0) + contract.fraccionadaAt.monthlyAmount));
+      }
+    }
     return schedule;
   }
 
@@ -309,7 +361,7 @@
   // `baseMonths`, que es lo que garantiza I-09 con 0 decisiones (la función ni se llama).
   function applyDebtDeltasToMonths(months, debtState) {
     debtState.forEach((contract) => {
-      if (!contract.scheduleEffectiveFrom && !contract.lumpSumAt) return;
+      if (!contract.scheduleEffectiveFrom && !contract.lumpSumAt && !contract.fraccionadaAt) return;
       const originalSchedule = buildBaselineSchedule(contract.original, months);
       const finalSchedule = buildContractSchedule(contract, months);
       months.forEach((month, index) => {
@@ -381,34 +433,63 @@
       return candidate;
     }
 
+    // modo:"optimo" (día 3, C003): sustituye mesResuelto/mesInicio por cada mes candidato antes de
+    // intentar la decisión — nunca muta el objeto original, así que un intento fallido no deja rastro.
+    function withResolvedMonth(decision, monthKey) {
+      const planificacion = { ...decision.planificacion, mesResuelto: monthKey };
+      const params = decision.tipo === "retomar_pagos" ? { ...decision.params, mesInicio: monthKey } : decision.params;
+      return { ...decision, planificacion, params };
+    }
+
     const resultados = orderResult.resolvedOrder.map((id) => {
       const decision = byId.get(id);
-      if (decision.tipo === "compra") {
-        const candidateMonths = composeCandidateMonths(decision);
+      const isOptimo = decision.planificacion?.modo === "optimo" && !resolvedMonthOf(decision);
+      // Sin guardarraíles no hay nada que optimizar: el primer mes del horizonte basta. Con
+      // guardarraíles, se prueba cada mes en orden cronológico hasta el primero viable.
+      const monthCandidates = isOptimo ? (hasGuardrail ? baseMonths.map((month) => month.monthKey) : [baseMonths[0]?.monthKey || null]) : [resolvedMonthOf(decision)];
+
+      let outcomeFinal = null;
+      for (const monthKey of monthCandidates) {
+        const attemptDecision = isOptimo ? withResolvedMonth(decision, monthKey) : decision;
+
+        if (attemptDecision.tipo === "compra") {
+          const candidateMonths = composeCandidateMonths(attemptDecision);
+          if (hasGuardrail) {
+            const candidateMinimum = minimumLiquidity({ ...context.baseInput, months: candidateMonths });
+            if (candidateMinimum < saldoMinimo) {
+              if (isOptimo) continue;
+              outcomeFinal = { id: decision.id, tipo: decision.tipo, resultado: "guardarril-incumplido", motivo: "saldo-minimo-absoluto", minimoResultante: round2(candidateMinimum) };
+              break;
+            }
+          }
+          appliedCompras.push(attemptDecision);
+          outcomeFinal = { id: decision.id, tipo: decision.tipo, resultado: "aplicada", efecto: "compra", mesResuelto: monthKey || undefined };
+          break;
+        }
+
+        const debtStateSnapshot = new Map(Array.from(debtState.entries()).map(([debtId, debtContract]) => [debtId, clone(debtContract)]));
+        const outcome = resolveDecision(attemptDecision, debtState);
+        if (outcome.resultado !== "aplicada") {
+          // Rechazo estructural (deuda desconocida, ya cerrada, conflicto...): no depende del mes,
+          // así que probar otros meses no cambiaría nada.
+          outcomeFinal = outcome;
+          break;
+        }
         if (hasGuardrail) {
+          const candidateMonths = composeCandidateMonths(null);
           const candidateMinimum = minimumLiquidity({ ...context.baseInput, months: candidateMonths });
           if (candidateMinimum < saldoMinimo) {
-            return { id: decision.id, tipo: decision.tipo, resultado: "guardarril-incumplido", motivo: "saldo-minimo-absoluto", minimoResultante: round2(candidateMinimum) };
+            debtState.clear();
+            debtStateSnapshot.forEach((debtContract, debtId) => debtState.set(debtId, debtContract));
+            if (isOptimo) continue;
+            outcomeFinal = { id: decision.id, tipo: decision.tipo, resultado: "guardarril-incumplido", motivo: "saldo-minimo-absoluto", minimoResultante: round2(candidateMinimum) };
+            break;
           }
         }
-        appliedCompras.push(decision);
-        return { id: decision.id, tipo: decision.tipo, resultado: "aplicada", efecto: "compra" };
+        outcomeFinal = { ...outcome, mesResuelto: monthKey || undefined };
+        break;
       }
-
-      const debtStateSnapshot = new Map(Array.from(debtState.entries()).map(([debtId, debtContract]) => [debtId, clone(debtContract)]));
-      const outcome = resolveDecision(decision, debtState);
-      if (outcome.resultado !== "aplicada") return outcome;
-
-      if (hasGuardrail) {
-        const candidateMonths = composeCandidateMonths(null);
-        const candidateMinimum = minimumLiquidity({ ...context.baseInput, months: candidateMonths });
-        if (candidateMinimum < saldoMinimo) {
-          debtState.clear();
-          debtStateSnapshot.forEach((debtContract, debtId) => debtState.set(debtId, debtContract));
-          return { id: decision.id, tipo: decision.tipo, resultado: "guardarril-incumplido", motivo: "saldo-minimo-absoluto", minimoResultante: round2(candidateMinimum) };
-        }
-      }
-      return outcome;
+      return outcomeFinal || { id: decision.id, tipo: decision.tipo, resultado: "sin-mes-viable" };
     });
     const months = composeCandidateMonths(null);
     inactivas.forEach((decision) => {

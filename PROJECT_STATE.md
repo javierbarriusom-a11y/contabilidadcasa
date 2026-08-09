@@ -2,6 +2,34 @@
 
 Fecha de revisión: 9 de agosto de 2026.
 
+## Cierre de sesión — E20-0, día 3: amortización fraccionada y mes óptimo
+
+- `E19_INFORME_FINAL.md` §4 recomendaba aplazar `amortizacion_fraccionada` (C004) y
+  `planificacion.modo === "optimo"` (mes óptimo, C003) a F2/F3 porque no bloqueaban que F1 fuera
+  útil con los otros cinco tipos de deuda. A petición expresa del usuario, se implementan ya en
+  E20-0 en vez de esperar.
+- **`amortizacion_fraccionada`** se incorpora a `DEBT_DECISION_TYPES`: pago mensual recurrente de
+  `importeMensual` durante `meses`. Si `importeMensual × meses` alcanza el principal antes de
+  agotar `meses` declarados, la deuda cierra en el **mes real** en que eso ocurre (no en el
+  declarado, que puede ser mayor) — verificado con un caso donde 900 € de principal se agotan en 3
+  meses de los 6 declarados. Si no lo alcanza, la deuda sigue activa con el principal reducido y su
+  cuota original intacta, la misma simplificación que ya usaba la amortización parcial.
+- **Mes óptimo** (`modo:"optimo"`) se resuelve en `resolveEscenario`: busca, en orden cronológico
+  entre los meses del horizonte, el primero en el que la decisión no rompa
+  `guardarrailes.saldoMinimoAbsoluto` — reutilizando exactamente el mismo mecanismo de comprobación
+  y deshecho (`guardarril-incumplido`) del día 2. Es una interpretación deliberadamente limitada de
+  «óptimo»: el primer mes viable, no el más barato ni el de mejor VAN. Sin guardarraíles declarados
+  no hay nada que buscar y se usa directamente el primer mes del horizonte. Si ningún mes es
+  viable, se rechaza explícitamente (`sin-mes-viable`) en vez de forzar uno — nunca deja rastro en
+  la serie compuesta.
+- Un caso combinado (amortizar una deuda en modo manual + comprar financiado en modo óptimo, con
+  guardarraíl) demuestra el mecanismo completo: el buscador de mes óptimo se beneficia de la cuota
+  liberada por la amortización resuelta antes y encuentra el primer mes viable dos meses después de
+  que empiece a liberarse esa cuota, en vez de en el mes 1.
+- 399 pruebas (399 pass, 0 `test.todo`), `npm run verify` en verde.
+- Trabajo pendiente de publicar en la rama `claude/repo-analysis-3dupjd` mediante el PR #1
+  (borrador).
+
 ## Cierre de sesión — E20-0, día 2: efecto cascada y cierre de I-09
 
 - `canonical-scenario-engine.js` gana `resolveEscenario(decisiones, context)`: compone la serie
