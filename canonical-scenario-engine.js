@@ -45,7 +45,30 @@
   //     declarados no hay nada que buscar y se usa directamente el primer mes del horizonte. Si
   //     ningún mes es viable, se rechaza explícitamente (`sin-mes-viable`) en vez de forzar uno.
   //
-  // Simplificaciones que siguen en pie (no aplican a los seis tipos de deuda ni a compra):
+  // Día 4: los tipos de decisión que no tocan deuda, fuera del alcance original de F1 pero
+  // implementados a petición expresa del usuario (excepto dos, ver abajo).
+  //   - `imprevisto`: gasto de golpe en `mes`, o recurrente cada `recurrenciaMeses` si se declara.
+  //   - `cambio_ingreso` / `cambio_gasto`: delta mensual (importe o, para gasto, porcentaje
+  //     fraccionario del gasto de ese mes) aplicado a `income`/`coreSpend` desde `mesInicio` hasta
+  //     `mesFin` (o hasta el final del horizonte si no se declara `mesFin`).
+  //   - `proyecto`: modalidad "hucha" reparte `importeObjetivo` en cuotas iguales desde el mes
+  //     resuelto hasta `mesObjetivo`; "pago_unico" y "financiado" lo cargan de golpe en
+  //     `mesObjetivo` (el esquema de `proyecto` no da plazo/cuota propios como sí hace `compra`,
+  //     así que "financiado" no puede distinguirse numéricamente de "pago_unico" hoy).
+  //   Los cuatro reutilizan `projectOutflow`/`income`/`coreSpend` como bucket genérico, igual que
+  //   `compra`, y participan en la búsqueda de mes óptimo igual que los tipos de deuda.
+  //
+  //   Dos tipos siguen sin soportarse — no por pereza, por límite real del contrato de entrada de
+  //   `canonical-engine`, documentado explícitamente en vez de forzar un número fabricado:
+  //   - `traspaso`: mover saldo entre caixabank/mediolanum no cambia `totalLiquidity`, pero
+  //     `canonical-engine.buildRows` no acepta un ajuste puntual del reparto checking/savings por
+  //     mes — solo calcula `saving` a partir de la política declarada. Modelarlo bien exige ampliar
+  //     el motor canónico, no este envoltorio.
+  //   - `cambio_presupuesto`: un techo presupuestario es un objetivo a vigilar, no un flujo de caja;
+  //     aplicarlo como si moviera `coreSpend` fabricaría un gasto que nadie ha declarado todavía.
+  //
+  // Simplificaciones que siguen en pie (no aplican a los seis tipos de deuda, compra, ni a los
+  // cuatro de este día):
   //   - Reunificación y refinanciación no modelan comisiones como flujo de caja aparte (el campo
   //     `comisiones` existe en el esquema pero no se usa todavía).
   //   - `retomar_pagos` no recalcula duración; reutiliza `remainingInstallments` original.
@@ -389,6 +412,85 @@
     }
   }
 
+  // Un imprevisto aporta a `projectOutflow`: de golpe en `mes`, o repetido cada `recurrenciaMeses`
+  // durante el resto del horizonte si se declara.
+  function applyImprevistoToMonths(months, decision) {
+    const startIndex = monthIndexOf(months, decision.params.mes);
+    if (startIndex < 0) return;
+    const importe = number(decision.params.importe);
+    const recurrenciaMeses = decision.params.recurrenciaMeses;
+    if (recurrenciaMeses === undefined || recurrenciaMeses === null) {
+      months[startIndex].projectOutflow = round2(number(months[startIndex].projectOutflow) + importe);
+      return;
+    }
+    const paso = Math.max(1, Math.floor(number(recurrenciaMeses)));
+    for (let index = startIndex; index < months.length; index += paso) {
+      months[index].projectOutflow = round2(number(months[index].projectOutflow) + importe);
+    }
+  }
+
+  // Reparte `importeObjetivo` en cuotas iguales entre el mes resuelto y `mesObjetivo` (modalidad
+  // "hucha"); "pago_unico" y "financiado" lo cargan de golpe en `mesObjetivo` (ver cabecera).
+  function applyProyectoToMonths(months, decision) {
+    const objetivoIndex = monthIndexOf(months, decision.params.mesObjetivo);
+    if (objetivoIndex < 0) return;
+    const importe = number(decision.params.importeObjetivo);
+    if (decision.params.modalidad === "hucha") {
+      const resolvedMonth = resolvedMonthOf(decision);
+      const startIndex = Math.max(0, resolvedMonth ? monthIndexOf(months, resolvedMonth) : 0);
+      if (objetivoIndex > startIndex) {
+        const meses = objetivoIndex - startIndex + 1;
+        const cuota = round2(importe / meses);
+        for (let index = startIndex; index <= objetivoIndex; index += 1) {
+          months[index].projectOutflow = round2(number(months[index].projectOutflow) + cuota);
+        }
+        return;
+      }
+    }
+    months[objetivoIndex].projectOutflow = round2(number(months[objetivoIndex].projectOutflow) + importe);
+  }
+
+  function monthRangeIndices(months, mesInicio, mesFin) {
+    const startIndex = monthIndexOf(months, mesInicio);
+    if (startIndex < 0) return null;
+    const declaredEndIndex = mesFin ? monthIndexOf(months, mesFin) : months.length - 1;
+    const endIndex = declaredEndIndex < 0 ? months.length - 1 : declaredEndIndex;
+    return { startIndex, endIndex };
+  }
+
+  // Delta mensual de ingreso desde `mesInicio` hasta `mesFin` (o el final del horizonte).
+  function applyCambioIngresoToMonths(months, decision) {
+    const range = monthRangeIndices(months, decision.params.mesInicio, decision.params.mesFin);
+    if (!range) return;
+    const delta = number(decision.params.deltaMensual);
+    for (let index = range.startIndex; index <= range.endIndex && index < months.length; index += 1) {
+      months[index].income = round2(number(months[index].income) + delta);
+    }
+  }
+
+  // Delta mensual de gasto desde `mesInicio` hasta `mesFin` (o el final del horizonte): importe fijo
+  // (`deltaMensual`) o porcentaje fraccionario del gasto de ese mes (`deltaPct`, p. ej. 0,1 = +10%).
+  function applyCambioGastoToMonths(months, decision) {
+    const range = monthRangeIndices(months, decision.params.mesInicio, decision.params.mesFin);
+    if (!range) return;
+    for (let index = range.startIndex; index <= range.endIndex && index < months.length; index += 1) {
+      const delta = decision.params.deltaMensual !== undefined
+        ? number(decision.params.deltaMensual)
+        : round2(number(months[index].coreSpend) * number(decision.params.deltaPct));
+      months[index].coreSpend = round2(number(months[index].coreSpend) + delta);
+    }
+  }
+
+  // Tipos sin efecto en el estado de las deudas que sí aportan a la serie mensual (día 2: compra;
+  // día 4: el resto). `traspaso` y `cambio_presupuesto` quedan fuera a propósito — ver cabecera.
+  const NON_DEBT_APPLIERS = Object.freeze({
+    compra: applyCompraToMonths,
+    imprevisto: applyImprevistoToMonths,
+    proyecto: applyProyectoToMonths,
+    cambio_ingreso: applyCambioIngresoToMonths,
+    cambio_gasto: applyCambioGastoToMonths,
+  });
+
   function minimumLiquidity(input) {
     const rows = Engine.buildRows(input);
     return rows.length ? Math.min(...rows.map((row) => number(row.totalLiquidity))) : Infinity;
@@ -418,26 +520,33 @@
     const byId = new Map(activas.map((decision) => [decision.id, decision]));
     const debtState = buildDebtState(context.debtContracts);
     const baseMonths = cloneMonths(context.baseInput.months);
-    const appliedCompras = [];
+    const appliedExtras = [];
     const saldoMinimo = number(context.guardarrailes?.saldoMinimoAbsoluto);
     const hasGuardrail = context.guardarrailes?.saldoMinimoAbsoluto !== undefined;
 
-    // Recompone siempre desde `baseMonths`: el estado de deudas y la lista de compras ya aplicadas
-    // son la única fuente de verdad, así que cada intento (incluido el que se acaba de rechazar) es
-    // idempotente y no puede arrastrar un efecto ya aplicado ni perder uno anterior.
-    function composeCandidateMonths(extraCompra) {
+    // Recompone siempre desde `baseMonths`: el estado de deudas y la lista de decisiones sin deuda
+    // ya aplicadas (compra, imprevisto, proyecto, cambio de ingreso/gasto) son la única fuente de
+    // verdad, así que cada intento (incluido el que se acaba de rechazar) es idempotente y no puede
+    // arrastrar un efecto ya aplicado ni perder uno anterior.
+    function composeCandidateMonths(extraDecision) {
       const candidate = cloneMonths(baseMonths);
       applyDebtDeltasToMonths(candidate, debtState);
-      appliedCompras.forEach((compra) => applyCompraToMonths(candidate, compra));
-      if (extraCompra) applyCompraToMonths(candidate, extraCompra);
+      appliedExtras.forEach((extra) => NON_DEBT_APPLIERS[extra.tipo](candidate, extra));
+      if (extraDecision) NON_DEBT_APPLIERS[extraDecision.tipo](candidate, extraDecision);
       return candidate;
     }
 
     // modo:"optimo" (día 3, C003): sustituye mesResuelto/mesInicio por cada mes candidato antes de
     // intentar la decisión — nunca muta el objeto original, así que un intento fallido no deja rastro.
+    // `imprevisto` usa `params.mes` en vez de la planificación; `cambio_ingreso`/`cambio_gasto` usan
+    // `params.mesInicio` (conservando `mesFin` tal cual); `proyecto` ya lee `mesResuelto` a través de
+    // `resolvedMonthOf`, así que no necesita tocar sus params.
     function withResolvedMonth(decision, monthKey) {
       const planificacion = { ...decision.planificacion, mesResuelto: monthKey };
-      const params = decision.tipo === "retomar_pagos" ? { ...decision.params, mesInicio: monthKey } : decision.params;
+      let params = decision.params;
+      if (decision.tipo === "retomar_pagos") params = { ...decision.params, mesInicio: monthKey };
+      else if (decision.tipo === "imprevisto") params = { ...decision.params, mes: monthKey };
+      else if (decision.tipo === "cambio_ingreso" || decision.tipo === "cambio_gasto") params = { ...decision.params, mesInicio: monthKey };
       return { ...decision, planificacion, params };
     }
 
@@ -452,7 +561,7 @@
       for (const monthKey of monthCandidates) {
         const attemptDecision = isOptimo ? withResolvedMonth(decision, monthKey) : decision;
 
-        if (attemptDecision.tipo === "compra") {
+        if (NON_DEBT_APPLIERS[attemptDecision.tipo]) {
           const candidateMonths = composeCandidateMonths(attemptDecision);
           if (hasGuardrail) {
             const candidateMinimum = minimumLiquidity({ ...context.baseInput, months: candidateMonths });
@@ -462,8 +571,8 @@
               break;
             }
           }
-          appliedCompras.push(attemptDecision);
-          outcomeFinal = { id: decision.id, tipo: decision.tipo, resultado: "aplicada", efecto: "compra", mesResuelto: monthKey || undefined };
+          appliedExtras.push(attemptDecision);
+          outcomeFinal = { id: decision.id, tipo: decision.tipo, resultado: "aplicada", efecto: decision.tipo, mesResuelto: monthKey || undefined };
           break;
         }
 

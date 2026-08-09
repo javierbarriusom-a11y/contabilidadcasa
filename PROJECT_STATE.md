@@ -2,6 +2,38 @@
 
 Fecha de revisión: 9 de agosto de 2026.
 
+## Cierre de sesión — E20-0, día 4: tipos de decisión fuera del alcance original de F1
+
+- A petición expresa del usuario, se implementan los tipos de decisión que no tocan deuda y
+  quedaban fuera del alcance original de F1: `imprevisto`, `proyecto`, `cambio_ingreso` y
+  `cambio_gasto`. Reutilizan `projectOutflow`/`income`/`coreSpend` como bucket genérico, igual que
+  `compra`, y participan en la búsqueda de mes óptimo del día 3 sin cambios en su mecanismo.
+  - `imprevisto`: gasto de golpe en `mes`, o repetido cada `recurrenciaMeses` durante el resto del
+    horizonte si se declara.
+  - `proyecto`: modalidad «hucha» reparte `importeObjetivo` en cuotas iguales desde el mes resuelto
+    hasta `mesObjetivo`; «pago_unico» y «financiado» lo cargan de golpe en `mesObjetivo` (el
+    esquema de `proyecto` no da plazo/cuota propios como sí hace `compra`, así que «financiado» no
+    puede distinguirse numéricamente de «pago_unico» hoy — documentado explícitamente, no fingido).
+  - `cambio_ingreso` / `cambio_gasto`: delta mensual (importe fijo, o para gasto también porcentaje
+    fraccionario del gasto de ese mes) aplicado desde `mesInicio` hasta `mesFin`, o hasta el final
+    del horizonte si no se declara `mesFin`.
+- **Dos tipos siguen sin soportarse, no por omisión sino por un límite real del contrato de entrada
+  de `canonical-engine`**, documentado explícitamente en el módulo en vez de forzar un número
+  fabricado:
+  - `traspaso`: mover saldo entre cuentas no cambia la liquidez total, pero
+    `canonical-engine.buildRows` no acepta un ajuste puntual del reparto checking/savings por mes
+    — solo calcula `saving` a partir de la política declarada. Modelarlo bien exige ampliar el
+    motor canónico, no este envoltorio.
+  - `cambio_presupuesto`: un techo presupuestario es un objetivo a vigilar, no un flujo de caja;
+    aplicarlo como si moviera `coreSpend` fabricaría un gasto que nadie ha declarado todavía.
+- Con esto, de los 13 tipos de decisión del esquema, 11 tienen efecto financiero real en
+  `resolveEscenario` (los seis de deuda, compra, proyecto, imprevisto, cambio_ingreso y
+  cambio_gasto) y los otros 2 (`traspaso`, `cambio_presupuesto`) quedan fuera de alcance
+  documentado explícitamente, no como pendientes silenciosos.
+- 403 pruebas (403 pass, 0 `test.todo`), `npm run verify` en verde.
+- Trabajo pendiente de publicar en la rama `claude/repo-analysis-3dupjd` mediante el PR #1
+  (borrador).
+
 ## Cierre de sesión — E20-0, día 3: amortización fraccionada y mes óptimo
 
 - `E19_INFORME_FINAL.md` §4 recomendaba aplazar `amortizacion_fraccionada` (C004) y

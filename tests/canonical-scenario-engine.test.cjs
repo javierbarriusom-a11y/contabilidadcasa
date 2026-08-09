@@ -364,3 +364,74 @@ test("C003 · mes óptimo se rechaza explícitamente (sin-mes-viable) cuando nin
   assert.equal(result.resultados[0].resultado, "sin-mes-viable");
   assert.deepEqual(result.months, cascadeBaseInput().months, "un rechazo no debe dejar ningún rastro en la serie");
 });
+
+test("día 4 · imprevisto: de golpe en el mes declarado, o repetido cada N meses si se declara recurrencia", () => {
+  const result = engine.resolveEscenario(
+    [{ id: "imp", tipo: "imprevisto", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-03" }, params: { importe: 100, mes: "2026-03", recurrenciaMeses: 3 } }],
+    { debtContracts: [], baseInput: cascadeBaseInput() },
+  );
+  assert.equal(result.resultados[0].resultado, "aplicada");
+  const byMonth = Object.fromEntries(result.months.map((month) => [month.monthKey, month.projectOutflow]));
+  assert.equal(byMonth["2026-02"], 0);
+  assert.equal(byMonth["2026-03"], 100);
+  assert.equal(byMonth["2026-04"], 0);
+  assert.equal(byMonth["2026-05"], 0);
+  assert.equal(byMonth["2026-06"], 100, "se repite cada 3 meses desde marzo");
+  assert.equal(byMonth["2026-09"], 100);
+  assert.equal(byMonth["2026-12"], 100);
+});
+
+test("día 4 · proyecto: la modalidad hucha reparte el objetivo en cuotas iguales; pago_unico lo carga de golpe en el mes objetivo", () => {
+  const hucha = engine.resolveEscenario(
+    [{ id: "proy", tipo: "proyecto", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-02" }, params: { nombre: "Viaje", importeObjetivo: 1200, modalidad: "hucha", mesObjetivo: "2026-05" } }],
+    { debtContracts: [], baseInput: cascadeBaseInput() },
+  );
+  const byMonthHucha = Object.fromEntries(hucha.months.map((month) => [month.monthKey, month.projectOutflow]));
+  assert.equal(byMonthHucha["2026-01"], 0);
+  assert.equal(byMonthHucha["2026-02"], 300);
+  assert.equal(byMonthHucha["2026-03"], 300);
+  assert.equal(byMonthHucha["2026-04"], 300);
+  assert.equal(byMonthHucha["2026-05"], 300, "4 cuotas de 300€ = 1200€, de febrero a mayo");
+
+  const pagoUnico = engine.resolveEscenario(
+    [{ id: "proy2", tipo: "proyecto", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-02" }, params: { nombre: "TV", importeObjetivo: 800, modalidad: "pago_unico", mesObjetivo: "2026-05" } }],
+    { debtContracts: [], baseInput: cascadeBaseInput() },
+  );
+  const byMonthUnico = Object.fromEntries(pagoUnico.months.map((month) => [month.monthKey, month.projectOutflow]));
+  assert.equal(byMonthUnico["2026-02"], 0);
+  assert.equal(byMonthUnico["2026-05"], 800);
+});
+
+test("día 4 · cambio_ingreso y cambio_gasto: delta mensual entre mesInicio y mesFin (o hasta el final del horizonte)", () => {
+  const cambioIngreso = engine.resolveEscenario(
+    [{ id: "ci", tipo: "cambio_ingreso", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-03" }, params: { titular: "javi", deltaMensual: -500, mesInicio: "2026-03", mesFin: "2026-05" } }],
+    { debtContracts: [], baseInput: cascadeBaseInput() },
+  );
+  const byMonthIngreso = Object.fromEntries(cambioIngreso.months.map((month) => [month.monthKey, month.income]));
+  assert.equal(byMonthIngreso["2026-02"], 3000, "fuera del rango, sin cambio");
+  assert.equal(byMonthIngreso["2026-03"], 2500);
+  assert.equal(byMonthIngreso["2026-05"], 2500);
+  assert.equal(byMonthIngreso["2026-06"], 3000, "termina en mesFin, no continúa después");
+
+  const cambioGasto = engine.resolveEscenario(
+    [{ id: "cg", tipo: "cambio_gasto", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-06" }, params: { bloque: "ocio", deltaPct: 0.1, mesInicio: "2026-06" } }],
+    { debtContracts: [], baseInput: cascadeBaseInput() },
+  );
+  const byMonthGasto = Object.fromEntries(cambioGasto.months.map((month) => [month.monthKey, month.coreSpend]));
+  assert.equal(byMonthGasto["2026-05"], 2700, "antes de empezar, sin cambio");
+  assert.equal(byMonthGasto["2026-06"], 2970, "+10% de 2700");
+  assert.equal(byMonthGasto["2026-12"], 2970, "sin mesFin, dura hasta el final del horizonte");
+});
+
+test("día 4 · traspaso y cambio_presupuesto siguen sin soportarse explícitamente (límite real del contrato de canonical-engine, no un olvido)", () => {
+  const result = engine.resolveEscenario(
+    [
+      { id: "tr", tipo: "traspaso", activa: true, orden: 1, planificacion: { modo: "manual", mesManual: "2026-03" }, params: { origen: "caixabank", destino: "mediolanum", importe: 500, mes: "2026-03" } },
+      { id: "cp", tipo: "cambio_presupuesto", activa: true, orden: 2, planificacion: { modo: "manual", mesManual: "2026-03" }, params: { bloque: "ocio", nuevoTecho: 300, desde: "2026-03" } },
+    ],
+    { debtContracts: [], baseInput: cascadeBaseInput() },
+  );
+  assert.equal(result.resultados[0].resultado, "tipo-no-soportado-aun");
+  assert.equal(result.resultados[1].resultado, "tipo-no-soportado-aun");
+  assert.deepEqual(result.months, cascadeBaseInput().months);
+});
