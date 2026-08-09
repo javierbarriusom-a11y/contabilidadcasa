@@ -16467,7 +16467,7 @@ function renderUpdateHub() {
     nextBody = `${differences} mes(es) todavía no cuadran entre movimientos y datos reales.`;
     target = "reconciliation";
   }
-  qs("updateNextStep").innerHTML = `<div><p class="panel-kicker">Siguiente paso sugerido</p><h3>${escapeHtml(nextTitle)}</h3><p>${escapeHtml(nextBody)}</p></div><button type="button" data-home-nav="${escapeHtml(target)}">Continuar</button>`;
+  qs("updateNextStep").innerHTML = `<div><p class="panel-kicker e19-eyebrow">Siguiente paso sugerido</p><h3>${escapeHtml(nextTitle)}</h3><p>${escapeHtml(nextBody)}</p></div><button type="button" class="e19-btn e19-btn-primary" data-home-nav="${escapeHtml(target)}">Continuar</button>`;
 }
 
 function populateSelectors(force = false) {

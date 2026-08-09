@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260808e19a1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260808e19a2" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -271,16 +271,16 @@
             </div>
           </section>
 
-          <section class="update-hub view-section" id="update-hub">
+          <section class="update-hub view-section e19-update-hub" id="update-hub">
             <div class="section-title">
               <div>
-                <p class="panel-kicker">Actualizar mis datos</p>
-                <h2>¿Qué quieres poner al día?</h2>
-                <p>Elige por el dato que tienes delante. Antes de entrar verás qué se guarda, qué necesita confirmación y qué cálculos se actualizarán.</p>
+                <p class="panel-kicker e19-eyebrow">Actualizar mis datos</p>
+                <h2 class="e19-heading">¿Qué quieres poner al día?</h2>
+                <p class="e19-subtitle">Elige por el dato que tienes delante. Antes de entrar verás qué se guarda, qué necesita confirmación y qué cálculos se actualizarán.</p>
               </div>
             </div>
 
-            <article class="update-language-card" aria-labelledby="updateLanguageTitle">
+            <article class="update-language-card e19-explainer" aria-labelledby="updateLanguageTitle">
               <div>
                 <p class="panel-kicker">Una regla en toda la aplicación</p>
                 <h3 id="updateLanguageTitle">Previsto, real y usado</h3>
@@ -293,45 +293,45 @@
             </article>
 
             <div class="update-route-grid" id="updateRouteGrid">
-              <button class="update-route-card" type="button" data-home-nav="visual-detail">
-                <span class="update-route-step">1 · Saldo actual</span>
+              <button class="e19-route-card" type="button" data-home-nav="visual-detail">
+                <span class="e19-route-step">1 · Saldo actual</span>
                 <strong>Actualizar mis cuentas</strong>
                 <small id="updateBalanceFreshness">Comprueba CaixaBank, Mediolanum y la fecha del saldo.</small>
                 <em>Se guarda al introducir el saldo real y recalcula toda la aplicación.</em>
               </button>
-              <button class="update-route-card" type="button" data-home-nav="update-data">
-                <span class="update-route-step">2 · Lo ocurrido</span>
+              <button class="e19-route-card" type="button" data-home-nav="update-data">
+                <span class="e19-route-step">2 · Lo ocurrido</span>
                 <strong>Registrar ingresos y gastos reales</strong>
                 <small id="updateActualFreshness">Completa el mes línea a línea sin borrar su previsión.</small>
                 <em>Guardado automático. Vaciar un real recupera el previsto.</em>
               </button>
-              <button class="update-route-card" type="button" data-home-nav="movements">
-                <span class="update-route-step">3 · Extracto bancario</span>
+              <button class="e19-route-card" type="button" data-home-nav="movements">
+                <span class="e19-route-step">3 · Extracto bancario</span>
                 <strong>Importar o revisar movimientos</strong>
                 <small id="updateMovementFreshness">Carga el extracto real y revisa su clasificación.</small>
                 <em>La importación muestra su resultado y actualiza el último saldo real.</em>
               </button>
-              <button class="update-route-card" type="button" data-home-nav="visual-detail">
-                <span class="update-route-step">4 · Plan futuro</span>
+              <button class="e19-route-card" type="button" data-home-nav="visual-detail">
+                <span class="e19-route-step">4 · Plan futuro</span>
                 <strong>Cambiar previsiones</strong>
                 <small id="updatePlanningFreshness">Ajusta importes futuros o añade una nueva partida.</small>
                 <em>Queda pendiente hasta pulsar «Guardar cambios».</em>
               </button>
-              <button class="update-route-card" type="button" data-home-nav="data-entry">
-                <span class="update-route-step">5 · Varios datos</span>
+              <button class="e19-route-card" type="button" data-home-nav="data-entry">
+                <span class="e19-route-step">5 · Varios datos</span>
                 <strong>Cargar CSV, Excel o un lote</strong>
                 <small>Úsalo cuando tengas muchas líneas o un libro completo.</small>
                 <em>Primero presenta una vista previa; no sustituye datos sin confirmar.</em>
               </button>
-              <button class="update-route-card" type="button" data-home-nav="reconciliation">
-                <span class="update-route-step">Comprobar</span>
+              <button class="e19-route-card e19-route-card--verify" type="button" data-home-nav="reconciliation">
+                <span class="e19-route-step">Comprobar</span>
                 <strong>Conciliar y cerrar el mes</strong>
                 <small id="updateReconciliationFreshness">Comprueba que banco, reales y saldos cuentan la misma historia.</small>
                 <em>No corrige ni cierra nada sin una acción explícita.</em>
               </button>
             </div>
 
-            <article class="update-next-step" id="updateNextStep" aria-live="polite"></article>
+            <article class="update-next-step e19-next-step" id="updateNextStep" aria-live="polite"></article>
           </section>
 
           <section class="alerts-center view-section" id="alerts-center">
@@ -2538,7 +2538,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260808e19a1"></script>
+    <script src="app.js?v=20260808e19a2"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

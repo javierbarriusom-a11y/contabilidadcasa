@@ -45,7 +45,7 @@ test("Actualizar tolera cabeceras agregadas sin una lista mensual explícita", (
 });
 
 test("el shell offline versiona e incluye el contrato E7", () => {
-  assert.match(serviceWorker, /finanzas-casa-shell-20260808-e19a1/);
+  assert.match(serviceWorker, /finanzas-casa-shell-20260808-e19a2/);
   assert.match(serviceWorker, /canonical-e7-analysis\.js/);
   assert.match(serviceWorker, /canonical-e8-operations\.js/);
 });

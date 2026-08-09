@@ -474,3 +474,130 @@
   text-decoration: line-through;
   margin-right: 6px;
 }
+
+/* -------------------------------------------------------------------------------------------- */
+/* Aplicación a «Actualizar» (E19-3) — todo bajo .e19-update-hub para no afectar a otras vistas   */
+/* que también usan .panel-kicker o .module-heading h3 fuera de esta pantalla.                    */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-update-hub .panel-kicker {
+  color: var(--e19-eyebrow);
+}
+
+.e19-update-hub .module-heading h3 {
+  color: var(--e19-heading);
+}
+
+.e19-explainer {
+  background: var(--e19-accent-soft);
+  border: 1px solid var(--e19-accent-soft-border);
+  border-radius: var(--e19-radius-lg);
+}
+
+.e19-explainer .panel-kicker {
+  color: var(--e19-accent);
+}
+
+.e19-explainer h3 {
+  color: var(--e19-heading);
+}
+
+.e19-explainer .update-language-grid div {
+  background: var(--e19-surface);
+  border: 1px solid var(--e19-accent-soft-border);
+}
+
+.e19-explainer dt {
+  color: var(--e19-heading);
+}
+
+.e19-explainer dd {
+  color: var(--e19-muted);
+}
+
+.e19-route-card {
+  display: grid;
+  gap: 7px;
+  min-height: 168px;
+  padding: 18px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+  text-align: left;
+  box-shadow: var(--e19-shadow-card);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.e19-route-card:hover,
+.e19-route-card:focus-visible {
+  border-color: var(--e19-accent);
+  box-shadow: var(--e19-shadow-pop);
+  transform: translateY(-1px);
+}
+
+.e19-route-card strong {
+  font-size: var(--e19-text-lg);
+  color: var(--e19-heading);
+}
+
+.e19-route-card small {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-base);
+  line-height: 1.45;
+}
+
+.e19-route-card em {
+  margin-top: auto;
+  padding-top: 9px;
+  border-top: 1px solid var(--e19-border);
+  color: var(--e19-accent);
+  font-style: normal;
+  font-size: var(--e19-text-sm);
+  font-weight: 600;
+}
+
+.e19-route-step {
+  color: var(--e19-eyebrow);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.e19-route-card--verify {
+  background: var(--e19-accent-strong);
+  border-color: var(--e19-accent-strong);
+}
+
+.e19-route-card--verify .e19-route-step {
+  color: #7f93c4;
+}
+
+.e19-route-card--verify strong {
+  color: #fff;
+}
+
+.e19-route-card--verify small {
+  color: #c7d1e0;
+}
+
+.e19-route-card--verify em {
+  border-top-color: rgba(255, 255, 255, 0.16);
+  color: #8fd3ff;
+}
+
+.e19-next-step {
+  background: var(--e19-accent-soft);
+  border: 1px solid var(--e19-accent-soft-border);
+  border-left: 4px solid var(--e19-accent);
+  border-radius: var(--e19-radius-lg);
+}
+
+.e19-next-step h3 {
+  color: var(--e19-heading);
+}
+
+.e19-next-step p:not(.panel-kicker) {
+  color: var(--e19-muted);
+}
