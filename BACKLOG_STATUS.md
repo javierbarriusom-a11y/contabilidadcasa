@@ -1,4 +1,13 @@
-# Backlog maestro de Finanzas Casa DEF
+# Backlog maestro — registro histórico de las entregas E1-E20
+
+> **Este documento ya no es el backlog vigente.** Desde el 10 de agosto de 2026 el backlog
+> operativo es **`BACKLOG.md`**, que fusiona el rediseño a seis vistas con la evolución
+> funcional y mide el estado sobre el código publicado.
+>
+> Lo que sigue se conserva porque el historial E1-E20 es correcto y es la única referencia
+> de por qué cada entrega se hizo como se hizo. Para saber qué hacer a continuación, ve a
+> `BACKLOG.md`.
+
 
 Fecha de referencia: 8 de agosto de 2026.
 
