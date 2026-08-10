@@ -50,7 +50,9 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
     return groups;
   }, {});
 
-  assert.deepEqual(byGroup.data, ["registrar-mes", "data-entry", "conciliar"]);
+  // V4-4 añade «Importar extracto en 4 pasos» al frente del grupo Datos: es el primer paso del
+  // flujo (importar antes de registrar a mano lo que quede).
+  assert.deepEqual(byGroup.data, ["datos-importar", "registrar-mes", "data-entry", "conciliar"]);
   // El grupo relegado sigue el orden que tenían las pantallas en el propio menú: primero lo que
   // estaba en Decidir (V2-8 y V3-5, intercaladas según su posición original) y en Analizar (V2-8),
   // luego Datos (V4-6) y por último Cierre (V5-3).
@@ -71,5 +73,5 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   ]);
   assert.deepEqual(byGroup.assistants, ["asesor-decision", "executive-advisor", "virtual-advisor"]);
   assert.equal(byGroup.analysis.length, 11, "Decidir y Analizar suman once enlaces");
-  assert.equal(links.length, 30, "treinta enlaces en el menú avanzado");
+  assert.equal(links.length, 31, "treinta y un enlaces en el menú avanzado, con V4-4");
 });

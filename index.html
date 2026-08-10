@@ -70,6 +70,7 @@
               <a href="#forecast" data-e17-group="analysis">Proyección</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="datos">Datos</p>
+              <a href="#datos-importar" data-e17-group="data">Importar extracto en 4 pasos (nuevo)</a>
               <a href="#registrar-mes" data-e17-group="data">Registrar el mes (nuevo)</a>
               <a href="#data-entry" data-e17-group="data">Carga de datos</a>
               <a href="#conciliar" data-e17-group="data">Conciliación (nuevo)</a>
@@ -1052,6 +1053,33 @@
                   <h3 class="escenario-motor-panel-title">Meses anteriores</h3>
                   <div class="conciliar-month-history" id="conciliarHistory"></div>
                 </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="e19-datos-importar view-section" id="datos-importar">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Datos · importar en 4 pasos</p>
+                <h2 class="e19-heading">Importar extracto</h2>
+                <p class="e19-subtitle">Nada entra en el plan hasta confirmar el último paso. Cada movimiento dudoso y cada posible duplicado piden una decisión explícita, nunca una suposición.</p>
+              </div>
+            </div>
+
+            <ol class="datos-importar-steps" id="datosImportarSteps" aria-label="Pasos de la importación">
+              <li data-datos-importar-step="1"><span>1</span>Cargar</li>
+              <li data-datos-importar-step="2"><span>2</span>Clasificar</li>
+              <li data-datos-importar-step="3"><span>3</span>Duplicados</li>
+              <li data-datos-importar-step="4"><span>4</span>Incorporar</li>
+            </ol>
+
+            <div id="datosImportarPanel"></div>
+
+            <div class="datos-importar-bar">
+              <p class="e19-kpi-note" id="datosImportarBlockNote" role="status"></p>
+              <div class="datos-importar-bar-actions">
+                <button type="button" class="e19-btn e19-btn-secondary" id="datosImportarBack">Atrás</button>
+                <button type="button" class="e19-btn e19-btn-primary" id="datosImportarNext">Continuar</button>
               </div>
             </div>
           </section>
@@ -2953,7 +2981,7 @@
     <script src="canonical-e9-banking.js?v=20260801e9b"></script>
     <script src="canonical-e9-bank-import.js?v=20260801e9b"></script>
     <script src="canonical-e11b-inbox.js?v=20260801e11b1"></script>
-    <script src="e17-experience.js?v=20260810v35a1"></script>
+    <script src="e17-experience.js?v=20260810v44a1"></script>
     <script src="e18-health.js?v=20260808e18a4"></script>
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>
@@ -2969,7 +2997,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260810v35a1"></script>
+    <script src="app.js?v=20260810v44a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

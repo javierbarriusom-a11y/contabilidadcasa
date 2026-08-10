@@ -15442,6 +15442,790 @@ function formatIsoDate(value) {
   return day && month && year ? `${day}/${month}/${year}` : String(value);
 }
 
+// ---------------------------------------------------------------------------------------------
+// V4-4 · Importar extracto en cuatro pasos (mockups 5c/5d): Cargar → Clasificar → Duplicados →
+// Incorporar. Nada entra en el plan hasta confirmar el paso 4.
+//
+// No reinventa lo que ya existe y funciona:
+//   - la reversibilidad («una sola entrada revertible del historial») es exactamente
+//     FinanceCanonicalE5.createImportBatch/undoImportBatch, la misma que ya usan
+//     processDataRecords y el importador de extracto de #data-entry — «Deshacer último lote»
+//     funciona sobre esta importación sin ningún cambio;
+//   - las reglas previas son el mismo diccionario `movementMappings` que ya usa #data-entry
+//     (mappingForMovement/movementMappingKey/exactMovementPlanningMatch): una regla aprendida
+//     aquí sirve también allí, y viceversa;
+//   - el aviso de mes cerrado reutiliza isClosedMonthKey.
+// Lo que sí es nuevo, porque no existía nada parecido:
+//   - el detector de duplicados por importe en una ventana de días (datosImportarDuplicateCandidates)
+//     — el único «duplicado» que existía antes era una colisión de identidad exacta, que
+//     mergeTransactions ya resuelve por sí solo y nunca llega a pedir una decisión;
+//   - el registro de «ignorar» (un movimiento sin partida a propósito, no todavía sin decidir),
+//     guardado aparte del diccionario de reglas para no confundir «ignorado» con «sin regla»;
+//   - la huella de fichero para detectar «ya subiste esto» y la bandeja que se guarda a medias.
+// ---------------------------------------------------------------------------------------------
+
+const DATOS_IMPORTAR_DRAFT_KEY = "datos-importar-borrador";
+const DATOS_IMPORTAR_IGNORED_KEY = "datos-importar-ignorados";
+const DATOS_IMPORTAR_HISTORY_KEY = "datos-importar-historial-huellas";
+const DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS = 7;
+
+// FNV-1a de 32 bits sobre el texto normalizado del fichero: no es criptográfico ni pretende serlo,
+// solo necesita producir el mismo valor para el mismo contenido para poder decir «esto ya se subió».
+function datosImportarContentHash(text) {
+  const normalized = String(text || "");
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash ^= normalized.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function datosImportarLoadIgnored() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(DATOS_IMPORTAR_IGNORED_KEY), "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function datosImportarSaveIgnored(map) {
+  storageSet(storageKey(DATOS_IMPORTAR_IGNORED_KEY), JSON.stringify(map || {}));
+}
+
+function datosImportarLoadAppliedHashes() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(DATOS_IMPORTAR_HISTORY_KEY), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function datosImportarRecordAppliedHash(hash, meta = {}) {
+  const list = datosImportarLoadAppliedHashes();
+  list.push({ hash, fileName: meta.fileName || "", appliedAt: meta.appliedAt || new Date().toISOString(), batchId: meta.batchId || "" });
+  // Se conservan las últimas 50 huellas, no todo el histórico: basta para detectar el «otra vez el
+  // mismo fichero» habitual (repetir un mes por error) sin dejar crecer el almacén sin límite.
+  storageSet(storageKey(DATOS_IMPORTAR_HISTORY_KEY), JSON.stringify(list.slice(-50)));
+}
+
+function datosImportarFindAppliedHash(hash) {
+  return datosImportarLoadAppliedHashes().slice().reverse().find((entry) => entry.hash === hash) || null;
+}
+
+function datosImportarLoadDraft() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(DATOS_IMPORTAR_DRAFT_KEY), "null"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function datosImportarSaveDraft(draft) {
+  storageSet(storageKey(DATOS_IMPORTAR_DRAFT_KEY), JSON.stringify(draft));
+}
+
+function datosImportarClearDraft() {
+  storageSet(storageKey(DATOS_IMPORTAR_DRAFT_KEY), "null");
+}
+
+function daysBetweenIsoDates(a, b) {
+  const parse = (value) => {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+  };
+  const left = parse(a);
+  const right = parse(b);
+  if (left === null || right === null) return Infinity;
+  return Math.abs(left - right) / 86400000;
+}
+
+// Un «candidato a duplicado» es un movimiento ya registrado con el mismo importe (redondeado) en
+// una ventana de DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS días, que no sea ya la misma fila exacta —
+// eso lo resuelve mergeTransactions por identidad y nunca necesita preguntarse—. Es deliberadamente
+// solo importe + fecha próxima, sin comparar el concepto: dos cargos legítimos del mismo comercio
+// el mismo día por el mismo importe son indistinguibles de un duplicado sin mirar el extracto
+// original en mano, así que se pregunta en vez de asumir en cualquiera de los dos sentidos.
+function datosImportarDuplicateCandidates(transaction, existingTransactions, windowDays = DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS) {
+  const amount = round2(transaction.amount);
+  const ownIdentity = transactionIdentity(transaction);
+  return (existingTransactions || []).filter((existing) => {
+    if (transactionIdentity(existing) === ownIdentity) return false;
+    if (round2(existing.amount) !== amount) return false;
+    return daysBetweenIsoDates(existing.date, transaction.date) <= windowDays;
+  });
+}
+
+// Estado de un movimiento antes de que el usuario decida nada en esta sesión: «regla-previa» si ya
+// hay una relación guardada o coincide por nombre exacto con una partida (mappingForMovement, el
+// mismo diccionario que usa #data-entry); «ignorado-antes» si una importación anterior marcó
+// expresamente «Ignorar» para movimientos con esta misma descripción; si no, «pendiente». Separar
+// «ignorado» de «regla-previa» importa: los dos cuentan como «con regla previa» en el paso 1 (no
+// piden nada), pero solo el primero tiene una partida detrás.
+function datosImportarPriorClassification(transaction, ignored = datosImportarLoadIgnored()) {
+  const mapping = mappingForMovement(transaction);
+  if (mapping) return { status: "regla-previa", mapping };
+  if (ignored[movementMappingKey(transaction)]) return { status: "ignorado-antes", mapping: null };
+  return { status: "pendiente", mapping: null };
+}
+
+// Sugerencia para un movimiento sin regla previa: si el nombre de alguna partida disponible aparece
+// dentro del concepto (o al revés), se ofrece esa partida. Es una coincidencia por subcadena, no
+// semántica — no entiende sinónimos ni errores de tecleo —, así que solo cuenta subcadenas de al
+// menos 4 caracteres: menos que eso y una partida de nombre corto («Luz», «Gas») dispararía con
+// casi cualquier concepto bancario.
+function datosImportarSuggestionFor(transaction) {
+  const kind = movementKindFromAmount(transaction.amount);
+  const text = normalizedText(`${transaction.movement || ""} ${transaction.details || ""}`);
+  if (text.length < 4) return null;
+  return (
+    availableSeriesRows(kind).find((row) => {
+      const label = normalizedText(displayLabelForRow(row));
+      return label.length >= 4 && (text.includes(label) || label.includes(text));
+    }) || null
+  );
+}
+
+// Construye las filas de trabajo de la sesión a partir de los movimientos ya parseados: una
+// fotografía de lo que se vería si se importaran tal cual, sin mutar nada del estado global.
+function datosImportarBuildRows(transactions) {
+  const ignored = datosImportarLoadIgnored();
+  const existing = baseData.transactions || [];
+  return transactions.map((transaction, index) => {
+    const prior = datosImportarPriorClassification(transaction, ignored);
+    return {
+      rowId: `fila-${index}`,
+      transaction,
+      prior,
+      suggestion: prior.status === "pendiente" ? datosImportarSuggestionFor(transaction) : null,
+      duplicates: datosImportarDuplicateCandidates(transaction, existing),
+      // decision: { tipo: "aceptar-sugerencia" | "otra-partida" (+ rowKey) | "ignorar" }, o null
+      // mientras el paso 2 no la haya resuelto.
+      decision: null,
+      // duplicateDecision: "duplicado" | "distinto", o null mientras el paso 3 no la haya resuelto.
+      duplicateDecision: null,
+    };
+  });
+}
+
+function datosImportarCounters(rows) {
+  const conReglaPrevia = rows.filter((row) => row.prior.status !== "pendiente").length;
+  const pidenDecision = rows.filter((row) => row.prior.status === "pendiente").length;
+  const posiblesDuplicados = rows.filter((row) => row.duplicates.length > 0).length;
+  return { conReglaPrevia, pidenDecision, posiblesDuplicados, total: rows.length };
+}
+
+function datosImportarRowsPendingClassification(rows) {
+  return rows.filter((row) => row.prior.status === "pendiente" && !row.decision);
+}
+
+function datosImportarRowsPendingDuplicate(rows) {
+  return rows.filter((row) => row.duplicates.length > 0 && !row.duplicateDecision);
+}
+
+// Los movimientos que de verdad entrarían en el plan: todos salvo los que el paso 3 ha marcado
+// como duplicado de algo que ya está registrado.
+function datosImportarIncludedTransactions(rows) {
+  return rows.filter((row) => row.duplicateDecision !== "duplicado").map((row) => row.transaction);
+}
+
+// Las relaciones nuevas que esta sesión añadiría al diccionario de reglas, sin escribirlas
+// todavía: solo las decisiones explícitas del paso 2 (aceptar sugerencia u otra partida). Un
+// movimiento que ya tenía regla previa no genera nada aquí, porque no ha cambiado.
+function datosImportarSessionMappingsDelta(rows) {
+  const extra = {};
+  rows.forEach((row) => {
+    if (row.duplicateDecision === "duplicado") return;
+    const kind = movementKindFromAmount(row.transaction.amount);
+    if (row.decision?.tipo === "aceptar-sugerencia" && row.suggestion) {
+      extra[movementMappingKey(row.transaction)] = { kind, rowKey: seriesKeyForRow(row.suggestion) };
+    } else if (row.decision?.tipo === "otra-partida" && row.decision.rowKey) {
+      extra[movementMappingKey(row.transaction)] = { kind, rowKey: row.decision.rowKey };
+    }
+  });
+  return extra;
+}
+
+// El mismo cálculo que applyMovementMappingsToActuals, pero en modo lectura: recibe la lista de
+// movimientos y el diccionario de reglas que se le quiera pasar (los reales o unos hipotéticos) y
+// devuelve los totales por partida y mes, sin tocar `incomeActuals`/`expenseActuals`. Se duplica a
+// propósito en vez de reutilizar la función que sí muta, por la misma razón que resolveEscenario
+// nunca aplica un plan hasta que el usuario lo confirma: el paso 4 necesita ver el «después» sin
+// que exista todavía.
+function datosImportarComputeActuals(transactions, mappings) {
+  const totals = { income: new Map(), expense: new Map() };
+  (transactions || []).forEach((transaction) => {
+    const kind = movementKindFromAmount(transaction.amount);
+    const stored = mappings[movementMappingKey(transaction)];
+    const storedRow = stored?.kind === kind ? planningRowBySeriesKey(kind, stored.rowKey) : null;
+    const row = storedRow || exactMovementPlanningMatch(transaction);
+    if (!row) return;
+    const month = monthByKey(transaction.month, baseData.monthlyPlanning?.months || []);
+    if (!month || isClosedMonthKey(month.key)) return;
+    const key = actualKeyForRow(row, month);
+    const amount = kind === "income" ? Number(transaction.amount || 0) : Math.abs(Number(transaction.amount || 0));
+    const previous = totals[kind].get(key);
+    totals[kind].set(key, { row, month, value: round2((previous?.value || 0) + amount) });
+  });
+  return totals;
+}
+
+// La tabla de impacto del paso 4: solo las partidas cuyo real cambiaría si se incorporara la
+// sesión tal como está decidida ahora mismo. No se recalcula todo el plan —sería ruido—, solo lo
+// que esta importación tocaría.
+function datosImportarImpactRows(rows) {
+  const before = datosImportarComputeActuals(baseData.transactions || [], movementMappings);
+  const after = datosImportarComputeActuals(
+    mergeTransactions(baseData.transactions || [], datosImportarIncludedTransactions(rows)),
+    { ...movementMappings, ...datosImportarSessionMappingsDelta(rows) },
+  );
+  const keys = new Set([...before.income.keys(), ...before.expense.keys(), ...after.income.keys(), ...after.expense.keys()]);
+  const impact = [];
+  ["income", "expense"].forEach((kind) => {
+    keys.forEach((key) => {
+      const beforeEntry = before[kind].get(key);
+      const afterEntry = after[kind].get(key);
+      if (!beforeEntry && !afterEntry) return;
+      const beforeValue = beforeEntry?.value ?? (actualsForKind(kind)[key] ?? 0);
+      const afterValue = afterEntry?.value ?? beforeValue;
+      if (round2(beforeValue) === round2(afterValue)) return;
+      const source = afterEntry || beforeEntry;
+      impact.push({ kind, row: source.row, month: source.month, before: round2(beforeValue), after: round2(afterValue), desviacion: round2(afterValue - beforeValue) });
+    });
+  });
+  return impact.sort((a, b) => Math.abs(b.desviacion) - Math.abs(a.desviacion));
+}
+
+// Interpreta un CSV de movimientos con las mismas cabeceras que la hoja Movimientos_cuenta del
+// libro Excel (Fecha, Movimiento, Importe, Saldo, y opcionalmente Fecha valor / Más datos), para
+// que el paso 1 acepte tanto el volcado del banco en Excel como en CSV.
+function movementCsvHeaderKey(value) {
+  const text = normalizedText(value).replace(/[^a-z0-9]/g, "");
+  const aliases = {
+    fechavalor: "valueDate", masdatos: "details", masinformacion: "details", detalle: "details",
+    concepto: "movement", movimiento: "movement", importe: "amount", saldo: "balance", fecha: "date",
+  };
+  return aliases[text] || text;
+}
+
+function parseMovementsFromCsvText(text) {
+  const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitDataLine(lines[0]).map(movementCsvHeaderKey);
+  return lines
+    .slice(1)
+    .map((line) => {
+      const cells = splitDataLine(line);
+      const record = headers.reduce((acc, header, index) => {
+        acc[header] = cells[index] ?? "";
+        return acc;
+      }, {});
+      const date = isoFromWorkbookValue(record.date);
+      const amount = parseAmount(record.amount);
+      if (!date || !record.movement || amount === null) return null;
+      const transaction = {
+        date,
+        valueDate: isoFromWorkbookValue(record.valueDate) || date,
+        movement: String(record.movement),
+        details: String(record.details || ""),
+        amount: round2(amount),
+        balance: parseAmount(record.balance),
+        category: "",
+        source: "csv",
+        statementOrder: 0,
+        month: date.slice(0, 7),
+      };
+      transaction.category = classifyTransaction(transaction);
+      return transaction;
+    })
+    .filter(Boolean);
+}
+
+// Rango de fechas y cuenta detectados en el fichero, para el aviso de mes cerrado y la ficha del
+// paso 1. «Cuenta» aquí es descriptiva, no una cuenta con id propio: la app solo modela caixa y
+// mediolanum como saldos, no como cuentas con movimientos separados, así que se dice el origen del
+// fichero (nombre de la hoja o «CSV») en vez de fingir haber identificado una cuenta bancaria real.
+function datosImportarFileSummary(transactions, sourceLabel) {
+  const dates = transactions.map((t) => t.date).filter(Boolean).sort();
+  const months = [...new Set(transactions.map((t) => t.month).filter(Boolean))].sort();
+  const closedMonths = months.filter((month) => isClosedMonthKey(month));
+  return {
+    account: sourceLabel,
+    from: dates[0] || "",
+    to: dates.at(-1) || "",
+    months,
+    closedMonths,
+  };
+}
+
+// Aplica de verdad la sesión: fusiona los movimientos no marcados como duplicado, escribe las
+// decisiones de clasificación en el mismo diccionario que usa #data-entry (una regla aprendida
+// aquí sirve también allí, y viceversa), recalcula los reales, y lo empaqueta todo como un único
+// lote reversible — el mismo mecanismo que ya usan processDataRecords y el importador de extracto
+// de #data-entry (FinanceCanonicalE5.createImportBatch), así que «Deshacer último lote» funciona
+// sobre esta importación exactamente igual que sobre las demás.
+function datosImportarApply(session, { motivo }) {
+  const rows = session.rows;
+  // `appStatePayload` solo incluye `baseData.transactions` en el snapshot cuando
+  // `baseData.metadata.sourceWorkbookStatus === "Leído desde la app"` — lo que activa
+  // `refreshMovementRollups`. Si esta es la primera vez que se tocan movimientos en la sesión, ese
+  // campo todavía no está puesto: sin él, el «antes» no llevaría los movimientos actuales y
+  // deshacer el lote no podría devolverlos, porque nunca se llegaron a guardar. Se fuerza aquí,
+  // sobre los datos tal cual están, antes de fotografiar nada.
+  if (baseData?.metadata?.sourceWorkbookStatus !== "Leído desde la app") refreshMovementRollups();
+  const beforeState = appStatePayload({ includeCanonical: false });
+
+  const ignored = datosImportarLoadIgnored();
+  let nuevasReglas = 0;
+  let nuevosIgnorados = 0;
+  rows.forEach((row) => {
+    if (row.duplicateDecision === "duplicado") return;
+    const key = movementMappingKey(row.transaction);
+    const kind = movementKindFromAmount(row.transaction.amount);
+    if (row.decision?.tipo === "aceptar-sugerencia" && row.suggestion) {
+      movementMappings[key] = { kind, rowKey: seriesKeyForRow(row.suggestion), label: displayLabelForRow(row.suggestion), updatedAt: new Date().toISOString() };
+      nuevasReglas += 1;
+    } else if (row.decision?.tipo === "otra-partida" && row.decision.rowKey) {
+      const chosen = planningRowBySeriesKey(kind, row.decision.rowKey);
+      movementMappings[key] = { kind, rowKey: row.decision.rowKey, label: chosen ? displayLabelForRow(chosen) : "", updatedAt: new Date().toISOString() };
+      nuevasReglas += 1;
+    } else if (row.decision?.tipo === "ignorar") {
+      ignored[key] = { updatedAt: new Date().toISOString() };
+      nuevosIgnorados += 1;
+    }
+  });
+
+  const incoming = datosImportarIncludedTransactions(rows);
+  baseData = { ...baseData, transactions: mergeTransactions(baseData.transactions || [], incoming) };
+  refreshMovementRollups();
+  const appliedActuals = applyMovementMappingsToActuals();
+
+  saveMovementMappings();
+  datosImportarSaveIgnored(ignored);
+  saveIncomeActuals();
+  saveExpenseActuals();
+
+  const afterState = appStatePayload({ includeCanonical: false });
+  const batch = window.FinanceCanonicalE5.createImportBatch(beforeState, afterState, {
+    sourceLabel: `Importación guiada · ${session.fileMeta.sourceLabel}`,
+    reason: motivo,
+    recordCount: incoming.length,
+    afterFingerprint: window.FinanceCanonicalSupabaseStore?.fingerprintPayload(afterState),
+  });
+  importBatches.push(batch);
+
+  const duplicadosDescartados = rows.filter((row) => row.duplicateDecision === "duplicado").length;
+  applyE11bReceipt(session.inboxItem, {
+    batchId: batch.id,
+    changed: { records: incoming.length, movements: incoming.length, actuals: appliedActuals },
+  });
+
+  datosImportarRecordAppliedHash(session.fileMeta.hash, { fileName: session.fileMeta.fileName, batchId: batch.id });
+  datosImportarClearDraft();
+  saveLocalSnapshot();
+  queueRemoteSave();
+  refreshAllSectionsAfterDataChange();
+
+  return { imported: incoming.length, duplicadosDescartados, nuevasReglas, nuevosIgnorados, appliedActuals, batchId: batch.id };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Interfaz de los cuatro pasos. `datosImportarSession` es la única fuente de verdad mientras el
+// asistente está abierto; `datosImportarLastResult` sustituye a la sesión justo después de
+// confirmar, para enseñar la banda de éxito sin que un repintado general la pise (ver
+// `handleDatosImportarConfirmar`).
+// ---------------------------------------------------------------------------------------------
+
+let datosImportarSession = null;
+let datosImportarLastResult = null;
+
+function datosImportarPersistDraft() {
+  if (!datosImportarSession) {
+    datosImportarClearDraft();
+    return;
+  }
+  datosImportarSaveDraft({
+    step: datosImportarSession.step,
+    fileMeta: datosImportarSession.fileMeta,
+    inboxItemId: datosImportarSession.inboxItem?.id || null,
+    rows: datosImportarSession.rows.map((row) => ({
+      rowId: row.rowId,
+      transaction: row.transaction,
+      decision: row.decision,
+      duplicateDecision: row.duplicateDecision,
+    })),
+  });
+}
+
+// Recompone la sesión desde el borrador guardado. Solo `decision`/`duplicateDecision` son datos
+// del usuario que hay que conservar tal cual; `prior`/`suggestion`/`duplicates` se recalculan en
+// el momento porque dependen de partidas y movimientos que pueden haber cambiado entretanto.
+function datosImportarRestoreSession() {
+  const draft = datosImportarLoadDraft();
+  if (!draft || !Array.isArray(draft.rows) || !draft.rows.length) return null;
+  const ignored = datosImportarLoadIgnored();
+  const inboxItem = draft.inboxItemId ? dataInbox.find((item) => item.id === draft.inboxItemId) || null : null;
+  return {
+    step: Math.min(4, Math.max(1, Number(draft.step) || 1)),
+    fileMeta: draft.fileMeta || { fileName: "", sourceLabel: "", hash: "" },
+    inboxItem,
+    rows: draft.rows.map((saved) => {
+      const prior = datosImportarPriorClassification(saved.transaction, ignored);
+      return {
+        rowId: saved.rowId,
+        transaction: saved.transaction,
+        prior,
+        suggestion: prior.status === "pendiente" ? datosImportarSuggestionFor(saved.transaction) : null,
+        duplicates: datosImportarDuplicateCandidates(saved.transaction, baseData.transactions || []),
+        decision: saved.decision || null,
+        duplicateDecision: saved.duplicateDecision || null,
+      };
+    }),
+  };
+}
+
+function datosImportarShowStep1Note(message, isWarning) {
+  const note = qs("datosImportarStep1Note");
+  if (!note) return;
+  note.textContent = message;
+  note.classList.toggle("is-warn", Boolean(isWarning));
+}
+
+async function handleDatosImportarFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+  let transactions = [];
+  try {
+    if (isExcel) {
+      if (!window.XLSX || typeof window.XLSX.read !== "function") {
+        datosImportarShowStep1Note("No se pudo leer Excel: la librería de lectura no está disponible todavía.", true);
+        return;
+      }
+      const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
+      transactions = loadTransactionsFromWorkbook(workbook);
+    } else {
+      transactions = parseMovementsFromCsvText(await file.text());
+    }
+  } catch (error) {
+    datosImportarShowStep1Note(`No se pudo leer el fichero: ${error.message}`, true);
+    return;
+  }
+  if (!transactions.length) {
+    datosImportarShowStep1Note("No se detectaron movimientos importables. Revisa que el fichero tenga Fecha, Movimiento, Importe y Saldo.", true);
+    return;
+  }
+
+  // La huella se calcula sobre los movimientos ya interpretados, no sobre los bytes del fichero:
+  // así el mismo extracto exportado dos veces con nombres distintos (o reabierto y regrabado por
+  // el banco) se sigue reconociendo como «lo mismo», y un fichero distinto con el mismo nombre no.
+  const hash = datosImportarContentHash(JSON.stringify(transactions));
+  const repeated = datosImportarFindAppliedHash(hash);
+  const rows = datosImportarBuildRows(transactions);
+  const inboxItem = addE11bInboxItem({
+    source: isExcel ? "excel-workbook" : "csv",
+    fileName: file.name,
+    sourceLabel: file.name,
+    bankStatement: true,
+    rows: transactions,
+    comparison: { valid: rows.length > 0 },
+    legacyAdapter: "datosImportarApply",
+  });
+
+  datosImportarLastResult = null;
+  datosImportarSession = {
+    step: 1,
+    fileMeta: {
+      fileName: file.name,
+      sourceLabel: file.name,
+      hash,
+      repeated: repeated ? { fileName: repeated.fileName, appliedAt: repeated.appliedAt } : null,
+    },
+    inboxItem,
+    rows,
+  };
+  datosImportarPersistDraft();
+  renderDatosImportar();
+}
+
+function datosImportarStep1Markup() {
+  const session = datosImportarSession;
+  if (!session) {
+    return `<div class="e19-card datos-importar-upload">
+      <label class="datos-importar-file-label" for="datosImportarFileInput">
+        <strong>Cargar extracto</strong>
+        <span>CSV o Excel con Fecha, Movimiento, Importe y Saldo — el mismo formato que ya lee el importador de movimientos.</span>
+      </label>
+      <input type="file" id="datosImportarFileInput" accept=".csv,.xlsx,.xls" />
+      <p class="e19-kpi-note" id="datosImportarStep1Note"></p>
+    </div>`;
+  }
+  const summary = datosImportarFileSummary(session.rows.map((row) => row.transaction), session.fileMeta.sourceLabel);
+  const counters = datosImportarCounters(session.rows);
+  const repeatedNote = session.fileMeta.repeated
+    ? `<p class="e19-kpi-note is-warn">Ya se importó un fichero con el mismo contenido (${escapeHtml(session.fileMeta.repeated.fileName)}) el ${escapeHtml(formatIsoDate(session.fileMeta.repeated.appliedAt))}. Puedes continuar si es intencionado.</p>`
+    : "";
+  const closedNote = summary.closedMonths.length
+    ? `<p class="e19-kpi-note is-warn">Solapa con ${summary.closedMonths.length} mes(es) ya cerrado(s): ${summary.closedMonths.map((month) => escapeHtml(monthLabel(dateFromMonthKey(month)))).join(", ")}. Esos movimientos no recalcularán reales de un mes cerrado.</p>`
+    : "";
+  return `<div class="e19-card datos-importar-file-summary">
+    <strong>${escapeHtml(session.fileMeta.fileName)}</strong>
+    <p class="e19-kpi-note">Formato reconocido · ${session.rows.length} movimiento(s) · del ${escapeHtml(formatIsoDate(summary.from))} al ${escapeHtml(formatIsoDate(summary.to))}.</p>
+    ${repeatedNote}${closedNote}
+    <div class="datos-importar-counters">
+      <div><strong>${counters.conReglaPrevia}</strong><span>con regla previa</span></div>
+      <div><strong>${counters.pidenDecision}</strong><span>piden decisión</span></div>
+      <div><strong>${counters.posiblesDuplicados}</strong><span>posibles duplicados</span></div>
+    </div>
+    <button type="button" class="e19-btn e19-btn-secondary" id="datosImportarReplaceFile">Cambiar de fichero</button>
+  </div>`;
+}
+
+function datosImportarWireStep1() {
+  qs("datosImportarFileInput")?.addEventListener("change", handleDatosImportarFile);
+  qs("datosImportarReplaceFile")?.addEventListener("click", () => {
+    datosImportarSession = null;
+    datosImportarClearDraft();
+    renderDatosImportar();
+  });
+}
+
+function datosImportarClassifyRowMarkup(row) {
+  const kind = movementKindFromAmount(row.transaction.amount);
+  const decided = row.decision;
+  return `<tr class="${decided ? "is-decided" : ""}">
+    <td>${escapeHtml(formatIsoDate(row.transaction.date))}</td>
+    <td>${escapeHtml(movementDisplayName(row.transaction))}</td>
+    <td>${money(row.transaction.amount, true)}</td>
+    <td>${row.suggestion ? escapeHtml(displayLabelForRow(row.suggestion)) : "Sin sugerencia"}</td>
+    <td class="datos-importar-row-actions">
+      ${row.suggestion ? `<button type="button" class="e19-btn e19-btn-secondary${decided?.tipo === "aceptar-sugerencia" ? " is-active" : ""}" data-datos-importar-classify="aceptar-sugerencia" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Aceptar sugerencia</button>` : ""}
+      <select data-datos-importar-otra-select data-datos-importar-row-id="${escapeHtml(row.rowId)}">${movementMappingOptions(kind, decided?.tipo === "otra-partida" ? decided.rowKey : "")}</select>
+      <button type="button" class="e19-btn e19-btn-secondary${decided?.tipo === "ignorar" ? " is-active" : ""}" data-datos-importar-classify="ignorar" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Ignorar</button>
+    </td>
+  </tr>`;
+}
+
+function handleDatosImportarClasificar(tipo, rowId, rowKey) {
+  const row = datosImportarSession?.rows.find((item) => item.rowId === rowId);
+  if (!row) return;
+  row.decision = tipo === "otra-partida" ? (rowKey ? { tipo, rowKey } : null) : { tipo };
+  datosImportarPersistDraft();
+  renderDatosImportarStep2();
+}
+
+function renderDatosImportarStep2() {
+  const panel = qs("datosImportarPanel");
+  const session = datosImportarSession;
+  if (!panel || !session) return;
+  const pending = datosImportarRowsPendingClassification(session.rows);
+  panel.innerHTML = pending.length
+    ? `<div class="table-wrap"><table class="datos-importar-table">
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Importe</th><th>Sugerencia</th><th>Decisión</th></tr></thead>
+        <tbody>${pending.map((row) => datosImportarClassifyRowMarkup(row)).join("")}</tbody>
+      </table></div>`
+    : `<p class="e19-kpi-note">No queda ningún movimiento sin regla previa: los ${session.rows.length} movimiento(s) ya tienen partida o quedaron marcados como ignorados en una importación anterior.</p>`;
+  panel.querySelectorAll("[data-datos-importar-classify]").forEach((button) => {
+    button.addEventListener("click", () =>
+      handleDatosImportarClasificar(button.dataset.datosImportarClassify, button.dataset.datosImportarRowId, ""),
+    );
+  });
+  panel.querySelectorAll("[data-datos-importar-otra-select]").forEach((select) => {
+    select.addEventListener("change", () => {
+      if (select.value) handleDatosImportarClasificar("otra-partida", select.dataset.datosImportarRowId, select.value);
+    });
+  });
+  datosImportarUpdateBar();
+}
+
+function datosImportarDuplicateRowMarkup(row) {
+  const decided = row.duplicateDecision;
+  const existing = row.duplicates[0];
+  return `<tr class="${decided ? "is-decided" : ""}">
+    <td>${escapeHtml(formatIsoDate(row.transaction.date))} · ${escapeHtml(movementDisplayName(row.transaction))} · ${money(row.transaction.amount, true)}</td>
+    <td>${existing ? `${escapeHtml(formatIsoDate(existing.date))} · ${escapeHtml(movementDisplayName(existing))} · ${money(existing.amount, true)}` : "—"}${row.duplicates.length > 1 ? `<small> y ${row.duplicates.length - 1} candidato(s) más</small>` : ""}</td>
+    <td class="datos-importar-row-actions">
+      <button type="button" class="e19-btn e19-btn-secondary${decided === "duplicado" ? " is-active" : ""}" data-datos-importar-duplicate="duplicado" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Es duplicado</button>
+      <button type="button" class="e19-btn e19-btn-secondary${decided === "distinto" ? " is-active" : ""}" data-datos-importar-duplicate="distinto" data-datos-importar-row-id="${escapeHtml(row.rowId)}">Son distintos</button>
+    </td>
+  </tr>`;
+}
+
+function handleDatosImportarDuplicado(rowId, decision) {
+  const row = datosImportarSession?.rows.find((item) => item.rowId === rowId);
+  if (!row) return;
+  row.duplicateDecision = decision;
+  datosImportarPersistDraft();
+  renderDatosImportarStep3();
+}
+
+function renderDatosImportarStep3() {
+  const panel = qs("datosImportarPanel");
+  const session = datosImportarSession;
+  if (!panel || !session) return;
+  const pending = datosImportarRowsPendingDuplicate(session.rows);
+  panel.innerHTML = pending.length
+    ? `<div class="table-wrap"><table class="datos-importar-table">
+        <thead><tr><th>Candidato del fichero</th><th>Ya registrado</th><th>Decisión</th></tr></thead>
+        <tbody>${pending.map((row) => datosImportarDuplicateRowMarkup(row)).join("")}</tbody>
+      </table></div>`
+    : `<p class="e19-kpi-note">No hay candidatos a duplicado sin resolver. La ventana de comparación es de ${DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS} días por el mismo importe.</p>`;
+  panel.querySelectorAll("[data-datos-importar-duplicate]").forEach((button) => {
+    button.addEventListener("click", () => handleDatosImportarDuplicado(button.dataset.datosImportarRowId, button.dataset.datosImportarDuplicate));
+  });
+  datosImportarUpdateBar();
+}
+
+function datosImportarSuccessMarkup(result) {
+  return `<div class="e19-insight">
+      <strong>Importación confirmada</strong>
+      <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}. Puedes deshacer este lote desde «Carga de datos».</p>
+    </div>
+    <button type="button" class="e19-btn e19-btn-secondary" id="datosImportarImportarOtro">Importar otro fichero</button>`;
+}
+
+async function handleDatosImportarConfirmar() {
+  const session = datosImportarSession;
+  if (!session) return;
+  const motivo = await requestOperationConfirmation({
+    title: "Incorporar la importación al plan",
+    message: "Se añadirán los movimientos decididos, se guardarán las reglas nuevas y se creará un lote que se puede deshacer después.",
+    defaultReason: `Importación de ${session.fileMeta.fileName}`,
+    confirmLabel: "Incorporar",
+  });
+  if (!motivo) return;
+  const result = datosImportarApply(session, { motivo });
+  datosImportarSession = null;
+  datosImportarLastResult = { ...result, fileName: session.fileMeta.fileName };
+  renderDatosImportar();
+  announceStatus(`Importación confirmada: ${result.imported} movimiento(s) incorporados.`);
+}
+
+function renderDatosImportarStep4() {
+  const panel = qs("datosImportarPanel");
+  const session = datosImportarSession;
+  if (!panel || !session) return;
+  const impact = datosImportarImpactRows(session.rows);
+  const included = datosImportarIncludedTransactions(session.rows).length;
+  const duplicados = session.rows.filter((row) => row.duplicateDecision === "duplicado").length;
+  panel.innerHTML = `<p class="e19-kpi-note">${included} movimiento(s) entrarían en el plan; ${duplicados} queda(n) fuera por marcarse como duplicado.</p>
+    ${impact.length
+      ? `<div class="table-wrap"><table class="datos-importar-table">
+          <thead><tr><th>Partida</th><th>Mes</th><th>Actual</th><th>Tras importar</th><th>Desviación</th></tr></thead>
+          <tbody>${impact
+            .map(
+              (item) => `<tr>
+            <td>${escapeHtml(displayLabelForRow(item.row))}</td>
+            <td>${escapeHtml(item.month.label)}</td>
+            <td>${money(item.before, true)}</td>
+            <td>${money(item.after, true)}</td>
+            <td class="${item.desviacion >= 0 ? "" : "is-negative"}">${item.desviacion >= 0 ? "+" : ""}${money(item.desviacion, true)}</td>
+          </tr>`,
+            )
+            .join("")}</tbody>
+        </table></div>`
+      : `<p class="e19-kpi-note">Ningún real cambiaría con las decisiones actuales.</p>`}
+    <button type="button" class="e19-btn e19-btn-primary" id="datosImportarConfirm">Incorporar al plan</button>`;
+  qs("datosImportarConfirm")?.addEventListener("click", handleDatosImportarConfirmar);
+  datosImportarUpdateBar();
+}
+
+function datosImportarUpdateSteps(activeStep) {
+  const steps = qs("datosImportarSteps");
+  if (!steps) return;
+  [...steps.children].forEach((item, index) => {
+    const stepNumber = index + 1;
+    item.classList.toggle("is-active", stepNumber === activeStep);
+    item.classList.toggle("is-done", stepNumber < activeStep);
+  });
+}
+
+// El estado de la barra inferior fija: qué puede hacerse desde cada paso y por qué «Continuar»
+// está deshabilitado si lo está. Es el único sitio que decide el bloqueo, para que los pasos 2 y 3
+// no puedan tener cada uno su propia idea de cuándo se puede avanzar.
+function datosImportarUpdateBar() {
+  const nextButton = qs("datosImportarNext");
+  const backButton = qs("datosImportarBack");
+  const blockNote = qs("datosImportarBlockNote");
+  const session = datosImportarSession;
+  if (!nextButton || !backButton || !blockNote || !session) return;
+  backButton.hidden = session.step === 1;
+  nextButton.hidden = session.step === 4;
+  if (session.step === 1) {
+    blockNote.textContent = "";
+  } else if (session.step === 2) {
+    const pending = datosImportarRowsPendingClassification(session.rows).length;
+    nextButton.disabled = pending > 0;
+    blockNote.textContent = pending > 0 ? `${pending} movimiento(s) sin decidir.` : "";
+  } else if (session.step === 3) {
+    const pending = datosImportarRowsPendingDuplicate(session.rows).length;
+    nextButton.disabled = pending > 0;
+    blockNote.textContent = pending > 0 ? `${pending} posible(s) duplicado(s) sin decidir.` : "";
+  }
+}
+
+function handleDatosImportarNextClick() {
+  if (!datosImportarSession) return;
+  datosImportarSession.step = Math.min(4, datosImportarSession.step + 1);
+  datosImportarPersistDraft();
+  renderDatosImportar();
+}
+
+function handleDatosImportarBackClick() {
+  if (!datosImportarSession) return;
+  datosImportarSession.step = Math.max(1, datosImportarSession.step - 1);
+  datosImportarPersistDraft();
+  renderDatosImportar();
+}
+
+function renderDatosImportar() {
+  if (!datosImportarSession && !datosImportarLastResult) datosImportarSession = datosImportarRestoreSession();
+  const panel = qs("datosImportarPanel");
+  const backButton = qs("datosImportarBack");
+  const nextButton = qs("datosImportarNext");
+  const blockNote = qs("datosImportarBlockNote");
+  if (!panel) return;
+
+  if (datosImportarLastResult) {
+    panel.innerHTML = datosImportarSuccessMarkup(datosImportarLastResult);
+    qs("datosImportarImportarOtro")?.addEventListener("click", () => {
+      datosImportarLastResult = null;
+      renderDatosImportar();
+    });
+    if (backButton) backButton.hidden = true;
+    if (nextButton) nextButton.hidden = true;
+    if (blockNote) blockNote.textContent = "";
+    datosImportarUpdateSteps(4);
+    return;
+  }
+
+  if (!datosImportarSession) {
+    panel.innerHTML = datosImportarStep1Markup();
+    datosImportarWireStep1();
+    if (backButton) backButton.hidden = true;
+    if (nextButton) nextButton.hidden = true;
+    if (blockNote) blockNote.textContent = "";
+    datosImportarUpdateSteps(1);
+    return;
+  }
+
+  datosImportarUpdateSteps(datosImportarSession.step);
+  if (datosImportarSession.step === 1) {
+    panel.innerHTML = datosImportarStep1Markup();
+    datosImportarWireStep1();
+    datosImportarUpdateBar();
+  } else if (datosImportarSession.step === 2) {
+    renderDatosImportarStep2();
+  } else if (datosImportarSession.step === 3) {
+    renderDatosImportarStep3();
+  } else {
+    renderDatosImportarStep4();
+  }
+}
+
 function populateMovementFilters(transactions) {
   const monthSelect = qs("movementMonthFilter");
   if (!monthSelect) return;
@@ -15854,6 +16638,7 @@ function refreshAllSectionsAfterDataChange() {
   simulationSignature = "";
   render();
   if (viewFromHash() === "data-entry") { populateDataEntryControls(); renderE11bStatus(); }
+  if (viewFromHash() === "datos-importar") renderDatosImportar();
 }
 
 function findPlanningRow(kind, sectionName, label, month) {
@@ -21482,6 +22267,9 @@ function renderActiveSection(viewId = viewFromHash()) {
       populateDataEntryControls();
       renderE11bStatus();
       break;
+    case "datos-importar":
+      renderDatosImportar();
+      break;
     case "data-audit":
       renderDataAudit();
       break;
@@ -21727,6 +22515,8 @@ async function init() {
   qs("addManualData").addEventListener("click", handleManualData);
   qs("importBatchData").addEventListener("click", handleBatchImport);
   qs("undoLastImport")?.addEventListener("click", undoLastImportBatch);
+  qs("datosImportarNext")?.addEventListener("click", handleDatosImportarNextClick);
+  qs("datosImportarBack")?.addEventListener("click", handleDatosImportarBackClick);
   qs("toggleDataInbox")?.addEventListener("click", toggleE11bInbox);
   qs("exportStateBackup")?.addEventListener("click", downloadStateBackup);
   qs("prepareCloudRestore")?.addEventListener("click", prepareCloudSnapshotRestore);

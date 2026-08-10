@@ -2,6 +2,56 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V4-4, importación en cuatro pasos
+
+La única tarea de prioridad Alta que quedaba en el backlog, y la más grande: `#datos-importar`,
+nueva pantalla al frente del grupo «Datos», con Cargar → Clasificar → Duplicados → Incorporar y
+nada tocando el plan hasta el último paso.
+
+**Lo que ya existía y se reutiliza tal cual, sin reinventarlo:**
+- La reversibilidad («una sola entrada revertible del historial») es
+  `FinanceCanonicalE5.createImportBatch`/`undoImportBatch`, la misma que ya usan
+  `processDataRecords` y el importador de extracto de `#data-entry`. «Deshacer último lote» ya
+  funciona sobre esta importación sin tocar ese botón.
+- Las reglas previas son el mismo diccionario `movementMappings` que ya usa `#data-entry`
+  (`mappingForMovement`/`movementMappingKey`/`exactMovementPlanningMatch`): una regla aprendida
+  aquí sirve también allí, y viceversa.
+- El aviso de mes cerrado reutiliza `isClosedMonthKey`.
+
+**Lo que no existía y se construyó de cero:**
+- El detector de duplicados por importe en una ventana de 7 días (`datosImportarDuplicateCandidates`)
+  — lo único que existía antes era una colisión de identidad exacta, que `mergeTransactions` ya
+  resolvía por sí sola sin necesitar preguntar nada.
+- El registro de «Ignorar», guardado aparte del diccionario de reglas para no confundir «ignorado
+  a propósito» con «sin regla todavía».
+- La huella de contenido del fichero (para detectar «esto ya se importó») y el borrador que guarda
+  la bandeja a medias y la retoma en el paso donde se dejó.
+
+**Un fallo real que encontró la propia QA de navegador, no una revisión de código.** El primer
+intento de «Deshacer último lote» sobre una importación guiada no devolvía los movimientos:
+`appStatePayload` solo mete `baseData.transactions` en el «antes» del lote cuando
+`baseData.metadata.sourceWorkbookStatus === "Leído desde la app"`, y ese campo solo lo pone
+`refreshMovementRollups`. En una sesión que arranca sin haber tocado movimientos todavía —el caso
+exacto que probó la QA sobre el sitio recién cargado—, ese campo no estaba puesto al fotografiar
+el «antes», así que el lote no llevaba los movimientos y deshacerlo no podía devolverlos. Corregido
+forzando `refreshMovementRollups()` antes de fotografiar, con una prueba de regresión y una
+comprobación de navegador dedicada (deshacer dos lotes encadenados, verificando cada uno).
+
+**Validación** (`npm run verify`, exit 0): **511/511 pruebas** (487 antes + 24 en
+`tests/v4-4-importar-extracto.test.cjs`), accesibilidad (585 IDs únicos), rendimiento (diff 10.000
+filas en 48,0 ms; forecast y escenarios en 218,7 ms; recursos 1263 KB), build público, privacidad
+y smoke.
+
+**QA en navegador real**, servida desde `dist/`: **21/21**, incluyendo un recorrido completo con
+dos ficheros encadenados en la misma sesión —el demo público sirve `transactions: []` a propósito
+por privacidad, así que el candidato a duplicado se generó importando primero un movimiento y
+comparando después un segundo fichero contra él, no contra datos de fábrica—: bloqueo de
+«Continuar» en los pasos 2 y 3 mientras queda algo sin decidir, un «Es duplicado» real que no
+duplica el movimiento en la cartera, y el deshacer de los dos lotes uno a uno devolviendo cada
+estado correctamente. Cero errores de página.
+
+**Shell offline** a `20260810-v44a1`.
+
 ## Cierre de sesión — 10 de agosto de 2026: V3-5, las tres heredadas de Deuda a «Versiones anteriores»
 
 La cuarta relegación, y la que V3-3 desbloqueaba: hasta que «Consolidar» no fue una estrategia real,
