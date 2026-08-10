@@ -845,9 +845,12 @@ main {
   gap: 16px;
 }
 
+/* V1-3 subió los KPI de Hoy de cuatro a seis. Con cuatro columnas quedaban 4 + 2 y la segunda fila
+   medio vacía; con tres caben 3 + 3, y además la primera fila reúne justo los tres indicadores que
+   el rediseño pide para Hoy: colchón, deuda pendiente y libre de deuda. */
 .home-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 

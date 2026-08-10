@@ -65,6 +65,6 @@ test("V2-8 · el lanzador alcanza las cuatro que solo vivían en el menú", () =
 });
 
 test("V2-8 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-v28a1/);
-  assert.match(html, /app\.js\?v=20260810v28a1/);
+  assert.match(worker, /20260810-v13a1/);
+  assert.match(html, /app\.js\?v=20260810v13a1/);
 });

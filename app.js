@@ -112,6 +112,7 @@ let e8RemoteHistory = { snapshots: [], syncEvents: [] };
 let e8RemoteHistoryLoading = false;
 let startupRecoveryContext = null;
 let agentDebtOptimizationCache = { key: "", value: null };
+let homeDebtOutlookCache = { key: "", value: null };
 let executiveAdvisorRenderTimer = null;
 let selectorSignature = "";
 let visualMonthSelectorSignature = "";
@@ -5663,6 +5664,7 @@ function recomputeModelIfNeeded(force = false) {
   simulationSignature = nextSignature;
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
+  homeDebtOutlookCache = { key: "", value: null };
   const baseScenario = computeCanonicalScenario([], { engineContext: "base" });
   lastBaseSimulation = baseScenario.rows;
   projectPlan = buildProjectSchedule();
@@ -18387,6 +18389,7 @@ function renderHomeDashboard() {
   const metrics = rangeKpiMetric(rows);
   const savings = savingsPlanCalculations();
   const debtStats = debtControlStats();
+  const debtOutlook = homeDebtOutlook();
   const debtPriorities = debtPriorityCandidates().slice(0, 3);
   const loadedDecisions = projectPlan.placements || [];
   const nextSensitiveMonths = rows
@@ -18413,6 +18416,28 @@ function renderHomeDashboard() {
       cta: "Ver saldos",
       target: "visual-detail",
       metadata: actionCenter.readModel?.metrics?.liquidity,
+    }),
+    renderHomeKpi({
+      label: "Deuda pendiente",
+      value: money(debtOutlook.pendingPrincipal, true),
+      note: debtOutlook.contracts
+        ? `Capital vivo de ${debtOutlook.contracts} ${debtOutlook.contracts === 1 ? "contrato" : "contratos"}, el mismo que compara la vista de deuda.`
+        : "Sin deuda viva en la cartera canónica.",
+      status: debtOutlook.pendingPrincipal > 0 ? debtRatioStatus : "good",
+      cta: "Ver la ruta",
+      target: "deuda-ruta",
+    }),
+    renderHomeKpi({
+      label: "Libre de deuda",
+      value: debtOutlook.settled ? "Ya sin deuda" : debtOutlook.libreDeDeudaLabel,
+      note: debtOutlook.settled
+        ? "No queda capital pendiente que proyectar."
+        : debtOutlook.estimable
+        ? "Si no cambias nada: siguiendo el calendario actual de cada deuda."
+        : "Sin fecha estimable con el calendario actual. Compara estrategias para ver si alguna la acerca.",
+      status: debtOutlook.settled ? "good" : debtOutlook.estimable ? "good" : "warn",
+      cta: "Comparar estrategias",
+      target: "deuda-comparar",
     }),
     renderHomeKpi({
       label: "Capacidad libre real",
@@ -20445,6 +20470,34 @@ function debtStrategySummary(strategyId, baseInput, reserveValue) {
     aplicadas: aplicadas.length,
     total: decisions.length,
   };
+}
+
+// V1-3 · «Deuda pendiente» y «Libre de deuda» para Hoy. Las dos cifras salen del mismo sitio que
+// las de `#deuda-comparar` —los contratos que el motor considera accionables, `escenarioMotorDebtOptions`—
+// para que Hoy y Deuda no puedan contar historias distintas sobre la misma deuda. Ojo: no coincide
+// necesariamente con `debtPortfolioTotals().currentPrincipal`, que suma la cartera declarada
+// incluyendo las líneas ya reunificadas; el motor las sustituye por el plan combinado sintético.
+//
+// Se usa «No tocar nada» a propósito. Hoy es de solo lectura y no debe insinuar una decisión que el
+// usuario no ha tomado: la fecha que enseña es la de seguir el calendario actual, no la de la
+// estrategia recomendada. Como esa estrategia no lleva decisiones, el guardarraíl de reserva no
+// llega a evaluarse, así que la cifra tampoco depende de lo que haya escrito en la casilla del
+// comparador —una pantalla no puede mover el número de otra sin querer—.
+function homeDebtOutlook() {
+  const key = simulationSignature || modelComputationSignature();
+  if (homeDebtOutlookCache.key === key && homeDebtOutlookCache.value) return homeDebtOutlookCache.value;
+  const contracts = escenarioMotorDebtOptions();
+  const summary = debtStrategySummary("no-tocar", escenarioMotorBaseInput(), debtStrategyReserveDefault());
+  const value = {
+    pendingPrincipal: round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0)),
+    contracts: contracts.length,
+    libreDeDeuda: summary.libreDeDeuda,
+    libreDeDeudaLabel: escenarioMotorMonthLabel(summary.libreDeDeuda),
+    estimable: /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || "")),
+    settled: String(summary.libreDeDeuda || "") === "sin deuda pendiente",
+  };
+  homeDebtOutlookCache = { key, value };
+  return value;
 }
 
 // escenarioMotorLibreDeDeuda no siempre devuelve una fecha "YYYY-MM": puede devolver "sin deuda

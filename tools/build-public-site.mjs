@@ -20,6 +20,8 @@ const files = [
   "canonical-engine.js",
   "canonical-forecast.js",
   "canonical-e13-scenarios.js",
+  "canonical-scenario-schema.js",
+  "canonical-scenario-engine.js",
   "canonical-daily-engine.js",
   "canonical-debt-contracts.js",
   "canonical-e14-debt-adapter.js",
@@ -61,6 +63,29 @@ const files = [
   "debt-roadmap.html",
   "vendor/xlsx.full.min.js",
 ];
+
+// Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el
+// 10 de agosto de 2026 le faltaban `canonical-scenario-schema.js` y `canonical-scenario-engine.js`,
+// añadidos al `index.html` en E20 y nunca copiados a `dist`. Como Pages publica `dist`, el sitio
+// llevaba semanas sin el motor de escenarios: `window.FinanceCanonicalScenarioEngine` no existía y
+// todo lo que depende de él —comparador de estrategias, ruta de deuda, simulador de escenarios—
+// se quedaba sin cifras, en silencio y solo en producción.
+//
+// La comprobación va antes de copiar nada: cualquier recurso local que el `index.html` cargue tiene
+// que estar en la lista. Añadir un script y olvidarse de la lista ahora rompe la construcción en vez
+// de romper el sitio publicado.
+const referenced = [...fs.readFileSync(path.join(root, "index.html"), "utf8").matchAll(/(?:src|href)="([^"]+)"/g)]
+  .map((match) => match[1])
+  .filter((url) => !/^(?:https?:|#|mailto:|data:)/.test(url))
+  .map((url) => url.split("?")[0]);
+const listed = new Set(files);
+const uncopied = [...new Set(referenced)].filter((relative) => !listed.has(relative) && fs.existsSync(path.join(root, relative)));
+if (uncopied.length) {
+  throw new Error(
+    `index.html carga recursos que no se copian a dist: ${uncopied.join(", ")}. ` +
+      "Añádelos a la lista de este archivo o el sitio publicado se quedará sin ellos.",
+  );
+}
 
 fs.rmSync(destination, { recursive: true, force: true });
 for (const relative of files) {

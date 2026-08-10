@@ -184,6 +184,6 @@ test("V6-1 · el control vive en el Cuadro de mandos, con ayuda y sin romper el 
   assert.match(app, /qs\("cuadroMandosReserve"\)\?\.addEventListener\("change", handleOperatingReserveChange\)/);
   assert.match(app, /addHelpToControl\(\s*"cuadroMandosReserve"/);
   assert.match(tokens, /\.cuadro-mandos-reserve\b/);
-  assert.match(worker, /20260810-v28a1/);
-  assert.match(html, /app\.js\?v=20260810v28a1/);
+  assert.match(worker, /20260810-v13a1/);
+  assert.match(html, /app\.js\?v=20260810v13a1/);
 });
