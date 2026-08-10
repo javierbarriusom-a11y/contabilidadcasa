@@ -94,7 +94,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#forecast`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` |
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
-| **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` |
+| **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
 | **6 · Ajustes** | 🟡 parcial | la reserva operativa, alojada en `#cuadro-mandos` (V6-1) | — |
 
 ### Lo que falta en cada una, medido
@@ -118,9 +118,10 @@ el turno 5 especifica y nadie ha implementado**: la importación como cuatro pas
 decisión explícita por movimiento dudoso y por duplicado. Hoy `#data-entry` tiene la
 bandeja previa, no ese flujo.
 
-**5 · Cierre.** Las diferencias como tareas, construido. Falta el panel «Confianza del
-dato» por cuenta (cuadra / descuadra / sin conciliar), que hoy está disperso entre
-`#conciliar` y `#data-audit`.
+**5 · Cierre.** Las diferencias como tareas, construido, y sus tres heredadas ya relegadas
+(V5-3). Falta el panel «Confianza del dato» por cuenta (cuadra / descuadra / sin conciliar),
+que hoy sigue disperso entre `#conciliar` y `#data-audit` — que es exactamente por lo que
+`#data-audit` se relega y no se retira.
 
 **6 · Ajustes.** La vista sigue sin existir, pero su pieza más urgente ya está hecha: **la
 reserva operativa tiene control desde el 10 de agosto** (V6-1). El diagnóstico que lo
@@ -278,7 +279,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | V5-1 | Las diferencias como tareas, no como tablas | ✅ | — | Mockup 1g · E20-2 |
 | V5-2 | Panel «Confianza del dato» por cuenta | ⏳ | Media | Mockup 4f |
-| V5-3 | Mover `#reconciliation`, `#data-audit` y `#operations-manual` a Versiones anteriores | ⏳ | Media | Mockup 4f · habilitado por T-0 |
+| V5-3 | Mover `#reconciliation`, `#data-audit` y `#operations-manual` a Versiones anteriores | 🟡 | Media | Mockup 4f · hecha el 10 de agosto |
 
 ### T · Transversal
 
@@ -331,10 +332,11 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 1. ~~**V6-1** · control de reserva operativa~~ — **hecha el 10 de agosto de 2026.**
 2. ~~**T-0** · el grupo «Versiones anteriores»~~ — **hecho el 10 de agosto de 2026.** El contenedor
    está puesto; no se ve nada hasta que la primera relegación lo llene.
-3. **V1-4, V2-8, V3-5, ~~V4-6~~, V5-3** · relegar las heredadas, vista por vista. Se pueden
-   hacer de una en una y cada una es reversible con un interruptor. **V4-6 fue la primera,
-   el 10 de agosto**: es la que estrena el grupo, y la más limpia porque sus dos pantallas
-   siguen alcanzables desde el hub de Actualizar.
+3. **V1-4, V2-8, V3-5, ~~V4-6~~, ~~V5-3~~** · relegar las heredadas, vista por vista. Se pueden
+   hacer de una en una y cada una es reversible con un interruptor. **V4-6 y V5-3 ya están,
+   el 10 de agosto**: cinco pantallas relegadas, las dos vistas cuyas heredadas siguen
+   alcanzables desde el hub de Actualizar. Quedan las tres que el backlog marca como más
+   delicadas, porque su pantalla nueva está a medias: V2-8, V3-5 y V1-4.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
    escrita y prototipo que sigue sin construir.
 5. **V1-3** · deuda pendiente y fecha libre de deuda en Hoy. El cálculo ya existe.

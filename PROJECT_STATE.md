@@ -2,6 +2,45 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V5-3, la segunda relegación
+
+`#reconciliation`, `#data-audit` y `#operations-manual` salen de «Herramientas avanzadas › Datos» y
+pasan a «Versiones anteriores», que queda con **cinco pantallas**. Datos se queda con tres, y las
+tres son de la piel nueva o siguen siendo la vía principal: «Registrar el mes (nuevo)», «Carga de
+datos» y «Conciliación (nuevo)».
+
+**Por qué esta era la siguiente y no V2-8 o V1-4.** Su pantalla nueva, `#conciliar`, está en ✅ desde
+E20-2, así que la función de cierre ya vive completa en la versión nueva. Las otras tres vistas
+tienen su pantalla nueva a medias, que es justo el caso donde el backlog aconseja esperar.
+
+**Y por qué `#data-audit` se relega en vez de retirarse.** V5-2 —el panel «Confianza del dato» por
+cuenta— sigue pendiente, y parte de esa información vive hoy en `#data-audit`. Relegar la deja
+alcanzable exactamente para eso: es el caso de uso que justifica que «Versiones anteriores» exista.
+Las alertas siguen abriéndola como destino por defecto (`button.dataset.alertTarget || "data-audit"`).
+
+**Lo que no se ha tocado.** El hub de Actualizar conserva su tarjeta «Comprobar» hacia
+`#reconciliation` y su siguiente paso sugerido. `#operations-manual` sigue en pie: la guía por flujo
+de A13-6 vive en su propio diálogo (`#e17FlowGuideDialog`), así que relegar la pantalla no deja a
+nadie sin guía.
+
+**Un canario nuevo de estructura.** La composición completa del menú avanzado se comprueba ahora en
+`tests/navigation-structure.test.cjs` (grupos exactos y número total de enlaces). Cada relegación lo
+actualizará a propósito; una pantalla que desapareciera del menú sin querer romperá esa prueba en vez
+de pasar inadvertida. Las pruebas por tarea afirman solo lo que movió cada una.
+
+**Validación** (`npm run verify`, exit 0): **431/431 pruebas** (425 antes + 5 nuevas en
+`tests/v5-3-relegar-cierre.test.cjs` + 1 canario), accesibilidad (574 IDs únicos), rendimiento (diff
+10.000 filas en 33,4 ms; forecast y escenarios en 338,7 ms; recursos 1204 KB), build público,
+privacidad y smoke test.
+
+**QA en navegador real** a 1280×720 y 390×844: cinco enlaces en Versiones anteriores y tres en Datos;
+las tres relegadas abren desde el grupo; el hub sigue llevando a la conciliación anterior y
+`#conciliar` sigue en su sitio; apagar el grupo esconde las cinco sin tocar Datos; con el grupo
+apagado el lanzador sigue abriendo Conciliar; «Ver navegación completa» devuelve las cinco. Sin
+errores de consola propios ni desbordamiento.
+
+**Shell offline** a `20260810-v53a1`.
+
 ## Cierre de sesión — 10 de agosto de 2026: V4-6, la primera relegación de verdad
 
 La que estrena el grupo que T-0 dejó puesto. `#update-data` («Registrar reales del mes») y
