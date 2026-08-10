@@ -179,18 +179,29 @@ preferencias, reetiquetar los 18 enlaces heredados, un encabezado en el menú y 
 interruptor en el panel**. Ninguna de esas cuatro cosas toca cálculo, contrato de guardado
 ni pantallas.
 
-### La única subdecisión que queda
+### La subdecisión que quedaba, resuelta
 
-¿El grupo nace **visible** o **plegado**?
+¿El grupo nace **visible** o **plegado**? **Nace visible**, que era la recomendación: el
+primer día no cambia nada para quien esté a mitad de una tarea, y el interruptor para
+plegarlo está a un clic. Plegarlo más adelante no exige tocar código, es el mismo
+interruptor, así que la decisión no compromete nada.
 
-- **Visible por defecto** (recomendado): el primer día no cambia nada para quien esté a
-  mitad de una tarea; la navegación principal ya queda ordenada por las seis vistas y el
-  interruptor para plegarlo está a un clic. Es reversible sin consecuencias.
-- **Plegado por defecto**: cumple el objetivo del rediseño de inmediato —seis entradas y
-  nada más— a costa de que alguien busque una pantalla y no la encuentre a la primera.
+### Lo que ya está construido (T-0, 10 de agosto de 2026)
 
-Se puede empezar visible y plegarlo más adelante sin volver a tocar código: es el mismo
-interruptor. Por eso la recomendación no compromete nada.
+El contenedor, no las mudanzas. En concreto:
+
+- La preferencia `legacy` existe y **nace en `true`**, incluso para quien ya tuviera
+  preferencias guardadas de antes.
+- El encabezado «Versiones anteriores» está en el menú avanzado, y el interruptor en
+  «Personalizar».
+- **Un encabezado sin enlaces visibles debajo se oculta solo**, y un interruptor de un grupo
+  vacío también. Por eso hoy no se ve nada: aparecerán los dos en cuanto la primera
+  relegación mueva una pantalla. De paso arregla un detalle viejo: apagar «Análisis» dejaba
+  su etiqueta flotando sobre la nada.
+- **Relegar no esconde una pantalla del lanzador.** «Buscar o abrir» busca sobre el catálogo
+  entero y no mira estas preferencias, así que incluso con el grupo apagado la heredada
+  sigue siendo alcanzable por su nombre. Es la garantía de que relegar no puede parecerse a
+  perder.
 
 ---
 
@@ -274,7 +285,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | ⏳ | **Alta** | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
+| T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | 🟡 | **Alta** | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
 | T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | ⏳ | Media | Turnos 4-5 · desbloqueada por la decisión del 10 de agosto |
 | T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
@@ -319,7 +330,8 @@ todo. Pero ya no es un requisito, sino una preferencia de orden.
 Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 
 1. ~~**V6-1** · control de reserva operativa~~ — **hecha el 10 de agosto de 2026.**
-2. **T-0** · el grupo «Versiones anteriores». Barato, y habilita las cinco relegaciones.
+2. ~~**T-0** · el grupo «Versiones anteriores»~~ — **hecho el 10 de agosto de 2026.** El contenedor
+   está puesto; no se ve nada hasta que la primera relegación lo llene.
 3. **V1-4, V2-8, V3-5, V4-6, V5-3** · relegar las heredadas, vista por vista. Se pueden
    hacer de una en una y cada una es reversible con un interruptor.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación

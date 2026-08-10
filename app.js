@@ -368,20 +368,50 @@ const viewTitles = {
 
 const E17_PREFERENCES_KEY = "e17-navigation-preferences";
 
+/* T-0 · «Versiones anteriores» ------------------------------------------------------------------
+   El grupo `legacy` nace visible a propósito: relegar una pantalla heredada no puede parecerse a
+   perderla. Quien no quiera verlas la apaga en «Personalizar», y el mismo interruptor la devuelve.
+   Relegar tampoco la esconde del todo: «Buscar o abrir» sigue encontrando las heredadas, porque el
+   lanzador busca sobre el catálogo entero y no mira estas preferencias. */
+const E17_DEFAULT_PREFERENCES = { analysis: true, assistants: true, data: true, legacy: true };
+
 function e17Preferences() {
   try {
-    return { analysis: true, assistants: true, data: true, ...JSON.parse(storageGet(storageKey(E17_PREFERENCES_KEY), "{}")) };
+    return { ...E17_DEFAULT_PREFERENCES, ...JSON.parse(storageGet(storageKey(E17_PREFERENCES_KEY), "{}")) };
   } catch {
-    return { analysis: true, assistants: true, data: true };
+    return { ...E17_DEFAULT_PREFERENCES };
   }
+}
+
+// Enlaces de un encabezado del menú avanzado: los que van detrás hasta el siguiente encabezado.
+function e17LabelHasVisibleLinks(label) {
+  let node = label.nextElementSibling;
+  while (node && !node.hasAttribute("data-e17-nav-label")) {
+    if (node.dataset?.e17Group && !node.hidden) return true;
+    node = node.nextElementSibling;
+  }
+  return false;
+}
+
+function e17GroupSize(group) {
+  return document.querySelectorAll(`[data-e17-group="${group}"]`).length;
 }
 
 function applyE17Preferences(preferences = e17Preferences()) {
   document.querySelectorAll("[data-e17-group]").forEach((link) => {
     link.hidden = preferences[link.dataset.e17Group] === false;
   });
+  // Un encabezado sin nada debajo no dice nada: se oculta con sus enlaces. Vale para los grupos que
+  // ya existían —apagar «Análisis» dejaba su etiqueta flotando— y es lo que permite que «Versiones
+  // anteriores» no aparezca hasta que tenga alguna pantalla relegada.
+  document.querySelectorAll("[data-e17-nav-label]").forEach((label) => {
+    label.hidden = !e17LabelHasVisibleLinks(label);
+  });
   document.querySelectorAll("[data-e17-preference]").forEach((input) => {
     input.checked = preferences[input.dataset.e17Preference] !== false;
+    // Y un interruptor para un grupo vacío no tiene nada que encender.
+    const wrapper = input.closest("label");
+    if (wrapper) wrapper.hidden = e17GroupSize(input.dataset.e17Preference) === 0;
   });
 }
 
@@ -452,7 +482,7 @@ function setupE17Experience() {
     applyE17Preferences(preferences); qs("e17PreferencesDialog")?.close();
   });
   qs("e17ResetPreferences")?.addEventListener("click", () => {
-    const preferences = { analysis: true, assistants: true, data: true };
+    const preferences = { ...E17_DEFAULT_PREFERENCES };
     storageSet(storageKey(E17_PREFERENCES_KEY), JSON.stringify(preferences)); applyE17Preferences(preferences);
   });
 }
