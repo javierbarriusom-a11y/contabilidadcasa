@@ -11,8 +11,10 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   const home = html.indexOf('href="#home"');
   const update = html.indexOf('href="#update-hub"');
   const primaryPlan = html.indexOf('href="#new-life-definitive"');
-  const debtProjects = html.indexOf('href="#new-life-simulation"');
   const debtRoadmap = html.indexOf('href="#debt-roadmap"');
+  // «Escenarios de vida y deuda» ya no encabeza Decidir: V2-8 lo relegó. Quien abre ese grupo
+  // ahora se encuentra primero los escenarios nuevos.
+  const scenarios = html.indexOf('href="#escenario-simular"');
   // El encabezado se localiza por su atributo, no por el final de la etiqueta de clase: al añadirle
   // `data-e17-nav-label` en T-0 la búsqueda anterior dejó de encontrarlo y la comparación pasaba
   // sola con -1, sin comprobar nada.
@@ -23,7 +25,7 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   const dataAudit = html.indexOf('href="#data-audit"');
 
   assert.ok(home < update && update < primaryPlan, "Actualizar debe aparecer inmediatamente después de Hoy");
-  assert.ok(debtProjects < debtRoadmap, "Plan de deuda debe aparecer tras Deuda y proyectos");
+  assert.ok(scenarios < debtRoadmap, "Plan de deuda debe aparecer tras los escenarios nuevos");
   assert.ok(dataLabel > 0 && legacyLabel > dataLabel, "«Versiones anteriores» cierra el menú avanzado");
   assert.ok(dataLabel < dataEntry && dataEntry < dataAudit, "Carga de datos y auditoría siguen en Datos");
   assert.ok(movements > legacyLabel, "Movimientos ya no está en Datos: se relegó en V4-6");
@@ -45,7 +47,14 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   }, {});
 
   assert.deepEqual(byGroup.data, ["registrar-mes", "data-entry", "conciliar"]);
+  // El grupo relegado sigue el orden del propio menú: primero lo que estaba en Decidir y Analizar
+  // (V2-8), luego Datos (V4-6) y por último Cierre (V5-3).
   assert.deepEqual(byGroup.legacy, [
+    "new-life-simulation",
+    "simulator",
+    "visual-detail",
+    "savings-plan",
+    "cashflow",
     "update-data",
     "movements",
     "data-audit",
@@ -53,6 +62,6 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
     "operations-manual",
   ]);
   assert.deepEqual(byGroup.assistants, ["asesor-decision", "executive-advisor", "virtual-advisor"]);
-  assert.equal(byGroup.analysis.length, 18, "Decidir y Analizar suman dieciocho enlaces");
-  assert.equal(links.length, 29, "veintinueve enlaces en el menú avanzado");
+  assert.equal(byGroup.analysis.length, 14, "Decidir y Analizar suman catorce enlaces");
+  assert.equal(links.length, 30, "treinta enlaces en el menú avanzado");
 });

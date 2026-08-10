@@ -91,7 +91,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | Vista | Función cubierta | Pantallas nuevas que la cubren | Heredadas que pasan a «Versiones anteriores» |
 |---|---|---|---|
 | **1 · Hoy** | 🟡 parcial | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` |
-| **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#forecast`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` |
+| **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` — **ya relegadas** (V2-8) |
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
@@ -107,7 +107,16 @@ deuda no están en Hoy**, aunque ambas se calculan ya en `#deuda-comparar`.
 **2 · Plan.** Es la más completa: la tabla editable con pie de impacto está construida y
 publicada, que era el corazón del rediseño. Falta la banda de doce meses *dentro* de Plan
 (existe suelta en `#mapa-calor` y `#prevision`) y el cuarto indicador del pie, la fecha sin
-deuda, que hoy se omite a propósito porque editar un previsto no toca ningún contrato.
+deuda, que hoy se omite a propósito porque editar un previsto no toca ningún contrato. Sus
+cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
+
+> **Corrección del 10 de agosto: `#forecast` no era una heredada.** Esta tabla lo listaba
+> entre las que Plan debía relegar, contradiciendo al inventario de la sección 1, que lo
+> cuenta —bien— entre las dieciséis pantallas con piel nueva: la sección lleva la clase
+> `e19-forecast` y el menú principal la usa como la pestaña «Prever». Relegarla habría
+> degradado una pantalla migrada y dejado una pestaña de primer nivel apuntando a
+> «Versiones anteriores». Se queda donde está; reordenar el menú principal es trabajo de
+> T-1. Por eso V2-8 mueve cinco pantallas y no seis.
 
 **3 · Deuda.** Estrategias y orden de ataque, construidos. La tercera estrategia difiere:
 el rediseño pide *Consolidar*, la app ofrece *No tocar nada*. La «oferta en curso» vive en
@@ -250,7 +259,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V2-5 | Mapa de calor mensual | 🟡 | — | Mockup 3c · E20-5 |
 | V2-6 | Cuarto indicador del pie: fecha sin deuda | ⏳ | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño |
 | V2-7 | Banda de doce meses integrada en Plan | ⏳ | Baja | Mockup 4c |
-| V2-8 | Mover `#visual-detail`, `#forecast`, `#cashflow`, `#savings-plan`, `#simulator` y `#new-life-simulation` a Versiones anteriores | ⏳ | Media | Mockup 4c · habilitado por T-0 |
+| V2-8 | Mover `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator` y `#new-life-simulation` a Versiones anteriores | 🟡 | Media | Mockup 4c · hecha el 10 de agosto, ver la nota sobre `#forecast` |
 
 ### V3 · Deuda
 
@@ -332,11 +341,11 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 1. ~~**V6-1** · control de reserva operativa~~ — **hecha el 10 de agosto de 2026.**
 2. ~~**T-0** · el grupo «Versiones anteriores»~~ — **hecho el 10 de agosto de 2026.** El contenedor
    está puesto; no se ve nada hasta que la primera relegación lo llene.
-3. **V1-4, V2-8, V3-5, ~~V4-6~~, ~~V5-3~~** · relegar las heredadas, vista por vista. Se pueden
-   hacer de una en una y cada una es reversible con un interruptor. **V4-6 y V5-3 ya están,
-   el 10 de agosto**: cinco pantallas relegadas, las dos vistas cuyas heredadas siguen
-   alcanzables desde el hub de Actualizar. Quedan las tres que el backlog marca como más
-   delicadas, porque su pantalla nueva está a medias: V2-8, V3-5 y V1-4.
+3. **V1-4, V3-5, ~~V2-8~~, ~~V4-6~~, ~~V5-3~~** · relegar las heredadas, vista por vista. Se pueden
+   hacer de una en una y cada una es reversible con un interruptor. **V4-6, V5-3 y V2-8 ya
+   están, el 10 de agosto**: diez pantallas relegadas de las dieciocho heredadas. Quedan las
+   dos que conviene hacer después de cerrar su 🟡 correspondiente: **V3-5** tras V3-3, y
+   **V1-4** tras V1-2.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
    escrita y prototipo que sigue sin construir.
 5. **V1-3** · deuda pendiente y fecha libre de deuda en Hoy. El cálculo ya existe.
