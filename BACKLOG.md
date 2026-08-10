@@ -203,7 +203,7 @@ Seis bloques que son las seis vistas, más uno transversal. Cada tarea lleva el 
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | 🟡 | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
+| V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | ✅ | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
 | V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | ⏳ | Media | Mockup 4f · Ajustes |
 | V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | ⏳ | Media | Mockup 4f |
 | V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | ⏳ | Baja | Mockup 4f |
@@ -216,7 +216,8 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > `#ajustes` (V6-3), que es donde acabará mudándose. Escribe `state.operatingReserve` y se guarda
 > en `scenarioSettings`, así que se sincroniza y se restaura como un dato del hogar. Vaciarla
 > significa «sin reserva configurada», no cero: cada pantalla vuelve a su respaldo declarado.
-> Queda en 🟡 hasta comprobarla en el sitio publicado, según la puerta de la sección 7.
+> Cierra en ✅: PR #5 fusionada con CI en verde, Pages desplegado con éxito para `956e427` y el
+> usuario confirmó la casilla en el sitio publicado el mismo 10 de agosto.
 
 ### V1 · Hoy
 
