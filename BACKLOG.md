@@ -57,16 +57,16 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 | Mockup | Pantalla | Estado | Qué falta |
 |---|---|---|---|
 | 1a Hoy | `#home` | ✅ | — |
-| 1b Ruta de deuda | `#deuda-ruta` | ✅ | — |
-| 1c Comparador de estrategias | `#deuda-comparar` | 🟡 | La tercera estrategia es «No tocar nada», no «Consolidar» |
+| 1b Ruta de deuda | `#deuda-ruta` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
+| 1c Comparador de estrategias | `#deuda-comparar` | 🟡 | La tercera estrategia es «No tocar nada», no «Consolidar». Sin cifras en el sitio hasta el 10 de agosto, ver §8 |
 | 1d Asesor ejecutivo | `#asesor-decision` | 🟡 | Ver nota en `docs/E19_SISTEMA_DISENO.md` §8 |
-| 1e Simular | `#escenario-simular` | ✅ | — |
+| 1e Simular | `#escenario-simular` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 1f Actualizar (hub) | `#update-hub` | ✅ | — |
 | 1g Conciliación | `#conciliar` | ✅ | — |
 | 2a Registrar el mes | `#registrar-mes` | 🟡 | Aviso «detectado en el extracto · ¿es anual?» |
 | 2b Importar extracto | `#data-entry` | ✅ | — |
 | 2c Previsión | `#prevision` | ✅ | — |
-| 2d Aplicar escenario | `#escenario-aplicar` | ✅ | — |
+| 2d Aplicar escenario | `#escenario-aplicar` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 2e Escenarios guardados | `#escenario-guardados` | 🟡 | Ver nota en §5 |
 | 3a Cuadro de mandos | `#cuadro-mandos` | ✅ | — |
 | 3b Bandeja de cambios | `#cambios-pendientes` | ✅ | — |
@@ -255,7 +255,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| V2-1 | Simular → comparar → aplicar en una vista | ✅ | — | Mockups 1e/2d/2e · E20-1 |
+| V2-1 | Simular → comparar → aplicar en una vista | ✅ | — | Mockups 1e/2d/2e · E20-1 · llegó al sitio el 10 de agosto, §8 |
 | V2-2 | Los once tipos de decisión del motor | ✅ | — | E20-3 |
 | V2-3 | Cuadro de mandos con pie de impacto | ✅ | — | Mockup 3a + spec 5a · E20-5 |
 | V2-4 | Bandeja de cambios reversible | ✅ | — | Mockup 3b · E20-5 |
@@ -268,8 +268,8 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| V3-1 | Comparador de estrategias | 🟡 | — | Mockup 1c · E20-2 |
-| V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 |
+| V3-1 | Comparador de estrategias | 🟡 | — | Mockup 1c · E20-2 · sin cifras en el sitio hasta el 10 de agosto, §8 |
+| V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 · llegó al sitio el 10 de agosto, §8 |
 | V3-3 | Estrategia **Consolidar** como tercera opción real | ⏳ | Media | Mockup 4d; hoy la tercera es «No tocar nada» |
 | V3-4 | Oferta en curso dentro de la vista de deuda | ⏳ | Baja | Mockup 4d; hoy vive en `#asesor-decision` |
 | V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ⏳ | Media | Mockup 4d · habilitado por T-0 |
@@ -302,6 +302,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
+| T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | ⏳ | Media | Auditoría §8 · hoy `runEscenarioMotor` devuelve `null` en silencio |
 
 ---
 
@@ -380,3 +381,46 @@ Sin cambios respecto a `BACKLOG_STATUS.md` §6. Una tarea no pasa a ✅ hasta qu
 4. Fusionada a `main` y **verificada en el sitio publicado** — hasta entonces es 🟡, no ✅.
 5. Cualquier omisión respecto al mockup, escrita y localizable en
    `docs/E19_SISTEMA_DISENO.md`.
+6. **La QA de navegador se sirve desde `dist/`, nunca desde la raíz del repositorio.** Añadido el
+   10 de agosto de 2026 y es el punto que faltaba: en la raíz se sirve todo, así que un recurso
+   que no se copia al sitio publicado funciona igual y la comprobación pasa. La auditoría de §8
+   existe porque este punto no estaba escrito.
+
+---
+
+## 8. Auditoría del 10 de agosto de 2026: qué enseñaba de verdad el sitio publicado
+
+Al construir V1-3 apareció que el sitio publicado llevaba desde E20 **sin el motor de escenarios**:
+`canonical-scenario-schema.js` y `canonical-scenario-engine.js` estaban en el `index.html` pero no en
+la lista de `tools/build-public-site.mjs`, y Pages despliega `dist`. Arreglado ese día, junto con dos
+canarios que impiden que se repita.
+
+Como cinco tareas estaban marcadas ✅ —y ✅ significa «visible en el sitio publicado»— se auditó qué
+enseñaban en realidad. Método: ejecutar el mismo `dist` dos veces, una tal cual y otra sin esos dos
+archivos, que es exactamente lo que estuvo publicado.
+
+| Pantalla | Con el motor (desde hoy) | Sin el motor (lo publicado hasta hoy) |
+|---|---|---|
+| `#deuda-comparar` | Tres estrategias con fecha, coste y recomendada | Tres tarjetas con **fecha «—», coste 0,00 € y ninguna recomendada** |
+| `#deuda-ruta` | Tres pasos fechados, con importe y estado | Tres pasos con importe, pero **mes «—» y «Sin calcular»** |
+| `#escenario-simular` | Once tipos, decisión añadida, impacto, gráfica y «Aplicar» activo | Once tipos y la decisión entra, pero **sin impacto, sin gráfica y «Aplicar al plan» nunca se habilita** |
+| `#escenario-aplicar` | Se abre con impacto y diff del plan | **Inalcanzable**: su única entrada es ese botón deshabilitado |
+| `#escenario-guardados` | Estado vacío correcto | Estado vacío correcto — y era verdad: nada podía aplicarse |
+
+**16/16 comprobaciones con el motor, 8/16 sin él. Cero errores de consola en los dos casos**: ahí está
+por qué nadie lo vio. No fallaba, se quedaba en blanco.
+
+Qué se corrige de estados, y qué no:
+
+- **V2-2 aguanta su ✅ sin matices.** El catálogo de once tipos de decisión y sus formularios se
+  pintan sin tocar el motor, así que esa entrega sí estuvo publicada y funcionando.
+- **V2-1, V3-2 y los mockups 1b, 1e y 2d conservan el ✅ pero con fecha corregida**: el código estaba
+  desde E20, la función **solo llegó al usuario el 10 de agosto de 2026**. Verificado sobre el
+  artefacto que despliega Pages (`dist`), no solo en local.
+- **V3-1 y el mockup 1c siguen en 🟡** por su motivo de siempre —la tercera estrategia es «No tocar
+  nada» y no «Consolidar»—, que es independiente de todo esto.
+- **2e sigue en 🟡** por la nota de §5.
+
+La lección no es que faltaran pruebas: `npm run verify` estaba en verde todo el tiempo, y sigue
+estándolo. Es que ninguna comprobación miraba el artefacto que se publica. Por eso el punto 6 de la
+puerta de aceptación.
