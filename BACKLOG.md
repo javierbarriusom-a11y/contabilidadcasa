@@ -93,7 +93,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **1 · Hoy** | 🟡 parcial | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` |
 | **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#forecast`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` |
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` |
-| **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes` | `#update-data`, `#movements` |
+| **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` |
 | **6 · Ajustes** | 🟡 parcial | la reserva operativa, alojada en `#cuadro-mandos` (V6-1) | — |
 
@@ -195,9 +195,8 @@ El contenedor, no las mudanzas. En concreto:
 - El encabezado «Versiones anteriores» está en el menú avanzado, y el interruptor en
   «Personalizar».
 - **Un encabezado sin enlaces visibles debajo se oculta solo**, y un interruptor de un grupo
-  vacío también. Por eso hoy no se ve nada: aparecerán los dos en cuanto la primera
-  relegación mueva una pantalla. De paso arregla un detalle viejo: apagar «Análisis» dejaba
-  su etiqueta flotando sobre la nada.
+  vacío también, así que T-0 no se vio hasta que **V4-6** movió las dos primeras pantallas.
+  De paso arregla un detalle viejo: apagar «Análisis» dejaba su etiqueta flotando sobre la nada.
 - **Relegar no esconde una pantalla del lanzador.** «Buscar o abrir» busca sobre el catálogo
   entero y no mira estas preferencias, así que incluso con el grupo apagado la heredada
   sigue siendo alcanzable por su nombre. Es la garantía de que relegar no puede parecerse a
@@ -271,7 +270,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V4-3 | Registrar el mes, una fila por partida | 🟡 | — | Mockup 2a · E20-4 |
 | V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | ⏳ | **Alta** | Spec 5c + prototipo 5d · especificado y sin implementar |
 | V4-5 | Detección de partida anual desde el extracto | ⏳ | Baja | Mockup 2a, omisión documentada |
-| V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | ⏳ | Media | Mockup 4e · habilitado por T-0 |
+| V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | 🟡 | Media | Mockup 4e · hecha el 10 de agosto, la primera relegación |
 
 ### V5 · Cierre
 
@@ -332,8 +331,10 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 1. ~~**V6-1** · control de reserva operativa~~ — **hecha el 10 de agosto de 2026.**
 2. ~~**T-0** · el grupo «Versiones anteriores»~~ — **hecho el 10 de agosto de 2026.** El contenedor
    está puesto; no se ve nada hasta que la primera relegación lo llene.
-3. **V1-4, V2-8, V3-5, V4-6, V5-3** · relegar las heredadas, vista por vista. Se pueden
-   hacer de una en una y cada una es reversible con un interruptor.
+3. **V1-4, V2-8, V3-5, ~~V4-6~~, V5-3** · relegar las heredadas, vista por vista. Se pueden
+   hacer de una en una y cada una es reversible con un interruptor. **V4-6 fue la primera,
+   el 10 de agosto**: es la que estrena el grupo, y la más limpia porque sus dos pantallas
+   siguen alcanzables desde el hub de Actualizar.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
    escrita y prototipo que sigue sin construir.
 5. **V1-3** · deuda pendiente y fecha libre de deuda en Hoy. El cálculo ya existe.
