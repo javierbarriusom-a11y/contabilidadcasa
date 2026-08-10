@@ -2,6 +2,62 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V3-3, «Consolidar» como cuarta estrategia real
+
+La pantalla de comparar estrategias llevaba desde E20-2 con una nota al pie que decía que
+reunificar no se podía comparar «porque exigiría inventar unas condiciones de préstamo (TAE, plazo)
+que no existen todavía como oferta real en los datos». El diagnóstico era correcto y la salida
+—no fabricar la oferta— también. Lo que faltaba era **pedirla**.
+
+**La oferta.** Tres casillas en `#deuda-comparar`: TIN anual (%), plazo (meses) y comisión de
+apertura (€, opcional). Se guardan en el almacén local del navegador con su propia clave
+(`deuda-oferta-reunificacion`), **no en `state`**: una oferta de un tercero puede caducar o
+descartarse sin que la contabilidad del hogar se mueva. Sobrevive a la recarga y hay un botón para
+borrarla.
+
+**La estrategia.** Una única decisión `reunificacion` sobre todos los contratos vivos, resuelta por
+el mismo motor y en modo «óptimo» que las otras tres. El principal es la suma de los saldos más la
+comisión, **financiada dentro del préstamo**: el motor no modela `comisiones` como flujo de caja
+—lo dice su propia cabecera—, así que pasarla por ese campo la habría hecho desaparecer del cálculo
+sin avisar. La cuota sale de la fórmula francesa; con TIN 0 % es principal/plazo, sin dividir entre
+cero. El TIN viaja al motor en fracción, como exige el esquema, y la decisión se valida contra
+`canonical-scenario-schema.js` real en las pruebas.
+
+**Tres cosas que había que hacer bien para no mentir:**
+
+- **El coste.** Una reunificación no lleva `params.importe`: no desembolsa nada. Sumarlo habría dado
+  `0,00 €` y la habría hecho parecer gratis, además de ganar cualquier empate por coste en la
+  recomendación. Su coste real —los intereses del préstamo nuevo— sale exacto de la propia oferta,
+  así que es esa cifra la que se compara, y la tarjeta cambia su etiqueta a «Intereses del nuevo
+  préstamo». Las otras tres conservan «Coste total ejecutado».
+- **La gráfica.** `buildDeudaVivaSeries` solo descontaba deudas cerradas, así que una reunificación
+  habría dibujado la deuda cayendo a cero el mes de la firma — que es exactamente la mentira que
+  hace atractiva a una reunificación. Ahora el préstamo nuevo entra en la serie con su principal y
+  se queda hasta agotar el plazo.
+- **Sin oferta no hay cifras.** La tarjeta escribe «—» en las tres, por la misma razón que el modo
+  degradado de T-5, y la nota dice qué falta. La ruta y su lista de comprobación dicen lo mismo en
+  vez de un genérico «sin decisiones».
+
+**Un fallo que encontró una prueba.** `Number(null)` vale 0, así que leer la oferta con
+`Number.isFinite(Number(value))` convertía un TIN vacío en un TIN del 0 %: una oferta sin intereses
+que nadie había hecho. El hueco se distingue del cero antes de convertir nada, con dos casos de
+regresión.
+
+**Lo que sigue fuera de la cifra, y se dice en pantalla:** cancelación anticipada de las deudas
+viejas, notaría y seguros vinculados no se piden, así que no están.
+
+**Validación** (`npm run verify`, exit 0): **481/481 pruebas** (460 antes + 21 en
+`tests/v3-3-estrategia-consolidar.test.cjs`), accesibilidad (579 IDs únicos), rendimiento (diff
+10.000 filas en 55,0 ms; forecast y escenarios en 278,1 ms; recursos 1225 KB), build público,
+privacidad y smoke test.
+
+**QA en navegador real**, servida desde `dist/`: **21/22 comprobaciones**, y la única que no pasa es
+el CDN de Supabase, que este entorno bloquea y no tiene que ver con la entrega. `npm run
+audit:escenarios` pasa a **17/17 con el motor** y **7/17 sin él** (la comprobación nueva pasa en los
+dos modos: no depende del motor sino de la oferta).
+
+**Shell offline** a `20260810-v33a1`.
+
 ## Cierre de sesión — 10 de agosto de 2026: T-5, que una pieza que falta se note
 
 La otra mitad del fallo de ayer. Los canarios de `build-public-site.mjs` y `smoke-public.mjs`

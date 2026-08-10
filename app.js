@@ -20465,16 +20465,33 @@ function handleEscenarioGuardadosNew() {
 // motor E20 (resolveEscenario) que #escenario-simular, no sobre el pipeline heredado de
 // debt-liquidation-plan (DEBT_LIQUIDATION_ASSUMPTIONS, entidades hardcodeadas): cada estrategia es
 // una lista de decisiones "amortizacion" (pago total, modo "optimo") sobre la cartera real
-// (canonicalDebtContractRows), ordenada según el criterio de la estrategia. Solo tres estrategias
-// tienen lógica real hoy — avalancha (TAE desc), bola de nieve (saldo asc) y no tocar nada (sin
-// decisiones) — porque "reunificación" exigiría una oferta real (TAE, plazo) que no existe todavía
-// en los datos; documentado en la propia pantalla en vez de fabricar una cifra.
+// (canonicalDebtContractRows), ordenada según el criterio de la estrategia.
+//
+// V3-3 · «Consolidar» como cuarta estrategia. Hasta el 10 de agosto de 2026 la pantalla declaraba
+// que reunificar no se podía comparar «porque exigiría inventar unas condiciones de préstamo (TAE,
+// plazo) que no existen todavía como oferta real en los datos». El diagnóstico era correcto y la
+// salida también: no fabricar la oferta. Lo que faltaba era pedirla. Ahora la oferta se introduce
+// —TIN, plazo y comisión de apertura— y la estrategia se simula con el mismo motor que las otras
+// tres, mediante una única decisión `reunificacion`. Sin oferta introducida la tarjeta sigue sin
+// dar cifras y dice qué falta: se compara una oferta real o no se compara nada.
 // ---------------------------------------------------------------------------------------------
 const DEBT_STRATEGY_DEFINITIONS = [
   { id: "avalancha", label: "Avalancha", desc: "Salda primero la deuda con mayor TAE." },
   { id: "bola-nieve", label: "Bola de nieve", desc: "Salda primero la deuda con menor saldo." },
+  {
+    id: "consolidar",
+    label: "Consolidar",
+    desc: "Cierra todas las deudas y las sustituye por un préstamo único con las condiciones que te ofrezcan.",
+    // Las otras tres miden «coste ejecutado» = capital desembolsado para cerrar deudas. Consolidar
+    // no desembolsa nada: su coste son los intereses del préstamo nuevo, que sí se pueden calcular
+    // exactos a partir de la propia oferta. Cada tarjeta dice qué mide su cifra en vez de compartir
+    // una etiqueta que sería falsa para una de ellas.
+    costeLabel: "Intereses del nuevo préstamo",
+  },
   { id: "no-tocar", label: "No tocar nada", desc: "Sigue el calendario actual de cada deuda, sin decisiones nuevas." },
 ];
+
+const DEBT_STRATEGY_COSTE_LABEL = "Coste total ejecutado";
 
 let debtStrategyReserveValue = null;
 let deudaRutaSelectedStrategy = "avalancha";
@@ -20505,7 +20522,121 @@ function debtStrategyOrderedContracts(strategyId) {
   return [];
 }
 
+// ---------------------------------------------------------------------------------------------
+// V3-3 · la oferta de reunificación. Se guarda aparte del modelo del hogar (`state`) porque no es
+// un dato del hogar: es una oferta de un tercero que puede caducar, cambiar o descartarse sin que
+// nada de la contabilidad se mueva. Vive en el mismo almacén local que los escenarios guardados,
+// con su propia clave, y persiste entre sesiones para no tener que reteclearla en cada visita.
+// ---------------------------------------------------------------------------------------------
+const DEBT_CONSOLIDATION_OFFER_KEY = "deuda-oferta-reunificacion";
+const DEBT_CONSOLIDATION_MAX_TIN = 60;
+const DEBT_CONSOLIDATION_MAX_PLAZO = 480;
+
+function debtConsolidationOffer() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(DEBT_CONSOLIDATION_OFFER_KEY), "{}"));
+    if (!parsed || typeof parsed !== "object") return { tin: null, plazo: null, comision: null };
+    // Ojo con el atajo `Number.isFinite(Number(value))`: `Number(null)` y `Number("")` valen 0, así
+    // que un campo vacío se leería como un TIN del 0 % — una oferta sin intereses que nadie ha
+    // hecho. Un hueco se distingue de un cero antes de convertir nada.
+    const num = (value) => {
+      if (value === null || value === undefined || value === "") return null;
+      const parsedValue = Number(value);
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    };
+    return { tin: num(parsed.tin), plazo: num(parsed.plazo), comision: num(parsed.comision) };
+  } catch {
+    return { tin: null, plazo: null, comision: null };
+  }
+}
+
+function saveDebtConsolidationOffer(offer) {
+  storageSet(storageKey(DEBT_CONSOLIDATION_OFFER_KEY), JSON.stringify(offer || {}));
+}
+
+// El TIN se acepta al 0 % (existen ofertas promocionales sin intereses) pero el plazo no: sin plazo
+// no hay cuota que calcular. Los topes son los mismos que exige `canonical-scenario-schema.js` para
+// `reunificacion`, comprobados aquí antes de construir la decisión para no mandar al motor algo que
+// el esquema rechazaría.
+function debtConsolidationOfferComplete(offer) {
+  const tinOk = Number.isFinite(offer.tin) && offer.tin >= 0 && offer.tin <= DEBT_CONSOLIDATION_MAX_TIN;
+  const plazoOk = Number.isFinite(offer.plazo) && Number.isInteger(offer.plazo) && offer.plazo >= 1 && offer.plazo <= DEBT_CONSOLIDATION_MAX_PLAZO;
+  return tinOk && plazoOk;
+}
+
+// Cuota francesa: la misma fórmula que usa cualquier cuadro de amortización. Con TIN 0 % el límite
+// de la fórmula es principal/plazo, que se calcula aparte para no dividir entre cero.
+function debtConsolidationMonthlyPayment(principal, tinAnnualPct, months) {
+  if (!(principal > 0) || !(months >= 1)) return null;
+  const monthlyRate = Number(tinAnnualPct) / 100 / 12;
+  if (!(monthlyRate > 0)) return round2(principal / months);
+  return round2((principal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -months)));
+}
+
+// El plan de consolidación, o la razón exacta por la que todavía no hay ninguno. Nunca devuelve
+// cifras a medias: o hay oferta y cartera suficiente, o `available: false` con un motivo que la
+// pantalla enseña tal cual.
+//
+// El principal del préstamo nuevo es la suma de los saldos vivos más la comisión de apertura. Se
+// financia la comisión (que es como se firman casi todas las reunificaciones) en vez de tratarla
+// como pago en efectivo aparte: el motor no modela `comisiones` como flujo de caja —lo dice la
+// cabecera de `canonical-scenario-engine.js`— así que pasarla por ese campo la haría desaparecer
+// del cálculo sin avisar. Sumada al principal sí cuenta, y se dice en la pantalla.
+function debtConsolidationPlan() {
+  const offer = debtConsolidationOffer();
+  const contracts = escenarioMotorDebtOptions();
+  if (contracts.length < 2) {
+    return { available: false, motivo: "cartera", offer, contracts };
+  }
+  if (!debtConsolidationOfferComplete(offer)) {
+    return { available: false, motivo: "sin-oferta", offer, contracts };
+  }
+  const saldos = round2(contracts.reduce((sum, contract) => sum + Number(contract.currentPrincipal || 0), 0));
+  const comision = Number.isFinite(offer.comision) && offer.comision > 0 ? round2(offer.comision) : 0;
+  const principal = round2(saldos + comision);
+  const cuota = debtConsolidationMonthlyPayment(principal, offer.tin, offer.plazo);
+  if (!(cuota > 0)) {
+    return { available: false, motivo: "sin-cuota", offer, contracts };
+  }
+  const totalDevuelto = round2(cuota * offer.plazo);
+  return {
+    available: true,
+    offer,
+    contracts,
+    deudaIds: contracts.map((contract) => contract.id),
+    saldos,
+    comision,
+    principal,
+    cuota,
+    plazo: offer.plazo,
+    tin: offer.tin,
+    totalDevuelto,
+    intereses: round2(totalDevuelto - principal),
+  };
+}
+
 function debtStrategyDecisions(strategyId) {
+  if (strategyId === "consolidar") {
+    const plan = debtConsolidationPlan();
+    if (!plan.available) return [];
+    return [
+      {
+        id: "deuda-estrategia-consolidar-0",
+        tipo: "reunificacion",
+        activa: true,
+        orden: 0,
+        planificacion: { modo: "optimo" },
+        params: {
+          deudaIds: plan.deudaIds,
+          nuevoPrincipal: plan.principal,
+          // El esquema quiere el TIN en fracción 0-0,60; la oferta se teclea en %.
+          nuevoTIN: round2(plan.tin * 100) / 10000,
+          nuevaCuota: plan.cuota,
+          nuevoPlazo: plan.plazo,
+        },
+      },
+    ];
+  }
   return debtStrategyOrderedContracts(strategyId).map((contract, index) => ({
     id: `deuda-estrategia-${strategyId}-${index}`,
     tipo: "amortizacion",
@@ -20524,13 +20655,21 @@ function debtStrategyResult(strategyId, baseInput, reserveValue) {
 
 function debtStrategySummary(strategyId, baseInput, reserveValue) {
   const { decisions, result } = debtStrategyResult(strategyId, baseInput, reserveValue);
-  if (!result || !result.valid) return { decisions, result, libreDeDeuda: null, cajaMinima: null, costeTotal: 0, viable: false, aplicadas: 0, total: decisions.length };
+  const consolidacion = strategyId === "consolidar" ? debtConsolidationPlan() : null;
+  if (!result || !result.valid) return { decisions, result, consolidacion, libreDeDeuda: null, cajaMinima: null, costeTotal: 0, viable: false, aplicadas: 0, total: decisions.length };
   const resultadosById = new Map((result.resultados || []).map((item) => [item.id, item]));
   const aplicadas = decisions.filter((decision) => resultadosById.get(decision.id)?.resultado === "aplicada");
-  const costeTotal = aplicadas.reduce((sum, decision) => sum + Number(decision.params.importe || 0), 0);
+  // V3-3 · una reunificación no lleva `importe`: no desembolsa nada. Sumar su `params.importe`
+  // daría 0 € y la haría parecer gratis frente a las demás, además de ganar cualquier empate por
+  // coste en la recomendación. Su coste real —los intereses del préstamo nuevo— sale exacto de la
+  // propia oferta, así que es esa cifra la que se compara, y la tarjeta dice que es eso lo que mide.
+  const costeTotal = consolidacion
+    ? (aplicadas.length && consolidacion.available ? consolidacion.intereses : 0)
+    : aplicadas.reduce((sum, decision) => sum + Number(decision.params.importe || 0), 0);
   return {
     decisions,
     result,
+    consolidacion,
     libreDeDeuda: escenarioMotorLibreDeDeuda(result.debtStateFinal, baseInput.months),
     cajaMinima: result.series.length ? Math.min(...result.series.map((row) => row.totalLiquidity)) : null,
     costeTotal: round2(costeTotal),
@@ -20602,6 +20741,26 @@ function debtStrategyDecisionsToEscenario(strategyId) {
   escenarioMotorGuardrailValue = debtStrategyReserveValue;
 }
 
+// La nota al pie de cada tarjeta. Es el único sitio donde se explica por qué una estrategia no
+// tiene cifras, así que nunca se queda en blanco cuando falta algo: o dice qué falta, o dice qué
+// hace la estrategia, o no dice nada porque no hay nada que advertir.
+function debtStrategyStatusNote(entry) {
+  if (entry.id === "consolidar") {
+    const plan = entry.consolidacion;
+    if (!plan || !plan.available) {
+      if (plan?.motivo === "cartera") {
+        return `Reunificar exige al menos dos deudas vivas; ahora mismo el motor ve ${plan.contracts.length}.`;
+      }
+      return "Falta la oferta: escribe arriba el TIN y el plazo que te ofrecen y esta estrategia se simula como las otras tres.";
+    }
+    if (!entry.viable) return "Con esta oferta no hay ningún mes del horizonte en que la reunificación respete la reserva mínima.";
+    return `Sustituye ${plan.contracts.length} deudas por un préstamo de ${money(plan.principal, true)} a ${plan.plazo} meses: ${money(plan.cuota, true)} al mes. No exige desembolso.`;
+  }
+  if (entry.total === 0) return "Referencia: nada cambia.";
+  if (entry.viable) return "";
+  return `${entry.aplicadas}/${entry.total} decisiones viables en este horizonte.`;
+}
+
 function renderDeudaComparar() {
   renderScenarioDependencyNotice("deuda-comparar");
   const grid = qs("deudaCompararGrid");
@@ -20610,6 +20769,7 @@ function renderDeudaComparar() {
   if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
   if (reserveField && document.activeElement !== reserveField) reserveField.value = debtStrategyReserveValue ?? "";
   renderDeudaCompararReserveNote();
+  renderDeudaCompararOffer();
 
   const baseInput = escenarioMotorBaseInput();
   const summaries = DEBT_STRATEGY_DEFINITIONS.map((def) => ({ id: def.id, def, ...debtStrategySummary(def.id, baseInput, debtStrategyReserveValue) }));
@@ -20622,22 +20782,22 @@ function renderDeudaComparar() {
   grid.innerHTML = summaries
     .map((entry) => {
       const isRecommended = entry.id === recommendedId;
-      const isNoTouch = entry.total === 0;
-      const statusNote = isNoTouch
-        ? "Referencia: nada cambia."
-        : entry.viable
-        ? ""
-        : `${entry.aplicadas}/${entry.total} decisiones viables en este horizonte.`;
+      const statusNote = debtStrategyStatusNote(entry);
+      // V3-3 · «Consolidar» sin oferta no es una estrategia sin cifras: es una estrategia que no se
+      // ha podido simular. Sus KPI se escriben «—» por la misma razón que en modo degradado (T-5):
+      // un «0,00 €» ahí se leería como un resultado calculado.
+      const sinCalcular = entry.id === "consolidar" && entry.consolidacion && !entry.consolidacion.available;
+      const kpi = (value) => (sinCalcular ? "—" : cifra(value));
       return `<article class="e19-card deuda-decidir-strategy-card${isRecommended ? " is-recommended" : ""}">
         ${isRecommended ? '<span class="e19-badge e19-badge-success deuda-decidir-strategy-flag">Recomendada</span>' : ""}
         <h3>${escapeHtml(entry.def.label)}</h3>
         <p class="e19-kpi-note">${escapeHtml(entry.def.desc)}</p>
         <div class="deuda-decidir-strategy-kpis">
-          <div><span>Libre de deuda</span><strong>${escapeHtml(escenarioMotorMonthLabel(entry.libreDeDeuda))}</strong></div>
-          <div><span>Coste total ejecutado</span><strong>${cifra(entry.costeTotal)}</strong></div>
-          <div><span>Caja mínima</span><strong>${cifra(entry.cajaMinima)}</strong></div>
+          <div><span>Libre de deuda</span><strong>${escapeHtml(sinCalcular ? "—" : escenarioMotorMonthLabel(entry.libreDeDeuda))}</strong></div>
+          <div><span>${escapeHtml(entry.def.costeLabel || DEBT_STRATEGY_COSTE_LABEL)}</span><strong>${kpi(entry.costeTotal)}</strong></div>
+          <div><span>Caja mínima</span><strong>${kpi(entry.cajaMinima)}</strong></div>
         </div>
-        ${statusNote ? `<p class="e19-kpi-note is-warn">${escapeHtml(statusNote)}</p>` : ""}
+        ${statusNote ? `<p class="e19-kpi-note ${entry.viable && entry.total > 0 ? "" : "is-warn"}">${escapeHtml(statusNote)}</p>` : ""}
         <div class="deuda-decidir-strategy-actions">
           <button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-ruta="${escapeHtml(entry.id)}">Ver ruta</button>
           ${isRecommended ? `<button type="button" class="e19-btn e19-btn-primary" data-deuda-comparar-aplicar="${escapeHtml(entry.id)}">Aplicar la recomendada</button>` : ""}
@@ -20682,6 +20842,64 @@ function renderDeudaCompararReserveNote() {
     : "Sin reserva operativa configurada: se secuencia con un suelo de 0 €. Puedes fijarla en el Cuadro de mandos.";
 }
 
+// V3-3 · las tres casillas de la oferta y la nota que dice qué se está comparando. La nota no
+// repite lo que ya está escrito en las casillas: dice de qué se compone el principal —que es lo
+// único que el usuario no teclea y podría malinterpretar— y qué pasa con la comisión.
+function renderDeudaCompararOffer() {
+  const offer = debtConsolidationOffer();
+  const fields = [
+    ["deudaCompararOfferTin", offer.tin],
+    ["deudaCompararOfferPlazo", offer.plazo],
+    ["deudaCompararOfferComision", offer.comision],
+  ];
+  fields.forEach(([id, value]) => {
+    const field = qs(id);
+    if (field && document.activeElement !== field) field.value = Number.isFinite(value) ? value : "";
+  });
+
+  const note = qs("deudaCompararOfferNote");
+  if (!note) return;
+  const plan = debtConsolidationPlan();
+  if (plan.motivo === "cartera") {
+    note.textContent = `Con ${plan.contracts.length} deuda(s) viva(s) no hay nada que reunificar: hacen falta al menos dos.`;
+    return;
+  }
+  if (!plan.available) {
+    note.textContent = "Sin TIN y plazo no se puede calcular la cuota, así que «Consolidar» no se compara. La comisión es opcional.";
+    return;
+  }
+  const comisionTexto = plan.comision > 0
+    ? ` (${money(plan.saldos, true)} de saldos + ${money(plan.comision, true)} de comisión, financiada dentro del préstamo)`
+    : "";
+  note.textContent = `Principal del préstamo nuevo: ${money(plan.principal, true)}${comisionTexto}. Devolverías ${money(plan.totalDevuelto, true)} en total, ${money(plan.intereses, true)} de intereses.`;
+}
+
+function handleDeudaCompararOfferInput() {
+  const read = (id, { entero = false } = {}) => {
+    const raw = (qs(id)?.value ?? "").trim();
+    if (raw === "") return null;
+    const value = Number(raw);
+    if (!Number.isFinite(value) || value < 0) return null;
+    return entero ? Math.round(value) : value;
+  };
+  saveDebtConsolidationOffer({
+    tin: read("deudaCompararOfferTin"),
+    plazo: read("deudaCompararOfferPlazo", { entero: true }),
+    comision: read("deudaCompararOfferComision"),
+  });
+  renderDeudaComparar();
+}
+
+function handleDeudaCompararOfferClear() {
+  saveDebtConsolidationOffer({ tin: null, plazo: null, comision: null });
+  ["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision"].forEach((id) => {
+    const field = qs(id);
+    if (field) field.value = "";
+  });
+  renderDeudaComparar();
+  announceStatus("Oferta de reunificación borrada. «Consolidar» vuelve a quedarse sin cifras.");
+}
+
 function handleDeudaCompararReserveInput(event) {
   const value = Number(event.target.value);
   debtStrategyReserveValue = Number.isFinite(value) && value > 0 ? value : null;
@@ -20703,11 +20921,29 @@ function handleDeudaCompararAplicar(strategyId) {
 // mesResuelto — no una aproximación de calendario de amortización mes a mes.
 function buildDeudaVivaSeries(months, contracts, decisions, resultadosById) {
   const payoffMonthByDebt = new Map();
+  // V3-3 · una reunificación no borra deuda: cierra varias y abre una. Si solo se descontaran las
+  // cerradas, la gráfica enseñaría la deuda cayendo a cero el mes de la firma, que es exactamente
+  // la mentira que hace atractiva a la reunificación. El préstamo nuevo entra en la serie con su
+  // principal desde el mes en que se firma y sigue ahí hasta que se agota su plazo — la misma
+  // función escalón que se usa para las demás, con la misma simplificación declarada.
+  const prestamosNuevos = [];
   decisions.forEach((decision) => {
     const resultado = resultadosById.get(decision.id);
-    if (resultado?.resultado === "aplicada" && resultado.mesResuelto) {
-      payoffMonthByDebt.set(decision.params.deudaId, resultado.mesResuelto);
+    if (resultado?.resultado !== "aplicada" || !resultado.mesResuelto) return;
+    if (decision.tipo === "reunificacion") {
+      (decision.params.deudaIds || []).forEach((deudaId) => payoffMonthByDebt.set(deudaId, resultado.mesResuelto));
+      const startIndex = months.findIndex((month) => month.monthKey === resultado.mesResuelto);
+      const lastIndex = startIndex < 0 ? -1 : startIndex + Math.max(1, Math.floor(Number(decision.params.nuevoPlazo) || 0)) - 1;
+      prestamosNuevos.push({
+        desde: resultado.mesResuelto,
+        // Sin mes de cierre dentro del horizonte, el préstamo sigue vivo hasta el final del tramo
+        // dibujado: se dice con `null`, no se inventa un cierre que no se ha calculado.
+        hasta: lastIndex >= 0 && lastIndex < months.length ? months[lastIndex].monthKey : null,
+        principal: Number(decision.params.nuevoPrincipal) || 0,
+      });
+      return;
     }
+    payoffMonthByDebt.set(decision.params.deudaId, resultado.mesResuelto);
   });
   return months.map((month) => {
     const total = contracts.reduce((sum, contract) => {
@@ -20715,7 +20951,11 @@ function buildDeudaVivaSeries(months, contracts, decisions, resultadosById) {
       const alreadySettled = payoffMonth && payoffMonth <= month.monthKey;
       return alreadySettled ? sum : sum + Number(contract.currentPrincipal || 0);
     }, 0);
-    return { monthKey: month.monthKey, deudaViva: round2(total) };
+    const nuevos = prestamosNuevos.reduce((sum, prestamo) => {
+      const vigente = prestamo.desde <= month.monthKey && (!prestamo.hasta || month.monthKey <= prestamo.hasta);
+      return vigente ? sum + prestamo.principal : sum;
+    }, 0);
+    return { monthKey: month.monthKey, deudaViva: round2(total + nuevos) };
   });
 }
 
@@ -20761,6 +21001,19 @@ function renderDeudaRutaChart(deudaSeries, liquidezSeries, months) {
   svg.insertAdjacentHTML("beforeend", markup);
 }
 
+// Una ruta vacía puede serlo por dos motivos muy distintos: porque la estrategia no propone nada
+// («No tocar nada») o porque no se ha podido construir («Consolidar» sin oferta). Decir «sin
+// decisiones» en los dos casos dejaría al usuario sin saber que le falta teclear algo.
+function deudaRutaEmptyTimelineText(summary) {
+  const plan = summary.consolidacion;
+  if (plan && !plan.available) {
+    return plan.motivo === "cartera"
+      ? `Reunificar exige al menos dos deudas vivas; ahora mismo el motor ve ${plan.contracts.length}.`
+      : "Sin la oferta de reunificación (TIN y plazo) no hay ruta que dibujar: se introduce en «Comparar estrategias».";
+  }
+  return "Sin decisiones: la deuda sigue su calendario actual.";
+}
+
 function renderDeudaRuta() {
   renderScenarioDependencyNotice("deuda-ruta");
   if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
@@ -20786,7 +21039,8 @@ function renderDeudaRuta() {
   }
   const subtitleEl = qs("deudaRutaSubtitle");
   if (subtitleEl) {
-    subtitleEl.textContent = `${def?.label || deudaRutaSelectedStrategy}: ${summary.total} decisión(es), ${money(summary.costeTotal, true)} de coste ejecutado, caja mínima ${money(summary.cajaMinima ?? 0, true)}.`;
+    const costeLabel = (def?.costeLabel || DEBT_STRATEGY_COSTE_LABEL).toLowerCase();
+    subtitleEl.textContent = `${def?.label || deudaRutaSelectedStrategy}: ${summary.total} decisión(es), ${money(summary.costeTotal, true)} de ${costeLabel}, caja mínima ${money(summary.cajaMinima ?? 0, true)}.`;
   }
 
   const deudaViva = buildDeudaVivaSeries(baseInput.months, contracts, summary.decisions, resultadosById);
@@ -20802,18 +21056,30 @@ function renderDeudaRuta() {
     timeline.innerHTML = ordered.length
       ? ordered
           .map(({ decision, resultado }) => {
-            const contract = debts.get(decision.params.deudaId);
             const info = resultado ? escenarioMotorResultInfo(resultado.resultado) : { text: "Sin calcular", badge: "e19-badge-neutral" };
+            // V3-3 · una reunificación no apunta a una deuda ni lleva `importe`: nombra varias y
+            // abre un préstamo. Leer `params.deudaId`/`params.importe` para ella daría «undefined»
+            // y «0,00 €» en la línea de tiempo.
+            const esReunificacion = decision.tipo === "reunificacion";
+            const contract = esReunificacion ? null : debts.get(decision.params.deudaId);
+            const titulo = esReunificacion
+              ? `Reunificar ${(decision.params.deudaIds || []).length} deudas`
+              : contract
+              ? escenarioMotorDebtLabel(contract)
+              : decision.params.deudaId;
+            const detalle = esReunificacion
+              ? `${money(decision.params.nuevoPrincipal, true)} · ${money(decision.params.nuevaCuota, true)}/mes durante ${decision.params.nuevoPlazo} meses`
+              : money(decision.params.importe, true);
             return `<li class="deuda-ruta-timeline-item">
               <span class="deuda-ruta-timeline-month">${escapeHtml(escenarioMotorMonthLabel(resultado?.mesResuelto))}</span>
               <div>
-                <strong>${escapeHtml(contract ? escenarioMotorDebtLabel(contract) : decision.params.deudaId)}</strong>
-                <p>${money(decision.params.importe, true)} · <span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></p>
+                <strong>${escapeHtml(titulo)}</strong>
+                <p>${escapeHtml(detalle)} · <span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></p>
               </div>
             </li>`;
           })
           .join("")
-      : `<li class="deuda-ruta-timeline-item deuda-ruta-timeline-empty">Sin decisiones: la deuda sigue su calendario actual.</li>`;
+      : `<li class="deuda-ruta-timeline-item deuda-ruta-timeline-empty">${escapeHtml(deudaRutaEmptyTimelineText(summary))}</li>`;
   }
 
   const portfolio = qs("deudaRutaPortfolio");
@@ -20846,7 +21112,14 @@ function renderDeudaRuta() {
         ? "La ruta baja de la reserva mínima indicada"
         : "La ruta deja la caja en negativo en algún mes",
     },
-    { ok: summary.total === 0 ? null : summary.viable, label: summary.total === 0 ? "Sin decisiones que aplicar" : summary.viable ? "Todas las decisiones tienen mes viable" : `${summary.total - summary.aplicadas} decisión(es) sin mes viable en este horizonte` },
+    {
+      ok: summary.total === 0 ? null : summary.viable,
+      label: summary.total === 0
+        ? deudaRutaEmptyTimelineText(summary)
+        : summary.viable
+        ? "Todas las decisiones tienen mes viable"
+        : `${summary.total - summary.aplicadas} decisión(es) sin mes viable en este horizonte`,
+    },
   ];
   if (checklist) {
     checklist.innerHTML = checks
@@ -21674,6 +21947,10 @@ async function init() {
     if (deleteButton) handleEscenarioGuardadosDelete(deleteButton.dataset.escenarioGuardadoDelete);
   });
   qs("deudaCompararReserve")?.addEventListener("input", handleDeudaCompararReserveInput);
+  ["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision"].forEach((id) => {
+    qs(id)?.addEventListener("input", handleDeudaCompararOfferInput);
+  });
+  qs("deudaCompararOfferClear")?.addEventListener("click", handleDeudaCompararOfferClear);
   qs("deudaCompararGrid")?.addEventListener("click", (event) => {
     const rutaButton = event.target.closest("[data-deuda-comparar-ruta]");
     if (rutaButton) { handleDeudaCompararVerRuta(rutaButton.dataset.deudaCompararRuta); return; }

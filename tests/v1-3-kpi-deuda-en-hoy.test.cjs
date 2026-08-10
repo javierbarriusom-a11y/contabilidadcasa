@@ -165,6 +165,6 @@ test("V1-3 · la rejilla de Hoy pasa a tres columnas para que las seis tarjetas 
 });
 
 test("V1-3 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-t5a1/);
-  assert.match(html, /app\.js\?v=20260810t5a1/);
+  assert.match(worker, /20260810-v33a1/);
+  assert.match(html, /app\.js\?v=20260810v33a1/);
 });

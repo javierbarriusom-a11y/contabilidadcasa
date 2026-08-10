@@ -952,11 +952,32 @@
               </div>
             </div>
 
+            <fieldset class="deuda-decidir-offer">
+              <legend>Oferta de reunificación</legend>
+              <p class="e19-kpi-note">Las condiciones que te ofrezcan por juntar todas tus deudas en un préstamo único. Se guardan en este navegador y no tocan nada del plan: solo hacen que «Consolidar» se pueda comparar con las otras tres.</p>
+              <div class="deuda-decidir-offer-fields">
+                <label>
+                  <span>TIN anual (%)</span>
+                  <input id="deudaCompararOfferTin" type="number" min="0" max="60" step="0.01" inputmode="decimal" placeholder="p. ej. 7,5" />
+                </label>
+                <label>
+                  <span>Plazo (meses)</span>
+                  <input id="deudaCompararOfferPlazo" type="number" min="1" max="480" step="1" inputmode="numeric" placeholder="p. ej. 96" />
+                </label>
+                <label>
+                  <span>Comisión de apertura (€)</span>
+                  <input id="deudaCompararOfferComision" type="number" min="0" step="0.01" inputmode="decimal" placeholder="opcional" />
+                </label>
+                <button type="button" class="e19-btn e19-btn-secondary" id="deudaCompararOfferClear">Borrar oferta</button>
+              </div>
+              <p class="e19-kpi-note" id="deudaCompararOfferNote"></p>
+            </fieldset>
+
             <div class="deuda-decidir-strategy-grid" id="deudaCompararGrid"></div>
 
             <div class="e19-insight" id="deudaCompararInsight" hidden></div>
 
-            <p class="e19-kpi-note deuda-decidir-note">No se incluye «reunificación» como cuarta estrategia: modelarla exigiría inventar unas condiciones de préstamo (TAE, plazo) que no existen todavía como oferta real en los datos. En cuanto haya una oferta de reunificación registrada, puede añadirse como estrategia comparable.</p>
+            <p class="e19-kpi-note deuda-decidir-note">«Consolidar» se simula con la oferta que hayas introducido arriba, nunca con condiciones inventadas: sin TIN y plazo la tarjeta se queda sin cifras a propósito. La comisión de apertura se financia dentro del préstamo (se suma al principal), que es como suelen firmarse; todavía no se modela como pago aparte en el mes de la firma. El resto de gastos de una reunificación —cancelación anticipada de las deudas viejas, notaría, seguros vinculados— no se piden y por tanto no están en la cifra.</p>
           </section>
 
           <section class="e19-deuda-decidir view-section" id="deuda-ruta">
@@ -2932,7 +2953,7 @@
     <script src="canonical-e9-banking.js?v=20260801e9b"></script>
     <script src="canonical-e9-bank-import.js?v=20260801e9b"></script>
     <script src="canonical-e11b-inbox.js?v=20260801e11b1"></script>
-    <script src="e17-experience.js?v=20260810t5a1"></script>
+    <script src="e17-experience.js?v=20260810v33a1"></script>
     <script src="e18-health.js?v=20260808e18a4"></script>
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>
@@ -2948,7 +2969,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260810t5a1"></script>
+    <script src="app.js?v=20260810v33a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

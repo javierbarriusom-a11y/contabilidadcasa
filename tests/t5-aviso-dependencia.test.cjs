@@ -153,11 +153,16 @@ test("T-5 · el comparador no enseña 0,00 € cuando no ha calculado nada", () 
   // Un cero se lee como respuesta; junto al aviso rojo sería además contradictorio.
   assert.match(app, /const calculado = !missingScenarioDependencies\(\)\.length;/);
   assert.match(app, /const cifra = \(value\) => \(calculado \? money\(value \?\? 0, true\) : "—"\);/);
-  assert.match(app, /<span>Coste total ejecutado<\/span><strong>\$\{cifra\(entry\.costeTotal\)\}/);
-  assert.match(app, /<span>Caja mínima<\/span><strong>\$\{cifra\(entry\.cajaMinima\)\}/);
+  // V3-3 movió la etiqueta del coste a la definición de cada estrategia (`def.costeLabel`) y metió
+  // `cifra` dentro de `kpi`, que además tapa las cifras de «Consolidar» cuando no hay oferta. Lo
+  // que esta prueba vigila no es el texto de la etiqueta, sino que ninguna de las dos cifras se
+  // imprima con `money` directamente, saltándose el modo degradado.
+  assert.match(app, /const kpi = \(value\) => \(sinCalcular \? "—" : cifra\(value\)\);/);
+  assert.match(app, /<strong>\$\{kpi\(entry\.costeTotal\)\}<\/strong>/);
+  assert.match(app, /<span>Caja mínima<\/span><strong>\$\{kpi\(entry\.cajaMinima\)\}<\/strong>/);
 });
 
 test("T-5 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-t5a1/);
-  assert.match(html, /app\.js\?v=20260810t5a1/);
+  assert.match(worker, /20260810-v33a1/);
+  assert.match(html, /app\.js\?v=20260810v33a1/);
 });
