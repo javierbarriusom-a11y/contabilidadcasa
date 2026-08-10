@@ -34,3 +34,25 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   assert.match(app, /case "visual-detail":\s*renderVisualDetail\(\)/);
   assert.match(app, /case "update-hub":\s*renderUpdateHub\(\)/);
 });
+
+// Canario de la composición del menú avanzado: cada relegación lo actualiza a propósito, y una
+// pantalla que desapareciera del menú sin querer rompería esta prueba en vez de pasar inadvertida.
+test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", () => {
+  const links = [...html.matchAll(/<a href="#([\w-]+)" data-e17-group="(\w+)">/g)];
+  const byGroup = links.reduce((groups, match) => {
+    (groups[match[2]] ||= []).push(match[1]);
+    return groups;
+  }, {});
+
+  assert.deepEqual(byGroup.data, ["registrar-mes", "data-entry", "conciliar"]);
+  assert.deepEqual(byGroup.legacy, [
+    "update-data",
+    "movements",
+    "data-audit",
+    "reconciliation",
+    "operations-manual",
+  ]);
+  assert.deepEqual(byGroup.assistants, ["asesor-decision", "executive-advisor", "virtual-advisor"]);
+  assert.equal(byGroup.analysis.length, 18, "Decidir y Analizar suman dieciocho enlaces");
+  assert.equal(links.length, 29, "veintinueve enlaces en el menú avanzado");
+});

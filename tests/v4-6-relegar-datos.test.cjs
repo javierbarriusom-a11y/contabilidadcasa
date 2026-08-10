@@ -23,9 +23,12 @@ test("V4-6 · «Registrar reales del mes» y «Movimientos» quedan en Versiones
   assert.equal(groupOf("movements"), "legacy");
 });
 
-test("V4-6 · la vista Datos conserva sus pantallas nuevas y no pierde ninguna otra", () => {
+// La composición completa de los grupos se vigila en `tests/navigation-structure.test.cjs`, que es
+// donde vive la estructura del menú; aquí solo lo que movió V4-6.
+test("V4-6 · la vista Datos conserva sus pantallas nuevas y suelta las dos relegadas", () => {
   const datos = navLinks.filter((link) => link.group === "data").map((link) => link.view);
-  assert.deepEqual(datos, ["registrar-mes", "data-entry", "data-audit", "conciliar", "reconciliation", "operations-manual"]);
+  assert.ok(datos.includes("registrar-mes") && datos.includes("data-entry"));
+  assert.ok(!datos.includes("update-data") && !datos.includes("movements"));
 });
 
 test("V4-6 · relegar no desconecta: el hub sigue llevando a las dos pantallas", () => {
@@ -47,6 +50,6 @@ test("V4-6 · el lanzador sigue encontrando Movimientos, esté el grupo encendid
 });
 
 test("V4-6 · el grupo relegado viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-v46a1/);
-  assert.match(html, /app\.js\?v=20260810v46a1/);
+  assert.match(worker, /20260810-v53a1/);
+  assert.match(html, /app\.js\?v=20260810v53a1/);
 });
