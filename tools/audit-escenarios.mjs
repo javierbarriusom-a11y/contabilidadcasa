@@ -15,7 +15,16 @@
 //   npm run audit:escenarios              # con el motor, espera 16/16
 //
 // Para reproducir lo que estuvo publicado, sirve una copia de `dist` sin `canonical-scenario-*.js`
-// y apunta ahí con AUDIT_BASE: entonces salen 8/16, y esas ocho son justo lo que el usuario no vio.
+// y apunta ahí con AUDIT_BASE.
+//
+// Referencias esperadas: **16/16 con el motor** y **6/16 sin él**. Ojo con la segunda cifra: era 8/16
+// antes de T-5 y bajó a propósito, no por una regresión. T-5 hizo que el modo degradado deje de
+// fingir resultados, y esta herramienta mide «¿devuelve cifras?», así que las dos mejoras cuentan
+// aquí como comprobaciones rotas:
+//   - el comparador escribe «—» en coste y caja mínima en vez de un 0,00 € que se lee como respuesta;
+//   - simular rechaza la decisión si falta el esquema, en vez de aceptarla sin validar.
+// En ese modo lo que hay que mirar es que las cinco pantallas enseñen su aviso rojo, que es lo que
+// comprueban `tests/t5-aviso-dependencia.test.cjs` y la QA de navegador.
 import { chromium } from "playwright";
 
 const BASE = process.env.AUDIT_BASE || "http://127.0.0.1:4183/";

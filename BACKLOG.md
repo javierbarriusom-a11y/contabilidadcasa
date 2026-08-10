@@ -302,7 +302,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
-| T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | ⏳ | Media | Auditoría §8 · hoy `runEscenarioMotor` devuelve `null` en silencio |
+| T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | 🟡 | Media | Auditoría §8 · hecha el 10 de agosto |
 
 ---
 
@@ -424,3 +424,17 @@ Qué se corrige de estados, y qué no:
 La lección no es que faltaran pruebas: `npm run verify` estaba en verde todo el tiempo, y sigue
 estándolo. Es que ninguna comprobación miraba el artefacto que se publica. Por eso el punto 6 de la
 puerta de aceptación.
+
+### Lo que cambia en modo degradado desde T-5
+
+T-5 (10 de agosto) cierra la otra mitad: si algún día vuelve a faltar una pieza —caché vieja,
+despliegue a medias, bloqueo de red—, **las cinco pantallas lo dicen** con un aviso rojo anunciable
+en vez de quedarse mudas. Además dejan de fingir resultados: el comparador escribe «—» en coste y
+caja mínima en lugar de `0,00 €`, y simular **rechaza** la decisión si falta el esquema en vez de
+aceptarla sin validar, que era lo que hacía (`if (schema) schema.validateDecision(...)` no validaba
+nada cuando no había esquema).
+
+Eso mueve la referencia de `npm run audit:escenarios` en modo degradado **de 8/16 a 6/16, a
+propósito**: la herramienta mide «¿devuelve cifras?», así que las dos mejoras cuentan ahí como
+comprobaciones rotas. Queda escrito en la cabecera de la propia herramienta para que nadie lo lea
+como una regresión.

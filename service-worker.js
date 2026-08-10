@@ -1,4 +1,4 @@
-const CACHE_NAME = "finanzas-casa-shell-20260810-v13a1";
+const CACHE_NAME = "finanzas-casa-shell-20260810-t5a1";
 const SHELL_URLS = [
   "./",
   "./index.html",
