@@ -2,6 +2,60 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: E20-5, cambio de sede y backlog rehecho
+
+Sesión larga con tres tramos: se terminó el turno 3 de mockups, se movió el proyecto de
+repositorio y se rehizo el backlog entero.
+
+**1. E20-5 · Cuadro de mandos con impacto (3a/3b/3c).** Cierra el turno 3 y con él los quince
+mockups de los turnos 1-3. Tres pantallas nuevas: `#cuadro-mandos` (matriz editable con pie de
+impacto), `#cambios-pendientes` (efecto conjunto de la sesión, reversible línea a línea) y
+`#mapa-calor` (salud mensual por color). Lo importante no se ve: las tres reutilizan el almacén de
+borradores `visualDraftCells` de `#visual-detail` en vez de crear uno nuevo — dos almacenes
+habrían dado dos verdades sobre qué está sin guardar. Tres omisiones documentadas a propósito: la
+fecha libre de deuda no entra en el pie (editar un previsto no toca ningún contrato de deuda),
+«todos los meses» es «todo el rango visible» (el horizonte real son 126 meses) y el panel de
+recomendaciones de 3c no se migró porque exigiría inventar un motor que no existe. Fusionado como
+PR #8 en el repositorio antiguo.
+
+**2. Cambio de sede.** Decisión expresa del usuario: **`contabilidadcasa` es el proyecto vivo y
+`finanzas-casa-def` queda congelado**. Es la inversión de la regla vigente hasta hoy. Antes de
+ejecutarla se pidió confirmación, porque el mensaje del usuario contenía dos instrucciones
+incompatibles y la operación es difícil de deshacer. Se volcó aquí todo lo que faltaba (E20-1 a
+E20-5, `docs/` completo y la skill de flujo de trabajo, reapuntada), y se dejó anotado en el
+repositorio congelado —arriba del todo en su `CLAUDE.md` y `PROJECT_STATE.md`— que la sede se
+movió. Dos cosas no se copiaron tal cual, a propósito: se conservó el `pages.yml` de este
+repositorio (trae el arreglo de habilitación automática de Pages que el otro no tiene) y volvió
+`availability.yml` apuntando ya a esta URL.
+
+**3. Backlog rehecho.** `BACKLOG.md` pasa a ser el vigente, organizado por las seis vistas del
+rediseño más un bloque transversal, con el estado medido sobre el código publicado.
+`BACKLOG_STATUS.md` queda como registro histórico de E1-E20 con un aviso que remite al nuevo. Tres
+hallazgos que los documentos no recogían: la app tiene **34 pantallas, no 22** (16 con piel nueva,
+18 heredadas), de las seis vistas **cinco tienen su función publicada y Ajustes no existe**, y
+**`state.operatingReserve` no tiene ningún control en la interfaz** pese a que tres pantallas
+publicadas lo necesitan — hoy degrada el pie de impacto, el mapa de calor y el comparador de deuda.
+
+**4. «Versiones anteriores».** Decisión del usuario que desbloquea el rediseño: las pantallas
+heredadas no se retiran, se mueven a una sección «Versiones anteriores». Cinco tareas pasan de
+bloqueadas a pendientes (V1-4, V2-8, V3-5, V4-6, V5-3), T-1 deja de ser bloqueante, aparece T-0 —el
+grupo en sí— y T-4 cambia de significado y sigue bloqueada a propósito, porque retirar de verdad
+una heredada conviene decidirlo con datos de uso. Se verificó antes de escribirlo que el mecanismo
+ya existe en E17 (`data-e17-group`, `e17Preferences()` en `app.js:371`, `applyE17Preferences()` en
+`app.js:379`), así que la tarea es pequeña.
+
+**Validación de cierre** (`npm run verify`, exit 0): **403/403 pruebas**, accesibilidad
+(571 IDs únicos), rendimiento (diff 10.000 filas en 43,3 ms; forecast y escenarios en 347,3 ms;
+recursos 1198 KB), build público, privacidad y smoke test.
+
+**Publicado.** Nada queda pendiente de publicar: PR #1, #2 y #3 de este repositorio fusionados a
+`main` (`808867e`), árbol limpio, y el despliegue de Pages verificado desde fuera del sandbox con
+el chequeo de disponibilidad, que pasó en verde sobre el commit de `main`. El documento de
+propuesta compartido con el usuario se actualizó a documento de estado en su misma URL.
+
+**Siguiente**: V6-1, el control de reserva operativa. Es la tarea más barata del backlog y la que
+más desbloquea: arregla tres pantallas ya publicadas sin tocarlas.
+
 ## «Versiones anteriores»: la decisión que desbloquea el rediseño
 
 Decisión del usuario del 10 de agosto de 2026, por la tarde:
