@@ -58,7 +58,7 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 |---|---|---|---|
 | 1a Hoy | `#home` | ✅ | — |
 | 1b Ruta de deuda | `#deuda-ruta` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
-| 1c Comparador de estrategias | `#deuda-comparar` | 🟡 | Las cuatro estrategias del rediseño, con «Consolidar» desde V3-3 (10 de agosto). Pendiente de verse en el sitio |
+| 1c Comparador de estrategias | `#deuda-comparar` | ✅ | — · las cuatro estrategias del rediseño desde V3-3, confirmadas en el sitio el 10 de agosto |
 | 1d Asesor ejecutivo | `#asesor-decision` | 🟡 | Ver nota en `docs/E19_SISTEMA_DISENO.md` §8 |
 | 1e Simular | `#escenario-simular` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 1f Actualizar (hub) | `#update-hub` | ✅ | — |
@@ -274,9 +274,9 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| V3-1 | Comparador de estrategias | 🟡 | — | Mockup 1c · E20-2 · sin cifras en el sitio hasta el 10 de agosto, §8 · completado por V3-3 |
+| V3-1 | Comparador de estrategias | ✅ | — | Mockup 1c · E20-2 · sin cifras en el sitio hasta el 10 de agosto, §8 · completado por V3-3 y confirmado en el sitio |
 | V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 · llegó al sitio el 10 de agosto, §8 |
-| V3-3 | Estrategia **Consolidar** como cuarta opción real | 🟡 | Media | Mockup 4d · hecha el 10 de agosto: se pide la oferta (TIN, plazo, comisión) en vez de inventarla |
+| V3-3 | Estrategia **Consolidar** como cuarta opción real | ✅ | Media | Mockup 4d · hecha el 10 de agosto: se pide la oferta (TIN, plazo, comisión) en vez de inventarla · **vista en el sitio** |
 | V3-4 | Oferta en curso dentro de la vista de deuda | ⏳ | Baja | Mockup 4d; hoy vive en `#asesor-decision` |
 | V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ✅ | Media | Mockup 4d · hecha el 10 de agosto, tras V3-3 · **vista en el sitio** |
 
@@ -308,7 +308,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
-| T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | 🟡 | Media | Auditoría §8 · hecha el 10 de agosto |
+| T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | ✅ | Media | Auditoría §8 · hecha el 10 de agosto · **vista en el sitio** |
 
 ---
 
@@ -361,8 +361,8 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha y confirmada en el sitio
    el 10 de agosto de 2026.** El cálculo ya existía en `#deuda-comparar`; se reutiliza tal cual, no
    se duplica.
-6. ~~**V3-3** · estrategia Consolidar~~ — **hecha el 10 de agosto de 2026.** No cierra del todo la
-   🟡 de 1c: la cierra la confirmación de verla en el sitio.
+6. ~~**V3-3** · estrategia Consolidar~~ — **hecha y confirmada en el sitio el 10 de agosto de
+   2026.** Cierra también la 🟡 de 1c y de V3-1.
 7. **V5-2** · confianza del dato por cuenta. **V6-2/V6-3** · el resto de Ajustes.
 8. **T-1** · la navegación de seis vistas, ya sin riesgo, y **T-2** si se quiere el navy.
 
@@ -425,9 +425,8 @@ Qué se corrige de estados, y qué no:
 - **V2-1, V3-2 y los mockups 1b, 1e y 2d conservan el ✅ pero con fecha corregida**: el código estaba
   desde E20, la función **solo llegó al usuario el 10 de agosto de 2026**. Verificado sobre el
   artefacto que despliega Pages (`dist`), no solo en local.
-- **V3-1 y el mockup 1c siguen en 🟡**, aunque ya no por el motivo de siempre: V3-3 (10 de agosto)
-  añadió «Consolidar» como cuarta estrategia real, así que lo único que les queda pendiente es
-  verse en el sitio publicado.
+- **V3-1 y el mockup 1c pasan a ✅**: V3-3 (10 de agosto) añadió «Consolidar» como cuarta estrategia
+  real, y el usuario confirmó verla en el sitio publicado el mismo día.
 - **2e sigue en 🟡** por la nota de §5.
 
 La lección no es que faltaran pruebas: `npm run verify` estaba en verde todo el tiempo, y sigue
