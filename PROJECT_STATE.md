@@ -2,6 +2,42 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V3-5, las tres heredadas de Deuda a «Versiones anteriores»
+
+La cuarta relegación, y la que V3-3 desbloqueaba: hasta que «Consolidar» no fue una estrategia real,
+`#debt-liquidation-plan` era el único sitio donde se veía un orden de ataque completo.
+
+**Qué se mueve.** `#debt-roadmap` (Plan de deuda), `#debt-liquidation-plan` (Plan deuda óptimo) y
+`#debt-control` (Control de deuda) salen de «Decidir» y entran en «Versiones anteriores», en la
+posición que tenían en el menú original —la regla que ya seguían las diez anteriores—. El grupo
+relegado pasa de diez a **trece de las dieciocho heredadas**; las cinco que quedan son las cuatro de
+Hoy (V1-4) y `#new-life-definitive`, que es pestaña principal.
+
+**Lo que no se toca, y es la mitad del trabajo.** Relegar no es desconectar: la tarjeta de Hoy
+(`data-home-nav="debt-control"`), el enlace «Simular deuda» de `#debt-liquidation-plan`, y los dos
+botones de `#asesor-decision` que mandan a `#debt-roadmap` a **registrar y aplicar una oferta**
+siguen exactamente igual. Ese último importa: `#debt-roadmap` es hoy el único sitio donde una oferta
+tiene destino, así que desconectarla habría dejado el asesor apuntando al vacío.
+
+**El agujero de alcance, otra vez cerrado a mano.** `#debt-liquidation-plan` y `#debt-control` no
+tenían entrada en el lanzador; con el grupo apagado se habrían quedado sin ninguna vía desde el
+nombre de la pantalla. Se añaden, como se hizo en V2-8 con las cuatro de Plan.
+
+**Validación** (`npm run verify`, exit 0): **487/487 pruebas** (481 antes + 6 en
+`tests/v3-5-relegar-deuda.test.cjs`), accesibilidad (579 IDs únicos), rendimiento (diff 10.000 filas
+en 32,5 ms; forecast y escenarios en 239,0 ms; recursos 1225 KB), build público, privacidad y smoke.
+
+**QA en navegador real**, servida desde `dist/`: **17/17**, cero errores de página. Incluye la
+comprobación que de verdad importa —apagar «Versiones anteriores» y verificar que el lanzador y la
+tarjeta de Hoy siguen abriendo las tres— y que el comparador conserva sus cuatro estrategias.
+
+El canario de composición del menú (`tests/navigation-structure.test.cjs`) se actualiza a propósito:
+trece en `legacy`, once en `analysis`, treinta en total. Y su comprobación sobre `#debt-roadmap` se
+aprieta: antes bastaba con que apareciera tras los escenarios nuevos, cosa que también cumpliría
+quedándose en «Decidir»; ahora se exige que esté dentro de «Versiones anteriores».
+
+**Shell offline** a `20260810-v35a1`.
+
 ## Cierre de sesión — 10 de agosto de 2026: V3-3, «Consolidar» como cuarta estrategia real
 
 La pantalla de comparar estrategias llevaba desde E20-2 con una nota al pie que decía que

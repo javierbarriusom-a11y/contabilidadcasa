@@ -78,7 +78,7 @@ test("el contrato E12a se carga antes que la app y forma parte del shell offline
   const worker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
   assert.ok(html.indexOf("canonical-forecast.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-forecast\.js/);
-  assert.match(worker, /finanzas-casa-shell-20260810-v33a1/);
+  assert.match(worker, /finanzas-casa-shell-20260810-v35a1/);
 });
 
 test("E12b aprende desviaciones y estacionalidad solo de histórico conciliado", () => {

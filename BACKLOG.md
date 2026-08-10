@@ -92,7 +92,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 |---|---|---|---|
 | **1 · Hoy** | 🟡 parcial | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` |
 | **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` — **ya relegadas** (V2-8) |
-| **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` |
+| **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
 | **6 · Ajustes** | 🟡 parcial | la reserva operativa, alojada en `#cuadro-mandos` (V6-1) | — |
@@ -121,7 +121,10 @@ cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
 > «Versiones anteriores». Se queda donde está; reordenar el menú principal es trabajo de
 > T-1. Por eso V2-8 mueve cinco pantallas y no seis.
 
-**3 · Deuda.** Estrategias y orden de ataque, construidos, y desde el 10 de agosto las cuatro del
+**3 · Deuda.** La vista más completa después de Plan: sus tres heredadas quedaron relegadas el 10 de
+agosto (V3-5) y ninguna se desconectó — `#debt-roadmap` sigue siendo el único sitio donde se registra
+y aplica una oferta, y ahí sigue mandando `#asesor-decision`. Estrategias y orden de ataque,
+construidos, y desde el 10 de agosto las cuatro del
 rediseño: V3-3 añadió *Consolidar* pidiendo la oferta —TIN, plazo y comisión— en vez de fabricarla,
 y *No tocar nada* se queda como cuarta tarjeta, que es la referencia contra la que se comparan las
 demás. Lo que falta de esta vista es la «oferta en curso» del mockup, que sigue viviendo en
@@ -274,7 +277,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 · llegó al sitio el 10 de agosto, §8 |
 | V3-3 | Estrategia **Consolidar** como cuarta opción real | 🟡 | Media | Mockup 4d · hecha el 10 de agosto: se pide la oferta (TIN, plazo, comisión) en vez de inventarla |
 | V3-4 | Oferta en curso dentro de la vista de deuda | ⏳ | Baja | Mockup 4d; hoy vive en `#asesor-decision` |
-| V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ⏳ | Media | Mockup 4d · habilitado por T-0 · desbloqueado por V3-3 |
+| V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | 🟡 | Media | Mockup 4d · hecha el 10 de agosto, tras V3-3 |
 
 ### V4 · Datos
 
@@ -347,11 +350,11 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 1. ~~**V6-1** · control de reserva operativa~~ — **hecha el 10 de agosto de 2026.**
 2. ~~**T-0** · el grupo «Versiones anteriores»~~ — **hecho el 10 de agosto de 2026.** El contenedor
    está puesto; no se ve nada hasta que la primera relegación lo llene.
-3. **V1-4, V3-5, ~~V2-8~~, ~~V4-6~~, ~~V5-3~~** · relegar las heredadas, vista por vista. Se pueden
+3. **V1-4, ~~V3-5~~, ~~V2-8~~, ~~V4-6~~, ~~V5-3~~** · relegar las heredadas, vista por vista. Se pueden
    hacer de una en una y cada una es reversible con un interruptor. **V4-6, V5-3 y V2-8 ya
-   están, el 10 de agosto**: diez pantallas relegadas de las dieciocho heredadas. Quedan las
-   dos que conviene hacer después de cerrar su 🟡 correspondiente: **V3-5**, ya desbloqueada
-   porque V3-3 está hecha, y **V1-4** tras V1-2.
+   están, y V3-5 con ellas, el 10 de agosto**: trece pantallas relegadas de las dieciocho
+   heredadas. Solo queda **V1-4**, que conviene hacer después de cerrar la 🟡 de V1-2 —las otras
+   cinco heredadas son las cuatro de Hoy y `#new-life-definitive`, que es pestaña principal—.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
    escrita y prototipo que sigue sin construir.
 5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha el 10 de agosto de
