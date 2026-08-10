@@ -753,3 +753,1800 @@
 .e19-prevision .prevision-table td[data-prevision-month-key]:hover {
   background: var(--e19-accent-soft);
 }
+
+/* -------------------------------------------------------------------------------------------- */
+/* Motor de Escenario (E20-1) — simular → aplicar → guardados, tres pantallas encadenadas         */
+/* construidas enteramente en e19-, sin markup heredado (mockups 1e/2d/2e). Reutiliza              */
+/* .e19-card/.e19-btn/.e19-table/.e19-badge/.e19-kpi/.e19-insight tal cual; esto cubre el grid del  */
+/* formulario, el layout de dos columnas, el gráfico y las tarjetas de escenario guardado, que no   */
+/* tenían equivalente genérico ya definido.                                                        */
+/* -------------------------------------------------------------------------------------------- */
+
+/* 150px (no 180) para que quepan dos columnas en el panel de controles, que mide como mucho 340px:
+   con 180px la rejilla colapsaba siempre a una columna y los tipos de seis campos obligaban a
+   desplazarse por todo el formulario. */
+.e19-escenario-motor .escenario-motor-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.e19-escenario-motor .escenario-motor-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-form-grid input,
+.e19-escenario-motor .escenario-motor-form-grid select {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+/* E20-3 · Selector de tipo, campos dinámicos y guardarraíl del formulario de «simular». El
+   guardarraíl vive fuera del <form> porque es del escenario entero, no de la decisión que se está
+   componiendo, así que se le da aquí el mismo aspecto que a los campos de dentro. */
+.e19-escenario-motor .escenario-motor-type-label,
+.e19-escenario-motor .escenario-motor-guardrail-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  margin-bottom: 10px;
+}
+
+.e19-escenario-motor .escenario-motor-guardrail-label {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--e19-border);
+}
+
+.e19-escenario-motor .escenario-motor-type-label select,
+.e19-escenario-motor .escenario-motor-guardrail-label input {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+.e19-escenario-motor .escenario-motor-type-hint {
+  margin: 0 0 12px;
+}
+
+.e19-escenario-motor .escenario-motor-form-grid .escenario-motor-field-wide {
+  grid-column: 1 / -1;
+}
+
+/* La casilla se lee de izquierda a derecha, al revés que los campos con rótulo encima. */
+.e19-escenario-motor .escenario-motor-form-grid .escenario-motor-field-check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.e19-escenario-motor .escenario-motor-form-grid .escenario-motor-field-check input {
+  width: auto;
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+.e19-escenario-motor .escenario-motor-form-grid .escenario-motor-field-check > small {
+  flex-basis: 100%;
+}
+
+.e19-escenario-motor .escenario-motor-form-grid select[multiple] {
+  min-height: 84px;
+}
+
+.e19-escenario-motor .escenario-motor-form-error {
+  margin-bottom: 14px;
+}
+
+.e19-escenario-motor .escenario-motor-form-error ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: var(--e19-text-sm);
+}
+
+/* 400px (antes 340) para el panel de controles: con once tipos de decisión el formulario llega a
+   seis campos y a 340px la rejilla no daba para dos columnas, así que obligaba a recorrer todo el
+   formulario en vertical. La columna de previsión sigue teniendo ancho de sobra. */
+.e19-escenario-motor .escenario-motor-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 400px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+/* Sin min-width: 0 un hijo de grid nunca se encoge por debajo del ancho intrínseco de su
+   contenido — con una tabla dentro eso puede empujar el layout entero fuera del viewport en vez
+   de activar el scroll horizontal de .table-wrap, que es lo que se espera aquí. */
+.e19-escenario-motor .escenario-motor-layout > * {
+  min-width: 0;
+}
+
+.e19-escenario-motor .escenario-motor-controls {
+  padding: 18px;
+}
+
+/* Pantalla «Aplicar» (2d): la tabla de diferencias necesita más ancho que el panel de sliders de
+   «Simular», así que invierte la proporción de columnas en vez de reutilizar el mismo layout. */
+.e19-escenario-motor .escenario-motor-layout-apply {
+  grid-template-columns: 1fr minmax(280px, 360px);
+}
+
+.e19-escenario-motor .escenario-motor-diff-panel {
+  padding: 18px;
+}
+
+/* table-layout: fixed + anchos por columna para que las 4 columnas siempre quepan en el ancho
+   disponible (envolviendo texto si hace falta) en vez de forzar scroll horizontal por defecto.
+   min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css (pensado para las
+   tablas grandes de datos), que si no forzaría scroll aquí igualmente. */
+.e19-escenario-motor .escenario-motor-diff-panel table {
+  table-layout: fixed;
+  min-width: 0;
+}
+
+.e19-escenario-motor .escenario-motor-diff-panel th:nth-child(1),
+.e19-escenario-motor .escenario-motor-diff-panel td:nth-child(1) {
+  width: 32%;
+}
+
+.e19-escenario-motor .escenario-motor-diff-panel th:nth-child(2),
+.e19-escenario-motor .escenario-motor-diff-panel td:nth-child(2) {
+  width: 36%;
+}
+
+.e19-escenario-motor .escenario-motor-diff-panel th:nth-child(3),
+.e19-escenario-motor .escenario-motor-diff-panel td:nth-child(3) {
+  width: 16%;
+}
+
+.e19-escenario-motor .escenario-motor-diff-panel th:nth-child(4),
+.e19-escenario-motor .escenario-motor-diff-panel td:nth-child(4) {
+  width: 16%;
+}
+
+.e19-escenario-motor .escenario-motor-diff-panel td {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.e19-escenario-motor .escenario-motor-decision-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.e19-escenario-motor .escenario-motor-decision-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-soft);
+}
+
+.e19-escenario-motor .escenario-motor-decision-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Con un solo tipo de decisión el título cabía siempre en una línea y se recortaba con puntos
+   suspensivos. Con once tipos («Refinanciar Entidad B Tarjeta») recortar esconde justo la parte que
+   identifica la decisión, así que se deja envolver: el título ya viene limitado a 60 caracteres. */
+.e19-escenario-motor .escenario-motor-decision-main strong {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+  overflow-wrap: anywhere;
+}
+
+.e19-escenario-motor .escenario-motor-decision-main span {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-decision-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.e19-escenario-motor .escenario-motor-decision-remove {
+  border: none;
+  background: none;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.e19-escenario-motor .escenario-motor-decision-remove:hover {
+  color: var(--e19-danger);
+}
+
+@media (max-width: 860px) {
+  .e19-escenario-motor .escenario-motor-layout-apply {
+    grid-template-columns: 1fr;
+  }
+}
+
+.e19-escenario-motor .escenario-motor-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.e19-escenario-motor .escenario-motor-preview.e19-card {
+  padding: 18px;
+}
+
+.e19-escenario-motor .escenario-motor-panel-title {
+  margin: 0 0 12px;
+  font: 700 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
+  color: var(--e19-heading);
+}
+
+.e19-escenario-motor .escenario-motor-panel-title-spaced {
+  margin-top: 22px;
+}
+
+.e19-escenario-motor .escenario-motor-chart-card {
+  padding: 18px;
+}
+
+.e19-escenario-motor .escenario-motor-chart {
+  width: 100%;
+  height: 170px;
+  display: block;
+}
+
+.e19-escenario-motor .escenario-motor-chart .chart-line-base {
+  fill: none;
+  stroke: var(--e19-faint);
+  stroke-width: 2;
+}
+
+.e19-escenario-motor .escenario-motor-chart .chart-line-scenario {
+  fill: none;
+  stroke: var(--e19-accent);
+  stroke-width: 2.5;
+}
+
+.e19-escenario-motor .escenario-motor-chart .chart-line-reserve {
+  fill: none;
+  stroke: var(--e19-danger);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.e19-escenario-motor .escenario-motor-chart .chart-label {
+  font: 500 10px / 1 var(--e19-font-sans);
+  fill: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-warning {
+  align-items: center;
+}
+
+.e19-escenario-motor .escenario-motor-go-apply {
+  align-self: flex-end;
+}
+
+.e19-escenario-motor .escenario-motor-go-apply:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.e19-escenario-motor .escenario-motor-motivo-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  margin-bottom: 12px;
+}
+
+.e19-escenario-motor .escenario-motor-motivo-label input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 9px 11px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+.e19-escenario-motor .escenario-motor-motivo-note {
+  margin-top: 10px;
+}
+
+.e19-escenario-motor .escenario-motor-saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.e19-escenario-motor .escenario-motor-saved-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  background: var(--e19-surface);
+  box-shadow: var(--e19-shadow-card);
+}
+
+.e19-escenario-motor .escenario-motor-saved-card.is-aplicado {
+  border-color: var(--e19-success);
+  box-shadow: inset 0 0 0 1px var(--e19-success);
+}
+
+.e19-escenario-motor .escenario-motor-saved-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.e19-escenario-motor .escenario-motor-saved-head small {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-escenario-motor .escenario-motor-saved-meta {
+  display: flex;
+  gap: 22px;
+}
+
+.e19-escenario-motor .escenario-motor-saved-meta div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.e19-escenario-motor .escenario-motor-saved-meta span {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-saved-meta strong {
+  font-size: var(--e19-text-md);
+  color: var(--e19-ink);
+}
+
+.e19-escenario-motor .escenario-motor-saved-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+@media (max-width: 860px) {
+  .e19-escenario-motor .escenario-motor-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Comparador de estrategias + Plan de deuda · ruta (E20-2) — mockups 1b/1c. Construidas sobre el  */
+/* mismo motor (resolveEscenario) que Motor de Escenario, así que reutilizan sus mismos            */
+/* componentes base (.e19-card/.e19-btn/.e19-badge/.e19-kpi-note/.e19-insight); este bloque cubre   */
+/* solo lo que no tenía equivalente: la rejilla de tarjetas de estrategia, el gráfico de área de    */
+/* deuda viva vs. liquidez, la línea de tiempo de la ruta y la cartera con barras proporcionales.   */
+/* -------------------------------------------------------------------------------------------- */
+
+/* .visual-controls es un `display:grid` genérico de 4 columnas (pensado para filtros con
+   selects, en styles.css) que no sirve para agrupar tabs + un enlace: fuerza los tabs a una
+   columna de ~130px, los hace desbordar y acaban tapando el enlace de al lado. Igual que el
+   `table { min-width: 1120px }` de E20-1, se anula solo en este ámbito en vez de tocar la regla
+   global, que sí es correcta para los filtros que la usan en otras pantallas. */
+.e19-deuda-decidir .section-title .visual-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.e19-deuda-decidir .deuda-decidir-reserve-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-deuda-decidir .deuda-decidir-reserve-label input {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 18px 0;
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-card {
+  position: relative;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-card.is-recommended {
+  border-color: var(--e19-accent);
+  box-shadow: inset 0 0 0 1px var(--e19-accent);
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-card h3 {
+  margin: 0;
+  font: 700 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
+  color: var(--e19-heading);
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-flag {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-kpis {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-kpis div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-kpis span {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-kpis strong {
+  font-size: var(--e19-text-md);
+  color: var(--e19-ink);
+}
+
+.e19-deuda-decidir .deuda-decidir-strategy-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.e19-deuda-decidir .deuda-decidir-note {
+  color: var(--e19-faint);
+}
+
+.e19-deuda-decidir .deuda-decidir-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.e19-deuda-decidir .deuda-decidir-tab {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-pill);
+  background: var(--e19-surface);
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+  font-weight: 600;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.e19-deuda-decidir .deuda-decidir-tab.is-active {
+  background: var(--e19-accent);
+  border-color: var(--e19-accent);
+  color: #fff;
+}
+
+.e19-deuda-decidir .deuda-ruta-chart-card {
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.e19-deuda-decidir .deuda-ruta-chart {
+  width: 100%;
+  height: 200px;
+  display: block;
+  margin-top: 8px;
+}
+
+.e19-deuda-decidir .deuda-ruta-chart .chart-area-deuda {
+  fill: color-mix(in srgb, var(--e19-debt) 18%, transparent);
+  stroke: none;
+}
+
+.e19-deuda-decidir .deuda-ruta-chart .chart-line-deuda {
+  fill: none;
+  stroke: var(--e19-debt);
+  stroke-width: 2.5;
+}
+
+.e19-deuda-decidir .deuda-ruta-chart .chart-line-liquidez {
+  fill: none;
+  stroke: var(--e19-accent);
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+}
+
+.e19-deuda-decidir .deuda-ruta-chart .chart-label {
+  font: 500 10px / 1 var(--e19-font-sans);
+  fill: var(--e19-muted);
+}
+
+.e19-deuda-decidir .deuda-ruta-layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 320px);
+  gap: 18px;
+  align-items: start;
+}
+
+.e19-deuda-decidir .deuda-ruta-layout > * {
+  min-width: 0;
+}
+
+.e19-deuda-decidir .deuda-ruta-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.e19-deuda-decidir .deuda-ruta-side .e19-card {
+  padding: 18px;
+}
+
+.e19-deuda-decidir .deuda-ruta-layout > .e19-card {
+  padding: 18px;
+}
+
+.e19-deuda-decidir .deuda-ruta-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.e19-deuda-decidir .deuda-ruta-timeline-item {
+  display: flex;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--e19-border);
+}
+
+.e19-deuda-decidir .deuda-ruta-timeline-item:last-child {
+  border-bottom: none;
+}
+
+.e19-deuda-decidir .deuda-ruta-timeline-month {
+  flex: none;
+  width: 72px;
+  font-size: var(--e19-text-xs);
+  font-weight: 700;
+  color: var(--e19-accent);
+}
+
+.e19-deuda-decidir .deuda-ruta-timeline-item p {
+  margin: 2px 0 0;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.e19-deuda-decidir .deuda-ruta-timeline-empty {
+  color: var(--e19-muted);
+}
+
+.e19-deuda-decidir .deuda-ruta-portfolio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.e19-deuda-decidir .deuda-ruta-portfolio-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-deuda-decidir .deuda-ruta-portfolio-row span {
+  color: var(--e19-muted);
+}
+
+.e19-deuda-decidir .deuda-ruta-portfolio-row strong {
+  color: var(--e19-ink);
+  text-align: right;
+}
+
+.e19-deuda-decidir .deuda-ruta-portfolio-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--e19-radius-pill);
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+.e19-deuda-decidir .deuda-ruta-portfolio-bar span {
+  display: block;
+  height: 100%;
+  background: var(--e19-debt);
+}
+
+.e19-deuda-decidir .deuda-ruta-checklist {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-deuda-decidir .deuda-ruta-check {
+  font-size: var(--e19-text-sm);
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  color: var(--e19-muted);
+}
+
+.e19-deuda-decidir .deuda-ruta-check.is-ok {
+  color: var(--e19-success);
+  background: color-mix(in srgb, var(--e19-success) 10%, var(--e19-surface-soft));
+}
+
+.e19-deuda-decidir .deuda-ruta-check.is-danger {
+  color: var(--e19-danger);
+  background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+@media (max-width: 860px) {
+  .e19-deuda-decidir .deuda-ruta-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Conciliación (E20-2) — mockup 1g. No reimplementa el motor de conciliación: reutiliza           */
+/* refreshCanonicalLedger/E11bInbox tal cual, solo con una presentación E19 nueva y enfocada en     */
+/* "qué falta para cerrar el mes" (la pantalla heredada #reconciliation sigue intacta para el       */
+/* panel operativo completo). Reutiliza .deuda-ruta-side/.deuda-ruta-checklist con su propio ámbito */
+/* — mismos nombres de clase que en el comparador de deuda, redefinidos aquí a propósito en vez de  */
+/* compartir una regla entre pantallas distintas.                                                  */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-conciliar .conciliar-layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 320px);
+  gap: 18px;
+  align-items: start;
+}
+
+.e19-conciliar .conciliar-layout > * {
+  min-width: 0;
+}
+
+.e19-conciliar .conciliar-layout > .e19-card {
+  padding: 18px;
+}
+
+.e19-conciliar .deuda-ruta-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.e19-conciliar .deuda-ruta-side .e19-card {
+  padding: 18px;
+}
+
+.e19-conciliar .deuda-ruta-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-conciliar .deuda-ruta-check {
+  font-size: var(--e19-text-sm);
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  color: var(--e19-muted);
+}
+
+.e19-conciliar .deuda-ruta-check.is-ok {
+  color: var(--e19-success);
+  background: color-mix(in srgb, var(--e19-success) 10%, var(--e19-surface-soft));
+}
+
+.e19-conciliar .deuda-ruta-check.is-danger {
+  color: var(--e19-danger);
+  background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+.e19-conciliar .conciliar-task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.e19-conciliar .conciliar-task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-soft);
+}
+
+.e19-conciliar .conciliar-task-item.conciliar-task-empty {
+  color: var(--e19-muted);
+}
+
+.e19-conciliar .conciliar-task-index {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--e19-warning);
+  color: #fff;
+  font-size: var(--e19-text-xs);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.e19-conciliar .conciliar-task-item > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.e19-conciliar .conciliar-task-item strong {
+  display: block;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+}
+
+.e19-conciliar .conciliar-task-item p {
+  margin: 2px 0 0;
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-conciliar .conciliar-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--e19-border);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-conciliar .conciliar-history-row:last-child {
+  border-bottom: none;
+}
+
+.e19-conciliar .conciliar-history-row span {
+  color: var(--e19-muted);
+}
+
+.e19-conciliar .conciliar-history-row strong.is-ok {
+  color: var(--e19-success);
+}
+
+.e19-conciliar .conciliar-history-row strong.is-warn {
+  color: var(--e19-warning);
+}
+
+@media (max-width: 860px) {
+  .e19-conciliar .conciliar-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Asesor ejecutivo (E20-2) — mockup 1d. La "decisión abierta" sale de una oferta real registrada  */
+/* en E14b (Plan de deuda), no de un motor de recomendación genérico. Sin ofertas abiertas se       */
+/* muestra .asesor-decision-empty en vez de fabricar una decisión.                                 */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-asesor-decision .asesor-decision-empty {
+  padding: 24px;
+  text-align: center;
+}
+
+.e19-asesor-decision .asesor-decision-empty h3 {
+  margin: 0 0 8px;
+  font: 700 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
+  color: var(--e19-heading);
+}
+
+.e19-asesor-decision .asesor-decision-empty .e19-btn {
+  margin-top: 14px;
+}
+
+.e19-asesor-decision .asesor-decision-layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(280px, 340px);
+  gap: 18px;
+  align-items: start;
+}
+
+.e19-asesor-decision .asesor-decision-layout > * {
+  min-width: 0;
+}
+
+.e19-asesor-decision .asesor-decision-main {
+  padding: 20px;
+}
+
+.e19-asesor-decision .asesor-decision-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.e19-asesor-decision .asesor-decision-head h3 {
+  margin: 0;
+  font: 700 var(--e19-text-xl) / 1.25 var(--e19-font-sans);
+  color: var(--e19-heading);
+}
+
+.e19-asesor-decision .asesor-decision-head strong {
+  font: 700 var(--e19-text-display) / 1 var(--e19-font-sans);
+  color: var(--e19-accent);
+}
+
+.e19-asesor-decision .asesor-decision-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.e19-asesor-decision .asesor-decision-stat {
+  padding: 12px;
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.e19-asesor-decision .asesor-decision-stat span {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-asesor-decision .asesor-decision-stat strong {
+  font-size: var(--e19-text-lg);
+  color: var(--e19-success);
+}
+
+.e19-asesor-decision .asesor-decision-subtitle {
+  margin-top: 6px;
+}
+
+.e19-asesor-decision .asesor-decision-funding {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.e19-asesor-decision .asesor-decision-funding-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-asesor-decision .asesor-decision-funding-row span {
+  color: var(--e19-muted);
+}
+
+.e19-asesor-decision .asesor-decision-funding-row strong {
+  color: var(--e19-ink);
+  text-align: right;
+}
+
+.e19-asesor-decision .asesor-decision-funding-row.is-danger strong {
+  color: var(--e19-danger);
+}
+
+.e19-asesor-decision .asesor-decision-funding-bar {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: var(--e19-radius-pill);
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+.e19-asesor-decision .asesor-decision-funding-row.is-danger .asesor-decision-funding-bar {
+  background: color-mix(in srgb, var(--e19-danger) 20%, var(--e19-surface-sunken));
+}
+
+.e19-asesor-decision .asesor-decision-funding-bar span {
+  display: block;
+  height: 100%;
+  background: var(--e19-accent);
+}
+
+.e19-asesor-decision .asesor-decision-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.e19-asesor-decision .deuda-ruta-side {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.e19-asesor-decision .deuda-ruta-side .e19-card {
+  padding: 18px;
+}
+
+.e19-asesor-decision .asesor-decision-limits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-asesor-decision .deuda-ruta-check {
+  font-size: var(--e19-text-sm);
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  color: var(--e19-muted);
+}
+
+.e19-asesor-decision .deuda-ruta-check.is-ok {
+  color: var(--e19-success);
+  background: color-mix(in srgb, var(--e19-success) 10%, var(--e19-surface-soft));
+}
+
+.e19-asesor-decision .deuda-ruta-check.is-danger {
+  color: var(--e19-danger);
+  background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+.e19-asesor-decision .asesor-decision-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.e19-asesor-decision .conciliar-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--e19-border);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-asesor-decision .conciliar-history-row:last-child {
+  border-bottom: none;
+}
+
+.e19-asesor-decision .conciliar-history-row span {
+  color: var(--e19-muted);
+}
+
+@media (max-width: 860px) {
+  .e19-asesor-decision .asesor-decision-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* «Registrar el mes» (E20-4, mockup 2a) — todo bajo .e19-registrar-mes para no tocar la pantalla */
+/* heredada `#update-data`, que sigue usando .detail-table y su acordeón por bloques.             */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-registrar-mes .registrar-mes-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.e19-registrar-mes .registrar-mes-tables {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.e19-registrar-mes .registrar-mes-card {
+  padding: 16px 18px 14px;
+}
+
+.e19-registrar-mes .registrar-mes-card-head,
+.e19-cuadro-mandos .registrar-mes-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* Segmentado de filtros: un solo grupo con el activo en blanco sobre fondo hundido.
+   Lo comparten «Registrar el mes» y el cuadro de mandos, que lo usa para elegir métrica. */
+.e19-registrar-mes .registrar-mes-filters,
+.e19-cuadro-mandos .registrar-mes-filters {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--e19-surface-sunken);
+  border-radius: var(--e19-radius-pill);
+}
+
+.e19-registrar-mes .registrar-mes-filter,
+.e19-cuadro-mandos .registrar-mes-filter {
+  border: none;
+  background: transparent;
+  border-radius: var(--e19-radius-pill);
+  padding: 6px 14px;
+  font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-muted);
+  cursor: pointer;
+}
+
+.e19-registrar-mes .registrar-mes-filter.is-active,
+.e19-cuadro-mandos .registrar-mes-filter.is-active {
+  background: var(--e19-surface);
+  color: var(--e19-heading);
+  box-shadow: var(--e19-shadow-card);
+}
+
+.e19-registrar-mes .registrar-mes-filter:focus-visible,
+.e19-cuadro-mandos .registrar-mes-filter:focus-visible {
+  outline: 2px solid var(--e19-accent);
+  outline-offset: 2px;
+}
+
+.e19-registrar-mes .registrar-mes-table {
+  min-width: 720px;
+}
+
+/* Bloque y concepto identifican la fila: van a la izquierda, aunque .e19-table alinee a la
+   derecha todo lo que no sea la primera columna (pensada para tablas de solo cifras). */
+.e19-registrar-mes .registrar-mes-table thead th:nth-child(2),
+.e19-registrar-mes .registrar-mes-table td.registrar-mes-block,
+.e19-registrar-mes .registrar-mes-table td.registrar-mes-concept {
+  text-align: left;
+}
+
+.e19-registrar-mes .registrar-mes-table .registrar-mes-block {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-registrar-mes .registrar-mes-table .registrar-mes-concept {
+  font-weight: 600;
+  color: var(--e19-heading);
+}
+
+.e19-registrar-mes .registrar-mes-table .registrar-mes-concept small {
+  font-weight: 400;
+  color: var(--e19-faint);
+}
+
+.e19-registrar-mes .registrar-mes-table input[type="number"] {
+  width: 108px;
+  text-align: right;
+  padding: 6px 10px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface);
+  font: 600 var(--e19-text-base) / 1.2 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-ink);
+}
+
+.e19-registrar-mes .registrar-mes-table input[type="number"]:focus-visible {
+  outline: none;
+  border-color: var(--e19-accent);
+  box-shadow: 0 0 0 3px var(--e19-accent-soft);
+}
+
+.e19-registrar-mes .registrar-mes-table input[type="number"]:disabled {
+  background: var(--e19-surface-sunken);
+  color: var(--e19-faint);
+}
+
+/* Fila que va a peor: se tiñe entera para que el ojo la encuentre sin leer la columna. */
+.e19-registrar-mes .registrar-mes-table tr.registrar-mes-row-off td {
+  background: var(--e19-warning-soft);
+}
+
+/* .positive/.negative de styles.css pierden contra `.e19-table tbody td`, que fija el color. */
+.e19-registrar-mes .registrar-mes-table td.positive {
+  color: var(--e19-success);
+  font-weight: 600;
+}
+
+.e19-registrar-mes .registrar-mes-table td.negative {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+.e19-registrar-mes .registrar-mes-table tr.registrar-mes-row-custom td:first-child {
+  box-shadow: inset 3px 0 0 var(--e19-accent);
+}
+
+.e19-registrar-mes .registrar-mes-table .registrar-mes-row-actions {
+  width: 40px;
+}
+
+.e19-registrar-mes .registrar-mes-row-remove {
+  border: none;
+  background: transparent;
+  color: var(--e19-faint);
+  font-size: var(--e19-text-lg);
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--e19-radius-sm);
+}
+
+.e19-registrar-mes .registrar-mes-row-remove:hover {
+  color: var(--e19-danger);
+  background: var(--e19-danger-soft);
+}
+
+.e19-registrar-mes .registrar-mes-empty {
+  text-align: center;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+  padding: 20px 14px;
+}
+
+.e19-registrar-mes .registrar-mes-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  margin-top: 10px;
+  border-top: 1px solid var(--e19-border);
+}
+
+.e19-registrar-mes .registrar-mes-link,
+.e19-cuadro-mandos .registrar-mes-link {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: 600 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  color: var(--e19-accent);
+  cursor: pointer;
+}
+
+.e19-registrar-mes .registrar-mes-link:hover,
+.e19-cuadro-mandos .registrar-mes-link:hover {
+  color: var(--e19-accent-hover);
+  text-decoration: underline;
+}
+
+.e19-registrar-mes .registrar-mes-copy-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-registrar-mes .registrar-mes-add {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--e19-surface-soft);
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+}
+
+.e19-registrar-mes .registrar-mes-add label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 600 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.e19-registrar-mes .registrar-mes-add input,
+.e19-registrar-mes .registrar-mes-add select {
+  min-width: 140px;
+  padding: 7px 10px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface);
+  font: 400 var(--e19-text-base) / 1.2 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.e19-registrar-mes .registrar-mes-add-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Barra de progreso de «Completado»: el ancho lo fija el render con un style inline. */
+.e19-registrar-mes .registrar-mes-progress {
+  display: block;
+  height: 6px;
+  border-radius: var(--e19-radius-pill);
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+.e19-registrar-mes .registrar-mes-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--e19-accent);
+}
+
+@media (max-width: 860px) {
+  .e19-registrar-mes .registrar-mes-card-head,
+  .e19-registrar-mes .registrar-mes-card-foot {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* -------------------------------------------------------------------------------------------- */
+/* Cuadro de mandos con impacto (E20-5, mockups 3a/3b/3c) — todo bajo .e19-cuadro-mandos, que     */
+/* comparten `#cuadro-mandos`, `#cambios-pendientes` y `#mapa-calor`.                             */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-cuadro-mandos .cuadro-mandos-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* --- 3a · matriz partida x mes --- */
+
+.e19-cuadro-mandos .cuadro-mandos-wrap {
+  margin-top: 16px;
+  background: var(--e19-surface);
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  box-shadow: var(--e19-shadow-card);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-table {
+  min-width: 760px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-table td,
+.e19-cuadro-mandos .cuadro-mandos-table th {
+  white-space: nowrap;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-table td:first-child {
+  min-width: 220px;
+}
+
+/* Meses ya cerrados: se muestran para poder comparar, pero no se editan. */
+.e19-cuadro-mandos .cuadro-mandos-closed {
+  color: var(--e19-faint);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-absent {
+  color: var(--e19-faint);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-section td {
+  background: var(--e19-surface-soft);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-section td:first-child {
+  box-shadow: inset 3px 0 0 var(--e19-debt);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-section.is-income td:first-child {
+  box-shadow: inset 3px 0 0 var(--e19-heading);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-toggle {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: 700 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-heading);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-toggle span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-sunken);
+  color: var(--e19-muted);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-section small,
+.e19-cuadro-mandos .cuadro-mandos-result small {
+  display: block;
+  font-weight: 400;
+  color: var(--e19-faint);
+  font-size: 11px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-concept {
+  padding-left: 30px !important;
+  font-weight: 600;
+  color: var(--e19-ink);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-table input[type="number"] {
+  width: 94px;
+  text-align: right;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--e19-radius-sm);
+  background: transparent;
+  font: 400 var(--e19-text-base) / 1.2 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-ink);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-table input[type="number"]:hover {
+  border-color: var(--e19-border-strong);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-table input[type="number"]:focus-visible {
+  outline: none;
+  border-color: var(--e19-accent);
+  background: var(--e19-surface);
+  box-shadow: 0 0 0 3px var(--e19-accent-soft);
+}
+
+/* Celda con un borrador encima: sigue siendo editable, pero se ve que no es lo guardado. */
+.e19-cuadro-mandos .cuadro-mandos-dirty {
+  background: var(--e19-accent-soft);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-dirty input[type="number"] {
+  font-weight: 700;
+  color: var(--e19-accent);
+  border-color: var(--e19-accent-soft-border);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-apply-row td {
+  background: var(--e19-accent-soft);
+  white-space: normal;
+  text-align: left;
+  padding: 10px 14px 10px 30px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-apply-label {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  margin-right: 8px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-apply-row .e19-btn {
+  margin-right: 6px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-apply-note {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  margin-left: 6px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-total td,
+.e19-cuadro-mandos .cuadro-mandos-result td {
+  border-top: 1px solid var(--e19-border-strong);
+  background: var(--e19-surface-soft);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-result td.positive strong {
+  color: var(--e19-success);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-result td.negative strong {
+  color: var(--e19-danger);
+}
+
+/* Pie de impacto: fijo abajo mientras haya cambios sin guardar (spec 5a). */
+.e19-cuadro-mandos .cuadro-mandos-impact {
+  position: sticky;
+  bottom: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+  box-shadow: var(--e19-shadow-pop);
+  z-index: 3;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-impact-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-impact-head strong {
+  font-size: var(--e19-text-md);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-impact-head small,
+.e19-cuadro-mandos .cuadro-mandos-impact-head .e19-eyebrow {
+  color: #8fa3c4;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-impact-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.e19-cuadro-mandos .e19-impact-bar dd .is-up {
+  color: #7ee2a8;
+}
+
+.e19-cuadro-mandos .e19-impact-bar dd .is-down {
+  color: #ff9a9a;
+}
+
+/* --- 3b · bandeja de cambios --- */
+
+.e19-cuadro-mandos .cambios-pendientes-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: 16px;
+  margin-top: 16px;
+  align-items: start;
+}
+
+.e19-cuadro-mandos .cambios-pendientes-layout > .e19-card,
+.e19-cuadro-mandos .mapa-calor-card {
+  padding: 16px 18px;
+}
+
+/* Los KPI de la bandeja llevan antes -> despues dentro de la propia tarjeta. */
+.e19-cuadro-mandos .cuadro-mandos-kpi {
+  margin: 0;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-kpi dd {
+  margin: 0;
+  font: 800 var(--e19-text-xl) / 1.1 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-heading);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-kpi dd .was {
+  display: inline-block;
+  margin-right: 8px;
+  font: 400 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-faint);
+  text-decoration: line-through;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-kpi dd .is-up {
+  color: var(--e19-success);
+}
+
+.e19-cuadro-mandos .cuadro-mandos-kpi dd .is-down {
+  color: var(--e19-danger);
+}
+
+.e19-cuadro-mandos .cambios-pendientes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.e19-cuadro-mandos .cambios-pendientes-item {
+  display: grid;
+  grid-template-columns: 92px 92px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--e19-border);
+}
+
+.e19-cuadro-mandos .cambios-pendientes-item:last-child {
+  border-bottom: none;
+}
+
+.e19-cuadro-mandos .cambios-pendientes-item p {
+  margin: 2px 0 0;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-cuadro-mandos .cambios-pendientes-item > strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.e19-cuadro-mandos .cambios-pendientes-bar {
+  display: block;
+  height: 16px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+.e19-cuadro-mandos .cambios-pendientes-bar i {
+  display: block;
+  height: 100%;
+}
+
+.e19-cuadro-mandos .cambios-pendientes-bar i.is-down {
+  background: var(--e19-danger);
+}
+
+.e19-cuadro-mandos .cambios-pendientes-bar i.is-up {
+  background: var(--e19-success);
+}
+
+.e19-cuadro-mandos .cambios-pendientes-empty {
+  list-style: none;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+  padding: 14px 0;
+}
+
+.e19-cuadro-mandos .cambios-pendientes-chart svg {
+  width: 100%;
+  height: 130px;
+  display: block;
+}
+
+.e19-cuadro-mandos .cambios-chart-before {
+  fill: none;
+  stroke: var(--e19-faint);
+  stroke-width: 2;
+}
+
+.e19-cuadro-mandos .cambios-chart-after {
+  fill: none;
+  stroke: var(--e19-danger);
+  stroke-width: 2;
+}
+
+.e19-cuadro-mandos .cambios-chart-reserve {
+  stroke: var(--e19-danger);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  opacity: 0.6;
+}
+
+.e19-cuadro-mandos .cambios-chart-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-cuadro-mandos .cambios-chart-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.e19-cuadro-mandos .cambios-chart-key-before { background: var(--e19-faint); }
+.e19-cuadro-mandos .cambios-chart-key-after { background: var(--e19-danger); }
+.e19-cuadro-mandos .cambios-chart-key-reserve { background: var(--e19-danger); opacity: 0.6; }
+
+/* --- 3c · mapa de calor --- */
+
+.e19-cuadro-mandos .mapa-calor-card {
+  margin-top: 16px;
+}
+
+.e19-cuadro-mandos .mapa-calor-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-cuadro-mandos .mapa-calor-key {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.e19-cuadro-mandos .mapa-calor-grid {
+  border-collapse: separate;
+  border-spacing: 4px;
+  width: 100%;
+  min-width: 620px;
+}
+
+.e19-cuadro-mandos .mapa-calor-grid th {
+  font: 600 11px / 1.2 var(--e19-font-sans);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--e19-muted);
+  text-align: center;
+}
+
+.e19-cuadro-mandos .mapa-calor-grid th[scope="row"] {
+  text-align: left;
+  padding-right: 8px;
+}
+
+.e19-cuadro-mandos .mapa-calor-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: var(--e19-radius-sm);
+  border: 2px solid transparent;
+  font: 700 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.e19-cuadro-mandos .mapa-calor-cell.is-empty { background: var(--e19-surface-sunken); }
+.e19-cuadro-mandos .mapa-calor-key.is-negative,
+.e19-cuadro-mandos .mapa-calor-cell.is-negative { background: var(--e19-danger); color: #fff; }
+.e19-cuadro-mandos .mapa-calor-key.is-tight,
+.e19-cuadro-mandos .mapa-calor-cell.is-tight { background: var(--e19-debt); color: #fff; }
+.e19-cuadro-mandos .mapa-calor-key.is-ok,
+.e19-cuadro-mandos .mapa-calor-cell.is-ok { background: var(--e19-success-soft-border); color: var(--e19-heading); }
+.e19-cuadro-mandos .mapa-calor-key.is-good,
+.e19-cuadro-mandos .mapa-calor-cell.is-good { background: var(--e19-success); color: #fff; }
+.e19-cuadro-mandos .mapa-calor-key.is-touched { background: var(--e19-surface); border: 2px solid var(--e19-accent); }
+.e19-cuadro-mandos .mapa-calor-cell.is-touched { border-color: var(--e19-accent); }
+
+.e19-cuadro-mandos .mapa-calor-block {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr) 90px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-cuadro-mandos .mapa-calor-block strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.e19-cuadro-mandos .mapa-calor-block-bar {
+  display: block;
+  height: 12px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+.e19-cuadro-mandos .mapa-calor-block-bar i {
+  display: block;
+  height: 100%;
+  background: var(--e19-debt);
+}
+
+.e19-cuadro-mandos .mapa-calor-actions {
+  padding: 16px 18px;
+  color: #fff;
+}
+
+.e19-cuadro-mandos .mapa-calor-actions .escenario-motor-panel-title {
+  color: #fff;
+}
+
+.e19-cuadro-mandos .mapa-calor-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-cuadro-mandos .mapa-calor-link:last-child {
+  border-bottom: none;
+}
+
+@media (max-width: 1080px) {
+  .e19-cuadro-mandos .cambios-pendientes-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 860px) {
+  .e19-cuadro-mandos .cambios-pendientes-item {
+    grid-template-columns: 60px 80px minmax(0, 1fr);
+  }
+
+  .e19-cuadro-mandos .cambios-pendientes-item button {
+    grid-column: 3;
+    justify-self: start;
+  }
+
+  .e19-cuadro-mandos .cuadro-mandos-impact {
+    position: static;
+  }
+}
+
+/* Los botones que son enlaces no deben llevar el subrayado global de <a>. */
+.e19-cuadro-mandos a.e19-btn {
+  text-decoration: none;
+}

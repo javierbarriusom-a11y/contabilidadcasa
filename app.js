@@ -268,6 +268,22 @@ const viewTitles = {
     eyebrow: "Actualización del mes",
     title: "Registra ingresos y gastos según van ocurriendo",
   },
+  "registrar-mes": {
+    eyebrow: "Actualizar",
+    title: "Registra el mes partida a partida y mira cómo va",
+  },
+  "cuadro-mandos": {
+    eyebrow: "Cuadro de mandos",
+    title: "Edita una partida y mira el impacto antes de guardar",
+  },
+  "cambios-pendientes": {
+    eyebrow: "Cambios pendientes",
+    title: "El efecto conjunto de todo lo que has tocado hoy",
+  },
+  "mapa-calor": {
+    eyebrow: "Cuadro de mandos",
+    title: "Dónde duele cada mes, sin leer una cifra",
+  },
   "update-hub": {
     eyebrow: "Actualizar mis datos",
     title: "Pon al día saldos, movimientos, reales o previsiones",
@@ -3302,6 +3318,7 @@ async function closeCurrentMonthTransaction() {
     ensureRemoteSaveQueue().acknowledge(closedAt);
     saveLocalSnapshot();
     renderReconciliation();
+    if (qs("conciliarTitle")) renderConciliar();
     if (status) status.textContent = `${month} cerrado. Los reales quedan congelados en una versión recuperable.`;
   } catch (error) {
     if (status) status.textContent = `No se cerró el mes: ${error.message}`;
@@ -16420,6 +16437,1154 @@ function renderMonthlyDetails() {
   renderExpenseDetails();
 }
 
+/* --------------------------------------------------------------------------------------------- */
+/* «Registrar el mes» (mockup 2a, E20-4)                                                           */
+/*                                                                                                 */
+/* Pantalla nueva junto a `#update-data`, no en su lugar: la heredada conserva el acordeón por      */
+/* bloques, el editor de conceptos y el borrado de cualquier línea. Aquí la lista es plana —una     */
+/* fila por partida— porque ese es justamente el punto del mockup: ver de un vistazo qué queda por  */
+/* registrar. Ambas comparten almacén (`incomeActuals`/`expenseActuals`), así que un real escrito   */
+/* en una pantalla aparece en la otra sin migrar ningún dato.                                       */
+/* --------------------------------------------------------------------------------------------- */
+
+const REGISTRAR_MES_KINDS = [
+  { kind: "expense", label: "Gastos" },
+  { kind: "income", label: "Ingresos" },
+];
+const REGISTRAR_MES_FILTER_LABELS = { "sin-real": "Sin real", desviacion: "Con desviación", todo: "Todo" };
+const registrarMesFilters = { income: "sin-real", expense: "sin-real" };
+const registrarMesAddOpen = { income: false, expense: false };
+const registrarMesCopyPending = { income: false, expense: false };
+let registrarMesLastSaveAt = null;
+// Guardar un real no puede reconstruir la tabla: el `change` salta durante el blur, antes de que
+// el foco aterrice en la casilla siguiente, así que reescribir el HTML ahí deja el foco en el
+// aire y rompe el tabulado. En ese camino solo se refrescan las celdas derivadas.
+let registrarMesCellsOnly = false;
+
+function registrarMesSelectedMonth() {
+  const months = baseData?.monthlyPlanning?.months;
+  if (!months?.length) return null;
+  const raw = Number(qs("registrarMesMonth")?.value || 0);
+  const index = Math.min(Math.max(Number.isFinite(raw) ? raw : 0, 0), months.length - 1);
+  return { ...months[index], index };
+}
+
+function registrarMesPreviousMonth(month) {
+  const months = baseData?.monthlyPlanning?.months || [];
+  if (!month || month.index <= 0) return null;
+  return { ...months[month.index - 1], index: month.index - 1 };
+}
+
+function registrarMesMonthName(key) {
+  const date = dateFromMonthKey(key);
+  if (!date) return String(key || "");
+  const name = date.toLocaleDateString("es-ES", { month: "long" });
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+function registrarMesLongMonth(key) {
+  const date = dateFromMonthKey(key);
+  return date ? date.toLocaleDateString("es-ES", { month: "long", year: "numeric" }) : String(key || "");
+}
+
+function registrarMesSignedMoney(value) {
+  const amount = Number(value || 0);
+  return `${amount > 0 ? "+" : ""}${money(amount, true)}`;
+}
+
+function registrarMesIsOff(entry) {
+  return Boolean(entry.hasActual) && Math.abs(Number(entry.variance || 0)) >= 0.005;
+}
+
+// El filtro «Con desviación» cuenta cualquier diferencia; el tinte de la fila se reserva a las
+// que van a peor (más gasto o menos ingreso), para no pintar de aviso una buena noticia.
+function registrarMesIsBad(entry) {
+  return registrarMesIsOff(entry) && varianceClassForKind(entry.kind, entry.variance) === "negative";
+}
+
+function registrarMesCollect(month) {
+  const result = { income: [], expense: [] };
+  if (!month) return result;
+  ["income", "expense"].forEach((kind) => {
+    planningSectionsForMonth(kind, month).forEach((section) => {
+      section.rows.forEach((row) => {
+        const info = actualAwareInfo(row, month);
+        const planned = Number(info.planned || 0);
+        const actual = info.hasActual ? Number(info.actual || 0) : null;
+        result[kind].push({
+          kind,
+          row,
+          sectionName: section.name,
+          label: displayLabelForRow(row),
+          planned,
+          actual,
+          used: Number(info.value || 0),
+          hasActual: Boolean(info.hasActual),
+          variance: info.hasActual ? actual - planned : null,
+          key: actualKeyForRow(row, month),
+          deleteKey: deleteKeyForRow(row, month),
+        });
+      });
+    });
+  });
+  return result;
+}
+
+function registrarMesTotals(entries) {
+  const sum = (list, field) => list.reduce((total, item) => total + Number(item[field] || 0), 0);
+  const captured = (list) => list.filter((item) => item.hasActual);
+  return {
+    incomeUsed: sum(entries.income, "used"),
+    expenseUsed: sum(entries.expense, "used"),
+    incomePlanned: sum(entries.income, "planned"),
+    expensePlanned: sum(entries.expense, "planned"),
+    incomeVariance: sum(captured(entries.income), "variance"),
+    expenseVariance: sum(captured(entries.expense), "variance"),
+    lines: entries.income.length + entries.expense.length,
+    captured: captured(entries.income).length + captured(entries.expense).length,
+  };
+}
+
+function registrarMesMatchesFilter(entry, filter) {
+  if (filter === "sin-real") return !entry.hasActual;
+  if (filter === "desviacion") return registrarMesIsOff(entry);
+  return true;
+}
+
+function registrarMesFilterCounts(list) {
+  return {
+    "sin-real": list.filter((entry) => registrarMesMatchesFilter(entry, "sin-real")).length,
+    desviacion: list.filter((entry) => registrarMesMatchesFilter(entry, "desviacion")).length,
+    todo: list.length,
+  };
+}
+
+function registrarMesCopyCandidates(kind, month) {
+  const previous = registrarMesPreviousMonth(month);
+  if (!previous) return [];
+  const actuals = actualsForKind(kind);
+  const result = [];
+  planningSectionsForMonth(kind, month).forEach((section) => {
+    section.rows.forEach((row) => {
+      if (actualAwareInfo(row, month).hasActual) return;
+      const stored = actuals[`${row.id}|${previous.key}`];
+      if (stored === undefined || stored === "") return;
+      result.push({ key: actualKeyForRow(row, month), value: Number(stored) });
+    });
+  });
+  return result;
+}
+
+function registrarMesEmptyMessage(filter, total) {
+  if (!total) return "Este mes no tiene partidas de este tipo.";
+  if (filter === "sin-real") return "Todas las partidas tienen un real registrado. Pulsa «Todo» para verlas.";
+  if (filter === "desviacion") return "Ninguna partida con real se aparta del previsto.";
+  return "Este mes no tiene partidas de este tipo.";
+}
+
+function registrarMesRowHtml(entry, monthClosed) {
+  const classes = [
+    entry.row.custom ? "registrar-mes-row-custom" : "",
+    registrarMesIsBad(entry) ? "registrar-mes-row-off" : "",
+  ].filter(Boolean);
+  return `<tr data-registrar-mes-key="${escapeHtml(entry.key)}"${classes.length ? ` class="${classes.join(" ")}"` : ""}>
+    <td class="registrar-mes-block">${escapeHtml(entry.sectionName)}</td>
+    <td class="registrar-mes-concept">${escapeHtml(entry.label)}${entry.row.custom ? " <small>añadida aquí</small>" : ""}</td>
+    <td data-registrar-mes-cell="planned">${money(entry.planned, true)}</td>
+    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-mes-actual="${escapeHtml(entry.key)}" data-registrar-mes-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${monthClosed ? " disabled" : ""} /></td>
+    <td data-registrar-mes-cell="used"><strong>${money(entry.used, true)}</strong></td>
+    <td data-registrar-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
+    <td class="registrar-mes-row-actions">${
+      entry.row.custom && !monthClosed
+        ? `<button type="button" class="registrar-mes-row-remove" data-registrar-mes-delete="${escapeHtml(entry.deleteKey)}" aria-label="Quitar ${escapeHtml(entry.label)} de este mes">×</button>`
+        : ""
+    }</td>
+  </tr>`;
+}
+
+function registrarMesAddFormHtml(kind, month) {
+  if (!registrarMesAddOpen[kind]) return "";
+  const options = baseData.monthlyPlanning.sections
+    .filter((section) => section.kind === kind)
+    .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
+    .join("");
+  return `<form class="registrar-mes-add" data-registrar-mes-add-form="${kind}">
+    <label><span>Bloque</span><select data-registrar-mes-add-field="section">${options}</select></label>
+    <label><span>Concepto</span><input type="text" data-registrar-mes-add-field="label" placeholder="Ej.: Seguro del coche" /></label>
+    <label><span>Previsto</span><input type="number" step="0.01" data-registrar-mes-add-field="planned" placeholder="0,00" /></label>
+    <label><span>Real</span><input type="number" step="0.01" data-registrar-mes-add-field="actual" placeholder="Opcional" /></label>
+    <div class="registrar-mes-add-actions">
+      <button type="submit" class="e19-btn e19-btn-primary">Añadir a ${escapeHtml(month.label)}</button>
+      <button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-add-cancel="${kind}">Cancelar</button>
+    </div>
+  </form>`;
+}
+
+function registrarMesCopyHtml(kind, month) {
+  const previous = registrarMesPreviousMonth(month);
+  if (!previous) return `<span class="e19-kpi-meta">No hay un mes anterior en el plan.</span>`;
+  if (!registrarMesCopyPending[kind]) {
+    return `<button type="button" class="registrar-mes-link" data-registrar-mes-copy="${kind}">Copiar reales del mes anterior</button>`;
+  }
+  const candidates = registrarMesCopyCandidates(kind, month);
+  return `<span class="registrar-mes-copy-confirm">
+    <span>Se copiarán ${candidates.length} real(es) de ${escapeHtml(previous.label)} a las partidas que aún no tienen uno.</span>
+    <button type="button" class="e19-btn e19-btn-primary" data-registrar-mes-copy-confirm="${kind}">Confirmar copia</button>
+    <button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-copy-cancel="${kind}">Cancelar</button>
+  </span>`;
+}
+
+function registrarMesCardHtml(meta, list, month, monthClosed) {
+  const kind = meta.kind;
+  const filter = registrarMesFilters[kind];
+  const counts = registrarMesFilterCounts(list);
+  const visible = list.filter((entry) => registrarMesMatchesFilter(entry, filter));
+  const chips = ["sin-real", "desviacion", "todo"]
+    .map(
+      (value) =>
+        `<button type="button" class="registrar-mes-filter${filter === value ? " is-active" : ""}" data-registrar-mes-filter="${kind}:${value}" aria-pressed="${filter === value ? "true" : "false"}">${REGISTRAR_MES_FILTER_LABELS[value]} (${counts[value]})</button>`,
+    )
+    .join("");
+  const body = visible.length
+    ? visible.map((entry) => registrarMesRowHtml(entry, monthClosed)).join("")
+    : `<tr><td colspan="7" class="registrar-mes-empty">${escapeHtml(registrarMesEmptyMessage(filter, list.length))}</td></tr>`;
+  const hasSections = baseData.monthlyPlanning.sections.some((section) => section.kind === kind);
+  const footer = monthClosed
+    ? `<p class="e19-kpi-note">El mes está cerrado: los reales quedan congelados tal y como se cerraron.</p>`
+    : `<div class="registrar-mes-card-foot">
+        ${hasSections ? `<button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-add="${kind}">+ Añadir partida</button>` : ""}
+        <p class="e19-kpi-note">Vaciar un real recupera el previsto. Escribir 0 significa «ocurrió por cero».</p>
+        ${registrarMesCopyHtml(kind, month)}
+      </div>
+      ${registrarMesAddFormHtml(kind, month)}`;
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head">
+      <h3 class="escenario-motor-panel-title">${escapeHtml(meta.label)}</h3>
+      <div class="registrar-mes-filters" role="group" aria-label="Filtrar partidas de ${escapeHtml(meta.label.toLowerCase())}">${chips}</div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table">
+        <thead>
+          <tr>
+            <th>Bloque</th>
+            <th>Concepto</th>
+            <th>Previsto</th>
+            <th>Real</th>
+            <th>Usado</th>
+            <th>Desviación</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+    ${footer}
+  </article>`;
+}
+
+// Actualiza solo las celdas derivadas (previsto, usado, desviación) y los contadores de los
+// filtros. Se usa cuando el foco sigue dentro de la tabla: reconstruirla entera ahí robaría el
+// foco al tabular de una casilla a la siguiente.
+function registrarMesRefreshCells(entries) {
+  const container = qs("registrarMesTables");
+  if (!container) return;
+  const byKey = new Map();
+  [...entries.income, ...entries.expense].forEach((entry) => byKey.set(entry.key, entry));
+  container.querySelectorAll("tr[data-registrar-mes-key]").forEach((row) => {
+    const entry = byKey.get(row.dataset.registrarMesKey);
+    if (!entry) return;
+    const planned = row.querySelector('[data-registrar-mes-cell="planned"]');
+    if (planned) planned.textContent = money(entry.planned, true);
+    const used = row.querySelector('[data-registrar-mes-cell="used"]');
+    if (used) used.innerHTML = `<strong>${money(entry.used, true)}</strong>`;
+    const variance = row.querySelector('[data-registrar-mes-cell="variance"]');
+    if (variance) {
+      variance.textContent = entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—";
+      variance.className = varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "");
+    }
+    row.classList.toggle("registrar-mes-row-off", registrarMesIsBad(entry));
+  });
+  REGISTRAR_MES_KINDS.forEach((meta) => {
+    const counts = registrarMesFilterCounts(entries[meta.kind]);
+    container.querySelectorAll(`[data-registrar-mes-filter^="${meta.kind}:"]`).forEach((button) => {
+      const value = String(button.dataset.registrarMesFilter).split(":")[1];
+      button.textContent = `${REGISTRAR_MES_FILTER_LABELS[value]} (${counts[value]})`;
+    });
+  });
+}
+
+function renderRegistrarMes() {
+  if (!qs("registrar-mes") || !baseData?.monthlyPlanning?.months?.length) return;
+  const month = registrarMesSelectedMonth();
+  if (!month) return;
+  const monthClosed = isClosedMonthKey(month.key);
+  const entries = registrarMesCollect(month);
+  const totals = registrarMesTotals(entries);
+
+  const eyebrow = qs("registrarMesEyebrow");
+  if (eyebrow) eyebrow.textContent = `Actualizar · ${registrarMesLongMonth(month.key)}`;
+
+  const netVariance = totals.expenseVariance - totals.incomeVariance;
+  const title = qs("registrarMesTitle");
+  if (title) {
+    const name = registrarMesMonthName(month.key);
+    title.textContent = !totals.captured
+      ? `${name} todavía no tiene ningún real registrado`
+      : Math.abs(netVariance) < 0.005
+        ? `${name} va clavado a lo previsto`
+        : `${name} va ${money(Math.abs(netVariance), true)} ${netVariance > 0 ? "por encima" : "por debajo"} de lo previsto`;
+  }
+
+  const pending = totals.lines - totals.captured;
+  const subtitle = qs("registrarMesSubtitle");
+  if (subtitle) {
+    subtitle.textContent = monthClosed
+      ? "El mes está cerrado: los importes quedan congelados y no se pueden editar aquí."
+      : `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Todo lo que escribas se guarda al salir de la casilla.`;
+  }
+
+  const saved = qs("registrarMesSaved");
+  if (saved) {
+    saved.textContent = registrarMesLastSaveAt
+      ? `Guardado a las ${registrarMesLastSaveAt.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
+      : "Sin cambios en esta sesión";
+    saved.className = registrarMesLastSaveAt ? "e19-badge e19-badge-success" : "e19-badge e19-badge-neutral";
+  }
+
+  const kpis = qs("registrarMesKpis");
+  if (kpis) {
+    const margin = totals.incomeUsed - totals.expenseUsed;
+    const plannedMargin = totals.incomePlanned - totals.expensePlanned;
+    const progress = totals.lines ? Math.round((totals.captured / totals.lines) * 100) : 0;
+    const delta = (variance, goodWhenPositive) =>
+      totals.captured
+        ? `<span class="e19-kpi-delta ${(goodWhenPositive ? variance >= 0 : variance <= 0) ? "is-up" : "is-down"}">${registrarMesSignedMoney(variance)} frente al previsto</span>`
+        : `<span class="e19-kpi-meta">Sin reales todavía</span>`;
+    kpis.innerHTML = [
+      `<div class="e19-kpi"><span class="e19-kpi-label">Ingresos · usado</span><span class="e19-kpi-value">${money(totals.incomeUsed, true)}</span>${delta(totals.incomeVariance, true)}</div>`,
+      `<div class="e19-kpi"><span class="e19-kpi-label">Gastos · usado</span><span class="e19-kpi-value">${money(totals.expenseUsed, true)}</span>${delta(totals.expenseVariance, false)}</div>`,
+      `<div class="e19-kpi${margin < 0 ? " is-danger" : ""}"><span class="e19-kpi-label">Margen del mes</span><span class="e19-kpi-value">${money(margin, true)}</span><span class="e19-kpi-meta">previsto ${money(plannedMargin, true)}</span></div>`,
+      `<div class="e19-kpi"><span class="e19-kpi-label">Completado</span><span class="e19-kpi-value">${totals.captured}/${totals.lines}</span><span class="registrar-mes-progress" role="img" aria-label="${progress}% de las partidas tienen real"><span style="width:${progress}%"></span></span></div>`,
+    ].join("");
+  }
+
+  const container = qs("registrarMesTables");
+  if (!container) return;
+  if (registrarMesCellsOnly && container.dataset.monthKey === month.key) {
+    registrarMesRefreshCells(entries);
+    return;
+  }
+  container.innerHTML = REGISTRAR_MES_KINDS.map((meta) => registrarMesCardHtml(meta, entries[meta.kind], month, monthClosed)).join("");
+  container.dataset.monthKey = month.key;
+}
+
+function handleRegistrarMesActualChange(input) {
+  const month = registrarMesSelectedMonth();
+  if (!month || isClosedMonthKey(month.key)) return;
+  const kind = input.dataset.registrarMesKind;
+  const key = input.dataset.registrarMesActual;
+  if (!kind || !key) return;
+  const actuals = actualsForKind(kind);
+  const removed = input.value === "";
+  if (removed) delete actuals[key];
+  else actuals[key] = Number(input.value);
+  saveActualsForKind(kind)();
+  registrarMesLastSaveAt = new Date();
+  announceStatus(
+    removed
+      ? `Real eliminado en ${month.label}: la partida vuelve a usar el importe previsto.`
+      : `Real guardado en ${month.label}.`,
+  );
+  registrarMesCellsOnly = true;
+  try {
+    render();
+  } finally {
+    registrarMesCellsOnly = false;
+  }
+}
+
+function handleRegistrarMesFilter(value) {
+  const [kind, filter] = String(value || "").split(":");
+  if (!kind || !filter || !(kind in registrarMesFilters)) return;
+  registrarMesFilters[kind] = filter;
+  renderRegistrarMes();
+}
+
+function handleRegistrarMesAddToggle(kind, open) {
+  if (!(kind in registrarMesAddOpen)) return;
+  registrarMesAddOpen[kind] = open;
+  renderRegistrarMes();
+  if (open) qs("registrarMesTables")?.querySelector('[data-registrar-mes-add-field="label"]')?.focus();
+}
+
+function handleRegistrarMesAddSubmit(form) {
+  const kind = form.dataset.registrarMesAddForm;
+  const month = registrarMesSelectedMonth();
+  if (!kind || !month) return;
+  if (isClosedMonthKey(month.key)) {
+    announceStatus("El mes está cerrado y no admite nuevas partidas.");
+    return;
+  }
+  const field = (name) => form.querySelector(`[data-registrar-mes-add-field="${name}"]`);
+  const labelInput = field("label");
+  const label = String(labelInput?.value || "").trim();
+  if (!label) {
+    labelInput?.focus();
+    return;
+  }
+  const row = {
+    id: `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    custom: true,
+    kind,
+    sectionName: field("section")?.value || "",
+    label,
+    monthKey: month.key,
+    plannedValue: Number(field("planned")?.value || 0),
+  };
+  customPlanningRows.push(row);
+  saveCustomPlanningRows();
+  const actualValue = field("actual")?.value;
+  if (actualValue !== undefined && actualValue !== "") {
+    const actuals = actualsForKind(kind);
+    actuals[actualKeyForRow(row, month)] = Number(actualValue);
+    saveActualsForKind(kind)();
+  }
+  registrarMesAddOpen[kind] = false;
+  registrarMesFilters[kind] = "todo";
+  registrarMesLastSaveAt = new Date();
+  announceStatus(`Partida «${label}» añadida a ${month.label}.`);
+  render();
+}
+
+function handleRegistrarMesDelete(deleteKey) {
+  const month = registrarMesSelectedMonth();
+  if (!month || isClosedMonthKey(month.key)) return;
+  deletePlanningRow(deleteKey);
+  registrarMesLastSaveAt = new Date();
+  announceStatus("Partida quitada de este mes.");
+  render();
+}
+
+function handleRegistrarMesCopy(kind) {
+  const month = registrarMesSelectedMonth();
+  if (!month || !(kind in registrarMesCopyPending)) return;
+  if (!registrarMesCopyCandidates(kind, month).length) {
+    announceStatus("No hay reales del mes anterior que copiar a las partidas vacías.");
+    return;
+  }
+  registrarMesCopyPending[kind] = true;
+  renderRegistrarMes();
+}
+
+function handleRegistrarMesCopyConfirm(kind) {
+  const month = registrarMesSelectedMonth();
+  if (!month || isClosedMonthKey(month.key)) return;
+  const candidates = registrarMesCopyCandidates(kind, month);
+  if (candidates.length) {
+    const actuals = actualsForKind(kind);
+    candidates.forEach((item) => {
+      actuals[item.key] = item.value;
+    });
+    saveActualsForKind(kind)();
+    registrarMesLastSaveAt = new Date();
+  }
+  registrarMesCopyPending[kind] = false;
+  announceStatus(`${candidates.length} real(es) copiados del mes anterior. Revisa cada importe antes de darlo por bueno.`);
+  render();
+}
+
+function handleRegistrarMesCopyCancel(kind) {
+  if (!(kind in registrarMesCopyPending)) return;
+  registrarMesCopyPending[kind] = false;
+  renderRegistrarMes();
+}
+
+/* --------------------------------------------------------------------------------------------- */
+/* Cuadro de mandos con impacto (mockups 3a/3b/3c, E20-5)                                           */
+/*                                                                                                  */
+/* Tres pantallas nuevas que comparten un mismo motor: `#cuadro-mandos` (editar una celda y ver el  */
+/* impacto antes de guardar), `#cambios-pendientes` (el efecto conjunto de la sesión) y             */
+/* `#mapa-calor` (dónde duele, mes a mes).                                                          */
+/*                                                                                                  */
+/* No inventan un almacén de borradores propio: reutilizan `visualDraftCells`, el mismo que usa     */
+/* `#visual-detail` desde E11. Un importe tocado aquí aparece allí y viceversa, y «Guardar» es      */
+/* literalmente `saveVisualChanges`. El impacto se calcula aplicando los borradores sobre           */
+/* `seriesOverrides` de forma temporal y corriendo el motor canónico sin persistir el resultado.    */
+/* --------------------------------------------------------------------------------------------- */
+
+const cuadroMandosExpanded = new Set();
+// Barra «Aplicar a» que aparece bajo la última celda editada.
+let cuadroMandosApply = null;
+let mapaCalorMetric = "colchon";
+let cuadroMandosImpactCache = { key: "", value: null };
+
+function cuadroMandosAllMonths() {
+  return allVisualMonths();
+}
+
+function cuadroMandosMonths() {
+  const all = cuadroMandosAllMonths();
+  if (!all.length) return [];
+  const fallback = all.find((month) => !isClosedMonthKey(month.key))?.key || all[0].key;
+  const startKey = qs("cuadroMandosStart")?.value || fallback;
+  const span = Math.max(1, Number(qs("cuadroMandosSpan")?.value || 12));
+  const startIndex = Math.max(0, all.findIndex((month) => month.key === startKey));
+  return all.slice(startIndex, startIndex + span);
+}
+
+// Unión de partidas de todos los meses visibles: las filas añadidas a mano solo existen en su mes,
+// pero la matriz necesita una fila estable por partida para poder comparar columnas.
+function cuadroMandosSections(months) {
+  const sections = new Map();
+  months.forEach((month) => {
+    planningSectionsForMonth(null, month).forEach((section) => {
+      const key = `${section.kind}:${section.name}`;
+      let entry = sections.get(key);
+      if (!entry) {
+        entry = { key, name: section.name, kind: section.kind, rows: new Map() };
+        sections.set(key, entry);
+      }
+      section.rows.forEach((row) => {
+        const rowKey = seriesKeyForRow(row);
+        if (!entry.rows.has(rowKey)) entry.rows.set(rowKey, row);
+      });
+    });
+  });
+  return [...sections.values()]
+    .map((entry) => ({ ...entry, rows: [...entry.rows.values()] }))
+    .sort((left, right) => (left.kind === right.kind ? 0 : left.kind === "income" ? -1 : 1));
+}
+
+function cuadroMandosRowExists(row, month) {
+  if (!row.custom) return true;
+  return Boolean(customRowForVisualMonth(row, month));
+}
+
+function cuadroMandosCellValue(row, month) {
+  const draft = visualDraftForCell(row, month, "planned");
+  if (draft) return { value: Number(draft.value || 0), draft: true, before: Number(draft.oldValue || 0) };
+  return { value: Number(plannedValueForVisualRow(row, month) || 0), draft: false, before: null };
+}
+
+function cuadroMandosPlannedDrafts() {
+  return Object.values(visualDraftCells).filter((draft) => draft.mode === "planned");
+}
+
+function cuadroMandosOverridesFrom(drafts) {
+  const months = cuadroMandosAllMonths();
+  const overrides = {};
+  drafts.forEach((draft) => {
+    const row = rowForSeriesKey(draft.rowKey);
+    const month = monthByKey(draft.monthKey, months);
+    if (!row || !month) return;
+    const key = overrideKeyForRow(row, month);
+    const next = { ...(seriesOverrides[key] || {}) };
+    delete next.deleted;
+    next.planned = Number(draft.value || 0);
+    overrides[key] = next;
+  });
+  return overrides;
+}
+
+// Corre el motor canónico con los borradores puestos y lo deja todo como estaba. No persiste el
+// resultado (sin `engineContext`), así que ninguna otra pantalla ve este escenario auxiliar.
+function cuadroMandosRowsWith(drafts) {
+  if (!drafts.length) return { rows: lastSimulation, ok: true };
+  const backup = seriesOverrides;
+  seriesOverrides = { ...seriesOverrides, ...cuadroMandosOverridesFrom(drafts) };
+  try {
+    return { rows: computeCanonicalScenario(projectPlan.outflows, { captureEngineRun: false }).rows, ok: true };
+  } catch (error) {
+    return { rows: lastSimulation, ok: false, error };
+  } finally {
+    seriesOverrides = backup;
+  }
+}
+
+function cuadroMandosReserve() {
+  const configured = Number(state?.operatingReserve || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function cuadroMandosSummary(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const reserve = cuadroMandosReserve();
+  if (!list.length) return { minimo: null, minimoMes: null, bajoReserva: 0, final: null, aDoceMeses: null, reserve };
+  let minimo = Infinity;
+  let minimoMes = null;
+  let bajoReserva = 0;
+  list.forEach((row) => {
+    const liquidity = Number(row.totalLiquidity || 0);
+    if (liquidity < minimo) {
+      minimo = liquidity;
+      minimoMes = row.detailMonthKey || row.month || null;
+    }
+    if (liquidity < reserve) bajoReserva += 1;
+  });
+  return {
+    minimo,
+    minimoMes,
+    bajoReserva,
+    final: Number(list.at(-1)?.totalLiquidity || 0),
+    aDoceMeses: Number(list[Math.min(11, list.length - 1)]?.totalLiquidity || 0),
+    reserve,
+  };
+}
+
+function cuadroMandosImpact() {
+  const drafts = cuadroMandosPlannedDrafts();
+  const signature = `${simulationSignature}::${JSON.stringify(drafts.map((draft) => [draft.rowKey, draft.monthKey, draft.value]))}`;
+  if (cuadroMandosImpactCache.key === signature) return cuadroMandosImpactCache.value;
+  const after = cuadroMandosRowsWith(drafts);
+  const value = {
+    drafts,
+    ok: after.ok,
+    rowsBefore: lastSimulation,
+    rowsAfter: after.rows,
+    before: cuadroMandosSummary(lastSimulation),
+    after: cuadroMandosSummary(after.rows),
+  };
+  cuadroMandosImpactCache = { key: signature, value };
+  return value;
+}
+
+function cuadroMandosDelta(before, after) {
+  const left = Number(before ?? 0);
+  const right = Number(after ?? 0);
+  return round2(right - left);
+}
+
+function cuadroMandosBeforeAfter(before, after, format, betterWhenHigher = true) {
+  const changed = Math.abs(cuadroMandosDelta(before, after)) >= 0.005;
+  if (!changed) return `<dd>${format(after)}</dd>`;
+  const tone = (cuadroMandosDelta(before, after) > 0) === betterWhenHigher ? "is-up" : "is-down";
+  return `<dd><span class="was">${format(before)}</span><span class="${tone}">${format(after)}</span></dd>`;
+}
+
+function cuadroMandosReserveLabel(summary) {
+  return summary.reserve > 0 ? `bajo la reserva de ${money(summary.reserve, true)}` : "en negativo";
+}
+
+function renderCuadroMandosImpactBar() {
+  const bar = qs("cuadroMandosImpact");
+  if (!bar) return;
+  const impact = cuadroMandosImpact();
+  if (!impact.drafts.length) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  bar.hidden = false;
+  if (!impact.ok) {
+    bar.innerHTML = `<div class="cuadro-mandos-impact-head"><p class="e19-eyebrow">Impacto del cambio</p><strong>No se ha podido calcular</strong><small>El motor no acepta esta combinación; los cambios siguen sin guardar.</small></div>
+      <div class="cuadro-mandos-impact-actions"><button type="button" class="e19-btn e19-btn-secondary" data-cuadro-discard>Descartar</button></div>`;
+    return;
+  }
+  const { before, after, drafts } = impact;
+  const last = drafts.at(-1);
+  bar.innerHTML = `
+    <div class="cuadro-mandos-impact-head">
+      <p class="e19-eyebrow">Impacto del cambio</p>
+      <strong>${escapeHtml(last?.label || "Cambio")}${last?.monthLabel ? ` · ${escapeHtml(last.monthLabel)}` : ""}</strong>
+      <small>${drafts.length} cambio(s) sin guardar</small>
+    </div>
+    <dl><dt>Mínimo del horizonte</dt>${cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true))}</dl>
+    <dl><dt>Meses ${escapeHtml(cuadroMandosReserveLabel(after))}</dt>${cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => `${Math.round(Number(value || 0))}`, false)}</dl>
+    <dl><dt>Liquidez al final</dt>${cuadroMandosBeforeAfter(before.final, after.final, (value) => money(value, true))}</dl>
+    <div class="cuadro-mandos-impact-actions">
+      <a class="e19-btn e19-btn-secondary" href="#cambios-pendientes">Ver los ${drafts.length}</a>
+      <button type="button" class="e19-btn e19-btn-secondary" data-cuadro-discard>Descartar</button>
+      <button type="button" class="e19-btn e19-btn-primary" data-cuadro-save>Guardar cambios</button>
+    </div>`;
+}
+
+function cuadroMandosApplyRowHtml(row, months, columnCount) {
+  if (!cuadroMandosApply || cuadroMandosApply.rowKey !== seriesKeyForRow(row)) return "";
+  const month = months.find((item) => item.key === cuadroMandosApply.monthKey);
+  if (!month) return "";
+  const year = month.key.slice(0, 4);
+  const lastOfYear = months.filter((item) => item.key.slice(0, 4) === year).at(-1);
+  const rest = months.filter((item) => item.key > month.key);
+  const before = cuadroMandosApply.before;
+  return `<tr class="cuadro-mandos-apply-row"><td colspan="${columnCount}">
+    <span class="cuadro-mandos-apply-label">Aplicar a:</span>
+    <button type="button" class="e19-btn e19-btn-primary" data-cuadro-apply="solo">Solo ${escapeHtml(month.label)}</button>
+    ${lastOfYear && lastOfYear.key > month.key ? `<button type="button" class="e19-btn e19-btn-secondary" data-cuadro-apply="anio">Hasta ${escapeHtml(lastOfYear.label)}</button>` : ""}
+    ${rest.length ? `<button type="button" class="e19-btn e19-btn-secondary" data-cuadro-apply="rango">Todo el rango visible</button>` : ""}
+    <span class="cuadro-mandos-apply-note">Antes: ${money(before || 0, true)}</span>
+  </td></tr>`;
+}
+
+function renderCuadroMandos() {
+  const table = qs("cuadroMandosTable");
+  if (!table || !baseData?.monthlyPlanning?.months?.length) return;
+  const months = cuadroMandosMonths();
+  if (!months.length) return;
+  const sections = cuadroMandosSections(months);
+  const columnCount = months.length + 1;
+
+  const eyebrow = qs("cuadroMandosEyebrow");
+  if (eyebrow) eyebrow.textContent = `Cuadro de mandos · ${months[0].label} – ${months.at(-1).label}`;
+  const subtitle = qs("cuadroMandosSubtitle");
+  if (subtitle) {
+    const pending = cuadroMandosPlannedDrafts().length;
+    subtitle.textContent = pending
+      ? `Editas el previsto y el pie de abajo dice qué le pasa al plan. ${pending} cambio(s) sin guardar.`
+      : "Editas el previsto de una celda y el pie de abajo dice qué le pasa al plan antes de guardar nada.";
+  }
+
+  const header = `<thead><tr><th>Partida</th>${months
+    .map((month) => `<th class="${isClosedMonthKey(month.key) ? "cuadro-mandos-closed" : ""}">${escapeHtml(month.label)}</th>`)
+    .join("")}</tr></thead>`;
+
+  const totals = { income: months.map(() => 0), expense: months.map(() => 0) };
+  const body = sections
+    .map((section) => {
+      const expanded = cuadroMandosExpanded.has(section.key);
+      const sectionTotals = months.map((month, index) => {
+        const total = section.rows.reduce(
+          (sum, row) => (cuadroMandosRowExists(row, month) ? sum + cuadroMandosCellValue(row, month).value : sum),
+          0,
+        );
+        totals[section.kind][index] += total;
+        return total;
+      });
+      const head = `<tr class="cuadro-mandos-section ${section.kind === "income" ? "is-income" : "is-expense"}">
+        <td><button type="button" class="cuadro-mandos-toggle" data-cuadro-section="${escapeHtml(section.key)}" aria-expanded="${expanded ? "true" : "false"}"><span>${expanded ? "−" : "+"}</span>${escapeHtml(section.name)}</button><small>${section.rows.length} línea(s)</small></td>
+        ${sectionTotals.map((value, index) => `<td class="${isClosedMonthKey(months[index].key) ? "cuadro-mandos-closed" : ""}"><strong>${money(value, true)}</strong></td>`).join("")}
+      </tr>`;
+      if (!expanded) return head;
+      const lines = section.rows
+        .map((row) => {
+          const rowKey = seriesKeyForRow(row);
+          const cells = months
+            .map((month) => {
+              if (!cuadroMandosRowExists(row, month)) return `<td class="cuadro-mandos-absent">—</td>`;
+              const closed = isClosedMonthKey(month.key);
+              const cell = cuadroMandosCellValue(row, month);
+              if (closed) return `<td class="cuadro-mandos-closed">${money(cell.value, true)}</td>`;
+              return `<td class="${cell.draft ? "cuadro-mandos-dirty" : ""}"><input type="number" step="0.01" inputmode="decimal" data-cuadro-cell="${escapeHtml(rowKey)}" data-cuadro-month="${escapeHtml(month.key)}" aria-label="Previsto de ${escapeHtml(visualDisplayLabel(row))} en ${escapeHtml(month.label)}" value="${amountInputValue(cell.value)}" /></td>`;
+            })
+            .join("");
+          return `<tr class="cuadro-mandos-line"><td class="cuadro-mandos-concept">${escapeHtml(visualDisplayLabel(row))}</td>${cells}</tr>${cuadroMandosApplyRowHtml(row, months, columnCount)}`;
+        })
+        .join("");
+      return head + lines;
+    })
+    .join("");
+
+  const totalRow = (label, values, className) =>
+    `<tr class="${className}"><td>${escapeHtml(label)}</td>${values
+      .map((value, index) => `<td class="${isClosedMonthKey(months[index].key) ? "cuadro-mandos-closed" : ""}"><strong>${money(value, true)}</strong></td>`)
+      .join("")}</tr>`;
+  const result = months.map((month, index) => totals.income[index] - totals.expense[index]);
+  const footer = [
+    totalRow("Total ingresos", totals.income, "cuadro-mandos-total"),
+    totalRow("Total gastos", totals.expense, "cuadro-mandos-total"),
+    `<tr class="cuadro-mandos-result"><td>Resultado del mes<small>ingresos − gastos</small></td>${result
+      .map((value, index) => `<td class="${isClosedMonthKey(months[index].key) ? "cuadro-mandos-closed" : ""} ${value < 0 ? "negative" : "positive"}"><strong>${money(value, true)}</strong></td>`)
+      .join("")}</tr>`,
+  ].join("");
+
+  table.innerHTML = `${header}<tbody>${body}${footer}</tbody>`;
+  renderCuadroMandosImpactBar();
+}
+
+function cuadroMandosStageCell(rowKey, monthKey, value) {
+  const row = rowForSeriesKey(rowKey);
+  const month = monthByKey(monthKey, cuadroMandosAllMonths());
+  if (!row || !month || isClosedMonthKey(month.key)) return null;
+  const key = visualDraftCellKey(rowKey, month.key, "planned");
+  const current = Number(plannedValueForVisualRow(row, month) || 0);
+  const next = round2(Number(value || 0));
+  if (current === next) {
+    delete visualDraftCells[key];
+    return { row, month, before: current, removed: true };
+  }
+  visualDraftCells[key] = {
+    rowKey,
+    monthKey: month.key,
+    monthLabel: month.label,
+    mode: "planned",
+    label: visualDisplayLabel(row),
+    value: next,
+    oldValue: current,
+  };
+  return { row, month, before: current, removed: false };
+}
+
+function handleCuadroMandosCellChange(input) {
+  const parsed = parseAmount(input.value);
+  const staged = cuadroMandosStageCell(
+    input.dataset.cuadroCell,
+    input.dataset.cuadroMonth,
+    input.value === "" || parsed === null ? 0 : parsed,
+  );
+  if (!staged) return;
+  cuadroMandosApply = staged.removed
+    ? null
+    : { rowKey: input.dataset.cuadroCell, monthKey: input.dataset.cuadroMonth, before: staged.before };
+  renderCuadroMandos();
+}
+
+function handleCuadroMandosApply(scope) {
+  if (!cuadroMandosApply) return;
+  const { rowKey, monthKey } = cuadroMandosApply;
+  if (scope === "solo") {
+    cuadroMandosApply = null;
+    renderCuadroMandos();
+    return;
+  }
+  const months = cuadroMandosMonths();
+  const origin = months.find((month) => month.key === monthKey);
+  const draft = visualDraftCells[visualDraftCellKey(rowKey, monthKey, "planned")];
+  if (!origin || !draft) return;
+  const year = origin.key.slice(0, 4);
+  const targets = months.filter(
+    (month) => month.key > origin.key && !isClosedMonthKey(month.key) && (scope === "rango" || month.key.slice(0, 4) === year),
+  );
+  targets.forEach((month) => cuadroMandosStageCell(rowKey, month.key, draft.value));
+  cuadroMandosApply = null;
+  announceStatus(`Importe aplicado a ${targets.length} mes(es) más. Nada se ha guardado todavía.`);
+  renderCuadroMandos();
+}
+
+function handleCuadroMandosSave() {
+  saveVisualChanges();
+  cuadroMandosApply = null;
+  announceStatus("Cambios de planificación guardados.");
+  render();
+}
+
+function handleCuadroMandosDiscard() {
+  discardVisualChanges();
+  cuadroMandosApply = null;
+  announceStatus("Cambios descartados. El plan vuelve a como estaba guardado.");
+  render();
+}
+
+/* ---- 3b · bandeja de cambios ----------------------------------------------------------------- */
+
+// Impacto individual por «dejar fuera este cambio»: es lo que mide de verdad el botón «Revertir».
+// Cuesta una simulación por cambio, así que por encima de ese tope se ordena por importe y se dice.
+const CAMBIOS_PENDIENTES_MAX_LEAVE_ONE_OUT = 8;
+
+function cambiosPendientesRanked(impact) {
+  const drafts = impact.drafts;
+  if (drafts.length <= CAMBIOS_PENDIENTES_MAX_LEAVE_ONE_OUT && impact.ok) {
+    return {
+      criterio: "sobre el mínimo del horizonte",
+      items: drafts
+        .map((draft) => {
+          const without = cuadroMandosRowsWith(drafts.filter((item) => item !== draft));
+          const minimoSin = cuadroMandosSummary(without.rows).minimo;
+          return { draft, efecto: cuadroMandosDelta(minimoSin, impact.after.minimo), revierteA: minimoSin };
+        })
+        .sort((left, right) => Math.abs(right.efecto) - Math.abs(left.efecto)),
+    };
+  }
+  return {
+    criterio: "por importe del cambio",
+    items: drafts
+      .map((draft) => ({ draft, efecto: cuadroMandosDelta(draft.oldValue, draft.value) * -1, revierteA: null }))
+      .sort((left, right) => Math.abs(right.efecto) - Math.abs(left.efecto)),
+  };
+}
+
+function cambiosPendientesChartHtml(impact) {
+  const before = impact.rowsBefore.slice(0, 24);
+  const after = impact.rowsAfter.slice(0, 24);
+  if (before.length < 2) return `<p class="e19-kpi-note">Hace falta más de un mes de horizonte para dibujar la comparación.</p>`;
+  const values = [...before, ...after].map((row) => Number(row.totalLiquidity || 0));
+  const reserve = cuadroMandosReserve();
+  const max = Math.max(...values, reserve);
+  const min = Math.min(...values, 0, reserve);
+  const width = 320;
+  const height = 130;
+  const span = max - min || 1;
+  const path = (rows) =>
+    rows
+      .map((row, index) => {
+        const x = (index / Math.max(1, rows.length - 1)) * width;
+        const y = height - ((Number(row.totalLiquidity || 0) - min) / span) * height;
+        return `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(" ");
+  const reserveY = height - ((reserve - min) / span) * height;
+  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Liquidez mes a mes, guardado frente a con tus cambios" preserveAspectRatio="none">
+      ${reserve > 0 ? `<line x1="0" y1="${reserveY.toFixed(1)}" x2="${width}" y2="${reserveY.toFixed(1)}" class="cambios-chart-reserve" />` : ""}
+      <path d="${path(before)}" class="cambios-chart-before" />
+      <path d="${path(after)}" class="cambios-chart-after" />
+    </svg>
+    <div class="cambios-chart-legend">
+      <span><i class="cambios-chart-key-before"></i>Guardado</span>
+      <span><i class="cambios-chart-key-after"></i>Con tus cambios</span>
+      ${reserve > 0 ? `<span><i class="cambios-chart-key-reserve"></i>Reserva ${money(reserve, true)}</span>` : ""}
+    </div>
+    <p class="e19-kpi-meta">${before.length} mes(es) desde ${escapeHtml(escenarioMotorMonthLabel(before[0]?.detailMonthKey || ""))}.</p>`;
+}
+
+function renderCambiosPendientes() {
+  if (!qs("cambios-pendientes") || !lastSimulation.length) return;
+  const impact = cuadroMandosImpact();
+  const counts = visualPendingCounts();
+  const otros = counts.labels + counts.deletes;
+
+  const title = qs("cambiosPendientesTitle");
+  const subtitle = qs("cambiosPendientesSubtitle");
+  const kpis = qs("cambiosPendientesKpis");
+  const list = qs("cambiosPendientesList");
+  const order = qs("cambiosPendientesOrder");
+  const chart = qs("cambiosPendientesChart");
+  const note = qs("cambiosPendientesNote");
+  const saveButton = qs("cambiosPendientesSave");
+  const discardButton = qs("cambiosPendientesDiscard");
+
+  if (saveButton) {
+    saveButton.disabled = !impact.drafts.length && !otros;
+    saveButton.textContent = impact.drafts.length ? `Guardar los ${impact.drafts.length} cambios` : "Guardar los cambios";
+  }
+  if (discardButton) discardButton.disabled = !impact.drafts.length && !otros;
+
+  if (!impact.drafts.length) {
+    if (title) title.textContent = otros ? `Quedan ${otros} cambio(s) de nombre o borrado sin guardar` : "No hay ningún cambio sin guardar";
+    if (subtitle) {
+      subtitle.textContent = otros
+        ? "Los importes están al día; lo pendiente son nombres o partidas marcadas para borrar, que se confirman desde Actualizar previsiones."
+        : "El plan que ves es el plan guardado. Edita una celda en Cuadro de mandos para ver aquí el efecto conjunto.";
+    }
+    if (kpis) kpis.innerHTML = "";
+    if (list) list.innerHTML = `<li class="cambios-pendientes-empty">Nada pendiente. <a href="#cuadro-mandos">Abrir el cuadro de mandos</a>.</li>`;
+    if (order) order.textContent = "";
+    if (chart) chart.innerHTML = "";
+    if (note) note.innerHTML = `<h3 class="escenario-motor-panel-title">Sin cambios abiertos</h3><p class="e19-kpi-note">Nada que revertir ni que confirmar.</p>`;
+    return;
+  }
+
+  if (!impact.ok) {
+    if (title) title.textContent = "El impacto de estos cambios no se puede calcular";
+    if (subtitle) subtitle.textContent = "El motor canónico rechaza esta combinación. Los cambios siguen sin guardar: puedes revertirlos uno a uno o descartarlos todos.";
+    if (kpis) kpis.innerHTML = "";
+    if (chart) chart.innerHTML = "";
+  }
+
+  const { before, after } = impact;
+  const deltaMinimo = cuadroMandosDelta(before.minimo, after.minimo);
+
+  if (impact.ok && title) {
+    title.textContent =
+      Math.abs(deltaMinimo) < 0.005
+        ? `Los ${impact.drafts.length} cambios no mueven el colchón mínimo`
+        : `Lo que has tocado ${deltaMinimo < 0 ? "te cuesta" : "te da"} ${money(Math.abs(deltaMinimo), true)} de colchón`;
+  }
+  if (impact.ok && subtitle) {
+    subtitle.textContent = `Nada está guardado. Puedes revertir cualquier línea por separado.${otros ? ` Hay además ${otros} cambio(s) de nombre o borrado pendientes.` : ""}`;
+  }
+
+  if (impact.ok && kpis) {
+    const card = (label, html, meta) =>
+      `<div class="e19-kpi"><span class="e19-kpi-label">${escapeHtml(label)}</span><dl class="cuadro-mandos-kpi">${html}</dl>${meta ? `<span class="e19-kpi-meta">${escapeHtml(meta)}</span>` : ""}</div>`;
+    kpis.innerHTML = [
+      card("Mínimo del horizonte", cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true)), after.minimoMes ? `El peor mes es ${escenarioMotorMonthLabel(after.minimoMes)}` : ""),
+      card(`Meses ${cuadroMandosReserveLabel(after)}`, cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => String(Math.round(Number(value || 0))), false), after.reserve > 0 ? "" : "No hay reserva operativa configurada: se cuentan los meses en negativo."),
+      card("Liquidez a 12 meses", cuadroMandosBeforeAfter(before.aDoceMeses, after.aDoceMeses, (value) => money(value, true))),
+      card("Liquidez al final del horizonte", cuadroMandosBeforeAfter(before.final, after.final, (value) => money(value, true))),
+    ].join("");
+  }
+
+  const ranked = cambiosPendientesRanked(impact);
+  if (order) order.textContent = ranked.criterio;
+  if (list) {
+    const peak = Math.max(...ranked.items.map((item) => Math.abs(item.efecto)), 1);
+    list.innerHTML = ranked.items
+      .map((item) => {
+        const width = Math.max(4, Math.round((Math.abs(item.efecto) / peak) * 100));
+        const good = item.efecto >= 0;
+        return `<li class="cambios-pendientes-item">
+          <span class="cambios-pendientes-bar"><i class="${good ? "is-up" : "is-down"}" style="width:${width}%"></i></span>
+          <strong class="${good ? "positive" : "negative"}">${cuadroMandosDelta(0, item.efecto) > 0 ? "+" : ""}${money(item.efecto, true)}</strong>
+          <div>
+            <strong>${escapeHtml(item.draft.label)}</strong>
+            <p>${money(item.draft.oldValue || 0, true)} → ${money(item.draft.value || 0, true)} · ${escapeHtml(item.draft.monthLabel || "")}</p>
+          </div>
+          <button type="button" class="registrar-mes-link" data-cambios-revert="${escapeHtml(visualDraftCellKey(item.draft.rowKey, item.draft.monthKey, "planned"))}">Revertir</button>
+        </li>`;
+      })
+      .join("");
+  }
+
+  if (impact.ok && chart) chart.innerHTML = cambiosPendientesChartHtml(impact);
+
+  if (note) {
+    if (!impact.ok) {
+      note.innerHTML = `<h3 class="escenario-motor-panel-title">Sin cálculo disponible</h3><p class="e19-kpi-note">Revierte el último cambio para volver a un plan que el motor sí resuelve.</p>`;
+    } else {
+      const worst = after.minimoMes ? escenarioMotorMonthLabel(after.minimoMes) : "el peor mes";
+      const cruza = after.bajoReserva - before.bajoReserva;
+      note.innerHTML = `<h3 class="escenario-motor-panel-title">${escapeHtml(worst)} se queda en ${money(after.minimo, true)}</h3>
+        <p class="e19-kpi-note">${escapeHtml(
+          cruza > 0
+            ? `Si guardas estos cambios, ${cruza} mes(es) más quedan ${cuadroMandosReserveLabel(after)}.`
+            : cruza < 0
+              ? `Si guardas estos cambios, ${Math.abs(cruza)} mes(es) dejan de estar ${cuadroMandosReserveLabel(after)}.`
+              : `El número de meses ${cuadroMandosReserveLabel(after)} no cambia.`,
+        )} Revertir el cambio de arriba devuelve el mínimo a ${ranked.items[0]?.revierteA !== null && ranked.items[0]?.revierteA !== undefined ? money(ranked.items[0].revierteA, true) : "su valor anterior"}.</p>`;
+    }
+  }
+}
+
+function handleCambiosPendientesRevert(key) {
+  if (!visualDraftCells[key]) return;
+  delete visualDraftCells[key];
+  cuadroMandosApply = null;
+  announceStatus("Cambio revertido. Sigue sin guardarse nada.");
+  renderCambiosPendientes();
+  renderCuadroMandos();
+}
+
+/* ---- 3c · mapa de calor ----------------------------------------------------------------------- */
+
+const MAPA_CALOR_METRICS = {
+  colchon: { label: "Colchón", value: (row) => Number(row.totalLiquidity || 0) },
+  resultado: { label: "Resultado", value: (row) => Number(row.netBeforeSaving || 0) },
+  ahorro: { label: "Ahorro", value: (row) => Number(row.saving || 0) },
+};
+
+// El suelo de referencia del color: la reserva operativa si está configurada; si no, un mes de
+// salidas del primer mes del horizonte. Se dice cuál de los dos se está usando, no se esconde.
+function mapaCalorFloor(rows) {
+  const reserve = cuadroMandosReserve();
+  if (reserve > 0) return { value: reserve, source: `la reserva operativa de ${money(reserve, true)}` };
+  const first = rows[0];
+  const outflow = first ? Number(first.coreSpend || 0) + Number(first.car || 0) + Number(first.refi || 0) : 0;
+  return { value: Math.max(outflow, 1), source: `un mes de salidas (${money(outflow, true)}), porque no hay reserva operativa configurada` };
+}
+
+function mapaCalorTone(value, floor) {
+  if (value < 0) return "is-negative";
+  if (value < floor) return "is-tight";
+  if (value < floor * 3) return "is-ok";
+  return "is-good";
+}
+
+function renderMapaCalor() {
+  const grid = qs("mapaCalorGrid");
+  if (!grid || !lastSimulation.length) return;
+  const metric = MAPA_CALOR_METRICS[mapaCalorMetric] || MAPA_CALOR_METRICS.colchon;
+  const impact = cuadroMandosImpact();
+  const rowsAfter = impact.ok ? impact.rowsAfter : impact.rowsBefore;
+  const floor = mapaCalorFloor(rowsAfter);
+  // Se marcan los meses donde vive el cambio, no todos los que quedan detrás. La liquidez es
+  // acumulada: un cambio en agosto mueve la cifra de los cien meses siguientes, y marcarlos todos
+  // pintaría el mapa entero sin decir nada.
+  const touchedMonths = new Set(impact.drafts.map((draft) => draft.monthKey));
+
+  const byYear = new Map();
+  rowsAfter.forEach((row) => {
+    const key = String(row.detailMonthKey || row.month || "");
+    const match = key.match(/^(\d{4})-(\d{2})$/);
+    if (!match) return;
+    if (!byYear.has(match[1])) byYear.set(match[1], new Array(12).fill(null));
+    byYear.get(match[1])[Number(match[2]) - 1] = { key, row };
+  });
+
+  const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const years = [...byYear.keys()].sort().slice(0, 6);
+  grid.innerHTML = `<thead><tr><th></th>${monthNames.map((name) => `<th>${name}</th>`).join("")}</tr></thead>
+    <tbody>${years
+      .map(
+        (year) => `<tr><th scope="row">${year}</th>${byYear
+          .get(year)
+          .map((cell) => {
+            if (!cell) return `<td><span class="mapa-calor-cell is-empty"></span></td>`;
+            const value = metric.value(cell.row);
+            const touched = touchedMonths.has(cell.key);
+            return `<td><span class="mapa-calor-cell ${mapaCalorTone(value, floor.value)}${touched ? " is-touched" : ""}" title="${escapeHtml(escenarioMotorMonthLabel(cell.key))}: ${escapeHtml(money(value, true))}${touched ? " · tiene un cambio sin guardar" : ""}">${money(value, false)}</span></td>`;
+          })
+          .join("")}</tr>`,
+      )
+      .join("")}</tbody>`;
+
+  const legend = qs("mapaCalorLegend");
+  if (legend) {
+    legend.innerHTML = `
+      <span><i class="mapa-calor-key is-negative"></i>En negativo</span>
+      <span><i class="mapa-calor-key is-tight"></i>Justo</span>
+      <span><i class="mapa-calor-key is-ok"></i>Holgado</span>
+      <span><i class="mapa-calor-key is-good"></i>Muy holgado</span>
+      ${impact.drafts.length ? `<span><i class="mapa-calor-key is-touched"></i>Mes con un cambio sin guardar</span>` : ""}`;
+  }
+
+  const subtitle = qs("mapaCalorSubtitle");
+  if (subtitle) {
+    subtitle.textContent = `Cada casilla es un mes; el color compara ${metric.label.toLowerCase()} con ${floor.source}. Pasa por encima para ver la cifra exacta.${impact.drafts.length ? " Los meses donde has tocado algo salen con borde: el resto de cifras también se mueven, porque la liquidez es acumulada." : ""}`;
+  }
+
+  const worst = rowsAfter.reduce((lowest, row) => (Number(row.totalLiquidity || 0) < Number(lowest?.totalLiquidity ?? Infinity) ? row : lowest), null);
+  const worstKey = String(worst?.detailMonthKey || worst?.month || "");
+  const worstMonth = cuadroMandosAllMonths().find((month) => month.key === worstKey);
+  const titleEl = qs("mapaCalorWorstTitle");
+  if (titleEl) titleEl.textContent = `Qué pesa en ${escenarioMotorMonthLabel(worstKey)}`;
+
+  const breakdown = qs("mapaCalorBreakdown");
+  if (breakdown) {
+    if (!worstMonth) {
+      breakdown.innerHTML = `<p class="e19-kpi-note">El peor mes cae fuera de las partidas planificadas, así que no hay desglose por bloque.</p>`;
+    } else {
+      const blocks = planningSectionsForMonth("expense", worstMonth)
+        .map((section) => ({
+          name: section.name,
+          total: section.rows.reduce((sum, row) => sum + Number(actualAwareInfo(row, worstMonth).value || 0), 0),
+        }))
+        .sort((left, right) => right.total - left.total);
+      const peak = Math.max(...blocks.map((block) => block.total), 1);
+      breakdown.innerHTML = blocks
+        .map(
+          (block) => `<div class="mapa-calor-block">
+            <span>${escapeHtml(block.name)}</span>
+            <span class="mapa-calor-block-bar"><i style="width:${Math.max(2, Math.round((block.total / peak) * 100))}%"></i></span>
+            <strong>${money(block.total, true)}</strong>
+          </div>`,
+        )
+        .join("");
+    }
+  }
+
+  const worstNote = qs("mapaCalorWorstNote");
+  if (worstNote) {
+    worstNote.textContent = worst
+      ? `${escenarioMotorMonthLabel(worstKey)} cierra con ${money(Number(worst.totalLiquidity || 0), true)} de colchón, el mínimo de todo el horizonte.`
+      : "";
+  }
+
+  const links = qs("mapaCalorLinks");
+  if (links) {
+    // Enlaces a las pantallas que sí pueden actuar sobre ese mes. No se generan propuestas
+    // automáticas («mover la matrícula a septiembre») porque no existe un motor que las calcule:
+    // inventarlas sería prometer un cálculo que nadie ha hecho.
+    links.innerHTML = [
+      ["Mover o recortar una partida de ese mes", "#cuadro-mandos", "Abrir cuadro de mandos"],
+      ["Probar una decisión completa antes de tocar el plan", "#escenario-simular", "Abrir escenario"],
+      ["Ver si refinanciar o reunificar mueve la deuda", "#deuda-comparar", "Comparar estrategias"],
+    ]
+      .map(
+        ([text, href, cta]) => `<div class="mapa-calor-link"><span>${escapeHtml(text)}</span><a class="e19-btn e19-btn-primary" href="${href}">${escapeHtml(cta)}</a></div>`,
+      )
+      .join("");
+  }
+}
+
+function handleMapaCalorMetric(metric) {
+  if (!MAPA_CALOR_METRICS[metric]) return;
+  mapaCalorMetric = metric;
+  document.querySelectorAll("[data-mapa-calor-metric]").forEach((button) => {
+    const active = button.dataset.mapaCalorMetric === metric;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  renderMapaCalor();
+}
+
 function renderUpdateHub() {
   if (!qs("update-hub") || !baseData?.monthlyPlanning?.months?.length) return;
   const planning = baseData.monthlyPlanning;
@@ -16514,6 +17679,26 @@ function populateSelectors(force = false) {
   qs("detailMonth").value = [...qs("detailMonth").options].some((option) => option.value === previousDetailMonth)
     ? previousDetailMonth
     : defaultPlanningIndex;
+  const cuadroSelect = qs("cuadroMandosStart");
+  if (cuadroSelect) {
+    const previousCuadroMonth = cuadroSelect.value;
+    const visualMonthList = allVisualMonths();
+    cuadroSelect.innerHTML = visualMonthList
+      .map((month) => `<option value="${month.key}">${escapeHtml(month.label)}${isClosedMonthKey(month.key) ? " · cerrado" : ""}</option>`)
+      .join("");
+    const defaultCuadroKey = visualMonthList.find((month) => !isClosedMonthKey(month.key))?.key || visualMonthList[0]?.key || "";
+    cuadroSelect.value = [...cuadroSelect.options].some((option) => option.value === previousCuadroMonth)
+      ? previousCuadroMonth
+      : defaultCuadroKey;
+  }
+  const registrarSelect = qs("registrarMesMonth");
+  if (registrarSelect) {
+    const previousRegistrarMonth = registrarSelect.value;
+    registrarSelect.innerHTML = planningOptions;
+    registrarSelect.value = [...registrarSelect.options].some((option) => option.value === previousRegistrarMonth)
+      ? previousRegistrarMonth
+      : defaultPlanningIndex;
+  }
 }
 
 function csvValue(value) {
@@ -18031,6 +19216,1659 @@ function renderDebtLiquidationPlan() {
   renderAcceleratedDebtPlan();
 }
 
+// ---------------------------------------------------------------------------------------------
+// E20-1, día 1: primera integración real de canonical-scenario-engine.js en la interfaz. Alcance
+// deliberadamente mínimo — un único tipo de decisión (amortizar deuda) de punta a punta, para
+// probar el circuito completo con datos reales antes de añadir el resto de tipos en próximas
+// fases, igual que se construyó el propio motor día a día. La lista de decisiones vive solo en
+// memoria de esta sesión de navegador — no persiste todavía, y se documenta así en vez de fingir
+// que sí (ver PROJECT_STATE.md).
+// ---------------------------------------------------------------------------------------------
+let escenarioMotorDecisions = [];
+let escenarioMotorSavedSeq = 0;
+let escenarioMotorGuardrailValue = null;
+
+function escenarioMotorBaseInput() {
+  return canonicalEngineInput(projectPlan.outflows || []);
+}
+
+// Incluye el plan reunificado sintético (canonicalDebtContractRows añade «reunified-plan-current»
+// cuando existe) además de los contratos con nombre propio, para que amortizar el plan combinado
+// sea un objetivo válido igual que cualquier otra deuda activa.
+function escenarioMotorDebtOptions() {
+  return canonicalDebtContractRows().filter(
+    (contract) => contract.paymentStatus !== "settled" && contract.paymentStatus !== "reunified" && Number(contract.currentPrincipal) > 0
+  );
+}
+
+function escenarioMotorDebtLabel(contract) {
+  return contract.entity ? `${contract.entity} ${contract.type || ""}`.trim() : contract.label || contract.id;
+}
+
+// ---------------------------------------------------------------------------------------------
+// E20-3 · Catálogo de tipos de decisión de «Escenario · simular».
+//
+// El motor (`canonical-scenario-engine.js`) resuelve once tipos, pero la interfaz solo dejaba
+// crear `amortizacion`. Aquí se declaran los once con sus campos reales, exactamente como los
+// exige `canonical-scenario-schema.js`. Tres decisiones deliberadas, para no ofrecer ningún
+// control que el motor luego ignore en silencio:
+//   - `traspaso` y `cambio_presupuesto` NO se ofrecen. El motor los deja fuera a propósito (ver
+//     la cabecera de `canonical-scenario-engine.js`: uno exigiría ampliar el motor canónico, el
+//     otro fabricaría un gasto que nadie ha declarado). Ofrecerlos daría una simulación que no
+//     cambia nada sin decirlo.
+//   - `acuerdo_quita.modalidad` se fija a "pago_unico" en vez de pedirla: el motor cierra la
+//     deuda con un pago único en el mes resuelto, así que un desplegable con «fraccionado»
+//     prometería un cálculo que hoy no existe.
+//   - `proyecto` con modalidad "financiado" se calcula igual que "pago_unico" (el esquema de
+//     proyecto no da plazo ni cuota propios); se dice en el texto de ayuda del tipo.
+//
+// Cada decisión se valida con `Schema.validateDecision` antes de entrar en la simulación: los
+// mensajes de error que ve el usuario son los del contrato, no una comprobación paralela que
+// pudiera divergir de él.
+// ---------------------------------------------------------------------------------------------
+const ESCENARIO_MOTOR_ID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+function escenarioMotorNewDecisionId() {
+  let out = "";
+  for (let index = 0; index < 26; index += 1) {
+    out += ESCENARIO_MOTOR_ID_ALPHABET[Math.floor(Math.random() * ESCENARIO_MOTOR_ID_ALPHABET.length)];
+  }
+  return `dec_${out}`;
+}
+
+function escenarioMotorTrim(value, max = 60) {
+  const text = String(value ?? "").trim();
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function escenarioMotorInt(value) {
+  return Number.isFinite(value) ? Math.round(value) : undefined;
+}
+
+// El TIN se pide en % (más legible) y el esquema lo quiere en fracción 0-0,60.
+function escenarioMotorPct(value) {
+  return Number.isFinite(value) ? round2(value * 100) / 10000 : undefined;
+}
+
+const ESCENARIO_MOTOR_TYPES = Object.freeze([
+  {
+    id: "amortizacion",
+    grupo: "Deuda",
+    label: "Amortizar deuda",
+    ayuda: "Un pago único contra el principal en el mes elegido. Si cubre lo que queda, la deuda se cierra.",
+    campos: [
+      { key: "deudaId", kind: "debt", label: "Deuda" },
+      { key: "importe", kind: "money", label: "Importe a amortizar" },
+      { key: "mes", kind: "month", label: "Mes del pago" },
+      { key: "parcial", kind: "checkbox", ancho: true, label: "Tratar siempre como parcial (no cerrar la deuda aunque el importe cubra el principal)" },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => (v.parcial ? { deudaId: v.deudaId, importe: v.importe, parcial: true } : { deudaId: v.deudaId, importe: v.importe }),
+    titulo: (v, h) => `Amortizar ${h.debtLabel(v.deudaId)}`,
+    detalle: (d) => money(d.params?.importe, true),
+    importeTexto: (d) => money(d.params?.importe, true),
+  },
+  {
+    id: "amortizacion_fraccionada",
+    grupo: "Deuda",
+    label: "Amortizar a plazos",
+    ayuda: "Un pago extra mensual durante N meses. Si agota el principal antes, la deuda cierra en el mes real en que eso ocurre.",
+    campos: [
+      { key: "deudaId", kind: "debt", label: "Deuda" },
+      { key: "importeMensual", kind: "money", label: "Importe extra al mes" },
+      { key: "meses", kind: "int", label: "Durante (meses)", min: 1 },
+      { key: "mes", kind: "month", label: "Mes de inicio" },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => ({ deudaId: v.deudaId, importeMensual: v.importeMensual, meses: escenarioMotorInt(v.meses) }),
+    titulo: (v, h) => `Amortizar a plazos ${h.debtLabel(v.deudaId)}`,
+    detalle: (d) => `${money(d.params?.importeMensual, true)}/mes · ${d.params?.meses || 0} meses`,
+    importeTexto: (d) => `${money(d.params?.importeMensual, true)}/mes`,
+  },
+  {
+    id: "refinanciacion",
+    grupo: "Deuda",
+    label: "Refinanciar deuda",
+    ayuda: "Sustituye principal, cuota, TIN y plazo de una deuda desde el mes indicado. Las comisiones aún no se modelan como flujo de caja aparte.",
+    campos: [
+      { key: "deudaId", kind: "debt", label: "Deuda" },
+      { key: "nuevoPrincipal", kind: "money", label: "Nuevo principal" },
+      { key: "nuevaCuota", kind: "money", label: "Nueva cuota mensual" },
+      { key: "nuevoTIN", kind: "pct", label: "Nuevo TIN (%)" },
+      { key: "nuevoPlazo", kind: "int", label: "Nuevo plazo (meses)", min: 1, max: 480 },
+      { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => ({
+      deudaId: v.deudaId,
+      nuevoPrincipal: v.nuevoPrincipal,
+      nuevoTIN: escenarioMotorPct(v.nuevoTIN),
+      nuevaCuota: v.nuevaCuota,
+      nuevoPlazo: escenarioMotorInt(v.nuevoPlazo),
+    }),
+    titulo: (v, h) => `Refinanciar ${h.debtLabel(v.deudaId)}`,
+    detalle: (d) => `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses`,
+    importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
+  },
+  {
+    id: "reunificacion",
+    grupo: "Deuda",
+    label: "Reunificar varias deudas",
+    ayuda: "Cierra dos o más deudas y abre una cuenta nueva con el capital, cuota y plazo pactados. Mantén pulsado Ctrl (o Cmd) para elegir varias.",
+    campos: [
+      { key: "deudaIds", kind: "debtMulti", label: "Deudas a reunificar (mínimo 2)", ancho: true },
+      { key: "nuevoPrincipal", kind: "money", label: "Principal del nuevo préstamo" },
+      { key: "nuevaCuota", kind: "money", label: "Cuota del nuevo préstamo" },
+      { key: "nuevoTIN", kind: "pct", label: "TIN del nuevo préstamo (%)" },
+      { key: "nuevoPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
+      { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => ({
+      deudaIds: Array.isArray(v.deudaIds) ? v.deudaIds : [],
+      nuevoPrincipal: v.nuevoPrincipal,
+      nuevoTIN: escenarioMotorPct(v.nuevoTIN),
+      nuevaCuota: v.nuevaCuota,
+      nuevoPlazo: escenarioMotorInt(v.nuevoPlazo),
+    }),
+    titulo: (v) => `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas`,
+    detalle: (d) => `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas`,
+    importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
+  },
+  {
+    id: "retomar_pagos",
+    grupo: "Deuda",
+    label: "Retomar pagos suspendidos",
+    ayuda: "Solo se ofrece sobre deudas con los pagos suspendidos. El plazo restante no se recalcula: se reutiliza el original.",
+    campos: [
+      { key: "deudaId", kind: "debt", label: "Deuda suspendida", filtro: (contract) => contract.paymentStatus === "suspended", vacio: "Sin deudas con pagos suspendidos" },
+      { key: "cuota", kind: "money", label: "Cuota mensual al retomar" },
+      { key: "mesInicio", kind: "month", label: "Mes en que se retoman" },
+    ],
+    mes: (v) => v.mesInicio,
+    params: (v) => ({ deudaId: v.deudaId, cuota: v.cuota, mesInicio: v.mesInicio }),
+    titulo: (v, h) => `Retomar pagos ${h.debtLabel(v.deudaId)}`,
+    detalle: (d) => `${money(d.params?.cuota, true)}/mes`,
+    importeTexto: (d) => `${money(d.params?.cuota, true)}/mes`,
+  },
+  {
+    id: "acuerdo_quita",
+    grupo: "Deuda",
+    label: "Acuerdo de quita",
+    ayuda: "Cierra la deuda pagando el importe pactado de una vez en el mes elegido. Solo se modela el pago único: un acuerdo fraccionado no tiene cálculo propio todavía.",
+    campos: [
+      { key: "deudaId", kind: "debt", label: "Deuda" },
+      { key: "importePactado", kind: "money", label: "Importe pactado" },
+      { key: "mes", kind: "month", label: "Mes del pago" },
+      { key: "vigenciaHasta", kind: "date", label: "La oferta caduca el" },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => ({ deudaId: v.deudaId, importePactado: v.importePactado, modalidad: "pago_unico", vigenciaHasta: v.vigenciaHasta }),
+    titulo: (v, h) => `Quita ${h.debtLabel(v.deudaId)}`,
+    detalle: (d) => money(d.params?.importePactado, true),
+    importeTexto: (d) => money(d.params?.importePactado, true),
+  },
+  {
+    id: "compra",
+    grupo: "Vida",
+    label: "Compra",
+    ayuda: "Sale de golpe en el mes elegido, o como cuota mensual durante el plazo si la financias.",
+    campos: [
+      { key: "nombre", kind: "text", label: "Qué compras" },
+      { key: "importe", kind: "money", label: "Importe total" },
+      { key: "mes", kind: "month", label: "Mes de la compra" },
+      { key: "financiada", kind: "checkbox", ancho: true, controla: true, label: "La financio" },
+      { key: "finPrincipal", kind: "money", label: "Principal financiado", visibleSi: (v) => v.financiada === true },
+      { key: "finCuota", kind: "money", label: "Cuota mensual", visibleSi: (v) => v.financiada === true },
+      { key: "finTIN", kind: "pct", label: "TIN (%)", visibleSi: (v) => v.financiada === true },
+      { key: "finPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480, visibleSi: (v) => v.financiada === true },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => (v.financiada
+      ? {
+        nombre: v.nombre,
+        importe: v.importe,
+        financiacion: { principal: v.finPrincipal, TIN: escenarioMotorPct(v.finTIN), cuota: v.finCuota, plazo: escenarioMotorInt(v.finPlazo) },
+      }
+      : { nombre: v.nombre, importe: v.importe }),
+    titulo: (v) => escenarioMotorTrim(`Compra · ${v.nombre || "sin nombre"}`),
+    detalle: (d) => (d.params?.financiacion
+      ? `${money(d.params.financiacion.cuota, true)}/mes · ${d.params.financiacion.plazo || 0} meses`
+      : money(d.params?.importe, true)),
+    importeTexto: (d) => money(d.params?.importe, true),
+  },
+  {
+    id: "proyecto",
+    grupo: "Vida",
+    label: "Proyecto con fecha objetivo",
+    ayuda: "«Hucha» reparte el importe en cuotas iguales hasta el mes objetivo. «Pago único» y «financiado» lo cargan de golpe en ese mes: el esquema de proyecto no da plazo ni cuota propios, así que hoy no se distinguen numéricamente.",
+    campos: [
+      { key: "nombre", kind: "text", label: "Nombre del proyecto" },
+      { key: "importeObjetivo", kind: "money", label: "Importe objetivo" },
+      { key: "modalidad", kind: "select", label: "Cómo lo pagas", controla: true, opciones: [["hucha", "Hucha (reparto mensual)"], ["pago_unico", "Pago único"], ["financiado", "Financiado"]] },
+      { key: "mesObjetivo", kind: "month", label: "Mes objetivo" },
+      { key: "mes", kind: "month", label: "Mes en que empiezas a apartar", visibleSi: (v) => (v.modalidad || "hucha") === "hucha" },
+    ],
+    mes: (v) => ((v.modalidad || "hucha") === "hucha" ? v.mes || v.mesObjetivo : v.mesObjetivo),
+    params: (v) => ({ nombre: v.nombre, importeObjetivo: v.importeObjetivo, modalidad: v.modalidad || "hucha", mesObjetivo: v.mesObjetivo }),
+    titulo: (v) => escenarioMotorTrim(`Proyecto · ${v.nombre || "sin nombre"}`),
+    detalle: (d) => `${money(d.params?.importeObjetivo, true)} · ${d.params?.modalidad === "hucha" ? "hucha" : "de una vez"}`,
+    importeTexto: (d) => money(d.params?.importeObjetivo, true),
+  },
+  {
+    id: "imprevisto",
+    grupo: "Vida",
+    label: "Imprevisto",
+    ayuda: "Un gasto de golpe en el mes indicado, o repetido cada N meses durante el resto del horizonte.",
+    campos: [
+      { key: "importe", kind: "money", label: "Importe" },
+      { key: "mes", kind: "month", label: "Mes" },
+      { key: "recurrenciaMeses", kind: "int", label: "Se repite cada (meses)", min: 1, opcional: true, ayuda: "Vacío = ocurre una sola vez." },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => (Number.isFinite(v.recurrenciaMeses)
+      ? { importe: v.importe, mes: v.mes, recurrenciaMeses: escenarioMotorInt(v.recurrenciaMeses) }
+      : { importe: v.importe, mes: v.mes }),
+    titulo: (v) => escenarioMotorTrim(`Imprevisto de ${money(v.importe, true)}`),
+    detalle: (d) => (d.params?.recurrenciaMeses ? `${money(d.params.importe, true)} cada ${d.params.recurrenciaMeses} meses` : money(d.params?.importe, true)),
+    importeTexto: (d) => money(d.params?.importe, true),
+  },
+  {
+    id: "cambio_ingreso",
+    grupo: "Vida",
+    label: "Cambio de ingreso",
+    ayuda: "Suma o resta un importe fijo al ingreso mensual entre dos meses. En negativo modela una bajada de sueldo o el fin de un ingreso.",
+    campos: [
+      { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
+      { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)" },
+      { key: "mesInicio", kind: "month", label: "Desde" },
+      { key: "mesFin", kind: "monthOptional", label: "Hasta", ayuda: "Vacío = hasta el final del horizonte." },
+    ],
+    mes: (v) => v.mesInicio,
+    params: (v) => (v.mesFin
+      ? { titular: v.titular || "hogar", deltaMensual: v.deltaMensual, mesInicio: v.mesInicio, mesFin: v.mesFin }
+      : { titular: v.titular || "hogar", deltaMensual: v.deltaMensual, mesInicio: v.mesInicio }),
+    titulo: (v) => escenarioMotorTrim(`Ingreso ${Number(v.deltaMensual) >= 0 ? "+" : ""}${money(v.deltaMensual, true)} · ${v.titular || "hogar"}`),
+    detalle: (d) => `${Number(d.params?.deltaMensual) >= 0 ? "+" : ""}${money(d.params?.deltaMensual, true)}/mes`,
+    importeTexto: (d) => `${Number(d.params?.deltaMensual) >= 0 ? "+" : ""}${money(d.params?.deltaMensual, true)}/mes`,
+  },
+  {
+    id: "cambio_gasto",
+    grupo: "Vida",
+    label: "Cambio de gasto",
+    ayuda: "Sube o baja el gasto corriente entre dos meses, como importe fijo o como porcentaje del gasto de cada mes.",
+    campos: [
+      { key: "bloque", kind: "text", label: "Bloque de gasto" },
+      { key: "modoCambio", kind: "select", label: "Cómo se expresa", controla: true, opciones: [["importe", "Importe fijo al mes"], ["porcentaje", "Porcentaje del gasto"]] },
+      { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)", visibleSi: (v) => (v.modoCambio || "importe") === "importe" },
+      { key: "deltaPct", kind: "number", label: "Cambio (%, negativo si baja)", visibleSi: (v) => v.modoCambio === "porcentaje" },
+      { key: "mesInicio", kind: "month", label: "Desde" },
+      { key: "mesFin", kind: "monthOptional", label: "Hasta", ayuda: "Vacío = hasta el final del horizonte." },
+    ],
+    mes: (v) => v.mesInicio,
+    params: (v) => {
+      const params = { bloque: v.bloque, mesInicio: v.mesInicio };
+      if (v.modoCambio === "porcentaje") params.deltaPct = escenarioMotorPct(v.deltaPct);
+      else params.deltaMensual = v.deltaMensual;
+      if (v.mesFin) params.mesFin = v.mesFin;
+      return params;
+    },
+    titulo: (v) => escenarioMotorTrim(`Gasto · ${v.bloque || "sin bloque"}`),
+    detalle: (d) => (Number.isFinite(d.params?.deltaPct)
+      ? `${round2(d.params.deltaPct * 100)} %/mes`
+      : `${Number(d.params?.deltaMensual) >= 0 ? "+" : ""}${money(d.params?.deltaMensual, true)}/mes`),
+    importeTexto: (d) => (Number.isFinite(d.params?.deltaPct)
+      ? `${round2(d.params.deltaPct * 100)} %`
+      : `${Number(d.params?.deltaMensual) >= 0 ? "+" : ""}${money(d.params?.deltaMensual, true)}/mes`),
+  },
+]);
+
+let escenarioMotorDraftTipo = ESCENARIO_MOTOR_TYPES[0].id;
+let escenarioMotorDraftValues = {};
+
+function escenarioMotorTypeById(tipo) {
+  return ESCENARIO_MOTOR_TYPES.find((item) => item.id === tipo) || null;
+}
+
+function escenarioMotorVisibleFields(type, values) {
+  if (!type) return [];
+  return type.campos.filter((field) => (typeof field.visibleSi === "function" ? field.visibleSi(values) : true));
+}
+
+// Los campos ocultos por `visibleSi` no cuentan: si la compra no está financiada, sus cuatro
+// campos de financiación no entran en los params aunque el usuario los hubiera rellenado antes.
+function escenarioMotorEffectiveValues(type, values) {
+  const visible = new Set(escenarioMotorVisibleFields(type, values).map((field) => field.key));
+  const effective = {};
+  Object.keys(values).forEach((key) => {
+    if (visible.has(key)) effective[key] = values[key];
+  });
+  return effective;
+}
+
+function escenarioMotorFieldElementId(key) {
+  return `escenarioMotorField_${key}`;
+}
+
+function escenarioMotorMonthOptionsHtml(months, selected, placeholder) {
+  const head = placeholder ? `<option value="">${escapeHtml(placeholder)}</option>` : "";
+  return head + months
+    .map((month) => `<option value="${escapeHtml(month.monthKey)}"${month.monthKey === selected ? " selected" : ""}>${escapeHtml(month.month)}</option>`)
+    .join("");
+}
+
+function escenarioMotorFieldControlHtml(field, months, values) {
+  const id = escenarioMotorFieldElementId(field.key);
+  const attrs = `id="${id}" data-escenario-motor-field="${escapeHtml(field.key)}"`;
+  const value = values[field.key];
+  const numberAttrs = `${field.min !== undefined ? ` min="${field.min}"` : ""}${field.max !== undefined ? ` max="${field.max}"` : ""}`;
+  switch (field.kind) {
+    case "debt":
+    case "debtMulti": {
+      const debts = escenarioMotorDebtOptions().filter(field.filtro || (() => true));
+      if (!debts.length) return `<select ${attrs}${field.kind === "debtMulti" ? " multiple size=\"4\"" : ""}><option value="">${escapeHtml(field.vacio || "Sin deudas vivas")}</option></select>`;
+      const selected = field.kind === "debtMulti" ? new Set(Array.isArray(value) ? value : []) : new Set(value ? [value] : []);
+      const options = debts
+        .map((contract) => `<option value="${escapeHtml(contract.id)}"${selected.has(contract.id) ? " selected" : ""}>${escapeHtml(escenarioMotorDebtLabel(contract))} · ${money(contract.currentPrincipal, true)}</option>`)
+        .join("");
+      return `<select ${attrs}${field.kind === "debtMulti" ? ` multiple size="${Math.min(6, Math.max(3, debts.length))}"` : ""}>${options}</select>`;
+    }
+    case "month":
+      return `<select ${attrs}>${escenarioMotorMonthOptionsHtml(months, value, null)}</select>`;
+    case "monthOptional":
+      return `<select ${attrs}>${escenarioMotorMonthOptionsHtml(months, value, "Hasta el final del horizonte")}</select>`;
+    case "select":
+      return `<select ${attrs}>${(field.opciones || [])
+        .map(([optionValue, optionLabel]) => `<option value="${escapeHtml(optionValue)}"${optionValue === value ? " selected" : ""}>${escapeHtml(optionLabel)}</option>`)
+        .join("")}</select>`;
+    case "checkbox":
+      return `<input ${attrs} type="checkbox"${value === true ? " checked" : ""} />`;
+    case "money":
+      return `<input ${attrs} type="number" min="0.01" step="0.01" placeholder="€" value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
+    case "pct":
+      return `<input ${attrs} type="number" step="0.01" placeholder="%" value="${value === undefined ? "" : escapeHtml(String(value))}"${numberAttrs} />`;
+    case "int":
+      return `<input ${attrs} type="number" step="1"${numberAttrs} value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
+    case "number":
+      return `<input ${attrs} type="number" step="0.01" placeholder="€" value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
+    case "date":
+      return `<input ${attrs} type="date" value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
+    default:
+      return `<input ${attrs} type="text" maxlength="60" value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
+  }
+}
+
+function escenarioMotorFieldHtml(field, months, values) {
+  const control = escenarioMotorFieldControlHtml(field, months, values);
+  const hint = field.ayuda ? `<small class="e19-kpi-note">${escapeHtml(field.ayuda)}</small>` : "";
+  const classes = ["escenario-motor-field"];
+  // Los selectores de deuda llevan entidad, tipo e importe: a media columna se recortan justo en la
+  // parte que distingue una deuda de otra, así que ocupan la fila entera.
+  if (field.ancho || field.kind === "debt" || field.kind === "debtMulti") classes.push("escenario-motor-field-wide");
+  if (field.kind === "checkbox") classes.push("escenario-motor-field-check");
+  const hidden = typeof field.visibleSi === "function" && !field.visibleSi(values) ? " hidden" : "";
+  const body = field.kind === "checkbox"
+    ? `${control}<span>${escapeHtml(field.label)}</span>${hint}`
+    : `<span>${escapeHtml(field.label)}</span>${control}${hint}`;
+  return `<label class="${classes.join(" ")}" data-escenario-motor-field-wrap="${escapeHtml(field.key)}"${hidden}>${body}</label>`;
+}
+
+function escenarioMotorReadFieldValue(field, element) {
+  if (!element) return undefined;
+  if (field.kind === "checkbox") return element.checked;
+  if (field.kind === "debtMulti") return Array.from(element.selectedOptions || []).map((option) => option.value).filter(Boolean);
+  const raw = String(element.value ?? "").trim();
+  if (raw === "") return undefined;
+  if (["money", "number", "int", "pct"].includes(field.kind)) {
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return raw;
+}
+
+function escenarioMotorSyncDraftValues() {
+  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const container = qs("escenarioMotorFields");
+  if (!type || !container) return;
+  type.campos.forEach((field) => {
+    const element = qs(escenarioMotorFieldElementId(field.key));
+    if (!element) return;
+    escenarioMotorDraftValues[field.key] = escenarioMotorReadFieldValue(field, element);
+  });
+}
+
+function escenarioMotorSyncFieldVisibility() {
+  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const container = qs("escenarioMotorFields");
+  if (!type || !container) return;
+  type.campos.forEach((field) => {
+    if (typeof field.visibleSi !== "function") return;
+    const wrap = container.querySelector(`[data-escenario-motor-field-wrap="${field.key}"]`);
+    if (wrap) wrap.hidden = !field.visibleSi(escenarioMotorDraftValues);
+  });
+}
+
+// Rebusca opciones (deudas y meses) en cada render para que no queden obsoletas, pero se abstiene
+// si el usuario tiene el foco dentro del formulario: reconstruirlo bajo sus dedos le haría perder
+// el cursor a media escritura.
+function renderEscenarioMotorForm(baseInput) {
+  const typeSelect = qs("escenarioMotorType");
+  const container = qs("escenarioMotorFields");
+  const hint = qs("escenarioMotorTypeHint");
+  if (!typeSelect || !container) return;
+
+  if (!typeSelect.childElementCount) {
+    const grupos = [];
+    ESCENARIO_MOTOR_TYPES.forEach((type) => {
+      const grupo = grupos.find((item) => item.nombre === type.grupo);
+      if (grupo) grupo.tipos.push(type);
+      else grupos.push({ nombre: type.grupo, tipos: [type] });
+    });
+    typeSelect.innerHTML = grupos
+      .map((grupo) => `<optgroup label="${escapeHtml(grupo.nombre)}">${grupo.tipos
+        .map((type) => `<option value="${escapeHtml(type.id)}">${escapeHtml(type.label)}</option>`)
+        .join("")}</optgroup>`)
+      .join("");
+  }
+  typeSelect.value = escenarioMotorDraftTipo;
+
+  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  if (hint) hint.textContent = type?.ayuda || "";
+  if (!type) return;
+
+  if (container.contains(document.activeElement)) {
+    escenarioMotorSyncFieldVisibility();
+    return;
+  }
+  escenarioMotorSyncDraftValues();
+  container.innerHTML = type.campos
+    .map((field) => escenarioMotorFieldHtml(field, baseInput.months, escenarioMotorDraftValues))
+    .join("");
+  container.dataset.tipo = type.id;
+  // Los desplegables no admiten «sin valor»: lo que muestran ya es el valor efectivo, así que se
+  // vuelca al borrador para que `params()` vea lo mismo que el usuario.
+  escenarioMotorSyncDraftValues();
+  escenarioMotorSyncFieldVisibility();
+}
+
+function escenarioMotorShowFormErrors(messages) {
+  const box = qs("escenarioMotorFormError");
+  const list = qs("escenarioMotorFormErrorList");
+  if (!box || !list) return;
+  if (!messages.length) {
+    box.hidden = true;
+    list.innerHTML = "";
+    return;
+  }
+  box.hidden = false;
+  list.innerHTML = messages.map((message) => `<li>${escapeHtml(message)}</li>`).join("");
+}
+
+// Traduce el `path` que devuelve el contrato ($.params.importe) al rótulo del campo, para que el
+// mensaje señale el control que hay que rellenar en vez de un nombre técnico.
+function escenarioMotorIssueMessage(issue, type) {
+  const key = String(issue.path || "").split(".").pop();
+  const field = type.campos.find((item) => item.key === key || (item.key === "mes" && key === "mesManual"));
+  return field ? `${field.label}: ${issue.message}` : issue.message;
+}
+
+// Traduce los códigos de rechazo reales del motor (canonical-scenario-engine.js) a texto legible.
+// Ningún resultado se inventa aquí: solo se etiqueta lo que el motor ya ha decidido.
+function escenarioMotorResultInfo(resultado) {
+  const table = {
+    aplicada: { text: "Aplicada", badge: "e19-badge-success" },
+    "guardarril-incumplido": { text: "Rechazada: rompe el saldo mínimo indicado", badge: "e19-badge-danger" },
+    "conflicto-bloqueante": { text: "Rechazada: la deuda ya la afecta otra decisión de este escenario", badge: "e19-badge-danger" },
+    "deuda-ya-cerrada": { text: "Rechazada: la deuda ya está cerrada", badge: "e19-badge-danger" },
+    "deuda-desconocida": { text: "Rechazada: deuda no encontrada", badge: "e19-badge-danger" },
+    "sin-objetivo": { text: "Rechazada: falta indicar la deuda", badge: "e19-badge-danger" },
+    "sin-mes-viable": { text: "Rechazada: ningún mes del horizonte la sostiene", badge: "e19-badge-danger" },
+    "tipo-no-soportado-aun": { text: "Rechazada: el motor no resuelve este tipo todavía", badge: "e19-badge-danger" },
+    inactiva: { text: "Desactivada", badge: "e19-badge-neutral" },
+  };
+  return table[resultado] || { text: resultado, badge: "e19-badge-neutral" };
+}
+
+// `resultado: "rechazada"` viene siempre acompañado de un `motivo` del propio aplicador; sin él, el
+// texto genérico sería inútil para decidir qué corregir.
+function escenarioMotorRejectionInfo(resultado) {
+  if (resultado?.resultado !== "rechazada") return null;
+  const table = {
+    "deuda-no-suspendida": "Rechazada: esa deuda no tiene los pagos suspendidos",
+    "sin-objetivo": "Rechazada: falta indicar la deuda",
+  };
+  const text = table[resultado.motivo];
+  return { text: text || `Rechazada: ${resultado.motivo || "sin motivo declarado"}`, badge: "e19-badge-danger" };
+}
+
+function escenarioMotorEfectoLabel(efecto) {
+  const table = {
+    "cierre-total": "Amortización total · deuda cerrada",
+    "amortizacion-parcial": "Amortización parcial",
+    "cierre-total-fraccionado": "Amortización a plazos · deuda cerrada",
+    "amortizacion-fraccionada-parcial": "Amortización a plazos parcial",
+    refinanciada: "Deuda refinanciada",
+    "pagos-reanudados": "Pagos retomados",
+    reunificada: "Deudas reunificadas",
+    compra: "Compra añadida al plan",
+    imprevisto: "Imprevisto añadido al plan",
+    proyecto: "Proyecto añadido al plan",
+    cambio_ingreso: "Ingreso mensual ajustado",
+    cambio_gasto: "Gasto mensual ajustado",
+  };
+  return table[efecto] || efecto || "";
+}
+
+function runEscenarioMotor(baseInput, decisions, guardrailValue) {
+  const engine = window.FinanceCanonicalScenarioEngine;
+  if (!engine) return null;
+  const context = {
+    baseInput,
+    debtContracts: canonicalDebtContractRows(),
+    meta: { reason: "escenario-motor-ui" },
+  };
+  if (Number.isFinite(guardrailValue) && guardrailValue > 0) {
+    context.guardarrailes = { saldoMinimoAbsoluto: guardrailValue };
+  }
+  return engine.resolveEscenario(decisions || [], context);
+}
+
+// El mes en que una deuda queda a cero, a partir de su propio estado (cuota + plazo restante),
+// nunca de una cifra inventada: si la deuda sigue activa se proyecta cuota fija durante
+// remainingInstallments meses desde su último cambio real (o desde el inicio del horizonte si
+// nadie la ha tocado); si el resultado cae fuera del horizonte modelado se dice explícitamente.
+function escenarioMotorContractPayoffMonth(contract, months) {
+  if (!months.length) return null;
+  if (!(Number(contract.currentPrincipal) > 0) || Number(contract.remainingInstallments) <= 0) {
+    return contract.scheduleEffectiveFrom || months[0].monthKey;
+  }
+  const startIndex = contract.scheduleEffectiveFrom
+    ? Math.max(0, months.findIndex((month) => month.monthKey === contract.scheduleEffectiveFrom))
+    : 0;
+  const payoffIndex = startIndex + Math.max(0, Math.floor(contract.remainingInstallments) - 1);
+  return payoffIndex < months.length ? months[payoffIndex].monthKey : null;
+}
+
+function escenarioMotorLibreDeDeuda(debtStateFinal, months) {
+  const withPrincipal = (debtStateFinal || []).filter((contract) => Number(contract.currentPrincipal) > 0);
+  if (!withPrincipal.length) return "sin deuda pendiente";
+  const active = withPrincipal.filter((contract) => contract.paymentStatus === "active");
+  // Una deuda sin cuota activa (suspendida, o reunificada sin que el plan combinado esté en los
+  // datos) no tiene calendario de pago del que proyectar cierre: se dice explícitamente en vez de
+  // inventar una fecha a partir de una cuota que hoy no se está pagando.
+  if (!active.length) return "sin fecha estimable · sin cuota activa";
+  const payoffs = active.map((contract) => escenarioMotorContractPayoffMonth(contract, months));
+  if (payoffs.some((value) => value === null)) return "fuera de horizonte";
+  const latest = payoffs.sort().at(-1);
+  return active.length < withPrincipal.length ? `${latest} · queda deuda sin cuota activa` : latest;
+}
+
+function escenarioMotorMonthLabel(value) {
+  if (!value) return "—";
+  const match = String(value).match(/^(\d{4}-\d{2})(.*)$/);
+  if (!match) return value;
+  const date = dateFromMonthKey(match[1]);
+  return date ? `${monthLabel(date)}${match[2]}` : value;
+}
+
+function escenarioMotorSummaryFor(result, months) {
+  if (!result || !result.valid) return { minimoLiquidez: null, liquidezFinal: null, libreDeDeuda: null };
+  return {
+    minimoLiquidez: result.series.length ? Math.min(...result.series.map((row) => row.totalLiquidity)) : null,
+    liquidezFinal: result.series.length ? result.series.at(-1).totalLiquidity : null,
+    libreDeDeuda: escenarioMotorLibreDeDeuda(result.debtStateFinal, months),
+  };
+}
+
+function escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary) {
+  const liquidezDelta = round2((scenarioSummary.liquidezFinal ?? 0) - (baseSummary.liquidezFinal ?? 0));
+  const minimoDelta = round2((scenarioSummary.minimoLiquidez ?? 0) - (baseSummary.minimoLiquidez ?? 0));
+  const bajoReserva = Number.isFinite(escenarioMotorGuardrailValue) && (scenarioSummary.minimoLiquidez ?? 0) < escenarioMotorGuardrailValue;
+  return `
+    <div class="e19-kpi">
+      <span class="e19-kpi-label">Liquidez final del horizonte</span>
+      <span class="e19-kpi-value">${money(scenarioSummary.liquidezFinal ?? 0, true)}</span>
+      <span class="e19-kpi-delta ${liquidezDelta >= 0 ? "is-up" : "is-down"}">${liquidezDelta >= 0 ? "+" : ""}${money(liquidezDelta, true)}</span>
+    </div>
+    <div class="e19-kpi${bajoReserva ? " is-danger" : ""}">
+      <span class="e19-kpi-label">Caja mínima del horizonte</span>
+      <span class="e19-kpi-value">${money(scenarioSummary.minimoLiquidez ?? 0, true)}</span>
+      <span class="e19-kpi-delta ${minimoDelta >= 0 ? "is-up" : "is-down"}">${minimoDelta >= 0 ? "+" : ""}${money(minimoDelta, true)}${bajoReserva ? " · bajo el saldo mínimo indicado" : ""}</span>
+    </div>
+    <div class="e19-kpi">
+      <span class="e19-kpi-label">Libre de deuda</span>
+      <span class="e19-kpi-value">${escapeHtml(escenarioMotorMonthLabel(scenarioSummary.libreDeDeuda))}</span>
+      <span class="e19-kpi-note">Antes: ${escapeHtml(escenarioMotorMonthLabel(baseSummary.libreDeDeuda))}</span>
+    </div>
+  `;
+}
+
+// Gráfico plan actual vs. simulación (mockup 1e). Reutiliza projectChartTickIndexes (ya usado por
+// el simulador de proyectos) para las etiquetas de mes — misma convención visual en toda la app.
+function renderEscenarioMotorChart(baseSeries, scenarioSeries, months, guardrailValue) {
+  const svg = qs("escenarioMotorChart");
+  if (!svg || !baseSeries.length || !scenarioSeries.length) return;
+  const width = svg.clientWidth || 640;
+  const height = 170;
+  const pad = { left: 50, right: 16, top: 16, bottom: 26 };
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.innerHTML = "";
+
+  const values = [...baseSeries.map((row) => row.totalLiquidity), ...scenarioSeries.map((row) => row.totalLiquidity)];
+  if (Number.isFinite(guardrailValue)) values.push(guardrailValue);
+  const minV = Math.min(...values, 0);
+  const maxV = Math.max(...values, 1);
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const n = baseSeries.length;
+  const x = (i) => pad.left + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
+  const y = (value) => pad.top + plotH - ((value - minV) / Math.max(1, maxV - minV)) * plotH;
+  const pathFor = (series) => series.map((row, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(row.totalLiquidity).toFixed(2)}`).join(" ");
+
+  let markup = `<path class="chart-line-base" d="${pathFor(baseSeries)}" />`;
+  markup += `<path class="chart-line-scenario" d="${pathFor(scenarioSeries)}" />`;
+  if (Number.isFinite(guardrailValue)) {
+    const ry = y(guardrailValue).toFixed(2);
+    markup += `<line class="chart-line-reserve" x1="${pad.left}" x2="${width - pad.right}" y1="${ry}" y2="${ry}" />`;
+  }
+  projectChartTickIndexes(months, width).forEach((idx) => {
+    markup += `<text class="chart-label" x="${(x(idx) - 14).toFixed(2)}" y="${height - 6}">${escapeHtml(months[idx]?.month || "")}</text>`;
+  });
+  svg.insertAdjacentHTML("beforeend", markup);
+}
+
+function escenarioMotorNavigate(viewId) {
+  history.pushState(null, "", `#${viewId}`);
+  setActiveView(viewId);
+}
+
+// Los escenarios guardados antes de E20-3 no llevan `titulo` (solo existía amortización), igual que
+// las rutas que llegan desde el comparador de estrategias. Se reconstruye con el mismo generador de
+// título del catálogo, que solo lee claves presentes también en `params`.
+function escenarioMotorDecisionTitle(decision, debts) {
+  if (decision.titulo) return decision.titulo;
+  const type = escenarioMotorTypeById(decision.tipo);
+  if (!type) return decision.tipo || "Decisión";
+  const debtLabel = (deudaId) => {
+    const contract = debts?.get(deudaId);
+    return contract ? escenarioMotorDebtLabel(contract) : escenarioMotorDebtLabelById(deudaId);
+  };
+  return escenarioMotorTrim(type.titulo(decision.params || {}, { debtLabel }) || type.label);
+}
+
+function escenarioMotorDecisionDetail(decision) {
+  const type = escenarioMotorTypeById(decision.tipo);
+  return type && typeof type.detalle === "function" ? type.detalle(decision) : "";
+}
+
+function escenarioMotorDecisionAmountText(decision) {
+  const type = escenarioMotorTypeById(decision.tipo);
+  return type && typeof type.importeTexto === "function" ? type.importeTexto(decision) : "—";
+}
+
+// El mes efectivo depende del tipo: la planificación lo lleva en los tipos de deuda y en compra,
+// pero `imprevisto`, `retomar_pagos` y los cambios de ingreso/gasto lo llevan en sus propios params.
+function escenarioMotorDecisionMonthKey(decision, resultado) {
+  return resultado?.mesResuelto
+    || decision.planificacion?.mesResuelto
+    || decision.planificacion?.mesManual
+    || decision.params?.mes
+    || decision.params?.mesInicio
+    || decision.params?.mesObjetivo
+    || null;
+}
+
+function escenarioMotorDraftName() {
+  const debts = new Map(canonicalDebtContractRows().map((contract) => [contract.id, contract]));
+  const parts = escenarioMotorDecisions.map((decision) => escenarioMotorDecisionTitle(decision, debts));
+  return parts.join(" + ") || "Escenario sin nombre";
+}
+
+function renderEscenarioSimular() {
+  const baseInput = escenarioMotorBaseInput();
+  renderEscenarioMotorForm(baseInput);
+
+  const guardrailField = qs("escenarioMotorGuardrail");
+  if (guardrailField && document.activeElement !== guardrailField) {
+    guardrailField.value = escenarioMotorGuardrailValue ?? "";
+  }
+
+  const body = qs("escenarioMotorDecisionsList");
+  const empty = qs("escenarioMotorEmpty");
+  const kpis = qs("escenarioMotorKpis");
+  const warning = qs("escenarioMotorWarning");
+  const warningText = qs("escenarioMotorWarningText");
+  const autoAdjustButton = qs("escenarioMotorAutoAdjust");
+  const goApplyButton = qs("escenarioMotorGoApply");
+  if (!body || !kpis) return;
+
+  const baseResult = runEscenarioMotor(baseInput, [], null);
+
+  if (!escenarioMotorDecisions.length) {
+    body.innerHTML = "";
+    if (empty) empty.hidden = false;
+    kpis.innerHTML = "";
+    if (warning) warning.hidden = true;
+    if (goApplyButton) goApplyButton.disabled = true;
+    renderEscenarioMotorChart(baseResult?.series || [], baseResult?.series || [], baseInput.months, escenarioMotorGuardrailValue);
+    return;
+  }
+  if (empty) empty.hidden = true;
+
+  const result = runEscenarioMotor(baseInput, escenarioMotorDecisions, escenarioMotorGuardrailValue);
+  const debts = new Map(canonicalDebtContractRows().map((contract) => [contract.id, contract]));
+  const resultadosById = new Map((result?.resultados || []).map((item) => [item.id, item]));
+  const rejected = (result?.resultados || []).filter((item) => item.resultado !== "aplicada");
+
+  body.innerHTML = escenarioMotorDecisions
+    .map((decision) => {
+      const resultado = resultadosById.get(decision.id);
+      const info = (resultado && escenarioMotorRejectionInfo(resultado))
+        || (resultado ? escenarioMotorResultInfo(resultado.resultado) : { text: "Sin calcular", badge: "e19-badge-neutral" });
+      const mesLabel = decision.planificacion.modo === "optimo"
+        ? (resultado?.mesResuelto ? `Óptimo · ${escenarioMotorMonthLabel(resultado.mesResuelto)}` : "Buscando mes óptimo…")
+        : escenarioMotorMonthLabel(escenarioMotorDecisionMonthKey(decision, resultado));
+      const detalle = escenarioMotorDecisionDetail(decision);
+      return `<li class="escenario-motor-decision-item">
+        <div class="escenario-motor-decision-main">
+          <strong>${escapeHtml(escenarioMotorDecisionTitle(decision, debts))}</strong>
+          <span>${escapeHtml(detalle ? `${detalle} · ${mesLabel}` : mesLabel)}</span>
+        </div>
+        <div class="escenario-motor-decision-status">
+          <span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span>
+          <button type="button" class="escenario-motor-decision-remove" data-escenario-motor-remove="${escapeHtml(decision.id)}">Quitar</button>
+        </div>
+      </li>`;
+    })
+    .join("");
+
+  renderEscenarioMotorChart(baseResult?.series || [], result?.series || baseResult?.series || [], baseInput.months, escenarioMotorGuardrailValue);
+
+  if (!result || !result.valid) {
+    kpis.innerHTML = "";
+    if (warning) warning.hidden = true;
+    if (goApplyButton) goApplyButton.disabled = true;
+    return;
+  }
+
+  const baseSummary = escenarioMotorSummaryFor(baseResult, baseInput.months);
+  const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
+  kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
+
+  if (rejected.length) {
+    if (warning) warning.hidden = false;
+    const info = escenarioMotorRejectionInfo(rejected[0]) || escenarioMotorResultInfo(rejected[0].resultado);
+    if (warningText) {
+      warningText.textContent = rejected.length > 1
+        ? `${info.text} (y ${rejected.length - 1} decisión(es) más sin aplicar).`
+        : `${info.text}.`;
+    }
+    if (autoAdjustButton) autoAdjustButton.hidden = !rejected.some((item) => item.resultado === "guardarril-incumplido");
+    if (goApplyButton) goApplyButton.disabled = true;
+  } else {
+    if (warning) warning.hidden = true;
+    if (goApplyButton) goApplyButton.disabled = false;
+  }
+}
+
+// Construye la decisión desde el borrador y la valida con el contrato antes de aceptarla. Si el
+// contrato la rechaza no se añade nada: se muestran sus propios mensajes, campo a campo, en vez de
+// dejar entrar una decisión que el motor resolvería a medias o ignoraría.
+function handleEscenarioMotorSubmit(event) {
+  event.preventDefault();
+  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  if (!type) return;
+  escenarioMotorSyncDraftValues();
+  const values = escenarioMotorEffectiveValues(type, escenarioMotorDraftValues);
+  const mesManual = type.mes(values);
+
+  const decision = {
+    id: escenarioMotorNewDecisionId(),
+    tipo: type.id,
+    titulo: escenarioMotorTrim(type.titulo(values, { debtLabel: escenarioMotorDebtLabelById }) || type.label),
+    activa: true,
+    orden: escenarioMotorDecisions.length,
+    planificacion: mesManual ? { modo: "manual", mesManual } : { modo: "optimo" },
+    params: type.params(values),
+  };
+
+  const issues = [];
+  const schema = window.FinanceCanonicalScenarioSchema;
+  if (schema) schema.validateDecision(decision, "$", issues);
+  const errors = issues.filter((issue) => issue.severity === "error");
+  if (errors.length) {
+    escenarioMotorShowFormErrors(errors.map((issue) => escenarioMotorIssueMessage(issue, type)));
+    return;
+  }
+
+  escenarioMotorShowFormErrors([]);
+  escenarioMotorDecisions.push(decision);
+  escenarioMotorResetDraft(type);
+  renderEscenarioSimular();
+}
+
+function escenarioMotorDebtLabelById(deudaId) {
+  const contract = canonicalDebtContractRows().find((item) => item.id === deudaId);
+  return contract ? escenarioMotorDebtLabel(contract) : deudaId || "deuda sin identificar";
+}
+
+// Tras añadir una decisión se vacían los importes y textos, pero se conservan los desplegables
+// (deuda, mes, titular…): encadenar dos decisiones sobre el mismo mes es el caso normal.
+function escenarioMotorResetDraft(type) {
+  type.campos.forEach((field) => {
+    if (["money", "number", "int", "pct", "text", "date"].includes(field.kind)) delete escenarioMotorDraftValues[field.key];
+    if (field.kind === "checkbox") escenarioMotorDraftValues[field.key] = false;
+  });
+}
+
+function handleEscenarioMotorTypeChange(event) {
+  escenarioMotorSyncDraftValues();
+  escenarioMotorDraftTipo = event.target.value;
+  escenarioMotorShowFormErrors([]);
+  renderEscenarioMotorForm(escenarioMotorBaseInput());
+}
+
+// Solo reacciona a los campos que gobiernan la visibilidad de otros (la casilla «la financio», el
+// selector de modalidad…); el resto se lee al enviar, para no reconstruir el formulario mientras se
+// escribe en él.
+function handleEscenarioMotorFieldChange(event) {
+  const key = event.target?.dataset?.escenarioMotorField;
+  if (!key) return;
+  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const field = type?.campos.find((item) => item.key === key);
+  if (!field) return;
+  escenarioMotorDraftValues[key] = escenarioMotorReadFieldValue(field, event.target);
+  if (field.controla) escenarioMotorSyncFieldVisibility();
+}
+
+function handleEscenarioMotorRemove(id) {
+  escenarioMotorDecisions = escenarioMotorDecisions.filter((decision) => decision.id !== id);
+  renderEscenarioSimular();
+}
+
+function handleEscenarioMotorGuardrailInput(event) {
+  const value = Number(event.target.value);
+  escenarioMotorGuardrailValue = Number.isFinite(value) && value > 0 ? value : null;
+  renderEscenarioSimular();
+}
+
+// «Ajustar automáticamente» reutiliza el buscador de mes óptimo real del motor (planificacion.modo
+// "optimo", día 3 de E20-0): no calcula nada aquí, solo cambia cómo se planifica la decisión y deja
+// que el motor busque el primer mes viable — o la rechace con «sin-mes-viable» si no existe.
+function handleEscenarioMotorAutoAdjust() {
+  const baseInput = escenarioMotorBaseInput();
+  const result = runEscenarioMotor(baseInput, escenarioMotorDecisions, escenarioMotorGuardrailValue);
+  const rejectedIds = new Set(
+    (result?.resultados || []).filter((item) => item.resultado === "guardarril-incumplido").map((item) => item.id)
+  );
+  if (!rejectedIds.size) return;
+  escenarioMotorDecisions = escenarioMotorDecisions.map((decision) =>
+    rejectedIds.has(decision.id) ? { ...decision, planificacion: { modo: "optimo" } } : decision
+  );
+  renderEscenarioSimular();
+}
+
+function handleEscenarioMotorGoApply() {
+  if (!escenarioMotorDecisions.length) return;
+  escenarioMotorNavigate("escenario-aplicar");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Pantalla 2 · Aplicar escenario (mockup 2d): diferencia línea a línea antes de confirmar. No
+// muta las deudas reales (DEBT_PORTFOLIO es una constante del código, no hay mecanismo en toda la
+// app para reescribirla desde la interfaz) — «aplicar» aquí significa registrar el escenario como
+// el aplicado en la lista de guardados (pantalla 3), con motivo y fecha, de verdad reversible
+// porque no toca ningún dato real. Documentado explícitamente en vez de fingir un commit que no
+// existe.
+// ---------------------------------------------------------------------------------------------
+function renderEscenarioAplicar() {
+  if (!escenarioMotorDecisions.length) {
+    escenarioMotorNavigate("escenario-simular");
+    return;
+  }
+  const baseInput = escenarioMotorBaseInput();
+  const baseResult = runEscenarioMotor(baseInput, [], null);
+  const result = runEscenarioMotor(baseInput, escenarioMotorDecisions, escenarioMotorGuardrailValue);
+  const debts = new Map(canonicalDebtContractRows().map((contract) => [contract.id, contract]));
+  const resultadosById = new Map((result?.resultados || []).map((item) => [item.id, item]));
+
+  const titleEl = qs("escenarioAplicarTitle");
+  if (titleEl) titleEl.textContent = escenarioMotorDraftName();
+  const changesTitle = qs("escenarioAplicarChangesTitle");
+  if (changesTitle) changesTitle.textContent = `${escenarioMotorDecisions.length} cambio(s) en el plan`;
+
+  const baseSummary = escenarioMotorSummaryFor(baseResult, baseInput.months);
+  const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
+  const kpis = qs("escenarioAplicarKpis");
+  if (kpis) kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
+
+  const body = qs("escenarioAplicarDiffBody");
+  if (body) {
+    body.innerHTML = escenarioMotorDecisions
+      .map((decision) => {
+        const resultado = resultadosById.get(decision.id);
+        const info = (resultado && escenarioMotorRejectionInfo(resultado))
+          || (resultado ? escenarioMotorResultInfo(resultado.resultado) : { text: "Sin calcular", badge: "e19-badge-neutral" });
+        const efecto = resultado?.efecto ? escenarioMotorEfectoLabel(resultado.efecto) : info.text;
+        const mesLabel = escenarioMotorMonthLabel(escenarioMotorDecisionMonthKey(decision, resultado));
+        return `<tr>
+          <td>${escapeHtml(escenarioMotorDecisionTitle(decision, debts))}</td>
+          <td>${escapeHtml(efecto)}</td>
+          <td>${escapeHtml(escenarioMotorDecisionAmountText(decision))}</td>
+          <td>${escapeHtml(mesLabel)}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  const confirmButton = qs("escenarioAplicarConfirm");
+  const allApplied = (result?.resultados || []).length > 0 && (result?.resultados || []).every((item) => item.resultado === "aplicada");
+  if (confirmButton) confirmButton.disabled = !allApplied;
+}
+
+function handleEscenarioAplicarBack() {
+  escenarioMotorNavigate("escenario-simular");
+}
+
+function loadEscenarioMotorSaved() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("escenario-motor-saved"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveEscenarioMotorSavedList(list) {
+  storageSet(storageKey("escenario-motor-saved"), JSON.stringify(list));
+}
+
+function handleEscenarioAplicarConfirm(event) {
+  event.preventDefault();
+  const motivoInput = qs("escenarioAplicarMotivo");
+  const motivo = (motivoInput?.value || "").trim();
+  if (!motivo) {
+    motivoInput?.focus();
+    return;
+  }
+  const saved = loadEscenarioMotorSaved().map((entry) => (entry.estado === "aplicado" ? { ...entry, estado: "guardado" } : entry));
+  escenarioMotorSavedSeq += 1;
+  saved.unshift({
+    id: `escenario-guardado-${Date.now()}-${escenarioMotorSavedSeq}`,
+    nombre: escenarioMotorDraftName(),
+    motivo,
+    estado: "aplicado",
+    fecha: new Date().toISOString(),
+    decisiones: JSON.parse(JSON.stringify(escenarioMotorDecisions)),
+    guardrailValue: escenarioMotorGuardrailValue,
+  });
+  saveEscenarioMotorSavedList(saved);
+  escenarioMotorDecisions = [];
+  if (motivoInput) motivoInput.value = "";
+  escenarioMotorNavigate("escenario-guardados");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Pantalla 3 · Escenarios guardados (mockup 2e). Los KPIs de cada tarjeta se recalculan al vuelo
+// con el motor real sobre el estado actual de las deudas — nunca se leen cifras congeladas del
+// momento en que se guardó, para que no diverjan en silencio de la realidad. «Recomendado» y
+// «Caducado» del mockup no se implementan: no hay todavía motor de recomendación ni concepto de
+// oferta con vencimiento — solo «Aplicado» y «Guardado», que sí están respaldados por datos reales.
+// ---------------------------------------------------------------------------------------------
+function renderEscenarioGuardados() {
+  const list = loadEscenarioMotorSaved();
+  const container = qs("escenarioGuardadosList");
+  const empty = qs("escenarioGuardadosEmpty");
+  if (!container) return;
+  if (!list.length) {
+    container.innerHTML = "";
+    if (empty) empty.hidden = false;
+    return;
+  }
+  if (empty) empty.hidden = true;
+
+  const baseInput = escenarioMotorBaseInput();
+  container.innerHTML = list
+    .map((entry) => {
+      const result = runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null);
+      const summary = escenarioMotorSummaryFor(result, baseInput.months);
+      const estadoInfo = entry.estado === "aplicado"
+        ? { text: "Aplicado", badge: "e19-badge-success" }
+        : { text: "Guardado", badge: "e19-badge-neutral" };
+      const fecha = entry.fecha ? new Date(entry.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "";
+      return `<article class="escenario-motor-saved-card${entry.estado === "aplicado" ? " is-aplicado" : ""}">
+        <div class="escenario-motor-saved-head">
+          <span class="e19-badge ${estadoInfo.badge}">${estadoInfo.text}</span>
+          <strong>${escapeHtml(entry.nombre || "Escenario")}</strong>
+          <small>${escapeHtml(entry.motivo || "")}${fecha ? ` · ${escapeHtml(fecha)}` : ""}</small>
+        </div>
+        <div class="escenario-motor-saved-meta">
+          <div><span>Libre de deuda</span><strong>${escapeHtml(escenarioMotorMonthLabel(summary.libreDeDeuda))}</strong></div>
+          <div><span>Caja mínima</span><strong>${money(summary.minimoLiquidez ?? 0, true)}</strong></div>
+          <div><span>Liquidez final</span><strong>${money(summary.liquidezFinal ?? 0, true)}</strong></div>
+        </div>
+        <div class="escenario-motor-saved-actions">
+          <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-load="${escapeHtml(entry.id)}">Cargar en simulador</button>
+          <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-delete="${escapeHtml(entry.id)}">Eliminar</button>
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+function handleEscenarioGuardadosLoad(id) {
+  const entry = loadEscenarioMotorSaved().find((item) => item.id === id);
+  if (!entry) return;
+  escenarioMotorDecisions = JSON.parse(JSON.stringify(entry.decisiones || []));
+  escenarioMotorGuardrailValue = entry.guardrailValue ?? null;
+  escenarioMotorNavigate("escenario-simular");
+}
+
+function handleEscenarioGuardadosDelete(id) {
+  saveEscenarioMotorSavedList(loadEscenarioMotorSaved().filter((entry) => entry.id !== id));
+  renderEscenarioGuardados();
+}
+
+function handleEscenarioGuardadosNew() {
+  escenarioMotorDecisions = [];
+  escenarioMotorGuardrailValue = null;
+  escenarioMotorNavigate("escenario-simular");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Comparador de estrategias + plan de deuda · ruta (mockups 1b/1c). Construidos sobre el mismo
+// motor E20 (resolveEscenario) que #escenario-simular, no sobre el pipeline heredado de
+// debt-liquidation-plan (DEBT_LIQUIDATION_ASSUMPTIONS, entidades hardcodeadas): cada estrategia es
+// una lista de decisiones "amortizacion" (pago total, modo "optimo") sobre la cartera real
+// (canonicalDebtContractRows), ordenada según el criterio de la estrategia. Solo tres estrategias
+// tienen lógica real hoy — avalancha (TAE desc), bola de nieve (saldo asc) y no tocar nada (sin
+// decisiones) — porque "reunificación" exigiría una oferta real (TAE, plazo) que no existe todavía
+// en los datos; documentado en la propia pantalla en vez de fabricar una cifra.
+// ---------------------------------------------------------------------------------------------
+const DEBT_STRATEGY_DEFINITIONS = [
+  { id: "avalancha", label: "Avalancha", desc: "Salda primero la deuda con mayor TAE." },
+  { id: "bola-nieve", label: "Bola de nieve", desc: "Salda primero la deuda con menor saldo." },
+  { id: "no-tocar", label: "No tocar nada", desc: "Sigue el calendario actual de cada deuda, sin decisiones nuevas." },
+];
+
+let debtStrategyReserveValue = null;
+let deudaRutaSelectedStrategy = "avalancha";
+
+function debtStrategyReserveDefault() {
+  const configured = Number(state?.operatingReserve || 0);
+  return configured > 0 ? configured : null;
+}
+
+// El motor solo aplica guardarraíl si saldoMinimoAbsoluto > 0 (runEscenarioMotor): sin ninguno,
+// "modo optimo" no comprueba nada y todas las decisiones caen en el primer mes del horizonte a la
+// vez, sin importar cuánto quede la liquidez en negativo — inútil para secuenciar de verdad. Si el
+// usuario no ha configurado una reserva real (ni aquí ni en Presupuesto de riesgo), se usa un suelo
+// de 0 € por defecto (no permitir liquidez negativa) en vez de no comprobar nada; se etiqueta
+// siempre cuál de los dos casos es, nunca se oculta.
+function debtStrategyEffectiveReserve(reserveValue) {
+  return Number.isFinite(reserveValue) && reserveValue > 0 ? reserveValue : 0.01;
+}
+
+function debtStrategyOrderedContracts(strategyId) {
+  const contracts = escenarioMotorDebtOptions();
+  if (strategyId === "avalancha") {
+    return contracts.slice().sort((a, b) => (Number(b.apr) || -1) - (Number(a.apr) || -1));
+  }
+  if (strategyId === "bola-nieve") {
+    return contracts.slice().sort((a, b) => Number(a.currentPrincipal) - Number(b.currentPrincipal));
+  }
+  return [];
+}
+
+function debtStrategyDecisions(strategyId) {
+  return debtStrategyOrderedContracts(strategyId).map((contract, index) => ({
+    id: `deuda-estrategia-${strategyId}-${index}`,
+    tipo: "amortizacion",
+    activa: true,
+    orden: index,
+    planificacion: { modo: "optimo" },
+    params: { deudaId: contract.id, importe: Number(contract.currentPrincipal) },
+  }));
+}
+
+function debtStrategyResult(strategyId, baseInput, reserveValue) {
+  const decisions = debtStrategyDecisions(strategyId);
+  const result = runEscenarioMotor(baseInput, decisions, debtStrategyEffectiveReserve(reserveValue));
+  return { decisions, result };
+}
+
+function debtStrategySummary(strategyId, baseInput, reserveValue) {
+  const { decisions, result } = debtStrategyResult(strategyId, baseInput, reserveValue);
+  if (!result || !result.valid) return { decisions, result, libreDeDeuda: null, cajaMinima: null, costeTotal: 0, viable: false, aplicadas: 0, total: decisions.length };
+  const resultadosById = new Map((result.resultados || []).map((item) => [item.id, item]));
+  const aplicadas = decisions.filter((decision) => resultadosById.get(decision.id)?.resultado === "aplicada");
+  const costeTotal = aplicadas.reduce((sum, decision) => sum + Number(decision.params.importe || 0), 0);
+  return {
+    decisions,
+    result,
+    libreDeDeuda: escenarioMotorLibreDeDeuda(result.debtStateFinal, baseInput.months),
+    cajaMinima: result.series.length ? Math.min(...result.series.map((row) => row.totalLiquidity)) : null,
+    costeTotal: round2(costeTotal),
+    viable: aplicadas.length === decisions.length,
+    aplicadas: aplicadas.length,
+    total: decisions.length,
+  };
+}
+
+// escenarioMotorLibreDeDeuda no siempre devuelve una fecha "YYYY-MM": puede devolver "sin deuda
+// pendiente", "sin fecha estimable · sin cuota activa" (nada queda con cuota activa que proyectar,
+// típicamente porque esta estrategia ya saldó todo lo accionable y solo queda un registro fantasma
+// sin cuota, como una reunificación histórica) o "fuera de horizonte" (sí queda cuota activa, pero
+// su cierre cae más allá del horizonte modelado). Comparar estos textos como cadenas ordena mal
+// ("sin..." va antes que cualquier fecha real por alfabeto, no porque sea mejor) — se traduce cada
+// caso a un rango explícito antes de comparar: sin deuda pendiente/sin cuota que proyectar cuentan
+// como lo mejor posible (nada más se puede acelerar), una fecha real ordena por su propio valor, y
+// fuera de horizonte cuenta como lo peor (no se sabe cuándo termina).
+function debtStrategyLibreDeDeudaRank(label) {
+  const text = String(label || "");
+  if (text === "sin deuda pendiente" || text.startsWith("sin fecha estimable")) return "0000-00";
+  if (text === "fuera de horizonte") return "9999-99";
+  const match = text.match(/^(\d{4}-\d{2})/);
+  return match ? match[1] : "9999-98";
+}
+
+// Recomendada = la primera libre de deuda (por el rango de arriba) entre las estrategias que
+// resolvieron TODAS sus decisiones (viable); en empate, la de menor coste total ejecutado. Si
+// ninguna es viable, no se recomienda nada en vez de forzar una elección sobre un resultado a medias.
+function debtStrategyRecommended(summaries) {
+  const viable = summaries.filter((entry) => entry.viable && entry.total > 0);
+  if (!viable.length) return null;
+  return viable
+    .slice()
+    .sort((a, b) => debtStrategyLibreDeDeudaRank(a.libreDeDeuda).localeCompare(debtStrategyLibreDeDeudaRank(b.libreDeDeuda)) || a.costeTotal - b.costeTotal)
+    .at(0).id;
+}
+
+function debtStrategyDecisionsToEscenario(strategyId) {
+  escenarioMotorDecisions = debtStrategyDecisions(strategyId).map((decision) => ({ ...decision, id: escenarioMotorNewDecisionId() }));
+  escenarioMotorGuardrailValue = debtStrategyReserveValue;
+}
+
+function renderDeudaComparar() {
+  const grid = qs("deudaCompararGrid");
+  if (!grid) return;
+  const reserveField = qs("deudaCompararReserve");
+  if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
+  if (reserveField && document.activeElement !== reserveField) reserveField.value = debtStrategyReserveValue ?? "";
+
+  const baseInput = escenarioMotorBaseInput();
+  const summaries = DEBT_STRATEGY_DEFINITIONS.map((def) => ({ id: def.id, def, ...debtStrategySummary(def.id, baseInput, debtStrategyReserveValue) }));
+  const recommendedId = debtStrategyRecommended(summaries);
+
+  grid.innerHTML = summaries
+    .map((entry) => {
+      const isRecommended = entry.id === recommendedId;
+      const isNoTouch = entry.total === 0;
+      const statusNote = isNoTouch
+        ? "Referencia: nada cambia."
+        : entry.viable
+        ? ""
+        : `${entry.aplicadas}/${entry.total} decisiones viables en este horizonte.`;
+      return `<article class="e19-card deuda-decidir-strategy-card${isRecommended ? " is-recommended" : ""}">
+        ${isRecommended ? '<span class="e19-badge e19-badge-success deuda-decidir-strategy-flag">Recomendada</span>' : ""}
+        <h3>${escapeHtml(entry.def.label)}</h3>
+        <p class="e19-kpi-note">${escapeHtml(entry.def.desc)}</p>
+        <div class="deuda-decidir-strategy-kpis">
+          <div><span>Libre de deuda</span><strong>${escapeHtml(escenarioMotorMonthLabel(entry.libreDeDeuda))}</strong></div>
+          <div><span>Coste total ejecutado</span><strong>${money(entry.costeTotal, true)}</strong></div>
+          <div><span>Caja mínima</span><strong>${money(entry.cajaMinima ?? 0, true)}</strong></div>
+        </div>
+        ${statusNote ? `<p class="e19-kpi-note is-warn">${escapeHtml(statusNote)}</p>` : ""}
+        <div class="deuda-decidir-strategy-actions">
+          <button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-ruta="${escapeHtml(entry.id)}">Ver ruta</button>
+          ${isRecommended ? `<button type="button" class="e19-btn e19-btn-primary" data-deuda-comparar-aplicar="${escapeHtml(entry.id)}">Aplicar la recomendada</button>` : ""}
+        </div>
+      </article>`;
+    })
+    .join("");
+
+  const insight = qs("deudaCompararInsight");
+  const noTouch = summaries.find((entry) => entry.id === "no-tocar");
+  const recommended = summaries.find((entry) => entry.id === recommendedId);
+  if (insight) {
+    if (recommended && noTouch && recommended.id !== "no-tocar") {
+      const costeDelta = round2(noTouch.costeTotal - recommended.costeTotal);
+      insight.hidden = false;
+      insight.innerHTML = `<strong>${escapeHtml(recommended.def.label)} sale mejor que no tocar nada</strong>
+        <p>Libre de deuda con ${escapeHtml(recommended.def.label.toLowerCase())}: ${escapeHtml(escenarioMotorMonthLabel(recommended.libreDeDeuda))} (sin tocar nada: ${escapeHtml(escenarioMotorMonthLabel(noTouch.libreDeDeuda))})${costeDelta ? `, con ${money(Math.abs(costeDelta), true)} ${costeDelta >= 0 ? "menos" : "más"} de coste ejecutado` : ""}.</p>`;
+    } else {
+      insight.hidden = true;
+    }
+  }
+}
+
+function handleDeudaCompararReserveInput(event) {
+  const value = Number(event.target.value);
+  debtStrategyReserveValue = Number.isFinite(value) && value > 0 ? value : null;
+  renderDeudaComparar();
+}
+
+function handleDeudaCompararVerRuta(strategyId) {
+  deudaRutaSelectedStrategy = strategyId;
+  escenarioMotorNavigate("deuda-ruta");
+}
+
+function handleDeudaCompararAplicar(strategyId) {
+  debtStrategyDecisionsToEscenario(strategyId);
+  escenarioMotorNavigate("escenario-aplicar");
+}
+
+// Deuda viva = principal pendiente de los contratos que la ruta todavía no ha resuelto en firme
+// ("aplicada"). Como cada decisión es un pago total, es una función escalón exacta a partir de
+// mesResuelto — no una aproximación de calendario de amortización mes a mes.
+function buildDeudaVivaSeries(months, contracts, decisions, resultadosById) {
+  const payoffMonthByDebt = new Map();
+  decisions.forEach((decision) => {
+    const resultado = resultadosById.get(decision.id);
+    if (resultado?.resultado === "aplicada" && resultado.mesResuelto) {
+      payoffMonthByDebt.set(decision.params.deudaId, resultado.mesResuelto);
+    }
+  });
+  return months.map((month) => {
+    const total = contracts.reduce((sum, contract) => {
+      const payoffMonth = payoffMonthByDebt.get(contract.id);
+      const alreadySettled = payoffMonth && payoffMonth <= month.monthKey;
+      return alreadySettled ? sum : sum + Number(contract.currentPrincipal || 0);
+    }, 0);
+    return { monthKey: month.monthKey, deudaViva: round2(total) };
+  });
+}
+
+// El horizonte completo del motor (hasta 10 años) hace que la liquidez proyectada crezca muy por
+// encima del principal de deuda, que solo importa en los primeros años: en una escala compartida la
+// deuda queda aplastada en un hilo casi invisible. Se recorta la ventana a los últimos 6 meses tras
+// saldarse la última deuda (o 36 meses si nunca llega a saldarse del todo en este horizonte), igual
+// que el mockup solo muestra ~3 años en vez de los 10 completos.
+function deudaRutaChartWindow(deudaSeries, liquidezSeries, months) {
+  const lastAliveIndex = deudaSeries.reduce((last, row, index) => (row.deudaViva > 0 ? index : last), -1);
+  const end = lastAliveIndex === -1 ? Math.min(months.length, 36) : Math.min(months.length, lastAliveIndex + 7);
+  return { deudaSeries: deudaSeries.slice(0, end), liquidezSeries: liquidezSeries.slice(0, end), months: months.slice(0, end) };
+}
+
+function renderDeudaRutaChart(deudaSeries, liquidezSeries, months) {
+  const svg = qs("deudaRutaChart");
+  if (!svg || !deudaSeries.length) return;
+  const width = svg.clientWidth || 640;
+  const height = 200;
+  const pad = { left: 60, right: 16, top: 16, bottom: 26 };
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.innerHTML = "";
+
+  const values = [...deudaSeries.map((row) => row.deudaViva), ...liquidezSeries.map((row) => row.totalLiquidity)];
+  const minV = Math.min(...values, 0);
+  const maxV = Math.max(...values, 1);
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const n = deudaSeries.length;
+  const x = (i) => pad.left + (n <= 1 ? 0 : (i / (n - 1)) * plotW);
+  const y = (value) => pad.top + plotH - ((value - minV) / Math.max(1, maxV - minV)) * plotH;
+
+  const deudaLine = deudaSeries.map((row, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(row.deudaViva).toFixed(2)}`).join(" ");
+  const deudaArea = `${deudaLine} L ${x(n - 1).toFixed(2)} ${(pad.top + plotH).toFixed(2)} L ${x(0).toFixed(2)} ${(pad.top + plotH).toFixed(2)} Z`;
+  const liquidezLine = liquidezSeries.map((row, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(row.totalLiquidity).toFixed(2)}`).join(" ");
+
+  let markup = `<path class="chart-area-deuda" d="${deudaArea}" />`;
+  markup += `<path class="chart-line-deuda" d="${deudaLine}" />`;
+  markup += `<path class="chart-line-liquidez" d="${liquidezLine}" />`;
+  projectChartTickIndexes(months, width).forEach((idx) => {
+    markup += `<text class="chart-label" x="${(x(idx) - 14).toFixed(2)}" y="${height - 6}">${escapeHtml(months[idx]?.month || "")}</text>`;
+  });
+  svg.insertAdjacentHTML("beforeend", markup);
+}
+
+function renderDeudaRuta() {
+  if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
+  const tabs = qs("deudaRutaTabs");
+  if (tabs) {
+    tabs.innerHTML = DEBT_STRATEGY_DEFINITIONS.map(
+      (def) => `<button type="button" class="deuda-decidir-tab${def.id === deudaRutaSelectedStrategy ? " is-active" : ""}" data-deuda-ruta-tab="${escapeHtml(def.id)}">${escapeHtml(def.label)}</button>`
+    ).join("");
+  }
+
+  const baseInput = escenarioMotorBaseInput();
+  const contracts = escenarioMotorDebtOptions();
+  const summary = debtStrategySummary(deudaRutaSelectedStrategy, baseInput, debtStrategyReserveValue);
+  const def = DEBT_STRATEGY_DEFINITIONS.find((item) => item.id === deudaRutaSelectedStrategy);
+  const resultadosById = new Map((summary.result?.resultados || []).map((item) => [item.id, item]));
+
+  const titleEl = qs("deudaRutaTitle");
+  if (titleEl) {
+    const esFecha = /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || ""));
+    titleEl.textContent = esFecha
+      ? `Sin deuda en ${escenarioMotorMonthLabel(summary.libreDeDeuda)}`
+      : `Libre de deuda: ${escenarioMotorMonthLabel(summary.libreDeDeuda)}`;
+  }
+  const subtitleEl = qs("deudaRutaSubtitle");
+  if (subtitleEl) {
+    subtitleEl.textContent = `${def?.label || deudaRutaSelectedStrategy}: ${summary.total} decisión(es), ${money(summary.costeTotal, true)} de coste ejecutado, caja mínima ${money(summary.cajaMinima ?? 0, true)}.`;
+  }
+
+  const deudaViva = buildDeudaVivaSeries(baseInput.months, contracts, summary.decisions, resultadosById);
+  const chartWindow = deudaRutaChartWindow(deudaViva, summary.result?.series || [], baseInput.months);
+  renderDeudaRutaChart(chartWindow.deudaSeries, chartWindow.liquidezSeries, chartWindow.months);
+
+  const timeline = qs("deudaRutaTimeline");
+  if (timeline) {
+    const debts = new Map(contracts.map((contract) => [contract.id, contract]));
+    const ordered = summary.decisions
+      .map((decision) => ({ decision, resultado: resultadosById.get(decision.id) }))
+      .sort((a, b) => String(a.resultado?.mesResuelto || "9999").localeCompare(String(b.resultado?.mesResuelto || "9999")));
+    timeline.innerHTML = ordered.length
+      ? ordered
+          .map(({ decision, resultado }) => {
+            const contract = debts.get(decision.params.deudaId);
+            const info = resultado ? escenarioMotorResultInfo(resultado.resultado) : { text: "Sin calcular", badge: "e19-badge-neutral" };
+            return `<li class="deuda-ruta-timeline-item">
+              <span class="deuda-ruta-timeline-month">${escapeHtml(escenarioMotorMonthLabel(resultado?.mesResuelto))}</span>
+              <div>
+                <strong>${escapeHtml(contract ? escenarioMotorDebtLabel(contract) : decision.params.deudaId)}</strong>
+                <p>${money(decision.params.importe, true)} · <span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></p>
+              </div>
+            </li>`;
+          })
+          .join("")
+      : `<li class="deuda-ruta-timeline-item deuda-ruta-timeline-empty">Sin decisiones: la deuda sigue su calendario actual.</li>`;
+  }
+
+  const portfolio = qs("deudaRutaPortfolio");
+  if (portfolio) {
+    const maxPrincipal = Math.max(1, ...contracts.map((contract) => Number(contract.currentPrincipal) || 0));
+    portfolio.innerHTML = contracts
+      .slice()
+      .sort((a, b) => Number(b.currentPrincipal) - Number(a.currentPrincipal))
+      .map((contract) => `<div class="deuda-ruta-portfolio-row">
+          <span>${escapeHtml(escenarioMotorDebtLabel(contract))}</span>
+          <strong>${money(contract.currentPrincipal, true)}</strong>
+          <div class="deuda-ruta-portfolio-bar"><span style="width:${Math.round((Number(contract.currentPrincipal) / maxPrincipal) * 100)}%"></span></div>
+        </div>`)
+      .join("");
+  }
+
+  const checklist = qs("deudaRutaChecklist");
+  const applyButton = qs("deudaRutaApply");
+  const reserveConfigured = Number.isFinite(debtStrategyReserveValue);
+  const effectiveReserve = debtStrategyEffectiveReserve(debtStrategyReserveValue);
+  const reserveOk = (summary.cajaMinima ?? 0) >= effectiveReserve;
+  const checks = [
+    {
+      ok: reserveOk,
+      label: reserveOk
+        ? reserveConfigured
+          ? "Reserva mínima protegida durante toda la ruta"
+          : "No baja de 0 € en ningún mes (sin reserva mínima configurada)"
+        : reserveConfigured
+        ? "La ruta baja de la reserva mínima indicada"
+        : "La ruta deja la caja en negativo en algún mes",
+    },
+    { ok: summary.total === 0 ? null : summary.viable, label: summary.total === 0 ? "Sin decisiones que aplicar" : summary.viable ? "Todas las decisiones tienen mes viable" : `${summary.total - summary.aplicadas} decisión(es) sin mes viable en este horizonte` },
+  ];
+  if (checklist) {
+    checklist.innerHTML = checks
+      .map((check) => `<li class="deuda-ruta-check${check.ok === false ? " is-danger" : check.ok === null ? " is-neutral" : " is-ok"}">${escapeHtml(check.label)}</li>`)
+      .join("");
+  }
+  if (applyButton) applyButton.disabled = summary.total === 0 || !summary.viable;
+}
+
+function handleDeudaRutaTab(strategyId) {
+  deudaRutaSelectedStrategy = strategyId;
+  renderDeudaRuta();
+}
+
+function handleDeudaRutaApply() {
+  debtStrategyDecisionsToEscenario(deudaRutaSelectedStrategy);
+  escenarioMotorNavigate("escenario-aplicar");
+}
+
+// ---------------------------------------------------------------------------------------------
+// Conciliación (E20-2, mockup 1g). No reimplementa nada: llama a las mismas funciones reales que
+// ya usa la pantalla heredada #reconciliation (refreshCanonicalLedger, E11bInbox.reconciliationTasks,
+// FinanceCanonicalE5.latestMonthOperation) y solo cambia la presentación — una lectura enfocada en
+// "qué falta para cerrar el mes" en vez del panel operativo completo (paridad histórica, auditoría
+// diaria, barrera de publicación...) que #reconciliation sigue ofreciendo intacto para quien lo
+// necesite.
+// ---------------------------------------------------------------------------------------------
+function conciliarMonthHistory(monthRows) {
+  return monthRows.map((row) => {
+    const latest = window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, row.monthKey);
+    const reopenCount = monthClosures.filter((op) => op.monthKey === row.monthKey && op.operation === "month-reopen").length;
+    return { monthKey: row.monthKey, closed: latest?.status === "closed", reopenCount };
+  });
+}
+
+function renderConciliar() {
+  if (!window.FinanceCanonicalLedger) return;
+  const snapshot = refreshCanonicalLedger("conciliar-view");
+  if (!snapshot) return;
+  const quality = snapshot.quality || {};
+  const months = snapshot.reconciliation?.months || [];
+  const lines = snapshot.reconciliation?.lines || [];
+  const entries = snapshot.entries || [];
+  const checks = snapshot.balanceChecks || [];
+  const differenceTotal = ledgerDifferenceTotal(snapshot);
+
+  const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");
+  const differences = lines.filter((line) => Math.abs(Number(line.delta || 0)) > 0.02);
+  const balanceGaps = checks.flatMap((check) => (check.gaps || []).map((gap, index) => ({ ...gap, id: `${check.accountId}-${index}`, accountId: check.accountId })));
+  const tasks = E11bInbox ? E11bInbox.reconciliationTasks({ unclassified, differences, balanceGaps }) : [];
+
+  const currentMonthKey = openMonthCutoffKey();
+  const currentClosure = isClosedMonthKey(currentMonthKey) ? window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, currentMonthKey) : null;
+  const isClosed = Boolean(currentClosure);
+
+  const titleEl = qs("conciliarTitle");
+  if (titleEl) {
+    titleEl.textContent = isClosed
+      ? `${ledgerMonthLabel(currentMonthKey)} cerrado`
+      : tasks.length
+      ? `Faltan ${tasks.length} cosa(s) para cerrar ${ledgerMonthLabel(currentMonthKey)}`
+      : `Nada pendiente para cerrar ${ledgerMonthLabel(currentMonthKey)}`;
+  }
+  const subtitleEl = qs("conciliarSubtitle");
+  if (subtitleEl) subtitleEl.textContent = `Diferencia total banco vs. real: ${money(differenceTotal, true)}. Abrir una tarea no corrige nada por sí solo.`;
+
+  const kpis = qs("conciliarKpis");
+  if (kpis) {
+    const gapCount = Number(quality.balanceGapCount || 0);
+    kpis.innerHTML = [
+      ["Movimientos del banco", String(Number(quality.transactionCount || 0)), ""],
+      ["Clasificados", String(Number(quality.classifiedCount || 0)), ""],
+      ["Diferencia banco vs. real", money(differenceTotal, true), differenceTotal > 0.02 ? " is-warn" : ""],
+      ["Continuidad de saldos", gapCount ? `${gapCount} salto(s)` : "Correcta", gapCount ? " is-warn" : ""],
+    ]
+      .map(([label, value, tone]) => `<div class="e19-kpi${tone}"><span class="e19-kpi-label">${escapeHtml(label)}</span><span class="e19-kpi-value">${escapeHtml(value)}</span></div>`)
+      .join("") + `<div class="e19-kpi${isClosed ? "" : " is-warn"}"><span class="e19-kpi-label">Estado</span><span class="e19-kpi-value">${isClosed ? "Cerrado" : "Abierto"}</span></div>`;
+  }
+
+  const taskList = qs("conciliarTasks");
+  if (taskList) {
+    taskList.innerHTML = tasks.length
+      ? tasks
+          .slice(0, 12)
+          .map(
+            (task, index) => `<li class="conciliar-task-item">
+              <span class="conciliar-task-index">${index + 1}</span>
+              <div>
+                <strong>${escapeHtml(task.label)}</strong>
+                <p>${task.cause === "unclassified" ? "Movimiento sin partida" : task.cause === "balance-gap" ? "Salto en la continuidad del saldo" : "Banco y real no coinciden"}. Abrir no modifica nada.</p>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" data-conciliar-task-target="${escapeHtml(task.target)}">${task.action === "classify" ? "Clasificar" : task.action === "adjust-balance" ? "Revisar saldo" : "Corregir real"}</button>
+            </li>`
+          )
+          .join("")
+      : `<li class="conciliar-task-item conciliar-task-empty">Sin tareas pendientes: clasificación, saldos e importes reales están conciliados.</li>`;
+  }
+
+  const checklist = qs("conciliarChecklist");
+  if (checklist) {
+    const checkItems = [
+      { ok: unclassified.length === 0, label: unclassified.length === 0 ? "Todos los movimientos están clasificados" : `${unclassified.length} movimiento(s) sin clasificar` },
+      { ok: Number(quality.balanceGapCount || 0) === 0, label: Number(quality.balanceGapCount || 0) === 0 ? "Continuidad de saldos correcta" : `${quality.balanceGapCount} salto(s) de saldo` },
+      { ok: !isClosed, label: isClosed ? `Ya cerrado el ${escenarioMotorMonthLabel(currentMonthKey)}` : "Los reales quedarán congelados en una versión recuperable" },
+    ];
+    checklist.innerHTML = checkItems.map((check) => `<li class="deuda-ruta-check${check.ok ? " is-ok" : " is-danger"}">${escapeHtml(check.label)}</li>`).join("");
+  }
+
+  const history = qs("conciliarHistory");
+  if (history) {
+    const previousMonths = months.filter((row) => row.monthKey !== currentMonthKey).slice(-3).reverse();
+    const rows = conciliarMonthHistory(previousMonths);
+    history.innerHTML = rows.length
+      ? rows
+          .map(
+            (row) => `<div class="conciliar-history-row"><span>${escapeHtml(ledgerMonthLabel(row.monthKey))}</span><strong class="${row.closed ? "is-ok" : "is-warn"}">${row.closed ? `Cerrado${row.reopenCount ? ` · reabierto ${row.reopenCount} vez${row.reopenCount > 1 ? "es" : ""}` : ""}` : "Abierto"}</strong></div>`
+          )
+          .join("")
+      : `<p class="e19-kpi-note">Sin meses anteriores con extracto importado.</p>`;
+  }
+
+  const closeButton = qs("conciliarClose");
+  if (closeButton) {
+    closeButton.disabled = isClosed;
+    closeButton.textContent = isClosed ? "Mes cerrado" : "Cerrar mes";
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Asesor ejecutivo (E20-2, mockup 1d). "La decisión abierta" = la oferta de deuda registrada más
+// urgente en E14b (Plan de deuda) sin decisión aplicada todavía. No existe un motor de
+// recomendación genérico capaz de fabricar una decisión con importe y vencimiento reales de la
+// nada — a petición del usuario, se construye sobre las ofertas reales que el propio usuario
+// registra en #debt-roadmap en vez de inventar una. Sin ninguna oferta abierta, la pantalla lo
+// dice explícitamente en vez de simular una decisión que no existe.
+// ---------------------------------------------------------------------------------------------
+function asesorDecisionOpenOffers() {
+  const workspace = e14bWorkspace();
+  return workspace.offers
+    .filter((offer) => offer.status !== "rejected" && !debtLiquidations.some((item) => item.targetId === offer.contractId))
+    .slice()
+    .sort((a, b) => String(a.expiresAt || "9999-99").localeCompare(String(b.expiresAt || "9999-99")));
+}
+
+// Cobertura estimada con los saldos reales de cada cuenta (accountBalancesFromState) — no un
+// reparto ya decidido: solo muestra de dónde saldría el dinero si se pagara hoy con lo que hay.
+function asesorDecisionFundingHtml(amount) {
+  const balances = accountBalancesFromState();
+  const sources = [
+    { label: "Mediolanum", available: balances.mediolanum },
+    { label: "CaixaBank", available: balances.caixa },
+  ].filter((source) => source.available > 0);
+  let remaining = amount;
+  const rows = sources.map((source) => {
+    const used = Math.max(0, Math.min(remaining, source.available));
+    remaining = round2(remaining - used);
+    return { ...source, used };
+  });
+  if (remaining > 0.01) rows.push({ label: "Sin cobertura con los saldos actuales", used: remaining, short: true });
+  const total = Math.max(1, amount);
+  return rows
+    .filter((row) => row.used > 0)
+    .map(
+      (row) => `<div class="asesor-decision-funding-row${row.short ? " is-danger" : ""}">
+        <span>${escapeHtml(row.label)}</span>
+        <strong>${money(row.used, true)}</strong>
+        <div class="asesor-decision-funding-bar"><span style="width:${Math.round((row.used / total) * 100)}%"></span></div>
+      </div>`
+    )
+    .join("");
+}
+
+function renderAsesorDecision() {
+  const offers = asesorDecisionOpenOffers();
+  const emptyEl = qs("asesorDecisionEmpty");
+  const contentEl = qs("asesorDecisionContent");
+  if (!offers.length || !E14DebtOperations) {
+    if (emptyEl) emptyEl.hidden = false;
+    if (contentEl) contentEl.hidden = true;
+    return;
+  }
+  if (emptyEl) emptyEl.hidden = true;
+  if (contentEl) contentEl.hidden = false;
+
+  const offer = offers[0];
+  const contract = debtTargetById(offer.contractId, { includePlanned: true });
+  const forecast = e14bForecast();
+  const strategy = e14bStrategyForOffer(offer);
+  const simulation = forecast?.valid && strategy ? E14DebtOperations.simulateStrategy(strategy, forecast) : null;
+  const reserve = agentCaixaFloor();
+
+  const deadline = qs("asesorDecisionDeadline");
+  if (deadline) deadline.textContent = offer.expiresAt ? `Decisión abierta · vence ${escenarioMotorMonthLabel(offer.expiresAt)}` : "Decisión abierta · sin vencimiento indicado";
+  const titleEl = qs("asesorDecisionTitle");
+  if (titleEl) titleEl.textContent = `Pagar la oferta de ${offer.counterpart || "sin contraparte"}${contract ? ` · ${contract.entity}${contract.type ? ` ${contract.type}` : ""}` : ""}`;
+  const amountEl = qs("asesorDecisionAmount");
+  if (amountEl) amountEl.textContent = money(offer.amount, true);
+
+  const statsEl = qs("asesorDecisionStats");
+  if (statsEl) {
+    statsEl.innerHTML = [
+      ["Ahorras", money(offer.discount, true)],
+      ["Cuota liberada", `${money(contract?.payment ?? 0, true)}/mes`],
+      ["Caja mínima tras pagar", simulation ? money(simulation.minimumLiquidity, true) : "Sin forecast"],
+    ]
+      .map(([label, value]) => `<div class="asesor-decision-stat"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
+      .join("");
+  }
+
+  const fundingEl = qs("asesorDecisionFunding");
+  if (fundingEl) fundingEl.innerHTML = asesorDecisionFundingHtml(offer.amount);
+
+  const applyLink = qs("asesorDecisionApply");
+  if (applyLink) {
+    applyLink.onclick = () => {
+      e14bWorkspace().selectedOfferId = offer.id;
+      queueRemoteSave();
+    };
+  }
+
+  const limitsEl = qs("asesorDecisionLimits");
+  if (limitsEl) {
+    const p2Input = window.FinanceP2Bridge?.e16Input?.() || {};
+    const maxDebtRatio = Number(p2Input.riskBudget?.maximumDebtRatio || 0);
+    const debtRatio = Number(p2Input.debtRatio || 0);
+    const next12 = lastSimulation.slice(0, Math.min(12, lastSimulation.length));
+    const monthlyOutflow = next12.length ? next12.reduce((sum, row) => sum + row.coreSpend + row.car + row.refi, 0) / next12.length : 0;
+    const bufferMonths = safeCoverageMonths(state.initialCash, monthlyOutflow);
+    const bufferTarget = Number(state.emergencyBufferMonths || 0);
+    const cajaOk = simulation ? simulation.minimumLiquidity >= reserve : null;
+    const items = [
+      { ok: cajaOk, label: `Reserva CaixaBank ${money(reserve, true)} mín.${simulation ? ` · queda en ${money(simulation.minimumLiquidity, true)}` : ""}` },
+      { ok: bufferMonths === null ? null : bufferMonths >= bufferTarget, label: `Colchón ${bufferTarget} mes(es) obj. · ahora ${coverageMonthsText(bufferMonths)}` },
+      { ok: maxDebtRatio ? debtRatio <= maxDebtRatio : null, label: maxDebtRatio ? `Deuda/ingresos ${maxDebtRatio}% máx. · ahora ${debtRatio}%` : `Deuda/ingresos ahora ${debtRatio}% (sin límite configurado en Presupuesto de riesgo)` },
+    ];
+    limitsEl.innerHTML = items.map((item) => `<li class="deuda-ruta-check${item.ok === false ? " is-danger" : item.ok ? " is-ok" : ""}">${escapeHtml(item.label)}</li>`).join("");
+  }
+
+  const queueEl = qs("asesorDecisionQueue");
+  if (queueEl) {
+    const rest = offers.slice(1);
+    queueEl.innerHTML = rest.length
+      ? rest
+          .map(
+            (item) => `<div class="conciliar-history-row"><span>${escapeHtml(item.counterpart || "Sin contraparte")}</span><strong>${money(item.amount, true)}${item.expiresAt ? ` · vence ${escapeHtml(escenarioMotorMonthLabel(item.expiresAt))}` : ""}</strong></div>`
+          )
+          .join("")
+      : `<p class="e19-kpi-note">Sin más ofertas abiertas ahora mismo.</p>`;
+  }
+
+  const dataEl = qs("asesorDecisionData");
+  if (dataEl) {
+    const snapshot = window.FinanceCanonicalLedger ? refreshCanonicalLedger("asesor-decision-view") : null;
+    const coverage = snapshot?.quality?.coverage;
+    const items = [
+      "Saldos: hoy, cuenta corriente + ahorro",
+      Number.isFinite(coverage) ? `Conciliación: ${coverage}% de movimientos clasificados` : "Conciliación: sin datos de extracto",
+      `Forecast: ${forecast?.valid ? "disponible" : "no disponible todavía"}`,
+    ];
+    dataEl.innerHTML = items.map((text) => `<li class="deuda-ruta-check">${escapeHtml(text)}</li>`).join("");
+  }
+}
+
 function renderActiveSection(viewId = viewFromHash()) {
   if (!lastSimulation.length) return;
   switch (viewId) {
@@ -18039,6 +20877,18 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "update-data":
       renderMonthlyDetails();
+      break;
+    case "registrar-mes":
+      renderRegistrarMes();
+      break;
+    case "cuadro-mandos":
+      renderCuadroMandos();
+      break;
+    case "cambios-pendientes":
+      renderCambiosPendientes();
+      break;
+    case "mapa-calor":
+      renderMapaCalor();
       break;
     case "update-hub":
       renderUpdateHub();
@@ -18054,6 +20904,27 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "new-life-definitive":
       renderNewLifeDefinitive();
+      break;
+    case "escenario-simular":
+      renderEscenarioSimular();
+      break;
+    case "escenario-aplicar":
+      renderEscenarioAplicar();
+      break;
+    case "escenario-guardados":
+      renderEscenarioGuardados();
+      break;
+    case "deuda-comparar":
+      renderDeudaComparar();
+      break;
+    case "deuda-ruta":
+      renderDeudaRuta();
+      break;
+    case "conciliar":
+      renderConciliar();
+      break;
+    case "asesor-decision":
+      renderAsesorDecision();
       break;
     case "debt-roadmap":
       renderE14bPanel();
@@ -18541,6 +21412,47 @@ async function init() {
       qs(scrollButton.dataset.lifeDefScroll)?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   });
+  qs("escenarioMotorForm")?.addEventListener("submit", handleEscenarioMotorSubmit);
+  qs("escenarioMotorType")?.addEventListener("change", handleEscenarioMotorTypeChange);
+  qs("escenarioMotorFields")?.addEventListener("change", handleEscenarioMotorFieldChange);
+  qs("escenarioMotorFields")?.addEventListener("input", handleEscenarioMotorFieldChange);
+  qs("escenarioMotorDecisionsList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-escenario-motor-remove]");
+    if (removeButton) handleEscenarioMotorRemove(removeButton.dataset.escenarioMotorRemove);
+  });
+  qs("escenarioMotorGuardrail")?.addEventListener("input", handleEscenarioMotorGuardrailInput);
+  qs("escenarioMotorAutoAdjust")?.addEventListener("click", handleEscenarioMotorAutoAdjust);
+  qs("escenarioMotorGoApply")?.addEventListener("click", handleEscenarioMotorGoApply);
+  qs("escenarioAplicarBack")?.addEventListener("click", handleEscenarioAplicarBack);
+  qs("escenarioAplicarForm")?.addEventListener("submit", handleEscenarioAplicarConfirm);
+  qs("escenarioGuardadosNew")?.addEventListener("click", handleEscenarioGuardadosNew);
+  qs("escenarioGuardadosList")?.addEventListener("click", (event) => {
+    const loadButton = event.target.closest("[data-escenario-guardado-load]");
+    if (loadButton) { handleEscenarioGuardadosLoad(loadButton.dataset.escenarioGuardadoLoad); return; }
+    const deleteButton = event.target.closest("[data-escenario-guardado-delete]");
+    if (deleteButton) handleEscenarioGuardadosDelete(deleteButton.dataset.escenarioGuardadoDelete);
+  });
+  qs("deudaCompararReserve")?.addEventListener("input", handleDeudaCompararReserveInput);
+  qs("deudaCompararGrid")?.addEventListener("click", (event) => {
+    const rutaButton = event.target.closest("[data-deuda-comparar-ruta]");
+    if (rutaButton) { handleDeudaCompararVerRuta(rutaButton.dataset.deudaCompararRuta); return; }
+    const aplicarButton = event.target.closest("[data-deuda-comparar-aplicar]");
+    if (aplicarButton) handleDeudaCompararAplicar(aplicarButton.dataset.deudaCompararAplicar);
+  });
+  qs("deudaRutaTabs")?.addEventListener("click", (event) => {
+    const tabButton = event.target.closest("[data-deuda-ruta-tab]");
+    if (tabButton) handleDeudaRutaTab(tabButton.dataset.deudaRutaTab);
+  });
+  qs("deudaRutaApply")?.addEventListener("click", handleDeudaRutaApply);
+  qs("conciliarDownload")?.addEventListener("click", downloadCanonicalLedger);
+  qs("conciliarClose")?.addEventListener("click", closeCurrentMonthTransaction);
+  qs("conciliarTasks")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-conciliar-task-target]");
+    if (!button) return;
+    const target = button.dataset.conciliarTaskTarget;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target, { focus: true });
+  });
   qs("debt-liquidation-plan")?.addEventListener("click", (event) => {
     const targetButton = event.target.closest("[data-debt-plan-target]");
     if (targetButton) {
@@ -18722,6 +21634,64 @@ async function init() {
     setActiveView("movements");
   });
   qs("detailMonth").addEventListener("change", renderMonthlyDetails);
+  qs("cuadroMandosStart")?.addEventListener("change", renderCuadroMandos);
+  qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
+  qs("cuadroMandosTable")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-cuadro-cell]");
+    if (input) handleCuadroMandosCellChange(input);
+  });
+  qs("cuadroMandosTable")?.addEventListener("click", (event) => {
+    const sectionButton = event.target.closest("[data-cuadro-section]");
+    if (sectionButton) {
+      const key = sectionButton.dataset.cuadroSection;
+      if (cuadroMandosExpanded.has(key)) cuadroMandosExpanded.delete(key);
+      else cuadroMandosExpanded.add(key);
+      renderCuadroMandos();
+      return;
+    }
+    const applyButton = event.target.closest("[data-cuadro-apply]");
+    if (applyButton) handleCuadroMandosApply(applyButton.dataset.cuadroApply);
+  });
+  qs("cuadroMandosImpact")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-cuadro-save]")) { handleCuadroMandosSave(); return; }
+    if (event.target.closest("[data-cuadro-discard]")) handleCuadroMandosDiscard();
+  });
+  qs("cambiosPendientesSave")?.addEventListener("click", handleCuadroMandosSave);
+  qs("cambiosPendientesDiscard")?.addEventListener("click", handleCuadroMandosDiscard);
+  qs("cambiosPendientesList")?.addEventListener("click", (event) => {
+    const revert = event.target.closest("[data-cambios-revert]");
+    if (revert) handleCambiosPendientesRevert(revert.dataset.cambiosRevert);
+  });
+  document.querySelectorAll("[data-mapa-calor-metric]").forEach((button) => {
+    button.addEventListener("click", () => handleMapaCalorMetric(button.dataset.mapaCalorMetric));
+  });
+  qs("registrarMesMonth")?.addEventListener("change", renderRegistrarMes);
+  qs("registrarMesTables")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-registrar-mes-actual]");
+    if (input) handleRegistrarMesActualChange(input);
+  });
+  qs("registrarMesTables")?.addEventListener("submit", (event) => {
+    const form = event.target.closest("[data-registrar-mes-add-form]");
+    if (!form) return;
+    event.preventDefault();
+    handleRegistrarMesAddSubmit(form);
+  });
+  qs("registrarMesTables")?.addEventListener("click", (event) => {
+    const filterButton = event.target.closest("[data-registrar-mes-filter]");
+    if (filterButton) { handleRegistrarMesFilter(filterButton.dataset.registrarMesFilter); return; }
+    const addButton = event.target.closest("[data-registrar-mes-add]");
+    if (addButton) { handleRegistrarMesAddToggle(addButton.dataset.registrarMesAdd, true); return; }
+    const addCancel = event.target.closest("[data-registrar-mes-add-cancel]");
+    if (addCancel) { handleRegistrarMesAddToggle(addCancel.dataset.registrarMesAddCancel, false); return; }
+    const deleteButton = event.target.closest("[data-registrar-mes-delete]");
+    if (deleteButton) { handleRegistrarMesDelete(deleteButton.dataset.registrarMesDelete); return; }
+    const copyButton = event.target.closest("[data-registrar-mes-copy]");
+    if (copyButton) { handleRegistrarMesCopy(copyButton.dataset.registrarMesCopy); return; }
+    const copyConfirm = event.target.closest("[data-registrar-mes-copy-confirm]");
+    if (copyConfirm) { handleRegistrarMesCopyConfirm(copyConfirm.dataset.registrarMesCopyConfirm); return; }
+    const copyCancel = event.target.closest("[data-registrar-mes-copy-cancel]");
+    if (copyCancel) handleRegistrarMesCopyCancel(copyCancel.dataset.registrarMesCopyCancel);
+  });
   document.querySelectorAll('input[name="projectMode"]').forEach((input) => {
     input.addEventListener("change", () => {
       pendingProjectDecision = null;
