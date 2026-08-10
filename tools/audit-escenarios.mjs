@@ -12,15 +12,18 @@
 //
 //   npm run build:site
 //   (cd dist && python3 -m http.server 4183 &)
-//   npm run audit:escenarios              # con el motor, espera 16/16
+//   npm run audit:escenarios              # con el motor, espera 17/17
 //
 // Para reproducir lo que estuvo publicado, sirve una copia de `dist` sin `canonical-scenario-*.js`
 // y apunta ahí con AUDIT_BASE.
 //
-// Referencias esperadas: **16/16 con el motor** y **6/16 sin él**. Ojo con la segunda cifra: era 8/16
-// antes de T-5 y bajó a propósito, no por una regresión. T-5 hizo que el modo degradado deje de
-// fingir resultados, y esta herramienta mide «¿devuelve cifras?», así que las dos mejoras cuentan
-// aquí como comprobaciones rotas:
+// Referencias esperadas: **17/17 con el motor** y **7/17 sin él**. La comprobación decimoséptima la
+// añadió V3-3 («Consolidar» sin oferta no inventa cifras) y pasa en los dos modos, porque no depende
+// del motor sino de la oferta.
+//
+// Ojo con la cifra del modo degradado: fue 8/16 y bajó a 6/16 a propósito, no por una regresión.
+// T-5 hizo que el modo degradado deje de fingir resultados, y esta herramienta mide «¿devuelve
+// cifras?», así que las dos mejoras cuentan aquí como comprobaciones rotas:
 //   - el comparador escribe «—» en coste y caja mínima en vez de un 0,00 € que se lee como respuesta;
 //   - simular rechaza la decisión si falta el esquema, en vez de aceptarla sin validar.
 // En ese modo lo que hay que mirar es que las cinco pantallas enseñen su aviso rojo, que es lo que
@@ -59,9 +62,9 @@ await page.waitForSelector("#homeKpis .e19-kpi");
 const hayMotor = await page.evaluate(() => Boolean(window.FinanceCanonicalScenarioEngine));
 console.log(`\n=== modo: ${modo} · motor cargado: ${hayMotor} ===\n`);
 
-// ---- V3-1 · #deuda-comparar (mockup 1c) -------------------------------------------------------
+// ---- V3-1 + V3-3 · #deuda-comparar (mockups 1c y 4d) ------------------------------------------
 await ir(page, "deuda-comparar");
-const tarjetas = await page.$$eval(".deuda-decidir-strategy-card", (els) =>
+const leerTarjetas = () => page.$$eval(".deuda-decidir-strategy-card", (els) =>
   els.map((el) => ({
     titulo: el.querySelector("h3")?.textContent.trim(),
     kpis: [...el.querySelectorAll(".deuda-decidir-strategy-kpis div")].map((d) => ({
@@ -70,10 +73,28 @@ const tarjetas = await page.$$eval(".deuda-decidir-strategy-card", (els) =>
     })),
   })),
 );
-anotar("#deuda-comparar", "las tres estrategias se pintan", tarjetas.length === 3, tarjetas.map((t) => t.titulo).join(", "));
+
+// V3-3 · antes de introducir la oferta, «Consolidar» debe declararse sin calcular en vez de dar un
+// cero. Es la mitad de la entrega: la otra mitad es que con oferta sí calcule.
+const sinOferta = (await leerTarjetas()).find((t) => t.titulo === "Consolidar");
+anotar(
+  "#deuda-comparar",
+  "«Consolidar» sin oferta no inventa cifras",
+  Boolean(sinOferta) && sinOferta.kpis.every((k) => k.valor === "—"),
+  sinOferta ? sinOferta.kpis.map((k) => k.valor).join(" | ") : "sin tarjeta",
+);
+
+await page.fill("#deudaCompararOfferTin", "7.5");
+await page.fill("#deudaCompararOfferPlazo", "96");
+await page.waitForTimeout(400);
+
+const tarjetas = await leerTarjetas();
+anotar("#deuda-comparar", "las cuatro estrategias se pintan", tarjetas.length === 4, tarjetas.map((t) => t.titulo).join(", "));
 const libres = tarjetas.map((t) => t.kpis.find((k) => k.etiqueta === "Libre de deuda")?.valor);
-anotar("#deuda-comparar", "cada estrategia da su fecha libre de deuda", libres.every((v) => !vacio(v)), libres.join(" | "));
-const costes = tarjetas.map((t) => t.kpis.find((k) => k.etiqueta === "Coste total ejecutado")?.valor);
+anotar("#deuda-comparar", "cada estrategia da su fecha libre de deuda", libres.every((v) => !vacio(v) && v !== "—"), libres.join(" | "));
+// El coste se lee por posición y no por etiqueta: desde V3-3 cada estrategia dice qué mide su
+// cifra («Coste total ejecutado» las tres primeras, «Intereses del nuevo préstamo» consolidar).
+const costes = tarjetas.map((t) => t.kpis[1]?.valor);
 anotar("#deuda-comparar", "cada estrategia da su coste", costes.every(tieneNumero), costes.join(" | "));
 const recomendada = await page.$$eval(".deuda-decidir-strategy-card.is-recommended h3", (e) => e.map((x) => x.textContent.trim()));
 anotar("#deuda-comparar", "hay una estrategia recomendada", recomendada.length === 1, recomendada.join(","));

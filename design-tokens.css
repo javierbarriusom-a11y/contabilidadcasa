@@ -1194,6 +1194,52 @@
   max-width: 36ch;
 }
 
+/* V3-3 · la oferta de reunificación. Va en un `fieldset` y no en `visual-controls` como la reserva
+   porque son tres campos que solo tienen sentido juntos: una leyenda los agrupa para quien navega
+   con lector de pantalla, en vez de tres casillas sueltas en la cabecera. */
+.e19-deuda-decidir .deuda-decidir-offer {
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  padding: 14px 16px 16px;
+  margin: 0 0 4px;
+}
+
+.e19-deuda-decidir .deuda-decidir-offer legend {
+  padding: 0 6px;
+  font: 700 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  color: var(--e19-heading);
+}
+
+.e19-deuda-decidir .deuda-decidir-offer-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.e19-deuda-decidir .deuda-decidir-offer-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-deuda-decidir .deuda-decidir-offer-fields input {
+  width: 12ch;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+.e19-deuda-decidir .deuda-decidir-offer #deudaCompararOfferNote {
+  margin: 10px 0 0;
+}
+
 .e19-deuda-decidir .deuda-decidir-strategy-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

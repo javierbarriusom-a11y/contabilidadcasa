@@ -58,7 +58,7 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 |---|---|---|---|
 | 1a Hoy | `#home` | ✅ | — |
 | 1b Ruta de deuda | `#deuda-ruta` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
-| 1c Comparador de estrategias | `#deuda-comparar` | 🟡 | La tercera estrategia es «No tocar nada», no «Consolidar». Sin cifras en el sitio hasta el 10 de agosto, ver §8 |
+| 1c Comparador de estrategias | `#deuda-comparar` | 🟡 | Las cuatro estrategias del rediseño, con «Consolidar» desde V3-3 (10 de agosto). Pendiente de verse en el sitio |
 | 1d Asesor ejecutivo | `#asesor-decision` | 🟡 | Ver nota en `docs/E19_SISTEMA_DISENO.md` §8 |
 | 1e Simular | `#escenario-simular` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 1f Actualizar (hub) | `#update-hub` | ✅ | — |
@@ -121,9 +121,11 @@ cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
 > «Versiones anteriores». Se queda donde está; reordenar el menú principal es trabajo de
 > T-1. Por eso V2-8 mueve cinco pantallas y no seis.
 
-**3 · Deuda.** Estrategias y orden de ataque, construidos. La tercera estrategia difiere:
-el rediseño pide *Consolidar*, la app ofrece *No tocar nada*. La «oferta en curso» vive en
-`#asesor-decision` en vez de en la propia vista.
+**3 · Deuda.** Estrategias y orden de ataque, construidos, y desde el 10 de agosto las cuatro del
+rediseño: V3-3 añadió *Consolidar* pidiendo la oferta —TIN, plazo y comisión— en vez de fabricarla,
+y *No tocar nada* se queda como cuarta tarjeta, que es la referencia contra la que se comparan las
+demás. Lo que falta de esta vista es la «oferta en curso» del mockup, que sigue viviendo en
+`#asesor-decision` en vez de en la propia vista (V3-4).
 
 **4 · Datos.** Hub, importación y registro del mes, construidos. **Lo que falta es lo que
 el turno 5 especifica y nadie ha implementado**: la importación como cuatro pasos con una
@@ -268,11 +270,11 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| V3-1 | Comparador de estrategias | 🟡 | — | Mockup 1c · E20-2 · sin cifras en el sitio hasta el 10 de agosto, §8 |
+| V3-1 | Comparador de estrategias | 🟡 | — | Mockup 1c · E20-2 · sin cifras en el sitio hasta el 10 de agosto, §8 · completado por V3-3 |
 | V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 · llegó al sitio el 10 de agosto, §8 |
-| V3-3 | Estrategia **Consolidar** como tercera opción real | ⏳ | Media | Mockup 4d; hoy la tercera es «No tocar nada» |
+| V3-3 | Estrategia **Consolidar** como cuarta opción real | 🟡 | Media | Mockup 4d · hecha el 10 de agosto: se pide la oferta (TIN, plazo, comisión) en vez de inventarla |
 | V3-4 | Oferta en curso dentro de la vista de deuda | ⏳ | Baja | Mockup 4d; hoy vive en `#asesor-decision` |
-| V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ⏳ | Media | Mockup 4d · habilitado por T-0 |
+| V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ⏳ | Media | Mockup 4d · habilitado por T-0 · desbloqueado por V3-3 |
 
 ### V4 · Datos
 
@@ -348,13 +350,14 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 3. **V1-4, V3-5, ~~V2-8~~, ~~V4-6~~, ~~V5-3~~** · relegar las heredadas, vista por vista. Se pueden
    hacer de una en una y cada una es reversible con un interruptor. **V4-6, V5-3 y V2-8 ya
    están, el 10 de agosto**: diez pantallas relegadas de las dieciocho heredadas. Quedan las
-   dos que conviene hacer después de cerrar su 🟡 correspondiente: **V3-5** tras V3-3, y
-   **V1-4** tras V1-2.
+   dos que conviene hacer después de cerrar su 🟡 correspondiente: **V3-5**, ya desbloqueada
+   porque V3-3 está hecha, y **V1-4** tras V1-2.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
    escrita y prototipo que sigue sin construir.
 5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha el 10 de agosto de
    2026.** El cálculo ya existía en `#deuda-comparar`; se reutiliza tal cual, no se duplica.
-6. **V3-3** · estrategia Consolidar, para cerrar la 🟡 de 1c.
+6. ~~**V3-3** · estrategia Consolidar~~ — **hecha el 10 de agosto de 2026.** No cierra del todo la
+   🟡 de 1c: la cierra la confirmación de verla en el sitio.
 7. **V5-2** · confianza del dato por cuenta. **V6-2/V6-3** · el resto de Ajustes.
 8. **T-1** · la navegación de seis vistas, ya sin riesgo, y **T-2** si se quiere el navy.
 
@@ -417,8 +420,9 @@ Qué se corrige de estados, y qué no:
 - **V2-1, V3-2 y los mockups 1b, 1e y 2d conservan el ✅ pero con fecha corregida**: el código estaba
   desde E20, la función **solo llegó al usuario el 10 de agosto de 2026**. Verificado sobre el
   artefacto que despliega Pages (`dist`), no solo en local.
-- **V3-1 y el mockup 1c siguen en 🟡** por su motivo de siempre —la tercera estrategia es «No tocar
-  nada» y no «Consolidar»—, que es independiente de todo esto.
+- **V3-1 y el mockup 1c siguen en 🟡**, aunque ya no por el motivo de siempre: V3-3 (10 de agosto)
+  añadió «Consolidar» como cuarta estrategia real, así que lo único que les queda pendiente es
+  verse en el sitio publicado.
 - **2e sigue en 🟡** por la nota de §5.
 
 La lección no es que faltaran pruebas: `npm run verify` estaba en verde todo el tiempo, y sigue
@@ -438,3 +442,7 @@ Eso mueve la referencia de `npm run audit:escenarios` en modo degradado **de 8/1
 propósito**: la herramienta mide «¿devuelve cifras?», así que las dos mejoras cuentan ahí como
 comprobaciones rotas. Queda escrito en la cabecera de la propia herramienta para que nadie lo lea
 como una regresión.
+
+V3-3 (10 de agosto) añadió una comprobación decimoséptima —«Consolidar» sin oferta no inventa
+cifras—, que pasa en los dos modos porque no depende del motor sino de la oferta. **Las referencias
+vigentes son 17/17 con el motor y 7/17 sin él.**
