@@ -2,6 +2,49 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: T-5, que una pieza que falta se note
+
+La otra mitad del fallo de ayer. Los canarios de `build-public-site.mjs` y `smoke-public.mjs`
+impiden que un archivo se quede fuera del sitio; **T-5 cubre lo que pasa si aun así falta**, por
+caché vieja, despliegue a medias o bloqueo de red.
+
+**El aviso.** `renderScenarioDependencyNotice(viewId)` comprueba `FinanceCanonicalScenarioEngine` y
+`FinanceCanonicalScenarioSchema`, y si falta alguno antepone a la sección un `e19-insight is-danger`
+con `role="status"` —así lo recoge también un lector de pantalla— que nombra el archivo concreto y
+dice lo que importa: «las cifras que falten no son ceros ni resultados, son cálculos que no se han
+hecho». Lo llaman las cinco pantallas del motor. Repintar no apila avisos, y cuando la dependencia
+vuelve el aviso se retira solo.
+
+**Dos cosas más que fingían haber calculado.** No bastaba con avisar:
+
+- El comparador escribía `0,00 €` en coste y caja mínima porque no había calculado nada, y un cero
+  se lee como una respuesta. Ahora escribe «—» cuando falta el motor. Junto al aviso rojo, además,
+  un 0,00 € era directamente contradictorio.
+- `escenarioMotorAddDecision` hacía `if (schema) schema.validateDecision(...)`: **sin esquema no
+  validaba nada y la decisión entraba igual**, que es peor que no poder añadirla. Ahora lo dice por
+  el mismo sitio donde ya salen los errores del formulario, y no la añade.
+
+**Una cifra que baja a propósito.** `npm run audit:escenarios` en modo degradado pasa de **8/16 a
+6/16**. No es una regresión: la herramienta mide «¿devuelve cifras?», y las dos mejoras de arriba
+cuentan ahí como comprobaciones rotas. Queda escrito en la cabecera de la herramienta y en §8 del
+backlog para que nadie lo lea al revés. Con el motor sigue en **16/16**.
+
+**Validación** (`npm run verify`, exit 0): **460/460 pruebas** (451 antes + 9 en
+`tests/t5-aviso-dependencia.test.cjs`), accesibilidad (574 IDs únicos), rendimiento (diff 10.000
+filas en 36,0 ms; forecast y escenarios en 244,7 ms; recursos 1211 KB), build público, privacidad y
+smoke test.
+
+**QA en navegador real**, servida desde `dist/` como exige ya la puerta de aceptación, en los dos
+modos y **21/21 comprobaciones**: con el motor ninguna pantalla enseña aviso y el comparador sigue
+dando cifras; sin el motor las cinco avisan, el aviso es anunciable, repintar no lo apila y el
+comparador escribe «—» en vez de 0,00 €. Cero errores de consola en los dos modos.
+
+Detalle que conviene recordar: `#escenario-aplicar` rebota a simular si no hay decisiones en curso,
+así que su sección queda oculta a propósito. Para ella se comprueba que el aviso esté puesto, no que
+se vea.
+
+**Shell offline** a `20260810-t5a1`.
+
 ## Cierre de sesión — 10 de agosto de 2026: auditoría de lo que el sitio publicado enseñaba de verdad
 
 No cambia producto. Comprueba y corrige lo que el backlog afirmaba.

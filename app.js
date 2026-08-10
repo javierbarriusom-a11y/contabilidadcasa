@@ -19876,6 +19876,63 @@ function escenarioMotorEfectoLabel(efecto) {
   return table[efecto] || efecto || "";
 }
 
+// T-5 · Una dependencia que no carga no puede quedarse callada.
+//
+// Hasta el 10 de agosto de 2026 el sitio publicado no llevaba estos dos archivos, y las cinco
+// pantallas del motor se quedaban en blanco **sin un solo error de consola**: el comparador daba
+// fecha «—» y coste 0,00 €, la ruta decía «Sin calcular» y «Aplicar al plan» no se habilitaba
+// nunca. Un 0,00 € se lee como una respuesta, no como una avería, así que el fallo pasó semanas
+// desapercibido. Los canarios de `build-public-site.mjs` y `smoke-public.mjs` impiden ya que falte
+// un archivo; esto cubre lo otro: que si algún día falta —por caché vieja, por un despliegue a
+// medias o por un bloqueo de red—, la pantalla lo diga en vez de fingir que ha calculado.
+const ESCENARIO_MOTOR_DEPENDENCIES = [
+  ["FinanceCanonicalScenarioEngine", "canonical-scenario-engine.js"],
+  ["FinanceCanonicalScenarioSchema", "canonical-scenario-schema.js"],
+];
+
+function missingScenarioDependencies() {
+  return ESCENARIO_MOTOR_DEPENDENCIES.filter(([global]) => !window[global]).map(([, file]) => file);
+}
+
+function scenarioDependencyMessage(missing) {
+  return `Esta pantalla no puede calcular nada ahora mismo: no se ha cargado ${missing.join(" ni ")}. `
+    + "Las cifras que falten no son ceros ni resultados, son cálculos que no se han hecho. "
+    + "Recarga la página; si sigue igual, vuelve a abrirla sin conexión guardada.";
+}
+
+// Devuelve true cuando falta algo, para que quien llame pueda además no pintar cifras vacías como
+// si fueran un resultado.
+function renderScenarioDependencyNotice(viewId) {
+  const section = document.getElementById(viewId);
+  if (!section) return false;
+  const missing = missingScenarioDependencies();
+  const existing = section.querySelector("[data-dependency-notice]");
+  if (!missing.length) {
+    existing?.remove();
+    return false;
+  }
+  const message = scenarioDependencyMessage(missing);
+  if (existing) {
+    existing.querySelector("[data-dependency-notice-text]").textContent = message;
+    return true;
+  }
+  const notice = document.createElement("div");
+  notice.className = "e19-insight is-danger";
+  notice.setAttribute("data-dependency-notice", "");
+  notice.setAttribute("role", "status");
+  const wrapper = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = "Falta una pieza para poder calcular";
+  const text = document.createElement("p");
+  text.setAttribute("data-dependency-notice-text", "");
+  text.textContent = message;
+  wrapper.append(title, text);
+  notice.append(wrapper);
+  section.prepend(notice);
+  announceStatus(message);
+  return true;
+}
+
 function runEscenarioMotor(baseInput, decisions, guardrailValue) {
   const engine = window.FinanceCanonicalScenarioEngine;
   if (!engine) return null;
@@ -20042,6 +20099,7 @@ function escenarioMotorDraftName() {
 }
 
 function renderEscenarioSimular() {
+  renderScenarioDependencyNotice("escenario-simular");
   const baseInput = escenarioMotorBaseInput();
   renderEscenarioMotorForm(baseInput);
 
@@ -20151,7 +20209,15 @@ function handleEscenarioMotorSubmit(event) {
 
   const issues = [];
   const schema = window.FinanceCanonicalScenarioSchema;
-  if (schema) schema.validateDecision(decision, "$", issues);
+  // Sin esquema no se validaba nada y la decisión entraba igual: peor que no poder añadirla, porque
+  // aceptaba en silencio un dato sin comprobar. Ahora se dice y no se añade.
+  if (!schema) {
+    escenarioMotorShowFormErrors([
+      "No se puede comprobar esta decisión: no se ha cargado canonical-scenario-schema.js. No se añade nada, para no aceptar un dato sin validar.",
+    ]);
+    return;
+  }
+  schema.validateDecision(decision, "$", issues);
   const errors = issues.filter((issue) => issue.severity === "error");
   if (errors.length) {
     escenarioMotorShowFormErrors(errors.map((issue) => escenarioMotorIssueMessage(issue, type)));
@@ -20239,6 +20305,7 @@ function handleEscenarioMotorGoApply() {
 // existe.
 // ---------------------------------------------------------------------------------------------
 function renderEscenarioAplicar() {
+  renderScenarioDependencyNotice("escenario-aplicar");
   if (!escenarioMotorDecisions.length) {
     escenarioMotorNavigate("escenario-simular");
     return;
@@ -20333,6 +20400,7 @@ function handleEscenarioAplicarConfirm(event) {
 // oferta con vencimiento — solo «Aplicado» y «Guardado», que sí están respaldados por datos reales.
 // ---------------------------------------------------------------------------------------------
 function renderEscenarioGuardados() {
+  renderScenarioDependencyNotice("escenario-guardados");
   const list = loadEscenarioMotorSaved();
   const container = qs("escenarioGuardadosList");
   const empty = qs("escenarioGuardadosEmpty");
@@ -20535,6 +20603,7 @@ function debtStrategyDecisionsToEscenario(strategyId) {
 }
 
 function renderDeudaComparar() {
+  renderScenarioDependencyNotice("deuda-comparar");
   const grid = qs("deudaCompararGrid");
   if (!grid) return;
   const reserveField = qs("deudaCompararReserve");
@@ -20545,6 +20614,10 @@ function renderDeudaComparar() {
   const baseInput = escenarioMotorBaseInput();
   const summaries = DEBT_STRATEGY_DEFINITIONS.map((def) => ({ id: def.id, def, ...debtStrategySummary(def.id, baseInput, debtStrategyReserveValue) }));
   const recommendedId = debtStrategyRecommended(summaries);
+  // T-5 · sin motor, `costeTotal` y `cajaMinima` valen 0 porque no se ha calculado nada, y «0,00 €»
+  // se lee como una respuesta. Junto al aviso rojo sería además contradictorio: se escribe «—».
+  const calculado = !missingScenarioDependencies().length;
+  const cifra = (value) => (calculado ? money(value ?? 0, true) : "—");
 
   grid.innerHTML = summaries
     .map((entry) => {
@@ -20561,8 +20634,8 @@ function renderDeudaComparar() {
         <p class="e19-kpi-note">${escapeHtml(entry.def.desc)}</p>
         <div class="deuda-decidir-strategy-kpis">
           <div><span>Libre de deuda</span><strong>${escapeHtml(escenarioMotorMonthLabel(entry.libreDeDeuda))}</strong></div>
-          <div><span>Coste total ejecutado</span><strong>${money(entry.costeTotal, true)}</strong></div>
-          <div><span>Caja mínima</span><strong>${money(entry.cajaMinima ?? 0, true)}</strong></div>
+          <div><span>Coste total ejecutado</span><strong>${cifra(entry.costeTotal)}</strong></div>
+          <div><span>Caja mínima</span><strong>${cifra(entry.cajaMinima)}</strong></div>
         </div>
         ${statusNote ? `<p class="e19-kpi-note is-warn">${escapeHtml(statusNote)}</p>` : ""}
         <div class="deuda-decidir-strategy-actions">
@@ -20689,6 +20762,7 @@ function renderDeudaRutaChart(deudaSeries, liquidezSeries, months) {
 }
 
 function renderDeudaRuta() {
+  renderScenarioDependencyNotice("deuda-ruta");
   if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
   const tabs = qs("deudaRutaTabs");
   if (tabs) {
