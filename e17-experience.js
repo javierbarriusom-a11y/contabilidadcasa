@@ -21,7 +21,7 @@
     { target: "deuda-ruta", label: "Plan de deuda · ruta (nuevo)", group: "analysis", keywords: "deuda ruta plan libre nuevo e20" },
     { target: "conciliar", label: "Conciliación (nuevo)", group: "data", keywords: "conciliacion cerrar mes tareas extracto nuevo e20" },
     { target: "asesor-decision", label: "Asesor ejecutivo (nuevo)", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
-    { target: "debt-roadmap", label: "Plan de deuda", group: "analysis", keywords: "deuda negociar ofertas cuota refinanciacion" },
+    { target: "debt-roadmap", label: "Plan de deuda", group: "legacy", keywords: "deuda negociar ofertas cuota refinanciacion" },
     { target: "savings-agent", label: "Objetivos y ahorro", group: "analysis", keywords: "objetivos huchas aportaciones ahorro" },
     { target: "movements", label: "Movimientos", group: "legacy", keywords: "movimientos banco categorias buscar" },
     { target: "reconciliation", label: "Conciliar", group: "legacy", keywords: "conciliacion extracto saldo diferencias" },
@@ -33,6 +33,12 @@
     { target: "simulator", label: "Simulador de decisiones", group: "legacy", keywords: "simulador proyectos supuestos impacto caja" },
     { target: "savings-plan", label: "Plan ahorro", group: "legacy", keywords: "plan ahorro extras deuda viva aportaciones" },
     { target: "cashflow", label: "Flujo mensual", group: "legacy", keywords: "flujo caja anual mensual detalle operativo" },
+    // V3-5 hace lo mismo con las dos heredadas de Deuda que tampoco tenían entrada propia. Ojo:
+    // `#debt-control` sí se alcanza desde una tarjeta de ruta (`data-home-nav="debt-control"`) y
+    // `#debt-liquidation-plan` enlaza a ella, pero ninguna de las dos vías sirve si lo que el
+    // usuario recuerda es el nombre de la pantalla, que es justo para lo que existe el lanzador.
+    { target: "debt-liquidation-plan", label: "Plan deuda óptimo", group: "legacy", keywords: "deuda liquidacion optimo orden amortizar plan entidades" },
+    { target: "debt-control", label: "Control de deuda", group: "legacy", keywords: "control deuda estrategia reserva aplicar revision" },
     { target: "alerts-center", label: "Centro de alertas", group: "analysis", keywords: "alertas riesgo caja deuda capacidad" },
   ]);
 
