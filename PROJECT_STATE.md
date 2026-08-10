@@ -2,6 +2,38 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Backlog rehecho — seis vistas × evolución funcional
+
+A petición del usuario se rehace el backlog fusionando las fases del rediseño a seis vistas con
+la evolución funcional, y midiendo el estado **sobre el código publicado**, no sobre el plan. El
+resultado es `BACKLOG.md`, que pasa a ser el backlog vigente; `BACKLOG_STATUS.md` queda como
+registro histórico de E1-E20 con un aviso arriba que remite al nuevo.
+
+Lo que salió del recuento, que no coincidía con lo que decían los documentos:
+
+- **La app tiene 34 pantallas, no 22.** El rediseño se dibujó con 22 y proponía reducirlas a 6;
+  desde entonces cada mockup migrado se añadió junto a la heredada, así que el trabajo hecho ha
+  mejorado la app y a la vez ha alejado el objetivo. 16 pantallas llevan la piel nueva, 18 siguen
+  heredadas.
+- **Los quince mockups de los turnos 1-3 están migrados**, cinco de ellos con omisiones
+  documentadas (1c, 1d, 2a, 2e, 3c).
+- **De las seis vistas del rediseño, cinco tienen su función construida y publicada, ninguna
+  existe como vista única, y la sexta —Ajustes— no existe en absoluto.**
+
+El hallazgo con más consecuencias: **`state.operatingReserve` no tiene ningún control en toda la
+interfaz** (cero apariciones en `index.html`). El modelo la lee y tres pantallas ya publicadas la
+necesitan, así que hoy el pie de impacto cae a «meses en negativo» en vez de «meses bajo
+reserva», el mapa de calor colorea contra un mes de salidas en vez de contra la reserva real, y el
+comparador de deuda usa un suelo de 0 €. Es la tarea más barata del backlog y la que más
+desbloquea, así que queda como primera recomendada (V6-1).
+
+También queda medido lo que bloquea la decisión aplazada: **T-1 —adoptar o no la arquitectura de
+seis vistas— bloquea catorce tareas**, todas las fusiones de pares nueva/heredada. El documento
+propone un camino intermedio que no la necesita: cerrar antes las cinco pantallas marcadas como
+parciales, con lo que retirar la heredada correspondiente deja de ser una apuesta.
+
+Sin cambios de código en esta entrada: solo documentación.
+
 ## Cambio de sede — este repositorio pasa a ser el vivo
 
 Decisión expresa del usuario el 10 de agosto de 2026: **`contabilidadcasa` es el proyecto vivo y
