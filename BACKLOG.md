@@ -95,7 +95,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes` | `#update-data`, `#movements` |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` |
-| **6 · Ajustes** | ⛔ **nada** | — | — |
+| **6 · Ajustes** | 🟡 parcial | la reserva operativa, alojada en `#cuadro-mandos` (V6-1) | — |
 
 ### Lo que falta en cada una, medido
 
@@ -122,18 +122,22 @@ bandeja previa, no ese flujo.
 dato» por cuenta (cuadra / descuadra / sin conciliar), que hoy está disperso entre
 `#conciliar` y `#data-audit`.
 
-**6 · Ajustes.** No existe. Y no es cosmético: **`state.operatingReserve` —la reserva
-operativa— no tiene ningún control en toda la interfaz** (cero apariciones en
-`index.html`). El modelo la lee, tres pantallas la necesitan, y nadie puede configurarla.
-Hoy eso degrada de verdad el producto:
+**6 · Ajustes.** La vista sigue sin existir, pero su pieza más urgente ya está hecha: **la
+reserva operativa tiene control desde el 10 de agosto** (V6-1). El diagnóstico que lo
+justificaba era que `state.operatingReserve` no aparecía ni una vez en `index.html` pese a
+que el modelo la lee desde tres sitios, así que valía siempre 0 y las tres pantallas caían
+a su respaldo:
 
-- El pie de impacto de `#cuadro-mandos` no puede decir «meses bajo reserva» y cae a «meses
+- El pie de impacto de `#cuadro-mandos` no podía decir «meses bajo reserva» y caía a «meses
   en negativo».
-- El mapa de calor colorea contra «un mes de salidas» en vez de contra la reserva real.
-- El comparador de deuda usa un suelo de 0 € por defecto en vez de la reserva del hogar.
+- El mapa de calor coloreaba contra «un mes de salidas» en vez de contra la reserva real.
+- El comparador de deuda usaba un suelo de 0 € por defecto en vez de la reserva del hogar.
 
-Es la mayor desproporción del backlog: la vista más barata de construir es la que más
-desbloquea.
+Con la casilla puesta, las tres hablan de la misma cifra y cada una declara cuál está
+usando. Lo que falta de esta vista son los umbrales de aviso (V6-2), la vista propia que
+reúna cuentas, umbrales y partidas (V6-3) y la exportación única (V6-4). Sigue siendo el
+bloque con mejor relación esfuerzo/valor, ya sin la pieza que degradaba pantallas
+publicadas.
 
 ---
 
@@ -199,13 +203,20 @@ Seis bloques que son las seis vistas, más uno transversal. Cada tarea lleva el 
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | ⏳ | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
+| V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | 🟡 | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
 | V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | ⏳ | Media | Mockup 4f · Ajustes |
 | V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | ⏳ | Media | Mockup 4f |
 | V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | ⏳ | Baja | Mockup 4f |
 
 **V6-1 es la primera tarea recomendada de todo el backlog.** Es pequeña, no rompe nada, y
 mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
+
+> **V6-1, hecha el 10 de agosto de 2026.** La casilla «Reserva operativa» vive en la fila de
+> controles de `#cuadro-mandos`, junto a «Desde» y «Horizonte», hasta que exista la vista
+> `#ajustes` (V6-3), que es donde acabará mudándose. Escribe `state.operatingReserve` y se guarda
+> en `scenarioSettings`, así que se sincroniza y se restaura como un dato del hogar. Vaciarla
+> significa «sin reserva configurada», no cero: cada pantalla vuelve a su respaldo declarado.
+> Queda en 🟡 hasta comprobarla en el sitio publicado, según la puerta de la sección 7.
 
 ### V1 · Hoy
 
@@ -306,8 +317,7 @@ todo. Pero ya no es un requisito, sino una preferencia de orden.
 
 Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 
-1. **V6-1** · control de reserva operativa. Pequeña, arregla tres pantallas ya publicadas
-   sin tocarlas.
+1. ~~**V6-1** · control de reserva operativa~~ — **hecha el 10 de agosto de 2026.**
 2. **T-0** · el grupo «Versiones anteriores». Barato, y habilita las cinco relegaciones.
 3. **V1-4, V2-8, V3-5, V4-6, V5-3** · relegar las heredadas, vista por vista. Se pueden
    hacer de una en una y cada una es reversible con un interruptor.
@@ -320,8 +330,8 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 
 Dos matices de orden que no son caprichosos:
 
-- **V6-1 antes que T-0**, aunque T-0 sea más vistoso: la reserva operativa está degradando
-  hoy tres pantallas que la gente ya usa, y eso pesa más que ordenar el menú.
+- **V6-1 fue antes que T-0**, aunque T-0 sea más vistoso: la reserva operativa estaba
+  degradando tres pantallas que la gente ya usa, y eso pesaba más que ordenar el menú.
 - **Cerrar cada 🟡 antes de relegar su heredada**, cuando se pueda. Relegar `#debt-roadmap`
   con 1c todavía a medias es precisamente el caso donde alguien echaría de menos algo.
 

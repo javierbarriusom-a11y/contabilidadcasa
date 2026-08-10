@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260810e20e1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260810v6a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -944,6 +944,7 @@
                 <label class="deuda-decidir-reserve-label">
                   <span>Reserva mínima al secuenciar</span>
                   <input id="deudaCompararReserve" type="number" min="0" step="0.01" placeholder="€, vacío = 0 € por defecto" />
+                  <small class="e19-kpi-note" id="deudaCompararReserveNote"></small>
                 </label>
               </div>
             </div>
@@ -1072,6 +1073,10 @@
                     <option value="24">24 meses</option>
                   </select>
                 </label>
+                <label class="month-picker cuadro-mandos-reserve">
+                  <span>Reserva operativa</span>
+                  <input id="cuadroMandosReserve" type="number" min="0" step="50" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
               </div>
             </div>
 
@@ -1080,6 +1085,8 @@
             </div>
 
             <div class="e19-impact-bar cuadro-mandos-impact" id="cuadroMandosImpact" hidden></div>
+
+            <p class="e19-kpi-note cuadro-mandos-reserve-note" id="cuadroMandosReserveNote"></p>
           </section>
 
           <section class="e19-cuadro-mandos view-section" id="cambios-pendientes">
@@ -2937,7 +2944,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260808e19a3"></script>
+    <script src="app.js?v=20260810v6a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

@@ -1189,6 +1189,11 @@
   background: var(--e19-surface);
 }
 
+/* V6-1 · la nota que declara de dónde sale la cifra de la casilla. */
+.e19-deuda-decidir .deuda-decidir-reserve-label small {
+  max-width: 36ch;
+}
+
 .e19-deuda-decidir .deuda-decidir-strategy-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -2065,6 +2070,18 @@
   align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* V6-1 · la reserva operativa comparte fila con «Desde» y «Horizonte»: hereda el alto y el borde
+   de los selectores vecinos para que la fila no quede desalineada. */
+.e19-cuadro-mandos .cuadro-mandos-reserve {
+  min-width: 170px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-reserve-note {
+  display: block;
+  margin-top: 12px;
+  max-width: 82ch;
 }
 
 /* --- 3a · matriz partida x mes --- */

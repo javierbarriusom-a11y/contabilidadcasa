@@ -221,10 +221,16 @@ deuda y la aplana en un hilo invisible en una escala compartida.
 **Reserva mínima con suelo por defecto.** El motor solo busca mes viable si se declara un
 guardarraíl positivo; sin ninguno, "modo óptimo" no comprueba nada y todo cae en el
 primer mes del horizonte sin importar cuánto quede la caja en negativo. Si el usuario no
-ha configurado una reserva (aquí, o en Presupuesto de riesgo, `state.operatingReserve`),
-se usa un suelo de 0 € por defecto — nunca "sin comprobar nada" en silencio — y el
-checklist "antes de aplicar" deja explícito si la cifra es una reserva real configurada o
-el suelo por defecto.
+ha configurado una reserva (aquí, o como reserva operativa del hogar en el Cuadro de
+mandos, `state.operatingReserve`), se usa un suelo de 0 € por defecto — nunca "sin
+comprobar nada" en silencio — y el checklist "antes de aplicar" deja explícito si la cifra
+es una reserva real configurada o el suelo por defecto.
+
+Desde V6-1 la casilla se rellena sola con la reserva operativa cuando existe, y una nota
+bajo ella dice de cuál de los tres casos se trata: que la cifra viene de la reserva del
+hogar, que es un valor puesto solo para esta comparación, o que no hay reserva y por eso
+se secuencia con el suelo de 0 €. Antes se heredaba en silencio, que era peor que no
+heredar.
 
 ## 7. Conciliación (1g)
 
@@ -540,7 +546,8 @@ podido calcular y los cambios siguen sin guardarse.
   mapa entero sin decir nada. Se marca la causa y el subtítulo explica que el resto también se
   mueve.
 - **El suelo del color se declara.** Si hay reserva operativa configurada se usa esa; si no, un
-  mes de salidas, y el subtítulo dice cuál de las dos está en uso y por qué.
+  mes de salidas, y el subtítulo dice cuál de las dos está en uso y por qué. Desde V6-1 la reserva
+  se fija en la fila de controles del Cuadro de mandos, y el subtítulo de respaldo dice dónde.
 - **Los meses cerrados se ven pero no se editan**, según la especificación 5a.
 
 ### Qué no se ha migrado
