@@ -2,6 +2,41 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## «Versiones anteriores»: la decisión que desbloquea el rediseño
+
+Decisión del usuario del 10 de agosto de 2026, por la tarde:
+
+> «En vez de quitar las pantallas fusionadas, pasarlas a una sección tipo *Versiones
+> anteriores*.»
+
+Esta mañana el backlog decía que T-1 —adoptar o no la arquitectura de seis vistas— bloqueaba
+catorce tareas, y proponía esperar. Ya no. El bloqueo era la pregunta «¿retiramos pantallas que
+hoy funcionan?», y con esa pregunta cualquier respuesta tenía coste: retirar arriesga perder
+función sin darse cuenta, y no retirar deja la app en 34 pantallas y creciendo. Relegar en vez de
+retirar no es un punto intermedio, es una tercera opción sin ese coste: la navegación principal
+queda en seis vistas —el beneficio entero del rediseño— y la función heredada sigue alcanzable
+—el riesgo entero, eliminado—.
+
+El mecanismo ya existe, así que la tarea es pequeña: cada enlace lleva `data-e17-group` en
+`index.html`, `e17Preferences()` (`app.js:371`) guarda un booleano por grupo y
+`applyE17Preferences()` (`app.js:379`) oculta los enlaces del grupo apagado. Añadir «Versiones
+anteriores» es un grupo `legacy` más, reetiquetar los 18 enlaces heredados, un encabezado en el
+menú y un interruptor en «Personalizar». Nada de eso toca cálculo, contrato de guardado ni
+pantallas.
+
+Cambios en el backlog: cinco tareas pasan de ⛔ a ⏳ (V1-4, V2-8, V3-5, V4-6, V5-3), T-1 deja de
+ser bloqueante, T-2 (el acento navy) se separa como decisión estética independiente, aparece T-0
+—el grupo en sí— y T-4 cambia de significado: ya no es «reducir el número de pantallas» sino
+«retirar de verdad una heredada», que sigue en ⛔ a propósito porque conviene esperar datos de
+uso en vez de decidirlo por intuición.
+
+Queda una subdecisión menor y reversible: si el grupo nace visible o plegado. La recomendación
+escrita es visible, porque el primer día no cambia nada para quien esté a mitad de una tarea y
+plegarlo después es el mismo interruptor.
+
+Sin cambios de código en esta entrada: documentación (`BACKLOG.md` §3 y §5,
+`docs/E19_SISTEMA_DISENO.md` §10). 403/403 pruebas.
+
 ## Backlog rehecho — seis vistas × evolución funcional
 
 A petición del usuario se rehace el backlog fusionando las fases del rediseño a seis vistas con

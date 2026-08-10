@@ -354,9 +354,13 @@ habría rechazado (`escenario-motor-1`) y no validaba nada: funcionaba porque
 ## 10. El rediseño a seis vistas (turnos 4-5 y prototipo de app)
 
 Material añadido por el usuario el 9 de agosto de 2026. **No continúa el catálogo de 15
-pantallas: propone sustituir su arquitectura.** Se documenta aquí, con sus capturas, pero
-no se ha adoptado ninguna decisión sobre implementarlo — es la pieza que habría que
-resolver antes de tocar `index.html` en esa dirección.
+pantallas: propone sustituir su arquitectura.**
+
+**Actualizado el 10 de agosto de 2026.** La decisión que faltaba ya está tomada, y no fue
+adoptar ni descartar: **las pantallas heredadas no se retiran, se mueven a una sección
+«Versiones anteriores»**. Con eso el rediseño se puede adoptar sin su único riesgo real
+—perder función que solo vive en una pantalla heredada—, porque el camino de vuelta sigue
+existiendo. El detalle, el mecanismo y las tareas están en `BACKLOG.md` §3.
 
 ### Qué propone
 
@@ -389,8 +393,15 @@ que rige todo el código. El resultado es que hoy conviven `#conciliar` y `#reco
 `#deuda-ruta` y `#debt-roadmap`, `#escenario-simular` y `#new-life-simulation`. El rediseño
 a seis vistas es exactamente la operación inversa: fundir los pares y retirar los heredados.
 
-No es un conflicto que se resuelva escribiendo código: es una decisión de producto sobre si
-se retiran pantallas en uso. Por eso queda documentado y sin migrar.
+No era un conflicto que se resolviera escribiendo código: era una decisión de producto sobre
+si se retiran pantallas en uso. **Resuelta el 10 de agosto**: no se retiran. Cada par
+nueva/heredada se mantiene, y la heredada pasa al grupo «Versiones anteriores» del menú.
+
+El mecanismo ya existe y no hay que construirlo: cada enlace lleva `data-e17-group` en
+`index.html`, `e17Preferences()` (`app.js:371`) guarda un booleano por grupo y
+`applyE17Preferences()` (`app.js:379`) oculta los de un grupo apagado. Añadir «Versiones
+anteriores» es un grupo `legacy` más, reetiquetar los enlaces heredados, un encabezado y un
+interruptor en «Personalizar».
 
 Lo que sí es directamente aprovechable sin esa decisión:
 
