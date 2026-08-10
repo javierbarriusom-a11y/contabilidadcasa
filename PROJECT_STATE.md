@@ -2,6 +2,57 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: auditoría de lo que el sitio publicado enseñaba de verdad
+
+No cambia producto. Comprueba y corrige lo que el backlog afirmaba.
+
+**Por qué.** Al arreglar el motor de escenarios que faltaba en `dist` quedaron cinco tareas marcadas
+✅ sobre pantallas que no podían haber funcionado en el sitio. Y ✅ significa, por la propia leyenda
+del backlog, «visible en el sitio publicado».
+
+**Método.** Ejecutar el mismo `dist` dos veces con Chromium: una tal cual, y otra sin
+`canonical-scenario-*.js`, que es exactamente lo que Pages sirvió desde E20. La diferencia entre las
+dos columnas es lo que el usuario no vio.
+
+| Pantalla | Con el motor | Sin el motor (lo publicado) |
+|---|---|---|
+| `#deuda-comparar` | Tres estrategias con fecha, coste y recomendada | Fecha «—», coste 0,00 €, ninguna recomendada |
+| `#deuda-ruta` | Tres pasos fechados con importe y estado | Importe sí, **mes «—» y «Sin calcular»** |
+| `#escenario-simular` | Once tipos, impacto, gráfica y «Aplicar» activo | Once tipos y la decisión entra, pero **sin impacto, sin gráfica y «Aplicar» nunca se habilita** |
+| `#escenario-aplicar` | Se abre con impacto y diff | **Inalcanzable**: su única entrada es ese botón |
+| `#escenario-guardados` | Estado vacío correcto | Estado vacío correcto, y era verdad |
+
+**16/16 con el motor · 8/16 sin él · cero errores de consola en los dos casos.** Ahí está por qué
+nadie lo vio: no fallaba, se quedaba en blanco.
+
+**Correcciones de estado.** V2-2 aguanta su ✅ sin matices —el catálogo de once tipos y sus
+formularios se pintan sin tocar el motor—. V2-1, V3-2 y los mockups 1b, 1e y 2d conservan el ✅ con
+la fecha corregida: el código estaba desde E20, **la función llegó al usuario el 10 de agosto**. V3-1
+y el mockup 1c siguen en 🟡 por su motivo de siempre, que es independiente. Todo queda escrito en la
+nueva §8 del backlog.
+
+**Lo que se arregla del proceso, que es lo que importa.** `npm run verify` estaba en verde todo el
+tiempo, y sigue estándolo: no faltaban pruebas, faltaba que alguna mirara el artefacto que se
+publica. La QA de navegador se hacía contra la raíz del repositorio, donde **todo** resuelve, así que
+un archivo que no se copia a `dist` funcionaba igual. Añadido como **punto 6 de la puerta de
+aceptación**: la QA se sirve desde `dist/`, nunca desde la raíz.
+
+**Una herramienta nueva, fuera de `verify`.** `npm run audit:escenarios` (`tools/audit-escenarios.mjs`)
+recorre las cinco pantallas contra `dist` y exige que devuelvan cifras. Necesita Chromium y un
+servidor, así que no entra en `verify`; se ejecuta a mano y sale distinto de cero si algo se queda en
+blanco. Los canarios de ayer impiden que falte un archivo; esto comprueba lo otro, que las pantallas
+hagan su trabajo de punta a punta.
+
+**Y una tarea nueva: T-5.** Avisar en pantalla cuando falte una dependencia crítica, en vez de
+quedarse en blanco. Hoy `runEscenarioMotor` devuelve `null` en silencio. No se ha hecho aquí porque
+esta sesión no tocaba producto.
+
+**Validación** (`npm run verify`, exit 0): **451/451 pruebas**, accesibilidad (574 IDs únicos),
+rendimiento (diff 10.000 filas en 30,3 ms; forecast y escenarios en 155,2 ms; recursos 1207 KB),
+build público, privacidad y smoke test. Esta sesión no cambia código de aplicación: las mismas 451.
+`npm run audit:escenarios`: **16/16** contra el `dist` que despliega Pages, y **8/16** contra una
+copia sin los dos archivos, que es lo que estuvo publicado.
+
 ## Cierre de sesión — 10 de agosto de 2026: V1-3, y un fallo de producción que salió al hacerla
 
 **Lo pedido.** «Hoy» suma los KPI **Deuda pendiente** y **Libre de deuda**, los dos que le faltaban

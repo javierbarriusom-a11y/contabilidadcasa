@@ -12,6 +12,7 @@
     "build:site": "npm run build:demo && node tools/build-public-site.mjs",
     "test:privacy": "node tools/check-public-privacy.mjs",
     "test:smoke": "node tools/smoke-public.mjs",
+    "audit:escenarios": "node tools/audit-escenarios.mjs",
     "test:a11y": "node tools/check-accessibility.mjs",
     "test:performance": "node tools/check-performance.mjs",
     "test:visual": "playwright test",
