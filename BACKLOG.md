@@ -100,9 +100,12 @@ existe como vista única, y la sexta no existe en absoluto.**
 ### Lo que falta en cada una, medido
 
 **1 · Hoy.** Los tres KPI del rediseño son *Colchón disponible*, *Deuda pendiente* y
-*Libre de deuda*. Los tres que muestra hoy `#home` son *Liquidez hoy*, *Capacidad libre
-real* y *Reserva protegida*. Coinciden en el primero; **deuda pendiente y fecha libre de
-deuda no están en Hoy**, aunque ambas se calculan ya en `#deuda-comparar`.
+*Libre de deuda*. **Los tres están desde el 10 de agosto** (V1-3): a *Liquidez hoy* se le
+suman *Deuda pendiente* y *Libre de deuda*, calculadas por el mismo camino que las de
+`#deuda-comparar` para que las dos vistas no puedan contar historias distintas. Hoy enseña
+seis KPI en dos filas: los tres del rediseño arriba y *Capacidad libre real*, *Reserva
+protegida* y *Próximo riesgo* debajo. Lo que sigue faltando en la vista es V1-4, relegar sus
+cuatro heredadas, que conviene hacer después de cerrar la 🟡 de V1-2.
 
 **2 · Plan.** Es la más completa: la tabla editable con pie de impacto está construida y
 publicada, que era el corazón del rediseño. Falta la banda de doce meses *dentro* de Plan
@@ -245,7 +248,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | V1-1 | Hoy con la piel nueva y tres decisiones | ✅ | — | Mockup 1a · E19-2 |
 | V1-2 | Asesor ejecutivo, una decisión abierta a la vez | 🟡 | — | Mockup 1d · E20-2 |
-| V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | ⏳ | Media | Mockup 4b; el cálculo ya existe en `#deuda-comparar` |
+| V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | 🟡 | Media | Mockup 4b · hecha el 10 de agosto, reutilizando el cálculo de `#deuda-comparar` |
 | V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | ⏳ | Media | Mockup 4b · habilitado por T-0 |
 
 ### V2 · Plan
@@ -259,7 +262,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V2-5 | Mapa de calor mensual | 🟡 | — | Mockup 3c · E20-5 |
 | V2-6 | Cuarto indicador del pie: fecha sin deuda | ⏳ | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño |
 | V2-7 | Banda de doce meses integrada en Plan | ⏳ | Baja | Mockup 4c |
-| V2-8 | Mover `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator` y `#new-life-simulation` a Versiones anteriores | 🟡 | Media | Mockup 4c · hecha el 10 de agosto, ver la nota sobre `#forecast` |
+| V2-8 | Mover `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator` y `#new-life-simulation` a Versiones anteriores | ✅ | — | Mockup 4c · hecha el 10 de agosto, ver la nota sobre `#forecast` |
 
 ### V3 · Deuda
 
@@ -280,7 +283,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V4-3 | Registrar el mes, una fila por partida | 🟡 | — | Mockup 2a · E20-4 |
 | V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | ⏳ | **Alta** | Spec 5c + prototipo 5d · especificado y sin implementar |
 | V4-5 | Detección de partida anual desde el extracto | ⏳ | Baja | Mockup 2a, omisión documentada |
-| V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | 🟡 | Media | Mockup 4e · hecha el 10 de agosto, la primera relegación |
+| V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | ✅ | — | Mockup 4e · hecha el 10 de agosto, la primera relegación |
 
 ### V5 · Cierre
 
@@ -288,13 +291,13 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | V5-1 | Las diferencias como tareas, no como tablas | ✅ | — | Mockup 1g · E20-2 |
 | V5-2 | Panel «Confianza del dato» por cuenta | ⏳ | Media | Mockup 4f |
-| V5-3 | Mover `#reconciliation`, `#data-audit` y `#operations-manual` a Versiones anteriores | 🟡 | Media | Mockup 4f · hecha el 10 de agosto |
+| V5-3 | Mover `#reconciliation`, `#data-audit` y `#operations-manual` a Versiones anteriores | ✅ | — | Mockup 4f · hecha el 10 de agosto |
 
 ### T · Transversal
 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
-| T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | 🟡 | **Alta** | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
+| T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | ✅ | — | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
 | T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | ⏳ | Media | Turnos 4-5 · desbloqueada por la decisión del 10 de agosto |
 | T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
@@ -348,7 +351,8 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
    **V1-4** tras V1-2.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
    escrita y prototipo que sigue sin construir.
-5. **V1-3** · deuda pendiente y fecha libre de deuda en Hoy. El cálculo ya existe.
+5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha el 10 de agosto de
+   2026.** El cálculo ya existía en `#deuda-comparar`; se reutiliza tal cual, no se duplica.
 6. **V3-3** · estrategia Consolidar, para cerrar la 🟡 de 1c.
 7. **V5-2** · confianza del dato por cuenta. **V6-2/V6-3** · el resto de Ajustes.
 8. **T-1** · la navegación de seis vistas, ya sin riesgo, y **T-2** si se quiere el navy.

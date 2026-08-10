@@ -2,6 +2,78 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V1-3, y un fallo de producción que salió al hacerla
+
+**Lo pedido.** «Hoy» suma los KPI **Deuda pendiente** y **Libre de deuda**, los dos que le faltaban
+para tener los tres del rediseño. Quedan seis tarjetas en dos filas de tres: arriba *Liquidez hoy*,
+*Deuda pendiente* y *Libre de deuda* —los tres del mockup 4b—, y debajo *Capacidad libre real*,
+*Reserva protegida* y *Próximo riesgo*.
+
+Las dos cifras no se recalculan: salen del mismo camino que las de `#deuda-comparar`
+(`escenarioMotorDebtOptions` para el capital vivo, `debtStrategySummary` para la fecha), de modo que
+Hoy y Deuda no puedan contar historias distintas sobre la misma deuda. Comprobado en el navegador:
+las dos pantallas dicen `jul 29 · queda deuda sin cuota activa`, carácter por carácter.
+
+**Dos decisiones que no eran obvias.** La fecha que enseña Hoy es la de **«No tocar nada»**, no la de
+la estrategia recomendada: Hoy es de solo lectura y no debe insinuar una decisión que el usuario no ha
+tomado. Y la reserva que se le pasa es la del hogar, no `debtStrategyReserveValue` —lo que el usuario
+haya escrito en la casilla del comparador—, para que una pantalla no mueva el número de otra sin
+querer. Como «No tocar nada» no lleva decisiones, el guardarraíl ni se evalúa, así que la
+independencia es estructural y no un cuidado que haya que recordar.
+
+**El resultado se cachea por firma del modelo**, junto a las otras dos cachés que ya se limpian en
+`recomputeModelIfNeeded`: sin eso, cada repintado de Hoy relanzaría el motor de escenarios. Medido en
+el navegador: repintar Hoy queda en 163-195 ms, y el segundo y el tercero salen de caché.
+
+---
+
+**El fallo que apareció al validar, y que no era de esta tarea.** El KPI nuevo salía «—» en el
+navegador. La causa no estaba en V1-3: **el sitio publicado llevaba desde E20 sin el motor de
+escenarios**.
+
+`tools/build-public-site.mjs` copia a `dist` una lista escrita a mano, y Pages despliega esa carpeta
+(`path: dist` en `.github/workflows/pages.yml`). `canonical-scenario-schema.js` y
+`canonical-scenario-engine.js` se añadieron al `index.html` en E20 y nunca se añadieron a la lista.
+En local no se nota —se sirve el repositorio entero—; en producción `window.FinanceCanonicalScenarioEngine`
+no existía, y todo lo que depende de él se quedaba sin cifras **en silencio**: el comparador de
+estrategias, la ruta de deuda, el simulador de escenarios y, ahora, «Libre de deuda».
+
+Por qué no lo cazó nada: `tools/smoke-public.mjs` comprobaba cinco recursos elegidos a mano, y
+ninguno de los dos estaba entre ellos.
+
+Arreglado en tres capas, para que no pueda repetirse:
+
+1. Los dos archivos entran en la lista.
+2. `build-public-site.mjs` compara ahora la lista con lo que el `index.html` carga de verdad y
+   **rompe la construcción** si falta algo. Añadir un script y olvidar la lista deja de ser silencioso.
+3. `smoke-public.mjs` pide **todos** los recursos locales del `index.html` construido, con su `?v=`,
+   y exige 200 con contenido.
+
+Los tres canarios se comprobaron al revés, quitando el archivo a propósito: la construcción falla con
+el mensaje esperado y el smoke test también.
+
+**Validación** (`npm run verify`, exit 0): **451/451 pruebas** (437 antes + 10 en
+`tests/v1-3-kpi-deuda-en-hoy.test.cjs` + 4 en `tests/public-site-assets.test.cjs`), accesibilidad
+(574 IDs únicos), rendimiento (diff 10.000 filas en 29,6 ms; forecast y escenarios en 149,0 ms;
+recursos 1207 KB), build público, privacidad y smoke test.
+
+**QA en navegador real** a 1440×900 y 390×844, **24/24 comprobaciones**: seis KPI en el orden del
+rediseño, las dos cifras con valor real, Hoy y el comparador diciendo lo mismo, los dos CTA abriendo
+`#deuda-ruta` y `#deuda-comparar`, tres columnas en escritorio y una en móvil, sin desbordamiento
+horizontal y sin errores de consola.
+
+**Una nota de alcance que conviene no perder.** Otras tarjetas de Hoy —«Ver saldos» y «Ver flujo»—
+siguen saliendo hacia `#visual-detail` y `#cashflow`, que V2-8 relegó. No se ha tocado a propósito:
+hoy no existe pantalla nueva que enseñe lo que esas dos enseñan, y repuntarlas a `#cuadro-mandos`
+mandaría al usuario a algo que no es lo que promete el botón. Relegar nunca fue desconectar. Lo
+resuelve **T-1**, cuando la navegación de seis vistas decida qué enseña cada sitio.
+
+**Shell offline** a `20260810-v13a1`.
+
+**Confirmado por el usuario el 10 de agosto**: ve las diez pantallas bajo «Versiones anteriores» en
+el sitio publicado, así que **T-0, V4-6, V5-3 y V2-8 pasan de 🟡 a ✅**. V1-3 queda en 🟡 hasta la
+misma confirmación.
+
 ## Cierre de sesión — 10 de agosto de 2026: V2-8, la relegación más grande
 
 `#new-life-simulation`, `#simulator`, `#visual-detail`, `#savings-plan` y `#cashflow` salen de
