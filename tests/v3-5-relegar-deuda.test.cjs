@@ -82,6 +82,6 @@ test("V3-5 · el grupo relegado llega a trece pantallas y ninguna se pierde por 
 });
 
 test("V3-5 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-v35a1/);
-  assert.match(html, /app\.js\?v=20260810v35a1/);
+  assert.match(worker, /20260810-v44a1/);
+  assert.match(html, /app\.js\?v=20260810v44a1/);
 });

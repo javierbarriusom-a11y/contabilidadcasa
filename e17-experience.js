@@ -8,6 +8,7 @@
   const TASKS = Object.freeze([
     { target: "home", label: "Hoy", group: "main", keywords: "inicio caja alertas decisiones hoy riesgo" },
     { target: "update-hub", label: "Actualizar datos", group: "main", keywords: "saldos reales importar excel csv movimientos previsiones" },
+    { target: "datos-importar", label: "Importar extracto en 4 pasos (nuevo)", group: "data", keywords: "importar extracto csv excel duplicados reglas clasificar incorporar deshacer nuevo e20 v4-4" },
     { target: "registrar-mes", label: "Registrar el mes (nuevo)", group: "data", keywords: "registrar mes real previsto usado desviacion partida guardado automatico nuevo e20 copiar reales" },
     { target: "cuadro-mandos", label: "Cuadro de mandos · detalle por partida (nuevo)", group: "analysis", keywords: "cuadro mandos detalle partida impacto editar celda previsto matriz nuevo e20" },
     { target: "cambios-pendientes", label: "Cambios pendientes (nuevo)", group: "analysis", keywords: "cambios pendientes bandeja revertir guardar descartar impacto conjunto nuevo e20" },
@@ -45,6 +46,7 @@
   const GUIDANCE = Object.freeze({
     home: ["Para qué sirve", "Revisar primero caja, riesgos y las tres decisiones de hoy.", "Solo lectura", "Abrir Actualizar si falta un saldo o movimiento."],
     "update-hub": ["Para qué sirve", "Poner al día saldos, movimientos, reales, previsiones e importaciones.", "Puede guardar cambios", "Elige una ruta y confirma el recibo antes de continuar."],
+    "datos-importar": ["Para qué sirve", "Importar un extracto tomando una decisión por movimiento dudoso y por posible duplicado, antes de que nada toque el plan.", "Requiere confirmación", "Nada se incorpora hasta el paso 4; se puede deshacer después desde «Carga de datos»."],
     "registrar-mes": ["Para qué sirve", "Ver qué partidas del mes siguen sin real y anotarlas una a una.", "Guarda al salir de la casilla", "Vaciar un real recupera el previsto; escribir 0 significa «ocurrió por cero»."],
     "cuadro-mandos": ["Para qué sirve", "Cambiar el previsto de una partida y ver qué le hace al plan antes de guardar.", "Requiere confirmación", "Nada se guarda hasta que pulses «Guardar cambios» en el pie de impacto."],
     "cambios-pendientes": ["Para qué sirve", "Ver el efecto conjunto de todo lo que has tocado en la sesión y revertir línea a línea.", "Requiere confirmación", "Guarda todo de una vez o descarta; cada cambio se puede revertir por separado."],

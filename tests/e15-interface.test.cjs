@@ -12,7 +12,7 @@ const ui = read("p2-ui.js");
 test("E15 carga el contrato antes de la app y queda disponible sin conexión", () => {
   assert.ok(html.indexOf("canonical-e15-goals.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-e15-goals\.js/);
-  assert.match(worker, /v35a1/);
+  assert.match(worker, /v44a1/);
 });
 
 test("E15 ofrece objetivos completos, calendario, conflictos y revisión confirmable", () => {

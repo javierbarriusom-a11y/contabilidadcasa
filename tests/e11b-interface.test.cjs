@@ -12,7 +12,7 @@ const state = read("state-contract.js");
 test("E11b carga su contrato antes de la aplicación y funciona offline", () => {
   assert.ok(html.indexOf("canonical-e11b-inbox.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-e11b-inbox\.js/);
-  assert.match(worker, /finanzas-casa-shell-20260810-v35a1/);
+  assert.match(worker, /finanzas-casa-shell-20260810-v44a1/);
 });
 
 test("la bandeja común explica los cuatro pasos y puede desactivarse sin retirar flujos", () => {

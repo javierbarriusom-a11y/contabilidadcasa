@@ -32,20 +32,21 @@ pendiente. Ver la sección 3.
 
 Contado sobre el `index.html` publicado, no sobre el plan.
 
-- **34 pantallas** (`view-section`) en la aplicación.
-- **16 con la piel nueva** (clase de ámbito `e19-*`): las migradas en E19 y E20.
+- **35 pantallas** (`view-section`) en la aplicación.
+- **17 con la piel nueva** (clase de ámbito `e19-*`): las migradas en E19 y E20, más `#datos-importar`
+  (V4-4, 10 de agosto).
 - **18 heredadas**, sin migrar, que siguen en pie y en uso.
 
-| Con piel nueva (16) | Heredadas todavía en pie (18) |
+| Con piel nueva (17) | Heredadas todavía en pie (18) |
 |---|---|
 | `#home`, `#update-hub`, `#data-entry`, `#forecast`, `#prevision` | `#visual-detail`, `#update-data`, `#movements`, `#cashflow`, `#savings-plan` |
 | `#escenario-simular`, `#escenario-aplicar`, `#escenario-guardados` | `#simulator`, `#new-life-simulation`, `#new-life-definitive` |
 | `#deuda-comparar`, `#deuda-ruta`, `#asesor-decision` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` |
-| `#conciliar`, `#registrar-mes` | `#reconciliation`, `#data-audit`, `#operations-manual` |
+| `#conciliar`, `#registrar-mes`, `#datos-importar` | `#reconciliation`, `#data-audit`, `#operations-manual` |
 | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` |
 
-**El número que importa: 34, no 22.** El rediseño se dibujó cuando había 22 pantallas y
-proponía reducirlas a 6. Desde entonces la app ha crecido a 34, porque cada mockup migrado
+**El número que importa: 35, no 22.** El rediseño se dibujó cuando había 22 pantallas y
+proponía reducirlas a 6. Desde entonces la app ha crecido a 35, porque cada mockup migrado
 se añadió **junto a** la heredada en vez de sustituirla. Es decir: el trabajo hecho ha
 mejorado la app y a la vez ha alejado el objetivo de seis vistas. No es un error —era la
 regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
@@ -78,7 +79,8 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 
 - **5a · pie de impacto**: ✅ implementado en `#cuadro-mandos` (E20-5).
 - **4a-4f · las seis vistas**: ⏳ sin adoptar. Ya no bloqueadas: ver la sección 3.
-- **5c/5d · importación por decisión**: ⏳ especificado y sin implementar.
+- **5c/5d · importación por decisión**: hecha el 10 de agosto (V4-4), pendiente de confirmarse en
+  el sitio.
 
 ---
 
@@ -93,7 +95,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **1 · Hoy** | 🟡 parcial | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` |
 | **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` — **ya relegadas** (V2-8) |
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
-| **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
+| **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
 | **6 · Ajustes** | 🟡 parcial | la reserva operativa, alojada en `#cuadro-mandos` (V6-1) | — |
 
@@ -131,10 +133,12 @@ y *No tocar nada* se queda como cuarta tarjeta, que es la referencia contra la q
 demás. Lo que falta de esta vista es la «oferta en curso» del mockup, que sigue viviendo en
 `#asesor-decision` en vez de en la propia vista (V3-4).
 
-**4 · Datos.** Hub, importación y registro del mes, construidos. **Lo que falta es lo que
-el turno 5 especifica y nadie ha implementado**: la importación como cuatro pasos con una
-decisión explícita por movimiento dudoso y por duplicado. Hoy `#data-entry` tiene la
-bandeja previa, no ese flujo.
+**4 · Datos.** Hub, importación y registro del mes, construidos, y desde el 10 de agosto también los
+cuatro pasos que pedía el turno 5 (V4-4): `#datos-importar` los antepone a la bandeja previa de
+`#data-entry`, sin sustituirla — Cargar → Clasificar → Duplicados → Incorporar, con una decisión
+explícita por movimiento dudoso y por candidato a duplicado, y nada tocando el plan hasta el último
+paso. Reutiliza el mismo diccionario de reglas y el mismo lote reversible que ya usaba
+`#data-entry`, así que «Deshacer último lote» funciona igual sobre las dos vías.
 
 **5 · Cierre.** Las diferencias como tareas, construido, y sus tres heredadas ya relegadas
 (V5-3). Falta el panel «Confianza del dato» por cuenta (cuadra / descuadra / sin conciliar),
@@ -287,7 +291,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V4-1 | Hub ordenado por lo que tienes delante | ✅ | — | Mockup 1f · E19-3 |
 | V4-2 | Importación con bandeja previa | ✅ | — | Mockup 2b · E19-4 |
 | V4-3 | Registrar el mes, una fila por partida | 🟡 | — | Mockup 2a · E20-4 |
-| V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | ⏳ | **Alta** | Spec 5c + prototipo 5d · especificado y sin implementar |
+| V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | 🟡 | **Alta** | Spec 5c + prototipo 5d · hecha el 10 de agosto, pendiente de verse en el sitio |
 | V4-5 | Detección de partida anual desde el extracto | ⏳ | Baja | Mockup 2a, omisión documentada |
 | V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | ✅ | — | Mockup 4e · hecha el 10 de agosto, la primera relegación |
 
@@ -356,8 +360,8 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
    están, y V3-5 con ellas, el 10 de agosto**: trece pantallas relegadas de las dieciocho
    heredadas. Solo queda **V1-4**, que conviene hacer después de cerrar la 🟡 de V1-2 —las otras
    cinco heredadas son las cuatro de Hoy y `#new-life-definitive`, que es pestaña principal—.
-4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
-   escrita y prototipo que sigue sin construir.
+4. ~~**V4-4** · importación en cuatro pasos~~ — **hecha el 10 de agosto de 2026.** La única
+   pieza de prioridad Alta que quedaba, pendiente de confirmarse en el sitio.
 5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha y confirmada en el sitio
    el 10 de agosto de 2026.** El cálculo ya existía en `#deuda-comparar`; se reutiliza tal cual, no
    se duplica.

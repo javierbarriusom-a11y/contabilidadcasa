@@ -2613,3 +2613,157 @@
 .e19-cuadro-mandos a.e19-btn {
   text-decoration: none;
 }
+
+/* ---------------------------------------------------------------------------------------------
+   V4-4 · Importar extracto en cuatro pasos (Cargar → Clasificar → Duplicados → Incorporar).
+--------------------------------------------------------------------------------------------- */
+.datos-importar-steps {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.datos-importar-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-pill);
+  color: var(--e19-muted);
+  font: 600 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  background: var(--e19-surface);
+}
+
+.datos-importar-steps li span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--e19-border);
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
+.datos-importar-steps li.is-active {
+  color: var(--e19-heading);
+  border-color: var(--e19-accent);
+  background: var(--e19-accent-soft, var(--e19-surface));
+}
+
+.datos-importar-steps li.is-active span {
+  background: var(--e19-accent);
+  color: #fff;
+}
+
+.datos-importar-steps li.is-done {
+  color: var(--e19-ink);
+}
+
+.datos-importar-steps li.is-done span {
+  background: var(--e19-success);
+  color: #fff;
+}
+
+.datos-importar-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.datos-importar-file-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.datos-importar-file-label span {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+  max-width: 60ch;
+}
+
+.datos-importar-file-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.datos-importar-counters {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.datos-importar-counters div {
+  display: flex;
+  flex-direction: column;
+}
+
+.datos-importar-counters strong {
+  font-size: var(--e19-text-lg);
+  color: var(--e19-heading);
+}
+
+.datos-importar-counters span {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.datos-importar-table {
+  width: 100%;
+}
+
+.datos-importar-table tr.is-decided {
+  opacity: 0.55;
+}
+
+.datos-importar-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.datos-importar-row-actions .e19-btn.is-active {
+  background: var(--e19-accent);
+  color: #fff;
+  border-color: var(--e19-accent);
+}
+
+.datos-importar-table td.is-negative {
+  color: var(--e19-danger);
+}
+
+/* Barra inferior fija, como el pie de impacto de Plan: las decisiones de cada paso se toman
+   viendo siempre el mismo botón de avanzar, sin tener que bajar hasta el final de la tabla. */
+.datos-importar-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: var(--e19-heading);
+  border-radius: var(--e19-radius-md);
+  box-shadow: 0 -8px 24px rgba(11, 18, 32, 0.16);
+}
+
+.datos-importar-bar .e19-kpi-note {
+  margin: 0;
+  color: #ffffffcc;
+}
+
+.datos-importar-bar-actions {
+  display: flex;
+  gap: 8px;
+}
