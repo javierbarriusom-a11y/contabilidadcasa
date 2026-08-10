@@ -14,7 +14,7 @@
     { target: "mapa-calor", label: "Mapa de calor mensual (nuevo)", group: "analysis", keywords: "mapa calor colchon salud mensual peor mes riesgo nuevo e20" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
     { target: "new-life-definitive", label: "Decidir", group: "main", keywords: "decisiones deuda coche proyectos traspasos" },
-    { target: "new-life-simulation", label: "Escenarios de vida y deuda", group: "analysis", keywords: "escenario simulacion imprevisto favorable tension" },
+    { target: "new-life-simulation", label: "Escenarios de vida y deuda", group: "legacy", keywords: "escenario simulacion imprevisto favorable tension" },
     { target: "escenario-simular", label: "Escenario · simular (nuevo)", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados (nuevo)", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
     { target: "deuda-comparar", label: "Comparar estrategias de deuda (nuevo)", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
@@ -27,6 +27,12 @@
     { target: "reconciliation", label: "Conciliar", group: "legacy", keywords: "conciliacion extracto saldo diferencias" },
     { target: "data-entry", label: "Carga de datos", group: "data", keywords: "importar csv excel datos lote" },
     { target: "data-audit", label: "Datos y auditoría", group: "legacy", keywords: "calidad procedencia auditoria confianza" },
+    // V2-8 relega cuatro pantallas que solo se alcanzaban desde el menú avanzado. Sin entrada en el
+    // lanzador, apagar «Versiones anteriores» las dejaría sin ninguna vía: relegar no es desconectar.
+    { target: "visual-detail", label: "Cuadro de mandos", group: "legacy", keywords: "cuadro mandos detalle liquidez proyectada resumen plan" },
+    { target: "simulator", label: "Simulador de decisiones", group: "legacy", keywords: "simulador proyectos supuestos impacto caja" },
+    { target: "savings-plan", label: "Plan ahorro", group: "legacy", keywords: "plan ahorro extras deuda viva aportaciones" },
+    { target: "cashflow", label: "Flujo mensual", group: "legacy", keywords: "flujo caja anual mensual detalle operativo" },
     { target: "alerts-center", label: "Centro de alertas", group: "analysis", keywords: "alertas riesgo caja deuda capacidad" },
   ]);
 

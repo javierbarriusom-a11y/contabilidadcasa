@@ -2,6 +2,53 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V2-8, la relegación más grande
+
+`#new-life-simulation`, `#simulator`, `#visual-detail`, `#savings-plan` y `#cashflow` salen de
+«Herramientas avanzadas › Decidir y Analizar» y pasan a «Versiones anteriores», que queda con **diez
+pantallas** de las dieciocho heredadas. Decidir y Analizar bajan de dieciocho enlaces a catorce, y
+los cuatro que se quedan de la vista Plan —«Cuadro de mandos (nuevo)», «Cambios pendientes (nuevo)»,
+«Mapa de calor (nuevo)» y «Previsión mensual»— son los de la piel nueva.
+
+**Un defecto en el enunciado de la tarea: `#forecast` no era una heredada.** El backlog pedía mover
+seis pantallas, y la sexta era `#forecast`. Pero su propio inventario lo cuenta entre las dieciséis
+con piel nueva —la sección lleva la clase `e19-forecast`— y el menú principal la usa como la pestaña
+«Prever». Relegarla habría degradado una pantalla ya migrada y habría dejado una pestaña de primer
+nivel apuntando a «Versiones anteriores». Se queda donde está, y el backlog queda corregido en las
+dos tablas que se contradecían. Reordenar el menú principal es trabajo de T-1, no de una relegación.
+
+**Un agujero de alcance que abría esta misma relegación.** `#simulator`, `#savings-plan`, `#cashflow`
+y `#visual-detail` no tenían entrada en el lanzador, y las tres primeras solo se alcanzaban desde el
+menú avanzado. Relegarlas sin más habría hecho que apagar «Versiones anteriores» las dejara sin
+ninguna vía. Como relegar no es desconectar, la relegación les añade su entrada en el lanzador.
+`#visual-detail` gana además su primer enlace de menú: nunca lo tuvo, solo se llegaba por tarjetas de
+ruta, así que aquí queda **más** localizable que antes, no menos.
+
+**El orden dentro del grupo.** Con diez enlaces, «Versiones anteriores» pasa a espejar el orden del
+propio menú: primero lo que estaba en Decidir y Analizar (V2-8), luego Datos (V4-6) y por último
+Cierre (V5-3). Quien las buscara donde solían estar las encuentra en la misma posición relativa.
+
+**Lo que no se ha tocado.** Las tarjetas de ruta (`data-home-nav`) hacia `#visual-detail`,
+`#cashflow` y `#new-life-simulation` siguen en pie, igual que el siguiente paso sugerido
+(`target = "visual-detail"`) y los cinco `case` de render.
+
+**Validación** (`npm run verify`, exit 0): **437/437 pruebas** (431 antes + 6 nuevas en
+`tests/v2-8-relegar-plan.test.cjs`), accesibilidad (574 IDs únicos), rendimiento (diff 10.000 filas
+en 31,1 ms; forecast y escenarios en 169,8 ms; recursos 1204 KB), build público, privacidad y smoke
+test.
+
+**QA en navegador real** a 1280×720 y 390×844, **30/30 comprobaciones**: diez enlaces en el grupo y
+en el orden esperado; Decidir y Analizar en catorce; las nuevas de Plan y la pestaña «Prever» en su
+sitio; las cinco relegadas abren desde el grupo; apagar el grupo esconde las diez y su encabezado sin
+tocar Decidir ni Analizar; con el grupo apagado el lanzador sigue abriendo el Simulador; volver a
+encenderlo restaura las diez y sobrevive a la recarga.
+
+**Shell offline** a `20260810-v28a1`.
+
+**Sigue en 🟡, no en ✅**, por la misma razón que las anteriores: el despliegue de Pages termina en
+verde, pero desde este entorno no hay salida hacia `javierbarriusom-a11y.github.io`, así que no puedo
+comprobar el sitio publicado. Pasa a ✅ cuando el usuario confirme que lo ve.
+
 ## Cierre de sesión — 10 de agosto de 2026: V5-3, la segunda relegación
 
 `#reconciliation`, `#data-audit` y `#operations-manual` salen de «Herramientas avanzadas › Datos» y
