@@ -46,6 +46,11 @@ Las pruebas de V6-1 no son solo coincidencias de texto: extraen las funciones de
 ejecutan en un contexto `vm`, así que cubren de verdad el parseo, el vaciado, el importe negativo, la
 no-escritura cuando el valor no cambia y las dos ramas de cada nota.
 
+**Publicación y cierre.** PR #5 fusionada con CI en verde; el despliegue de Pages terminó con éxito para
+`956e427`. La comprobación en el sitio publicado —el cuarto punto de la puerta de aceptación— la hizo el
+usuario, porque el entorno de la sesión tiene bloqueada la salida hacia `github.io` y no se pudo abrir la
+página desde aquí. Con esa confirmación, **V6-1 pasa a ✅**.
+
 ## Cierre de sesión — 10 de agosto de 2026: E20-5, cambio de sede y backlog rehecho
 
 Sesión larga con tres tramos: se terminó el turno 3 de mockups, se movió el proyecto de
