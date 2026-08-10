@@ -2,6 +2,50 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V6-1, la reserva operativa deja de ser un número inalcanzable
+
+Primera tarea del backlog nuevo, y la que este señalaba como más desproporcionada: `state.operatingReserve`
+lo leían tres pantallas publicadas y **no había forma de fijarlo**, así que valía siempre 0 y las tres caían
+a su respaldo. Ahora hay un control real.
+
+**Qué se ha hecho.** Una casilla «Reserva operativa» en la fila de controles de `#cuadro-mandos`, junto a
+«Desde» y «Horizonte». Escribe `state.operatingReserve`, se guarda en `scenarioSettings` —o sea, se
+sincroniza y se restaura como un dato más del hogar, no como una preferencia del navegador— y con eso las
+tres pantallas dejan de fingir: el pie de impacto pasa a decir «meses bajo la reserva de X €» en vez de
+«meses en negativo», el mapa de calor colorea contra la reserva real y el comparador de deuda hereda la
+cifra como guardarraíl en lugar del suelo de 0 €.
+
+**Tres decisiones que no eran obvias.**
+
+- **Vacío significa «sin reserva configurada», no cero.** Vaciar la casilla devuelve a cada pantalla su
+  respaldo declarado, que es exactamente el estado anterior a esta tarea; nada queda a medias.
+- **Se declara siempre de dónde sale la cifra.** Una nota bajo la matriz dice qué suelo está en uso y a qué
+  tres sitios afecta; la casilla del comparador de deuda dice si su número viene de la reserva del hogar o
+  es un valor puesto solo para esa comparación. Antes se heredaba en silencio.
+- **La reserva entra en la firma del modelo** (`modelComputationSignature`) aunque no mueva ni un euro de la
+  proyección: es la política con la que se evalúa la corrida diaria, y sin eso el mínimo diario se habría
+  seguido juzgando con la reserva anterior.
+
+**No se ha hecho** la vista `#ajustes` completa (V6-3): el control vive en el Cuadro de mandos hasta que esa
+vista exista, que es donde acabará mudándose.
+
+**De paso, un arreglo real de caché.** El shell offline seguía en `finanzas-casa-shell-20260808-e19a4`
+desde E19: el service worker sirve `cache-first` con `ignoreSearch`, así que **cambiar el `?v=` de un
+recurso no sirve de nada** y los cambios de E20 no llegaban a quien ya tuviera el shell instalado. Se sube a
+`20260810-v6a1` y se actualizan las siete pruebas que fijaban la versión anterior.
+
+**Validación** (`npm run verify`, exit 0): **412/412 pruebas** (403 antes + 9 nuevas en
+`tests/v6-reserva-operativa.test.cjs`), accesibilidad (574 IDs únicos), rendimiento (diff 10.000 filas en
+51,3 ms; forecast y escenarios en 205,1 ms; recursos 1202 KB), build público, privacidad y smoke test.
+
+**QA en navegador real** sobre el sitio construido, a 1280×720 y 390×844: fijar 2.000 € actualiza la nota,
+el subtítulo del mapa de calor y la casilla del comparador; la cifra sobrevive a la recarga; vaciarla vuelve
+al respaldo; sin errores de consola propios ni desbordamiento horizontal en ninguna de las dos medidas.
+
+Las pruebas de V6-1 no son solo coincidencias de texto: extraen las funciones de `app.js` por nombre y las
+ejecutan en un contexto `vm`, así que cubren de verdad el parseo, el vaciado, el importe negativo, la
+no-escritura cuando el valor no cambia y las dos ramas de cada nota.
+
 ## Cierre de sesión — 10 de agosto de 2026: E20-5, cambio de sede y backlog rehecho
 
 Sesión larga con tres tramos: se terminó el turno 3 de mockups, se movió el proyecto de
