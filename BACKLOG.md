@@ -100,7 +100,8 @@ existe como vista única, y la sexta no existe en absoluto.**
 ### Lo que falta en cada una, medido
 
 **1 · Hoy.** Los tres KPI del rediseño son *Colchón disponible*, *Deuda pendiente* y
-*Libre de deuda*. **Los tres están desde el 10 de agosto** (V1-3): a *Liquidez hoy* se le
+*Libre de deuda*. **Los tres están desde el 10 de agosto, y confirmados en el sitio publicado**
+(V1-3): a *Liquidez hoy* se le
 suman *Deuda pendiente* y *Libre de deuda*, calculadas por el mismo camino que las de
 `#deuda-comparar` para que las dos vistas no puedan contar historias distintas. Hoy enseña
 seis KPI en dos filas: los tres del rediseño arriba y *Capacidad libre real*, *Reserva
@@ -253,7 +254,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | V1-1 | Hoy con la piel nueva y tres decisiones | ✅ | — | Mockup 1a · E19-2 |
 | V1-2 | Asesor ejecutivo, una decisión abierta a la vez | 🟡 | — | Mockup 1d · E20-2 |
-| V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | 🟡 | Media | Mockup 4b · hecha el 10 de agosto, reutilizando el cálculo de `#deuda-comparar` |
+| V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | ✅ | Media | Mockup 4b · hecha el 10 de agosto, reutilizando el cálculo de `#deuda-comparar` · **vista en el sitio** |
 | V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | ⏳ | Media | Mockup 4b · habilitado por T-0 |
 
 ### V2 · Plan
@@ -357,8 +358,9 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
    cinco heredadas son las cuatro de Hoy y `#new-life-definitive`, que es pestaña principal—.
 4. **V4-4** · importación en cuatro pasos. La única pieza del turno 5 con especificación
    escrita y prototipo que sigue sin construir.
-5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha el 10 de agosto de
-   2026.** El cálculo ya existía en `#deuda-comparar`; se reutiliza tal cual, no se duplica.
+5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha y confirmada en el sitio
+   el 10 de agosto de 2026.** El cálculo ya existía en `#deuda-comparar`; se reutiliza tal cual, no
+   se duplica.
 6. ~~**V3-3** · estrategia Consolidar~~ — **hecha el 10 de agosto de 2026.** No cierra del todo la
    🟡 de 1c: la cierra la confirmación de verla en el sitio.
 7. **V5-2** · confianza del dato por cuenta. **V6-2/V6-3** · el resto de Ajustes.
