@@ -278,7 +278,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 · llegó al sitio el 10 de agosto, §8 |
 | V3-3 | Estrategia **Consolidar** como cuarta opción real | 🟡 | Media | Mockup 4d · hecha el 10 de agosto: se pide la oferta (TIN, plazo, comisión) en vez de inventarla |
 | V3-4 | Oferta en curso dentro de la vista de deuda | ⏳ | Baja | Mockup 4d; hoy vive en `#asesor-decision` |
-| V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | 🟡 | Media | Mockup 4d · hecha el 10 de agosto, tras V3-3 |
+| V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ✅ | Media | Mockup 4d · hecha el 10 de agosto, tras V3-3 · **vista en el sitio** |
 
 ### V4 · Datos
 
