@@ -23,7 +23,7 @@
     { target: "asesor-decision", label: "Asesor ejecutivo (nuevo)", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
     { target: "debt-roadmap", label: "Plan de deuda", group: "analysis", keywords: "deuda negociar ofertas cuota refinanciacion" },
     { target: "savings-agent", label: "Objetivos y ahorro", group: "analysis", keywords: "objetivos huchas aportaciones ahorro" },
-    { target: "movements", label: "Movimientos", group: "data", keywords: "movimientos banco categorias buscar" },
+    { target: "movements", label: "Movimientos", group: "legacy", keywords: "movimientos banco categorias buscar" },
     { target: "reconciliation", label: "Conciliar", group: "data", keywords: "conciliacion extracto saldo diferencias" },
     { target: "data-entry", label: "Carga de datos", group: "data", keywords: "importar csv excel datos lote" },
     { target: "data-audit", label: "Datos y auditoría", group: "data", keywords: "calidad procedencia auditoria confianza" },

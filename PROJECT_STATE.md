@@ -2,6 +2,40 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: V4-6, la primera relegación de verdad
+
+La que estrena el grupo que T-0 dejó puesto. `#update-data` («Registrar reales del mes») y
+`#movements` salen de «Herramientas avanzadas › Datos» y pasan a **«Versiones anteriores»**, que con
+esto aparece por primera vez en el menú junto a su interruptor en «Personalizar».
+
+**Por qué esta y no V1-4.** El backlog recomienda cerrar la 🟡 de una vista antes de relegar su
+heredada, y Hoy tiene el asesor nuevo todavía a medias. Datos es el caso limpio: las dos pantallas
+relegadas **siguen alcanzables desde el hub de Actualizar**, que continúa enrutando a ellas en los
+pasos «Lo ocurrido» y «Extracto bancario». Relegar mueve el menú; no desconecta nada.
+
+**Alcance, dicho sin ambigüedad.** Se movieron los dos enlaces del menú y se marcó `movements` como
+`legacy` en el catálogo del lanzador (metadato descriptivo: `findTasks` no filtra por grupo). **No**
+se repuntaron las tarjetas del hub a las pantallas nuevas: eso cambiaría el flujo de trabajo, y
+`#registrar-mes` sigue en 🟡 y la importación por decisión (V4-4) no existe todavía. Cuando esas dos
+cierren, repuntar el hub será su tarea, no la de una relegación.
+
+**Un fallo de prueba que salió a la luz.** `tests/navigation-structure.test.cjs` localizaba el
+encabezado con `html.indexOf('class="advanced-nav-label">Datos')`. Al añadirle `data-e17-nav-label`
+en T-0, esa búsqueda pasó a devolver -1 y la comparación de orden **pasaba sola sin comprobar nada**.
+Ahora se localiza por el atributo y la prueba vuelve a afirmar algo: Datos conserva sus pantallas y
+Movimientos está detrás del encabezado de Versiones anteriores.
+
+**Validación** (`npm run verify`, exit 0): **425/425 pruebas** (420 antes + 5 nuevas en
+`tests/v4-6-relegar-datos.test.cjs`), accesibilidad (574 IDs únicos), rendimiento (diff 10.000 filas
+en 34,4 ms; forecast y escenarios en 184,9 ms; recursos 1204 KB), build público, privacidad y smoke.
+
+**QA en navegador real** a 1280×720 y 390×844: el grupo aparece con sus dos enlaces y Datos se queda
+con seis; Movimientos abre desde el grupo relegado; el hub sigue llevando a Registrar reales; el
+interruptor esconde grupo y encabezado; con el grupo apagado el lanzador sigue encontrando y abriendo
+Movimientos; «Ver navegación completa» lo devuelve. Sin errores de consola propios ni desbordamiento.
+
+**Shell offline** a `20260810-v46a1`.
+
 ## Cierre de sesión — 10 de agosto de 2026: T-0, el contenedor de «Versiones anteriores»
 
 Segunda tarea del backlog nuevo. T-0 es el mecanismo que habilita las cinco relegaciones (V1-4, V2-8,
