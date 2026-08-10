@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260808e19a4" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260810e20e1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -53,7 +53,12 @@
             <div class="advanced-nav-links">
               <p class="advanced-nav-label">Decidir</p>
               <a href="#new-life-simulation" data-e17-group="analysis">Escenarios de vida y deuda</a>
+              <a href="#escenario-simular" data-e17-group="analysis">Escenario · simular (nuevo)</a>
+              <a href="#escenario-guardados" data-e17-group="analysis">Escenario · guardados (nuevo)</a>
+              <a href="#deuda-comparar" data-e17-group="analysis">Comparar estrategias de deuda (nuevo)</a>
+              <a href="#deuda-ruta" data-e17-group="analysis">Plan de deuda · ruta (nuevo)</a>
               <a href="#debt-roadmap" data-e17-group="analysis">Plan de deuda</a>
+              <a href="#asesor-decision" data-e17-group="assistants">Asesor ejecutivo (nuevo)</a>
               <a href="#executive-advisor" data-e17-group="assistants">Asesor ejecutivo</a>
               <a href="#virtual-advisor" data-e17-group="assistants">Asesor virtual</a>
               <a href="#debt-liquidation-plan" data-e17-group="analysis">Plan deuda óptimo</a>
@@ -63,16 +68,21 @@
               <a href="#alerts-center" data-e17-group="analysis">Centro de alertas</a>
 
               <p class="advanced-nav-label">Analizar</p>
+              <a href="#cuadro-mandos" data-e17-group="analysis">Cuadro de mandos (nuevo)</a>
+              <a href="#cambios-pendientes" data-e17-group="analysis">Cambios pendientes (nuevo)</a>
+              <a href="#mapa-calor" data-e17-group="analysis">Mapa de calor (nuevo)</a>
               <a href="#prevision" data-e17-group="analysis">Previsión mensual</a>
               <a href="#forecast" data-e17-group="analysis">Proyección</a>
               <a href="#savings-plan" data-e17-group="analysis">Plan ahorro</a>
               <a href="#cashflow" data-e17-group="analysis">Flujo mensual</a>
 
               <p class="advanced-nav-label">Datos</p>
+              <a href="#registrar-mes" data-e17-group="data">Registrar el mes (nuevo)</a>
               <a href="#update-data" data-e17-group="data">Registrar reales del mes</a>
               <a href="#data-entry" data-e17-group="data">Carga de datos</a>
               <a href="#movements" data-e17-group="data">Movimientos</a>
               <a href="#data-audit" data-e17-group="data">Datos y auditoría</a>
+              <a href="#conciliar" data-e17-group="data">Conciliación (nuevo)</a>
               <a href="#reconciliation" data-e17-group="data">Conciliación</a>
               <a href="#operations-manual" data-e17-group="data">Guía operativa</a>
             </div>
@@ -804,6 +814,390 @@
                 <table class="life-def-table" id="lifeDefCashflow"></table>
               </div>
             </article>
+          </section>
+
+          <section class="e19-escenario-motor view-section" id="escenario-simular">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · escenario</p>
+                <h2 class="e19-heading">Prueba una vida distinta sin tocar el plan</h2>
+                <p class="e19-subtitle">Motor unificado (E20) conectado a la interfaz, con los once tipos de decisión que resuelve de verdad: seis sobre deuda y cinco sobre ingresos, gastos, compras, proyectos e imprevistos. Cada decisión se valida contra el contrato y se resuelve de verdad: aplicada o rechazada con motivo, nunca un número inventado.</p>
+              </div>
+              <div class="visual-controls">
+                <span class="e19-badge e19-badge-neutral">Modo simulación · nada se guarda</span>
+              </div>
+            </div>
+
+            <div class="escenario-motor-layout">
+              <article class="e19-card escenario-motor-controls">
+                <h3 class="escenario-motor-panel-title">Qué cambias</h3>
+                <form id="escenarioMotorForm">
+                  <label class="escenario-motor-type-label">
+                    <span>Tipo de decisión</span>
+                    <select id="escenarioMotorType"></select>
+                  </label>
+                  <p class="e19-kpi-note escenario-motor-type-hint" id="escenarioMotorTypeHint"></p>
+                  <div class="escenario-motor-form-grid" id="escenarioMotorFields"></div>
+                  <div class="e19-insight is-warn escenario-motor-form-error" id="escenarioMotorFormError" hidden>
+                    <div>
+                      <strong>Faltan datos para esta decisión</strong>
+                      <ul id="escenarioMotorFormErrorList"></ul>
+                    </div>
+                  </div>
+                  <button type="submit" class="e19-btn e19-btn-primary">Añadir a la simulación</button>
+                </form>
+
+                <label class="escenario-motor-guardrail-label">
+                  <span>Saldo mínimo a respetar en toda la simulación (opcional)</span>
+                  <input id="escenarioMotorGuardrail" type="number" min="0" step="0.01" placeholder="€, vacío = sin guardarraíl" />
+                </label>
+
+                <h3 class="escenario-motor-panel-title escenario-motor-panel-title-spaced">Decisiones de esta simulación</h3>
+                <p class="e19-subtitle" id="escenarioMotorEmpty">Todavía no has añadido ninguna decisión.</p>
+                <ul class="escenario-motor-decision-list" id="escenarioMotorDecisionsList"></ul>
+              </article>
+
+              <div class="escenario-motor-preview">
+                <div class="home-kpi-grid" id="escenarioMotorKpis"></div>
+
+                <article class="e19-card escenario-motor-chart-card">
+                  <h3 class="escenario-motor-panel-title">Plan actual frente a la simulación</h3>
+                  <svg id="escenarioMotorChart" class="escenario-motor-chart"></svg>
+                </article>
+
+                <div class="e19-insight is-warn escenario-motor-warning" id="escenarioMotorWarning" hidden>
+                  <div>
+                    <strong>Esta simulación rompe un límite</strong>
+                    <p id="escenarioMotorWarningText"></p>
+                  </div>
+                  <button type="button" class="e19-btn e19-btn-secondary" id="escenarioMotorAutoAdjust">Ajustar automáticamente</button>
+                </div>
+
+                <button type="button" class="e19-btn e19-btn-primary escenario-motor-go-apply" id="escenarioMotorGoApply" disabled>Aplicar al plan</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="e19-escenario-motor view-section" id="escenario-aplicar">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · aplicar escenario</p>
+                <h2 class="e19-heading" id="escenarioAplicarTitle">Aplicar escenario</h2>
+                <p class="e19-subtitle">Esto es lo que cambiaría en tu plan. Nada se escribe hasta confirmar con un motivo.</p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="escenarioAplicarBack">Volver a simular</button>
+              </div>
+            </div>
+
+            <div class="home-kpi-grid" id="escenarioAplicarKpis"></div>
+
+            <div class="escenario-motor-layout escenario-motor-layout-apply">
+              <article class="e19-card escenario-motor-diff-panel">
+                <h3 class="escenario-motor-panel-title" id="escenarioAplicarChangesTitle">Cambios en el plan</h3>
+                <div class="table-wrap">
+                  <table class="e19-table">
+                    <thead><tr><th>Decisión</th><th>Cambio</th><th>Importe</th><th>Mes</th></tr></thead>
+                    <tbody id="escenarioAplicarDiffBody"></tbody>
+                  </table>
+                </div>
+              </article>
+
+              <article class="e19-card escenario-motor-preview">
+                <h3 class="escenario-motor-panel-title">Confirmación</h3>
+                <form id="escenarioAplicarForm">
+                  <label class="escenario-motor-motivo-label">
+                    <span>Motivo del cambio</span>
+                    <input id="escenarioAplicarMotivo" type="text" maxlength="300" placeholder="Ej.: acuerdo firmado el 6/8" required />
+                  </label>
+                  <button type="submit" class="e19-btn e19-btn-primary" id="escenarioAplicarConfirm">Confirmar y aplicar</button>
+                  <p class="e19-kpi-note escenario-motor-motivo-note">Queda guardado como escenario aplicado; podrás revisarlo desde «Escenarios guardados».</p>
+                </form>
+              </article>
+            </div>
+          </section>
+
+          <section class="e19-escenario-motor view-section" id="escenario-guardados">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · escenarios guardados</p>
+                <h2 class="e19-heading" id="escenarioGuardadosTitle">Escenarios guardados</h2>
+                <p class="e19-subtitle">Cada escenario conserva sus decisiones y la fecha en la que se aplicó. Solo uno puede estar aplicado a la vez.</p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="e19-btn e19-btn-primary" id="escenarioGuardadosNew">Nuevo escenario</button>
+              </div>
+            </div>
+
+            <div class="escenario-motor-saved-list" id="escenarioGuardadosList"></div>
+            <p class="e19-subtitle" id="escenarioGuardadosEmpty">Todavía no has aplicado ningún escenario.</p>
+          </section>
+
+          <section class="e19-deuda-decidir view-section" id="deuda-comparar">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · comparar estrategias</p>
+                <h2 class="e19-heading">Tres formas reales de organizar la deuda</h2>
+                <p class="e19-subtitle">Comparar no escribe nada en el plan. Cada estrategia se simula de verdad con el motor de Escenario sobre tu cartera actual — elige una para ver su ruta o aplicarla.</p>
+              </div>
+              <div class="visual-controls">
+                <label class="deuda-decidir-reserve-label">
+                  <span>Reserva mínima al secuenciar</span>
+                  <input id="deudaCompararReserve" type="number" min="0" step="0.01" placeholder="€, vacío = 0 € por defecto" />
+                </label>
+              </div>
+            </div>
+
+            <div class="deuda-decidir-strategy-grid" id="deudaCompararGrid"></div>
+
+            <div class="e19-insight" id="deudaCompararInsight" hidden></div>
+
+            <p class="e19-kpi-note deuda-decidir-note">No se incluye «reunificación» como cuarta estrategia: modelarla exigiría inventar unas condiciones de préstamo (TAE, plazo) que no existen todavía como oferta real en los datos. En cuanto haya una oferta de reunificación registrada, puede añadirse como estrategia comparable.</p>
+          </section>
+
+          <section class="e19-deuda-decidir view-section" id="deuda-ruta">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · plan de deuda</p>
+                <h2 class="e19-heading" id="deudaRutaTitle">Ruta de deuda</h2>
+                <p class="e19-subtitle" id="deudaRutaSubtitle"></p>
+              </div>
+              <div class="visual-controls">
+                <div class="deuda-decidir-tabs" id="deudaRutaTabs" role="tablist"></div>
+                <a class="e19-btn e19-btn-secondary" href="#deuda-comparar">Comparar estrategias</a>
+              </div>
+            </div>
+
+            <article class="e19-card deuda-ruta-chart-card">
+              <h3 class="escenario-motor-panel-title">Cómo se apaga la deuda</h3>
+              <p class="e19-kpi-note">«Deuda viva» es el principal pendiente de las deudas que esta ruta todavía no ha saldado — cae de golpe el mes en que se salda; no es un calendario de amortización mes a mes.</p>
+              <svg id="deudaRutaChart" class="deuda-ruta-chart"></svg>
+            </article>
+
+            <div class="deuda-ruta-layout">
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title">Ruta propuesta</h3>
+                <ol class="deuda-ruta-timeline" id="deudaRutaTimeline"></ol>
+              </article>
+
+              <div class="deuda-ruta-side">
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Cartera</h3>
+                  <div class="deuda-ruta-portfolio" id="deudaRutaPortfolio"></div>
+                </article>
+
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Antes de aplicar</h3>
+                  <ul class="deuda-ruta-checklist" id="deudaRutaChecklist"></ul>
+                  <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaApply">Aplicar ruta</button>
+                  <p class="e19-kpi-note">Se pedirá un motivo y quedará como escenario aplicado, revisable en «Escenarios guardados».</p>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="e19-conciliar view-section" id="conciliar">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Control · conciliación</p>
+                <h2 class="e19-heading" id="conciliarTitle">Conciliación</h2>
+                <p class="e19-subtitle" id="conciliarSubtitle"></p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="conciliarDownload">Descargar evidencia</button>
+                <button type="button" class="e19-btn e19-btn-primary" id="conciliarClose">Cerrar mes</button>
+              </div>
+            </div>
+
+            <div class="home-kpi-grid" id="conciliarKpis"></div>
+
+            <div class="conciliar-layout">
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title">Tareas por causa</h3>
+                <p class="e19-kpi-note">Ordenadas por impacto. Abrir una tarea no corrige ni escribe nada por sí solo.</p>
+                <ol class="conciliar-task-list" id="conciliarTasks"></ol>
+              </article>
+
+              <div class="deuda-ruta-side">
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Al cerrar el mes</h3>
+                  <ul class="deuda-ruta-checklist" id="conciliarChecklist"></ul>
+                </article>
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Meses anteriores</h3>
+                  <div class="conciliar-month-history" id="conciliarHistory"></div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="e19-registrar-mes view-section" id="registrar-mes">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow" id="registrarMesEyebrow">Actualizar</p>
+                <h2 class="e19-heading" id="registrarMesTitle">Registrar el mes</h2>
+                <p class="e19-subtitle" id="registrarMesSubtitle"></p>
+              </div>
+              <div class="registrar-mes-controls">
+                <span class="e19-badge e19-badge-neutral" id="registrarMesSaved">Sin cambios en esta sesión</span>
+                <label class="month-picker">
+                  <span>Mes</span>
+                  <select id="registrarMesMonth"></select>
+                </label>
+              </div>
+            </div>
+
+            <div class="home-kpi-grid" id="registrarMesKpis"></div>
+
+            <div class="registrar-mes-tables" id="registrarMesTables"></div>
+          </section>
+
+          <section class="e19-cuadro-mandos view-section" id="cuadro-mandos">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow" id="cuadroMandosEyebrow">Cuadro de mandos</p>
+                <h2 class="e19-heading">Detalle por partida</h2>
+                <p class="e19-subtitle" id="cuadroMandosSubtitle"></p>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Desde</span>
+                  <select id="cuadroMandosStart"></select>
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte</span>
+                  <select id="cuadroMandosSpan">
+                    <option value="6">6 meses</option>
+                    <option value="12" selected>12 meses</option>
+                    <option value="24">24 meses</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="table-wrap cuadro-mandos-wrap">
+              <table class="e19-table cuadro-mandos-table" id="cuadroMandosTable"></table>
+            </div>
+
+            <div class="e19-impact-bar cuadro-mandos-impact" id="cuadroMandosImpact" hidden></div>
+          </section>
+
+          <section class="e19-cuadro-mandos view-section" id="cambios-pendientes">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow" id="cambiosPendientesEyebrow">Cambios pendientes</p>
+                <h2 class="e19-heading" id="cambiosPendientesTitle">Lo que has tocado todavía no está guardado</h2>
+                <p class="e19-subtitle" id="cambiosPendientesSubtitle"></p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="cambiosPendientesDiscard">Descartar todo</button>
+                <button type="button" class="e19-btn e19-btn-primary" id="cambiosPendientesSave">Guardar los cambios</button>
+              </div>
+            </div>
+
+            <div class="home-kpi-grid" id="cambiosPendientesKpis"></div>
+
+            <div class="cambios-pendientes-layout">
+              <article class="e19-card">
+                <div class="registrar-mes-card-head">
+                  <h3 class="escenario-motor-panel-title">Cambios, ordenados por impacto</h3>
+                  <span class="e19-kpi-note" id="cambiosPendientesOrder"></span>
+                </div>
+                <ol class="cambios-pendientes-list" id="cambiosPendientesList"></ol>
+              </article>
+
+              <div class="deuda-ruta-side">
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Antes y después, mes a mes</h3>
+                  <div class="cambios-pendientes-chart" id="cambiosPendientesChart"></div>
+                </article>
+                <article class="e19-card cuadro-mandos-note" id="cambiosPendientesNote"></article>
+              </div>
+            </div>
+          </section>
+
+          <section class="e19-cuadro-mandos view-section" id="mapa-calor">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Cuadro de mandos · salud mensual</p>
+                <h2 class="e19-heading">Cada casilla es un mes. El color es el colchón que queda.</h2>
+                <p class="e19-subtitle" id="mapaCalorSubtitle"></p>
+              </div>
+              <div class="registrar-mes-filters" role="group" aria-label="Métrica del mapa">
+                <button type="button" class="registrar-mes-filter is-active" data-mapa-calor-metric="colchon" aria-pressed="true">Colchón</button>
+                <button type="button" class="registrar-mes-filter" data-mapa-calor-metric="resultado" aria-pressed="false">Resultado</button>
+                <button type="button" class="registrar-mes-filter" data-mapa-calor-metric="ahorro" aria-pressed="false">Ahorro</button>
+              </div>
+            </div>
+
+            <article class="e19-card mapa-calor-card">
+              <div class="mapa-calor-legend" id="mapaCalorLegend"></div>
+              <div class="table-wrap">
+                <table class="mapa-calor-grid" id="mapaCalorGrid"></table>
+              </div>
+            </article>
+
+            <div class="cambios-pendientes-layout">
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title" id="mapaCalorWorstTitle">Qué pesa en el peor mes</h3>
+                <div class="mapa-calor-breakdown" id="mapaCalorBreakdown"></div>
+                <p class="e19-kpi-note" id="mapaCalorWorstNote"></p>
+              </article>
+              <article class="e19-card e19-card-strong mapa-calor-actions">
+                <h3 class="escenario-motor-panel-title">Dónde seguir con ese mes</h3>
+                <div id="mapaCalorLinks"></div>
+              </article>
+            </div>
+          </section>
+
+          <section class="e19-asesor-decision view-section" id="asesor-decision">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · asesor ejecutivo</p>
+                <h2 class="e19-heading">Qué hacer ahora</h2>
+                <p class="e19-subtitle">La oferta de deuda registrada más urgente, con lo que cambia si la aplicas. Ninguna cifra se inventa: sale de la oferta real y del forecast.</p>
+              </div>
+            </div>
+
+            <div class="e19-card asesor-decision-empty" id="asesorDecisionEmpty" hidden>
+              <h3>No hay ninguna decisión abierta ahora mismo</h3>
+              <p class="e19-subtitle">No tienes ninguna oferta de deuda registrada con vencimiento pendiente de aplicar. Registra una en Plan de deuda para verla aquí.</p>
+              <a class="e19-btn e19-btn-primary" href="#debt-roadmap">Registrar oferta</a>
+            </div>
+
+            <div class="asesor-decision-layout" id="asesorDecisionContent">
+              <article class="e19-card asesor-decision-main">
+                <div class="asesor-decision-head">
+                  <span class="e19-badge e19-badge-neutral" id="asesorDecisionDeadline"></span>
+                  <h3 id="asesorDecisionTitle"></h3>
+                  <strong id="asesorDecisionAmount"></strong>
+                </div>
+                <div class="asesor-decision-stats" id="asesorDecisionStats"></div>
+
+                <h4 class="escenario-motor-panel-title asesor-decision-subtitle">De dónde puede salir el dinero</h4>
+                <p class="e19-kpi-note">Cobertura estimada con los saldos actuales de cada cuenta — no es un reparto ya decidido.</p>
+                <div class="asesor-decision-funding" id="asesorDecisionFunding"></div>
+
+                <div class="asesor-decision-actions">
+                  <a class="e19-btn e19-btn-primary" id="asesorDecisionApply" href="#debt-roadmap">Revisar y aplicar en Plan de deuda</a>
+                </div>
+              </article>
+
+              <div class="deuda-ruta-side">
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Límites que no se rompen</h3>
+                  <ul class="asesor-decision-limits" id="asesorDecisionLimits"></ul>
+                </article>
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Otras ofertas en espera</h3>
+                  <div class="asesor-decision-queue" id="asesorDecisionQueue"></div>
+                </article>
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Con qué datos</h3>
+                  <ul class="asesor-decision-limits" id="asesorDecisionData"></ul>
+                </article>
+              </div>
+            </div>
           </section>
 
           <section class="visual-detail view-section" id="visual-detail">
@@ -2507,6 +2901,8 @@
     <script src="canonical-e13-scenarios.js?v=20260802e13b1"></script>
     <script src="canonical-daily-engine.js?v=20260714a"></script>
     <script src="canonical-debt-contracts.js?v=20260714b"></script>
+    <script src="canonical-scenario-schema.js?v=20260809e20b1"></script>
+    <script src="canonical-scenario-engine.js?v=20260809e20b1"></script>
     <script src="canonical-e14-debt-adapter.js?v=20260802e14a1"></script>
     <script src="legacy-debt-roadmap-engine.js?v=20260805e14parity1"></script>
     <script src="canonical-e14-operations.js?v=20260805e14b1"></script>
@@ -2525,7 +2921,7 @@
     <script src="canonical-e9-banking.js?v=20260801e9b"></script>
     <script src="canonical-e9-bank-import.js?v=20260801e9b"></script>
     <script src="canonical-e11b-inbox.js?v=20260801e11b1"></script>
-    <script src="e17-experience.js?v=20260808e18a2"></script>
+    <script src="e17-experience.js?v=20260810e20e1"></script>
     <script src="e18-health.js?v=20260808e18a4"></script>
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>

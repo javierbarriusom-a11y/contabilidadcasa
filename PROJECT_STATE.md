@@ -1,6 +1,500 @@
 # Estado del proyecto
 
-Fecha de revisión: 9 de agosto de 2026.
+Fecha de revisión: 10 de agosto de 2026.
+
+## Cambio de sede — este repositorio pasa a ser el vivo
+
+Decisión expresa del usuario el 10 de agosto de 2026: **`contabilidadcasa` es el proyecto vivo y
+`finanzas-casa-def` queda congelado a partir de ahora.** Es exactamente la inversión de lo que
+regía hasta ese día, así que conviene dejarlo dicho sin ambigüedad:
+
+- Todo el desarrollo, commits, push y despliegue van a **este** repositorio, publicado en
+  `https://javierbarriusom-a11y.github.io/contabilidadcasa/`.
+- `finanzas-casa-def` conserva su historial completo hasta E20-5 y su sitio sigue en pie tal y
+  como quedó el 10 de agosto, pero no recibe más cambios.
+
+Qué se ha volcado en este cambio de sede. Este repositorio nació el 9 de agosto como foto fija de
+un momento dado (E19 completo + E20-0 días 1-4), así que le faltaba **todo E20-1 a E20-5**:
+
+- **E20-1**: el motor de Escenario en la interfaz (`#escenario-simular`, `#escenario-aplicar`,
+  `#escenario-guardados`).
+- **E20-2**: comparador de estrategias de deuda, plan de deuda como ruta, conciliación por tareas
+  y asesor ejecutivo.
+- **E20-3**: los once tipos de decisión de `#escenario-simular`, validados contra el contrato.
+- **E20-4**: «Registrar el mes» (`#registrar-mes`).
+- **E20-5**: el cuadro de mandos con impacto (`#cuadro-mandos`, `#cambios-pendientes`,
+  `#mapa-calor`).
+- La carpeta `docs/` entera, incluido el sistema de diseño E19 y el material de mockups con el
+  rediseño a seis vistas.
+- La skill de flujo de trabajo en `.claude/`, reapuntada a este repositorio.
+
+Dos cosas que **no** se copiaron tal cual, a propósito:
+
+- **`pages.yml` se conserva el de aquí**, no el del repositorio congelado: el de aquí trae el
+  arreglo de habilitación automática de Pages (`enablement: true` y el permiso `pages: write`) que
+  el otro no tiene. Sobrescribirlo habría sido una regresión.
+- **`availability.yml` vuelve**, apuntando ya a la URL de este sitio. Se había quitado
+  deliberadamente cuando esto era una foto fija sin mantenimiento; ahora que es el sitio vivo, el
+  chequeo de disponibilidad recurrente tiene sentido otra vez.
+
+Validación tras el volcado (`npm run verify`, exit 0): 403/403 pruebas, accesibilidad
+(571 IDs únicos), rendimiento, build público, privacidad y smoke test.
+
+## Cierre de sesión — E20-5: el cuadro de mandos con impacto (3a/3b/3c)
+
+Se cierran los tres mockups del turno 3 y con ellos **los quince de los turnos 1-3**. Tres
+pantallas nuevas, ninguna sustituye a nada:
+
+- **`#cuadro-mandos`** (3a): matriz partida × mes con el previsto editable, secciones plegables,
+  barra «Aplicar a» bajo la celda tocada (solo ese mes / hasta diciembre / todo el rango visible) y
+  un pie de impacto fijo con mínimo del horizonte, meses bajo reserva y liquidez final, cada cifra
+  con su valor anterior tachado.
+- **`#cambios-pendientes`** (3b): el efecto conjunto de la sesión, con cuatro KPI antes → después,
+  la lista de cambios ordenada por impacto real y reversible línea a línea, y un gráfico
+  guardado / con tus cambios mes a mes.
+- **`#mapa-calor`** (3c): un color por mes según colchón, resultado o ahorro, con el desglose por
+  bloques del peor mes.
+
+Lo que no se ve y es lo importante: **no hay un almacén de borradores nuevo**. Las tres reutilizan
+`visualDraftCells`, el mismo que `#visual-detail` usa desde E11, y «Guardar» es literalmente
+`saveVisualChanges`. Comprobado en navegador: al editar una celda en el cuadro de mandos, la
+pantalla heredada anuncia «1 cambio(s) pendiente(s)»; al guardar, `seriesOverrides` recibe
+`expense|expense-home|2026-08 → {planned: 1500}`. Montar un segundo sistema habría dado dos
+verdades distintas sobre qué está sin guardar, que es justo el fallo que estas pantallas evitan.
+
+El impacto se calcula aplicando los borradores sobre `seriesOverrides` de forma temporal y
+corriendo el motor canónico sin `engineContext`, para no persistir el escenario ni contaminar otras
+pantallas; el estado se restaura en un `finally`. Si el motor rechaza la combinación, el pie dice
+que no se ha podido calcular en vez de enseñar una cifra inventada.
+
+Decisiones tomadas y dichas, no escondidas:
+
+- **La fecha libre de deuda no está en el pie**, aunque el mockup la incluya: editar el previsto de
+  una partida no toca ningún contrato de deuda, así que ese dato diría «sin cambio» siempre.
+- **«Ordenado por impacto» se calcula de verdad** (*leave-one-out*): el número es lo que devolvería
+  pulsar «Revertir». Por encima de ocho cambios se ordena por importe y el rótulo lo dice.
+- **«Todos los meses» es «todo el rango visible»**: el horizonte real son 126 meses y sembrar 126
+  borradores de un clic sería una trampa.
+- **El mapa marca los meses tocados, no todos los que cambian de cifra**: la liquidez es acumulada
+  y marcar el resto pintaría el mapa entero sin decir nada.
+- **No se ha migrado el panel «Qué hacer con estos cuatro meses»** de 3c, que propone acciones
+  calculadas («mover la matrícula a septiembre: agosto pasa de 1.430 € a 1.950 €»). Eso es un motor
+  de recomendaciones que no existe. En su lugar, enlaces a las pantallas que sí pueden actuar sobre
+  ese mes y el desglose real de qué bloques pesan. Por eso 3c queda como migrada **parcial**.
+
+Validación de cierre (`npm run verify`, exit 0): **403/403 pruebas**, accesibilidad (571 IDs
+únicos), rendimiento (diff 10.000 filas en 45,0 ms; forecast y escenarios en 268,0 ms; recursos
+1198 KB), build público, privacidad y smoke test. QA en navegador a 1440 px y 390×844 sin
+desbordamiento horizontal ni errores de consola propios.
+
+`BACKLOG_STATUS.md` queda actualizado: E19 y E20 entran en la tabla maestra como verificadas y el
+«próximo objetivo recomendado» deja de apuntar a E18. La cola de diseño queda vacía; lo abierto es
+la decisión sobre el rediseño a seis vistas, las omisiones documentadas de E20 y E10.
+
+## Publicación — PR #6 fusionado a `main`
+
+E20-4 queda publicado: PR #6 fusionado por squash (`c646d7f`) con el CI del repositorio en
+verde. Validación repetida sobre el `main` ya fusionado: 403/403 pruebas, accesibilidad
+(545 IDs únicos), rendimiento, build público, privacidad y smoke test.
+
+Con esto, el catálogo de mockups de los turnos 1-3 queda **cerrado salvo 3a/3b/3c**: los
+quince de los tres primeros turnos están migrados menos el cuadro de mandos con impacto, que
+es el siguiente objetivo y que ya cuenta con la tabla editable de `#registrar-mes` como base
+y con la especificación escrita del turno 5. La decisión sobre el rediseño a seis vistas
+(turnos 4-5) sigue deliberadamente aplazada.
+
+Cambio de proceso registrado en `CLAUDE.md`: a petición del usuario, el ciclo validar →
+actualizar estado → commit → push → PR → fusionar en verde se ejecuta de principio a fin sin
+pedir permiso turno a turno. Esto **anula el paso 4 del Modo Cierre** de la skill
+`finanzas-casa-workflow`. Siguen en pie los frenos: no se publica nada en rojo, nunca push
+directo a `main`, nunca hacia `contabilidadcasa`, y cualquier cambio que vaya más allá de lo
+pedido, borre datos o retire una pantalla en uso se sigue consultando.
+
+## Cierre de sesión — E20-4: «Registrar el mes» (mockup 2a)
+
+Se migra 2a, el único pendiente del turno 2, como pantalla nueva **`#registrar-mes`** junto a
+`#update-data`, sin retirar la heredada. Las dos escriben en el mismo almacén
+(`incomeActuals` / `expenseActuals`): un real anotado en una aparece en la otra sin migrar
+ningún dato, comprobado en navegador en ambas direcciones.
+
+La diferencia real con la heredada es que la lista es **plana**: una fila por partida, sin
+acordeón. En `#update-data` un real vive detrás de un bloque cerrado; aquí las 29 partidas del
+mes están a la vista, con el filtro «Sin real» activo de entrada porque esa es la tarea.
+
+Lo que trae la pantalla:
+
+- Titular calculado («Agosto va 2,40 € por encima de lo previsto»), cuatro KPI —ingresos
+  usado, gastos usado, margen del mes con su previsto al lado, y «Completado» con barra y
+  recuento— y dos tarjetas (Gastos e Ingresos) con segmentado `Sin real` · `Con desviación` ·
+  `Todo` y contadores.
+- Guardado automático al salir de la casilla, con la hora del último guardado en la insignia.
+- Añadir partida al mes, quitar solo las añadidas aquí, y copiar los reales del mes anterior
+  con confirmación previa que dice cuántos son y de qué mes.
+
+Decisiones tomadas y por qué, sin esconderlas:
+
+- **Guardar un real no reconstruye la tabla.** El `change` salta durante el blur, antes de que
+  el foco llegue a la casilla siguiente; reescribir el HTML ahí rompía el tabulado. En ese
+  camino solo se refrescan las celdas derivadas y los contadores. Verificado: tras escribir y
+  tabular, el foco cae en la casilla siguiente.
+- **Solo se tiñe la fila que va a peor.** El filtro cuenta cualquier desviación, pero un gasto
+  que sale más barato no se pinta de aviso.
+- **La insignia dice «Guardado a las 03:17», no «Guardado hace 4 s»** como el mockup: un texto
+  relativo exige un temporizador o miente en cuanto pasan unos segundos sin repintar.
+- **No se ha migrado el aviso «Detectado en el extracto · ¿Es anual?».** Supone inferir de un
+  extracto que una partida es nueva y un modelo de recurrencia anual para las filas añadidas a
+  mano, y hoy no existe ninguna de las dos cosas. No se ha inventado: queda pendiente explícito
+  y por eso 2a figura como migrada **parcial**.
+
+Validación de cierre (`npm run verify`, exit 0): **403/403 pruebas**, accesibilidad
+(545 IDs únicos), rendimiento (diff 10.000 filas en 35,5 ms; forecast y escenarios en 170,1 ms;
+recursos 1162 KB), build público, privacidad y smoke test en verde. QA en navegador real a
+1440 px y a 390×844 sin desbordamiento horizontal ni errores de consola propios (solo el CDN de
+Supabase, que este entorno no alcanza).
+
+Documentado en `docs/E19_SISTEMA_DISENO.md`: 2a pasa a migrada en el catálogo del turno 2 y se
+añade una §11 con el detalle. Pendiente en el backlog: **3a/3b/3c · cuadro de mandos con
+impacto**, que ya tiene en esta tabla editable la base que necesitaba, y la decisión aplazada
+sobre el rediseño a seis vistas.
+
+## Publicación — PR #5 fusionado a `main`
+
+A petición expresa del usuario ("empezamos por fusionar el PR #5"), el PR #5 se fusiona a
+`main` mediante squash (`8821c62`). Queda publicado:
+
+- **E20-3**: `#escenario-simular` deja de construir solo `amortizacion` y cubre los once
+  tipos que el motor resuelve, validados contra el contrato antes de simular.
+- **Material de diseño ampliado**: turnos 4 y 5 del canvas de mockups, prototipo navegable
+  de las seis vistas, documento de entrega y 17 capturas nuevas.
+
+Validación de cierre repetida sobre el `main` ya fusionado: 403/403 pruebas, accesibilidad
+(537 IDs únicos), rendimiento, build público, privacidad y smoke test en verde.
+
+Pendiente en el backlog, por orden acordado con el usuario: **2a · «Registrar el mes»**
+(`#update-data`, la tabla editable que 3a necesita como base) y **3a/3b/3c · cuadro de mandos
+con impacto**, esta última ya con especificación real gracias al turno 5. La decisión sobre
+adoptar o no el rediseño a seis vistas queda deliberadamente aplazada a después de ver el pie
+de impacto funcionando en la app real.
+
+## Documentación — el rediseño a seis vistas entra en el repositorio
+
+El usuario aportó una ampliación del documento de mockups y pidió incluir los visuales en la
+documentación del proyecto. Lo añadido a `docs/mockups/`:
+
+- **Dos turnos nuevos en el canvas** (el fichero pasa de tres turnos a cinco): turno 4, el
+  rediseño completo de las 22 pantallas actuales a seis vistas; turno 5, especificaciones
+  escritas de interacción más dos prototipos vivos (pie de impacto e importación de extracto).
+- **`finanzas-casa-app.dc.html`**: prototipo navegable de las seis vistas con las
+  interacciones reales. La entrega lo señala como la referencia principal.
+- **`HANDOFF_REDISENO_6_VISTAS.md`**: documento de entrega con propósito de cada vista,
+  comportamiento, gestión de estado, tokens y medidas exactas.
+- **17 capturas nuevas** en `docs/mockups/screens/` (`4a`-`4f`, `5a`-`5d`, las seis vistas del
+  prototipo y el estado con el pie de impacto desplegado tras editar una celda, que no se ve
+  en una captura de la vista en reposo).
+
+Las capturas hubo que generarlas aquí: el visor de canvas carga React desde `unpkg.com` y la
+tipografía desde Google Fonts, y esta máquina no llega a ninguno de los dos. Se resolvió
+sirviendo los bundles UMD de React desde el registro de npm (sí accesible) mediante
+enrutado de peticiones en Playwright, sin modificar los ficheros del repositorio. Queda
+anotado en la documentación que los `.dc.html` necesitan red y que las capturas son la copia
+legible sin ella.
+
+Documentado en `docs/E19_SISTEMA_DISENO.md`: §1 reescrita con el inventario del material,
+§4 ampliada con los turnos 4 y 5, y una §10 nueva. Lo importante de §10, dicho sin adornos:
+**el rediseño choca de frente con la arquitectura actual**. Cada mockup migrado hasta ahora
+se añadió como pantalla nueva junto a la heredada, nunca sustituyéndola, y hoy conviven
+`#conciliar` con `#reconciliation`, `#deuda-ruta` con `#debt-roadmap`, `#escenario-simular`
+con `#new-life-simulation`. El rediseño es la operación inversa: fundir los pares y retirar
+los heredados. Eso es una decisión de producto sobre retirar pantallas en uso, no algo que
+se resuelva escribiendo código, así que queda documentado y sin migrar.
+
+Sí es aprovechable ya, sin esa decisión: el turno 5 especifica de verdad el pendiente
+3a/3b/3c del backlog (disparadores, debounce, contenido exacto del pie de impacto,
+comportamiento con mes cerrado y al descartar), que hasta ahora eran tres capturas estáticas
+sin especificación. Es la mejor entrada disponible para esa entrega.
+
+403 pruebas (403 pass), `npm run verify` en verde.
+
+## Cierre de sesión — E20-3: los once tipos de decisión en `#escenario-simular`
+
+Segundo pendiente del bloque E20-2, a petición expresa del usuario ("confirmo orden"): el
+formulario de «Qué cambias» tenía cuatro controles fijos y solo sabía construir decisiones
+de tipo `amortizacion`, aunque el motor resolvía once tipos desde E20-0 día 4. Ahora es un
+catálogo declarativo (`ESCENARIO_MOTOR_TYPES` en `app.js`): desplegable de tipo agrupado en
+«Deuda» y «Vida», y una rejilla de campos que se reconstruye según el tipo. Detalle completo,
+con la tabla de los once tipos y sus campos, en `docs/E19_SISTEMA_DISENO.md` §9.
+
+Decisiones deliberadas, documentadas en vez de fabricadas:
+- **`traspaso` y `cambio_presupuesto` no se ofrecen.** El motor los deja fuera a propósito y
+  explica por qué; ofrecerlos daría controles que no cambian nada en la simulación.
+- **`acuerdo_quita.modalidad` se fija a `pago_unico`** en vez de pedirla: el motor cierra la
+  deuda con un pago único, así que un desplegable con «fraccionado» prometería un cálculo
+  inexistente. `retomar_pagos` solo ofrece deudas realmente suspendidas, que son las únicas
+  que el aplicador acepta.
+- **El guardarraíl sale del `<form>`**: es del escenario entero, no de la decisión que se
+  está componiendo, y mezclado con los campos de la decisión confundía ambas cosas.
+
+Un defecto real corregido de paso: la interfaz generaba IDs de decisión (`escenario-motor-1`)
+que el propio contrato habría rechazado, y no validaba nada — funcionaba porque
+`resolveEscenario` no valida, no porque la decisión fuera correcta. Ahora cada decisión se
+construye completa (ULID `dec_…`, `titulo`, `planificacion`, `params`) y pasa por
+`Schema.validateDecision` antes de entrar en la simulación; si el contrato la rechaza no se
+añade nada y se muestran sus propios mensajes, con el `path` traducido al rótulo del campo.
+
+Verificado con Playwright contra la app real, con interacción real (no solo capturas): los
+once tipos se añaden y el motor los resuelve como «aplicada»; el filtro de deudas suspendidas
+devuelve 2 de 3; una decisión incompleta muestra los tres errores del contrato y no se añade;
+el guardarraíl rechaza y «ajustar automáticamente» reintenta con mes óptimo también en tipos
+que no son de deuda; la tabla de `#escenario-aplicar` y el escenario guardado muestran títulos
+correctos con tipos mezclados; el flujo «aplicar ruta» del comparador de estrategias sigue
+funcionando con los títulos reconstruidos. Sin errores de página, sin desbordamiento
+horizontal a 1280×900 ni a 390×844.
+
+Dos ajustes de presentación necesarios al crecer el formulario: el panel de controles pasa de
+340 a 400 px (a 340 la rejilla nunca daba para dos columnas y los tipos de seis campos
+obligaban a recorrer todo el formulario en vertical), y los títulos de decisión dejan de
+recortarse con puntos suspensivos — con once tipos, «Refinanciar Entidad B Tarjeta» se
+cortaba justo en la parte que identifica la decisión.
+
+403 pruebas (403 pass), `npm run verify` en verde (accesibilidad 537 IDs únicos, rendimiento
+diff 10.000 filas en 41,2 ms, build público, privacidad y smoke test correctos).
+
+Pendiente en el backlog: cuadro de mandos con impacto (3a/3b/3c), la única entrada que queda
+del catálogo de mockups y la que exige capacidad nueva, no un reskin.
+
+## Publicación — PR #4 fusionado a `main`
+
+A petición expresa del usuario ("haz commit y push para publicar si es posible"), el
+PR #4 (E20-2: comparador de estrategias de deuda, plan de deuda · ruta, conciliación y
+asesor ejecutivo — mockups 1b/1c/1g/1d) se fusiona a `main` mediante squash (`547117a`).
+Las cuatro pantallas nuevas quedan publicadas en el sitio: `#deuda-comparar`,
+`#deuda-ruta`, `#conciliar`, `#asesor-decision`.
+
+Validación de cierre repetida sobre el `main` ya fusionado: 403/403 pruebas,
+accesibilidad, rendimiento, build público, privacidad y smoke test en verde. Árbol de
+trabajo limpio.
+
+Pendiente en el backlog de este mismo bloque (E20-2): cuadro de mandos con impacto
+(3a/3b/3c — capacidad nueva, no un reskin) y sumar más tipos de decisión a
+`#escenario-simular`.
+
+## Cierre de sesión — E20-2 (continuación): asesor ejecutivo (1d)
+
+Cuarta pantalla del tramo actual: `#asesor-decision`. A diferencia de 1b/1c/1g, esta no
+era un reskin sobre lógica ya existente — el mockup asume un motor de recomendación que
+no existe. Se planteó explícitamente como decisión de producto al usuario (no una
+elección técnica silenciosa): construir la pantalla sobre ofertas reales de E14b (la
+oferta de deuda más urgente que el propio usuario registra en `#debt-roadmap`, con
+vencimiento e importe reales), reutilizar el motor de recomendaciones genérico de E16
+(siempre tiene contenido pero es más superficial, sin importe/vencimiento concretos), o
+aplazar la pantalla. El usuario eligió la primera opción.
+
+Sin ninguna oferta abierta registrada — el caso más común en un dataset nuevo — la
+pantalla muestra un estado vacío explícito en vez de fabricar una decisión. Con una
+oferta real: ahorras/cuota liberada/caja mínima salen de
+`E14DebtOperations.simulateStrategy()` (la misma simulación que ya usa el panel E14b);
+la cobertura "de dónde puede salir el dinero" son los saldos reales de cada cuenta,
+etiquetados como estimación, no como reparto ya decidido (el mockup insinúa una
+asignación fija que no tiene dato real detrás); los límites (reserva, colchón,
+deuda/ingresos) reutilizan cálculos ya existentes en otras pantallas — verificado que
+"colchón: 2.0" coincide exactamente con el mismo KPI del panel Hoy. "Revisar y aplicar"
+preselecciona la oferta y navega al flujo real de aplicación en `#debt-roadmap` en vez
+de reconstruirlo. Detalle completo en `docs/E19_SISTEMA_DISENO.md` §8.
+
+Verificado con Playwright de extremo a extremo: estado vacío sin ofertas, registro de
+una oferta real en `#debt-roadmap`, contenido completo y correcto en `#asesor-decision`,
+navegación de vuelta con la oferta preseleccionada. Un bug pequeño encontrado y
+corregido (falta de espacio en el título por un `.trim()` aplicado al segmento entero en
+vez de solo a la parte opcional).
+
+403 pruebas (403 pass), `npm run verify` en verde.
+
+## Cierre de sesión — E20-2 (continuación): conciliación (1g)
+
+Tercera pantalla del tramo actual: `#conciliar`, puro reskin sobre la conciliación real ya
+verificada (E4/A1-1, E11b) — llama a las mismas funciones que la pantalla heredada
+`#reconciliation` (`refreshCanonicalLedger`, `E11bInbox.reconciliationTasks`,
+`FinanceCanonicalE5.latestMonthOperation`) sin reimplementar ningún cálculo; solo cambia
+la presentación a "qué falta para cerrar el mes" en vez del panel operativo completo, que
+sigue intacto en `#reconciliation`. Detalle en `docs/E19_SISTEMA_DISENO.md` §7.
+
+Verificado con Playwright contra la app real: KPIs, lista de tareas, checklist de cierre e
+histórico de meses anteriores renderizan correctamente; contrastado contra `#reconciliation`
+en el mismo dataset para confirmar que la ausencia de datos (0 movimientos bancarios
+importados en el dataset local de pruebas) es igual en ambas pantallas, no un fallo nuevo.
+
+403 pruebas (403 pass), `npm run verify` en verde.
+
+## Cierre de sesión — E20-2: comparador de estrategias de deuda + plan de deuda · ruta (1b/1c)
+
+A petición expresa del usuario, arranca el resto del catálogo de mockups pendiente
+(plan de deuda, asesor ejecutivo, conciliación, cuadro de mandos con impacto) más los
+tipos de decisión que faltan en `#escenario-simular`. Primer tramo: `#deuda-comparar` y
+`#deuda-ruta` (mockups 1b/1c), construidas sobre el mismo motor (`resolveEscenario`) que
+Escenario, no sobre el pipeline heredado de `debt-liquidation-plan`. Detalle completo,
+incluidas las simplificaciones deliberadas frente al mockup (tres estrategias reales, no
+cuatro; ver por qué "reunificación" no se fabrica), en `docs/E19_SISTEMA_DISENO.md` §6.
+
+Dos bugs reales encontrados y corregidos durante la verificación con Playwright (no solo
+capturas — clics e interacción real):
+- **Layout**: `.visual-controls` es un `display:grid` genérico de 4 columnas (pensado
+  para paneles de filtros en otras pantallas) que, aplicado a un grupo de tabs + un
+  enlace, forzaba los tabs a una columna de ~130px y los hacía desbordar tapando el
+  enlace de al lado. Corregido con un `display:flex` propio, con ámbito a
+  `.e19-deuda-decidir .section-title .visual-controls`, igual que el fix de `min-width`
+  de E20-1 — sin tocar la regla global que sí es correcta donde ya se usa.
+- **Cálculo**: sin una reserva mínima configurada, el motor no valida nada en modo
+  óptimo — todas las decisiones caían en el primer mes del horizonte sin importar cuánto
+  quedara la caja en negativo (primera prueba: caja mínima de -2.460 €, sin sentido
+  como comparación de estrategias). Corregido con un suelo de 0 € por defecto cuando no
+  hay reserva configurada (nunca "sin comprobar nada" en silencio), y con un ranking
+  explícito para "recomendada" en vez de comparar como texto plano fechas reales junto a
+  etiquetas como "sin fecha estimable" (que por alfabeto ordenaban antes que cualquier
+  fecha real, aunque no signifique "antes" en absoluto).
+- **Legibilidad del gráfico**: con el horizonte completo del motor (hasta 10 años) la
+  liquidez proyectada crece muy por encima del principal de deuda y lo aplana en un hilo
+  invisible en una escala compartida; se recorta la ventana a los ~6 meses tras saldarse
+  la última deuda.
+
+403 pruebas (403 pass), `npm run verify` en verde, flujo comparar → ver ruta → cambiar de
+pestaña → aplicar ruta → confirmar con motivo → guardado verificado de extremo a extremo
+con Playwright contra la app real.
+
+La rama de trabajo `claude/repo-analysis-3dupjd` se reinició sobre el `main` ya fusionado
+(PR #2 + esta nueva entrega), con el mismo nombre — la anterior PR quedó cerrada por
+fusión, no se reutiliza. Trabajo pendiente de publicar mediante un PR nuevo.
+
+## Publicación — PR #2 fusionado a `main`
+
+A petición expresa del usuario ("confirmo fusión, publica todo lo que se pueda publicar"),
+el PR #2 (E20-1 día 1 + rediseño 1e/2d/2e descrito más abajo) se fusiona a `main` mediante
+squash (`191ba2f`). El motor de Escenario deja de ser código sin usar y pasa a estar
+enlazado desde `index.html` en el sitio público: las tres pantallas nuevas
+(`#escenario-simular`, `#escenario-aplicar`, `#escenario-guardados`) y la documentación de
+mockups (`docs/E19_SISTEMA_DISENO.md`, `docs/mockups/`) quedan publicadas.
+
+Validación de cierre repetida sobre el `main` ya fusionado: 403/403 pruebas, accesibilidad,
+rendimiento, build público, privacidad y smoke test en verde. Árbol de trabajo limpio, sin
+cambios pendientes de commitear más allá de esta propia entrada de estado.
+
+## Cierre de sesión — E20-1: rediseño de Escenario según los mockups reales (1e/2d/2e)
+
+A petición expresa del usuario, la pantalla única `#escenario-motor` del día 1 se
+rediseñó como el flujo de **tres pantallas encadenadas** que definen los mockups
+1e/2d/2e: `#escenario-simular` (panel de controles + gráfico plan-vs-simulación con línea
+de reserva + KPIs de liquidez final/caja mínima/libre de deuda + aviso de límite roto con
+"ajustar automáticamente"), `#escenario-aplicar` (diff línea a línea + motivo obligatorio)
+y `#escenario-guardados` (lista con estado aplicado/guardado, KPIs recalculados al vuelo,
+persistida en `localStorage`). Detalle completo, incluidas las simplificaciones
+deliberadas frente al mockup (solo dos estados, "aplicar" no muta las deudas reales), en
+`docs/E19_SISTEMA_DISENO.md` §5.
+
+Añadido de verdad en este rediseño, no solo estético:
+- KPI "Libre de deuda", calculado desde el estado real de los contratos (cuota × plazo
+  restante), nunca inventado — con su propio caso límite gestionado explícitamente (una
+  deuda sin cuota activa, p. ej. suspendida o el registro histórico de una reunificación,
+  no tiene fecha proyectable y se dice así en vez de fabricar una).
+- El contexto de deudas del motor pasó de `debtContractSourceRows()` a
+  `canonicalDebtContractRows()`, que incluye el plan reunificado sintético — antes
+  quedaba fuera del alcance de la pantalla sin que nada lo avisara.
+- "Ajustar automáticamente" reutiliza de verdad la búsqueda de mes óptimo del motor
+  (`planificacion.modo: "optimo"`, E20-0 día 3) — no es un botón decorativo.
+- Persistencia real de escenarios guardados vía `localStorage` (antes: solo en memoria de
+  sesión).
+
+Bug de layout real encontrado y corregido durante la verificación visual con Playwright
+(no solo capturas — clics reales de extremo a extremo): una tabla de 5 columnas dentro del
+panel estrecho de 300px desbordaba fuera del viewport en vez de activar scroll horizontal,
+por dos causas combinadas — un hijo de grid sin `min-width: 0` no se encoge por debajo del
+ancho intrínseco de su contenido, y una regla genérica `table { min-width: 1120px }` ya
+existente en `styles.css` (pensada para las tablas grandes de datos) se aplicaba también
+aquí. Corregido con `min-width: 0` en los hijos del grid y `table-layout: fixed` con
+anchos de columna explícitos en la tabla de diferencias.
+
+403 pruebas (403 pass), `npm run verify` en verde, flujo simular → aplicar → guardados
+verificado de extremo a extremo con Playwright contra la app real (incluida persistencia
+tras recargar la página).
+
+## Mockups originales documentados en el repositorio
+
+El usuario aportó el documento de mockups completo ("Finanzas Casa · Mockups", 15
+pantallas en 3 bloques) que hasta ahora solo existía como archivo aportado en
+conversación — `design-tokens.css` ya citaba un `docs/E19_SISTEMA_DISENO.md` que nunca
+se había escrito. Ahora existe: `docs/E19_SISTEMA_DISENO.md` documenta el origen, los
+tokens (ya en `design-tokens.css`, ahora también en prosa), los componentes construidos y
+el catálogo completo de las 15 pantallas con su estado de migración. El archivo original
+se conserva en `docs/mockups/` (fuente + capturas por pantalla), como referencia interna
+— no se sirve desde `index.html` ni se enlaza al sitio público, ni lo tocan
+`build-public-site.mjs`/`check-public-privacy.mjs` (ambos trabajan con listas explícitas
+de archivos, no escanean el repo entero).
+
+Hallazgo importante al revisarlos: los mockups **1e/2d/2e** (simular → aplicar →
+guardados) definen el diseño real de la pantalla de Escenario como un flujo de **tres
+pantallas encadenadas**, bastante más rico que el formulario + tabla construido en
+E20-1 día 1 (que se hizo sin haber visto todavía estos mockups, porque el adjunto no
+llegó a esa sesión). Documentado en el propio `E19_SISTEMA_DISENO.md` §5. Pendiente de
+decisión del usuario: rediseñar `#escenario-motor` hacia ese mockup ahora, o seguir
+sumando tipos de decisión con el patrón actual del día 1 y reconciliar visualmente más
+adelante.
+
+## Cierre de sesión — E20-1, día 1: el motor de Escenario entra en la interfaz
+
+- PR #1 (Bloque 1 E19 completo + E20-0 días 1-4) revisado y fusionado a `main`.
+  Rama de trabajo reiniciada sobre el nuevo `main` (mismo nombre,
+  `claude/repo-analysis-3dupjd`, historial limpio).
+- Arranca el Bloque 2 de verdad: `canonical-scenario-engine.js` deja de vivir
+  solo en tests y se enlaza por primera vez desde `index.html`. Antes de
+  tocar nada se revisaron las tres pantallas legacy que ya rozan el concepto
+  de "decisiones" (`#new-life-definitive`, `#new-life-simulation`,
+  `#simulator`/`decision-studio`): ninguna usa el sistema E19, ninguna llama
+  al motor nuevo, y las tres suman miles de líneas acopladas a un pipeline
+  antiguo — retocar cualquiera de entrada habría sido arriesgado y no era lo
+  pedido. Se optó, como en toda esta fase, por añadir sin tocar: pantalla
+  nueva `#escenario-motor` ("Motor de Escenario"), enlazada desde "Decidir" y
+  desde el buscador (`e17-experience.js`), con markup **100 % `.e19-*`** — la
+  primera pantalla del proyecto construida enteramente en el sistema de
+  diseño E19 desde cero, sin heredar ni una clase antigua.
+- Alcance del día 1, deliberadamente mínimo: un único tipo de decisión
+  (**amortizar deuda**) de punta a punta, para probar el circuito completo
+  con datos reales antes de sumar el resto de tipos en próximos días — el
+  mismo patrón día a día que se usó para construir el propio motor. El
+  usuario elige una deuda viva real (`debtContractSourceRows()`), importe y
+  mes real del horizonte (`canonicalEngineInput().months`); al añadirla, se
+  llama de verdad a `FinanceCanonicalScenarioEngine.resolveEscenario()` — sin
+  simular ni fingir un resultado — y se muestra si quedó **aplicada** o
+  **rechazada con el motivo real** (guardarraíl incumplido, deuda ya cerrada,
+  conflicto con otra decisión…), más el efecto en la liquidez mínima
+  (antes/después, con la cifra exacta que devuelve el motor).
+- Guardarraíl opcional en el propio formulario: si se indica un saldo mínimo,
+  se pasa tal cual a `context.guardarrailes.saldoMinimoAbsoluto` y las
+  decisiones que lo rompan se rechazan de verdad, visible en la tabla.
+- Simplificación explícita de este día: la lista de decisiones vive solo en
+  memoria de la pestaña del navegador — no persiste todavía entre sesiones.
+  Se documenta aquí en vez de fingir que sí.
+- Verificado con Playwright contra la app real servida localmente: opciones
+  de deuda y mes cargadas con datos reales, alta de una decisión, resultado
+  "Aplicada" devuelto por el motor real, KPI de liquidez mínima calculado, y
+  retirada de la decisión limpia el estado. Sin peticiones de red fallidas
+  para los dos scripts nuevos (`canonical-scenario-schema.js`,
+  `canonical-scenario-engine.js`).
+- 403 pruebas (403 pass, 0 `test.todo`), `npm run verify` en verde.
+- Pendiente para próximos días: el resto de tipos de decisión soportados por
+  el motor (refinanciar, comprar, imprevisto, proyecto…), y decidir si esta
+  pantalla se queda como está o se fusiona más adelante con alguna de las
+  tres legacy.
+
+## Decisión de publicación: un único sitio en desarrollo
+
+A petición del usuario se creó una copia fija del repositorio en
+`javierbarriusom-a11y/contabilidadcasa`
+(`https://javierbarriusom-a11y.github.io/contabilidadcasa/`), foto de este
+mismo estado (E19 completo + E20-0 días 1-4). El usuario confirmó
+explícitamente que esa copia **no se toca más**: todo el trabajo futuro sigue
+exclusivamente en este repositorio y su sitio actual
+(`https://javierbarriusom-a11y.github.io/finanzas-casa-def/`), que queda
+"como está". Documentado también en `CLAUDE.md` para que esta regla se
+respete automáticamente sin que el usuario tenga que repetirla en cada
+sesión.
 
 ## Cierre de sesión — E20-0, día 4: tipos de decisión fuera del alcance original de F1
 

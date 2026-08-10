@@ -37,9 +37,16 @@ mantiene `Parcial` hasta verificar todos sus tramos.
 | E16 | A11-1 a A11-5 | Alertas, cambios, calidad predictiva, recomendaciones y presupuesto de riesgo | Verificado | Seguimiento predictivo aceptado: alertas y recomendaciones visibles, presupuesto persistente tras recarga y recuperación remota sin conflicto repetido |
 | E17 | A12-1 a A12-5 | Navegación por tareas, estado, lanzador, ayuda y personalización | Verificado | Aceptación en escritorio a 1280×720 y móvil a 390×844, sin desbordamiento; lanzador y personalización comprobados |
 | E18 | A13-1 a A13-6 | Arquitectura, rendimiento, telemetría, migraciones, pruebas y manual | Verificado | Fixtures históricos, métricas locales, guía contextual y doce capturas comparables aceptadas |
+| E19 | Piel visual del rediseño | Sistema de diseño `design-tokens.css` y migración de Hoy, Actualizar, Importar y Previsión | Verificado | Tokens y cinco pantallas migradas sin tocar el aspecto de las heredadas |
+| E20 | Mockups 1b-1g, 2a, 2d-2e, 3a-3c | Motor de escenario en la interfaz, deuda, conciliación, registro del mes y cuadro de mandos con impacto | Verificado | Los quince mockups de los turnos 1-3 migrados; cinco de ellos parciales con la omisión documentada |
 
-Resumen actual: E1-E9 y E11-E18 están verificadas. La paridad A/B del plan heredado se comprueba frente
-al contrato canónico y el iframe permanece como respaldo. E10 se mantiene al final.
+Resumen actual: E1-E9 y E11-E20 están verificadas. La paridad A/B del plan heredado se comprueba frente
+al contrato canónico y el iframe permanece como respaldo. **E10 es la única entrega abierta** y se
+mantiene al final: A5-1 a A5-4 tienen base local verificada, pero falta la aceptación externa real
+(IA, hogar, push, PSD2) y las tareas A5-5/A5-6.
+
+El seguimiento fino de E19/E20 —qué mockup corresponde a qué pantalla y qué quedó fuera de cada uno—
+vive en `docs/E19_SISTEMA_DISENO.md` §4, que es la referencia operativa de esas dos entregas.
 
 ### Tareas verificadas de E15
 
@@ -296,8 +303,22 @@ Una entrega solo pasa a `Verificado` cuando cumple todo lo siguiente:
 
 ## 7. Próximo objetivo recomendado
 
-Iniciar **E18** de forma incremental: separar componentes del monolito de interfaz y añadir pruebas
-visuales de los flujos críticos. E10 permanece al final.
+Actualizado el 10/08/2026, al cerrar E20.
+
+**El catálogo de mockups de los turnos 1-3 está terminado**: los quince están migrados. No queda
+ningún pendiente de diseño en la cola. Lo que sigue abierto, por orden de lo que aporta:
+
+1. **Decidir qué se hace con el rediseño a seis vistas** (turnos 4-5 del canvas, ver
+   `docs/E19_SISTEMA_DISENO.md` §10). Es una decisión de producto, no de código: propone fundir los
+   pares de pantalla nueva/heredada y retirar las heredadas, justo lo contrario del principio de
+   «envolver, no sustituir» que ha regido hasta ahora, y además cambia el acento de azul a navy.
+   Hasta que se decida, la app acumula pares conviviendo.
+2. **Cerrar las omisiones documentadas de E20**, si el uso real las echa en falta: el aviso de
+   partida anual detectada en un extracto (2a), el motor de recomendaciones del mapa de calor (3c) y
+   los tramos parciales de 1c, 1d y 2e.
+3. **E10**, que sigue siendo la única entrega sin verificar y depende de aceptación externa real.
+
+E10 permanece al final mientras no haya servicios externos que aceptar.
 
 E9 quedó publicada y verificada el 01/08/2026 mediante `ef57e9b`. El workflow `30712474715` completó
 la puerta y el despliegue; Pages sirvió `version.json` con el SHA exacto, los contratos E9 y el shell

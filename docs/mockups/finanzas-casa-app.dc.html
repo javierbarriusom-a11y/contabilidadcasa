@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><meta name="viewport" content="width=1280"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>
+body{margin:0;background:#F0EEE9;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#293E5E}a:hover{color:#0B1220}
+button{font-family:inherit}
+input{font-family:inherit}
+</style></helmet>
+
+<div style="width:1280px;margin:0 auto;display:flex;background:#FBFCF7;color:#0B1220;font-size:14px;min-height:860px">
+
+<div style="width:212px;flex:none;background:#0B1220;color:#fff;display:flex;flex-direction:column;padding:22px 0">
+<div style="padding:0 20px 22px;display:flex;flex-direction:column;gap:3px;border-bottom:1px solid rgba(255,255,255,.1)">
+<span style="font-size:15px;font-weight:700;letter-spacing:-.01em">Finanzas Casa</span>
+<span style="font-size:11.5px;color:#8FA0BA">Julio 2026 · abierto</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:2px;padding:14px 12px">
+<sc-for list="{{ navItems }}" as="n" hint-placeholder-count="6">
+<div onClick="{{ n.onClick }}" style="{{ n.style }}"><span>{{ n.label }}</span><span style="{{ n.badgeStyle }}">{{ n.badge }}</span></div>
+</sc-for>
+</div>
+<div style="margin-top:auto;padding:16px 20px 0;border-top:1px solid rgba(255,255,255,.1);display:flex;flex-direction:column;gap:5px">
+<span style="font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#8FA0BA">Colchón</span>
+<span style="font-size:19px;font-weight:700">{{ colchonLabel }}</span>
+<span style="font-size:11.5px;color:#8FA0BA">{{ mesesLabel }} de gasto</span>
+</div>
+</div>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+<sc-if value="{{ isHoy }}" hint-placeholder-val="{{ true }}">
+<div style="padding:28px 30px 34px;display:flex;flex-direction:column;gap:22px">
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:23px;font-weight:700;color:#293E5E;letter-spacing:-.01em">Hoy</span><span style="font-size:13px;color:#5B6578">Última conciliación hace 2 días · 47 movimientos sin revisar</span></div>
+<button onClick="{{ goDatos }}" style="padding:10px 17px;border-radius:10px;border:none;background:#293E5E;color:#fff;font-size:13.5px;font-weight:700;cursor:pointer" style-hover="background:#1B2C48">Importar extracto</button>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:7px">
+<span style="font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:#8A93A3">Colchón disponible</span>
+<span style="font-size:29px;font-weight:700;color:#0B1220;font-variant-numeric:tabular-nums">{{ colchonLabel }}</span>
+<span style="font-size:12.5px;color:#5B6578">{{ mesesLabel }} de gasto medio · objetivo 3 meses</span>
+</div>
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:7px">
+<span style="font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:#8A93A3">Deuda pendiente</span>
+<span style="font-size:29px;font-weight:700;color:#0B1220;font-variant-numeric:tabular-nums">142.450 €</span>
+<span style="font-size:12.5px;color:#1F9D55">−1.180 € este mes</span>
+</div>
+<div style="background:#293E5E;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:7px;color:#fff">
+<span style="font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:#A9B8CE">Libre de deuda</span>
+<span style="font-size:29px;font-weight:700">{{ fechaLibre }}</span>
+<span style="font-size:12.5px;color:#A9B8CE">Estrategia: {{ estrategiaLabel }}</span>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:16px">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+<span style="font-size:15px;font-weight:700;color:#293E5E">Decisiones abiertas</span>
+<sc-for list="{{ decisiones }}" as="d" hint-placeholder-count="3">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid #EEF1F5;padding-top:13px">
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:600;color:#0B1220">{{ d.titulo }}</span><span style="font-size:12.5px;color:#5B6578;line-height:1.5">{{ d.detalle }}</span></div>
+<button onClick="{{ d.onClick }}" style="flex:none;padding:8px 14px;border-radius:9px;border:1px solid #D8DEE6;background:#fff;color:#293E5E;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="border-color:#293E5E">{{ d.accion }}</button>
+</div>
+</sc-for>
+</div>
+<div style="background:#F7F4EF;border:1px solid #E9DECF;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+<span style="font-size:15px;font-weight:700;color:#8E5A43">El mes en una línea</span>
+<div style="display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#2B3547">Ingresos</span><span style="font-weight:600;font-variant-numeric:tabular-nums">4.320 €</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#2B3547">Gasto previsto</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ previstoLabel }}</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#2B3547">Gasto real</span><span style="font-weight:600;font-variant-numeric:tabular-nums">{{ realLabel }}</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;border-top:1px solid #E9DECF;padding-top:9px"><span style="color:#2B3547">Desviación</span><span style="{{ totalStyle }}">{{ totalLabel }}</span></div>
+</div>
+<button onClick="{{ goPlan }}" style="margin-top:2px;padding:9px 14px;border-radius:9px;border:1px solid #D9C7B2;background:#fff;color:#8E5A43;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#FFF8F0">Ajustar el plan</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isPlan }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 30px 0;display:flex;flex-direction:column;gap:18px;flex:1">
+<div style="display:flex;justify-content:space-between;align-items:baseline">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:23px;font-weight:700;color:#293E5E;letter-spacing:-.01em">Plan · julio 2026</span><span style="font-size:13px;color:#5B6578">Escribe en la columna «Real». Nada se guarda hasta que lo confirmes.</span></div>
+<span style="font-size:12.5px;color:#8A93A3">{{ estadoEdicion }}</span>
+</div>
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;overflow:hidden">
+<div style="display:grid;grid-template-columns:1.7fr 1fr 1fr 1fr;padding:11px 16px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8A93A3;background:#F7F8FA"><div>Partida</div><div>Previsto</div><div>Real</div><div>Desviación</div></div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+<div style="{{ r.rowStyle }}">
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:600;color:#0B1220">{{ r.label }}</span><span style="font-size:11.5px;color:#8A93A3">{{ r.cat }}</span></div>
+<div style="font-size:13.5px;color:#2B3547;font-variant-numeric:tabular-nums">{{ r.planLabel }}</div>
+<div><input value="{{ r.real }}" onChange="{{ r.onChange }}" style="width:98px;padding:7px 9px;border:1px solid #D8DEE6;border-radius:8px;font-size:13.5px;font-weight:600;color:#0B1220;background:#fff;font-variant-numeric:tabular-nums" style-focus="outline:none;border-color:#293E5E"></div>
+<div style="{{ r.deltaStyle }}">{{ r.deltaLabel }}</div>
+</div>
+</sc-for>
+</div>
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;font-weight:700;color:#293E5E">Doce meses de colchón</span><span style="font-size:12.5px;color:#5B6578">La banda cae bajo el objetivo en noviembre</span></div>
+<div style="display:flex;align-items:flex-end;gap:7px;height:104px">
+<sc-for list="{{ meses }}" as="m" hint-placeholder-count="12">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+<div style="{{ m.barStyle }}"></div>
+<span style="font-size:10.5px;color:#8A93A3">{{ m.label }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="height:20px"></div>
+</div>
+<sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}">
+<div style="position:sticky;bottom:0;background:#293E5E;color:#fff;padding:18px 30px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 -8px 24px rgba(11,18,32,.16)">
+<div style="display:flex;gap:44px">
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#A9B8CE">Desviación de la sesión</span><span style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">{{ sesionLabel }}</span></div>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#A9B8CE">Colchón resultante</span><span style="font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">{{ colchonLabel }} · {{ mesesLabel }}</span></div>
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#A9B8CE">Fecha libre de deuda</span><span style="font-size:22px;font-weight:700">{{ deslizLabel }}</span></div>
+</div>
+<div style="display:flex;gap:10px">
+<button onClick="{{ discard }}" style="padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font-size:13.5px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,.12)">Descartar</button>
+<button onClick="{{ save }}" style="padding:10px 18px;border-radius:10px;border:none;background:#E5C9A8;color:#2B1D12;font-size:13.5px;font-weight:700;cursor:pointer" style-hover="background:#F0D7BB">Guardar cambios</button>
+</div>
+</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{ isDeuda }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 30px 34px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:23px;font-weight:700;color:#293E5E;letter-spacing:-.01em">Deuda</span><span style="font-size:13px;color:#5B6578">Elige una estrategia y la ruta se recalcula al momento.</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+<sc-for list="{{ estrategias }}" as="e" hint-placeholder-count="3">
+<div onClick="{{ e.onClick }}" style="{{ e.cardStyle }}">
+<span style="font-size:15px;font-weight:700">{{ e.nombre }}</span>
+<span style="font-size:12.5px;line-height:1.5;{{ e.subColor }}">{{ e.desc }}</span>
+<div style="display:flex;gap:22px;margin-top:4px">
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;{{ e.subColor }}">Libre en</span><span style="font-size:19px;font-weight:700">{{ e.meses }}</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;{{ e.subColor }}">Intereses</span><span style="font-size:19px;font-weight:700">{{ e.intereses }}</span></div>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:15px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;font-weight:700;color:#293E5E">Orden de ataque</span><span style="font-size:12.5px;color:#5B6578">{{ ordenNota }}</span></div>
+<sc-for list="{{ deudas }}" as="d" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:26px 1.4fr 1fr 1fr 2fr;align-items:center;gap:14px;border-top:1px solid #EEF1F5;padding-top:12px">
+<span style="width:24px;height:24px;border-radius:7px;background:#EEF1F5;color:#293E5E;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ d.pos }}</span>
+<span style="font-size:13.5px;font-weight:600">{{ d.nombre }}</span>
+<span style="font-size:13.5px;font-variant-numeric:tabular-nums;color:#2B3547">{{ d.saldo }}</span>
+<span style="font-size:13.5px;color:#8E5A43;font-weight:600">{{ d.tipo }}</span>
+<div style="height:9px;border-radius:5px;background:#EEF1F5;overflow:hidden"><div style="{{ d.barStyle }}"></div></div>
+</div>
+</sc-for>
+</div>
+<div style="background:#F7F4EF;border:1px solid #E9DECF;border-radius:14px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13.5px;font-weight:700;color:#8E5A43">Oferta en curso · subrogación hipoteca</span><span style="font-size:12.5px;color:#2B3547">2,4 % frente a 2,9 % actual. Ahorro estimado 4.180 € · caduca el 31 de agosto.</span></div>
+<button style="padding:9px 15px;border-radius:9px;border:1px solid #D9C7B2;background:#fff;color:#8E5A43;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#fff8f0">Comparar contra el plan</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDatos }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 30px 26px;display:flex;flex-direction:column;gap:18px;flex:1">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:23px;font-weight:700;color:#293E5E;letter-spacing:-.01em">Datos · importar extracto</span><span style="font-size:13px;color:#5B6578">Nada entra en el plan hasta el último paso.</span></div>
+<div style="display:flex;gap:8px">
+<sc-for list="{{ stepDefs }}" as="s" hint-placeholder-count="4"><div style="{{ s.style }}">{{ s.n }} · {{ s.t }}</div></sc-for>
+</div>
+</div>
+
+<sc-if value="{{ isStep1 }}" hint-placeholder-val="{{ true }}">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:26px;display:flex;flex-direction:column;gap:18px">
+<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid #EEF1F5">
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:15px;font-weight:700">extracto_julio_2026.csv</span><span style="font-size:12.5px;color:#5B6578">47 movimientos · 01 jul – 31 jul · Cuenta principal ****4471</span></div>
+<span style="font-size:12.5px;font-weight:600;color:#1F9D55">Formato reconocido</span>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#8A93A3">Con regla previa</span><span style="font-size:22px;font-weight:700;color:#293E5E">44</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#8A93A3">Piden decisión</span><span style="font-size:22px;font-weight:700;color:#8E5A43">3</span></div>
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#8A93A3">Posibles duplicados</span><span style="font-size:22px;font-weight:700;color:#8E5A43">2</span></div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStep2 }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;overflow:hidden">
+<sc-for list="{{ movRows }}" as="m" hint-placeholder-count="3">
+<div style="display:grid;grid-template-columns:70px 1.5fr 90px 1fr 300px;align-items:center;gap:14px;padding:15px 18px;border-top:1px solid #EEF1F5">
+<span style="font-size:12.5px;color:#8A93A3">{{ m.fecha }}</span>
+<span style="font-size:13.5px;font-weight:600">{{ m.concepto }}</span>
+<span style="font-size:13.5px;font-variant-numeric:tabular-nums;color:#2B3547">{{ m.imp }}</span>
+<span style="font-size:12.5px;color:#5B6578">Sugerencia: {{ m.sug }}</span>
+<div style="display:flex;gap:7px;justify-content:flex-end">
+<sc-for list="{{ m.opts }}" as="o" hint-placeholder-count="3"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStep3 }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;overflow:hidden">
+<sc-for list="{{ dups }}" as="d" hint-placeholder-count="2">
+<div style="display:grid;grid-template-columns:1.2fr 1.5fr 250px;align-items:center;gap:14px;padding:16px 18px;border-top:1px solid #EEF1F5">
+<span style="font-size:13.5px;font-weight:600">{{ d.concepto }}</span>
+<span style="font-size:12.5px;color:#5B6578">{{ d.nota }}</span>
+<div style="display:flex;gap:7px;justify-content:flex-end">
+<sc-for list="{{ d.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.onClick }}" style="{{ o.style }}">{{ o.label }}</button></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ isStep4 }}" hint-placeholder-val="{{ false }}">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px">
+<span style="font-size:15px;font-weight:700;color:#293E5E">Lo que va a cambiar en el plan de julio</span>
+<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8A93A3;padding-bottom:8px;border-bottom:1px solid #EEF1F5"><div>Partida</div><div>Actual</div><div>Tras importar</div><div>Desviación</div></div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;font-size:13.5px;padding:8px 0;border-bottom:1px solid #F3F5F8"><span style="font-weight:600">Compra semanal</span><span>480 €</span><span>592 €</span><span style="color:#B2452F;font-weight:600">+112 €</span></div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;font-size:13.5px;padding:8px 0;border-bottom:1px solid #F3F5F8"><span style="font-weight:600">Luz y gas</span><span>130 €</span><span>148 €</span><span style="color:#B2452F;font-weight:600">+18 €</span></div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;font-size:13.5px;padding:8px 0"><span style="font-weight:600">Sin clasificar</span><span>—</span><span>340 €</span><span style="color:#5B6578">a revisar</span></div>
+<sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+<div style="background:#EAF6EE;border:1px solid #C6E4D1;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:13.5px;font-weight:600;color:#1B7A45">47 movimientos incorporados · 3 reglas nuevas aprendidas</span>
+<button onClick="{{ reset }}" style="padding:8px 14px;border-radius:9px;border:1px solid #C6E4D1;background:#fff;color:#1B7A45;font-size:12.5px;font-weight:600;cursor:pointer">Repetir el recorrido</button>
+</div>
+</sc-if>
+</div>
+</sc-if>
+
+<div style="margin-top:auto;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #E2E6EC;padding-top:16px">
+<span style="font-size:12.5px;color:#8E5A43;font-weight:600">{{ blockNote }}</span>
+<div style="display:flex;gap:10px">
+<sc-if value="{{ showBack }}" hint-placeholder-val="{{ false }}"><button onClick="{{ back }}" style="padding:10px 16px;border-radius:10px;border:1px solid #D8DEE6;background:#fff;color:#2B3547;font-size:13.5px;font-weight:600;cursor:pointer">Atrás</button></sc-if>
+<button onClick="{{ next }}" style="{{ nextStyle }}">{{ nextLabel }}</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isCierre }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 30px 34px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:23px;font-weight:700;color:#293E5E;letter-spacing:-.01em">Cierre de julio</span><span style="font-size:13px;color:#5B6578">Las diferencias se resuelven como tareas, no como tablas.</span></div>
+<button onClick="{{ cerrarMes }}" style="{{ cierreBtnStyle }}">{{ cierreBtnLabel }}</button>
+</div>
+<div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:15px;font-weight:700;color:#293E5E">Pendiente de resolver</span><span style="font-size:12.5px;color:#5B6578">{{ tareasNota }}</span></div>
+<sc-for list="{{ tareas }}" as="t" hint-placeholder-count="4">
+<div style="{{ t.rowStyle }}">
+<div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:600;color:#0B1220">{{ t.titulo }}</span><span style="font-size:12.5px;color:#5B6578;line-height:1.5">{{ t.detalle }}</span></div>
+<button onClick="{{ t.onClick }}" style="{{ t.btnStyle }}">{{ t.btnLabel }}</button>
+</div>
+</sc-for>
+</div>
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+<span style="font-size:15px;font-weight:700;color:#293E5E">Confianza del dato</span>
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;font-size:13px"><span>Cuenta principal</span><span style="color:#1F9D55;font-weight:600">Cuadra</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px"><span>Tarjeta crédito</span><span style="{{ tarjetaStyle }}">{{ tarjetaLabel }}</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px"><span>Efectivo</span><span style="color:#5B6578;font-weight:600">Sin conciliar</span></div>
+</div>
+<div style="border-top:1px solid #EEF1F5;padding-top:12px;display:flex;flex-direction:column;gap:6px">
+<span style="font-size:12.5px;font-weight:700;color:#8E5A43">Al cerrar</span>
+<span style="font-size:12.5px;color:#2B3547;line-height:1.55">Los reales quedan congelados y se crea una versión nueva. Podrás reabrir el mes, pero quedará registrado.</span>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAjustes }}" hint-placeholder-val="{{ false }}">
+<div style="padding:28px 30px 34px;display:flex;flex-direction:column;gap:20px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:23px;font-weight:700;color:#293E5E;letter-spacing:-.01em">Ajustes</span><span style="font-size:13px;color:#5B6578">Cuentas, partidas y los umbrales que disparan los avisos.</span></div>
+<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+<span style="font-size:15px;font-weight:700;color:#293E5E">Cuentas</span>
+<div style="display:flex;justify-content:space-between;font-size:13px;border-top:1px solid #EEF1F5;padding-top:11px"><span>Cuenta principal ****4471</span><span style="color:#5B6578">CSV mensual</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;border-top:1px solid #EEF1F5;padding-top:11px"><span>Tarjeta crédito ****9902</span><span style="color:#5B6578">CSV mensual</span></div>
+<div style="display:flex;justify-content:space-between;font-size:13px;border-top:1px solid #EEF1F5;padding-top:11px"><span>Efectivo</span><span style="color:#5B6578">Manual</span></div>
+</div>
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+<span style="font-size:15px;font-weight:700;color:#293E5E">Umbrales de aviso</span>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;border-top:1px solid #EEF1F5;padding-top:11px"><span>Colchón mínimo</span><span style="font-weight:600">3 meses</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;border-top:1px solid #EEF1F5;padding-top:11px"><span>Desviación que avisa</span><span style="font-weight:600">±10 % por partida</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;border-top:1px solid #EEF1F5;padding-top:11px"><span>Ventana de duplicados</span><span style="font-weight:600">7 días</span></div>
+</div>
+<div style="background:#fff;border:1px solid #E8ECF1;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+<span style="font-size:15px;font-weight:700;color:#293E5E">Partidas</span>
+<span style="font-size:12.5px;color:#5B6578;line-height:1.55">18 partidas activas en 6 grupos. Las reglas aprendidas en la importación se asocian a la partida, no al comercio.</span>
+<button style="align-self:flex-start;padding:9px 14px;border-radius:9px;border:1px solid #D8DEE6;background:#fff;color:#293E5E;font-size:12.5px;font-weight:600;cursor:pointer">Editar partidas</button>
+</div>
+<div style="background:#F7F4EF;border:1px solid #E9DECF;border-radius:14px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+<span style="font-size:15px;font-weight:700;color:#8E5A43">Exportar</span>
+<span style="font-size:12.5px;color:#2B3547;line-height:1.55">Todo el histórico en CSV o el mes cerrado en PDF. La exportación incluye el registro de cambios.</span>
+<div style="display:flex;gap:9px"><button style="padding:9px 14px;border-radius:9px;border:1px solid #D9C7B2;background:#fff;color:#8E5A43;font-size:12.5px;font-weight:600;cursor:pointer">CSV completo</button><button style="padding:9px 14px;border-radius:9px;border:1px solid #D9C7B2;background:#fff;color:#8E5A43;font-size:12.5px;font-weight:600;cursor:pointer">PDF del mes</button></div>
+</div>
+</div>
+</div>
+</sc-if>
+
+</div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:880}}">
+class Component extends DCLogic {
+  state = {
+    nav: "hoy",
+    real: { hip: 780, luz: 130, compra: 480, cole: 310, ocio: 210, transp: 165 },
+    saved: { hip: 780, luz: 130, compra: 480, cole: 310, ocio: 210, transp: 165 },
+    step: 1,
+    cls: { m1: null, m2: null, m3: null },
+    dup: { d1: null, d2: null },
+    done: false,
+    estrategia: "avalancha",
+    tareas: { t1: false, t2: false, t3: false, t4: false },
+    cerrado: false
+  };
+
+  eur(n) { return (n < 0 ? "−" : "") + String(Math.abs(Math.round(n))).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " €"; }
+  go(k) { return () => this.setState({ nav: k }); }
+
+  renderVals() {
+    const st = this.state;
+    const plan = { hip: 780, luz: 130, compra: 480, cole: 310, ocio: 210, transp: 165 };
+    const defs = [
+      { id: "hip", label: "Hipoteca", cat: "Vivienda" },
+      { id: "luz", label: "Luz y gas", cat: "Suministros" },
+      { id: "compra", label: "Compra semanal", cat: "Alimentación" },
+      { id: "cole", label: "Colegio", cat: "Educación" },
+      { id: "ocio", label: "Ocio y restaurantes", cat: "Variable" },
+      { id: "transp", label: "Transporte", cat: "Variable" }
+    ];
+    const rows = defs.map(d => {
+      const real = st.real[d.id], delta = real - plan[d.id];
+      return {
+        ...d, real,
+        planLabel: this.eur(plan[d.id]),
+        deltaLabel: delta === 0 ? "—" : (delta > 0 ? "+" : "") + this.eur(delta),
+        deltaStyle: { fontSize: 13.5, fontVariantNumeric: "tabular-nums", fontWeight: 600, color: delta === 0 ? "#8A93A3" : delta > 0 ? "#B2452F" : "#1F9D55" },
+        rowStyle: { display: "grid", gridTemplateColumns: "1.7fr 1fr 1fr 1fr", alignItems: "center", padding: "11px 16px", borderTop: "1px solid #EEF1F5", background: real !== st.saved[d.id] ? "#FFF8F0" : "transparent" },
+        onChange: e => { const v = parseInt(String(e.target.value).replace(/[^0-9]/g, ""), 10); this.setState(s => ({ real: { ...s.real, [d.id]: isNaN(v) ? 0 : v } })); }
+      };
+    });
+    const sesion = defs.reduce((a, d) => a + (st.real[d.id] - st.saved[d.id]), 0);
+    const totalDelta = defs.reduce((a, d) => a + (st.real[d.id] - plan[d.id]), 0);
+    const dirty = sesion !== 0 || defs.some(d => st.real[d.id] !== st.saved[d.id]);
+    const colchon = 4180 - totalDelta;
+    const meses = (colchon / 2860).toFixed(1).replace(".", ",");
+    const desliz = Math.round(sesion / 120);
+    const realTotal = defs.reduce((a, d) => a + st.real[d.id], 0);
+    const planTotal = defs.reduce((a, d) => a + plan[d.id], 0);
+
+    const navDefs = [
+      { k: "hoy", label: "Hoy", badge: "3" },
+      { k: "plan", label: "Plan", badge: dirty ? "•" : "" },
+      { k: "deuda", label: "Deuda", badge: "" },
+      { k: "datos", label: "Datos", badge: "47" },
+      { k: "cierre", label: "Cierre", badge: "" },
+      { k: "ajustes", label: "Ajustes", badge: "" }
+    ];
+    const navItems = navDefs.map(n => ({
+      label: n.label, badge: n.badge,
+      onClick: this.go(n.k),
+      style: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "9px 12px", borderRadius: 9, fontSize: 13.5, fontWeight: 600, cursor: "pointer", color: st.nav === n.k ? "#fff" : "#8FA0BA", background: st.nav === n.k ? "rgba(255,255,255,.12)" : "transparent" },
+      badgeStyle: { fontSize: 11, fontWeight: 700, color: st.nav === n.k ? "#E5C9A8" : "#6E809C" }
+    }));
+
+    const mesesBand = ["A", "S", "O", "N", "D", "E", "F", "M", "A", "M", "J", "J"];
+    const vals = [0.92, 0.86, 0.78, 0.62, 0.55, 0.68, 0.74, 0.8, 0.85, 0.9, 0.95, 1];
+    const band = mesesBand.map((l, i) => ({
+      label: l,
+      barStyle: { width: "100%", height: Math.round(vals[i] * 96) + "px", borderRadius: "5px 5px 0 0", background: vals[i] < 0.65 ? "#C98B6B" : "#293E5E", opacity: vals[i] < 0.65 ? 1 : 0.82 }
+    }));
+
+    // deuda
+    const estDefs = [
+      { k: "avalancha", nombre: "Avalancha", desc: "Primero el interés más alto. La opción más barata en total.", meses: "26 meses", intereses: "3.140 €" },
+      { k: "bola", nombre: "Bola de nieve", desc: "Primero el saldo más pequeño. Más caro, más motivador.", meses: "28 meses", intereses: "3.520 €" },
+      { k: "consolidar", nombre: "Consolidar", desc: "Un solo préstamo al 4,1 %. Depende de que aprueben la operación.", meses: "24 meses", intereses: "2.780 €" }
+    ];
+    const estrategias = estDefs.map(e => {
+      const on = st.estrategia === e.k;
+      return {
+        ...e, onClick: () => this.setState({ estrategia: e.k }),
+        cardStyle: { display: "flex", flexDirection: "column", gap: 7, padding: "18px 20px", borderRadius: 14, cursor: "pointer", border: "1px solid " + (on ? "#293E5E" : "#E8ECF1"), background: on ? "#293E5E" : "#fff", color: on ? "#fff" : "#0B1220", boxShadow: on ? "0 6px 18px rgba(11,18,32,.14)" : "none" },
+        subColor: on ? "color:#A9B8CE" : "color:#5B6578"
+      };
+    });
+    const deudaBase = [
+      { id: "tarjeta", nombre: "Tarjeta crédito", saldoN: 2150, tipoN: 18.9 },
+      { id: "coche", nombre: "Préstamo coche", saldoN: 8900, tipoN: 6.4 },
+      { id: "familiar", nombre: "Préstamo familiar", saldoN: 3000, tipoN: 0 },
+      { id: "hipoteca", nombre: "Hipoteca", saldoN: 128400, tipoN: 2.9 }
+    ];
+    let orden;
+    if (st.estrategia === "avalancha") orden = [...deudaBase].sort((a, b) => b.tipoN - a.tipoN);
+    else if (st.estrategia === "bola") orden = [...deudaBase].sort((a, b) => a.saldoN - b.saldoN);
+    else orden = [...deudaBase].sort((a, b) => b.saldoN - a.saldoN);
+    const maxS = 128400;
+    const deudas = orden.map((d, i) => ({
+      pos: i + 1, nombre: d.nombre,
+      saldo: this.eur(d.saldoN),
+      tipo: d.tipoN.toFixed(1).replace(".", ",") + " %",
+      barStyle: { width: Math.max(4, Math.round(d.saldoN / maxS * 100)) + "%", height: "100%", borderRadius: 5, background: i === 0 ? "#8E5A43" : "#9AA7BC" }
+    }));
+    const ordenNota = st.estrategia === "avalancha" ? "Ordenado por tipo de interés, de mayor a menor" : st.estrategia === "bola" ? "Ordenado por saldo, del más pequeño al mayor" : "Todo pasa a un único préstamo; el orden es informativo";
+    const estSel = estDefs.find(e => e.k === st.estrategia);
+
+    // importador
+    const movs = [
+      { id: "m1", fecha: "04 jul", concepto: "MERCADONA 4271", imp: "−112 €", sug: "Compra semanal" },
+      { id: "m2", fecha: "09 jul", concepto: "TRF. CONCEPTO 8891", imp: "−340 €", sug: "Sin clasificar" },
+      { id: "m3", fecha: "17 jul", concepto: "IBERDROLA CLIENTES", imp: "−148 €", sug: "Luz y gas" }
+    ];
+    const btn = on => ({ padding: "6px 11px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid " + (on ? "#293E5E" : "#D8DEE6"), background: on ? "#293E5E" : "#fff", color: on ? "#fff" : "#2B3547" });
+    const movRows = movs.map(m => ({
+      ...m,
+      opts: ["Aceptar sugerencia", "Otra partida", "Ignorar"].map(l => ({ label: l, style: btn(st.cls[m.id] === l), onClick: () => this.setState(s => ({ cls: { ...s.cls, [m.id]: l } })) }))
+    }));
+    const dupsBase = [
+      { id: "d1", concepto: "Recibo colegio · 310 €", nota: "Ya registrado el 02 jul desde entrada manual" },
+      { id: "d2", concepto: "Gasolinera · 62 €", nota: "Importe idéntico el 11 jul, comercio distinto" }
+    ];
+    const dups = dupsBase.map(d => ({
+      ...d,
+      opts: ["Es duplicado", "Son distintos"].map(l => ({ label: l, style: btn(st.dup[d.id] === l), onClick: () => this.setState(s => ({ dup: { ...s.dup, [d.id]: l } })) }))
+    }));
+    const pendCls = movs.filter(m => !st.cls[m.id]).length;
+    const pendDup = dupsBase.filter(d => !st.dup[d.id]).length;
+    const step = st.step;
+    const stepDefs = [{ n: 1, t: "Cargar" }, { n: 2, t: "Clasificar" }, { n: 3, t: "Duplicados" }, { n: 4, t: "Incorporar" }].map(s => ({
+      ...s,
+      style: { padding: "7px 13px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, background: s.n === step ? "#293E5E" : s.n < step ? "#E4EAF2" : "transparent", color: s.n === step ? "#fff" : s.n < step ? "#293E5E" : "#8A93A3", border: "1px solid " + (s.n <= step ? "transparent" : "#E2E6EC") }
+    }));
+    const blocked = (step === 2 && pendCls > 0) || (step === 3 && pendDup > 0);
+
+    // cierre
+    const tareaDefs = [
+      { id: "t1", titulo: "3 movimientos sin clasificar", detalle: "340 € en la cuenta principal esperando partida." },
+      { id: "t2", titulo: "Tarjeta descuadra 62 €", detalle: "El extracto marca 1.284 € y el plan 1.222 €." },
+      { id: "t3", titulo: "Efectivo sin conciliar", detalle: "Última anotación el 12 de julio." },
+      { id: "t4", titulo: "Colegio duplicado", detalle: "Aparece en entrada manual y en el extracto." }
+    ];
+    const tareas = tareaDefs.map(t => {
+      const ok = st.tareas[t.id];
+      return {
+        ...t,
+        rowStyle: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, borderTop: "1px solid #EEF1F5", paddingTop: 13, opacity: ok ? 0.5 : 1 },
+        btnLabel: ok ? "Resuelto" : "Resolver",
+        btnStyle: { flex: "none", padding: "8px 14px", borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: ok ? "default" : "pointer", border: "1px solid " + (ok ? "#C6E4D1" : "#D8DEE6"), background: ok ? "#EAF6EE" : "#fff", color: ok ? "#1B7A45" : "#293E5E" },
+        onClick: () => this.setState(s => ({ tareas: { ...s.tareas, [t.id]: true } }))
+      };
+    });
+    const pendTareas = tareaDefs.filter(t => !st.tareas[t.id]).length;
+
+    return {
+      navItems,
+      isHoy: st.nav === "hoy", isPlan: st.nav === "plan", isDeuda: st.nav === "deuda",
+      isDatos: st.nav === "datos", isCierre: st.nav === "cierre", isAjustes: st.nav === "ajustes",
+      goDatos: this.go("datos"), goPlan: this.go("plan"),
+      colchonLabel: this.eur(colchon), mesesLabel: meses + " meses",
+      fechaLibre: estSel.k === "consolidar" ? "Ago 2028" : estSel.k === "bola" ? "Dic 2028" : "Oct 2028",
+      estrategiaLabel: estSel.nombre,
+      previstoLabel: this.eur(planTotal), realLabel: this.eur(realTotal),
+      totalLabel: (totalDelta > 0 ? "+" : "") + this.eur(totalDelta),
+      totalStyle: { fontWeight: 700, fontVariantNumeric: "tabular-nums", color: totalDelta > 0 ? "#B2452F" : totalDelta < 0 ? "#1F9D55" : "#0B1220" },
+      decisiones: [
+        { titulo: "47 movimientos sin incorporar", detalle: "El extracto de julio lleva dos días en la bandeja.", accion: "Importar", onClick: this.go("datos") },
+        { titulo: "El colchón baja del objetivo en noviembre", detalle: "Con el plan actual quedarían 2,1 meses de gasto.", accion: "Ver plan", onClick: this.go("plan") },
+        { titulo: "Oferta de subrogación caduca el 31 de agosto", detalle: "2,4 % frente al 2,9 % actual.", accion: "Comparar", onClick: this.go("deuda") }
+      ],
+      rows, dirty,
+      sesionLabel: (sesion > 0 ? "+" : "") + this.eur(sesion),
+      deslizLabel: desliz === 0 ? "sin cambio" : (desliz > 0 ? "+" : "−") + Math.abs(desliz) + " mes(es)",
+      estadoEdicion: dirty ? "Cambios sin guardar" : "Todo guardado",
+      meses: band,
+      save: () => this.setState(s => ({ saved: { ...s.real } })),
+      discard: () => this.setState(s => ({ real: { ...s.saved } })),
+      estrategias, deudas, ordenNota,
+      stepDefs, movRows, dups, blocked,
+      isStep1: step === 1, isStep2: step === 2, isStep3: step === 3, isStep4: step === 4,
+      showBack: step > 1, done: st.done,
+      nextLabel: step === 4 ? "Incorporar 47 movimientos" : "Continuar",
+      blockNote: step === 2 && pendCls > 0 ? pendCls + " movimiento(s) sin decidir" : step === 3 && pendDup > 0 ? pendDup + " duplicado(s) sin resolver" : "",
+      nextStyle: { padding: "10px 18px", borderRadius: 10, border: "none", fontSize: 13.5, fontWeight: 700, cursor: blocked ? "not-allowed" : "pointer", background: blocked ? "#C9D0DA" : "#293E5E", color: "#fff" },
+      next: () => { if (blocked) return; this.setState(s => s.step === 4 ? { done: true } : { step: s.step + 1 }); },
+      back: () => this.setState(s => ({ step: Math.max(1, s.step - 1), done: false })),
+      reset: () => this.setState({ step: 1, cls: { m1: null, m2: null, m3: null }, dup: { d1: null, d2: null }, done: false }),
+      tareas, tareasNota: pendTareas === 0 ? "Todo resuelto" : pendTareas + " de 4 pendientes",
+      tarjetaLabel: st.tareas.t2 ? "Cuadra" : "Descuadra 62 €",
+      tarjetaStyle: { fontWeight: 600, color: st.tareas.t2 ? "#1F9D55" : "#B2452F" },
+      cierreBtnLabel: st.cerrado ? "Julio cerrado" : pendTareas > 0 ? "Cerrar mes · " + pendTareas + " pendientes" : "Cerrar julio",
+      cierreBtnStyle: { padding: "10px 17px", borderRadius: 10, border: "none", fontSize: 13.5, fontWeight: 700, cursor: pendTareas > 0 || st.cerrado ? "not-allowed" : "pointer", background: st.cerrado ? "#EAF6EE" : pendTareas > 0 ? "#C9D0DA" : "#293E5E", color: st.cerrado ? "#1B7A45" : "#fff" },
+      cerrarMes: () => { if (pendTareas === 0) this.setState({ cerrado: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
