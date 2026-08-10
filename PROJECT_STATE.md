@@ -2,6 +2,39 @@
 
 Fecha de revisión: 10 de agosto de 2026.
 
+## Cierre de sesión — 10 de agosto de 2026: T-0, el contenedor de «Versiones anteriores»
+
+Segunda tarea del backlog nuevo. T-0 es el mecanismo que habilita las cinco relegaciones (V1-4, V2-8,
+V3-5, V4-6 y V5-3); **no mueve todavía ninguna pantalla**, eso es de cada una de esas cinco.
+
+**Qué se ha hecho.** La preferencia `legacy` en `e17Preferences()`, el encabezado «Versiones
+anteriores» en el menú avanzado y su interruptor en «Personalizar». Nace **visible**, que era la
+recomendación del backlog: relegar una pantalla no puede parecerse a perderla.
+
+**La decisión de diseño que evita una UI colgando.** Un encabezado sin enlaces debajo no dice nada, y
+un interruptor de un grupo vacío no tiene nada que encender: ambos se ocultan solos. Por eso, hoy,
+T-0 **no se ve** — el encabezado y la casilla aparecerán en cuanto la primera relegación llene el
+grupo. La regla es genérica, así que de paso arregla un detalle viejo: apagar «Análisis» dejaba su
+etiqueta flotando sobre la nada.
+
+**Lo que garantiza que relegar no sea perder.** «Buscar o abrir» busca sobre el catálogo entero de
+`e17-experience.js` y no consulta estas preferencias: con el grupo apagado, la pantalla heredada
+sigue encontrándose por su nombre. Queda cubierto por una prueba, para que nadie ate el lanzador a
+las preferencias del menú sin darse cuenta.
+
+**Validación** (`npm run verify`, exit 0): **420/420 pruebas** (412 antes + 8 nuevas en
+`tests/t0-versiones-anteriores.test.cjs`), accesibilidad (574 IDs únicos), rendimiento (diff 10.000
+filas en 31,6 ms; forecast y escenarios en 174,6 ms; recursos 1204 KB), build público, privacidad y
+smoke test.
+
+**QA en navegador real** a 1280×720 y 390×844, sobre el sitio construido: con el grupo vacío no
+aparecen ni encabezado ni interruptor; inyectando un enlace `legacy` —lo que hará V1-4— aparecen los
+dos; apagar el grupo esconde enlace y encabezado; «Ver navegación completa» devuelve `legacy: true`;
+y con el grupo apagado el lanzador sigue devolviendo la pantalla. Sin errores de consola propios ni
+desbordamiento horizontal.
+
+**Shell offline** a `20260810-t0a1`, con las pruebas que fijan la versión actualizadas.
+
 ## Cierre de sesión — 10 de agosto de 2026: V6-1, la reserva operativa deja de ser un número inalcanzable
 
 Primera tarea del backlog nuevo, y la que este señalaba como más desproporcionada: `state.operatingReserve`

@@ -51,7 +51,7 @@
               <small>Análisis, simulación y datos</small>
             </summary>
             <div class="advanced-nav-links">
-              <p class="advanced-nav-label">Decidir</p>
+              <p class="advanced-nav-label" data-e17-nav-label="decidir">Decidir</p>
               <a href="#new-life-simulation" data-e17-group="analysis">Escenarios de vida y deuda</a>
               <a href="#escenario-simular" data-e17-group="analysis">Escenario · simular (nuevo)</a>
               <a href="#escenario-guardados" data-e17-group="analysis">Escenario · guardados (nuevo)</a>
@@ -67,7 +67,7 @@
               <a href="#simulator" data-e17-group="analysis">Simulador</a>
               <a href="#alerts-center" data-e17-group="analysis">Centro de alertas</a>
 
-              <p class="advanced-nav-label">Analizar</p>
+              <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
               <a href="#cuadro-mandos" data-e17-group="analysis">Cuadro de mandos (nuevo)</a>
               <a href="#cambios-pendientes" data-e17-group="analysis">Cambios pendientes (nuevo)</a>
               <a href="#mapa-calor" data-e17-group="analysis">Mapa de calor (nuevo)</a>
@@ -76,7 +76,7 @@
               <a href="#savings-plan" data-e17-group="analysis">Plan ahorro</a>
               <a href="#cashflow" data-e17-group="analysis">Flujo mensual</a>
 
-              <p class="advanced-nav-label">Datos</p>
+              <p class="advanced-nav-label" data-e17-nav-label="datos">Datos</p>
               <a href="#registrar-mes" data-e17-group="data">Registrar el mes (nuevo)</a>
               <a href="#update-data" data-e17-group="data">Registrar reales del mes</a>
               <a href="#data-entry" data-e17-group="data">Carga de datos</a>
@@ -85,6 +85,8 @@
               <a href="#conciliar" data-e17-group="data">Conciliación (nuevo)</a>
               <a href="#reconciliation" data-e17-group="data">Conciliación</a>
               <a href="#operations-manual" data-e17-group="data">Guía operativa</a>
+
+              <p class="advanced-nav-label" data-e17-nav-label="legacy">Versiones anteriores</p>
             </div>
           </details>
         </nav>
@@ -2890,6 +2892,7 @@
         <label><input type="checkbox" data-e17-preference="analysis" checked /> Análisis y simulación</label>
         <label><input type="checkbox" data-e17-preference="assistants" checked /> Asistentes y recomendaciones</label>
         <label><input type="checkbox" data-e17-preference="data" checked /> Datos, auditoría y conciliación</label>
+        <label><input type="checkbox" data-e17-preference="legacy" checked /> Versiones anteriores (pantallas antiguas que siguen funcionando)</label>
       </fieldset>
       <div class="dialog-actions"><button type="button" class="secondary" id="e17ResetPreferences">Ver navegación completa</button><button type="button" id="e17SavePreferences">Guardar preferencias</button></div>
     </dialog>
@@ -2944,7 +2947,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260810v6a1"></script>
+    <script src="app.js?v=20260810t0a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
