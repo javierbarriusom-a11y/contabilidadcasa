@@ -50,6 +50,6 @@ test("V4-6 · el lanzador sigue encontrando Movimientos, esté el grupo encendid
 });
 
 test("V4-6 · el grupo relegado viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260811-t1a1/);
-  assert.match(html, /app\.js\?v=20260811t1a1/);
+  assert.match(worker, /20260811-v62a1/);
+  assert.match(html, /app\.js\?v=20260811v62a1/);
 });

@@ -2,6 +2,71 @@
 
 Fecha de revisión: 11 de agosto de 2026.
 
+## Cierre de sesión — 11 de agosto de 2026: V6-2, umbrales de aviso
+
+Pedido explícito del usuario tras confirmar que T-1/V6-3 se habían publicado: «pasa a V6-2».
+
+Las tres piezas que pedía V6-2 (colchón mínimo en meses, desviación por partida, ventana de
+duplicados) encajan en tres sitios distintos, cada una en el mecanismo que ya sabía resolver ese
+tipo de umbral — ninguna se construyó desde cero:
+
+- **Colchón mínimo en meses** es una regla más del framework de alertas que ya existía
+  (`UX_ALERT_METRICS`/`ALERT_METRICS`/`#alerts-center`): un metric+threshold+revisión es
+  exactamente lo que ese framework ya modelaba. Nueva entrada `minimumCashMonths`, calculada en
+  `alertMetricSnapshot()` reutilizando `safeCoverageMonths` sobre la liquidez mínima y la salida
+  media de los próximos 12 meses abiertos — el mismo cálculo que ya usa el pie de impacto de Plan,
+  no uno nuevo. Nueva regla por defecto `alert-cushion-months`, editable, pausable y con revisión
+  como cualquier otra.
+- **Ventana de duplicados** y **desviación por partida** no son alertas del hogar, son parámetros
+  de comportamiento, así que viven como ajustes propios en `#ajustes`, con el mismo patrón «vacío
+  es sin configurar, no cero» que ya usaba la reserva operativa (V6-1/V6-3). La ventana pasa de
+  ser la constante fija `DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS = 7` a un valor configurable
+  (`duplicateWindowDays()`) que los dos import de `datos-importar.js` piden explícitamente en vez
+  de depender del valor por defecto implícito del parámetro.
+
+**La omisión real, documentada y no escondida:** el umbral de desviación por partida es **un único
+porcentaje global**, no una lista de partidas concretas que se vigilan una a una. Ajustes informa
+—en una nota de solo lectura— cuántas partidas del mes abierto en Registrar el mes superan ese
+porcentaje, pero **Registrar el mes no cambia su tinte ni su filtro «Con desviación»**, que siguen
+contando cualquier diferencia como hacían antes de esta entrega. Tocar esa pantalla ya publicada
+para aplicar el umbral se dejó fuera a propósito, para no arriesgar una regresión en un sitio que
+nadie pidió tocar.
+
+**Qué cambió, exactamente:**
+- `ux-settings.js`: `minimumCashMonths` añadida a `ALERT_METRICS`.
+- `app.js`: entrada en `UX_ALERT_METRICS`; regla por defecto `alert-cushion-months`; cálculo en
+  `alertMetricSnapshot()`; `positiveIntegerFromField` (parseo compartido, entero positivo con
+  máximo opcional); `duplicateWindowDays()`/`handleDuplicateWindowChange`/
+  `syncDuplicateWindowControl`; `partidaDeviationThreshold()`/
+  `handlePartidaDeviationThresholdChange`/`syncPartidaDeviationControl`;
+  `registrarMesDeviationPercent` (desviación relativa, con un previsto de 0 € tratado como
+  desviación total en vez de dividir por cero); `ajustesPartidasOverThreshold`/
+  `renderAjustesPartidaNote`; los dos call-sites de `datosImportarDuplicateCandidates` y el
+  mensaje de «sin candidatos» pasan a usar `duplicateWindowDays()`; `saveScenarioSettings()`
+  persiste los dos ajustes nuevos como dato del hogar.
+- `index.html`: tarjeta «Umbrales propios» nueva en `#ajustes` (ventana de duplicados + umbral de
+  partida); la tarjeta de «Umbrales de aviso» deja de listar las tres piezas como pendientes;
+  versión de `app.js`, `ux-settings.js` y `design-tokens.css` bumped a `20260811v62a1`.
+- `design-tokens.css`: la fila flexible de controles (`.cuadro-mandos-controls`) se reutiliza
+  también dentro de `.e19-ajustes`, sin regla nueva.
+- Ocho archivos de test actualizan el canario de versión del shell; dos (`v4-4-importar-extracto`,
+  `v6-3-vista-ajustes`) se ajustan porque el comportamiento que comprobaban cambió a propósito; un
+  fichero nuevo (`v6-2-umbrales-aviso.test.cjs`, 11 pruebas) cubre lo que añade esta entrega.
+
+**Validación** (`npm run verify`, exit 0): **541/541 pruebas** (530 antes + 11 nuevas), **594 IDs
+únicos**, diff 10.000 filas en 49,9 ms, forecast/escenarios en 249,1 ms, recursos 1273 KB. QA de
+navegador servida desde `dist/`: **10/10 comprobaciones** — Ajustes abre por hash directo, los dos
+campos nuevos guardan y reflejan su valor, la nota de partida pasa de «sin umbral» a contar
+partidas tras configurarlo, la tarjeta de Umbrales navega a `#alerts-center`, «Colchón mínimo
+(meses)» aparece en el selector de indicador y la regla por defecto existe, e Importar extracto
+sigue cargando sin errores tras el cambio. Mismos dos avisos de red ajenos de siempre (CDN de
+Supabase bloqueado en este entorno; un 404 puntual no reproducido en una segunda pasada), ninguno
+nuevo.
+
+**Pendiente**: V6-4 (exportación única) sigue sin construir. Llevar el umbral de partida al tinte
+y al filtro de Registrar el mes queda como una mejora futura explícita, no como parte de esta
+entrega. T-2 (acento navy) sigue independiente y sin empezar.
+
 ## Cierre de sesión — 11 de agosto de 2026: T-1 completa, con la vista de Ajustes (V6-3)
 
 Pedido explícito del usuario tras la sesión anterior: «T1 completa, con vista de ajustes». Las dos

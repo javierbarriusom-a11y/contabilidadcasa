@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260811t1a1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260811v62a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1269,18 +1269,20 @@
             </div>
           </section>
 
-          <!-- V6-3 · reúne lo que hoy vive repartido: la reserva operativa se edita aquí de verdad
-               (V6-1 la alojaba en Cuadro de mandos solo hasta que existiera esta vista); cuentas,
-               partidas, umbrales y exportación siguen editándose donde ya vivían — cada tarjeta
-               lleva directamente ahí — porque construir un editor nuevo hoy duplicaría lógica sin
-               necesidad. Umbrales (V6-2) y una exportación única (V6-4) quedan pendientes, y
-               queda escrito en la propia tarjeta en vez de fingir que ya están hechos. -->
+          <!-- V6-3/V6-2 · reúne lo que hoy vive repartido: la reserva operativa y los dos umbrales
+               propios (ventana de duplicados, desviación por partida) se editan aquí de verdad; el
+               colchón mínimo en meses es una regla más del framework de alertas ya existente, así
+               que su tarjeta enlaza a Umbrales de aviso en vez de duplicar el editor; cuentas y
+               partidas siguen editándose donde ya vivían — cada tarjeta lleva directamente ahí —
+               porque construir un editor nuevo hoy duplicaría lógica sin necesidad. Solo la
+               exportación única (V6-4) queda pendiente, y queda escrito en su propia tarjeta en vez
+               de fingir que ya está hecha. -->
           <section class="e19-ajustes view-section" id="ajustes">
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Ajustes</p>
-                <h2 class="e19-heading">Cuentas, reserva, partidas y exportación en un mismo sitio</h2>
-                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La única excepción es la reserva operativa: se guarda desde aquí mismo.</p>
+                <h2 class="e19-heading">Cuentas, reserva, umbrales, partidas y exportación en un mismo sitio</h2>
+                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La reserva operativa y los dos umbrales de abajo son la excepción: se guardan desde aquí mismo.</p>
               </div>
             </div>
 
@@ -1292,6 +1294,22 @@
                 <input id="ajustesReserve" type="number" min="0" step="50" inputmode="decimal" placeholder="Sin configurar" />
               </label>
               <p class="e19-kpi-note" id="ajustesReserveNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
+              <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ventana de duplicados (días)</span>
+                  <input id="ajustesDuplicateWindow" type="number" min="1" max="60" step="1" inputmode="numeric" placeholder="7" />
+                </label>
+                <label class="month-picker">
+                  <span>Desviación por partida (%)</span>
+                  <input id="ajustesPartidaThreshold" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesPartidaNote"></p>
             </article>
 
             <div class="update-route-grid" id="ajustesRouteGrid">
@@ -1316,8 +1334,8 @@
               <button class="e19-route-card" type="button" data-home-nav="alerts-center">
                 <span class="e19-route-step">Umbrales de aviso</span>
                 <strong id="ajustesAlertsSummary">Reglas activas</strong>
-                <small>Caja, deuda y capacidad, con revisión y frecuencia.</small>
-                <em>Pendiente (V6-2): colchón en meses, desviación por partida y ventana de duplicados.</em>
+                <small>Caja, deuda, capacidad y colchón mínimo en meses, con revisión y frecuencia.</small>
+                <em>Ventana de duplicados y desviación por partida se guardan arriba, no aquí.</em>
               </button>
               <button class="e19-route-card" type="button" data-home-nav="cashflow">
                 <span class="e19-route-step">Exportar</span>
@@ -3061,12 +3079,12 @@
     <script src="snapshot-restore.js?v=20260731a"></script>
     <script src="durable-outbox.js?v=20260731e1"></script>
     <script src="remote-save-queue.js?v=20260731e4h"></script>
-    <script src="ux-settings.js?v=20260716a"></script>
+    <script src="ux-settings.js?v=20260811v62a1"></script>
     <script src="ux-shell.js?v=20260716a"></script>
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260811t1a1"></script>
+    <script src="app.js?v=20260811v62a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

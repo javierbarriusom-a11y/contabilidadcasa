@@ -2573,6 +2573,10 @@ function saveScenarioSettings() {
     // V6-1 · la reserva operativa del hogar. Vive aquí, junto al resto de la política del plan,
     // porque es un dato del hogar que se sincroniza y se restaura, no una preferencia del navegador.
     operatingReserve: round2(Math.max(0, Number(state.operatingReserve || 0))),
+    // V6-2 · los dos umbrales de Ajustes que no encajan como regla de alertas: 0 significa «sin
+    // configurar», igual que la reserva operativa.
+    duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
+    partidaDeviationThreshold: state.partidaDeviationThreshold ? Math.round(Math.max(1, Math.min(100, Number(state.partidaDeviationThreshold)))) : 0,
     autoCapSavings: state.autoCapSavings,
     incomeFactor: state.incomeFactor,
     expenseFactor: state.expenseFactor,
@@ -5161,6 +5165,14 @@ function applyHelpTooltips() {
   addHelpToControl(
     "ajustesReserve",
     "Colchón que quieres proteger, en euros. Es el suelo del pie de impacto de Plan, del color del mapa de calor y del comparador de deuda. Vacío significa sin reserva configurada, no cero.",
+  );
+  addHelpToControl(
+    "ajustesDuplicateWindow",
+    "Cuántos días de diferencia por el mismo importe cuentan como candidato a duplicado al importar un extracto. Vacío usa 7 días.",
+  );
+  addHelpToControl(
+    "ajustesPartidaThreshold",
+    "Porcentaje de desviación sobre lo previsto a partir del cual Ajustes avisa de una partida en Registrar el mes. Vacío significa que cualquier desviación sigue contando, como hasta ahora.",
   );
   addHelpToControl(
     "coreSpend",
@@ -15605,7 +15617,7 @@ function datosImportarBuildRows(transactions) {
       transaction,
       prior,
       suggestion: prior.status === "pendiente" ? datosImportarSuggestionFor(transaction) : null,
-      duplicates: datosImportarDuplicateCandidates(transaction, existing),
+      duplicates: datosImportarDuplicateCandidates(transaction, existing, duplicateWindowDays()),
       // decision: { tipo: "aceptar-sugerencia" | "otra-partida" (+ rowKey) | "ignorar" }, o null
       // mientras el paso 2 no la haya resuelto.
       decision: null,
@@ -15883,7 +15895,7 @@ function datosImportarRestoreSession() {
         transaction: saved.transaction,
         prior,
         suggestion: prior.status === "pendiente" ? datosImportarSuggestionFor(saved.transaction) : null,
-        duplicates: datosImportarDuplicateCandidates(saved.transaction, baseData.transactions || []),
+        duplicates: datosImportarDuplicateCandidates(saved.transaction, baseData.transactions || [], duplicateWindowDays()),
         decision: saved.decision || null,
         duplicateDecision: saved.duplicateDecision || null,
       };
@@ -16076,7 +16088,7 @@ function renderDatosImportarStep3() {
         <thead><tr><th>Candidato del fichero</th><th>Ya registrado</th><th>Decisión</th></tr></thead>
         <tbody>${pending.map((row) => datosImportarDuplicateRowMarkup(row)).join("")}</tbody>
       </table></div>`
-    : `<p class="e19-kpi-note">No hay candidatos a duplicado sin resolver. La ventana de comparación es de ${DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS} días por el mismo importe.</p>`;
+    : `<p class="e19-kpi-note">No hay candidatos a duplicado sin resolver. La ventana de comparación es de ${duplicateWindowDays()} días por el mismo importe.</p>`;
   panel.querySelectorAll("[data-datos-importar-duplicate]").forEach((button) => {
     button.addEventListener("click", () => handleDatosImportarDuplicado(button.dataset.datosImportarRowId, button.dataset.datosImportarDuplicate));
   });
@@ -17889,6 +17901,9 @@ function renderAjustesReserveNote() {
 function renderAjustes() {
   syncOperatingReserveControl();
   renderAjustesReserveNote();
+  syncDuplicateWindowControl();
+  syncPartidaDeviationControl();
+  renderAjustesPartidaNote();
 
   const balances = accountBalancesFromState();
   const accountsSummary = qs("ajustesAccountsSummary");
@@ -17903,6 +17918,115 @@ function renderAjustes() {
     const active = evaluatedUxAlerts().filter((alert) => !alert.paused);
     alertsSummary.textContent = active.length ? `${active.length} regla(s) activa(s)` : "Sin reglas activas todavía";
   }
+}
+
+/* ---- V6-2 · umbrales de aviso ------------------------------------------------------------------
+   El colchón mínimo en meses se resuelve como una regla más del framework de alertas que ya existía
+   (UX_ALERT_METRICS/alerts-center): es exactamente la clase de umbral que ese framework ya sabía
+   modelar, así que no hace falta un mecanismo nuevo. La ventana de duplicados y la desviación por
+   partida no encajan ahí —son parámetros de comportamiento, no un metric+threshold contra el
+   hogar—, así que viven como ajustes propios, con el mismo patrón que la reserva operativa: vacío
+   significa «sin configurar», no cero, y cada uno cae a su comportamiento de siempre. */
+function positiveIntegerFromField(raw, { max } = {}) {
+  const text = String(raw ?? "").trim();
+  if (!text) return 0;
+  const parsed = Math.round(Number(text));
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return max ? Math.min(parsed, max) : parsed;
+}
+
+function duplicateWindowDays() {
+  const configured = Number(state?.duplicateWindowDays || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS;
+}
+
+function handleDuplicateWindowChange(event) {
+  if (!state) return;
+  const next = positiveIntegerFromField(event.target.value, { max: 60 });
+  const previous = Number(state.duplicateWindowDays || 0);
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.duplicateWindowDays = next;
+  saveScenarioSettings();
+  announceStatus(
+    next > 0
+      ? `Ventana de duplicados guardada en ${next} día(s).`
+      : `Ventana de duplicados sin configurar: se usan ${DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS} días por defecto.`,
+  );
+}
+
+function syncDuplicateWindowControl() {
+  const field = qs("ajustesDuplicateWindow");
+  if (!field || document.activeElement === field) return;
+  const configured = Number(state?.duplicateWindowDays || 0);
+  field.value = configured > 0 ? String(configured) : "";
+}
+
+function partidaDeviationThreshold() {
+  const configured = Number(state?.partidaDeviationThreshold || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function handlePartidaDeviationThresholdChange(event) {
+  if (!state) return;
+  const next = positiveIntegerFromField(event.target.value, { max: 100 });
+  const previous = Number(state.partidaDeviationThreshold || 0);
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.partidaDeviationThreshold = next;
+  saveScenarioSettings();
+  announceStatus(
+    next > 0
+      ? `Umbral de desviación por partida guardado en ${next}%.`
+      : "Umbral de desviación por partida sin configurar: Registrar el mes sigue avisando de cualquier desviación.",
+  );
+  renderAjustesPartidaNote();
+}
+
+function syncPartidaDeviationControl() {
+  const field = qs("ajustesPartidaThreshold");
+  if (!field || document.activeElement === field) return;
+  field.value = partidaDeviationThreshold() > 0 ? String(partidaDeviationThreshold()) : "";
+}
+
+// Desviación relativa al previsto, en porcentaje. Un previsto de 0 € con cualquier real distinto de
+// cero es una desviación total (Infinity), no una división que haya que evitar mostrando "—".
+function registrarMesDeviationPercent(entry) {
+  if (!entry.hasActual) return null;
+  const planned = Math.abs(Number(entry.planned || 0));
+  const variance = Math.abs(Number(entry.variance || 0));
+  if (planned < 0.005) return variance < 0.005 ? 0 : Infinity;
+  return (variance / planned) * 100;
+}
+
+function ajustesPartidasOverThreshold() {
+  const threshold = partidaDeviationThreshold();
+  const month = registrarMesSelectedMonth();
+  if (!threshold || !month) return [];
+  const entries = registrarMesCollect(month);
+  return [...entries.income, ...entries.expense].filter(
+    (entry) => registrarMesIsBad(entry) && registrarMesDeviationPercent(entry) >= threshold,
+  );
+}
+
+function renderAjustesPartidaNote() {
+  const note = qs("ajustesPartidaNote");
+  if (!note) return;
+  const threshold = partidaDeviationThreshold();
+  if (!threshold) {
+    note.textContent = "Sin umbral configurado: Registrar el mes sigue avisando de cualquier desviación, sin distinguir tamaño.";
+    return;
+  }
+  const month = registrarMesSelectedMonth();
+  if (!month) {
+    note.textContent = `Umbral guardado en ${threshold}%, sin mes que comprobar todavía.`;
+    return;
+  }
+  const over = ajustesPartidasOverThreshold();
+  const monthName = registrarMesMonthName(month.key);
+  note.textContent = over.length
+    ? `${over.length} partida(s) de ${monthName} superan el ${threshold}% de desviación.`
+    : `Ninguna partida de ${monthName} supera el ${threshold}% de desviación.`;
 }
 
 function handleOperatingReserveChange(event) {
@@ -18728,6 +18852,9 @@ function renderHomePriority({ title, meta, value, target, status = "neutral" }) 
 const UX_ALERT_METRICS = {
   caixaBalance: { label: "Saldo CaixaBank", format: (value) => money(value, true) },
   minimumCash12m: { label: "Caja mínima 12 meses", format: (value) => money(value, true) },
+  // V6-2 · colchón mínimo en meses, la primera de las tres umbrales que pedía Ajustes. Reutiliza
+  // el mismo camino que safeCoverageMonths/coverageMonthsText ya usan en el pie de impacto.
+  minimumCashMonths: { label: "Colchón mínimo (meses)", format: (value) => `${Number(value || 0).toFixed(1)} meses` },
   debtRatio: { label: "Ratio deuda / ingresos", format: (value) => `${Number(value || 0).toFixed(1)}%` },
   freeCapacity: { label: "Capacidad libre mensual", format: (value) => money(value, true) },
 };
@@ -18775,6 +18902,19 @@ function defaultUxAlerts() {
       operator: "below",
       threshold: 500,
       action: "Revisar gasto variable, ahorro objetivo y proyectos todavía no fijados.",
+      reviewDate: uxDateAfterDays(30),
+      frequency: "weekly",
+      paused: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "alert-cushion-months",
+      name: "Colchón por debajo del mínimo en meses",
+      metric: "minimumCashMonths",
+      operator: "below",
+      threshold: 1,
+      action: "Revisar el pie de impacto de Plan y frenar gasto discrecional hasta recuperar colchón.",
       reviewDate: uxDateAfterDays(30),
       frequency: "weekly",
       paused: false,
@@ -18857,9 +18997,13 @@ function alertMetricSnapshot() {
   const minimumCash12m = rows.length
     ? Math.min(...rows.map((row) => Number(row.agentCaixa ?? row.caixa ?? balances.caixa ?? 0)))
     : Number(balances.caixa || 0);
+  const openRows = openSimulationRows(lastSimulation).slice(0, 12);
+  const minLiquidity = openRows.length ? Math.min(...openRows.map((row) => Number(row.totalLiquidity || 0))) : 0;
+  const avgOutflow = averageRows(openRows, (row) => Number(row.coreSpend || 0) + Number(row.car || 0) + Number(row.refi || 0));
   return {
     caixaBalance: round2(Number(balances.caixa || 0)),
     minimumCash12m: round2(minimumCash12m),
+    minimumCashMonths: round2(safeCoverageMonths(minLiquidity, avgOutflow) ?? 0),
     debtRatio: round2(Number(savings.debtToIncomeRatio || 0) * 100),
     freeCapacity: round2(Number(actionContext.capacity?.avgTransfer12m || 0)),
   };
@@ -22994,6 +23138,8 @@ async function init() {
   qs("cuadroMandosStart")?.addEventListener("change", renderCuadroMandos);
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
+  qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
+  qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
   qs("cuadroMandosTable")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-cuadro-cell]");
     if (input) handleCuadroMandosCellChange(input);

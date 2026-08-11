@@ -96,7 +96,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
-| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa editable, cuentas/partidas/umbrales/exportación enlazadas a donde ya se editan | — |
+| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); cuentas y partidas enlazadas a donde ya se editan | — |
 
 ### Lo que falta en cada una, medido
 
@@ -158,12 +158,14 @@ a su respaldo:
 - El comparador de deuda usaba un suelo de 0 € por defecto en vez de la reserva del hogar.
 
 Con la casilla puesta, las tres hablan de la misma cifra y cada una declara cuál está
-usando. `#ajustes` reúne cuentas, partidas, umbrales y exportación **enlazando a donde cada una
-ya se edita**, no reimplementando esos editores: duplicarlos habría arriesgado dos caminos que se
-desincronizan sin necesidad. Lo que sigue faltando son los umbrales de aviso propios que pide
-V6-2 (colchón en meses, desviación por partida, ventana de duplicados) y la exportación única de
-V6-4 — ambos documentados en la propia tarjeta de `#ajustes`, no escondidos. Sigue siendo el
-bloque con mejor relación esfuerzo/valor.
+usando. `#ajustes` reúne cuentas, partidas, umbrales y exportación: la reserva operativa, la
+ventana de duplicados y el umbral de desviación por partida se editan de verdad aquí (V6-2), el
+colchón mínimo en meses es una regla más del framework de alertas ya existente en
+`#alerts-center` (V6-2), y cuentas y partidas siguen **enlazando a donde cada una ya se edita**
+en vez de reimplementar esos formularios. Lo que sigue faltando es la exportación única de V6-4
+— documentada en su propia tarjeta, no escondida — y que el umbral de partida llegue a cambiar el
+tinte de Registrar el mes, hoy solo informa en Ajustes. Sigue siendo el bloque con mejor relación
+esfuerzo/valor.
 
 ---
 
@@ -240,7 +242,7 @@ Seis bloques que son las seis vistas, más uno transversal. Cada tarea lleva el 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | ✅ | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
-| V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | ⏳ | Media | Mockup 4f · Ajustes |
+| V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | 🟡 | Media | Mockup 4f · Ajustes · hecha el 11 de agosto de 2026 |
 | V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | 🟡 | Media | Mockup 4f · hecha el 11 de agosto de 2026 |
 | V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | ⏳ | Baja | Mockup 4f |
 
@@ -262,9 +264,28 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > reimplementan sus editores**: cada una enlaza a donde ese dato ya se edita de verdad
 > (`#visual-detail`, `#registrar-mes`, `#alerts-center`), porque construir un formulario nuevo
 > aquí duplicaría lógica sin necesidad, que es justo lo que el criterio del rediseño pide evitar.
-> Queda 🟡 y no ✅ a propósito: los umbrales que pide V6-2 (colchón en meses, desviación por
-> partida, ventana de duplicados) y la exportación única de V6-4 siguen sin existir, y la propia
-> vista lo dice en su tarjeta en vez de fingir que ya están hechos.
+> Queda 🟡 y no ✅ a propósito: cuando se escribió esta nota, los umbrales que pide V6-2 y la
+> exportación única de V6-4 seguían sin existir. V6-2 se hizo a continuación, en la misma sesión;
+> V6-4 sigue pendiente.
+
+> **V6-2, hecha el 11 de agosto de 2026, a continuación de V6-3.** Las tres piezas encajan en tres
+> sitios distintos, cada una en el que ya sabía resolver ese tipo de umbral:
+> - **Colchón mínimo en meses** es una regla más del framework de alertas que ya existía
+>   (`UX_ALERT_METRICS`/`#alerts-center`): un metric+threshold+revisión es exactamente lo que ese
+>   framework ya modelaba, así que no hacía falta un mecanismo nuevo. Reutiliza
+>   `safeCoverageMonths`, el mismo cálculo que ya usa el pie de impacto.
+> - **Ventana de duplicados** y **desviación por partida** no son alertas del hogar, son
+>   parámetros de comportamiento, así que viven como ajustes propios en `#ajustes`, con el mismo
+>   patrón «vacío es sin configurar, no cero» que ya usaba la reserva operativa. La ventana pasa de
+>   ser una constante fija (`DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS = 7`) a un valor configurable que
+>   los dos import de datos-importar piden explícitamente.
+>
+> Queda 🟡 por una omisión real, no por prudencia genérica: **el umbral de desviación por partida
+> es un único porcentaje global**, no una lista de partidas concretas que se vigilan una a una —
+> se informa en una nota de Ajustes cuántas partidas del mes abierto lo superan, pero **Registrar
+> el mes no cambia su tinte ni su filtro «Con desviación»**, que siguen contando cualquier
+> diferencia como hacían antes. Cambiar esa pantalla, que ya está publicada y en uso, se dejó fuera
+> a propósito para no arriesgar una regresión en un sitio que no pedía tocarse.
 
 ### V1 · Hoy
 
@@ -397,8 +418,11 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 7. ~~**T-1** · la navegación de seis vistas~~ y ~~**V6-3** · la vista `#ajustes`~~ — **completo el
    11 de agosto de 2026**, hechas juntas: la vista de Ajustes era el hueco que faltaba para poder
    construir un menú principal con seis pestañas reales.
-8. **V5-2** · confianza del dato por cuenta. **V6-2** · umbrales propios de Ajustes. **V6-4** ·
-   exportación única. **T-2** · el acento navy, si se quiere.
+8. ~~**V6-2** · umbrales de aviso~~ — **hecha el 11 de agosto de 2026**, a continuación de V6-3.
+   Queda 🟡 por una omisión escrita en su propia nota: el umbral de partida no cambia el tinte de
+   Registrar el mes, solo informa en Ajustes.
+9. **V5-2** · confianza del dato por cuenta. **V6-4** · exportación única. **T-2** · el acento
+   navy, si se quiere.
 
 Dos matices de orden que no son caprichosos:
 

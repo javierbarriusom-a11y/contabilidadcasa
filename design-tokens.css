@@ -2111,7 +2111,10 @@
 /* comparten `#cuadro-mandos`, `#cambios-pendientes` y `#mapa-calor`.                             */
 /* -------------------------------------------------------------------------------------------- */
 
-.e19-cuadro-mandos .cuadro-mandos-controls {
+/* V6-2 · los dos campos de «Umbrales propios» de Ajustes reutilizan la misma fila flexible que ya
+   usaban «Desde»/«Horizonte» en Cuadro de mandos, en vez de una regla nueva para el mismo patrón. */
+.e19-cuadro-mandos .cuadro-mandos-controls,
+.e19-ajustes .cuadro-mandos-controls {
   display: flex;
   align-items: flex-end;
   gap: 12px;

@@ -6,7 +6,7 @@
   "use strict";
 
   const FAMILY_CONTEXTS = ["household", "javi", "tere"];
-  const ALERT_METRICS = ["caixaBalance", "minimumCash12m", "debtRatio", "freeCapacity"];
+  const ALERT_METRICS = ["caixaBalance", "minimumCash12m", "minimumCashMonths", "debtRatio", "freeCapacity"];
 
   function normalizeText(value) {
     return String(value || "")
