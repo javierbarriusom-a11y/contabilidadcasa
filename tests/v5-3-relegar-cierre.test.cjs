@@ -51,6 +51,6 @@ test("V5-3 · el lanzador sigue ofreciendo Conciliar y Datos y auditoría", () =
 });
 
 test("V5-3 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-v44a1/);
-  assert.match(html, /app\.js\?v=20260810v44a1/);
+  assert.match(worker, /20260810-v14a1/);
+  assert.match(html, /app\.js\?v=20260810v14a1/);
 });

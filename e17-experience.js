@@ -23,7 +23,7 @@
     { target: "conciliar", label: "Conciliación (nuevo)", group: "data", keywords: "conciliacion cerrar mes tareas extracto nuevo e20" },
     { target: "asesor-decision", label: "Asesor ejecutivo (nuevo)", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
     { target: "debt-roadmap", label: "Plan de deuda", group: "legacy", keywords: "deuda negociar ofertas cuota refinanciacion" },
-    { target: "savings-agent", label: "Objetivos y ahorro", group: "analysis", keywords: "objetivos huchas aportaciones ahorro" },
+    { target: "savings-agent", label: "Objetivos y ahorro", group: "legacy", keywords: "objetivos huchas aportaciones ahorro" },
     { target: "movements", label: "Movimientos", group: "legacy", keywords: "movimientos banco categorias buscar" },
     { target: "reconciliation", label: "Conciliar", group: "legacy", keywords: "conciliacion extracto saldo diferencias" },
     { target: "data-entry", label: "Carga de datos", group: "data", keywords: "importar csv excel datos lote" },
@@ -40,7 +40,12 @@
     // usuario recuerda es el nombre de la pantalla, que es justo para lo que existe el lanzador.
     { target: "debt-liquidation-plan", label: "Plan deuda óptimo", group: "legacy", keywords: "deuda liquidacion optimo orden amortizar plan entidades" },
     { target: "debt-control", label: "Control de deuda", group: "legacy", keywords: "control deuda estrategia reserva aplicar revision" },
-    { target: "alerts-center", label: "Centro de alertas", group: "analysis", keywords: "alertas riesgo caja deuda capacidad" },
+    { target: "alerts-center", label: "Centro de alertas", group: "legacy", keywords: "alertas riesgo caja deuda capacidad" },
+    // V1-4 relega las dos últimas heredadas de Hoy que quedaban en «Decidir». `#executive-advisor` y
+    // `#virtual-advisor` no tenían entrada propia en el lanzador —solo la tenía su reemplazo, «Asesor
+    // ejecutivo (nuevo)»—, así que sin esta línea el grupo apagado las habría dejado sin ninguna vía.
+    { target: "executive-advisor", label: "Asesor ejecutivo", group: "legacy", keywords: "asesor ejecutivo consejos prioridades decisiones" },
+    { target: "virtual-advisor", label: "Asesor virtual", group: "legacy", keywords: "asesor virtual chat preguntas ahorro" },
   ]);
 
   const GUIDANCE = Object.freeze({

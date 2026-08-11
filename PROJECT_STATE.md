@@ -1,6 +1,52 @@
 # Estado del proyecto
 
-Fecha de revisión: 10 de agosto de 2026.
+Fecha de revisión: 11 de agosto de 2026.
+
+## Cierre de sesión — 11 de agosto de 2026: V4-4 confirmada y V1-4, la quinta relegación
+
+**V4-4 pasa de 🟡 a ✅**: el usuario confirmó en el sitio publicado la importación en cuatro
+pasos entregada el 10 de agosto. Con esto no queda ninguna tarea de prioridad Alta pendiente en
+el backlog.
+
+**V1-4** releva las cuatro últimas heredadas de Hoy que quedaban en el menú «Decidir» —
+`#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center`— a «Versiones
+anteriores», el mismo patrón usado por V2-8, V3-5, V4-6 y V5-3. Con esta, diecisiete de las
+dieciocho heredadas del inventario están relegadas; la única que queda fuera es
+`#new-life-definitive`, que es pestaña principal y nunca fue una heredada que mover.
+
+**Qué cambió, exactamente:**
+- `index.html`: los cuatro enlaces salen de la sección «Decidir» del menú avanzado y entran en
+  «Versiones anteriores», en la posición que tenían en el menú original —justo después de las
+  tres de Deuda (V3-5) y antes de `#simulator`, la primera de las de V2-8—, siguiendo la misma
+  regla de posición que las trece relegaciones anteriores.
+- `e17-experience.js`: `#savings-agent` y `#alerts-center` solo cambian de grupo, porque ya
+  tenían entrada en el lanzador. `#executive-advisor` y `#virtual-advisor` no la tenían —su único
+  acceso era el nombre de su reemplazo, «Asesor ejecutivo (nuevo)»—, así que se les añade una,
+  como ya se hizo con las dos heredadas de Deuda que tampoco la tenían en V3-5.
+- Relegar no es desconectar: `data-home-nav="alerts-center"` (la tarjeta de Hoy) y
+  `data-home-nav="savings-agent"` (el enlace de `#virtual-advisor`) siguen igual, y las cuatro
+  vistas siguen pintándose por su `case` de siempre en `renderActiveSection`.
+- `tests/v3-5-relegar-deuda.test.cjs` tenía una prueba que fijaba el grupo relegado en «trece
+  pantallas» y afirmaba que estas cuatro seguían fuera «porque es trabajo de V1-4, no de V3-5» —
+  cierto en su momento, falso ahora que V1-4 existe. Se ajusta para verificar solo lo que sigue
+  siendo cierto: las tres de V3-5 siguen dentro y sin duplicados.
+
+**Validación** (`npm run verify`, exit 0): **518/518 pruebas** (511 antes + 7 nuevas en
+`tests/v1-4-relegar-hoy.test.cjs`), **585 IDs únicos**, diff 10.000 filas en **51.1 ms**,
+forecast y escenarios en **332.5 ms**, recursos **1263 KB**. QA de navegador servida desde
+`dist/`: 8/8 comprobaciones funcionales en verde (grupo `legacy`, el interruptor oculta el
+encabezado y el enlace, el lanzador encuentra «Asesor ejecutivo» con el grupo apagado, las
+cuatro vistas siguen renderizando al navegar directo). La QA registró además dos avisos de red
+ajenos al cambio —el CDN de Supabase bloqueado en este entorno sin salida a internet, ya visto
+en entregas anteriores, y un 404 puntual sin URL capturable que se reprodujo igual con el menú
+recién abierto y sin relación aparente con los cuatro enlaces movidos—, ninguno de los dos
+nuevo ni causado por esta entrega.
+
+**Pendiente de decidir con el usuario:** T-1 («adoptar la navegación de seis vistas») no se
+empezó todavía. El propio `BACKLOG.md` documenta que reordenar el menú principal es su trabajo,
+y la vista de Ajustes (V6-3) —una de las seis— todavía no existe, así que un menú principal con
+seis pestañas reales no es construible hoy sin decidir antes cómo tratar esa vista que falta.
+Se traslada la pregunta al usuario en vez de asumir un alcance.
 
 ## Cierre de sesión — 10 de agosto de 2026: V4-4, importación en cuatro pasos
 

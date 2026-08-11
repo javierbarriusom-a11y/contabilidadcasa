@@ -56,11 +56,18 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // El grupo relegado sigue el orden que tenían las pantallas en el propio menú: primero lo que
   // estaba en Decidir (V2-8 y V3-5, intercaladas según su posición original) y en Analizar (V2-8),
   // luego Datos (V4-6) y por último Cierre (V5-3).
+  // V1-4 añade las cuatro últimas heredadas de Decidir: iban justo después de `#asesor-decision`
+  // en el menú original, que es después de las tres de deuda (V3-5) y antes de `#simulator`
+  // (primera de Analizar, V2-8) — la misma regla de posición original que las trece anteriores.
   assert.deepEqual(byGroup.legacy, [
     "new-life-simulation",
     "debt-roadmap",
     "debt-liquidation-plan",
     "debt-control",
+    "executive-advisor",
+    "virtual-advisor",
+    "savings-agent",
+    "alerts-center",
     "simulator",
     "visual-detail",
     "savings-plan",
@@ -71,7 +78,7 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
     "reconciliation",
     "operations-manual",
   ]);
-  assert.deepEqual(byGroup.assistants, ["asesor-decision", "executive-advisor", "virtual-advisor"]);
-  assert.equal(byGroup.analysis.length, 11, "Decidir y Analizar suman once enlaces");
+  assert.deepEqual(byGroup.assistants, ["asesor-decision"]);
+  assert.equal(byGroup.analysis.length, 9, "Decidir y Analizar suman nueve enlaces tras V1-4");
   assert.equal(links.length, 31, "treinta y un enlaces en el menú avanzado, con V4-4");
 });

@@ -68,20 +68,15 @@ test("V3-5 · el lanzador alcanza las dos que solo vivían en el menú", () => {
   );
 });
 
-test("V3-5 · el grupo relegado llega a trece pantallas y ninguna se pierde por el camino", () => {
-  // Trece de las dieciocho heredadas del inventario. Las cinco que quedan son las cuatro de Hoy
-  // (V1-4) y `#new-life-definitive`, que es pestaña principal y no se relega aquí.
+test("V3-5 · las tres heredadas de Deuda siguen relegadas, sin duplicados", () => {
+  // En su día llegó a trece de las dieciocho; V1-4 sumó las cuatro de Hoy después. Esta prueba ya
+  // no fija ese total —es trabajo de la prueba de V1-4—, solo que las tres de V3-5 siguen dentro.
   const legacy = navLinks.filter((link) => link.group === "legacy").map((link) => link.view);
-  assert.equal(legacy.length, 13);
   for (const view of RELEGADAS) assert.ok(legacy.includes(view));
   assert.equal(new Set(legacy).size, legacy.length, "ningún enlace duplicado al mover los tres");
-  // Y las cuatro heredadas de Hoy siguen fuera: V3-5 no las toca.
-  for (const view of ["executive-advisor", "virtual-advisor", "savings-agent", "alerts-center"]) {
-    assert.notEqual(groupOf(view), "legacy", `${view} es trabajo de V1-4, no de V3-5`);
-  }
 });
 
 test("V3-5 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-v44a1/);
-  assert.match(html, /app\.js\?v=20260810v44a1/);
+  assert.match(worker, /20260810-v14a1/);
+  assert.match(html, /app\.js\?v=20260810v14a1/);
 });
