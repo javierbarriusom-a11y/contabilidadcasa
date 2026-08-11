@@ -2118,12 +2118,8 @@
   flex-wrap: wrap;
 }
 
-/* V6-1 · la reserva operativa comparte fila con «Desde» y «Horizonte»: hereda el alto y el borde
-   de los selectores vecinos para que la fila no quede desalineada. */
-.e19-cuadro-mandos .cuadro-mandos-reserve {
-  min-width: 170px;
-}
-
+/* V6-3 · la reserva operativa se edita en Ajustes; esta nota de solo lectura es lo único que
+   queda de ella en Cuadro de mandos. */
 .e19-cuadro-mandos .cuadro-mandos-reserve-note {
   display: block;
   margin-top: 12px;

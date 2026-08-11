@@ -77,8 +77,12 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
     "data-audit",
     "reconciliation",
     "operations-manual",
+    // T-1 releva la decimoctava y última heredada del inventario: hasta ahora quedaba fuera del
+    // grupo únicamente porque era pestaña principal («Decidir»). Va al final, no a su posición
+    // original, porque nunca tuvo una dentro de este menú.
+    "new-life-definitive",
   ]);
   assert.deepEqual(byGroup.assistants, ["asesor-decision"]);
   assert.equal(byGroup.analysis.length, 9, "Decidir y Analizar suman nueve enlaces tras V1-4");
-  assert.equal(links.length, 31, "treinta y un enlaces en el menú avanzado, con V4-4");
+  assert.equal(links.length, 32, "treinta y dos enlaces en el menú avanzado, con T-1");
 });

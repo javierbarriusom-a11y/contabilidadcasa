@@ -12,8 +12,8 @@ const tokens = read("design-tokens.css");
 const worker = read("service-worker.js");
 
 // `app.js` es un script de navegador, no un módulo: no se puede `require`. Para probar de verdad
-// —y no solo por coincidencia de texto— el comportamiento de V6-1, se extraen sus funciones por
-// nombre balanceando llaves y se ejecutan en un contexto con los mínimos ayudantes que usan.
+// —y no solo por coincidencia de texto— el comportamiento de V6-1/V6-3, se extraen sus funciones
+// por nombre balanceando llaves y se ejecutan en un contexto con los mínimos ayudantes que usan.
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `No existe la función ${name} en app.js`);
@@ -33,6 +33,7 @@ const RESERVE_FUNCTIONS = [
   "operatingReserveFromField",
   "syncOperatingReserveControl",
   "renderCuadroMandosReserveNote",
+  "renderAjustesReserveNote",
   "handleOperatingReserveChange",
   "renderDeudaCompararReserveNote",
 ];
@@ -66,7 +67,7 @@ function sandbox({ reserve, fields = {}, focus = null, debtStrategyReserveValue 
 
 test("V6-1 · escribir un importe lo guarda como reserva operativa del hogar", () => {
   const input = field("1200,50");
-  const { context, saves, announcements, renders } = sandbox({ fields: { cuadroMandosReserve: input } });
+  const { context, saves, announcements, renders } = sandbox({ fields: { ajustesReserve: input } });
 
   context.handleOperatingReserveChange({ target: input });
 
@@ -79,7 +80,7 @@ test("V6-1 · escribir un importe lo guarda como reserva operativa del hogar", (
 
 test("V6-1 · vaciar la casilla significa «sin reserva», no cero, y devuelve cada pantalla a su respaldo", () => {
   const input = field("");
-  const { context, saves, announcements } = sandbox({ reserve: 1200, fields: { cuadroMandosReserve: input } });
+  const { context, saves, announcements } = sandbox({ reserve: 1200, fields: { ajustesReserve: input } });
 
   context.handleOperatingReserveChange({ target: input });
 
@@ -92,7 +93,7 @@ test("V6-1 · vaciar la casilla significa «sin reserva», no cero, y devuelve c
 test("V6-1 · un importe negativo o no interpretable nunca se guarda como reserva", () => {
   for (const raw of ["-50", "abc", "0", "   "]) {
     const input = field(raw);
-    const { context } = sandbox({ reserve: 900, fields: { cuadroMandosReserve: input } });
+    const { context } = sandbox({ reserve: 900, fields: { ajustesReserve: input } });
     context.handleOperatingReserveChange({ target: input });
     assert.equal(context.state.operatingReserve, 0, `«${raw}» no debe quedar como reserva`);
     assert.equal(input.value, "");
@@ -101,7 +102,7 @@ test("V6-1 · un importe negativo o no interpretable nunca se guarda como reserv
 
 test("V6-1 · reescribir el mismo importe no vuelve a guardar ni a recalcular", () => {
   const input = field("1500");
-  const { context, saves, renders } = sandbox({ reserve: 1500, fields: { cuadroMandosReserve: input } });
+  const { context, saves, renders } = sandbox({ reserve: 1500, fields: { ajustesReserve: input } });
 
   context.handleOperatingReserveChange({ target: input });
 
@@ -110,38 +111,52 @@ test("V6-1 · reescribir el mismo importe no vuelve a guardar ni a recalcular", 
   assert.equal(context.state.operatingReserve, 1500);
 });
 
-test("V6-1 · la casilla refleja lo guardado y respeta lo que se está escribiendo", () => {
+test("V6-3 · la casilla de Ajustes refleja lo guardado y respeta lo que se está escribiendo", () => {
   const input = field("");
-  const { context } = sandbox({ reserve: 2000, fields: { cuadroMandosReserve: input } });
+  const { context } = sandbox({ reserve: 2000, fields: { ajustesReserve: input } });
   context.syncOperatingReserveControl();
   assert.equal(input.value, "2000");
 
   const vacia = field("");
-  const sinReserva = sandbox({ fields: { cuadroMandosReserve: vacia } });
+  const sinReserva = sandbox({ fields: { ajustesReserve: vacia } });
   sinReserva.context.syncOperatingReserveControl();
   assert.equal(vacia.value, "");
 
   const escribiendo = field("34");
-  const enFoco = sandbox({ reserve: 2000, fields: { cuadroMandosReserve: escribiendo }, focus: escribiendo });
+  const enFoco = sandbox({ reserve: 2000, fields: { ajustesReserve: escribiendo }, focus: escribiendo });
   enFoco.context.syncOperatingReserveControl();
   assert.equal(escribiendo.value, "34");
 });
 
-test("V6-1 · el Cuadro de mandos declara qué suelo está en uso en las tres pantallas", () => {
+test("V6-3 · Ajustes declara qué suelo está en uso en las tres pantallas que lo consumen", () => {
   const note = field();
-  const configurada = sandbox({ reserve: 1800, fields: { cuadroMandosReserveNote: note } });
-  configurada.context.renderCuadroMandosReserveNote();
+  const configurada = sandbox({ reserve: 1800, fields: { ajustesReserveNote: note } });
+  configurada.context.renderAjustesReserveNote();
   assert.match(note.textContent, /Reserva operativa: 1800 €/);
   assert.match(note.textContent, /mapa de calor/);
   assert.match(note.textContent, /comparador de deuda/);
 
   const vacia = field();
-  const sinConfigurar = sandbox({ fields: { cuadroMandosReserveNote: vacia } });
-  sinConfigurar.context.renderCuadroMandosReserveNote();
+  const sinConfigurar = sandbox({ fields: { ajustesReserveNote: vacia } });
+  sinConfigurar.context.renderAjustesReserveNote();
   assert.match(vacia.textContent, /Sin reserva operativa configurada/);
   assert.match(vacia.textContent, /meses en negativo/);
   assert.match(vacia.textContent, /un mes de salidas/);
   assert.match(vacia.textContent, /suelo de 0 €/);
+});
+
+test("V6-3 · Cuadro de mandos pasa a ser un consumidor más, con nota de solo lectura", () => {
+  const note = field();
+  const configurada = sandbox({ reserve: 1800, fields: { cuadroMandosReserveNote: note } });
+  configurada.context.renderCuadroMandosReserveNote();
+  assert.match(note.textContent, /Reserva operativa: 1800 €/);
+  assert.match(note.textContent, /Ajustes/);
+
+  const vacia = field();
+  const sinConfigurar = sandbox({ fields: { cuadroMandosReserveNote: vacia } });
+  sinConfigurar.context.renderCuadroMandosReserveNote();
+  assert.match(vacia.textContent, /Sin reserva operativa configurada/);
+  assert.match(vacia.textContent, /Ajustes/);
 });
 
 test("V6-1 · el comparador de deuda dice de dónde sale la cifra de su casilla", () => {
@@ -168,7 +183,7 @@ test("V6-1 · el comparador de deuda dice de dónde sale la cifra de su casilla"
   const sinReserva = sandbox({ fields: { deudaCompararReserveNote: sinNada } });
   sinReserva.context.renderDeudaCompararReserveNote();
   assert.match(sinNada.textContent, /suelo de 0 €/);
-  assert.match(sinNada.textContent, /Cuadro de mandos/);
+  assert.match(sinNada.textContent, /Ajustes/);
 });
 
 test("V6-1 · la reserva se persiste y se sincroniza como un dato más del hogar", () => {
@@ -177,13 +192,14 @@ test("V6-1 · la reserva se persiste y se sincroniza como un dato más del hogar
   assert.ok(settings.indexOf("operatingReserve") < settings.indexOf("queueRemoteSave"));
 });
 
-test("V6-1 · el control vive en el Cuadro de mandos, con ayuda y sin romper el shell offline", () => {
-  assert.match(html, /id="cuadroMandosReserve"/);
+test("V6-3 · el control vive en Ajustes, con ayuda y sin romper el shell offline", () => {
+  assert.match(html, /id="ajustesReserve"/);
+  assert.match(html, /id="ajustesReserveNote"/);
   assert.match(html, /id="cuadroMandosReserveNote"/);
   assert.match(html, /id="deudaCompararReserveNote"/);
-  assert.match(app, /qs\("cuadroMandosReserve"\)\?\.addEventListener\("change", handleOperatingReserveChange\)/);
-  assert.match(app, /addHelpToControl\(\s*"cuadroMandosReserve"/);
-  assert.match(tokens, /\.cuadro-mandos-reserve\b/);
-  assert.match(worker, /20260810-v14a1/);
-  assert.match(html, /app\.js\?v=20260810v14a1/);
+  assert.match(app, /qs\("ajustesReserve"\)\?\.addEventListener\("change", handleOperatingReserveChange\)/);
+  assert.match(app, /addHelpToControl\(\s*"ajustesReserve"/);
+  assert.match(tokens, /\.cuadro-mandos-reserve-note\b/);
+  assert.match(worker, /20260811-t1a1/);
+  assert.match(html, /app\.js\?v=20260811t1a1/);
 });

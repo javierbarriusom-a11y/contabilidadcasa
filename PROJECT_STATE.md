@@ -2,6 +2,81 @@
 
 Fecha de revisión: 11 de agosto de 2026.
 
+## Cierre de sesión — 11 de agosto de 2026: T-1 completa, con la vista de Ajustes (V6-3)
+
+Pedido explícito del usuario tras la sesión anterior: «T1 completa, con vista de ajustes». Las dos
+tareas se hacen juntas porque una desbloqueaba a la otra — un menú principal con seis pestañas
+reales no era construible sin que existiera antes la sexta vista.
+
+**T-1 — navegación de seis vistas.** Los cuatro verbos de la navegación principal (Hoy,
+Actualizar, Prever, Decidir) se sustituyen por las seis vistas del rediseño: Hoy (`#home`, sin
+cambios), Plan (`#cuadro-mandos`), Deuda (`#deuda-ruta`), Datos (`#update-hub`, solo cambia la
+etiqueta), Cierre (`#conciliar`, nueva como pestaña) y Ajustes (`#ajustes`, nueva pantalla). «Prever»
+(`#forecast`) pierde la pestaña pero no se releva: sigue con piel nueva y alcanzable desde el menú
+avanzado, como ya lo estaba. «Decidir» (`#new-life-definitive`) sí se releva a «Versiones
+anteriores» — es la decimoctava y última heredada del inventario de `BACKLOG.md` §1; quedaba fuera
+solo porque era pestaña principal, no porque su función siguiera sin cubrir por el motor de
+escenarios nuevo y `#asesor-decision`. Ninguna heredada se retira ni se desconecta: el mecanismo de
+T-0 (grupo `legacy`, preferencia por defecto en `true`) no cambia.
+
+**V6-3 — vista `#ajustes`.** La reserva operativa (V6-1) se traslada de `#cuadro-mandos`, donde
+vivía solo «hasta que existiera Ajustes» según su propio comentario en el código, a `#ajustes`
+—ahora se guarda de verdad ahí—. `#cuadro-mandos` pasa a ser un consumidor más, con una nota de
+solo lectura igual que ya tenía el comparador de deuda («Es tu reserva operativa, edítala en
+Ajustes»). Las otras tres tarjetas de la vista —Cuentas, Partidas y Umbrales de aviso— **no
+reimplementan sus editores**: cada una enlaza a donde ese dato ya se edita de verdad
+(`#visual-detail`, `#registrar-mes`/`#visual-detail`, `#alerts-center`), porque construir un
+formulario nuevo aquí habría duplicado lógica existente sin necesidad — la investigación previa a
+esta entrega confirmó que no hay gestión de cuentas más allá de esos dos saldos, que las partidas
+ya tienen alta/baja/renombrado en `#visual-detail`, y que los umbrales de `#alerts-center` no cubren
+lo que pide V6-2 (colchón en meses, desviación por partida, ventana de duplicados — ese último es
+hoy una constante fija en el código, sin UI). La tarjeta de Exportar enlaza al único CSV completo
+de la app (`#cashflow`) y documenta que evidencia/inventario se descargan aparte, en Conciliar y
+Auditoría.
+
+**Por qué queda 🟡 y no ✅ en ninguna de las dos**: T-1 adopta la navegación sin fundir contenido
+—cada pestaña aterriza en su pantalla más completa, con el resto alcanzable desde el menú
+avanzado, seguridad de siempre («envolver, no sustituir»)— y V6-3 documenta en su propia tarjeta lo
+que sigue pendiente (V6-2, V6-4) en vez de fingir que ya está hecho. Las dos esperan además a la
+verificación en el sitio publicado, no solo en `dist/` local.
+
+**Qué cambió, exactamente:**
+- `index.html`: seis `nav-primary-link` en vez de cuatro; nueva sección `#ajustes` (piel `e19-*`)
+  entre `#asesor-decision` y `#visual-detail`; `#new-life-definitive` añadida al final del grupo
+  `legacy` en el menú avanzado; input de reserva movido de `#cuadro-mandos` a `#ajustes`
+  (`id="cuadroMandosReserve"` → `id="ajustesReserve"`); versión de `app.js`, `e17-experience.js` y
+  `design-tokens.css` bumped a `20260811t1a1`.
+- `app.js`: `case "ajustes"` nuevo con `renderAjustes()`; entrada `ajustes` en `viewTitles`;
+  `renderCuadroMandosReserveNote()` reescrita a nota de solo lectura; `renderAjustesReserveNote()`
+  nueva con el texto detallado que antes tenía Cuadro de mandos; tres textos sueltos que decían
+  «puedes fijarla en el Cuadro de mandos» pasan a decir «en Ajustes»; listener de clic delegado en
+  `#ajustes` para las tarjetas de ruta, igual que en `#update-hub`.
+- `e17-experience.js`: entrada `ajustes` nueva en el lanzador (grupo `main`, sin duplicar Plan,
+  Deuda ni Cierre que ya tenían la suya); `new-life-definitive` cambia de grupo `main` a `legacy`.
+- `design-tokens.css`: se retira la regla `.cuadro-mandos-reserve` (min-width del campo), que quedó
+  huérfana al mover el campo; la nota de solo lectura conserva su clase.
+- Cinco archivos de test se reescriben (`e17-interface`, `navigation-structure`, `v1-4-relegar-hoy`,
+  `v2-8-relegar-plan`, `v6-reserva-operativa`) porque afirmaban una estructura que esta entrega
+  cambia a propósito; catorce más solo actualizan el canario de versión del shell. Dos ficheros
+  nuevos (`t1-seis-vistas.test.cjs`, `v6-3-vista-ajustes.test.cjs`) prueban lo que añade esta
+  entrega.
+
+**Validación** (`npm run verify`, exit 0): **530/530 pruebas** (518 antes + 12 nuevas), **591 IDs
+únicos**, diff 10.000 filas en **49.9 ms**, forecast y escenarios en **272.1 ms**, recursos **1266
+KB**. QA de navegador servida desde `dist/`: **14/14 comprobaciones** en verde — las seis pestañas
+en orden correcto, Plan/Deuda/Datos/Cierre/Ajustes navegan a su destino, Cuadro de mandos ya sin el
+input de reserva y con nota de solo lectura, guardar la reserva en Ajustes se refleja de vuelta en
+Cuadro de mandos, la tarjeta de Umbrales navega a `#alerts-center`, apagar «Versiones anteriores»
+oculta la Simulación nueva vida definitiva recién relegada, el lanzador encuentra «Ajustes», y la
+vista sigue activa tras recargar en `#ajustes` (deep link). Dos avisos de red ajenos al cambio —el
+CDN de Supabase bloqueado en este entorno sin salida a internet, ya visto en entregas anteriores, y
+un 404 puntual sin URL capturable en la primera pasada, no reproducido en una segunda—, ninguno
+nuevo ni causado por esta entrega.
+
+**Pendiente**: V6-2 (umbrales propios de colchón en meses, desviación por partida y ventana de
+duplicados) y V6-4 (exportación única) siguen sin construirse; `#ajustes` ya tiene el hueco y el
+enlace de vuelta a donde viven hoy. T-2 (acento navy) sigue independiente y sin empezar.
+
 ## Cierre de sesión — 11 de agosto de 2026: V4-4 confirmada y V1-4, la quinta relegación
 
 **V4-4 pasa de 🟡 a ✅**: el usuario confirmó en el sitio publicado la importación en cuatro
