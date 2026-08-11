@@ -8,13 +8,20 @@
   const TASKS = Object.freeze([
     { target: "home", label: "Hoy", group: "main", keywords: "inicio caja alertas decisiones hoy riesgo" },
     { target: "update-hub", label: "Actualizar datos", group: "main", keywords: "saldos reales importar excel csv movimientos previsiones" },
+    // T-1/V6-3 · Ajustes solo se alcanza desde la navegación principal, igual que Hoy o Actualizar
+    // datos: no tiene entrada duplicada en el menú avanzado. Plan, Deuda y Cierre no repiten
+    // entrada aquí: ya la tenían como `cuadro-mandos`, `deuda-ruta` y `conciliar` más abajo, y
+    // duplicarla solo daría dos resultados iguales en el buscador.
+    { target: "ajustes", label: "Ajustes", group: "main", keywords: "ajustes reserva operativa cuentas partidas umbrales exportar csv v6" },
     { target: "datos-importar", label: "Importar extracto en 4 pasos (nuevo)", group: "data", keywords: "importar extracto csv excel duplicados reglas clasificar incorporar deshacer nuevo e20 v4-4" },
     { target: "registrar-mes", label: "Registrar el mes (nuevo)", group: "data", keywords: "registrar mes real previsto usado desviacion partida guardado automatico nuevo e20 copiar reales" },
     { target: "cuadro-mandos", label: "Cuadro de mandos · detalle por partida (nuevo)", group: "analysis", keywords: "cuadro mandos detalle partida impacto editar celda previsto matriz nuevo e20" },
     { target: "cambios-pendientes", label: "Cambios pendientes (nuevo)", group: "analysis", keywords: "cambios pendientes bandeja revertir guardar descartar impacto conjunto nuevo e20" },
     { target: "mapa-calor", label: "Mapa de calor mensual (nuevo)", group: "analysis", keywords: "mapa calor colchon salud mensual peor mes riesgo nuevo e20" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
-    { target: "new-life-definitive", label: "Decidir", group: "main", keywords: "decisiones deuda coche proyectos traspasos" },
+    // T-1 releva la decimoctava heredada: hasta ahora quedaba fuera de «legacy» solo porque era
+    // pestaña principal («Decidir»). Al dejar de serlo, se releva como las diecisiete anteriores.
+    { target: "new-life-definitive", label: "Simulación nueva vida definitiva", group: "legacy", keywords: "decisiones deuda coche proyectos traspasos decidir" },
     { target: "new-life-simulation", label: "Escenarios de vida y deuda", group: "legacy", keywords: "escenario simulacion imprevisto favorable tension" },
     { target: "escenario-simular", label: "Escenario · simular (nuevo)", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados (nuevo)", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
@@ -51,6 +58,7 @@
   const GUIDANCE = Object.freeze({
     home: ["Para qué sirve", "Revisar primero caja, riesgos y las tres decisiones de hoy.", "Solo lectura", "Abrir Actualizar si falta un saldo o movimiento."],
     "update-hub": ["Para qué sirve", "Poner al día saldos, movimientos, reales, previsiones e importaciones.", "Puede guardar cambios", "Elige una ruta y confirma el recibo antes de continuar."],
+    ajustes: ["Para qué sirve", "Fijar la reserva operativa y encontrar dónde se editan cuentas, partidas, umbrales y exportación.", "Guarda solo la reserva", "El resto de tarjetas te llevan a la pantalla donde ese dato se edita de verdad."],
     "datos-importar": ["Para qué sirve", "Importar un extracto tomando una decisión por movimiento dudoso y por posible duplicado, antes de que nada toque el plan.", "Requiere confirmación", "Nada se incorpora hasta el paso 4; se puede deshacer después desde «Carga de datos»."],
     "registrar-mes": ["Para qué sirve", "Ver qué partidas del mes siguen sin real y anotarlas una a una.", "Guarda al salir de la casilla", "Vaciar un real recupera el previsto; escribir 0 significa «ocurrió por cero»."],
     "cuadro-mandos": ["Para qué sirve", "Cambiar el previsto de una partida y ver qué le hace al plan antes de guardar.", "Requiere confirmación", "Nada se guarda hasta que pulses «Guardar cambios» en el pie de impacto."],

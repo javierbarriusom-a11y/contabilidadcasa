@@ -29,10 +29,12 @@ test("V1-4 · la pantalla nueva de Hoy y su asesor ejecutivo se quedan donde est
 });
 
 test("V1-4 · el grupo relegado llega a diecisiete pantallas, sin duplicados", () => {
-  // Diecisiete de las dieciocho heredadas del inventario. La única que queda fuera es
-  // `#new-life-definitive`, que es pestaña principal y no una heredada por relegar.
+  // Diecisiete de las dieciocho heredadas del inventario tras V1-4. La única que quedaba fuera era
+  // `#new-life-definitive`, pestaña principal en ese momento — T-1 la releva después, y esa parte
+  // se comprueba en `navigation-structure.test.cjs`, no aquí: esta prueba verifica solo lo que
+  // hizo V1-4, no lo que hizo T-1 más tarde.
   const legacy = navLinks.filter((link) => link.group === "legacy").map((link) => link.view);
-  assert.equal(legacy.length, 17);
+  assert.ok(legacy.length >= 17, "V1-4 dejó al menos diecisiete heredadas relegadas");
   for (const view of RELEGADAS) assert.ok(legacy.includes(view));
   assert.equal(new Set(legacy).size, legacy.length, "ningún enlace duplicado al mover las cuatro");
 });
@@ -72,6 +74,6 @@ test("V1-4 · las pantallas siguen pintándose igual, el motor no cambia", () =>
 });
 
 test("V1-4 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-v14a1/);
-  assert.match(html, /app\.js\?v=20260810v14a1/);
+  assert.match(worker, /20260811-t1a1/);
+  assert.match(html, /app\.js\?v=20260811t1a1/);
 });

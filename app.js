@@ -289,6 +289,10 @@ const viewTitles = {
     eyebrow: "Actualizar mis datos",
     title: "Pon al día saldos, movimientos, reales o previsiones",
   },
+  ajustes: {
+    eyebrow: "Ajustes",
+    title: "Cuentas, reserva, partidas y exportación en un mismo sitio",
+  },
   "executive-advisor": {
     eyebrow: "Asesor ejecutivo",
     title: "Qué hacer ahora con caja, deuda y coche",
@@ -5155,8 +5159,8 @@ function applyHelpTooltips() {
     "Meses de gastos que quieres poder cubrir con liquidez antes de asumir más riesgo.",
   );
   addHelpToControl(
-    "cuadroMandosReserve",
-    "Colchón que quieres proteger, en euros. Es el suelo del pie de impacto, del color del mapa de calor y del comparador de deuda. Vacío significa sin reserva configurada, no cero.",
+    "ajustesReserve",
+    "Colchón que quieres proteger, en euros. Es el suelo del pie de impacto de Plan, del color del mapa de calor y del comparador de deuda. Vacío significa sin reserva configurada, no cero.",
   );
   addHelpToControl(
     "coreSpend",
@@ -17834,13 +17838,15 @@ function cuadroMandosReserve() {
   return Number.isFinite(configured) && configured > 0 ? configured : 0;
 }
 
-/* ---- V6-1 · control de la reserva operativa ---------------------------------------------------
-   El motor ya leía `state.operatingReserve` desde tres sitios —el pie de impacto de esta pantalla,
-   el suelo de color del mapa de calor y el guardarraíl del comparador de deuda— pero no había forma
-   de fijarla: siempre valía 0 y las tres pantallas caían a su respaldo. El control vive aquí, junto
-   a la matriz cuyo pie la usa, hasta que exista la vista de Ajustes (V6-3).
+/* ---- V6-1/V6-3 · control de la reserva operativa ----------------------------------------------
+   El motor ya leía `state.operatingReserve` desde tres sitios —el pie de impacto de Plan, el suelo
+   de color del mapa de calor y el guardarraíl del comparador de deuda— pero no había forma de
+   fijarla: siempre valía 0 y las tres pantallas caían a su respaldo. V6-1 (10 de agosto) alojó el
+   control en Cuadro de mandos hasta que existiera la vista de Ajustes; V6-3 la traslada ahí, que es
+   donde declaraba desde el principio que iba a acabar. Cuadro de mandos pasa a ser un consumidor
+   más, con una nota de solo lectura igual que ya tenía el comparador de deuda.
    Vaciar la casilla no es un error: significa «sin reserva configurada» y devuelve a cada pantalla
-   su respaldo declarado, que es exactamente el estado anterior a esta tarea. */
+   su respaldo declarado. */
 function operatingReserveFromField(raw) {
   const text = String(raw ?? "").trim().replace(",", ".");
   if (!text) return 0;
@@ -17850,7 +17856,7 @@ function operatingReserveFromField(raw) {
 }
 
 function syncOperatingReserveControl() {
-  const field = qs("cuadroMandosReserve");
+  const field = qs("ajustesReserve");
   if (!field || document.activeElement === field) return;
   const reserve = cuadroMandosReserve();
   field.value = reserve > 0 ? String(reserve) : "";
@@ -17861,8 +17867,42 @@ function renderCuadroMandosReserveNote() {
   if (!note) return;
   const reserve = cuadroMandosReserve();
   note.textContent = reserve > 0
-    ? `Reserva operativa: ${money(reserve, true)}. Es el suelo que usan el pie de impacto («meses bajo la reserva»), el color del mapa de calor y, si no indicas otra, el guardarraíl del comparador de deuda. Se guarda y se sincroniza como un dato más del hogar.`
-    : "Sin reserva operativa configurada: el pie de impacto cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas y el comparador de deuda secuencia con un suelo de 0 €. Escribe aquí el colchón que quieres proteger para que las tres hablen de la misma cifra.";
+    ? `Reserva operativa: ${money(reserve, true)}. Es el suelo que usa este pie de impacto («meses bajo la reserva»), junto con el mapa de calor y el comparador de deuda. Se edita en Ajustes.`
+    : "Sin reserva operativa configurada: este pie de impacto cuenta meses en negativo. Configúrala en Ajustes para que esta pantalla, el mapa de calor y el comparador de deuda hablen de la misma cifra.";
+}
+
+function renderAjustesReserveNote() {
+  const note = qs("ajustesReserveNote");
+  if (!note) return;
+  const reserve = cuadroMandosReserve();
+  note.textContent = reserve > 0
+    ? `Reserva operativa: ${money(reserve, true)}. Es el suelo que usan el pie de impacto de Plan («meses bajo la reserva»), el color del mapa de calor y, si no indicas otra, el guardarraíl del comparador de deuda. Se guarda y se sincroniza como un dato más del hogar.`
+    : "Sin reserva operativa configurada: el pie de impacto de Plan cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas y el comparador de deuda secuencia con un suelo de 0 €. Escribe aquí el colchón que quieres proteger para que las tres hablen de la misma cifra.";
+}
+
+/* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
+   Reúne lo que hoy vive repartido, sin reimplementarlo: la reserva operativa se guarda de verdad
+   aquí (ver el bloque V6-1/V6-3 anterior); cuentas, partidas y umbrales solo se leen para el resumen
+   de cada tarjeta, y su edición sigue viviendo donde ya vivía —duplicar esos formularios aquí
+   arriesgaría dos caminos que se desincronicen sin necesidad—. Construir esos editores propios queda
+   para cuando haga falta de verdad, no antes. */
+function renderAjustes() {
+  syncOperatingReserveControl();
+  renderAjustesReserveNote();
+
+  const balances = accountBalancesFromState();
+  const accountsSummary = qs("ajustesAccountsSummary");
+  if (accountsSummary) accountsSummary.textContent = `CaixaBank ${money(balances.caixa, true)} · Mediolanum ${money(balances.mediolanum, true)}`;
+  const accountsFreshness = qs("ajustesAccountsFreshness");
+  if (accountsFreshness) {
+    accountsFreshness.textContent = `Saldo ${state?.balanceMode === "manual" ? "real" : "calculado"} a ${formatIsoDate(state?.balanceDate || defaultBalanceDate())}.`;
+  }
+
+  const alertsSummary = qs("ajustesAlertsSummary");
+  if (alertsSummary) {
+    const active = evaluatedUxAlerts().filter((alert) => !alert.paused);
+    alertsSummary.textContent = active.length ? `${active.length} regla(s) activa(s)` : "Sin reglas activas todavía";
+  }
 }
 
 function handleOperatingReserveChange(event) {
@@ -17993,7 +18033,6 @@ function cuadroMandosApplyRowHtml(row, months, columnCount) {
 }
 
 function renderCuadroMandos() {
-  syncOperatingReserveControl();
   renderCuadroMandosReserveNote();
   const table = qs("cuadroMandosTable");
   if (!table || !baseData?.monthlyPlanning?.months?.length) return;
@@ -18265,7 +18304,7 @@ function renderCambiosPendientes() {
       `<div class="e19-kpi"><span class="e19-kpi-label">${escapeHtml(label)}</span><dl class="cuadro-mandos-kpi">${html}</dl>${meta ? `<span class="e19-kpi-meta">${escapeHtml(meta)}</span>` : ""}</div>`;
     kpis.innerHTML = [
       card("Mínimo del horizonte", cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true)), after.minimoMes ? `El peor mes es ${escenarioMotorMonthLabel(after.minimoMes)}` : ""),
-      card(`Meses ${cuadroMandosReserveLabel(after)}`, cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => String(Math.round(Number(value || 0))), false), after.reserve > 0 ? "" : "No hay reserva operativa configurada: se cuentan los meses en negativo. Puedes fijarla en el Cuadro de mandos."),
+      card(`Meses ${cuadroMandosReserveLabel(after)}`, cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => String(Math.round(Number(value || 0))), false), after.reserve > 0 ? "" : "No hay reserva operativa configurada: se cuentan los meses en negativo. Puedes fijarla en Ajustes."),
       card("Liquidez a 12 meses", cuadroMandosBeforeAfter(before.aDoceMeses, after.aDoceMeses, (value) => money(value, true))),
       card("Liquidez al final del horizonte", cuadroMandosBeforeAfter(before.final, after.final, (value) => money(value, true))),
     ].join("");
@@ -18336,7 +18375,7 @@ function mapaCalorFloor(rows) {
   if (reserve > 0) return { value: reserve, source: `la reserva operativa de ${money(reserve, true)}` };
   const first = rows[0];
   const outflow = first ? Number(first.coreSpend || 0) + Number(first.car || 0) + Number(first.refi || 0) : 0;
-  return { value: Math.max(outflow, 1), source: `un mes de salidas (${money(outflow, true)}), porque no hay reserva operativa configurada — puedes fijarla en el Cuadro de mandos` };
+  return { value: Math.max(outflow, 1), source: `un mes de salidas (${money(outflow, true)}), porque no hay reserva operativa configurada — puedes fijarla en Ajustes` };
 }
 
 function mapaCalorTone(value, floor) {
@@ -21624,7 +21663,7 @@ function renderDeudaCompararReserveNote() {
   }
   note.textContent = household > 0
     ? `Vacío usa un suelo de 0 €. Tu reserva operativa es ${money(household, true)}.`
-    : "Sin reserva operativa configurada: se secuencia con un suelo de 0 €. Puedes fijarla en el Cuadro de mandos.";
+    : "Sin reserva operativa configurada: se secuencia con un suelo de 0 €. Puedes fijarla en Ajustes.";
 }
 
 // V3-3 · las tres casillas de la oferta y la nota que dice qué se está comparando. La nota no
@@ -22191,6 +22230,9 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "update-hub":
       renderUpdateHub();
+      break;
+    case "ajustes":
+      renderAjustes();
       break;
     case "alerts-center":
       renderAlertsCenter();
@@ -22898,6 +22940,13 @@ async function init() {
     history.pushState(null, "", `#${target}`);
     setActiveView(target, { focus: true });
   });
+  qs("ajustes")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-home-nav]");
+    const target = button?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target, { focus: true });
+  });
   qs("clearBatchData").addEventListener("click", () => {
     qs("batchDataInput").value = "";
     showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.");
@@ -22944,7 +22993,7 @@ async function init() {
   qs("detailMonth").addEventListener("change", renderMonthlyDetails);
   qs("cuadroMandosStart")?.addEventListener("change", renderCuadroMandos);
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
-  qs("cuadroMandosReserve")?.addEventListener("change", handleOperatingReserveChange);
+  qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
   qs("cuadroMandosTable")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-cuadro-cell]");
     if (input) handleCuadroMandosCellChange(input);

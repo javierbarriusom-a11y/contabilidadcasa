@@ -22,14 +22,15 @@ test("V2-8 · las cinco heredadas de Plan quedan en Versiones anteriores", () =>
   }
 });
 
-test("V2-8 · `#forecast` no se relega: tiene la piel nueva y es una pestaña principal", () => {
+test("V2-8 · `#forecast` no se relega: tiene la piel nueva, aunque T-1 le quite la pestaña principal", () => {
   // El backlog listaba `#forecast` entre las heredadas de Plan, pero su propio inventario lo cuenta
-  // entre las dieciséis pantallas con piel nueva, y el menú principal lo usa como la pestaña
-  // «Prever». Relegarlo sería degradar una pantalla migrada y dejar la pestaña apuntando a
-  // «Versiones anteriores». Quien reordene el menú principal es T-1, no una relegación.
+  // entre las pantallas con piel nueva. No se relega —sigue en el grupo «analysis», alcanzable
+  // desde el menú avanzado—, aunque T-1 (turno posterior) le retira la pestaña principal «Prever»
+  // porque Plan pasa a aterrizar en `#cuadro-mandos`. Relegarlo sí habría sido degradar una
+  // pantalla migrada; quitarle solo la pestaña principal no lo es.
   assert.equal(groupOf("forecast"), "analysis");
   assert.match(html, /<section class="analytics-grid view-section e19-forecast" id="forecast">/);
-  assert.match(html, /<a href="#forecast" class="nav-primary-link">/);
+  assert.ok(!html.includes('<a href="#forecast" class="nav-primary-link">'), "T-1 retira Prever como pestaña principal");
 });
 
 test("V2-8 · las pantallas nuevas de Plan se quedan donde estaban", () => {
@@ -65,6 +66,6 @@ test("V2-8 · el lanzador alcanza las cuatro que solo vivían en el menú", () =
 });
 
 test("V2-8 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260810-v14a1/);
-  assert.match(html, /app\.js\?v=20260810v14a1/);
+  assert.match(worker, /20260811-t1a1/);
+  assert.match(html, /app\.js\?v=20260811t1a1/);
 });

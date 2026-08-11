@@ -10,14 +10,24 @@ const app = read("app.js");
 const css = read("styles.css");
 const worker = read("service-worker.js");
 
-test("E17 prioriza Hoy, Actualizar, Prever y Decidir y conserva las herramientas en segundo nivel", () => {
+// T-1 sustituye los cuatro verbos (Hoy, Actualizar, Prever, Decidir) por las seis vistas del
+// rediseño: Hoy, Plan, Deuda, Datos, Cierre y Ajustes. «Prever» y «Decidir» dejan de ser pestaña
+// principal — el primero sigue accesible desde el menú avanzado, el segundo se releva.
+test("E17 prioriza las seis vistas del rediseño y conserva las herramientas en segundo nivel", () => {
   const home = html.indexOf('<a href="#home" class="nav-primary-link active">');
-  const update = html.indexOf('<a href="#update-hub" class="nav-primary-link">');
-  const forecast = html.indexOf('<a href="#forecast" class="nav-primary-link">');
-  const decide = html.indexOf('<a href="#new-life-definitive" class="nav-primary-link">');
+  const plan = html.indexOf('<a href="#cuadro-mandos" class="nav-primary-link">');
+  const deuda = html.indexOf('<a href="#deuda-ruta" class="nav-primary-link">');
+  const datos = html.indexOf('<a href="#update-hub" class="nav-primary-link">');
+  const cierre = html.indexOf('<a href="#conciliar" class="nav-primary-link">');
+  const ajustes = html.indexOf('<a href="#ajustes" class="nav-primary-link">');
   const advanced = html.indexOf('id="advancedNav"');
-  assert.ok(home < update && update < forecast && forecast < decide && decide < advanced);
+  assert.ok(
+    home < plan && plan < deuda && deuda < datos && datos < cierre && cierre < ajustes && ajustes < advanced,
+    "las seis vistas deben aparecer en orden Hoy, Plan, Deuda, Datos, Cierre, Ajustes, antes del menú avanzado",
+  );
   assert.match(html, /Herramientas avanzadas/);
+  assert.ok(!html.includes('<a href="#forecast" class="nav-primary-link">'), "Prever ya no es pestaña principal");
+  assert.ok(!html.includes('<a href="#new-life-definitive" class="nav-primary-link">'), "Decidir ya no es pestaña principal");
 });
 
 test("E17 ofrece estado, ayuda contextual, lanzador y preferencias locales", () => {
@@ -36,8 +46,8 @@ test("E17 ofrece estado, ayuda contextual, lanzador y preferencias locales", () 
 });
 
 test("E17 queda disponible con el shell offline versionado", () => {
-  assert.match(worker, /20260810-v14a1/);
-  assert.match(html, /app\.js\?v=20260810v14a1/);
+  assert.match(worker, /20260811-t1a1/);
+  assert.match(html, /app\.js\?v=20260811t1a1/);
   assert.match(html, /styles\.css\?v=20260808e18a4/);
 });
 

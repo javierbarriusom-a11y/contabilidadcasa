@@ -96,7 +96,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
-| **6 · Ajustes** | 🟡 parcial | la reserva operativa, alojada en `#cuadro-mandos` (V6-1) | — |
+| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa editable, cuentas/partidas/umbrales/exportación enlazadas a donde ya se editan | — |
 
 ### Lo que falta en cada una, medido
 
@@ -146,22 +146,24 @@ paso. Reutiliza el mismo diccionario de reglas y el mismo lote reversible que ya
 que hoy sigue disperso entre `#conciliar` y `#data-audit` — que es exactamente por lo que
 `#data-audit` se relega y no se retira.
 
-**6 · Ajustes.** La vista sigue sin existir, pero su pieza más urgente ya está hecha: **la
-reserva operativa tiene control desde el 10 de agosto** (V6-1). El diagnóstico que lo
-justificaba era que `state.operatingReserve` no aparecía ni una vez en `index.html` pese a
+**6 · Ajustes.** La vista existe desde el 11 de agosto (V6-3), con su pieza más urgente:
+**la reserva operativa tiene control real** (V6-1, mudada aquí en V6-3). El diagnóstico que
+justificaba V6-1 era que `state.operatingReserve` no aparecía ni una vez en `index.html` pese a
 que el modelo la lee desde tres sitios, así que valía siempre 0 y las tres pantallas caían
 a su respaldo:
 
-- El pie de impacto de `#cuadro-mandos` no podía decir «meses bajo reserva» y caía a «meses
-  en negativo».
+- El pie de impacto de Plan (`#cuadro-mandos`) no podía decir «meses bajo reserva» y caía a
+  «meses en negativo».
 - El mapa de calor coloreaba contra «un mes de salidas» en vez de contra la reserva real.
 - El comparador de deuda usaba un suelo de 0 € por defecto en vez de la reserva del hogar.
 
 Con la casilla puesta, las tres hablan de la misma cifra y cada una declara cuál está
-usando. Lo que falta de esta vista son los umbrales de aviso (V6-2), la vista propia que
-reúna cuentas, umbrales y partidas (V6-3) y la exportación única (V6-4). Sigue siendo el
-bloque con mejor relación esfuerzo/valor, ya sin la pieza que degradaba pantallas
-publicadas.
+usando. `#ajustes` reúne cuentas, partidas, umbrales y exportación **enlazando a donde cada una
+ya se edita**, no reimplementando esos editores: duplicarlos habría arriesgado dos caminos que se
+desincronizan sin necesidad. Lo que sigue faltando son los umbrales de aviso propios que pide
+V6-2 (colchón en meses, desviación por partida, ventana de duplicados) y la exportación única de
+V6-4 — ambos documentados en la propia tarjeta de `#ajustes`, no escondidos. Sigue siendo el
+bloque con mejor relación esfuerzo/valor.
 
 ---
 
@@ -239,19 +241,30 @@ Seis bloques que son las seis vistas, más uno transversal. Cada tarea lleva el 
 |---|---|---|---|---|
 | V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | ✅ | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
 | V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | ⏳ | Media | Mockup 4f · Ajustes |
-| V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | ⏳ | Media | Mockup 4f |
+| V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | 🟡 | Media | Mockup 4f · hecha el 11 de agosto de 2026 |
 | V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | ⏳ | Baja | Mockup 4f |
 
 **V6-1 es la primera tarea recomendada de todo el backlog.** Es pequeña, no rompe nada, y
 mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 
-> **V6-1, hecha el 10 de agosto de 2026.** La casilla «Reserva operativa» vive en la fila de
-> controles de `#cuadro-mandos`, junto a «Desde» y «Horizonte», hasta que exista la vista
-> `#ajustes` (V6-3), que es donde acabará mudándose. Escribe `state.operatingReserve` y se guarda
-> en `scenarioSettings`, así que se sincroniza y se restaura como un dato del hogar. Vaciarla
-> significa «sin reserva configurada», no cero: cada pantalla vuelve a su respaldo declarado.
-> Cierra en ✅: PR #5 fusionada con CI en verde, Pages desplegado con éxito para `956e427` y el
-> usuario confirmó la casilla en el sitio publicado el mismo 10 de agosto.
+> **V6-1, hecha el 10 de agosto de 2026.** La casilla «Reserva operativa» vivió en la fila de
+> controles de `#cuadro-mandos`, junto a «Desde» y «Horizonte», hasta que existió la vista
+> `#ajustes` (V6-3). Escribe `state.operatingReserve` y se guarda en `scenarioSettings`, así que
+> se sincroniza y se restaura como un dato del hogar. Vaciarla significa «sin reserva
+> configurada», no cero: cada pantalla vuelve a su respaldo declarado. Cerró en ✅: PR #5
+> fusionada con CI en verde, Pages desplegado con éxito para `956e427` y el usuario confirmó la
+> casilla en el sitio publicado el mismo 10 de agosto.
+
+> **V6-3, hecha el 11 de agosto de 2026, junto con T-1.** La reserva operativa (V6-1) se traslada
+> de `#cuadro-mandos` a `#ajustes`, que es donde declaraba desde el principio que iba a acabar;
+> `#cuadro-mandos` pasa a ser un consumidor más, con una nota de solo lectura igual que ya tenía
+> el comparador de deuda. Las otras tres tarjetas —cuentas, partidas y umbrales— **no
+> reimplementan sus editores**: cada una enlaza a donde ese dato ya se edita de verdad
+> (`#visual-detail`, `#registrar-mes`, `#alerts-center`), porque construir un formulario nuevo
+> aquí duplicaría lógica sin necesidad, que es justo lo que el criterio del rediseño pide evitar.
+> Queda 🟡 y no ✅ a propósito: los umbrales que pide V6-2 (colchón en meses, desviación por
+> partida, ventana de duplicados) y la exportación única de V6-4 siguen sin existir, y la propia
+> vista lo dice en su tarjeta en vez de fingir que ya están hechos.
 
 ### V1 · Hoy
 
@@ -309,11 +322,26 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | ✅ | — | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
-| T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | ⏳ | Media | Turnos 4-5 · desbloqueada por la decisión del 10 de agosto |
+| T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | 🟡 | Media | Turnos 4-5 · hecha el 11 de agosto de 2026, junto con V6-3 |
 | T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
 | T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | ✅ | Media | Auditoría §8 · hecha el 10 de agosto · **vista en el sitio** |
+
+> **T-1, hecha el 11 de agosto de 2026, junto con V6-3.** Las seis vistas del rediseño son ahora
+> las seis pestañas de la navegación principal: Hoy, Plan (`#cuadro-mandos`), Deuda
+> (`#deuda-ruta`), Datos (`#update-hub`), Cierre (`#conciliar`) y Ajustes (`#ajustes`, nueva). Los
+> cuatro verbos anteriores (Hoy, Actualizar, Prever, Decidir) desaparecen de la navegación
+> principal: «Prever» (`#forecast`) no se releva —sigue con piel nueva, alcanzable desde el menú
+> avanzado— porque solo perdía la pestaña, no la vigencia; «Decidir» (`#new-life-definitive`) sí se
+> releva, como la decimoctava y última heredada del inventario de la sección 1 — quedaba fuera de
+> «Versiones anteriores» únicamente porque era pestaña principal, no porque su función siguiera sin
+> cubrir: el motor de escenarios nuevo (`#escenario-simular`/`#escenario-aplicar`) y
+> `#asesor-decision` ya la cubren. Ninguna heredada se retira; el mecanismo de T-0 no cambia. Queda
+> 🟡 porque el propio criterio de las seis vistas pedía fundir varias pantallas en cada una (ver
+> §10 del sistema de diseño) y esta entrega adopta la navegación sin fundir contenido: cada pestaña
+> aterriza en su pantalla más completa, con las demás alcanzables desde el menú avanzado, igual que
+> ha funcionado toda la app hasta ahora («envolver, no sustituir»).
 
 ---
 
@@ -366,8 +394,11 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
    se duplica.
 6. ~~**V3-3** · estrategia Consolidar~~ — **hecha y confirmada en el sitio el 10 de agosto de
    2026.** Cierra también la 🟡 de 1c y de V3-1.
-7. **V5-2** · confianza del dato por cuenta. **V6-2/V6-3** · el resto de Ajustes.
-8. **T-1** · la navegación de seis vistas, ya sin riesgo, y **T-2** si se quiere el navy.
+7. ~~**T-1** · la navegación de seis vistas~~ y ~~**V6-3** · la vista `#ajustes`~~ — **completo el
+   11 de agosto de 2026**, hechas juntas: la vista de Ajustes era el hueco que faltaba para poder
+   construir un menú principal con seis pestañas reales.
+8. **V5-2** · confianza del dato por cuenta. **V6-2** · umbrales propios de Ajustes. **V6-4** ·
+   exportación única. **T-2** · el acento navy, si se quiere.
 
 Dos matices de orden que no son caprichosos:
 
