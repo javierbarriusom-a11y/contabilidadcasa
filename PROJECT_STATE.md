@@ -2,6 +2,37 @@
 
 Fecha de revisión: 11 de agosto de 2026.
 
+## Cierre de sesión — 11 de agosto de 2026: confirmación en el sitio publicado de T-1, V6-3, V6-2 y V1-4
+
+El usuario confirmó una por una, viendo el sitio publicado (`javierbarriusom-a11y.github.io/contabilidadcasa`)
+tras el checklist entregado en la conversación: la navegación de seis vistas, la vista `#ajustes`
+con la reserva operativa moviéndose de verdad, los dos umbrales propios y el colchón mínimo en
+`#alerts-center`, y las cuatro heredadas de Hoy relegadas a «Versiones anteriores». Con esto, y
+según la puerta de aceptación de `BACKLOG.md` §7 (punto 4: «fusionada a `main` y verificada en el
+sitio publicado»), las cuatro pasan de 🟡 a ✅:
+
+- **T-1** — navegación de seis vistas.
+- **V6-3** — vista `#ajustes`.
+- **V6-2** — umbrales de aviso (colchón mínimo, ventana de duplicados, desviación por partida).
+- **V1-4** — relegación de las cuatro heredadas de Hoy.
+
+Ninguna de las cuatro cambia de alcance: las omisiones ya documentadas siguen documentadas y no se
+ocultan — V6-2 sigue sin teñir ni filtrar Registrar el mes por el umbral de partida (mejora futura
+explícita), T-1 sigue sin fundir contenido entre pantallas de una misma vista («envolver, no
+sustituir»), y V6-3 sigue esperando a V6-4 (exportación única) para el bloque de Ajustes completo.
+Ninguna omisión de esas bloqueaba la ✅ según el propio punto 5 de la puerta de aceptación: quedan
+escritas y localizables, no escondidas.
+
+**Qué cambió, exactamente:** solo texto en `BACKLOG.md` (estado de las cuatro filas de la sección 4,
+las notas explicativas de T-1, V6-2 y V6-3, y el punto 7/8 del orden recomendado en la sección 6).
+Ningún archivo de código ni de test se toca — no hay nada que validar con `npm run verify` que no
+estuviera ya verificado en el cierre anterior (541/541 pruebas, 594 IDs, QA 10/10 en `dist/`).
+
+**Pendiente:** V6-4 (exportación única), V1-2 (asesor ejecutivo, una decisión abierta a la vez),
+V2-5 (recomendaciones del mapa de calor) y V4-3 (aviso de partida anual en Registrar el mes) siguen
+en 🟡. Del resto del backlog, ocho tareas de prioridad Baja o Media siguen ⏳ sin bloqueo, y T-4
+sigue ⛔ esperando datos de uso.
+
 ## Cierre de sesión — 11 de agosto de 2026: V6-2, umbrales de aviso
 
 Pedido explícito del usuario tras confirmar que T-1/V6-3 se habían publicado: «pasa a V6-2».

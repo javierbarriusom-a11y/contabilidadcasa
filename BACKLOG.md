@@ -242,8 +242,8 @@ Seis bloques que son las seis vistas, más uno transversal. Cada tarea lleva el 
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | ✅ | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
-| V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | 🟡 | Media | Mockup 4f · Ajustes · hecha el 11 de agosto de 2026 |
-| V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | 🟡 | Media | Mockup 4f · hecha el 11 de agosto de 2026 |
+| V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | ✅ | Media | Mockup 4f · Ajustes · hecha y confirmada en el sitio el 11 de agosto de 2026 |
+| V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | ✅ | Media | Mockup 4f · hecha y confirmada en el sitio el 11 de agosto de 2026 |
 | V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | ⏳ | Baja | Mockup 4f |
 
 **V6-1 es la primera tarea recomendada de todo el backlog.** Es pequeña, no rompe nada, y
@@ -264,9 +264,8 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > reimplementan sus editores**: cada una enlaza a donde ese dato ya se edita de verdad
 > (`#visual-detail`, `#registrar-mes`, `#alerts-center`), porque construir un formulario nuevo
 > aquí duplicaría lógica sin necesidad, que es justo lo que el criterio del rediseño pide evitar.
-> Queda 🟡 y no ✅ a propósito: cuando se escribió esta nota, los umbrales que pide V6-2 y la
-> exportación única de V6-4 seguían sin existir. V6-2 se hizo a continuación, en la misma sesión;
-> V6-4 sigue pendiente.
+> **Confirmada en el sitio publicado por el usuario el 11 de agosto de 2026, pasa a ✅.** V6-4
+> (exportación única) sigue pendiente como tarea propia, sin bloquear esta.
 
 > **V6-2, hecha el 11 de agosto de 2026, a continuación de V6-3.** Las tres piezas encajan en tres
 > sitios distintos, cada una en el que ya sabía resolver ese tipo de umbral:
@@ -280,12 +279,14 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 >   ser una constante fija (`DATOS_IMPORTAR_DUPLICATE_WINDOW_DAYS = 7`) a un valor configurable que
 >   los dos import de datos-importar piden explícitamente.
 >
-> Queda 🟡 por una omisión real, no por prudencia genérica: **el umbral de desviación por partida
-> es un único porcentaje global**, no una lista de partidas concretas que se vigilan una a una —
-> se informa en una nota de Ajustes cuántas partidas del mes abierto lo superan, pero **Registrar
-> el mes no cambia su tinte ni su filtro «Con desviación»**, que siguen contando cualquier
-> diferencia como hacían antes. Cambiar esa pantalla, que ya está publicada y en uso, se dejó fuera
-> a propósito para no arriesgar una regresión en un sitio que no pedía tocarse.
+> **Confirmada en el sitio publicado por el usuario el 11 de agosto de 2026, pasa a ✅.** La
+> omisión sigue siendo real y sigue documentada, no por prudencia genérica: **el umbral de
+> desviación por partida es un único porcentaje global**, no una lista de partidas concretas que
+> se vigilan una a una — se informa en una nota de Ajustes cuántas partidas del mes abierto lo
+> superan, pero **Registrar el mes no cambia su tinte ni su filtro «Con desviación»**, que siguen
+> contando cualquier diferencia como hacían antes. Cambiar esa pantalla, que ya está publicada y en
+> uso, se dejó fuera a propósito para no arriesgar una regresión en un sitio que no pedía tocarse —
+> queda como mejora futura explícita, no como parte pendiente de esta entrega.
 
 ### V1 · Hoy
 
@@ -294,7 +295,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V1-1 | Hoy con la piel nueva y tres decisiones | ✅ | — | Mockup 1a · E19-2 |
 | V1-2 | Asesor ejecutivo, una decisión abierta a la vez | 🟡 | — | Mockup 1d · E20-2 |
 | V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | ✅ | Media | Mockup 4b · hecha el 10 de agosto, reutilizando el cálculo de `#deuda-comparar` · **vista en el sitio** |
-| V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | 🟡 | Media | Mockup 4b · hecha el 11 de agosto, la quinta relegación |
+| V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | ✅ | Media | Mockup 4b · hecha y confirmada en el sitio el 11 de agosto, la quinta relegación |
 
 ### V2 · Plan
 
@@ -343,7 +344,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | ✅ | — | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
-| T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | 🟡 | Media | Turnos 4-5 · hecha el 11 de agosto de 2026, junto con V6-3 |
+| T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | ✅ | Media | Turnos 4-5 · hecha y confirmada en el sitio el 11 de agosto de 2026, junto con V6-3 |
 | T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
@@ -358,11 +359,13 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > releva, como la decimoctava y última heredada del inventario de la sección 1 — quedaba fuera de
 > «Versiones anteriores» únicamente porque era pestaña principal, no porque su función siguiera sin
 > cubrir: el motor de escenarios nuevo (`#escenario-simular`/`#escenario-aplicar`) y
-> `#asesor-decision` ya la cubren. Ninguna heredada se retira; el mecanismo de T-0 no cambia. Queda
-> 🟡 porque el propio criterio de las seis vistas pedía fundir varias pantallas en cada una (ver
-> §10 del sistema de diseño) y esta entrega adopta la navegación sin fundir contenido: cada pestaña
-> aterriza en su pantalla más completa, con las demás alcanzables desde el menú avanzado, igual que
-> ha funcionado toda la app hasta ahora («envolver, no sustituir»).
+> `#asesor-decision` ya la cubren. Ninguna heredada se retira; el mecanismo de T-0 no cambia. El
+> propio criterio de las seis vistas pedía fundir varias pantallas en cada una (ver §10 del sistema
+> de diseño) y esta entrega adopta la navegación sin fundir contenido: cada pestaña aterriza en su
+> pantalla más completa, con las demás alcanzables desde el menú avanzado, igual que ha funcionado
+> toda la app hasta ahora («envolver, no sustituir»). Esa omisión queda escrita y no bloquea la ✅
+> según la puerta de aceptación (§7, punto 5). **Confirmada en el sitio publicado por el usuario el
+> 11 de agosto de 2026, pasa a ✅.**
 
 ---
 
@@ -415,12 +418,12 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
    se duplica.
 6. ~~**V3-3** · estrategia Consolidar~~ — **hecha y confirmada en el sitio el 10 de agosto de
    2026.** Cierra también la 🟡 de 1c y de V3-1.
-7. ~~**T-1** · la navegación de seis vistas~~ y ~~**V6-3** · la vista `#ajustes`~~ — **completo el
-   11 de agosto de 2026**, hechas juntas: la vista de Ajustes era el hueco que faltaba para poder
-   construir un menú principal con seis pestañas reales.
-8. ~~**V6-2** · umbrales de aviso~~ — **hecha el 11 de agosto de 2026**, a continuación de V6-3.
-   Queda 🟡 por una omisión escrita en su propia nota: el umbral de partida no cambia el tinte de
-   Registrar el mes, solo informa en Ajustes.
+7. ~~**T-1** · la navegación de seis vistas~~ y ~~**V6-3** · la vista `#ajustes`~~ — **hechas y
+   confirmadas en el sitio el 11 de agosto de 2026**, hechas juntas: la vista de Ajustes era el
+   hueco que faltaba para poder construir un menú principal con seis pestañas reales.
+8. ~~**V6-2** · umbrales de aviso~~ — **hecha y confirmada en el sitio el 11 de agosto de 2026**,
+   a continuación de V6-3. La omisión sigue escrita en su propia nota: el umbral de partida no
+   cambia el tinte de Registrar el mes, solo informa en Ajustes.
 9. **V5-2** · confianza del dato por cuenta. **V6-4** · exportación única. **T-2** · el acento
    navy, si se quiere.
 
