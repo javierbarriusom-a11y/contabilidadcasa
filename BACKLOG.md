@@ -79,8 +79,7 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 
 - **5a · pie de impacto**: ✅ implementado en `#cuadro-mandos` (E20-5).
 - **4a-4f · las seis vistas**: ⏳ sin adoptar. Ya no bloqueadas: ver la sección 3.
-- **5c/5d · importación por decisión**: hecha el 10 de agosto (V4-4), pendiente de confirmarse en
-  el sitio.
+- **5c/5d · importación por decisión**: hecha el 10 de agosto y confirmada en el sitio el 11 (V4-4).
 
 ---
 
@@ -92,7 +91,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 
 | Vista | Función cubierta | Pantallas nuevas que la cubren | Heredadas que pasan a «Versiones anteriores» |
 |---|---|---|---|
-| **1 · Hoy** | 🟡 parcial | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` |
+| **1 · Hoy** | 🟡 parcial | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` — **ya relegadas** (V1-4) |
 | **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` — **ya relegadas** (V2-8) |
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
@@ -107,8 +106,10 @@ existe como vista única, y la sexta no existe en absoluto.**
 suman *Deuda pendiente* y *Libre de deuda*, calculadas por el mismo camino que las de
 `#deuda-comparar` para que las dos vistas no puedan contar historias distintas. Hoy enseña
 seis KPI en dos filas: los tres del rediseño arriba y *Capacidad libre real*, *Reserva
-protegida* y *Próximo riesgo* debajo. Lo que sigue faltando en la vista es V1-4, relegar sus
-cuatro heredadas, que conviene hacer después de cerrar la 🟡 de V1-2.
+protegida* y *Próximo riesgo* debajo. Sus cuatro heredadas quedaron relegadas el 11 de agosto
+(V1-4), sin esperar a cerrar la 🟡 de V1-2 —dejó de ser un requisito con la decisión del 10 de
+agosto, ver la sección 5—. Lo que sigue faltando en la vista es cerrar esa 🟡: el asesor
+ejecutivo con una decisión abierta a la vez.
 
 **2 · Plan.** Es la más completa: la tabla editable con pie de impacto está construida y
 publicada, que era el corazón del rediseño. Falta la banda de doce meses *dentro* de Plan
@@ -259,7 +260,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V1-1 | Hoy con la piel nueva y tres decisiones | ✅ | — | Mockup 1a · E19-2 |
 | V1-2 | Asesor ejecutivo, una decisión abierta a la vez | 🟡 | — | Mockup 1d · E20-2 |
 | V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | ✅ | Media | Mockup 4b · hecha el 10 de agosto, reutilizando el cálculo de `#deuda-comparar` · **vista en el sitio** |
-| V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | ⏳ | Media | Mockup 4b · habilitado por T-0 |
+| V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | 🟡 | Media | Mockup 4b · hecha el 11 de agosto, la quinta relegación |
 
 ### V2 · Plan
 
@@ -291,7 +292,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V4-1 | Hub ordenado por lo que tienes delante | ✅ | — | Mockup 1f · E19-3 |
 | V4-2 | Importación con bandeja previa | ✅ | — | Mockup 2b · E19-4 |
 | V4-3 | Registrar el mes, una fila por partida | 🟡 | — | Mockup 2a · E20-4 |
-| V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | 🟡 | **Alta** | Spec 5c + prototipo 5d · hecha el 10 de agosto, pendiente de verse en el sitio |
+| V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | ✅ | **Alta** | Spec 5c + prototipo 5d · hecha el 10 de agosto de 2026, confirmada en el sitio publicado el 11 |
 | V4-5 | Detección de partida anual desde el extracto | ⏳ | Baja | Mockup 2a, omisión documentada |
 | V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | ✅ | — | Mockup 4e · hecha el 10 de agosto, la primera relegación |
 
@@ -355,13 +356,11 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 1. ~~**V6-1** · control de reserva operativa~~ — **hecha el 10 de agosto de 2026.**
 2. ~~**T-0** · el grupo «Versiones anteriores»~~ — **hecho el 10 de agosto de 2026.** El contenedor
    está puesto; no se ve nada hasta que la primera relegación lo llene.
-3. **V1-4, ~~V3-5~~, ~~V2-8~~, ~~V4-6~~, ~~V5-3~~** · relegar las heredadas, vista por vista. Se pueden
-   hacer de una en una y cada una es reversible con un interruptor. **V4-6, V5-3 y V2-8 ya
-   están, y V3-5 con ellas, el 10 de agosto**: trece pantallas relegadas de las dieciocho
-   heredadas. Solo queda **V1-4**, que conviene hacer después de cerrar la 🟡 de V1-2 —las otras
-   cinco heredadas son las cuatro de Hoy y `#new-life-definitive`, que es pestaña principal—.
-4. ~~**V4-4** · importación en cuatro pasos~~ — **hecha el 10 de agosto de 2026.** La única
-   pieza de prioridad Alta que quedaba, pendiente de confirmarse en el sitio.
+3. ~~**V1-4, V3-5, V2-8, V4-6, V5-3**~~ · relegar las heredadas, vista por vista — **completo el
+   11 de agosto de 2026.** Diecisiete de las dieciocho heredadas relegadas; la única que queda
+   fuera es `#new-life-definitive`, que es pestaña principal y no una heredada por mover.
+4. ~~**V4-4** · importación en cuatro pasos~~ — **hecha el 10 de agosto de 2026 y confirmada en
+   el sitio el 11.** Era la única pieza de prioridad Alta que quedaba.
 5. ~~**V1-3** · deuda pendiente y fecha libre de deuda en Hoy~~ — **hecha y confirmada en el sitio
    el 10 de agosto de 2026.** El cálculo ya existía en `#deuda-comparar`; se reutiliza tal cual, no
    se duplica.
