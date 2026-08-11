@@ -64,6 +64,9 @@ function baseSandbox({ transactions = [], mappings = {}, ignored = {}, closedMon
   const expenseActuals = {};
   const context = {
     Math, Number, JSON, Array, String, Boolean, Date, Map, Set, console,
+    // V6-2 · datosImportarBuildRows pasa ahora la ventana configurable de Ajustes en vez del valor
+    // por defecto implícito de la función; `state` vacío reproduce «sin configurar» → 7 días.
+    state: {},
     round2: (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100,
     normalizedText: (value) => String(value ?? "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim(),
     storageKey: (name) => `${name}:test`,
@@ -98,6 +101,7 @@ function baseSandbox({ transactions = [], mappings = {}, ignored = {}, closedMon
     extractFunction("datosImportarClearDraft"),
     extractFunction("daysBetweenIsoDates"),
     extractFunction("datosImportarDuplicateCandidates"),
+    extractFunction("duplicateWindowDays"),
     extractFunction("movementKindFromAmount"),
     extractFunction("movementMappingKey"),
     extractFunction("planningRowBySeriesKey"),
@@ -388,6 +392,6 @@ test("V4-4 · el «antes» del lote incluye los movimientos aunque sea la primer
 });
 
 test("V4-4 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260811-t1a1/);
-  assert.match(html, /app\.js\?v=20260811t1a1/);
+  assert.match(worker, /20260811-v62a1/);
+  assert.match(html, /app\.js\?v=20260811v62a1/);
 });

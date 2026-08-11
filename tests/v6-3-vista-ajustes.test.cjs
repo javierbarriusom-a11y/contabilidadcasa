@@ -52,9 +52,11 @@ test("V6-3 · el clic en una tarjeta navega, igual que en Actualizar mis datos",
   assert.match(app, /qs\("ajustes"\)\?\.addEventListener\("click", \(event\) => \{\s*const button = event\.target\.closest\("\[data-home-nav\]"\);/);
 });
 
+// V6-2 (10 de agosto de 2026) cierra los tres umbrales que esta prueba comprobaba como pendientes;
+// solo V6-4 (exportación única) sigue sin construir, y la propia tarjeta lo dice.
 test("V6-3 · documenta lo que queda pendiente en vez de fingir que ya está hecho", () => {
-  assert.match(html, /Pendiente \(V6-2\)/);
   assert.match(html, /Pendiente \(V6-4\)/);
+  assert.ok(!html.includes("Pendiente (V6-2)"), "V6-2 ya está hecha: no debe seguir marcada como pendiente");
 });
 
 test("V6-3 · el lanzador encuentra Ajustes por su nombre, con guía propia", () => {
