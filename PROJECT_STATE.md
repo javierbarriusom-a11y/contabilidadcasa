@@ -2,6 +2,31 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: confirmación en el sitio publicado de V6-4, V5-2 y T-2
+
+El usuario confirmó las tres en el sitio publicado (`javierbarriusom-a11y.github.io/contabilidadcasa`):
+los botones de exportar CSV y PDF del mes en Ajustes, la tarjeta «Confianza del dato» en Conciliar,
+y el acento navy en toda la interfaz interactiva. Según la puerta de aceptación de `BACKLOG.md` §7
+(punto 4), las tres pasan de 🟡 a ✅:
+
+- **V6-4** — exportación única (CSV completo + PDF del mes) desde `#ajustes`.
+- **V5-2** — confianza del dato por cuenta en `#conciliar`.
+- **T-2** — acento interactivo navy (`#293E5E`).
+
+Con esto, los bloques **V5 (Cierre)** y **V6 (Ajustes)** quedan completos al 100 %: no queda
+ninguna tarea sin construir en ninguno de los dos, así que sus filas en la tabla de cobertura de
+`BACKLOG.md` §2 pasan de «🟡 parcial» a «✅ alta».
+
+**Qué cambió, exactamente:** solo texto en `BACKLOG.md` (estado de las tres filas, sus notas
+explicativas, las dos filas de cobertura de vista, y el punto 9/10/11 del orden recomendado en la
+sección 6). Ningún archivo de código ni de test se toca — no hay nada que validar con
+`npm run verify` que no estuviera ya verificado en el cierre anterior (569/569 pruebas, 598 IDs,
+QA con capturas revisadas a mano).
+
+**Pendiente**: no queda ninguna tarea sin construir en todo el backlog vigente. Solo faltan T-3
+(depende de aceptación externa real, no de trabajo local) y T-4 (⛔, espera datos de uso antes de
+retirar de verdad una heredada).
+
 ## Cierre de sesión — 12 de agosto de 2026: T-2, el acento navy
 
 Pedido explícito del usuario tras dejar V5-2 en 🟡 a la espera de su confirmación: «Hacemos igual,
