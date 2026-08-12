@@ -2581,6 +2581,34 @@
 .e19-cuadro-mandos .mapa-calor-key.is-touched { background: var(--e19-surface); border: 2px solid var(--e19-accent); }
 .e19-cuadro-mandos .mapa-calor-cell.is-touched { border-color: var(--e19-accent); }
 
+/* V2-7 · banda de doce meses embebida en Plan: mismas celdas y colores que el mapa de calor
+   (.mapa-calor-cell), en una sola fila en vez de la rejilla multi-año. */
+.e19-cuadro-mandos .cuadro-mandos-band {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 0 16px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-band-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 64px;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-band-item small {
+  font-size: 10.5px;
+  color: var(--e19-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.e19-cuadro-mandos .cuadro-mandos-band-item .mapa-calor-cell {
+  width: 100%;
+}
+
 .e19-cuadro-mandos .mapa-calor-block {
   display: grid;
   grid-template-columns: 130px minmax(0, 1fr) 90px;

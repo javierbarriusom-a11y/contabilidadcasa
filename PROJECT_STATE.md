@@ -2,6 +2,66 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: V2-5, V2-6 y V2-7, remates de Plan
+
+Segunda de las cuatro entregas del cierre de backlog pedido por el usuario, siguiendo la
+investigación previa. Las tres tareas comparten código (`renderCuadroMandos`, `renderMapaCalor`,
+`renderCuadroMandosImpactBar`) y ninguna necesita cálculo nuevo, así que se hacen juntas en una
+sola entrega.
+
+**V2-5 — panel de recomendaciones calculadas.** El panel «Dónde seguir con ese mes» de
+`#mapa-calor` tenía tres enlaces genéricos. El primero pasa a nombrar el bloque de gasto que de
+verdad pesa más en el peor mes: `mapaCalorTopBlockLink(blocks, worstKey)` reutiliza el mismo
+desglose (`blocks`) que ya calculaba el panel de al lado (`mapaCalorBreakdown`), ahora hoisted
+para no duplicar el cálculo. Sin bloques (mes fuera de las partidas planificadas), cae al texto
+genérico de siempre. **Lo que sigue sin construirse, a propósito**: no se generan propuestas de
+movimiento («mover la matrícula a septiembre») porque seguiría sin existir un motor que las
+calcule — inventarlas fabricaría un cálculo que nadie ha hecho, la misma razón que ya dejó
+escrita el propio código antes de esta entrega.
+
+**V2-6 — cuarto indicador del pie: fecha libre de deuda.** El pie de impacto (`cuadro-mandos`)
+mostraba tres indicadores con antes/después. `docs/E19_SISTEMA_DISENO.md` §12 documentaba por qué
+faltaba el cuarto: editar el previsto de una partida de Plan no toca ningún contrato de deuda, así
+que un antes/después literal siempre diría «sin cambio». Esa razón sigue siendo cierta, así que
+`cuadroMandosDebtFreeReadout()` — que reutiliza `homeDebtOutlook()` tal cual, la misma función que
+ya usan Hoy y «No tocar nada» en Deuda — se muestra **sin pasar por `cuadroMandosBeforeAfter`**:
+una lectura fija, con un `title` que explica que se mueve desde Simular o Deuda, no desde aquí.
+
+**V2-7 — banda de doce meses integrada en Plan.** Nueva fila `#cuadroMandosBand` entre la tabla y
+el pie de impacto, con `cuadroMandosMonthBandHtml(rowsAfter, touchedMonths)` reutilizando
+`mapaCalorTone`/`mapaCalorFloor` — el mismo color que ya usa `#mapa-calor`, no una escala nueva.
+No es la rejilla multi-año completa de Mapa de calor: es una sola fila con los próximos doce
+meses, para no abrumar una tabla ya densa con una vista que, además, `#mapa-calor` ya cubre en
+detalle.
+
+**Qué cambió, exactamente:**
+- `app.js`: `mapaCalorTopBlockLink`, `blocks` hoisted en `renderMapaCalor()`;
+  `cuadroMandosDebtFreeReadout()`, cuarto `<dl>` en `renderCuadroMandosImpactBar()`;
+  `cuadroMandosMonthBandHtml()`, llamada nueva en `renderCuadroMandos()`.
+- `index.html`: nuevo `#cuadroMandosBand` entre la tabla y el pie de impacto; versión de `app.js`
+  y `design-tokens.css` bumped a `20260812v25a1`.
+- `design-tokens.css`: `.cuadro-mandos-band`/`.cuadro-mandos-band-item`, reutilizando
+  `.mapa-calor-cell` para el color — cero reglas de color nuevas.
+- `service-worker.js`: `CACHE_NAME` → `"finanzas-casa-shell-20260812-v25a1"`.
+- 22 archivos de test actualizan el canario de versión del shell. Un fichero nuevo
+  (`v2-plan-remates.test.cjs`, 12 pruebas) cubre las tres entregas.
+
+**Validación** (`npm run verify`, exit 0): **586/586 pruebas** (574 antes + 12 nuevas), **599 IDs
+únicos**, diff 10.000 filas en **45,1 ms**, forecast y escenarios en **228,0 ms**, recursos **1282
+KB**. QA de navegador servida desde `dist/`, con capturas revisadas a mano: la banda de doce meses
+aparece con sus etiquetas de mes y su color; al editar una celda, el pie de impacto muestra los
+cuatro indicadores — los tres con antes/después de siempre y el nuevo, «Fecha libre de deuda
+(fija)», sin tachado ni comparación, tal como se diseñó; en Mapa de calor, el primer enlace decía
+literalmente «Revisar Gastos fijos, tu mayor gasto en ago 26 (2.500,00 €)» — el bloque real del
+mes real, no un texto de relleno. La única comprobación que no pasa es el aviso de red ajeno de
+siempre (CDN de Supabase bloqueado en este entorno), sin relación con este cambio.
+
+**Cierra la vista 2 · Plan por completo**: las ocho tareas de V2 quedan hechas. Queda 🟡 hasta la
+confirmación en el sitio publicado.
+
+**Pendiente**: quedan dos de las cuatro entregas del cierre pedido — el bloque de Datos
+(V4-3+V4-5) y V3-4 en Deuda.
+
 ## Cierre de sesión — 12 de agosto de 2026: V1-2, el asesor ejecutivo se asoma en Hoy
 
 Pedido explícito del usuario tras cerrar T-2: «centrémonos en cerrar el backlog», con la lista
