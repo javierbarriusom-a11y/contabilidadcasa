@@ -2,6 +2,41 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: confirmación en el sitio de V2-6 y V4-3/V4-5
+
+El usuario confirmó en el sitio publicado (`javierbarriusom-a11y.github.io/contabilidadcasa`) las
+dos últimas piezas del cierre de backlog que quedaban pendientes: V2-6 (cuarto indicador del pie
+de impacto de Plan) y V4-3/V4-5 (aviso «¿es anual?» en Registrar el mes). **Con esto, las siete
+tareas del cierre de backlog pedido por el usuario (V1-2, V2-5, V2-6, V2-7, V3-4, V4-3, V4-5)
+quedan hechas y confirmadas.**
+
+**Vistas que cierran por completo con esta confirmación:**
+- **2 · Plan** — las ocho tareas de V2 en ✅.
+- **4 · Datos** — las seis tareas de V4 en ✅.
+
+Sumadas a las que ya habían cerrado en la entrada anterior (1 · Hoy y 3 · Deuda), **las seis
+vistas del rediseño quedan con su función construida, publicada y confirmada en el sitio**. Solo
+quedan sin construir dos omisiones documentadas y permanentes, sin relación con el cierre de
+backlog pedido: `#asesor-decision` (1d, sin motor de recomendación genérico, decisión de producto
+explícita) y `#escenario-guardados` (2e).
+
+**Qué cambió en el repositorio:** solo documentación, sin tocar código ni versión del shell.
+- `BACKLOG.md`: V2-6, V4-3 y V4-5 pasan de 🟡 a ✅. La tabla de cobertura por vista (§2) y el
+  resumen del catálogo de quince mockups (§1) se ponen al día — dos filas (2a, 3c) llevaban desde
+  rondas anteriores marcadas como pendientes cuando ya estaban confirmadas, un descuido corregido
+  de paso.
+- `docs/E19_SISTEMA_DISENO.md`: §12 actualizado — «la fecha libre de deuda no está en el pie» era
+  cierto antes de V2-6 y dejó de serlo; el catálogo de mockups (§1) y el cierre de §12 marcan 3c
+  como migrada completa, no parcial.
+- `npm test`: **616/616 pruebas**, sin cambios respecto a la entrega anterior (cambio de solo
+  documentación).
+
+**Pendiente, fuera del cierre de backlog pedido:** se detectó de pasada que §6 de
+`docs/E19_SISTEMA_DISENO.md` («Deuda: comparar estrategias → ruta») sigue documentando «solo tres
+estrategias, no cuatro» pese a que V3-3 (10 de agosto) añadió Consolidar como cuarta — inconsistencia
+real, pero anterior a esta sesión y no relacionada con V2-6/V4-3/V4-5, así que no se toca aquí. Queda
+anotado para una futura pasada de documentación.
+
 ## Cierre de sesión — 12 de agosto de 2026: confirmación en el sitio de V1-2, V2-5, V2-7 y V3-4
 
 Sesión de verificación, sin cambios de código: el usuario revisó en el sitio publicado
