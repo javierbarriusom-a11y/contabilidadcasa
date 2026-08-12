@@ -2,6 +2,45 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: confirmación en el sitio de V1-2, V2-5, V2-7 y V3-4
+
+Sesión de verificación, sin cambios de código: el usuario revisó en el sitio publicado
+(`javierbarriusom-a11y.github.io/contabilidadcasa`) las cuatro entregas del cierre de backlog
+descritas en la entrada anterior.
+
+**Primer intento: tres piezas no se veían.** Con capturas de pantalla, el usuario reportó que V2-5
+mostraba el enlace genérico de siempre («Mover o recortar una partida de ese mes») en vez del
+personalizado, que el pie de impacto de Plan solo traía tres indicadores (faltaba V2-6) y ninguna
+banda de doce meses entre la tabla y el pie (V2-7), y que en `#deuda-ruta` no aparecía la tarjeta
+«Oferta en curso» de V3-4.
+
+**Diagnóstico: caché de Service Worker, no el código.** Antes de tocar nada se comprobó en GitHub
+Actions que el `deploy` del último merge (`98e0cdc`, el de V3-4) había terminado en verde, y que el
+`index.html` publicado apuntaba a `app.js?v=20260812v34a1` — la versión correcta, con
+`deudaRutaOffer`, `cuadroMandosBand` y `cuadroMandosDebtFreeReadout` presentes en el bundle. El
+patrón (V1-2, la ronda más antigua, sí se veía; las tres rondas siguientes no) encajaba con una
+página que llevaba abierta desde antes de esos despliegues, sirviendo el bundle antiguo cacheado
+por el Service Worker (`ignoreSearch: true` en el `fetch` handler hace que el `?v=` de la URL no
+importe para la clave de caché — el que manda es que `install`/`activate` se hayan disparado de
+verdad en esa pestaña). Se indicó al usuario cómo forzar la actualización: `Unregister` del Service
+Worker + `Clear site data` en DevTools, o cerrar todas las pestañas del sitio y volver a abrirlo.
+
+**Resultado tras limpiar la caché:** V1-2 (ya se veía desde el principio), V2-5, V2-7 y V3-4
+confirmados correctos por el usuario. **V2-6 no se ha vuelto a comprobar** tras el arreglo —no se
+marca como ✅ hasta esa reconfirmación explícita, aunque el código y las pruebas ya lo cubren.
+V4-3/V4-5 tampoco se han probado todavía en el sitio.
+
+**Qué cambió en el repositorio:** solo documentación, sin tocar `app.js`/`index.html`/CSS ni
+versión del shell — no hacía falta, el código ya estaba desplegado correctamente. `BACKLOG.md`:
+V1-2, V2-5, V2-7 y V3-4 pasan de 🟡 a ✅, con nota de confirmación en el sitio; sus vistas (1 · Hoy
+y 3 · Deuda) quedan ✅ por completo; la vista 2 · Plan queda con siete de sus ocho tareas en ✅,
+pendiente solo de V2-6. `npm test`: **616/616 pruebas**, sin cambios respecto a la entrega anterior
+(cambio de solo documentación, no hacía falta `npm run verify` completo).
+
+**Pendiente para la próxima confirmación:** V2-6 (cuarto indicador del pie de impacto de Plan) y
+V4-3/V4-5 (aviso «¿es anual?» en Registrar el mes, que además solo se dispara con una partida que
+cumpla el patrón exacto en los datos reales).
+
 ## Cierre de sesión — 12 de agosto de 2026: V3-4, oferta en curso en la vista de Deuda
 
 Cuarta y última de las cuatro entregas del cierre de backlog pedido por el usuario. Con esta, las

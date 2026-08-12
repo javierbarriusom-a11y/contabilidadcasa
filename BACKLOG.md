@@ -110,14 +110,17 @@ protegida* y *Próximo riesgo* debajo. Sus cuatro heredadas quedaron relegadas e
 (V1-4), sin esperar a cerrar la 🟡 de V1-2 —dejó de ser un requisito con la decisión del 10 de
 agosto, ver la sección 5—. El asesor ejecutivo (V1-2, 12 de agosto) ya se asoma desde «Situación
 actual» cuando hay una oferta de deuda abierta, enlazando a `#asesor-decision`. Con esto, las
-cuatro tareas de V1 están hechas; la vista queda 🟡 solo hasta su confirmación en el sitio
-publicado.
+cuatro tareas de V1 están hechas y **confirmadas por el usuario en el sitio publicado el 12 de
+agosto de 2026**: la vista 1 · Hoy queda ✅ por completo.
 
 **2 · Plan.** Es la más completa: la tabla editable con pie de impacto está construida y
-publicada, que era el corazón del rediseño. La banda de doce meses ya vive *dentro* de Plan
-(V2-7, 12 de agosto), y el pie gana su cuarto indicador, la fecha libre de deuda (V2-6) — sin
-diferencia, porque editar un previsto sigue sin tocar ningún contrato, así que se muestra fija
-en vez de fingir un cambio. Sus cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
+publicada, que era el corazón del rediseño. El primer enlace de «Dónde seguir con ese mes» ya
+nombra el bloque real que más pesa (V2-5), y la banda de doce meses ya vive *dentro* de Plan
+(V2-7) — ambas confirmadas en el sitio el 12 de agosto. El pie gana también un cuarto indicador,
+la fecha libre de deuda (V2-6) — sin diferencia, porque editar un previsto sigue sin tocar ningún
+contrato, así que se muestra fija en vez de fingir un cambio — construido pero todavía sin
+reconfirmar en el sitio tras el arreglo de caché, así que la vista queda 🟡 hasta esa última
+comprobación. Sus cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
 
 > **Corrección del 10 de agosto: `#forecast` no era una heredada.** Esta tabla lo listaba
 > entre las que Plan debía relegar, contradiciendo al inventario de la sección 1, que lo
@@ -137,7 +140,9 @@ demás. La «oferta en curso» del mockup ya no vive solo en `#asesor-decision` 
 `#deuda-ruta` gana una tarjeta «Oferta en curso» que reutiliza `asesorDecisionOpenOffers()` y
 `asesorDecisionFundingHtml()` tal cual, con un botón que replica el mismo gesto de
 `asesorDecisionApply` — marca la oferta en el workspace de E14b y enruta a `#debt-roadmap`, que sigue
-siendo el único sitio donde se aplica de verdad. Con esto, las cinco tareas de V3 quedan hechas.
+siendo el único sitio donde se aplica de verdad. Con esto, las cinco tareas de V3 quedan hechas y
+**confirmadas por el usuario en el sitio publicado el 12 de agosto de 2026**: la vista 3 · Deuda
+queda ✅ por completo.
 
 **4 · Datos.** Hub, importación y registro del mes, construidos, y desde el 10 de agosto también los
 cuatro pasos que pedía el turno 5 (V4-4): `#datos-importar` los antepone a la bandeja previa de
@@ -321,7 +326,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | V1-1 | Hoy con la piel nueva y tres decisiones | ✅ | — | Mockup 1a · E19-2 |
-| V1-2 | Asesor ejecutivo, una decisión abierta a la vez | 🟡 | — | Mockup 1d · E20-2 · hecha el 12 de agosto de 2026 |
+| V1-2 | Asesor ejecutivo, una decisión abierta a la vez | ✅ | — | Mockup 1d · E20-2 · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | ✅ | Media | Mockup 4b · hecha el 10 de agosto, reutilizando el cálculo de `#deuda-comparar` · **vista en el sitio** |
 | V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | ✅ | Media | Mockup 4b · hecha y confirmada en el sitio el 11 de agosto, la quinta relegación |
 
@@ -334,6 +339,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > `asesorDecisionOpenOffers()` tal cual: sin oferta abierta no aparece nada, con oferta abierta
 > muestra contraparte, importe y vencimiento y enlaza a `#asesor-decision`. Ningún cálculo nuevo.
 > **Cierra la vista 1 · Hoy por completo**: con esta, las cuatro tareas de V1 quedan hechas.
+> **Confirmada por el usuario en el sitio publicado el 12 de agosto de 2026, pasa a ✅.**
 
 ### V2 · Plan
 
@@ -343,9 +349,9 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V2-2 | Los once tipos de decisión del motor | ✅ | — | E20-3 |
 | V2-3 | Cuadro de mandos con pie de impacto | ✅ | — | Mockup 3a + spec 5a · E20-5 |
 | V2-4 | Bandeja de cambios reversible | ✅ | — | Mockup 3b · E20-5 |
-| V2-5 | Mapa de calor mensual | 🟡 | — | Mockup 3c · E20-5 · hecha el 12 de agosto de 2026 |
-| V2-6 | Cuarto indicador del pie: fecha sin deuda | 🟡 | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño · hecha el 12 de agosto de 2026 |
-| V2-7 | Banda de doce meses integrada en Plan | 🟡 | Baja | Mockup 4c · hecha el 12 de agosto de 2026 |
+| V2-5 | Mapa de calor mensual | ✅ | — | Mockup 3c · E20-5 · hecha y confirmada en el sitio el 12 de agosto de 2026 |
+| V2-6 | Cuarto indicador del pie: fecha sin deuda | 🟡 | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño · hecha el 12 de agosto de 2026, pendiente de reconfirmar en el sitio |
+| V2-7 | Banda de doce meses integrada en Plan | ✅ | Baja | Mockup 4c · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | V2-8 | Mover `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator` y `#new-life-simulation` a Versiones anteriores | ✅ | — | Mockup 4c · hecha el 10 de agosto, ver la nota sobre `#forecast` |
 
 > **V2-5, V2-6 y V2-7, hechas el 12 de agosto de 2026.** Los tres remates del bloque Plan, ninguno
@@ -364,7 +370,12 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 >   la rejilla multi-año completa —no cabría sin abrumar una tabla ya densa—, es una fila con los
 >   próximos doce meses.
 >
-> Las tres esperan a la verificación en el sitio publicado.
+> **V2-5 y V2-7, confirmadas por el usuario en el sitio publicado el 12 de agosto de 2026, pasan a
+> ✅.** La primera comprobación las dio por no visibles junto con V2-6, pero era una caché de
+> Service Worker desactualizada en el navegador del usuario (el deploy en sí ya estaba en verde,
+> verificado en GitHub Actions); tras limpiarla, V2-5 y V2-7 se vieron correctamente. **V2-6 sigue
+> 🟡**: no se ha vuelto a comprobar después de limpiar la caché, así que no se marca hasta que se
+> reconfirme.
 
 ### V3 · Deuda
 
@@ -373,7 +384,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V3-1 | Comparador de estrategias | ✅ | — | Mockup 1c · E20-2 · sin cifras en el sitio hasta el 10 de agosto, §8 · completado por V3-3 y confirmado en el sitio |
 | V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 · llegó al sitio el 10 de agosto, §8 |
 | V3-3 | Estrategia **Consolidar** como cuarta opción real | ✅ | Media | Mockup 4d · hecha el 10 de agosto: se pide la oferta (TIN, plazo, comisión) en vez de inventarla · **vista en el sitio** |
-| V3-4 | Oferta en curso dentro de la vista de deuda | 🟡 | Baja | Mockup 4d · hecha el 12 de agosto de 2026 |
+| V3-4 | Oferta en curso dentro de la vista de deuda | ✅ | Baja | Mockup 4d · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ✅ | Media | Mockup 4d · hecha el 10 de agosto, tras V3-3 · **vista en el sitio** |
 
 ### V4 · Datos
@@ -533,17 +544,21 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 11. ~~**T-2** · el acento navy~~ — **hecha y confirmada en el sitio el 12 de agosto de 2026.**
     Cierra todo lo que estaba priorizado hasta ese momento; lo que quedaba eran remates de
     prioridad Baja o Media sin urgencia, no bloqueos.
-12. ~~**V1-2** · asesor ejecutivo en Hoy~~ — **hecha el 12 de agosto de 2026.** Cierra la vista 1 ·
-    Hoy por completo: las cuatro tareas de V1 quedan hechas.
-13. ~~**V2-5, V2-6, V2-7** · remates de Plan~~ — **hechas el 12 de agosto de 2026.** Cierra la
-    vista 2 · Plan por completo: las ocho tareas de V2 quedan hechas.
+12. ~~**V1-2** · asesor ejecutivo en Hoy~~ — **hecha y confirmada en el sitio el 12 de agosto de
+    2026.** Cierra la vista 1 · Hoy por completo: las cuatro tareas de V1 quedan hechas y ✅.
+13. ~~**V2-5, V2-7** · remates de Plan~~ — **hechas y confirmadas en el sitio el 12 de agosto de
+    2026.** **V2-6** (cuarto indicador del pie) se hizo el mismo día pero sigue 🟡: la primera
+    comprobación la dio por no visible junto con V2-5/V2-7 —era una caché de Service Worker
+    desactualizada en el navegador, no el código— y todavía no se ha reconfirmado tras el arreglo.
+    Con V2-6 pendiente, la vista 2 · Plan queda con siete de sus ocho tareas en ✅.
 14. ~~**V4-3, V4-5** · aviso «¿es anual?» en Registrar el mes~~ — **hechas el 12 de agosto de
     2026.** Detección de solo lectura, sin tocar la clasificación de `#datos-importar`; no proyecta
-    el previsto hacia años futuros, solo pregunta y recuerda dónde anotarlo.
-15. ~~**V3-4** · oferta en curso en la vista de deuda~~ — **hecha el 12 de agosto de 2026.** Cierra
-    la vista 3 · Deuda por completo y con ella las siete tareas del cierre de backlog pedido. Cero
-    cálculo nuevo: reutiliza `asesorDecisionOpenOffers()`/`asesorDecisionFundingHtml()` y el mismo
-    gesto de `asesorDecisionApply`.
+    el previsto hacia años futuros, solo pregunta y recuerda dónde anotarlo. Sin probar todavía en
+    el sitio publicado.
+15. ~~**V3-4** · oferta en curso en la vista de deuda~~ — **hecha y confirmada en el sitio el 12 de
+    agosto de 2026.** Cierra la vista 3 · Deuda por completo. Cero cálculo nuevo: reutiliza
+    `asesorDecisionOpenOffers()`/`asesorDecisionFundingHtml()` y el mismo gesto de
+    `asesorDecisionApply`.
 
 Dos matices de orden que no son caprichosos:
 
