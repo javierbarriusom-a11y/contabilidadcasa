@@ -200,6 +200,6 @@ test("V6-3 · el control vive en Ajustes, con ayuda y sin romper el shell offlin
   assert.match(app, /qs\("ajustesReserve"\)\?\.addEventListener\("change", handleOperatingReserveChange\)/);
   assert.match(app, /addHelpToControl\(\s*"ajustesReserve"/);
   assert.match(tokens, /\.cuadro-mandos-reserve-note\b/);
-  assert.match(worker, /20260811-v62a1/);
-  assert.match(html, /app\.js\?v=20260811v62a1/);
+  assert.match(worker, /20260811-v64a1/);
+  assert.match(html, /app\.js\?v=20260811v64a1/);
 });

@@ -5174,6 +5174,8 @@ function applyHelpTooltips() {
     "ajustesPartidaThreshold",
     "Porcentaje de desviación sobre lo previsto a partir del cual Ajustes avisa de una partida en Registrar el mes. Vacío significa que cualquier desviación sigue contando, como hasta ahora.",
   );
+  qs("ajustesExportCsv")?.setAttribute("data-help", "El mismo CSV completo del flujo mensual que ya descarga Plan, ahora también desde aquí.");
+  qs("ajustesExportPdf")?.setAttribute("data-help", "Previsto, real y desviación de cada partida del mes abierto en Registrar el mes, en un PDF de una página por cada 42 líneas.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -17904,6 +17906,7 @@ function renderAjustes() {
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
+  renderAjustesExportNote();
 
   const balances = accountBalancesFromState();
   const accountsSummary = qs("ajustesAccountsSummary");
@@ -18027,6 +18030,52 @@ function renderAjustesPartidaNote() {
   note.textContent = over.length
     ? `${over.length} partida(s) de ${monthName} superan el ${threshold}% de desviación.`
     : `Ninguna partida de ${monthName} supera el ${threshold}% de desviación.`;
+}
+
+function renderAjustesExportNote() {
+  const note = qs("ajustesExportNote");
+  if (!note) return;
+  const month = registrarMesSelectedMonth();
+  note.textContent = month
+    ? `El PDF exportará ${registrarMesLongMonth(month.key)}, el mes abierto en Registrar el mes.`
+    : "Abre un mes en Registrar el mes para poder exportar su PDF.";
+}
+
+// Líneas de texto plano para el PDF del mes, separado del disparo del guardado para poder probar
+// el contenido sin depender de P2Export ni del navegador.
+function ajustesExportMonthLines(month, entries, totals) {
+  const monthName = registrarMesLongMonth(month.key);
+  const rowLine = (entry) =>
+    `${entry.label}: previsto ${money(entry.planned, true)} · real ${
+      entry.hasActual ? money(entry.actual, true) : "sin registrar"
+    }${entry.hasActual ? ` · ${registrarMesSignedMoney(entry.variance)}` : ""}`;
+  return [
+    `RESUMEN DEL MES - ${monthName.toUpperCase()}`,
+    `Generado: ${new Date().toISOString().slice(0, 10)}`,
+    "",
+    "INGRESOS",
+    ...(entries.income.length ? entries.income.map(rowLine) : ["Sin partidas de ingreso."]),
+    "",
+    "GASTOS",
+    ...(entries.expense.length ? entries.expense.map(rowLine) : ["Sin partidas de gasto."]),
+    "",
+    "TOTALES",
+    `Ingresos usados: ${money(totals.incomeUsed, true)} (previsto ${money(totals.incomePlanned, true)})`,
+    `Gastos usados: ${money(totals.expenseUsed, true)} (previsto ${money(totals.expensePlanned, true)})`,
+    `Partidas con real registrado: ${totals.captured} de ${totals.lines}`,
+  ];
+}
+
+function handleAjustesExportPdf() {
+  const month = registrarMesSelectedMonth();
+  if (!month) {
+    announceStatus("Abre un mes en Registrar el mes antes de exportar su PDF.");
+    return;
+  }
+  const entries = registrarMesCollect(month);
+  const totals = registrarMesTotals(entries);
+  window.P2Export.downloadPlainPdf(ajustesExportMonthLines(month, entries, totals), `resumen-mes-${month.key}.pdf`);
+  announceStatus(`PDF de ${registrarMesLongMonth(month.key)} descargado.`);
 }
 
 function handleOperatingReserveChange(event) {
@@ -23140,6 +23189,8 @@ async function init() {
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
+  qs("ajustesExportCsv")?.addEventListener("click", downloadCsv);
+  qs("ajustesExportPdf")?.addEventListener("click", handleAjustesExportPdf);
   qs("cuadroMandosTable")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-cuadro-cell]");
     if (input) handleCuadroMandosCellChange(input);

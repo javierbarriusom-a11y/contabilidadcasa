@@ -1,6 +1,68 @@
 # Estado del proyecto
 
-Fecha de revisión: 11 de agosto de 2026.
+Fecha de revisión: 12 de agosto de 2026.
+
+## Cierre de sesión — 12 de agosto de 2026: V6-4, exportación única
+
+Pedido explícito del usuario tras confirmar T-1/V6-3/V6-2/V1-4 en el sitio publicado: «Pasa a
+Cerrar el bloque Ajustes: V6-4, exportación única».
+
+**Lo pedido.** El CSV completo del flujo mensual y un PDF del mes, desde un único sitio — hoy
+`downloadCsv` solo vivía en `#cashflow`. La tarjeta «Exportar» de `#ajustes`, que hasta ahora era
+un enlace de ruta hacia `#cashflow` con la omisión escrita, pasa a descargar de verdad: dos
+botones, «Descargar CSV completo» y «Descargar PDF del mes».
+
+**Lo que ya existía y se reutiliza tal cual, sin reinventarlo:**
+- El CSV completo es literalmente `downloadCsv()`, la misma función que ya usa `#cashflow` —
+  un segundo `addEventListener` sobre el botón nuevo, nada más.
+- El PDF no añade ninguna librería nueva. `p2-export.js` (E10, informe para el asesor) ya tenía un
+  escritor de PDF sin dependencias (`pdfBlob`/`download`, bytes `%PDF-1.4` escritos a mano). Se le
+  añade un método genérico, `P2Export.downloadPlainPdf(lines, fileName)`, que reutiliza esos
+  mismos internos para líneas de texto sueltas en vez del modelo específico del informe del
+  asesor — `downloadPdf` (el método existente) no se toca.
+- El contenido del PDF reutiliza `registrarMesSelectedMonth()`/`registrarMesCollect()`/
+  `registrarMesTotals()`, las mismas funciones que ya usa Registrar el mes y que V6-2 ya leía
+  desde Ajustes para el aviso de desviación por partida.
+
+**Qué cambió, exactamente:**
+- `p2-export.js`: nuevo método `downloadPlainPdf(lines, fileName)` en `P2Export`, aditivo, sin
+  tocar `downloadPdf` ni `downloadExcel`.
+- `app.js`: `renderAjustesExportNote()` (qué mes se exportará, o que no hay ninguno abierto);
+  `ajustesExportMonthLines(month, entries, totals)` (líneas de texto del PDF, función pura,
+  separada del disparo para poder probarla sin depender de `P2Export` ni del navegador);
+  `handleAjustesExportPdf()` (junta mes/entries/totals, llama a `P2Export.downloadPlainPdf` y
+  anuncia el resultado); `renderAjustes()` gana la llamada a `renderAjustesExportNote()`; dos
+  `addEventListener` nuevos (`ajustesExportCsv` → `downloadCsv`, `ajustesExportPdf` →
+  `handleAjustesExportPdf`) y su `data-help`.
+- `index.html`: la tarjeta «Exportar» deja de ser `<button data-home-nav="cashflow">` y pasa a un
+  `<article class="e19-card">` con los dos botones y una nota; ya no queda ninguna tarjeta de
+  Ajustes marcada «Pendiente»; versión de `app.js` y `p2-export.js` bumped a `20260811v64a1` (no se
+  tocó `design-tokens.css` ni `ux-settings.js`, así que se quedan en `v62a1`).
+- `service-worker.js`: `CACHE_NAME` → `"finanzas-casa-shell-20260811-v64a1"`.
+- 20 archivos de test actualizan el canario de versión del shell (bulk sed `v62a1` → `v64a1`,
+  mismo patrón que en cierres anteriores). `tests/v6-3-vista-ajustes.test.cjs` se ajusta en dos
+  pruebas porque el comportamiento que comprobaban cambió a propósito: la tarjeta de Exportar ya
+  no enruta a `#cashflow` (se quita de la lista de tarjetas-ruta) y ya no queda ninguna tarjeta
+  «Pendiente» que documentar. Un fichero nuevo (`v6-4-exportacion-unica.test.cjs`, 9 pruebas) cubre
+  lo que añade esta entrega: contenido del PDF con y sin partidas, aviso y no-descarga sin mes
+  abierto, nombre de archivo con la clave del mes, la nota de Ajustes en los dos estados, el nuevo
+  método de `P2Export` sin tocar el existente, cableado HTML/JS y el canario de versión.
+
+**Validación** (`npm run verify`, exit 0): **550/550 pruebas** (541 antes + 9 nuevas), **597 IDs
+únicos**, diff 10.000 filas en **37,4 ms**, forecast y escenarios en **189,0 ms**, recursos **1275
+KB**. QA de navegador servida desde `dist/`: **10/11 comprobaciones** — Ajustes abre por hash
+directo, los dos botones y la nota están presentes, ya no queda ninguna tarjeta de ruta hacia
+`#cashflow`, el CSV se descarga con el nombre esperado, abrir un mes en Registrar el mes se refleja
+en la nota de Ajustes, y el PDF se descarga con el nombre `resumen-mes-<clave>.pdf` y contenido no
+vacío. La única comprobación que no pasa es la de «sin errores de consola propios», y no es nueva:
+el CDN de Supabase sigue bloqueado en este entorno sin salida a internet (mismo aviso de siempre,
+confirmado aparte con las URLs de red, sin relación con este cambio) más un 404 puntual no
+capturable en la primera pasada, igual que en cierres anteriores.
+
+**Pendiente**: llevar el umbral de partida (V6-2) al tinte y al filtro de Registrar el mes sigue
+siendo la única omisión abierta del bloque de Ajustes. T-2 (acento navy) sigue independiente y sin
+empezar. V5-2 (confianza del dato por cuenta) sigue como la pieza de prioridad Media que queda en
+el resto del backlog.
 
 ## Cierre de sesión — 11 de agosto de 2026: confirmación en el sitio publicado de T-1, V6-3, V6-2 y V1-4
 

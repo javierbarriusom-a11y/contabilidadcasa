@@ -37,7 +37,6 @@ test("V6-3 · cada tarjeta lleva a donde ese dato se edita de verdad", () => {
     ["Cuentas", "visual-detail"],
     ["Partidas", "visual-detail"],
     ["Umbrales de aviso", "alerts-center"],
-    ["Exportar", "cashflow"],
   ];
   for (const [step, target] of routes) {
     assert.match(html, new RegExp(`<span class="e19-route-step">${step}[^<]*</span>`), `falta la tarjeta de ${step}`);
@@ -52,11 +51,11 @@ test("V6-3 · el clic en una tarjeta navega, igual que en Actualizar mis datos",
   assert.match(app, /qs\("ajustes"\)\?\.addEventListener\("click", \(event\) => \{\s*const button = event\.target\.closest\("\[data-home-nav\]"\);/);
 });
 
-// V6-2 (10 de agosto de 2026) cierra los tres umbrales que esta prueba comprobaba como pendientes;
-// solo V6-4 (exportación única) sigue sin construir, y la propia tarjeta lo dice.
-test("V6-3 · documenta lo que queda pendiente en vez de fingir que ya está hecho", () => {
-  assert.match(html, /Pendiente \(V6-4\)/);
+// V6-2 y V6-4 (10-11 de agosto de 2026) cierran lo que esta prueba comprobaba como pendiente: ya
+// no queda ninguna tarjeta de Ajustes marcada "Pendiente".
+test("V6-3 · ya no queda ninguna omisión pendiente marcada en la vista", () => {
   assert.ok(!html.includes("Pendiente (V6-2)"), "V6-2 ya está hecha: no debe seguir marcada como pendiente");
+  assert.ok(!html.includes("Pendiente (V6-4)"), "V6-4 ya está hecha: no debe seguir marcada como pendiente");
 });
 
 test("V6-3 · el lanzador encuentra Ajustes por su nombre, con guía propia", () => {

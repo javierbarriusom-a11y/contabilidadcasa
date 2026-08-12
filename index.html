@@ -1269,20 +1269,19 @@
             </div>
           </section>
 
-          <!-- V6-3/V6-2 · reúne lo que hoy vive repartido: la reserva operativa y los dos umbrales
-               propios (ventana de duplicados, desviación por partida) se editan aquí de verdad; el
-               colchón mínimo en meses es una regla más del framework de alertas ya existente, así
-               que su tarjeta enlaza a Umbrales de aviso en vez de duplicar el editor; cuentas y
-               partidas siguen editándose donde ya vivían — cada tarjeta lleva directamente ahí —
-               porque construir un editor nuevo hoy duplicaría lógica sin necesidad. Solo la
-               exportación única (V6-4) queda pendiente, y queda escrito en su propia tarjeta en vez
-               de fingir que ya está hecha. -->
+          <!-- V6-3/V6-2/V6-4 · reúne lo que hoy vive repartido: la reserva operativa, los dos
+               umbrales propios (ventana de duplicados, desviación por partida) y la exportación se
+               hacen aquí de verdad; el colchón mínimo en meses es una regla más del framework de
+               alertas ya existente, así que su tarjeta enlaza a Umbrales de aviso en vez de
+               duplicar el editor; cuentas y partidas siguen editándose donde ya vivían — cada
+               tarjeta lleva directamente ahí — porque construir un editor nuevo hoy duplicaría
+               lógica sin necesidad. -->
           <section class="e19-ajustes view-section" id="ajustes">
             <div class="section-title">
               <div>
                 <p class="panel-kicker e19-eyebrow">Ajustes</p>
                 <h2 class="e19-heading">Cuentas, reserva, umbrales, partidas y exportación en un mismo sitio</h2>
-                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La reserva operativa y los dos umbrales de abajo son la excepción: se guardan desde aquí mismo.</p>
+                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La reserva operativa, los dos umbrales de abajo y la exportación son la excepción: se hacen desde aquí mismo.</p>
               </div>
             </div>
 
@@ -1312,6 +1311,16 @@
               <p class="e19-kpi-note" id="ajustesPartidaNote"></p>
             </article>
 
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Exportar</h3>
+              <p class="e19-kpi-note">El CSV completo del flujo mensual y el PDF del mes abierto en Registrar el mes, desde un único sitio.</p>
+              <div class="cuadro-mandos-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="ajustesExportCsv">Descargar CSV completo</button>
+                <button type="button" class="e19-btn e19-btn-primary" id="ajustesExportPdf">Descargar PDF del mes</button>
+              </div>
+              <p class="e19-kpi-note" id="ajustesExportNote"></p>
+            </article>
+
             <div class="update-route-grid" id="ajustesRouteGrid">
               <button class="e19-route-card" type="button" data-home-nav="visual-detail">
                 <span class="e19-route-step">Cuentas</span>
@@ -1336,12 +1345,6 @@
                 <strong id="ajustesAlertsSummary">Reglas activas</strong>
                 <small>Caja, deuda, capacidad y colchón mínimo en meses, con revisión y frecuencia.</small>
                 <em>Ventana de duplicados y desviación por partida se guardan arriba, no aquí.</em>
-              </button>
-              <button class="e19-route-card" type="button" data-home-nav="cashflow">
-                <span class="e19-route-step">Exportar</span>
-                <strong>Descargar CSV del flujo mensual</strong>
-                <small>El único CSV completo de la aplicación.</small>
-                <em>Pendiente (V6-4): hoy la evidencia de Conciliar y el inventario de Auditoría se descargan aparte.</em>
               </button>
             </div>
           </section>
@@ -3083,8 +3086,8 @@
     <script src="ux-shell.js?v=20260716a"></script>
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
-    <script src="p2-export.js?v=20260717a"></script>
-    <script src="app.js?v=20260811v62a1"></script>
+    <script src="p2-export.js?v=20260811v64a1"></script>
+    <script src="app.js?v=20260811v64a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
