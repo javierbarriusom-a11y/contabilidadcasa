@@ -96,7 +96,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
-| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); cuentas y partidas enlazadas a donde ya se editan | — |
+| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); CSV completo y PDF del mes descargables desde aquí (V6-4, 12 de agosto); cuentas y partidas enlazadas a donde ya se editan | El umbral de partida no tiñe ni filtra aún Registrar el mes |
 
 ### Lo que falta en cada una, medido
 
@@ -161,11 +161,11 @@ Con la casilla puesta, las tres hablan de la misma cifra y cada una declara cuá
 usando. `#ajustes` reúne cuentas, partidas, umbrales y exportación: la reserva operativa, la
 ventana de duplicados y el umbral de desviación por partida se editan de verdad aquí (V6-2), el
 colchón mínimo en meses es una regla más del framework de alertas ya existente en
-`#alerts-center` (V6-2), y cuentas y partidas siguen **enlazando a donde cada una ya se edita**
-en vez de reimplementar esos formularios. Lo que sigue faltando es la exportación única de V6-4
-— documentada en su propia tarjeta, no escondida — y que el umbral de partida llegue a cambiar el
-tinte de Registrar el mes, hoy solo informa en Ajustes. Sigue siendo el bloque con mejor relación
-esfuerzo/valor.
+`#alerts-center` (V6-2), el CSV completo y el PDF del mes se descargan aquí mismo (V6-4, 12 de
+agosto), y cuentas y partidas siguen **enlazando a donde cada una ya se edita** en vez de
+reimplementar esos formularios. Lo único que sigue faltando en el bloque es que el umbral de
+partida llegue a cambiar el tinte de Registrar el mes, hoy solo informa en Ajustes. Sigue siendo
+el bloque con mejor relación esfuerzo/valor de todo el backlog.
 
 ---
 
@@ -244,7 +244,7 @@ Seis bloques que son las seis vistas, más uno transversal. Cada tarea lleva el 
 | V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | ✅ | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
 | V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | ✅ | Media | Mockup 4f · Ajustes · hecha y confirmada en el sitio el 11 de agosto de 2026 |
 | V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | ✅ | Media | Mockup 4f · hecha y confirmada en el sitio el 11 de agosto de 2026 |
-| V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | ⏳ | Baja | Mockup 4f |
+| V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | 🟡 | Baja | Mockup 4f · hecha el 12 de agosto de 2026 |
 
 **V6-1 es la primera tarea recomendada de todo el backlog.** Es pequeña, no rompe nada, y
 mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
@@ -287,6 +287,18 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > contando cualquier diferencia como hacían antes. Cambiar esa pantalla, que ya está publicada y en
 > uso, se dejó fuera a propósito para no arriesgar una regresión en un sitio que no pedía tocarse —
 > queda como mejora futura explícita, no como parte pendiente de esta entrega.
+
+> **V6-4, hecha el 12 de agosto de 2026.** El CSV completo (`downloadCsv`, sin tocar) y un PDF
+> nuevo del mes abierto en Registrar el mes se piden ahora desde la tarjeta «Exportar» de
+> `#ajustes`, que deja de ser un enlace de ruta a `#cashflow` y pasa a descargar de verdad — el
+> mismo cambio de naturaleza que ya tuvo la reserva operativa al mudarse aquí en V6-3. El PDF no
+> añade ninguna librería nueva: reutiliza `P2Export`, el escritor de PDF sin dependencias que ya
+> usaba el informe para el asesor (E10), al que solo se le añade un método genérico
+> (`downloadPlainPdf`) que recibe líneas de texto en vez del modelo específico de ese informe — el
+> generador de bytes del PDF (`pdfBlob`) no se toca. El contenido del PDF reutiliza también lo que
+> ya calculaba Registrar el mes (`registrarMesCollect`/`registrarMesTotals`): previsto, real y
+> desviación de cada partida del mes abierto, con sus totales. Queda 🟡 hasta la verificación en el
+> sitio publicado, igual que el resto de esta sesión.
 
 ### V1 · Hoy
 
@@ -424,8 +436,9 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 8. ~~**V6-2** · umbrales de aviso~~ — **hecha y confirmada en el sitio el 11 de agosto de 2026**,
    a continuación de V6-3. La omisión sigue escrita en su propia nota: el umbral de partida no
    cambia el tinte de Registrar el mes, solo informa en Ajustes.
-9. **V5-2** · confianza del dato por cuenta. **V6-4** · exportación única. **T-2** · el acento
-   navy, si se quiere.
+9. ~~**V6-4** · exportación única~~ — **hecha el 12 de agosto de 2026.** Cierra el bloque de
+   Ajustes salvo el tinte de Registrar el mes, la misma omisión de siempre.
+10. **V5-2** · confianza del dato por cuenta. **T-2** · el acento navy, si se quiere.
 
 Dos matices de orden que no son caprichosos:
 

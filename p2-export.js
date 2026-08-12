@@ -79,6 +79,9 @@
       ];
       download(pdfBlob(lines), fileName);
     },
+    downloadPlainPdf(lines, fileName) {
+      download(pdfBlob(lines), fileName);
+    },
     downloadExcel(model, fileName) {
       root.XLSX.writeFile(workbook(model), fileName);
     },
