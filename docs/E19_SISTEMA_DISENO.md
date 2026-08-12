@@ -192,14 +192,15 @@ estrategia es una lista de decisiones `amortizacion` (pago total, `planificacion
 "optimo"`) sobre la cartera real (`canonicalDebtContractRows`), ordenada según el
 criterio de la estrategia, y resuelta de verdad por el motor — nunca un número inventado.
 
-**Solo tres estrategias, no cuatro.** El mockup 1c muestra "Quita + avalancha", "Bola de
-nieve", "Reunificación" y "No tocar nada". Aquí solo hay **avalancha** (ordena por TAE
-descendente), **bola de nieve** (ordena por saldo ascendente) y **no tocar nada** (sin
-decisiones, referencia). "Reunificación" como estrategia hipotética exigiría inventar
-unas condiciones de préstamo (TAE, plazo) que no existen todavía como oferta real en los
-datos — documentado en la propia pantalla en vez de fabricar una cifra. El día que exista
-una oferta de reunificación real registrada (como ya permite el flujo de ofertas de
-`#debt-roadmap`/E14b), puede añadirse como estrategia comparable de verdad.
+**Cuatro estrategias reales (V3-3, 10 de agosto de 2026).** El mockup 1c muestra "Quita +
+avalancha", "Bola de nieve", "Reunificación" y "No tocar nada". Aquí hay **avalancha**
+(ordena por TAE descendente), **bola de nieve** (ordena por saldo ascendente),
+**consolidar** (cierra todas las deudas con un préstamo único) y **no tocar nada** (sin
+decisiones, referencia). "Consolidar" no se fabrica: pide la oferta real al usuario —TIN,
+plazo y comisión opcional (`debtConsolidationOffer`)— en vez de inventar unas condiciones
+de préstamo; sin esa oferta, la tarjeta muestra sus KPI como «—» en lugar de una cifra sin
+calcular. Su coste no es «capital desembolsado» como las otras tres, sino los intereses
+del préstamo nuevo (`costeLabel` propio), porque consolidar no desembolsa nada.
 
 **Recomendada** = la estrategia viable (todas sus decisiones resueltas como "aplicada")
 con la fecha de libre de deuda más temprana; en empate, la de menor coste total

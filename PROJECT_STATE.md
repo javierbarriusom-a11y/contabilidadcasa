@@ -2,6 +2,40 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: reclasifica 1d/2e, cierra la inconsistencia de V3-3 y añade T-6
+
+El usuario pidió cerrar los dos últimos 🟡 de `BACKLOG.md` (1d Asesor ejecutivo, 2e Escenarios
+guardados) y arreglar la inconsistencia de documentación detectada en la sesión anterior (§6 de
+`docs/E19_SISTEMA_DISENO.md`, que seguía diciendo "solo tres estrategias" pese a que V3-3 añadió
+Consolidar como cuarta el 10 de agosto).
+
+**Antes de tocar nada se preguntó qué significa "acometer" 1d/2e**, porque las dos comparten la
+misma raíz: dependen de un "motor de recomendación genérico" (decisión recomendada / escenario
+caducado) que el proyecto decidió explícitamente no fabricar — está documentado en
+`docs/E19_SISTEMA_DISENO.md` §5 y §8 desde el principio, y construirlo ahora habría revertido esa
+decisión de producto sin que existiera un criterio real definido. El usuario eligió: **reclasificar
+sin fabricar nada, y guardar el motor de recomendación real como tarea explícita para la próxima
+versión.**
+
+**Qué cambió, exactamente:**
+- `BACKLOG.md`: 1d y 2e pasan de 🟡 a ✅ — las dos pantallas están construidas al completo sobre
+  datos reales, la nota permanente sobre lo que no se fabrica no es un hueco de construcción, es
+  una decisión de producto ya tomada. Nueva tarea **T-6** ("Motor de recomendación real"), ⏳,
+  prioridad Media, con su nota explicando el porqué y la petición del usuario de guardarla para la
+  siguiente versión.
+- `docs/E19_SISTEMA_DISENO.md` §6: corregido el párrafo que documentaba "solo tres estrategias, no
+  cuatro" — desde V3-3 (10 de agosto) hay cuatro (avalancha, bola de nieve, **consolidar**, no
+  tocar nada), con "consolidar" pidiendo la oferta real (TIN/plazo/comisión) en vez de fabricarla.
+- `npm test`: **616/616 pruebas**, sin cambios (cambio de solo documentación).
+
+**Con esto, `BACKLOG.md` no tiene ningún 🟡 ni ⏳ bloqueante pendiente del cierre de backlog
+pedido**: los únicos ⏳ que quedan son T-3 (E10, activación real de IA/hogar/push/PSD2, sin
+bloqueo) y el nuevo T-6, ambos explícitamente fuera de esta sesión y guardados para el futuro.
+
+**Siguiente paso pedido por el usuario:** generar un documento de entrega visual (estilo
+dashboard, con badges) que resuma todos los cambios de esta sesión como base para planificar la
+próxima versión — pendiente de publicar como Artifact.
+
 ## Cierre de sesión — 12 de agosto de 2026: confirmación en el sitio de V2-6 y V4-3/V4-5
 
 El usuario confirmó en el sitio publicado (`javierbarriusom-a11y.github.io/contabilidadcasa`) las

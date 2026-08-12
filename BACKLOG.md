@@ -53,14 +53,15 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 
 ### Los quince mockups de los turnos 1-3
 
-**15 de 15 migrados.** Dos de ellos con omisiones documentadas (permanentes, no pendientes):
+**15 de 15 migrados y completos.** Dos con una nota permanente sobre datos que el proyecto decide
+no fabricar (ver T-6 más abajo para la tarea real que las cerraría de verdad):
 
 | Mockup | Pantalla | Estado | Qué falta |
 |---|---|---|---|
 | 1a Hoy | `#home` | ✅ | — |
 | 1b Ruta de deuda | `#deuda-ruta` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 1c Comparador de estrategias | `#deuda-comparar` | ✅ | — · las cuatro estrategias del rediseño desde V3-3, confirmadas en el sitio el 10 de agosto |
-| 1d Asesor ejecutivo | `#asesor-decision` | 🟡 | Ver nota en `docs/E19_SISTEMA_DISENO.md` §8 |
+| 1d Asesor ejecutivo | `#asesor-decision` | ✅ | Construido al completo sobre ofertas reales de E14b; sin motor de recomendación genérico a propósito, ver nota en `docs/E19_SISTEMA_DISENO.md` §8 y T-6 |
 | 1e Simular | `#escenario-simular` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 1f Actualizar (hub) | `#update-hub` | ✅ | — |
 | 1g Conciliación | `#conciliar` | ✅ | — |
@@ -68,7 +69,7 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 | 2b Importar extracto | `#data-entry` | ✅ | — |
 | 2c Previsión | `#prevision` | ✅ | — |
 | 2d Aplicar escenario | `#escenario-aplicar` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
-| 2e Escenarios guardados | `#escenario-guardados` | 🟡 | Ver nota en §5 |
+| 2e Escenarios guardados | `#escenario-guardados` | ✅ | Solo `aplicado`/`guardado`, sin `recomendado`/`caducado` inventados a propósito, ver nota en §5 y T-6 |
 | 3a Cuadro de mandos | `#cuadro-mandos` | ✅ | — |
 | 3b Bandeja de cambios | `#cambios-pendientes` | ✅ | — |
 | 3c Mapa de calor | `#mapa-calor` | ✅ | — · panel de recomendaciones calculadas, confirmado en el sitio el 12 de agosto (V2-5) |
@@ -441,6 +442,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
 | T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | ✅ | Media | Auditoría §8 · hecha el 10 de agosto · **vista en el sitio** |
+| T-6 | **Motor de recomendación real**: criterio genuino para «decisión recomendada» (1d) y «escenario caducado» (2e), en vez de la nota permanente actual | ⏳ | Media | Decisión del usuario el 12 de agosto de 2026: reclasificar 1d/2e a ✅ sin fabricar nada ahora, pero guardar esta tarea para la próxima versión |
 
 > **T-1, hecha el 11 de agosto de 2026, junto con V6-3.** Las seis vistas del rediseño son ahora
 > las seis pestañas de la navegación principal: Hoy, Plan (`#cuadro-mandos`), Deuda
@@ -479,6 +481,18 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > «envolver, no sustituir».
 >
 > **Confirmada en el sitio publicado por el usuario el 12 de agosto de 2026, pasa a ✅.**
+
+> **T-6, anotada el 12 de agosto de 2026.** 1d y 2e comparten la misma raíz: los dos dependen de
+> un «motor de recomendación genérico» que el proyecto decidió explícitamente no fabricar —
+> inventar «decisión recomendada» o «escenario caducado» con datos falsos habría sido peor que no
+> tenerlos, la misma razón documentada en `docs/E19_SISTEMA_DISENO.md` §5 y §8 desde el principio.
+> Las dos pantallas están construidas al completo sobre datos reales (`#asesor-decision` sobre las
+> ofertas de E14b, `#escenario-guardados` sobre los escenarios guardados), así que pasan de 🟡 a
+> ✅: la nota permanente no es un hueco de construcción, es una decisión de producto ya tomada. El
+> usuario pidió, en la misma conversación, guardar el trabajo real —diseñar un criterio genuino
+> para ambos estados— como tarea explícita para la próxima versión, no para esta. Sin criterio
+> definido, arrancarla ahora habría significado exactamente lo que el proyecto lleva evitando toda
+> la sesión: fabricar una cifra que nadie ha calculado.
 
 ---
 
