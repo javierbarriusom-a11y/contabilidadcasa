@@ -1744,14 +1744,16 @@
   color: var(--e19-accent);
 }
 
-.e19-asesor-decision .asesor-decision-stats {
+.e19-asesor-decision .asesor-decision-stats,
+.e19-deuda-decidir .asesor-decision-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
   margin-bottom: 20px;
 }
 
-.e19-asesor-decision .asesor-decision-stat {
+.e19-asesor-decision .asesor-decision-stat,
+.e19-deuda-decidir .asesor-decision-stat {
   padding: 12px;
   border-radius: var(--e19-radius-md);
   background: var(--e19-surface-soft);
@@ -1760,48 +1762,57 @@
   gap: 4px;
 }
 
-.e19-asesor-decision .asesor-decision-stat span {
+.e19-asesor-decision .asesor-decision-stat span,
+.e19-deuda-decidir .asesor-decision-stat span {
   font-size: var(--e19-text-xs);
   color: var(--e19-muted);
 }
 
-.e19-asesor-decision .asesor-decision-stat strong {
+.e19-asesor-decision .asesor-decision-stat strong,
+.e19-deuda-decidir .asesor-decision-stat strong {
   font-size: var(--e19-text-lg);
   color: var(--e19-success);
 }
 
-.e19-asesor-decision .asesor-decision-subtitle {
+.e19-asesor-decision .asesor-decision-subtitle,
+.e19-deuda-decidir .asesor-decision-subtitle {
   margin-top: 6px;
 }
 
-.e19-asesor-decision .asesor-decision-funding {
+.e19-asesor-decision .asesor-decision-funding,
+.e19-deuda-decidir .asesor-decision-funding {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 18px;
 }
 
-.e19-asesor-decision .asesor-decision-funding-row {
+.e19-asesor-decision .asesor-decision-funding-row,
+.e19-deuda-decidir .asesor-decision-funding-row {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 4px 10px;
   font-size: var(--e19-text-sm);
 }
 
-.e19-asesor-decision .asesor-decision-funding-row span {
+.e19-asesor-decision .asesor-decision-funding-row span,
+.e19-deuda-decidir .asesor-decision-funding-row span {
   color: var(--e19-muted);
 }
 
-.e19-asesor-decision .asesor-decision-funding-row strong {
+.e19-asesor-decision .asesor-decision-funding-row strong,
+.e19-deuda-decidir .asesor-decision-funding-row strong {
   color: var(--e19-ink);
   text-align: right;
 }
 
-.e19-asesor-decision .asesor-decision-funding-row.is-danger strong {
+.e19-asesor-decision .asesor-decision-funding-row.is-danger strong,
+.e19-deuda-decidir .asesor-decision-funding-row.is-danger strong {
   color: var(--e19-danger);
 }
 
-.e19-asesor-decision .asesor-decision-funding-bar {
+.e19-asesor-decision .asesor-decision-funding-bar,
+.e19-deuda-decidir .asesor-decision-funding-bar {
   grid-column: 1 / -1;
   height: 6px;
   border-radius: var(--e19-radius-pill);
@@ -1809,11 +1820,13 @@
   overflow: hidden;
 }
 
-.e19-asesor-decision .asesor-decision-funding-row.is-danger .asesor-decision-funding-bar {
+.e19-asesor-decision .asesor-decision-funding-row.is-danger .asesor-decision-funding-bar,
+.e19-deuda-decidir .asesor-decision-funding-row.is-danger .asesor-decision-funding-bar {
   background: color-mix(in srgb, var(--e19-danger) 20%, var(--e19-surface-sunken));
 }
 
-.e19-asesor-decision .asesor-decision-funding-bar span {
+.e19-asesor-decision .asesor-decision-funding-bar span,
+.e19-deuda-decidir .asesor-decision-funding-bar span {
   display: block;
   height: 100%;
   background: var(--e19-accent);
