@@ -2,6 +2,65 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: T-2, el acento navy
+
+Pedido explícito del usuario tras dejar V5-2 en 🟡 a la espera de su confirmación: «Hacemos igual,
+las dejamos en amarillo y seguimos con el backlog» — la última pieza sin bloqueo que quedaba era
+T-2.
+
+**Lo pedido.** El acento interactivo pasa de azul (`#0072E3`) a navy (`#293E5E`), según la sección
+de tokens del handoff de diseño. Ese mismo navy ya era `--e19-heading` (títulos) desde el principio
+de E19 — el handoff lo nombra explícitamente como «primario, títulos, pie de impacto» a la vez, así
+que consolidar el acento en el mismo tono no es una elección estética nueva, es aplicar lo que el
+propio handoff ya especificaba y que E19-1 dejó pendiente.
+
+**Qué cambia y qué no, con la razón de cada límite:**
+- `--e19-accent`: `#0072E3` → `#293E5E`.
+- `--e19-accent-hover`: `#005BB8` → `#1B2C48` — el propio handoff nombra este segundo hex como
+  «Navy hover», así que no se inventa.
+- `--e19-accent-soft`/`--e19-accent-soft-border`: recalculados a partir del navy nuevo (`#EEF0F2`/
+  `#D8DCE2`, navy al ~8%/~18% sobre blanco) para no dejar un tinte azul huérfano detrás de un
+  acento que ya no es azul — habría sido inconsistente, no solo cosmético.
+- `--e19-accent-strong` (`#0B1A30`, fondo del pie de impacto y tarjetas fuertes) **no se toca**: ya
+  era un navy oscuro propio, y T-2 nombra explícitamente el par `#0072E3`/`#293E5E`, no ese token.
+- `--e19-eyebrow` (`#049FF9`, el cian de las etiquetas en mayúsculas) **no se toca**: es un color
+  distinto, no nombrado por T-2.
+- Las pantallas heredadas (`styles.css`/`p2.css`) **no se tocan**: nunca compartieron los tokens
+  `--e19-*`, así que no hay nada que migrar ahí — siguen con su paleta de siempre.
+
+**Qué cambió, exactamente:**
+- `design-tokens.css`: los cinco valores de arriba, con un comentario explicando la fuente
+  (handoff) y qué se dejó fuera a propósito.
+- `design-system.html`: la muestra de color «Interactivo» de la guía de estilo ya leía el token
+  (`var(--e19-accent)`), así que el color cambia solo; se actualiza la etiqueta de texto visible
+  de `#0072E3` a `#293E5E` para que la guía siga diciendo la verdad.
+- `index.html`: versión de `design-tokens.css` bumped a `20260812t2a1` (no se tocó `app.js`, que se
+  queda en `20260812v52a1`).
+- `service-worker.js`: `CACHE_NAME` → `"finanzas-casa-shell-20260812-t2a1"`.
+- Un fallo de bulk-sed evitado a tiempo, aprendiendo de sesiones anteriores: el canario de versión
+  de `service-worker.js` (`20260812-t2a1`, con guion) y el de `app.js` (`20260812v52a1`, sin
+  guion, sin cambiar) comparten el sufijo `v52a1`/`t2a1` como subcadena. Un sed ciego sobre
+  `v52a1` habría tocado también las líneas que comprobaban `app.js`, que no se movió esta ronda.
+  Se aplicó el sed anclado al patrón con guion (`20260812-v52a1` → `20260812-t2a1`) para tocar solo
+  lo que de verdad cambió.
+- 20 archivos de test actualizan el canario de versión del shell (solo el de `service-worker.js`,
+  no el de `app.js`). Un fichero nuevo (`t2-acento-navy.test.cjs`, 7 pruebas) cubre lo que añade
+  esta entrega, incluida una prueba explícita de que los tokens fuera de alcance no cambian.
+
+**Validación** (`npm run verify`, exit 0): **569/569 pruebas** (562 antes + 7 nuevas), **598 IDs
+únicos**, diff 10.000 filas en **33,1 ms**, forecast y escenarios en **200,4 ms**, recursos **1278
+KB**. QA de navegador servida desde `dist/`, con capturas de pantalla de Hoy, Cuadro de mandos y
+Ajustes revisadas a mano: el token `--e19-accent` resuelve al navy nuevo, un botón primario pinta
+con `rgb(41, 62, 94)`, el foco de teclado sigue siendo visible, y visualmente no queda ningún azul
+huérfano ni problema de contraste — texto blanco sobre navy en botones y tarjetas fuertes, mismo
+patrón que ya usaban los títulos. La única comprobación que no pasa es el aviso de red ajeno de
+siempre (CDN de Supabase bloqueado en este entorno), confirmado aparte por URL y sin relación con
+este cambio.
+
+**Pendiente**: no queda ninguna tarea sin construir en el backlog vigente. Quedan tres
+confirmaciones en el sitio publicado por hacer (V6-4, V5-2 y esta misma T-2) y dos piezas que no
+dependen de trabajo local: T-3 (aceptación externa) y T-4 (⛔, espera datos de uso).
+
 ## Cierre de sesión — 12 de agosto de 2026: V5-2, confianza del dato por cuenta
 
 Pedido explícito del usuario tras dejar V6-4 en 🟡 a la espera de su confirmación: «Si te parece

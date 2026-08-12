@@ -381,7 +381,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | ✅ | — | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
 | T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | ✅ | Media | Turnos 4-5 · hecha y confirmada en el sitio el 11 de agosto de 2026, junto con V6-3 |
-| T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ⏳ | Baja | Handoff, sección de tokens · independiente de T-1 |
+| T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | 🟡 | Baja | Handoff, sección de tokens · independiente de T-1 · hecha el 12 de agosto de 2026 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
 | T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | ✅ | Media | Auditoría §8 · hecha el 10 de agosto · **vista en el sitio** |
@@ -402,6 +402,25 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > toda la app hasta ahora («envolver, no sustituir»). Esa omisión queda escrita y no bloquea la ✅
 > según la puerta de aceptación (§7, punto 5). **Confirmada en el sitio publicado por el usuario el
 > 11 de agosto de 2026, pasa a ✅.**
+
+> **T-2, hecha el 12 de agosto de 2026.** El acento interactivo (`--e19-accent`) pasa de azul
+> (`#0072E3`) a navy (`#293E5E`) — el mismo tono que ya usaba `--e19-heading`, porque el propio
+> handoff nombra ese navy como «primario, títulos, pie de impacto» a la vez, no tres colores
+> distintos. El hover (`#1B2C48`) es el que el handoff llama literalmente «Navy hover», así que no
+> se inventa. Los dos tintes suaves (`--e19-accent-soft`/`--e19-accent-soft-border`) se recalculan
+> a partir del navy nuevo, para no dejar un azul huérfano detrás de un acento que ya no es azul.
+>
+> **Alcance, dicho sin ambigüedad — dos tokens que no cambian y por qué:**
+> - `--e19-accent-strong` (`#0B1A30`) no se toca: ya era un navy oscuro propio, no es el token que
+>   nombra T-2, y sigue siendo el fondo del pie de impacto y las tarjetas fuertes tal como estaban.
+> - `--e19-eyebrow` (`#049FF9`, el cian de las etiquetas en mayúsculas) tampoco se toca: es un color
+>   distinto del que sale el acento, y T-2 no lo nombra.
+>
+> Solo tres archivos cambian: `design-tokens.css` (los dos tokens y sus derivados),
+> `design-system.html` (la muestra de color de la guía de estilo, que ya leía el token en vez de un
+> hex fijo — solo cambia la etiqueta de texto) y las pantallas heredadas de `styles.css`/`p2.css`
+> no se tocan porque nunca compartieron este token: siguen con su paleta de siempre, como manda
+> «envolver, no sustituir».
 
 ---
 
@@ -464,7 +483,9 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
    Ajustes salvo el tinte de Registrar el mes, la misma omisión de siempre.
 10. ~~**V5-2** · confianza del dato por cuenta~~ — **hecha el 12 de agosto de 2026.** Cierra el
     bloque de Cierre entero: no queda ninguna tarea de V5 sin construir.
-11. **T-2** · el acento navy, si se quiere. Última pieza sin bloqueo del backlog vigente.
+11. ~~**T-2** · el acento navy~~ — **hecha el 12 de agosto de 2026.** Última pieza sin bloqueo del
+    backlog vigente: no queda ninguna tarea más sin construir, solo confirmaciones en el sitio
+    pendientes y las tres que esperan a T-3/T-4.
 
 Dos matices de orden que no son caprichosos:
 
