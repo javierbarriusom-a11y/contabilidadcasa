@@ -108,8 +108,10 @@ suman *Deuda pendiente* y *Libre de deuda*, calculadas por el mismo camino que l
 seis KPI en dos filas: los tres del rediseño arriba y *Capacidad libre real*, *Reserva
 protegida* y *Próximo riesgo* debajo. Sus cuatro heredadas quedaron relegadas el 11 de agosto
 (V1-4), sin esperar a cerrar la 🟡 de V1-2 —dejó de ser un requisito con la decisión del 10 de
-agosto, ver la sección 5—. Lo que sigue faltando en la vista es cerrar esa 🟡: el asesor
-ejecutivo con una decisión abierta a la vez.
+agosto, ver la sección 5—. El asesor ejecutivo (V1-2, 12 de agosto) ya se asoma desde «Situación
+actual» cuando hay una oferta de deuda abierta, enlazando a `#asesor-decision`. Con esto, las
+cuatro tareas de V1 están hechas; la vista queda 🟡 solo hasta su confirmación en el sitio
+publicado.
 
 **2 · Plan.** Es la más completa: la tabla editable con pie de impacto está construida y
 publicada, que era el corazón del rediseño. Falta la banda de doce meses *dentro* de Plan
@@ -306,9 +308,19 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | V1-1 | Hoy con la piel nueva y tres decisiones | ✅ | — | Mockup 1a · E19-2 |
-| V1-2 | Asesor ejecutivo, una decisión abierta a la vez | 🟡 | — | Mockup 1d · E20-2 |
+| V1-2 | Asesor ejecutivo, una decisión abierta a la vez | 🟡 | — | Mockup 1d · E20-2 · hecha el 12 de agosto de 2026 |
 | V1-3 | Sumar los KPI *Deuda pendiente* y *Libre de deuda* a Hoy | ✅ | Media | Mockup 4b · hecha el 10 de agosto, reutilizando el cálculo de `#deuda-comparar` · **vista en el sitio** |
 | V1-4 | Mover `#executive-advisor`, `#virtual-advisor`, `#savings-agent` y `#alerts-center` a Versiones anteriores | ✅ | Media | Mockup 4b · hecha y confirmada en el sitio el 11 de agosto, la quinta relegación |
+
+> **V1-2, hecha el 12 de agosto de 2026.** `#asesor-decision` ya resolvía «una decisión abierta a
+> la vez» al completo desde E20-2 (§8 del sistema de diseño): la oferta de deuda más urgente
+> registrada en `#debt-roadmap`, con cifras reales, estado vacío explícito y el resto de ofertas
+> en cola. El hueco real no era esa pantalla, era que **Hoy nunca la enlazaba** — grep sobre
+> `app.js` confirmó cero referencias a `asesor-decision` desde cualquier función de `#home`. Se
+> asoma como una lectura más en «Situación actual» (`homeInsights`), reutilizando
+> `asesorDecisionOpenOffers()` tal cual: sin oferta abierta no aparece nada, con oferta abierta
+> muestra contraparte, importe y vencimiento y enlaza a `#asesor-decision`. Ningún cálculo nuevo.
+> **Cierra la vista 1 · Hoy por completo**: con esta, las cuatro tareas de V1 quedan hechas.
 
 ### V2 · Plan
 
@@ -488,8 +500,10 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 10. ~~**V5-2** · confianza del dato por cuenta~~ — **hecha y confirmada en el sitio el 12 de agosto
     de 2026.** Cierra el bloque de Cierre entero: no queda ninguna tarea de V5 sin construir.
 11. ~~**T-2** · el acento navy~~ — **hecha y confirmada en el sitio el 12 de agosto de 2026.**
-    Última pieza sin bloqueo del backlog vigente: no queda ninguna tarea más sin construir, solo
-    T-3 y T-4, que esperan una condición externa, no un hueco de agenda.
+    Cierra todo lo que estaba priorizado hasta ese momento; lo que quedaba eran remates de
+    prioridad Baja o Media sin urgencia, no bloqueos.
+12. ~~**V1-2** · asesor ejecutivo en Hoy~~ — **hecha el 12 de agosto de 2026.** Cierra la vista 1 ·
+    Hoy por completo: las cuatro tareas de V1 quedan hechas.
 
 Dos matices de orden que no son caprichosos:
 
