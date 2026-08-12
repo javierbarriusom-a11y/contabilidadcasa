@@ -96,7 +96,7 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
-| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); CSV completo y PDF del mes descargables desde aquí (V6-4, 12 de agosto); cuentas y partidas enlazadas a donde ya se editan | El umbral de partida no tiñe ni filtra aún Registrar el mes |
+| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); CSV completo y PDF del mes descargables desde aquí (V6-4, 12 de agosto); cuentas y partidas enlazadas a donde ya se editan | — |
 
 ### Lo que falta en cada una, medido
 
@@ -142,9 +142,10 @@ paso. Reutiliza el mismo diccionario de reglas y el mismo lote reversible que ya
 `#data-entry`, así que «Deshacer último lote» funciona igual sobre las dos vías.
 
 **5 · Cierre.** Las diferencias como tareas, construido, y sus tres heredadas ya relegadas
-(V5-3). Falta el panel «Confianza del dato» por cuenta (cuadra / descuadra / sin conciliar),
-que hoy sigue disperso entre `#conciliar` y `#data-audit` — que es exactamente por lo que
-`#data-audit` se relega y no se retira.
+(V5-3). El panel «Confianza del dato» por cuenta (cuadra / descuadra / sin conciliar) vive ahora
+en `#conciliar` (V5-2, 12 de agosto), junto a «Pendiente de resolver»; sigue siendo cierto que
+`#data-audit` no se retira, porque el inventario completo por cuenta —no solo su estado— sigue
+viviendo ahí.
 
 **6 · Ajustes.** La vista existe desde el 11 de agosto (V6-3), con su pieza más urgente:
 **la reserva operativa tiene control real** (V6-1, mudada aquí en V6-3). El diagnóstico que
@@ -348,8 +349,31 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | V5-1 | Las diferencias como tareas, no como tablas | ✅ | — | Mockup 1g · E20-2 |
-| V5-2 | Panel «Confianza del dato» por cuenta | ⏳ | Media | Mockup 4f |
+| V5-2 | Panel «Confianza del dato» por cuenta | 🟡 | Media | Mockup 4f · hecha el 12 de agosto de 2026 |
 | V5-3 | Mover `#reconciliation`, `#data-audit` y `#operations-manual` a Versiones anteriores | ✅ | — | Mockup 4f · hecha el 10 de agosto |
+
+> **V5-2, hecha el 12 de agosto de 2026.** Nueva tarjeta «Confianza del dato» en `#conciliar`, junto
+> a «Pendiente de resolver», con el estado de las dos cuentas reales del hogar (CaixaBank,
+> Mediolanum) — el mockup mencionaba una tercera, una tarjeta de crédito, que este modelo no tiene,
+> así que no se inventa. Reutiliza lo que `renderConciliar()` ya calculaba para las tareas
+> pendientes (`snapshot.balanceChecks`, las entradas sin clasificar): no dispara una consulta
+> nueva.
+>
+> Tres estados, sin inventar una cuarta categoría que el mockup no pedía:
+> - **Cuadra** — sin saltos de continuidad de saldo y sin movimientos sin clasificar de esa cuenta.
+> - **Descuadra `<importe>`** — prioriza el error acumulado de continuidad de saldo cuando existe,
+>   porque es literalmente un desajuste de saldo; si el saldo cuadra pero quedan movimientos sin
+>   clasificar, usa la suma de esos importes en su lugar, para no decir «Cuadra» mientras algo de
+>   la cuenta sigue sin decidir.
+> - **Sin conciliar** — todavía no se ha importado ningún extracto de esa cuenta.
+>
+> **La omisión real, documentada y no escondida:** las diferencias banco-vs-real de `#conciliar`
+> (`snapshot.reconciliation.lines`) son mensuales, agregadas de las dos cuentas juntas, no por
+> cuenta — el modelo de datos actual no permite atribuir esa cifra a una cuenta concreta. Por eso
+> el panel no las usa: solo entran la continuidad de saldo y la clasificación, que sí son datos por
+> cuenta. Sigue siendo posible que una cuenta diga «Cuadra» con una diferencia banco-vs-real sin
+> resolver en el mes — la tarjeta de «Pendiente de resolver», justo al lado, sigue mostrando esa
+> tarea aparte.
 
 ### T · Transversal
 
@@ -438,7 +462,9 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
    cambia el tinte de Registrar el mes, solo informa en Ajustes.
 9. ~~**V6-4** · exportación única~~ — **hecha el 12 de agosto de 2026.** Cierra el bloque de
    Ajustes salvo el tinte de Registrar el mes, la misma omisión de siempre.
-10. **V5-2** · confianza del dato por cuenta. **T-2** · el acento navy, si se quiere.
+10. ~~**V5-2** · confianza del dato por cuenta~~ — **hecha el 12 de agosto de 2026.** Cierra el
+    bloque de Cierre entero: no queda ninguna tarea de V5 sin construir.
+11. **T-2** · el acento navy, si se quiere. Última pieza sin bloqueo del backlog vigente.
 
 Dos matices de orden que no son caprichosos:
 
