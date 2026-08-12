@@ -18155,6 +18155,16 @@ function cuadroMandosReserveLabel(summary) {
   return summary.reserve > 0 ? `bajo la reserva de ${money(summary.reserve, true)}` : "en negativo";
 }
 
+// V2-6 · cuarto indicador del pie de impacto: fecha libre de deuda. Editar el previsto de una
+// partida de Plan no toca ningún contrato de deuda, así que un «antes → después» aquí siempre
+// diría «sin cambio» — por eso se muestra sin diferencia, reutilizando el mismo cálculo que ya
+// usan Hoy y «No tocar nada» en Deuda (homeDebtOutlook), en vez de fabricar una comparación que
+// no puede ser real desde esta pantalla.
+function cuadroMandosDebtFreeReadout() {
+  const outlook = homeDebtOutlook();
+  return outlook.libreDeDeudaLabel || "—";
+}
+
 function renderCuadroMandosImpactBar() {
   const bar = qs("cuadroMandosImpact");
   if (!bar) return;
@@ -18181,6 +18191,7 @@ function renderCuadroMandosImpactBar() {
     <dl><dt>Mínimo del horizonte</dt>${cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true))}</dl>
     <dl><dt>Meses ${escapeHtml(cuadroMandosReserveLabel(after))}</dt>${cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => `${Math.round(Number(value || 0))}`, false)}</dl>
     <dl><dt>Liquidez al final</dt>${cuadroMandosBeforeAfter(before.final, after.final, (value) => money(value, true))}</dl>
+    <dl title="No se mueve al editar Plan: se mueve desde Simular o Deuda."><dt>Fecha libre de deuda (fija)</dt><dd>${escapeHtml(cuadroMandosDebtFreeReadout())}</dd></dl>
     <div class="cuadro-mandos-impact-actions">
       <a class="e19-btn e19-btn-secondary" href="#cambios-pendientes">Ver los ${drafts.length}</a>
       <button type="button" class="e19-btn e19-btn-secondary" data-cuadro-discard>Descartar</button>
@@ -18278,6 +18289,15 @@ function renderCuadroMandos() {
   ].join("");
 
   table.innerHTML = `${header}<tbody>${body}${footer}</tbody>`;
+
+  const bandTarget = qs("cuadroMandosBand");
+  if (bandTarget) {
+    const impact = cuadroMandosImpact();
+    const rowsAfter = impact.ok ? impact.rowsAfter : impact.rowsBefore;
+    const touchedMonths = new Set(impact.drafts.map((draft) => draft.monthKey));
+    bandTarget.innerHTML = cuadroMandosMonthBandHtml(rowsAfter, touchedMonths);
+  }
+
   renderCuadroMandosImpactBar();
 }
 
@@ -18558,6 +18578,30 @@ function mapaCalorTone(value, floor) {
   return "is-good";
 }
 
+// V2-7 · banda de doce meses embebida en Plan. Reutiliza el mismo color que ya usa el mapa de
+// calor (mapaCalorTone/mapaCalorFloor) para no fabricar una escala nueva: es la misma cifra vista
+// con menos detalle, no una segunda fuente de verdad. Muestra los próximos doce meses en una sola
+// fila, a diferencia de la rejilla multi-año de #mapa-calor, que no cabría aquí sin abrumar la
+// tabla editable que ya ocupa la pantalla.
+function cuadroMandosMonthBandHtml(rowsAfter, touchedMonths) {
+  const floor = mapaCalorFloor(rowsAfter);
+  const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  return rowsAfter
+    .slice(0, 12)
+    .map((row) => {
+      const key = String(row.detailMonthKey || row.month || "");
+      const match = key.match(/^(\d{4})-(\d{2})$/);
+      const shortLabel = match ? `${monthNames[Number(match[2]) - 1]} ${match[1].slice(2)}` : key;
+      const value = Number(row.totalLiquidity || 0);
+      const touched = touchedMonths.has(key);
+      return `<div class="cuadro-mandos-band-item">
+        <small>${escapeHtml(shortLabel)}</small>
+        <span class="mapa-calor-cell ${mapaCalorTone(value, floor.value)}${touched ? " is-touched" : ""}" title="${escapeHtml(escenarioMotorMonthLabel(key))}: ${escapeHtml(money(value, true))}${touched ? " · tiene un cambio sin guardar" : ""}">${money(value, false)}</span>
+      </div>`;
+    })
+    .join("");
+}
+
 function renderMapaCalor() {
   const grid = qs("mapaCalorGrid");
   if (!grid || !lastSimulation.length) return;
@@ -18617,17 +18661,20 @@ function renderMapaCalor() {
   const titleEl = qs("mapaCalorWorstTitle");
   if (titleEl) titleEl.textContent = `Qué pesa en ${escenarioMotorMonthLabel(worstKey)}`;
 
+  const blocks = worstMonth
+    ? planningSectionsForMonth("expense", worstMonth)
+        .map((section) => ({
+          name: section.name,
+          total: section.rows.reduce((sum, row) => sum + Number(actualAwareInfo(row, worstMonth).value || 0), 0),
+        }))
+        .sort((left, right) => right.total - left.total)
+    : [];
+
   const breakdown = qs("mapaCalorBreakdown");
   if (breakdown) {
     if (!worstMonth) {
       breakdown.innerHTML = `<p class="e19-kpi-note">El peor mes cae fuera de las partidas planificadas, así que no hay desglose por bloque.</p>`;
     } else {
-      const blocks = planningSectionsForMonth("expense", worstMonth)
-        .map((section) => ({
-          name: section.name,
-          total: section.rows.reduce((sum, row) => sum + Number(actualAwareInfo(row, worstMonth).value || 0), 0),
-        }))
-        .sort((left, right) => right.total - left.total);
       const peak = Math.max(...blocks.map((block) => block.total), 1);
       breakdown.innerHTML = blocks
         .map(
@@ -18652,9 +18699,11 @@ function renderMapaCalor() {
   if (links) {
     // Enlaces a las pantallas que sí pueden actuar sobre ese mes. No se generan propuestas
     // automáticas («mover la matrícula a septiembre») porque no existe un motor que las calcule:
-    // inventarlas sería prometer un cálculo que nadie ha hecho.
+    // inventarlas sería prometer un cálculo que nadie ha hecho. V2-5 nombra el primer enlace con el
+    // bloque que de verdad pesa más en el peor mes — el mismo desglose de arriba, no una
+    // recomendación nueva ni un «antes/después» que exigiría simular el movimiento.
     links.innerHTML = [
-      ["Mover o recortar una partida de ese mes", "#cuadro-mandos", "Abrir cuadro de mandos"],
+      mapaCalorTopBlockLink(blocks, worstKey),
       ["Probar una decisión completa antes de tocar el plan", "#escenario-simular", "Abrir escenario"],
       ["Ver si refinanciar o reunificar mueve la deuda", "#deuda-comparar", "Comparar estrategias"],
     ]
@@ -18663,6 +18712,19 @@ function renderMapaCalor() {
       )
       .join("");
   }
+}
+
+// V2-5 · el panel «Dónde seguir con ese mes» pasa de tres enlaces genéricos a nombrar, en el
+// primero, el bloque de gasto que de verdad pesa más en el peor mes — reutiliza el desglose que
+// `renderMapaCalor` ya calcula, sin fabricar una cifra ni un movimiento sugerido nuevo.
+function mapaCalorTopBlockLink(blocks, worstKey) {
+  const top = blocks[0];
+  if (!top) return ["Mover o recortar una partida de ese mes", "#cuadro-mandos", "Abrir cuadro de mandos"];
+  return [
+    `Revisar ${top.name}, tu mayor gasto en ${escenarioMotorMonthLabel(worstKey)} (${money(top.total, true)})`,
+    "#cuadro-mandos",
+    "Abrir cuadro de mandos",
+  ];
 }
 
 function handleMapaCalorMetric(metric) {

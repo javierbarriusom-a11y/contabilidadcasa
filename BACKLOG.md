@@ -114,10 +114,10 @@ cuatro tareas de V1 están hechas; la vista queda 🟡 solo hasta su confirmaci�
 publicado.
 
 **2 · Plan.** Es la más completa: la tabla editable con pie de impacto está construida y
-publicada, que era el corazón del rediseño. Falta la banda de doce meses *dentro* de Plan
-(existe suelta en `#mapa-calor` y `#prevision`) y el cuarto indicador del pie, la fecha sin
-deuda, que hoy se omite a propósito porque editar un previsto no toca ningún contrato. Sus
-cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
+publicada, que era el corazón del rediseño. La banda de doce meses ya vive *dentro* de Plan
+(V2-7, 12 de agosto), y el pie gana su cuarto indicador, la fecha libre de deuda (V2-6) — sin
+diferencia, porque editar un previsto sigue sin tocar ningún contrato, así que se muestra fija
+en vez de fingir un cambio. Sus cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
 
 > **Corrección del 10 de agosto: `#forecast` no era una heredada.** Esta tabla lo listaba
 > entre las que Plan debía relegar, contradiciendo al inventario de la sección 1, que lo
@@ -330,10 +330,28 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V2-2 | Los once tipos de decisión del motor | ✅ | — | E20-3 |
 | V2-3 | Cuadro de mandos con pie de impacto | ✅ | — | Mockup 3a + spec 5a · E20-5 |
 | V2-4 | Bandeja de cambios reversible | ✅ | — | Mockup 3b · E20-5 |
-| V2-5 | Mapa de calor mensual | 🟡 | — | Mockup 3c · E20-5 |
-| V2-6 | Cuarto indicador del pie: fecha sin deuda | ⏳ | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño |
-| V2-7 | Banda de doce meses integrada en Plan | ⏳ | Baja | Mockup 4c |
+| V2-5 | Mapa de calor mensual | 🟡 | — | Mockup 3c · E20-5 · hecha el 12 de agosto de 2026 |
+| V2-6 | Cuarto indicador del pie: fecha sin deuda | 🟡 | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño · hecha el 12 de agosto de 2026 |
+| V2-7 | Banda de doce meses integrada en Plan | 🟡 | Baja | Mockup 4c · hecha el 12 de agosto de 2026 |
 | V2-8 | Mover `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator` y `#new-life-simulation` a Versiones anteriores | ✅ | — | Mockup 4c · hecha el 10 de agosto, ver la nota sobre `#forecast` |
+
+> **V2-5, V2-6 y V2-7, hechas el 12 de agosto de 2026.** Los tres remates del bloque Plan, ninguno
+> con cálculo nuevo:
+> - **V2-5** — el panel «Dónde seguir con ese mes» de `#mapa-calor` nombra en su primer enlace el
+>   bloque de gasto que de verdad pesa más en el peor mes (`mapaCalorTopBlockLink`), reutilizando
+>   el mismo desglose que ya calculaba el panel de al lado. No se generan propuestas de movimiento
+>   —«mover la matrícula a septiembre»— porque seguiría sin existir un motor que las calcule; eso
+>   sigue fuera, documentado en el propio código.
+> - **V2-6** — el pie de impacto gana un cuarto indicador, «Fecha libre de deuda (fija)»,
+>   reutilizando `homeDebtOutlook()` tal cual. La razón de §12 sigue siendo cierta —editar Plan no
+>   toca ningún contrato de deuda—, así que se muestra **sin diferencia** (no pasa por
+>   `cuadroMandosBeforeAfter`) en vez de fingir un antes/después que siempre diría «sin cambio».
+> - **V2-7** — una banda de doce meses (`cuadroMandosMonthBandHtml`) entre la tabla y el pie de
+>   impacto, con el mismo color que ya usa `#mapa-calor` (`mapaCalorTone`/`mapaCalorFloor`). No es
+>   la rejilla multi-año completa —no cabría sin abrumar una tabla ya densa—, es una fila con los
+>   próximos doce meses.
+>
+> Las tres esperan a la verificación en el sitio publicado.
 
 ### V3 · Deuda
 
@@ -504,6 +522,8 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
     prioridad Baja o Media sin urgencia, no bloqueos.
 12. ~~**V1-2** · asesor ejecutivo en Hoy~~ — **hecha el 12 de agosto de 2026.** Cierra la vista 1 ·
     Hoy por completo: las cuatro tareas de V1 quedan hechas.
+13. ~~**V2-5, V2-6, V2-7** · remates de Plan~~ — **hechas el 12 de agosto de 2026.** Cierra la
+    vista 2 · Plan por completo: las ocho tareas de V2 quedan hechas.
 
 Dos matices de orden que no son caprichosos:
 
