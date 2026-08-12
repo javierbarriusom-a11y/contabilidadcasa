@@ -129,12 +129,15 @@ en vez de fingir un cambio. Sus cinco heredadas quedaron relegadas el 10 de agos
 
 **3 · Deuda.** La vista más completa después de Plan: sus tres heredadas quedaron relegadas el 10 de
 agosto (V3-5) y ninguna se desconectó — `#debt-roadmap` sigue siendo el único sitio donde se registra
-y aplica una oferta, y ahí sigue mandando `#asesor-decision`. Estrategias y orden de ataque,
+y aplica una oferta. Estrategias y orden de ataque,
 construidos, y desde el 10 de agosto las cuatro del
 rediseño: V3-3 añadió *Consolidar* pidiendo la oferta —TIN, plazo y comisión— en vez de fabricarla,
 y *No tocar nada* se queda como cuarta tarjeta, que es la referencia contra la que se comparan las
-demás. Lo que falta de esta vista es la «oferta en curso» del mockup, que sigue viviendo en
-`#asesor-decision` en vez de en la propia vista (V3-4).
+demás. La «oferta en curso» del mockup ya no vive solo en `#asesor-decision` (V3-4, 12 de agosto):
+`#deuda-ruta` gana una tarjeta «Oferta en curso» que reutiliza `asesorDecisionOpenOffers()` y
+`asesorDecisionFundingHtml()` tal cual, con un botón que replica el mismo gesto de
+`asesorDecisionApply` — marca la oferta en el workspace de E14b y enruta a `#debt-roadmap`, que sigue
+siendo el único sitio donde se aplica de verdad. Con esto, las cinco tareas de V3 quedan hechas.
 
 **4 · Datos.** Hub, importación y registro del mes, construidos, y desde el 10 de agosto también los
 cuatro pasos que pedía el turno 5 (V4-4): `#datos-importar` los antepone a la bandeja previa de
@@ -370,7 +373,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V3-1 | Comparador de estrategias | ✅ | — | Mockup 1c · E20-2 · sin cifras en el sitio hasta el 10 de agosto, §8 · completado por V3-3 y confirmado en el sitio |
 | V3-2 | Ruta de deuda como línea de tiempo | ✅ | — | Mockup 1b · E20-2 · llegó al sitio el 10 de agosto, §8 |
 | V3-3 | Estrategia **Consolidar** como cuarta opción real | ✅ | Media | Mockup 4d · hecha el 10 de agosto: se pide la oferta (TIN, plazo, comisión) en vez de inventarla · **vista en el sitio** |
-| V3-4 | Oferta en curso dentro de la vista de deuda | ⏳ | Baja | Mockup 4d; hoy vive en `#asesor-decision` |
+| V3-4 | Oferta en curso dentro de la vista de deuda | 🟡 | Baja | Mockup 4d · hecha el 12 de agosto de 2026 |
 | V3-5 | Mover `#debt-roadmap`, `#debt-liquidation-plan` y `#debt-control` a Versiones anteriores | ✅ | Media | Mockup 4d · hecha el 10 de agosto, tras V3-3 · **vista en el sitio** |
 
 ### V4 · Datos
@@ -537,6 +540,10 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 14. ~~**V4-3, V4-5** · aviso «¿es anual?» en Registrar el mes~~ — **hechas el 12 de agosto de
     2026.** Detección de solo lectura, sin tocar la clasificación de `#datos-importar`; no proyecta
     el previsto hacia años futuros, solo pregunta y recuerda dónde anotarlo.
+15. ~~**V3-4** · oferta en curso en la vista de deuda~~ — **hecha el 12 de agosto de 2026.** Cierra
+    la vista 3 · Deuda por completo y con ella las siete tareas del cierre de backlog pedido. Cero
+    cálculo nuevo: reutiliza `asesorDecisionOpenOffers()`/`asesorDecisionFundingHtml()` y el mismo
+    gesto de `asesorDecisionApply`.
 
 Dos matices de orden que no son caprichosos:
 

@@ -22175,8 +22175,41 @@ function deudaRutaEmptyTimelineText(summary) {
   return "Sin decisiones: la deuda sigue su calendario actual.";
 }
 
+// V3-4 · la «oferta en curso» del mockup 4d vivía solo en #asesor-decision; esta tarjeta la trae a
+// la propia vista de Deuda, reutilizando asesorDecisionOpenOffers() y asesorDecisionFundingHtml()
+// tal cual — mismos datos, sin recalcular nada. El botón replica el mismo gesto que
+// asesorDecisionApply: marca la oferta como seleccionada en el workspace de E14b y enruta a
+// #debt-roadmap, que sigue siendo el único sitio donde se registra y aplica una oferta de verdad.
+function renderDeudaRutaOffer() {
+  const target = qs("deudaRutaOffer");
+  if (!target) return;
+  const offer = asesorDecisionOpenOffers()[0];
+  if (!offer) {
+    target.innerHTML = `<p class="e19-kpi-note">Sin ofertas de deuda abiertas ahora mismo.</p>`;
+    return;
+  }
+  const contract = debtTargetById(offer.contractId, { includePlanned: true });
+  target.innerHTML = `
+    <p class="asesor-decision-subtitle"><strong>${escapeHtml(offer.counterpart || "Sin contraparte")}</strong>${contract ? ` · ${escapeHtml(contract.entity)}${contract.type ? ` ${escapeHtml(contract.type)}` : ""}` : ""}${offer.expiresAt ? ` · vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}` : ""}</p>
+    <div class="asesor-decision-stats">
+      <div class="asesor-decision-stat"><span>Importe</span><strong>${money(offer.amount, true)}</strong></div>
+      <div class="asesor-decision-stat"><span>Ahorras</span><strong>${money(offer.discount, true)}</strong></div>
+    </div>
+    <div class="asesor-decision-funding">${asesorDecisionFundingHtml(offer.amount)}</div>
+    <a class="e19-btn e19-btn-primary" id="deudaRutaOfferApply" href="#debt-roadmap">Revisar y aplicar en Plan de deuda</a>
+  `;
+  const link = qs("deudaRutaOfferApply");
+  if (link) {
+    link.onclick = () => {
+      e14bWorkspace().selectedOfferId = offer.id;
+      queueRemoteSave();
+    };
+  }
+}
+
 function renderDeudaRuta() {
   renderScenarioDependencyNotice("deuda-ruta");
+  renderDeudaRutaOffer();
   if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
   const tabs = qs("deudaRutaTabs");
   if (tabs) {

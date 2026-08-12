@@ -2,6 +2,54 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: V3-4, oferta en curso en la vista de Deuda
+
+Cuarta y última de las cuatro entregas del cierre de backlog pedido por el usuario. Con esta, las
+siete tareas pedidas explícitamente (V1-2, V2-5, V2-6, V2-7, V3-4, V4-3, V4-5) quedan hechas.
+
+**El hueco.** El mockup 4d incluye la «oferta en curso» dentro de la propia vista de Deuda, pero esa
+pieza solo existía en `#asesor-decision` (V1-2, la entrega anterior, ya la asomaba también desde
+Hoy). `#deuda-ruta` —la pantalla «Decidir» con la ruta propuesta, la cartera y el checklist antes de
+aplicar— no decía nada de ella.
+
+**La solución, sin recalcular nada.** Nueva `renderDeudaRutaOffer()`, llamada al principio de
+`renderDeudaRuta()`, que reutiliza `asesorDecisionOpenOffers()[0]` y `asesorDecisionFundingHtml()`
+tal cual —los mismos datos que ya calculaba `#asesor-decision`, sin una segunda fuente de verdad—.
+Nueva tarjeta «Oferta en curso» al principio de la columna lateral de `#deuda-ruta` (antes de
+«Cartera» y «Antes de aplicar»): contraparte, entidad y vencimiento; importe y ahorro; la misma
+cobertura por cuenta con barra que ya usaba `#asesor-decision`; y un botón que replica exactamente
+el gesto de `asesorDecisionApply` — marca `e14bWorkspace().selectedOfferId` y enruta a
+`#debt-roadmap`, que sigue siendo el único sitio donde una oferta se aplica de verdad. Sin ofertas
+abiertas, la tarjeta lo dice en vez de dejarse en blanco, igual que ya degradaba `#asesor-decision`.
+
+**Qué cambió, exactamente:**
+- `app.js`: `renderDeudaRutaOffer()`, llamada nueva en `renderDeudaRuta()`.
+- `index.html`: nueva tarjeta `#deudaRutaOffer` en `.deuda-ruta-side` de `#deuda-ruta`, antes de
+  `#deudaRutaPortfolio`; versión de `app.js` y `design-tokens.css` bumped a `20260812v34a1`.
+- `design-tokens.css`: las reglas de `.asesor-decision-stats`/`.asesor-decision-stat`/
+  `.asesor-decision-subtitle`/`.asesor-decision-funding*` (siete selectores) se amplían con
+  `.e19-deuda-decidir` además de `.e19-asesor-decision` — mismo patrón que ya usaba
+  `.e19-cuadro-mandos` para tres IDs. Cero declaraciones de color nuevas.
+- `service-worker.js`: `CACHE_NAME` → `"finanzas-casa-shell-20260812-v34a1"`.
+- 24 archivos de test actualizan el canario de versión del shell. Un fichero nuevo
+  (`v3-4-oferta-en-curso.test.cjs`, 10 pruebas) cubre la tarjeta, la reutilización, el enrutado y el
+  cableado.
+
+**Validación** (`npm run verify`, exit 0): **616/616 pruebas** (606 antes + 10 nuevas), **600 IDs
+únicos**, diff 10.000 filas en **46,5 ms**, forecast y escenarios en **257,2 ms**, recursos **1288
+KB**. QA de navegador sobre `dist/`: la tarjeta aparece primero en la columna lateral de
+`#deuda-ruta`, antes de «Cartera» y «Antes de aplicar»; con los datos de la demo pública (sin ofertas
+abiertas) muestra «Sin ofertas de deuda abiertas ahora mismo» sin error de consola — el mismo
+comportamiento degradado que ya tenía V1-2 sin ofertas.
+
+**Cierra la vista 3 · Deuda por completo**: las cinco tareas de V3 quedan hechas. Queda 🟡 hasta la
+confirmación en el sitio publicado.
+
+**Con esto se cierran las cuatro entregas del cierre de backlog pedido por el usuario**: V1-2 (Hoy),
+V2-5/V2-6/V2-7 (Plan), V4-3/V4-5 (Datos) y V3-4 (Deuda). Las siete tareas quedan 🟡, pendientes de la
+confirmación del usuario en el sitio publicado — la misma puerta de aceptación de siempre (§7 de
+`BACKLOG.md`).
+
 ## Cierre de sesión — 12 de agosto de 2026: V4-3 y V4-5, aviso «¿es anual?» en Registrar el mes
 
 Tercera de las cuatro entregas del cierre de backlog pedido por el usuario. Las dos tareas
