@@ -19385,6 +19385,21 @@ function handleAlertRuleAction(event) {
   renderHomeFamilyAndAlerts();
 }
 
+// V1-2 · la única decisión abierta con importe y vencimiento reales (una oferta registrada en
+// #debt-roadmap) se asoma en Hoy: sin esto, la vista nunca apuntaba a #asesor-decision, la
+// pantalla que ya la resuelve por completo desde E20-2. No se recalcula nada nuevo, solo se
+// reutiliza `asesorDecisionOpenOffers()`.
+function homeOpenOfferInsight(offer) {
+  if (!offer) return null;
+  return {
+    title: "Decisión de deuda abierta",
+    text: `Oferta de ${offer.counterpart || "sin contraparte"} por ${money(offer.amount, true)}${offer.expiresAt ? ` · vence ${escenarioMotorMonthLabel(offer.expiresAt)}` : ""}. Revisa de dónde saldría el dinero antes de decidir.`,
+    status: "warn",
+    target: "asesor-decision",
+    cta: "Revisar oferta",
+  };
+}
+
 function renderHomeDashboard() {
   if (!qs("homeKpis")) return;
   const rows = homeRowsForHorizon();
@@ -19523,6 +19538,8 @@ function renderHomeDashboard() {
       cta: "Optimizar",
     });
   }
+  const openOfferInsight = homeOpenOfferInsight(asesorDecisionOpenOffers()[0]);
+  if (openOfferInsight) mainInsights.push(openOfferInsight);
   if (loadedDecisions.length > 0) {
     mainInsights.push({
       title: "Proyectos ya influyen en el plan",

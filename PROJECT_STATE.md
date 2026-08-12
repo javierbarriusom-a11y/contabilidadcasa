@@ -2,6 +2,52 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: V1-2, el asesor ejecutivo se asoma en Hoy
+
+Pedido explícito del usuario tras cerrar T-2: «centrémonos en cerrar el backlog», con la lista
+completa de lo que quedaba (V1-2, V2-5, V4-3, V2-6, V2-7, V3-4, V4-5). Antes de tocar código se
+lanzaron tres investigaciones en paralelo para medir el hueco real de cada tarea — este cierre es
+la primera de las cuatro entregas resultantes.
+
+**El hallazgo.** `#asesor-decision` ya resolvía «una decisión abierta a la vez» al completo desde
+E20-2: la oferta de deuda más urgente registrada en `#debt-roadmap`, con cifras reales
+(`E14DebtOperations.simulateStrategy`), estado vacío explícito cuando no hay ninguna, y el resto
+de ofertas en cola. El hueco no estaba en esa pantalla — estaba en que **Hoy nunca la
+enlazaba**: ninguna función de `#home` mencionaba `asesor-decision` en ningún sitio.
+
+**La solución, sin recalcular nada.** Nueva función pura `homeOpenOfferInsight(offer)` que
+reutiliza `asesorDecisionOpenOffers()` tal cual y construye una lectura más para «Situación
+actual» (`homeInsights`) cuando hay una oferta abierta: contraparte, importe, vencimiento y un
+botón hacia `#asesor-decision`. Sin oferta abierta, no añade nada — no hay estado de relleno.
+
+**Qué cambió, exactamente:**
+- `app.js`: `homeOpenOfferInsight(offer)` (función pura, sin DOM); `renderHomeDashboard()` gana la
+  llamada `homeOpenOfferInsight(asesorDecisionOpenOffers()[0])` y el push condicional a
+  `mainInsights`.
+- `index.html`: sin cambios de marcado — reutiliza `#homeInsights`, que ya existía; versión de
+  `app.js` bumped a `20260812v12a1`.
+- `service-worker.js`: `CACHE_NAME` → `"finanzas-casa-shell-20260812-v12a1"`.
+- 20 archivos de test actualizan el canario de versión del shell. Un fallo de bulk-sed evitado a
+  tiempo: el sufijo nuevo (`v12a1`) coincidía en parte con el de `design-tokens.css`
+  (`t2a1`→sin cambiar), así que el sed se ancló al patrón con guion para el `worker` y a `v52a1`
+  exacto para `app.js`, sin tocar las dos líneas que comprueban `design-tokens.css`. Un fichero
+  nuevo (`v1-2-asesor-en-hoy.test.cjs`, 5 pruebas) cubre lo que añade esta entrega.
+
+**Validación** (`npm run verify`, exit 0): **574/574 pruebas** (569 antes + 5 nuevas), **598 IDs
+únicos**, diff 10.000 filas en **45,5 ms**, forecast y escenarios en **232,1 ms**, recursos **1278
+KB**. QA de navegador servida desde `dist/`: los datos públicos de demostración no tienen ninguna
+oferta de deuda abierta (por privacidad, igual que no tienen movimientos), así que la tarjeta
+correctamente **no aparece** — comportamiento esperado, no un fallo, y confirma que la ausencia de
+oferta no rompe nada. El caso con oferta abierta queda cubierto por las pruebas unitarias. La
+única comprobación de consola que no pasa es el aviso de red ajeno de siempre (CDN de Supabase
+bloqueado en este entorno), sin relación con este cambio.
+
+**Cierra la vista 1 · Hoy por completo**: las cuatro tareas de V1 quedan hechas. Queda 🟡 hasta la
+confirmación en el sitio publicado, igual que el resto de esta sesión.
+
+**Pendiente**: siguen las tres entregas restantes del cierre pedido — el bloque de Plan (V2-5,
+V2-6, V2-7), el de Datos (V4-3+V4-5, la misma pieza vista desde dos sitios) y V3-4 en Deuda.
+
 ## Cierre de sesión — 12 de agosto de 2026: confirmación en el sitio publicado de V6-4, V5-2 y T-2
 
 El usuario confirmó las tres en el sitio publicado (`javierbarriusom-a11y.github.io/contabilidadcasa`):
