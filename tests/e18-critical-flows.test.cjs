@@ -30,6 +30,6 @@ test("E18 conserva recuperación, confirmación y shell offline en los flujos cr
   assert.match(html, /id="stateBackupFile"/);
   assert.match(app, /migrateBackupEnvelope\(sourceEnvelope\)/);
   assert.match(app, /migratePayload\(payload\)/);
-  assert.match(worker, /finanzas-casa-shell-20260812-v25a1/);
-  assert.match(html, /app\.js\?v=20260812v25a1/);
+  assert.match(worker, /finanzas-casa-shell-20260812-v43a1/);
+  assert.match(html, /app\.js\?v=20260812v43a1/);
 });

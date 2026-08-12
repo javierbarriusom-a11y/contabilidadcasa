@@ -2,6 +2,63 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: V4-3 y V4-5, aviso «¿es anual?» en Registrar el mes
+
+Tercera de las cuatro entregas del cierre de backlog pedido por el usuario. Las dos tareas
+comparten el mismo hueco — Registrar el mes no distinguía una partida puntual de una que se repite
+cada año — así que se hacen juntas: V4-5 es la detección, V4-3 es el aviso que la consume.
+
+**V4-5 — detección de partida anual desde el extracto.** `docs/E19_SISTEMA_DISENO.md` documentaba
+esta detección como pendiente. Nueva función pura `registrarMesAnnualMatch(entry, transactions,
+monthKey)`: para una partida nueva de ese mes (`entry.row.custom`) con un real registrado, busca en
+`baseData.transactions` de la misma partida (`mappingForMovement(t)?.row === entry.row`) un
+movimiento con un importe parecido (±0,50 €) hace ~12 meses (±15 días) y **sin ningún movimiento
+parecido entre medias** — si lo hubiera, sería mensual, no anual, y no se pregunta. Solo mira
+partidas nuevas de este mes: una ya establecida no necesita que se le pregunte si es la de siempre.
+No proyecta el previsto hacia años futuros — eso exigiría ampliar el motor de planificación, que
+sigue siendo estrictamente mensual por diseño — solo detecta y avisa.
+
+**V4-3 — el aviso.** Cuando `registrarMesAnnualMatch` encuentra coincidencia y la partida no está
+reconocida aún (`state.registrarMesAnnualAck`), `registrarMesRowHtml` añade una fila
+(`registrarMesAnnualBannerHtml`) bajo la de la partida: el importe, la fecha de hace un año, y dos
+botones. «Sí, anual» y «Solo este mes» hacen lo mismo por dentro —marcan
+`state.registrarMesAnnualAck[entry.key] = true` y dejan de preguntar por esa partida—, pero solo
+«Sí, anual» sugiere anotarlo en Partidas para que aparezca también el año que viene, con la
+salvedad honesta de que eso sigue siendo manual. Con el mes cerrado, no se pregunta.
+
+**Qué cambió, exactamente:**
+- `app.js`: `registrarMesAnnualMatch()`, `registrarMesAnnualBannerHtml()`,
+  `handleRegistrarMesAnnualChoice()`; `registrarMesRowHtml()` gana un tercer parámetro (`monthKey`)
+  y llama a las dos primeras; delegación de clic para
+  `[data-registrar-mes-annual-key]` en el listener ya existente de `#registrarMesTables`;
+  `saveScenarioSettings()` añade `registrarMesAnnualAck` a su lista blanca de campos persistidos —
+  sin esto, la elección no sobreviviría a un recargado.
+- `design-tokens.css`: `.registrar-mes-annual-row`/`.registrar-mes-annual-note`/
+  `.registrar-mes-annual-actions`, con el mismo patrón que ya usaba `.cuadro-mandos-apply-row`.
+- `index.html`: versión de `app.js` y `design-tokens.css` bumped a `20260812v43a1`.
+- `service-worker.js`: `CACHE_NAME` → `"finanzas-casa-shell-20260812-v43a1"`.
+- 23 archivos de test actualizan el canario de versión del shell. Un fichero nuevo
+  (`v4-3-v4-5-partida-anual.test.cjs`, 20 pruebas) cubre la detección, el aviso, la respuesta y el
+  cableado.
+
+**Validación** (`npm run verify`, exit 0): **606/606 pruebas** (586 antes + 20 nuevas), **599 IDs
+únicos**, diff 10.000 filas en **44,3 ms**, forecast y escenarios en **224,5 ms**, recursos **1286
+KB**. QA de navegador servida desde `dist/`: la tabla de Registrar el mes carga sus 29 filas sin
+error de consola; el aviso no aparece con los datos de la demo pública —vacía de movimientos por
+privacidad—, que es el comportamiento correcto (sin transacciones no hay nada que comparar), igual
+que ya degradaba V1-2 sin ofertas abiertas. La lógica de detección en sí queda cubierta por las
+pruebas unitarias, con datos sintéticos que sí reproducen el patrón anual.
+
+**Limitación documentada, a propósito**: tras editar el real por la vía rápida
+(`registrarMesRefreshCells`, que solo actualiza la celda sin repintar la tabla completa), el aviso
+aparece en el siguiente repintado completo, no al instante. Se aceptó ese retraso menor a cambio de
+no tocar el camino rápido, que es el que se usa al escribir en la casilla.
+
+**Cierra el aviso «¿es anual?» pedido en el bloque de Datos**: V4-3 y V4-5 quedan hechas. Quedan 🟡
+hasta la confirmación en el sitio publicado.
+
+**Pendiente**: queda la última de las cuatro entregas del cierre pedido — V3-4 en Deuda.
+
 ## Cierre de sesión — 12 de agosto de 2026: V2-5, V2-6 y V2-7, remates de Plan
 
 Segunda de las cuatro entregas del cierre de backlog pedido por el usuario, siguiendo la

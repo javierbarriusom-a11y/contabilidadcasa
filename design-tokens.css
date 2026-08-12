@@ -2056,6 +2056,31 @@
   padding: 20px 14px;
 }
 
+/* V4-3 · aviso de partida anual, mismo patrón que .cuadro-mandos-apply-row (Plan): una fila banda
+   bajo la partida detectada, con la nota a la izquierda y las dos respuestas a la derecha. */
+.e19-registrar-mes .registrar-mes-annual-row td {
+  background: var(--e19-accent-soft);
+  white-space: normal;
+  text-align: left;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.e19-registrar-mes .registrar-mes-annual-note {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-registrar-mes .registrar-mes-annual-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .e19-registrar-mes .registrar-mes-card-foot {
   display: flex;
   align-items: center;

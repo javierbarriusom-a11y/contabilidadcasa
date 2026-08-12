@@ -2577,6 +2577,9 @@ function saveScenarioSettings() {
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
     partidaDeviationThreshold: state.partidaDeviationThreshold ? Math.round(Math.max(1, Math.min(100, Number(state.partidaDeviationThreshold)))) : 0,
+    // V4-3 · qué partidas ya respondieron al aviso de «¿es anual?» este mes, para no repetir la
+    // pregunta en cada render. Vive aquí, no solo en memoria, porque debe sobrevivir a recargar.
+    registrarMesAnnualAck: state.registrarMesAnnualAck || {},
     autoCapSavings: state.autoCapSavings,
     incomeFactor: state.incomeFactor,
     expenseFactor: state.expenseFactor,
@@ -17348,6 +17351,36 @@ function registrarMesIsBad(entry) {
   return registrarMesIsOff(entry) && varianceClassForKind(entry.kind, entry.variance) === "negative";
 }
 
+// V4-3/V4-5 · detección de partida anual desde el extracto, con la heurística que documentaba
+// docs/E19_SISTEMA_DISENO.md como pendiente: un mismo importe (±0,50 €) hace ~12 meses (±15 días)
+// y ningún movimiento parecido en los meses intermedios — si lo hubiera, sería mensual, no anual.
+// Solo se pregunta por partidas nuevas de este mes (`entry.row.custom`): una partida ya
+// establecida no necesita que se le pregunte si es la misma de siempre. No intenta proyectar el
+// previsto hacia años futuros —eso exigiría ampliar el motor de planificación, que sigue siendo
+// mensual por diseño— solo detecta y avisa; la decisión de anotarlo en Partidas queda del usuario.
+function registrarMesAnnualMatch(entry, transactions, monthKey) {
+  if (!entry.hasActual || !entry.row?.custom) return null;
+  const monthDate = dateFromMonthKey(monthKey);
+  if (!monthDate) return null;
+  const amount = Math.abs(Number(entry.actual || 0));
+  if (amount < 0.5) return null;
+  const sameRow = (transactions || []).filter((t) => mappingForMovement(t)?.row === entry.row);
+  const target = new Date(monthDate);
+  target.setMonth(target.getMonth() - 12);
+  const closeAmount = sameRow
+    .map((t) => ({ t, date: new Date(t.date) }))
+    .filter(({ t, date }) => !Number.isNaN(date.getTime()) && Math.abs(Math.abs(Number(t.amount || 0)) - amount) < 0.5);
+  const yearAgo = closeAmount.find(({ date }) => Math.abs((date - target) / 86400000) <= 15);
+  if (!yearAgo) return null;
+  const betweenStart = new Date(target);
+  betweenStart.setDate(betweenStart.getDate() + 20);
+  const betweenEnd = new Date(monthDate);
+  betweenEnd.setDate(betweenEnd.getDate() - 20);
+  const hasInBetween = closeAmount.some(({ date }) => date > betweenStart && date < betweenEnd);
+  if (hasInBetween) return null;
+  return { date: yearAgo.t.date };
+}
+
 function registrarMesCollect(month) {
   const result = { income: [], expense: [] };
   if (!month) return result;
@@ -17428,11 +17461,13 @@ function registrarMesEmptyMessage(filter, total) {
   return "Este mes no tiene partidas de este tipo.";
 }
 
-function registrarMesRowHtml(entry, monthClosed) {
+function registrarMesRowHtml(entry, monthClosed, monthKey) {
   const classes = [
     entry.row.custom ? "registrar-mes-row-custom" : "",
     registrarMesIsBad(entry) ? "registrar-mes-row-off" : "",
   ].filter(Boolean);
+  const annualMatch = monthClosed ? null : registrarMesAnnualMatch(entry, baseData?.transactions, monthKey);
+  const showAnnualBanner = Boolean(annualMatch) && !state?.registrarMesAnnualAck?.[entry.key];
   return `<tr data-registrar-mes-key="${escapeHtml(entry.key)}"${classes.length ? ` class="${classes.join(" ")}"` : ""}>
     <td class="registrar-mes-block">${escapeHtml(entry.sectionName)}</td>
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}${entry.row.custom ? " <small>añadida aquí</small>" : ""}</td>
@@ -17445,7 +17480,21 @@ function registrarMesRowHtml(entry, monthClosed) {
         ? `<button type="button" class="registrar-mes-row-remove" data-registrar-mes-delete="${escapeHtml(entry.deleteKey)}" aria-label="Quitar ${escapeHtml(entry.label)} de este mes">×</button>`
         : ""
     }</td>
-  </tr>`;
+  </tr>${showAnnualBanner ? registrarMesAnnualBannerHtml(entry, annualMatch, monthKey) : ""}`;
+}
+
+// V4-3 · el aviso que consume la detección de V4-5. No proyecta el previsto hacia años futuros
+// —eso sigue sin existir, documentado en registrarMesAnnualMatch— solo pregunta y recuerda dónde
+// anotarlo si la respuesta es que sí.
+function registrarMesAnnualBannerHtml(entry, match, monthKey) {
+  const monthName = registrarMesMonthName(monthKey);
+  return `<tr class="registrar-mes-annual-row"><td colspan="7">
+    <span class="registrar-mes-annual-note">Coincide con ${escapeHtml(money(Math.abs(Number(entry.actual || 0)), true))} de hace un año (${escapeHtml(formatIsoDate(match.date))}), sin nada parecido entre medias · ¿es una partida anual? Se repetirá cada ${escapeHtml(monthName)}.</span>
+    <span class="registrar-mes-annual-actions">
+      <button type="button" class="e19-btn e19-btn-primary" data-registrar-mes-annual-key="${escapeHtml(entry.key)}" data-registrar-mes-annual-choice="confirm">Sí, anual</button>
+      <button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-annual-key="${escapeHtml(entry.key)}" data-registrar-mes-annual-choice="dismiss">Solo este mes</button>
+    </span>
+  </td></tr>`;
 }
 
 function registrarMesAddFormHtml(kind, month) {
@@ -17492,7 +17541,7 @@ function registrarMesCardHtml(meta, list, month, monthClosed) {
     )
     .join("");
   const body = visible.length
-    ? visible.map((entry) => registrarMesRowHtml(entry, monthClosed)).join("")
+    ? visible.map((entry) => registrarMesRowHtml(entry, monthClosed, month.key)).join("")
     : `<tr><td colspan="7" class="registrar-mes-empty">${escapeHtml(registrarMesEmptyMessage(filter, list.length))}</td></tr>`;
   const hasSections = baseData.monthlyPlanning.sections.some((section) => section.kind === kind);
   const footer = monthClosed
@@ -17742,6 +17791,22 @@ function handleRegistrarMesCopyConfirm(kind) {
 function handleRegistrarMesCopyCancel(kind) {
   if (!(kind in registrarMesCopyPending)) return;
   registrarMesCopyPending[kind] = false;
+  renderRegistrarMes();
+}
+
+// V4-3 · «Sí, anual» no proyecta nada por sí solo —el previsto de años futuros sigue siendo tarea
+// de Partidas—, solo deja de preguntar por esta partida este mes y lo dice. «Solo este mes» hace
+// lo mismo sin la sugerencia.
+function handleRegistrarMesAnnualChoice(key, choice) {
+  if (!state || !key) return;
+  if (!state.registrarMesAnnualAck) state.registrarMesAnnualAck = {};
+  state.registrarMesAnnualAck[key] = true;
+  saveScenarioSettings();
+  announceStatus(
+    choice === "confirm"
+      ? "Anotado. Si quieres que aparezca también el año que viene, añádela como previsto en Partidas."
+      : "Vale, no se preguntará más por esta partida este mes.",
+  );
   renderRegistrarMes();
 }
 
@@ -23372,7 +23437,9 @@ async function init() {
     const copyConfirm = event.target.closest("[data-registrar-mes-copy-confirm]");
     if (copyConfirm) { handleRegistrarMesCopyConfirm(copyConfirm.dataset.registrarMesCopyConfirm); return; }
     const copyCancel = event.target.closest("[data-registrar-mes-copy-cancel]");
-    if (copyCancel) handleRegistrarMesCopyCancel(copyCancel.dataset.registrarMesCopyCancel);
+    if (copyCancel) { handleRegistrarMesCopyCancel(copyCancel.dataset.registrarMesCopyCancel); return; }
+    const annualButton = event.target.closest("[data-registrar-mes-annual-key]");
+    if (annualButton) handleRegistrarMesAnnualChoice(annualButton.dataset.registrarMesAnnualKey, annualButton.dataset.registrarMesAnnualChoice);
   });
   document.querySelectorAll('input[name="projectMode"]').forEach((input) => {
     input.addEventListener("change", () => {

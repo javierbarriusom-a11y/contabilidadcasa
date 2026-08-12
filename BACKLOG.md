@@ -141,7 +141,17 @@ cuatro pasos que pedía el turno 5 (V4-4): `#datos-importar` los antepone a la b
 `#data-entry`, sin sustituirla — Cargar → Clasificar → Duplicados → Incorporar, con una decisión
 explícita por movimiento dudoso y por candidato a duplicado, y nada tocando el plan hasta el último
 paso. Reutiliza el mismo diccionario de reglas y el mismo lote reversible que ya usaba
-`#data-entry`, así que «Deshacer último lote» funciona igual sobre las dos vías.
+`#data-entry`, así que «Deshacer último lote» funciona igual sobre las dos vías. Registrar el mes
+gana el aviso «¿es anual?» (V4-3/V4-5, 12 de agosto): cuando una partida nueva de ese mes
+(`entry.row.custom`) tiene un real cuyo importe (±0,50 €) apareció en el extracto hace ~12 meses
+(±15 días) y nada parecido entre medias, aparece una fila bajo esa partida preguntando si se repite
+cada año; «Sí, anual» solo lo recuerda y apunta a Partidas para anotarlo —no proyecta el previsto
+hacia años futuros, porque el motor de planificación sigue siendo estrictamente mensual—, y «Solo
+este mes» calla el aviso igual. Es de solo lectura sobre `baseData.transactions` y no toca la
+clasificación/incorporación de `#datos-importar`; con la fila cerrada, o si el mes está cerrado,
+tampoco se pregunta. Limitación documentada: tras editar el real por la vía rápida
+(`registrarMesRefreshCells`), el aviso aparece en el siguiente repintado completo de la tabla, no al
+instante.
 
 **5 · Cierre.** Las diferencias como tareas, construido, y sus tres heredadas ya relegadas
 (V5-3). El panel «Confianza del dato» por cuenta (cuadra / descuadra / sin conciliar) vive ahora
@@ -369,9 +379,9 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | V4-1 | Hub ordenado por lo que tienes delante | ✅ | — | Mockup 1f · E19-3 |
 | V4-2 | Importación con bandeja previa | ✅ | — | Mockup 2b · E19-4 |
-| V4-3 | Registrar el mes, una fila por partida | 🟡 | — | Mockup 2a · E20-4 |
+| V4-3 | Registrar el mes, una fila por partida | 🟡 | — | Mockup 2a · E20-4 · aviso «¿es anual?» añadido el 12 de agosto |
 | V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | ✅ | **Alta** | Spec 5c + prototipo 5d · hecha el 10 de agosto de 2026, confirmada en el sitio publicado el 11 |
-| V4-5 | Detección de partida anual desde el extracto | ⏳ | Baja | Mockup 2a, omisión documentada |
+| V4-5 | Detección de partida anual desde el extracto | 🟡 | Baja | Mockup 2a · hecha el 12 de agosto de 2026 |
 | V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | ✅ | — | Mockup 4e · hecha el 10 de agosto, la primera relegación |
 
 ### V5 · Cierre
@@ -524,6 +534,9 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
     Hoy por completo: las cuatro tareas de V1 quedan hechas.
 13. ~~**V2-5, V2-6, V2-7** · remates de Plan~~ — **hechas el 12 de agosto de 2026.** Cierra la
     vista 2 · Plan por completo: las ocho tareas de V2 quedan hechas.
+14. ~~**V4-3, V4-5** · aviso «¿es anual?» en Registrar el mes~~ — **hechas el 12 de agosto de
+    2026.** Detección de solo lectura, sin tocar la clasificación de `#datos-importar`; no proyecta
+    el previsto hacia años futuros, solo pregunta y recuerda dónde anotarlo.
 
 Dos matices de orden que no son caprichosos:
 

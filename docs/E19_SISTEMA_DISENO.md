@@ -111,7 +111,7 @@ no tienen "estado de migración" porque no se ha decidido todavía si se adoptan
 
 | # | Título del mockup | Pantalla real | Estado |
 |---|---|---|---|
-| 2a | Registrar el mes · una fila por partida, guardado automático | `#registrar-mes` | ✅ Migrada (E20-4, parcial — ver §11) |
+| 2a | Registrar el mes · una fila por partida, guardado automático | `#registrar-mes` | ✅ Migrada (E20-4, completa desde el 12 de agosto de 2026 — ver §11) |
 | 2b | Importar extracto · bandeja previa con cuatro pasos | `#data-entry` | ✅ Migrada (E19-4) |
 | 2c | Previsión · el año como una banda, desglose del mes al clic | `#prevision` / `#forecast` | ✅ Migrada (E19-5) |
 | 2d | Aplicar escenario · diferencia línea a línea antes de tocar el plan | `#escenario-aplicar` | ✅ Migrada (E20-1) |
@@ -471,14 +471,22 @@ entrada porque esa es la tarea.
   vez de ofrecer acciones que el guardado rechazaría. En la práctica es defensivo: el
   selector solo lista meses abiertos.
 
-### Qué no se ha migrado
+### Qué se migró después (12 de agosto de 2026, V4-3/V4-5)
 
 El mockup incluye, bajo la fila recién detectada, un aviso —«Detectado en el extracto del 14
-de julio · ¿Es anual? Se repetirá cada julio en el previsto»— con dos botones. Eso supone dos
-cosas que hoy no existen: inferir de un extracto importado que una partida es nueva, y un
-modelo de recurrencia anual para las filas añadidas a mano (`customPlanningRows` es
-estrictamente de un mes). No se ha inventado ninguna de las dos; queda como pendiente
-explícito, y por eso 2a figura como migrada **parcial** en el catálogo del turno 2.
+de julio · ¿Es anual? Se repetirá cada julio en el previsto»— con dos botones. La primera mitad
+—inferir del extracto importado que una partida se repite cada año— ya está construida:
+`registrarMesAnnualMatch(entry, transactions, monthKey)` busca, para una partida nueva de ese mes
+(`entry.row.custom`), un movimiento de importe parecido (±0,50 €) hace ~12 meses (±15 días) y sin
+nada parecido entre medias — si lo hubiera, sería mensual, no anual. `registrarMesAnnualBannerHtml`
+pinta el aviso con «Sí, anual»/«Solo este mes», y ambos marcan `state.registrarMesAnnualAck` para no
+volver a preguntar por esa partida.
+
+Lo que sigue sin existir es la segunda mitad: un modelo de recurrencia anual para las filas
+añadidas a mano (`customPlanningRows` sigue siendo estrictamente de un mes). «Sí, anual» no
+proyecta el previsto hacia años futuros — eso exigiría ampliar el motor de planificación — solo
+recuerda la elección y sugiere anotarlo a mano en Partidas. Con eso, 2a pasa de migrada **parcial**
+a **completa** en el catálogo del turno 2, con esta única salvedad honesta.
 
 También cambia una cosa respecto al mockup: la insignia dice **«Guardado a las 03:17»** y no
 «Guardado hace 4 s». Un texto relativo obliga a un temporizador o miente en cuanto pasan unos
