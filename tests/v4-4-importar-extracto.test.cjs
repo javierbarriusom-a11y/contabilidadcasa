@@ -392,6 +392,6 @@ test("V4-4 · el «antes» del lote incluye los movimientos aunque sea la primer
 });
 
 test("V4-4 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260812-v25a1/);
-  assert.match(html, /app\.js\?v=20260812v25a1/);
+  assert.match(worker, /20260812-v43a1/);
+  assert.match(html, /app\.js\?v=20260812v43a1/);
 });

@@ -140,7 +140,7 @@ test("V6-4 · Ajustes ya no enruta la exportación a Flujo de caja: el CSV se pi
 });
 
 test("V6-4 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260812-v25a1/);
-  assert.match(html, /app\.js\?v=20260812v25a1/);
+  assert.match(worker, /20260812-v43a1/);
+  assert.match(html, /app\.js\?v=20260812v43a1/);
   assert.match(html, /p2-export\.js\?v=20260811v64a1/);
 });
