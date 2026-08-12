@@ -29,12 +29,16 @@
   --e19-faint: #a9b1bf;
   --e19-eyebrow: #049ff9;
 
-  /* Acento interactivo */
-  --e19-accent: #0072e3;
-  --e19-accent-hover: #005bb8;
+  /* Acento interactivo — T-2 (12 de agosto de 2026): pasa de azul (`#0072E3`) a navy (`#293E5E`),
+     el mismo tono que ya usaba `--e19-heading`, siguiendo el handoff. El hover (`#1B2C48`) es el
+     que el propio handoff nombra como «Navy hover». Los tintes suaves se recalculan a partir del
+     nuevo tono (navy ~8%/~18% sobre blanco) para no dejar un azul huérfano detrás del acento
+     nuevo; `--e19-accent-strong` no cambia: ya era navy oscuro y no es el token que nombra T-2. */
+  --e19-accent: #293e5e;
+  --e19-accent-hover: #1b2c48;
   --e19-accent-ink: #ffffff;
-  --e19-accent-soft: #ebf6fc;
-  --e19-accent-soft-border: #cfe8f8;
+  --e19-accent-soft: #eef0f2;
+  --e19-accent-soft-border: #d8dce2;
   --e19-accent-strong: #0b1a30;
 
   /* Semántica: siempre el mismo significado en toda la app */
