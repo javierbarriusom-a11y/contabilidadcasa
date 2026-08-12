@@ -1613,6 +1613,47 @@
   color: var(--e19-muted);
 }
 
+/* V5-2 · «Confianza del dato»: mismo patrón de fila que .conciliar-task-item, con el color
+   llevando el estado en vez de un índice numerado. */
+.e19-conciliar .conciliar-confidence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-conciliar .conciliar-confidence-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+}
+
+.e19-conciliar .conciliar-confidence-state {
+  font-size: var(--e19-text-xs);
+  font-weight: 700;
+  color: var(--e19-muted);
+}
+
+.e19-conciliar .conciliar-confidence-item.is-cuadra .conciliar-confidence-state {
+  color: var(--e19-success);
+}
+
+.e19-conciliar .conciliar-confidence-item.is-descuadra {
+  background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+.e19-conciliar .conciliar-confidence-item.is-descuadra .conciliar-confidence-state {
+  color: var(--e19-danger);
+}
+
 .e19-conciliar .conciliar-history-row {
   display: flex;
   align-items: center;

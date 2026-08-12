@@ -2,6 +2,73 @@
 
 Fecha de revisión: 12 de agosto de 2026.
 
+## Cierre de sesión — 12 de agosto de 2026: V5-2, confianza del dato por cuenta
+
+Pedido explícito del usuario tras dejar V6-4 en 🟡 a la espera de su confirmación: «Si te parece
+de momento lo dejas en amarillo en el backlog y sigues con la siguiente entrega» — la siguiente en
+el orden recomendado del backlog era V5-2.
+
+**Lo pedido.** El panel «Confianza del dato» por cuenta del mockup 4f: estado de cada cuenta
+(Cuadra / Descuadra / Sin conciliar) en `#conciliar`, junto a «Pendiente de resolver». El mockup
+mencionaba tres cuentas con una tarjeta de crédito; el modelo real del hogar solo tiene dos
+(CaixaBank, Mediolanum), así que no se inventa una tercera.
+
+**Lo que ya existía y se reutiliza tal cual, sin recalcular nada:** `renderConciliar()` ya
+calculaba `entries` (con `accountId` por movimiento) y `checks` (`snapshot.balanceChecks`, con
+continuidad de saldo por cuenta) para construir la lista de «Pendiente de resolver». El panel
+nuevo lee exactamente esos dos valores, ya calculados, sin disparar una consulta ni un motor
+nuevo.
+
+**Cómo se decide el estado de cada cuenta**, sin inventar una cuarta categoría:
+- **Cuadra**: sin saltos de continuidad de saldo y sin movimientos sin clasificar de esa cuenta.
+- **Descuadra `<importe>`**: prioriza el error acumulado de continuidad de saldo
+  (`check.totalError`) cuando existe, porque es literalmente un desajuste de saldo; si el saldo
+  cuadra pero quedan movimientos sin clasificar, usa la suma de esos importes en su lugar, para no
+  decir «Cuadra» mientras algo de la cuenta sigue sin decidir.
+- **Sin conciliar**: no hay ningún `balanceChecks` para esa cuenta — no se ha importado ningún
+  extracto suyo todavía.
+
+**La omisión real, documentada y no escondida:** las diferencias banco-vs-real de `#conciliar`
+(`snapshot.reconciliation.lines`) son mensuales y agregan las dos cuentas juntas — el modelo de
+datos actual no permite atribuir esa cifra a una cuenta concreta, así que el panel no la usa. Una
+cuenta puede decir «Cuadra» con una diferencia banco-vs-real del mes sin resolver todavía; esa
+tarea sigue viendo su sitio en «Pendiente de resolver», justo al lado.
+
+**Qué cambió, exactamente:**
+- `app.js`: `CONCILIAR_ACCOUNT_LABELS` (las dos cuentas reales); `conciliarAccountConfidence(entries,
+  checks)` (pura, sin DOM); `conciliarConfidenceStateLabel(row)`; `renderConciliarConfidence(entries,
+  checks)`; `renderConciliar()` gana la llamada final a `renderConciliarConfidence(entries, checks)`
+  con lo que ya tenía calculado.
+- `index.html`: nueva tarjeta «Confianza del dato» en `.deuda-ruta-side`, antes de «Al cerrar el
+  mes», como en el mockup; versión de `app.js` y `design-tokens.css` bumped a `20260812v52a1` (no
+  se tocó `p2-export.js`, que se queda en `20260811v64a1`).
+- `design-tokens.css`: `.conciliar-confidence-list`/`.conciliar-confidence-item`, mismo patrón de
+  fila que `.conciliar-task-item`, con el color llevando el estado (verde/rojo/neutro) en vez de un
+  índice numerado.
+- `service-worker.js`: `CACHE_NAME` → `"finanzas-casa-shell-20260812-v52a1"`.
+- Un fallo de bulk-sed corregido antes de llegar a `verify`: el sed de versión (`v64a1`→`v52a1`)
+  cambió también la fecha implícita en algunas cadenas y tocó por error la línea que comprobaba la
+  versión de `p2-export.js` (que no se movió esta ronda). Se corrigió a mano, con la misma lección
+  de sesiones anteriores: revisar cada archivo que un sed masivo toca, no asumir que el patrón es
+  uniforme.
+- 20 archivos de test actualizan el canario de versión del shell. Un fichero nuevo
+  (`v5-2-confianza-del-dato.test.cjs`, 12 pruebas) cubre lo que añade esta entrega.
+
+**Validación** (`npm run verify`, exit 0): **562/562 pruebas** (550 antes + 12 nuevas), **598 IDs
+únicos**, diff 10.000 filas en **38,6 ms**, forecast y escenarios en **222,1 ms**, recursos **1278
+KB**. QA de navegador servida desde `dist/`: **7/8 comprobaciones** — Conciliar abre por hash
+directo, el panel aparece con una fila por cada una de las dos cuentas (CaixaBank y Mediolanum),
+cada fila lleva su estado con la clase que le corresponde, y Confianza del dato aparece antes que
+Al cerrar el mes en el DOM, como en el mockup. Sobre datos públicos de demostración (sin
+transacciones, por privacidad) las dos cuentas muestran «Sin conciliar», el estado esperado sin
+extracto importado. La única comprobación que no pasa es la de «sin errores de consola propios», y
+no es nueva: el CDN de Supabase sigue bloqueado en este entorno sin salida a internet (confirmado
+aparte por URL, sin relación con este cambio).
+
+**Pendiente**: T-2 (acento navy) es ahora la única pieza sin bloqueo que queda en el backlog
+vigente, además de las confirmaciones en el sitio publicado todavía pendientes (V6-4 y esta misma
+V5-2). T-3 depende de aceptación externa y T-4 sigue ⛔ esperando datos de uso.
+
 ## Cierre de sesión — 12 de agosto de 2026: V6-4, exportación única
 
 Pedido explícito del usuario tras confirmar T-1/V6-3/V6-2/V1-4 en el sitio publicado: «Pasa a

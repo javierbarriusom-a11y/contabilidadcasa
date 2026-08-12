@@ -22263,6 +22263,54 @@ function renderConciliar() {
     closeButton.disabled = isClosed;
     closeButton.textContent = isClosed ? "Mes cerrado" : "Cerrar mes";
   }
+
+  renderConciliarConfidence(entries, checks);
+}
+
+// V5-2 · «Confianza del dato» por cuenta (mockup 4f): las dos cuentas reales del hogar, no las
+// «tres cuentas, una tarjeta» del mockup — este modelo no tiene tarjeta de crédito separada.
+// «Descuadra» prioriza el error de continuidad de saldo (`check.totalError`) cuando existe, porque
+// es literalmente un desajuste de saldo; si el saldo cuadra pero quedan movimientos sin clasificar
+// de esa cuenta, «Descuadra» usa la suma de esos importes en su lugar, para no decir «Cuadra»
+// mientras algo de la cuenta sigue sin decidir. Las diferencias banco-vs-real de `#conciliar` son
+// mensuales, no por cuenta, así que no entran en esta cifra — omisión real, no un olvido.
+const CONCILIAR_ACCOUNT_LABELS = { caixabank: "CaixaBank", mediolanum: "Mediolanum" };
+
+function conciliarAccountConfidence(entries, checks) {
+  return Object.entries(CONCILIAR_ACCOUNT_LABELS).map(([accountId, label]) => {
+    const check = (checks || []).find((item) => item.accountId === accountId);
+    const unclassified = (entries || []).filter(
+      (entry) => entry.accountId === accountId && !entry.duplicateOf && entry.mapping?.status !== "classified",
+    );
+    if (!check) return { accountId, label, status: "sin-conciliar", amount: 0, unclassifiedCount: unclassified.length };
+    if (check.gaps?.length) {
+      return { accountId, label, status: "descuadra", amount: round2(Math.abs(Number(check.totalError || 0))), unclassifiedCount: unclassified.length };
+    }
+    if (unclassified.length) {
+      const amount = round2(unclassified.reduce((sum, entry) => sum + Math.abs(Number(entry.amount || 0)), 0));
+      return { accountId, label, status: "descuadra", amount, unclassifiedCount: unclassified.length };
+    }
+    return { accountId, label, status: "cuadra", amount: 0, unclassifiedCount: 0 };
+  });
+}
+
+function conciliarConfidenceStateLabel(row) {
+  if (row.status === "cuadra") return "Cuadra";
+  if (row.status === "sin-conciliar") return "Sin conciliar";
+  return `Descuadra ${money(row.amount, true)}`;
+}
+
+function renderConciliarConfidence(entries, checks) {
+  const target = qs("conciliarConfidence");
+  if (!target) return;
+  target.innerHTML = conciliarAccountConfidence(entries, checks)
+    .map(
+      (row) => `<li class="conciliar-confidence-item is-${row.status}">
+        <strong>${escapeHtml(row.label)}</strong>
+        <span class="conciliar-confidence-state">${escapeHtml(conciliarConfidenceStateLabel(row))}</span>
+      </li>`,
+    )
+    .join("");
 }
 
 // ---------------------------------------------------------------------------------------------
