@@ -95,8 +95,8 @@ existe como vista única, y la sexta no existe en absoluto.**
 | **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` — **ya relegadas** (V2-8) |
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
 | **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
-| **5 · Cierre** | 🟡 parcial | `#conciliar` | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
-| **6 · Ajustes** | 🟡 parcial | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); CSV completo y PDF del mes descargables desde aquí (V6-4, 12 de agosto); cuentas y partidas enlazadas a donde ya se editan | — |
+| **5 · Cierre** | ✅ alta | `#conciliar`, con «Confianza del dato» por cuenta (V5-2, 12 de agosto) | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
+| **6 · Ajustes** | ✅ alta | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); CSV completo y PDF del mes descargables desde aquí (V6-4, 12 de agosto); cuentas y partidas enlazadas a donde ya se editan | — |
 
 ### Lo que falta en cada una, medido
 
@@ -245,7 +245,7 @@ Seis bloques que son las seis vistas, más uno transversal. Cada tarea lleva el 
 | V6-1 | **Control de reserva operativa** en la interfaz, escribiendo `state.operatingReserve` | ✅ | **Alta** | Hallazgo: el modelo la usa y nadie puede fijarla |
 | V6-2 | Umbrales de aviso: colchón mínimo en meses, desviación por partida, ventana de duplicados | ✅ | Media | Mockup 4f · Ajustes · hecha y confirmada en el sitio el 11 de agosto de 2026 |
 | V6-3 | Vista `#ajustes` que reúna cuentas, umbrales, partidas y exportación | ✅ | Media | Mockup 4f · hecha y confirmada en el sitio el 11 de agosto de 2026 |
-| V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | 🟡 | Baja | Mockup 4f · hecha el 12 de agosto de 2026 |
+| V6-4 | Exportar CSV y PDF del mes desde un sitio único (hoy `downloadCsv` está disperso) | ✅ | Baja | Mockup 4f · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 
 **V6-1 es la primera tarea recomendada de todo el backlog.** Es pequeña, no rompe nada, y
 mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
@@ -298,8 +298,8 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > (`downloadPlainPdf`) que recibe líneas de texto en vez del modelo específico de ese informe — el
 > generador de bytes del PDF (`pdfBlob`) no se toca. El contenido del PDF reutiliza también lo que
 > ya calculaba Registrar el mes (`registrarMesCollect`/`registrarMesTotals`): previsto, real y
-> desviación de cada partida del mes abierto, con sus totales. Queda 🟡 hasta la verificación en el
-> sitio publicado, igual que el resto de esta sesión.
+> desviación de cada partida del mes abierto, con sus totales. **Confirmada en el sitio publicado
+> por el usuario el 12 de agosto de 2026, pasa a ✅.**
 
 ### V1 · Hoy
 
@@ -349,7 +349,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | ID | Tarea | Estado | Prioridad | Origen |
 |---|---|---|---|---|
 | V5-1 | Las diferencias como tareas, no como tablas | ✅ | — | Mockup 1g · E20-2 |
-| V5-2 | Panel «Confianza del dato» por cuenta | 🟡 | Media | Mockup 4f · hecha el 12 de agosto de 2026 |
+| V5-2 | Panel «Confianza del dato» por cuenta | ✅ | Media | Mockup 4f · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | V5-3 | Mover `#reconciliation`, `#data-audit` y `#operations-manual` a Versiones anteriores | ✅ | — | Mockup 4f · hecha el 10 de agosto |
 
 > **V5-2, hecha el 12 de agosto de 2026.** Nueva tarjeta «Confianza del dato» en `#conciliar`, junto
@@ -374,6 +374,8 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > cuenta. Sigue siendo posible que una cuenta diga «Cuadra» con una diferencia banco-vs-real sin
 > resolver en el mes — la tarjeta de «Pendiente de resolver», justo al lado, sigue mostrando esa
 > tarea aparte.
+>
+> **Confirmada en el sitio publicado por el usuario el 12 de agosto de 2026, pasa a ✅.**
 
 ### T · Transversal
 
@@ -381,7 +383,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | T-0 | **Grupo «Versiones anteriores»**: preferencia `legacy`, encabezado en el menú e interruptor en «Personalizar» | ✅ | — | Decisión del 10 de agosto · habilita V1-4, V2-8, V3-5, V4-6 y V5-3 |
 | T-1 | Adoptar la navegación de seis vistas, con las heredadas relegadas y no retiradas | ✅ | Media | Turnos 4-5 · hecha y confirmada en el sitio el 11 de agosto de 2026, junto con V6-3 |
-| T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | 🟡 | Baja | Handoff, sección de tokens · independiente de T-1 · hecha el 12 de agosto de 2026 |
+| T-2 | Cambio de acento azul `#0072E3` → navy `#293E5E` | ✅ | Baja | Handoff, sección de tokens · independiente de T-1 · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | T-3 | E10: activación real de IA, hogar, push, PSD2 e importación programada | ⏳ | Baja | Única entrega funcional sin verificar |
 | T-4 | Retirar de verdad una heredada, cuando el uso demuestre que nadie la abre | ⛔ | — | Solo con datos de uso, no antes |
 | T-5 | **Avisar en pantalla cuando falte una dependencia crítica**, en vez de quedarse en blanco | ✅ | Media | Auditoría §8 · hecha el 10 de agosto · **vista en el sitio** |
@@ -421,6 +423,8 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 > hex fijo — solo cambia la etiqueta de texto) y las pantallas heredadas de `styles.css`/`p2.css`
 > no se tocan porque nunca compartieron este token: siguen con su paleta de siempre, como manda
 > «envolver, no sustituir».
+>
+> **Confirmada en el sitio publicado por el usuario el 12 de agosto de 2026, pasa a ✅.**
 
 ---
 
@@ -479,13 +483,13 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
 8. ~~**V6-2** · umbrales de aviso~~ — **hecha y confirmada en el sitio el 11 de agosto de 2026**,
    a continuación de V6-3. La omisión sigue escrita en su propia nota: el umbral de partida no
    cambia el tinte de Registrar el mes, solo informa en Ajustes.
-9. ~~**V6-4** · exportación única~~ — **hecha el 12 de agosto de 2026.** Cierra el bloque de
-   Ajustes salvo el tinte de Registrar el mes, la misma omisión de siempre.
-10. ~~**V5-2** · confianza del dato por cuenta~~ — **hecha el 12 de agosto de 2026.** Cierra el
-    bloque de Cierre entero: no queda ninguna tarea de V5 sin construir.
-11. ~~**T-2** · el acento navy~~ — **hecha el 12 de agosto de 2026.** Última pieza sin bloqueo del
-    backlog vigente: no queda ninguna tarea más sin construir, solo confirmaciones en el sitio
-    pendientes y las tres que esperan a T-3/T-4.
+9. ~~**V6-4** · exportación única~~ — **hecha y confirmada en el sitio el 12 de agosto de 2026.**
+   Cierra el bloque de Ajustes salvo el tinte de Registrar el mes, la misma omisión de siempre.
+10. ~~**V5-2** · confianza del dato por cuenta~~ — **hecha y confirmada en el sitio el 12 de agosto
+    de 2026.** Cierra el bloque de Cierre entero: no queda ninguna tarea de V5 sin construir.
+11. ~~**T-2** · el acento navy~~ — **hecha y confirmada en el sitio el 12 de agosto de 2026.**
+    Última pieza sin bloqueo del backlog vigente: no queda ninguna tarea más sin construir, solo
+    T-3 y T-4, que esperan una condición externa, no un hueco de agenda.
 
 Dos matices de orden que no son caprichosos:
 
