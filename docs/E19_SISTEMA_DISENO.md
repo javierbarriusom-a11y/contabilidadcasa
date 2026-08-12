@@ -123,7 +123,7 @@ no tienen "estado de migración" porque no se ha decidido todavía si se adoptan
 |---|---|---|---|
 | 3a | Editas una celda y el impacto aparece abajo, antes de guardar | `#cuadro-mandos` | ✅ Migrada (E20-5) |
 | 3b | Bandeja de cambios · efecto conjunto de todo lo tocado en la sesión | `#cambios-pendientes` | ✅ Migrada (E20-5) |
-| 3c | Mapa de calor · dónde duele cada cambio, sin leer una cifra | `#mapa-calor` | ✅ Migrada (E20-5, parcial — ver §12) |
+| 3c | Mapa de calor · dónde duele cada cambio, sin leer una cifra | `#mapa-calor` | ✅ Migrada (E20-5, completa desde el 12 de agosto de 2026 — ver §12) |
 
 ### Turno 4 — Rediseño completo · las 22 pantallas actuales reducidas a 5 + ajustes
 
@@ -538,10 +538,13 @@ podido calcular y los cambios siguen sin guardarse.
 
 ### Decisiones deliberadas
 
-- **La fecha libre de deuda no está en el pie**, aunque el mockup 3a la incluya. Editar el
-  previsto de una partida de planificación no toca ningún contrato de deuda, así que ese dato
-  diría «sin cambio» siempre. La fecha libre de deuda sí se mueve en `#escenario-simular` y
-  `#deuda-comparar`, que es donde viven las decisiones que la mueven.
+- **La fecha libre de deuda está en el pie, pero sin diferencia (V2-6, 12 de agosto de 2026).**
+  El mockup 3a la incluye como un cuarto indicador; `cuadroMandosDebtFreeReadout()` la asoma
+  reutilizando `homeDebtOutlook()` tal cual. Editar el previsto de una partida de planificación no
+  toca ningún contrato de deuda, así que ese dato diría «sin cambio» siempre — por eso no pasa por
+  `cuadroMandosBeforeAfter` como los otros tres, se muestra fija con un `title` que explica por
+  qué. La fecha libre de deuda sí se mueve de verdad en `#escenario-simular` y `#deuda-comparar`,
+  que es donde viven las decisiones que la mueven.
 - **«Ordenado por impacto» se calcula de verdad.** Cada cambio se valora quitándolo de la
   simulación (*leave-one-out*): el número que se ve es lo que devolvería pulsar «Revertir». Cuesta
   una simulación por cambio, así que por encima de ocho se ordena por importe y el rótulo lo dice
@@ -558,15 +561,20 @@ podido calcular y los cambios siguen sin guardarse.
   se fija en la fila de controles del Cuadro de mandos, y el subtítulo de respaldo dice dónde.
 - **Los meses cerrados se ven pero no se editan**, según la especificación 5a.
 
-### Qué no se ha migrado
+### Qué se migró después (12 de agosto de 2026, V2-5)
 
 El panel «Qué hacer con estos cuatro meses» del mockup 3c propone acciones concretas y calculadas
 —«mover la matrícula a septiembre: agosto pasa de 1.430 € a 1.950 €», «bajar el traspaso a
-Mediolanum en ago-oct»— con botones de «Simular». Eso es un motor de recomendaciones que no
-existe: generaría propuestas y cifras que nadie ha calculado. En su lugar, el panel enlaza a las
+Mediolanum en ago-oct»— con botones de «Simular». Eso sigue sin existir: sería un motor de
+recomendaciones que generaría propuestas y cifras que nadie ha calculado, y no se ha fabricado.
+Lo que sí se migró es la parte con datos reales: el primer enlace del panel de al lado
+(`mapaCalorTopBlockLink`) nombra el bloque de gasto que de verdad pesa más en el peor mes, con su
+importe, en vez de un texto genérico — reutiliza el mismo desglose que ya calculaba el panel,
+ahora hoisted para no duplicar el cálculo. El panel sigue sin botones de «Simular»: enlaza a las
 pantallas que sí pueden actuar sobre ese mes (el propio cuadro de mandos, `#escenario-simular` y
-`#deuda-comparar`) y el desglose de al lado dice, con datos reales, qué bloques de gasto pesan en
-el peor mes. Por eso 3c figura como migrada **parcial**.
+`#deuda-comparar`). Con eso, 3c pasa de migrada **parcial** a **completa** en el catálogo del
+turno 3, con esta única salvedad honesta —no hay propuestas de movimiento fabricadas, solo el
+dato real de dónde mirar.
 
 También queda fuera el modo «Previsto ▾» de 3a como desplegable de métrica: la matriz edita
 previsto, que es lo único que tiene sentido editar hacia el futuro. Los reales se registran en

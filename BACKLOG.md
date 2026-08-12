@@ -53,7 +53,7 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 
 ### Los quince mockups de los turnos 1-3
 
-**15 de 15 migrados.** Cinco de ellos con omisiones documentadas:
+**15 de 15 migrados.** Dos de ellos con omisiones documentadas (permanentes, no pendientes):
 
 | Mockup | Pantalla | Estado | Qué falta |
 |---|---|---|---|
@@ -64,14 +64,14 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 | 1e Simular | `#escenario-simular` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 1f Actualizar (hub) | `#update-hub` | ✅ | — |
 | 1g Conciliación | `#conciliar` | ✅ | — |
-| 2a Registrar el mes | `#registrar-mes` | 🟡 | Aviso «detectado en el extracto · ¿es anual?» |
+| 2a Registrar el mes | `#registrar-mes` | ✅ | — · aviso «¿es anual?» hecho y confirmado en el sitio el 12 de agosto (V4-3/V4-5) |
 | 2b Importar extracto | `#data-entry` | ✅ | — |
 | 2c Previsión | `#prevision` | ✅ | — |
 | 2d Aplicar escenario | `#escenario-aplicar` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 2e Escenarios guardados | `#escenario-guardados` | 🟡 | Ver nota en §5 |
 | 3a Cuadro de mandos | `#cuadro-mandos` | ✅ | — |
 | 3b Bandeja de cambios | `#cambios-pendientes` | ✅ | — |
-| 3c Mapa de calor | `#mapa-calor` | 🟡 | Panel de recomendaciones calculadas |
+| 3c Mapa de calor | `#mapa-calor` | ✅ | — · panel de recomendaciones calculadas, confirmado en el sitio el 12 de agosto (V2-5) |
 
 ### Los turnos 4-5 (el rediseño a seis vistas)
 
@@ -86,15 +86,15 @@ regla acordada, «envolver, no sustituir»— pero conviene verlo escrito.
 ## 2. Las seis vistas: cuánto está cubierto
 
 Esta es la respuesta directa a «cuántas de las seis están en el repositorio vivo». La
-respuesta corta: **cinco de las seis tienen su función construida y publicada; ninguna
-existe como vista única, y la sexta no existe en absoluto.**
+respuesta corta: **las seis existen como vista única en la navegación principal (T-1, 11 de
+agosto) y las seis tienen su función construida, publicada y confirmada en el sitio.**
 
 | Vista | Función cubierta | Pantallas nuevas que la cubren | Heredadas que pasan a «Versiones anteriores» |
 |---|---|---|---|
-| **1 · Hoy** | 🟡 parcial | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` — **ya relegadas** (V1-4) |
+| **1 · Hoy** | ✅ alta | `#home`, `#asesor-decision` | `#executive-advisor`, `#virtual-advisor`, `#savings-agent`, `#alerts-center` — **ya relegadas** (V1-4) |
 | **2 · Plan** | ✅ alta | `#cuadro-mandos`, `#cambios-pendientes`, `#mapa-calor`, `#prevision`, `#escenario-*` (3) | `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator`, `#new-life-simulation` — **ya relegadas** (V2-8) |
 | **3 · Deuda** | ✅ alta | `#deuda-comparar`, `#deuda-ruta` | `#debt-roadmap`, `#debt-liquidation-plan`, `#debt-control` — **ya relegadas** (V3-5) |
-| **4 · Datos** | 🟡 parcial | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
+| **4 · Datos** | ✅ alta | `#update-hub`, `#data-entry`, `#registrar-mes`, `#datos-importar` | `#update-data`, `#movements` — **ya relegadas** (V4-6) |
 | **5 · Cierre** | ✅ alta | `#conciliar`, con «Confianza del dato» por cuenta (V5-2, 12 de agosto) | `#reconciliation`, `#data-audit`, `#operations-manual` — **ya relegadas** (V5-3) |
 | **6 · Ajustes** | ✅ alta | `#ajustes` (V6-3, 11 de agosto): reserva operativa, ventana de duplicados y umbral de partida editables (V6-2); colchón mínimo en meses en `#alerts-center` (V6-2); CSV completo y PDF del mes descargables desde aquí (V6-4, 12 de agosto); cuentas y partidas enlazadas a donde ya se editan | — |
 
@@ -116,11 +116,11 @@ agosto de 2026**: la vista 1 · Hoy queda ✅ por completo.
 **2 · Plan.** Es la más completa: la tabla editable con pie de impacto está construida y
 publicada, que era el corazón del rediseño. El primer enlace de «Dónde seguir con ese mes» ya
 nombra el bloque real que más pesa (V2-5), y la banda de doce meses ya vive *dentro* de Plan
-(V2-7) — ambas confirmadas en el sitio el 12 de agosto. El pie gana también un cuarto indicador,
-la fecha libre de deuda (V2-6) — sin diferencia, porque editar un previsto sigue sin tocar ningún
-contrato, así que se muestra fija en vez de fingir un cambio — construido pero todavía sin
-reconfirmar en el sitio tras el arreglo de caché, así que la vista queda 🟡 hasta esa última
-comprobación. Sus cinco heredadas quedaron relegadas el 10 de agosto (V2-8).
+(V2-7). El pie gana también un cuarto indicador, la fecha libre de deuda (V2-6) — sin diferencia,
+porque editar un previsto sigue sin tocar ningún contrato, así que se muestra fija en vez de
+fingir un cambio. Las tres, **confirmadas por el usuario en el sitio publicado el 12 de agosto de
+2026**. Sus cinco heredadas quedaron relegadas el 10 de agosto (V2-8). Con esto, las ocho tareas
+de V2 quedan hechas y confirmadas: la vista 2 · Plan queda ✅ por completo.
 
 > **Corrección del 10 de agosto: `#forecast` no era una heredada.** Esta tabla lo listaba
 > entre las que Plan debía relegar, contradiciendo al inventario de la sección 1, que lo
@@ -159,7 +159,8 @@ este mes» calla el aviso igual. Es de solo lectura sobre `baseData.transactions
 clasificación/incorporación de `#datos-importar`; con la fila cerrada, o si el mes está cerrado,
 tampoco se pregunta. Limitación documentada: tras editar el real por la vía rápida
 (`registrarMesRefreshCells`), el aviso aparece en el siguiente repintado completo de la tabla, no al
-instante.
+instante. **Confirmado por el usuario en el sitio publicado el 12 de agosto de 2026.** Con esto,
+las seis tareas de V4 quedan hechas y confirmadas: la vista 4 · Datos queda ✅ por completo.
 
 **5 · Cierre.** Las diferencias como tareas, construido, y sus tres heredadas ya relegadas
 (V5-3). El panel «Confianza del dato» por cuenta (cuadra / descuadra / sin conciliar) vive ahora
@@ -350,7 +351,7 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 | V2-3 | Cuadro de mandos con pie de impacto | ✅ | — | Mockup 3a + spec 5a · E20-5 |
 | V2-4 | Bandeja de cambios reversible | ✅ | — | Mockup 3b · E20-5 |
 | V2-5 | Mapa de calor mensual | ✅ | — | Mockup 3c · E20-5 · hecha y confirmada en el sitio el 12 de agosto de 2026 |
-| V2-6 | Cuarto indicador del pie: fecha sin deuda | 🟡 | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño · hecha el 12 de agosto de 2026, pendiente de reconfirmar en el sitio |
+| V2-6 | Cuarto indicador del pie: fecha sin deuda | ✅ | Baja | Mockup 4c; hoy se omite con motivo, ver §12 del diseño · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | V2-7 | Banda de doce meses integrada en Plan | ✅ | Baja | Mockup 4c · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | V2-8 | Mover `#visual-detail`, `#cashflow`, `#savings-plan`, `#simulator` y `#new-life-simulation` a Versiones anteriores | ✅ | — | Mockup 4c · hecha el 10 de agosto, ver la nota sobre `#forecast` |
 
@@ -370,12 +371,11 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 >   la rejilla multi-año completa —no cabría sin abrumar una tabla ya densa—, es una fila con los
 >   próximos doce meses.
 >
-> **V2-5 y V2-7, confirmadas por el usuario en el sitio publicado el 12 de agosto de 2026, pasan a
-> ✅.** La primera comprobación las dio por no visibles junto con V2-6, pero era una caché de
-> Service Worker desactualizada en el navegador del usuario (el deploy en sí ya estaba en verde,
-> verificado en GitHub Actions); tras limpiarla, V2-5 y V2-7 se vieron correctamente. **V2-6 sigue
-> 🟡**: no se ha vuelto a comprobar después de limpiar la caché, así que no se marca hasta que se
-> reconfirme.
+> **Las tres, confirmadas por el usuario en el sitio publicado el 12 de agosto de 2026, pasan a
+> ✅.** La primera comprobación las dio por no visibles, pero era una caché de Service Worker
+> desactualizada en el navegador del usuario (el deploy en sí ya estaba en verde, verificado en
+> GitHub Actions); tras limpiarla, las tres se vieron correctamente. **Cierra la vista 2 · Plan
+> por completo**: las ocho tareas de V2 quedan hechas.
 
 ### V3 · Deuda
 
@@ -393,9 +393,9 @@ mejora inmediatamente tres pantallas ya publicadas sin tocarlas.
 |---|---|---|---|---|
 | V4-1 | Hub ordenado por lo que tienes delante | ✅ | — | Mockup 1f · E19-3 |
 | V4-2 | Importación con bandeja previa | ✅ | — | Mockup 2b · E19-4 |
-| V4-3 | Registrar el mes, una fila por partida | 🟡 | — | Mockup 2a · E20-4 · aviso «¿es anual?» añadido el 12 de agosto |
+| V4-3 | Registrar el mes, una fila por partida | ✅ | — | Mockup 2a · E20-4 · aviso «¿es anual?» hecho y confirmado en el sitio el 12 de agosto |
 | V4-4 | **Importación en cuatro pasos con decisión por movimiento y por duplicado** | ✅ | **Alta** | Spec 5c + prototipo 5d · hecha el 10 de agosto de 2026, confirmada en el sitio publicado el 11 |
-| V4-5 | Detección de partida anual desde el extracto | 🟡 | Baja | Mockup 2a · hecha el 12 de agosto de 2026 |
+| V4-5 | Detección de partida anual desde el extracto | ✅ | Baja | Mockup 2a · hecha y confirmada en el sitio el 12 de agosto de 2026 |
 | V4-6 | Mover `#update-data` y `#movements` a Versiones anteriores | ✅ | — | Mockup 4e · hecha el 10 de agosto, la primera relegación |
 
 ### V5 · Cierre
@@ -546,15 +546,14 @@ Ya no hay nada que esperar. Por valor entregado frente a esfuerzo y riesgo:
     prioridad Baja o Media sin urgencia, no bloqueos.
 12. ~~**V1-2** · asesor ejecutivo en Hoy~~ — **hecha y confirmada en el sitio el 12 de agosto de
     2026.** Cierra la vista 1 · Hoy por completo: las cuatro tareas de V1 quedan hechas y ✅.
-13. ~~**V2-5, V2-7** · remates de Plan~~ — **hechas y confirmadas en el sitio el 12 de agosto de
-    2026.** **V2-6** (cuarto indicador del pie) se hizo el mismo día pero sigue 🟡: la primera
-    comprobación la dio por no visible junto con V2-5/V2-7 —era una caché de Service Worker
-    desactualizada en el navegador, no el código— y todavía no se ha reconfirmado tras el arreglo.
-    Con V2-6 pendiente, la vista 2 · Plan queda con siete de sus ocho tareas en ✅.
-14. ~~**V4-3, V4-5** · aviso «¿es anual?» en Registrar el mes~~ — **hechas el 12 de agosto de
-    2026.** Detección de solo lectura, sin tocar la clasificación de `#datos-importar`; no proyecta
-    el previsto hacia años futuros, solo pregunta y recuerda dónde anotarlo. Sin probar todavía en
-    el sitio publicado.
+13. ~~**V2-5, V2-6, V2-7** · remates de Plan~~ — **hechas y confirmadas en el sitio el 12 de
+    agosto de 2026.** La primera comprobación las dio por no visibles —era una caché de Service
+    Worker desactualizada en el navegador, no el código—; tras limpiarla, las tres se confirmaron
+    correctas. Cierra la vista 2 · Plan por completo: las ocho tareas de V2 quedan hechas.
+14. ~~**V4-3, V4-5** · aviso «¿es anual?» en Registrar el mes~~ — **hechas y confirmadas en el
+    sitio el 12 de agosto de 2026.** Detección de solo lectura, sin tocar la clasificación de
+    `#datos-importar`; no proyecta el previsto hacia años futuros, solo pregunta y recuerda dónde
+    anotarlo. Cierra la vista 4 · Datos por completo: las seis tareas de V4 quedan hechas.
 15. ~~**V3-4** · oferta en curso en la vista de deuda~~ — **hecha y confirmada en el sitio el 12 de
     agosto de 2026.** Cierra la vista 3 · Deuda por completo. Cero cálculo nuevo: reutiliza
     `asesorDecisionOpenOffers()`/`asesorDecisionFundingHtml()` y el mismo gesto de
