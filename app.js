@@ -132,6 +132,8 @@ let lastActiveViewRendered = "";
 let activeViewRenderRevision = -1;
 let pendingViewFocusId = "";
 let advisorDebtRenderTimer = 0;
+// H-2 · chip de sincronización: hora del último guardado local, visible en las nueve pantallas.
+let lastLocalSaveAt = "";
 let savingsAgentPlanCache = { key: "", value: null };
 const HEAVY_RENDER_VIEWS = new Set([
   "visual-detail",
@@ -1239,6 +1241,7 @@ function applyPersistedPayload(payload = {}) {
 }
 
 function saveLocalSnapshot() {
+  lastLocalSaveAt = new Date().toISOString();
   storageSet(storageKey("projects"), JSON.stringify(projects));
   storageSet(storageKey("debtLiquidations"), JSON.stringify(debtLiquidations));
   storageSet(storageKey("decisionEvents"), JSON.stringify(decisionEvents));
@@ -2649,6 +2652,15 @@ function updateSyncUi(message, tone = "local") {
   durability.classList.toggle("durability-local", tone === "local");
   durabilityBadge.textContent = tone === "cloud" ? "Sincronizado" : tone === "warn" ? "Revisar" : "Local";
   durabilityText.textContent = message;
+  // H-2: hora del último guardado local; al pasar por encima, qué libro y hojas lee (mismo texto
+  // que ya calcula updateSourceNote, para no mantener dos frases distintas de lo mismo).
+  const durabilityTime = qs("durabilityTime");
+  if (durabilityTime) {
+    durabilityTime.textContent = lastLocalSaveAt
+      ? `Guardado a las ${new Date(lastLocalSaveAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
+      : "Sin guardar todavía en esta sesión";
+  }
+  durability.title = qs("sourceNote")?.textContent || "";
 }
 
 function durableOutboxId(userId = remoteUser?.id) {
@@ -2945,6 +2957,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   const viewTitle = qs("viewTitle");
   if (viewTitle) viewTitle.textContent = copy.title;
   document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
+  renderTopbarStatusStrip(viewId);
   renderE17ViewGuide(viewId);
   if (viewChanged) window.scrollTo({ top: 0, behavior: "instant" });
   if (focus && viewChanged && viewTitle) pendingViewFocusId = viewId;
@@ -2972,6 +2985,40 @@ function setupViewNavigation() {
     setActiveView(viewFromHash(), { focus: true });
   });
   setActiveView(viewFromHash(), { focus: false, announce: false });
+}
+
+// H-8: mismas cuatro cifras que ya usan los primeros KPI de Hoy (Liquidez, Deuda pendiente,
+// Capacidad libre real, Reserva protegida) — mismas funciones, no una fórmula paralela.
+function topbarStatusFigures() {
+  const actionCenter = unifiedActionCenterModel();
+  const ctx = actionCenter.context || {};
+  const balances = ctx.balances || accountBalancesFromState();
+  const capacity = ctx.capacity || {};
+  const today = ctx.today || {};
+  const protectedReserve = round2(Number(today.requiredReserve || ctx.immediateTransfer?.reserve || agentCaixaFloor()));
+  const debtOutlook = homeDebtOutlook();
+  return [
+    { label: "Liquidez", value: money(balances.total, true) },
+    { label: "Deuda pendiente", value: money(debtOutlook.pendingPrincipal, true) },
+    { label: "Capacidad libre", value: money(round2(Number(capacity.avgTransfer12m || 0)), true) },
+    { label: "Reserva", value: money(protectedReserve, true) },
+  ];
+}
+
+function renderTopbarStatusStrip(viewId) {
+  const strip = qs("topbarStatusStrip");
+  if (!strip) return;
+  // H-8: "explícitamente ausente en Hoy" — ahí ya está la rejilla de seis con las mismas cifras.
+  if (viewId === "home") {
+    strip.hidden = true;
+    strip.innerHTML = "";
+    return;
+  }
+  const figures = topbarStatusFigures();
+  strip.hidden = false;
+  strip.innerHTML = figures
+    .map((item) => `<span class="topbar-status-figure"><small>${escapeHtml(item.label)}</small><strong>${escapeHtml(item.value)}</strong></span>`)
+    .join("");
 }
 
 function updateSourceNote() {

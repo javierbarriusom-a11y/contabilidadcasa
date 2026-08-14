@@ -2,6 +2,52 @@
 
 Fecha de revisión: 14 de agosto de 2026.
 
+## Cierre de sesión — 14 de agosto de 2026: menú compartido de las nueve pantallas, cierra H-2/H-8
+
+Continuación directa del cierre anterior del mismo día. Al preguntar cómo seguir tras fusionar la
+nueva Hoy, se detectó que **cuatro tareas** (no solo H-2/H-8) dependían de un menú compartido entre
+las nueve pantallas que no existe: H-2, H-8, **R-2** (armazón de pestañas de Registrar) y **M-1**
+(entrada de menú de Movimientos) — y M-1 bloquea transitivamente casi toda la cadena de Movimientos
+(M-2 a M-10). Revisado el documento técnico completo: **no hay tareas propias para el menú dentro de
+las 124** — "Fase 3 · menú" es solo una etiqueta de dependencia sin desarrollo propio detrás. El
+usuario eligió construirlo ahora, con el alcance propuesto y confirmado explícitamente:
+
+1. Entrada de menú para Movimientos, bajo un nuevo grupo "Día a día" junto a Hoy.
+2. Chip de sincronización (H-2), extendiendo el que ya existía en el topbar.
+3. Tira de cuatro cifras (H-8) en la cabecera de las ocho vistas que no son Hoy — el usuario
+   confirmó que fueran las mismas cuatro de la rejilla de Hoy (Liquidez, Deuda pendiente,
+   Capacidad libre real, Reserva protegida), sin inventar una quinta fuente.
+
+**Qué se construyó:**
+- **Movimientos** se promueve de "Versiones anteriores" (heredada, relegada en V4-6 el 12 de
+  agosto) a enlace principal bajo "Día a día", apuntando al mismo `#movements` de siempre — mismo
+  patrón que Hoy: se promueve el hueco en el menú, el contenido heredado se reconstruye más
+  adelante (M-2 en adelante), sin enlaces rotos.
+- **Chip de sincronización**: se añadió `lastLocalSaveAt`, mostrado como "Guardado a las HH:MM"
+  dentro del chip existente (`durabilityStatus`), más un `title` con el mismo texto de fuente que
+  ya calculaba `updateSourceNote` — sin fabricar una segunda frase para lo mismo.
+- **Tira de estado**: `topbarStatusFigures()` reutiliza exactamente las mismas llamadas que ya usan
+  los primeros KPI de Hoy (`unifiedActionCenterModel()`, `homeDebtOutlook()`), sin una fórmula
+  paralela; se pinta/oculta desde `setActiveView()`, ausente en `#home`.
+
+**H-2 y H-8 pasan a Hecho.** R-2 y M-1 siguen `Pendiente` (no se construyó Registrar ni Movimientos
+en sí esta sesión), pero ya no están bloqueadas por el menú.
+
+**Ajuste de pruebas existentes**: `tests/navigation-structure.test.cjs` y
+`tests/v4-6-relegar-datos.test.cjs` verificaban explícitamente que Movimientos se quedaba en
+"Versiones anteriores" (V4-6, 12 de agosto) — se actualizaron para reflejar que M-1 (14 de agosto)
+supera esa relegación a propósito, dejando constancia en el propio test de qué decisión reemplaza a
+cuál.
+
+**Validación** (`npm run verify`, exit 0): **639/639 pruebas**, **613 IDs únicos** de accesibilidad,
+diff 10.000 filas en **31,4 ms**, forecast y escenarios en **166,7 ms**, recursos **1309 KB**, build
+del sitio, privacidad y smoke test en verde. Verificación visual con Playwright en Hoy, Plan y
+Movimientos: la tira de cuatro cifras aparece correctamente en Plan y Movimientos, está ausente en
+Hoy, y el nuevo enlace de menú funciona sin errores de consola.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-missing-hudou6`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 14 de agosto de 2026: la nueva Hoy (H-1 a H-10) sobre los cimientos de la Fase 1
 
 Continuación directa del cierre anterior del mismo día: con los cimientos de la Fase 1 ya

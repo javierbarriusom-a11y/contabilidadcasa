@@ -18,9 +18,11 @@ const navLinks = [...html.matchAll(/<a href="#([\w-]+)" data-e17-group="(\w+)">/
 
 const groupOf = (view) => navLinks.find((link) => link.view === view)?.group;
 
-test("V4-6 · «Registrar reales del mes» y «Movimientos» quedan en Versiones anteriores", () => {
+test("V4-6 · «Registrar reales del mes» queda en Versiones anteriores", () => {
   assert.equal(groupOf("update-data"), "legacy");
-  assert.equal(groupOf("movements"), "legacy");
+  // «Movimientos» quedó en Versiones anteriores por V4-6 (12 de agosto), pero M-1 (14 de agosto)
+  // la promueve a enlace principal bajo «Día a día» — ya no tiene data-e17-group en absoluto.
+  assert.equal(groupOf("movements"), undefined);
 });
 
 // La composición completa de los grupos se vigila en `tests/navigation-structure.test.cjs`, que es

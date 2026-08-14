@@ -24,11 +24,18 @@
         </div>
 
         <nav class="side-nav" aria-label="Áreas de la aplicación">
-          <p class="nav-section-label">Principal</p>
+          <p class="nav-section-label">Día a día</p>
           <a href="#home" class="nav-primary-link active">
             <span>Hoy</span>
             <small>Decisiones y caja de este momento</small>
           </a>
+          <!-- M-1: promovida desde «Herramientas avanzadas» — el contenido sigue siendo el
+               heredado hasta que M-2 en adelante lo reconstruya; el enlace #movements no cambia. -->
+          <a href="#movements" class="nav-primary-link">
+            <span>Movimientos</span>
+            <small>Extracto, clasificación y saldo por cuenta</small>
+          </a>
+          <p class="nav-section-label">Principal</p>
           <a href="#cuadro-mandos" class="nav-primary-link">
             <span>Plan</span>
             <small>Previsión, escenarios e impacto</small>
@@ -93,7 +100,6 @@
               <a href="#savings-plan" data-e17-group="legacy">Plan ahorro</a>
               <a href="#cashflow" data-e17-group="legacy">Flujo mensual</a>
               <a href="#update-data" data-e17-group="legacy">Registrar reales del mes</a>
-              <a href="#movements" data-e17-group="legacy">Movimientos</a>
               <a href="#data-audit" data-e17-group="legacy">Datos y auditoría</a>
               <a href="#reconciliation" data-e17-group="legacy">Conciliación</a>
               <a href="#operations-manual" data-e17-group="legacy">Guía operativa</a>
@@ -174,13 +180,18 @@
             <h1 id="viewTitle" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="topbar-status">
+            <!-- H-2: chip de sincronización, visible en las nueve pantallas (fuera de <main>). -->
             <div class="durability-status durability-local" id="durabilityStatus" role="status" aria-live="polite">
               <span id="durabilityBadge">Local</span>
               <strong id="durabilityText">Datos guardados en este equipo</strong>
+              <small id="durabilityTime"></small>
             </div>
             <div class="source-note" id="sourceNote"></div>
           </div>
         </header>
+        <!-- H-8: tira de cuatro cifras vivas, en la cabecera de las ocho vistas que no son Hoy
+             (ahí ya están en su propia rejilla de seis). Mismo cálculo que homeKpis, sin repetirlo. -->
+        <div class="topbar-status-strip" id="topbarStatusStrip" hidden></div>
         <section class="e17-view-guide" id="e17ViewGuide" aria-label="Guía de la pantalla actual"></section>
 
         <main id="mainContent" tabindex="-1">
