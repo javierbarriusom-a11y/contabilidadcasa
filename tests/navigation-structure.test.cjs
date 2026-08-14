@@ -21,7 +21,6 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   const dataLabel = html.indexOf('data-e17-nav-label="datos"');
   const legacyLabel = html.indexOf('data-e17-nav-label="legacy"');
   const dataEntry = html.indexOf('href="#data-entry"');
-  const movements = html.indexOf('href="#movements"');
   const dataAudit = html.indexOf('href="#data-audit"');
 
   assert.ok(home < update && update < primaryPlan, "Actualizar debe aparecer inmediatamente después de Hoy");
@@ -32,7 +31,10 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   assert.ok(dataLabel > 0 && legacyLabel > dataLabel, "«Versiones anteriores» cierra el menú avanzado");
   assert.ok(debtRoadmap > legacyLabel, "Plan de deuda ya no está en Decidir: se relegó en V3-5");
   assert.ok(dataLabel < dataEntry && dataEntry < dataAudit, "Carga de datos y auditoría siguen en Datos");
-  assert.ok(movements > legacyLabel, "Movimientos ya no está en Datos: se relegó en V4-6");
+  // M-1 (14 de agosto) promueve Movimientos de «Versiones anteriores» a enlace principal, bajo
+  // «Día a día» junto a Hoy — supera la relegación de V4-6, que solo hablaba del menú avanzado.
+  assert.match(html, /<a href="#movements" class="nav-primary-link">/);
+  assert.doesNotMatch(html, /<a href="#movements" data-e17-group="legacy">/);
   assert.match(html, /id="visual-detail"[^>]*view-section|view-section[^>]*id="visual-detail"/);
   assert.match(html, /id="update-hub"[^>]*view-section|view-section[^>]*id="update-hub"/);
   assert.match(html, /id="debt-roadmap"[^>]*view-section|view-section[^>]*id="debt-roadmap"/);
@@ -73,7 +75,7 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
     "savings-plan",
     "cashflow",
     "update-data",
-    "movements",
+    // M-1 (14 de agosto) promueve "movements" a enlace principal bajo «Día a día»: sale de aquí.
     "data-audit",
     "reconciliation",
     "operations-manual",
@@ -84,5 +86,5 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   ]);
   assert.deepEqual(byGroup.assistants, ["asesor-decision"]);
   assert.equal(byGroup.analysis.length, 9, "Decidir y Analizar suman nueve enlaces tras V1-4");
-  assert.equal(links.length, 32, "treinta y dos enlaces en el menú avanzado, con T-1");
+  assert.equal(links.length, 31, "treinta y un enlaces en el menú avanzado tras promover Movimientos (M-1)");
 });
