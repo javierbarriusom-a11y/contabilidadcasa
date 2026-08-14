@@ -3546,6 +3546,27 @@ svg {
   align-items: end;
 }
 
+/* R-3: delta en vivo bajo cada casilla de saldo, y el enlace de texto que usan las pestañas de
+   Registrar todavía no construidas para volver a su pantalla heredada. */
+.account-balance-grid label > small[data-registrar-delta] {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .account-balance-strip {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

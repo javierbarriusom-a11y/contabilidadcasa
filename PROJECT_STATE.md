@@ -2,6 +2,57 @@
 
 Fecha de revisión: 14 de agosto de 2026.
 
+## Cierre de sesión — 14 de agosto de 2026: Registrar arranca — cabecera, cuatro pestañas y Saldo de cuentas (R-1 a R-4)
+
+Continuación directa del cierre anterior del mismo día (menú compartido). Con R-2 ya desbloqueada,
+el usuario eligió seguir con Registrar y acotó el alcance a los cimientos: R-1 a R-4, dejando
+R-5/R-6/R-6b/R-7/R-8/R-9/R-10 (Reales del mes, regla de guardado, pie de impacto, Importar
+extracto, Lote y Excel, redirección de hashes) para una sesión posterior.
+
+**Qué se construyó:**
+- **R-1 · Cabecera de Registrar**: nueva sección `#registrar`, con eyebrow/título/subtítulo propios,
+  fuente del libro + guía del flujo (`renderRegistrarHeaderMeta`) y la regla previsto/real/usado en
+  tres celdas — no se repite en ninguna pestaña, tal como pide el criterio de aceptación. El título
+  global de la vista (`viewTitles.registrar`) se redactó con texto propio, distinto al de la
+  sección, para no duplicar literalmente la misma frase dos veces en la misma pantalla (se detectó
+  visualmente con Playwright y se corrigió antes de publicar).
+- **R-2 · Armazón de cuatro pestañas**: Saldo de cuentas, Reales del mes, Importar extracto y Lote y
+  Excel, con migajas (`Registrar › <pestaña activa>`) e insignia de pendientes por pestaña. Solo
+  Saldo de cuentas tiene contenido propio esta sesión; las otras tres enlazan de vuelta a su
+  pantalla heredada (`update-data`, `datos-importar`, `data-entry`) en vez de fabricar un contenido
+  que no existe todavía, y su insignia usa el mismo `HOME_MISSING_VALUE` ("—") de H-10 en lugar de
+  un recuento inventado. Nuevo enlace de menú "Registrar" bajo "Día a día", entre Hoy y Movimientos.
+- **R-3 · Pestaña Saldo de cuentas**: saldo por cuenta editable, fecha, modo, total liquidez y
+  bloque de procedencia. Reutiliza exactamente el mismo estado que ya sincronizaba Cuadro de mandos
+  (`accountBalancesFromState`, `balanceSettings`, `applyBalanceModeChange`) — los campos de
+  Registrar son un espejo más añadido a los mismos arrays de sincronización
+  (`renderAccountBalancePanels`, `updateBalanceModeUi`) y los mismos manejadores de guardado
+  (`handleVisualBalanceControlChange`, `handleVisualAccountBalanceInput`), no una segunda puerta de
+  escritura (regla transversal 01). El delta "frente al guardado por cuenta" es nuevo: una foto del
+  saldo ya persistido que se retoma en cada guardado (`resetRegistrarBalanceBaseline`) y se compara
+  en vivo contra lo tecleado (`renderRegistrarBalanceDelta`), sin guardar nada por su cuenta.
+- **R-4 · Tarjeta "qué se recalcula al guardar"**: reserva protegida, cobertura hasta el siguiente
+  ingreso, fecha libre de deuda y peor mes del horizonte, siempre visibles (no solo al editar).
+  Reutiliza `unifiedActionCenterModel()` y `homeDebtOutlook()` (ya usados en Hoy) más
+  `FinanceCanonicalCushion.worstMonthOf()` sobre el horizonte completo — sin recalcular nada por su
+  cuenta. Cobertura y peor mes muestran "—" en vez de un cero fabricado cuando no son calculables.
+
+**Pruebas nuevas**: `tests/r1-r4-registrar.test.cjs` (14 pruebas) — estructura del menú y las cuatro
+pestañas, despacho de la vista, que los campos de saldo son un espejo del mismo estado y no una
+segunda puerta de escritura, el delta frente al guardado (incluida la fabricación cero cuando el
+campo no es numérico), la insignia "—" de las pestañas sin construir, y las cuatro cifras de la
+tarjeta de recálculo con y sin datos disponibles.
+
+**Validación** (`npm run verify`, exit 0): **653/653 pruebas**, **629 IDs únicos** de accesibilidad,
+diff 10.000 filas en **59,8 ms**, forecast y escenarios en **246,0 ms**, recursos **1319 KB**, build
+del sitio, privacidad y smoke test en verde. Verificación visual con Playwright en `#registrar`:
+cabecera sin título duplicado, tira de estado (H-8) visible, tarjeta de recálculo con cifras reales,
+cambio de modo auto→manual con delta en vivo por cuenta que vuelve a "Sin cambios" tras guardar, y
+cambio de pestaña con migajas y enlace de vuelta a la heredada funcionando sin errores de consola.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-missing-hudou6`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 14 de agosto de 2026: menú compartido de las nueve pantallas, cierra H-2/H-8
 
 Continuación directa del cierre anterior del mismo día. Al preguntar cómo seguir tras fusionar la
