@@ -74,6 +74,6 @@ test("V1-4 · las pantallas siguen pintándose igual, el motor no cambia", () =>
 });
 
 test("V1-4 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260812-v34a1/);
-  assert.match(html, /app\.js\?v=20260812v34a1/);
+  assert.match(worker, /20260814-f1a1/);
+  assert.match(html, /app\.js\?v=20260814f1a1/);
 });

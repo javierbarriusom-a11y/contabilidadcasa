@@ -12275,6 +12275,7 @@ function unifiedActionCenterModel({ context = null } = {}) {
   const balances = ctx.balances || accountBalancesFromState();
   const today = ctx.today || {};
   const coverage = executiveCoverageSnapshot(asOf, balances.caixa);
+  const debtOutlook = homeDebtOutlook();
   const readModel = ExecutiveReadModel?.build({
     asOf,
     actions,
@@ -12320,6 +12321,29 @@ function unifiedActionCenterModel({ context = null } = {}) {
         method: "checking-minus-learned-outflows-until-next-income",
         coverage: coverage.days === null ? "unknown" : `${coverage.days} days`,
         confidence: coverage.confidence === "observed" ? "high" : coverage.confidence === "rule" ? "medium" : "low",
+      },
+      // F1 · Cimientos: deuda pendiente y fecha libre de deuda ya se calculaban en Hoy de forma
+      // ad hoc (homeDebtOutlook, usado también por el mapa de calor y el comparador). Se exponen
+      // aquí para que cualquier pantalla nueva las lea del mismo contrato, sin recalcular.
+      debtPending: {
+        label: "Deuda pendiente",
+        value: debtOutlook.pendingPrincipal,
+        unit: "EUR",
+        asOf,
+        source: "canonical-debt-contracts",
+        method: "sum-active-contracts-principal",
+        coverage: `${debtOutlook.contracts} contratos`,
+        confidence: "high",
+      },
+      debtFreeDate: {
+        label: "Fecha libre de deuda",
+        value: debtOutlook.libreDeDeuda,
+        unit: "",
+        asOf,
+        source: "canonical-debt-comparator",
+        method: "no-tocar-strategy-projection",
+        coverage: debtOutlook.settled ? "sin deuda pendiente" : debtOutlook.estimable ? "estimable" : "no estimable",
+        confidence: debtOutlook.settled || debtOutlook.estimable ? "high" : "low",
       },
     },
   }) || null;
@@ -18628,19 +18652,19 @@ const MAPA_CALOR_METRICS = {
 
 // El suelo de referencia del color: la reserva operativa si está configurada; si no, un mes de
 // salidas del primer mes del horizonte. Se dice cuál de los dos se está usando, no se esconde.
+// F1 · Cimientos: el cálculo en sí vive en canonical-cushion.js (FinanceCanonicalCushion), como
+// pieza compartida sin estado ni DOM; aquí solo se traduce a la frase que ya mostraba esta vista.
 function mapaCalorFloor(rows) {
   const reserve = cuadroMandosReserve();
-  if (reserve > 0) return { value: reserve, source: `la reserva operativa de ${money(reserve, true)}` };
-  const first = rows[0];
-  const outflow = first ? Number(first.coreSpend || 0) + Number(first.car || 0) + Number(first.refi || 0) : 0;
-  return { value: Math.max(outflow, 1), source: `un mes de salidas (${money(outflow, true)}), porque no hay reserva operativa configurada — puedes fijarla en Ajustes` };
+  const floor = FinanceCanonicalCushion.cushionFloor(rows, reserve);
+  if (floor.basis === "operating-reserve") {
+    return { value: floor.value, source: `la reserva operativa de ${money(floor.value, true)}` };
+  }
+  return { value: floor.value, source: `un mes de salidas (${money(floor.basisValue, true)}), porque no hay reserva operativa configurada — puedes fijarla en Ajustes` };
 }
 
 function mapaCalorTone(value, floor) {
-  if (value < 0) return "is-negative";
-  if (value < floor) return "is-tight";
-  if (value < floor * 3) return "is-ok";
-  return "is-good";
+  return FinanceCanonicalCushion.cushionTone(value, floor);
 }
 
 // V2-7 · banda de doce meses embebida en Plan. Reutiliza el mismo color que ya usa el mapa de
@@ -18720,8 +18744,8 @@ function renderMapaCalor() {
     subtitle.textContent = `Cada casilla es un mes; el color compara ${metric.label.toLowerCase()} con ${floor.source}. Pasa por encima para ver la cifra exacta.${impact.drafts.length ? " Los meses donde has tocado algo salen con borde: el resto de cifras también se mueven, porque la liquidez es acumulada." : ""}`;
   }
 
-  const worst = rowsAfter.reduce((lowest, row) => (Number(row.totalLiquidity || 0) < Number(lowest?.totalLiquidity ?? Infinity) ? row : lowest), null);
-  const worstKey = String(worst?.detailMonthKey || worst?.month || "");
+  const worstResult = FinanceCanonicalCushion.worstMonthOf(rowsAfter);
+  const worstKey = worstResult?.key || "";
   const worstMonth = cuadroMandosAllMonths().find((month) => month.key === worstKey);
   const titleEl = qs("mapaCalorWorstTitle");
   if (titleEl) titleEl.textContent = `Qué pesa en ${escenarioMotorMonthLabel(worstKey)}`;
@@ -18755,8 +18779,8 @@ function renderMapaCalor() {
 
   const worstNote = qs("mapaCalorWorstNote");
   if (worstNote) {
-    worstNote.textContent = worst
-      ? `${escenarioMotorMonthLabel(worstKey)} cierra con ${money(Number(worst.totalLiquidity || 0), true)} de colchón, el mínimo de todo el horizonte.`
+    worstNote.textContent = worstResult
+      ? `${escenarioMotorMonthLabel(worstKey)} cierra con ${money(worstResult.value, true)} de colchón, el mínimo de todo el horizonte.`
       : "";
   }
 

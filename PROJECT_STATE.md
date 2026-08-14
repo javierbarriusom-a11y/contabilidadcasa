@@ -1,6 +1,49 @@
 # Estado del proyecto
 
-Fecha de revisión: 12 de agosto de 2026.
+Fecha de revisión: 14 de agosto de 2026.
+
+## Cierre de sesión — 14 de agosto de 2026: arranca la Fase 1 del refactor a nueve pantallas
+
+El usuario pidió un refactor visual y funcional grande basado en nueve mockups nuevos (Hoy,
+Registrar, Movimientos, Plan, Deuda, Escenarios, Análisis, Cierre, Laboratorio) más una
+especificación técnica de 124 tareas en 7 fases (`Backlog_Global.pdf` V4). Antes de tocar código
+se publicó un backlog de seguimiento como Artifact y se resolvieron con el usuario las cuatro
+decisiones de arquitectura que la propia especificación señalaba como bloqueantes: **10 planes
+paralelos como máximo por hogar** (con archivado manual y modal de bloqueo al llegar al límite),
+**extractos bancarios previstos en el modelo pero desactivados en la interfaz** hasta que se
+acometa la E10 histórica, **tres usuarios con los mismos permisos de edición y acceso** (activando
+`A5-3 · Hogar compartido`, que ya existía implementada localmente), y **cálculo de las piezas caras
+de Análisis en cliente**, decidido por el asistente con criterio propio (la app no tiene backend
+para el libro y `A13-2` ya probó 10.000 periodos en 60,5 ms).
+
+**Primer commit de la Fase 1 · Cimientos**, exploración previa incluida: gran parte de los
+cimientos ya existía (`stableId()` en `canonical-state.js`, procedencia de primera clase en
+`canonical-ledger.js`, el contrato versionado `finance-executive-read-model/v1` en
+`executive-read-model.js`). El hueco real era más estrecho que lo que sugería la especificación:
+
+- Nuevo `canonical-cushion.js`: extrae "colchón por mes"/"peor mes" de `mapaCalorFloor`,
+  `mapaCalorTone` y el reduce de `renderMapaCalor` (lógica de vista embebida en `app.js`) a un
+  módulo puro y compartido (`cushionFloor`, `cushionTone`, `worstMonthOf`), sin DOM ni estado
+  global. `mapaCalorFloor`/`mapaCalorTone` en `app.js` pasan a delegar en él, sin cambiar de
+  comportamiento — cero cambio visual.
+- El contrato ejecutivo (`unifiedActionCenterModel()`) gana dos métricas más —**deuda pendiente**
+  y **fecha libre de deuda**—, reutilizando `homeDebtOutlook()` tal cual, con su propia
+  procedencia (`source`/`method`/`coverage`/`confidence`) en vez de quedar calculadas ad hoc solo
+  dentro de `renderHomeDashboard`.
+- `service-worker.js` y `tools/build-public-site.mjs` actualizados para precachear y publicar
+  `canonical-cushion.js`; `CACHE_NAME` y las versiones de `app.js`/`design-tokens.css` bumped a
+  `20260814-f1a1` / `20260814f1a1`.
+
+**Validación** (`npm run verify`, exit 0): **628/628 pruebas** (616 antes + 12 nuevas: 8 de
+`canonical-cushion.test.cjs`, 4 de `f1-contrato-ejecutivo-deuda.test.cjs`), **600 IDs únicos** de
+accesibilidad, diff 10.000 filas en **52,0 ms**, forecast y escenarios en **272,5 ms**, recursos
+**1289 KB**, build del sitio, privacidad y smoke test en verde.
+
+**Qué no cambió**: ninguna pantalla visible se tocó. `#home` sigue siendo `renderHomeDashboard()`
+tal cual; la nueva Hoy (H-1 a H-10) es el siguiente paso, ahora sobre estos cimientos.
+
+**Pendiente de publicar**: rama `claude/app-refactor-visual-forecast-49bplp`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`.
 
 ## Cierre de sesión — 12 de agosto de 2026: reclasifica 1d/2e, cierra la inconsistencia de V3-3 y añade T-6
 

@@ -19,6 +19,7 @@ const files = [
   "canonical-ledger.js",
   "canonical-engine.js",
   "canonical-forecast.js",
+  "canonical-cushion.js",
   "canonical-e13-scenarios.js",
   "canonical-scenario-schema.js",
   "canonical-scenario-engine.js",

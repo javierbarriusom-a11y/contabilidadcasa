@@ -309,6 +309,6 @@ test("V3-3 · las tres casillas están conectadas y se pueden borrar de una vez"
 });
 
 test("V3-3 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260812-v34a1/);
-  assert.match(html, /app\.js\?v=20260812v34a1/);
+  assert.match(worker, /20260814-f1a1/);
+  assert.match(html, /app\.js\?v=20260814f1a1/);
 });
