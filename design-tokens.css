@@ -244,6 +244,89 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* R-5: pestaña Reales del mes — mismos tokens que ya usaba «Registrar el mes»
+   (registrar-mes-filter/table), reescritos bajo el ámbito de la pantalla nueva. */
+.e19-registrar .registrar-actuals-month {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.e19-registrar .registrar-actuals-filters {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  background: var(--e19-surface-sunken);
+  border-radius: var(--e19-radius-pill);
+  margin: 10px 0;
+}
+
+.e19-registrar .registrar-actuals-filter {
+  border: none;
+  background: transparent;
+  border-radius: var(--e19-radius-pill);
+  padding: 6px 14px;
+  font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-muted);
+  cursor: pointer;
+}
+
+.e19-registrar .registrar-actuals-filter.is-active {
+  background: var(--e19-surface);
+  color: var(--e19-heading);
+  box-shadow: var(--e19-shadow-card);
+}
+
+.e19-registrar .registrar-actuals-table {
+  min-width: 760px;
+}
+
+.e19-registrar .registrar-actuals-table thead th:nth-child(-n+2),
+.e19-registrar .registrar-actuals-table td:nth-child(-n+2) {
+  text-align: left;
+}
+
+.e19-registrar .registrar-actuals-table td:nth-child(2) {
+  font-weight: 600;
+  color: var(--e19-heading);
+}
+
+.e19-registrar .registrar-actuals-table input[type="number"] {
+  width: 108px;
+  text-align: right;
+  padding: 6px 10px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface);
+  font: 600 var(--e19-text-base) / 1.2 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--e19-ink);
+}
+
+.e19-registrar .registrar-actuals-table input[type="number"]:disabled {
+  background: var(--e19-surface-sunken);
+  color: var(--e19-faint);
+}
+
+.e19-registrar .registrar-actuals-table td.positive {
+  color: var(--e19-success);
+  font-weight: 600;
+}
+
+.e19-registrar .registrar-actuals-table td.negative {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+.e19-registrar .registrar-actuals-totals-row td {
+  font-weight: 700;
+  color: var(--e19-heading);
+  border-top: 2px solid var(--e19-border-strong);
+}
+
 /* -------------------------------------------------------------------------------------------- */
 /* Tarjetas y superficies                                                                        */
 /* -------------------------------------------------------------------------------------------- */

@@ -9,8 +9,9 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
 // R-1 a R-4 · Registrar: cabecera, armazón de cuatro pestañas, pestaña Saldo de cuentas y la
-// tarjeta de recálculo siempre visible. R-5/R-8/R-9 (Reales/Importar/Lote) quedan pendientes;
-// sus pestañas enlazan de vuelta a la heredada en vez de fabricar un contenido que no existe.
+// tarjeta de recálculo siempre visible. R-8/R-9 (Importar/Lote) quedan pendientes; sus pestañas
+// enlazan de vuelta a la heredada en vez de fabricar un contenido que no existe (R-5 se prueba en
+// tests/r5-registrar-reales.test.cjs).
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -72,7 +73,6 @@ test("R-2 · las cuatro pestañas existen y abre en Saldo de cuentas", () => {
 });
 
 test("R-2 · las pestañas todavía no construidas enlazan a su heredada, no fabrican contenido", () => {
-  assert.match(html, /R-5\).*?data-home-nav="update-data"/s);
   assert.match(html, /R-8\).*?data-home-nav="datos-importar"/s);
   assert.match(html, /R-9\).*?data-home-nav="data-entry"/s);
 });
@@ -121,12 +121,14 @@ test("R-3 · el delta frente al guardado marca el signo y usa la cifra formatead
   assert.equal(registrarDeltaText(6700, 6670), "+€30.00 frente al guardado.");
 });
 
-test("R-2 · la insignia de las pestañas sin construir no fabrica un recuento: usa el mismo «—» que Hoy (H-10)", () => {
+test("R-2 · la insignia de Importar/Lote sin construir no fabrica un recuento: usa el mismo «—» que Hoy (H-10)", () => {
   const { registrarTabBadges } = sandboxWith(["registrarTabBadges", "registrarBalanceStale"], {
     state: { balanceMode: "auto", balanceDate: "2026-08-14" },
+    registrarActualsSelectedMonth: () => ({ key: "2026-08" }),
+    registrarActualsEntries: () => [{ hasActual: true }, { hasActual: false }],
   });
   const badges = registrarTabBadges();
-  assert.equal(badges.actuals, "—");
+  assert.equal(badges.actuals, "1 sin real");
   assert.equal(badges.import, "—");
   assert.equal(badges.batch, "—");
 });
