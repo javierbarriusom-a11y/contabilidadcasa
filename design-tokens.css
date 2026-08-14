@@ -116,6 +116,134 @@
   color: var(--e19-muted);
 }
 
+/* R-1 a R-4: cabecera, regla previsto/real/usado, pestañas y tarjeta de recálculo de Registrar. */
+.e19-registrar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+}
+
+.e19-registrar-meta-item {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-registrar-rule {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+  background: var(--e19-surface);
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  padding: 16px 20px;
+  margin: 16px 0;
+}
+
+.e19-registrar-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  flex: 1;
+}
+
+.e19-registrar-rule-grid span {
+  display: block;
+  font: 700 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-heading);
+  margin-bottom: 4px;
+}
+
+.e19-registrar-rule-grid p {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-registrar-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 4px;
+}
+
+.e19-registrar-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--e19-surface);
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 14px;
+  font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-muted);
+  cursor: pointer;
+}
+
+.e19-registrar-tab.is-active {
+  background: var(--e19-accent);
+  color: var(--e19-accent-ink);
+  border-color: transparent;
+}
+
+.e19-registrar-tab small {
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.e19-registrar-crumb {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+  margin: 0 0 16px;
+}
+
+.e19-registrar-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.e19-registrar-pending {
+  background: var(--e19-surface);
+  border: 1px dashed var(--e19-border-strong);
+  border-radius: var(--e19-radius-md);
+  padding: 16px;
+  color: var(--e19-muted);
+  margin: 0;
+}
+
+.e19-registrar-recalc {
+  background: var(--e19-accent-strong);
+  color: #fff;
+  border-radius: var(--e19-radius-lg);
+  padding: 16px 20px;
+}
+
+.e19-registrar-recalc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.e19-registrar-recalc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.e19-registrar-recalc-item span {
+  font-size: var(--e19-text-xs);
+  opacity: 0.8;
+}
+
+.e19-registrar-recalc-item strong {
+  font: 700 var(--e19-text-lg) / 1.1 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
 /* -------------------------------------------------------------------------------------------- */
 /* Tarjetas y superficies                                                                        */
 /* -------------------------------------------------------------------------------------------- */

@@ -29,6 +29,12 @@
             <span>Hoy</span>
             <small>Decisiones y caja de este momento</small>
           </a>
+          <!-- R-2: nueva pantalla con cuatro pestañas; el saldo (R-3/R-4) ya vive aquí, las otras
+               tres pestañas enlazan de vuelta a su heredada hasta que R-5/R-8/R-9 las construyan. -->
+          <a href="#registrar" class="nav-primary-link">
+            <span>Registrar</span>
+            <small>Saldo, reales, extracto y lote</small>
+          </a>
           <!-- M-1: promovida desde «Herramientas avanzadas» — el contenido sigue siendo el
                heredado hasta que M-2 en adelante lo reconstruya; el enlace #movements no cambia. -->
           <a href="#movements" class="nav-primary-link">
@@ -333,6 +339,98 @@
                 </div>
                 <div class="home-alert-summary" id="homeAlertSummary"></div>
               </article>
+            </div>
+          </section>
+
+          <section class="view-section e19-registrar" id="registrar">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Registrar</p>
+                <h2 class="e19-heading">La única puerta de escritura de datos reales</h2>
+                <p class="e19-subtitle">Saldo de cuentas, reales del mes, extracto bancario y carga por lote — cuatro formas de entrada con una sola regla de guardado.</p>
+                <p class="e19-registrar-meta" id="registrarSourceNote"></p>
+              </div>
+            </div>
+
+            <article class="e19-registrar-rule" aria-labelledby="registrarRuleTitle">
+              <div>
+                <p class="panel-kicker">Una regla en las cuatro pestañas</p>
+                <h3 id="registrarRuleTitle">Previsto, real y usado</h3>
+              </div>
+              <div class="e19-registrar-rule-grid">
+                <div><span>Previsto</span><p>Lo que esperas que ocurra. Se edita en Plan, no aquí.</p></div>
+                <div><span>Real</span><p>Lo que ya ocurrió. Se guarda al salir de la casilla; vacío es «sin real» y 0 es «ocurrió por cero».</p></div>
+                <div><span>Usado</span><p>La cifra que entra en el cálculo: el real cuando existe y, mientras no exista, el previsto.</p></div>
+              </div>
+            </article>
+
+            <nav class="e19-registrar-tabs" id="registrarTabs" aria-label="Pestañas de Registrar">
+              <button type="button" class="e19-registrar-tab" data-registrar-tab="balances" aria-selected="true">
+                <span>Saldo de cuentas</span><small data-registrar-badge="balances"></small>
+              </button>
+              <button type="button" class="e19-registrar-tab" data-registrar-tab="actuals" aria-selected="false">
+                <span>Reales del mes</span><small data-registrar-badge="actuals"></small>
+              </button>
+              <button type="button" class="e19-registrar-tab" data-registrar-tab="import" aria-selected="false">
+                <span>Importar extracto</span><small data-registrar-badge="import"></small>
+              </button>
+              <button type="button" class="e19-registrar-tab" data-registrar-tab="batch" aria-selected="false">
+                <span>Lote y Excel</span><small data-registrar-badge="batch"></small>
+              </button>
+            </nav>
+            <p class="e19-registrar-crumb" id="registrarCrumb" aria-live="polite"></p>
+
+            <div class="e19-registrar-panel" data-registrar-panel="balances">
+              <article class="e19-registrar-recalc" id="registrarRecalcCard" aria-labelledby="registrarRecalcTitle">
+                <p class="panel-kicker">Qué se recalcula al guardar</p>
+                <h3 id="registrarRecalcTitle">Cuatro cifras siempre visibles</h3>
+                <div class="e19-registrar-recalc-grid" id="registrarRecalcGrid"></div>
+              </article>
+
+              <article class="account-balance-panel" id="registrarBalancePanel">
+                <div>
+                  <p class="panel-kicker">Saldo por cuenta</p>
+                  <h3>Sustituye al formulario de Cuadro de mandos</h3>
+                </div>
+                <div class="account-balance-grid">
+                  <label>
+                    <span id="registrarBalanceDateLabel">Fecha del saldo</span>
+                    <input id="registrarBalanceDate" type="date" />
+                  </label>
+                  <label>
+                    <span>Modo</span>
+                    <select id="registrarBalanceMode">
+                      <option value="auto">Auto por fecha</option>
+                      <option value="manual">Real manual</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>CaixaBank</span>
+                    <input id="registrarCaixaBalance" type="number" step="0.01" />
+                    <small data-registrar-delta="caixa"></small>
+                  </label>
+                  <label>
+                    <span>Mediolanum</span>
+                    <input id="registrarMediolanumBalance" type="number" step="0.01" />
+                    <small data-registrar-delta="mediolanum"></small>
+                  </label>
+                  <label>
+                    <span>Total liquidez</span>
+                    <input id="registrarTotalBalance" type="number" step="0.01" readonly />
+                  </label>
+                </div>
+                <p class="data-hint" id="registrarBalanceSource"></p>
+              </article>
+            </div>
+
+            <div class="e19-registrar-panel" data-registrar-panel="actuals" hidden>
+              <p class="e19-registrar-pending">Pestaña todavía no construida (R-5). Mientras tanto, usa <button type="button" class="link-button" data-home-nav="update-data">Registrar ingresos y gastos reales</button>.</p>
+            </div>
+            <div class="e19-registrar-panel" data-registrar-panel="import" hidden>
+              <p class="e19-registrar-pending">Pestaña todavía no construida (R-8). Mientras tanto, usa <button type="button" class="link-button" data-home-nav="datos-importar">Importar extracto en 4 pasos</button>.</p>
+            </div>
+            <div class="e19-registrar-panel" data-registrar-panel="batch" hidden>
+              <p class="e19-registrar-pending">Pestaña todavía no construida (R-9). Mientras tanto, usa <button type="button" class="link-button" data-home-nav="data-entry">Carga por lote y Excel</button>.</p>
             </div>
           </section>
 

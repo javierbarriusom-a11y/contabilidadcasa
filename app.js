@@ -134,6 +134,10 @@ let pendingViewFocusId = "";
 let advisorDebtRenderTimer = 0;
 // H-2 · chip de sincronización: hora del último guardado local, visible en las nueve pantallas.
 let lastLocalSaveAt = "";
+// R-2/R-3 · pestaña activa de Registrar y foto del saldo ya guardado, para mostrar el delta en
+// vivo frente a lo persistido sin fabricar una segunda copia del estado de saldo.
+let registrarActiveTab = "balances";
+let registrarBalanceBaseline = null;
 let savingsAgentPlanCache = { key: "", value: null };
 const HEAVY_RENDER_VIEWS = new Set([
   "visual-detail",
@@ -366,6 +370,10 @@ const viewTitles = {
   cashflow: {
     eyebrow: "Flujo mensual",
     title: "Audita cada mes con detalle de ingresos, gastos y proyectos",
+  },
+  registrar: {
+    eyebrow: "Registrar",
+    title: "Guarda saldos, reales y extractos sin salir de la aplicación",
   },
   movements: {
     eyebrow: "Base del modelo",
@@ -4987,13 +4995,13 @@ function updateBalanceModeUi() {
   const auto = (qs("balanceMode")?.value || state?.balanceMode) === "auto";
   initialCash.readOnly = auto;
   initialCash.classList.toggle("derived-control", auto);
-  ["visualCaixaBalance", "visualMediolanumBalance"].forEach((id) => {
+  ["visualCaixaBalance", "visualMediolanumBalance", "registrarCaixaBalance", "registrarMediolanumBalance"].forEach((id) => {
     const input = qs(id);
     if (!input) return;
     input.readOnly = auto;
     input.classList.toggle("derived-control", auto);
   });
-  ["balanceDate", "visualBalanceDate"].forEach((id) => {
+  ["balanceDate", "visualBalanceDate", "registrarBalanceDate"].forEach((id) => {
     const input = qs(id);
     if (!input) return;
     input.disabled = !auto;
@@ -5102,6 +5110,20 @@ function renderAccountBalancePanels() {
       ? "La fecha se registra automáticamente al actualizar el saldo. Los reales ya ocurridos quedan en el histórico y no se suman otra vez."
       : "La fecha calcula el saldo estimado y determina desde cuándo comienza la previsión.";
   }
+  // R-3: mismos campos que Cuadro de mandos (visualCaixaBalance/visualBalanceDate...), solo que
+  // con sus propios ids en la pestaña «Saldo de cuentas» de Registrar — un espejo más del mismo
+  // estado, no una segunda puerta de escritura (regla transversal 01).
+  if (qs("registrarBalanceDate")) qs("registrarBalanceDate").value = state.balanceDate || defaultBalanceDate();
+  if (qs("registrarBalanceMode")) qs("registrarBalanceMode").value = mode;
+  if (qs("registrarCaixaBalance")) qs("registrarCaixaBalance").value = balances.caixa.toFixed(2);
+  if (qs("registrarMediolanumBalance")) qs("registrarMediolanumBalance").value = balances.mediolanum.toFixed(2);
+  if (qs("registrarTotalBalance")) qs("registrarTotalBalance").value = balances.total.toFixed(2);
+  if (qs("registrarBalanceDateLabel")) qs("registrarBalanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
+  if (qs("registrarBalanceSource")) {
+    qs("registrarBalanceSource").textContent = mode === "manual"
+      ? `Real manual. Guardado el ${formatIsoDate(state.balanceDate || defaultBalanceDate())}${lastLocalSaveAt ? `, a las ${new Date(lastLocalSaveAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}` : ""}.`
+      : `Automático por fecha: calculado a partir del calendario de cobros y pagos hasta ${formatIsoDate(state.balanceDate || defaultBalanceDate())}.`;
+  }
   if (qs("overviewBalanceBreakdown")) {
     qs("overviewBalanceBreakdown").innerHTML = [
       ["CaixaBank", balances.caixa],
@@ -5147,6 +5169,25 @@ function handleVisualAccountBalanceInput() {
   renderAccountBalancePanels();
   saveBalanceSettings();
   render();
+}
+
+// R-3: los controles de saldo de Registrar escriben copiando su valor a los campos de Cuadro de
+// mandos y dejando que el manejador ya existente haga el guardado real — un solo camino de
+// escritura (regla transversal 01), Registrar solo añade una vista más sobre el mismo estado.
+function handleRegistrarBalanceControlChange() {
+  if (!state) return;
+  if (qs("visualBalanceDate")) qs("visualBalanceDate").value = qs("registrarBalanceDate")?.value || defaultBalanceDate();
+  if (qs("visualBalanceMode")) qs("visualBalanceMode").value = qs("registrarBalanceMode")?.value || "auto";
+  handleVisualBalanceControlChange();
+  resetRegistrarBalanceBaseline();
+}
+
+function handleRegistrarAccountBalanceInput() {
+  if (!state) return;
+  if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = qs("registrarCaixaBalance")?.value ?? "";
+  if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = qs("registrarMediolanumBalance")?.value ?? "";
+  handleVisualAccountBalanceInput();
+  resetRegistrarBalanceBaseline();
 }
 
 function addHelpToControl(id, text) {
@@ -22981,11 +23022,142 @@ function renderAsesorDecision() {
   }
 }
 
+// R-1 a R-4 · Registrar: única puerta de escritura de datos reales. Solo la pestaña «Saldo de
+// cuentas» tiene contenido propio por ahora (R-3/R-4); Reales del mes/Importar extracto/Lote y
+// Excel (R-5/R-8/R-9) enlazan de vuelta a su pantalla heredada hasta que se construyan. No se
+// fabrica un recuento de pendientes para esas tres — mostrarían un cero que no es tal (regla
+// transversal 04) — así que su insignia queda en HOME_MISSING_VALUE.
+const REGISTRAR_TABS = [
+  { id: "balances", label: "Saldo de cuentas" },
+  { id: "actuals", label: "Reales del mes" },
+  { id: "import", label: "Importar extracto" },
+  { id: "batch", label: "Lote y Excel" },
+];
+
+function registrarBalanceStale() {
+  if (!state) return false;
+  return state.balanceMode === "manual" && (state.balanceDate || "") !== isoLocalDate(new Date());
+}
+
+function registrarTabBadges() {
+  return {
+    balances: registrarBalanceStale() ? "1 desactualizada" : "",
+    actuals: HOME_MISSING_VALUE,
+    import: HOME_MISSING_VALUE,
+    batch: HOME_MISSING_VALUE,
+  };
+}
+
+function setRegistrarTab(tabId) {
+  registrarActiveTab = REGISTRAR_TABS.some((tab) => tab.id === tabId) ? tabId : "balances";
+  renderRegistrarTabs();
+}
+
+function renderRegistrarTabs() {
+  const nav = qs("registrarTabs");
+  if (!nav) return;
+  const badges = registrarTabBadges();
+  nav.querySelectorAll("[data-registrar-tab]").forEach((button) => {
+    const isActive = button.dataset.registrarTab === registrarActiveTab;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  nav.querySelectorAll("[data-registrar-badge]").forEach((badge) => {
+    badge.textContent = badges[badge.dataset.registrarBadge] || "";
+  });
+  document.querySelectorAll("[data-registrar-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.registrarPanel !== registrarActiveTab;
+  });
+  const activeTab = REGISTRAR_TABS.find((tab) => tab.id === registrarActiveTab);
+  if (qs("registrarCrumb")) qs("registrarCrumb").textContent = `Registrar › ${activeTab?.label || ""}`;
+}
+
+function renderRegistrarHeaderMeta() {
+  const meta = qs("registrarSourceNote");
+  if (!meta) return;
+  const source = state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado";
+  const savedAt = lastLocalSaveAt
+    ? `guardado hace poco, a las ${new Date(lastLocalSaveAt).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`
+    : "sin guardar todavía en esta sesión";
+  meta.innerHTML = `<span class="e19-registrar-meta-item">Fuente del libro: ${escapeHtml(source)} · ${escapeHtml(savedAt)}</span>
+    <span class="e19-registrar-meta-item">Flujo: Saldo de cuentas → Reales del mes → Importar extracto → Lote y Excel</span>`;
+}
+
+// R-4: mismas cuatro cifras que ya calcula Hoy (unifiedActionCenterModel/homeDebtOutlook), más el
+// peor mes del horizonte completo con FinanceCanonicalCushion.worstMonthOf — sin recalcular nada
+// por su cuenta, solo se leen aquí para que se vean también mientras se registra.
+function registrarRecalcFigures() {
+  const actionCenter = unifiedActionCenterModel();
+  const ctx = actionCenter.context || {};
+  const today = ctx.today || {};
+  const protectedReserve = round2(Number(today.requiredReserve || ctx.immediateTransfer?.reserve || agentCaixaFloor()));
+  const coverage = actionCenter.coverage || {};
+  const debtOutlook = homeDebtOutlook();
+  const worst = FinanceCanonicalCushion.worstMonthOf(openSimulationRows(lastSimulation));
+  return [
+    { label: "Reserva protegida", value: money(protectedReserve, true) },
+    {
+      label: "Cobertura hasta el siguiente ingreso",
+      value: coverage.days === null || coverage.days === undefined ? HOME_MISSING_VALUE : `${coverage.days} día(s)`,
+    },
+    { label: "Fecha libre de deuda", value: debtOutlook.libreDeDeudaLabel || HOME_MISSING_VALUE },
+    {
+      label: "Peor mes del horizonte",
+      value: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${money(worst.value, true)}` : HOME_MISSING_VALUE,
+    },
+  ];
+}
+
+function renderRegistrarRecalcCard() {
+  const grid = qs("registrarRecalcGrid");
+  if (!grid) return;
+  grid.innerHTML = registrarRecalcFigures()
+    .map((item) => `<div class="e19-registrar-recalc-item"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(item.value)}</strong></div>`)
+    .join("");
+}
+
+// R-3: "delta frente al guardado por cuenta" — no una cifra pendiente escondida, sino el hueco
+// vivo entre lo que hay tecleado y lo último que de verdad se guardó. La foto se retoma cada vez
+// que se guarda (resetRegistrarBalanceBaseline) para que el delta vuelva a cero al confirmar.
+function resetRegistrarBalanceBaseline() {
+  const balances = accountBalancesFromState();
+  registrarBalanceBaseline = { caixa: balances.caixa, mediolanum: balances.mediolanum };
+  renderRegistrarBalanceDelta();
+}
+
+function registrarDeltaText(current, baseline) {
+  if (!Number.isFinite(current) || !Number.isFinite(baseline)) return "";
+  const delta = round2(current - baseline);
+  if (delta === 0) return "Sin cambios frente al guardado.";
+  return `${delta > 0 ? "+" : ""}${money(delta, true)} frente al guardado.`;
+}
+
+function renderRegistrarBalanceDelta() {
+  if (!registrarBalanceBaseline) return;
+  const caixaEl = document.querySelector('[data-registrar-delta="caixa"]');
+  const mediolanumEl = document.querySelector('[data-registrar-delta="mediolanum"]');
+  if (caixaEl) caixaEl.textContent = registrarDeltaText(parseAmount(qs("registrarCaixaBalance")?.value), registrarBalanceBaseline.caixa);
+  if (mediolanumEl) {
+    mediolanumEl.textContent = registrarDeltaText(parseAmount(qs("registrarMediolanumBalance")?.value), registrarBalanceBaseline.mediolanum);
+  }
+}
+
+function renderRegistrar() {
+  if (!qs("registrarBalancePanel")) return;
+  renderRegistrarHeaderMeta();
+  renderRegistrarTabs();
+  renderRegistrarRecalcCard();
+  resetRegistrarBalanceBaseline();
+}
+
 function renderActiveSection(viewId = viewFromHash()) {
   if (!lastSimulation.length) return;
   switch (viewId) {
     case "home":
       renderHomeDashboard();
+      break;
+    case "registrar":
+      renderRegistrar();
       break;
     case "update-data":
       renderMonthlyDetails();
@@ -23373,6 +23545,17 @@ async function init() {
   });
   ["visualCaixaBalance", "visualMediolanumBalance"].forEach((id) => {
     qs(id).addEventListener("change", handleVisualAccountBalanceInput);
+  });
+  ["registrarBalanceDate", "registrarBalanceMode"].forEach((id) => {
+    qs(id)?.addEventListener("change", handleRegistrarBalanceControlChange);
+  });
+  ["registrarCaixaBalance", "registrarMediolanumBalance"].forEach((id) => {
+    qs(id)?.addEventListener("change", handleRegistrarAccountBalanceInput);
+    qs(id)?.addEventListener("input", renderRegistrarBalanceDelta);
+  });
+  qs("registrarTabs")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-registrar-tab]");
+    if (button) setRegistrarTab(button.dataset.registrarTab);
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("previsionTable")?.addEventListener("click", (event) => {
