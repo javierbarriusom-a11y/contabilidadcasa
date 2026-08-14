@@ -102,6 +102,20 @@
   margin: 0;
 }
 
+/* H-1: estado + fecha de análisis + fuente + guía, debajo del subtítulo de Hoy. */
+.e19-home-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+}
+
+.e19-home-meta-item {
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
 /* -------------------------------------------------------------------------------------------- */
 /* Tarjetas y superficies                                                                        */
 /* -------------------------------------------------------------------------------------------- */
@@ -196,9 +210,20 @@
   border-left-color: var(--e19-danger);
 }
 
+.e19-kpi-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .e19-kpi-label {
   font-size: var(--e19-text-xs);
   color: var(--e19-muted);
+}
+
+.e19-kpi-badge {
+  flex: none;
 }
 
 .e19-kpi-value {
@@ -2654,6 +2679,52 @@
   gap: 10px;
   padding: 6px 0;
   font-size: var(--e19-text-sm);
+}
+
+/* H-7 · misma banda de doce meses que Plan (V2-7), reutilizada en «Meses a vigilar» de Hoy. Se
+   duplica el selector con el ámbito de Hoy en vez de generalizar `.e19-cuadro-mandos` porque esa
+   clase también estiliza piezas propias del cuadro de mandos que Hoy no usa. */
+.e19-home .mapa-calor-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border-radius: var(--e19-radius-sm);
+  border: 2px solid transparent;
+  font: 700 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.e19-home .mapa-calor-cell.is-empty { background: var(--e19-surface-sunken); }
+.e19-home .mapa-calor-cell.is-negative { background: var(--e19-danger); color: #fff; }
+.e19-home .mapa-calor-cell.is-tight { background: var(--e19-debt); color: #fff; }
+.e19-home .mapa-calor-cell.is-ok { background: var(--e19-success-soft-border); color: var(--e19-heading); }
+.e19-home .mapa-calor-cell.is-good { background: var(--e19-success); color: #fff; }
+
+.e19-home .cuadro-mandos-band {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 4px 0 16px;
+}
+
+.e19-home .cuadro-mandos-band-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 64px;
+}
+
+.e19-home .cuadro-mandos-band-item small {
+  font-size: 10.5px;
+  color: var(--e19-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.e19-home .cuadro-mandos-band-item .mapa-calor-cell {
+  width: 100%;
 }
 
 .e19-cuadro-mandos .mapa-calor-block strong {

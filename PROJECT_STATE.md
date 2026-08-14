@@ -2,6 +2,71 @@
 
 Fecha de revisión: 14 de agosto de 2026.
 
+## Cierre de sesión — 14 de agosto de 2026: la nueva Hoy (H-1 a H-10) sobre los cimientos de la Fase 1
+
+Continuación directa del cierre anterior del mismo día: con los cimientos de la Fase 1 ya
+publicados (canonical-cushion.js, deuda pendiente/fecha libre de deuda en el contrato ejecutivo),
+el usuario pidió seguir con la nueva pantalla Hoy (H-1 a H-10 del backlog de nueve pantallas
+publicado como Artifact la sesión anterior).
+
+**Antes de tocar código**, se detectó que H-2 (chip de sincronización en la barra) y H-8 (tira de
+cuatro cifras en la cabecera de las otras ocho vistas) dependen de un menú/topbar compartido entre
+las nueve pantallas que todavía no existe — solo Hoy se está construyendo. El usuario eligió
+**aplazarlas explícitamente a cuando exista ese menú** (probablemente Fase 3 en la numeración del
+propio documento técnico), en vez de construir una versión parcial o inventar el menú antes de
+tiempo. Con eso, la sesión cierra 9 de las 11 tareas: H-1, H-3, H-3b, H-4, H-5, H-6, H-7, H-9, H-10.
+
+**Qué se construyó, tarea a tarea:**
+- **H-9 (umbrales configurables)**: en vez de montar un panel nuevo en Ajustes, se localizó que el
+  propio código ya documentaba la regla a seguir (nota V6-2: los umbrales tipo metric+threshold se
+  resuelven con el framework de alertas existente, `UX_ALERT_METRICS`/`alerts-center`, no con un
+  mecanismo nuevo). Se añadió `alertThresholdOverride(metricId)` y se cablearon a él los umbrales de
+  «Deuda pendiente» y «Capacidad libre real», que además tenían un umbral duplicado y distinto
+  (250 € hardcodeado en Hoy contra 500 € ya configurado en Ajustes › Alertas) — exactamente la
+  duplicidad que la regla transversal 09 del backlog pide eliminar.
+- **H-1 (cabecera)**: añadida una línea de estado agregado + fecha de análisis + fuente + guía bajo
+  el subtítulo existente, sin tocar las tres frases que ya traía.
+- **H-3/H-3b (cobertura)**: la lógica de datos ya existía casi entera (`executiveCoverageSnapshot`,
+  `saveE6Coverage`/`resetE6Coverage`). Se dividió en dos tarjetas —una oscura con la cifra de días,
+  insignia de confianza, margen y fecha; otra con el editor y su insignia de estado
+  (requiere tu dato/aprendido/guardado)—, con previsualización en vivo al escribir (sin guardar) y
+  el botón Guardar apagado si nada cambió.
+- **H-4 (rejilla)**: insignia visible («Fuera de umbral»/«Cerca del umbral») además de la barra de
+  color ya existente, ahora leyendo los umbrales de H-9.
+- **H-5 (decisiones abiertas)**: «Lectura de hoy» pasa de una pila de tarjetas a una única banda con
+  la lectura más urgente. Lo que antes se duplicaba ahí (deuda candidata, oferta abierta, proyectos
+  en plan) compite ahora por un hueco en las «tres decisiones» junto con las alertas disparadas,
+  ordenadas por caducidad real cuando existe (vencimiento de oferta, fecha de revisión de alerta) y
+  por rango fijo cuando no. No se tocó `unifiedActionCenterModel`/`executiveActions` — las reutiliza
+  también Asesor ejecutivo con su propio orden.
+- **H-6 (mes en una línea)**: nuevo, con `p2MovementRows()` como única fuente (la misma que ya
+  alimenta la cobertura): ingresos/gastos/margen/movimientos reales del mes, más las dos señales
+  (sin clasificar, irá a ahorro con el ahorro previsto del plan) y una nota de confianza.
+- **H-7 (cuatro tarjetas de contexto, talla L)**: la estructura de cuatro tarjetas ya existía
+  (próximos hitos, meses a vigilar, lectura del hogar, señales). Se le añadió a «Meses a vigilar» la
+  mini banda de doce meses que ya usaba Plan (`cuadroMandosMonthBandHtml`, V2-7), mismo cálculo y
+  color que el mapa de calor — sin fabricar una segunda escala.
+- **H-10 (dato ausente)**: convención `HOME_MISSING_VALUE` («—») aplicada donde hacía falta. De
+  paso, verificando visualmente la pantalla, apareció un caso real que el propio H-10 pedía cazar:
+  con fecha de ingreso conocida pero sin gasto diario, la «necesidad» se rellenaba con 0 € en vez de
+  decir que no se puede calcular — corregido. También se detectó y corrigió que la fecha de
+  vencimiento de una alerta disparada (formato completo `AAAA-MM-DD`) se desfiguraba al pasar por
+  `escenarioMotorMonthLabel` (pensada para claves de mes `AAAA-MM`), mostrando «vence sept 26-13»;
+  ahora cada tipo de decisión precalcula su propia etiqueta con el formateador correcto.
+
+**Validación** (`npm run verify`, exit 0): **639/639 pruebas** (628 antes + 11 nuevas en
+`f1-hoy-dato-ausente.test.cjs`, una por indicador con dato ausente; una prueba existente de V1-2 se
+actualizó para seguir el nuevo camino de código, sin cambiar lo que verifica), **611 IDs únicos** de
+accesibilidad, diff 10.000 filas en **47,9 ms**, forecast y escenarios en **274,0 ms**, recursos
+**1306 KB**, build del sitio, privacidad y smoke test en verde. Verificación visual con Playwright
+(captura de pantalla + inspección del DOM) antes y después de los dos arreglos de H-10.
+
+**Qué no cambió**: ninguna otra pantalla se tocó. H-2 y H-8 quedan explícitamente pendientes del
+menú de las nueve pantallas (fuera de esta sesión, decisión del usuario).
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-missing-hudou6`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 14 de agosto de 2026: arranca la Fase 1 del refactor a nueve pantallas
 
 El usuario pidió un refactor visual y funcional grande basado en nueve mockups nuevos (Hoy,
