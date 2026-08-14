@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const FinanceCanonicalCushion = require("../canonical-cushion.js");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
@@ -127,6 +128,7 @@ function sandboxV27({ reserve = 0 } = {}) {
     escapeHtml: (value) => String(value ?? ""),
     escenarioMotorMonthLabel: (value) => `etiqueta:${value}`,
     cuadroMandosReserve: () => reserve,
+    FinanceCanonicalCushion,
   };
   vm.createContext(context);
   vm.runInContext([extractFunction("mapaCalorFloor"), extractFunction("mapaCalorTone"), extractFunction("cuadroMandosMonthBandHtml")].join("\n"), context);
@@ -174,7 +176,7 @@ test("V2-7 · el contenedor vive en #cuadro-mandos, entre la tabla y el pie de i
 });
 
 test("Plan · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260812-v34a1/);
-  assert.match(html, /app\.js\?v=20260812v34a1/);
-  assert.match(html, /design-tokens\.css\?v=20260812v34a1/);
+  assert.match(worker, /20260814-f1a1/);
+  assert.match(html, /app\.js\?v=20260814f1a1/);
+  assert.match(html, /design-tokens\.css\?v=20260814f1a1/);
 });
