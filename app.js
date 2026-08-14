@@ -12375,19 +12375,120 @@ function executiveCoverageSnapshot(asOf = state?.balanceDate || defaultBalanceDa
   });
 }
 
-function renderE6Coverage(coverage = executiveCoverageSnapshot()) {
-  const panel = qs("e6CoveragePanel");
-  if (!panel) return;
+// H-10: convención única de "dato ausente" para Hoy — nunca se estima en silencio. Cuando el
+// dato de origen falta de verdad (no cuando el valor real es legítimamente cero), la cifra se
+// pinta como "—" y el motivo va siempre en el texto que la acompaña, nunca solo en la insignia.
+const HOME_MISSING_VALUE = "—";
+
+// H-3: la insignia de la tarjeta oscura es de confianza del dato, no de si cubre o no el gasto
+// previsto — esa lectura de cobertura ya la da el propio margen (positivo/negativo) en la tarjeta.
+function homeCoverageBadge(coverage) {
+  if (coverage.days === null || coverage.dailyOutflow === null) return { tone: "warn", label: "Datos insuficientes" };
+  const byConfidence = {
+    observed: { tone: "good", label: "Dato observado" },
+    rule: { tone: "warn", label: "Regla aprendida" },
+    estimated: { tone: "warn", label: "Estimación" },
+  };
+  return byConfidence[coverage.confidence] || byConfidence.estimated;
+}
+
+function renderHomeCoverageCard(coverage) {
+  const daysField = qs("e6CoverageDays");
+  if (!daysField) return;
+  daysField.textContent = coverage.days === null ? HOME_MISSING_VALUE : String(coverage.days);
+  const badge = homeCoverageBadge(coverage);
   const status = qs("e6CoverageStatus");
-  const tone = coverage.covered === true ? "good" : coverage.covered === false ? "danger" : "warn";
-  status.className = `status-pill ${tone}`;
-  status.textContent = coverage.covered === true ? "Cubierto" : coverage.covered === false ? "Falta cobertura" : "Datos insuficientes";
-  qs("e6CoverageSummary").innerHTML = `<span>Margen previsto</span><strong>${coverage.margin === null ? "Sin dato" : money(coverage.margin, true)}</strong>
-    <p>${coverage.days === null ? "No se ha podido determinar el siguiente ingreso." : `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`}</p>
-    <p>Fuente: ${escapeHtml(coverage.source)} · confianza: ${escapeHtml(coverage.confidence)} · ${Number(coverage.learned?.reconciledMovementCount || 0)} movimientos conciliados.</p>`;
+  status.className = `status-pill ${badge.tone}`;
+  status.textContent = badge.label;
+  const marginClass = coverage.margin === null ? "" : coverage.margin < 0 ? "negative" : "positive";
+  // H-10: con fecha de ingreso pero sin gasto diario conocido, "necesidad" no puede calcularse —
+  // decirlo, no rellenar con 0 € como si fuera una cifra real.
+  const sentence = coverage.days === null
+    ? "No se ha podido determinar el siguiente ingreso."
+    : coverage.required === null
+    ? `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${HOME_MISSING_VALUE}, sin gasto diario conocido.`
+    : `${coverage.days} día(s) hasta ${shortDate(coverage.nextIncomeDate)} · necesidad ${money(coverage.required, true)}.`;
+  qs("e6CoverageSummary").innerHTML = `<span>Margen previsto</span><strong class="${marginClass}">${coverage.margin === null ? HOME_MISSING_VALUE : money(coverage.margin, true)}</strong>
+    <p>${sentence}</p>`;
+}
+
+// H-3b: la insignia del editor distingue si el dato viene guardado por el usuario, aprendido de
+// movimientos conciliados, o si todavía falta (ni lo uno ni lo otro).
+function homeCoverageEditorBadge(coverage, settings) {
+  const hasOverride = Boolean(settings.nextIncomeDate) || Number.isFinite(settings.dailyOutflow);
+  if (hasOverride) return { tone: "good", label: "Guardado" };
+  if (coverage.days === null || coverage.dailyOutflow === null) return { tone: "warn", label: "Requiere tu dato" };
+  return { tone: "good", label: "Aprendido" };
+}
+
+function e6FieldOverrides() {
+  const dateValue = qs("e6NextIncomeDate")?.value || "";
+  const rawOutflow = qs("e6DailyOutflow")?.value;
+  const outflowValue = rawOutflow === "" || rawOutflow === undefined ? null : parseAmount(rawOutflow);
+  return { nextIncomeDate: dateValue, dailyOutflow: Number.isFinite(outflowValue) ? outflowValue : null };
+}
+
+// H-3b: "Guardar se apaga si nada cambió" — compara los campos del formulario contra lo ya
+// guardado en scenarioSettings.e6Coverage, no contra el valor aprendido que se ve por defecto.
+function syncE6SaveButtonState() {
+  const button = qs("e6CoverageSave");
+  if (!button) return;
+  const fields = e6FieldOverrides();
   const settings = e6CoverageSettings();
-  qs("e6NextIncomeDate").value = settings.nextIncomeDate || coverage.nextIncomeDate || "";
-  qs("e6DailyOutflow").value = Number.isFinite(settings.dailyOutflow) ? amountInputValue(settings.dailyOutflow) : Number.isFinite(coverage.dailyOutflow) ? amountInputValue(coverage.dailyOutflow) : "";
+  const savedDaily = Number.isFinite(settings.dailyOutflow) ? settings.dailyOutflow : null;
+  const unchanged = (fields.nextIncomeDate || "") === (settings.nextIncomeDate || "") && fields.dailyOutflow === savedDaily;
+  button.disabled = unchanged;
+}
+
+function renderHomeCoverageEditor(coverage) {
+  const editor = qs("e6CoverageEditor");
+  if (!editor) return;
+  const settings = e6CoverageSettings();
+  const badge = homeCoverageEditorBadge(coverage, settings);
+  const status = qs("e6CoverageEditorStatus");
+  status.className = `status-pill ${badge.tone}`;
+  status.textContent = badge.label;
+  qs("e6CoverageSource").textContent =
+    `Fuente: ${coverage.source} · confianza: ${coverage.confidence} · ${Number(coverage.learned?.reconciledMovementCount || 0)} movimientos conciliados.`;
+  if (document.activeElement?.id !== "e6NextIncomeDate") {
+    qs("e6NextIncomeDate").value = settings.nextIncomeDate || coverage.nextIncomeDate || "";
+  }
+  if (document.activeElement?.id !== "e6DailyOutflow") {
+    qs("e6DailyOutflow").value = Number.isFinite(settings.dailyOutflow)
+      ? amountInputValue(settings.dailyOutflow)
+      : Number.isFinite(coverage.dailyOutflow)
+      ? amountInputValue(coverage.dailyOutflow)
+      : "";
+  }
+  syncE6SaveButtonState();
+}
+
+function renderE6Coverage(coverage = executiveCoverageSnapshot()) {
+  if (!qs("e6CoveragePanel")) return;
+  renderHomeCoverageCard(coverage);
+  renderHomeCoverageEditor(coverage);
+}
+
+// H-3b: "Cada cambio actualiza la cifra de arriba al instante" — recalcula con los campos tal
+// como están escritos, sin guardar todavía; solo Guardar ajuste persiste el override.
+function previewE6Coverage() {
+  const engine = window.FinanceCanonicalDailyEngine;
+  if (!engine?.coverageUntilNextIncome || !qs("e6CoveragePanel")) return;
+  const asOf = state?.balanceDate || defaultBalanceDate();
+  const events = (canonicalDailyEngineRuns.active?.rows || []).flatMap((row) => row.events || []);
+  const fields = e6FieldOverrides();
+  const coverage = engine.coverageUntilNextIncome({
+    asOfDate: asOf,
+    checkingBalance: accountBalancesFromState().caixa,
+    events,
+    movements: p2MovementRows(),
+    override: {
+      ...(fields.nextIncomeDate ? { nextIncomeDate: fields.nextIncomeDate } : {}),
+      ...(fields.dailyOutflow !== null ? { dailyOutflow: fields.dailyOutflow } : {}),
+    },
+  });
+  renderHomeCoverageCard(coverage);
+  syncE6SaveButtonState();
 }
 
 function saveE6Coverage(event) {
@@ -19013,8 +19114,14 @@ function homeStatusClass(value, warnAt = 0, dangerAt = 0) {
 
 function renderHomeKpi({ label, value, note, status = "good", cta, target, metadata }) {
   const statusClass = status === "danger" ? "is-danger" : status === "warn" ? "is-warn" : "is-good";
+  // H-4: insignia visible cuando el indicador rompe su umbral, además de la barra de color del borde.
+  const badge = status === "danger"
+    ? `<span class="e19-badge e19-badge-danger e19-kpi-badge">Fuera de umbral</span>`
+    : status === "warn"
+    ? `<span class="e19-badge e19-badge-warning e19-kpi-badge">Cerca del umbral</span>`
+    : "";
   return `<article class="e19-kpi ${statusClass}">
-    <span class="e19-kpi-label">${escapeHtml(label)}</span>
+    <div class="e19-kpi-head"><span class="e19-kpi-label">${escapeHtml(label)}</span>${badge}</div>
     <strong class="e19-kpi-value">${escapeHtml(value)}</strong>
     <p class="e19-kpi-note">${escapeHtml(note)}</p>
     ${metadata ? `<p class="e19-kpi-meta">${escapeHtml(`Fuente: ${metadata.source} · ${metadata.asOf} · confianza ${metadata.confidence}`)}</p>` : ""}
@@ -19214,6 +19321,19 @@ function evaluatedUxAlerts() {
   ensureUxSettingsState();
   const snapshot = alertMetricSnapshot();
   return scenarioSettings.alerts.map((alert) => UxSettings.evaluateAlert(alert, snapshot));
+}
+
+// H-9 · los umbrales que pintan un aviso en Hoy son configuración (regla transversal 09), no
+// constantes en el código: se leen de la misma regla de Ajustes › Alertas que ya modelaba
+// metric+threshold contra el hogar (ver la nota V6-2 más arriba), en vez de crear un segundo
+// mecanismo de umbrales en paralelo. Sin regla configurada para ese metric, cae al valor que
+// ya traía defaultUxAlerts().
+function alertThresholdOverride(metricId) {
+  if (!UxSettings) return null;
+  ensureUxSettingsState();
+  const rule = (scenarioSettings.alerts || []).find((alert) => alert.metric === metricId && !alert.paused);
+  const threshold = Number(rule?.threshold);
+  return Number.isFinite(threshold) ? threshold : null;
 }
 
 function p2State() {
@@ -19551,6 +19671,156 @@ function homeOpenOfferInsight(offer) {
   };
 }
 
+// H-5: candidatas a "decisión abierta", con caducidad real cuando existe (oferta de deuda con
+// vencimiento, alerta disparada con fecha de revisión) por delante de las que no tienen fecha
+// propia (acciones ejecutivas de rango fijo, deuda candidata, proyectos en plan). No se toca
+// unifiedActionCenterModel/executiveActions: esas listas las reutilizan otras pantallas
+// (Asesor ejecutivo) con su propio orden, y este reordenado es solo para Hoy.
+function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDecisions, debtRatioStatus }) {
+  const dated = [];
+  const undated = [];
+  const offerInsight = homeOpenOfferInsight(offer);
+  if (offerInsight) {
+    // offer.expiresAt es una clave de mes ("2026-09"), como ya usa escenarioMotorMonthLabel.
+    const item = { ...offerInsight, expiresAt: offer?.expiresAt || "", expiryLabel: offer?.expiresAt ? escenarioMotorMonthLabel(offer.expiresAt) : "" };
+    (item.expiresAt ? dated : undated).push(item);
+  }
+  evaluatedUxAlerts()
+    .filter((alert) => alert.triggered)
+    .forEach((alert) => {
+      // alert.reviewDate es una fecha completa ("2026-09-13"), no una clave de mes: usa shortDate,
+      // no escenarioMotorMonthLabel (que espera "YYYY-MM" y desfigura el día sobrante).
+      const item = {
+        title: alert.name,
+        text: alert.action,
+        status: alert.overdue ? "danger" : "warn",
+        target: "alerts-center",
+        cta: "Revisar alerta",
+        expiresAt: alert.reviewDate || "",
+        expiryLabel: alert.reviewDate ? shortDate(alert.reviewDate) : "",
+      };
+      (item.expiresAt ? dated : undated).push(item);
+    });
+  if (debtPriorities[0]) {
+    undated.push({
+      title: "Siguiente deuda a mirar",
+      text: `${debtTargetDisplayName(debtPriorities[0].target)}: ${money(debtPriorities[0].principal, true)} pendientes, ${money(debtPriorities[0].payment, true)}/mes. Mejor hueco sugerido: ${debtPriorities[0].best?.month?.label || "por calcular"}.`,
+      status: debtRatioStatus,
+      target: "debt-control",
+      cta: "Optimizar",
+      expiresAt: "",
+    });
+  }
+  if (loadedDecisions.length > 0) {
+    undated.push({
+      title: "Proyectos ya influyen en el plan",
+      text: `${loadedDecisions.length} decisión(es) están incorporadas o en evaluación. Revisa su estado antes de asumir nuevos compromisos.`,
+      status: "warn",
+      target: "prevision",
+      cta: "Comparar",
+      expiresAt: "",
+    });
+  }
+  (actionCenter.actions || []).forEach((item) => undated.push({ ...item, isUnifiedAction: true }));
+  dated.sort((a, b) => String(a.expiresAt).localeCompare(String(b.expiresAt)));
+  return [...dated, ...undated].slice(0, 3);
+}
+
+// H-5: "el primer botón es primario y navega a vista y pestaña" — cierto sin matices para las
+// decisiones de navegación (oferta, alerta, deuda candidata, proyectos). Las acciones ejecutivas
+// de rango fijo (simular ruta, hucha coche...) no tienen una pantalla propia a la que navegar
+// directamente: conservan su flujo existente de "Revisar acción" como interacción principal.
+function renderHomeDecision(item, isPrimary) {
+  if (item.isUnifiedAction) return renderUnifiedAction(item);
+  const toneClass = item.status === "danger" ? "danger" : item.status === "warn" ? "warn" : "neutral";
+  return `<article class="unified-action ${toneClass} home-decision-open">
+    <div>
+      <strong>${escapeHtml(item.title)}</strong>
+      <p>${escapeHtml(item.text)}</p>
+      ${item.expiryLabel ? `<p class="home-decision-expiry">Vence ${escapeHtml(item.expiryLabel)}</p>` : ""}
+    </div>
+    <button type="button" class="${isPrimary ? "e19-btn e19-btn-primary" : "e19-btn e19-btn-secondary"} home-decision-cta" data-home-nav="${escapeHtml(item.target || "")}">${escapeHtml(item.cta || "Abrir")}</button>
+  </article>`;
+}
+
+// H-6: "el mes en una línea" — cuatro filas de ejecución real (de los movimientos bancarios ya
+// clasificados o no) más dos filas de señal. Reutiliza p2MovementRows(), la misma fuente que ya
+// alimenta la cobertura hasta el siguiente ingreso, así que no puede desincronizarse de ella.
+function homeMonthAtAGlance(asOfDate, plannedSaving) {
+  const monthKey = String(asOfDate || "").slice(0, 7);
+  const movements = p2MovementRows().filter((row) => row.month === monthKey);
+  const incomeTotal = round2(sumRows(movements.filter((row) => row.amount > 0), (row) => row.amount));
+  const expenseTotal = round2(Math.abs(sumRows(movements.filter((row) => row.amount < 0), (row) => row.amount)));
+  const unclassified = movements.filter((row) => !row.reconciled);
+  const unclassifiedTotal = round2(sumRows(unclassified, (row) => Math.abs(row.amount)));
+  const reconciledCount = movements.length - unclassified.length;
+  const confidenceRatio = movements.length ? reconciledCount / movements.length : null;
+  const confidenceLabel = confidenceRatio === null ? "sin movimientos todavía" : confidenceRatio >= 0.9 ? "alta" : confidenceRatio >= 0.6 ? "media" : "baja";
+  return {
+    monthKey,
+    monthLabel: monthKey ? registrarMesMonthName(monthKey) : "—",
+    rows: [
+      { label: "Ingresos reales", value: money(incomeTotal, true) },
+      { label: "Gastos reales", value: money(expenseTotal, true) },
+      { label: "Margen del mes", value: money(round2(incomeTotal - expenseTotal), true), tone: incomeTotal - expenseTotal < 0 ? "negative" : "positive" },
+      { label: "Movimientos registrados", value: String(movements.length) },
+      {
+        label: "Sin clasificar",
+        value: unclassified.length ? `${unclassified.length} · ${money(unclassifiedTotal, true)}` : "Ninguno",
+        tone: unclassified.length ? "negative" : "positive",
+        signal: true,
+      },
+      {
+        // H-6: "cuando existan los sobres, la misma fila pasa a leer sus reglas sin cambiar de
+        // sitio" — hoy no hay sobres (Fase 6, detrás de bandera), así que lee el ahorro previsto
+        // del plan actual y lo dice explícitamente.
+        label: "Irá a ahorro",
+        value: money(plannedSaving, true),
+        note: "Según el ahorro previsto del plan actual.",
+        signal: true,
+      },
+    ],
+    movementCount: movements.length,
+    reconciledCount,
+    confidenceLabel,
+  };
+}
+
+function renderHomeMonthGlance(asOfDate, plannedSaving) {
+  const container = qs("homeMonthGlanceRows");
+  if (!container) return;
+  const glance = homeMonthAtAGlance(asOfDate, plannedSaving);
+  const titleEl = qs("homeMonthGlanceTitle");
+  if (titleEl) titleEl.textContent = glance.monthKey ? `${glance.monthLabel} en una línea` : "El mes en una línea";
+  container.innerHTML = glance.rows
+    .map(
+      (row) => `<div class="home-month-glance-row${row.signal ? " is-signal" : ""}">
+        <span>${escapeHtml(row.label)}</span>
+        <strong class="${row.tone === "negative" ? "negative" : row.tone === "positive" ? "positive" : ""}">${escapeHtml(row.value)}</strong>
+        ${row.note ? `<small>${escapeHtml(row.note)}</small>` : ""}
+      </div>`,
+    )
+    .join("");
+  qs("homeMonthGlanceConfidence").textContent = glance.movementCount
+    ? `${glance.reconciledCount} de ${glance.movementCount} movimientos clasificados este mes · confianza ${glance.confidenceLabel}.`
+    : "Sin movimientos registrados este mes todavía.";
+}
+
+function homeOverallStatus(statuses = []) {
+  if (statuses.includes("danger")) return { tone: "danger", label: "Requiere atención" };
+  if (statuses.includes("warn")) return { tone: "warn", label: "Con avisos" };
+  return { tone: "good", label: "Estable" };
+}
+
+function renderHomeHeaderMeta({ statuses, asOf, source, guidance }) {
+  const meta = qs("homeHeaderMeta");
+  if (!meta) return;
+  const overall = homeOverallStatus(statuses);
+  meta.innerHTML = `<span class="status-pill ${overall.tone}">${escapeHtml(overall.label)}</span>
+    <span class="e19-home-meta-item">Analizado a ${escapeHtml(asOf ?? HOME_MISSING_VALUE)} · ${escapeHtml(source)}</span>
+    <span class="e19-home-meta-item">${escapeHtml(guidance)}</span>`;
+}
+
 function renderHomeDashboard() {
   if (!qs("homeKpis")) return;
   const rows = homeRowsForHorizon();
@@ -19581,14 +19851,33 @@ function renderHomeDashboard() {
     .slice(0, 6);
   const adjustedWarn = Math.max(0, savings.emergencyFundTarget * 0.35);
   const adjustedStatus = metrics ? homeStatusClass(metrics.adjustedMin, adjustedWarn, 0) : "warn";
-  const debtRatioStatus = savings.debtToIncomeRatio > 0.32 ? "danger" : savings.debtToIncomeRatio > 0.26 ? "warn" : "good";
+  // H-9: dangerAt viene de la regla "debtRatio" de Ajustes › Alertas (32% por defecto); warnAt
+  // conserva la misma proporción (26/32) que ya tenía esta pantalla antes de hacerlo configurable.
+  const debtRatioDangerAt = (alertThresholdOverride("debtRatio") ?? 32) / 100;
+  const debtRatioWarnAt = debtRatioDangerAt * 0.8125;
+  const debtRatioStatus = savings.debtToIncomeRatio > debtRatioDangerAt ? "danger" : savings.debtToIncomeRatio > debtRatioWarnAt ? "warn" : "good";
   const coverageStatus = savings.currentCoverage < 3 ? "danger" : savings.currentCoverage < 6 ? "warn" : "good";
+  // H-9: la Capacidad libre real usaba un umbral fijo de 250 € distinto del que ya configuraba
+  // Ajustes › Alertas (500 € por defecto) para la misma métrica — exactamente la duplicidad que la
+  // regla transversal 09 pide eliminar. Se unifica en el umbral configurado.
+  const freeCapacityWarnAt = alertThresholdOverride("freeCapacity") ?? 500;
   const runwayNote = metrics
     ? `Mínimo ajustado: ${money(metrics.adjustedMin, true)} en ${metrics.adjustedMinMonth} (${metrics.adjustedMinDate || "fecha estimada"}).`
     : "Sin rango suficiente para calcular mínimos.";
   const balanceDateText = actionCenter.asOf;
   const reserveMargin = round2(Number(balances.caixa || 0) - protectedReserve);
   const riskStatus = nextRiskRow ? "warn" : "good";
+  const reserveStatus = reserveMargin < 0 ? "danger" : reserveMargin < protectedReserve * 0.25 ? "warn" : "good";
+  const freeCapacityStatus = freeCapacity < 0 ? "danger" : freeCapacity < freeCapacityWarnAt ? "warn" : "good";
+
+  // H-1: cabecera con estado agregado + fecha de análisis + fuente + guía, sin quitar las tres
+  // frases que ya traía (eyebrow, título y subtítulo siguen tal cual en el HTML).
+  renderHomeHeaderMeta({
+    statuses: [adjustedStatus, debtRatioStatus, freeCapacityStatus, reserveStatus, riskStatus],
+    asOf: balanceDateText,
+    source: state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado",
+    guidance: actionCenter.actions?.[0]?.label || "Sin decisiones pendientes: revisa las tarjetas de abajo.",
+  });
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
@@ -19626,7 +19915,7 @@ function renderHomeDashboard() {
       label: "Capacidad libre real",
       value: money(freeCapacity, true),
       note: "Media mensual disponible durante 12 meses tras gastos, deuda, proyectos y reserva.",
-      status: freeCapacity < 0 ? "danger" : freeCapacity < 250 ? "warn" : "good",
+      status: freeCapacity < 0 ? "danger" : freeCapacity < freeCapacityWarnAt ? "warn" : "good",
       cta: "Ver flujo",
       target: "cashflow",
       metadata: actionCenter.readModel?.metrics?.freeCapacity,
@@ -19653,59 +19942,50 @@ function renderHomeDashboard() {
     }),
   ].join("");
   renderE6Coverage(actionCenter.coverage);
+  renderHomeMonthGlance(balanceDateText, savings.currentSavingTarget);
 
-  const mainInsights = [];
+  // H-5: "Lectura de hoy" pasa de una pila de tarjetas a una única banda con la lectura más
+  // urgente; el resto de lo que antes vivía aquí (deuda candidata, oferta abierta, proyectos en
+  // plan) compite ahora por un hueco en las tres decisiones, en vez de duplicarse en las dos listas.
+  let todayRead;
   if (metrics?.adjustedMin < 0) {
-    mainInsights.push({
+    todayRead = {
       title: "Prioridad: proteger caja",
       text: `Hay un mínimo ajustado negativo en ${metrics.adjustedMinMonth}. Antes de amortizar o añadir proyectos, mueve impactos o baja ahorro temporalmente.`,
       status: "danger",
       target: "simulator",
       cta: "Corregir",
-    });
+    };
   } else if (savings.currentCoverage < savings.values.emergencyBufferMonths) {
-    mainInsights.push({
+    todayRead = {
       title: "Construir colchón antes de acelerar",
       text: `Cobertura actual ${savings.currentCoverage.toFixed(1)} meses frente a objetivo ${savings.values.emergencyBufferMonths}. Ahorro sugerido: ${money(savings.recommendedSaving, true)}/mes.`,
       status: coverageStatus,
       target: "savings-plan",
       cta: "Plan ahorro",
-    });
+    };
   } else {
-    mainInsights.push({
+    todayRead = {
       title: "Escenario operativo estable",
       text: `La caja mínima ajustada se mantiene positiva y el margen medio permite planificar deuda o proyectos sin tensionar el flujo mensual.`,
       status: "good",
       target: "simulator",
       cta: "Planificar",
-    });
+    };
   }
-  if (debtPriorities[0]) {
-    mainInsights.push({
-      title: "Siguiente deuda a mirar",
-      text: `${debtTargetDisplayName(debtPriorities[0].target)}: ${money(debtPriorities[0].principal, true)} pendientes, ${money(debtPriorities[0].payment, true)}/mes. Mejor hueco sugerido: ${debtPriorities[0].best?.month?.label || "por calcular"}.`,
-      status: debtRatioStatus,
-      target: "debt-control",
-      cta: "Optimizar",
-    });
-  }
-  const openOfferInsight = homeOpenOfferInsight(asesorDecisionOpenOffers()[0]);
-  if (openOfferInsight) mainInsights.push(openOfferInsight);
-  if (loadedDecisions.length > 0) {
-    mainInsights.push({
-      title: "Proyectos ya influyen en el plan",
-      text: `${loadedDecisions.length} decisión(es) están incorporadas o en evaluación. Revisa su estado antes de asumir nuevos compromisos.`,
-      status: "warn",
-      target: "prevision",
-      cta: "Comparar",
-    });
-  }
-  qs("homeInsights").innerHTML = mainInsights.map(renderHomeInsight).join("");
+  qs("homeInsights").innerHTML = renderHomeInsight(todayRead);
 
+  const decisions = homeDecisionCandidates({
+    actionCenter,
+    offer: asesorDecisionOpenOffers()[0],
+    debtPriorities,
+    loadedDecisions,
+    debtRatioStatus,
+  });
   const actionTarget = qs("homeActions");
   actionTarget.classList.add("unified-action-list");
-  actionTarget.innerHTML = actionCenter.actions.length
-    ? actionCenter.actions.map(renderUnifiedAction).join("")
+  actionTarget.innerHTML = decisions.length
+    ? decisions.map((item, index) => renderHomeDecision(item, index === 0)).join("")
     : `<div class="empty-state compact">Sin acciones necesarias ahora mismo.</div>`;
   bindUnifiedActionButtons(actionTarget);
 
@@ -19717,6 +19997,11 @@ function renderHomeDashboard() {
       : `<div class="e19-context-item"><span>Deuda candidata</span><strong>Sin propuesta</strong><small>No hay una deuda disponible para preparar ahora.</small></div>`,
     `<div class="e19-context-item"><span>Horizonte visible</span><strong>${rows.length} meses</strong><small>Ratio deuda/ingresos ${(savings.debtToIncomeRatio * 100).toFixed(1)}% · pago estimado ${money(debtStats.currentPayment.total, true)}/mes.</small></div>`,
   ].join("");
+
+  // H-7: mini banda de doce meses, mismo cálculo y color que el mapa de calor/Plan (V2-7) — sin
+  // touchedMonths propio, Hoy no tiene cambios sin guardar que resaltar.
+  const monthBand = qs("homeMonthBand");
+  if (monthBand) monthBand.innerHTML = cuadroMandosMonthBandHtml(rows, new Set());
 
   qs("homeMonthTable").innerHTML = `<thead><tr>
       <th>Mes</th>
@@ -22912,6 +23197,8 @@ async function init() {
   qs("alertRuleList")?.addEventListener("click", handleAlertRuleAction);
   qs("e6CoverageForm")?.addEventListener("submit", saveE6Coverage);
   qs("e6CoverageReset")?.addEventListener("click", resetE6Coverage);
+  qs("e6NextIncomeDate")?.addEventListener("input", previewE6Coverage);
+  qs("e6DailyOutflow")?.addEventListener("input", previewE6Coverage);
   qs("e14bSaveOffer")?.addEventListener("click", saveE14bOffer);
   qs("e14bCompare")?.addEventListener("click", compareE14bOffer);
   qs("e14bApply")?.addEventListener("click", applyE14bOffer);

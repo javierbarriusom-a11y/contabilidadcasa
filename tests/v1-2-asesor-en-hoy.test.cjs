@@ -16,8 +16,23 @@ const app = read("app.js");
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `No existe la función ${name} en app.js`);
+  // Busca el cuerpo tras el paréntesis de cierre de los parámetros, no el primer "{" a secas:
+  // un parámetro desestructurado (p. ej. `function f({ a, b }) {`) tiene su propio "{" antes.
+  let parenDepth = 0;
+  let bodyStart = -1;
+  for (let index = app.indexOf("(", start); index < app.length; index += 1) {
+    if (app[index] === "(") parenDepth += 1;
+    else if (app[index] === ")") {
+      parenDepth -= 1;
+      if (parenDepth === 0) {
+        bodyStart = app.indexOf("{", index);
+        break;
+      }
+    }
+  }
+  assert.ok(bodyStart >= 0, `No se encontró el cuerpo de ${name}`);
   let depth = 0;
-  for (let index = app.indexOf("{", start); index < app.length; index += 1) {
+  for (let index = bodyStart; index < app.length; index += 1) {
     if (app[index] === "{") depth += 1;
     else if (app[index] === "}") {
       depth -= 1;
@@ -62,10 +77,14 @@ test("V1-2 · sin contraparte o sin vencimiento, no inventa el dato", () => {
   assert.ok(!/vence/.test(sinContraparte.text), "sin vencimiento indicado, no debe decir «vence»");
 });
 
+// H-5 · la oferta abierta pasó de insertarse directamente en la lista de "Lectura de hoy" a
+// competir por un hueco entre las "tres decisiones" según su caducidad real (homeDecisionCandidates).
+// Sigue sin recalcular nada nuevo: solo cambió de qué función la reutiliza.
 test("V1-2 · Hoy reutiliza asesorDecisionOpenOffers, sin recalcular nada nuevo", () => {
   const render = extractFunction("renderHomeDashboard");
-  assert.match(render, /homeOpenOfferInsight\(asesorDecisionOpenOffers\(\)\[0\]\)/);
-  assert.match(render, /if \(openOfferInsight\) mainInsights\.push\(openOfferInsight\);/);
+  assert.match(render, /offer: asesorDecisionOpenOffers\(\)\[0\]/);
+  const decisions = extractFunction("homeDecisionCandidates");
+  assert.match(decisions, /homeOpenOfferInsight\(offer\)/);
 });
 
 test("V1-2 · la tarjeta lleva a #asesor-decision, la pantalla que ya resuelve la decisión", () => {

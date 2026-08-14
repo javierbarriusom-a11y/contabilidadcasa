@@ -191,6 +191,7 @@
                 <p class="panel-kicker e19-eyebrow">Hoy</p>
                 <h2 class="e19-heading">Qué necesita tu atención</h2>
                 <p class="e19-subtitle">Saldo, capacidad, siguiente riesgo y tres decisiones priorizadas con los datos actuales.</p>
+                <p class="e19-home-meta" id="homeHeaderMeta"></p>
               </div>
               <div class="visual-controls">
                 <label>
@@ -207,26 +208,37 @@
 
             <div class="home-kpi-grid" id="homeKpis"></div>
 
-            <article class="home-panel e6-coverage-panel" id="e6CoveragePanel">
+            <!-- H-3: tarjeta oscura con la cifra, unidad, insignia de confianza, margen previsto y fecha de ingreso. -->
+            <article class="home-panel e6-coverage-card" id="e6CoveragePanel">
               <div class="module-heading">
                 <div>
-                  <p class="panel-kicker">Cobertura aprendida</p>
-                  <h3>Hasta el siguiente ingreso</h3>
-                  <p>Se calcula solo con movimientos conciliados. Puedes corregir fecha o gasto diario sin perder la estimación aprendida.</p>
+                  <p class="panel-kicker">Hasta el siguiente ingreso</p>
+                  <h3><span id="e6CoverageDays">—</span> <span class="e6-coverage-unit">día(s)</span></h3>
                 </div>
                 <span class="status-pill" id="e6CoverageStatus">Calculando</span>
               </div>
-              <div class="e6-coverage-grid">
-                <div class="e6-coverage-summary" id="e6CoverageSummary"></div>
-                <form class="e6-coverage-form" id="e6CoverageForm">
-                  <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
-                  <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
-                  <div class="dialog-actions">
-                    <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
-                    <button type="submit">Guardar ajuste</button>
-                  </div>
-                </form>
+              <div class="e6-coverage-summary" id="e6CoverageSummary"></div>
+            </article>
+
+            <!-- H-3b: editor de cobertura aprendida, bajo la tarjeta anterior. -->
+            <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Cobertura aprendida</p>
+                  <h3>Corrige fecha o gasto diario</h3>
+                  <p>Se calcula solo con movimientos conciliados. Corregir aquí no pierde la estimación aprendida: «Usar aprendizaje» la recupera.</p>
+                </div>
+                <span class="status-pill" id="e6CoverageEditorStatus">Aprendido</span>
               </div>
+              <form class="e6-coverage-form" id="e6CoverageForm">
+                <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
+                <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
+                <div class="dialog-actions">
+                  <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
+                  <button type="submit" id="e6CoverageSave">Guardar ajuste</button>
+                </div>
+              </form>
+              <p class="e6-coverage-source" id="e6CoverageSource"></p>
             </article>
 
             <div class="home-layout">
@@ -251,6 +263,18 @@
               </article>
             </div>
 
+            <!-- H-6: cuatro filas de ejecución del mes + dos filas de señal + nota de confianza. -->
+            <article class="home-panel home-month-glance" id="homeMonthGlance">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Este mes</p>
+                  <h3 id="homeMonthGlanceTitle">El mes en una línea</h3>
+                </div>
+              </div>
+              <div class="home-month-glance-rows" id="homeMonthGlanceRows"></div>
+              <p class="home-month-glance-confidence" id="homeMonthGlanceConfidence"></p>
+            </article>
+
             <div class="home-layout">
               <article class="home-panel">
                 <div class="module-heading">
@@ -269,6 +293,8 @@
                     <h3>Meses a vigilar</h3>
                   </div>
                 </div>
+                <!-- H-7: mini banda de doce meses, mismo color que el mapa de calor (V2-7). -->
+                <div class="cuadro-mandos-band" id="homeMonthBand" aria-label="Colchón de los próximos doce meses"></div>
                 <div class="table-wrap home-table-wrap">
                   <table class="home-month-table" id="homeMonthTable"></table>
                 </div>
@@ -367,7 +393,7 @@
               <div>
                 <p class="panel-kicker">Centro de alertas</p>
                 <h2>Controla los límites que no quieres romper</h2>
-                <p>Define umbrales de caja, deuda y capacidad; pausa una regla o marca su próxima revisión sin perder su historial.</p>
+                <p>Define umbrales de caja, deuda y capacidad; pausa una regla o marca su próxima revisión sin perder su historial. Los umbrales de deuda y capacidad libre son los mismos que colorean sus indicadores en Hoy — cambia el número aquí, no en cada pantalla.</p>
               </div>
               <button id="addAlertRule" type="button">Nueva alerta</button>
             </div>

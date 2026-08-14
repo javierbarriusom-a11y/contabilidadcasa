@@ -924,11 +924,28 @@ main {
   transform: translateY(-1px);
 }
 
-.e6-coverage-panel { margin-bottom: 1rem; }
-.e6-coverage-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); gap: 1rem; }
-.e6-coverage-summary, .e6-quality-card { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; background: var(--surface-soft); }
-.e6-coverage-summary strong { display: block; font-size: 1.5rem; margin: .3rem 0; }
-.e6-coverage-summary p, .e6-quality-card p { margin: .35rem 0 0; color: var(--muted); }
+/* H-3: tarjeta oscura con la cifra de días hasta el siguiente ingreso. */
+.e6-coverage-card {
+  margin-bottom: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: var(--e19-accent-strong, #0b1a30);
+  color: #fff;
+  border: none;
+}
+.e6-coverage-card .panel-kicker { color: rgba(255, 255, 255, 0.65); }
+.e6-coverage-card h3 { margin: .3rem 0 0; font-size: clamp(30px, 3vw, 42px); line-height: 1; color: #fff; }
+.e6-coverage-unit { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.65); }
+.e6-coverage-summary { border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 16px; padding: 1rem; background: rgba(255, 255, 255, 0.06); margin-top: 1rem; }
+.e6-coverage-summary strong { display: block; font-size: 1.5rem; margin: .3rem 0; color: #fff; }
+.e6-coverage-summary strong.negative { color: #ff9d9d; }
+.e6-coverage-summary strong.positive { color: #8fe3b8; }
+.e6-coverage-summary p { color: rgba(255, 255, 255, 0.75); }
+.e6-quality-card { border: 1px solid var(--line); border-radius: 16px; padding: 1rem; background: var(--surface-soft); }
+
+/* H-3b: editor de cobertura aprendida, tarjeta clara bajo la anterior. */
+.e6-coverage-editor { margin-bottom: 1rem; }
+.e6-coverage-source { margin: .75rem 0 0; color: var(--muted); font-size: 12.5px; }
+.e6-quality-card p { margin: .35rem 0 0; color: var(--muted); }
 .e6-coverage-form { display: grid; gap: .75rem; }
 .e6-coverage-form label { display: grid; gap: .35rem; }
 .e6-quality-list { display: grid; gap: .75rem; }
@@ -937,7 +954,6 @@ main {
 .e6-quality-card dt { color: var(--muted); }
 .e6-quality-card dd { margin: 0; overflow-wrap: anywhere; }
 .home-kpi-meta { margin-top: .65rem; font-size: .78rem; color: var(--muted); }
-@media (max-width: 760px) { .e6-coverage-grid { grid-template-columns: 1fr; } }
 
 .home-layout {
   display: grid;
@@ -9922,6 +9938,78 @@ tbody tr:hover {
 .unified-action-review-body button {
   margin-top: 12px;
   width: 100%;
+}
+
+/* H-5: decisiones abiertas de navegación directa (sin la revisión de acciones ejecutivas). */
+.home-decision-open {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.home-decision-expiry {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.home-decision-open .home-decision-cta.e19-btn-primary {
+  background: var(--e19-accent, #293e5e);
+  color: var(--e19-accent-ink, #fff);
+}
+
+.home-decision-open .home-decision-cta.e19-btn-secondary {
+  background: var(--e19-surface, #fff);
+  color: var(--e19-accent, #293e5e);
+  border: 1px solid var(--e19-accent-soft-border, #d8dce2);
+}
+
+/* H-6: el mes en una línea — cuatro filas de ejecución + dos de señal. */
+.home-month-glance-rows {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-month-glance-row {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface-soft);
+}
+
+.home-month-glance-row.is-signal {
+  border-style: dashed;
+}
+
+.home-month-glance-row span {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.home-month-glance-row strong {
+  display: block;
+  margin: 4px 0 0;
+  font-size: 1.05rem;
+}
+
+.home-month-glance-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.home-month-glance-confidence {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 760px) {
+  .home-month-glance-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .home-context-item {
