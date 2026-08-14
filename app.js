@@ -23040,12 +23040,148 @@ function registrarBalanceStale() {
 }
 
 function registrarTabBadges() {
+  const month = registrarActualsSelectedMonth();
+  const pendingActuals = registrarActualsEntries(month).filter((entry) => !entry.hasActual).length;
   return {
     balances: registrarBalanceStale() ? "1 desactualizada" : "",
-    actuals: HOME_MISSING_VALUE,
+    actuals: !month ? HOME_MISSING_VALUE : pendingActuals ? `${pendingActuals} sin real` : "Al día",
     import: HOME_MISSING_VALUE,
     batch: HOME_MISSING_VALUE,
   };
+}
+
+// R-5: la tabla de Reales del mes reutiliza el mismo modelo de datos y la misma puerta de
+// escritura que ya usaba «Registrar el mes» (registrarMesCollect/actualsForKind/
+// saveActualsForKind) — solo cambia la presentación: una tabla única (ingresos + gastos), filtro
+// por bloque en vez de por estado, y una fila de totales que registrar-mes no tenía.
+let registrarActualsBlockFilter = "todos";
+
+function registrarActualsMonths() {
+  return (baseData?.monthlyPlanning?.months || []).map((month) => ({
+    key: month.key,
+    label: month.label,
+    closed: isClosedMonthKey(month.key),
+  }));
+}
+
+function registrarActualsDefaultMonthKey() {
+  const months = registrarActualsMonths();
+  return months.find((month) => !month.closed)?.key || months[months.length - 1]?.key || "";
+}
+
+function registrarActualsSelectedMonth() {
+  const months = baseData?.monthlyPlanning?.months || [];
+  if (!months.length) return null;
+  const key = qs("registrarActualsMonth")?.value || registrarActualsDefaultMonthKey();
+  return months.find((month) => month.key === key) || months[0];
+}
+
+function registrarActualsEntries(month) {
+  if (!month) return [];
+  const collected = registrarMesCollect(month);
+  return [...collected.income, ...collected.expense];
+}
+
+function registrarActualsBlocks(entries) {
+  return [...new Set(entries.map((entry) => entry.sectionName))].sort((a, b) => a.localeCompare(b, "es"));
+}
+
+function registrarActualsStatus(entry) {
+  if (!entry.hasActual) return { label: "Sin real", tone: "warn" };
+  if (registrarMesIsBad(entry)) return { label: "Desviación", tone: "danger" };
+  if (registrarMesIsOff(entry)) return { label: "A favor", tone: "good" };
+  return { label: "Registrado", tone: "good" };
+}
+
+function registrarActualsTotals(entries) {
+  const captured = entries.filter((entry) => entry.hasActual);
+  const sum = (list, field) => round2(list.reduce((total, item) => total + Number(item[field] || 0), 0));
+  return {
+    planned: sum(entries, "planned"),
+    used: sum(entries, "used"),
+    variance: sum(captured, "variance"),
+    lines: entries.length,
+    captured: captured.length,
+  };
+}
+
+function registrarActualsRowHtml(entry, monthClosed) {
+  const status = registrarActualsStatus(entry);
+  return `<tr data-registrar-actuals-key="${escapeHtml(entry.key)}">
+    <td>${escapeHtml(entry.sectionName)}</td>
+    <td>${escapeHtml(entry.label)}</td>
+    <td>${money(entry.planned, true)}</td>
+    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${monthClosed ? " disabled" : ""} /></td>
+    <td><strong>${money(entry.used, true)}</strong></td>
+    <td class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
+    <td><span class="status-pill ${status.tone}">${escapeHtml(status.label)}</span></td>
+  </tr>`;
+}
+
+function renderRegistrarActuals() {
+  const select = qs("registrarActualsMonth");
+  if (!select) return;
+  const months = registrarActualsMonths();
+  const previous = select.value;
+  select.innerHTML = months
+    .map((month) => `<option value="${escapeHtml(month.key)}">${escapeHtml(month.label)}${month.closed ? " · cerrado" : ""}</option>`)
+    .join("");
+  select.value = months.some((month) => month.key === previous) ? previous : registrarActualsDefaultMonthKey();
+
+  const month = registrarActualsSelectedMonth();
+  const monthClosed = Boolean(month && isClosedMonthKey(month.key));
+  if (qs("registrarActualsClosedNote")) qs("registrarActualsClosedNote").hidden = !monthClosed;
+
+  const allEntries = registrarActualsEntries(month);
+  const blocks = registrarActualsBlocks(allEntries);
+  if (registrarActualsBlockFilter !== "todos" && !blocks.includes(registrarActualsBlockFilter)) {
+    registrarActualsBlockFilter = "todos";
+  }
+  const filtersEl = qs("registrarActualsFilters");
+  if (filtersEl) {
+    filtersEl.innerHTML = ["todos", ...blocks]
+      .map((value) => {
+        const count = value === "todos" ? allEntries.length : allEntries.filter((entry) => entry.sectionName === value).length;
+        const isActive = registrarActualsBlockFilter === value;
+        return `<button type="button" class="registrar-actuals-filter${isActive ? " is-active" : ""}" data-registrar-actuals-block="${escapeHtml(value)}" aria-pressed="${isActive ? "true" : "false"}">${escapeHtml(value === "todos" ? "Todos" : value)} (${count})</button>`;
+      })
+      .join("");
+  }
+
+  const visible = registrarActualsBlockFilter === "todos"
+    ? allEntries
+    : allEntries.filter((entry) => entry.sectionName === registrarActualsBlockFilter);
+
+  if (qs("registrarActualsBody")) {
+    qs("registrarActualsBody").innerHTML = visible.length
+      ? visible.map((entry) => registrarActualsRowHtml(entry, monthClosed)).join("")
+      : `<tr><td colspan="7" class="registrar-mes-empty">Este bloque no tiene partidas este mes.</td></tr>`;
+  }
+
+  const totals = registrarActualsTotals(visible);
+  if (qs("registrarActualsTotals")) {
+    qs("registrarActualsTotals").innerHTML = `<tr class="registrar-actuals-totals-row">
+      <td colspan="2">Total (${totals.captured}/${totals.lines} con real)</td>
+      <td>${money(totals.planned, true)}</td>
+      <td></td>
+      <td><strong>${money(totals.used, true)}</strong></td>
+      <td>${totals.captured ? registrarMesSignedMoney(totals.variance) : "—"}</td>
+      <td></td>
+    </tr>`;
+  }
+}
+
+function handleRegistrarActualsChange(input) {
+  const month = registrarActualsSelectedMonth();
+  if (!month || isClosedMonthKey(month.key)) return;
+  const kind = input.dataset.registrarActualsKind;
+  const key = input.dataset.registrarActualsActual;
+  if (!kind || !key) return;
+  const actuals = actualsForKind(kind);
+  if (input.value === "") delete actuals[key];
+  else actuals[key] = Number(input.value);
+  saveActualsForKind(kind)();
+  render();
 }
 
 function setRegistrarTab(tabId) {
@@ -23145,6 +23281,7 @@ function renderRegistrarBalanceDelta() {
 function renderRegistrar() {
   if (!qs("registrarBalancePanel")) return;
   renderRegistrarHeaderMeta();
+  renderRegistrarActuals();
   renderRegistrarTabs();
   renderRegistrarRecalcCard();
   resetRegistrarBalanceBaseline();
@@ -23556,6 +23693,17 @@ async function init() {
   qs("registrarTabs")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-registrar-tab]");
     if (button) setRegistrarTab(button.dataset.registrarTab);
+  });
+  qs("registrarActualsMonth")?.addEventListener("change", renderRegistrarActuals);
+  qs("registrarActualsFilters")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-registrar-actuals-block]");
+    if (!button) return;
+    registrarActualsBlockFilter = button.dataset.registrarActualsBlock;
+    renderRegistrarActuals();
+  });
+  qs("registrarActualsBody")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-registrar-actuals-actual]");
+    if (input) handleRegistrarActualsChange(input);
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("previsionTable")?.addEventListener("click", (event) => {

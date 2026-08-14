@@ -424,7 +424,29 @@
             </div>
 
             <div class="e19-registrar-panel" data-registrar-panel="actuals" hidden>
-              <p class="e19-registrar-pending">Pestaña todavía no construida (R-5). Mientras tanto, usa <button type="button" class="link-button" data-home-nav="update-data">Registrar ingresos y gastos reales</button>.</p>
+              <article class="e19-registrar-actuals" id="registrarActualsPanel">
+                <div class="section-title compact">
+                  <div>
+                    <p class="panel-kicker">Reales del mes</p>
+                    <h3>Real editable, previsto de solo lectura</h3>
+                  </div>
+                  <label class="registrar-actuals-month">
+                    <span>Mes</span>
+                    <select id="registrarActualsMonth"></select>
+                  </label>
+                </div>
+                <div class="registrar-actuals-filters" id="registrarActualsFilters" role="group" aria-label="Filtrar por bloque"></div>
+                <p class="e19-registrar-pending" id="registrarActualsClosedNote" hidden>El mes está cerrado: los reales quedan congelados tal y como se cerraron.</p>
+                <div class="table-wrap">
+                  <table class="e19-table registrar-actuals-table">
+                    <thead>
+                      <tr><th>Bloque</th><th>Concepto</th><th>Previsto</th><th>Real</th><th>Usado</th><th>Desviación</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody id="registrarActualsBody"></tbody>
+                    <tfoot id="registrarActualsTotals"></tfoot>
+                  </table>
+                </div>
+              </article>
             </div>
             <div class="e19-registrar-panel" data-registrar-panel="import" hidden>
               <p class="e19-registrar-pending">Pestaña todavía no construida (R-8). Mientras tanto, usa <button type="button" class="link-button" data-home-nav="datos-importar">Importar extracto en 4 pasos</button>.</p>

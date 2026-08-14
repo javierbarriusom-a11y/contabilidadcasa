@@ -2,6 +2,48 @@
 
 Fecha de revisión: 14 de agosto de 2026.
 
+## Cierre de sesión — 14 de agosto de 2026: pestaña Reales del mes en Registrar (R-5)
+
+Continuación directa del cierre anterior del mismo día (R-1 a R-4). Con el PR de los cimientos
+fusionado, el usuario pidió seguir con R-5 en cuanto estuviera en `main`.
+
+**Qué se construyó**: la pestaña «Reales del mes» de Registrar — tabla única (ingresos + gastos,
+antes repartidos en dos tarjetas separadas en la heredada `#registrar-mes`) con real editable,
+previsto de solo lectura, usado derivado, desviación, columna **Estado** (Sin real/Registrado/A
+favor/Desviación) y **fila de totales** — ninguna de las dos existía en la heredada. Selector de
+mes (incluye meses cerrados, marcados «· cerrado») y **filtro por bloque** (Ingresos, Gastos
+fijos...), distinto del filtro por estado que ya tenía `#registrar-mes`.
+
+**Una sola puerta de escritura (regla transversal 01), no una segunda tabla con su propio
+guardado**: reutiliza tal cual `registrarMesCollect()` (el modelo de datos de `#registrar-mes`,
+sin tocarlo) y `actualsForKind()`/`saveActualsForKind()` (el mismo almacén que ya escribía
+`#registrar-mes` y `#update-data`) — un real guardado en cualquiera de las tres pantallas aparece
+en las demás sin migrar nada. La pantalla heredada `#registrar-mes` sigue intacta y accesible
+desde «Herramientas avanzadas»; no se le retiró nada.
+
+La insignia de la pestaña en el armazón de R-2 pasa de mostrar «—» (dato ausente, pestaña sin
+construir) a un recuento real: "N sin real" o "Al día" si no falta ninguno — nunca un "0 sin real"
+fabricado, sigue la regla transversal 04 igual que el resto de Registrar.
+
+**Pruebas nuevas**: `tests/r5-registrar-reales.test.cjs` (14 pruebas) — estructura de la pestaña
+(columnas, mes, filtro, totales), que el real editable escribe en el mismo almacén que
+`#registrar-mes` y respeta el mes cerrado, que vaciar un real lo borra (no lo pone a 0) y que
+escribir un 0 explícito sí se guarda, las cuatro combinaciones de Estado, la deduplicación de
+bloques, que la fila de totales no fabrica una desviación sobre partidas sin real, y la insignia
+«Al día» sin cero fabricado. Se ajustó `tests/r1-r4-registrar.test.cjs`: la prueba que verificaba
+que la pestaña de Reales mostraba «—» ya no aplica (R-5 la construyó); se sustituyó por una que
+sigue cubriendo Importar/Lote.
+
+**Validación** (`npm run verify`, exit 0): **667/667 pruebas**, **635 IDs únicos** de
+accesibilidad, diff 10.000 filas en **46,9 ms**, forecast y escenarios en **250,0 ms**, recursos
+**1326 KB**, build del sitio, privacidad y smoke test en verde. Verificación visual con Playwright
+en la pestaña Reales del mes: filtro por bloque con recuentos reales, guardado de un real con
+recálculo inmediato de Usado/Desviación/Estado y de la insignia de la pestaña, mes cerrado con
+inputs deshabilitados y aviso, fila de totales, sin errores de consola.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-missing-hudou6`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 14 de agosto de 2026: Registrar arranca — cabecera, cuatro pestañas y Saldo de cuentas (R-1 a R-4)
 
 Continuación directa del cierre anterior del mismo día (menú compartido). Con R-2 ya desbloqueada,
