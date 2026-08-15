@@ -84,6 +84,7 @@ test("R-5 · un mes cerrado no guarda el real (protección aunque el input llega
     actualsForKind: () => ({}),
     saveActualsForKind: () => () => saveCalls.push("saved"),
     render: () => saveCalls.push("rendered"),
+    registrarRecordSessionChange: () => {},
   });
   handleRegistrarActualsChange({ dataset: { registrarActualsKind: "expense", registrarActualsActual: "x|2026-07" }, value: "50" });
   assert.equal(saveCalls.length, 0, "un mes cerrado no debe guardar ni volver a renderizar");
@@ -97,6 +98,7 @@ test("R-5 · vaciar el real lo borra del almacén (vuelve a «sin real», no a u
     actualsForKind: () => actuals,
     saveActualsForKind: () => () => {},
     render: () => {},
+    registrarRecordSessionChange: () => {},
   });
   handleRegistrarActualsChange({ dataset: { registrarActualsKind: "expense", registrarActualsActual: "x|2026-08" }, value: "" });
   assert.equal("x|2026-08" in actuals, false);
@@ -110,6 +112,7 @@ test("R-5 · escribir un real guarda el número, incluido un 0 explícito («ocu
     actualsForKind: () => actuals,
     saveActualsForKind: () => () => {},
     render: () => {},
+    registrarRecordSessionChange: () => {},
   });
   handleRegistrarActualsChange({ dataset: { registrarActualsKind: "income", registrarActualsActual: "y|2026-08" }, value: "0" });
   assert.equal(actuals["y|2026-08"], 0);

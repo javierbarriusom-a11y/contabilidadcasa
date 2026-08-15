@@ -138,6 +138,13 @@ let lastLocalSaveAt = "";
 // vivo frente a lo persistido sin fabricar una segunda copia del estado de saldo.
 let registrarActiveTab = "balances";
 let registrarBalanceBaseline = null;
+// R-7 · pie de impacto: registro de cambios de la sesión (saldo y reales) desde el último
+// consolidar/descartar, más la foto de las cuatro cifras justo antes del primer cambio. No es un
+// segundo almacén de datos — cada entrada solo guarda el valor anterior de un campo que ya vive en
+// balances/incomeActuals/expenseActuals, para poder devolverlo si el usuario descarta.
+let registrarSessionChanges = [];
+let registrarSessionBaselineMetrics = null;
+let registrarSessionConsolidatedNote = "";
 let savingsAgentPlanCache = { key: "", value: null };
 const HEAVY_RENDER_VIEWS = new Set([
   "visual-detail",
@@ -5174,20 +5181,32 @@ function handleVisualAccountBalanceInput() {
 // R-3: los controles de saldo de Registrar escriben copiando su valor a los campos de Cuadro de
 // mandos y dejando que el manejador ya existente haga el guardado real — un solo camino de
 // escritura (regla transversal 01), Registrar solo añade una vista más sobre el mismo estado.
+function registrarRecordBalanceChanges(before) {
+  const after = accountBalancesFromState();
+  if (after.caixa !== before.caixa) registrarRecordSessionChange({ kind: "balance", field: "caixa", previous: before.caixa });
+  if (after.mediolanum !== before.mediolanum) registrarRecordSessionChange({ kind: "balance", field: "mediolanum", previous: before.mediolanum });
+}
+
 function handleRegistrarBalanceControlChange() {
   if (!state) return;
+  const before = accountBalancesFromState();
   if (qs("visualBalanceDate")) qs("visualBalanceDate").value = qs("registrarBalanceDate")?.value || defaultBalanceDate();
   if (qs("visualBalanceMode")) qs("visualBalanceMode").value = qs("registrarBalanceMode")?.value || "auto";
   handleVisualBalanceControlChange();
+  registrarRecordBalanceChanges(before);
   resetRegistrarBalanceBaseline();
+  renderRegistrarImpactFooter();
 }
 
 function handleRegistrarAccountBalanceInput() {
   if (!state) return;
+  const before = accountBalancesFromState();
   if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = qs("registrarCaixaBalance")?.value ?? "";
   if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = qs("registrarMediolanumBalance")?.value ?? "";
   handleVisualAccountBalanceInput();
+  registrarRecordBalanceChanges(before);
   resetRegistrarBalanceBaseline();
+  renderRegistrarImpactFooter();
 }
 
 function addHelpToControl(id, text) {
@@ -23105,11 +23124,13 @@ function registrarActualsTotals(entries) {
   };
 }
 
+// R-6b: el previsto de esta fila no se edita aquí (celda de solo lectura, ninguna escritura de
+// `planned` en toda la pestaña) — el enlace lleva a Plan, la única pantalla donde se edita.
 function registrarActualsRowHtml(entry, monthClosed) {
   const status = registrarActualsStatus(entry);
   return `<tr data-registrar-actuals-key="${escapeHtml(entry.key)}">
     <td>${escapeHtml(entry.sectionName)}</td>
-    <td>${escapeHtml(entry.label)}</td>
+    <td>${escapeHtml(entry.label)}<button type="button" class="registrar-actuals-plan-link" data-home-nav="cuadro-mandos">Ver en Plan</button></td>
     <td>${money(entry.planned, true)}</td>
     <td><input type="number" step="0.01" inputmode="decimal" data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${monthClosed ? " disabled" : ""} /></td>
     <td><strong>${money(entry.used, true)}</strong></td>
@@ -23178,8 +23199,11 @@ function handleRegistrarActualsChange(input) {
   const key = input.dataset.registrarActualsActual;
   if (!kind || !key) return;
   const actuals = actualsForKind(kind);
+  const previous = Object.prototype.hasOwnProperty.call(actuals, key) ? actuals[key] : null;
   if (input.value === "") delete actuals[key];
   else actuals[key] = Number(input.value);
+  const next = Object.prototype.hasOwnProperty.call(actuals, key) ? actuals[key] : null;
+  if (next !== previous) registrarRecordSessionChange({ kind: "actual", actualsKind: kind, key, previous });
   saveActualsForKind(kind)();
   render();
 }
@@ -23278,6 +23302,165 @@ function renderRegistrarBalanceDelta() {
   }
 }
 
+// R-7: mismas fuentes que registrarRecalcFigures (unifiedActionCenterModel/homeDebtOutlook/
+// FinanceCanonicalCushion), pero en crudo — para poder compararlas contra la foto del inicio de la
+// sesión. No se duplica registrarRecalcFigures en sí (queda intacta, con sus pruebas) porque esta
+// función necesita números, no las cadenas ya formateadas para la tarjeta de R-4.
+function registrarSessionMetrics() {
+  const actionCenter = unifiedActionCenterModel();
+  const ctx = actionCenter.context || {};
+  const today = ctx.today || {};
+  const balances = ctx.balances || accountBalancesFromState();
+  const protectedReserve = round2(Number(today.requiredReserve || ctx.immediateTransfer?.reserve || agentCaixaFloor()));
+  const currentLiquidity = round2(Number(balances.total || 0));
+  const coverage = actionCenter.coverage || {};
+  const debtOutlook = homeDebtOutlook();
+  const worst = FinanceCanonicalCushion.worstMonthOf(openSimulationRows(lastSimulation));
+  return {
+    reserveMargin: round2(currentLiquidity - protectedReserve),
+    coverageDays: coverage.days === null || coverage.days === undefined ? null : Number(coverage.days),
+    debtFreeDateRank: debtStrategyLibreDeDeudaRank(debtOutlook.libreDeDeuda),
+    debtFreeDateLabel: debtOutlook.libreDeDeudaLabel || HOME_MISSING_VALUE,
+    worstMonthValue: worst ? round2(Number(worst.value || 0)) : null,
+    worstMonthLabel: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${money(worst.value, true)}` : HOME_MISSING_VALUE,
+  };
+}
+
+// Cuatro cifras de la sesión completa (no de la última casilla tocada): cada una compara el valor
+// actual contra la foto tomada antes del primer cambio sin consolidar.
+function registrarImpactRows(baseline, current) {
+  const reserveDelta = round2(current.reserveMargin - baseline.reserveMargin);
+  const coverageDelta = current.coverageDays === null || baseline.coverageDays === null ? null : current.coverageDays - baseline.coverageDays;
+  const worstDelta = current.worstMonthValue === null || baseline.worstMonthValue === null ? null : round2(current.worstMonthValue - baseline.worstMonthValue);
+  return [
+    {
+      label: "Reserva sobre el mínimo",
+      value: money(current.reserveMargin, true),
+      note: reserveDelta === 0 ? "Sin cambios en la sesión" : `${reserveDelta > 0 ? "+" : ""}${money(reserveDelta, true)} en la sesión`,
+      warn: current.reserveMargin < 0,
+    },
+    {
+      label: "Cobertura hasta el siguiente ingreso",
+      value: current.coverageDays === null ? HOME_MISSING_VALUE : `${current.coverageDays} día(s)`,
+      note: !coverageDelta ? "Sin cambios en la sesión" : `${coverageDelta > 0 ? "+" : ""}${coverageDelta} día(s) en la sesión`,
+    },
+    {
+      label: "Fecha libre de deuda",
+      value: current.debtFreeDateLabel,
+      note: current.debtFreeDateRank === baseline.debtFreeDateRank ? "Sin cambios en la sesión" : "Cambia frente al inicio de la sesión",
+    },
+    {
+      label: "Peor mes del horizonte",
+      value: current.worstMonthLabel,
+      note: !worstDelta ? "Sin cambios en la sesión" : `${worstDelta > 0 ? "+" : ""}${money(worstDelta, true)} en la sesión`,
+    },
+  ];
+}
+
+function registrarBeginSessionTrackingIfNeeded() {
+  if (registrarSessionChanges.length === 0) registrarSessionBaselineMetrics = registrarSessionMetrics();
+}
+
+// Un cambio por casilla, no uno por pulsación: si la misma casilla ya está en el registro, se
+// conserva el valor anterior de la primera vez que se tocó en la sesión (para que "Descartar todo"
+// devuelva lo que había al empezar, no lo que había hace un segundo).
+function registrarRecordSessionChange(entry) {
+  const matches = (change) => {
+    if (change.kind !== entry.kind) return false;
+    if (change.kind === "balance") return change.field === entry.field;
+    return change.actualsKind === entry.actualsKind && change.key === entry.key;
+  };
+  if (registrarSessionChanges.some(matches)) return;
+  registrarBeginSessionTrackingIfNeeded();
+  registrarSessionChanges.push(entry);
+}
+
+function registrarClearSessionTracking() {
+  registrarSessionChanges = [];
+  registrarSessionBaselineMetrics = null;
+}
+
+// "Descartar todo" revierte cada casilla tocada a su valor anterior a la sesión, escribiendo por
+// los mismos caminos que ya usa el guardado normal (setStateAccountBalances/actualsForKind) — no
+// es un segundo mecanismo de escritura, es el mismo aplicado hacia atrás.
+function registrarDiscardSessionChanges() {
+  if (!registrarSessionChanges.length) return;
+  const balanceChanges = registrarSessionChanges.filter((change) => change.kind === "balance");
+  if (balanceChanges.length) {
+    const current = accountBalancesFromState();
+    const restored = { caixa: current.caixa, mediolanum: current.mediolanum };
+    balanceChanges.forEach((change) => {
+      restored[change.field] = change.previous;
+    });
+    setStateAccountBalances(restored);
+    saveBalanceSettings();
+  }
+  const actualChanges = registrarSessionChanges.filter((change) => change.kind === "actual");
+  const actualsKindsTouched = new Set();
+  actualChanges.forEach((change) => {
+    const actuals = actualsForKind(change.actualsKind);
+    if (change.previous === null) delete actuals[change.key];
+    else actuals[change.key] = change.previous;
+    actualsKindsTouched.add(change.actualsKind);
+  });
+  actualsKindsTouched.forEach((kind) => saveActualsForKind(kind)());
+  registrarClearSessionTracking();
+  render();
+}
+
+// "Guardar cambios" no escribe nada nuevo (cada casilla ya se guardó al salir de ella, regla
+// transversal de R-6) — solo cierra el seguimiento de la sesión. Si la reserva sobre el mínimo
+// queda en negativo, pide una confirmación explícita antes de cerrar.
+function registrarConsolidateSessionChanges() {
+  if (!registrarSessionChanges.length) return;
+  const current = registrarSessionMetrics();
+  if (current.reserveMargin < 0 && !window.confirm("La reserva queda por debajo del mínimo con estos cambios. ¿Seguro que quieres consolidarlos?")) {
+    return;
+  }
+  registrarClearSessionTracking();
+  registrarSessionConsolidatedNote = "Cambios de la sesión consolidados.";
+  renderRegistrarImpactFooter();
+  window.setTimeout(() => {
+    registrarSessionConsolidatedNote = "";
+    renderRegistrarImpactFooter();
+  }, 2000);
+}
+
+function renderRegistrarImpactFooter() {
+  const bar = qs("registrarImpactBar");
+  if (!bar) return;
+  if (registrarSessionConsolidatedNote) {
+    bar.hidden = false;
+    bar.classList.remove("is-warning");
+    bar.innerHTML = `<p class="e19-registrar-impact-note">${escapeHtml(registrarSessionConsolidatedNote)}</p>`;
+    return;
+  }
+  if (!registrarSessionChanges.length || !registrarSessionBaselineMetrics) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  const current = registrarSessionMetrics();
+  const rows = registrarImpactRows(registrarSessionBaselineMetrics, current);
+  const belowMinimum = current.reserveMargin < 0;
+  bar.hidden = false;
+  bar.classList.toggle("is-warning", belowMinimum);
+  bar.innerHTML = `
+    <div class="e19-registrar-impact-head">
+      <p class="e19-eyebrow">Impacto de la sesión</p>
+      <small>${registrarSessionChanges.length} cambio(s) sin consolidar${belowMinimum ? " · reserva bajo el mínimo" : ""}</small>
+    </div>
+    ${rows
+      .map(
+        (row) => `<dl><dt>${escapeHtml(row.label)}</dt><dd${row.warn ? " class=\"is-warning\"" : ""}>${escapeHtml(row.value)}</dd><small>${escapeHtml(row.note)}</small></dl>`
+      )
+      .join("")}
+    <div class="e19-registrar-impact-actions">
+      <button type="button" class="e19-btn e19-btn-secondary" data-registrar-impact-discard>Descartar todo</button>
+      <button type="button" class="e19-btn e19-btn-primary" data-registrar-impact-save>Guardar cambios</button>
+    </div>`;
+}
+
 function renderRegistrar() {
   if (!qs("registrarBalancePanel")) return;
   renderRegistrarHeaderMeta();
@@ -23285,6 +23468,7 @@ function renderRegistrar() {
   renderRegistrarTabs();
   renderRegistrarRecalcCard();
   resetRegistrarBalanceBaseline();
+  renderRegistrarImpactFooter();
 }
 
 function renderActiveSection(viewId = viewFromHash()) {
@@ -23704,6 +23888,17 @@ async function init() {
   qs("registrarActualsBody")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-registrar-actuals-actual]");
     if (input) handleRegistrarActualsChange(input);
+  });
+  qs("registrarActualsBody")?.addEventListener("click", (event) => {
+    const navButton = event.target.closest("[data-home-nav]");
+    const target = navButton?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
+  });
+  qs("registrarImpactBar")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-registrar-impact-save]")) { registrarConsolidateSessionChanges(); return; }
+    if (event.target.closest("[data-registrar-impact-discard]")) registrarDiscardSessionChanges();
   });
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("previsionTable")?.addEventListener("click", (event) => {

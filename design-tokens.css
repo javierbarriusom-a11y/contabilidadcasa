@@ -327,6 +327,69 @@
   border-top: 2px solid var(--e19-border-strong);
 }
 
+.e19-registrar .registrar-actuals-plan-link {
+  display: block;
+  margin-top: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  font: 600 var(--e19-text-xs) / 1 var(--e19-font-sans);
+  color: var(--e19-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.e19-registrar .registrar-actuals-plan-link:hover {
+  color: var(--e19-heading);
+}
+
+/* R-7: pie de impacto — reutiliza .e19-impact-bar (mismo componente que ya usa Plan en
+   cuadro-mandos-impact); aquí solo se fija el borde inferior de Registrar y se añade el aviso de
+   reserva bajo mínimo, que Plan no necesita porque no edita reales. */
+.e19-registrar-impact {
+  position: sticky;
+  bottom: 0;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  box-shadow: 0 -8px 24px rgba(11, 18, 32, 0.16);
+}
+
+.e19-registrar-impact.is-warning {
+  background: var(--e19-danger);
+}
+
+.e19-registrar-impact-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+
+.e19-registrar-impact-head small {
+  color: #8fa3c4;
+}
+
+.e19-registrar-impact.is-warning .e19-registrar-impact-head small {
+  color: #ffe1db;
+}
+
+.e19-registrar-impact dd.is-warning {
+  color: #ffd7cf;
+}
+
+.e19-registrar-impact dl small {
+  font-size: 11px;
+  font-weight: 400;
+  color: #8fa3c4;
+}
+
+.e19-registrar-impact-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
 /* -------------------------------------------------------------------------------------------- */
 /* Tarjetas y superficies                                                                        */
 /* -------------------------------------------------------------------------------------------- */

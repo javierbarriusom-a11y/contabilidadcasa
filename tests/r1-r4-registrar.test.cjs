@@ -99,9 +99,9 @@ test("R-2 · renderActiveSection despacha «registrar» a renderRegistrar", () =
 test("R-3 · los campos de saldo de Registrar son un espejo del mismo estado, no una segunda puerta de escritura", () => {
   assert.match(app, /registrarBalanceDate.*registrarBalanceMode.*registrarCaixaBalance.*registrarMediolanumBalance.*registrarTotalBalance/s);
   assert.match(app, /function handleRegistrarBalanceControlChange\(\)/);
-  assert.match(app, /handleVisualBalanceControlChange\(\);\s*resetRegistrarBalanceBaseline\(\);/);
+  assert.match(app, /handleVisualBalanceControlChange\(\);\s*registrarRecordBalanceChanges\(before\);\s*resetRegistrarBalanceBaseline\(\);\s*renderRegistrarImpactFooter\(\);/);
   assert.match(app, /function handleRegistrarAccountBalanceInput\(\)/);
-  assert.match(app, /handleVisualAccountBalanceInput\(\);\s*resetRegistrarBalanceBaseline\(\);/);
+  assert.match(app, /handleVisualAccountBalanceInput\(\);\s*registrarRecordBalanceChanges\(before\);\s*resetRegistrarBalanceBaseline\(\);\s*renderRegistrarImpactFooter\(\);/);
 });
 
 test("R-3 · el delta frente al guardado no fabrica una cifra cuando el campo está vacío o no es numérico", () => {
