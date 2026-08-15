@@ -109,9 +109,19 @@ test("R-2 · renderActiveSection despacha «registrar» a renderRegistrar", () =
 test("R-3 · los campos de saldo de Registrar son un espejo del mismo estado, no una segunda puerta de escritura", () => {
   assert.match(app, /registrarBalanceDate.*registrarBalanceMode.*registrarCaixaBalance.*registrarMediolanumBalance.*registrarTotalBalance/s);
   assert.match(app, /function handleRegistrarBalanceControlChange\(\)/);
-  assert.match(app, /handleVisualBalanceControlChange\(\);\s*registrarRecordBalanceChanges\(before\);\s*resetRegistrarBalanceBaseline\(\);\s*renderRegistrarImpactFooter\(\);/);
+  assert.match(app, /applyVisualBalanceControlChange\(\);\s*registrarRecordBalanceChanges\(before\);\s*resetRegistrarBalanceBaseline\(\);\s*renderRegistrarImpactFooter\(\);/);
   assert.match(app, /function handleRegistrarAccountBalanceInput\(\)/);
-  assert.match(app, /handleVisualAccountBalanceInput\(\);\s*registrarRecordBalanceChanges\(before\);\s*resetRegistrarBalanceBaseline\(\);\s*renderRegistrarImpactFooter\(\);/);
+  assert.match(app, /applyVisualAccountBalanceInput\(\);\s*registrarRecordBalanceChanges\(before\);\s*resetRegistrarBalanceBaseline\(\);\s*renderRegistrarImpactFooter\(\);/);
+});
+
+test("R-11 · `#visual-detail` deja de ser una segunda puerta de escritura de saldos", () => {
+  assert.match(app, /const VISUAL_DETAIL_BALANCE_LEGACY_READONLY = true;/);
+  assert.match(app, /function handleVisualAccountBalanceInput\(\) \{\s*if \(VISUAL_DETAIL_BALANCE_LEGACY_READONLY\) return;\s*applyVisualAccountBalanceInput\(\);\s*\}/);
+  assert.match(app, /function handleVisualBalanceControlChange\(\) \{\s*if \(VISUAL_DETAIL_BALANCE_LEGACY_READONLY\) return;\s*applyVisualBalanceControlChange\(\);\s*\}/);
+  assert.match(
+    app,
+    /\["visualCaixaBalance", "visualMediolanumBalance", "visualBalanceDate", "visualBalanceMode"\]\.forEach\(\(id\) => \{\s*const input = qs\(id\);\s*if \(!input\) return;\s*input\.disabled = VISUAL_DETAIL_BALANCE_LEGACY_READONLY;/,
+  );
 });
 
 test("R-3 · el delta frente al guardado no fabrica una cifra cuando el campo está vacío o no es numérico", () => {

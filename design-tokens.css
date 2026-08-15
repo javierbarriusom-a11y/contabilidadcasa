@@ -328,7 +328,9 @@
   border-top: 2px solid var(--e19-border-strong);
 }
 
-.e19-registrar .registrar-actuals-plan-link {
+.e19-registrar .registrar-actuals-plan-link,
+.e19-plan .registrar-actuals-plan-link,
+.visual-detail .registrar-actuals-plan-link {
   display: block;
   margin-top: 2px;
   background: none;
@@ -340,8 +342,27 @@
   cursor: pointer;
 }
 
-.e19-registrar .registrar-actuals-plan-link:hover {
+.e19-registrar .registrar-actuals-plan-link:hover,
+.e19-plan .registrar-actuals-plan-link:hover,
+.visual-detail .registrar-actuals-plan-link:hover {
   color: var(--e19-heading);
+}
+
+/* P-3: cuota de deuda de solo lectura en Plan · Mes — mismo importe que el resto de la columna
+   Previsto, con el enlace a Deuda (D-2, su puerta canónica) debajo en vez de un input. El enlace
+   va inline dentro de la frase «se cambia en Deuda», no en su propia línea como el resto de usos
+   de .registrar-actuals-plan-link. */
+.plan-mes-financing-readonly {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: 600 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  color: var(--e19-heading);
+}
+
+.plan-mes-financing-readonly .registrar-actuals-plan-link {
+  display: inline;
+  margin-top: 0;
 }
 
 /* R-7: pie de impacto — reutiliza .e19-impact-bar (mismo componente que ya usa Plan en
