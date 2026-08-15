@@ -85,6 +85,8 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
     "new-life-definitive",
   ]);
   assert.deepEqual(byGroup.assistants, ["asesor-decision"]);
-  assert.equal(byGroup.analysis.length, 9, "Decidir y Analizar suman nueve enlaces tras V1-4");
-  assert.equal(links.length, 31, "treinta y un enlaces en el menú avanzado tras promover Movimientos (M-1)");
+  // D-1 (15 de agosto) añade «Contratos de deuda» junto a Ruta y Comparar, como tercera pestaña
+  // de Deuda.
+  assert.equal(byGroup.analysis.length, 10, "Decidir y Analizar suman diez enlaces tras D-1");
+  assert.equal(links.length, 32, "treinta y dos enlaces en el menú avanzado tras D-1");
 });
