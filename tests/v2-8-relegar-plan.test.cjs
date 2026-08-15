@@ -26,8 +26,9 @@ test("V2-8 · `#forecast` no se relega: tiene la piel nueva, aunque T-1 le quite
   // El backlog listaba `#forecast` entre las heredadas de Plan, pero su propio inventario lo cuenta
   // entre las pantallas con piel nueva. No se relega —sigue en el grupo «analysis», alcanzable
   // desde el menú avanzado—, aunque T-1 (turno posterior) le retira la pestaña principal «Prever»
-  // porque Plan pasa a aterrizar en `#cuadro-mandos`. Relegarlo sí habría sido degradar una
-  // pantalla migrada; quitarle solo la pestaña principal no lo es.
+  // porque Plan pasa a aterrizar en `#cuadro-mandos` (y, desde el 15 de agosto, en la nueva `#plan`,
+  // que reutiliza el mismo motor). Relegarlo sí habría sido degradar una pantalla migrada; quitarle
+  // solo la pestaña principal no lo es.
   assert.equal(groupOf("forecast"), "analysis");
   assert.match(html, /<section class="analytics-grid view-section e19-forecast" id="forecast">/);
   assert.ok(!html.includes('<a href="#forecast" class="nav-primary-link">'), "T-1 retira Prever como pestaña principal");

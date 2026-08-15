@@ -346,7 +346,8 @@
 /* R-7: pie de impacto — reutiliza .e19-impact-bar (mismo componente que ya usa Plan en
    cuadro-mandos-impact); aquí solo se fija el borde inferior de Registrar y se añade el aviso de
    reserva bajo mínimo, que Plan no necesita porque no edita reales. */
-.e19-registrar-impact {
+.e19-registrar-impact,
+.e19-plan-impact {
   position: sticky;
   bottom: 0;
   flex-wrap: wrap;
@@ -2208,25 +2209,29 @@
 /* heredada `#update-data`, que sigue usando .detail-table y su acordeón por bloques.             */
 /* -------------------------------------------------------------------------------------------- */
 
-.e19-registrar-mes .registrar-mes-controls {
+.e19-registrar-mes .registrar-mes-controls,
+.e19-plan-mes .registrar-mes-controls {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.e19-registrar-mes .registrar-mes-tables {
+.e19-registrar-mes .registrar-mes-tables,
+.e19-plan-mes .registrar-mes-tables {
   display: flex;
   flex-direction: column;
   gap: 16px;
   margin-top: 16px;
 }
 
-.e19-registrar-mes .registrar-mes-card {
+.e19-registrar-mes .registrar-mes-card,
+.e19-plan-mes .registrar-mes-card {
   padding: 16px 18px 14px;
 }
 
 .e19-registrar-mes .registrar-mes-card-head,
+.e19-plan-mes .registrar-mes-card-head,
 .e19-cuadro-mandos .registrar-mes-card-head {
   display: flex;
   align-items: center;
@@ -2239,6 +2244,7 @@
 /* Segmentado de filtros: un solo grupo con el activo en blanco sobre fondo hundido.
    Lo comparten «Registrar el mes» y el cuadro de mandos, que lo usa para elegir métrica. */
 .e19-registrar-mes .registrar-mes-filters,
+.e19-plan-mes .registrar-mes-filters,
 .e19-cuadro-mandos .registrar-mes-filters {
   display: inline-flex;
   gap: 2px;
@@ -2248,6 +2254,7 @@
 }
 
 .e19-registrar-mes .registrar-mes-filter,
+.e19-plan-mes .registrar-mes-filter,
 .e19-cuadro-mandos .registrar-mes-filter {
   border: none;
   background: transparent;
@@ -2259,6 +2266,7 @@
 }
 
 .e19-registrar-mes .registrar-mes-filter.is-active,
+.e19-plan-mes .registrar-mes-filter.is-active,
 .e19-cuadro-mandos .registrar-mes-filter.is-active {
   background: var(--e19-surface);
   color: var(--e19-heading);
@@ -2266,39 +2274,48 @@
 }
 
 .e19-registrar-mes .registrar-mes-filter:focus-visible,
+.e19-plan-mes .registrar-mes-filter:focus-visible,
 .e19-cuadro-mandos .registrar-mes-filter:focus-visible {
   outline: 2px solid var(--e19-accent);
   outline-offset: 2px;
 }
 
-.e19-registrar-mes .registrar-mes-table {
+.e19-registrar-mes .registrar-mes-table,
+.e19-plan-mes .registrar-mes-table {
   min-width: 720px;
 }
 
 /* Bloque y concepto identifican la fila: van a la izquierda, aunque .e19-table alinee a la
    derecha todo lo que no sea la primera columna (pensada para tablas de solo cifras). */
 .e19-registrar-mes .registrar-mes-table thead th:nth-child(2),
+.e19-plan-mes .registrar-mes-table thead th:nth-child(2),
 .e19-registrar-mes .registrar-mes-table td.registrar-mes-block,
-.e19-registrar-mes .registrar-mes-table td.registrar-mes-concept {
+.e19-plan-mes .registrar-mes-table td.registrar-mes-block,
+.e19-registrar-mes .registrar-mes-table td.registrar-mes-concept,
+.e19-plan-mes .registrar-mes-table td.registrar-mes-concept {
   text-align: left;
 }
 
-.e19-registrar-mes .registrar-mes-table .registrar-mes-block {
+.e19-registrar-mes .registrar-mes-table .registrar-mes-block,
+.e19-plan-mes .registrar-mes-table .registrar-mes-block {
   color: var(--e19-muted);
   font-size: var(--e19-text-sm);
 }
 
-.e19-registrar-mes .registrar-mes-table .registrar-mes-concept {
+.e19-registrar-mes .registrar-mes-table .registrar-mes-concept,
+.e19-plan-mes .registrar-mes-table .registrar-mes-concept {
   font-weight: 600;
   color: var(--e19-heading);
 }
 
-.e19-registrar-mes .registrar-mes-table .registrar-mes-concept small {
+.e19-registrar-mes .registrar-mes-table .registrar-mes-concept small,
+.e19-plan-mes .registrar-mes-table .registrar-mes-concept small {
   font-weight: 400;
   color: var(--e19-faint);
 }
 
-.e19-registrar-mes .registrar-mes-table input[type="number"] {
+.e19-registrar-mes .registrar-mes-table input[type="number"],
+.e19-plan-mes .registrar-mes-table input[type="number"] {
   width: 108px;
   text-align: right;
   padding: 6px 10px;
@@ -2310,42 +2327,50 @@
   color: var(--e19-ink);
 }
 
-.e19-registrar-mes .registrar-mes-table input[type="number"]:focus-visible {
+.e19-registrar-mes .registrar-mes-table input[type="number"]:focus-visible,
+.e19-plan-mes .registrar-mes-table input[type="number"]:focus-visible {
   outline: none;
   border-color: var(--e19-accent);
   box-shadow: 0 0 0 3px var(--e19-accent-soft);
 }
 
-.e19-registrar-mes .registrar-mes-table input[type="number"]:disabled {
+.e19-registrar-mes .registrar-mes-table input[type="number"]:disabled,
+.e19-plan-mes .registrar-mes-table input[type="number"]:disabled {
   background: var(--e19-surface-sunken);
   color: var(--e19-faint);
 }
 
 /* Fila que va a peor: se tiñe entera para que el ojo la encuentre sin leer la columna. */
-.e19-registrar-mes .registrar-mes-table tr.registrar-mes-row-off td {
+.e19-registrar-mes .registrar-mes-table tr.registrar-mes-row-off td,
+.e19-plan-mes .registrar-mes-table tr.registrar-mes-row-off td {
   background: var(--e19-warning-soft);
 }
 
 /* .positive/.negative de styles.css pierden contra `.e19-table tbody td`, que fija el color. */
-.e19-registrar-mes .registrar-mes-table td.positive {
+.e19-registrar-mes .registrar-mes-table td.positive,
+.e19-plan-mes .registrar-mes-table td.positive {
   color: var(--e19-success);
   font-weight: 600;
 }
 
-.e19-registrar-mes .registrar-mes-table td.negative {
+.e19-registrar-mes .registrar-mes-table td.negative,
+.e19-plan-mes .registrar-mes-table td.negative {
   color: var(--e19-danger);
   font-weight: 600;
 }
 
-.e19-registrar-mes .registrar-mes-table tr.registrar-mes-row-custom td:first-child {
+.e19-registrar-mes .registrar-mes-table tr.registrar-mes-row-custom td:first-child,
+.e19-plan-mes .registrar-mes-table tr.registrar-mes-row-custom td:first-child {
   box-shadow: inset 3px 0 0 var(--e19-accent);
 }
 
-.e19-registrar-mes .registrar-mes-table .registrar-mes-row-actions {
+.e19-registrar-mes .registrar-mes-table .registrar-mes-row-actions,
+.e19-plan-mes .registrar-mes-table .registrar-mes-row-actions {
   width: 40px;
 }
 
-.e19-registrar-mes .registrar-mes-row-remove {
+.e19-registrar-mes .registrar-mes-row-remove,
+.e19-plan-mes .registrar-mes-row-remove {
   border: none;
   background: transparent;
   color: var(--e19-faint);
@@ -2356,12 +2381,14 @@
   border-radius: var(--e19-radius-sm);
 }
 
-.e19-registrar-mes .registrar-mes-row-remove:hover {
+.e19-registrar-mes .registrar-mes-row-remove:hover,
+.e19-plan-mes .registrar-mes-row-remove:hover {
   color: var(--e19-danger);
   background: var(--e19-danger-soft);
 }
 
-.e19-registrar-mes .registrar-mes-empty {
+.e19-registrar-mes .registrar-mes-empty,
+.e19-plan-mes .registrar-mes-empty {
   text-align: center;
   color: var(--e19-muted);
   font-size: var(--e19-text-sm);
@@ -2370,7 +2397,8 @@
 
 /* V4-3 · aviso de partida anual, mismo patrón que .cuadro-mandos-apply-row (Plan): una fila banda
    bajo la partida detectada, con la nota a la izquierda y las dos respuestas a la derecha. */
-.e19-registrar-mes .registrar-mes-annual-row td {
+.e19-registrar-mes .registrar-mes-annual-row td,
+.e19-plan-mes .registrar-mes-annual-row td {
   background: var(--e19-accent-soft);
   white-space: normal;
   text-align: left;
@@ -2382,18 +2410,21 @@
   flex-wrap: wrap;
 }
 
-.e19-registrar-mes .registrar-mes-annual-note {
+.e19-registrar-mes .registrar-mes-annual-note,
+.e19-plan-mes .registrar-mes-annual-note {
   font-size: var(--e19-text-sm);
   color: var(--e19-muted);
 }
 
-.e19-registrar-mes .registrar-mes-annual-actions {
+.e19-registrar-mes .registrar-mes-annual-actions,
+.e19-plan-mes .registrar-mes-annual-actions {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
 
-.e19-registrar-mes .registrar-mes-card-foot {
+.e19-registrar-mes .registrar-mes-card-foot,
+.e19-plan-mes .registrar-mes-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2405,6 +2436,7 @@
 }
 
 .e19-registrar-mes .registrar-mes-link,
+.e19-plan-mes .registrar-mes-link,
 .e19-cuadro-mandos .registrar-mes-link {
   border: none;
   background: transparent;
@@ -2415,12 +2447,14 @@
 }
 
 .e19-registrar-mes .registrar-mes-link:hover,
+.e19-plan-mes .registrar-mes-link:hover,
 .e19-cuadro-mandos .registrar-mes-link:hover {
   color: var(--e19-accent-hover);
   text-decoration: underline;
 }
 
-.e19-registrar-mes .registrar-mes-copy-confirm {
+.e19-registrar-mes .registrar-mes-copy-confirm,
+.e19-plan-mes .registrar-mes-copy-confirm {
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -2429,7 +2463,8 @@
   color: var(--e19-muted);
 }
 
-.e19-registrar-mes .registrar-mes-add {
+.e19-registrar-mes .registrar-mes-add,
+.e19-plan-mes .registrar-mes-add {
   display: flex;
   align-items: flex-end;
   gap: 12px;
@@ -2441,7 +2476,8 @@
   border-radius: var(--e19-radius-md);
 }
 
-.e19-registrar-mes .registrar-mes-add label {
+.e19-registrar-mes .registrar-mes-add label,
+.e19-plan-mes .registrar-mes-add label {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -2450,7 +2486,9 @@
 }
 
 .e19-registrar-mes .registrar-mes-add input,
-.e19-registrar-mes .registrar-mes-add select {
+.e19-plan-mes .registrar-mes-add input,
+.e19-registrar-mes .registrar-mes-add select,
+.e19-plan-mes .registrar-mes-add select {
   min-width: 140px;
   padding: 7px 10px;
   border: 1px solid var(--e19-border-strong);
@@ -2460,13 +2498,15 @@
   color: var(--e19-ink);
 }
 
-.e19-registrar-mes .registrar-mes-add-actions {
+.e19-registrar-mes .registrar-mes-add-actions,
+.e19-plan-mes .registrar-mes-add-actions {
   display: flex;
   gap: 8px;
 }
 
 /* Barra de progreso de «Completado»: el ancho lo fija el render con un style inline. */
-.e19-registrar-mes .registrar-mes-progress {
+.e19-registrar-mes .registrar-mes-progress,
+.e19-plan-mes .registrar-mes-progress {
   display: block;
   height: 6px;
   border-radius: var(--e19-radius-pill);
@@ -2474,7 +2514,8 @@
   overflow: hidden;
 }
 
-.e19-registrar-mes .registrar-mes-progress > span {
+.e19-registrar-mes .registrar-mes-progress > span,
+.e19-plan-mes .registrar-mes-progress > span {
   display: block;
   height: 100%;
   background: var(--e19-accent);

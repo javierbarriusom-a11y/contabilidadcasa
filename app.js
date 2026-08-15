@@ -383,6 +383,10 @@ const viewTitles = {
     eyebrow: "Registrar",
     title: "Guarda saldos, reales y extractos sin salir de la aplicación",
   },
+  plan: {
+    eyebrow: "Plan",
+    title: "Presupuesta el mes, la previsión y el ahorro sin salir de la aplicación",
+  },
   movements: {
     eyebrow: "Base del modelo",
     title: "Revisa los movimientos usados para construir el escenario",
@@ -23872,6 +23876,291 @@ function renderRegistrar() {
   renderRegistrarImpactFooter();
 }
 
+/* --------------------------------------------------------------------------------------------- */
+/* P-1 a P-7 · Plan: pestaña Mes (mockups 04, Fase 2)                                              */
+/*                                                                                                 */
+/* Pantalla nueva `#plan`, junto a `#cuadro-mandos` (que sigue intacta y accesible desde           */
+/* «Herramientas avanzadas»), no en su lugar — mismo patrón que Registrar con `#update-data`. Solo */
+/* la pestaña «Mes» tiene contenido propio: «Previsión» y «Ahorro» enlazan de vuelta a sus         */
+/* pantallas heredadas (`#prevision`, `#savings-plan`) hasta que se construyan.                    */
+/*                                                                                                 */
+/* El previsto editable reutiliza tal cual `visualDraftCells`/`cuadroMandosStageCell` — el mismo   */
+/* borrador de sesión que ya usa Cuadro de mandos desde E11 (regla transversal 01): un cambio aquí */
+/* aparece también allí y en Cambios pendientes, y «Guardar cambios» es literalmente               */
+/* `saveVisualChanges`. El pie de impacto (P-6) reutiliza el mismo componente `.e19-impact-bar` que */
+/* ya usa Registrar (R-7) y el mismo cálculo de antes/después que ya usaba Cuadro de mandos         */
+/* (`cuadroMandosImpact`) — no un tercer motor de comparación.                                     */
+/* --------------------------------------------------------------------------------------------- */
+
+const PLAN_TABS = [
+  { id: "mes", label: "Mes" },
+  { id: "prevision", label: "Previsión" },
+  { id: "ahorro", label: "Ahorro" },
+];
+let planActiveTab = "mes";
+let planMesCopyPending = false;
+
+function setPlanTab(tabId) {
+  planActiveTab = PLAN_TABS.some((tab) => tab.id === tabId) ? tabId : "mes";
+  renderPlanTabs();
+}
+
+function renderPlanTabs() {
+  const nav = qs("planTabs");
+  if (!nav) return;
+  nav.querySelectorAll("[data-plan-tab]").forEach((button) => {
+    const isActive = button.dataset.planTab === planActiveTab;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  document.querySelectorAll("[data-plan-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.planPanel !== planActiveTab;
+  });
+  const activeTab = PLAN_TABS.find((tab) => tab.id === planActiveTab);
+  if (qs("planCrumb")) qs("planCrumb").textContent = `Plan › ${activeTab?.label || ""}`;
+}
+
+function planMesSelectedMonth() {
+  const months = cuadroMandosAllMonths();
+  if (!months.length) return null;
+  const select = qs("planMesMonth");
+  const match = months.find((month) => month.key === select?.value);
+  return match || months.find((month) => !isClosedMonthKey(month.key)) || months[0];
+}
+
+function planMesPopulateMonths(months, selected) {
+  const select = qs("planMesMonth");
+  if (!select) return;
+  const previous = select.value;
+  select.innerHTML = months
+    .map((month) => `<option value="${escapeHtml(month.key)}">${escapeHtml(month.label)}${isClosedMonthKey(month.key) ? " · cerrado" : ""}</option>`)
+    .join("");
+  const keep = months.some((month) => month.key === previous) ? previous : selected?.key;
+  if (keep) select.value = keep;
+}
+
+// P-2/P-3/P-4: una fila por partida, mismo patrón que `registrarMesCollect`, pero sobre el
+// previsto (editable vía `cuadroMandosCellValue`, draft-aware) en vez del real. «Usado» y
+// «Desviación» se recalculan con el previsto en borrador, no solo con el ya guardado, para que el
+// impacto de editar se vea antes de guardar.
+function planMesCollect(month) {
+  const result = { income: [], expense: [] };
+  if (!month) return result;
+  ["income", "expense"].forEach((kind) => {
+    planningSectionsForMonth(kind, month).forEach((section) => {
+      section.rows.forEach((row) => {
+        const cell = cuadroMandosCellValue(row, month);
+        const info = actualAwareInfo(row, month);
+        const hasActual = Boolean(info.hasActual);
+        const usado = hasActual ? Number(info.actual || 0) : cell.value;
+        result[kind].push({
+          kind,
+          row,
+          sectionName: section.name,
+          label: displayLabelForRow(row),
+          planned: cell.value,
+          plannedDraft: cell.draft,
+          hasActual,
+          usado,
+          variance: hasActual ? round2(usado - cell.value) : null,
+          key: `${kind}:${seriesKeyForRow(row)}`,
+        });
+      });
+    });
+  });
+  return result;
+}
+
+function planMesTotals(entries) {
+  const sum = (list, field) => list.reduce((total, item) => total + Number(item[field] || 0), 0);
+  return {
+    incomePlanned: round2(sum(entries.income, "planned")),
+    expensePlanned: round2(sum(entries.expense, "planned")),
+    lines: entries.income.length + entries.expense.length,
+  };
+}
+
+function planMesRowHtml(entry, monthClosed, monthKey) {
+  const rowKey = seriesKeyForRow(entry.row);
+  return `<tr data-plan-mes-key="${escapeHtml(entry.key)}"${entry.plannedDraft ? ' class="plan-mes-row-draft"' : ""}>
+    <td class="registrar-mes-block">${escapeHtml(entry.sectionName)}</td>
+    <td class="registrar-mes-concept">${escapeHtml(entry.label)}</td>
+    <td><input type="number" step="0.01" inputmode="decimal" data-plan-mes-planned="${escapeHtml(rowKey)}" data-plan-mes-month="${escapeHtml(monthKey)}" aria-label="Previsto de ${escapeHtml(entry.label)}" value="${entry.planned}"${monthClosed ? " disabled" : ""} /></td>
+    <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta">${entry.hasActual ? "real" : "previsto"}</small></td>
+    <td data-plan-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
+  </tr>`;
+}
+
+function planMesPreviousMonth(month) {
+  const months = cuadroMandosAllMonths();
+  const index = months.findIndex((item) => item.key === month.key);
+  return index > 0 ? months[index - 1] : null;
+}
+
+// P-7: copia el previsto (ya con sus posibles overrides) del mes anterior al actual, solo para las
+// partidas donde de verdad cambia — mismo `cuadroMandosStageCell` que un cambio manual, así que se
+// revisa en el pie de impacto antes de guardar, nunca se escribe directo.
+function planMesCopyCandidates(month) {
+  const previous = planMesPreviousMonth(month);
+  if (!previous) return [];
+  const entries = planMesCollect(month);
+  const previousEntries = planMesCollect(previous);
+  const previousByKey = new Map();
+  [...previousEntries.income, ...previousEntries.expense].forEach((entry) => previousByKey.set(seriesKeyForRow(entry.row), entry.planned));
+  const candidates = [];
+  [...entries.income, ...entries.expense].forEach((entry) => {
+    const rowKey = seriesKeyForRow(entry.row);
+    if (!previousByKey.has(rowKey)) return;
+    const previousValue = previousByKey.get(rowKey);
+    if (Math.abs(previousValue - entry.planned) < 0.005) return;
+    candidates.push({ rowKey, monthKey: month.key, value: previousValue });
+  });
+  return candidates;
+}
+
+function planMesCopyHtml(month) {
+  const previous = planMesPreviousMonth(month);
+  if (!previous) return `<p class="e19-kpi-note">No hay un mes anterior en el plan.</p>`;
+  if (!planMesCopyPending) {
+    return `<button type="button" class="registrar-mes-link" data-plan-mes-copy>Copiar previsto de ${escapeHtml(previous.label)}</button>`;
+  }
+  const candidates = planMesCopyCandidates(month);
+  return `<p class="e19-kpi-note">Se copiarán ${candidates.length} previsto(s) de ${escapeHtml(previous.label)} a este mes.</p>
+    <button type="button" class="e19-btn e19-btn-primary" data-plan-mes-copy-confirm>Confirmar copia</button>
+    <button type="button" class="e19-btn e19-btn-secondary" data-plan-mes-copy-cancel>Cancelar</button>`;
+}
+
+function planMesCardHtml(label, list, month, monthClosed) {
+  const body = list.length
+    ? list.map((entry) => planMesRowHtml(entry, monthClosed, month.key)).join("")
+    : `<tr><td colspan="5" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head"><h3 class="escenario-motor-panel-title">${escapeHtml(label)}</h3></div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table">
+        <thead><tr><th>Bloque</th><th>Concepto</th><th>Previsto</th><th>Usado</th><th>Desviación</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+function renderPlanMes() {
+  if (!qs("planMesTables") || !baseData?.monthlyPlanning?.months?.length) return;
+  const months = cuadroMandosAllMonths();
+  const month = planMesSelectedMonth();
+  planMesPopulateMonths(months, month);
+  if (!month) return;
+  const monthClosed = isClosedMonthKey(month.key);
+  const entries = planMesCollect(month);
+  const totals = planMesTotals(entries);
+
+  // P-5: techo de asignación — el previsto de gastos no puede superar, en la lectura de esta
+  // pantalla, el previsto de ingresos del mismo mes. No bloquea nada por sí solo (regla
+  // transversal 02: nada se aplica sin guardar), solo avisa.
+  const overCeiling = totals.expensePlanned > totals.incomePlanned;
+  const kpis = qs("planMesKpis");
+  if (kpis) {
+    kpis.innerHTML = [
+      `<div class="e19-kpi"><span class="e19-kpi-label">Previsto ingresos</span><span class="e19-kpi-value">${money(totals.incomePlanned, true)}</span></div>`,
+      `<div class="e19-kpi${overCeiling ? " is-danger" : ""}"><span class="e19-kpi-label">Previsto gastos</span><span class="e19-kpi-value">${money(totals.expensePlanned, true)}</span></div>`,
+      `<div class="e19-kpi${overCeiling ? " is-danger" : ""}"><span class="e19-kpi-label">Techo de asignación</span><span class="e19-kpi-value">${money(round2(totals.incomePlanned - totals.expensePlanned), true)}</span><span class="e19-kpi-meta">${overCeiling ? "Previsto gastos supera previsto ingresos" : "Previsto ingresos menos previsto gastos"}</span></div>`,
+      `<div class="e19-kpi"><span class="e19-kpi-label">Partidas</span><span class="e19-kpi-value">${totals.lines}</span></div>`,
+    ].join("");
+  }
+
+  const container = qs("planMesTables");
+  container.innerHTML = `${planMesCardHtml("Ingresos", entries.income, month, monthClosed)}${planMesCardHtml("Gastos", entries.expense, month, monthClosed)}
+    <div class="registrar-mes-card-foot">${monthClosed ? `<p class="e19-kpi-note">El mes está cerrado: el previsto queda congelado tal y como se cerró.</p>` : planMesCopyHtml(month)}</div>`;
+
+  renderPlanMesImpactBar();
+}
+
+function handlePlanMesPlannedChange(input) {
+  const month = planMesSelectedMonth();
+  if (!month || isClosedMonthKey(month.key)) return;
+  const rowKey = input.dataset.planMesPlanned;
+  const monthKey = input.dataset.planMesMonth;
+  if (!rowKey || !monthKey) return;
+  const parsed = parseAmount(input.value);
+  cuadroMandosStageCell(rowKey, monthKey, input.value === "" || parsed === null ? 0 : parsed);
+  renderPlanMes();
+}
+
+function handlePlanMesCopy() {
+  const month = planMesSelectedMonth();
+  if (!month || isClosedMonthKey(month.key)) return;
+  if (!planMesCopyCandidates(month).length) {
+    announceStatus("No hay diferencias con el mes anterior que copiar.");
+    return;
+  }
+  planMesCopyPending = true;
+  renderPlanMes();
+}
+
+function handlePlanMesCopyConfirm() {
+  const month = planMesSelectedMonth();
+  if (!month || isClosedMonthKey(month.key)) return;
+  const candidates = planMesCopyCandidates(month);
+  candidates.forEach((candidate) => cuadroMandosStageCell(candidate.rowKey, candidate.monthKey, candidate.value));
+  planMesCopyPending = false;
+  const previous = planMesPreviousMonth(month);
+  announceStatus(`${candidates.length} previsto(s) copiados de ${previous?.label || "el mes anterior"}. Revisa el pie de impacto antes de guardar.`);
+  renderPlanMes();
+}
+
+function handlePlanMesCopyCancel() {
+  planMesCopyPending = false;
+  renderPlanMes();
+}
+
+// P-6: mismo componente `.e19-impact-bar` que ya usa Registrar (R-7) y el mismo cálculo de
+// antes/después que ya usaba Cuadro de mandos (`cuadroMandosImpact`, sobre `cuadroMandosPlannedDrafts`
+// — los mismos borradores que edita esta pestaña). Las cifras son las que de verdad se mueven al
+// editar previsto (mínimo, meses bajo reserva, liquidez final y peor mes del horizonte) — no las
+// cuatro de Registrar, que dependen de saldo y deuda, ajenos a un cambio de previsto.
+function renderPlanMesImpactBar() {
+  const bar = qs("planMesImpactBar");
+  if (!bar) return;
+  const impact = cuadroMandosImpact();
+  if (!impact.drafts.length) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  bar.hidden = false;
+  if (!impact.ok) {
+    bar.innerHTML = `<div class="e19-registrar-impact-head"><p class="e19-eyebrow">Impacto del cambio</p><strong>No se ha podido calcular</strong><small>El motor no acepta esta combinación; los cambios siguen sin guardar.</small></div>
+      <div class="e19-registrar-impact-actions"><button type="button" class="e19-btn e19-btn-secondary" data-plan-mes-impact-discard>Descartar todo</button></div>`;
+    return;
+  }
+  const { before, after, drafts } = impact;
+  const worstBefore = FinanceCanonicalCushion.worstMonthOf(openSimulationRows(impact.rowsBefore));
+  const worstAfter = FinanceCanonicalCushion.worstMonthOf(openSimulationRows(impact.rowsAfter));
+  const worstDelta = worstBefore && worstAfter ? round2(Number(worstAfter.value || 0) - Number(worstBefore.value || 0)) : null;
+  const last = drafts.at(-1);
+  bar.innerHTML = `
+    <div class="e19-registrar-impact-head">
+      <p class="e19-eyebrow">Impacto del cambio</p>
+      <strong>${escapeHtml(last?.label || "Cambio")}${last?.monthLabel ? ` · ${escapeHtml(last.monthLabel)}` : ""}</strong>
+      <small>${drafts.length} cambio(s) sin guardar</small>
+    </div>
+    <dl><dt>Mínimo de liquidez del horizonte</dt>${cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true))}</dl>
+    <dl><dt>Meses ${escapeHtml(cuadroMandosReserveLabel(after))}</dt>${cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => `${Math.round(Number(value || 0))}`, false)}</dl>
+    <dl><dt>Liquidez al final del horizonte</dt>${cuadroMandosBeforeAfter(before.final, after.final, (value) => money(value, true))}</dl>
+    <dl><dt>Peor mes del horizonte</dt><dd>${worstAfter ? `${escapeHtml(escenarioMotorMonthLabel(worstAfter.key))} · ${money(worstAfter.value, true)}` : "—"}${worstDelta ? ` <span class="${worstDelta > 0 ? "is-up" : "is-down"}">${worstDelta > 0 ? "+" : ""}${money(worstDelta, true)}</span>` : ""}</dd></dl>
+    <div class="e19-registrar-impact-actions">
+      <button type="button" class="e19-btn e19-btn-secondary" data-plan-mes-impact-discard>Descartar todo</button>
+      <button type="button" class="e19-btn e19-btn-primary" data-plan-mes-impact-save>Guardar cambios</button>
+    </div>`;
+}
+
+function renderPlan() {
+  if (!qs("planTabs")) return;
+  renderPlanTabs();
+  renderPlanMes();
+}
+
 function renderActiveSection(viewId = viewFromHash()) {
   if (!lastSimulation.length) return;
   switch (viewId) {
@@ -23880,6 +24169,9 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "registrar":
       renderRegistrar();
+      break;
+    case "plan":
+      renderPlan();
       break;
     case "update-data":
       renderMonthlyDetails();
@@ -24302,6 +24594,25 @@ async function init() {
   qs("registrarImpactBar")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-registrar-impact-save]")) { registrarConsolidateSessionChanges(); return; }
     if (event.target.closest("[data-registrar-impact-discard]")) registrarDiscardSessionChanges();
+  });
+  qs("planTabs")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-plan-tab]");
+    if (button) setPlanTab(button.dataset.planTab);
+  });
+  qs("planMesMonth")?.addEventListener("change", renderPlanMes);
+  qs("planMesTables")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-plan-mes-planned]");
+    if (input) handlePlanMesPlannedChange(input);
+  });
+  qs("planMesTables")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-plan-mes-copy]")) { handlePlanMesCopy(); return; }
+    if (event.target.closest("[data-plan-mes-copy-confirm]")) { handlePlanMesCopyConfirm(); return; }
+    if (event.target.closest("[data-plan-mes-copy-cancel]")) handlePlanMesCopyCancel();
+  });
+  qs("planMesImpactBar")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-plan-mes-impact-save]")) { saveVisualChanges(); return; }
+    // discardVisualChanges() solo repinta #visual-detail; Plan necesita su propio refresco.
+    if (event.target.closest("[data-plan-mes-impact-discard]")) { discardVisualChanges(); renderPlanMes(); }
   });
   qs("registrarBatchImportBtn")?.addEventListener("click", handleRegistrarBatchImport);
   qs("registrarBatchClearBtn")?.addEventListener("click", handleRegistrarBatchClear);

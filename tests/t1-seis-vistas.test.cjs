@@ -16,7 +16,7 @@ const experience = read("e17-experience.js");
 test("T-1 · las seis vistas son pestaña principal, con el destino correcto cada una", () => {
   const expected = [
     ["#home", "Hoy"],
-    ["#cuadro-mandos", "Plan"],
+    ["#plan", "Plan"],
     ["#deuda-ruta", "Deuda"],
     ["#update-hub", "Datos"],
     ["#conciliar", "Cierre"],

@@ -2,6 +2,76 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Plan · Mes (P-1 a P-7) — Fase 2 completa salvo el lote
+
+Continuación directa del cierre anterior del mismo día (Movimientos, fusionado como PR #43). El
+usuario pidió seguir con la pestaña Mes de Plan, cerrando así toda la Fase 2 del backlog «Nueve
+pantallas» salvo la selección múltiple en lote de Movimientos (M-8/M-8b, con su propia sesión) y
+M-8c (bloqueada por Cierre, que no existe todavía).
+
+**Decisión de arquitectura**: pantalla nueva `#plan`, junto a `#cuadro-mandos` (que sigue intacta y
+accesible desde «Herramientas avanzadas»), no en su lugar — el mismo patrón que Registrar usó con
+`#update-data`. El enlace de menú «Plan» pasa a apuntar a `#plan` en vez de a `#cuadro-mandos`
+directamente. Solo la pestaña «Mes» tiene contenido propio esta sesión; «Previsión» y «Ahorro»
+enlazan de vuelta a `#prevision`/`#savings-plan` hasta que se construyan (P-8 en adelante son Fase
+4, no Fase 2).
+
+**Qué se construyó**:
+- **P-1 · armazón de tres pestañas**: migajas «Plan › <pestaña>», mismo patrón `data-plan-tab` que
+  ya usaba Registrar con `data-registrar-tab`.
+- **P-2/P-3 · tabla del mes por bloques, previsto editable**: una fila por partida (Bloque,
+  Concepto, Previsto, Usado, Desviación), agrupada en dos tarjetas (Ingresos/Gastos) igual que la
+  pestaña Reales del mes de Registrar. El previsto se edita aquí y **no se guarda al salir de la
+  casilla** — a diferencia de la regla de Registrar (R-6), aquí se acumula como borrador de sesión:
+  reutiliza tal cual `visualDraftCells`/`cuadroMandosStageCell`, el mismo motor que `#cuadro-mandos`
+  usa desde E11 (regla transversal 01). Un cambio en Plan aparece también en Cuadro de mandos y en
+  Cambios pendientes sin duplicar nada.
+- **P-4 · gastado con procedencia**: la celda «Usado» muestra el real cuando existe y, si no, el
+  previsto en borrador — y lo etiqueta («real»/«previsto») en vez de dejarlo ambiguo (regla
+  transversal 05).
+- **P-5 · techo de asignación**: una lectura, no un bloqueo — si el previsto de gastos supera el de
+  ingresos del mes, la tarjeta correspondiente se pinta en aviso.
+- **P-6 · pie de impacto compartido con Registrar**: mismo componente `.e19-impact-bar` que ya usa
+  Registrar (R-7), mismo cálculo de antes/después que ya tenía Cuadro de mandos (`cuadroMandosImpact`,
+  sobre los mismos borradores). Las cuatro cifras son las que de verdad se mueven al editar previsto
+  —mínimo de liquidez del horizonte, meses bajo la reserva, liquidez al final, peor mes— y no las
+  cuatro de Registrar (reserva actual, cobertura, fecha libre de deuda), que dependen de saldo y
+  deuda y no se mueven al tocar un previsto futuro. «Guardar cambios»/«Descartar todo» son
+  literalmente `saveVisualChanges`/`discardVisualChanges`, las mismas que ya usaba `#visual-detail`.
+- **P-7 · copiar el previsto del mes anterior**: solo copia las partidas donde el previsto realmente
+  difiere, y lo hace con el mismo `cuadroMandosStageCell` que una edición manual — se revisa en el
+  pie de impacto antes de guardar, nunca se escribe directo.
+
+**Verificación visual con Playwright** (datos reales de la demo, ya cargados por defecto —a
+diferencia de Movimientos, `baseData.monthlyPlanning` no depende de una importación): edición de un
+previsto de ingresos (+100 €) recalculó en vivo el KPI de techo de asignación y mostró el pie de
+impacto con las cuatro cifras correctas; el mismo borrador apareció al navegar a `#cuadro-mandos` y
+viceversa; «Guardar cambios» persistió el valor y ocultó el pie; una edición posterior descartada
+volvió exactamente al último valor guardado (no al original ni a un intermedio); las pestañas
+Previsión y Ahorro mostraron su aviso con enlace a la heredada correspondiente.
+
+**Pruebas nuevas**: `tests/p1-p7-plan-mes.test.cjs` (26 pruebas) — armazón y migajas, cambio de
+pestaña, previsto draft-aware con y sin real, techo de asignación, fila sin borrado y deshabilitada
+en mes cerrado, procedencia del usado, guarda de mes cerrado en el manejador de escritura, vaciar
+la casilla como 0, candidatos de copia solo donde cambia, confirmación de copia vía
+`cuadroMandosStageCell`, las cuatro ramas del pie de impacto (oculto/error/completo/cálculo
+correcto) y el cableado completo. Se ajustaron `tests/e17-interface.test.cjs`,
+`tests/t1-seis-vistas.test.cjs` (el enlace «Plan» del menú ahora es `#plan`) y un comentario
+desactualizado en `tests/v2-8-relegar-plan.test.cjs`.
+
+**Validación** (`npm run verify`, exit 0): **793/793 pruebas** (767 + 26 nuevas), **665 IDs
+únicos** de accesibilidad, diff 10.000 filas en **39,6 ms**, forecast y escenarios en **191,4 ms**,
+recursos **1373 KB**, build del sitio, privacidad y smoke test en verde.
+
+**Publicado en el camino**: PR #43 (Movimientos, M-1 a M-11 salvo lote) tenía el CI en verde; se
+fusionó a `main` al arrancar esta sesión, según la autorización permanente de `CLAUDE.md`.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-r11-jkz5z0` (reiniciada desde `main`
+tras cada fusión previa), commit y PR en borrador según lo autorizado en `CLAUDE.md`. Con esto la
+Fase 2 del backlog «Nueve pantallas» queda completa salvo M-8/M-8b (lote de Movimientos, sesión
+propia) y M-8c (bloqueada por Cierre). Siguiente: Fase 3 (Deuda) o cerrar el lote de Movimientos,
+a decidir con el usuario.
+
 ## Cierre de sesión — 15 de agosto de 2026: Movimientos completa (M-1 a M-11 salvo lote)
 
 Continuación directa del cierre anterior del mismo día (R-11). Con la Fase 2 de Registrar
