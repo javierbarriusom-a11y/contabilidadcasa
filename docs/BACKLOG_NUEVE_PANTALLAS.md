@@ -277,7 +277,7 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | P-5 | Techo de asignación | P-3 | S | Hecho |
 | P-6 | Pie de impacto compartido con Registrar | R-7 | M | Hecho |
 | P-7 | Copiar de julio | P-3, P-6 | M | Hecho |
-| P-8 | Previsión mes a mes por bloque | P-1 | L | Pendiente |
+| P-8 | Previsión mes a mes por bloque | P-1 | L | Hecho (15 de agosto, ver nota) |
 | P-8b | Editar un mes cerrado con aviso | P-8, Cierre | M | Pendiente |
 | P-9 | Mapa de calor de colchón | P-8 | M | Pendiente |
 | P-10 | Descomposición del peor mes | P-9 | M | Pendiente |
@@ -287,6 +287,49 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | P-14 | Sobres · columnas de arrastre y regla | Fase 6, P-3 | L | Pendiente |
 | P-15 | Sobres · liquidación al cerrar | P-14, Cierre | L | Pendiente |
 | P-16 | Sobres · suma con los objetivos de ahorro | P-15, P-13 | M | Pendiente |
+
+**Nota (15 de agosto)**: P-8 se descubrió mal etiquetada dos veces antes de construirla —
+`docs/E19_SISTEMA_DISENO.md` daba el mockup 2c por «✅ Migrada (E19-5)» y `BACKLOG.md` (el backlog
+operativo vigente) también lo marcaba «✅» sin matices; los dos se referían en realidad a la piel
+visual aplicada sobre la tabla resumen anual heredada, no al contenido del mockup. Corregidos los
+dos documentos (E19_SISTEMA_DISENO.md §13, BACKLOG.md línea de 2c) antes de tocar código, según lo
+pedido: revisar lo publicado contra mockups y backlog, no solo construir sobre lo que decían.
+
+`renderPrevision()` sustituye por completo la tabla anual por año natural (que además servía datos
+por año, no por horizonte): titular en prosa sobre el mes más delicado
+(`previsionHeadlineHtml`/`previsionWorstOf`), selector de horizonte 12/24/48 meses o el horizonte
+completo (`previsionHorizonRows`, sobre `openForecastMonths`/`previsionRowsForMonths` ya existentes),
+una banda vertical por mes con la reserva marcada y el mismo tono de color que ya usaba el mapa de
+calor (`mapaCalorFloor`/`mapaCalorTone`, sin fabricar una segunda escala), la tabla mensual
+Ingresos/Gastos/Deuda/Ahorro/Mínimo, y un panel día a día del mes seleccionado. No añade un motor de
+cálculo nuevo: reutiliza `previsionMetric` (máximo tras ingresos / mínimo antes de nómina, ya usado
+por la tabla heredada) y `planningBreakdownForForecastMonth` (partidas fechadas por regla, movimiento
+histórico o estimación, el mismo motor de timing que ya alimentaba el forecast).
+
+**Decisión de datos del panel día a día, confirmada con el usuario**: combina movimientos reales
+(`baseData.transactions`, con el saldo que declara el propio extracto) cuando el mes ya los tiene, y
+partidas con fecha conocida (`incomeEvents`/`expenseEvents`, con un saldo simulado desde el inicio de
+mes) cuando no — nunca los dos mezclados dentro del mismo mes, una simplificación deliberada y
+documentada en el propio código.
+
+**Sugerencia accionable** (`previsionSuggestion`): es una simulación local real, no un texto
+fabricado — mueve la partida de gasto más grande anterior al mínimo del mes justo después del
+siguiente cobro y recalcula el mínimo resultante; solo se ofrece si de verdad mejora. Si no hay
+margen (o el mes es real, ya cerrado), no se inventa una sugerencia igualmente, mismo criterio que ya
+usaba el mapa de calor para no fabricar botones de «Simular» sin cálculo real detrás.
+
+**Pruebas nuevas**: `tests/p8-prevision.test.cjs` (19 pruebas) — recorte por horizonte, titular
+(mes delicado y aviso de otros meses ajustados), columnas de la tabla mensual, banda con línea de
+reserva y tono por mes, movimientos reales filtrados y ordenados, partidas proyectadas con saldo
+corriente simulado, la decisión real-vs-proyectado, la sugerencia (con mejora, sin cobro posterior
+que la permita, y nunca sobre un mes real) y el marcado HTML de la pantalla nueva.
+
+**Verificación visual con Playwright**: con los datos de demostración, `#prevision` mostró el titular
+calculado, 12 columnas de banda en el horizonte por defecto (24 al cambiar a «24 m»), la tabla mensual
+y el panel día a día con las partidas fechadas del mes más delicado; al hacer clic en otro mes de la
+tabla, el panel día a día cambió al mes correcto. Sin errores de consola propios (el único aviso de
+red visto, `ERR_TUNNEL_CONNECTION_FAILED` hacia el CDN de Supabase, es preexistente y aparece igual en
+`#home`, ajeno a este cambio).
 
 ### 05 · Deuda — un dato canónico y dos vistas que lo leen (15 tareas · 3 grandes)
 

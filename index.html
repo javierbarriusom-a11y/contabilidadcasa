@@ -2291,21 +2291,31 @@
           <section class="prevision-section view-section e19-prevision" id="prevision">
             <div class="section-title with-action">
               <div>
-                <p class="panel-kicker e19-eyebrow">Resultados</p>
-                <h2 class="e19-heading">Previsión mensual</h2>
-                <p class="e19-subtitle">Resumen anual calculado como la hoja: máximo tras ingresos, mínimo antes de ingresos y mínimo ajustado antes de nómina Javi. Haz clic en cualquier cifra mensual para ver su desglose.</p>
+                <p class="panel-kicker e19-eyebrow">Previsión</p>
+                <h2 class="e19-heading" id="previsionHeadline">Calculando…</h2>
+                <p class="e19-subtitle" id="previsionSubheadline"></p>
               </div>
-              <div class="prevision-controls">
-                <label>
-                  <span>Año natural</span>
-                  <select id="previsionYear"></select>
-                </label>
+              <div class="registrar-mes-filters" role="group" aria-label="Horizonte de la previsión">
+                <button type="button" class="registrar-mes-filter is-active" data-prevision-horizon="12m" aria-pressed="true">12 m</button>
+                <button type="button" class="registrar-mes-filter" data-prevision-horizon="24m" aria-pressed="false">24 m</button>
+                <button type="button" class="registrar-mes-filter" data-prevision-horizon="48m" aria-pressed="false">48 m</button>
+                <button type="button" class="registrar-mes-filter" data-prevision-horizon="full" aria-pressed="false">Hasta 2036</button>
               </div>
             </div>
             <div class="account-balance-strip" id="previsionBalanceSummary"></div>
-            <div class="expense-summary prevision-summary" id="previsionSummary"></div>
-            <div class="table-wrap prevision-table-wrap">
-              <table class="prevision-table" id="previsionTable"></table>
+
+            <article class="e19-card prevision-band-card">
+              <div class="prevision-band-track" id="previsionBand" role="img" aria-label="Banda de liquidez por mes, del mínimo antes de cobros al máximo tras cobros"></div>
+              <p class="e19-kpi-note" id="previsionBandLegend"></p>
+            </article>
+
+            <div class="cambios-pendientes-layout prevision-layout">
+              <article class="e19-card">
+                <div class="table-wrap prevision-table-wrap">
+                  <table class="prevision-table prevision-monthly-table" id="previsionMonthlyTable"></table>
+                </div>
+              </article>
+              <article class="e19-card e19-card-strong prevision-day-panel" id="previsionDayPanel" aria-live="polite"></article>
             </div>
           </section>
 

@@ -1051,22 +1051,6 @@
   font: 800 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
 }
 
-.e19-prevision .expense-summary-card {
-  border-color: var(--e19-border);
-  background: var(--e19-surface-soft);
-  border-radius: var(--e19-radius-md);
-}
-
-.e19-prevision .expense-summary-card span {
-  color: var(--e19-muted);
-  font: 700 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
-}
-
-.e19-prevision .expense-summary-card strong {
-  font: 800 var(--e19-text-md) / 1.3 var(--e19-font-sans);
-  color: var(--e19-ink);
-}
-
 .e19-prevision .prevision-table thead th {
   background: var(--e19-surface-sunken);
   color: var(--e19-muted);
@@ -1075,8 +1059,154 @@
   letter-spacing: 0.04em;
 }
 
-.e19-prevision .prevision-table td[data-prevision-month-key]:hover {
+/* P-8 · tabla mensual: la fila entera es la zona de clic (ver #previsionMonthlyTable), no solo la
+   celda del mínimo como en la tabla heredada. */
+.e19-prevision .prevision-monthly-table tbody tr[data-prevision-month-key] {
+  cursor: pointer;
+}
+
+.e19-prevision .prevision-monthly-table tbody tr[data-prevision-month-key]:hover {
   background: var(--e19-accent-soft);
+}
+
+.e19-prevision .prevision-monthly-table tbody tr.is-selected {
+  background: var(--e19-accent-soft);
+  box-shadow: inset 3px 0 0 var(--e19-accent);
+}
+
+/* P-8 · banda por mes: una barra vertical por mes entre el mínimo antes de cobros y el máximo tras
+   cobros, con la línea de reserva y el mismo tono de color que el mapa de calor (mapaCalorTone). */
+.e19-prevision .prevision-band-card {
+  padding: 16px 18px 10px;
+}
+
+.e19-prevision .prevision-band-track {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 180px;
+  padding: 0 2px;
+  overflow-x: auto;
+}
+
+.e19-prevision .prevision-band-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 1 1 32px;
+  min-width: 28px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.e19-prevision .prevision-band-col small {
+  font-size: 10px;
+  color: var(--e19-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.e19-prevision .prevision-band-bar {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  min-width: 6px;
+  border-radius: var(--e19-radius-sm);
+}
+
+.e19-prevision .prevision-band-bar.is-negative { background: var(--e19-danger); }
+.e19-prevision .prevision-band-bar.is-tight { background: var(--e19-debt); }
+.e19-prevision .prevision-band-bar.is-ok { background: var(--e19-success-soft-border); }
+.e19-prevision .prevision-band-bar.is-good { background: var(--e19-success); }
+
+.e19-prevision .prevision-band-col.is-selected .prevision-band-bar {
+  outline: 2px solid var(--e19-accent);
+  outline-offset: 1px;
+}
+
+.e19-prevision .prevision-band-col:focus-visible {
+  outline: 2px solid var(--e19-accent);
+  outline-offset: 2px;
+}
+
+.e19-prevision .prevision-band-reserve-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--e19-faint);
+  z-index: 1;
+}
+
+/* P-8 · panel día a día: lista de movimientos reales o partidas fechadas del mes seleccionado. */
+.e19-prevision .prevision-day-panel {
+  padding: 16px 18px;
+  max-height: 520px;
+  overflow-y: auto;
+}
+
+.e19-prevision .prevision-day-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.e19-prevision .prevision-day-entry {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 74px 74px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--e19-border);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-prevision .prevision-day-date {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
+.e19-prevision .prevision-day-concept {
+  color: var(--e19-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.e19-prevision .prevision-day-amount,
+.e19-prevision .prevision-day-balance {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.e19-prevision .prevision-day-entry.is-out .prevision-day-amount { color: var(--e19-danger); }
+.e19-prevision .prevision-day-entry.is-in .prevision-day-amount { color: var(--e19-success); }
+
+.e19-prevision .prevision-day-empty {
+  padding: 12px 0;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-prevision .prevision-suggestion {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  background: var(--e19-accent-soft);
+  border: 1px solid var(--e19-accent-soft-border);
+  border-radius: var(--e19-radius-md);
+  font-size: var(--e19-text-sm);
+  color: var(--e19-heading);
 }
 
 /* -------------------------------------------------------------------------------------------- */
@@ -2371,7 +2501,8 @@
    Lo comparten «Registrar el mes» y el cuadro de mandos, que lo usa para elegir métrica. */
 .e19-registrar-mes .registrar-mes-filters,
 .e19-plan-mes .registrar-mes-filters,
-.e19-cuadro-mandos .registrar-mes-filters {
+.e19-cuadro-mandos .registrar-mes-filters,
+.e19-prevision .registrar-mes-filters {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
@@ -2381,7 +2512,8 @@
 
 .e19-registrar-mes .registrar-mes-filter,
 .e19-plan-mes .registrar-mes-filter,
-.e19-cuadro-mandos .registrar-mes-filter {
+.e19-cuadro-mandos .registrar-mes-filter,
+.e19-prevision .registrar-mes-filter {
   border: none;
   background: transparent;
   border-radius: var(--e19-radius-pill);
@@ -2393,7 +2525,8 @@
 
 .e19-registrar-mes .registrar-mes-filter.is-active,
 .e19-plan-mes .registrar-mes-filter.is-active,
-.e19-cuadro-mandos .registrar-mes-filter.is-active {
+.e19-cuadro-mandos .registrar-mes-filter.is-active,
+.e19-prevision .registrar-mes-filter.is-active {
   background: var(--e19-surface);
   color: var(--e19-heading);
   box-shadow: var(--e19-shadow-card);
@@ -2401,7 +2534,8 @@
 
 .e19-registrar-mes .registrar-mes-filter:focus-visible,
 .e19-plan-mes .registrar-mes-filter:focus-visible,
-.e19-cuadro-mandos .registrar-mes-filter:focus-visible {
+.e19-cuadro-mandos .registrar-mes-filter:focus-visible,
+.e19-prevision .registrar-mes-filter:focus-visible {
   outline: 2px solid var(--e19-accent);
   outline-offset: 2px;
 }
@@ -2873,7 +3007,8 @@
 
 /* --- 3b · bandeja de cambios --- */
 
-.e19-cuadro-mandos .cambios-pendientes-layout {
+.e19-cuadro-mandos .cambios-pendientes-layout,
+.e19-prevision .cambios-pendientes-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
   gap: 16px;
@@ -2883,6 +3018,10 @@
 
 .e19-cuadro-mandos .cambios-pendientes-layout > .e19-card,
 .e19-cuadro-mandos .mapa-calor-card {
+  padding: 16px 18px;
+}
+
+.e19-prevision .cambios-pendientes-layout > .e19-card {
   padding: 16px 18px;
 }
 
@@ -3211,7 +3350,8 @@
 }
 
 @media (max-width: 1080px) {
-  .e19-cuadro-mandos .cambios-pendientes-layout {
+  .e19-cuadro-mandos .cambios-pendientes-layout,
+  .e19-prevision .cambios-pendientes-layout {
     grid-template-columns: 1fr;
   }
 }

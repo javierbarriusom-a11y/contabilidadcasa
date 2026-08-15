@@ -113,7 +113,7 @@ no tienen "estado de migración" porque no se ha decidido todavía si se adoptan
 |---|---|---|---|
 | 2a | Registrar el mes · una fila por partida, guardado automático | `#registrar-mes` | ✅ Migrada (E20-4, completa desde el 12 de agosto de 2026 — ver §11) |
 | 2b | Importar extracto · bandeja previa con cuatro pasos | `#data-entry` | ✅ Migrada (E19-4) |
-| 2c | Previsión · el año como una banda, desglose del mes al clic | `#prevision` / `#forecast` | ❌ No migrada — corregido el 15 de agosto de 2026, ver §13 y P-8 en `docs/BACKLOG_NUEVE_PANTALLAS.md` |
+| 2c | Previsión · el año como una banda, desglose del mes al clic | `#prevision` | ✅ Migrada (P-8, 15 de agosto de 2026 — ver §13) |
 | 2d | Aplicar escenario · diferencia línea a línea antes de tocar el plan | `#escenario-aplicar` | ✅ Migrada (E20-1) |
 | 2e | Escenarios guardados · cuál está aplicado, cuál caduca | `#escenario-guardados` | ✅ Migrada (E20-1, parcial — ver nota) |
 
@@ -581,24 +581,26 @@ También queda fuera el modo «Previsto ▾» de 3a como desplegable de métrica
 previsto, que es lo único que tiene sentido editar hacia el futuro. Los reales se registran en
 `#registrar-mes`.
 
-## 13. Previsión (2c) — corrección de estado (15 de agosto de 2026)
+## 13. Previsión (2c) — corrección de estado y construcción real (15 de agosto de 2026)
 
-Este catálogo daba el mockup 2c por «✅ Migrada (E19-5)». Es incorrecto: E19-5 migró la **piel
+Este catálogo daba el mockup 2c por «✅ Migrada (E19-5)». Era incorrecto: E19-5 migró la **piel
 visual** de las pantallas heredadas `#prevision`/`#forecast` (tokens, tipografía, tarjetas) sin
-tocar su contenido, que sigue siendo el de antes del rediseño — una tabla resumen anual y dos
-gráficos de proyección/categorías. El mockup 2c describe una pantalla distinta y más rica:
+tocar su contenido, que seguía siendo el de antes del rediseño — una tabla resumen anual y dos
+gráficos de proyección/categorías. El mismo error estaba también en `BACKLOG.md` (el backlog
+operativo vigente), que marcaba la fila de 2c «✅» sin matices. La confusión entre «se migró el
+aspecto» y «se migró la pantalla» es justo lo que este documento existe para evitar, así que se
+corrigieron los dos documentos antes de construir nada — no después.
 
-- Titular en prosa con el mes delicado, su cifra y fecha exactas, y la garantía de que el resto
-  del horizonte aguanta.
-- Selector de horizonte 12m / 24m / 48m / 2036.
-- Un gráfico de barras por mes (banda máximo-tras-ingresos → mínimo-antes-de-nómina) con la
-  reserva marcada y los meses problemáticos resaltados.
-- Tabla mensual: Ingresos, Gastos, Deuda, Ahorro, Mínimo.
-- Panel lateral día a día del mes seleccionado, con una sugerencia accionable.
+El mockup describe una pantalla con: titular en prosa sobre el mes delicado, su cifra y fecha
+exactas, y la garantía de que el resto del horizonte aguanta; selector de horizonte 12m / 24m /
+48m / hasta 2036; un gráfico de barras por mes (banda máximo-tras-ingresos → mínimo-antes-de-
+nómina) con la reserva marcada y los meses problemáticos resaltados; tabla mensual de Ingresos,
+Gastos, Deuda, Ahorro y Mínimo; y un panel lateral día a día del mes seleccionado, con una
+sugerencia accionable.
 
-Nada de eso existe hoy en `#prevision`/`#forecast`. La confusión entre «se migró el aspecto» y
-«se migró la pantalla» es justo el error que este documento existe para evitar en las demás
-filas, así que se corrige aquí en vez de dejarlo pasar. El trabajo real está trazado como **P-8
-«Previsión mes a mes por bloque»** en `docs/BACKLOG_NUEVE_PANTALLAS.md` (pantalla 04 · Plan,
-pestaña «Previsión»), donde sigue figurando `Pendiente` — ese documento nunca llegó a decir lo
-contrario.
+**Construida esta misma sesión como P-8** de `docs/BACKLOG_NUEVE_PANTALLAS.md` (pantalla 04 ·
+Plan, pestaña «Previsión»), que tiene el detalle completo de qué se reutilizó (`previsionMetric`,
+`mapaCalorFloor`/`mapaCalorTone`, `planningBreakdownForForecastMonth`) y qué es nuevo
+(`renderPrevision`, la banda, el panel día a día, la sugerencia). `#prevision` reemplaza por
+completo a la tabla anual heredada; `#forecast` (proyección de liquidez a 10 años y gastos por
+categoría) sigue aparte, sin tocar — nunca fue parte de este mockup, solo compartía piel visual.

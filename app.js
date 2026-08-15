@@ -10339,29 +10339,6 @@ function previsionMetric(row) {
   };
 }
 
-function previsionYears() {
-  return [...new Set(openSimulationRows(lastSimulation).map((row) => cashflowYear(row)))].filter(Boolean);
-}
-
-function populatePrevisionYearSelect() {
-  const select = qs("previsionYear");
-  if (!select) return;
-  const previous = select.value;
-  const years = previsionYears();
-  select.innerHTML = years.map((year) => `<option value="${year}">${year}</option>`).join("");
-  select.value = years.includes(previous) ? previous : years[0] || "";
-}
-
-function previsionRowsForYear(year) {
-  return lastSimulation
-    .map((row, index) => ({
-      row,
-      planned: lastPlannedSimulation[index] || row,
-      index,
-    }))
-    .filter((item) => !isClosedMonthKey(item.row.detailMonthKey) && cashflowYear(item.row) === year);
-}
-
 function previsionRowsForMonths(months) {
   const monthKeys = new Set(months.map((month) => month.key));
   return lastSimulation
@@ -14847,39 +14824,276 @@ function renderSavingsAgent({ forceHeavy = false } = {}) {
   if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("savings-agent");
 }
 
+// P-8 · pantalla nueva de Previsión (mockup 2c). Reutiliza tal cual el mismo motor que ya usaba
+// la tabla heredada (previsionMetric, previsionRowsForMonths) y el mismo lenguaje de color/reserva
+// que el mapa de calor (mapaCalorFloor/mapaCalorTone) — no fabrica una segunda escala de tensión de
+// caja. Lo nuevo es la presentación (banda por mes, titular, panel día a día), no el cálculo.
+
+const PREVISION_HORIZONS = {
+  "12m": { label: "12 meses", months: 12 },
+  "24m": { label: "24 meses", months: 24 },
+  "48m": { label: "48 meses", months: 48 },
+  full: { label: "Hasta 2036", months: Infinity },
+};
+
+let previsionHorizonKey = "12m";
+let previsionSelectedMonthKey = "";
+
+function previsionHorizonRows(horizonKey) {
+  const open = openForecastMonths();
+  const config = PREVISION_HORIZONS[horizonKey] || PREVISION_HORIZONS["12m"];
+  const months = Number.isFinite(config.months) ? open.slice(0, config.months) : open;
+  return previsionRowsForMonths(months);
+}
+
+function previsionMetricsFor(items) {
+  return items.map((item) => ({ item, metric: previsionMetric(item.row) }));
+}
+
+function previsionWorstOf(metrics) {
+  return metrics.reduce((worst, current) => (current.metric.min < worst.metric.min ? current : worst), metrics[0]);
+}
+
+// Titular en prosa del mockup: "El punto delicado es {mes}". No inventa un "todo va bien" cuando
+// hay más de un mes ajustado — lo dice, en vez de esconder que el peor mes no es el único.
+function previsionHeadlineHtml(metrics, floor) {
+  if (!metrics.length) return { title: "Sin meses abiertos en este horizonte", subtitle: "", worstKey: "" };
+  const worst = previsionWorstOf(metrics);
+  const others = metrics.filter((entry) => {
+    if (entry === worst) return false;
+    const tone = mapaCalorTone(entry.metric.min, floor.value);
+    return tone === "is-negative" || tone === "is-tight";
+  }).length;
+  const guarantee = others
+    ? `Hay otros ${others} mes${others === 1 ? "" : "es"} ajustado${others === 1 ? "" : "s"} o en negativo en este horizonte, no es solo ${worst.item.row.month}.`
+    : `El resto del horizonte aguanta por encima de ${floor.source}.`;
+  return {
+    title: `El punto delicado es ${worst.item.row.month}`,
+    subtitle: `Cae a ${money(worst.metric.min, true)} el ${worst.metric.minDateLabel || ""}, antes de los cobros del mes. ${guarantee}`,
+    worstKey: worst.item.row.detailMonthKey,
+  };
+}
+
+// Banda por mes: una barra vertical del mínimo antes de cobros al máximo tras cobros, con la línea
+// de reserva marcada y el tono del mapa de calor (mismo suelo, mismo color) por mes. Escala común a
+// todo el horizonte para que las barras sean comparables entre sí.
+function previsionBandHtml(metrics, floor, selectedKey) {
+  if (!metrics.length) return "";
+  const chartMax = Math.max(...metrics.map((entry) => entry.metric.max), floor.value, 1);
+  const chartMin = Math.min(0, ...metrics.map((entry) => entry.metric.min));
+  const span = chartMax - chartMin || 1;
+  const pct = (value) => Math.min(100, Math.max(0, ((value - chartMin) / span) * 100));
+  const reservePct = pct(floor.value);
+  const cols = metrics
+    .map(({ item, metric }) => {
+      const key = item.row.detailMonthKey;
+      const tone = mapaCalorTone(metric.min, floor.value);
+      const bottom = pct(metric.min);
+      const top = pct(metric.max);
+      const height = Math.max(2, top - bottom);
+      const isSelected = key === selectedKey;
+      return `<button type="button" class="prevision-band-col${isSelected ? " is-selected" : ""}" data-prevision-month-key="${escapeHtml(key)}" title="${escapeHtml(item.row.month)} · máx ${escapeHtml(money(metric.max, true))} · mín ${escapeHtml(money(metric.min, true))}">
+        <span class="prevision-band-bar ${tone}" style="bottom:${bottom}%;height:${height}%"></span>
+        <small>${escapeHtml(item.row.month)}</small>
+      </button>`;
+    })
+    .join("");
+  return `<span class="prevision-band-reserve-line" style="bottom:${reservePct}%"></span>${cols}`;
+}
+
+// Fila de la tabla mensual: Ingresos/Gastos/Deuda/Ahorro/Mínimo. Deuda es la financiación (refi,
+// ya distinguida por isFinancingPlanningRow); Gastos agrupa el resto del gasto real, incluido el
+// coche y los proyectos con desembolso ese mes — no hay una sexta columna de "proyectos" en el
+// mockup, así que se suman a Gastos en vez de perderse.
+function previsionMonthlyRow(item, selectedKey) {
+  const metric = previsionMetric(item.row);
+  const key = item.row.detailMonthKey;
+  const gastos = Number(item.row.coreSpend || 0) + Number(item.row.car || 0) + Number(item.row.projectOutflow || 0);
+  const deuda = Number(item.row.refi || 0);
+  return `<tr class="${key === selectedKey ? "is-selected" : ""}" data-prevision-month-key="${escapeHtml(key)}">
+    <td>${escapeHtml(item.row.month)}</td>
+    <td class="positive">${money(item.row.income, true)}</td>
+    <td class="negative">${money(gastos, true)}</td>
+    <td class="negative">${money(deuda, true)}</td>
+    <td>${money(item.row.saving, true)}</td>
+    <td class="${metric.min < 0 ? "negative" : ""}">${money(metric.min, true)}</td>
+  </tr>`;
+}
+
+function previsionRealTransactionsForMonth(monthKeyValue) {
+  return (baseData?.transactions || [])
+    .filter((transaction) => transaction.month === monthKeyValue)
+    .slice()
+    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || Number(a.statementOrder || 0) - Number(b.statementOrder || 0));
+}
+
+// Partidas fechadas de un mes futuro: los mismos incomeEvents que ya trae la fila de simulación
+// (regla, movimiento histórico o estimación) más los expenseEvents del mismo motor de timing —
+// nunca un calendario inventado aparte. El saldo corriente se simula localmente desde el saldo de
+// inicio de mes, en el mismo orden en que caerían los cobros y pagos.
+function previsionProjectedEntriesForItem(item) {
+  const date = addMonths(modelStartDate(), item.index);
+  const breakdown = planningBreakdownForForecastMonth(item.index, date);
+  const incomeEvents = (item.row.incomeEvents || []).map((event) => ({ ...event, amount: round2(Number(event.amount || 0)), kind: "income" }));
+  const expenseEvents = (breakdown.expenseEvents || []).map((event) => ({ ...event, amount: -round2(Number(event.amount || 0)), kind: "expense" }));
+  const events = [...incomeEvents, ...expenseEvents].sort(
+    (a, b) => a.day - b.day || (a.kind === b.kind ? 0 : a.kind === "income" ? -1 : 1),
+  );
+  let running = Number(item.row.startLiquidity || 0);
+  return events.map((event) => {
+    running = round2(running + event.amount);
+    return { ...event, balanceAfter: running };
+  });
+}
+
+// Decisión de datos confirmada con el usuario: movimientos reales cuando el mes ya los tiene
+// (el saldo es el que declara el propio extracto, no uno recalculado), partidas con fecha conocida
+// cuando no — nunca los dos mezclados dentro del mismo mes.
+function previsionDayEntries(item) {
+  const real = previsionRealTransactionsForMonth(item.row.detailMonthKey);
+  if (real.length) {
+    return {
+      kind: "real",
+      entries: real.map((transaction) => ({
+        date: transaction.date,
+        dateLabel: shortDate(transaction.date),
+        concept: transaction.movement || transaction.details || "Movimiento",
+        amount: Number(transaction.amount || 0),
+        balanceAfter: Number.isFinite(transaction.balance) ? Number(transaction.balance) : null,
+      })),
+    };
+  }
+  return { kind: "projected", entries: previsionProjectedEntriesForItem(item) };
+}
+
+// Sugerencia accionable (mockup: "Mover la matrícula al 28 sube el mínimo a 1.620€"). Es una
+// simulación local real, no un texto fabricado: mueve la partida de gasto más grande anterior al
+// punto mínimo justo después del siguiente cobro del mismo mes y recalcula el mínimo resultante.
+// Solo se ofrece si de verdad mejora; si no hay margen, no se inventa una sugerencia igualmente.
+function previsionSuggestion(item, dayResult) {
+  if (dayResult.kind !== "projected" || dayResult.entries.length < 2) return null;
+  let minIdx = -1;
+  let minVal = Infinity;
+  dayResult.entries.forEach((entry, index) => {
+    if (entry.balanceAfter < minVal) {
+      minVal = entry.balanceAfter;
+      minIdx = index;
+    }
+  });
+  if (minIdx < 0) return null;
+  const nextIncomeIdx = dayResult.entries.findIndex((entry, index) => index > minIdx && entry.kind === "income");
+  if (nextIncomeIdx < 0) return null;
+  const candidates = dayResult.entries
+    .map((entry, index) => ({ ...entry, index }))
+    .filter((entry) => entry.kind === "expense" && entry.index <= minIdx);
+  if (!candidates.length) return null;
+  const target = candidates.reduce((best, entry) => (Math.abs(entry.amount) > Math.abs(best.amount) ? entry : best));
+  const nextIncome = dayResult.entries[nextIncomeIdx];
+  const moved = { ...target, day: nextIncome.day, date: nextIncome.date, dateLabel: nextIncome.dateLabel };
+  const resequenced = dayResult.entries
+    .filter((_, index) => index !== target.index)
+    .concat(moved)
+    .sort((a, b) => a.day - b.day);
+  let running = Number(item.row.startLiquidity || 0);
+  let newMin = Infinity;
+  resequenced.forEach((entry) => {
+    running = round2(running + entry.amount);
+    if (running < newMin) newMin = running;
+  });
+  if (newMin <= minVal + 0.5) return null;
+  return {
+    concept: target.concept,
+    fromDateLabel: target.dateLabel,
+    toDateLabel: moved.dateLabel,
+    previousMin: minVal,
+    newMin,
+  };
+}
+
+function previsionDayPanelHtml(item, dayResult, suggestion) {
+  const listHtml = dayResult.entries.length
+    ? dayResult.entries
+        .map(
+          (entry) => `<li class="prevision-day-entry ${entry.amount < 0 ? "is-out" : "is-in"}">
+        <span class="prevision-day-date">${escapeHtml(entry.dateLabel || entry.date || "")}</span>
+        <span class="prevision-day-concept">${escapeHtml(entry.concept || "")}</span>
+        <span class="prevision-day-amount">${money(entry.amount, true)}</span>
+        <span class="prevision-day-balance">${entry.balanceAfter != null ? money(entry.balanceAfter, true) : "—"}</span>
+      </li>`,
+        )
+        .join("")
+    : `<li class="prevision-day-empty">Sin movimientos ni partidas fechadas para este mes.</li>`;
+
+  const sourceNote =
+    dayResult.kind === "real"
+      ? "Movimientos reales importados de tu banco, con el saldo que declara el propio extracto."
+      : "Mes sin movimientos reales todavía: partidas previstas con su fecha estimada (regla, movimiento histórico similar o estimación), con un saldo simulado desde el inicio de mes.";
+
+  const suggestionHtml = suggestion
+    ? `<p class="prevision-suggestion"><strong>Sugerencia:</strong> mover «${escapeHtml(suggestion.concept)}» del ${escapeHtml(suggestion.fromDateLabel)} al ${escapeHtml(suggestion.toDateLabel)} sube el mínimo del mes de ${escapeHtml(money(suggestion.previousMin, true))} a ${escapeHtml(money(suggestion.newMin, true))}. Estimación local: solo mueve esta partida dentro del mismo mes, el resto del calendario se queda igual.</p>`
+    : dayResult.kind === "projected"
+      ? `<p class="e19-kpi-note">No hay ningún cambio de fecha, dentro de este mes, que mejore el mínimo.</p>`
+      : "";
+
+  return `<div class="section-title compact"><div><p class="panel-kicker">Día a día</p><h3>${escapeHtml(item.row.month)}</h3><p class="e19-kpi-note">${sourceNote}</p></div></div>
+    <ul class="prevision-day-list">${listHtml}</ul>
+    ${suggestionHtml}`;
+}
+
+function previsionSelectMonth(monthKeyValue) {
+  if (!monthKeyValue || monthKeyValue === previsionSelectedMonthKey) return;
+  previsionSelectedMonthKey = monthKeyValue;
+  renderPrevision();
+}
+
+function handlePrevisionHorizon(horizonKey) {
+  if (!PREVISION_HORIZONS[horizonKey] || horizonKey === previsionHorizonKey) return;
+  previsionHorizonKey = horizonKey;
+  previsionSelectedMonthKey = "";
+  document.querySelectorAll("[data-prevision-horizon]").forEach((button) => {
+    const active = button.dataset.previsionHorizon === horizonKey;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  renderPrevision();
+}
+
 function renderPrevision() {
-  if (!qs("previsionTable")) return;
-  populatePrevisionYearSelect();
-  const selectedYear = qs("previsionYear")?.value || previsionYears()[0];
-  const items = previsionRowsForYear(selectedYear);
+  if (!qs("previsionMonthlyTable") || !lastSimulation.length) return;
+  const items = previsionHorizonRows(previsionHorizonKey);
   if (!items.length) {
-    qs("previsionSummary").innerHTML = "";
-    qs("previsionTable").innerHTML = "";
+    if (qs("previsionHeadline")) qs("previsionHeadline").textContent = "Sin meses abiertos en este horizonte";
+    if (qs("previsionSubheadline")) qs("previsionSubheadline").textContent = "";
+    qs("previsionBand").innerHTML = "";
+    if (qs("previsionBandLegend")) qs("previsionBandLegend").textContent = "";
+    qs("previsionMonthlyTable").innerHTML = "";
+    qs("previsionDayPanel").innerHTML = "";
     return;
   }
 
-  const realMetrics = items.map((item) => previsionMetric(item.row));
-  const resultYear = sumRows(realMetrics, (metric) => metric.result);
-  const minAdjusted = Math.min(...realMetrics.map((metric) => metric.adjustedMin));
-  const minTotal = Math.min(...realMetrics.map((metric) => metric.min));
-  const maxTotal = Math.max(...realMetrics.map((metric) => metric.max));
-  const worstItem = items[realMetrics.findIndex((metric) => metric.adjustedMin === minAdjusted)] || items[0];
-  const minItem = items[realMetrics.findIndex((metric) => metric.min === minTotal)] || items[0];
-  const maxItem = items[realMetrics.findIndex((metric) => metric.max === maxTotal)] || items[0];
+  const floor = mapaCalorFloor(items.map((item) => item.row));
+  const metrics = previsionMetricsFor(items);
+  const headline = previsionHeadlineHtml(metrics, floor);
+  qs("previsionHeadline").textContent = headline.title;
+  qs("previsionSubheadline").textContent = headline.subtitle;
 
-  qs("previsionSummary").innerHTML = [
-    ["Resultado anual", money(resultYear, true), resultYear >= 0 ? "positive" : "negative"],
-    ["Saldo máximo", `${money(maxTotal, true)} · ${maxItem.row.month} · ${previsionMetric(maxItem.row).maxDateLabel || ""}`, "positive"],
-    ["Mínimo", `${money(minTotal, true)} · ${minItem.row.month} · ${previsionMetric(minItem.row).minDateLabel || ""}`, minTotal < 0 ? "negative" : ""],
-    ["Mínimo ajustado", `${money(minAdjusted, true)} · ${worstItem.row.month} · ${previsionMetric(worstItem.row).adjustedMinDateLabel || ""}`, minAdjusted < 0 ? "negative" : ""],
-  ]
-    .map(([label, value, klass]) => `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`)
-    .join("");
+  if (!previsionSelectedMonthKey || !items.some((item) => item.row.detailMonthKey === previsionSelectedMonthKey)) {
+    previsionSelectedMonthKey = headline.worstKey;
+  }
 
-  const headers = items.map((item) => `<th>${escapeHtml(item.row.month)}</th>`).join("");
-  const rows = renderPrevisionRows(items);
+  qs("previsionBand").innerHTML = previsionBandHtml(metrics, floor, previsionSelectedMonthKey);
+  qs("previsionBandLegend").textContent =
+    `Cada barra va del mínimo antes de cobros al máximo tras cobros; la línea marca ${floor.source}.`;
 
-  qs("previsionTable").innerHTML = `<thead><tr><th>Indicador</th>${headers}</tr></thead><tbody>${rows.join("")}</tbody>`;
+  qs("previsionMonthlyTable").innerHTML =
+    `<thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Deuda</th><th>Ahorro</th><th>Mínimo</th></tr></thead><tbody>${items
+      .map((item) => previsionMonthlyRow(item, previsionSelectedMonthKey))
+      .join("")}</tbody>`;
+
+  const selectedItem = items.find((item) => item.row.detailMonthKey === previsionSelectedMonthKey) || items[0];
+  const dayResult = previsionDayEntries(selectedItem);
+  const suggestion = previsionSuggestion(selectedItem, dayResult);
+  qs("previsionDayPanel").innerHTML = previsionDayPanelHtml(selectedItem, dayResult, suggestion);
 }
 
 function statusDot(type) {
@@ -18040,20 +18254,6 @@ function renderMonthlySummary() {
         `<div class="expense-summary-card"><span>${label}</span><strong class="${klass}">${value}</strong></div>`,
     )
     .join("");
-}
-
-function selectMonthlyDetailByKey(monthKeyValue) {
-  const select = qs("detailMonth");
-  if (!select || !monthKeyValue) return false;
-  const planningIndex = baseData.monthlyPlanning.months.findIndex((month) => month.key === monthKeyValue);
-  if (planningIndex < 0) return false;
-  const option = [...select.options].find((item) => Number(item.value) === planningIndex);
-  if (!option) return false;
-  select.value = option.value;
-  history.pushState(null, "", "#update-data");
-  setActiveView("update-data", { focus: true });
-  renderMonthlyDetails();
-  return true;
 }
 
 function renderIncomeDetails() {
@@ -25321,11 +25521,14 @@ async function init() {
     registrarExcelDrop.addEventListener("dragleave", handleRegistrarExcelDragLeave);
     registrarExcelDrop.addEventListener("drop", handleRegistrarExcelDrop);
   }
-  qs("previsionYear").addEventListener("change", renderPrevision);
-  qs("previsionTable")?.addEventListener("click", (event) => {
-    const cell = event.target.closest("[data-prevision-month-key]");
-    if (!cell) return;
-    selectMonthlyDetailByKey(cell.getAttribute("data-prevision-month-key"));
+  qs("prevision")?.addEventListener("click", (event) => {
+    const horizonButton = event.target.closest("[data-prevision-horizon]");
+    if (horizonButton) {
+      handlePrevisionHorizon(horizonButton.dataset.previsionHorizon);
+      return;
+    }
+    const monthTarget = event.target.closest("[data-prevision-month-key]");
+    if (monthTarget) previsionSelectMonth(monthTarget.getAttribute("data-prevision-month-key"));
   });
   qs("agentYear")?.addEventListener("change", renderSavingsAgent);
   qs("agentCaixaFloor")?.addEventListener("change", handleAgentCaixaFloorChange);
