@@ -7767,9 +7767,69 @@ body {
 .movements-table td:nth-child(3),
 .movements-table th:nth-child(5),
 .movements-table td:nth-child(5),
-.movements-table th:nth-child(8),
-.movements-table td:nth-child(8) {
+.movements-table th:nth-child(6),
+.movements-table td:nth-child(6),
+.movements-table th:nth-child(9),
+.movements-table td:nth-child(9) {
   text-align: left;
+}
+
+/* M-2/M-4/M-6/M-9/M-10 (redisñeo de Movimientos, 15 de agosto de 2026): columna «Partida» (M-4,
+   la misma clase .e19-badge que ya usa el resto de la app) y botón «Ver» (M-6) al final de cada
+   fila. `.movement-detail-fields`/`.movement-detail-reclassify` estilan el panel de detalle;
+   `.movements-table-foot`/`.movements-table-actions` los totales (M-9) y la exportación (M-10). */
+.movements-unclassified-banner {
+  display: inline-block;
+  margin: -4px 0 10px;
+}
+
+.movements-table-foot {
+  margin: 10px 0;
+}
+
+.movements-table-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.movement-detail-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 20px;
+  margin: 0 0 16px;
+}
+
+.movement-detail-fields div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.movement-detail-fields dt {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.movement-detail-fields dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.movement-detail-reclassify {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border, #e2e2e2);
+  padding-top: 14px;
+}
+
+.movement-detail-reclassify label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 700;
 }
 
 table {

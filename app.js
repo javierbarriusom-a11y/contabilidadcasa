@@ -76,6 +76,7 @@ let canonicalDiagnosticsEnabled = false;
 let decisionWorkflow = null;
 let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
+let movementDetailTransaction = null; // M-6: la transacción abierta en el panel de detalle de Movimientos
 let editingProjectId = null;
 let memoryStorage = {};
 let supabaseClient = null;
@@ -16569,33 +16570,215 @@ function populateMovementFilters(transactions) {
   if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
 }
 
-function renderDetailedMovements() {
-  const rowsElement = qs("movementRows");
-  if (!rowsElement) return;
+// M-3: filtro por mes, búsqueda y ahora también rango de fechas (Desde/Hasta), sobre `Fecha`, la
+// misma que ya ordenaba la tabla. Se extrae de `renderDetailedMovements` para que el manejador del
+// panel de detalle (M-6) pueda recalcular la misma lista filtrada y resolver un índice de fila sin
+// depender de un id estable que los movimientos no tienen.
+function movementsFilteredList() {
   const transactions = (baseData.transactions || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  populateMovementFilters(transactions);
   const monthFilter = qs("movementMonthFilter")?.value || "";
+  const dateFrom = qs("movementDateFrom")?.value || "";
+  const dateTo = qs("movementDateTo")?.value || "";
   const search = normalizedText(qs("movementSearch")?.value || "");
-  const filtered = transactions.filter((row) => {
+  return transactions.filter((row) => {
     if (monthFilter && row.month !== monthFilter) return false;
+    if (dateFrom && String(row.date) < dateFrom) return false;
+    if (dateTo && String(row.date) > dateTo) return false;
     if (!search) return true;
     return normalizedText(`${row.date} ${row.movement} ${row.details} ${row.category} ${row.source}`).includes(search);
   });
-  qs("movementCount").textContent = `${filtered.length} movimiento(s) reales${monthFilter ? ` en ${monthLabel(dateFromMonthKey(monthFilter))}` : ""}.`;
+}
+
+// M-4: la partida se lee de `mappingForMovement` (el mismo diccionario `movementMappings` que ya
+// usa #datos-importar y #data-entry — ninguna segunda puerta de clasificación). Sin mapping, el
+// hueco se pinta como hueco (regla transversal 04), nunca como una partida inventada.
+function movementPartidaBadge(row) {
+  const mapping = mappingForMovement(row);
+  if (!mapping) return `<span class="e19-badge e19-badge-warning">Sin partida</span>`;
+  return `<span class="e19-badge e19-badge-neutral">${escapeHtml(mapping.row.sectionName)} · ${escapeHtml(displayLabelForRow(mapping.row))}</span>`;
+}
+
+// M-9: totales de la vista filtrada, no del extracto completo — se recalculan con el mismo
+// `filtered` que ya pinta la tabla, así que nunca pueden desincronizarse de lo que se ve.
+function movementsTotals(filtered) {
+  return filtered.reduce(
+    (totals, row) => {
+      const amount = Number(row.amount || 0);
+      if (amount >= 0) totals.income += amount;
+      else totals.expense += amount;
+      return totals;
+    },
+    { income: 0, expense: 0 },
+  );
+}
+
+function renderDetailedMovements() {
+  const rowsElement = qs("movementRows");
+  if (!rowsElement) return;
+  const transactions = baseData.transactions || [];
+  populateMovementFilters(transactions);
+  const monthFilter = qs("movementMonthFilter")?.value || "";
+  const filtered = movementsFilteredList();
+  const unclassified = filtered.filter((row) => Number(row.amount) && !mappingForMovement(row));
+
+  const countLabel = qs("movementCount");
+  if (countLabel) countLabel.textContent = `${filtered.length} movimiento(s) reales${monthFilter ? ` en ${monthLabel(dateFromMonthKey(monthFilter))}` : ""}.`;
+
+  // M-5: aviso de cola sin clasificar, sobre la misma vista filtrada — no un recuento aparte del
+  // extracto completo que no coincidiría con lo que la tabla muestra.
+  const banner = qs("movementsUnclassifiedBanner");
+  if (banner) {
+    if (unclassified.length) {
+      banner.hidden = false;
+      banner.textContent = `${unclassified.length} movimiento(s) de esta vista sin partida asignada. Ábrelos con «Ver» para clasificarlos.`;
+    } else {
+      banner.hidden = true;
+      banner.textContent = "";
+    }
+  }
+
   rowsElement.innerHTML = filtered
     .map(
-      (row) => `<tr>
+      (row, index) => `<tr>
         <td>${formatIsoDate(row.date)}</td>
         <td>${formatIsoDate(row.valueDate)}</td>
         <td>${escapeHtml(row.movement)}</td>
         <td>${escapeHtml(row.details)}</td>
         <td>${escapeHtml(row.category)}</td>
+        <td>${movementPartidaBadge(row)}</td>
         <td class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</td>
         <td>${row.balance === null || row.balance === undefined ? "" : money(row.balance, true)}</td>
         <td>${escapeHtml(row.source || "")}</td>
+        <td><button type="button" class="e19-btn e19-btn-secondary movements-row-detail" data-movement-detail-index="${index}">Ver</button></td>
       </tr>`,
     )
     .join("");
+
+  // M-9: totales de la vista filtrada.
+  const totalsLabel = qs("movementsTotals");
+  if (totalsLabel) {
+    const totals = movementsTotals(filtered);
+    totalsLabel.textContent = filtered.length
+      ? `Ingresos de esta vista: ${money(totals.income, true)} · Gastos de esta vista: ${money(totals.expense, true)} · Neto: ${money(totals.income + totals.expense, true)}`
+      : "Sin movimientos en esta vista.";
+  }
+}
+
+// M-6: panel de detalle. No hay id estable en los movimientos importados, así que se identifica la
+// fila por su posición en la MISMA lista filtrada que acaba de pintar la tabla (recalculada aquí,
+// no cacheada) — determinista mientras no cambien los filtros entre el render y el clic, que es
+// síncrono.
+function handleMovementDetailOpen(index) {
+  const row = movementsFilteredList()[Number(index)];
+  if (!row) return;
+  movementDetailTransaction = row;
+  renderMovementDetailDialog();
+  const dialog = qs("movementDetailDialog");
+  if (!dialog || dialog.open) return;
+  try {
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+  } catch {
+    dialog.setAttribute("open", "");
+  }
+}
+
+function closeMovementDetailDialog() {
+  const dialog = qs("movementDetailDialog");
+  movementDetailTransaction = null;
+  if (dialog?.open && typeof dialog.close === "function") dialog.close();
+  else dialog?.removeAttribute("open");
+}
+
+function renderMovementDetailDialog() {
+  const content = qs("movementDetailContent");
+  const row = movementDetailTransaction;
+  if (!content || !row) return;
+  const mapping = mappingForMovement(row);
+  const kind = movementKindFromAmount(row.amount);
+  content.innerHTML = `
+    <h3 id="movementDetailTitle">${escapeHtml(movementDisplayName(row))}</h3>
+    <dl class="movement-detail-fields">
+      <div><dt>Fecha</dt><dd>${escapeHtml(formatIsoDate(row.date))}</dd></div>
+      <div><dt>Fecha valor</dt><dd>${escapeHtml(formatIsoDate(row.valueDate))}</dd></div>
+      <div><dt>Movimiento</dt><dd>${escapeHtml(row.movement)}</dd></div>
+      <div><dt>Más datos</dt><dd>${escapeHtml(row.details || "—")}</dd></div>
+      <div><dt>Categoría del banco</dt><dd>${escapeHtml(row.category || "—")}</dd></div>
+      <div><dt>Importe</dt><dd class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</dd></div>
+      <div><dt>Saldo</dt><dd>${row.balance === null || row.balance === undefined ? "—" : money(row.balance, true)}</dd></div>
+      <div><dt>Origen</dt><dd>${escapeHtml(row.source || "—")}</dd></div>
+    </dl>
+    <div class="movement-detail-reclassify">
+      <label>
+        <span>Partida</span>
+        <select id="movementDetailPartida">${movementMappingOptions(kind, mapping?.row ? seriesKeyForRow(mapping.row) : "")}</select>
+      </label>
+      <p class="e19-kpi-note">Se aplicará a todos los movimientos con el mismo concepto (${escapeHtml(movementDisplayName(row))}), incluidos los futuros — es la misma regla que ya usan Registrar y el importador, no una clasificación solo para este movimiento.</p>
+      <button type="button" class="e19-btn e19-btn-primary" id="movementDetailSave">Guardar partida</button>
+    </div>`;
+}
+
+// M-7: cambio de partida con regla — reutiliza tal cual el mismo diccionario y el mismo camino de
+// escritura que ya usaba `applyPendingMovementMappings` en #data-entry (regla transversal 01): sin
+// esta selección no hay una segunda forma de reclasificar un movimiento.
+function handleMovementReclassify() {
+  const row = movementDetailTransaction;
+  const select = qs("movementDetailPartida");
+  if (!row || !select) return;
+  const rowKeyValue = select.value;
+  if (!rowKeyValue) {
+    announceStatus("Elige una partida antes de guardar.");
+    return;
+  }
+  const kind = movementKindFromAmount(row.amount);
+  movementMappings[movementMappingKey(row)] = {
+    kind,
+    rowKey: rowKeyValue,
+    label: select.options[select.selectedIndex]?.textContent || "",
+    updatedAt: new Date().toISOString(),
+  };
+  saveMovementMappings();
+  const applied = applyMovementMappingsToActuals();
+  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+  saveIncomeActuals();
+  saveExpenseActuals();
+  refreshAllSectionsAfterDataChange();
+  announceStatus(`Partida guardada. ${applied} importe(s) reales recalculados desde movimientos.`);
+  renderMovementDetailDialog();
+  renderDetailedMovements();
+}
+
+// M-10: exporta exactamente la vista filtrada visible, no el extracto completo.
+function handleMovementsExport() {
+  const filtered = movementsFilteredList();
+  const header = ["Fecha", "Fecha valor", "Movimiento", "Más datos", "Categoría", "Partida", "Importe", "Saldo", "Origen"];
+  const lines = filtered.map((row) => {
+    const mapping = mappingForMovement(row);
+    return [
+      row.date,
+      row.valueDate,
+      row.movement,
+      row.details,
+      row.category,
+      mapping ? `${mapping.row.sectionName} · ${displayLabelForRow(mapping.row)}` : "Sin partida",
+      row.amount,
+      row.balance,
+      row.source,
+    ]
+      .map(csvValue)
+      .join(";");
+  });
+  const csvContent = `﻿${[header.map(csvValue).join(";"), ...lines].join("\r\n")}`;
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `movimientos-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function renderPlanningDetails({
@@ -24456,6 +24639,21 @@ async function init() {
   qs("visualBulkDelete").addEventListener("click", stageSelectedVisualDeletes);
   qs("movementMonthFilter").addEventListener("change", renderDetailedMovements);
   qs("movementSearch").addEventListener("input", renderDetailedMovements);
+  qs("movementDateFrom")?.addEventListener("change", renderDetailedMovements);
+  qs("movementDateTo")?.addEventListener("change", renderDetailedMovements);
+  qs("movementRows")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-movement-detail-index]");
+    if (button) handleMovementDetailOpen(button.dataset.movementDetailIndex);
+  });
+  qs("movementsExportButton")?.addEventListener("click", handleMovementsExport);
+  qs("movementDetailClose")?.addEventListener("click", closeMovementDetailDialog);
+  qs("movementDetailDialog")?.addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) closeMovementDetailDialog();
+    else if (event.target.id === "movementDetailSave") handleMovementReclassify();
+  });
+  qs("movementDetailDialog")?.addEventListener("close", () => {
+    movementDetailTransaction = null;
+  });
   qs("movementExcelFile").addEventListener("change", handleMovementExcelImport);
   qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
   qs("home")?.addEventListener("click", (event) => {

@@ -67,9 +67,10 @@ commit, push, PR, fusionar) no pide permiso en cada turno.
 | 7 · Gobernanza | Ajustes, retirada de las dieciocho heredadas y del Laboratorio. | El acta queda exportada y ningún enlace antiguo se rompe. |
 
 **Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Registrar) con R-1 a R-12 hechas — R-11 se
-consultó y se resolvió el 15 de agosto de 2026, ver la nota bajo la tabla de la pantalla 02. La
-parte de Fase 2 que vive en Movimientos y en la pestaña Mes de Plan sigue sin empezar. Fases 3-7
-sin empezar.
+consultó y se resolvió el 15 de agosto de 2026, ver la nota bajo la tabla de la pantalla 02. De la
+parte de Fase 2 que vive en Movimientos, M-1 a M-7 y M-9 a M-11 están hechas (15 de agosto);
+quedan M-8/M-8b (selección múltiple y lote) y M-8c (bloqueada por Cierre). La pestaña Mes de Plan
+sigue sin empezar. Fases 3-7 sin empezar.
 
 ## 4. Nueve reglas transversales
 
@@ -179,19 +180,29 @@ Pruebas: `tests/r11-cierre-escritura-heredadas.test.cjs` (16 pruebas nuevas); se
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| M-1 | Vista propia en el menú | Fase 3 · menú | S | Pendiente (aparece bajo Día a día con tira de estado; falta migajas y contenido propio) |
-| M-2 | Tabla del extracto | M-1 | M | Pendiente |
-| M-3 | Filtros, búsqueda y rango de fechas | M-2 | M | Pendiente |
-| M-4 | Marca del movimiento sin partida | M-2 | S | Pendiente |
-| M-5 | Aviso de cola sin clasificar | M-3 | S | Pendiente |
-| M-6 | Panel de detalle | M-2 | M | Pendiente |
-| M-7 | Cambio de partida con regla opcional | M-6 | M | Pendiente |
+| M-1 | Vista propia en el menú | Fase 3 · menú | S | Hecho (15 de agosto) |
+| M-2 | Tabla del extracto | M-1 | M | Hecho |
+| M-3 | Filtros, búsqueda y rango de fechas | M-2 | M | Hecho |
+| M-4 | Marca del movimiento sin partida | M-2 | S | Hecho |
+| M-5 | Aviso de cola sin clasificar | M-3 | S | Hecho |
+| M-6 | Panel de detalle | M-2 | M | Hecho |
+| M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho |
 | M-8 | Selección múltiple y acción en lote | M-2, R-7 | L | Pendiente |
 | M-8b | Consistencia con Registrar y el importador | M-8, R-8 | M | Pendiente |
-| M-8c | Saldo recalculado validado contra el declarado | M-2, Cierre | M | Pendiente |
-| M-9 | Totales de la vista filtrada | M-3 | S | Pendiente |
-| M-10 | Exportar la vista | M-3 | S | Pendiente |
-| M-11 | Los importes no se editan | M-2 | S | Pendiente |
+| M-8c | Saldo recalculado validado contra el declarado | M-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
+| M-9 | Totales de la vista filtrada | M-3 | S | Hecho |
+| M-10 | Exportar la vista | M-3 | S | Hecho |
+| M-11 | Los importes no se editan | M-2 | S | Hecho |
+
+**Nota (15 de agosto)**: `#movements` se evolucionó en el mismo sitio en vez de construir una
+pantalla nueva al lado — el enlace de menú «Movimientos» ya apuntaba aquí desde Fase 3 (T-0/H-8),
+así que no había una heredada que adoptar o sustituir, solo contenido pendiente. La tarjeta de
+importación por Excel y la lista de comercios que ya vivían arriba de la tabla no se tocaron. M-7
+reutiliza tal cual el diccionario `movementMappings` y el camino de escritura que ya usaba
+`applyPendingMovementMappings` en `#data-entry` (regla transversal 01): reclasificar desde el panel
+de detalle es la misma regla, no una segunda forma de clasificar. Quedan pendientes M-8/M-8b
+(selección múltiple y acción en lote, talla L, con su propia sesión) y M-8c, bloqueada hasta que
+exista Cierre (Fase 5).
 
 ### 04 · Plan — Mes, Previsión y Ahorro en tres pestañas (17 tareas · 3 grandes)
 

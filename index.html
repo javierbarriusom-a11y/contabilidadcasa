@@ -3150,11 +3150,12 @@
               <div class="movement-mapping-review" id="movementMappingReview" hidden></div>
             </article>
             <div class="merchant-list" id="merchantList"></div>
+            <p class="e19-registrar-crumb" id="movementsCrumb">Movimientos › Extracto real</p>
             <div class="section-title movement-detail-title">
               <div>
                 <p class="panel-kicker">Extracto real</p>
                 <h2>Movimientos detallados</h2>
-                <p>Se actualizan automáticamente al cargar un libro Excel completo desde “Carga de datos”.</p>
+                <p>Se actualizan automáticamente al cargar un libro Excel completo desde “Carga de datos”. Los importes no se editan aquí.</p>
               </div>
               <div class="movement-filters">
                 <label>
@@ -3162,11 +3163,20 @@
                   <select id="movementMonthFilter"></select>
                 </label>
                 <label>
+                  <span>Desde</span>
+                  <input id="movementDateFrom" type="date" />
+                </label>
+                <label>
+                  <span>Hasta</span>
+                  <input id="movementDateTo" type="date" />
+                </label>
+                <label>
                   <span>Buscar</span>
                   <input id="movementSearch" type="search" placeholder="Movimiento, detalle o categoría" />
                 </label>
               </div>
             </div>
+            <p class="e19-badge e19-badge-warning movements-unclassified-banner" id="movementsUnclassifiedBanner" role="status" hidden></p>
             <div class="movement-count" id="movementCount"></div>
             <div class="table-wrap movements-table-wrap">
               <table class="movements-table">
@@ -3177,13 +3187,19 @@
                     <th>Movimiento</th>
                     <th>Más datos</th>
                     <th>Categoría</th>
+                    <th>Partida</th>
                     <th>Importe</th>
                     <th>Saldo</th>
                     <th>Origen</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody id="movementRows"></tbody>
               </table>
+            </div>
+            <p class="e19-kpi-note movements-table-foot" id="movementsTotals"></p>
+            <div class="movements-table-actions">
+              <button type="button" class="e19-btn e19-btn-secondary" id="movementsExportButton">Exportar CSV de esta vista</button>
             </div>
           </section>
           <aside class="finance-assistant" id="financeAssistant" aria-label="Asistente financiero">
@@ -3219,6 +3235,10 @@
               <button type="button" class="secondary-button" id="unifiedActionCancel">Cancelar</button>
               <button type="button" id="unifiedActionConfirm">Continuar simulación</button>
             </div>
+          </dialog>
+          <dialog class="action-review-dialog" id="movementDetailDialog" aria-labelledby="movementDetailTitle">
+            <button class="action-review-close" id="movementDetailClose" type="button" aria-label="Cerrar detalle">×</button>
+            <div id="movementDetailContent"></div>
           </dialog>
         </main>
       </div>
