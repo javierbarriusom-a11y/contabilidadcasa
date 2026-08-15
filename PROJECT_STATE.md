@@ -1,6 +1,73 @@
 # Estado del proyecto
 
-Fecha de revisión: 14 de agosto de 2026.
+Fecha de revisión: 15 de agosto de 2026.
+
+## Cierre de sesión — 15 de agosto de 2026: regla de guardado, previsto solo en Plan y pie de impacto (R-6, R-6b, R-7)
+
+Continuación directa del cierre anterior (R-5, fusionado a `main`). El usuario pidió seguir con
+R-6, R-6b y R-7. R-6 tenía una ambigüedad real: su criterio de aceptación menciona «se retiran las
+reglas de confirmar por bloque e incorporar en lote fuera de las pestañas de importación», que
+apunta a dos mecanismos de pantallas heredadas fuera de Registrar (el panel «Guardar
+cambios/Descartar» de Cuadro de mandos y la carga por lote de Datos). Retirar la escritura de una
+pantalla en uso se consulta siempre según `CLAUDE.md`, así que se preguntó antes de tocar nada: el
+usuario eligió acotar R-6 a lo que ya pasa **dentro** de Registrar, sin retirar nada de las
+heredadas.
+
+**R-6 · una sola regla de guardado (acotada a Registrar)**: Saldo de cuentas (R-3) y Reales del mes
+(R-5) ya guardaban al salir de la casilla sin paso de confirmar — R-6 no cambia ese
+comportamiento, lo deja fijado con pruebas nuevas que comprueban que ninguna de las dos pestañas
+tiene un botón de confirmar por bloque y que Importar/Lote siguen enlazando a la heredada en vez de
+fabricar una incorporación en lote propia. El panel de Cuadro de mandos y la carga por lote de
+Datos quedan intactos, con una prueba que lo deja constatado.
+
+**R-6b · el previsto solo se edita en Plan**: la celda de previsto de Reales del mes ya era de solo
+lectura (heredado de R-5); lo nuevo es el enlace «Ver en Plan» en cada fila, que navega a Plan
+(`#cuadro-mandos`) con el mismo patrón `data-home-nav` que usa el resto de la aplicación. Una
+prueba comprueba que `handleRegistrarActualsChange` nunca escribe en `planned`.
+
+**R-7 · pie de impacto de la sesión**: aparece con el primer cambio (de saldo o de un real) desde
+que se abrió Registrar o desde el último consolidar/descartar, y se queda visible al cambiar de
+pestaña (vive fuera de las cuatro `data-registrar-panel`, como `<aside>` propio con
+`position:sticky`). Reutiliza el componente `.e19-impact-bar` que ya usaba el pie de impacto de
+Plan (cuadro-mandos-impact) y las mismas fuentes que la tarjeta de R-4
+(`unifiedActionCenterModel`/`homeDebtOutlook`/`FinanceCanonicalCushion.worstMonthOf`) — no hay un
+segundo motor de cálculo. Las cuatro cifras son de la sesión completa (delta desde la foto tomada
+antes del primer cambio, no desde la última casilla tocada): reserva sobre el mínimo (liquidez
+menos la reserva protegida — la única que de verdad se mueve al editar saldo), cobertura hasta el
+siguiente ingreso, fecha libre de deuda y peor mes del horizonte. Como Registrar guarda al salir de
+la casilla (R-6), «Descartar todo» no descarta cambios sin guardar — revierte cada casilla tocada a
+su valor anterior a la sesión por los mismos caminos de escritura que el guardado normal
+(`setStateAccountBalances`/`actualsForKind`), y «Guardar cambios» simplemente cierra el
+seguimiento y dejar una nota de dos segundos. Si la reserva sobre el mínimo queda en negativo, esa
+cifra se pinta en aviso (fondo del pie en rojo) y «Guardar cambios» pide una confirmación explícita
+antes de cerrar la sesión.
+
+**Pruebas nuevas**: `tests/r6-r6b-r7-registrar.test.cjs` (17 pruebas) — guardado por `change` en
+las dos pestañas, ausencia de confirmar por bloque, Importar/Lote sin incorporación propia, panel
+de Cuadro de mandos intacto, previsto de solo lectura, enlace a Plan, las cuatro cifras del pie
+leídas de los mismos motores que R-4, el pie oculto sin cambios, que solo se registra el primer
+valor anterior de cada casilla en la sesión (no el más reciente), el aviso de reserva bajo mínimo,
+que consolidar sin cambios pendientes no hace nada, que consolidar con la reserva bajo mínimo pide
+confirmación y respeta un «cancelar», que el pie vive fuera de las pestañas, y el cableado de
+Descartar/Guardar. Se ajustaron `tests/r1-r4-registrar.test.cjs` (las dos funciones de guardado de
+saldo ahora también registran el cambio de sesión y refrescan el pie de impacto) y
+`tests/r5-registrar-reales.test.cjs` (tres pruebas de `handleRegistrarActualsChange` necesitaban
+`registrarRecordSessionChange` como mock).
+
+**Validación** (`npm run verify`, exit 0): **684/684 pruebas** (667 + 17 nuevas), **636 IDs
+únicos** de accesibilidad, diff 10.000 filas en **38,8 ms**, forecast y escenarios en **200,6 ms**,
+recursos **1336 KB**, build del sitio, privacidad y smoke test en verde. Verificación visual con
+Playwright: editar el saldo de CaixaBank hasta bajar de la reserva muestra el pie de impacto en
+aviso con las cuatro cifras y el delta de la sesión; «Descartar todo» devuelve el saldo exacto y
+oculta el pie; en Reales del mes, la celda de previsto no tiene ningún `<input>` y el enlace «Ver en
+Plan» navega a `#cuadro-mandos`; editar un real también dispara el pie de impacto (persiste al
+cambiar de pestaña); «Guardar cambios» deja la nota de consolidado y el pie se oculta a los dos
+segundos. Sin errores de consola atribuibles a los cambios (los dos avisos de red observados
+aparecen igual en Hoy sin tocar Registrar, ruido del sandbox).
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-missing-hudou6`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`. Queda R-8/R-9/R-10 (Importar extracto, Lote y Excel,
+redirección de hashes) para una sesión posterior.
 
 ## Cierre de sesión — 14 de agosto de 2026: pestaña Reales del mes en Registrar (R-5)
 
