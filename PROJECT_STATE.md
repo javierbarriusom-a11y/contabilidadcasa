@@ -2,6 +2,77 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Previsión — P-8, corrección de dos documentos y pantalla nueva
+
+El usuario retomó la sesión con un pantallazo de la conversación anterior y pidió revisar todo lo
+publicado hasta ahora contra los mockups y el backlog antes de seguir, no solo confiar en que
+«pendiente de fases futuras» fuera siempre la explicación correcta.
+
+**Hallazgo antes de tocar código**: `docs/E19_SISTEMA_DISENO.md` daba el mockup 2c (Previsión) por
+«✅ Migrada (E19-5)» y `BACKLOG.md` —el backlog operativo vigente— también lo marcaba «✅» sin
+matices. Los dos estaban equivocados: E19-5 solo aplicó la piel visual del rediseño a las
+pantallas heredadas `#prevision`/`#forecast` (tokens, tipografía, tarjetas), sin construir el
+contenido real del mockup. `docs/BACKLOG_NUEVE_PANTALLAS.md` sí tenía razón — P-8 «Previsión mes a
+mes por bloque» figuraba `Pendiente`, así que no había ninguna inconsistencia entre el sitio
+publicado y *ese* backlog, solo en los otros dos documentos. Se corrigieron los dos antes de
+construir nada.
+
+**Auditoría del resto del catálogo**: se comprobaron 1a (`#home`), 1f (`#update-hub`) y 2b
+(`#data-entry`) —el mismo lote de migración E19 que incluía la 2c con el error— contra sus
+mockups. Las tres sí tienen contenido real construido (decisiones/KPI dinámicos, los seis tiles
+del hub, el stepper de 4 pasos de la bandeja), no un simple reskin. El resto del catálogo (1b-1e,
+1g, 2d, 2e, 3a-3c) ya tenía secciones propias en `E19_SISTEMA_DISENO.md` con funciones citadas y
+verificación en navegador. Conclusión: el error de 2c era aislado, no un patrón sistemático.
+
+**P-8 construida esta sesión**: `renderPrevision()` sustituye por completo la tabla anual
+heredada por año natural. Titular en prosa sobre el mes más delicado del horizonte
+(`previsionHeadlineHtml`/`previsionWorstOf`), selector de horizonte 12/24/48 meses o el horizonte
+completo (`previsionHorizonRows`), una banda vertical por mes con la reserva marcada y el mismo
+tono de color que ya usaba el mapa de calor (`mapaCalorFloor`/`mapaCalorTone`, sin fabricar una
+segunda escala), tabla mensual Ingresos/Gastos/Deuda/Ahorro/Mínimo, y un panel día a día del mes
+seleccionado. Reutiliza tal cual `previsionMetric` (ya usado por la tabla heredada) y
+`planningBreakdownForForecastMonth` (el mismo motor de timing que ya alimentaba el forecast) —no
+se construyó un segundo motor de cálculo.
+
+**Decisión de datos del panel día a día, confirmada explícitamente por el usuario**: combina
+movimientos reales (`baseData.transactions`, con el saldo que declara el propio extracto) cuando
+el mes ya los tiene, y partidas con fecha conocida (`incomeEvents`/`expenseEvents`, saldo simulado
+desde el inicio de mes) cuando no — nunca los dos mezclados dentro del mismo mes, simplificación
+deliberada y documentada.
+
+**Sugerencia accionable** (`previsionSuggestion`): simulación local real, no un texto fabricado —
+mueve la partida de gasto más grande anterior al mínimo del mes justo después del siguiente cobro
+y recalcula el mínimo resultante; solo se ofrece si de verdad mejora, nunca sobre un mes real ya
+cerrado.
+
+**Verificación visual con Playwright**: con los datos de demostración, `#prevision` mostró el
+titular calculado, 12 columnas de banda en el horizonte por defecto (24 al cambiar a «24 m»), la
+tabla mensual y el panel día a día con las partidas fechadas del mes más delicado; al hacer clic
+en otro mes de la tabla, el panel cambió al mes correcto. Sin errores de consola propios de este
+cambio (el único aviso de red, `ERR_TUNNEL_CONNECTION_FAILED` hacia el CDN de Supabase, es
+preexistente y aparece igual en `#home`).
+
+**Pruebas nuevas**: `tests/p8-prevision.test.cjs` (19 pruebas) — recorte por horizonte, titular,
+columnas de la tabla mensual, banda con reserva y tono por mes, movimientos reales filtrados y
+ordenados, partidas proyectadas con saldo simulado, la decisión real-vs-proyectado, la sugerencia
+(con mejora, sin cobro posterior que la permita, y nunca sobre un mes real) y el marcado HTML de
+la pantalla nueva. Se eliminó `selectMonthlyDetailByKey` (código muerto tras quitarle su única
+llamada al reemplazar la navegación de la tabla anual por el panel día a día in-situ).
+
+**Validación** (`npm run verify`, exit 0): **913/913 pruebas** (894 + 19 nuevas), **689 IDs
+únicos** de accesibilidad, diff 10.000 filas en **41,1 ms**, forecast y escenarios en **240,4 ms**,
+recursos **1422 KB**, build del sitio, privacidad y smoke test en verde.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` (P-8 pasa a `Hecho`, con nota extensa
+bajo la tabla de la pantalla 04), `docs/E19_SISTEMA_DISENO.md` (tabla del catálogo y §13
+corregidas) y `BACKLOG.md` (fila de 2c corregida, con nota bajo la tabla de los quince mockups).
+
+**Publicado en dos tandas**: la corrección de `docs/E19_SISTEMA_DISENO.md` se comiteó, publicó y
+fusionó primero por separado (PR #48, sin tocar código) porque el hook de cierre de sesión exigía
+no dejar cambios sin publicar a mitad de la investigación; la construcción de P-8 y el resto de
+documentos corregidos van en un segundo commit/PR de esta misma sesión, según lo autorizado en
+`CLAUDE.md`.
+
 ## Cierre de sesión — 15 de agosto de 2026: Movimientos — M-8/M-8b, selección múltiple y lote
 
 Continuación directa del cierre anterior del mismo día (Deuda D-4/D-5/D-6, PR #46 fusionado). El

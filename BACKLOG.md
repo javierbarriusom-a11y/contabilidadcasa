@@ -67,12 +67,22 @@ no fabricar (ver T-6 más abajo para la tarea real que las cerraría de verdad):
 | 1g Conciliación | `#conciliar` | ✅ | — |
 | 2a Registrar el mes | `#registrar-mes` | ✅ | — · aviso «¿es anual?» hecho y confirmado en el sitio el 12 de agosto (V4-3/V4-5) |
 | 2b Importar extracto | `#data-entry` | ✅ | — |
-| 2c Previsión | `#prevision` | ✅ | — |
+| 2c Previsión | `#prevision` | ✅ | — · pantalla real construida el 15 de agosto de 2026 (P-8); hasta entonces el ✅ era incorrecto, ver nota bajo esta tabla |
 | 2d Aplicar escenario | `#escenario-aplicar` | ✅ | — · publicada de verdad el 10 de agosto, ver §8 |
 | 2e Escenarios guardados | `#escenario-guardados` | ✅ | Solo `aplicado`/`guardado`, sin `recomendado`/`caducado` inventados a propósito, ver nota en §5 y T-6 |
 | 3a Cuadro de mandos | `#cuadro-mandos` | ✅ | — |
 | 3b Bandeja de cambios | `#cambios-pendientes` | ✅ | — |
 | 3c Mapa de calor | `#mapa-calor` | ✅ | — · panel de recomendaciones calculadas, confirmado en el sitio el 12 de agosto (V2-5) |
+
+**Corrección del 15 de agosto de 2026 sobre 2c Previsión.** El ✅ de la fila de arriba era
+incorrecto desde que se escribió: `#prevision` seguía siendo la tabla resumen anual heredada con la
+piel visual de E19-5 aplicada encima, no el mockup 2c (titular en prosa, selector de horizonte,
+banda por mes, tabla mensual y panel día a día con sugerencia). El error se repetía en
+`docs/E19_SISTEMA_DISENO.md`, que también daba el mockup por migrado — corregido ahí en §13 antes de
+construir nada. La pantalla real se construyó esta sesión (P-8 de `docs/BACKLOG_NUEVE_PANTALLAS.md`,
+ahora `Hecho`), reutilizando tal cual el motor ya existente (`previsionMetric`, `mapaCalorFloor`/
+`mapaCalorTone`, `planningBreakdownForForecastMonth`) — ver la nota bajo la tabla de la pantalla 04
+en `docs/BACKLOG_NUEVE_PANTALLAS.md` para el detalle de qué se reutilizó y qué es nuevo.
 
 ### Los turnos 4-5 (el rediseño a seis vistas)
 
