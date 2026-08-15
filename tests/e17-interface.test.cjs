@@ -15,7 +15,7 @@ const worker = read("service-worker.js");
 // principal — el primero sigue accesible desde el menú avanzado, el segundo se releva.
 test("E17 prioriza las seis vistas del rediseño y conserva las herramientas en segundo nivel", () => {
   const home = html.indexOf('<a href="#home" class="nav-primary-link active">');
-  const plan = html.indexOf('<a href="#cuadro-mandos" class="nav-primary-link">');
+  const plan = html.indexOf('<a href="#plan" class="nav-primary-link">');
   const deuda = html.indexOf('<a href="#deuda-ruta" class="nav-primary-link">');
   const datos = html.indexOf('<a href="#update-hub" class="nav-primary-link">');
   const cierre = html.indexOf('<a href="#conciliar" class="nav-primary-link">');

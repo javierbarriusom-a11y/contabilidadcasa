@@ -66,11 +66,11 @@ commit, push, PR, fusionar) no pide permiso en cada turno.
 | 6 · Análisis y sobres | Análisis completo y sobres, detrás de bandera, incluida su liquidación en Cierre. | Con la bandera apagada todo sigue funcionando y las pantallas lo dicen. |
 | 7 · Gobernanza | Ajustes, retirada de las dieciocho heredadas y del Laboratorio. | El acta queda exportada y ningún enlace antiguo se rompe. |
 
-**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Registrar) con R-1 a R-12 hechas — R-11 se
-consultó y se resolvió el 15 de agosto de 2026, ver la nota bajo la tabla de la pantalla 02. De la
-parte de Fase 2 que vive en Movimientos, M-1 a M-7 y M-9 a M-11 están hechas (15 de agosto);
-quedan M-8/M-8b (selección múltiple y lote) y M-8c (bloqueada por Cierre). La pestaña Mes de Plan
-sigue sin empezar. Fases 3-7 sin empezar.
+**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Escritura) completa salvo el lote de
+Movimientos: Registrar R-1 a R-12 hechas (R-11 se consultó y se resolvió el 15 de agosto, ver la
+nota bajo la tabla de la pantalla 02); Movimientos M-1 a M-7 y M-9 a M-11 hechas, quedan M-8/M-8b
+(selección múltiple y lote, sesión propia) y M-8c (bloqueada por Cierre); Plan · Mes P-1 a P-7
+hechas (15 de agosto). Fases 3-7 sin empezar.
 
 ## 4. Nueve reglas transversales
 
@@ -206,15 +206,29 @@ exista Cierre (Fase 5).
 
 ### 04 · Plan — Mes, Previsión y Ahorro en tres pestañas (17 tareas · 3 grandes)
 
+**Nota (15 de agosto)**: pantalla nueva `#plan`, junto a `#cuadro-mandos` (que sigue intacta y
+accesible desde «Herramientas avanzadas»), no en su lugar — mismo patrón que R-2 con `#update-data`.
+El enlace de menú «Plan» pasa a apuntar a `#plan`. Solo la pestaña «Mes» tiene contenido propio
+(P-1 a P-7); «Previsión» y «Ahorro» enlazan de vuelta a `#prevision`/`#savings-plan` hasta que se
+construyan (P-8 en adelante, Fase 4). El previsto editable de la pestaña Mes reutiliza tal cual
+`visualDraftCells`/`cuadroMandosStageCell` — el mismo borrador de sesión que ya usaba Cuadro de
+mandos desde E11 (regla transversal 01): un cambio en Plan aparece también en Cuadro de mandos y en
+Cambios pendientes, y «Guardar cambios»/«Descartar todo» son literalmente
+`saveVisualChanges`/`discardVisualChanges`. El pie de impacto (P-6) reutiliza el componente
+`.e19-impact-bar` que ya usa Registrar (R-7) y el cálculo de antes/después que ya tenía Cuadro de
+mandos (`cuadroMandosImpact`), con las cuatro cifras que de verdad se mueven al editar previsto
+(mínimo de liquidez del horizonte, meses bajo la reserva, liquidez al final, peor mes) — no las
+cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previsto.
+
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Pendiente |
-| P-2 | Tabla del mes agrupada por bloques | P-1 | M | Pendiente |
-| P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Pendiente |
-| P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Pendiente |
-| P-5 | Techo de asignación | P-3 | S | Pendiente |
-| P-6 | Pie de impacto compartido con Registrar | R-7 | M | Pendiente |
-| P-7 | Copiar de julio | P-3, P-6 | M | Pendiente |
+| P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Hecho (solo Mes; Previsión/Ahorro enlazan a sus heredadas) |
+| P-2 | Tabla del mes agrupada por bloques | P-1 | M | Hecho |
+| P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Hecho |
+| P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Hecho |
+| P-5 | Techo de asignación | P-3 | S | Hecho |
+| P-6 | Pie de impacto compartido con Registrar | R-7 | M | Hecho |
+| P-7 | Copiar de julio | P-3, P-6 | M | Hecho |
 | P-8 | Previsión mes a mes por bloque | P-1 | L | Pendiente |
 | P-8b | Editar un mes cerrado con aviso | P-8, Cierre | M | Pendiente |
 | P-9 | Mapa de calor de colchón | P-8 | M | Pendiente |

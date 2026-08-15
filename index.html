@@ -42,9 +42,11 @@
             <small>Extracto, clasificación y saldo por cuenta</small>
           </a>
           <p class="nav-section-label">Principal</p>
-          <a href="#cuadro-mandos" class="nav-primary-link">
+          <!-- P-1: el previsto se edita ahora en #plan (pestaña Mes); #cuadro-mandos sigue intacta
+               y accesible desde «Herramientas avanzadas», el mismo estado que #update-data. -->
+          <a href="#plan" class="nav-primary-link">
             <span>Plan</span>
-            <small>Previsión, escenarios e impacto</small>
+            <small>Mes, previsión y ahorro</small>
           </a>
           <a href="#deuda-ruta" class="nav-primary-link">
             <span>Deuda</span>
@@ -526,6 +528,44 @@
             </div>
 
             <aside class="e19-impact-bar e19-registrar-impact" id="registrarImpactBar" hidden aria-live="polite"></aside>
+          </section>
+
+          <section class="view-section e19-plan" id="plan">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Plan</p>
+                <h2 class="e19-heading">Presupuesta el mes, la previsión y el ahorro sin salir de la aplicación</h2>
+                <p class="e19-subtitle">El previsto se edita aquí y se guarda por sesión — Registrar y Movimientos lo muestran de solo lectura.</p>
+              </div>
+            </div>
+
+            <nav class="e19-registrar-tabs" id="planTabs" aria-label="Pestañas de Plan">
+              <button type="button" class="e19-registrar-tab" data-plan-tab="mes" aria-selected="true">Mes</button>
+              <button type="button" class="e19-registrar-tab" data-plan-tab="prevision" aria-selected="false">Previsión</button>
+              <button type="button" class="e19-registrar-tab" data-plan-tab="ahorro" aria-selected="false">Ahorro</button>
+            </nav>
+            <p class="e19-registrar-crumb" id="planCrumb" aria-live="polite"></p>
+
+            <div class="e19-registrar-panel" data-plan-panel="mes">
+              <div class="e19-plan-mes">
+                <div class="registrar-mes-controls">
+                  <label class="month-picker">
+                    <span>Mes</span>
+                    <select id="planMesMonth"></select>
+                  </label>
+                </div>
+                <div class="home-kpi-grid" id="planMesKpis"></div>
+                <div class="registrar-mes-tables" id="planMesTables"></div>
+              </div>
+            </div>
+            <div class="e19-registrar-panel" data-plan-panel="prevision" hidden>
+              <p class="e19-kpi-note">Todavía sin construir en Plan. Mientras tanto, sigue disponible en <button type="button" class="registrar-actuals-plan-link" data-home-nav="prevision">Previsión mensual</button>.</p>
+            </div>
+            <div class="e19-registrar-panel" data-plan-panel="ahorro" hidden>
+              <p class="e19-kpi-note">Todavía sin construir en Plan. Mientras tanto, sigue disponible en <button type="button" class="registrar-actuals-plan-link" data-home-nav="savings-plan">Plan ahorro</button>.</p>
+            </div>
+
+            <aside class="e19-impact-bar e19-plan-impact" id="planMesImpactBar" hidden aria-live="polite"></aside>
           </section>
 
           <section class="update-hub view-section e19-update-hub" id="update-hub">
