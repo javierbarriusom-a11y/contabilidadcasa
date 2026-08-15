@@ -78,6 +78,11 @@ let decisionWorkflow = null;
 let canonicalRefreshTimer = 0;
 let pendingMovementMappings = [];
 let movementDetailTransaction = null; // M-6: la transacción abierta en el panel de detalle de Movimientos
+// M-8: índices (dentro de `movementsFilteredList()`, igual que el panel de detalle M-6) de las filas
+// marcadas para la acción en lote. Se vacía en cada `renderDetailedMovements()` — cambiar de filtro
+// invalidaría los índices, así que nunca se conserva una selección entre dos vistas filtradas
+// distintas.
+let movementsSelectedIndexes = new Set();
 let editingProjectId = null;
 let memoryStorage = {};
 let supabaseClient = null;
@@ -16652,6 +16657,10 @@ function renderDetailedMovements() {
   const filtered = movementsFilteredList();
   const unclassified = filtered.filter((row) => Number(row.amount) && !mappingForMovement(row));
 
+  // M-8: la tabla se reconstruye entera en cada filtro nuevo, así que cualquier selección previa
+  // deja de corresponder a las mismas filas — se vacía aquí, no solo al aplicar el lote.
+  movementsSelectedIndexes.clear();
+
   const countLabel = qs("movementCount");
   if (countLabel) countLabel.textContent = `${filtered.length} movimiento(s) reales${monthFilter ? ` en ${monthLabel(dateFromMonthKey(monthFilter))}` : ""}.`;
 
@@ -16671,6 +16680,7 @@ function renderDetailedMovements() {
   rowsElement.innerHTML = filtered
     .map(
       (row, index) => `<tr>
+        <td><input type="checkbox" class="movements-row-select" data-movement-select-index="${index}" aria-label="Seleccionar movimiento del ${escapeHtml(formatIsoDate(row.date))}" /></td>
         <td>${formatIsoDate(row.date)}</td>
         <td>${formatIsoDate(row.valueDate)}</td>
         <td>${escapeHtml(row.movement)}</td>
@@ -16693,6 +16703,155 @@ function renderDetailedMovements() {
       ? `Ingresos de esta vista: ${money(totals.income, true)} · Gastos de esta vista: ${money(totals.expense, true)} · Neto: ${money(totals.income + totals.expense, true)}`
       : "Sin movimientos en esta vista.";
   }
+
+  const selectAll = qs("movementsSelectAll");
+  if (selectAll) {
+    selectAll.checked = false;
+    selectAll.disabled = !filtered.length;
+  }
+  renderMovementsBulkBar();
+}
+
+// M-8: la fila se identifica por su posición en `movementsFilteredList()`, la misma convención que
+// ya usa M-6 para el panel de detalle — determinista mientras no cambien los filtros entre el
+// render y el clic, que es síncrono (y por lo que la selección se vacía en cada re-render de la
+// tabla, ver `renderDetailedMovements`).
+function movementsSelectedRows() {
+  const filtered = movementsFilteredList();
+  return [...movementsSelectedIndexes].map((index) => filtered[index]).filter(Boolean);
+}
+
+// Las claves de concepto distintas entre las filas seleccionadas, con una fila de ejemplo cada
+// una. Una acción en lote escribe una entrada de `movementMappings` por concepto, no una por
+// movimiento — la misma unidad que ya usa M-7: reclasificar 40 movimientos de 3 conceptos escribe
+// 3 reglas, no 40, y esas 3 reglas siguen aplicando a movimientos futuros del mismo concepto.
+function movementsSelectedConceptKeys(rows) {
+  const keys = new Map();
+  rows.forEach((row) => {
+    const key = movementMappingKey(row);
+    if (!keys.has(key)) keys.set(key, row);
+  });
+  return keys;
+}
+
+function renderMovementsBulkBar() {
+  const bar = qs("movementsBulkBar");
+  const countLabel = qs("movementsBulkCount");
+  const partidaSelect = qs("movementsBulkPartida");
+  const noteEl = qs("movementsBulkNote");
+  const applyButton = qs("movementsBulkApply");
+  if (!bar) return;
+  const rows = movementsSelectedRows();
+  if (!rows.length) {
+    bar.hidden = true;
+    return;
+  }
+  bar.hidden = false;
+  const concepts = movementsSelectedConceptKeys(rows);
+  const kinds = new Set(rows.map((row) => movementKindFromAmount(row.amount)));
+  if (countLabel) countLabel.textContent = `${rows.length} movimiento(s) seleccionados · ${concepts.size} concepto(s) distinto(s)`;
+  // Una partida es de ingresos o de gastos (`availableSeriesRows(kind)`); una selección que mezcla
+  // los dos no tiene una sola partida válida que ofrecer, así que se bloquea con el motivo en vez
+  // de enseñar una lista que solo serviría para la mitad de lo seleccionado (regla transversal 08).
+  if (kinds.size > 1) {
+    if (partidaSelect) {
+      partidaSelect.innerHTML = "";
+      partidaSelect.disabled = true;
+    }
+    if (noteEl) noteEl.textContent = "Selecciona movimientos del mismo tipo (todo ingresos o todo gastos) para asignarles la misma partida.";
+    if (applyButton) applyButton.disabled = true;
+    return;
+  }
+  const kind = [...kinds][0];
+  if (partidaSelect) {
+    const previousValue = partidaSelect.value;
+    partidaSelect.disabled = false;
+    partidaSelect.innerHTML = movementMappingOptions(kind, previousValue);
+  }
+  const alreadyMapped = [...concepts.values()].filter((row) => mappingForMovement(row)).length;
+  if (noteEl) {
+    noteEl.textContent = alreadyMapped
+      ? `${alreadyMapped} de los ${concepts.size} concepto(s) ya tenían otra partida asignada: se sobrescribirá.`
+      : `Se aplicará a los ${concepts.size} concepto(s) seleccionados, incluidos los movimientos futuros con el mismo concepto — la misma regla que «Ver › Guardar partida».`;
+  }
+  if (applyButton) applyButton.disabled = !partidaSelect?.value;
+}
+
+function handleMovementsSelectToggle(event) {
+  const checkbox = event.target.closest("[data-movement-select-index]");
+  if (!checkbox) return;
+  const index = Number(checkbox.dataset.movementSelectIndex);
+  if (checkbox.checked) movementsSelectedIndexes.add(index);
+  else movementsSelectedIndexes.delete(index);
+  const selectAll = qs("movementsSelectAll");
+  if (selectAll) selectAll.checked = movementsSelectedIndexes.size > 0 && movementsSelectedIndexes.size === movementsFilteredList().length;
+  renderMovementsBulkBar();
+}
+
+function handleMovementsSelectAll(event) {
+  const filtered = movementsFilteredList();
+  if (event.target.checked) movementsSelectedIndexes = new Set(filtered.map((_, index) => index));
+  else movementsSelectedIndexes.clear();
+  document.querySelectorAll("[data-movement-select-index]").forEach((checkbox) => {
+    checkbox.checked = movementsSelectedIndexes.has(Number(checkbox.dataset.movementSelectIndex));
+  });
+  renderMovementsBulkBar();
+}
+
+function handleMovementsBulkClear() {
+  movementsSelectedIndexes.clear();
+  document.querySelectorAll("[data-movement-select-index]").forEach((checkbox) => {
+    checkbox.checked = false;
+  });
+  const selectAll = qs("movementsSelectAll");
+  if (selectAll) selectAll.checked = false;
+  renderMovementsBulkBar();
+}
+
+// M-8b · si hay una importación a medias (`datosImportarSession`, el asistente de 4 pasos) cuando
+// se aplica un lote en Movimientos, sus filas ya calcularon `prior`/`suggestion` una vez, al
+// construirse — sin este refresco, el paso 2 seguiría pidiendo una decisión que el lote acababa de
+// tomar. Solo toca las filas cuyo concepto coincide con uno de los recién escritos y que el usuario
+// no había decidido ya a mano en el paso 2 (nunca pisa una decisión explícita).
+function datosImportarRefreshRowsForMappings(keys) {
+  if (!datosImportarSession?.rows?.length || !keys.size) return;
+  const ignored = datosImportarLoadIgnored();
+  datosImportarSession.rows.forEach((row) => {
+    if (row.decision) return;
+    const key = movementMappingKey(row.transaction);
+    if (!keys.has(key)) return;
+    row.prior = datosImportarPriorClassification(row.transaction, ignored);
+    row.suggestion = row.prior.status === "pendiente" ? datosImportarSuggestionFor(row.transaction) : null;
+  });
+}
+
+// M-8 · la escritura reutiliza tal cual el mismo diccionario y la misma secuencia de refresco que
+// ya usaban M-7 (`handleMovementReclassify`) y la revisión de importación
+// (`applyPendingMovementMappings`) — regla transversal 01: ninguna tercera forma de escribir una
+// clasificación, solo una tercera forma de elegir a qué conceptos se le aplica.
+function handleMovementsBulkApply() {
+  const rows = movementsSelectedRows();
+  const partidaSelect = qs("movementsBulkPartida");
+  if (!rows.length || !partidaSelect?.value) return;
+  const kinds = new Set(rows.map((row) => movementKindFromAmount(row.amount)));
+  if (kinds.size > 1) return;
+  const kind = [...kinds][0];
+  const concepts = movementsSelectedConceptKeys(rows);
+  const label = partidaSelect.options[partidaSelect.selectedIndex]?.textContent || "";
+  const rowKeyValue = partidaSelect.value;
+  concepts.forEach((_row, key) => {
+    movementMappings[key] = { kind, rowKey: rowKeyValue, label, updatedAt: new Date().toISOString() };
+  });
+  saveMovementMappings();
+  const applied = applyMovementMappingsToActuals();
+  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+  datosImportarRefreshRowsForMappings(new Set(concepts.keys()));
+  saveIncomeActuals();
+  saveExpenseActuals();
+  refreshAllSectionsAfterDataChange();
+  announceStatus(`${concepts.size} concepto(s) (${rows.length} movimiento(s)) reclasificados a «${label}». ${applied} importe(s) reales recalculados desde movimientos.`);
+  movementsSelectedIndexes.clear();
+  renderDetailedMovements();
 }
 
 // M-6: panel de detalle. No hay id estable en los movimientos importados, así que se identifica la
@@ -16771,6 +16930,7 @@ function handleMovementReclassify() {
   saveMovementMappings();
   const applied = applyMovementMappingsToActuals();
   pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+  datosImportarRefreshRowsForMappings(new Set([movementMappingKey(row)]));
   saveIncomeActuals();
   saveExpenseActuals();
   refreshAllSectionsAfterDataChange();
@@ -25503,6 +25663,11 @@ async function init() {
     const button = event.target.closest("[data-movement-detail-index]");
     if (button) handleMovementDetailOpen(button.dataset.movementDetailIndex);
   });
+  qs("movementRows")?.addEventListener("change", handleMovementsSelectToggle);
+  qs("movementsSelectAll")?.addEventListener("change", handleMovementsSelectAll);
+  qs("movementsBulkPartida")?.addEventListener("change", renderMovementsBulkBar);
+  qs("movementsBulkClear")?.addEventListener("click", handleMovementsBulkClear);
+  qs("movementsBulkApply")?.addEventListener("click", handleMovementsBulkApply);
   qs("movementsExportButton")?.addEventListener("click", handleMovementsExport);
   qs("movementDetailClose")?.addEventListener("click", closeMovementDetailDialog);
   qs("movementDetailDialog")?.addEventListener("click", (event) => {

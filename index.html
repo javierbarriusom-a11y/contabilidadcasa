@@ -3270,10 +3270,26 @@
             </div>
             <p class="e19-badge e19-badge-warning movements-unclassified-banner" id="movementsUnclassifiedBanner" role="status" hidden></p>
             <div class="movement-count" id="movementCount"></div>
+            <div class="movements-bulk-bar e19-impact-bar" id="movementsBulkBar" hidden>
+              <div class="movements-bulk-head">
+                <p class="e19-eyebrow">Acción en lote</p>
+                <strong id="movementsBulkCount"></strong>
+              </div>
+              <label class="movements-bulk-field">
+                <span>Partida</span>
+                <select id="movementsBulkPartida"></select>
+              </label>
+              <p class="e19-kpi-note" id="movementsBulkNote"></p>
+              <div class="movements-bulk-actions">
+                <button type="button" class="e19-btn e19-btn-secondary" id="movementsBulkClear">Cancelar selección</button>
+                <button type="button" class="e19-btn e19-btn-primary" id="movementsBulkApply" disabled>Aplicar a los seleccionados</button>
+              </div>
+            </div>
             <div class="table-wrap movements-table-wrap">
               <table class="movements-table">
                 <thead>
                   <tr>
+                    <th><input type="checkbox" id="movementsSelectAll" aria-label="Seleccionar todos los movimientos de esta vista" /></th>
                     <th>Fecha</th>
                     <th>Fecha valor</th>
                     <th>Movimiento</th>

@@ -66,15 +66,16 @@ commit, push, PR, fusionar) no pide permiso en cada turno.
 | 6 · Análisis y sobres | Análisis completo y sobres, detrás de bandera, incluida su liquidación en Cierre. | Con la bandera apagada todo sigue funcionando y las pantallas lo dicen. |
 | 7 · Gobernanza | Ajustes, retirada de las dieciocho heredadas y del Laboratorio. | El acta queda exportada y ningún enlace antiguo se rompe. |
 
-**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Escritura) completa salvo el lote de
-Movimientos: Registrar R-1 a R-12 hechas (R-11 se consultó y se resolvió el 15 de agosto, ver la
-nota bajo la tabla de la pantalla 02); Movimientos M-1 a M-7 y M-9 a M-11 hechas, quedan M-8/M-8b
-(selección múltiple y lote, sesión propia) y M-8c (bloqueada por Cierre); Plan · Mes P-1 a P-7
-hechas (15 de agosto). Fase 3 (Deuda) arrancada el 15 de agosto: D-1, D-2, D-3, D-4, D-5, D-6, D-7,
-D-8 y D-9 hechas (D-3/D-7/D-8/D-9 ya existían de un epic anterior, reconciliadas con el backlog;
-D-4/D-5/D-6 se construyeron el mismo 15 de agosto, en la sesión siguiente a D-1/D-2 — ver la nota
-bajo la tabla de la pantalla 05); D-10/D-11/D-13 parciales, D-2b/D-12 pendientes, D-14 choca con la
-decisión T-4 (bloqueada a propósito). Fases 4-7 sin empezar.
+**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Escritura) completa salvo M-8c: Registrar R-1 a
+R-12 hechas (R-11 se consultó y se resolvió el 15 de agosto, ver la nota bajo la tabla de la
+pantalla 02); Movimientos M-1 a M-11 hechas (M-8/M-8b se construyeron el 15 de agosto, en la sesión
+siguiente a M-1…M-7/M-9…M-11 — ver la nota bajo la tabla de la pantalla 03), queda M-8c (bloqueada
+por Cierre); Plan · Mes P-1 a P-7 hechas (15 de agosto). Fase 3 (Deuda) arrancada el 15 de agosto:
+D-1, D-2, D-3, D-4, D-5, D-6, D-7, D-8 y D-9 hechas (D-3/D-7/D-8/D-9 ya existían de un epic
+anterior, reconciliadas con el backlog; D-4/D-5/D-6 se construyeron el mismo 15 de agosto, en la
+sesión siguiente a D-1/D-2 — ver la nota bajo la tabla de la pantalla 05); D-10/D-11/D-13
+parciales, D-2b/D-12 pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fases 4-7
+sin empezar.
 
 ## 4. Nueve reglas transversales
 
@@ -191,8 +192,8 @@ Pruebas: `tests/r11-cierre-escritura-heredadas.test.cjs` (16 pruebas nuevas); se
 | M-5 | Aviso de cola sin clasificar | M-3 | S | Hecho |
 | M-6 | Panel de detalle | M-2 | M | Hecho |
 | M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho |
-| M-8 | Selección múltiple y acción en lote | M-2, R-7 | L | Pendiente |
-| M-8b | Consistencia con Registrar y el importador | M-8, R-8 | M | Pendiente |
+| M-8 | Selección múltiple y acción en lote | M-2, R-7 | L | Hecho (15 de agosto, ver nota) |
+| M-8b | Consistencia con Registrar y el importador | M-8, R-8 | M | Hecho (15 de agosto, ver nota) |
 | M-8c | Saldo recalculado validado contra el declarado | M-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
 | M-9 | Totales de la vista filtrada | M-3 | S | Hecho |
 | M-10 | Exportar la vista | M-3 | S | Hecho |
@@ -204,9 +205,52 @@ así que no había una heredada que adoptar o sustituir, solo contenido pendient
 importación por Excel y la lista de comercios que ya vivían arriba de la tabla no se tocaron. M-7
 reutiliza tal cual el diccionario `movementMappings` y el camino de escritura que ya usaba
 `applyPendingMovementMappings` en `#data-entry` (regla transversal 01): reclasificar desde el panel
-de detalle es la misma regla, no una segunda forma de clasificar. Quedan pendientes M-8/M-8b
-(selección múltiple y acción en lote, talla L, con su propia sesión) y M-8c, bloqueada hasta que
-exista Cierre (Fase 5).
+de detalle es la misma regla, no una segunda forma de clasificar.
+
+**Nota (15 de agosto, sesión siguiente): M-8 y M-8b.**
+
+- **M-8**: casilla por fila (más «seleccionar todo» en la cabecera) y una barra de acción en lote
+  (mismo componente visual `.e19-impact-bar` que ya usan Registrar/Plan/Cuadro de mandos, con su
+  propio contenido). La escritura no abre una tercera puerta de clasificación: la selección solo
+  decide QUÉ conceptos tocar — `movementsSelectedConceptKeys` agrupa las filas marcadas por el
+  mismo `movementMappingKey` que ya usaba M-7 (una regla por concepto, no por movimiento; 40
+  movimientos de 3 conceptos escriben 3 reglas), y `handleMovementsBulkApply` corre la misma
+  secuencia exacta que `handleMovementReclassify` (M-7) y `applyPendingMovementMappings`
+  (`movementMappings` → `applyMovementMappingsToActuals` → `buildPendingMovementMappings` →
+  guardar actuals → `refreshAllSectionsAfterDataChange`). Una selección que mezcla ingresos y
+  gastos no tiene una sola partida válida que ofrecer (una partida es de un tipo o del otro): se
+  bloquea con el motivo explícito en vez de enseñar una lista a medias.
+- **M-8b**: la sesión de importación de 4 pasos (`datosImportarSession`, R-8/R-9) no se resetea al
+  navegar a otra pantalla — un usuario a medio importar que fuera a Movimientos y reclasificara en
+  lote un concepto que esa sesión todavía tenía pendiente de decidir se encontraría, al volver, con
+  el paso 2 pidiéndole una decisión que el lote ya había tomado. `datosImportarRefreshRowsForMappings`
+  cierra ese hueco: tras cualquier escritura en `movementMappings` (M-7 o M-8) recalcula
+  `prior`/`suggestion` solo en las filas de la sesión abierta cuyo concepto coincide y que el
+  usuario no había decidido ya a mano en el paso 2 (nunca pisa una decisión explícita). No añade un
+  «historial» de acciones nuevo (la pieza «Componente de guardado» de la tabla de piezas
+  compartidas lo menciona junto a R-6/C-3b): ese mecanismo depende de Cierre (Fase 5), que no existe
+  todavía, y R-6 tampoco lo tiene hoy — construirlo aquí habría sido adelantarse a una dependencia
+  que ninguna otra pieza de la tabla cumple aún.
+
+**Verificación visual con Playwright**: con tres movimientos de prueba cargados, marcar dos filas
+mostró la barra de lote con «2 movimiento(s) seleccionados · 2 concepto(s) distinto(s)» y el
+selector de partida deshabilitado hasta elegir una; «Seleccionar todo» amplió la selección a los
+tres (dos conceptos, mismo tipo); aplicar reclasificó los tres movimientos a la partida elegida, la
+barra se ocultó y la selección se vació, y el panel de «Comportamiento conciliado» (aguas abajo)
+pasó de 0/0 a 3/3 conciliados con el importe correcto — confirmando que Registrar/Análisis ven el
+cambio sin ningún paso adicional.
+
+**Pruebas nuevas**: `tests/m8-m8b-movimientos-lote.test.cjs` (28 pruebas) — selección por índice
+sobre la lista filtrada, agrupación por concepto, la barra de lote (oculta sin selección, tipo
+mixto bloqueado, aviso de sobrescritura), seleccionar todo/cancelar, el refresco de una sesión de
+importación a medias (M-8b) y la escritura real de `handleMovementsBulkApply` con la misma
+secuencia que M-7. Se ajustó `tests/m1-m11-movimientos.test.cjs` (M-11: la fila ahora sí lleva un
+`<input>`, la casilla de selección — la prueba pasó a comprobar que es de tipo `checkbox` y que el
+importe se sigue pintando como texto, no como campo editable) y se le añadió el stub de
+`datosImportarRefreshRowsForMappings` que M-7 ya invoca.
+
+Con esto, de las 13 tareas de Movimientos solo queda M-8c, bloqueada hasta que exista Cierre
+(Fase 5).
 
 ### 04 · Plan — Mes, Previsión y Ahorro en tres pestañas (17 tareas · 3 grandes)
 
