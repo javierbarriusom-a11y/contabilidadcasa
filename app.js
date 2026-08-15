@@ -2825,11 +2825,38 @@ function renderSyncPanel() {
   );
 }
 
+// R-10: los hashes de las pantallas que Registrar ya cubre no se rompen, redirigen a la pestaña
+// equivalente en vez de abrir la heredada — igual que "overview"/"monthly-detail" ya hacían con
+// "home"/"update-data". No se retira código: las heredadas siguen existiendo y renderizando
+// igual, simplemente ya no son el destino final de navegación por hash.
+//
+// `registrar-mes` queda fuera a propósito, aunque el criterio de R-10 la incluye: la sesión de
+// R-5 (14 de agosto) prometió explícitamente en PROJECT_STATE.md que «la pantalla heredada
+// #registrar-mes sigue intacta y accesible desde Herramientas avanzadas; no se le retiró nada».
+// Redirigir su hash ahora la dejaría inalcanzable por navegación (aunque el código siguiera
+// vivo), revirtiendo esa promesa sin que el usuario lo haya confirmado — el mismo tipo de
+// consulta que ya hizo falta para acotar R-6. Las otras cuatro nunca tuvieron esa promesa: R-2
+// solo las citaba como destino provisional «mientras tanto» de las pestañas de Registrar sin
+// construir, provisionalidad que R-8/R-9 ya resolvieron.
+const REGISTRAR_LEGACY_HASH_TABS = {
+  "update-hub": "balances",
+  "update-data": "actuals",
+  "datos-importar": "import",
+  "data-entry": "batch",
+};
+
 function viewFromHash() {
-  const id = (window.location.hash || "#home").replace("#", "");
+  let id = (window.location.hash || "#home").replace("#", "");
   if (id === "overview") return "home";
-  if (id === "monthly-detail") return "update-data";
+  if (id === "monthly-detail") id = "update-data";
+  if (Object.prototype.hasOwnProperty.call(REGISTRAR_LEGACY_HASH_TABS, id)) return "registrar";
   return document.getElementById(id)?.classList.contains("view-section") ? id : "home";
+}
+
+function registrarTabFromHash() {
+  let id = (window.location.hash || "#home").replace("#", "");
+  if (id === "monthly-detail") id = "update-data";
+  return REGISTRAR_LEGACY_HASH_TABS[id] || null;
 }
 
 function announceStatus(message) {
@@ -2952,6 +2979,10 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   E18Health?.record(`view:${viewId}`);
   const viewChanged = activeViewId !== viewId;
   activeViewId = viewId;
+  if (viewId === "registrar") {
+    const legacyTab = registrarTabFromHash();
+    if (legacyTab && legacyTab !== registrarActiveTab) setRegistrarTab(legacyTab);
+  }
   document.querySelectorAll(".view-section").forEach((section) => {
     section.hidden = section.id !== viewId;
   });
@@ -16095,6 +16126,43 @@ function datosImportarApply(session, { motivo }) {
 let datosImportarSession = null;
 let datosImportarLastResult = null;
 
+// R-8: la pestaña «Importar extracto» de Registrar es este mismo asistente de cuatro pasos, no
+// una copia. `datosImportarSession`/`datosImportarLastResult` siguen siendo la única fuente de
+// verdad (regla transversal 01); lo único que cambia según la vista activa es dónde se pinta —
+// por eso todas las funciones de esta sección leen sus ids de `datosImportarTarget()` en vez de
+// tenerlos escritos a fuego, incluidos los botones que se inyectan dentro del panel (confirmar,
+// cambiar de fichero...), para que nunca convivan dos elementos con el mismo id en el documento.
+const DATOS_IMPORTAR_TARGETS = {
+  data: {
+    panelId: "datosImportarPanel",
+    stepsId: "datosImportarSteps",
+    nextId: "datosImportarNext",
+    backId: "datosImportarBack",
+    blockNoteId: "datosImportarBlockNote",
+    fileInputId: "datosImportarFileInput",
+    step1NoteId: "datosImportarStep1Note",
+    replaceFileId: "datosImportarReplaceFile",
+    confirmId: "datosImportarConfirm",
+    importarOtroId: "datosImportarImportarOtro",
+  },
+  registrar: {
+    panelId: "registrarImportPanel",
+    stepsId: "registrarImportSteps",
+    nextId: "registrarImportNext",
+    backId: "registrarImportBack",
+    blockNoteId: "registrarImportBlockNote",
+    fileInputId: "registrarImportFileInput",
+    step1NoteId: "registrarImportStep1Note",
+    replaceFileId: "registrarImportReplaceFile",
+    confirmId: "registrarImportConfirm",
+    importarOtroId: "registrarImportOtro",
+  },
+};
+
+function datosImportarTarget() {
+  return activeViewId === "registrar" ? DATOS_IMPORTAR_TARGETS.registrar : DATOS_IMPORTAR_TARGETS.data;
+}
+
 function datosImportarPersistDraft() {
   if (!datosImportarSession) {
     datosImportarClearDraft();
@@ -16141,7 +16209,7 @@ function datosImportarRestoreSession() {
 }
 
 function datosImportarShowStep1Note(message, isWarning) {
-  const note = qs("datosImportarStep1Note");
+  const note = qs(datosImportarTarget().step1NoteId);
   if (!note) return;
   note.textContent = message;
   note.classList.toggle("is-warn", Boolean(isWarning));
@@ -16206,14 +16274,15 @@ async function handleDatosImportarFile(event) {
 
 function datosImportarStep1Markup() {
   const session = datosImportarSession;
+  const target = datosImportarTarget();
   if (!session) {
     return `<div class="e19-card datos-importar-upload">
-      <label class="datos-importar-file-label" for="datosImportarFileInput">
+      <label class="datos-importar-file-label" for="${target.fileInputId}">
         <strong>Cargar extracto</strong>
         <span>CSV o Excel con Fecha, Movimiento, Importe y Saldo — el mismo formato que ya lee el importador de movimientos.</span>
       </label>
-      <input type="file" id="datosImportarFileInput" accept=".csv,.xlsx,.xls" />
-      <p class="e19-kpi-note" id="datosImportarStep1Note"></p>
+      <input type="file" id="${target.fileInputId}" accept=".csv,.xlsx,.xls" />
+      <p class="e19-kpi-note" id="${target.step1NoteId}"></p>
     </div>`;
   }
   const summary = datosImportarFileSummary(session.rows.map((row) => row.transaction), session.fileMeta.sourceLabel);
@@ -16233,13 +16302,14 @@ function datosImportarStep1Markup() {
       <div><strong>${counters.pidenDecision}</strong><span>piden decisión</span></div>
       <div><strong>${counters.posiblesDuplicados}</strong><span>posibles duplicados</span></div>
     </div>
-    <button type="button" class="e19-btn e19-btn-secondary" id="datosImportarReplaceFile">Cambiar de fichero</button>
+    <button type="button" class="e19-btn e19-btn-secondary" id="${target.replaceFileId}">Cambiar de fichero</button>
   </div>`;
 }
 
 function datosImportarWireStep1() {
-  qs("datosImportarFileInput")?.addEventListener("change", handleDatosImportarFile);
-  qs("datosImportarReplaceFile")?.addEventListener("click", () => {
+  const target = datosImportarTarget();
+  qs(target.fileInputId)?.addEventListener("change", handleDatosImportarFile);
+  qs(target.replaceFileId)?.addEventListener("click", () => {
     datosImportarSession = null;
     datosImportarClearDraft();
     renderDatosImportar();
@@ -16271,7 +16341,7 @@ function handleDatosImportarClasificar(tipo, rowId, rowKey) {
 }
 
 function renderDatosImportarStep2() {
-  const panel = qs("datosImportarPanel");
+  const panel = qs(datosImportarTarget().panelId);
   const session = datosImportarSession;
   if (!panel || !session) return;
   const pending = datosImportarRowsPendingClassification(session.rows);
@@ -16316,7 +16386,7 @@ function handleDatosImportarDuplicado(rowId, decision) {
 }
 
 function renderDatosImportarStep3() {
-  const panel = qs("datosImportarPanel");
+  const panel = qs(datosImportarTarget().panelId);
   const session = datosImportarSession;
   if (!panel || !session) return;
   const pending = datosImportarRowsPendingDuplicate(session.rows);
@@ -16337,7 +16407,7 @@ function datosImportarSuccessMarkup(result) {
       <strong>Importación confirmada</strong>
       <p>${result.imported} movimiento(s) incorporado(s) de «${escapeHtml(result.fileName)}». ${result.nuevasReglas} regla(s) nueva(s) aprendida(s)${result.nuevosIgnorados ? `, ${result.nuevosIgnorados} movimiento(s) marcados para ignorar en el futuro` : ""}${result.duplicadosDescartados ? `, ${result.duplicadosDescartados} duplicado(s) descartado(s)` : ""}. Puedes deshacer este lote desde «Carga de datos».</p>
     </div>
-    <button type="button" class="e19-btn e19-btn-secondary" id="datosImportarImportarOtro">Importar otro fichero</button>`;
+    <button type="button" class="e19-btn e19-btn-secondary" id="${datosImportarTarget().importarOtroId}">Importar otro fichero</button>`;
 }
 
 async function handleDatosImportarConfirmar() {
@@ -16358,7 +16428,8 @@ async function handleDatosImportarConfirmar() {
 }
 
 function renderDatosImportarStep4() {
-  const panel = qs("datosImportarPanel");
+  const target = datosImportarTarget();
+  const panel = qs(target.panelId);
   const session = datosImportarSession;
   if (!panel || !session) return;
   const impact = datosImportarImpactRows(session.rows);
@@ -16381,13 +16452,13 @@ function renderDatosImportarStep4() {
             .join("")}</tbody>
         </table></div>`
       : `<p class="e19-kpi-note">Ningún real cambiaría con las decisiones actuales.</p>`}
-    <button type="button" class="e19-btn e19-btn-primary" id="datosImportarConfirm">Incorporar al plan</button>`;
-  qs("datosImportarConfirm")?.addEventListener("click", handleDatosImportarConfirmar);
+    <button type="button" class="e19-btn e19-btn-primary" id="${target.confirmId}">Incorporar al plan</button>`;
+  qs(target.confirmId)?.addEventListener("click", handleDatosImportarConfirmar);
   datosImportarUpdateBar();
 }
 
 function datosImportarUpdateSteps(activeStep) {
-  const steps = qs("datosImportarSteps");
+  const steps = qs(datosImportarTarget().stepsId);
   if (!steps) return;
   [...steps.children].forEach((item, index) => {
     const stepNumber = index + 1;
@@ -16400,9 +16471,10 @@ function datosImportarUpdateSteps(activeStep) {
 // está deshabilitado si lo está. Es el único sitio que decide el bloqueo, para que los pasos 2 y 3
 // no puedan tener cada uno su propia idea de cuándo se puede avanzar.
 function datosImportarUpdateBar() {
-  const nextButton = qs("datosImportarNext");
-  const backButton = qs("datosImportarBack");
-  const blockNote = qs("datosImportarBlockNote");
+  const target = datosImportarTarget();
+  const nextButton = qs(target.nextId);
+  const backButton = qs(target.backId);
+  const blockNote = qs(target.blockNoteId);
   const session = datosImportarSession;
   if (!nextButton || !backButton || !blockNote || !session) return;
   backButton.hidden = session.step === 1;
@@ -16436,15 +16508,16 @@ function handleDatosImportarBackClick() {
 
 function renderDatosImportar() {
   if (!datosImportarSession && !datosImportarLastResult) datosImportarSession = datosImportarRestoreSession();
-  const panel = qs("datosImportarPanel");
-  const backButton = qs("datosImportarBack");
-  const nextButton = qs("datosImportarNext");
-  const blockNote = qs("datosImportarBlockNote");
+  const target = datosImportarTarget();
+  const panel = qs(target.panelId);
+  const backButton = qs(target.backId);
+  const nextButton = qs(target.nextId);
+  const blockNote = qs(target.blockNoteId);
   if (!panel) return;
 
   if (datosImportarLastResult) {
     panel.innerHTML = datosImportarSuccessMarkup(datosImportarLastResult);
-    qs("datosImportarImportarOtro")?.addEventListener("click", () => {
+    qs(target.importarOtroId)?.addEventListener("click", () => {
       datosImportarLastResult = null;
       renderDatosImportar();
     });
@@ -16868,8 +16941,8 @@ function applySeriesChange() {
   );
 }
 
-function showImportLog(title, body, tone = "") {
-  const log = qs("dataImportLog");
+function showImportLog(title, body, tone = "", targetId = "dataImportLog") {
+  const log = qs(targetId);
   if (!log) return;
   log.classList.toggle("warning", tone === "warning");
   log.classList.toggle("danger", tone === "danger");
@@ -16892,6 +16965,7 @@ function refreshAllSectionsAfterDataChange() {
   render();
   if (viewFromHash() === "data-entry") { populateDataEntryControls(); renderE11bStatus(); }
   if (viewFromHash() === "datos-importar") renderDatosImportar();
+  if (viewFromHash() === "registrar" && registrarActiveTab === "import") renderDatosImportar();
 }
 
 function findPlanningRow(kind, sectionName, label, month) {
@@ -17224,7 +17298,30 @@ function currentComparableImportRecords() {
   return [...planning, ...projectRows, ...debtRows];
 }
 
-function stageE7Import(records, sourceLabel) {
+// R-9: la pestaña «Lote y Excel» de Registrar reutiliza tal cual este motor (comparación E7,
+// bandeja E11b, processDataRecords/applyImportedWorkbookData) — no es una segunda puerta de
+// escritura, solo un segundo destino visual para la misma vista previa/confirmación. `target`
+// selecciona dónde se pinta el registro y qué botones se cablean; por defecto sigue siendo
+// exactamente el de siempre (#data-entry), sin cambiar nada para quien no pase target.
+const E7_IMPORT_TARGETS = {
+  data: {
+    logId: "dataImportLog",
+    confirmId: "confirmE7Import",
+    cancelId: "cancelE7Import",
+    confirmWorkbookId: "confirmE7Workbook",
+    cancelWorkbookId: "cancelE7Workbook",
+  },
+  registrar: {
+    logId: "registrarBatchLog",
+    confirmId: "confirmRegistrarBatchImport",
+    cancelId: "cancelRegistrarBatchImport",
+    confirmWorkbookId: "confirmRegistrarBatchWorkbook",
+    cancelWorkbookId: "cancelRegistrarBatchWorkbook",
+  },
+};
+
+function stageE7Import(records, sourceLabel, target = "data") {
+  const cfg = E7_IMPORT_TARGETS[target] || E7_IMPORT_TARGETS.data;
   if (!E7Analysis) { processDataRecords(records, sourceLabel); return; }
   const before = currentComparableImportRecords();
   const incoming = records.map(comparableImportRecord);
@@ -17235,27 +17332,29 @@ function stageE7Import(records, sourceLabel) {
   });
   const inboxItem = addE11bInboxItem({ source: sourceLabel === "lote pegado" ? "pasted-table" : "csv", sourceLabel, rows: incoming, comparison, legacyAdapter: "processDataRecords" });
   pendingE7Import = { records, sourceLabel, comparison };
-  const log = qs("dataImportLog");
+  const log = qs(cfg.logId);
+  if (!log) return;
   log.classList.toggle("danger", !comparison.valid);
   log.innerHTML = `<strong>Vista previa · todavía no se ha importado nada</strong>
     <p>${comparison.additions.length} alta(s), ${comparison.changes.length} cambio(s), ${comparison.duplicates.length} duplicado(s) y ${comparison.removals.length} baja(s). Impacto agregado del lote: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Invariantes: ${comparison.valid ? "correctas" : "requieren revisión"}.</p>
-    <div class="data-actions"><button id="confirmE7Import" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar e importar</button><button id="cancelE7Import" class="secondary" type="button">Cancelar</button></div>`;
-  qs("confirmE7Import")?.addEventListener("click", () => {
+    <div class="data-actions"><button id="${cfg.confirmId}" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar e importar</button><button id="${cfg.cancelId}" class="secondary" type="button">Cancelar</button></div>`;
+  qs(cfg.confirmId)?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
     if (pending) {
       const result = processDataRecords(pending.records, pending.sourceLabel);
       applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.imported } });
     }
   });
-  qs("cancelE7Import")?.addEventListener("click", () => {
+  qs(cfg.cancelId)?.addEventListener("click", () => {
     pendingE7Import = null;
     if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
     saveLocalSnapshot(); renderE11bStatus();
-    showImportLog("Importación cancelada", "La vista previa se descartó sin modificar los datos.");
+    showImportLog("Importación cancelada", "La vista previa se descartó sin modificar los datos.", "", cfg.logId);
   });
 }
 
-function stageE7Workbook(nextData, fileName) {
+function stageE7Workbook(nextData, fileName, target = "data") {
+  const cfg = E7_IMPORT_TARGETS[target] || E7_IMPORT_TARGETS.data;
   if (!E7Analysis) { applyImportedWorkbookData(nextData, fileName); return; }
   const before = (baseData?.transactions || []).map((item, index) => ({ ...item, id: item.id || `movement-${index}`, amount: Number(item.amount || 0) }));
   const after = (nextData?.transactions || []).map((item, index) => ({ ...item, id: item.id || `movement-${index}`, amount: Number(item.amount || 0) }));
@@ -17267,23 +17366,24 @@ function stageE7Workbook(nextData, fileName) {
   });
   const inboxItem = addE11bInboxItem({ source: "excel-workbook", fileName, sourceLabel: fileName, rows: after, comparison, legacyAdapter: "applyImportedWorkbookData" });
   pendingE7Import = { nextData, sourceLabel: fileName, comparison, kind: "workbook" };
-  const log = qs("dataImportLog");
+  const log = qs(cfg.logId);
+  if (!log) return;
   log.classList.toggle("danger", !comparison.valid);
   log.innerHTML = `<strong>Vista previa del libro · todavía no se ha sustituido el modelo</strong>
     <p>${comparison.additions.length} alta(s), ${comparison.changes.length} cambio(s), ${comparison.duplicates.length} duplicado(s) y ${comparison.removals.length} baja(s) en movimientos. Impacto agregado: ${comparison.monthlyEffect >= 0 ? "+" : ""}${money(comparison.monthlyEffect, true)}. Planificación e importes: ${comparison.valid ? "válidos" : "requieren revisión"}.</p>
-    <div class="data-actions"><button id="confirmE7Workbook" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar y sustituir modelo</button><button id="cancelE7Workbook" class="secondary" type="button">Cancelar</button></div>`;
-  qs("confirmE7Workbook")?.addEventListener("click", () => {
+    <div class="data-actions"><button id="${cfg.confirmWorkbookId}" type="button" ${comparison.valid ? "" : "disabled"}>Confirmar y sustituir modelo</button><button id="${cfg.cancelWorkbookId}" class="secondary" type="button">Cancelar</button></div>`;
+  qs(cfg.confirmWorkbookId)?.addEventListener("click", () => {
     const pending = pendingE7Import; pendingE7Import = null;
     if (pending?.nextData) {
       const result = applyImportedWorkbookData(pending.nextData, pending.sourceLabel);
       applyE11bReceipt(inboxItem, { batchId: result.batchId, changed: { records: result.recordCount, movements: result.movementCount } });
     }
   });
-  qs("cancelE7Workbook")?.addEventListener("click", () => {
+  qs(cfg.cancelWorkbookId)?.addEventListener("click", () => {
     pendingE7Import = null;
     if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
     saveLocalSnapshot(); renderE11bStatus();
-    showImportLog("Importación cancelada", "El libro se descartó sin sustituir el modelo actual.");
+    showImportLog("Importación cancelada", "El libro se descartó sin sustituir el modelo actual.", "", cfg.logId);
   });
 }
 
@@ -17365,6 +17465,97 @@ async function handleExcelImport(event) {
     );
   }
   event.target.value = "";
+}
+
+// R-9 · pestaña «Lote y Excel» de Registrar: mismas funciones de bajo nivel que #data-entry
+// (parseTabularText, stageE7Import/stageE7Workbook, processDataRecords/applyImportedWorkbookData
+// vía la bandeja E11b) — solo cambia el elemento de origen y el destino visual (target
+// "registrar"). Ninguna escritura nueva; #data-entry sigue intacto y funcionando igual.
+function handleRegistrarBatchImport() {
+  const input = qs("registrarBatchInput");
+  const records = parseTabularText(input?.value);
+  if (!records.length) {
+    showImportLog("No hay datos importables", "Pega una tabla con cabeceras y al menos una línea.", "danger", "registrarBatchLog");
+    return;
+  }
+  stageE7Import(records, "lote pegado", "registrar");
+}
+
+function handleRegistrarBatchClear() {
+  const input = qs("registrarBatchInput");
+  if (input) input.value = "";
+  showImportLog("Lote limpio", "Puedes pegar una nueva tabla cuando quieras.", "", "registrarBatchLog");
+}
+
+function downloadRegistrarBatchTemplate() {
+  const header = "tipo;mes;bloque;concepto;previsto;real;duracion;modo";
+  const example = "gasto;2026-09;GASTOS FIJOS;Luz;120;134,20;;";
+  const csvContent = `﻿${header}\r\n${example}\r\n`;
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "plantilla-lote-registrar.csv";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+    link.remove();
+  }, 1000);
+}
+
+async function processRegistrarExcelFile(file) {
+  if (!file) return;
+  if (qs("registrarExcelFileName")) qs("registrarExcelFileName").textContent = file.name;
+  const lowerName = file.name.toLowerCase();
+  if (lowerName.endsWith(".csv") || lowerName.endsWith(".txt")) {
+    const records = parseTabularText(await file.text());
+    if (!records.length) {
+      showImportLog("Fichero vacío", "No se han encontrado filas importables.", "danger", "registrarBatchLog");
+      return;
+    }
+    stageE7Import(records, file.name, "registrar");
+    return;
+  }
+  if (!window.XLSX || typeof window.XLSX.read !== "function") {
+    showImportLog("No se pudo leer Excel", "La librería de lectura de Excel no está disponible todavía.", "danger", "registrarBatchLog");
+    return;
+  }
+  const buffer = await file.arrayBuffer();
+  const workbook = window.XLSX.read(buffer, { type: "array" });
+  try {
+    stageE7Workbook(buildFinanceDataFromWorkbook(workbook, file.name), file.name, "registrar");
+  } catch (error) {
+    showImportLog(
+      "No se pudo cargar el libro completo",
+      `${error.message}. Comprueba que el Excel mantiene las pestañas Plan_Ahorro_821, Contabilidad New Life, Importe devolucion recibos y Movimientos_cuenta.`,
+      "danger",
+      "registrarBatchLog",
+    );
+  }
+}
+
+async function handleRegistrarExcelImport(event) {
+  const file = event.target.files?.[0];
+  await processRegistrarExcelFile(file);
+  event.target.value = "";
+}
+
+function handleRegistrarExcelDragOver(event) {
+  event.preventDefault();
+  event.currentTarget.classList.add("is-dragover");
+}
+
+function handleRegistrarExcelDragLeave(event) {
+  event.currentTarget.classList.remove("is-dragover");
+}
+
+async function handleRegistrarExcelDrop(event) {
+  event.preventDefault();
+  event.currentTarget.classList.remove("is-dragover");
+  const file = event.dataTransfer?.files?.[0];
+  await processRegistrarExcelFile(file);
 }
 
 function handleAddCustomConcept(kind) {
@@ -23211,6 +23402,10 @@ function handleRegistrarActualsChange(input) {
 function setRegistrarTab(tabId) {
   registrarActiveTab = REGISTRAR_TABS.some((tab) => tab.id === tabId) ? tabId : "balances";
   renderRegistrarTabs();
+  // R-8: la pestaña Importar extracto pinta el asistente de cuatro pasos al entrar, igual que
+  // #datos-importar lo hace al abrirse — sin esto, la primera visita mostraría el panel vacío
+  // hasta el siguiente cambio de datos.
+  if (registrarActiveTab === "import") renderDatosImportar();
 }
 
 function renderRegistrarTabs() {
@@ -23828,6 +24023,8 @@ async function init() {
   qs("undoLastImport")?.addEventListener("click", undoLastImportBatch);
   qs("datosImportarNext")?.addEventListener("click", handleDatosImportarNextClick);
   qs("datosImportarBack")?.addEventListener("click", handleDatosImportarBackClick);
+  qs("registrarImportNext")?.addEventListener("click", handleDatosImportarNextClick);
+  qs("registrarImportBack")?.addEventListener("click", handleDatosImportarBackClick);
   qs("toggleDataInbox")?.addEventListener("click", toggleE11bInbox);
   qs("exportStateBackup")?.addEventListener("click", downloadStateBackup);
   qs("prepareCloudRestore")?.addEventListener("click", prepareCloudSnapshotRestore);
@@ -23900,6 +24097,16 @@ async function init() {
     if (event.target.closest("[data-registrar-impact-save]")) { registrarConsolidateSessionChanges(); return; }
     if (event.target.closest("[data-registrar-impact-discard]")) registrarDiscardSessionChanges();
   });
+  qs("registrarBatchImportBtn")?.addEventListener("click", handleRegistrarBatchImport);
+  qs("registrarBatchClearBtn")?.addEventListener("click", handleRegistrarBatchClear);
+  qs("registrarBatchTemplateBtn")?.addEventListener("click", downloadRegistrarBatchTemplate);
+  qs("registrarExcelDataFile")?.addEventListener("change", handleRegistrarExcelImport);
+  const registrarExcelDrop = qs("registrarExcelDrop");
+  if (registrarExcelDrop) {
+    registrarExcelDrop.addEventListener("dragover", handleRegistrarExcelDragOver);
+    registrarExcelDrop.addEventListener("dragleave", handleRegistrarExcelDragLeave);
+    registrarExcelDrop.addEventListener("drop", handleRegistrarExcelDrop);
+  }
   qs("previsionYear").addEventListener("change", renderPrevision);
   qs("previsionTable")?.addEventListener("click", (event) => {
     const cell = event.target.closest("[data-prevision-month-key]");

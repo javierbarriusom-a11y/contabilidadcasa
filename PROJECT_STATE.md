@@ -2,6 +2,70 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Registrar completa Importar extracto, Lote y Excel, redirecciones y una prueba pendiente (R-8, R-9, R-10 parcial, R-12)
+
+Continuación directa del cierre anterior (R-6/R-6b/R-7, fusionado a `main`). Antes de programar,
+se revisó el backlog «Nueve pantallas» (124 tareas, 9 pantallas, 7 fases) que hasta ahora solo
+vivía como artifact de claude.ai — se guardó una copia operativa en
+`docs/BACKLOG_NUEVE_PANTALLAS.md` para que futuras sesiones no dependan de un enlace externo. El
+usuario aprobó el orden propuesto (R-10 → R-12 → R-9 → R-8, con R-11 aparte) y pidió acometerlo
+hasta el final; R-10 se reordenó al final en la práctica porque su alcance seguro solo quedó claro
+una vez Registrar tuvo tabs reales que sustituir.
+
+**R-12 · distinción vacío/cero, verificada donde faltaba**: la lógica ya era correcta
+(`actualAwareInfo`: clave ausente → «sin real», usado toma el previsto; clave con `0` explícito →
+«ocurrió por cero», usado es 0), pero no había una prueba directa sobre el campo `used` derivado
+de `registrarMesCollect`. `tests/r12-vacio-vs-cero.test.cjs` (4 pruebas) la añade.
+
+**R-9 · pestaña «Lote y Excel»**: pegar tabla, subir o arrastrar un fichero (el primer arrastre
+real de toda la app — `#data-entry` nunca lo tuvo, solo un `<input type=file>` disfrazado) y
+plantilla CSV descargable. No es una segunda puerta de escritura (regla transversal 01):
+`stageE7Import`/`stageE7Workbook`/`showImportLog` se parametrizaron con un `target` («data» por
+defecto, sin cambiar nada para `#data-entry`; «registrar» para el destino nuevo), así que ambas
+pantallas comparten el mismo motor de comparación E7, la misma bandeja E11b y el mismo
+`processDataRecords`/`applyImportedWorkbookData`. `#data-entry` sigue intacta, con sus propios
+controles y sin tocar.
+
+**R-8 · pestaña «Importar extracto»**: el asistente heredado de cuatro pasos (cargar, clasificar,
+resolver duplicados, confirmar) de `#datos-importar`, no una copia. `datosImportarSession` sigue
+siendo la única fuente de verdad; todas las funciones del asistente (una quincena, del paso 1 al
+4, más la barra de navegación) pasaron a leer sus ids de `datosImportarTarget()`, que decide entre
+los ids de `#datos-importar` o los nuevos de Registrar según `activeViewId` — incluidos los
+botones que el asistente inyecta dinámicamente (confirmar, cambiar de fichero...), para que nunca
+convivan dos elementos con el mismo id. `#datos-importar` sigue intacta y accesible por su cuenta.
+
+**R-10 · redirección de hashes, parcial a propósito**: su criterio pide redirigir cinco hashes
+heredados a la pestaña equivalente de Registrar. Se redirigieron cuatro —`#update-hub`,
+`#update-data`, `#datos-importar`, `#data-entry`— porque ninguno tenía una promesa de
+accesibilidad propia: R-2 solo los citaba como destino «mientras tanto» de las pestañas de
+Registrar sin construir, provisionalidad que R-8/R-9 ya resolvieron. `#registrar-mes` se dejó
+**fuera**: la sesión de R-5 prometió explícitamente en este mismo documento que seguiría intacta y
+accesible desde «Herramientas avanzadas», y redirigir su hash la habría dejado inalcanzable por
+navegación sin que el usuario lo confirmara — el mismo tipo de decisión que ya hizo falta acotar
+en R-6. Se deja agrupada con R-11 para una consulta conjunta, porque ambas tratan en el fondo la
+misma pregunta: cuánto se cierra el acceso directo a las heredadas de Registrar. Ninguna de las
+cinco pantallas heredadas perdió código ni funcionalidad; solo cambió a qué destino apunta cada
+hash.
+
+**Pruebas nuevas**: `tests/r9-registrar-lote-excel.test.cjs` (13), `tests/r8-registrar-importar-extracto.test.cjs`
+(14), `tests/r10-redireccion-hashes.test.cjs` (10), `tests/r12-vacio-vs-cero.test.cjs` (4) — 41
+pruebas nuevas en total. Se ajustaron `tests/r1-r4-registrar.test.cjs` y
+`tests/r6-r6b-r7-registrar.test.cjs`: las aserciones que comprobaban que Importar/Lote seguían
+enlazando a la heredada (ciertas mientras R-8/R-9 no existían) se sustituyeron por las que
+comprueban que ahora tienen contenido propio sin fabricar un segundo motor.
+
+**Validación** (`npm run verify`, exit 0): **727/727 pruebas** (684 de partida + 41 nuevas de los
+cuatro ficheros de arriba + 2 netas por el ajuste de las pruebas existentes), **649 IDs únicos**
+de accesibilidad, diff 10.000 filas en **47,5 ms**, forecast y escenarios en **254,7 ms**,
+recursos **1345 KB**, build del sitio, privacidad y smoke test en
+verde.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-plan-vtp087`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`. Queda **R-11** (cierre de escritura de las
+heredadas) y la decisión sobre redirigir `#registrar-mes` para una consulta explícita con el
+usuario antes de tocarlas; después, Fase 2 sigue con las piezas de Movimientos y de la pestaña Mes
+de Plan que también forman parte de ella según `docs/BACKLOG_NUEVE_PANTALLAS.md`.
+
 ## Cierre de sesión — 15 de agosto de 2026: regla de guardado, previsto solo en Plan y pie de impacto (R-6, R-6b, R-7)
 
 Continuación directa del cierre anterior (R-5, fusionado a `main`). El usuario pidió seguir con

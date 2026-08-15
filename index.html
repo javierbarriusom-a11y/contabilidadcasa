@@ -449,10 +449,80 @@
               </article>
             </div>
             <div class="e19-registrar-panel" data-registrar-panel="import" hidden>
-              <p class="e19-registrar-pending">Pestaña todavía no construida (R-8). Mientras tanto, usa <button type="button" class="link-button" data-home-nav="datos-importar">Importar extracto en 4 pasos</button>.</p>
+              <article class="e19-card">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Importar extracto</p>
+                    <h3>Cargar, clasificar, resolver duplicados y confirmar</h3>
+                    <p class="e19-subtitle">Nada entra en el plan hasta confirmar el último paso. Cada movimiento dudoso y cada posible duplicado piden una decisión explícita, nunca una suposición.</p>
+                  </div>
+                </div>
+                <ol class="datos-importar-steps" id="registrarImportSteps" aria-label="Pasos de la importación">
+                  <li data-datos-importar-step="1"><span>1</span>Cargar</li>
+                  <li data-datos-importar-step="2"><span>2</span>Clasificar</li>
+                  <li data-datos-importar-step="3"><span>3</span>Duplicados</li>
+                  <li data-datos-importar-step="4"><span>4</span>Incorporar</li>
+                </ol>
+                <div id="registrarImportPanel"></div>
+                <div class="datos-importar-bar">
+                  <p class="e19-kpi-note" id="registrarImportBlockNote" role="status"></p>
+                  <div class="datos-importar-bar-actions">
+                    <button type="button" class="e19-btn e19-btn-secondary" id="registrarImportBack">Atrás</button>
+                    <button type="button" class="e19-btn e19-btn-primary" id="registrarImportNext">Continuar</button>
+                  </div>
+                </div>
+              </article>
             </div>
             <div class="e19-registrar-panel" data-registrar-panel="batch" hidden>
-              <p class="e19-registrar-pending">Pestaña todavía no construida (R-9). Mientras tanto, usa <button type="button" class="link-button" data-home-nav="data-entry">Carga por lote y Excel</button>.</p>
+              <article class="e19-card">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Lote y Excel</p>
+                    <h3>Pegar tabla, subir Excel o arrastrar un fichero</h3>
+                    <p class="e19-subtitle">Mismo recorrido de cuatro fases que Importar extracto: origen, columnas, comparación y confirmación. Una sola entrada revertible por lote, igual que el resto de Registrar.</p>
+                  </div>
+                </div>
+                <ol class="e11b-steps e19-stepper" aria-label="Pasos del asistente">
+                  <li><span class="e19-stepper-badge">1</span>Origen</li>
+                  <li><span class="e19-stepper-badge">2</span>Columnas</li>
+                  <li><span class="e19-stepper-badge">3</span>Comparación</li>
+                  <li><span class="e19-stepper-badge">4</span>Confirmación</li>
+                </ol>
+                <div class="data-import-grid">
+                  <article class="data-card">
+                    <div class="module-heading">
+                      <div>
+                        <p class="panel-kicker">Por lotes</p>
+                        <h3>Pegar tabla</h3>
+                      </div>
+                    </div>
+                    <textarea id="registrarBatchInput" spellcheck="false" placeholder="tipo;mes;bloque;concepto;previsto;real;duracion;modo&#10;gasto;2026-09;GASTOS FIJOS;Luz;120;134,20&#10;ingreso;sep 26;INGRESOS;Extra;0;500"></textarea>
+                    <div class="data-actions">
+                      <button id="registrarBatchImportBtn" type="button">Importar lote</button>
+                      <button id="registrarBatchClearBtn" type="button">Limpiar</button>
+                      <button id="registrarBatchTemplateBtn" type="button" class="e19-btn e19-btn-secondary">Descargar plantilla</button>
+                    </div>
+                    <p class="data-hint">Admite separador «;», tabulador o coma. Cabeceras recomendadas: tipo, mes, bloque, concepto, previsto, real, duracion, modo. Tipo puede ser gasto, ingreso, proyecto o deuda.</p>
+                  </article>
+                  <article class="data-card">
+                    <div class="module-heading">
+                      <div>
+                        <p class="panel-kicker">Excel</p>
+                        <h3>Importar o arrastrar fichero</h3>
+                      </div>
+                    </div>
+                    <label class="file-drop" id="registrarExcelDrop">
+                      <span class="file-drop-title">Seleccionar Excel o CSV</span>
+                      <span class="file-drop-subtitle">Arrastra aquí el fichero o elígelo a mano · libro completo XLS/XLSX o lote CSV/TXT</span>
+                      <span class="file-drop-button">Elegir archivo</span>
+                      <span class="file-drop-name" id="registrarExcelFileName">Ningún archivo seleccionado</span>
+                      <input id="registrarExcelDataFile" type="file" accept=".xlsx,.xls,.csv,.txt" />
+                    </label>
+                    <p class="data-hint">Si subes XLS/XLSX, lee el libro completo como fuente del modelo. Si subes CSV/TXT, lo importa como lote con las cabeceras anteriores.</p>
+                  </article>
+                </div>
+                <div class="data-import-log" id="registrarBatchLog" role="status" aria-live="polite"></div>
+              </article>
             </div>
 
             <aside class="e19-impact-bar e19-registrar-impact" id="registrarImpactBar" hidden aria-live="polite"></aside>
