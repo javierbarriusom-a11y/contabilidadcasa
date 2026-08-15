@@ -70,7 +70,10 @@ commit, push, PR, fusionar) no pide permiso en cada turno.
 Movimientos: Registrar R-1 a R-12 hechas (R-11 se consultó y se resolvió el 15 de agosto, ver la
 nota bajo la tabla de la pantalla 02); Movimientos M-1 a M-7 y M-9 a M-11 hechas, quedan M-8/M-8b
 (selección múltiple y lote, sesión propia) y M-8c (bloqueada por Cierre); Plan · Mes P-1 a P-7
-hechas (15 de agosto). Fases 3-7 sin empezar.
+hechas (15 de agosto). Fase 3 (Deuda) arrancada el 15 de agosto: D-1, D-2, D-3, D-7, D-8 y D-9
+hechas (D-3/D-7/D-8/D-9 ya existían de un epic anterior, reconciliadas con el backlog, ver la
+nota bajo la tabla de la pantalla 05); D-5/D-6/D-10/D-11/D-13 parciales, D-2b/D-4/D-12
+pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fases 4-7 sin empezar.
 
 ## 4. Nueve reglas transversales
 
@@ -244,21 +247,74 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| D-1 | Pestañas Ruta / Comparar / Contratos | Fase 3 | M | Pendiente |
-| D-2 | Contratos como dato canónico editable | D-1 | L | Pendiente |
-| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente |
-| D-3 | Orden de ataque por estrategia | D-2 | M | Pendiente |
+| D-1 | Pestañas Ruta / Comparar / Contratos | Fase 3 | M | Hecho (15 de agosto, ver nota) |
+| D-2 | Contratos como dato canónico editable | D-1 | L | Hecho (15 de agosto) |
+| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
+| D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
 | D-4 | Calendario de amortización | D-3 | L | Pendiente |
-| D-5 | Ocho modos de liquidación | D-3 | L | Pendiente |
-| D-6 | Comparativa plan frente a modo | D-5 | M | Pendiente |
-| D-7 | Comparar no escribe nada | D-6 | S | Pendiente |
-| D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Pendiente |
-| D-9 | Comprobaciones antes de aplicar | D-8 | M | Pendiente |
-| D-10 | Oferta en curso con caducidad | D-2 | M | Pendiente |
-| D-11 | Coste de no decidir | D-2 | S | Pendiente |
+| D-5 | Ocho modos de liquidación | D-3 | L | Parcial (ver nota: existen en `#debt-control`, sin migrar) |
+| D-6 | Comparativa plan frente a modo | D-5 | M | Parcial (compara 4 estrategias, no los 8 modos de D-5) |
+| D-7 | Comparar no escribe nada | D-6 | S | Hecho (ya existía, ver nota) |
+| D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (ya existía, ver nota) |
+| D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (ya existía, ver nota) |
+| D-10 | Oferta en curso con caducidad | D-2 | M | Parcial (la tarjeta y la fecha existen; no hay aviso activo de caducidad) |
+| D-11 | Coste de no decidir | D-2 | S | Parcial («no tocar» ya compara su coste; falta el coste marginal por mes de demora) |
 | D-12 | Capacidad de endeudamiento | D-2 | M | Pendiente |
-| D-13 | Guardar comparación como escenario | D-6, Escenarios | M | Pendiente |
-| D-14 | Retirar las tres heredadas de deuda | D-1, Fase 7 | S | Pendiente |
+| D-13 | Guardar comparación como escenario | D-6, Escenarios | M | Parcial (solo existe la vía «aplicar»; falta guardar sin comprometerse) |
+| D-14 | Retirar las tres heredadas de deuda | D-1, Fase 7 | S | Ver nota — contradice T-4, en principio no se completa tal cual está escrita |
+
+**Nota (15 de agosto): D-3, D-7, D-8 y D-9 ya estaban hechas, y el backlog no lo sabía.**
+`#deuda-ruta` y `#deuda-comparar` no partían de cero: llegaron ya construidas con el resto del
+código el 10 de agosto (epic «V3», anterior a este backlog del 14 de agosto), y esta
+reorganización las dio por "Pendiente" sin conocerlas. Antes de tocar nada se hizo una
+reconciliación tarea por tarea contra el código real:
+
+- **D-3** (`debtStrategyOrderedContracts`, `debtStrategyDecisions`, `debtStrategyResult`):
+  ordena de verdad por avalancha (TAE) o bola de nieve (saldo) y construye decisiones reales
+  sobre el motor de escenarios.
+- **D-7**: `#deuda-comparar` lo declara en su propio subtítulo y es puramente de lectura —
+  nada se escribe hasta que se pulsa aplicar.
+- **D-8** (`handleEscenarioAplicarConfirm`): motivo obligatorio de verdad (sin motivo, no deja
+  confirmar) y pantalla de revisión línea a línea antes de aplicar.
+- **D-9** (`deudaRutaChecklist`): comprueba reserva mínima no vulnerada y que todas las
+  decisiones tengan mes viable; el botón de aplicar se deshabilita si no.
+
+**Nota (15 de agosto): D-1 y D-2.** Ruta y Comparar son dos `view-section` completas y
+existentes, no una heredada que absorber — se enlazan como pestañas (`e19-registrar-tab`,
+reutilizada tal cual de Registrar/Plan) sin fusionar su DOM ni tocar una sola línea de lo que
+ya funcionaba (los tests V3-3/V3-4/V3-5/V1-3/V6 siguen intactos y en verde). Contratos
+(`#deuda-contratos`) es la única de las tres construida desde cero: la primera puerta de
+escritura real de `DEBT_PORTFOLIO`, que hasta ahora era una constante del código sin ningún
+mecanismo para corregirla. `debtContractOverrides` guarda solo capital pendiente, TAE y cuota
+por contrato (persistido como `movementMappings`/`rowLabelOverrides`, incluido en el payload de
+sincronización remota) y se combina con `DEBT_PORTFOLIO` en `debtContractBundle()` — el único
+punto por el que ya pasaban Ruta, Comparar, Hoy y el motor de escenarios, así que todos ven el
+valor corregido sin que nadie tenga que avisarlos. Vaciar una celda no escribe un cero: borra
+el ajuste y vuelve al valor declarado (regla transversal 04).
+
+**Quedan pendientes, con motivo explícito:**
+- **D-2b** — bloqueada hasta que exista Cierre (Fase 5), igual que M-8c.
+- **D-4** (calendario de amortización mes a mes) y **D-5/D-6** (migrar los ocho modos heredados
+  de `#debt-control` a la comparativa nueva) — las tres tareas de talla L que quedaban, para su
+  propia sesión, mismo criterio que M-8/M-8b.
+- **D-10** (aviso activo de caducidad de una oferta), **D-11** (coste marginal por mes de
+  demora) y **D-13** (guardar la comparación sin comprometerse a aplicar) — ampliaciones
+  concretas sobre lo que ya existe, no bloqueadas por nada, solo fuera del alcance pedido esta
+  sesión.
+- **D-12** (capacidad de endeudamiento) — no hay todavía una cifra de ingreso mensual del hogar
+  reutilizable para un ratio de endeudamiento defendible; se deja para no inventar una fórmula
+  sin una fuente canónica detrás.
+- **D-14**, tal como está escrita («retirar»), choca con una decisión de producto ya tomada: T-4
+  (retirar de verdad una heredada, no solo relegarla) sigue bloqueada a propósito en
+  `PROJECT_STATE.md` — "conviene esperar datos de uso... en vez de decidirlo por intuición". Las
+  tres heredadas de Deuda ya están relegadas a «Versiones anteriores» desde el 10 de agosto
+  (V3-5), que es el mismo trato que ha recibido cada heredada migrada del inventario hasta
+  ahora (V1-4, V2-8, V4-6, V5-3, R-11). Mientras T-4 siga bloqueada, D-14 no se completa en su
+  sentido literal — habría que reabrir esa decisión con el usuario explícitamente, no darla por
+  hecha aquí.
+
+Pruebas: `tests/d1-d2-deuda-tabs-contratos.test.cjs` (31 pruebas nuevas); se ajustó
+`tests/navigation-structure.test.cjs` (el menú avanzado gana un enlace).
 
 ### 06 · Escenarios — simulación pura, no toca el plan (17 tareas · 4 grandes)
 

@@ -2,6 +2,77 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Deuda — D-1/D-2 nuevas, D-3/D-7/D-8/D-9 reconciliadas
+
+El usuario pidió seguir con la Fase 3 (Deuda) del backlog «Nueve pantallas». Antes de escribir
+nada se descubrió que `#deuda-ruta` y `#deuda-comparar` ya existían, completas y funcionando,
+desde el 10 de agosto (epic «V3», anterior a este backlog reescrito el 14 de agosto) — el
+backlog las daba por "Pendiente" sin conocerlas. Se hizo una reconciliación tarea por tarea (ver
+la nota extensa bajo la tabla de la pantalla 05 en `docs/BACKLOG_NUEVE_PANTALLAS.md`) antes de
+decidir qué construir esta sesión.
+
+**Reconciliado, sin escribir código**: D-3 (orden de ataque por estrategia,
+`debtStrategyOrderedContracts`/`debtStrategyDecisions`), D-7 (comparar no escribe, confirmado por
+diseño y por código), D-8 (aplicar con motivo obligatorio, `handleEscenarioAplicarConfirm`) y D-9
+(comprobaciones previas, `deudaRutaChecklist`) ya estaban hechas. El backlog se corrigió para
+reflejarlo, con cita de función/línea.
+
+**Construido esta sesión — D-1 (pestañas Ruta/Comparar/Contratos)**: Ruta y Comparar no se
+fusionaron ni se tocó una línea de su DOM interno (los tests V3-3/V3-4/V3-5/V1-3/V6 siguen
+intactos y en verde) — se enlazan como pestañas reales (`<a href="#...">`, no botones con JS)
+reutilizando tal cual la clase `.e19-registrar-tab`/`.e19-registrar-tabs` de Registrar/Plan (regla
+transversal 01: ninguna barra de pestañas nueva). Cada pantalla sigue siendo su propio
+`view-section` con su propio hash; solo se añadió un `<nav>` vacío al principio de cada una,
+poblado por `renderDeudaScreenTabs()` al pintarse.
+
+**Construido esta sesión — D-2 (contratos como dato canónico editable)**: pantalla nueva
+`#deuda-contratos`, la primera puerta de escritura real de `DEBT_PORTFOLIO` en toda la app —
+hasta ahora era una constante del código sin ningún mecanismo para corregirla (comentario
+explícito que lo decía en `app.js`, ahora corregido). Solo tres campos editables: capital
+pendiente, TAE y cuota — no entidad, tipo ni estado, que siguen siendo los declarados. Los
+ajustes viven en `debtContractOverrides`, persistidos exactamente como `movementMappings`/
+`rowLabelOverrides` (misma carga/guardado/`localStorage`, incluidos en el payload de
+sincronización remota con su propia etiqueta canónica «Contrato de deuda») y se combinan con
+`DEBT_PORTFOLIO` dentro de `debtContractBundle()` — el único punto por el que ya pasaban Ruta,
+Comparar, Hoy (`homeDebtOutlook`) y el motor de escenarios, así que un contrato corregido se ve
+en todas partes sin tocar ninguna otra función. Vaciar una celda no escribe un cero: borra el
+ajuste y la celda vuelve a mostrar el valor declarado (regla transversal 04) — verificado en vivo
+con Playwright, no solo en test.
+
+**Verificación visual con Playwright**: navegación a `#deuda-contratos` mostró la barra
+Ruta/Comparar/Contratos y las tres filas de la cartera demo con sus inputs; editar el capital
+pendiente de un contrato a 1234,56 € actualizó la nota («1 de 3 contrato(s) con... corregidos»),
+añadió la insignia «Editado» a esa fila y persistió en `localStorage` bajo la clave con el prefijo
+del usuario; vaciar esa misma celda la devolvió a 6000 (el valor declarado), no a 0.
+
+**Deliberadamente fuera de esta sesión, con motivo explícito** (detalle completo en la nota del
+backlog): D-2b (bloqueada por Cierre, que no existe), D-4/D-5/D-6 (calendario de amortización y
+migrar los ocho modos heredados de `#debt-control`, las tres tallas L que quedaban, sesión propia
+como M-8/M-8b), D-10/D-11/D-13 (ampliaciones concretas sobre lo que ya existe: caducidad activa
+de una oferta, coste marginal por mes de demora, guardar comparación sin aplicar), D-12
+(capacidad de endeudamiento — no hay todavía una cifra canónica de ingreso mensual del hogar para
+un ratio defendible) y D-14, que tal como está escrita («retirar» las heredadas) choca con T-4,
+una decisión de producto ya tomada y bloqueada a propósito — las tres heredadas de Deuda ya están
+relegadas desde el 10 de agosto (V3-5), que es el trato que ha recibido cada heredada migrada
+hasta ahora.
+
+**Pruebas nuevas**: `tests/d1-d2-deuda-tabs-contratos.test.cjs` (31 pruebas) — orden y pintado de
+las pestañas, combinación de overrides sobre `DEBT_PORTFOLIO`, validación de la celda (vacío ≠
+cero, negativos rechazados, TAE tope 60%, coma decimal), escritura y borrado del override,
+insignia «Editado», persistencia con el mismo patrón que `movementMappings`, y el shell offline
+versionado. Se ajustó `tests/navigation-structure.test.cjs` (el menú avanzado gana un enlace,
+`#deuda-contratos`).
+
+**Validación** (`npm run verify`, exit 0): **824/824 pruebas** (793 + 31 nuevas), **671 IDs
+únicos** de accesibilidad, diff 10.000 filas en **37,0 ms**, forecast y escenarios en **193,0 ms**,
+recursos **1381 KB**, build del sitio, privacidad y smoke test en verde.
+
+**Publicado en el camino**: PR #44 (Plan · Mes) tenía el CI en verde; se fusionó a `main` al
+arrancar esta sesión, según la autorización permanente de `CLAUDE.md`.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-r11-jkz5z0` (reiniciada desde
+`main` tras la fusión anterior), commit y PR en borrador según lo autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 15 de agosto de 2026: Plan · Mes (P-1 a P-7) — Fase 2 completa salvo el lote
 
 Continuación directa del cierre anterior del mismo día (Movimientos, fusionado como PR #43). El

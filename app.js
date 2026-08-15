@@ -64,6 +64,7 @@ let deletedPlanningRows = {};
 let seriesOverrides = {};
 let rowLabelOverrides = {};
 let movementMappings = {};
+let debtContractOverrides = {};
 let debtRoadmapState = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
@@ -801,6 +802,7 @@ function appStatePayload(options = {}) {
     seriesOverrides,
     rowLabelOverrides,
     movementMappings,
+    debtContractOverrides,
     debtRoadmapState,
     debtContracts: canonicalDebtContractRows(),
   };
@@ -1216,6 +1218,8 @@ function applyPersistedPayload(payload = {}) {
   seriesOverrides = payload.seriesOverrides && typeof payload.seriesOverrides === "object" ? payload.seriesOverrides : {};
   rowLabelOverrides = payload.rowLabelOverrides && typeof payload.rowLabelOverrides === "object" ? payload.rowLabelOverrides : {};
   movementMappings = payload.movementMappings && typeof payload.movementMappings === "object" ? payload.movementMappings : {};
+  debtContractOverrides =
+    payload.debtContractOverrides && typeof payload.debtContractOverrides === "object" ? payload.debtContractOverrides : {};
   debtRoadmapState = payload.debtRoadmapState && typeof payload.debtRoadmapState === "object" ? payload.debtRoadmapState : {};
   canonicalSnapshot =
     payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
@@ -1279,6 +1283,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
+  storageSet(storageKey("debtContractOverrides"), JSON.stringify(debtContractOverrides));
   storageSet(storageKey("debtRoadmapState"), JSON.stringify(debtRoadmapState));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
@@ -1644,6 +1649,7 @@ const canonicalTypeLabels = {
   labelOverrides: "Renombre",
   movementMappings: "Regla bancaria",
   decisionEvents: "Evento de decisión",
+  debtContractOverrides: "Contrato de deuda",
 };
 
 const canonicalStatusLabels = {
@@ -2147,6 +2153,7 @@ function loadLocalState() {
       seriesOverrides: JSON.parse(storageGet(storageKey("seriesOverrides"), "{}")),
       rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
+      debtContractOverrides: JSON.parse(storageGet(storageKey("debtContractOverrides"), "{}")),
       debtRoadmapState: JSON.parse(storageGet(storageKey("debtRoadmapState"), "{}")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
@@ -2173,6 +2180,7 @@ function loadLocalState() {
     seriesOverrides = {};
     rowLabelOverrides = {};
     movementMappings = {};
+    debtContractOverrides = {};
     debtRoadmapState = {};
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
@@ -2581,6 +2589,11 @@ function saveRowLabelOverrides() {
 
 function saveMovementMappings() {
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
+  queueRemoteSave();
+}
+
+function saveDebtContractOverrides() {
+  storageSet(storageKey("debtContractOverrides"), JSON.stringify(debtContractOverrides));
   queueRemoteSave();
 }
 
@@ -6921,9 +6934,23 @@ function debtPortfolioTargetForDecision(item) {
   return candidates.length === 1 ? candidates[0] : null;
 }
 
+// D-2 · DEBT_PORTFOLIO sigue siendo la cartera de ejemplo que trae el código, pero ya no es la
+// última palabra: `debtContractOverrides` (persistido como movementMappings/rowLabelOverrides)
+// guarda solo los campos que el hogar ha corregido a mano desde Deuda › Contratos. Se combinan
+// aquí, en el único punto por el que pasan Ruta, Comparar, Hoy y el motor de escenarios — no hay
+// una segunda puerta de escritura para el contrato.
+const DEBT_CONTRACT_EDITABLE_FIELDS = ["currentPrincipal", "apr", "currentPayment"];
+
+function debtPortfolioWithOverrides() {
+  return DEBT_PORTFOLIO.map((row) => {
+    const override = debtContractOverrides[row.id];
+    return override ? { ...row, ...override } : row;
+  });
+}
+
 function debtContractBundle() {
   if (!DebtContracts) return { contracts: DEBT_PORTFOLIO, unifiedPlan: null };
-  return DebtContracts.normalizeContracts(DEBT_PORTFOLIO, {
+  return DebtContracts.normalizeContracts(debtPortfolioWithOverrides(), {
     asOfMonthKey: monthKey(modelStartDate()),
     reunifiedPayment: CURRENT_REUNIFIED_DEBT_PAYMENT,
     reunifiedInstallments: CURRENT_REUNIFIED_DEBT_INSTALLMENTS,
@@ -22276,11 +22303,10 @@ function handleEscenarioMotorGoApply() {
 
 // ---------------------------------------------------------------------------------------------
 // Pantalla 2 · Aplicar escenario (mockup 2d): diferencia línea a línea antes de confirmar. No
-// muta las deudas reales (DEBT_PORTFOLIO es una constante del código, no hay mecanismo en toda la
-// app para reescribirla desde la interfaz) — «aplicar» aquí significa registrar el escenario como
-// el aplicado en la lista de guardados (pantalla 3), con motivo y fecha, de verdad reversible
-// porque no toca ningún dato real. Documentado explícitamente en vez de fingir un commit que no
-// existe.
+// muta los contratos de deuda — «aplicar» aquí significa registrar el escenario como el aplicado
+// en la lista de guardados (pantalla 3), con motivo y fecha, de verdad reversible porque no toca
+// ningún dato real. La única puerta que sí toca el contrato es Deuda › Contratos (D-2), y vive
+// aparte de este flujo de decisiones.
 // ---------------------------------------------------------------------------------------------
 function renderEscenarioAplicar() {
   renderScenarioDependencyNotice("escenario-aplicar");
@@ -22740,6 +22766,7 @@ function debtStrategyStatusNote(entry) {
 }
 
 function renderDeudaComparar() {
+  renderDeudaScreenTabs("deuda-comparar");
   renderScenarioDependencyNotice("deuda-comparar");
   const grid = qs("deudaCompararGrid");
   if (!grid) return;
@@ -23025,6 +23052,7 @@ function renderDeudaRutaOffer() {
 }
 
 function renderDeudaRuta() {
+  renderDeudaScreenTabs("deuda-ruta");
   renderScenarioDependencyNotice("deuda-ruta");
   renderDeudaRutaOffer();
   if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
@@ -23148,6 +23176,126 @@ function handleDeudaRutaTab(strategyId) {
 function handleDeudaRutaApply() {
   debtStrategyDecisionsToEscenario(deudaRutaSelectedStrategy);
   escenarioMotorNavigate("escenario-aplicar");
+}
+
+// D-1 · Ruta, Comparar y Contratos comparten una misma barra de pestañas de pantalla (distinta de
+// `deudaRutaTabs`, que son las cuatro estrategias dentro de Ruta). No se fusionan en una sola
+// sección: Ruta y Comparar ya eran pantallas completas del epic V3, y Contratos es la única de las
+// tres que se construye desde cero ahora — cada una sigue siendo su propio `view-section` con su
+// propio hash, solo se enlazan visualmente como pestañas.
+const DEUDA_SCREEN_TABS = [
+  { id: "deuda-ruta", label: "Ruta" },
+  { id: "deuda-comparar", label: "Comparar" },
+  { id: "deuda-contratos", label: "Contratos" },
+];
+const DEUDA_SCREEN_TAB_NAV_IDS = {
+  "deuda-ruta": "deudaRutaScreenTabs",
+  "deuda-comparar": "deudaCompararScreenTabs",
+  "deuda-contratos": "deudaContratosScreenTabs",
+};
+
+function deudaScreenTabsHtml(activeId) {
+  return DEUDA_SCREEN_TABS.map(
+    (tab) =>
+      `<a class="e19-registrar-tab${tab.id === activeId ? " is-active" : ""}" href="#${tab.id}" aria-selected="${tab.id === activeId}">${escapeHtml(tab.label)}</a>`
+  ).join("");
+}
+
+function renderDeudaScreenTabs(activeId) {
+  const nav = qs(DEUDA_SCREEN_TAB_NAV_IDS[activeId]);
+  if (nav) nav.innerHTML = deudaScreenTabsHtml(activeId);
+}
+
+// D-2 · Contratos como dato canónico editable. DEBT_PORTFOLIO es la cartera de ejemplo; aquí se
+// corrige capital pendiente, TAE o cuota cuando no coinciden con el contrato real. La corrección
+// se guarda por contrato en `debtContractOverrides` y pasa por `debtContractBundle()` — la misma
+// puerta que ya leen Ruta, Comparar, Hoy y el motor de escenarios, así que no hace falta avisar a
+// nadie más: en cuanto se guarda, todo lo que lee la cartera ve el valor corregido la próxima vez
+// que se renderiza.
+function deudaContratosStatusBadge(paymentStatus) {
+  const map = {
+    active: { label: "Activa", tone: "e19-badge-neutral" },
+    suspended: { label: "Pagos suspendidos", tone: "e19-badge-warning" },
+    reunified: { label: "Reunificada", tone: "e19-badge-neutral" },
+    settled: { label: "Liquidada", tone: "e19-badge-success" },
+  };
+  return map[paymentStatus] || { label: paymentStatus || "—", tone: "e19-badge-neutral" };
+}
+
+function deudaContratosQualityBadge(quality) {
+  const missing = quality?.missing?.length || 0;
+  if (!missing) return { label: "Dato completo", tone: "e19-badge-success" };
+  if (quality?.confidence === "medium") return { label: `Falta ${missing} dato(s)`, tone: "e19-badge-warning" };
+  return { label: `Faltan ${missing} dato(s)`, tone: "e19-badge-danger" };
+}
+
+function deudaContratosRowHtml(contract) {
+  const edited = Boolean(debtContractOverrides[contract.id]);
+  const status = deudaContratosStatusBadge(contract.paymentStatus);
+  const quality = deudaContratosQualityBadge(contract.dataQuality);
+  const aprValue = contract.apr === null || contract.apr === undefined ? "" : contract.apr;
+  return `<tr data-deuda-contrato-row="${escapeHtml(contract.id)}">
+      <td class="deuda-contratos-entity">
+        <strong>${escapeHtml(contract.entity)}</strong>
+        <small>${escapeHtml(contract.type)}${contract.number ? ` · ${escapeHtml(contract.number)}` : ""}</small>
+      </td>
+      <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="currentPrincipal" value="${round2(contract.currentPrincipal)}" aria-label="Capital pendiente de ${escapeHtml(contract.entity)}" /></td>
+      <td><input type="number" min="0" max="60" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="apr" value="${aprValue}" placeholder="sin dato" aria-label="TAE de ${escapeHtml(contract.entity)}" /></td>
+      <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="currentPayment" value="${round2(contract.currentPayment)}" aria-label="Cuota mensual de ${escapeHtml(contract.entity)}" /></td>
+      <td><span class="e19-badge ${status.tone}">${escapeHtml(status.label)}</span></td>
+      <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}</td>
+    </tr>`;
+}
+
+function renderDeudaContratos() {
+  renderDeudaScreenTabs("deuda-contratos");
+  const body = qs("deudaContratosTable");
+  if (!body) return;
+  const contracts = debtContractSourceRows();
+  body.innerHTML = `<thead><tr>
+        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Estado</th><th>Calidad del dato</th>
+      </tr></thead>
+      <tbody>${contracts.map(deudaContratosRowHtml).join("")}</tbody>`;
+  const overriddenCount = contracts.filter((contract) => debtContractOverrides[contract.id]).length;
+  const note = qs("deudaContratosNote");
+  if (note) {
+    note.textContent = overriddenCount
+      ? `${overriddenCount} de ${contracts.length} contrato(s) con capital, TAE o cuota corregidos a mano. Se usan en Ruta, Comparar y en las cifras de deuda de Hoy.`
+      : `Valores declarados de ejemplo (${contracts.length} contrato(s)). Corrige capital, TAE o cuota si no coinciden con el contrato real — se guardan en este navegador y no en ningún sitio más.`;
+  }
+}
+
+// Vacío = «sin corregir», nunca cero: borra el override y vuelve al valor declarado en vez de
+// clavar un 0 que se leería como «no debe nada». Un valor fuera de rango no se guarda ni se avisa
+// aparte — el redibujado siguiente vuelve a enseñar el último valor válido, la misma disciplina que
+// ya usan los demás campos numéricos de la app.
+function deudaContratosParseFieldValue(field, raw) {
+  const trimmed = String(raw ?? "").trim();
+  if (trimmed === "") return { clear: true };
+  const value = Number(trimmed.replace(",", "."));
+  if (!Number.isFinite(value) || value < 0) return { invalid: true };
+  if (field === "apr" && value > 60) return { invalid: true };
+  return { value: round2(value) };
+}
+
+function handleDeudaContratosFieldChange(input) {
+  const id = input.dataset.deudaContratoId;
+  const field = input.dataset.deudaContratoField;
+  if (!id || !DEBT_CONTRACT_EDITABLE_FIELDS.includes(field)) return;
+  const parsed = deudaContratosParseFieldValue(field, input.value);
+  if (parsed.invalid) {
+    renderDeudaContratos();
+    return;
+  }
+  const nextContract = { ...(debtContractOverrides[id] || {}) };
+  if (parsed.clear) delete nextContract[field];
+  else nextContract[field] = parsed.value;
+  const nextOverrides = { ...debtContractOverrides };
+  if (Object.keys(nextContract).length) nextOverrides[id] = nextContract;
+  else delete nextOverrides[id];
+  debtContractOverrides = nextOverrides;
+  saveDebtContractOverrides();
+  renderDeudaContratos();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -24221,6 +24369,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "deuda-ruta":
       renderDeudaRuta();
       break;
+    case "deuda-contratos":
+      renderDeudaContratos();
+      break;
     case "conciliar":
       renderConciliar();
       break;
@@ -24820,6 +24971,10 @@ async function init() {
     if (tabButton) handleDeudaRutaTab(tabButton.dataset.deudaRutaTab);
   });
   qs("deudaRutaApply")?.addEventListener("click", handleDeudaRutaApply);
+  qs("deudaContratosTable")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-deuda-contrato-id]");
+    if (input) handleDeudaContratosFieldChange(input);
+  });
   qs("conciliarDownload")?.addEventListener("click", downloadCanonicalLedger);
   qs("conciliarClose")?.addEventListener("click", closeCurrentMonthTransaction);
   qs("conciliarTasks")?.addEventListener("click", (event) => {

@@ -180,6 +180,7 @@
   font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
   color: var(--e19-muted);
   cursor: pointer;
+  text-decoration: none;
 }
 
 .e19-registrar-tab.is-active {
@@ -738,6 +739,26 @@
 .e19-table tbody tr.is-highlighted {
   background: var(--e19-accent-soft);
   box-shadow: inset 3px 0 0 var(--e19-accent);
+}
+
+/* D-2 · celdas editables de Deuda › Contratos: el mismo input numérico que ya usan las tablas de
+   Registrar/Plan, dentro de una celda de .e19-table. */
+.deuda-contratos-table td input[type="number"] {
+  width: 100%;
+  max-width: 130px;
+  padding: 6px 8px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-sm);
+  font: 600 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  text-align: right;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+}
+
+.deuda-contratos-entity small {
+  display: block;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
 }
 
 /* -------------------------------------------------------------------------------------------- */
