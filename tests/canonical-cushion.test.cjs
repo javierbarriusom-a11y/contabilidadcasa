@@ -57,6 +57,16 @@ test("worstMonthOf · sin filas, no hay peor mes que inventar", () => {
   assert.equal(Cushion.worstMonthOf(null), null);
 });
 
+test("cushionLevel · negativo, ajustado y holgado, en los tres tramos (P-9/A-2)", () => {
+  assert.equal(Cushion.cushionLevel(-5, 1000), "negativo");
+  assert.equal(Cushion.cushionLevel(500, 1000), "ajustado");
+  assert.equal(Cushion.cushionLevel(3500, 1000), "holgado");
+});
+
+test("cushionLevel · el límite es estricto: justo en el suelo ya es \"holgado\"", () => {
+  assert.equal(Cushion.cushionLevel(1000, 1000), "holgado");
+});
+
 test("worstMonthOf · admite nombres de campo distintos, para reutilizarse con otros horizontes", () => {
   const rows = [
     { month: "2026-01", liquidity: 200 },

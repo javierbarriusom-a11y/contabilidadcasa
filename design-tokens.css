@@ -2502,7 +2502,8 @@
 .e19-registrar-mes .registrar-mes-filters,
 .e19-plan-mes .registrar-mes-filters,
 .e19-cuadro-mandos .registrar-mes-filters,
-.e19-prevision .registrar-mes-filters {
+.e19-prevision .registrar-mes-filters,
+.e19-plan-prevision .registrar-mes-filters {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
@@ -2513,7 +2514,8 @@
 .e19-registrar-mes .registrar-mes-filter,
 .e19-plan-mes .registrar-mes-filter,
 .e19-cuadro-mandos .registrar-mes-filter,
-.e19-prevision .registrar-mes-filter {
+.e19-prevision .registrar-mes-filter,
+.e19-plan-prevision .registrar-mes-filter {
   border: none;
   background: transparent;
   border-radius: var(--e19-radius-pill);
@@ -2526,7 +2528,8 @@
 .e19-registrar-mes .registrar-mes-filter.is-active,
 .e19-plan-mes .registrar-mes-filter.is-active,
 .e19-cuadro-mandos .registrar-mes-filter.is-active,
-.e19-prevision .registrar-mes-filter.is-active {
+.e19-prevision .registrar-mes-filter.is-active,
+.e19-plan-prevision .registrar-mes-filter.is-active {
   background: var(--e19-surface);
   color: var(--e19-heading);
   box-shadow: var(--e19-shadow-card);
@@ -2535,7 +2538,8 @@
 .e19-registrar-mes .registrar-mes-filter:focus-visible,
 .e19-plan-mes .registrar-mes-filter:focus-visible,
 .e19-cuadro-mandos .registrar-mes-filter:focus-visible,
-.e19-prevision .registrar-mes-filter:focus-visible {
+.e19-prevision .registrar-mes-filter:focus-visible,
+.e19-plan-prevision .registrar-mes-filter:focus-visible {
   outline: 2px solid var(--e19-accent);
   outline-offset: 2px;
 }
@@ -2544,6 +2548,56 @@
 .e19-plan-mes .registrar-mes-table {
   min-width: 720px;
 }
+
+/* P-8/P-9 · Plan › Previsión — matriz bloque × mes, de solo lectura. Geometría propia (nada de
+   inputs ni fila expandible como Cuadro de mandos): una fila por bloque, con Resultado y Colchón
+   destacados al pie y el mes cerrado en gris con candado en la cabecera. */
+.e19-plan-prevision .plan-prevision-table {
+  min-width: 760px;
+}
+
+.e19-plan-prevision .plan-prevision-table td,
+.e19-plan-prevision .plan-prevision-table th {
+  white-space: nowrap;
+  text-align: right;
+  padding: 8px 12px;
+}
+
+.e19-plan-prevision .plan-prevision-table td:first-child,
+.e19-plan-prevision .plan-prevision-table th:first-child {
+  text-align: left;
+  min-width: 160px;
+}
+
+.e19-plan-prevision .plan-prevision-table thead th {
+  background: var(--e19-surface-sunken);
+  color: var(--e19-muted);
+  font: 700 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.e19-plan-prevision .plan-prevision-table .cuadro-mandos-closed {
+  color: var(--e19-faint);
+}
+
+.e19-plan-prevision .plan-prevision-table tbody tr:last-child td,
+.e19-plan-prevision .plan-prevision-table tbody tr:nth-last-child(2) td {
+  border-top: 1px solid var(--e19-border-strong);
+  background: var(--e19-surface-soft);
+}
+
+.e19-plan-prevision .plan-prevision-table td.negative strong {
+  color: var(--e19-danger);
+}
+
+.e19-plan-prevision .plan-prevision-table .plan-prevision-worst {
+  box-shadow: inset 0 0 0 2px var(--e19-accent);
+}
+
+.e19-plan-prevision .plan-prevision-cushion.is-negativo { color: var(--e19-danger); }
+.e19-plan-prevision .plan-prevision-cushion.is-ajustado { color: var(--e19-debt); }
+.e19-plan-prevision .plan-prevision-cushion.is-holgado { color: var(--e19-success); }
 
 /* Bloque y concepto identifican la fila: van a la izquierda, aunque .e19-table alinee a la
    derecha todo lo que no sea la primera columna (pensada para tablas de solo cifras). */

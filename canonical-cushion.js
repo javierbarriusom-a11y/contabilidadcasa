@@ -34,6 +34,18 @@
     return "is-good";
   }
 
+  // P-9 (Plan · Previsión) / A-2 (Análisis, pendiente): escala de tres niveles, más compacta que
+  // cushionTone (4 niveles) — pensada para una fila por mes, no una rejilla con espacio para
+  // matices. El mínimo operativo se dibuja como línea aparte en quien la use; el nivel intermedio
+  // ya significa "por debajo de ese mínimo", no hace falta deducirlo del color.
+  function cushionLevel(value, floor) {
+    const v = number(value);
+    const f = number(floor);
+    if (v < 0) return "negativo";
+    if (v < f) return "ajustado";
+    return "holgado";
+  }
+
   // Un solo punto de verdad para "cuál es el peor mes de un horizonte", con el campo de liquidez y
   // de clave de mes parametrizados: Plan, Análisis y Hoy leen horizontes con nombres de fila
   // distintos, pero ninguno debería reimplementar este reduce.
@@ -49,5 +61,5 @@
     return { key, value: number(worst[liquidityField]), row: worst };
   }
 
-  return { SCHEMA_ID, cushionFloor, cushionTone, worstMonthOf };
+  return { SCHEMA_ID, cushionFloor, cushionTone, cushionLevel, worstMonthOf };
 });

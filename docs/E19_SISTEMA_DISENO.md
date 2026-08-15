@@ -598,9 +598,18 @@ nómina) con la reserva marcada y los meses problemáticos resaltados; tabla men
 Gastos, Deuda, Ahorro y Mínimo; y un panel lateral día a día del mes seleccionado, con una
 sugerencia accionable.
 
-**Construida esta misma sesión como P-8** de `docs/BACKLOG_NUEVE_PANTALLAS.md` (pantalla 04 ·
-Plan, pestaña «Previsión»), que tiene el detalle completo de qué se reutilizó (`previsionMetric`,
-`mapaCalorFloor`/`mapaCalorTone`, `planningBreakdownForForecastMonth`) y qué es nuevo
-(`renderPrevision`, la banda, el panel día a día, la sugerencia). `#prevision` reemplaza por
-completo a la tabla anual heredada; `#forecast` (proyección de liquidez a 10 años y gastos por
-categoría) sigue aparte, sin tocar — nunca fue parte de este mockup, solo compartía piel visual.
+**Construida esta misma sesión.** `renderPrevision()` reemplaza por completo la tabla anual
+heredada de `#prevision` por esto: titular, selector de horizonte, banda, tabla mensual y panel
+día a día con sugerencia, tal como pide el mockup. Reutiliza `previsionMetric`, `mapaCalorFloor`/
+`mapaCalorTone` y `planningBreakdownForForecastMonth`, ya existentes. `#forecast` (proyección de
+liquidez a 10 años y gastos por categoría) sigue aparte, sin tocar — nunca fue parte de este
+mockup, solo compartía piel visual.
+
+**Aviso para no repetir la confusión con P-8.** `docs/BACKLOG_NUEVE_PANTALLAS.md` tiene una tarea
+que también se llama «Previsión mes a mes por bloque» (P-8) y **no es esto**: su criterio real
+(`Backlog_Global.pdf` V4, el backlog operativo vigente) pide "una fila por bloque y una columna
+por mes del horizonte, con candado en los meses cerrados" — una matriz de solo lectura, distinta
+del mockup 2c de arriba. P-8 vive en la pestaña «Previsión» de `#plan` (`renderPlanPrevision()`),
+no en este `#prevision` heredado; los dos son pantallas separadas y legítimas, cada una fiel a su
+propia fuente, no dos intentos del mismo diseño. Ver la nota de P-8/P-9 bajo la tabla de la
+pantalla 04 en `docs/BACKLOG_NUEVE_PANTALLAS.md` para el detalle de esa matriz.

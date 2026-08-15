@@ -560,7 +560,21 @@
               </div>
             </div>
             <div class="e19-registrar-panel" data-plan-panel="prevision" hidden>
-              <p class="e19-kpi-note">Todavía sin construir en Plan. Mientras tanto, sigue disponible en <button type="button" class="registrar-actuals-plan-link" data-home-nav="prevision">Previsión mensual</button>.</p>
+              <div class="e19-plan-prevision">
+                <div class="section-title with-action compact">
+                  <p class="e19-kpi-note" id="planPrevisionLegend"></p>
+                  <div class="registrar-mes-filters" role="group" aria-label="Horizonte de la previsión" id="planPrevisionHorizon">
+                    <button type="button" class="registrar-mes-filter is-active" data-plan-prevision-horizon="12m" aria-pressed="true">12 m</button>
+                    <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="24m" aria-pressed="false">24 m</button>
+                    <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="48m" aria-pressed="false">48 m</button>
+                    <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="full" aria-pressed="false">Completo</button>
+                  </div>
+                </div>
+                <div class="table-wrap plan-prevision-table-wrap">
+                  <table class="plan-prevision-table" id="planPrevisionTable"></table>
+                </div>
+                <p class="e19-kpi-note">Sigue disponible, con más detalle día a día, en <button type="button" class="registrar-actuals-plan-link" data-home-nav="prevision">Previsión mensual</button>.</p>
+              </div>
             </div>
             <div class="e19-registrar-panel" data-plan-panel="ahorro" hidden>
               <p class="e19-kpi-note">Todavía sin construir en Plan. Mientras tanto, sigue disponible en <button type="button" class="registrar-actuals-plan-link" data-home-nav="savings-plan">Plan ahorro</button>.</p>
