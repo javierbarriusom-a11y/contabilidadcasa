@@ -2,6 +2,63 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: R-11, cierre de escritura de las heredadas de Registrar
+
+Continuación directa del cierre anterior del mismo día (R-8, R-9, R-10 parcial, R-12), fusionado
+entre tanto a `main` como PR #41. El usuario pidió seguir con R-11 y con la decisión pendiente
+sobre `#registrar-mes`, dejando claro que ambas necesitaban su confirmación explícita antes de
+tocar nada — tal y como pedía `CLAUDE.md` para retirar capacidad de escritura de una pantalla en
+uso. Se le presentaron cuatro opciones (redirigir `#registrar-mes` también, mantenerla accesible
+pero de solo lectura, dejarla intacta, o cerrar solo las otras cuatro) y eligió la segunda, con la
+condición explícita de que cumpliera exactamente el criterio de R-11 y de la regla transversal 01
+(«la heredada pierde su capacidad de escribir, no desaparece»), sin ir más allá.
+
+**Qué se encontró al investigar el alcance real de R-11**: el hash router (`viewFromHash`) ya
+redirigía `#update-hub`, `#update-data`, `#datos-importar` y `#data-entry` a Registrar desde R-10,
+pero `setActiveView` solo aplicaba esa redirección cuando se llegaba a través del hash. Los clics
+del menú lateral y los botones `data-home-nav` (que existen en varios sitios: la cabecera, las
+tarjetas de ruta de Hoy) llaman a `setActiveView` con el id heredado directamente, sin pasar antes
+por el hash, así que hasta ahora seguían abriendo la pantalla vieja, plenamente editable — R-10
+quedaba resuelto solo a medias en la práctica.
+
+**Qué se construyó**:
+1. `setActiveView` normaliza ahora el id heredado explícito (`REGISTRAR_LEGACY_HASH_TABS[viewId]`)
+   antes de decidir cualquier otra cosa, así que ninguna vía de navegación —hash, clic de menú o
+   botón `data-home-nav`— deja ya una de las cuatro heredadas como destino final. No se tocó
+   ningún enlace de `index.html`: todos siguen apuntando a los hashes de siempre, y ahora todos
+   redirigen de verdad.
+2. `#registrar-mes` pasa a solo lectura mediante la constante `REGISTRAR_MES_LEGACY_READONLY`
+   (siempre `true`): el real editable se deshabilita, no se ofrece alta ni baja de partidas
+   personalizadas, ni copiar el mes anterior, ni confirmar el aviso «¿es anual?» — las cuatro
+   acciones que escriben. Cada tarjeta explica el porqué con un enlace `data-home-nav="registrar"`
+   a Registrar › Reales del mes. Los siete manejadores de escritura llevan además su propia
+   guarda, mismo patrón que ya usaban con el mes cerrado: la escritura es imposible aunque se
+   llame a la función a mano, no solo inalcanzable desde la interfaz. La pantalla sigue en el
+   menú, sigue en `index.html`, sigue mostrando sus KPI — la promesa de la sesión de R-5 de que
+   seguiría accesible desde «Herramientas avanzadas» se mantiene tal cual.
+
+**Pruebas nuevas**: `tests/r11-cierre-escritura-heredadas.test.cjs` (16 pruebas) — la redirección
+por id explícito en `setActiveView`, que las cuatro heredadas conservan su código en
+`index.html`, que la fila de `#registrar-mes` deshabilita el real y oculta el botón de quitar
+aunque el mes esté abierto, que el aviso «¿es anual?» ni se evalúa ni se pinta, que el pie de cada
+tarjeta remite a Registrar, y que los siete manejadores de escritura no hacen nada en solo
+lectura. Se ajustaron `tests/r10-redireccion-hashes.test.cjs` (la fuente de `setActiveView` cambió
+de forma) y `tests/v4-3-v4-5-partida-anual.test.cjs` (el manejador del aviso anual ahora se guarda
+tras la constante de solo lectura; se añadieron casos para los dos caminos).
+
+**Validación** (`npm run verify`, exit 0): **745/745 pruebas** (729 + 16 nuevas), **649 IDs
+únicos** de accesibilidad, diff 10.000 filas en **39,0 ms**, forecast y escenarios en **182,7 ms**,
+recursos **1347 KB**, build del sitio, privacidad y smoke test en verde.
+
+**Publicado en el camino**: PR #41 (R-8, R-9, R-10 parcial, R-12) tenía el CI en verde y sin
+conflictos desde antes de empezar esta sesión — se marcó listo y se fusionó a `main` al arrancar,
+según la autorización permanente de `CLAUDE.md`, para poder trabajar R-11 sobre una base al día.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-r11-jkz5z0`, commit y PR en
+borrador según lo autorizado en `CLAUDE.md`. Con R-11 cerrado, la Fase 2 (Registrar) queda
+completa (R-1 a R-12); queda la parte de Fase 2 que vive en Movimientos y en la pestaña Mes de
+Plan, y las fases 3-7 del backlog «Nueve pantallas», para sesiones posteriores.
+
 ## Cierre de sesión — 15 de agosto de 2026: Registrar completa Importar extracto, Lote y Excel, redirecciones y una prueba pendiente (R-8, R-9, R-10 parcial, R-12)
 
 Continuación directa del cierre anterior (R-6/R-6b/R-7, fusionado a `main`). Antes de programar,

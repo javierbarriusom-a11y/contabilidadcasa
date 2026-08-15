@@ -2976,11 +2976,17 @@ function setupMobileNavigation() {
 }
 
 function setActiveView(viewId = viewFromHash(), { focus = false, announce = true } = {}) {
+  // R-11: la redirección de R-10 no puede depender de pasar por `viewFromHash()` — los clics del
+  // menú lateral y los botones `data-home-nav` llaman aquí con el id heredado directamente, sin
+  // tocar el hash primero. Normalizar aquí es lo que de verdad cierra la escritura de las cuatro
+  // heredadas: ninguna vía de navegación deja ya la pantalla vieja como destino final.
+  const explicitLegacyTab = REGISTRAR_LEGACY_HASH_TABS[viewId];
+  if (explicitLegacyTab) viewId = "registrar";
   E18Health?.record(`view:${viewId}`);
   const viewChanged = activeViewId !== viewId;
   activeViewId = viewId;
   if (viewId === "registrar") {
-    const legacyTab = registrarTabFromHash();
+    const legacyTab = explicitLegacyTab || registrarTabFromHash();
     if (legacyTab && legacyTab !== registrarActiveTab) setRegistrarTab(legacyTab);
   }
   document.querySelectorAll(".view-section").forEach((section) => {
@@ -17877,6 +17883,11 @@ function registrarMesCopyCandidates(kind, month) {
   return result;
 }
 
+// R-11: `#registrar-mes` sigue accesible desde «Herramientas avanzadas» (promesa de la sesión de
+// R-5), pero deja de ser una puerta de escritura — regla transversal 01. Sus reales, altas,
+// bajas, copia y confirmación de «¿es anual?» ahora viven solo en Registrar › Reales del mes.
+const REGISTRAR_MES_LEGACY_READONLY = true;
+
 function registrarMesEmptyMessage(filter, total) {
   if (!total) return "Este mes no tiene partidas de este tipo.";
   if (filter === "sin-real") return "Todas las partidas tienen un real registrado. Pulsa «Todo» para verlas.";
@@ -17885,21 +17896,22 @@ function registrarMesEmptyMessage(filter, total) {
 }
 
 function registrarMesRowHtml(entry, monthClosed, monthKey) {
+  const locked = monthClosed || REGISTRAR_MES_LEGACY_READONLY;
   const classes = [
     entry.row.custom ? "registrar-mes-row-custom" : "",
     registrarMesIsBad(entry) ? "registrar-mes-row-off" : "",
   ].filter(Boolean);
-  const annualMatch = monthClosed ? null : registrarMesAnnualMatch(entry, baseData?.transactions, monthKey);
+  const annualMatch = locked ? null : registrarMesAnnualMatch(entry, baseData?.transactions, monthKey);
   const showAnnualBanner = Boolean(annualMatch) && !state?.registrarMesAnnualAck?.[entry.key];
   return `<tr data-registrar-mes-key="${escapeHtml(entry.key)}"${classes.length ? ` class="${classes.join(" ")}"` : ""}>
     <td class="registrar-mes-block">${escapeHtml(entry.sectionName)}</td>
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}${entry.row.custom ? " <small>añadida aquí</small>" : ""}</td>
     <td data-registrar-mes-cell="planned">${money(entry.planned, true)}</td>
-    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-mes-actual="${escapeHtml(entry.key)}" data-registrar-mes-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${monthClosed ? " disabled" : ""} /></td>
+    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-mes-actual="${escapeHtml(entry.key)}" data-registrar-mes-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${locked ? " disabled" : ""} /></td>
     <td data-registrar-mes-cell="used"><strong>${money(entry.used, true)}</strong></td>
     <td data-registrar-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
     <td class="registrar-mes-row-actions">${
-      entry.row.custom && !monthClosed
+      entry.row.custom && !locked
         ? `<button type="button" class="registrar-mes-row-remove" data-registrar-mes-delete="${escapeHtml(entry.deleteKey)}" aria-label="Quitar ${escapeHtml(entry.label)} de este mes">×</button>`
         : ""
     }</td>
@@ -17967,9 +17979,11 @@ function registrarMesCardHtml(meta, list, month, monthClosed) {
     ? visible.map((entry) => registrarMesRowHtml(entry, monthClosed, month.key)).join("")
     : `<tr><td colspan="7" class="registrar-mes-empty">${escapeHtml(registrarMesEmptyMessage(filter, list.length))}</td></tr>`;
   const hasSections = baseData.monthlyPlanning.sections.some((section) => section.kind === kind);
-  const footer = monthClosed
-    ? `<p class="e19-kpi-note">El mes está cerrado: los reales quedan congelados tal y como se cerraron.</p>`
-    : `<div class="registrar-mes-card-foot">
+  const footer = REGISTRAR_MES_LEGACY_READONLY
+    ? `<p class="e19-kpi-note">Solo lectura (R-11): añade, copia o borra partidas desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Registrar › Reales del mes</button>.</p>`
+    : monthClosed
+      ? `<p class="e19-kpi-note">El mes está cerrado: los reales quedan congelados tal y como se cerraron.</p>`
+      : `<div class="registrar-mes-card-foot">
         ${hasSections ? `<button type="button" class="e19-btn e19-btn-secondary" data-registrar-mes-add="${kind}">+ Añadir partida</button>` : ""}
         <p class="e19-kpi-note">Vaciar un real recupera el previsto. Escribir 0 significa «ocurrió por cero».</p>
         ${registrarMesCopyHtml(kind, month)}
@@ -18058,7 +18072,9 @@ function renderRegistrarMes() {
   if (subtitle) {
     subtitle.textContent = monthClosed
       ? "El mes está cerrado: los importes quedan congelados y no se pueden editar aquí."
-      : `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Todo lo que escribas se guarda al salir de la casilla.`;
+      : REGISTRAR_MES_LEGACY_READONLY
+        ? `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Esta pantalla es de solo lectura: edítalas desde Registrar › Reales del mes.`
+        : `${pending ? `Quedan ${pending} partida(s) sin real.` : "Todas las partidas tienen real."} Todo lo que escribas se guarda al salir de la casilla.`;
   }
 
   const saved = qs("registrarMesSaved");
@@ -18097,6 +18113,7 @@ function renderRegistrarMes() {
 }
 
 function handleRegistrarMesActualChange(input) {
+  if (REGISTRAR_MES_LEGACY_READONLY) return;
   const month = registrarMesSelectedMonth();
   if (!month || isClosedMonthKey(month.key)) return;
   const kind = input.dataset.registrarMesKind;
@@ -18129,6 +18146,7 @@ function handleRegistrarMesFilter(value) {
 }
 
 function handleRegistrarMesAddToggle(kind, open) {
+  if (REGISTRAR_MES_LEGACY_READONLY) return;
   if (!(kind in registrarMesAddOpen)) return;
   registrarMesAddOpen[kind] = open;
   renderRegistrarMes();
@@ -18136,6 +18154,7 @@ function handleRegistrarMesAddToggle(kind, open) {
 }
 
 function handleRegistrarMesAddSubmit(form) {
+  if (REGISTRAR_MES_LEGACY_READONLY) return;
   const kind = form.dataset.registrarMesAddForm;
   const month = registrarMesSelectedMonth();
   if (!kind || !month) return;
@@ -18175,6 +18194,7 @@ function handleRegistrarMesAddSubmit(form) {
 }
 
 function handleRegistrarMesDelete(deleteKey) {
+  if (REGISTRAR_MES_LEGACY_READONLY) return;
   const month = registrarMesSelectedMonth();
   if (!month || isClosedMonthKey(month.key)) return;
   deletePlanningRow(deleteKey);
@@ -18184,6 +18204,7 @@ function handleRegistrarMesDelete(deleteKey) {
 }
 
 function handleRegistrarMesCopy(kind) {
+  if (REGISTRAR_MES_LEGACY_READONLY) return;
   const month = registrarMesSelectedMonth();
   if (!month || !(kind in registrarMesCopyPending)) return;
   if (!registrarMesCopyCandidates(kind, month).length) {
@@ -18195,6 +18216,7 @@ function handleRegistrarMesCopy(kind) {
 }
 
 function handleRegistrarMesCopyConfirm(kind) {
+  if (REGISTRAR_MES_LEGACY_READONLY) return;
   const month = registrarMesSelectedMonth();
   if (!month || isClosedMonthKey(month.key)) return;
   const candidates = registrarMesCopyCandidates(kind, month);
@@ -18221,6 +18243,7 @@ function handleRegistrarMesCopyCancel(kind) {
 // de Partidas—, solo deja de preguntar por esta partida este mes y lo dice. «Solo este mes» hace
 // lo mismo sin la sugerencia.
 function handleRegistrarMesAnnualChoice(key, choice) {
+  if (REGISTRAR_MES_LEGACY_READONLY) return;
   if (!state || !key) return;
   if (!state.registrarMesAnnualAck) state.registrarMesAnnualAck = {};
   state.registrarMesAnnualAck[key] = true;
