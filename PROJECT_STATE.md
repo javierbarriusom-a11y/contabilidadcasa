@@ -2,6 +2,57 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: P-8/P-9 real — la matriz de Plan › Previsión, tras un conflicto de especificación
+
+Continuación directa del cierre anterior del mismo día. El usuario compartió los PDF fuente del
+backlog "Nueve pantallas" (`Backlog_Global.pdf` V4 y las fichas de alineación por pantalla) y pidió
+"contrastar todo de nuevo" antes de seguir construyendo P-9.
+
+**Conflicto detectado antes de tocar código**: el P-8 recién marcado `Hecho` (cierre anterior, mockup
+2c en `#prevision`) **no era el P-8 real**. `Backlog_Global.pdf` especifica P-8 así: *"Una fila por
+bloque y una columna por mes del horizonte. Los meses cerrados se distinguen visualmente y llevan
+candado"* — una matriz bloque×mes, nada que ver con el titular/banda/panel día a día construido
+antes. Se preguntó al usuario cómo resolverlo (`AskUserQuestion`); eligió reconstruir P-8 como la
+matriz real. Investigando el destino correcto se confirmó que P-8 nunca fue sobre `#prevision`: su
+sitio es la pestaña «Previsión» de `#plan` (hasta entonces un enlace de vuelta a `#prevision`, mismo
+patrón de placeholder que R-2 con Registrar) — así que el trabajo del mockup 2c no se tocó ni se
+perdió, son dos pantallas legítimas y distintas, cada una fiel a su propia fuente.
+
+**P-8 construido**: `renderPlanPrevision()` — matriz de solo lectura con los bloques de Cuadro de
+mandos (`cuadroMandosSections`: Ingresos, Gastos fijos, Gastos variables, Financiaciones) más
+Ahorro (sintética, `row.saving`) y Resultado del mes; horizonte 12/24/48/completo desde el primer
+mes del plan, con candado en los cerrados; previsto guardado (no borradores de sesión, para no
+recalcular la simulación completa en cada tecla de otra pantalla).
+
+**P-9 construido junto a P-8** (su criterio es literalmente "la fila final de la previsión"): fila
+de Colchón con `cushionLevel`, una escala nueva de **tres** niveles (negativo/ajustado/holgado) en
+`canonical-cushion.js`, más compacta que la de cuatro que ya usa el mapa de calor y pensada para
+compartirse tal cual con A-2 de Análisis cuando se construya. El peor mes del horizonte se marca en
+Colchón y en Resultado del mes.
+
+**Bug real atrapado en verificación visual con Playwright, no en las pruebas primero**: el peor mes
+no se marcaba en el sitio (0 celdas) por pasar `{key: ...}` a `worstMonthOf`, que por defecto busca
+`detailMonthKey`. El test de integración original usaba un `worstMonthOf` de imitación que no
+reproducía ese detalle, así que pasaba en verde con el bug presente. Corregido el código
+(`{ monthKeyField: "key" }`) y el test (ahora importa `canonical-cushion.js` real).
+
+**Documentación corregida**: `docs/E19_SISTEMA_DISENO.md` §13 separaba mal el mockup 2c de P-8 (los
+atribuía como la misma pieza); reescrito para dejar explícito que son dos pantallas distintas.
+`docs/BACKLOG_NUEVE_PANTALLAS.md` — P-8 y P-9 pasan a `Hecho` con nota extensa bajo la tabla de la
+pantalla 04 que documenta el conflicto, la matriz y el bug.
+
+**Pruebas nuevas**: `tests/p8-p9-plan-prevision.test.cjs` (13 pruebas) y 2 más en
+`tests/canonical-cushion.test.cjs` para `cushionLevel`; se corrigió una prueba de
+`tests/p1-p7-plan-mes.test.cjs` que asumía la pestaña Previsión todavía sin construir.
+
+**Validación** (`npm run verify`, exit 0): **929/929 pruebas** (913 + 15 nuevas), **692 IDs
+únicos** de accesibilidad, diff 10.000 filas en 43,1 ms, forecast y escenarios en 249,9 ms,
+recursos 1430 KB, build del sitio, privacidad y smoke test en verde.
+
+**Pendiente**: falta auditar Hoy/Registrar/Movimientos/Deuda contra los PDF nuevos (`Hoy.pdf`,
+`Registrar.pdf`, `Movimientos.pdf`, `Deuda.pdf`, `Plan.pdf`) que el usuario también compartió, para
+descartar más conflictos como el de P-8 — no se ha hecho todavía en esta sesión.
+
 ## Cierre de sesión — 15 de agosto de 2026: Previsión — P-8, corrección de dos documentos y pantalla nueva
 
 El usuario retomó la sesión con un pantallazo de la conversación anterior y pidió revisar todo lo

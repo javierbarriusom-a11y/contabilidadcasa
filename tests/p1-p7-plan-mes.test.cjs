@@ -69,9 +69,15 @@ test("P-1 · #plan trae sus tres pestañas y sus migajas", () => {
   assert.match(html, /<p class="e19-registrar-crumb" id="planCrumb"/);
 });
 
-test("P-1 · Previsión y Ahorro enlazan a sus heredadas hasta que se construyan, igual que R-2 hizo con Registrar", () => {
-  assert.match(html, /data-plan-panel="prevision" hidden>[\s\S]{0,200}data-home-nav="prevision"/);
+test("P-1 · Ahorro enlaza a su heredada hasta que se construya, igual que R-2 hizo con Registrar", () => {
   assert.match(html, /data-plan-panel="ahorro" hidden>[\s\S]{0,200}data-home-nav="savings-plan"/);
+});
+
+// P-8 (15 de agosto) construyó Previsión de verdad: la pestaña ya no enlaza a su heredada como
+// contenido principal, aunque conserva el enlace como complemento (ver tests/p8-p9-plan-prevision.test.cjs).
+test("P-1 · Previsión ya no es un enlace a su heredada: tiene su propia tabla y selector de horizonte", () => {
+  assert.match(html, /data-plan-panel="prevision" hidden>[\s\S]*?id="planPrevisionTable"/);
+  assert.match(html, /data-plan-panel="prevision" hidden>[\s\S]*?data-home-nav="prevision"/);
 });
 
 test("P-1 · viewTitles.plan existe y el despachador de vistas activa Plan al entrar", () => {

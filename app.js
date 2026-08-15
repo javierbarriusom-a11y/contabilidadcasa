@@ -25049,10 +25049,159 @@ function renderPlanMesImpactBar() {
     </div>`;
 }
 
+/* -------------------------------------------------------------------------------------------- */
+/* P-8/P-9 · Plan › pestaña Previsión — matriz bloque × mes, de solo lectura                      */
+/*                                                                                                */
+/* Backlog_Global.pdf (V4, 14 de agosto de 2026) especifica P-8 así: "Una fila por bloque y una   */
+/* columna por mes del horizonte. Los meses cerrados se distinguen visualmente y llevan candado." */
+/* No es el titular/selector de horizonte/banda/tabla de 5 columnas/panel día a día que se        */
+/* construyó antes a partir del mockup 2c en `#prevision` — ese screen cumple su propio mockup y  */
+/* se queda tal cual («envolver, no sustituir»). El destino real de P-8 es esta pestaña, hasta     */
+/* ahora un enlace de vuelta a `#prevision`.                                                      */
+/*                                                                                                */
+/* Los bloques son los mismos que ya agrupa Cuadro de mandos (`cuadroMandosSections`), más una     */
+/* fila sintética de Ahorro — no hay partidas de "ahorro" en `monthlyPlanning`, así que se lee de  */
+/* `row.saving` del motor, igual que ya hace `previsionMetric` — y el Resultado del mes. Los       */
+/* importes son el previsto **guardado**, no los borradores de sesión de Cuadro de mandos: esta    */
+/* pestaña es de solo lectura y su previsto se edita en Mes (P-3), no aquí; mezclar borradores      */
+/* obligaría a recalcular la simulación completa en cada tecla sin que esta vista pueda guardarlos.*/
+/*                                                                                                 */
+/* P-9 añade la fila final de colchón con `cushionLevel` (escala de tres niveles, compartida con   */
+/* A-2 de Análisis cuando se construya — ver canonical-cushion.js) y marca el peor mes también en  */
+/* la fila de Resultado, tal como pide su criterio.                                                */
+/* --------------------------------------------------------------------------------------------- */
+
+const PLAN_PREVISION_HORIZONS = {
+  "12m": { label: "12 meses", months: 12 },
+  "24m": { label: "24 meses", months: 24 },
+  "48m": { label: "48 meses", months: 48 },
+  full: { label: "Horizonte completo", months: Infinity },
+};
+let planPrevisionHorizonKey = "12m";
+
+function planPrevisionMonths(horizonKey = planPrevisionHorizonKey) {
+  const all = cuadroMandosAllMonths();
+  const config = PLAN_PREVISION_HORIZONS[horizonKey] || PLAN_PREVISION_HORIZONS["12m"];
+  return Number.isFinite(config.months) ? all.slice(0, config.months) : all;
+}
+
+function planPrevisionSimulationByMonth(months) {
+  const byKey = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  return months.map((month) => byKey.get(month.key) || null);
+}
+
+function planPrevisionSectionTotal(section, month) {
+  return section.rows.reduce(
+    (sum, row) => (cuadroMandosRowExists(row, month) ? sum + Number(plannedValueForVisualRow(row, month) || 0) : sum),
+    0,
+  );
+}
+
+function planPrevisionResultByMonth(months, sections, savingByMonth) {
+  return months.map((month, index) => {
+    const net = sections.reduce((sum, section) => {
+      const total = planPrevisionSectionTotal(section, month);
+      return sum + (section.kind === "income" ? total : -total);
+    }, 0);
+    return round2(net - savingByMonth[index]);
+  });
+}
+
+function planPrevisionRowHtml(label, values, months, options = {}) {
+  const { emphasize = false, negativeClass = true, worstKey = "", cellHtml = null } = options;
+  const cells = values
+    .map((value, index) => {
+      const month = months[index];
+      const closed = isClosedMonthKey(month.key);
+      const isWorst = Boolean(worstKey) && month.key === worstKey;
+      const classes = [closed ? "cuadro-mandos-closed" : "", negativeClass && value < 0 ? "negative" : "", isWorst ? "plan-prevision-worst" : ""]
+        .filter(Boolean)
+        .join(" ");
+      const content = cellHtml ? cellHtml(value, month) : money(value, true);
+      return `<td class="${classes}">${emphasize ? `<strong>${content}</strong>` : content}</td>`;
+    })
+    .join("");
+  return `<tr><td>${escapeHtml(label)}</td>${cells}</tr>`;
+}
+
+function planPrevisionHeaderHtml(months) {
+  return `<thead><tr><th>Bloque</th>${months
+    .map(
+      (month) =>
+        `<th class="${isClosedMonthKey(month.key) ? "cuadro-mandos-closed" : ""}">${escapeHtml(month.label)}${
+          isClosedMonthKey(month.key)
+            ? ' <span class="plan-prevision-lock" role="img" aria-label="Mes cerrado" title="Mes cerrado">🔒</span>'
+            : ""
+        }</th>`,
+    )
+    .join("")}</tr></thead>`;
+}
+
+function renderPlanPrevision() {
+  const table = qs("planPrevisionTable");
+  if (!table || !lastSimulation.length || !baseData?.monthlyPlanning?.months?.length) return;
+  const months = planPrevisionMonths();
+  if (!months.length) {
+    table.innerHTML = "";
+    return;
+  }
+  const sections = cuadroMandosSections(months);
+  const simRows = planPrevisionSimulationByMonth(months);
+  const savingByMonth = simRows.map((row) => Number(row?.saving || 0));
+  const liquidityByMonth = simRows.map((row) => Number(row?.totalLiquidity ?? 0));
+  const resultByMonth = planPrevisionResultByMonth(months, sections, savingByMonth);
+
+  const floor = mapaCalorFloor(simRows.filter(Boolean));
+  const worst = FinanceCanonicalCushion.worstMonthOf(
+    months.map((month, index) => ({ key: month.key, totalLiquidity: liquidityByMonth[index] })),
+    { monthKeyField: "key" },
+  );
+  const worstKey = worst?.key || "";
+
+  const sectionRows = sections
+    .map((section) => {
+      const values = months.map((month) => round2(planPrevisionSectionTotal(section, month)));
+      return planPrevisionRowHtml(section.name, values, months, { negativeClass: false });
+    })
+    .join("");
+
+  const savingRow = planPrevisionRowHtml("Ahorro", savingByMonth, months, { negativeClass: false });
+  const resultRow = planPrevisionRowHtml("Resultado del mes", resultByMonth, months, { emphasize: true, worstKey });
+  const cushionRow = planPrevisionRowHtml("Colchón", liquidityByMonth, months, {
+    emphasize: true,
+    worstKey,
+    cellHtml: (value) => {
+      const level = FinanceCanonicalCushion.cushionLevel(value, floor.value);
+      return `<span class="plan-prevision-cushion is-${level}">${money(value, true)}</span>`;
+    },
+  });
+
+  table.innerHTML = `${planPrevisionHeaderHtml(months)}<tbody>${sectionRows}${savingRow}${resultRow}${cushionRow}</tbody>`;
+
+  const legend = qs("planPrevisionLegend");
+  if (legend) {
+    legend.textContent = `Colchón: liquidez al cierre de cada mes frente a ${floor.source}.${
+      worstKey ? ` Peor mes: ${escenarioMotorMonthLabel(worstKey)}, marcado en Resultado y Colchón.` : ""
+    }`;
+  }
+}
+
+function handlePlanPrevisionHorizon(horizonKey) {
+  if (!PLAN_PREVISION_HORIZONS[horizonKey] || horizonKey === planPrevisionHorizonKey) return;
+  planPrevisionHorizonKey = horizonKey;
+  document.querySelectorAll("[data-plan-prevision-horizon]").forEach((button) => {
+    const active = button.dataset.planPrevisionHorizon === horizonKey;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  renderPlanPrevision();
+}
+
 function renderPlan() {
   if (!qs("planTabs")) return;
   renderPlanTabs();
   renderPlanMes();
+  renderPlanPrevision();
 }
 
 function renderActiveSection(viewId = viewFromHash()) {
@@ -25495,6 +25644,10 @@ async function init() {
   qs("planTabs")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-plan-tab]");
     if (button) setPlanTab(button.dataset.planTab);
+  });
+  qs("planPrevisionHorizon")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-plan-prevision-horizon]");
+    if (button) handlePlanPrevisionHorizon(button.dataset.planPrevisionHorizon);
   });
   qs("planMesMonth")?.addEventListener("change", renderPlanMes);
   qs("planMesTables")?.addEventListener("change", (event) => {
