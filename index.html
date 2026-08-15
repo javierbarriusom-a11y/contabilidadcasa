@@ -1259,6 +1259,33 @@
               <p class="e19-kpi-note" id="deudaCompararOfferNote"></p>
             </fieldset>
 
+            <fieldset class="deuda-decidir-offer deuda-decidir-mode">
+              <legend>Modo de liquidación por contrato</legend>
+              <p class="e19-kpi-note">Los ocho modos que antes solo existían en la Deuda heredada, aplicados a un contrato concreto: pago único, fraccionado, retomar pagos suspendidos o refinanciar — cada uno con inicio óptimo (el motor busca el primer mes viable) o un mes que eliges tú.</p>
+              <div class="deuda-decidir-mode-controls">
+                <label>
+                  <span>Contrato</span>
+                  <select id="deudaCompararModeContract"></select>
+                </label>
+                <label>
+                  <span>Modo</span>
+                  <select id="deudaCompararModeSelect"></select>
+                </label>
+              </div>
+              <div class="escenario-motor-form-grid" id="deudaCompararModeFields"></div>
+              <div class="deuda-decidir-strategy-kpis deuda-decidir-mode-result" id="deudaCompararModeResult"></div>
+              <div class="deuda-decidir-strategy-actions">
+                <button type="button" class="e19-btn e19-btn-primary" id="deudaCompararModeApply">Aplicar este modo</button>
+              </div>
+              <p class="e19-kpi-note">Comparativa de los ocho modos sobre el mismo contrato — el activo usa lo que hayas escrito arriba, el resto su propia sugerencia:</p>
+              <div class="table-wrap">
+                <table class="e19-table deuda-decidir-mode-compare" id="deudaCompararModeCompare">
+                  <thead><tr><th>Modo</th><th>Mes</th><th>Coste</th><th>Resultado</th><th></th></tr></thead>
+                  <tbody id="deudaCompararModeCompareBody"></tbody>
+                </table>
+              </div>
+            </fieldset>
+
             <div class="deuda-decidir-strategy-grid" id="deudaCompararGrid"></div>
 
             <div class="e19-insight" id="deudaCompararInsight" hidden></div>
@@ -1311,6 +1338,12 @@
                 </article>
               </div>
             </div>
+
+            <article class="e19-card deuda-ruta-calendar-card">
+              <h3 class="escenario-motor-panel-title">Calendario de amortización</h3>
+              <p class="e19-kpi-note">Mes a mes, por contrato, en el orden de ataque de la pestaña activa: cuota, interés, capital amortizado y saldo restante — sobre el calendario declarado (TAE y cuota), no sobre esta ruta simulada.</p>
+              <div id="deudaRutaCalendar"></div>
+            </article>
           </section>
 
           <section class="e19-deuda-decidir e19-deuda-contratos view-section" id="deuda-contratos">

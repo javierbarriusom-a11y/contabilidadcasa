@@ -21668,8 +21668,8 @@ function escenarioMotorEffectiveValues(type, values) {
   return effective;
 }
 
-function escenarioMotorFieldElementId(key) {
-  return `escenarioMotorField_${key}`;
+function escenarioMotorFieldElementId(key, idPrefix = "escenarioMotorField") {
+  return `${idPrefix}_${key}`;
 }
 
 function escenarioMotorMonthOptionsHtml(months, selected, placeholder) {
@@ -21679,9 +21679,12 @@ function escenarioMotorMonthOptionsHtml(months, selected, placeholder) {
     .join("");
 }
 
-function escenarioMotorFieldControlHtml(field, months, values) {
-  const id = escenarioMotorFieldElementId(field.key);
-  const attrs = `id="${id}" data-escenario-motor-field="${escapeHtml(field.key)}"`;
+// D-5 · `idPrefix`/`dataAttr` dejan reutilizar el mismo dibujado de campo (y su `params()`/`mes()`
+// del catálogo) desde el selector de modo de Deuda › Comparar sin generar los mismos `id` que el
+// formulario real de «Escenario · simular» — ambas pantallas conviven en el DOM a la vez.
+function escenarioMotorFieldControlHtml(field, months, values, { idPrefix = "escenarioMotorField", dataAttr = "data-escenario-motor-field" } = {}) {
+  const id = escenarioMotorFieldElementId(field.key, idPrefix);
+  const attrs = `id="${id}" ${dataAttr}="${escapeHtml(field.key)}"`;
   const value = values[field.key];
   const numberAttrs = `${field.min !== undefined ? ` min="${field.min}"` : ""}${field.max !== undefined ? ` max="${field.max}"` : ""}`;
   switch (field.kind) {
@@ -21720,8 +21723,9 @@ function escenarioMotorFieldControlHtml(field, months, values) {
   }
 }
 
-function escenarioMotorFieldHtml(field, months, values) {
-  const control = escenarioMotorFieldControlHtml(field, months, values);
+function escenarioMotorFieldHtml(field, months, values, options = {}) {
+  const { idPrefix = "escenarioMotorField", dataAttr = "data-escenario-motor-field", wrapAttr = "data-escenario-motor-field-wrap" } = options;
+  const control = escenarioMotorFieldControlHtml(field, months, values, { idPrefix, dataAttr });
   const hint = field.ayuda ? `<small class="e19-kpi-note">${escapeHtml(field.ayuda)}</small>` : "";
   const classes = ["escenario-motor-field"];
   // Los selectores de deuda llevan entidad, tipo e importe: a media columna se recortan justo en la
@@ -21732,7 +21736,7 @@ function escenarioMotorFieldHtml(field, months, values) {
   const body = field.kind === "checkbox"
     ? `${control}<span>${escapeHtml(field.label)}</span>${hint}`
     : `<span>${escapeHtml(field.label)}</span>${control}${hint}`;
-  return `<label class="${classes.join(" ")}" data-escenario-motor-field-wrap="${escapeHtml(field.key)}"${hidden}>${body}</label>`;
+  return `<label class="${classes.join(" ")}" ${wrapAttr}="${escapeHtml(field.key)}"${hidden}>${body}</label>`;
 }
 
 function escenarioMotorReadFieldValue(field, element) {
@@ -22745,6 +22749,310 @@ function debtStrategyDecisionsToEscenario(strategyId) {
   escenarioMotorGuardrailValue = debtStrategyReserveValue;
 }
 
+// ---------------------------------------------------------------------------------------------
+// D-5 · los ocho modos de liquidación que solo existían en la heredada `#debt-control`
+// (`debtModeLabel`/`debtPayoffMode`), migrados sobre el motor canónico en vez de reimplementados:
+// son los cuatro tipos de decisión de deuda de un solo contrato que `canonical-scenario-engine.js`
+// ya resuelve (`amortizacion`, `amortizacion_fraccionada`, `refinanciacion`, `retomar_pagos` —
+// `reunificacion` ya vive en la estrategia «Consolidar» y `acuerdo_quita` no tenía equivalente en
+// la heredada) cruzados con las dos planificaciones que el motor ya sabe resolver
+// (`planificacion.modo`: óptimo busca el primer mes viable, manual usa el mes elegido). Los campos
+// y el `params()`/`mes()`/`titulo()` de cada tipo son los mismos de `ESCENARIO_MOTOR_TYPES` —no hay
+// un segundo constructor de decisiones de deuda— solo se les añade el interruptor óptimo/manual que
+// ese catálogo no ofrece (siempre pide un mes porque es el mismo formulario para las once
+// decisiones, con y sin deuda de por medio).
+// D-6 · con eso ya construido, comparar «plan frente a modo» es aplicar los ocho a la vez sobre el
+// contrato elegido y enseñar el resultado en una tabla, igual que las tarjetas de estrategia de
+// arriba comparan avalancha/bola de nieve/consolidar/no tocar.
+// ---------------------------------------------------------------------------------------------
+const DEBT_MODE_DEFINITIONS = Object.freeze([
+  { id: "optimize", tipoId: "amortizacion", planMode: "optimo", label: "Amortización óptima" },
+  { id: "fixed", tipoId: "amortizacion", planMode: "manual", label: "Amortización manual" },
+  { id: "spread-optimize", tipoId: "amortizacion_fraccionada", planMode: "optimo", label: "Fraccionada con inicio óptimo" },
+  { id: "spread", tipoId: "amortizacion_fraccionada", planMode: "manual", label: "Fraccionada" },
+  { id: "retomar-optimize", tipoId: "retomar_pagos", planMode: "optimo", label: "Retomar pagos con inicio óptimo" },
+  { id: "retomar", tipoId: "retomar_pagos", planMode: "manual", label: "Retomar pagos" },
+  { id: "refinance-optimize", tipoId: "refinanciacion", planMode: "optimo", label: "Refinanciación con inicio óptimo" },
+  { id: "refinance", tipoId: "refinanciacion", planMode: "manual", label: "Refinanciación" },
+]);
+
+let debtModeContractId = null;
+let debtModeId = DEBT_MODE_DEFINITIONS[0].id;
+let debtModeValues = {};
+
+function debtModeDefById(id) {
+  return DEBT_MODE_DEFINITIONS.find((def) => def.id === id) || DEBT_MODE_DEFINITIONS[0];
+}
+
+function debtModeSelectedContract() {
+  const contracts = escenarioMotorDebtOptions();
+  return contracts.find((contract) => contract.id === debtModeContractId) || contracts[0] || null;
+}
+
+// Los campos del tipo real menos `deudaId` (lo elige el desplegable de contrato de esta pantalla,
+// no el formulario de modo) y menos el mes manual cuando el modo es «óptimo» (lo busca el motor
+// solo, como ya hace `debtStrategyDecisions` con avalancha/bola de nieve).
+function debtModeVisibleCampos(def) {
+  const type = escenarioMotorTypeById(def.tipoId);
+  if (!type) return [];
+  return type.campos.filter((field) => {
+    if (field.key === "deudaId") return false;
+    if (def.planMode === "optimo" && (field.key === "mes" || field.key === "mesInicio")) return false;
+    return true;
+  });
+}
+
+function debtModeDefaultValues(contract, def) {
+  const principal = round2(Number(contract?.currentPrincipal || 0));
+  const payment = round2(Number(contract?.currentPayment || 0));
+  const firstMonth = escenarioMotorBaseInput().months[0]?.monthKey || "";
+  const base = { deudaId: contract?.id || "" };
+  if (def.tipoId === "amortizacion") return { ...base, importe: principal || undefined, mes: firstMonth };
+  if (def.tipoId === "amortizacion_fraccionada") {
+    const importeMensual = payment > 0 ? payment : principal > 0 ? round2(principal / 12) : undefined;
+    const meses = importeMensual > 0 ? Math.max(1, Math.ceil(principal / importeMensual)) : undefined;
+    return { ...base, importeMensual, meses, mes: firstMonth };
+  }
+  if (def.tipoId === "refinanciacion") return { ...base, nuevoPrincipal: principal || undefined, nuevaCuota: undefined, nuevoTIN: undefined, nuevoPlazo: undefined, mes: firstMonth };
+  if (def.tipoId === "retomar_pagos") {
+    // Una deuda suspendida trae `currentPayment: 0` (no hay cuota activa que leer): la cuota a
+    // retomar por defecto es la original, la misma fuente que ya usaba `debtResumePlan` en la
+    // heredada, no un cero que el usuario tendría que corregir a mano cada vez.
+    const resumeCuota = payment > 0 ? payment : round2(Number(contract?.originalPayment || 0)) || undefined;
+    return { ...base, cuota: resumeCuota, mesInicio: firstMonth };
+  }
+  return base;
+}
+
+// La única sugerencia que se calcula sola en vez de partir en blanco: con principal, TIN y plazo ya
+// escritos, la cuota nueva sale de la misma fórmula francesa que usa «Consolidar»
+// (`debtConsolidationMonthlyPayment`, genérica pese al nombre) — nunca sobrescribe lo que el usuario
+// ya haya tecleado en esa casilla.
+function debtModeEffectiveValues() {
+  const contract = debtModeSelectedContract();
+  const def = debtModeDefById(debtModeId);
+  const merged = { ...debtModeDefaultValues(contract, def), ...debtModeValues, deudaId: contract?.id || "" };
+  if (
+    def.tipoId === "refinanciacion" &&
+    !Number.isFinite(merged.nuevaCuota) &&
+    Number.isFinite(merged.nuevoPrincipal) &&
+    Number.isFinite(merged.nuevoTIN) &&
+    Number.isFinite(merged.nuevoPlazo)
+  ) {
+    const computed = debtConsolidationMonthlyPayment(merged.nuevoPrincipal, merged.nuevoTIN, merged.nuevoPlazo);
+    if (computed) merged.nuevaCuota = computed;
+  }
+  return merged;
+}
+
+// Construye la decisión sin pedirle nada al motor todavía: si falta un campo obligatorio para el
+// tipo elegido (el caso normal nada más entrar en «Refinanciación», sin TIN ni plazo todavía) se
+// dice que no hay nada que calcular, igual que «Consolidar» sin oferta — nunca se manda al motor un
+// importe a medio escribir.
+function debtModeDecisionForContract(contract, def, values) {
+  const type = escenarioMotorTypeById(def?.tipoId);
+  if (!type || !contract) return { available: false };
+  const effectiveValues = { ...values, deudaId: contract.id };
+  const requiredKeys = type.campos
+    .map((field) => field.key)
+    .filter((key) => key !== "parcial" && !(def.planMode === "optimo" && (key === "mes" || key === "mesInicio")));
+  const missing = requiredKeys.some((key) => {
+    const value = effectiveValues[key];
+    return value === undefined || value === null || value === "" || (typeof value === "number" && !Number.isFinite(value));
+  });
+  if (missing) return { available: false };
+  const mesManual = def.planMode === "manual" ? type.mes(effectiveValues) : null;
+  if (def.planMode === "manual" && !mesManual) return { available: false };
+  const params = type.params(effectiveValues);
+  // `retomar_pagos` exige `mesInicio` en sus params incluso en modo óptimo: el motor lo sustituye
+  // por cada mes candidato al buscar (`withResolvedMonth` en canonical-scenario-engine.js), pero el
+  // valor de partida tiene que existir para que el objeto sea válido antes de esa búsqueda.
+  if (def.tipoId === "retomar_pagos" && def.planMode === "optimo") {
+    params.mesInicio = escenarioMotorBaseInput().months[0]?.monthKey || "";
+  }
+  const planificacion = def.planMode === "optimo" ? { modo: "optimo" } : { modo: "manual", mesManual };
+  return {
+    available: true,
+    decision: {
+      id: escenarioMotorNewDecisionId(),
+      tipo: def.tipoId,
+      titulo: escenarioMotorTrim(type.titulo(effectiveValues, { debtLabel: escenarioMotorDebtLabelById }) || type.label),
+      activa: true,
+      orden: 0,
+      planificacion,
+      params,
+    },
+  };
+}
+
+// Punto único que consultan tanto el panel de resultado del modo activo como cada fila de la
+// comparativa de los ocho: mismas tres razones de "no disponible" en los dos sitios (sin motor
+// cargado, retomar sobre una deuda que no está suspendida, o faltan datos), nunca un cálculo
+// distinto según desde dónde se mire.
+function debtModeResultForContract(contract, def, values, baseInput, reserveValue) {
+  if (missingScenarioDependencies().length) return { available: false, reason: "sin-motor" };
+  if (def.tipoId === "retomar_pagos" && contract && contract.paymentStatus !== "suspended") {
+    return { available: false, reason: "no-suspendida" };
+  }
+  const built = debtModeDecisionForContract(contract, def, values);
+  if (!built.available) return { available: false, reason: "faltan-datos" };
+  const result = runEscenarioMotor(baseInput, [built.decision], debtStrategyEffectiveReserve(reserveValue));
+  if (!result || !result.valid) return { available: false, reason: "sin-motor" };
+  const resultado = (result.resultados || [])[0] || null;
+  const cajaMinima = result.series?.length ? Math.min(...result.series.map((row) => row.totalLiquidity)) : null;
+  return {
+    available: true,
+    decision: built.decision,
+    resultado,
+    cajaMinima,
+    viable: resultado?.resultado === "aplicada",
+    mesResuelto: resultado?.mesResuelto || null,
+  };
+}
+
+function debtModeUnavailableNote(contract, result) {
+  if (result.reason === "sin-motor") return "No se puede simular: falta el motor de Escenario.";
+  if (result.reason === "no-suspendida") return `Retomar pagos solo aplica a una deuda con los pagos suspendidos; ${escenarioMotorDebtLabel(contract)} no lo está.`;
+  return "Faltan datos para simular este modo: complétalos arriba.";
+}
+
+function debtModeContractOptionsHtml(contracts, selectedId) {
+  return contracts
+    .map((contract) => `<option value="${escapeHtml(contract.id)}"${contract.id === selectedId ? " selected" : ""}>${escapeHtml(escenarioMotorDebtLabel(contract))} · ${money(contract.currentPrincipal, true)}</option>`)
+    .join("");
+}
+
+function renderDeudaCompararModes() {
+  const contractSelect = qs("deudaCompararModeContract");
+  const modeSelect = qs("deudaCompararModeSelect");
+  const fieldsBox = qs("deudaCompararModeFields");
+  const resultBox = qs("deudaCompararModeResult");
+  const compareBody = qs("deudaCompararModeCompareBody");
+  const applyButton = qs("deudaCompararModeApply");
+  if (!contractSelect || !modeSelect || !fieldsBox || !resultBox) return;
+
+  const contracts = escenarioMotorDebtOptions();
+  if (!contracts.length) {
+    contractSelect.innerHTML = '<option value="">Sin deudas vivas</option>';
+    modeSelect.innerHTML = "";
+    fieldsBox.innerHTML = "";
+    resultBox.innerHTML = '<p class="e19-kpi-note">Sin deudas vivas: no hay ningún contrato al que aplicar un modo.</p>';
+    if (compareBody) compareBody.innerHTML = "";
+    if (applyButton) applyButton.disabled = true;
+    return;
+  }
+  if (!debtModeContractId || !contracts.some((contract) => contract.id === debtModeContractId)) {
+    debtModeContractId = contracts[0].id;
+  }
+  const contract = debtModeSelectedContract();
+  const def = debtModeDefById(debtModeId);
+
+  if (document.activeElement !== contractSelect) contractSelect.innerHTML = debtModeContractOptionsHtml(contracts, debtModeContractId);
+  if (!modeSelect.childElementCount) {
+    modeSelect.innerHTML = DEBT_MODE_DEFINITIONS.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`).join("");
+  }
+  if (document.activeElement !== modeSelect) modeSelect.value = debtModeId;
+
+  const baseInput = escenarioMotorBaseInput();
+  if (!fieldsBox.contains(document.activeElement)) {
+    const campos = debtModeVisibleCampos(def);
+    const values = debtModeEffectiveValues();
+    fieldsBox.innerHTML = campos
+      .map((field) =>
+        escenarioMotorFieldHtml(field, baseInput.months, values, {
+          idPrefix: "debtModeField",
+          dataAttr: "data-debt-mode-field",
+          wrapAttr: "data-debt-mode-field-wrap",
+        })
+      )
+      .join("");
+  }
+
+  const reserveValue = debtStrategyReserveValue;
+  const activeResult = debtModeResultForContract(contract, def, debtModeEffectiveValues(), baseInput, reserveValue);
+  if (!activeResult.available) {
+    resultBox.innerHTML = `<p class="e19-kpi-note is-warn">${escapeHtml(debtModeUnavailableNote(contract, activeResult))}</p>`;
+    if (applyButton) applyButton.disabled = true;
+  } else {
+    const info = escenarioMotorResultInfo(activeResult.resultado?.resultado);
+    resultBox.innerHTML = `
+      <div><span>Mes resuelto</span><strong>${escapeHtml(activeResult.mesResuelto ? escenarioMotorMonthLabel(activeResult.mesResuelto) : "—")}</strong></div>
+      <div><span>Coste</span><strong>${escapeHtml(escenarioMotorDecisionAmountText(activeResult.decision))}</strong></div>
+      <div><span>Caja mínima</span><strong>${money(activeResult.cajaMinima ?? 0, true)}</strong></div>
+      <div><span>Resultado</span><strong><span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></strong></div>
+    `;
+    if (applyButton) applyButton.disabled = !activeResult.viable;
+  }
+
+  // D-6 · los ocho a la vez sobre el mismo contrato. El modo activo usa sus valores editados en el
+  // formulario de arriba (para que la fila se mueva mientras se teclea); el resto usa sus propios
+  // valores por defecto, nunca los del modo activo — mezclar importes de un modo en otro daría una
+  // comparación que no es la que cada modo ofrecería por sí solo.
+  if (compareBody) {
+    compareBody.innerHTML = DEBT_MODE_DEFINITIONS.map((item) => {
+      const itemValues = item.id === debtModeId ? debtModeEffectiveValues() : debtModeDefaultValues(contract, item);
+      const itemResult = debtModeResultForContract(contract, item, itemValues, baseInput, reserveValue);
+      const rowClass = item.id === debtModeId ? ' class="is-active"' : "";
+      if (!itemResult.available) {
+        return `<tr${rowClass} data-deuda-comparar-mode-row="${escapeHtml(item.id)}">
+          <td>${escapeHtml(item.label)}</td>
+          <td colspan="3">${escapeHtml(debtModeUnavailableNote(contract, itemResult))}</td>
+          <td><button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-mode-usar="${escapeHtml(item.id)}">Usar</button></td>
+        </tr>`;
+      }
+      const info = escenarioMotorResultInfo(itemResult.resultado?.resultado);
+      return `<tr${rowClass} data-deuda-comparar-mode-row="${escapeHtml(item.id)}">
+        <td>${escapeHtml(item.label)}</td>
+        <td>${escapeHtml(itemResult.mesResuelto ? escenarioMotorMonthLabel(itemResult.mesResuelto) : "—")}</td>
+        <td>${escapeHtml(escenarioMotorDecisionAmountText(itemResult.decision))}</td>
+        <td><span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></td>
+        <td><button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-mode-usar="${escapeHtml(item.id)}">Usar</button></td>
+      </tr>`;
+    }).join("");
+  }
+}
+
+function handleDeudaCompararModeContractChange(event) {
+  debtModeContractId = event.target.value;
+  debtModeValues = {};
+  renderDeudaCompararModes();
+}
+
+function handleDeudaCompararModeSelectChange(event) {
+  debtModeId = event.target.value;
+  debtModeValues = {};
+  renderDeudaCompararModes();
+}
+
+function handleDeudaCompararModeFieldChange(event) {
+  const key = event.target?.dataset?.debtModeField;
+  if (!key) return;
+  const def = debtModeDefById(debtModeId);
+  const type = escenarioMotorTypeById(def.tipoId);
+  const field = type?.campos.find((item) => item.key === key);
+  if (!field) return;
+  debtModeValues[key] = escenarioMotorReadFieldValue(field, event.target);
+  renderDeudaCompararModes();
+}
+
+function handleDeudaCompararModeCompareClick(event) {
+  const button = event.target.closest("[data-deuda-comparar-mode-usar]");
+  if (!button) return;
+  debtModeId = button.dataset.deudaCompararModeUsar;
+  debtModeValues = {};
+  renderDeudaCompararModes();
+}
+
+function handleDeudaCompararModeApply() {
+  const contract = debtModeSelectedContract();
+  const def = debtModeDefById(debtModeId);
+  const result = debtModeResultForContract(contract, def, debtModeEffectiveValues(), escenarioMotorBaseInput(), debtStrategyReserveValue);
+  if (!result.available || !result.viable) return;
+  escenarioMotorDecisions = [{ ...result.decision, id: escenarioMotorNewDecisionId() }];
+  escenarioMotorGuardrailValue = debtStrategyReserveValue;
+  escenarioMotorNavigate("escenario-aplicar");
+}
+
 // La nota al pie de cada tarjeta. Es el único sitio donde se explica por qué una estrategia no
 // tiene cifras, así que nunca se queda en blanco cuando falta algo: o dice qué falta, o dice qué
 // hace la estrategia, o no dice nada porque no hay nada que advertir.
@@ -22775,6 +23083,7 @@ function renderDeudaComparar() {
   if (reserveField && document.activeElement !== reserveField) reserveField.value = debtStrategyReserveValue ?? "";
   renderDeudaCompararReserveNote();
   renderDeudaCompararOffer();
+  renderDeudaCompararModes();
 
   const baseInput = escenarioMotorBaseInput();
   const summaries = DEBT_STRATEGY_DEFINITIONS.map((def) => ({ id: def.id, def, ...debtStrategySummary(def.id, baseInput, debtStrategyReserveValue) }));
@@ -23166,6 +23475,83 @@ function renderDeudaRuta() {
       .join("");
   }
   if (applyButton) applyButton.disabled = summary.total === 0 || !summary.viable;
+
+  // D-4 · en el mismo orden de ataque que la pestaña activa (avalancha/bola de nieve); consolidar y
+  // no tocar no ordenan nada (`debtStrategyOrderedContracts` devuelve []), así que caen al orden
+  // declarado de la cartera, igual que la tarjeta de «Cartera» de al lado.
+  const orderedForCalendar = debtStrategyOrderedContracts(deudaRutaSelectedStrategy);
+  renderDeudaRutaCalendar(orderedForCalendar.length ? orderedForCalendar : contracts, baseInput.months);
+}
+
+// D-4 · calendario de amortización mes a mes, sobre el calendario declarado del contrato (cuota
+// francesa fija a partir de TAE + cuota), no sobre las decisiones de una ruta: es la lectura que
+// faltaba junto al escalón de «Deuda viva» del gráfico de arriba, que la propia pantalla avisa que
+// no es un calendario mes a mes. Nunca aproxima en silencio: si la cuota no cubre ni el interés, o
+// si el horizonte se acaba antes de llegar a saldo cero, lo dice en vez de fingir un cierre.
+function debtAmortizationSchedule(contract, maxMonths) {
+  const principal = round2(Number(contract?.currentPrincipal || 0));
+  const payment = round2(Number(contract?.currentPayment || 0));
+  const aprPct = Number(contract?.apr);
+  const monthlyRate = Number.isFinite(aprPct) && aprPct > 0 ? aprPct / 100 / 12 : 0;
+  const limit = Math.max(1, Math.min(Math.round(maxMonths) || 1, 600));
+  const rows = [];
+  let balance = principal;
+  if (!(principal > 0)) return { rows, stalled: false, complete: true };
+  for (let index = 0; index < limit && balance > 0.005; index += 1) {
+    const interest = round2(balance * monthlyRate);
+    const principalPaid = round2(payment - interest);
+    if (!(payment > 0) || principalPaid <= 0) {
+      rows.push({ month: index + 1, payment, interest, principal: 0, balance: round2(balance), stalled: true });
+      return { rows, stalled: true, complete: false };
+    }
+    const appliedPrincipal = principalPaid > balance ? balance : principalPaid;
+    balance = round2(balance - appliedPrincipal);
+    rows.push({ month: index + 1, payment: round2(interest + appliedPrincipal), interest, principal: appliedPrincipal, balance });
+  }
+  return { rows, stalled: false, complete: balance <= 0.005 };
+}
+
+function renderDeudaRutaCalendar(contracts, months) {
+  const container = qs("deudaRutaCalendar");
+  if (!container) return;
+  if (!contracts.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Sin deudas vivas: no hay calendario que mostrar.</p>';
+    return;
+  }
+  container.innerHTML = contracts
+    .map((contract) => {
+      const schedule = debtAmortizationSchedule(contract, months.length);
+      const totalInterest = round2(schedule.rows.reduce((sum, row) => sum + row.interest, 0));
+      const label = escenarioMotorDebtLabel(contract);
+      const summary = schedule.stalled
+        ? !(Number(contract.currentPayment) > 0)
+          ? `${label} · sin cuota declarada: no hay calendario que proyectar`
+          : `${label} · la cuota declarada no cubre ni el interés: no amortiza`
+        : !schedule.complete
+        ? `${label} · no llega a saldo cero dentro de los ${months.length} meses del horizonte`
+        : `${label} · saldada en ${months[schedule.rows.length - 1]?.month || "—"} · ${money(totalInterest, true)} de interés total`;
+      const rowsHtml = schedule.rows
+        .map(
+          (row) => `<tr>
+            <td>${escapeHtml(months[row.month - 1]?.month || `Mes ${row.month}`)}</td>
+            <td>${money(row.payment, true)}</td>
+            <td>${money(row.interest, true)}</td>
+            <td>${money(row.principal, true)}</td>
+            <td>${money(row.balance, true)}</td>
+          </tr>`
+        )
+        .join("");
+      return `<details class="deuda-ruta-calendar-item">
+          <summary>${escapeHtml(summary)}</summary>
+          <div class="table-wrap">
+            <table class="e19-table">
+              <thead><tr><th>Mes</th><th>Cuota</th><th>Interés</th><th>Capital</th><th>Saldo</th></tr></thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        </details>`;
+    })
+    .join("");
 }
 
 function handleDeudaRutaTab(strategyId) {
@@ -24966,6 +25352,12 @@ async function init() {
     const aplicarButton = event.target.closest("[data-deuda-comparar-aplicar]");
     if (aplicarButton) handleDeudaCompararAplicar(aplicarButton.dataset.deudaCompararAplicar);
   });
+  qs("deudaCompararModeContract")?.addEventListener("change", handleDeudaCompararModeContractChange);
+  qs("deudaCompararModeSelect")?.addEventListener("change", handleDeudaCompararModeSelectChange);
+  qs("deudaCompararModeFields")?.addEventListener("change", handleDeudaCompararModeFieldChange);
+  qs("deudaCompararModeFields")?.addEventListener("input", handleDeudaCompararModeFieldChange);
+  qs("deudaCompararModeCompareBody")?.addEventListener("click", handleDeudaCompararModeCompareClick);
+  qs("deudaCompararModeApply")?.addEventListener("click", handleDeudaCompararModeApply);
   qs("deudaRutaTabs")?.addEventListener("click", (event) => {
     const tabButton = event.target.closest("[data-deuda-ruta-tab]");
     if (tabButton) handleDeudaRutaTab(tabButton.dataset.deudaRutaTab);
