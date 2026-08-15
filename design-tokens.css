@@ -1631,6 +1631,82 @@
   color: var(--e19-faint);
 }
 
+/* D-5/D-6 · selector de contrato + modo, y su comparativa de los ocho. */
+.e19-deuda-decidir .deuda-decidir-mode-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.e19-deuda-decidir .deuda-decidir-mode-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  flex: 1 1 220px;
+}
+
+.e19-deuda-decidir .deuda-decidir-mode-controls select {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+/* Reutiliza el dibujado de campo de «Escenario · simular» (mismas clases, `escenarioMotorFieldHtml`
+   con otro `idPrefix` para no repetir `id`) con su propio ámbito — mismo patrón que
+   `.deuda-ruta-checklist`, redefinida más abajo dentro de `.e19-conciliar`: dos pantallas con el
+   mismo aspecto de campo, sin compartir una regla entre ellas. */
+.e19-deuda-decidir .escenario-motor-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.e19-deuda-decidir .escenario-motor-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-deuda-decidir .escenario-motor-form-grid input,
+.e19-deuda-decidir .escenario-motor-form-grid select {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+.e19-deuda-decidir .deuda-decidir-mode-compare tr.is-active td {
+  background: color-mix(in srgb, var(--e19-accent) 10%, transparent);
+}
+
+/* `.deuda-decidir-strategy-kpis` se pensó para la columna estrecha de una tarjeta de estrategia
+   (~250px): reutilizada tal cual en el ancho completo del fieldset de modo, `justify-content:
+   space-between` separaba la etiqueta del valor hasta casi perderlo de vista. Aquí se convierte en
+   una rejilla de cuatro columnas que sí aprovecha ese ancho. */
+.e19-deuda-decidir .deuda-decidir-mode-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 16px;
+  margin: 4px 0 14px;
+}
+
+.e19-deuda-decidir .deuda-decidir-mode-result div {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
 .e19-deuda-decidir .deuda-decidir-tabs {
   display: flex;
   gap: 6px;
@@ -1815,6 +1891,35 @@
 .e19-deuda-decidir .deuda-ruta-check.is-danger {
   color: var(--e19-danger);
   background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+/* D-4 · calendario de amortización, un <details> por contrato para no volcar de golpe hasta 600
+   filas mensuales de cada deuda a la vez. */
+.e19-deuda-decidir .deuda-ruta-calendar-card {
+  margin-top: 18px;
+  padding: 18px;
+}
+
+.e19-deuda-decidir .deuda-ruta-calendar-item {
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.e19-deuda-decidir .deuda-ruta-calendar-item:last-child {
+  margin-bottom: 0;
+}
+
+.e19-deuda-decidir .deuda-ruta-calendar-item summary {
+  cursor: pointer;
+  font-size: var(--e19-text-sm);
+  font-weight: 600;
+  color: var(--e19-ink);
+}
+
+.e19-deuda-decidir .deuda-ruta-calendar-item .table-wrap {
+  margin-top: 10px;
 }
 
 @media (max-width: 860px) {

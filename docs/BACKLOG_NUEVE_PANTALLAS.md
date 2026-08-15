@@ -70,10 +70,11 @@ commit, push, PR, fusionar) no pide permiso en cada turno.
 Movimientos: Registrar R-1 a R-12 hechas (R-11 se consultó y se resolvió el 15 de agosto, ver la
 nota bajo la tabla de la pantalla 02); Movimientos M-1 a M-7 y M-9 a M-11 hechas, quedan M-8/M-8b
 (selección múltiple y lote, sesión propia) y M-8c (bloqueada por Cierre); Plan · Mes P-1 a P-7
-hechas (15 de agosto). Fase 3 (Deuda) arrancada el 15 de agosto: D-1, D-2, D-3, D-7, D-8 y D-9
-hechas (D-3/D-7/D-8/D-9 ya existían de un epic anterior, reconciliadas con el backlog, ver la
-nota bajo la tabla de la pantalla 05); D-5/D-6/D-10/D-11/D-13 parciales, D-2b/D-4/D-12
-pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fases 4-7 sin empezar.
+hechas (15 de agosto). Fase 3 (Deuda) arrancada el 15 de agosto: D-1, D-2, D-3, D-4, D-5, D-6, D-7,
+D-8 y D-9 hechas (D-3/D-7/D-8/D-9 ya existían de un epic anterior, reconciliadas con el backlog;
+D-4/D-5/D-6 se construyeron el mismo 15 de agosto, en la sesión siguiente a D-1/D-2 — ver la nota
+bajo la tabla de la pantalla 05); D-10/D-11/D-13 parciales, D-2b/D-12 pendientes, D-14 choca con la
+decisión T-4 (bloqueada a propósito). Fases 4-7 sin empezar.
 
 ## 4. Nueve reglas transversales
 
@@ -251,9 +252,9 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | D-2 | Contratos como dato canónico editable | D-1 | L | Hecho (15 de agosto) |
 | D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
 | D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
-| D-4 | Calendario de amortización | D-3 | L | Pendiente |
-| D-5 | Ocho modos de liquidación | D-3 | L | Parcial (ver nota: existen en `#debt-control`, sin migrar) |
-| D-6 | Comparativa plan frente a modo | D-5 | M | Parcial (compara 4 estrategias, no los 8 modos de D-5) |
+| D-4 | Calendario de amortización | D-3 | L | Hecho (15 de agosto, ver nota) |
+| D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
+| D-6 | Comparativa plan frente a modo | D-5 | M | Hecho (15 de agosto, ver nota) |
 | D-7 | Comparar no escribe nada | D-6 | S | Hecho (ya existía, ver nota) |
 | D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (ya existía, ver nota) |
 | D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (ya existía, ver nota) |
@@ -292,11 +293,56 @@ punto por el que ya pasaban Ruta, Comparar, Hoy y el motor de escenarios, así q
 valor corregido sin que nadie tenga que avisarlos. Vaciar una celda no escribe un cero: borra
 el ajuste y vuelve al valor declarado (regla transversal 04).
 
+**Nota (15 de agosto, sesión siguiente): D-4, D-5 y D-6.** Las tres tareas de talla L/M que la
+sesión anterior había dejado aparcadas a propósito («para su propia sesión»).
+
+- **D-5** (`DEBT_MODE_DEFINITIONS`, `debtModeDecisionForContract`) no reimplementa un motor de
+  liquidación nuevo: los ocho modos heredados de `#debt-control` (`debtModeLabel`) resultan ser
+  exactamente los cuatro tipos de decisión de deuda de un solo contrato que
+  `canonical-scenario-engine.js` ya resolvía (`amortizacion`, `amortizacion_fraccionada`,
+  `refinanciacion`, `retomar_pagos` — ya usados por `ESCENARIO_MOTOR_TYPES`, el catálogo de la
+  Escenarios heredada) cruzados con las dos planificaciones que el motor ya sabía resolver
+  (`planificacion.modo`: óptimo busca el primer mes viable, manual usa el mes elegido). Migrar
+  fue exponer ese cruce en Deuda › Comparar, no construir cálculo nuevo — mismos `params()`/
+  `mes()`/`titulo()` del catálogo real, con el interruptor óptimo/manual que ese catálogo no
+  ofrecía. La única cifra que se sugiere sola es la cuota de refinanciación (con TIN y plazo ya
+  escritos), por la misma fórmula francesa que ya usaba «Consolidar»
+  (`debtConsolidationMonthlyPayment`); el resto de campos parte del contrato y nunca de un cero
+  inventado — sin TIN ni plazo, «Refinanciación» se queda sin cifras a propósito, igual que
+  «Consolidar» sin oferta.
+- **D-6** (`renderDeudaCompararModes`) compara los ocho modos a la vez sobre el contrato elegido
+  en una tabla, reutilizando el mismo `debtModeResultForContract` que alimenta el panel del modo
+  activo — nunca un cálculo distinto según desde dónde se mire. «Retomar pagos» sobre un contrato
+  que no está suspendido no se oculta ni se envía en silencio al motor: se dice explícitamente
+  «solo aplica a una deuda con los pagos suspendidos», la misma regla que ya usaba `#debt-control`
+  (retomar exige `paymentStatus === "suspended"`).
+- **D-4** (`debtAmortizationSchedule`, `renderDeudaRutaCalendar`) es de solo lectura y deliberadamente
+  independiente de las decisiones de una ruta: proyecta el calendario declarado de cada contrato
+  (TAE + cuota, amortización francesa mes a mes), en el mismo orden de ataque que la pestaña activa
+  de Ruta. Responde a la limitación que la propia pantalla ya declaraba en su gráfico de «Deuda
+  viva» («no es un calendario de amortización mes a mes»). Nunca aproxima en silencio: si la cuota
+  no cubre ni el interés lo dice, si el horizonte se acaba antes de saldo cero lo dice, y una deuda
+  sin cuota declarada (dos de los tres contratos de la cartera demo tienen `currentPayment: 0`) lo
+  distingue de una cuota simplemente insuficiente.
+
+**Verificación visual con Playwright**: en `#deuda-comparar`, cambiar el modo a «Refinanciación
+con inicio óptimo» mostró los cuatro campos nuevos (principal, cuota, TIN, plazo) y la nota «Faltan
+datos para simular este modo»; la comparativa de los ocho modos pintó sus ocho filas, con las dos
+de refinanciación sin cifras hasta rellenar TIN y plazo. En `#deuda-ruta`, el nuevo «Calendario de
+amortización» mostró un `<details>` por contrato en el orden de la pestaña Avalancha activa,
+correctamente distinguiendo la reunificación sintética (saldada en un mes concreto, con su interés
+total) de las dos deudas demo sin cuota declarada («sin cuota declarada: no hay calendario que
+proyectar»).
+
+**Pruebas nuevas**: `tests/d4-d5-d6-deuda-calendario-modos.test.cjs` (42 pruebas) — catálogo de los
+ocho modos, construcción de la decisión por modo (con validación real contra
+`canonical-scenario-schema.js` y resolución real contra `canonical-scenario-engine.js`), la
+sugerencia de cuota de refinanciación, la comparativa de los ocho, la amortización francesa
+(incluida cuota insuficiente, sin TAE, horizonte agotado, tope de 600 filas) y el pintado del
+calendario.
+
 **Quedan pendientes, con motivo explícito:**
 - **D-2b** — bloqueada hasta que exista Cierre (Fase 5), igual que M-8c.
-- **D-4** (calendario de amortización mes a mes) y **D-5/D-6** (migrar los ocho modos heredados
-  de `#debt-control` a la comparativa nueva) — las tres tareas de talla L que quedaban, para su
-  propia sesión, mismo criterio que M-8/M-8b.
 - **D-10** (aviso activo de caducidad de una oferta), **D-11** (coste marginal por mes de
   demora) y **D-13** (guardar la comparación sin comprometerse a aplicar) — ampliaciones
   concretas sobre lo que ya existe, no bloqueadas por nada, solo fuera del alcance pedido esta

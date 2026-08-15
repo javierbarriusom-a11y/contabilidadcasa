@@ -2,6 +2,75 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Deuda — D-4/D-5/D-6, las tres tareas L/M que quedaban
+
+Continuación directa del cierre anterior del mismo día (D-1/D-2, PR #45 fusionado). El usuario pidió
+seguir con el resto de Deuda del backlog «Nueve pantallas»: D-4 (calendario de amortización), D-5
+(ocho modos de liquidación heredados de `#debt-control`) y D-6 (comparativa plan frente a modo),
+las tres tareas de talla L/M que la sesión anterior había dejado aparcadas a propósito «para su
+propia sesión». Se abordaron en el orden D-5 → D-6 → D-4, propuesto y confirmado con el usuario
+antes de tocar código.
+
+**D-5 no reimplementa un motor de liquidación**: antes de escribir nada se descubrió que los ocho
+modos heredados (`debtModeLabel`: amortización óptima/manual, fraccionada óptima/manual, retomar
+pagos óptimo/manual, refinanciación óptima/manual) son exactamente los cuatro tipos de decisión de
+deuda de un solo contrato que `canonical-scenario-engine.js` ya resolvía (`amortizacion`,
+`amortizacion_fraccionada`, `refinanciacion`, `retomar_pagos`) cruzados con las dos planificaciones
+que el motor ya sabía resolver (`planificacion.modo`: óptimo busca el primer mes viable, manual usa
+el mes elegido). `DEBT_MODE_DEFINITIONS` declara el cruce; `debtModeDecisionForContract` construye
+la decisión reutilizando tal cual `params()`/`mes()`/`titulo()` de `ESCENARIO_MOTOR_TYPES` —el
+mismo catálogo que ya usaba la Escenarios heredada, sin un segundo constructor de decisiones de
+deuda—, con el interruptor óptimo/manual que ese catálogo no exponía. Nunca manda un cero inventado
+al motor: sin TIN ni plazo, «Refinanciación» se queda sin cifras a propósito (igual que
+«Consolidar» sin oferta); la única cifra que sí se sugiere sola es la cuota de refinanciación una
+vez escritos TIN y plazo, con la misma fórmula francesa que ya usaba «Consolidar»
+(`debtConsolidationMonthlyPayment`), sin pisar lo que el usuario ya haya tecleado.
+
+**D-6** (`renderDeudaCompararModes`) añade a `#deuda-comparar` un selector de contrato + modo con
+sus campos propios y, debajo, una tabla que evalúa los ocho modos a la vez sobre ese mismo
+contrato — reutilizando el mismo `debtModeResultForContract` que alimenta el panel del modo activo,
+nunca un cálculo distinto según desde dónde se mire. «Retomar pagos» sobre un contrato que no está
+suspendido no se envía en silencio al motor: se dice explícitamente que solo aplica a una deuda con
+los pagos suspendidos, la misma regla que ya exigía `#debt-control`.
+
+**D-4** (`debtAmortizationSchedule`, `renderDeudaRutaCalendar`) añade a `#deuda-ruta` un calendario
+de amortización mes a mes por contrato, de solo lectura y deliberadamente independiente de las
+decisiones de la ruta: proyecta el calendario declarado (TAE + cuota, amortización francesa), en el
+mismo orden de ataque que la pestaña activa. Responde a la limitación que la propia pantalla ya
+declaraba junto al gráfico de «Deuda viva» («no es un calendario de amortización mes a mes»). Nunca
+aproxima en silencio: si la cuota no cubre ni el interés lo dice, si el horizonte se acaba antes de
+saldo cero lo dice, y una deuda sin cuota declarada (dos de los tres contratos de la cartera demo
+tienen `currentPayment: 0`) lo distingue de una cuota simplemente insuficiente.
+
+**Verificación visual con Playwright**: en `#deuda-comparar`, cambiar el modo a «Refinanciación con
+inicio óptimo» mostró los cuatro campos nuevos y la nota «Faltan datos para simular este modo»; la
+comparativa de los ocho modos pintó sus ocho filas. Un primer vistazo mostró el panel de resultado
+del modo activo con las etiquetas visibles pero los valores casi pegados al borde derecho —
+`.deuda-decidir-strategy-kpis` se había pensado para la columna estrecha de una tarjeta de
+estrategia, no para el ancho completo de un fieldset; se le dio una clase propia
+(`.deuda-decidir-mode-result`) con una rejilla de verdad y quedó legible. En `#deuda-ruta`, el
+calendario mostró un `<details>` por contrato en el orden de Avalancha, distinguiendo la
+reunificación sintética (saldada en un mes con su interés total) de las dos deudas demo sin cuota
+declarada.
+
+**Pruebas nuevas**: `tests/d4-d5-d6-deuda-calendario-modos.test.cjs` (42 pruebas) — catálogo de los
+ocho modos, construcción de la decisión por modo con validación real contra
+`canonical-scenario-schema.js` y resolución real contra `canonical-scenario-engine.js`, la
+sugerencia de cuota de refinanciación, la comparativa de los ocho modos, la amortización francesa
+(cuota insuficiente, sin TAE, horizonte agotado, tope de 600 filas) y el pintado del calendario.
+
+**Validación** (`npm run verify`, exit 0): **866/866 pruebas** (824 + 42 nuevas), **679 IDs
+únicos** de accesibilidad, diff 10.000 filas en **35,4 ms**, forecast y escenarios en **180,0 ms**,
+recursos **1402 KB**, build del sitio, privacidad y smoke test en verde.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — D-4, D-5 y D-6 pasan a `Hecho` en la
+tabla de la pantalla 05, con nota extensa bajo la tabla. Con esto, de las 15 tareas de Deuda solo
+quedan D-2b (bloqueada por Cierre), D-10/D-11/D-13 (ampliaciones puntuales, parciales), D-12 (sin
+cifra canónica de ingreso mensual) y D-14 (choca con T-4, bloqueada a propósito).
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-deuda-2zdzgv`, commit y PR en borrador según
+lo autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 15 de agosto de 2026: Deuda — D-1/D-2 nuevas, D-3/D-7/D-8/D-9 reconciliadas
 
 El usuario pidió seguir con la Fase 3 (Deuda) del backlog «Nueve pantallas». Antes de escribir
