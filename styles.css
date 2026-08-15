@@ -7756,21 +7756,29 @@ body {
   min-width: 1280px;
 }
 
-.movements-table th:nth-child(4),
-.movements-table td:nth-child(4) {
+/* M-8: columna 1 nueva (casilla de selección) desplaza en uno cada columna de más abajo — «Más
+   datos» pasa de la 4ª a la 5ª, y así con el resto de columnas alineadas a la izquierda. */
+.movements-table th:nth-child(1),
+.movements-table td:nth-child(1) {
+  width: 36px;
+  text-align: center;
+}
+
+.movements-table th:nth-child(5),
+.movements-table td:nth-child(5) {
   min-width: 280px;
   text-align: left;
   white-space: normal;
 }
 
-.movements-table th:nth-child(3),
-.movements-table td:nth-child(3),
-.movements-table th:nth-child(5),
-.movements-table td:nth-child(5),
+.movements-table th:nth-child(4),
+.movements-table td:nth-child(4),
 .movements-table th:nth-child(6),
 .movements-table td:nth-child(6),
-.movements-table th:nth-child(9),
-.movements-table td:nth-child(9) {
+.movements-table th:nth-child(7),
+.movements-table td:nth-child(7),
+.movements-table th:nth-child(10),
+.movements-table td:nth-child(10) {
   text-align: left;
 }
 
@@ -7791,6 +7799,55 @@ body {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 16px;
+}
+
+/* M-8 (selección múltiple y acción en lote, 15 de agosto de 2026): reutiliza el fondo/borde de
+   `.e19-impact-bar` (mismo componente que ya usan Registrar, Plan y Cuadro de mandos) con su
+   propio contenido apilado en vertical, igual que cada uno de esos tres redefine su propio layout
+   sobre la misma base. */
+.movements-bulk-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.movements-bulk-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.movements-bulk-head strong {
+  font-size: 15px;
+}
+
+.movements-bulk-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 360px;
+  font-size: 12px;
+}
+
+.movements-bulk-field select {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+}
+
+.movements-bulk-bar .e19-kpi-note {
+  color: #d7e0ef;
+  margin: 0;
+}
+
+.movements-bulk-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .movement-detail-fields {

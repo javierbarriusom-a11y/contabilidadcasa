@@ -8,12 +8,14 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
-// Movimientos (03 · backlog «Nueve pantallas»), M-1 a M-11 salvo M-8/M-8b/M-8c (selección
-// múltiple y acción en lote, y el cuadre contra Cierre — Cierre todavía no existe, y el lote
-// merece su propia sesión igual que R-8/R-9 la tuvieron en Registrar). `#movements` se evoluciona
-// en el mismo sitio (no se construye una pantalla nueva al lado): el enlace de menú ya apuntaba
-// aquí desde Fase 3, así que no hay una heredada que adoptar o sustituir, solo contenido que
-// completar. La tarjeta de importación por Excel y la lista de comercios de arriba no se tocan.
+// Movimientos (03 · backlog «Nueve pantallas»), M-1 a M-11 salvo M-8c (el cuadre contra Cierre —
+// Cierre todavía no existe). M-8/M-8b (selección múltiple, acción en lote y su consistencia con
+// Registrar y el importador) tienen su propia sesión y su propio archivo de pruebas
+// (`tests/m8-m8b-movimientos-lote.test.cjs`), igual que R-8/R-9 la tuvieron en Registrar.
+// `#movements` se evoluciona en el mismo sitio (no se construye una pantalla nueva al lado): el
+// enlace de menú ya apuntaba aquí desde Fase 3, así que no hay una heredada que adoptar o
+// sustituir, solo contenido que completar. La tarjeta de importación por Excel y la lista de
+// comercios de arriba no se tocan.
 
 function extractFunction(name) {
   let start = app.indexOf(`function ${name}(`);
@@ -72,9 +74,18 @@ test("M-2 · la tabla trae columna «Partida» además de las heredadas (Fecha�
   assert.match(html, /<th>Categoría<\/th>\s*<th>Partida<\/th>\s*<th>Importe<\/th>/);
 });
 
-test("M-11 · ninguna fila de la tabla trae un input editable: los importes no se editan en Movimientos", () => {
+test("M-11 · ninguna fila de la tabla trae un input editable de importe: los importes no se editan en Movimientos", () => {
   const fn = extractFunction("renderDetailedMovements");
-  assert.doesNotMatch(fn, /<input/);
+  // M-8 añade una casilla de selección por fila (para la acción en lote) — no es un editor de
+  // importe: es el único <input> que debe aparecer en la fila, y es de tipo checkbox.
+  const inputs = fn.match(/<input[^>]*>/g) || [];
+  assert.equal(inputs.length, 1, "solo debe haber un <input> por fila: la casilla de selección de M-8");
+  assert.match(inputs[0], /type="checkbox"/);
+  assert.match(inputs[0], /movements-row-select/);
+  assert.ok(
+    fn.includes('<td class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</td>'),
+    "el importe debe pintarse como texto formateado con money(), no como un campo editable",
+  );
   assert.match(html, /Los importes no se editan aquí/);
 });
 
@@ -211,6 +222,7 @@ test("M-7 · reclasificar escribe en el mismo diccionario movementMappings y rec
       return 3;
     },
     buildPendingMovementMappings: () => [],
+    datosImportarRefreshRowsForMappings: (keys) => calls.push(["datosImportarRefreshRowsForMappings", [...keys]]),
     saveIncomeActuals: () => calls.push("saveIncomeActuals"),
     saveExpenseActuals: () => calls.push("saveExpenseActuals"),
     refreshAllSectionsAfterDataChange: () => calls.push("refreshAllSectionsAfterDataChange"),
@@ -228,6 +240,7 @@ test("M-7 · reclasificar escribe en el mismo diccionario movementMappings y rec
   assert.deepEqual(calls, [
     "saveMovementMappings",
     "applyMovementMappingsToActuals",
+    ["datosImportarRefreshRowsForMappings", ["expense|mercadona|compra"]],
     "saveIncomeActuals",
     "saveExpenseActuals",
     "refreshAllSectionsAfterDataChange",

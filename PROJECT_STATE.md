@@ -2,6 +2,63 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Movimientos — M-8/M-8b, selección múltiple y lote
+
+Continuación directa del cierre anterior del mismo día (Deuda D-4/D-5/D-6, PR #46 fusionado). El
+usuario pidió seguir con M-8 y M-8b, las dos tareas de Movimientos que habían quedado aparcadas
+para su propia sesión desde que se cerró el resto de M-1 a M-11.
+
+**M-8 (selección múltiple y acción en lote)**: casilla por fila más «seleccionar todo» en la
+cabecera, y una barra de acción en lote que reutiliza el mismo componente visual `.e19-impact-bar`
+que ya usan Registrar, Plan y Cuadro de mandos (cada uno con su propio contenido sobre la misma
+base, mismo patrón aquí). No abre una tercera puerta de escritura: `movementsSelectedConceptKeys`
+agrupa las filas seleccionadas por el mismo `movementMappingKey` que ya usaba M-7 (una regla por
+concepto, no por movimiento — seleccionar 40 movimientos de 3 conceptos escribe 3 reglas, no 40), y
+`handleMovementsBulkApply` corre exactamente la misma secuencia que `handleMovementReclassify`
+(M-7) y `applyPendingMovementMappings` de la revisión de importación. Una selección que mezcla
+ingresos y gastos se bloquea con el motivo explícito («selecciona movimientos del mismo tipo») en
+vez de ofrecer una lista de partidas que solo valdría para la mitad de lo marcado.
+
+**M-8b (consistencia con Registrar y el importador)**: se descubrió que la sesión de importación de
+4 pasos (`datosImportarSession`) no se resetea al navegar a otra pantalla, así que un usuario a
+medio importar que fuera a Movimientos y reclasificara en lote un concepto que esa sesión tenía
+pendiente de decidir se encontraría, al volver, con el paso 2 pidiéndole una decisión que el lote
+ya había tomado. `datosImportarRefreshRowsForMappings` cierra ese hueco: tras cualquier escritura
+en `movementMappings` (M-7 o M-8, se enganchó en los dos) recalcula `prior`/`suggestion` solo en
+las filas de la sesión abierta cuyo concepto coincide y que el usuario no había decidido ya a mano
+(nunca pisa una decisión explícita). Deliberadamente no se construyó un mecanismo de «historial de
+acciones» nuevo aunque la tabla de piezas compartidas menciona M-8b junto a R-6/C-3b bajo
+«Componente de guardado»: ese historial depende de Cierre (Fase 5), que no existe todavía, y R-6
+tampoco lo tiene hoy — construirlo aquí habría sido adelantarse a una dependencia que ninguna otra
+pieza cumple aún.
+
+**Verificación visual con Playwright**: con tres movimientos de prueba, marcar dos filas mostró la
+barra de lote («2 movimiento(s) seleccionados · 2 concepto(s) distinto(s)») con el selector de
+partida deshabilitado hasta elegir una; «Seleccionar todo» amplió a los tres; aplicar reclasificó
+los tres, ocultó la barra, vació la selección, y el panel de «Comportamiento conciliado» (aguas
+abajo, sin tocarlo) pasó de 0/0 a 3/3 conciliados con el importe correcto — confirmando que
+Registrar/Análisis ven el cambio sin ningún paso adicional.
+
+**Pruebas nuevas**: `tests/m8-m8b-movimientos-lote.test.cjs` (28 pruebas) — selección por índice,
+agrupación por concepto, la barra de lote (oculta sin selección, tipo mixto bloqueado, aviso de
+sobrescritura), seleccionar todo/cancelar, el refresco de una sesión de importación a medias y la
+escritura real con la misma secuencia que M-7. Se ajustó `tests/m1-m11-movimientos.test.cjs` (M-11
+ahora sí lleva un `<input>` por fila: la casilla de selección, de tipo `checkbox` — la prueba pasó
+a comprobarlo específicamente en vez de exigir cero inputs, y sigue verificando que el importe se
+pinta como texto) y se le añadió el stub del nuevo refresco que M-7 ya invoca.
+
+**Validación** (`npm run verify`, exit 0): **894/894 pruebas** (866 + 28 nuevas), **686 IDs
+únicos** de accesibilidad, diff 10.000 filas en **31,2 ms**, forecast y escenarios en **179,3 ms**,
+recursos **1412 KB**, build del sitio, privacidad y smoke test en verde.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — M-8 y M-8b pasan a `Hecho` en la tabla
+de la pantalla 03, con nota extensa bajo la tabla. De las 13 tareas de Movimientos solo queda M-8c,
+bloqueada hasta que exista Cierre (Fase 5).
+
+**Pendiente de publicar**: misma rama `claude/finanzas-casa-deuda-2zdzgv`, con estos cambios como
+nuevos commits encima del que ya se fusionó como PR #46; commit y PR en borrador según lo
+autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 15 de agosto de 2026: Deuda — D-4/D-5/D-6, las tres tareas L/M que quedaban
 
 Continuación directa del cierre anterior del mismo día (D-1/D-2, PR #45 fusionado). El usuario pidió
