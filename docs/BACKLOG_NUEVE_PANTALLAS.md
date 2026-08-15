@@ -77,6 +77,15 @@ sesión siguiente a D-1/D-2 — ver la nota bajo la tabla de la pantalla 05); D-
 parciales, D-2b/D-12 pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fases 4-7
 sin empezar.
 
+**Auditoría del 15 de agosto contra los nueve PDF de mockups (sesión de contraste, ver la nota bajo
+cada tabla de pantalla)**: ninguna tarea marcada «Hecho» resultó estar completamente sin construir
+— pero 17 de ellas (H-5, H-6 · R-2, R-3, R-11 · M-2, M-3, M-6, M-7, M-8 · P-1, P-2, P-3, P-4 ·
+D-4, D-6, D-8, D-9) cumplen solo una parte del criterio real del PDF fuente y se han recalificado
+a «Hecho (parcial, ver nota)». Dos merecen prioridad por tocar la regla transversal 01 (una sola
+puerta de escritura): R-11 deja `#visual-detail` escribiendo saldos sin ninguna guarda, y P-3 deja
+las cuotas de deuda editables en Plan · Mes cuando D-2 ya es su puerta canónica. P-8/P-9 (matriz de
+Plan › Previsión, reconstruida en la sesión anterior) se confirmaron correctas sin matices.
+
 ## 4. Nueve reglas transversales
 
 Aplican a las 124 tareas, no se repiten fila a fila. Una tarea que las incumple no está
@@ -128,20 +137,39 @@ Convención de estado: `Hecho` (verificado y publicado) / `Pendiente`. `T` = tal
 | H-3 | Bloque «días hasta el siguiente ingreso» | H-1 | M | Hecho |
 | H-3b | Editor de cobertura aprendida | H-3 | M | Hecho |
 | H-4 | Rejilla de seis indicadores | H-1 | M | Hecho |
-| H-5 | Decisiones abiertas | H-4 | M | Hecho |
-| H-6 | «Agosto en una línea» con señales | — | M | Hecho |
+| H-5 | Decisiones abiertas | H-4 | M | Hecho (parcial, ver nota) |
+| H-6 | «Agosto en una línea» con señales | — | M | Hecho (parcial, ver nota) |
 | H-7 | Cuatro tarjetas de contexto | H-4 | L | Hecho |
 | H-8 | Tira de estado global | Fase 3 · menú | M | Hecho |
 | H-9 | Umbrales que pintan el aviso | Ajustes › umbrales | S | Hecho |
 | H-10 | Regla de dato ausente en toda la vista | H-3, H-4 | S | Hecho |
+
+**Auditoría del 15 de agosto contra `Hoy.pdf` (sesión de contraste con los PDFs nuevos).** H-1, H-2,
+H-3, H-3b, H-4, H-7, H-8, H-9 y H-10 coinciden con precisión con el criterio del PDF — el código
+está sembrado de comentarios `// H-N: ...` que citan el criterio casi palabra por palabra. Dos
+tareas no:
+
+- **H-6**: el criterio pide un bloque «Ejecución del mes en curso» con *Ingresos, Gasto previsto,
+  Gasto real a hoy, Desviación* — comparación previsto-vs-real. `homeMonthAtAGlance` (`app.js`)
+  pinta en su lugar Ingresos reales / Gastos reales / Margen del mes / Movimientos registrados: un
+  resumen solo-de-reales, sin ninguna cifra prevista ni desviación. El subtítulo del mockup
+  («Ejecución del mes en curso») tampoco aparece en `index.html` (dice «El mes en una línea»).
+- **H-5**: el criterio exige que «el primer botón sea primario y navegue a vista y pestaña (01 abre
+  Registrar › Importar extracto)». `homeDecisionCandidates` no tiene ningún candidato sobre
+  movimientos sin incorporar, y ningún `target` de las decisiones abre una pestaña concreta —
+  todas navegan solo a nivel de vista. El mecanismo «vista + pestaña» que pide el criterio no
+  existe todavía para ninguna decisión.
+
+Pendiente, sin motivo de bloqueo — son gaps reales de fondo (mismo patrón que el episodio P-8),
+solo fuera del alcance de esta sesión de auditoría (que fue de contraste, no de reconstrucción).
 
 ### 02 · Registrar — única puerta de escritura de datos reales (13 tareas · 2 grandes)
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
 | R-1 | Cabecera de Registrar | — | S | Hecho |
-| R-2 | Armazón de cuatro pestañas | Fase 3 · menú | M | Hecho |
-| R-3 | Pestaña Saldo de cuentas | Fase 1 | M | Hecho |
+| R-2 | Armazón de cuatro pestañas | Fase 3 · menú | M | Hecho (parcial, ver nota) |
+| R-3 | Pestaña Saldo de cuentas | Fase 1 | M | Hecho (parcial, ver nota) |
 | R-4 | Tarjeta «qué se recalcula al guardar» | R-3 | S | Hecho |
 | R-5 | Pestaña Reales del mes | R-2 | L | Hecho |
 | R-6 | Una sola regla de guardado | R-3, R-5 | M | Hecho |
@@ -150,7 +178,7 @@ Convención de estado: `Hecho` (verificado y publicado) / `Pendiente`. `T` = tal
 | R-8 | Pestaña Importar extracto | R-2 | L | Hecho |
 | R-9 | Pestaña Lote y Excel | R-2 | M | Hecho |
 | R-10 | Redirección de los hashes antiguos | R-2 | S | Hecho (parcial, ver nota) |
-| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Hecho (15 de agosto, ver nota) |
+| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Hecho (parcial, ver nota) |
 | R-12 | Distinción vacío / cero conservada | R-5 | S | Hecho |
 
 **Nota sobre el alcance de R-10 y R-11 (resuelto el 15 de agosto)**: el criterio original de R-10
@@ -181,17 +209,41 @@ Pruebas: `tests/r11-cierre-escritura-heredadas.test.cjs` (16 pruebas nuevas); se
 `tests/r10-redireccion-hashes.test.cjs` (fuente de `setActiveView`) y
 `tests/v4-3-v4-5-partida-anual.test.cjs` (el manejador del aviso anual ahora se guarda).
 
+**Auditoría del 15 de agosto contra `Registrar.pdf` (sesión de contraste con los PDFs nuevos).**
+R-1, R-4, R-5, R-6, R-7, R-8, R-9, R-10 y R-12 coinciden con el criterio. Tres gaps reales:
+
+- **R-11 (el más grave)**: el criterio dice literalmente «ninguna pantalla heredada puede escribir
+  saldos ni reales». La nota de arriba documentó el cierre de `#registrar-mes`, pero
+  **`#visual-detail` (Cuadro de mandos) se quedó fuera y sigue sin guarda**: sus campos
+  `visualCaixaBalance`/`visualMediolanumBalance` siguen cableados sin condición a
+  `handleVisualAccountBalanceInput` → `setStateAccountBalances`/`saveBalanceSettings` — escritura
+  real y persistente de saldos, exactamente lo que R-11 debía cerrar. `#registrar-mes` sí tiene
+  `REGISTRAR_MES_LEGACY_READONLY`; `#visual-detail` no tiene ningún mecanismo equivalente, y
+  `tests/r11-cierre-escritura-heredadas.test.cjs` limita su alcance a los 5 hashes de R-10 sin
+  cubrir esta pantalla. Viola la regla transversal 01 (una sola puerta de escritura) tal y como
+  está hoy.
+- **R-3**: falta la cuenta Efectivo. El PDF fija como decisión validada «Efectivo se mantiene como
+  cuenta editable, con su aviso de que no tiene extracto que lo respalde», y el mockup muestra tres
+  filas (CaixaBank, Mediolanum, Efectivo). El modelo de datos (`accountBalancesFromState`) solo
+  contempla `caixa` y `mediolanum` — no existe el concepto en ningún punto de la app.
+- **R-2**: el criterio pide insignia de pendientes en las cuatro pestañas. `registrarTabBadges()`
+  devuelve el marcador de «ausente» de forma permanente para Importar y Lote, nunca un recuento —
+  el propio test que lo cubre reconoce en su título que esas dos insignias «no están construidas».
+
+Pendientes, sin motivo de bloqueo. R-11 es el más urgente de los tres por tocar directamente la
+regla transversal 01 (una escritura real sigue abierta en una heredada).
+
 ### 03 · Movimientos — cola de trabajo, fuente del saldo calculado (13 tareas · 1 grande)
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
 | M-1 | Vista propia en el menú | Fase 3 · menú | S | Hecho (15 de agosto) |
-| M-2 | Tabla del extracto | M-1 | M | Hecho |
-| M-3 | Filtros, búsqueda y rango de fechas | M-2 | M | Hecho |
+| M-2 | Tabla del extracto | M-1 | M | Hecho (parcial, ver nota) |
+| M-3 | Filtros, búsqueda y rango de fechas | M-2 | M | Hecho (parcial, ver nota) |
 | M-4 | Marca del movimiento sin partida | M-2 | S | Hecho |
 | M-5 | Aviso de cola sin clasificar | M-3 | S | Hecho |
-| M-6 | Panel de detalle | M-2 | M | Hecho |
-| M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho |
+| M-6 | Panel de detalle | M-2 | M | Hecho (parcial, ver nota) |
+| M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho (parcial, ver nota) |
 | M-8 | Selección múltiple y acción en lote | M-2, R-7 | L | Hecho (15 de agosto, ver nota) |
 | M-8b | Consistencia con Registrar y el importador | M-8, R-8 | M | Hecho (15 de agosto, ver nota) |
 | M-8c | Saldo recalculado validado contra el declarado | M-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
@@ -252,6 +304,32 @@ importe se sigue pintando como texto, no como campo editable) y se le añadió e
 Con esto, de las 13 tareas de Movimientos solo queda M-8c, bloqueada hasta que exista Cierre
 (Fase 5).
 
+**Auditoría del 15 de agosto contra `Movimientos.pdf` (sesión de contraste con los PDFs nuevos).**
+M-1, M-4, M-5, M-9, M-10 y M-11 coinciden con precisión. Gaps reales encontrados:
+
+- **M-3**: el criterio pide seis chips con recuento vivo (Todos/Sin clasificar/Gastos/Ingresos/
+  Manual/Duplicado revisado) y atajos de rango (Este mes/Últimos 3/Año en curso/Todo); la búsqueda
+  debe cubrir «concepto o importe». Lo implementado es un `&lt;select&gt;` de mes, dos campos de
+  fecha libres y un buscador cuyo propio placeholder dice «Movimiento, detalle o categoría» —
+  ningún chip existe, no hay atajos de rango, y `movementsFilteredList()` nunca compara contra el
+  importe.
+- **M-7**: el criterio exige una casilla «recordar para los que empiecen igual», **desmarcada por
+  defecto**, para que aprender una regla sea «siempre deliberado» — reafirmado como decisión de
+  diseño en el propio PDF. No existe ningún checkbox: `handleMovementReclassify` escribe siempre en
+  `movementMappings`, sin condición. Hoy la app aprende la regla en cada reclasificación, lo
+  contrario del criterio.
+- **M-2 / M-6**: el criterio pide «concepto con cuenta» y un campo «cuenta» en el panel de detalle.
+  No existe ningún atributo de cuenta por movimiento en el modelo de datos (solo dos saldos
+  globales, CaixaBank/Mediolanum) — limitación estructural ya reconocida en el propio código, no un
+  descuido de esta tarea, pero el criterio del PDF no se cumple tal cual está escrito.
+- **M-8**: el criterio exige «una sola entrada revertible del historial». Ya reconocido en la nota
+  de arriba como pendiente por depender de una pieza de historial que tampoco tienen R-6/Cierre —
+  la auditoría confirma que es una brecha real frente al PDF, no solo frente al backlog.
+
+Pendientes, sin motivo de bloqueo salvo M-8 (depende de la pieza de historial compartida) y la
+limitación de modelo de datos de M-2/M-6 (añadir el concepto «cuenta» es un cambio de modelo, no
+una tarea de pantalla).
+
 ### 04 · Plan — Mes, Previsión y Ahorro en tres pestañas (17 tareas · 3 grandes)
 
 **Nota (15 de agosto)**: pantalla nueva `#plan`, junto a `#cuadro-mandos` (que sigue intacta y
@@ -270,10 +348,10 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Hecho (solo Mes; Previsión/Ahorro enlazan a sus heredadas) |
-| P-2 | Tabla del mes agrupada por bloques | P-1 | M | Hecho |
-| P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Hecho |
-| P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Hecho |
+| P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Hecho (parcial, ver nota) |
+| P-2 | Tabla del mes agrupada por bloques | P-1 | M | Hecho (parcial, ver nota) |
+| P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Hecho (parcial, ver nota) |
+| P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Hecho (parcial, ver nota) |
 | P-5 | Techo de asignación | P-3 | S | Hecho |
 | P-6 | Pie de impacto compartido con Registrar | R-7 | M | Hecho |
 | P-7 | Copiar de julio | P-3, P-6 | M | Hecho |
@@ -341,6 +419,33 @@ en Resultado y Colchón tras el arreglo. 13/25 columnas al cambiar de 12 a 24 me
 consola propios (el único aviso de red, `ERR_TUNNEL_CONNECTION_FAILED` hacia el CDN de Supabase, es
 preexistente y aparece igual en `#home`).
 
+**Auditoría del 15 de agosto contra `Plan.pdf` (sesión de contraste con los PDFs nuevos).**
+Confirmado: **P-8/P-9 coinciden exactamente** con `Plan.pdf` — el criterio literal del PDF para
+ambas tareas es idéntico al texto ya citado arriba, y no aparece ningún requisito visual o
+estructural adicional para la matriz más allá de lo ya construido. La reconstrucción de la sesión
+anterior era correcta. El resto de la pantalla sí tiene gaps reales:
+
+- **P-2**: el mockup muestra **una sola tabla** «Presupuesto de [mes]» con cabeceras de sección
+  (Gastos fijos, Variables, Deuda y ahorro) y **subtotal por bloque, plegable**. El código renderiza
+  dos tarjetas planas y separadas (Ingresos/Gastos), ambas itemizadas, sin subtotales ni plegado —
+  «Bloque» es solo una columna de texto por fila.
+- **P-3**: la caja de decisiones validadas del PDF fija que «las cuotas de deuda se listan aquí
+  como fila no editable, con enlace a Deuda para cambiarlas» (mockup: texto plano, sin input, con
+  «3 contratos · se cambia en Deuda»). `planMesRowHtml` solo deshabilita el input si el mes está
+  cerrado — no hay ninguna excepción para las filas de Financiaciones, así que hoy las cuotas de
+  deuda son editables en Plan · Mes, contradiciendo la puerta única de escritura (D-2 ya es esa
+  puerta).
+- **P-4**: falta el hover de procedencia («al pasar por encima dice de dónde sale y cuántos
+  movimientos lo componen») — el código solo pinta la etiqueta estática real/previsto, sin `title`
+  ni recuento.
+- **P-1**: el criterio dice que el horizonte «se comparte entre las tres pestañas y sobrevive al
+  cambio de pestaña»; en el código `planPrevisionHorizon` vive solo dentro del panel de Previsión,
+  sin relación con el selector de mes de la pestaña Mes.
+
+Menor/cosmético: la pestaña se llama «Ahorro» en el código y «Ahorro y objetivos» en el PDF.
+Pendientes, sin motivo de bloqueo — P-3 es el más urgente por tocar la regla transversal 01 (una
+segunda puerta de escritura para las cuotas de deuda, que ya tiene su puerta canónica en D-2).
+
 ### 05 · Deuda — un dato canónico y dos vistas que lo leen (15 tareas · 3 grandes)
 
 | ID | Tarea | Depende de | T | Estado |
@@ -349,12 +454,12 @@ preexistente y aparece igual en `#home`).
 | D-2 | Contratos como dato canónico editable | D-1 | L | Hecho (15 de agosto) |
 | D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
 | D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
-| D-4 | Calendario de amortización | D-3 | L | Hecho (15 de agosto, ver nota) |
+| D-4 | Calendario de amortización | D-3 | L | Hecho (parcial, ver nota) |
 | D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
-| D-6 | Comparativa plan frente a modo | D-5 | M | Hecho (15 de agosto, ver nota) |
+| D-6 | Comparativa plan frente a modo | D-5 | M | Hecho (parcial, ver nota) |
 | D-7 | Comparar no escribe nada | D-6 | S | Hecho (ya existía, ver nota) |
-| D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (ya existía, ver nota) |
-| D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (ya existía, ver nota) |
+| D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (parcial, ver nota) |
+| D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (parcial, ver nota) |
 | D-10 | Oferta en curso con caducidad | D-2 | M | Parcial (la tarjeta y la fecha existen; no hay aviso activo de caducidad) |
 | D-11 | Coste de no decidir | D-2 | S | Parcial («no tocar» ya compara su coste; falta el coste marginal por mes de demora) |
 | D-12 | Capacidad de endeudamiento | D-2 | M | Pendiente |
@@ -458,6 +563,31 @@ calendario.
 
 Pruebas: `tests/d1-d2-deuda-tabs-contratos.test.cjs` (31 pruebas nuevas); se ajustó
 `tests/navigation-structure.test.cjs` (el menú avanzado gana un enlace).
+
+**Auditoría del 15 de agosto contra `Deuda.pdf` (sesión de contraste con los PDFs nuevos).** D-1,
+D-2, D-3, D-5 y D-7 coinciden con el criterio (incluidas las cuatro estrategias avalancha/bola de
+nieve/consolidar/no-tocar, verificadas en `DEBT_STRATEGY_DEFINITIONS`, pese a que la nota de arriba
+solo mencionaba dos). D-10/D-11/D-12/D-13, ya marcadas parciales/pendientes arriba, se confirman
+correctas contra el PDF. Cuatro tareas marcadas «Hecho» no cumplen el criterio completo:
+
+- **D-4**: el criterio pide «capital vivo mes a mes con la estrategia activa... e intereses totales
+  frente a solo mínimos» (mockup: un gráfico agregado). Lo construido es justo lo contrario **a
+  propósito** — el propio comentario del código dice «no sobre las decisiones de una ruta»: cada
+  contrato se proyecta solo, sin aplicar el reparto de la estrategia activa ni comparar nunca contra
+  un escenario de solo-mínimos. No hay ningún gráfico agregado.
+- **D-6**: el criterio pide «cinco indicadores con diferencia coloreada... más un veredicto en
+  prosa que nombra el supuesto principal». La tabla de los ocho modos solo tiene 4 columnas planas
+  sin color, y el único texto en prosa (`deudaCompararInsight`) pertenece a la comparación de las 4
+  *estrategias*, no a la de los 8 *modos*.
+- **D-8**: el criterio añade a la revisión opcional una «fecha de revisión... que genera un
+  recordatorio en Hoy». Solo existe el campo de motivo; no hay campo de fecha ni ningún
+  «recordatorio» en el código.
+- **D-9**: el criterio pide cuatro requisitos (oferta registrada, documentos completos, reserva
+  protegida, motivo). `deudaRutaChecklist` comprueba solo dos distintos (reserva y mes viable) —
+  un checklist real, pero no el que describe el PDF.
+
+Pendientes, sin motivo de bloqueo — mismo patrón que P-8: la tarea existe y funciona, pero no es la
+tarea que describe el criterio fuente.
 
 ### 06 · Escenarios — simulación pura, no toca el plan (17 tareas · 4 grandes)
 

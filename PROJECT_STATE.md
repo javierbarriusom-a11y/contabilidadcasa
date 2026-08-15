@@ -2,6 +2,54 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: auditoría completa contra los nueve PDF de mockups
+
+Continuación directa del cierre anterior (P-8/P-9). Tras fusionar esa matriz, el usuario compartió
+los cinco PDF que faltaban (`Deuda.pdf`, `Plan.pdf`, `Movimientos.pdf`, `Registrar.pdf`, `Hoy.pdf`)
+y pidió auditarlo todo contra los mockups, corrigiendo el backlog donde hiciera falta — tanto en el
+repositorio como en un artefacto.
+
+**Método**: cinco auditorías en paralelo (una por pantalla — Hoy, Registrar, Movimientos, Deuda,
+Plan), cada una leyendo su PDF fuente con `pdftoppm`/`pdftotext`, comparando el criterio literal
+contra `docs/BACKLOG_NUEVE_PANTALLAS.md` y contra el código real (`app.js`/`index.html`/tests), sin
+tocar ningún archivo — solo investigación. Ninguna tarea marcada `Hecho` resultó estar sin
+construir del todo, pero **17 de 124 tareas** cumplían solo una parte del criterio real:
+
+- **Hoy**: H-5 (ninguna decisión navega a vista+pestaña concreta), H-6 (el bloque de resumen
+  mensual muestra solo cifras reales, el mockup pide previsto‑vs‑real con desviación). Las otras 8
+  tareas de Hoy coinciden con precisión.
+- **Registrar**: R-2 (faltan recuentos en las insignias de Importar/Lote), R-3 (falta la cuenta
+  Efectivo), **R-11** (grave: `#visual-detail`/Cuadro de mandos se quedó fuera del cierre de
+  escritura de las heredadas y sigue escribiendo saldos sin ninguna guarda — viola la regla
+  transversal 01).
+- **Movimientos**: M-2/M-6 (falta el campo «cuenta», limitación de modelo de datos), M-3 (faltan
+  los 6 chips de filtro y los atajos de rango), M-7 (falta la casilla «recordar regla» desmarcada
+  por defecto — hoy aprende siempre, lo contrario de «deliberado»), M-8 (confirma el hueco de
+  historial ya admitido).
+- **Plan**: **P-8/P-9 se confirman correctas sin matices** frente a `Plan.pdf` — la reconstrucción
+  de la sesión anterior era la correcta. El resto sí tiene gaps: P-2 (dos tarjetas planas en vez de
+  una tabla con subtotal por bloque y plegado), **P-3** (grave: las cuotas de deuda son editables
+  en Plan · Mes cuando deberían ser de solo lectura con enlace a Deuda — segunda puerta de
+  escritura para un dato cuya puerta canónica ya es D-2), P-4 (falta el hover de procedencia con
+  recuento de movimientos), P-1 (el horizonte de Previsión no se comparte con las otras pestañas).
+- **Deuda**: D-4 (el calendario de amortización es deliberadamente independiente de la estrategia
+  activa, cuando el criterio pide lo contrario), D-6 (comparativa de 8 modos sin color mejor/peor
+  ni veredicto en prosa), D-8 (falta la fecha de revisión opcional y su recordatorio en Hoy), D-9
+  (el checklist verifica reserva+mes viable, no los cuatro requisitos del criterio).
+
+**Backlog corregido** (`docs/BACKLOG_NUEVE_PANTALLAS.md`): las 17 filas pasan de `Hecho` a `Hecho
+(parcial, ver nota)`, con una nota nueva bajo cada tabla de pantalla citando el criterio del PDF,
+lo que hay en el código y por qué difieren — mismo nivel de detalle que la nota de P-8 de la sesión
+anterior. El resumen de "Estado de fases" (§3) gana un párrafo señalando R-11 y P-3 como los dos
+gaps más urgentes por tocar la regla transversal 01 directamente.
+
+**Alcance de esta sesión**: solo auditoría y corrección de documentación — no se ha tocado ningún
+código de producto. Los 17 gaps quedan como trabajo pendiente explícito, con motivo, listo para
+una sesión de reconstrucción dirigida (mismo patrón que P-8).
+
+**Validación**: solo cambios de documentación (`docs/BACKLOG_NUEVE_PANTALLAS.md`,
+`PROJECT_STATE.md`); `npm run verify` re-ejecutado igualmente antes de publicar, sin tocar código.
+
 ## Cierre de sesión — 15 de agosto de 2026: P-8/P-9 real — la matriz de Plan › Previsión, tras un conflicto de especificación
 
 Continuación directa del cierre anterior del mismo día. El usuario compartió los PDF fuente del
@@ -49,9 +97,8 @@ pantalla 04 que documenta el conflicto, la matriz y el bug.
 únicos** de accesibilidad, diff 10.000 filas en 43,1 ms, forecast y escenarios en 249,9 ms,
 recursos 1430 KB, build del sitio, privacidad y smoke test en verde.
 
-**Pendiente**: falta auditar Hoy/Registrar/Movimientos/Deuda contra los PDF nuevos (`Hoy.pdf`,
-`Registrar.pdf`, `Movimientos.pdf`, `Deuda.pdf`, `Plan.pdf`) que el usuario también compartió, para
-descartar más conflictos como el de P-8 — no se ha hecho todavía en esta sesión.
+**Pendiente**: la auditoría de Hoy/Registrar/Movimientos/Deuda/Plan contra los PDF nuevos se hizo en
+la sesión siguiente, el mismo 15 de agosto — ver la entrada de arriba.
 
 ## Cierre de sesión — 15 de agosto de 2026: Previsión — P-8, corrección de dos documentos y pantalla nueva
 
