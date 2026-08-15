@@ -72,9 +72,19 @@ test("R-2 · las cuatro pestañas existen y abre en Saldo de cuentas", () => {
   assert.match(html, /<p class="e19-registrar-crumb" id="registrarCrumb"/);
 });
 
-test("R-2 · las pestañas todavía no construidas enlazan a su heredada, no fabrican contenido", () => {
-  assert.match(html, /R-8\).*?data-home-nav="datos-importar"/s);
-  assert.match(html, /R-9\).*?data-home-nav="data-entry"/s);
+test("R-8 · Importar extracto ya no enlaza a la heredada: tiene su propio asistente de cuatro pasos", () => {
+  const start = html.indexOf('data-registrar-panel="import"');
+  const panel = html.slice(start, html.indexOf('data-registrar-panel="batch"', start));
+  assert.doesNotMatch(panel, /Pestaña todavía no construida/);
+  assert.match(panel, /id="registrarImportSteps"/);
+  assert.match(panel, /id="registrarImportPanel"/);
+});
+
+test("R-9 · Lote y Excel ya no enlaza a la heredada: tiene su propio contenido en Registrar", () => {
+  const start = html.indexOf('data-registrar-panel="batch"');
+  const panel = html.slice(start, html.indexOf("registrarImpactBar", start));
+  assert.doesNotMatch(panel, /Pestaña todavía no construida/);
+  assert.match(panel, /id="registrarBatchInput"/);
 });
 
 test("R-1 · la cabecera trae fuente del libro, guía del flujo y la regla previsto/real/usado en tres celdas", () => {

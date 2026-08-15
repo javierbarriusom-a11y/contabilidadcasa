@@ -3082,7 +3082,8 @@ svg {
   justify-content: center;
 }
 
-.file-drop:hover {
+.file-drop:hover,
+.file-drop.is-dragover {
   border-color: var(--teal);
   background: #f3fbfa;
 }

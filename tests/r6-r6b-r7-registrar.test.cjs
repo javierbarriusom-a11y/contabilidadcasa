@@ -80,14 +80,26 @@ test("R-6 · ninguna de las dos pestañas construidas de Registrar tiene un paso
   assert.doesNotMatch(actualsPanel, /data-cuadro-save|data-cuadro-discard|Confirmar cambios/);
 });
 
-test("R-6 · las pestañas Importar/Lote de Registrar siguen sin fabricar una incorporación en lote propia: solo enlazan a la heredada", () => {
+test("R-8 · la pestaña Importar de Registrar tiene su propio asistente, pero no fabrica un segundo motor de importación: reutiliza el mismo estado y las mismas funciones que #datos-importar", () => {
   const section = html.slice(html.indexOf('id="registrar"'), html.indexOf("</section>", html.indexOf('id="registrar"')));
   const importPanel = section.slice(section.indexOf('data-registrar-panel="import"'), section.indexOf('data-registrar-panel="batch"'));
+  assert.doesNotMatch(importPanel, /data-home-nav="datos-importar"/, "ya no reenvía a la heredada: tiene contenido propio");
+  assert.match(importPanel, /id="registrarImportPanel"/);
+  assert.match(app, /function datosImportarTarget\(\) \{\s*return activeViewId === "registrar" \? DATOS_IMPORTAR_TARGETS\.registrar : DATOS_IMPORTAR_TARGETS\.data;/);
+  assert.match(app, /qs\(target\.panelId\)/);
+});
+
+test("R-9 · la pestaña Lote y Excel tiene sus propios controles, pero no fabrica un segundo motor de importación: reutiliza stageE7Import/stageE7Workbook", () => {
+  const section = html.slice(html.indexOf('id="registrar"'), html.indexOf("</section>", html.indexOf('id="registrar"')));
   const batchPanel = section.slice(section.indexOf('data-registrar-panel="batch"'), section.indexOf('registrarImpactBar'));
-  assert.match(importPanel, /data-home-nav="datos-importar"/);
-  assert.match(batchPanel, /data-home-nav="data-entry"/);
-  assert.doesNotMatch(importPanel, /<table|<input/);
-  assert.doesNotMatch(batchPanel, /<table|<input/);
+  assert.match(batchPanel, /id="registrarBatchInput"/);
+  assert.match(batchPanel, /id="registrarExcelDataFile"/);
+  assert.doesNotMatch(batchPanel, /data-home-nav="data-entry"/, "ya no reenvía a la heredada: tiene contenido propio");
+  const importHandler = extractFunction("handleRegistrarBatchImport");
+  assert.match(importHandler, /stageE7Import\(records, "lote pegado", "registrar"\)/);
+  const excelHandler = extractFunction("processRegistrarExcelFile");
+  assert.match(excelHandler, /stageE7Import\(records, file\.name, "registrar"\)/);
+  assert.match(excelHandler, /stageE7Workbook\(buildFinanceDataFromWorkbook\(workbook, file\.name\), file\.name, "registrar"\)/);
 });
 
 test("R-6 · decisión de la sesión: el panel de Guardar cambios/Descartar de Cuadro de mandos sigue intacto (no se retira nada fuera de Registrar)", () => {
