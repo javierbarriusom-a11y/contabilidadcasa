@@ -2,6 +2,64 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Movimientos completa (M-1 a M-11 salvo lote)
+
+Continuación directa del cierre anterior del mismo día (R-11). Con la Fase 2 de Registrar
+cerrada, el usuario pidió seguir con Movimientos y la pestaña Mes de Plan. Se abordó primero
+Movimientos como unidad completa.
+
+**Qué se construyó**: `#movements` se evoluciona en el mismo sitio, no al lado — el enlace de
+menú «Movimientos» ya apuntaba aquí desde la Fase 3 (menú compartido), así que no hay una
+heredada que adoptar o sustituir, solo contenido pendiente de completar. La tarjeta de
+importación por Excel y la lista de comercios de arriba de la tabla no se tocaron.
+
+- **M-1 · migajas**: «Movimientos › Extracto real» sobre la tabla, con el mismo estilo
+  (`e19-registrar-crumb`) que ya usaba Registrar.
+- **M-2/M-11 · tabla ampliada, importes de solo lectura**: se añaden dos columnas (Partida y un
+  botón «Ver») a la tabla heredada; los importes siguen siendo texto plano, nunca un `<input>`.
+- **M-3 · filtros**: rango de fechas (Desde/Hasta) además del mes y la búsqueda que ya existían.
+- **M-4 · marca sin partida**: `movementPartidaBadge` lee `mappingForMovement` (el mismo
+  diccionario que ya usan `#datos-importar` y `#data-entry`) y pinta «Sin partida» en vez de
+  fabricar una clasificación — regla transversal 04.
+- **M-5 · aviso de cola sin clasificar**: cuenta sobre la misma vista filtrada que pinta la
+  tabla, nunca sobre el extracto completo.
+- **M-6 · panel de detalle**: diálogo nativo (mismo patrón que `unifiedActionDialog`) con los ocho
+  campos del movimiento. Sin id estable en los movimientos importados, la fila se identifica por
+  su posición en la lista filtrada recalculada en el momento del clic, no por un id inventado.
+- **M-7 · cambio de partida con regla**: reutiliza tal cual el diccionario `movementMappings` y el
+  camino de escritura de `applyPendingMovementMappings` (regla transversal 01) — reclasificar
+  desde el panel es la misma regla persistente por concepto que ya aplicaba el importador, nunca
+  una segunda puerta. El panel lo deja explícito: «se aplicará a todos los movimientos con el
+  mismo concepto, incluidos los futuros».
+- **M-9 · totales**: ingresos, gastos y neto de la vista filtrada, recalculados del mismo
+  `filtered` que pinta la tabla.
+- **M-10 · exportar**: CSV de exactamente la vista filtrada (con la partida ya resuelta), no del
+  extracto completo — mismo patrón `csvValue`/`Blob` que ya usaba la exportación de escenarios.
+
+**Deliberadamente fuera de esta sesión**: M-8/M-8b (selección múltiple y acción en lote, talla L,
+depende de R-7 y R-8) queda para una sesión propia, igual que R-8/R-9 la tuvieron en Registrar.
+M-8c depende de Cierre (Fase 5), que todavía no existe — queda bloqueada, no pendiente por omisión.
+
+**Pruebas nuevas**: `tests/m1-m11-movimientos.test.cjs` (22 pruebas) — migajas, columna Partida,
+ausencia de `<input>` en la tabla, badge sin partida/con partida, filtro por mes/rango de
+fechas/búsqueda, aviso de cola sobre la vista filtrada, apertura/cierre del panel de detalle por
+índice de la lista filtrada, reclasificación con y sin partida elegida (mismo diccionario que el
+importador), totales de ingresos/gastos, exportación CSV de la vista filtrada, y el cableado de
+los nuevos controles.
+
+**Validación** (`npm run verify`, exit 0): **767/767 pruebas** (745 + 22 nuevas), **658 IDs
+únicos** de accesibilidad, diff 10.000 filas en **38,9 ms**, forecast y escenarios en **327,9 ms**,
+recursos **1357 KB**, build del sitio, privacidad y smoke test en verde. Verificación visual con
+Playwright (datos sintéticos inyectados, ya que la sesión no tiene un extracto real cargado):
+migajas, filtros con rango de fechas, aviso de cola sin clasificar en tres movimientos, tabla con
+badges de partida, apertura del panel de detalle al pulsar «Ver», y reclasificación de un ingreso
+— el aviso bajó de 3 a 2 movimientos sin partida y el «Diccionario activo» de la tarjeta de
+importación (arriba, sin tocar) se actualizó igual, confirmando la puerta de escritura única.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-workflow-r11-jkz5z0` (reiniciada desde
+`main` tras fusionarse R-11), commit y PR en borrador según lo autorizado en `CLAUDE.md`. Sigue
+la pestaña Mes de Plan en esta misma sesión.
+
 ## Cierre de sesión — 15 de agosto de 2026: R-11, cierre de escritura de las heredadas de Registrar
 
 Continuación directa del cierre anterior del mismo día (R-8, R-9, R-10 parcial, R-12), fusionado
