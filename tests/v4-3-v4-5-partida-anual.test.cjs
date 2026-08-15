@@ -172,9 +172,10 @@ test("V4-3 · trae los dos botones, cada uno con su elección en el dataset", ()
 
 // --- V4-3 · la respuesta -----------------------------------------------------------------------
 
-function sandboxChoice() {
+function sandboxChoice(readonly) {
   const calls = { save: 0, announced: [], rendered: 0 };
   const context = {
+    REGISTRAR_MES_LEGACY_READONLY: readonly,
     state: { registrarMesAnnualAck: {} },
     saveScenarioSettings: () => { calls.save += 1; },
     announceStatus: (message) => calls.announced.push(message),
@@ -186,8 +187,20 @@ function sandboxChoice() {
   return context;
 }
 
-test("V4-3 · «Sí, anual» recuerda la partida, guarda, y sugiere anotarla en Partidas", () => {
-  const { handleRegistrarMesAnnualChoice, state, calls } = sandboxChoice();
+// R-11: `#registrar-mes` es ahora de solo lectura (REGISTRAR_MES_LEGACY_READONLY = true en
+// app.js) — el banner «¿es anual?» ya ni se pinta (registrarMesRowHtml lo omite), pero el
+// manejador se guarda además su propia guarda de defensa, igual que ya hacía con el mes cerrado.
+test("V4-3 · con la heredada de solo lectura, «Sí, anual» no escribe nada", () => {
+  const { handleRegistrarMesAnnualChoice, state, calls } = sandboxChoice(true);
+  handleRegistrarMesAnnualChoice("gasto|2026-08", "confirm");
+  assert.equal(state.registrarMesAnnualAck["gasto|2026-08"], undefined);
+  assert.equal(calls.save, 0);
+  assert.equal(calls.rendered, 0);
+  assert.equal(calls.announced.length, 0);
+});
+
+test("V4-3 · sin la guarda de solo lectura, «Sí, anual» recuerda la partida, guarda, y sugiere anotarla en Partidas", () => {
+  const { handleRegistrarMesAnnualChoice, state, calls } = sandboxChoice(false);
   handleRegistrarMesAnnualChoice("gasto|2026-08", "confirm");
   assert.equal(state.registrarMesAnnualAck["gasto|2026-08"], true);
   assert.equal(calls.save, 1);
@@ -195,8 +208,8 @@ test("V4-3 · «Sí, anual» recuerda la partida, guarda, y sugiere anotarla en 
   assert.match(calls.announced[0], /Partidas/);
 });
 
-test("V4-3 · «Solo este mes» también deja de preguntar, sin sugerir Partidas", () => {
-  const { handleRegistrarMesAnnualChoice, state, calls } = sandboxChoice();
+test("V4-3 · sin la guarda de solo lectura, «Solo este mes» también deja de preguntar, sin sugerir Partidas", () => {
+  const { handleRegistrarMesAnnualChoice, state, calls } = sandboxChoice(false);
   handleRegistrarMesAnnualChoice("gasto|2026-08", "dismiss");
   assert.equal(state.registrarMesAnnualAck["gasto|2026-08"], true);
   assert.doesNotMatch(calls.announced[0], /Partidas/);
@@ -204,6 +217,7 @@ test("V4-3 · «Solo este mes» también deja de preguntar, sin sugerir Partidas
 
 test("V4-3 · sin estado o sin clave, no revienta", () => {
   const context = {
+    REGISTRAR_MES_LEGACY_READONLY: false,
     state: null,
     saveScenarioSettings: () => { throw new Error("no debería llamarse"); },
     announceStatus: () => { throw new Error("no debería llamarse"); },
@@ -216,9 +230,10 @@ test("V4-3 · sin estado o sin clave, no revienta", () => {
 
 // --- Cableado ------------------------------------------------------------------------------
 
-test("Registrar el mes · la fila calcula la coincidencia y sólo la pregunta si el mes está abierto", () => {
+test("Registrar el mes · la fila calcula la coincidencia y sólo la pregunta si el mes está abierto y la pantalla no es de solo lectura (R-11)", () => {
   const row = extractFunction("registrarMesRowHtml");
-  assert.match(row, /monthClosed \? null : registrarMesAnnualMatch\(entry, baseData\?\.transactions, monthKey\)/);
+  assert.match(row, /const locked = monthClosed \|\| REGISTRAR_MES_LEGACY_READONLY;/);
+  assert.match(row, /locked \? null : registrarMesAnnualMatch\(entry, baseData\?\.transactions, monthKey\)/);
   assert.match(row, /showAnnualBanner \? registrarMesAnnualBannerHtml\(entry, annualMatch, monthKey\) : ""/);
 });
 

@@ -66,10 +66,10 @@ commit, push, PR, fusionar) no pide permiso en cada turno.
 | 6 · Análisis y sobres | Análisis completo y sobres, detrás de bandera, incluida su liquidación en Cierre. | Con la bandera apagada todo sigue funcionando y las pantallas lo dicen. |
 | 7 · Gobernanza | Ajustes, retirada de las dieciocho heredadas y del Laboratorio. | El acta queda exportada y ningún enlace antiguo se rompe. |
 
-**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Registrar) con R-1 a R-10 y R-12 hechas;
-queda **solo R-11** (cierre de escritura de las heredadas), pendiente de consultar con el
-usuario antes de tocarla — ver la nota bajo la tabla de la pantalla 02. La parte de Fase 2 que
-vive en Movimientos y en la pestaña Mes de Plan sigue sin empezar. Fases 3-7 sin empezar.
+**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Registrar) con R-1 a R-12 hechas — R-11 se
+consultó y se resolvió el 15 de agosto de 2026, ver la nota bajo la tabla de la pantalla 02. La
+parte de Fase 2 que vive en Movimientos y en la pestaña Mes de Plan sigue sin empezar. Fases 3-7
+sin empezar.
 
 ## 4. Nueve reglas transversales
 
@@ -144,19 +144,36 @@ Convención de estado: `Hecho` (verificado y publicado) / `Pendiente`. `T` = tal
 | R-8 | Pestaña Importar extracto | R-2 | L | Hecho |
 | R-9 | Pestaña Lote y Excel | R-2 | M | Hecho |
 | R-10 | Redirección de los hashes antiguos | R-2 | S | Hecho (parcial, ver nota) |
-| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Pendiente — **se consulta antes de tocarla** |
+| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Hecho (15 de agosto, ver nota) |
 | R-12 | Distinción vacío / cero conservada | R-5 | S | Hecho |
 
-**Nota sobre el alcance de R-10 (15 de agosto)**: su criterio original pide redirigir los cinco
-hashes heredados. Se redirigieron cuatro (`#update-hub`, `#update-data`, `#datos-importar`,
-`#data-entry`) — ninguno tenía una promesa de accesibilidad permanente, solo eran el destino
-provisional «mientras tanto» de las pestañas de Registrar antes de que R-8/R-9 las construyeran.
-`#registrar-mes` se dejó fuera a propósito: la sesión de R-5 prometió explícitamente en
-`PROJECT_STATE.md` que seguiría intacta y accesible desde «Herramientas avanzadas». Redirigirla
-ahora la habría dejado inalcanzable por navegación sin que el usuario lo confirmara — el mismo
-tipo de consulta que ya hizo falta para acotar R-6. Queda agrupada con R-11 para una consulta
-conjunta: ambas tratan, en el fondo, la misma pregunta de cuánto se cierra el acceso directo a
-las heredadas de Registrar.
+**Nota sobre el alcance de R-10 y R-11 (resuelto el 15 de agosto)**: el criterio original de R-10
+pedía redirigir los cinco hashes heredados. Se redirigieron cuatro (`#update-hub`, `#update-data`,
+`#datos-importar`, `#data-entry`) — ninguno tenía una promesa de accesibilidad permanente, solo
+eran el destino provisional «mientras tanto» de las pestañas de Registrar antes de que R-8/R-9 las
+construyeran. `#registrar-mes` se dejó fuera a propósito: la sesión de R-5 prometió explícitamente
+en `PROJECT_STATE.md` que seguiría intacta y accesible desde «Herramientas avanzadas».
+
+Consultado con el usuario el 15 de agosto (respuesta: mantener `#registrar-mes` accesible pero de
+solo lectura, cumpliendo exactamente el criterio de R-11 y la regla transversal 01 sin más). R-11
+cerró dos cosas:
+
+1. **El hueco real que R-10 dejaba en las cuatro ya redirigidas**: `setActiveView` solo aplicaba
+   el mapa de redirección cuando se llegaba a través de `viewFromHash()`. Los clics del menú
+   lateral y los botones `data-home-nav` llaman a `setActiveView` con el id heredado directamente
+   (sin pasar por el hash primero), así que hasta ahora seguían abriendo la pantalla vieja,
+   plenamente escribible. `setActiveView` normaliza ahora el id heredado explícito antes de
+   decidir nada más — ninguna vía de navegación deja ya una heredada como destino final.
+2. **`#registrar-mes` pasa a solo lectura**: sigue en el menú y renderiza igual, pero
+   `REGISTRAR_MES_LEGACY_READONLY` deshabilita el real editable, oculta alta/baja de partidas
+   personalizadas, la copia del mes anterior y el aviso «¿es anual?» (los tres escriben), y cada
+   tarjeta remite a Registrar › Reales del mes con un enlace `data-home-nav`. Los siete manejadores
+   de escritura llevan además su propia guarda — no solo la interfaz se esconde, la escritura es
+   imposible incluso llamando a la función a mano, mismo patrón que ya usaban con el mes cerrado.
+
+Pruebas: `tests/r11-cierre-escritura-heredadas.test.cjs` (16 pruebas nuevas); se ajustaron
+`tests/r10-redireccion-hashes.test.cjs` (fuente de `setActiveView`) y
+`tests/v4-3-v4-5-partida-anual.test.cjs` (el manejador del aviso anual ahora se guarda).
 
 ### 03 · Movimientos — cola de trabajo, fuente del saldo calculado (13 tareas · 1 grande)
 

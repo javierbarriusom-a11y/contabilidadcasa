@@ -101,11 +101,16 @@ test("R-10 · #home y #overview no se ven afectados por el mapa de redirecciones
   assert.equal(sandboxHash("#overview").viewFromHash(), "home");
 });
 
-test("R-10 · setActiveView selecciona la pestaña heredada solo cuando el hash es uno de los cuatro redirigidos", () => {
+test("R-10 · setActiveView normaliza el id heredado explícito a «registrar» antes de nada más (cerrado del todo en R-11)", () => {
+  const source = extractFunction("setActiveView");
+  assert.match(source, /const explicitLegacyTab = REGISTRAR_LEGACY_HASH_TABS\[viewId\];\s*\n\s*if \(explicitLegacyTab\) viewId = "registrar";/);
+});
+
+test("R-10 · setActiveView selecciona la pestaña heredada tanto por hash como por id explícito", () => {
   const source = extractFunction("setActiveView");
   assert.match(
     source,
-    /if \(viewId === "registrar"\) \{\s*const legacyTab = registrarTabFromHash\(\);\s*if \(legacyTab && legacyTab !== registrarActiveTab\) setRegistrarTab\(legacyTab\);\s*\}/,
+    /if \(viewId === "registrar"\) \{\s*const legacyTab = explicitLegacyTab \|\| registrarTabFromHash\(\);\s*if \(legacyTab && legacyTab !== registrarActiveTab\) setRegistrarTab\(legacyTab\);\s*\}/,
   );
 });
 
