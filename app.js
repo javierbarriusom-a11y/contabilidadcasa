@@ -895,17 +895,31 @@ function closeStartupRecovery() {
   startupRecoveryContext = null;
 }
 
-function requestOperationConfirmation({ title, message, defaultReason = "", confirmLabel = "Confirmar" }) {
+// D-8: la fecha de revisión opcional es un campo más de este mismo diálogo compartido, no uno
+// nuevo por pantalla — solo se muestra cuando el llamador pasa `allowReviewDate` (hoy, aplicar una
+// oferta de deuda). Sin marcar `allowReviewDate`, el campo permanece oculto y `reviewDate` siempre
+// resuelve vacío, así que las cinco llamadas existentes no cambian de comportamiento.
+function requestOperationConfirmation({ title, message, defaultReason = "", confirmLabel = "Confirmar", allowReviewDate = false }) {
   const dialog = qs("operationConfirmDialog");
   const reasonInput = qs("operationConfirmReason");
-  if (!dialog || !reasonInput) return Promise.resolve("");
+  const reviewDateField = qs("operationConfirmReviewDateField");
+  const reviewDateHint = qs("operationConfirmReviewDateHint");
+  const reviewDateInput = qs("operationConfirmReviewDate");
+  if (!dialog || !reasonInput) return Promise.resolve({ reason: "", reviewDate: "" });
   qs("operationConfirmTitle").textContent = title;
   qs("operationConfirmMessage").textContent = message;
   qs("operationConfirmSubmit").textContent = confirmLabel;
   reasonInput.value = defaultReason;
+  if (reviewDateField) reviewDateField.hidden = !allowReviewDate;
+  if (reviewDateHint) reviewDateHint.hidden = !allowReviewDate;
+  if (reviewDateInput) reviewDateInput.value = "";
   return new Promise((resolve) => {
     dialog.addEventListener("close", () => {
-      resolve(dialog.returnValue === "confirm" ? reasonInput.value.trim() : "");
+      const confirmed = dialog.returnValue === "confirm";
+      resolve({
+        reason: confirmed ? reasonInput.value.trim() : "",
+        reviewDate: confirmed && allowReviewDate ? reviewDateInput?.value || "" : "",
+      });
     }, { once: true });
     dialog.showModal();
     reasonInput.focus();
@@ -1504,11 +1518,12 @@ async function applyE14bOffer() {
   const strategy = e14bStrategyForOffer(offer);
   const simulation = E14DebtOperations.simulateStrategy(strategy, forecast);
   const reserve = Math.max(0, Number(agentCaixaFloor?.() || 0));
-  const reason = await requestOperationConfirmation({
+  const { reason, reviewDate } = await requestOperationConfirmation({
     title: "Aplicar estrategia de deuda",
     message: `Se creará una revisión recuperable para ${offer.counterpart} por ${money(offer.amount, true)}. La vista previa estima una caja mínima de ${money(simulation.minimumLiquidity, true)} frente a una reserva de ${money(reserve, true)}.`,
     defaultReason: "Oferta de deuda aceptada tras revisión documental",
     confirmLabel: "Aplicar al plan",
+    allowReviewDate: true,
   });
   if (!reason) return;
   const application = E14DebtOperations.prepareApplication({ offer, contract: target, strategy, reason, simulation: { ...simulation, reserveSafe: simulation.minimumLiquidity >= reserve } });
@@ -1525,7 +1540,14 @@ async function applyE14bOffer() {
     monthIndex,
     duration: Math.max(1, offer.termMonths || 1),
   });
-  decision.e14Application = { ...application, appliedAt: new Date().toISOString(), simulation: { totalCost: simulation.totalCost, minimumLiquidity: simulation.minimumLiquidity, negativeMonths: simulation.negativeMonths } };
+  decision.e14Application = {
+    ...application,
+    appliedAt: new Date().toISOString(),
+    simulation: { totalCost: simulation.totalCost, minimumLiquidity: simulation.minimumLiquidity, negativeMonths: simulation.negativeMonths },
+    // D-8: fecha de revisión opcional — si se rellenó, homeDecisionCandidates() la lee para
+    // asomar un recordatorio en Hoy hasta que pase o se marque atendida.
+    reviewDate,
+  };
   applyDebtDecision(decision);
   e14bSetStatus("Estrategia aplicada tras confirmación. Se creó una decisión recuperable y se conserva la oferta original.");
 }
@@ -3272,7 +3294,7 @@ async function loadRemoteStateOnce() {
 
 async function migrateLegacyRemoteState() {
   if (!pendingLegacyMigrationState || !remoteUser || !supabaseClient) return;
-  const reason = await requestOperationConfirmation({
+  const { reason } = await requestOperationConfirmation({
     title: "Migrar datos antiguos",
     message: "Se creará una primera versión normalizada. La tabla antigua no se modificará.",
     defaultReason: "Migración explícita al esquema normalizado E5",
@@ -3451,7 +3473,7 @@ async function closeCurrentMonthTransaction() {
     if (status) status.textContent = `${month} ya está cerrado.`;
     return;
   }
-  const reason = await requestOperationConfirmation({
+  const { reason } = await requestOperationConfirmation({
     title: `Cerrar ${month}`,
     message: `Se congelarán los datos reales de ${month} y se conservará una copia recuperable.`,
     defaultReason: "Mes conciliado y revisado",
@@ -3500,7 +3522,7 @@ async function reopenLatestMonthTransaction() {
   if (!closed) { if (status) status.textContent = "No hay ningún mes cerrado que se pueda reabrir."; return; }
   if (!remoteUser || !supabaseClient || !remoteHeadSnapshotId) { if (status) status.textContent = "Inicia sesión y sincroniza antes de reabrir."; return; }
   const preview = `Se conservará el cierre ${closed.id} y se creará una revisión nueva que permitirá corregir ${closed.monthKey}.`;
-  const reason = await requestOperationConfirmation({
+  const { reason } = await requestOperationConfirmation({
     title: `Reabrir ${closed.monthKey}`,
     message: preview,
     defaultReason: "Corrección posterior al cierre",
@@ -15740,8 +15762,16 @@ function exactMovementPlanningMatch(transaction) {
   );
 }
 
+// M-7: una reclasificación sin la casilla «recordar» marcada se guarda con la clave exacta del
+// movimiento (`transactionIdentity`), no con la del concepto (`movementMappingKey`) — así el
+// importe real de este movimiento sigue reflejando la elección sin que futuros movimientos con el
+// mismo concepto se reclasifiquen solos. Se mira primero, para que un ajuste puntual gane siempre
+// a una regla de concepto más antigua.
 function mappingForMovement(transaction) {
   const kind = movementKindFromAmount(transaction.amount);
+  const single = movementMappings[transactionIdentity(transaction)];
+  const singleRow = single?.kind === kind ? planningRowBySeriesKey(kind, single.rowKey) : null;
+  if (singleRow) return { kind, row: singleRow, source: "single" };
   const stored = movementMappings[movementMappingKey(transaction)];
   const storedRow = stored?.kind === kind ? planningRowBySeriesKey(kind, stored.rowKey) : null;
   if (storedRow) return { kind, row: storedRow, source: "dictionary" };
@@ -16698,7 +16728,7 @@ function datosImportarSuccessMarkup(result) {
 async function handleDatosImportarConfirmar() {
   const session = datosImportarSession;
   if (!session) return;
-  const motivo = await requestOperationConfirmation({
+  const { reason: motivo } = await requestOperationConfirmation({
     title: "Incorporar la importación al plan",
     message: "Se añadirán los movimientos decididos, se guardarán las reglas nuevas y se creará un lote que se puede deshacer después.",
     defaultReason: `Importación de ${session.fileMeta.fileName}`,
@@ -17145,14 +17175,20 @@ function renderMovementDetailDialog() {
         <span>Partida</span>
         <select id="movementDetailPartida">${movementMappingOptions(kind, mapping?.row ? seriesKeyForRow(mapping.row) : "")}</select>
       </label>
-      <p class="e19-kpi-note">Se aplicará a todos los movimientos con el mismo concepto (${escapeHtml(movementDisplayName(row))}), incluidos los futuros — es la misma regla que ya usan Registrar y el importador, no una clasificación solo para este movimiento.</p>
+      <label class="movement-detail-remember">
+        <input type="checkbox" id="movementDetailRemember" />
+        <span>Recordar para los que empiecen igual</span>
+      </label>
+      <p class="e19-kpi-note" id="movementDetailRememberHint">Sin marcar, solo reclasifica este movimiento. Marcada, se aplicará a todos los movimientos con el mismo concepto (${escapeHtml(movementDisplayName(row))}), incluidos los futuros — es la misma regla que ya usan Registrar y el importador.</p>
       <button type="button" class="e19-btn e19-btn-primary" id="movementDetailSave">Guardar partida</button>
     </div>`;
 }
 
 // M-7: cambio de partida con regla — reutiliza tal cual el mismo diccionario y el mismo camino de
 // escritura que ya usaba `applyPendingMovementMappings` en #data-entry (regla transversal 01): sin
-// esta selección no hay una segunda forma de reclasificar un movimiento.
+// esta selección no hay una segunda forma de reclasificar un movimiento. La casilla «recordar»,
+// desmarcada por defecto, decide la clave: aprender una regla de concepto (futuros movimientos
+// incluidos) es un acto deliberado, no el resultado automático de guardar.
 function handleMovementReclassify() {
   const row = movementDetailTransaction;
   const select = qs("movementDetailPartida");
@@ -17162,8 +17198,10 @@ function handleMovementReclassify() {
     announceStatus("Elige una partida antes de guardar.");
     return;
   }
+  const remember = Boolean(qs("movementDetailRemember")?.checked);
   const kind = movementKindFromAmount(row.amount);
-  movementMappings[movementMappingKey(row)] = {
+  const key = remember ? movementMappingKey(row) : transactionIdentity(row);
+  movementMappings[key] = {
     kind,
     rowKey: rowKeyValue,
     label: select.options[select.selectedIndex]?.textContent || "",
@@ -17172,11 +17210,15 @@ function handleMovementReclassify() {
   saveMovementMappings();
   const applied = applyMovementMappingsToActuals();
   pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
-  datosImportarRefreshRowsForMappings(new Set([movementMappingKey(row)]));
+  if (remember) datosImportarRefreshRowsForMappings(new Set([key]));
   saveIncomeActuals();
   saveExpenseActuals();
   refreshAllSectionsAfterDataChange();
-  announceStatus(`Partida guardada. ${applied} importe(s) reales recalculados desde movimientos.`);
+  announceStatus(
+    remember
+      ? `Regla guardada para «${movementDisplayName(row)}»: se aplicará también a movimientos futuros. ${applied} importe(s) reales recalculados desde movimientos.`
+      : `Partida guardada solo para este movimiento. ${applied} importe(s) reales recalculados desde movimientos.`,
+  );
   renderMovementDetailDialog();
   renderDetailedMovements();
 }
@@ -17804,7 +17846,7 @@ function toggleE11bInbox() {
 async function undoLastImportBatch() {
   const batch = importBatches.filter((item) => item.status === "applied").slice(-1)[0];
   if (!batch) { showImportLog("Nada que deshacer", "No hay lotes aplicados pendientes de deshacer.", "warning"); return; }
-  const reason = await requestOperationConfirmation({
+  const { reason } = await requestOperationConfirmation({
     title: `Deshacer ${batch.sourceLabel}`,
     message: `Se restaurará el estado anterior al lote de ${batch.recordCount} registro(s) y se conservará una revisión auditable.`,
     defaultReason: "Importación incorrecta",
@@ -20594,11 +20636,33 @@ function homeOpenOfferInsight(offer) {
   };
 }
 
+// D-8: la fecha de revisión opcional al aplicar una oferta de deuda (`applyE14bOffer`) genera este
+// recordatorio en Hoy — reutiliza homeDecisionCandidates() (H-5), no un sistema de avisos nuevo.
+// Vive mientras `e14Application.reviewDate` siga en la decisión; D-8 solo pide "genera un
+// recordatorio", así que no hay descarte todavía (quedaría para una tarea propia si hace falta).
+function homeDebtReviewReminders() {
+  const todayIso = isoLocalDate(new Date());
+  return debtLiquidations
+    .filter((decision) => decision.e14Application?.reviewDate)
+    .map((decision) => {
+      const reviewDate = decision.e14Application.reviewDate;
+      return {
+        title: "Revisar oferta de deuda aplicada",
+        text: `${decision.name || "Decisión de deuda"} — revisión prevista para ${formatIsoDate(reviewDate)}.`,
+        status: reviewDate < todayIso ? "danger" : "warn",
+        target: "debt-roadmap",
+        cta: "Revisar",
+        expiresAt: reviewDate,
+        expiryLabel: shortDate(reviewDate),
+      };
+    });
+}
+
 // H-5: candidatas a "decisión abierta", con caducidad real cuando existe (oferta de deuda con
-// vencimiento, alerta disparada con fecha de revisión) por delante de las que no tienen fecha
-// propia (acciones ejecutivas de rango fijo, deuda candidata, proyectos en plan). No se toca
-// unifiedActionCenterModel/executiveActions: esas listas las reutilizan otras pantallas
-// (Asesor ejecutivo) con su propio orden, y este reordenado es solo para Hoy.
+// vencimiento, alerta disparada con fecha de revisión, revisión de oferta aplicada) por delante de
+// las que no tienen fecha propia (acciones ejecutivas de rango fijo, deuda candidata, proyectos en
+// plan). No se toca unifiedActionCenterModel/executiveActions: esas listas las reutilizan otras
+// pantallas (Asesor ejecutivo) con su propio orden, y este reordenado es solo para Hoy.
 function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDecisions, debtRatioStatus }) {
   const dated = [];
   const undated = [];
@@ -20608,6 +20672,7 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
     const item = { ...offerInsight, expiresAt: offer?.expiresAt || "", expiryLabel: offer?.expiresAt ? escenarioMotorMonthLabel(offer.expiresAt) : "" };
     (item.expiresAt ? dated : undated).push(item);
   }
+  homeDebtReviewReminders().forEach((item) => dated.push(item));
   evaluatedUxAlerts()
     .filter((alert) => alert.triggered)
     .forEach((alert) => {
@@ -20666,9 +20731,13 @@ function renderHomeDecision(item, isPrimary) {
   </article>`;
 }
 
-// H-6: "el mes en una línea" — cuatro filas de ejecución real (de los movimientos bancarios ya
-// clasificados o no) más dos filas de señal. Reutiliza p2MovementRows(), la misma fuente que ya
-// alimenta la cobertura hasta el siguiente ingreso, así que no puede desincronizarse de ella.
+// H-6 (auditoría del 15 de agosto): «Ejecución del mes en curso» — Ingresos, Gasto previsto, Gasto
+// real a hoy y Desviación entre ambos, según el criterio de Hoy.pdf; antes esta tarjeta solo
+// mostraba cifras reales (ingresos/gastos/margen), sin comparar contra lo previsto. El previsto
+// reutiliza `plannedValueForVisualRow` — el mismo previsto guardado (no borrador de sesión) que ya
+// lee Plan › Previsión (P-8) — así que no puede desincronizarse de ese otro sitio. Lo real y las
+// dos filas de señal siguen viniendo de p2MovementRows(), igual que la cobertura hasta el
+// siguiente ingreso.
 function homeMonthAtAGlance(asOfDate, plannedSaving) {
   const monthKey = String(asOfDate || "").slice(0, 7);
   const movements = p2MovementRows().filter((row) => row.month === monthKey);
@@ -20679,14 +20748,23 @@ function homeMonthAtAGlance(asOfDate, plannedSaving) {
   const reconciledCount = movements.length - unclassified.length;
   const confidenceRatio = movements.length ? reconciledCount / movements.length : null;
   const confidenceLabel = confidenceRatio === null ? "sin movimientos todavía" : confidenceRatio >= 0.9 ? "alta" : confidenceRatio >= 0.6 ? "media" : "baja";
+  const month = monthByKey(monthKey, baseData?.monthlyPlanning?.months || []);
+  const plannedExpense = month
+    ? round2(sumRows(planningSectionsForMonth("expense", month).flatMap((section) => section.rows), (row) => plannedValueForVisualRow(row, month)))
+    : null;
+  const deviation = plannedExpense === null ? null : round2(expenseTotal - plannedExpense);
   return {
     monthKey,
     monthLabel: monthKey ? registrarMesMonthName(monthKey) : "—",
     rows: [
-      { label: "Ingresos reales", value: money(incomeTotal, true) },
-      { label: "Gastos reales", value: money(expenseTotal, true) },
-      { label: "Margen del mes", value: money(round2(incomeTotal - expenseTotal), true), tone: incomeTotal - expenseTotal < 0 ? "negative" : "positive" },
-      { label: "Movimientos registrados", value: String(movements.length) },
+      { label: "Ingresos", value: money(incomeTotal, true) },
+      { label: "Gasto previsto", value: plannedExpense === null ? "—" : money(plannedExpense, true) },
+      { label: "Gasto real a hoy", value: money(expenseTotal, true) },
+      {
+        label: "Desviación",
+        value: deviation === null ? "—" : registrarMesSignedMoney(deviation),
+        tone: deviation === null ? "" : deviation > 0 ? "negative" : "positive",
+      },
       {
         label: "Sin clasificar",
         value: unclassified.length ? `${unclassified.length} · ${money(unclassifiedTotal, true)}` : "Ninguno",
@@ -22891,6 +22969,11 @@ const DEBT_STRATEGY_COSTE_LABEL = "Coste total ejecutado";
 
 let debtStrategyReserveValue = null;
 let deudaRutaSelectedStrategy = "avalancha";
+// D-9: `applyE14bOffer()` escribe su resultado en #e14bStatus, que solo vive en #debt-roadmap —
+// sin esto, aplicar desde la tarjeta de Ruta y que el motor bloquee (p. ej. la deuda ya tiene una
+// decisión aplicada) no daría ninguna señal visible aquí. Se recuerda entre renders porque
+// renderDeudaRutaOffer() reconstruye el HTML entero tras cada intento.
+let deudaRutaOfferStatusMessage = "";
 
 function debtStrategyReserveDefault() {
   const configured = Number(state?.operatingReserve || 0);
@@ -23716,11 +23799,45 @@ function deudaRutaEmptyTimelineText(summary) {
   return "Sin decisiones: la deuda sigue su calendario actual.";
 }
 
+// D-9: los mismos cuatro requisitos que ya exige `E14DebtOperations.prepareApplication` antes de
+// aceptar una aplicación — esta lista es solo su vista previa, no una segunda validación con
+// criterio propio. El motivo no se comprueba aquí: lo exige el propio diálogo de confirmación al
+// aplicar (`requestOperationConfirmation`), así que queda como nota informativa, no bloqueante.
+function deudaRutaOfferChecklist(offer, simulation, reserve) {
+  const requiredDocuments = E14DebtOperations?.REQUIRED_DOCUMENTS || [];
+  const missingDocuments = requiredDocuments.filter((doc) => !(offer?.documents || []).includes(doc));
+  const reserveSafe = simulation ? simulation.minimumLiquidity >= reserve : null;
+  return [
+    {
+      ok: offer?.status === "accepted",
+      label: offer?.status === "accepted" ? "Oferta registrada con sus condiciones" : "La oferta todavía no está marcada como aceptada",
+    },
+    {
+      ok: requiredDocuments.length ? !missingDocuments.length : null,
+      label: `Documentos: ${requiredDocuments.length - missingDocuments.length} de ${requiredDocuments.length || 3}`,
+    },
+    {
+      ok: reserveSafe,
+      label:
+        reserveSafe === null
+          ? "Reserva: sin poder calcular todavía"
+          : reserveSafe
+            ? "Reserva protegida tras aplicar"
+            : "La reserva quedaría bajo el mínimo tras aplicar",
+    },
+    { ok: null, label: "Motivo de la decisión — se pide al confirmar" },
+  ];
+}
+
 // V3-4 · la «oferta en curso» del mockup 4d vivía solo en #asesor-decision; esta tarjeta la trae a
 // la propia vista de Deuda, reutilizando asesorDecisionOpenOffers() y asesorDecisionFundingHtml()
-// tal cual — mismos datos, sin recalcular nada. El botón replica el mismo gesto que
-// asesorDecisionApply: marca la oferta como seleccionada en el workspace de E14b y enruta a
-// #debt-roadmap, que sigue siendo el único sitio donde se registra y aplica una oferta de verdad.
+// tal cual — mismos datos, sin recalcular nada.
+// D-8/D-9 (15 de agosto, sesión de seguimiento de la auditoría): la tarjeta dejó de enrutar a
+// #debt-roadmap para "revisar y aplicar" — aplica in situ llamando a applyE14bOffer(), la misma
+// puerta de escritura que ya usaba esa pantalla (regla transversal 01), tras seleccionar la oferta
+// en el workspace de E14b (mismo gesto que ya hacía este botón). El enlace a #debt-roadmap se
+// conserva como «Ver documentos y editar oferta», para completar o corregir la oferta antes de
+// aplicar.
 function renderDeudaRutaOffer() {
   const target = qs("deudaRutaOffer");
   if (!target) return;
@@ -23730,6 +23847,15 @@ function renderDeudaRutaOffer() {
     return;
   }
   const contract = debtTargetById(offer.contractId, { includePlanned: true });
+  const forecast = e14bForecast();
+  const reserve = Math.max(0, Number(agentCaixaFloor?.() || 0));
+  const simulation = forecast && E14DebtOperations ? E14DebtOperations.simulateStrategy(e14bStrategyForOffer(offer), forecast) : null;
+  const checks = deudaRutaOfferChecklist(offer, simulation, reserve);
+  // La deuda ya decidida no es uno de los cuatro requisitos del mockup — es un conflicto de estado
+  // aparte, pero igual de bloqueante: sin esto el botón saldría habilitado y `applyE14bOffer()`
+  // fallaría en silencio (su aviso vive en #e14bStatus, dentro de #debt-roadmap, invisible aquí).
+  const alreadyDecided = debtLiquidations.some((item) => item.targetId === offer.contractId);
+  const blocked = alreadyDecided || checks.some((check) => check.ok === false);
   target.innerHTML = `
     <p class="asesor-decision-subtitle"><strong>${escapeHtml(offer.counterpart || "Sin contraparte")}</strong>${contract ? ` · ${escapeHtml(contract.entity)}${contract.type ? ` ${escapeHtml(contract.type)}` : ""}` : ""}${offer.expiresAt ? ` · vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}` : ""}</p>
     <div class="asesor-decision-stats">
@@ -23737,14 +23863,30 @@ function renderDeudaRutaOffer() {
       <div class="asesor-decision-stat"><span>Ahorras</span><strong>${money(offer.discount, true)}</strong></div>
     </div>
     <div class="asesor-decision-funding">${asesorDecisionFundingHtml(offer.amount)}</div>
-    <a class="e19-btn e19-btn-primary" id="deudaRutaOfferApply" href="#debt-roadmap">Revisar y aplicar en Plan de deuda</a>
+    <p class="panel-kicker">Requisitos para aplicar</p>
+    <ul class="deuda-ruta-checklist" id="deudaRutaOfferChecklist">${checks
+      .map((check) => `<li class="deuda-ruta-check${check.ok === false ? " is-danger" : check.ok === null ? " is-neutral" : " is-ok"}">${escapeHtml(check.label)}</li>`)
+      .join("")}</ul>
+    ${alreadyDecided ? `<p class="e19-kpi-note is-danger">Esta deuda ya tiene una decisión aplicada — revísala o deshazla antes de aplicar otra.</p>` : ""}
+    ${deudaRutaOfferStatusMessage ? `<p class="e19-kpi-note" id="deudaRutaOfferStatus">${escapeHtml(deudaRutaOfferStatusMessage)}</p>` : ""}
+    <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaOfferApply"${blocked ? " disabled" : ""}>Aplicar al plan</button>
+    <a class="e19-btn e19-btn-secondary" href="#debt-roadmap" id="deudaRutaOfferEdit">Ver documentos y editar oferta</a>
   `;
-  const link = qs("deudaRutaOfferApply");
-  if (link) {
-    link.onclick = () => {
+  const applyButton = qs("deudaRutaOfferApply");
+  if (applyButton) {
+    applyButton.addEventListener("click", async () => {
+      e14bWorkspace().selectedOfferId = offer.id;
+      await applyE14bOffer();
+      deudaRutaOfferStatusMessage = qs("e14bStatus")?.textContent || "";
+      renderDeudaRutaOffer();
+    });
+  }
+  const editLink = qs("deudaRutaOfferEdit");
+  if (editLink) {
+    editLink.addEventListener("click", () => {
       e14bWorkspace().selectedOfferId = offer.id;
       queueRemoteSave();
-    };
+    });
   }
 }
 

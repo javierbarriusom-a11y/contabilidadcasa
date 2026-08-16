@@ -86,8 +86,12 @@ anterior) se confirmaron correctas sin matices. **Prioridad 1, cerrada el 15 de 
 siguiente**: los dos gaps que tocaban la regla transversal 01 (una sola puerta de escritura) —
 R-11 (`#visual-detail` escribía saldos sin ninguna guarda) y P-3 (las cuotas de deuda eran
 editables en Plan · Mes cuando D-2 ya es su puerta canónica) — están corregidos y vuelven a
-«Hecho», ver sus notas respectivas. Quedan pendientes las Prioridades 2-4 (15 tareas): M-7, D-9,
-D-8, H-6 · M-3, D-6, D-4, P-2, H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+«Hecho». **Prioridad 2, cerrada el mismo 15 de agosto, misma sesión**: M-7 (checkbox «recordar»
+desmarcada por defecto), D-9/D-8 (la tarjeta «Oferta en curso» aplica in situ detrás de un
+checklist de cuatro requisitos, con motivo y fecha de revisión opcional que genera un recordatorio
+en Hoy) y H-6 (Ingresos/Gasto previsto/Gasto real a hoy/Desviación en vez de solo cifras reales) —
+ver sus notas respectivas. Quedan pendientes las Prioridades 3-4 (11 tareas): M-3, D-6, D-4, P-2,
+H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
 
 ## 4. Nueve reglas transversales
 
@@ -141,7 +145,7 @@ Convención de estado: `Hecho` (verificado y publicado) / `Pendiente`. `T` = tal
 | H-3b | Editor de cobertura aprendida | H-3 | M | Hecho |
 | H-4 | Rejilla de seis indicadores | H-1 | M | Hecho |
 | H-5 | Decisiones abiertas | H-4 | M | Hecho (parcial, ver nota) |
-| H-6 | «Agosto en una línea» con señales | — | M | Hecho (parcial, ver nota) |
+| H-6 | «Agosto en una línea» con señales | — | M | Hecho (15 de agosto, ver nota) |
 | H-7 | Cuatro tarjetas de contexto | H-4 | L | Hecho |
 | H-8 | Tira de estado global | Fase 3 · menú | M | Hecho |
 | H-9 | Umbrales que pintan el aviso | Ajustes › umbrales | S | Hecho |
@@ -152,19 +156,22 @@ H-3, H-3b, H-4, H-7, H-8, H-9 y H-10 coinciden con precisión con el criterio de
 está sembrado de comentarios `// H-N: ...` que citan el criterio casi palabra por palabra. Dos
 tareas no:
 
-- **H-6**: el criterio pide un bloque «Ejecución del mes en curso» con *Ingresos, Gasto previsto,
-  Gasto real a hoy, Desviación* — comparación previsto-vs-real. `homeMonthAtAGlance` (`app.js`)
-  pinta en su lugar Ingresos reales / Gastos reales / Margen del mes / Movimientos registrados: un
-  resumen solo-de-reales, sin ninguna cifra prevista ni desviación. El subtítulo del mockup
-  («Ejecución del mes en curso») tampoco aparece en `index.html` (dice «El mes en una línea»).
+- **H-6 (cerrado el 15 de agosto, sesión de seguimiento de la Prioridad 2)**: el criterio pide un
+  bloque «Ejecución del mes en curso» con *Ingresos, Gasto previsto, Gasto real a hoy, Desviación*
+  — comparación previsto-vs-real. `homeMonthAtAGlance` pintaba en su lugar Ingresos reales / Gastos
+  reales / Margen del mes / Movimientos registrados: un resumen solo-de-reales, sin ninguna cifra
+  prevista ni desviación. Corregido: las cuatro filas pasan a Ingresos / Gasto previsto (lee
+  `plannedValueForVisualRow` del mes actual, el mismo previsto guardado que ya usa Plan › Previsión)
+  / Gasto real a hoy / Desviación (`registrarMesSignedMoney`, verde si se gasta menos de lo
+  previsto). El subtítulo «Ejecución del mes en curso» se añadió junto al título en `index.html`.
+  Sin mes encontrado en el plan, Gasto previsto y Desviación dicen «—», no fabrican un previsto de
+  0€ (regla transversal 04). Verificado con Playwright contra los datos de demostración. Pruebas
+  nuevas en `tests/f1-hoy-dato-ausente.test.cjs`.
 - **H-5**: el criterio exige que «el primer botón sea primario y navegue a vista y pestaña (01 abre
   Registrar › Importar extracto)». `homeDecisionCandidates` no tiene ningún candidato sobre
   movimientos sin incorporar, y ningún `target` de las decisiones abre una pestaña concreta —
   todas navegan solo a nivel de vista. El mecanismo «vista + pestaña» que pide el criterio no
-  existe todavía para ninguna decisión.
-
-Pendiente, sin motivo de bloqueo — son gaps reales de fondo (mismo patrón que el episodio P-8),
-solo fuera del alcance de esta sesión de auditoría (que fue de contraste, no de reconstrucción).
+  existe todavía para ninguna decisión. Pendiente, sin motivo de bloqueo — Prioridad 3.
 
 ### 02 · Registrar — única puerta de escritura de datos reales (13 tareas · 2 grandes)
 
@@ -255,7 +262,7 @@ regla transversal 01 (una escritura real sigue abierta en una heredada).
 | M-4 | Marca del movimiento sin partida | M-2 | S | Hecho |
 | M-5 | Aviso de cola sin clasificar | M-3 | S | Hecho |
 | M-6 | Panel de detalle | M-2 | M | Hecho (parcial, ver nota) |
-| M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho (parcial, ver nota) |
+| M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho (15 de agosto, ver nota) |
 | M-8 | Selección múltiple y acción en lote | M-2, R-7 | L | Hecho (15 de agosto, ver nota) |
 | M-8b | Consistencia con Registrar y el importador | M-8, R-8 | M | Hecho (15 de agosto, ver nota) |
 | M-8c | Saldo recalculado validado contra el declarado | M-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
@@ -325,22 +332,25 @@ M-1, M-4, M-5, M-9, M-10 y M-11 coinciden con precisión. Gaps reales encontrado
   fecha libres y un buscador cuyo propio placeholder dice «Movimiento, detalle o categoría» —
   ningún chip existe, no hay atajos de rango, y `movementsFilteredList()` nunca compara contra el
   importe.
-- **M-7**: el criterio exige una casilla «recordar para los que empiecen igual», **desmarcada por
-  defecto**, para que aprender una regla sea «siempre deliberado» — reafirmado como decisión de
-  diseño en el propio PDF. No existe ningún checkbox: `handleMovementReclassify` escribe siempre en
-  `movementMappings`, sin condición. Hoy la app aprende la regla en cada reclasificación, lo
-  contrario del criterio.
+- **M-7 (cerrado el 15 de agosto, sesión de seguimiento de la Prioridad 2)**: el criterio exige una
+  casilla «recordar para los que empiecen igual», **desmarcada por defecto**, para que aprender una
+  regla sea «siempre deliberado» — reafirmado como decisión de diseño en el propio PDF. No existía
+  ningún checkbox: `handleMovementReclassify` escribía siempre en `movementMappings`, sin condición.
+  Corregido: `mappingForMovement` mira primero una clave de un solo movimiento
+  (`transactionIdentity`) antes que la clave de concepto (`movementMappingKey`); la casilla nueva,
+  desmarcada por defecto, decide cuál de las dos escribe `handleMovementReclassify` — sin marcar,
+  solo reclasifica este movimiento; marcada, aprende la regla de concepto (futuros movimientos
+  incluidos), igual que antes. Pruebas nuevas en `tests/m1-m11-movimientos.test.cjs`; se ajustó
+  `tests/m8-m8b-movimientos-lote.test.cjs` (la llamada a `datosImportarRefreshRowsForMappings` ahora
+  es condicional a que se haya marcado «recordar»).
 - **M-2 / M-6**: el criterio pide «concepto con cuenta» y un campo «cuenta» en el panel de detalle.
   No existe ningún atributo de cuenta por movimiento en el modelo de datos (solo dos saldos
   globales, CaixaBank/Mediolanum) — limitación estructural ya reconocida en el propio código, no un
-  descuido de esta tarea, pero el criterio del PDF no se cumple tal cual está escrito.
+  descuido de esta tarea, pero el criterio del PDF no se cumple tal cual está escrito. Pendiente.
 - **M-8**: el criterio exige «una sola entrada revertible del historial». Ya reconocido en la nota
   de arriba como pendiente por depender de una pieza de historial que tampoco tienen R-6/Cierre —
-  la auditoría confirma que es una brecha real frente al PDF, no solo frente al backlog.
-
-Pendientes, sin motivo de bloqueo salvo M-8 (depende de la pieza de historial compartida) y la
-limitación de modelo de datos de M-2/M-6 (añadir el concepto «cuenta» es un cambio de modelo, no
-una tarea de pantalla).
+  la auditoría confirma que es una brecha real frente al PDF, no solo frente al backlog. Pendiente,
+  bloqueada por esa pieza compartida.
 
 ### 04 · Plan — Mes, Previsión y Ahorro en tres pestañas (17 tareas · 3 grandes)
 
@@ -481,8 +491,8 @@ segunda puerta de escritura para las cuotas de deuda, que ya tiene su puerta can
 | D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
 | D-6 | Comparativa plan frente a modo | D-5 | M | Hecho (parcial, ver nota) |
 | D-7 | Comparar no escribe nada | D-6 | S | Hecho (ya existía, ver nota) |
-| D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (parcial, ver nota) |
-| D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (parcial, ver nota) |
+| D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (15 de agosto, ver nota) |
+| D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (15 de agosto, ver nota) |
 | D-10 | Oferta en curso con caducidad | D-2 | M | Parcial (la tarjeta y la fecha existen; no hay aviso activo de caducidad) |
 | D-11 | Coste de no decidir | D-2 | S | Parcial («no tocar» ya compara su coste; falta el coste marginal por mes de demora) |
 | D-12 | Capacidad de endeudamiento | D-2 | M | Pendiente |
@@ -602,15 +612,31 @@ correctas contra el PDF. Cuatro tareas marcadas «Hecho» no cumplen el criterio
   prosa que nombra el supuesto principal». La tabla de los ocho modos solo tiene 4 columnas planas
   sin color, y el único texto en prosa (`deudaCompararInsight`) pertenece a la comparación de las 4
   *estrategias*, no a la de los 8 *modos*.
-- **D-8**: el criterio añade a la revisión opcional una «fecha de revisión... que genera un
-  recordatorio en Hoy». Solo existe el campo de motivo; no hay campo de fecha ni ningún
-  «recordatorio» en el código.
-- **D-9**: el criterio pide cuatro requisitos (oferta registrada, documentos completos, reserva
-  protegida, motivo). `deudaRutaChecklist` comprueba solo dos distintos (reserva y mes viable) —
-  un checklist real, pero no el que describe el PDF.
-
-Pendientes, sin motivo de bloqueo — mismo patrón que P-8: la tarea existe y funciona, pero no es la
-tarea que describe el criterio fuente.
+- **D-8/D-9 (cerrados el 15 de agosto, sesión de seguimiento de la Prioridad 2)**: el criterio real
+  no era sobre el checklist de la pestaña Ruta (comprobaba solo reserva y mes viable, dos cosas
+  distintas a las cuatro del PDF) — es sobre la tarjeta «Oferta en curso», que hasta entonces solo
+  enrutaba a la heredada `#debt-roadmap` para aplicar («Revisar y aplicar en Plan de deuda»), sin
+  campo de fecha de revisión ni checklist propio. Reconstruida in situ:
+  - **D-9**: `deudaRutaOfferChecklist` pinta los cuatro requisitos reales — oferta aceptada,
+    documentos completos (`E14DebtOperations.REQUIRED_DOCUMENTS`, la misma lista que ya valida
+    `prepareApplication`, no un criterio propio), reserva protegida (misma simulación que usa el
+    motor de deuda) y una nota de que el motivo se pide al confirmar. El botón «Aplicar al plan»
+    llama a `applyE14bOffer()` — el mismo motor que ya usaba `#debt-roadmap` (regla transversal 01),
+    tras seleccionar la oferta en el workspace de E14b. Encontrado con Playwright: la deuda demo ya
+    tenía una decisión aplicada previamente y el checklist salía en verde igual, con
+    `applyE14bOffer()` bloqueando en silencio (su aviso vivía solo en `#e14bStatus`, dentro de
+    `#debt-roadmap`, invisible desde Ruta) — corregido con un aviso explícito bajo el checklist y
+    copiando el resultado de `#e14bStatus` a la propia tarjeta tras cada intento.
+  - **D-8**: `requestOperationConfirmation` (el diálogo compartido de motivo, usado también por
+    Escenarios y otras operaciones) gana un campo opcional de fecha de revisión, mostrado solo
+    cuando el llamador pasa `allowReviewDate` — las otras cinco llamadas existentes no cambian de
+    comportamiento. Si se rellena, `applyE14bOffer` la guarda en `decision.e14Application.reviewDate`
+    y `homeDebtReviewReminders()` (H-5) la lee para asomar un recordatorio en Hoy («Revisar oferta
+    de deuda aplicada»), en rojo si la fecha ya pasó.
+  Verificado con Playwright de punta a punta: registrar una oferta en `#debt-roadmap`, ver el
+  checklist en verde en `#deuda-ruta`, aplicar con motivo y fecha, y ver el recordatorio real en
+  Hoy tras la confirmación. Pruebas nuevas en `tests/d8-d9-deuda-oferta-aplicar.test.cjs`; se
+  reescribió `tests/v3-4-oferta-en-curso.test.cjs` (el botón ya no enruta, aplica en el sitio).
 
 ### 06 · Escenarios — simulación pura, no toca el plan (17 tareas · 4 grandes)
 
