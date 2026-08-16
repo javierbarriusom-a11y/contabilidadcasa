@@ -399,6 +399,105 @@ test("D-6 · los ocho modos se pueden evaluar a la vez sobre el mismo contrato s
   });
 });
 
+// --- D-6 (auditoría 15 de agosto) · cinco indicadores coloreados + veredicto en prosa ------------
+
+function sandboxCompareRender(extra = {}) {
+  const context = sandboxBuilders(extra);
+  context.escenarioMotorResultInfo = (result) => (result === "aplicada" ? { badge: "e19-badge-success", text: "Viable" } : { badge: "e19-badge-warning", text: "No viable" });
+  context.escenarioMotorMonthLabel = (key) => key;
+  context.round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+  [
+    extractFunction("debtModePlanBaseline"),
+    extractFunction("debtModeResultingPayment"),
+    extractFunction("debtModeCosteNumeric"),
+    extractFunction("debtCompareToneClass"),
+    extractFunction("debtModeIndicatorsHtml"),
+    extractFunction("renderDeudaCompararModeInsight"),
+  ].forEach((source) => vm.runInContext(source, context));
+  return context;
+}
+
+test("D-6 · debtModePlanBaseline es el mismo motor sin decisiones, la misma caja mínima que ya usa «no tocar nada»", () => {
+  const context = sandboxCompareRender();
+  const baseline = context.debtModePlanBaseline({ months: MONTHS }, null);
+  assert.ok(baseline, "el motor sin decisiones debe resolver con los fixtures de sandboxBuilders");
+  assert.equal(typeof baseline.cajaMinima, "number");
+});
+
+test("D-6 · debtModeCosteNumeric lee el importe real de cada tipo de decisión, no una cifra inventada", () => {
+  const context = sandboxCompareRender();
+  const optimize = context.debtModeCosteNumeric(context.debtModeDefById("optimize"), { decision: { params: { importe: 6000 } } });
+  assert.equal(optimize, 6000);
+  const spread = context.debtModeCosteNumeric(context.debtModeDefById("spread"), { decision: { params: { importeMensual: 200, meses: 10 } } });
+  assert.equal(spread, 2000);
+  const refinance = context.debtModeCosteNumeric(context.debtModeDefById("refinance"), { decision: { params: { nuevoPrincipal: 5500 } } });
+  assert.equal(refinance, 5500);
+  const retomar = context.debtModeCosteNumeric(context.debtModeDefById("retomar"), { decision: { params: { cuota: 80 } } });
+  assert.equal(retomar, 80);
+});
+
+test("D-6 · debtModeResultingPayment: amortizar salda del todo (cuota 0), fraccionar no toca la cuota declarada", () => {
+  const context = sandboxCompareRender();
+  assert.equal(context.debtModeResultingPayment(context.debtModeDefById("optimize"), { decision: { params: {} } }, CONTRACT_ACTIVE), 0);
+  assert.equal(
+    context.debtModeResultingPayment(context.debtModeDefById("spread"), { decision: { params: {} } }, CONTRACT_ACTIVE),
+    CONTRACT_ACTIVE.currentPayment,
+  );
+  assert.equal(
+    context.debtModeResultingPayment(context.debtModeDefById("refinance"), { decision: { params: { nuevaCuota: 145 } } }, CONTRACT_ACTIVE),
+    145,
+  );
+  assert.equal(
+    context.debtModeResultingPayment(context.debtModeDefById("retomar"), { decision: { params: { cuota: 80 } } }, CONTRACT_SUSPENDED),
+    80,
+  );
+});
+
+test("D-6 · debtCompareToneClass traduce mejor/peor a las mismas clases positive/negative que ya usa Registrar", () => {
+  const context = sandboxCompareRender();
+  assert.equal(context.debtCompareToneClass("mejor"), "positive");
+  assert.equal(context.debtCompareToneClass("peor"), "negative");
+  assert.equal(context.debtCompareToneClass(""), "");
+});
+
+test("D-6 · debtModeIndicatorsHtml pinta los cinco indicadores, coloreados contra el plan/principal/cuota actual", () => {
+  const context = sandboxCompareRender();
+  const item = context.debtModeDefById("refinance");
+  const itemResult = {
+    available: true,
+    cajaMinima: 4000,
+    mesResuelto: "2026-06",
+    resultado: { resultado: "aplicada" },
+    decision: { params: { nuevoPrincipal: 5000, nuevaCuota: 100 } },
+  };
+  const html5 = context.debtModeIndicatorsHtml(item, itemResult, CONTRACT_ACTIVE, { cajaMinima: 3000 });
+  const cells = [...html5.matchAll(/<td[^>]*>/g)];
+  assert.equal(cells.length, 5, "mes, caja mínima, coste, cuota resultante y resultado");
+  assert.match(html5, /class="positive">4000\.00 €/, "caja mínima 4000 >= plan 3000 → verde");
+  assert.match(html5, /class="positive">5000\.00 €/, "coste 5000 < principal 6000 → verde");
+  assert.match(html5, /class="positive">100\.00 €/, "cuota 100 < cuota actual 250 → verde");
+  assert.match(html5, /e19-badge-success/);
+});
+
+test("D-6 · renderDeudaCompararModeInsight se oculta sin ningún modo viable, y nombra el modo con mejor caja mínima cuando sí hay", () => {
+  const written = {};
+  const context = sandboxCompareRender();
+  context.qs = (id) => (id === "deudaCompararModeInsight" ? { set hidden(v) { written.hidden = v; }, set innerHTML(v) { written.innerHTML = v; } } : null);
+
+  context.renderDeudaCompararModeInsight([], CONTRACT_ACTIVE);
+  assert.equal(written.hidden, true);
+
+  const rows = [
+    { item: context.debtModeDefById("optimize"), itemResult: { available: true, viable: true, cajaMinima: 1000, mesResuelto: "2026-05" } },
+    { item: context.debtModeDefById("refinance"), itemResult: { available: true, viable: true, cajaMinima: 3000, mesResuelto: "2026-06" } },
+    { item: context.debtModeDefById("retomar"), itemResult: { available: false, reason: "no-suspendida" } },
+  ];
+  context.renderDeudaCompararModeInsight(rows, CONTRACT_ACTIVE);
+  assert.equal(written.hidden, false);
+  assert.match(written.innerHTML, /Refinanciación deja la mejor caja mínima/);
+  assert.match(written.innerHTML, /Supuesto principal/);
+});
+
 // --- D-4: calendario de amortización -------------------------------------------------------------
 
 function sandboxSchedule() {
@@ -541,9 +640,17 @@ test("D-5/D-6 · index.html declara los elementos del selector de modo y de su c
     "deudaCompararModeApply",
     "deudaCompararModeCompare",
     "deudaCompararModeCompareBody",
+    "deudaCompararModeInsight",
   ].forEach((id) => {
     assert.match(html, new RegExp(`id="${id}"`), `Falta id="${id}" en index.html`);
   });
+});
+
+test("D-6 · la cabecera de la comparativa trae los cinco indicadores del criterio (mes, caja mínima, coste, cuota resultante, resultado)", () => {
+  assert.match(
+    html,
+    /<thead><tr><th>Modo<\/th><th>Mes<\/th><th>Caja mínima<\/th><th>Coste<\/th><th>Cuota resultante<\/th><th>Resultado<\/th><th><\/th><\/tr><\/thead>/,
+  );
 });
 
 test("D-4 · index.html declara el contenedor del calendario dentro de #deuda-ruta", () => {
