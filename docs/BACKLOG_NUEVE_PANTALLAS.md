@@ -86,8 +86,12 @@ arrancó el 16 de agosto (punto 2 del plan): C-1/C-2/C-3/C-4/C-5/C-8/C-9 hechos 
 incremento — ritual de tres pasos (sin sobres), conciliación por cuenta, tareas por causa,
 comprobaciones antes de firmar — reutilizando el motor transaccional de cierre/reapertura que ya
 existía; C-3b/C-6/C-7/C-10/C-11/C-12/C-13/C-14 pendientes (ver la nota bajo la tabla de la pantalla
-08). Fases 6-7 (Análisis, Laboratorio) confirmadas sin ningún código propio — se auditaron sus PDF
-el 16 de agosto pero no hay nada que reconciliar, arrancan de cero.
+08). Fase 6 (Análisis) arrancó el mismo día (punto 3 del plan): A-1/A-2/A-6 hechos en un primer
+incremento — pantalla de solo lectura, banda de doce meses de colchón en meses (no en €, una serie
+nueva que reutiliza el gasto medio de Escenarios y la escala de tres niveles de P-9), selector de
+ventana — A-3 a A-13 pendientes (ver la nota bajo la tabla de la pantalla 07). Fase 7 (Laboratorio)
+confirmada sin ningún código propio — se auditó su PDF el 16 de agosto pero no hay nada que
+reconciliar, arranca de cero.
 
 **Auditoría del 15 de agosto contra los nueve PDF de mockups (sesión de contraste, ver la nota bajo
 cada tabla de pantalla)**: ninguna tarea marcada «Hecho» resultó estar completamente sin construir
@@ -932,12 +936,12 @@ bloqueadas por Cierre/D-10/Fase 7 como estaba previsto.
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| A-1 | Pantalla de solo lectura con procedencia | Fase 5 | M | Pendiente |
-| A-2 | Banda de doce meses de colchón | A-1, P-9 | M | Pendiente |
-| A-3 | Peor mes explicado | A-2, E-2 | M | Pendiente |
+| A-1 | Pantalla de solo lectura con procedencia | Fase 5 | M | Hecho (16 de agosto, ver nota) |
+| A-2 | Banda de doce meses de colchón | A-1, P-9 | M | Hecho (16 de agosto, ver nota) |
+| A-3 | Peor mes explicado | A-2, E-2 | M | Pendiente (bloqueada: depende de E-2, sin construir) |
 | A-4 | Cascada del resultado por periodo | A-1, Cierre | L | Pendiente |
 | A-5 | Patrimonio neto proyectado | A-1, D-2 | L | Pendiente |
-| A-6 | Selector de ventana | A-2, A-5 | S | Pendiente |
+| A-6 | Selector de ventana | A-2, A-5 | S | Hecho (16 de agosto, ver nota) |
 | A-7 | ¿Acierta el plan? | A-1, Cierre | L | Pendiente |
 | A-8 | En qué se va · reparto completo del ingreso | A-1 | M | Pendiente |
 | A-9 | Qué se repite | A-1, M-3 | M | Pendiente |
@@ -945,6 +949,41 @@ bloqueadas por Cierre/D-10/Fase 7 como estaba previsto.
 | A-11 | Exportar en CSV y en PDF | A-1 | M | Pendiente |
 | A-12 | Retirar las heredadas visuales | A-1, Fase 7 | S | Pendiente |
 | A-13 | Actuar desde el aviso, sin duplicar el camino | A-9, A-10, M-8 | L | Pendiente |
+
+**Análisis construido el 16 de agosto** — primer incremento real de la Fase 6, punto 3 del plan de
+construcción (Cierre, punto 2, ya fusionado — ver pantalla 08). Nueva pantalla `#analisis`, accesible
+desde «Herramientas avanzadas › Analizar › Análisis (nuevo)» (no es pestaña principal: las seis de
+T-1 no cambian). No se fabrica ningún cálculo financiero nuevo.
+
+- **A-1** — pantalla de solo lectura: ningún campo editable, título y subtítulo lo dicen
+  explícitamente, y la única lectura construida (A-2) lleva su nota de procedencia con enlace a la
+  pantalla donde se cambia el dato de origen (`Plan · Previsión`).
+- **A-2** — el mockup pide el colchón **en meses**, no la liquidez absoluta que ya colorea
+  `#mapa-calor`/la fila de colchón de P-9: esa serie mensual no existía todavía. Se calcula una sola
+  vez, reutilizando piezas ya construidas — `escenarioMotorAverageCoreSpend` (gasto medio, el mismo
+  cálculo que ya usa el resumen de Escenarios) para el denominador, `state.emergencyBufferMonths`
+  (el mismo «colchón objetivo» que ya muestra la barra lateral y el checklist de Deuda) como umbral,
+  y `FinanceCanonicalCushion.cushionLevel` para el color — la función de tres niveles que el propio
+  comentario de P-9 ya señalaba como «compartida con A-2 cuando se construya». Un mes sin fila de
+  simulación o sin gasto medio con el que dividir queda «sin dato», nunca en cero (regla
+  transversal 04). El peor mes de la ventana se marca con una insignia, con su cifra exacta.
+- **A-6** — selector 12 / 24 / todo el plan, mismo componente visual (`.registrar-mes-filter`) que ya
+  usa P-1 para el horizonte compartido de Plan · Previsión. Afecta a la banda de A-2; A-5 (patrimonio
+  neto), la otra dependiente declarada, no se ha construido todavía.
+- **A-3 a A-5, A-7 a A-13** — pendientes. A-4 (cascada) y A-5 (patrimonio neto proyectado) están
+  marcadas «CONSERVADO» en el inventario del propio mockup — ya existen en `#cashflow` y `#forecast`
+  respectivamente y solo hace falta traerlas a esta pantalla — pero extraerlas con su procedencia
+  correcta no se ha hecho todavía. A-7 (¿acierta el plan?) y A-10 (confianza del dato) dependen de
+  Cierre, que en este incremento solo tiene tres pasos reales y sin historial de versiones dedicado
+  (ver la nota bajo la tabla de la pantalla 08); A-3 depende de E-2, todavía parcial. A-8/A-9/A-11
+  no están bloqueadas pero no se han construido en esta sesión.
+
+**Validación de este incremento**: `npm test`, exit 0, **1089/1089 pruebas** (7 nuevas en
+`tests/a1-a2-a6-analisis-colchon.test.cjs`, más 1 prueba existente de navegación ajustada porque
+contaba los enlaces exactos del menú avanzado). Verificado con Playwright contra el build local: la
+banda muestra 12/24 meses reales con etiqueta, valor y color según el nivel, cambia de color al
+cruzar el objetivo de `state.emergencyBufferMonths`, el peor mes se marca con su cifra exacta y el
+selector de ventana funciona. Sin errores de consola propios.
 
 ### 08 · Cierre — ritual secuencial de cuatro pasos (15 tareas · 7 grandes)
 

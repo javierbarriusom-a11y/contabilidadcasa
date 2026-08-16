@@ -83,6 +83,7 @@
               <a href="#asesor-decision" data-e17-group="assistants">Asesor ejecutivo (nuevo)</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
+              <a href="#analisis" data-e17-group="analysis">Análisis (nuevo)</a>
               <a href="#cuadro-mandos" data-e17-group="analysis">Cuadro de mandos (nuevo)</a>
               <a href="#cambios-pendientes" data-e17-group="analysis">Cambios pendientes (nuevo)</a>
               <a href="#mapa-calor" data-e17-group="analysis">Mapa de calor (nuevo)</a>
@@ -1399,6 +1400,29 @@
               <table class="e19-table deuda-contratos-table" id="deudaContratosTable"></table>
             </div>
             <p class="e19-kpi-note">Capital pendiente, TAE y cuota son los únicos campos editables — entidad, producto y estado siguen siendo los declarados en el contrato.</p>
+          </section>
+
+          <section class="e19-analisis view-section" id="analisis">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Analizar · Análisis</p>
+                <h2 class="e19-heading">Análisis</h2>
+                <p class="e19-subtitle">Ninguna cifra se edita aquí. Cada lectura dice sobre qué datos se calcula y con qué fecha.</p>
+              </div>
+              <div class="registrar-mes-filters" role="group" aria-label="Ventana de análisis">
+                <button type="button" class="registrar-mes-filter is-active" data-analisis-window="12m" aria-pressed="true">12 meses</button>
+                <button type="button" class="registrar-mes-filter" data-analisis-window="24m" aria-pressed="false">24 meses</button>
+                <button type="button" class="registrar-mes-filter" data-analisis-window="full" aria-pressed="false">Todo el plan</button>
+              </div>
+            </div>
+
+            <article class="e19-card analisis-cushion-card">
+              <h3 class="escenario-motor-panel-title">Doce meses de colchón</h3>
+              <p class="e19-kpi-note" id="analisisCushionLegend"></p>
+              <div class="analisis-cushion-band" id="analisisCushionBand"></div>
+              <p class="e19-kpi-note" id="analisisCushionWorst"></p>
+              <p class="e19-kpi-note">Procedencia: liquidez simulada y gasto medio del Plan, mismo cálculo y escala de tres niveles que la fila de colchón de <a href="#plan">Plan · Previsión</a>.</p>
+            </article>
           </section>
 
           <section class="e19-cierre view-section" id="cierre">
