@@ -90,13 +90,13 @@ editables en Plan · Mes cuando D-2 ya es su puerta canónica) — están correg
 desmarcada por defecto), D-9/D-8 (la tarjeta «Oferta en curso» aplica in situ detrás de un
 checklist de cuatro requisitos, con motivo y fecha de revisión opcional que genera un recordatorio
 en Hoy) y H-6 (Ingresos/Gasto previsto/Gasto real a hoy/Desviación en vez de solo cifras reales) —
-ver sus notas respectivas. **Prioridad 3, cerrada el 16 de agosto**: M-3 (seis chips con recuento
-vivo, cuatro atajos de rango y búsqueda que también cubre el importe), D-6 (cinco indicadores
-coloreados frente al Plan más veredicto en prosa), D-4 (gráfico agregado de capital vivo mes a mes
-con la estrategia activa, con hito de primer contrato liquidado e intereses totales frente a solo
-mínimos) y H-5 (candidata de movimientos por incorporar, navegación a vista y pestaña) — ver sus
-notas respectivas. Solo queda P-2 de la Prioridad 3; la Prioridad 4 completa (6 tareas) sigue
-pendiente: R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+ver sus notas respectivas. **Prioridad 3, cerrada por completo el 16 de agosto**: M-3 (seis chips
+con recuento vivo, cuatro atajos de rango y búsqueda que también cubre el importe), D-6 (cinco
+indicadores coloreados frente al Plan más veredicto en prosa), D-4 (gráfico agregado de capital vivo
+mes a mes con la estrategia activa, con hito de primer contrato liquidado e intereses totales frente
+a solo mínimos), H-5 (candidata de movimientos por incorporar, navegación a vista y pestaña) y P-2
+(tabla única «Presupuesto de [mes]» agrupada por bloque, con subtotal y plegado) — ver sus notas
+respectivas. Queda pendiente la Prioridad 4 completa (6 tareas): R-2, P-4, P-1, R-3, M-2/M-6, M-8.
 
 ## 4. Nueve reglas transversales
 
@@ -400,7 +400,7 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
 | P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Hecho (parcial, ver nota) |
-| P-2 | Tabla del mes agrupada por bloques | P-1 | M | Hecho (parcial, ver nota) |
+| P-2 | Tabla del mes agrupada por bloques | P-1 | M | Hecho (16 de agosto, ver nota) |
 | P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Hecho (15 de agosto, ver nota) |
 | P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Hecho (parcial, ver nota) |
 | P-5 | Techo de asignación | P-3 | S | Hecho |
@@ -476,10 +476,22 @@ ambas tareas es idéntico al texto ya citado arriba, y no aparece ningún requis
 estructural adicional para la matriz más allá de lo ya construido. La reconstrucción de la sesión
 anterior era correcta. El resto de la pantalla sí tiene gaps reales:
 
-- **P-2**: el mockup muestra **una sola tabla** «Presupuesto de [mes]» con cabeceras de sección
-  (Gastos fijos, Variables, Deuda y ahorro) y **subtotal por bloque, plegable**. El código renderiza
-  dos tarjetas planas y separadas (Ingresos/Gastos), ambas itemizadas, sin subtotales ni plegado —
-  «Bloque» es solo una columna de texto por fila.
+- **P-2 (cerrado el 16 de agosto, sesión de Prioridad 3)**: el mockup mostraba **una sola tabla**
+  «Presupuesto de [mes]» con cabeceras de sección (Gastos fijos, Variables, Deuda y ahorro) y
+  **subtotal por bloque, plegable**; el código tenía dos tarjetas planas y separadas
+  (Ingresos/Gastos), ambas itemizadas, sin subtotales ni plegado — «Bloque» era solo una columna de
+  texto por fila. La tarjeta de Gastos se sustituye por una única tabla «Presupuesto de [mes]»,
+  agrupada por los nombres de sección reales de `baseData.monthlyPlanning.sections` (Gastos fijos,
+  Gastos variables, Financiaciones — no una taxonomía inventada como la del mockup, que no existe en
+  el modelo de datos: no hay ninguna sección «Ahorro» separada). Cada bloque es una fila de cabecera
+  propia (`planMesBlockRowHtml`) con el subtotal de previsto del bloque y un botón plegable con
+  `aria-expanded`, que oculta/muestra sus filas (`handlePlanMesBlockToggle`). Ingresos se queda
+  igual, sin agrupar: el mockup tampoco la itemiza dentro de la tabla de presupuesto — su previsto
+  ya vive en los KPI de arriba. La columna «Bloque» por fila se retira (redundante una vez que la
+  cabecera de bloque ya lo dice); la fila de solo lectura de Financiaciones (P-3) sigue intacta
+  dentro del bloque «Financiaciones». Verificado con Playwright: tres bloques con sus subtotales
+  reales, plegar/desplegar funcionando, cabecera de 4 columnas sin «Bloque». Pruebas nuevas en
+  `tests/p1-p7-plan-mes.test.cjs`.
 - **P-3 (cerrado el 15 de agosto en la sesión siguiente)**: la caja de decisiones validadas del PDF
   fija que «las cuotas de deuda se listan aquí como fila no editable, con enlace a Deuda para
   cambiarlas» (mockup: texto plano, sin input, con «3 contratos · se cambia en Deuda»).

@@ -195,6 +195,150 @@ test("P-2 · el previsto se deshabilita en un mes cerrado, igual que el resto de
   assert.match(closedHtml, /disabled/);
 });
 
+// --- P-2 (auditoría del 15 de agosto, Prioridad 3) · una sola tabla agrupada por bloque, con
+// subtotal y plegado — sustituye la tarjeta plana de Gastos. Ingresos se queda igual (el mockup
+// tampoco la itemiza dentro de esta tabla).
+
+test("P-2 · planMesRowHtml ya no pinta la columna Bloque (la cabecera de sección la sustituye) y declara data-plan-mes-block", () => {
+  const entry = { key: "expense:r1", row: { id: "r1" }, sectionName: "Gastos fijos", label: "Vivienda", planned: 750, plannedDraft: false, hasActual: false, usado: 750, variance: null, kind: "expense" };
+  const rowHtml = sandboxRowHtml(entry, false);
+  assert.doesNotMatch(rowHtml, /class="registrar-mes-block"/);
+  assert.match(rowHtml, /data-plan-mes-block="Gastos fijos"/);
+});
+
+test("P-2 · planMesRowHtml oculta la fila (hidden) cuando su bloque está plegado", () => {
+  const entry = { key: "expense:r1", row: { id: "r1" }, sectionName: "Gastos fijos", label: "Vivienda", planned: 750, plannedDraft: false, hasActual: false, usado: 750, variance: null, kind: "expense" };
+  const context = sandboxWith(["planMesRowHtml"], {
+    escapeHtml: (v) => String(v),
+    seriesKeyForRow: (row) => row.id,
+    money: (v) => `€${v}`,
+    varianceClassForKind: () => "",
+    registrarMesSignedMoney: (v) => String(v),
+  });
+  assert.doesNotMatch(context.planMesRowHtml(entry, false, "2026-08", false), /hidden/);
+  assert.match(context.planMesRowHtml(entry, false, "2026-08", true), /<tr[^>]*hidden/);
+});
+
+test("P-2 · planMesGroupBySection agrupa por sectionName en el orden de aparición, con el subtotal de previsto de cada bloque", () => {
+  const { planMesGroupBySection } = sandboxWith(["planMesGroupBySection"], { round2: (v) => Math.round((v + Number.EPSILON) * 100) / 100 });
+  const list = [
+    { sectionName: "Gastos fijos", planned: 750 },
+    { sectionName: "Gastos variables", planned: 200 },
+    { sectionName: "Gastos fijos", planned: 132.5 },
+  ];
+  const blocks = planMesGroupBySection(list);
+  assert.equal(blocks.length, 2);
+  assert.equal(blocks[0].sectionName, "Gastos fijos");
+  assert.equal(blocks[1].sectionName, "Gastos variables");
+  assert.equal(blocks[0].entries.length, 2);
+  assert.equal(blocks[0].subtotal, 882.5);
+  assert.equal(blocks[1].subtotal, 200);
+});
+
+test("P-2 · planMesGroupBySection sobre una lista vacía no devuelve bloques", () => {
+  const { planMesGroupBySection } = sandboxWith(["planMesGroupBySection"], { round2: (v) => v });
+  assert.equal(planMesGroupBySection([]).length, 0);
+});
+
+function sandboxBlockRow(block, collapsedBlocks) {
+  const context = sandboxWith(["planMesBlockRowHtml"], {
+    escapeHtml: (v) => String(v),
+    money: (v) => `€${v}`,
+    planMesCollapsedBlocks: collapsedBlocks,
+  });
+  return context.planMesBlockRowHtml(block);
+}
+
+test("P-2 · planMesBlockRowHtml pinta el nombre del bloque, su subtotal y aria-expanded=true cuando está abierto", () => {
+  const html = sandboxBlockRow({ sectionName: "Gastos fijos", subtotal: 1352 }, new Set());
+  assert.match(html, /data-plan-mes-block-toggle="Gastos fijos"/);
+  assert.match(html, /aria-expanded="true"/);
+  assert.match(html, />€1352</);
+});
+
+test("P-2 · planMesBlockRowHtml marca aria-expanded=false cuando el bloque está en planMesCollapsedBlocks", () => {
+  const html = sandboxBlockRow({ sectionName: "Gastos fijos", subtotal: 1352 }, new Set(["Gastos fijos"]));
+  assert.match(html, /aria-expanded="false"/);
+});
+
+function sandboxBudgetTable(list, month, monthClosed, collapsedBlocks = new Set()) {
+  const context = sandboxWith(["planMesBudgetTableHtml", "planMesGroupBySection", "planMesBlockRowHtml", "planMesRowHtml"], {
+    escapeHtml: (v) => String(v),
+    seriesKeyForRow: (row) => row.id,
+    money: (v) => `€${v}`,
+    varianceClassForKind: () => "",
+    registrarMesSignedMoney: (v) => String(v),
+    round2: (v) => Math.round((v + Number.EPSILON) * 100) / 100,
+    planMesCollapsedBlocks: collapsedBlocks,
+  });
+  return context.planMesBudgetTableHtml(list, month, monthClosed);
+}
+
+test("P-2 · planMesBudgetTableHtml titula «Presupuesto de [mes]» y pinta una cabecera de 4 columnas, sin Bloque", () => {
+  const html = sandboxBudgetTable([], { key: "2026-08", label: "agosto 2026" }, false);
+  assert.match(html, /Presupuesto de agosto 2026/);
+  assert.match(html, /<thead><tr><th>Partida<\/th><th>Previsto<\/th><th>Usado<\/th><th>Desviación<\/th><\/tr><\/thead>/);
+});
+
+test("P-2 · planMesBudgetTableHtml agrupa las filas por bloque, cada una con su cabecera de sección y subtotal", () => {
+  const list = [
+    { key: "expense:r1", row: { id: "r1" }, sectionName: "Gastos fijos", label: "Vivienda", planned: 750, plannedDraft: false, hasActual: false, usado: 750, variance: null, kind: "expense" },
+    { key: "expense:r2", row: { id: "r2" }, sectionName: "Gastos variables", label: "Ocio", planned: 200, plannedDraft: false, hasActual: false, usado: 200, variance: null, kind: "expense" },
+  ];
+  const html = sandboxBudgetTable(list, { key: "2026-08", label: "agosto 2026" }, false);
+  assert.match(html, /data-plan-mes-block-toggle="Gastos fijos"/);
+  assert.match(html, /data-plan-mes-block-toggle="Gastos variables"/);
+  assert.match(html, /Vivienda/);
+  assert.match(html, /Ocio/);
+  // La cabecera de "Gastos fijos" aparece antes que su fila "Vivienda", que a su vez aparece antes
+  // de la cabecera de "Gastos variables" — el orden de bloques y filas dentro de cada uno se respeta.
+  assert.ok(html.indexOf("Gastos fijos") < html.indexOf("Vivienda"));
+  assert.ok(html.indexOf("Vivienda") < html.indexOf("Gastos variables"));
+});
+
+test("P-2 · planMesBudgetTableHtml sin partidas dice que no hay nada, en vez de una tabla vacía sin explicación", () => {
+  const html = sandboxBudgetTable([], { key: "2026-08", label: "agosto 2026" }, false);
+  assert.match(html, /Este mes no tiene partidas de este tipo/);
+});
+
+test("P-2 · handlePlanMesBlockToggle añade el bloque a planMesCollapsedBlocks si estaba abierto, y lo quita si estaba plegado", () => {
+  const calls = [];
+  const collapsed = new Set();
+  const context = sandboxWith(["handlePlanMesBlockToggle"], {
+    planMesCollapsedBlocks: collapsed,
+    renderPlanMes: () => calls.push("renderPlanMes"),
+  });
+  context.handlePlanMesBlockToggle("Gastos fijos");
+  assert.equal(collapsed.has("Gastos fijos"), true);
+  assert.deepEqual(calls, ["renderPlanMes"]);
+  context.handlePlanMesBlockToggle("Gastos fijos");
+  assert.equal(collapsed.has("Gastos fijos"), false);
+});
+
+test("P-2 · handlePlanMesBlockToggle no hace nada sin nombre de bloque", () => {
+  const calls = [];
+  const context = sandboxWith(["handlePlanMesBlockToggle"], {
+    planMesCollapsedBlocks: new Set(),
+    renderPlanMes: () => calls.push("renderPlanMes"),
+  });
+  context.handlePlanMesBlockToggle("");
+  assert.deepEqual(calls, []);
+});
+
+test("P-2 · renderPlanMes pinta la tabla de presupuesto agrupada (planMesBudgetTableHtml), no la tarjeta plana de Gastos", () => {
+  const fn = extractFunction("renderPlanMes");
+  assert.match(fn, /planMesBudgetTableHtml\(entries\.expense, month, monthClosed\)/);
+  assert.doesNotMatch(fn, /planMesCardHtml\("Gastos"/);
+});
+
+test("P-2 · el manejador de clics de planMesTables reconoce data-plan-mes-block-toggle", () => {
+  const start = app.indexOf('qs("planMesTables")?.addEventListener("click"');
+  assert.ok(start >= 0);
+  const snippet = app.slice(start, start + 600);
+  assert.match(snippet, /data-plan-mes-block-toggle/);
+  assert.match(snippet, /handlePlanMesBlockToggle\(blockToggle\.dataset\.planMesBlockToggle\)/);
+});
+
 test("P-4 · la celda «Usado» declara su procedencia (real o previsto), regla transversal 05", () => {
   const draftEntry = { key: "income:r1", row: { id: "r1" }, sectionName: "Ingresos", label: "Nómina", planned: 3000, plannedDraft: false, hasActual: false, usado: 3000, variance: null, kind: "income" };
   const realEntry = { ...draftEntry, hasActual: true, usado: 3050, variance: 50 };

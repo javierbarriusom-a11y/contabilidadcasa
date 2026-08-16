@@ -365,6 +365,48 @@
   margin-top: 0;
 }
 
+/* P-2: cabecera de bloque dentro de la tabla de Presupuesto de Plan · Mes — una fila propia, con
+   botón plegable (nativo, con aria-expanded) y el subtotal de previsto del bloque a la derecha. */
+.plan-mes-budget-table tr.plan-mes-block-row td {
+  background: var(--e19-surface-sunken);
+  border-top: 1px solid var(--e19-border);
+  border-bottom: 1px solid var(--e19-border);
+  padding: 8px 12px;
+}
+
+.plan-mes-block-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: 700 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--e19-muted);
+  cursor: pointer;
+}
+
+.plan-mes-block-caret {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid var(--e19-muted);
+  transition: transform 0.15s ease;
+}
+
+.plan-mes-block-toggle[aria-expanded="false"] .plan-mes-block-caret {
+  transform: rotate(-90deg);
+}
+
+.plan-mes-block-subtotal {
+  text-align: right;
+  font: 700 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  color: var(--e19-heading);
+}
+
 /* R-7: pie de impacto — reutiliza .e19-impact-bar (mismo componente que ya usa Plan en
    cuadro-mandos-impact); aquí solo se fija el borde inferior de Registrar y se añade el aviso de
    reserva bajo mínimo, que Plan no necesita porque no edita reales. */
@@ -2713,12 +2755,13 @@
 .e19-plan-prevision .plan-prevision-cushion.is-holgado { color: var(--e19-success); }
 
 /* Bloque y concepto identifican la fila: van a la izquierda, aunque .e19-table alinee a la
-   derecha todo lo que no sea la primera columna (pensada para tablas de solo cifras). */
+   derecha todo lo que no sea la primera columna (pensada para tablas de solo cifras). Registrar
+   sigue con «Bloque» como primera columna y «Concepto» como segunda; Plan (P-2) agrupa por bloque
+   con una cabecera de fila propia, así que «Concepto» pasa a ser la primera columna de su tabla. */
 .e19-registrar-mes .registrar-mes-table thead th:nth-child(2),
-.e19-plan-mes .registrar-mes-table thead th:nth-child(2),
 .e19-registrar-mes .registrar-mes-table td.registrar-mes-block,
-.e19-plan-mes .registrar-mes-table td.registrar-mes-block,
 .e19-registrar-mes .registrar-mes-table td.registrar-mes-concept,
+.e19-plan-mes .registrar-mes-table thead th:first-child,
 .e19-plan-mes .registrar-mes-table td.registrar-mes-concept {
   text-align: left;
 }

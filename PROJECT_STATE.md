@@ -2,6 +2,40 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría cerrada por completo — P-2
+
+Continuación directa de la tanda H-5 (misma sesión, PR anterior ya fusionado). P-2 era la última
+tarea pendiente de la Prioridad 3 — con este cierre, las cinco tareas de la prioridad (M-3, D-6,
+D-4, H-5, P-2) quedan hechas. Solo la Prioridad 4 completa (6 tareas: R-2, P-4, P-1, R-3, M-2/M-6,
+M-8) sigue pendiente.
+
+**P-2**: el mockup mostraba una sola tabla «Presupuesto de [mes]» con cabeceras de sección y
+subtotal por bloque, plegable; el código tenía dos tarjetas planas y separadas (Ingresos/Gastos),
+ambas itemizadas sin agrupar, con «Bloque» como una simple columna de texto repetida en cada fila.
+
+La tarjeta de Gastos se sustituye por una tabla única «Presupuesto de [mes]», agrupada por los
+nombres de sección reales de `baseData.monthlyPlanning.sections` — Gastos fijos, Gastos variables,
+Financiaciones — en vez de la taxonomía del mockup (que incluía una «Ahorro» que no existe como
+sección propia en el modelo de datos real; no se fabricó para igualar el mockup al pixel). Cada
+bloque es una fila de cabecera propia (`planMesBlockRowHtml`) con su subtotal de previsto
+(`planMesGroupBySection`, suma de la misma columna Previsto) y un botón plegable con `aria-expanded`
+(`handlePlanMesBlockToggle`) que oculta/muestra sus filas. La columna «Bloque» por fila se retira —
+redundante una vez que la cabecera de bloque ya lo dice — y la fila de solo lectura de Financiaciones
+(P-3, cuotas de deuda con enlace a Deuda) sigue intacta dentro de su bloque, sin ningún cambio de
+comportamiento. Ingresos se queda como estaba, sin agrupar: el mockup tampoco la itemiza dentro de
+la tabla de presupuesto — su previsto ya vive en los KPI de arriba (`planMesKpis`).
+
+**Validación**: `npm run verify`, exit 0, **1008/1008 pruebas** (995 + 13 nuevas en
+`tests/p1-p7-plan-mes.test.cjs`), 699 IDs de accesibilidad, rendimiento/build/privacidad/smoke en
+verde. Verificación visual con Playwright: tres bloques (Gastos fijos 2.500 €, Gastos variables
+1.750 €, Financiaciones 480 €) con sus subtotales reales, plegar/desplegar funcionando (filas
+ocultas/mostradas, `aria-expanded` correcto), cabecera de 4 columnas sin «Bloque», y la fila de
+Financiaciones con su enlace a Deuda intacta dentro del bloque. Sin errores de consola.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — P-2 pasa a `Hecho` (sin «parcial») en
+la tabla y gana nota de cierre. La Prioridad 3 queda cerrada por completo. Siguiente objetivo: la
+Prioridad 4, sin empezar todavía (R-2, P-4, P-1, R-3, M-2/M-6, M-8).
+
 ## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría (tercera tanda) — H-5
 
 Continuación directa de la tanda D-4 (misma sesión, PR anterior ya fusionado). H-5 era la última
