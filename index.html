@@ -56,7 +56,7 @@
             <span>Datos</span>
             <small>Saldos, reales e importaciones</small>
           </a>
-          <a href="#conciliar" class="nav-primary-link">
+          <a href="#cierre" class="nav-primary-link">
             <span>Cierre</span>
             <small>Conciliación y confianza del dato</small>
           </a>
@@ -1399,6 +1399,31 @@
               <table class="e19-table deuda-contratos-table" id="deudaContratosTable"></table>
             </div>
             <p class="e19-kpi-note">Capital pendiente, TAE y cuota son los únicos campos editables — entidad, producto y estado siguen siendo los declarados en el contrato.</p>
+          </section>
+
+          <section class="e19-cierre view-section" id="cierre">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Fin de mes · Cierre</p>
+                <h2 class="e19-heading" id="cierreTitle">Cierre</h2>
+                <p class="e19-subtitle" id="cierreSubtitle"></p>
+              </div>
+            </div>
+
+            <div class="home-kpi-grid" id="cierreCounters"></div>
+            <p class="e19-kpi-note" id="cierreSobresNote"></p>
+
+            <div id="cierreWizard">
+              <ol class="cierre-steps" id="cierreSteps"></ol>
+              <div id="cierreStepBody"></div>
+            </div>
+
+            <div id="cierreClosedState" hidden>
+              <article class="e19-card" id="cierreClosedInfo"></article>
+              <button type="button" class="e19-btn e19-btn-secondary" id="cierreReopen">Reabrir mes</button>
+            </div>
+
+            <p class="e19-kpi-note" id="cierreStatus" role="status"></p>
           </section>
 
           <section class="e19-conciliar view-section" id="conciliar">

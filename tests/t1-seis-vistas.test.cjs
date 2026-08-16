@@ -19,7 +19,7 @@ test("T-1 · las seis vistas son pestaña principal, con el destino correcto cad
     ["#plan", "Plan"],
     ["#deuda-ruta", "Deuda"],
     ["#update-hub", "Datos"],
-    ["#conciliar", "Cierre"],
+    ["#cierre", "Cierre"],
     ["#ajustes", "Ajustes"],
   ];
   for (const [href] of expected) {

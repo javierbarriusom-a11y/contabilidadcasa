@@ -2,6 +2,48 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: primer incremento real de Cierre (Fase 5)
+
+Punto 2 del plan de construcción acordado con el usuario (Escenarios, punto 1, ya cerrado — ver la
+entrada siguiente). Fase 5 (Cierre) estaba a cero código propio; este incremento construye el
+ritual secuencial real, no toda la lista de 15 tareas del backlog.
+
+Nueva pantalla `#cierre`, ahora destino de la pestaña principal «Cierre» (antes apuntaba a
+`#conciliar`, que sigue viva sin cambios en «Herramientas avanzadas › Datos»). Tres pasos
+secuenciales — Conciliar cuentas → Resolver diferencias → Firmar y archivar — en vez de los cuatro
+del mockup: Sobres (P-14/P-15/P-16) no existe todavía, y el propio mockup contempla explícitamente
+este caso («con la fase 6 apagada el cierre tiene tres pasos y lo dice»). Cada paso permanece
+bloqueado hasta que el anterior está completo; un paso ya completado se puede reabrir para
+consultarlo.
+
+No se fabricó ningún cálculo financiero nuevo: reutiliza `FinanceCanonicalLedger` (extracto
+bancario), `E11bInbox.reconciliationTasks` (tareas por causa) y `closeCurrentMonthTransaction()` /
+`reopenLatestMonthTransaction()` — la misma puerta transaccional con Supabase que ya usaba
+`#reconciliation`, con `FinanceCanonicalMonthClose`/E5 de versionado detrás. La conciliación por
+cuenta (declarado vs. calculado) compara `accountBalancesFromState()` (lo escrito en Registrar) con
+el `balanceAfter` más reciente del extracto ya incorporado; una cuenta sin extracto (Mediolanum no
+trae extracto bancario en este modelo) se marca «Sin conciliar», nunca «Cuadra» — comparar con cero
+habría sido inventar un dato y habría bloqueado el cierre para siempre.
+
+Decisión de alcance documentada: el modal de resolución de dos rutas (C-3b) se dejó pendiente
+porque la ruta «resolver aquí mismo» cruzaría dos modelos de datos que hoy no se pueden enlazar de
+forma fiable (las `entries` del ledger no llevan de vuelta a la fila cruda de `state.transactions`
+que necesita la reclasificación de Movimientos) — forzar el cruce a ciegas era más riesgo que valor.
+C-10/C-11 (historial de versiones dedicado, aviso cruzado a Análisis) y C-12 (exportar PDF/CSV)
+también quedan pendientes. C-6/C-7 (sobres) y C-14 (retirar heredadas) siguen bloqueadas como estaba
+previsto.
+
+**Validación**: `npm test`, exit 0, **1082/1082 pruebas** (13 nuevas en
+`tests/c1-c9-cierre-wizard.test.cjs`, más 2 pruebas existentes de E17/T-1 actualizadas porque fijaban
+`#conciliar` como destino literal de la pestaña «Cierre»). Verificado con Playwright contra el build
+local: los tres pasos se recorren en orden con el candado correcto, el paso 3 muestra el botón
+deshabilitado con «Firmar · 1 sin cumplir» cuando falta el extracto del mes y sin sesión de
+Supabase, `#conciliar` sigue funcionando sin cambios. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — C-1/C-2/C-3/C-4/C-5/C-8/C-9 pasan a
+`Hecho` con nota de cierre. Queda pendiente el punto 3 del plan (Análisis, Fase 6), que depende de
+Cierre para varias de sus tareas (A-4, A-7, A-10, A-13).
+
 ## Cierre de sesión — 16 de agosto de 2026: E-5, panel de cuatro comprobaciones en Escenarios
 
 Continuación directa del punto 1 del plan de Escenarios (misma sesión, PR #63/E-11 ya fusionado).
