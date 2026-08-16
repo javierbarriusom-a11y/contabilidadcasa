@@ -1841,6 +1841,19 @@
   background: color-mix(in srgb, var(--e19-accent) 10%, transparent);
 }
 
+/* D-6: los cinco indicadores se colorean frente al plan sin decisión (caja mínima), el principal
+   pendiente (coste) y la cuota actual (cuota resultante) — mismo verde/rojo que ya usa Registrar
+   para previsto/real, aplicado aquí a la comparativa de los ocho modos. */
+.e19-deuda-decidir .deuda-decidir-mode-compare td.positive {
+  color: var(--e19-success);
+  font-weight: 600;
+}
+
+.e19-deuda-decidir .deuda-decidir-mode-compare td.negative {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
 /* `.deuda-decidir-strategy-kpis` se pensó para la columna estrecha de una tarjeta de estrategia
    (~250px): reutilizada tal cual en el ancho completo del fieldset de modo, `justify-content:
    space-between` separaba la etiqueta del valor hasta casi perderlo de vista. Aquí se convierte en
@@ -2524,7 +2537,8 @@
 .e19-plan-mes .registrar-mes-filters,
 .e19-cuadro-mandos .registrar-mes-filters,
 .e19-prevision .registrar-mes-filters,
-.e19-plan-prevision .registrar-mes-filters {
+.e19-plan-prevision .registrar-mes-filters,
+.table-section .registrar-mes-filters {
   display: inline-flex;
   gap: 2px;
   padding: 3px;
@@ -2536,7 +2550,8 @@
 .e19-plan-mes .registrar-mes-filter,
 .e19-cuadro-mandos .registrar-mes-filter,
 .e19-prevision .registrar-mes-filter,
-.e19-plan-prevision .registrar-mes-filter {
+.e19-plan-prevision .registrar-mes-filter,
+.table-section .registrar-mes-filter {
   border: none;
   background: transparent;
   border-radius: var(--e19-radius-pill);
@@ -2550,7 +2565,8 @@
 .e19-plan-mes .registrar-mes-filter.is-active,
 .e19-cuadro-mandos .registrar-mes-filter.is-active,
 .e19-prevision .registrar-mes-filter.is-active,
-.e19-plan-prevision .registrar-mes-filter.is-active {
+.e19-plan-prevision .registrar-mes-filter.is-active,
+.table-section .registrar-mes-filter.is-active {
   background: var(--e19-surface);
   color: var(--e19-heading);
   box-shadow: var(--e19-shadow-card);
@@ -2560,9 +2576,30 @@
 .e19-plan-mes .registrar-mes-filter:focus-visible,
 .e19-cuadro-mandos .registrar-mes-filter:focus-visible,
 .e19-prevision .registrar-mes-filter:focus-visible,
-.e19-plan-prevision .registrar-mes-filter:focus-visible {
+.e19-plan-prevision .registrar-mes-filter:focus-visible,
+.table-section .registrar-mes-filter:focus-visible {
   outline: 2px solid var(--e19-accent);
   outline-offset: 2px;
+}
+
+/* M-3: la cabecera de Movimientos nunca tuvo bloque propio de estilos (evolucionó #movements en
+   el mismo sitio, sin construir una pantalla e19 al lado) — solo el layout que faltaba para que
+   los atajos de rango y los seis chips no se amontonen. */
+.movement-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Seis chips que casi nunca caben en una sola fila: el fondo "hundido" en forma de píldora que
+   usa .registrar-mes-filters queda roto al envolver en varias líneas, así que aquí solo se
+   reutiliza el botón (.registrar-mes-filter), no su contenedor. */
+.movement-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
 }
 
 .e19-registrar-mes .registrar-mes-table,

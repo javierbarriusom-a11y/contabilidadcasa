@@ -1,6 +1,56 @@
 # Estado del proyecto
 
-Fecha de revisión: 15 de agosto de 2026.
+Fecha de revisión: 16 de agosto de 2026.
+
+## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría (primera tanda) — M-3 y D-6
+
+Continuación directa de la Prioridad 2 (M-7/D-9/D-8/H-6), sesión siguiente. El usuario pidió seguir
+por prioridad con M-3, D-6, D-4, P-2 y H-5; tras construir y verificar M-3 y D-6, eligió publicar
+esa tanda ahora y continuar con D-4 después en la misma sesión.
+
+**M-3**: el `<select>` de mes de Movimientos se sustituyó por seis chips con recuento vivo (Todos,
+Sin clasificar, Gastos, Ingresos, Manual, Duplicado revisado — `MOVEMENT_CHIPS`, cada uno con su
+`test(row)`) y cuatro atajos de rango (Este mes, Últimos 3 meses, Año en curso, Todo —
+`movementsRangeShortcutBounds`, aritmética de mes natural sobre Desde/Hasta). La lista base
+(`movementsRangeAndSearchList`, rango + búsqueda) alimenta tanto el recuento de cada chip
+(`movementsChipCounts`) como la lista filtrada final (`movementsFilteredList`); la búsqueda ahora
+compara también contra el importe en texto, no solo concepto/detalle/categoría. El chip «Duplicado
+revisado» necesitó un campo nuevo y acotado: `datosImportarIncludedTransactions` descartaba la
+decisión «distinto» del asistente de duplicados al construir los movimientos finales; ahora estampa
+`duplicateReviewed: true` en esos movimientos. «Manual» cuenta 0 hoy con honestidad — no existe
+todavía alta manual de movimientos.
+
+**D-6**: sin mockup visual que fijara contra qué se colorean los «cinco indicadores» del criterio,
+se propuso el diseño al usuario antes de construir (`AskUserQuestion`) en vez de adivinarlo: comparar
+cada uno de los ocho modos contra un escenario «Plan» (el motor de escenarios con cero decisiones de
+deuda, mismo patrón que el baseline «no-tocar» ya usado en la comparación de las 4 estrategias) — el
+usuario confirmó la propuesta. La tabla de `#deuda-comparar` gana cinco columnas por modo (mes, caja
+mínima coloreada frente al Plan, coste coloreado frente al capital vivo, cuota resultante coloreada
+frente a la cuota actual, resultado con insignia), reutilizando siempre `debtModeResultForContract` —
+el mismo cálculo del panel del modo activo. `renderDeudaCompararModeInsight` añade el veredicto en
+prosa, nombrando el modo viable con mejor caja mínima y el supuesto principal, oculto si ningún modo
+es viable.
+
+**Bug real encontrado con Playwright, no con las pruebas**: dar a los seis chips envueltos en varias
+filas la misma clase de píldora de una sola fila que ya usaban los atajos de rango
+(`.registrar-mes-filters`) rompía visualmente al hacer wrap — una mancha redondeada rota cruzando las
+tres filas. Corregido quitando esa clase del contenedor de chips y dándole su propio
+`display:flex; flex-wrap:wrap` sin fondo de píldora; la clase compartida queda solo en botones
+individuales y en contenedores de una fila.
+
+**Validación**: `npm run verify`, exit 0, **969/969 pruebas** (954 + 15 nuevas, repartidas entre
+`tests/m1-m11-movimientos.test.cjs` reescrito para M-3 (32 pruebas en el archivo) y
+`tests/d4-d5-d6-deuda-calendario-modos.test.cjs` (49 pruebas en el archivo tras D-6)), 697 IDs de
+accesibilidad, rendimiento/build/privacidad/smoke en verde. Verificación visual con Playwright:
+chips con recuento correcto y wrap limpio sin mancha de píldora, atajos de rango escribiendo
+Desde/Hasta, búsqueda por importe, tabla de ocho modos con las cinco columnas coloreadas
+verde/rojo y el veredicto en prosa visible bajo la tabla.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — M-3 y D-6 pasan a `Hecho` (sin
+«parcial») en la tabla y ganan nota de cierre. Quedan pendientes D-4, P-2 y H-5 de la Prioridad 3,
+y la Prioridad 4 completa: R-2, P-4, P-1, R-3, M-2/M-6, M-8. Siguiente objetivo en esta misma
+sesión: D-4 (calendario de amortización aplicando el reparto real de la estrategia activa, con
+comparación agregada frente a solo-mínimos).
 
 ## Cierre de sesión — 15 de agosto de 2026: Prioridad 2 de la auditoría — M-7, D-9, D-8 y H-6
 

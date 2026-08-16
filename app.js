@@ -16227,8 +16227,13 @@ function datosImportarRowsPendingDuplicate(rows) {
 
 // Los movimientos que de verdad entrarían en el plan: todos salvo los que el paso 3 ha marcado
 // como duplicado de algo que ya está registrado.
+// M-3: cuando el paso 3 marca un candidato como «distinto» (no duplicado), esa decisión se perdía
+// al fusionar con baseData.transactions — se estampa aquí como duplicateReviewed, la única fuente
+// real que lee el chip «Duplicado revisado» de Movimientos.
 function datosImportarIncludedTransactions(rows) {
-  return rows.filter((row) => row.duplicateDecision !== "duplicado").map((row) => row.transaction);
+  return rows
+    .filter((row) => row.duplicateDecision !== "duplicado")
+    .map((row) => (row.duplicateDecision === "distinto" ? { ...row.transaction, duplicateReviewed: true } : row.transaction));
 }
 
 // Las relaciones nuevas que esta sesión añadiría al diccionario de reglas, sin escribirlas
@@ -16867,34 +16872,87 @@ function renderDatosImportar() {
   }
 }
 
-function populateMovementFilters(transactions) {
-  const monthSelect = qs("movementMonthFilter");
-  if (!monthSelect) return;
-  const previous = monthSelect.value;
-  const months = [...new Set(transactions.map((row) => row.month).filter(Boolean))].sort().reverse();
-  monthSelect.innerHTML = `<option value="">Todos los meses</option>${months
-    .map((month) => `<option value="${month}">${escapeHtml(monthLabel(dateFromMonthKey(month)))}</option>`)
-    .join("")}`;
-  if ([...monthSelect.options].some((option) => option.value === previous)) monthSelect.value = previous;
-}
+// M-3 (auditoría del 15 de agosto): seis chips con recuento vivo — sustituyen el `<select>` de mes,
+// que el criterio del PDF no pedía. «Manual» y «Duplicado revisado» solo tienen dato real cuando
+// existe: hoy no hay ninguna puerta de alta manual de movimientos (fuera del alcance de un filtro,
+// es una escritura nueva), así que ese chip cuenta 0 con honestidad, no lo esconde ni lo fabrica.
+const MOVEMENT_CHIPS = [
+  { id: "todos", label: "Todos", test: () => true },
+  { id: "sin-clasificar", label: "Sin clasificar", test: (row) => Boolean(Number(row.amount)) && !mappingForMovement(row) },
+  { id: "gastos", label: "Gastos", test: (row) => Number(row.amount) < 0 },
+  { id: "ingresos", label: "Ingresos", test: (row) => Number(row.amount) > 0 },
+  { id: "manual", label: "Manual", test: (row) => row.source === "Manual" },
+  { id: "duplicado-revisado", label: "Duplicado revisado", test: (row) => row.duplicateReviewed === true },
+];
+let movementsChipFilter = "todos";
 
-// M-3: filtro por mes, búsqueda y ahora también rango de fechas (Desde/Hasta), sobre `Fecha`, la
-// misma que ya ordenaba la tabla. Se extrae de `renderDetailedMovements` para que el manejador del
-// panel de detalle (M-6) pueda recalcular la misma lista filtrada y resolver un índice de fila sin
-// depender de un id estable que los movimientos no tienen.
-function movementsFilteredList() {
+// M-3: rango libre (Desde/Hasta) y búsqueda por concepto o importe, sobre `Fecha` — la misma que ya
+// ordenaba la tabla. Separado de `movementsFilteredList()` para que el recuento de cada chip
+// (`movementsChipCounts`) se calcule sobre el mismo rango+búsqueda que ve la tabla, sin el chip
+// activo todavía aplicado.
+function movementsRangeAndSearchList() {
   const transactions = (baseData.transactions || []).slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  const monthFilter = qs("movementMonthFilter")?.value || "";
   const dateFrom = qs("movementDateFrom")?.value || "";
   const dateTo = qs("movementDateTo")?.value || "";
   const search = normalizedText(qs("movementSearch")?.value || "");
   return transactions.filter((row) => {
-    if (monthFilter && row.month !== monthFilter) return false;
     if (dateFrom && String(row.date) < dateFrom) return false;
     if (dateTo && String(row.date) > dateTo) return false;
     if (!search) return true;
+    const amountText = normalizedText(`${row.amount} ${money(Math.abs(Number(row.amount || 0)), true)}`);
+    if (amountText.includes(search)) return true;
     return normalizedText(`${row.date} ${row.movement} ${row.details} ${row.category} ${row.source}`).includes(search);
   });
+}
+
+function movementsChipCounts(rows) {
+  const counts = {};
+  MOVEMENT_CHIPS.forEach((chip) => {
+    counts[chip.id] = rows.filter(chip.test).length;
+  });
+  return counts;
+}
+
+// Se extrae de `renderDetailedMovements` para que el manejador del panel de detalle (M-6) pueda
+// recalcular la misma lista filtrada y resolver un índice de fila sin depender de un id estable
+// que los movimientos no tienen.
+function movementsFilteredList() {
+  const chip = MOVEMENT_CHIPS.find((item) => item.id === movementsChipFilter) || MOVEMENT_CHIPS[0];
+  return movementsRangeAndSearchList().filter(chip.test);
+}
+
+// M-3: cuatro atajos de rango — «todo» vacía el rango, el resto son meses de calendario completos
+// hasta hoy, igual que «Este mes»/«Año en curso» piden literalmente calendario, no una ventana de
+// N días.
+function movementsRangeShortcutBounds(kind, today = new Date()) {
+  if (kind === "todo") return { from: "", to: "" };
+  const to = isoLocalDate(today);
+  if (kind === "mes") return { from: isoLocalDate(new Date(today.getFullYear(), today.getMonth(), 1)), to };
+  if (kind === "trimestre") return { from: isoLocalDate(new Date(today.getFullYear(), today.getMonth() - 2, 1)), to };
+  if (kind === "anio") return { from: isoLocalDate(new Date(today.getFullYear(), 0, 1)), to };
+  return { from: "", to: "" };
+}
+
+function handleMovementsRangeShortcut(kind) {
+  const bounds = movementsRangeShortcutBounds(kind);
+  if (qs("movementDateFrom")) qs("movementDateFrom").value = bounds.from;
+  if (qs("movementDateTo")) qs("movementDateTo").value = bounds.to;
+  renderDetailedMovements();
+}
+
+function handleMovementsChipFilter(chipId) {
+  if (!MOVEMENT_CHIPS.some((chip) => chip.id === chipId)) return;
+  movementsChipFilter = chipId;
+  renderDetailedMovements();
+}
+
+function renderMovementChips(counts) {
+  const container = qs("movementChips");
+  if (!container) return;
+  container.innerHTML = MOVEMENT_CHIPS.map(
+    (chip) =>
+      `<button type="button" class="registrar-mes-filter${movementsChipFilter === chip.id ? " is-active" : ""}" data-movement-chip="${chip.id}" aria-pressed="${movementsChipFilter === chip.id ? "true" : "false"}">${escapeHtml(chip.label)} · ${counts[chip.id] || 0}</button>`,
+  ).join("");
 }
 
 // M-4: la partida se lee de `mappingForMovement` (el mismo diccionario `movementMappings` que ya
@@ -16923,10 +16981,10 @@ function movementsTotals(filtered) {
 function renderDetailedMovements() {
   const rowsElement = qs("movementRows");
   if (!rowsElement) return;
-  const transactions = baseData.transactions || [];
-  populateMovementFilters(transactions);
-  const monthFilter = qs("movementMonthFilter")?.value || "";
-  const filtered = movementsFilteredList();
+  const rangeAndSearch = movementsRangeAndSearchList();
+  renderMovementChips(movementsChipCounts(rangeAndSearch));
+  const chip = MOVEMENT_CHIPS.find((item) => item.id === movementsChipFilter) || MOVEMENT_CHIPS[0];
+  const filtered = rangeAndSearch.filter(chip.test);
   const unclassified = filtered.filter((row) => Number(row.amount) && !mappingForMovement(row));
 
   // M-8: la tabla se reconstruye entera en cada filtro nuevo, así que cualquier selección previa
@@ -16934,7 +16992,7 @@ function renderDetailedMovements() {
   movementsSelectedIndexes.clear();
 
   const countLabel = qs("movementCount");
-  if (countLabel) countLabel.textContent = `${filtered.length} movimiento(s) reales${monthFilter ? ` en ${monthLabel(dateFromMonthKey(monthFilter))}` : ""}.`;
+  if (countLabel) countLabel.textContent = `${filtered.length} movimiento(s) reales.`;
 
   // M-5: aviso de cola sin clasificar, sobre la misma vista filtrada — no un recuento aparte del
   // extracto completo que no coincidiría con lo que la tabla muestra.
@@ -23460,27 +23518,111 @@ function renderDeudaCompararModes() {
   // valores por defecto, nunca los del modo activo — mezclar importes de un modo en otro daría una
   // comparación que no es la que cada modo ofrecería por sí solo.
   if (compareBody) {
-    compareBody.innerHTML = DEBT_MODE_DEFINITIONS.map((item) => {
+    const planBaseline = debtModePlanBaseline(baseInput, reserveValue);
+    const rows = DEBT_MODE_DEFINITIONS.map((item) => {
       const itemValues = item.id === debtModeId ? debtModeEffectiveValues() : debtModeDefaultValues(contract, item);
       const itemResult = debtModeResultForContract(contract, item, itemValues, baseInput, reserveValue);
-      const rowClass = item.id === debtModeId ? ' class="is-active"' : "";
-      if (!itemResult.available) {
+      return { item, itemResult };
+    });
+    compareBody.innerHTML = rows
+      .map(({ item, itemResult }) => {
+        const rowClass = item.id === debtModeId ? ' class="is-active"' : "";
+        if (!itemResult.available) {
+          return `<tr${rowClass} data-deuda-comparar-mode-row="${escapeHtml(item.id)}">
+            <td>${escapeHtml(item.label)}</td>
+            <td colspan="5">${escapeHtml(debtModeUnavailableNote(contract, itemResult))}</td>
+            <td><button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-mode-usar="${escapeHtml(item.id)}">Usar</button></td>
+          </tr>`;
+        }
         return `<tr${rowClass} data-deuda-comparar-mode-row="${escapeHtml(item.id)}">
           <td>${escapeHtml(item.label)}</td>
-          <td colspan="3">${escapeHtml(debtModeUnavailableNote(contract, itemResult))}</td>
+          ${debtModeIndicatorsHtml(item, itemResult, contract, planBaseline)}
           <td><button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-mode-usar="${escapeHtml(item.id)}">Usar</button></td>
         </tr>`;
-      }
-      const info = escenarioMotorResultInfo(itemResult.resultado?.resultado);
-      return `<tr${rowClass} data-deuda-comparar-mode-row="${escapeHtml(item.id)}">
-        <td>${escapeHtml(item.label)}</td>
-        <td>${escapeHtml(itemResult.mesResuelto ? escenarioMotorMonthLabel(itemResult.mesResuelto) : "—")}</td>
-        <td>${escapeHtml(escenarioMotorDecisionAmountText(itemResult.decision))}</td>
-        <td><span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></td>
-        <td><button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-mode-usar="${escapeHtml(item.id)}">Usar</button></td>
-      </tr>`;
-    }).join("");
+      })
+      .join("");
+    renderDeudaCompararModeInsight(rows, contract);
   }
+}
+
+// D-6: "el plan" es el escenario sin ninguna decisión de deuda — el mismo concepto que "no tocar
+// nada" ya usa la comparativa de las cuatro estrategias, aplicado aquí a los ocho modos de un solo
+// contrato. Caja mínima es la única cifra directamente comparable contra ese plan (coste y cuota
+// del plan son cero/las declaradas por definición, así que se colorean contra el propio contrato:
+// coste frente al principal pendiente, cuota resultante frente a la cuota actual).
+function debtModePlanBaseline(baseInput, reserveValue) {
+  const result = runEscenarioMotor(baseInput, [], debtStrategyEffectiveReserve(reserveValue));
+  if (!result || !result.valid) return null;
+  const cajaMinima = result.series?.length ? Math.min(...result.series.map((row) => row.totalLiquidity)) : null;
+  return { cajaMinima };
+}
+
+// La cuota que queda tras cada modo depende del tipo: una amortización única salda del todo (cuota
+// futura: 0), refinanciar y retomar pagos declaran su propia cuota nueva, y la fraccionada añade un
+// extra mensual sin tocar la cuota declarada del contrato (por eso devuelve la misma, no null: sigue
+// siendo una cifra real y comparable, solo que no cambia con este modo).
+function debtModeResultingPayment(def, itemResult, contract) {
+  const params = itemResult.decision?.params || {};
+  if (def.tipoId === "amortizacion") return 0;
+  if (def.tipoId === "refinanciacion") return Number.isFinite(Number(params.nuevaCuota)) ? Number(params.nuevaCuota) : null;
+  if (def.tipoId === "retomar_pagos") return Number.isFinite(Number(params.cuota)) ? Number(params.cuota) : null;
+  if (def.tipoId === "amortizacion_fraccionada") return round2(Number(contract?.currentPayment || 0));
+  return null;
+}
+
+function debtModeCosteNumeric(def, itemResult) {
+  const params = itemResult.decision?.params || {};
+  if (def.tipoId === "amortizacion") return round2(Number(params.importe || 0));
+  if (def.tipoId === "amortizacion_fraccionada") return round2(Number(params.importeMensual || 0) * Number(params.meses || 0));
+  if (def.tipoId === "refinanciacion") return round2(Number(params.nuevoPrincipal || 0));
+  if (def.tipoId === "retomar_pagos") return round2(Number(params.cuota || 0));
+  return 0;
+}
+
+function debtCompareToneClass(comparison) {
+  return comparison === "mejor" ? "positive" : comparison === "peor" ? "negative" : "";
+}
+
+// Cinco indicadores del criterio: mes resuelto, caja mínima (vs el plan sin decisión), coste (vs el
+// principal pendiente: pagar menos que la deuda entera es la única forma honesta de "mejor" sin
+// inventar un coste de referencia para el plan, que por definición es cero), cuota resultante (vs
+// la cuota actual) y el resultado viable/no viable.
+function debtModeIndicatorsHtml(item, itemResult, contract, planBaseline) {
+  const info = escenarioMotorResultInfo(itemResult.resultado?.resultado);
+  const cajaComparison = planBaseline?.cajaMinima === null || planBaseline?.cajaMinima === undefined
+    ? ""
+    : (itemResult.cajaMinima ?? 0) >= planBaseline.cajaMinima
+      ? "mejor"
+      : "peor";
+  const principal = Number(contract?.currentPrincipal || 0);
+  const coste = debtModeCosteNumeric(item, itemResult);
+  const costeComparison = principal > 0 ? (coste < principal ? "mejor" : "peor") : "";
+  const cuotaActual = Number(contract?.currentPayment || 0);
+  const cuotaResultante = debtModeResultingPayment(item, itemResult, contract);
+  const cuotaComparison = cuotaResultante === null ? "" : cuotaResultante < cuotaActual ? "mejor" : cuotaResultante > cuotaActual ? "peor" : "";
+  return `
+    <td>${escapeHtml(itemResult.mesResuelto ? escenarioMotorMonthLabel(itemResult.mesResuelto) : "—")}</td>
+    <td class="${debtCompareToneClass(cajaComparison)}">${money(itemResult.cajaMinima ?? 0, true)}</td>
+    <td class="${debtCompareToneClass(costeComparison)}">${money(coste, true)}</td>
+    <td class="${debtCompareToneClass(cuotaComparison)}">${cuotaResultante === null ? "—" : money(cuotaResultante, true)}</td>
+    <td><span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></td>
+  `;
+}
+
+// D-6: veredicto en prosa que nombra el supuesto principal — mismo patrón que deudaCompararInsight
+// para las estrategias, aplicado al modo con mejor caja mínima entre los viables de este contrato.
+function renderDeudaCompararModeInsight(rows, contract) {
+  const insight = qs("deudaCompararModeInsight");
+  if (!insight) return;
+  const viable = rows.filter(({ itemResult }) => itemResult.available && itemResult.viable);
+  if (!viable.length || !contract) {
+    insight.hidden = true;
+    return;
+  }
+  const best = viable.reduce((top, current) => ((current.itemResult.cajaMinima ?? -Infinity) > (top.itemResult.cajaMinima ?? -Infinity) ? current : top));
+  insight.hidden = false;
+  insight.innerHTML = `<strong>${escapeHtml(best.item.label)} deja la mejor caja mínima para ${escapeHtml(escenarioMotorDebtLabel(contract))}</strong>
+    <p>Caja mínima de ${money(best.itemResult.cajaMinima ?? 0, true)}, resuelta en ${escapeHtml(best.itemResult.mesResuelto ? escenarioMotorMonthLabel(best.itemResult.mesResuelto) : "—")}. Supuesto principal: TIN, cuota y plazo son los declarados en el contrato o los que se hayan escrito arriba — cambiarlos cambia esta comparación.</p>`;
 }
 
 function handleDeudaCompararModeContractChange(event) {
@@ -26201,10 +26343,17 @@ async function init() {
   qs("visualSaveChanges").addEventListener("click", saveVisualChanges);
   qs("visualDiscardChanges").addEventListener("click", discardVisualChanges);
   qs("visualBulkDelete").addEventListener("click", stageSelectedVisualDeletes);
-  qs("movementMonthFilter").addEventListener("change", renderDetailedMovements);
   qs("movementSearch").addEventListener("input", renderDetailedMovements);
   qs("movementDateFrom")?.addEventListener("change", renderDetailedMovements);
   qs("movementDateTo")?.addEventListener("change", renderDetailedMovements);
+  qs("movementRangeShortcuts")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-movement-range]");
+    if (button) handleMovementsRangeShortcut(button.dataset.movementRange);
+  });
+  qs("movementChips")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-movement-chip]");
+    if (button) handleMovementsChipFilter(button.dataset.movementChip);
+  });
   qs("movementRows")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-movement-detail-index]");
     if (button) handleMovementDetailOpen(button.dataset.movementDetailIndex);

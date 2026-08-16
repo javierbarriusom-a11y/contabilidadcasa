@@ -90,8 +90,11 @@ editables en Plan · Mes cuando D-2 ya es su puerta canónica) — están correg
 desmarcada por defecto), D-9/D-8 (la tarjeta «Oferta en curso» aplica in situ detrás de un
 checklist de cuatro requisitos, con motivo y fecha de revisión opcional que genera un recordatorio
 en Hoy) y H-6 (Ingresos/Gasto previsto/Gasto real a hoy/Desviación en vez de solo cifras reales) —
-ver sus notas respectivas. Quedan pendientes las Prioridades 3-4 (11 tareas): M-3, D-6, D-4, P-2,
-H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+ver sus notas respectivas. **Prioridad 3, cerrada el 16 de agosto**: M-3 (seis chips con recuento
+vivo, cuatro atajos de rango y búsqueda que también cubre el importe) y D-6 (cinco indicadores
+coloreados frente al Plan más veredicto en prosa) — ver sus notas respectivas. Quedan pendientes
+D-4, P-2 y H-5 de la Prioridad 3, y la Prioridad 4 completa (9 tareas en total): D-4, P-2, H-5 ·
+R-2, P-4, P-1, R-3, M-2/M-6, M-8.
 
 ## 4. Nueve reglas transversales
 
@@ -258,7 +261,7 @@ regla transversal 01 (una escritura real sigue abierta en una heredada).
 | --- | --- | --- | --- | --- |
 | M-1 | Vista propia en el menú | Fase 3 · menú | S | Hecho (15 de agosto) |
 | M-2 | Tabla del extracto | M-1 | M | Hecho (parcial, ver nota) |
-| M-3 | Filtros, búsqueda y rango de fechas | M-2 | M | Hecho (parcial, ver nota) |
+| M-3 | Filtros, búsqueda y rango de fechas | M-2 | M | Hecho (16 de agosto, ver nota) |
 | M-4 | Marca del movimiento sin partida | M-2 | S | Hecho |
 | M-5 | Aviso de cola sin clasificar | M-3 | S | Hecho |
 | M-6 | Panel de detalle | M-2 | M | Hecho (parcial, ver nota) |
@@ -326,12 +329,26 @@ Con esto, de las 13 tareas de Movimientos solo queda M-8c, bloqueada hasta que e
 **Auditoría del 15 de agosto contra `Movimientos.pdf` (sesión de contraste con los PDFs nuevos).**
 M-1, M-4, M-5, M-9, M-10 y M-11 coinciden con precisión. Gaps reales encontrados:
 
-- **M-3**: el criterio pide seis chips con recuento vivo (Todos/Sin clasificar/Gastos/Ingresos/
-  Manual/Duplicado revisado) y atajos de rango (Este mes/Últimos 3/Año en curso/Todo); la búsqueda
-  debe cubrir «concepto o importe». Lo implementado es un `&lt;select&gt;` de mes, dos campos de
-  fecha libres y un buscador cuyo propio placeholder dice «Movimiento, detalle o categoría» —
-  ningún chip existe, no hay atajos de rango, y `movementsFilteredList()` nunca compara contra el
-  importe.
+- **M-3 (cerrado el 16 de agosto, sesión de Prioridad 3)**: el criterio pedía seis chips con
+  recuento vivo (Todos/Sin clasificar/Gastos/Ingresos/Manual/Duplicado revisado) y atajos de rango
+  (Este mes/Últimos 3/Año en curso/Todo), con la búsqueda cubriendo «concepto o importe». El
+  `<select>` de mes se retiró; `MOVEMENT_CHIPS` declara los seis chips como `{id, label, test(row)}`
+  sobre `movementsRangeAndSearchList()` (rango + búsqueda, sin chip), de la que
+  `movementsChipCounts()` deriva el recuento vivo de cada chip y `movementsFilteredList()` aplica
+  además el chip activo. Los cuatro atajos de rango (`movementsRangeShortcutBounds`) escriben
+  Desde/Hasta con aritmética de mes natural. La búsqueda ahora compara también contra el importe en
+  texto, no solo concepto/detalle/categoría. El chip «Duplicado revisado» necesitó un campo nuevo,
+  legítimo y acotado: `datosImportarIncludedTransactions` descartaba la decisión «distinto» del
+  asistente de duplicados al construir los movimientos finales; ahora estampa
+  `duplicateReviewed: true` en esos movimientos, el único dato que el chip lee. «Manual» es un chip
+  honesto que hoy siempre cuenta 0 — no existe todavía una vía de alta manual de movimientos, así
+  que no había nada que fabricar. Bug real encontrado con Playwright antes de publicar: dar a los
+  chips envueltos en varias filas la misma clase de píldora de una sola fila que ya usaban los
+  atajos de rango producía una mancha redondeada rota al hacer wrap — corregido dándole a
+  `#movementChips` su propio `display:flex; flex-wrap:wrap` sin fondo de píldora, y dejando la
+  clase de píldora compartida solo en los atajos de rango (una fila) y en el botón por chip.
+  Pruebas nuevas/reescritas en `tests/m1-m11-movimientos.test.cjs` (32 pruebas en el archivo tras el
+  cambio, incluida búsqueda por importe y el estampado de `duplicateReviewed`).
 - **M-7 (cerrado el 15 de agosto, sesión de seguimiento de la Prioridad 2)**: el criterio exige una
   casilla «recordar para los que empiecen igual», **desmarcada por defecto**, para que aprender una
   regla sea «siempre deliberado» — reafirmado como decisión de diseño en el propio PDF. No existía
@@ -489,7 +506,7 @@ segunda puerta de escritura para las cuotas de deuda, que ya tiene su puerta can
 | D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
 | D-4 | Calendario de amortización | D-3 | L | Hecho (parcial, ver nota) |
 | D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
-| D-6 | Comparativa plan frente a modo | D-5 | M | Hecho (parcial, ver nota) |
+| D-6 | Comparativa plan frente a modo | D-5 | M | Hecho (16 de agosto, ver nota) |
 | D-7 | Comparar no escribe nada | D-6 | S | Hecho (ya existía, ver nota) |
 | D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (15 de agosto, ver nota) |
 | D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (15 de agosto, ver nota) |
@@ -608,10 +625,25 @@ correctas contra el PDF. Cuatro tareas marcadas «Hecho» no cumplen el criterio
   propósito** — el propio comentario del código dice «no sobre las decisiones de una ruta»: cada
   contrato se proyecta solo, sin aplicar el reparto de la estrategia activa ni comparar nunca contra
   un escenario de solo-mínimos. No hay ningún gráfico agregado.
-- **D-6**: el criterio pide «cinco indicadores con diferencia coloreada... más un veredicto en
-  prosa que nombra el supuesto principal». La tabla de los ocho modos solo tiene 4 columnas planas
-  sin color, y el único texto en prosa (`deudaCompararInsight`) pertenece a la comparación de las 4
-  *estrategias*, no a la de los 8 *modos*.
+- **D-6 (cerrado el 16 de agosto, sesión de Prioridad 3)**: el criterio pedía «cinco indicadores con
+  diferencia coloreada... más un veredicto en prosa que nombra el supuesto principal» sobre la
+  tabla de los ocho modos, que antes solo tenía 4 columnas planas sin color y reutilizaba el
+  veredicto de la comparación de 4 *estrategias*, no el de los 8 *modos*. Sin mockup visual para
+  fijar contra qué se colorea cada indicador, se propuso al usuario un diseño concreto antes de
+  construir (`AskUserQuestion`) en vez de adivinarlo en silencio: comparar cada modo contra un
+  escenario «Plan» — el motor de escenarios (`runEscenarioMotor`) corrido con cero decisiones de
+  deuda, el mismo patrón que ya usaba el baseline «no-tocar» de la comparación de estrategias — y
+  fue la opción elegida. La tabla ahora pinta cinco columnas por modo (mes, caja mínima coloreada
+  frente al Plan, coste coloreado frente al capital vivo del contrato, cuota resultante coloreada
+  frente a la cuota actual, resultado con insignia), reutilizando siempre
+  `debtModeResultForContract` — el mismo cálculo que ya alimenta el panel del modo activo, nunca uno
+  nuevo. `renderDeudaCompararModeInsight` añade el veredicto en prosa nombrando el modo viable con
+  mejor caja mínima y el supuesto principal (Plan = cero decisiones de deuda), oculto cuando ningún
+  modo es viable en vez de inventar un ganador. Pruebas nuevas en
+  `tests/d4-d5-d6-deuda-calendario-modos.test.cjs` (49 pruebas en el archivo tras el cambio, con
+  fixtures conocidas para las cinco columnas y el veredicto). Verificado visualmente con Playwright:
+  la tabla de ocho modos pinta las cinco columnas con verde/rojo correctos y el veredicto en prosa
+  aparece bajo la tabla.
 - **D-8/D-9 (cerrados el 15 de agosto, sesión de seguimiento de la Prioridad 2)**: el criterio real
   no era sobre el checklist de la pestaña Ruta (comprobaba solo reserva y mes viable, dos cosas
   distintas a las cuatro del PDF) — es sobre la tarjeta «Oferta en curso», que hasta entonces solo

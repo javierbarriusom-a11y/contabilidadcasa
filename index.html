@@ -1292,13 +1292,14 @@
               <div class="deuda-decidir-strategy-actions">
                 <button type="button" class="e19-btn e19-btn-primary" id="deudaCompararModeApply">Aplicar este modo</button>
               </div>
-              <p class="e19-kpi-note">Comparativa de los ocho modos sobre el mismo contrato — el activo usa lo que hayas escrito arriba, el resto su propia sugerencia:</p>
+              <p class="e19-kpi-note">Comparativa de los ocho modos sobre el mismo contrato — el activo usa lo que hayas escrito arriba, el resto su propia sugerencia. Caja mínima, coste y cuota se colorean frente al plan sin decisión, al principal pendiente y a la cuota actual:</p>
               <div class="table-wrap">
                 <table class="e19-table deuda-decidir-mode-compare" id="deudaCompararModeCompare">
-                  <thead><tr><th>Modo</th><th>Mes</th><th>Coste</th><th>Resultado</th><th></th></tr></thead>
+                  <thead><tr><th>Modo</th><th>Mes</th><th>Caja mínima</th><th>Coste</th><th>Cuota resultante</th><th>Resultado</th><th></th></tr></thead>
                   <tbody id="deudaCompararModeCompareBody"></tbody>
                 </table>
               </div>
+              <div class="e19-insight" id="deudaCompararModeInsight" hidden></div>
             </fieldset>
 
             <div class="deuda-decidir-strategy-grid" id="deudaCompararGrid"></div>
@@ -3276,22 +3277,25 @@
               </div>
               <div class="movement-filters">
                 <label>
-                  <span>Mes</span>
-                  <select id="movementMonthFilter"></select>
+                  <span>Buscar</span>
+                  <input id="movementSearch" type="search" placeholder="Concepto o importe" />
                 </label>
                 <label>
-                  <span>Desde</span>
+                  <span>Rango</span>
                   <input id="movementDateFrom" type="date" />
                 </label>
                 <label>
-                  <span>Hasta</span>
+                  <span>&nbsp;</span>
                   <input id="movementDateTo" type="date" />
                 </label>
-                <label>
-                  <span>Buscar</span>
-                  <input id="movementSearch" type="search" placeholder="Movimiento, detalle o categoría" />
-                </label>
+                <div class="movement-range-shortcuts registrar-mes-filters" id="movementRangeShortcuts" role="group" aria-label="Atajos de rango">
+                  <button type="button" class="registrar-mes-filter" data-movement-range="mes">Este mes</button>
+                  <button type="button" class="registrar-mes-filter" data-movement-range="trimestre">Últimos 3 meses</button>
+                  <button type="button" class="registrar-mes-filter" data-movement-range="anio">Año en curso</button>
+                  <button type="button" class="registrar-mes-filter" data-movement-range="todo">Todo</button>
+                </div>
               </div>
+              <div class="movement-chips" id="movementChips" role="group" aria-label="Filtrar movimientos por tipo"></div>
             </div>
             <p class="e19-badge e19-badge-warning movements-unclassified-banner" id="movementsUnclassifiedBanner" role="status" hidden></p>
             <div class="movement-count" id="movementCount"></div>
