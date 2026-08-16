@@ -2,6 +2,41 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: auditoría de Fase 4-7 contra los PDF fuente (Escenarios, Análisis, Cierre, Laboratorio)
+
+Continuación de la sesión de Prioridad 4 (M-2/M-6 ya fusionada). El usuario aportó los PDF fuente de
+las cuatro pantallas que faltaban por auditar (`Escenarios.pdf`, `Analisis.pdf`, `Cierre.pdf`,
+`Laboratorio.pdf`, más `Backlog_Global.pdf` de referencia) — no estaban en el repositorio y hasta
+ahora solo existía la línea de una frase por tarea en `docs/BACKLOG_NUEVE_PANTALLAS.md`. Se
+extrajeron con `pdftoppm` a alta resolución (el texto plano de estos PDF viene vacío: son capturas
+de pantalla del prototipo, no texto seleccionable) y se leyeron sus tablas «Backlog de X» completas,
+con el criterio de aceptación real de cada tarea.
+
+**Hallazgo antes de auditar**: `#escenario-simular` no está vacío. Lleva desde la epic E20 (10 de
+agosto) un motor real (`canonical-scenario-engine.js`/`canonical-scenario-schema.js`,
+`ESCENARIO_MOTOR_TYPES` con once tipos de decisión, formulario dinámico, gráfico plan-vs-simulación,
+guardado y aplicación) construido antes de que existiera este backlog y nunca reconciliado con él —
+el mismo patrón que la mockup 2c heredada encontrada para P-8 el 15 de agosto. Auditado contra
+`Escenarios.pdf`: E-4/E-6/E-10 hechas sin matices; E-1/E-2/E-3/E-5/E-8/E-11 parciales (el catálogo de
+Deuda diverge en dos tipos, sin debounce de 120 ms, 3 de 6 indicadores, sin panel de cuatro
+comprobaciones, banda agregada en vez de por cuenta, sin revisión opcional al aplicar);
+E-1b/E-6b/E-7/E-9/E-12 pendientes de construir, sin bloqueo; E-11b/E-13/E-14 bloqueadas como ya
+preveía el backlog. Detalle completo en la nota bajo la tabla de la pantalla 06.
+
+Análisis, Cierre y Laboratorio se confirmaron **sin ningún código propio** — arrancan de cero, tal
+como ya decía el backlog; auditar sus PDF solo sirvió para fijar el criterio real de cada tarea antes
+de construir, no cambió ningún estado.
+
+**Sin cambios de código en esta sesión**: solo se corrigió el estado en
+`docs/BACKLOG_NUEVE_PANTALLAS.md` (tabla de la pantalla 06 y el resumen de fases). `npm test`,
+1032/1032 pruebas, sin tocar `app.js` — se ejecutó para confirmar que la auditoría documental no
+afecta al comportamiento antes de publicar.
+
+**Próximo paso disponible, sin bloqueo**: cerrar los seis «parcial» de Escenarios (E-1, E-2, E-3,
+E-5, E-8, E-11) y construir E-1b/E-6b/E-7/E-9/E-12 desde cero. Cierre (Fase 5) es la pieza que más
+desbloquea después (M-8c, D-2b, P-8b, E-11b, y toda Análisis depende de ella) — candidata a
+siguiente sesión de construcción.
+
 ## Cierre de sesión — 16 de agosto de 2026: Prioridad 4 de la auditoría (tercera tanda) — M-2/M-6
 
 Continuación directa de la tanda R-3 (misma sesión, PR #59 ya fusionado). M-2/M-6 (cuenta por
