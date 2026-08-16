@@ -289,6 +289,10 @@ const viewTitles = {
     eyebrow: "Actualización del mes",
     title: "Registra ingresos y gastos según van ocurriendo",
   },
+  cierre: {
+    eyebrow: "Fin de mes",
+    title: "Concilia, resuelve y firma el cierre del mes",
+  },
   "registrar-mes": {
     eyebrow: "Actualizar",
     title: "Registra el mes partida a partida y mira cómo va",
@@ -3546,6 +3550,7 @@ async function closeCurrentMonthTransaction() {
     saveLocalSnapshot();
     renderReconciliation();
     if (qs("conciliarTitle")) renderConciliar();
+    if (qs("cierreSteps")) renderCierre();
     if (status) status.textContent = `${month} cerrado. Los reales quedan congelados en una versión recuperable.`;
   } catch (error) {
     if (status) status.textContent = `No se cerró el mes: ${error.message}`;
@@ -3586,6 +3591,7 @@ async function reopenLatestMonthTransaction() {
     remoteHeadSnapshotId = newSnapshotId;
     ensureRemoteSaveQueue().acknowledge(reopenedAt);
     saveLocalSnapshot(); renderReconciliation();
+    if (qs("cierreSteps")) renderCierre();
     if (status) status.textContent = `${closed.monthKey} reabierto como revisión nueva. El cierre histórico se conserva.`;
   } catch (error) { if (status) status.textContent = `No se reabrió el mes: ${error.message}`; }
 }
@@ -24851,6 +24857,301 @@ function conciliarMonthHistory(monthRows) {
   });
 }
 
+// =================================================================================================
+// Fase 5 · Cierre — pantalla 08 (Cierre.pdf, auditado el 16 de agosto): ritual secuencial de tres
+// pasos reales (Conciliar cuentas → Resolver diferencias → Firmar y archivar). El mockup describe
+// cuatro pasos con «Liquidar sobres» como el tercero, pero Sobres (P-14/P-15/P-16, Fase 4) no existe
+// todavía — el propio mockup contempla este caso explícitamente: «con la fase 6 apagada el cierre
+// tiene tres pasos y lo dice» (nota bajo el inventario de Cierre.pdf). No se inventa un paso a medias.
+//
+// Reutiliza toda la infraestructura ya construida para #conciliar/#reconciliation en vez de
+// duplicarla: `FinanceCanonicalLedger` para las entradas del extracto, `E11bInbox.reconciliationTasks`
+// para las tareas por causa, `closeCurrentMonthTransaction()`/`reopenLatestMonthTransaction()` para
+// firmar y reabrir (misma puerta de escritura transaccional que ya usa #reconciliation, con Supabase
+// y `FinanceCanonicalMonthClose`/E5 detrás), `accountBalancesFromState()` para el saldo declarado.
+// Ningún cálculo financiero nuevo se fabrica aquí.
+// =================================================================================================
+
+let cierreActiveStep = 1;
+
+const CIERRE_ACCOUNT_LABELS = { caixabank: "CaixaBank", mediolanum: "Mediolanum" };
+
+const CIERRE_TASK_CAUSE_LABELS = {
+  unclassified: "Clasificación",
+  "bank-actual-difference": "Diferencias banco/real",
+  "balance-gap": "Continuidad de saldo",
+};
+
+// C-2: saldo declarado (lo que escribiste en Registrar, `accountBalancesFromState`) frente al saldo
+// calculado (el `balanceAfter` más reciente del extracto ya incorporado para esa cuenta). Una cuenta
+// sin ningún movimiento de extracto — Mediolanum no trae extracto bancario en este modelo, ya
+// documentado en `conciliarAccountConfidence` — se marca «sin-conciliar», nunca «cuadra»: no hay
+// nada que comparar, y compararla con cero sería inventar un dato (regla transversal 04).
+function cierreAccountReconciliation(entries) {
+  const declared = accountBalancesFromState();
+  return Object.entries(CIERRE_ACCOUNT_LABELS).map(([accountId, label]) => {
+    const declaredValue = round2(accountId === "caixabank" ? declared.caixa : declared.mediolanum);
+    const accountEntries = (entries || []).filter(
+      (entry) => entry.accountId === accountId && !entry.duplicateOf && entry.balanceAfter !== null && entry.balanceAfter !== undefined
+    );
+    const latest = accountEntries
+      .slice()
+      .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || (a.sourceRow ?? 0) - (b.sourceRow ?? 0))
+      .at(-1);
+    const calculated = latest ? round2(latest.balanceAfter) : null;
+    const diff = calculated === null ? null : round2(declaredValue - calculated);
+    const status = calculated === null ? "sin-conciliar" : Math.abs(diff) <= 0.02 ? "cuadra" : "descuadra";
+    return { id: accountId, label, declared: declaredValue, calculated, diff, status, latestDate: latest?.date || null };
+  });
+}
+
+function cierreAccountsSettled(rows) {
+  return rows.every((row) => row.status !== "descuadra");
+}
+
+// C-1: tres pasos secuenciales — cada uno permanece bloqueado hasta que el anterior está completo.
+// Un paso ya completado se puede volver a abrir para consultarlo; nunca se puede saltar hacia
+// delante uno todavía pendiente.
+function cierreStepsStatus(accountRows, tasks) {
+  const step1Done = cierreAccountsSettled(accountRows);
+  const step2Done = step1Done && tasks.length === 0;
+  return [
+    { step: 1, label: "Conciliar cuentas", sublabel: "Declarado frente a calculado", unlocked: true, done: step1Done },
+    { step: 2, label: "Resolver diferencias", sublabel: "Tareas agrupadas por causa", unlocked: step1Done, done: step2Done },
+    { step: 3, label: "Firmar y archivar", sublabel: "Comprobaciones antes de firmar", unlocked: step2Done, done: false },
+  ];
+}
+
+function cierreStepsHtml(steps, activeStep) {
+  return steps
+    .map((item) => {
+      const classes = ["cierre-step"];
+      if (item.step === activeStep) classes.push("is-active");
+      if (item.done) classes.push("is-done");
+      if (!item.unlocked) classes.push("is-locked");
+      const sublabel = item.unlocked ? item.sublabel : "Se abre al completar el paso anterior";
+      return `<li class="${classes.join(" ")}" data-cierre-step="${item.step}">
+        <span class="cierre-step-index">${item.done ? "✓" : item.step}</span>
+        <div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(sublabel)}</small></div>
+      </li>`;
+    })
+    .join("");
+}
+
+// C-5: cuatro comprobaciones del mockup, reducidas a las tres reales de este modelo mientras no hay
+// sobres — «Ningún sobre sin destino» no se muestra fingiendo un estado que cumple; se documenta
+// como paso inexistente, igual que el paso 3 (regla transversal 04).
+function cierreFirmChecks(accountRows, tasks, monthMovementCount) {
+  return [
+    { id: "cuentas", label: "Las cuentas cuadran", met: cierreAccountsSettled(accountRows) },
+    { id: "diferencias", label: "Ninguna diferencia abierta", met: tasks.length === 0 },
+    { id: "extracto", label: `Extracto incorporado · ${monthMovementCount} movimiento(s)`, met: monthMovementCount > 0 },
+  ];
+}
+
+function cierreFirmChecksHtml(checks) {
+  return checks.map((check) => `<li class="deuda-ruta-check${check.met ? " is-ok" : " is-danger"}">${escapeHtml(check.label)}</li>`).join("");
+}
+
+// C-3: tareas agrupadas por causa — cuentas, clasificación y saldo — en vez de la lista plana que
+// ya usa `#conciliar`. C-4: abrir una tarea solo navega a la pantalla de origen; nunca la marca
+// resuelta por sí sola, así que no hay botón «marcar hecho» — la tarea desaparece cuando el dato
+// real cuadra, porque `tasks` se recalcula en cada render desde los mismos datos.
+function cierreGroupTasksByCause(tasks) {
+  return Object.keys(CIERRE_TASK_CAUSE_LABELS)
+    .map((cause) => ({ cause, label: CIERRE_TASK_CAUSE_LABELS[cause], items: tasks.filter((task) => task.cause === cause) }))
+    .filter((group) => group.items.length);
+}
+
+function cierreTaskActionLabel(task) {
+  if (task.action === "classify") return "Clasificar";
+  if (task.action === "adjust-balance") return "Revisar saldo";
+  return "Corregir real";
+}
+
+function cierreStep1Html(accountRows) {
+  const descuadres = accountRows.filter((row) => row.status === "descuadra").length;
+  const statusBadge = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger", "sin-conciliar": "e19-badge-neutral" };
+  const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra", "sin-conciliar": "Sin conciliar" };
+  const rows = accountRows
+    .map(
+      (row) => `<tr>
+        <td><strong>${escapeHtml(row.label)}</strong></td>
+        <td>${money(row.declared, true)}</td>
+        <td>${row.calculated === null ? "—" : money(row.calculated, true)}</td>
+        <td>${row.diff === null ? "—" : money(row.diff, true)}</td>
+        <td><span class="e19-badge ${statusBadge[row.status]}">${statusLabel[row.status]}</span>${
+        row.status === "descuadra" ? ` <button type="button" class="e19-btn e19-btn-secondary cierre-inline-button" data-cierre-task-target="update-hub">Crear tarea</button>` : ""
+      }</td>
+      </tr>`
+    )
+    .join("");
+  return `<article class="e19-card cierre-step-card">
+    <div class="section-title with-action">
+      <div><h3 class="escenario-motor-panel-title">Conciliar cuentas</h3><p class="e19-kpi-note">Saldo declarado frente a saldo calculado.</p></div>
+      ${descuadres ? `<span class="e19-badge e19-badge-danger">${descuadres} cuenta(s) descuadran</span>` : ""}
+    </div>
+    <div class="table-wrap"><table class="e19-table cierre-accounts-table">
+      <thead><tr><th>Cuenta</th><th>Declarado</th><th>Calculado</th><th>Diferencia</th><th>Estado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <p class="e19-kpi-note">El saldo calculado sale del último movimiento del extracto incorporado; el declarado, de lo que escribiste en Registrar. Una diferencia no se corrige sola: revisa el saldo en Datos.</p>
+  </article>`;
+}
+
+function cierreStep2Html(tasks) {
+  const groups = cierreGroupTasksByCause(tasks);
+  if (!groups.length) {
+    return `<article class="e19-card cierre-step-card"><h3 class="escenario-motor-panel-title">Resolver diferencias</h3><p class="e19-kpi-note">Sin diferencias abiertas: clasificación, saldos e importes reales están conciliados.</p></article>`;
+  }
+  const groupsHtml = groups
+    .map(
+      (group) => `<div class="cierre-task-group">
+        <h4>${escapeHtml(group.label)} · ${group.items.length}</h4>
+        <ol class="conciliar-task-list">${group.items
+          .map(
+            (task) => `<li class="conciliar-task-item">
+              <div><strong>${escapeHtml(task.label)}</strong><p>Abrir no modifica nada.</p></div>
+              <button type="button" class="e19-btn e19-btn-secondary" data-cierre-task-target="${escapeHtml(task.target)}">${cierreTaskActionLabel(task)}</button>
+            </li>`
+          )
+          .join("")}</ol>
+      </div>`
+    )
+    .join("");
+  return `<article class="e19-card cierre-step-card">
+    <h3 class="escenario-motor-panel-title">Resolver diferencias</h3>
+    <p class="e19-kpi-note">Cada tarea nombra la pantalla y el dato que la generó. Abrir una tarea no corrige nada por sí sola: se cierra cuando el dato cuadra, no cuando se pulsa.</p>
+    ${groupsHtml}
+  </article>`;
+}
+
+// C-8: efectos reales de firmar, escritos antes de pulsar — solo los tres que
+// `closeCurrentMonthTransaction`/`FinanceCanonicalMonthClose` ejecutan de verdad hoy. El mockup
+// enumera cinco (incluidos «se liquidan los sobres» y «el gasto diario aprendido recalcula la
+// cobertura»); ninguno de los dos existe todavía en el motor, así que no se anuncian.
+function cierreEffectsHtml(monthLabel) {
+  return `<ol class="cierre-effects-list">
+    <li>Los reales de ${escapeHtml(monthLabel)} quedan congelados: dejan de aceptar cambios sin reabrir el mes.</li>
+    <li>Se crea una versión nueva del cierre, con su fecha y su motivo.</li>
+    <li>El mes se puede reabrir después: la reapertura pide un motivo y queda registrada como una versión más.</li>
+  </ol>`;
+}
+
+function cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey) {
+  const checks = cierreFirmChecks(accountRows, tasks, monthMovementCount);
+  const unmet = checks.filter((check) => !check.met).length;
+  const monthLabel = ledgerMonthLabel(currentMonthKey);
+  const syncReady = Boolean(remoteUser) && Boolean(supabaseClient);
+  const canSign = unmet === 0 && syncReady;
+  return `<div class="cierre-step3-layout">
+    <article class="e19-card">
+      <h3 class="escenario-motor-panel-title">Antes de firmar</h3>
+      <ul class="deuda-ruta-checklist">${cierreFirmChecksHtml(checks)}</ul>
+      ${syncReady ? "" : `<p class="e19-kpi-note is-warn">Inicia sesión y sincroniza una versión antes de firmar.</p>`}
+      <button type="button" class="e19-btn e19-btn-primary" id="cierreSignButton" ${canSign ? "" : "disabled"}>${unmet ? `Firmar · ${unmet} sin cumplir` : "Firmar cierre"}</button>
+    </article>
+    <article class="e19-card">
+      <h3 class="escenario-motor-panel-title">Al firmar el cierre</h3>
+      ${cierreEffectsHtml(monthLabel)}
+    </article>
+  </div>`;
+}
+
+// C-9: cuatro contadores con enlace al inventario completo (`#conciliar`, que conserva la lista
+// detallada por movimiento). Los IDs de las tareas ya son estables — `E11bInbox.reconciliationTasks`
+// los construye a partir del propio dato (`classify-${id}`, no de su posición en la lista).
+function cierreCountersHtml(accountRows, tasks, unclassifiedCount) {
+  const closedCount = monthClosures.filter((op) => op.status === "closed").length;
+  return [
+    ["Cuentas descuadradas", String(accountRows.filter((row) => row.status === "descuadra").length)],
+    ["Tareas pendientes", String(tasks.length)],
+    ["Movimientos sin clasificar", String(unclassifiedCount)],
+    ["Meses cerrados", String(closedCount)],
+  ]
+    .map(([label, value]) => `<div class="e19-kpi"><span class="e19-kpi-label">${escapeHtml(label)}</span><span class="e19-kpi-value">${escapeHtml(value)}</span></div>`)
+    .join("");
+}
+
+function renderCierre() {
+  if (!window.FinanceCanonicalLedger) return;
+  const snapshot = refreshCanonicalLedger("cierre-view");
+  if (!snapshot) return;
+  const entries = snapshot.entries || [];
+  const checks = snapshot.balanceChecks || [];
+  const lines = snapshot.reconciliation?.lines || [];
+  const currentMonthKey = openMonthCutoffKey();
+  const currentClosure = isClosedMonthKey(currentMonthKey)
+    ? window.FinanceCanonicalE5?.latestMonthOperation({ monthClosures }, currentMonthKey)
+    : null;
+
+  const titleEl = qs("cierreTitle");
+  const subtitleEl = qs("cierreSubtitle");
+  const sobresNote = qs("cierreSobresNote");
+  if (sobresNote) sobresNote.textContent = "Sobres todavía no está disponible en la app: mientras tanto el cierre tiene tres pasos, no cuatro.";
+
+  const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");
+  const differences = lines.filter((line) => Math.abs(Number(line.delta || 0)) > 0.02);
+  const balanceGaps = checks.flatMap((check) => (check.gaps || []).map((gap, index) => ({ ...gap, id: `${check.accountId}-${index}`, accountId: check.accountId })));
+  const tasks = E11bInbox ? E11bInbox.reconciliationTasks({ unclassified, differences, balanceGaps }) : [];
+  const accountRows = cierreAccountReconciliation(entries);
+  const countersEl = qs("cierreCounters");
+  if (countersEl) countersEl.innerHTML = cierreCountersHtml(accountRows, tasks, unclassified.length);
+
+  if (currentClosure) {
+    if (titleEl) titleEl.textContent = `${ledgerMonthLabel(currentMonthKey)} cerrado`;
+    if (subtitleEl) subtitleEl.textContent = "Los reales de este mes están congelados. Reábrelo si necesitas corregir algo.";
+    qs("cierreWizard")?.setAttribute("hidden", "");
+    qs("cierreClosedState")?.removeAttribute("hidden");
+    const closedInfo = qs("cierreClosedInfo");
+    if (closedInfo) {
+      closedInfo.innerHTML = `<p><strong>Firmado</strong> el ${formatIsoDate((currentClosure.closedAt || currentClosure.occurredAt || "").slice(0, 10))} · ${escapeHtml(currentClosure.reason || "Sin motivo registrado")}</p>`;
+    }
+    const reopenButton = qs("cierreReopen");
+    if (reopenButton) reopenButton.disabled = !remoteUser || !supabaseClient;
+    return;
+  }
+  qs("cierreWizard")?.removeAttribute("hidden");
+  qs("cierreClosedState")?.setAttribute("hidden", "");
+
+  if (titleEl) titleEl.textContent = `Cierre de ${ledgerMonthLabel(currentMonthKey)}`;
+  if (subtitleEl) subtitleEl.textContent = "Las diferencias se resuelven como tareas: abrir una no corrige nada por sí sola. Al firmar, los reales quedan congelados y se crea una versión nueva.";
+
+  const monthMovementCount = entries.filter((entry) => entry.monthKey === currentMonthKey && !entry.duplicateOf).length;
+  const steps = cierreStepsStatus(accountRows, tasks);
+  const highestUnlocked = steps.filter((item) => item.unlocked).map((item) => item.step).pop() || 1;
+  if (cierreActiveStep > highestUnlocked) cierreActiveStep = highestUnlocked;
+
+  const stepsEl = qs("cierreSteps");
+  if (stepsEl) stepsEl.innerHTML = cierreStepsHtml(steps, cierreActiveStep);
+
+  const body = qs("cierreStepBody");
+  if (body) {
+    if (cierreActiveStep === 1) body.innerHTML = cierreStep1Html(accountRows);
+    else if (cierreActiveStep === 2) body.innerHTML = cierreStep2Html(tasks);
+    else body.innerHTML = cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey);
+  }
+}
+
+function handleCierreStepSelect(step) {
+  cierreActiveStep = step;
+  renderCierre();
+}
+
+async function handleCierreSign() {
+  await closeCurrentMonthTransaction();
+  const statusEl = qs("cierreStatus");
+  if (statusEl) statusEl.textContent = qs("monthCloseStatus")?.textContent || "";
+  renderCierre();
+}
+
+async function handleCierreReopen() {
+  await reopenLatestMonthTransaction();
+  const statusEl = qs("cierreStatus");
+  if (statusEl) statusEl.textContent = qs("monthCloseStatus")?.textContent || "";
+  renderCierre();
+}
+
 function renderConciliar() {
   if (!window.FinanceCanonicalLedger) return;
   const snapshot = refreshCanonicalLedger("conciliar-view");
@@ -26173,6 +26474,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "conciliar":
       renderConciliar();
       break;
+    case "cierre":
+      renderCierre();
+      break;
     case "asesor-decision":
       renderAsesorDecision();
       break;
@@ -26805,6 +27109,22 @@ async function init() {
     history.pushState(null, "", `#${target}`);
     setActiveView(target, { focus: true });
   });
+  qs("cierre")?.addEventListener("click", (event) => {
+    const stepEl = event.target.closest("[data-cierre-step]");
+    if (stepEl && !stepEl.classList.contains("is-locked")) {
+      handleCierreStepSelect(Number(stepEl.dataset.cierreStep));
+      return;
+    }
+    const taskTarget = event.target.closest("[data-cierre-task-target]");
+    if (taskTarget) {
+      const target = taskTarget.dataset.cierreTaskTarget;
+      history.pushState(null, "", `#${target}`);
+      setActiveView(target, { focus: true });
+      return;
+    }
+    if (event.target.id === "cierreSignButton") handleCierreSign();
+  });
+  qs("cierreReopen")?.addEventListener("click", handleCierreReopen);
   qs("debt-liquidation-plan")?.addEventListener("click", (event) => {
     const targetButton = event.target.closest("[data-debt-plan-target]");
     if (targetButton) {

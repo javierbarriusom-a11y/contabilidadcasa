@@ -81,9 +81,13 @@ real de la epic E20 (10 de agosto) nunca reconciliado con este backlog: E-4/E-6/
 partida, E-3/E-11/E-5 cerradas el 16 de agosto (comparativa de seis indicadores, revisión opcional
 con recordatorio en Hoy, panel de cuatro comprobaciones — ver la nota bajo la tabla de la pantalla
 06), E-1/E-2/E-8 siguen parciales (catálogo de tipos, debounce, banda por cuenta), E-1b/E-6b/E-7/
-E-9/E-12 pendientes de construir (no bloqueadas), E-11b/E-13/E-14 bloqueadas. Fases
-5-7 (Cierre, Análisis, Laboratorio) confirmadas sin ningún código propio — se auditaron sus PDF el
-16 de agosto pero no hay nada que reconciliar, arrancan de cero.
+E-9/E-12 pendientes de construir (no bloqueadas), E-11b/E-13/E-14 bloqueadas. Fase 5 (Cierre)
+arrancó el 16 de agosto (punto 2 del plan): C-1/C-2/C-3/C-4/C-5/C-8/C-9 hechos en un primer
+incremento — ritual de tres pasos (sin sobres), conciliación por cuenta, tareas por causa,
+comprobaciones antes de firmar — reutilizando el motor transaccional de cierre/reapertura que ya
+existía; C-3b/C-6/C-7/C-10/C-11/C-12/C-13/C-14 pendientes (ver la nota bajo la tabla de la pantalla
+08). Fases 6-7 (Análisis, Laboratorio) confirmadas sin ningún código propio — se auditaron sus PDF
+el 16 de agosto pero no hay nada que reconciliar, arrancan de cero.
 
 **Auditoría del 15 de agosto contra los nueve PDF de mockups (sesión de contraste, ver la nota bajo
 cada tabla de pantalla)**: ninguna tarea marcada «Hecho» resultó estar completamente sin construir
@@ -946,21 +950,80 @@ bloqueadas por Cierre/D-10/Fase 7 como estaba previsto.
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| C-1 | Cierre como secuencia SECUENCIAL de cuatro pasos | Fase 5 | L | Pendiente |
-| C-2 | Conciliación cuenta por cuenta | C-1, M-8c | L | Pendiente |
-| C-3 | Tareas agrupadas por causa | C-1 | M | Pendiente |
-| C-3b | Modal de resolución con dos salidas | C-3, M-8b | L | Pendiente |
-| C-4 | Resolver no corrige por sí solo | C-3 | M | Pendiente |
-| C-5 | Requisitos de firma visibles | C-2, C-3 | M | Pendiente |
-| C-6 | Liquidación de sobres como asientos | P-15 | L | Pendiente |
-| C-7 | Ningún sobre se cubre en silencio | C-6 | M | Pendiente |
-| C-8 | Efectos de firmar escritos antes | C-1 | S | Pendiente |
-| C-9 | Inventario canónico con IDs estables | C-1 | L | Pendiente |
-| C-10 | Historial de versiones | C-9 | L | Pendiente |
-| C-11 | Reapertura registrada y notificada | C-10, A-7, A-10 | L | Pendiente |
+| C-1 | Cierre como secuencia SECUENCIAL de cuatro pasos | Fase 5 | L | Hecho (16 de agosto, ver nota) |
+| C-2 | Conciliación cuenta por cuenta | C-1, M-8c | L | Hecho (16 de agosto, ver nota) |
+| C-3 | Tareas agrupadas por causa | C-1 | M | Hecho (16 de agosto, ver nota) |
+| C-3b | Modal de resolución con dos salidas | C-3, M-8b | L | Pendiente (ver nota) |
+| C-4 | Resolver no corrige por sí solo | C-3 | M | Hecho (16 de agosto, ver nota) |
+| C-5 | Requisitos de firma visibles | C-2, C-3 | M | Hecho (16 de agosto, ver nota) |
+| C-6 | Liquidación de sobres como asientos | P-15 | L | Pendiente (bloqueada: depende de Sobres, sin construir) |
+| C-7 | Ningún sobre se cubre en silencio | C-6 | M | Pendiente (bloqueada: depende de C-6) |
+| C-8 | Efectos de firmar escritos antes | C-1 | S | Hecho (16 de agosto, ver nota) |
+| C-9 | Inventario canónico con IDs estables | C-1 | L | Hecho (16 de agosto, ver nota) |
+| C-10 | Historial de versiones | C-9 | L | Pendiente (ver nota) |
+| C-11 | Reapertura registrada y notificada | C-10, A-7, A-10 | L | Pendiente (ver nota) |
 | C-12 | Descargar evidencia en PDF y CSV | C-5 | M | Pendiente |
-| C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Pendiente |
-| C-14 | Retirar las dos heredadas de conciliación | C-9, Fase 7 | S | Pendiente |
+| C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Pendiente (bloqueada: depende de A-7, sin construir) |
+| C-14 | Retirar las dos heredadas de conciliación | C-9, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
+
+**Cierre construido el 16 de agosto** — primer incremento real de la Fase 5, punto 2 del plan de
+construcción acordado con el usuario (Escenarios ya cerrado, ver pantalla 06). Nueva pantalla
+`#cierre`, ahora destino de la pestaña principal «Cierre» (antes apuntaba a `#conciliar`, que sigue
+viva sin cambios en «Herramientas avanzadas › Datos» — no se retira nada, C-14 sigue bloqueada por
+Fase 7). No se fabrica ningún cálculo financiero nuevo: reutiliza `FinanceCanonicalLedger` (extracto
+bancario), `E11bInbox.reconciliationTasks` (tareas por causa) y `closeCurrentMonthTransaction()` /
+`reopenLatestMonthTransaction()` — la misma puerta transaccional con Supabase que ya usaba
+`#reconciliation`, con `FinanceCanonicalMonthClose`/E5 detrás — en vez de duplicar esa lógica.
+
+- **C-1** — tres pasos secuenciales (Conciliar cuentas → Resolver diferencias → Firmar y archivar),
+  no cuatro: Sobres (P-14/P-15/P-16) no existe todavía, y el propio mockup contempla este caso
+  («con la fase 6 apagada el cierre tiene tres pasos y lo dice»). Cada paso permanece bloqueado
+  (candado + motivo) hasta que el anterior está completo; un paso ya completado se puede reabrir
+  para consultarlo. `cierreStepsStatus()` deriva el estado de cada paso en cada render — no hay
+  ningún «marcar completado» manual.
+- **C-2** — tabla Cuenta/Declarado/Calculado/Diferencia/Estado para CaixaBank y Mediolanum (dos
+  cuentas reales de este modelo, no las «tres cuentas, una tarjeta» del mockup — mismo ajuste ya
+  documentado en `conciliarAccountConfidence`). Declarado = `accountBalancesFromState()` (lo escrito
+  en Registrar); calculado = el `balanceAfter` más reciente del extracto ya incorporado para esa
+  cuenta. Una cuenta sin extracto (Mediolanum no trae extracto bancario en este modelo) se marca
+  «Sin conciliar», nunca «Cuadra»: comparar con cero habría sido inventar un dato (regla 04) y
+  bloquearía el cierre para siempre.
+- **C-3** — las mismas tareas que ya generaba `E11bInbox.reconciliationTasks`, agrupadas por causa
+  (Clasificación / Diferencias banco-real / Continuidad de saldo) en vez de la lista plana que sigue
+  usando `#conciliar`.
+- **C-4** — confirmado sin matices: abrir una tarea solo navega a su pantalla de origen (Movimientos,
+  Datos), nunca la marca resuelta. No hay botón «hecho»: la tarea desaparece sola cuando
+  `renderCierre()` vuelve a calcular `tasks` desde el dato real, porque ya cuadra.
+- **C-5** — tres comprobaciones reales antes de firmar (cuentas cuadran, ninguna diferencia abierta,
+  extracto incorporado), no las cuatro del mockup: «Ningún sobre sin destino» no se muestra fingiendo
+  que cumple — se omite, igual que el paso 3. El botón dice cuántas faltan («Firmar · 2 sin
+  cumplir»), nunca solo un gris sin explicar.
+- **C-8** — tres efectos reales, no los cinco del mockup: «se liquidan los sobres» y «el gasto diario
+  aprendido recalcula la cobertura» no existen todavía en el motor, así que no se anuncian. Solo se
+  promete lo que `closeCurrentMonthTransaction()` ejecuta de verdad: reales congelados, versión
+  nueva del cierre, reapertura posible con motivo.
+- **C-9** — cuatro contadores reales (cuentas descuadradas, tareas pendientes, movimientos sin
+  clasificar, meses cerrados) con enlace implícito al inventario completo (`#conciliar`, que
+  conserva el detalle por movimiento). Los IDs de las tareas ya eran estables antes de esta sesión —
+  `E11bInbox.reconciliationTasks` los construye desde el propio dato, nunca desde su posición.
+- **C-3b, C-10, C-11, C-12** — deliberadamente fuera de este incremento. C-3b pedía un modal con dos
+  rutas de resolución (inline y «abrir origen»); la ruta inline exigiría cruzar dos modelos de datos
+  distintos (las `entries` del ledger no llevan de vuelta a la fila cruda de `state.transactions`
+  que necesita `movementMappingKey`/`transactionIdentity`) — cruzarlos a ciegas para forzarlo era más
+  riesgo que valor, así que se deja pendiente en vez de fingir una segunda ruta. C-10/C-11: el motor
+  transaccional de cierre/reapertura con versionado (`monthClosures`, `FinanceCanonicalE5`) ya
+  existía y se reutiliza tal cual para firmar y reabrir desde `#cierre`, pero la tabla dedicada de
+  historial de versiones y el aviso cruzado a las pantallas que dependían del mes (Análisis, que
+  tampoco existe todavía) no se han construido. C-12 (exportar PDF/CSV) no se ha tocado.
+- **C-6, C-7, C-13, C-14** — bloqueadas como estaba previsto: Sobres, A-7 (Análisis) y Fase 7 no
+  existen todavía.
+
+**Validación de este incremento**: `npm test`, exit 0, **1082/1082 pruebas** (13 nuevas en
+`tests/c1-c9-cierre-wizard.test.cjs`, más 2 pruebas existentes de E17/T-1 actualizadas porque
+fijaban `#conciliar` como destino literal de la pestaña «Cierre»). Verificado con Playwright contra
+el build local: los tres pasos se recorren en orden, el paso 3 muestra el botón deshabilitado con
+«Firmar · 1 sin cumplir» cuando falta el extracto del mes, `#conciliar` sigue funcionando sin cambios
+desde «Herramientas avanzadas». Sin errores de consola propios.
 
 ### 09 · Laboratorio — deuda de transición con fecha de caducidad, vive en Ajustes (10 tareas · 2 grandes)
 

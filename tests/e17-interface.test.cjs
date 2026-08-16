@@ -18,7 +18,7 @@ test("E17 prioriza las seis vistas del rediseño y conserva las herramientas en 
   const plan = html.indexOf('<a href="#plan" class="nav-primary-link">');
   const deuda = html.indexOf('<a href="#deuda-ruta" class="nav-primary-link">');
   const datos = html.indexOf('<a href="#update-hub" class="nav-primary-link">');
-  const cierre = html.indexOf('<a href="#conciliar" class="nav-primary-link">');
+  const cierre = html.indexOf('<a href="#cierre" class="nav-primary-link">');
   const ajustes = html.indexOf('<a href="#ajustes" class="nav-primary-link">');
   const advanced = html.indexOf('id="advancedNav"');
   assert.ok(

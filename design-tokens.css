@@ -2472,6 +2472,199 @@
   border-bottom: none;
 }
 
+/* -------------------------------------------------------------------------------------------- */
+/* Fase 5 · Cierre (pantalla 08, Cierre.pdf) — reutiliza tal cual las clases de lista/checklist   */
+/* ya usadas en #conciliar (`.conciliar-task-list`/`.deuda-ruta-check`), redefinidas aquí a        */
+/* propósito, igual que ya hace #conciliar con las de Deuda. Los pasos reutilizan el patrón visual */
+/* de `.datos-importar-steps`, en una tarjeta en vez de una píldora, para que quepan candado y      */
+/* subtítulo de cada paso.                                                                         */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-cierre .cierre-steps {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.e19-cierre .cierre-step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface);
+  cursor: pointer;
+}
+
+.e19-cierre .cierre-step.is-locked {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.e19-cierre .cierre-step.is-active {
+  border-color: var(--e19-accent);
+  background: var(--e19-accent-soft, var(--e19-surface));
+}
+
+.e19-cierre .cierre-step small {
+  display: block;
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
+.e19-cierre .cierre-step-index {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--e19-border);
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.e19-cierre .cierre-step.is-active .cierre-step-index {
+  background: var(--e19-accent);
+  color: #fff;
+}
+
+.e19-cierre .cierre-step.is-done .cierre-step-index {
+  background: var(--e19-success);
+  color: #fff;
+}
+
+.e19-cierre .cierre-step-card {
+  padding: 18px;
+}
+
+.e19-cierre .cierre-accounts-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.e19-cierre .cierre-accounts-table th,
+.e19-cierre .cierre-accounts-table td {
+  white-space: normal;
+}
+
+.e19-cierre .cierre-inline-button {
+  padding: 4px 10px;
+  font-size: var(--e19-text-xs);
+}
+
+.e19-cierre .conciliar-task-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.e19-cierre .conciliar-task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-soft);
+}
+
+.e19-cierre .conciliar-task-item > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.e19-cierre .conciliar-task-item strong {
+  display: block;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+}
+
+.e19-cierre .conciliar-task-item p {
+  margin: 2px 0 0;
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-cierre .cierre-task-group {
+  margin-top: 16px;
+}
+
+.e19-cierre .cierre-task-group h4 {
+  margin: 0 0 8px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-heading);
+}
+
+.e19-cierre .deuda-ruta-checklist {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-cierre .deuda-ruta-check {
+  font-size: var(--e19-text-sm);
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  color: var(--e19-muted);
+}
+
+.e19-cierre .deuda-ruta-check.is-ok {
+  color: var(--e19-success);
+  background: color-mix(in srgb, var(--e19-success) 10%, var(--e19-surface-soft));
+}
+
+.e19-cierre .deuda-ruta-check.is-danger {
+  color: var(--e19-danger);
+  background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+.e19-cierre .e19-kpi-note.is-warn {
+  color: var(--e19-warning);
+}
+
+.e19-cierre .cierre-step3-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.e19-cierre .cierre-step3-layout > * {
+  min-width: 0;
+}
+
+.e19-cierre .cierre-effects-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+}
+
+.e19-cierre #cierreClosedState {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
 .e19-conciliar .conciliar-history-row span {
   color: var(--e19-muted);
 }
