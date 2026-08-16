@@ -114,6 +114,54 @@ test("M-2 · la tabla trae columna «Partida» además de las heredadas (Fecha�
   assert.match(html, /<th>Categoría<\/th>\s*<th>Partida<\/th>\s*<th>Importe<\/th>/);
 });
 
+// M-2/M-6 (auditoría del 15 de agosto, Prioridad 4): «concepto con cuenta» en la tabla y un campo
+// «cuenta» en el detalle. No hay atributo de cuenta en el histórico ya cargado — se etiqueta solo
+// hacia delante, al importar (ver tests/r8-registrar-importar-extracto.test.cjs); aquí solo se
+// comprueba que la tabla y el detalle lo muestran cuando existe, y un hueco («—») cuando no.
+
+test("M-2 · la tabla trae columna «Cuenta» después de «Origen»", () => {
+  assert.match(html, /<th>Origen<\/th>\s*<th>Cuenta<\/th>\s*<th><\/th>/);
+});
+
+test("M-2 · renderDetailedMovements pinta la cuenta del movimiento, o un hueco si no la tiene", () => {
+  const fn = extractFunction("renderDetailedMovements");
+  assert.match(fn, /<td>\$\{escapeHtml\(row\.account \|\| "—"\)\}<\/td>/);
+});
+
+test("M-6 · el panel de detalle trae el campo Cuenta, con el mismo hueco cuando no hay dato", () => {
+  const content = { innerHTML: "" };
+  const context = sandboxWith(["renderMovementDetailDialog"], {
+    movementDetailTransaction: { date: "2026-08-01", movement: "MERCADONA", amount: -45.2, account: "CaixaBank" },
+    qs: (id) => (id === "movementDetailContent" ? content : null),
+    mappingForMovement: () => null,
+    movementKindFromAmount: () => "expense",
+    escapeHtml: (v) => String(v),
+    formatIsoDate: (v) => v,
+    money: (v) => String(v),
+    movementDisplayName: (row) => row.movement,
+    movementMappingOptions: () => "<option></option>",
+  });
+  context.renderMovementDetailDialog();
+  assert.match(content.innerHTML, /<dt>Cuenta<\/dt><dd>CaixaBank<\/dd>/);
+});
+
+test("M-6 · el campo Cuenta muestra un hueco («—») en vez de fabricar un valor cuando el movimiento no la tiene", () => {
+  const content = { innerHTML: "" };
+  const context = sandboxWith(["renderMovementDetailDialog"], {
+    movementDetailTransaction: { date: "2026-08-01", movement: "AMAZON", amount: -60 },
+    qs: (id) => (id === "movementDetailContent" ? content : null),
+    mappingForMovement: () => null,
+    movementKindFromAmount: () => "expense",
+    escapeHtml: (v) => String(v),
+    formatIsoDate: (v) => v,
+    money: (v) => String(v),
+    movementDisplayName: (row) => row.movement,
+    movementMappingOptions: () => "<option></option>",
+  });
+  context.renderMovementDetailDialog();
+  assert.match(content.innerHTML, /<dt>Cuenta<\/dt><dd>—<\/dd>/);
+});
+
 test("M-11 · ninguna fila de la tabla trae un input editable de importe: los importes no se editan en Movimientos", () => {
   const fn = extractFunction("renderDetailedMovements");
   // M-8 añade una casilla de selección por fila (para la acción en lote) — no es un editor de
@@ -525,6 +573,29 @@ test("M-10 · exporta exactamente movementsFilteredList (la vista filtrada), no 
   assert.match(content, /"MERCADONA"/);
   assert.match(content, /"Gastos fijos · Seguro coche"/);
   assert.match(content, /"Partida"/);
+});
+
+test("M-10 · el CSV exportado incluye la columna Cuenta, vacía cuando el movimiento no la tiene", () => {
+  let capturedParts = [];
+  const linkEl = { style: {}, click() {}, remove() {} };
+  const context = sandboxWith(["handleMovementsExport"], {
+    movementsFilteredList: () => [
+      { date: "2026-08-01", valueDate: "2026-08-01", movement: "MERCADONA", details: "COMPRA", category: "Alimentación", amount: -45.2, balance: 1000, source: "extracto", account: "CaixaBank" },
+      { date: "2026-07-20", valueDate: "2026-07-20", movement: "AMAZON", details: "PEDIDO", category: "Compras", amount: -60, balance: 900, source: "extracto" },
+    ],
+    mappingForMovement: () => null,
+    displayLabelForRow: () => "",
+    csvValue: (v) => `"${v}"`,
+    Blob: function Blob(parts) {
+      capturedParts = parts;
+    },
+    URL: { createObjectURL: () => "blob:x", revokeObjectURL: () => {} },
+    document: { createElement: () => linkEl, body: { appendChild: () => {} } },
+  });
+  context.handleMovementsExport();
+  const content = capturedParts.join("");
+  assert.match(content, /"Cuenta"/);
+  assert.match(content, /"CaixaBank"/);
 });
 
 // --- Cableado --------------------------------------------------------------------------------------

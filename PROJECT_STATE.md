@@ -2,6 +2,39 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: Prioridad 4 de la auditoría (tercera tanda) — M-2/M-6
+
+Continuación directa de la tanda R-3 (misma sesión, PR #59 ya fusionado). M-2/M-6 (cuenta por
+movimiento) tenía la misma clase de decisión de alcance que R-3: no existe ningún atributo de cuenta
+por movimiento en el modelo de datos, y no hay forma honesta de reconstruirlo para el extracto
+histórico ya cargado — el propio importador ya declaraba en un comentario que «cuenta» ahí es
+descriptiva del fichero, no una cuenta bancaria real. Consultado con el usuario junto con R-3, se
+confirmó la lectura de menor riesgo: etiquetar solo hacia delante.
+
+**M-2/M-6**: el paso 1 del asistente de Importar extracto (R-8, tanto en `#registrar` como en la
+heredada `#datos-importar`) gana un selector «¿De qué cuenta es este extracto?»
+(`DATOS_IMPORTAR_ACCOUNTS`: CaixaBank/Mediolanum/Efectivo, más «Sin especificar» por defecto).
+`datosImportarIncludedTransactions(rows, bankAccount)` estampa esa cuenta en los movimientos de esa
+tanda al incorporarlos — el resto del extracto histórico no se toca. La tabla de Movimientos gana la
+columna «Cuenta» junto a «Origen» (M-2), y el panel de detalle su campo «Cuenta» (M-6); ambos
+muestran «—» cuando el movimiento no la tiene, en vez de fabricar un valor. El CSV exportado (M-10)
+también la incluye.
+
+**Validación**: `npm run verify`, exit 0, **1032/1032 pruebas**, 700 IDs de accesibilidad,
+rendimiento/build/privacidad/smoke en verde. Verificación visual con Playwright de punta a punta:
+subir un extracto CSV real en Registrar › Importar, elegir «Mediolanum» en el paso 1, clasificar
+(ignorar, sin necesidad de partida real para esta comprobación) y confirmar con motivo — la fila
+nueva en Movimientos y su panel de detalle muestran «Mediolanum» correctamente. Sin errores de
+consola.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — M-2 y M-6 pasan a `Hecho` (sin
+«parcial») en la tabla y ganan nota de cierre conjunta. **Con esto, la Prioridad 4 queda cerrada en
+la práctica**: de sus 6 tareas, 5 están hechas (R-2, P-4, P-1, R-3, M-2/M-6) y solo M-8 sigue
+pendiente, bloqueada por depender de la pieza compartida «Historial de versiones» que tampoco tienen
+R-6 ni Cierre (Fase 5, sin empezar) — no hay más trabajo posible ahí sin construir esa pieza primero.
+No queda ninguna prioridad más definida en la auditoría del 15 de agosto; el trabajo que sigue es
+Fase 4 en adelante (Previsión/Escenarios completos, Cierre, Análisis, Laboratorio), sin empezar.
+
 ## Cierre de sesión — 16 de agosto de 2026: Prioridad 4 de la auditoría (segunda tanda) — R-3
 
 Continuación directa de la tanda R-2/P-4/P-1 (misma sesión, PR #58 ya fusionado). R-3 (cuenta
