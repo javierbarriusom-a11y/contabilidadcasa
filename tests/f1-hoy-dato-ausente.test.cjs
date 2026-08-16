@@ -191,6 +191,7 @@ test("H-10 · H-5 decisiones abiertas: sin ofertas, alertas, deuda candidata ni 
   const { homeOpenOfferInsight, homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates"], {
     evaluatedUxAlerts: () => [],
     homeDebtReviewReminders: () => [],
+    homeImportSessionCandidate: () => null,
   });
   const decisions = homeDecisionCandidates({
     actionCenter: { actions: [] },
@@ -207,6 +208,7 @@ test("H-10 · H-5 decisiones abiertas: una oferta con vencimiento real se antepo
   const { homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates"], {
     evaluatedUxAlerts: () => [],
     homeDebtReviewReminders: () => [],
+    homeImportSessionCandidate: () => null,
   });
   const decisions = homeDecisionCandidates({
     actionCenter: { actions: [{ id: "a1", rank: 1, tone: "neutral", title: "Acción de rango fijo", text: "x" }] },
