@@ -16269,10 +16269,13 @@ function datosImportarRowsPendingDuplicate(rows) {
 // M-3: cuando el paso 3 marca un candidato como «distinto» (no duplicado), esa decisión se perdía
 // al fusionar con baseData.transactions — se estampa aquí como duplicateReviewed, la única fuente
 // real que lee el chip «Duplicado revisado» de Movimientos.
-function datosImportarIncludedTransactions(rows) {
+function datosImportarIncludedTransactions(rows, bankAccount = "") {
   return rows
     .filter((row) => row.duplicateDecision !== "duplicado")
-    .map((row) => (row.duplicateDecision === "distinto" ? { ...row.transaction, duplicateReviewed: true } : row.transaction));
+    .map((row) => {
+      const base = row.duplicateDecision === "distinto" ? { ...row.transaction, duplicateReviewed: true } : row.transaction;
+      return bankAccount ? { ...base, account: bankAccount } : base;
+    });
 }
 
 // Las relaciones nuevas que esta sesión añadiría al diccionario de reglas, sin escribirlas
@@ -16441,7 +16444,7 @@ function datosImportarApply(session, { motivo }) {
     }
   });
 
-  const incoming = datosImportarIncludedTransactions(rows);
+  const incoming = datosImportarIncludedTransactions(rows, session.fileMeta.bankAccount);
   baseData = { ...baseData, transactions: mergeTransactions(baseData.transactions || [], incoming) };
   refreshMovementRollups();
   const appliedActuals = applyMovementMappingsToActuals();
@@ -16503,6 +16506,7 @@ const DATOS_IMPORTAR_TARGETS = {
     replaceFileId: "datosImportarReplaceFile",
     confirmId: "datosImportarConfirm",
     importarOtroId: "datosImportarImportarOtro",
+    accountSelectId: "datosImportarAccount",
   },
   registrar: {
     panelId: "registrarImportPanel",
@@ -16515,8 +16519,19 @@ const DATOS_IMPORTAR_TARGETS = {
     replaceFileId: "registrarImportReplaceFile",
     confirmId: "registrarImportConfirm",
     importarOtroId: "registrarImportOtro",
+    accountSelectId: "registrarImportAccount",
   },
 };
+
+// M-2/M-6 (auditoría del 15 de agosto, Prioridad 4): el criterio pide «concepto con cuenta» en la
+// tabla de Movimientos y un campo «cuenta» en el panel de detalle. No existe ningún atributo de
+// cuenta por movimiento en el modelo de datos, y no hay forma honesta de reconstruirlo para el
+// extracto histórico ya cargado (regla transversal 04: dato ausente no es cero, tampoco se inventa).
+// Se etiqueta solo hacia delante: al importar un extracto nuevo se pregunta de qué cuenta es, y esa
+// cuenta se estampa en los movimientos de esa tanda — no reemplaza `session.fileMeta.sourceLabel`
+// (que sigue siendo descriptivo del fichero, no de una cuenta bancaria real, ver la nota de
+// `datosImportarFileSummary`), es una etiqueta nueva y opcional.
+const DATOS_IMPORTAR_ACCOUNTS = ["CaixaBank", "Mediolanum", "Efectivo"];
 
 function datosImportarTarget() {
   return activeViewId === "registrar" ? DATOS_IMPORTAR_TARGETS.registrar : DATOS_IMPORTAR_TARGETS.data;
@@ -16652,10 +16667,23 @@ function datosImportarStep1Markup() {
   const closedNote = summary.closedMonths.length
     ? `<p class="e19-kpi-note is-warn">Solapa con ${summary.closedMonths.length} mes(es) ya cerrado(s): ${summary.closedMonths.map((month) => escapeHtml(monthLabel(dateFromMonthKey(month)))).join(", ")}. Esos movimientos no recalcularán reales de un mes cerrado.</p>`
     : "";
+  const accountOptions = ['<option value="">Sin especificar</option>']
+    .concat(
+      DATOS_IMPORTAR_ACCOUNTS.map(
+        (account) =>
+          `<option value="${escapeHtml(account)}"${session.fileMeta.bankAccount === account ? " selected" : ""}>${escapeHtml(account)}</option>`,
+      ),
+    )
+    .join("");
   return `<div class="e19-card datos-importar-file-summary">
     <strong>${escapeHtml(session.fileMeta.fileName)}</strong>
     <p class="e19-kpi-note">Formato reconocido · ${session.rows.length} movimiento(s) · del ${escapeHtml(formatIsoDate(summary.from))} al ${escapeHtml(formatIsoDate(summary.to))}.</p>
     ${repeatedNote}${closedNote}
+    <label class="datos-importar-account-select">
+      <span>¿De qué cuenta es este extracto?</span>
+      <select id="${target.accountSelectId}">${accountOptions}</select>
+    </label>
+    <p class="e19-kpi-note">Se etiqueta cada movimiento de esta tanda con la cuenta elegida. Sin elegir ninguna, entran sin cuenta asignada — no se inventa una.</p>
     <div class="datos-importar-counters">
       <div><strong>${counters.conReglaPrevia}</strong><span>con regla previa</span></div>
       <div><strong>${counters.pidenDecision}</strong><span>piden decisión</span></div>
@@ -16663,6 +16691,13 @@ function datosImportarStep1Markup() {
     </div>
     <button type="button" class="e19-btn e19-btn-secondary" id="${target.replaceFileId}">Cambiar de fichero</button>
   </div>`;
+}
+
+function handleDatosImportarAccountChange() {
+  const select = qs(datosImportarTarget().accountSelectId);
+  if (!select || !datosImportarSession) return;
+  datosImportarSession.fileMeta.bankAccount = select.value || "";
+  datosImportarPersistDraft();
 }
 
 function datosImportarWireStep1() {
@@ -16673,6 +16708,7 @@ function datosImportarWireStep1() {
     datosImportarClearDraft();
     renderDatosImportar();
   });
+  qs(target.accountSelectId)?.addEventListener("change", handleDatosImportarAccountChange);
 }
 
 function datosImportarClassifyRowMarkup(row) {
@@ -17059,6 +17095,7 @@ function renderDetailedMovements() {
         <td class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</td>
         <td>${row.balance === null || row.balance === undefined ? "" : money(row.balance, true)}</td>
         <td>${escapeHtml(row.source || "")}</td>
+        <td>${escapeHtml(row.account || "—")}</td>
         <td><button type="button" class="e19-btn e19-btn-secondary movements-row-detail" data-movement-detail-index="${index}">Ver</button></td>
       </tr>`,
     )
@@ -17266,6 +17303,7 @@ function renderMovementDetailDialog() {
       <div><dt>Importe</dt><dd class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</dd></div>
       <div><dt>Saldo</dt><dd>${row.balance === null || row.balance === undefined ? "—" : money(row.balance, true)}</dd></div>
       <div><dt>Origen</dt><dd>${escapeHtml(row.source || "—")}</dd></div>
+      <div><dt>Cuenta</dt><dd>${escapeHtml(row.account || "—")}</dd></div>
     </dl>
     <div class="movement-detail-reclassify">
       <label>
@@ -17323,7 +17361,7 @@ function handleMovementReclassify() {
 // M-10: exporta exactamente la vista filtrada visible, no el extracto completo.
 function handleMovementsExport() {
   const filtered = movementsFilteredList();
-  const header = ["Fecha", "Fecha valor", "Movimiento", "Más datos", "Categoría", "Partida", "Importe", "Saldo", "Origen"];
+  const header = ["Fecha", "Fecha valor", "Movimiento", "Más datos", "Categoría", "Partida", "Importe", "Saldo", "Origen", "Cuenta"];
   const lines = filtered.map((row) => {
     const mapping = mappingForMovement(row);
     return [
@@ -17336,6 +17374,7 @@ function handleMovementsExport() {
       row.amount,
       row.balance,
       row.source,
+      row.account || "",
     ]
       .map(csvValue)
       .join(";");

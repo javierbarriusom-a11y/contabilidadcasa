@@ -3668,6 +3668,16 @@
   align-items: flex-start;
 }
 
+/* M-2/M-6: selector de cuenta del extracto en el paso 1 del importador — mismo patrón compacto
+   label+select que ya usa registrar-actuals-month. */
+.datos-importar-account-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
 .datos-importar-counters {
   display: flex;
   gap: 24px;

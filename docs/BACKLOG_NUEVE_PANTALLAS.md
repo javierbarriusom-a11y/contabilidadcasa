@@ -96,18 +96,18 @@ indicadores coloreados frente al Plan más veredicto en prosa), D-4 (gráfico ag
 mes a mes con la estrategia activa, con hito de primer contrato liquidado e intereses totales frente
 a solo mínimos), H-5 (candidata de movimientos por incorporar, navegación a vista y pestaña) y P-2
 (tabla única «Presupuesto de [mes]» agrupada por bloque, con subtotal y plegado) — ver sus notas
-respectivas. **De la Prioridad 4 (6 tareas), cuatro se cerraron el 16 de agosto en la misma
+respectivas. **De la Prioridad 4 (6 tareas), cinco se cerraron el 16 de agosto en la misma
 sesión**: R-2 (recuento vivo en la insignia de Importar, en vez de un «ausente» permanente), P-4
 (el hover de «Usado» dice de dónde sale y cuántos movimientos lo componen), P-1 (confirmado con
 Playwright que el horizonte de Previsión ya sobrevive al cambio de pestaña por diseño — la mitad
 «se comparte entre las tres pestañas» no aplica hoy: Mes usa un selector de mes por diseño distinto,
-no un horizonte, y Ahorro sigue sin construir) y R-3 (cuenta Efectivo editable, consultada con el
+no un horizonte, y Ahorro sigue sin construir), R-3 (cuenta Efectivo editable, consultada con el
 usuario y resuelta como cifra informativa fuera del total de liquidez proyectada, sin rehacer el
-motor de dos cuentas) — ver sus notas respectivas. Quedan dos: M-2/M-6 (cuenta por movimiento — no
-existe el atributo en el modelo de datos, y el propio importador ya decidió explícitamente no fingir
-haber identificado una cuenta bancaria real; requiere una decisión de producto, no solo código) y
-M-8 (bloqueada por depender de la pieza compartida «Historial de versiones», que tampoco tienen
-R-6/Cierre).
+motor de dos cuentas) y M-2/M-6 (cuenta por movimiento, consultada con el usuario y resuelta
+etiquetando solo hacia delante desde el importador, con «—» en el histórico sin ese dato) — ver sus
+notas respectivas. Solo queda M-8, bloqueada por depender de la pieza compartida «Historial de
+versiones», que tampoco tienen R-6/Cierre — Prioridad 4 cerrada en la práctica salvo esa pieza
+compartida sin construir todavía.
 
 ## 4. Nueve reglas transversales
 
@@ -312,11 +312,11 @@ tocar directamente la regla transversal 01 (una escritura real sigue abierta en 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
 | M-1 | Vista propia en el menú | Fase 3 · menú | S | Hecho (15 de agosto) |
-| M-2 | Tabla del extracto | M-1 | M | Hecho (parcial, ver nota) |
+| M-2 | Tabla del extracto | M-1 | M | Hecho (16 de agosto, ver nota) |
 | M-3 | Filtros, búsqueda y rango de fechas | M-2 | M | Hecho (16 de agosto, ver nota) |
 | M-4 | Marca del movimiento sin partida | M-2 | S | Hecho |
 | M-5 | Aviso de cola sin clasificar | M-3 | S | Hecho |
-| M-6 | Panel de detalle | M-2 | M | Hecho (parcial, ver nota) |
+| M-6 | Panel de detalle | M-2 | M | Hecho (16 de agosto, ver nota) |
 | M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho (15 de agosto, ver nota) |
 | M-8 | Selección múltiple y acción en lote | M-2, R-7 | L | Hecho (15 de agosto, ver nota) |
 | M-8b | Consistencia con Registrar y el importador | M-8, R-8 | M | Hecho (15 de agosto, ver nota) |
@@ -412,10 +412,26 @@ M-1, M-4, M-5, M-9, M-10 y M-11 coinciden con precisión. Gaps reales encontrado
   incluidos), igual que antes. Pruebas nuevas en `tests/m1-m11-movimientos.test.cjs`; se ajustó
   `tests/m8-m8b-movimientos-lote.test.cjs` (la llamada a `datosImportarRefreshRowsForMappings` ahora
   es condicional a que se haya marcado «recordar»).
-- **M-2 / M-6**: el criterio pide «concepto con cuenta» y un campo «cuenta» en el panel de detalle.
-  No existe ningún atributo de cuenta por movimiento en el modelo de datos (solo dos saldos
-  globales, CaixaBank/Mediolanum) — limitación estructural ya reconocida en el propio código, no un
-  descuido de esta tarea, pero el criterio del PDF no se cumple tal cual está escrito. Pendiente.
+- **M-2 / M-6 (cerradas el 16 de agosto, sesión de Prioridad 4)**: el criterio pide «concepto con
+  cuenta» en la tabla y un campo «cuenta» en el panel de detalle. No existía ningún atributo de
+  cuenta por movimiento en el modelo de datos, y no había forma honesta de reconstruirlo para el
+  extracto histórico ya cargado — el propio importador ya declaraba en un comentario que «cuenta»
+  ahí es descriptiva del fichero, no una cuenta bancaria real. Consultado con el usuario, se eligió
+  etiquetar solo hacia delante: el paso 1 del asistente de Importar extracto (R-8) gana un selector
+  «¿De qué cuenta es este extracto?» (CaixaBank/Mediolanum/Efectivo/sin especificar,
+  `DATOS_IMPORTAR_ACCOUNTS`), y `datosImportarIncludedTransactions` estampa esa cuenta en los
+  movimientos de esa tanda al incorporarlos — nunca se inventa para el resto. La tabla de
+  Movimientos (M-2) gana la columna «Cuenta» junto a «Origen», y el panel de detalle (M-6) su campo
+  «Cuenta»; ambos muestran «—» cuando el movimiento no la tiene, en vez de fabricar un valor (regla
+  transversal 04). El CSV exportado (M-10) también la incluye, para que no diverja de lo que se ve
+  en pantalla. Verificado con Playwright de punta a punta: subir un extracto CSV real, elegir
+  «Mediolanum» en el paso 1, clasificar y confirmar la importación, y comprobar que la fila nueva de
+  Movimientos y su panel de detalle muestran «Mediolanum» — mientras que los movimientos del extracto
+  de demostración (cargados antes de que existiera esta tarea) siguen mostrando «—», sin que se les
+  fabricara una cuenta que nunca declararon. Pruebas nuevas en
+  `tests/r8-registrar-importar-extracto.test.cjs` (selector de cuenta, su manejador de cambio, y el
+  estampado condicional) y en `tests/m1-m11-movimientos.test.cjs` (columna de tabla, campo de
+  detalle, columna del CSV).
 - **M-8**: el criterio exige «una sola entrada revertible del historial». Ya reconocido en la nota
   de arriba como pendiente por depender de una pieza de historial que tampoco tienen R-6/Cierre —
   la auditoría confirma que es una brecha real frente al PDF, no solo frente al backlog. Pendiente,
