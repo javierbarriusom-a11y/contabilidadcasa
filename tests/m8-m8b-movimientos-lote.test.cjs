@@ -413,7 +413,8 @@ test("M-8 · los manejadores del lote quedan enlazados en el arranque", () => {
   });
 });
 
-test("M-8b · handleMovementReclassify (M-7) también refresca una sesión de importación a medias", () => {
+test("M-8b · handleMovementReclassify (M-7) también refresca una sesión de importación a medias, solo cuando se marcó «recordar»", () => {
   const fn = extractFunction("handleMovementReclassify");
-  assert.match(fn, /datosImportarRefreshRowsForMappings\(new Set\(\[movementMappingKey\(row\)\]\)\)/);
+  assert.match(fn, /const key = remember \? movementMappingKey\(row\) : transactionIdentity\(row\);/);
+  assert.match(fn, /if \(remember\) datosImportarRefreshRowsForMappings\(new Set\(\[key\]\)\);/);
 });

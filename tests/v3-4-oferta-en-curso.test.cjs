@@ -10,13 +10,16 @@ const app = read("app.js");
 const html = read("index.html");
 const css = read("design-tokens.css");
 const worker = read("service-worker.js");
+const E14DebtOperations = require(path.join(root, "canonical-e14-operations.js"));
 
 // V3-4 · «Oferta en curso» del mockup 4d vivía solo en #asesor-decision. Esta tarjeta la trae a la
 // propia vista de Deuda (#deuda-ruta), reutilizando asesorDecisionOpenOffers() y
-// asesorDecisionFundingHtml() tal cual, sin recalcular nada. El botón replica el mismo gesto que
-// asesorDecisionApply: marca la oferta en el workspace de E14b y enruta a #debt-roadmap, que sigue
-// siendo el único sitio donde se registra y aplica una oferta de verdad. Cierra la vista 3 · Deuda
-// por completo.
+// asesorDecisionFundingHtml() tal cual, sin recalcular nada.
+// D-8/D-9 (15 de agosto, Prioridad 2 de la auditoría): el botón dejó de enrutar a #debt-roadmap
+// para aplicar — aplica in situ detrás de un checklist de cuatro requisitos, reutilizando
+// applyE14bOffer() como única puerta de escritura. Esa parte del comportamiento (checklist, botón
+// deshabilitado, clic aplica) se prueba a fondo en tests/d8-d9-deuda-oferta-aplicar.test.cjs; este
+// archivo cubre lo que sigue igual: los datos que se muestran y dónde vive la tarjeta.
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -46,19 +49,22 @@ function extractFunction(name) {
 }
 
 function field() {
-  return { innerHTML: "", onclick: null };
+  return { innerHTML: "", addEventListener() {} };
 }
 
 function sandbox({ offer = null, contract = null, funding = "<funding-html>" } = {}) {
   const target = field();
-  const link = field();
+  const applyButton = field();
+  const editLink = field();
   const calls = { queueRemoteSave: 0, workspace: { selectedOfferId: null } };
   const elements = new Map([
     ["deudaRutaOffer", target],
-    ["deudaRutaOfferApply", link],
+    ["deudaRutaOfferApply", applyButton],
+    ["deudaRutaOfferEdit", editLink],
   ]);
   const context = {
     qs: (id) => elements.get(id) || null,
+    document: { querySelectorAll: () => [] },
     escapeHtml: (value) => String(value ?? ""),
     money: (value) => `${Number(value).toFixed(2)} €`,
     escenarioMotorMonthLabel: (value) => `etiqueta:${value}`,
@@ -67,11 +73,20 @@ function sandbox({ offer = null, contract = null, funding = "<funding-html>" } =
     debtTargetById: () => contract,
     e14bWorkspace: () => calls.workspace,
     queueRemoteSave: () => { calls.queueRemoteSave += 1; },
+    e14bForecast: () => ({ series: [] }),
+    e14bStrategyForOffer: () => ({}),
+    agentCaixaFloor: () => 0,
+    E14DebtOperations,
+    applyE14bOffer: async () => {},
+    debtLiquidations: [],
+    deudaRutaOfferStatusMessage: "",
     calls,
     target,
-    link,
+    applyButton,
+    editLink,
   };
   vm.createContext(context);
+  vm.runInContext(extractFunction("deudaRutaOfferChecklist"), context);
   vm.runInContext(extractFunction("renderDeudaRutaOffer"), context);
   context.renderDeudaRutaOffer();
   return context;
@@ -83,7 +98,7 @@ test("V3-4 · sin ofertas abiertas, la tarjeta lo dice en vez de dejarse en blan
 });
 
 test("V3-4 · con una oferta, la tarjeta enseña contraparte, importe, ahorro y cobertura", () => {
-  const offer = { id: "offer-1", counterpart: "Cetelem", amount: 4200, discount: 180, expiresAt: "2026-09", contractId: "c1" };
+  const offer = { id: "offer-1", status: "accepted", documents: [], counterpart: "Cetelem", amount: 4200, discount: 180, expiresAt: "2026-09", contractId: "c1" };
   const { target } = sandbox({ offer, funding: "<div>cobertura</div>" });
   assert.match(target.innerHTML, /Cetelem/);
   assert.match(target.innerHTML, /4200\.00 €/);
@@ -93,30 +108,15 @@ test("V3-4 · con una oferta, la tarjeta enseña contraparte, importe, ahorro y 
 });
 
 test("V3-4 · con contrato, nombra la entidad; sin contraparte ni contrato, no inventa nada", () => {
-  const offer = { id: "offer-1", amount: 100, discount: 0, contractId: "c1" };
+  const offer = { id: "offer-1", status: "accepted", documents: [], amount: 100, discount: 0, contractId: "c1" };
   const contract = { entity: "Cetelem", type: "Préstamo personal" };
   const conContrato = sandbox({ offer, contract }).target.innerHTML;
   assert.match(conContrato, /Cetelem/);
   assert.match(conContrato, /Préstamo personal/);
 
-  const sinNada = sandbox({ offer: { id: "offer-1", amount: 100, discount: 0 }, contract: null }).target.innerHTML;
+  const sinNada = sandbox({ offer: { id: "offer-1", status: "accepted", documents: [], amount: 100, discount: 0 }, contract: null }).target.innerHTML;
   assert.match(sinNada, /Sin contraparte/);
   assert.ok(!/undefined/.test(sinNada), "no debe filtrar un undefined al HTML");
-});
-
-test("V3-4 · el botón replica el gesto de asesorDecisionApply: marca la oferta y encola el guardado", () => {
-  const offer = { id: "offer-1", counterpart: "Cetelem", amount: 100, discount: 0 };
-  const { link, calls } = sandbox({ offer });
-  assert.equal(typeof link.onclick, "function");
-  link.onclick();
-  assert.equal(calls.workspace.selectedOfferId, "offer-1");
-  assert.equal(calls.queueRemoteSave, 1);
-});
-
-test("V3-4 · el botón enruta a #debt-roadmap, el único sitio donde se aplica de verdad una oferta", () => {
-  const offer = { id: "offer-1", counterpart: "Cetelem", amount: 100, discount: 0 };
-  const { target } = sandbox({ offer });
-  assert.match(target.innerHTML, /id="deudaRutaOfferApply" href="#debt-roadmap"/);
 });
 
 test("V3-4 · reutiliza asesorDecisionOpenOffers y asesorDecisionFundingHtml tal cual, sin recalcular nada", () => {

@@ -2,6 +2,50 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Prioridad 2 de la auditoría — M-7, D-9, D-8 y H-6
+
+Continuación directa de la Prioridad 1 (R-11/P-3), misma sesión. El usuario pidió seguir por
+prioridad con M-7, D-9, D-8 y H-6.
+
+**M-7**: faltaba la casilla «recordar para los que empiecen igual», desmarcada por defecto, para
+que aprender una regla de concepto en Movimientos fuera un acto deliberado. `mappingForMovement`
+mira ahora primero una clave de un solo movimiento (`transactionIdentity`) antes que la de concepto
+(`movementMappingKey`); la casilla nueva decide cuál escribe `handleMovementReclassify`.
+
+**D-9/D-8**: el criterio real no era el checklist de Deuda › Ruta (que ya existía, pero comprobaba
+solo reserva y mes viable) — era la tarjeta «Oferta en curso», que solo enrutaba a la heredada
+`#debt-roadmap` para aplicar. Reconstruida en el sitio: `deudaRutaOfferChecklist` pinta los cuatro
+requisitos reales (oferta aceptada, documentos completos, reserva protegida, motivo al confirmar) y
+el botón «Aplicar al plan» llama a `applyE14bOffer()`, el mismo motor que ya usaba `#debt-roadmap`
+(regla transversal 01). `requestOperationConfirmation` (el diálogo de motivo compartido con
+Escenarios y otras cinco operaciones) gana un campo opcional de fecha de revisión tras
+`allowReviewDate`; si se rellena, genera un recordatorio real en Hoy vía `homeDebtReviewReminders()`
+(H-5).
+
+**Bug real encontrado con Playwright, no con las pruebas**: la deuda demo ya tenía una decisión
+aplicada, y el checklist salía en verde igual mientras `applyE14bOffer()` bloqueaba en silencio (su
+aviso vivía en `#e14bStatus`, dentro de `#debt-roadmap`, invisible desde Ruta). Corregido con un
+aviso explícito bajo el checklist y copiando el resultado de `#e14bStatus` a la tarjeta tras cada
+intento — mismo patrón que el bug de `worstMonthOf` en la sesión de P-8/P-9: la verificación visual
+atrapó algo que las pruebas unitarias, con sus propios dobles, no podían ver.
+
+**H-6**: el bloque «El mes en una línea» de Hoy mostraba solo cifras reales (Ingresos reales /
+Gastos reales / Margen del mes / Movimientos registrados), sin comparar contra lo previsto.
+Corregido a Ingresos / Gasto previsto / Gasto real a hoy / Desviación, leyendo
+`plannedValueForVisualRow` del mes actual — el mismo previsto guardado que ya usa Plan › Previsión.
+Sin mes encontrado, dice «—» en vez de fabricar un previsto de 0€.
+
+**Validación**: `npm run verify`, exit 0, **954/954 pruebas** (935 + 19 nuevas, repartidas entre
+`tests/m1-m11-movimientos.test.cjs`/`tests/m8-m8b-movimientos-lote.test.cjs` (M-7),
+`tests/d8-d9-deuda-oferta-aplicar.test.cjs` nuevo (17 pruebas) y `tests/v3-4-oferta-en-curso.test.cjs`
+reescrito (D-8/D-9), y `tests/f1-hoy-dato-ausente.test.cjs` (H-6)), 692 IDs de accesibilidad,
+build/privacidad/smoke en verde. Verificación visual con Playwright en los tres flujos (M-7, D-8/D-9
+de punta a punta con oferta real aplicada y recordatorio en Hoy, H-6).
+
+**Backlog corregido**: M-7, D-8, D-9 y H-6 vuelven a `Hecho` en `docs/BACKLOG_NUEVE_PANTALLAS.md`,
+con sus notas de auditoría actualizadas. Quedan pendientes las Prioridades 3-4 (11 tareas): M-3,
+D-6, D-4, P-2, H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+
 ## Cierre de sesión — 15 de agosto de 2026: Prioridad 1 de la auditoría — R-11 y P-3
 
 Continuación directa del cierre de la auditoría. El usuario pidió seguir por prioridad, empezando

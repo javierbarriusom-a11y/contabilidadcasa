@@ -283,13 +283,14 @@
               </article>
             </div>
 
-            <!-- H-6: cuatro filas de ejecución del mes + dos filas de señal + nota de confianza. -->
+            <!-- H-6: Ingresos/Gasto previsto/Gasto real a hoy/Desviación + dos filas de señal + nota de confianza. -->
             <article class="home-panel home-month-glance" id="homeMonthGlance">
               <div class="module-heading">
                 <div>
                   <p class="panel-kicker">Este mes</p>
                   <h3 id="homeMonthGlanceTitle">El mes en una línea</h3>
                 </div>
+                <span class="e19-kpi-meta">Ejecución del mes en curso</span>
               </div>
               <div class="home-month-glance-rows" id="homeMonthGlanceRows"></div>
               <p class="home-month-glance-confidence" id="homeMonthGlanceConfidence"></p>
@@ -3405,6 +3406,11 @@
           <span>Motivo</span>
           <input id="operationConfirmReason" type="text" required />
         </label>
+        <label id="operationConfirmReviewDateField" hidden>
+          <span>Fecha de revisión (opcional)</span>
+          <input id="operationConfirmReviewDate" type="date" />
+        </label>
+        <p class="e19-kpi-note" id="operationConfirmReviewDateHint" hidden>Si la rellenas, aparecerá como recordatorio en Hoy hasta esa fecha.</p>
         <div class="dialog-actions">
           <button value="cancel" class="secondary" type="submit">Cancelar</button>
           <button value="confirm" id="operationConfirmSubmit" type="submit">Confirmar</button>

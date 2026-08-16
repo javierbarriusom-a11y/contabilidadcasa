@@ -206,15 +206,18 @@ test("M-6 · cerrar el detalle limpia el estado y cierra el diálogo", () => {
 
 // --- M-7 · cambio de partida con regla -------------------------------------------------------------
 
-test("M-7 · reclasificar escribe en el mismo diccionario movementMappings y recalcula por el mismo camino que el importador", () => {
+function sandboxReclassify(remember, extra = {}) {
   const calls = [];
   const movementMappings = {};
   const select = { value: "gasto-seguro-coche", options: [{}, { textContent: "Gastos fijos · Seguro coche" }], selectedIndex: 1 };
+  const remembered = { checked: remember };
   const context = sandboxWith(["handleMovementReclassify"], {
     movementDetailTransaction: { date: "2026-08-01", movement: "MERCADONA", details: "COMPRA", amount: -45.2 },
-    qs: (id) => (id === "movementDetailPartida" ? select : null),
+    qs: (id) => (id === "movementDetailPartida" ? select : id === "movementDetailRemember" ? remembered : null),
     movementKindFromAmount: () => "expense",
     movementMappingKey: () => "expense|mercadona|compra",
+    transactionIdentity: () => "2026-08-01|||mercadona compra|-45.2|",
+    movementDisplayName: () => "MERCADONA · COMPRA",
     movementMappings,
     saveMovementMappings: () => calls.push("saveMovementMappings"),
     applyMovementMappingsToActuals: () => {
@@ -231,8 +234,32 @@ test("M-7 · reclasificar escribe en el mismo diccionario movementMappings y rec
     renderDetailedMovements: () => calls.push("renderDetailedMovements"),
     baseData: { transactions: [] },
     pendingMovementMappings: [],
+    ...extra,
   });
   context.handleMovementReclassify();
+  return { movementMappings, calls };
+}
+
+test("M-7 · sin marcar «recordar» (por defecto), la reclasificación se guarda solo para este movimiento, no como regla de concepto", () => {
+  const { movementMappings, calls } = sandboxReclassify(false);
+  assert.equal(movementMappings["expense|mercadona|compra"], undefined);
+  const saved = movementMappings["2026-08-01|||mercadona compra|-45.2|"];
+  assert.equal(saved.kind, "expense");
+  assert.equal(saved.rowKey, "gasto-seguro-coche");
+  assert.deepEqual(calls, [
+    "saveMovementMappings",
+    "applyMovementMappingsToActuals",
+    "saveIncomeActuals",
+    "saveExpenseActuals",
+    "refreshAllSectionsAfterDataChange",
+    ["announceStatus", "Partida guardada solo para este movimiento. 3 importe(s) reales recalculados desde movimientos."],
+    "renderMovementDetailDialog",
+    "renderDetailedMovements",
+  ]);
+});
+
+test("M-7 · marcando «recordar», la reclasificación escribe en el diccionario de concepto y recalcula por el mismo camino que el importador", () => {
+  const { movementMappings, calls } = sandboxReclassify(true);
   const saved = movementMappings["expense|mercadona|compra"];
   assert.equal(saved.kind, "expense");
   assert.equal(saved.rowKey, "gasto-seguro-coche");
@@ -244,7 +271,7 @@ test("M-7 · reclasificar escribe en el mismo diccionario movementMappings y rec
     "saveIncomeActuals",
     "saveExpenseActuals",
     "refreshAllSectionsAfterDataChange",
-    ["announceStatus", "Partida guardada. 3 importe(s) reales recalculados desde movimientos."],
+    ["announceStatus", "Regla guardada para «MERCADONA · COMPRA»: se aplicará también a movimientos futuros. 3 importe(s) reales recalculados desde movimientos."],
     "renderMovementDetailDialog",
     "renderDetailedMovements",
   ]);
@@ -268,9 +295,27 @@ test("M-7 · sin elegir partida, avisa y no escribe nada en el diccionario", () 
   assert.deepEqual(calls, ["Elige una partida antes de guardar."]);
 });
 
-test("M-7 · la nota del panel deja explícito que la regla vale para todos los movimientos iguales, no solo este", () => {
-  const fn = extractFunction("renderMovementDetailDialog");
-  assert.match(fn, /Se aplicará a todos los movimientos con el mismo concepto/);
+test("M-7 · la casilla «recordar» existe, desmarcada por defecto, y el aviso explica ambos casos", () => {
+  assert.match(app, /<input type="checkbox" id="movementDetailRemember" \/>/);
+  assert.match(app, /<span>Recordar para los que empiecen igual<\/span>/);
+  assert.match(app, /Sin marcar, solo reclasifica este movimiento\. Marcada, se aplicará a todos los movimientos con el mismo concepto/);
+});
+
+test("M-7 · mappingForMovement mira primero la clave de un solo movimiento, y solo si no hay usa la regla de concepto", () => {
+  const context = sandboxWith(["mappingForMovement"], {
+    movementKindFromAmount: () => "expense",
+    transactionIdentity: () => "single-key",
+    movementMappingKey: () => "concept-key",
+    planningRowBySeriesKey: (kind, rowKey) => ({ id: rowKey }),
+    movementMappings: {
+      "single-key": { kind: "expense", rowKey: "solo-este" },
+      "concept-key": { kind: "expense", rowKey: "regla-concepto" },
+    },
+    exactMovementPlanningMatch: () => null,
+  });
+  const mapping = context.mappingForMovement({ amount: -10 });
+  assert.equal(mapping.source, "single");
+  assert.equal(mapping.row.id, "solo-este");
 });
 
 // --- M-9 · totales de la vista filtrada -----------------------------------------------------------

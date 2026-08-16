@@ -115,8 +115,23 @@ test("H-10 · H-3b editor: distingue guardado del usuario frente a aprendido de 
   assert.equal(learned.label, "Aprendido");
 });
 
+// H-6 (auditoría del 15 de agosto): stubs comunes de previsto para homeMonthAtAGlance — sin mes
+// encontrado, plannedExpense es null y las filas nuevas responden con "—", no con un 0 fabricado.
+function homeMonthAtAGlanceStubs({ month = null, plannedExpenseRows = [] } = {}) {
+  return {
+    monthByKey: () => month,
+    baseData: { monthlyPlanning: { months: month ? [month] : [] } },
+    planningSectionsForMonth: () => [{ rows: plannedExpenseRows }],
+    plannedValueForVisualRow: (row) => Number(row.planned || 0),
+    registrarMesSignedMoney: (value) => `${value > 0 ? "+" : ""}€${Number(value).toFixed(2)}`,
+  };
+}
+
 test("H-10 · H-6 mes en una línea: sin movimientos este mes, ninguna fila finge un dato — lo dice la nota de confianza", () => {
-  const { homeMonthAtAGlance } = sandboxWith(["homeMonthAtAGlance"], { p2MovementRows: () => [] });
+  const { homeMonthAtAGlance } = sandboxWith(["homeMonthAtAGlance"], {
+    p2MovementRows: () => [],
+    ...homeMonthAtAGlanceStubs(),
+  });
   const glance = homeMonthAtAGlance("2026-08-14", 250);
   assert.equal(glance.movementCount, 0);
   assert.equal(glance.confidenceLabel, "sin movimientos todavía");
@@ -130,7 +145,10 @@ test("H-10 · H-6 mes en una línea: movimientos sin clasificar se cuentan y se 
     { month: "2026-08", amount: -400, reconciled: true },
     { month: "2026-08", amount: -60, reconciled: false },
   ];
-  const { homeMonthAtAGlance } = sandboxWith(["homeMonthAtAGlance"], { p2MovementRows: () => movements });
+  const { homeMonthAtAGlance } = sandboxWith(["homeMonthAtAGlance"], {
+    p2MovementRows: () => movements,
+    ...homeMonthAtAGlanceStubs(),
+  });
   const glance = homeMonthAtAGlance("2026-08-14", 250);
   assert.equal(glance.movementCount, 3);
   assert.equal(glance.reconciledCount, 2);
@@ -138,9 +156,41 @@ test("H-10 · H-6 mes en una línea: movimientos sin clasificar se cuentan y se 
   assert.match(unclassifiedRow.value, /^1 ·/);
 });
 
+test("H-10 · H-6 (auditoría 15 de agosto) · sin mes encontrado en el plan, Gasto previsto y Desviación dicen «—», no fabrican un previsto de 0€", () => {
+  const { homeMonthAtAGlance } = sandboxWith(["homeMonthAtAGlance"], {
+    p2MovementRows: () => [],
+    ...homeMonthAtAGlanceStubs({ month: null }),
+  });
+  const glance = homeMonthAtAGlance("2026-08-14", 250);
+  const planned = glance.rows.find((row) => row.label === "Gasto previsto");
+  const deviation = glance.rows.find((row) => row.label === "Desviación");
+  assert.equal(planned.value, "—");
+  assert.equal(deviation.value, "—");
+});
+
+test("H-10 · H-6 (auditoría 15 de agosto) · con mes encontrado, Ingresos/Gasto previsto/Gasto real a hoy/Desviación comparan lo previsto contra lo real, no solo cifras reales", () => {
+  const movements = [
+    { month: "2026-08", amount: 4320, reconciled: true },
+    { month: "2026-08", amount: -1412, reconciled: true },
+  ];
+  const { homeMonthAtAGlance } = sandboxWith(["homeMonthAtAGlance"], {
+    p2MovementRows: () => movements,
+    ...homeMonthAtAGlanceStubs({ month: { key: "2026-08" }, plannedExpenseRows: [{ planned: 2000 }, { planned: 1075 }] }),
+  });
+  const glance = homeMonthAtAGlance("2026-08-14", 250);
+  assert.equal(glance.rows.find((row) => row.label === "Ingresos").value, "€4320.00");
+  assert.equal(glance.rows.find((row) => row.label === "Gasto previsto").value, "€3075.00");
+  assert.equal(glance.rows.find((row) => row.label === "Gasto real a hoy").value, "€1412.00");
+  const deviation = glance.rows.find((row) => row.label === "Desviación");
+  assert.equal(deviation.value, "€-1663.00");
+  assert.equal(deviation.tone, "positive", "gastar menos de lo previsto es una desviación buena");
+  assert.equal(glance.rows.some((row) => row.label === "Ingresos reales" || row.label === "Gastos reales" || row.label === "Margen del mes" || row.label === "Movimientos registrados"), false, "las etiquetas antiguas de solo-real ya no están");
+});
+
 test("H-10 · H-5 decisiones abiertas: sin ofertas, alertas, deuda candidata ni proyectos, no se fabrica una decisión", () => {
   const { homeOpenOfferInsight, homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates"], {
     evaluatedUxAlerts: () => [],
+    homeDebtReviewReminders: () => [],
   });
   const decisions = homeDecisionCandidates({
     actionCenter: { actions: [] },
@@ -156,6 +206,7 @@ test("H-10 · H-5 decisiones abiertas: sin ofertas, alertas, deuda candidata ni 
 test("H-10 · H-5 decisiones abiertas: una oferta con vencimiento real se antepone a las que no tienen fecha", () => {
   const { homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates"], {
     evaluatedUxAlerts: () => [],
+    homeDebtReviewReminders: () => [],
   });
   const decisions = homeDecisionCandidates({
     actionCenter: { actions: [{ id: "a1", rank: 1, tone: "neutral", title: "Acción de rango fijo", text: "x" }] },
