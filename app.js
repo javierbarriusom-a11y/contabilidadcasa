@@ -2904,6 +2904,17 @@ function registrarTabFromHash() {
   return REGISTRAR_LEGACY_HASH_TABS[id] || null;
 }
 
+// H-5: un target de `data-home-nav` es válido si es una vista real, o una de las claves heredadas
+// de REGISTRAR_LEGACY_HASH_TABS — setActiveView ya sabe traducir esa segunda forma a "registrar" +
+// su pestaña (mismo mecanismo que usan los enlaces de las heredadas). Sin este añadido, el
+// guardarraíl de cada manejador de clics (pensado para no pasarle basura a setActiveView) bloquearía
+// también esas claves legítimas antes de llegar a setActiveView.
+function homeNavTargetIsValid(target) {
+  if (!target) return false;
+  if (document.getElementById(target)?.classList.contains("view-section")) return true;
+  return Object.prototype.hasOwnProperty.call(REGISTRAR_LEGACY_HASH_TABS, target);
+}
+
 function announceStatus(message) {
   const status = qs("appLiveStatus");
   if (!status || !message) return;
@@ -20694,6 +20705,25 @@ function homeOpenOfferInsight(offer) {
   };
 }
 
+// H-5 (auditoría del 15 de agosto): el criterio pide una candidata sobre movimientos sin incorporar
+// («01 abre Registrar › Importar extracto») que no existía — `homeDecisionCandidates` no leía
+// `datosImportarSession` en absoluto. Un extracto a medio importar (persistido entre sesiones por
+// `datosImportarPersistDraft`, restaurado al arrancar) es una decisión abierta de verdad: los
+// movimientos ya están cargados pero no incorporados hasta terminar el asistente. Reutiliza
+// `datosImportarCounters`, el mismo recuento que ya pinta el propio asistente.
+function homeImportSessionCandidate() {
+  if (!datosImportarSession) return null;
+  const counters = datosImportarCounters(datosImportarSession.rows);
+  return {
+    title: "Movimientos por incorporar",
+    text: `«${datosImportarSession.fileMeta.fileName}»: ${counters.total} movimiento(s) cargados, ${counters.pidenDecision} piden decisión antes de incorporarse.`,
+    status: counters.pidenDecision > 0 ? "warn" : "neutral",
+    target: "datos-importar",
+    cta: "Continuar importación",
+    expiresAt: "",
+  };
+}
+
 // D-8: la fecha de revisión opcional al aplicar una oferta de deuda (`applyE14bOffer`) genera este
 // recordatorio en Hoy — reutiliza homeDecisionCandidates() (H-5), no un sistema de avisos nuevo.
 // Vive mientras `e14Application.reviewDate` siga en la decisión; D-8 solo pide "genera un
@@ -20718,12 +20748,15 @@ function homeDebtReviewReminders() {
 
 // H-5: candidatas a "decisión abierta", con caducidad real cuando existe (oferta de deuda con
 // vencimiento, alerta disparada con fecha de revisión, revisión de oferta aplicada) por delante de
-// las que no tienen fecha propia (acciones ejecutivas de rango fijo, deuda candidata, proyectos en
-// plan). No se toca unifiedActionCenterModel/executiveActions: esas listas las reutilizan otras
-// pantallas (Asesor ejecutivo) con su propio orden, y este reordenado es solo para Hoy.
+// las que no tienen fecha propia (movimientos por incorporar, acciones ejecutivas de rango fijo,
+// deuda candidata, proyectos en plan). No se toca unifiedActionCenterModel/executiveActions: esas
+// listas las reutilizan otras pantallas (Asesor ejecutivo) con su propio orden, y este reordenado
+// es solo para Hoy.
 function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDecisions, debtRatioStatus }) {
   const dated = [];
   const undated = [];
+  const importCandidate = homeImportSessionCandidate();
+  if (importCandidate) undated.push(importCandidate);
   const offerInsight = homeOpenOfferInsight(offer);
   if (offerInsight) {
     // offer.expiresAt es una clave de mes ("2026-09"), como ya usa escenarioMotorMonthLabel.
@@ -20772,10 +20805,14 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
   return [...dated, ...undated].slice(0, 3);
 }
 
-// H-5: "el primer botón es primario y navega a vista y pestaña" — cierto sin matices para las
-// decisiones de navegación (oferta, alerta, deuda candidata, proyectos). Las acciones ejecutivas
-// de rango fijo (simular ruta, hucha coche...) no tienen una pantalla propia a la que navegar
-// directamente: conservan su flujo existente de "Revisar acción" como interacción principal.
+// H-5 (cerrado el 16 de agosto): "el primer botón es primario y navega a vista y pestaña" — el
+// target de "Movimientos por incorporar" es "datos-importar", una clave heredada de
+// REGISTRAR_LEGACY_HASH_TABS (no un id de vista real): setActiveView ya sabe traducirla a
+// "registrar" + la pestaña "import", el mismo mecanismo que usan los enlaces de las heredadas.
+// homeNavTargetIsValid() es lo que deja pasar esa clave por el guardarraíl del manejador de clics
+// de #home sin abrir una segunda forma de navegar. Las acciones ejecutivas de rango fijo (simular
+// ruta, hucha coche...) no tienen una pantalla propia a la que navegar directamente: conservan su
+// flujo existente de "Revisar acción" como interacción principal.
 function renderHomeDecision(item, isPrimary) {
   if (item.isUnifiedAction) return renderUnifiedAction(item);
   const toneClass = item.status === "danger" ? "danger" : item.status === "warn" ? "warn" : "neutral";
@@ -26528,7 +26565,9 @@ async function init() {
   qs("home")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-home-nav]");
     const target = button?.dataset.homeNav;
-    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    // H-5: homeNavTargetIsValid (no el chequeo de vista-real a pelo) para que las decisiones
+    // abiertas puedan navegar a una pestaña concreta de Registrar, no solo a la vista.
+    if (!homeNavTargetIsValid(target)) return;
     history.pushState(null, "", `#${target}`);
     setActiveView(target);
   });

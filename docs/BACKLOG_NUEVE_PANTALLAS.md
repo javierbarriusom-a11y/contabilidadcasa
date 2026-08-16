@@ -92,10 +92,11 @@ checklist de cuatro requisitos, con motivo y fecha de revisión opcional que gen
 en Hoy) y H-6 (Ingresos/Gasto previsto/Gasto real a hoy/Desviación en vez de solo cifras reales) —
 ver sus notas respectivas. **Prioridad 3, cerrada el 16 de agosto**: M-3 (seis chips con recuento
 vivo, cuatro atajos de rango y búsqueda que también cubre el importe), D-6 (cinco indicadores
-coloreados frente al Plan más veredicto en prosa) y D-4 (gráfico agregado de capital vivo mes a mes
+coloreados frente al Plan más veredicto en prosa), D-4 (gráfico agregado de capital vivo mes a mes
 con la estrategia activa, con hito de primer contrato liquidado e intereses totales frente a solo
-mínimos) — ver sus notas respectivas. Quedan pendientes P-2 y H-5 de la Prioridad 3, y la Prioridad
-4 completa (7 tareas en total): P-2, H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+mínimos) y H-5 (candidata de movimientos por incorporar, navegación a vista y pestaña) — ver sus
+notas respectivas. Solo queda P-2 de la Prioridad 3; la Prioridad 4 completa (6 tareas) sigue
+pendiente: R-2, P-4, P-1, R-3, M-2/M-6, M-8.
 
 ## 4. Nueve reglas transversales
 
@@ -148,7 +149,7 @@ Convención de estado: `Hecho` (verificado y publicado) / `Pendiente`. `T` = tal
 | H-3 | Bloque «días hasta el siguiente ingreso» | H-1 | M | Hecho |
 | H-3b | Editor de cobertura aprendida | H-3 | M | Hecho |
 | H-4 | Rejilla de seis indicadores | H-1 | M | Hecho |
-| H-5 | Decisiones abiertas | H-4 | M | Hecho (parcial, ver nota) |
+| H-5 | Decisiones abiertas | H-4 | M | Hecho (16 de agosto, ver nota) |
 | H-6 | «Agosto en una línea» con señales | — | M | Hecho (15 de agosto, ver nota) |
 | H-7 | Cuatro tarjetas de contexto | H-4 | L | Hecho |
 | H-8 | Tira de estado global | Fase 3 · menú | M | Hecho |
@@ -171,11 +172,21 @@ tareas no:
   Sin mes encontrado en el plan, Gasto previsto y Desviación dicen «—», no fabrican un previsto de
   0€ (regla transversal 04). Verificado con Playwright contra los datos de demostración. Pruebas
   nuevas en `tests/f1-hoy-dato-ausente.test.cjs`.
-- **H-5**: el criterio exige que «el primer botón sea primario y navegue a vista y pestaña (01 abre
-  Registrar › Importar extracto)». `homeDecisionCandidates` no tiene ningún candidato sobre
-  movimientos sin incorporar, y ningún `target` de las decisiones abre una pestaña concreta —
-  todas navegan solo a nivel de vista. El mecanismo «vista + pestaña» que pide el criterio no
-  existe todavía para ninguna decisión. Pendiente, sin motivo de bloqueo — Prioridad 3.
+- **H-5 (cerrado el 16 de agosto, sesión de Prioridad 3)**: el criterio exigía «el primer botón sea
+  primario y navegue a vista y pestaña (01 abre Registrar › Importar extracto)». Dos gaps reales:
+  `homeDecisionCandidates` no tenía ningún candidato sobre movimientos sin incorporar (el ejemplo
+  «01» del propio criterio), y ningún `target` navegaba más allá de la vista. `homeImportSessionCandidate`
+  añade la candidata que faltaba: cuando hay un extracto a medio importar (`datosImportarSession`,
+  persistido entre sesiones), nombra el fichero y cuántos movimientos piden decisión, con destino
+  `datos-importar` — una clave heredada de `REGISTRAR_LEGACY_HASH_TABS`, no un id de vista real.
+  `setActiveView` ya sabía traducir esa clave a «registrar» + su pestaña «import» (el mismo mecanismo
+  que usan los enlaces de las heredadas), pero el guardarraíl de cada manejador de `data-home-nav`
+  (pensado para no pasarle basura a `setActiveView`) la bloqueaba igual que a un id inventado.
+  `homeNavTargetIsValid` sustituye ese chequeo en el manejador de clics de `#home` para aceptar
+  también las claves heredadas, sin abrir una segunda forma de navegar. Verificado con Playwright de
+  punta a punta: subir un CSV real en Registrar › Importar, ir a Hoy, ver la tarjeta «Movimientos por
+  incorporar» y comprobar que su botón navega de vuelta a la pestaña «Importar extracto» con la
+  misma sesión en curso intacta. Pruebas nuevas en `tests/h5-hoy-decision-navegacion.test.cjs`.
 
 ### 02 · Registrar — única puerta de escritura de datos reales (13 tareas · 2 grandes)
 

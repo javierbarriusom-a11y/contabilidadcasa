@@ -2,6 +2,44 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría (tercera tanda) — H-5
+
+Continuación directa de la tanda D-4 (misma sesión, PR anterior ya fusionado). H-5 era la última
+tarea M de la Prioridad 3: solo queda P-2 (talla M, tabla del mes agrupada por bloques) para cerrar
+la prioridad entera.
+
+**H-5**: el criterio exigía «el primer botón sea primario y navegue a vista y pestaña (01 abre
+Registrar › Importar extracto)». Dos gaps reales, no uno: `homeDecisionCandidates` no tenía ningún
+candidato sobre movimientos sin incorporar — el ejemplo «01» del propio criterio — y ningún `target`
+navegaba más allá de la vista, nunca a una pestaña concreta.
+
+`homeImportSessionCandidate` añade la candidata que faltaba: cuando hay un extracto a medio importar
+(`datosImportarSession`, persistido entre sesiones por `datosImportarPersistDraft` y restaurado al
+arrancar), nombra el fichero y cuántos movimientos piden decisión (reutilizando
+`datosImportarCounters`, el mismo recuento que ya pinta el propio asistente), con destino
+`datos-importar`. Esa clave no es un id de vista real, sino una de las heredadas de
+`REGISTRAR_LEGACY_HASH_TABS` — `setActiveView` ya sabía traducirla a «registrar» + su pestaña
+«import» (el mismo mecanismo que usan los enlaces de las heredadas desde hace sesiones), pero el
+guardarraíl de cada manejador de `data-home-nav` (pensado para no pasarle basura a `setActiveView`
+con un id inventado) bloqueaba también esas claves legítimas. `homeNavTargetIsValid` sustituye ese
+chequeo en el manejador de clics de `#home` para aceptar las dos formas, sin abrir una segunda vía
+de navegación — el resto de manejadores de `data-home-nav` (Registrar, Plan, Asesor ejecutivo...)
+quedan intactos, con su propio guardarraíl de siempre, porque ninguno de ellos necesitaba todavía
+navegar a una clave heredada.
+
+**Validación**: `npm run verify`, exit 0, **995/995 pruebas** (985 + 10 nuevas en
+`tests/h5-hoy-decision-navegacion.test.cjs`; se ajustaron dos pruebas existentes en
+`tests/d8-d9-deuda-oferta-aplicar.test.cjs` y `tests/f1-hoy-dato-ausente.test.cjs` que ejecutaban
+`homeDecisionCandidates()` en un sandbox y no stubaban la función nueva), 699 IDs de accesibilidad,
+rendimiento/build/privacidad/smoke en verde. Verificación visual con Playwright de punta a punta:
+subir un CSV real en Registrar › Importar, ir a Hoy, ver la tarjeta «Movimientos por incorporar» con
+el recuento correcto, y comprobar que su botón navega de vuelta a la pestaña «Importar extracto» con
+la misma sesión en curso intacta (el fichero seguía ahí). Sin errores de consola.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — H-5 pasa a `Hecho` (sin «parcial») en
+la tabla y gana nota de cierre. Solo queda P-2 para cerrar la Prioridad 3 entera; la Prioridad 4
+completa (6 tareas) sigue pendiente: R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+
 ## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría (segunda tanda) — D-4
 
 Continuación directa de la tanda M-3/D-6 (misma sesión, PR anterior ya fusionado). D-4 era la
