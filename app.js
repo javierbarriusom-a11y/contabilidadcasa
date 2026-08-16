@@ -22622,36 +22622,148 @@ function escenarioMotorMonthLabel(value) {
   return date ? `${monthLabel(date)}${match[2]}` : value;
 }
 
+// E-3 (Escenarios.pdf) · «reserva, colchón, fecha libre, ahorro anual, peor mes y capacidad» — los
+// tres últimos no tenían cifra propia en el motor E20 (solo daba liquidez final y mínima). Se
+// definen aquí sin inventar un dato nuevo: ahorro anual suma `row.saving` (el mismo campo que ya
+// usa Plan · Previsión) de los primeros 12 meses del horizonte; meses de colchón divide la liquidez
+// final entre el gasto corriente medio de esos mismos 12 meses (`coreSpend`, motor canónico);
+// capacidad libre real reutiliza `monthlyFreeCapacity`, la misma función que ya usa Hoy — no una
+// fórmula paralela que pudiera divergir.
+function escenarioMotorAverageCoreSpend(series) {
+  const sample = series.slice(0, 12);
+  if (!sample.length) return 0;
+  return sumRows(sample, (row) => Number(row.coreSpend || 0)) / sample.length;
+}
+
+function escenarioMotorAhorroAnual(series) {
+  return round2(sumRows(series.slice(0, 12), (row) => Number(row.saving || 0)));
+}
+
 function escenarioMotorSummaryFor(result, months) {
-  if (!result || !result.valid) return { minimoLiquidez: null, liquidezFinal: null, libreDeDeuda: null };
+  if (!result || !result.valid) {
+    return {
+      minimoLiquidez: null,
+      liquidezFinal: null,
+      libreDeDeuda: null,
+      mesesColchon: null,
+      ahorroAnual: null,
+      peorMesClave: null,
+      peorMesValor: null,
+      capacidadLibre: null,
+    };
+  }
+  const series = result.series;
+  const worst = series.length
+    ? FinanceCanonicalCushion.worstMonthOf(
+        months.map((month, index) => ({ key: month.key, totalLiquidity: series[index]?.totalLiquidity ?? 0 })),
+        { monthKeyField: "key" },
+      )
+    : null;
+  const liquidezFinal = series.length ? series.at(-1).totalLiquidity : null;
+  const avgCoreSpend = series.length ? escenarioMotorAverageCoreSpend(series) : 0;
   return {
-    minimoLiquidez: result.series.length ? Math.min(...result.series.map((row) => row.totalLiquidity)) : null,
-    liquidezFinal: result.series.length ? result.series.at(-1).totalLiquidity : null,
+    minimoLiquidez: series.length ? Math.min(...series.map((row) => row.totalLiquidity)) : null,
+    liquidezFinal,
     libreDeDeuda: escenarioMotorLibreDeDeuda(result.debtStateFinal, months),
+    mesesColchon: avgCoreSpend > 0 && liquidezFinal !== null ? round2(liquidezFinal / avgCoreSpend) : null,
+    ahorroAnual: series.length ? escenarioMotorAhorroAnual(series) : null,
+    peorMesClave: worst?.key || null,
+    peorMesValor: worst ? Number(worst.totalLiquidity ?? 0) : null,
+    capacidadLibre: series.length ? monthlyFreeCapacity(series) : null,
   };
 }
 
+// Fila de la comparativa de seis indicadores: plan vigente frente a la simulación, coloreada según
+// mejore o empeore (no según el signo bruto — una fecha «después» es peor aunque sea un número
+// mayor). `higherIsBetter=null` deshabilita el color (no hay una dirección buena/mala clara).
+function escenarioMotorCompareRowHtml(label, planValue, scenarioValue, formatValue, formatDelta, higherIsBetter = true) {
+  const hasBoth = planValue !== null && planValue !== undefined && scenarioValue !== null && scenarioValue !== undefined;
+  let toneClass = "";
+  let deltaText = "—";
+  if (hasBoth) {
+    const delta = round2(scenarioValue - planValue);
+    deltaText = formatDelta(delta);
+    if (higherIsBetter !== null && delta !== 0) toneClass = (delta > 0) === higherIsBetter ? "is-up" : "is-down";
+  }
+  return `<tr>
+    <td>${escapeHtml(label)}</td>
+    <td>${hasBoth ? escapeHtml(formatValue(planValue)) : "—"}</td>
+    <td><strong>${hasBoth ? escapeHtml(formatValue(scenarioValue)) : "—"}</strong></td>
+    <td class="escenario-motor-compare-delta ${toneClass}">${escapeHtml(deltaText)}</td>
+  </tr>`;
+}
+
+function escenarioMotorMonthCompareDelta(scenarioKey, baseKey) {
+  const scenarioIsMonth = /^\d{4}-\d{2}/.test(scenarioKey || "");
+  const baseIsMonth = /^\d{4}-\d{2}/.test(baseKey || "");
+  if (!scenarioIsMonth || !baseIsMonth) return { text: "—", tone: "" };
+  if (scenarioKey === baseKey) return { text: "sin cambio", tone: "" };
+  return scenarioKey < baseKey ? { text: "antes", tone: "is-up" } : { text: "después", tone: "is-down" };
+}
+
 function escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary) {
-  const liquidezDelta = round2((scenarioSummary.liquidezFinal ?? 0) - (baseSummary.liquidezFinal ?? 0));
-  const minimoDelta = round2((scenarioSummary.minimoLiquidez ?? 0) - (baseSummary.minimoLiquidez ?? 0));
   const bajoReserva = Number.isFinite(escenarioMotorGuardrailValue) && (scenarioSummary.minimoLiquidez ?? 0) < escenarioMotorGuardrailValue;
-  return `
-    <div class="e19-kpi">
-      <span class="e19-kpi-label">Liquidez final del horizonte</span>
-      <span class="e19-kpi-value">${money(scenarioSummary.liquidezFinal ?? 0, true)}</span>
-      <span class="e19-kpi-delta ${liquidezDelta >= 0 ? "is-up" : "is-down"}">${liquidezDelta >= 0 ? "+" : ""}${money(liquidezDelta, true)}</span>
-    </div>
-    <div class="e19-kpi${bajoReserva ? " is-danger" : ""}">
-      <span class="e19-kpi-label">Caja mínima del horizonte</span>
-      <span class="e19-kpi-value">${money(scenarioSummary.minimoLiquidez ?? 0, true)}</span>
-      <span class="e19-kpi-delta ${minimoDelta >= 0 ? "is-up" : "is-down"}">${minimoDelta >= 0 ? "+" : ""}${money(minimoDelta, true)}${bajoReserva ? " · bajo el saldo mínimo indicado" : ""}</span>
-    </div>
-    <div class="e19-kpi">
-      <span class="e19-kpi-label">Libre de deuda</span>
-      <span class="e19-kpi-value">${escapeHtml(escenarioMotorMonthLabel(scenarioSummary.libreDeDeuda))}</span>
-      <span class="e19-kpi-note">Antes: ${escapeHtml(escenarioMotorMonthLabel(baseSummary.libreDeDeuda))}</span>
-    </div>
-  `;
+  const libreDelta = escenarioMotorMonthCompareDelta(scenarioSummary.libreDeDeuda, baseSummary.libreDeDeuda);
+  const peorMesLabel = (summary) =>
+    summary.peorMesClave ? `${escenarioMotorMonthLabel(summary.peorMesClave)} · ${money(summary.peorMesValor ?? 0, true)}` : "—";
+
+  const rows = [
+    escenarioMotorCompareRowHtml(
+      "Reserva protegida",
+      baseSummary.liquidezFinal,
+      scenarioSummary.liquidezFinal,
+      (value) => money(value, true),
+      (delta) => `${delta >= 0 ? "+" : ""}${money(delta, true)}`,
+    ),
+    escenarioMotorCompareRowHtml(
+      "Meses de colchón",
+      baseSummary.mesesColchon,
+      scenarioSummary.mesesColchon,
+      (value) => value.toFixed(1),
+      (delta) => `${delta >= 0 ? "+" : ""}${delta.toFixed(1)}`,
+    ),
+    `<tr>
+      <td>Fecha libre de deuda</td>
+      <td>${escapeHtml(escenarioMotorMonthLabel(baseSummary.libreDeDeuda))}</td>
+      <td><strong>${escapeHtml(escenarioMotorMonthLabel(scenarioSummary.libreDeDeuda))}</strong></td>
+      <td class="escenario-motor-compare-delta ${libreDelta.tone}">${escapeHtml(libreDelta.text)}</td>
+    </tr>`,
+    escenarioMotorCompareRowHtml(
+      "Ahorro anual",
+      baseSummary.ahorroAnual,
+      scenarioSummary.ahorroAnual,
+      (value) => money(value, true),
+      (delta) => `${delta >= 0 ? "+" : ""}${money(delta, true)}`,
+    ),
+    `<tr class="${bajoReserva ? "is-danger" : ""}">
+      <td>Peor mes</td>
+      <td>${escapeHtml(peorMesLabel(baseSummary))}</td>
+      <td><strong>${escapeHtml(peorMesLabel(scenarioSummary))}</strong></td>
+      <td class="escenario-motor-compare-delta ${
+        baseSummary.peorMesValor !== null && scenarioSummary.peorMesValor !== null
+          ? scenarioSummary.peorMesValor >= baseSummary.peorMesValor
+            ? "is-up"
+            : "is-down"
+          : ""
+      }">${
+        baseSummary.peorMesValor !== null && scenarioSummary.peorMesValor !== null
+          ? `${round2(scenarioSummary.peorMesValor - baseSummary.peorMesValor) >= 0 ? "+" : ""}${money(round2(scenarioSummary.peorMesValor - baseSummary.peorMesValor), true)}${bajoReserva ? " · bajo el saldo mínimo indicado" : ""}`
+          : "—"
+      }</td>
+    </tr>`,
+    escenarioMotorCompareRowHtml(
+      "Capacidad libre real",
+      baseSummary.capacidadLibre,
+      scenarioSummary.capacidadLibre,
+      (value) => money(value, true),
+      (delta) => `${delta >= 0 ? "+" : ""}${money(delta, true)}`,
+    ),
+  ];
+
+  return `<table class="e19-table escenario-motor-compare-table">
+    <thead><tr><th>Indicador</th><th>Plan</th><th>Simulado</th><th>Diferencia</th></tr></thead>
+    <tbody>${rows.join("")}</tbody>
+  </table>`;
 }
 
 // Gráfico plan actual vs. simulación (mockup 1e). Reutiliza projectChartTickIndexes (ya usado por

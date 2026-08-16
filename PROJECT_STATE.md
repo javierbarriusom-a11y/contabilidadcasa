@@ -2,6 +2,38 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: E-3, comparativa de seis indicadores en Escenarios
+
+Continuación directa de la auditoría de Escenarios (misma sesión, PR #61 ya fusionado). Primer
+"parcial" cerrado del punto 1 del plan acordado con el usuario. La comparativa de
+`#escenario-simular` solo daba 3 de los 6 indicadores del criterio real (liquidez final, caja
+mínima, libre de deuda) en tarjetas sueltas sin columna de plan. Sustituida por una tabla
+Indicador/Plan/Simulado/Diferencia (`escenarioMotorKpiCardsHtml`, compartida con
+`#escenario-aplicar`) con los seis: reserva protegida, meses de colchón (nuevo: liquidez final ÷
+gasto corriente medio de 12 meses), fecha libre de deuda, ahorro anual (nuevo: suma de `saving` de
+12 meses), peor mes (nuevo: mes + valor vía `FinanceCanonicalCushion.worstMonthOf`) y capacidad
+libre real (reutiliza `monthlyFreeCapacity`, la misma de Hoy). Diferencia coloreada por dirección de
+mejora, no por signo bruto.
+
+Dos bugs de layout reales, atrapados en verificación visual con Playwright y no en las pruebas
+unitarias: (1) una regla genérica `th, td { white-space: nowrap }` de `styles.css` hacía que las
+celdas más largas se solaparan con la columna vecina — corregido con `white-space: normal`
+explícito; (2) una regla también genérica `table { min-width: 1120px }` forzaba scroll horizontal
+pese a `table-layout: fixed` — corregido con `min-width: 0`, el mismo parche que ya usaba la tabla
+de «Aplicar». Ninguno de los dos habría aparecido sin abrir la app de verdad.
+
+**Validación**: `npm test`, exit 0, **1047/1047 pruebas** (15 nuevas en
+`tests/e3-escenario-comparativa.test.cjs`). Verificación visual con Playwright contra el build
+local (el sitio publicado en GitHub Pages no es accesible desde este entorno — egress bloqueado a
+`github.io` — así que la comprobación fue contra `dist/` servido en local, código idéntico al que
+se despliega): las 6 filas caben sin scroll ni solapes en `#escenario-simular` y
+`#escenario-aplicar`, con datos de demostración reales, sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — E-3 pasa a `Hecho` con nota de cierre.
+Quedan del punto 1 del plan: E-1 (catálogo de deuda — este sí toca el motor canónico, más riesgo),
+E-2 (debounce), E-5 (panel de 4 comprobaciones), E-8 (banda por cuenta), E-11 (revisión opcional),
+y construir desde cero E-1b/E-6b/E-7/E-9/E-12.
+
 ## Cierre de sesión — 16 de agosto de 2026: auditoría de Fase 4-7 contra los PDF fuente (Escenarios, Análisis, Cierre, Laboratorio)
 
 Continuación de la sesión de Prioridad 4 (M-2/M-6 ya fusionada). El usuario aportó los PDF fuente de
