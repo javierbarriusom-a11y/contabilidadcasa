@@ -80,11 +80,14 @@ sin empezar.
 **Auditoría del 15 de agosto contra los nueve PDF de mockups (sesión de contraste, ver la nota bajo
 cada tabla de pantalla)**: ninguna tarea marcada «Hecho» resultó estar completamente sin construir
 — pero 17 de ellas (H-5, H-6 · R-2, R-3, R-11 · M-2, M-3, M-6, M-7, M-8 · P-1, P-2, P-3, P-4 ·
-D-4, D-6, D-8, D-9) cumplen solo una parte del criterio real del PDF fuente y se han recalificado
-a «Hecho (parcial, ver nota)». Dos merecen prioridad por tocar la regla transversal 01 (una sola
-puerta de escritura): R-11 deja `#visual-detail` escribiendo saldos sin ninguna guarda, y P-3 deja
-las cuotas de deuda editables en Plan · Mes cuando D-2 ya es su puerta canónica. P-8/P-9 (matriz de
-Plan › Previsión, reconstruida en la sesión anterior) se confirmaron correctas sin matices.
+D-4, D-6, D-8, D-9) cumplían solo una parte del criterio real del PDF fuente y se recalificaron a
+«Hecho (parcial, ver nota)». P-8/P-9 (matriz de Plan › Previsión, reconstruida en la sesión
+anterior) se confirmaron correctas sin matices. **Prioridad 1, cerrada el 15 de agosto en la sesión
+siguiente**: los dos gaps que tocaban la regla transversal 01 (una sola puerta de escritura) —
+R-11 (`#visual-detail` escribía saldos sin ninguna guarda) y P-3 (las cuotas de deuda eran
+editables en Plan · Mes cuando D-2 ya es su puerta canónica) — están corregidos y vuelven a
+«Hecho», ver sus notas respectivas. Quedan pendientes las Prioridades 2-4 (15 tareas): M-7, D-9,
+D-8, H-6 · M-3, D-6, D-4, P-2, H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
 
 ## 4. Nueve reglas transversales
 
@@ -178,7 +181,7 @@ solo fuera del alcance de esta sesión de auditoría (que fue de contraste, no d
 | R-8 | Pestaña Importar extracto | R-2 | L | Hecho |
 | R-9 | Pestaña Lote y Excel | R-2 | M | Hecho |
 | R-10 | Redirección de los hashes antiguos | R-2 | S | Hecho (parcial, ver nota) |
-| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Hecho (parcial, ver nota) |
+| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Hecho (15 de agosto, ver nota) |
 | R-12 | Distinción vacío / cero conservada | R-5 | S | Hecho |
 
 **Nota sobre el alcance de R-10 y R-11 (resuelto el 15 de agosto)**: el criterio original de R-10
@@ -212,16 +215,25 @@ Pruebas: `tests/r11-cierre-escritura-heredadas.test.cjs` (16 pruebas nuevas); se
 **Auditoría del 15 de agosto contra `Registrar.pdf` (sesión de contraste con los PDFs nuevos).**
 R-1, R-4, R-5, R-6, R-7, R-8, R-9, R-10 y R-12 coinciden con el criterio. Tres gaps reales:
 
-- **R-11 (el más grave)**: el criterio dice literalmente «ninguna pantalla heredada puede escribir
-  saldos ni reales». La nota de arriba documentó el cierre de `#registrar-mes`, pero
-  **`#visual-detail` (Cuadro de mandos) se quedó fuera y sigue sin guarda**: sus campos
-  `visualCaixaBalance`/`visualMediolanumBalance` siguen cableados sin condición a
-  `handleVisualAccountBalanceInput` → `setStateAccountBalances`/`saveBalanceSettings` — escritura
-  real y persistente de saldos, exactamente lo que R-11 debía cerrar. `#registrar-mes` sí tiene
-  `REGISTRAR_MES_LEGACY_READONLY`; `#visual-detail` no tiene ningún mecanismo equivalente, y
-  `tests/r11-cierre-escritura-heredadas.test.cjs` limita su alcance a los 5 hashes de R-10 sin
-  cubrir esta pantalla. Viola la regla transversal 01 (una sola puerta de escritura) tal y como
-  está hoy.
+- **R-11 (el más grave, cerrado el 15 de agosto en la sesión siguiente)**: el criterio dice
+  literalmente «ninguna pantalla heredada puede escribir saldos ni reales». La nota de arriba
+  documentó el cierre de `#registrar-mes`, pero **`#visual-detail` (Cuadro de mandos) se había
+  quedado fuera y seguía sin guarda**: sus campos `visualCaixaBalance`/`visualMediolanumBalance`/
+  `visualBalanceDate`/`visualBalanceMode` estaban cableados sin condición a
+  `handleVisualAccountBalanceInput`/`handleVisualBalanceControlChange` →
+  `setStateAccountBalances`/`saveBalanceSettings` — escritura real y persistente de saldos,
+  exactamente lo que R-11 debía cerrar. Corregido con el mismo patrón que `#registrar-mes`: la
+  lógica real se extrajo a `applyVisualAccountBalanceInput`/`applyVisualBalanceControlChange` (sin
+  guarda — es el motor legítimo, que Registrar sigue llamando directamente), mientras que
+  `handleVisualAccountBalanceInput`/`handleVisualBalanceControlChange` —lo que escuchan los propios
+  campos de `#visual-detail`— quedan inertes tras `VISUAL_DETAIL_BALANCE_LEGACY_READONLY`. Los
+  cuatro campos se deshabilitan siempre en `updateBalanceModeUi()` (antes solo fuera de modo
+  manual) y el aviso de la pantalla («Solo lectura (R-11)») enlaza a Registrar › Saldo de cuentas.
+  Verificado con Playwright: los cuatro campos aparecen `disabled`, forzar el DOM y disparar
+  `change` a mano no cambia el estado, y editar desde Registrar sigue propagando el valor con
+  normalidad. Pruebas: nuevo test «R-11 · `#visual-detail` deja de ser una segunda puerta de
+  escritura» en `tests/r1-r4-registrar.test.cjs`, y se ajustó el test de R-3 que verificaba las
+  llamadas directas de Registrar (ahora llaman a `applyVisual*`, no a `handleVisual*`).
 - **R-3**: falta la cuenta Efectivo. El PDF fija como decisión validada «Efectivo se mantiene como
   cuenta editable, con su aviso de que no tiene extracto que lo respalde», y el mockup muestra tres
   filas (CaixaBank, Mediolanum, Efectivo). El modelo de datos (`accountBalancesFromState`) solo
@@ -350,7 +362,7 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | --- | --- | --- | --- | --- |
 | P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Hecho (parcial, ver nota) |
 | P-2 | Tabla del mes agrupada por bloques | P-1 | M | Hecho (parcial, ver nota) |
-| P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Hecho (parcial, ver nota) |
+| P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Hecho (15 de agosto, ver nota) |
 | P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Hecho (parcial, ver nota) |
 | P-5 | Techo de asignación | P-3 | S | Hecho |
 | P-6 | Pie de impacto compartido con Registrar | R-7 | M | Hecho |
@@ -429,12 +441,23 @@ anterior era correcta. El resto de la pantalla sí tiene gaps reales:
   (Gastos fijos, Variables, Deuda y ahorro) y **subtotal por bloque, plegable**. El código renderiza
   dos tarjetas planas y separadas (Ingresos/Gastos), ambas itemizadas, sin subtotales ni plegado —
   «Bloque» es solo una columna de texto por fila.
-- **P-3**: la caja de decisiones validadas del PDF fija que «las cuotas de deuda se listan aquí
-  como fila no editable, con enlace a Deuda para cambiarlas» (mockup: texto plano, sin input, con
-  «3 contratos · se cambia en Deuda»). `planMesRowHtml` solo deshabilita el input si el mes está
-  cerrado — no hay ninguna excepción para las filas de Financiaciones, así que hoy las cuotas de
-  deuda son editables en Plan · Mes, contradiciendo la puerta única de escritura (D-2 ya es esa
-  puerta).
+- **P-3 (cerrado el 15 de agosto en la sesión siguiente)**: la caja de decisiones validadas del PDF
+  fija que «las cuotas de deuda se listan aquí como fila no editable, con enlace a Deuda para
+  cambiarlas» (mockup: texto plano, sin input, con «3 contratos · se cambia en Deuda»).
+  `planMesRowHtml` solo deshabilitaba el input si el mes estaba cerrado — no había ninguna
+  excepción para las filas de Financiaciones, así que las cuotas de deuda eran editables en
+  Plan · Mes, contradiciendo la puerta única de escritura (D-2 ya es esa puerta). Corregido:
+  `planMesIsFinancingRowKey` identifica esas filas por su bloque («Financiaciones») y
+  `planMesRowHtml` les pinta un texto de solo lectura con un enlace «Deuda» (a `#deuda-contratos`,
+  cableado en `planMesTables` con el mismo patrón `data-home-nav` que ya usaba
+  `registrarActualsBody`) en vez de un `<input>`; `handlePlanMesPlannedChange` lleva además su
+  propia guarda, para que la escritura sea imposible incluso llamando a la función a mano. Sin
+  contador de contratos en el enlace (el mockup dice «3 contratos») porque no aporta nada que el
+  propio importe no diga ya — no se fabricó una cifra solo por igualar el mockup al pixel.
+  Verificado con Playwright: la fila de Financiaciones no tiene `<input>`, y clicar «Deuda» navega
+  de verdad a `#deuda-contratos`. Pruebas nuevas en `tests/p1-p7-plan-mes.test.cjs`: el
+  reconocimiento de filas de Financiaciones, el bloqueo del manejador, el marcado de solo lectura,
+  que el resto de filas sigue editable, y el cableado del enlace.
 - **P-4**: falta el hover de procedencia («al pasar por encima dice de dónde sale y cuántos
   movimientos lo componen») — el código solo pinta la etiqueta estática real/previsto, sin `title`
   ni recuento.

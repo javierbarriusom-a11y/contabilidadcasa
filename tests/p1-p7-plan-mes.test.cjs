@@ -209,6 +209,7 @@ test("P-3 · handlePlanMesPlannedChange no hace nada en un mes cerrado", () => {
   const context = sandboxWith(["handlePlanMesPlannedChange"], {
     planMesSelectedMonth: () => ({ key: "2026-01" }),
     isClosedMonthKey: () => true,
+    planMesIsFinancingRowKey: () => false,
     cuadroMandosStageCell: (...args) => calls.push(args),
     renderPlanMes: () => calls.push("renderPlanMes"),
   });
@@ -221,6 +222,7 @@ test("P-3 · handlePlanMesPlannedChange escribe con cuadroMandosStageCell, el mi
   const context = sandboxWith(["handlePlanMesPlannedChange"], {
     planMesSelectedMonth: () => ({ key: "2026-08" }),
     isClosedMonthKey: () => false,
+    planMesIsFinancingRowKey: () => false,
     parseAmount: (v) => Number(v),
     cuadroMandosStageCell: (...args) => calls.push(["cuadroMandosStageCell", ...args]),
     renderPlanMes: () => calls.push("renderPlanMes"),
@@ -234,12 +236,69 @@ test("P-3 · vaciar la casilla la deja en 0, no en NaN ni sin tocar", () => {
   const context = sandboxWith(["handlePlanMesPlannedChange"], {
     planMesSelectedMonth: () => ({ key: "2026-08" }),
     isClosedMonthKey: () => false,
+    planMesIsFinancingRowKey: () => false,
     parseAmount: () => null,
     cuadroMandosStageCell: (...args) => calls.push(args),
     renderPlanMes: () => {},
   });
   context.handlePlanMesPlannedChange({ dataset: { planMesPlanned: "r1", planMesMonth: "2026-08" }, value: "" });
   assert.deepEqual(calls, [["r1", "2026-08", 0]]);
+});
+
+// --- P-3 (auditoría 15 de agosto) · las cuotas de deuda son de solo lectura en Plan · Mes --------
+
+test("P-3 · planMesIsFinancingRowKey identifica las filas del bloque Financiaciones por su seriesKeyForRow", () => {
+  const context = sandboxWith(["planMesIsFinancingRowKey"], {
+    seriesKeyForRow: (row) => row.id,
+    baseData: {
+      monthlyPlanning: {
+        sections: [
+          { name: "Gastos fijos", rows: [{ id: "vivienda" }] },
+          { name: "Financiaciones", rows: [{ id: "coche" }, { id: "hipoteca" }] },
+        ],
+      },
+    },
+  });
+  assert.equal(context.planMesIsFinancingRowKey("coche"), true);
+  assert.equal(context.planMesIsFinancingRowKey("hipoteca"), true);
+  assert.equal(context.planMesIsFinancingRowKey("vivienda"), false);
+  assert.equal(context.planMesIsFinancingRowKey("no-existe"), false);
+});
+
+test("P-3 · handlePlanMesPlannedChange bloquea las cuotas de deuda incluso llamando a la función a mano", () => {
+  const calls = [];
+  const context = sandboxWith(["handlePlanMesPlannedChange"], {
+    planMesSelectedMonth: () => ({ key: "2026-08" }),
+    isClosedMonthKey: () => false,
+    planMesIsFinancingRowKey: (rowKey) => rowKey === "coche",
+    parseAmount: (v) => Number(v),
+    cuadroMandosStageCell: (...args) => calls.push(args),
+    renderPlanMes: () => calls.push("renderPlanMes"),
+  });
+  context.handlePlanMesPlannedChange({ dataset: { planMesPlanned: "coche", planMesMonth: "2026-08" }, value: "300" });
+  assert.deepEqual(calls, []);
+});
+
+test("P-3 · planMesRowHtml pinta la cuota de Financiaciones como texto de solo lectura con enlace a Deuda, no un input", () => {
+  const entry = { key: "expense:coche", row: { id: "coche" }, sectionName: "Financiaciones", label: "Coche", planned: 300, plannedDraft: false, hasActual: false, usado: 300, variance: null, kind: "expense" };
+  const rowHtml = sandboxRowHtml(entry, false);
+  assert.doesNotMatch(rowHtml, /<input[^>]*data-plan-mes-planned/);
+  assert.match(rowHtml, /class="plan-mes-financing-readonly"/);
+  assert.match(rowHtml, /se cambia en <button[^>]*data-home-nav="deuda-contratos"[^>]*>Deuda<\/button>/);
+});
+
+test("P-3 · una fila que no es de Financiaciones sigue siendo editable, incluso con el mes abierto", () => {
+  const entry = { key: "expense:vivienda", row: { id: "vivienda" }, sectionName: "Gastos fijos", label: "Vivienda", planned: 750, plannedDraft: false, hasActual: false, usado: 750, variance: null, kind: "expense" };
+  const rowHtml = sandboxRowHtml(entry, false);
+  assert.doesNotMatch(rowHtml, /plan-mes-financing-readonly/);
+  assert.match(rowHtml, /<input[^>]*data-plan-mes-planned="vivienda"/);
+});
+
+test("P-3 · el enlace «Deuda» de la cuota de solo lectura está cableado en planMesTables, mismo patrón que registrarActualsBody", () => {
+  assert.match(
+    app,
+    /qs\("planMesTables"\)\?\.addEventListener\("click", \(event\) => \{[\s\S]*?const navButton = event\.target\.closest\("\[data-home-nav\]"\);\s*const target = navButton\?\.dataset\.homeNav;\s*if \(!target \|\| !document\.getElementById\(target\)\?\.classList\.contains\("view-section"\)\) return;\s*history\.pushState\(null, "", `#\$\{target\}`\);\s*setActiveView\(target\);/,
+  );
 });
 
 // --- P-7 · copiar el previsto del mes anterior ----------------------------------------------------

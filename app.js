@@ -5062,17 +5062,25 @@ function updateBalanceModeUi() {
   const auto = (qs("balanceMode")?.value || state?.balanceMode) === "auto";
   initialCash.readOnly = auto;
   initialCash.classList.toggle("derived-control", auto);
-  ["visualCaixaBalance", "visualMediolanumBalance", "registrarCaixaBalance", "registrarMediolanumBalance"].forEach((id) => {
+  ["registrarCaixaBalance", "registrarMediolanumBalance"].forEach((id) => {
     const input = qs(id);
     if (!input) return;
     input.readOnly = auto;
     input.classList.toggle("derived-control", auto);
   });
-  ["balanceDate", "visualBalanceDate", "registrarBalanceDate"].forEach((id) => {
+  ["balanceDate", "registrarBalanceDate"].forEach((id) => {
     const input = qs(id);
     if (!input) return;
     input.disabled = !auto;
     input.classList.toggle("derived-control", !auto);
+  });
+  // R-11: los campos de `#visual-detail` quedan deshabilitados siempre, no solo fuera de modo
+  // manual — el saldo real se edita en Registrar › Saldo de cuentas (ver applyVisual*).
+  ["visualCaixaBalance", "visualMediolanumBalance", "visualBalanceDate", "visualBalanceMode"].forEach((id) => {
+    const input = qs(id);
+    if (!input) return;
+    input.disabled = VISUAL_DETAIL_BALANCE_LEGACY_READONLY;
+    input.classList.toggle("derived-control", VISUAL_DETAIL_BALANCE_LEGACY_READONLY);
   });
 }
 
@@ -5173,9 +5181,11 @@ function renderAccountBalancePanels() {
   if (qs("visualBalanceDateLabel")) qs("visualBalanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
   if (qs("balanceDateLabel")) qs("balanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
   if (qs("visualBalanceDateHint")) {
-    qs("visualBalanceDateHint").textContent = mode === "manual"
-      ? "La fecha se registra automáticamente al actualizar el saldo. Los reales ya ocurridos quedan en el histórico y no se suman otra vez."
-      : "La fecha calcula el saldo estimado y determina desde cuándo comienza la previsión.";
+    qs("visualBalanceDateHint").innerHTML = VISUAL_DETAIL_BALANCE_LEGACY_READONLY
+      ? `Solo lectura (R-11): cambia el saldo o el modo desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Registrar › Saldo de cuentas</button>.`
+      : mode === "manual"
+        ? "La fecha se registra automáticamente al actualizar el saldo. Los reales ya ocurridos quedan en el histórico y no se suman otra vez."
+        : "La fecha calcula el saldo estimado y determina desde cuándo comienza la previsión.";
   }
   // R-3: mismos campos que Cuadro de mandos (visualCaixaBalance/visualBalanceDate...), solo que
   // con sus propios ids en la pestaña «Saldo de cuentas» de Registrar — un espejo más del mismo
@@ -5213,7 +5223,15 @@ function renderAccountBalancePanels() {
   updateBalanceModeUi();
 }
 
-function handleVisualBalanceControlChange() {
+// R-11: la auditoría del 15 de agosto encontró que `#visual-detail` (Cuadro de mandos) se había
+// quedado fuera del cierre de escritura de las heredadas — sus campos de saldo seguían
+// escribiendo sin ninguna guarda, incumpliendo la regla transversal 01. `applyVisual*` es el
+// único motor real de escritura (Registrar lo llama directamente, como ya hacía); `handleVisual*`
+// —lo que escuchan los propios campos de esta pantalla heredada— queda inerte, igual que
+// `REGISTRAR_MES_LEGACY_READONLY` dejó inertes los manejadores de `#registrar-mes`.
+const VISUAL_DETAIL_BALANCE_LEGACY_READONLY = true;
+
+function applyVisualBalanceControlChange() {
   if (!state) return;
   qs("balanceDate").value = qs("visualBalanceDate").value || defaultBalanceDate();
   qs("balanceMode").value = qs("visualBalanceMode").value || "auto";
@@ -5221,7 +5239,12 @@ function handleVisualBalanceControlChange() {
   render();
 }
 
-function handleVisualAccountBalanceInput() {
+function handleVisualBalanceControlChange() {
+  if (VISUAL_DETAIL_BALANCE_LEGACY_READONLY) return;
+  applyVisualBalanceControlChange();
+}
+
+function applyVisualAccountBalanceInput() {
   if (!state) return;
   qs("balanceMode").value = "manual";
   qs("visualBalanceMode").value = "manual";
@@ -5238,6 +5261,11 @@ function handleVisualAccountBalanceInput() {
   render();
 }
 
+function handleVisualAccountBalanceInput() {
+  if (VISUAL_DETAIL_BALANCE_LEGACY_READONLY) return;
+  applyVisualAccountBalanceInput();
+}
+
 // R-3: los controles de saldo de Registrar escriben copiando su valor a los campos de Cuadro de
 // mandos y dejando que el manejador ya existente haga el guardado real — un solo camino de
 // escritura (regla transversal 01), Registrar solo añade una vista más sobre el mismo estado.
@@ -5252,7 +5280,7 @@ function handleRegistrarBalanceControlChange() {
   const before = accountBalancesFromState();
   if (qs("visualBalanceDate")) qs("visualBalanceDate").value = qs("registrarBalanceDate")?.value || defaultBalanceDate();
   if (qs("visualBalanceMode")) qs("visualBalanceMode").value = qs("registrarBalanceMode")?.value || "auto";
-  handleVisualBalanceControlChange();
+  applyVisualBalanceControlChange();
   registrarRecordBalanceChanges(before);
   resetRegistrarBalanceBaseline();
   renderRegistrarImpactFooter();
@@ -5263,7 +5291,7 @@ function handleRegistrarAccountBalanceInput() {
   const before = accountBalancesFromState();
   if (qs("visualCaixaBalance")) qs("visualCaixaBalance").value = qs("registrarCaixaBalance")?.value ?? "";
   if (qs("visualMediolanumBalance")) qs("visualMediolanumBalance").value = qs("registrarMediolanumBalance")?.value ?? "";
-  handleVisualAccountBalanceInput();
+  applyVisualAccountBalanceInput();
   registrarRecordBalanceChanges(before);
   resetRegistrarBalanceBaseline();
   renderRegistrarImpactFooter();
@@ -24874,12 +24902,25 @@ function planMesTotals(entries) {
   };
 }
 
+// P-3: las cuotas de deuda son de solo lectura en Plan · Mes — su puerta canónica ya es
+// Deuda › Contratos (D-2). La auditoría del 15 de agosto encontró que aquí seguían siendo
+// editables, una segunda puerta para el mismo dato (regla transversal 01).
+function planMesIsFinancingRowKey(rowKey) {
+  const section = baseData?.monthlyPlanning?.sections?.find((item) => item.name === "Financiaciones");
+  if (!section) return false;
+  return section.rows.some((row) => seriesKeyForRow(row) === rowKey);
+}
+
 function planMesRowHtml(entry, monthClosed, monthKey) {
   const rowKey = seriesKeyForRow(entry.row);
+  const isFinancing = entry.sectionName === "Financiaciones";
+  const plannedCell = isFinancing
+    ? `<span class="plan-mes-financing-readonly">${money(entry.planned, true)}<small>se cambia en <button type="button" class="registrar-actuals-plan-link" data-home-nav="deuda-contratos">Deuda</button></small></span>`
+    : `<input type="number" step="0.01" inputmode="decimal" data-plan-mes-planned="${escapeHtml(rowKey)}" data-plan-mes-month="${escapeHtml(monthKey)}" aria-label="Previsto de ${escapeHtml(entry.label)}" value="${entry.planned}"${monthClosed ? " disabled" : ""} />`;
   return `<tr data-plan-mes-key="${escapeHtml(entry.key)}"${entry.plannedDraft ? ' class="plan-mes-row-draft"' : ""}>
     <td class="registrar-mes-block">${escapeHtml(entry.sectionName)}</td>
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}</td>
-    <td><input type="number" step="0.01" inputmode="decimal" data-plan-mes-planned="${escapeHtml(rowKey)}" data-plan-mes-month="${escapeHtml(monthKey)}" aria-label="Previsto de ${escapeHtml(entry.label)}" value="${entry.planned}"${monthClosed ? " disabled" : ""} /></td>
+    <td>${plannedCell}</td>
     <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta">${entry.hasActual ? "real" : "previsto"}</small></td>
     <td data-plan-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
   </tr>`;
@@ -24976,6 +25017,7 @@ function handlePlanMesPlannedChange(input) {
   const rowKey = input.dataset.planMesPlanned;
   const monthKey = input.dataset.planMesMonth;
   if (!rowKey || !monthKey) return;
+  if (planMesIsFinancingRowKey(rowKey)) return;
   const parsed = parseAmount(input.value);
   cuadroMandosStageCell(rowKey, monthKey, input.value === "" || parsed === null ? 0 : parsed);
   renderPlanMes();
@@ -25657,7 +25699,13 @@ async function init() {
   qs("planMesTables")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-plan-mes-copy]")) { handlePlanMesCopy(); return; }
     if (event.target.closest("[data-plan-mes-copy-confirm]")) { handlePlanMesCopyConfirm(); return; }
-    if (event.target.closest("[data-plan-mes-copy-cancel]")) handlePlanMesCopyCancel();
+    if (event.target.closest("[data-plan-mes-copy-cancel]")) { handlePlanMesCopyCancel(); return; }
+    // P-3: el enlace «Deuda» de una cuota de solo lectura.
+    const navButton = event.target.closest("[data-home-nav]");
+    const target = navButton?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
   });
   qs("planMesImpactBar")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-plan-mes-impact-save]")) { saveVisualChanges(); return; }

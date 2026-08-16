@@ -2,6 +2,44 @@
 
 Fecha de revisión: 15 de agosto de 2026.
 
+## Cierre de sesión — 15 de agosto de 2026: Prioridad 1 de la auditoría — R-11 y P-3
+
+Continuación directa del cierre de la auditoría. El usuario pidió seguir por prioridad, empezando
+por la Prioridad 1: los dos gaps que tocaban la regla transversal 01 (una sola puerta de escritura).
+
+**R-11**: `#visual-detail` (Cuadro de mandos) seguía escribiendo saldos sin ninguna guarda — sus
+campos `visualCaixaBalance`/`visualMediolanumBalance`/`visualBalanceDate`/`visualBalanceMode`
+llamaban sin condición a `handleVisualAccountBalanceInput`/`handleVisualBalanceControlChange`.
+Mismo patrón que `REGISTRAR_MES_LEGACY_READONLY`: la lógica real se extrajo a
+`applyVisualAccountBalanceInput`/`applyVisualBalanceControlChange` (el motor legítimo, que
+Registrar sigue llamando directamente), y los manejadores que escuchan los propios campos de
+`#visual-detail` quedan inertes tras `VISUAL_DETAIL_BALANCE_LEGACY_READONLY`. Los cuatro campos se
+deshabilitan siempre (antes solo fuera de modo manual) y el aviso enlaza a Registrar › Saldo de
+cuentas.
+
+**P-3**: las cuotas de deuda eran editables en Plan · Mes cuando D-2 (Deuda › Contratos) ya es su
+puerta canónica. `planMesIsFinancingRowKey` identifica las filas del bloque Financiaciones;
+`planMesRowHtml` les pinta un texto de solo lectura con enlace «Deuda» (a `#deuda-contratos`, con
+el mismo patrón `data-home-nav` que ya usaba Registrar) en vez de un `<input>`, y
+`handlePlanMesPlannedChange` lleva su propia guarda contra escribir a mano. El enlace no tenía
+listener propio en `planMesTables` — se añadió, mismo patrón que `registrarActualsBody`.
+
+**Bug encontrado con Playwright antes de darlo por bueno**: el primer intento del enlace «Deuda»
+no navegaba (el hash se quedaba en `#plan`) porque `planMesTables` no tenía ningún manejador de
+`data-home-nav` — cada pantalla cablea el suyo por contenedor, no hay un listener global. Corregido
+añadiéndolo al bloque de clic ya existente de `planMesTables`.
+
+**Validación**: `npm run verify`, exit 0, **935/935 pruebas** (929 + 6 nuevas: 1 en
+`tests/r1-r4-registrar.test.cjs`, 5 en `tests/p1-p7-plan-mes.test.cjs`), 692 IDs de accesibilidad,
+build/privacidad/smoke en verde. Verificación visual con Playwright: los cuatro campos de
+`#visual-detail` aparecen `disabled`, forzar el DOM y disparar `change` a mano no cambia el saldo,
+editar desde Registrar sigue propagando el valor con normalidad, la fila de Financiaciones en
+Plan · Mes no tiene `<input>`, y clicar «Deuda» navega de verdad a `#deuda-contratos`.
+
+**Backlog corregido**: R-11 y P-3 vuelven a `Hecho` en `docs/BACKLOG_NUEVE_PANTALLAS.md`, con sus
+notas de auditoría actualizadas para documentar la corrección. Quedan pendientes las Prioridades
+2-4 (15 tareas): M-7, D-9, D-8, H-6 · M-3, D-6, D-4, P-2, H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+
 ## Cierre de sesión — 15 de agosto de 2026: auditoría completa contra los nueve PDF de mockups
 
 Continuación directa del cierre anterior (P-8/P-9). Tras fusionar esa matriz, el usuario compartió
