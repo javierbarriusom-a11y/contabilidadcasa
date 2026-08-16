@@ -181,7 +181,7 @@ solo fuera del alcance de esta sesión de auditoría (que fue de contraste, no d
 | R-8 | Pestaña Importar extracto | R-2 | L | Hecho |
 | R-9 | Pestaña Lote y Excel | R-2 | M | Hecho |
 | R-10 | Redirección de los hashes antiguos | R-2 | S | Hecho (parcial, ver nota) |
-| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Hecho (15 de agosto, ver nota) |
+| R-11 | Cierre de escritura de las heredadas | Fase 0 | M | Hecho (parcial, ver nota) |
 | R-12 | Distinción vacío / cero conservada | R-5 | S | Hecho |
 
 **Nota sobre el alcance de R-10 y R-11 (resuelto el 15 de agosto)**: el criterio original de R-10
