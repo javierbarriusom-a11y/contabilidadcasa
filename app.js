@@ -20813,6 +20813,25 @@ function homeDebtReviewReminders() {
     });
 }
 
+// E-11 (Escenarios.pdf) · «misma barra que Deuda: motivo obligatorio, revisión opcional que genera
+// recordatorio en Hoy» — mismo patrón que homeDebtReviewReminders() de arriba, pero leyendo
+// escenario-motor-saved (localStorage) en vez de debtLiquidations: son almacenes distintos porque
+// aplicar un escenario todavía no crea ningún plan paralelo (E-11b, bloqueada por Cierre).
+function homeEscenarioReviewReminders() {
+  const todayIso = isoLocalDate(new Date());
+  return loadEscenarioMotorSaved()
+    .filter((entry) => entry.estado === "aplicado" && entry.reviewDate)
+    .map((entry) => ({
+      title: "Revisar escenario aplicado",
+      text: `${entry.nombre || "Escenario"} — revisión prevista para ${formatIsoDate(entry.reviewDate)}.`,
+      status: entry.reviewDate < todayIso ? "danger" : "warn",
+      target: "escenario-guardados",
+      cta: "Revisar",
+      expiresAt: entry.reviewDate,
+      expiryLabel: shortDate(entry.reviewDate),
+    }));
+}
+
 // H-5: candidatas a "decisión abierta", con caducidad real cuando existe (oferta de deuda con
 // vencimiento, alerta disparada con fecha de revisión, revisión de oferta aplicada) por delante de
 // las que no tienen fecha propia (movimientos por incorporar, acciones ejecutivas de rango fijo,
@@ -20831,6 +20850,7 @@ function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDec
     (item.expiresAt ? dated : undated).push(item);
   }
   homeDebtReviewReminders().forEach((item) => dated.push(item));
+  homeEscenarioReviewReminders().forEach((item) => dated.push(item));
   evaluatedUxAlerts()
     .filter((alert) => alert.triggered)
     .forEach((alert) => {
@@ -23115,6 +23135,9 @@ function saveEscenarioMotorSavedList(list) {
   storageSet(storageKey("escenario-motor-saved"), JSON.stringify(list));
 }
 
+// E-11 · la fecha de revisión es opcional (a diferencia del motivo): sin ella no se crea ningún
+// recordatorio, «misma barra que Deuda» — homeEscenarioReviewReminders() la lee igual que
+// homeDebtReviewReminders() ya hace con decision.e14Application.reviewDate.
 function handleEscenarioAplicarConfirm(event) {
   event.preventDefault();
   const motivoInput = qs("escenarioAplicarMotivo");
@@ -23123,6 +23146,8 @@ function handleEscenarioAplicarConfirm(event) {
     motivoInput?.focus();
     return;
   }
+  const reviewDateInput = qs("escenarioAplicarReviewDate");
+  const reviewDate = reviewDateInput?.value || "";
   const saved = loadEscenarioMotorSaved().map((entry) => (entry.estado === "aplicado" ? { ...entry, estado: "guardado" } : entry));
   escenarioMotorSavedSeq += 1;
   saved.unshift({
@@ -23133,10 +23158,12 @@ function handleEscenarioAplicarConfirm(event) {
     fecha: new Date().toISOString(),
     decisiones: JSON.parse(JSON.stringify(escenarioMotorDecisions)),
     guardrailValue: escenarioMotorGuardrailValue,
+    reviewDate,
   });
   saveEscenarioMotorSavedList(saved);
   escenarioMotorDecisions = [];
   if (motivoInput) motivoInput.value = "";
+  if (reviewDateInput) reviewDateInput.value = "";
   escenarioMotorNavigate("escenario-guardados");
 }
 

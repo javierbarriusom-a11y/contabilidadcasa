@@ -347,6 +347,7 @@ test("D-8 · homeDecisionCandidates incluye los recordatorios de revisión entre
     homeImportSessionCandidate: () => null,
     homeOpenOfferInsight: () => null,
     homeDebtReviewReminders: () => [{ title: "Revisar oferta de deuda aplicada", expiresAt: "2026-08-20", expiryLabel: "20 ago", status: "warn", target: "debt-roadmap", cta: "Revisar" }],
+    homeEscenarioReviewReminders: () => [],
     evaluatedUxAlerts: () => [],
     escenarioMotorMonthLabel: (v) => v,
     shortDate: (v) => v,

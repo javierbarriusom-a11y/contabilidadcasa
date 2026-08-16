@@ -2,6 +2,26 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: E-11, revisión opcional al aplicar un escenario
+
+Continuación directa del punto 1 del plan de Escenarios (misma sesión, PR #62/E-3 ya fusionado).
+Faltaba el campo de revisión opcional al aplicar un escenario («misma barra que Deuda: motivo
+obligatorio, revisión opcional que genera recordatorio en Hoy»). Añadido `<input type="date">`
+opcional en `#escenarioAplicarForm`; si se rellena, `handleEscenarioAplicarConfirm` lo guarda como
+`reviewDate` en el escenario aplicado, y `homeEscenarioReviewReminders()` (nueva, mismo patrón que
+`homeDebtReviewReminders()` de D-8) lo asoma en «Tres decisiones» de Hoy, en rojo si ya venció.
+
+**Validación**: `npm test`, exit 0, **1056/1056 pruebas** (9 nuevas en
+`tests/e11-escenario-revision.test.cjs`, más 4 pruebas existentes de D-8/H-5/H-10 ajustadas porque
+sandboxaban `homeDecisionCandidates` sin conocer la función nueva). Verificado con Playwright: al
+aplicar un escenario con fecha de revisión pasada, aparece en Hoy como «Revisar escenario
+aplicado... Vence 01 ago 26», primero en la lista por ser el más urgente. Sin errores de consola.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — E-11 pasa a `Hecho`. Del punto 1 del
+plan quedan: E-1 (catálogo de deuda, toca el motor canónico), E-5 (panel de 4 comprobaciones), E-8
+(banda por cuenta), y construir desde cero E-1b/E-6b/E-7/E-9/E-12. E-2 necesita más diseño del
+previsto (no es solo añadir debounce, ver nota de sesión anterior).
+
 ## Cierre de sesión — 16 de agosto de 2026: E-3, comparativa de seis indicadores en Escenarios
 
 Continuación directa de la auditoría de Escenarios (misma sesión, PR #61 ya fusionado). Primer
