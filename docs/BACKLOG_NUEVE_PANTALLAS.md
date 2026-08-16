@@ -91,10 +91,11 @@ desmarcada por defecto), D-9/D-8 (la tarjeta «Oferta en curso» aplica in situ 
 checklist de cuatro requisitos, con motivo y fecha de revisión opcional que genera un recordatorio
 en Hoy) y H-6 (Ingresos/Gasto previsto/Gasto real a hoy/Desviación en vez de solo cifras reales) —
 ver sus notas respectivas. **Prioridad 3, cerrada el 16 de agosto**: M-3 (seis chips con recuento
-vivo, cuatro atajos de rango y búsqueda que también cubre el importe) y D-6 (cinco indicadores
-coloreados frente al Plan más veredicto en prosa) — ver sus notas respectivas. Quedan pendientes
-D-4, P-2 y H-5 de la Prioridad 3, y la Prioridad 4 completa (9 tareas en total): D-4, P-2, H-5 ·
-R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+vivo, cuatro atajos de rango y búsqueda que también cubre el importe), D-6 (cinco indicadores
+coloreados frente al Plan más veredicto en prosa) y D-4 (gráfico agregado de capital vivo mes a mes
+con la estrategia activa, con hito de primer contrato liquidado e intereses totales frente a solo
+mínimos) — ver sus notas respectivas. Quedan pendientes P-2 y H-5 de la Prioridad 3, y la Prioridad
+4 completa (7 tareas en total): P-2, H-5 · R-2, P-4, P-1, R-3, M-2/M-6, M-8.
 
 ## 4. Nueve reglas transversales
 
@@ -504,7 +505,7 @@ segunda puerta de escritura para las cuotas de deuda, que ya tiene su puerta can
 | D-2 | Contratos como dato canónico editable | D-1 | L | Hecho (15 de agosto) |
 | D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
 | D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
-| D-4 | Calendario de amortización | D-3 | L | Hecho (parcial, ver nota) |
+| D-4 | Calendario de amortización | D-3 | L | Hecho (16 de agosto, ver nota) |
 | D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
 | D-6 | Comparativa plan frente a modo | D-5 | M | Hecho (16 de agosto, ver nota) |
 | D-7 | Comparar no escribe nada | D-6 | S | Hecho (ya existía, ver nota) |
@@ -620,11 +621,24 @@ nieve/consolidar/no-tocar, verificadas en `DEBT_STRATEGY_DEFINITIONS`, pese a qu
 solo mencionaba dos). D-10/D-11/D-12/D-13, ya marcadas parciales/pendientes arriba, se confirman
 correctas contra el PDF. Cuatro tareas marcadas «Hecho» no cumplen el criterio completo:
 
-- **D-4**: el criterio pide «capital vivo mes a mes con la estrategia activa... e intereses totales
-  frente a solo mínimos» (mockup: un gráfico agregado). Lo construido es justo lo contrario **a
-  propósito** — el propio comentario del código dice «no sobre las decisiones de una ruta»: cada
-  contrato se proyecta solo, sin aplicar el reparto de la estrategia activa ni comparar nunca contra
-  un escenario de solo-mínimos. No hay ningún gráfico agregado.
+- **D-4 (cerrado el 16 de agosto, sesión de Prioridad 3)**: el criterio pedía «capital vivo mes a mes
+  con la estrategia activa... e intereses totales frente a solo mínimos» (mockup: un gráfico
+  agregado); lo construido proyectaba cada contrato solo, a propósito, sin aplicar nunca el reparto
+  de la estrategia activa. `debtStrategyAggregateCalendar` añade el gráfico que faltaba encima del
+  calendario por contrato ya existente: suma mes a mes el mismo calendario declarado de cada
+  contrato (`debtAmortizationSchedule`, sin tocar), truncado en el mes en que la ruta activa lo
+  liquida de golpe (`debtStrategyPayoffPlan` lee el `mesResuelto` real de cada decisión aplicada del
+  motor de escenarios — el mismo dato que ya usaba el escalón de «Deuda viva»), más el préstamo
+  nuevo de una reunificación desde el mes en que se firma. Las tres cifras que faltaban debajo del
+  gráfico: primer contrato liquidado (mes + nombre), intereses totales del plan aplicado, y su
+  diferencia frente a `debtAmortizationTotalInterest` (la misma suma «solo mínimos» que ya pintaba
+  cada `<details>` por contrato, sin decisión alguna). Con 0 decisiones (Mín./no-tocar) el agregado
+  coincide exactamente con solo mínimos por construcción, no por casualidad. Bug real encontrado con
+  Playwright, no con las pruebas: una deuda sin cuota declarada solo genera una fila en
+  `debtAmortizationSchedule` (por diseño, para no fingir una amortización que no ocurre) — sumarla
+  tal cual la hacía desaparecer del agregado a partir del segundo mes, como si se hubiera pagado
+  sola. Corregido manteniendo su saldo congelado en cada mes siguiente hasta que la ruta la liquide
+  de golpe o se acabe el horizonte, con dos pruebas nuevas que fijan el caso.
 - **D-6 (cerrado el 16 de agosto, sesión de Prioridad 3)**: el criterio pedía «cinco indicadores con
   diferencia coloreada... más un veredicto en prosa que nombra el supuesto principal» sobre la
   tabla de los ocho modos, que antes solo tenía 4 columnas planas sin color y reutilizaba el

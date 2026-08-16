@@ -24152,7 +24152,16 @@ function renderDeudaRuta() {
   // no tocar no ordenan nada (`debtStrategyOrderedContracts` devuelve []), así que caen al orden
   // declarado de la cartera, igual que la tarjeta de «Cartera» de al lado.
   const orderedForCalendar = debtStrategyOrderedContracts(deudaRutaSelectedStrategy);
-  renderDeudaRutaCalendar(orderedForCalendar.length ? orderedForCalendar : contracts, baseInput.months);
+  const calendarContracts = orderedForCalendar.length ? orderedForCalendar : contracts;
+
+  const aggregate = debtStrategyAggregateCalendar(summary.decisions, resultadosById, calendarContracts, baseInput.months);
+  const baselineInterest = debtAmortizationTotalInterest(calendarContracts, baseInput.months.length);
+  const amortChart = qs("deudaRutaAmortChart");
+  if (amortChart) amortChart.innerHTML = debtRutaAmortChartHtml(aggregate.series);
+  const amortStats = qs("deudaRutaAmortStats");
+  if (amortStats) amortStats.innerHTML = debtRutaAmortStatsHtml(aggregate, baselineInterest);
+
+  renderDeudaRutaCalendar(calendarContracts, baseInput.months);
 }
 
 // D-4 · calendario de amortización mes a mes, sobre el calendario declarado del contrato (cuota
@@ -24181,6 +24190,148 @@ function debtAmortizationSchedule(contract, maxMonths) {
     rows.push({ month: index + 1, payment: round2(interest + appliedPrincipal), interest, principal: appliedPrincipal, balance });
   }
   return { rows, stalled: false, complete: balance <= 0.005 };
+}
+
+// D-4 · qué mes liquida esta ruta cada contrato de golpe (y con qué préstamo nuevo, si es una
+// reunificación) — el mismo escaneo de decisiones que ya hace `buildDeudaVivaSeries` para su
+// escalón, pero devolviendo los datos que hacen falta para amortizar de verdad el préstamo nuevo
+// (cuota y TAE), no solo su magnitud plana.
+function debtStrategyPayoffPlan(months, decisions, resultadosById) {
+  const payoffMonthByDebt = new Map();
+  const nuevosPrestamos = [];
+  decisions.forEach((decision) => {
+    const resultado = resultadosById.get(decision.id);
+    if (resultado?.resultado !== "aplicada" || !resultado.mesResuelto) return;
+    if (decision.tipo === "reunificacion") {
+      (decision.params.deudaIds || []).forEach((deudaId) => payoffMonthByDebt.set(deudaId, resultado.mesResuelto));
+      nuevosPrestamos.push({
+        id: `reunificada-${decision.id}`,
+        label: "Préstamo de reunificación",
+        currentPrincipal: Number(decision.params.nuevoPrincipal) || 0,
+        currentPayment: Number(decision.params.nuevaCuota) || 0,
+        apr: round2((Number(decision.params.nuevoTIN) || 0) * 100),
+        desde: resultado.mesResuelto,
+      });
+      return;
+    }
+    payoffMonthByDebt.set(decision.params.deudaId, resultado.mesResuelto);
+  });
+  return { payoffMonthByDebt, nuevosPrestamos };
+}
+
+// El calendario francés natural de debtAmortizationSchedule, más el mes (índice absoluto en
+// `months`) en el que la estrategia liquida el contrato de golpe, si lo hace antes de que terminara
+// por su cuenta — sin recortar `rows` aquí: una deuda «stalled» (sin cuota que cubra ni el interés)
+// solo trae una fila por diseño, no porque el saldo desaparezca el mes siguiente, así que el corte
+// real de meses vive en quien agrega (`debtStrategyAggregateCalendar`), no aquí. Sin mes de
+// liquidación, o si llega después de que el contrato ya hubiera terminado solo, no hay nada que
+// truncar.
+function debtAmortizationScheduleForPlan(contract, months, payoffMonthKey) {
+  const schedule = debtAmortizationSchedule(contract, months.length);
+  if (!payoffMonthKey) return { ...schedule, payoffIndex: null };
+  const payoffIndex = months.findIndex((month) => month.monthKey === payoffMonthKey);
+  if (payoffIndex < 0 || (schedule.complete && payoffIndex >= schedule.rows.length)) return { ...schedule, payoffIndex: null };
+  return { ...schedule, payoffIndex };
+}
+
+// D-4 · el calendario agregado que faltaba: capital vivo mes a mes sumando todos los contratos bajo
+// la estrategia activa (cada uno con su calendario declarado, truncado si esta ruta lo liquida antes
+// de golpe) más el préstamo nuevo de una reunificación desde el mes en que se firma. Con 0
+// decisiones (Mín./no-tocar) coincide exactamente con solo mínimos: no hay nada que adelantar.
+function debtStrategyAggregateCalendar(decisions, resultadosById, contracts, months) {
+  const { payoffMonthByDebt, nuevosPrestamos } = debtStrategyPayoffPlan(months, decisions, resultadosById);
+  const entries = contracts.map((contract) => ({
+    label: escenarioMotorDebtLabel(contract),
+    offset: 0,
+    schedule: debtAmortizationScheduleForPlan(contract, months, payoffMonthByDebt.get(contract.id) || null),
+  }));
+  nuevosPrestamos.forEach((prestamo) => {
+    const offset = months.findIndex((month) => month.monthKey === prestamo.desde);
+    if (offset < 0) return;
+    const remaining = months.slice(offset);
+    entries.push({ label: prestamo.label, offset, schedule: { ...debtAmortizationSchedule(prestamo, remaining.length), payoffIndex: null } });
+  });
+
+  const capital = months.map(() => 0);
+  let totalInterest = 0;
+  let firstPayoff = null;
+  entries.forEach((entry) => {
+    const rows = entry.schedule.rows;
+    // Una deuda «stalled» (cuota que no cubre ni el interés, o sin cuota declarada) solo genera UNA
+    // fila — `debtAmortizationSchedule` corta ahí a propósito para no fingir una amortización que no
+    // ocurre — pero su saldo no desaparece los meses siguientes: sigue ahí, congelado, hasta que la
+    // ruta la liquide de golpe (si lo hace) o se acabe el horizonte. Sin este relleno, el agregado la
+    // haría desaparecer del total a partir del mes 2, como si se hubiera pagado sola.
+    const flatBalance = entry.schedule.stalled && rows.length ? rows[rows.length - 1].balance : null;
+    // El corte real de la ruta (si lo hay) manda incluso sobre el relleno congelado: a partir de ahí
+    // no queda saldo, se haya llegado ahí amortizando de verdad o estancado.
+    const cutoff = entry.schedule.payoffIndex ?? Infinity;
+    for (let index = entry.offset; index < capital.length && index < cutoff; index += 1) {
+      const localIndex = index - entry.offset;
+      if (localIndex < rows.length) {
+        capital[index] += rows[localIndex].balance;
+        totalInterest += rows[localIndex].interest;
+      } else if (flatBalance !== null) {
+        capital[index] += flatBalance;
+      }
+    }
+    const completionIndex =
+      entry.schedule.payoffIndex !== null && entry.schedule.payoffIndex !== undefined
+        ? entry.schedule.payoffIndex
+        : entry.schedule.complete && entry.schedule.rows.length
+        ? entry.offset + entry.schedule.rows.length - 1
+        : null;
+    if (completionIndex !== null && completionIndex >= 0 && completionIndex < months.length && (!firstPayoff || completionIndex < firstPayoff.index)) {
+      firstPayoff = { index: completionIndex, label: entry.label };
+    }
+  });
+  // Recorta la cola de meses ya saldados (capital 0): el mockup deja de dibujar barras en cuanto la
+  // deuda llega a cero, no arrastra el resto del horizonte del motor (hasta 10 años) en blanco.
+  let lastActive = capital.length - 1;
+  while (lastActive > 0 && capital[lastActive] <= 0.01) lastActive -= 1;
+  return {
+    series: capital.slice(0, lastActive + 1).map((value, index) => ({ monthKey: months[index].monthKey, month: months[index].month, capital: round2(Math.max(0, value)) })),
+    totalInterest: round2(totalInterest),
+    firstPayoff: firstPayoff ? { label: firstPayoff.label, month: months[firstPayoff.index]?.month, monthKey: months[firstPayoff.index]?.monthKey } : null,
+  };
+}
+
+// El total de intereses «solo mínimos»: la misma cuota francesa de cada contrato, nunca tocada por
+// ninguna decisión — el mismo cálculo que ya pinta cada `<details>` del calendario por contrato, solo
+// que sumado. Es el baseline con el que D-4 compara la estrategia activa.
+function debtAmortizationTotalInterest(contracts, maxMonths) {
+  return round2(contracts.reduce((sum, contract) => sum + debtAmortizationSchedule(contract, maxMonths).rows.reduce((s, row) => s + row.interest, 0), 0));
+}
+
+function debtRutaAmortChartHtml(series) {
+  if (!series.length) return '<p class="e19-kpi-note">Sin deuda viva: no hay calendario que proyectar.</p>';
+  const max = Math.max(1, ...series.map((row) => row.capital));
+  const bars = series
+    .map(
+      (row) =>
+        `<div class="deuda-ruta-amort-bar" style="height:${Math.max(2, Math.round((row.capital / max) * 100))}%" title="${escapeHtml(row.month)} · ${money(row.capital, true)}"></div>`
+    )
+    .join("");
+  const mid = series[Math.floor((series.length - 1) / 2)];
+  return `<div class="deuda-ruta-amort-chart">${bars}</div>
+    <div class="deuda-ruta-amort-axis"><span>${escapeHtml(series[0]?.month || "")}</span><span>${escapeHtml(mid?.month || "")}</span><span>${escapeHtml(series.at(-1)?.month || "")}</span></div>`;
+}
+
+function debtRutaAmortStatsHtml(aggregate, baselineInterest) {
+  const delta = round2(baselineInterest - aggregate.totalInterest);
+  const deltaText =
+    Math.abs(delta) < 0.01
+      ? "Igual que solo mínimos: esta ruta no adelanta ningún pago."
+      : delta > 0
+      ? `${money(delta, true)} menos que solo mínimos`
+      : `${money(Math.abs(delta), true)} más que solo mínimos`;
+  return `
+    <div class="deuda-ruta-amort-stat"><span>Primer contrato liquidado</span><strong>${
+      aggregate.firstPayoff ? `${escapeHtml(aggregate.firstPayoff.month)} · ${escapeHtml(aggregate.firstPayoff.label)}` : "Ninguno dentro de este horizonte"
+    }</strong></div>
+    <div class="deuda-ruta-amort-stat"><span>Intereses totales</span><strong>${money(aggregate.totalInterest, true)}</strong></div>
+    <div class="deuda-ruta-amort-stat"><span>Frente a solo mínimos</span><strong>${escapeHtml(deltaText)}</strong></div>
+  `;
 }
 
 function renderDeudaRutaCalendar(contracts, months) {

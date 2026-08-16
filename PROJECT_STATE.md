@@ -2,6 +2,45 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría (segunda tanda) — D-4
+
+Continuación directa de la tanda M-3/D-6 (misma sesión, PR anterior ya fusionado). D-4 era la
+tercera y última pieza «L» de la Prioridad 3: el calendario de amortización de `#deuda-ruta` se
+proyectaba contrato a contrato, cada uno solo con su propio calendario declarado, sin aplicar nunca
+el reparto real de la estrategia activa (quién recibe el pago de golpe primero) ni comparar el coste
+en intereses contra un escenario de solo mínimos — justo lo que pedía el criterio.
+
+**D-4**: `debtStrategyAggregateCalendar` añade el gráfico agregado que faltaba (capital vivo mes a
+mes, sumando todos los contratos) encima del calendario por contrato ya existente, sin tocarlo.
+Reutiliza `debtAmortizationSchedule` (la misma cuota francesa ya construida y probada el 15 de
+agosto) para cada contrato, truncada en el mes en que la ruta activa lo liquida de golpe —
+`debtStrategyPayoffPlan` lee el `mesResuelto` real de cada decisión aplicada del motor de
+escenarios, el mismo dato que ya usaba el escalón de «Deuda viva» para su propio gráfico (más
+simple, sin amortización mes a mes). Una reunificación añade el préstamo nuevo a la serie desde el
+mes en que se firma. Debajo del gráfico, tres cifras: primer contrato liquidado (mes + nombre),
+intereses totales del plan aplicado, y su diferencia frente a `debtAmortizationTotalInterest` — la
+misma suma «solo mínimos» que ya pintaba cada `<details>` por contrato, sin decisión alguna. Con 0
+decisiones (estrategia «No tocar nada») el agregado coincide exactamente con solo mínimos por
+construcción, no por casualidad: se dice explícitamente en vez de enseñar un «0 €» sin explicar.
+
+**Bug real encontrado con Playwright, no con las pruebas**: una deuda sin cuota declarada (dos de
+los tres contratos de la cartera demo) solo genera una fila en `debtAmortizationSchedule` — un corte
+deliberado para no fingir una amortización que no ocurre. Sumarla tal cual al agregado la hacía
+desaparecer del total a partir del segundo mes, como si se hubiera pagado sola, cuando en realidad
+sigue ahí, sin amortizar. Corregido manteniendo su saldo congelado en cada mes siguiente hasta que
+la ruta la liquide de golpe (si lo hace) o se acabe el horizonte — verificado con la pestaña «No
+tocar nada» pasando de 33 a 125 barras (la longitud real del horizonte) al aplicar la corrección.
+
+**Validación**: `npm run verify`, exit 0, **985/985 pruebas** (969 + 16 nuevas en
+`tests/d4-d5-d6-deuda-calendario-modos.test.cjs`, incluidas dos que fijan el bug de las deudas sin
+cuota declarada), 699 IDs de accesibilidad, rendimiento/build/privacidad/smoke en verde.
+Verificación visual con Playwright en las cuatro pestañas de estrategia (avalancha, bola de nieve,
+consolidar, no tocar): gráfico y estadísticas correctos en las cuatro, sin errores de consola.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — D-4 pasa a `Hecho` (sin «parcial») en
+la tabla y gana nota de cierre. De la Prioridad 3 solo quedan P-2 y H-5; la Prioridad 4 completa (7
+tareas) sigue pendiente: R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+
 ## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría (primera tanda) — M-3 y D-6
 
 Continuación directa de la Prioridad 2 (M-7/D-9/D-8/H-6), sesión siguiente. El usuario pidió seguir
