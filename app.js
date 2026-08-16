@@ -2672,12 +2672,39 @@ function saveBalanceSettings() {
       state?.balanceMode === "manual"
         ? state.mediolanumBalance
         : (balanceSettings.manualMediolanumBalance ?? state?.mediolanumBalance),
+    efectivoBalance: balanceSettings.efectivoBalance ?? 0,
   };
   const serialized = JSON.stringify(next);
   balanceSettings = next;
   if (serialized === previous) return;
   storageSet(storageKey("balanceSettings"), serialized);
   queueRemoteSave();
+}
+
+// R-3 (auditoría del 15 de agosto, Prioridad 4): el mockup fija «Efectivo se mantiene como cuenta
+// editable, con su aviso de que no tiene extracto que lo respalde». A diferencia de caixa/mediolanum
+// (que alimentan `accountBalancesFromState().total`, usado en decenas de puntos del motor de
+// proyección), Efectivo se guarda en `balanceSettings` como una cifra puramente informativa: no
+// participa en el total de liquidez ni en ninguna simulación. Es la lectura de menor riesgo del
+// criterio — ampliarla para que compute en las proyecciones sería rehacer el motor financiero de dos
+// cuentas, una decisión de producto aparte que no toca esta tarea.
+function efectivoBalanceValue() {
+  return round2(Number(balanceSettings.efectivoBalance) || 0);
+}
+
+function saveEfectivoBalance(value) {
+  const amount = round2(Number(value) || 0);
+  if (efectivoBalanceValue() === amount) return;
+  balanceSettings = { ...balanceSettings, efectivoBalance: amount };
+  storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
+  queueRemoteSave();
+}
+
+function handleRegistrarEfectivoBalanceInput() {
+  const input = qs("registrarEfectivoBalance");
+  if (!input) return;
+  saveEfectivoBalance(parseAmount(input.value) ?? 0);
+  renderAccountBalancePanels();
 }
 
 function supabaseConfig() {
@@ -5227,6 +5254,7 @@ function renderAccountBalancePanels() {
   if (qs("registrarBalanceMode")) qs("registrarBalanceMode").value = mode;
   if (qs("registrarCaixaBalance")) qs("registrarCaixaBalance").value = balances.caixa.toFixed(2);
   if (qs("registrarMediolanumBalance")) qs("registrarMediolanumBalance").value = balances.mediolanum.toFixed(2);
+  if (qs("registrarEfectivoBalance")) qs("registrarEfectivoBalance").value = efectivoBalanceValue().toFixed(2);
   if (qs("registrarTotalBalance")) qs("registrarTotalBalance").value = balances.total.toFixed(2);
   if (qs("registrarBalanceDateLabel")) qs("registrarBalanceDateLabel").textContent = mode === "manual" ? "Fecha del saldo real" : "Fecha de cálculo";
   if (qs("registrarBalanceSource")) {
@@ -26227,6 +26255,7 @@ async function init() {
     qs(id)?.addEventListener("change", handleRegistrarAccountBalanceInput);
     qs(id)?.addEventListener("input", renderRegistrarBalanceDelta);
   });
+  qs("registrarEfectivoBalance")?.addEventListener("change", handleRegistrarEfectivoBalanceInput);
   qs("registrarTabs")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-registrar-tab]");
     if (button) setRegistrarTab(button.dataset.registrarTab);

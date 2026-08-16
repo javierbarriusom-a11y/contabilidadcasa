@@ -168,6 +168,85 @@ test("R-2 (Prioridad 4) · sin sesión de importación en curso, la insignia de 
   assert.equal(badges.batch, "");
 });
 
+// --- R-3 (Prioridad 4) · cuenta Efectivo editable, fuera del total de liquidez proyectada --------
+// El mockup fija «Efectivo se mantiene como cuenta editable, con su aviso de que no tiene extracto
+// que lo respalde». A diferencia de caixa/mediolanum, se guarda en `balanceSettings.efectivoBalance`
+// como cifra puramente informativa, sin tocar `accountBalancesFromState()` ni el motor de proyección.
+
+function sandboxEfectivo(extra = {}) {
+  return sandboxWith(["efectivoBalanceValue", "saveEfectivoBalance", "handleRegistrarEfectivoBalanceInput"], {
+    round2: (v) => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100,
+    balanceSettings: {},
+    storageKey: (k) => k,
+    storageSet: () => {},
+    queueRemoteSave: () => {},
+    qs: () => null,
+    renderAccountBalancePanels: () => {},
+    parseAmount: (v) => (v === "" || v === null || v === undefined ? null : Number(v)),
+    ...extra,
+  });
+}
+
+test("R-3 (Prioridad 4) · efectivoBalanceValue lee balanceSettings.efectivoBalance, 0 si no hay nada guardado", () => {
+  const ctx = sandboxEfectivo({ balanceSettings: {} });
+  assert.equal(ctx.efectivoBalanceValue(), 0);
+  const ctx2 = sandboxEfectivo({ balanceSettings: { efectivoBalance: 123.456 } });
+  assert.equal(ctx2.efectivoBalanceValue(), 123.46);
+});
+
+test("R-3 (Prioridad 4) · saveEfectivoBalance guarda y sincroniza solo cuando el valor cambia de verdad", () => {
+  let saved = 0;
+  let synced = 0;
+  const ctx = sandboxEfectivo({
+    balanceSettings: { efectivoBalance: 50 },
+    storageSet: () => {
+      saved += 1;
+    },
+    queueRemoteSave: () => {
+      synced += 1;
+    },
+  });
+  ctx.saveEfectivoBalance(50);
+  assert.equal(saved, 0);
+  assert.equal(synced, 0);
+  ctx.saveEfectivoBalance(75.5);
+  assert.equal(saved, 1);
+  assert.equal(synced, 1);
+  assert.equal(ctx.balanceSettings.efectivoBalance, 75.5);
+});
+
+test("R-3 (Prioridad 4) · handleRegistrarEfectivoBalanceInput lee el campo, guarda y repinta los paneles", () => {
+  const input = { value: "340" };
+  let rendered = 0;
+  const ctx = sandboxEfectivo({
+    balanceSettings: {},
+    qs: (id) => (id === "registrarEfectivoBalance" ? input : null),
+    renderAccountBalancePanels: () => {
+      rendered += 1;
+    },
+  });
+  ctx.handleRegistrarEfectivoBalanceInput();
+  assert.equal(ctx.balanceSettings.efectivoBalance, 340);
+  assert.equal(rendered, 1);
+});
+
+test("R-3 (Prioridad 4) · handleRegistrarEfectivoBalanceInput no revienta si el campo todavía no existe en el DOM", () => {
+  const ctx = sandboxEfectivo({ qs: () => null });
+  assert.doesNotThrow(() => ctx.handleRegistrarEfectivoBalanceInput());
+});
+
+test("R-3 (Prioridad 4) · Efectivo se queda fuera del total de liquidez: accountBalancesFromState no lo toca", () => {
+  const source = extractFunction("accountBalancesFromState");
+  assert.doesNotMatch(source, /efectivo/i);
+});
+
+test("R-3 (Prioridad 4) · la pestaña Saldo de cuentas trae Efectivo como tercera fila editable, con su aviso", () => {
+  const balancesStart = html.indexOf('data-registrar-panel="balances"');
+  const panel = html.slice(balancesStart, html.indexOf('data-registrar-panel="actuals"', balancesStart));
+  assert.match(panel, /<span>Efectivo<\/span>\s*<input id="registrarEfectivoBalance"/);
+  assert.match(panel, /Efectivo no tiene extracto que lo respalde/);
+});
+
 test("R-4 · las cuatro cifras de recálculo se leen de los mismos motores que Hoy, sin fórmula paralela", () => {
   const figuresSource = extractFunction("registrarRecalcFigures");
   assert.match(figuresSource, /unifiedActionCenterModel\(\)/);

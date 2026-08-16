@@ -419,10 +419,15 @@
                     <small data-registrar-delta="mediolanum"></small>
                   </label>
                   <label>
+                    <span>Efectivo</span>
+                    <input id="registrarEfectivoBalance" type="number" step="0.01" />
+                  </label>
+                  <label>
                     <span>Total liquidez</span>
                     <input id="registrarTotalBalance" type="number" step="0.01" readonly />
                   </label>
                 </div>
+                <p class="data-hint">Efectivo no tiene extracto que lo respalde: se guarda como referencia y no se suma al total de liquidez proyectada.</p>
                 <p class="data-hint" id="registrarBalanceSource"></p>
               </article>
             </div>
