@@ -25383,19 +25383,89 @@ function planMesIsFinancingRowKey(rowKey) {
   return section.rows.some((row) => seriesKeyForRow(row) === rowKey);
 }
 
-function planMesRowHtml(entry, monthClosed, monthKey) {
+// P-2 (auditoría del 15 de agosto, Prioridad 3): con la tabla agrupada por bloque (más abajo), el
+// nombre de sección de cada fila ya lo dice la cabecera de bloque — repetirlo en una columna propia
+// era ruido. Se retira la celda «Bloque»; `data-plan-mes-block` sigue en la fila para que el
+// plegado (`handlePlanMesBlockToggle`) sepa a qué bloque pertenece.
+function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false) {
   const rowKey = seriesKeyForRow(entry.row);
   const isFinancing = entry.sectionName === "Financiaciones";
   const plannedCell = isFinancing
     ? `<span class="plan-mes-financing-readonly">${money(entry.planned, true)}<small>se cambia en <button type="button" class="registrar-actuals-plan-link" data-home-nav="deuda-contratos">Deuda</button></small></span>`
     : `<input type="number" step="0.01" inputmode="decimal" data-plan-mes-planned="${escapeHtml(rowKey)}" data-plan-mes-month="${escapeHtml(monthKey)}" aria-label="Previsto de ${escapeHtml(entry.label)}" value="${entry.planned}"${monthClosed ? " disabled" : ""} />`;
-  return `<tr data-plan-mes-key="${escapeHtml(entry.key)}"${entry.plannedDraft ? ' class="plan-mes-row-draft"' : ""}>
-    <td class="registrar-mes-block">${escapeHtml(entry.sectionName)}</td>
+  return `<tr data-plan-mes-key="${escapeHtml(entry.key)}" data-plan-mes-block="${escapeHtml(entry.sectionName)}"${entry.plannedDraft ? ' class="plan-mes-row-draft"' : ""}${collapsed ? " hidden" : ""}>
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}</td>
     <td>${plannedCell}</td>
     <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta">${entry.hasActual ? "real" : "previsto"}</small></td>
     <td data-plan-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
   </tr>`;
+}
+
+// P-2: bloques en el orden real en que aparecen las filas (baseData.monthlyPlanning.sections —
+// Gastos fijos, Gastos variables, Financiaciones —, no una taxonomía inventada como la del mockup),
+// con el subtotal de previsto de cada uno. `Set` de nombre de sección, no de índice, para que
+// colapsar/expandir sobreviva a que cambien las partidas del mes.
+let planMesCollapsedBlocks = new Set();
+
+function planMesGroupBySection(list) {
+  const order = [];
+  const bySection = new Map();
+  list.forEach((entry) => {
+    if (!bySection.has(entry.sectionName)) {
+      bySection.set(entry.sectionName, []);
+      order.push(entry.sectionName);
+    }
+    bySection.get(entry.sectionName).push(entry);
+  });
+  return order.map((sectionName) => {
+    const sectionEntries = bySection.get(sectionName);
+    return { sectionName, entries: sectionEntries, subtotal: round2(sectionEntries.reduce((sum, entry) => sum + Number(entry.planned || 0), 0)) };
+  });
+}
+
+function planMesBlockRowHtml(block) {
+  const collapsed = planMesCollapsedBlocks.has(block.sectionName);
+  return `<tr class="plan-mes-block-row">
+    <td colspan="3">
+      <button type="button" class="plan-mes-block-toggle" data-plan-mes-block-toggle="${escapeHtml(block.sectionName)}" aria-expanded="${collapsed ? "false" : "true"}">
+        <span class="plan-mes-block-caret" aria-hidden="true"></span>${escapeHtml(block.sectionName)}
+      </button>
+    </td>
+    <td class="plan-mes-block-subtotal">${money(block.subtotal, true)}</td>
+  </tr>`;
+}
+
+// P-2: «una sola tabla «Presupuesto de [mes]» con cabeceras de sección... y subtotal por bloque,
+// plegable». Sustituye la tarjeta plana de Gastos; Ingresos se queda como estaba (el mockup tampoco
+// la itemiza dentro de esta tabla — su previsto ya vive en los KPI de arriba, en
+// `planMesKpis`/`INGRESO PREVISTO`).
+function planMesBudgetTableHtml(list, month, monthClosed) {
+  const blocks = planMesGroupBySection(list);
+  const body = blocks.length
+    ? blocks
+        .map((block) => {
+          const collapsed = planMesCollapsedBlocks.has(block.sectionName);
+          const rows = block.entries.map((entry) => planMesRowHtml(entry, monthClosed, month.key, collapsed)).join("");
+          return `${planMesBlockRowHtml(block)}${rows}`;
+        })
+        .join("")
+    : `<tr><td colspan="4" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head"><h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(month.label)}</h3></div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Partida</th><th>Previsto</th><th>Usado</th><th>Desviación</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+function handlePlanMesBlockToggle(sectionName) {
+  if (!sectionName) return;
+  if (planMesCollapsedBlocks.has(sectionName)) planMesCollapsedBlocks.delete(sectionName);
+  else planMesCollapsedBlocks.add(sectionName);
+  renderPlanMes();
 }
 
 function planMesPreviousMonth(month) {
@@ -25440,12 +25510,12 @@ function planMesCopyHtml(month) {
 function planMesCardHtml(label, list, month, monthClosed) {
   const body = list.length
     ? list.map((entry) => planMesRowHtml(entry, monthClosed, month.key)).join("")
-    : `<tr><td colspan="5" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
+    : `<tr><td colspan="4" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
   return `<article class="e19-card registrar-mes-card">
     <div class="registrar-mes-card-head"><h3 class="escenario-motor-panel-title">${escapeHtml(label)}</h3></div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table">
-        <thead><tr><th>Bloque</th><th>Concepto</th><th>Previsto</th><th>Usado</th><th>Desviación</th></tr></thead>
+        <thead><tr><th>Concepto</th><th>Previsto</th><th>Usado</th><th>Desviación</th></tr></thead>
         <tbody>${body}</tbody>
       </table>
     </div>
@@ -25477,7 +25547,7 @@ function renderPlanMes() {
   }
 
   const container = qs("planMesTables");
-  container.innerHTML = `${planMesCardHtml("Ingresos", entries.income, month, monthClosed)}${planMesCardHtml("Gastos", entries.expense, month, monthClosed)}
+  container.innerHTML = `${planMesCardHtml("Ingresos", entries.income, month, monthClosed)}${planMesBudgetTableHtml(entries.expense, month, monthClosed)}
     <div class="registrar-mes-card-foot">${monthClosed ? `<p class="e19-kpi-note">El mes está cerrado: el previsto queda congelado tal y como se cerró.</p>` : planMesCopyHtml(month)}</div>`;
 
   renderPlanMesImpactBar();
@@ -26172,6 +26242,9 @@ async function init() {
     if (event.target.closest("[data-plan-mes-copy]")) { handlePlanMesCopy(); return; }
     if (event.target.closest("[data-plan-mes-copy-confirm]")) { handlePlanMesCopyConfirm(); return; }
     if (event.target.closest("[data-plan-mes-copy-cancel]")) { handlePlanMesCopyCancel(); return; }
+    // P-2: cabecera de bloque, plegable.
+    const blockToggle = event.target.closest("[data-plan-mes-block-toggle]");
+    if (blockToggle) { handlePlanMesBlockToggle(blockToggle.dataset.planMesBlockToggle); return; }
     // P-3: el enlace «Deuda» de una cuota de solo lectura.
     const navButton = event.target.closest("[data-home-nav]");
     const target = navButton?.dataset.homeNav;
