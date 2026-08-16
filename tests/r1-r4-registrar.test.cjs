@@ -141,16 +141,31 @@ test("R-3 · el delta frente al guardado marca el signo y usa la cifra formatead
   assert.equal(registrarDeltaText(6700, 6670), "+€30.00 frente al guardado.");
 });
 
-test("R-2 · la insignia de Importar/Lote sin construir no fabrica un recuento: usa el mismo «—» que Hoy (H-10)", () => {
+test("R-2 (Prioridad 4) · la insignia de Importar refleja el recuento vivo de la sesión en curso, no un «ausente» permanente", () => {
   const { registrarTabBadges } = sandboxWith(["registrarTabBadges", "registrarBalanceStale"], {
     state: { balanceMode: "auto", balanceDate: "2026-08-14" },
     registrarActualsSelectedMonth: () => ({ key: "2026-08" }),
     registrarActualsEntries: () => [{ hasActual: true }, { hasActual: false }],
+    datosImportarSession: { rows: [{}, {}, {}] },
+    datosImportarCounters: () => ({ pidenDecision: 2 }),
   });
   const badges = registrarTabBadges();
   assert.equal(badges.actuals, "1 sin real");
-  assert.equal(badges.import, "—");
-  assert.equal(badges.batch, "—");
+  assert.equal(badges.import, "2 por decidir");
+  assert.equal(badges.batch, "");
+});
+
+test("R-2 (Prioridad 4) · sin sesión de importación en curso, la insignia de Importar se queda vacía en vez de fabricar un cero", () => {
+  const { registrarTabBadges } = sandboxWith(["registrarTabBadges", "registrarBalanceStale"], {
+    state: { balanceMode: "auto", balanceDate: "2026-08-14" },
+    registrarActualsSelectedMonth: () => ({ key: "2026-08" }),
+    registrarActualsEntries: () => [],
+    datosImportarSession: null,
+    datosImportarCounters: () => ({ pidenDecision: 0 }),
+  });
+  const badges = registrarTabBadges();
+  assert.equal(badges.import, "");
+  assert.equal(badges.batch, "");
 });
 
 test("R-4 · las cuatro cifras de recálculo se leen de los mismos motores que Hoy, sin fórmula paralela", () => {

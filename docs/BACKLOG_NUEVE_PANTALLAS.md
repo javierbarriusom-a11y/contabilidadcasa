@@ -96,7 +96,18 @@ indicadores coloreados frente al Plan más veredicto en prosa), D-4 (gráfico ag
 mes a mes con la estrategia activa, con hito de primer contrato liquidado e intereses totales frente
 a solo mínimos), H-5 (candidata de movimientos por incorporar, navegación a vista y pestaña) y P-2
 (tabla única «Presupuesto de [mes]» agrupada por bloque, con subtotal y plegado) — ver sus notas
-respectivas. Queda pendiente la Prioridad 4 completa (6 tareas): R-2, P-4, P-1, R-3, M-2/M-6, M-8.
+respectivas. **De la Prioridad 4 (6 tareas), tres se cerraron el 16 de agosto en la sesión
+siguiente**: R-2 (recuento vivo en la insignia de Importar, en vez de un «ausente» permanente), P-4
+(el hover de «Usado» dice de dónde sale y cuántos movimientos lo componen) y P-1 (confirmado con
+Playwright que el horizonte de Previsión ya sobrevive al cambio de pestaña por diseño — la mitad
+«se comparte entre las tres pestañas» no aplica hoy: Mes usa un selector de mes por diseño distinto,
+no un horizonte, y Ahorro sigue sin construir) — ver sus notas respectivas. Quedan tres, cada una con
+un motivo de bloqueo real explicado en su nota: R-3 (cuenta Efectivo — toca el modelo de liquidez de
+dos cuentas usado en toda la app; decisión de alcance pendiente con el usuario), M-2/M-6 (cuenta por
+movimiento — no existe el atributo en el modelo de datos, y el propio importador ya decidió
+explícitamente no fingir haber identificado una cuenta bancaria real; requiere una decisión de
+producto, no solo código) y M-8 (bloqueada por depender de la pieza compartida «Historial de
+versiones», que tampoco tienen R-6/Cierre).
 
 ## 4. Nueve reglas transversales
 
@@ -193,7 +204,7 @@ tareas no:
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
 | R-1 | Cabecera de Registrar | — | S | Hecho |
-| R-2 | Armazón de cuatro pestañas | Fase 3 · menú | M | Hecho (parcial, ver nota) |
+| R-2 | Armazón de cuatro pestañas | Fase 3 · menú | M | Hecho (16 de agosto, ver nota) |
 | R-3 | Pestaña Saldo de cuentas | Fase 1 | M | Hecho (parcial, ver nota) |
 | R-4 | Tarjeta «qué se recalcula al guardar» | R-3 | S | Hecho |
 | R-5 | Pestaña Reales del mes | R-2 | L | Hecho |
@@ -260,12 +271,28 @@ R-1, R-4, R-5, R-6, R-7, R-8, R-9, R-10 y R-12 coinciden con el criterio. Tres g
   cuenta editable, con su aviso de que no tiene extracto que lo respalde», y el mockup muestra tres
   filas (CaixaBank, Mediolanum, Efectivo). El modelo de datos (`accountBalancesFromState`) solo
   contempla `caixa` y `mediolanum` — no existe el concepto en ningún punto de la app.
-- **R-2**: el criterio pide insignia de pendientes en las cuatro pestañas. `registrarTabBadges()`
-  devuelve el marcador de «ausente» de forma permanente para Importar y Lote, nunca un recuento —
-  el propio test que lo cubre reconoce en su título que esas dos insignias «no están construidas».
+- **R-2 (cerrado el 16 de agosto, sesión de Prioridad 4)**: el criterio pide insignia de pendientes
+  en las cuatro pestañas. `registrarTabBadges()` devolvía el marcador de «ausente» de forma
+  permanente para Importar y Lote, nunca un recuento. Corregido de forma distinta para cada una,
+  porque su naturaleza real es distinta: **Importar** sí tiene un recuento vivo que ofrecer — los
+  movimientos de la sesión de importación en curso (`datosImportarSession`) que piden decisión, el
+  mismo `datosImportarCounters` que ya usaba `homeImportSessionCandidate` (H-5) — así que su insignia
+  pasa a decir «N por decidir» o queda vacía sin sesión abierta. **Lote y Excel** es una acción de un
+  solo paso (pegar tabla o subir Excel, importar) sin ninguna sesión que dejar a medias — no hay
+  pendiente real que contar, así que se deja vacía en vez de fabricar un cero, el mismo trato que ya
+  recibía «Saldo de cuentas» cuando no hay nada que avisar (regla transversal 04). Verificado con
+  Playwright: sin sesión de importación abierta, ambas insignias están vacías; con una sesión con
+  movimientos pendientes de decisión, Importar muestra el recuento real. Pruebas nuevas en
+  `tests/r1-r4-registrar.test.cjs`; se ajustó `tests/r5-registrar-reales.test.cjs` (mismo stub nuevo).
 
-Pendientes, sin motivo de bloqueo. R-11 es el más urgente de los tres por tocar directamente la
-regla transversal 01 (una escritura real sigue abierta en una heredada).
+Pendientes, sin motivo de bloqueo: R-11 y R-3. R-11 es el más urgente por tocar directamente la
+regla transversal 01 (una escritura real sigue abierta en una heredada). R-3 (cuenta Efectivo) tiene
+además una decisión de alcance real por resolver: el modelo de liquidez de la app solo conoce dos
+cuentas (`caixa`/`mediolanum`, sumadas en `total` y usadas en toda la proyección financiera);
+añadir Efectivo tal como pide el PDF exige decidir si participa en ese total (rehace el motor de
+proyección en decenas de puntos) o queda informativo (más simple, pero no es exactamente «una cuenta
+más» como sugiere el mockup) — se deja pendiente de esa decisión con el usuario en vez de elegir en
+silencio.
 
 ### 03 · Movimientos — cola de trabajo, fuente del saldo calculado (13 tareas · 1 grande)
 
@@ -399,10 +426,10 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Hecho (parcial, ver nota) |
+| P-1 | Pestañas Mes / Previsión / Ahorro | Fase 3 | M | Hecho (16 de agosto, ver nota) |
 | P-2 | Tabla del mes agrupada por bloques | P-1 | M | Hecho (16 de agosto, ver nota) |
 | P-3 | Presupuesto editable con guardado por sesión | P-2 | M | Hecho (15 de agosto, ver nota) |
-| P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Hecho (parcial, ver nota) |
+| P-4 | Gastado de solo lectura con procedencia | P-2, R-3 | S | Hecho (16 de agosto, ver nota) |
 | P-5 | Techo de asignación | P-3 | S | Hecho |
 | P-6 | Pie de impacto compartido con Registrar | R-7 | M | Hecho |
 | P-7 | Copiar de julio | P-3, P-6 | M | Hecho |
@@ -509,16 +536,34 @@ anterior era correcta. El resto de la pantalla sí tiene gaps reales:
   de verdad a `#deuda-contratos`. Pruebas nuevas en `tests/p1-p7-plan-mes.test.cjs`: el
   reconocimiento de filas de Financiaciones, el bloqueo del manejador, el marcado de solo lectura,
   que el resto de filas sigue editable, y el cableado del enlace.
-- **P-4**: falta el hover de procedencia («al pasar por encima dice de dónde sale y cuántos
-  movimientos lo componen») — el código solo pinta la etiqueta estática real/previsto, sin `title`
-  ni recuento.
-- **P-1**: el criterio dice que el horizonte «se comparte entre las tres pestañas y sobrevive al
-  cambio de pestaña»; en el código `planPrevisionHorizon` vive solo dentro del panel de Previsión,
-  sin relación con el selector de mes de la pestaña Mes.
+- **P-4 (cerrado el 16 de agosto, sesión de Prioridad 4)**: faltaba el hover de procedencia («al
+  pasar por encima dice de dónde sale y cuántos movimientos lo componen») — la etiqueta real/previsto
+  era estática, sin `title` ni recuento. `planMesUsadoMovementCount` cuenta, contra
+  `baseData.transactions` del mes, los movimientos mapeados a esa fila con el mismo diccionario
+  `mappingForMovement` que ya usa la detección de partida anual (`registrarMesAnnualMatch`) — no un
+  segundo camino de correspondencia. `planMesUsadoTitle` construye el texto: con real y movimientos
+  mapeados, «Real: N movimiento(s) de [mes]»; con real pero sin ningún movimiento mapeado (un ajuste
+  a mano), lo dice explícitamente en vez de fingir un recuento; sin real, «Previsto: sin movimientos
+  registrados en [mes] todavía». Verificado con Playwright contra los datos de demostración (que se
+  publican sin movimientos, `transactions: []`, por privacidad): todas las filas muestran
+  correctamente el aviso de previsto sin movimientos, sin errores de consola. Pruebas nuevas en
+  `tests/p1-p7-plan-mes.test.cjs`.
+- **P-1 (cerrado el 16 de agosto, sesión de Prioridad 4)**: el criterio dice que el horizonte «se
+  comparte entre las tres pestañas y sobrevive al cambio de pestaña». Verificado con Playwright
+  contra la app real (elegir 24 meses en Previsión, ir a Mes, volver a Previsión): el horizonte
+  elegido y sus columnas se mantienen intactos — `planPrevisionHorizonKey` es una variable de módulo
+  que solo cambia `handlePlanPrevisionHorizon`; `setPlanTab`/`renderPlanTabs` (el armazón de
+  pestañas) nunca la tocan, así que sobrevive a cualquier cambio de pestaña o re-render por diseño,
+  no por casualidad — fijado con una prueba nueva que comprueba justo eso. La mitad «se comparte
+  entre las tres pestañas» no se extendió más allá de Previsión: Mes tiene su propio selector de un
+  único mes (concepto distinto, para editar un presupuesto concreto, no para ver una ventana de
+  varios meses) y Ahorro sigue siendo un enlace a su heredada sin contenido propio todavía — no había
+  ningún otro consumidor real al que «compartir» el horizonte sin fabricar un control redundante.
 
 Menor/cosmético: la pestaña se llama «Ahorro» en el código y «Ahorro y objetivos» en el PDF.
-Pendientes, sin motivo de bloqueo — P-3 es el más urgente por tocar la regla transversal 01 (una
-segunda puerta de escritura para las cuotas de deuda, que ya tiene su puerta canónica en D-2).
+Con P-1, P-2, P-3 y P-4 cerradas, esta auditoría contra `Plan.pdf` no deja ninguna pendiente sin
+motivo — lo que falta en la pantalla es lo ya descrito en las notas de fase (P-8b, P-10 a P-16,
+Fase 4/6 sin empezar).
 
 ### 05 · Deuda — un dato canónico y dos vistas que lo leen (15 tareas · 3 grandes)
 

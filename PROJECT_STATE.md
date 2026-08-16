@@ -2,6 +2,65 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: Prioridad 4 de la auditoría (primera tanda) — R-2, P-4, P-1
+
+Continuación directa del cierre de Prioridad 3 (misma sesión, PR anterior ya fusionado). El usuario
+confirmó seguir con la Prioridad 4 (R-2, P-4, P-1, R-3, M-2/M-6, M-8); se cerraron las tres tareas
+sin ambigüedad de alcance y se dejan pendientes de una decisión del usuario las tres que sí la tienen
+(ver más abajo).
+
+**R-2**: `registrarTabBadges()` devolvía el marcador de «ausente» permanente para las pestañas
+Importar y Lote, nunca un recuento vivo. Corregido de forma distinta para cada una, porque su
+naturaleza real es distinta: Importar sí tiene un recuento real — los movimientos de la sesión de
+importación en curso que piden decisión (`datosImportarCounters`, el mismo que ya usaba
+`homeImportSessionCandidate` de H-5) —, así que pasa a decir «N por decidir» o queda vacía sin sesión
+abierta; Lote y Excel es una acción de un solo paso sin sesión que dejar a medias, así que se deja
+vacía en vez de fabricar un cero (regla transversal 04), el mismo trato que ya recibía «Saldo de
+cuentas» cuando no hay nada que avisar.
+
+**P-4**: la celda «Usado» de Plan · Mes no tenía ningún hover de procedencia. `planMesUsadoTitle`
+construye el texto a partir de `planMesUsadoMovementCount` (cuenta los movimientos del mes mapeados
+a la fila con el mismo diccionario `mappingForMovement` que ya usa la detección de partida anual):
+con real y movimientos mapeados, «Real: N movimiento(s) de [mes]»; con real pero sin ningún
+movimiento mapeado, avisa de que es un ajuste a mano en vez de fingir un recuento; sin real, dice que
+es previsto y que no hay movimientos todavía.
+
+**P-1**: verificado con Playwright que el horizonte de Previsión (12/24/48 meses u horizonte
+completo) ya sobrevive al cambio de pestaña — `planPrevisionHorizonKey` es una variable de módulo que
+solo cambia `handlePlanPrevisionHorizon`, nunca el armazón de pestañas (`setPlanTab`/
+`renderPlanTabs`), así que persiste por diseño. La mitad «se comparte entre las tres pestañas» del
+criterio no se extendió a Mes (selector de un único mes, concepto distinto) ni a Ahorro (sigue sin
+contenido propio) — no había ningún consumidor real al que compartírselo sin fabricar un control
+redundante.
+
+**Validación**: `npm run verify`, exit 0, **1016/1016 pruebas**, 699 IDs de accesibilidad,
+rendimiento/build/privacidad/smoke en verde. Verificación visual con Playwright contra el sitio
+construido: insignias de Importar/Lote vacías sin sesión de importación; hover de «Usado» con el
+texto correcto en las filas de Plan · Mes (el demo público se publica sin movimientos reales,
+`transactions: []`, por privacidad, así que todas muestran «Previsto: sin movimientos»); horizonte de
+Previsión intacto (24m, mismas columnas) tras ir a Mes y volver. Sin errores de consola.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — R-2, P-4 y P-1 pasan a `Hecho` (sin
+«parcial») en sus tablas y ganan nota de cierre. Quedan tres tareas de la Prioridad 4, cada una con
+un motivo de bloqueo real (no solo trabajo pendiente):
+
+- **R-3** (cuenta Efectivo editable) — el modelo de liquidez de la app solo conoce dos cuentas
+  (`caixa`/`mediolanum`, sumadas en `total` y usadas en toda la proyección financiera, en más de
+  cuarenta puntos del código). Añadir Efectivo tal como pide el PDF exige decidir si participa en ese
+  total (rehace el motor de proyección) o queda informativo (mucho más simple, pero no es
+  exactamente «una cuenta más» como sugiere el mockup) — decisión de alcance real, no una cuestión de
+  código, que se deja pendiente de resolver con el usuario.
+- **M-2/M-6** (cuenta por movimiento) — no existe el atributo «cuenta» en el modelo de datos de
+  movimientos, y el propio importador ya decidió explícitamente no fingir haber identificado una
+  cuenta bancaria real (comentario en el código: «cuenta aquí es descriptiva, no una cuenta con id
+  propio»). Construirlo bien exige una decisión de producto sobre qué significa «cuenta» por
+  movimiento de aquí en adelante, no solo escribir el campo.
+- **M-8** (una sola entrada revertible del historial) — sigue bloqueada, como ya documentaba el
+  backlog: depende de la pieza compartida «Historial de versiones», que tampoco tienen R-6 ni Cierre
+  (Fase 5, sin empezar).
+
+Siguiente paso: consultar con el usuario el alcance de R-3 y M-2/M-6 antes de tocar código.
+
 ## Cierre de sesión — 16 de agosto de 2026: Prioridad 3 de la auditoría cerrada por completo — P-2
 
 Continuación directa de la tanda H-5 (misma sesión, PR anterior ya fusionado). P-2 era la última

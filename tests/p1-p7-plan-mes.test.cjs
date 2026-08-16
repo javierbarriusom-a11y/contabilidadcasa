@@ -80,6 +80,19 @@ test("P-1 · Previsión ya no es un enlace a su heredada: tiene su propia tabla 
   assert.match(html, /data-plan-panel="prevision" hidden>[\s\S]*?data-home-nav="prevision"/);
 });
 
+// P-1 (auditoría del 15 de agosto, Prioridad 4): el criterio pide que el horizonte «sobrevive al
+// cambio de pestaña». Verificado con Playwright contra la app real: elegir 24m en Previsión, ir a
+// Mes y volver deja el mismo horizonte activo. La garantía de fondo es que `setPlanTab`/
+// `renderPlanTabs` (armazón de pestañas) nunca tocan `planPrevisionHorizonKey` — solo
+// `handlePlanPrevisionHorizon` lo cambia, así que sobrevive a cualquier cambio de pestaña o
+// re-render por diseño, no por casualidad.
+test("P-1 · cambiar de pestaña no reinicia el horizonte de Previsión (setPlanTab/renderPlanTabs no tocan planPrevisionHorizonKey)", () => {
+  const setPlanTabSource = extractFunction("setPlanTab");
+  const renderPlanTabsSource = extractFunction("renderPlanTabs");
+  assert.doesNotMatch(setPlanTabSource, /planPrevisionHorizonKey/);
+  assert.doesNotMatch(renderPlanTabsSource, /planPrevisionHorizonKey/);
+});
+
 test("P-1 · viewTitles.plan existe y el despachador de vistas activa Plan al entrar", () => {
   assert.match(app, /plan: \{\s*eyebrow: "Plan",/);
   assert.match(app, /case "plan":\s*\n\s*renderPlan\(\);/);
@@ -175,6 +188,7 @@ function sandboxRowHtml(entry, monthClosed) {
     money: (v) => `€${v}`,
     varianceClassForKind: () => "",
     registrarMesSignedMoney: (v) => String(v),
+    planMesUsadoTitle: () => "título de prueba",
   });
   return context.planMesRowHtml(entry, monthClosed, "2026-08");
 }
@@ -214,9 +228,89 @@ test("P-2 · planMesRowHtml oculta la fila (hidden) cuando su bloque está plega
     money: (v) => `€${v}`,
     varianceClassForKind: () => "",
     registrarMesSignedMoney: (v) => String(v),
+    planMesUsadoTitle: () => "título de prueba",
   });
   assert.doesNotMatch(context.planMesRowHtml(entry, false, "2026-08", false), /hidden/);
   assert.match(context.planMesRowHtml(entry, false, "2026-08", true), /<tr[^>]*hidden/);
+});
+
+// --- P-4 (auditoría del 15 de agosto, Prioridad 4) · hover de procedencia en «Usado» -------------
+
+test("P-4 · planMesUsadoMovementCount cuenta los movimientos del mes mapeados a la fila, con el mismo diccionario que la detección de partida anual", () => {
+  const row = { id: "luz" };
+  const other = { id: "agua" };
+  const { planMesUsadoMovementCount } = sandboxWith(["planMesUsadoMovementCount"], {
+    baseData: {
+      transactions: [
+        { month: "2026-08", id: "t1" },
+        { month: "2026-08", id: "t2" },
+        { month: "2026-07", id: "t3" },
+        { month: "2026-08", id: "t4" },
+      ],
+    },
+    mappingForMovement: (t) => (t.id === "t1" || t.id === "t2" ? { row } : { row: other }),
+  });
+  assert.equal(planMesUsadoMovementCount({ row }, "2026-08"), 2);
+});
+
+test("P-4 · planMesUsadoTitle dice el recuento de movimientos cuando hay un real, en plural", () => {
+  const row = { id: "luz" };
+  const { planMesUsadoTitle } = sandboxWith(["planMesUsadoTitle", "planMesUsadoMovementCount"], {
+    ledgerMonthLabel: () => "ago 26",
+    baseData: { transactions: [{ month: "2026-08" }, { month: "2026-08" }] },
+    mappingForMovement: () => ({ row }),
+  });
+  assert.equal(planMesUsadoTitle({ hasActual: true, row }, "2026-08"), "Real: 2 movimientos de ago 26.");
+});
+
+test("P-4 · planMesUsadoTitle usa singular con un solo movimiento", () => {
+  const row = { id: "luz" };
+  const { planMesUsadoTitle } = sandboxWith(["planMesUsadoTitle", "planMesUsadoMovementCount"], {
+    ledgerMonthLabel: () => "ago 26",
+    baseData: { transactions: [{ month: "2026-08" }] },
+    mappingForMovement: () => ({ row }),
+  });
+  assert.equal(planMesUsadoTitle({ hasActual: true, row }, "2026-08"), "Real: 1 movimiento de ago 26.");
+});
+
+test("P-4 · planMesUsadoTitle avisa de un ajuste a mano cuando el real no tiene ningún movimiento mapeado", () => {
+  const row = { id: "luz" };
+  const { planMesUsadoTitle } = sandboxWith(["planMesUsadoTitle", "planMesUsadoMovementCount"], {
+    ledgerMonthLabel: () => "ago 26",
+    baseData: { transactions: [] },
+    mappingForMovement: () => null,
+  });
+  assert.equal(
+    planMesUsadoTitle({ hasActual: true, row }, "2026-08"),
+    "Real: importe introducido a mano en Registrar › Reales del mes.",
+  );
+});
+
+test("P-4 · planMesUsadoTitle dice que es previsto y sin movimientos cuando no hay real", () => {
+  const row = { id: "luz" };
+  const { planMesUsadoTitle } = sandboxWith(["planMesUsadoTitle", "planMesUsadoMovementCount"], {
+    ledgerMonthLabel: () => "ago 26",
+    baseData: { transactions: [] },
+    mappingForMovement: () => null,
+  });
+  assert.equal(
+    planMesUsadoTitle({ hasActual: false, row }, "2026-08"),
+    "Previsto: sin movimientos registrados en ago 26 todavía.",
+  );
+});
+
+test("P-4 · planMesRowHtml pinta el title de procedencia en la celda Usado", () => {
+  const entry = { key: "expense:r1", row: { id: "r1" }, sectionName: "Gastos fijos", label: "Vivienda", planned: 750, plannedDraft: false, hasActual: true, usado: 750, variance: 0, kind: "expense" };
+  const context = sandboxWith(["planMesRowHtml"], {
+    escapeHtml: (v) => String(v),
+    seriesKeyForRow: (row) => row.id,
+    money: (v) => `€${v}`,
+    varianceClassForKind: () => "",
+    registrarMesSignedMoney: (v) => String(v),
+    planMesUsadoTitle: (entryArg, monthKey) => `Real: 3 movimientos de ${monthKey}.`,
+  });
+  const rowHtml = context.planMesRowHtml(entry, false, "2026-08");
+  assert.match(rowHtml, /title="Real: 3 movimientos de 2026-08\."/);
 });
 
 test("P-2 · planMesGroupBySection agrupa por sectionName en el orden de aparición, con el subtotal de previsto de cada bloque", () => {
@@ -270,6 +364,7 @@ function sandboxBudgetTable(list, month, monthClosed, collapsedBlocks = new Set(
     registrarMesSignedMoney: (v) => String(v),
     round2: (v) => Math.round((v + Number.EPSILON) * 100) / 100,
     planMesCollapsedBlocks: collapsedBlocks,
+    planMesUsadoTitle: () => "título de prueba",
   });
   return context.planMesBudgetTableHtml(list, month, monthClosed);
 }

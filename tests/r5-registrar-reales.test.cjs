@@ -181,6 +181,8 @@ test("R-5 · la insignia de la pestaña dice «Al día» en vez de un «0 sin re
     state: { balanceMode: "auto", balanceDate: "2026-08-14" },
     registrarActualsSelectedMonth: () => ({ key: "2026-08" }),
     registrarActualsEntries: () => [{ hasActual: true }, { hasActual: true }],
+    datosImportarSession: null,
+    datosImportarCounters: () => ({ pidenDecision: 0 }),
   });
   assert.equal(registrarTabBadges().actuals, "Al día");
 });
