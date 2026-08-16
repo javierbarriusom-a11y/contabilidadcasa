@@ -813,7 +813,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 | E-8 | Banda de doce meses por cuenta | E-3 | M | Hecho (parcial, ver nota) |
 | E-9 | Vista familiar como pantalla aparte | E-3 | M | Pendiente |
 | E-10 | Guardar escenario reproducible | E-2 | M | Hecho |
-| E-11 | Aplicar con motivo y revisión opcional | D-8 | M | Hecho (parcial, ver nota) |
+| E-11 | Aplicar con motivo y revisión opcional | D-8 | M | Hecho (16 de agosto, ver nota) |
 | E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
 | E-12 | Comparar dos escenarios guardados | E-10 | M | Pendiente |
 | E-13 | Caducidad de escenarios con oferta | E-10, D-10 | S | Pendiente (bloqueada: depende de D-10, parcial) |
@@ -871,8 +871,23 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 - **E-10** — confirmado, y mejor que el criterio literal: en vez de guardar «las cifras resultantes»
   congeladas, `renderEscenarioGuardados` las recalcula con el motor real contra el estado actual de
   las deudas cada vez que se abre la lista — evita que diverjan en silencio de la realidad (regla 04).
-- **E-11** — el motivo obligatorio al aplicar funciona (`handleEscenarioAplicarConfirm` bloquea sin
-  él); falta el campo de revisión opcional que genera un recordatorio en Hoy.
+- **E-11 (cerrado el 16 de agosto, misma sesión)** — el motivo obligatorio ya funcionaba
+  (`handleEscenarioAplicarConfirm` bloqueaba sin él); faltaba el campo de revisión opcional. Añadido
+  un `<input type="date">` opcional junto al motivo en `#escenarioAplicarForm`; si se rellena, se
+  guarda como `reviewDate` en el escenario aplicado (`escenario-motor-saved`, localStorage) y
+  `homeEscenarioReviewReminders()` — mismo patrón que `homeDebtReviewReminders()` (D-8) ya usa para
+  las ofertas de deuda aplicadas — lo asoma como recordatorio en «Tres decisiones» de Hoy, en rojo
+  si ya venció. No se reutilizó el diálogo modal compartido (`requestOperationConfirmation`, el que
+  sí usa Deuda) para no reescribir el flujo inline ya probado de Escenarios; es la misma
+  funcionalidad (motivo obligatorio + revisión opcional → recordatorio en Hoy) con la UI que ya
+  tenía la pantalla, documentado como decisión deliberada. Pruebas nuevas en
+  `tests/e11-escenario-revision.test.cjs` (9 pruebas): el recordatorio ignora escenarios sin fecha o
+  no aplicados, colorea rojo/ámbar según venza, se integra en `homeDecisionCandidates`, y
+  `handleEscenarioAplicarConfirm` guarda (o no) `reviewDate` según corresponda — más el ajuste de
+  cuatro pruebas existentes (D-8, H-5, H-10) que sandboxaban `homeDecisionCandidates` sin conocer
+  la función nueva. Verificado con Playwright de punta a punta: aplicar un escenario con revisión el
+  01/08/2026 (fecha pasada) lo muestra en Hoy como «Revisar escenario aplicado... Vence 01 ago 26»,
+  primero en la lista de tres decisiones por ser el más urgente. Sin errores de consola.
 - **E-11b, E-12, E-13, E-6b, E-7, E-9, E-1b** — confirmado sin construir: aplicar hoy solo marca el
   escenario «aplicado» en una lista de `localStorage` y vacía el borrador, sin crear ningún plan
   paralelo ni tocar el plan vigente; no hay botón «Comparar» en escenarios guardados; el propio
