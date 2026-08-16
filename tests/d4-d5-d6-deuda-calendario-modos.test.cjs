@@ -618,6 +618,207 @@ test("D-4 · una deuda sin cuota declarada (currentPayment 0, como dos de la car
   assert.match(written.deudaRutaCalendar, /sin cuota declarada: no hay calendario que proyectar/);
 });
 
+// --- D-4 (auditoría 15 de agosto) · calendario agregado con la estrategia activa ----------------
+
+function sandboxAggregate() {
+  const context = {
+    Math,
+    Number,
+    String,
+    escapeHtml: (value) => String(value ?? ""),
+    money: (value) => (Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)} €` : "0.00 €"),
+    escenarioMotorDebtLabel: (contract) => `${contract.entity} ${contract.type}`,
+  };
+  vm.createContext(context);
+  [
+    round2Src,
+    extractFunction("debtAmortizationSchedule"),
+    extractFunction("debtStrategyPayoffPlan"),
+    extractFunction("debtAmortizationScheduleForPlan"),
+    extractFunction("debtStrategyAggregateCalendar"),
+    extractFunction("debtAmortizationTotalInterest"),
+    extractFunction("debtRutaAmortChartHtml"),
+    extractFunction("debtRutaAmortStatsHtml"),
+  ].forEach((source) => vm.runInContext(source, context));
+  return context;
+}
+
+// Contratos de cero intereses (apr null) para que la amortización sea aritmética simple y
+// predecible: 1.200 € a 200 €/mes se salda exacto en 6 meses, 2.400 € a 200 €/mes en 12.
+const CONTRACT_A = { id: "a", entity: "Banco A", type: "Préstamo", currentPrincipal: 1200, currentPayment: 200, apr: null };
+const CONTRACT_B = { id: "b", entity: "Banco B", type: "Préstamo", currentPrincipal: 2400, currentPayment: 200, apr: null };
+
+test("D-4 · debtStrategyPayoffPlan solo recuerda las decisiones aplicadas con mes resuelto", () => {
+  const context = sandboxAggregate();
+  const decisions = [
+    { id: "d1", tipo: "amortizacion", params: { deudaId: "a" } },
+    { id: "d2", tipo: "amortizacion", params: { deudaId: "b" } },
+  ];
+  const resultadosById = new Map([
+    ["d1", { resultado: "aplicada", mesResuelto: "2026-03" }],
+    ["d2", { resultado: "sin-mes-viable" }],
+  ]);
+  const plan = context.debtStrategyPayoffPlan(MONTHS, decisions, resultadosById);
+  assert.equal(plan.payoffMonthByDebt.get("a"), "2026-03");
+  assert.equal(plan.payoffMonthByDebt.has("b"), false);
+  assert.equal(plan.nuevosPrestamos.length, 0);
+});
+
+test("D-4 · debtStrategyPayoffPlan construye el préstamo nuevo de una reunificación (TIN en fracción, se convierte a porcentaje)", () => {
+  const context = sandboxAggregate();
+  const decisions = [
+    {
+      id: "d1",
+      tipo: "reunificacion",
+      params: { deudaIds: ["a", "b"], nuevoPrincipal: 3000, nuevaCuota: 120, nuevoTIN: 0.041, nuevoPlazo: 36 },
+    },
+  ];
+  const resultadosById = new Map([["d1", { resultado: "aplicada", mesResuelto: "2026-05" }]]);
+  const plan = context.debtStrategyPayoffPlan(MONTHS, decisions, resultadosById);
+  assert.equal(plan.payoffMonthByDebt.get("a"), "2026-05");
+  assert.equal(plan.payoffMonthByDebt.get("b"), "2026-05");
+  assert.equal(plan.nuevosPrestamos.length, 1);
+  const nuevo = plan.nuevosPrestamos[0];
+  assert.equal(nuevo.currentPrincipal, 3000);
+  assert.equal(nuevo.currentPayment, 120);
+  assert.equal(nuevo.apr, 4.1);
+  assert.equal(nuevo.desde, "2026-05");
+});
+
+test("D-4 · debtAmortizationScheduleForPlan sin mes de liquidación deja el calendario natural intacto", () => {
+  const context = sandboxAggregate();
+  const schedule = context.debtAmortizationScheduleForPlan(CONTRACT_A, MONTHS, null);
+  assert.equal(schedule.rows.length, 6);
+  assert.equal(schedule.payoffIndex, null);
+});
+
+test("D-4 · debtAmortizationScheduleForPlan marca el mes de liquidación de golpe sin recortar las filas (eso lo hace quien agrega)", () => {
+  const context = sandboxAggregate();
+  // CONTRACT_A se saldaría solo en el mes 6 (índice 5); la ruta lo liquida antes, en el mes 3
+  // (índice 2, MONTHS[2].monthKey = "2026-03"). Las filas naturales quedan intactas: el corte real
+  // de meses vive en debtStrategyAggregateCalendar, no aquí — así el mismo campo `payoffIndex` sirve
+  // igual para un contrato con calendario real y para uno «stalled» con una sola fila.
+  const schedule = context.debtAmortizationScheduleForPlan(CONTRACT_A, MONTHS, "2026-03");
+  assert.equal(schedule.rows.length, 6);
+  assert.equal(schedule.payoffIndex, 2);
+});
+
+test("D-4 · debtAmortizationScheduleForPlan ignora un mes de liquidación que llega después del fin natural", () => {
+  const context = sandboxAggregate();
+  const schedule = context.debtAmortizationScheduleForPlan(CONTRACT_A, MONTHS, "2026-12");
+  assert.equal(schedule.rows.length, 6);
+  assert.equal(schedule.payoffIndex, null);
+});
+
+test("D-4 · debtAmortizationTotalInterest suma el interés de todos los contratos, sin decisión alguna", () => {
+  const context = sandboxAggregate();
+  const total = context.debtAmortizationTotalInterest([CONTRACT_A, CONTRACT_B], MONTHS.length);
+  // apr:null → interés cero en ambos.
+  assert.equal(total, 0);
+  const withInterest = context.debtAmortizationTotalInterest([{ ...CONTRACT_A, apr: 12 }], MONTHS.length);
+  assert.ok(withInterest > 0);
+});
+
+test("D-4 · debtStrategyAggregateCalendar sin decisiones (no-tocar) coincide exactamente con solo mínimos", () => {
+  const context = sandboxAggregate();
+  const aggregate = context.debtStrategyAggregateCalendar([], new Map(), [CONTRACT_A, CONTRACT_B], MONTHS);
+  const baseline = context.debtAmortizationTotalInterest([CONTRACT_A, CONTRACT_B], MONTHS.length);
+  assert.equal(aggregate.totalInterest, baseline);
+  // CONTRACT_A se salda en el mes 6 (el primero de los dos, natural).
+  assert.equal(aggregate.firstPayoff.label, "Banco A Préstamo");
+  assert.equal(aggregate.firstPayoff.monthKey, "2026-06");
+});
+
+test("D-4 · debtStrategyAggregateCalendar adelanta el hito de liquidación cuando la ruta amortiza un contrato de golpe", () => {
+  const context = sandboxAggregate();
+  const decisions = [{ id: "d1", tipo: "amortizacion", params: { deudaId: "a" } }];
+  const resultadosById = new Map([["d1", { resultado: "aplicada", mesResuelto: "2026-02" }]]);
+  const aggregate = context.debtStrategyAggregateCalendar(decisions, resultadosById, [CONTRACT_A, CONTRACT_B], MONTHS);
+  // Liquidado de golpe en el mes 2 (índice 1) en vez de en el mes 6 natural.
+  assert.equal(aggregate.firstPayoff.monthKey, "2026-02");
+  const baseline = context.debtAmortizationTotalInterest([CONTRACT_A, CONTRACT_B], MONTHS.length);
+  assert.equal(aggregate.totalInterest, baseline, "apr:null en ambos contratos: el interés total sigue siendo cero, solo cambia el hito");
+  // El capital de "a" desaparece de la serie agregada a partir del mes de liquidación; en el mes 1
+  // los dos contratos aún amortizan su cuota normal (200 € cada uno).
+  assert.equal(aggregate.series[0].capital, CONTRACT_A.currentPrincipal + CONTRACT_B.currentPrincipal - 200 * 2);
+});
+
+test("D-4 · debtStrategyAggregateCalendar añade el préstamo nuevo de una reunificación desde el mes en que se firma", () => {
+  const context = sandboxAggregate();
+  const decisions = [
+    {
+      id: "d1",
+      tipo: "reunificacion",
+      params: { deudaIds: ["a", "b"], nuevoPrincipal: 3000, nuevaCuota: 300, nuevoTIN: 0, nuevoPlazo: 10 },
+    },
+  ];
+  const resultadosById = new Map([["d1", { resultado: "aplicada", mesResuelto: "2026-02" }]]);
+  const aggregate = context.debtStrategyAggregateCalendar(decisions, resultadosById, [CONTRACT_A, CONTRACT_B], MONTHS);
+  // Mes 1 (antes de firmar): los dos contratos originales siguen vivos, sin préstamo nuevo todavía.
+  assert.equal(aggregate.series[0].capital, CONTRACT_A.currentPrincipal + CONTRACT_B.currentPrincipal - 200 * 2);
+  // Mes 2 (se firma la reunificación): los dos contratos originales desaparecen, entra el nuevo ya
+  // con su primera cuota aplicada (3.000 € − 300 €/mes sin interés, nuevoTIN 0).
+  assert.equal(aggregate.series[1].capital, 2700);
+});
+
+test("D-4 · debtStrategyAggregateCalendar mantiene el saldo de una deuda sin cuota declarada en todos los meses, no solo en el primero", () => {
+  const context = sandboxAggregate();
+  const stalled = { id: "s", entity: "Banco S", type: "Tarjeta", currentPrincipal: 3500, currentPayment: 0, apr: null };
+  const aggregate = context.debtStrategyAggregateCalendar([], new Map(), [stalled], MONTHS);
+  // Sin cuota que la amortice, el saldo se queda congelado en 3.500 € todos los meses del horizonte
+  // — no puede desaparecer del agregado solo porque su propio calendario corta en una sola fila.
+  MONTHS.forEach((month, index) => {
+    if (index < aggregate.series.length) assert.equal(aggregate.series[index].capital, 3500, `Mes ${month.month}`);
+  });
+  assert.equal(aggregate.firstPayoff, null, "una deuda estancada nunca cuenta como liquidada");
+});
+
+test("D-4 · debtStrategyAggregateCalendar libera el saldo congelado si la ruta la liquida de golpe", () => {
+  const context = sandboxAggregate();
+  const stalled = { id: "s", entity: "Banco S", type: "Tarjeta", currentPrincipal: 3500, currentPayment: 0, apr: null };
+  const decisions = [{ id: "d1", tipo: "amortizacion", params: { deudaId: "s" } }];
+  const resultadosById = new Map([["d1", { resultado: "aplicada", mesResuelto: "2026-03" }]]);
+  const aggregate = context.debtStrategyAggregateCalendar(decisions, resultadosById, [stalled], MONTHS);
+  assert.equal(aggregate.series[0].capital, 3500);
+  assert.equal(aggregate.series[1].capital, 3500);
+  assert.equal(aggregate.firstPayoff.monthKey, "2026-03");
+});
+
+test("D-4 · debtRutaAmortChartHtml pinta una barra por mes con eje de primero/medio/último", () => {
+  const context = sandboxAggregate();
+  const html = context.debtRutaAmortChartHtml([
+    { monthKey: "2026-01", month: "ene 2026", capital: 1000 },
+    { monthKey: "2026-02", month: "feb 2026", capital: 500 },
+    { monthKey: "2026-03", month: "mar 2026", capital: 0 },
+  ]);
+  assert.equal((html.match(/deuda-ruta-amort-bar/g) || []).length, 3);
+  assert.match(html, /<span>ene 2026<\/span>/);
+  assert.match(html, /<span>mar 2026<\/span>/);
+});
+
+test("D-4 · debtRutaAmortChartHtml sin serie dice que no hay deuda viva en vez de un gráfico vacío", () => {
+  const context = sandboxAggregate();
+  assert.match(context.debtRutaAmortChartHtml([]), /Sin deuda viva/);
+});
+
+test("D-4 · debtRutaAmortStatsHtml nombra el primer contrato liquidado, el interés total y lo compara con solo mínimos", () => {
+  const context = sandboxAggregate();
+  const html = context.debtRutaAmortStatsHtml(
+    { totalInterest: 80, firstPayoff: { label: "Banco A Préstamo", month: "feb 2026" } },
+    100,
+  );
+  assert.match(html, /feb 2026 · Banco A Préstamo/);
+  assert.match(html, /80\.00 €/);
+  assert.match(html, /20\.00 € menos que solo mínimos/);
+});
+
+test("D-4 · debtRutaAmortStatsHtml dice explícitamente cuándo la ruta no adelanta nada frente a solo mínimos", () => {
+  const context = sandboxAggregate();
+  const html = context.debtRutaAmortStatsHtml({ totalInterest: 50, firstPayoff: null }, 50);
+  assert.match(html, /no adelanta ningún pago/);
+  assert.match(html, /Ninguno dentro de este horizonte/);
+});
+
 // --- Cableado: renderDeudaComparar/renderDeudaRuta llaman a las piezas nuevas -------------------
 
 test("D-5/D-6 · renderDeudaComparar pinta la sección de modos", () => {
@@ -629,6 +830,14 @@ test("D-4 · renderDeudaRuta pinta el calendario en el mismo orden de ataque que
   const source = extractFunction("renderDeudaRuta");
   assert.match(source, /renderDeudaRutaCalendar\(/);
   assert.match(source, /debtStrategyOrderedContracts\(deudaRutaSelectedStrategy\)/);
+});
+
+test("D-4 · renderDeudaRuta calcula y pinta el calendario agregado (gráfico + estadísticas)", () => {
+  const source = extractFunction("renderDeudaRuta");
+  assert.match(source, /debtStrategyAggregateCalendar\(summary\.decisions, resultadosById, calendarContracts, baseInput\.months\)/);
+  assert.match(source, /debtAmortizationTotalInterest\(calendarContracts, baseInput\.months\.length\)/);
+  assert.match(source, /qs\("deudaRutaAmortChart"\)/);
+  assert.match(source, /qs\("deudaRutaAmortStats"\)/);
 });
 
 test("D-5/D-6 · index.html declara los elementos del selector de modo y de su comparativa", () => {
@@ -657,7 +866,10 @@ test("D-4 · index.html declara el contenedor del calendario dentro de #deuda-ru
   const start = html.indexOf('id="deuda-ruta"');
   const end = html.indexOf("</section>", start);
   assert.ok(start >= 0 && end > start);
-  assert.match(html.slice(start, end), /id="deudaRutaCalendar"/);
+  const section = html.slice(start, end);
+  assert.match(section, /id="deudaRutaCalendar"/);
+  assert.match(section, /id="deudaRutaAmortChart"/);
+  assert.match(section, /id="deudaRutaAmortStats"/);
 });
 
 test("D-5/D-6 · los manejadores de la sección de modos quedan enlazados en el arranque", () => {

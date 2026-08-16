@@ -2086,6 +2086,61 @@
   margin-top: 10px;
 }
 
+/* D-4 · calendario agregado: capital vivo mes a mes con la estrategia activa, barras + tres cifras. */
+.e19-deuda-decidir .deuda-ruta-amort-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 140px;
+  margin-top: 8px;
+  padding: 4px 0;
+}
+
+.e19-deuda-decidir .deuda-ruta-amort-bar {
+  flex: 1 1 auto;
+  min-width: 2px;
+  background: var(--e19-debt);
+  border-radius: 2px 2px 0 0;
+}
+
+.e19-deuda-decidir .deuda-ruta-amort-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+  margin-top: 4px;
+}
+
+.e19-deuda-decidir .deuda-ruta-amort-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--e19-border);
+}
+
+.e19-deuda-decidir .deuda-ruta-amort-stat span {
+  display: block;
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.e19-deuda-decidir .deuda-ruta-amort-stat strong {
+  display: block;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-ink);
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .e19-deuda-decidir .deuda-ruta-amort-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 860px) {
   .e19-deuda-decidir .deuda-ruta-layout {
     grid-template-columns: 1fr;
