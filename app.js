@@ -24853,14 +24853,22 @@ function registrarBalanceStale() {
   return state.balanceMode === "manual" && (state.balanceDate || "") !== isoLocalDate(new Date());
 }
 
+// R-2 (auditoría del 15 de agosto, Prioridad 4): el criterio pide un recuento vivo en las cuatro
+// pestañas; «import» y «batch» llevaban un marcador de «ausente» permanente, nunca un número.
+// «import» sí tiene un recuento real que ofrecer — los movimientos de la sesión de importación en
+// curso que piden decisión, el mismo `datosImportarCounters` que ya usa `homeImportSessionCandidate`
+// (H-5) —; «batch» (pegar tabla/Excel) es una acción de un solo paso sin sesión que dejar a medias,
+// así que no hay pendiente real que contar todavía: se deja vacío, igual que «balances» cuando no
+// hay nada que avisar, en vez de fabricar un cero (regla transversal 04).
 function registrarTabBadges() {
   const month = registrarActualsSelectedMonth();
   const pendingActuals = registrarActualsEntries(month).filter((entry) => !entry.hasActual).length;
+  const importPending = datosImportarSession ? datosImportarCounters(datosImportarSession.rows).pidenDecision : 0;
   return {
     balances: registrarBalanceStale() ? "1 desactualizada" : "",
     actuals: !month ? HOME_MISSING_VALUE : pendingActuals ? `${pendingActuals} sin real` : "Al día",
-    import: HOME_MISSING_VALUE,
-    batch: HOME_MISSING_VALUE,
+    import: importPending ? `${importPending} por decidir` : "",
+    batch: "",
   };
 }
 
@@ -25377,6 +25385,26 @@ function planMesTotals(entries) {
 // P-3: las cuotas de deuda son de solo lectura en Plan · Mes — su puerta canónica ya es
 // Deuda › Contratos (D-2). La auditoría del 15 de agosto encontró que aquí seguían siendo
 // editables, una segunda puerta para el mismo dato (regla transversal 01).
+// P-4 (auditoría del 15 de agosto, Prioridad 4): el criterio pide que «Usado» diga al pasar por
+// encima de dónde sale y cuántos movimientos lo componen. Cuenta contra `baseData.transactions` del
+// mes con el mismo diccionario `mappingForMovement` que ya usa la detección de partida anual
+// (`registrarMesAnnualMatch`) — no un segundo camino de correspondencia. Un real sin movimientos
+// mapeados es un ajuste a mano en Registrar (override o real suelto), no un error.
+function planMesUsadoMovementCount(entry, monthKey) {
+  return (baseData?.transactions || []).filter(
+    (transaction) => transaction.month === monthKey && mappingForMovement(transaction)?.row === entry.row,
+  ).length;
+}
+
+function planMesUsadoTitle(entry, monthKey) {
+  const monthLabel = ledgerMonthLabel(monthKey);
+  if (!entry.hasActual) return `Previsto: sin movimientos registrados en ${monthLabel} todavía.`;
+  const count = planMesUsadoMovementCount(entry, monthKey);
+  return count
+    ? `Real: ${count} movimiento${count === 1 ? "" : "s"} de ${monthLabel}.`
+    : "Real: importe introducido a mano en Registrar › Reales del mes.";
+}
+
 function planMesIsFinancingRowKey(rowKey) {
   const section = baseData?.monthlyPlanning?.sections?.find((item) => item.name === "Financiaciones");
   if (!section) return false;
@@ -25396,7 +25424,7 @@ function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false) {
   return `<tr data-plan-mes-key="${escapeHtml(entry.key)}" data-plan-mes-block="${escapeHtml(entry.sectionName)}"${entry.plannedDraft ? ' class="plan-mes-row-draft"' : ""}${collapsed ? " hidden" : ""}>
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}</td>
     <td>${plannedCell}</td>
-    <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta">${entry.hasActual ? "real" : "previsto"}</small></td>
+    <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta" title="${escapeHtml(planMesUsadoTitle(entry, monthKey))}">${entry.hasActual ? "real" : "previsto"}</small></td>
     <td data-plan-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
   </tr>`;
 }
