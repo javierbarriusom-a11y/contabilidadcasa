@@ -77,10 +77,11 @@ sesión siguiente a D-1/D-2 — ver la nota bajo la tabla de la pantalla 05); D-
 parciales, D-2b/D-12 pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fase 4
 (Previsión y Escenarios): P-8/P-9 hechas, P-10 a P-16 pendientes (ver pantalla 04); Escenarios
 **no arrancaba de cero** — auditada el 16 de agosto contra `Escenarios.pdf` y resultó tener un motor
-real de la epic E20 (10 de agosto) nunca reconciliado con este backlog: E-4/E-6/E-10 hechas,
-E-1/E-2/E-3/E-5/E-8/E-11 parciales (catálogo de tipos, debounce, indicadores, panel de validación,
-banda por cuenta y revisión opcional, respectivamente — ver la nota bajo la tabla de la pantalla 06),
-E-1b/E-6b/E-7/E-9/E-12 pendientes de construir (no bloqueadas), E-11b/E-13/E-14 bloqueadas. Fases
+real de la epic E20 (10 de agosto) nunca reconciliado con este backlog: E-4/E-6/E-10 hechas de
+partida, E-3/E-11/E-5 cerradas el 16 de agosto (comparativa de seis indicadores, revisión opcional
+con recordatorio en Hoy, panel de cuatro comprobaciones — ver la nota bajo la tabla de la pantalla
+06), E-1/E-2/E-8 siguen parciales (catálogo de tipos, debounce, banda por cuenta), E-1b/E-6b/E-7/
+E-9/E-12 pendientes de construir (no bloqueadas), E-11b/E-13/E-14 bloqueadas. Fases
 5-7 (Cierre, Análisis, Laboratorio) confirmadas sin ningún código propio — se auditaron sus PDF el
 16 de agosto pero no hay nada que reconciliar, arrancan de cero.
 
@@ -806,7 +807,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 | E-2 | Formulario de parámetros por tipo | E-1 | L | Hecho (parcial, ver nota) |
 | E-3 | Comparativa de seis indicadores | E-2 | M | Hecho (16 de agosto, ver nota) |
 | E-4 | El plan no se mueve al simular | E-3, D-7 | S | Hecho |
-| E-5 | Validación contra contrato con estado visible | E-3 | M | Hecho (parcial, ver nota) |
+| E-5 | Validación contra contrato con estado visible | E-3 | M | Hecho (16 de agosto, ver nota) |
 | E-6 | Rechazo con motivo | E-5 | M | Hecho |
 | E-6b | Guardar un rechazado como aviso | E-6, E-10 | M | Pendiente |
 | E-7 | Veredicto en prosa con la palanca | E-3 | M | Pendiente |
@@ -860,10 +861,29 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
   solapes, sin errores de consola propios.
 - **E-4** — confirmado sin matices: nada de lo simulado toca `baseData`/`state`; los borradores
   viven solo en `escenarioMotorDecisions`, variable de módulo.
-- **E-5** — el motor valida cada decisión contra el contrato real (`Schema.validateDecision`) y
-  muestra el motivo si la rechaza, pero no como el panel de cuatro comprobaciones con estado propio
-  (origen de los fondos, reserva protegida, umbral de capacidad, condiciones registradas) que pide
-  el mockup: hoy el estado se ve por decisión, no como checklist agregado de la simulación.
+- **E-5 (cerrado el 16 de agosto, misma sesión)** — el motor ya validaba cada decisión contra el
+  contrato real (`Schema.validateDecision`), pero solo por decisión, nunca como un panel agregado
+  de la simulación entera. Nueva `escenarioMotorValidationChecks(result, scenarioSummary,
+  guardrailValue)` reutiliza señales que la pantalla ya calcula — nunca una comprobación paralela
+  que pudiera divergir — para las cuatro del mockup: *origen de los fondos* (`state.balanceMode`,
+  el mismo indicador que Registrar usa para «saldo real» vs. «saldo calculado»), *reserva
+  protegida* (si alguna decisión se rechazó por `guardarril-incumplido`, el único guardarraíl que
+  el motor resuelve hoy), *umbral de capacidad* (el `capacidadLibre` que E-3 ya muestra como
+  «Capacidad libre real», negativo = incumple) y *condiciones registradas* (cualquier otro rechazo
+  del motor — `sin-mes-viable`, `sin-objetivo`, etc. — deliberadamente separado del guardarraíl para
+  que cada comprobación falle por su propia razón, no las cuatro a la vez). Cuando no hay nada que
+  comprobar (sin guardarraíl indicado, sin decisiones todavía) el estado es «sin dato», nunca
+  «cumple» — regla transversal 04. Pinta como lista `<li class="deuda-ruta-check">` reutilizando el
+  componente que ya usa Deuda (D-6/D-9), con dos estados propios que allí no hacían falta (`is-warn`
+  para «estimado, no roto», `is-neutral` para «sin dato»). Aparece en `#escenario-simular` y
+  `#escenario-aplicar` (comparten `escenarioMotorValidationChecks`/`...ChecklistHtml`), oculto en
+  simular mientras no hay ninguna decisión. Pruebas nuevas en
+  `tests/e5-escenario-validacion.test.cjs` (14 pruebas): las cuatro combinaciones de estado por
+  comprobación, que un rechazo por guardarraíl no cuenta como «condición incumplida» (y viceversa),
+  que una decisión desactivada no cuenta, y el mapeo de cada estado a su clase CSS. Verificado con
+  Playwright: añadir una decisión que agota la capacidad libre marca esa comprobación en rojo con la
+  cifra real; forzar un guardarraíl imposible añade el rechazo de reserva sin tocar «condiciones
+  registradas» (que sigue en verde, correctamente); sin errores de consola propios.
 - **E-6** — confirmado: motivo visible por decisión rechazada, nunca una cifra estimada para el
   hueco.
 - **E-8** — hay banda de doce meses (`renderEscenarioMotorChart`, plan base vs. simulación), pero
@@ -897,11 +917,11 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
   pero no el comportamiento descrito aquí — sustituir tabla y validación por una tarjeta plana con
   cuatro cifras); y no hay forma de crear un tipo de decisión propio.
 
-No se ha tocado código en esta sesión de auditoría — solo se ha corregido el estado. Quedan
-pendientes de una sesión de construcción: cerrar E-1 (añadir/(re)nombrar los dos tipos de deuda que
-faltan), E-2 (debounce), E-3 (tres indicadores más), E-5 (panel de cuatro comprobaciones), E-8
-(banda por cuenta), E-11 (revisión opcional) para pasar de «parcial» a «Hecho», y construir desde
-cero E-1b, E-6b, E-7, E-9, E-12 (no bloqueadas, se pueden hacer ya) — E-11b/E-13/E-14 siguen
+No se tocó código en la sesión de auditoría original — solo se corrigió el estado. E-3, E-5 y E-11
+se cerraron después, el mismo 16 de agosto (ver sus notas arriba). Quedan pendientes de una sesión
+de construcción: cerrar E-1 (añadir/(re)nombrar los dos tipos de deuda que faltan), E-2 (debounce),
+E-8 (banda por cuenta) para pasar de «parcial» a «Hecho», y construir desde cero E-1b, E-6b, E-7,
+E-9, E-12 (no bloqueadas, se pueden hacer ya) — E-11b/E-13/E-14 siguen
 bloqueadas por Cierre/D-10/Fase 7 como estaba previsto.
 
 ### 07 · Análisis — sección ejecutiva, solo lectura con procedencia (13 tareas · 4 grandes)

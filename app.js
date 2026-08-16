@@ -22659,6 +22659,73 @@ function escenarioMotorAhorroAnual(series) {
   return round2(sumRows(series.slice(0, 12), (row) => Number(row.saving || 0)));
 }
 
+// E-5 (Escenarios.pdf): "Cuatro comprobaciones: origen de fondos, reserva protegida, umbral de
+// capacidad y condiciones registradas. Cada una con su estado." Reutiliza señales que el resto de
+// la pantalla ya calcula (E-3, el guardarraíl del formulario, el modo de saldo de Registrar) en
+// vez de inventar una comprobación paralela. Cuando no hay nada que comprobar dice "sin dato"
+// (`pending`), nunca "cumple" — regla transversal 04, dato ausente no es cero.
+function escenarioMotorValidationChecks(result, scenarioSummary, guardrailValue) {
+  const resultados = result?.resultados || [];
+  const rejected = resultados.filter((item) => item.resultado !== "aplicada" && item.resultado !== "inactiva");
+  const guardrailBroken = rejected.some((item) => item.resultado === "guardarril-incumplido");
+  const otherRejected = rejected.filter((item) => item.resultado !== "guardarril-incumplido");
+  const isManualBalance = state?.balanceMode === "manual";
+  const hasGuardrail = Number.isFinite(guardrailValue) && guardrailValue > 0;
+  const capacidad = scenarioSummary?.capacidadLibre;
+  const hasCapacidad = capacidad !== null && capacidad !== undefined;
+
+  return [
+    {
+      id: "origen",
+      label: "Origen de los fondos",
+      status: isManualBalance ? "ok" : "warn",
+      detail: isManualBalance
+        ? `Saldo real declarado a ${formatIsoDate(state.balanceDate || defaultBalanceDate())}.`
+        : "Saldo estimado por el motor de fecha, no un saldo declarado a mano.",
+    },
+    {
+      id: "reserva",
+      label: "Reserva protegida",
+      status: !hasGuardrail ? "pending" : guardrailBroken ? "fail" : "ok",
+      detail: !hasGuardrail
+        ? "Sin saldo mínimo indicado: no hay nada que comprobar."
+        : guardrailBroken
+          ? "Alguna decisión rompe el saldo mínimo indicado."
+          : `Se mantiene por encima de ${money(guardrailValue, true)} en todo el horizonte.`,
+    },
+    {
+      id: "capacidad",
+      label: "Umbral de capacidad",
+      status: !hasCapacidad ? "pending" : capacidad < 0 ? "fail" : "ok",
+      detail: !hasCapacidad
+        ? "Sin datos suficientes para calcular la capacidad libre."
+        : capacidad < 0
+          ? `Capacidad libre negativa: ${money(capacidad, true)}.`
+          : `Capacidad libre real: ${money(capacidad, true)}.`,
+    },
+    {
+      id: "condiciones",
+      label: "Condiciones registradas",
+      status: !resultados.length ? "pending" : otherRejected.length ? "fail" : "ok",
+      detail: !resultados.length
+        ? "Todavía no hay ninguna decisión que comprobar."
+        : otherRejected.length
+          ? `${otherRejected.length} decisión(es) no cumplen sus condiciones.`
+          : "Todas las decisiones cumplen las condiciones del contrato.",
+    },
+  ];
+}
+
+function escenarioMotorValidationChecklistHtml(checks) {
+  const statusClass = { ok: "is-ok", fail: "is-danger", warn: "is-warn", pending: "is-neutral" };
+  return checks
+    .map(
+      (check) =>
+        `<li class="deuda-ruta-check ${statusClass[check.status] || "is-neutral"}"><strong>${escapeHtml(check.label)}</strong><span>${escapeHtml(check.detail)}</span></li>`
+    )
+    .join("");
+}
+
 function escenarioMotorSummaryFor(result, months) {
   if (!result || !result.valid) {
     return {
@@ -22880,6 +22947,8 @@ function renderEscenarioSimular() {
   const body = qs("escenarioMotorDecisionsList");
   const empty = qs("escenarioMotorEmpty");
   const kpis = qs("escenarioMotorKpis");
+  const validationCard = qs("escenarioMotorValidationCard");
+  const validationList = qs("escenarioMotorValidationList");
   const warning = qs("escenarioMotorWarning");
   const warningText = qs("escenarioMotorWarningText");
   const autoAdjustButton = qs("escenarioMotorAutoAdjust");
@@ -22892,6 +22961,8 @@ function renderEscenarioSimular() {
     body.innerHTML = "";
     if (empty) empty.hidden = false;
     kpis.innerHTML = "";
+    if (validationCard) validationCard.hidden = true;
+    if (validationList) validationList.innerHTML = "";
     if (warning) warning.hidden = true;
     if (goApplyButton) goApplyButton.disabled = true;
     renderEscenarioMotorChart(baseResult?.series || [], baseResult?.series || [], baseInput.months, escenarioMotorGuardrailValue);
@@ -22930,6 +23001,8 @@ function renderEscenarioSimular() {
 
   if (!result || !result.valid) {
     kpis.innerHTML = "";
+    if (validationCard) validationCard.hidden = true;
+    if (validationList) validationList.innerHTML = "";
     if (warning) warning.hidden = true;
     if (goApplyButton) goApplyButton.disabled = true;
     return;
@@ -22938,6 +23011,12 @@ function renderEscenarioSimular() {
   const baseSummary = escenarioMotorSummaryFor(baseResult, baseInput.months);
   const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
   kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
+  if (validationCard) validationCard.hidden = false;
+  if (validationList) {
+    validationList.innerHTML = escenarioMotorValidationChecklistHtml(
+      escenarioMotorValidationChecks(result, scenarioSummary, escenarioMotorGuardrailValue)
+    );
+  }
 
   if (rejected.length) {
     if (warning) warning.hidden = false;
@@ -23093,6 +23172,12 @@ function renderEscenarioAplicar() {
   const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
   const kpis = qs("escenarioAplicarKpis");
   if (kpis) kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
+  const validationList = qs("escenarioAplicarValidationList");
+  if (validationList) {
+    validationList.innerHTML = escenarioMotorValidationChecklistHtml(
+      escenarioMotorValidationChecks(result, scenarioSummary, escenarioMotorGuardrailValue)
+    );
+  }
 
   const body = qs("escenarioAplicarDiffBody");
   if (body) {

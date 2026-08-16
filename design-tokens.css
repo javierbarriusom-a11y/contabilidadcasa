@@ -1600,6 +1600,54 @@
   color: var(--e19-danger);
 }
 
+/* E-5 · panel de cuatro comprobaciones. Reutiliza la lista `.deuda-ruta-checklist`/`.deuda-ruta-check`
+   ya usada en Deuda (D-6/D-9), con dos estados propios que allí no hacían falta: `is-warn` (dato
+   estimado, no roto) e `is-neutral` como "sin dato que comprobar" en vez de "cumple". */
+.e19-escenario-motor .escenario-motor-validation .deuda-ruta-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-escenario-motor .deuda-ruta-check {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: var(--e19-text-sm);
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .deuda-ruta-check span {
+  color: var(--e19-muted);
+  font-weight: 400;
+}
+
+.e19-escenario-motor .deuda-ruta-check.is-ok {
+  color: var(--e19-success);
+  background: color-mix(in srgb, var(--e19-success) 10%, var(--e19-surface-soft));
+}
+
+.e19-escenario-motor .deuda-ruta-check.is-warn {
+  color: var(--e19-warning);
+  background: color-mix(in srgb, var(--e19-warning) 10%, var(--e19-surface-soft));
+}
+
+.e19-escenario-motor .deuda-ruta-check.is-danger {
+  color: var(--e19-danger);
+  background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+.e19-escenario-motor .deuda-ruta-check.is-neutral {
+  color: var(--e19-muted);
+  background: var(--e19-surface-soft);
+}
+
 .e19-escenario-motor .escenario-motor-chart {
   width: 100%;
   height: 170px;
