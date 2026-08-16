@@ -1535,6 +1535,71 @@
   padding: 18px;
 }
 
+/* E-3 · comparativa de seis indicadores (plan vigente frente a la simulación), tabla en vez de
+   tarjetas sueltas para que las tres columnas queden alineadas y comparables de un vistazo. */
+.e19-escenario-motor .escenario-motor-compare-wrap {
+  margin-bottom: 16px;
+}
+
+/* min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css (pensado para tablas
+   grandes de datos) — igual que ya hace .escenario-motor-diff-panel table, la tabla vecina de
+   «Aplicar». Sin esto la tabla se sale del panel aunque table-layout sea fixed y width 100%. */
+.e19-escenario-motor .escenario-motor-compare-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.e19-escenario-motor .escenario-motor-compare-table th,
+.e19-escenario-motor .escenario-motor-compare-table td {
+  padding: 8px 6px;
+  text-align: right;
+  border-bottom: 1px solid var(--e19-line);
+  font-size: var(--e19-text-sm);
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.e19-escenario-motor .escenario-motor-compare-table th:first-child,
+.e19-escenario-motor .escenario-motor-compare-table td:first-child {
+  width: 34%;
+  text-align: left;
+  font-weight: 600;
+  padding-left: 0;
+}
+
+/* table-layout: fixed solo respeta el ancho de la primera fila si TODAS sus celdas lo declaran —
+   sin esto el resto de columnas volvía a medirse por el contenido (69.420,00 €) y la tabla se salía
+   del panel, forzando scroll horizontal donde el mockup la muestra entera de un vistazo. */
+.e19-escenario-motor .escenario-motor-compare-table th:not(:first-child),
+.e19-escenario-motor .escenario-motor-compare-table td:not(:first-child) {
+  width: 22%;
+}
+
+.e19-escenario-motor .escenario-motor-compare-table th {
+  font-size: var(--e19-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--e19-faint);
+  font-weight: 700;
+}
+
+.e19-escenario-motor .escenario-motor-compare-table tr:last-child td {
+  border-bottom: none;
+}
+
+.e19-escenario-motor .escenario-motor-compare-table tr.is-danger td {
+  background: rgba(193, 59, 59, 0.06);
+}
+
+.e19-escenario-motor .escenario-motor-compare-delta.is-up {
+  color: var(--e19-success);
+}
+
+.e19-escenario-motor .escenario-motor-compare-delta.is-down {
+  color: var(--e19-danger);
+}
+
 .e19-escenario-motor .escenario-motor-chart {
   width: 100%;
   height: 170px;

@@ -804,7 +804,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 | E-1 | Once tipos de decisión en dos familias | Fase 3 | L | Hecho (parcial, ver nota) |
 | E-1b | Tipos propios definidos por el usuario | E-1, E-5 | L | Pendiente |
 | E-2 | Formulario de parámetros por tipo | E-1 | L | Hecho (parcial, ver nota) |
-| E-3 | Comparativa de seis indicadores | E-2 | M | Hecho (parcial, ver nota) |
+| E-3 | Comparativa de seis indicadores | E-2 | M | Hecho (16 de agosto, ver nota) |
 | E-4 | El plan no se mueve al simular | E-3, D-7 | S | Hecho |
 | E-5 | Validación contra contrato con estado visible | E-3 | M | Hecho (parcial, ver nota) |
 | E-6 | Rechazo con motivo | E-5 | M | Hecho |
@@ -833,8 +833,31 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 - **E-2** — los campos cambian con el tipo y el resultado se recalcula al editar, pero escuchando
   `input` en cada tecla sin los 120 ms de debounce que pide el criterio: hoy recalcula la simulación
   completa en cada pulsación, no solo al salir de la casilla.
-- **E-3** — la comparativa muestra solo 3 de los 6 indicadores pedidos (liquidez final, caja mínima,
-  libre de deuda); faltan reserva protegida, ahorro anual y capacidad de endeudamiento.
+- **E-3 (cerrado el 16 de agosto, misma sesión)** — la comparativa solo daba 3 de los 6 indicadores
+  en tarjetas sueltas, sin columna «Plan» con la que comparar. Sustituida por una tabla
+  Indicador/Plan/Simulado/Diferencia (`escenarioMotorKpiCardsHtml`, reutilizada tal cual en
+  `#escenario-simular` y `#escenario-aplicar`) con los seis: reserva protegida (liquidez final,
+  como ya daba el motor), meses de colchón (liquidez final ÷ gasto corriente medio de los primeros
+  12 meses del horizonte — nuevo), fecha libre de deuda, ahorro anual (suma de `row.saving` de esos
+  mismos 12 meses — nuevo), peor mes (mes + valor vía `FinanceCanonicalCushion.worstMonthOf`, ya
+  usado en Plan · Previsión) y capacidad libre real (reutiliza `monthlyFreeCapacity`, la misma
+  función que ya usa Hoy — no una fórmula paralela). La diferencia se colorea por dirección
+  (`escenarioMotorCompareRowHtml`/`escenarioMotorMonthCompareDelta`): sube es mejora en dinero,
+  meses y capacidad; una fecha libre de deuda **antes** es mejora aunque el número de mes sea menor
+  en calendario, no un signo bruto — tal como pide el criterio real. Bug de layout real atrapado en
+  verificación visual, no en las pruebas: una regla genérica `th, td { white-space: nowrap }` de
+  `styles.css` (pensada para tablas de datos anchas) hacía que las dos celdas más largas (la fecha
+  libre de deuda con su nota) se salieran de su columna y se solaparan visualmente con la siguiente;
+  corregido con `white-space: normal` explícito en la tabla nueva. Segundo bug de layout: una regla
+  también genérica `table { min-width: 1120px }` forzaba scroll horizontal aunque `table-layout` ya
+  fuera `fixed`; corregido con `min-width: 0`, el mismo parche que ya usaba la tabla vecina de
+  «Aplicar». Pruebas nuevas en `tests/e3-escenario-comparativa.test.cjs` (15 pruebas): los dos
+  indicadores derivados, los ocho casos de `escenarioMotorSummaryFor` (válido/inválido/división por
+  cero), la dirección de color de `escenarioMotorCompareRowHtml`, las cuatro combinaciones de
+  `escenarioMotorMonthCompareDelta` y la tabla completa integrada, incluida la fila de aviso cuando
+  el peor mes rompe el guardarraíl. Verificado con Playwright en `#escenario-simular` y
+  `#escenario-aplicar` contra los datos de demostración: las 6 filas caben en el panel sin scroll ni
+  solapes, sin errores de consola propios.
 - **E-4** — confirmado sin matices: nada de lo simulado toca `baseData`/`state`; los borradores
   viven solo en `escenarioMotorDecisions`, variable de módulo.
 - **E-5** — el motor valida cada decisión contra el contrato real (`Schema.validateDecision`) y
