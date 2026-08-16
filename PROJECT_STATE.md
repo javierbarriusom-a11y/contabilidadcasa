@@ -2,6 +2,38 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: Prioridad 4 de la auditoría (segunda tanda) — R-3
+
+Continuación directa de la tanda R-2/P-4/P-1 (misma sesión, PR #58 ya fusionado). R-3 (cuenta
+Efectivo editable) tenía una decisión de alcance real que no correspondía tomar en silencio: el
+modelo de liquidez de la app solo conoce dos cuentas (`caixa`/`mediolanum`, sumadas en
+`accountBalancesFromState().total` y usadas en más de cuarenta puntos del motor de proyección).
+Añadir Efectivo tal como pide el mockup («cuenta editable, con su aviso de que no tiene extracto que
+lo respalde») exigía decidir si participa en ese total (rehacer el motor de proyección) o queda
+informativo. Consultado con el usuario, se eligió la lectura de menor riesgo: informativa.
+
+**R-3**: `balanceSettings.efectivoBalance` guarda la cifra — mismo mecanismo persistido y
+sincronizado que ya usa `balanceSettings` para fecha/modo/saldos manuales (`efectivoBalanceValue`/
+`saveEfectivoBalance`), sin tocar el payload de sincronización remota ni el cargador de estado.
+`accountBalancesFromState()` no la toca, así que el total de liquidez proyectada no cambia al
+editarla — verificado con una prueba de fuente dedicada, además de con Playwright. Tercera fila en
+Registrar › Saldo de cuentas (`registrarEfectivoBalance`), con el aviso «Efectivo no tiene extracto
+que lo respalde: se guarda como referencia y no se suma al total de liquidez proyectada».
+
+**Validación**: `npm run verify`, exit 0, **1022/1022 pruebas**, 700 IDs de accesibilidad,
+rendimiento/build/privacidad/smoke en verde. Verificación visual con Playwright contra el sitio
+construido: editar Efectivo a 250,75 € no mueve el Total liquidez (se queda en 9.270,00 €), el aviso
+aparece bajo el campo, y el valor persiste tras recargar la página (localStorage). Sin errores de
+consola.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — R-3 pasa a `Hecho` (sin «parcial») en la
+tabla y gana nota de cierre. De la Prioridad 4 quedan dos tareas: M-2/M-6 (cuenta por movimiento — no
+existe el atributo en el modelo de datos, y el propio importador ya decidió explícitamente no fingir
+haber identificado una cuenta bancaria real; el usuario ya dio el visto bueno a la lectura propuesta:
+etiquetar solo hacia delante, en la importación, dejando «—» en los movimientos históricos sin ese
+dato) y M-8 (bloqueada, depende de la pieza compartida «Historial de versiones» que tampoco tienen
+R-6/Cierre). Siguiente paso: construir M-2/M-6.
+
 ## Cierre de sesión — 16 de agosto de 2026: Prioridad 4 de la auditoría (primera tanda) — R-2, P-4, P-1
 
 Continuación directa del cierre de Prioridad 3 (misma sesión, PR anterior ya fusionado). El usuario

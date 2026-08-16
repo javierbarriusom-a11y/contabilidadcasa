@@ -96,18 +96,18 @@ indicadores coloreados frente al Plan más veredicto en prosa), D-4 (gráfico ag
 mes a mes con la estrategia activa, con hito de primer contrato liquidado e intereses totales frente
 a solo mínimos), H-5 (candidata de movimientos por incorporar, navegación a vista y pestaña) y P-2
 (tabla única «Presupuesto de [mes]» agrupada por bloque, con subtotal y plegado) — ver sus notas
-respectivas. **De la Prioridad 4 (6 tareas), tres se cerraron el 16 de agosto en la sesión
-siguiente**: R-2 (recuento vivo en la insignia de Importar, en vez de un «ausente» permanente), P-4
-(el hover de «Usado» dice de dónde sale y cuántos movimientos lo componen) y P-1 (confirmado con
+respectivas. **De la Prioridad 4 (6 tareas), cuatro se cerraron el 16 de agosto en la misma
+sesión**: R-2 (recuento vivo en la insignia de Importar, en vez de un «ausente» permanente), P-4
+(el hover de «Usado» dice de dónde sale y cuántos movimientos lo componen), P-1 (confirmado con
 Playwright que el horizonte de Previsión ya sobrevive al cambio de pestaña por diseño — la mitad
 «se comparte entre las tres pestañas» no aplica hoy: Mes usa un selector de mes por diseño distinto,
-no un horizonte, y Ahorro sigue sin construir) — ver sus notas respectivas. Quedan tres, cada una con
-un motivo de bloqueo real explicado en su nota: R-3 (cuenta Efectivo — toca el modelo de liquidez de
-dos cuentas usado en toda la app; decisión de alcance pendiente con el usuario), M-2/M-6 (cuenta por
-movimiento — no existe el atributo en el modelo de datos, y el propio importador ya decidió
-explícitamente no fingir haber identificado una cuenta bancaria real; requiere una decisión de
-producto, no solo código) y M-8 (bloqueada por depender de la pieza compartida «Historial de
-versiones», que tampoco tienen R-6/Cierre).
+no un horizonte, y Ahorro sigue sin construir) y R-3 (cuenta Efectivo editable, consultada con el
+usuario y resuelta como cifra informativa fuera del total de liquidez proyectada, sin rehacer el
+motor de dos cuentas) — ver sus notas respectivas. Quedan dos: M-2/M-6 (cuenta por movimiento — no
+existe el atributo en el modelo de datos, y el propio importador ya decidió explícitamente no fingir
+haber identificado una cuenta bancaria real; requiere una decisión de producto, no solo código) y
+M-8 (bloqueada por depender de la pieza compartida «Historial de versiones», que tampoco tienen
+R-6/Cierre).
 
 ## 4. Nueve reglas transversales
 
@@ -205,7 +205,7 @@ tareas no:
 | --- | --- | --- | --- | --- |
 | R-1 | Cabecera de Registrar | — | S | Hecho |
 | R-2 | Armazón de cuatro pestañas | Fase 3 · menú | M | Hecho (16 de agosto, ver nota) |
-| R-3 | Pestaña Saldo de cuentas | Fase 1 | M | Hecho (parcial, ver nota) |
+| R-3 | Pestaña Saldo de cuentas | Fase 1 | M | Hecho (16 de agosto, ver nota) |
 | R-4 | Tarjeta «qué se recalcula al guardar» | R-3 | S | Hecho |
 | R-5 | Pestaña Reales del mes | R-2 | L | Hecho |
 | R-6 | Una sola regla de guardado | R-3, R-5 | M | Hecho |
@@ -285,14 +285,27 @@ R-1, R-4, R-5, R-6, R-7, R-8, R-9, R-10 y R-12 coinciden con el criterio. Tres g
   movimientos pendientes de decisión, Importar muestra el recuento real. Pruebas nuevas en
   `tests/r1-r4-registrar.test.cjs`; se ajustó `tests/r5-registrar-reales.test.cjs` (mismo stub nuevo).
 
-Pendientes, sin motivo de bloqueo: R-11 y R-3. R-11 es el más urgente por tocar directamente la
-regla transversal 01 (una escritura real sigue abierta en una heredada). R-3 (cuenta Efectivo) tiene
-además una decisión de alcance real por resolver: el modelo de liquidez de la app solo conoce dos
-cuentas (`caixa`/`mediolanum`, sumadas en `total` y usadas en toda la proyección financiera);
-añadir Efectivo tal como pide el PDF exige decidir si participa en ese total (rehace el motor de
-proyección en decenas de puntos) o queda informativo (más simple, pero no es exactamente «una cuenta
-más» como sugiere el mockup) — se deja pendiente de esa decisión con el usuario en vez de elegir en
-silencio.
+- **R-3 (cerrado el 16 de agosto, sesión de Prioridad 4)**: faltaba la cuenta Efectivo — el mockup
+  fija en su caja de decisiones validadas «Efectivo se mantiene como cuenta editable, con su aviso de
+  que no tiene extracto que lo respalde», y muestra tres filas (CaixaBank, Mediolanum, Efectivo). El
+  modelo de liquidez de la app solo conocía dos cuentas (`caixa`/`mediolanum`, sumadas en
+  `accountBalancesFromState().total` y usadas en más de cuarenta puntos del motor de proyección) — el
+  fork real era si Efectivo debía participar en ese total (rehacer el motor de proyección de dos
+  cuentas) o quedar informativo. Consultado con el usuario, se eligió la lectura de menor riesgo:
+  Efectivo se guarda en `balanceSettings.efectivoBalance` (mismo mecanismo persistido y sincronizado
+  que ya usa `balanceSettings` para fecha/modo/saldos manuales, sin tocar el payload de sincronización
+  ni el cargador de estado) como cifra puramente informativa — `accountBalancesFromState()` no la
+  toca, así que el total de liquidez proyectada no cambia al editarla. Tercera fila en Registrar ›
+  Saldo de cuentas, con el aviso «Efectivo no tiene extracto que lo respalde: se guarda como
+  referencia y no se suma al total de liquidez proyectada». Verificado con Playwright: editar Efectivo
+  no mueve el Total liquidez, el valor persiste tras recargar (localStorage), y el aviso aparece
+  correctamente. Pruebas nuevas en `tests/r1-r4-registrar.test.cjs`, incluida una prueba de fuente que
+  fija que `accountBalancesFromState` no referencia Efectivo (guarda de regresión del diseño
+  informativo). Si más adelante se quiere que Efectivo compute en la liquidez proyectada, es una
+  ampliación aparte, no esta tarea.
+
+Pendiente, sin motivo de bloqueo: R-11 — la más urgente de las tareas restantes de Registrar por
+tocar directamente la regla transversal 01 (una escritura real sigue abierta en una heredada).
 
 ### 03 · Movimientos — cola de trabajo, fuente del saldo calculado (13 tareas · 1 grande)
 
