@@ -2,6 +2,39 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: E-5, panel de cuatro comprobaciones en Escenarios
+
+Continuación directa del punto 1 del plan de Escenarios (misma sesión, PR #63/E-11 ya fusionado).
+El motor ya validaba cada decisión contra el contrato real (`Schema.validateDecision`), pero solo
+por decisión — el mockup pide un panel agregado de la simulación entera con cuatro comprobaciones
+propias: origen de fondos, reserva protegida, umbral de capacidad, condiciones registradas, cada
+una con su estado.
+
+Nueva `escenarioMotorValidationChecks(result, scenarioSummary, guardrailValue)` no inventa ninguna
+comprobación paralela: reutiliza señales que la pantalla ya calcula. *Origen de los fondos* lee
+`state.balanceMode` (el mismo indicador que Registrar usa para «saldo real» vs. «saldo calculado»).
+*Reserva protegida* mira si alguna decisión se rechazó por `guardarril-incumplido`, el único
+guardarraíl que el motor resuelve hoy. *Umbral de capacidad* reutiliza el `capacidadLibre` que E-3
+ya muestra como «Capacidad libre real». *Condiciones registradas* agrupa cualquier otro rechazo del
+motor (`sin-mes-viable`, `sin-objetivo`, etc.), deliberadamente separado del guardarraíl para que
+cada comprobación falle por su propia razón — verificado con Playwright forzando un guardarraíl
+imposible: «Reserva protegida» se pone en rojo sin arrastrar a «Condiciones registradas», que sigue
+en verde porque el rechazo fue por el guardarraíl, no por una condición del contrato. Cuando no hay
+nada que comprobar (sin guardarraíl, sin decisiones todavía) el estado es «sin dato», nunca «cumple»
+— regla transversal 04. Reutiliza el componente `.deuda-ruta-check` que ya usa Deuda (D-6/D-9), con
+dos estados propios que allí no hacían falta (`is-warn`, `is-neutral`).
+
+**Validación**: `npm test`, exit 0, **1069/1069 pruebas** (14 nuevas en
+`tests/e5-escenario-validacion.test.cjs`). Verificado con Playwright contra el build local: el panel
+aparece en `#escenario-simular` (oculto sin decisiones) y `#escenario-aplicar`; añadir una decisión
+que agota la capacidad libre marca esa fila en rojo con la cifra real; sin errores de consola
+propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — E-5 pasa a `Hecho` con nota de cierre.
+Del punto 1 del plan quedan: E-1 (catálogo de deuda, toca el motor canónico, más riesgo), E-2
+(necesita diseñar una vista previa en vivo, no solo un debounce), E-8 (banda por cuenta), y construir
+desde cero E-1b/E-6b/E-7/E-9/E-12.
+
 ## Cierre de sesión — 16 de agosto de 2026: E-11, revisión opcional al aplicar un escenario
 
 Continuación directa del punto 1 del plan de Escenarios (misma sesión, PR #62/E-3 ya fusionado).
