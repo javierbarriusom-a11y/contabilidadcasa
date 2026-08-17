@@ -3531,7 +3531,9 @@ async function closeCurrentMonthTransaction() {
   try {
     const closedAt = new Date().toISOString();
     const closureId = store.createUuid(`month-close-${month}`);
-    const nextPayload = closeAdapter.closeMonth(appStatePayload(), month, { id: closureId, closedAt, reason });
+    // C-10: el autor de cada versión es la identidad de sesión real, decisión ya tomada el 14 de
+    // agosto (sección 2 del backlog) — nunca un campo libre que alguien pudiera falsear.
+    const nextPayload = closeAdapter.closeMonth(appStatePayload(), month, { id: closureId, closedAt, reason, author: remoteUser?.email || "" });
     const fingerprint = store.fingerprintPayload(nextPayload);
     const newSnapshotId = store.createUuid("month-close-snapshot");
     const newSyncId = store.createUuid("month-close-sync");
@@ -3579,7 +3581,7 @@ async function reopenLatestMonthTransaction() {
   try {
     const reopenedAt = new Date().toISOString();
     const operationId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen");
-    const nextPayload = e5.reopenMonth(appStatePayload(), closed.monthKey, { id: operationId, reopenedAt, reason });
+    const nextPayload = e5.reopenMonth(appStatePayload(), closed.monthKey, { id: operationId, reopenedAt, reason, author: remoteUser?.email || "" });
     const fingerprint = window.FinanceCanonicalSupabaseStore.fingerprintPayload(nextPayload);
     const newSnapshotId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen-snapshot");
     const newSyncId = window.FinanceCanonicalSupabaseStore.createUuid("month-reopen-sync");
@@ -25350,6 +25352,7 @@ function conciliarMonthHistory(monthRows) {
 // =================================================================================================
 
 let cierreActiveStep = 1;
+let cierreEvidenceContext = null;
 
 const CIERRE_ACCOUNT_LABELS = { caixabank: "CaixaBank", mediolanum: "Mediolanum" };
 
@@ -25550,6 +25553,141 @@ function cierreCountersHtml(accountRows, tasks, unclassifiedCount) {
     .join("");
 }
 
+// C-10 (Cierre.pdf): "Una fila por versión con fecha, autor, resumen y estado. La vigente se
+// distingue; ninguna versión se sobrescribe." Cada cierre/reapertura de `monthClosures` ya es una
+// entrada inmutable (C-9); esto solo lee esa lista completa, nunca solo el mes actual, y nunca
+// borra ni reescribe una fila — reabrir añade, no sustituye.
+function cierreVersionRows(closures) {
+  const list = Array.isArray(closures) ? closures : [];
+  const timeOf = (op) => op.occurredAt || op.closedAt || op.reopenedAt || "";
+  const latestByMonth = new Map();
+  list.forEach((op) => {
+    const current = latestByMonth.get(op.monthKey);
+    if (!current || timeOf(op) > timeOf(current)) latestByMonth.set(op.monthKey, op);
+  });
+  return list
+    .slice()
+    .sort((a, b) => timeOf(b).localeCompare(timeOf(a)))
+    .map((op) => ({
+      id: op.id,
+      monthKey: op.monthKey,
+      fecha: timeOf(op),
+      autor: op.author || "Sin identificar",
+      resumen: `${op.operation === "month-reopen" ? "Reapertura" : "Cierre"} de ${ledgerMonthLabel(op.monthKey)} · ${op.reason || "Sin motivo registrado"}`,
+      estado: op.status,
+      vigente: latestByMonth.get(op.monthKey) === op,
+    }));
+}
+
+function cierreVersionsHtml(rows) {
+  if (!rows.length) return `<p class="e19-kpi-note">Todavía no hay ninguna versión firmada.</p>`;
+  const estadoBadge = { closed: "e19-badge-success", reopened: "e19-badge-warning" };
+  const estadoLabel = { closed: "Cerrado", reopened: "Reabierto" };
+  return `<div class="table-wrap"><table class="e19-table cierre-versions-table">
+    <thead><tr><th>Fecha</th><th>Mes</th><th>Autor</th><th>Resumen</th><th>Estado</th></tr></thead>
+    <tbody>${rows
+      .map(
+        (row) => `<tr class="${row.vigente ? "is-vigente" : ""}">
+          <td>${escapeHtml(row.fecha ? formatIsoDate(row.fecha.slice(0, 10)) : "—")}</td>
+          <td>${escapeHtml(ledgerMonthLabel(row.monthKey))}</td>
+          <td>${escapeHtml(row.autor)}</td>
+          <td>${escapeHtml(row.resumen)}${row.vigente ? ` <span class="e19-badge e19-badge-neutral">Vigente</span>` : ""}</td>
+          <td><span class="e19-badge ${estadoBadge[row.estado] || "e19-badge-neutral"}">${estadoLabel[row.estado] || row.estado}</span></td>
+        </tr>`
+      )
+      .join("")}</tbody>
+  </table></div>`;
+}
+
+// C-11: "Reabrir un mes cerrado exige motivo y crea una versión nueva [...] Además notifica a las
+// pantallas que dependían de ese mes." El motivo y la versión ya los daba
+// `reopenLatestMonthTransaction()`/E5; esto añade el aviso cruzado. De los tres dependientes que
+// nombra el criterio, solo Análisis tiene una relación mes→dato verificable hoy (la banda de A-2 es
+// literalmente una serie por mes): la cobertura aprendida de Hoy se calcula sobre una ventana de
+// movimientos sin un mes único al que atribuirla, y A-7 («fiabilidad del plan») no existe todavía —
+// forzar cualquiera de los dos habría sido inventar una relación que no se puede verificar (regla
+// transversal 04), así que quedan fuera del aviso, documentado aquí en vez de en silencio.
+function cierreMonthsCurrentlyReopened() {
+  const timeOf = (op) => op.occurredAt || op.closedAt || op.reopenedAt || "";
+  const latestByMonth = new Map();
+  monthClosures.forEach((op) => {
+    const current = latestByMonth.get(op.monthKey);
+    if (!current || timeOf(op) > timeOf(current)) latestByMonth.set(op.monthKey, op);
+  });
+  const reopened = new Set();
+  latestByMonth.forEach((op, monthKey) => { if (op.status === "reopened") reopened.add(monthKey); });
+  return reopened;
+}
+
+// C-12: "PDF firmado de una página con el estado de las cuentas, las tareas resueltas, los
+// asientos de sobres y la versión [...] CSV con los mismos datos en filas [...] Los dos llevan la
+// misma fecha y el mismo identificador de versión." Sobres (Fase 6) no existe todavía — sus
+// asientos no se listan, igual que C-1/C-8 ya declaran los tres pasos reales en vez de fingir un
+// cuarto. "Tareas resueltas" se representa como el recuento de diferencias abiertas en el momento
+// de la descarga (0 si el mes ya se firmó): no existe un registro histórico de qué tarea concreta
+// se resolvió cuándo, así que no se inventa uno.
+function cierreEvidenceRows(accountRows, tasks, closure, currentMonthKey) {
+  const version = closure ? { id: closure.id, fecha: closure.closedAt || closure.occurredAt || "", autor: closure.author || "Sin identificar", motivo: closure.reason || "" } : null;
+  return {
+    monthKey: currentMonthKey,
+    monthLabel: ledgerMonthLabel(currentMonthKey),
+    version,
+    accounts: accountRows.map((row) => ({ label: row.label, declarado: row.declared, calculado: row.calculated, diferencia: row.diff, estado: row.status })),
+    diferenciasAbiertas: tasks.length,
+  };
+}
+
+function cierreEvidenceCsvContent(evidence) {
+  const header = ["Sección", "Cuenta", "Declarado", "Calculado", "Diferencia", "Estado", "Versión", "Fecha", "Autor", "Motivo"];
+  const versionCols = [evidence.version?.id || "", evidence.version?.fecha ? evidence.version.fecha.slice(0, 10) : "", evidence.version?.autor || "", evidence.version?.motivo || ""];
+  const lines = evidence.accounts.map((row) =>
+    ["Cuentas", row.label, row.declarado, row.calculado ?? "", row.diferencia ?? "", row.estado, ...versionCols].map(csvValue).join(";")
+  );
+  lines.push(["Diferencias", `${evidence.diferenciasAbiertas} abierta(s) en el momento de la descarga`, "", "", "", "", ...versionCols].map(csvValue).join(";"));
+  lines.push(["Sobres", "Fase 6 desactivada: sin asientos que exportar", "", "", "", "", ...versionCols].map(csvValue).join(";"));
+  return `﻿${[header.map(csvValue).join(";"), ...lines].join("\r\n")}`;
+}
+
+function cierreEvidencePrintHtml(evidence) {
+  const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra", "sin-conciliar": "Sin conciliar" };
+  return `<h1>Cierre de ${escapeHtml(evidence.monthLabel)}</h1>
+    <p>${evidence.version ? `Versión ${escapeHtml(evidence.version.id)} · firmado el ${escapeHtml(formatIsoDate((evidence.version.fecha || "").slice(0, 10)))} · ${escapeHtml(evidence.version.autor)} · ${escapeHtml(evidence.version.motivo)}` : "Mes todavía sin firmar en el momento de esta descarga."}</p>
+    <table>
+      <thead><tr><th>Cuenta</th><th>Declarado</th><th>Calculado</th><th>Diferencia</th><th>Estado</th></tr></thead>
+      <tbody>${evidence.accounts
+        .map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${money(row.declarado, true)}</td><td>${row.calculado === null ? "—" : money(row.calculado, true)}</td><td>${row.diferencia === null ? "—" : money(row.diferencia, true)}</td><td>${statusLabel[row.estado] || row.estado}</td></tr>`)
+        .join("")}</tbody>
+    </table>
+    <p>Diferencias abiertas en el momento de la descarga: ${evidence.diferenciasAbiertas}.</p>
+    <p>Sobres: Fase 6 desactivada, sin asientos que archivar.</p>`;
+}
+
+function downloadCierreEvidenceCsv(evidence) {
+  const blob = new Blob([cierreEvidenceCsvContent(evidence)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `cierre-${evidence.monthKey}${evidence.version ? `-${evidence.version.id}` : ""}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function handleCierreDownloadEvidence(kind, accountRows, tasks, closure, currentMonthKey) {
+  const evidence = cierreEvidenceRows(accountRows, tasks, closure, currentMonthKey);
+  if (kind === "csv") {
+    downloadCierreEvidenceCsv(evidence);
+    return;
+  }
+  const container = qs("cierrePrintEvidence");
+  if (!container) return;
+  container.innerHTML = cierreEvidencePrintHtml(evidence);
+  document.body.classList.add("is-printing-cierre-evidence");
+  window.print();
+  document.body.classList.remove("is-printing-cierre-evidence");
+}
+
 function renderCierre() {
   if (!window.FinanceCanonicalLedger) return;
   const snapshot = refreshCanonicalLedger("cierre-view");
@@ -25574,6 +25712,14 @@ function renderCierre() {
   const accountRows = cierreAccountReconciliation(entries);
   const countersEl = qs("cierreCounters");
   if (countersEl) countersEl.innerHTML = cierreCountersHtml(accountRows, tasks, unclassified.length);
+
+  // C-10: el historial vive fuera del wizard/estado-cerrado — se ve igual en los dos, es la lista
+  // completa de versiones, no solo la del mes en curso.
+  const versionsEl = qs("cierreVersions");
+  if (versionsEl) versionsEl.innerHTML = cierreVersionsHtml(cierreVersionRows(monthClosures));
+  // C-12: el contexto que necesitan los botones de descarga se guarda aquí, no se recalcula al
+  // pulsar — mismo dato que ya se ve en pantalla en ese momento.
+  cierreEvidenceContext = { accountRows, tasks, closure: currentClosure, currentMonthKey };
 
   if (currentClosure) {
     if (titleEl) titleEl.textContent = `${ledgerMonthLabel(currentMonthKey)} cerrado`;
@@ -25613,6 +25759,12 @@ function renderCierre() {
 function handleCierreStepSelect(step) {
   cierreActiveStep = step;
   renderCierre();
+}
+
+function handleCierreDownload(kind) {
+  if (!cierreEvidenceContext) return;
+  const { accountRows, tasks, closure, currentMonthKey } = cierreEvidenceContext;
+  handleCierreDownloadEvidence(kind, accountRows, tasks, closure, currentMonthKey);
 }
 
 async function handleCierreSign() {
@@ -26979,6 +27131,21 @@ function renderAnalisis() {
       ? `<span class="e19-badge e19-badge-danger">Peor mes · ${escapeHtml(worst.label)}</span> ${worst.monthsValue.toFixed(1)} meses de colchón.`
       : `<span class="e19-kpi-note">Sin datos suficientes para calcular el peor mes en esta ventana.</span>`;
   }
+
+  // C-11: Análisis es uno de los dependientes que el criterio de reapertura nombra explícitamente
+  // — se avisa mientras alguno de los meses visibles esté reabierto (sin volver a cerrarse todavía).
+  const reopenNotice = qs("analisisReopenNotice");
+  if (reopenNotice) {
+    const reopenedMonths = cierreMonthsCurrentlyReopened();
+    const affected = months.filter((month) => reopenedMonths.has(month.key));
+    if (affected.length) {
+      reopenNotice.hidden = false;
+      reopenNotice.textContent = `${affected.map((month) => month.label).join(", ")} se reabrió en Cierre y todavía no se ha vuelto a firmar: estas cifras pueden no reflejar la versión definitiva de ese mes.`;
+    } else {
+      reopenNotice.hidden = true;
+      reopenNotice.textContent = "";
+    }
+  }
 }
 
 function handleAnalisisWindow(windowKey) {
@@ -27723,6 +27890,8 @@ async function init() {
       return;
     }
     if (event.target.id === "cierreSignButton") handleCierreSign();
+    if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
+    if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");
   });
   qs("cierreReopen")?.addEventListener("click", handleCierreReopen);
   qs("analisis")?.addEventListener("click", (event) => {

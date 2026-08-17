@@ -42,6 +42,7 @@
       occurredAt: closedAt,
       operation: "month-close",
       reason: text(metadata.reason || "Cierre mensual confirmado"),
+      author: text(metadata.author),
       actuals: { income: incomeActuals, expense: expenseActuals },
     };
     return { ...payload, monthClosures: [...closures, closure] };

@@ -89,8 +89,11 @@ pantalla 06. Solo quedan E-11b/E-13/E-14, bloqueadas. Fase 5 (Cierre)
 arrancó el 16 de agosto (punto 2 del plan): C-1/C-2/C-3/C-4/C-5/C-8/C-9 hechos en un primer
 incremento — ritual de tres pasos (sin sobres), conciliación por cuenta, tareas por causa,
 comprobaciones antes de firmar — reutilizando el motor transaccional de cierre/reapertura que ya
-existía; C-3b/C-6/C-7/C-10/C-11/C-12/C-13/C-14 pendientes (ver la nota bajo la tabla de la pantalla
-08). Fase 6 (Análisis) arrancó el mismo día (punto 3 del plan): A-1/A-2/A-6 hechos en un primer
+existía; segunda fase cerrada el 17 de agosto (mismo pedido del usuario que la de Escenarios): C-10
+(historial de versiones, con autor real), C-11 (reapertura notificada a Análisis, parcial — Hoy y
+A-7 quedan fuera por falta de una relación mes→dato fiable) y C-12 (evidencia en PDF y CSV) pasan a
+`Hecho`; C-3b sigue pendiente (mismo motivo técnico que el 16), C-6/C-7/C-13/C-14 siguen bloqueadas
+(ver la nota bajo la tabla de la pantalla 08). Fase 6 (Análisis) arrancó el mismo día (punto 3 del plan): A-1/A-2/A-6 hechos en un primer
 incremento — pantalla de solo lectura, banda de doce meses de colchón en meses (no en €, una serie
 nueva que reutiliza el gasto medio de Escenarios y la escala de tres niveles de P-9), selector de
 ventana — A-3 a A-13 pendientes (ver la nota bajo la tabla de la pantalla 07). Fase 7 (Laboratorio)
@@ -1072,9 +1075,9 @@ selector de ventana funciona. Sin errores de consola propios.
 | C-7 | Ningún sobre se cubre en silencio | C-6 | M | Pendiente (bloqueada: depende de C-6) |
 | C-8 | Efectos de firmar escritos antes | C-1 | S | Hecho (16 de agosto, ver nota) |
 | C-9 | Inventario canónico con IDs estables | C-1 | L | Hecho (16 de agosto, ver nota) |
-| C-10 | Historial de versiones | C-9 | L | Pendiente (ver nota) |
-| C-11 | Reapertura registrada y notificada | C-10, A-7, A-10 | L | Pendiente (ver nota) |
-| C-12 | Descargar evidencia en PDF y CSV | C-5 | M | Pendiente |
+| C-10 | Historial de versiones | C-9 | L | Hecho (17 de agosto, ver nota) |
+| C-11 | Reapertura registrada y notificada | C-10, A-7, A-10 | L | Hecho (parcial, 17 de agosto, ver nota) |
+| C-12 | Descargar evidencia en PDF y CSV | C-5 | M | Hecho (17 de agosto, ver nota) |
 | C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Pendiente (bloqueada: depende de A-7, sin construir) |
 | C-14 | Retirar las dos heredadas de conciliación | C-9, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
 
@@ -1118,24 +1121,68 @@ bancario), `E11bInbox.reconciliationTasks` (tareas por causa) y `closeCurrentMon
   clasificar, meses cerrados) con enlace implícito al inventario completo (`#conciliar`, que
   conserva el detalle por movimiento). Los IDs de las tareas ya eran estables antes de esta sesión —
   `E11bInbox.reconciliationTasks` los construye desde el propio dato, nunca desde su posición.
-- **C-3b, C-10, C-11, C-12** — deliberadamente fuera de este incremento. C-3b pedía un modal con dos
-  rutas de resolución (inline y «abrir origen»); la ruta inline exigiría cruzar dos modelos de datos
-  distintos (las `entries` del ledger no llevan de vuelta a la fila cruda de `state.transactions`
-  que necesita `movementMappingKey`/`transactionIdentity`) — cruzarlos a ciegas para forzarlo era más
-  riesgo que valor, así que se deja pendiente en vez de fingir una segunda ruta. C-10/C-11: el motor
-  transaccional de cierre/reapertura con versionado (`monthClosures`, `FinanceCanonicalE5`) ya
-  existía y se reutiliza tal cual para firmar y reabrir desde `#cierre`, pero la tabla dedicada de
-  historial de versiones y el aviso cruzado a las pantallas que dependían del mes (Análisis, que
-  tampoco existe todavía) no se han construido. C-12 (exportar PDF/CSV) no se ha tocado.
+- **C-3b** — deliberadamente fuera de este incremento, y sigue así tras revisarlo de nuevo el 17 de
+  agosto (segunda fase, ver nota de cierre más abajo): el modal con dos rutas de resolución pedía
+  cruzar dos modelos de datos distintos (las `entries` del ledger no llevan de vuelta a la fila cruda
+  de `state.transactions` que necesita `movementMappingKey`/`transactionIdentity`) — nada ha cambiado
+  ese hecho, así que forzar el cruce seguiría siendo más riesgo que valor. Sigue pendiente.
 - **C-6, C-7, C-13, C-14** — bloqueadas como estaba previsto: Sobres, A-7 (Análisis) y Fase 7 no
   existen todavía.
 
-**Validación de este incremento**: `npm test`, exit 0, **1082/1082 pruebas** (13 nuevas en
-`tests/c1-c9-cierre-wizard.test.cjs`, más 2 pruebas existentes de E17/T-1 actualizadas porque
-fijaban `#conciliar` como destino literal de la pestaña «Cierre»). Verificado con Playwright contra
-el build local: los tres pasos se recorren en orden, el paso 3 muestra el botón deshabilitado con
-«Firmar · 1 sin cumplir» cuando falta el extracto del mes, `#conciliar` sigue funcionando sin cambios
-desde «Herramientas avanzadas». Sin errores de consola propios.
+**Validación de este incremento (16 de agosto)**: `npm test`, exit 0, **1082/1082 pruebas** (13
+nuevas en `tests/c1-c9-cierre-wizard.test.cjs`, más 2 pruebas existentes de E17/T-1 actualizadas
+porque fijaban `#conciliar` como destino literal de la pestaña «Cierre»). Verificado con Playwright
+contra el build local: los tres pasos se recorren en orden, el paso 3 muestra el botón deshabilitado
+con «Firmar · 1 sin cumplir» cuando falta el extracto del mes, `#conciliar` sigue funcionando sin
+cambios desde «Herramientas avanzadas». Sin errores de consola propios.
+
+**Cierre de C-10/C-11/C-12 — 17 de agosto de 2026.** Segunda fase de construcción sobre Cierre, a
+petición del usuario (misma sesión que cierra los huecos de Escenarios, ver pantalla 06). Ningún
+cálculo financiero nuevo: las tres tareas leen `monthClosures`, que C-9 ya dejó con IDs estables.
+
+- **C-10** — «Historial de versiones»: una fila por cada entrada de `monthClosures` (cierre o
+  reapertura), nunca solo la del mes en curso — `cierreVersionRows()` ordena de más reciente a más
+  antigua y marca «Vigente» la fila más reciente de cada mes (una reapertura vuelve «no vigente» el
+  cierre anterior del mismo mes sin borrarlo: sigue en la lista). El campo «autor» que pedía el
+  mockup no existía en el registro — `closeCurrentMonthTransaction()`/`reopenLatestMonthTransaction()`
+  ahora pasan `remoteUser?.email` como `metadata.author` a `FinanceCanonicalMonthClose.closeMonth`/
+  `FinanceCanonicalE5.reopenMonth`, que lo guardan en la operación; exactamente la decisión ya tomada
+  el 14 de agosto (sección 2 del backlog: «el campo autor de C-10 se rellena con la identidad de
+  sesión real»). Versiones anteriores a este cambio no tienen autor y se leen como «Sin identificar»,
+  no se inventa uno retroactivo.
+- **C-11** — el motivo obligatorio y la versión nueva al reabrir ya existían (E5/`reopenLatestMonthTransaction`);
+  esto añade el aviso cruzado. De los tres dependientes que nombra el criterio (Análisis, la
+  cobertura aprendida de Hoy, la fiabilidad del plan) solo Análisis tiene hoy una relación mes→dato
+  verificable — la banda de A-2 es literalmente una serie por mes. `cierreMonthsCurrentlyReopened()`
+  calcula qué meses tienen como última operación una reapertura todavía sin volver a cerrarse;
+  `renderAnalisis()` cruza esos meses con la ventana visible y muestra un aviso cuando coinciden. La
+  cobertura aprendida de Hoy se calcula sobre una ventana de movimientos sin un mes único al que
+  atribuirla, y A-7 («fiabilidad del plan») no existe todavía — cablear cualquiera de los dos habría
+  significado inventar una relación que no se puede verificar (regla transversal 04), así que C-11
+  queda marcada «Hecho (parcial)»: cierra lo verificable, documenta lo que no.
+- **C-12** — «Descargar evidencia en PDF y CSV»: el CSV reutiliza el patrón ya existente de
+  `downloadCsv()` (Blob + URL de objeto), con una fila por cuenta (declarado/calculado/diferencia/
+  estado) más las columnas de versión (id/fecha/autor/motivo) repetidas en cada fila, tal como pide
+  el criterio («los dos llevan la misma fecha y el mismo identificador de versión» — aquí dentro de
+  la propia fila, no solo en el nombre del fichero). El PDF usa `window.print()` sobre un contenedor
+  dedicado (`#cierrePrintEvidence`, fuera de `.app-shell` para que `@media print` pueda esconder todo
+  lo demás) en vez de añadir una librería nueva a una app sin backend — es el «guardar como PDF» real
+  del navegador, no un blob fabricado. Ninguno de los dos incluye asientos de sobres: Fase 6 está
+  desactivada, y ambos lo dicen explícitamente en vez de omitirlo en silencio. «Tareas resueltas» se
+  representa como el recuento de diferencias abiertas en el momento de la descarga (0 tras firmar):
+  no existe un registro histórico de qué tarea concreta se resolvió cuándo, así que no se inventa uno.
+
+**Validación de este incremento**: `npm test`, exit 0, **1123/1123 pruebas** (15 nuevas en
+`tests/c10-c11-c12-cierre-historial.test.cjs`: el campo autor en `canonical-month-close.js`/
+`canonical-e5-operations.js`, `cierreVersionRows`/`cierreVersionsHtml`, `cierreMonthsCurrentlyReopened`
+y `cierreEvidenceRows`/`cierreEvidenceCsvContent`). Verificado con Playwright contra el build local:
+el historial de versiones muestra fecha/mes/autor/resumen/estado con la fila vigente distinguida;
+reabrir julio 2026 hace aparecer en Análisis el aviso «jul 26 se reabrió en Cierre y todavía no se ha
+vuelto a firmar»; el botón CSV descarga sin error y el contenedor de impresión se rellena con el
+estado de cuentas y la nota de Sobres antes de `window.print()`. Sin errores de consola propios.
+
+Quedan pendientes, sin bloqueo nuevo: C-3b (ver nota arriba), C-6/C-7 (Sobres), C-13 (A-7), C-14
+(Fase 7).
 
 ### 09 · Laboratorio — deuda de transición con fecha de caducidad, vive en Ajustes (10 tareas · 2 grandes)
 
