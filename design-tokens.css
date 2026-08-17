@@ -2665,6 +2665,74 @@
   align-items: flex-start;
 }
 
+/* -------------------------------------------------------------------------------------------- */
+/* Fase 6 · Análisis (pantalla 07, Analisis.pdf) — A-2, banda de doce meses de colchón. Escala de  */
+/* tres niveles distinta de la de cuatro que ya usa el mapa de calor (mapaCalorTone): mismos        */
+/* nombres de clase que P-9 (`.is-negativo/.is-ajustado/.is-holgado`), mismos tokens de color.      */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-analisis .analisis-cushion-card {
+  padding: 18px;
+}
+
+.e19-analisis .analisis-cushion-band {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 160px;
+  margin: 14px 0 10px;
+  padding: 0 4px;
+}
+
+.e19-analisis .analisis-cushion-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  gap: 4px;
+}
+
+.e19-analisis .analisis-cushion-value {
+  font-size: var(--e19-text-xs);
+  font-weight: 700;
+  color: var(--e19-ink);
+}
+
+.e19-analisis .analisis-cushion-bar {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: var(--e19-border);
+}
+
+.e19-analisis .analisis-cushion-col.is-worst .analisis-cushion-value {
+  color: var(--e19-danger);
+}
+
+.e19-analisis .analisis-cushion-bar.is-negativo {
+  background: var(--e19-danger);
+}
+
+.e19-analisis .analisis-cushion-bar.is-ajustado {
+  background: var(--e19-debt);
+}
+
+.e19-analisis .analisis-cushion-bar.is-holgado {
+  background: var(--e19-success);
+}
+
+.e19-analisis .analisis-cushion-bar.is-sin-dato {
+  background: var(--e19-border);
+}
+
+.e19-analisis .analisis-cushion-col small {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+  text-transform: uppercase;
+}
+
 .e19-conciliar .conciliar-history-row span {
   color: var(--e19-muted);
 }
@@ -2941,6 +3009,7 @@
 .e19-cuadro-mandos .registrar-mes-filters,
 .e19-prevision .registrar-mes-filters,
 .e19-plan-prevision .registrar-mes-filters,
+.e19-analisis .registrar-mes-filters,
 .table-section .registrar-mes-filters {
   display: inline-flex;
   gap: 2px;
@@ -2954,6 +3023,7 @@
 .e19-cuadro-mandos .registrar-mes-filter,
 .e19-prevision .registrar-mes-filter,
 .e19-plan-prevision .registrar-mes-filter,
+.e19-analisis .registrar-mes-filter,
 .table-section .registrar-mes-filter {
   border: none;
   background: transparent;
@@ -2969,6 +3039,7 @@
 .e19-cuadro-mandos .registrar-mes-filter.is-active,
 .e19-prevision .registrar-mes-filter.is-active,
 .e19-plan-prevision .registrar-mes-filter.is-active,
+.e19-analisis .registrar-mes-filter.is-active,
 .table-section .registrar-mes-filter.is-active {
   background: var(--e19-surface);
   color: var(--e19-heading);
@@ -2980,6 +3051,7 @@
 .e19-cuadro-mandos .registrar-mes-filter:focus-visible,
 .e19-prevision .registrar-mes-filter:focus-visible,
 .e19-plan-prevision .registrar-mes-filter:focus-visible,
+.e19-analisis .registrar-mes-filter:focus-visible,
 .table-section .registrar-mes-filter:focus-visible {
   outline: 2px solid var(--e19-accent);
   outline-offset: 2px;

@@ -2,6 +2,35 @@
 
 Fecha de revisión: 16 de agosto de 2026.
 
+## Cierre de sesión — 16 de agosto de 2026: primer incremento real de Análisis (Fase 6)
+
+Punto 3 del plan de construcción (Cierre, punto 2, ya fusionado — ver la entrada siguiente). Fase 6
+(Análisis) estaba a cero código propio; este incremento construye A-1 (pantalla de solo lectura,
+accesible desde «Herramientas avanzadas › Analizar › Análisis (nuevo)», no pestaña principal), A-2
+(banda de doce meses de colchón) y A-6 (selector de ventana 12/24/todo el plan).
+
+A-2 pide el colchón **en meses**, no la liquidez absoluta que ya colorea `#mapa-calor`/la fila de
+colchón de P-9 — esa serie mensual no existía todavía. Se calculó reutilizando piezas ya
+construidas: `escenarioMotorAverageCoreSpend` (gasto medio, mismo cálculo que el resumen de
+Escenarios) para el denominador, `state.emergencyBufferMonths` (el mismo «colchón objetivo» que ya
+usan la barra lateral y Deuda) como umbral, y `FinanceCanonicalCushion.cushionLevel` para el
+color — la función de tres niveles que el propio comentario de P-9 ya señalaba como «compartida con
+A-2 cuando se construya», escrito en una sesión anterior sin que nadie lo hubiera conectado todavía.
+Un mes sin fila de simulación o sin gasto medio con el que dividir queda «sin dato», nunca en cero.
+
+**Validación**: `npm test`, exit 0, **1089/1089 pruebas** (7 nuevas en
+`tests/a1-a2-a6-analisis-colchon.test.cjs`, más 1 prueba de navegación ajustada porque contaba los
+enlaces exactos del menú avanzado). Verificado con Playwright contra el build local: la banda
+muestra 12 y 24 meses reales, cambia de color al cruzar el objetivo de `emergencyBufferMonths`
+(marrón «a vigilar» → verde «sobre objetivo», visible en el cambio de ventana), el peor mes se marca
+con su cifra exacta. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — A-1/A-2/A-6 pasan a `Hecho` con nota de
+cierre. A-4 y A-5 están marcadas «CONSERVADO» en el inventario del propio mockup (ya existen en
+`#cashflow`/`#forecast`) pero extraerlas con su procedencia no se ha hecho todavía; A-7/A-10 dependen
+de piezas de Cierre que este incremento no cubre (historial de versiones dedicado); A-3 depende de
+E-2, todavía parcial; A-8/A-9/A-11/A-12/A-13 sin bloquear pero sin construir.
+
 ## Cierre de sesión — 16 de agosto de 2026: primer incremento real de Cierre (Fase 5)
 
 Punto 2 del plan de construcción acordado con el usuario (Escenarios, punto 1, ya cerrado — ver la

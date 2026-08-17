@@ -293,6 +293,10 @@ const viewTitles = {
     eyebrow: "Fin de mes",
     title: "Concilia, resuelve y firma el cierre del mes",
   },
+  analisis: {
+    eyebrow: "Analizar",
+    title: "La lectura ejecutiva de tu plan, con procedencia",
+  },
   "registrar-mes": {
     eyebrow: "Actualizar",
     title: "Registra el mes partida a partida y mira cómo va",
@@ -26401,6 +26405,115 @@ function handlePlanPrevisionHorizon(horizonKey) {
   renderPlanPrevision();
 }
 
+// =================================================================================================
+// Fase 6 · Análisis — pantalla 07 (Analisis.pdf, auditado el 16 de agosto): «la sección ejecutiva
+// que faltaba». Primer incremento real: A-1 (pantalla de solo lectura, ninguna casilla editable),
+// A-2 (banda de doce meses de colchón, la misma escala de tres niveles que P-9) y A-6 (selector de
+// ventana). El resto del backlog (A-3 a A-13) se deja documentado como pendiente: varias dependen de
+// Cierre/E-2/A-7, que este incremento no cubre.
+//
+// A-2 pide el colchón EN MESES, no la liquidez absoluta que ya colorea `#mapa-calor`/P-9 — esa serie
+// mensual no existía todavía. Se calcula una sola vez, reutilizando piezas ya construidas: el gasto
+// medio mensual con `escenarioMotorAverageCoreSpend` (mismo cálculo que el resumen de Escenarios),
+// el objetivo con `state.emergencyBufferMonths` (el mismo «colchón objetivo» que ya usa Deuda y el
+// estadillo de la barra lateral) y el color con `FinanceCanonicalCushion.cushionLevel`, la función de
+// tres niveles que el propio comentario de P-9 ya señalaba como compartida con A-2 «cuando se
+// construya». Ningún cálculo financiero nuevo: solo una serie mensual que faltaba montar.
+// =================================================================================================
+
+const ANALISIS_WINDOWS = {
+  "12m": { label: "12 meses", months: 12 },
+  "24m": { label: "24 meses", months: 24 },
+  full: { label: "Todo el plan", months: Infinity },
+};
+let analisisWindowKey = "12m";
+
+function analisisWindowMonths(windowKey = analisisWindowKey) {
+  const all = cuadroMandosAllMonths();
+  const config = ANALISIS_WINDOWS[windowKey] || ANALISIS_WINDOWS["12m"];
+  return Number.isFinite(config.months) ? all.slice(0, config.months) : all;
+}
+
+// A-2: una fila por mes con el colchón en meses (liquidez ÷ gasto medio), nunca «cuadra por
+// definición» — si no hay gasto medio con el que dividir, el mes queda sin dato (`monthsValue:
+// null`), no en cero (regla transversal 04).
+function analisisCushionBand(months, simRows, targetMonths) {
+  const avgCoreSpend = escenarioMotorAverageCoreSpend(simRows);
+  const byKey = new Map(simRows.map((row) => [row.detailMonthKey, row]));
+  return months.map((month) => {
+    const row = byKey.get(month.key);
+    const liquidity = row ? Number(row.totalLiquidity ?? 0) : null;
+    const monthsValue = liquidity === null || avgCoreSpend <= 0 ? null : round2(liquidity / avgCoreSpend);
+    const level = monthsValue === null ? "sin-dato" : FinanceCanonicalCushion.cushionLevel(monthsValue, targetMonths);
+    return { key: month.key, label: month.label, monthsValue, level, closed: isClosedMonthKey(month.key) };
+  });
+}
+
+function analisisCushionWorst(band) {
+  const withData = band.filter((item) => item.monthsValue !== null);
+  if (!withData.length) return null;
+  return withData.reduce((worst, item) => (item.monthsValue < worst.monthsValue ? item : worst));
+}
+
+const ANALISIS_CUSHION_LEVEL_LABELS = {
+  negativo: "Bajo el mínimo",
+  ajustado: "A vigilar",
+  holgado: "Sobre objetivo",
+  "sin-dato": "Sin dato",
+};
+
+function analisisCushionBandHtml(band, worstKey) {
+  const values = band.map((item) => item.monthsValue).filter((value) => value !== null);
+  const maxValue = Math.max(1, ...values);
+  return band
+    .map((item) => {
+      const heightPct = item.monthsValue === null ? 4 : Math.max(6, Math.round((Math.max(0, item.monthsValue) / maxValue) * 100));
+      const isWorst = Boolean(worstKey) && item.key === worstKey;
+      return `<div class="analisis-cushion-col${isWorst ? " is-worst" : ""}">
+        <span class="analisis-cushion-value">${item.monthsValue === null ? "—" : item.monthsValue.toFixed(1)}</span>
+        <span class="analisis-cushion-bar is-${item.level}" style="height:${heightPct}%" title="${escapeHtml(ANALISIS_CUSHION_LEVEL_LABELS[item.level])}"></span>
+        <small>${escapeHtml(item.label)}</small>
+      </div>`;
+    })
+    .join("");
+}
+
+function renderAnalisis() {
+  const band = qs("analisisCushionBand");
+  if (!band || !lastSimulation.length) return;
+
+  document.querySelectorAll("[data-analisis-window]").forEach((button) => {
+    const active = button.dataset.analisisWindow === analisisWindowKey;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+
+  const months = analisisWindowMonths();
+  const targetMonths = Number(state.emergencyBufferMonths || 0);
+  const cushion = analisisCushionBand(months, lastSimulation, targetMonths);
+  const worst = analisisCushionWorst(cushion);
+
+  band.innerHTML = analisisCushionBandHtml(cushion, worst?.key || "");
+
+  const legend = qs("analisisCushionLegend");
+  if (legend) {
+    legend.textContent = `Meses de gasto que cubre la liquidez, mes a mes · objetivo ${targetMonths} mes(es). Se calcula sobre lo simulado, con la fecha de cálculo de hoy.`;
+  }
+
+  const worstNote = qs("analisisCushionWorst");
+  if (worstNote) {
+    worstNote.innerHTML = worst
+      ? `<span class="e19-badge e19-badge-danger">Peor mes · ${escapeHtml(worst.label)}</span> ${worst.monthsValue.toFixed(1)} meses de colchón.`
+      : `<span class="e19-kpi-note">Sin datos suficientes para calcular el peor mes en esta ventana.</span>`;
+  }
+}
+
+function handleAnalisisWindow(windowKey) {
+  if (!ANALISIS_WINDOWS[windowKey] || windowKey === analisisWindowKey) return;
+  analisisWindowKey = windowKey;
+  renderAnalisis();
+}
+
 function renderPlan() {
   if (!qs("planTabs")) return;
   renderPlanTabs();
@@ -26476,6 +26589,9 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "cierre":
       renderCierre();
+      break;
+    case "analisis":
+      renderAnalisis();
       break;
     case "asesor-decision":
       renderAsesorDecision();
@@ -27125,6 +27241,10 @@ async function init() {
     if (event.target.id === "cierreSignButton") handleCierreSign();
   });
   qs("cierreReopen")?.addEventListener("click", handleCierreReopen);
+  qs("analisis")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-analisis-window]");
+    if (button) handleAnalisisWindow(button.dataset.analisisWindow);
+  });
   qs("debt-liquidation-plan")?.addEventListener("click", (event) => {
     const targetButton = event.target.closest("[data-debt-plan-target]");
     if (targetButton) {
