@@ -481,14 +481,70 @@
     }
   }
 
+  // E-1 (Escenarios.pdf, 17 de agosto): un préstamo nuevo entra de golpe en `mes` (resta de
+  // `projectOutflow`, sube la liquidez) y sale como `cuota` fija durante `plazo` meses desde el
+  // siguiente. No crea contrato en `debtState` — ver la nota del validador en
+  // canonical-scenario-schema.js sobre por qué no cuenta para «Fecha libre de deuda».
+  function applyDeudaNuevaToMonths(months, decision) {
+    const resolvedMonth = resolvedMonthOf(decision);
+    const startIndex = resolvedMonth ? monthIndexOf(months, resolvedMonth) : -1;
+    if (startIndex < 0) return;
+    months[startIndex].projectOutflow = round2(number(months[startIndex].projectOutflow) - number(decision.params.principal));
+    const plazo = Math.max(1, Math.floor(number(decision.params.plazo)));
+    const cuota = number(decision.params.cuota);
+    for (let index = startIndex + 1; index < Math.min(months.length, startIndex + 1 + plazo); index += 1) {
+      months[index].projectOutflow = round2(number(months[index].projectOutflow) + cuota);
+    }
+  }
+
+  // E-1: dinero prestado o cobrado a familia. `direccion` fija el signo del importe en `mes`
+  // ("prestamos" sale, "nos_prestan" entra); la devolución declarada (opcional) va en sentido
+  // contrario desde el mes siguiente, sin comprobar que su suma cuadre con el importe inicial —
+  // son las cifras que ha escrito la persona, no un cálculo que deba cerrar solo.
+  function applyPrestamoFamiliarToMonths(months, decision) {
+    const startIndex = monthIndexOf(months, decision.params.mes);
+    if (startIndex < 0) return;
+    const sale = decision.params.direccion === "prestamos";
+    const importe = number(decision.params.importe);
+    months[startIndex].projectOutflow = round2(number(months[startIndex].projectOutflow) + (sale ? importe : -importe));
+    if (decision.params.devolucionMensual === undefined || decision.params.meses === undefined) return;
+    const devolucion = number(decision.params.devolucionMensual);
+    const meses = Math.max(1, Math.floor(number(decision.params.meses)));
+    for (let index = startIndex + 1; index < Math.min(months.length, startIndex + 1 + meses); index += 1) {
+      months[index].projectOutflow = round2(number(months[index].projectOutflow) + (sale ? -devolucion : devolucion));
+    }
+  }
+
+  // E-1b: un tipo propio solo lleva los campos que su definición eligió — `importe` es un golpe en
+  // `mes`, `mensualidad` + `plazo` es un recurrente desde `mes` (inclusive). Ambos pueden coexistir
+  // (golpe inicial más cuotas) o faltar el que no se eligió; nunca fabrica un valor para el que sí.
+  function applyPropioToMonths(months, decision) {
+    const startIndex = monthIndexOf(months, decision.params.mes);
+    if (startIndex < 0) return;
+    if (decision.params.importe !== undefined) {
+      months[startIndex].projectOutflow = round2(number(months[startIndex].projectOutflow) + number(decision.params.importe));
+    }
+    if (decision.params.mensualidad !== undefined && decision.params.plazo !== undefined) {
+      const plazo = Math.max(1, Math.floor(number(decision.params.plazo)));
+      const mensualidad = number(decision.params.mensualidad);
+      for (let index = startIndex; index < Math.min(months.length, startIndex + plazo); index += 1) {
+        months[index].projectOutflow = round2(number(months[index].projectOutflow) + mensualidad);
+      }
+    }
+  }
+
   // Tipos sin efecto en el estado de las deudas que sí aportan a la serie mensual (día 2: compra;
-  // día 4: el resto). `traspaso` y `cambio_presupuesto` quedan fuera a propósito — ver cabecera.
+  // día 4: el resto; E-1: los tres últimos). `traspaso` y `cambio_presupuesto` quedan fuera a
+  // propósito — ver cabecera.
   const NON_DEBT_APPLIERS = Object.freeze({
     compra: applyCompraToMonths,
     imprevisto: applyImprevistoToMonths,
     proyecto: applyProyectoToMonths,
     cambio_ingreso: applyCambioIngresoToMonths,
     cambio_gasto: applyCambioGastoToMonths,
+    deuda_nueva: applyDeudaNuevaToMonths,
+    prestamo_familiar: applyPrestamoFamiliarToMonths,
+    propio: applyPropioToMonths,
   });
 
   function minimumLiquidity(input) {
@@ -545,7 +601,7 @@
       const planificacion = { ...decision.planificacion, mesResuelto: monthKey };
       let params = decision.params;
       if (decision.tipo === "retomar_pagos") params = { ...decision.params, mesInicio: monthKey };
-      else if (decision.tipo === "imprevisto") params = { ...decision.params, mes: monthKey };
+      else if (decision.tipo === "imprevisto" || decision.tipo === "prestamo_familiar" || decision.tipo === "propio") params = { ...decision.params, mes: monthKey };
       else if (decision.tipo === "cambio_ingreso" || decision.tipo === "cambio_gasto") params = { ...decision.params, mesInicio: monthKey };
       return { ...decision, planificacion, params };
     }

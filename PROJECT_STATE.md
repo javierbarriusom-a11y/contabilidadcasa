@@ -1,6 +1,55 @@
 # Estado del proyecto
 
-Fecha de revisión: 16 de agosto de 2026.
+Fecha de revisión: 17 de agosto de 2026.
+
+## Cierre de sesión — 17 de agosto de 2026: cierre de los huecos no bloqueados de Escenarios
+
+A petición explícita del usuario («cerremos primero» la lista de huecos ya identificados en la
+auditoría del 16 de agosto), segunda fase de construcción sobre Escenarios: E-1, E-2 y E-8 pasan de
+«parcial» a `Hecho`, y se construyen desde cero E-1b, E-6b, E-7, E-9 y E-12 — las cinco tareas no
+bloqueadas que quedaban pendientes de la pantalla 06. Ningún cálculo financiero nuevo salvo los tres
+tipos de decisión de E-1/E-1b, que siguen el mismo patrón ya existente (`NON_DEBT_APPLIERS`) que
+compra/imprevisto/proyecto/cambio de ingreso/cambio de gasto.
+
+- **E-1**: el mockup real (rasterizado a 400dpi para leer la lista exacta) confirma seis tipos de
+  Deuda. `refinanciacion`→«Cambiar condiciones» y `reunificacion`→«Reunificar deuda» se renombran
+  (mismo `id`, Deuda › Comparar no se entera). `deuda_nueva` («Pedir deuda nueva») y
+  `prestamo_familiar` («Prestar o cobrar a familia») son nuevos: un efecto de caja de la simulación
+  (principal/importe de golpe más cuota/devolución recurrente), sin crear contrato real en
+  `DEBT_PORTFOLIO` — no cuentan para «Fecha libre de deuda», documentado en el propio esquema.
+- **E-1b**: constructor de tipos propios (nombre, familia informativa, hasta tres campos: importe,
+  mensualidad, plazo — el mes siempre se incluye). Todos comparten el tipo real `propio` en el motor
+  y el esquema (`params.definicionId` distingue cuál definición es cada decisión); se validan contra
+  el mismo `PARAMS_VALIDATORS.propio`, no una segunda vía.
+- **E-2**: el único recálculo completo mientras se teclea (no al salir del campo) era el saldo
+  mínimo — 120 ms de debounce sobre ese punto.
+- **E-6b**: un escenario rechazado se guarda con estado `"aviso"` (nuevo), motivo reutilizado de
+  `escenarioMotorRejectionInfo`, etiqueta fija «límite conocido». No se puede aplicar directamente y
+  queda fuera de los selectores de E-12.
+- **E-7**: veredicto en prosa reutilizando las cuatro comprobaciones de E-5 — nombra la decisión que
+  rompe la reserva (o la capacidad, o las condiciones) como «la palanca», con dirección genérica
+  (importe/mes), no una cifra recalculada.
+- **E-8**: «Doce meses, cuenta por cuenta» — banda apilada CaixaBank/Mediolanum con la misma serie de
+  dos cuentas que ya calcula el motor. Sin un «mínimo operativo» configurado en la app, el mes se
+  tiñe cuando CaixaBank queda literalmente en negativo, en vez de inventar un umbral.
+- **E-9**: conmutador «Vista familiar»/«Vista técnica» — sustituye la comparativa de seis indicadores
+  y la validación por una tarjeta con cuatro cifras en lenguaje llano, mismos datos de E-3.
+- **E-12**: pantalla nueva `#escenario-comparar` — dos selectores y la tabla de seis indicadores con
+  una columna más (plan / A / B), sin color de dirección. Los avisos de E-6b quedan fuera.
+
+**Validación**: `npm test`, exit 0, **1108/1108 pruebas** (19 nuevas en
+`tests/e1-e1b-escenarios-tipos-nuevos.test.cjs`: los tres tipos de decisión contra el motor real de
+`canonical-scenario-engine.js`, más las funciones puras de presentación). Verificado con Playwright
+contra el build local: tipos renombrados y nuevos en el selector, «Pedir deuda nueva» resuelve
+«Aplicada», crear un tipo propio deja su propio formulario listo para usar, la vista familiar oculta
+la comparativa técnica, forzar un guardarraíl roto muestra el veredicto con la palanca y permite
+guardar como aviso (tarjeta roja con «límite conocido»), comparar dos escenarios pinta las tres
+columnas. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — E-1/E-1b/E-2/E-6b/E-7/E-8/E-9/E-12 pasan
+a `Hecho` con nota de cierre. De Escenarios (17 tareas) solo quedan E-11b (bloqueada por Cierre),
+E-13 (bloqueada por D-10, parcial) y E-14 (bloqueada por Fase 7). Siguiente: Cierre (C-3b/C-10/C-11/
+C-12) y Análisis (A-4/A-5/A-8/A-9/A-11), mismo orden acordado con el usuario.
 
 ## Cierre de sesión — 16 de agosto de 2026: primer incremento real de Análisis (Fase 6)
 

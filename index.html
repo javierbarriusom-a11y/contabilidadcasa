@@ -1130,10 +1130,11 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · escenario</p>
                 <h2 class="e19-heading">Prueba una vida distinta sin tocar el plan</h2>
-                <p class="e19-subtitle">Motor unificado (E20) conectado a la interfaz, con los once tipos de decisión que resuelve de verdad: seis sobre deuda y cinco sobre ingresos, gastos, compras, proyectos e imprevistos. Cada decisión se valida contra el contrato y se resuelve de verdad: aplicada o rechazada con motivo, nunca un número inventado.</p>
+                <p class="e19-subtitle">Motor unificado (E20) conectado a la interfaz, con trece tipos de decisión que resuelve de verdad —ocho sobre deuda y cinco sobre ingresos, gastos, compras, proyectos e imprevistos— más los tipos propios que crees. Cada decisión se valida contra el contrato y se resuelve de verdad: aplicada o rechazada con motivo, nunca un número inventado.</p>
               </div>
               <div class="visual-controls">
                 <span class="e19-badge e19-badge-neutral">Modo simulación · nada se guarda</span>
+                <button type="button" class="e19-btn e19-btn-secondary" id="escenarioMotorFamilyToggle">Vista familiar</button>
               </div>
             </div>
 
@@ -1146,6 +1147,28 @@
                     <select id="escenarioMotorType"></select>
                   </label>
                   <p class="e19-kpi-note escenario-motor-type-hint" id="escenarioMotorTypeHint"></p>
+                  <button type="button" class="escenario-motor-custom-toggle" id="escenarioMotorCustomToggle">Crear un tipo propio</button>
+                  <div class="escenario-motor-custom-builder" id="escenarioMotorCustomBuilder" hidden>
+                    <label>
+                      <span>Nombre del tipo</span>
+                      <input type="text" id="escenarioMotorCustomLabel" maxlength="60" placeholder="Ej.: Herencia esperada" />
+                    </label>
+                    <label>
+                      <span>Familia</span>
+                      <select id="escenarioMotorCustomFamilia">
+                        <option value="Vida">Vida · qué pasa si cambia algo</option>
+                        <option value="Deuda">Deuda · qué hacer con lo que se debe</option>
+                      </select>
+                    </label>
+                    <fieldset class="escenario-motor-custom-fields">
+                      <legend>Campos (mes siempre incluido, ancla la decisión)</legend>
+                      <label><input type="checkbox" id="escenarioMotorCustomFieldImporte" checked /> Importe (golpe único)</label>
+                      <label><input type="checkbox" id="escenarioMotorCustomFieldMensualidad" /> Mensualidad (recurrente)</label>
+                      <label><input type="checkbox" id="escenarioMotorCustomFieldPlazo" /> Plazo (meses)</label>
+                    </fieldset>
+                    <p class="e19-kpi-note" id="escenarioMotorCustomError" hidden></p>
+                    <button type="button" class="e19-btn e19-btn-primary" id="escenarioMotorCustomCreate">Crear tipo</button>
+                  </div>
                   <div class="escenario-motor-form-grid" id="escenarioMotorFields"></div>
                   <div class="e19-insight is-warn escenario-motor-form-error" id="escenarioMotorFormError" hidden>
                     <div>
@@ -1174,6 +1197,22 @@
                   <ul class="deuda-ruta-checklist" id="escenarioMotorValidationList"></ul>
                 </article>
 
+                <div class="e19-insight escenario-motor-verdict" id="escenarioMotorVerdict" hidden></div>
+
+                <article class="e19-card escenario-motor-family-card" id="escenarioMotorFamilyCard" hidden></article>
+
+                <article class="e19-card escenario-motor-account-band-card" id="escenarioMotorAccountBandCard" hidden>
+                  <h3 class="escenario-motor-panel-title">Doce meses, cuenta por cuenta</h3>
+                  <p class="e19-kpi-note">CaixaBank operativa (abajo) y Mediolanum ahorro (arriba), apiladas mes a mes con esta simulación.</p>
+                  <div class="escenario-motor-account-band" id="escenarioMotorAccountBand"></div>
+                  <div class="escenario-motor-account-legend">
+                    <span><i class="escenario-motor-account-dot is-checking"></i>CaixaBank operativa</span>
+                    <span><i class="escenario-motor-account-dot is-savings"></i>Mediolanum ahorro</span>
+                    <span><i class="escenario-motor-account-dot is-bajo"></i>CaixaBank en negativo</span>
+                  </div>
+                  <p class="e19-kpi-note is-warn" id="escenarioMotorAccountBandNote"></p>
+                </article>
+
                 <article class="e19-card escenario-motor-chart-card">
                   <h3 class="escenario-motor-panel-title">Plan actual frente a la simulación</h3>
                   <svg id="escenarioMotorChart" class="escenario-motor-chart"></svg>
@@ -1187,7 +1226,10 @@
                   <button type="button" class="e19-btn e19-btn-secondary" id="escenarioMotorAutoAdjust">Ajustar automáticamente</button>
                 </div>
 
-                <button type="button" class="e19-btn e19-btn-primary escenario-motor-go-apply" id="escenarioMotorGoApply" disabled>Aplicar al plan</button>
+                <div class="escenario-motor-actions-row">
+                  <button type="button" class="e19-btn e19-btn-primary escenario-motor-go-apply" id="escenarioMotorGoApply" disabled>Aplicar al plan</button>
+                  <button type="button" class="e19-btn e19-btn-secondary" id="escenarioMotorSaveAviso" hidden>Guardar como aviso</button>
+                </div>
               </div>
             </div>
           </section>
@@ -1249,12 +1291,42 @@
                 <p class="e19-subtitle">Cada escenario conserva sus decisiones y la fecha en la que se aplicó. Solo uno puede estar aplicado a la vez.</p>
               </div>
               <div class="visual-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="escenarioGuardadosCompare">Comparar dos escenarios</button>
                 <button type="button" class="e19-btn e19-btn-primary" id="escenarioGuardadosNew">Nuevo escenario</button>
               </div>
             </div>
 
             <div class="escenario-motor-saved-list" id="escenarioGuardadosList"></div>
             <p class="e19-subtitle" id="escenarioGuardadosEmpty">Todavía no has aplicado ningún escenario.</p>
+          </section>
+
+          <section class="e19-escenario-motor view-section" id="escenario-comparar">
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · comparar escenarios</p>
+                <h2 class="e19-heading">Dos escenarios, uno al lado del otro</h2>
+                <p class="e19-subtitle">Los mismos seis indicadores de la comparativa, con el plan vigente como referencia. Los avisos (E-6b) no se pueden comparar: no son escenarios viables.</p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="escenarioCompararBack">Volver a guardados</button>
+              </div>
+            </div>
+
+            <p class="e19-subtitle" id="escenarioCompararEmpty">Hacen falta al menos dos escenarios guardados (no avisos) para comparar.</p>
+
+            <div id="escenarioCompararLayout" hidden>
+              <div class="escenario-motor-compare-selectors">
+                <label>
+                  <span>Escenario A</span>
+                  <select id="escenarioCompararA"></select>
+                </label>
+                <label>
+                  <span>Escenario B</span>
+                  <select id="escenarioCompararB"></select>
+                </label>
+              </div>
+              <div class="table-wrap escenario-motor-compare-wrap" id="escenarioCompararBody"></div>
+            </div>
           </section>
 
           <section class="e19-deuda-decidir view-section" id="deuda-comparar">

@@ -31,6 +31,12 @@
     "cambio_gasto",
     "traspaso",
     "cambio_presupuesto",
+    // E-1 (Escenarios.pdf, 17 de agosto): los dos tipos de deuda que el catálogo no cubría.
+    "deuda_nueva",
+    "prestamo_familiar",
+    // E-1b: un tipo propio no declara su propia forma en el esquema — todos comparten esta, con
+    // `definicionId` señalando su definición (nombre, familia, campos elegidos) en `app.js`.
+    "propio",
   ]);
 
   const ID_PATTERN = (prefix) => new RegExp(`^${prefix}_[0-9A-HJKMNP-TV-Z]{26}$`);
@@ -436,6 +442,59 @@
       if (params.bloque !== undefined && !isNonEmptyString(params.bloque)) error(issues, `${path}.bloque`, "invalid-value", "bloque debe ser una cadena no vacía.");
       if (params.nuevoTecho !== undefined && !(isFiniteNumber(params.nuevoTecho) && params.nuevoTecho >= 0)) error(issues, `${path}.nuevoTecho`, "invalid-value", "nuevoTecho debe ser un número ≥ 0.");
       requireMonth(params, "desde", path, issues, params.desde !== undefined);
+    },
+
+    // E-1: un préstamo nuevo que entra el mes indicado (suma a la liquidez) y sale como cuota fija
+    // durante `plazo` meses desde el mes siguiente. No crea un contrato de deuda real (no muta
+    // `DEBT_PORTFOLIO`): es un efecto de caja de la simulación, igual que `compra` financiada, así
+    // que no cuenta para «Fecha libre de deuda» (esa cifra sigue leyendo solo la cartera real).
+    deuda_nueva(params, path, issues) {
+      const required = ["principal", "cuota", "plazo", "mes"];
+      const allowed = [...required, "nombre"];
+      requireFields(params, required, path, issues);
+      rejectExtraProperties(params, allowed, path, issues);
+      if (params.nombre !== undefined && !isNonEmptyString(params.nombre)) error(issues, `${path}.nombre`, "invalid-value", "nombre debe ser una cadena no vacía.");
+      if (params.principal !== undefined) requirePositiveNumber(params, "principal", path, issues);
+      if (params.cuota !== undefined) requirePositiveNumber(params, "cuota", path, issues);
+      if (params.plazo !== undefined && !(isInteger(params.plazo) && params.plazo >= 1 && params.plazo <= 480)) error(issues, `${path}.plazo`, "invalid-value", "plazo debe ser un entero entre 1 y 480.");
+      requireMonth(params, "mes", path, issues, params.mes !== undefined);
+    },
+
+    // E-1: dinero que entra o sale de la familia sin banco de por medio. `direccion` decide el
+    // signo del importe inicial; la devolución (si se declara) va en sentido contrario, desde el
+    // mes siguiente. Igual que `deuda_nueva`, no toca `DEBT_PORTFOLIO`.
+    prestamo_familiar(params, path, issues) {
+      const allowed = ["direccion", "importe", "mes", "devolucionMensual", "meses"];
+      requireFields(params, ["direccion", "importe", "mes"], path, issues);
+      rejectExtraProperties(params, allowed, path, issues);
+      if (params.direccion !== undefined && !["prestamos", "nos_prestan"].includes(params.direccion)) {
+        error(issues, `${path}.direccion`, "invalid-enum", "direccion debe ser «prestamos» o «nos_prestan».");
+      }
+      if (params.importe !== undefined) requirePositiveNumber(params, "importe", path, issues);
+      requireMonth(params, "mes", path, issues, params.mes !== undefined);
+      const hasDevolucion = params.devolucionMensual !== undefined || params.meses !== undefined;
+      if (hasDevolucion) {
+        if (params.devolucionMensual !== undefined) requirePositiveNumber(params, "devolucionMensual", path, issues);
+        else error(issues, `${path}.devolucionMensual`, "missing-required-field", "devolucionMensual es obligatorio cuando se declara meses.");
+        if (params.meses !== undefined && !(isInteger(params.meses) && params.meses >= 1)) error(issues, `${path}.meses`, "invalid-value", "meses debe ser un entero ≥ 1.");
+        else if (params.meses === undefined) error(issues, `${path}.meses`, "missing-required-field", "meses es obligatorio cuando se declara devolucionMensual.");
+      }
+    },
+
+    // E-1b: un tipo propio siempre valida contra esta forma genérica — los campos que su
+    // definición no eligió simplemente no aparecen en `params`. `mes` ancla siempre la decisión
+    // (igual que en los once tipos de fábrica); el resto son las mismas cuatro piezas que ofrece el
+    // constructor: importe (de golpe), mensualidad + plazo (recurrente).
+    propio(params, path, issues) {
+      const allowed = ["definicionId", "nombre", "importe", "mensualidad", "plazo", "mes"];
+      requireFields(params, ["definicionId", "nombre", "mes"], path, issues);
+      rejectExtraProperties(params, allowed, path, issues);
+      if (params.definicionId !== undefined && !isNonEmptyString(params.definicionId)) error(issues, `${path}.definicionId`, "invalid-value", "definicionId debe ser una cadena no vacía.");
+      if (params.nombre !== undefined && !isNonEmptyString(params.nombre)) error(issues, `${path}.nombre`, "invalid-value", "nombre debe ser una cadena no vacía.");
+      if (params.importe !== undefined) requirePositiveNumber(params, "importe", path, issues);
+      if (params.mensualidad !== undefined) requirePositiveNumber(params, "mensualidad", path, issues);
+      if (params.plazo !== undefined && !(isInteger(params.plazo) && params.plazo >= 1 && params.plazo <= 480)) error(issues, `${path}.plazo`, "invalid-value", "plazo debe ser un entero entre 1 y 480.");
+      requireMonth(params, "mes", path, issues, params.mes !== undefined);
     },
   });
 

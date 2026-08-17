@@ -22007,6 +22007,14 @@ function renderDebtLiquidationPlan() {
 let escenarioMotorDecisions = [];
 let escenarioMotorSavedSeq = 0;
 let escenarioMotorGuardrailValue = null;
+let escenarioMotorGuardrailDebounceTimer = null;
+// E-9: conmutador «Vista familiar» — sustituye la comparativa técnica (tabla de seis indicadores +
+// validación) por una tarjeta con las cuatro cifras que importan en casa. No cambia ningún cálculo.
+let escenarioMotorFamilyView = false;
+// E-1b: constructor de tipos propios, visible/oculto y con su propio borrador — independiente del
+// borrador de decisión (`escenarioMotorDraftValues`), que sigue siendo del tipo seleccionado.
+let escenarioMotorCustomBuilderOpen = false;
+let escenarioMotorCustomDraft = { familia: "Vida", campos: ["importe"] };
 
 function escenarioMotorBaseInput() {
   return canonicalEngineInput(projectPlan.outflows || []);
@@ -22054,6 +22062,16 @@ function escenarioMotorNewDecisionId() {
     out += ESCENARIO_MOTOR_ID_ALPHABET[Math.floor(Math.random() * ESCENARIO_MOTOR_ID_ALPHABET.length)];
   }
   return `dec_${out}`;
+}
+
+// E-1b: identificador de una definición de tipo propio — no es un id de decisión (no tiene por qué
+// cumplir el patrón `dec_…` del esquema, solo aparece como `params.definicionId`, una cadena libre).
+function escenarioMotorNewCustomTypeId() {
+  let out = "";
+  for (let index = 0; index < 16; index += 1) {
+    out += ESCENARIO_MOTOR_ID_ALPHABET[Math.floor(Math.random() * ESCENARIO_MOTOR_ID_ALPHABET.length)];
+  }
+  return `propio-${out}`;
 }
 
 function escenarioMotorTrim(value, max = 60) {
@@ -22108,7 +22126,9 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
   {
     id: "refinanciacion",
     grupo: "Deuda",
-    label: "Refinanciar deuda",
+    // E-1 (Escenarios.pdf, 17 de agosto): renombrado de «Refinanciar deuda» — mismo id, misma
+    // mecánica (sustituye principal/cuota/TIN/plazo), el nombre del mockup real.
+    label: "Cambiar condiciones",
     ayuda: "Sustituye principal, cuota, TIN y plazo de una deuda desde el mes indicado. Las comisiones aún no se modelan como flujo de caja aparte.",
     campos: [
       { key: "deudaId", kind: "debt", label: "Deuda" },
@@ -22133,7 +22153,9 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
   {
     id: "reunificacion",
     grupo: "Deuda",
-    label: "Reunificar varias deudas",
+    // E-1: renombrado de «Reunificar varias deudas» — mismo id, misma mecánica, el nombre del
+    // mockup real.
+    label: "Reunificar deuda",
     ayuda: "Cierra dos o más deudas y abre una cuenta nueva con el capital, cuota y plazo pactados. Mantén pulsado Ctrl (o Cmd) para elegir varias.",
     campos: [
       { key: "deudaIds", kind: "debtMulti", label: "Deudas a reunificar (mínimo 2)", ancho: true },
@@ -22187,6 +22209,52 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     titulo: (v, h) => `Quita ${h.debtLabel(v.deudaId)}`,
     detalle: (d) => money(d.params?.importePactado, true),
     importeTexto: (d) => money(d.params?.importePactado, true),
+  },
+  {
+    // E-1: los dos tipos de deuda que el catálogo no cubría todavía (Escenarios.pdf, 17 de
+    // agosto). No crean un contrato real en `DEBT_PORTFOLIO` — son un efecto de caja de la
+    // simulación, igual que «Compra» financiada — así que no cuentan para «Fecha libre de deuda».
+    id: "deuda_nueva",
+    grupo: "Deuda",
+    label: "Pedir deuda nueva",
+    ayuda: "Entra el principal de golpe en el mes elegido y sale como cuota fija desde el mes siguiente. No crea un contrato en Deuda › Contratos ni cuenta para la fecha libre de deuda.",
+    campos: [
+      { key: "nombre", kind: "text", label: "Para qué (opcional)", opcional: true },
+      { key: "principal", kind: "money", label: "Principal recibido" },
+      { key: "cuota", kind: "money", label: "Cuota mensual" },
+      { key: "plazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
+      { key: "mes", kind: "month", label: "Mes en que se recibe" },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => (v.nombre ? { nombre: v.nombre, principal: v.principal, cuota: v.cuota, plazo: escenarioMotorInt(v.plazo), mes: v.mes } : { principal: v.principal, cuota: v.cuota, plazo: escenarioMotorInt(v.plazo), mes: v.mes }),
+    titulo: (v) => escenarioMotorTrim(v.nombre ? `Deuda nueva · ${v.nombre}` : "Pedir deuda nueva"),
+    detalle: (d) => `${money(d.params?.cuota, true)}/mes · ${d.params?.plazo || 0} meses`,
+    importeTexto: (d) => money(d.params?.principal, true),
+  },
+  {
+    id: "prestamo_familiar",
+    grupo: "Deuda",
+    label: "Prestar o cobrar a familia",
+    ayuda: "Dinero que entra o sale sin banco de por medio. La devolución (opcional) va en sentido contrario desde el mes siguiente, con las cifras que escribas — no comprueba que cuadren con el importe inicial.",
+    campos: [
+      { key: "direccion", kind: "select", label: "Dirección", controla: true, opciones: [["prestamos", "Prestamos nosotros"], ["nos_prestan", "Nos prestan"]] },
+      { key: "importe", kind: "money", label: "Importe" },
+      { key: "mes", kind: "month", label: "Mes" },
+      { key: "devolucionMensual", kind: "money", label: "Devolución mensual (opcional)", opcional: true },
+      { key: "meses", kind: "int", label: "Durante (meses)", min: 1, opcional: true, visibleSi: (v) => v.devolucionMensual !== undefined },
+    ],
+    mes: (v) => v.mes,
+    params: (v) => {
+      const params = { direccion: v.direccion || "prestamos", importe: v.importe, mes: v.mes };
+      if (v.devolucionMensual !== undefined && v.meses !== undefined) {
+        params.devolucionMensual = v.devolucionMensual;
+        params.meses = escenarioMotorInt(v.meses);
+      }
+      return params;
+    },
+    titulo: (v) => (v.direccion === "nos_prestan" ? `Nos prestan ${money(v.importe, true)}` : `Prestamos ${money(v.importe, true)}`),
+    detalle: (d) => (d.params?.devolucionMensual ? `Devolución ${money(d.params.devolucionMensual, true)}/mes · ${d.params.meses || 0} meses` : "Sin devolución declarada"),
+    importeTexto: (d) => money(d.params?.importe, true),
   },
   {
     id: "compra",
@@ -22303,11 +22371,114 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
   },
 ]);
 
+// E-1b (Escenarios.pdf, 17 de agosto): "Se puede crear un tipo nuevo con su nombre, familia y sus
+// campos (importe, mensualidad, plazo, mes). Se guarda en el catálogo, aparece en la lista y se
+// valida contra las mismas comprobaciones que los once tipos de fábrica." `mes` ancla siempre la
+// decisión (sin mes no hay dónde situarla en el horizonte) — los otros tres son los que elige quien
+// crea el tipo. En el motor y el esquema todos comparten el tipo `propio`; `definicionId` distingue
+// cuál de los tipos propios guardados es cada decisión.
+const ESCENARIO_MOTOR_CUSTOM_FIELD_DEFS = Object.freeze({
+  importe: { key: "importe", kind: "money", label: "Importe" },
+  mensualidad: { key: "mensualidad", kind: "money", label: "Mensualidad" },
+  plazo: { key: "plazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
+});
+
+function loadEscenarioMotorCustomTypes() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("escenario-motor-custom-types"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveEscenarioMotorCustomTypesList(list) {
+  storageSet(storageKey("escenario-motor-custom-types"), JSON.stringify(list));
+}
+
+// Convierte una definición guardada en un objeto con la misma forma que un tipo de fábrica —
+// `campos`/`mes`/`params`/`titulo`/`detalle`/`importeTexto` — para que el resto del formulario
+// (`escenarioMotorFieldHtml`, `escenarioMotorEffectiveValues`…) no distinga entre ambos. `id` es la
+// clave de selección en el formulario (`propio_<definicionId>`, única por definición); `engineTipo`
+// es el tipo real que se manda al motor y al esquema (siempre `"propio"`).
+function escenarioMotorCustomTypeEntry(custom) {
+  const campos = (custom.campos || [])
+    .map((key) => ESCENARIO_MOTOR_CUSTOM_FIELD_DEFS[key])
+    .filter(Boolean)
+    .concat([{ key: "mes", kind: "month", label: "Mes" }]);
+  return {
+    id: `propio_${custom.id}`,
+    engineTipo: "propio",
+    definicionId: custom.id,
+    // Mockup: los tipos propios se listan aparte («Propios · lo que no encaja arriba»), no
+    // mezclados en Deuda/Vida — `familia` queda en la definición solo como metadato informativo.
+    grupo: "Propios",
+    familia: custom.familia,
+    label: custom.label,
+    ayuda: "Tipo propio: se resuelve como golpe único (importe) y/o cuota recurrente (mensualidad durante el plazo) desde el mes elegido — la misma comprobación de contrato que los once de fábrica.",
+    campos,
+    mes: (v) => v.mes,
+    params: (v) => {
+      const params = { definicionId: custom.id, nombre: custom.label, mes: v.mes };
+      if ((custom.campos || []).includes("importe") && v.importe !== undefined) params.importe = v.importe;
+      if ((custom.campos || []).includes("mensualidad") && v.mensualidad !== undefined) params.mensualidad = v.mensualidad;
+      if ((custom.campos || []).includes("plazo") && v.plazo !== undefined) params.plazo = escenarioMotorInt(v.plazo);
+      return params;
+    },
+    titulo: () => escenarioMotorTrim(custom.label),
+    detalle: (d) => {
+      const parts = [];
+      if (d.params?.importe !== undefined) parts.push(money(d.params.importe, true));
+      if (d.params?.mensualidad !== undefined) parts.push(`${money(d.params.mensualidad, true)}/mes${d.params.plazo ? ` · ${d.params.plazo} meses` : ""}`);
+      return parts.join(" · ") || "—";
+    },
+    importeTexto: (d) => (d.params?.importe !== undefined
+      ? money(d.params.importe, true)
+      : d.params?.mensualidad !== undefined
+        ? `${money(d.params.mensualidad, true)}/mes`
+        : "—"),
+  };
+}
+
+function escenarioMotorCustomTypeEntries() {
+  return loadEscenarioMotorCustomTypes().map(escenarioMotorCustomTypeEntry);
+}
+
+function escenarioMotorAllTypeEntries() {
+  return ESCENARIO_MOTOR_TYPES.concat(escenarioMotorCustomTypeEntries());
+}
+
 let escenarioMotorDraftTipo = ESCENARIO_MOTOR_TYPES[0].id;
 let escenarioMotorDraftValues = {};
 
 function escenarioMotorTypeById(tipo) {
   return ESCENARIO_MOTOR_TYPES.find((item) => item.id === tipo) || null;
+}
+
+// A diferencia de `escenarioMotorTypeById` (solo catálogo de fábrica, el que ya reutilizaba Deuda ›
+// Comparar), esta también busca entre los tipos propios — hace falta donde `escenarioMotorDraftTipo`
+// puede llevar una clave `propio_<id>` (el formulario de decisión), no donde siempre es uno de
+// fábrica (D-5).
+function escenarioMotorTypeOrCustomById(tipo) {
+  return escenarioMotorAllTypeEntries().find((item) => item.id === tipo) || null;
+}
+
+// Las decisiones guardadas (o ya añadidas a la simulación) de un tipo propio llevan `tipo: "propio"`
+// — no basta con `escenarioMotorTypeById` para reconstruir cuál definición era, hace falta
+// `params.definicionId`. Si la definición se hubiera borrado (no hay manera de borrarlas todavía,
+// pero el código no lo da por hecho) se degrada a un texto honesto en vez de romper el render.
+function escenarioMotorResolveType(decision) {
+  if (decision?.tipo !== "propio") return escenarioMotorTypeById(decision?.tipo);
+  const custom = loadEscenarioMotorCustomTypes().find((item) => item.id === decision.params?.definicionId);
+  if (custom) return escenarioMotorCustomTypeEntry(custom);
+  return {
+    id: "propio",
+    grupo: "Propios",
+    label: "Tipo propio eliminado",
+    titulo: () => decision.titulo || "Tipo propio eliminado",
+    detalle: () => "",
+    importeTexto: () => "—",
+  };
 }
 
 function escenarioMotorVisibleFields(type, values) {
@@ -22411,7 +22582,7 @@ function escenarioMotorReadFieldValue(field, element) {
 }
 
 function escenarioMotorSyncDraftValues() {
-  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const type = escenarioMotorTypeOrCustomById(escenarioMotorDraftTipo);
   const container = qs("escenarioMotorFields");
   if (!type || !container) return;
   type.campos.forEach((field) => {
@@ -22422,7 +22593,7 @@ function escenarioMotorSyncDraftValues() {
 }
 
 function escenarioMotorSyncFieldVisibility() {
-  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const type = escenarioMotorTypeOrCustomById(escenarioMotorDraftTipo);
   const container = qs("escenarioMotorFields");
   if (!type || !container) return;
   type.campos.forEach((field) => {
@@ -22441,9 +22612,12 @@ function renderEscenarioMotorForm(baseInput) {
   const hint = qs("escenarioMotorTypeHint");
   if (!typeSelect || !container) return;
 
-  if (!typeSelect.childElementCount) {
+  const allTypes = escenarioMotorAllTypeEntries();
+  // E-1b: se reconstruye también cuando cambia el número de tipos propios guardados (crear uno
+  // nuevo), no solo la primera vez — `childElementCount` por sí solo no lo detectaría.
+  if (!typeSelect.childElementCount || typeSelect.dataset.typeCount !== String(allTypes.length)) {
     const grupos = [];
-    ESCENARIO_MOTOR_TYPES.forEach((type) => {
+    allTypes.forEach((type) => {
       const grupo = grupos.find((item) => item.nombre === type.grupo);
       if (grupo) grupo.tipos.push(type);
       else grupos.push({ nombre: type.grupo, tipos: [type] });
@@ -22453,10 +22627,11 @@ function renderEscenarioMotorForm(baseInput) {
         .map((type) => `<option value="${escapeHtml(type.id)}">${escapeHtml(type.label)}</option>`)
         .join("")}</optgroup>`)
       .join("");
+    typeSelect.dataset.typeCount = String(allTypes.length);
   }
   typeSelect.value = escenarioMotorDraftTipo;
 
-  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const type = escenarioMotorTypeOrCustomById(escenarioMotorDraftTipo);
   if (hint) hint.textContent = type?.ayuda || "";
   if (!type) return;
 
@@ -22907,7 +23082,7 @@ function escenarioMotorNavigate(viewId) {
 // título del catálogo, que solo lee claves presentes también en `params`.
 function escenarioMotorDecisionTitle(decision, debts) {
   if (decision.titulo) return decision.titulo;
-  const type = escenarioMotorTypeById(decision.tipo);
+  const type = escenarioMotorResolveType(decision);
   if (!type) return decision.tipo || "Decisión";
   const debtLabel = (deudaId) => {
     const contract = debts?.get(deudaId);
@@ -22917,12 +23092,12 @@ function escenarioMotorDecisionTitle(decision, debts) {
 }
 
 function escenarioMotorDecisionDetail(decision) {
-  const type = escenarioMotorTypeById(decision.tipo);
+  const type = escenarioMotorResolveType(decision);
   return type && typeof type.detalle === "function" ? type.detalle(decision) : "";
 }
 
 function escenarioMotorDecisionAmountText(decision) {
-  const type = escenarioMotorTypeById(decision.tipo);
+  const type = escenarioMotorResolveType(decision);
   return type && typeof type.importeTexto === "function" ? type.importeTexto(decision) : "—";
 }
 
@@ -22944,6 +23119,130 @@ function escenarioMotorDraftName() {
   return parts.join(" + ") || "Escenario sin nombre";
 }
 
+// E-7 (Escenarios.pdf): "Además del diagnóstico, nombra qué parámetro habría que cambiar y qué
+// dirección para que el escenario deje de romper la reserva." Reutiliza las mismas cuatro
+// comprobaciones de E-5 — nunca vuelve a decidir por su cuenta si algo falla — y nombra la decisión
+// concreta que rompe el guardarraíl cuando la hay, con una dirección genérica (importe o mes), no
+// una cifra recalculada: dar un número exacto exigiría probar valores hasta encontrar uno viable,
+// un buscador que esta pantalla no tiene (eso es lo que hace «Ajustar automáticamente» con el mes,
+// no con el importe).
+function escenarioMotorVerdictText(checks, decisions, rejected) {
+  if (!decisions.length) return "";
+  const reserva = checks.find((check) => check.id === "reserva");
+  if (reserva?.status === "fail") {
+    const culprit = rejected.find((item) => item.resultado === "guardarril-incumplido");
+    const decision = culprit ? decisions.find((item) => item.id === culprit.id) : null;
+    const debts = new Map(canonicalDebtContractRows().map((contract) => [contract.id, contract]));
+    const nombre = decision ? escenarioMotorDecisionTitle(decision, debts) : "una de las decisiones";
+    return `Esta simulación rompe la reserva mínima indicada. La palanca es «${nombre}»: reduce su importe o elígele un mes con más margen.`;
+  }
+  const capacidad = checks.find((check) => check.id === "capacidad");
+  if (capacidad?.status === "fail") {
+    return "La capacidad libre real queda en negativo: reduce el gasto comprometido en esta simulación o repártelo en más meses para que deje de romperla.";
+  }
+  const condiciones = checks.find((check) => check.id === "condiciones");
+  if (condiciones?.status === "fail") {
+    return "Alguna decisión no cumple sus propias condiciones (ver su motivo en la lista); el resto de la simulación no rompe ningún límite conocido.";
+  }
+  return "Esta simulación no rompe ningún límite conocido con las decisiones actuales.";
+}
+
+// E-8: "Liquidez apilada CaixaBank / Mediolanum mes a mes; los meses bajo el mínimo operativo se
+// tiñen y se nombran." El motor de dos cuentas ya reparte cada mes en `checking` (CaixaBank) y
+// `savings` (Mediolanum) — la banda es una lectura nueva de esa misma serie, no un cálculo nuevo.
+// Sin una cifra de «mínimo operativo» configurada en la app, el umbral honesto es 0: CaixaBank en
+// negativo ese mes (regla transversal 04, no inventar un umbral que no existe en Ajustes).
+function escenarioMotorAccountBand(scenarioSeries, months) {
+  const sample = scenarioSeries.slice(0, 12);
+  return sample.map((row, index) => ({
+    key: months[index]?.key || "",
+    label: months[index]?.month || "",
+    checking: round2(row.checking ?? 0),
+    savings: round2(row.savings ?? 0),
+    bajoMinimo: (row.checking ?? 0) < 0,
+  }));
+}
+
+function escenarioMotorAccountBandHtml(band) {
+  if (!band.length) return "";
+  const max = Math.max(1, ...band.map((item) => Math.abs(item.checking) + Math.max(0, item.savings)));
+  return band
+    .map((item) => {
+      const checkingHeight = round2((Math.abs(item.checking) / max) * 100);
+      const savingsHeight = round2((Math.max(0, item.savings) / max) * 100);
+      return `<div class="escenario-motor-account-col${item.bajoMinimo ? " is-bajo-minimo" : ""}">
+        <div class="escenario-motor-account-bar">
+          <span class="escenario-motor-account-seg is-savings" style="height:${savingsHeight}%"></span>
+          <span class="escenario-motor-account-seg ${item.bajoMinimo ? "is-bajo" : "is-checking"}" style="height:${checkingHeight}%"></span>
+        </div>
+        <span class="escenario-motor-account-label">${escapeHtml(item.label)}</span>
+      </div>`;
+    })
+    .join("");
+}
+
+function escenarioMotorAccountBandNote(band) {
+  const bajo = band.filter((item) => item.bajoMinimo);
+  if (!bajo.length) return "";
+  return `${bajo.map((item) => item.label).join(", ")} queda${bajo.length > 1 ? "n" : ""} con CaixaBank en negativo.`;
+}
+
+// E-9: "El conmutador de la barra sustituye la vista entera: desaparecen la tabla de indicadores y
+// la validación, y queda la explicación llana con las cuatro cifras que importan en casa." Las
+// cuatro son un subconjunto de los seis indicadores de E-3 (los dos más operativos —peor mes,
+// capacidad libre— se quedan en la vista técnica): mismas cifras, sin recalcular nada.
+function escenarioMotorFamilyCardHtml(scenarioSummary) {
+  const rows = [
+    ["¿Cuánto nos queda?", scenarioSummary.liquidezFinal !== null ? money(scenarioSummary.liquidezFinal, true) : "—"],
+    ["¿Cuántos meses aguantaríamos sin ingresos?", scenarioSummary.mesesColchon !== null ? `${scenarioSummary.mesesColchon.toFixed(1)} meses` : "—"],
+    ["¿Cuándo dejamos de deber?", escenarioMotorMonthLabel(scenarioSummary.libreDeDeuda)],
+    ["¿Cuánto ahorramos al año?", scenarioSummary.ahorroAnual !== null ? money(scenarioSummary.ahorroAnual, true) : "—"],
+  ];
+  return `<article class="e19-card escenario-motor-family-card">
+    <h3 class="escenario-motor-panel-title">Explicado para casa</h3>
+    <dl class="escenario-motor-family-list">${rows
+      .map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`)
+      .join("")}</dl>
+  </article>`;
+}
+
+// E-6b: "Un escenario rechazado se puede guardar como aviso: queda etiquetado «esto es lo que no
+// aguantamos» y no se puede aplicar." Reutiliza el texto de rechazo ya calculado (E-5/E-6) — nunca
+// inventa una explicación nueva — y comparte la lista de guardados con estado `"aviso"`, distinto
+// de `"guardado"`/`"aplicado"`.
+function escenarioMotorAvisoReason(rejected) {
+  if (!rejected.length) return "Rechazado sin motivo declarado.";
+  const info = escenarioMotorRejectionInfo(rejected[0]) || escenarioMotorResultInfo(rejected[0].resultado);
+  return `${info?.text || "Rechazado"}.`;
+}
+
+function handleEscenarioMotorSaveAviso() {
+  if (!escenarioMotorDecisions.length) return;
+  const baseInput = escenarioMotorBaseInput();
+  const result = runEscenarioMotor(baseInput, escenarioMotorDecisions, escenarioMotorGuardrailValue);
+  const rejected = (result?.resultados || []).filter((item) => item.resultado !== "aplicada" && item.resultado !== "inactiva");
+  if (!rejected.length) return;
+  const saved = loadEscenarioMotorSaved();
+  escenarioMotorSavedSeq += 1;
+  saved.unshift({
+    id: `escenario-guardado-${Date.now()}-${escenarioMotorSavedSeq}`,
+    nombre: escenarioMotorDraftName(),
+    motivo: escenarioMotorAvisoReason(rejected),
+    estado: "aviso",
+    fecha: new Date().toISOString(),
+    decisiones: JSON.parse(JSON.stringify(escenarioMotorDecisions)),
+    guardrailValue: escenarioMotorGuardrailValue,
+  });
+  saveEscenarioMotorSavedList(saved);
+  escenarioMotorDecisions = [];
+  renderEscenarioSimular();
+}
+
+function handleEscenarioMotorFamilyToggle() {
+  escenarioMotorFamilyView = !escenarioMotorFamilyView;
+  renderEscenarioSimular();
+}
+
 function renderEscenarioSimular() {
   renderScenarioDependencyNotice("escenario-simular");
   const baseInput = escenarioMotorBaseInput();
@@ -22963,7 +23262,17 @@ function renderEscenarioSimular() {
   const warningText = qs("escenarioMotorWarningText");
   const autoAdjustButton = qs("escenarioMotorAutoAdjust");
   const goApplyButton = qs("escenarioMotorGoApply");
+  const saveAvisoButton = qs("escenarioMotorSaveAviso");
+  const verdictEl = qs("escenarioMotorVerdict");
+  const accountBandCard = qs("escenarioMotorAccountBandCard");
+  const accountBandEl = qs("escenarioMotorAccountBand");
+  const accountBandNoteEl = qs("escenarioMotorAccountBandNote");
+  const familyToggle = qs("escenarioMotorFamilyToggle");
+  const familyCard = qs("escenarioMotorFamilyCard");
   if (!body || !kpis) return;
+
+  familyToggle?.classList.toggle("is-active", escenarioMotorFamilyView);
+  if (familyToggle) familyToggle.textContent = escenarioMotorFamilyView ? "Vista técnica" : "Vista familiar";
 
   const baseResult = runEscenarioMotor(baseInput, [], null);
 
@@ -22975,6 +23284,9 @@ function renderEscenarioSimular() {
     if (validationList) validationList.innerHTML = "";
     if (warning) warning.hidden = true;
     if (goApplyButton) goApplyButton.disabled = true;
+    if (verdictEl) verdictEl.hidden = true;
+    if (familyCard) familyCard.hidden = true;
+    if (accountBandCard) accountBandCard.hidden = true;
     renderEscenarioMotorChart(baseResult?.series || [], baseResult?.series || [], baseInput.months, escenarioMotorGuardrailValue);
     return;
   }
@@ -22984,6 +23296,7 @@ function renderEscenarioSimular() {
   const debts = new Map(canonicalDebtContractRows().map((contract) => [contract.id, contract]));
   const resultadosById = new Map((result?.resultados || []).map((item) => [item.id, item]));
   const rejected = (result?.resultados || []).filter((item) => item.resultado !== "aplicada");
+  if (saveAvisoButton) saveAvisoButton.hidden = !rejected.length;
 
   body.innerHTML = escenarioMotorDecisions
     .map((decision) => {
@@ -23015,17 +23328,38 @@ function renderEscenarioSimular() {
     if (validationList) validationList.innerHTML = "";
     if (warning) warning.hidden = true;
     if (goApplyButton) goApplyButton.disabled = true;
+    if (verdictEl) verdictEl.hidden = true;
+    if (familyCard) familyCard.hidden = true;
+    if (accountBandCard) accountBandCard.hidden = true;
     return;
   }
 
   const baseSummary = escenarioMotorSummaryFor(baseResult, baseInput.months);
   const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
-  kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
-  if (validationCard) validationCard.hidden = false;
-  if (validationList) {
-    validationList.innerHTML = escenarioMotorValidationChecklistHtml(
-      escenarioMotorValidationChecks(result, scenarioSummary, escenarioMotorGuardrailValue)
-    );
+  const checks = escenarioMotorValidationChecks(result, scenarioSummary, escenarioMotorGuardrailValue);
+
+  // E-9: el conmutador sustituye la comparativa técnica entera por la tarjeta llana — nunca se
+  // muestran las dos a la vez.
+  if (kpis) kpis.hidden = escenarioMotorFamilyView;
+  if (validationCard) validationCard.hidden = escenarioMotorFamilyView;
+  if (verdictEl) verdictEl.hidden = escenarioMotorFamilyView;
+  if (familyCard) {
+    familyCard.hidden = !escenarioMotorFamilyView;
+    if (escenarioMotorFamilyView) familyCard.innerHTML = escenarioMotorFamilyCardHtml(scenarioSummary);
+  }
+  if (!escenarioMotorFamilyView) {
+    kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
+    if (validationList) validationList.innerHTML = escenarioMotorValidationChecklistHtml(checks);
+    if (verdictEl) verdictEl.textContent = escenarioMotorVerdictText(checks, escenarioMotorDecisions, result.resultados || []);
+  }
+
+  // E-8: banda de doce meses por cuenta — se ve en ambas vistas, técnica y familiar, porque no es
+  // parte de «la tabla de indicadores» que E-9 retira.
+  if (accountBandCard) accountBandCard.hidden = false;
+  if (accountBandEl || accountBandNoteEl) {
+    const band = escenarioMotorAccountBand(result.series || [], baseInput.months);
+    if (accountBandEl) accountBandEl.innerHTML = escenarioMotorAccountBandHtml(band);
+    if (accountBandNoteEl) accountBandNoteEl.textContent = escenarioMotorAccountBandNote(band);
   }
 
   if (rejected.length) {
@@ -23049,7 +23383,7 @@ function renderEscenarioSimular() {
 // dejar entrar una decisión que el motor resolvería a medias o ignoraría.
 function handleEscenarioMotorSubmit(event) {
   event.preventDefault();
-  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const type = escenarioMotorTypeOrCustomById(escenarioMotorDraftTipo);
   if (!type) return;
   escenarioMotorSyncDraftValues();
   const values = escenarioMotorEffectiveValues(type, escenarioMotorDraftValues);
@@ -23057,7 +23391,9 @@ function handleEscenarioMotorSubmit(event) {
 
   const decision = {
     id: escenarioMotorNewDecisionId(),
-    tipo: type.id,
+    // E-1b: un tipo propio se identifica en el formulario por su clave de selección
+    // (`propio_<definicionId>`), pero el motor y el esquema solo conocen el tipo real `"propio"`.
+    tipo: type.engineTipo || type.id,
     titulo: escenarioMotorTrim(type.titulo(values, { debtLabel: escenarioMotorDebtLabelById }) || type.label),
     activa: true,
     orden: escenarioMotorDecisions.length,
@@ -23109,13 +23445,70 @@ function handleEscenarioMotorTypeChange(event) {
   renderEscenarioMotorForm(escenarioMotorBaseInput());
 }
 
+// E-1b: el constructor de tipos propios es un panel plegable independiente del formulario de
+// decisión — abrirlo/cerrarlo no toca `escenarioMotorDraftTipo` ni el borrador en curso.
+function handleEscenarioMotorCustomToggle() {
+  escenarioMotorCustomBuilderOpen = !escenarioMotorCustomBuilderOpen;
+  const builder = qs("escenarioMotorCustomBuilder");
+  if (builder) builder.hidden = !escenarioMotorCustomBuilderOpen;
+}
+
+function escenarioMotorCustomFieldsFromForm() {
+  const campos = [];
+  if (qs("escenarioMotorCustomFieldImporte")?.checked) campos.push("importe");
+  if (qs("escenarioMotorCustomFieldMensualidad")?.checked) campos.push("mensualidad");
+  if (qs("escenarioMotorCustomFieldPlazo")?.checked) campos.push("plazo");
+  return campos;
+}
+
+// Crea la definición y deja el simulador listo para su primera decisión: el tipo nuevo queda
+// seleccionado, con su propio formulario (los campos elegidos + mes) ya pintado.
+function handleEscenarioMotorCustomCreate() {
+  const labelInput = qs("escenarioMotorCustomLabel");
+  const familiaSelect = qs("escenarioMotorCustomFamilia");
+  const errorEl = qs("escenarioMotorCustomError");
+  const label = (labelInput?.value || "").trim();
+  const campos = escenarioMotorCustomFieldsFromForm();
+  const showError = (message) => {
+    if (errorEl) {
+      errorEl.hidden = false;
+      errorEl.textContent = message;
+    }
+  };
+  if (!label) {
+    showError("Ponle un nombre al tipo.");
+    return;
+  }
+  if (!campos.length) {
+    showError("Elige al menos un campo, además del mes.");
+    return;
+  }
+  if (errorEl) errorEl.hidden = true;
+
+  const custom = {
+    id: escenarioMotorNewCustomTypeId(),
+    familia: familiaSelect?.value === "Deuda" ? "Deuda" : "Vida",
+    label: escenarioMotorTrim(label, 60),
+    campos,
+  };
+  const list = loadEscenarioMotorCustomTypes();
+  list.push(custom);
+  saveEscenarioMotorCustomTypesList(list);
+
+  escenarioMotorCustomBuilderOpen = false;
+  if (labelInput) labelInput.value = "";
+  escenarioMotorDraftTipo = `propio_${custom.id}`;
+  escenarioMotorDraftValues = {};
+  renderEscenarioSimular();
+}
+
 // Solo reacciona a los campos que gobiernan la visibilidad de otros (la casilla «la financio», el
 // selector de modalidad…); el resto se lee al enviar, para no reconstruir el formulario mientras se
 // escribe en él.
 function handleEscenarioMotorFieldChange(event) {
   const key = event.target?.dataset?.escenarioMotorField;
   if (!key) return;
-  const type = escenarioMotorTypeById(escenarioMotorDraftTipo);
+  const type = escenarioMotorTypeOrCustomById(escenarioMotorDraftTipo);
   const field = type?.campos.find((item) => item.key === key);
   if (!field) return;
   escenarioMotorDraftValues[key] = escenarioMotorReadFieldValue(field, event.target);
@@ -23127,10 +23520,15 @@ function handleEscenarioMotorRemove(id) {
   renderEscenarioSimular();
 }
 
+// E-2 (Escenarios.pdf): "el resultado se recalcula al editar, con 120 ms de debounce sobre el
+// cálculo" — este campo es el único que recalcula la simulación completa mientras se escribe (los
+// campos por tipo solo se leen al enviar, R-6/E-2 no aplican ahí). Se lee el valor al vuelo para
+// que el propio `<input>` nunca pierda lo que se ha tecleado, pero el recálculo/render se retrasa.
 function handleEscenarioMotorGuardrailInput(event) {
   const value = Number(event.target.value);
   escenarioMotorGuardrailValue = Number.isFinite(value) && value > 0 ? value : null;
-  renderEscenarioSimular();
+  clearTimeout(escenarioMotorGuardrailDebounceTimer);
+  escenarioMotorGuardrailDebounceTimer = setTimeout(renderEscenarioSimular, 120);
 }
 
 // «Ajustar automáticamente» reutiliza el buscador de mes óptimo real del motor (planificacion.modo
@@ -23287,11 +23685,16 @@ function renderEscenarioGuardados() {
     .map((entry) => {
       const result = runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null);
       const summary = escenarioMotorSummaryFor(result, baseInput.months);
+      // E-6b: un tercer estado, distinto de aplicado/guardado — el escenario no converge y se
+      // guarda para no repetir el mismo intento sin darse cuenta.
       const estadoInfo = entry.estado === "aplicado"
         ? { text: "Aplicado", badge: "e19-badge-success" }
-        : { text: "Guardado", badge: "e19-badge-neutral" };
+        : entry.estado === "aviso"
+          ? { text: "Aviso", badge: "e19-badge-danger" }
+          : { text: "Guardado", badge: "e19-badge-neutral" };
       const fecha = entry.fecha ? new Date(entry.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "";
-      return `<article class="escenario-motor-saved-card${entry.estado === "aplicado" ? " is-aplicado" : ""}">
+      const cardClass = entry.estado === "aplicado" ? " is-aplicado" : entry.estado === "aviso" ? " is-aviso" : "";
+      return `<article class="escenario-motor-saved-card${cardClass}">
         <div class="escenario-motor-saved-head">
           <span class="e19-badge ${estadoInfo.badge}">${estadoInfo.text}</span>
           <strong>${escapeHtml(entry.nombre || "Escenario")}</strong>
@@ -23302,6 +23705,7 @@ function renderEscenarioGuardados() {
           <div><span>Caja mínima</span><strong>${money(summary.minimoLiquidez ?? 0, true)}</strong></div>
           <div><span>Liquidez final</span><strong>${money(summary.liquidezFinal ?? 0, true)}</strong></div>
         </div>
+        ${entry.estado === "aviso" ? `<p class="escenario-motor-saved-limite">límite conocido</p>` : ""}
         <div class="escenario-motor-saved-actions">
           <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-load="${escapeHtml(entry.id)}">Cargar en simulador</button>
           <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-delete="${escapeHtml(entry.id)}">Eliminar</button>
@@ -23328,6 +23732,75 @@ function handleEscenarioGuardadosNew() {
   escenarioMotorDecisions = [];
   escenarioMotorGuardrailValue = null;
   escenarioMotorNavigate("escenario-simular");
+}
+
+// ---------------------------------------------------------------------------------------------
+// E-12: "Tabla de tres columnas —plan, escenario A, escenario B— con los mismos seis indicadores."
+// Sin color de dirección (a diferencia de E-3): comparar A contra B no tiene un «mejor» universal
+// sin saber cuál de los dos se está defendiendo, así que se deja la lectura al usuario. Los avisos
+// (E-6b) no entran en los selectores — no son escenarios viables que comparar, son un límite
+// conocido.
+// ---------------------------------------------------------------------------------------------
+function escenarioMotorCompareThreeHtml(baseSummary, summaryA, summaryB, nameA, nameB) {
+  const rows = [
+    ["Reserva protegida", (s) => (s.liquidezFinal !== null ? money(s.liquidezFinal, true) : "—")],
+    ["Meses de colchón", (s) => (s.mesesColchon !== null ? s.mesesColchon.toFixed(1) : "—")],
+    ["Fecha libre de deuda", (s) => escenarioMotorMonthLabel(s.libreDeDeuda)],
+    ["Ahorro anual", (s) => (s.ahorroAnual !== null ? money(s.ahorroAnual, true) : "—")],
+    ["Peor mes", (s) => (s.peorMesClave ? `${escenarioMotorMonthLabel(s.peorMesClave)} · ${money(s.peorMesValor ?? 0, true)}` : "—")],
+    ["Capacidad libre real", (s) => (s.capacidadLibre !== null ? money(s.capacidadLibre, true) : "—")],
+  ];
+  return `<table class="e19-table escenario-motor-compare-table">
+    <thead><tr><th>Indicador</th><th>Plan</th><th>${escapeHtml(nameA)}</th><th>${escapeHtml(nameB)}</th></tr></thead>
+    <tbody>${rows
+      .map(([label, format]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(format(baseSummary))}</td><td><strong>${escapeHtml(format(summaryA))}</strong></td><td><strong>${escapeHtml(format(summaryB))}</strong></td></tr>`)
+      .join("")}</tbody>
+  </table>`;
+}
+
+function escenarioMotorCompareCandidates() {
+  return loadEscenarioMotorSaved().filter((entry) => entry.estado !== "aviso");
+}
+
+function renderEscenarioComparar() {
+  renderScenarioDependencyNotice("escenario-comparar");
+  const selectA = qs("escenarioCompararA");
+  const selectB = qs("escenarioCompararB");
+  const body = qs("escenarioCompararBody");
+  const empty = qs("escenarioCompararEmpty");
+  const layout = qs("escenarioCompararLayout");
+  if (!selectA || !selectB || !body) return;
+
+  const list = escenarioMotorCompareCandidates();
+  if (list.length < 2) {
+    if (empty) empty.hidden = false;
+    if (layout) layout.hidden = true;
+    body.innerHTML = "";
+    return;
+  }
+  if (empty) empty.hidden = true;
+  if (layout) layout.hidden = false;
+
+  const options = list.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.nombre || "Escenario")}</option>`).join("");
+  if (selectA.dataset.count !== String(list.length)) {
+    selectA.innerHTML = options;
+    selectB.innerHTML = options;
+    selectB.selectedIndex = Math.min(1, list.length - 1);
+    selectA.dataset.count = String(list.length);
+    selectB.dataset.count = String(list.length);
+  }
+
+  const entryA = list.find((entry) => entry.id === selectA.value) || list[0];
+  const entryB = list.find((entry) => entry.id === selectB.value) || list[1];
+  const baseInput = escenarioMotorBaseInput();
+  const baseSummary = escenarioMotorSummaryFor(runEscenarioMotor(baseInput, [], null), baseInput.months);
+  const summaryA = escenarioMotorSummaryFor(runEscenarioMotor(baseInput, entryA.decisiones || [], entryA.guardrailValue ?? null), baseInput.months);
+  const summaryB = escenarioMotorSummaryFor(runEscenarioMotor(baseInput, entryB.decisiones || [], entryB.guardrailValue ?? null), baseInput.months);
+  body.innerHTML = escenarioMotorCompareThreeHtml(baseSummary, summaryA, summaryB, entryA.nombre || "Escenario A", entryB.nombre || "Escenario B");
+}
+
+function handleEscenarioCompararSelect() {
+  renderEscenarioComparar();
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -26575,6 +27048,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "escenario-guardados":
       renderEscenarioGuardados();
       break;
+    case "escenario-comparar":
+      renderEscenarioComparar();
+      break;
     case "deuda-comparar":
       renderDeudaComparar();
       break;
@@ -27181,6 +27657,10 @@ async function init() {
   qs("escenarioMotorGuardrail")?.addEventListener("input", handleEscenarioMotorGuardrailInput);
   qs("escenarioMotorAutoAdjust")?.addEventListener("click", handleEscenarioMotorAutoAdjust);
   qs("escenarioMotorGoApply")?.addEventListener("click", handleEscenarioMotorGoApply);
+  qs("escenarioMotorCustomToggle")?.addEventListener("click", handleEscenarioMotorCustomToggle);
+  qs("escenarioMotorCustomCreate")?.addEventListener("click", handleEscenarioMotorCustomCreate);
+  qs("escenarioMotorFamilyToggle")?.addEventListener("click", handleEscenarioMotorFamilyToggle);
+  qs("escenarioMotorSaveAviso")?.addEventListener("click", handleEscenarioMotorSaveAviso);
   qs("escenarioAplicarBack")?.addEventListener("click", handleEscenarioAplicarBack);
   qs("escenarioAplicarForm")?.addEventListener("submit", handleEscenarioAplicarConfirm);
   qs("escenarioGuardadosNew")?.addEventListener("click", handleEscenarioGuardadosNew);
@@ -27190,6 +27670,10 @@ async function init() {
     const deleteButton = event.target.closest("[data-escenario-guardado-delete]");
     if (deleteButton) handleEscenarioGuardadosDelete(deleteButton.dataset.escenarioGuardadoDelete);
   });
+  qs("escenarioGuardadosCompare")?.addEventListener("click", () => escenarioMotorNavigate("escenario-comparar"));
+  qs("escenarioCompararBack")?.addEventListener("click", () => escenarioMotorNavigate("escenario-guardados"));
+  qs("escenarioCompararA")?.addEventListener("change", handleEscenarioCompararSelect);
+  qs("escenarioCompararB")?.addEventListener("change", handleEscenarioCompararSelect);
   qs("deudaCompararReserve")?.addEventListener("input", handleDeudaCompararReserveInput);
   ["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision"].forEach((id) => {
     qs(id)?.addEventListener("input", handleDeudaCompararOfferInput);
