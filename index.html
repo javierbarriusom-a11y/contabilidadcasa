@@ -1488,6 +1488,8 @@
               </div>
             </div>
 
+            <div class="e19-insight is-warn" id="analisisReopenNotice" hidden></div>
+
             <article class="e19-card analisis-cushion-card">
               <h3 class="escenario-motor-panel-title">Doce meses de colchón</h3>
               <p class="e19-kpi-note" id="analisisCushionLegend"></p>
@@ -1503,6 +1505,10 @@
                 <p class="panel-kicker e19-eyebrow">Fin de mes · Cierre</p>
                 <h2 class="e19-heading" id="cierreTitle">Cierre</h2>
                 <p class="e19-subtitle" id="cierreSubtitle"></p>
+              </div>
+              <div class="visual-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="cierreDownloadPdf">PDF</button>
+                <button type="button" class="e19-btn e19-btn-secondary" id="cierreDownloadCsv">CSV</button>
               </div>
             </div>
 
@@ -1520,6 +1526,12 @@
             </div>
 
             <p class="e19-kpi-note" id="cierreStatus" role="status"></p>
+
+            <article class="e19-card cierre-versions-card">
+              <h3 class="escenario-motor-panel-title">Historial de versiones</h3>
+              <p class="e19-kpi-note">Cada cierre y cada reapertura queda como una fila propia. Ninguna versión se sobrescribe.</p>
+              <div id="cierreVersions"></div>
+            </article>
           </section>
 
           <section class="e19-conciliar view-section" id="conciliar">
@@ -3525,6 +3537,8 @@
         </main>
       </div>
     </div>
+
+    <div id="cierrePrintEvidence" class="cierre-print-evidence"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="vendor/xlsx.full.min.js?v=20260602a"></script>

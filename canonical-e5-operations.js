@@ -48,6 +48,7 @@
       occurredAt: reopenedAt,
       reopenedAt,
       reason,
+      author: text(metadata.author),
       previousOperationId: previous.id,
       before: { status: "closed", snapshotId: previous.snapshotId || null },
       after: { status: "open" },

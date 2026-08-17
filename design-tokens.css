@@ -2915,6 +2915,56 @@
   align-items: flex-start;
 }
 
+/* C-10 · historial de versiones — la fila vigente se distingue con un fondo suave, nunca borrando
+   ni ocultando el resto (ninguna versión se sobrescribe). */
+.e19-cierre .cierre-versions-card {
+  margin-top: 16px;
+}
+
+.e19-cierre .cierre-versions-table th,
+.e19-cierre .cierre-versions-table td {
+  white-space: normal;
+}
+
+.e19-cierre .cierre-versions-table tr.is-vigente {
+  background: color-mix(in srgb, var(--e19-accent) 6%, var(--e19-surface));
+}
+
+/* C-12 · el contenedor de evidencia imprimible está fuera de `.e19-cierre` (vive junto al cierre
+   de `.app-shell`) para que `@media print` pueda esconder todo lo demás sin pelearse con el resto
+   de reglas de layout de la pantalla. Solo se ve durante `window.print()`, marcado por la clase que
+   `handleCierreDownloadEvidence` pone y quita en `<body>`. */
+.cierre-print-evidence {
+  display: none;
+}
+
+@media print {
+  body.is-printing-cierre-evidence > *:not(#cierrePrintEvidence) {
+    display: none !important;
+  }
+
+  body.is-printing-cierre-evidence .cierre-print-evidence {
+    display: block;
+    padding: 24px;
+    color: #000;
+    background: #fff;
+  }
+
+  body.is-printing-cierre-evidence .cierre-print-evidence table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+
+  body.is-printing-cierre-evidence .cierre-print-evidence th,
+  body.is-printing-cierre-evidence .cierre-print-evidence td {
+    border: 1px solid #999;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 12px;
+  }
+}
+
 /* -------------------------------------------------------------------------------------------- */
 /* Fase 6 · Análisis (pantalla 07, Analisis.pdf) — A-2, banda de doce meses de colchón. Escala de  */
 /* tres niveles distinta de la de cuatro que ya usa el mapa de calor (mapaCalorTone): mismos        */

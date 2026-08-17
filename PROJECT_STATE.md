@@ -2,6 +2,47 @@
 
 Fecha de revisión: 17 de agosto de 2026.
 
+## Cierre de sesión — 17 de agosto de 2026: historial de versiones y evidencia en Cierre (C-10/C-11/C-12)
+
+Segunda fase de la lista acordada con el usuario («cerremos primero» Escenarios, Cierre y Análisis),
+continuación directa de la entrada anterior (Escenarios, ya fusionada). Ningún cálculo financiero
+nuevo: las tres tareas leen `monthClosures`, que C-9 ya dejaba con IDs estables.
+
+- **C-10 (historial de versiones)**: `cierreVersionRows()` lee todas las entradas de
+  `monthClosures` (no solo el mes en curso), ordenadas de más reciente a más antigua, marcando
+  «Vigente» la más reciente de cada mes — reabrir no borra el cierre anterior, lo deja «no vigente»
+  en la lista. El campo «autor» que faltaba se resuelve con la decisión ya tomada el 14 de agosto:
+  `closeCurrentMonthTransaction()`/`reopenLatestMonthTransaction()` pasan `remoteUser?.email` como
+  `metadata.author` a `FinanceCanonicalMonthClose.closeMonth`/`FinanceCanonicalE5.reopenMonth`.
+- **C-11 (reapertura notificada, parcial)**: el motivo obligatorio y la versión nueva ya existían.
+  De los tres dependientes que nombra el criterio (Análisis, cobertura aprendida de Hoy, fiabilidad
+  del plan) solo Análisis tiene una relación mes→dato verificable hoy — la banda de A-2 es una serie
+  por mes. `cierreMonthsCurrentlyReopened()` calcula qué meses siguen reabiertos (última operación
+  = reapertura, sin volver a cerrarse); `renderAnalisis()` cruza esos meses con la ventana visible y
+  muestra un aviso. Hoy y A-7 quedan fuera del aviso cruzado — forzarlos habría significado inventar
+  una relación que no se puede verificar (regla transversal 04), documentado explícitamente en vez
+  de en silencio.
+- **C-12 (evidencia en PDF y CSV)**: CSV con el patrón ya existente (`downloadCsv`, Blob + URL de
+  objeto) — una fila por cuenta más las columnas de versión repetidas en cada fila. El PDF usa
+  `window.print()` sobre un contenedor dedicado fuera de `.app-shell` (para que `@media print` pueda
+  esconder el resto) en vez de añadir una librería nueva a una app sin backend — el «guardar como
+  PDF» real del navegador. Ninguno de los dos incluye sobres (Fase 6 desactivada, lo dicen
+  explícitamente); «tareas resueltas» se representa como el recuento de diferencias abiertas en el
+  momento de la descarga, no como un registro histórico que no existe.
+- **C-3b**: revisado de nuevo y sigue pendiente — el bloqueo técnico (las `entries` del ledger no
+  llevan de vuelta a la fila cruda de `state.transactions`) no ha cambiado.
+
+**Validación**: `npm test`, exit 0, **1123/1123 pruebas** (15 nuevas en
+`tests/c10-c11-c12-cierre-historial.test.cjs`). Verificado con Playwright contra el build local: el
+historial muestra fecha/mes/autor/resumen/estado con la fila vigente distinguida; reabrir julio 2026
+hace aparecer en Análisis el aviso de reapertura; el botón CSV descarga sin error y el contenedor de
+impresión se rellena correctamente antes de `window.print()`. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — C-10/C-11/C-12 pasan a `Hecho` (C-11
+parcial, documentado). De Cierre (15 tareas) solo quedan C-3b (pendiente, sin bloqueo), C-6/C-7
+(Sobres), C-13 (A-7) y C-14 (Fase 7). Siguiente: Análisis (A-4/A-5/A-8/A-9/A-11, pantalla 07), mismo
+orden acordado con el usuario.
+
 ## Cierre de sesión — 17 de agosto de 2026: cierre de los huecos no bloqueados de Escenarios
 
 A petición explícita del usuario («cerremos primero» la lista de huecos ya identificados en la
