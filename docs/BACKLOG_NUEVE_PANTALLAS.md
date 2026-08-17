@@ -80,8 +80,12 @@ parciales, D-2b/D-12 pendientes, D-14 choca con la decisión T-4 (bloqueada a pr
 real de la epic E20 (10 de agosto) nunca reconciliado con este backlog: E-4/E-6/E-10 hechas de
 partida, E-3/E-11/E-5 cerradas el 16 de agosto (comparativa de seis indicadores, revisión opcional
 con recordatorio en Hoy, panel de cuatro comprobaciones — ver la nota bajo la tabla de la pantalla
-06), E-1/E-2/E-8 siguen parciales (catálogo de tipos, debounce, banda por cuenta), E-1b/E-6b/E-7/
-E-9/E-12 pendientes de construir (no bloqueadas), E-11b/E-13/E-14 bloqueadas. Fase 5 (Cierre)
+06); segunda fase cerrada el 17 de agosto (huecos no bloqueados de las tres pantallas de la Fase 6,
+a petición del usuario): E-1/E-2/E-8 pasan de parciales a hechas (catálogo con los dos tipos de
+deuda que faltaban, debounce del guardarraíl, banda de doce meses por cuenta) y se construyen desde
+cero E-1b/E-6b/E-7/E-9/E-12 (constructor de tipos propios, guardar un rechazado como aviso, veredicto
+en prosa, vista familiar, comparar dos escenarios) — ver la nota de cierre bajo la tabla de la
+pantalla 06. Solo quedan E-11b/E-13/E-14, bloqueadas. Fase 5 (Cierre)
 arrancó el 16 de agosto (punto 2 del plan): C-1/C-2/C-3/C-4/C-5/C-8/C-9 hechos en un primer
 incremento — ritual de tres pasos (sin sobres), conciliación por cuenta, tareas por causa,
 comprobaciones antes de firmar — reutilizando el motor transaccional de cierre/reapertura que ya
@@ -810,21 +814,21 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| E-1 | Once tipos de decisión en dos familias | Fase 3 | L | Hecho (parcial, ver nota) |
-| E-1b | Tipos propios definidos por el usuario | E-1, E-5 | L | Pendiente |
-| E-2 | Formulario de parámetros por tipo | E-1 | L | Hecho (parcial, ver nota) |
+| E-1 | Once tipos de decisión en dos familias | Fase 3 | L | Hecho (17 de agosto, ver nota) |
+| E-1b | Tipos propios definidos por el usuario | E-1, E-5 | L | Hecho (17 de agosto, ver nota) |
+| E-2 | Formulario de parámetros por tipo | E-1 | L | Hecho (17 de agosto, ver nota) |
 | E-3 | Comparativa de seis indicadores | E-2 | M | Hecho (16 de agosto, ver nota) |
 | E-4 | El plan no se mueve al simular | E-3, D-7 | S | Hecho |
 | E-5 | Validación contra contrato con estado visible | E-3 | M | Hecho (16 de agosto, ver nota) |
 | E-6 | Rechazo con motivo | E-5 | M | Hecho |
-| E-6b | Guardar un rechazado como aviso | E-6, E-10 | M | Pendiente |
-| E-7 | Veredicto en prosa con la palanca | E-3 | M | Pendiente |
-| E-8 | Banda de doce meses por cuenta | E-3 | M | Hecho (parcial, ver nota) |
-| E-9 | Vista familiar como pantalla aparte | E-3 | M | Pendiente |
+| E-6b | Guardar un rechazado como aviso | E-6, E-10 | M | Hecho (17 de agosto, ver nota) |
+| E-7 | Veredicto en prosa con la palanca | E-3 | M | Hecho (17 de agosto, ver nota) |
+| E-8 | Banda de doce meses por cuenta | E-3 | M | Hecho (17 de agosto, ver nota) |
+| E-9 | Vista familiar como pantalla aparte | E-3 | M | Hecho (17 de agosto, ver nota) |
 | E-10 | Guardar escenario reproducible | E-2 | M | Hecho |
 | E-11 | Aplicar con motivo y revisión opcional | D-8 | M | Hecho (16 de agosto, ver nota) |
 | E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
-| E-12 | Comparar dos escenarios guardados | E-10 | M | Pendiente |
+| E-12 | Comparar dos escenarios guardados | E-10 | M | Hecho (17 de agosto, ver nota) |
 | E-13 | Caducidad de escenarios con oferta | E-10, D-10 | S | Pendiente (bloqueada: depende de D-10, parcial) |
 | E-14 | Retirar las tres heredadas de simulación | E-1, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
 
@@ -894,8 +898,8 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
   registradas» (que sigue en verde, correctamente); sin errores de consola propios.
 - **E-6** — confirmado: motivo visible por decisión rechazada, nunca una cifra estimada para el
   hueco.
-- **E-8** — hay banda de doce meses (`renderEscenarioMotorChart`, plan base vs. simulación), pero
-  agregada en una sola línea; no desglosada por cuenta (CaixaBank/Mediolanum) como pide el criterio.
+- **E-8 (cerrado el 17 de agosto, ver nota de cierre más abajo)** — la banda agregada en una sola
+  línea (`renderEscenarioMotorChart`) se queda; se añade la banda por cuenta que pedía el criterio.
 - **E-10** — confirmado, y mejor que el criterio literal: en vez de guardar «las cifras resultantes»
   congeladas, `renderEscenarioGuardados` las recalcula con el motor real contra el estado actual de
   las deudas cada vez que se abre la lista — evita que diverjan en silencio de la realidad (regla 04).
@@ -916,21 +920,90 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
   la función nueva. Verificado con Playwright de punta a punta: aplicar un escenario con revisión el
   01/08/2026 (fecha pasada) lo muestra en Hoy como «Revisar escenario aplicado... Vence 01 ago 26»,
   primero en la lista de tres decisiones por ser el más urgente. Sin errores de consola.
-- **E-11b, E-12, E-13, E-6b, E-7, E-9, E-1b** — confirmado sin construir: aplicar hoy solo marca el
-  escenario «aplicado» en una lista de `localStorage` y vacía el borrador, sin crear ningún plan
-  paralelo ni tocar el plan vigente; no hay botón «Comparar» en escenarios guardados; el propio
-  código declara explícitamente que «Recomendado» y «Caducado» no se implementan (sin motor de
-  oferta con vencimiento); no hay texto de veredicto en prosa; el conmutador «Vista familiar» de
-  esta pantalla no existe (hay un widget de barra lateral con el mismo nombre en el resto de la app,
-  pero no el comportamiento descrito aquí — sustituir tabla y validación por una tarjeta plana con
-  cuatro cifras); y no hay forma de crear un tipo de decisión propio.
+- **E-11b, E-13, E-14** — siguen sin construir, bloqueadas por Cierre (Fase 5, con historial de
+  versiones dedicado todavía sin construir), D-10 (parcial) y Fase 7 (sin empezar) respectivamente.
 
-No se tocó código en la sesión de auditoría original — solo se corrigió el estado. E-3, E-5 y E-11
-se cerraron después, el mismo 16 de agosto (ver sus notas arriba). Quedan pendientes de una sesión
-de construcción: cerrar E-1 (añadir/(re)nombrar los dos tipos de deuda que faltan), E-2 (debounce),
-E-8 (banda por cuenta) para pasar de «parcial» a «Hecho», y construir desde cero E-1b, E-6b, E-7,
-E-9, E-12 (no bloqueadas, se pueden hacer ya) — E-11b/E-13/E-14 siguen
-bloqueadas por Cierre/D-10/Fase 7 como estaba previsto.
+No se tocó código en la sesión de auditoría original del 16 de agosto — solo se corrigió el estado.
+E-3, E-5 y E-11 se cerraron esa misma tarde (ver sus notas arriba).
+
+**Cierre del resto de huecos no bloqueados — 17 de agosto de 2026.** Segunda fase de construcción
+sobre Escenarios, a petición expresa del usuario («cerremos primero» los huecos ya identificados de
+las tres pantallas de la Fase 6). Ocho tareas, todas reutilizando piezas ya construidas — ningún
+cálculo financiero nuevo salvo los tres tipos de decisión nuevos, que siguen exactamente el patrón
+ya existente de `NON_DEBT_APPLIERS` (compra/imprevisto/proyecto/cambio de ingreso/cambio de gasto):
+
+- **E-1** — el mockup real (`Escenarios.pdf`, extraído a 400dpi para leer la lista exacta) confirma
+  los seis tipos de Deuda: Amortizar deuda, Reunificar deuda, Cambiar condiciones, Aplazar cuotas,
+  Pedir deuda nueva, Prestar o cobrar a familia. `refinanciacion` y `reunificacion` se renombran
+  (mismo `id`, mismo motor — Deuda › Comparar los referencia por `id`, no por `label`, así que D-5/D-6
+  no se tocan) a «Cambiar condiciones» y «Reunificar deuda». `deuda_nueva` («Pedir deuda nueva») y
+  `prestamo_familiar` («Prestar o cobrar a familia») son genuinamente nuevos — los dos que el
+  catálogo no cubría «en ninguna forma» según la propia auditoría del 16. Ninguno crea un contrato
+  real en `DEBT_PORTFOLIO`: son un efecto de caja de la simulación (principal/importe de golpe más
+  una cuota/devolución recurrente), igual que ya hace «Compra» financiada — así que no cuentan para
+  «Fecha libre de deuda», documentado explícitamente en el propio validador del esquema. Los otros
+  tres tipos de fábrica que no pedía el mockup (`amortizacion_fraccionada`, `retomar_pagos`,
+  `acuerdo_quita`) se conservan: D-5 los usa para tres de sus ocho modos de liquidación, retirarlos
+  habría sido una regresión de una pantalla en uso, no algo que pidiera esta tarea. «Aplazar cuotas»
+  del mockup no tiene tipo propio todavía — la auditoría del 16 solo daba por no construidos «Pedir
+  deuda nueva» y «Prestar o cobrar a familia», así que el cierre se ciñe a esos dos.
+- **E-1b** — constructor de tipos propios: nombre, familia (Deuda/Vida, informativa) y hasta tres
+  campos elegibles (importe de golpe, mensualidad recurrente, plazo) — el mes siempre se incluye,
+  ancla la decisión. En el motor y el esquema todo tipo propio comparte el mismo tipo real `propio`
+  (`params.definicionId` distingue cuál definición es cada decisión); el formulario sí distingue cada
+  uno con su propia clave de selección (`propio_<id>`). Se valida contra el mismo esquema que los
+  trece de fábrica — `PARAMS_VALIDATORS.propio` en `canonical-scenario-schema.js` — no una segunda
+  vía de validación. Se resuelve con el mismo patrón genérico que los tipos de fábrica sin deuda:
+  importe = golpe único en el mes, mensualidad + plazo = recurrente desde el mes (inclusive), ambos
+  pueden coexistir.
+- **E-2** — el único recálculo de la simulación completa mientras se teclea (no al salir del campo)
+  era el saldo mínimo (`handleEscenarioMotorGuardrailInput`, llama a `renderEscenarioSimular()` en
+  cada tecla); los campos por tipo ya solo se leían al enviar, así que no tenían el problema que
+  describía la auditoría. Con 120 ms de debounce (`setTimeout`/`clearTimeout`) sobre ese único punto.
+- **E-6b** — un escenario rechazado se guarda con estado `"aviso"` (nuevo, junto a
+  `"guardado"`/`"aplicado"`), motivo reutilizado tal cual de `escenarioMotorRejectionInfo` (nunca un
+  texto nuevo), y una etiqueta fija «límite conocido» — mismo texto que el mockup. No se puede
+  aplicar directamente: no tiene ninguna acción de aplicar, solo cargar de vuelta en el simulador
+  (para ajustarlo) o eliminar. Queda fuera de los selectores de E-12 (no es un escenario viable que
+  comparar).
+- **E-7** — veredicto en prosa reutilizando las cuatro comprobaciones de E-5, nunca una comprobación
+  paralela: si la reserva se rompe, nombra la decisión concreta que la rompe (la primera con
+  `guardarril-incumplido`) como «la palanca» y sugiere reducir su importe o cambiarle el mes — una
+  dirección genérica, no una cifra recalculada (eso exigiría un buscador de valores que esta pantalla
+  no tiene, a diferencia del mes óptimo que sí busca «Ajustar automáticamente»). Si es la capacidad
+  libre la que falla, o alguna condición registrada, el veredicto nombra esa palanca en su lugar; sin
+  ningún fallo, confirma que la simulación no rompe ningún límite conocido.
+- **E-8** — «Doce meses, cuenta por cuenta»: banda apilada con `checking` (CaixaBank) abajo y
+  `savings` (Mediolanum ahorro) arriba, la misma serie de dos cuentas que ya calcula el motor
+  (`resolveEscenario().series`), ninguna cifra nueva. El mockup habla de un «mínimo operativo» que no
+  existe como umbral configurado en esta app — en vez de inventarlo, el mes se tiñe cuando CaixaBank
+  queda literalmente en negativo (regla transversal 04: ausencia de un umbral declarado no es
+  motivo para fabricar uno).
+- **E-9** — conmutador «Vista familiar»/«Vista técnica» en la barra de `#escenario-simular`: sustituye
+  la comparativa de seis indicadores y la validación por una tarjeta oscura con cuatro cifras en
+  lenguaje llano (¿cuánto nos queda?, ¿cuántos meses aguantaríamos sin ingresos?, ¿cuándo dejamos de
+  deber?, ¿cuánto ahorramos al año?) — un subconjunto de los mismos seis de E-3, sin recalcular nada.
+  El widget de barra lateral homónimo (Hogar/Javi/Tere) es una cosa distinta, confirmado en la
+  auditoría del 16, y no se toca. La banda de E-8 se ve en ambas vistas: no es parte de «la tabla de
+  indicadores» que E-9 retira.
+- **E-12** — pantalla nueva `#escenario-comparar`, alcanzable desde «Comparar dos escenarios» en
+  Escenarios guardados: dos selectores y la misma tabla de seis indicadores que E-3, con una columna
+  más (plan / escenario A / escenario B). Sin color de dirección — a diferencia de E-3, comparar A
+  contra B no tiene un «mejor» universal sin saber cuál de los dos se está defendiendo. Los avisos de
+  E-6b quedan fuera de los selectores.
+
+**Validación de este incremento**: `npm test`, exit 0, **1108/1108 pruebas** (19 nuevas en
+`tests/e1-e1b-escenarios-tipos-nuevos.test.cjs`: los tres nuevos tipos de decisión contra el motor
+real, y las funciones puras de presentación de E-6b/E-7/E-8/E-9/E-12/E-1b). Verificado con Playwright
+contra el build local: los tipos renombrados y los dos nuevos aparecen en el selector; añadir «Pedir
+deuda nueva» resuelve «Aplicada» de verdad; crear un tipo propio («Herencia esperada», solo importe)
+lo deja seleccionado con su propio campo de importe + mes; la vista familiar oculta la comparativa
+técnica y muestra las cuatro cifras; forzar un guardarraíl roto muestra el veredicto nombrando la
+decisión culpable y el botón «Guardar como aviso», que efectivamente guarda una tarjeta roja con
+«límite conocido»; comparar dos escenarios guardados pinta las tres columnas. Sin errores de consola
+propios.
+
+Quedan pendientes, sin bloqueo: E-11b (Cierre), E-13 (D-10 parcial), E-14 (Fase 7).
 
 ### 07 · Análisis — sección ejecutiva, solo lectura con procedencia (13 tareas · 4 grandes)
 

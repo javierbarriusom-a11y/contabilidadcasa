@@ -1739,6 +1739,22 @@
   box-shadow: inset 0 0 0 1px var(--e19-success);
 }
 
+/* E-6b · un escenario rechazado guardado como aviso — mismo trato visual que un card de peligro,
+   nunca el verde de aplicado ni el neutro de guardado. */
+.e19-escenario-motor .escenario-motor-saved-card.is-aviso {
+  border-color: var(--e19-danger);
+  box-shadow: inset 0 0 0 1px var(--e19-danger);
+  background: var(--e19-danger-soft);
+}
+
+.e19-escenario-motor .escenario-motor-saved-limite {
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-danger);
+  flex-basis: 100%;
+}
+
 .e19-escenario-motor .escenario-motor-saved-head {
   display: flex;
   flex-direction: column;
@@ -1777,8 +1793,242 @@
   flex: none;
 }
 
+/* E-1b · constructor de tipos propios — panel plegable bajo el selector de tipo, independiente del
+   formulario de la decisión en curso. */
+.e19-escenario-motor .escenario-motor-custom-toggle {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 2px 0 10px;
+  font: 600 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  color: var(--e19-accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.e19-escenario-motor .escenario-motor-custom-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px dashed var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface-soft);
+}
+
+.e19-escenario-motor .escenario-motor-custom-builder label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-custom-builder input[type="text"],
+.e19-escenario-motor .escenario-motor-custom-builder select {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+.e19-escenario-motor .escenario-motor-custom-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.e19-escenario-motor .escenario-motor-custom-fields legend {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+  padding: 0 0 4px;
+}
+
+.e19-escenario-motor .escenario-motor-custom-fields label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--e19-ink);
+}
+
+/* E-7 · veredicto en prosa, mismo componente que el resto de avisos de la pantalla. */
+.e19-escenario-motor .escenario-motor-verdict {
+  font-size: var(--e19-text-sm);
+}
+
+/* E-9 · vista familiar: tarjeta oscura con cuatro cifras, sustituye la comparativa técnica. */
+.e19-escenario-motor .escenario-motor-family-card {
+  background: var(--e19-ink);
+  color: var(--e19-surface);
+}
+
+.e19-escenario-motor .escenario-motor-family-card .escenario-motor-panel-title {
+  color: var(--e19-surface);
+}
+
+.e19-escenario-motor .escenario-motor-family-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin: 0;
+}
+
+.e19-escenario-motor .escenario-motor-family-list dt {
+  font-size: var(--e19-text-sm);
+  color: color-mix(in srgb, var(--e19-surface) 70%, transparent);
+  margin-bottom: 4px;
+}
+
+.e19-escenario-motor .escenario-motor-family-list dd {
+  margin: 0;
+  font: 600 var(--e19-text-lg) / 1.2 var(--e19-font-sans);
+}
+
+#escenarioMotorFamilyToggle.is-active {
+  background: var(--e19-accent);
+  color: var(--e19-surface);
+  border-color: var(--e19-accent);
+}
+
+/* E-8 · banda de doce meses por cuenta — CaixaBank (abajo, apilado) + Mediolanum (arriba); el
+   segmento de CaixaBank se tiñe cuando ese mes queda en negativo. */
+.e19-escenario-motor .escenario-motor-account-band {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 140px;
+  padding: 8px 0;
+}
+
+.e19-escenario-motor .escenario-motor-account-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+}
+
+.e19-escenario-motor .escenario-motor-account-bar {
+  width: 100%;
+  max-width: 28px;
+  height: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--e19-surface-soft);
+}
+
+.e19-escenario-motor .escenario-motor-account-seg {
+  width: 100%;
+  min-height: 0;
+}
+
+.e19-escenario-motor .escenario-motor-account-seg.is-checking {
+  background: var(--e19-accent);
+}
+
+.e19-escenario-motor .escenario-motor-account-seg.is-savings {
+  background: var(--e19-faint);
+}
+
+.e19-escenario-motor .escenario-motor-account-seg.is-bajo {
+  background: var(--e19-danger);
+}
+
+.e19-escenario-motor .escenario-motor-account-label {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-account-col.is-bajo-minimo .escenario-motor-account-label {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
+.e19-escenario-motor .escenario-motor-account-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 10px 0;
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-account-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.e19-escenario-motor .escenario-motor-account-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.e19-escenario-motor .escenario-motor-account-dot.is-checking {
+  background: var(--e19-accent);
+}
+
+.e19-escenario-motor .escenario-motor-account-dot.is-savings {
+  background: var(--e19-faint);
+}
+
+.e19-escenario-motor .escenario-motor-account-dot.is-bajo {
+  background: var(--e19-danger);
+}
+
+.e19-escenario-motor .escenario-motor-actions-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* E-12 · comparador de dos escenarios guardados — dos selects y la misma tabla de seis indicadores,
+   con una columna más. */
+.e19-escenario-motor .escenario-motor-compare-selectors {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.e19-escenario-motor .escenario-motor-compare-selectors label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  min-width: 220px;
+}
+
+.e19-escenario-motor .escenario-motor-compare-selectors select {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 8px 10px;
+  font: 400 var(--e19-text-base) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
 @media (max-width: 860px) {
   .e19-escenario-motor .escenario-motor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .e19-escenario-motor .escenario-motor-family-list {
     grid-template-columns: 1fr;
   }
 }

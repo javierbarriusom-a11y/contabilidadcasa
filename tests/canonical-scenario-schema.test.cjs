@@ -73,6 +73,9 @@ const VALID_PARAMS_BY_TYPE = {
   cambio_gasto: { bloque: "alimentacion", deltaMensual: 40, mesInicio: "2026-08" },
   traspaso: { origen: "caixabank", destino: "mediolanum", importe: 900, mes: "2026-08" },
   cambio_presupuesto: { bloque: "ocio", nuevoTecho: 200, desde: "2027-01" },
+  deuda_nueva: { principal: 8000, cuota: 180, plazo: 48, mes: "2026-10" },
+  prestamo_familiar: { direccion: "nos_prestan", importe: 3000, mes: "2026-10", devolucionMensual: 100, meses: 30 },
+  propio: { definicionId: "propio-abc123", nombre: "Herencia esperada", mes: "2027-01", importe: 5000 },
 };
 
 test("un escenario mínimo válido (sin decisiones) pasa la validación", () => {
