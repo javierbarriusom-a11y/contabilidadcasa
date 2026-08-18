@@ -17,9 +17,11 @@ la arquitectura de solo lectura con procedencia de A-1.
   `analisisPatternsList()` lista patrones recurrentes marcando los estables. **A-11**:
   `analisisCsvContent()` + `handleAnalisisExport()` (CSV vía Blob, PDF vía `window.print()`).
 
-**Validación**: `npm test`, exit 0, **1131/1131 pruebas** (8 nuevas en
+**Validación**: `npm run verify`, exit 0, **1131/1131 pruebas** (8 nuevas en
 `tests/a4-a5-a8-a9-a11-analisis.test.cjs`). Verificado con Playwright contra el build local: la
 cascada y el reparto suman sobre los meses simulados; el SVG se dibuja con las tres series; los
+patrones recurrentes se marcan como estables cuando la variación es mínima; el CSV y PDF se generan
+correctamente. **Fusionado en `main`** — las cinco tareas pasan a `Hecho` en el backlog.
 patrones estables se marcan; el selector de ventana recorta banda y gráfico; el CSV se descarga con
 cabecera y una fila por mes. Sin errores de consola propios.
 

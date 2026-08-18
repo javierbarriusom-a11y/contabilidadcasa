@@ -1015,14 +1015,14 @@ Quedan pendientes, sin bloqueo: E-11b (Cierre), E-13 (D-10 parcial), E-14 (Fase 
 | A-1 | Pantalla de solo lectura con procedencia | Fase 5 | M | Hecho (16 de agosto, ver nota) |
 | A-2 | Banda de doce meses de colchón | A-1, P-9 | M | Hecho (16 de agosto, ver nota) |
 | A-3 | Peor mes explicado | A-2, E-2 | M | Pendiente (bloqueada: depende de E-2, sin construir) |
-| A-4 | Cascada del resultado por periodo | A-1, Cierre | L | Hecho (18 de agosto, ver nota) |
-| A-5 | Patrimonio neto proyectado | A-1, D-2 | L | Hecho (18 de agosto, ver nota) |
+| A-4 | Cascada del resultado por periodo | A-1, Cierre | L | Hecho |
+| A-5 | Patrimonio neto proyectado | A-1, D-2 | L | Hecho |
 | A-6 | Selector de ventana | A-2, A-5 | S | Hecho (16 de agosto, ver nota) |
 | A-7 | ¿Acierta el plan? | A-1, Cierre | L | Pendiente |
-| A-8 | En qué se va · reparto completo del ingreso | A-1 | M | Hecho (18 de agosto, ver nota) |
-| A-9 | Qué se repite | A-1, M-3 | M | Hecho (18 de agosto, ver nota) |
+| A-8 | En qué se va · reparto completo del ingreso | A-1 | M | Hecho |
+| A-9 | Qué se repite | A-1, M-3 | M | Hecho |
 | A-10 | Confianza del dato | A-1, Cierre | M | Pendiente |
-| A-11 | Exportar en CSV y en PDF | A-1 | M | Hecho (18 de agosto, ver nota) |
+| A-11 | Exportar en CSV y en PDF | A-1 | M | Hecho |
 | A-12 | Retirar las heredadas visuales | A-1, Fase 7 | S | Pendiente |
 | A-13 | Actuar desde el aviso, sin duplicar el camino | A-9, A-10, M-8 | L | Pendiente |
 
@@ -1061,9 +1061,9 @@ contra el build local: la banda muestra 12/24 meses reales con etiqueta, valor y
 nivel, cambia de color al cruzar el objetivo de `state.emergencyBufferMonths`, el peor mes se marca
 con su cifra exacta y el selector de ventana funciona. Sin errores de consola propios.
 
-**Análisis completado el 18 de agosto (A-4/A-5/A-8/A-9/A-11)** — segunda tanda de la pantalla 07,
+**Análisis completado (A-4/A-5/A-8/A-9/A-11)** — segunda tanda de la pantalla 07,
 continuación del incremento del 16 de agosto. No se fabrica ningún cálculo financiero nuevo: cada
-lectura reutiliza las piezas canónicas ya construidas y enlaza a la pantalla de origen.
+lectura reutiliza las piezas canónicas ya construidas y enlaza a la pantalla de origen. **Fusionado en `main`**.
 
 - **A-4 (cascada del resultado por periodo)** — `analisisResultGrid()` agrupa los meses de la ventana
   por año y, para cada uno, suma ingresos, gasto (fijo + deuda/coche) y ahorro, calculando la tasa de
