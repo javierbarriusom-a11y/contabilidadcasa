@@ -313,9 +313,9 @@ test("M-3 · renderMovementChips pinta los seis botones con su recuento y marca 
 });
 
 test("M-3 · los cuatro atajos de rango calculan meses de calendario completos hasta hoy, y «todo» vacía el rango", () => {
-  const { movementsRangeShortcutBounds } = sandboxWith(["movementsRangeShortcutBounds"], {
-    isoLocalDate: (d) => d.toISOString().slice(0, 10),
-  });
+  // isoLocalDate respeta la fecha local, no convierte a UTC como toISOString()
+  const isoLocalDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const { movementsRangeShortcutBounds } = sandboxWith(["movementsRangeShortcutBounds"], { isoLocalDate });
   const today = new Date(2026, 7, 15); // 15 de agosto de 2026 (mes 7 = agosto, 0-indexado)
   const check = (kind, from, to) => {
     const bounds = movementsRangeShortcutBounds(kind, today);
