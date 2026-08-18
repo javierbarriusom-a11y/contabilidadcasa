@@ -27055,8 +27055,15 @@ let analisisWindowKey = "12m";
 
 function analisisWindowMonths(windowKey = analisisWindowKey) {
   const all = cuadroMandosAllMonths();
+  // Une cada mes visible con su fila de la simulación activa (lastSimulation) para que las
+  // lecturas de Análisis lean ingreso, gasto, ahorro y liquidez reales, no solo el planning.
+  const simByKey = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  const merged = all.map((month) => {
+    const row = simByKey.get(month.key);
+    return row ? { ...month, ...row } : month;
+  });
   const config = ANALISIS_WINDOWS[windowKey] || ANALISIS_WINDOWS["12m"];
-  return Number.isFinite(config.months) ? all.slice(0, config.months) : all;
+  return Number.isFinite(config.months) ? merged.slice(0, config.months) : merged;
 }
 
 // A-2: una fila por mes con el colchón en meses (liquidez ÷ gasto medio), nunca «cuadra por
@@ -27146,6 +27153,21 @@ function renderAnalisis() {
       reopenNotice.textContent = "";
     }
   }
+
+  // A-4: Cascada del resultado por periodo
+  const resultGrid = qs("analisisResultGrid");
+  if (resultGrid) resultGrid.innerHTML = analisisResultGrid(months);
+
+  // A-5: Patrimonio neto proyectado
+  renderAnalisisNetWorthChart(months);
+
+  // A-8: En qué se va · reparto completo del ingreso
+  const incomeGrid = qs("analisisIncomeGrid");
+  if (incomeGrid) incomeGrid.innerHTML = analisisIncomeGrid(months);
+
+  // A-9: Qué se repite
+  const patternsList = qs("analisisPatternsList");
+  if (patternsList) patternsList.innerHTML = analisisPatternsList(months);
 }
 
 function handleAnalisisWindow(windowKey) {
@@ -27153,6 +27175,162 @@ function handleAnalisisWindow(windowKey) {
   analisisWindowKey = windowKey;
   renderAnalisis();
 }
+
+// A-4: Cascada del resultado por periodo — reutiliza el mismo cálculo que la tabla ejecutiva de
+// #cashflow (summarizeCashflowYear), solo cambia el destino. Ninguna cifra nueva: misma simulación.
+function analisisResultGrid(months) {
+  // Filtra solo los meses con datos de simulación (income finito)
+  const validMonths = months.filter((month) => Number.isFinite(month.income));
+  const groups = [];
+  validMonths.forEach((month) => {
+    const year = String(month.key || "").slice(0, 4) || "Sin año";
+    let group = groups.find((item) => item.year === year);
+    if (!group) {
+      group = { year, items: [] };
+      groups.push(group);
+    }
+    group.items.push({ row: month });
+  });
+  return groups
+    .map((group) => {
+      const summary = summarizeCashflowYear({ items: group.items.map((item) => ({ row: item.row, base: item.row })) });
+      const savingRate = summary.income ? ((summary.saving / summary.income) * 100).toFixed(0) : "0";
+      return `<article>
+        <span>${escapeHtml(group.year)}</span>
+        <strong>${money(summary.income, true)}</strong>
+        <p>Ingresos. Gasto ${money(summary.outflow, true)} (${money(summary.coreSpend, true)} fijo + ${money(summary.debtAndCar, true)} deuda/coche), ahorro ${money(summary.saving, true)} (${savingRate}%).</p>
+      </article>`;
+    })
+    .join("");
+}
+
+// A-5: Patrimonio neto proyectado — mismo gráfico de liquidez total que #forecast (renderBalanceChart),
+// adaptado a los meses de la ventana de Análisis. No recalcula: lee lastSimulation.
+function renderAnalisisNetWorthChart(months) {
+  const svg = qs("analisisNetWorthChart");
+  // Filtra solo los meses con datos de simulación (totalLiquidity no nulo)
+  const validMonths = months.filter((month) => Number.isFinite(month.totalLiquidity));
+  if (!svg || !validMonths.length) return;
+  const width = svg.clientWidth || 900;
+  const height = 320;
+  const pad = { left: 62, right: 24, top: 24, bottom: 42 };
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  svg.innerHTML = "";
+  const values = validMonths.flatMap((month) => [month.totalLiquidity, month.checking, month.savings]);
+  const min = Math.min(0, ...values);
+  const max = Math.max(...values) * 1.04;
+  const x = (i) => pad.left + (i / (validMonths.length - 1 || 1)) * (width - pad.left - pad.right);
+  const y = (value) => height - pad.bottom - ((value - min) / (max - min || 1)) * (height - pad.top - pad.bottom);
+
+  for (let i = 0; i <= 4; i += 1) {
+    const value = min + ((max - min) * i) / 4;
+    const yy = y(value);
+    svg.insertAdjacentHTML("beforeend", `<line class="tick" x1="${pad.left}" x2="${width - pad.right}" y1="${yy}" y2="${yy}" />
+      <text class="chart-label" x="8" y="${yy + 4}">${money(value)}</text>`);
+  }
+
+  const series = [
+    { key: "totalLiquidity", color: "#6657d2", label: "Patrimonio neto" },
+    { key: "checking", color: "#2c6be0", label: "Cuenta" },
+    { key: "savings", color: "#267f4e", label: "Ahorro" },
+  ];
+  series.forEach((serie) => {
+    const path = validMonths
+      .map((month, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(2)} ${y(month[serie.key]).toFixed(2)}`)
+      .join(" ");
+    svg.insertAdjacentHTML("beforeend", `<path d="${path}" fill="none" stroke="${serie.color}" stroke-width="3" stroke-linecap="round" />`);
+  });
+
+  validMonths.forEach((month, idx) => {
+    if (idx % Math.ceil(validMonths.length / 12) === 0 || idx === validMonths.length - 1) {
+      svg.insertAdjacentHTML("beforeend", `<text class="chart-label" x="${x(idx) - 14}" y="${height - 12}">${month.label || month.month}</text>`);
+    }
+  });
+}
+
+// A-8: En qué se va · reparto completo del ingreso — desglose de dónde sale y a dónde va el ingreso.
+// Lee lastSimulation (la simulación activa), sin cálculo nuevo.
+function analisisIncomeGrid(months) {
+  // Filtra solo los meses con datos de simulación
+  const validMonths = months.filter((month) => Number.isFinite(month.income));
+  const totalIncome = validMonths.reduce((sum, month) => sum + month.income, 0);
+  const totalCoreSpend = validMonths.reduce((sum, month) => sum + (month.coreSpend || 0), 0);
+  const totalDebtCar = validMonths.reduce((sum, month) => sum + (month.car || 0) + (month.refi || 0), 0);
+  const totalProjects = validMonths.reduce((sum, month) => sum + (month.projectOutflow || 0), 0);
+  const totalSaving = validMonths.reduce((sum, month) => sum + (month.saving || 0), 0);
+  const pct = (value) => (totalIncome ? ((value / totalIncome) * 100).toFixed(0) : "0");
+  return [
+    ["Ingreso total", totalIncome, `${validMonths.length} meses simulados.`],
+    ["Gasto operativo", totalCoreSpend, `${pct(totalCoreSpend)}% del ingreso.`],
+    ["Deuda y coche", totalDebtCar, `${pct(totalDebtCar)}% del ingreso.`],
+    ["Proyectos", totalProjects, totalProjects ? `${pct(totalProjects)}% del ingreso.` : "Sin presión por proyectos."],
+    ["Ahorro", totalSaving, `${pct(totalSaving)}% del ingreso.`],
+  ]
+    .map(([label, value, note]) => `<article>
+      <span>${escapeHtml(label)}</span>
+      <strong>${money(value, true)}</strong>
+      <p>${escapeHtml(note)}</p>
+    </article>`)
+    .join("");
+}
+
+// A-9: Qué se repite — patrones que aparecen mes a mes en la simulación activa.
+// Procedencia: misma serie que #movimientos (M-3 chips), leída de lastSimulation.
+function analisisPatternsList(months) {
+  if (!months.length) return '<p class="e19-kpi-note">Sin datos suficientes en esta ventana.</p>';
+  const patterns = [
+    { key: "coreSpend", label: "Gasto operativo recurrente", desc: "Se repite mes a mes con la inflación aplicada." },
+    { key: "car", label: "Cuota de coche", desc: "Pago fijo mensual, sin variación." },
+    { key: "refi", label: "Refinanciación", desc: "Cuota mensual de la operación de deuda." },
+    { key: "saving", label: "Ahorro mensual", desc: "Parte del ingreso que queda como patrimonio." },
+  ];
+  return patterns
+    .map((pattern) => {
+      const values = months.map((month) => month[pattern.key]).filter((value) => Number.isFinite(value));
+      const avg = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+      const stable = values.length > 1 && Math.abs(Math.max(...values) - Math.min(...values)) < Math.abs(avg) * 0.01;
+      return `<article class="analisis-pattern-card">
+        <h4>${escapeHtml(pattern.label)}</h4>
+        <p>Media ${money(avg, true)}/mes${stable ? " · estable" : ""}. ${escapeHtml(pattern.desc)}</p>
+      </article>`;
+    })
+    .join("");
+}
+
+function analisisCsvContent(months) {
+  const validMonths = months.filter((month) => Number.isFinite(month.income));
+  const rows = [["Mes", "Ingreso", "Gasto operativo", "Deuda y coche", "Proyectos", "Ahorro", "Patrimonio neto"]];
+  validMonths.forEach((month) => {
+    rows.push([
+      month.label || month.month,
+      month.income.toFixed(2),
+      (month.coreSpend || 0).toFixed(2),
+      ((month.car || 0) + (month.refi || 0)).toFixed(2),
+      (month.projectOutflow || 0).toFixed(2),
+      (month.saving || 0).toFixed(2),
+      month.totalLiquidity.toFixed(2),
+    ]);
+  });
+  return rows.map((row) => row.join(",")).join("\n");
+}
+
+function handleAnalisisExport(kind) {
+  const months = analisisWindowMonths();
+  if (!months.length) return;
+  if (kind === "csv") {
+    const content = analisisCsvContent(months);
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `analisis-${analisisWindowKey}-${isoLocalDate(new Date())}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  } else if (kind === "pdf") {
+    window.print();
+  }
+}
+
 
 function renderPlan() {
   if (!qs("planTabs")) return;
@@ -27897,6 +28075,11 @@ async function init() {
   qs("analisis")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-analisis-window]");
     if (button) handleAnalisisWindow(button.dataset.analisisWindow);
+    const exportBtn = event.target.closest("[id^=analisisDownload]");
+    if (exportBtn) {
+      const kind = exportBtn.id === "analisisDownloadCsv" ? "csv" : "pdf";
+      handleAnalisisExport(kind);
+    }
   });
   qs("debt-liquidation-plan")?.addEventListener("click", (event) => {
     const targetButton = event.target.closest("[data-debt-plan-target]");

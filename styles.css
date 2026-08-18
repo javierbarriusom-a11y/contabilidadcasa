@@ -10852,3 +10852,94 @@ tbody tr:hover {
   .e14b-form { grid-template-columns: 1fr; }
   .e14b-actions button { width: 100%; }
 }
+
+/* Análisis — nuevas lecturas de solo lectura (Fase 6) */
+.analisis-result-grid,
+.analisis-income-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 12px 0 8px;
+}
+
+.analisis-result-grid article,
+.analisis-income-grid article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 13px;
+}
+
+.analisis-result-grid span,
+.analisis-income-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.analisis-result-grid strong,
+.analisis-income-grid strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.analisis-result-grid p,
+.analisis-income-grid p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.analisis-networth-svg {
+  width: 100%;
+  height: 320px;
+  margin: 12px 0 4px;
+}
+
+.analisis-patterns-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+
+.analisis-pattern-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.analisis-pattern-card h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.analisis-pattern-card p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.analisis-export-actions {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0 4px;
+}
+
+@media (max-width: 560px) {
+  .analisis-result-grid,
+  .analisis-income-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .analisis-patterns-list {
+    grid-template-columns: 1fr;
+  }
+}
+

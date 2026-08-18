@@ -144,8 +144,11 @@ test("A-2 · el html de la banda marca el peor mes y usa la clase de su nivel", 
 // --- analisisWindowMonths (A-6) ----------------------------------------------------------------------
 
 test("A-6 · la ventana de 12 meses recorta a los primeros doce", () => {
+  const allKeys = Array.from({ length: 30 }, (_, i) => `2026-${String(i + 1).padStart(2, "0")}`);
   const context = baseContext(["analisisWindowMonths"], {
-    cuadroMandosAllMonths: () => months(Array.from({ length: 30 }, (_, i) => `2026-${String(i + 1).padStart(2, "0")}`)),
+    cuadroMandosAllMonths: () => months(allKeys),
+    // analisisWindowMonths mezcla con lastSimulation por clave; en vacío no añade campos.
+    lastSimulation: [],
   });
   const constStart = app.indexOf("const ANALISIS_WINDOWS");
   const constEnd = app.indexOf("};", constStart) + 2;

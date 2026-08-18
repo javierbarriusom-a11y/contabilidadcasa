@@ -1497,6 +1497,35 @@
               <p class="e19-kpi-note" id="analisisCushionWorst"></p>
               <p class="e19-kpi-note">Procedencia: liquidez simulada y gasto medio del Plan, mismo cálculo y escala de tres niveles que la fila de colchón de <a href="#plan">Plan · Previsión</a>.</p>
             </article>
+
+            <article class="e19-card analisis-result-card">
+              <h3 class="escenario-motor-panel-title">Cascada del resultado por periodo</h3>
+              <p class="e19-kpi-note">Ingresos, gastos y ahorro año a año sobre la simulación activa. Mismo cálculo que la tabla ejecutiva de <a href="#cashflow">Flujo de caja</a>.</p>
+              <div class="analisis-result-grid" id="analisisResultGrid"></div>
+            </article>
+
+            <article class="e19-card analisis-networth-card">
+              <h3 class="escenario-motor-panel-title">Patrimonio neto proyectado</h3>
+              <p class="e19-kpi-note">Evolución de la liquidez total mes a mes, igual que la <a href="#forecast">Proyección de liquidez</a>.</p>
+              <svg id="analisisNetWorthChart" role="img" aria-label="Gráfico de patrimonio neto proyectado" class="analisis-networth-svg"></svg>
+            </article>
+
+            <article class="e19-card analisis-income-card">
+              <h3 class="escenario-motor-panel-title">En qué se va · reparto completo del ingreso</h3>
+              <p class="e19-kpi-note">De dónde sale el ingreso y a dónde va, mes a mes sobre la simulación activa.</p>
+              <div class="analisis-income-grid" id="analisisIncomeGrid"></div>
+            </article>
+
+            <article class="e19-card analisis-patterns-card">
+              <h3 class="escenario-motor-panel-title">Qué se repite</h3>
+              <p class="e19-kpi-note">Patrones que aparecen mes a mes en la simulación. Procedencia: misma serie que <a href="#movimientos">Movimientos</a>.</p>
+              <div class="analisis-patterns-list" id="analisisPatternsList"></div>
+            </article>
+
+            <div class="analisis-export-actions" role="group" aria-label="Exportar Análisis">
+              <button type="button" class="e19-btn e19-btn-secondary" id="analisisDownloadCsv">CSV</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="analisisDownloadPdf">PDF</button>
+            </div>
           </section>
 
           <section class="e19-cierre view-section" id="cierre">

@@ -1,6 +1,32 @@
 # Estado del proyecto
 
-Fecha de revisión: 17 de agosto de 2026.
+Fecha de revisión: 18 de agosto de 2026.
+
+## Cierre de sesión — 18 de agosto de 2026: cierre de la pantalla Análisis (A-4/A-5/A-8/A-9/A-11)
+
+Continuación directa del incremento de Análisis del 16 de agosto (A-1/A-2/A-6, ya fusionado). Se
+construyen las cinco tareas restantes no bloqueadas de la pantalla 07: cascada del resultado (A-4),
+patrimonio neto proyectado (A-5), reparto del ingreso (A-8), patrones recurrentes (A-9) y exportación
+CSV/PDF (A-11). Ningún cálculo financiero nuevo — cada lectura reutiliza piezas canónicas ya
+construidas (`#cashflow`, `#forecast`, `#movimientos`) y enlaza a la pantalla de origen, manteniendo
+la arquitectura de solo lectura con procedencia de A-1.
+
+- **A-4**: `analisisResultGrid()` agrupa la ventana por año y suma ingresos/gasto/ahorro con tasa de
+  ahorro. **A-5**: `renderAnalisisNetWorthChart()` dibuja un SVG de tres series (liquidez, reserva,
+  colchón). **A-8**: `analisisIncomeGrid()` suma y porcentúa los componentes del ingreso. **A-9**:
+  `analisisPatternsList()` lista patrones recurrentes marcando los estables. **A-11**:
+  `analisisCsvContent()` + `handleAnalisisExport()` (CSV vía Blob, PDF vía `window.print()`).
+
+**Validación**: `npm test`, exit 0, **1131/1131 pruebas** (8 nuevas en
+`tests/a4-a5-a8-a9-a11-analisis.test.cjs`). Verificado con Playwright contra el build local: la
+cascada y el reparto suman sobre los meses simulados; el SVG se dibuja con las tres series; los
+patrones estables se marcan; el selector de ventana recorta banda y gráfico; el CSV se descarga con
+cabecera y una fila por mes. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — A-4/A-5/A-8/A-9/A-11 pasan a `Hecho`.
+De la pantalla 07 (Análisis, 13 tareas) solo quedan A-3 (E-2), A-7 (Cierre), A-10 (Cierre), A-12
+(Fase 7) y A-13 (A-9/A-10/M-8). Siguiente: Cierre (C-3b, C-6, C-7, C-13, C-14) y Deuda, o bien
+retomar Escenarios (E-11b, E-13, E-14) — por acordar con el usuario.
 
 ## Cierre de sesión — 17 de agosto de 2026: historial de versiones y evidencia en Cierre (C-10/C-11/C-12)
 
