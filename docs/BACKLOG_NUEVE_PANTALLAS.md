@@ -66,17 +66,19 @@ commit, push, PR, fusionar) no pide permiso en cada turno.
 | 6 · Análisis y sobres | Análisis completo y sobres, detrás de bandera, incluida su liquidación en Cierre. | Con la bandera apagada todo sigue funcionando y las pantallas lo dicen. |
 | 7 · Gobernanza | Ajustes, retirada de las dieciocho heredadas y del Laboratorio. | El acta queda exportada y ningún enlace antiguo se rompe. |
 
-**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Escritura) completa salvo M-8c: Registrar R-1 a
+**Estado de fases**: Fase 1 (Hoy) completa. Fase 2 (Escritura) completa: Registrar R-1 a
 R-12 hechas (R-11 se consultó y se resolvió el 15 de agosto, ver la nota bajo la tabla de la
 pantalla 02); Movimientos M-1 a M-11 hechas (M-8/M-8b se construyeron el 15 de agosto, en la sesión
-siguiente a M-1…M-7/M-9…M-11 — ver la nota bajo la tabla de la pantalla 03), queda M-8c (bloqueada
-por Cierre); Plan · Mes P-1 a P-7 hechas (15 de agosto). Fase 3 (Deuda) arrancada el 15 de agosto:
+siguiente a M-1…M-7/M-9…M-11 — ver la nota bajo la tabla de la pantalla 03), M-8c se construyó el 19
+de agosto, quinto punto del plan, en cuanto Cierre (Fase 5) dejó de bloquearla (ver la nota bajo la
+tabla de la pantalla 03); Plan · Mes P-1 a P-7 hechas (15 de agosto). Fase 3 (Deuda) arrancada el 15 de agosto:
 D-1, D-2, D-3, D-4, D-5, D-6, D-7, D-8 y D-9 hechas (D-3/D-7/D-8/D-9 ya existían de un epic
 anterior, reconciliadas con el backlog; D-4/D-5/D-6 se construyeron el mismo 15 de agosto, en la
 sesión siguiente a D-1/D-2 — ver la nota bajo la tabla de la pantalla 05); D-10/D-11/D-13
 parciales, D-2b/D-12 pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fase 4
-(Previsión y Escenarios): P-8/P-9 hechas, P-10 a P-13 pendientes, P-14/P-15 (Sobres) hechas el 19 de
-agosto y P-16 bloqueada por P-13 (ver pantalla 04); Escenarios
+(Previsión y Escenarios): P-8/P-9 hechas, P-8b se construyó el 19 de agosto (quinto punto del plan,
+en cuanto Cierre dejó de bloquearla), P-10/P-11/P-12/P-13 siguen pendientes, P-14/P-15 (Sobres)
+hechas el 19 de agosto y P-16 bloqueada por P-13 (ver pantalla 04); Escenarios
 **no arrancaba de cero** — auditada el 16 de agosto contra `Escenarios.pdf` y resultó tener un motor
 real de la epic E20 (10 de agosto) nunca reconciliado con este backlog: E-4/E-6/E-10 hechas de
 partida, E-3/E-11/E-5 cerradas el 16 de agosto (comparativa de seis indicadores, revisión opcional
@@ -86,7 +88,8 @@ a petición del usuario): E-1/E-2/E-8 pasan de parciales a hechas (catálogo con
 deuda que faltaban, debounce del guardarraíl, banda de doce meses por cuenta) y se construyen desde
 cero E-1b/E-6b/E-7/E-9/E-12 (constructor de tipos propios, guardar un rechazado como aviso, veredicto
 en prosa, vista familiar, comparar dos escenarios) — ver la nota de cierre bajo la tabla de la
-pantalla 06. Solo quedan E-11b/E-13/E-14, bloqueadas. Fase 5 (Cierre)
+pantalla 06. Solo quedan E-11b (ya no bloqueada, sin construir), E-13 (D-10 parcial) y E-14 (Fase 7).
+Fase 5 (Cierre)
 arrancó el 16 de agosto (punto 2 del plan): C-1/C-2/C-3/C-4/C-5/C-8/C-9 hechos en un primer
 incremento — ritual de tres pasos (sin sobres), conciliación por cuenta, tareas por causa,
 comprobaciones antes de firmar — reutilizando el motor transaccional de cierre/reapertura que ya
@@ -101,8 +104,9 @@ nueva que reutiliza el gasto medio de Escenarios y la escala de tres niveles de 
 ventana — segunda fase cerrada el 17 de agosto (misma lista del usuario que Escenarios y Cierre):
 A-4 (cascada del resultado por periodo), A-5 (patrimonio neto proyectado), A-8 (reparto del
 ingreso), A-9 (qué se repite) y A-11 (exportar CSV/PDF) pasan a `Hecho`; A-3 queda desbloqueada
-(E-2 ya está hecho) pero no se construyó, fuera de la lista pedida; A-7/A-10/A-12/A-13 siguen
-pendientes (ver la nota bajo la tabla de la pantalla 07). Sobres (segunda mitad de la Fase 6):
+(E-2 ya está hecho) pero no se construyó, fuera de la lista pedida; A-10/A-12/A-13 siguen
+pendientes; A-7 se construyó el 19 de agosto, quinto punto del plan, en cuanto Cierre dejó de
+bloquearla (ver la nota bajo la tabla de la pantalla 07). Sobres (segunda mitad de la Fase 6):
 P-14/P-15 (Plan · Mes) y C-6/C-7 (Cierre) se construyeron el 19 de agosto, cuarto punto del plan de
 cinco acordado con el usuario — ver la nota de cierre bajo la tabla de la pantalla 08 para el
 detalle; P-16 sigue bloqueada por P-13 (Objetivos), que no existe todavía. Fase 7 (Laboratorio)
@@ -352,7 +356,7 @@ tocar directamente la regla transversal 01 (una escritura real sigue abierta en 
 | M-7 | Cambio de partida con regla opcional | M-6 | M | Hecho (15 de agosto, ver nota) |
 | M-8 | Selección múltiple y acción en lote | M-2, R-7 | L | Hecho (15 de agosto, ver nota) |
 | M-8b | Consistencia con Registrar y el importador | M-8, R-8 | M | Hecho (15 de agosto, ver nota) |
-| M-8c | Saldo recalculado validado contra el declarado | M-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
+| M-8c | Saldo recalculado validado contra el declarado | M-2, Cierre | M | Hecho (19 de agosto, ver nota) |
 | M-9 | Totales de la vista filtrada | M-3 | S | Hecho |
 | M-10 | Exportar la vista | M-3 | S | Hecho |
 | M-11 | Los importes no se editan | M-2 | S | Hecho |
@@ -407,8 +411,21 @@ secuencia que M-7. Se ajustó `tests/m1-m11-movimientos.test.cjs` (M-11: la fila
 importe se sigue pintando como texto, no como campo editable) y se le añadió el stub de
 `datosImportarRefreshRowsForMappings` que M-7 ya invoca.
 
-Con esto, de las 13 tareas de Movimientos solo queda M-8c, bloqueada hasta que exista Cierre
+Con esto, de las 13 tareas de Movimientos solo quedaba M-8c, bloqueada hasta que existiera Cierre
 (Fase 5).
+
+**M-8c — 19 de agosto de 2026.** Quinto punto del plan de sesión (tras Escenarios, Cierre, Análisis
+y Sobres): con Cierre (Fase 5) ya construido, M-8c dejó de estar bloqueada — solo faltaba exponer en
+Movimientos la misma pieza compartida «Saldo calculado y su cuadre» que Cierre ya usa (C-2; la
+tabla de la §5 lo declara explícitamente: «M-8c · C-2»). `renderMovementsReconciliation()` llama a
+`cierreAccountReconciliation(entries)` tal cual — ningún segundo cálculo de saldo — sobre el mismo
+`FinanceCanonicalLedger` que ya alimenta Cierre y Conciliar, y pinta la misma tabla (declarado,
+calculado, diferencia, estado) al principio de la vista de Movimientos, con un enlace a Cierre para
+cerrar el mes. Una cuenta sin extracto (Mediolanum) sigue quedando «sin conciliar», nunca fingiendo
+un cuadre (regla transversal 04). Pruebas nuevas en
+`tests/m8c-p8b-a7-fase5-dependientes.test.cjs`. Verificado con Playwright contra el build local: la
+tarjeta aparece justo encima de la tabla del extracto real, con el mismo estado que ya mostraba
+Cierre. Sin errores de consola propios.
 
 **Auditoría del 15 de agosto contra `Movimientos.pdf` (sesión de contraste con los PDFs nuevos).**
 M-1, M-4, M-5, M-9, M-10 y M-11 coinciden con precisión. Gaps reales encontrados:
@@ -495,7 +512,7 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | P-6 | Pie de impacto compartido con Registrar | R-7 | M | Hecho |
 | P-7 | Copiar de julio | P-3, P-6 | M | Hecho |
 | P-8 | Previsión mes a mes por bloque | P-1 | L | Hecho (15 de agosto, ver nota) |
-| P-8b | Editar un mes cerrado con aviso | P-8, Cierre | M | Pendiente |
+| P-8b | Editar un mes cerrado con aviso | P-8, Cierre | M | Hecho (19 de agosto, ver nota) |
 | P-9 | Mapa de calor de colchón | P-8 | M | Hecho (15 de agosto, ver nota) |
 | P-10 | Descomposición del peor mes | P-9 | M | Pendiente |
 | P-11 | Proyección de horizonte | P-8 | M | Pendiente |
@@ -623,8 +640,26 @@ anterior era correcta. El resto de la pantalla sí tiene gaps reales:
 
 Menor/cosmético: la pestaña se llama «Ahorro» en el código y «Ahorro y objetivos» en el PDF.
 Con P-1, P-2, P-3 y P-4 cerradas, esta auditoría contra `Plan.pdf` no deja ninguna pendiente sin
-motivo — lo que falta en la pantalla es lo ya descrito en las notas de fase (P-8b, P-10 a P-16,
+motivo — lo que faltaba en la pantalla es lo ya descrito en las notas de fase (P-8b, P-10 a P-16,
 Fase 4/6 sin empezar).
+
+**P-8b — 19 de agosto de 2026.** Quinto punto del plan de sesión: con Cierre construido, «editar un
+mes cerrado con aviso» ya tenía sentido. El previsto de un mes cerrado sigue congelado por defecto
+(el pie de la tabla lo dice, como siempre); un botón «Editar previsto igualmente» abre el candado
+para ese mes concreto y lo sustituye por un aviso permanente (`.e19-insight.is-warn`, siempre
+visible mientras dure) con «Volver a bloquear». El candado se guarda por `monthKey`
+(`planMesClosedOverrideMonthKey`), no como un booleano global, así que cambiar de mes en el selector
+lo cierra solo — nadie se queda editando un cierre antiguo sin darse cuenta de cuál tiene abierto.
+Solo reabre el previsto: los reales siguen firmados e intocables (para reabrir el cierre en sí sigue
+existiendo Cierre › Reabrir, con su propio motivo obligatorio, C-11). Por dentro reutiliza la misma
+puerta de escritura de siempre (regla transversal 01): `cuadroMandosStageCell` — el motor que ya
+comparten Cuadro de mandos y Plan · Mes — gana un cuarto parámetro opcional,
+`{ allowClosedMonth }`, que solo Plan · Mes pasa, y solo cuando el candado de ese mes está abierto;
+el resto de llamadores (Cuadro de mandos incluido) nunca lo pasan, así que su bloqueo por defecto no
+cambia. Pruebas nuevas en `tests/m8c-p8b-a7-fase5-dependientes.test.cjs`. Verificado con Playwright
+contra el build local: en un mes cerrado, el botón desbloquea el `<input>` de previsto de verdad
+(pasa de `disabled` a editable), «Volver a bloquear» lo vuelve a congelar, y cambiar a otro mes no
+arrastra el candado abierto. Sin errores de consola propios.
 
 ### 05 · Deuda — un dato canónico y dos vistas que lo leen (15 tareas · 3 grandes)
 
@@ -632,7 +667,7 @@ Fase 4/6 sin empezar).
 | --- | --- | --- | --- | --- |
 | D-1 | Pestañas Ruta / Comparar / Contratos | Fase 3 | M | Hecho (15 de agosto, ver nota) |
 | D-2 | Contratos como dato canónico editable | D-1 | L | Hecho (15 de agosto) |
-| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
+| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (ya no bloqueada: Cierre hecho — no construida esta sesión, fuera de la lista pedida) |
 | D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
 | D-4 | Calendario de amortización | D-3 | L | Hecho (16 de agosto, ver nota) |
 | D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
@@ -724,7 +759,8 @@ sugerencia de cuota de refinanciación, la comparativa de los ocho, la amortizac
 calendario.
 
 **Quedan pendientes, con motivo explícito:**
-- **D-2b** — bloqueada hasta que exista Cierre (Fase 5), igual que M-8c.
+- **D-2b** — ya no bloqueada (Cierre existe desde el 16 de agosto, igual que M-8c), pero no se
+  construyó esta sesión: fuera de la lista de tareas que pidió el usuario.
 - **D-10** (aviso activo de caducidad de una oferta), **D-11** (coste marginal por mes de
   demora) y **D-13** (guardar la comparación sin comprometerse a aplicar) — ampliaciones
   concretas sobre lo que ya existe, no bloqueadas por nada, solo fuera del alcance pedido esta
@@ -839,7 +875,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 | E-9 | Vista familiar como pantalla aparte | E-3 | M | Hecho (17 de agosto, ver nota) |
 | E-10 | Guardar escenario reproducible | E-2 | M | Hecho |
 | E-11 | Aplicar con motivo y revisión opcional | D-8 | M | Hecho (16 de agosto, ver nota) |
-| E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Pendiente (bloqueada: depende de Cierre, Fase 5, sin empezar) |
+| E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Pendiente (ya no bloqueada: Cierre hecho — no construida esta sesión, fuera de la lista pedida) |
 | E-12 | Comparar dos escenarios guardados | E-10 | M | Hecho (17 de agosto, ver nota) |
 | E-13 | Caducidad de escenarios con oferta | E-10, D-10 | S | Pendiente (bloqueada: depende de D-10, parcial) |
 | E-14 | Retirar las tres heredadas de simulación | E-1, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
@@ -1027,7 +1063,7 @@ Quedan pendientes, sin bloqueo: E-11b (Cierre), E-13 (D-10 parcial), E-14 (Fase 
 | A-4 | Cascada del resultado por periodo | A-1, Cierre | L | Hecho (17 de agosto, ver nota) |
 | A-5 | Patrimonio neto proyectado | A-1, D-2 | L | Hecho (17 de agosto, ver nota) |
 | A-6 | Selector de ventana | A-2, A-5 | S | Hecho (16 de agosto, ver nota) |
-| A-7 | ¿Acierta el plan? | A-1, Cierre | L | Pendiente |
+| A-7 | ¿Acierta el plan? | A-1, Cierre | L | Hecho (19 de agosto, ver nota) |
 | A-8 | En qué se va · reparto completo del ingreso | A-1 | M | Hecho (17 de agosto, ver nota) |
 | A-9 | Qué se repite | A-1, M-3 | M | Hecho (17 de agosto, ver nota) |
 | A-10 | Confianza del dato | A-1, Cierre | M | Pendiente |
@@ -1110,10 +1146,28 @@ nota al elegir «Último trimestre»; el reparto del ingreso suma 100% entre sus
 se repite» declara honestamente que faltan datos en la demo pública; los botones CSV y PDF descargan/
 imprimen sin error. Sin errores de consola propios.
 
-Con esto terminan las tres fases que el usuario pidió cerrar en esta sesión (Escenarios, Cierre,
-Análisis). Quedan pendientes, sin bloqueo nuevo: A-3 (ver nota arriba), A-7/A-10 (Cierre con
+Con esto terminaron las tres fases que el usuario pidió cerrar en esa sesión (Escenarios, Cierre,
+Análisis). Quedaban pendientes, sin bloqueo nuevo: A-3 (ver nota arriba), A-7/A-10 (Cierre con
 historial dedicado — parcialmente cubierto por C-10/C-11, pero no completo), A-12 (Fase 7), A-13
 (A-9, A-10, M-8).
+
+**A-7 — 19 de agosto de 2026.** Quinto punto del plan de sesión (tras Escenarios, Cierre, Análisis y
+Sobres): «¿acierta el plan?» compara previsto y real, pero solo en meses ya **cerrados** — un mes
+abierto todavía puede cambiar de real, así que no hay una relación mes→dato fiable hasta que Cierre
+lo firma (la misma razón, ya documentada arriba, por la que A-7 quedó fuera del primer incremento).
+Una fila por mes cerrado con partidas reales, dentro de la misma ventana que ya comparten A-2/A-5
+(12/24 meses o todo el plan): previsto, real, diferencia, % de desviación y cuántas partidas de ese
+mes superan el margen, más un veredicto «Acierta»/«Se desvía». No se inventa un segundo umbral de
+precisión: reutiliza tal cual el umbral de desviación por partida que ya vive en Ajustes
+(`partidaDeviationThreshold`/`registrarMesDeviationPercent`, V6-2, el mismo que ya avisa en
+Registrar), así que hay un solo umbral en toda la app, no uno por pantalla (regla transversal 09).
+Sin umbral configurado, la tarjeta muestra las cifras reales sin fabricar un veredicto, con un
+enlace a Ajustes para configurarlo (regla transversal 04). Se suma también a la exportación de A-11
+(CSV y PDF), mismo mecanismo. Pruebas nuevas en `tests/m8c-p8b-a7-fase5-dependientes.test.cjs`.
+Verificado con Playwright contra el build local: la tarjeta aparece bajo Patrimonio neto; contra los
+datos de demostración (sin movimientos ni cierres reales, por privacidad) dice explícitamente que no
+hay ningún mes cerrado con reales todavía, en vez de fabricar un acierto o un fallo. Sin errores de
+consola propios.
 
 ### 08 · Cierre — ritual secuencial de cuatro pasos (15 tareas · 7 grandes)
 
@@ -1132,7 +1186,7 @@ historial dedicado — parcialmente cubierto por C-10/C-11, pero no completo), A
 | C-10 | Historial de versiones | C-9 | L | Hecho (17 de agosto, ver nota) |
 | C-11 | Reapertura registrada y notificada | C-10, A-7, A-10 | L | Hecho (parcial, 17 de agosto, ver nota) |
 | C-12 | Descargar evidencia en PDF y CSV | C-5 | M | Hecho (17 de agosto, ver nota) |
-| C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Pendiente (bloqueada: depende de A-7, sin construir) |
+| C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Pendiente (ya no bloqueada: A-7 hecho el 19 de agosto — no construida esta sesión, ver nota) |
 | C-14 | Retirar las dos heredadas de conciliación | C-9, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
 
 **Cierre construido el 16 de agosto** — primer incremento real de la Fase 5, punto 2 del plan de
@@ -1235,7 +1289,8 @@ reabrir julio 2026 hace aparecer en Análisis el aviso «jul 26 se reabrió en C
 vuelto a firmar»; el botón CSV descarga sin error y el contenedor de impresión se rellena con el
 estado de cuentas y la nota de Sobres antes de `window.print()`. Sin errores de consola propios.
 
-Quedan pendientes, sin bloqueo nuevo: C-3b (ver nota arriba), C-13 (A-7), C-14 (Fase 7).
+Quedan pendientes: C-3b (ver nota arriba), C-13 (ya no bloqueada — A-7 se construyó el 19 de agosto,
+pero C-13 no se construyó esta sesión), C-14 (Fase 7).
 
 **Sobres construido — 19 de agosto de 2026 (P-14/P-15/C-6/C-7).** Cuarto punto del plan de cinco
 acordado con el usuario tras Escenarios, Cierre y Análisis, y último de los cuatro que no dependía

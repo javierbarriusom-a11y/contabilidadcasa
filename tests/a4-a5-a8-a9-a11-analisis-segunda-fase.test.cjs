@@ -293,6 +293,8 @@ test("A-11 · el CSV incluye la banda de colchón, el patrimonio neto y la casca
     periodLabel: "Mes en curso",
     cushion: [{ label: "ago 26", monthsValue: 2.5, level: "ajustado" }],
     netWorth: [{ label: "ago 26", netWorth: -500 }],
+    accuracyRows: [{ label: "jul 26", diff: -50, deviationPct: 5 }],
+    accuracySummary: { threshold: 10, hits: 1, total: 1 },
     cascada: { rows: [{ label: "Ingresos", value: 1000 }], resultado: 200 },
     split: { ingreso: 1000, groups: [{ label: "Gastos fijos", value: 400, pct: 40 }] },
     recurring: [{ label: "Netflix", current: 20, pct: 0 }],

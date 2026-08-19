@@ -17080,9 +17080,40 @@ function movementsTotals(filtered) {
   );
 }
 
+// M-8c: la misma pieza compartida que ya usa Cierre (C-2, `cierreAccountReconciliation`) — saldo
+// declarado (Registrar) frente al calculado (último `balanceAfter` del extracto ya incorporado),
+// nunca un segundo cálculo. Cierre ya no bloquea esta pieza (Fase 5 está construida), así que M-8c
+// solo tenía que exponerla también en Movimientos, donde vive el extracto real.
+function renderMovementsReconciliation() {
+  const container = qs("movementsReconciliation");
+  if (!container || !window.FinanceCanonicalLedger) return;
+  const snapshot = refreshCanonicalLedger("movements-view");
+  if (!snapshot) return;
+  const accountRows = cierreAccountReconciliation(snapshot.entries || []);
+  const statusBadge = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger", "sin-conciliar": "e19-badge-neutral" };
+  const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra", "sin-conciliar": "Sin conciliar" };
+  container.innerHTML = `<h3 class="escenario-motor-panel-title">Saldo declarado y su cuadre</h3>
+    <div class="table-wrap"><table class="e19-table movements-reconciliation-table">
+      <thead><tr><th>Cuenta</th><th>Declarado</th><th>Calculado</th><th>Diferencia</th><th>Estado</th></tr></thead>
+      <tbody>${accountRows
+        .map(
+          (row) => `<tr>
+            <td><strong>${escapeHtml(row.label)}</strong></td>
+            <td>${money(row.declared, true)}</td>
+            <td>${row.calculated === null ? "—" : money(row.calculated, true)}</td>
+            <td>${row.diff === null ? "—" : money(row.diff, true)}</td>
+            <td><span class="e19-badge ${statusBadge[row.status]}">${statusLabel[row.status]}</span></td>
+          </tr>`,
+        )
+        .join("")}</tbody>
+    </table></div>
+    <p class="e19-kpi-note">Calculado a partir del extracto ya incorporado. Sin extracto para una cuenta (Mediolanum no lo trae en este modelo), queda «sin conciliar» en vez de fingir un cuadre. Se cierra en <a href="#cierre" data-home-nav="cierre">Cierre</a>.</p>`;
+}
+
 function renderDetailedMovements() {
   const rowsElement = qs("movementRows");
   if (!rowsElement) return;
+  renderMovementsReconciliation();
   const rangeAndSearch = movementsRangeAndSearchList();
   renderMovementChips(movementsChipCounts(rangeAndSearch));
   const chip = MOVEMENT_CHIPS.find((item) => item.id === movementsChipFilter) || MOVEMENT_CHIPS[0];
@@ -19656,10 +19687,16 @@ function renderCuadroMandos() {
   renderCuadroMandosImpactBar();
 }
 
-function cuadroMandosStageCell(rowKey, monthKey, value) {
+// P-8b: puerta única de escritura de previsto (regla transversal 01) — un mes cerrado sigue
+// bloqueado por defecto para cualquier llamador. `allowClosedMonth` es el único hueco, y solo lo usa
+// Plan · Mes cuando el usuario ha abierto explícitamente el candado de ese mes concreto (ver
+// `planMesEditLocked`); Cuadro de mandos y el resto de llamadores nunca lo pasan, así que su
+// comportamiento no cambia.
+function cuadroMandosStageCell(rowKey, monthKey, value, options = {}) {
   const row = rowForSeriesKey(rowKey);
   const month = monthByKey(monthKey, cuadroMandosAllMonths());
-  if (!row || !month || isClosedMonthKey(month.key)) return null;
+  if (!row || !month) return null;
+  if (isClosedMonthKey(month.key) && !options.allowClosedMonth) return null;
   const key = visualDraftCellKey(rowKey, month.key, "planned");
   const current = Number(plannedValueForVisualRow(row, month) || 0);
   const next = round2(Number(value || 0));
@@ -26780,6 +26817,38 @@ function renderPlanTabs() {
   if (qs("planCrumb")) qs("planCrumb").textContent = `Plan › ${activeTab?.label || ""}`;
 }
 
+// P-8b: «editar un mes cerrado con aviso» — el candado por defecto sigue siendo el mismo (el
+// previsto queda congelado tal y como se cerró), pero se puede abrir a mano para un mes concreto.
+// Se guarda por `monthKey`, no como un booleano global, para que cambiar de mes en el selector lo
+// vuelva a cerrar solo — nadie debería quedarse editando un cierre antiguo sin darse cuenta de qué
+// mes tiene abierto. No toca los reales (siguen firmados e intocables): esto solo reabre el
+// previsto, un dato distinto del cierre en sí (para reabrir el cierre existe Cierre › Reabrir, con
+// su propio motivo obligatorio — C-11).
+let planMesClosedOverrideMonthKey = null;
+
+function planMesEditLocked(month) {
+  return Boolean(month) && isClosedMonthKey(month.key) && planMesClosedOverrideMonthKey !== month.key;
+}
+
+function handlePlanMesClosedOverrideToggle(nextActive) {
+  const month = planMesSelectedMonth();
+  if (!month || !isClosedMonthKey(month.key)) return;
+  planMesClosedOverrideMonthKey = nextActive ? month.key : null;
+  renderPlanMes();
+}
+
+function planMesClosedFootHtml(month, monthClosed, overrideActive) {
+  if (!monthClosed) return planMesCopyHtml(month);
+  if (overrideActive) {
+    return `<div class="e19-insight is-warn">
+      <p>Editando el previsto de ${escapeHtml(month.label)}, un mes ya cerrado: los reales siguen firmados e intocables, esto solo cambia lo planeado.</p>
+      <button type="button" class="e19-btn e19-btn-secondary" data-plan-mes-closed-override-off>Volver a bloquear</button>
+    </div>`;
+  }
+  return `<p class="e19-kpi-note">El mes está cerrado: el previsto queda congelado tal y como se cerró.</p>
+    <button type="button" class="e19-btn e19-btn-secondary" data-plan-mes-closed-override-on>Editar previsto igualmente</button>`;
+}
+
 function planMesSelectedMonth() {
   const months = cuadroMandosAllMonths();
   if (!months.length) return null;
@@ -27107,7 +27176,12 @@ function renderPlanMes() {
   const month = planMesSelectedMonth();
   planMesPopulateMonths(months, month);
   if (!month) return;
+  // P-8b: cambiar de mes cierra automáticamente el candado del mes anterior — nunca sigue abierto
+  // para un mes distinto del que el usuario tiene delante.
+  if (planMesClosedOverrideMonthKey && planMesClosedOverrideMonthKey !== month.key) planMesClosedOverrideMonthKey = null;
   const monthClosed = isClosedMonthKey(month.key);
+  const overrideActive = monthClosed && planMesClosedOverrideMonthKey === month.key;
+  const editLocked = monthClosed && !overrideActive;
   const entries = planMesCollect(month);
   const totals = planMesTotals(entries);
 
@@ -27126,21 +27200,22 @@ function renderPlanMes() {
   }
 
   const container = qs("planMesTables");
-  container.innerHTML = `${planMesCardHtml("Ingresos", entries.income, month, monthClosed)}${planMesBudgetTableHtml(entries.expense, month, monthClosed)}
-    <div class="registrar-mes-card-foot">${monthClosed ? `<p class="e19-kpi-note">El mes está cerrado: el previsto queda congelado tal y como se cerró.</p>` : planMesCopyHtml(month)}</div>`;
+  container.innerHTML = `${planMesCardHtml("Ingresos", entries.income, month, editLocked)}${planMesBudgetTableHtml(entries.expense, month, editLocked)}
+    <div class="registrar-mes-card-foot">${planMesClosedFootHtml(month, monthClosed, overrideActive)}</div>`;
 
   renderPlanMesImpactBar();
 }
 
 function handlePlanMesPlannedChange(input) {
   const month = planMesSelectedMonth();
-  if (!month || isClosedMonthKey(month.key)) return;
+  if (!month || planMesEditLocked(month)) return;
   const rowKey = input.dataset.planMesPlanned;
   const monthKey = input.dataset.planMesMonth;
   if (!rowKey || !monthKey) return;
   if (planMesIsFinancingRowKey(rowKey)) return;
   const parsed = parseAmount(input.value);
-  cuadroMandosStageCell(rowKey, monthKey, input.value === "" || parsed === null ? 0 : parsed);
+  const allowClosedMonth = planMesClosedOverrideMonthKey === monthKey;
+  cuadroMandosStageCell(rowKey, monthKey, input.value === "" || parsed === null ? 0 : parsed, { allowClosedMonth });
   renderPlanMes();
 }
 
@@ -27718,6 +27793,83 @@ function analisisRecurringGrowthNote(items) {
   return `${names} sube${grown.length > 1 ? "n" : ""} ${money(extra, true)} más al mes que en el trimestre anterior. Nadie decidió eso. <a href="#movements" data-home-nav="movements">Ver los movimientos</a>`;
 }
 
+// A-7: «¿acierta el plan?» — compara previsto y real solo en meses cerrados: los reales de un mes
+// abierto todavía pueden cambiar, así que no hay una relación mes→dato fiable hasta que Cierre lo
+// firma (la misma razón, ya documentada, por la que A-7 quedó fuera del primer incremento de
+// Análisis). Reutiliza el umbral de Ajustes que ya usa Registrar para avisar de desviación por
+// partida (`partidaDeviationThreshold`/`registrarMesDeviationPercent`, V6-2) en vez de inventar un
+// segundo umbral de precisión — es la misma pregunta ("¿cuánto se desvía?"), a otra escala (regla
+// transversal 09: los umbrales son configuración, uno solo, no uno por pantalla). Sin umbral
+// configurado se muestran las cifras sin veredicto, nunca un «acierta» fabricado (regla
+// transversal 04).
+function analisisAccuracyRow(month) {
+  const collected = planMesCollect(month);
+  const entries = [...collected.income, ...collected.expense].filter((entry) => entry.hasActual);
+  const plannedTotal = round2(entries.reduce((sum, entry) => sum + Number(entry.planned || 0), 0));
+  const realTotal = round2(entries.reduce((sum, entry) => sum + Number(entry.usado || 0), 0));
+  const diff = round2(realTotal - plannedTotal);
+  const deviationPct =
+    Math.abs(plannedTotal) < 0.005 ? (Math.abs(diff) < 0.005 ? 0 : Infinity) : (Math.abs(diff) / Math.abs(plannedTotal)) * 100;
+  const threshold = partidaDeviationThreshold();
+  const partidasOver = threshold ? entries.filter((entry) => registrarMesDeviationPercent(entry) >= threshold).length : null;
+  return {
+    key: month.key,
+    label: month.label,
+    partidasCount: entries.length,
+    plannedTotal,
+    realTotal,
+    diff,
+    deviationPct,
+    partidasOver,
+    withinThreshold: threshold ? deviationPct <= threshold : null,
+  };
+}
+
+function analisisAccuracyRows(months) {
+  return months
+    .filter((month) => isClosedMonthKey(month.key))
+    .map(analisisAccuracyRow)
+    .filter((row) => row.partidasCount > 0);
+}
+
+function analisisAccuracySummary(rows) {
+  const threshold = partidaDeviationThreshold();
+  if (!threshold) return { threshold: 0, hits: null, total: rows.length };
+  return { threshold, hits: rows.filter((row) => row.withinThreshold).length, total: rows.length };
+}
+
+function analisisAccuracyRowsHtml(rows) {
+  return rows
+    .map((row) => {
+      const badge =
+        row.withinThreshold === null
+          ? "—"
+          : `<span class="e19-badge ${row.withinThreshold ? "e19-badge-success" : "e19-badge-danger"}">${row.withinThreshold ? "Acierta" : "Se desvía"}</span>`;
+      return `<tr>
+        <td>${escapeHtml(row.label)}</td>
+        <td>${money(row.plannedTotal, true)}</td>
+        <td>${money(row.realTotal, true)}</td>
+        <td class="${row.diff < 0 ? "negative" : row.diff > 0 ? "positive" : ""}">${registrarMesSignedMoney(row.diff)}</td>
+        <td>${row.deviationPct === Infinity ? "—" : `${row.deviationPct.toFixed(1)}%`}</td>
+        <td>${row.partidasOver === null ? "—" : `${row.partidasOver} de ${row.partidasCount}`}</td>
+        <td>${badge}</td>
+      </tr>`;
+    })
+    .join("");
+}
+
+function analisisAccuracyHtml(rows, summary) {
+  if (!rows.length) {
+    return `<p class="e19-kpi-note">Ningún mes cerrado con reales en esta ventana todavía.</p>`;
+  }
+  const summaryHtml = summary.threshold
+    ? `<p class="e19-kpi-note">${summary.hits} de ${summary.total} mes(es) cerrados dentro del margen del ${summary.threshold}% configurado en <a href="#ajustes" data-home-nav="ajustes">Ajustes</a>.</p>`
+    : `<p class="e19-kpi-note">Sin umbral de desviación configurado en <a href="#ajustes" data-home-nav="ajustes">Ajustes</a>: se muestran las cifras, sin veredicto (Registrar usa el mismo umbral).</p>`;
+  return `${summaryHtml}<div class="table-wrap"><table class="e19-table analisis-accuracy-table">
+    <thead><tr><th>Mes</th><th>Previsto</th><th>Real</th><th>Diferencia</th><th>Desviación</th><th>Partidas fuera</th><th>Veredicto</th></tr></thead>
+    <tbody>${analisisAccuracyRowsHtml(rows)}</tbody></table></div>`;
+}
+
 // A-11: "CSV con las series completas de cada bloque, una fila por mes y bloque [...] PDF de una
 // página con los seis bloques, la ventana elegida y la fecha de cálculo." Mismo patrón que C-12
 // (recién construido): Blob/URL de objeto para el CSV, `window.print()` sobre un contenedor
@@ -27727,6 +27879,8 @@ function analisisExportContext() {
   const targetMonths = Number(state.emergencyBufferMonths || 0);
   const cushion = analisisCushionBand(windowMonths, lastSimulation, targetMonths);
   const netWorth = analisisNetWorthSeries(windowMonths, lastSimulation);
+  const accuracyRows = analisisAccuracyRows(windowMonths);
+  const accuracySummary = analisisAccuracySummary(accuracyRows);
   const periodMonths = analisisPeriodMonths();
   const cascada = analisisCascadaRows(periodMonths);
   const currentMonth = analisisPeriodMonths("mes-actual")[0] || windowMonths[0];
@@ -27738,6 +27892,8 @@ function analisisExportContext() {
     calculatedAt: formatIsoDate(defaultBalanceDate()),
     cushion,
     netWorth,
+    accuracyRows,
+    accuracySummary,
     cascada,
     split,
     recurring,
@@ -27749,6 +27905,15 @@ function analisisExportCsvContent(context) {
   lines.push(["Bloque", "Mes", "Valor", "Detalle"].map(csvValue).join(";"));
   context.cushion.forEach((item) => lines.push(["Colchón (meses)", item.label, item.monthsValue ?? "", item.level].map(csvValue).join(";")));
   context.netWorth.forEach((item) => lines.push(["Patrimonio neto", item.label, item.netWorth ?? "", ""].map(csvValue).join(";")));
+  lines.push([]);
+  lines.push(
+    ["¿Acierta el plan?", "", "", context.accuracySummary.threshold ? `${context.accuracySummary.hits} de ${context.accuracySummary.total} dentro del ${context.accuracySummary.threshold}%` : "sin umbral configurado"].map(csvValue).join(";"),
+  );
+  context.accuracyRows.forEach((row) =>
+    lines.push(
+      ["Acierta el plan", row.label, row.diff, row.deviationPct === Infinity ? "sin previsto" : `${row.deviationPct.toFixed(1)}% de desviación`].map(csvValue).join(";"),
+    ),
+  );
   lines.push([]);
   lines.push(["Cascada del resultado", context.periodLabel, "", ""].map(csvValue).join(";"));
   context.cascada.rows.forEach((row) => lines.push(["Cascada", row.label, row.value, ""].map(csvValue).join(";")));
@@ -27782,6 +27947,8 @@ function analisisExportPrintHtml(context) {
     <table><thead><tr><th>Mes</th><th>Meses de colchón</th></tr></thead><tbody>${context.cushion.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${item.monthsValue === null ? "—" : item.monthsValue.toFixed(1)}</td></tr>`).join("")}</tbody></table>
     <h2>Patrimonio neto</h2>
     <table><thead><tr><th>Mes</th><th>Patrimonio neto</th></tr></thead><tbody>${context.netWorth.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${item.netWorth === null ? "—" : money(item.netWorth, true)}</td></tr>`).join("")}</tbody></table>
+    <h2>¿Acierta el plan? ${context.accuracySummary.threshold ? `(${context.accuracySummary.hits} de ${context.accuracySummary.total} dentro del ${context.accuracySummary.threshold}%)` : "(sin umbral configurado en Ajustes)"}</h2>
+    <table><thead><tr><th>Mes</th><th>Previsto</th><th>Real</th><th>Diferencia</th><th>Desviación</th></tr></thead><tbody>${context.accuracyRows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${money(row.plannedTotal, true)}</td><td>${money(row.realTotal, true)}</td><td>${registrarMesSignedMoney(row.diff)}</td><td>${row.deviationPct === Infinity ? "—" : `${row.deviationPct.toFixed(1)}%`}</td></tr>`).join("")}</tbody></table>
     <h2>De dónde sale el resultado (${escapeHtml(context.periodLabel)})</h2>
     <table><thead><tr><th>Bloque</th><th>Importe</th></tr></thead><tbody>${context.cascada.rows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${money(row.value, true)}</td></tr>`).join("")}<tr><td>Resultado</td><td>${money(context.cascada.resultado, true)}</td></tr></tbody></table>
     <h2>En qué se va</h2>
@@ -27863,6 +28030,13 @@ function renderAnalisis() {
   if (netWorthBand) netWorthBand.innerHTML = analisisNetWorthBandHtml(netWorth);
   const milestonesEl = qs("analisisNetWorthMilestones");
   if (milestonesEl) milestonesEl.innerHTML = analisisNetWorthMilestonesHtml(analisisNetWorthMilestones(netWorth));
+
+  // A-7: misma ventana que A-2/A-5 (A-6 la declara compartida) — meses cerrados solamente.
+  const accuracyEl = qs("analisisAccuracy");
+  if (accuracyEl) {
+    const accuracyRows = analisisAccuracyRows(months);
+    accuracyEl.innerHTML = analisisAccuracyHtml(accuracyRows, analisisAccuracySummary(accuracyRows));
+  }
 
   // A-4: cascada del resultado, con su propio selector de periodo — independiente de la ventana de
   // A-2/A-5 (mes en curso, un mes cualquiera, o un rango relativo a hoy).
@@ -28380,6 +28554,9 @@ async function init() {
     if (event.target.closest("[data-plan-mes-copy]")) { handlePlanMesCopy(); return; }
     if (event.target.closest("[data-plan-mes-copy-confirm]")) { handlePlanMesCopyConfirm(); return; }
     if (event.target.closest("[data-plan-mes-copy-cancel]")) { handlePlanMesCopyCancel(); return; }
+    // P-8b: abrir/cerrar el candado del previsto de un mes cerrado.
+    if (event.target.closest("[data-plan-mes-closed-override-on]")) { handlePlanMesClosedOverrideToggle(true); return; }
+    if (event.target.closest("[data-plan-mes-closed-override-off]")) { handlePlanMesClosedOverrideToggle(false); return; }
     // P-2: cabecera de bloque, plegable.
     const blockToggle = event.target.closest("[data-plan-mes-block-toggle]");
     if (blockToggle) { handlePlanMesBlockToggle(blockToggle.dataset.planMesBlockToggle); return; }

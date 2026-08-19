@@ -2,6 +2,56 @@
 
 Fecha de revisión: 19 de agosto de 2026.
 
+## Cierre de sesión — 19 de agosto de 2026: quinto punto del plan — M-8c, P-8b y A-7
+
+Quinto y último punto del plan de cinco acordado con el usuario en esta sesión (tras Escenarios,
+Cierre, Análisis y Sobres): las tres tareas del backlog que estaban bloqueadas por depender de
+Cierre (Fase 5) y que dejaron de estarlo en cuanto Cierre se construyó, el 16 de agosto. Ninguna
+inventa cálculo financiero nuevo — las tres reutilizan piezas ya construidas.
+
+- **M-8c (Movimientos · pantalla 03) — «saldo recalculado validado contra el declarado».** Es
+  literalmente la misma pieza compartida que Cierre ya usa (C-2, «Saldo calculado y su cuadre»):
+  `renderMovementsReconciliation()` llama a `cierreAccountReconciliation(entries)` tal cual, sobre
+  el mismo `FinanceCanonicalLedger`, y pinta la tabla (declarado/calculado/diferencia/estado) al
+  principio de Movimientos, con enlace a Cierre. Una cuenta sin extracto (Mediolanum) sigue
+  quedando «sin conciliar», nunca fingiendo un cuadre.
+- **P-8b (Plan · Mes · pantalla 04) — «editar un mes cerrado con aviso».** El previsto de un mes
+  cerrado sigue congelado por defecto; un botón «Editar previsto igualmente» abre el candado para
+  ese mes concreto y lo sustituye por un aviso permanente («Volver a bloquear»). El candado se
+  guarda por `monthKey` (`planMesClosedOverrideMonthKey`), así que cambiar de mes lo cierra solo.
+  Solo reabre el previsto — los reales siguen firmados e intocables (para el cierre en sí sigue
+  existiendo Cierre › Reabrir, con su propio motivo obligatorio). Por dentro, `cuadroMandosStageCell`
+  (la puerta única de escritura que ya comparten Cuadro de mandos y Plan · Mes) gana un cuarto
+  parámetro opcional `{ allowClosedMonth }` que solo Plan · Mes pasa, y solo con el candado abierto
+  — el resto de llamadores no cambia su bloqueo por defecto.
+- **A-7 (Análisis · pantalla 07) — «¿acierta el plan?».** Previsto frente a real, solo en meses ya
+  cerrados (un mes abierto todavía puede cambiar de real, así que no hay relación mes→dato fiable
+  hasta que Cierre lo firma). Reutiliza el umbral de desviación por partida que ya vive en Ajustes
+  (`partidaDeviationThreshold`/`registrarMesDeviationPercent`, el mismo que usa Registrar) en vez de
+  inventar un segundo umbral — un solo umbral en toda la app. Sin umbral configurado, muestra las
+  cifras sin fabricar un veredicto, con enlace a Ajustes. Se suma a la exportación CSV/PDF de A-11.
+
+**Validación**: `npm run verify`, exit 0 — **1196/1196 pruebas** (33 nuevas en
+`tests/m8c-p8b-a7-fase5-dependientes.test.cjs`, más ajustes a tres pruebas existentes de
+`tests/p1-p7-plan-mes.test.cjs` y una de `tests/a4-a5-a8-a9-a11-analisis-segunda-fase.test.cjs` para
+inyectar `planMesEditLocked`/el nuevo cuarto argumento de `cuadroMandosStageCell` y el contexto de
+`accuracyRows`/`accuracySummary` en su sandbox), accesibilidad (764 IDs únicos), rendimiento
+(forecast y escenarios en 201,1 ms), build del sitio, privacidad y smoke test, todos en verde.
+Verificado con Playwright contra el build local: Movimientos muestra el cuadre de saldo con el mismo
+estado que ya mostraba Cierre; en un mes cerrado de Plan · Mes, el botón desbloquea de verdad el
+`<input>` de previsto (pasa de `disabled` a editable) y «Volver a bloquear» lo vuelve a congelar, sin
+arrastrar el candado a otro mes; Análisis muestra la tarjeta «¿Acierta el plan?» y, contra los datos
+de demostración (sin movimientos ni cierres reales, por privacidad), dice explícitamente que no hay
+ningún mes cerrado con reales todavía, en vez de fabricar un acierto. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — M-8c (pantalla 03), P-8b (pantalla 04)
+y A-7 (pantalla 07) pasan a `Hecho`. De paso, se corrigieron tres estados que habían quedado
+desactualizados por la misma razón (citaban «Cierre, Fase 5, sin empezar» cuando Cierre lleva
+construido desde el 16 de agosto): D-2b y E-11b pasan a «ya no bloqueada, sin construir esta
+sesión» (ninguna de las dos formaba parte de la lista pedida) y C-13 deja de citar a A-7 como su
+bloqueo. Con esto se completan los cinco puntos del plan acordado con el usuario en esta sesión:
+Escenarios, Cierre, Análisis, Sobres y este quinto punto.
+
 ## Cierre de sesión — 19 de agosto de 2026: fix de caché — el Service Worker servía el shell del 14 de agosto
 
 El usuario reportó ver «a veces» una versión antigua de la app (sin la pantalla Registrar, sin los

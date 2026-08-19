@@ -427,14 +427,14 @@ test("P-2 · handlePlanMesBlockToggle no hace nada sin nombre de bloque", () => 
 
 test("P-2 · renderPlanMes pinta la tabla de presupuesto agrupada (planMesBudgetTableHtml), no la tarjeta plana de Gastos", () => {
   const fn = extractFunction("renderPlanMes");
-  assert.match(fn, /planMesBudgetTableHtml\(entries\.expense, month, monthClosed\)/);
+  assert.match(fn, /planMesBudgetTableHtml\(entries\.expense, month, editLocked\)/);
   assert.doesNotMatch(fn, /planMesCardHtml\("Gastos"/);
 });
 
 test("P-2 · el manejador de clics de planMesTables reconoce data-plan-mes-block-toggle", () => {
   const start = app.indexOf('qs("planMesTables")?.addEventListener("click"');
   assert.ok(start >= 0);
-  const snippet = app.slice(start, start + 600);
+  const snippet = app.slice(start, start + 900);
   assert.match(snippet, /data-plan-mes-block-toggle/);
   assert.match(snippet, /handlePlanMesBlockToggle\(blockToggle\.dataset\.planMesBlockToggle\)/);
 });
@@ -450,9 +450,10 @@ test("P-4 · la celda «Usado» declara su procedencia (real o previsto), regla 
 
 test("P-3 · handlePlanMesPlannedChange no hace nada en un mes cerrado", () => {
   const calls = [];
-  const context = sandboxWith(["handlePlanMesPlannedChange"], {
+  const context = sandboxWith(["handlePlanMesPlannedChange", "planMesEditLocked"], {
     planMesSelectedMonth: () => ({ key: "2026-01" }),
     isClosedMonthKey: () => true,
+    planMesClosedOverrideMonthKey: null,
     planMesIsFinancingRowKey: () => false,
     cuadroMandosStageCell: (...args) => calls.push(args),
     renderPlanMes: () => calls.push("renderPlanMes"),
@@ -463,30 +464,38 @@ test("P-3 · handlePlanMesPlannedChange no hace nada en un mes cerrado", () => {
 
 test("P-3 · handlePlanMesPlannedChange escribe con cuadroMandosStageCell, el mismo motor que ya usaba Cuadro de mandos", () => {
   const calls = [];
-  const context = sandboxWith(["handlePlanMesPlannedChange"], {
+  const context = sandboxWith(["handlePlanMesPlannedChange", "planMesEditLocked"], {
     planMesSelectedMonth: () => ({ key: "2026-08" }),
     isClosedMonthKey: () => false,
+    planMesClosedOverrideMonthKey: null,
     planMesIsFinancingRowKey: () => false,
     parseAmount: (v) => Number(v),
     cuadroMandosStageCell: (...args) => calls.push(["cuadroMandosStageCell", ...args]),
     renderPlanMes: () => calls.push("renderPlanMes"),
   });
   context.handlePlanMesPlannedChange({ dataset: { planMesPlanned: "income-a", planMesMonth: "2026-08" }, value: "500" });
-  assert.deepEqual(calls, [["cuadroMandosStageCell", "income-a", "2026-08", 500], "renderPlanMes"]);
+  // JSON.stringify en vez de deepEqual: el objeto de opciones se crea dentro del sandbox `vm`, en un
+  // realm distinto del de este test — deepEqual falla comparando por referencia entre realms aunque
+  // la estructura sea idéntica (mismo tropiezo ya documentado en las pruebas de Sobres).
+  assert.equal(
+    JSON.stringify(calls),
+    JSON.stringify([["cuadroMandosStageCell", "income-a", "2026-08", 500, { allowClosedMonth: false }], "renderPlanMes"]),
+  );
 });
 
 test("P-3 · vaciar la casilla la deja en 0, no en NaN ni sin tocar", () => {
   const calls = [];
-  const context = sandboxWith(["handlePlanMesPlannedChange"], {
+  const context = sandboxWith(["handlePlanMesPlannedChange", "planMesEditLocked"], {
     planMesSelectedMonth: () => ({ key: "2026-08" }),
     isClosedMonthKey: () => false,
+    planMesClosedOverrideMonthKey: null,
     planMesIsFinancingRowKey: () => false,
     parseAmount: () => null,
     cuadroMandosStageCell: (...args) => calls.push(args),
     renderPlanMes: () => {},
   });
   context.handlePlanMesPlannedChange({ dataset: { planMesPlanned: "r1", planMesMonth: "2026-08" }, value: "" });
-  assert.deepEqual(calls, [["r1", "2026-08", 0]]);
+  assert.equal(JSON.stringify(calls), JSON.stringify([["r1", "2026-08", 0, { allowClosedMonth: false }]]));
 });
 
 // --- P-3 (auditoría 15 de agosto) · las cuotas de deuda son de solo lectura en Plan · Mes --------
@@ -511,9 +520,10 @@ test("P-3 · planMesIsFinancingRowKey identifica las filas del bloque Financiaci
 
 test("P-3 · handlePlanMesPlannedChange bloquea las cuotas de deuda incluso llamando a la función a mano", () => {
   const calls = [];
-  const context = sandboxWith(["handlePlanMesPlannedChange"], {
+  const context = sandboxWith(["handlePlanMesPlannedChange", "planMesEditLocked"], {
     planMesSelectedMonth: () => ({ key: "2026-08" }),
     isClosedMonthKey: () => false,
+    planMesClosedOverrideMonthKey: null,
     planMesIsFinancingRowKey: (rowKey) => rowKey === "coche",
     parseAmount: (v) => Number(v),
     cuadroMandosStageCell: (...args) => calls.push(args),
