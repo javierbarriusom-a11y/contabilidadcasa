@@ -96,7 +96,11 @@ A-7 quedan fuera por falta de una relación mes→dato fiable) y C-12 (evidencia
 (ver la nota bajo la tabla de la pantalla 08). Fase 6 (Análisis) arrancó el mismo día (punto 3 del plan): A-1/A-2/A-6 hechos en un primer
 incremento — pantalla de solo lectura, banda de doce meses de colchón en meses (no en €, una serie
 nueva que reutiliza el gasto medio de Escenarios y la escala de tres niveles de P-9), selector de
-ventana — A-3 a A-13 pendientes (ver la nota bajo la tabla de la pantalla 07). Fase 7 (Laboratorio)
+ventana — segunda fase cerrada el 17 de agosto (misma lista del usuario que Escenarios y Cierre):
+A-4 (cascada del resultado por periodo), A-5 (patrimonio neto proyectado), A-8 (reparto del
+ingreso), A-9 (qué se repite) y A-11 (exportar CSV/PDF) pasan a `Hecho`; A-3 queda desbloqueada
+(E-2 ya está hecho) pero no se construyó, fuera de la lista pedida; A-7/A-10/A-12/A-13 siguen
+pendientes (ver la nota bajo la tabla de la pantalla 07). Fase 7 (Laboratorio)
 confirmada sin ningún código propio — se auditó su PDF el 16 de agosto pero no hay nada que
 reconciliar, arranca de cero.
 
@@ -1014,15 +1018,15 @@ Quedan pendientes, sin bloqueo: E-11b (Cierre), E-13 (D-10 parcial), E-14 (Fase 
 | --- | --- | --- | --- | --- |
 | A-1 | Pantalla de solo lectura con procedencia | Fase 5 | M | Hecho (16 de agosto, ver nota) |
 | A-2 | Banda de doce meses de colchón | A-1, P-9 | M | Hecho (16 de agosto, ver nota) |
-| A-3 | Peor mes explicado | A-2, E-2 | M | Pendiente (bloqueada: depende de E-2, sin construir) |
-| A-4 | Cascada del resultado por periodo | A-1, Cierre | L | Pendiente |
-| A-5 | Patrimonio neto proyectado | A-1, D-2 | L | Pendiente |
+| A-3 | Peor mes explicado | A-2, E-2 | M | Pendiente (ya no bloqueada: E-2 hecho el 17 de agosto — no construida esta sesión, ver nota) |
+| A-4 | Cascada del resultado por periodo | A-1, Cierre | L | Hecho (17 de agosto, ver nota) |
+| A-5 | Patrimonio neto proyectado | A-1, D-2 | L | Hecho (17 de agosto, ver nota) |
 | A-6 | Selector de ventana | A-2, A-5 | S | Hecho (16 de agosto, ver nota) |
 | A-7 | ¿Acierta el plan? | A-1, Cierre | L | Pendiente |
-| A-8 | En qué se va · reparto completo del ingreso | A-1 | M | Pendiente |
-| A-9 | Qué se repite | A-1, M-3 | M | Pendiente |
+| A-8 | En qué se va · reparto completo del ingreso | A-1 | M | Hecho (17 de agosto, ver nota) |
+| A-9 | Qué se repite | A-1, M-3 | M | Hecho (17 de agosto, ver nota) |
 | A-10 | Confianza del dato | A-1, Cierre | M | Pendiente |
-| A-11 | Exportar en CSV y en PDF | A-1 | M | Pendiente |
+| A-11 | Exportar en CSV y en PDF | A-1 | M | Hecho (17 de agosto, ver nota) |
 | A-12 | Retirar las heredadas visuales | A-1, Fase 7 | S | Pendiente |
 | A-13 | Actuar desde el aviso, sin duplicar el camino | A-9, A-10, M-8 | L | Pendiente |
 
@@ -1046,13 +1050,9 @@ T-1 no cambian). No se fabrica ningún cálculo financiero nuevo.
 - **A-6** — selector 12 / 24 / todo el plan, mismo componente visual (`.registrar-mes-filter`) que ya
   usa P-1 para el horizonte compartido de Plan · Previsión. Afecta a la banda de A-2; A-5 (patrimonio
   neto), la otra dependiente declarada, no se ha construido todavía.
-- **A-3 a A-5, A-7 a A-13** — pendientes. A-4 (cascada) y A-5 (patrimonio neto proyectado) están
-  marcadas «CONSERVADO» en el inventario del propio mockup — ya existen en `#cashflow` y `#forecast`
-  respectivamente y solo hace falta traerlas a esta pantalla — pero extraerlas con su procedencia
-  correcta no se ha hecho todavía. A-7 (¿acierta el plan?) y A-10 (confianza del dato) dependen de
-  Cierre, que en este incremento solo tiene tres pasos reales y sin historial de versiones dedicado
-  (ver la nota bajo la tabla de la pantalla 08); A-3 depende de E-2, todavía parcial. A-8/A-9/A-11
-  no están bloqueadas pero no se han construido en esta sesión.
+- **A-3 a A-5, A-7 a A-13** — pendientes en este primer incremento. A-7 (¿acierta el plan?) y A-10
+  (confianza del dato) dependen de Cierre, que en este incremento solo tiene tres pasos reales y sin
+  historial de versiones dedicado (ver la nota bajo la tabla de la pantalla 08).
 
 **Validación de este incremento**: `npm test`, exit 0, **1089/1089 pruebas** (7 nuevas en
 `tests/a1-a2-a6-analisis-colchon.test.cjs`, más 1 prueba existente de navegación ajustada porque
@@ -1060,6 +1060,55 @@ contaba los enlaces exactos del menú avanzado). Verificado con Playwright contr
 banda muestra 12/24 meses reales con etiqueta, valor y color según el nivel, cambia de color al
 cruzar el objetivo de `state.emergencyBufferMonths`, el peor mes se marca con su cifra exacta y el
 selector de ventana funciona. Sin errores de consola propios.
+
+**Cierre de A-4/A-5/A-8/A-9/A-11 — 17 de agosto de 2026.** Tercera y última fase de la lista que el
+usuario pidió cerrar en esta sesión (después de Escenarios y Cierre, ambos ya fusionados). Ningún
+cálculo financiero nuevo: A-4/A-8 reutilizan `planMesCollect` (P-2/P-4 — real donde existe, previsto
+donde no); A-5 reutiliza `debtAmortizationSchedule` (D-4) y `lastSimulation`; A-9 reutiliza
+`movementMappingKey` (M-7/M-8); A-11 reutiliza el patrón de C-12 (Blob/CSV + `window.print()` para
+el PDF, mismo contenedor `#cierrePrintEvidence`).
+
+- **A-4** — «De dónde sale el resultado»: Ingresos, Gastos fijos, Gastos variables, Financiaciones
+  (cuota de deuda) y Ahorro, con el Resultado al pie — los mismos bloques reales que ya agrupa Plan ·
+  Mes, no la taxonomía de ejemplo del mockup («Suscripciones» no existe como bloque en este modelo de
+  datos). Selector de periodo propio: mes en curso, un mes cualquiera (abierto o cerrado) o un rango
+  relativo a hoy (último trimestre/semestre/año) — la nota dice cuántos de los cinco bloques tienen
+  dato real en el periodo elegido, el resto usa el previsto.
+- **A-5** — «Patrimonio neto»: liquidez simulada menos deuda viva, con tres hitos (hoy, cruce a cero,
+  fin del plan) en vez del eje-cero gráfico del mockup — misma información, presentación más simple
+  dado el tiempo disponible. La deuda viva es el calendario declarado de cada contrato real
+  (`debtAmortizationSchedule`, D-4), sin aplicar ninguna decisión ni ruta: Análisis es de solo
+  lectura y no presupone qué estrategia se va a seguir. Comparte ventana con A-2 (A-6 ya lo declaraba:
+  "afecta a la banda y al patrimonio, no al mes").
+- **A-8** — «En qué se va»: barra apilada de un único mes (el actual) con Gastos fijos/Gastos
+  variables/Cuota de deuda/Ahorro/Sin asignar, los segmentos suman el 100% del ingreso por
+  construcción («Sin asignar» es el resto tras los otros cuatro). Un mes que gasta más que su
+  ingreso deja «Sin asignar» en negativo — se muestra tal cual, no se recorta a cero para que cuadre
+  visualmente (regla transversal 04).
+- **A-9** — «Qué se repite»: un concepto (`movementMappingKey`, la misma clave que ya usan M-7/M-8)
+  cuenta como recurrente solo si tiene gasto real en los dos últimos trimestres — uno solo sería una
+  compra puntual, no algo que se repite. Los que suben respecto al trimestre anterior se marcan
+  «creció sin decisión», con enlace a Movimientos. En los datos de demostración (que se publican sin
+  movimientos por privacidad) esta sección dice explícitamente que faltan datos, no fabrica ejemplos.
+- **A-11** — CSV (una fila por mes y bloque para los dos que son series mensuales de verdad — colchón
+  y patrimonio neto — más las tres tareas de foto fija) y PDF de una página vía `window.print()`,
+  mismo contenedor y mecanismo que C-12: ninguna librería nueva.
+- **A-3** — sigue pendiente: aunque su bloqueo (E-2) se resolvió en la primera fase de esta misma
+  sesión, construirla no formaba parte de la lista que pidió el usuario («A-4, A-5, A-8, A-9, A-11»)
+  — queda como el hueco más barato para una próxima sesión, ya desbloqueado.
+
+**Validación de este incremento**: `npm test`, exit 0, **1140/1140 pruebas** (17 nuevas en
+`tests/a4-a5-a8-a9-a11-analisis-segunda-fase.test.cjs`). Verificado con Playwright contra el build
+local: el patrimonio neto muestra doce columnas con sus hitos; la cascada cuadra (ingresos − gastos
+− ahorro = resultado) y su nota cuenta los bloques con dato real; el selector de periodo cambia la
+nota al elegir «Último trimestre»; el reparto del ingreso suma 100% entre sus cinco segmentos; «Qué
+se repite» declara honestamente que faltan datos en la demo pública; los botones CSV y PDF descargan/
+imprimen sin error. Sin errores de consola propios.
+
+Con esto terminan las tres fases que el usuario pidió cerrar en esta sesión (Escenarios, Cierre,
+Análisis). Quedan pendientes, sin bloqueo nuevo: A-3 (ver nota arriba), A-7/A-10 (Cierre con
+historial dedicado — parcialmente cubierto por C-10/C-11, pero no completo), A-12 (Fase 7), A-13
+(A-9, A-10, M-8).
 
 ### 08 · Cierre — ritual secuencial de cuatro pasos (15 tareas · 7 grandes)
 
