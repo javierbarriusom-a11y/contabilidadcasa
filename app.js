@@ -2648,6 +2648,10 @@ function saveScenarioSettings() {
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
     partidaDeviationThreshold: state.partidaDeviationThreshold ? Math.round(Math.max(1, Math.min(100, Number(state.partidaDeviationThreshold)))) : 0,
+    // Fase 6 · P-14: bandera y regla por sobre. Vive en scenarioSettings, no en preferencias del
+    // navegador (como e17Preferences) — es una decisión del hogar que se sincroniza y se restaura,
+    // igual que la reserva operativa (V6-1).
+    envelopes: state.envelopes && typeof state.envelopes === "object" ? state.envelopes : {},
     // V4-3 · qué partidas ya respondieron al aviso de «¿es anual?» este mes, para no repetir la
     // pregunta en cada render. Vive aquí, no solo en memoria, porque debe sobrevivir a recargar.
     registrarMesAnnualAck: state.registrarMesAnnualAck || {},
@@ -3533,7 +3537,11 @@ async function closeCurrentMonthTransaction() {
     const closureId = store.createUuid(`month-close-${month}`);
     // C-10: el autor de cada versión es la identidad de sesión real, decisión ya tomada el 14 de
     // agosto (sección 2 del backlog) — nunca un campo libre que alguien pudiera falsear.
-    const nextPayload = closeAdapter.closeMonth(appStatePayload(), month, { id: closureId, closedAt, reason, author: remoteUser?.email || "" });
+    // P-15: los asientos de sobres se calculan con las elecciones de destino/origen del paso 3 —
+    // vacío si Sobres está apagado, ya lo resuelve `sobresSettlementsForSign`.
+    const monthObj = cuadroMandosAllMonths().find((item) => item.key === month);
+    const envelopeSettlements = monthObj ? sobresSettlementsForSign(monthObj) : [];
+    const nextPayload = closeAdapter.closeMonth(appStatePayload(), month, { id: closureId, closedAt, reason, author: remoteUser?.email || "", envelopeSettlements });
     const fingerprint = store.fingerprintPayload(nextPayload);
     const newSnapshotId = store.createUuid("month-close-snapshot");
     const newSyncId = store.createUuid("month-close-sync");
@@ -3553,6 +3561,9 @@ async function closeCurrentMonthTransaction() {
     monthClosures = nextPayload.monthClosures;
     remoteHeadSnapshotId = newSnapshotId;
     ensureRemoteSaveQueue().acknowledge(closedAt);
+    // P-15: las elecciones de destino/origen eran transitorias del paso 3 de este mes — ya quedaron
+    // escritas en el asiento firmado, así que no deben sobrevivir a un mes distinto.
+    cierreSobresChoices = {};
     saveLocalSnapshot();
     renderReconciliation();
     if (qs("conciliarTitle")) renderConciliar();
@@ -5444,6 +5455,10 @@ function applyHelpTooltips() {
   addHelpToControl(
     "ajustesPartidaThreshold",
     "Porcentaje de desviación sobre lo previsto a partir del cual Ajustes avisa de una partida en Registrar el mes. Vacío significa que cualquier desviación sigue contando, como hasta ahora.",
+  );
+  addHelpToControl(
+    "ajustesSobresEnabled",
+    "Con esto activado, cada partida de Gastos variables gana un sobre en Plan y el cierre del mes añade un cuarto paso para liquidarlos. Apagado, todo sigue como hasta ahora.",
   );
   qs("ajustesExportCsv")?.setAttribute("data-help", "El mismo CSV completo del flujo mensual que ya descarga Plan, ahora también desde aquí.");
   qs("ajustesExportPdf")?.setAttribute("data-help", "Previsto, real y desviación de cada partida del mes abierto en Registrar el mes, en un PDF de una página por cada 42 líneas.");
@@ -19210,6 +19225,7 @@ function renderAjustes() {
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
   renderAjustesExportNote();
+  renderAjustesSobres();
 
   const balances = accountBalancesFromState();
   const accountsSummary = qs("ajustesAccountsSummary");
@@ -19224,6 +19240,42 @@ function renderAjustes() {
     const active = evaluatedUxAlerts().filter((alert) => !alert.paused);
     alertsSummary.textContent = active.length ? `${active.length} regla(s) activa(s)` : "Sin reglas activas todavía";
   }
+}
+
+// P-14: la lista de sobres editables usa las partidas de Gastos variables del mes de Plan
+// seleccionado — el mismo conjunto que ya ve esa pantalla, no una lista propia. «Las reglas de
+// sobres se editan en Ajustes, no viven repartidas por el código» (sección 5 del backlog).
+function renderAjustesSobres() {
+  const toggle = qs("ajustesSobresEnabled");
+  if (toggle) toggle.checked = sobresEnabled();
+  const container = qs("ajustesSobresRules");
+  if (!container) return;
+  if (!sobresEnabled()) {
+    container.innerHTML = "";
+    return;
+  }
+  const month = planMesSelectedMonth();
+  const rows = month ? sobresVariableRows(month) : [];
+  if (!rows.length) {
+    container.innerHTML = `<p class="e19-kpi-note">El mes de Plan seleccionado no tiene partidas de Gastos variables.</p>`;
+    return;
+  }
+  container.innerHTML = `<div class="table-wrap"><table class="e19-table ajustes-sobres-table">
+    <thead><tr><th>Sobre</th><th>Regla</th></tr></thead>
+    <tbody>${rows
+      .map((entry) => {
+        const rowKey = seriesKeyForRow(entry.row);
+        const rule = sobresRuleForRow(rowKey);
+        return `<tr>
+          <td>${escapeHtml(entry.label)}</td>
+          <td><select data-sobres-rule="${escapeHtml(rowKey)}" aria-label="Regla de arrastre de ${escapeHtml(entry.label)}">
+            <option value="arrastra"${rule === "arrastra" ? " selected" : ""}>Arrastra (positivo o negativo)</option>
+            <option value="tope-cero"${rule === "tope-cero" ? " selected" : ""}>Tope en cero (no arrastra negativo)</option>
+          </select></td>
+        </tr>`;
+      })
+      .join("")}</tbody>
+  </table></div>`;
 }
 
 /* ---- V6-2 · umbrales de aviso ------------------------------------------------------------------
@@ -25392,13 +25444,25 @@ function cierreAccountsSettled(rows) {
 // C-1: tres pasos secuenciales — cada uno permanece bloqueado hasta que el anterior está completo.
 // Un paso ya completado se puede volver a abrir para consultarlo; nunca se puede saltar hacia
 // delante uno todavía pendiente.
-function cierreStepsStatus(accountRows, tasks) {
+// C-1 (Cierre.pdf): «El paso 3 se salta solo si la fase 6 está apagada, y el cierre lo dice.» Con
+// Sobres apagado, la secuencia sigue siendo la de siempre (tres pasos); con Sobres activo, «Liquidar
+// sobres» se inserta entre Resolver y Firmar, y Firmar pasa a ser el paso 4.
+function cierreStepsStatus(accountRows, tasks, sobresRows = []) {
   const step1Done = cierreAccountsSettled(accountRows);
   const step2Done = step1Done && tasks.length === 0;
+  if (!sobresEnabled()) {
+    return [
+      { step: 1, label: "Conciliar cuentas", sublabel: "Declarado frente a calculado", unlocked: true, done: step1Done },
+      { step: 2, label: "Resolver diferencias", sublabel: "Tareas agrupadas por causa", unlocked: step1Done, done: step2Done },
+      { step: 3, label: "Firmar y archivar", sublabel: "Comprobaciones antes de firmar", unlocked: step2Done, done: false },
+    ];
+  }
+  const step3Done = step2Done && cierreSobresAllResolved(sobresRows);
   return [
     { step: 1, label: "Conciliar cuentas", sublabel: "Declarado frente a calculado", unlocked: true, done: step1Done },
     { step: 2, label: "Resolver diferencias", sublabel: "Tareas agrupadas por causa", unlocked: step1Done, done: step2Done },
-    { step: 3, label: "Firmar y archivar", sublabel: "Comprobaciones antes de firmar", unlocked: step2Done, done: false },
+    { step: 3, label: "Liquidar sobres", sublabel: "Origen y destino de cada sobre", unlocked: step2Done, done: step3Done },
+    { step: 4, label: "Firmar y archivar", sublabel: "Comprobaciones antes de firmar", unlocked: step3Done, done: false },
   ];
 }
 
@@ -25418,15 +25482,17 @@ function cierreStepsHtml(steps, activeStep) {
     .join("");
 }
 
-// C-5: cuatro comprobaciones del mockup, reducidas a las tres reales de este modelo mientras no hay
-// sobres — «Ningún sobre sin destino» no se muestra fingiendo un estado que cumple; se documenta
-// como paso inexistente, igual que el paso 3 (regla transversal 04).
-function cierreFirmChecks(accountRows, tasks, monthMovementCount) {
-  return [
+// C-5: cuatro comprobaciones del mockup. «Ningún sobre sin destino» solo se muestra con Sobres
+// activo — con la bandera apagada se documenta como paso inexistente en vez de fingir un estado que
+// cumple (regla transversal 04), igual que antes de que Sobres existiera.
+function cierreFirmChecks(accountRows, tasks, monthMovementCount, sobresRows = []) {
+  const checks = [
     { id: "cuentas", label: "Las cuentas cuadran", met: cierreAccountsSettled(accountRows) },
     { id: "diferencias", label: "Ninguna diferencia abierta", met: tasks.length === 0 },
-    { id: "extracto", label: `Extracto incorporado · ${monthMovementCount} movimiento(s)`, met: monthMovementCount > 0 },
   ];
+  if (sobresEnabled()) checks.push({ id: "sobres", label: "Ningún sobre sin destino", met: cierreSobresAllResolved(sobresRows) });
+  checks.push({ id: "extracto", label: `Extracto incorporado · ${monthMovementCount} movimiento(s)`, met: monthMovementCount > 0 });
+  return checks;
 }
 
 function cierreFirmChecksHtml(checks) {
@@ -25506,20 +25572,22 @@ function cierreStep2Html(tasks) {
   </article>`;
 }
 
-// C-8: efectos reales de firmar, escritos antes de pulsar — solo los tres que
-// `closeCurrentMonthTransaction`/`FinanceCanonicalMonthClose` ejecutan de verdad hoy. El mockup
-// enumera cinco (incluidos «se liquidan los sobres» y «el gasto diario aprendido recalcula la
-// cobertura»); ninguno de los dos existe todavía en el motor, así que no se anuncian.
-function cierreEffectsHtml(monthLabel) {
+// C-8: efectos reales de firmar, escritos antes de pulsar. «Se liquidan los sobres» solo se anuncia
+// con Sobres activo — el mockup lo cuenta como el efecto 02, con origen y destino de cada asiento.
+function cierreEffectsHtml(monthLabel, sobresRows = []) {
+  const sobresItem = sobresEnabled()
+    ? `<li>Se ejecutan los ${sobresRows.length} asiento(s) de liquidación de sobres, cada uno con su origen y destino.</li>`
+    : "";
   return `<ol class="cierre-effects-list">
     <li>Los reales de ${escapeHtml(monthLabel)} quedan congelados: dejan de aceptar cambios sin reabrir el mes.</li>
+    ${sobresItem}
     <li>Se crea una versión nueva del cierre, con su fecha y su motivo.</li>
     <li>El mes se puede reabrir después: la reapertura pide un motivo y queda registrada como una versión más.</li>
   </ol>`;
 }
 
-function cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey) {
-  const checks = cierreFirmChecks(accountRows, tasks, monthMovementCount);
+function cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey, sobresRows = []) {
+  const checks = cierreFirmChecks(accountRows, tasks, monthMovementCount, sobresRows);
   const unmet = checks.filter((check) => !check.met).length;
   const monthLabel = ledgerMonthLabel(currentMonthKey);
   const syncReady = Boolean(remoteUser) && Boolean(supabaseClient);
@@ -25533,12 +25601,154 @@ function cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey
     </article>
     <article class="e19-card">
       <h3 class="escenario-motor-panel-title">Al firmar el cierre</h3>
-      ${cierreEffectsHtml(monthLabel)}
+      ${cierreEffectsHtml(monthLabel, sobresRows)}
     </article>
   </div>`;
 }
 
 // C-9: cuatro contadores con enlace al inventario completo (`#conciliar`, que conserva la lista
+// P-15/C-6: elecciones transitorias de destino/origen mientras el paso «Liquidar sobres» está
+// abierto — se resetean al firmar (mismo criterio que otros formularios de Cierre: nada se aplica
+// hasta confirmar, regla transversal 02).
+let cierreSobresChoices = {};
+
+function cierreSobresRows(month) {
+  return sobresMonthBalances(month);
+}
+
+// C-6/C-7: un sobre en positivo arrastra por defecto, salvo que un sobre en negativo lo declare
+// como su origen — entonces «cubre» ese sobre, y la cobertura vive una sola vez (en la elección del
+// sobre negativo, nunca duplicada en los dos lados). Un sobre en positivo solo puede cubrir a un
+// sobre negativo a la vez: si dos reclaman el mismo origen, ninguno queda resuelto — «ningún sobre
+// se cubre en silencio» incluye no repartir el mismo superávit dos veces sin decirlo.
+function cierreSobresResolved(rows) {
+  const claims = {};
+  rows.forEach((row) => {
+    if (row.saldo < 0) {
+      const choice = cierreSobresChoices[row.rowKey];
+      if (typeof choice === "string" && choice.startsWith("sobre:")) {
+        const target = choice.slice(6);
+        (claims[target] = claims[target] || []).push(row.rowKey);
+      }
+    }
+  });
+  return rows.map((row) => {
+    if (row.saldo >= 0) {
+      const claimants = claims[row.rowKey] || [];
+      const coveredBy = claimants.length === 1 ? claimants[0] : null;
+      return { ...row, destino: coveredBy ? `sobre:${coveredBy}` : "arrastra", resolved: true };
+    }
+    const choice = cierreSobresChoices[row.rowKey];
+    if (!choice) return { ...row, origen: null, resolved: false };
+    if (choice === "general") return { ...row, origen: "general", resolved: true };
+    if (choice === "arrastra") {
+      const ok = row.rule === "arrastra";
+      return { ...row, origen: ok ? "arrastra" : null, resolved: ok };
+    }
+    if (choice.startsWith("sobre:")) {
+      const targetKey = choice.slice(6);
+      const target = rows.find((item) => item.rowKey === targetKey);
+      const exclusiveClaim = (claims[targetKey] || []).length === 1;
+      const enoughSurplus = Boolean(target) && target.saldo >= Math.abs(row.saldo);
+      const ok = exclusiveClaim && enoughSurplus;
+      return { ...row, origen: ok ? choice : null, resolved: ok };
+    }
+    return { ...row, origen: null, resolved: false };
+  });
+}
+
+function cierreSobresAllResolved(rows) {
+  return rows.length ? cierreSobresResolved(rows).every((row) => row.resolved) : true;
+}
+
+// P-15: lo que arrastra cada sobre al mes siguiente. Un sobre positivo que cubre a otro no arrastra
+// el importe cedido; un sobre negativo cubierto por otro sobre o por liquidez general no arrastra
+// deuda; solo «arrastra» (regla del sobre) deja pasar el déficit íntegro al mes que viene.
+function sobresSettlementsForSign(month) {
+  if (!sobresEnabled()) return [];
+  const rows = cierreSobresResolved(sobresMonthBalances(month));
+  return rows.map((row) => {
+    if (row.saldo >= 0) {
+      const covering = typeof row.destino === "string" && row.destino.startsWith("sobre:") ? row.destino.slice(6) : null;
+      const target = covering ? rows.find((item) => item.rowKey === covering) : null;
+      const coverageAmount = target ? Math.min(row.saldo, Math.abs(target.saldo)) : 0;
+      return { rowKey: row.rowKey, label: row.label, saldo: row.saldo, destino: row.destino, origen: null, carryOut: round2(row.saldo - coverageAmount) };
+    }
+    const carryOut = row.origen === "arrastra" ? row.saldo : 0;
+    return { rowKey: row.rowKey, label: row.label, saldo: row.saldo, destino: null, origen: row.origen, carryOut };
+  });
+}
+
+function cierreSobresDestinoLabel(row, rows) {
+  if (row.saldo < 0) return "";
+  if (typeof row.destino === "string" && row.destino.startsWith("sobre:")) {
+    const target = rows.find((item) => item.rowKey === row.destino.slice(6));
+    return `Cubre «${escapeHtml(target?.label || "")}»`;
+  }
+  return "Arrastra al mes siguiente";
+}
+
+function cierreSobresOptionsHtml(row, rows) {
+  const current = cierreSobresChoices[row.rowKey] || "";
+  const opt = (value, label) => `<option value="${escapeHtml(value)}"${value === current ? " selected" : ""}>${escapeHtml(label)}</option>`;
+  const options = [opt("", "Elegir origen…")];
+  if (row.rule === "arrastra") options.push(opt("arrastra", "Arrastra el déficit al mes siguiente"));
+  rows
+    .filter((other) => other.rowKey !== row.rowKey && other.saldo > 0)
+    .forEach((other) => options.push(opt(`sobre:${other.rowKey}`, `Se cubre con «${other.label}»`)));
+  options.push(opt("general", "Se cubre con liquidez general"));
+  return `<select data-sobres-origen="${escapeHtml(row.rowKey)}" aria-label="Origen del sobre ${escapeHtml(row.label)}">${options.join("")}</select>`;
+}
+
+// P-15/C-6 (Cierre.pdf): «Una línea por sobre con saldo, destino declarado y estado del asiento. Un
+// sobre en negativo sin origen bloquea la firma.» C-7: las coberturas entre sobres se listan aparte,
+// con origen e importe, antes de firmar.
+function cierreStep3SobresHtml(sobresRows, monthKey) {
+  const resolved = cierreSobresResolved(sobresRows);
+  const monthLabel = ledgerMonthLabel(monthKey);
+  const body = resolved.length
+    ? resolved
+        .map(
+          (row) => `<tr class="${row.resolved ? "" : "is-danger"}">
+        <td>${escapeHtml(row.label)}</td>
+        <td>${money(row.saldo, true)}</td>
+        <td>${row.saldo >= 0 ? escapeHtml(cierreSobresDestinoLabel(row, resolved)) : cierreSobresOptionsHtml(row, resolved)}</td>
+        <td><span class="e19-badge ${row.resolved ? "e19-badge-success" : "e19-badge-danger"}">${row.resolved ? "Listo" : "Pendiente"}</span></td>
+      </tr>`,
+        )
+        .join("")
+    : `<tr><td colspan="4" class="registrar-mes-empty">${escapeHtml(monthLabel)} no tiene partidas de Gastos variables.</td></tr>`;
+  const coverages = resolved.filter((row) => row.saldo < 0 && row.resolved && typeof row.origen === "string" && row.origen.startsWith("sobre:"));
+  const coveragesHtml = coverages.length
+    ? `<article class="e19-card">
+        <h3 class="escenario-motor-panel-title">Coberturas entre sobres</h3>
+        <p class="e19-kpi-note">Cada cobertura queda como su propio asiento, con origen e importe, visible antes de firmar y consultable después en el historial.</p>
+        <ul class="deuda-ruta-checklist">${coverages
+          .map((row) => {
+            const source = resolved.find((item) => item.rowKey === row.origen.slice(6));
+            return `<li>«${escapeHtml(source?.label || "")}» cubre ${money(Math.abs(row.saldo), true)} de «${escapeHtml(row.label)}»</li>`;
+          })
+          .join("")}</ul>
+      </article>`
+    : "";
+  return `<article class="e19-card cierre-step-card">
+    <h3 class="escenario-motor-panel-title">Liquidar sobres</h3>
+    <p class="e19-kpi-note">Una línea por sobre de Gastos variables de ${escapeHtml(monthLabel)}. Un sobre en negativo necesita un origen declarado antes de firmar.</p>
+    <div class="table-wrap"><table class="e19-table cierre-sobres-table">
+      <thead><tr><th>Sobre</th><th>Saldo</th><th>Destino / origen</th><th>Estado</th></tr></thead>
+      <tbody>${body}</tbody>
+    </table></div>
+    ${coveragesHtml}
+  </article>`;
+}
+
+function handleCierreSobresOriginChange(rowKey, value) {
+  if (!rowKey) return;
+  if (value) cierreSobresChoices[rowKey] = value;
+  else delete cierreSobresChoices[rowKey];
+  renderCierre();
+}
+
 // detallada por movimiento). Los IDs de las tareas ya son estables — `E11bInbox.reconciliationTasks`
 // los construye a partir del propio dato (`classify-${id}`, no de su posición en la lista).
 function cierreCountersHtml(accountRows, tasks, unclassifiedCount) {
@@ -25621,9 +25831,9 @@ function cierreMonthsCurrentlyReopened() {
 
 // C-12: "PDF firmado de una página con el estado de las cuentas, las tareas resueltas, los
 // asientos de sobres y la versión [...] CSV con los mismos datos en filas [...] Los dos llevan la
-// misma fecha y el mismo identificador de versión." Sobres (Fase 6) no existe todavía — sus
-// asientos no se listan, igual que C-1/C-8 ya declaran los tres pasos reales en vez de fingir un
-// cuarto. "Tareas resueltas" se representa como el recuento de diferencias abiertas en el momento
+// misma fecha y el mismo identificador de versión." Con Sobres (Fase 6) desactivado, o si el cierre
+// es anterior a que existiera, no hay asientos que listar y se dice explícitamente en vez de en
+// silencio. "Tareas resueltas" se representa como el recuento de diferencias abiertas en el momento
 // de la descarga (0 si el mes ya se firmó): no existe un registro histórico de qué tarea concreta
 // se resolvió cuándo, así que no se inventa uno.
 function cierreEvidenceRows(accountRows, tasks, closure, currentMonthKey) {
@@ -25634,6 +25844,7 @@ function cierreEvidenceRows(accountRows, tasks, closure, currentMonthKey) {
     version,
     accounts: accountRows.map((row) => ({ label: row.label, declarado: row.declared, calculado: row.calculated, diferencia: row.diff, estado: row.status })),
     diferenciasAbiertas: tasks.length,
+    envelopeSettlements: Array.isArray(closure?.envelopeSettlements) ? closure.envelopeSettlements : [],
   };
 }
 
@@ -25644,12 +25855,27 @@ function cierreEvidenceCsvContent(evidence) {
     ["Cuentas", row.label, row.declarado, row.calculado ?? "", row.diferencia ?? "", row.estado, ...versionCols].map(csvValue).join(";")
   );
   lines.push(["Diferencias", `${evidence.diferenciasAbiertas} abierta(s) en el momento de la descarga`, "", "", "", "", ...versionCols].map(csvValue).join(";"));
-  lines.push(["Sobres", "Fase 6 desactivada: sin asientos que exportar", "", "", "", "", ...versionCols].map(csvValue).join(";"));
+  if (evidence.envelopeSettlements.length) {
+    evidence.envelopeSettlements.forEach((item) => {
+      const destinoTexto = item.saldo >= 0 ? (item.destino === "arrastra" ? "Arrastra al mes siguiente" : item.destino || "") : item.origen || "";
+      lines.push(["Sobres", item.label, item.saldo, "", "", destinoTexto, ...versionCols].map(csvValue).join(";"));
+    });
+  } else {
+    lines.push(["Sobres", sobresEnabled() ? "Sin sobres liquidados en este cierre" : "Fase 6 desactivada: sin asientos que exportar", "", "", "", "", ...versionCols].map(csvValue).join(";"));
+  }
   return `﻿${[header.map(csvValue).join(";"), ...lines].join("\r\n")}`;
 }
 
 function cierreEvidencePrintHtml(evidence) {
   const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra", "sin-conciliar": "Sin conciliar" };
+  const sobresRowsHtml = evidence.envelopeSettlements.length
+    ? `<table>
+        <thead><tr><th>Sobre</th><th>Saldo</th><th>Destino / origen</th></tr></thead>
+        <tbody>${evidence.envelopeSettlements
+          .map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${money(item.saldo, true)}</td><td>${escapeHtml(item.saldo >= 0 ? (item.destino === "arrastra" ? "Arrastra al mes siguiente" : item.destino || "") : item.origen || "")}</td></tr>`)
+          .join("")}</tbody>
+      </table>`
+    : `<p>Sobres: ${sobresEnabled() ? "sin sobres liquidados en este cierre" : "Fase 6 desactivada, sin asientos que archivar"}.</p>`;
   return `<h1>Cierre de ${escapeHtml(evidence.monthLabel)}</h1>
     <p>${evidence.version ? `Versión ${escapeHtml(evidence.version.id)} · firmado el ${escapeHtml(formatIsoDate((evidence.version.fecha || "").slice(0, 10)))} · ${escapeHtml(evidence.version.autor)} · ${escapeHtml(evidence.version.motivo)}` : "Mes todavía sin firmar en el momento de esta descarga."}</p>
     <table>
@@ -25659,7 +25885,7 @@ function cierreEvidencePrintHtml(evidence) {
         .join("")}</tbody>
     </table>
     <p>Diferencias abiertas en el momento de la descarga: ${evidence.diferenciasAbiertas}.</p>
-    <p>Sobres: Fase 6 desactivada, sin asientos que archivar.</p>`;
+    ${sobresRowsHtml}`;
 }
 
 function downloadCierreEvidenceCsv(evidence) {
@@ -25703,7 +25929,11 @@ function renderCierre() {
   const titleEl = qs("cierreTitle");
   const subtitleEl = qs("cierreSubtitle");
   const sobresNote = qs("cierreSobresNote");
-  if (sobresNote) sobresNote.textContent = "Sobres todavía no está disponible en la app: mientras tanto el cierre tiene tres pasos, no cuatro.";
+  if (sobresNote) {
+    sobresNote.textContent = sobresEnabled()
+      ? "Sobres · Fase 6 activados: el cierre tiene cuatro pasos. La bandera y la regla de cada sobre se editan en Ajustes."
+      : "Sobres · Fase 6 desactivados: el cierre tiene tres pasos, no cuatro. Se activa en Ajustes.";
+  }
 
   const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");
   const differences = lines.filter((line) => Math.abs(Number(line.delta || 0)) > 0.02);
@@ -25741,18 +25971,25 @@ function renderCierre() {
   if (subtitleEl) subtitleEl.textContent = "Las diferencias se resuelven como tareas: abrir una no corrige nada por sí sola. Al firmar, los reales quedan congelados y se crea una versión nueva.";
 
   const monthMovementCount = entries.filter((entry) => entry.monthKey === currentMonthKey && !entry.duplicateOf).length;
-  const steps = cierreStepsStatus(accountRows, tasks);
+  // P-15: los sobres del mes en curso solo se calculan con la bandera activa — el resto del tiempo
+  // es una lista vacía y el paso 3 ni siquiera existe (cierreStepsStatus ya lo resuelve).
+  const currentMonthObj = sobresEnabled() ? cuadroMandosAllMonths().find((item) => item.key === currentMonthKey) : null;
+  const sobresRows = currentMonthObj ? cierreSobresRows(currentMonthObj) : [];
+  const steps = cierreStepsStatus(accountRows, tasks, sobresRows);
   const highestUnlocked = steps.filter((item) => item.unlocked).map((item) => item.step).pop() || 1;
   if (cierreActiveStep > highestUnlocked) cierreActiveStep = highestUnlocked;
 
   const stepsEl = qs("cierreSteps");
   if (stepsEl) stepsEl.innerHTML = cierreStepsHtml(steps, cierreActiveStep);
 
+  const sobresStepEntry = steps.find((item) => item.label === "Liquidar sobres");
+  const firmStep = steps[steps.length - 1].step;
   const body = qs("cierreStepBody");
   if (body) {
     if (cierreActiveStep === 1) body.innerHTML = cierreStep1Html(accountRows);
     else if (cierreActiveStep === 2) body.innerHTML = cierreStep2Html(tasks);
-    else body.innerHTML = cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey);
+    else if (sobresStepEntry && cierreActiveStep === sobresStepEntry.step) body.innerHTML = cierreStep3SobresHtml(sobresRows, currentMonthKey);
+    else if (cierreActiveStep === firmStep) body.innerHTML = cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey, sobresRows);
   }
 }
 
@@ -26603,6 +26840,84 @@ function planMesTotals(entries) {
   };
 }
 
+// =================================================================================================
+// Fase 6 · Sobres (Cierre.pdf, 14 de agosto): P-14 (columnas de arrastre y regla en Plan · Mes),
+// P-15 (liquidación al cerrar), C-6 (liquidación como asientos) y C-7 (ninguna cobertura en
+// silencio). Un sobre por partida de «Gastos variables» — las únicas discrecionales; fijos y
+// financiaciones son contractuales, sin margen que arrastrar. Bandera y regla por sobre se editan
+// solo en Ajustes (sección 5 de docs/BACKLOG_NUEVE_PANTALLAS.md: «las reglas de sobres se editan en
+// Ajustes, no viven repartidas por el código»); con la bandera apagada, Plan y Cierre vuelven a su
+// comportamiento de siempre — P-16 (suma con objetivos de ahorro) queda fuera: depende de P-13,
+// que no existe todavía.
+function sobresEnabled() {
+  return Boolean(state?.envelopes?.enabled);
+}
+
+function sobresRuleForRow(rowKey) {
+  return state?.envelopes?.rules?.[rowKey] === "tope-cero" ? "tope-cero" : "arrastra";
+}
+
+function handleSobresToggle(event) {
+  if (!state) return;
+  state.envelopes = { ...(state.envelopes || {}), enabled: Boolean(event.target.checked) };
+  saveScenarioSettings();
+  render();
+}
+
+function handleSobresRuleChange(rowKey, value) {
+  if (!state || !rowKey) return;
+  const rules = { ...(state.envelopes?.rules || {}) };
+  if (value === "tope-cero") rules[rowKey] = "tope-cero";
+  else delete rules[rowKey];
+  state.envelopes = { ...(state.envelopes || {}), rules };
+  saveScenarioSettings();
+  renderAjustes();
+}
+
+function sobresVariableRows(month) {
+  if (!month) return [];
+  return planMesCollect(month).expense.filter((entry) => entry.sectionName === "Gastos variables");
+}
+
+// El arrastre solo puede venir de una liquidación real del mes inmediatamente anterior — nunca se
+// inventa un arrastre para un mes sin cierre previo con sobres (regla transversal 04). Reutiliza
+// `cuadroMandosAllMonths()` para «mes anterior» en vez de aritmética de fechas propia.
+function sobresPreviousMonthKey(monthKey) {
+  const months = cuadroMandosAllMonths();
+  const index = months.findIndex((item) => item.key === monthKey);
+  return index > 0 ? months[index - 1].key : null;
+}
+
+function sobresCarryoverBefore(rowKey, monthKey) {
+  const prevKey = sobresPreviousMonthKey(monthKey);
+  if (!prevKey) return 0;
+  const closure = monthClosures
+    .filter((op) => op.status === "closed" && op.monthKey === prevKey && Array.isArray(op.envelopeSettlements))
+    .sort((a, b) => String(b.occurredAt || b.closedAt || "").localeCompare(String(a.occurredAt || a.closedAt || "")))[0];
+  if (!closure) return 0;
+  const entry = closure.envelopeSettlements.find((item) => item.rowKey === rowKey);
+  return entry ? round2(Number(entry.carryOut || 0)) : 0;
+}
+
+// P-14: saldo del sobre = lo que este mes suelta o consume (previsto − usado) más lo que arrastró
+// el mes anterior. `usado` ya es real donde existe y previsto donde no (mismo criterio que P-2/P-4),
+// así que un mes todavía sin reales no fuerza un saldo negativo artificial.
+function sobresMonthBalances(month) {
+  return sobresVariableRows(month).map((entry) => {
+    const rowKey = seriesKeyForRow(entry.row);
+    const saldoMes = round2(Number(entry.planned || 0) - Number(entry.usado || 0));
+    const arrastreEntrante = sobresCarryoverBefore(rowKey, month.key);
+    return {
+      rowKey,
+      label: entry.label,
+      saldoMes,
+      arrastreEntrante,
+      saldo: round2(saldoMes + arrastreEntrante),
+      rule: sobresRuleForRow(rowKey),
+    };
+  });
+}
+
 // P-3: las cuotas de deuda son de solo lectura en Plan · Mes — su puerta canónica ya es
 // Deuda › Contratos (D-2). La auditoría del 15 de agosto encontró que aquí seguían siendo
 // editables, una segunda puerta para el mismo dato (regla transversal 01).
@@ -26636,17 +26951,23 @@ function planMesIsFinancingRowKey(rowKey) {
 // nombre de sección de cada fila ya lo dice la cabecera de bloque — repetirlo en una columna propia
 // era ruido. Se retira la celda «Bloque»; `data-plan-mes-block` sigue en la fila para que el
 // plegado (`handlePlanMesBlockToggle`) sepa a qué bloque pertenece.
-function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false) {
+function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false, sobresBalance = null, showSobresColumn = false) {
   const rowKey = seriesKeyForRow(entry.row);
   const isFinancing = entry.sectionName === "Financiaciones";
   const plannedCell = isFinancing
     ? `<span class="plan-mes-financing-readonly">${money(entry.planned, true)}<small>se cambia en <button type="button" class="registrar-actuals-plan-link" data-home-nav="deuda-contratos">Deuda</button></small></span>`
     : `<input type="number" step="0.01" inputmode="decimal" data-plan-mes-planned="${escapeHtml(rowKey)}" data-plan-mes-month="${escapeHtml(monthKey)}" aria-label="Previsto de ${escapeHtml(entry.label)}" value="${entry.planned}"${monthClosed ? " disabled" : ""} />`;
+  // P-14: la columna «Sobre» solo aparece con la bandera activa, y solo tiene valor real para
+  // Gastos variables — el resto de bloques muestra «—» en vez de fingir un sobre que no existe.
+  const sobresCell = showSobresColumn
+    ? `<td data-plan-mes-cell="sobre" class="${sobresBalance === null ? "" : sobresBalance < 0 ? "negative" : "positive"}">${sobresBalance === null ? "—" : money(sobresBalance, true)}</td>`
+    : "";
   return `<tr data-plan-mes-key="${escapeHtml(entry.key)}" data-plan-mes-block="${escapeHtml(entry.sectionName)}"${entry.plannedDraft ? ' class="plan-mes-row-draft"' : ""}${collapsed ? " hidden" : ""}>
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}</td>
     <td>${plannedCell}</td>
     <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta" title="${escapeHtml(planMesUsadoTitle(entry, monthKey))}">${entry.hasActual ? "real" : "previsto"}</small></td>
     <td data-plan-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
+    ${sobresCell}
   </tr>`;
 }
 
@@ -26672,7 +26993,7 @@ function planMesGroupBySection(list) {
   });
 }
 
-function planMesBlockRowHtml(block) {
+function planMesBlockRowHtml(block, showSobresColumn = false) {
   const collapsed = planMesCollapsedBlocks.has(block.sectionName);
   return `<tr class="plan-mes-block-row">
     <td colspan="3">
@@ -26681,6 +27002,7 @@ function planMesBlockRowHtml(block) {
       </button>
     </td>
     <td class="plan-mes-block-subtotal">${money(block.subtotal, true)}</td>
+    ${showSobresColumn ? "<td></td>" : ""}
   </tr>`;
 }
 
@@ -26689,21 +27011,29 @@ function planMesBlockRowHtml(block) {
 // la itemiza dentro de esta tabla — su previsto ya vive en los KPI de arriba, en
 // `planMesKpis`/`INGRESO PREVISTO`).
 function planMesBudgetTableHtml(list, month, monthClosed) {
+  const showSobres = sobresEnabled();
+  const balanceByKey = new Map(showSobres ? sobresMonthBalances(month).map((item) => [item.rowKey, item.saldo]) : []);
   const blocks = planMesGroupBySection(list);
   const body = blocks.length
     ? blocks
         .map((block) => {
           const collapsed = planMesCollapsedBlocks.has(block.sectionName);
-          const rows = block.entries.map((entry) => planMesRowHtml(entry, monthClosed, month.key, collapsed)).join("");
-          return `${planMesBlockRowHtml(block)}${rows}`;
+          const rows = block.entries
+            .map((entry) => {
+              const rowKey = seriesKeyForRow(entry.row);
+              const sobresBalance = entry.sectionName === "Gastos variables" && balanceByKey.has(rowKey) ? balanceByKey.get(rowKey) : null;
+              return planMesRowHtml(entry, monthClosed, month.key, collapsed, sobresBalance, showSobres);
+            })
+            .join("");
+          return `${planMesBlockRowHtml(block, showSobres)}${rows}`;
         })
         .join("")
-    : `<tr><td colspan="4" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
+    : `<tr><td colspan="${showSobres ? 5 : 4}" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
   return `<article class="e19-card registrar-mes-card">
     <div class="registrar-mes-card-head"><h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(month.label)}</h3></div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
-        <thead><tr><th>Partida</th><th>Previsto</th><th>Usado</th><th>Desviación</th></tr></thead>
+        <thead><tr><th>Partida</th><th>Previsto</th><th>Usado</th><th>Desviación</th>${showSobres ? "<th>Sobre</th>" : ""}</tr></thead>
         <tbody>${body}</tbody>
       </table>
     </div>
@@ -28318,6 +28648,10 @@ async function init() {
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");
   });
+  qs("cierre")?.addEventListener("change", (event) => {
+    const select = event.target.closest("[data-sobres-origen]");
+    if (select) handleCierreSobresOriginChange(select.dataset.sobresOrigen, select.value);
+  });
   qs("cierreReopen")?.addEventListener("click", handleCierreReopen);
   qs("analisis")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-analisis-window]");
@@ -28553,6 +28887,11 @@ async function init() {
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
+  qs("ajustesSobresEnabled")?.addEventListener("change", handleSobresToggle);
+  qs("ajustesSobresRules")?.addEventListener("change", (event) => {
+    const select = event.target.closest("[data-sobres-rule]");
+    if (select) handleSobresRuleChange(select.dataset.sobresRule, select.value);
+  });
   qs("ajustesExportCsv")?.addEventListener("click", downloadCsv);
   qs("ajustesExportPdf")?.addEventListener("click", handleAjustesExportPdf);
   qs("cuadroMandosTable")?.addEventListener("change", (event) => {

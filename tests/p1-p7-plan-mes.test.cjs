@@ -356,6 +356,9 @@ test("P-2 · planMesBlockRowHtml marca aria-expanded=false cuando el bloque est�
 });
 
 function sandboxBudgetTable(list, month, monthClosed, collapsedBlocks = new Set()) {
+  // Fase 6 · Sobres: `planMesBudgetTableHtml` ahora consulta `sobresEnabled()`/`sobresMonthBalances`
+  // para decidir si pinta la columna «Sobre». Sin la bandera activa (el caso de estas pruebas, que
+  // cubren la tabla de siempre), sigue siendo la tabla de 4 columnas de toda la vida.
   const context = sandboxWith(["planMesBudgetTableHtml", "planMesGroupBySection", "planMesBlockRowHtml", "planMesRowHtml"], {
     escapeHtml: (v) => String(v),
     seriesKeyForRow: (row) => row.id,
@@ -365,6 +368,8 @@ function sandboxBudgetTable(list, month, monthClosed, collapsedBlocks = new Set(
     round2: (v) => Math.round((v + Number.EPSILON) * 100) / 100,
     planMesCollapsedBlocks: collapsedBlocks,
     planMesUsadoTitle: () => "título de prueba",
+    sobresEnabled: () => false,
+    sobresMonthBalances: () => [],
   });
   return context.planMesBudgetTableHtml(list, month, monthClosed);
 }

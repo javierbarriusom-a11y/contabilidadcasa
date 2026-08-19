@@ -44,6 +44,10 @@
       reason: text(metadata.reason || "Cierre mensual confirmado"),
       author: text(metadata.author),
       actuals: { income: incomeActuals, expense: expenseActuals },
+      // Fase 6 · P-15/C-6: un asiento por sobre de Gastos variables, con su saldo, destino/origen y
+      // lo que arrastra al mes siguiente. Vacío si Sobres está apagado o el mes no tiene partidas
+      // variables — nunca se inventa un asiento que no se calculó.
+      envelopeSettlements: Array.isArray(metadata.envelopeSettlements) ? metadata.envelopeSettlements : [],
     };
     return { ...payload, monthClosures: [...closures, closure] };
   }

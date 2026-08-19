@@ -75,7 +75,8 @@ D-1, D-2, D-3, D-4, D-5, D-6, D-7, D-8 y D-9 hechas (D-3/D-7/D-8/D-9 ya existía
 anterior, reconciliadas con el backlog; D-4/D-5/D-6 se construyeron el mismo 15 de agosto, en la
 sesión siguiente a D-1/D-2 — ver la nota bajo la tabla de la pantalla 05); D-10/D-11/D-13
 parciales, D-2b/D-12 pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fase 4
-(Previsión y Escenarios): P-8/P-9 hechas, P-10 a P-16 pendientes (ver pantalla 04); Escenarios
+(Previsión y Escenarios): P-8/P-9 hechas, P-10 a P-13 pendientes, P-14/P-15 (Sobres) hechas el 19 de
+agosto y P-16 bloqueada por P-13 (ver pantalla 04); Escenarios
 **no arrancaba de cero** — auditada el 16 de agosto contra `Escenarios.pdf` y resultó tener un motor
 real de la epic E20 (10 de agosto) nunca reconciliado con este backlog: E-4/E-6/E-10 hechas de
 partida, E-3/E-11/E-5 cerradas el 16 de agosto (comparativa de seis indicadores, revisión opcional
@@ -92,15 +93,19 @@ comprobaciones antes de firmar — reutilizando el motor transaccional de cierre
 existía; segunda fase cerrada el 17 de agosto (mismo pedido del usuario que la de Escenarios): C-10
 (historial de versiones, con autor real), C-11 (reapertura notificada a Análisis, parcial — Hoy y
 A-7 quedan fuera por falta de una relación mes→dato fiable) y C-12 (evidencia en PDF y CSV) pasan a
-`Hecho`; C-3b sigue pendiente (mismo motivo técnico que el 16), C-6/C-7/C-13/C-14 siguen bloqueadas
-(ver la nota bajo la tabla de la pantalla 08). Fase 6 (Análisis) arrancó el mismo día (punto 3 del plan): A-1/A-2/A-6 hechos en un primer
+`Hecho`; C-3b sigue pendiente (mismo motivo técnico que el 16), C-13/C-14 siguen bloqueadas (ver la
+nota bajo la tabla de la pantalla 08); C-6/C-7 (liquidación de sobres) se construyeron el 19 de
+agosto junto con P-14/P-15, ver más abajo. Fase 6 (Análisis) arrancó el mismo día (punto 3 del plan): A-1/A-2/A-6 hechos en un primer
 incremento — pantalla de solo lectura, banda de doce meses de colchón en meses (no en €, una serie
 nueva que reutiliza el gasto medio de Escenarios y la escala de tres niveles de P-9), selector de
 ventana — segunda fase cerrada el 17 de agosto (misma lista del usuario que Escenarios y Cierre):
 A-4 (cascada del resultado por periodo), A-5 (patrimonio neto proyectado), A-8 (reparto del
 ingreso), A-9 (qué se repite) y A-11 (exportar CSV/PDF) pasan a `Hecho`; A-3 queda desbloqueada
 (E-2 ya está hecho) pero no se construyó, fuera de la lista pedida; A-7/A-10/A-12/A-13 siguen
-pendientes (ver la nota bajo la tabla de la pantalla 07). Fase 7 (Laboratorio)
+pendientes (ver la nota bajo la tabla de la pantalla 07). Sobres (segunda mitad de la Fase 6):
+P-14/P-15 (Plan · Mes) y C-6/C-7 (Cierre) se construyeron el 19 de agosto, cuarto punto del plan de
+cinco acordado con el usuario — ver la nota de cierre bajo la tabla de la pantalla 08 para el
+detalle; P-16 sigue bloqueada por P-13 (Objetivos), que no existe todavía. Fase 7 (Laboratorio)
 confirmada sin ningún código propio — se auditó su PDF el 16 de agosto pero no hay nada que
 reconciliar, arranca de cero.
 
@@ -496,9 +501,9 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | P-11 | Proyección de horizonte | P-8 | M | Pendiente |
 | P-12 | Semáforo de ahorro | P-1 | S | Pendiente |
 | P-13 | Objetivos con destino y prioridad | P-12 | M | Pendiente |
-| P-14 | Sobres · columnas de arrastre y regla | Fase 6, P-3 | L | Pendiente |
-| P-15 | Sobres · liquidación al cerrar | P-14, Cierre | L | Pendiente |
-| P-16 | Sobres · suma con los objetivos de ahorro | P-15, P-13 | M | Pendiente |
+| P-14 | Sobres · columnas de arrastre y regla | Fase 6, P-3 | L | Hecho (19 de agosto, ver nota) |
+| P-15 | Sobres · liquidación al cerrar | P-14, Cierre | L | Hecho (19 de agosto, ver nota) |
+| P-16 | Sobres · suma con los objetivos de ahorro | P-15, P-13 | M | Pendiente (bloqueada: depende de P-13, sin construir) |
 
 **Nota (15 de agosto) — el mockup 2c heredado, sin relación con P-8.** Antes de que existiera este
 backlog "Nueve pantallas" se detectó que `docs/E19_SISTEMA_DISENO.md` daba el mockup 2c (Previsión,
@@ -1120,8 +1125,8 @@ historial dedicado — parcialmente cubierto por C-10/C-11, pero no completo), A
 | C-3b | Modal de resolución con dos salidas | C-3, M-8b | L | Pendiente (ver nota) |
 | C-4 | Resolver no corrige por sí solo | C-3 | M | Hecho (16 de agosto, ver nota) |
 | C-5 | Requisitos de firma visibles | C-2, C-3 | M | Hecho (16 de agosto, ver nota) |
-| C-6 | Liquidación de sobres como asientos | P-15 | L | Pendiente (bloqueada: depende de Sobres, sin construir) |
-| C-7 | Ningún sobre se cubre en silencio | C-6 | M | Pendiente (bloqueada: depende de C-6) |
+| C-6 | Liquidación de sobres como asientos | P-15 | L | Hecho (19 de agosto, ver nota) |
+| C-7 | Ningún sobre se cubre en silencio | C-6 | M | Hecho (19 de agosto, ver nota) |
 | C-8 | Efectos de firmar escritos antes | C-1 | S | Hecho (16 de agosto, ver nota) |
 | C-9 | Inventario canónico con IDs estables | C-1 | L | Hecho (16 de agosto, ver nota) |
 | C-10 | Historial de versiones | C-9 | L | Hecho (17 de agosto, ver nota) |
@@ -1230,8 +1235,48 @@ reabrir julio 2026 hace aparecer en Análisis el aviso «jul 26 se reabrió en C
 vuelto a firmar»; el botón CSV descarga sin error y el contenedor de impresión se rellena con el
 estado de cuentas y la nota de Sobres antes de `window.print()`. Sin errores de consola propios.
 
-Quedan pendientes, sin bloqueo nuevo: C-3b (ver nota arriba), C-6/C-7 (Sobres), C-13 (A-7), C-14
-(Fase 7).
+Quedan pendientes, sin bloqueo nuevo: C-3b (ver nota arriba), C-13 (A-7), C-14 (Fase 7).
+
+**Sobres construido — 19 de agosto de 2026 (P-14/P-15/C-6/C-7).** Cuarto punto del plan de cinco
+acordado con el usuario tras Escenarios, Cierre y Análisis, y último de los cuatro que no dependía
+de una pieza sin construir (P-16 sigue bloqueada: depende de P-13/Objetivos, que no existe
+todavía). El mockup de referencia (`Cierre.pdf`, adjuntado por el usuario) confirma el diseño:
+bandera «Sobres · Fase 6» y cuatro pasos secuenciales, con «Liquidar sobres» entre Resolver y
+Firmar.
+
+- **P-14 (Plan · Mes)** — un sobre por partida de «Gastos variables» (las únicas discrecionales;
+  fijos y financiaciones son contractuales, sin margen que arrastrar). `sobresMonthBalances()`
+  calcula el saldo del mes (previsto − usado, mismo criterio que P-2/P-4) más el arrastre que trae
+  del cierre real del mes inmediatamente anterior (`sobresCarryoverBefore`) — nunca inventa un
+  arrastre si ese mes no se cerró con sobres. La bandera y la regla por sobre («arrastra» o «tope en
+  cero») se editan solo en Ajustes, tal como pedía la sección 5 de este backlog («las reglas de
+  sobres se editan en Ajustes, no viven repartidas por el código»); con la bandera apagada, Plan
+  sigue con sus cuatro columnas de siempre.
+- **P-15 (liquidación al cerrar) / C-6 (asientos)** — Cierre gana un cuarto paso, «Liquidar sobres»,
+  solo con la bandera activa (`cierreStepsStatus` inserta el paso; apagada, sigue siendo la
+  secuencia de tres pasos de siempre, y lo dice explícitamente en `cierreSobresNote`). Una fila por
+  sobre con su saldo y su destino/origen: un sobre en positivo arrastra por defecto; uno en negativo
+  exige declarar un origen (otro sobre con superávit suficiente, o «liquidez general») antes de que
+  la comprobación «Ningún sobre sin destino» (C-5) se dé por cumplida y se pueda firmar. Al firmar,
+  `closeCurrentMonthTransaction()` calcula los asientos (`sobresSettlementsForSign`) y los guarda en
+  el propio cierre (`envelopeSettlements` en `canonical-month-close.js`) — mismo payload JSON que ya
+  sincroniza `close_finance_month`, sin migración SQL nueva.
+- **C-7 (ninguna cobertura en silencio)** — cuando un sobre negativo elige a otro como origen, la
+  cobertura se muestra como su propia línea («Coberturas entre sobres»), con origen e importe,
+  visible antes de firmar. Un sobre en positivo solo puede cubrir a un sobre negativo a la vez: si
+  dos reclaman el mismo origen, ninguno de los dos queda resuelto — la exclusividad se comprueba
+  explícitamente en vez de repartir el mismo superávit dos veces sin decirlo.
+- **C-12** — la evidencia (CSV y PDF) ya declaraba «Fase 6 desactivada» de forma explícita; ahora,
+  cuando el cierre firmado sí tiene asientos de sobres, los lista con su saldo y su destino/origen
+  en vez de seguir diciendo que no hay nada que exportar.
+
+**Validación**: `npm test`, exit 0, **1162/1162 pruebas** (22 nuevas en
+`tests/p14-p15-c6-c7-sobres.test.cjs`, más ajustes a `tests/c1-c9-cierre-wizard.test.cjs`,
+`tests/c10-c11-c12-cierre-historial.test.cjs` y `tests/p1-p7-plan-mes.test.cjs` para inyectar
+`sobresEnabled`/`state` en sus sandboxes). Verificado con Playwright contra el build local: activar
+la bandera en Ajustes muestra la columna «Sobre» en Plan y añade el cuarto paso en Cierre; el paso
+«Liquidar sobres» lista el sobre real de la demo pública con su saldo y estado «Listo»;
+desactivarla devuelve Cierre a sus tres pasos de siempre. Sin errores de consola propios.
 
 ### 09 · Laboratorio — deuda de transición con fecha de caducidad, vive en Ajustes (10 tareas · 2 grandes)
 

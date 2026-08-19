@@ -58,12 +58,17 @@ function sandboxWith(names, extra = {}) {
 }
 
 function baseContext(names, extra = {}) {
-  return sandboxWith(names, {
+  // Fase 6 · Sobres: `cierreStepsStatus`/`cierreFirmChecks`/`planMesBudgetTableHtml` ahora llaman a
+  // `sobresEnabled()` para decidir si Sobres está activo. `state: {}` (sin `envelopes.enabled`) deja
+  // la bandera apagada, que es el comportamiento de tres pasos que estas pruebas ya cubrían.
+  const withSobres = names.includes("sobresEnabled") ? names : ["sobresEnabled", ...names];
+  return sandboxWith(withSobres, {
     round2: (v) => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100,
     money: (v) => `${v}€`,
     escapeHtml: (v) => String(v),
     accountBalancesFromState: () => ({ caixa: 1000, mediolanum: 500 }),
     monthClosures: [],
+    state: {},
     ...extra,
   });
 }
