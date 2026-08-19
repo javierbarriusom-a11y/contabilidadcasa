@@ -1,0 +1,285 @@
+<title>Alcance actualizado: Nueve pantallas</title>
+<style>
+:root{
+  --canvas:#F3F1EC; --surface:#FFFFFF; --surface-soft:#FAFAF7; --surface-sunken:#F5F3ED;
+  --border:#E7E3D8; --border-strong:#D9D3C4;
+  --ink:#1B2333; --heading:#21324D; --muted:#5C6478; --faint:#A6AAB8;
+  --accent:#293E5E; --accent-ink:#fff; --accent-hover:#1B2C48;
+  --accent-soft:#EEF0F2; --accent-soft-border:#D8DCE2; --accent-strong:#0B1A30;
+  --success:#1F8A4C; --success-soft:#F1F8F3; --success-soft-border:#CCE6D6;
+  --warning:#B8790E; --warning-soft:#FBF4E7; --warning-soft-border:#EDDCB3;
+  --danger:#B23A3A; --danger-soft:#FBEFEF; --danger-soft-border:#EFD0D0;
+  --eyebrow:#049FF9;
+  --shadow:0 1px 2px rgba(11,18,32,.05),0 10px 26px -14px rgba(11,18,32,.16);
+  --radius-lg:16px; --radius-md:12px; --radius-sm:8px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Helvetica,Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --canvas:#0B1220; --surface:#131E31; --surface-soft:#111A2C; --surface-sunken:#0D1626;
+    --border:rgba(255,255,255,.09); --border-strong:rgba(255,255,255,.17);
+    --ink:#E9EEF9; --heading:#C9DAF3; --muted:#93A2BE; --faint:#5C6C88;
+    --accent:#7DA6E0; --accent-ink:#0A1729; --accent-hover:#9DBEEA;
+    --accent-soft:rgba(125,166,224,.14); --accent-soft-border:rgba(125,166,224,.32); --accent-strong:#0B1A30;
+    --success:#3FCE86; --success-soft:rgba(63,206,134,.10); --success-soft-border:rgba(63,206,134,.28);
+    --warning:#E6AC57; --warning-soft:rgba(230,172,87,.10); --warning-soft-border:rgba(230,172,87,.28);
+    --danger:#FF8484; --danger-soft:rgba(255,132,132,.12); --danger-soft-border:rgba(255,132,132,.3);
+    --eyebrow:#6FC6FF;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 26px -14px rgba(0,0,0,.55);
+  }
+}
+:root[data-theme="dark"]{
+  --canvas:#0B1220; --surface:#131E31; --surface-soft:#111A2C; --surface-sunken:#0D1626;
+  --border:rgba(255,255,255,.09); --border-strong:rgba(255,255,255,.17);
+  --ink:#E9EEF9; --heading:#C9DAF3; --muted:#93A2BE; --faint:#5C6C88;
+  --accent:#7DA6E0; --accent-ink:#0A1729; --accent-hover:#9DBEEA;
+  --accent-soft:rgba(125,166,224,.14); --accent-soft-border:rgba(125,166,224,.32); --accent-strong:#0B1A30;
+  --success:#3FCE86; --success-soft:rgba(63,206,134,.10); --success-soft-border:rgba(63,206,134,.28);
+  --warning:#E6AC57; --warning-soft:rgba(230,172,87,.10); --warning-soft-border:rgba(230,172,87,.28);
+  --danger:#FF8484; --danger-soft:rgba(255,132,132,.12); --danger-soft-border:rgba(255,132,132,.3);
+  --eyebrow:#6FC6FF;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 26px -14px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}
+body{background:var(--canvas);color:var(--ink);font-family:var(--sans);margin:0;line-height:1.5;-webkit-font-smoothing:antialiased;text-wrap:pretty}
+h1,h2,h3{text-wrap:balance;font-weight:800;color:var(--heading);letter-spacing:-.015em;margin:0}
+p{margin:0}
+code{font-family:var(--mono)}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 100px}
+a{color:var(--accent)}
+::selection{background:var(--accent-soft);color:var(--ink)}
+
+.hero{padding:56px 24px 40px;border-bottom:1px solid var(--border)}
+.hero-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--eyebrow);text-transform:uppercase}
+.hero h1{font-size:34px;line-height:1.12;max-width:800px}
+.hero .sub{font-size:15.5px;color:var(--muted);max-width:680px}
+.hero-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.hero-meta b{color:var(--ink);font-weight:600}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:32px 0}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 18px;display:flex;flex-direction:column;gap:4px;box-shadow:var(--shadow)}
+.stat .n{font-size:25px;font-weight:800;color:var(--heading);font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+
+section.block{margin-top:52px}
+.block-head{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.block-head h2{font-size:23px}
+.block-head .desc{font-size:14px;color:var(--muted);max-width:700px}
+.kicker{font-size:11px;letter-spacing:.16em;font-weight:700;color:var(--muted);text-transform:uppercase}
+
+.bridge{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;display:flex;flex-direction:column;gap:12px}
+.bridge-row{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+.bridge-col{display:flex;flex-direction:column;gap:6px}
+.bridge-col .tag{font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bridge-col .v{font-size:20px;font-weight:800;color:var(--heading);font-variant-numeric:tabular-nums}
+.bridge-col .l{font-size:12.5px;color:var(--muted)}
+.bridge-arrow{font-size:20px;color:var(--faint)}
+.bridge p{font-size:13.5px;color:var(--muted);border-top:1px solid var(--border);padding-top:14px}
+@media (max-width:640px){.bridge-row{grid-template-columns:1fr;text-align:left}.bridge-arrow{transform:rotate(90deg);justify-self:start}}
+
+.highlight-box{background:var(--success-soft);border:1px solid var(--success-soft-border);border-radius:var(--radius-lg);padding:20px 22px;display:flex;flex-direction:column;gap:8px;margin:20px 0}
+.highlight-box h3{font-size:14.5px;margin:0}
+.highlight-box p{font-size:13.5px;color:var(--ink)}
+
+.cover-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
+table.cover{border-collapse:collapse;width:100%;min-width:600px;font-size:13px}
+table.cover th{text-align:left;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:11px 15px;border-bottom:1px solid var(--border);background:var(--surface-sunken)}
+table.cover td{padding:11px 15px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--muted)}
+table.cover tr:last-child td{border-bottom:none}
+table.cover td.strong{color:var(--ink);font-weight:700;white-space:nowrap}
+
+.next{background:var(--accent-strong);color:#fff;border-radius:var(--radius-lg);padding:28px 30px;display:flex;flex-direction:column;gap:14px}
+.next h2{color:#fff;font-size:20px}
+.next .sub{color:#AFC2E0;font-size:13.5px}
+
+footer.pagefoot{max-width:1080px;margin:60px auto 0;padding:0 24px;font-size:12px;color:var(--faint)}
+
+@media (max-width:760px){
+  .stats{grid-template-columns:1fr}
+  .hero h1{font-size:26px}
+}
+</style>
+
+<div class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">Finanzas Casa · alcance actualizado tras cada sesión</span>
+    <h1>Rediseño a seis vistas: todas funcionales, publicadas y confirmadas</h1>
+    <p class="sub">Documento de seguimiento del alcance del proyecto. Las seis vistas (Hoy, Plan, Deuda, Datos, Cierre, Ajustes) están completas y en producción. El trabajo pendiente ahora es evolucionar dentro de ese marco, no construir las vistas nuevas.</p>
+    <div class="hero-meta">
+      <span>Actualizado el <b>19 de agosto de 2026</b></span>
+      <span>Referencia <b>BACKLOG.md + revisión de sesión</b></span>
+      <span>Sitio en producción <b>javierbarriusom-a11y.github.io/contabilidadcasa</b></span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<div class="stats">
+  <div class="stat"><div class="n">6</div><div class="l">vistas completadas y públicas</div></div>
+  <div class="stat"><div class="n" style="color:var(--success)">35+</div><div class="l">pantallas funcionales en la app</div></div>
+  <div class="stat"><div class="n" style="color:var(--accent)">18</div><div class="l">heredadas relegadas a «Versiones anteriores»</div></div>
+  <div class="stat"><div class="n" style="color:var(--warning)">∞</div><div class="l">potencial de mejora dentro del marco</div></div>
+</div>
+
+<section class="block" style="margin-top:0">
+  <div class="block-head">
+    <span class="kicker">Cambio fundamental · 10 de agosto</span>
+    <h2>Del «retirar heredadas» al «relegar a versiones anteriores»</h2>
+    <p class="desc">La decisión que desbloquea el proyecto y cambia la naturaleza del trabajo pendiente.</p>
+  </div>
+  <div class="bridge">
+    <div class="bridge-row">
+      <div class="bridge-col">
+        <span class="tag">Propuesta original · junio-julio</span>
+        <span class="v">6 vistas</span>
+        <span class="l">Rediseño propone sustituir las 22 pantallas heredadas por 6 nuevas. El riesgo: perder función sin verla desaparecer.</span>
+      </div>
+      <span class="bridge-arrow">→</span>
+      <div class="bridge-col">
+        <span class="tag">Decisión · 10 de agosto</span>
+        <span class="v">6 vistas + 18 heredadas</span>
+        <span class="l">Las seis nuevas en navegación principal. Las 18 heredadas en un grupo «Versiones anteriores», con acceso completo pero fuera del flujo principal.</span>
+      </div>
+    </div>
+    <p>Con esto, ninguna función se pierde nunca: el camino de vuelta existe siempre. Y cada visita a una pantalla heredada es una señal: si nadie la abre en meses, retirarla es limpieza, no apuesta.</p>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">Estado actual · 19 de agosto</span>
+    <h2>Las seis vistas, todas ✅</h2>
+    <p class="desc">Cada una construida, publicada y confirmada por el usuario en el sitio en producción.</p>
+  </div>
+  <div class="cover-wrap">
+    <table class="cover">
+      <thead><tr><th>Vista</th><th>Función cubierta</th><th>Pantallas nuevas</th><th>Confirmación</th></tr></thead>
+      <tbody>
+        <tr><td class="strong">1 · Hoy</td><td>Lectura del día, seis KPI, decisiones abiertas, contexto.</td><td><code>#home</code>, <code>#asesor-decision</code></td><td>✅ 12 de agosto de 2026</td></tr>
+        <tr><td class="strong">2 · Plan</td><td>Tabla editable con pie de impacto, horizonte, banda mensual, desglose.</td><td><code>#cuadro-mandos</code>, <code>#cambios-pendientes</code>, <code>#mapa-calor</code>, <code>#prevision</code>, <code>#escenario-*</code></td><td>✅ 12 de agosto de 2026</td></tr>
+        <tr><td class="strong">3 · Deuda</td><td>Estrategias, ruta, comparador, oferta en curso.</td><td><code>#deuda-comparar</code>, <code>#deuda-ruta</code></td><td>✅ 12 de agosto de 2026</td></tr>
+        <tr><td class="strong">4 · Datos</td><td>Hub, importación en cuatro pasos, registro del mes, clasificación.</td><td><code>#update-hub</code>, <code>#data-entry</code>, <code>#registrar-mes</code>, <code>#datos-importar</code></td><td>✅ 12 de agosto de 2026</td></tr>
+        <tr><td class="strong">5 · Cierre</td><td>Conciliación, auditoría, confianza del dato, diferencias.</td><td><code>#conciliar</code></td><td>✅ 12 de agosto de 2026</td></tr>
+        <tr><td class="strong">6 · Ajustes</td><td>Reserva operativa, umbrales, cuentas, partidas, exportación.</td><td><code>#ajustes</code></td><td>✅ 11 de agosto de 2026</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="highlight-box">
+    <h3>✅ Hito completado</h3>
+    <p>Todas las vistas del rediseño están en navegación principal, sus funciones están construidas y publicadas, y cada una ha sido confirmada por el usuario en el sitio en vivo. <b>No falta ninguna vista.</b></p>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">Inventario actual</span>
+    <h2>35 pantallas conviven; 18 heredadas están relegadas</h2>
+    <p class="desc">Panorama de dónde estamos hoy, tras migrar 17 pantallas nuevas sin retirar las heredadas.</p>
+  </div>
+  <div class="cover-wrap">
+    <table class="cover">
+      <thead><tr><th>Grupo</th><th>Pantallas</th><th>Estado en navegación</th></tr></thead>
+      <tbody>
+        <tr><td class="strong">Navegación principal (6)</td><td>Hoy, Plan, Deuda, Datos, Cierre, Ajustes</td><td>✅ Visibles siempre</td></tr>
+        <tr><td class="strong">Herramientas avanzadas (7)</td><td>Análisis, Asistentes, Buscar, Alertas, Calendario, Manual, Datos privados</td><td>✅ Segundo nivel</td></tr>
+        <tr><td class="strong">Versiones anteriores (18)</td><td>Heredadas de antes del rediseño</td><td>✅ Grupo visible, interruptor en Personalizar</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p style="font-size:13px;color:var(--muted);margin-top:20px">
+    <b>Nota sobre números:</b> El rediseño se dibujó hace varios meses cuando la app tenía 22 pantallas y se proponía reducirlas a 6. Desde entonces la app ha crecido a 35: cada mockup migrado se añadió junto a la heredada, siguiendo la regla «envolver, no sustituir». El objetivo de seis vistas en navegación principal se alcanza sin perder nada.
+  </p>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">Qué ha cambiado desde el 16 de agosto</span>
+    <h2>Síntesis del avance en tres días</h2>
+  </div>
+  <div class="cover-wrap">
+    <table class="cover">
+      <thead><tr><th>Fecha</th><th>Hito</th><th>Impacto</th></tr></thead>
+      <tbody>
+        <tr><td class="strong">10 ago</td><td>Decisión de relegar heredadas</td><td>Desbloquea la adopción de las seis vistas</td></tr>
+        <tr><td class="strong">10-12 ago</td><td>Todas las vistas confirmadas públicamente</td><td>Rediseño pasa de «casi completo» a «completo»</td></tr>
+        <tr><td class="strong">11 ago</td><td>Vista Ajustes funcional</td><td>Cierra control de reserva operativa, umbrales, exportación</td></tr>
+        <tr><td class="strong">12 ago</td><td>Grupos de navegación reorganizados</td><td>Herramientas avanzadas y Versiones anteriores operacionales</td></tr>
+        <tr><td class="strong">15 ago</td><td>Pantalla Previsión hecha de verdad</td><td>Corrige la confusión anterior: ahora sí es el mockup 2c</td></tr>
+        <tr><td class="strong">17-19 ago</td><td>Evoluciones y refinamientos dentro del marco</td><td>El trabajo sigue, pero dentro de vistas ya funcionales</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">Cambio de naturaleza del backlog</span>
+    <h2>De «construir vistas» a «evolucionarlas»</h2>
+  </div>
+  <div class="cover-wrap">
+    <table class="cover">
+      <thead><tr><th>Antes (16 ago)</th><th>Ahora (19 ago)</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>«Las seis vistas propuestas; algunos mockups aún sin migrar; decisión de producto bloqueada»</td>
+          <td>«Las seis vistas están completas y confirmadas; el trabajo pendiente es evolucionar dentro de ese marco»</td>
+        </tr>
+        <tr>
+          <td>Pregunta dominante: ¿Cuál es la siguiente vista?</td>
+          <td>Pregunta dominante: ¿Qué mejora cada vista?</td>
+        </tr>
+        <tr>
+          <td>Objetivo: Pasar de rediseño a producción</td>
+          <td>Objetivo: Profundizar la funcionalidad de cada vista</td>
+        </tr>
+        <tr>
+          <td>Métrica: Vistas construidas</td>
+          <td>Métrica: Características por vista, calidad, automatización</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="block">
+  <div class="block-head">
+    <span class="kicker">Siguiente capítulo</span>
+    <h2>Qué queda pendiente, ahora medible</h2>
+  </div>
+  <p style="font-size:14px;color:var(--muted);margin-bottom:20px">
+    El rediseño a seis vistas está completo. Lo que sigue ya no es un proyecto de arquitectura sino de funcionalidad dentro de ese marco. Cada vista admite mejoras que no rompen nada:
+  </p>
+  <div class="cover-wrap">
+    <table class="cover">
+      <thead><tr><th>Vista</th><th>Mejoras posibles / en progreso</th><th>Prioridad</th></tr></thead>
+      <tbody>
+        <tr><td class="strong">Hoy</td><td>Refinamientos en alertas, nuevos KPI, integración con Cierre</td><td>Media</td></tr>
+        <tr><td class="strong">Plan</td><td>Editor avanzado de escenarios, análisis sensibilidad, más horizontes</td><td>Media</td></tr>
+        <tr><td class="strong">Deuda</td><td>Motor de recomendaciones avanzado, integración PSD2, más estrategias</td><td>Baja</td></tr>
+        <tr><td class="strong">Datos</td><td>Importación bancaria automática (PSD2), validación en tiempo real</td><td>Media</td></tr>
+        <tr><td class="strong">Cierre</td><td>Auditoría completa versionada, análisis de desviaciones, exportación mejorada</td><td>Media</td></tr>
+        <tr><td class="strong">Ajustes</td><td>Control granular de visibilidad, reglas personalizadas, integración con API</td><td>Baja</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p style="font-size:13px;color:var(--muted);margin-top:20px">
+    <b>Nota:</b> Las dieciocho pantallas heredadas siguen siendo completamente funcionales. Aparecen ahora en el grupo «Versiones anteriores» y permanecen como respaldo. Cualquier característica que falte en las nuevas vistas sigue siendo accesible desde la heredada correspondiente.
+  </p>
+</section>
+
+<div class="next">
+  <h2>Proyecto en marcha</h2>
+  <p class="sub">Las seis vistas están hechas. El siguiente paso es elegir qué mejora cada una, en qué orden, y ejecutarlo sin interrumpir el flujo diario.</p>
+</div>
+
+</div>
+
+<footer class="pagefoot">
+  Documento de seguimiento del rediseño a seis vistas de Finanzas Casa, publicado en <a href="https://javierbarriusom-a11y.github.io/contabilidadcasa/" target="_blank">el sitio en producción</a>. Referencia operativa: <code>BACKLOG.md</code>.
+</footer>
