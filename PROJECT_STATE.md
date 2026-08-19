@@ -2,6 +2,54 @@
 
 Fecha de revisión: 19 de agosto de 2026.
 
+## Cierre de sesión — 19 de agosto de 2026: auditoría del estado real y plan de cierre de las 32 tareas restantes
+
+Sesión sin cambios de código: se cotejaron las 124 tareas del backlog «Nueve pantallas»
+contra `docs/BACKLOG_NUEVE_PANTALLAS.md` (la copia de trabajo viva) para confirmar el
+estado real tarea a tarea, a petición del usuario, que sospechaba que Laboratorio no
+estaba tan avanzado como parecía. Confirmado: **Laboratorio (L-1 a L-10) sigue con cero
+código propio**, exactamente donde estaba el 14 de agosto — la auditoría del 16 de agosto
+ya lo había confirmado dos veces y ninguna sesión posterior lo ha tocado (las de
+16-19 de agosto se dedicaron a Escenarios, Cierre, Análisis y Sobres). El recuento
+completo: **92 de 124 tareas hechas (74%)**, 22 pendientes, 4 parciales, 6 bloqueadas.
+
+Con ese recuento se construyó un **plan de cierre secuenciado** para las 32 tareas
+restantes, ordenado por qué desbloquea a qué (no por la numeración H→L). Añadido como
+nueva sección 7 de `docs/BACKLOG_NUEVE_PANTALLAS.md` («Plan de cierre — orden de ejecución
+de lo pendiente»), para que sobreviva entre conversaciones y lo recoja
+`finanzas-casa-workflow` en cualquier modo Inicio futuro sin depender de un artefacto de
+sesión. Resumen del orden:
+
+1. **Laboratorio completo** (L-1 a L-10, 10 tareas) — no depende de nada sin construir
+   (L-4/L-5 solo necesitan C-5/C-10, hechas desde el 16-17 de agosto); desbloquea en
+   principio D-14/E-14/A-12/C-14.
+2. **Seis sueltos sin bloqueo** — P-10, P-11, P-12, A-3, A-10, C-13.
+3. **Cadena Ahorro y objetivos** — P-13 (depende de P-12) → P-16.
+4. **Completar los parciales de Deuda** — D-10, D-11, D-13, que a su vez desbloquean E-13
+   y (vía A-10) A-13.
+5. **Retirar las heredadas, pantalla a pantalla** — E-14, A-12, C-14, D-14 (esta última con
+   un candado extra: la decisión T-4).
+
+Señaladas aparte, por no ser solo cuestión de tiempo sino de diseño: **D-2b y E-11b**
+(tocan el modelo de datos, no un campo nuevo — E-11b es la tarea más grande de todo lo
+pendiente) y **C-3b** (congelada por un cruce de datos que no existe hoy entre el ledger de
+Cierre y las filas crudas de Movimientos, revisado sin cambios el 16 y el 17 de agosto).
+
+**Tres decisiones de producto pendientes, sin las cuales no se puede programar esa tarea
+concreta** — documentadas en la nueva sección 7: (1) D-12, fuente canónica del ingreso
+mensual del hogar; (2) T-4, si D-14 se retira de verdad o sigue solo relegada, a la espera
+de datos de uso reales; (3) C-3b, si merece la pena dedicar una sesión a diseñar el puente
+de datos o se deja aparcada (el enlace a Movimientos ya resuelve el caso, en dos pasos).
+
+**Validación de esta sesión** (sin cambios de código, solo documentación): `npm run
+verify`, exit 0 — **1196/1196 pruebas**, accesibilidad (764 IDs únicos), rendimiento
+(diff 10.000 filas en 35,3 ms; forecast y escenarios en 171,8 ms), build del sitio,
+privacidad y smoke test, todos en verde.
+
+**Limpieza de rama**: se retiró `scope-update-v2.html` (commit `4c73cbe`), un documento
+de alcance que el usuario decidió mantener únicamente como artefacto de Claude, no como
+parte del repositorio ni de Pages.
+
 ## Cierre de sesión — 19 de agosto de 2026: quinto punto del plan — M-8c, P-8b y A-7
 
 Quinto y último punto del plan de cinco acordado con el usuario en esta sesión (tras Escenarios,

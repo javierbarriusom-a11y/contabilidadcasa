@@ -1348,7 +1348,66 @@ desactivarla devuelve Cierre a sus tres pasos de siempre. Sin errores de consola
 | L-9 | Retirada al cerrar la fase 7 | L-7, Fase 7 | M | Pendiente |
 | L-10 | Sin rutas colgando tras la retirada | L-9 | M | Pendiente |
 
-## 7. Seis ideas adicionales (no bloquean ninguna fase)
+## 7. Plan de cierre — orden de ejecución de lo pendiente
+
+Acordado con el usuario el 19 de agosto de 2026, sobre las 32 tareas que quedan (22
+pendientes, 4 parciales, 6 bloqueadas). El orden no sigue la numeración H→L: sigue qué
+tarea desbloquea a cuántas otras. Se mantiene aquí, no solo como artefacto de sesión, para
+que cualquier conversación nueva pueda retomarlo leyendo este documento — es el mismo que
+ya lee `finanzas-casa-workflow` en modo Inicio.
+
+**Bloque 1 — Laboratorio completo (L-1 a L-10, 10 tareas).** El más atrasado (cero código,
+confirmado dos veces) pero el que menos depende de trabajo nuevo: L-4 y L-5 solo necesitan
+C-5 y C-10, hechas desde el 16 y el 17 de agosto. Desbloquea en principio D-14/E-14/A-12/
+C-14 (bloque 5).
+
+**Bloque 2 — Seis sueltos sin bloqueo real.** P-10, P-11, P-12 (Plan), A-3, A-10 (Análisis)
+y C-13 (Cierre): ninguno depende de nada sin construir, simplemente no entraron en las
+sesiones del 16-19 de agosto (Escenarios/Cierre/Análisis/Sobres). P-12 desbloquea P-13
+(bloque 3); A-10 desbloquea A-13 (bloque 4).
+
+**Bloque 3 — Plan · Ahorro y objetivos, la cadena que queda.** P-13 (depende de P-12,
+bloque 2) → P-16 (depende de P-13, cierra Sobres del todo).
+
+**Bloque 4 — Completar los parciales de Deuda + lo que desbloquean.** D-10, D-11 y D-13
+cumplen el núcleo de su criterio y necesitan un añadido concreto, no una reconstrucción.
+Completar D-10 (aviso activo de caducidad) desbloquea E-13. A-13 cierra Análisis en cuanto
+A-10 (bloque 2) exista.
+
+**Antes de seguir — dos tareas que son diseño, no solo código.** D-2b y E-11b ya no están
+bloqueadas técnicamente (Cierre existe desde el 16 de agosto), pero ninguna sesión las ha
+construido porque las dos tocan cómo se comporta el modelo de datos, no solo un campo
+nuevo. E-11b es la más grande de todo lo pendiente (talla L): la decisión de «diez planes
+vivos como máximo» ya está tomada (14 de agosto, sección 2) — falta construirla.
+
+**Bloque 5 — Retirar las heredadas, pantalla a pantalla.** E-14, A-12, C-14 y D-14: cuatro
+tareas gemelas que relegan sus heredadas al catálogo de Laboratorio (bloque 1). D-14 lleva
+un candado extra (ver decisiones, abajo).
+
+**La única sin fecha — C-3b.** Congelada por un cruce de datos que no existe hoy (las
+`entries` del ledger no llevan de vuelta a la fila cruda de `state.transactions`).
+Revisado dos veces (16 y 17 de agosto) sin que el motivo cambie: no es la siguiente tarea
+de una sesión normal, es un rediseño de datos que merece su propia conversación.
+
+### Tres decisiones de producto que no resuelve una sesión de código
+
+1. **D-12 (Deuda) · fuente del ingreso mensual del hogar.** El criterio pide comparar la
+   cuota total de deuda contra un umbral, con margen restante — pero no hay hoy una cifra
+   de ingreso mensual reutilizable y defendible como denominador. Pregunta pendiente: ¿el
+   previsto de Plan, la media de los últimos reales, o una cifra declarada aparte en
+   Ajustes?
+2. **T-4 (Deuda) · ¿se retira de verdad D-14, o sigue solo relegada?** Bloqueada a
+   propósito desde antes del 14 de agosto en `PROJECT_STATE.md`, a la espera de datos de
+   uso reales sobre las heredadas ya relegadas a «Versiones anteriores» (10 de agosto).
+3. **C-3b (Cierre) · ¿merece la pena tender el puente de datos?** El enlace a Movimientos
+   ya resuelve el caso, solo en dos pasos en vez de uno — construir el puente es una
+   sesión propia de modelo de datos, con su propio riesgo.
+
+Si las tres se responden y no hay sorpresas de diseño en Laboratorio o E-11b, este plan
+cierra el backlog completo salvo, posiblemente, D-14 — que depende de datos de uso, no de
+una sesión de más.
+
+## 8. Seis ideas adicionales (no bloquean ninguna fase)
 
 Costuras entre pantallas que los mockups no cubren porque cada uno se diseñó por separado.
 Ninguna fabrica un cálculo nuevo ni contradice una decisión de producto ya tomada.
@@ -1367,7 +1426,7 @@ Ninguna fabrica un cálculo nuevo ni contradice una decisión de producto ya tom
 6. **Foco visible al entrar en modo edición de celda** — anillo de foco explícito en M-8 y P-3,
    las dos tablas más densas del rediseño.
 
-## 8. Fuentes
+## 9. Fuentes
 
 9 mockups del rediseño (Hoy, Registrar, Movimientos, Plan, Deuda, Escenarios, Análisis, Cierre,
 Laboratorio) · `Backlog_Global.pdf` V4, 14 de agosto de 2026 · `CIERREBACKLOG20260812.md`.
