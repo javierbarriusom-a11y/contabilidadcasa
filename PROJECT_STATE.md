@@ -2,6 +2,45 @@
 
 Fecha de revisión: 19 de agosto de 2026.
 
+## Cierre de sesión — 19 de agosto de 2026: fix de caché — el Service Worker servía el shell del 14 de agosto
+
+El usuario reportó ver «a veces» una versión antigua de la app (sin la pantalla Registrar, sin los
+cambios de Sobres). Diagnóstico: `service-worker.js` cachea el shell completo (`app.js`,
+`index.html`, etc.) bajo `CACHE_NAME`, y el navegador solo reinstala el Service Worker —y por tanto
+solo refresca esa caché— cuando el propio fichero `service-worker.js` cambia byte a byte.
+`CACHE_NAME` llevaba fijo en `"finanzas-casa-shell-20260814-f1a1"` desde el 14 de agosto pese a cinco
+tandas de despliegues posteriores (Registrar el 15, Escenarios/Cierre/Análisis/Sobres del 16 al 19):
+ningún commit volvió a tocar `service-worker.js`, así que cualquier navegador con el Service Worker
+ya instalado seguía sirviendo en silencio el shell del 14 de agosto, sin ningún error visible.
+
+- **Causa raíz corregida de verdad, no solo el síntoma**: `tools/build-public-site.mjs` ahora
+  reescribe `CACHE_NAME` en `dist/service-worker.js` con una referencia de versión fresca
+  (`GITHUB_SHA` en producción, un sello local si se construye a mano) en **cada build**, así que el
+  sitio publicado siempre invalida la caché del navegador aunque nadie toque el fichero fuente a
+  mano nunca más.
+- El fichero fuente `service-worker.js` se deja deliberadamente con el literal `20260814-f1a1` fijo
+  —no se vuelve a bump-ear a mano—: es la marca que usan **29 archivos de test** para comprobar
+  «este fichero forma parte del shell offline versionado», no una versión real; la versión real solo
+  existe en el sitio construido. Añadir un comentario explicativo al inicio del fichero para que
+  nadie repita el error de bump-earlo a mano pensando que arregla algo.
+- Investigado y descartado un segundo mecanismo: `index.html` también versiona con `?v=...` cada
+  `<script>`/`<link>` por separado (caché HTTP normal, bump manual por fichero). Se decidió **no**
+  tocarlo: el propio `service-worker.js` intercepta con `{ ignoreSearch: true }`, así que en cuanto
+  el Service Worker está instalado esos `?v=` quedan inertes — el único interruptor real es
+  `CACHE_NAME`. Reescribirlos todos de golpe habría destruido el bump fino por fichero sin arreglar
+  nada.
+- Nueva prueba (`tests/public-site-assets.test.cjs`) que ejecuta el build de verdad y comprueba que
+  `dist/service-worker.js` nunca coincide con el `CACHE_NAME` del fichero fuente, para que un futuro
+  retroceso de esta lógica rompa `npm test` en vez de romper el sitio en producción en silencio.
+
+**Validación**: `npm run verify`, exit 0 — **1163/1163 pruebas** (1 nueva), accesibilidad, rendimiento,
+build, privacidad y smoke test en verde.
+
+**Para el usuario**: con este cambio desplegado, un simple recargar de la pestaña (F5) debería
+bastar — el Service Worker detecta que `service-worker.js` cambió, reinstala en segundo plano y
+toma el control (`skipWaiting`/`clients.claim`) sin pedir nada más. Si alguna pestaña sigue rara
+después de recargar, cerrarla del todo y volver a abrir la URL lo resuelve siempre.
+
 ## Cierre de sesión — 19 de agosto de 2026: Sobres, Fase 6 (P-14/P-15/C-6/C-7)
 
 Cuarto punto del plan de cinco acordado con el usuario, tras Escenarios, Cierre y Análisis (los tres

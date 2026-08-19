@@ -96,6 +96,32 @@ for (const relative of files) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(source, target);
 }
+
+// El nombre de la caché del Service Worker (`service-worker.js`) solo se invalida cuando el propio
+// fichero cambia byte a byte — así detecta el navegador que hay una versión nueva que instalar. Del
+// 14 al 19 de agosto se desplegaron Registrar, Escenarios, Cierre, Análisis y Sobres sin que nadie
+// tocara `CACHE_NAME` a mano, así que los navegadores que ya tenían el Service Worker instalado
+// siguieron sirviendo el shell del 14 de agosto en silencio, sin ningún error visible. Se corrige
+// aquí, no confiando en que alguien se acuerde de bump-earlo cada vez: cada build de `dist` reescribe
+// `CACHE_NAME` con la misma referencia de versión que ya usa `version.json`, así que el propio
+// contenido del fichero cambia en cada despliegue y el navegador siempre detecta la actualización.
+// Nota: `index.html` tiene su propio `?v=...` por cada `<script>`/`<link>` (caché HTTP normal, uno
+// por fichero, bump-eado a mano por quien toca ese fichero) — deliberadamente fuera de esta reescritura.
+// El Service Worker interpreta cada petición con `ignoreSearch: true` (ver `service-worker.js`), así
+// que en cuanto está instalado ignora esos `?v=` por completo y sirve por ruta desde Cache Storage:
+// el único interruptor real es `CACHE_NAME`. Reescribir aquí los 55 `?v=` de golpe destruiría el
+// bump fino por fichero sin arreglar nada.
+const cacheVersion = process.env.GITHUB_SHA ? process.env.GITHUB_SHA.slice(0, 12) : `local${Date.now().toString(36)}`;
+
+const workerPath = path.join(destination, "service-worker.js");
+const workerSource = fs.readFileSync(workerPath, "utf8");
+const versionedWorker = workerSource.replace(
+  /const CACHE_NAME = "[^"]*";/,
+  `const CACHE_NAME = "finanzas-casa-shell-${cacheVersion}";`,
+);
+if (versionedWorker === workerSource) throw new Error("No se encontró CACHE_NAME en service-worker.js para versionarlo.");
+fs.writeFileSync(workerPath, versionedWorker);
+
 fs.writeFileSync(path.join(destination, ".nojekyll"), "");
 fs.writeFileSync(
   path.join(destination, "version.json"),
