@@ -111,8 +111,8 @@ P-14/P-15 (Plan · Mes) y C-6/C-7 (Cierre) se construyeron el 19 de agosto, cuar
 cinco acordado con el usuario — ver la nota de cierre bajo la tabla de la pantalla 08 para el
 detalle; P-16 sigue bloqueada por P-13 (Objetivos), que no existe todavía. Fase 7 (Laboratorio) se
 construyó el 19 de agosto de 2026, bloque 1 del plan de cierre de la sección 7: L-1 a L-10 completas
-(L-5 parcial, ver la nota bajo la tabla de la pantalla 09 — cuatro huecos de escritura reales
-quedaron documentados, no cerrados).
+(ver la nota bajo la tabla de la pantalla 09 — un primer veredicto de L-5 resultó mal fundamentado y
+se corrigió en la misma sesión, sin llegar a bloquear nada por error).
 
 **Auditoría del 15 de agosto contra los nueve PDF de mockups (sesión de contraste, ver la nota bajo
 cada tabla de pantalla)**: ninguna tarea marcada «Hecho» resultó estar completamente sin construir
@@ -1342,7 +1342,7 @@ desactivarla devuelve Cierre a sus tres pasos de siempre. Sin errores de consola
 | L-2 | Adoptada exige tarea de backlog | L-1 | M | Hecho (19 de agosto, ver nota) |
 | L-3 | Panel de detalle por heredada | L-1 | M | Hecho (19 de agosto, ver nota) |
 | L-4 | Instantánea fechada del último cierre | C-5 | L | Hecho (19 de agosto, ver nota) |
-| L-5 | Escritura imposible, no solo escondida | L-4, C-10 | L | Hecho (parcial, ver nota — 4 heredadas quedan documentadas como pendientes de verdad) |
+| L-5 | Escritura imposible, no solo escondida | L-4, C-10 | L | Hecho (ver nota — un primer veredicto resultó mal fundamentado y se corrigió en la misma sesión, antes de bloquear nada) |
 | L-6 | Vista de lista con los destinos | L-1 | S | Hecho (19 de agosto, ver nota) |
 | L-7 | Acta exportable del Laboratorio | L-2 | S | Hecho (19 de agosto, ver nota) |
 | L-8 | Laboratorio vive dentro de Ajustes | AJ-1 | S | Hecho (19 de agosto, ver nota) |
@@ -1352,12 +1352,14 @@ desactivarla devuelve Cierre a sus tres pasos de siempre. Sin errores de consola
 **Laboratorio construido el 19 de agosto de 2026** — bloque 1 del plan de cierre (sección 7 de este
 documento), primera sesión que toca Fase 7. Catálogo canónico (`LABORATORIO_CATALOG`, app.js) de las
 dieciocho pantallas heredadas del rediseño (BACKLOG.md, tabla «Con piel nueva/Heredadas todavía en
-pie»), cada una con veredicto cerrado — **3 adoptadas** (`#movements`, reconstruida en su propio
+pie»), cada una con veredicto cerrado — **7 adoptadas** (`#movements`, reconstruida en su propio
 sitio por M-1…M-11; `#savings-plan`, sin sustituta hasta que exista Ahorro/objetivos, P-13/P-16;
-`#alerts-center`, sigue siendo la única puerta de los umbrales de aviso, V6-2), **14 sustituidas**
-(cubiertas por una pantalla nueva) y **1 descartada** (`#operations-manual`, guía estática sin
-sustituta ni tarea de retirada). L-2 se cumple de verdad, no por convención: las tres adoptadas
-llevan tarea de backlog asociada, verificado en tiempo de ejecución (`laboratorioAdoptedWithoutTask`).
+`#alerts-center`, sigue siendo la única puerta de los umbrales de aviso, V6-2; `#executive-advisor`,
+`#savings-agent`, `#debt-control` y `#simulator`, las cuatro corregidas más abajo tras el hallazgo de
+esta misma sesión), **10 sustituidas** (cubiertas por una pantalla nueva) y **1 descartada**
+(`#operations-manual`, guía estática sin sustituta ni tarea de retirada). L-2 se cumple de verdad, no
+por convención: las siete adoptadas llevan tarea de backlog asociada, verificado en tiempo de
+ejecución (`laboratorioAdoptedWithoutTask`).
 Vive dentro de Ajustes (L-8), como una tarjeta más (`#laboratorioCard`), sin hash ni ruta propia —
 así L-10 no tiene nada que pueda quedar colgando cuando `LABORATORIO_PHASE_RETIRED` pase a `true` al
 cerrar la fase 7 (L-9, mecanismo construido y probado, sin activar: la fase no está cerrada). L-4
@@ -1374,22 +1376,38 @@ y `#savings-agent`** siguen escribiendo el mismo colchón/reserva compartido
 operativa; **`#debt-control`** sigue aplicando y persistiendo una liquidación de deuda real
 (`addDebtPayoff`) que D-8/D-9 ya cubren con motivo obligatorio; **`#simulator`** sigue empujando una
 decisión de proyecto real (`applyProjectDecision` → `projects`/`saveProjects()`) que E-11 ya cubre.
-Las cuatro quedan documentadas en el catálogo como `writeBlocked: false`, con su evidencia exacta, en
-vez de darlas por buenas o esconder el hueco — es justo lo que L-5 («no solo escondida») pedía
-comprobar. **No se tocaron esas cuatro pantallas en esta sesión**: cerrarlas de verdad (un R-11 propio
-por cada una) es un cambio a una pantalla en uso y se consulta aparte (`CLAUDE.md`), no un efecto
-colateral de construir Laboratorio — queda como hueco conocido, con su propia fila navegable desde el
-catálogo, no como una nueva tarea numerada del backlog de 124.
+Las cuatro quedaron documentadas en el catálogo como `writeBlocked: false`, marcadas `sustituida`,
+pendientes de un R-11 propio.
 
-**Validación**: `npm run verify`, exit 0 — **1226/1226 pruebas** (30 nuevas en
-`tests/l1-l10-fase7-laboratorio.test.cjs`), accesibilidad (771 IDs únicos), rendimiento (diff 10.000
-filas en 50,5 ms; forecast y escenarios en 263,1 ms), build del sitio, privacidad y smoke test, todos
-en verde. Verificado con Playwright contra el build local: la tarjeta de Laboratorio en Ajustes
-resume «18 heredadas · 3 adoptada(s) · 14 sustituida(s) · 1 descartada(s)», la lista pinta las
-dieciocho filas, seleccionar una actualiza el panel de detalle (motivo, destino, tarea, evidencia de
-escritura) y el botón de CSV descarga `laboratorio-acta.csv`. Sin errores de consola propios (el
-único error de red observado es el CDN de Supabase bloqueado por el proxy del entorno de pruebas,
-ajeno a este cambio).
+**Corrección, misma sesión, antes de tocar código.** Al ir a cerrar esos cuatro huecos se investigó
+qué pantalla nueva sustituía de verdad a cada uno, y el veredicto `sustituida` resultó estar mal: el
+supuesto sustituto de `#executive-advisor`/`#savings-agent` («Ajustes › Reserva operativa»,
+`state.operatingReserve`) es un campo **distinto** de `agentCaixaFloor` (el que estas heredadas
+escriben), no el mismo dato — eran dos «reservas» de nombre parecido, confundidas. Verificado con
+lectura de código: `agentCaixaFloor()` lo leen de verdad Hoy (`renderHomeDashboard`), Registrar
+(`registrarRecalcFigures`/`registrarSessionMetrics`), Deuda · Ruta (`renderDeudaRutaOffer`) y Asesor
+de decisión (`renderAsesorDecision`) — ninguna pantalla nueva ofrece **escribirlo**. Lo mismo con
+`#debt-control`: Deuda · Ruta (`handleDeudaRutaApply`) aplica a través de Escenarios
+(`escenario-motor-saved`), un array distinto de `debtLiquidations` — que Hoy y Deuda sí **leen**
+(recordatorios, deduplicar ofertas ya decididas) sin tener dónde escribirlo. Y `#simulator`: Escenarios
+(E-11) no es la misma puerta que `projects` — un array que ninguna pantalla nueva lee y que el motor
+de forecast canónico no usa, pero que tampoco tiene sustituto para seguir añadiendo un proyecto nuevo.
+Las cuatro pasan de `sustituida` a **`adoptada`** (siguen siendo la única puerta real de esos tres
+datos) con `writeBlocked: true` corregido a su motivo real, y se suman como cuarta «decisión de
+producto que no resuelve una sesión de código» (ver más abajo): bloquear su escritura sin decidir antes
+dónde debería vivir ese dato habría roto una fuente real que cuatro pantallas nuevas ya leen, no una
+redundancia. **No se escribió ningún candado**: la investigación llegó antes que el código.
+
+**Validación**: `npm run verify`, exit 0 — **1226/1226 pruebas** (las 30 de
+`tests/l1-l10-fase7-laboratorio.test.cjs` ajustadas a la corrección: los dos tests que daban por
+buena la clasificación `sustituida` de las cuatro heredadas se sustituyeron por tests que verifican
+`adoptada`/`writeBlocked: true`/`destino: null`/tarea de backlog no nula, y uno nuevo que evita que se
+repita la confusión entre `agentCaixaFloor` y la Reserva operativa de Ajustes), accesibilidad (771 IDs
+únicos), rendimiento (diff 10.000 filas en 32,2 ms; forecast y escenarios en 196,3 ms), build del
+sitio, privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local: la
+tarjeta de Laboratorio en Ajustes resume «18 heredadas · 7 adoptada(s) · 10 sustituida(s) · 1
+descartada(s)», y el detalle de «Asesor ejecutivo» muestra el motivo corregido. Sin errores de consola
+propios.
 
 ## 7. Plan de cierre — orden de ejecución de lo pendiente
 
@@ -1401,9 +1419,9 @@ ya lee `finanzas-casa-workflow` en modo Inicio.
 
 **Bloque 1 — Laboratorio completo (L-1 a L-10, 10 tareas).** ~~El más atrasado (cero código,
 confirmado dos veces) pero el que menos depende de trabajo nuevo~~ — **completo el 19 de agosto
-de 2026** (L-5 parcial: cuatro huecos de escritura reales quedaron documentados en el catálogo, no
-cerrados — ver la nota bajo la tabla de la pantalla 09). Desbloquea en principio D-14/E-14/A-12/
-C-14 (bloque 5), que siguen pendientes de sesión.
+de 2026** (ver la nota bajo la tabla de la pantalla 09: un primer veredicto de L-5 se corrigió en la
+misma sesión, antes de bloquear nada). Desbloquea en principio D-14/E-14/A-12/C-14 (bloque 5), que
+siguen pendientes de sesión.
 
 **Bloque 2 — Seis sueltos sin bloqueo real.** P-10, P-11, P-12 (Plan), A-3, A-10 (Análisis)
 y C-13 (Cierre): ninguno depende de nada sin construir, simplemente no entraron en las
@@ -1433,7 +1451,7 @@ un candado extra (ver decisiones, abajo).
 Revisado dos veces (16 y 17 de agosto) sin que el motivo cambie: no es la siguiente tarea
 de una sesión normal, es un rediseño de datos que merece su propia conversación.
 
-### Tres decisiones de producto que no resuelve una sesión de código
+### Cuatro decisiones de producto que no resuelve una sesión de código
 
 1. **D-12 (Deuda) · fuente del ingreso mensual del hogar.** El criterio pide comparar la
    cuota total de deuda contra un umbral, con margen restante — pero no hay hoy una cifra
@@ -1446,8 +1464,20 @@ de una sesión normal, es un rediseño de datos que merece su propia conversaci�
 3. **C-3b (Cierre) · ¿merece la pena tender el puente de datos?** El enlace a Movimientos
    ya resuelve el caso, solo en dos pasos en vez de uno — construir el puente es una
    sesión propia de modelo de datos, con su propio riesgo.
+4. **Laboratorio · destino de `agentCaixaFloor`, `debtLiquidations` y `projects`.** Hallazgo
+   de la sesión del 19 de agosto que construyó Laboratorio (ver la nota bajo la tabla de la
+   pantalla 09): el «Asesor ejecutivo», «Agente ahorro y objetivos» y «Control de deuda»
+   (heredadas) siguen siendo la única puerta de escritura de `agentCaixaFloor` y
+   `debtLiquidations`, que Hoy, Registrar, Deuda · Ruta y Asesor de decisión ya **leen** sin
+   tener dónde escribirlos — no es un hueco de escritura sin bloquear (R-11), es que la
+   pantalla que debería escribir ese dato no existe todavía. El «Simulador» escribe
+   `projects`, que ninguna pantalla nueva lee y que el motor de forecast canónico no usa: su
+   caso es distinto — no falta una pantalla que lo sustituya, falta confirmar con datos de
+   uso reales si `projects` sigue haciendo falta o se puede dar por descartado. Las cuatro
+   quedan `adoptada` en el catálogo, no `sustituida`: bloquear su escritura sin resolver
+   antes esta decisión rompería una fuente de datos real, no una redundancia.
 
-Si las tres se responden y no hay sorpresas de diseño en Laboratorio o E-11b, este plan
+Si las cuatro se responden y no hay sorpresas de diseño en E-11b, este plan
 cierra el backlog completo salvo, posiblemente, D-14 — que depende de datos de uso, no de
 una sesión de más.
 

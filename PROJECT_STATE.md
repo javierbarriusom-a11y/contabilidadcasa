@@ -2,6 +2,52 @@
 
 Fecha de revisión: 19 de agosto de 2026.
 
+## Cierre de sesión — 19 de agosto de 2026: corrección del hallazgo de L-5 — las cuatro heredadas eran adoptada, no sustituida
+
+Sesión de seguimiento directo de la anterior (mismo día): el usuario pidió cerrar los cuatro huecos de
+escritura que había documentado L-5 (`executive-advisor`, `savings-agent`, `debt-control`,
+`simulator`) con un R-11 propio para cada uno. Antes de escribir ningún candado se investigó qué
+pantalla nueva sustituía de verdad a cada heredada, y el veredicto `sustituida` de la sesión anterior
+resultó estar mal fundamentado en un punto concreto:
+
+- **El error**: el catálogo asumía que `agentCaixaFloor` (el colchón CaixaBank que
+  `executive-advisor`/`savings-agent` escriben vía `setAgentCaixaFloor`) era el mismo dato que
+  `state.operatingReserve` (la «Reserva operativa» de Ajustes). Son dos campos distintos con nombres
+  parecidos — nunca se verificó con código, solo se infirió por el nombre.
+- **La comprobación real** (agente de exploración dedicado): `agentCaixaFloor()` lo leen de verdad
+  cuatro pantallas nuevas — Hoy (`renderHomeDashboard`), Registrar (`registrarRecalcFigures`/
+  `registrarSessionMetrics`), Deuda · Ruta (`renderDeudaRutaOffer`) y Asesor de decisión
+  (`renderAsesorDecision`) — pero ninguna ofrece **escribirlo**. Lo mismo con `debtLiquidations`
+  (`debt-control`): Hoy y Deuda lo **leen** (recordatorios, deduplicar ofertas ya decididas) sin
+  tener dónde **escribirlo** — Deuda · Ruta aplica a través de Escenarios (`escenario-motor-saved`),
+  un array distinto. Y `projects` (`simulator`): ninguna pantalla nueva lo lee y el motor de forecast
+  canónico no depende de él, pero tampoco tiene sustituto para seguir añadiendo un proyecto nuevo.
+- **La corrección**: las cuatro pasan de `sustituida` a `adoptada` en `LABORATORIO_CATALOG`
+  (`app.js`) — siguen siendo la única puerta real de esos tres datos, no una redundancia con hueco de
+  R-11 sin cerrar. Se suman como cuarta «decisión de producto que no resuelve una sesión de código»
+  en `docs/BACKLOG_NUEVE_PANTALLAS.md` §7 (junto a D-12/T-4/C-3b): qué pantalla nueva debería escribir
+  `agentCaixaFloor`/`debtLiquidations`, y si `projects` sigue haciendo falta de verdad.
+- **No se escribió ningún candado**: bloquear la escritura de las cuatro heredadas sin resolver antes
+  esa decisión habría dejado a Hoy, Registrar, Deuda · Ruta y Asesor de decisión sin forma de fijar el
+  colchón, y sin ningún sitio para registrar una liquidación de deuda nueva — una regresión real, no
+  una limpieza. El catálogo de Laboratorio (18 heredadas) queda ahora en **7 adoptadas · 10
+  sustituidas · 1 descartada**, un reparto que coincide con el «7 se adoptan, 10 se sustituyen, 1 se
+  descarta» del mockup original (`docs/BACKLOG_NUEVE_PANTALLAS.md` línea 16-17) — la corrección
+  también resolvió una discrepancia con esa cifra de partida que la sesión anterior no había notado.
+
+**Validación**: `npm run verify`, exit 0 — **1226/1226 pruebas** (las 30 de
+`tests/l1-l10-fase7-laboratorio.test.cjs` ajustadas: los dos tests que daban por buena la
+clasificación `sustituida` se sustituyeron por tests que verifican `adoptada`/`writeBlocked: true`/
+`destino: null`/tarea de backlog, más uno nuevo que evita repetir la confusión entre `agentCaixaFloor`
+y la Reserva operativa), accesibilidad (771 IDs únicos), rendimiento (diff 10.000 filas en 32,2 ms;
+forecast y escenarios en 196,3 ms), build del sitio, privacidad y smoke test, todos en verde.
+Verificado con Playwright contra el build local: la tarjeta resume «18 heredadas · 7 adoptada(s) · 10
+sustituida(s) · 1 descartada(s)», y el detalle de «Asesor ejecutivo» muestra el motivo corregido. Sin
+errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — nota de la pantalla 09 corregida con el
+razonamiento completo, tabla L-5 actualizada, y nueva cuarta «decisión de producto» en §7.
+
 ## Cierre de sesión — 19 de agosto de 2026: Fase 7 · Laboratorio completa (L-1 a L-10), bloque 1 del plan de cierre
 
 Primera sesión que toca Fase 7 desde que se auditó «sin ningún código propio» el 16 de agosto.
