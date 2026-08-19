@@ -1,3 +1,13 @@
+// Este literal NO se toca a mano nunca más (19 de agosto de 2026, ver PROJECT_STATE.md): del 14 al
+// 19 de agosto se desplegaron cinco tandas de cambios (Registrar, Escenarios, Cierre, Análisis,
+// Sobres) sin que nadie lo bump-eara, así que los navegadores con el Service Worker ya instalado
+// siguieron sirviendo en silencio el shell del 14 de agosto — «no veo Registrar, no veo Sobres» fue
+// el síntoma. `tools/build-public-site.mjs` reescribe este valor en `dist/service-worker.js` con una
+// referencia de versión fresca en cada build, así que el sitio publicado siempre invalida la caché
+// aunque este fichero fuente se quede fijo. Se deja fijo aquí a propósito: docenas de pruebas
+// (`grep -rl "20260814-f1a1" tests/`) usan este literal como marca de «este fichero forma parte del
+// shell offline», no como versión real — la versión real solo existe en el sitio construido, nunca
+// en el repositorio.
 const CACHE_NAME = "finanzas-casa-shell-20260814-f1a1";
 const SHELL_URLS = [
   "./",

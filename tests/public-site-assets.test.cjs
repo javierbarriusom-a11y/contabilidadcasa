@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -44,4 +45,23 @@ test("la construcción falla si la lista se queda corta, en vez de publicar a me
 test("el smoke test pide todos los recursos del index publicado, no una muestra", () => {
   assert.match(smoke, /const referenced = \[\.\.\.new Set\(/);
   assert.match(smoke, /el index\.html lo carga pero no está en dist/);
+});
+
+// La caché del Service Worker (service-worker.js) solo se invalida en el navegador cuando el propio
+// fichero cambia byte a byte. Del 14 al 19 de agosto de 2026 se desplegaron Registrar, Escenarios,
+// Cierre, Análisis y Sobres sin que nadie tocara `CACHE_NAME` a mano: los navegadores que ya tenían
+// el Service Worker instalado siguieron sirviendo en silencio el shell del 14 de agosto. La
+// construcción ahora reescribe `CACHE_NAME` en cada build con una referencia de versión — esta
+// prueba ejecuta el build de verdad y comprueba que el resultado publicado no es el fichero fuente
+// tal cual, para que un futuro retroceso de esa lógica rompa `npm test`, no el sitio en producción.
+test("build:site reescribe CACHE_NAME de service-worker.js en cada build, nunca lo deja fijo", () => {
+  const distWorkerPath = path.join(root, "dist", "service-worker.js");
+  execFileSync(process.execPath, [path.join(root, "tools/build-public-site.mjs")], { cwd: root, stdio: "pipe" });
+  const sourceWorker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+  const distWorker = fs.readFileSync(distWorkerPath, "utf8");
+  const sourceCacheName = sourceWorker.match(/const CACHE_NAME = "([^"]*)";/)?.[1];
+  const distCacheName = distWorker.match(/const CACHE_NAME = "([^"]*)";/)?.[1];
+  assert.ok(sourceCacheName, "service-worker.js debería declarar CACHE_NAME");
+  assert.ok(distCacheName, "dist/service-worker.js debería declarar CACHE_NAME");
+  assert.notEqual(distCacheName, sourceCacheName, "el build debe versionar CACHE_NAME, no copiarlo tal cual");
 });
