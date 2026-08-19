@@ -3157,8 +3157,11 @@
   background: var(--e19-surface);
 }
 
-/* A-4 · cascada — una fila por bloque, barra horizontal proporcional al importe absoluto. */
-.e19-analisis .analisis-cascada-row {
+/* A-4 · cascada — una fila por bloque, barra horizontal proporcional al importe absoluto.
+   P-10 (Plan · Previsión) reutiliza literalmente `analisisCascadaHtml()` sobre el peor mes, así que
+   estas reglas también se aplican bajo `.e19-plan` — no una copia, el mismo marcado. */
+.e19-analisis .analisis-cascada-row,
+.e19-plan .analisis-cascada-row {
   display: grid;
   grid-template-columns: 110px 1fr 90px;
   align-items: center;
@@ -3167,56 +3170,133 @@
   font-size: var(--e19-text-sm);
 }
 
-.e19-analisis .analisis-cascada-row.is-resultado {
+.e19-analisis .analisis-cascada-row.is-resultado,
+.e19-plan .analisis-cascada-row.is-resultado {
   border-top: 1px solid var(--e19-border);
   margin-top: 4px;
   padding-top: 10px;
   font-weight: 600;
 }
 
-.e19-analisis .analisis-cascada-label {
+.e19-analisis .analisis-cascada-label,
+.e19-plan .analisis-cascada-label {
   color: var(--e19-muted);
 }
 
-.e19-analisis .analisis-cascada-track {
+.e19-analisis .analisis-cascada-track,
+.e19-plan .analisis-cascada-track {
   height: 10px;
   border-radius: 5px;
   background: var(--e19-surface-soft);
   overflow: hidden;
 }
 
-.e19-analisis .analisis-cascada-bar {
+.e19-analisis .analisis-cascada-bar,
+.e19-plan .analisis-cascada-bar {
   height: 100%;
   border-radius: 5px;
 }
 
-.e19-analisis .analisis-cascada-bar.is-ingreso {
+.e19-analisis .analisis-cascada-bar.is-ingreso,
+.e19-plan .analisis-cascada-bar.is-ingreso {
   background: var(--e19-success);
 }
 
-.e19-analisis .analisis-cascada-bar.is-gasto {
+.e19-analisis .analisis-cascada-bar.is-gasto,
+.e19-plan .analisis-cascada-bar.is-gasto {
   background: var(--e19-debt);
 }
 
-.e19-analisis .analisis-cascada-bar.is-ahorro {
+.e19-analisis .analisis-cascada-bar.is-ahorro,
+.e19-plan .analisis-cascada-bar.is-ahorro {
   background: var(--e19-accent);
 }
 
-.e19-analisis .analisis-cascada-bar.is-resultado {
+.e19-analisis .analisis-cascada-bar.is-resultado,
+.e19-plan .analisis-cascada-bar.is-resultado {
   background: var(--e19-ink);
 }
 
-.e19-analisis .analisis-cascada-value {
+.e19-analisis .analisis-cascada-value,
+.e19-plan .analisis-cascada-value {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-.e19-analisis .analisis-cascada-value.is-positivo {
+.e19-analisis .analisis-cascada-value.is-positivo,
+.e19-plan .analisis-cascada-value.is-positivo {
   color: var(--e19-success);
 }
 
-.e19-analisis .analisis-cascada-value.is-negativo {
+.e19-analisis .analisis-cascada-value.is-negativo,
+.e19-plan .analisis-cascada-value.is-negativo {
   color: var(--e19-danger);
+}
+
+/* P-11 · tres hitos sobre el colchón, mismo layout que A-5 (`.analisis-networth-milestones`). */
+.e19-plan .plan-prevision-milestones {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid color-mix(in srgb, var(--e19-surface) 20%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--e19-surface) 20%, transparent);
+  margin: 12px 0;
+}
+
+.e19-plan .plan-prevision-milestone {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.e19-plan .plan-prevision-milestone span {
+  font-size: var(--e19-text-xs);
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--e19-surface) 65%, transparent);
+}
+
+.e19-plan .plan-prevision-milestone strong {
+  font-size: var(--e19-text-md);
+}
+
+/* P-12 · semáforo de ahorro — una fila por mes, luz de tres colores. */
+.e19-plan .plan-ahorro-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.e19-plan .plan-ahorro-row {
+  display: grid;
+  grid-template-columns: 110px 20px 1fr;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-plan .plan-ahorro-light {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.e19-plan .plan-ahorro-light.is-good {
+  background: var(--e19-success);
+}
+
+.e19-plan .plan-ahorro-light.is-warn {
+  background: var(--e19-warning);
+}
+
+.e19-plan .plan-ahorro-light.is-danger {
+  background: var(--e19-danger);
+}
+
+.e19-plan .plan-ahorro-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 /* A-8 · barra apilada de una sola pieza + leyenda, los segmentos suman el 100 % del ingreso. */
