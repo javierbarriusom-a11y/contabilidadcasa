@@ -3033,6 +3033,296 @@
   text-transform: uppercase;
 }
 
+/* A-5 · patrimonio neto — tarjeta oscura, mismo tratamiento que la vista familiar de Escenarios
+   (E-9): el patrimonio negativo se lee mejor sobre fondo oscuro que sobre una tarjeta blanca con
+   una barra roja aislada. */
+.e19-analisis .analisis-networth-card {
+  background: var(--e19-ink);
+  color: var(--e19-surface);
+}
+
+.e19-analisis .analisis-networth-card .escenario-motor-panel-title,
+.e19-analisis .analisis-networth-card .e19-kpi-note {
+  color: color-mix(in srgb, var(--e19-surface) 78%, transparent);
+}
+
+.e19-analisis .analisis-networth-band {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 130px;
+  padding: 12px 0 4px;
+}
+
+.e19-analisis .analisis-networth-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+}
+
+.e19-analisis .analisis-networth-value {
+  font-size: var(--e19-text-xs);
+  color: color-mix(in srgb, var(--e19-surface) 85%, transparent);
+  white-space: nowrap;
+}
+
+.e19-analisis .analisis-networth-bar {
+  width: 100%;
+  max-width: 22px;
+  border-radius: 3px 3px 0 0;
+  background: var(--e19-border);
+}
+
+.e19-analisis .analisis-networth-bar.is-positivo {
+  background: var(--e19-accent);
+}
+
+.e19-analisis .analisis-networth-bar.is-negativo {
+  background: color-mix(in srgb, var(--e19-danger) 70%, var(--e19-ink));
+}
+
+.e19-analisis .analisis-networth-col small {
+  font-size: var(--e19-text-xs);
+  color: color-mix(in srgb, var(--e19-surface) 65%, transparent);
+}
+
+.e19-analisis .analisis-networth-milestones {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--e19-surface) 20%, transparent);
+}
+
+.e19-analisis .analisis-networth-milestones div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.e19-analisis .analisis-networth-milestones span {
+  font-size: var(--e19-text-xs);
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--e19-surface) 65%, transparent);
+}
+
+.e19-analisis .analisis-networth-milestones strong {
+  font-size: var(--e19-text-md);
+}
+
+/* A-4/A-8 · dos columnas en pantallas anchas, apiladas en estrechas. */
+.e19-analisis .analisis-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .e19-analisis .analisis-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.e19-analisis .analisis-period-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.e19-analisis .analisis-period-label select {
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  padding: 7px 9px;
+  font: 400 var(--e19-text-sm) / 1.3 var(--e19-font-sans);
+  color: var(--e19-ink);
+  background: var(--e19-surface);
+}
+
+/* A-4 · cascada — una fila por bloque, barra horizontal proporcional al importe absoluto. */
+.e19-analisis .analisis-cascada-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 90px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-analisis .analisis-cascada-row.is-resultado {
+  border-top: 1px solid var(--e19-border);
+  margin-top: 4px;
+  padding-top: 10px;
+  font-weight: 600;
+}
+
+.e19-analisis .analisis-cascada-label {
+  color: var(--e19-muted);
+}
+
+.e19-analisis .analisis-cascada-track {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--e19-surface-soft);
+  overflow: hidden;
+}
+
+.e19-analisis .analisis-cascada-bar {
+  height: 100%;
+  border-radius: 5px;
+}
+
+.e19-analisis .analisis-cascada-bar.is-ingreso {
+  background: var(--e19-success);
+}
+
+.e19-analisis .analisis-cascada-bar.is-gasto {
+  background: var(--e19-debt);
+}
+
+.e19-analisis .analisis-cascada-bar.is-ahorro {
+  background: var(--e19-accent);
+}
+
+.e19-analisis .analisis-cascada-bar.is-resultado {
+  background: var(--e19-ink);
+}
+
+.e19-analisis .analisis-cascada-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.e19-analisis .analisis-cascada-value.is-positivo {
+  color: var(--e19-success);
+}
+
+.e19-analisis .analisis-cascada-value.is-negativo {
+  color: var(--e19-danger);
+}
+
+/* A-8 · barra apilada de una sola pieza + leyenda, los segmentos suman el 100 % del ingreso. */
+.e19-analisis .analisis-split-bar {
+  display: flex;
+  height: 20px;
+  border-radius: var(--e19-radius-sm);
+  overflow: hidden;
+  background: var(--e19-surface-soft);
+  margin-bottom: 14px;
+}
+
+.e19-analisis .analisis-split-seg {
+  height: 100%;
+}
+
+.e19-analisis .analisis-split-seg.is-fijos {
+  background: var(--e19-debt);
+}
+
+.e19-analisis .analisis-split-seg.is-variables {
+  background: var(--e19-warning);
+}
+
+.e19-analisis .analisis-split-seg.is-deuda {
+  background: var(--e19-danger);
+}
+
+.e19-analisis .analisis-split-seg.is-ahorro {
+  background: var(--e19-accent);
+}
+
+.e19-analisis .analisis-split-seg.is-sin-asignar {
+  background: var(--e19-success);
+}
+
+.e19-analisis .analisis-split-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 16px;
+}
+
+.e19-analisis .analisis-split-legend-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-analisis .analisis-split-legend-item span {
+  flex: 1;
+  color: var(--e19-muted);
+}
+
+.e19-analisis .analisis-split-legend-item small {
+  color: var(--e19-muted);
+}
+
+.e19-analisis .analisis-split-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.e19-analisis .analisis-split-dot.is-fijos { background: var(--e19-debt); }
+.e19-analisis .analisis-split-dot.is-variables { background: var(--e19-warning); }
+.e19-analisis .analisis-split-dot.is-deuda { background: var(--e19-danger); }
+.e19-analisis .analisis-split-dot.is-ahorro { background: var(--e19-accent); }
+.e19-analisis .analisis-split-dot.is-sin-asignar { background: var(--e19-success); }
+
+/* A-9 · qué se repite — misma rejilla que la leyenda de A-8. */
+.e19-analisis .analisis-recurring-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.e19-analisis .analisis-recurring-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.e19-analisis .analisis-recurring-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-analisis .analisis-recurring-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--e19-surface-soft);
+  overflow: hidden;
+}
+
+.e19-analisis .analisis-recurring-bar {
+  height: 100%;
+  background: var(--e19-accent);
+  border-radius: 3px;
+}
+
+.e19-analisis .analisis-recurring-bar.is-danger {
+  background: var(--e19-danger);
+}
+
+.e19-analisis .analisis-recurring-bar.is-success {
+  background: var(--e19-success);
+}
+
+.e19-analisis .analisis-recurring-item small.is-danger {
+  color: var(--e19-danger);
+}
+
+.e19-analisis .analisis-recurring-item small.is-success {
+  color: var(--e19-success);
+}
+
 .e19-conciliar .conciliar-history-row span {
   color: var(--e19-muted);
 }

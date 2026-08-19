@@ -27103,6 +27103,385 @@ function analisisCushionBandHtml(band, worstKey) {
     .join("");
 }
 
+// =================================================================================================
+// Fase 6 · Análisis, segunda fase (Analisis.pdf, 17 de agosto): A-4 (cascada del resultado), A-5
+// (patrimonio neto proyectado), A-8 (reparto del ingreso), A-9 (qué se repite) y A-11 (exportar).
+// Ningún cálculo financiero nuevo: A-4/A-8 reutilizan `planMesCollect` (P-2/P-4, real donde existe,
+// previsto donde no); A-5 reutiliza `debtAmortizationSchedule` (D-4) y `lastSimulation`; A-9 agrupa
+// `baseData.transactions` con `movementMappingKey`, la misma clave de concepto que ya usan M-7/M-8.
+// =================================================================================================
+
+// A-4: "Selector de periodo: mes en curso, cualquier mes cerrado o un rango (trimestre, semestre,
+// año)." Los rangos se anclan al mes en curso hacia atrás; cualquier mes individual (abierto o
+// cerrado) también se puede elegir por su clave.
+const ANALISIS_PERIOD_PRESETS = [
+  { id: "trimestre", label: "Último trimestre", months: 3 },
+  { id: "semestre", label: "Último semestre", months: 6 },
+  { id: "ano", label: "Último año", months: 12 },
+];
+let analisisPeriodKey = "mes-actual";
+
+function analisisPeriodMonths(periodKey = analisisPeriodKey) {
+  const all = cuadroMandosAllMonths();
+  if (!all.length) return [];
+  if (periodKey === "mes-actual") {
+    const match = all.find((month) => month.key === openMonthCutoffKey());
+    return match ? [match] : [all[0]];
+  }
+  const preset = ANALISIS_PERIOD_PRESETS.find((item) => item.id === periodKey);
+  if (preset) {
+    const endIndex = Math.max(0, all.findIndex((month) => month.key === openMonthCutoffKey()));
+    const startIndex = Math.max(0, endIndex - preset.months + 1);
+    return all.slice(startIndex, endIndex + 1);
+  }
+  const match = all.find((month) => month.key === periodKey);
+  return match ? [match] : [all[0]];
+}
+
+function analisisPeriodLabel(periodKey = analisisPeriodKey) {
+  if (periodKey === "mes-actual") return "Mes en curso";
+  const preset = ANALISIS_PERIOD_PRESETS.find((item) => item.id === periodKey);
+  if (preset) return preset.label;
+  return ledgerMonthLabel(periodKey);
+}
+
+// Suma `usado` (real si existe, previsto si no — el mismo criterio que ya usa "Usado" en Plan ·
+// Mes, P-4) por bloque, a lo largo de los meses del periodo elegido. `hasActual`/`total` por bloque
+// alimentan la nota de A-4 ("cuántos bloques tienen real").
+function analisisBlockSums(months) {
+  const totals = new Map();
+  months.forEach((month) => {
+    const collected = planMesCollect(month);
+    [...collected.income, ...collected.expense].forEach((entry) => {
+      const current = totals.get(entry.sectionName) || { sum: 0, hasActual: 0, total: 0 };
+      current.sum = round2(current.sum + entry.usado);
+      current.total += 1;
+      if (entry.hasActual) current.hasActual += 1;
+      totals.set(entry.sectionName, current);
+    });
+  });
+  return totals;
+}
+
+// El ahorro no vive como bloque de `monthlyPlanning` (no hay partidas de "ahorro" en el modelo,
+// igual que ya documentaba P-9): se lee de `lastSimulation.saving`, la misma serie que usa el mapa
+// de calor y la fila de colchón de Plan · Previsión.
+function analisisSavingSum(months) {
+  const byKey = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  let sum = 0;
+  let matched = 0;
+  months.forEach((month) => {
+    const row = byKey.get(month.key);
+    if (row) {
+      sum = round2(sum + Number(row.saving || 0));
+      matched += 1;
+    }
+  });
+  return { sum, matched, total: months.length };
+}
+
+const ANALISIS_CASCADA_BLOCKS = ["Gastos fijos", "Gastos variables", "Financiaciones"];
+
+function analisisCascadaRows(months) {
+  const blockTotals = analisisBlockSums(months);
+  const savingInfo = analisisSavingSum(months);
+  const ingresos = blockTotals.get("Ingresos") || { sum: 0, hasActual: 0, total: 0 };
+  const rows = [{ label: "Ingresos", value: ingresos.sum, tone: "is-ingreso" }];
+  let gastosTotal = 0;
+  let blocksWithReal = ingresos.hasActual > 0 ? 1 : 0;
+  let blocksPresent = ingresos.total > 0 ? 1 : 0;
+  ANALISIS_CASCADA_BLOCKS.forEach((name) => {
+    const block = blockTotals.get(name);
+    if (!block) return;
+    rows.push({ label: name, value: round2(-block.sum), tone: "is-gasto" });
+    gastosTotal = round2(gastosTotal + block.sum);
+    blocksPresent += 1;
+    if (block.hasActual > 0) blocksWithReal += 1;
+  });
+  rows.push({ label: "Ahorro", value: round2(-savingInfo.sum), tone: "is-ahorro" });
+  blocksPresent += 1;
+  if (savingInfo.matched > 0) blocksWithReal += 1;
+  const resultado = round2(ingresos.sum - gastosTotal - savingInfo.sum);
+  return { rows, resultado, blocksWithReal, blocksPresent };
+}
+
+function analisisCascadaHtml(cascada) {
+  const maxAbs = Math.max(1, ...cascada.rows.map((row) => Math.abs(row.value)), Math.abs(cascada.resultado));
+  const rowHtml = (label, value, tone) => {
+    const widthPct = round2((Math.abs(value) / maxAbs) * 100);
+    const signClass = value < 0 ? "is-negativo" : "is-positivo";
+    return `<div class="analisis-cascada-row">
+      <span class="analisis-cascada-label">${escapeHtml(label)}</span>
+      <div class="analisis-cascada-track"><div class="analisis-cascada-bar ${tone}" style="width:${widthPct}%"></div></div>
+      <span class="analisis-cascada-value ${signClass}">${value >= 0 ? "+" : ""}${money(value, true)}</span>
+    </div>`;
+  };
+  const rowsHtml = cascada.rows.map((row) => rowHtml(row.label, row.value, row.tone)).join("");
+  return `${rowsHtml}<div class="analisis-cascada-row is-resultado">${rowHtml("Resultado", cascada.resultado, "is-resultado")}</div>`;
+}
+
+// A-5: "Liquidez menos deuda viva [...] con el eje cero visible y tres hitos: hoy, cruce a cero y
+// fin del plan." La deuda viva es el calendario declarado de cada contrato real (D-4,
+// `debtAmortizationSchedule`), sin aplicar ninguna decisión ni ruta — Análisis es de solo lectura,
+// no presupone qué estrategia se va a seguir.
+function analisisDebtLiveSeries(months) {
+  const contracts = canonicalDebtContractRows();
+  const totals = months.map(() => 0);
+  contracts.forEach((contract) => {
+    const schedule = debtAmortizationSchedule(contract, months.length);
+    const rows = schedule.rows;
+    const flatBalance = schedule.stalled && rows.length ? rows[rows.length - 1].balance : null;
+    for (let index = 0; index < months.length; index += 1) {
+      if (index < rows.length) totals[index] += rows[index].balance;
+      else if (flatBalance !== null) totals[index] += flatBalance;
+    }
+  });
+  return totals.map((value) => round2(value));
+}
+
+function analisisNetWorthSeries(months, simRows) {
+  const debtSeries = analisisDebtLiveSeries(months);
+  const byKey = new Map(simRows.map((row) => [row.detailMonthKey, row]));
+  return months.map((month, index) => {
+    const row = byKey.get(month.key);
+    const liquidity = row ? Number(row.totalLiquidity ?? 0) : null;
+    return { key: month.key, label: month.label, netWorth: liquidity === null ? null : round2(liquidity - debtSeries[index]) };
+  });
+}
+
+function analisisNetWorthMilestones(series) {
+  const withData = series.filter((item) => item.netWorth !== null);
+  if (!withData.length) return null;
+  let cruce = null;
+  for (let index = 1; index < withData.length; index += 1) {
+    if (withData[index - 1].netWorth < 0 && withData[index].netWorth >= 0) {
+      cruce = withData[index];
+      break;
+    }
+  }
+  return { hoy: withData[0], cruce, finDelPlan: withData[withData.length - 1] };
+}
+
+function analisisNetWorthBandHtml(series) {
+  const values = series.map((item) => item.netWorth).filter((value) => value !== null);
+  const maxAbs = Math.max(1, ...values.map((value) => Math.abs(value)));
+  return series
+    .map((item) => {
+      if (item.netWorth === null) {
+        return `<div class="analisis-networth-col"><div class="analisis-networth-bar"></div><small>${escapeHtml(item.label)}</small></div>`;
+      }
+      const heightPct = Math.max(4, round2((Math.abs(item.netWorth) / maxAbs) * 100));
+      const tone = item.netWorth < 0 ? "is-negativo" : "is-positivo";
+      return `<div class="analisis-networth-col">
+        <span class="analisis-networth-value">${money(item.netWorth, true)}</span>
+        <div class="analisis-networth-bar ${tone}" style="height:${heightPct}%"></div>
+        <small>${escapeHtml(item.label)}</small>
+      </div>`;
+    })
+    .join("");
+}
+
+function analisisNetWorthMilestonesHtml(milestones) {
+  if (!milestones) return `<p class="e19-kpi-note">Sin datos suficientes para proyectar el patrimonio neto.</p>`;
+  const parts = [
+    ["Hoy", money(milestones.hoy.netWorth, true)],
+    ["Cruza a cero", milestones.cruce ? milestones.cruce.label : "No cruza en esta ventana"],
+    ["Fin del plan", `${milestones.finDelPlan.label} · ${money(milestones.finDelPlan.netWorth, true)}`],
+  ];
+  return parts.map(([label, value]) => `<div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`).join("");
+}
+
+// A-8: "Barra apilada con cada euro del ingreso [...] Los segmentos suman el 100% del ingreso, no
+// del gasto." Reutiliza los mismos bloques que A-4 para un único mes; "Sin asignar" es lo que
+// sobra tras gasto, deuda y ahorro — puede salir negativo si el mes gastó más que su ingreso, y se
+// muestra tal cual (regla transversal 04: no se recorta un dato real para que cuadre visualmente).
+function analisisIncomeSplit(month) {
+  const collected = planMesCollect(month);
+  const ingreso = round2(sumRows(collected.income, (entry) => entry.usado));
+  const blockValue = (name) => round2(sumRows(collected.expense.filter((entry) => entry.sectionName === name), (entry) => entry.usado));
+  const groups = [
+    { label: "Gastos fijos", value: blockValue("Gastos fijos") },
+    { label: "Gastos variables", value: blockValue("Gastos variables") },
+    { label: "Cuota de deuda", value: blockValue("Financiaciones") },
+    { label: "Ahorro", value: analisisSavingSum([month]).sum },
+  ];
+  const asignado = round2(sumRows(groups, (group) => group.value));
+  groups.push({ label: "Sin asignar", value: round2(ingreso - asignado) });
+  return { ingreso, groups: groups.map((group) => ({ ...group, pct: ingreso > 0 ? round2((group.value / ingreso) * 100) : 0 })) };
+}
+
+function analisisIncomeSplitHtml(split) {
+  if (!(split.ingreso > 0)) return `<p class="e19-kpi-note">Sin ingreso registrado este mes: no hay nada que repartir.</p>`;
+  const classes = ["is-fijos", "is-variables", "is-deuda", "is-ahorro", "is-sin-asignar"];
+  const bar = split.groups
+    .map((group, index) => `<span class="analisis-split-seg ${classes[index]}" style="width:${Math.max(0, group.pct)}%"></span>`)
+    .join("");
+  const legend = split.groups
+    .map(
+      (group, index) => `<div class="analisis-split-legend-item"><i class="analisis-split-dot ${classes[index]}"></i><span>${escapeHtml(group.label)}</span><strong>${money(group.value, true)}</strong><small>${group.pct}%</small></div>`
+    )
+    .join("");
+  return `<div class="analisis-split-bar">${bar}</div><div class="analisis-split-legend">${legend}</div>`;
+}
+
+// A-9: "Recurrentes por peso, con variación frente al trimestre anterior, y aviso de los que han
+// crecido sin decisión." Un concepto es "recurrente" cuando aparece con gasto real en los dos
+// últimos trimestres — no en uno solo, eso sería una compra puntual, no algo que se repite.
+function analisisRecurringWindow(referenceMonthKey) {
+  const ref = dateFromMonthKey(referenceMonthKey);
+  const keys = [];
+  for (let offset = 5; offset >= 0; offset -= 1) keys.push(monthKey(addMonths(ref, -offset)));
+  return { previous: keys.slice(0, 3), current: keys.slice(3, 6) };
+}
+
+function analisisRecurringItems(transactions, referenceMonthKey) {
+  const ventana = analisisRecurringWindow(referenceMonthKey);
+  const sums = { previous: new Map(), current: new Map() };
+  const labels = new Map();
+  (transactions || []).forEach((row) => {
+    if (!(Number(row.amount) < 0)) return;
+    const monthOfRow = String(row.date || "").slice(0, 7);
+    const bucket = ventana.current.includes(monthOfRow) ? "current" : ventana.previous.includes(monthOfRow) ? "previous" : null;
+    if (!bucket) return;
+    const key = movementMappingKey(row);
+    if (!labels.has(key)) labels.set(key, movementDisplayName(row));
+    sums[bucket].set(key, round2((sums[bucket].get(key) || 0) + Math.abs(Number(row.amount) || 0)));
+  });
+  const items = [];
+  sums.current.forEach((currentValue, key) => {
+    const previousValue = sums.previous.get(key);
+    if (previousValue === undefined) return;
+    const pct = previousValue > 0 ? round2(((currentValue - previousValue) / previousValue) * 100) : null;
+    items.push({ key, label: labels.get(key), current: currentValue, previous: previousValue, pct, grewWithoutDecision: pct !== null && pct > 0 });
+  });
+  return items.sort((a, b) => b.current - a.current).slice(0, 6);
+}
+
+function analisisRecurringHtml(items) {
+  if (!items.length) {
+    return `<p class="e19-kpi-note">Sin datos suficientes: hacen falta gastos en dos trimestres seguidos para saber qué se repite.</p>`;
+  }
+  const maxValue = Math.max(1, ...items.map((item) => item.current));
+  return items
+    .map((item) => {
+      const widthPct = round2((item.current / maxValue) * 100);
+      const toneClass = item.pct === null || item.pct === 0 ? "" : item.pct > 0 ? "is-danger" : "is-success";
+      const pctText = item.pct === null
+        ? "Sin dato del trimestre anterior"
+        : item.pct === 0
+          ? "Sin cambio frente al trimestre anterior"
+          : `${item.pct > 0 ? "+" : ""}${item.pct}% frente al trimestre anterior`;
+      return `<div class="analisis-recurring-item">
+        <div class="analisis-recurring-head"><strong>${escapeHtml(item.label)}</strong><span>${money(item.current, true)}</span></div>
+        <div class="analisis-recurring-track"><div class="analisis-recurring-bar ${toneClass}" style="width:${widthPct}%"></div></div>
+        <small class="${toneClass}">${escapeHtml(pctText)}</small>
+      </div>`;
+    })
+    .join("");
+}
+
+function analisisRecurringGrowthNote(items) {
+  const grown = items.filter((item) => item.grewWithoutDecision);
+  if (!grown.length) return "";
+  const names = grown.map((item) => item.label).join(" y ");
+  const extra = round2(sumRows(grown, (item) => item.current - item.previous));
+  return `${names} sube${grown.length > 1 ? "n" : ""} ${money(extra, true)} más al mes que en el trimestre anterior. Nadie decidió eso. <a href="#movements" data-home-nav="movements">Ver los movimientos</a>`;
+}
+
+// A-11: "CSV con las series completas de cada bloque, una fila por mes y bloque [...] PDF de una
+// página con los seis bloques, la ventana elegida y la fecha de cálculo." Mismo patrón que C-12
+// (recién construido): Blob/URL de objeto para el CSV, `window.print()` sobre un contenedor
+// dedicado para el PDF — ninguna librería nueva.
+function analisisExportContext() {
+  const windowMonths = analisisWindowMonths();
+  const targetMonths = Number(state.emergencyBufferMonths || 0);
+  const cushion = analisisCushionBand(windowMonths, lastSimulation, targetMonths);
+  const netWorth = analisisNetWorthSeries(windowMonths, lastSimulation);
+  const periodMonths = analisisPeriodMonths();
+  const cascada = analisisCascadaRows(periodMonths);
+  const currentMonth = analisisPeriodMonths("mes-actual")[0] || windowMonths[0];
+  const split = currentMonth ? analisisIncomeSplit(currentMonth) : { ingreso: 0, groups: [] };
+  const recurring = analisisRecurringItems(baseData?.transactions || [], currentMonth?.key || openMonthCutoffKey());
+  return {
+    windowLabel: ANALISIS_WINDOWS[analisisWindowKey]?.label || "12 meses",
+    periodLabel: analisisPeriodLabel(),
+    calculatedAt: formatIsoDate(defaultBalanceDate()),
+    cushion,
+    netWorth,
+    cascada,
+    split,
+    recurring,
+  };
+}
+
+function analisisExportCsvContent(context) {
+  const lines = [];
+  lines.push(["Bloque", "Mes", "Valor", "Detalle"].map(csvValue).join(";"));
+  context.cushion.forEach((item) => lines.push(["Colchón (meses)", item.label, item.monthsValue ?? "", item.level].map(csvValue).join(";")));
+  context.netWorth.forEach((item) => lines.push(["Patrimonio neto", item.label, item.netWorth ?? "", ""].map(csvValue).join(";")));
+  lines.push([]);
+  lines.push(["Cascada del resultado", context.periodLabel, "", ""].map(csvValue).join(";"));
+  context.cascada.rows.forEach((row) => lines.push(["Cascada", row.label, row.value, ""].map(csvValue).join(";")));
+  lines.push(["Cascada", "Resultado", context.cascada.resultado, ""].map(csvValue).join(";"));
+  lines.push([]);
+  lines.push(["Reparto del ingreso", "", "", `${money(context.split.ingreso, true)} de ingreso`].map(csvValue).join(";"));
+  context.split.groups.forEach((group) => lines.push(["Reparto", group.label, group.value, `${group.pct}%`].map(csvValue).join(";")));
+  lines.push([]);
+  lines.push(["Qué se repite", "", "", ""].map(csvValue).join(";"));
+  context.recurring.forEach((item) => lines.push(["Recurrente", item.label, item.current, item.pct === null ? "sin dato anterior" : `${item.pct}% vs trimestre anterior`].map(csvValue).join(";")));
+  return `﻿${lines.join("\r\n")}`;
+}
+
+function downloadAnalisisCsv() {
+  const context = analisisExportContext();
+  const blob = new Blob([analisisExportCsvContent(context)], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `analisis-${context.calculatedAt}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function analisisExportPrintHtml(context) {
+  return `<h1>Análisis</h1>
+    <p>Ventana: ${escapeHtml(context.windowLabel)} · Periodo de la cascada: ${escapeHtml(context.periodLabel)} · Fecha de cálculo: ${escapeHtml(context.calculatedAt)}</p>
+    <h2>Colchón (meses)</h2>
+    <table><thead><tr><th>Mes</th><th>Meses de colchón</th></tr></thead><tbody>${context.cushion.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${item.monthsValue === null ? "—" : item.monthsValue.toFixed(1)}</td></tr>`).join("")}</tbody></table>
+    <h2>Patrimonio neto</h2>
+    <table><thead><tr><th>Mes</th><th>Patrimonio neto</th></tr></thead><tbody>${context.netWorth.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${item.netWorth === null ? "—" : money(item.netWorth, true)}</td></tr>`).join("")}</tbody></table>
+    <h2>De dónde sale el resultado (${escapeHtml(context.periodLabel)})</h2>
+    <table><thead><tr><th>Bloque</th><th>Importe</th></tr></thead><tbody>${context.cascada.rows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${money(row.value, true)}</td></tr>`).join("")}<tr><td>Resultado</td><td>${money(context.cascada.resultado, true)}</td></tr></tbody></table>
+    <h2>En qué se va</h2>
+    <table><thead><tr><th>Bloque</th><th>Importe</th><th>%</th></tr></thead><tbody>${context.split.groups.map((group) => `<tr><td>${escapeHtml(group.label)}</td><td>${money(group.value, true)}</td><td>${group.pct}%</td></tr>`).join("")}</tbody></table>
+    <h2>Qué se repite</h2>
+    <table><thead><tr><th>Concepto</th><th>Este trimestre</th><th>Variación</th></tr></thead><tbody>${context.recurring.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${money(item.current, true)}</td><td>${item.pct === null ? "—" : `${item.pct}%`}</td></tr>`).join("")}</tbody></table>`;
+}
+
+function handleAnalisisDownload(kind) {
+  const context = analisisExportContext();
+  if (kind === "csv") {
+    downloadAnalisisCsv();
+    return;
+  }
+  // A-11 reutiliza el mismo contenedor de impresión que C-12 (`#cierrePrintEvidence`, fuera de
+  // `.app-shell`) y la misma clase de `<body>` — un solo mecanismo de "PDF de una página" para toda
+  // la app, no uno por pantalla.
+  const container = qs("cierrePrintEvidence");
+  if (!container) return;
+  container.innerHTML = analisisExportPrintHtml(context);
+  document.body.classList.add("is-printing-cierre-evidence");
+  window.print();
+  document.body.classList.remove("is-printing-cierre-evidence");
+}
+
+function handleAnalisisPeriod(periodKey) {
+  analisisPeriodKey = periodKey;
+  renderAnalisis();
+}
+
 function renderAnalisis() {
   const band = qs("analisisCushionBand");
   if (!band || !lastSimulation.length) return;
@@ -27145,6 +27524,52 @@ function renderAnalisis() {
       reopenNotice.hidden = true;
       reopenNotice.textContent = "";
     }
+  }
+
+  // A-5: patrimonio neto proyectado — misma ventana que A-2 (A-6 lo declara: "afecta a la banda y
+  // al patrimonio, no al mes").
+  const netWorth = analisisNetWorthSeries(months, lastSimulation);
+  const netWorthBand = qs("analisisNetWorthBand");
+  if (netWorthBand) netWorthBand.innerHTML = analisisNetWorthBandHtml(netWorth);
+  const milestonesEl = qs("analisisNetWorthMilestones");
+  if (milestonesEl) milestonesEl.innerHTML = analisisNetWorthMilestonesHtml(analisisNetWorthMilestones(netWorth));
+
+  // A-4: cascada del resultado, con su propio selector de periodo — independiente de la ventana de
+  // A-2/A-5 (mes en curso, un mes cualquiera, o un rango relativo a hoy).
+  const periodSelect = qs("analisisPeriodSelect");
+  if (periodSelect && !periodSelect.childElementCount) {
+    const allMonths = cuadroMandosAllMonths();
+    const monthOptions = allMonths
+      .map((month) => `<option value="${escapeHtml(month.key)}">${escapeHtml(month.label)}${isClosedMonthKey(month.key) ? " · cerrado" : ""}</option>`)
+      .join("");
+    periodSelect.innerHTML = `<option value="mes-actual">Mes en curso</option>
+      <optgroup label="Rango">${ANALISIS_PERIOD_PRESETS.map((preset) => `<option value="${preset.id}">${escapeHtml(preset.label)}</option>`).join("")}</optgroup>
+      <optgroup label="Un mes">${monthOptions}</optgroup>`;
+  }
+  if (periodSelect) periodSelect.value = analisisPeriodKey;
+  const periodMonths = analisisPeriodMonths();
+  const cascada = analisisCascadaRows(periodMonths);
+  const cascadaEl = qs("analisisCascada");
+  if (cascadaEl) cascadaEl.innerHTML = analisisCascadaHtml(cascada);
+  const cascadaNote = qs("analisisCascadaNote");
+  if (cascadaNote) {
+    cascadaNote.textContent = `${analisisPeriodLabel()} · ${cascada.blocksWithReal} de ${cascada.blocksPresent} bloque(s) con dato real, el resto usa el previsto.`;
+  }
+
+  // A-8: reparto del ingreso del mes en curso — no depende del selector de periodo de A-4.
+  const currentMonth = analisisPeriodMonths("mes-actual")[0];
+  const splitEl = qs("analisisIncomeSplit");
+  if (splitEl && currentMonth) splitEl.innerHTML = analisisIncomeSplitHtml(analisisIncomeSplit(currentMonth));
+
+  // A-9: qué se repite, sobre el mismo mes en curso.
+  const recurringItems = analisisRecurringItems(baseData?.transactions || [], currentMonth?.key || openMonthCutoffKey());
+  const recurringEl = qs("analisisRecurring");
+  if (recurringEl) recurringEl.innerHTML = analisisRecurringHtml(recurringItems);
+  const recurringNote = qs("analisisRecurringNote");
+  if (recurringNote) {
+    const note = analisisRecurringGrowthNote(recurringItems);
+    recurringNote.innerHTML = note;
+    recurringNote.hidden = !note;
   }
 }
 
@@ -27896,8 +28321,16 @@ async function init() {
   qs("cierreReopen")?.addEventListener("click", handleCierreReopen);
   qs("analisis")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-analisis-window]");
-    if (button) handleAnalisisWindow(button.dataset.analisisWindow);
+    if (button) { handleAnalisisWindow(button.dataset.analisisWindow); return; }
+    if (event.target.id === "analisisDownloadCsv") { handleAnalisisDownload("csv"); return; }
+    if (event.target.id === "analisisDownloadPdf") { handleAnalisisDownload("pdf"); return; }
+    const navButton = event.target.closest("[data-home-nav]");
+    const target = navButton?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
   });
+  qs("analisisPeriodSelect")?.addEventListener("change", (event) => handleAnalisisPeriod(event.target.value));
   qs("debt-liquidation-plan")?.addEventListener("click", (event) => {
     const targetButton = event.target.closest("[data-debt-plan-target]");
     if (targetButton) {

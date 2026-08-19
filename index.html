@@ -1485,6 +1485,8 @@
                 <button type="button" class="registrar-mes-filter is-active" data-analisis-window="12m" aria-pressed="true">12 meses</button>
                 <button type="button" class="registrar-mes-filter" data-analisis-window="24m" aria-pressed="false">24 meses</button>
                 <button type="button" class="registrar-mes-filter" data-analisis-window="full" aria-pressed="false">Todo el plan</button>
+                <button type="button" class="e19-btn e19-btn-secondary" id="analisisDownloadCsv">CSV</button>
+                <button type="button" class="e19-btn e19-btn-secondary" id="analisisDownloadPdf">PDF</button>
               </div>
             </div>
 
@@ -1496,6 +1498,44 @@
               <div class="analisis-cushion-band" id="analisisCushionBand"></div>
               <p class="e19-kpi-note" id="analisisCushionWorst"></p>
               <p class="e19-kpi-note">Procedencia: liquidez simulada y gasto medio del Plan, mismo cálculo y escala de tres niveles que la fila de colchón de <a href="#plan">Plan · Previsión</a>.</p>
+            </article>
+
+            <article class="e19-card analisis-networth-card">
+              <h3 class="escenario-motor-panel-title">Patrimonio neto</h3>
+              <p class="e19-kpi-note">Liquidez menos deuda viva, misma ventana que el colchón de arriba.</p>
+              <div class="analisis-networth-band" id="analisisNetWorthBand"></div>
+              <div class="analisis-networth-milestones" id="analisisNetWorthMilestones"></div>
+              <p class="e19-kpi-note">Procedencia: liquidez simulada del <a href="#plan">Plan</a> menos el calendario declarado de cada contrato en <a href="#deuda-contratos">Deuda · Contratos</a>, sin aplicar ninguna ruta.</p>
+            </article>
+
+            <div class="analisis-two-col">
+              <article class="e19-card">
+                <div class="section-title with-action">
+                  <div>
+                    <h3 class="escenario-motor-panel-title">De dónde sale el resultado</h3>
+                    <p class="e19-kpi-note">Real donde existe, previsto donde no.</p>
+                  </div>
+                  <label class="analisis-period-label">
+                    <span>Periodo</span>
+                    <select id="analisisPeriodSelect"></select>
+                  </label>
+                </div>
+                <div class="analisis-cascada" id="analisisCascada"></div>
+                <p class="e19-kpi-note" id="analisisCascadaNote"></p>
+              </article>
+
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title">En qué se va</h3>
+                <p class="e19-kpi-note">Cada euro del ingreso del mes en curso, gasto, cuota de deuda, ahorro o sin asignar.</p>
+                <div id="analisisIncomeSplit"></div>
+              </article>
+            </div>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Qué se repite</h3>
+              <p class="e19-kpi-note">Gasto recurrente por peso, con variación frente al trimestre anterior.</p>
+              <div class="analisis-recurring-list" id="analisisRecurring"></div>
+              <p class="e19-insight is-warn" id="analisisRecurringNote" hidden></p>
             </article>
           </section>
 

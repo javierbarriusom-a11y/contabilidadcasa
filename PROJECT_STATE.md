@@ -2,6 +2,49 @@
 
 Fecha de revisión: 17 de agosto de 2026.
 
+## Cierre de sesión — 17 de agosto de 2026: Análisis, tercera y última fase (A-4/A-5/A-8/A-9/A-11)
+
+Cierra la lista completa que pidió el usuario en esta sesión: Escenarios (PR #67), Cierre (PR #68) y
+ahora Análisis. Ningún cálculo financiero nuevo: A-4/A-8 reutilizan `planMesCollect` (P-2/P-4); A-5
+reutiliza `debtAmortizationSchedule` (D-4) y `lastSimulation`; A-9 reutiliza `movementMappingKey`
+(M-7/M-8); A-11 reutiliza el patrón de C-12 (Blob/CSV + `window.print()`, mismo contenedor
+`#cierrePrintEvidence`).
+
+- **A-4 (cascada del resultado)**: Ingresos/Gastos fijos/Gastos variables/Financiaciones/Ahorro con
+  el Resultado al pie — los mismos bloques reales de Plan · Mes, no la taxonomía de ejemplo del
+  mockup. Selector de periodo propio (mes en curso, un mes cualquiera, o un rango relativo a hoy),
+  con nota de cuántos bloques tienen dato real.
+- **A-5 (patrimonio neto proyectado)**: liquidez simulada menos deuda viva (calendario declarado de
+  cada contrato, sin aplicar ninguna ruta), con tres hitos (hoy, cruce a cero, fin del plan). Misma
+  ventana que A-2.
+- **A-8 (en qué se va)**: barra apilada del mes en curso, los segmentos suman el 100% del ingreso por
+  construcción; un mes que gasta más que su ingreso deja «Sin asignar» en negativo, sin recortarlo.
+- **A-9 (qué se repite)**: un concepto cuenta como recurrente solo si tiene gasto real en los dos
+  últimos trimestres; los que suben se marcan «creció sin decisión». En la demo pública (sin
+  movimientos, por privacidad) declara honestamente que faltan datos.
+- **A-11 (exportar)**: CSV con las series mensuales (colchón, patrimonio neto) más los bloques de
+  foto fija, y PDF de una página vía `window.print()`.
+- **A-3**: se desbloqueó (su dependencia E-2 se cerró en la primera fase de esta misma sesión) pero
+  no se construyó — no formaba parte de la lista pedida, queda para una próxima sesión.
+
+**Validación**: `npm test`, exit 0, **1140/1140 pruebas** (17 nuevas en
+`tests/a4-a5-a8-a9-a11-analisis-segunda-fase.test.cjs`). Verificado con Playwright contra el build
+local: el patrimonio neto muestra doce columnas con sus hitos; la cascada cuadra (ingresos − gastos
+− ahorro = resultado); el selector de periodo funciona; el reparto del ingreso suma 100%; «Qué se
+repite» declara la falta de datos en la demo; CSV y PDF descargan/imprimen sin error. Sin errores de
+consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — A-4/A-5/A-8/A-9/A-11 pasan a `Hecho`.
+De Análisis (13 tareas) quedan A-3 (desbloqueada, no construida), A-7/A-10 (Cierre con historial
+dedicado, parcial), A-12 (Fase 7) y A-13 (A-9/A-10/M-8).
+
+**Fin de la lista de esta sesión.** Con esto se completan las tres fases que el usuario pidió cerrar
+(«cerremos primero: Escenarios, Cierre, Análisis»): ocho tareas de Escenarios (E-1/E-1b/E-2/E-6b/
+E-7/E-8/E-9/E-12), tres de Cierre (C-10/C-11/C-12) y cinco de Análisis (A-4/A-5/A-8/A-9/A-11), 51
+pruebas nuevas en total, tres PR fusionados (#67, #68 y el de esta entrada). Punto 4 del plan
+original de cinco (Sobres) sigue sin empezar, a la espera de que el usuario confirme que quiere
+seguir con esa fase nueva.
+
 ## Cierre de sesión — 17 de agosto de 2026: historial de versiones y evidencia en Cierre (C-10/C-11/C-12)
 
 Segunda fase de la lista acordada con el usuario («cerremos primero» Escenarios, Cierre y Análisis),
