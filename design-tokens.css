@@ -2887,6 +2887,11 @@
   color: var(--e19-warning);
 }
 
+/* P-15/C-6 · Fase 6: sobre sin origen declarado, resaltado en el paso «Liquidar sobres». */
+.e19-cierre .cierre-sobres-table tr.is-danger td {
+  background: rgba(193, 59, 59, 0.06);
+}
+
 .e19-cierre .cierre-step3-layout {
   display: grid;
   grid-template-columns: minmax(260px, 340px) 1fr;

@@ -171,7 +171,7 @@ test("C-12 · sin cierre todavía (mes abierto), la evidencia no lleva versión"
 });
 
 test("C-12 · el CSV documenta que Sobres está desactivado, no lo omite en silencio", () => {
-  const context = sandboxWith(["cierreEvidenceRows", "cierreEvidenceCsvContent"], baseHelpers());
+  const context = sandboxWith(["cierreEvidenceRows", "cierreEvidenceCsvContent", "sobresEnabled"], baseHelpers({ state: {} }));
   const evidence = context.cierreEvidenceRows([{ label: "CaixaBank", declared: 100, calculated: 100, diff: 0, status: "cuadra" }], [], null, "2026-08");
   const csv = context.cierreEvidenceCsvContent(evidence);
   assert.match(csv, /Fase 6 desactivada/);

@@ -1,6 +1,47 @@
 # Estado del proyecto
 
-Fecha de revisión: 17 de agosto de 2026.
+Fecha de revisión: 19 de agosto de 2026.
+
+## Cierre de sesión — 19 de agosto de 2026: Sobres, Fase 6 (P-14/P-15/C-6/C-7)
+
+Cuarto punto del plan de cinco acordado con el usuario, tras Escenarios, Cierre y Análisis (los tres
+ya fusionados). El usuario adjuntó el mockup de referencia (`Cierre.pdf`) con el diseño exacto:
+bandera «Sobres · Fase 6» y Cierre pasando de tres a cuatro pasos secuenciales, con «Liquidar
+sobres» entre Resolver y Firmar.
+
+- **P-14 (Plan · Mes)**: un sobre por partida de «Gastos variables» — las únicas discrecionales.
+  `sobresMonthBalances()` calcula el saldo del mes (previsto − usado) más el arrastre real del
+  cierre inmediatamente anterior, nunca inventado si ese mes no se cerró con sobres. Bandera y regla
+  por sobre («arrastra» / «tope en cero») se editan solo en Ajustes, tal como pedía este mismo
+  backlog («las reglas de sobres se editan en Ajustes, no viven repartidas por el código»).
+- **P-15/C-6 (Cierre)**: cuarto paso «Liquidar sobres», solo con la bandera activa — apagada, Cierre
+  sigue con sus tres pasos de siempre. Una fila por sobre con saldo y destino/origen; un sobre en
+  negativo exige un origen declarado (otro sobre con superávit suficiente, o «liquidez general»)
+  antes de que «Ningún sobre sin destino» (C-5) se dé por cumplida. Al firmar, los asientos
+  (`envelopeSettlements`) se guardan en el propio cierre — mismo payload JSON que ya sincroniza
+  `close_finance_month`, sin migración SQL nueva.
+- **C-7**: las coberturas entre sobres (cuando uno en positivo cubre a uno en negativo) se listan
+  aparte, con origen e importe, antes de firmar. Un sobre solo puede cubrir a un negativo a la vez:
+  si dos lo reclaman, ninguno queda resuelto — nunca se reparte el mismo superávit dos veces en
+  silencio.
+- **C-12**: la evidencia (CSV/PDF) ya declaraba «Fase 6 desactivada» de forma explícita; ahora, si el
+  cierre firmado tiene asientos de sobres, los lista con su saldo y destino/origen.
+- **P-16** (suma con objetivos de ahorro) sigue bloqueada: depende de P-13 (Objetivos), que no existe
+  todavía — fuera del alcance de este incremento.
+
+**Validación**: `npm run verify`, exit 0 — **1162/1162 pruebas** (22 nuevas en
+`tests/p14-p15-c6-c7-sobres.test.cjs`, más ajustes a tres archivos de test existentes para inyectar
+`sobresEnabled`/`state` en sus sandboxes), accesibilidad (762 IDs únicos), rendimiento (forecast y
+escenarios en 296,4 ms), build del sitio, privacidad y smoke test, todos en verde. Verificado con
+Playwright contra el build local: activar la bandera en Ajustes muestra la columna «Sobre» en Plan y
+el cuarto paso en Cierre; el paso «Liquidar sobres» lista el sobre real de la demo con su saldo y
+estado «Listo»; desactivar la bandera devuelve Cierre a sus tres pasos de siempre. Sin errores de
+consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — P-14/P-15 (pantalla 04) y C-6/C-7
+(pantalla 08) pasan a `Hecho`. Del plan original de cinco puntos, quedan cerrados cuatro: Escenarios,
+Cierre, Análisis y Sobres. Queda pendiente confirmar con el usuario si hay un quinto punto o si el
+plan se da por completo.
 
 ## Cierre de sesión — 17 de agosto de 2026: Análisis, tercera y última fase (A-4/A-5/A-8/A-9/A-11)
 
