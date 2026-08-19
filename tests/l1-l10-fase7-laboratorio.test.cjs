@@ -234,19 +234,20 @@ test("L-5 · visual-detail y update-data documentan su bloqueo real (R-11), no u
   assert.match(updateData.evidenciaBloqueo, /REGISTRAR_MES_LEGACY_READONLY/);
 });
 
-test("L-5 · las cuatro heredadas con escritura real sin bloquear (hallazgo de esta sesión) quedan documentadas como pendientes, no escondidas como si ya estuvieran resueltas", () => {
+test("L-5 · executive-advisor/savings-agent/debt-control/simulator son adoptada, no sustituida: sus datos no tienen sustituto real, aunque pantallas nuevas ya los lean", () => {
   ["executive-advisor", "savings-agent", "debt-control", "simulator"].forEach((hash) => {
     const entry = realCatalog.find((item) => item.hash === hash);
-    assert.equal(entry.writeBlocked, false, `${hash} todavía escribe de verdad, no debe marcarse bloqueada`);
-    assert.match(entry.evidenciaBloqueo, /Pendiente de verdad/);
+    assert.equal(entry.veredicto, "adoptada", `${hash} debe ser adoptada: ninguna pantalla nueva escribe su dato, solo lo leen`);
+    assert.equal(entry.destino, null, `${hash} adoptada no debe llevar destino inventado`);
+    assert.equal(entry.writeBlocked, true, `${hash} sigue siendo la puerta legítima, no un hueco de R-11`);
+    assert.ok(entry.backlogTask, `${hash} adoptada exige tarea de backlog (L-2)`);
   });
 });
 
-test("L-5 · esas cuatro pendientes son \"sustituida\" (tienen a dónde redirigir), no se inventa un bloqueo sin destino", () => {
-  ["executive-advisor", "savings-agent", "debt-control", "simulator"].forEach((hash) => {
+test("L-5 · el catálogo no vuelve a repetir el error de confundir agentCaixaFloor con la Reserva operativa de Ajustes", () => {
+  ["executive-advisor", "savings-agent"].forEach((hash) => {
     const entry = realCatalog.find((item) => item.hash === hash);
-    assert.equal(entry.veredicto, "sustituida");
-    assert.ok(entry.destino && entry.destino.hash);
+    assert.doesNotMatch(entry.motivo, /Ajustes › Reserva operativa que ya es la puerta/);
   });
 });
 
