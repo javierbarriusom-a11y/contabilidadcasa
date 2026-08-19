@@ -2,6 +2,58 @@
 
 Fecha de revisión: 19 de agosto de 2026.
 
+## Cierre de sesión — 19 de agosto de 2026: Fase 7 · Laboratorio completa (L-1 a L-10), bloque 1 del plan de cierre
+
+Primera sesión que toca Fase 7 desde que se auditó «sin ningún código propio» el 16 de agosto.
+Siguiendo el bloque 1 del plan de cierre de `docs/BACKLOG_NUEVE_PANTALLAS.md` §7 (acordado la sesión
+anterior), se construyeron las diez tareas L-1 a L-10 en el orden de dependencia: catálogo, vive en
+Ajustes, lista, adoptada exige tarea, detalle, instantánea fechada, evidencia de escritura, acta
+exportable, retirada de la fase y sin rutas colgando.
+
+- **Catálogo canónico** (`LABORATORIO_CATALOG`, `app.js`): las dieciocho pantallas heredadas del
+  rediseño (`BACKLOG.md`, tabla «Con piel nueva/Heredadas todavía en pie»), cada una con un veredicto
+  cerrado — **3 adoptadas** (`#movements`, reconstruida en su propio sitio por M-1…M-11; `#savings-plan`,
+  sin sustituta hasta que exista Ahorro/objetivos; `#alerts-center`, sigue siendo la única puerta de
+  los umbrales de aviso, V6-2 — corrige una primera clasificación que la daba por «sustituida por
+  Hoy», descartada tras comprobar que Hoy solo muestra alertas disparadas, no las gestiona), **14
+  sustituidas** y **1 descartada** (`#operations-manual`). El veredicto se basó en evidencia real del
+  repositorio (qué pantalla nueva cubre la función, si hay tarea de backlog viva), no en el PDF
+  original del mockup (no versionado como texto).
+- **Laboratorio vive dentro de Ajustes** (L-8), como una tarjeta más (`#laboratorioCard`), sin hash
+  ni ruta propia a propósito — así la retirada al cerrar la fase 7 (L-9, bandera
+  `LABORATORIO_PHASE_RETIRED`, hoy en `false`) no puede dejar nada colgando (L-10): no hay ningún
+  `data-home-nav="laboratorio"` en toda la app.
+- **L-4** fecha el catálogo con el último cierre firmado y vigente (reutiliza `cierreVersionRows`,
+  C-10), nunca con la fecha del reloj de quien lo mira; sin ningún cierre firmado lo dice
+  explícitamente en vez de fabricar una fecha.
+- **L-7** reutiliza el mismo mecanismo de C-12/A-11 (Blob/CSV + `window.print()` sobre
+  `#cierrePrintEvidence`, ya genérico) para el acta con las dieciocho filas.
+- **L-5, el hallazgo real de la sesión.** Al construir la evidencia de bloqueo de escritura por
+  heredada —no solo su veredicto, sino si su escritura está *de verdad* cerrada, al estilo R-11—
+  salieron cuatro huecos que ninguna auditoría anterior había mirado con esa pregunta exacta:
+  `#executive-advisor` y `#savings-agent` siguen escribiendo el mismo colchón/reserva compartido
+  (`setAgentCaixaFloor`/`saveScenarioSettings`) que ya tiene puerta propia en Ajustes › Reserva
+  operativa; `#debt-control` sigue aplicando una liquidación de deuda real (`addDebtPayoff`) que
+  D-8/D-9 ya cubren con motivo obligatorio; `#simulator` sigue empujando una decisión de proyecto real
+  (`applyProjectDecision`) que E-11 ya cubre. Las cuatro quedan marcadas `writeBlocked: false` en el
+  catálogo, con su evidencia exacta — **no se tocaron esas cuatro pantallas en esta sesión**: cerrar
+  su escritura de verdad es un cambio a una pantalla en uso y se consulta aparte (`CLAUDE.md`), no un
+  efecto colateral de construir Laboratorio. Queda como hueco conocido, visible desde el propio
+  catálogo, para una sesión futura.
+
+**Validación de esta sesión**: `npm run verify`, exit 0 — **1226/1226 pruebas** (30 nuevas en
+`tests/l1-l10-fase7-laboratorio.test.cjs`), accesibilidad (771 IDs únicos), rendimiento (diff 10.000
+filas en 50,5 ms; forecast y escenarios en 263,1 ms), build del sitio, privacidad y smoke test, todos
+en verde. Verificado con Playwright contra el build local: la tarjeta de Laboratorio en Ajustes
+resume «18 heredadas · 3 adoptada(s) · 14 sustituida(s) · 1 descartada(s)», la lista pinta las
+dieciocho filas, seleccionar una actualiza el panel de detalle y el botón de CSV descarga
+`laboratorio-acta.csv`. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — L-1 a L-10 pasan a `Hecho` (L-5,
+`Hecho (parcial)`), con la nota de sesión bajo la tabla de la pantalla 09; el bloque 1 del plan de
+cierre (§7) se marca completo. Bloque 2 (seis sueltos sin bloqueo: P-10, P-11, P-12, A-3, A-10,
+C-13) queda como siguiente paso natural del plan acordado.
+
 ## Cierre de sesión — 19 de agosto de 2026: auditoría del estado real y plan de cierre de las 32 tareas restantes
 
 Sesión sin cambios de código: se cotejaron las 124 tareas del backlog «Nueve pantallas»
