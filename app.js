@@ -19257,6 +19257,7 @@ function renderAjustes() {
   renderAjustesPartidaNote();
   renderAjustesExportNote();
   renderAjustesSobres();
+  renderAjustesLaboratorio();
 
   const balances = accountBalancesFromState();
   const accountsSummary = qs("ajustesAccountsSummary");
@@ -27436,6 +27437,346 @@ function handlePlanPrevisionHorizon(horizonKey) {
 }
 
 // =================================================================================================
+// Fase 7 · Laboratorio — pantalla 09 (docs/BACKLOG_NUEVE_PANTALLAS.md §09, «deuda de transición con
+// fecha de caducidad, vive en Ajustes»): catálogo canónico de las dieciocho pantallas heredadas del
+// rediseño a seis vistas (T-0/T-1, BACKLOG.md), cada una con un veredicto cerrado —
+// adoptada/sustituida/descartada— nunca «candidata» (L-1). El veredicto se apoya en evidencia real
+// del repositorio (qué pantalla nueva cubre su función, si tiene tarea de backlog viva, si su
+// escritura ya quedó bloqueada), no en el PDF original (`Backlog_Global.pdf` V4, no versionado como
+// texto): «adoptada» cuando la pantalla nueva reconstruyó a la heredada en su propio sitio o cuando
+// todavía no existe sustituta y la función sigue haciendo falta; «sustituida» cuando una pantalla
+// nueva ya cubre su función en otra dirección; «descartada» cuando la función ya no hace falta y
+// nadie la sustituye. L-2 exige que toda «adoptada» lleve una tarea de backlog que la siga
+// gobernando — nunca un «se queda, sin más».
+const LABORATORIO_CATALOG = [
+  {
+    hash: "movements", label: "Movimientos (heredada original)", veredicto: "adoptada", destino: null,
+    backlogTask: "M-1…M-11 (Backlog nueve pantallas · pantalla 03)",
+    motivo: "Reconstruida en su propio sitio: M-1 a M-11 convirtieron el mismo id/URL «#movements» en la pantalla Movimientos vigente (ver el comentario junto a su enlace en index.html). No hay una pantalla gemela nueva a la que redirigir.",
+    writeBlocked: true,
+    evidenciaBloqueo: "No aplica un bloqueo de escritura: esta ES la puerta de escritura vigente de Movimientos (clasificación), regla transversal 01.",
+  },
+  {
+    hash: "savings-plan", label: "Plan ahorro", veredicto: "adoptada", destino: null,
+    backlogTask: "P-13, P-16 (Backlog nueve pantallas · pantalla 04, bloque 3 del plan de cierre)",
+    motivo: "Sigue siendo el único destino de «Ahorro y objetivos»: la cadena que lo sustituiría (P-13 Objetivos, P-16 Ahorro+sobres) no existe todavía — bloque 3 del plan de cierre en docs/BACKLOG_NUEVE_PANTALLAS.md §7.",
+    writeBlocked: true,
+    evidenciaBloqueo: "Sin formulario de escritura persistente: pantalla de lectura/simulación de objetivos, no una puerta de datos reales.",
+  },
+  {
+    hash: "operations-manual", label: "Guía operativa", veredicto: "descartada", destino: null,
+    backlogTask: null,
+    motivo: "Guía estática de referencia sin dato que auditar (PROJECT_STATE.md, cierre del 15 de agosto). Ninguna pantalla nueva reproduce una «guía de uso» — el rediseño apuesta por una interfaz autoexplicativa — y no figura en ninguna tarea de retirada del bloque 5: su función se da por innecesaria, no por pendiente.",
+    writeBlocked: true,
+    evidenciaBloqueo: "Contenido estático, sin ningún control de escritura desde el origen.",
+  },
+  {
+    hash: "executive-advisor", label: "Asesor ejecutivo", veredicto: "sustituida", destino: { hash: "home", label: "Hoy" },
+    backlogTask: null,
+    motivo: "Cubierta por Hoy + «#asesor-decision» desde V1-4 (BACKLOG.md, 10 de agosto). Sin tarea de retirada explícita en el bloque 5 todavía.",
+    writeBlocked: false,
+    evidenciaBloqueo: "Pendiente de verdad, hallazgo de esta sesión: sus campos de reserva/colchón siguen escribiendo (saveExecutiveAdvisorSettingsFromControls → setAgentCaixaFloor + saveScenarioSettings) sin redirigir a Ajustes › Reserva operativa, que ya es la puerta real de ese mismo dato. Necesita un R-11 propio, fuera del alcance de Laboratorio.",
+  },
+  {
+    hash: "virtual-advisor", label: "Asesor virtual", veredicto: "sustituida", destino: { hash: "home", label: "Hoy" },
+    backlogTask: null,
+    motivo: "Cubierta por Hoy + «#asesor-decision» desde V1-4 (10 de agosto). Sin tarea de retirada explícita en el bloque 5 todavía.",
+    writeBlocked: true,
+    evidenciaBloqueo: "Su mini-formulario de deuda solo recalcula en memoria (`renderAdvisorDebtSandbox`); no persiste nada.",
+  },
+  {
+    hash: "savings-agent", label: "Agente ahorro y objetivos", veredicto: "sustituida", destino: { hash: "home", label: "Hoy" },
+    backlogTask: null,
+    motivo: "Cubierta por Hoy + «#asesor-decision» desde V1-4 (10 de agosto). Sin tarea de retirada explícita en el bloque 5 todavía.",
+    writeBlocked: false,
+    evidenciaBloqueo: "Pendiente de verdad, hallazgo de esta sesión: comparte el mismo campo de reserva/colchón que Asesor ejecutivo (setAgentCaixaFloor + saveScenarioSettings) sin redirigir a Ajustes › Reserva operativa. Necesita un R-11 propio, fuera del alcance de Laboratorio.",
+  },
+  {
+    hash: "alerts-center", label: "Centro de alertas", veredicto: "adoptada", destino: null,
+    backlogTask: "V6-2 (BACKLOG.md) · Umbrales de aviso",
+    motivo: "No es «sustituida»: sigue siendo la única puerta para crear y editar reglas de alerta (`addUxAlert`/`handleAlertRuleAction`), y Ajustes enlaza aquí a propósito en vez de duplicar el editor («el colchón mínimo en meses... su tarjeta enlaza a Umbrales de aviso en vez de duplicar el editor», V6-2). Hoy solo muestra las alertas ya disparadas, no las gestiona.",
+    writeBlocked: true,
+    evidenciaBloqueo: "No aplica un bloqueo: es la puerta de escritura vigente de los umbrales de aviso, enlazada a propósito desde Ajustes (V6-2) en vez de duplicar el editor.",
+  },
+  {
+    hash: "visual-detail", label: "Cuadro de mandos", veredicto: "sustituida", destino: { hash: "cuadro-mandos", label: "Plan · Cuadro de mandos" },
+    backlogTask: "A-12 (Backlog nueve pantallas · pantalla 07)",
+    motivo: "Cubierta por Plan («#cuadro-mandos», «#cambios-pendientes», «#mapa-calor») desde V2-8 (10 de agosto).",
+    writeBlocked: true,
+    evidenciaBloqueo: "Su saldo editable quedó bloqueado de verdad (no solo escondido): VISUAL_DETAIL_BALANCE_LEGACY_READONLY, mensaje «Solo lectura (R-11)», redirige a Registrar › Saldo de cuentas.",
+  },
+  {
+    hash: "cashflow", label: "Flujo mensual", veredicto: "sustituida", destino: { hash: "prevision", label: "Plan · Previsión" },
+    backlogTask: "A-12 (Backlog nueve pantallas · pantalla 07)",
+    motivo: "Cubierta por Plan · Previsión («#prevision») desde V2-8 (10 de agosto).",
+    writeBlocked: true,
+    evidenciaBloqueo: "Tabla de lectura derivada del ledger; sin ningún campo editable en origen.",
+  },
+  {
+    hash: "simulator", label: "Simulador", veredicto: "sustituida", destino: { hash: "escenario-simular", label: "Escenarios · Simular" },
+    backlogTask: "E-14 (Backlog nueve pantallas · pantalla 06)",
+    motivo: "Cubierta por el motor de Escenarios («#escenario-simular»/«#escenario-aplicar»/«#escenario-guardados») desde V2-8 (10 de agosto).",
+    writeBlocked: false,
+    evidenciaBloqueo: "Pendiente de verdad, hallazgo de esta sesión: `applyProjectDecision` sigue empujando una decisión real a `projects`/`saveProjects()` desde aquí, cuando E-11 (Escenarios) ya es la puerta de «aplicar con motivo y revisión opcional». Los supuestos del builder sí solo simulan en memoria (regla transversal 02); el hueco es la aplicación de proyecto. Necesita un R-11 propio, fuera del alcance de Laboratorio.",
+  },
+  {
+    hash: "new-life-simulation", label: "Escenarios de vida y deuda", veredicto: "sustituida", destino: { hash: "escenario-simular", label: "Escenarios · Simular" },
+    backlogTask: "E-14 (Backlog nueve pantallas · pantalla 06)",
+    motivo: "Cubierta por el motor de Escenarios desde V2-8 (10 de agosto).",
+    writeBlocked: true,
+    evidenciaBloqueo: "Simular nunca escribe (regla transversal 02): calcula sobre una copia, no hay aplicación posible desde esta pantalla.",
+  },
+  {
+    hash: "new-life-definitive", label: "Simulación nueva vida definitiva", veredicto: "sustituida", destino: { hash: "asesor-decision", label: "Hoy · Asesor de decisión" },
+    backlogTask: "E-14 (Backlog nueve pantallas · pantalla 06)",
+    motivo: "Última pestaña principal en migrar (T-1, 11 de agosto, BACKLOG.md línea 463): su función ya vive en el motor de Escenarios y en «#asesor-decision».",
+    writeBlocked: true,
+    evidenciaBloqueo: "Simular nunca escribe (regla transversal 02): calcula sobre una copia, no hay aplicación posible desde esta pantalla.",
+  },
+  {
+    hash: "debt-roadmap", label: "Plan de deuda", veredicto: "sustituida", destino: { hash: "deuda-ruta", label: "Deuda · Ruta" },
+    backlogTask: "D-14 (Backlog nueve pantallas · pantalla 05, bloqueada por T-4)",
+    motivo: "Cubierta por «#deuda-ruta» desde V3-5 (10 de agosto). Su retirada real (D-14) está contenida por la decisión T-4: sigue relegada, no retirada, a la espera de datos de uso.",
+    writeBlocked: true,
+    evidenciaBloqueo: "Comparar no escribe (D-7): pantalla de lectura/comparación, sin aplicación posible desde aquí.",
+  },
+  {
+    hash: "debt-liquidation-plan", label: "Plan deuda óptimo", veredicto: "sustituida", destino: { hash: "deuda-comparar", label: "Deuda · Comparar" },
+    backlogTask: "D-14 (Backlog nueve pantallas · pantalla 05, bloqueada por T-4)",
+    motivo: "Cubierta por «#deuda-comparar» desde V3-5 (10 de agosto). Misma reserva de T-4 que debt-roadmap.",
+    writeBlocked: true,
+    evidenciaBloqueo: "Comparar no escribe (D-7): pantalla de lectura/comparación, sin aplicación posible desde aquí.",
+  },
+  {
+    hash: "debt-control", label: "Control de deuda", veredicto: "sustituida", destino: { hash: "asesor-decision", label: "Hoy · Asesor de decisión" },
+    backlogTask: "D-14 (Backlog nueve pantallas · pantalla 05, bloqueada por T-4)",
+    motivo: "Cubierta por «#deuda-ruta»/«#deuda-comparar»/«#asesor-decision» desde V3-5 (10 de agosto). Misma reserva de T-4 que debt-roadmap.",
+    writeBlocked: false,
+    evidenciaBloqueo: "Pendiente de verdad, hallazgo de esta sesión: `addDebtPayoff`/`handleAddDebtLiquidation` sigue aplicando y persistiendo una liquidación de deuda real desde aquí, cuando D-8/D-9 (Deuda) ya son la puerta de «aplicar con motivo». Necesita un R-11 propio, fuera del alcance de Laboratorio.",
+  },
+  {
+    hash: "update-data", label: "Registrar reales del mes", veredicto: "sustituida", destino: { hash: "registrar-mes", label: "Registrar · Reales del mes" },
+    backlogTask: null,
+    motivo: "Cubierta por «Registrar el mes» desde V4-6 (10 de agosto); su hash ya redirige ahí (REGISTRAR_LEGACY_HASH_TABS). Sin tarea de retirada explícita en el bloque 5 todavía.",
+    writeBlocked: true,
+    evidenciaBloqueo: "Su alta/edición de partidas quedó bloqueada de verdad: REGISTRAR_MES_LEGACY_READONLY, mensaje «Solo lectura (R-11)», redirige a Registrar › Reales del mes.",
+  },
+  {
+    hash: "data-audit", label: "Datos y auditoría", veredicto: "sustituida", destino: { hash: "registrar-mes", label: "Registrar · Reales del mes" },
+    backlogTask: "C-14 (Backlog nueve pantallas · pantalla 08)",
+    motivo: "Cubierta por Registrar/Cierre desde V5-3 (10 de agosto); su inventario completo por cuenta sigue vivo a propósito (BACKLOG.md línea 179) como lectura, no se retira sin más.",
+    writeBlocked: true,
+    evidenciaBloqueo: "Panel de auditoría de solo lectura; ninguna acción de esta pantalla persiste datos.",
+  },
+  {
+    hash: "reconciliation", label: "Conciliación", veredicto: "sustituida", destino: { hash: "conciliar", label: "Cierre · Conciliar" },
+    backlogTask: "C-14 (Backlog nueve pantallas · pantalla 08)",
+    motivo: "Cubierta por «#conciliar» desde V5-3 (10 de agosto).",
+    writeBlocked: true,
+    evidenciaBloqueo: "Panel de lectura sobre el mismo ledger que Cierre; sin puerta de escritura propia.",
+  },
+];
+
+function laboratorioCatalog() {
+  return LABORATORIO_CATALOG;
+}
+
+// L-1: "Tres veredictos cerrados, ninguno abierto" — ninguna heredada puede quedar sin uno de los
+// tres veredictos válidos. Se comprueba en tiempo de ejecución (no solo por convención al escribir
+// el catálogo) porque L-1 es justo la garantía que Laboratorio existe para dar.
+const LABORATORIO_VEREDICTOS = ["adoptada", "sustituida", "descartada"];
+
+function laboratorioOpenVerdicts(catalog = LABORATORIO_CATALOG) {
+  return catalog.filter((entry) => !LABORATORIO_VEREDICTOS.includes(entry.veredicto));
+}
+
+function laboratorioVerdictSummary(catalog = LABORATORIO_CATALOG) {
+  const summary = { total: catalog.length, adoptada: 0, sustituida: 0, descartada: 0, abiertos: laboratorioOpenVerdicts(catalog).length };
+  catalog.forEach((entry) => { if (summary[entry.veredicto] !== undefined) summary[entry.veredicto] += 1; });
+  return summary;
+}
+
+// L-2: "Adoptada exige tarea de backlog" — una heredada "adoptada" no es un "se queda, sin más": si
+// alguien vuelve a preguntarse "¿y esto qué pasa con ello?", la respuesta tiene que ser una tarea
+// real del backlog, no un encogimiento de hombros.
+function laboratorioAdoptedWithoutTask(catalog = LABORATORIO_CATALOG) {
+  return catalog.filter((entry) => entry.veredicto === "adoptada" && !entry.backlogTask);
+}
+
+// L-6: vista de lista con los destinos — una fila por heredada, con su veredicto y, si es
+// "sustituida", el destino real al que redirige.
+function laboratorioListRows(catalog = LABORATORIO_CATALOG) {
+  return catalog
+    .slice()
+    .sort((a, b) => a.label.localeCompare(b.label, "es"))
+    .map((entry) => ({
+      hash: entry.hash,
+      label: entry.label,
+      veredicto: entry.veredicto,
+      destino: entry.destino,
+    }));
+}
+
+// L-3: panel de detalle por heredada — toda la ficha de una entrada del catálogo, para pintar tras
+// seleccionarla en la lista de L-6.
+function laboratorioDetailFor(hash, catalog = LABORATORIO_CATALOG) {
+  return catalog.find((entry) => entry.hash === hash) || null;
+}
+
+const LABORATORIO_VEREDICTO_LABEL = { adoptada: "Adoptada", sustituida: "Sustituida", descartada: "Descartada" };
+const LABORATORIO_VEREDICTO_BADGE = { adoptada: "e19-badge-neutral", sustituida: "e19-badge-success", descartada: "e19-badge-warning" };
+
+function laboratorioListHtml(rows, selectedHash) {
+  if (!rows.length) return `<p class="e19-kpi-note">Sin heredadas en el catálogo.</p>`;
+  return `<div class="table-wrap"><table class="e19-table laboratorio-table">
+    <thead><tr><th>Pantalla heredada</th><th>Veredicto</th><th>Destino</th></tr></thead>
+    <tbody>${rows
+      .map(
+        (row) => `<tr class="${row.hash === selectedHash ? "is-selected" : ""}">
+          <td><button type="button" class="laboratorio-row-select" data-laboratorio-select="${escapeHtml(row.hash)}">${escapeHtml(row.label)}</button></td>
+          <td><span class="e19-badge ${LABORATORIO_VEREDICTO_BADGE[row.veredicto] || "e19-badge-neutral"}">${LABORATORIO_VEREDICTO_LABEL[row.veredicto] || row.veredicto}</span></td>
+          <td>${row.destino ? `<button type="button" class="registrar-actuals-plan-link" data-home-nav="${escapeHtml(row.destino.hash)}">${escapeHtml(row.destino.label)}</button>` : "—"}</td>
+        </tr>`
+      )
+      .join("")}</tbody>
+  </table></div>`;
+}
+
+function laboratorioDetailHtml(entry) {
+  if (!entry) return `<p class="e19-kpi-note">Elige una pantalla heredada de la lista para ver su ficha.</p>`;
+  return `<h3 class="escenario-motor-panel-title">${escapeHtml(entry.label)}</h3>
+    <p><span class="e19-badge ${LABORATORIO_VEREDICTO_BADGE[entry.veredicto] || "e19-badge-neutral"}">${LABORATORIO_VEREDICTO_LABEL[entry.veredicto] || entry.veredicto}</span></p>
+    <p class="e19-kpi-note">${escapeHtml(entry.motivo)}</p>
+    <p class="e19-kpi-note"><strong>Destino:</strong> ${entry.destino ? `<button type="button" class="registrar-actuals-plan-link" data-home-nav="${escapeHtml(entry.destino.hash)}">${escapeHtml(entry.destino.label)}</button>` : "Ninguno (no hay pantalla gemela)."}</p>
+    <p class="e19-kpi-note"><strong>Tarea de backlog:</strong> ${entry.backlogTask ? escapeHtml(entry.backlogTask) : "Sin tarea asociada."}</p>
+    <p class="e19-kpi-note"><strong>Escritura:</strong> ${entry.writeBlocked ? "Bloqueada" : "⚠ Sin confirmar"} — ${escapeHtml(entry.evidenciaBloqueo || "")}</p>`;
+}
+
+// L-4: "Instantánea fechada del último cierre" — el catálogo se lee siempre "a fecha de" el último
+// cierre firmado y vigente (C-5/C-10), no "a fecha de hoy": un veredicto de gobernanza necesita un
+// punto en el tiempo verificable y firmado, igual que la evidencia de C-12, no la hora del reloj del
+// navegador de quien lo mira.
+function laboratorioSnapshotContext(closures = monthClosures) {
+  const rows = cierreVersionRows(closures).filter((row) => row.vigente && row.estado === "closed");
+  const latest = rows.sort((a, b) => b.fecha.localeCompare(a.fecha))[0] || null;
+  return latest
+    ? { monthKey: latest.monthKey, monthLabel: ledgerMonthLabel(latest.monthKey), fecha: latest.fecha, autor: latest.autor }
+    : null;
+}
+
+function laboratorioSnapshotNoteText(context) {
+  return context
+    ? `Instantánea a fecha del último cierre firmado: ${ledgerMonthLabel(context.monthKey)}, el ${formatIsoDate(context.fecha.slice(0, 10))} (${context.autor}).`
+    : "Todavía no hay ningún mes cerrado y firmado: el catálogo se muestra sin instantánea fechada.";
+}
+
+// L-7: acta exportable del Laboratorio — mismo patrón que C-12/A-11 (Blob/CSV + `window.print()`
+// sobre `#cierrePrintEvidence`, un solo mecanismo de "PDF de una página" para toda la app).
+function laboratorioActaCsvContent(catalog = LABORATORIO_CATALOG, snapshotContext = laboratorioSnapshotContext()) {
+  const header = ["Pantalla heredada", "Veredicto", "Destino", "Tarea de backlog", "Motivo", "Escritura bloqueada", "Instantánea"];
+  const snapshotCol = snapshotContext ? `${ledgerMonthLabel(snapshotContext.monthKey)} · ${snapshotContext.fecha.slice(0, 10)}` : "Sin cierre firmado todavía";
+  const lines = laboratorioListRows(catalog).map((row) => {
+    const entry = laboratorioDetailFor(row.hash, catalog);
+    return [
+      entry.label,
+      LABORATORIO_VEREDICTO_LABEL[entry.veredicto] || entry.veredicto,
+      entry.destino ? entry.destino.label : "Ninguno",
+      entry.backlogTask || "Sin tarea asociada",
+      entry.motivo,
+      entry.writeBlocked ? "Sí" : "Sin confirmar",
+      snapshotCol,
+    ].map(csvValue).join(";");
+  });
+  return `﻿${[header.map(csvValue).join(";"), ...lines].join("\r\n")}`;
+}
+
+function laboratorioActaPrintHtml(catalog = LABORATORIO_CATALOG, snapshotContext = laboratorioSnapshotContext()) {
+  const rows = laboratorioListRows(catalog);
+  return `<h1>Acta del Laboratorio</h1>
+    <p>${escapeHtml(laboratorioSnapshotNoteText(snapshotContext))}</p>
+    <table>
+      <thead><tr><th>Pantalla heredada</th><th>Veredicto</th><th>Destino</th><th>Tarea de backlog</th></tr></thead>
+      <tbody>${rows
+        .map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${LABORATORIO_VEREDICTO_LABEL[row.veredicto] || row.veredicto}</td><td>${escapeHtml(row.destino ? row.destino.label : "Ninguno")}</td><td>${escapeHtml(laboratorioDetailFor(row.hash, catalog)?.backlogTask || "Sin tarea asociada")}</td></tr>`)
+        .join("")}</tbody>
+    </table>`;
+}
+
+function downloadLaboratorioActaCsv() {
+  const content = laboratorioActaCsvContent();
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "laboratorio-acta.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function handleLaboratorioExportPdf() {
+  // A-11/C-12 reutilizan el mismo contenedor de impresión («#cierrePrintEvidence», fuera de
+  // `.app-shell`) y la misma clase de `<body>` — un solo mecanismo de "PDF de una página" para toda
+  // la app, no uno por pantalla. Laboratorio hace lo mismo en vez de abrir uno propio.
+  const container = qs("cierrePrintEvidence");
+  if (!container) return;
+  container.innerHTML = laboratorioActaPrintHtml();
+  document.body.classList.add("is-printing-cierre-evidence");
+  window.print();
+  document.body.classList.remove("is-printing-cierre-evidence");
+}
+
+// L-9: "Retirada al cerrar la fase 7" — Laboratorio no es una pantalla más del rediseño: es "deuda
+// de transición con fecha de caducidad" (§09 del backlog). Cuando la fase 7 se dé por cerrada (todo
+// el bloque 5 resuelto, o el usuario decide que el catálogo ya cumplió su función), esta bandera
+// pasa a `true` y el panel deja de pintarse — sin borrar el catálogo ni las funciones, por si hace
+// falta reabrirlo. Empieza en `false`: la fase 7 no está cerrada todavía (PROJECT_STATE.md).
+const LABORATORIO_PHASE_RETIRED = false;
+
+function laboratorioRetired() {
+  return LABORATORIO_PHASE_RETIRED;
+}
+
+// L-10: "Sin rutas colgando tras la retirada" — Laboratorio vive DENTRO de Ajustes (L-8), no en su
+// propio hash/vista: no hay ningún `data-home-nav="laboratorio"` ni entrada de navegación externa
+// que pudiera quedar apuntando a un sitio vacío si `laboratorioRetired()` pasa a `true`. Retirarlo
+// solo vacía su propio panel dentro de `#ajustes`, que sigue existiendo; los destinos que enlaza
+// (`#cuadro-mandos`, `#home`, etc.) son las pantallas nuevas, no Laboratorio, así que tampoco se ven
+// afectados. Esta función documenta esa garantía para que un test la pueda verificar sin repetir el
+// razonamiento cada vez.
+function laboratorioHasNoOwnRoute() {
+  return !Object.prototype.hasOwnProperty.call(REGISTRAR_LEGACY_HASH_TABS, "laboratorio") && !document.getElementById("laboratorio");
+}
+
+function renderAjustesLaboratorio() {
+  const summaryEl = qs("laboratorioSummary");
+  const snapshotEl = qs("laboratorioSnapshot");
+  const listEl = qs("laboratorioList");
+  const detailEl = qs("laboratorioDetail");
+  const card = qs("laboratorioCard");
+  if (card) card.hidden = laboratorioRetired();
+  if (laboratorioRetired()) return;
+
+  const catalog = laboratorioCatalog();
+  const summary = laboratorioVerdictSummary(catalog);
+  if (summaryEl) {
+    summaryEl.textContent = `${summary.total} heredadas · ${summary.adoptada} adoptada(s) · ${summary.sustituida} sustituida(s) · ${summary.descartada} descartada(s)${summary.abiertos ? ` · ${summary.abiertos} sin veredicto (revisar)` : ""}`;
+  }
+  const snapshotContext = laboratorioSnapshotContext();
+  if (snapshotEl) snapshotEl.textContent = laboratorioSnapshotNoteText(snapshotContext);
+  if (listEl) listEl.innerHTML = laboratorioListHtml(laboratorioListRows(catalog), laboratorioSelectedHash);
+  if (detailEl) detailEl.innerHTML = laboratorioDetailHtml(laboratorioDetailFor(laboratorioSelectedHash, catalog));
+}
+
+let laboratorioSelectedHash = null;
+
+function handleLaboratorioSelect(hash) {
+  laboratorioSelectedHash = hash;
+  renderAjustesLaboratorio();
+}
+
+// =================================================================================================
 // Fase 6 · Análisis — pantalla 07 (Analisis.pdf, auditado el 16 de agosto): «la sección ejecutiva
 // que faltaba». Primer incremento real: A-1 (pantalla de solo lectura, ninguna casilla editable),
 // A-2 (banda de doce meses de colchón, la misma escala de tres niveles que P-9) y A-6 (selector de
@@ -29071,6 +29412,19 @@ async function init() {
   });
   qs("ajustesExportCsv")?.addEventListener("click", downloadCsv);
   qs("ajustesExportPdf")?.addEventListener("click", handleAjustesExportPdf);
+  const handleLaboratorioContainerClick = (event) => {
+    const selectButton = event.target.closest("[data-laboratorio-select]");
+    if (selectButton) { handleLaboratorioSelect(selectButton.dataset.laboratorioSelect); return; }
+    const navButton = event.target.closest("[data-home-nav]");
+    const target = navButton?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
+  };
+  qs("laboratorioList")?.addEventListener("click", handleLaboratorioContainerClick);
+  qs("laboratorioDetail")?.addEventListener("click", handleLaboratorioContainerClick);
+  qs("laboratorioExportCsv")?.addEventListener("click", downloadLaboratorioActaCsv);
+  qs("laboratorioExportPdf")?.addEventListener("click", handleLaboratorioExportPdf);
   qs("cuadroMandosTable")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-cuadro-cell]");
     if (input) handleCuadroMandosCellChange(input);

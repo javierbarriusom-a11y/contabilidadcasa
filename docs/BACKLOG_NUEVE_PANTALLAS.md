@@ -109,9 +109,10 @@ pendientes; A-7 se construyó el 19 de agosto, quinto punto del plan, en cuanto 
 bloquearla (ver la nota bajo la tabla de la pantalla 07). Sobres (segunda mitad de la Fase 6):
 P-14/P-15 (Plan · Mes) y C-6/C-7 (Cierre) se construyeron el 19 de agosto, cuarto punto del plan de
 cinco acordado con el usuario — ver la nota de cierre bajo la tabla de la pantalla 08 para el
-detalle; P-16 sigue bloqueada por P-13 (Objetivos), que no existe todavía. Fase 7 (Laboratorio)
-confirmada sin ningún código propio — se auditó su PDF el 16 de agosto pero no hay nada que
-reconciliar, arranca de cero.
+detalle; P-16 sigue bloqueada por P-13 (Objetivos), que no existe todavía. Fase 7 (Laboratorio) se
+construyó el 19 de agosto de 2026, bloque 1 del plan de cierre de la sección 7: L-1 a L-10 completas
+(L-5 parcial, ver la nota bajo la tabla de la pantalla 09 — cuatro huecos de escritura reales
+quedaron documentados, no cerrados).
 
 **Auditoría del 15 de agosto contra los nueve PDF de mockups (sesión de contraste, ver la nota bajo
 cada tabla de pantalla)**: ninguna tarea marcada «Hecho» resultó estar completamente sin construir
@@ -1337,16 +1338,58 @@ desactivarla devuelve Cierre a sus tres pasos de siempre. Sin errores de consola
 
 | ID | Tarea | Depende de | T | Estado |
 | --- | --- | --- | --- | --- |
-| L-1 | Tres veredictos cerrados, ninguno abierto | Fase 7 | S | Pendiente |
-| L-2 | Adoptada exige tarea de backlog | L-1 | M | Pendiente |
-| L-3 | Panel de detalle por heredada | L-1 | M | Pendiente |
-| L-4 | Instantánea fechada del último cierre | C-5 | L | Pendiente |
-| L-5 | Escritura imposible, no solo escondida | L-4, C-10 | L | Pendiente |
-| L-6 | Vista de lista con los destinos | L-1 | S | Pendiente |
-| L-7 | Acta exportable del Laboratorio | L-2 | S | Pendiente |
-| L-8 | Laboratorio vive dentro de Ajustes | AJ-1 | S | Pendiente |
-| L-9 | Retirada al cerrar la fase 7 | L-7, Fase 7 | M | Pendiente |
-| L-10 | Sin rutas colgando tras la retirada | L-9 | M | Pendiente |
+| L-1 | Tres veredictos cerrados, ninguno abierto | Fase 7 | S | Hecho (19 de agosto, ver nota) |
+| L-2 | Adoptada exige tarea de backlog | L-1 | M | Hecho (19 de agosto, ver nota) |
+| L-3 | Panel de detalle por heredada | L-1 | M | Hecho (19 de agosto, ver nota) |
+| L-4 | Instantánea fechada del último cierre | C-5 | L | Hecho (19 de agosto, ver nota) |
+| L-5 | Escritura imposible, no solo escondida | L-4, C-10 | L | Hecho (parcial, ver nota — 4 heredadas quedan documentadas como pendientes de verdad) |
+| L-6 | Vista de lista con los destinos | L-1 | S | Hecho (19 de agosto, ver nota) |
+| L-7 | Acta exportable del Laboratorio | L-2 | S | Hecho (19 de agosto, ver nota) |
+| L-8 | Laboratorio vive dentro de Ajustes | AJ-1 | S | Hecho (19 de agosto, ver nota) |
+| L-9 | Retirada al cerrar la fase 7 | L-7, Fase 7 | M | Hecho (19 de agosto, ver nota — mecanismo construido, sin activar) |
+| L-10 | Sin rutas colgando tras la retirada | L-9 | M | Hecho (19 de agosto, ver nota) |
+
+**Laboratorio construido el 19 de agosto de 2026** — bloque 1 del plan de cierre (sección 7 de este
+documento), primera sesión que toca Fase 7. Catálogo canónico (`LABORATORIO_CATALOG`, app.js) de las
+dieciocho pantallas heredadas del rediseño (BACKLOG.md, tabla «Con piel nueva/Heredadas todavía en
+pie»), cada una con veredicto cerrado — **3 adoptadas** (`#movements`, reconstruida en su propio
+sitio por M-1…M-11; `#savings-plan`, sin sustituta hasta que exista Ahorro/objetivos, P-13/P-16;
+`#alerts-center`, sigue siendo la única puerta de los umbrales de aviso, V6-2), **14 sustituidas**
+(cubiertas por una pantalla nueva) y **1 descartada** (`#operations-manual`, guía estática sin
+sustituta ni tarea de retirada). L-2 se cumple de verdad, no por convención: las tres adoptadas
+llevan tarea de backlog asociada, verificado en tiempo de ejecución (`laboratorioAdoptedWithoutTask`).
+Vive dentro de Ajustes (L-8), como una tarjeta más (`#laboratorioCard`), sin hash ni ruta propia —
+así L-10 no tiene nada que pueda quedar colgando cuando `LABORATORIO_PHASE_RETIRED` pase a `true` al
+cerrar la fase 7 (L-9, mecanismo construido y probado, sin activar: la fase no está cerrada). L-4
+fecha el catálogo con el último cierre firmado y vigente (reutiliza `cierreVersionRows`, C-10) en vez
+de la fecha del reloj de quien lo mira — sin ningún cierre firmado, lo dice explícitamente en vez de
+fabricar una fecha. L-7 reutiliza el mismo mecanismo de C-12/A-11 (Blob/CSV + `window.print()` sobre
+`#cierrePrintEvidence`), un acta con las dieciocho filas, su veredicto, destino, tarea y motivo.
+
+**L-5, el hallazgo real de esta sesión.** Al construir la evidencia de bloqueo de escritura por
+heredada (no solo veredicto, sino si su escritura está *de verdad* cerrada, R-11) salieron cuatro
+huecos que ninguna auditoría anterior había mirado con esta pregunta exacta: **`#executive-advisor`
+y `#savings-agent`** siguen escribiendo el mismo colchón/reserva compartido
+(`setAgentCaixaFloor`/`saveScenarioSettings`) que ya tiene puerta propia en Ajustes › Reserva
+operativa; **`#debt-control`** sigue aplicando y persistiendo una liquidación de deuda real
+(`addDebtPayoff`) que D-8/D-9 ya cubren con motivo obligatorio; **`#simulator`** sigue empujando una
+decisión de proyecto real (`applyProjectDecision` → `projects`/`saveProjects()`) que E-11 ya cubre.
+Las cuatro quedan documentadas en el catálogo como `writeBlocked: false`, con su evidencia exacta, en
+vez de darlas por buenas o esconder el hueco — es justo lo que L-5 («no solo escondida») pedía
+comprobar. **No se tocaron esas cuatro pantallas en esta sesión**: cerrarlas de verdad (un R-11 propio
+por cada una) es un cambio a una pantalla en uso y se consulta aparte (`CLAUDE.md`), no un efecto
+colateral de construir Laboratorio — queda como hueco conocido, con su propia fila navegable desde el
+catálogo, no como una nueva tarea numerada del backlog de 124.
+
+**Validación**: `npm run verify`, exit 0 — **1226/1226 pruebas** (30 nuevas en
+`tests/l1-l10-fase7-laboratorio.test.cjs`), accesibilidad (771 IDs únicos), rendimiento (diff 10.000
+filas en 50,5 ms; forecast y escenarios en 263,1 ms), build del sitio, privacidad y smoke test, todos
+en verde. Verificado con Playwright contra el build local: la tarjeta de Laboratorio en Ajustes
+resume «18 heredadas · 3 adoptada(s) · 14 sustituida(s) · 1 descartada(s)», la lista pinta las
+dieciocho filas, seleccionar una actualiza el panel de detalle (motivo, destino, tarea, evidencia de
+escritura) y el botón de CSV descarga `laboratorio-acta.csv`. Sin errores de consola propios (el
+único error de red observado es el CDN de Supabase bloqueado por el proxy del entorno de pruebas,
+ajeno a este cambio).
 
 ## 7. Plan de cierre — orden de ejecución de lo pendiente
 
@@ -1356,10 +1399,11 @@ tarea desbloquea a cuántas otras. Se mantiene aquí, no solo como artefacto de 
 que cualquier conversación nueva pueda retomarlo leyendo este documento — es el mismo que
 ya lee `finanzas-casa-workflow` en modo Inicio.
 
-**Bloque 1 — Laboratorio completo (L-1 a L-10, 10 tareas).** El más atrasado (cero código,
-confirmado dos veces) pero el que menos depende de trabajo nuevo: L-4 y L-5 solo necesitan
-C-5 y C-10, hechas desde el 16 y el 17 de agosto. Desbloquea en principio D-14/E-14/A-12/
-C-14 (bloque 5).
+**Bloque 1 — Laboratorio completo (L-1 a L-10, 10 tareas).** ~~El más atrasado (cero código,
+confirmado dos veces) pero el que menos depende de trabajo nuevo~~ — **completo el 19 de agosto
+de 2026** (L-5 parcial: cuatro huecos de escritura reales quedaron documentados en el catálogo, no
+cerrados — ver la nota bajo la tabla de la pantalla 09). Desbloquea en principio D-14/E-14/A-12/
+C-14 (bloque 5), que siguen pendientes de sesión.
 
 **Bloque 2 — Seis sueltos sin bloqueo real.** P-10, P-11, P-12 (Plan), A-3, A-10 (Análisis)
 y C-13 (Cierre): ninguno depende de nada sin construir, simplemente no entraron en las

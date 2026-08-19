@@ -2935,6 +2935,14 @@
   background: color-mix(in srgb, var(--e19-accent) 6%, var(--e19-surface));
 }
 
+.laboratorio-table tr.is-selected {
+  background: color-mix(in srgb, var(--e19-accent) 6%, var(--e19-surface));
+}
+
+.laboratorio-detail:empty {
+  display: none;
+}
+
 /* C-12 · el contenedor de evidencia imprimible está fuera de `.e19-cierre` (vive junto al cierre
    de `.app-shell`) para que `@media print` pueda esconder todo lo demás sin pelearse con el resto
    de reglas de layout de la pantalla. Solo se ve durante `window.print()`, marcado por la clase que

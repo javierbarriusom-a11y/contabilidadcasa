@@ -1869,6 +1869,22 @@
               <div id="ajustesSobresRules"></div>
             </article>
 
+            <!-- L-8: Laboratorio (docs/BACKLOG_NUEVE_PANTALLAS.md §09) vive DENTRO de Ajustes, no
+                 como pantalla ni ruta propia — así L-10 («sin rutas colgando tras la retirada») no
+                 tiene ningún hash que pueda quedar apuntando a un sitio vacío. -->
+            <article class="e19-card laboratorio-card" id="laboratorioCard">
+              <h3 class="escenario-motor-panel-title">Laboratorio · Fase 7</h3>
+              <p class="e19-kpi-note">Catálogo de las dieciocho pantallas heredadas del rediseño, cada una con un veredicto cerrado — adoptada, sustituida o descartada — y su motivo. «Deuda de transición con fecha de caducidad»: se retira cuando la fase 7 se dé por cerrada.</p>
+              <p class="e19-kpi-note" id="laboratorioSummary"></p>
+              <p class="e19-kpi-note" id="laboratorioSnapshot"></p>
+              <div id="laboratorioList"></div>
+              <div class="laboratorio-detail" id="laboratorioDetail"></div>
+              <div class="cuadro-mandos-controls">
+                <button type="button" class="e19-btn e19-btn-secondary" id="laboratorioExportCsv">Descargar acta en CSV</button>
+                <button type="button" class="e19-btn e19-btn-primary" id="laboratorioExportPdf">Descargar acta en PDF</button>
+              </div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Exportar</h3>
               <p class="e19-kpi-note">El CSV completo del flujo mensual y el PDF del mes abierto en Registrar el mes, desde un único sitio.</p>
