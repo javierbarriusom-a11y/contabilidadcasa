@@ -69,8 +69,10 @@ test("P-1 · #plan trae sus tres pestañas y sus migajas", () => {
   assert.match(html, /<p class="e19-registrar-crumb" id="planCrumb"/);
 });
 
-test("P-1 · Ahorro enlaza a su heredada hasta que se construya, igual que R-2 hizo con Registrar", () => {
-  assert.match(html, /data-plan-panel="ahorro" hidden>[\s\S]{0,200}data-home-nav="savings-plan"/);
+// P-12 (19 de agosto) construyó Ahorro de verdad: la pestaña ya no enlaza a su heredada como
+// contenido principal, aunque conserva el enlace como complemento (ver tests/p10-p11-p12-plan-y-a3-a10-analisis-c13-cierre.test.cjs).
+test("P-1 · Ahorro ya no es un enlace a su heredada: tiene su propio semáforo", () => {
+  assert.match(html, /data-plan-panel="ahorro" hidden>[\s\S]*?id="planAhorroPanel"/);
 });
 
 // P-8 (15 de agosto) construyó Previsión de verdad: la pestaña ya no enlaza a su heredada como

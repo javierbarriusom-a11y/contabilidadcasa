@@ -2,6 +2,54 @@
 
 Fecha de revisión: 19 de agosto de 2026.
 
+## Cierre de sesión — 19 de agosto de 2026: bloque 2 del plan de cierre — P-10, P-11, P-12, A-3, A-10, C-13
+
+Siguiente punto del plan de cierre (`docs/BACKLOG_NUEVE_PANTALLAS.md` §7) tras Laboratorio: seis
+tareas sueltas sin bloqueo real, tres en Plan, dos en Análisis y una en Cierre. Ninguna tenía más
+detalle que un título corto — se investigó cada una con agentes de exploración dedicados antes de
+diseñar nada, para no repetir el error de la sesión anterior (L-5). Las seis reutilizan piezas ya
+construidas; ninguna fabrica un cálculo financiero nuevo.
+
+- **P-10 (Descomposición del peor mes)** — en Plan · Previsión, llama literalmente a
+  `analisisCascadaRows([worstMonth])` (A-4, Análisis) sobre el mismo mes que P-9 ya marca. El
+  veredicto en prosa (mismo patrón que D-6/E-7) nombra el bloque con mayor desviación frente a la
+  media del resto del horizonte.
+- **P-11 (Proyección de horizonte)** — tres hitos sobre la serie de colchón (hoy, cruce del mínimo
+  operativo si ocurre, fin de horizonte), mismo patrón que A-5 (`analisisNetWorthMilestones`) pero
+  contra el mínimo operativo en vez de contra cero.
+- **P-12 (Semáforo de ahorro)** — construye contenido real para la pestaña Ahorro de Plan (antes un
+  párrafo vacío enlazando a la heredada). Colorea `row.saving` contra la media del propio horizonte,
+  sin comparar contra un objetivo de ahorro que el modelo de datos no declara todavía (eso es P-13).
+- **A-3 (Peor mes explicado)** — en Análisis, nombra qué decisión simulada concentra el golpe de
+  liquidez del peor mes, reutilizando `projectsForForecastIndex`/`scheduledDecisionMonthlyImpact`, el
+  mismo desglose que ya usa el gráfico de deuda. Sin decisión activa ese mes, lo dice explícitamente
+  en vez de fabricar una culpable.
+- **A-10 (Confianza del dato)** — la pieza compartida con C-2 que ya documentaba la sección 5 del
+  backlog: cuadre por cuenta (llamada literal a `cierreAccountReconciliation`, mismo patrón que M-8c)
+  más cobertura de clasificación del mes en curso.
+- **C-13 (El cierre alimenta el aprendizaje)** — hallazgo de esta sesión: el "aprendizaje" que ya
+  existe en la app (`FinanceCanonicalDailyEngine`, el gasto diario medio de Hoy) es un sistema
+  distinto, sin relación con la desviación previsto/real. Se construyó uno propio, **local** (mismo
+  patrón que el historial de Escenarios, sin tocar el RPC transaccional de cierre ni el esquema
+  remoto de Supabase — eso habría sido una migración de datos, fuera de alcance): al firmar un mes,
+  se guarda su fila de precisión de A-7 en un historial que se acumula, un registro por mes, nunca
+  una auto-corrección de previsiones futuras.
+
+**Validación**: `npm run verify`, exit 0 — **1255/1255 pruebas** (29 nuevas en
+`tests/p10-p11-p12-plan-y-a3-a10-analisis-c13-cierre.test.cjs`, más el test de P-1 sobre la pestaña
+Ahorro actualizado — ya no es un simple enlace a la heredada, mismo tratamiento que P-8 recibió con
+Previsión), accesibilidad (777 IDs únicos), rendimiento (diff 10.000 filas en 39,3 ms; forecast y
+escenarios en 196,0 ms), build del sitio, privacidad y smoke test, todos en verde. Verificado con
+Playwright contra el build local: el desglose del peor mes de Plan muestra la cascada y el veredicto
+en prosa; los tres hitos de colchón se pintan con su mes; el semáforo de Ahorro colorea cada mes con
+su luz; Análisis explica honestamente que ningún proyecto cargado concentra el golpe del peor mes en
+los datos de demostración y muestra el cuadre de cuentas; Cierre dice que todavía no hay ningún
+cierre firmado que resumir. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — P-10/P-11/P-12/A-3/A-10/C-13 pasan a
+`Hecho`, con sus notas bajo las tablas de las pantallas 04, 07 y 08; el bloque 2 del plan de cierre
+(§7) se marca completo. Bloque 3 (P-13 → P-16, Ahorro y objetivos) queda como siguiente paso natural.
+
 ## Cierre de sesión — 19 de agosto de 2026: corrección del hallazgo de L-5 — las cuatro heredadas eran adoptada, no sustituida
 
 Sesión de seguimiento directo de la anterior (mismo día): el usuario pidió cerrar los cuatro huecos de

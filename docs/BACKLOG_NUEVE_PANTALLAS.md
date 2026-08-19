@@ -515,9 +515,9 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | P-8 | Previsión mes a mes por bloque | P-1 | L | Hecho (15 de agosto, ver nota) |
 | P-8b | Editar un mes cerrado con aviso | P-8, Cierre | M | Hecho (19 de agosto, ver nota) |
 | P-9 | Mapa de calor de colchón | P-8 | M | Hecho (15 de agosto, ver nota) |
-| P-10 | Descomposición del peor mes | P-9 | M | Pendiente |
-| P-11 | Proyección de horizonte | P-8 | M | Pendiente |
-| P-12 | Semáforo de ahorro | P-1 | S | Pendiente |
+| P-10 | Descomposición del peor mes | P-9 | M | Hecho (19 de agosto, ver nota) |
+| P-11 | Proyección de horizonte | P-8 | M | Hecho (19 de agosto, ver nota) |
+| P-12 | Semáforo de ahorro | P-1 | S | Hecho (19 de agosto, ver nota) |
 | P-13 | Objetivos con destino y prioridad | P-12 | M | Pendiente |
 | P-14 | Sobres · columnas de arrastre y regla | Fase 6, P-3 | L | Hecho (19 de agosto, ver nota) |
 | P-15 | Sobres · liquidación al cerrar | P-14, Cierre | L | Hecho (19 de agosto, ver nota) |
@@ -575,6 +575,34 @@ Resultado del mes, Colchón), jul 26 con candado por estar cerrado, y jul 26 mar
 en Resultado y Colchón tras el arreglo. 13/25 columnas al cambiar de 12 a 24 meses. Sin errores de
 consola propios (el único aviso de red, `ERR_TUNNEL_CONNECTION_FAILED` hacia el CDN de Supabase, es
 preexistente y aparece igual en `#home`).
+
+**P-10/P-11/P-12 (19 de agosto) — bloque 2 del plan de cierre, los tres sueltos de Plan.** Ninguno
+fabrica un cálculo financiero nuevo: los tres reutilizan piezas ya construidas.
+
+- **P-10** ("Descomposición del peor mes") llama literalmente a `analisisCascadaRows([worstMonth])`
+  (A-4, Análisis) sobre el mismo `worstKey` que ya marca P-9 — no reimplementa el desglose por
+  bloque. El veredicto en prosa (mismo patrón que D-6/E-7: culpable nombrado, nunca solo cifras)
+  nombra el bloque con mayor desviación frente a la media del resto del horizonte
+  (`planPrevisionWorstMonthBlockImpacts`), calculada sobre la propia cascada mes a mes.
+- **P-11** ("Proyección de horizonte") aplica a la serie de colchón (`liquidityByMonth`) el mismo
+  patrón de tres hitos que A-5 (`analisisNetWorthMilestones`): colchón hoy, el momento en que cruza
+  el mínimo operativo (si ocurre en el horizonte) y colchón a fin de horizonte — un resumen de
+  tendencia, no una tabla más larga (el horizonte «Completo» ya existía).
+- **P-12** ("Semáforo de ahorro") construye contenido de verdad para la pestaña Ahorro de Plan, hasta
+  ahora un párrafo vacío que solo enlazaba a la heredada `#savings-plan`. Colorea `row.saving` (el
+  mismo dato que ya lee la fila «Ahorro» de Previsión) contra la media del propio horizonte — no
+  contra un objetivo de ahorro fabricado, porque el modelo de datos no declara uno todavía (esa es
+  P-13, Objetivos, que sigue sin construirse) y la regla transversal 04 prohíbe inventarlo.
+
+**Pruebas nuevas**: `tests/p10-p11-p12-plan-y-a3-a10-analisis-c13-cierre.test.cjs` (compartido con
+A-3/A-10/C-13, ver la nota de las pantallas 07 y 08). El test antiguo de P-1 sobre la pestaña Ahorro
+(«enlaza a su heredada hasta que se construya») se sustituyó por uno que confirma que ya no es un
+simple enlace, mismo tratamiento que ya recibió Previsión con P-8.
+
+Verificado con Playwright contra el build local: el desglose del peor mes muestra la cascada de 6
+filas más el veredicto («Ingresos fue el bloque que más empujó jul 26 · 218,18 € de diferencia» con
+los datos de demostración), los tres hitos de colchón se pintan con su mes, y el semáforo de Ahorro
+colorea cada mes del horizonte con su luz y su cifra. Sin errores de consola propios.
 
 **Auditoría del 15 de agosto contra `Plan.pdf` (sesión de contraste con los PDFs nuevos).**
 Confirmado: **P-8/P-9 coinciden exactamente** con `Plan.pdf` — el criterio literal del PDF para
@@ -1060,14 +1088,14 @@ Quedan pendientes, sin bloqueo: E-11b (Cierre), E-13 (D-10 parcial), E-14 (Fase 
 | --- | --- | --- | --- | --- |
 | A-1 | Pantalla de solo lectura con procedencia | Fase 5 | M | Hecho (16 de agosto, ver nota) |
 | A-2 | Banda de doce meses de colchón | A-1, P-9 | M | Hecho (16 de agosto, ver nota) |
-| A-3 | Peor mes explicado | A-2, E-2 | M | Pendiente (ya no bloqueada: E-2 hecho el 17 de agosto — no construida esta sesión, ver nota) |
+| A-3 | Peor mes explicado | A-2, E-2 | M | Hecho (19 de agosto, ver nota) |
 | A-4 | Cascada del resultado por periodo | A-1, Cierre | L | Hecho (17 de agosto, ver nota) |
 | A-5 | Patrimonio neto proyectado | A-1, D-2 | L | Hecho (17 de agosto, ver nota) |
 | A-6 | Selector de ventana | A-2, A-5 | S | Hecho (16 de agosto, ver nota) |
 | A-7 | ¿Acierta el plan? | A-1, Cierre | L | Hecho (19 de agosto, ver nota) |
 | A-8 | En qué se va · reparto completo del ingreso | A-1 | M | Hecho (17 de agosto, ver nota) |
 | A-9 | Qué se repite | A-1, M-3 | M | Hecho (17 de agosto, ver nota) |
-| A-10 | Confianza del dato | A-1, Cierre | M | Pendiente |
+| A-10 | Confianza del dato | A-1, Cierre | M | Hecho (19 de agosto, ver nota) |
 | A-11 | Exportar en CSV y en PDF | A-1 | M | Hecho (17 de agosto, ver nota) |
 | A-12 | Retirar las heredadas visuales | A-1, Fase 7 | S | Pendiente |
 | A-13 | Actuar desde el aviso, sin duplicar el camino | A-9, A-10, M-8 | L | Pendiente |
@@ -1170,6 +1198,26 @@ datos de demostración (sin movimientos ni cierres reales, por privacidad) dice 
 hay ningún mes cerrado con reales todavía, en vez de fabricar un acierto o un fallo. Sin errores de
 consola propios.
 
+**A-3/A-10 — 19 de agosto de 2026 (bloque 2 del plan de cierre, §7).** Los dos últimos sueltos de
+Análisis, ninguno con cálculo financiero nuevo.
+
+- **A-3** ("Peor mes explicado") extiende el peor mes que A-2 ya marca con un veredicto en prosa —
+  mismo patrón que D-6/E-7: culpable nombrado, nunca solo una cifra. Reutiliza
+  `projectsForForecastIndex`/`scheduledDecisionMonthlyImpact`, el mismo desglose por decisión que ya
+  usa el gráfico de deuda (`renderDebtPayoffChart`), para nombrar qué decisión simulada concentra el
+  golpe de liquidez de ese mes. Sin ninguna decisión activa ese mes, lo dice explícitamente («viene
+  del gasto habitual, no de una decisión concreta») en vez de fabricar una culpable.
+- **A-10** ("Confianza del dato") es la pieza compartida con C-2 que ya documentaba la sección 5 del
+  backlog: llama literalmente a `cierreAccountReconciliation` (mismo patrón que M-8c en Movimientos)
+  para el cuadre por cuenta, y añade la cobertura de clasificación del mes en curso con el mismo
+  filtro que ya usa Cierre (`mapping?.status !== "classified"`).
+
+**Pruebas nuevas**: `tests/p10-p11-p12-plan-y-a3-a10-analisis-c13-cierre.test.cjs`, compartido con
+P-10/P-11/P-12 y C-13. Verificado con Playwright contra el build local: el peor mes de la ventana
+(agosto 2026 en los datos de demostración) dice honestamente que ninguna decisión cargada concentra
+su gasto ahí; la confianza del dato muestra el cuadre de las dos cuentas y avisa de que no hay
+movimientos del mes en curso en la demo pública. Sin errores de consola propios.
+
 ### 08 · Cierre — ritual secuencial de cuatro pasos (15 tareas · 7 grandes)
 
 | ID | Tarea | Depende de | T | Estado |
@@ -1187,7 +1235,7 @@ consola propios.
 | C-10 | Historial de versiones | C-9 | L | Hecho (17 de agosto, ver nota) |
 | C-11 | Reapertura registrada y notificada | C-10, A-7, A-10 | L | Hecho (parcial, 17 de agosto, ver nota) |
 | C-12 | Descargar evidencia en PDF y CSV | C-5 | M | Hecho (17 de agosto, ver nota) |
-| C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Pendiente (ya no bloqueada: A-7 hecho el 19 de agosto — no construida esta sesión, ver nota) |
+| C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Hecho (19 de agosto, ver nota) |
 | C-14 | Retirar las dos heredadas de conciliación | C-9, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
 
 **Cierre construido el 16 de agosto** — primer incremento real de la Fase 5, punto 2 del plan de
@@ -1290,8 +1338,8 @@ reabrir julio 2026 hace aparecer en Análisis el aviso «jul 26 se reabrió en C
 vuelto a firmar»; el botón CSV descarga sin error y el contenedor de impresión se rellena con el
 estado de cuentas y la nota de Sobres antes de `window.print()`. Sin errores de consola propios.
 
-Quedan pendientes: C-3b (ver nota arriba), C-13 (ya no bloqueada — A-7 se construyó el 19 de agosto,
-pero C-13 no se construyó esta sesión), C-14 (Fase 7).
+Quedan pendientes: C-3b (ver nota arriba), C-14 (Fase 7). C-13 se construyó más tarde el propio 19 de
+agosto — ver su nota bajo la tabla de esta pantalla.
 
 **Sobres construido — 19 de agosto de 2026 (P-14/P-15/C-6/C-7).** Cuarto punto del plan de cinco
 acordado con el usuario tras Escenarios, Cierre y Análisis, y último de los cuatro que no dependía
@@ -1409,6 +1457,25 @@ tarjeta de Laboratorio en Ajustes resume «18 heredadas · 7 adoptada(s) · 10 s
 descartada(s)», y el detalle de «Asesor ejecutivo» muestra el motivo corregido. Sin errores de consola
 propios.
 
+**C-13 — 19 de agosto de 2026 (bloque 2 del plan de cierre, §7).** "El cierre alimenta el
+aprendizaje" no podía engancharse al sistema de "aprendizaje" que ya existe en la app
+(`FinanceCanonicalDailyEngine.coverageUntilNextIncome`, el gasto diario medio de Hoy): es un dato
+distinto, sin relación con la desviación previsto/real por partida. Se construyó uno propio, local
+(mismo patrón que `loadEscenarioMotorSaved`/`saveEscenarioMotorSavedList` de Escenarios, sin tocar el
+RPC transaccional de cierre ni el esquema remoto de Supabase — eso habría sido una migración de
+datos, fuera del alcance de un hueco suelto): al firmar un mes con éxito,
+`closeCurrentMonthTransaction()` guarda la fila de precisión de A-7 de ese mes
+(`analisisAccuracyRow`) en un historial local que se acumula, uno por mes, sin sobrescribir cierres
+anteriores — si el mismo mes se reabre y se vuelve a firmar, su fila se actualiza, no se duplica. Es
+un registro, no una auto-corrección: ninguna previsión futura cambia sola a partir de él (regla
+transversal 04). Visible en Cierre, bajo el Historial de versiones, con aviso si el mes de una fila
+está reabierto desde que se guardó.
+
+**Pruebas nuevas**: compartidas con P-10/P-11/P-12/A-3/A-10 en
+`tests/p10-p11-p12-plan-y-a3-a10-analisis-c13-cierre.test.cjs`. Verificado contra el build local
+(datos de demostración, sin cierres firmados): dice explícitamente que todavía no hay ningún cierre
+que resumir, en vez de una tabla vacía.
+
 ## 7. Plan de cierre — orden de ejecución de lo pendiente
 
 Acordado con el usuario el 19 de agosto de 2026, sobre las 32 tareas que quedan (22
@@ -1423,10 +1490,11 @@ de 2026** (ver la nota bajo la tabla de la pantalla 09: un primer veredicto de L
 misma sesión, antes de bloquear nada). Desbloquea en principio D-14/E-14/A-12/C-14 (bloque 5), que
 siguen pendientes de sesión.
 
-**Bloque 2 — Seis sueltos sin bloqueo real.** P-10, P-11, P-12 (Plan), A-3, A-10 (Análisis)
+**Bloque 2 — Seis sueltos sin bloqueo real.** ~~P-10, P-11, P-12 (Plan), A-3, A-10 (Análisis)
 y C-13 (Cierre): ninguno depende de nada sin construir, simplemente no entraron en las
-sesiones del 16-19 de agosto (Escenarios/Cierre/Análisis/Sobres). P-12 desbloquea P-13
-(bloque 3); A-10 desbloquea A-13 (bloque 4).
+sesiones del 16-19 de agosto (Escenarios/Cierre/Análisis/Sobres)~~ — **completo el 19 de agosto
+de 2026**, ver las notas bajo las tablas de las pantallas 04, 07 y 08. P-12 desbloquea P-13
+(bloque 3, sigue pendiente de sesión); A-10 desbloquea A-13 (bloque 4, sigue pendiente de sesión).
 
 **Bloque 3 — Plan · Ahorro y objetivos, la cadena que queda.** P-13 (depende de P-12,
 bloque 2) → P-16 (depende de P-13, cierra Sobres del todo).

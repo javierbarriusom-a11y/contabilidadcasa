@@ -3564,6 +3564,10 @@ async function closeCurrentMonthTransaction() {
     // P-15: las elecciones de destino/origen eran transitorias del paso 3 de este mes — ya quedaron
     // escritas en el asiento firmado, así que no deben sobrevivir a un mes distinto.
     cierreSobresChoices = {};
+    // C-13: "el cierre alimenta el aprendizaje" — guarda la fila de precisión de A-7 de este mes en
+    // un historial local (no toca el RPC transaccional ni el esquema remoto, ver el comentario junto
+    // a `recordCierreAprendizaje`).
+    recordCierreAprendizaje(month, closedAt);
     saveLocalSnapshot();
     renderReconciliation();
     if (qs("conciliarTitle")) renderConciliar();
@@ -25867,6 +25871,68 @@ function cierreMonthsCurrentlyReopened() {
   return reopened;
 }
 
+// C-13: "El cierre alimenta el aprendizaje" — depende de C-5 (requisitos de firma) y A-7 (¿acierta
+// el plan?, 19 de agosto). El "aprendizaje" que ya existe en la app (tooltip de Hoy,
+// `FinanceCanonicalDailyEngine.coverageUntilNextIncome`) es un sistema distinto — aprende el gasto
+// diario medio para la cobertura de caja, no la desviación previsto/real por partida — no hay nada
+// que enganchar ahí de verdad. Se construye uno propio, local: mismo patrón que
+// `loadEscenarioMotorSaved`/`saveEscenarioMotorSavedList` (Escenarios), sin tocar el RPC
+// transaccional de cierre ni el esquema remoto de Supabase — eso sería una migración de datos, fuera
+// del alcance de un hueco suelto del backlog. Es un registro que se acumula, uno por mes firmado
+// (reutilizando `analisisAccuracyRow`, A-7, sin recalcular nada nuevo), nunca una auto-corrección:
+// ninguna previsión futura cambia sola a partir de él (regla transversal 04).
+function loadCierreAprendizajeHistory() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("cierre-aprendizaje"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCierreAprendizajeHistory(list) {
+  storageSet(storageKey("cierre-aprendizaje"), JSON.stringify(list));
+}
+
+function recordCierreAprendizaje(monthKey, closedAt) {
+  const monthObj = cuadroMandosAllMonths().find((item) => item.key === monthKey);
+  if (!monthObj) return;
+  const row = analisisAccuracyRow(monthObj);
+  if (!row.partidasCount) return;
+  const history = loadCierreAprendizajeHistory().filter((entry) => entry.monthKey !== monthKey);
+  history.unshift({ ...row, monthKey, closedAt });
+  saveCierreAprendizajeHistory(history);
+}
+
+function cierreAprendizajeHtml() {
+  const history = loadCierreAprendizajeHistory();
+  if (!history.length) {
+    return `<p class="e19-kpi-note">Todavía no hay ningún cierre firmado con reales que resumir aquí. Se llena solo, un mes cada vez que se firma.</p>`;
+  }
+  const threshold = partidaDeviationThreshold();
+  const reopened = cierreMonthsCurrentlyReopened();
+  const rowsHtml = history
+    .map((row) => {
+      const badge = !threshold
+        ? "—"
+        : `<span class="e19-badge ${row.deviationPct <= threshold ? "e19-badge-success" : "e19-badge-danger"}">${row.deviationPct <= threshold ? "Acertó" : "Se desvió"}</span>`;
+      const reopenedNote = reopened.has(row.monthKey) ? ` <span class="e19-badge e19-badge-warning">Reabierto desde entonces</span>` : "";
+      return `<tr>
+        <td>${escapeHtml(row.label)}${reopenedNote}</td>
+        <td>${money(row.plannedTotal, true)}</td>
+        <td>${money(row.realTotal, true)}</td>
+        <td>${row.deviationPct === Infinity ? "—" : `${row.deviationPct.toFixed(1)}%`}</td>
+        <td>${badge}</td>
+      </tr>`;
+    })
+    .join("");
+  return `<div class="table-wrap"><table class="e19-table cierre-aprendizaje-table">
+    <thead><tr><th>Mes</th><th>Previsto</th><th>Real</th><th>Desviación</th><th>Veredicto</th></tr></thead>
+    <tbody>${rowsHtml}</tbody>
+  </table></div>
+  <p class="e19-kpi-note">Un registro por mes firmado, no una corrección automática: ninguna previsión futura cambia sola a partir de esta tabla.</p>`;
+}
+
 // C-12: "PDF firmado de una página con el estado de las cuentas, las tareas resueltas, los
 // asientos de sobres y la versión [...] CSV con los mismos datos en filas [...] Los dos llevan la
 // misma fecha y el mismo identificador de versión." Con Sobres (Fase 6) desactivado, o si el cierre
@@ -25988,6 +26054,11 @@ function renderCierre() {
   // C-12: el contexto que necesitan los botones de descarga se guarda aquí, no se recalcula al
   // pulsar — mismo dato que ya se ve en pantalla en ese momento.
   cierreEvidenceContext = { accountRows, tasks, closure: currentClosure, currentMonthKey };
+
+  // C-13: el historial de aprendizaje es independiente de si el mes en curso está abierto o cerrado
+  // — es la lista acumulada de todos los cierres firmados hasta ahora, no solo el de este mes.
+  const aprendizajeEl = qs("cierreAprendizaje");
+  if (aprendizajeEl) aprendizajeEl.innerHTML = cierreAprendizajeHtml();
 
   if (currentClosure) {
     if (titleEl) titleEl.textContent = `${ledgerMonthLabel(currentMonthKey)} cerrado`;
@@ -27423,6 +27494,122 @@ function renderPlanPrevision() {
       worstKey ? ` Peor mes: ${escenarioMotorMonthLabel(worstKey)}, marcado en Resultado y Colchón.` : ""
     }`;
   }
+
+  // P-10: desglose por bloque del mismo peor mes que ya marcan Resultado/Colchón arriba.
+  const breakdownEl = qs("planPrevisionWorstBreakdown");
+  if (breakdownEl) breakdownEl.innerHTML = planPrevisionWorstMonthBreakdownHtml(months, worstKey);
+
+  // P-11: tres hitos sobre la misma serie de colchón, mismo patrón que A-5.
+  const milestonesEl = qs("planPrevisionMilestones");
+  if (milestonesEl) {
+    milestonesEl.innerHTML = planPrevisionHorizonMilestonesHtml(planPrevisionHorizonMilestones(months, liquidityByMonth, floor.value), floor.source);
+  }
+}
+
+// P-10: "Descomposición del peor mes" — reutiliza la cascada de A-4 (`analisisCascadaRows`) sobre un
+// único mes en vez de reimplementar el desglose por bloque; el veredicto en prosa nombra el bloque
+// con mayor desviación frente a la media del resto del horizonte (mismo patrón que D-6): «más
+// negativo/menos positivo que su media» es siempre lo que más resta al Resultado, con independencia
+// del signo con el que la cascada pinte cada bloque.
+function planPrevisionWorstMonthBlockImpacts(months, worstKey) {
+  if (!worstKey || months.length < 2) return [];
+  const perMonth = months.map((month) => ({ key: month.key, cascada: analisisCascadaRows([month]) }));
+  const worstEntry = perMonth.find((item) => item.key === worstKey);
+  const others = perMonth.filter((item) => item.key !== worstKey);
+  if (!worstEntry || !others.length) return [];
+  return worstEntry.cascada.rows.map((row) => {
+    const otherValues = others.map((item) => item.cascada.rows.find((r) => r.label === row.label)?.value ?? 0);
+    const avgValue = round2(otherValues.reduce((sum, value) => sum + value, 0) / otherValues.length);
+    return { label: row.label, worstValue: row.value, avgValue, impact: round2(avgValue - row.value) };
+  });
+}
+
+function planPrevisionWorstMonthBreakdownHtml(months, worstKey) {
+  if (!worstKey) return "";
+  const worstMonth = months.find((month) => month.key === worstKey);
+  if (!worstMonth) return "";
+  const cascada = analisisCascadaRows([worstMonth]);
+  const impacts = planPrevisionWorstMonthBlockImpacts(months, worstKey);
+  const culprit = impacts.length ? impacts.reduce((top, current) => (current.impact > top.impact ? current : top)) : null;
+  const insightHtml =
+    culprit && culprit.impact > 0
+      ? `<strong>${escapeHtml(culprit.label)} fue el bloque que más empujó ${escapeHtml(worstMonth.label)}</strong>
+         <p>${money(culprit.worstValue, true)} frente a una media de ${money(culprit.avgValue, true)} en el resto del horizonte — ${money(culprit.impact, true)} de diferencia.</p>`
+      : `<p class="e19-kpi-note">Sin un bloque que destaque claramente frente a la media del resto del horizonte.</p>`;
+  return `<h3 class="escenario-motor-panel-title">Por qué ${escapeHtml(worstMonth.label)} es el peor mes</h3>
+    <div class="analisis-cascada">${analisisCascadaHtml(cascada)}</div>
+    ${insightHtml}`;
+}
+
+// P-11: "Proyección de horizonte" — tres hitos sobre la serie de colchón que Previsión ya calcula
+// (`liquidityByMonth`), mismo patrón que A-5 (`analisisNetWorthMilestones`) pero contra el mínimo
+// operativo (`floor.value`) en vez de contra cero. No es una tabla más larga — el horizonte completo
+// ya está disponible («Completo», `PLAN_PREVISION_HORIZONS.full`) — es un resumen de tendencia.
+function planPrevisionHorizonMilestones(months, liquidityByMonth, floorValue) {
+  if (!months.length) return null;
+  const series = months.map((month, index) => ({ key: month.key, label: month.label, value: liquidityByMonth[index] }));
+  let cruce = null;
+  for (let index = 1; index < series.length; index += 1) {
+    if (series[index - 1].value >= floorValue && series[index].value < floorValue) {
+      cruce = series[index];
+      break;
+    }
+  }
+  return { hoy: series[0], cruce, finDeHorizonte: series[series.length - 1] };
+}
+
+function planPrevisionHorizonMilestonesHtml(milestones, floorSource) {
+  if (!milestones) return "";
+  const item = (label, point, fallback) =>
+    point
+      ? `<div class="plan-prevision-milestone"><span>${escapeHtml(label)}</span><strong>${money(point.value, true)}</strong><small>${escapeHtml(point.label)}</small></div>`
+      : `<div class="plan-prevision-milestone"><span>${escapeHtml(label)}</span><strong>—</strong><small>${escapeHtml(fallback)}</small></div>`;
+  return `${item("Colchón hoy", milestones.hoy, "Sin datos")}${item("Cruza el mínimo operativo", milestones.cruce, "No ocurre en este horizonte")}${item(
+    "Colchón a fin de horizonte",
+    milestones.finDeHorizonte,
+    "Sin datos",
+  )}<p class="e19-kpi-note">Mínimo operativo: ${escapeHtml(floorSource)}.</p>`;
+}
+
+// P-12: "Semáforo de ahorro" — la pestaña Ahorro de Plan (P-1) seguía vacía («Todavía sin construir
+// en Plan», index.html). Reutiliza `row.saving` del motor — el mismo dato que ya lee la fila «Ahorro»
+// de Previsión, sin partidas propias en `monthlyPlanning` — y lo colorea por comparación con la
+// media del propio horizonte, mismo criterio de "desviación frente a la media" que P-10. No compara
+// contra un objetivo de ahorro fabricado: el modelo de datos no declara uno todavía (esa es P-13,
+// Objetivos, que sigue sin construirse) y regla transversal 04 prohíbe inventarlo.
+function planAhorroMonthlyRows(months, savingByMonth) {
+  if (!months.length) return [];
+  const avg = round2(savingByMonth.reduce((sum, value) => sum + value, 0) / savingByMonth.length);
+  return months.map((month, index) => {
+    const value = savingByMonth[index];
+    const level = value < 0 ? "danger" : value >= avg ? "good" : "warn";
+    return { key: month.key, label: month.label, value, avg, level };
+  });
+}
+
+function planAhorroHtml(rows) {
+  if (!rows.length) return `<p class="e19-kpi-note">Sin datos suficientes todavía.</p>`;
+  const levelLabel = { good: "Sobre la media", warn: "Por debajo de la media", danger: "Negativo este mes" };
+  const rowsHtml = rows
+    .map(
+      (row) => `<div class="plan-ahorro-row">
+        <span class="plan-ahorro-month">${escapeHtml(row.label)}</span>
+        <span class="plan-ahorro-light is-${row.level}" role="img" aria-label="${escapeHtml(levelLabel[row.level])}"></span>
+        <span class="plan-ahorro-value">${money(row.value, true)}</span>
+      </div>`,
+    )
+    .join("");
+  return `<div class="plan-ahorro-list">${rowsHtml}</div>
+    <p class="e19-kpi-note">Media del horizonte: ${money(rows[0].avg, true)} al mes. 🟢 sobre la media · 🟡 positivo pero por debajo · 🔴 negativo ese mes. El ahorro se edita registrando reales e ingresos, no aquí — sigue disponible con más detalle en <button type="button" class="registrar-actuals-plan-link" data-home-nav="savings-plan">Plan ahorro</button>.</p>`;
+}
+
+function renderPlanAhorro() {
+  const container = qs("planAhorroPanel");
+  if (!container || !lastSimulation.length) return;
+  const months = planPrevisionMonths();
+  const simRows = planPrevisionSimulationByMonth(months);
+  const savingByMonth = simRows.map((row) => Number(row?.saving || 0));
+  container.innerHTML = planAhorroHtml(planAhorroMonthlyRows(months, savingByMonth));
 }
 
 function handlePlanPrevisionHorizon(horizonKey) {
@@ -28211,6 +28398,74 @@ function analisisAccuracyHtml(rows, summary) {
     <tbody>${analisisAccuracyRowsHtml(rows)}</tbody></table></div>`;
 }
 
+// A-3: "Peor mes explicado" — depende de A-2 (la banda de colchón ya marca el peor mes) y de E-2
+// (el formulario de parámetros por decisión, la fuente de lo que hay que nombrar aquí). Mismo patrón
+// que E-7 (`escenarioMotorVerdictText`)/D-6 (`renderDeudaCompararModeInsight`): un culpable nombrado
+// y una palanca, nunca un cálculo financiero nuevo. Reutiliza `projectsForForecastIndex` +
+// `scheduledDecisionMonthlyImpact` — el mismo desglose por decisión que ya usa el gráfico de deuda
+// (`renderDebtPayoffChart`) — en vez de inventar una segunda forma de repartir el impacto por mes.
+function analisisWorstMonthCulprit(worstMonthKey) {
+  if (!worstMonthKey) return null;
+  const index = forecastMonths().findIndex((month) => month.key === worstMonthKey);
+  if (index < 0) return null;
+  const active = projectsForForecastIndex(index).filter((project) => project.monthlyAmount > 0);
+  if (!active.length) return null;
+  return active.reduce((top, current) => (current.monthlyAmount > top.monthlyAmount ? current : top));
+}
+
+function analisisWorstMonthHtml(worst) {
+  if (!worst) return `<p class="e19-kpi-note">Sin datos suficientes para marcar un peor mes en esta ventana.</p>`;
+  const culprit = analisisWorstMonthCulprit(worst.key);
+  if (!culprit) {
+    return `<p class="e19-kpi-note"><strong>${escapeHtml(worst.label)}</strong> es el peor mes de la ventana, con ${worst.monthsValue.toFixed(1)} meses de colchón. Ninguna decisión cargada concentra su gasto ahí — viene del gasto habitual, no de una decisión concreta.</p>`;
+  }
+  return `<strong>${escapeHtml(culprit.name || "Una decisión cargada")} concentra el golpe de ${escapeHtml(worst.label)}</strong>
+    <p>${money(culprit.monthlyAmount, true)} ese mes, con ${worst.monthsValue.toFixed(1)} meses de colchón resultantes. Ábrela en <a href="#simulator" data-home-nav="simulator">Simulador</a> para mover su importe o su mes.</p>`;
+}
+
+// A-10: "Confianza del dato" — pieza compartida con C-2 (sección 5 del backlog, «Saldo calculado y
+// su cuadre»): mismo cuadre por cuenta que Cierre y Movimientos (M-8c) ya pintan, llamando
+// literalmente a `cierreAccountReconciliation` en vez de recalcularlo. La cobertura de clasificación
+// del mes reutiliza el mismo filtro que ya usa Cierre (`mapping?.status !== "classified"`), acotada
+// al mes en curso — no un segundo recuento de "sin clasificar".
+function analisisConfianzaDatoContext() {
+  if (!window.FinanceCanonicalLedger) return null;
+  const snapshot = refreshCanonicalLedger("analisis-view");
+  if (!snapshot) return null;
+  const entries = snapshot.entries || [];
+  const accountRows = cierreAccountReconciliation(entries);
+  const currentMonthKey = openMonthCutoffKey();
+  const monthEntries = entries.filter((entry) => !entry.duplicateOf && String(entry.date || "").slice(0, 7) === currentMonthKey);
+  const unclassifiedCount = monthEntries.filter((entry) => entry.mapping?.status !== "classified").length;
+  return { accountRows, monthKey: currentMonthKey, monthLabel: ledgerMonthLabel(currentMonthKey), totalMovements: monthEntries.length, unclassifiedCount };
+}
+
+function analisisConfianzaDatoHtml(context) {
+  if (!context) return `<p class="e19-kpi-note">Sin datos suficientes todavía.</p>`;
+  const statusBadge = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger", "sin-conciliar": "e19-badge-neutral" };
+  const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra", "sin-conciliar": "Sin conciliar" };
+  const accountsHtml = `<div class="table-wrap"><table class="e19-table analisis-confianza-table">
+    <thead><tr><th>Cuenta</th><th>Declarado</th><th>Calculado</th><th>Diferencia</th><th>Estado</th></tr></thead>
+    <tbody>${context.accountRows
+      .map(
+        (row) => `<tr>
+          <td><strong>${escapeHtml(row.label)}</strong></td>
+          <td>${money(row.declared, true)}</td>
+          <td>${row.calculated === null ? "—" : money(row.calculated, true)}</td>
+          <td>${row.diff === null ? "—" : money(row.diff, true)}</td>
+          <td><span class="e19-badge ${statusBadge[row.status]}">${statusLabel[row.status]}</span></td>
+        </tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`;
+  const coverageText = context.totalMovements
+    ? context.unclassifiedCount
+      ? `${context.unclassifiedCount} de ${context.totalMovements} movimiento(s) de ${escapeHtml(context.monthLabel)} sin clasificar todavía.`
+      : `Los ${context.totalMovements} movimiento(s) de ${escapeHtml(context.monthLabel)} están clasificados.`
+    : `Sin movimientos registrados en ${escapeHtml(context.monthLabel)} todavía.`;
+  return `${accountsHtml}<p class="e19-kpi-note">${coverageText} Se cierra en <a href="#cierre" data-home-nav="cierre">Cierre</a>, se clasifica en <a href="#movements" data-home-nav="movements">Movimientos</a>.</p>`;
+}
+
 // A-11: "CSV con las series completas de cada bloque, una fila por mes y bloque [...] PDF de una
 // página con los seis bloques, la ventana elegida y la fecha de cálculo." Mismo patrón que C-12
 // (recién construido): Blob/URL de objeto para el CSV, `window.print()` sobre un contenedor
@@ -28349,6 +28604,14 @@ function renderAnalisis() {
       : `<span class="e19-kpi-note">Sin datos suficientes para calcular el peor mes en esta ventana.</span>`;
   }
 
+  // A-3: mismo peor mes que acaba de marcar A-2 arriba, con su desglose por decisión.
+  const worstExplainedEl = qs("analisisWorstMonthExplained");
+  if (worstExplainedEl) worstExplainedEl.innerHTML = analisisWorstMonthHtml(worst);
+
+  // A-10: independiente de la ventana (siempre el mes en curso, como Cierre).
+  const confianzaEl = qs("analisisConfianzaDato");
+  if (confianzaEl) confianzaEl.innerHTML = analisisConfianzaDatoHtml(analisisConfianzaDatoContext());
+
   // C-11: Análisis es uno de los dependientes que el criterio de reapertura nombra explícitamente
   // — se avisa mientras alguno de los meses visibles esté reabierto (sin volver a cerrarse todavía).
   const reopenNotice = qs("analisisReopenNotice");
@@ -28429,6 +28692,7 @@ function renderPlan() {
   renderPlanTabs();
   renderPlanMes();
   renderPlanPrevision();
+  renderPlanAhorro();
 }
 
 function renderActiveSection(viewId = viewFromHash()) {

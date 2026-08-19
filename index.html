@@ -580,11 +580,13 @@
                 <div class="table-wrap plan-prevision-table-wrap">
                   <table class="plan-prevision-table" id="planPrevisionTable"></table>
                 </div>
+                <div class="plan-prevision-milestones" id="planPrevisionMilestones"></div>
+                <div class="plan-prevision-worst-breakdown" id="planPrevisionWorstBreakdown"></div>
                 <p class="e19-kpi-note">Sigue disponible, con más detalle día a día, en <button type="button" class="registrar-actuals-plan-link" data-home-nav="prevision">Previsión mensual</button>.</p>
               </div>
             </div>
             <div class="e19-registrar-panel" data-plan-panel="ahorro" hidden>
-              <p class="e19-kpi-note">Todavía sin construir en Plan. Mientras tanto, sigue disponible en <button type="button" class="registrar-actuals-plan-link" data-home-nav="savings-plan">Plan ahorro</button>.</p>
+              <div id="planAhorroPanel"></div>
             </div>
 
             <aside class="e19-impact-bar e19-plan-impact" id="planMesImpactBar" hidden aria-live="polite"></aside>
@@ -1497,7 +1499,14 @@
               <p class="e19-kpi-note" id="analisisCushionLegend"></p>
               <div class="analisis-cushion-band" id="analisisCushionBand"></div>
               <p class="e19-kpi-note" id="analisisCushionWorst"></p>
+              <div id="analisisWorstMonthExplained"></div>
               <p class="e19-kpi-note">Procedencia: liquidez simulada y gasto medio del Plan, mismo cálculo y escala de tres niveles que la fila de colchón de <a href="#plan">Plan · Previsión</a>.</p>
+            </article>
+
+            <article class="e19-card analisis-confianza-card">
+              <h3 class="escenario-motor-panel-title">Confianza del dato</h3>
+              <p class="e19-kpi-note">Cuadre por cuenta y cobertura de clasificación del mes en curso — misma pieza que ya usan Cierre y Movimientos.</p>
+              <div id="analisisConfianzaDato"></div>
             </article>
 
             <article class="e19-card analisis-networth-card">
@@ -1577,6 +1586,12 @@
               <h3 class="escenario-motor-panel-title">Historial de versiones</h3>
               <p class="e19-kpi-note">Cada cierre y cada reapertura queda como una fila propia. Ninguna versión se sobrescribe.</p>
               <div id="cierreVersions"></div>
+            </article>
+
+            <article class="e19-card cierre-aprendizaje-card">
+              <h3 class="escenario-motor-panel-title">El cierre alimenta el aprendizaje</h3>
+              <p class="e19-kpi-note">Previsto frente a real de cada mes ya firmado, el mismo dato de <a href="#analisis" data-home-nav="analisis">Análisis › ¿Acierta el plan?</a> — se acumula solo, sin corregir ninguna previsión por sí mismo.</p>
+              <div id="cierreAprendizaje"></div>
             </article>
           </section>
 
