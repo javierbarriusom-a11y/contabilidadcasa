@@ -89,9 +89,20 @@ test("R-9 · Lote y Excel ya no enlaza a la heredada: tiene su propio contenido 
 
 test("R-1 · la cabecera trae fuente del libro, guía del flujo y la regla previsto/real/usado en tres celdas", () => {
   assert.match(html, /<p class="e19-registrar-meta" id="registrarSourceNote">/);
+  assert.match(html, /data-e17-open="guide">Guía de este flujo<\/button>/);
   assert.match(html, /<h3 id="registrarRuleTitle">Previsto, real y usado<\/h3>/);
   const ruleGrid = html.slice(html.indexOf('id="registrarRuleTitle"'), html.indexOf('id="registrarTabs"'));
   ["Previsto", "Real", "Usado"].forEach((label) => assert.match(ruleGrid, new RegExp(`<span>${label}</span>`)));
+});
+
+// Repaso pixel-perfect del 20 de agosto: Registrar.pdf «Registrar, alineada» no lleva el recuadro
+// genérico «Para qué sirve / Estado / Siguiente paso» que comparten el resto de vistas — su
+// contenido ya vive en el subtítulo y la meta propios de #registrar, igual que ya se hizo para
+// Hoy en la sesión anterior. El botón «Guía de este flujo» que vivía dentro de ese recuadro se
+// conserva como botón propio de la sección (mismo data-e17-open="guide"), así que no se pierde.
+test("R-1 · la cabecera genérica compartida (#viewEyebrow/#viewTitle/#e17ViewGuide) se oculta también en Registrar, igual que en Hoy", () => {
+  assert.match(app, /const hasOwnHeader = viewId === "home" \|\| viewId === "registrar";/);
+  assert.match(app, /if \(viewId === "home" \|\| viewId === "registrar"\) \{\s*target\.hidden = true;/);
 });
 
 test("R-1 · el título global de la vista no repite literalmente el título propio de la sección", () => {
@@ -243,7 +254,7 @@ test("R-3 (Prioridad 4) · Efectivo se queda fuera del total de liquidez: accoun
 test("R-3 (Prioridad 4) · la pestaña Saldo de cuentas trae Efectivo como tercera fila editable, con su aviso", () => {
   const balancesStart = html.indexOf('data-registrar-panel="balances"');
   const panel = html.slice(balancesStart, html.indexOf('data-registrar-panel="actuals"', balancesStart));
-  assert.match(panel, /<span>Efectivo<\/span>\s*<input id="registrarEfectivoBalance"/);
+  assert.match(panel, /<td class="account-balance-name">Efectivo<\/td>\s*<td><input id="registrarEfectivoBalance"/);
   assert.match(panel, /Efectivo no tiene extracto que lo respalde/);
 });
 
@@ -256,7 +267,7 @@ test("R-4 · las cuatro cifras de recálculo se leen de los mismos motores que H
 
 test("R-4 · sin peor mes calculable, la tarjeta muestra «—» en vez de un 0 € fabricado", () => {
   const { registrarRecalcFigures } = sandboxWith(["registrarRecalcFigures"], {
-    unifiedActionCenterModel: () => ({ context: { today: {}, immediateTransfer: {} }, coverage: { days: null } }),
+    unifiedActionCenterModel: () => ({ context: { today: {}, immediateTransfer: {}, balances: { total: 0 } }, coverage: { days: null } }),
     homeDebtOutlook: () => ({ libreDeDeudaLabel: "" }),
     FinanceCanonicalCushion: { worstMonthOf: () => null },
     openSimulationRows: () => [],
@@ -265,17 +276,20 @@ test("R-4 · sin peor mes calculable, la tarjeta muestra «—» en vez de un 0 
   });
   const figures = registrarRecalcFigures();
   const worst = figures.find((item) => item.label === "Peor mes del horizonte");
-  const coverage = figures.find((item) => item.label === "Cobertura hasta el siguiente ingreso");
+  const coverage = figures.find((item) => item.label === "Días hasta el siguiente ingreso");
   const debtFree = figures.find((item) => item.label === "Fecha libre de deuda");
   assert.equal(worst.value, "—");
   assert.equal(coverage.value, "—");
   assert.equal(debtFree.value, "—");
 });
 
+// Repaso pixel-perfect del 20 de agosto: Registrar.pdf pide «Margen sobre la reserva protegida»
+// (balances.total - protectedReserve, mismo cálculo que la cifra de apoyo de H-8), no la reserva
+// en sí — y «Días hasta el siguiente ingreso», no «Cobertura».
 test("R-4 · con datos completos, la tarjeta muestra las cuatro cifras reales", () => {
   const { registrarRecalcFigures } = sandboxWith(["registrarRecalcFigures"], {
     unifiedActionCenterModel: () => ({
-      context: { today: { requiredReserve: 7230 }, immediateTransfer: {} },
+      context: { today: { requiredReserve: 7230 }, immediateTransfer: {}, balances: { total: 9141 } },
       coverage: { days: 25 },
     }),
     homeDebtOutlook: () => ({ libreDeDeudaLabel: "jul 29" }),
@@ -285,8 +299,8 @@ test("R-4 · con datos completos, la tarjeta muestra las cuatro cifras reales", 
     agentCaixaFloor: () => 2500,
   });
   const figures = registrarRecalcFigures();
-  assert.equal(figures.find((item) => item.label === "Reserva protegida").value, "€7230.00");
-  assert.equal(figures.find((item) => item.label === "Cobertura hasta el siguiente ingreso").value, "25 día(s)");
+  assert.equal(figures.find((item) => item.label === "Margen sobre la reserva protegida").value, "€1911.00");
+  assert.equal(figures.find((item) => item.label === "Días hasta el siguiente ingreso").value, "25 día(s)");
   assert.equal(figures.find((item) => item.label === "Fecha libre de deuda").value, "jul 29");
   assert.equal(figures.find((item) => item.label === "Peor mes del horizonte").value, "mes-2026-08 · €6080.55");
 });

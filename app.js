@@ -462,11 +462,14 @@ function applyE17Preferences(preferences = e17Preferences()) {
 function renderE17ViewGuide(viewId = viewFromHash()) {
   const target = qs("e17ViewGuide");
   if (!target) return;
-  // H-1 (Hoy.pdf): «sustituye a los tres recuadros actuales sin perder ninguna de sus tres
-  // frases» — en Hoy, para qué sirve / estado / siguiente paso ya viven en el subtítulo y la
-  // meta de #home (ver renderHomeHeaderMeta). Repetir aquí el mismo recuadro duplicaría la
-  // cabecera, así que en Hoy se oculta en vez de rellenarse.
-  if (viewId === "home") {
+  // H-1 (Hoy.pdf) y R-1 (Registrar.pdf): «sustituye a los tres recuadros actuales sin perder
+  // ninguna de sus tres frases» — en las vistas que ya traen su propia cabecera completa (Hoy:
+  // subtítulo + meta de #home; Registrar: subtítulo + meta de #registrar), para qué sirve /
+  // estado / siguiente paso ya están dichos ahí. Repetir aquí el mismo recuadro duplicaría la
+  // cabecera, así que en esas vistas se oculta en vez de rellenarse. El botón «Guía de este
+  // flujo» que vivía dentro del recuadro se conserva como botón propio de cada sección
+  // (data-e17-open="guide" en index.html), así que ocultar el recuadro no pierde esa acción.
+  if (viewId === "home" || viewId === "registrar") {
     target.hidden = true;
     target.innerHTML = "";
     return;
@@ -3158,20 +3161,20 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
     if (containsActiveView) advancedNav.open = true;
   }
   const copy = viewTitles[viewId] || viewTitles.home;
-  // Hoy.pdf «Hoy, alineada»: sin cabecera genérica duplicada — la vista #home ya trae su propio
-  // título «Qué necesita tu atención» y su subtítulo. El eyebrow y el <h1> compartidos por las
-  // otras ocho vistas se ocultan aquí (el <h1> queda sr-only, no desaparece: sigue siendo el
-  // objetivo de foco de accesibilidad tras navegar).
-  const isHoyView = viewId === "home";
+  // Hoy.pdf «Hoy, alineada» y Registrar.pdf «Registrar, alineada»: sin cabecera genérica
+  // duplicada — #home y #registrar ya traen su propio título y subtítulo. El eyebrow y el <h1>
+  // compartidos por el resto de vistas se ocultan aquí solo para estas dos (el <h1> queda
+  // sr-only, no desaparece: sigue siendo el objetivo de foco de accesibilidad tras navegar).
+  const hasOwnHeader = viewId === "home" || viewId === "registrar";
   const viewEyebrow = qs("viewEyebrow");
   if (viewEyebrow) {
     viewEyebrow.textContent = copy.eyebrow;
-    viewEyebrow.hidden = isHoyView;
+    viewEyebrow.hidden = hasOwnHeader;
   }
   const viewTitle = qs("viewTitle");
   if (viewTitle) {
     viewTitle.textContent = copy.title;
-    viewTitle.classList.toggle("sr-only", isHoyView);
+    viewTitle.classList.toggle("sr-only", hasOwnHeader);
   }
   document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
   renderTopbarStatusStrip(viewId);
@@ -27373,18 +27376,24 @@ function renderRegistrarHeaderMeta() {
 // R-4: mismas cuatro cifras que ya calcula Hoy (unifiedActionCenterModel/homeDebtOutlook), más el
 // peor mes del horizonte completo con FinanceCanonicalCushion.worstMonthOf — sin recalcular nada
 // por su cuenta, solo se leen aquí para que se vean también mientras se registra.
+// Repaso pixel-perfect del 20 de agosto: Registrar.pdf pide «Margen sobre la reserva protegida»
+// (el sobrante por encima del mínimo, igual que la cifra de apoyo de H-8 en la tira de estado), no
+// la reserva en sí — y «Días hasta el siguiente ingreso», no «Cobertura». Mismo cálculo que
+// topbarStatusFigures (balances.total - protectedReserve), sin fórmula paralela.
 function registrarRecalcFigures() {
   const actionCenter = unifiedActionCenterModel();
   const ctx = actionCenter.context || {};
   const today = ctx.today || {};
   const protectedReserve = round2(Number(today.requiredReserve || ctx.immediateTransfer?.reserve || agentCaixaFloor()));
+  const balances = ctx.balances || accountBalancesFromState();
+  const reserveMargin = round2(Number(balances.total || 0) - protectedReserve);
   const coverage = actionCenter.coverage || {};
   const debtOutlook = homeDebtOutlook();
   const worst = FinanceCanonicalCushion.worstMonthOf(openSimulationRows(lastSimulation));
   return [
-    { label: "Reserva protegida", value: money(protectedReserve, true) },
+    { label: "Margen sobre la reserva protegida", value: money(reserveMargin, true) },
     {
-      label: "Cobertura hasta el siguiente ingreso",
+      label: "Días hasta el siguiente ingreso",
       value: coverage.days === null || coverage.days === undefined ? HOME_MISSING_VALUE : `${coverage.days} día(s)`,
     },
     { label: "Fecha libre de deuda", value: debtOutlook.libreDeDeudaLabel || HOME_MISSING_VALUE },

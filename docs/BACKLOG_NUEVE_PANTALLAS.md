@@ -400,6 +400,64 @@ R-1, R-4, R-5, R-6, R-7, R-8, R-9, R-10 y R-12 coinciden con el criterio. Tres g
 Pendiente, sin motivo de bloqueo: R-11 — la más urgente de las tareas restantes de Registrar por
 tocar directamente la regla transversal 01 (una escritura real sigue abierta en una heredada).
 
+**Repaso pixel-perfect del 20 de agosto de 2026 (sesión «pantalla por pantalla», continuación de
+Hoy).** Con las 13 tareas ya en Hecho, esta sesión comparó el build local contra `Registrar.pdf` a
+nivel visual y encontró los mismos dos tipos de gaps que ya habían aparecido en Hoy — de
+maquetación, no de contenido — más un bug de ancho heredado:
+
+- **Cabecera duplicada**: igual que en Hoy, por encima del bloque propio de `#registrar`
+  («Registrar · La única puerta de escritura de datos reales», ya conforme a R-1) seguía
+  apareciendo la cabecera genérica compartida (`#viewEyebrow`/`#viewTitle` con el texto heredado
+  «Guarda saldos, reales y extractos sin salir de la aplicación» y el recuadro `#e17ViewGuide` de
+  «Para qué sirve / Estado / Siguiente paso»), que `Registrar.pdf` tampoco dibuja. Se extiende la
+  misma condición que ya ocultaba este chrome en Hoy (`hasOwnHeader = viewId === "home" || viewId
+  === "registrar"`) en vez de duplicar la lógica. El botón «Guía de este flujo» que vivía dentro del
+  recuadro oculto se conserva como botón propio de cada sección (mismo `data-e17-open="guide"`, que
+  ya escucha un manejador delegado): uno de tipo `link-button` bajo el subtítulo de Registrar, y de
+  paso se añadió el que le faltaba a Hoy junto al selector de horizonte — ninguna de las dos
+  pantallas pierde la acción al ocultar el recuadro.
+- **Orden y agrupación**: el mockup pone «Saldo a fecha» (claro, con la tabla de cuentas) y «Qué se
+  recalcula al guardar» (oscuro) en paralelo. `index.html` apilaba primero la tarjeta oscura a ancho
+  completo y luego el formulario de saldos debajo, cada uno sin pareja. Nueva clase
+  `.e19-registrar-balance-layout` (grid de dos columnas, mismo punto de colapso a una columna a
+  1440px que ya usa `.home-layout`) sin tocar ningún cálculo.
+- **Formulario de saldos rehecho como tabla**: el mockup muestra CaixaBank/Mediolanum/Efectivo/Total
+  liquidez como filas de una tabla (columnas Cuenta / Saldo declarado / Qué representa, con una
+  frase de contexto por cuenta), no como un formulario horizontal de seis campos en línea. Reescrito
+  como tabla conservando los mismos IDs de campo (`registrarCaixaBalance`, etc., en el mismo orden
+  que ya fijaba el test de R-3 sobre `app.js`) para no tocar ningún manejador.
+- **Tarjeta «Qué se recalcula al guardar» sin estilo propio**: la tarjeta no tenía ninguna regla CSS
+  (ni `.e19-registrar-recalc` ni `.e19-registrar-recalc-grid` existían en `styles.css`), así que se
+  pintaba como texto plano sin el tono oscuro del mockup. Nuevas reglas con el mismo `#0b1a30` que ya
+  usa la tarjeta héroe de Hoy (`.e6-coverage-card`), para que las dos tarjetas oscuras de la app
+  compartan un mismo lenguaje visual.
+- **Bug de contenido en la propia tarjeta**: `registrarRecalcFigures()` mostraba «Reserva protegida»
+  (el mínimo fijo) donde el mockup pide «Margen sobre la reserva protegida» (el sobrante por encima
+  del mínimo — mismo cálculo `balances.total - protectedReserve` que ya usa la cifra de apoyo de
+  H-8 en la tira de estado, sin fórmula paralela), y «Cobertura hasta el siguiente ingreso» donde el
+  mockup dice «Días hasta el siguiente ingreso» (mismo valor, solo la etiqueta). Corregido; pruebas
+  de R-4 actualizadas con las nuevas etiquetas y el valor de margen esperado.
+- **Bug de ancho heredado (hallazgo de esta sesión, no del mockup)**: al convertir el formulario en
+  tabla, el texto de «Qué representa» se cortaba en seco contra el borde del panel en vez de hacer
+  salto de línea. La causa no era CSS nuevo sino un `table { min-width: 1120px }` genérico de
+  `styles.css` (pensado para las tablas densas de la app, que sí quieren scroll horizontal) que
+  también alcanzaba a esta tabla de tres columnas — el mismo override que `design-tokens.css` ya
+  documenta y aplica en otras tablas más pequeñas (`min-width: 0`), aplicado aquí también.
+
+**Validación**: `npm run verify`, exit 0 — **1416/1416 pruebas** (1 nueva: fija que la cabecera
+genérica se oculta también en Registrar, igual que en Hoy; el resto de tests de R-3/R-4 se
+ajustaron a la nueva estructura de tabla y a las nuevas etiquetas, sin añadir casos), accesibilidad
+(789 IDs únicos), rendimiento
+(diff 10.000 filas en 29,9 ms; forecast y escenarios en 166,8 ms; recursos 1698 KB), build del
+sitio, privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local a
+1920 px: la cabecera duplicada desaparece solo en Hoy y Registrar (el resto no cambia), «Guía de
+este flujo» sigue abriendo el mismo diálogo desde su nuevo sitio en ambas, «Saldo por cuenta» y «Qué
+se recalcula al guardar» quedan en paralelo, la tarjeta oscura muestra las cuatro cifras con las
+etiquetas correctas, y la fila de Efectivo ya hace salto de línea dentro del panel en vez de
+cortarse. Sin hallazgos adicionales; sigue pendiente, fuera del alcance de esta sesión, la misma
+franja superior de utilidad (Buscar/Hogar/Escenario/Ajustes) señalada para Hoy — depende de la
+reforma de menú de Fase 3, común a las nueve pantallas.
+
 ### 03 · Movimientos — cola de trabajo, fuente del saldo calculado (13 tareas · 1 grande)
 
 | ID | Tarea | Depende de | T | Estado |

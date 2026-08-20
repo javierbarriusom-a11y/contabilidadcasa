@@ -3539,6 +3539,19 @@ svg {
   margin-top: 18px;
 }
 
+/* R-3/R-4: «Saldo a fecha» (claro) y «Qué se recalcula al guardar» (oscuro) en paralelo, igual que
+   Registrar.pdf — antes se apilaban a ancho completo, cada uno con su propio orden. */
+.e19-registrar-balance-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1440px) {
+  .e19-registrar-balance-layout { grid-template-columns: 1fr; }
+}
+
 .account-balance-panel {
   margin-bottom: 14px;
   padding: 12px;
@@ -3552,21 +3565,147 @@ svg {
   font-size: 18px;
 }
 
-.account-balance-grid {
-  display: grid;
-  grid-template-columns: 150px 170px repeat(3, minmax(150px, 1fr));
-  gap: 10px;
-  align-items: end;
+.account-balance-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-/* R-3: delta en vivo bajo cada casilla de saldo, y el enlace de texto que usan las pestañas de
-   Registrar todavía no construidas para volver a su pantalla heredada. */
-.account-balance-grid label > small[data-registrar-delta] {
+.account-balance-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.account-balance-controls label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+/* min-width: 0 anula el `table { min-width: 1120px }` genérico de styles.css (pensado para tablas
+   densas con scroll horizontal) — esta tabla tiene solo tres columnas y cabe en el ancho de su
+   panel, igual que el resto de tablas que ya documentan este mismo override. */
+.account-balance-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.account-balance-table th,
+.account-balance-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.account-balance-table th:first-child,
+.account-balance-table td:first-child {
+  width: 15%;
+}
+
+.account-balance-table th:nth-child(2),
+.account-balance-table td:nth-child(2) {
+  width: 22%;
+}
+
+.account-balance-table th:last-child,
+.account-balance-table td:last-child {
+  width: 63%;
+}
+
+.account-balance-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.account-balance-name {
+  white-space: nowrap;
+  font-weight: 800;
+}
+
+.account-balance-table td:last-child {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.account-balance-table input {
+  width: 100%;
+  min-width: 0;
+  max-width: 130px;
+  box-sizing: border-box;
+}
+
+.account-balance-total-row .account-balance-name,
+.account-balance-total-row input {
+  font-weight: 900;
+}
+
+/* R-3: delta en vivo bajo cada casilla de saldo. */
+.account-balance-table small[data-registrar-delta] {
   display: block;
   margin-top: 4px;
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
+}
+
+/* R-4: tarjeta oscura «qué se recalcula al guardar», mismo tono que el héroe de Hoy (e6-coverage-card). */
+.e19-registrar-recalc {
+  padding: 1.25rem 1.5rem;
+  border-radius: 8px;
+  background: var(--e19-accent-strong, #0b1a30);
+  color: #fff;
+}
+
+.e19-registrar-recalc .panel-kicker { color: rgba(255, 255, 255, 0.65); }
+
+.e19-registrar-recalc-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.e19-registrar-recalc-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 13px;
+}
+
+.e19-registrar-recalc-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.e19-registrar-recalc-item span {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.e19-registrar-recalc-item strong {
+  font-size: 1.05rem;
+  color: #fff;
+  text-align: right;
+}
+
+.e19-registrar-recalc-note {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .link-button {
