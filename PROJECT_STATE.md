@@ -2,6 +2,52 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: Laboratorio — puente Escenarios → debtLiquidations
+
+Continuación de la misma sesión: con el contador de visitas fusionado, tocaba la última mitad
+pendiente de Laboratorio (§7 del backlog) — `debtLiquidations`, marcada hasta ahora como "sesión
+propia" porque tocaba el ciclo de vida propuesto/vigente que E-11b acababa de estrenar esta misma
+sesión. El usuario pidió explícitamente cerrarla.
+
+El hallazgo de L-5 (19 de agosto) seguía vigente: Deuda · Ruta y Deuda · Comparar aplican una
+decisión de deuda a través de Escenarios (`handleDeudaRutaApply`/`handleDeudaCompararAplicar` →
+`escenario-motor-saved`), un almacén local completamente distinto de `debtLiquidations` — que Hoy y
+Deuda sí leen para deduplicar ofertas ya decididas y para los recordatorios. Sin puente, una deuda
+decidida por el camino moderno (Escenarios) seguía apareciendo como "sin decidir" en cualquier
+pantalla que solo mira `debtLiquidations` — hueco real, no redundancia, tal como ya lo documentaba
+el backlog.
+
+**La construcción**: no se convierte Escenarios en una segunda puerta de escritura de
+`debtLiquidations`, ni se reimplementa `debtDecisionFromValues` (la cuota/mes exactos exigirían
+repetir toda la simulación del motor de escenarios). En su lugar, se conecta el ciclo de vida que
+E-11b ya construyó: `handleCierrePropuestoConfirm` (el paso de Cierre que pasa un plan "propuesto" a
+"vigente") ahora también sincroniza — `syncDebtLiquidationsFromEscenario` refleja en
+`debtLiquidations` cada decisión de deuda del plan que se vuelve vigente (con un importe aproximado
+por tipo, sin inventar reparto en reunificación ni cuota en retomar pagos), y
+`retractDebtLiquidationsFromEscenario` retira el reflejo del plan anterior que queda degradado a
+"guardado" — sin tocar el plan de Escenarios en sí (E-11b: "ninguna de las dos acciones borra
+nada"), solo la lectura derivada. `handleEscenarioGuardadosDelete` gana el mismo cuidado: si se
+elimina un plan vigente (posible desde ahí sin confirmación propia, fuera de alcance de este
+cambio), su reflejo se retracta con él en vez de quedar huérfano. El cambio no es retroactivo: un
+plan ya vigente antes de esta sesión no se sincroniza hasta que algo lo sustituya — documentado así
+en el backlog en vez de forzar una migración de arranque.
+
+**Validación**: `npm run verify`, exit 0 — **1415/1415 pruebas** (16 nuevas en
+`tests/laboratorio-debt-liquidations-escenarios.test.cjs`, más los mocks nuevos añadidos a
+`tests/e-11b-plan-paralelo.test.cjs` para las dos funciones nuevas que ahora llama
+`handleCierrePropuestoConfirm`), accesibilidad (789 IDs únicos), rendimiento (diff 10.000 filas en
+44,9 ms; forecast y escenarios en 216,5 ms; recursos 1692 KB), build del sitio, privacidad y smoke
+test, todos en verde. Verificado con Playwright contra el build local: crear un plan con una
+decisión de amortización sobre una deuda real y confirmarlo deja esa deuda reflejada en
+`debtLiquidations` y fuera de `debtTargetOptions({includePlanned:false})` (ya no se ofrece dos
+veces); confirmar un segundo plan (sin decisiones de deuda) degrada el primero a "guardado", retira
+su reflejo y la deuda vuelve a estar disponible. Sin hallazgos.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` §7 — Laboratorio queda completamente
+resuelto (`agentCaixaFloor` y `debtLiquidations` cerrados el 20 de agosto, `projects` dejado por
+decisión). De las tres decisiones de producto originales solo sigue abierta T-4, a propósito,
+esperando datos reales del contador de visitas.
+
 ## Cierre de sesión — 20 de agosto de 2026: contador mínimo de visitas (T-4)
 
 Continuación de la misma sesión: con D-12 fusionado, tocaba T-4 — la única de las tres decisiones

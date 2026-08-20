@@ -1838,17 +1838,25 @@ agosto de 2026** (ver la nota bajo la tabla de esta pantalla): la cifra ya exist
      ya tenía por separado (`state.operatingReserve`, V6-1/V6-3) — dos «colchones» que podían
      divergir sin que nadie lo notara. Ajustes es ahora la puerta moderna real, sin quitarles
      la suya a las tres heredadas.
-   - `debtLiquidations` — sigue pendiente: el motor de Escenarios (E-11b) tiene un tipo de
-     decisión casi idéntico, pero vive en un carril aparte que nunca toca `debtLiquidations`.
-     Conectarlo como la puerta de escritura real es la solución más coherente, pero es una
-     sesión propia — toca el ciclo de vida que E-11b acaba de estrenar.
+   - ~~`debtLiquidations`~~ — **resuelto el 20 de agosto** (ver `syncDebtLiquidationsFromEscenario`/
+     `retractDebtLiquidationsFromEscenario` en app.js, junto a `handleCierrePropuestoConfirm`): no
+     se convirtió Escenarios en una segunda puerta de escritura ni se tocó `debtDecisionFromValues`
+     — se conectó el ciclo de vida que E-11b acaba de estrenar. Cuando un plan de Escenarios pasa a
+     «vigente» (Cierre lo confirma), sus decisiones de deuda (`amortizacion`, `refinanciacion`,
+     `reunificacion`, `retomar_pagos`, `acuerdo_quita`) se reflejan en `debtLiquidations` con un
+     importe aproximado, para que Hoy y Deuda dejen de ofrecer dos veces la misma deuda; cuando el
+     plan deja de ser vigente (lo sustituye otro, o se elimina), el reflejo se retira sin tocar el
+     plan de Escenarios en sí (E-11b: «ninguna de las dos acciones borra nada»). No es retroactivo:
+     un plan ya vigente antes de esta sesión no se sincroniza hasta que algo lo sustituya.
    - `projects` — el «Simulador» sigue siendo su única puerta; ninguna pantalla nueva lo lee
      ni el motor de forecast canónico lo usa. Sin urgencia real: se revisa solo si algún día
      una pantalla nueva lo necesita.
 
-D-2b, E-11b y C-3b ya están completas (20 de agosto). Con las tres decisiones que quedan (D-12, T-4,
-Laboratorio) respondidas, este plan cierra el backlog completo salvo, posiblemente, D-14 — que
-depende de datos de uso, no de una sesión de más.
+D-2b, E-11b y C-3b ya están completas (20 de agosto). D-12 y Laboratorio (`agentCaixaFloor` y
+`debtLiquidations`) quedan resueltos la misma sesión; `projects` se deja sin tocar por decisión, no
+por pendiente. Solo T-4 sigue bloqueada a propósito, con su contador de visitas ya construido y
+corriendo — este plan cierra el backlog completo salvo, posiblemente, D-14, que depende de esos
+datos de uso, no de una sesión de más.
 
 ## 8. Seis ideas adicionales (no bloquean ninguna fase)
 

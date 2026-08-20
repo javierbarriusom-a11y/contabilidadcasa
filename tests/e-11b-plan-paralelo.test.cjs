@@ -313,6 +313,9 @@ function sandboxCierreAction(existing) {
     renderCierre: () => {
       rendered += 1;
     },
+    retractDebtLiquidationsFromEscenario: () => false,
+    syncDebtLiquidationsFromEscenario: () => false,
+    saveDebtLiquidations: () => {},
   });
   return { context, getSaved: () => saved, getRenderCount: () => rendered };
 }
