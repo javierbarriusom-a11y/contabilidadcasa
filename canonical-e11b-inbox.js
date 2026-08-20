@@ -113,6 +113,9 @@
     (input.unclassified || []).forEach((row) => tasks.push({ id: `classify-${text(row.id)}`, cause: "unclassified", action: "classify", label: text(row.description || row.label) || "Clasificar movimiento", target: "movements", safe: true }));
     (input.differences || []).forEach((row, index) => tasks.push({ id: `actual-${text(row.id || index)}`, cause: "bank-actual-difference", action: "correct-actual", label: text(row.label) || "Corregir importe real", target: "update-data", safe: true }));
     (input.balanceGaps || []).forEach((row, index) => tasks.push({ id: `balance-${text(row.id || index)}`, cause: "balance-gap", action: "adjust-balance", label: text(row.accountId) || "Revisar saldo", target: "update-hub", safe: true }));
+    // D-2b: el capital de deuda editado en Contratos no cuadra con la foto del último cierre
+    // firmado. Como máximo una entrada — el mismatch se deriva en vivo, no se acumula.
+    (input.debtCapitalMismatches || []).forEach((row, index) => tasks.push({ id: `debt-capital-${text(row.id || index)}`, cause: "debt-capital-mismatch", action: "review-debt-capital", label: text(row.label) || "Revisar capital de deuda", target: "deuda-contratos", safe: true }));
     return tasks;
   }
 

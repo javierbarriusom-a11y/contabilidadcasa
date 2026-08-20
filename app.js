@@ -3206,15 +3206,20 @@ function renderTopbarStatusStrip(viewId) {
     return;
   }
   const figures = topbarStatusFigures();
+  // E-11b: mientras convivan un plan vigente y uno propuesto sin resolver, la tira sigue mostrando
+  // el vigente tal cual (ninguna de las cinco cifras de arriba cambia) y solo añade una insignia
+  // avisando de que hay algo pendiente de confirmar o descartar en Cierre.
+  const hasPropuesto = loadEscenarioMotorSaved().some((entry) => !entry.archived && entry.estado === "propuesto");
   strip.hidden = false;
-  strip.innerHTML = figures
-    .map(
-      (item) =>
-        `<span class="topbar-status-figure"><small>${escapeHtml(item.label)}</small><strong>${escapeHtml(item.value)}</strong>${
-          item.sub ? `<em>${escapeHtml(item.sub)}</em>` : ""
-        }</span>`,
-    )
-    .join("");
+  strip.innerHTML =
+    figures
+      .map(
+        (item) =>
+          `<span class="topbar-status-figure"><small>${escapeHtml(item.label)}</small><strong>${escapeHtml(item.value)}</strong>${
+            item.sub ? `<em>${escapeHtml(item.sub)}</em>` : ""
+          }</span>`,
+      )
+      .join("") + (hasPropuesto ? `<span class="e19-badge e19-badge-accent topbar-status-badge">Plan propuesto sin confirmar</span>` : "");
 }
 
 function updateSourceNote() {
@@ -3617,6 +3622,9 @@ async function closeCurrentMonthTransaction() {
     // un historial local (no toca el RPC transaccional ni el esquema remoto, ver el comentario junto
     // a `recordCierreAprendizaje`).
     recordCierreAprendizaje(month, closedAt);
+    // D-2b: cada cierre firmado congela una foto nueva de la deuda viva — mismo espíritu local que
+    // C-13, no toca el RPC transaccional ni el esquema remoto.
+    saveDebtCapitalSnapshotAtClose({ total: homeDebtOutlook().pendingPrincipal, monthKey: month, closedAt });
     saveLocalSnapshot();
     renderReconciliation();
     if (qs("conciliarTitle")) renderConciliar();
@@ -21011,12 +21019,14 @@ function homeDebtReviewReminders() {
 
 // E-11 (Escenarios.pdf) · «misma barra que Deuda: motivo obligatorio, revisión opcional que genera
 // recordatorio en Hoy» — mismo patrón que homeDebtReviewReminders() de arriba, pero leyendo
-// escenario-motor-saved (localStorage) en vez de debtLiquidations: son almacenes distintos porque
-// aplicar un escenario todavía no crea ningún plan paralelo (E-11b, bloqueada por Cierre).
+// escenario-motor-saved (localStorage) en vez de debtLiquidations: son almacenes distintos.
+// E-11b: "aplicado" era el único estado de un escenario ya en efecto; ahora lo es "vigente" (el
+// que Cierre confirmó) — "aplicado" se conserva como alias de lectura para no perder el
+// recordatorio de datos guardados antes de esta sesión.
 function homeEscenarioReviewReminders() {
   const todayIso = isoLocalDate(new Date());
   return loadEscenarioMotorSaved()
-    .filter((entry) => entry.estado === "aplicado" && entry.reviewDate)
+    .filter((entry) => (entry.estado === "aplicado" || entry.estado === "vigente") && entry.reviewDate)
     .map((entry) => ({
       title: "Revisar escenario aplicado",
       text: `${entry.nombre || "Escenario"} — revisión prevista para ${formatIsoDate(entry.reviewDate)}.`,
@@ -23814,9 +23824,27 @@ function saveEscenarioMotorSavedList(list) {
   storageSet(storageKey("escenario-motor-saved"), JSON.stringify(list));
 }
 
+// E-11b: "diez planes vivos como máximo, sin cupos por familia" (decisión de arquitectura, 14 de
+// agosto, docs/BACKLOG_NUEVE_PANTALLAS.md §2) — archivar no borra, solo saca de la cuenta y de la
+// lista activa; el usuario archiva a mano para liberar sitio.
+function escenarioMotorLiveSavedCount() {
+  return loadEscenarioMotorSaved().filter((entry) => !entry.archived).length;
+}
+
+function escenarioMotorLimitReached() {
+  return escenarioMotorLiveSavedCount() >= 10;
+}
+
+function showEscenarioMotorLimitDialog() {
+  qs("escenarioMotorLimitDialog")?.showModal?.();
+}
+
 // E-11 · la fecha de revisión es opcional (a diferencia del motivo): sin ella no se crea ningún
 // recordatorio, «misma barra que Deuda» — homeEscenarioReviewReminders() la lee igual que
 // homeDebtReviewReminders() ya hace con decision.e14Application.reviewDate.
+// E-11b: aplicar ya no sobrescribe nada — genera una copia marcada «propuesto» que convive con
+// cuanto ya hubiera guardado, aplicado o propuesto. Confirmarla o descartarla vive en Cierre
+// (handleCierrePropuestoConfirm/Discard), nunca aquí.
 function handleEscenarioAplicarConfirm(event) {
   event.preventDefault();
   const motivoInput = qs("escenarioAplicarMotivo");
@@ -23825,15 +23853,19 @@ function handleEscenarioAplicarConfirm(event) {
     motivoInput?.focus();
     return;
   }
+  if (escenarioMotorLimitReached()) {
+    showEscenarioMotorLimitDialog();
+    return;
+  }
   const reviewDateInput = qs("escenarioAplicarReviewDate");
   const reviewDate = reviewDateInput?.value || "";
-  const saved = loadEscenarioMotorSaved().map((entry) => (entry.estado === "aplicado" ? { ...entry, estado: "guardado" } : entry));
+  const saved = loadEscenarioMotorSaved();
   escenarioMotorSavedSeq += 1;
   saved.unshift({
     id: `escenario-guardado-${Date.now()}-${escenarioMotorSavedSeq}`,
     nombre: escenarioMotorDraftName(),
     motivo,
-    estado: "aplicado",
+    estado: "propuesto",
     fecha: new Date().toISOString(),
     decisiones: JSON.parse(JSON.stringify(escenarioMotorDecisions)),
     guardrailValue: escenarioMotorGuardrailValue,
@@ -23849,10 +23881,61 @@ function handleEscenarioAplicarConfirm(event) {
 // ---------------------------------------------------------------------------------------------
 // Pantalla 3 · Escenarios guardados (mockup 2e). Los KPIs de cada tarjeta se recalculan al vuelo
 // con el motor real sobre el estado actual de las deudas — nunca se leen cifras congeladas del
-// momento en que se guardó, para que no diverjan en silencio de la realidad. «Recomendado» y
-// «Caducado» del mockup no se implementan: no hay todavía motor de recomendación ni concepto de
-// oferta con vencimiento — solo «Aplicado» y «Guardado», que sí están respaldados por datos reales.
+// momento en que se guardó, para que no diverjan en silencio de la realidad.
+// E-11b: "Vigente" (antes "Aplicado") es lo que Cierre confirmó; "Propuesto" es lo que Aplicar
+// acaba de crear y todavía no pasó por Cierre. Pueden convivir varios de cada uno — ya no hay «solo
+// uno a la vez». "aplicado" se lee como alias legado de "vigente" para no perder tarjetas ya
+// guardadas antes de esta sesión.
 // ---------------------------------------------------------------------------------------------
+function escenarioMotorSavedCardHtml(entry) {
+  const baseInput = escenarioMotorBaseInput();
+  const result = runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null);
+  const summary = escenarioMotorSummaryFor(result, baseInput.months);
+  const esVigente = entry.estado === "aplicado" || entry.estado === "vigente";
+  // E-6b: un cuarto estado, distinto de vigente/propuesto/guardado — el escenario no converge y se
+  // guarda para no repetir el mismo intento sin darse cuenta.
+  // E-13: un "guardado" o "propuesto" con oferta enlazada (D-13) que ya venció (D-10) se marca
+  // "Caducado" en vez de su badge normal — solo aplica a lo que todavía no cambió el plan de
+  // verdad: un escenario ya vigente no se deshace porque su oferta original caduque.
+  const offerExpiry = (entry.estado === "guardado" || entry.estado === "propuesto") && entry.ofertaExpiresAt ? debtOfferExpiryStatus(entry.ofertaExpiresAt) : null;
+  const caducado = Boolean(offerExpiry?.expired);
+  const estadoInfo = esVigente
+    ? { text: "Vigente", badge: "e19-badge-success" }
+    : entry.estado === "aviso"
+      ? { text: "Aviso", badge: "e19-badge-danger" }
+      : caducado
+        ? { text: "Caducado", badge: "e19-badge-danger" }
+        : entry.estado === "propuesto"
+          ? { text: "Propuesto", badge: "e19-badge-accent" }
+          : { text: "Guardado", badge: "e19-badge-neutral" };
+  const fecha = entry.fecha ? new Date(entry.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "";
+  const cardClass = esVigente ? " is-aplicado" : entry.estado === "aviso" || caducado ? " is-aviso" : entry.estado === "propuesto" ? " is-propuesto" : "";
+  const archiveAction = entry.archived
+    ? `<button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-restore="${escapeHtml(entry.id)}">Restaurar</button>`
+    : `<button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-archive="${escapeHtml(entry.id)}">Archivar</button>`;
+  return `<article class="escenario-motor-saved-card${cardClass}">
+      <div class="escenario-motor-saved-head">
+        <span class="e19-badge ${estadoInfo.badge}">${estadoInfo.text}</span>
+        <strong>${escapeHtml(entry.nombre || "Escenario")}</strong>
+        <small>${escapeHtml(entry.motivo || "")}${fecha ? ` · ${escapeHtml(fecha)}` : ""}</small>
+      </div>
+      <div class="escenario-motor-saved-meta">
+        <div><span>Libre de deuda</span><strong>${escapeHtml(escenarioMotorMonthLabel(summary.libreDeDeuda))}</strong></div>
+        <div><span>Caja mínima</span><strong>${money(summary.minimoLiquidez ?? 0, true)}</strong></div>
+        <div><span>Liquidez final</span><strong>${money(summary.liquidezFinal ?? 0, true)}</strong></div>
+      </div>
+      ${entry.estado === "propuesto" ? `<p class="escenario-motor-saved-note">Propuesto: se confirma o se descarta al cerrar el mes.</p>` : ""}
+      ${entry.estado === "aviso" ? `<p class="escenario-motor-saved-limite">límite conocido</p>` : ""}
+      ${caducado ? `<p class="escenario-motor-saved-limite">oferta caducada desde ${escapeHtml(escenarioMotorMonthLabel(entry.ofertaExpiresAt))}: revisa si sigue en pie antes de cargarlo</p>` : ""}
+      ${!caducado && offerExpiry?.dueSoon ? `<p class="escenario-motor-saved-limite">oferta a punto de caducar: vence ${escapeHtml(escenarioMotorMonthLabel(entry.ofertaExpiresAt))}</p>` : ""}
+      <div class="escenario-motor-saved-actions">
+        <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-load="${escapeHtml(entry.id)}">Cargar en simulador</button>
+        ${archiveAction}
+        <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-delete="${escapeHtml(entry.id)}">Eliminar</button>
+      </div>
+    </article>`;
+}
+
 function renderEscenarioGuardados() {
   renderScenarioDependencyNotice("escenario-guardados");
   const list = loadEscenarioMotorSaved();
@@ -23866,50 +23949,17 @@ function renderEscenarioGuardados() {
   }
   if (empty) empty.hidden = true;
 
-  const baseInput = escenarioMotorBaseInput();
-  container.innerHTML = list
-    .map((entry) => {
-      const result = runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null);
-      const summary = escenarioMotorSummaryFor(result, baseInput.months);
-      // E-6b: un tercer estado, distinto de aplicado/guardado — el escenario no converge y se
-      // guarda para no repetir el mismo intento sin darse cuenta.
-      // E-13: un "guardado" con oferta enlazada (D-13) que ya venció (D-10) se marca "Caducado" en
-      // vez de "Guardado" — el propio badge que el mockup pedía y el código llevaba documentado como
-      // pendiente ("no hay todavía... concepto de oferta con vencimiento"). Solo aplica a
-      // "guardado": un escenario ya "aplicado" cambió el plan de verdad, así que su oferta original
-      // caducando no deshace nada.
-      const offerExpiry = entry.estado === "guardado" && entry.ofertaExpiresAt ? debtOfferExpiryStatus(entry.ofertaExpiresAt) : null;
-      const caducado = Boolean(offerExpiry?.expired);
-      const estadoInfo = entry.estado === "aplicado"
-        ? { text: "Aplicado", badge: "e19-badge-success" }
-        : entry.estado === "aviso"
-          ? { text: "Aviso", badge: "e19-badge-danger" }
-          : caducado
-            ? { text: "Caducado", badge: "e19-badge-danger" }
-            : { text: "Guardado", badge: "e19-badge-neutral" };
-      const fecha = entry.fecha ? new Date(entry.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "";
-      const cardClass = entry.estado === "aplicado" ? " is-aplicado" : entry.estado === "aviso" || caducado ? " is-aviso" : "";
-      return `<article class="escenario-motor-saved-card${cardClass}">
-        <div class="escenario-motor-saved-head">
-          <span class="e19-badge ${estadoInfo.badge}">${estadoInfo.text}</span>
-          <strong>${escapeHtml(entry.nombre || "Escenario")}</strong>
-          <small>${escapeHtml(entry.motivo || "")}${fecha ? ` · ${escapeHtml(fecha)}` : ""}</small>
-        </div>
-        <div class="escenario-motor-saved-meta">
-          <div><span>Libre de deuda</span><strong>${escapeHtml(escenarioMotorMonthLabel(summary.libreDeDeuda))}</strong></div>
-          <div><span>Caja mínima</span><strong>${money(summary.minimoLiquidez ?? 0, true)}</strong></div>
-          <div><span>Liquidez final</span><strong>${money(summary.liquidezFinal ?? 0, true)}</strong></div>
-        </div>
-        ${entry.estado === "aviso" ? `<p class="escenario-motor-saved-limite">límite conocido</p>` : ""}
-        ${caducado ? `<p class="escenario-motor-saved-limite">oferta caducada desde ${escapeHtml(escenarioMotorMonthLabel(entry.ofertaExpiresAt))}: revisa si sigue en pie antes de cargarlo</p>` : ""}
-        ${!caducado && offerExpiry?.dueSoon ? `<p class="escenario-motor-saved-limite">oferta a punto de caducar: vence ${escapeHtml(escenarioMotorMonthLabel(entry.ofertaExpiresAt))}</p>` : ""}
-        <div class="escenario-motor-saved-actions">
-          <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-load="${escapeHtml(entry.id)}">Cargar en simulador</button>
-          <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-delete="${escapeHtml(entry.id)}">Eliminar</button>
-        </div>
-      </article>`;
-    })
-    .join("");
+  const active = list.filter((entry) => !entry.archived);
+  const archived = list.filter((entry) => entry.archived);
+  // E-11b: archivar no borra (regla 07 del catálogo de Laboratorio) — solo saca de la cuenta de
+  // "diez planes vivos" y de la vista principal; sigue accesible, con su propio botón de restaurar.
+  const archivedHtml = archived.length
+    ? `<details class="escenario-motor-saved-archived">
+        <summary>Archivados · ${archived.length}</summary>
+        ${archived.map(escenarioMotorSavedCardHtml).join("")}
+      </details>`
+    : "";
+  container.innerHTML = active.map(escenarioMotorSavedCardHtml).join("") + archivedHtml;
 }
 
 function handleEscenarioGuardadosLoad(id) {
@@ -23922,6 +23972,24 @@ function handleEscenarioGuardadosLoad(id) {
 
 function handleEscenarioGuardadosDelete(id) {
   saveEscenarioMotorSavedList(loadEscenarioMotorSaved().filter((entry) => entry.id !== id));
+  renderEscenarioGuardados();
+}
+
+// E-11b: archivar retira del cupo de diez y de la vista principal, pero no borra nada — regla 07
+// del catálogo de Laboratorio ("archivar no borra"), misma disciplina que ya siguen las heredadas.
+function handleEscenarioGuardadosArchive(id) {
+  const list = loadEscenarioMotorSaved().map((entry) => (entry.id === id ? { ...entry, archived: true, archivedAt: new Date().toISOString() } : entry));
+  saveEscenarioMotorSavedList(list);
+  renderEscenarioGuardados();
+}
+
+function handleEscenarioGuardadosRestore(id) {
+  const list = loadEscenarioMotorSaved().map((entry) => {
+    if (entry.id !== id) return entry;
+    const { archived, archivedAt, ...rest } = entry;
+    return rest;
+  });
+  saveEscenarioMotorSavedList(list);
   renderEscenarioGuardados();
 }
 
@@ -25549,6 +25617,8 @@ function renderDeudaContratos() {
       ? `${overriddenCount} de ${contracts.length} contrato(s) con capital, TAE o cuota corregidos a mano. Se usan en Ruta, Comparar y en las cifras de deuda de Hoy.`
       : `Valores declarados de ejemplo (${contracts.length} contrato(s)). Corrige capital, TAE o cuota si no coinciden con el contrato real — se guardan en este navegador y no en ningún sitio más.`;
   }
+  const cuadreEl = qs("deudaContratosCuadre");
+  if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
 }
 
 // Vacío = «sin corregir», nunca cero: borra el override y vuelve al valor declarado en vez de
@@ -25582,6 +25652,50 @@ function handleDeudaContratosFieldChange(input) {
   debtContractOverrides = nextOverrides;
   saveDebtContractOverrides();
   renderDeudaContratos();
+}
+
+// D-2b · la "deuda viva del libro" contra la que se cuadra el capital editado es la foto tomada
+// en el último cierre firmado (C-1) — nunca otro cálculo en vivo sobre los mismos contratos, que
+// jamás podría descuadrar consigo mismo. Sin ningún cierre firmado todavía no hay nada que
+// comparar: "sin-cierre", nunca "cuadra" a ciegas (regla transversal 04). Es un registro local,
+// no viaja a Supabase: es un aviso de cuadre derivado, no un dato financiero primario.
+function loadDebtCapitalSnapshotAtClose() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("debt-capital-snapshot-at-close"), "null"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDebtCapitalSnapshotAtClose(snapshot) {
+  storageSet(storageKey("debt-capital-snapshot-at-close"), JSON.stringify(snapshot));
+}
+
+function debtCapitalCuadre() {
+  const current = homeDebtOutlook().pendingPrincipal;
+  const snapshot = loadDebtCapitalSnapshotAtClose();
+  if (!snapshot) return { status: "sin-cierre", current, atClose: null, diff: null, monthKey: null };
+  const atClose = round2(Number(snapshot.total || 0));
+  const diff = round2(current - atClose);
+  const status = Math.abs(diff) <= 0.02 ? "cuadra" : "descuadra";
+  return { status, current, atClose, diff, monthKey: snapshot.monthKey || null };
+}
+
+function deudaContratosCuadreHtml(cuadre) {
+  if (cuadre.status === "sin-cierre") {
+    return `<p class="e19-kpi-note">Sin ningún cierre firmado todavía: no hay una foto de la deuda viva con la que comparar el capital editado.</p>`;
+  }
+  if (cuadre.status === "cuadra") {
+    return `<p class="e19-kpi-note">Cuadra con la deuda viva del cierre de ${escapeHtml(ledgerMonthLabel(cuadre.monthKey))}: ${money(cuadre.atClose, true)}.</p>`;
+  }
+  return `<div>
+    <p class="e19-kpi-note is-danger">No cuadra con la deuda viva del cierre de ${escapeHtml(ledgerMonthLabel(cuadre.monthKey))}: ${money(cuadre.atClose, true)} en el cierre, ${money(cuadre.current, true)} ahora — diferencia de ${money(Math.abs(cuadre.diff), true)}. Nunca se guarda un descuadre en silencio.</p>
+    <div class="deuda-contratos-cuadre-actions">
+      <button type="button" class="e19-btn e19-btn-secondary" id="deudaContratosCuadreAdjust">Ajustar aquí</button>
+      <button type="button" class="e19-btn e19-btn-secondary" data-home-nav="cierre">Ir a Cierre</button>
+    </div>
+  </div>`;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -25624,6 +25738,7 @@ const CIERRE_TASK_CAUSE_LABELS = {
   unclassified: "Clasificación",
   "bank-actual-difference": "Diferencias banco/real",
   "balance-gap": "Continuidad de saldo",
+  "debt-capital-mismatch": "Capital de deuda",
 };
 
 // C-2: saldo declarado (lo que escribiste en Registrar, `accountBalancesFromState`) frente al saldo
@@ -25653,29 +25768,35 @@ function cierreAccountsSettled(rows) {
   return rows.every((row) => row.status !== "descuadra");
 }
 
-// C-1: tres pasos secuenciales — cada uno permanece bloqueado hasta que el anterior está completo.
-// Un paso ya completado se puede volver a abrir para consultarlo; nunca se puede saltar hacia
-// delante uno todavía pendiente.
-// C-1 (Cierre.pdf): «El paso 3 se salta solo si la fase 6 está apagada, y el cierre lo dice.» Con
-// Sobres apagado, la secuencia sigue siendo la de siempre (tres pasos); con Sobres activo, «Liquidar
-// sobres» se inserta entre Resolver y Firmar, y Firmar pasa a ser el paso 4.
-function cierreStepsStatus(accountRows, tasks, sobresRows = []) {
+// C-1: pasos secuenciales — cada uno permanece bloqueado hasta que el anterior está completo. Un
+// paso ya completado se puede volver a abrir para consultarlo; nunca se puede saltar hacia delante
+// uno todavía pendiente.
+// C-1 (Cierre.pdf): «El paso de Sobres se salta solo si la fase 6 está apagada, y el cierre lo
+// dice.» Con Sobres apagado, la secuencia base tiene tres pasos; con Sobres activo, «Liquidar
+// sobres» se inserta entre Resolver y Firmar.
+// E-11b: «Revisar plan propuesto» se inserta igual, justo antes de Firmar, solo mientras exista al
+// menos un plan propuesto sin confirmar ni descartar — nunca se marca "done" con datos por sí solo
+// (a diferencia de los demás pasos): hace falta la acción explícita de Cierre, y en cuanto se
+// resuelve el paso deja de insertarse.
+function cierreStepsStatus(accountRows, tasks, sobresRows = [], propuestoPending = false) {
   const step1Done = cierreAccountsSettled(accountRows);
   const step2Done = step1Done && tasks.length === 0;
-  if (!sobresEnabled()) {
-    return [
-      { step: 1, label: "Conciliar cuentas", sublabel: "Declarado frente a calculado", unlocked: true, done: step1Done },
-      { step: 2, label: "Resolver diferencias", sublabel: "Tareas agrupadas por causa", unlocked: step1Done, done: step2Done },
-      { step: 3, label: "Firmar y archivar", sublabel: "Comprobaciones antes de firmar", unlocked: step2Done, done: false },
-    ];
-  }
-  const step3Done = step2Done && cierreSobresAllResolved(sobresRows);
-  return [
+  const steps = [
     { step: 1, label: "Conciliar cuentas", sublabel: "Declarado frente a calculado", unlocked: true, done: step1Done },
     { step: 2, label: "Resolver diferencias", sublabel: "Tareas agrupadas por causa", unlocked: step1Done, done: step2Done },
-    { step: 3, label: "Liquidar sobres", sublabel: "Origen y destino de cada sobre", unlocked: step2Done, done: step3Done },
-    { step: 4, label: "Firmar y archivar", sublabel: "Comprobaciones antes de firmar", unlocked: step3Done, done: false },
   ];
+  let previousDone = step2Done;
+  if (sobresEnabled()) {
+    const sobresDone = previousDone && cierreSobresAllResolved(sobresRows);
+    steps.push({ step: steps.length + 1, label: "Liquidar sobres", sublabel: "Origen y destino de cada sobre", unlocked: previousDone, done: sobresDone });
+    previousDone = sobresDone;
+  }
+  if (propuestoPending) {
+    steps.push({ step: steps.length + 1, label: "Revisar plan propuesto", sublabel: "Confirmar o descartar", unlocked: previousDone, done: false });
+    previousDone = false;
+  }
+  steps.push({ step: steps.length + 1, label: "Firmar y archivar", sublabel: "Comprobaciones antes de firmar", unlocked: previousDone, done: false });
+  return steps;
 }
 
 function cierreStepsHtml(steps, activeStep) {
@@ -25724,6 +25845,7 @@ function cierreGroupTasksByCause(tasks) {
 function cierreTaskActionLabel(task) {
   if (task.action === "classify") return "Clasificar";
   if (task.action === "adjust-balance") return "Revisar saldo";
+  if (task.action === "review-debt-capital") return "Revisar contrato";
   return "Corregir real";
 }
 
@@ -25996,6 +26118,46 @@ function cierreStep3SobresHtml(sobresRows, monthKey) {
   </article>`;
 }
 
+// E-11b: «el cierre del mes es donde se confirma o se descarta» — el único paso de Cierre que no
+// se resuelve solo con datos: hace falta pulsar Confirmar o Descartar por cada plan propuesto.
+// Confirmar lo convierte en vigente (y degrada a "guardado" el vigente anterior, si había uno);
+// descartar lo deja "guardado", sin tocar el vigente actual — ninguna de las dos acciones borra
+// nada, misma disciplina que archivar.
+function cierreStepPropuestoHtml(propuestos) {
+  const rows = propuestos
+    .map(
+      (entry) => `<li class="conciliar-task-item">
+        <div><strong>${escapeHtml(entry.nombre || "Escenario")}</strong><p>${escapeHtml(entry.motivo || "")}</p></div>
+        <div class="cierre-propuesto-actions">
+          <button type="button" class="e19-btn e19-btn-primary" data-cierre-propuesto-confirm="${escapeHtml(entry.id)}">Confirmar</button>
+          <button type="button" class="e19-btn e19-btn-secondary" data-cierre-propuesto-discard="${escapeHtml(entry.id)}">Descartar</button>
+        </div>
+      </li>`
+    )
+    .join("");
+  return `<article class="e19-card cierre-step-card">
+    <h3 class="escenario-motor-panel-title">Revisar plan propuesto</h3>
+    <p class="e19-kpi-note">Confirmar lo convierte en el plan vigente. Descartar lo deja guardado, sin tocar el vigente actual. Ninguna de las dos acciones borra nada.</p>
+    <ol class="conciliar-task-list">${rows}</ol>
+  </article>`;
+}
+
+function handleCierrePropuestoConfirm(id) {
+  const list = loadEscenarioMotorSaved().map((entry) => {
+    if (entry.id === id) return { ...entry, estado: "vigente" };
+    if (entry.estado === "aplicado" || entry.estado === "vigente") return { ...entry, estado: "guardado" };
+    return entry;
+  });
+  saveEscenarioMotorSavedList(list);
+  renderCierre();
+}
+
+function handleCierrePropuestoDiscard(id) {
+  const list = loadEscenarioMotorSaved().map((entry) => (entry.id === id ? { ...entry, estado: "guardado" } : entry));
+  saveEscenarioMotorSavedList(list);
+  renderCierre();
+}
+
 function handleCierreSobresOriginChange(rowKey, value) {
   if (!rowKey) return;
   if (value) cierreSobresChoices[rowKey] = value;
@@ -26264,7 +26426,14 @@ function renderCierre() {
   const unclassified = entries.filter((entry) => !entry.duplicateOf && entry.mapping?.status !== "classified");
   const differences = lines.filter((line) => Math.abs(Number(line.delta || 0)) > 0.02);
   const balanceGaps = checks.flatMap((check) => (check.gaps || []).map((gap, index) => ({ ...gap, id: `${check.accountId}-${index}`, accountId: check.accountId })));
-  const tasks = E11bInbox ? E11bInbox.reconciliationTasks({ unclassified, differences, balanceGaps }) : [];
+  // D-2b: un descuadre de capital de deuda contra el último cierre firmado se registra como una
+  // tarea de cierre más — nunca en silencio. Como mucho una entrada, derivada en vivo (C-4).
+  const debtCuadre = debtCapitalCuadre();
+  const debtCapitalMismatches =
+    debtCuadre.status === "descuadra"
+      ? [{ id: "debt-capital", label: `El capital de deuda no cuadra con el cierre de ${ledgerMonthLabel(debtCuadre.monthKey)}: diferencia de ${money(Math.abs(debtCuadre.diff), true)}` }]
+      : [];
+  const tasks = E11bInbox ? E11bInbox.reconciliationTasks({ unclassified, differences, balanceGaps, debtCapitalMismatches }) : [];
   const accountRows = cierreAccountReconciliation(entries);
   const countersEl = qs("cierreCounters");
   if (countersEl) countersEl.innerHTML = cierreCountersHtml(accountRows, tasks, unclassified.length);
@@ -26306,7 +26475,10 @@ function renderCierre() {
   // es una lista vacía y el paso 3 ni siquiera existe (cierreStepsStatus ya lo resuelve).
   const currentMonthObj = sobresEnabled() ? cuadroMandosAllMonths().find((item) => item.key === currentMonthKey) : null;
   const sobresRows = currentMonthObj ? cierreSobresRows(currentMonthObj) : [];
-  const steps = cierreStepsStatus(accountRows, tasks, sobresRows);
+  // E-11b: cualquier plan propuesto vivo (no archivado) obliga a pasar por «Revisar plan
+  // propuesto» antes de poder firmar — igual de condicional que el paso de Sobres.
+  const propuestos = loadEscenarioMotorSaved().filter((entry) => !entry.archived && entry.estado === "propuesto");
+  const steps = cierreStepsStatus(accountRows, tasks, sobresRows, propuestos.length > 0);
   const highestUnlocked = steps.filter((item) => item.unlocked).map((item) => item.step).pop() || 1;
   if (cierreActiveStep > highestUnlocked) cierreActiveStep = highestUnlocked;
 
@@ -26314,12 +26486,14 @@ function renderCierre() {
   if (stepsEl) stepsEl.innerHTML = cierreStepsHtml(steps, cierreActiveStep);
 
   const sobresStepEntry = steps.find((item) => item.label === "Liquidar sobres");
+  const propuestoStepEntry = steps.find((item) => item.label === "Revisar plan propuesto");
   const firmStep = steps[steps.length - 1].step;
   const body = qs("cierreStepBody");
   if (body) {
     if (cierreActiveStep === 1) body.innerHTML = cierreStep1Html(accountRows);
     else if (cierreActiveStep === 2) body.innerHTML = cierreStep2Html(tasks);
     else if (sobresStepEntry && cierreActiveStep === sobresStepEntry.step) body.innerHTML = cierreStep3SobresHtml(sobresRows, currentMonthKey);
+    else if (propuestoStepEntry && cierreActiveStep === propuestoStepEntry.step) body.innerHTML = cierreStepPropuestoHtml(propuestos);
     else if (cierreActiveStep === firmStep) body.innerHTML = cierreStep3Html(accountRows, tasks, monthMovementCount, currentMonthKey, sobresRows);
   }
 }
@@ -29916,8 +30090,15 @@ async function init() {
   qs("escenarioGuardadosList")?.addEventListener("click", (event) => {
     const loadButton = event.target.closest("[data-escenario-guardado-load]");
     if (loadButton) { handleEscenarioGuardadosLoad(loadButton.dataset.escenarioGuardadoLoad); return; }
+    const archiveButton = event.target.closest("[data-escenario-guardado-archive]");
+    if (archiveButton) { handleEscenarioGuardadosArchive(archiveButton.dataset.escenarioGuardadoArchive); return; }
+    const restoreButton = event.target.closest("[data-escenario-guardado-restore]");
+    if (restoreButton) { handleEscenarioGuardadosRestore(restoreButton.dataset.escenarioGuardadoRestore); return; }
     const deleteButton = event.target.closest("[data-escenario-guardado-delete]");
     if (deleteButton) handleEscenarioGuardadosDelete(deleteButton.dataset.escenarioGuardadoDelete);
+  });
+  qs("escenarioMotorLimitDialog")?.addEventListener("close", () => {
+    if (qs("escenarioMotorLimitDialog")?.returnValue === "archive") escenarioMotorNavigate("escenario-guardados");
   });
   qs("escenarioGuardadosCompare")?.addEventListener("click", () => escenarioMotorNavigate("escenario-comparar"));
   qs("escenarioCompararBack")?.addEventListener("click", () => escenarioMotorNavigate("escenario-guardados"));
@@ -29951,6 +30132,17 @@ async function init() {
     const input = event.target.closest("[data-deuda-contrato-id]");
     if (input) handleDeudaContratosFieldChange(input);
   });
+  qs("deudaContratosCuadre")?.addEventListener("click", (event) => {
+    if (event.target.closest("#deudaContratosCuadreAdjust")) {
+      qs("deudaContratosTable")?.querySelector("input[data-deuda-contrato-field='currentPrincipal']")?.focus();
+      return;
+    }
+    const navButton = event.target.closest("[data-home-nav]");
+    const target = navButton?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
+  });
   qs("conciliarDownload")?.addEventListener("click", downloadCanonicalLedger);
   qs("conciliarClose")?.addEventListener("click", closeCurrentMonthTransaction);
   qs("conciliarTasks")?.addEventListener("click", (event) => {
@@ -29973,6 +30165,10 @@ async function init() {
       setActiveView(target, { focus: true });
       return;
     }
+    const propuestoConfirm = event.target.closest("[data-cierre-propuesto-confirm]");
+    if (propuestoConfirm) { handleCierrePropuestoConfirm(propuestoConfirm.dataset.cierrePropuestoConfirm); return; }
+    const propuestoDiscard = event.target.closest("[data-cierre-propuesto-discard]");
+    if (propuestoDiscard) { handleCierrePropuestoDiscard(propuestoDiscard.dataset.cierrePropuestoDiscard); return; }
     if (event.target.id === "cierreSignButton") handleCierreSign();
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");

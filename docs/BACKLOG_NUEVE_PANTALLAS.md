@@ -753,7 +753,7 @@ arrastra el candado abierto. Sin errores de consola propios.
 | --- | --- | --- | --- | --- |
 | D-1 | Pestañas Ruta / Comparar / Contratos | Fase 3 | M | Hecho (15 de agosto, ver nota) |
 | D-2 | Contratos como dato canónico editable | D-1 | L | Hecho (15 de agosto) |
-| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (ya no bloqueada: Cierre hecho — no construida esta sesión, fuera de la lista pedida) |
+| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Hecho (20 de agosto, ver nota) |
 | D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
 | D-4 | Calendario de amortización | D-3 | L | Hecho (16 de agosto, ver nota) |
 | D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
@@ -864,9 +864,21 @@ añadido concreto — ninguna reconstrucción.
   persistencia de E-10) sin pasar por el formulario de aplicar. Si la estrategia es "Consolidar" y
   la oferta declara vigencia, el guardado queda enlazado a esa fecha para E-13.
 
+**D-2b — 20 de agosto de 2026 (decisión de diseño + construcción, ver `PROJECT_STATE.md`).** La
+investigación previa a programar encontró que "deuda viva del libro" no tenía hoy ninguna fuente
+independiente de los propios contratos de Deuda · Contratos: compararlos contra sí mismos nunca
+podría descuadrar. Preguntado explícitamente, el usuario eligió que esa fuente sea **la foto de
+deuda viva tomada en el último cierre firmado (C-1)** — `debtCapitalCuadre()` compara
+`homeDebtOutlook().pendingPrincipal` actual contra un snapshot local (`debt-capital-snapshot-at-close`,
+tolerancia 0,02€ como C-2) que `closeCurrentMonthTransaction()` congela cada vez que se firma un
+mes. El pie de Contratos (`deudaContratosCuadreHtml`) muestra "sin cierre" / "cuadra" / "descuadra"
+con la diferencia exacta y dos salidas: "Ajustar aquí" (enfoca el campo, sin escribir nada) e "Ir a
+Cierre", donde el descuadre aparece como una cuarta causa de tarea (`debt-capital-mismatch`,
+`CIERRE_TASK_CAUSE_LABELS`, `E11bInbox.reconciliationTasks`) derivada en vivo — nunca una entrada
+que haya que marcar resuelta a mano (mismo criterio C-4 que las otras tres causas): desaparece sola
+en cuanto el próximo cierre firmado la reconcilia. Es un registro local, no viaja a Supabase.
+
 **Quedan pendientes, con motivo explícito:**
-- **D-2b** — ya no bloqueada (Cierre existe desde el 16 de agosto, igual que M-8c), pero no se
-  construyó esta sesión: fuera de la lista de tareas que pidió el usuario.
 - **D-12** (capacidad de endeudamiento) — no hay todavía una cifra de ingreso mensual del hogar
   reutilizable para un ratio de endeudamiento defendible; se deja para no inventar una fórmula
   sin una fuente canónica detrás.
@@ -977,7 +989,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 | E-9 | Vista familiar como pantalla aparte | E-3 | M | Hecho (17 de agosto, ver nota) |
 | E-10 | Guardar escenario reproducible | E-2 | M | Hecho |
 | E-11 | Aplicar con motivo y revisión opcional | D-8 | M | Hecho (16 de agosto, ver nota) |
-| E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Pendiente (ya no bloqueada: Cierre hecho — no construida esta sesión, fuera de la lista pedida) |
+| E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Hecho (20 de agosto, ver nota) |
 | E-12 | Comparar dos escenarios guardados | E-10 | M | Hecho (17 de agosto, ver nota) |
 | E-13 | Caducidad de escenarios con oferta | E-10, D-10 | S | Hecho (20 de agosto, ver nota) |
 | E-14 | Retirar las tres heredadas de simulación | E-1, Fase 7 | S | Hecho (20 de agosto, bloque 5 del plan de cierre, ver nota) |
@@ -1164,7 +1176,39 @@ Laboratorio (bloque 1, 19 de agosto) con su propio botón «Abrir en solo lectur
 sus `case` de render y sus tres caminos funcionales sueltos (los enlaces «Ver Simulación nueva
 vida»/«Crear escenario» y `<a href="#simulator">` desde Deuda y Análisis) se quedan exactamente
 igual que antes: relegar del descubrimiento no es desconectar, mismo criterio que V2-8/V5-3
-aplicaron en su día. E-11b queda como la única decisión de diseño pendiente en esta pantalla.
+aplicaron en su día.
+
+**E-11b — 20 de agosto de 2026 (decisión de diseño + construcción, talla L, ver `PROJECT_STATE.md`).**
+La investigación previa a programar encontró que "Aplicar" nunca había tocado el plan financiero
+compartido (`scenarioSettings`/`debtLiquidations`): lo único que sobrescribía era la etiqueta de la
+entrada anterior en `escenario-motor-saved`. E-11b construye, por primera vez, el mecanismo de plan
+paralelo que pedía el mockup:
+
+- **Aplicar ya no sobrescribe.** `handleEscenarioAplicarConfirm` crea una copia marcada
+  `"propuesto"` sin tocar ninguna entrada anterior — antes degradaba en silencio la que estuviera
+  `"aplicado"` a `"guardado"`. Pueden convivir varios "propuesto"/"guardado"/"vigente" a la vez.
+- **"Vigente" sustituye a "aplicado"** como el estado que de verdad está en efecto; `"aplicado"` se
+  conserva como alias de lectura en los sitios que ya usaban ese valor (recordatorios de Hoy,
+  badge de la tarjeta) para no perder datos guardados antes de esta sesión.
+- **Cierre es donde se confirma o se descarta** (criterio literal del mockup): un nuevo paso
+  condicional "Revisar plan propuesto" se inserta en `cierreStepsStatus`, igual de condicional que
+  el paso de Sobres, justo antes de "Firmar y archivar" — solo aparece mientras exista al menos un
+  propuesto vivo, y nunca se marca hecho con datos: hace falta pulsar Confirmar (pasa a `"vigente"`
+  y degrada el vigente anterior a `"guardado"`) o Descartar (`"guardado"`, sin tocar el vigente).
+  Ninguna de las dos acciones borra nada.
+- **La tira de estado sigue mostrando el plan vigente** (ninguna de sus cinco cifras cambia) y gana
+  una insignia («Plan propuesto sin confirmar») mientras haya alguno pendiente — primer badge que
+  vive ahí.
+- **Diez planes vivos como máximo** (decisión de arquitectura del 14 de agosto, sección 2) se
+  construye aquí: `escenarioMotorLimitReached()` cuenta las entradas no archivadas y bloquea
+  Aplicar con un modal (`escenarioMotorLimitDialog`) que explica el motivo y enlaza a archivar.
+  Archivar (`handleEscenarioGuardadosArchive`/`Restore`, botones nuevos en cada tarjeta) nunca
+  borra — solo saca de la cuenta y de la vista principal; las tarjetas archivadas quedan dentro de
+  un `<details>` propio, con su contador y su botón de restaurar.
+
+**Validación**: 28 pruebas nuevas en `tests/e-11b-plan-paralelo.test.cjs`, más `tests/d-2b-cuadre-capital-deuda.test.cjs`
+(17) y los ajustes de `tests/e11-escenario-revision.test.cjs` para D-2b/E-11b — ver `PROJECT_STATE.md`
+para las cifras exactas de `npm run verify`.
 
 **E-13 — 20 de agosto de 2026 (bloque 4 del plan de cierre, §7), desbloqueada por D-10.** El propio
 código de `#escenario-guardados` documentaba desde el 17 de agosto que «Caducado» era un badge del
@@ -1691,11 +1735,16 @@ de las pantallas 03, 05 y 07. Con esto se cierran los cuatro bloques sin bloqueo
 cierre acordado el 19 de agosto (bloques 1-4); queda el bloque 5 (retirar heredadas) y las dos
 decisiones de diseño pendientes (D-2b/E-11b) para una sesión futura.
 
-**Antes de seguir — dos tareas que son diseño, no solo código.** D-2b y E-11b ya no están
+~~**Antes de seguir — dos tareas que son diseño, no solo código.** D-2b y E-11b ya no están
 bloqueadas técnicamente (Cierre existe desde el 16 de agosto), pero ninguna sesión las ha
 construido porque las dos tocan cómo se comporta el modelo de datos, no solo un campo
 nuevo. E-11b es la más grande de todo lo pendiente (talla L): la decisión de «diez planes
-vivos como máximo» ya está tomada (14 de agosto, sección 2) — falta construirla.
+vivos como máximo» ya está tomada (14 de agosto, sección 2) — falta construirla.~~ — **las dos
+completas el 20 de agosto de 2026**, ver las notas bajo las tablas de las pantallas 03 (Deuda) y
+05/06 (Escenarios). D-2b necesitaba una decisión real del usuario (qué fuente de "deuda viva"
+independiente comparar) antes de picar código; E-11b no necesitaba ninguna decisión nueva más allá
+de la ya tomada el 14 de agosto — la investigación previa a programar encontró además que Aplicar
+nunca había tocado el plan financiero compartido, lo que simplificó el diseño real.
 
 ~~**Bloque 5 — Retirar las heredadas, pantalla a pantalla.** E-14, A-12, C-14 y D-14: cuatro
 tareas gemelas que relegan sus heredadas al catálogo de Laboratorio (bloque 1). D-14 lleva
