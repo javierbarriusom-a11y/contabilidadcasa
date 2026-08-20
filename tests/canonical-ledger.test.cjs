@@ -13,6 +13,16 @@ test("genera identidades estables y detecta duplicados", () => {
   assert.equal(first.entries[1].duplicateOf, first.entries[0].id);
 });
 
+test("C-3b · conserva movement y details sueltos, no solo la description concatenada", () => {
+  const snapshot = ledger.buildLedgerSnapshot({
+    transactions: [{ date: "2026-06-02", movement: "Amazon", details: "Cargo tarjeta · pedido 4021", amount: -62.3, balance: 2900 }],
+  });
+  const entry = snapshot.entries[0];
+  assert.equal(entry.movement, "Amazon");
+  assert.equal(entry.details, "Cargo tarjeta · pedido 4021");
+  assert.equal(entry.description, "Amazon · Cargo tarjeta · pedido 4021");
+});
+
 test("reconcilia importes bancarios y reales por mes", () => {
   const snapshot = ledger.buildLedgerSnapshot({
     transactions: [
