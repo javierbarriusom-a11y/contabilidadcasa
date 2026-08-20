@@ -2943,6 +2943,124 @@
   display: none;
 }
 
+/* Laboratorio, reconstruida el 20 de agosto sobre el mockup real: tarjetas por defecto (con toggle
+   a lista), panel de detalle, y las dos notas fijas del mockup. */
+.laboratorio-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.laboratorio-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.laboratorio-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.laboratorio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.laboratorio-card.is-selected {
+  border-color: var(--e19-accent);
+  box-shadow: 0 0 0 1px var(--e19-accent);
+}
+
+.laboratorio-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.laboratorio-card-head code {
+  display: block;
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.laboratorio-card p {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+.laboratorio-card small {
+  color: var(--e19-muted);
+}
+
+.laboratorio-card-nota {
+  color: var(--e19-warning);
+}
+
+.laboratorio-readonly-note,
+.laboratorio-retirada-note {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--e19-radius-sm);
+}
+
+.laboratorio-readonly-note {
+  background: var(--e19-warning-soft);
+  border: 1px solid var(--e19-warning-soft-border);
+}
+
+.laboratorio-readonly-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--e19-text-xs);
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+
+.laboratorio-readonly-note ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.laboratorio-retirada-note {
+  background: var(--e19-ink);
+  color: #fff;
+}
+
+.laboratorio-retirada-title {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: var(--e19-text-xs);
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+}
+
+.laboratorio-retirada-note ol {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+@media (max-width: 880px) {
+  .laboratorio-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* C-12 · el contenedor de evidencia imprimible está fuera de `.e19-cierre` (vive junto al cierre
    de `.app-shell`) para que `@media print` pueda esconder todo lo demás sin pelearse con el resto
    de reglas de layout de la pantalla. Solo se ve durante `window.print()`, marcado por la clase que

@@ -201,7 +201,7 @@ Convención de estado: `Hecho` (verificado y publicado) / `Pendiente`. `T` = tal
 | H-5 | Decisiones abiertas | H-4 | M | Hecho (16 de agosto, ver nota) |
 | H-6 | «Agosto en una línea» con señales | — | M | Hecho (15 de agosto, ver nota) |
 | H-7 | Cuatro tarjetas de contexto | H-4 | L | Hecho |
-| H-8 | Tira de estado global | Fase 3 · menú | M | Hecho |
+| H-8 | Tira de estado global | Fase 3 · menú | M | Hecho (20 de agosto, ver nota) |
 | H-9 | Umbrales que pintan el aviso | Ajustes › umbrales | S | Hecho |
 | H-10 | Regla de dato ausente en toda la vista | H-3, H-4 | S | Hecho |
 
@@ -236,6 +236,21 @@ tareas no:
   punta a punta: subir un CSV real en Registrar › Importar, ir a Hoy, ver la tarjeta «Movimientos por
   incorporar» y comprobar que su botón navega de vuelta a la pestaña «Importar extracto» con la
   misma sesión en curso intacta. Pruebas nuevas en `tests/h5-hoy-decision-navegacion.test.cjs`.
+- **H-8 (reescrita el 20 de agosto de 2026, sesión de contraste con `Laboratorio.pdf`)**: el usuario
+  señaló, con capturas reales de la app (Ajustes › Laboratorio, Hoy, Registrar › Saldo de cuentas),
+  que la tira de estado que aparece en cabecera de ocho de las nueve pantallas nuevas (todas menos
+  Hoy, que ya lleva su propia rejilla de seis) no coincidía con la del mockup. La versión anterior
+  reutilizaba cuatro cifras de la rejilla de Hoy (Liquidez, Deuda pendiente, Capacidad libre real,
+  Reserva protegida); el mockup pide cinco distintas — **Liquidez hoy, Reserva protegida, Deuda
+  viva, Libre de deuda, Peor mes** — cada una con una cifra de apoyo pequeña debajo. `topbarStatusFigures()`
+  se reescribió para las cinco, sin inventar ningún cálculo nuevo: reutiliza `homeDebtOutlook()`
+  (D-4/D-9) para deuda viva y fecha estimada de libre-de-deuda, y `analisisCushionBand`/`analisisCushionWorst`
+  (A-2) para el peor mes de los próximos doce. Capacidad libre real, la cuarta cifra que se retira,
+  sigue disponible en Deuda › Ruta — no se pierde el dato, se deja de duplicar en la tira. Verificado
+  con Playwright contra el build local en `#registrar`: las cinco cifras aparecen con datos reales de
+  demostración («Liquidez hoy 9.270,00 € · 20 ago», «Reserva protegida 7.230,00 € · 2.040,00 € de
+  margen», «Deuda viva 12.000,00 € · 3 contratos», «Libre de deuda jul 29 · queda deuda sin cuota
+  activa», «Peor mes ago 26 · 2.2m · A vigilar»).
 
 ### 02 · Registrar — única puerta de escritura de datos reales (13 tareas · 2 grandes)
 
@@ -1498,6 +1513,58 @@ sitio, privacidad y smoke test, todos en verde. Verificado con Playwright contra
 tarjeta de Laboratorio en Ajustes resume «18 heredadas · 7 adoptada(s) · 10 sustituida(s) · 1
 descartada(s)», y el detalle de «Asesor ejecutivo» muestra el motivo corregido. Sin errores de consola
 propios.
+
+**Laboratorio rehecho el 20 de agosto de 2026, contra `Laboratorio.pdf`.** El usuario adjuntó el
+mockup real de la pantalla (dos páginas, exportadas de Claude Design) y pidió que Laboratorio quedara
+igual: tarjetas seleccionables con filtros por veredicto (Todas/Adoptada/Sustituida/Descartada) y un
+contador («N de 18 · M sin decidir»), un panel de detalle con la estructura exacta del mockup (Qué
+hacía / Dónde vive ahora / Recogida en / nota condicional / Escritura / Instantánea del cierre /
+botón «Abrir en solo lectura»), y las dos notas fijas del mockup con su copy literal (solo lectura sin
+excepciones; retirada de fase 7, con el aviso de que el código de las heredadas se borra del proyecto
+al cerrar). `LABORATORIO_CATALOG` se reescribió con el esquema del mockup
+(`dondeViveAhora`/`queHacia`/`nota`/`guardKey`/`evidenciaEscritura`, sustituyendo a `motivo`/`destino`).
+
+Antes de adoptar el mockup a ciegas se contrastaron sus tres citas de tarea de backlog contra
+`docs/BACKLOG_NUEVE_PANTALLAS.md`: «Recogida en AJ-3» (para `#alerts-center`) y «Recogida en AJ-4»
+(para `#operations-manual`) citan tareas que no existen — solo AJ-1 está en este documento
+(`grep -n "AJ-1\|AJ-2\|AJ-3\|AJ-4"` no encuentra AJ-3 ni AJ-4). Y el mockup marca `#movements` como
+«sustituida, sin tarea propia», pero el código (comentario de `index.html`, historial M-1…M-11) confirma
+que Movimientos se reconstruyó en su propio sitio, sin pantalla gemela. Las tres desviaciones se
+mantuvieron como ya estaban verificadas (`movements` y `alerts-center` siguen `adoptada`,
+`operations-manual` sigue `descartada`, no `sustituida` como dice el mockup) y quedan documentadas con
+un campo `nota` por entrada y un comentario de cabecera en el catálogo — no se repitió el error de dar
+por buena una fuente autorizada sin comprobarla contra el código (mismo tipo de fallo que produjo la
+corrección de L-5 el 19 de agosto).
+
+**L-5, guardarraíl centralizado real.** La versión del 19 de agosto documentaba los cinco puntos de
+escritura reales pero no los bloqueaba en código; el usuario pidió explícitamente el guardarraíl
+centralizado, no solo una redirección con nota. `laboratorioWriteGuard(actionLabel)` — sesión de
+solo lectura (`laboratorioReadOnlySession`, se activa al pulsar «Abrir en solo lectura» sobre una
+heredada desde una tarjeta del Laboratorio, se limpia sola al navegar a otra vista) — se llama al
+principio de las cinco puertas de escritura reales ya identificadas: `setAgentCaixaFloor`,
+`applyDebtDecision`, `applyProjectDecision`, `addUxAlert` y `handleSavingsPlanInput`. Cuando bloquea,
+registra el intento rechazado en un historial local (`laboratorio-rejected-writes`, mismo patrón de
+`storageGet`/`storageSet` que ya usa C-13) y avisa por `announceStatus`, sin guardar nada. Huecos
+conocidos y no cubiertos, documentados en el código en vez de silenciados: la propia clasificación de
+movimientos en Movimientos, «Guardar escenario» dentro de Escenarios de vida y deuda, y editar/pausar
+una regla de alerta ya creada.
+
+Se encontró y corrigió, en la misma verificación con Playwright, un fallo real de accesibilidad:
+`handleLaboratorioOpenReadOnly` anunciaba el aviso de solo lectura y a continuación llamaba a
+`setActiveView(hash)` sin `{ announce: false }` — el «X abierta.» genérico de `setActiveView` usa el
+mismo `announceStatus` con el mismo `setTimeout` de 10 ms, así que sobrescribía el aviso de seguridad
+en la región viva antes de que un lector de pantalla llegara a anunciarlo. Corregido pasando
+`{ announce: false }` y anunciando el aviso de solo lectura después de `setActiveView`, no antes;
+prueba nueva que fija el orden de las dos llamadas para que no se repita.
+
+**Validación**: `npm run verify`, exit 0 — **1287/1287 pruebas** (46 en
+`tests/l1-l10-fase7-laboratorio.test.cjs`, reescritas para el nuevo esquema del catálogo y las nuevas
+funciones de tarjetas/filtro/contador/guardarraíl), accesibilidad (780 IDs únicos), rendimiento (diff
+10.000 filas en 54,7 ms; forecast y escenarios en 273,8 ms; recursos 1649 KB), build del sitio,
+privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local: la rejilla
+de 18 tarjetas, el contador, los tres filtros, el cambio a vista de lista, el panel de detalle con las
+dos notas fijas, y la navegación real de «Abrir en solo lectura» hacia `#debt-control` con el aviso de
+solo lectura visible en la región viva (ya con la corrección de orden). Sin errores de consola propios.
 
 **C-13 — 19 de agosto de 2026 (bloque 2 del plan de cierre, §7).** "El cierre alimenta el
 aprendizaje" no podía engancharse al sistema de "aprendizaje" que ya existe en la app

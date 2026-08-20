@@ -1886,17 +1886,51 @@
 
             <!-- L-8: Laboratorio (docs/BACKLOG_NUEVE_PANTALLAS.md §09) vive DENTRO de Ajustes, no
                  como pantalla ni ruta propia — así L-10 («sin rutas colgando tras la retirada») no
-                 tiene ningún hash que pueda quedar apuntando a un sitio vacío. -->
+                 tiene ningún hash que pueda quedar apuntando a un sitio vacío. Reconstruida el 20 de
+                 agosto sobre el mockup real (`Laboratorio.pdf`): tarjetas por defecto, con toggle a
+                 lista, panel de detalle y las dos notas fijas del mockup (solo lectura sin
+                 excepciones, retirada al cerrar la fase 7). -->
             <article class="e19-card laboratorio-card" id="laboratorioCard">
-              <h3 class="escenario-motor-panel-title">Laboratorio · Fase 7</h3>
-              <p class="e19-kpi-note">Catálogo de las dieciocho pantallas heredadas del rediseño, cada una con un veredicto cerrado — adoptada, sustituida o descartada — y su motivo. «Deuda de transición con fecha de caducidad»: se retira cuando la fase 7 se dé por cerrada.</p>
+              <h3 class="escenario-motor-panel-title">Laboratorio</h3>
+              <p class="e19-kpi-note">Dieciocho pantallas heredadas, conservadas como archivo. Cada una lleva su veredicto y, si fue adoptada, la tarea que la recoge. Todas se abren en solo lectura sobre una instantánea del modelo: lo que se toque aquí no afecta a tus datos.</p>
               <p class="e19-kpi-note" id="laboratorioSummary"></p>
               <p class="e19-kpi-note" id="laboratorioSnapshot"></p>
-              <div id="laboratorioList"></div>
-              <div class="laboratorio-detail" id="laboratorioDetail"></div>
-              <div class="cuadro-mandos-controls">
-                <button type="button" class="e19-btn e19-btn-secondary" id="laboratorioExportCsv">Descargar acta en CSV</button>
-                <button type="button" class="e19-btn e19-btn-primary" id="laboratorioExportPdf">Descargar acta en PDF</button>
+
+              <div class="laboratorio-toolbar">
+                <div class="laboratorio-filters registrar-mes-filters" role="group" aria-label="Filtrar por veredicto" id="laboratorioFilters"></div>
+                <div class="laboratorio-view-toggle" role="group" aria-label="Vista">
+                  <button type="button" class="registrar-mes-filter is-active" data-laboratorio-view="tarjetas" aria-pressed="true">Tarjetas</button>
+                  <button type="button" class="registrar-mes-filter" data-laboratorio-view="lista" aria-pressed="false">Lista</button>
+                </div>
+                <button type="button" class="e19-btn e19-btn-secondary" id="laboratorioExportCsv">Exportar acta (CSV)</button>
+                <button type="button" class="e19-btn e19-btn-secondary" id="laboratorioExportPdf">Exportar acta (PDF)</button>
+              </div>
+              <p class="e19-kpi-note" id="laboratorioCounter"></p>
+
+              <div class="laboratorio-layout">
+                <div class="laboratorio-cards" id="laboratorioCards"></div>
+                <div id="laboratorioList" hidden></div>
+                <div class="laboratorio-detail" id="laboratorioDetail"></div>
+              </div>
+
+              <div class="laboratorio-readonly-note">
+                <p class="laboratorio-readonly-title">Solo lectura, sin excepciones</p>
+                <p>Las heredadas se abren contra una copia congelada del último cierre. Los botones de guardar, importar y aplicar escenario están desactivados en el propio componente, no escondidos: si una pantalla del Laboratorio intenta escribir, la escritura se rechaza y queda registrada.</p>
+                <ul>
+                  <li>La instantánea es una copia: el modelo vivo no se abre nunca desde aquí.</li>
+                  <li>Guardar, importar y aplicar escenario están desactivados en el componente.</li>
+                  <li>Un intento de escritura se rechaza y queda registrado en el historial.</li>
+                </ul>
+              </div>
+
+              <div class="laboratorio-retirada-note">
+                <p class="laboratorio-retirada-title">Retirada · Fase 7</p>
+                <ol>
+                  <li>Al terminar la fase 7 se exporta el acta: las dieciocho con su veredicto, su destino y su tarea.</li>
+                  <li>Las adoptadas se comprueban contra su tarea cerrada antes de retirar nada.</li>
+                  <li>El código de las heredadas se borra del proyecto; solo queda el acta y el historial.</li>
+                  <li>La entrada de Laboratorio desaparece del menú y Ajustes se queda con avisos y ayuda.</li>
+                </ol>
               </div>
             </article>
 
