@@ -1404,7 +1404,7 @@ verificar visualmente con Playwright — se verificó con las 11 pruebas nuevas,
 | C-1 | Cierre como secuencia SECUENCIAL de cuatro pasos | Fase 5 | L | Hecho (16 de agosto, ver nota) |
 | C-2 | Conciliación cuenta por cuenta | C-1, M-8c | L | Hecho (16 de agosto, ver nota) |
 | C-3 | Tareas agrupadas por causa | C-1 | M | Hecho (16 de agosto, ver nota) |
-| C-3b | Modal de resolución con dos salidas | C-3, M-8b | L | Pendiente (ver nota) |
+| C-3b | Modal de resolución con dos salidas | C-3, M-8b | L | Hecho (20 de agosto, ver nota) |
 | C-4 | Resolver no corrige por sí solo | C-3 | M | Hecho (16 de agosto, ver nota) |
 | C-5 | Requisitos de firma visibles | C-2, C-3 | M | Hecho (16 de agosto, ver nota) |
 | C-6 | Liquidación de sobres como asientos | P-15 | L | Hecho (19 de agosto, ver nota) |
@@ -1457,13 +1457,34 @@ bancario), `E11bInbox.reconciliationTasks` (tareas por causa) y `closeCurrentMon
   clasificar, meses cerrados) con enlace implícito al inventario completo (`#conciliar`, que
   conserva el detalle por movimiento). Los IDs de las tareas ya eran estables antes de esta sesión —
   `E11bInbox.reconciliationTasks` los construye desde el propio dato, nunca desde su posición.
-- **C-3b** — deliberadamente fuera de este incremento, y sigue así tras revisarlo de nuevo el 17 de
-  agosto (segunda fase, ver nota de cierre más abajo): el modal con dos rutas de resolución pedía
-  cruzar dos modelos de datos distintos (las `entries` del ledger no llevan de vuelta a la fila cruda
-  de `state.transactions` que necesita `movementMappingKey`/`transactionIdentity`) — nada ha cambiado
-  ese hecho, así que forzar el cruce seguiría siendo más riesgo que valor. Sigue pendiente.
+- **C-3b — construida el 20 de agosto de 2026 (ver `PROJECT_STATE.md`).** El bloqueo que la dejó
+  fuera del incremento del 16 de agosto y de su revisión del 17 no era «cruzar dos modelos de
+  datos» en general, sino un hueco concreto: `FinanceCanonicalLedger.normalizeTransaction()`
+  concatenaba `movement`/`details` en un único campo `description` para mostrar, sin conservarlos
+  sueltos — y `movementMappingKey()` los necesita por separado (no se pueden separar de vuelta de
+  forma fiable, " · " podría aparecer dentro del propio detalle). Solución aditiva, sin tocar
+  `state.transactions` en ningún momento: `canonical-ledger.js` conserva ahora `movement`/`details`
+  como campos propios de cada entrada, junto a `description` (que sigue igual para quien ya la
+  usaba). Con eso, el mockup 4f-cierre-tareas.png se construye tal cual: cada tarea de causa
+  «Clasificación» gana sus dos salidas — **Clasificar** (desplegable de partidas existentes,
+  reutiliza `movementMappingOptions`/`mappingForMovement`/la misma secuencia de escritura que
+  Movimientos — M-7) y **Crear partida** (formulario mínimo de nombre + sección que reutiliza la
+  creación de `customPlanningRows` del editor visual heredado, con el importe planificado arrancando
+  en lo que ya costó el movimiento, no en 0) — en un único diálogo (`cierreClassifyDialog`) que
+  alterna entre ambos modos sin cerrarse. El resto de causas (saldo, banco/real, capital de deuda)
+  conserva exactamente su botón de navegar de siempre (C-4 intacto). Ninguna tarea se marca resuelta
+  a mano: desaparece sola cuando `tasks` se recalcula y el movimiento ya está clasificado.
 - **C-6, C-7, C-13, C-14** — bloqueadas como estaba previsto: Sobres, A-7 (Análisis) y Fase 7 no
   existen todavía.
+
+**Validación de C-3b (20 de agosto)**: 15 pruebas nuevas (14 en `tests/c-3b-clasificar-en-cierre.test.cjs`,
+1 en `tests/canonical-ledger.test.cjs` para `movement`/`details`) — ver `PROJECT_STATE.md` para las
+cifras exactas de `npm run verify`. **Verificación visual con Playwright** contra el build local
+(inyectando movimientos de prueba, igual que A-13, porque los datos públicos de demostración no
+traen movimientos): clasificar con una partida existente saca la tarea de «Clasificación» y baja el
+contador de «Movimientos sin clasificar»; crear una partida nueva la añade a Plan y clasifica el
+movimiento con su propio `rowKey` en el mismo paso; cambiar de modo dentro del diálogo (Clasificar ↔
+Crear partida) no lo cierra ni pierde el movimiento que se estaba resolviendo. Sin hallazgos.
 
 **Validación de este incremento (16 de agosto)**: `npm test`, exit 0, **1082/1082 pruebas** (13
 nuevas en `tests/c1-c9-cierre-wizard.test.cjs`, más 2 pruebas existentes de E17/T-1 actualizadas
@@ -1517,8 +1538,8 @@ reabrir julio 2026 hace aparecer en Análisis el aviso «jul 26 se reabrió en C
 vuelto a firmar»; el botón CSV descarga sin error y el contenedor de impresión se rellena con el
 estado de cuentas y la nota de Sobres antes de `window.print()`. Sin errores de consola propios.
 
-Quedan pendientes: C-3b (ver nota arriba), C-14 (Fase 7). C-13 se construyó más tarde el propio 19 de
-agosto — ver su nota bajo la tabla de esta pantalla.
+Quedan pendientes: C-14 (Fase 7). C-13 se construyó más tarde el propio 19 de agosto — ver su nota
+bajo la tabla de esta pantalla. C-3b se construyó el 20 de agosto — ver su nota arriba.
 
 **C-14 — 20 de agosto de 2026 (bloque 5 del plan de cierre, §7).** Retira del menú avanzado y del
 lanzador las dos heredadas de conciliación — `data-audit`, `reconciliation` — mismo tratamiento
@@ -1526,8 +1547,7 @@ que E-14/A-12: quedan documentadas en el catálogo de Laboratorio con su botón 
 sus secciones, `case` de render y los tres caminos sueltos que V5-3 documentó como deliberadamente
 conservados (la tarjeta «Comprobar» de Actualizar, el siguiente paso sugerido cuando hay
 diferencias sin cuadrar, y el destino por defecto de las alertas sin target propio) se quedan
-exactamente igual. C-3b sigue congelada, sin fecha (ver nota arriba); D-14 sigue sin tocar, choca
-con T-4.
+exactamente igual. D-14 sigue sin tocar, choca con T-4.
 
 **Sobres construido — 19 de agosto de 2026 (P-14/P-15/C-6/C-7).** Cuarto punto del plan de cinco
 acordado con el usuario tras Escenarios, Cierre y Análisis, y último de los cuatro que no dependía
@@ -1768,12 +1788,17 @@ caminos funcionales sueltos. D-14 sigue sin tocar a propósito: el usuario, preg
 misma sesión, confirmó mantener T-4 bloqueada — sin datos de uso reales, no se decide por
 intuición si las heredadas de Deuda se retiran de verdad o siguen solo relegadas.
 
-**La única sin fecha — C-3b.** Congelada por un cruce de datos que no existe hoy (las
+~~**La única sin fecha — C-3b.** Congelada por un cruce de datos que no existe hoy (las
 `entries` del ledger no llevan de vuelta a la fila cruda de `state.transactions`).
 Revisado dos veces (16 y 17 de agosto) sin que el motivo cambie: no es la siguiente tarea
-de una sesión normal, es un rediseño de datos que merece su propia conversación.
+de una sesión normal, es un rediseño de datos que merece su propia conversación.~~ —
+**completa el 20 de agosto de 2026** (ver la nota bajo la tabla de esta pantalla): investigar de
+nuevo antes de programar encontró que el bloqueo no era el cruce en general, sino que
+`normalizeTransaction()` no conservaba `movement`/`details` sueltos — un campo aditivo en
+`canonical-ledger.js` lo resolvió sin tocar `state.transactions` para nada, y sin la sesión propia
+de modelo de datos que parecía necesitar.
 
-### Cuatro decisiones de producto que no resuelve una sesión de código
+### Tres decisiones de producto que no resuelve una sesión de código
 
 1. **D-12 (Deuda) · fuente del ingreso mensual del hogar.** El criterio pide comparar la
    cuota total de deuda contra un umbral, con margen restante — pero no hay hoy una cifra
@@ -1785,10 +1810,7 @@ de una sesión normal, es un rediseño de datos que merece su propia conversaci�
    uso reales sobre las heredadas ya relegadas a «Versiones anteriores» (10 de agosto).
    Reconfirmada por el usuario el 20 de agosto, tras completar E-14/A-12/C-14: sigue
    bloqueada, D-14 queda pendiente.
-3. **C-3b (Cierre) · ¿merece la pena tender el puente de datos?** El enlace a Movimientos
-   ya resuelve el caso, solo en dos pasos en vez de uno — construir el puente es una
-   sesión propia de modelo de datos, con su propio riesgo.
-4. **Laboratorio · destino de `agentCaixaFloor`, `debtLiquidations` y `projects`.** Hallazgo
+3. **Laboratorio · destino de `agentCaixaFloor`, `debtLiquidations` y `projects`.** Hallazgo
    de la sesión del 19 de agosto que construyó Laboratorio (ver la nota bajo la tabla de la
    pantalla 09): el «Asesor ejecutivo», «Agente ahorro y objetivos» y «Control de deuda»
    (heredadas) siguen siendo la única puerta de escritura de `agentCaixaFloor` y
@@ -1801,9 +1823,9 @@ de una sesión normal, es un rediseño de datos que merece su propia conversaci�
    quedan `adoptada` en el catálogo, no `sustituida`: bloquear su escritura sin resolver
    antes esta decisión rompería una fuente de datos real, no una redundancia.
 
-Si las cuatro se responden y no hay sorpresas de diseño en E-11b, este plan
-cierra el backlog completo salvo, posiblemente, D-14 — que depende de datos de uso, no de
-una sesión de más.
+D-2b, E-11b y C-3b ya están completas (20 de agosto). Con las tres decisiones que quedan (D-12, T-4,
+Laboratorio) respondidas, este plan cierra el backlog completo salvo, posiblemente, D-14 — que
+depende de datos de uso, no de una sesión de más.
 
 ## 8. Seis ideas adicionales (no bloquean ninguna fase)
 

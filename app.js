@@ -25731,6 +25731,8 @@ function conciliarMonthHistory(monthRows) {
 
 let cierreActiveStep = 1;
 let cierreEvidenceContext = null;
+// C-3b: id de la entrada del ledger que el modal de clasificación tiene abierta ahora mismo.
+let cierreClassifyEntryId = null;
 
 const CIERRE_ACCOUNT_LABELS = { caixabank: "CaixaBank", mediolanum: "Mediolanum" };
 
@@ -25849,6 +25851,148 @@ function cierreTaskActionLabel(task) {
   return "Corregir real";
 }
 
+// C-3b (Cierre.pdf, mockup 4f): las tareas de «Clasificación» se resuelven ahora sin salir de
+// Cierre, con las mismas dos salidas del mockup — Clasificar (partida existente) o Crear partida
+// (una nueva) — en vez de solo navegar a Movimientos como hacían el resto de causas (C-4 sigue
+// intacto para ellas). `E11bInbox.reconciliationTasks` construye el id de cada tarea de
+// clasificación como `classify-${entry.id}` — se recorta el prefijo para volver a la entrada real
+// del ledger, sin tocar la forma de ese módulo compartido con `#conciliar`.
+function cierreTaskEntryId(task) {
+  if (task.cause !== "unclassified" || !task.id?.startsWith("classify-")) return null;
+  return task.id.slice("classify-".length);
+}
+
+function cierreTaskItemHtml(task) {
+  const entryId = cierreTaskEntryId(task);
+  const actions = entryId
+    ? `<div class="cierre-task-actions">
+        <button type="button" class="e19-btn e19-btn-primary" data-cierre-task-classify="${escapeHtml(entryId)}">Clasificar</button>
+        <button type="button" class="e19-btn e19-btn-secondary" data-cierre-task-create-partida="${escapeHtml(entryId)}">Crear partida</button>
+      </div>`
+    : `<button type="button" class="e19-btn e19-btn-secondary" data-cierre-task-target="${escapeHtml(task.target)}">${cierreTaskActionLabel(task)}</button>`;
+  return `<li class="conciliar-task-item">
+      <div><strong>${escapeHtml(task.label)}</strong><p>Abrir no modifica nada.</p></div>
+      ${actions}
+    </li>`;
+}
+
+function cierreLedgerEntryById(entryId) {
+  return (canonicalLedgerSnapshot?.entries || []).find((entry) => entry.id === entryId) || null;
+}
+
+// La entrada del ledger ya trae `movement`/`details` sueltos (ver canonical-ledger.js) y
+// `signedAmount` con el signo real — con eso `movementMappingKey`/`mappingForMovement` funcionan
+// igual que con una fila cruda de `state.transactions`, sin tocarla para nada.
+function cierreEntryAsTransaction(entry) {
+  return { movement: entry.movement, details: entry.details, amount: entry.signedAmount };
+}
+
+function cierreClassifyNewSectionOptions(kind) {
+  return baseData.monthlyPlanning.sections
+    .filter((section) => section.kind === kind)
+    .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
+    .join("");
+}
+
+function cierreClassifyModalHtml(entry, mode) {
+  const mapping = mappingForMovement(cierreEntryAsTransaction(entry));
+  const selected = mapping?.row ? seriesKeyForRow(mapping.row) : "";
+  const existingSection = `<div class="cierre-classify-existing">
+      <label>
+        <span>Partida</span>
+        <select id="cierreClassifyPartida">${movementMappingOptions(entry.kind, selected)}</select>
+      </label>
+      <button type="button" class="e19-btn e19-btn-primary" id="cierreClassifySave">Clasificar</button>
+      <button type="button" class="cierre-classify-switch" id="cierreClassifySwitchToNew">¿No existe esa partida? Créala aquí.</button>
+    </div>`;
+  const newSection = `<div class="cierre-classify-new">
+      <label>
+        <span>Nombre</span>
+        <input type="text" id="cierreClassifyNewLabel" maxlength="60" placeholder="Ej.: Suscripción streaming" />
+      </label>
+      <label>
+        <span>Sección</span>
+        <select id="cierreClassifyNewSection">${cierreClassifyNewSectionOptions(entry.kind)}</select>
+      </label>
+      <button type="button" class="e19-btn e19-btn-primary" id="cierreClassifyCreate">Crear partida y clasificar</button>
+      <button type="button" class="cierre-classify-switch" id="cierreClassifySwitchToExisting">¿Ya existe? Elige de la lista.</button>
+    </div>`;
+  return `
+    <h3 id="cierreClassifyTitle">${escapeHtml(entry.description)}</h3>
+    <dl class="movement-detail-fields">
+      <div><dt>Fecha</dt><dd>${escapeHtml(formatIsoDate(entry.date))}</dd></div>
+      <div><dt>Importe</dt><dd class="${entry.signedAmount < 0 ? "negative" : "positive"}">${money(entry.signedAmount, true)}</dd></div>
+    </dl>
+    <p class="e19-kpi-note">Clasificar aquí aplica la misma regla que Movimientos: se recuerda para todos los movimientos con este concepto, futuros incluidos.</p>
+    ${mode === "new" ? newSection : existingSection}
+    <div class="cierre-classify-hidden" hidden>${mode === "new" ? existingSection : newSection}</div>`;
+}
+
+function cierreClassifyDialogSetMode(entry, mode) {
+  const content = qs("cierreClassifyContent");
+  if (!content) return;
+  content.innerHTML = cierreClassifyModalHtml(entry, mode);
+}
+
+function handleCierreTaskClassifyOpen(entryId, mode) {
+  const entry = cierreLedgerEntryById(entryId);
+  const dialog = qs("cierreClassifyDialog");
+  if (!entry || !dialog) return;
+  cierreClassifyEntryId = entryId;
+  cierreClassifyDialogSetMode(entry, mode);
+  dialog.showModal();
+}
+
+// La misma secuencia de escritura que ya usa Movimientos (M-7, `handleMovementReclassify`):
+// `movementMappings` → `applyMovementMappingsToActuals` → refrescar la sesión de importación
+// abierta (M-8b) → guardar reales → recalcular todas las pantallas. Cero cálculo financiero nuevo.
+function cierreClassifyApply(entry, rowKey, rowLabel) {
+  const key = movementMappingKey(cierreEntryAsTransaction(entry));
+  movementMappings[key] = { kind: entry.kind, rowKey, label: rowLabel, updatedAt: new Date().toISOString() };
+  saveMovementMappings();
+  applyMovementMappingsToActuals();
+  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+  datosImportarRefreshRowsForMappings(new Set([key]));
+  saveIncomeActuals();
+  saveExpenseActuals();
+}
+
+function handleCierreTaskClassifyConfirm() {
+  const entry = cierreLedgerEntryById(cierreClassifyEntryId);
+  const select = qs("cierreClassifyPartida");
+  if (!entry) return;
+  if (!select?.value) {
+    announceStatus("Elige una partida antes de guardar.");
+    return;
+  }
+  cierreClassifyApply(entry, select.value, select.options[select.selectedIndex]?.textContent || "");
+  qs("cierreClassifyDialog")?.close();
+  cierreClassifyEntryId = null;
+  refreshAllSectionsAfterDataChange();
+  announceStatus(`Partida guardada para «${entry.description}».`);
+}
+
+function handleCierreTaskCreatePartidaConfirm() {
+  const entry = cierreLedgerEntryById(cierreClassifyEntryId);
+  const labelInput = qs("cierreClassifyNewLabel");
+  const label = (labelInput?.value || "").trim();
+  if (!entry) return;
+  if (!label) {
+    announceStatus("Pon un nombre de concepto para crear la partida.");
+    labelInput?.focus();
+    return;
+  }
+  const sectionName = qs("cierreClassifyNewSection")?.value || "";
+  const sharedId = `custom-${entry.kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  customPlanningRows.push({ id: sharedId, custom: true, kind: entry.kind, sectionName, label, monthKey: entry.monthKey, plannedValue: entry.amount });
+  saveCustomPlanningRows();
+  cierreClassifyApply(entry, `${entry.kind}|${sharedId}`, label);
+  qs("cierreClassifyDialog")?.close();
+  cierreClassifyEntryId = null;
+  refreshAllSectionsAfterDataChange();
+  announceStatus(`«${label}» creada y el movimiento clasificado.`);
+}
+
 function cierreStep1Html(accountRows) {
   const descuadres = accountRows.filter((row) => row.status === "descuadra").length;
   const statusBadge = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger", "sin-conciliar": "e19-badge-neutral" };
@@ -25888,14 +26032,7 @@ function cierreStep2Html(tasks) {
     .map(
       (group) => `<div class="cierre-task-group">
         <h4>${escapeHtml(group.label)} · ${group.items.length}</h4>
-        <ol class="conciliar-task-list">${group.items
-          .map(
-            (task) => `<li class="conciliar-task-item">
-              <div><strong>${escapeHtml(task.label)}</strong><p>Abrir no modifica nada.</p></div>
-              <button type="button" class="e19-btn e19-btn-secondary" data-cierre-task-target="${escapeHtml(task.target)}">${cierreTaskActionLabel(task)}</button>
-            </li>`
-          )
-          .join("")}</ol>
+        <ol class="conciliar-task-list">${group.items.map(cierreTaskItemHtml).join("")}</ol>
       </div>`
     )
     .join("");
@@ -30169,9 +30306,25 @@ async function init() {
     if (propuestoConfirm) { handleCierrePropuestoConfirm(propuestoConfirm.dataset.cierrePropuestoConfirm); return; }
     const propuestoDiscard = event.target.closest("[data-cierre-propuesto-discard]");
     if (propuestoDiscard) { handleCierrePropuestoDiscard(propuestoDiscard.dataset.cierrePropuestoDiscard); return; }
+    const classifyOpen = event.target.closest("[data-cierre-task-classify]");
+    if (classifyOpen) { handleCierreTaskClassifyOpen(classifyOpen.dataset.cierreTaskClassify, "existing"); return; }
+    const createPartidaOpen = event.target.closest("[data-cierre-task-create-partida]");
+    if (createPartidaOpen) { handleCierreTaskClassifyOpen(createPartidaOpen.dataset.cierreTaskCreatePartida, "new"); return; }
     if (event.target.id === "cierreSignButton") handleCierreSign();
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");
+  });
+  qs("cierreClassifyDialog")?.addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) { qs("cierreClassifyDialog").close(); return; }
+    if (event.target.id === "cierreClassifyClose") { qs("cierreClassifyDialog").close(); return; }
+    if (event.target.id === "cierreClassifySave") { handleCierreTaskClassifyConfirm(); return; }
+    if (event.target.id === "cierreClassifyCreate") { handleCierreTaskCreatePartidaConfirm(); return; }
+    const entry = () => cierreLedgerEntryById(cierreClassifyEntryId);
+    if (event.target.id === "cierreClassifySwitchToNew" && entry()) { cierreClassifyDialogSetMode(entry(), "new"); return; }
+    if (event.target.id === "cierreClassifySwitchToExisting" && entry()) cierreClassifyDialogSetMode(entry(), "existing");
+  });
+  qs("cierreClassifyDialog")?.addEventListener("close", () => {
+    cierreClassifyEntryId = null;
   });
   qs("cierre")?.addEventListener("change", (event) => {
     const select = event.target.closest("[data-sobres-origen]");

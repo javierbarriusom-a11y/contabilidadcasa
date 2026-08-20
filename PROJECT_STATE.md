@@ -2,6 +2,56 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: C-3b — clasificar sin salir de Cierre
+
+Continuación de la misma sesión: con D-2b y E-11b verificadas visualmente (ver la entrada de abajo),
+tocaba C-3b, la última tarea pendiente del plan de cierre del 19 de agosto (junto a D-14, bloqueada
+a propósito por T-4, y C-3b misma, congelada desde el 16 de agosto).
+
+Investigar antes de programar encontró que el bloqueo real no era «cruzar dos modelos de datos» en
+general (como decía la nota congelada), sino un hueco concreto y aditivo:
+`FinanceCanonicalLedger.normalizeTransaction()` (`canonical-ledger.js`) concatenaba `movement` y
+`details` en un único campo `description` para mostrar, sin conservarlos sueltos — y
+`movementMappingKey()` (la función que ya usa Movimientos para clasificar) los necesita por
+separado; no se pueden recuperar de vuelta de forma fiable porque " · " podría aparecer dentro del
+propio detalle. La solución fue conservar `movement`/`details` como campos propios de cada entrada,
+junto a `description` (que sigue igual para quien ya la usaba) — sin tocar `state.transactions` para
+nada, y sin la sesión propia de rediseño de datos que la nota congelada anticipaba.
+
+Con eso resuelto, C-3b se construyó tal cual el mockup 4f-cierre-tareas.png: cada tarea de causa
+«Clasificación» gana sus dos salidas en un único diálogo (`cierreClassifyDialog`) que alterna entre
+ambos modos sin cerrarse —
+
+- **Clasificar**: desplegable de partidas existentes (`movementMappingOptions`, con la sugerencia de
+  `mappingForMovement` preseleccionada) que escribe en `movementMappings` y recalcula reales con la
+  misma secuencia exacta que ya usa Movimientos (M-7, `handleMovementReclassify`): cero cálculo
+  financiero nuevo.
+- **Crear partida**: formulario mínimo (nombre + sección) que reutiliza la creación de
+  `customPlanningRows` del editor visual heredado, con el importe planificado arrancando en lo que ya
+  costó el movimiento (nunca en 0), y clasifica el movimiento con el `rowKey` de la partida recién
+  creada en el mismo paso.
+
+El resto de causas (saldo, banco/real, capital de deuda) conserva exactamente su botón de navegar de
+siempre — C-4 sigue intacto para ellas. Ninguna tarea se marca resuelta a mano: desaparece sola
+cuando `tasks` se recalcula en el siguiente render y el movimiento ya está clasificado.
+
+**Validación**: `npm run verify`, exit 0 — **1370/1370 pruebas** (14 nuevas en
+`tests/c-3b-clasificar-en-cierre.test.cjs`, 1 nueva en `tests/canonical-ledger.test.cjs`),
+accesibilidad (787 IDs únicos), rendimiento (diff 10.000 filas en 50,9 ms; forecast y escenarios en
+283,5 ms; recursos 1681 KB), build del sitio, privacidad y smoke test, todos en verde. Verificado con
+Playwright contra el build local, inyectando movimientos de prueba (igual que A-13, porque los datos
+públicos de demostración no traen movimientos por privacidad): clasificar con una partida existente
+saca la tarea de «Clasificación» y baja «Movimientos sin clasificar»; crear una partida nueva la
+añade a Plan y clasifica el movimiento con su propio `rowKey` en el mismo paso; cambiar de modo
+dentro del diálogo (Clasificar ↔ Crear partida) no lo cierra ni pierde el movimiento que se estaba
+resolviendo. Sin hallazgos.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — C-3b pasa de `Pendiente` a `Hecho` en la
+tabla de la pantalla 08 (Cierre), con nota extensa bajo la tabla; el §7 «Plan de cierre» tacha su
+entrada como resuelta y las «cuatro decisiones de producto» pasan a ser tres (D-12, T-4, Laboratorio).
+Con esto, el plan de cierre acordado el 19 de agosto queda completo salvo D-14 (choca con T-4,
+bloqueada a propósito) y las tres decisiones de producto que siguen esperando su propia conversación.
+
 ## Cierre de sesión — 20 de agosto de 2026: verificación visual con Playwright de D-2b y E-11b
 
 Sesión sin cambios de código: cierra la recomendación que dejó la sesión anterior («se recomienda

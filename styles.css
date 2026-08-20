@@ -7901,6 +7901,44 @@ body {
   font-weight: 700;
 }
 
+/* C-3b: el modal de clasificación de Cierre reutiliza el mismo patrón de campos/gap que
+   .movement-detail-reclassify, con dos secciones (partida existente / partida nueva) que se
+   alternan sin cerrar el diálogo. */
+.cierre-task-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cierre-classify-existing,
+.cierre-classify-new {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border, #e2e2e2);
+  padding-top: 14px;
+  margin-top: 14px;
+}
+
+.cierre-classify-existing label,
+.cierre-classify-new label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 700;
+}
+
+.cierre-classify-switch {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--e19-accent, #2f6fed);
+  text-decoration: underline;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

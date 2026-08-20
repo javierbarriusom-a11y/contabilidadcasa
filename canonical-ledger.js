@@ -67,6 +67,12 @@
       amount: Math.abs(amount),
       balanceAfter: transaction.balance === null || transaction.balance === undefined ? null : round(transaction.balance),
       accountId: text(transaction.accountId || "caixabank"),
+      // C-3b: `description` concatena movimiento y detalle para mostrar, pero no se puede separar
+      // de vuelta de forma fiable (" · " podría aparecer dentro del propio detalle) — se
+      // conservan también sueltos para que quien clasifique esta entrada (movementMappingKey) no
+      // necesite volver a la fila cruda de `state.transactions`.
+      movement: text(transaction.movement),
+      details: text(transaction.details),
       description: text(transaction.details ? `${transaction.movement} · ${transaction.details}` : transaction.movement),
       source: text(transaction.source || "extracto bancario"),
       sourceRow: Number.isFinite(Number(transaction.sourceRow ?? transaction.statementOrder))
