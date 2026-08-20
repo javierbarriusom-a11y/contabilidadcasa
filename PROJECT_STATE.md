@@ -1,6 +1,50 @@
 # Estado del proyecto
 
-Fecha de revisión: 19 de agosto de 2026.
+Fecha de revisión: 20 de agosto de 2026.
+
+## Cierre de sesión — 20 de agosto de 2026: bloque 3 del plan de cierre — P-13, P-16 (Plan · Ahorro y objetivos)
+
+Último punto del plan de cierre (`docs/BACKLOG_NUEVE_PANTALLAS.md` §7): la cadena de dos tareas que
+cerraba la pantalla 04 (Plan). P-13 depende de P-12 (bloque 2, ya hecho el 19 de agosto); P-16
+depende de P-13 y de Sobres (P-14/P-15, también del 19 de agosto).
+
+- **P-13 (Objetivos con destino y prioridad)** añade una lista de objetivos de ahorro a la pestaña
+  Ahorro de Plan, debajo del semáforo de P-12: destino (texto libre), importe objetivo opcional y
+  prioridad (el orden de la lista, con subir/bajar). Vive en `scenarioSettings.savingsGoals`, mismo
+  patrón de lista libre gobernada por el usuario que ya usa `scenarioSettings.alerts` — sin motor
+  propio que la recalcule. El acumulado de cada objetivo no se fabrica (regla transversal 04): se
+  suma de los asientos reales que deja P-16 al cerrar un mes; sin ningún cierre así, es 0 € y la
+  pantalla lo dice explícitamente.
+- **P-16 (Sobres · suma con los objetivos de ahorro)** conecta esa lista con la liquidación de sobres
+  de P-15. Un sobre en positivo sin ninguna cobertura reclamada, que hasta ahora solo podía arrastrar
+  en silencio, gana una tercera opción: sumar de verdad a un objetivo declarado, en su orden de
+  prioridad, ocultando los que ya alcanzaron su importe. La cobertura entre sobres (C-6/C-7) sigue
+  ganando siempre sobre una elección de objetivo. El envío a un objetivo queda como el mismo tipo de
+  asiento que ya firma P-15 (`envelopeSettlements`, `destino: "objetivo:<id>"`) y no arrastra nada al
+  mes siguiente (arrastrarlo además duplicaría el dinero); el acumulado se suma del cierre vigente de
+  cada mes, mismo criterio de "vigente" que ya usa `cierreVersionRows` (C-10), para no contar dos
+  veces un mes reabierto y vuelto a cerrar.
+
+**Validación**: `npm run verify`, exit 0 — **1271/1271 pruebas** (16 nuevas en
+`tests/p13-p16-ahorro-objetivos.test.cjs`), accesibilidad (777 IDs únicos), rendimiento (diff 10.000
+filas en 44,0 ms; forecast y escenarios en 217,4 ms), build del sitio, privacidad y smoke test, todos
+en verde. Verificado con Playwright contra el build local: crear un objetivo («Fondo de emergencia»,
+30 €) lo añade a la tabla con «0,00 € de 30,00 €»; subir/bajar prioridad reordena la tabla y borrar
+tras confirmar la quita; con Sobres activo, el paso «Liquidar sobres» de Cierre ofrece «Objetivo:
+Fondo de emergencia» junto a «Arrastra al mes siguiente» para un sobre en positivo, y la elección se
+mantiene seleccionada. Firmar el cierre no fue posible en este entorno (exige sesión y sincronización
+con Supabase, bloqueadas aquí — mismo límite ya documentado en sesiones anteriores de Cierre), así
+que el acumulado tras un cierre real queda cubierto por las pruebas unitarias (incluida una
+reapertura y recierre del mismo mes con un objetivo distinto, para probar que no se cuenta dos
+veces), no por esta verificación visual. Sin errores de consola propios (el único aviso de red es el
+`ERR_TUNNEL_CONNECTION_FAILED` hacia el CDN de Supabase, preexistente, más un 404 puntual sin URL
+capturable, también preexistente y ya documentado en sesiones anteriores).
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — P-13/P-16 pasan a `Hecho`, con la nota
+bajo la tabla de la pantalla 04; el bloque 3 del plan de cierre (§7) se marca completo. Con esto se
+cierran los tres bloques sin bloqueo real del plan de cierre acordado el 19 de agosto (bloques 1-3);
+quedan el bloque 4 (parciales de Deuda) y las dos decisiones de diseño pendientes (D-2b/E-11b) para
+una sesión futura.
 
 ## Cierre de sesión — 19 de agosto de 2026: bloque 2 del plan de cierre — P-10, P-11, P-12, A-3, A-10, C-13
 
