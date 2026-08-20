@@ -222,19 +222,34 @@
               </div>
             </div>
 
-            <div class="home-kpi-grid" id="homeKpis"></div>
-
-            <!-- H-3: tarjeta oscura con la cifra, unidad, insignia de confianza, margen previsto y fecha de ingreso. -->
-            <article class="home-panel e6-coverage-card" id="e6CoveragePanel">
-              <div class="module-heading">
-                <div>
-                  <p class="panel-kicker">Hasta el siguiente ingreso</p>
-                  <h3><span id="e6CoverageDays">—</span> <span class="e6-coverage-unit">día(s)</span></h3>
+            <!-- Hoy.pdf «Hoy, alineada»: la cifra manda — el bloque de cobertura conserva su tarjeta
+                 propia, en paralelo con «Agosto en una línea» (misma fila, mismo peso visual). -->
+            <div class="home-layout">
+              <!-- H-3: tarjeta oscura con la cifra, unidad, insignia de confianza, margen previsto y fecha de ingreso. -->
+              <article class="home-panel e6-coverage-card" id="e6CoveragePanel">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Hasta el siguiente ingreso</p>
+                    <h3><span id="e6CoverageDays">—</span> <span class="e6-coverage-unit">día(s)</span></h3>
+                  </div>
+                  <span class="status-pill" id="e6CoverageStatus">Calculando</span>
                 </div>
-                <span class="status-pill" id="e6CoverageStatus">Calculando</span>
-              </div>
-              <div class="e6-coverage-summary" id="e6CoverageSummary"></div>
-            </article>
+                <div class="e6-coverage-summary" id="e6CoverageSummary"></div>
+              </article>
+
+              <!-- H-6: Ingresos/Gasto previsto/Gasto real a hoy/Desviación + dos filas de señal + nota de confianza. -->
+              <article class="home-panel home-month-glance" id="homeMonthGlance">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Este mes</p>
+                    <h3 id="homeMonthGlanceTitle">El mes en una línea</h3>
+                  </div>
+                  <span class="e19-kpi-meta">Ejecución del mes en curso</span>
+                </div>
+                <div class="home-month-glance-rows" id="homeMonthGlanceRows"></div>
+                <p class="home-month-glance-confidence" id="homeMonthGlanceConfidence"></p>
+              </article>
+            </div>
 
             <!-- H-3b: editor de cobertura aprendida, bajo la tarjeta anterior. -->
             <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
@@ -257,42 +272,21 @@
               <p class="e6-coverage-source" id="e6CoverageSource"></p>
             </article>
 
+            <!-- Hoy.pdf: «primero qué hacer, después de dónde sale» — decisiones abiertas (con la
+                 lectura de hoy como primera línea) en paralelo con los próximos hitos. -->
             <div class="home-layout">
               <article class="home-panel home-main-panel">
                 <div class="module-heading">
                   <div>
-                    <p class="panel-kicker">Situación actual</p>
-                    <h3>Lectura de hoy</h3>
+                    <p class="panel-kicker">Centro único</p>
+                    <h3>Decisiones abiertas</h3>
                   </div>
+                  <span class="e19-kpi-meta">Ordenadas por lo que caduca antes</span>
                 </div>
                 <div class="home-insight-list" id="homeInsights"></div>
-              </article>
-
-              <article class="home-panel">
-                <div class="module-heading">
-                  <div>
-                    <p class="panel-kicker">Centro único</p>
-                    <h3>Tres decisiones</h3>
-                  </div>
-                </div>
                 <div class="home-action-grid" id="homeActions"></div>
               </article>
-            </div>
 
-            <!-- H-6: Ingresos/Gasto previsto/Gasto real a hoy/Desviación + dos filas de señal + nota de confianza. -->
-            <article class="home-panel home-month-glance" id="homeMonthGlance">
-              <div class="module-heading">
-                <div>
-                  <p class="panel-kicker">Este mes</p>
-                  <h3 id="homeMonthGlanceTitle">El mes en una línea</h3>
-                </div>
-                <span class="e19-kpi-meta">Ejecución del mes en curso</span>
-              </div>
-              <div class="home-month-glance-rows" id="homeMonthGlanceRows"></div>
-              <p class="home-month-glance-confidence" id="homeMonthGlanceConfidence"></p>
-            </article>
-
-            <div class="home-layout">
               <article class="home-panel">
                 <div class="module-heading">
                   <div>
@@ -302,7 +296,13 @@
                 </div>
                 <div class="home-priority-list" id="homePriorities"></div>
               </article>
+            </div>
 
+            <div class="home-kpi-grid" id="homeKpis"></div>
+
+            <!-- Hoy.pdf: «en Hoy no hay tira de estado» — la rejilla de seis ya cubre ese hueco;
+                 debajo, una sola fila con riesgo, modo familiar y alertas. -->
+            <div class="home-layout home-layout-triple home-context-layout">
               <article class="home-panel">
                 <div class="module-heading">
                   <div>
@@ -316,9 +316,7 @@
                   <table class="home-month-table" id="homeMonthTable"></table>
                 </div>
               </article>
-            </div>
 
-            <div class="home-layout home-context-layout">
               <article class="home-panel">
                 <div class="module-heading">
                   <div>

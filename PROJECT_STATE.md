@@ -2,6 +2,50 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: pixel-perfect de Hoy contra `Hoy.pdf`
+
+El usuario pidió repasar las pantallas una a una comparando el sitio publicado con los mockups en
+PDF, empezando por Hoy, sin borrar nada de lo ya construido. Las 11 tareas de Hoy (`docs/BACKLOG_NUEVE_PANTALLAS.md`
+§1) ya estaban en Hecho y auditadas por contenido el 15 de agosto, pero esa auditoría nunca comparó
+el resultado visual pixel a pixel: se capturó el build local (`npm run build:site` + servidor
+estático, ya que el proxy de esta sesión bloquea `javierbarriusom-a11y.github.io`) con Playwright y
+se comparó contra `Hoy.pdf` recorte a recorte.
+
+**Dos gaps de maquetación, ninguno de contenido o cálculo:**
+
+1. **Cabecera duplicada**: la cabecera genérica compartida por las nueve pantallas (`#viewEyebrow`/
+   `#viewTitle` con el texto heredado «Control diario de caja, deuda y decisiones» + el recuadro
+   `#e17ViewGuide` «Para qué sirve / Estado / Siguiente paso») seguía apareciendo por encima del
+   bloque propio de Hoy («Qué necesita tu atención»), que ya cumplía H-1. El mockup no lleva esa
+   cabecera genérica en Hoy. `setActiveView` la oculta ahora solo cuando la vista activa es Hoy
+   (`#viewTitle` pasa a `sr-only`, sigue siendo el objetivo de foco tras navegar; `#viewEyebrow` y
+   `#e17ViewGuide` se ocultan del todo); las otras ocho vistas no cambian. `viewTitles.home` pasa de
+   «Control diario…» a «Hoy» / «Qué necesita tu atención» para que el `<title>` del documento y el
+   anuncio por voz coincidan con lo visible.
+2. **Orden y agrupación de tarjetas**: `index.html` no seguía el orden del mockup (rejilla de seis
+   indicadores primero, «Lectura de hoy» y «Tres decisiones» sin emparejar, «Agosto en una línea» a
+   ancho completo y aparte, fila final en dos filas de dos). Reordenado a: (a) tarjeta oscura +
+   «Agosto en una línea» en paralelo; (b) editor de cobertura aprendida; (c) «Decisiones abiertas»
+   (con la lectura de hoy como primera línea de la misma tarjeta) junto a «Próximos hitos»; (d)
+   rejilla de seis; (e) una sola fila de tres — Riesgo, Modo familiar, Alertas. Ningún cálculo ni
+   función de render se tocó, solo la posición de sus contenedores en `index.html`; nueva clase
+   `.home-layout-triple` en `styles.css` con el mismo punto de colapso a una columna (1440px) que
+   `.home-layout`.
+
+**Validación**: `npm run verify`, exit 0 — **1415/1415 pruebas**, accesibilidad (789 IDs únicos),
+rendimiento (diff 10.000 filas en 28,8 ms; forecast y escenarios en 163,8 ms; recursos 1694 KB), build
+del sitio, privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local a
+1440 px y 1920 px: cabecera duplicada fuera solo en Hoy, hero + «Agosto en una línea» en paralelo,
+«Decisiones abiertas» agrupada con «Próximos hitos», fila de Riesgo/Modo familiar/Alertas en tres
+columnas a 1920 px y colapsada a una a 1440 px. Sin hallazgos adicionales.
+
+**Pendiente, fuera de alcance de esta sesión**: la franja superior de utilidad del mockup (Buscar,
+Hogar, Escenario, Ajustes junto al chip de sincronización) depende de la reforma de menú de Fase 3,
+común a las nueve pantallas — no se ha tocado. Backlog actualizado en `docs/BACKLOG_NUEVE_PANTALLAS.md`
+§1. Sin rama publicada todavía: pendiente de la autorización de commit/push de este mismo cierre.
+Próxima pantalla a repasar, a criterio del usuario: cualquiera de las ocho restantes del mismo
+paquete de PDFs (Registrar, Cierre, Análisis, Deuda, Plan, Escenarios, Ajustes, Laboratorio).
+
 ## Cierre de sesión — 20 de agosto de 2026: Laboratorio — puente Escenarios → debtLiquidations
 
 Continuación de la misma sesión: con el contador de visitas fusionado, tocaba la última mitad

@@ -10428,6 +10428,20 @@ tbody tr:hover {
   align-items: stretch;
 }
 
+/* Hoy.pdf «Hoy, alineada»: Riesgo, Modo familiar y Alertas en una sola fila de tres, no dos filas
+   de dos — mismo módulo que `.home-layout`, con una tercera columna igual de ancha. */
+.home-layout-triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Misma anchura de colapso que ya usa `.home-layout` (definida más arriba, así que sin esta regla
+   posterior la de tres columnas ganaría también por debajo de 1440px). */
+@media (max-width: 1440px) {
+  .home-layout-triple {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .home-family-summary,
 .home-alert-summary {
   display: grid;
