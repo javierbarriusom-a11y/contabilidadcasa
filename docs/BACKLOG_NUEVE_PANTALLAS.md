@@ -894,6 +894,12 @@ en cuanto el próximo cierre firmado la reconcilia. Es un registro local, no via
 Pruebas: `tests/d1-d2-deuda-tabs-contratos.test.cjs` (31 pruebas nuevas); se ajustó
 `tests/navigation-structure.test.cjs` (el menú avanzado gana un enlace).
 
+**Verificación visual con Playwright (20 de agosto, sesión aparte)**: contra el build local, los
+tres estados del pie de Contratos — "sin cierre" (por defecto, sin datos de demostración), "cuadra"
+y "descuadra" con sus dos botones de salida — se comprobaron inyectando un snapshot en
+`debt-capital-snapshot-at-close`, el mismo mecanismo que usa `closeCurrentMonthTransaction()` al
+firmar. Sin hallazgos.
+
 **Auditoría del 15 de agosto contra `Deuda.pdf` (sesión de contraste con los PDFs nuevos).** D-1,
 D-2, D-3, D-5 y D-7 coinciden con el criterio (incluidas las cuatro estrategias avalancha/bola de
 nieve/consolidar/no-tocar, verificadas en `DEBT_STRATEGY_DEFINITIONS`, pese a que la nota de arriba
@@ -1209,6 +1215,13 @@ paralelo que pedía el mockup:
 **Validación**: 28 pruebas nuevas en `tests/e-11b-plan-paralelo.test.cjs`, más `tests/d-2b-cuadre-capital-deuda.test.cjs`
 (17) y los ajustes de `tests/e11-escenario-revision.test.cjs` para D-2b/E-11b — ver `PROJECT_STATE.md`
 para las cifras exactas de `npm run verify`.
+
+**Verificación visual con Playwright (20 de agosto, sesión aparte)**: ciclo completo contra el build
+local — crear una decisión en `#escenario-simular`, aplicarla y ver que aterriza como "Propuesto" en
+`#escenario-guardados` sin tocar ninguna "Vigente"; en `#cierre` aparecen la insignia «Plan propuesto
+sin confirmar» y el paso condicional «Revisar plan propuesto» (correctamente bloqueado hasta resolver
+el paso anterior); `handleCierrePropuestoConfirm()` pasa el propuesto a "vigente" y el paso
+desaparece al no quedar ninguno pendiente. Sin hallazgos.
 
 **E-13 — 20 de agosto de 2026 (bloque 4 del plan de cierre, §7), desbloqueada por D-10.** El propio
 código de `#escenario-guardados` documentaba desde el 17 de agosto que «Caducado» era un badge del

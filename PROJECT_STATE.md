@@ -2,6 +2,35 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: verificación visual con Playwright de D-2b y E-11b
+
+Sesión sin cambios de código: cierra la recomendación que dejó la sesión anterior («se recomienda
+una pasada visual en la próxima sesión con navegador», ver la entrada de abajo). Con `node_modules`
+instalado y Chromium disponible en el contenedor, se recorrió con Playwright contra el build local
+(`dist/`, servido en `localhost`) el ciclo completo de las dos funciones nuevas:
+
+- **D-2b.** `#deuda-contratos` muestra correctamente el pie "sin cierre" por defecto (sin ningún
+  cierre firmado todavía en los datos de demostración). Editar el capital de un contrato marca la
+  fila "Editado" sin romper nada. Inyectando un snapshot en `debt-capital-snapshot-at-close` (mismo
+  mecanismo que usa `closeCurrentMonthTransaction()` al firmar) se comprobaron también los otros dos
+  estados: "cuadra" con la cifra exacta del cierre, y "descuadra" con la diferencia en € y los dos
+  botones de salida («Ajustar aquí» / «Ir a Cierre»).
+- **E-11b.** Ciclo de punta a punta en `#escenario-simular` → `#escenario-aplicar`: crear una
+  decisión, aplicarla y comprobar que aterriza como tarjeta "Propuesto" en `#escenario-guardados`
+  (nunca sobrescribe ninguna "Vigente" existente). En `#cierre` aparece la insignia «Plan propuesto
+  sin confirmar» y el paso condicional «Revisar plan propuesto», bloqueado hasta resolver el paso
+  anterior — candado correcto (`unlocked: previousDone`), no un fallo. `cierreStepPropuestoHtml()`
+  genera los botones Confirmar/Descartar con el id correcto de cada propuesto, y
+  `handleCierrePropuestoConfirm()` transiciona `"propuesto"` → `"vigente"` en el almacenamiento tal
+  cual describe el código; la tarjeta pasa a mostrar la insignia verde "VIGENTE" y el paso
+  condicional desaparece de Cierre al no quedar ningún propuesto vivo.
+- Sin errores de consola relevantes (solo un intento de sincronización con Supabase sin credenciales
+  y un recurso 404 ajenos a esta sesión, ya presentes antes).
+
+Sin hallazgos que corregir: el diseño construido el 20 de agosto se comporta tal cual lo documenta
+el propio código. `npm test`: **1355/1355 pruebas**, sin cambios de código de la app (solo esta nota
+y el ajuste correspondiente en `docs/BACKLOG_NUEVE_PANTALLAS.md`).
+
 ## Cierre de sesión — 20 de agosto de 2026: D-2b y E-11b — las dos decisiones de diseño pendientes
 
 Continuación de la misma sesión: con el bloque 5 cerrado, tocaba D-2b y E-11b, las dos tareas que
