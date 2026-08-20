@@ -229,7 +229,7 @@ test("L-3 · laboratorioDetailFor localiza la ficha exacta por hash", () => {
 });
 
 test("L-3 · laboratorioDetailHtml muestra qué hacía, dónde vive ahora, tarea, instantánea y el botón de abrir en solo lectura", () => {
-  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v };
+  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v, laboratorioVisitasText: () => "0 visitas registradas todavía." };
   vm.createContext(context);
   vm.runInContext(`${extractConst("LABORATORIO_VEREDICTO_LABEL")}\n${extractConst("LABORATORIO_VEREDICTO_BADGE")}\n${extractFunction("laboratorioDetailHtml")}`, context);
   const entry = {
@@ -256,7 +256,7 @@ test("L-3 · laboratorioDetailHtml muestra qué hacía, dónde vive ahora, tarea
 });
 
 test("L-3 · laboratorioDetailHtml pinta la nota de desviación solo cuando existe", () => {
-  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v };
+  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v, laboratorioVisitasText: () => "0 visitas registradas todavía." };
   vm.createContext(context);
   vm.runInContext(`${extractConst("LABORATORIO_VEREDICTO_LABEL")}\n${extractConst("LABORATORIO_VEREDICTO_BADGE")}\n${extractFunction("laboratorioDetailHtml")}`, context);
   const out = context.laboratorioDetailHtml({ hash: "movements", label: "Movimientos", veredicto: "adoptada", queHacia: "x", dondeViveAhora: "Movimientos", destino: null, backlogTask: "M-1", nota: "Nota de prueba", evidenciaEscritura: "y" }, null);
