@@ -2,6 +2,42 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: unificación del colchón CaixaBank (Laboratorio)
+
+Continuación de la misma sesión: con C-3b fusionado, tocaba la primera de las tres decisiones de
+producto pendientes (§7 del backlog) — Laboratorio, la parte de `agentCaixaFloor`.
+
+Investigar antes de programar encontró algo más concreto que "falta una pantalla moderna que
+escriba este dato": Ajustes **ya tenía** un control de reserva (`ajustesReserve` →
+`state.operatingReserve`, V6-1/V6-3), pero es una variable completamente distinta de la que leen
+Hoy, Registrar, Deuda · Ruta y Asesor de decisión (`agentCaixaFloor()` →
+`savingsAgentSettings().caixaFloor`) — dos "colchones" de nombre parecido que podían divergir sin
+que nadie lo notara. Un test ya existente (`tests/l1-l10-fase7-laboratorio.test.cjs`, "el catálogo
+no repite el error de confundir...") documentaba exactamente este hallazgo de una sesión anterior,
+sin resolverlo.
+
+**La unificación**: `agentCaixaFloor()` ahora prioriza `state.operatingReserve` cuando está
+configurado (> 0) — manda para las cuatro pantallas modernas y para las tres heredadas por igual.
+Si no está configurado, cada camino conserva exactamente el respaldo que ya tenía
+(`savingsAgentSettings().caixaFloor`, o 2.500 € por defecto si tampoco existe) — nadie que solo
+haya usado las heredadas ve cambiar su cifra. `setAgentCaixaFloor()` (las tres heredadas: Asesor
+ejecutivo, Agente ahorro y objetivos, Asesor virtual de solo lectura) escribe ahora también
+`state.operatingReserve`, para que editar desde cualquiera de las cuatro puertas actualice las
+otras tres sin que ninguna parezca "no guardar" en el siguiente render. Ajustes gana una nota
+ampliada que nombra los cuatro consumidores nuevos.
+
+**Validación**: `npm run verify`, exit 0 — **1379/1379 pruebas** (9 nuevas en
+`tests/laboratorio-colchon-unificado.test.cjs`), accesibilidad (787 IDs únicos), rendimiento (diff
+10.000 filas en 38,9 ms; forecast y escenarios en 198,3 ms; recursos 1683 KB), build del sitio,
+privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local: fijar la
+reserva en Ajustes a 5.000 € se refleja al instante en el campo de Agente ahorro y objetivos;
+editar ese campo heredado a 3.500 € se refleja de vuelta en Ajustes. Sin hallazgos.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` §7 — la parte `agentCaixaFloor` de la
+decisión Laboratorio pasa a resuelta; quedan `debtLiquidations` (conectar el plan vigente de
+Escenarios como puerta de escritura real — sesión propia) y `projects` (sin urgencia, se deja como
+está). Quedan pendientes: D-12, T-4 y la mitad de Laboratorio (`debtLiquidations`).
+
 ## Cierre de sesión — 20 de agosto de 2026: C-3b — clasificar sin salir de Cierre
 
 Continuación de la misma sesión: con D-2b y E-11b verificadas visualmente (ver la entrada de abajo),

@@ -1816,12 +1816,19 @@ de modelo de datos que parecía necesitar.
    (heredadas) siguen siendo la única puerta de escritura de `agentCaixaFloor` y
    `debtLiquidations`, que Hoy, Registrar, Deuda · Ruta y Asesor de decisión ya **leen** sin
    tener dónde escribirlos — no es un hueco de escritura sin bloquear (R-11), es que la
-   pantalla que debería escribir ese dato no existe todavía. El «Simulador» escribe
-   `projects`, que ninguna pantalla nueva lee y que el motor de forecast canónico no usa: su
-   caso es distinto — no falta una pantalla que lo sustituya, falta confirmar con datos de
-   uso reales si `projects` sigue haciendo falta o se puede dar por descartado. Las cuatro
-   quedan `adoptada` en el catálogo, no `sustituida`: bloquear su escritura sin resolver
-   antes esta decisión rompería una fuente de datos real, no una redundancia.
+   pantalla que debería escribir ese dato no existe todavía.
+   - ~~`agentCaixaFloor`~~ — **resuelto el 20 de agosto** (ver `agentCaixaFloor()` en app.js):
+     no hacía falta una pantalla nueva, sino unificarlo con la reserva operativa que Ajustes
+     ya tenía por separado (`state.operatingReserve`, V6-1/V6-3) — dos «colchones» que podían
+     divergir sin que nadie lo notara. Ajustes es ahora la puerta moderna real, sin quitarles
+     la suya a las tres heredadas.
+   - `debtLiquidations` — sigue pendiente: el motor de Escenarios (E-11b) tiene un tipo de
+     decisión casi idéntico, pero vive en un carril aparte que nunca toca `debtLiquidations`.
+     Conectarlo como la puerta de escritura real es la solución más coherente, pero es una
+     sesión propia — toca el ciclo de vida que E-11b acaba de estrenar.
+   - `projects` — el «Simulador» sigue siendo su única puerta; ninguna pantalla nueva lo lee
+     ni el motor de forecast canónico lo usa. Sin urgencia real: se revisa solo si algún día
+     una pantalla nueva lo necesita.
 
 D-2b, E-11b y C-3b ya están completas (20 de agosto). Con las tres decisiones que quedan (D-12, T-4,
 Laboratorio) respondidas, este plan cierra el backlog completo salvo, posiblemente, D-14 — que
