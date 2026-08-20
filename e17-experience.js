@@ -19,10 +19,6 @@
     { target: "cambios-pendientes", label: "Cambios pendientes (nuevo)", group: "analysis", keywords: "cambios pendientes bandeja revertir guardar descartar impacto conjunto nuevo e20" },
     { target: "mapa-calor", label: "Mapa de calor mensual (nuevo)", group: "analysis", keywords: "mapa calor colchon salud mensual peor mes riesgo nuevo e20" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
-    // T-1 releva la decimoctava heredada: hasta ahora quedaba fuera de «legacy» solo porque era
-    // pestaña principal («Decidir»). Al dejar de serlo, se releva como las diecisiete anteriores.
-    { target: "new-life-definitive", label: "Simulación nueva vida definitiva", group: "legacy", keywords: "decisiones deuda coche proyectos traspasos decidir" },
-    { target: "new-life-simulation", label: "Escenarios de vida y deuda", group: "legacy", keywords: "escenario simulacion imprevisto favorable tension" },
     { target: "escenario-simular", label: "Escenario · simular (nuevo)", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados (nuevo)", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
     { target: "deuda-comparar", label: "Comparar estrategias de deuda (nuevo)", group: "analysis", keywords: "deuda estrategia comparar avalancha bola nieve nuevo e20" },
@@ -33,15 +29,12 @@
     { target: "debt-roadmap", label: "Plan de deuda", group: "legacy", keywords: "deuda negociar ofertas cuota refinanciacion" },
     { target: "savings-agent", label: "Objetivos y ahorro", group: "legacy", keywords: "objetivos huchas aportaciones ahorro" },
     { target: "movements", label: "Movimientos", group: "legacy", keywords: "movimientos banco categorias buscar" },
-    { target: "reconciliation", label: "Conciliar", group: "legacy", keywords: "conciliacion extracto saldo diferencias" },
     { target: "data-entry", label: "Carga de datos", group: "data", keywords: "importar csv excel datos lote" },
-    { target: "data-audit", label: "Datos y auditoría", group: "legacy", keywords: "calidad procedencia auditoria confianza" },
-    // V2-8 relega cuatro pantallas que solo se alcanzaban desde el menú avanzado. Sin entrada en el
-    // lanzador, apagar «Versiones anteriores» las dejaría sin ninguna vía: relegar no es desconectar.
+    // V2-8 relegó cuatro pantallas que solo se alcanzaban desde el menú avanzado. Bloque 5
+    // (E-14/A-12, 20 de agosto) retira del lanzador simulador, plan ahorro y flujo mensual — ya
+    // documentadas en el catálogo de Laboratorio, con su propio botón de acceso de solo lectura.
+    // Cuadro de mandos sigue sin entrada propia fuera de aquí: relegar no es desconectar.
     { target: "visual-detail", label: "Cuadro de mandos", group: "legacy", keywords: "cuadro mandos detalle liquidez proyectada resumen plan" },
-    { target: "simulator", label: "Simulador de decisiones", group: "legacy", keywords: "simulador proyectos supuestos impacto caja" },
-    { target: "savings-plan", label: "Plan ahorro", group: "legacy", keywords: "plan ahorro extras deuda viva aportaciones" },
-    { target: "cashflow", label: "Flujo mensual", group: "legacy", keywords: "flujo caja anual mensual detalle operativo" },
     // V3-5 hace lo mismo con las dos heredadas de Deuda que tampoco tenían entrada propia. Ojo:
     // `#debt-control` sí se alcanza desde una tarjeta de ruta (`data-home-nav="debt-control"`) y
     // `#debt-liquidation-plan` enlaza a ella, pero ninguna de las dos vías sirve si lo que el

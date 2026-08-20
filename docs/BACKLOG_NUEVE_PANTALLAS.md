@@ -980,7 +980,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 | E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Pendiente (ya no bloqueada: Cierre hecho — no construida esta sesión, fuera de la lista pedida) |
 | E-12 | Comparar dos escenarios guardados | E-10 | M | Hecho (17 de agosto, ver nota) |
 | E-13 | Caducidad de escenarios con oferta | E-10, D-10 | S | Hecho (20 de agosto, ver nota) |
-| E-14 | Retirar las tres heredadas de simulación | E-1, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
+| E-14 | Retirar las tres heredadas de simulación | E-1, Fase 7 | S | Hecho (20 de agosto, bloque 5 del plan de cierre, ver nota) |
 
 - **E-1** — el catálogo tiene exactamente once tipos agrupados en dos `<optgroup>` (Deuda/Vida),
   navegable y sin ningún tipo ofrecido sin formulario: coincide en forma con el criterio. Pero en
@@ -1157,6 +1157,15 @@ propios.
 Quedan pendientes, sin bloqueo: E-11b (Cierre), E-14 (Fase 7). (E-13 se construyó el 20 de agosto,
 ver la nota siguiente.)
 
+**E-14 — 20 de agosto de 2026 (bloque 5 del plan de cierre, §7).** Retira del menú avanzado
+(«Versiones anteriores») y del lanzador («Buscar o abrir») las tres heredadas de simulación —
+`new-life-simulation`, `simulator`, `new-life-definitive` — ya documentadas en el catálogo de
+Laboratorio (bloque 1, 19 de agosto) con su propio botón «Abrir en solo lectura». Sus secciones,
+sus `case` de render y sus tres caminos funcionales sueltos (los enlaces «Ver Simulación nueva
+vida»/«Crear escenario» y `<a href="#simulator">` desde Deuda y Análisis) se quedan exactamente
+igual que antes: relegar del descubrimiento no es desconectar, mismo criterio que V2-8/V5-3
+aplicaron en su día. E-11b queda como la única decisión de diseño pendiente en esta pantalla.
+
 **E-13 — 20 de agosto de 2026 (bloque 4 del plan de cierre, §7), desbloqueada por D-10.** El propio
 código de `#escenario-guardados` documentaba desde el 17 de agosto que «Caducado» era un badge del
 mockup sin construir «porque no hay todavía... concepto de oferta con vencimiento». Con D-10
@@ -1180,7 +1189,7 @@ nunca uno ya `"aplicado"` — ese cambió el plan de verdad) viene de D-13 con u
 | A-9 | Qué se repite | A-1, M-3 | M | Hecho (17 de agosto, ver nota) |
 | A-10 | Confianza del dato | A-1, Cierre | M | Hecho (19 de agosto, ver nota) |
 | A-11 | Exportar en CSV y en PDF | A-1 | M | Hecho (17 de agosto, ver nota) |
-| A-12 | Retirar las heredadas visuales | A-1, Fase 7 | S | Pendiente |
+| A-12 | Retirar las heredadas visuales | A-1, Fase 7 | S | Hecho (20 de agosto, bloque 5 del plan de cierre, ver nota) |
 | A-13 | Actuar desde el aviso, sin duplicar el camino | A-9, A-10, M-8 | L | Hecho (20 de agosto, ver nota) |
 
 **Análisis construido el 16 de agosto** — primer incremento real de la Fase 6, punto 3 del plan de
@@ -1263,6 +1272,14 @@ Análisis). Quedaban pendientes, sin bloqueo nuevo: A-3 (ver nota arriba), A-7/A
 historial dedicado — parcialmente cubierto por C-10/C-11, pero no completo), A-12 (Fase 7), A-13
 (A-9, A-10, M-8).
 
+**A-12 — 20 de agosto de 2026 (bloque 5 del plan de cierre, §7).** Retira del menú avanzado y del
+lanzador las dos heredadas visuales de Análisis — `savings-plan`, `cashflow` — con el mismo
+tratamiento que E-14: ya están en el catálogo de Laboratorio con su botón de solo lectura, y sus
+secciones, `case` de render y caminos sueltos (el enlace «Plan ahorro» del semáforo de ahorro y
+«Ver flujo mensual» desde la simulación de ruta de Deuda) no se tocan. `visual-detail` (Cuadro de
+mandos) queda fuera a propósito: su `dondeViveAhora` real en el catálogo es «Plan y Registrar», no
+Análisis, así que sigue en «Versiones anteriores» sin que esto la afecte.
+
 **A-7 — 19 de agosto de 2026.** Quinto punto del plan de sesión (tras Escenarios, Cierre, Análisis y
 Sobres): «¿acierta el plan?» compara previsto y real, pero solo en meses ya **cerrados** — un mes
 abierto todavía puede cambiar de real, así que no hay una relación mes→dato fiable hasta que Cierre
@@ -1341,7 +1358,7 @@ verificar visualmente con Playwright — se verificó con las 11 pruebas nuevas,
 | C-11 | Reapertura registrada y notificada | C-10, A-7, A-10 | L | Hecho (parcial, 17 de agosto, ver nota) |
 | C-12 | Descargar evidencia en PDF y CSV | C-5 | M | Hecho (17 de agosto, ver nota) |
 | C-13 | El cierre alimenta el aprendizaje | C-5, A-7 | M | Hecho (19 de agosto, ver nota) |
-| C-14 | Retirar las dos heredadas de conciliación | C-9, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
+| C-14 | Retirar las dos heredadas de conciliación | C-9, Fase 7 | S | Hecho (20 de agosto, bloque 5 del plan de cierre, ver nota) |
 
 **Cierre construido el 16 de agosto** — primer incremento real de la Fase 5, punto 2 del plan de
 construcción acordado con el usuario (Escenarios ya cerrado, ver pantalla 06). Nueva pantalla
@@ -1445,6 +1462,15 @@ estado de cuentas y la nota de Sobres antes de `window.print()`. Sin errores de 
 
 Quedan pendientes: C-3b (ver nota arriba), C-14 (Fase 7). C-13 se construyó más tarde el propio 19 de
 agosto — ver su nota bajo la tabla de esta pantalla.
+
+**C-14 — 20 de agosto de 2026 (bloque 5 del plan de cierre, §7).** Retira del menú avanzado y del
+lanzador las dos heredadas de conciliación — `data-audit`, `reconciliation` — mismo tratamiento
+que E-14/A-12: quedan documentadas en el catálogo de Laboratorio con su botón de solo lectura, y
+sus secciones, `case` de render y los tres caminos sueltos que V5-3 documentó como deliberadamente
+conservados (la tarjeta «Comprobar» de Actualizar, el siguiente paso sugerido cuando hay
+diferencias sin cuadrar, y el destino por defecto de las alertas sin target propio) se quedan
+exactamente igual. C-3b sigue congelada, sin fecha (ver nota arriba); D-14 sigue sin tocar, choca
+con T-4.
 
 **Sobres construido — 19 de agosto de 2026 (P-14/P-15/C-6/C-7).** Cuarto punto del plan de cinco
 acordado con el usuario tras Escenarios, Cierre y Análisis, y último de los cuatro que no dependía
@@ -1671,9 +1697,14 @@ construido porque las dos tocan cómo se comporta el modelo de datos, no solo un
 nuevo. E-11b es la más grande de todo lo pendiente (talla L): la decisión de «diez planes
 vivos como máximo» ya está tomada (14 de agosto, sección 2) — falta construirla.
 
-**Bloque 5 — Retirar las heredadas, pantalla a pantalla.** E-14, A-12, C-14 y D-14: cuatro
+~~**Bloque 5 — Retirar las heredadas, pantalla a pantalla.** E-14, A-12, C-14 y D-14: cuatro
 tareas gemelas que relegan sus heredadas al catálogo de Laboratorio (bloque 1). D-14 lleva
-un candado extra (ver decisiones, abajo).
+un candado extra (ver decisiones, abajo).~~ — E-14, A-12 y C-14 **completas el 20 de agosto de
+2026** (ver las notas bajo las tablas de las pantallas 05/06, 07 y 08): las siete heredadas
+correspondientes salen del menú avanzado y del lanzador, sin tocar sus secciones ni ninguno de sus
+caminos funcionales sueltos. D-14 sigue sin tocar a propósito: el usuario, preguntado de nuevo esta
+misma sesión, confirmó mantener T-4 bloqueada — sin datos de uso reales, no se decide por
+intuición si las heredadas de Deuda se retiran de verdad o siguen solo relegadas.
 
 **La única sin fecha — C-3b.** Congelada por un cruce de datos que no existe hoy (las
 `entries` del ledger no llevan de vuelta a la fila cruda de `state.transactions`).
@@ -1690,6 +1721,8 @@ de una sesión normal, es un rediseño de datos que merece su propia conversaci�
 2. **T-4 (Deuda) · ¿se retira de verdad D-14, o sigue solo relegada?** Bloqueada a
    propósito desde antes del 14 de agosto en `PROJECT_STATE.md`, a la espera de datos de
    uso reales sobre las heredadas ya relegadas a «Versiones anteriores» (10 de agosto).
+   Reconfirmada por el usuario el 20 de agosto, tras completar E-14/A-12/C-14: sigue
+   bloqueada, D-14 queda pendiente.
 3. **C-3b (Cierre) · ¿merece la pena tender el puente de datos?** El enlace a Movimientos
    ya resuelve el caso, solo en dos pasos en vez de uno — construir el puente es una
    sesión propia de modelo de datos, con su propio riesgo.

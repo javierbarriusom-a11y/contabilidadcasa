@@ -16,10 +16,15 @@ const navLinks = [...html.matchAll(/<a href="#([\w-]+)" data-e17-group="(\w+)">/
 }));
 const groupOf = (view) => navLinks.find((link) => link.view === view)?.group;
 
-test("V5-3 · las tres pantallas de Cierre quedan en Versiones anteriores", () => {
-  for (const view of ["reconciliation", "data-audit", "operations-manual"]) {
-    assert.equal(groupOf(view), "legacy", `${view} debería estar relegada`);
-  }
+// C-14 (bloque 5, 20 de agosto) retira `reconciliation`/`data-audit` del menú avanzado y del
+// lanzador: ya no quedan en «Versiones anteriores» como esta prueba documentaba en su día. Las
+// dos secciones y todos sus caminos funcionales (tarjeta «Comprobar», siguiente paso sugerido,
+// destino por defecto de las alertas) siguen intactos, igual que hacía V5-3 — el mismo trato que
+// E-14/A-12 dieron a sus heredadas: solo se retiran las dos vías de descubrimiento, nada más.
+test("V5-3 · operations-manual sigue en Versiones anteriores; reconciliation/data-audit ya no (C-14)", () => {
+  assert.equal(groupOf("operations-manual"), "legacy", "operations-manual debería seguir relegada");
+  assert.equal(groupOf("reconciliation"), undefined, "C-14 retira reconciliation del menú avanzado");
+  assert.equal(groupOf("data-audit"), undefined, "C-14 retira data-audit del menú avanzado");
   assert.equal(groupOf("conciliar"), "data", "la conciliación nueva se queda en Datos");
 });
 
@@ -44,10 +49,9 @@ test("V5-3 · la guía contextual de cada flujo no depende de la pantalla relega
   assert.match(app, /guideTopicFor\(activeViewId\)/);
 });
 
-test("V5-3 · el lanzador sigue ofreciendo Conciliar y Datos y auditoría", () => {
-  assert.match(experience, /target: "reconciliation"[^}]*group: "legacy"/);
-  assert.match(experience, /target: "data-audit"[^}]*group: "legacy"/);
-  assert.match(experience, /target: "reconciliation"[^}]*keywords: "conciliacion extracto saldo diferencias"/);
+test("V5-3 · el lanzador ya no ofrece Conciliar ni Datos y auditoría (C-14)", () => {
+  assert.doesNotMatch(experience, /target: "reconciliation"/);
+  assert.doesNotMatch(experience, /target: "data-audit"/);
 });
 
 test("V5-3 · viaja en el shell offline versionado", () => {

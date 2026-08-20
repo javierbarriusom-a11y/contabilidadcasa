@@ -2,6 +2,50 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: bloque 5 del plan de cierre — E-14, A-12, C-14
+
+Última sesión abierta con `/finanzas-casa-workflow`, siguiendo el plan de las tres fases
+pendientes (`docs/BACKLOG_NUEVE_PANTALLAS.md` §7: las dos decisiones de diseño D-2b/E-11b, el
+bloque 5 de heredadas, y C-3b congelada). Preguntado por dónde empezar, el usuario eligió el
+bloque 5 primero y confirmó mantener T-4 bloqueada — D-14 queda pendiente, no se reabre esa
+decisión esta sesión.
+
+- **E-14, A-12, C-14 (bloque 5, tres de las cuatro tareas gemelas)**. Retiran del menú avanzado
+  («Versiones anteriores») y del lanzador («Buscar o abrir») las siete heredadas correspondientes
+  — `new-life-simulation`, `simulator`, `new-life-definitive` (Escenarios); `savings-plan`,
+  `cashflow` (Análisis); `data-audit`, `reconciliation` (Cierre) — ya documentadas en el catálogo
+  de Laboratorio (bloque 1, 19 de agosto) con su propio botón «Abrir en solo lectura». Sus
+  secciones, sus `case` de render y todos sus caminos funcionales sueltos (enlaces «Ver
+  Simulación nueva vida», «Ver flujo mensual», «Plan ahorro», la tarjeta «Comprobar» de
+  Actualizar, el siguiente paso sugerido al haber diferencias, y el destino por defecto de las
+  alertas sin target propio) se quedan exactamente igual que antes: relegar del descubrimiento no
+  es desconectar, mismo criterio que V1-4/V2-8/V5-3 aplicaron en su día — decisión tomada
+  explícitamente para mantener estas tres tareas en su talla S, sin extender el alcance a
+  rutas funcionales que no pedía el backlog.
+  `visual-detail` (Cuadro de mandos) queda fuera de A-12 a propósito: su `dondeViveAhora` real en
+  el catálogo es «Plan y Registrar», no Análisis. D-14 (las tres heredadas de Deuda) sigue sin
+  tocarse: choca con T-4, reconfirmada bloqueada por el usuario esta misma sesión.
+- Quedan D-2b y E-11b (decisiones de diseño, talla M y L) y C-3b (congelada, sin fecha) para una
+  sesión futura — ninguna se abordó hoy.
+
+**Validación**: `npm run verify`, exit 0 — **1307/1307 pruebas** (7 nuevas en
+`tests/e14-a12-c14-bloque5-retirar-heredadas.test.cjs`; se actualizaron seis pruebas existentes —
+`navigation-structure`, `v1-4-relegar-hoy`, `v2-8-relegar-plan`, `v5-3-relegar-cierre`,
+`t1-seis-vistas`, `e11a-interface` — que contaban enlaces del menú/lanzador a mano o asumían que
+las siete heredadas seguían en «Versiones anteriores»), accesibilidad (781 IDs únicos, sin
+cambios: no se añadió ni quitó ningún elemento con ID), rendimiento (diff 10.000 filas en 50,2 ms;
+forecast y escenarios en 268,2 ms; recursos 1661 KB), build del sitio, privacidad y smoke test,
+todos en verde. No se verificó visualmente con Playwright esta sesión (no había `node_modules`
+instalado en el contenedor): el cambio es puramente de listas de navegación/lanzador —contenido
+de texto, sin lógica nueva— y las pruebas nuevas leen el HTML/JS reales (no mocks) para comprobar
+enlaces retirados, secciones intactas, catálogo sin cambios y los caminos sueltos preservados; se
+recomienda una verificación visual rápida en la próxima sesión que abra el navegador.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — E-14/A-12/C-14 pasan de `Pendiente` a
+`Hecho` en las tablas de las pantallas 05/06 (Escenarios), 07 (Análisis) y 08 (Cierre), con nota
+bajo cada tabla; el bloque 5 del plan de cierre (§7) se marca completo salvo D-14, y la decisión
+T-4 se anota como reconfirmada bloqueada el 20 de agosto.
+
 ## Cierre de sesión — 20 de agosto de 2026: bloque 4 del plan de cierre — D-10, D-11, D-13, E-13, A-13
 
 Último bloque de "completar los parciales de Deuda" (`docs/BACKLOG_NUEVE_PANTALLAS.md` §7): tres
