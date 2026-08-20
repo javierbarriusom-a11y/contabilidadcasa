@@ -2462,6 +2462,14 @@
   background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
 }
 
+/* D-10 · aviso activo de caducidad de la oferta, y la nota de "ya decidida" que ya existía sin
+   color propio bajo esta pantalla. */
+.e19-deuda-decidir .e19-kpi-note.is-danger,
+.e19-deuda-decidir .asesor-decision-subtitle .is-danger {
+  color: var(--e19-danger);
+  font-weight: 600;
+}
+
 /* D-4 · calendario de amortización, un <details> por contrato para no volcar de golpe hasta 600
    filas mensuales de cada deuda a la vez. */
 .e19-deuda-decidir .deuda-ruta-calendar-card {

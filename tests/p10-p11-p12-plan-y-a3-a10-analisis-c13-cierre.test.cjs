@@ -269,7 +269,24 @@ test("A-10 · analisisConfianzaDatoHtml dice cuántos movimientos del mes siguen
   });
   assert.match(out, /2 de 5 movimiento\(s\) de agosto de 2026 sin clasificar todavía/);
   assert.match(out, /data-home-nav="cierre"/);
+  // A-13: con pendientes reales el CTA deja de ser un enlace genérico — lleva ya el mes para
+  // preseleccionar sus filas sin clasificar en Movimientos (M-8).
+  assert.match(out, /data-analisis-actuar-confianza="2026-08"/);
+});
+
+test("A-10/A-13 · sin pendientes, el CTA vuelve a ser un enlace simple a Movimientos", () => {
+  const context = baseContext();
+  vm.createContext(context);
+  vm.runInContext(extractFunction("analisisConfianzaDatoHtml"), context);
+  const out = context.analisisConfianzaDatoHtml({
+    accountRows: [{ label: "CaixaBank", declared: 100, calculated: 100, diff: 0, status: "cuadra" }],
+    monthKey: "2026-08",
+    monthLabel: "agosto de 2026",
+    totalMovements: 5,
+    unclassifiedCount: 0,
+  });
   assert.match(out, /data-home-nav="movements"/);
+  assert.doesNotMatch(out, /data-analisis-actuar-confianza/);
 });
 
 // --- A-10/A-3 cableado en renderAnalisis --------------------------------------------------------------

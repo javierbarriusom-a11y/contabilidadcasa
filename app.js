@@ -559,6 +559,19 @@ function addMonths(date, count) {
   return new Date(date.getFullYear(), date.getMonth() + count, 1);
 }
 
+// D-10: aviso activo de caducidad sobre una clave de mes ("YYYY-MM", el mismo formato que
+// escenarioMotorMonthLabel y el <input type="month"> de "Vigencia hasta" en #debt-roadmap).
+// "Vencida" si el mes de vigencia ya pasó; "a punto de vencer" si vence este mes o el que viene —
+// misma distinción danger/warn que ya usan homeDebtReviewReminders/homeEscenarioReviewReminders
+// sobre una fecha completa, aquí sobre una clave de mes, comparable como cadena por su formato fijo.
+function debtOfferExpiryStatus(expiresAt, referenceDate = new Date()) {
+  if (!expiresAt) return { expired: false, dueSoon: false, status: "warn" };
+  const currentKey = monthKey(referenceDate);
+  const expired = currentKey > expiresAt;
+  const dueSoon = !expired && expiresAt <= monthKey(addMonths(referenceDate, 1));
+  return { expired, dueSoon, status: expired || dueSoon ? "danger" : "warn" };
+}
+
 function dateFromMonthKey(key) {
   const [year, month] = key.split("-").map(Number);
   return new Date(year, month - 1, 1);
@@ -17031,6 +17044,26 @@ const MOVEMENT_CHIPS = [
   { id: "duplicado-revisado", label: "Duplicado revisado", test: (row) => row.duplicateReviewed === true },
 ];
 let movementsChipFilter = "todos";
+// A-13: "actuar desde el aviso, sin duplicar el camino" — un aviso de Análisis (A-9/A-10) deja aquí
+// un criterio de una sola vez (qué filas preseleccionar) antes de navegar a Movimientos. El propio
+// renderDetailedMovements lo consume y lo vacía en su siguiente render, así que no importa si ese
+// render ocurre en el mismo tick (setActiveView) o queda diferido: cuando llegue, seguirá ahí.
+// Nunca construye una segunda selección o una segunda acción en lote — solo puebla
+// movementsSelectedIndexes antes de que renderMovementsBulkBar() pinte la barra real de M-8.
+let movementsPendingAutoSelect = null;
+
+function movementsActFromAlert({ search = "", chip = "todos", dateFrom = "", dateTo = "", matcher = null } = {}) {
+  const searchField = qs("movementSearch");
+  if (searchField) searchField.value = search;
+  const fromField = qs("movementDateFrom");
+  if (fromField) fromField.value = dateFrom;
+  const toField = qs("movementDateTo");
+  if (toField) toField.value = dateTo;
+  movementsChipFilter = MOVEMENT_CHIPS.some((item) => item.id === chip) ? chip : "todos";
+  movementsPendingAutoSelect = typeof matcher === "function" ? matcher : null;
+  history.pushState(null, "", "#movements");
+  setActiveView("movements", { focus: true });
+}
 
 // M-3: rango libre (Desde/Hasta) y búsqueda por concepto o importe, sobre `Fecha` — la misma que ya
 // ordenaba la tabla. Separado de `movementsFilteredList()` para que el recuento de cada chip
@@ -17167,6 +17200,14 @@ function renderDetailedMovements() {
   // M-8: la tabla se reconstruye entera en cada filtro nuevo, así que cualquier selección previa
   // deja de corresponder a las mismas filas — se vacía aquí, no solo al aplicar el lote.
   movementsSelectedIndexes.clear();
+  // A-13: si venimos de "actuar desde el aviso", la selección de una sola vez se aplica sobre las
+  // filas ya filtradas de este render y se consume — el siguiente re-render vuelve a partir vacío.
+  if (movementsPendingAutoSelect) {
+    filtered.forEach((row, index) => {
+      if (movementsPendingAutoSelect(row)) movementsSelectedIndexes.add(index);
+    });
+    movementsPendingAutoSelect = null;
+  }
 
   const countLabel = qs("movementCount");
   if (countLabel) countLabel.textContent = `${filtered.length} movimiento(s) reales.`;
@@ -17187,7 +17228,7 @@ function renderDetailedMovements() {
   rowsElement.innerHTML = filtered
     .map(
       (row, index) => `<tr>
-        <td><input type="checkbox" class="movements-row-select" data-movement-select-index="${index}" aria-label="Seleccionar movimiento del ${escapeHtml(formatIsoDate(row.date))}" /></td>
+        <td><input type="checkbox" class="movements-row-select" data-movement-select-index="${index}"${movementsSelectedIndexes.has(index) ? " checked" : ""} aria-label="Seleccionar movimiento del ${escapeHtml(formatIsoDate(row.date))}" /></td>
         <td>${formatIsoDate(row.date)}</td>
         <td>${formatIsoDate(row.valueDate)}</td>
         <td>${escapeHtml(row.movement)}</td>
@@ -17214,7 +17255,7 @@ function renderDetailedMovements() {
 
   const selectAll = qs("movementsSelectAll");
   if (selectAll) {
-    selectAll.checked = false;
+    selectAll.checked = filtered.length > 0 && movementsSelectedIndexes.size === filtered.length;
     selectAll.disabled = !filtered.length;
   }
   renderMovementsBulkBar();
@@ -20910,10 +20951,18 @@ function handleAlertRuleAction(event) {
 // reutiliza `asesorDecisionOpenOffers()`.
 function homeOpenOfferInsight(offer) {
   if (!offer) return null;
+  const expiry = debtOfferExpiryStatus(offer.expiresAt);
+  const expiryText = offer.expiresAt
+    ? expiry.expired
+      ? ` · CADUCADA desde ${escenarioMotorMonthLabel(offer.expiresAt)}`
+      : expiry.dueSoon
+        ? ` · vence ${escenarioMotorMonthLabel(offer.expiresAt)}, a punto de caducar`
+        : ` · vence ${escenarioMotorMonthLabel(offer.expiresAt)}`
+    : "";
   return {
     title: "Decisión de deuda abierta",
-    text: `Oferta de ${offer.counterpart || "sin contraparte"} por ${money(offer.amount, true)}${offer.expiresAt ? ` · vence ${escenarioMotorMonthLabel(offer.expiresAt)}` : ""}. Revisa de dónde saldría el dinero antes de decidir.`,
-    status: "warn",
+    text: `Oferta de ${offer.counterpart || "sin contraparte"} por ${money(offer.amount, true)}${expiryText}. Revisa de dónde saldría el dinero antes de decidir.`,
+    status: expiry.status,
     target: "asesor-decision",
     cta: "Revisar oferta",
   };
@@ -23824,13 +23873,22 @@ function renderEscenarioGuardados() {
       const summary = escenarioMotorSummaryFor(result, baseInput.months);
       // E-6b: un tercer estado, distinto de aplicado/guardado — el escenario no converge y se
       // guarda para no repetir el mismo intento sin darse cuenta.
+      // E-13: un "guardado" con oferta enlazada (D-13) que ya venció (D-10) se marca "Caducado" en
+      // vez de "Guardado" — el propio badge que el mockup pedía y el código llevaba documentado como
+      // pendiente ("no hay todavía... concepto de oferta con vencimiento"). Solo aplica a
+      // "guardado": un escenario ya "aplicado" cambió el plan de verdad, así que su oferta original
+      // caducando no deshace nada.
+      const offerExpiry = entry.estado === "guardado" && entry.ofertaExpiresAt ? debtOfferExpiryStatus(entry.ofertaExpiresAt) : null;
+      const caducado = Boolean(offerExpiry?.expired);
       const estadoInfo = entry.estado === "aplicado"
         ? { text: "Aplicado", badge: "e19-badge-success" }
         : entry.estado === "aviso"
           ? { text: "Aviso", badge: "e19-badge-danger" }
-          : { text: "Guardado", badge: "e19-badge-neutral" };
+          : caducado
+            ? { text: "Caducado", badge: "e19-badge-danger" }
+            : { text: "Guardado", badge: "e19-badge-neutral" };
       const fecha = entry.fecha ? new Date(entry.fecha).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "";
-      const cardClass = entry.estado === "aplicado" ? " is-aplicado" : entry.estado === "aviso" ? " is-aviso" : "";
+      const cardClass = entry.estado === "aplicado" ? " is-aplicado" : entry.estado === "aviso" || caducado ? " is-aviso" : "";
       return `<article class="escenario-motor-saved-card${cardClass}">
         <div class="escenario-motor-saved-head">
           <span class="e19-badge ${estadoInfo.badge}">${estadoInfo.text}</span>
@@ -23843,6 +23901,8 @@ function renderEscenarioGuardados() {
           <div><span>Liquidez final</span><strong>${money(summary.liquidezFinal ?? 0, true)}</strong></div>
         </div>
         ${entry.estado === "aviso" ? `<p class="escenario-motor-saved-limite">límite conocido</p>` : ""}
+        ${caducado ? `<p class="escenario-motor-saved-limite">oferta caducada desde ${escapeHtml(escenarioMotorMonthLabel(entry.ofertaExpiresAt))}: revisa si sigue en pie antes de cargarlo</p>` : ""}
+        ${!caducado && offerExpiry?.dueSoon ? `<p class="escenario-motor-saved-limite">oferta a punto de caducar: vence ${escapeHtml(escenarioMotorMonthLabel(entry.ofertaExpiresAt))}</p>` : ""}
         <div class="escenario-motor-saved-actions">
           <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-load="${escapeHtml(entry.id)}">Cargar en simulador</button>
           <button type="button" class="e19-btn e19-btn-secondary" data-escenario-guardado-delete="${escapeHtml(entry.id)}">Eliminar</button>
@@ -24029,9 +24089,13 @@ function debtConsolidationOffer() {
       const parsedValue = Number(value);
       return Number.isFinite(parsedValue) ? parsedValue : null;
     };
-    return { tin: num(parsed.tin), plazo: num(parsed.plazo), comision: num(parsed.comision) };
+    // D-13/E-13: vigencia opcional de la oferta ("YYYY-MM", mismo formato que la de D-10) — no
+    // exige nada nuevo para calcular "Consolidar" (T-4/D-11), solo permite declarar hasta cuándo
+    // sigue en pie, para que un escenario guardado desde esta oferta (D-13) pueda marcarse caducado
+    // (E-13) si vence antes de aplicarse.
+    return { tin: num(parsed.tin), plazo: num(parsed.plazo), comision: num(parsed.comision), expiresAt: typeof parsed.expiresAt === "string" ? parsed.expiresAt : "" };
   } catch {
-    return { tin: null, plazo: null, comision: null };
+    return { tin: null, plazo: null, comision: null, expiresAt: "" };
   }
 }
 
@@ -24201,6 +24265,17 @@ function homeDebtOutlook() {
 // caso a un rango explícito antes de comparar: sin deuda pendiente/sin cuota que proyectar cuentan
 // como lo mejor posible (nada más se puede acelerar), una fecha real ordena por su propio valor, y
 // fuera de horizonte cuenta como lo peor (no se sabe cuándo termina).
+// D-11: meses exactos entre dos claves "YYYY-MM" (nunca por resta de fechas, que arrastra días).
+// Solo se calcula entre dos fechas reales — con "sin deuda pendiente"/"fuera de horizonte" de por
+// medio no hay un número de meses que dividir (regla transversal 04), así que null en vez de una
+// cifra inventada.
+function debtStrategyMonthsBetween(fromKey, toKey) {
+  if (!/^\d{4}-\d{2}$/.test(String(fromKey)) || !/^\d{4}-\d{2}$/.test(String(toKey))) return null;
+  const [fromYear, fromMonth] = fromKey.split("-").map(Number);
+  const [toYear, toMonth] = toKey.split("-").map(Number);
+  return (toYear - fromYear) * 12 + (toMonth - fromMonth);
+}
+
 function debtStrategyLibreDeDeudaRank(label) {
   const text = String(label || "");
   if (text === "sin deuda pendiente" || text.startsWith("sin fecha estimable")) return "0000-00";
@@ -24675,6 +24750,7 @@ function renderDeudaComparar() {
         ${statusNote ? `<p class="e19-kpi-note ${entry.viable && entry.total > 0 ? "" : "is-warn"}">${escapeHtml(statusNote)}</p>` : ""}
         <div class="deuda-decidir-strategy-actions">
           <button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-ruta="${escapeHtml(entry.id)}">Ver ruta</button>
+          ${entry.total > 0 && !sinCalcular ? `<button type="button" class="e19-btn e19-btn-secondary" data-deuda-comparar-guardar="${escapeHtml(entry.id)}">Guardar como escenario</button>` : ""}
           ${isRecommended ? `<button type="button" class="e19-btn e19-btn-primary" data-deuda-comparar-aplicar="${escapeHtml(entry.id)}">Aplicar la recomendada</button>` : ""}
         </div>
       </article>`;
@@ -24687,9 +24763,17 @@ function renderDeudaComparar() {
   if (insight) {
     if (recommended && noTouch && recommended.id !== "no-tocar") {
       const costeDelta = round2(noTouch.costeTotal - recommended.costeTotal);
+      // D-11: coste marginal por mes de demora — cuántos meses de más se tarda en quedar libre de
+      // deuda por seguir en "no tocar nada" en vez de decidir ya, y cuánto sale de media cada uno de
+      // esos meses. Mismo costeDelta ya calculado arriba, repartido entre los meses reales de
+      // diferencia (debtStrategyMonthsBetween devuelve null sin dos fechas reales que restar).
+      const monthsDelay = debtStrategyMonthsBetween(recommended.libreDeDeuda, noTouch.libreDeDeuda);
+      const costeMarginalTexto = monthsDelay > 0 && costeDelta
+        ? ` Cada mes que se tarda en decidir cuesta de media ${money(round2(Math.abs(costeDelta) / monthsDelay), true)}.`
+        : "";
       insight.hidden = false;
       insight.innerHTML = `<strong>${escapeHtml(recommended.def.label)} sale mejor que no tocar nada</strong>
-        <p>Libre de deuda con ${escapeHtml(recommended.def.label.toLowerCase())}: ${escapeHtml(escenarioMotorMonthLabel(recommended.libreDeDeuda))} (sin tocar nada: ${escapeHtml(escenarioMotorMonthLabel(noTouch.libreDeDeuda))})${costeDelta ? `, con ${money(Math.abs(costeDelta), true)} ${costeDelta >= 0 ? "menos" : "más"} de coste ejecutado` : ""}.</p>`;
+        <p>Libre de deuda con ${escapeHtml(recommended.def.label.toLowerCase())}: ${escapeHtml(escenarioMotorMonthLabel(recommended.libreDeDeuda))} (sin tocar nada: ${escapeHtml(escenarioMotorMonthLabel(noTouch.libreDeDeuda))})${costeDelta ? `, con ${money(Math.abs(costeDelta), true)} ${costeDelta >= 0 ? "menos" : "más"} de coste ejecutado` : ""}.${costeMarginalTexto}</p>`;
     } else {
       insight.hidden = true;
     }
@@ -24731,6 +24815,8 @@ function renderDeudaCompararOffer() {
     const field = qs(id);
     if (field && document.activeElement !== field) field.value = Number.isFinite(value) ? value : "";
   });
+  const expiresAtField = qs("deudaCompararOfferExpiresAt");
+  if (expiresAtField && document.activeElement !== expiresAtField) expiresAtField.value = offer.expiresAt || "";
 
   const note = qs("deudaCompararOfferNote");
   if (!note) return;
@@ -24746,7 +24832,16 @@ function renderDeudaCompararOffer() {
   const comisionTexto = plan.comision > 0
     ? ` (${money(plan.saldos, true)} de saldos + ${money(plan.comision, true)} de comisión, financiada dentro del préstamo)`
     : "";
-  note.textContent = `Principal del préstamo nuevo: ${money(plan.principal, true)}${comisionTexto}. Devolverías ${money(plan.totalDevuelto, true)} en total, ${money(plan.intereses, true)} de intereses.`;
+  // D-10/E-13: la vigencia es opcional, así que solo se avisa cuando existe.
+  const expiry = offer.expiresAt ? debtOfferExpiryStatus(offer.expiresAt) : null;
+  const vigenciaTexto = expiry
+    ? expiry.expired
+      ? ` Oferta CADUCADA desde ${escenarioMotorMonthLabel(offer.expiresAt)}.`
+      : expiry.dueSoon
+        ? ` Oferta a punto de caducar: vence ${escenarioMotorMonthLabel(offer.expiresAt)}.`
+        : ` Vigente hasta ${escenarioMotorMonthLabel(offer.expiresAt)}.`
+    : "";
+  note.textContent = `Principal del préstamo nuevo: ${money(plan.principal, true)}${comisionTexto}. Devolverías ${money(plan.totalDevuelto, true)} en total, ${money(plan.intereses, true)} de intereses.${vigenciaTexto}`;
 }
 
 function handleDeudaCompararOfferInput() {
@@ -24761,13 +24856,14 @@ function handleDeudaCompararOfferInput() {
     tin: read("deudaCompararOfferTin"),
     plazo: read("deudaCompararOfferPlazo", { entero: true }),
     comision: read("deudaCompararOfferComision"),
+    expiresAt: qs("deudaCompararOfferExpiresAt")?.value || "",
   });
   renderDeudaComparar();
 }
 
 function handleDeudaCompararOfferClear() {
-  saveDebtConsolidationOffer({ tin: null, plazo: null, comision: null });
-  ["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision"].forEach((id) => {
+  saveDebtConsolidationOffer({ tin: null, plazo: null, comision: null, expiresAt: "" });
+  ["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision", "deudaCompararOfferExpiresAt"].forEach((id) => {
     const field = qs(id);
     if (field) field.value = "";
   });
@@ -24789,6 +24885,37 @@ function handleDeudaCompararVerRuta(strategyId) {
 function handleDeudaCompararAplicar(strategyId) {
   debtStrategyDecisionsToEscenario(strategyId);
   escenarioMotorNavigate("escenario-aplicar");
+}
+
+// D-13: "guardar sin comprometerse" — hasta ahora la única vía desde Deuda › Comparar era "Aplicar
+// la recomendada" (D-8, exige motivo y toca el plan). Reutiliza el mismo puente a decisiones que ya
+// usa esa vía (debtStrategyDecisionsToEscenario) pero persiste directamente como "guardado" en
+// escenario-motor-saved (la misma persistencia reproducible de E-10), sin pasar por el formulario de
+// aplicar ni tocar ningún contrato.
+// E-13: si la estrategia es "Consolidar" y la oferta de reunificación declara vigencia (D-10), el
+// escenario guardado queda enlazado a esa fecha (`ofertaExpiresAt`) para que #escenario-guardados
+// pueda marcarlo caducado si la oferta vence antes de aplicarse. Las demás estrategias no dependen
+// de ninguna oferta con vencimiento, así que no llevan esa marca.
+function handleDeudaCompararGuardarComoEscenario(strategyId) {
+  const def = DEBT_STRATEGY_DEFINITIONS.find((item) => item.id === strategyId);
+  if (!def) return;
+  debtStrategyDecisionsToEscenario(strategyId);
+  if (!escenarioMotorDecisions.length) return;
+  const offerExpiresAt = strategyId === "consolidar" ? debtConsolidationOffer().expiresAt || "" : "";
+  const saved = loadEscenarioMotorSaved();
+  escenarioMotorSavedSeq += 1;
+  saved.unshift({
+    id: `escenario-guardado-${Date.now()}-${escenarioMotorSavedSeq}`,
+    nombre: `Comparar · ${def.label}`,
+    motivo: "Guardado desde Deuda › Comparar, sin aplicar.",
+    estado: "guardado",
+    fecha: new Date().toISOString(),
+    decisiones: JSON.parse(JSON.stringify(escenarioMotorDecisions)),
+    guardrailValue: escenarioMotorGuardrailValue,
+    ofertaExpiresAt: offerExpiresAt,
+  });
+  saveEscenarioMotorSavedList(saved);
+  announceStatus(`«${def.label}» guardado como escenario en Escenarios › Guardados. No se ha aplicado nada.`);
 }
 
 // Deuda viva = principal pendiente de los contratos que la ruta todavía no ha resuelto en firme
@@ -24945,9 +25072,10 @@ function renderDeudaRutaOffer() {
   // aparte, pero igual de bloqueante: sin esto el botón saldría habilitado y `applyE14bOffer()`
   // fallaría en silencio (su aviso vive en #e14bStatus, dentro de #debt-roadmap, invisible aquí).
   const alreadyDecided = debtLiquidations.some((item) => item.targetId === offer.contractId);
+  const expiry = debtOfferExpiryStatus(offer.expiresAt);
   const blocked = alreadyDecided || checks.some((check) => check.ok === false);
   target.innerHTML = `
-    <p class="asesor-decision-subtitle"><strong>${escapeHtml(offer.counterpart || "Sin contraparte")}</strong>${contract ? ` · ${escapeHtml(contract.entity)}${contract.type ? ` ${escapeHtml(contract.type)}` : ""}` : ""}${offer.expiresAt ? ` · vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}` : ""}</p>
+    <p class="asesor-decision-subtitle"><strong>${escapeHtml(offer.counterpart || "Sin contraparte")}</strong>${contract ? ` · ${escapeHtml(contract.entity)}${contract.type ? ` ${escapeHtml(contract.type)}` : ""}` : ""}${offer.expiresAt ? ` · <span class="${expiry.status === "danger" ? "is-danger" : ""}">vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}</span>` : ""}</p>
     <div class="asesor-decision-stats">
       <div class="asesor-decision-stat"><span>Importe</span><strong>${money(offer.amount, true)}</strong></div>
       <div class="asesor-decision-stat"><span>Ahorras</span><strong>${money(offer.discount, true)}</strong></div>
@@ -24957,6 +25085,7 @@ function renderDeudaRutaOffer() {
     <ul class="deuda-ruta-checklist" id="deudaRutaOfferChecklist">${checks
       .map((check) => `<li class="deuda-ruta-check${check.ok === false ? " is-danger" : check.ok === null ? " is-neutral" : " is-ok"}">${escapeHtml(check.label)}</li>`)
       .join("")}</ul>
+    ${expiry.expired ? `<p class="e19-kpi-note is-danger" id="deudaRutaOfferExpiry">Oferta caducada desde ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}: comprueba con ${escapeHtml(offer.counterpart || "la contraparte")} si sigue en pie antes de aplicarla.</p>` : expiry.dueSoon ? `<p class="e19-kpi-note is-danger" id="deudaRutaOfferExpiry">Oferta a punto de caducar: vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}.</p>` : ""}
     ${alreadyDecided ? `<p class="e19-kpi-note is-danger">Esta deuda ya tiene una decisión aplicada — revísala o deshazla antes de aplicar otra.</p>` : ""}
     ${deudaRutaOfferStatusMessage ? `<p class="e19-kpi-note" id="deudaRutaOfferStatus">${escapeHtml(deudaRutaOfferStatusMessage)}</p>` : ""}
     <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaOfferApply"${blocked ? " disabled" : ""}>Aplicar al plan</button>
@@ -26425,7 +26554,17 @@ function renderAsesorDecision() {
   const reserve = agentCaixaFloor();
 
   const deadline = qs("asesorDecisionDeadline");
-  if (deadline) deadline.textContent = offer.expiresAt ? `Decisión abierta · vence ${escenarioMotorMonthLabel(offer.expiresAt)}` : "Decisión abierta · sin vencimiento indicado";
+  if (deadline) {
+    const expiry = debtOfferExpiryStatus(offer.expiresAt);
+    deadline.textContent = !offer.expiresAt
+      ? "Decisión abierta · sin vencimiento indicado"
+      : expiry.expired
+        ? `Decisión abierta · CADUCADA desde ${escenarioMotorMonthLabel(offer.expiresAt)}`
+        : expiry.dueSoon
+          ? `Decisión abierta · vence ${escenarioMotorMonthLabel(offer.expiresAt)}, a punto de caducar`
+          : `Decisión abierta · vence ${escenarioMotorMonthLabel(offer.expiresAt)}`;
+    deadline.className = `e19-badge ${expiry.status === "danger" ? "e19-badge-danger" : "e19-badge-neutral"}`;
+  }
   const titleEl = qs("asesorDecisionTitle");
   if (titleEl) titleEl.textContent = `Pagar la oferta de ${offer.counterpart || "sin contraparte"}${contract ? ` · ${contract.entity}${contract.type ? ` ${contract.type}` : ""}` : ""}`;
   const amountEl = qs("asesorDecisionAmount");
@@ -28672,12 +28811,31 @@ function analisisRecurringHtml(items) {
     .join("");
 }
 
+// A-13: el enlace genérico a Movimientos obligaba a repetir a mano la búsqueda del concepto y la
+// selección de sus filas. El botón deja ya buscado el concepto (o los conceptos, si crecieron
+// varios) y sus filas exactas preseleccionadas — mismo camino de clasificación en lote que M-8, sin
+// segunda puerta.
 function analisisRecurringGrowthNote(items) {
   const grown = items.filter((item) => item.grewWithoutDecision);
   if (!grown.length) return "";
   const names = grown.map((item) => item.label).join(" y ");
   const extra = round2(sumRows(grown, (item) => item.current - item.previous));
-  return `${names} sube${grown.length > 1 ? "n" : ""} ${money(extra, true)} más al mes que en el trimestre anterior. Nadie decidió eso. <a href="#movements" data-home-nav="movements">Ver los movimientos</a>`;
+  const keys = grown.map((item) => item.key).join("||");
+  return `${names} sube${grown.length > 1 ? "n" : ""} ${money(extra, true)} más al mes que en el trimestre anterior. Nadie decidió eso. <button type="button" class="secondary-button" data-analisis-actuar-repite="${escapeHtml(keys)}" data-analisis-actuar-label="${escapeHtml(grown.length === 1 ? names : "")}">Clasificar en Movimientos</button>`;
+}
+
+// A-13: A-9 sí señala uno o varios conceptos concretos (movementMappingKey, la misma clave que ya
+// usan M-7/M-8) — se preseleccionan solo las filas de esos conceptos exactos, no todo lo que
+// contenga el texto de casualidad. Con un único concepto, además se deja escrito en el buscador
+// para que se vea de dónde sale la selección.
+function handleAnalisisActuarRepite(keysRaw, label) {
+  const keys = new Set(String(keysRaw || "").split("||").filter(Boolean));
+  if (!keys.size) return;
+  movementsActFromAlert({
+    search: keys.size === 1 ? label || "" : "",
+    chip: "todos",
+    matcher: (row) => keys.has(movementMappingKey(row)),
+  });
 }
 
 // A-7: «¿acierta el plan?» — compara previsto y real solo en meses cerrados: los reales de un mes
@@ -28822,7 +28980,27 @@ function analisisConfianzaDatoHtml(context) {
       ? `${context.unclassifiedCount} de ${context.totalMovements} movimiento(s) de ${escapeHtml(context.monthLabel)} sin clasificar todavía.`
       : `Los ${context.totalMovements} movimiento(s) de ${escapeHtml(context.monthLabel)} están clasificados.`
     : `Sin movimientos registrados en ${escapeHtml(context.monthLabel)} todavía.`;
-  return `${accountsHtml}<p class="e19-kpi-note">${coverageText} Se cierra en <a href="#cierre" data-home-nav="cierre">Cierre</a>, se clasifica en <a href="#movements" data-home-nav="movements">Movimientos</a>.</p>`;
+  // A-13: con pendientes reales, el CTA deja ya puesto el chip "sin clasificar" (M-3) acotado a este
+  // mismo mes y sus filas preseleccionadas, en vez de un enlace genérico a Movimientos que obligaba
+  // a volver a filtrar a mano.
+  const classifyCta = context.unclassifiedCount
+    ? `<button type="button" class="secondary-button" data-analisis-actuar-confianza="${escapeHtml(context.monthKey)}">Clasificar en Movimientos</button>`
+    : `<a href="#movements" data-home-nav="movements">Movimientos</a>`;
+  return `${accountsHtml}<p class="e19-kpi-note">${coverageText} Se cierra en <a href="#cierre" data-home-nav="cierre">Cierre</a>, se clasifica en ${classifyCta}.</p>`;
+}
+
+// A-13: A-10 solo cuenta cuántos movimientos del mes en curso quedan sin clasificar — no hay un
+// concepto único que buscar, así que reutiliza el chip "sin clasificar" (M-3) acotado a las fechas
+// de ese mes, con todas sus filas preseleccionadas para la barra de acción en lote de M-8.
+function handleAnalisisActuarConfianza(monthKey) {
+  if (!monthKey) return;
+  const monthStart = dateFromMonthKey(monthKey);
+  movementsActFromAlert({
+    chip: "sin-clasificar",
+    dateFrom: isoLocalDate(monthStart),
+    dateTo: isoLocalDate(monthEndDate(monthStart)),
+    matcher: () => true,
+  });
 }
 
 // A-11: "CSV con las series completas de cada bloque, una fila por mes y bloque [...] PDF de una
@@ -29746,7 +29924,7 @@ async function init() {
   qs("escenarioCompararA")?.addEventListener("change", handleEscenarioCompararSelect);
   qs("escenarioCompararB")?.addEventListener("change", handleEscenarioCompararSelect);
   qs("deudaCompararReserve")?.addEventListener("input", handleDeudaCompararReserveInput);
-  ["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision"].forEach((id) => {
+  ["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision", "deudaCompararOfferExpiresAt"].forEach((id) => {
     qs(id)?.addEventListener("input", handleDeudaCompararOfferInput);
   });
   qs("deudaCompararOfferClear")?.addEventListener("click", handleDeudaCompararOfferClear);
@@ -29754,7 +29932,9 @@ async function init() {
     const rutaButton = event.target.closest("[data-deuda-comparar-ruta]");
     if (rutaButton) { handleDeudaCompararVerRuta(rutaButton.dataset.deudaCompararRuta); return; }
     const aplicarButton = event.target.closest("[data-deuda-comparar-aplicar]");
-    if (aplicarButton) handleDeudaCompararAplicar(aplicarButton.dataset.deudaCompararAplicar);
+    if (aplicarButton) { handleDeudaCompararAplicar(aplicarButton.dataset.deudaCompararAplicar); return; }
+    const guardarButton = event.target.closest("[data-deuda-comparar-guardar]");
+    if (guardarButton) handleDeudaCompararGuardarComoEscenario(guardarButton.dataset.deudaCompararGuardar);
   });
   qs("deudaCompararModeContract")?.addEventListener("change", handleDeudaCompararModeContractChange);
   qs("deudaCompararModeSelect")?.addEventListener("change", handleDeudaCompararModeSelectChange);
@@ -29809,6 +29989,10 @@ async function init() {
     if (button) { handleAnalisisWindow(button.dataset.analisisWindow); return; }
     if (event.target.id === "analisisDownloadCsv") { handleAnalisisDownload("csv"); return; }
     if (event.target.id === "analisisDownloadPdf") { handleAnalisisDownload("pdf"); return; }
+    const actuarConfianza = event.target.closest("[data-analisis-actuar-confianza]");
+    if (actuarConfianza) { handleAnalisisActuarConfianza(actuarConfianza.dataset.analisisActuarConfianza); return; }
+    const actuarRepite = event.target.closest("[data-analisis-actuar-repite]");
+    if (actuarRepite) { handleAnalisisActuarRepite(actuarRepite.dataset.analisisActuarRepite, actuarRepite.dataset.analisisActuarLabel); return; }
     const navButton = event.target.closest("[data-home-nav]");
     const target = navButton?.dataset.homeNav;
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;

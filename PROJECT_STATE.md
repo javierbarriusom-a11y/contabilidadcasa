@@ -2,6 +2,69 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: bloque 4 del plan de cierre — D-10, D-11, D-13, E-13, A-13
+
+Último bloque de "completar los parciales de Deuda" (`docs/BACKLOG_NUEVE_PANTALLAS.md` §7): tres
+tareas de Deuda que ya cumplían el núcleo de su criterio y solo necesitaban un añadido concreto, más
+las dos que desbloqueaban (E-13 por D-10, A-13 por A-10 ya hecho el 19 de agosto).
+
+- **D-10 (aviso activo de caducidad)**. `debtOfferExpiryStatus(expiresAt)` compara la clave de mes
+  de vencimiento contra el mes real: "vencida" si ya pasó, "a punto de vencer" si es este mes o el
+  siguiente. Antes la fecha de la oferta era texto plano sin urgencia — ahora se aplica en las tres
+  pantallas que la muestran: Hoy (`homeOpenOfferInsight`, status pasa de fijo "warn" a real
+  danger/warn), Deuda › Ruta (tarjeta de oferta con aviso visible) y Asesor ejecutivo
+  (`#asesor-decision`, el badge de plazo cambia a rojo y dice "CADUCADA").
+- **D-11 (coste marginal por mes de demora)**. La nota de Deuda › Comparar ya comparaba el coste
+  total de la recomendada frente a "no tocar nada"; se añade `debtStrategyMonthsBetween` (meses
+  exactos entre dos claves de mes) para repartir ese coste entre los meses reales de diferencia y
+  decir cuánto cuesta de media cada mes que se tarda en decidir. Sin dos fechas reales que restar
+  (p. ej. "fuera de horizonte"), no se calcula nada — nunca se divide entre algo que no es un número.
+- **D-13 (guardar comparación como escenario)**. Deuda › Comparar ganó un cuarto campo opcional
+  ("Vigencia hasta") en la oferta de reunificación, y cada tarjeta de estrategia con decisiones
+  reales gana un botón "Guardar como escenario" que reutiliza `debtStrategyDecisionsToEscenario` y
+  persiste directamente como `"guardado"` en `escenario-motor-saved` (misma persistencia de E-10),
+  sin pasar por el formulario de aplicar (motivo obligatorio) ni tocar ningún contrato.
+- **E-13 (caducidad de escenarios con oferta)**, desbloqueada por D-10. Si el escenario guardado por
+  D-13 viene de "Consolidar" y la oferta tenía vigencia declarada, queda enlazado a esa fecha
+  (`ofertaExpiresAt`). `#escenario-guardados` ya documentaba en su propio código que "Caducado" era
+  un badge del mockup sin construir por falta de "concepto de oferta con vencimiento" — con D-10 ya
+  construido, ese hueco se cierra: un guardado con oferta vencida pasa a mostrar "Caducado" en vez
+  de "Guardado", con su nota explicando desde cuándo.
+- **A-13 (actuar desde el aviso, sin duplicar el camino)**, desbloqueada por A-10 (19 de agosto). Los
+  dos avisos de Análisis que enlazaban a Movimientos con un `<a href="#movements">` genérico (A-9
+  "qué se repite" y A-10 "confianza del dato") pasan a un botón que llama a
+  `movementsActFromAlert(...)`: deja ya puesto el chip/fechas/búsqueda correctos y dispara
+  `movementsPendingAutoSelect`, un criterio de una sola vez que `renderDetailedMovements` consume en
+  su siguiente render para preseleccionar exactamente esas filas — la misma barra de acción en lote
+  de M-8, sin una segunda forma de seleccionar o clasificar. A-9 selecciona por concepto exacto
+  (`movementMappingKey`, uno o varios); A-10 acota el chip "sin clasificar" al mes del aviso y
+  selecciona todo lo filtrado.
+
+**Validación**: `npm run verify`, exit 0 — **1300/1300 pruebas** (11 nuevas en
+`tests/a13-actuar-desde-aviso.test.cjs`; se actualizaron seis pruebas existentes que ejecutaban
+`renderDeudaRutaOffer`/`homeDecisionCandidates`/`homeOpenOfferInsight`/`debtConsolidationOffer`/
+`analisisConfianzaDatoHtml` para reflejar el nuevo campo `expiresAt` y los nuevos CTA), accesibilidad
+(781 IDs únicos), rendimiento (diff 10.000 filas en 35,7 ms; forecast y escenarios en 183,4 ms;
+recursos 1661 KB), build del sitio, privacidad y smoke test, todos en verde. Verificado con Playwright
+contra el build local (`dist/`, servido en `localhost`): en Deuda › Comparar, escribir una oferta con
+vigencia en el pasado marca la nota "Oferta CADUCADA desde ene 00"; el botón "Guardar como escenario"
+de la tarjeta "Consolidar" crea una entrada en Escenarios › Guardados con badge **Caducado** y la nota
+"oferta caducada desde ene 00: revisa si sigue en pie antes de cargarlo" — la cadena D-13 → E-13
+completa, de extremo a extremo. Los datos de demostración públicos no traen movimientos ni ofertas de
+deuda abiertas (por privacidad, ver sesiones anteriores), así que el flujo de A-13 en Movimientos y el
+aviso de Deuda › Ruta se verificaron con las 11 pruebas nuevas (que sí ejecutan
+`renderDetailedMovements` de verdad, incluida la selección automática y su preselección visible en el
+HTML) en vez de visualmente. Sin errores de consola propios (los dos avisos de red vistos —
+`ERR_TUNNEL_CONNECTION_FAILED` hacia Supabase y un 404 puntual— son preexistentes y ya documentados en
+sesiones anteriores).
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — D-10/D-11/D-13/E-13/A-13 pasan de
+`Parcial`/`Pendiente` a `Hecho`, con sus notas bajo las tablas de las pantallas 03 (Deuda), 05
+(Escenarios) y 07 (Análisis); el bloque 4 del plan de cierre (§7) se marca completo. Quedan sin
+bloqueo real: D-2b/E-11b (las dos decisiones de diseño ya señaladas, no solo código), D-12 (capacidad
+de endeudamiento, sin fuente canónica de ingreso mensual), y el bloque 5 (retirar heredadas: E-14,
+A-12, C-14, D-14 — D-14 choca con T-4, bloqueada a propósito).
+
 ## Cierre de sesión — 20 de agosto de 2026: Laboratorio rehecho contra `Laboratorio.pdf` + H-8 con las cinco cifras del mockup
 
 El usuario adjuntó tres capturas reales de la app y el mockup `Laboratorio.pdf` (dos páginas,

@@ -185,7 +185,7 @@ test("V3-3 · la oferta se guarda en su propia clave y no toca el modelo del hog
   assert.equal(storage.get("deuda-oferta-reunificacion:test"), JSON.stringify({ tin: 7.5, plazo: 96, comision: null }));
   // Comparado campo a campo: el objeto nace dentro del `vm`, así que `deepEqual` estricto lo
   // rechazaría por venir de otro realm aunque su contenido fuese idéntico.
-  assert.deepEqual({ ...context.debtConsolidationOffer() }, { tin: 7.5, plazo: 96, comision: null });
+  assert.deepEqual({ ...context.debtConsolidationOffer() }, { tin: 7.5, plazo: 96, comision: null, expiresAt: "" });
   assert.ok(
     !extractFunction("saveDebtConsolidationOffer").includes("state"),
     "guardar la oferta no puede escribir en el estado del hogar",
@@ -195,7 +195,7 @@ test("V3-3 · la oferta se guarda en su propia clave y no toca el modelo del hog
 test("V3-3 · una oferta corrupta en el almacén se lee como «sin oferta», no revienta la pantalla", () => {
   const { context, storage } = sandbox({ stored: {} });
   storage.set("deuda-oferta-reunificacion:test", "{no es json");
-  assert.deepEqual({ ...context.debtConsolidationOffer() }, { tin: null, plazo: null, comision: null });
+  assert.deepEqual({ ...context.debtConsolidationOffer() }, { tin: null, plazo: null, comision: null, expiresAt: "" });
 });
 
 test("V3-3 · el coste que se compara son los intereses del préstamo nuevo, no cero", () => {
@@ -302,10 +302,11 @@ test("V3-3 · la pantalla pide la oferta y ya no dice que reunificar no se puede
   assert.match(html, /cancelación anticipada de las deudas viejas, notaría, seguros vinculados/);
 });
 
-test("V3-3 · las tres casillas están conectadas y se pueden borrar de una vez", () => {
-  assert.match(app, /\["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision"\]\.forEach\(\(id\) => \{\s*qs\(id\)\?\.addEventListener\("input", handleDeudaCompararOfferInput\);/);
+test("V3-3/D-10 · las cuatro casillas (incluida la vigencia) están conectadas y se pueden borrar de una vez", () => {
+  assert.match(app, /\["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision", "deudaCompararOfferExpiresAt"\]\.forEach\(\(id\) => \{\s*qs\(id\)\?\.addEventListener\("input", handleDeudaCompararOfferInput\);/);
   assert.match(app, /qs\("deudaCompararOfferClear"\)\?\.addEventListener\("click", handleDeudaCompararOfferClear\);/);
   assert.match(html, /id="deudaCompararOfferClear"/);
+  assert.match(html, /id="deudaCompararOfferExpiresAt"/);
 });
 
 test("V3-3 · viaja en el shell offline versionado", () => {

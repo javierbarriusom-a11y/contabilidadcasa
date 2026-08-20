@@ -48,6 +48,9 @@ function sandbox() {
     escenarioMotorMonthLabel: (value) => `etiqueta:${value}`,
   };
   vm.createContext(context);
+  vm.runInContext(extractFunction("monthKey"), context);
+  vm.runInContext(extractFunction("addMonths"), context);
+  vm.runInContext(extractFunction("debtOfferExpiryStatus"), context);
   vm.runInContext(extractFunction("homeOpenOfferInsight"), context);
   return context;
 }
@@ -60,14 +63,24 @@ test("V1-2 · sin oferta abierta, no hay nada que insertar", () => {
 
 test("V1-2 · con una oferta abierta, la insight lleva contraparte, importe y vencimiento", () => {
   const { homeOpenOfferInsight } = sandbox();
-  const insight = homeOpenOfferInsight({ counterpart: "Cetelem", amount: 4200, expiresAt: "2026-09" });
+  // D-10: el vencimiento se compara contra la fecha real (`new Date()`), así que se usa un mes muy
+  // lejano para que el resultado sea siempre "warn" (ni caducada ni a punto de caducar),
+  // independientemente de en qué fecha se ejecuten las pruebas.
+  const insight = homeOpenOfferInsight({ counterpart: "Cetelem", amount: 4200, expiresAt: "2099-01" });
   assert.equal(insight.title, "Decisión de deuda abierta");
   assert.match(insight.text, /Cetelem/);
   assert.match(insight.text, /4200\.00 €/);
-  assert.match(insight.text, /vence etiqueta:2026-09/);
+  assert.match(insight.text, /vence etiqueta:2099-01/);
   assert.equal(insight.target, "asesor-decision");
   assert.equal(insight.cta, "Revisar oferta");
   assert.equal(insight.status, "warn");
+});
+
+test("V1-2/D-10 · una oferta caducada se marca como aviso activo, no como un vencimiento más", () => {
+  const { homeOpenOfferInsight } = sandbox();
+  const insight = homeOpenOfferInsight({ counterpart: "Cetelem", amount: 4200, expiresAt: "2000-01" });
+  assert.equal(insight.status, "danger");
+  assert.match(insight.text, /CADUCADA/);
 });
 
 test("V1-2 · sin contraparte o sin vencimiento, no inventa el dato", () => {
