@@ -300,6 +300,7 @@ test("D-2 · la insignia «Editado» solo aparece cuando el contrato tiene overr
 test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el desglose real", () => {
   const written = {};
   let notedText = "";
+  let crossCheckCalls = 0;
   const context = sandboxWith(["deudaContratosStatusBadge", "deudaContratosQualityBadge", "deudaContratosRowHtml", "renderDeudaContratos"], {
     escapeHtml: (value) => String(value ?? ""),
     round2: (value) => Math.round(Number(value) * 100) / 100,
@@ -309,6 +310,11 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
       { id: "debt-2", entity: "Entidad B", type: "Tarjeta", number: "", currentPrincipal: 3500, currentPayment: 140, apr: null, paymentStatus: "active", dataQuality: { missing: ["apr"], confidence: "medium" } },
     ],
     renderDeudaScreenTabs: () => {},
+    debtPrincipalCrossCheck: () => {
+      crossCheckCalls += 1;
+      return { fake: true };
+    },
+    debtPrincipalCrossCheckHtml: (check) => (check.fake ? "<article>cross-check</article>" : ""),
     qs: (id) => ({
       set innerHTML(value) {
         written[id] = value;
@@ -322,6 +328,8 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
   assert.ok(written.deudaContratosTable.includes("Entidad A"));
   assert.ok(written.deudaContratosTable.includes("Entidad B"));
   assert.match(notedText, /1 de 2 contrato/);
+  assert.equal(crossCheckCalls, 1, "renderDeudaContratos calcula el cuadre D-2b una vez por render");
+  assert.equal(written.deudaContratosCrossCheck, "<article>cross-check</article>");
 });
 
 // --- D-2: puerta única, persistida como el resto del estado del hogar -------------------------

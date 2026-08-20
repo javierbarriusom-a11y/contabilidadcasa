@@ -753,7 +753,7 @@ arrastra el candado abierto. Sin errores de consola propios.
 | --- | --- | --- | --- | --- |
 | D-1 | Pestañas Ruta / Comparar / Contratos | Fase 3 | M | Hecho (15 de agosto, ver nota) |
 | D-2 | Contratos como dato canónico editable | D-1 | L | Hecho (15 de agosto) |
-| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Pendiente (ya no bloqueada: Cierre hecho — no construida esta sesión, fuera de la lista pedida) |
+| D-2b | Cuadre del capital editado con la deuda viva global | D-2, Cierre | M | Hecho (20 de agosto, ver nota) |
 | D-3 | Orden de ataque por estrategia | D-2 | M | Hecho (ya existía, ver nota) |
 | D-4 | Calendario de amortización | D-3 | L | Hecho (16 de agosto, ver nota) |
 | D-5 | Ocho modos de liquidación | D-3 | L | Hecho (15 de agosto, ver nota) |
@@ -864,9 +864,29 @@ añadido concreto — ninguna reconstrucción.
   persistencia de E-10) sin pasar por el formulario de aplicar. Si la estrategia es "Consolidar" y
   la oferta declara vigencia, el guardado queda enlazado a esa fecha para E-13.
 
+**D-2b — 20 de agosto de 2026 (sesión aparte, ya no bloqueada desde el 16 de agosto).** El capital
+que se corrige por contrato en Contratos (D-2) y la "deuda viva global" que ya leen Hoy, Ruta y
+Comparar (`homeDebtOutlook().pendingPrincipal`) sumaban por caminos distintos sin que nada lo
+dijera: una deuda ya reunificada cuenta con su propio capital corregido aquí, pero la cifra global
+la sustituye por el plan combinado sintético (`canonical-debt-contracts.js normalizeContracts`),
+fijado al capital que tenía esa deuda cuando se reunificó — editar su capital en Contratos no mueve
+la deuda viva global, y hasta ahora nada lo explicaba. `debtPrincipalCrossCheck()` resta ese hueco
+esperado antes de comparar las dos cifras y declara "cuadra"/"descuadra" (regla transversal 04,
+mismo patrón `e19-badge-success/danger` que ya usa Cierre para las cuentas); se pinta como tarjeta
+nueva bajo la tabla de Contratos, con la suma declarada, la deuda viva global y la diferencia. Cada
+fila de una reunificada con el capital editado a mano gana además una insignia "Sin efecto en deuda
+global" en el sitio donde se hizo la edición, para no dejar que el hogar lo descubra por un número
+que no cambia en otra pantalla. Pruebas nuevas en `tests/d2b-debt-principal-cross-check.test.cjs`
+(10 pruebas): cuadre sin reunificadas, cuadre con la sustitución esperada, descuadre real cuando la
+cifra global no refleja ni siquiera esa sustitución, la insignia por fila y el pintado de la
+tarjeta; se ajustó una prueba existente de `renderDeudaContratos` para mockear el cuadre nuevo.
+Verificado con Playwright contra el build local: con los datos de demostración (sin overrides) la
+tarjeta pinta "Cuadra" (12.000,00 € a ambos lados); editando el capital de la reunificada de la
+cartera demo a mano aparece la insignia "Sin efecto en deuda global" en su fila y la tarjeta añade
+la nota "1 contrato(s) reunificado(s)... Entidad A", sin dejar de cuadrar (la sustitución sigue
+explicando el hueco) y sin errores de consola propios.
+
 **Quedan pendientes, con motivo explícito:**
-- **D-2b** — ya no bloqueada (Cierre existe desde el 16 de agosto, igual que M-8c), pero no se
-  construyó esta sesión: fuera de la lista de tareas que pidió el usuario.
 - **D-12** (capacidad de endeudamiento) — no hay todavía una cifra de ingreso mensual del hogar
   reutilizable para un ratio de endeudamiento defendible; se deja para no inventar una fórmula
   sin una fuente canónica detrás.
@@ -1696,6 +1716,13 @@ bloqueadas técnicamente (Cierre existe desde el 16 de agosto), pero ninguna ses
 construido porque las dos tocan cómo se comporta el modelo de datos, no solo un campo
 nuevo. E-11b es la más grande de todo lo pendiente (talla L): la decisión de «diez planes
 vivos como máximo» ya está tomada (14 de agosto, sección 2) — falta construirla.
+
+**D-2b — completa el 20 de agosto de 2026, en sesión aparte (ver la nota bajo la tabla de la
+pantalla 05).** Resultó ser un cuadre acotado, no un rediseño del modelo de datos: el capital
+corregido en Contratos y la deuda viva global ya se correspondían por construcción (la sustitución
+de una reunificada por su plan combinado es el único hueco, y estaba ya calculado, solo que en
+ningún sitio visible); se declaró explícito con el mismo patrón cuadra/descuadra que Cierre. Queda
+**E-11b** como la única decisión de diseño pendiente, la más grande de todo el backlog (talla L).
 
 ~~**Bloque 5 — Retirar las heredadas, pantalla a pantalla.** E-14, A-12, C-14 y D-14: cuatro
 tareas gemelas que relegan sus heredadas al catálogo de Laboratorio (bloque 1). D-14 lleva

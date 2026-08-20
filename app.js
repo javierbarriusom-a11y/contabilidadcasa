@@ -7220,6 +7220,36 @@ function debtPortfolioTotals(rows = debtPortfolioRows()) {
   };
 }
 
+// D-2b · el capital que se corrige en Deuda › Contratos (D-2) y la "deuda viva" que ya leen Hoy,
+// Ruta y Comparar (`homeDebtOutlook().pendingPrincipal`) suman por caminos distintos: esta suma
+// cada contrato tal cual está declarado, incluidas las líneas ya reunificadas; la deuda viva
+// global las sustituye por el plan combinado sintético (`canonical-debt-contracts.js
+// normalizeContracts`), fijado al capital que tenían esos contratos cuando se reunificaron, no al
+// capital que se corrija aquí después. Esa sustitución es el único hueco esperado entre las dos
+// cifras — se resta para comparar como si no existiera — así que cualquier otra diferencia no se
+// calla: se declara "descuadra" (regla transversal 04), igual que ya hace Cierre con las cuentas.
+function debtPrincipalCrossCheck() {
+  const contracts = debtContractSourceRows();
+  const declared = debtPortfolioTotals(contracts).currentPrincipal;
+  const reunifiedRows = contracts.filter((row) => row.paymentStatus === "reunified");
+  const reunifiedCurrent = round2(sumRows(reunifiedRows, (row) => row.currentPrincipal));
+  const reunifiedInitial = round2(sumRows(reunifiedRows, (row) => row.initialPrincipal));
+  const expectedGlobal = round2(declared - reunifiedCurrent + reunifiedInitial);
+  const global = homeDebtOutlook().pendingPrincipal;
+  const diff = round2(global - expectedGlobal);
+  const overriddenReunified = reunifiedRows.filter(
+    (row) => debtContractOverrides[row.id] && Object.prototype.hasOwnProperty.call(debtContractOverrides[row.id], "currentPrincipal")
+  );
+  return {
+    declared,
+    global,
+    expectedGlobal,
+    diff,
+    status: Math.abs(diff) <= 0.02 ? "cuadra" : "descuadra",
+    overriddenReunified,
+  };
+}
+
 function currentOutsideDebtPayment() {
   const start = modelStartDate();
   return round2(
@@ -25520,6 +25550,14 @@ function deudaContratosRowHtml(contract) {
   const status = deudaContratosStatusBadge(contract.paymentStatus);
   const quality = deudaContratosQualityBadge(contract.dataQuality);
   const aprValue = contract.apr === null || contract.apr === undefined ? "" : contract.apr;
+  // D-2b: una reunificada con el capital corregido a mano no mueve la deuda viva global — el plan
+  // combinado que ya leen Hoy/Ruta/Comparar sigue fijado al capital de cuando se reunificó. Se avisa
+  // aquí mismo, donde se hace la edición, en vez de dejar que el hogar lo descubra por un número que
+  // no cambia en otra pantalla.
+  const noGlobalEffect =
+    contract.paymentStatus === "reunified" &&
+    edited &&
+    Object.prototype.hasOwnProperty.call(debtContractOverrides[contract.id], "currentPrincipal");
   return `<tr data-deuda-contrato-row="${escapeHtml(contract.id)}">
       <td class="deuda-contratos-entity">
         <strong>${escapeHtml(contract.entity)}</strong>
@@ -25529,8 +25567,37 @@ function deudaContratosRowHtml(contract) {
       <td><input type="number" min="0" max="60" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="apr" value="${aprValue}" placeholder="sin dato" aria-label="TAE de ${escapeHtml(contract.entity)}" /></td>
       <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="currentPayment" value="${round2(contract.currentPayment)}" aria-label="Cuota mensual de ${escapeHtml(contract.entity)}" /></td>
       <td><span class="e19-badge ${status.tone}">${escapeHtml(status.label)}</span></td>
-      <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}</td>
+      <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}${
+        noGlobalEffect
+          ? ` <span class="e19-badge e19-badge-warning" title="El plan combinado que ya usan Hoy, Ruta y Comparar sigue fijado al capital de cuando se reunificó.">Sin efecto en deuda global</span>`
+          : ""
+      }</td>
     </tr>`;
+}
+
+// D-2b · mismo patrón de cuadre que ya usa Cierre para las cuentas (`cierreStep1Html`): declarado
+// frente a calculado, con un badge cuadra/descuadra — aquí, capital declarado en esta tabla frente
+// a la deuda viva global que ya usan Hoy, Ruta y Comparar.
+function debtPrincipalCrossCheckHtml(check) {
+  const statusBadge = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger" };
+  const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra" };
+  const overridesNote = check.overriddenReunified.length
+    ? `<p class="e19-kpi-note">${check.overriddenReunified.length} contrato(s) reunificado(s) con el capital corregido a mano, sin efecto en la deuda viva global: ${check.overriddenReunified
+        .map((row) => escapeHtml(row.entity))
+        .join(", ")}.</p>`
+    : "";
+  return `<article class="e19-card deuda-contratos-cross-check">
+    <div class="section-title with-action">
+      <div><h3 class="escenario-motor-panel-title">Capital declarado frente a deuda viva global</h3><p class="e19-kpi-note">Suma de esta tabla frente a la cifra que ya usan Hoy, Ruta y Comparar.</p></div>
+      <span class="e19-badge ${statusBadge[check.status]}">${statusLabel[check.status]}</span>
+    </div>
+    <div class="table-wrap"><table class="e19-table">
+      <thead><tr><th>Capital declarado (Contratos)</th><th>Deuda viva global</th><th>Diferencia</th></tr></thead>
+      <tbody><tr><td>${money(check.declared, true)}</td><td>${money(check.global, true)}</td><td>${money(check.diff, true)}</td></tr></tbody>
+    </table></div>
+    <p class="e19-kpi-note">La deuda ya reunificada cuenta distinto en cada cifra: aquí se corrige el capital de cada contrato original; la deuda viva global usa el plan combinado, fijado al capital que tenían esos contratos cuando se reunificaron, no al que se corrija aquí después.</p>
+    ${overridesNote}
+  </article>`;
 }
 
 function renderDeudaContratos() {
@@ -25549,6 +25616,8 @@ function renderDeudaContratos() {
       ? `${overriddenCount} de ${contracts.length} contrato(s) con capital, TAE o cuota corregidos a mano. Se usan en Ruta, Comparar y en las cifras de deuda de Hoy.`
       : `Valores declarados de ejemplo (${contracts.length} contrato(s)). Corrige capital, TAE o cuota si no coinciden con el contrato real — se guardan en este navegador y no en ningún sitio más.`;
   }
+  const crossCheckHost = qs("deudaContratosCrossCheck");
+  if (crossCheckHost) crossCheckHost.innerHTML = debtPrincipalCrossCheckHtml(debtPrincipalCrossCheck());
 }
 
 // Vacío = «sin corregir», nunca cero: borra el override y vuelve al valor declarado en vez de

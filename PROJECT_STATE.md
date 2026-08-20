@@ -2,6 +2,47 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: D-2b — cuadre del capital editado con la deuda viva global
+
+Sesión abierta con `/finanzas-casa-workflow`. Según `docs/BACKLOG_NUEVE_PANTALLAS.md` §7, tras el
+bloque 5 (sesión anterior, mismo día) solo quedaban D-14 (bloqueada a propósito por T-4) y C-3b
+(congelada, sin fecha) — corregido al leer el backlog completo: también seguían pendientes **D-2b**
+(talla M, ya no bloqueada) y **E-11b** (talla L, la más grande de todo el backlog, tampoco
+bloqueada). Preguntado por cuál abordar, el usuario delegó la decisión. Se eligió **D-2b** por ser
+la más contenida y de menor riesgo (talla M frente a L, y sin tocar cómo "Aplicar" persiste
+escenarios en E-11b); E-11b queda para una sesión propia.
+
+- **D-2b (Cuadre del capital editado con la deuda viva global)**. El capital que se corrige por
+  contrato en Deuda › Contratos (D-2, `debtContractOverrides`) y la "deuda viva global" que ya leen
+  Hoy, Ruta y Comparar (`homeDebtOutlook().pendingPrincipal`) sumaban por caminos distintos sin que
+  nada lo explicara: una deuda ya reunificada cuenta con su propio capital corregido en Contratos,
+  pero la cifra global la sustituye por el plan combinado sintético (`canonical-debt-contracts.js
+  normalizeContracts`), fijado al capital que tenía esa deuda cuando se reunificó — editar su
+  capital en Contratos no mueve la deuda viva global, y hasta hoy nada lo decía. `debtPrincipalCrossCheck()`
+  (app.js) resta ese hueco esperado antes de comparar las dos cifras y declara "cuadra"/"descuadra"
+  con el mismo patrón `e19-badge-success/danger` que ya usa Cierre para las cuentas (regla
+  transversal 04: una diferencia no se calla). Se pinta como tarjeta nueva bajo la tabla de
+  Contratos (`debtPrincipalCrossCheckHtml`, elemento `#deudaContratosCrossCheck` en index.html), y
+  cada fila de una reunificada con el capital editado a mano gana además una insignia "Sin efecto en
+  deuda global" en el sitio donde se hizo la edición.
+- Alcance deliberadamente acotado a Deuda › Contratos — no se llevó a Hoy ni a otras pantallas, D-2b
+  no lo pedía.
+
+**Validación**: `npm run verify`, exit 0 — **1317/1317 pruebas** (10 nuevas en
+`tests/d2b-debt-principal-cross-check.test.cjs`; se ajustó una prueba existente de
+`renderDeudaContratos` en `tests/d1-d2-deuda-tabs-contratos.test.cjs` para mockear el cuadre nuevo),
+accesibilidad (782 IDs únicos, +1 por el elemento nuevo), rendimiento (diff 10.000 filas en 29,6 ms;
+forecast y escenarios en 151,0 ms; recursos 1666 KB), build del sitio, privacidad y smoke test,
+todos en verde. Verificado con Playwright contra el build local (`dist/`, servido en `localhost`):
+con los datos de demostración (sin overrides) la tarjeta pinta "Cuadra" (12.000,00 € a ambos lados);
+editando a mano el capital de la reunificada de la cartera demo aparece la insignia "Sin efecto en
+deuda global" en su fila y la tarjeta añade la nota "1 contrato(s) reunificado(s)... Entidad A", sin
+dejar de cuadrar (la sustitución sigue explicando el hueco) y sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — D-2b pasa de `Pendiente` a `Hecho` en
+la tabla de la pantalla 05 (Deuda), con su nota bajo la tabla; §7 se actualiza para reflejar que
+solo queda **E-11b** como decisión de diseño pendiente (además de D-14/C-3b, ya señaladas).
+
 ## Cierre de sesión — 20 de agosto de 2026: bloque 5 del plan de cierre — E-14, A-12, C-14
 
 Última sesión abierta con `/finanzas-casa-workflow`, siguiendo el plan de las tres fases
