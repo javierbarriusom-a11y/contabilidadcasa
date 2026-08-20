@@ -1816,9 +1816,16 @@ agosto de 2026** (ver la nota bajo la tabla de esta pantalla): la cifra ya exist
    propósito desde antes del 14 de agosto en `PROJECT_STATE.md`, a la espera de datos de
    uso reales sobre las heredadas ya relegadas a «Versiones anteriores» (10 de agosto).
    Reconfirmada por el usuario el 20 de agosto, tras completar E-14/A-12/C-14: sigue
-   bloqueada, D-14 queda pendiente. La app no tiene telemetría ni conteo de visitas —
-   preguntado directamente el 20 de agosto, el usuario no está seguro y prefiere un contador
-   de visitas mínimo antes de decidir con datos reales.
+   bloqueada, D-14 queda pendiente. La app no tenía telemetría ni conteo de visitas —
+   preguntado directamente el 20 de agosto, el usuario no estaba seguro y pidió un contador
+   de visitas mínimo antes de decidir con datos reales. **Contador construido el 20 de agosto**
+   (talla S, ver `recordViewVisit`/`viewVisitSummary` en app.js): cada cambio real de pantalla
+   suma en local (mismo `storageGet`/`storageSet` de siempre, nunca sale del navegador) un
+   contador y la fecha de la última visita, por pantalla — Laboratorio enseña esa cifra en la
+   ficha de cada heredada («Visitas: abierta N veces · última el …»). T-4 sigue bloqueada:
+   hace falta dejarlo correr unas semanas de uso normal antes de volver a preguntar con datos
+   reales de las tres heredadas de Deuda (`debt-roadmap`, `debt-liquidation-plan`,
+   `debt-control`).
 2. **Laboratorio · destino de `agentCaixaFloor`, `debtLiquidations` y `projects`.** Hallazgo
    de la sesión del 19 de agosto que construyó Laboratorio (ver la nota bajo la tabla de la
    pantalla 09): el «Asesor ejecutivo», «Agente ahorro y objetivos» y «Control de deuda»

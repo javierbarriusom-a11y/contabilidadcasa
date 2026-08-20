@@ -3083,6 +3083,34 @@ function setupMobileNavigation() {
   });
 }
 
+// T-4: contador mínimo de visitas por pantalla (talla S) — el backlog dejó T-4 («¿de verdad se
+// retiran las tres heredadas de Deuda?») abierto porque la app no tenía ningún dato de uso real,
+// solo la impresión de quien pregunta. En vez de decidir a ciegas, este contador guarda cuántas
+// veces se ha abierto cada pantalla y cuándo fue la última vez, en local (nunca sale del navegador,
+// mismo `storageGet`/`storageSet` que ya usa el resto de preferencias). Con unas semanas de uso
+// normal, Laboratorio puede enseñar la cifra real de cada heredada en vez de una suposición.
+const VISIT_COUNTS_KEY = "visit-counts";
+
+function loadVisitCounts() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey(VISIT_COUNTS_KEY), "{}"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function recordViewVisit(viewId) {
+  const counts = loadVisitCounts();
+  const previous = counts[viewId] || { count: 0, last: "" };
+  counts[viewId] = { count: previous.count + 1, last: new Date().toISOString().slice(0, 10) };
+  storageSet(storageKey(VISIT_COUNTS_KEY), JSON.stringify(counts));
+}
+
+function viewVisitSummary(viewId) {
+  return loadVisitCounts()[viewId] || { count: 0, last: "" };
+}
+
 function setActiveView(viewId = viewFromHash(), { focus = false, announce = true } = {}) {
   // R-11: la redirección de R-10 no puede depender de pasar por `viewFromHash()` — los clics del
   // menú lateral y los botones `data-home-nav` llaman aquí con el id heredado directamente, sin
@@ -3096,6 +3124,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   E18Health?.record(`view:${viewId}`);
   const viewChanged = activeViewId !== viewId;
   activeViewId = viewId;
+  if (viewChanged) recordViewVisit(viewId);
   if (viewId === "registrar") {
     const legacyTab = explicitLegacyTab || registrarTabFromHash();
     if (legacyTab && legacyTab !== registrarActiveTab) setRegistrarTab(legacyTab);
@@ -28628,6 +28657,15 @@ function laboratorioSnapshotNoteText(context) {
 // L-3, la ficha del mockup: Qué hacía / Dónde vive ahora / Recogida en / Instantánea del... / Abrir
 // en solo lectura. La nota de desviación (las tres excepciones del bloque del catálogo) se muestra
 // aparte, solo cuando existe, en vez de forzar el mismo texto en las quince que sí siguen el mockup.
+// T-4: la ficha de cada heredada suma su contador de visitas — sin este dato, el veredicto de una
+// "sustituida" es solo la impresión de quien la mira, no una cifra comprobable con el uso real.
+function laboratorioVisitasText(entry) {
+  const visitas = viewVisitSummary(entry.hash);
+  if (!visitas.count) return "0 visitas registradas todavía.";
+  const vecesText = visitas.count === 1 ? "1 vez" : `${visitas.count} veces`;
+  return `Abierta ${vecesText} · última el ${escapeHtml(formatIsoDate(visitas.last))}.`;
+}
+
 function laboratorioDetailHtml(entry, snapshotContext) {
   if (!entry) return `<p class="e19-kpi-note">Elige una pantalla heredada para ver su ficha.</p>`;
   const instantanea = snapshotContext ? formatIsoDate(snapshotContext.fecha.slice(0, 10)) : "sin cierre firmado";
@@ -28638,6 +28676,7 @@ function laboratorioDetailHtml(entry, snapshotContext) {
     <p class="e19-kpi-note"><strong>Recogida en</strong><br>${entry.backlogTask ? escapeHtml(entry.backlogTask) : "Sin tarea propia"}</p>
     ${entry.nota ? `<p class="e19-kpi-note laboratorio-card-nota">${escapeHtml(entry.nota)}</p>` : ""}
     <p class="e19-kpi-note"><strong>Escritura</strong><br>${escapeHtml(entry.evidenciaEscritura || "")}</p>
+    <p class="e19-kpi-note"><strong>Visitas</strong><br>${laboratorioVisitasText(entry)}</p>
     <p class="e19-kpi-note">Instantánea del ${escapeHtml(instantanea)}</p>
     <button type="button" class="e19-btn e19-btn-secondary" data-laboratorio-open-readonly="${escapeHtml(entry.hash)}">Abrir en solo lectura</button>`;
 }

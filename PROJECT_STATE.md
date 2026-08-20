@@ -2,6 +2,39 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: contador mínimo de visitas (T-4)
+
+Continuación de la misma sesión: con D-12 fusionado, tocaba T-4 — la única de las tres decisiones
+de producto pendientes que no se resuelve investigando el código, sino con datos de uso reales.
+Preguntado el mismo día si alguna vez abre las tres heredadas de Deuda, el usuario no estaba
+seguro; la app tampoco tenía ninguna telemetría propia con la que comprobarlo (confirmado por
+búsqueda: cero mecanismos de conteo de visitas antes de esta sesión). Se acordó construir un
+contador mínimo, talla S, como paso previo a decidir T-4 con datos reales dentro de unas semanas.
+
+**La construcción**: `recordViewVisit(viewId)`/`viewVisitSummary(viewId)`/`loadVisitCounts()` en
+app.js, con el mismo `storageGet`/`storageSet`/`storageKey` local que ya usa el resto de
+preferencias — nunca sale del navegador. `setActiveView()` llama a `recordViewVisit(viewId)` solo
+cuando la vista cambia de verdad (`if (viewChanged)`), no en cada re-render, así que cuenta
+navegaciones reales. La ficha de cada heredada en Laboratorio (`laboratorioDetailHtml`) suma una
+línea «Visitas: abierta N veces · última el DD/MM/AAAA» (o «0 visitas registradas todavía»),
+reutilizando el catálogo ya existente (`LABORATORIO_CATALOG`) — sin pantalla nueva, sin cálculo
+financiero, cubre las tres heredadas de Deuda (`debt-roadmap`, `debt-liquidation-plan`,
+`debt-control`) y las demás quince entradas del catálogo por igual.
+
+**Validación**: `npm run verify`, exit 0 — **1399/1399 pruebas** (11 nuevas en
+`tests/t-4-contador-visitas.test.cjs`, más 2 pruebas existentes de `laboratorioDetailHtml`
+ajustadas a la nueva dependencia), accesibilidad (789 IDs únicos), rendimiento (diff 10.000 filas
+en 40,0 ms; forecast y escenarios en 201,8 ms; recursos 1688 KB), build del sitio, privacidad y
+smoke test, todos en verde. Verificado con Playwright contra el build local: navegar a
+`#debt-roadmap` dos veces y a `#debt-control` una vez deja el contador en `{debt-roadmap: 2,
+debt-control: 1}`, y la ficha de Laboratorio de cada una muestra exactamente «Abierta 2 veces» /
+«Abierta 1 vez» con la fecha de hoy. Sin hallazgos.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` §7 — T-4 documenta el contador
+construido y sigue bloqueada a propósito: hace falta dejarlo correr unas semanas de uso normal
+antes de volver a decidir con datos reales. De las tres decisiones de producto originales, solo
+queda pendiente la mitad de Laboratorio (`debtLiquidations`), marcada como sesión propia.
+
 ## Cierre de sesión — 20 de agosto de 2026: D-12 — capacidad de endeudamiento en Deuda
 
 Continuación de la misma sesión: con el colchón CaixaBank unificado, tocaba D-12, la segunda de las
