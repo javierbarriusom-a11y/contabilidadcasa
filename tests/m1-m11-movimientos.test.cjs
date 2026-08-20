@@ -14,8 +14,10 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 // (`tests/m8-m8b-movimientos-lote.test.cjs`), igual que R-8/R-9 la tuvieron en Registrar.
 // `#movements` se evoluciona en el mismo sitio (no se construye una pantalla nueva al lado): el
 // enlace de menú ya apuntaba aquí desde Fase 3, así que no hay una heredada que adoptar o
-// sustituir, solo contenido que completar. La tarjeta de importación por Excel y la lista de
-// comercios de arriba no se tocan.
+// sustituir, solo contenido que completar. La lista de comercios de arriba no se toca. La tarjeta
+// de importación por Excel sí, en el repaso pixel-perfect del 20 de agosto: ver
+// tests/m1-movimientos-pixel-perfect.test.cjs para el porqué (segunda puerta de escritura, cerrada
+// con el mismo patrón que R-11).
 
 function extractFunction(name) {
   let start = app.indexOf(`function ${name}(`);
@@ -174,7 +176,9 @@ test("M-11 · ninguna fila de la tabla trae un input editable de importe: los im
     fn.includes('<td class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</td>'),
     "el importe debe pintarse como texto formateado con money(), no como un campo editable",
   );
-  assert.match(html, /Los importes no se editan aquí/);
+  // Repaso pixel-perfect del 20 de agosto: el subtítulo de #movements pasa a ser el de
+  // Movimientos.pdf, que dice lo mismo con otras palabras.
+  assert.match(html, /los importes vienen del banco y no se editan/);
 });
 
 test("M-4 · sin mapping, la partida se pinta como hueco (aviso), no como una partida inventada", () => {
@@ -547,8 +551,10 @@ test("M-9 · movementsTotals separa ingresos y gastos de la lista recibida", () 
 
 // --- M-10 · exportar la vista ------------------------------------------------------------------
 
+// Repaso pixel-perfect del 20 de agosto: Movimientos.pdf dice «Exportar la vista» (mismo botón,
+// junto a los chips y la insignia de cuadre, no en su propia fila al final de la tabla).
 test("M-10 · el botón de exportar está cableado a handleMovementsExport", () => {
-  assert.match(html, /<button type="button" class="e19-btn e19-btn-secondary" id="movementsExportButton">Exportar CSV de esta vista<\/button>/);
+  assert.match(html, /<button type="button" class="e19-btn e19-btn-secondary" id="movementsExportButton">Exportar la vista<\/button>/);
   assert.match(app, /qs\("movementsExportButton"\)\?\.addEventListener\("click", handleMovementsExport\);/);
 });
 

@@ -2,6 +2,56 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: pixel-perfect de Movimientos contra `Movimientos.pdf`
+
+Continuación de la misma sesión «pantalla por pantalla»: con Hoy y Registrar cerrados, tocaba
+Movimientos. Las 13 tareas ya estaban en Hecho, pero el repaso visual (build local + Playwright
+contra `Movimientos.pdf`) encontró contenido heredado que ninguna auditoría de contenido había
+cubierto. Tres hallazgos se consultaron con el usuario antes de tocar nada, porque dos implicaban
+retirar o reducir funcionalidad activa, no solo reordenar:
+
+1. **Cabecera duplicada** (mismo patrón que Hoy/Registrar): `hasOwnHeader` gana `"movements"`;
+   `viewTitles.movements` deja de decir «Base del modelo · Revisa los movimientos usados para
+   construir el escenario» (texto heredado) y pasa a «Movimientos» + una descripción propia.
+2. **«Cargar movimientos desde Excel» era una segunda puerta de escritura**: mismo
+   `loadTransactionsFromWorkbook` que ya usa Registrar › Importar extracto (R-8) sobre el mismo
+   `baseData.transactions`, pero sin su clasificación sugerida, revisión de duplicados ni impacto
+   antes de confirmar. El usuario pidió retirarla, solo lectura, mismo patrón que R-11 dio a
+   `#registrar-mes`/`#visual-detail`: `MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY` deja inerte el
+   manejador (con guarda propia) y el panel «Diccionario activo» que vivía dentro de la misma
+   tarjeta; la tarjeta muestra ahora un aviso con enlace a Registrar › Importar extracto. `#movements`
+   ganó su propio manejador de `data-home-nav` (no tenía ninguno) para que ese enlace funcione.
+3. **Título antiguo y tarjeta de analítica ajenos al mockup**: «Base del modelo» (el `<h2>` original
+   de la sección) y «Comportamiento conciliado · Tendencias y anomalías reales» (montada por
+   `p2-ui.js`, un módulo aparte que también inyecta paneles en Hoy, Ahorro y Deuda·Control) no están
+   en `Movimientos.pdf`. El usuario pidió quitar ambos; `p2-ui.js` deja de montar ese panel en
+   Movimientos (la función no se borra, solo deja de llamarse ahí).
+4. **M-8c (saldo recalculado) era una tabla de dos cuentas, el mockup una insignia**: convertida en
+   una insignia en línea, solo de CaixaBank (la misma cuenta de la columna Saldo de la tabla), con
+   los tres estados de siempre (cuadra/descuadra/sin-conciliar) reutilizando
+   `cierreAccountReconciliation` (C-2) sin segundo cálculo.
+5. **Reordenado sin tocar cálculos**: la insignia de cuadre, el aviso de sin-clasificar y «Exportar
+   la vista» (renombrado de «Exportar CSV de esta vista») pasan a una sola fila junto a los chips;
+   los filtros se mueven junto al título «Movimientos», que pasa a ser lo primero de la sección.
+
+**Fuera de alcance, documentado**: la franja de utilidad (Fase 3 · menú, igual que en Hoy/Registrar)
+y, más grande, la tabla de once columnas frente a las seis del mockup y el panel de detalle en
+diálogo modal frente al panel lateral fijo del mockup — un cambio de patrón de interacción, no solo
+de maquetación. Anotado para una sesión propia.
+
+**Validación**: `npm run verify`, exit 0 — **1428/1428 pruebas** (nuevo archivo
+`tests/m1-movimientos-pixel-perfect.test.cjs`, 11 pruebas; se ajustaron
+`tests/m1-m11-movimientos.test.cjs` y `tests/m8c-p8b-a7-fase5-dependientes.test.cjs`), accesibilidad
+(790 IDs únicos), rendimiento (diff 10.000 filas en 33,2 ms; forecast y escenarios en 171,5 ms;
+recursos 1700 KB), build del sitio, privacidad y smoke test, todos en verde. Verificado con
+Playwright contra el build local a 1920 px: cabecera duplicada ausente solo en Hoy/Registrar/
+Movimientos; tarjeta de importación de solo lectura con enlace funcional a Registrar › Importar
+extracto; «Diccionario activo» y «Tendencias y anomalías» ya no aparecen; insignia de cuadre, aviso
+de sin clasificar y «Exportar la vista» en la misma fila que los chips. Sin hallazgos adicionales.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` §3 (Movimientos) documenta el repaso
+pixel-perfect igual que ya hicieron §1 (Hoy) y §2 (Registrar).
+
 ## Cierre de sesión — 20 de agosto de 2026: pixel-perfect de Registrar contra `Registrar.pdf`
 
 Continuación de la misma sesión «pantalla por pantalla»: con Hoy cerrado, tocaba Registrar. Las 13

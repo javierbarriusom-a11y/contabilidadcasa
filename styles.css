@@ -7939,17 +7939,30 @@ body {
    `.movements-table-foot`/`.movements-table-actions` los totales (M-9) y la exportación (M-10). */
 .movements-unclassified-banner {
   display: inline-block;
-  margin: -4px 0 10px;
+  margin: 0;
+}
+
+/* Repaso pixel-perfect del 20 de agosto: Movimientos.pdf pinta la insignia de cuadre (M-8c), el
+   aviso de sin-clasificar (M-5) y «Exportar la vista» (M-10) en la misma fila que los chips, no
+   repartidos por la vista — la insignia y el aviso a la izquierda, el botón empujado a la derecha. */
+.movements-signal-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 4px 0 10px;
+}
+
+.movements-signal-row > button {
+  margin-left: auto;
+}
+
+.movements-reconcile-badge {
+  display: inline-block;
 }
 
 .movements-table-foot {
   margin: 10px 0;
-}
-
-.movements-table-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 16px;
 }
 
 /* M-8 (selección múltiple y acción en lote, 15 de agosto de 2026): reutiliza el fondo/borde de

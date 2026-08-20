@@ -3533,41 +3533,12 @@
           </section>
 
           <section class="table-section view-section" id="movements">
-            <div class="section-title">
-              <div>
-                <p class="panel-kicker">Base del modelo</p>
-                <h2>Movimientos recientes clasificados</h2>
-                <p>Top gastos no crediticios usados para estimar la base mensual.</p>
-              </div>
-            </div>
-            <article class="movement-import-card">
-              <div class="module-heading">
-                <div>
-                  <p class="panel-kicker">Extracto bancario</p>
-                  <h3>Cargar movimientos desde Excel</h3>
-                </div>
-              </div>
-              <div class="movement-import-grid">
-                <label class="file-drop compact-file-drop" for="movementExcelFile">
-                  <strong>Seleccionar Excel de movimientos</strong>
-                  <span>Formato Movimientos_cuenta_0308278_abr: Fecha, Fecha valor, Movimiento, Más datos, Importe y Saldo.</span>
-                  <input id="movementExcelFile" type="file" accept=".xlsx,.xls" />
-                </label>
-                <div class="movement-import-status" id="movementImportStatus">
-                  <strong>Sin fichero cargado en esta sesión</strong>
-                  <p>Al importar, el último saldo real del extracto actualiza CaixaBank y recalcula toda la app.</p>
-                </div>
-              </div>
-              <div class="movement-mapping-review" id="movementMappingReview" hidden></div>
-            </article>
-            <div class="merchant-list" id="merchantList"></div>
-            <p class="e19-registrar-crumb" id="movementsCrumb">Movimientos › Extracto real</p>
-            <article class="e19-card movements-reconciliation-card" id="movementsReconciliation"></article>
             <div class="section-title movement-detail-title">
               <div>
-                <p class="panel-kicker">Extracto real</p>
-                <h2>Movimientos detallados</h2>
-                <p>Se actualizan automáticamente al cargar un libro Excel completo desde “Carga de datos”. Los importes no se editan aquí.</p>
+                <p class="panel-kicker e19-eyebrow">Movimientos</p>
+                <h2 class="e19-heading">Movimientos</h2>
+                <p class="e19-subtitle">El extracto clasificado, consultable por sí mismo. Lo que aquí se cambia es la partida de un movimiento; los importes vienen del banco y no se editan.</p>
+                <button type="button" class="link-button" data-e17-open="guide">Guía de este flujo</button>
               </div>
               <div class="movement-filters">
                 <label>
@@ -3589,9 +3560,38 @@
                   <button type="button" class="registrar-mes-filter" data-movement-range="todo">Todo</button>
                 </div>
               </div>
-              <div class="movement-chips" id="movementChips" role="group" aria-label="Filtrar movimientos por tipo"></div>
             </div>
-            <p class="e19-badge e19-badge-warning movements-unclassified-banner" id="movementsUnclassifiedBanner" role="status" hidden></p>
+
+            <!-- Repaso pixel-perfect del 20 de agosto: «Cargar movimientos desde Excel» era una
+                 segunda puerta de escritura de baseData.transactions — el mismo loadTransactionsFromWorkbook
+                 que ya usa Registrar › Importar extracto (R-8), pero sin su asistente de clasificación,
+                 duplicados e impacto. Mismo tratamiento de solo lectura que R-11 dio a #registrar-mes
+                 y #visual-detail: el campo se deshabilita y remite a Registrar. -->
+            <article class="movement-import-card" id="movementImportLegacyCard">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Extracto bancario</p>
+                  <h3>Cargar movimientos desde Excel</h3>
+                </div>
+              </div>
+              <p class="e19-kpi-note">Solo lectura: importa extractos desde <button type="button" class="registrar-actuals-plan-link" data-home-nav="datos-importar">Registrar › Importar extracto</button>, con clasificación sugerida, revisión de duplicados e impacto antes de confirmar.</p>
+              <label class="file-drop compact-file-drop is-disabled" for="movementExcelFile" hidden>
+                <strong>Seleccionar Excel de movimientos</strong>
+                <span>Formato Movimientos_cuenta_0308278_abr: Fecha, Fecha valor, Movimiento, Más datos, Importe y Saldo.</span>
+                <input id="movementExcelFile" type="file" accept=".xlsx,.xls" disabled />
+              </label>
+              <div class="movement-import-status" id="movementImportStatus" hidden></div>
+              <div class="movement-mapping-review" id="movementMappingReview" hidden></div>
+            </article>
+            <div class="merchant-list" id="merchantList"></div>
+            <p class="e19-registrar-crumb" id="movementsCrumb">Movimientos › Extracto real</p>
+
+            <div class="movement-chips" id="movementChips" role="group" aria-label="Filtrar movimientos por tipo"></div>
+            <div class="movements-signal-row">
+              <span id="movementsReconciliation"></span>
+              <p class="e19-badge e19-badge-warning movements-unclassified-banner" id="movementsUnclassifiedBanner" role="status" hidden></p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="movementsExportButton">Exportar la vista</button>
+            </div>
             <div class="movement-count" id="movementCount"></div>
             <div class="movements-bulk-bar e19-impact-bar" id="movementsBulkBar" hidden>
               <div class="movements-bulk-head">
@@ -3630,9 +3630,6 @@
               </table>
             </div>
             <p class="e19-kpi-note movements-table-foot" id="movementsTotals"></p>
-            <div class="movements-table-actions">
-              <button type="button" class="e19-btn e19-btn-secondary" id="movementsExportButton">Exportar CSV de esta vista</button>
-            </div>
           </section>
           <aside class="finance-assistant" id="financeAssistant" aria-label="Asistente financiero">
             <button id="assistantToggle" class="assistant-toggle" type="button">Asistente financiero</button>
