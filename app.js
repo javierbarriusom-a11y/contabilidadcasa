@@ -3077,6 +3077,9 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
   // heredadas: ninguna vía de navegación deja ya la pantalla vieja como destino final.
   const explicitLegacyTab = REGISTRAR_LEGACY_HASH_TABS[viewId];
   if (explicitLegacyTab) viewId = "registrar";
+  // L-5: salir de la heredada que se veía en solo lectura desde Laboratorio limpia la sesión — no
+  // debe seguir bloqueando escritura en ningún otro sitio después de navegar fuera de ella.
+  if (laboratorioReadOnlySession && laboratorioReadOnlySession !== viewId) laboratorioReadOnlySession = null;
   E18Health?.record(`view:${viewId}`);
   const viewChanged = activeViewId !== viewId;
   activeViewId = viewId;
@@ -3136,19 +3139,47 @@ function setupViewNavigation() {
 
 // H-8: mismas cuatro cifras que ya usan los primeros KPI de Hoy (Liquidez, Deuda pendiente,
 // Capacidad libre real, Reserva protegida) — mismas funciones, no una fórmula paralela.
+// H-8, alineada con el mockup de Laboratorio (19 de agosto de 2026, el mismo que documenta la barra
+// en cabecera de las ocho vistas que no son Hoy): cinco cifras, no cuatro — Liquidez hoy, Reserva
+// protegida, Deuda viva, Libre de deuda y Peor mes, cada una con su cifra de apoyo. Ningún cálculo
+// financiero nuevo: las cinco reutilizan piezas ya construidas (homeDebtOutlook de D-4/D-9,
+// analisisCushionBand/analisisCushionWorst de A-2) — Capacidad libre, la cuarta cifra anterior, se
+// retira porque el mockup no la incluye; sigue disponible en Deuda · Ruta.
 function topbarStatusFigures() {
   const actionCenter = unifiedActionCenterModel();
   const ctx = actionCenter.context || {};
   const balances = ctx.balances || accountBalancesFromState();
-  const capacity = ctx.capacity || {};
   const today = ctx.today || {};
   const protectedReserve = round2(Number(today.requiredReserve || ctx.immediateTransfer?.reserve || agentCaixaFloor()));
+  const margin = round2(Number(balances.total || 0) - protectedReserve);
   const debtOutlook = homeDebtOutlook();
+  const libreDeDeudaValue = debtOutlook.settled ? "Sin deuda" : debtOutlook.estimable ? debtOutlook.libreDeDeudaLabel : "—";
+  const libreDeDeudaSub = debtOutlook.settled ? "sin contratos vivos" : debtOutlook.estimable ? "" : String(debtOutlook.libreDeDeuda || "sin fecha estimable");
+  const months = cuadroMandosAllMonths().slice(0, 12);
+  const cushionBand = analisisCushionBand(months, lastSimulation, Number(state?.emergencyBufferMonths || 0));
+  const worst = analisisCushionWorst(cushionBand);
   return [
-    { label: "Liquidez", value: money(balances.total, true) },
-    { label: "Deuda pendiente", value: money(debtOutlook.pendingPrincipal, true) },
-    { label: "Capacidad libre", value: money(round2(Number(capacity.avgTransfer12m || 0)), true) },
-    { label: "Reserva", value: money(protectedReserve, true) },
+    {
+      label: "Liquidez hoy",
+      value: money(balances.total, true),
+      sub: shortDate(state?.balanceDate || defaultBalanceDate()).replace(/ \d{2}$/, ""),
+    },
+    {
+      label: "Reserva protegida",
+      value: money(protectedReserve, true),
+      sub: `${margin < 0 ? "-" : ""}${money(Math.abs(margin), true)} de margen`,
+    },
+    {
+      label: "Deuda viva",
+      value: money(debtOutlook.pendingPrincipal, true),
+      sub: `${debtOutlook.contracts} contrato${debtOutlook.contracts === 1 ? "" : "s"}`,
+    },
+    { label: "Libre de deuda", value: libreDeDeudaValue, sub: libreDeDeudaSub },
+    {
+      label: "Peor mes",
+      value: worst ? `${escenarioMotorMonthLabel(worst.key)} · ${worst.monthsValue.toFixed(1)}m` : "—",
+      sub: worst ? ANALISIS_CUSHION_LEVEL_LABELS[worst.level] : "Sin datos",
+    },
   ];
 }
 
@@ -3164,7 +3195,12 @@ function renderTopbarStatusStrip(viewId) {
   const figures = topbarStatusFigures();
   strip.hidden = false;
   strip.innerHTML = figures
-    .map((item) => `<span class="topbar-status-figure"><small>${escapeHtml(item.label)}</small><strong>${escapeHtml(item.value)}</strong></span>`)
+    .map(
+      (item) =>
+        `<span class="topbar-status-figure"><small>${escapeHtml(item.label)}</small><strong>${escapeHtml(item.value)}</strong>${
+          item.sub ? `<em>${escapeHtml(item.sub)}</em>` : ""
+        }</span>`,
+    )
     .join("");
 }
 
@@ -6737,6 +6773,7 @@ function evaluateProjectDecisionItem(item) {
 
 function applyProjectDecision(project) {
   if (!project) return;
+  if (laboratorioWriteGuard("Aplicar proyecto")) return;
   const { preview, title, ...cleanProject } = project;
   const nextProject = {
     ...cleanProject,
@@ -7661,6 +7698,7 @@ function resetDebtDecisionForm() {
 
 function applyDebtDecision(decision) {
   if (!decision) return;
+  if (laboratorioWriteGuard("Aplicar decisión de deuda")) return;
   if (decision.targetId && debtLiquidations.some((item) => item.targetId === decision.targetId)) {
     if (qs("debtDecisionReview")) {
       qs("debtDecisionReview").innerHTML = `<div class="debt-review-empty">
@@ -10756,6 +10794,7 @@ function syncCaixaFloorControls({ preserveActive = true } = {}) {
 }
 
 function setAgentCaixaFloor(value) {
+  if (laboratorioWriteGuard("Cambiar el colchón CaixaBank")) return;
   const parsed = parseAmount(value);
   savingsAgentSettings().caixaFloor = parsed === null ? DEFAULT_AGENT_CAIXA_FLOOR : Math.max(0, round2(parsed));
   savingsAgentPlanCache = { key: "", value: null };
@@ -15567,6 +15606,7 @@ function handleSavingsPlanInput(input) {
   const key = input.dataset.savingsPlanField;
   const parsed = parseAmount(input.value);
   if (!key || parsed === null) return;
+  if (laboratorioWriteGuard("Editar supuesto de Plan ahorro")) return;
   const overrides = savingsPlanOverrides();
   overrides[key] = parsed;
   if (key === "unifiedCreditPayment") overrides.__manualUnifiedCreditPayment = true;
@@ -20805,6 +20845,7 @@ function renderAlertsCenter() {
 }
 
 function addUxAlert() {
+  if (laboratorioWriteGuard("Añadir alerta")) return;
   ensureUxSettingsState();
   scenarioSettings.alerts.push(UxSettings.normalizeAlert({
     id: `alert-custom-${Date.now()}`,
@@ -27797,143 +27838,155 @@ function handlePlanPrevisionHorizon(horizonKey) {
 }
 
 // =================================================================================================
-// Fase 7 · Laboratorio — pantalla 09 (docs/BACKLOG_NUEVE_PANTALLAS.md §09, «deuda de transición con
-// fecha de caducidad, vive en Ajustes»): catálogo canónico de las dieciocho pantallas heredadas del
-// rediseño a seis vistas (T-0/T-1, BACKLOG.md), cada una con un veredicto cerrado —
-// adoptada/sustituida/descartada— nunca «candidata» (L-1). El veredicto se apoya en evidencia real
-// del repositorio (qué pantalla nueva cubre su función, si tiene tarea de backlog viva, si su
-// escritura ya quedó bloqueada), no en el PDF original (`Backlog_Global.pdf` V4, no versionado como
-// texto): «adoptada» cuando la pantalla nueva reconstruyó a la heredada en su propio sitio o cuando
-// todavía no existe sustituta y la función sigue haciendo falta; «sustituida» cuando una pantalla
-// nueva ya cubre su función en otra dirección; «descartada» cuando la función ya no hace falta y
-// nadie la sustituye. L-2 exige que toda «adoptada» lleve una tarea de backlog que la siga
-// gobernando — nunca un «se queda, sin más».
+// Fase 7 · Laboratorio — pantalla 09, reconstruida el 20 de agosto de 2026 sobre el mockup real
+// (`Laboratorio.pdf`, enviado 4 de agosto de 2026 — el mismo que documenta la barra H-8 en cabecera
+// de las ocho vistas que no son Hoy). Hasta esta sesión Laboratorio era una tabla con veredictos
+// inferidos sin el mockup a mano; esta versión sigue su estructura y su texto al pie de la letra:
+// catálogo de dieciocho pantallas heredadas, cada una con un veredicto cerrado —
+// adoptada/sustituida/descartada, nunca «candidata» (L-1) — vista de tarjetas con panel de detalle
+// (L-3), instantánea fechada del último cierre (L-4) y acta exportable (L-7).
+//
+// Tres entradas se apartan del mockup, con evidencia concreta contra el código real — la misma
+// disciplina que ya obligó a corregir L-5 el 19 de agosto (agentCaixaFloor vs. Reserva operativa):
+// - **#movements**: el mockup la da por «sustituida, sin tarea propia», pero no existe una pantalla
+//   heredada separada que sustituir — M-1…M-11 reconstruyeron Movimientos en el mismo id/URL
+//   «#movements» (ver el comentario junto a su enlace en index.html). Se mantiene «adoptada».
+// - **#alerts-center**: el mockup cita «Recogida en AJ-3», pero AJ-3 no existe en
+//   docs/BACKLOG_NUEVE_PANTALLAS.md — ninguna tarea real la sustituye. Sigue siendo la única puerta
+//   para crear y editar reglas de alerta, y Ajustes enlaza aquí a propósito (V6-2). Se mantiene
+//   «adoptada», con V6-2 como su tarea real.
+// - **#operations-manual**: el mockup cita «Recogida en AJ-4», también inexistente — no hay ninguna
+//   sección de ayuda en index.html que la sustituya. Se mantiene «descartada» en vez de «sustituida».
 const LABORATORIO_CATALOG = [
   {
-    hash: "movements", label: "Movimientos (heredada original)", veredicto: "adoptada", destino: null,
-    backlogTask: "M-1…M-11 (Backlog nueve pantallas · pantalla 03)",
-    motivo: "Reconstruida en su propio sitio: M-1 a M-11 convirtieron el mismo id/URL «#movements» en la pantalla Movimientos vigente (ver el comentario junto a su enlace en index.html). No hay una pantalla gemela nueva a la que redirigir.",
-    writeBlocked: true,
-    evidenciaBloqueo: "No aplica un bloqueo de escritura: esta ES la puerta de escritura vigente de Movimientos (clasificación), regla transversal 01.",
+    hash: "movements", label: "Movimientos", veredicto: "adoptada", dondeViveAhora: "Movimientos",
+    destino: null, backlogTask: "M-1…M-11",
+    queHacia: "Clasificación de movimientos importados del extracto bancario.",
+    nota: "Se aparta del mockup (ver cabecera de este bloque): reconstruida en su propio sitio, no hay pantalla gemela.",
+    guardKey: null,
+    evidenciaEscritura: "Su puerta real (clasificación, M-1…M-11) no pasa todavía por el guardarraíl de solo lectura de Laboratorio — hueco conocido, fuera de alcance de esta sesión.",
   },
   {
-    hash: "savings-plan", label: "Plan ahorro", veredicto: "adoptada", destino: null,
-    backlogTask: "P-13, P-16 (Backlog nueve pantallas · pantalla 04, bloque 3 del plan de cierre)",
-    motivo: "Sigue siendo el único destino de «Ahorro y objetivos»: la cadena que lo sustituiría (P-13 Objetivos, P-16 Ahorro+sobres) no existe todavía — bloque 3 del plan de cierre en docs/BACKLOG_NUEVE_PANTALLAS.md §7.",
-    writeBlocked: true,
-    evidenciaBloqueo: "Sin formulario de escritura persistente: pantalla de lectura/simulación de objetivos, no una puerta de datos reales.",
+    hash: "reconciliation", label: "Conciliación", veredicto: "adoptada", dondeViveAhora: "Cierre · paso 1",
+    destino: { hash: "cierre", label: "Cierre" }, backlogTask: "C-2, C-3",
+    queHacia: "Cuadre de cuentas, cuenta por cuenta, contra el saldo declarado.",
+    nota: "", guardKey: null,
+    evidenciaEscritura: "Panel de lectura; nunca tuvo ningún control de escritura que bloquear.",
   },
   {
-    hash: "operations-manual", label: "Guía operativa", veredicto: "descartada", destino: null,
-    backlogTask: null,
-    motivo: "Guía estática de referencia sin dato que auditar (PROJECT_STATE.md, cierre del 15 de agosto). Ninguna pantalla nueva reproduce una «guía de uso» — el rediseño apuesta por una interfaz autoexplicativa — y no figura en ninguna tarea de retirada del bloque 5: su función se da por innecesaria, no por pendiente.",
-    writeBlocked: true,
-    evidenciaBloqueo: "Contenido estático, sin ningún control de escritura desde el origen.",
+    hash: "new-life-simulation", label: "Escenarios de vida y deuda", veredicto: "adoptada", dondeViveAhora: "Escenarios · tablero familiar",
+    destino: { hash: "escenario-simular", label: "Escenarios · Simular" }, backlogTask: "E-9",
+    queHacia: "Simulación combinada de vida y deuda con tablero de resultados por miembro del hogar.",
+    nota: "", guardKey: null,
+    evidenciaEscritura: "Su «Guardar escenario» persiste una copia reproducible aparte, sin pasar por el guardarraíl — hueco conocido, fuera de alcance de esta sesión.",
   },
   {
-    hash: "executive-advisor", label: "Asesor ejecutivo", veredicto: "adoptada", destino: null,
-    backlogTask: "Decisión de producto pendiente (docs/BACKLOG_NUEVE_PANTALLAS.md §7): destino de agentCaixaFloor",
-    motivo: "No es «sustituida»: corrección de esta sesión sobre un error del catálogo anterior, que confundía `agentCaixaFloor` (el colchón CaixaBank que aquí se edita, vía `saveExecutiveAdvisorSettingsFromControls` → `setAgentCaixaFloor`) con `state.operatingReserve` (la «Reserva operativa» de Ajustes, un campo distinto). Verificado: `agentCaixaFloor()` lo leen de verdad Hoy (`renderHomeDashboard`), Registrar (`registrarRecalcFigures`/`registrarSessionMetrics`), Deuda · Ruta (`renderDeudaRutaOffer`) y Asesor de decisión (`renderAsesorDecision`) — ninguna pantalla nueva ofrece escribirlo. Sus otros campos propios (reserva/coste del coche, crédito de Tere) tampoco tienen sustituto en ningún sitio.",
-    writeBlocked: true,
-    evidenciaBloqueo: "No aplica un bloqueo: sigue siendo la única puerta de escritura real de `agentCaixaFloor`, con lectores en cuatro pantallas nuevas. Bloquearla sin dar otra puerta las dejaría sin forma de fijar el colchón — no es un hueco de R-11, es un hueco de diseño (qué pantalla nueva debería escribir este dato, si alguna).",
+    hash: "new-life-definitive", label: "Simulación nueva vida definitiva", veredicto: "adoptada", dondeViveAhora: "Escenarios · separación por banco",
+    destino: { hash: "escenario-simular", label: "Escenarios · Simular" }, backlogTask: "E-10",
+    queHacia: "Proyecto de vida nueva con reparto de gastos por banco y titular.",
+    nota: "", guardKey: "debtDecision",
+    evidenciaEscritura: "Sus acciones de deuda pasan por el guardarraíl real (`applyDebtDecision`); su borrador propio de proyecto/traspaso no persiste en el estado financiero compartido.",
   },
   {
-    hash: "virtual-advisor", label: "Asesor virtual", veredicto: "sustituida", destino: { hash: "home", label: "Hoy" },
-    backlogTask: null,
-    motivo: "Cubierta por Hoy + «#asesor-decision» desde V1-4 (10 de agosto). Sin tarea de retirada explícita en el bloque 5 todavía.",
-    writeBlocked: true,
-    evidenciaBloqueo: "Su mini-formulario de deuda solo recalcula en memoria (`renderAdvisorDebtSandbox`); no persiste nada.",
+    hash: "debt-control", label: "Control de deuda", veredicto: "adoptada", dondeViveAhora: "Deuda · comparador",
+    destino: { hash: "deuda-comparar", label: "Deuda · Comparar" }, backlogTask: "D-12",
+    queHacia: "Comparador de estrategias de deuda con aplicación de liquidaciones puntuales.",
+    nota: "", guardKey: "debtDecision",
+    evidenciaEscritura: "Bloqueada de verdad en modo solo lectura: `applyDebtDecision` rechaza la escritura y la registra (L-5).",
   },
   {
-    hash: "savings-agent", label: "Agente ahorro y objetivos", veredicto: "adoptada", destino: null,
-    backlogTask: "Decisión de producto pendiente (docs/BACKLOG_NUEVE_PANTALLAS.md §7): destino de agentCaixaFloor",
-    motivo: "Comparte el mismo campo `agentCaixaFloor` que Asesor ejecutivo (`handleAgentCaixaFloorChange` → `setAgentCaixaFloor`), leído de verdad por Hoy, Registrar, Deuda · Ruta y Asesor de decisión — ver el motivo de `executive-advisor` para el detalle. Dos heredadas escribiendo el mismo campo es en sí una pregunta abierta (¿cuál debería ser la puerta?), no algo que esta sesión resuelva.",
-    writeBlocked: true,
-    evidenciaBloqueo: "No aplica un bloqueo: sigue siendo una de las dos únicas puertas de escritura real de `agentCaixaFloor`. Mismo hueco de diseño que Asesor ejecutivo, no un R-11 pendiente.",
+    hash: "savings-agent", label: "Agente ahorro y objetivos", veredicto: "adoptada", dondeViveAhora: "Plan · sobres",
+    destino: { hash: "plan", label: "Plan" }, backlogTask: "P-16",
+    queHacia: "Plan de ahorro con objetivos y aviso de reserva mínima.",
+    nota: "", guardKey: "agentCaixaFloor",
+    evidenciaEscritura: "Bloqueada de verdad en modo solo lectura: `setAgentCaixaFloor`/`applyDebtDecision` rechazan la escritura y la registran (L-5).",
   },
   {
-    hash: "alerts-center", label: "Centro de alertas", veredicto: "adoptada", destino: null,
-    backlogTask: "V6-2 (BACKLOG.md) · Umbrales de aviso",
-    motivo: "No es «sustituida»: sigue siendo la única puerta para crear y editar reglas de alerta (`addUxAlert`/`handleAlertRuleAction`), y Ajustes enlaza aquí a propósito en vez de duplicar el editor («el colchón mínimo en meses... su tarjeta enlaza a Umbrales de aviso en vez de duplicar el editor», V6-2). Hoy solo muestra las alertas ya disparadas, no las gestiona.",
-    writeBlocked: true,
-    evidenciaBloqueo: "No aplica un bloqueo: es la puerta de escritura vigente de los umbrales de aviso, enlazada a propósito desde Ajustes (V6-2) en vez de duplicar el editor.",
+    hash: "savings-plan", label: "Plan ahorro", veredicto: "adoptada", dondeViveAhora: "Análisis · semáforo",
+    destino: { hash: "analisis", label: "Análisis" }, backlogTask: "A-11",
+    queHacia: "Supuestos de ahorro mensual y su recálculo en el resto del panel.",
+    nota: "", guardKey: "savingsPlan",
+    evidenciaEscritura: "Bloqueada de verdad en modo solo lectura: `handleSavingsPlanInput` rechaza la escritura y la registra (L-5).",
   },
   {
-    hash: "visual-detail", label: "Cuadro de mandos", veredicto: "sustituida", destino: { hash: "cuadro-mandos", label: "Plan · Cuadro de mandos" },
-    backlogTask: "A-12 (Backlog nueve pantallas · pantalla 07)",
-    motivo: "Cubierta por Plan («#cuadro-mandos», «#cambios-pendientes», «#mapa-calor») desde V2-8 (10 de agosto).",
-    writeBlocked: true,
-    evidenciaBloqueo: "Su saldo editable quedó bloqueado de verdad (no solo escondido): VISUAL_DETAIL_BALANCE_LEGACY_READONLY, mensaje «Solo lectura (R-11)», redirige a Registrar › Saldo de cuentas.",
+    hash: "data-audit", label: "Datos y auditoría", veredicto: "adoptada", dondeViveAhora: "Cierre · paso 4",
+    destino: { hash: "cierre", label: "Cierre" }, backlogTask: "C-9, C-10, C-11",
+    queHacia: "Inventario canónico con identificadores estables, historial de versiones y reversiones.",
+    nota: "", guardKey: null,
+    evidenciaEscritura: "Panel de auditoría de solo lectura; ninguna acción de esta pantalla persiste datos.",
   },
   {
-    hash: "cashflow", label: "Flujo mensual", veredicto: "sustituida", destino: { hash: "prevision", label: "Plan · Previsión" },
-    backlogTask: "A-12 (Backlog nueve pantallas · pantalla 07)",
-    motivo: "Cubierta por Plan · Previsión («#prevision») desde V2-8 (10 de agosto).",
-    writeBlocked: true,
-    evidenciaBloqueo: "Tabla de lectura derivada del ledger; sin ningún campo editable en origen.",
+    hash: "alerts-center", label: "Centro de alertas", veredicto: "adoptada", dondeViveAhora: "Ajustes · Umbrales de aviso",
+    destino: null, backlogTask: "V6-2 (BACKLOG.md) · Umbrales de aviso",
+    queHacia: "Reglas de alerta por umbral, con motivo y frecuencia de revisión.",
+    nota: "Se aparta del mockup (ver cabecera de este bloque): «AJ-3» no existe como tarea real.",
+    guardKey: "alerts",
+    evidenciaEscritura: "Añadir una regla queda bloqueado de verdad en modo solo lectura (`addUxAlert`, L-5); editar/pausar una regla existente todavía no pasa por el guardarraíl — hueco conocido.",
   },
   {
-    hash: "simulator", label: "Simulador", veredicto: "adoptada", destino: null,
-    backlogTask: "Decisión de producto pendiente (docs/BACKLOG_NUEVE_PANTALLAS.md §7): ¿sigue haciendo falta projects?",
-    motivo: "No es «sustituida»: corrección de esta sesión. Escenarios (E-11, `escenario-motor-saved`) NO es la misma puerta — es un array completamente distinto de `projects`, que aquí escribe `applyProjectDecision`. A diferencia de Asesor ejecutivo/Control de deuda, `projects` no lo lee ninguna pantalla nueva (solo lo leen otras heredadas: el panel mensual de `visual-detail` y el plan acelerado de `debt-liquidation-plan`) y el motor de forecast canónico (`escenarioMotorBaseInput`/`e14bForecast`) no depende de él. Sigue siendo su única puerta de escritura, sin sustituto — si además sigue haciendo falta de verdad es una pregunta de uso real, no de código.",
-    writeBlocked: true,
-    evidenciaBloqueo: "No aplica un bloqueo: sigue siendo la única puerta de escritura de `projects`. A diferencia de agentCaixaFloor/debtLiquidations, ninguna pantalla nueva lo lee — candidata a «descartada» el día que se confirme que nadie lo usa, pero eso no se decide sin datos de uso.",
+    hash: "visual-detail", label: "Cuadro de mandos", veredicto: "sustituida", dondeViveAhora: "Plan y Registrar",
+    destino: { hash: "cuadro-mandos", label: "Plan · Cuadro de mandos" }, backlogTask: null,
+    queHacia: "Cuadro de mandos con saldos, partidas y colchón combinados.",
+    nota: "", guardKey: null,
+    evidenciaEscritura: "Su saldo editable quedó bloqueado de verdad: VISUAL_DETAIL_BALANCE_LEGACY_READONLY, mensaje «Solo lectura (R-11)», redirige a Registrar › Saldo de cuentas.",
   },
   {
-    hash: "new-life-simulation", label: "Escenarios de vida y deuda", veredicto: "sustituida", destino: { hash: "escenario-simular", label: "Escenarios · Simular" },
-    backlogTask: "E-14 (Backlog nueve pantallas · pantalla 06)",
-    motivo: "Cubierta por el motor de Escenarios desde V2-8 (10 de agosto).",
-    writeBlocked: true,
-    evidenciaBloqueo: "Simular nunca escribe (regla transversal 02): calcula sobre una copia, no hay aplicación posible desde esta pantalla.",
+    hash: "debt-roadmap", label: "Plan de deuda", veredicto: "sustituida", dondeViveAhora: "Deuda · oferta en curso",
+    destino: { hash: "deuda-ruta", label: "Deuda · Ruta" }, backlogTask: null,
+    queHacia: "Ruta de deuda con la oferta en curso y su checklist de aplicación.",
+    nota: "", guardKey: null,
+    evidenciaEscritura: "Comparar no escribe (D-7): pantalla de lectura/comparación, sin aplicación posible desde aquí.",
   },
   {
-    hash: "new-life-definitive", label: "Simulación nueva vida definitiva", veredicto: "sustituida", destino: { hash: "asesor-decision", label: "Hoy · Asesor de decisión" },
-    backlogTask: "E-14 (Backlog nueve pantallas · pantalla 06)",
-    motivo: "Última pestaña principal en migrar (T-1, 11 de agosto, BACKLOG.md línea 463): su función ya vive en el motor de Escenarios y en «#asesor-decision».",
-    writeBlocked: true,
-    evidenciaBloqueo: "Simular nunca escribe (regla transversal 02): calcula sobre una copia, no hay aplicación posible desde esta pantalla.",
+    hash: "debt-liquidation-plan", label: "Plan deuda óptimo", veredicto: "sustituida", dondeViveAhora: "Deuda · comparador",
+    destino: { hash: "deuda-comparar", label: "Deuda · Comparar" }, backlogTask: null,
+    queHacia: "Comparador de los ocho modos de liquidación de deuda.",
+    nota: "", guardKey: "debtDecision",
+    evidenciaEscritura: "Bloqueada de verdad en modo solo lectura: «Preparar primera deuda» pasa por `applyDebtDecision`, que rechaza la escritura y la registra (L-5).",
   },
   {
-    hash: "debt-roadmap", label: "Plan de deuda", veredicto: "sustituida", destino: { hash: "deuda-ruta", label: "Deuda · Ruta" },
-    backlogTask: "D-14 (Backlog nueve pantallas · pantalla 05, bloqueada por T-4)",
-    motivo: "Cubierta por «#deuda-ruta» desde V3-5 (10 de agosto). Su retirada real (D-14) está contenida por la decisión T-4: sigue relegada, no retirada, a la espera de datos de uso.",
-    writeBlocked: true,
-    evidenciaBloqueo: "Comparar no escribe (D-7): pantalla de lectura/comparación, sin aplicación posible desde aquí.",
+    hash: "executive-advisor", label: "Asesor ejecutivo", veredicto: "sustituida", dondeViveAhora: "Deuda · oferta en curso",
+    destino: { hash: "deuda-ruta", label: "Deuda · Ruta" }, backlogTask: null,
+    queHacia: "Asesoramiento sobre reserva, coche y crédito de Tere con proyección de caja.",
+    nota: "", guardKey: "agentCaixaFloor",
+    evidenciaEscritura: "Bloqueada de verdad en modo solo lectura: `setAgentCaixaFloor`/`applyDebtDecision` rechazan la escritura y la registran (L-5).",
   },
   {
-    hash: "debt-liquidation-plan", label: "Plan deuda óptimo", veredicto: "sustituida", destino: { hash: "deuda-comparar", label: "Deuda · Comparar" },
-    backlogTask: "D-14 (Backlog nueve pantallas · pantalla 05, bloqueada por T-4)",
-    motivo: "Cubierta por «#deuda-comparar» desde V3-5 (10 de agosto). Misma reserva de T-4 que debt-roadmap.",
-    writeBlocked: true,
-    evidenciaBloqueo: "Comparar no escribe (D-7): pantalla de lectura/comparación, sin aplicación posible desde aquí.",
+    hash: "simulator", label: "Simulador", veredicto: "sustituida", dondeViveAhora: "Escenarios",
+    destino: { hash: "escenario-simular", label: "Escenarios · Simular" }, backlogTask: null,
+    queHacia: "Simulador de proyectos y decisiones de vida con aplicación directa al plan.",
+    nota: "", guardKey: "project",
+    evidenciaEscritura: "Bloqueada de verdad en modo solo lectura: `applyProjectDecision` rechaza la escritura y la registra (L-5).",
   },
   {
-    hash: "debt-control", label: "Control de deuda", veredicto: "adoptada", destino: null,
-    backlogTask: "Decisión de producto pendiente (docs/BACKLOG_NUEVE_PANTALLAS.md §7): destino de debtLiquidations",
-    motivo: "No es «sustituida»: corrección de esta sesión. `handleAddDebtLiquidation`/`applyDebtDecision` escriben `debtLiquidations`, y ese array lo leen de verdad Hoy (`homeDebtReviewReminders`, recordatorios de revisión), Deuda · Ruta y Asesor de decisión (`renderDeudaRutaOffer`/`asesorDecisionOpenOffers`, para no reofrecer una decisión ya tomada) — pero ninguna pantalla nueva ofrece REGISTRAR una liquidación nueva ahí; Deuda · Ruta (`handleDeudaRutaApply`) aplica a través de Escenarios (`escenario-motor-saved`), un array distinto.",
-    writeBlocked: true,
-    evidenciaBloqueo: "No aplica un bloqueo: sigue siendo la única puerta para registrar una liquidación de deuda en `debtLiquidations`, que Hoy y Deuda ya leen. Bloquearla sin sustituto dejaría esa acción sin ningún sitio donde hacerse — hueco de diseño, no de R-11.",
+    hash: "cashflow", label: "Flujo mensual", veredicto: "sustituida", dondeViveAhora: "Análisis · cascada",
+    destino: { hash: "analisis", label: "Análisis" }, backlogTask: null,
+    queHacia: "Flujo de caja mensual agregado por bloque de partidas.",
+    nota: "", guardKey: null,
+    evidenciaEscritura: "Tabla de lectura derivada del ledger; sin ningún campo editable en origen.",
   },
   {
-    hash: "update-data", label: "Registrar reales del mes", veredicto: "sustituida", destino: { hash: "registrar-mes", label: "Registrar · Reales del mes" },
-    backlogTask: null,
-    motivo: "Cubierta por «Registrar el mes» desde V4-6 (10 de agosto); su hash ya redirige ahí (REGISTRAR_LEGACY_HASH_TABS). Sin tarea de retirada explícita en el bloque 5 todavía.",
-    writeBlocked: true,
-    evidenciaBloqueo: "Su alta/edición de partidas quedó bloqueada de verdad: REGISTRAR_MES_LEGACY_READONLY, mensaje «Solo lectura (R-11)», redirige a Registrar › Reales del mes.",
+    hash: "update-data", label: "Registrar reales del mes", veredicto: "sustituida", dondeViveAhora: "Registrar · pestaña Reales",
+    destino: { hash: "registrar-mes", label: "Registrar · Reales del mes" }, backlogTask: null,
+    queHacia: "Alta y edición manual de los reales del mes en curso.",
+    nota: "", guardKey: null,
+    evidenciaEscritura: "Su alta/edición de partidas quedó bloqueada de verdad: REGISTRAR_MES_LEGACY_READONLY, mensaje «Solo lectura (R-11)», redirige a Registrar › Reales del mes.",
   },
   {
-    hash: "data-audit", label: "Datos y auditoría", veredicto: "sustituida", destino: { hash: "registrar-mes", label: "Registrar · Reales del mes" },
-    backlogTask: "C-14 (Backlog nueve pantallas · pantalla 08)",
-    motivo: "Cubierta por Registrar/Cierre desde V5-3 (10 de agosto); su inventario completo por cuenta sigue vivo a propósito (BACKLOG.md línea 179) como lectura, no se retira sin más.",
-    writeBlocked: true,
-    evidenciaBloqueo: "Panel de auditoría de solo lectura; ninguna acción de esta pantalla persiste datos.",
+    hash: "operations-manual", label: "Guía operativa", veredicto: "descartada", dondeViveAhora: "Sin sustituta",
+    destino: null, backlogTask: null,
+    queHacia: "Guía escrita de uso de la aplicación, pantalla a pantalla.",
+    nota: "Se aparta del mockup (ver cabecera de este bloque): «AJ-4» no existe como tarea real, y no hay ninguna sección de ayuda en Ajustes que la sustituya.",
+    guardKey: null,
+    evidenciaEscritura: "Contenido estático, sin ningún control de escritura desde el origen.",
   },
   {
-    hash: "reconciliation", label: "Conciliación", veredicto: "sustituida", destino: { hash: "conciliar", label: "Cierre · Conciliar" },
-    backlogTask: "C-14 (Backlog nueve pantallas · pantalla 08)",
-    motivo: "Cubierta por «#conciliar» desde V5-3 (10 de agosto).",
-    writeBlocked: true,
-    evidenciaBloqueo: "Panel de lectura sobre el mismo ledger que Cierre; sin puerta de escritura propia.",
+    hash: "virtual-advisor", label: "Asesor virtual", veredicto: "descartada", dondeViveAhora: "No se fabrica",
+    destino: null, backlogTask: null,
+    queHacia: "Asesor conversacional genérico sobre decisiones de deuda.",
+    nota: "Sin motor de recomendación genérico a propósito (T-6, docs/BACKLOG_NUEVE_PANTALLAS.md).",
+    guardKey: null,
+    evidenciaEscritura: "Su mini-formulario de deuda solo recalcula en memoria (`renderAdvisorDebtSandbox`); nunca persistió nada.",
   },
 ];
 
@@ -27963,12 +28016,12 @@ function laboratorioAdoptedWithoutTask(catalog = LABORATORIO_CATALOG) {
   return catalog.filter((entry) => entry.veredicto === "adoptada" && !entry.backlogTask);
 }
 
-// L-6: vista de lista con los destinos — una fila por heredada, con su veredicto y, si es
-// "sustituida", el destino real al que redirige.
+// L-6: vista de lista con los destinos — una fila por heredada, con su veredicto y, si tiene, el
+// destino real al que redirige. Es el toggle "Lista" del mockup, ordenable por veredicto.
 function laboratorioListRows(catalog = LABORATORIO_CATALOG) {
   return catalog
     .slice()
-    .sort((a, b) => a.label.localeCompare(b.label, "es"))
+    .sort((a, b) => a.veredicto.localeCompare(b.veredicto) || a.label.localeCompare(b.label, "es"))
     .map((entry) => ({
       hash: entry.hash,
       label: entry.label,
@@ -27978,13 +28031,54 @@ function laboratorioListRows(catalog = LABORATORIO_CATALOG) {
 }
 
 // L-3: panel de detalle por heredada — toda la ficha de una entrada del catálogo, para pintar tras
-// seleccionarla en la lista de L-6.
+// seleccionarla en la tarjeta o en la lista.
 function laboratorioDetailFor(hash, catalog = LABORATORIO_CATALOG) {
   return catalog.find((entry) => entry.hash === hash) || null;
 }
 
 const LABORATORIO_VEREDICTO_LABEL = { adoptada: "Adoptada", sustituida: "Sustituida", descartada: "Descartada" };
-const LABORATORIO_VEREDICTO_BADGE = { adoptada: "e19-badge-neutral", sustituida: "e19-badge-success", descartada: "e19-badge-warning" };
+const LABORATORIO_VEREDICTO_BADGE = { adoptada: "e19-badge-success", sustituida: "e19-badge-neutral", descartada: "e19-badge-warning" };
+const LABORATORIO_FILTROS = ["todas", "adoptada", "sustituida", "descartada"];
+const LABORATORIO_FILTRO_LABEL = { todas: "Todas", adoptada: "Adoptada", sustituida: "Sustituida", descartada: "Descartada" };
+
+function laboratorioFilterCounts(catalog = LABORATORIO_CATALOG) {
+  const summary = laboratorioVerdictSummary(catalog);
+  return { todas: summary.total, adoptada: summary.adoptada, sustituida: summary.sustituida, descartada: summary.descartada };
+}
+
+function laboratorioFilteredCatalog(catalog = LABORATORIO_CATALOG, filtro = "todas") {
+  if (filtro === "todas") return catalog;
+  return catalog.filter((entry) => entry.veredicto === filtro);
+}
+
+function laboratorioFilterChipsHtml(catalog, filtro) {
+  const counts = laboratorioFilterCounts(catalog);
+  return LABORATORIO_FILTROS.map(
+    (key) =>
+      `<button type="button" class="registrar-mes-filter${key === filtro ? " is-active" : ""}" data-laboratorio-filter="${key}" aria-pressed="${key === filtro ? "true" : "false"}">${LABORATORIO_FILTRO_LABEL[key]} · ${counts[key]}</button>`,
+  ).join("");
+}
+
+// L-6, la vista de tarjetas del mockup (por defecto) — una tarjeta por heredada con su veredicto,
+// dónde vive ahora y, si es adoptada, la tarea que la recoge.
+function laboratorioCardsHtml(entries, selectedHash) {
+  if (!entries.length) return `<p class="e19-kpi-note">Ninguna heredada con este veredicto.</p>`;
+  return `<div class="laboratorio-cards">${entries
+    .map(
+      (entry) => `<button type="button" class="laboratorio-card${entry.hash === selectedHash ? " is-selected" : ""}" data-laboratorio-select="${escapeHtml(entry.hash)}">
+        <div class="laboratorio-card-head">
+          <div>
+            <strong>${escapeHtml(entry.label)}</strong>
+            <code>#${escapeHtml(entry.hash)}</code>
+          </div>
+          <span class="e19-badge ${LABORATORIO_VEREDICTO_BADGE[entry.veredicto] || "e19-badge-neutral"}">${LABORATORIO_VEREDICTO_LABEL[entry.veredicto] || entry.veredicto}</span>
+        </div>
+        <p>${escapeHtml(entry.dondeViveAhora || "—")}</p>
+        <small>${entry.backlogTask ? `Recogida en ${escapeHtml(entry.backlogTask)}` : "Sin tarea propia"}</small>
+      </button>`,
+    )
+    .join("")}</div>`;
+}
 
 function laboratorioListHtml(rows, selectedHash) {
   if (!rows.length) return `<p class="e19-kpi-note">Sin heredadas en el catálogo.</p>`;
@@ -28002,16 +28096,6 @@ function laboratorioListHtml(rows, selectedHash) {
   </table></div>`;
 }
 
-function laboratorioDetailHtml(entry) {
-  if (!entry) return `<p class="e19-kpi-note">Elige una pantalla heredada de la lista para ver su ficha.</p>`;
-  return `<h3 class="escenario-motor-panel-title">${escapeHtml(entry.label)}</h3>
-    <p><span class="e19-badge ${LABORATORIO_VEREDICTO_BADGE[entry.veredicto] || "e19-badge-neutral"}">${LABORATORIO_VEREDICTO_LABEL[entry.veredicto] || entry.veredicto}</span></p>
-    <p class="e19-kpi-note">${escapeHtml(entry.motivo)}</p>
-    <p class="e19-kpi-note"><strong>Destino:</strong> ${entry.destino ? `<button type="button" class="registrar-actuals-plan-link" data-home-nav="${escapeHtml(entry.destino.hash)}">${escapeHtml(entry.destino.label)}</button>` : "Ninguno (no hay pantalla gemela)."}</p>
-    <p class="e19-kpi-note"><strong>Tarea de backlog:</strong> ${entry.backlogTask ? escapeHtml(entry.backlogTask) : "Sin tarea asociada."}</p>
-    <p class="e19-kpi-note"><strong>Escritura:</strong> ${entry.writeBlocked ? "Bloqueada" : "⚠ Sin confirmar"} — ${escapeHtml(entry.evidenciaBloqueo || "")}</p>`;
-}
-
 // L-4: "Instantánea fechada del último cierre" — el catálogo se lee siempre "a fecha de" el último
 // cierre firmado y vigente (C-5/C-10), no "a fecha de hoy": un veredicto de gobernanza necesita un
 // punto en el tiempo verificable y firmado, igual que la evidencia de C-12, no la hora del reloj del
@@ -28026,24 +28110,46 @@ function laboratorioSnapshotContext(closures = monthClosures) {
 
 function laboratorioSnapshotNoteText(context) {
   return context
-    ? `Instantánea a fecha del último cierre firmado: ${ledgerMonthLabel(context.monthKey)}, el ${formatIsoDate(context.fecha.slice(0, 10))} (${context.autor}).`
+    ? `Instantánea del ${formatIsoDate(context.fecha.slice(0, 10))} (cierre de ${ledgerMonthLabel(context.monthKey)}, ${context.autor}).`
     : "Todavía no hay ningún mes cerrado y firmado: el catálogo se muestra sin instantánea fechada.";
+}
+
+// L-3, la ficha del mockup: Qué hacía / Dónde vive ahora / Recogida en / Instantánea del... / Abrir
+// en solo lectura. La nota de desviación (las tres excepciones del bloque del catálogo) se muestra
+// aparte, solo cuando existe, en vez de forzar el mismo texto en las quince que sí siguen el mockup.
+function laboratorioDetailHtml(entry, snapshotContext) {
+  if (!entry) return `<p class="e19-kpi-note">Elige una pantalla heredada para ver su ficha.</p>`;
+  const instantanea = snapshotContext ? formatIsoDate(snapshotContext.fecha.slice(0, 10)) : "sin cierre firmado";
+  return `<h3 class="escenario-motor-panel-title">${escapeHtml(entry.label)} <code>#${escapeHtml(entry.hash)}</code></h3>
+    <p><span class="e19-badge ${LABORATORIO_VEREDICTO_BADGE[entry.veredicto] || "e19-badge-neutral"}">${LABORATORIO_VEREDICTO_LABEL[entry.veredicto] || entry.veredicto}</span></p>
+    <p class="e19-kpi-note"><strong>Qué hacía</strong><br>${escapeHtml(entry.queHacia)}</p>
+    <p class="e19-kpi-note"><strong>Dónde vive ahora</strong><br>${entry.destino ? `<button type="button" class="registrar-actuals-plan-link" data-home-nav="${escapeHtml(entry.destino.hash)}">${escapeHtml(entry.dondeViveAhora)}</button>` : escapeHtml(entry.dondeViveAhora || "—")}</p>
+    <p class="e19-kpi-note"><strong>Recogida en</strong><br>${entry.backlogTask ? escapeHtml(entry.backlogTask) : "Sin tarea propia"}</p>
+    ${entry.nota ? `<p class="e19-kpi-note laboratorio-card-nota">${escapeHtml(entry.nota)}</p>` : ""}
+    <p class="e19-kpi-note"><strong>Escritura</strong><br>${escapeHtml(entry.evidenciaEscritura || "")}</p>
+    <p class="e19-kpi-note">Instantánea del ${escapeHtml(instantanea)}</p>
+    <button type="button" class="e19-btn e19-btn-secondary" data-laboratorio-open-readonly="${escapeHtml(entry.hash)}">Abrir en solo lectura</button>`;
+}
+
+function laboratorioCounterText(catalog, filtro) {
+  const filtered = laboratorioFilteredCatalog(catalog, filtro);
+  const abiertos = laboratorioOpenVerdicts(catalog).length;
+  return `${filtered.length} de ${catalog.length} · ${abiertos} sin decidir`;
 }
 
 // L-7: acta exportable del Laboratorio — mismo patrón que C-12/A-11 (Blob/CSV + `window.print()`
 // sobre `#cierrePrintEvidence`, un solo mecanismo de "PDF de una página" para toda la app).
 function laboratorioActaCsvContent(catalog = LABORATORIO_CATALOG, snapshotContext = laboratorioSnapshotContext()) {
-  const header = ["Pantalla heredada", "Veredicto", "Destino", "Tarea de backlog", "Motivo", "Escritura bloqueada", "Instantánea"];
+  const header = ["Pantalla heredada", "Veredicto", "Dónde vive ahora", "Recogida en", "Qué hacía", "Instantánea"];
   const snapshotCol = snapshotContext ? `${ledgerMonthLabel(snapshotContext.monthKey)} · ${snapshotContext.fecha.slice(0, 10)}` : "Sin cierre firmado todavía";
   const lines = laboratorioListRows(catalog).map((row) => {
     const entry = laboratorioDetailFor(row.hash, catalog);
     return [
       entry.label,
       LABORATORIO_VEREDICTO_LABEL[entry.veredicto] || entry.veredicto,
-      entry.destino ? entry.destino.label : "Ninguno",
+      entry.dondeViveAhora || "—",
       entry.backlogTask || "Sin tarea asociada",
-      entry.motivo,
-      entry.writeBlocked ? "Sí" : "Sin confirmar",
+      entry.queHacia,
       snapshotCol,
     ].map(csvValue).join(";");
   });
@@ -28055,9 +28161,9 @@ function laboratorioActaPrintHtml(catalog = LABORATORIO_CATALOG, snapshotContext
   return `<h1>Acta del Laboratorio</h1>
     <p>${escapeHtml(laboratorioSnapshotNoteText(snapshotContext))}</p>
     <table>
-      <thead><tr><th>Pantalla heredada</th><th>Veredicto</th><th>Destino</th><th>Tarea de backlog</th></tr></thead>
+      <thead><tr><th>Pantalla heredada</th><th>Veredicto</th><th>Dónde vive ahora</th><th>Recogida en</th></tr></thead>
       <tbody>${rows
-        .map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${LABORATORIO_VEREDICTO_LABEL[row.veredicto] || row.veredicto}</td><td>${escapeHtml(row.destino ? row.destino.label : "Ninguno")}</td><td>${escapeHtml(laboratorioDetailFor(row.hash, catalog)?.backlogTask || "Sin tarea asociada")}</td></tr>`)
+        .map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${LABORATORIO_VEREDICTO_LABEL[row.veredicto] || row.veredicto}</td><td>${escapeHtml(laboratorioDetailFor(row.hash, catalog)?.dondeViveAhora || "—")}</td><td>${escapeHtml(laboratorioDetailFor(row.hash, catalog)?.backlogTask || "Sin tarea asociada")}</td></tr>`)
         .join("")}</tbody>
     </table>`;
 }
@@ -28087,10 +28193,64 @@ function handleLaboratorioExportPdf() {
   document.body.classList.remove("is-printing-cierre-evidence");
 }
 
+// L-5: "Escritura imposible, no solo escondida" — el mockup pide que las dieciocho abran contra una
+// copia congelada del último cierre, con guardar/importar/aplicar desactivados en el propio
+// componente: "si una pantalla del Laboratorio intenta escribir, la escritura se rechaza y queda
+// registrada." No es un bloqueo permanente de la heredada (las adoptadas siguen siendo su puerta
+// real en uso normal, fuera de Laboratorio) — es lo que fuerza específicamente "Abrir en solo
+// lectura" (L-4): mientras esa sesión está activa, `laboratorioWriteGuard()` rechaza y registra
+// cualquier intento de escritura real, sea cual sea el veredicto de la heredada. Cubre las cinco
+// puertas de escritura ya identificadas en las sesiones anteriores (`setAgentCaixaFloor`,
+// `applyDebtDecision`, `applyProjectDecision`, `addUxAlert`, `handleSavingsPlanInput`) — no las
+// dieciocho pantallas al completo; los huecos que quedan fuera (clasificación de Movimientos,
+// "guardar escenario" de Escenarios de vida y deuda, editar/pausar una alerta existente) se
+// documentan en `evidenciaEscritura` de cada entrada del catálogo, no se esconden.
+let laboratorioReadOnlySession = null;
+
+function laboratorioReadOnlyActive() {
+  return Boolean(laboratorioReadOnlySession);
+}
+
+function loadLaboratorioRejectedWrites() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("laboratorio-rejected-writes"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function recordLaboratorioRejectedWrite(hash, actionLabel) {
+  const history = loadLaboratorioRejectedWrites();
+  history.unshift({ hash, actionLabel, at: new Date().toISOString() });
+  storageSet(storageKey("laboratorio-rejected-writes"), JSON.stringify(history.slice(0, 200)));
+}
+
+function laboratorioWriteGuard(actionLabel) {
+  if (!laboratorioReadOnlyActive()) return false;
+  recordLaboratorioRejectedWrite(laboratorioReadOnlySession, actionLabel);
+  announceStatus(`Solo lectura desde Laboratorio: «${actionLabel}» no se ha guardado.`);
+  return true;
+}
+
+function handleLaboratorioOpenReadOnly(hash) {
+  if (!document.getElementById(hash)?.classList.contains("view-section")) return;
+  laboratorioReadOnlySession = hash;
+  history.pushState(null, "", `#${hash}`);
+  // `announce: false` porque el aviso de solo lectura es el que de verdad importa aquí: si dejamos que
+  // setActiveView lance también su "X abierta." genérico, el segundo announceStatus (mismo setTimeout de
+  // 10ms) sobrescribe el texto del primero en la región viva y el aviso de seguridad nunca llega a
+  // anunciarse a lectores de pantalla.
+  setActiveView(hash, { announce: false });
+  announceStatus(`Abriendo ${hash} en solo lectura desde Laboratorio: nada de lo que se toque aquí se guarda.`);
+}
+
 // L-9: "Retirada al cerrar la fase 7" — Laboratorio no es una pantalla más del rediseño: es "deuda
-// de transición con fecha de caducidad" (§09 del backlog). Cuando la fase 7 se dé por cerrada (todo
-// el bloque 5 resuelto, o el usuario decide que el catálogo ya cumplió su función), esta bandera
-// pasa a `true` y el panel deja de pintarse — sin borrar el catálogo ni las funciones, por si hace
+// de transición con fecha de caducidad" (§09 del backlog). El mockup describe una retirada real
+// (se borra el código de las heredadas y la entrada del menú, con las siete adoptadas comprobadas
+// contra su tarea cerrada primero) — esa ejecución queda para cuando la fase 7 se cierre de verdad,
+// no para esta sesión. Lo que se construye ahora es el mecanismo: esta bandera pasa a `true` cuando
+// llegue el momento y el panel deja de pintarse, sin borrar el catálogo ni las funciones, por si hace
 // falta reabrirlo. Empieza en `false`: la fase 7 no está cerrada todavía (PROJECT_STATE.md).
 const LABORATORIO_PHASE_RETIRED = false;
 
@@ -28115,24 +28275,50 @@ function renderAjustesLaboratorio() {
   const listEl = qs("laboratorioList");
   const detailEl = qs("laboratorioDetail");
   const card = qs("laboratorioCard");
+  const filterEl = qs("laboratorioFilters");
+  const counterEl = qs("laboratorioCounter");
   if (card) card.hidden = laboratorioRetired();
   if (laboratorioRetired()) return;
 
   const catalog = laboratorioCatalog();
-  const summary = laboratorioVerdictSummary(catalog);
   if (summaryEl) {
-    summaryEl.textContent = `${summary.total} heredadas · ${summary.adoptada} adoptada(s) · ${summary.sustituida} sustituida(s) · ${summary.descartada} descartada(s)${summary.abiertos ? ` · ${summary.abiertos} sin veredicto (revisar)` : ""}`;
+    const summary = laboratorioVerdictSummary(catalog);
+    summaryEl.textContent = `${summary.total} heredadas · Adoptada · ${summary.adoptada} · Sustituida · ${summary.sustituida} · Descartada · ${summary.descartada}${summary.abiertos ? ` · ${summary.abiertos} sin veredicto (revisar)` : ""}`;
   }
   const snapshotContext = laboratorioSnapshotContext();
   if (snapshotEl) snapshotEl.textContent = laboratorioSnapshotNoteText(snapshotContext);
-  if (listEl) listEl.innerHTML = laboratorioListHtml(laboratorioListRows(catalog), laboratorioSelectedHash);
-  if (detailEl) detailEl.innerHTML = laboratorioDetailHtml(laboratorioDetailFor(laboratorioSelectedHash, catalog));
+  if (filterEl) filterEl.innerHTML = laboratorioFilterChipsHtml(catalog, laboratorioFiltro);
+  if (counterEl) counterEl.textContent = laboratorioCounterText(catalog, laboratorioFiltro);
+
+  const filtered = laboratorioFilteredCatalog(catalog, laboratorioFiltro);
+  if (laboratorioViewMode === "lista") {
+    if (listEl) { listEl.hidden = false; listEl.innerHTML = laboratorioListHtml(laboratorioListRows(filtered), laboratorioSelectedHash); }
+    if (qs("laboratorioCards")) qs("laboratorioCards").hidden = true;
+  } else {
+    if (qs("laboratorioCards")) { qs("laboratorioCards").hidden = false; qs("laboratorioCards").innerHTML = laboratorioCardsHtml(filtered, laboratorioSelectedHash); }
+    if (listEl) listEl.hidden = true;
+  }
+  if (detailEl) detailEl.innerHTML = laboratorioDetailHtml(laboratorioDetailFor(laboratorioSelectedHash, catalog), snapshotContext);
 }
 
-let laboratorioSelectedHash = null;
+let laboratorioSelectedHash = LABORATORIO_CATALOG[0]?.hash || null;
+let laboratorioFiltro = "todas";
+let laboratorioViewMode = "tarjetas";
 
 function handleLaboratorioSelect(hash) {
   laboratorioSelectedHash = hash;
+  renderAjustesLaboratorio();
+}
+
+function handleLaboratorioFilter(filtro) {
+  if (!LABORATORIO_FILTROS.includes(filtro)) return;
+  laboratorioFiltro = filtro;
+  renderAjustesLaboratorio();
+}
+
+function handleLaboratorioViewMode(mode) {
+  if (mode !== "tarjetas" && mode !== "lista") return;
+  laboratorioViewMode = mode;
   renderAjustesLaboratorio();
 }
 
@@ -29860,6 +30046,8 @@ async function init() {
   qs("ajustesExportCsv")?.addEventListener("click", downloadCsv);
   qs("ajustesExportPdf")?.addEventListener("click", handleAjustesExportPdf);
   const handleLaboratorioContainerClick = (event) => {
+    const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
+    if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }
     const selectButton = event.target.closest("[data-laboratorio-select]");
     if (selectButton) { handleLaboratorioSelect(selectButton.dataset.laboratorioSelect); return; }
     const navButton = event.target.closest("[data-home-nav]");
@@ -29868,8 +30056,23 @@ async function init() {
     history.pushState(null, "", `#${target}`);
     setActiveView(target);
   };
+  qs("laboratorioCards")?.addEventListener("click", handleLaboratorioContainerClick);
   qs("laboratorioList")?.addEventListener("click", handleLaboratorioContainerClick);
   qs("laboratorioDetail")?.addEventListener("click", handleLaboratorioContainerClick);
+  qs("laboratorioFilters")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-laboratorio-filter]");
+    if (button) handleLaboratorioFilter(button.dataset.laboratorioFilter);
+  });
+  document.querySelector(".laboratorio-view-toggle")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-laboratorio-view]");
+    if (!button) return;
+    document.querySelectorAll("[data-laboratorio-view]").forEach((btn) => {
+      const active = btn === button;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    handleLaboratorioViewMode(button.dataset.laboratorioView);
+  });
   qs("laboratorioExportCsv")?.addEventListener("click", downloadLaboratorioActaCsv);
   qs("laboratorioExportPdf")?.addEventListener("click", handleLaboratorioExportPdf);
   qs("cuadroMandosTable")?.addEventListener("change", (event) => {

@@ -713,6 +713,12 @@ h2 {
   font-variant-numeric: tabular-nums;
 }
 
+.topbar-status-figure em {
+  font-style: normal;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
 main {
   width: 100%;
   max-width: none;

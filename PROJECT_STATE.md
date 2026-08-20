@@ -2,6 +2,62 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: Laboratorio rehecho contra `Laboratorio.pdf` + H-8 con las cinco cifras del mockup
+
+El usuario adjuntó tres capturas reales de la app y el mockup `Laboratorio.pdf` (dos páginas,
+exportadas de Claude Design) con dos pedidos: (1) que Laboratorio quedara como el mockup, y (2) que
+se confirmara si la tira de estado horizontal que aparece en cabecera de la mayoría de pantallas —
+visible en las capturas bajo Ajustes › Laboratorio, Hoy y Registrar › Saldo de cuentas — estaba
+aplicada de verdad o pendiente. Confirmado por `AskUserQuestion`: actualizar H-8 al mockup, y
+construir el guardarraíl de L-5 como mecanismo centralizado real, no solo documentación.
+
+- **Laboratorio (L-1 a L-10, reescritura completa)**. `LABORATORIO_CATALOG` pasa al esquema del
+  mockup (`dondeViveAhora`/`queHacia`/`nota`/`guardKey`/`evidenciaEscritura`). La pantalla gana
+  tarjetas seleccionables con filtros por veredicto y contador («N de 18 · M sin decidir»), vista de
+  lista alternable, y un panel de detalle con la estructura exacta del mockup, incluidas las dos
+  notas fijas con su copy literal (solo lectura sin excepciones; retirada de fase 7, con el aviso de
+  que el código de las heredadas se borra del proyecto al cerrar). Antes de adoptar el mockup a
+  ciegas se contrastaron sus tres citas de tarea de backlog contra el documento real: «Recogida en
+  AJ-3» y «Recogida en AJ-4» citan tareas que no existen (solo AJ-1 está en el backlog), y
+  `#movements` aparece como «sustituida, sin tarea propia» cuando el código confirma que se
+  reconstruyó en su propio sitio. Las tres desviaciones se mantuvieron como ya estaban verificadas
+  (mismo criterio que la corrección de L-5 del 19 de agosto) y quedan documentadas con un campo
+  `nota` por entrada.
+- **L-5, guardarraíl centralizado real**. `laboratorioWriteGuard(actionLabel)` bloquea de verdad los
+  cinco puntos de escritura reales ya identificados (`setAgentCaixaFloor`, `applyDebtDecision`,
+  `applyProjectDecision`, `addUxAlert`, `handleSavingsPlanInput`) cuando la sesión está en solo
+  lectura (activada al pulsar «Abrir en solo lectura» desde una tarjeta del Laboratorio, se limpia
+  sola al navegar a otra vista). Cada intento bloqueado se registra en un historial local
+  (`laboratorio-rejected-writes`) y avisa por `announceStatus`, sin guardar nada. Huecos conocidos y
+  documentados en el código, no cubiertos: la propia clasificación de movimientos, «Guardar
+  escenario» en Escenarios de vida y deuda, y editar/pausar una alerta ya creada.
+- **H-8, la tira de estado con las cinco cifras del mockup**. `topbarStatusFigures()` pasa de cuatro
+  cifras (reutilizadas de la rejilla de Hoy) a las cinco del mockup — Liquidez hoy, Reserva
+  protegida, Deuda viva, Libre de deuda, Peor mes —, cada una con su cifra de apoyo. Sin cálculo
+  financiero nuevo: reutiliza `homeDebtOutlook()` (D-4/D-9) y `analisisCushionBand`/`analisisCushionWorst`
+  (A-2). Capacidad libre real, la cuarta cifra anterior, se retira de la tira porque el mockup no la
+  incluye; sigue disponible en Deuda › Ruta.
+- **Fallo de accesibilidad encontrado y corregido durante la verificación con Playwright**:
+  `handleLaboratorioOpenReadOnly` anunciaba el aviso de solo lectura y llamaba a `setActiveView(hash)`
+  sin `{ announce: false }` justo después — el «X abierta.» genérico de `setActiveView` usa el mismo
+  `announceStatus`/`setTimeout(10)` y sobrescribía el aviso de seguridad antes de que un lector de
+  pantalla llegara a anunciarlo. Corregido invirtiendo el orden y pasando `{ announce: false }`; hay
+  una prueba nueva que fija ese orden para que no se repita.
+
+**Validación**: `npm run verify`, exit 0 — **1287/1287 pruebas** (46 en
+`tests/l1-l10-fase7-laboratorio.test.cjs`, reescritas para el nuevo esquema del catálogo y las nuevas
+funciones de tarjetas/filtro/contador/guardarraíl), accesibilidad (780 IDs únicos), rendimiento (diff
+10.000 filas en 54,7 ms; forecast y escenarios en 273,8 ms; recursos 1649 KB), build del sitio,
+privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local: rejilla de
+18 tarjetas, contador, los tres filtros, cambio a vista de lista, panel de detalle con las dos notas
+fijas del mockup, navegación real de «Abrir en solo lectura» hacia `#debt-control` con el aviso de
+solo lectura visible en la región viva (ya con la corrección de orden), y las cinco cifras de H-8 con
+datos reales de demostración en `#registrar`. Sin errores de consola propios.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — nota bajo la tabla de la pantalla 09
+(Laboratorio) documentando la reescritura y las tres desviaciones del mockup, y nota bajo la tabla de
+la pantalla 01 (Hoy) para H-8.
+
 ## Cierre de sesión — 20 de agosto de 2026: bloque 3 del plan de cierre — P-13, P-16 (Plan · Ahorro y objetivos)
 
 Último punto del plan de cierre (`docs/BACKLOG_NUEVE_PANTALLAS.md` §7): la cadena de dos tareas que
