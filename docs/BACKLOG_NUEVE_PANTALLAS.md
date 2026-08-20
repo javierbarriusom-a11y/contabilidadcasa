@@ -761,10 +761,10 @@ arrastra el candado abierto. Sin errores de consola propios.
 | D-7 | Comparar no escribe nada | D-6 | S | Hecho (ya existía, ver nota) |
 | D-8 | Aplicar con motivo obligatorio y revisión opcional | D-6 | M | Hecho (15 de agosto, ver nota) |
 | D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (15 de agosto, ver nota) |
-| D-10 | Oferta en curso con caducidad | D-2 | M | Parcial (la tarjeta y la fecha existen; no hay aviso activo de caducidad) |
-| D-11 | Coste de no decidir | D-2 | S | Parcial («no tocar» ya compara su coste; falta el coste marginal por mes de demora) |
+| D-10 | Oferta en curso con caducidad | D-2 | M | Hecho (20 de agosto, ver nota) |
+| D-11 | Coste de no decidir | D-2 | S | Hecho (20 de agosto, ver nota) |
 | D-12 | Capacidad de endeudamiento | D-2 | M | Pendiente |
-| D-13 | Guardar comparación como escenario | D-6, Escenarios | M | Parcial (solo existe la vía «aplicar»; falta guardar sin comprometerse) |
+| D-13 | Guardar comparación como escenario | D-6, Escenarios | M | Hecho (20 de agosto, ver nota) |
 | D-14 | Retirar las tres heredadas de deuda | D-1, Fase 7 | S | Ver nota — contradice T-4, en principio no se completa tal cual está escrita |
 
 **Nota (15 de agosto): D-3, D-7, D-8 y D-9 ya estaban hechas, y el backlog no lo sabía.**
@@ -844,13 +844,29 @@ sugerencia de cuota de refinanciación, la comparativa de los ocho, la amortizac
 (incluida cuota insuficiente, sin TAE, horizonte agotado, tope de 600 filas) y el pintado del
 calendario.
 
+**D-10/D-11/D-13 — 20 de agosto de 2026 (bloque 4 del plan de cierre, §7).** Las tres cumplían el
+núcleo de su criterio (la tarjeta, la comparación de coste, la vía de aplicar) y solo necesitaban un
+añadido concreto — ninguna reconstrucción.
+
+- **D-10** (aviso activo de caducidad): `debtOfferExpiryStatus(expiresAt)` traduce la clave de mes
+  de vencimiento a "vencida"/"a punto de vencer"/vigente contra el mes real, mismo criterio
+  danger/warn que ya usaban los recordatorios de revisión de deuda y de escenario. Se aplica en las
+  tres pantallas que ya mostraban la fecha como texto plano: Hoy (`homeOpenOfferInsight`), Deuda ›
+  Ruta (tarjeta de oferta) y Asesor ejecutivo (`#asesor-decision`, el badge de plazo).
+- **D-11** (coste marginal por mes de demora): `debtStrategyMonthsBetween` calcula los meses exactos
+  entre la fecha libre de deuda de la recomendada y la de "no tocar nada"; el coste total que ya se
+  comparaba se reparte entre esos meses. Sin dos fechas reales de por medio (p. ej. "fuera de
+  horizonte"), no se calcula nada — nunca se divide por algo que no es un número de meses (regla
+  transversal 04).
+- **D-13** (guardar sin comprometerse): la oferta de reunificación gana un cuarto campo opcional
+  ("Vigencia hasta") y cada tarjeta de estrategia con decisiones reales gana "Guardar como
+  escenario", que persiste directamente como `"guardado"` en `escenario-motor-saved` (misma
+  persistencia de E-10) sin pasar por el formulario de aplicar. Si la estrategia es "Consolidar" y
+  la oferta declara vigencia, el guardado queda enlazado a esa fecha para E-13.
+
 **Quedan pendientes, con motivo explícito:**
 - **D-2b** — ya no bloqueada (Cierre existe desde el 16 de agosto, igual que M-8c), pero no se
   construyó esta sesión: fuera de la lista de tareas que pidió el usuario.
-- **D-10** (aviso activo de caducidad de una oferta), **D-11** (coste marginal por mes de
-  demora) y **D-13** (guardar la comparación sin comprometerse a aplicar) — ampliaciones
-  concretas sobre lo que ya existe, no bloqueadas por nada, solo fuera del alcance pedido esta
-  sesión.
 - **D-12** (capacidad de endeudamiento) — no hay todavía una cifra de ingreso mensual del hogar
   reutilizable para un ratio de endeudamiento defendible; se deja para no inventar una fórmula
   sin una fuente canónica detrás.
@@ -963,7 +979,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
 | E-11 | Aplicar con motivo y revisión opcional | D-8 | M | Hecho (16 de agosto, ver nota) |
 | E-11b | Aplicar crea un plan paralelo, no sobrescribe | E-11, Cierre | L | Pendiente (ya no bloqueada: Cierre hecho — no construida esta sesión, fuera de la lista pedida) |
 | E-12 | Comparar dos escenarios guardados | E-10 | M | Hecho (17 de agosto, ver nota) |
-| E-13 | Caducidad de escenarios con oferta | E-10, D-10 | S | Pendiente (bloqueada: depende de D-10, parcial) |
+| E-13 | Caducidad de escenarios con oferta | E-10, D-10 | S | Hecho (20 de agosto, ver nota) |
 | E-14 | Retirar las tres heredadas de simulación | E-1, Fase 7 | S | Pendiente (bloqueada: depende de Fase 7, sin empezar) |
 
 - **E-1** — el catálogo tiene exactamente once tipos agrupados en dos `<optgroup>` (Deuda/Vida),
@@ -1056,6 +1072,7 @@ mockup 2c heredada que se encontró para P-8. Resultado, tarea a tarea:
   primero en la lista de tres decisiones por ser el más urgente. Sin errores de consola.
 - **E-11b, E-13, E-14** — siguen sin construir, bloqueadas por Cierre (Fase 5, con historial de
   versiones dedicado todavía sin construir), D-10 (parcial) y Fase 7 (sin empezar) respectivamente.
+  (E-13 se construyó el 20 de agosto, ver la nota más abajo, tras D-10.)
 
 No se tocó código en la sesión de auditoría original del 16 de agosto — solo se corrigió el estado.
 E-3, E-5 y E-11 se cerraron esa misma tarde (ver sus notas arriba).
@@ -1137,7 +1154,16 @@ decisión culpable y el botón «Guardar como aviso», que efectivamente guarda 
 «límite conocido»; comparar dos escenarios guardados pinta las tres columnas. Sin errores de consola
 propios.
 
-Quedan pendientes, sin bloqueo: E-11b (Cierre), E-13 (D-10 parcial), E-14 (Fase 7).
+Quedan pendientes, sin bloqueo: E-11b (Cierre), E-14 (Fase 7). (E-13 se construyó el 20 de agosto,
+ver la nota siguiente.)
+
+**E-13 — 20 de agosto de 2026 (bloque 4 del plan de cierre, §7), desbloqueada por D-10.** El propio
+código de `#escenario-guardados` documentaba desde el 17 de agosto que «Caducado» era un badge del
+mockup sin construir «porque no hay todavía... concepto de oferta con vencimiento». Con D-10
+construido esta misma sesión, ese concepto ya existe: si un escenario guardado (estado `"guardado"`,
+nunca uno ya `"aplicado"` — ese cambió el plan de verdad) viene de D-13 con una oferta enlazada
+(`ofertaExpiresAt`) y `debtOfferExpiryStatus` la marca vencida, la tarjeta pasa de «Guardado» a
+«Caducado» (mismo tono rojo que ya usaba «Aviso», E-6b) con una nota explicando desde cuándo.
 
 ### 07 · Análisis — sección ejecutiva, solo lectura con procedencia (13 tareas · 4 grandes)
 
@@ -1155,7 +1181,7 @@ Quedan pendientes, sin bloqueo: E-11b (Cierre), E-13 (D-10 parcial), E-14 (Fase 
 | A-10 | Confianza del dato | A-1, Cierre | M | Hecho (19 de agosto, ver nota) |
 | A-11 | Exportar en CSV y en PDF | A-1 | M | Hecho (17 de agosto, ver nota) |
 | A-12 | Retirar las heredadas visuales | A-1, Fase 7 | S | Pendiente |
-| A-13 | Actuar desde el aviso, sin duplicar el camino | A-9, A-10, M-8 | L | Pendiente |
+| A-13 | Actuar desde el aviso, sin duplicar el camino | A-9, A-10, M-8 | L | Hecho (20 de agosto, ver nota) |
 
 **Análisis construido el 16 de agosto** — primer incremento real de la Fase 6, punto 3 del plan de
 construcción (Cierre, punto 2, ya fusionado — ver pantalla 08). Nueva pantalla `#analisis`, accesible
@@ -1274,6 +1300,28 @@ P-10/P-11/P-12 y C-13. Verificado con Playwright contra el build local: el peor 
 (agosto 2026 en los datos de demostración) dice honestamente que ninguna decisión cargada concentra
 su gasto ahí; la confianza del dato muestra el cuadre de las dos cuentas y avisa de que no hay
 movimientos del mes en curso en la demo pública. Sin errores de consola propios.
+
+**A-13 — 20 de agosto de 2026 (bloque 4 del plan de cierre, §7), desbloqueada por A-10.** Los dos
+avisos de Análisis que enlazaban a Movimientos con un `<a href="#movements">` genérico (A-9 «qué se
+repite» y A-10 «confianza del dato», cuando hay pendientes reales) pasan a un botón «Clasificar en
+Movimientos» que llama a `movementsActFromAlert(...)`: deja el chip/fechas/búsqueda ya puestos y dispara
+`movementsPendingAutoSelect`, un criterio de una sola vez que `renderDetailedMovements` consume en su
+siguiente render para preseleccionar exactamente esas filas — la misma barra de acción en lote de M-8
+ya construida, sin una segunda forma de seleccionar o clasificar. A-9 selecciona por concepto exacto
+(`movementMappingKey`, uno o varios conceptos a la vez si crecieron varios); A-10 acota el chip «sin
+clasificar» al mes del propio aviso y selecciona todo lo filtrado, ya que no hay un concepto único que
+buscar. Sin pendientes, el CTA de A-10 se queda como el enlace simple de siempre — no hay nada que
+preseleccionar.
+
+**Pruebas nuevas**: `tests/a13-actuar-desde-aviso.test.cjs` (11 pruebas): `movementsActFromAlert`
+deja el estado correcto y navega; un chip desconocido cae a «todos»; `renderDetailedMovements`
+preselecciona solo las filas que cumplen el criterio pendiente y lo consume (no se repite en un
+segundo render); un matcher que selecciona todo marca «seleccionar todo»; sin criterio pendiente el
+comportamiento previo queda intacto; los dos manejadores de Análisis construyen el criterio correcto
+(fechas del mes para A-10, claves de concepto exactas para A-9) y no navegan a ciegas sin datos. Los
+datos de demostración públicos no traen movimientos (por privacidad), así que este flujo no se pudo
+verificar visualmente con Playwright — se verificó con las 11 pruebas nuevas, que sí ejecutan
+`renderDetailedMovements` de verdad contra filas reales.
 
 ### 08 · Cierre — ritual secuencial de cuatro pasos (15 tareas · 7 grandes)
 
@@ -1609,10 +1657,13 @@ de 2026**, ver las notas bajo las tablas de las pantallas 04, 07 y 08. P-12 desb
 bloque 2) → P-16 (depende de P-13, cierra Sobres del todo)~~ — **completo el 20 de agosto de 2026**,
 ver la nota bajo la tabla de la pantalla 04.
 
-**Bloque 4 — Completar los parciales de Deuda + lo que desbloquean.** D-10, D-11 y D-13
+**Bloque 4 — Completar los parciales de Deuda + lo que desbloquean.** ~~D-10, D-11 y D-13
 cumplen el núcleo de su criterio y necesitan un añadido concreto, no una reconstrucción.
 Completar D-10 (aviso activo de caducidad) desbloquea E-13. A-13 cierra Análisis en cuanto
-A-10 (bloque 2) exista.
+A-10 (bloque 2) exista.~~ — **completo el 20 de agosto de 2026**, ver las notas bajo las tablas
+de las pantallas 03, 05 y 07. Con esto se cierran los cuatro bloques sin bloqueo real del plan de
+cierre acordado el 19 de agosto (bloques 1-4); queda el bloque 5 (retirar heredadas) y las dos
+decisiones de diseño pendientes (D-2b/E-11b) para una sesión futura.
 
 **Antes de seguir — dos tareas que son diseño, no solo código.** D-2b y E-11b ya no están
 bloqueadas técnicamente (Cierre existe desde el 16 de agosto), pero ninguna sesión las ha

@@ -87,6 +87,9 @@ function sandbox({ offer = null, contract = null, funding = "<funding-html>" } =
   };
   vm.createContext(context);
   vm.runInContext(extractFunction("deudaRutaOfferChecklist"), context);
+  vm.runInContext(extractFunction("debtOfferExpiryStatus"), context);
+  vm.runInContext(extractFunction("monthKey"), context);
+  vm.runInContext(extractFunction("addMonths"), context);
   vm.runInContext(extractFunction("renderDeudaRutaOffer"), context);
   context.renderDeudaRutaOffer();
   return context;

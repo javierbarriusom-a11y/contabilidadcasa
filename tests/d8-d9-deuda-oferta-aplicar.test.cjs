@@ -231,7 +231,7 @@ function sandboxOfferCard(offer, extra = {}) {
     if (id === "e14bStatus") return e14bStatusEl;
     return elements[id] || null;
   };
-  const context = sandboxWith(["renderDeudaRutaOffer", "deudaRutaOfferChecklist"], {
+  const context = sandboxWith(["renderDeudaRutaOffer", "deudaRutaOfferChecklist", "debtOfferExpiryStatus", "monthKey", "addMonths"], {
     qs,
     document,
     escapeHtml: (v) => String(v ?? ""),

@@ -188,7 +188,7 @@ test("H-10 · H-6 (auditoría 15 de agosto) · con mes encontrado, Ingresos/Gast
 });
 
 test("H-10 · H-5 decisiones abiertas: sin ofertas, alertas, deuda candidata ni proyectos, no se fabrica una decisión", () => {
-  const { homeOpenOfferInsight, homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates"], {
+  const { homeOpenOfferInsight, homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates", "debtOfferExpiryStatus", "monthKey", "addMonths"], {
     evaluatedUxAlerts: () => [],
     homeDebtReviewReminders: () => [],
     homeEscenarioReviewReminders: () => [],
@@ -206,7 +206,7 @@ test("H-10 · H-5 decisiones abiertas: sin ofertas, alertas, deuda candidata ni 
 });
 
 test("H-10 · H-5 decisiones abiertas: una oferta con vencimiento real se antepone a las que no tienen fecha", () => {
-  const { homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates"], {
+  const { homeDecisionCandidates } = sandboxWith(["homeOpenOfferInsight", "homeDecisionCandidates", "debtOfferExpiryStatus", "monthKey", "addMonths"], {
     evaluatedUxAlerts: () => [],
     homeDebtReviewReminders: () => [],
     homeEscenarioReviewReminders: () => [],
