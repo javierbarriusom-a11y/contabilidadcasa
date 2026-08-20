@@ -2,6 +2,62 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: pixel-perfect de Registrar contra `Registrar.pdf`
+
+Continuación de la misma sesión «pantalla por pantalla»: con Hoy cerrado, tocaba Registrar. Las 13
+tareas de Registrar (`docs/BACKLOG_NUEVE_PANTALLAS.md` §2) ya estaban en Hecho y auditadas por
+contenido el 15-16 de agosto, pero igual que en Hoy esa auditoría nunca comparó el resultado visual
+pixel a pixel contra el mockup. Mismo método: build local (`npm run build:site` + servidor
+estático) capturado con Playwright y comparado recorte a recorte contra `Registrar.pdf`.
+
+**Los mismos dos gaps de maquetación que en Hoy, más un bug de contenido y uno de ancho heredado —
+ninguno de cálculo:**
+
+1. **Cabecera duplicada**: igual patrón que Hoy — la cabecera genérica compartida (`#viewEyebrow`/
+   `#viewTitle` con «Guarda saldos, reales y extractos sin salir de la aplicación» + el recuadro
+   `#e17ViewGuide`) seguía apareciendo por encima del bloque propio de `#registrar`, que
+   `Registrar.pdf` tampoco dibuja. Se reutiliza la misma condición que ya ocultaba este chrome en
+   Hoy, ahora `hasOwnHeader = viewId === "home" || viewId === "registrar"`, en vez de duplicar la
+   lógica. El botón «Guía de este flujo» que vivía dentro del recuadro oculto se conserva como botón
+   propio de cada sección (mismo `data-e17-open="guide"`); de paso se añadió el que le faltaba a
+   Hoy junto al selector de horizonte, hueco que había quedado abierto en la sesión anterior.
+2. **Orden y agrupación**: el mockup pone «Saldo a fecha» y «Qué se recalcula al guardar» en
+   paralelo; `index.html` los apilaba a ancho completo, la tarjeta oscura primero. Nueva clase
+   `.e19-registrar-balance-layout` (grid de dos columnas, mismo colapso a 1440px que `.home-layout`).
+3. **Formulario de saldos rehecho como tabla**: el mockup muestra CaixaBank/Mediolanum/Efectivo/
+   Total liquidez como filas con una frase de contexto por cuenta, no como un formulario horizontal
+   de seis campos en línea. Reescrito conservando los mismos IDs de campo en el mismo orden que ya
+   fijaba el test de R-3, así que ningún manejador cambia.
+4. **Tarjeta oscura sin estilo propio**: `.e19-registrar-recalc`/`.e19-registrar-recalc-grid` no
+   tenían ninguna regla en `styles.css` — se pintaba como texto plano. Nuevas reglas con el mismo
+   `#0b1a30` que ya usa la tarjeta héroe de Hoy (`.e6-coverage-card`).
+5. **Bug de contenido**: `registrarRecalcFigures()` mostraba «Reserva protegida» (el mínimo fijo)
+   donde el mockup pide «Margen sobre la reserva protegida» (`balances.total - protectedReserve`,
+   mismo cálculo que la cifra de apoyo de H-8, sin fórmula paralela), y «Cobertura hasta el
+   siguiente ingreso» donde dice «Días hasta el siguiente ingreso» (mismo valor, otra etiqueta).
+6. **Bug de ancho heredado**: al convertir el formulario en tabla, el texto de «Qué representa» se
+   cortaba contra el borde del panel en vez de saltar de línea. Causa real: un `table { min-width:
+   1120px }` genérico de `styles.css` (pensado para las tablas densas de la app) también alcanzaba a
+   esta tabla de tres columnas. Corregido con el mismo override `min-width: 0` que `design-tokens.css`
+   ya documenta y aplica en otras tablas pequeñas — no era un bug del mockup, sino un hallazgo propio
+   de esta sesión.
+
+**Validación**: `npm run verify`, exit 0 — **1416/1416 pruebas** (1 nueva: fija que la cabecera
+genérica se oculta también en Registrar; el resto de `tests/r1-r4-registrar.test.cjs` se ajustó a
+la nueva estructura de tabla y a las nuevas etiquetas de R-4, sin cifras inventadas — los valores
+esperados en los tests se recalcularon a mano con la misma fórmula), accesibilidad (789 IDs
+únicos), rendimiento (diff 10.000 filas en 29,9 ms; forecast y escenarios en 166,8 ms; recursos
+1698 KB), build del sitio, privacidad y smoke test, todos en verde. Verificado con Playwright
+contra el build local a 1920 px: la cabecera duplicada desaparece solo en Hoy y Registrar, «Guía de
+este flujo» sigue abriendo el mismo diálogo desde su nuevo sitio en ambas, «Saldo por cuenta» y
+«Qué se recalcula al guardar» quedan en paralelo con las cuatro cifras correctas, y la fila de
+Efectivo hace salto de línea dentro del panel. Sin hallazgos adicionales; sigue pendiente, fuera de
+alcance, la franja superior de utilidad (Buscar/Hogar/Escenario/Ajustes) — depende de la reforma de
+menú de Fase 3, común a las nueve pantallas.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` §2 (Registrar) documenta el repaso
+pixel-perfect igual que ya hizo §1 (Hoy).
+
 ## Cierre de sesión — 20 de agosto de 2026: pixel-perfect de Hoy contra `Hoy.pdf`
 
 El usuario pidió repasar las pantallas una a una comparando el sitio publicado con los mockups en

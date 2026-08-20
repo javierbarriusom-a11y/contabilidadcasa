@@ -219,6 +219,7 @@
                     <option value="all">Hasta 2036</option>
                   </select>
                 </label>
+                <button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button>
               </div>
             </div>
 
@@ -346,6 +347,7 @@
                 <p class="panel-kicker e19-eyebrow">Registrar</p>
                 <h2 class="e19-heading">La única puerta de escritura de datos reales</h2>
                 <p class="e19-subtitle">Saldo de cuentas, reales del mes, extracto bancario y carga por lote — cuatro formas de entrada con una sola regla de guardado.</p>
+                <button type="button" class="link-button" data-e17-open="guide">Guía de este flujo</button>
                 <p class="e19-registrar-meta" id="registrarSourceNote"></p>
               </div>
             </div>
@@ -379,51 +381,66 @@
             <p class="e19-registrar-crumb" id="registrarCrumb" aria-live="polite"></p>
 
             <div class="e19-registrar-panel" data-registrar-panel="balances">
-              <article class="e19-registrar-recalc" id="registrarRecalcCard" aria-labelledby="registrarRecalcTitle">
-                <p class="panel-kicker">Qué se recalcula al guardar</p>
-                <h3 id="registrarRecalcTitle">Cuatro cifras siempre visibles</h3>
-                <div class="e19-registrar-recalc-grid" id="registrarRecalcGrid"></div>
-              </article>
+              <div class="e19-registrar-balance-layout">
+                <article class="account-balance-panel" id="registrarBalancePanel">
+                  <div class="account-balance-panel-head">
+                    <div>
+                      <p class="panel-kicker">Saldo por cuenta</p>
+                      <h3>Sustituye al formulario de Cuadro de mandos</h3>
+                    </div>
+                    <div class="account-balance-controls">
+                      <label>
+                        <span id="registrarBalanceDateLabel">Fecha del saldo</span>
+                        <input id="registrarBalanceDate" type="date" />
+                      </label>
+                      <label>
+                        <span>Modo</span>
+                        <select id="registrarBalanceMode">
+                          <option value="auto">Auto por fecha</option>
+                          <option value="manual">Real manual</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="table-wrap">
+                    <table class="account-balance-table">
+                      <thead>
+                        <tr><th>Cuenta</th><th>Saldo declarado</th><th>Qué representa</th></tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="account-balance-name">CaixaBank</td>
+                          <td><input id="registrarCaixaBalance" type="number" step="0.01" /><small data-registrar-delta="caixa"></small></td>
+                          <td>Cuenta de la que salen los recibos y contra la que se mide la reserva.</td>
+                        </tr>
+                        <tr>
+                          <td class="account-balance-name">Mediolanum</td>
+                          <td><input id="registrarMediolanumBalance" type="number" step="0.01" /><small data-registrar-delta="mediolanum"></small></td>
+                          <td>Destino de los traspasos de ahorro.</td>
+                        </tr>
+                        <tr>
+                          <td class="account-balance-name">Efectivo</td>
+                          <td><input id="registrarEfectivoBalance" type="number" step="0.01" /></td>
+                          <td>Efectivo no tiene extracto que lo respalde: se guarda como referencia y no se suma al total de liquidez proyectada.</td>
+                        </tr>
+                        <tr class="account-balance-total-row">
+                          <td class="account-balance-name">Total liquidez</td>
+                          <td><input id="registrarTotalBalance" type="number" step="0.01" readonly /></td>
+                          <td>La fecha sitúa el saldo dentro del calendario de cobros y pagos.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="data-hint" id="registrarBalanceSource"></p>
+                </article>
 
-              <article class="account-balance-panel" id="registrarBalancePanel">
-                <div>
-                  <p class="panel-kicker">Saldo por cuenta</p>
-                  <h3>Sustituye al formulario de Cuadro de mandos</h3>
-                </div>
-                <div class="account-balance-grid">
-                  <label>
-                    <span id="registrarBalanceDateLabel">Fecha del saldo</span>
-                    <input id="registrarBalanceDate" type="date" />
-                  </label>
-                  <label>
-                    <span>Modo</span>
-                    <select id="registrarBalanceMode">
-                      <option value="auto">Auto por fecha</option>
-                      <option value="manual">Real manual</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>CaixaBank</span>
-                    <input id="registrarCaixaBalance" type="number" step="0.01" />
-                    <small data-registrar-delta="caixa"></small>
-                  </label>
-                  <label>
-                    <span>Mediolanum</span>
-                    <input id="registrarMediolanumBalance" type="number" step="0.01" />
-                    <small data-registrar-delta="mediolanum"></small>
-                  </label>
-                  <label>
-                    <span>Efectivo</span>
-                    <input id="registrarEfectivoBalance" type="number" step="0.01" />
-                  </label>
-                  <label>
-                    <span>Total liquidez</span>
-                    <input id="registrarTotalBalance" type="number" step="0.01" readonly />
-                  </label>
-                </div>
-                <p class="data-hint">Efectivo no tiene extracto que lo respalde: se guarda como referencia y no se suma al total de liquidez proyectada.</p>
-                <p class="data-hint" id="registrarBalanceSource"></p>
-              </article>
+                <article class="e19-registrar-recalc" id="registrarRecalcCard" aria-labelledby="registrarRecalcTitle">
+                  <p class="panel-kicker">Qué se recalcula al guardar</p>
+                  <h3 id="registrarRecalcTitle" class="sr-only">Cuatro cifras siempre visibles</h3>
+                  <div class="e19-registrar-recalc-grid" id="registrarRecalcGrid"></div>
+                  <p class="e19-registrar-recalc-note">Cuatro cifras, no un registro de auditoría. La trazabilidad completa sigue en Cierre.</p>
+                </article>
+              </div>
             </div>
 
             <div class="e19-registrar-panel" data-registrar-panel="actuals" hidden>
