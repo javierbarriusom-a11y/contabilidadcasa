@@ -252,6 +252,46 @@ tareas no:
   margen», «Deuda viva 12.000,00 € · 3 contratos», «Libre de deuda jul 29 · queda deuda sin cuota
   activa», «Peor mes ago 26 · 2.2m · A vigilar»).
 
+**Repaso pixel-perfect del 20 de agosto de 2026 (sesión «pantalla por pantalla», comparando el build
+local con lo publicado).** Con las 11 tareas ya en Hecho, esta sesión comparó el sitio publicado
+contra `Hoy.pdf` a nivel visual, no solo de criterio funcional, y encontró dos gaps de maquetación
+que la auditoría del 15 de agosto no cubría porque no eran de contenido:
+
+- **Cabecera duplicada**: por encima del bloque propio de #home («Hoy · Qué necesita tu atención»,
+  ya conforme a H-1) seguía apareciendo la cabecera genérica compartida por las nueve pantallas
+  (`#viewEyebrow`/`#viewTitle` con el texto heredado «Control diario de caja, deuda y decisiones» y
+  el recuadro `#e17ViewGuide` de «Para qué sirve / Estado / Siguiente paso»). El propio criterio de
+  H-1 («sustituye a los tres recuadros actuales») nunca se verificó contra ese elemento porque es
+  chrome de toda la app, no de la sección `#home`. `setActiveView` ahora oculta `#viewEyebrow` y dejas
+  `#viewTitle` en `sr-only` (sigue siendo el objetivo de foco de accesibilidad al navegar, solo deja
+  de pintarse) cuando la vista activa es Hoy; `renderE17ViewGuide` oculta el recuadro entero en vez de
+  rellenarlo. Las otras ocho vistas no cambian. `viewTitles.home` pasa de «Control diario…» a «Hoy» /
+  «Qué necesita tu atención», para que el `<title>` del documento y el anuncio de navegación por voz
+  coincidan con lo que ahora se ve.
+- **Orden y agrupación de tarjetas**: el mockup agrupa, de arriba abajo, (a) la tarjeta oscura «Hasta
+  el siguiente ingreso» junto a «Agosto en una línea»; (b) el editor de cobertura aprendida; (c)
+  «Decisiones abiertas» (con la lectura de hoy como primera línea de la tarjeta, no en una tarjeta
+  aparte) junto a «Próximos hitos»; (d) la rejilla de seis indicadores; (e) una sola fila de tres —
+  Riesgo, Modo familiar, Alertas. `index.html` tenía la rejilla de seis primero, «Lectura de hoy» y
+  «Tres decisiones» en dos tarjetas sueltas sin emparejar con «Próximos hitos», «Agosto en una línea»
+  a ancho completo y aparte, y el resto repartido en dos filas de dos en vez de una fila de tres.
+  Reordenado sin tocar ningún cálculo (`renderHomeKpi`, `renderHomeInsight`, `renderHomeDecision`,
+  etc. no se modifican, solo se reubican sus contenedores); nueva clase `.home-layout-triple` en
+  `styles.css` para la fila de tres, con el mismo punto de colapso a una columna (1440px) que ya usa
+  `.home-layout`. «Tres decisiones» se renombra a «Decisiones abiertas» con la nota «Ordenadas por lo
+  que caduca antes», igual que el mockup.
+
+**Validación**: `npm run verify`, exit 0 — **1415/1415 pruebas**, accesibilidad (789 IDs únicos),
+rendimiento (diff 10.000 filas en 28,8 ms; forecast y escenarios en 163,8 ms; recursos 1694 KB), build
+del sitio, privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local a
+1440 px y 1920 px: la cabecera duplicada desaparece solo en Hoy (las otras ocho vistas conservan la
+suya), el pedido oscuro y «Agosto en una línea» quedan en paralelo, «Decisiones abiertas» agrupa la
+lectura de hoy con la lista numerada y queda junto a «Próximos hitos», y la fila de Riesgo/Modo
+familiar/Alertas se ve en tres columnas a 1920 px y colapsa a una a 1440 px, igual que el resto de
+filas de la vista. Sin hallazgos adicionales; queda pendiente, fuera del alcance de esta sesión, la
+franja superior de utilidad (Buscar/Hogar/Escenario/Ajustes) que el mockup dibuja junto al chip de
+sincronización — depende de la reforma de menú de Fase 3, común a las nueve pantallas.
+
 ### 02 · Registrar — única puerta de escritura de datos reales (13 tareas · 2 grandes)
 
 | ID | Tarea | Depende de | T | Estado |

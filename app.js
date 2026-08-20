@@ -282,8 +282,11 @@ const DECISION_WORKFLOW_KEY = "decisionWorkflowV1";
 
 const viewTitles = {
   home: {
-    eyebrow: "Control diario",
-    title: "Control diario de caja, deuda y decisiones",
+    // Hoy.pdf: la cabecera genérica queda oculta en Hoy (ver setActiveView/renderE17ViewGuide) a
+    // favor del propio título «Qué necesita tu atención» de #home — este par solo alimenta ya el
+    // <title> del documento, el <h1> sr-only de foco y las referencias cortas a la vista.
+    eyebrow: "Hoy",
+    title: "Qué necesita tu atención",
   },
   "update-data": {
     eyebrow: "Actualización del mes",
@@ -459,6 +462,16 @@ function applyE17Preferences(preferences = e17Preferences()) {
 function renderE17ViewGuide(viewId = viewFromHash()) {
   const target = qs("e17ViewGuide");
   if (!target) return;
+  // H-1 (Hoy.pdf): «sustituye a los tres recuadros actuales sin perder ninguna de sus tres
+  // frases» — en Hoy, para qué sirve / estado / siguiente paso ya viven en el subtítulo y la
+  // meta de #home (ver renderHomeHeaderMeta). Repetir aquí el mismo recuadro duplicaría la
+  // cabecera, así que en Hoy se oculta en vez de rellenarse.
+  if (viewId === "home") {
+    target.hidden = true;
+    target.innerHTML = "";
+    return;
+  }
+  target.hidden = false;
   const guide = E17Experience?.guidanceFor(viewId, ["Para qué sirve", activeViewTitle(viewId), "Consulta o edición", "Usa Buscar o abrir para ir directamente a la siguiente tarea."]) || ["Para qué sirve", activeViewTitle(viewId), "Consulta o edición", "Usa Buscar o abrir para ir directamente a la siguiente tarea."];
   const balanceDate = state?.balanceDate || baseData?.metadata?.forecastStart || "la copia actual";
   const nextLiquidity = lastSimulation[0]?.totalLiquidity;
@@ -3145,9 +3158,21 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
     if (containsActiveView) advancedNav.open = true;
   }
   const copy = viewTitles[viewId] || viewTitles.home;
-  if (qs("viewEyebrow")) qs("viewEyebrow").textContent = copy.eyebrow;
+  // Hoy.pdf «Hoy, alineada»: sin cabecera genérica duplicada — la vista #home ya trae su propio
+  // título «Qué necesita tu atención» y su subtítulo. El eyebrow y el <h1> compartidos por las
+  // otras ocho vistas se ocultan aquí (el <h1> queda sr-only, no desaparece: sigue siendo el
+  // objetivo de foco de accesibilidad tras navegar).
+  const isHoyView = viewId === "home";
+  const viewEyebrow = qs("viewEyebrow");
+  if (viewEyebrow) {
+    viewEyebrow.textContent = copy.eyebrow;
+    viewEyebrow.hidden = isHoyView;
+  }
   const viewTitle = qs("viewTitle");
-  if (viewTitle) viewTitle.textContent = copy.title;
+  if (viewTitle) {
+    viewTitle.textContent = copy.title;
+    viewTitle.classList.toggle("sr-only", isHoyView);
+  }
   document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
   renderTopbarStatusStrip(viewId);
   renderE17ViewGuide(viewId);
