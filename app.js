@@ -405,8 +405,8 @@ const viewTitles = {
     title: "Presupuesta el mes, la previsión y el ahorro sin salir de la aplicación",
   },
   movements: {
-    eyebrow: "Base del modelo",
-    title: "Revisa los movimientos usados para construir el escenario",
+    eyebrow: "Movimientos",
+    title: "Consulta y clasifica el extracto de movimientos, sin editar importes",
   },
 };
 
@@ -462,14 +462,15 @@ function applyE17Preferences(preferences = e17Preferences()) {
 function renderE17ViewGuide(viewId = viewFromHash()) {
   const target = qs("e17ViewGuide");
   if (!target) return;
-  // H-1 (Hoy.pdf) y R-1 (Registrar.pdf): «sustituye a los tres recuadros actuales sin perder
-  // ninguna de sus tres frases» — en las vistas que ya traen su propia cabecera completa (Hoy:
-  // subtítulo + meta de #home; Registrar: subtítulo + meta de #registrar), para qué sirve /
-  // estado / siguiente paso ya están dichos ahí. Repetir aquí el mismo recuadro duplicaría la
-  // cabecera, así que en esas vistas se oculta en vez de rellenarse. El botón «Guía de este
-  // flujo» que vivía dentro del recuadro se conserva como botón propio de cada sección
+  // H-1 (Hoy.pdf), R-1 (Registrar.pdf) y M-1 (Movimientos.pdf): «sustituye a los tres recuadros
+  // actuales sin perder ninguna de sus tres frases» — en las vistas que ya traen su propia
+  // cabecera completa (Hoy: subtítulo + meta de #home; Registrar: subtítulo + meta de
+  // #registrar; Movimientos: subtítulo propio de #movements), para qué sirve / estado /
+  // siguiente paso ya están dichos ahí. Repetir aquí el mismo recuadro duplicaría la cabecera,
+  // así que en esas vistas se oculta en vez de rellenarse. El botón «Guía de este flujo» que
+  // vivía dentro del recuadro se conserva como botón propio de cada sección
   // (data-e17-open="guide" en index.html), así que ocultar el recuadro no pierde esa acción.
-  if (viewId === "home" || viewId === "registrar") {
+  if (viewId === "home" || viewId === "registrar" || viewId === "movements") {
     target.hidden = true;
     target.innerHTML = "";
     return;
@@ -3161,11 +3162,12 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
     if (containsActiveView) advancedNav.open = true;
   }
   const copy = viewTitles[viewId] || viewTitles.home;
-  // Hoy.pdf «Hoy, alineada» y Registrar.pdf «Registrar, alineada»: sin cabecera genérica
-  // duplicada — #home y #registrar ya traen su propio título y subtítulo. El eyebrow y el <h1>
-  // compartidos por el resto de vistas se ocultan aquí solo para estas dos (el <h1> queda
-  // sr-only, no desaparece: sigue siendo el objetivo de foco de accesibilidad tras navegar).
-  const hasOwnHeader = viewId === "home" || viewId === "registrar";
+  // Hoy.pdf «Hoy, alineada», Registrar.pdf «Registrar, alineada» y Movimientos.pdf «Movimientos,
+  // alineada»: sin cabecera genérica duplicada — #home, #registrar y #movements ya traen su
+  // propio título y subtítulo. El eyebrow y el <h1> compartidos por el resto de vistas se
+  // ocultan aquí solo para estas tres (el <h1> queda sr-only, no desaparece: sigue siendo el
+  // objetivo de foco de accesibilidad tras navegar).
+  const hasOwnHeader = viewId === "home" || viewId === "registrar" || viewId === "movements";
   const viewEyebrow = qs("viewEyebrow");
   if (viewEyebrow) {
     viewEyebrow.textContent = copy.eyebrow;
@@ -16056,6 +16058,14 @@ function buildPendingMovementMappings(transactions) {
 function renderMovementImportReview() {
   const panel = qs("movementMappingReview");
   if (!panel) return;
+  // Repaso pixel-perfect del 20 de agosto: este panel vivía dentro de la tarjeta «Cargar
+  // movimientos desde Excel», retirada junto con MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY — sin la
+  // tarjeta que lo aloja, no tiene sitio propio donde pintarse.
+  if (MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
   const dictionaryCount = Object.keys(movementMappings).length;
   if (!pendingMovementMappings.length) {
     panel.hidden = false;
@@ -16218,7 +16228,16 @@ function refreshMovementRollups() {
   ensureVariableOperationalSection();
 }
 
+// Repaso pixel-perfect del 20 de agosto: mismo patrón que REGISTRAR_MES_LEGACY_READONLY y
+// VISUAL_DETAIL_BALANCE_LEGACY_READONLY — la tarjeta «Cargar movimientos desde Excel» de
+// Movimientos usaba loadTransactionsFromWorkbook, la misma función que Registrar › Importar
+// extracto (R-8), pero sin su clasificación sugerida, revisión de duplicados ni impacto antes de
+// confirmar: una segunda puerta de escritura para lo mismo. Queda inerte incluso si algo dispara
+// el evento a mano — no solo se oculta la interfaz.
+const MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY = true;
+
 async function handleMovementExcelImport(event) {
+  if (MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY) return;
   const file = event.target.files?.[0];
   if (!file) return;
   if (!window.XLSX || typeof window.XLSX.read !== "function") {
@@ -17280,30 +17299,29 @@ function movementsTotals(filtered) {
 // declarado (Registrar) frente al calculado (último `balanceAfter` del extracto ya incorporado),
 // nunca un segundo cálculo. Cierre ya no bloquea esta pieza (Fase 5 está construida), así que M-8c
 // solo tenía que exponerla también en Movimientos, donde vive el extracto real.
+// M-8c, repaso pixel-perfect del 20 de agosto: Movimientos.pdf pinta el cuadre como una única
+// insignia en línea junto a los chips de filtro («Saldo recalculado cuadra con el declarado: X €»),
+// no como una tabla aparte por cuenta — y solo de CaixaBank, la misma cuenta de la que ya es
+// explícitamente la columna Saldo de la tabla (el efectivo no la mueve). Sigue reutilizando
+// cierreAccountReconciliation (C-2), sin segundo cálculo de saldo.
 function renderMovementsReconciliation() {
   const container = qs("movementsReconciliation");
   if (!container || !window.FinanceCanonicalLedger) return;
   const snapshot = refreshCanonicalLedger("movements-view");
   if (!snapshot) return;
   const accountRows = cierreAccountReconciliation(snapshot.entries || []);
-  const statusBadge = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger", "sin-conciliar": "e19-badge-neutral" };
-  const statusLabel = { cuadra: "Cuadra", descuadra: "Descuadra", "sin-conciliar": "Sin conciliar" };
-  container.innerHTML = `<h3 class="escenario-motor-panel-title">Saldo declarado y su cuadre</h3>
-    <div class="table-wrap"><table class="e19-table movements-reconciliation-table">
-      <thead><tr><th>Cuenta</th><th>Declarado</th><th>Calculado</th><th>Diferencia</th><th>Estado</th></tr></thead>
-      <tbody>${accountRows
-        .map(
-          (row) => `<tr>
-            <td><strong>${escapeHtml(row.label)}</strong></td>
-            <td>${money(row.declared, true)}</td>
-            <td>${row.calculated === null ? "—" : money(row.calculated, true)}</td>
-            <td>${row.diff === null ? "—" : money(row.diff, true)}</td>
-            <td><span class="e19-badge ${statusBadge[row.status]}">${statusLabel[row.status]}</span></td>
-          </tr>`,
-        )
-        .join("")}</tbody>
-    </table></div>
-    <p class="e19-kpi-note">Calculado a partir del extracto ya incorporado. Sin extracto para una cuenta (Mediolanum no lo trae en este modelo), queda «sin conciliar» en vez de fingir un cuadre. Se cierra en <a href="#cierre" data-home-nav="cierre">Cierre</a>.</p>`;
+  const caixa = accountRows.find((row) => row.id === "caixabank") || accountRows[0];
+  if (!caixa) return;
+  const toneClass = { cuadra: "e19-badge-success", descuadra: "e19-badge-danger", "sin-conciliar": "e19-badge-neutral" }[caixa.status];
+  const text =
+    caixa.status === "cuadra"
+      ? `Saldo recalculado cuadra con el declarado: ${money(caixa.declared, true)}`
+      : caixa.status === "descuadra"
+        ? `Saldo recalculado no cuadra con el declarado: diferencia de ${money(caixa.diff, true)}`
+        : "CaixaBank sin conciliar: falta el extracto para comprobar el saldo recalculado.";
+  container.innerHTML = `<span class="e19-badge ${toneClass} movements-reconcile-badge">${escapeHtml(text)}</span>${
+    caixa.status === "cuadra" ? "" : ` <a href="#cierre" data-home-nav="cierre" class="e19-kpi-note">Se cierra en Cierre.</a>`
+  }`;
 }
 
 function renderDetailedMovements() {
@@ -30727,6 +30745,17 @@ async function init() {
     movementDetailTransaction = null;
   });
   qs("movementExcelFile").addEventListener("change", handleMovementExcelImport);
+  // Repaso pixel-perfect del 20 de agosto: los enlaces «Registrar › Importar extracto» (tarjeta
+  // retirada) y «Se cierra en Cierre» (insignia de cuadre, M-8c) usan data-home-nav, igual que el
+  // resto de la app — homeNavTargetIsValid() para que la clave heredada "datos-importar" navegue a
+  // la pestaña correcta de Registrar, no solo a la vista.
+  qs("movements")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-home-nav]");
+    const target = button?.dataset.homeNav;
+    if (!homeNavTargetIsValid(target)) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target, { focus: true });
+  });
   qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
   qs("home")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-home-nav]");

@@ -88,7 +88,10 @@ test("M-8c · sin contenedor en el DOM, no llama al ledger", () => {
   assert.deepEqual(calls, []);
 });
 
-test("M-8c · reutiliza cierreAccountReconciliation (C-2), no un segundo cálculo de saldo", () => {
+// Repaso pixel-perfect del 20 de agosto: Movimientos.pdf pinta el cuadre como una insignia en
+// línea, solo de CaixaBank (la misma cuenta de la que ya es la columna Saldo de la tabla), no como
+// una tabla con las dos cuentas.
+test("M-8c · reutiliza cierreAccountReconciliation (C-2), no un segundo cálculo de saldo — insignia solo de CaixaBank", () => {
   const calls = [];
   const container = { innerHTML: "" };
   const rows = [
@@ -109,11 +112,23 @@ test("M-8c · reutiliza cierreAccountReconciliation (C-2), no un segundo cálcul
   }));
   context.renderMovementsReconciliation();
   assert.deepEqual(calls, ["movements-view", "e1,e2"]);
-  assert.match(container.innerHTML, /CaixaBank/);
-  assert.match(container.innerHTML, /Descuadra/);
-  assert.match(container.innerHTML, /Mediolanum/);
-  assert.match(container.innerHTML, /Sin conciliar/);
+  assert.match(container.innerHTML, /diferencia de 50\.00 €/);
+  assert.doesNotMatch(container.innerHTML, /Mediolanum/);
   assert.match(container.innerHTML, /Cierre/);
+});
+
+test("M-8c · cuando el saldo cuadra, la insignia lo dice sin enlazar a Cierre", () => {
+  const container = { innerHTML: "" };
+  const rows = [{ id: "caixabank", label: "CaixaBank", declared: 1000, calculated: 1000, diff: 0, status: "cuadra" }];
+  const context = sandboxWith(["renderMovementsReconciliation"], baseHelpers({
+    qs: (id) => (id === "movementsReconciliation" ? container : null),
+    window: { FinanceCanonicalLedger: {} },
+    refreshCanonicalLedger: () => ({ entries: [] }),
+    cierreAccountReconciliation: () => rows,
+  }));
+  context.renderMovementsReconciliation();
+  assert.match(container.innerHTML, /Saldo recalculado cuadra con el declarado: 1000\.00 €/);
+  assert.doesNotMatch(container.innerHTML, /Cierre/);
 });
 
 test("M-8c · sin snapshot (ledger vacío), no revienta y no pinta filas", () => {

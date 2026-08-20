@@ -380,7 +380,9 @@
     if (viewId === "savings-agent") renderGoals();
     if (viewId === "home") renderE16Monitoring();
     if (viewId === "data-entry") { renderFamilyAndExport(); renderE9ActivationStatus(); }
-    if (viewId === "movements") renderBehavior();
+    // Repaso pixel-perfect del 20 de agosto: Movimientos.pdf no lleva la tarjeta "Comportamiento
+    // conciliado" — se deja de montar en Movimientos (renderBehavior() queda sin llamar, no se
+    // borra: sigue disponible si hace falta en otra vista más adelante).
     if (viewId === "debt-control") renderDocuments();
     if (viewId === "alerts-center") renderAlertChannels();
   }

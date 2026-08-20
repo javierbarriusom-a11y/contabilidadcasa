@@ -601,6 +601,74 @@ M-1, M-4, M-5, M-9, M-10 y M-11 coinciden con precisión. Gaps reales encontrado
   la auditoría confirma que es una brecha real frente al PDF, no solo frente al backlog. Pendiente,
   bloqueada por esa pieza compartida.
 
+**Repaso pixel-perfect del 20 de agosto de 2026 (sesión «pantalla por pantalla», continuación de
+Hoy y Registrar).** Con las 13 tareas ya en Hecho, esta sesión comparó el build local contra
+`Movimientos.pdf` y encontró, además del patrón ya conocido de cabecera duplicada, contenido
+heredado que ninguna auditoría anterior había cubierto porque no era de contenido ni de cálculo.
+Tres hallazgos consultados con el usuario antes de tocar nada (el segundo y el cuarto implicaban
+retirar o reducir funcionalidad activa, no solo reordenar):
+
+- **Cabecera duplicada**: mismo patrón que Hoy y Registrar — `hasOwnHeader` gana `"movements"`.
+  `viewTitles.movements` pasa de «Base del modelo» / «Revisa los movimientos usados para construir
+  el escenario» (texto heredado, ajeno al rediseño) a «Movimientos» / una descripción propia que no
+  repite el `<h2>` visible de la sección, mismo criterio que ya fijó el test de R-1 para Registrar.
+- **«Cargar movimientos desde Excel» era una segunda puerta de escritura**: llama a
+  `loadTransactionsFromWorkbook`, la misma función que ya usa Registrar › Importar extracto (R-8)
+  sobre el mismo `baseData.transactions`, pero sin su asistente de clasificación sugerida, revisión
+  de duplicados fila a fila e impacto antes de confirmar — un atajo que se salta esas
+  comprobaciones, exactamente lo que la regla transversal 01 pide que no exista. El usuario pidió
+  retirarla con el mismo tratamiento que R-11 dio a `#registrar-mes` y `#visual-detail`:
+  `MOVEMENTS_EXCEL_IMPORT_LEGACY_READONLY` deja inerte `handleMovementExcelImport` (con guarda
+  propia, no solo interfaz oculta) y `renderMovementImportReview()` (el panel «Diccionario activo»
+  que vivía dentro de la misma tarjeta, sin sitio propio sin ella), y la tarjeta pasa a mostrar un
+  aviso de solo lectura con un botón que navega a Registrar › Importar extracto
+  (`data-home-nav="datos-importar"`, la misma clave heredada que ya traducía `setActiveView` desde
+  H-5). `#movements` gana su propio manejador de `[data-home-nav]` — no lo tenía, así que ni este
+  botón ni el enlace «Se cierra en Cierre» de la insignia de cuadre (ver más abajo) habrían
+  navegado.
+- **Título antiguo y tarjeta de analítica ajenos al mockup**: «Base del modelo · Movimientos
+  recientes clasificados» (el `<h2>` original de la sección, sin relación con el rediseño) y
+  «Comportamiento conciliado · Tendencias y anomalías reales» —esta última montada dinámicamente
+  por `p2-ui.js` (`renderBehavior()`, un módulo aparte de index.html/app.js que también inyecta
+  paneles en `#savings-agent`, `#home` y `#debt-control`) — no aparecen en `Movimientos.pdf`. El
+  usuario pidió quitar ambos: el título se sustituye por la cabecera propia de la sección
+  («Movimientos» + el subtítulo del mockup) y `p2-ui.js` deja de llamar a `renderBehavior()` para
+  `"movements"` (la función no se borra — sigue disponible si hiciera falta en otra vista).
+- **M-8c mostraba una tabla, el mockup una insignia**: «Saldo declarado y su cuadre» comparaba
+  CaixaBank y Mediolanum en una tabla de cuatro columnas; el mockup pinta una única insignia en
+  línea junto a los chips de filtro («Saldo recalculado cuadra con el declarado: X €»), y solo de
+  CaixaBank — la misma cuenta de la que ya es explícitamente la columna Saldo de la tabla («la
+  columna de saldo es solo de CaixaBank; el efectivo no la mueve», nota del panel de detalle). El
+  usuario pidió convertirla en insignia: `renderMovementsReconciliation` sigue reutilizando
+  `cierreAccountReconciliation` (C-2, sin segundo cálculo de saldo) pero solo lee la fila
+  `caixabank`, con tres estados (cuadra/descuadra/sin-conciliar) y el enlace a Cierre solo cuando
+  hay algo que revisar.
+- **Reordenado sin tocar cálculos**: la insignia de cuadre, el aviso de sin-clasificar (M-5) y
+  «Exportar la vista» (M-10, renombrado de «Exportar CSV de esta vista») pasan a compartir una sola
+  fila junto a los chips (`.movements-signal-row`), en vez de estar repartidos por la vista —
+  «Exportar la vista» vivía al final, después de la tabla. Los filtros (Buscar/Rango/atajos) se
+  mueven junto al título «Movimientos», que pasa a ser lo primero de la sección.
+- **Fuera de alcance, documentado igual que en Hoy y Registrar**: la franja superior de utilidad
+  (Buscar/Hogar/Escenario/Ajustes) — Fase 3 · menú. También queda fuera de esta sesión, por ser un
+  cambio de mayor calado (no solo maquetación): la tabla de Movimientos trae once columnas
+  (Fecha/Fecha valor/Movimiento/Más datos/Categoría/Partida/Importe/Saldo/Origen/Cuenta/Ver) frente
+  a las seis del mockup (Fecha/Movimiento con cuenta como subtítulo/Partida/Importe/Saldo/Origen), y
+  el panel de detalle es un diálogo modal (`movementDetailDialog`) donde el mockup dibuja un panel
+  lateral siempre visible que se actualiza al clicar una fila — un cambio de patrón de interacción,
+  no una simple reducción de columnas. Anotado para una sesión propia.
+
+**Validación**: `npm run verify`, exit 0 — **1428/1428 pruebas** (nuevo archivo
+`tests/m1-movimientos-pixel-perfect.test.cjs` con 11 pruebas para estos cinco hallazgos; se
+ajustaron `tests/m1-m11-movimientos.test.cjs` (texto del subtítulo y del botón de exportar) y
+`tests/m8c-p8b-a7-fase5-dependientes.test.cjs` (la insignia de cuadre en vez de la tabla)),
+accesibilidad (790 IDs únicos), rendimiento (diff 10.000 filas en 33,2 ms; forecast y escenarios en
+171,5 ms; recursos 1700 KB), build del sitio, privacidad y smoke test, todos en verde. Verificado
+con Playwright contra el build local a 1920 px: la cabecera duplicada desaparece solo en Hoy,
+Registrar y Movimientos; la tarjeta de importación muestra el aviso de solo lectura con el enlace a
+Registrar › Importar extracto (funcional: navega a la pestaña correcta); el panel «Diccionario
+activo» y la tarjeta de tendencias ya no aparecen; la insignia de cuadre, el aviso de sin clasificar
+y «Exportar la vista» comparten fila junto a los chips. Sin hallazgos adicionales.
+
 ### 04 · Plan — Mes, Previsión y Ahorro en tres pestañas (17 tareas · 3 grandes)
 
 **Nota (15 de agosto)**: pantalla nueva `#plan`, junto a `#cuadro-mandos` (que sigue intacta y

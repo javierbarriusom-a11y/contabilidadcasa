@@ -100,9 +100,15 @@ test("R-1 · la cabecera trae fuente del libro, guía del flujo y la regla previ
 // contenido ya vive en el subtítulo y la meta propios de #registrar, igual que ya se hizo para
 // Hoy en la sesión anterior. El botón «Guía de este flujo» que vivía dentro de ese recuadro se
 // conserva como botón propio de la sección (mismo data-e17-open="guide"), así que no se pierde.
+// La condición gana vistas con el tiempo (Movimientos se sumó en la sesión siguiente) — se
+// comprueba por subcadena, no por línea exacta, para no romperse cada vez que se añade una más.
 test("R-1 · la cabecera genérica compartida (#viewEyebrow/#viewTitle/#e17ViewGuide) se oculta también en Registrar, igual que en Hoy", () => {
-  assert.match(app, /const hasOwnHeader = viewId === "home" \|\| viewId === "registrar";/);
-  assert.match(app, /if \(viewId === "home" \|\| viewId === "registrar"\) \{\s*target\.hidden = true;/);
+  const hasOwnHeaderLine = app.match(/const hasOwnHeader = ([^;]+);/)?.[1] || "";
+  assert.match(hasOwnHeaderLine, /viewId === "home"/);
+  assert.match(hasOwnHeaderLine, /viewId === "registrar"/);
+  const guideCondition = app.match(/function renderE17ViewGuide[\s\S]{0,1200}?if \(([^)]+)\) \{\s*target\.hidden = true;/)?.[1] || "";
+  assert.match(guideCondition, /viewId === "home"/);
+  assert.match(guideCondition, /viewId === "registrar"/);
 });
 
 test("R-1 · el título global de la vista no repite literalmente el título propio de la sección", () => {
