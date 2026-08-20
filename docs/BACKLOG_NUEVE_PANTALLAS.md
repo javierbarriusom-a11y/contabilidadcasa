@@ -77,8 +77,8 @@ anterior, reconciliadas con el backlog; D-4/D-5/D-6 se construyeron el mismo 15 
 sesión siguiente a D-1/D-2 — ver la nota bajo la tabla de la pantalla 05); D-10/D-11/D-13
 parciales, D-2b/D-12 pendientes, D-14 choca con la decisión T-4 (bloqueada a propósito). Fase 4
 (Previsión y Escenarios): P-8/P-9 hechas, P-8b se construyó el 19 de agosto (quinto punto del plan,
-en cuanto Cierre dejó de bloquearla), P-10/P-11/P-12/P-13 siguen pendientes, P-14/P-15 (Sobres)
-hechas el 19 de agosto y P-16 bloqueada por P-13 (ver pantalla 04); Escenarios
+en cuanto Cierre dejó de bloquearla), P-10/P-11/P-12 hechas el 19 de agosto, P-14/P-15 (Sobres)
+hechas el mismo día, y P-13/P-16 hechas el 20 de agosto, bloque 3 del plan de cierre (ver pantalla 04); Escenarios
 **no arrancaba de cero** — auditada el 16 de agosto contra `Escenarios.pdf` y resultó tener un motor
 real de la epic E20 (10 de agosto) nunca reconciliado con este backlog: E-4/E-6/E-10 hechas de
 partida, E-3/E-11/E-5 cerradas el 16 de agosto (comparativa de seis indicadores, revisión opcional
@@ -109,7 +109,8 @@ pendientes; A-7 se construyó el 19 de agosto, quinto punto del plan, en cuanto 
 bloquearla (ver la nota bajo la tabla de la pantalla 07). Sobres (segunda mitad de la Fase 6):
 P-14/P-15 (Plan · Mes) y C-6/C-7 (Cierre) se construyeron el 19 de agosto, cuarto punto del plan de
 cinco acordado con el usuario — ver la nota de cierre bajo la tabla de la pantalla 08 para el
-detalle; P-16 sigue bloqueada por P-13 (Objetivos), que no existe todavía. Fase 7 (Laboratorio) se
+detalle; P-16 (suma con objetivos) se construyó el 20 de agosto junto con P-13 (Objetivos), bloque 3
+del plan de cierre — ver la nota bajo la tabla de la pantalla 04. Fase 7 (Laboratorio) se
 construyó el 19 de agosto de 2026, bloque 1 del plan de cierre de la sección 7: L-1 a L-10 completas
 (ver la nota bajo la tabla de la pantalla 09 — un primer veredicto de L-5 resultó mal fundamentado y
 se corrigió en la misma sesión, sin llegar a bloquear nada por error).
@@ -518,10 +519,10 @@ cuatro de Registrar, que dependen de saldo y deuda, ajenas a un cambio de previs
 | P-10 | Descomposición del peor mes | P-9 | M | Hecho (19 de agosto, ver nota) |
 | P-11 | Proyección de horizonte | P-8 | M | Hecho (19 de agosto, ver nota) |
 | P-12 | Semáforo de ahorro | P-1 | S | Hecho (19 de agosto, ver nota) |
-| P-13 | Objetivos con destino y prioridad | P-12 | M | Pendiente |
+| P-13 | Objetivos con destino y prioridad | P-12 | M | Hecho (20 de agosto, ver nota) |
 | P-14 | Sobres · columnas de arrastre y regla | Fase 6, P-3 | L | Hecho (19 de agosto, ver nota) |
 | P-15 | Sobres · liquidación al cerrar | P-14, Cierre | L | Hecho (19 de agosto, ver nota) |
-| P-16 | Sobres · suma con los objetivos de ahorro | P-15, P-13 | M | Pendiente (bloqueada: depende de P-13, sin construir) |
+| P-16 | Sobres · suma con los objetivos de ahorro | P-15, P-13 | M | Hecho (20 de agosto, ver nota) |
 
 **Nota (15 de agosto) — el mockup 2c heredado, sin relación con P-8.** Antes de que existiera este
 backlog "Nueve pantallas" se detectó que `docs/E19_SISTEMA_DISENO.md` daba el mockup 2c (Previsión,
@@ -603,6 +604,47 @@ Verificado con Playwright contra el build local: el desglose del peor mes muestr
 filas más el veredicto («Ingresos fue el bloque que más empujó jul 26 · 218,18 € de diferencia» con
 los datos de demostración), los tres hitos de colchón se pintan con su mes, y el semáforo de Ahorro
 colorea cada mes del horizonte con su luz y su cifra. Sin errores de consola propios.
+
+**P-13/P-16 (20 de agosto) — bloque 3 del plan de cierre, la cadena que cerraba Plan · Ahorro y
+objetivos.** P-13 declara de verdad el objetivo que P-12 echaba en falta; P-16 lo conecta con Sobres
+(P-14/P-15), la última pieza suelta de la pantalla 04.
+
+- **P-13** ("Objetivos con destino y prioridad") añade una lista de objetivos de ahorro a la pestaña
+  Ahorro de Plan, debajo del semáforo de P-12: cada objetivo tiene un destino (texto libre), un
+  importe objetivo opcional y una prioridad — el orden de la lista, con botones subir/bajar. Vive en
+  `scenarioSettings.savingsGoals`, mismo patrón de lista libre gobernada por el usuario que ya usa
+  `scenarioSettings.alerts` (Ajustes › Alertas): ningún motor recalcula la lista, solo la persiste.
+  El acumulado de cada objetivo **no se fabrica** (regla transversal 04): se suma de los asientos
+  reales que deja P-16 al cerrar un mes; sin ningún cierre así, es 0 € y la pantalla lo dice
+  explícitamente («0,00 € de 30,00 €», nunca un progreso inventado).
+- **P-16** ("Sobres · suma con los objetivos de ahorro") conecta esa lista con la liquidación de
+  sobres de P-15. Hasta ahora un sobre en positivo sin ninguna cobertura reclamada solo podía
+  arrastrar en silencio al mes siguiente (P-14); gana una tercera opción — sumar de verdad a un
+  objetivo declarado, en su orden de prioridad, sin ofrecer uno que ya alcanzó su importe. La
+  cobertura entre sobres (C-6/C-7) sigue ganando siempre: no tiene sentido ofrecer un objetivo a un
+  sobre que ya está cubriendo un déficit real. El envío a un objetivo queda como el mismo tipo de
+  asiento que ya firma P-15 (`envelopeSettlements`, con `destino: "objetivo:<id>"`), así que no
+  arrastra nada al mes siguiente — arrastrarlo además duplicaría el dinero. `savingsGoalsContributions`
+  suma esos asientos por el cierre vigente de cada mes (el más reciente firmado, nunca uno
+  reabierto y superado), mismo criterio de "vigente" que ya usa `cierreVersionRows` (C-10).
+
+**Pruebas nuevas**: `tests/p13-p16-ahorro-objetivos.test.cjs` (16 pruebas) — lista de objetivos con y
+sin datos, acumulado sumado solo del cierre vigente (incluida una reapertura y recierre del mismo
+mes con un objetivo distinto, para probar que no se cuenta dos veces), «Completado» solo con importe
+objetivo alcanzado, subir/bajar prioridad, borrar tras confirmar, editar destino e importe, la
+cobertura entre sobres ganando sobre una elección de objetivo, `sobresSettlementsForSign` sin
+arrastre para un sobre enviado a un objetivo, y el selector de destino ocultando objetivos completos.
+
+Verificado con Playwright contra el build local: crear un objetivo («Fondo de emergencia», 30 €) lo
+añade a la tabla con «0,00 € de 30,00 €»; subir/bajar prioridad reordena la tabla y borrar tras
+confirmar la quita; con Sobres activo, el paso «Liquidar sobres» de Cierre ofrece «Objetivo: Fondo de
+emergencia» junto a «Arrastra al mes siguiente» para el sobre en positivo, y la elección se mantiene
+seleccionada. Firmar el cierre no fue posible en este entorno (exige sesión y sincronización con
+Supabase, bloqueadas aquí — mismo límite que ya documentaron sesiones anteriores de Cierre), así que
+el acumulado tras un cierre real queda cubierto por las pruebas unitarias, no por esta verificación
+visual. Sin errores de consola propios (el único aviso de red es el `ERR_TUNNEL_CONNECTION_FAILED`
+hacia el CDN de Supabase, preexistente, más un 404 puntual sin URL capturable, también preexistente
+y ya documentado en sesiones anteriores).
 
 **Auditoría del 15 de agosto contra `Plan.pdf` (sesión de contraste con los PDFs nuevos).**
 Confirmado: **P-8/P-9 coinciden exactamente** con `Plan.pdf` — el criterio literal del PDF para
@@ -1496,8 +1538,9 @@ sesiones del 16-19 de agosto (Escenarios/Cierre/Análisis/Sobres)~~ — **comple
 de 2026**, ver las notas bajo las tablas de las pantallas 04, 07 y 08. P-12 desbloquea P-13
 (bloque 3, sigue pendiente de sesión); A-10 desbloquea A-13 (bloque 4, sigue pendiente de sesión).
 
-**Bloque 3 — Plan · Ahorro y objetivos, la cadena que queda.** P-13 (depende de P-12,
-bloque 2) → P-16 (depende de P-13, cierra Sobres del todo).
+**Bloque 3 — Plan · Ahorro y objetivos, la cadena que queda.** ~~P-13 (depende de P-12,
+bloque 2) → P-16 (depende de P-13, cierra Sobres del todo)~~ — **completo el 20 de agosto de 2026**,
+ver la nota bajo la tabla de la pantalla 04.
 
 **Bloque 4 — Completar los parciales de Deuda + lo que desbloquean.** D-10, D-11 y D-13
 cumplen el núcleo de su criterio y necesitan un añadido concreto, no una reconstrucción.

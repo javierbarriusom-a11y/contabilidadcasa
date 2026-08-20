@@ -25663,6 +25663,9 @@ function cierreSobresRows(month) {
 // sobre negativo, nunca duplicada en los dos lados). Un sobre en positivo solo puede cubrir a un
 // sobre negativo a la vez: si dos reclaman el mismo origen, ninguno queda resuelto — «ningún sobre
 // se cubre en silencio» incluye no repartir el mismo superávit dos veces sin decirlo.
+// P-16: un sobre en positivo sin ninguna cobertura reclamada puede, además de arrastrar, sumar de
+// verdad a un objetivo de ahorro (P-13) — la cobertura entre sobres sigue ganando siempre: no tiene
+// sentido ofrecer un objetivo a un sobre que ya está cubriendo un déficit real.
 function cierreSobresResolved(rows) {
   const claims = {};
   rows.forEach((row) => {
@@ -25678,7 +25681,10 @@ function cierreSobresResolved(rows) {
     if (row.saldo >= 0) {
       const claimants = claims[row.rowKey] || [];
       const coveredBy = claimants.length === 1 ? claimants[0] : null;
-      return { ...row, destino: coveredBy ? `sobre:${coveredBy}` : "arrastra", resolved: true };
+      if (coveredBy) return { ...row, destino: `sobre:${coveredBy}`, resolved: true };
+      const choice = cierreSobresChoices[row.rowKey];
+      const destino = typeof choice === "string" && choice.startsWith("objetivo:") ? choice : "arrastra";
+      return { ...row, destino, resolved: true };
     }
     const choice = cierreSobresChoices[row.rowKey];
     if (!choice) return { ...row, origen: null, resolved: false };
@@ -25706,6 +25712,9 @@ function cierreSobresAllResolved(rows) {
 // P-15: lo que arrastra cada sobre al mes siguiente. Un sobre positivo que cubre a otro no arrastra
 // el importe cedido; un sobre negativo cubierto por otro sobre o por liquidez general no arrastra
 // deuda; solo «arrastra» (regla del sobre) deja pasar el déficit íntegro al mes que viene.
+// P-16: un sobre positivo enviado a un objetivo tampoco arrastra nada — el importe salió de verdad
+// del sistema de sobres hacia el objetivo (`savingsGoalsContributions` lo suma de este mismo asiento
+// por su `destino`), así que arrastrarlo además duplicaría el dinero.
 function sobresSettlementsForSign(month) {
   if (!sobresEnabled()) return [];
   const rows = cierreSobresResolved(sobresMonthBalances(month));
@@ -25714,7 +25723,9 @@ function sobresSettlementsForSign(month) {
       const covering = typeof row.destino === "string" && row.destino.startsWith("sobre:") ? row.destino.slice(6) : null;
       const target = covering ? rows.find((item) => item.rowKey === covering) : null;
       const coverageAmount = target ? Math.min(row.saldo, Math.abs(target.saldo)) : 0;
-      return { rowKey: row.rowKey, label: row.label, saldo: row.saldo, destino: row.destino, origen: null, carryOut: round2(row.saldo - coverageAmount) };
+      const toGoal = typeof row.destino === "string" && row.destino.startsWith("objetivo:");
+      const carryOut = toGoal ? 0 : round2(row.saldo - coverageAmount);
+      return { rowKey: row.rowKey, label: row.label, saldo: row.saldo, destino: row.destino, origen: null, carryOut };
     }
     const carryOut = row.origen === "arrastra" ? row.saldo : 0;
     return { rowKey: row.rowKey, label: row.label, saldo: row.saldo, destino: null, origen: row.origen, carryOut };
@@ -25726,6 +25737,10 @@ function cierreSobresDestinoLabel(row, rows) {
   if (typeof row.destino === "string" && row.destino.startsWith("sobre:")) {
     const target = rows.find((item) => item.rowKey === row.destino.slice(6));
     return `Cubre «${escapeHtml(target?.label || "")}»`;
+  }
+  if (typeof row.destino === "string" && row.destino.startsWith("objetivo:")) {
+    const goal = savingsGoalsList().find((item) => item.id === row.destino.slice("objetivo:".length));
+    return `Objetivo: «${escapeHtml(goal?.label || "")}»`;
   }
   return "Arrastra al mes siguiente";
 }
@@ -25742,6 +25757,27 @@ function cierreSobresOptionsHtml(row, rows) {
   return `<select data-sobres-origen="${escapeHtml(row.rowKey)}" aria-label="Origen del sobre ${escapeHtml(row.label)}">${options.join("")}</select>`;
 }
 
+// P-16: destino de un sobre positivo NO reclamado por ningún sobre negativo — hasta ahora arrastraba
+// en silencio (P-14); ahora puede sumar de verdad a un objetivo de ahorro declarado en P-13, en su
+// orden de prioridad, sin ofrecer uno ya completado (regla transversal 04: no tiene sentido seguir
+// sumando a un objetivo que ya alcanzó su importe).
+function sobresGoalDestinoOptions(current) {
+  const contributions = savingsGoalsContributions();
+  const goals = savingsGoalsList().filter((goal) => {
+    const target = Number(goal.targetAmount || 0);
+    return !(target > 0 && Number(contributions[goal.id] || 0) >= target);
+  });
+  const opt = (value, label) => `<option value="${escapeHtml(value)}"${value === current ? " selected" : ""}>${escapeHtml(label)}</option>`;
+  const options = [opt("arrastra", "Arrastra al mes siguiente")];
+  goals.forEach((goal) => options.push(opt(`objetivo:${goal.id}`, `Objetivo: ${goal.label}`)));
+  return options.join("");
+}
+
+function cierreSobresDestinoSelectHtml(row) {
+  const current = typeof cierreSobresChoices[row.rowKey] === "string" ? cierreSobresChoices[row.rowKey] : "arrastra";
+  return `<select data-sobres-destino="${escapeHtml(row.rowKey)}" aria-label="Destino del sobre ${escapeHtml(row.label)}">${sobresGoalDestinoOptions(current)}</select>`;
+}
+
 // P-15/C-6 (Cierre.pdf): «Una línea por sobre con saldo, destino declarado y estado del asiento. Un
 // sobre en negativo sin origen bloquea la firma.» C-7: las coberturas entre sobres se listan aparte,
 // con origen e importe, antes de firmar.
@@ -25754,7 +25790,13 @@ function cierreStep3SobresHtml(sobresRows, monthKey) {
           (row) => `<tr class="${row.resolved ? "" : "is-danger"}">
         <td>${escapeHtml(row.label)}</td>
         <td>${money(row.saldo, true)}</td>
-        <td>${row.saldo >= 0 ? escapeHtml(cierreSobresDestinoLabel(row, resolved)) : cierreSobresOptionsHtml(row, resolved)}</td>
+        <td>${
+          row.saldo >= 0
+            ? typeof row.destino === "string" && row.destino.startsWith("sobre:")
+              ? escapeHtml(cierreSobresDestinoLabel(row, resolved))
+              : cierreSobresDestinoSelectHtml(row)
+            : cierreSobresOptionsHtml(row, resolved)
+        }</td>
         <td><span class="e19-badge ${row.resolved ? "e19-badge-success" : "e19-badge-danger"}">${row.resolved ? "Listo" : "Pendiente"}</span></td>
       </tr>`,
         )
@@ -25787,6 +25829,16 @@ function cierreStep3SobresHtml(sobresRows, monthKey) {
 function handleCierreSobresOriginChange(rowKey, value) {
   if (!rowKey) return;
   if (value) cierreSobresChoices[rowKey] = value;
+  else delete cierreSobresChoices[rowKey];
+  renderCierre();
+}
+
+// P-16: elección de destino de un sobre positivo — «arrastra» es el valor por defecto (equivalente
+// a no tener ninguna elección guardada), así que solo se guarda una elección real cuando apunta a un
+// objetivo.
+function handleCierreSobresDestinoChange(rowKey, value) {
+  if (!rowKey) return;
+  if (value && value !== "arrastra") cierreSobresChoices[rowKey] = value;
   else delete cierreSobresChoices[rowKey];
   renderCierre();
 }
@@ -27575,8 +27627,9 @@ function planPrevisionHorizonMilestonesHtml(milestones, floorSource) {
 // en Plan», index.html). Reutiliza `row.saving` del motor — el mismo dato que ya lee la fila «Ahorro»
 // de Previsión, sin partidas propias en `monthlyPlanning` — y lo colorea por comparación con la
 // media del propio horizonte, mismo criterio de "desviación frente a la media" que P-10. No compara
-// contra un objetivo de ahorro fabricado: el modelo de datos no declara uno todavía (esa es P-13,
-// Objetivos, que sigue sin construirse) y regla transversal 04 prohíbe inventarlo.
+// contra un objetivo de ahorro fabricado: la comparación es contra la propia media del horizonte,
+// nunca contra los objetivos declarados en P-13 (esos se miden por su acumulado real de Sobres/P-16,
+// no por la desviación de un mes) — regla transversal 04 prohíbe inventar un objetivo aquí.
 function planAhorroMonthlyRows(months, savingByMonth) {
   if (!months.length) return [];
   const avg = round2(savingByMonth.reduce((sum, value) => sum + value, 0) / savingByMonth.length);
@@ -27603,13 +27656,133 @@ function planAhorroHtml(rows) {
     <p class="e19-kpi-note">Media del horizonte: ${money(rows[0].avg, true)} al mes. 🟢 sobre la media · 🟡 positivo pero por debajo · 🔴 negativo ese mes. El ahorro se edita registrando reales e ingresos, no aquí — sigue disponible con más detalle en <button type="button" class="registrar-actuals-plan-link" data-home-nav="savings-plan">Plan ahorro</button>.</p>`;
 }
 
+// P-13: "Objetivos con destino y prioridad" — la pestaña Ahorro de Plan gana una lista de objetivos
+// declarados por el usuario (destino + importe opcional), ordenada por prioridad (el orden de la
+// lista, subir/bajar). Vive en `scenarioSettings.savingsGoals`, mismo patrón que `scenarioSettings.
+// alerts` (Ajustes › Alertas): una lista libre que el usuario gobierna, sin motor propio que la
+// recalcule. El acumulado de cada objetivo no se inventa (regla transversal 04): se suma de verdad
+// de los asientos reales que P-16 deja en `envelopeSettlements` al cerrar un mes con Sobres —
+// mientras no exista ningún cierre así, el acumulado es 0 y la pantalla lo dice explícitamente.
+function savingsGoalsList() {
+  return Array.isArray(scenarioSettings.savingsGoals) ? scenarioSettings.savingsGoals : [];
+}
+
+// P-16: acumulado real por objetivo, sumado del asiento del cierre vigente de cada mes — el más
+// reciente firmado, nunca uno reabierto y superado — mismo criterio de "vigente" que ya usa
+// `cierreVersionRows` (C-10) para no contar dos veces un mes reabierto y vuelto a cerrar.
+function savingsGoalsContributions() {
+  const latestByMonth = new Map();
+  (monthClosures || []).forEach((op) => {
+    if (op.status !== "closed" || !Array.isArray(op.envelopeSettlements)) return;
+    const stamp = op.occurredAt || op.closedAt || "";
+    const current = latestByMonth.get(op.monthKey);
+    const currentStamp = current ? current.occurredAt || current.closedAt || "" : "";
+    if (!current || stamp > currentStamp) latestByMonth.set(op.monthKey, op);
+  });
+  const totals = {};
+  latestByMonth.forEach((op) => {
+    op.envelopeSettlements.forEach((entry) => {
+      if (typeof entry.destino !== "string" || !entry.destino.startsWith("objetivo:")) return;
+      const goalId = entry.destino.slice("objetivo:".length);
+      totals[goalId] = round2((totals[goalId] || 0) + Number(entry.saldo || 0));
+    });
+  });
+  return totals;
+}
+
+function savingsGoalRowHtml(goal, index, total, accumulated) {
+  const target = round2(Number(goal.targetAmount || 0));
+  const done = target > 0 && accumulated >= target;
+  const progressText = target > 0 ? `${money(accumulated, true)} de ${money(target, true)}` : `${money(accumulated, true)} · sin importe objetivo`;
+  return `<tr data-savings-goal-id="${escapeHtml(goal.id)}">
+    <td class="savings-goal-order">
+      <button type="button" class="e19-btn e19-btn-secondary savings-goal-btn" data-savings-goal-action="up" aria-label="Subir prioridad de ${escapeHtml(goal.label)}"${index === 0 ? " disabled" : ""}>↑</button>
+      <button type="button" class="e19-btn e19-btn-secondary savings-goal-btn" data-savings-goal-action="down" aria-label="Bajar prioridad de ${escapeHtml(goal.label)}"${index === total - 1 ? " disabled" : ""}>↓</button>
+    </td>
+    <td><input type="text" data-savings-goal-field="label" aria-label="Destino del objetivo" value="${escapeHtml(goal.label)}" /></td>
+    <td><input type="number" step="0.01" min="0" data-savings-goal-field="targetAmount" aria-label="Importe objetivo de ${escapeHtml(goal.label)}" value="${target || ""}" placeholder="Sin importe" /></td>
+    <td class="savings-goal-progress">${escapeHtml(progressText)}${done ? ` <span class="e19-badge e19-badge-success">Completado</span>` : ""}</td>
+    <td><button type="button" class="e19-btn e19-btn-secondary savings-goal-btn is-danger" data-savings-goal-action="delete" aria-label="Eliminar objetivo ${escapeHtml(goal.label)}">Eliminar</button></td>
+  </tr>`;
+}
+
+function savingsGoalsHtml(goals, contributions) {
+  const rows = goals.map((goal, index) => savingsGoalRowHtml(goal, index, goals.length, Number(contributions[goal.id] || 0))).join("");
+  const body = goals.length
+    ? `<div class="table-wrap"><table class="e19-table plan-savings-goals-table">
+        <thead><tr><th>Prioridad</th><th>Destino</th><th>Importe objetivo</th><th>Acumulado</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`
+    : `<p class="e19-kpi-note">Todavía no hay ningún objetivo declarado.</p>`;
+  return `<article class="e19-card plan-savings-goals-card">
+    <div class="section-title with-action compact">
+      <h3 class="escenario-motor-panel-title">Objetivos de ahorro</h3>
+      <button type="button" class="e19-btn e19-btn-secondary" data-savings-goal-add>Añadir objetivo</button>
+    </div>
+    ${body}
+    <p class="e19-kpi-note">El acumulado se suma de los sobres reales que se asignan a cada objetivo al cerrar un mes (Cierre › Liquidar sobres) — nunca una previsión.</p>
+  </article>`;
+}
+
+function savingsGoalId() {
+  return `goal-${Date.now()}-${Math.round(Math.random() * 1000)}`;
+}
+
+function addSavingsGoal() {
+  const goals = savingsGoalsList().slice();
+  goals.push({ id: savingsGoalId(), label: "Nuevo objetivo", targetAmount: 0, createdAt: new Date().toISOString() });
+  scenarioSettings.savingsGoals = goals;
+  saveScenarioSettings();
+  renderPlanAhorro();
+}
+
+function handleSavingsGoalFieldChange(input) {
+  const row = input.closest("[data-savings-goal-id]");
+  const id = row?.dataset.savingsGoalId;
+  if (!id) return;
+  const goals = savingsGoalsList().slice();
+  const index = goals.findIndex((goal) => goal.id === id);
+  if (index < 0) return;
+  const goal = { ...goals[index] };
+  if (input.dataset.savingsGoalField === "label") goal.label = input.value.trim() || "Objetivo sin nombre";
+  else if (input.dataset.savingsGoalField === "targetAmount") goal.targetAmount = round2(Math.max(0, Number(input.value) || 0));
+  goals[index] = goal;
+  scenarioSettings.savingsGoals = goals;
+  saveScenarioSettings();
+  renderPlanAhorro();
+}
+
+function handleSavingsGoalAction(event) {
+  const button = event.target.closest("[data-savings-goal-action]");
+  const row = event.target.closest("[data-savings-goal-id]");
+  if (!button || !row) return;
+  const id = row.dataset.savingsGoalId;
+  const goals = savingsGoalsList().slice();
+  const index = goals.findIndex((goal) => goal.id === id);
+  if (index < 0) return;
+  const action = button.dataset.savingsGoalAction;
+  if (action === "delete") {
+    if (!window.confirm(`¿Eliminar el objetivo «${goals[index].label}»?`)) return;
+    goals.splice(index, 1);
+  } else if (action === "up" && index > 0) {
+    [goals[index - 1], goals[index]] = [goals[index], goals[index - 1]];
+  } else if (action === "down" && index < goals.length - 1) {
+    [goals[index], goals[index + 1]] = [goals[index + 1], goals[index]];
+  } else {
+    return;
+  }
+  scenarioSettings.savingsGoals = goals;
+  saveScenarioSettings();
+  renderPlanAhorro();
+}
+
 function renderPlanAhorro() {
   const container = qs("planAhorroPanel");
   if (!container || !lastSimulation.length) return;
   const months = planPrevisionMonths();
   const simRows = planPrevisionSimulationByMonth(months);
   const savingByMonth = simRows.map((row) => Number(row?.saving || 0));
-  container.innerHTML = planAhorroHtml(planAhorroMonthlyRows(months, savingByMonth));
+  container.innerHTML = `${planAhorroHtml(planAhorroMonthlyRows(months, savingByMonth))}${savingsGoalsHtml(savingsGoalsList(), savingsGoalsContributions())}`;
 }
 
 function handlePlanPrevisionHorizon(horizonKey) {
@@ -29172,6 +29345,14 @@ async function init() {
     history.pushState(null, "", `#${target}`);
     setActiveView(target);
   });
+  qs("planAhorroPanel")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-savings-goal-add]")) { addSavingsGoal(); return; }
+    handleSavingsGoalAction(event);
+  });
+  qs("planAhorroPanel")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-savings-goal-field]");
+    if (input) handleSavingsGoalFieldChange(input);
+  });
   qs("planMesImpactBar")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-plan-mes-impact-save]")) { saveVisualChanges(); return; }
     // discardVisualChanges() solo repinta #visual-detail; Plan necesita su propio refresco.
@@ -29432,7 +29613,9 @@ async function init() {
   });
   qs("cierre")?.addEventListener("change", (event) => {
     const select = event.target.closest("[data-sobres-origen]");
-    if (select) handleCierreSobresOriginChange(select.dataset.sobresOrigen, select.value);
+    if (select) { handleCierreSobresOriginChange(select.dataset.sobresOrigen, select.value); return; }
+    const destinoSelect = event.target.closest("[data-sobres-destino]");
+    if (destinoSelect) handleCierreSobresDestinoChange(destinoSelect.dataset.sobresDestino, destinoSelect.value);
   });
   qs("cierreReopen")?.addEventListener("click", handleCierreReopen);
   qs("analisis")?.addEventListener("click", (event) => {

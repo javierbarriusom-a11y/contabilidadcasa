@@ -3299,6 +3299,40 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* P-13 · objetivos de ahorro — tabla con prioridad (subir/bajar), destino, importe y acumulado. */
+.e19-plan .plan-savings-goals-card {
+  margin-top: 16px;
+}
+
+.e19-plan .savings-goal-order {
+  display: flex;
+  gap: 4px;
+}
+
+.e19-plan .savings-goal-btn {
+  padding: 4px 8px;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-plan .savings-goal-btn.is-danger {
+  color: var(--e19-danger);
+}
+
+.e19-plan .plan-savings-goals-table input {
+  width: 100%;
+  min-width: 90px;
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: var(--e19-radius-sm);
+  border: 1px solid var(--e19-border-strong);
+  background: var(--e19-surface);
+}
+
+.e19-plan .savings-goal-progress {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* A-8 · barra apilada de una sola pieza + leyenda, los segmentos suman el 100 % del ingreso. */
 .e19-analisis .analisis-split-bar {
   display: flex;
