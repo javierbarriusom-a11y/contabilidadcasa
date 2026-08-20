@@ -1747,12 +1747,41 @@
   background: var(--e19-danger-soft);
 }
 
+/* E-11b · un plan propuesto todavía no es vigente ni un aviso: su propio tono, acento en vez de
+   verde o rojo, hasta que Cierre lo confirme o lo descarte. */
+.e19-escenario-motor .escenario-motor-saved-card.is-propuesto {
+  border-color: var(--e19-accent);
+  box-shadow: inset 0 0 0 1px var(--e19-accent);
+}
+
 .e19-escenario-motor .escenario-motor-saved-limite {
   margin: 0;
   font-weight: 600;
   font-size: var(--e19-text-sm);
   color: var(--e19-danger);
   flex-basis: 100%;
+}
+
+.e19-escenario-motor .escenario-motor-saved-note {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+  flex-basis: 100%;
+}
+
+.e19-escenario-motor .escenario-motor-saved-archived {
+  margin-top: 4px;
+}
+
+.e19-escenario-motor .escenario-motor-saved-archived summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--e19-muted);
+}
+
+.e19-escenario-motor .escenario-motor-saved-archived .escenario-motor-saved-list,
+.e19-escenario-motor .escenario-motor-saved-archived .escenario-motor-saved-card {
+  margin-top: 12px;
 }
 
 .e19-escenario-motor .escenario-motor-saved-head {
@@ -2462,6 +2491,14 @@
   background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
 }
 
+/* D-2b · el pie de cuadre del capital editado frente a la deuda viva del último cierre. */
+.e19-deuda-decidir .deuda-contratos-cuadre-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 /* D-10 · aviso activo de caducidad de la oferta, y la nota de "ya decidida" que ya existía sin
    color propio bajo esta pantalla. */
 .e19-deuda-decidir .e19-kpi-note.is-danger,
@@ -2852,6 +2889,14 @@
   margin: 2px 0 0;
   font-size: var(--e19-text-xs);
   color: var(--e19-muted);
+}
+
+/* E-11b · dos botones (Confirmar/Descartar) en la fila de plan propuesto, en vez del único botón
+   de las demás tareas de cierre — sin crecer como el `flex: 1` genérico de `> div`. */
+.e19-cierre .conciliar-task-item .cierre-propuesto-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
 }
 
 .e19-cierre .cierre-task-group {

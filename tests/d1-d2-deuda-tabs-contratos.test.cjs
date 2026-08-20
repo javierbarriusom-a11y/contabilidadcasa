@@ -309,6 +309,10 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
       { id: "debt-2", entity: "Entidad B", type: "Tarjeta", number: "", currentPrincipal: 3500, currentPayment: 140, apr: null, paymentStatus: "active", dataQuality: { missing: ["apr"], confidence: "medium" } },
     ],
     renderDeudaScreenTabs: () => {},
+    // D-2b: renderDeudaContratos pinta también el pie de cuadre — stub aquí, cubierto de verdad en
+    // tests/d-2b-cuadre-capital-deuda.test.cjs.
+    debtCapitalCuadre: () => ({ status: "sin-cierre", current: 0, atClose: null, diff: null, monthKey: null }),
+    deudaContratosCuadreHtml: () => "",
     qs: (id) => ({
       set innerHTML(value) {
         written[id] = value;

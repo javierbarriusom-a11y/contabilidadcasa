@@ -99,6 +99,18 @@ test("E-11 · homeEscenarioReviewReminders marca en ámbar (warn) una revisión 
   assert.equal(reminder.status, "warn");
 });
 
+test("E-11b · homeEscenarioReviewReminders también lee «vigente», el nuevo estado que confirma Cierre", () => {
+  const context = sandboxWith(["homeEscenarioReviewReminders"], {
+    loadEscenarioMotorSaved: () => [{ nombre: "Amortizar Entidad C", estado: "vigente", reviewDate: "2026-09-01" }],
+    isoLocalDate: () => "2026-08-16",
+    formatIsoDate: (v) => v,
+    shortDate: (v) => v,
+  });
+  const [reminder] = context.homeEscenarioReviewReminders();
+  assert.ok(reminder, "un plan vigente con fecha de revisión debe generar recordatorio");
+  assert.equal(reminder.status, "warn");
+});
+
 // --- homeDecisionCandidates integra el recordatorio -----------------------------------------------
 
 test("E-11 · homeDecisionCandidates incluye el recordatorio de escenario entre las candidatas con fecha", () => {
@@ -129,6 +141,7 @@ function aplicarConfirmContext(fields) {
     escenarioAplicarReviewDate: { value: fields.reviewDate ?? "" },
   };
   const saved = [];
+  let dialogShown = false;
   return {
     context: sandboxWith(["handleEscenarioAplicarConfirm"], {
       qs: fakeQs(domValues),
@@ -139,9 +152,16 @@ function aplicarConfirmContext(fields) {
       escenarioMotorSavedSeq: 0,
       escenarioMotorDraftName: () => "Amortizar Entidad C",
       escenarioMotorNavigate: () => {},
+      // E-11b: el límite de diez planes vivos se comprueba antes de crear — por defecto no
+      // alcanzado, salvo que el propio test lo pida explícitamente.
+      escenarioMotorLimitReached: () => Boolean(fields.limitReached),
+      showEscenarioMotorLimitDialog: () => {
+        dialogShown = true;
+      },
     }),
     domValues,
     saved,
+    dialogShown: () => dialogShown,
   };
 }
 
@@ -152,27 +172,49 @@ test("E-11 · confirmar sin motivo no guarda nada y devuelve el foco al campo", 
   assert.equal(domValues.escenarioAplicarMotivo.focused, true);
 });
 
-test("E-11 · confirmar con motivo pero sin fecha de revisión guarda reviewDate vacío (sin recordatorio)", () => {
+test("E-11b · confirmar con motivo pero sin fecha de revisión guarda reviewDate vacío, como plan propuesto", () => {
   const { context, saved } = aplicarConfirmContext({ motivo: "Acuerdo firmado el 6/8", reviewDate: "" });
   context.handleEscenarioAplicarConfirm({ preventDefault() {} });
   assert.equal(saved.length, 1);
   assert.equal(saved[0].motivo, "Acuerdo firmado el 6/8");
   assert.equal(saved[0].reviewDate, "");
-  assert.equal(saved[0].estado, "aplicado");
+  assert.equal(saved[0].estado, "propuesto");
 });
 
-test("E-11 · confirmar con fecha de revisión la guarda en el escenario aplicado", () => {
+test("E-11 · confirmar con fecha de revisión la guarda en el plan propuesto", () => {
   const { context, saved } = aplicarConfirmContext({ motivo: "Acuerdo firmado el 6/8", reviewDate: "2026-09-15" });
   context.handleEscenarioAplicarConfirm({ preventDefault() {} });
   assert.equal(saved.length, 1);
   assert.equal(saved[0].reviewDate, "2026-09-15");
 });
 
-test("E-11 · el escenario aplicado anteriormente pasa a «guardado» al aplicar uno nuevo (solo uno aplicado a la vez)", () => {
-  const existing = [{ id: "old", estado: "aplicado", reviewDate: "2026-08-10" }];
+test("E-11b · aplicar no sobrescribe: los planes propuestos o vigentes anteriores se quedan exactamente igual", () => {
+  const existing = [
+    { id: "old-propuesto", estado: "propuesto", reviewDate: "2026-08-10" },
+    { id: "old-vigente", estado: "vigente", reviewDate: "" },
+  ];
   const { context, saved } = aplicarConfirmContext({ motivo: "Nuevo acuerdo", existingSaved: existing });
   context.handleEscenarioAplicarConfirm({ preventDefault() {} });
-  assert.equal(saved.length, 2);
-  const old = saved.find((entry) => entry.id === "old");
-  assert.equal(old.estado, "guardado");
+  assert.equal(saved.length, 3, "se añade uno nuevo, sin tocar los dos anteriores");
+  const oldPropuesto = saved.find((entry) => entry.id === "old-propuesto");
+  const oldVigente = saved.find((entry) => entry.id === "old-vigente");
+  assert.equal(oldPropuesto.estado, "propuesto", "el propuesto anterior sigue propuesto");
+  assert.equal(oldVigente.estado, "vigente", "el vigente anterior sigue vigente: aplicar no lo degrada");
+  const nuevo = saved.find((entry) => entry.motivo === "Nuevo acuerdo");
+  assert.equal(nuevo.estado, "propuesto");
+});
+
+test("E-11b · con diez planes vivos, Aplicar bloquea la creación del undécimo y avisa con un modal", () => {
+  const existing = Array.from({ length: 10 }, (_, index) => ({ id: `plan-${index}`, estado: "guardado" }));
+  const { context, saved, dialogShown } = aplicarConfirmContext({ motivo: "Undécimo plan", existingSaved: existing, limitReached: true });
+  context.handleEscenarioAplicarConfirm({ preventDefault() {} });
+  assert.equal(saved.length, 0, "no se crea ningún plan nuevo");
+  assert.equal(dialogShown(), true, "se muestra el modal que explica el límite");
+});
+
+test("E-11b · un plan archivado no cuenta para el límite de diez", () => {
+  const context = sandboxWith(["escenarioMotorLiveSavedCount"], {
+    loadEscenarioMotorSaved: () => [{ id: "a", archived: true }, { id: "b" }, { id: "c", archived: false }],
+  });
+  assert.equal(context.escenarioMotorLiveSavedCount(), 2);
 });

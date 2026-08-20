@@ -1273,8 +1273,8 @@
                     <input id="escenarioAplicarReviewDate" type="date" />
                     <small class="e19-kpi-note">Si la rellenas, aparece como recordatorio en Hoy hasta que pase o vuelvas a revisarlo.</small>
                   </label>
-                  <button type="submit" class="e19-btn e19-btn-primary" id="escenarioAplicarConfirm">Confirmar y aplicar</button>
-                  <p class="e19-kpi-note escenario-motor-motivo-note">Queda guardado como escenario aplicado; podrás revisarlo desde «Escenarios guardados».</p>
+                  <button type="submit" class="e19-btn e19-btn-primary" id="escenarioAplicarConfirm">Confirmar y proponer</button>
+                  <p class="e19-kpi-note escenario-motor-motivo-note">Queda guardado como plan propuesto, sin tocar el vigente: se confirma o se descarta al cerrar el mes desde «Escenarios guardados».</p>
                 </form>
               </article>
             </div>
@@ -1285,7 +1285,7 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · escenarios guardados</p>
                 <h2 class="e19-heading" id="escenarioGuardadosTitle">Escenarios guardados</h2>
-                <p class="e19-subtitle">Cada escenario conserva sus decisiones y la fecha en la que se aplicó. Solo uno puede estar aplicado a la vez.</p>
+                <p class="e19-subtitle">Cada escenario conserva sus decisiones y la fecha en la que se guardó. Aplicar crea un plan propuesto que convive con el vigente hasta que Cierre lo confirma o lo descarta.</p>
               </div>
               <div class="visual-controls">
                 <button type="button" class="e19-btn e19-btn-secondary" id="escenarioGuardadosCompare">Comparar dos escenarios</button>
@@ -1472,6 +1472,7 @@
             <div class="table-wrap deuda-contratos-table-wrap">
               <table class="e19-table deuda-contratos-table" id="deudaContratosTable"></table>
             </div>
+            <div id="deudaContratosCuadre"></div>
             <p class="e19-kpi-note">Capital pendiente, TAE y cuota son los únicos campos editables — entidad, producto y estado siguen siendo los declarados en el contrato.</p>
           </section>
 
@@ -3695,6 +3696,18 @@
         <div class="dialog-actions">
           <button value="cancel" class="secondary" type="submit">Cancelar</button>
           <button value="confirm" id="operationConfirmSubmit" type="submit">Confirmar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="action-review-dialog" id="escenarioMotorLimitDialog" aria-labelledby="escenarioMotorLimitTitle">
+      <form method="dialog">
+        <p class="panel-kicker">Diez planes vivos como máximo</p>
+        <h2 id="escenarioMotorLimitTitle">Ya hay diez planes guardados</h2>
+        <p>Guardar, proponer o aplicar un plan nuevo requiere archivar antes alguno de los que ya tienes — archivar no borra nada, solo lo saca de esta cuenta.</p>
+        <div class="dialog-actions">
+          <button value="cancel" class="secondary" type="submit">Cerrar</button>
+          <button value="archive" type="submit">Ir a archivar</button>
         </div>
       </form>
     </dialog>

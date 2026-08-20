@@ -40,3 +40,20 @@ test("calcula frescura y genera tareas de conciliación seguras", () => {
   assert.deepEqual(tasks.map((item) => item.action), ["classify", "correct-actual", "adjust-balance"]);
   assert.ok(tasks.every((item) => item.safe));
 });
+
+// D-2b: un descuadre de capital de deuda contra el último cierre firmado es una tarea de cierre
+// más, con su propia causa y acción — como máximo una, derivada en vivo, nunca en silencio.
+test("D-2b · un descuadre de capital de deuda se convierte en tarea de cierre con su propia causa", () => {
+  const tasks = api.reconciliationTasks({ debtCapitalMismatches: [{ id: "debt-capital", label: "El capital de deuda no cuadra con el cierre de agosto 2026: diferencia de 500,00€" }] });
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0].cause, "debt-capital-mismatch");
+  assert.equal(tasks[0].action, "review-debt-capital");
+  assert.equal(tasks[0].target, "deuda-contratos");
+  assert.match(tasks[0].label, /no cuadra con el cierre/);
+  assert.equal(tasks[0].safe, true);
+});
+
+test("D-2b · sin descuadre no aparece ninguna tarea de esa causa", () => {
+  const tasks = api.reconciliationTasks({ unclassified: [{ id: "m1" }], debtCapitalMismatches: [] });
+  assert.ok(!tasks.some((item) => item.cause === "debt-capital-mismatch"));
+});

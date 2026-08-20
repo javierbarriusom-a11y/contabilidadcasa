@@ -719,6 +719,12 @@ h2 {
   font-size: 11.5px;
 }
 
+/* E-11b: la insignia de "hay un plan propuesto" es la única pieza no numérica de la tira — se
+   alinea al centro en vez de estirarse con el resto de columnas. */
+.topbar-status-badge {
+  align-self: center;
+}
+
 main {
   width: 100%;
   max-width: none;

@@ -2,6 +2,52 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: D-2b y E-11b — las dos decisiones de diseño pendientes
+
+Continuación de la misma sesión: con el bloque 5 cerrado, tocaba D-2b y E-11b, las dos tareas que
+`docs/BACKLOG_NUEVE_PANTALLAS.md` §7 señalaba como bloqueadas por diseño, no por tiempo. El usuario
+adjuntó los mockups `Escenarios.pdf` y `Deuda.pdf` (exportados de Claude Design) para la sesión.
+
+- **D-2b (Deuda · Contratos, talla M).** Investigar antes de programar encontró que "deuda viva del
+  libro" no tenía hoy ninguna fuente independiente de los propios contratos: toda cifra de deuda
+  viva de la app baja de `debtContractOverrides`, así que compararla contra sí misma nunca podría
+  descuadrar. Preguntado explícitamente, el usuario eligió que esa fuente sea **la foto de deuda
+  viva del último cierre firmado**. `debtCapitalCuadre()` compara el capital actual
+  (`homeDebtOutlook().pendingPrincipal`) contra un snapshot local (`debt-capital-snapshot-at-close`,
+  tolerancia 0,02€) que `closeCurrentMonthTransaction()` congela en cada cierre. El pie nuevo de
+  Contratos muestra "sin cierre" / "cuadra" / "descuadra" con la diferencia exacta y dos salidas:
+  ajustar el contrato ahí mismo, o ir a Cierre, donde el descuadre aparece como una cuarta causa de
+  tarea (`debt-capital-mismatch`) derivada en vivo — nunca hay que marcarla resuelta a mano, se
+  reconcilia sola en el próximo cierre firmado.
+- **E-11b (Escenarios, talla L, la más grande de lo pendiente).** La investigación reveló que
+  Aplicar nunca había tocado el plan financiero compartido: solo mutaba una lista propia en local
+  storage, degradando en silencio la entrada anterior. Ahora Aplicar crea una copia marcada
+  `"propuesto"` sin tocar nada más; `"vigente"` sustituye a `"aplicado"` como el estado realmente en
+  efecto (con alias de lectura para no perder datos ya guardados). Cierre gana un paso condicional
+  «Revisar plan propuesto» — igual de condicional que Sobres — donde Confirmar pasa el propuesto a
+  vigente (degradando el vigente anterior a guardado) o Descartar lo deja guardado; ninguna de las
+  dos borra nada. La tira de estado sigue mostrando el plan vigente tal cual y gana su primera
+  insignia («Plan propuesto sin confirmar») mientras haya alguno pendiente. El límite de «diez
+  planes vivos como máximo» (decisión del 14 de agosto) se construyó también: un modal bloquea el
+  undécimo y cada tarjeta gana un botón «Archivar»/«Restaurar» que nunca borra, solo saca de la
+  cuenta y de la vista principal (quedan en un `<details>` propio).
+
+**Validación**: `npm run verify`, exit 0 — **1355/1355 pruebas** (17 nuevas en
+`tests/d-2b-cuadre-capital-deuda.test.cjs`, 28 nuevas en `tests/e-11b-plan-paralelo.test.cjs`, más
+ajustes a `tests/e11-escenario-revision.test.cjs`, `tests/d1-d2-deuda-tabs-contratos.test.cjs`,
+`tests/c1-c9-cierre-wizard.test.cjs` seguía en verde sin tocarla), accesibilidad (784 IDs únicos),
+rendimiento (diff 10.000 filas en 47,9 ms; forecast y escenarios en 251,3 ms; recursos 1673 KB),
+build del sitio, privacidad y smoke test, todos en verde. No se verificó visualmente con Playwright
+esta sesión (sin navegador disponible en el contenedor); las pruebas nuevas leen el HTML/JS reales
+(sin mocks del contenido) para comprobar el cableado de eventos, el HTML del diálogo y de las
+tarjetas, y el comportamiento puro de cada función — se recomienda una pasada visual en la próxima
+sesión con navegador.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` — D-2b y E-11b pasan de `Pendiente` a
+`Hecho` en las tablas de las pantallas 03 (Deuda) y 05/06 (Escenarios), con nota extensa bajo cada
+tabla. Con esto, todo el plan de cierre acordado el 19 de agosto queda completo salvo D-14 (choca
+con T-4, bloqueada a propósito) y C-3b (congelada, sin fecha, pendiente de su propia conversación).
+
 ## Cierre de sesión — 20 de agosto de 2026: bloque 5 del plan de cierre — E-14, A-12, C-14
 
 Última sesión abierta con `/finanzas-casa-workflow`, siguiendo el plan de las tres fases
