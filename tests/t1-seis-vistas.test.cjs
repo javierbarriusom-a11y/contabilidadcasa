@@ -41,16 +41,17 @@ test("T-1 · Prever y Decidir dejan de ser pestaña principal, sin desconectar s
   assert.match(html, /<a href="#forecast" data-e17-group="analysis">Proyección<\/a>/);
   assert.match(html, /id="forecast"[^>]*view-section|view-section[^>]*id="forecast"/);
   assert.match(app, /case "forecast":/);
-  // `#new-life-definitive` sí se releva: es la decimoctava y última heredada del inventario.
-  assert.match(html, /<a href="#new-life-definitive" data-e17-group="legacy">/);
+  // `#new-life-definitive` se relevó como decimoctava y última heredada del inventario; E-14
+  // (bloque 5, 20 de agosto) la retira del menú avanzado y del lanzador junto con las otras dos
+  // heredadas de simulación — la pantalla sigue existiendo y renderizándose igual.
+  assert.doesNotMatch(html, /<a href="#new-life-definitive" data-e17-group="legacy">/);
   assert.match(html, /id="new-life-definitive"[^>]*view-section|view-section[^>]*id="new-life-definitive"/);
   assert.match(app, /case "new-life-definitive":\s*renderNewLifeDefinitive\(\)/);
 });
 
-test("T-1 · el lanzador refleja el cambio: Ajustes es nueva, Decidir se releva", () => {
+test("T-1 · el lanzador refleja el cambio: Ajustes es nueva, Decidir ya no está (E-14 la retira)", () => {
   assert.match(experience, /target: "ajustes", label: "Ajustes", group: "main"/);
-  assert.match(experience, /target: "new-life-definitive"[^}]*group: "legacy"/);
-  assert.ok(!/target: "new-life-definitive"[^}]*group: "main"/.test(experience), "Decidir ya no puede quedar como pestaña principal en el lanzador");
+  assert.doesNotMatch(experience, /target: "new-life-definitive"/);
 });
 
 test("T-1 · viaja en el shell offline versionado", () => {

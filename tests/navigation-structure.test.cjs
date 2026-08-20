@@ -10,7 +10,10 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteriores", () => {
   const home = html.indexOf('href="#home"');
   const update = html.indexOf('href="#update-hub"');
-  const primaryPlan = html.indexOf('href="#new-life-definitive"');
+  // E-14 (bloque 5, 20 de agosto) retira el enlace de `#new-life-definitive` del menú avanzado;
+  // se usa `#operations-manual` (última heredada que queda en el grupo legacy) como referencia de
+  // posición equivalente, más adelante en el documento que la pestaña principal de Actualizar.
+  const primaryPlan = html.indexOf('href="#operations-manual"');
   const debtRoadmap = html.indexOf('href="#debt-roadmap"');
   // «Escenarios de vida y deuda» ya no encabeza Decidir: V2-8 lo relegó. Quien abre ese grupo
   // ahora se encuentra primero los escenarios nuevos.
@@ -21,7 +24,6 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   const dataLabel = html.indexOf('data-e17-nav-label="datos"');
   const legacyLabel = html.indexOf('data-e17-nav-label="legacy"');
   const dataEntry = html.indexOf('href="#data-entry"');
-  const dataAudit = html.indexOf('href="#data-audit"');
 
   assert.ok(home < update && update < primaryPlan, "Actualizar debe aparecer inmediatamente después de Hoy");
   // V3-5 relegó `#debt-roadmap`: ya no basta con que aparezca tras los escenarios nuevos, tiene que
@@ -30,7 +32,10 @@ test("Actualizar abre la matriz temporal y Movimientos queda en Versiones anteri
   assert.ok(scenarios < debtRoadmap, "Plan de deuda debe aparecer tras los escenarios nuevos");
   assert.ok(dataLabel > 0 && legacyLabel > dataLabel, "«Versiones anteriores» cierra el menú avanzado");
   assert.ok(debtRoadmap > legacyLabel, "Plan de deuda ya no está en Decidir: se relegó en V3-5");
-  assert.ok(dataLabel < dataEntry && dataEntry < dataAudit, "Carga de datos y auditoría siguen en Datos");
+  assert.ok(dataLabel < dataEntry, "Carga de datos sigue en Datos");
+  // Bloque 5 (C-14, 20 de agosto) retira «Datos y auditoría» del menú avanzado: ya no tiene enlace
+  // propio ahí, solo el acceso de solo lectura desde el catálogo de Laboratorio.
+  assert.doesNotMatch(html, /href="#data-audit" data-e17-group="legacy"/);
   // M-1 (14 de agosto) promueve Movimientos de «Versiones anteriores» a enlace principal, bajo
   // «Día a día» junto a Hoy — supera la relegación de V4-6, que solo hablaba del menú avanzado.
   assert.match(html, /<a href="#movements" class="nav-primary-link">/);
@@ -56,13 +61,16 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // flujo (importar antes de registrar a mano lo que quede).
   assert.deepEqual(byGroup.data, ["datos-importar", "registrar-mes", "data-entry", "conciliar"]);
   // El grupo relegado sigue el orden que tenían las pantallas en el propio menú: primero lo que
-  // estaba en Decidir (V2-8 y V3-5, intercaladas según su posición original) y en Analizar (V2-8),
-  // luego Datos (V4-6) y por último Cierre (V5-3).
+  // estaba en Decidir (V3-5, según su posición original) y en Analizar (V2-8), luego Datos (V4-6)
+  // y por último Cierre (V5-3, con «operations-manual» como única superviviente del bloque 5).
   // V1-4 añade las cuatro últimas heredadas de Decidir: iban justo después de `#asesor-decision`
-  // en el menú original, que es después de las tres de deuda (V3-5) y antes de `#simulator`
+  // en el menú original, que es después de las tres de deuda (V3-5) y antes de `#visual-detail`
   // (primera de Analizar, V2-8) — la misma regla de posición original que las trece anteriores.
+  // Bloque 5 (E-14/A-12/C-14, 20 de agosto) retira siete heredadas de este grupo: las tres de
+  // simulación (new-life-simulation, simulator, new-life-definitive), las dos visuales de Análisis
+  // (savings-plan, cashflow) y las dos de conciliación de Cierre (data-audit, reconciliation). Las
+  // siete siguen en el catálogo de Laboratorio, con su botón de solo lectura como único acceso.
   assert.deepEqual(byGroup.legacy, [
-    "new-life-simulation",
     "debt-roadmap",
     "debt-liquidation-plan",
     "debt-control",
@@ -70,23 +78,14 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
     "virtual-advisor",
     "savings-agent",
     "alerts-center",
-    "simulator",
     "visual-detail",
-    "savings-plan",
-    "cashflow",
     "update-data",
     // M-1 (14 de agosto) promueve "movements" a enlace principal bajo «Día a día»: sale de aquí.
-    "data-audit",
-    "reconciliation",
     "operations-manual",
-    // T-1 releva la decimoctava y última heredada del inventario: hasta ahora quedaba fuera del
-    // grupo únicamente porque era pestaña principal («Decidir»). Va al final, no a su posición
-    // original, porque nunca tuvo una dentro de este menú.
-    "new-life-definitive",
   ]);
   assert.deepEqual(byGroup.assistants, ["asesor-decision"]);
   // D-1 (15 de agosto) añade «Contratos de deuda» junto a Ruta y Comparar, como tercera pestaña
   // de Deuda.
   assert.equal(byGroup.analysis.length, 11, "Decidir y Analizar suman once enlaces tras Análisis (Fase 6)");
-  assert.equal(links.length, 33, "treinta y tres enlaces en el menú avanzado tras Análisis (Fase 6)");
+  assert.equal(links.length, 26, "veintiséis enlaces en el menú avanzado tras el bloque 5 (E-14/A-12/C-14)");
 });

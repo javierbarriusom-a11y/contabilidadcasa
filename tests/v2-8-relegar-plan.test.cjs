@@ -16,9 +16,14 @@ const navLinks = [...html.matchAll(/<a href="#([\w-]+)" data-e17-group="(\w+)">/
 }));
 const groupOf = (view) => navLinks.find((link) => link.view === view)?.group;
 
-test("V2-8 · las cinco heredadas de Plan quedan en Versiones anteriores", () => {
-  for (const view of ["visual-detail", "simulator", "savings-plan", "cashflow", "new-life-simulation"]) {
-    assert.equal(groupOf(view), "legacy", `${view} debería estar relegada`);
+// E-14/A-12 (bloque 5, 20 de agosto) retiran cuatro de estas cinco heredadas del menú avanzado y
+// del lanzador — `visual-detail` es la única que se queda, porque su `dondeViveAhora` en el
+// catálogo de Laboratorio es «Plan y Registrar», no Escenarios ni Análisis (fuera del alcance de
+// las dos tareas). Ver tests/navigation-structure.test.cjs y v2-8 más abajo.
+test("V2-8 · `visual-detail` sigue en Versiones anteriores; las otras cuatro ya no (E-14/A-12)", () => {
+  assert.equal(groupOf("visual-detail"), "legacy", "visual-detail debería seguir relegada");
+  for (const view of ["simulator", "savings-plan", "cashflow", "new-life-simulation"]) {
+    assert.equal(groupOf(view), undefined, `E-14/A-12 retiran ${view} del menú avanzado`);
   }
 });
 
@@ -54,14 +59,11 @@ test("V2-8 · relegar no desconecta: las rutas y los renders siguen en pie", () 
   }
 });
 
-test("V2-8 · el lanzador alcanza las cuatro que solo vivían en el menú", () => {
-  // `#simulator`, `#savings-plan`, `#cashflow` y `#visual-detail` no tenían entrada en el lanzador:
-  // con el grupo apagado se habrían quedado sin ninguna vía. Relegar no es desconectar, así que la
-  // relegación las añade.
-  for (const view of ["visual-detail", "simulator", "savings-plan", "cashflow"]) {
-    assert.match(experience, new RegExp(`target: "${view}"[^}]*group: "legacy"`), `falta ${view} en el lanzador`);
+test("V2-8 · el lanzador conserva `visual-detail`; E-14/A-12 retiran las otras tres", () => {
+  assert.match(experience, /target: "visual-detail"[^}]*group: "legacy"/);
+  for (const view of ["simulator", "savings-plan", "cashflow", "new-life-simulation"]) {
+    assert.doesNotMatch(experience, new RegExp(`target: "${view}"`), `E-14/A-12 deberían haber quitado ${view} del lanzador`);
   }
-  assert.match(experience, /target: "new-life-simulation"[^}]*group: "legacy"/);
   // Y «Prever» sigue siendo una entrada normal, no relegada.
   assert.match(experience, /target: "forecast", label: "Prever", group: "analysis"/);
 });

@@ -28,13 +28,14 @@ test("V1-4 · la pantalla nueva de Hoy y su asesor ejecutivo se quedan donde est
   assert.equal(groupOf("asesor-decision"), "assistants", "el asesor nuevo no se toca, solo sus heredadas");
 });
 
-test("V1-4 · el grupo relegado llega a diecisiete pantallas, sin duplicados", () => {
-  // Diecisiete de las dieciocho heredadas del inventario tras V1-4. La única que quedaba fuera era
-  // `#new-life-definitive`, pestaña principal en ese momento — T-1 la releva después, y esa parte
-  // se comprueba en `navigation-structure.test.cjs`, no aquí: esta prueba verifica solo lo que
-  // hizo V1-4, no lo que hizo T-1 más tarde.
+test("V1-4 · el grupo relegado no tiene duplicados", () => {
+  // Diecisiete de las dieciocho heredadas del inventario llegaron a estar relegadas tras V1-4 (T-1
+  // relevó la decimoctava después). Ese máximo histórico ya no es el número vigente: el bloque 5
+  // (E-14/A-12/C-14, 20 de agosto) retira siete de vuelta del menú por completo — ver
+  // tests/navigation-structure.test.cjs y tests/e14-a12-c14-bloque5-retirar-heredadas.test.cjs para
+  // el recuento actual. Esta prueba solo comprueba lo que le compete a V1-4: que sus cuatro
+  // heredadas siguen ahí y que nada se duplicó al moverlas.
   const legacy = navLinks.filter((link) => link.group === "legacy").map((link) => link.view);
-  assert.ok(legacy.length >= 17, "V1-4 dejó al menos diecisiete heredadas relegadas");
   for (const view of RELEGADAS) assert.ok(legacy.includes(view));
   assert.equal(new Set(legacy).size, legacy.length, "ningún enlace duplicado al mover las cuatro");
 });
