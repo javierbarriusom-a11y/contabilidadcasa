@@ -24057,7 +24057,15 @@ function handleEscenarioGuardadosLoad(id) {
 }
 
 function handleEscenarioGuardadosDelete(id) {
-  saveEscenarioMotorSavedList(loadEscenarioMotorSaved().filter((entry) => entry.id !== id));
+  const list = loadEscenarioMotorSaved();
+  const entry = list.find((item) => item.id === id);
+  saveEscenarioMotorSavedList(list.filter((item) => item.id !== id));
+  // Eliminar un plan vigente es posible desde aquí (sin confirmación propia, fuera del alcance de
+  // este cambio) — si ocurre, su reflejo en debtLiquidations se retracta con él en vez de quedar
+  // huérfano, apuntando a un plan que ya no existe.
+  if (entry && (entry.estado === "aplicado" || entry.estado === "vigente") && retractDebtLiquidationsFromEscenario(id)) {
+    saveDebtLiquidations();
+  }
   renderEscenarioGuardados();
 }
 
@@ -26369,13 +26377,100 @@ function cierreStepPropuestoHtml(propuestos) {
   </article>`;
 }
 
+// Laboratorio · debtLiquidations (20 de agosto de 2026, cierra el hueco documentado en
+// docs/BACKLOG_NUEVE_PANTALLAS.md §7): Deuda · Ruta y Deuda · Comparar aplican a través de
+// Escenarios (`escenario-motor-saved`), un almacén distinto de `debtLiquidations` que Hoy y Deuda
+// sí leen para deduplicar ofertas ya decididas (L-5). Sin este puente, una deuda decidida por
+// Escenarios seguía apareciendo como «sin decidir» en cualquier pantalla que solo mira
+// `debtLiquidations` — hueco real, no una redundancia. No se reconstruye el cálculo completo de
+// `debtDecisionFromValues` (cuota/mes exactos exigirían repetir toda la simulación del motor):
+// solo se refleja qué deuda ya tiene una decisión vigente y con qué importe aproximado, lo mínimo
+// que el resto de la app necesita para no volver a ofrecerla.
+function escenarioDecisionIsDebt(decision) {
+  return escenarioMotorResolveType(decision)?.grupo === "Deuda";
+}
+
+function escenarioDecisionTargetIds(decision) {
+  if (!escenarioDecisionIsDebt(decision)) return [];
+  const params = decision.params || {};
+  // «Pedir deuda nueva» es la única decisión del grupo Deuda sin `deudaId`: no hay contrato
+  // existente que marcar como ya decidido.
+  if (Array.isArray(params.deudaIds)) return params.deudaIds.filter(Boolean);
+  return params.deudaId ? [params.deudaId] : [];
+}
+
+// Importe aproximado, solo para las cifras de apoyo de las heredadas que todavía suman
+// `debtLiquidations` (Control de deuda). «Reunificar» reparte un único principal nuevo entre
+// varias deudas y «Retomar pagos» no tiene un importe de una vez — ambas se dejan en 0 antes que
+// inventar un reparto.
+function escenarioDecisionAmount(decision) {
+  const params = decision.params || {};
+  switch (decision.tipo) {
+    case "amortizacion":
+      return Number(params.importe || 0);
+    case "amortizacion_fraccionada":
+      return Number(params.importeMensual || 0) * Math.max(0, Number(params.meses || 0));
+    case "refinanciacion":
+      return Number(params.nuevoPrincipal || 0);
+    case "acuerdo_quita":
+      return Number(params.importePactado || 0);
+    default:
+      return 0;
+  }
+}
+
+function syncDebtLiquidationsFromEscenario(entry) {
+  if (!entry) return false;
+  const existingTargets = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
+  let changed = false;
+  (entry.decisiones || []).forEach((decision) => {
+    escenarioDecisionTargetIds(decision).forEach((targetId) => {
+      // Mismo criterio que `applyDebtDecision`: la primera decisión sobre una deuda gana, las
+      // demás no se aplican por duplicado — aquí, no se reflejan.
+      if (existingTargets.has(targetId)) return;
+      debtLiquidations.push({
+        id: `escenario:${entry.id}:${decision.id}:${targetId}`,
+        targetId,
+        name: decision.titulo || "Decisión de Escenarios",
+        amount: round2(escenarioDecisionAmount(decision)),
+        monthlyRelief: 0,
+        lifecycleState: "approved",
+        source: "escenario",
+        escenarioSavedId: entry.id,
+        escenarioDecisionId: decision.id,
+      });
+      existingTargets.add(targetId);
+      changed = true;
+    });
+  });
+  return changed;
+}
+
+// El plan vigente anterior (degradado a «guardado») deja de estar en efecto — su reflejo en
+// `debtLiquidations` se retira con él. No borra nada de Escenarios (E-11b: «ninguna de las dos
+// acciones borra nada»), solo retracta la lectura derivada de un plan que ya no es el vigente.
+function retractDebtLiquidationsFromEscenario(savedId) {
+  const before = debtLiquidations.length;
+  debtLiquidations = debtLiquidations.filter((item) => !(item.source === "escenario" && item.escenarioSavedId === savedId));
+  return debtLiquidations.length !== before;
+}
+
 function handleCierrePropuestoConfirm(id) {
-  const list = loadEscenarioMotorSaved().map((entry) => {
+  const previous = loadEscenarioMotorSaved();
+  const demoted = previous.filter((entry) => entry.id !== id && (entry.estado === "aplicado" || entry.estado === "vigente"));
+  const promoted = previous.find((entry) => entry.id === id) || null;
+  const list = previous.map((entry) => {
     if (entry.id === id) return { ...entry, estado: "vigente" };
     if (entry.estado === "aplicado" || entry.estado === "vigente") return { ...entry, estado: "guardado" };
     return entry;
   });
   saveEscenarioMotorSavedList(list);
+  let liquidationsChanged = false;
+  demoted.forEach((entry) => {
+    if (retractDebtLiquidationsFromEscenario(entry.id)) liquidationsChanged = true;
+  });
+  if (promoted && syncDebtLiquidationsFromEscenario(promoted)) liquidationsChanged = true;
+  if (liquidationsChanged) saveDebtLiquidations();
   renderCierre();
 }
 
