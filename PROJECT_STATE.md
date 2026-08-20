@@ -2,6 +2,39 @@
 
 Fecha de revisión: 20 de agosto de 2026.
 
+## Cierre de sesión — 20 de agosto de 2026: D-12 — capacidad de endeudamiento en Deuda
+
+Continuación de la misma sesión: con el colchón CaixaBank unificado, tocaba D-12, la segunda de las
+tres decisiones de producto pendientes (§7 del backlog).
+
+Investigar antes de programar encontró que no había ninguna decisión real que tomar: la nota
+congelada decía que faltaba una cifra de ingreso mensual del hogar reutilizable, pero
+`savingsPlanCalculations().debtToIncomeRatio` (el previsto de los próximos 12 meses de Plan) ya es
+esa cifra — es la misma fuente exacta que alimenta la alerta H-9 de Hoy, con el mismo umbral
+configurable en Ajustes › Alertas (32% por defecto, con un 40% como frontera de aviso). D-12 no
+necesitaba construir ningún cálculo nuevo, solo hacer visible esa cifra donde el criterio la pedía.
+
+**La construcción**: `debtCapacityStatus()` reutiliza `savingsPlanCalculations()` y
+`alertThresholdOverride("debtRatio")` tal cual; `debtCapacityHtml()` pinta una tarjeta con el ratio
+actual frente al umbral (insignia verde/ámbar/roja, mismos tonos que el resto de la app) y el
+margen restante en euros al mes antes de tocarlo — o, si ya se superó, un aviso de que no queda
+margen. Preguntado dónde quería verla, el usuario eligió las dos pantallas de deuda: se pinta igual
+en Deuda · Ruta y Deuda · Comparar.
+
+**Validación**: `npm run verify`, exit 0 — **1388/1388 pruebas** (9 nuevas en
+`tests/d-12-capacidad-endeudamiento.test.cjs`), accesibilidad (789 IDs únicos), rendimiento (diff
+10.000 filas en 44,2 ms; forecast y escenarios en 202,4 ms; recursos 1686 KB), build del sitio,
+privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local: las dos
+pantallas muestran la misma cifra exacta (9,2 % de 32 %, 480 €/mes de cuota, 5.200 €/mes de
+ingreso previsto, 1.184 €/mes de margen) — confirmado que coincide con `debtToIncomeRatio` leído
+directamente, la misma fuente que ya usa Hoy. Sin hallazgos.
+
+**Backlog actualizado**: `docs/BACKLOG_NUEVE_PANTALLAS.md` §7 — D-12 pasa a resuelta; de las tres
+decisiones de producto originales solo quedan T-4 y la mitad de Laboratorio (`debtLiquidations`).
+Sobre T-4: preguntado directamente si usa alguna vez las tres heredadas de Deuda, el usuario no está
+seguro — construir un contador de visitas mínimo (talla S) queda como siguiente paso antes de poder
+decidir T-4 con datos reales, en vez de por intuición.
+
 ## Cierre de sesión — 20 de agosto de 2026: unificación del colchón CaixaBank (Laboratorio)
 
 Continuación de la misma sesión: con C-3b fusionado, tocaba la primera de las tres decisiones de

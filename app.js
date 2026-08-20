@@ -15627,6 +15627,43 @@ function savingsPlanCalculations() {
   };
 }
 
+// D-12 (Deuda): "comparar la cuota total de deuda contra un umbral, con margen restante" — la
+// investigación previa a programar encontró que no hacía falta decidir ni construir ninguna cifra
+// de ingreso mensual nueva: `savingsPlanCalculations().debtToIncomeRatio` (previsto de los
+// próximos 12 meses de Plan) ya es la fuente canónica que usa la alerta H-9 de Hoy, con el mismo
+// umbral configurable en Ajustes › Alertas (32% por defecto). D-12 solo hace visible esa misma
+// cifra en Deuda · Ruta y Deuda · Comparar — cero cálculo financiero nuevo.
+function debtCapacityStatus() {
+  const savings = savingsPlanCalculations();
+  const ratio = Number(savings.debtToIncomeRatio || 0);
+  const income = Number(savings.monthlyIncomeTotal || 0);
+  const debtPayment = Number(savings.debtServiceMonthlyTotal || 0);
+  const dangerAt = (alertThresholdOverride("debtRatio") ?? 32) / 100;
+  const warnAt = dangerAt * 0.8125;
+  const status = ratio > dangerAt ? "danger" : ratio > warnAt ? "warn" : "good";
+  const marginEuros = round2(Math.max(0, income * dangerAt - debtPayment));
+  return { ratio, income, debtPayment, dangerAt, status, marginEuros };
+}
+
+function debtCapacityHtml(capacity) {
+  const badge = { good: "e19-badge-success", warn: "e19-badge-warning", danger: "e19-badge-danger" }[capacity.status];
+  const ratioText = `${(capacity.ratio * 100).toFixed(1)}%`;
+  const thresholdText = `${Math.round(capacity.dangerAt * 100)}%`;
+  const marginNote = capacity.marginEuros > 0
+    ? `Margen restante antes del umbral: ${money(capacity.marginEuros, true)}/mes.`
+    : `Ya supera el umbral del ${thresholdText}: no queda margen para más cuota mensual sin superarlo más.`;
+  return `<article class="e19-card deuda-capacidad-card">
+    <div class="section-title with-action">
+      <div>
+        <h3 class="escenario-motor-panel-title">Capacidad de endeudamiento</h3>
+        <p class="e19-kpi-note">Cuota total de deuda (${money(capacity.debtPayment, true)}/mes) frente al ingreso previsto de los próximos 12 meses (${money(capacity.income, true)}/mes) — mismo umbral que la alerta de Hoy, editable en Ajustes › Alertas.</p>
+      </div>
+      <span class="e19-badge ${badge}">${escapeHtml(ratioText)} de ${escapeHtml(thresholdText)}</span>
+    </div>
+    <p class="e19-kpi-note${capacity.status === "danger" ? " is-danger" : ""}">${marginNote}</p>
+  </article>`;
+}
+
 function applySavingsPlanToScenario({ silent = false } = {}) {
   const c = savingsPlanCalculations();
   state.recommendedSavings = round2(c.recommendedSaving);
@@ -24800,6 +24837,8 @@ function debtStrategyStatusNote(entry) {
 function renderDeudaComparar() {
   renderDeudaScreenTabs("deuda-comparar");
   renderScenarioDependencyNotice("deuda-comparar");
+  const capacityEl = qs("deudaCompararCapacity");
+  if (capacityEl) capacityEl.innerHTML = debtCapacityHtml(debtCapacityStatus());
   const grid = qs("deudaCompararGrid");
   if (!grid) return;
   const reserveField = qs("deudaCompararReserve");
@@ -25200,6 +25239,8 @@ function renderDeudaRutaOffer() {
 function renderDeudaRuta() {
   renderDeudaScreenTabs("deuda-ruta");
   renderScenarioDependencyNotice("deuda-ruta");
+  const capacityEl = qs("deudaRutaCapacity");
+  if (capacityEl) capacityEl.innerHTML = debtCapacityHtml(debtCapacityStatus());
   renderDeudaRutaOffer();
   if (debtStrategyReserveValue === null) debtStrategyReserveValue = debtStrategyReserveDefault();
   const tabs = qs("deudaRutaTabs");

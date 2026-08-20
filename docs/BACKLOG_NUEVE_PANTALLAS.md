@@ -763,7 +763,7 @@ arrastra el candado abierto. Sin errores de consola propios.
 | D-9 | Comprobaciones antes de aplicar | D-8 | M | Hecho (15 de agosto, ver nota) |
 | D-10 | Oferta en curso con caducidad | D-2 | M | Hecho (20 de agosto, ver nota) |
 | D-11 | Coste de no decidir | D-2 | S | Hecho (20 de agosto, ver nota) |
-| D-12 | Capacidad de endeudamiento | D-2 | M | Pendiente |
+| D-12 | Capacidad de endeudamiento | D-2 | M | Hecho (20 de agosto, ver nota) |
 | D-13 | Guardar comparación como escenario | D-6, Escenarios | M | Hecho (20 de agosto, ver nota) |
 | D-14 | Retirar las tres heredadas de deuda | D-1, Fase 7 | S | Ver nota — contradice T-4, en principio no se completa tal cual está escrita |
 
@@ -878,10 +878,15 @@ Cierre", donde el descuadre aparece como una cuarta causa de tarea (`debt-capita
 que haya que marcar resuelta a mano (mismo criterio C-4 que las otras tres causas): desaparece sola
 en cuanto el próximo cierre firmado la reconcilia. Es un registro local, no viaja a Supabase.
 
+**D-12 — construida el 20 de agosto de 2026 (ver `PROJECT_STATE.md`).** La nota original decía que
+faltaba una cifra de ingreso mensual del hogar reutilizable — investigar antes de programar
+encontró que ya existía: `savingsPlanCalculations().debtToIncomeRatio` (previsto de los próximos 12
+meses de Plan) es la misma fuente canónica que ya alimenta la alerta H-9 de Hoy, con el mismo umbral
+configurable en Ajustes › Alertas (32% por defecto). `debtCapacityStatus()`/`debtCapacityHtml()`
+hacen visible esa misma cifra —ratio, umbral y margen restante en €— en Deuda · Ruta y Deuda ·
+Comparar. Cero cálculo financiero nuevo.
+
 **Quedan pendientes, con motivo explícito:**
-- **D-12** (capacidad de endeudamiento) — no hay todavía una cifra de ingreso mensual del hogar
-  reutilizable para un ratio de endeudamiento defendible; se deja para no inventar una fórmula
-  sin una fuente canónica detrás.
 - **D-14**, tal como está escrita («retirar»), choca con una decisión de producto ya tomada: T-4
   (retirar de verdad una heredada, no solo relegarla) sigue bloqueada a propósito en
   `PROJECT_STATE.md` — "conviene esperar datos de uso... en vez de decidirlo por intuición". Las
@@ -1798,19 +1803,23 @@ nuevo antes de programar encontró que el bloqueo no era el cruce en general, si
 `canonical-ledger.js` lo resolvió sin tocar `state.transactions` para nada, y sin la sesión propia
 de modelo de datos que parecía necesitar.
 
-### Tres decisiones de producto que no resuelve una sesión de código
+### Dos decisiones de producto que no resuelve una sesión de código
 
-1. **D-12 (Deuda) · fuente del ingreso mensual del hogar.** El criterio pide comparar la
-   cuota total de deuda contra un umbral, con margen restante — pero no hay hoy una cifra
-   de ingreso mensual reutilizable y defendible como denominador. Pregunta pendiente: ¿el
-   previsto de Plan, la media de los últimos reales, o una cifra declarada aparte en
-   Ajustes?
-2. **T-4 (Deuda) · ¿se retira de verdad D-14, o sigue solo relegada?** Bloqueada a
+~~**D-12 (Deuda) · fuente del ingreso mensual del hogar.** El criterio pide comparar la cuota
+total de deuda contra un umbral, con margen restante — pero no hay hoy una cifra de ingreso
+mensual reutilizable y defendible como denominador. Pregunta pendiente: ¿el previsto de Plan, la
+media de los últimos reales, o una cifra declarada aparte en Ajustes?~~ — **resuelto el 20 de
+agosto de 2026** (ver la nota bajo la tabla de esta pantalla): la cifra ya existía, canónica, en
+`savingsPlanCalculations().debtToIncomeRatio` — no hacía falta decidir nada.
+
+1. **T-4 (Deuda) · ¿se retira de verdad D-14, o sigue solo relegada?** Bloqueada a
    propósito desde antes del 14 de agosto en `PROJECT_STATE.md`, a la espera de datos de
    uso reales sobre las heredadas ya relegadas a «Versiones anteriores» (10 de agosto).
    Reconfirmada por el usuario el 20 de agosto, tras completar E-14/A-12/C-14: sigue
-   bloqueada, D-14 queda pendiente.
-3. **Laboratorio · destino de `agentCaixaFloor`, `debtLiquidations` y `projects`.** Hallazgo
+   bloqueada, D-14 queda pendiente. La app no tiene telemetría ni conteo de visitas —
+   preguntado directamente el 20 de agosto, el usuario no está seguro y prefiere un contador
+   de visitas mínimo antes de decidir con datos reales.
+2. **Laboratorio · destino de `agentCaixaFloor`, `debtLiquidations` y `projects`.** Hallazgo
    de la sesión del 19 de agosto que construyó Laboratorio (ver la nota bajo la tabla de la
    pantalla 09): el «Asesor ejecutivo», «Agente ahorro y objetivos» y «Control de deuda»
    (heredadas) siguen siendo la única puerta de escritura de `agentCaixaFloor` y
