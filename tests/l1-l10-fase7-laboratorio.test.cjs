@@ -369,6 +369,11 @@ test("L-5 · las nueve heredadas con guardKey real corresponden a una de las cin
   realCatalog.filter((entry) => entry.guardKey).forEach((entry) => assert.ok(valid.has(entry.guardKey), `${entry.hash} tiene un guardKey desconocido: ${entry.guardKey}`));
 });
 
+// Los valores en sí se unificaron el 20 de agosto (decisión Laboratorio: ver `agentCaixaFloor()` en
+// app.js) — `state.operatingReserve` manda cuando está configurado, sin cambiarle la cifra a quien
+// solo use las heredadas. Este test sigue vigente porque describe la ficha del catálogo, no la
+// unificación en sí: la ficha de estas dos heredadas sigue sin necesitar mencionar Ajustes, ya que
+// su guardarraíl de solo lectura (L-5) sigue bloqueando exactamente lo mismo que antes.
 test("L-5 · el catálogo no repite el error de confundir agentCaixaFloor con la Reserva operativa de Ajustes", () => {
   ["executive-advisor", "savings-agent"].forEach((hash) => {
     assert.doesNotMatch(byHash(hash).queHacia + byHash(hash).evidenciaEscritura, /Reserva operativa/);

@@ -10799,9 +10799,19 @@ function normalizeAgentDebtManualOrder(settings, candidates = null) {
   return settings.order;
 }
 
+// Laboratorio (decisión "destino de agentCaixaFloor", 20 de agosto de 2026): esta cifra y la
+// reserva operativa de Ajustes (`state.operatingReserve`, V6-1/V6-3 más abajo) eran dos "colchones"
+// completamente separados que podían divergir sin que nadie lo notara — Hoy, Registrar, Deuda ·
+// Ruta y Asesor de decisión leían este, mientras que el pie de impacto de Plan, el mapa de calor y
+// el comparador de deuda leían aquel. Unificados en un único valor real: si `operatingReserve` está
+// configurado (> 0), manda para todo el mundo, heredadas incluidas. Si no, cada pantalla conserva
+// exactamente el respaldo que ya tenía — `savingsAgentSettings().caixaFloor` sigue existiendo solo
+// como ese respaldo, para no cambiarle la cifra a quien nunca haya tocado Ajustes.
 function agentCaixaFloor() {
-  const value = Number(savingsAgentSettings().caixaFloor);
-  return Number.isFinite(value) && value >= 0 ? round2(value) : DEFAULT_AGENT_CAIXA_FLOOR;
+  const operating = Number(state?.operatingReserve || 0);
+  if (Number.isFinite(operating) && operating > 0) return round2(operating);
+  const legacy = Number(savingsAgentSettings().caixaFloor);
+  return Number.isFinite(legacy) && legacy >= 0 ? round2(legacy) : DEFAULT_AGENT_CAIXA_FLOOR;
 }
 
 function syncCaixaFloorControls({ preserveActive = true } = {}) {
@@ -10812,12 +10822,19 @@ function syncCaixaFloorControls({ preserveActive = true } = {}) {
     if (preserveActive && input === document.activeElement) return;
     input.value = value;
   });
+  syncOperatingReserveControl();
 }
 
+// Editar el colchón desde cualquiera de las tres heredadas escribe ahora el mismo dato que Ajustes
+// (antes solo escribía `savingsAgentSettings().caixaFloor`, que `agentCaixaFloor()` ya no prioriza
+// en cuanto Ajustes tiene un valor propio — sin este cambio, el campo heredado parecería "no
+// guardar" al volver a mostrar el valor de Ajustes en el siguiente render).
 function setAgentCaixaFloor(value) {
   if (laboratorioWriteGuard("Cambiar el colchón CaixaBank")) return;
   const parsed = parseAmount(value);
-  savingsAgentSettings().caixaFloor = parsed === null ? DEFAULT_AGENT_CAIXA_FLOOR : Math.max(0, round2(parsed));
+  const next = parsed === null ? DEFAULT_AGENT_CAIXA_FLOOR : Math.max(0, round2(parsed));
+  savingsAgentSettings().caixaFloor = next;
+  if (state) state.operatingReserve = next;
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
   syncCaixaFloorControls();
@@ -19301,6 +19318,9 @@ function cuadroMandosReserve() {
    control en Cuadro de mandos hasta que existiera la vista de Ajustes; V6-3 la traslada ahí, que es
    donde declaraba desde el principio que iba a acabar. Cuadro de mandos pasa a ser un consumidor
    más, con una nota de solo lectura igual que ya tenía el comparador de deuda.
+   Decisión Laboratorio del 20 de agosto: `agentCaixaFloor()` —el colchón que leen Hoy, Registrar,
+   Deuda · Ruta y Asesor de decisión, antes un valor completamente aparte— se unifica aquí también;
+   ver la nota junto a `agentCaixaFloor()` para el porqué y las cuatro puertas de escritura.
    Vaciar la casilla no es un error: significa «sin reserva configurada» y devuelve a cada pantalla
    su respaldo declarado. */
 function operatingReserveFromField(raw) {
@@ -19332,8 +19352,8 @@ function renderAjustesReserveNote() {
   if (!note) return;
   const reserve = cuadroMandosReserve();
   note.textContent = reserve > 0
-    ? `Reserva operativa: ${money(reserve, true)}. Es el suelo que usan el pie de impacto de Plan («meses bajo la reserva»), el color del mapa de calor y, si no indicas otra, el guardarraíl del comparador de deuda. Se guarda y se sincroniza como un dato más del hogar.`
-    : "Sin reserva operativa configurada: el pie de impacto de Plan cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas y el comparador de deuda secuencia con un suelo de 0 €. Escribe aquí el colchón que quieres proteger para que las tres hablen de la misma cifra.";
+    ? `Reserva operativa: ${money(reserve, true)}. Es el suelo que usan el pie de impacto de Plan («meses bajo la reserva»), el color del mapa de calor, el guardarraíl del comparador de deuda y el colchón CaixaBank de Hoy, Registrar, Deuda · Ruta y Asesor de decisión. Se guarda y se sincroniza como un dato más del hogar.`
+    : "Sin reserva operativa configurada: el pie de impacto de Plan cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas, el comparador de deuda secuencia con un suelo de 0 € y el colchón CaixaBank vuelve al que tengas guardado en Agente ahorro/Asesor ejecutivo (2.500 € si tampoco lo tocaste nunca). Escribe aquí el colchón que quieres proteger para que todas hablen de la misma cifra.";
 }
 
 /* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
