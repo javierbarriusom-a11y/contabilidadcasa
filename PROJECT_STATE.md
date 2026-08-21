@@ -2,6 +2,39 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: cierre del ciclo O-1 a O-4, quedan O-5 y O-6
+
+Cierre consolidado de la sesión que arrancó con el diagnóstico de consultoría y `BACKLOG_OPERACION.md`
+(prefijo `O-`, eje distinto de `BACKLOG.md`: uso diario y decisiones, no reconstrucción visual). Las
+cuatro tareas de desarrollo del ciclo quedan **hechas y fusionadas a `main`**, cada una con su propia
+entrada detallada más abajo en este mismo fichero:
+
+- **O-1** — Titularidad en refinanciación/reunificación de deuda (PR #100).
+- **O-2** — Recordatorio activo de reales pendientes en Hoy (PR #101).
+- **O-3** — Aviso de completitud antes de cerrar el mes (PR #101).
+- **O-4** — Generalizar «¿cuánto puedo permitirme?» más allá del coche (PR #102).
+
+**Para reanudar desde aquí**, quedan exactamente dos tareas en `BACKLOG_OPERACION.md`, ninguna
+empezada:
+
+- **O-5 · Actualizar `MANUAL_USUARIO.md`** (impacto medio, esfuerzo bajo, `⏳` sin bloqueo). Es la
+  siguiente tarea natural: sus 5 pasos ya están detallados en `BACKLOG_OPERACION.md` §O-5 (auditar
+  nombres de pantalla actuales, reescribir «Recorrido recomendado» y «Rutina recomendada», añadir
+  las secciones de O-1 y O-4, actualizar fecha de cabecera y regenerar el `.docx` si procede).
+- **O-6 · Conexión bancaria PSD2 real** (impacto medio, esfuerzo alto, `⛔` bloqueada). No es tarea
+  nueva: es **T-3** en `BACKLOG.md` §5, bloqueada por la aceptación de un proveedor externo
+  (GoCardless evaluado, `E9_BANKING.md:5-7`) — no hay trabajo local que se pueda avanzar aquí hasta
+  que esa decisión de producto se resuelva fuera del equipo de desarrollo.
+
+**Validación de cierre**: `npm run verify` completo — `npm test` **1505/1505 pruebas**, accesibilidad
+(812 IDs únicos), rendimiento (diff 10.000 filas en 38,9 ms; forecast y escenarios en 226,4 ms;
+recursos 1733 KB), `build:site`, privacidad y smoke test, todo en verde. Sin cambios de código en
+este cierre — solo documentación (`PROJECT_STATE.md`, `BACKLOG_OPERACION.md`).
+
+**Git**: rama `claude/financial-app-analysis-0618k1`, sin cambios de código pendientes de publicar —
+O-1 a O-4 ya están en `main`. Este cierre documental se publica con el mismo ciclo autorizado
+(commit + push a la rama + PR en borrador + fusión al verificar CI en verde).
+
 ## Cierre de sesión — 21 de agosto de 2026: O-4, generalizar «¿cuánto puedo permitirme?» más allá del coche
 
 Cuarta tarea de `BACKLOG_OPERACION.md`, confirmada por el usuario («vamos con o4»).
