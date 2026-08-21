@@ -65,6 +65,7 @@ let seriesOverrides = {};
 let rowLabelOverrides = {};
 let movementMappings = {};
 let debtContractOverrides = {};
+let debtContractCustomEntries = [];
 let debtRoadmapState = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
@@ -897,6 +898,7 @@ function appStatePayload(options = {}) {
     rowLabelOverrides,
     movementMappings,
     debtContractOverrides,
+    debtContractCustomEntries,
     debtRoadmapState,
     debtContracts: canonicalDebtContractRows(),
   };
@@ -1328,6 +1330,7 @@ function applyPersistedPayload(payload = {}) {
   movementMappings = payload.movementMappings && typeof payload.movementMappings === "object" ? payload.movementMappings : {};
   debtContractOverrides =
     payload.debtContractOverrides && typeof payload.debtContractOverrides === "object" ? payload.debtContractOverrides : {};
+  debtContractCustomEntries = Array.isArray(payload.debtContractCustomEntries) ? payload.debtContractCustomEntries : [];
   debtRoadmapState = payload.debtRoadmapState && typeof payload.debtRoadmapState === "object" ? payload.debtRoadmapState : {};
   canonicalSnapshot =
     payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
@@ -1392,6 +1395,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
   storageSet(storageKey("debtContractOverrides"), JSON.stringify(debtContractOverrides));
+  storageSet(storageKey("debtContractCustomEntries"), JSON.stringify(debtContractCustomEntries));
   storageSet(storageKey("debtRoadmapState"), JSON.stringify(debtRoadmapState));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
@@ -2270,6 +2274,7 @@ function loadLocalState() {
       rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
       debtContractOverrides: JSON.parse(storageGet(storageKey("debtContractOverrides"), "{}")),
+      debtContractCustomEntries: JSON.parse(storageGet(storageKey("debtContractCustomEntries"), "[]")),
       debtRoadmapState: JSON.parse(storageGet(storageKey("debtRoadmapState"), "{}")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
@@ -2298,6 +2303,7 @@ function loadLocalState() {
     movementMappings = {};
     debtContractOverrides = {};
     debtRoadmapState = {};
+    debtContractCustomEntries = [];
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -7229,16 +7235,35 @@ function debtPortfolioTargetForDecision(item) {
 
 // D-2 · DEBT_PORTFOLIO sigue siendo la cartera de ejemplo que trae el código, pero ya no es la
 // última palabra: `debtContractOverrides` (persistido como movementMappings/rowLabelOverrides)
-// guarda solo los campos que el hogar ha corregido a mano desde Deuda › Contratos. Se combinan
-// aquí, en el único punto por el que pasan Ruta, Comparar, Hoy y el motor de escenarios — no hay
-// una segunda puerta de escritura para el contrato.
+// guarda solo los campos que el hogar ha corregido a mano desde Deuda › Contratos, y
+// `debtContractCustomEntries` (D-2c) guarda los contratos completos que el hogar ha dado de alta
+// desde esa misma pantalla. Se combinan aquí, en el único punto por el que pasan Ruta, Comparar,
+// Hoy y el motor de escenarios — no hay una segunda puerta de escritura para el contrato.
 const DEBT_CONTRACT_EDITABLE_FIELDS = ["currentPrincipal", "apr", "currentPayment"];
 
 function debtPortfolioWithOverrides() {
-  return DEBT_PORTFOLIO.map((row) => {
+  return [...DEBT_PORTFOLIO, ...debtContractCustomEntries].map((row) => {
     const override = debtContractOverrides[row.id];
     return override ? { ...row, ...override } : row;
   });
+}
+
+// D-2c · id incremental para un contrato dado de alta a mano, sin colisionar con los de ejemplo
+// (`debt-1`…) ni con los ya dados de alta antes.
+function nextDebtContractCustomId() {
+  const used = new Set([...DEBT_PORTFOLIO, ...debtContractCustomEntries].map((row) => row.id));
+  let n = debtContractCustomEntries.length + 1;
+  let id = `debt-custom-${n}`;
+  while (used.has(id)) {
+    n += 1;
+    id = `debt-custom-${n}`;
+  }
+  return id;
+}
+
+function saveDebtContractCustomEntries() {
+  storageSet(storageKey("debtContractCustomEntries"), JSON.stringify(debtContractCustomEntries));
+  queueRemoteSave();
 }
 
 function debtContractBundle() {
@@ -25906,10 +25931,11 @@ function deudaContratosQualityBadge(quality) {
 
 function deudaContratosRowHtml(contract) {
   const edited = Boolean(debtContractOverrides[contract.id]);
+  const isCustom = Boolean(contract.custom);
   const status = deudaContratosStatusBadge(contract.paymentStatus);
   const quality = deudaContratosQualityBadge(contract.dataQuality);
   const aprValue = contract.apr === null || contract.apr === undefined ? "" : contract.apr;
-  return `<tr data-deuda-contrato-row="${escapeHtml(contract.id)}">
+  return `<tr data-deuda-contrato-row="${escapeHtml(contract.id)}"${isCustom ? ' class="deuda-contratos-row-custom"' : ""}>
       <td class="deuda-contratos-entity">
         <strong>${escapeHtml(contract.entity)}</strong>
         <small>${escapeHtml(contract.type)}${contract.number ? ` · ${escapeHtml(contract.number)}` : ""}</small>
@@ -25919,6 +25945,7 @@ function deudaContratosRowHtml(contract) {
       <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="currentPayment" value="${round2(contract.currentPayment)}" aria-label="Cuota mensual de ${escapeHtml(contract.entity)}" /></td>
       <td><span class="e19-badge ${status.tone}">${escapeHtml(status.label)}</span></td>
       <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}</td>
+      <td>${isCustom ? `<button type="button" class="deuda-contratos-row-remove" data-deuda-contrato-remove="${escapeHtml(contract.id)}" aria-label="Eliminar el contrato de ${escapeHtml(contract.entity)}">×</button>` : ""}</td>
     </tr>`;
 }
 
@@ -25928,7 +25955,7 @@ function renderDeudaContratos() {
   if (!body) return;
   const contracts = debtContractSourceRows();
   body.innerHTML = `<thead><tr>
-        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Estado</th><th>Calidad del dato</th>
+        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Estado</th><th>Calidad del dato</th><th></th>
       </tr></thead>
       <tbody>${contracts.map(deudaContratosRowHtml).join("")}</tbody>`;
   const overriddenCount = contracts.filter((contract) => debtContractOverrides[contract.id]).length;
@@ -25972,6 +25999,105 @@ function handleDeudaContratosFieldChange(input) {
   else delete nextOverrides[id];
   debtContractOverrides = nextOverrides;
   saveDebtContractOverrides();
+  renderDeudaContratos();
+}
+
+// D-2c · dar de alta un contrato a mano, desde el propio formulario de Deuda › Contratos, en vez
+// de inventar valores de ejemplo. Solo entidad y capital pendiente son obligatorios — el resto
+// puede quedar «sin dato», igual que los contratos de ejemplo.
+const DEBT_CONTRACT_ADD_STATUSES = ["active", "suspended", "reunified", "settled"];
+
+function deudaContratosAddFormParse(values) {
+  const entity = String(values.entity ?? "").trim();
+  if (!entity) return { error: "Falta el nombre de la entidad." };
+  const principalRaw = String(values.principal ?? "").trim();
+  const principal = Number(principalRaw.replace(",", "."));
+  if (principalRaw === "" || !Number.isFinite(principal) || principal < 0) {
+    return { error: "El capital pendiente tiene que ser un número igual o mayor que 0." };
+  }
+  const aprRaw = String(values.apr ?? "").trim();
+  const apr = aprRaw === "" ? null : Number(aprRaw.replace(",", "."));
+  if (apr !== null && (!Number.isFinite(apr) || apr < 0 || apr > 60)) {
+    return { error: "La TAE tiene que ser un número entre 0 y 60, o dejarla en blanco." };
+  }
+  const paymentRaw = String(values.payment ?? "").trim();
+  const payment = paymentRaw === "" ? 0 : Number(paymentRaw.replace(",", "."));
+  if (!Number.isFinite(payment) || payment < 0) {
+    return { error: "La cuota mensual tiene que ser un número igual o mayor que 0." };
+  }
+  const installmentsRaw = String(values.installments ?? "").trim();
+  const installments = installmentsRaw === "" ? 0 : Math.floor(Number(installmentsRaw.replace(",", ".")));
+  if (!Number.isFinite(installments) || installments < 0) {
+    return { error: "Los plazos restantes tienen que ser un número entero igual o mayor que 0." };
+  }
+  const status = DEBT_CONTRACT_ADD_STATUSES.includes(values.status) ? values.status : "active";
+  // «Liquidada» solo es real con capital pendiente en 0 — así lo exige el normalizador
+  // (canonical-debt-contracts.js): con capital pendiente > 0 no lo clasificaría como liquidado
+  // aunque aquí se declare, así que se fuerza para no guardar un estado que luego no se vería.
+  const currentPrincipal = status === "settled" ? 0 : round2(principal);
+  return {
+    entry: {
+      entity,
+      type: String(values.type || "Crédito").trim() || "Crédito",
+      number: String(values.number ?? "").trim(),
+      initialPrincipal: round2(principal),
+      currentPrincipal,
+      originalPayment: round2(payment),
+      currentPayment: round2(payment),
+      reunified: status === "reunified",
+      paymentStatus: status,
+      apr,
+      remainingInstallments: Math.max(0, installments),
+      maturity: "",
+      custom: true,
+    },
+  };
+}
+
+function deudaContratosAddFormValues() {
+  return {
+    entity: qs("deudaContratosAddEntity")?.value,
+    type: qs("deudaContratosAddType")?.value,
+    number: qs("deudaContratosAddNumber")?.value,
+    principal: qs("deudaContratosAddPrincipal")?.value,
+    apr: qs("deudaContratosAddApr")?.value,
+    payment: qs("deudaContratosAddPayment")?.value,
+    status: qs("deudaContratosAddStatus")?.value,
+    installments: qs("deudaContratosAddInstallments")?.value,
+  };
+}
+
+function handleDeudaContratosAddSubmit(event) {
+  event.preventDefault();
+  const errorEl = qs("deudaContratosAddError");
+  const result = deudaContratosAddFormParse(deudaContratosAddFormValues());
+  if (result.error) {
+    if (errorEl) {
+      errorEl.textContent = result.error;
+      errorEl.hidden = false;
+    }
+    return;
+  }
+  debtContractCustomEntries = [...debtContractCustomEntries, { id: nextDebtContractCustomId(), ...result.entry }];
+  saveDebtContractCustomEntries();
+  if (errorEl) {
+    errorEl.textContent = "";
+    errorEl.hidden = true;
+  }
+  qs("deudaContratosAddForm")?.reset();
+  renderDeudaContratos();
+}
+
+function handleDeudaContratosRemoveCustom(id) {
+  if (!id || !debtContractCustomEntries.some((entry) => entry.id === id)) return;
+  debtContractCustomEntries = debtContractCustomEntries.filter((entry) => entry.id !== id);
+  if (debtContractOverrides[id]) {
+    const nextOverrides = { ...debtContractOverrides };
+    delete nextOverrides[id];
+    debtContractOverrides = nextOverrides;
+    saveDebtContractOverrides();
+  }
+  saveDebtContractCustomEntries();
   renderDeudaContratos();
 }
 
@@ -30806,6 +30932,11 @@ async function init() {
     const input = event.target.closest("[data-deuda-contrato-id]");
     if (input) handleDeudaContratosFieldChange(input);
   });
+  qs("deudaContratosTable")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-deuda-contrato-remove]");
+    if (removeButton) handleDeudaContratosRemoveCustom(removeButton.dataset.deudaContratoRemove);
+  });
+  qs("deudaContratosAddForm")?.addEventListener("submit", handleDeudaContratosAddSubmit);
   qs("deudaContratosCuadre")?.addEventListener("click", (event) => {
     if (event.target.closest("#deudaContratosCuadreAdjust")) {
       qs("deudaContratosTable")?.querySelector("input[data-deuda-contrato-field='currentPrincipal']")?.focus();

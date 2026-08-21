@@ -1511,7 +1511,41 @@
               <table class="e19-table deuda-contratos-table" id="deudaContratosTable"></table>
             </div>
             <div id="deudaContratosCuadre"></div>
-            <p class="e19-kpi-note">Capital pendiente, TAE y cuota son los únicos campos editables — entidad, producto y estado siguen siendo los declarados en el contrato.</p>
+            <p class="e19-kpi-note">Capital pendiente, TAE y cuota son los únicos campos editables una vez dado de alta el contrato — entidad, producto y estado quedan fijados en el alta. Los contratos añadidos aquí abajo se pueden eliminar; los de ejemplo no.</p>
+
+            <div class="e19-card deuda-contratos-add-card">
+              <h3>Dar de alta un contrato nuevo</h3>
+              <p class="e19-kpi-note">Solo tú decides qué contratos hay — no se rellena nada por ti. Entidad y capital pendiente son obligatorios; el resto puede quedar sin dato.</p>
+              <form class="deuda-contratos-add" id="deudaContratosAddForm">
+                <label><span>Entidad</span><input type="text" id="deudaContratosAddEntity" maxlength="80" required placeholder="Ej.: Banco Ejemplo" /></label>
+                <label><span>Tipo</span>
+                  <select id="deudaContratosAddType">
+                    <option value="Crédito">Crédito</option>
+                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="Préstamo">Préstamo</option>
+                    <option value="Hipoteca">Hipoteca</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </label>
+                <label><span>Número de contrato</span><input type="text" id="deudaContratosAddNumber" maxlength="60" placeholder="Opcional" /></label>
+                <label><span>Capital pendiente (€)</span><input type="number" id="deudaContratosAddPrincipal" min="0" step="0.01" inputmode="decimal" required placeholder="0,00" /></label>
+                <label><span>TAE (%)</span><input type="number" id="deudaContratosAddApr" min="0" max="60" step="0.01" inputmode="decimal" placeholder="Opcional" /></label>
+                <label><span>Cuota mensual (€)</span><input type="number" id="deudaContratosAddPayment" min="0" step="0.01" inputmode="decimal" placeholder="0,00" /></label>
+                <label><span>Estado</span>
+                  <select id="deudaContratosAddStatus">
+                    <option value="active">Activa</option>
+                    <option value="suspended">Pagos suspendidos</option>
+                    <option value="reunified">Reunificada</option>
+                    <option value="settled">Liquidada</option>
+                  </select>
+                </label>
+                <label><span>Plazos restantes</span><input type="number" id="deudaContratosAddInstallments" min="0" step="1" placeholder="Opcional" /></label>
+                <div class="deuda-contratos-add-actions">
+                  <button type="submit" class="e19-btn e19-btn-primary">Añadir contrato</button>
+                </div>
+              </form>
+              <p class="e19-kpi-note is-danger" id="deudaContratosAddError" role="alert" hidden></p>
+            </div>
           </section>
 
           <section class="e19-analisis view-section" id="analisis">
