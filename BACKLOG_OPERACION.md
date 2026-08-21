@@ -43,7 +43,7 @@ Misma leyenda que `BACKLOG.md` §0, para no introducir un tercer vocabulario:
 
 | Tarea | Resuelve | Impacto | Esfuerzo | Estado |
 | --- | --- | --- | --- | --- |
-| O-1 | Titularidad en refinanciación/reunificación de deuda | Alto | Medio | ⏳ |
+| O-1 | Titularidad en refinanciación/reunificación de deuda | Alto | Medio | ✅ · 21 de agosto de 2026 |
 | O-2 | Recordatorio activo de reales pendientes | Medio | Bajo | ⏳ |
 | O-3 | Aviso de completitud antes de cerrar el mes | Medio | Bajo | ⏳ |
 | O-4 | Generalizar «¿cuánto puedo permitirme?» más allá del coche | Medio | Medio | ⏳ |
@@ -97,7 +97,17 @@ alimentarla con dos titulares distintos.
 
 **Qué no incluye a propósito.** No cambia la titularidad real de ningún contrato fuera de una
 simulación explícitamente aplicada por el usuario — sigue el mismo flujo de «Aplicar al plan» que
-ya usa cualquier otro escenario, sin atajos.
+ya usa cualquier otro escenario, sin atajos. Tampoco toca `canonical-debt-comparator.js` (el
+comparador de ofertas reales de `#deuda-comparar`/`#asesor-decision`, un subsistema distinto del
+laboratorio de escenarios): etiquetar titulares ahí, sobre negociaciones reales con un acreedor, es
+un paso natural posterior, no incluido en este primer corte.
+
+**Hecho — 21 de agosto de 2026.** `canonical-scenario-schema.js` y `canonical-scenario-engine.js`
+llevan `titularOrigen`/`titularDestino` opcionales en refinanciación y reunificación; el laboratorio
+de escenarios (`#escenario-simular`) ofrece el selector y lo refleja en título/detalle cuando origen
+y destino difieren. `npm run verify` completo en verde con 1474/1474 pruebas (15 nuevas en
+`tests/o1-titularidad-deuda.test.cjs`). Detalle completo en la entrada de cierre correspondiente de
+`PROJECT_STATE.md`.
 
 ---
 
@@ -222,8 +232,7 @@ constancia de que el diagnóstico la contempló y decidió no duplicarla como ta
 
 ## 1. Próximo paso
 
-Empezar por **O-1**: es la que responde a la pregunta concreta que originó este backlog, y su
-esfuerzo es medio porque reutiliza motores ya existentes (comparador de deuda, sustitución de
-contratos) en vez de construir desde cero. O-2 y O-3 pueden hacerse en la misma sesión que O-1 o
-justo después — comparten la misma fuente de datos (la lista de completitud de «Registrar el mes»)
-y son de bajo esfuerzo. O-5 cierra el ciclo una vez el resto esté publicado.
+**O-1 hecha (21 de agosto de 2026).** Siguiente: **O-2 y O-3**, en la misma sesión o en la
+siguiente — comparten la misma fuente de datos (la lista de completitud de «Registrar el mes») y
+son ambas de bajo esfuerzo, así que conviene hacerlas juntas antes que O-4. O-5 cierra el ciclo una
+vez O-1 a O-4 estén publicadas, para no reescribir el manual dos veces.

@@ -2,6 +2,51 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: O-1, titularidad en refinanciación/reunificación de deuda
+
+Primera tarea del nuevo `BACKLOG_OPERACION.md`, confirmada por el usuario («Ok, empezamos»).
+Responde a la pregunta que motivó el diagnóstico de la sesión anterior: simular pedir un crédito
+nuevo a nombre de otra persona (p. ej. la mujer) para cancelar una deuda propia, sin tocar la
+titularidad real de ningún contrato hasta que el escenario se aplique explícitamente.
+
+**Construido — O-1**:
+- `canonical-scenario-schema.js`: `titularOrigen`/`titularDestino` opcionales (enum `TITULARES`,
+  el mismo que ya usaba `cambio_ingreso`) en los validadores de `refinanciacion` y `reunificacion`.
+  Aditivo por diseño — una decisión sin estos campos valida exactamente igual que antes.
+- `canonical-scenario-engine.js`: `applyTitularidad()` propaga esos campos al estado de deuda del
+  escenario en `applyRefinanciacion` (sobre el contrato existente) y `applyReunificacion` (sobre la
+  cuenta nueva creada, no sobre las deudas cerradas). No escriben `contract.owner` — ese campo tiene
+  vocabulario y propósito distintos (metadato descriptivo del contrato real, no del titular del
+  escenario) — decisión documentada en el propio código en vez de mezclar los dos conceptos.
+- `app.js` (`ESCENARIO_MOTOR_TYPES`): selector de titular origen/destino en los formularios de
+  «Cambiar condiciones» y «Reunificar deuda» del laboratorio de escenarios, reutilizando las mismas
+  tres opciones que ya usa «Cambio de ingreso». Título y detalle de la decisión mencionan
+  explícitamente el cambio de titular solo cuando origen y destino difieren.
+- **Corrección encontrada al validar contra el flujo heredado `#debt-control`**: los nuevos campos,
+  al añadirse al catálogo de `campos` del tipo, se convertían automáticamente en obligatorios para
+  `debtModeDecisionForContract()` (usa todos los campos del tipo salvo excepciones explícitas para
+  decidir si hay datos suficientes para calcular), rompiendo cuatro pruebas existentes de los ocho
+  modos de liquidación. Corregido excluyendo `titularOrigen`/`titularDestino` de esa comprobación,
+  igual que ya se excluía `parcial` — son opcionales también ahí.
+- Pruebas nuevas: `tests/o1-titularidad-deuda.test.cjs` (15 pruebas: validación del esquema con y
+  sin titular, enum inválido, propagación a través del motor incluida la reunificación, título y
+  detalle del formulario del laboratorio).
+
+**Qué no incluye, a propósito**: no se ha extendido `canonical-debt-comparator.js` (el comparador de
+ofertas reales de `#deuda-comparar`/`#asesor-decision`, distinto del laboratorio de escenarios) para
+etiquetar titulares en negociaciones reales — es un subsistema separado (ofertas negociadas contra
+un acreedor real, no hipótesis del laboratorio) y extenderlo con titularidad es un paso natural
+posterior, no incluido en este primer corte para no ampliar el alcance de O-1 sin confirmarlo antes.
+
+**Validación**: `npm run verify` completo — `npm test` **1474/1474 pruebas** (15 nuevas en
+`tests/o1-titularidad-deuda.test.cjs`, cero regresiones tras la corrección de `debtModeDecisionForContract`),
+accesibilidad (806 IDs únicos), rendimiento (diff 10.000 filas en 32,2 ms; forecast y escenarios en
+171,5 ms; recursos 1725 KB), `build:site`, privacidad y smoke test, todo en verde.
+
+**Publicado**: commit y push a `claude/financial-app-analysis-0618k1` (autorización permanente del
+10 de agosto de 2026, sin preguntar en cada turno) y PR en borrador; fusión a `main` en cuanto el CI
+esté en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: diagnóstico operativo y nuevo backlog `BACKLOG_OPERACION.md`
 
 El usuario pidió un análisis exhaustivo de la aplicación centrado en el uso y la gestión diaria y

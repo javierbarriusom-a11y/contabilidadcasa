@@ -205,6 +205,15 @@
     return { resultado: "aplicada", efecto: "amortizacion-fraccionada-parcial" };
   }
 
+  // O-1: titularOrigen/titularDestino son metadatos de la simulación, no del contrato real — no
+  // tocan `contract.owner` (vocabulario y propósito distintos, ver canonical-debt-contracts.js).
+  // Se copian tal cual al estado de deuda del escenario para que el comparador y la interfaz sepan
+  // si el crédito nuevo cambia de titular sin inventar ninguna cifra nueva.
+  function applyTitularidad(decision, contract) {
+    if (decision.params.titularOrigen !== undefined) contract.titularOrigen = decision.params.titularOrigen;
+    if (decision.params.titularDestino !== undefined) contract.titularDestino = decision.params.titularDestino;
+  }
+
   function applyRefinanciacion(decision, debtState) {
     const contract = debtState.get(decision.params.deudaId);
     contract.currentPrincipal = round2(number(decision.params.nuevoPrincipal));
@@ -213,6 +222,7 @@
     contract.remainingInstallments = Math.max(0, Math.floor(number(decision.params.nuevoPlazo)));
     contract.paymentStatus = "active";
     contract.scheduleEffectiveFrom = resolvedMonthOf(decision);
+    applyTitularidad(decision, contract);
     return { resultado: "aplicada", efecto: "refinanciada" };
   }
 
@@ -248,7 +258,7 @@
       contract.paymentStatus = "reunified";
       contract.reunifiedInto = newId;
     });
-    debtState.set(newId, {
+    const reunificada = {
       id: newId,
       paymentStatus: "active",
       currentPrincipal: round2(number(decision.params.nuevoPrincipal)),
@@ -262,7 +272,11 @@
       fraccionadaAt: null,
       original: { paymentStatus: "settled", currentPayment: 0, remainingInstallments: 0 },
       __synthetic: true,
-    });
+    };
+    // O-1: la reunificación cierra varias deudas de origen y abre una sola cuenta nueva, así que
+    // titularOrigen/titularDestino se anotan sobre esa cuenta nueva, no sobre cada deuda cerrada.
+    applyTitularidad(decision, reunificada);
+    debtState.set(newId, reunificada);
     return { resultado: "aplicada", efecto: "reunificada", nuevaDeudaId: newId };
   }
 
