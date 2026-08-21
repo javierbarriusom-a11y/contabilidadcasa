@@ -780,6 +780,40 @@
             <article class="executive-panel">
               <div class="module-heading">
                 <div>
+                  <p class="panel-kicker">Otras compras grandes</p>
+                  <h3>¿Cuándo puedo permitírmelo?</h3>
+                  <p>El mismo cálculo del coche, para cualquier objetivo con coste y financiación opcional.</p>
+                </div>
+              </div>
+              <div class="visual-controls executive-controls">
+                <label>
+                  <span>Nombre</span>
+                  <input id="executiveBigPurchaseLabel" type="text" placeholder="Reforma cocina" />
+                </label>
+                <label>
+                  <span>Coste</span>
+                  <input id="executiveBigPurchaseCoste" type="number" step="500" min="0" />
+                </label>
+                <label>
+                  <span>Colchón antes de decidir</span>
+                  <input id="executiveBigPurchaseColchon" type="number" step="250" min="0" />
+                </label>
+                <label>
+                  <span>Financiación (capital)</span>
+                  <input id="executiveBigPurchaseCapital" type="number" step="500" min="0" />
+                </label>
+                <label>
+                  <span>Cuota financiación</span>
+                  <input id="executiveBigPurchaseCuota" type="number" step="25" min="0" />
+                </label>
+                <button type="button" data-executive-action="add-big-purchase">Añadir objetivo</button>
+              </div>
+              <div id="executiveBigPurchaseGoals"></div>
+            </article>
+
+            <article class="executive-panel">
+              <div class="module-heading">
+                <div>
                   <p class="panel-kicker">Próximos meses</p>
                   <h3>Agenda ejecutiva</h3>
                   <p>Meses donde se decide traspaso, deuda o coche con impacto en CaixaBank y Mediolanum.</p>
