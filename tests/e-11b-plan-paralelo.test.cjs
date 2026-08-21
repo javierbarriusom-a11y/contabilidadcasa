@@ -316,6 +316,12 @@ function sandboxCierreAction(existing) {
     retractDebtLiquidationsFromEscenario: () => false,
     syncDebtLiquidationsFromEscenario: () => false,
     saveDebtLiquidations: () => {},
+    retractProjectsFromEscenario: () => false,
+    syncProjectsFromEscenario: () => false,
+    saveProjects: () => {},
+    retractPlanningRowsFromEscenario: () => false,
+    syncPlanningRowsFromEscenario: () => false,
+    saveCustomPlanningRows: () => {},
   });
   return { context, getSaved: () => saved, getRenderCount: () => rendered };
 }
