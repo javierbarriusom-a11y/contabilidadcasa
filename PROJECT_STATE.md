@@ -44,6 +44,34 @@ bloqueo y solo si el usuario lo pide: la auditoría completa de enlaces a pantal
 de la app (aplazada explícitamente por el usuario "hasta que acabemos las pantallas" — ya han
 acabado).
 
+## Cierre de sesión — 21 de agosto de 2026: legibilidad de Plan > Previsión y hueco en blanco de Deuda > Ruta
+
+Dos retoques visuales pedidos por el usuario sobre capturas de la app en producción:
+
+1. **Los tres hitos de «Colchón» en Plan > Previsión** (Colchón hoy / Cruza el mínimo operativo /
+   Colchón a fin de horizonte) casi no se leían: `.plan-prevision-milestone span` copiaba el color
+   de `.analisis-networth-milestones` (P-11 se documentó como «mismo layout que A-5»), pensado para
+   blanco al 65% de opacidad sobre la tarjeta oscura `.analisis-networth-card`
+   (`background: var(--e19-ink)`) de Análisis. Plan > Previsión no envuelve esos hitos en ninguna
+   tarjeta oscura — se pintan sobre la tarjeta clara normal — así que ese blanco-sobre-blanco
+   quedaba casi invisible. Corregido a `var(--e19-muted)` (el gris de etiqueta estándar del resto de
+   la app) y los separadores a `var(--e19-border)`, sin tocar el layout ni los datos.
+2. **Deuda > Ruta dejaba un hueco en blanco grande bajo «Orden de ataque»** antes de llegar a «Cómo
+   se apaga la deuda»: `.deuda-ruta-layout` era una única fila de grid con «Orden de ataque» en la
+   columna izquierda y «Oferta en curso» + «Capacidad de endeudamiento» en la derecha; como la
+   columna derecha es más alta, la fila de grid completa medía esa altura y dejaba ese sobrante en
+   blanco bajo la tarjeta corta antes de que el siguiente bloque (a ancho completo, fuera del grid)
+   apareciera. Solución: las tarjetas «Cómo se apaga la deuda» y «Calendario de amortización» pasan
+   a vivir en una nueva columna `.deuda-ruta-main` (flex-column) junto a «Orden de ataque», en vez de
+   ser bloques sueltos a ancho completo tras el grid — así la columna izquierda sigue apilando su
+   propio contenido sin esperar a que termine la derecha. «Antes de aplicar» se queda como pie de
+   página a ancho completo, fuera de ambas columnas, igual que antes (preserva el orden de fuente que
+   comprueba `tests/v3-4-oferta-en-curso.test.cjs`: Oferta antes que Capacidad antes que Aplicar).
+
+**Validación**: `npm run verify`, exit 0 — **1438/1438 pruebas**, accesibilidad (794 IDs únicos),
+rendimiento (diff 10.000 filas en 36,3 ms; forecast y escenarios en 196,2 ms; recursos 1717 KB),
+build del sitio, privacidad y smoke test, todos en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: pixel-perfect de Deuda contra `Deuda.pdf`
 
 Continuación de la misma sesión «pantalla por pantalla»: con Hoy, Registrar, Movimientos y Plan
