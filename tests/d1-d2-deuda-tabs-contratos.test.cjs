@@ -71,10 +71,10 @@ function sandboxTabs() {
   return context;
 }
 
-test("D-1 · las tres pestañas son Ruta, Comparar y Contratos, en ese orden", () => {
+test("D-1/D-15 · las cuatro pestañas son Ruta, Comparar, Contratos y Simulador visual, en ese orden", () => {
   const source = extractConst("DEUDA_SCREEN_TABS");
   const ids = [...source.matchAll(/id: "([\w-]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos"]);
+  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador"]);
 });
 
 test("D-1 · deudaScreenTabsHtml marca is-active solo en la pestaña activa, con aria-selected", () => {
@@ -139,6 +139,35 @@ test("D-1 · #deuda-contratos tiene entrada en el menú avanzado y en el lanzado
 
 test("D-1 · renderActiveSection sabe pintar deuda-contratos", () => {
   assert.match(app, /case "deuda-contratos":\s*\n\s*renderDeudaContratos\(\);/);
+});
+
+// --- D-15: simulador visual promovido a cuarta pestaña de Deuda ------------------------------
+// Antes vivía como un `<details>` de compatibilidad dentro de `#debt-roadmap` (menú avanzado,
+// grupo legacy). A petición del usuario deja de estar oculto/relegado y pasa a ser una pestaña
+// más de Deuda, con entrada propia en el menú avanzado y en el lanzador (grupo analysis, como el
+// resto de Ruta/Comparar/Contratos). `#debt-roadmap` no se toca: conserva su formulario nativo de
+// ofertas (E14b) y su propio enlace, sin relación con este cambio.
+
+test("D-15 · #deuda-simulador tiene entrada en el menú avanzado y en el lanzador", () => {
+  assert.match(html, /<a href="#deuda-simulador" data-e17-group="analysis">Simulador visual de deuda \(nuevo\)<\/a>/);
+  assert.match(experience, /target: "deuda-simulador", label: "Simulador visual de deuda \(nuevo\)", group: "analysis"/);
+});
+
+test("D-15 · renderActiveSection sabe pintar deuda-simulador", () => {
+  assert.match(app, /case "deuda-simulador":\s*\n\s*renderDeudaSimulador\(\);/);
+});
+
+test("D-15 · deuda-simulador lleva su propio contenedor de pestañas y el iframe promovido", () => {
+  assert.match(html, /id="deudaSimuladorScreenTabs"/);
+  assert.match(html, /id="deuda-simulador"[^>]*view-section|view-section[^>]*id="deuda-simulador"/);
+  assert.match(html, /id="debtRoadmapFrame"/);
+  assert.doesNotMatch(html, /e14b-legacy/, "el <details> de compatibilidad ya no existe: el iframe se movió a #deuda-simulador");
+});
+
+test("D-15 · renderDeudaSimulador pinta sus pestañas y reenvía el estado canónico al iframe", () => {
+  const source = extractFunction("renderDeudaSimulador");
+  assert.match(source, /renderDeudaScreenTabs\("deuda-simulador"\)/);
+  assert.match(source, /sendDebtRoadmapState\(\)/);
 });
 
 // --- D-2: contratos como dato canónico editable -----------------------------------------------
@@ -567,8 +596,8 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
 });
 
 test("D-1/D-2 · viaja en el shell offline versionado (sin bump: solo se tocaron ficheros ya cacheados)", () => {
-  assert.match(worker, /20260814-f1a1/);
-  assert.match(html, /app\.js\?v=20260814f1a1/);
+  assert.match(worker, /20260821-d1a1/);
+  assert.match(html, /app\.js\?v=20260821d1a1/);
   assert.match(html, /design-tokens\.css\?v=20260814f1a1/);
 });
 

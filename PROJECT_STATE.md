@@ -2,6 +2,59 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: simulador visual de deuda promovido a pestaña de Deuda (D-15)
+
+El usuario adjuntó un HTML (`plan_deuda_visual_v5_sin_wizink.html`) que reconoció como el plan
+visual que se venía usando en versiones anteriores del sitio y pidió incorporarlo, analizando si
+encajaba con el nuevo flujo de Deuda (`#deuda-ruta`) construido en esta versión.
+
+**Investigado antes de tocar nada**: ese HTML ya estaba publicado, casi línea por línea, como
+`debt-roadmap.html` — embebido en un `<iframe>` dentro de `#debt-roadmap`, plegado bajo
+«Plan visual anterior (compatibilidad durante la migración)» en Herramientas avanzadas › Versiones
+anteriores. Ya estaba anonimizado a Entidad A/B/C (igual que `DEBT_PORTFOLIO` y el resto de Deuda)
+y ya leía en solo lectura los contratos y el forecast canónicos vía `E14DebtAdapter.buildReadModel`
+— no hacía falta reconstruirlo ni reintroducir los nombres reales del HTML adjunto (CaixaBank,
+Bankinter, WiZink), que habría roto la anonimización que ya usa toda la cartera de deuda pública.
+Se le planteó esto al usuario junto con el único hueco real encontrado (KPIs de cabecera
+hardcodeados, sin relación con los contratos reales) y confirmó dos cosas explícitamente: arreglar
+esos KPIs, y sacar la herramienta del grupo «legacy» hacia una subsección propia de la Deuda actual.
+
+**Construido — D-15**:
+- **KPIs de cabecera de `debt-roadmap.html` ya no están hardcodeados.** «Riesgo CIRBE total» e
+  «Importes vencidos» se calculan ahora desde `canonicalReadModel.contracts.all` (suma de
+  `currentPrincipal` de contratos no liquidados, y suma de `arrearsEstimated`), con un estado
+  honesto («Sin vincular a contratos canónicos») si el iframe no ha recibido aún el sobre canónico.
+  «Incidencias ASNEF» no tenía ninguna fuente de datos real en la app (nunca la tuvo): en vez de
+  mantener una cifra inventada pasa a decir «Sin verificar» con nota explicando que no hay fuente y
+  hay que consultar el informe externo — mismo criterio de honestidad que ya usa Análisis.
+- **El iframe se mueve de `#debt-roadmap` (legacy) a una pestaña nueva, `#deuda-simulador`**, cuarta
+  pestaña de Deuda junto a Ruta/Comparar/Contratos (`DEUDA_SCREEN_TABS`), con entrada propia en el
+  menú avanzado y en el lanzador (grupo `analysis`, como el resto de Deuda). El `<details>` de
+  compatibilidad y su CSS (`.e14b-legacy`) se eliminan. `#debt-roadmap` no se toca: conserva su
+  formulario nativo de ofertas (E14b) exactamente igual, con un enlace nuevo hacia el simulador
+  visual para quien lo busque desde ahí. Este cambio no reabre la relegación de V3-5 (las tres
+  heredadas de Deuda —`debt-roadmap`, `debt-liquidation-plan`, `debt-control`— siguen en el grupo
+  legacy, sin tocar): solo se promueve el contenido que vivía plegado dentro de una de ellas.
+- El puente de datos (`sendDebtRoadmapState`/`setupDebtRoadmapBridge`, basado en `postMessage`) no
+  cambió: sigue localizando el iframe por `id="debtRoadmapFrame"`, ahora dentro de la nueva sección.
+  `renderDeudaSimulador()` (nueva) reenvía el estado canónico cada vez que se entra en la pestaña,
+  por si los contratos cambiaron desde la última carga (alta/edición en Contratos, nueva ruta).
+- Versión del shell offline (`app.js`, `e17-experience.js`, `design-tokens.css` sin tocar) subida a
+  `20260821d1a1`/`20260821-d1a1` en `index.html` y `service-worker.js`; actualizados en bloque los
+  ~24 ficheros de test que fijan esa cifra como «versión actual del shell».
+
+**Validación**: `npm run verify` completo — `npm test` **1459/1459 pruebas** (4 nuevas en
+`tests/d1-d2-deuda-tabs-contratos.test.cjs` para D-15), accesibilidad (806 IDs únicos), rendimiento
+(diff 10.000 filas en 38,9 ms; forecast y escenarios en 200,4 ms; recursos 1723 KB), `build:site`,
+privacidad y smoke test, todo en verde. Comprobado además en el navegador con Playwright contra el
+sitio construido: las cuatro pestañas de Deuda (Ruta/Comparar/Contratos/Simulador visual), el
+iframe cargando y los KPIs mostrando cifras reales de la cartera canónica en vez de las fijas
+anteriores, sin errores de consola propios (el único aviso de red es el bloqueo de la CDN de
+Supabase, ya presente en cualquier pantalla de este entorno de pruebas).
+
+**Publicado**: commit y push a `claude/debt-visual-plan-qpi116` (autorización permanente del 10 de
+agosto de 2026) y PR en borrador; fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: alta de contratos de deuda a mano (D-2c)
 
 El usuario preguntó dónde se dan de alta los contratos de Deuda › Contratos (D-2): hasta ahora

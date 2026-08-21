@@ -85,7 +85,9 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   ]);
   assert.deepEqual(byGroup.assistants, ["asesor-decision"]);
   // D-1 (15 de agosto) añade «Contratos de deuda» junto a Ruta y Comparar, como tercera pestaña
-  // de Deuda.
-  assert.equal(byGroup.analysis.length, 11, "Decidir y Analizar suman once enlaces tras Análisis (Fase 6)");
-  assert.equal(links.length, 26, "veintiséis enlaces en el menú avanzado tras el bloque 5 (E-14/A-12/C-14)");
+  // de Deuda. D-15 (21 de agosto) añade «Simulador visual de deuda» como cuarta pestaña, promovida
+  // desde el `<details>` de compatibilidad que vivía dentro de `#debt-roadmap` (grupo legacy, sin
+  // tocar): el enlace nuevo entra en `analysis`, junto al resto de Deuda.
+  assert.equal(byGroup.analysis.length, 12, "Decidir y Analizar suman doce enlaces tras el simulador visual de Deuda");
+  assert.equal(links.length, 27, "veintisiete enlaces en el menú avanzado tras el simulador visual de Deuda");
 });
