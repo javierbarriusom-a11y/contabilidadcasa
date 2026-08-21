@@ -150,20 +150,21 @@ test("D-2 · los únicos campos editables son capital, TAE y cuota", () => {
   assert.deepEqual(fields, ["currentPrincipal", "apr", "currentPayment"]);
 });
 
-function sandboxOverrides(overrides) {
+function sandboxOverrides(overrides, customEntries = []) {
   const context = {
     DEBT_PORTFOLIO: [
       { id: "debt-1", entity: "Entidad A", currentPrincipal: 6000, currentPayment: 180, apr: 12 },
       { id: "debt-2", entity: "Entidad B", currentPrincipal: 3500, currentPayment: 140, apr: null },
     ],
     debtContractOverrides: overrides,
+    debtContractCustomEntries: customEntries,
   };
   vm.createContext(context);
   vm.runInContext(extractFunction("debtPortfolioWithOverrides"), context);
   return context;
 }
 
-test("D-2 · sin overrides, la cartera con overrides es exactamente DEBT_PORTFOLIO", () => {
+test("D-2 · sin overrides ni altas, la cartera con overrides es exactamente DEBT_PORTFOLIO", () => {
   const context = sandboxOverrides({});
   assert.deepEqual(JSON.parse(JSON.stringify(context.debtPortfolioWithOverrides())), context.DEBT_PORTFOLIO);
 });
@@ -174,6 +175,176 @@ test("D-2 · un override solo cambia los campos corregidos de ese contrato, no e
   assert.equal(first.currentPrincipal, 5000);
   assert.equal(first.currentPayment, 180, "la cuota no editada se queda como estaba declarada");
   assert.equal(second.currentPrincipal, 3500, "el otro contrato no se toca");
+});
+
+// --- D-2c: dar de alta un contrato nuevo -----------------------------------------------------
+
+test("D-2c · un contrato dado de alta se añade detrás de DEBT_PORTFOLIO, sin tocarlo", () => {
+  const custom = { id: "debt-custom-1", entity: "Entidad D", currentPrincipal: 1000, currentPayment: 50, apr: null };
+  const context = sandboxOverrides({}, [custom]);
+  const rows = context.debtPortfolioWithOverrides();
+  assert.equal(rows.length, 3);
+  assert.deepEqual(rows[2], custom);
+});
+
+test("D-2c · un override también se aplica a un contrato dado de alta, por su id", () => {
+  const custom = { id: "debt-custom-1", entity: "Entidad D", currentPrincipal: 1000, currentPayment: 50, apr: null };
+  const context = sandboxOverrides({ "debt-custom-1": { currentPrincipal: 800 } }, [custom]);
+  const rows = context.debtPortfolioWithOverrides();
+  assert.equal(rows[2].currentPrincipal, 800);
+});
+
+function sandboxCustomId(customEntries) {
+  const context = {
+    DEBT_PORTFOLIO: [{ id: "debt-1" }, { id: "debt-2" }, { id: "debt-3" }],
+    debtContractCustomEntries: customEntries,
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("nextDebtContractCustomId"), context);
+  return context;
+}
+
+test("D-2c · nextDebtContractCustomId nunca choca con los ids de ejemplo ni con los ya dados de alta", () => {
+  assert.equal(sandboxCustomId([]).nextDebtContractCustomId(), "debt-custom-1");
+  assert.equal(
+    sandboxCustomId([{ id: "debt-custom-1" }]).nextDebtContractCustomId(),
+    "debt-custom-2"
+  );
+});
+
+function sandboxAddParse() {
+  const context = { round2: (value) => Math.round(Number(value) * 100) / 100 };
+  vm.createContext(context);
+  vm.runInContext(
+    [extractConst("DEBT_CONTRACT_ADD_STATUSES"), extractFunction("deudaContratosAddFormParse")].join("\n"),
+    context
+  );
+  return context;
+}
+
+test("D-2c · el alta exige entidad", () => {
+  const { deudaContratosAddFormParse } = sandboxAddParse();
+  const result = deudaContratosAddFormParse({ entity: "  ", principal: "100" });
+  assert.ok(result.error);
+});
+
+test("D-2c · el alta exige un capital pendiente numérico y no negativo", () => {
+  const { deudaContratosAddFormParse } = sandboxAddParse();
+  assert.ok(deudaContratosAddFormParse({ entity: "Banco X", principal: "" }).error);
+  assert.ok(deudaContratosAddFormParse({ entity: "Banco X", principal: "-5" }).error);
+  assert.ok(deudaContratosAddFormParse({ entity: "Banco X", principal: "abc" }).error);
+});
+
+test("D-2c · TAE fuera de 0-60 no se acepta, pero en blanco se guarda como sin dato", () => {
+  const { deudaContratosAddFormParse } = sandboxAddParse();
+  assert.ok(deudaContratosAddFormParse({ entity: "Banco X", principal: "100", apr: "61" }).error);
+  const { entry } = deudaContratosAddFormParse({ entity: "Banco X", principal: "100", apr: "" });
+  assert.equal(entry.apr, null);
+});
+
+test("D-2c · «Liquidada» fuerza el capital pendiente a 0 aunque se escriba otro importe", () => {
+  const { deudaContratosAddFormParse } = sandboxAddParse();
+  const { entry } = deudaContratosAddFormParse({ entity: "Banco X", principal: "900", status: "settled" });
+  assert.equal(entry.currentPrincipal, 0);
+  assert.equal(entry.initialPrincipal, 900, "el capital original declarado no se pierde");
+  assert.equal(entry.paymentStatus, "settled");
+});
+
+test("D-2c · «Reunificada» marca reunified sin tocar el capital", () => {
+  const { deudaContratosAddFormParse } = sandboxAddParse();
+  const { entry } = deudaContratosAddFormParse({ entity: "Banco X", principal: "900", status: "reunified" });
+  assert.equal(entry.reunified, true);
+  assert.equal(entry.currentPrincipal, 900);
+});
+
+test("D-2c · el alta válida marca custom:true, para poder borrarla luego", () => {
+  const { deudaContratosAddFormParse } = sandboxAddParse();
+  const { entry } = deudaContratosAddFormParse({ entity: "Banco X", principal: "100" });
+  assert.equal(entry.custom, true);
+});
+
+function sandboxAddSubmit(customEntries) {
+  let saved = null;
+  let rendered = 0;
+  const values = {
+    entity: "Banco X",
+    type: "Crédito",
+    number: "",
+    principal: "100",
+    apr: "",
+    payment: "0",
+    status: "active",
+    installments: "",
+  };
+  const context = {
+    round2: (value) => Math.round(Number(value) * 100) / 100,
+    debtContractCustomEntries: customEntries,
+    nextDebtContractCustomId: () => "debt-custom-9",
+    deudaContratosAddFormValues: () => values,
+    saveDebtContractCustomEntries: () => {
+      saved = context.debtContractCustomEntries;
+    },
+    renderDeudaContratos: () => {
+      rendered += 1;
+    },
+    qs: () => ({ reset() {}, set textContent(_value) {}, set hidden(_value) {} }),
+  };
+  vm.createContext(context);
+  vm.runInContext(
+    [extractConst("DEBT_CONTRACT_ADD_STATUSES"), extractFunction("deudaContratosAddFormParse"), extractFunction("handleDeudaContratosAddSubmit")].join("\n"),
+    context
+  );
+  return { context, getSaved: () => saved, getRenderCount: () => rendered };
+}
+
+test("D-2c · un alta válida se añade a debtContractCustomEntries, se guarda y repinta", () => {
+  const { context, getSaved, getRenderCount } = sandboxAddSubmit([]);
+  context.handleDeudaContratosAddSubmit({ preventDefault: () => {} });
+  assert.equal(context.debtContractCustomEntries.length, 1);
+  assert.equal(context.debtContractCustomEntries[0].id, "debt-custom-9");
+  assert.deepEqual(getSaved(), context.debtContractCustomEntries);
+  assert.equal(getRenderCount(), 1);
+});
+
+function sandboxRemoveCustom(customEntries, overrides) {
+  let savedEntries = null;
+  let savedOverrides = null;
+  let rendered = 0;
+  const context = {
+    debtContractCustomEntries: customEntries,
+    debtContractOverrides: overrides,
+    saveDebtContractCustomEntries: () => {
+      savedEntries = context.debtContractCustomEntries;
+    },
+    saveDebtContractOverrides: () => {
+      savedOverrides = context.debtContractOverrides;
+    },
+    renderDeudaContratos: () => {
+      rendered += 1;
+    },
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("handleDeudaContratosRemoveCustom"), context);
+  return { context, getSavedEntries: () => savedEntries, getSavedOverrides: () => savedOverrides, getRenderCount: () => rendered };
+}
+
+test("D-2c · eliminar un contrato dado de alta lo quita de la lista y de sus overrides", () => {
+  const custom = [{ id: "debt-custom-1", entity: "Entidad D" }];
+  const overrides = { "debt-custom-1": { currentPrincipal: 500 } };
+  const { context, getSavedEntries, getSavedOverrides, getRenderCount } = sandboxRemoveCustom(custom, overrides);
+  context.handleDeudaContratosRemoveCustom("debt-custom-1");
+  assert.deepEqual(plain(context.debtContractCustomEntries), []);
+  assert.deepEqual(plain(context.debtContractOverrides), {});
+  assert.deepEqual(plain(getSavedEntries()), []);
+  assert.deepEqual(plain(getSavedOverrides()), {});
+  assert.equal(getRenderCount(), 1);
+});
+
+test("D-2c · eliminar un id que no existe no hace nada", () => {
+  const { context, getRenderCount } = sandboxRemoveCustom([{ id: "debt-custom-1" }], {});
+  context.handleDeudaContratosRemoveCustom("debt-custom-does-not-exist");
+  assert.equal(context.debtContractCustomEntries.length, 1);
+  assert.equal(getRenderCount(), 0);
 });
 
 test("D-2 · debtContractBundle pasa por debtPortfolioWithOverrides antes de normalizar", () => {
@@ -357,6 +528,42 @@ test("D-2 · el listener de la tabla delega en handleDeudaContratosFieldChange i
     app,
     /qs\("deudaContratosTable"\)\?\.addEventListener\("change", \(event\) => \{\s*\n\s*const input = event\.target\.closest\("\[data-deuda-contrato-id\]"\);\s*\n\s*if \(input\) handleDeudaContratosFieldChange\(input\);/
   );
+});
+
+test("D-2c · debtContractCustomEntries se carga y se guarda con el mismo patrón que debtContractOverrides", () => {
+  assert.match(app, /let debtContractCustomEntries = \[\];/);
+  assert.match(
+    app,
+    /debtContractCustomEntries = Array\.isArray\(payload\.debtContractCustomEntries\) \? payload\.debtContractCustomEntries : \[\];/
+  );
+  assert.match(app, /storageSet\(storageKey\("debtContractCustomEntries"\), JSON\.stringify\(debtContractCustomEntries\)\);/);
+  assert.match(app, /debtContractCustomEntries: JSON\.parse\(storageGet\(storageKey\("debtContractCustomEntries"\), "\[\]"\)\)/);
+  assert.match(app, /debtContractOverrides = \{\};\s*\n\s*debtRoadmapState = \{\};\s*\n\s*debtContractCustomEntries = \[\];/);
+});
+
+test("D-2c · saveDebtContractCustomEntries persiste y encola la sincronización remota, como saveDebtContractOverrides", () => {
+  const fn = extractFunction("saveDebtContractCustomEntries");
+  assert.match(fn, /storageSet\(storageKey\("debtContractCustomEntries"\)/);
+  assert.match(fn, /queueRemoteSave\(\);/);
+});
+
+test("D-2c · el payload de sincronización remota incluye debtContractCustomEntries junto a debtContractOverrides", () => {
+  assert.match(app, /debtContractOverrides,\s*\n\s*debtContractCustomEntries,/);
+});
+
+test("D-2c · la tabla delega el borrado y el alta en sus propios manejadores", () => {
+  assert.match(
+    app,
+    /qs\("deudaContratosTable"\)\?\.addEventListener\("click", \(event\) => \{\s*\n\s*const removeButton = event\.target\.closest\("\[data-deuda-contrato-remove\]"\);\s*\n\s*if \(removeButton\) handleDeudaContratosRemoveCustom\(removeButton\.dataset\.deudaContratoRemove\);/
+  );
+  assert.match(app, /qs\("deudaContratosAddForm"\)\?\.addEventListener\("submit", handleDeudaContratosAddSubmit\);/);
+});
+
+test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Contratos", () => {
+  assert.match(html, /id="deudaContratosAddForm"/);
+  assert.match(html, /id="deudaContratosAddEntity"/);
+  assert.match(html, /id="deudaContratosAddPrincipal"/);
+  assert.match(html, /id="deudaContratosAddError"/);
 });
 
 test("D-1/D-2 · viaja en el shell offline versionado (sin bump: solo se tocaron ficheros ya cacheados)", () => {

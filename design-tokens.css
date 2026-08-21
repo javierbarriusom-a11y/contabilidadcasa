@@ -824,6 +824,73 @@
   font-size: var(--e19-text-xs);
 }
 
+/* D-2c · alta de contratos: fila resaltada para lo añadido a mano, botón de quitarla (mismo patrón
+   que .registrar-mes-row-custom/.registrar-mes-row-remove) y el formulario de alta bajo la tabla. */
+.deuda-contratos-table td:last-child {
+  width: 32px;
+}
+
+.deuda-contratos-table tr.deuda-contratos-row-custom td:first-child {
+  box-shadow: inset 3px 0 0 var(--e19-accent);
+}
+
+.deuda-contratos-row-remove {
+  border: none;
+  background: transparent;
+  color: var(--e19-faint);
+  font-size: var(--e19-text-lg);
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--e19-radius-sm);
+}
+
+.deuda-contratos-row-remove:hover {
+  color: var(--e19-danger);
+  background: var(--e19-danger-soft);
+}
+
+.e19-deuda-contratos .deuda-contratos-add-card {
+  padding: 18px;
+  margin-top: 16px;
+}
+
+.e19-deuda-contratos .deuda-contratos-add-card h3 {
+  margin: 0 0 4px;
+}
+
+.e19-deuda-contratos .deuda-contratos-add {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.e19-deuda-contratos .deuda-contratos-add label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 600 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+  color: var(--e19-muted);
+}
+
+.e19-deuda-contratos .deuda-contratos-add input,
+.e19-deuda-contratos .deuda-contratos-add select {
+  min-width: 140px;
+  padding: 7px 10px;
+  border: 1px solid var(--e19-border-strong);
+  border-radius: var(--e19-radius-sm);
+  background: var(--e19-surface);
+  font: 400 var(--e19-text-base) / 1.2 var(--e19-font-sans);
+  color: var(--e19-ink);
+}
+
+.e19-deuda-contratos .deuda-contratos-add-actions {
+  display: flex;
+  gap: 8px;
+}
+
 /* -------------------------------------------------------------------------------------------- */
 /* Barra de impacto (pie fijo, ver mockup 3a)                                                    */
 /* -------------------------------------------------------------------------------------------- */

@@ -2,6 +2,46 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: alta de contratos de deuda a mano (D-2c)
+
+El usuario preguntó dónde se dan de alta los contratos de Deuda › Contratos (D-2): hasta ahora
+solo existían los tres de ejemplo (`DEBT_PORTFOLIO`, fijos en `app.js`) y la pantalla solo permitía
+corregir capital, TAE y cuota de esos tres — no había ninguna forma de añadir un contrato nuevo
+desde la interfaz. Pidió explícitamente poder darlos de alta él mismo, en vez de que se rellenaran
+valores de ejemplo por él, señalando el estilo de formulario editable de la pantalla heredada
+`#debt-roadmap` como referencia de qué tipo de control quería.
+
+**Construido — D-2c, alta de contrato nuevo en Deuda › Contratos**:
+- Formulario bajo la tabla (`#deudaContratosAddForm`) con entidad, tipo, número, capital
+  pendiente, TAE, cuota mensual, estado (activa/pagos suspendidos/reunificada/liquidada) y plazos
+  restantes. Solo entidad y capital pendiente son obligatorios; el resto puede quedar sin dato,
+  igual que ya toleran los tres contratos de ejemplo.
+- Los contratos dados de alta se guardan en `debtContractCustomEntries` (mismo patrón de
+  persistencia — local y sincronización remota — que ya usa `debtContractOverrides`) y se combinan
+  con `DEBT_PORTFOLIO` en `debtPortfolioWithOverrides()`, el mismo embudo único por el que ya pasan
+  Ruta, Comparar, Hoy y el motor de escenarios: un contrato nuevo aparece automáticamente en todas
+  las pantallas que leen deuda, sin tocar cada una por separado.
+- Cada contrato dado de alta lleva un botón «×» para eliminarlo (y limpia su override si lo
+  tenía). Los tres contratos de ejemplo no se pueden eliminar desde aquí — ya se podían editar,
+  ahora conviven con los nuevos, marcados con una franja de color en la fila para distinguirlos a
+  simple vista.
+- Regla no obvia documentada en el código: el normalizador (`canonical-debt-contracts.js`) solo
+  clasifica un contrato como «Liquidada» si su capital pendiente es 0, así que el alta fuerza ese
+  campo a 0 cuando se elige ese estado, aunque se haya escrito otro importe (el capital original
+  declarado sí se conserva).
+- Probado en el navegador contra el sitio construido (`npm run build:site` + servidor local):
+  alta de un contrato de prueba (aparece en la tabla), validación de campos obligatorios (el
+  `required` nativo bloquea el envío sin entidad) y borrado (vuelve a los tres contratos de
+  ejemplo), sin errores de consola.
+
+**Validación**: `npm run verify` completo — `npm test` **1455/1455 pruebas** (48/48 en
+`tests/d1-d2-deuda-tabs-contratos.test.cjs`, con 20 pruebas nuevas para D-2c), accesibilidad,
+rendimiento, `build:site`, privacidad y smoke test, todo en verde.
+
+**Publicado**: commit y push directo a `claude/charming-davinci-rzhz3u` (autorización permanente
+del 10 de agosto de 2026, sin preguntar en cada turno) y PR en borrador; fusión a `main` en cuanto
+el CI esté en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: verificación pixel-perfect de Escenarios, Análisis, Cierre y Laboratorio
 
 El usuario adjuntó las cuatro últimas pantallas de la ronda «por pantalla» —`Escenarios.pdf`,
