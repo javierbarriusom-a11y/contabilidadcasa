@@ -27644,7 +27644,7 @@ function renderRegistrar() {
 const PLAN_TABS = [
   { id: "mes", label: "Mes" },
   { id: "prevision", label: "Previsión" },
-  { id: "ahorro", label: "Ahorro" },
+  { id: "ahorro", label: "Ahorro y objetivos" },
 ];
 let planActiveTab = "mes";
 let planMesCopyPending = false;
@@ -27734,6 +27734,11 @@ function planMesCollect(month) {
         const info = actualAwareInfo(row, month);
         const hasActual = Boolean(info.hasActual);
         const usado = hasActual ? Number(info.actual || 0) : cell.value;
+        // Plan.pdf (04 de 9): «Restante» — presupuesto menos gastado (al revés en Ingresos: real
+        // menos previsto, para que un ingreso mayor de lo esperado siga siendo positivo/verde).
+        // A diferencia de la desviación, siempre tiene valor: sin real, gastado cae al previsto y
+        // restante da 0, tal como pinta el mockup en vez de un «—».
+        const restante = kind === "income" ? round2(usado - cell.value) : round2(cell.value - usado);
         result[kind].push({
           kind,
           row,
@@ -27744,6 +27749,7 @@ function planMesCollect(month) {
           hasActual,
           usado,
           variance: hasActual ? round2(usado - cell.value) : null,
+          restante,
           key: `${kind}:${seriesKeyForRow(row)}`,
         });
       });
@@ -27872,13 +27878,18 @@ function planMesIsFinancingRowKey(rowKey) {
 // nombre de sección de cada fila ya lo dice la cabecera de bloque — repetirlo en una columna propia
 // era ruido. Se retira la celda «Bloque»; `data-plan-mes-block` sigue en la fila para que el
 // plegado (`handlePlanMesBlockToggle`) sepa a qué bloque pertenece.
+// Plan.pdf (04 de 9): «Restante» sustituye a «Desviación» — presupuesto menos gastado, siempre
+// visible (nunca «—», incluso sin real todavía: `planMesCollect` lo deja en 0 cuando gastado cae
+// al previsto). Positivo es «sobra» (verde); negativo es «falta» (rojo).
 function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false, sobresBalance = null, showSobresColumn = false) {
   const rowKey = seriesKeyForRow(entry.row);
   const isFinancing = entry.sectionName === "Financiaciones";
   const plannedCell = isFinancing
     ? `<span class="plan-mes-financing-readonly">${money(entry.planned, true)}<small>se cambia en <button type="button" class="registrar-actuals-plan-link" data-home-nav="deuda-contratos">Deuda</button></small></span>`
     : `<input type="number" step="0.01" inputmode="decimal" data-plan-mes-planned="${escapeHtml(rowKey)}" data-plan-mes-month="${escapeHtml(monthKey)}" aria-label="Previsto de ${escapeHtml(entry.label)}" value="${entry.planned}"${monthClosed ? " disabled" : ""} />`;
-  // P-14: la columna «Sobre» solo aparece con la bandera activa, y solo tiene valor real para
+  const restante = Number(entry.restante || 0);
+  const restanteClass = restante > 0 ? "positive" : restante < 0 ? "negative" : "";
+  // P-14: la columna «Arrastre» solo aparece con la bandera activa, y solo tiene valor real para
   // Gastos variables — el resto de bloques muestra «—» en vez de fingir un sobre que no existe.
   const sobresCell = showSobresColumn
     ? `<td data-plan-mes-cell="sobre" class="${sobresBalance === null ? "" : sobresBalance < 0 ? "negative" : "positive"}">${sobresBalance === null ? "—" : money(sobresBalance, true)}</td>`
@@ -27887,7 +27898,7 @@ function planMesRowHtml(entry, monthClosed, monthKey, collapsed = false, sobresB
     <td class="registrar-mes-concept">${escapeHtml(entry.label)}</td>
     <td>${plannedCell}</td>
     <td data-plan-mes-cell="usado"><strong>${money(entry.usado, true)}</strong> <small class="e19-kpi-meta" title="${escapeHtml(planMesUsadoTitle(entry, monthKey))}">${entry.hasActual ? "real" : "previsto"}</small></td>
-    <td data-plan-mes-cell="variance" class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
+    <td data-plan-mes-cell="restante" class="${restanteClass}">${registrarMesSignedMoney(restante)}</td>
     ${sobresCell}
   </tr>`;
 }
@@ -27927,11 +27938,14 @@ function planMesBlockRowHtml(block, showSobresColumn = false) {
   </tr>`;
 }
 
-// P-2: «una sola tabla «Presupuesto de [mes]» con cabeceras de sección... y subtotal por bloque,
-// plegable». Sustituye la tarjeta plana de Gastos; Ingresos se queda como estaba (el mockup tampoco
-// la itemiza dentro de esta tabla — su previsto ya vive en los KPI de arriba, en
-// `planMesKpis`/`INGRESO PREVISTO`).
-function planMesBudgetTableHtml(list, month, monthClosed) {
+// Plan.pdf (04 de 9): «una sola tabla «Presupuesto de [mes]» con cabeceras de sección... y
+// subtotal por bloque, plegable». Sustituye la tarjeta plana de Gastos; Ingresos se fusiona aquí
+// como primer bloque (la propia lista de entrada ya lo trae en cabeza — ver renderPlanMes), tal
+// como pide el inventario de la sección A del mockup («agrupada por bloques: ingresos, fijos,
+// variables, deuda y ahorro»). Columnas renombradas a Presupuesto/Gastado/Restante (antes
+// Previsto/Usado/Desviación) para que coincidan con el mockup; «Restante» ya viene calculado en
+// `planMesCollect` (positivo = sobra, negativo = falta), no en esta función.
+function planMesBudgetTableHtml(list, month, monthClosed, extraFootHtml = "") {
   const showSobres = sobresEnabled();
   const balanceByKey = new Map(showSobres ? sobresMonthBalances(month).map((item) => [item.rowKey, item.saldo]) : []);
   const blocks = planMesGroupBySection(list);
@@ -27950,14 +27964,31 @@ function planMesBudgetTableHtml(list, month, monthClosed) {
         })
         .join("")
     : `<tr><td colspan="${showSobres ? 5 : 4}" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
+  const pendingCount = list.filter((entry) => entry.plannedDraft).length;
+  const savedBadge = pendingCount
+    ? `<span class="e19-badge e19-badge-warning">${pendingCount} sin guardar</span>`
+    : `<span class="e19-badge e19-badge-success">Todo guardado</span>`;
+  const sobreCount = showSobres ? list.filter((entry) => entry.sectionName === "Gastos variables").length : 0;
+  const footNote = `${list.length} partida${list.length === 1 ? "" : "s"} en ${blocks.length} bloque${blocks.length === 1 ? "" : "s"}${showSobres ? ` · ${sobreCount} declarada${sobreCount === 1 ? "" : "s"} como sobre` : ""}`;
   return `<article class="e19-card registrar-mes-card">
-    <div class="registrar-mes-card-head"><h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(month.label)}</h3></div>
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(month.label)}</h3>
+        <p class="e19-subtitle">Presupuesto editable · gastado de solo lectura${showSobres ? " · dos columnas de sobre" : ""}</p>
+      </div>
+      ${savedBadge}
+    </div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
-        <thead><tr><th>Partida</th><th>Previsto</th><th>Usado</th><th>Desviación</th>${showSobres ? "<th>Sobre</th>" : ""}</tr></thead>
+        <thead><tr><th>Partida</th><th>Presupuesto</th><th>Gastado</th><th>Restante</th>${showSobres ? "<th>Arrastre</th>" : ""}</tr></thead>
         <tbody>${body}</tbody>
       </table>
     </div>
+    <div class="registrar-mes-card-foot plan-mes-table-foot">
+      <p class="e19-kpi-note">${escapeHtml(footNote)}</p>
+      <button type="button" class="registrar-actuals-plan-link" data-home-nav="registrar">Añadir partida</button>
+    </div>
+    ${extraFootHtml ? `<div class="registrar-mes-card-foot">${extraFootHtml}</div>` : ""}
   </article>`;
 }
 
@@ -28007,21 +28038,6 @@ function planMesCopyHtml(month) {
     <button type="button" class="e19-btn e19-btn-secondary" data-plan-mes-copy-cancel>Cancelar</button>`;
 }
 
-function planMesCardHtml(label, list, month, monthClosed) {
-  const body = list.length
-    ? list.map((entry) => planMesRowHtml(entry, monthClosed, month.key)).join("")
-    : `<tr><td colspan="4" class="registrar-mes-empty">Este mes no tiene partidas de este tipo.</td></tr>`;
-  return `<article class="e19-card registrar-mes-card">
-    <div class="registrar-mes-card-head"><h3 class="escenario-motor-panel-title">${escapeHtml(label)}</h3></div>
-    <div class="table-wrap">
-      <table class="e19-table registrar-mes-table">
-        <thead><tr><th>Concepto</th><th>Previsto</th><th>Usado</th><th>Desviación</th></tr></thead>
-        <tbody>${body}</tbody>
-      </table>
-    </div>
-  </article>`;
-}
-
 function renderPlanMes() {
   if (!qs("planMesTables") || !baseData?.monthlyPlanning?.months?.length) return;
   const months = cuadroMandosAllMonths();
@@ -28041,19 +28057,90 @@ function renderPlanMes() {
   // pantalla, el previsto de ingresos del mismo mes. No bloquea nada por sí solo (regla
   // transversal 02: nada se aplica sin guardar), solo avisa.
   const overCeiling = totals.expensePlanned > totals.incomePlanned;
+  // Plan.pdf (04 de 9, sección B): cuatro tarjetas — Ingreso previsto, Comprometido (fijos y
+  // cuotas de deuda: lo contractual, sin margen), Asignado (todo el gasto previsto) y Sin asignar
+  // (lo que queda por repartir). Sustituyen a Previsto ingresos/Previsto gastos/Techo de
+  // asignación/Partidas; el recuento de partidas pasa al pie de la tabla de presupuesto.
+  const comprometido = round2(
+    entries.expense
+      .filter((entry) => entry.sectionName === "Gastos fijos" || entry.sectionName === "Financiaciones")
+      .reduce((sum, entry) => sum + Number(entry.planned || 0), 0),
+  );
+  const asignado = totals.expensePlanned;
+  const sinAsignar = round2(totals.incomePlanned - asignado);
+  const pctOfIncome = (value) => (totals.incomePlanned > 0 ? Math.max(0, Math.min(100, round2((value / totals.incomePlanned) * 100))) : 0);
+  const confirmedIncome = entries.income.filter((entry) => entry.hasActual).length;
+  const incomeNote = entries.income.length
+    ? confirmedIncome
+      ? `${confirmedIncome} de ${entries.income.length} ingreso${entries.income.length === 1 ? "" : "s"} confirmado${confirmedIncome === 1 ? "" : "s"}`
+      : `${entries.income.length} ingreso${entries.income.length === 1 ? "" : "s"} previsto${entries.income.length === 1 ? "" : "s"}`
+    : "Sin ingresos previstos este mes";
   const kpis = qs("planMesKpis");
   if (kpis) {
     kpis.innerHTML = [
-      `<div class="e19-kpi"><span class="e19-kpi-label">Previsto ingresos</span><span class="e19-kpi-value">${money(totals.incomePlanned, true)}</span></div>`,
-      `<div class="e19-kpi${overCeiling ? " is-danger" : ""}"><span class="e19-kpi-label">Previsto gastos</span><span class="e19-kpi-value">${money(totals.expensePlanned, true)}</span></div>`,
-      `<div class="e19-kpi${overCeiling ? " is-danger" : ""}"><span class="e19-kpi-label">Techo de asignación</span><span class="e19-kpi-value">${money(round2(totals.incomePlanned - totals.expensePlanned), true)}</span><span class="e19-kpi-meta">${overCeiling ? "Previsto gastos supera previsto ingresos" : "Previsto ingresos menos previsto gastos"}</span></div>`,
-      `<div class="e19-kpi"><span class="e19-kpi-label">Partidas</span><span class="e19-kpi-value">${totals.lines}</span></div>`,
+      `<div class="plan-mes-kpi">
+        <span class="plan-mes-kpi-label">Ingreso previsto</span>
+        <span class="plan-mes-kpi-value">${money(totals.incomePlanned, true)}</span>
+        <span class="registrar-mes-progress"><span style="width:100%"></span></span>
+        <p class="plan-mes-kpi-note">${escapeHtml(incomeNote)}</p>
+      </div>`,
+      `<div class="plan-mes-kpi">
+        <span class="plan-mes-kpi-label">Comprometido</span>
+        <span class="plan-mes-kpi-value">${money(comprometido, true)}</span>
+        <span class="registrar-mes-progress"><span style="width:${pctOfIncome(comprometido)}%"></span></span>
+        <p class="plan-mes-kpi-note">Contratos y cuotas de deuda</p>
+      </div>`,
+      `<div class="plan-mes-kpi${overCeiling ? " is-danger" : ""}">
+        <span class="plan-mes-kpi-label">Asignado</span>
+        <span class="plan-mes-kpi-value">${money(asignado, true)}</span>
+        <span class="registrar-mes-progress"><span style="width:${pctOfIncome(asignado)}%"></span></span>
+        <p class="plan-mes-kpi-note">${overCeiling ? "Previsto gastos supera previsto ingresos" : "Suma de todas las partidas"}</p>
+      </div>`,
+      `<div class="plan-mes-kpi is-highlight${sinAsignar < 0 ? " is-danger" : ""}">
+        <span class="plan-mes-kpi-label">Sin asignar</span>
+        <span class="plan-mes-kpi-value">${money(sinAsignar, true)}</span>
+        <p class="plan-mes-kpi-note">${sinAsignar < 0 ? "El asignado supera el ingreso previsto" : "Disponible para repartir"}</p>
+      </div>`,
     ].join("");
   }
 
+  // P-2/A: Ingresos se fusiona como primer bloque de la misma tabla («agrupada por bloques:
+  // ingresos, fijos, variables, deuda y ahorro») en vez de una tarjeta aparte — el orden de
+  // `combinedList` (ingresos primero) es lo único que decide que sea el primer bloque.
+  const combinedList = [...entries.income, ...entries.expense];
   const container = qs("planMesTables");
-  container.innerHTML = `${planMesCardHtml("Ingresos", entries.income, month, editLocked)}${planMesBudgetTableHtml(entries.expense, month, editLocked)}
-    <div class="registrar-mes-card-foot">${planMesClosedFootHtml(month, monthClosed, overrideActive)}</div>`;
+  container.innerHTML = planMesBudgetTableHtml(combinedList, month, editLocked, planMesClosedFootHtml(month, monthClosed, overrideActive));
+
+  // P-15: las tres tarjetas de liquidación de sobres solo existen con la bandera activa — con
+  // sobres apagados esta pantalla es exactamente la de siempre, tal como pide el mockup.
+  const summaryEl = qs("planMesSobresSummary");
+  if (summaryEl) {
+    if (sobresEnabled()) {
+      const balances = sobresMonthBalances(month);
+      const sobranteTotal = round2(balances.reduce((sum, item) => sum + Math.max(0, item.saldo), 0));
+      const aCubrir = round2(balances.reduce((sum, item) => sum + Math.max(0, -item.saldo), 0));
+      summaryEl.hidden = false;
+      summaryEl.innerHTML = `
+        <div class="plan-mes-summary-card is-good">
+          <span class="plan-mes-kpi-label">Sobrante total</span>
+          <span class="plan-mes-kpi-value">${money(sobranteTotal, true)}</span>
+          <p class="plan-mes-kpi-note">Reparto según la regla de cada sobre</p>
+        </div>
+        <div class="plan-mes-summary-card is-warn">
+          <span class="plan-mes-kpi-label">A cubrir</span>
+          <span class="plan-mes-kpi-value">${money(aCubrir, true)}</span>
+          <p class="plan-mes-kpi-note">Sale del arrastre y, si no llega, del colchón</p>
+        </div>
+        <div class="plan-mes-summary-card is-info">
+          <span class="plan-mes-kpi-label">Irá a ahorro al cerrar</span>
+          <span class="plan-mes-kpi-value">${money(0, true)}</span>
+          <p class="plan-mes-kpi-note">Pendiente de objetivos de ahorro por sobre</p>
+        </div>`;
+    } else {
+      summaryEl.hidden = true;
+      summaryEl.innerHTML = "";
+    }
+  }
 
   renderPlanMesImpactBar();
 }
@@ -29785,9 +29872,34 @@ function handleAnalisisWindow(windowKey) {
 function renderPlan() {
   if (!qs("planTabs")) return;
   renderPlanTabs();
+  renderPlanHeaderControls();
   renderPlanMes();
   renderPlanPrevision();
   renderPlanAhorro();
+}
+
+// Plan.pdf (04 de 9, sección B): horizonte y conmutador de sobres viven en la cabecera,
+// compartidos por las tres pestañas — se repintan aquí, no dentro de cada pestaña.
+function renderPlanHeaderControls() {
+  document.querySelectorAll("[data-plan-prevision-horizon]").forEach((button) => {
+    const active = button.dataset.planPrevisionHorizon === planPrevisionHorizonKey;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+  const toggle = qs("planSobresToggle");
+  if (!toggle) return;
+  const enabled = sobresEnabled();
+  toggle.classList.toggle("is-active", enabled);
+  toggle.setAttribute("aria-pressed", enabled ? "true" : "false");
+  const text = toggle.querySelector("[data-plan-sobres-toggle-text]");
+  if (text) text.textContent = enabled ? "Activados" : "Desactivados";
+}
+
+function handlePlanSobresToggle() {
+  if (!state) return;
+  state.envelopes = { ...(state.envelopes || {}), enabled: !sobresEnabled() };
+  saveScenarioSettings();
+  render();
 }
 
 function renderActiveSection(viewId = viewFromHash()) {
@@ -30241,10 +30353,11 @@ async function init() {
     const button = event.target.closest("[data-plan-tab]");
     if (button) setPlanTab(button.dataset.planTab);
   });
-  qs("planPrevisionHorizon")?.addEventListener("click", (event) => {
+  qs("planHeaderHorizon")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-plan-prevision-horizon]");
     if (button) handlePlanPrevisionHorizon(button.dataset.planPrevisionHorizon);
   });
+  qs("planSobresToggle")?.addEventListener("click", handlePlanSobresToggle);
   qs("planMesMonth")?.addEventListener("change", renderPlanMes);
   qs("planMesTables")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-plan-mes-planned]");

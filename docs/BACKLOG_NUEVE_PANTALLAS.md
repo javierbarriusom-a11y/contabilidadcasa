@@ -913,6 +913,71 @@ contra el build local: en un mes cerrado, el botón desbloquea el `<input>` de p
 (pasa de `disabled` a editable), «Volver a bloquear» lo vuelve a congelar, y cambiar a otro mes no
 arrastra el candado abierto. Sin errores de consola propios.
 
+**Repaso pixel-perfect del 21 de agosto de 2026 (sesión «pantalla por pantalla», continuación de
+Hoy, Registrar y Movimientos).** Con las 17 tareas ya en Hecho y la auditoría de contenido del 15-16
+de agosto cerrada, esta sesión comparó el build local contra la sección B de `Plan.pdf` («Plan,
+rediseñada y completa») — la sección A es un inventario de destino, no una pantalla, y la sección C
+es el propio backlog P-1 a P-16 de esta tabla, no algo que renderizar. Dos decisiones de producto se
+consultaron con el usuario antes de tocar nada, porque implicaban fusionar o ampliar funcionalidad
+activa:
+
+- **Cabecera compartida por las tres pestañas**: el mockup pinta el selector de horizonte
+  (12/24/48/Hasta 2036) y un conmutador «Sobres · Fase 6» junto al título «Plan», visibles con
+  cualquier pestaña activa. El horizonte vivía solo dentro de la pestaña Previsión
+  (`#planPrevisionHorizon`); se mueve a la cabecera compartida (`#planHeaderHorizon`, dentro de
+  `.section-title.with-action`) reutilizando el mismo `planPrevisionHorizonKey` y los mismos botones
+  `data-plan-prevision-horizon` — `handlePlanPrevisionHorizon` ya actualizaba todos los botones con
+  ese atributo por `querySelectorAll`, así que no hizo falta tocar su lógica. El conmutador de sobres
+  es nuevo (`#planSobresToggle`): llama a `handlePlanSobresToggle`, que alterna
+  `state.envelopes.enabled` con el mismo patrón que ya usaba el checkbox de Ajustes
+  (`handleSobresToggle`) y dispara un `render()` completo — el checkbox de Ajustes sigue existiendo y
+  ambos controles quedan sincronizados porque leen el mismo `sobresEnabled()`.
+- **Cuatro tarjetas KPI con barra de progreso**: sustituyen a «Previsto ingresos/Previsto
+  gastos/Techo de asignación/Partidas» (tres tarjetas más una suelta, sin relación con el mockup).
+  Las nuevas son Ingreso previsto, Comprometido (Gastos fijos + Financiaciones — lo contractual, sin
+  margen), Asignado (todo el gasto previsto) y Sin asignar (ingreso menos asignado, tarjeta verde);
+  las tres primeras llevan una barra `.registrar-mes-progress` (el mismo componente que ya pintaba
+  «Completado» en Registrar el mes) proporcional al ingreso previsto. El recuento de partidas pasa al
+  pie de la tabla de presupuesto («N partidas en M bloques»).
+- **Ingresos fusionado como primer bloque de la tabla única**: el mockup no itemiza ingresos en una
+  tarjeta aparte — vive como el primer bloque plegable de «Presupuesto de [mes]», igual que Gastos
+  fijos/Variables/Financiaciones. `renderPlanMes` ya no llama a una tarjeta de Ingresos separada
+  (retirada, `planMesCardHtml` quedó sin otro llamador y se borró); construye `combinedList` con los
+  ingresos primero y `planMesGroupBySection` los agrupa en el primer bloque sin cambios propios — el
+  orden de la lista de entrada es lo único que decide qué bloque va primero.
+- **Columnas renombradas y «Restante» siempre visible**: Previsto/Usado/Desviación pasan a
+  Presupuesto/Gastado/Restante. «Restante» sustituye a «Desviación» con un cambio de fondo, no solo
+  de rótulo: antes, sin real, la desviación mostraba «—»; ahora `planMesCollect` calcula
+  `restante = presupuesto − gastado` (al revés en Ingresos, para que un ingreso real mayor de lo
+  esperado siga siendo positivo/verde) y, como «gastado» ya cae al previsto sin real, restante da 0 y
+  se ve siempre — tal como pinta el mockup en cada fila, nunca un guion.
+- **Sobres: columna Arrastre y tres tarjetas de liquidación, sin tocar dónde vive la regla.** El
+  mockup pide una columna «Arrastre» y un desplegable por fila con cuatro reglas (Arrastre/A
+  ahorro/A otro sobre/Se disuelve). El código ya tenía sobres con una decisión previa distinta
+  (P-14: «las reglas de sobres se editan en Ajustes, no viven repartidas por el código», con solo dos
+  reglas — arrastra/tope-cero). El usuario pidió respetar esa decisión: la columna «Sobre» se
+  renombra a «Arrastre» (mismo dato — `sobresMonthBalances`, sin cálculo nuevo) y aparecen las tres
+  tarjetas de liquidación del mockup (Sobrante total = suma de saldos positivos; A cubrir = suma de
+  saldos negativos en valor absoluto; Irá a ahorro al cerrar, en 0 € con una nota explícita porque
+  depende de P-13 con destino por objetivo, que P-16 ya deja fuera de alcance), pero ningún
+  desplegable de cuatro reglas por fila — la regla se sigue editando solo en Ajustes.
+- **Pestaña «Ahorro y objetivos»**: cerraba el hallazgo «menor/cosmético» que ya dejó anotado la
+  auditoría de contenido del 16 de agosto (línea de arriba) — `PLAN_TABS` y el botón de índice.html
+  pasan de «Ahorro» a «Ahorro y objetivos», igual que el PDF.
+- **Fuera de alcance, documentado**: el desplegable de cuatro reglas por sobre (arriba) y la
+  franja superior de utilidad (Fase 3 · menú, igual que en las pantallas anteriores).
+
+**Validación**: `npm run verify`, exit 0 — **1428/1428 pruebas** (se ajustaron
+`tests/p1-p7-plan-mes.test.cjs`, cabeceras de columna, fusión de Ingresos y el nuevo
+`id="planHeaderHorizon"`; `tests/p8-p9-plan-prevision.test.cjs` para el mismo id), accesibilidad
+(792 IDs únicos), rendimiento (diff 10.000 filas en 36,0 ms; forecast y escenarios en 189,6 ms;
+recursos 1707 KB), build del sitio, privacidad y smoke test, todos en verde. Verificado con
+Playwright contra el build local a 1440 px: el horizonte elegido sobrevive al cambio de pestaña
+desde la cabecera compartida; el conmutador de sobres muestra/oculta la columna Arrastre y las tres
+tarjetas sin recargar la página; las cuatro tarjetas KPI y sus barras de progreso calculan bien con
+los datos de demostración; Previsión y Ahorro y objetivos siguen renderizando sin errores de consola
+tras mover el horizonte fuera de su panel. Sin hallazgos adicionales.
+
 ### 05 · Deuda — un dato canónico y dos vistas que lo leen (15 tareas · 3 grandes)
 
 | ID | Tarea | Depende de | T | Estado |

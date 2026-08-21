@@ -379,7 +379,7 @@ function sandboxBudgetTable(list, month, monthClosed, collapsedBlocks = new Set(
 test("P-2 · planMesBudgetTableHtml titula «Presupuesto de [mes]» y pinta una cabecera de 4 columnas, sin Bloque", () => {
   const html = sandboxBudgetTable([], { key: "2026-08", label: "agosto 2026" }, false);
   assert.match(html, /Presupuesto de agosto 2026/);
-  assert.match(html, /<thead><tr><th>Partida<\/th><th>Previsto<\/th><th>Usado<\/th><th>Desviación<\/th><\/tr><\/thead>/);
+  assert.match(html, /<thead><tr><th>Partida<\/th><th>Presupuesto<\/th><th>Gastado<\/th><th>Restante<\/th><\/tr><\/thead>/);
 });
 
 test("P-2 · planMesBudgetTableHtml agrupa las filas por bloque, cada una con su cabecera de sección y subtotal", () => {
@@ -427,10 +427,12 @@ test("P-2 · handlePlanMesBlockToggle no hace nada sin nombre de bloque", () => 
   assert.deepEqual(calls, []);
 });
 
-test("P-2 · renderPlanMes pinta la tabla de presupuesto agrupada (planMesBudgetTableHtml), no la tarjeta plana de Gastos", () => {
+test("P-2 · renderPlanMes pinta la tabla de presupuesto agrupada (planMesBudgetTableHtml) con Ingresos fusionado como primer bloque, no tarjetas planas separadas", () => {
   const fn = extractFunction("renderPlanMes");
-  assert.match(fn, /planMesBudgetTableHtml\(entries\.expense, month, editLocked\)/);
+  assert.match(fn, /const combinedList = \[\.\.\.entries\.income, \.\.\.entries\.expense\];/);
+  assert.match(fn, /planMesBudgetTableHtml\(combinedList, month, editLocked, planMesClosedFootHtml\(month, monthClosed, overrideActive\)\)/);
   assert.doesNotMatch(fn, /planMesCardHtml\("Gastos"/);
+  assert.doesNotMatch(fn, /planMesCardHtml\("Ingresos"/);
 });
 
 test("P-2 · el manejador de clics de planMesTables reconoce data-plan-mes-block-toggle", () => {

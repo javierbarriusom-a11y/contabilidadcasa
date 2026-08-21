@@ -4257,11 +4257,209 @@
   background: var(--e19-accent);
 }
 
+/* Plan.pdf (04 de 9, sección B «Plan, rediseñada y completa») · cabecera compartida: horizonte
+   (mismo `.registrar-mes-filter` que ya usaba solo Previsión, ahora también bajo `.e19-plan`
+   para que valga en las tres pestañas) + conmutador de sobres (Fase 6, apagado por defecto). */
+.e19-plan .registrar-mes-filters {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--e19-surface-sunken);
+  border-radius: var(--e19-radius-pill);
+}
+
+.e19-plan .registrar-mes-filter {
+  border: none;
+  background: transparent;
+  border-radius: var(--e19-radius-pill);
+  padding: 6px 14px;
+  font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  color: var(--e19-muted);
+  cursor: pointer;
+}
+
+.e19-plan .registrar-mes-filter.is-active {
+  background: var(--e19-surface);
+  color: var(--e19-heading);
+  box-shadow: var(--e19-shadow-card);
+}
+
+.e19-plan .plan-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.plan-sobres-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-sobres-label {
+  font: 700 var(--e19-text-xs) / 1 var(--e19-font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--e19-muted);
+}
+
+.plan-sobres-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--e19-border-strong);
+  background: var(--e19-surface);
+  color: var(--e19-muted);
+  border-radius: var(--e19-radius-pill);
+  padding: 6px 14px;
+  font: 600 var(--e19-text-sm) / 1 var(--e19-font-sans);
+  cursor: pointer;
+}
+
+.plan-sobres-toggle .plan-sobres-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--e19-faint);
+}
+
+.plan-sobres-toggle.is-active {
+  border-color: var(--e19-accent);
+  background: var(--e19-accent);
+  color: var(--e19-accent-ink);
+}
+
+.plan-sobres-toggle.is-active .plan-sobres-dot {
+  background: var(--e19-accent-ink);
+}
+
+/* Fila de cuatro tarjetas (Ingreso previsto/Comprometido/Asignado/Sin asignar), cada una con la
+   misma barra `.registrar-mes-progress` que ya usaba «Completado» — proporción sobre el ingreso
+   previsto, no un componente nuevo. */
+.plan-mes-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.plan-mes-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--e19-surface);
+  border: 1px solid var(--e19-border);
+  border-left: 4px solid transparent;
+  border-radius: var(--e19-radius-md);
+  padding: 14px 16px;
+}
+
+.plan-mes-kpi.is-danger {
+  border-left-color: var(--e19-danger);
+}
+
+.plan-mes-kpi.is-highlight {
+  background: var(--e19-success-soft);
+  border-color: var(--e19-success-soft-border);
+}
+
+.plan-mes-kpi.is-highlight.is-danger {
+  background: var(--e19-danger-soft);
+  border-color: var(--e19-danger-soft-border);
+}
+
+.plan-mes-kpi-label {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.plan-mes-kpi-value {
+  font: 800 var(--e19-text-xl) / 1.1 var(--e19-font-sans);
+  color: var(--e19-heading);
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-mes-kpi-note {
+  margin: 0;
+  font-size: var(--e19-text-sm);
+  color: var(--e19-muted);
+}
+
+/* Cabecera de la tabla unificada: título+subtítulo a la izquierda, estado de guardado y «Copiar
+   de {mes}» a la derecha — mismo patrón `.registrar-mes-card-head`, con las dos zonas envueltas. */
+.plan-mes-budget-head {
+  align-items: flex-start;
+}
+
+.plan-mes-budget-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.plan-mes-table-foot {
+  justify-content: space-between;
+}
+
+/* Tres tarjetas de liquidación de sobres (P-15): sobrante a repartir, a cubrir del colchón e
+   irá a ahorro al cerrar — mismos tonos que ya usa `.e19-kpi`/`.e19-insight` para verde/rojo. */
+.plan-mes-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.plan-mes-summary-card {
+  border-radius: var(--e19-radius-md);
+  border: 1px solid var(--e19-border);
+  padding: 14px 16px;
+  background: var(--e19-surface);
+}
+
+.plan-mes-summary-card .plan-mes-kpi-label {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.plan-mes-summary-card .plan-mes-kpi-value {
+  color: inherit;
+}
+
+.plan-mes-summary-card.is-good {
+  background: var(--e19-success-soft);
+  border-color: var(--e19-success-soft-border);
+  color: var(--e19-success);
+}
+
+.plan-mes-summary-card.is-warn {
+  background: var(--e19-danger-soft);
+  border-color: var(--e19-danger-soft-border);
+  color: var(--e19-danger);
+}
+
+.plan-mes-summary-card.is-info {
+  background: var(--e19-accent-soft);
+  border-color: var(--e19-accent-soft-border);
+  color: var(--e19-accent);
+}
+
 @media (max-width: 860px) {
   .e19-registrar-mes .registrar-mes-card-head,
   .e19-registrar-mes .registrar-mes-card-foot {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .plan-mes-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .plan-mes-summary-grid {
+    grid-template-columns: 1fr;
   }
 }
 
