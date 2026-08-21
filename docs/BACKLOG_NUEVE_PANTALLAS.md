@@ -1205,6 +1205,59 @@ correctas contra el PDF. Cuatro tareas marcadas «Hecho» no cumplen el criterio
   Hoy tras la confirmación. Pruebas nuevas en `tests/d8-d9-deuda-oferta-aplicar.test.cjs`; se
   reescribió `tests/v3-4-oferta-en-curso.test.cjs` (el botón ya no enruta, aplica en el sitio).
 
+**Repaso pixel-perfect del 21 de agosto de 2026 (sesión «pantalla por pantalla», continuación de
+Hoy, Registrar, Movimientos y Plan).** Con las 17 tareas ya en Hecho y la auditoría de contenido
+del 15 de agosto cerrada, esta sesión comparó `#deuda-ruta` contra la sección B de `Deuda.pdf`
+(«Deuda, rediseñada y completa» — la A es un inventario de destino y la C es este mismo backlog,
+ninguna de las dos es una pantalla). Un hallazgo se corrigió sin preguntar (afecta a once vistas,
+no solo a Deuda, y es puramente aditivo); dos decisiones de producto se consultaron con el usuario
+antes de tocar nada:
+
+- **Bug: cabecera compartida con el contenido de Hoy** (corregido sin preguntar). `viewTitles` no
+  tenía entrada para `deuda-ruta`, `deuda-comparar`, `deuda-contratos` ni otras ocho vistas
+  navegables (`escenario-simular/aplicar/guardados/comparar`, `conciliar`, `datos-importar`,
+  `asesor-decision`, `operations-manual`) — `activeViewTitle`/`setActiveView` caían en
+  `viewTitles.home`, así que el `<h1>` compartido y el recuadro «Para qué sirve» enseñaban «Hoy ·
+  Qué necesita tu atención» al entrar en cualquiera de ellas directamente. Once entradas nuevas,
+  cada una repitiendo el kicker y el `<h2>` que la propia sección ya pinta.
+- **«Orden de ataque» fusiona selector + Ruta propuesta + Cartera en una tabla por contrato**
+  (decisión del usuario: reconstruir fiel al mockup, no solo maquetación de superficie). El mockup
+  pide una tabla #/Contrato/Capital/TIN/Cuota/Peso y fin previsto con el selector de estrategia
+  pegado a su cabecera; antes eran tres piezas sueltas (el selector grande, la lista «Ruta
+  propuesta» con solo las decisiones ya resueltas, y la tarjeta «Cartera» con el peso).
+  `renderDeudaRutaAttackTable` (nueva) construye la tabla sobre `calendarContracts` (el mismo orden
+  ya usado por el calendario de amortización) y `resultadosById` (el mismo resultado del motor de
+  escenarios que ya alimentaba «Ruta propuesta») — ningún cálculo nuevo. Encontrado con Playwright,
+  no con las pruebas: `contract.apr` es `null` (no 0) cuando el TIN no se conoce —
+  `Number(null)` da 0 — así que sin descartar null/undefined antes de convertir, un TIN
+  desconocido se veía como un crédito al 0 % (igual la media ponderada del total, que ahora solo
+  promedia entre los contratos con TIN conocido). Encontrado también con Playwright: sin
+  `table-layout: fixed` + `min-width: 0`, una columna con poco contenido («—») se inflaba muy por
+  encima de lo necesario contra el `table { min-width: 1120px }` genérico de `styles.css`, forzando
+  scroll horizontal con hueco de sobra.
+- **Tarjeta «Oferta en curso» a fondo oscuro** cuando hay una oferta real (antes, tarjeta clara
+  siempre) — `#deuda-ruta-offer-card` gana `.is-active`, reutilizando `--e19-accent-strong` (el
+  mismo navy que ya define el resto del sistema) en vez de un color nuevo.
+- **El enlace a la heredada `#debt-roadmap` para «editar oferta» se sustituye por un formulario in
+  situ** (decisión del usuario: construirlo aquí, no dejarlo enlazado — coincide con lo que el
+  propio D-14 pide, aunque D-14 en su conjunto siga bloqueado por T-4). `updateE14bOffer` reutiliza
+  `E14DebtOperations.normalizeOffer`, la misma validación que ya usaba el alta en `#debt-roadmap`
+  (regla transversal 01) — solo sustituye la oferta existente en `workspace.offers` por su versión
+  normalizada, nunca crea una nueva ni cambia su `id`/`contractId`. El resto de `#debt-roadmap`
+  (selector de contrato, comparador de optimización) sigue existiendo tal cual; solo la edición de
+  una oferta ya registrada deja de depender de esa pantalla.
+
+**Validación**: `npm run verify`, exit 0 — **1438/1438 pruebas** (10 nuevas en
+`tests/d13-deuda-pixel-perfect.test.cjs`; se ajustaron `tests/v3-3-estrategia-consolidar.test.cjs`
+y `tests/v3-4-oferta-en-curso.test.cjs`), accesibilidad (794 IDs únicos), rendimiento (diff 10.000
+filas en 49,1 ms; forecast y escenarios en 267,6 ms; recursos 1717 KB), build del sitio, privacidad
+y smoke test, todos en verde. Verificado con Playwright contra el build local a 1440 px: las tres
+pestañas de Deuda muestran su propio título en la cabecera compartida; la tabla de Orden de ataque
+cabe sin scroll horizontal con sus seis columnas legibles; la tarjeta de oferta pasa a oscuro con
+una oferta sembrada de prueba, con todos sus textos y barras legibles sobre el fondo oscuro; el
+formulario de edición precarga los valores de la oferta y guarda con `updateE14bOffer`. Sin
+hallazgos adicionales.
+
 ### 06 · Escenarios — simulación pura, no toca el plan (17 tareas · 4 grandes)
 
 **Auditoría del 16 de agosto contra `Escenarios.pdf` (recibido en sesión, no estaba en el

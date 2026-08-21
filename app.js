@@ -408,6 +408,57 @@ const viewTitles = {
     eyebrow: "Movimientos",
     title: "Consulta y clasifica el extracto de movimientos, sin editar importes",
   },
+  // Hallazgo de la sesión pixel-perfect de Deuda (21 de agosto de 2026): estas once vistas son
+  // destino directo de un enlace de navegación (menú, pestaña o botón) pero no tenían entrada
+  // propia aquí — `activeViewTitle`/`setActiveView` caían en `viewTitles.home`, así que la
+  // cabecera compartida (eyebrow + <h1> + el recuadro «Para qué sirve») mostraba «Hoy · Qué
+  // necesita tu atención» al entrar directamente en cualquiera de ellas. Cada entrada repite tal
+  // cual el kicker y el <h2> que la propia sección ya pinta (mismo criterio que `ajustes`/`plan`),
+  // no texto nuevo.
+  "escenario-simular": {
+    eyebrow: "Decidir · escenario",
+    title: "Prueba una vida distinta sin tocar el plan",
+  },
+  "escenario-aplicar": {
+    eyebrow: "Decidir · aplicar escenario",
+    title: "Aplicar escenario",
+  },
+  "escenario-guardados": {
+    eyebrow: "Decidir · escenarios guardados",
+    title: "Escenarios guardados",
+  },
+  "escenario-comparar": {
+    eyebrow: "Decidir · comparar escenarios",
+    title: "Dos escenarios, uno al lado del otro",
+  },
+  "deuda-comparar": {
+    eyebrow: "Decidir · comparar estrategias",
+    title: "Tres formas reales de organizar la deuda",
+  },
+  "deuda-ruta": {
+    eyebrow: "Decidir · plan de deuda",
+    title: "Ruta de deuda",
+  },
+  "deuda-contratos": {
+    eyebrow: "Decidir · contratos",
+    title: "Contratos de deuda",
+  },
+  conciliar: {
+    eyebrow: "Control · conciliación",
+    title: "Conciliación",
+  },
+  "datos-importar": {
+    eyebrow: "Datos · importar en 4 pasos",
+    title: "Importar extracto",
+  },
+  "asesor-decision": {
+    eyebrow: "Decidir · asesor ejecutivo",
+    title: "Qué hacer ahora",
+  },
+  "operations-manual": {
+    eyebrow: "Guía operativa offline",
+    title: "Recuperar, exportar y resolver conflictos",
+  },
 };
 
 const E17_PREFERENCES_KEY = "e17-navigation-preferences";
@@ -24248,6 +24299,9 @@ let deudaRutaSelectedStrategy = "avalancha";
 // decisión aplicada) no daría ninguna señal visible aquí. Se recuerda entre renders porque
 // renderDeudaRutaOffer() reconstruye el HTML entero tras cada intento.
 let deudaRutaOfferStatusMessage = "";
+// D-13 (repaso pixel-perfect del 21 de agosto): el formulario de edición de la oferta, plegado por
+// defecto — evita construir sus campos en cada render cuando nadie los está usando.
+let deudaRutaOfferEditOpen = false;
 
 function debtStrategyReserveDefault() {
   const configured = Number(state?.operatingReserve || 0);
@@ -25256,23 +25310,101 @@ function deudaRutaOfferChecklist(offer, simulation, reserve) {
   ];
 }
 
+// D-13 (repaso pixel-perfect del 21 de agosto): edita la oferta ya registrada in situ, con la
+// misma validación que usaba el alta en #debt-roadmap (`E14DebtOperations.normalizeOffer`) — no
+// una segunda regla de negocio. El contrato de la oferta no se toca aquí (ya viene fijado al
+// registrarla); solo sus condiciones.
+function updateE14bOffer(offerId, patch) {
+  if (!E14DebtOperations) return null;
+  const workspace = e14bWorkspace();
+  const index = workspace.offers.findIndex((item) => item.id === offerId);
+  if (index === -1) return null;
+  const existing = workspace.offers[index];
+  const contract = debtTargetById(existing.contractId, { includePlanned: true }) || {};
+  const normalized = E14DebtOperations.normalizeOffer({ ...existing, ...patch, id: existing.id, contractId: existing.contractId }, contract);
+  if (!normalized.valid) return normalized;
+  workspace.offers[index] = normalized;
+  queueRemoteSave();
+  return normalized;
+}
+
+function deudaRutaOfferEditFormHtml(offer) {
+  const documents = offer.documents || [];
+  return `<div class="deuda-ruta-offer-edit">
+    <p class="e19-kpi-note">Corrige las condiciones de esta oferta sin salir de Deuda — misma validación que ya usaba el Plan de deuda heredado.</p>
+    <div class="deuda-ruta-offer-edit-grid">
+      <label>Contraparte<input type="text" id="deudaRutaOfferEditCounterpart" value="${escapeHtml(offer.counterpart || "")}" /></label>
+      <label>Vigencia hasta<input type="month" id="deudaRutaOfferEditExpiresAt" value="${escapeHtml(offer.expiresAt || "")}" /></label>
+      <label>Importe total pactado<input type="number" min="0" step="0.01" id="deudaRutaOfferEditAmount" value="${escapeHtml(String(offer.amount ?? 0))}" /></label>
+      <label>Modalidad<select id="deudaRutaOfferEditPaymentType">
+        <option value="single-payment"${offer.paymentType === "single-payment" ? " selected" : ""}>Pago único</option>
+        <option value="refinancing"${offer.paymentType === "refinancing" ? " selected" : ""}>Refinanciación</option>
+        <option value="resume-payments"${offer.paymentType === "resume-payments" ? " selected" : ""}>Retomar pagos</option>
+      </select></label>
+      <label>Cuota mensual<input type="number" min="0" step="0.01" id="deudaRutaOfferEditInstallment" value="${escapeHtml(String(offer.installment ?? 0))}" /></label>
+      <label>Duración (meses)<input type="number" min="0" step="1" id="deudaRutaOfferEditTermMonths" value="${escapeHtml(String(offer.termMonths ?? 0))}" /></label>
+    </div>
+    <div class="deuda-ruta-offer-edit-documents">
+      <label><input type="checkbox" id="deudaRutaOfferEditDocOffer"${documents.includes("offer") ? " checked" : ""} /> Oferta o acuerdo</label>
+      <label><input type="checkbox" id="deudaRutaOfferEditDocAuthority"${documents.includes("identity-or-authority") ? " checked" : ""} /> Identidad o mandato</label>
+      <label><input type="checkbox" id="deudaRutaOfferEditDocTerms"${documents.includes("payment-terms") ? " checked" : ""} /> Condiciones de pago</label>
+      <label><input type="checkbox" id="deudaRutaOfferEditAccepted"${offer.status === "accepted" ? " checked" : ""} /> Oferta aceptada expresamente</label>
+    </div>
+    <div class="deuda-ruta-offer-edit-actions">
+      <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaOfferEditSave">Guardar cambios</button>
+      <button type="button" class="e19-btn e19-btn-secondary" id="deudaRutaOfferEditCancel">Cancelar</button>
+    </div>
+  </div>`;
+}
+
+function handleDeudaRutaOfferEditSubmit(offerId) {
+  const documents = [
+    qs("deudaRutaOfferEditDocOffer")?.checked ? "offer" : "",
+    qs("deudaRutaOfferEditDocAuthority")?.checked ? "identity-or-authority" : "",
+    qs("deudaRutaOfferEditDocTerms")?.checked ? "payment-terms" : "",
+  ].filter(Boolean);
+  const patch = {
+    counterpart: qs("deudaRutaOfferEditCounterpart")?.value,
+    expiresAt: qs("deudaRutaOfferEditExpiresAt")?.value,
+    amount: parseAmount(qs("deudaRutaOfferEditAmount")?.value),
+    paymentType: qs("deudaRutaOfferEditPaymentType")?.value,
+    installment: parseAmount(qs("deudaRutaOfferEditInstallment")?.value),
+    termMonths: Number(qs("deudaRutaOfferEditTermMonths")?.value || 0),
+    documents,
+    status: qs("deudaRutaOfferEditAccepted")?.checked ? "accepted" : "received",
+  };
+  const result = updateE14bOffer(offerId, patch);
+  if (!result) return;
+  deudaRutaOfferStatusMessage = result.valid
+    ? "Oferta actualizada."
+    : `No se guardaron los cambios: ${result.issues.filter((issue) => issue !== "amount-unusual").join(", ")}.`;
+  if (result.valid) deudaRutaOfferEditOpen = false;
+  renderDeudaRutaOffer();
+}
+
 // V3-4 · la «oferta en curso» del mockup 4d vivía solo en #asesor-decision; esta tarjeta la trae a
 // la propia vista de Deuda, reutilizando asesorDecisionOpenOffers() y asesorDecisionFundingHtml()
 // tal cual — mismos datos, sin recalcular nada.
 // D-8/D-9 (15 de agosto, sesión de seguimiento de la auditoría): la tarjeta dejó de enrutar a
 // #debt-roadmap para "revisar y aplicar" — aplica in situ llamando a applyE14bOffer(), la misma
 // puerta de escritura que ya usaba esa pantalla (regla transversal 01), tras seleccionar la oferta
-// en el workspace de E14b (mismo gesto que ya hacía este botón). El enlace a #debt-roadmap se
-// conserva como «Ver documentos y editar oferta», para completar o corregir la oferta antes de
-// aplicar.
+// en el workspace de E14b (mismo gesto que ya hacía este botón).
+// D-13 (repaso pixel-perfect del 21 de agosto de 2026, Deuda.pdf sección B): el enlace a
+// #debt-roadmap para «editar oferta» se sustituye por un formulario plegable in situ
+// (`deudaRutaOfferEditFormHtml`/`updateE14bOffer`), y la tarjeta pasa a fondo oscuro cuando hay una
+// oferta real — `#deudaRutaOfferCard` es el mismo `<article>` de siempre, solo gana `.is-active`.
 function renderDeudaRutaOffer() {
   const target = qs("deudaRutaOffer");
   if (!target) return;
+  const card = qs("deudaRutaOfferCard");
   const offer = asesorDecisionOpenOffers()[0];
   if (!offer) {
+    card?.classList.remove("is-active");
+    deudaRutaOfferEditOpen = false;
     target.innerHTML = `<p class="e19-kpi-note">Sin ofertas de deuda abiertas ahora mismo.</p>`;
     return;
   }
+  card?.classList.add("is-active");
   const contract = debtTargetById(offer.contractId, { includePlanned: true });
   const forecast = e14bForecast();
   const reserve = Math.max(0, Number(agentCaixaFloor?.() || 0));
@@ -25285,10 +25417,16 @@ function renderDeudaRutaOffer() {
   const expiry = debtOfferExpiryStatus(offer.expiresAt);
   const blocked = alreadyDecided || checks.some((check) => check.ok === false);
   target.innerHTML = `
-    <p class="asesor-decision-subtitle"><strong>${escapeHtml(offer.counterpart || "Sin contraparte")}</strong>${contract ? ` · ${escapeHtml(contract.entity)}${contract.type ? ` ${escapeHtml(contract.type)}` : ""}` : ""}${offer.expiresAt ? ` · <span class="${expiry.status === "danger" ? "is-danger" : ""}">vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}</span>` : ""}</p>
+    <div class="deuda-ruta-offer-eyebrow">
+      <span>Oferta en curso</span>
+      ${expiry.expired ? `<span class="deuda-ruta-offer-expiry">Caducada</span>` : expiry.dueSoon ? `<span class="deuda-ruta-offer-expiry">Caduca pronto</span>` : ""}
+    </div>
+    <h3 class="escenario-motor-panel-title">${escapeHtml(offer.counterpart || "Sin contraparte")}</h3>
+    <p class="asesor-decision-subtitle">${contract ? `${escapeHtml(contract.entity)}${contract.type ? ` ${escapeHtml(contract.type)}` : ""}` : ""}${offer.expiresAt ? ` · <span class="${expiry.status === "danger" ? "is-danger" : ""}">vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}</span>` : ""}</p>
     <div class="asesor-decision-stats">
       <div class="asesor-decision-stat"><span>Importe</span><strong>${money(offer.amount, true)}</strong></div>
-      <div class="asesor-decision-stat"><span>Ahorras</span><strong>${money(offer.discount, true)}</strong></div>
+      <div class="asesor-decision-stat"><span>Intereses ahorrados</span><strong>${money(offer.discount, true)}</strong></div>
+      ${offer.installment > 0 ? `<div class="asesor-decision-stat"><span>Cuota resultante</span><strong>${money(offer.installment, true)}</strong></div>` : ""}
     </div>
     <div class="asesor-decision-funding">${asesorDecisionFundingHtml(offer.amount)}</div>
     <p class="panel-kicker">Requisitos para aplicar</p>
@@ -25298,8 +25436,11 @@ function renderDeudaRutaOffer() {
     ${expiry.expired ? `<p class="e19-kpi-note is-danger" id="deudaRutaOfferExpiry">Oferta caducada desde ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}: comprueba con ${escapeHtml(offer.counterpart || "la contraparte")} si sigue en pie antes de aplicarla.</p>` : expiry.dueSoon ? `<p class="e19-kpi-note is-danger" id="deudaRutaOfferExpiry">Oferta a punto de caducar: vence ${escapeHtml(escenarioMotorMonthLabel(offer.expiresAt))}.</p>` : ""}
     ${alreadyDecided ? `<p class="e19-kpi-note is-danger">Esta deuda ya tiene una decisión aplicada — revísala o deshazla antes de aplicar otra.</p>` : ""}
     ${deudaRutaOfferStatusMessage ? `<p class="e19-kpi-note" id="deudaRutaOfferStatus">${escapeHtml(deudaRutaOfferStatusMessage)}</p>` : ""}
-    <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaOfferApply"${blocked ? " disabled" : ""}>Aplicar al plan</button>
-    <a class="e19-btn e19-btn-secondary" href="#debt-roadmap" id="deudaRutaOfferEdit">Ver documentos y editar oferta</a>
+    <div class="deuda-ruta-offer-edit-actions">
+      <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaOfferApply"${blocked ? " disabled" : ""}>Aplicar al plan</button>
+      <button type="button" class="e19-btn e19-btn-secondary" id="deudaRutaOfferEdit" aria-expanded="${deudaRutaOfferEditOpen ? "true" : "false"}">${deudaRutaOfferEditOpen ? "Cerrar edición" : "Ver documentos y editar oferta"}</button>
+    </div>
+    ${deudaRutaOfferEditOpen ? deudaRutaOfferEditFormHtml(offer) : ""}
   `;
   const applyButton = qs("deudaRutaOfferApply");
   if (applyButton) {
@@ -25313,9 +25454,92 @@ function renderDeudaRutaOffer() {
   const editLink = qs("deudaRutaOfferEdit");
   if (editLink) {
     editLink.addEventListener("click", () => {
-      e14bWorkspace().selectedOfferId = offer.id;
-      queueRemoteSave();
+      deudaRutaOfferEditOpen = !deudaRutaOfferEditOpen;
+      renderDeudaRutaOffer();
     });
+  }
+  const saveButton = qs("deudaRutaOfferEditSave");
+  if (saveButton) saveButton.addEventListener("click", () => handleDeudaRutaOfferEditSubmit(offer.id));
+  const cancelButton = qs("deudaRutaOfferEditCancel");
+  if (cancelButton) {
+    cancelButton.addEventListener("click", () => {
+      deudaRutaOfferEditOpen = false;
+      renderDeudaRutaOffer();
+    });
+  }
+}
+
+// Deuda.pdf (05 de 9, sección B) · «Orden de ataque»: una tabla por contrato (Capital/TIN/Cuota/
+// Peso y fin previsto) con fila Total, fusionando lo que antes eran tres piezas separadas — el
+// selector de estrategia grande, la lista «Ruta propuesta» (decisiones ya resueltas) y la tarjeta
+// «Cartera» (peso por contrato). Ningún cálculo nuevo: reutiliza `contract.currentPrincipal`/
+// `apr`/`currentPayment` (ya usados por `debtAmortizationSchedule`) y `resultadosById` (ya
+// calculado por `renderDeudaRuta` a partir de `runEscenarioMotor`) para el «fin previsto» de las
+// decisiones de la estrategia activa; sin decisión (Consolidar reunifica en un solo préstamo, No
+// tocar nada no acelera nada), la celda dice «según calendario» en vez de fingir una fecha.
+function deudaRutaAttackRowHtml(index, contract, decisionByContractId, resultadosById, maxPrincipal) {
+  const capital = Number(contract.currentPrincipal) || 0;
+  const cuota = Number(contract.currentPayment) || 0;
+  // `contract.apr` es `null` (no 0) cuando no se conoce el TIN — Number(null) da 0, así que hay
+  // que descartar null/undefined explícitamente antes de convertir, o un TIN desconocido se vería
+  // como un crédito al 0 % (mismo criterio que ya usaba el editor de Contratos, línea ~25799).
+  const aprPct = contract.apr === null || contract.apr === undefined ? NaN : Number(contract.apr);
+  const weightPct = maxPrincipal > 0 ? Math.round((capital / maxPrincipal) * 100) : 0;
+  const decision = decisionByContractId.get(contract.id);
+  const resultado = decision ? resultadosById.get(decision.id) : null;
+  const finLabel = resultado?.mesResuelto ? escenarioMotorMonthLabel(resultado.mesResuelto) : "según calendario";
+  return `<tr>
+    <td>${index + 1}</td>
+    <td>${escapeHtml(escenarioMotorDebtLabel(contract))}</td>
+    <td>${money(capital, true)}</td>
+    <td>${Number.isFinite(aprPct) ? `${aprPct.toFixed(1)}%` : "—"}</td>
+    <td>${cuota > 0 ? money(cuota, true) : '<span title="Sin cuota declarada">—</span>'}</td>
+    <td><div class="deuda-ruta-attack-weight"><div class="deuda-ruta-attack-weight-bar"><span style="width:${weightPct}%"></span></div><small>${escapeHtml(finLabel)}</small></div></td>
+  </tr>`;
+}
+
+function renderDeudaRutaAttackTable(contracts, summary, resultadosById, def) {
+  const body = qs("deudaRutaAttackBody");
+  const foot = qs("deudaRutaAttackFoot");
+  const note = qs("deudaRutaAttackNote");
+  if (note) note.textContent = def?.desc || "";
+  if (!body) return;
+  if (!contracts.length) {
+    body.innerHTML = `<tr><td colspan="6" class="registrar-mes-empty">${escapeHtml(deudaRutaEmptyTimelineText(summary))}</td></tr>`;
+    if (foot) foot.innerHTML = "";
+    return;
+  }
+  const decisionByContractId = new Map(
+    summary.decisions.filter((decision) => decision.tipo === "amortizacion").map((decision) => [decision.params.deudaId, decision]),
+  );
+  const maxPrincipal = Math.max(1, ...contracts.map((contract) => Number(contract.currentPrincipal) || 0));
+  body.innerHTML = contracts
+    .map((contract, index) => deudaRutaAttackRowHtml(index, contract, decisionByContractId, resultadosById, maxPrincipal))
+    .join("");
+  const totalCapital = round2(contracts.reduce((sum, contract) => sum + (Number(contract.currentPrincipal) || 0), 0));
+  const totalCuota = round2(contracts.reduce((sum, contract) => sum + (Number(contract.currentPayment) || 0), 0));
+  // Media ponderada por capital, solo sobre los contratos con TIN conocido — uno sin TIN cuenta
+  // como 0 % en la ponderación (infla a la baja la media), no como si no existiera.
+  const knownApr = contracts.filter((contract) => contract.apr !== null && contract.apr !== undefined);
+  const knownAprCapital = round2(knownApr.reduce((sum, contract) => sum + (Number(contract.currentPrincipal) || 0), 0));
+  const avgApr = knownAprCapital > 0
+    ? knownApr.reduce((sum, contract) => sum + Number(contract.apr) * (Number(contract.currentPrincipal) || 0), 0) / knownAprCapital
+    : null;
+  const avgAprLabel = avgApr === null ? "sin TIN declarado" : `media ${avgApr.toFixed(1)}%`;
+  // `summary.libreDeDeuda` es una clave de mes real solo cuando la ruta de verdad termina de pagar
+  // dentro del horizonte; si no, ya es una frase descriptiva («sin fecha estimable...») — el título
+  // de la pantalla la muestra completa, así que aquí basta con la estrategia para no repetirla.
+  const esFechaLibre = /^\d{4}-\d{2}/.test(String(summary.libreDeDeuda || ""));
+  const libreLabel = esFechaLibre ? `Libre de deuda: ${escenarioMotorMonthLabel(summary.libreDeDeuda)}` : def?.label || "";
+  if (foot) {
+    foot.innerHTML = `<tr>
+      <td></td>
+      <td>Total</td>
+      <td>${money(totalCapital, true)}</td>
+      <td>${escapeHtml(avgAprLabel)}</td>
+      <td>${money(totalCuota, true)}</td>
+      <td>${escapeHtml(libreLabel)}</td>
+    </tr>`;
   }
 }
 
@@ -25356,54 +25580,13 @@ function renderDeudaRuta() {
   const chartWindow = deudaRutaChartWindow(deudaViva, summary.result?.series || [], baseInput.months);
   renderDeudaRutaChart(chartWindow.deudaSeries, chartWindow.liquidezSeries, chartWindow.months);
 
-  const timeline = qs("deudaRutaTimeline");
-  if (timeline) {
-    const debts = new Map(contracts.map((contract) => [contract.id, contract]));
-    const ordered = summary.decisions
-      .map((decision) => ({ decision, resultado: resultadosById.get(decision.id) }))
-      .sort((a, b) => String(a.resultado?.mesResuelto || "9999").localeCompare(String(b.resultado?.mesResuelto || "9999")));
-    timeline.innerHTML = ordered.length
-      ? ordered
-          .map(({ decision, resultado }) => {
-            const info = resultado ? escenarioMotorResultInfo(resultado.resultado) : { text: "Sin calcular", badge: "e19-badge-neutral" };
-            // V3-3 · una reunificación no apunta a una deuda ni lleva `importe`: nombra varias y
-            // abre un préstamo. Leer `params.deudaId`/`params.importe` para ella daría «undefined»
-            // y «0,00 €» en la línea de tiempo.
-            const esReunificacion = decision.tipo === "reunificacion";
-            const contract = esReunificacion ? null : debts.get(decision.params.deudaId);
-            const titulo = esReunificacion
-              ? `Reunificar ${(decision.params.deudaIds || []).length} deudas`
-              : contract
-              ? escenarioMotorDebtLabel(contract)
-              : decision.params.deudaId;
-            const detalle = esReunificacion
-              ? `${money(decision.params.nuevoPrincipal, true)} · ${money(decision.params.nuevaCuota, true)}/mes durante ${decision.params.nuevoPlazo} meses`
-              : money(decision.params.importe, true);
-            return `<li class="deuda-ruta-timeline-item">
-              <span class="deuda-ruta-timeline-month">${escapeHtml(escenarioMotorMonthLabel(resultado?.mesResuelto))}</span>
-              <div>
-                <strong>${escapeHtml(titulo)}</strong>
-                <p>${escapeHtml(detalle)} · <span class="e19-badge ${info.badge}">${escapeHtml(info.text)}</span></p>
-              </div>
-            </li>`;
-          })
-          .join("")
-      : `<li class="deuda-ruta-timeline-item deuda-ruta-timeline-empty">${escapeHtml(deudaRutaEmptyTimelineText(summary))}</li>`;
-  }
+  // D-4 · en el mismo orden de ataque que la pestaña activa (avalancha/bola de nieve); consolidar y
+  // no tocar no ordenan nada (`debtStrategyOrderedContracts` devuelve []), así que caen al orden
+  // declarado de la cartera — el mismo orden que ya usaba el calendario de amortización de abajo.
+  const orderedForCalendar = debtStrategyOrderedContracts(deudaRutaSelectedStrategy);
+  const calendarContracts = orderedForCalendar.length ? orderedForCalendar : contracts;
 
-  const portfolio = qs("deudaRutaPortfolio");
-  if (portfolio) {
-    const maxPrincipal = Math.max(1, ...contracts.map((contract) => Number(contract.currentPrincipal) || 0));
-    portfolio.innerHTML = contracts
-      .slice()
-      .sort((a, b) => Number(b.currentPrincipal) - Number(a.currentPrincipal))
-      .map((contract) => `<div class="deuda-ruta-portfolio-row">
-          <span>${escapeHtml(escenarioMotorDebtLabel(contract))}</span>
-          <strong>${money(contract.currentPrincipal, true)}</strong>
-          <div class="deuda-ruta-portfolio-bar"><span style="width:${Math.round((Number(contract.currentPrincipal) / maxPrincipal) * 100)}%"></span></div>
-        </div>`)
-      .join("");
-  }
+  renderDeudaRutaAttackTable(calendarContracts, summary, resultadosById, def);
 
   const checklist = qs("deudaRutaChecklist");
   const applyButton = qs("deudaRutaApply");
@@ -25436,12 +25619,6 @@ function renderDeudaRuta() {
       .join("");
   }
   if (applyButton) applyButton.disabled = summary.total === 0 || !summary.viable;
-
-  // D-4 · en el mismo orden de ataque que la pestaña activa (avalancha/bola de nieve); consolidar y
-  // no tocar no ordenan nada (`debtStrategyOrderedContracts` devuelve []), así que caen al orden
-  // declarado de la cartera, igual que la tarjeta de «Cartera» de al lado.
-  const orderedForCalendar = debtStrategyOrderedContracts(deudaRutaSelectedStrategy);
-  const calendarContracts = orderedForCalendar.length ? orderedForCalendar : contracts;
 
   const aggregate = debtStrategyAggregateCalendar(summary.decisions, resultadosById, calendarContracts, baseInput.months);
   const baselineInterest = debtAmortizationTotalInterest(calendarContracts, baseInput.months.length);
