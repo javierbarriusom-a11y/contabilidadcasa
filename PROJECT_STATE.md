@@ -2,6 +2,48 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: verificación pixel-perfect de Escenarios, Análisis, Cierre y Laboratorio
+
+El usuario adjuntó las cuatro últimas pantallas de la ronda «por pantalla» —`Escenarios.pdf`,
+`Analisis.pdf`, `Cierre.pdf`, `Laboratorio.pdf`— y pidió proceder con las cuatro seguidas. Antes de
+tocar código se investigó el estado real (`docs/BACKLOG_NUEVE_PANTALLAS.md` §06-09): las 55 tareas
+(E-1…E-14, A-1…A-13, C-1…C-14, L-1…L-10) ya estaban en "Hecho" desde el 16-20 de agosto, cada una
+verificada con Playwright contra estos mismos mockups — construidas en sesiones anteriores a esta
+ronda de cabecera compartida. No hacía falta ninguna reconstrucción.
+
+En vez de dar eso por bueno a ciegas, se levantó el sitio en local (`npm run build:site` + servidor
+estático) y se comprobaron las cuatro con Playwright a 1440px:
+
+- **Escenarios** (`#escenario-simular`): se añadió una decisión real (coche financiado) y se
+  confirmaron los 6 indicadores plan/simulado, las 4 comprobaciones de validación, el veredicto en
+  prosa y la banda de 12 meses por cuenta — coinciden con la sección B del mockup.
+- **Análisis** (`#analisis`): colchón de 12 meses, confianza del dato, patrimonio neto, ¿acierta el
+  plan?, en qué se va y qué se repite, todos presentes con sus estados honestos (regla transversal
+  04: "sin datos suficientes" en vez de cifras inventadas donde la demo pública no trae movimientos).
+- **Cierre** (`#cierre`): secuencia de 3 pasos (Sobres/Fase 6 apagada, caso que el propio mockup
+  contempla explícitamente), contadores, conciliación, historial de versiones, aprendizaje.
+- **Laboratorio** (tarjeta `#laboratorioCard` dentro de `#ajustes`, sin ruta propia — así lo decidió
+  L-8): filtros, contador, panel de detalle con la estructura exacta del mockup, las dos notas fijas.
+
+**Un caso investigado a fondo antes de descartarlo como bug**: `analisisWorstMonthHtml()` enlaza a
+la heredada `#simulator` para editar la decisión que concentra el peor mes. Parecía el mismo patrón
+que preocupa al usuario (pantalla nueva → pantalla legacy), pero no lo es: `#simulator` sigue siendo
+la única puerta de escritura real de `projects`, el array que ese enlace necesita editar —
+`#escenario-simular` no lee ni escribe esos datos. Ya está documentado así desde la corrección L-5
+del 19 de agosto (`#simulator` reclasificado de "sustituida" a "adoptada" por este mismo motivo). No
+se tocó.
+
+**Resultado**: cero cambios de código — nada que publicar, ningún PR nuevo. `npm test`: **1438/1438
+pruebas**, sin cambios respecto al cierre de Deuda de esta misma sesión (recuento idéntico porque no
+se tocó ningún archivo). Rama `claude/pixel-perfect-screen-designs-9ujai8` sincronizada con `main`
+(`e967f90`) tras un ajuste de puntero remoto sin contenido nuevo (ver nota bajo la entrada de Deuda).
+
+Con esto se cierra la ronda «pantalla por pantalla» completa: Hoy, Registrar, Movimientos, Plan,
+Deuda, Escenarios, Análisis, Cierre y Laboratorio — las nueve pantallas. Queda pendiente, sin
+bloqueo y solo si el usuario lo pide: la auditoría completa de enlaces a pantallas legacy en el resto
+de la app (aplazada explícitamente por el usuario "hasta que acabemos las pantallas" — ya han
+acabado).
+
 ## Cierre de sesión — 21 de agosto de 2026: pixel-perfect de Deuda contra `Deuda.pdf`
 
 Continuación de la misma sesión «pantalla por pantalla»: con Hoy, Registrar, Movimientos y Plan
