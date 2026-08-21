@@ -1443,22 +1443,39 @@
             </div>
 
             <div class="deuda-ruta-layout">
-              <article class="e19-card deuda-ruta-attack-card">
-                <div class="registrar-mes-card-head">
-                  <div>
-                    <h3 class="escenario-motor-panel-title">Orden de ataque</h3>
-                    <p class="e19-kpi-note" id="deudaRutaAttackNote"></p>
+              <div class="deuda-ruta-main">
+                <article class="e19-card deuda-ruta-attack-card">
+                  <div class="registrar-mes-card-head">
+                    <div>
+                      <h3 class="escenario-motor-panel-title">Orden de ataque</h3>
+                      <p class="e19-kpi-note" id="deudaRutaAttackNote"></p>
+                    </div>
+                    <div class="deuda-decidir-tabs" id="deudaRutaTabs" role="tablist"></div>
                   </div>
-                  <div class="deuda-decidir-tabs" id="deudaRutaTabs" role="tablist"></div>
-                </div>
-                <div class="table-wrap">
-                  <table class="e19-table deuda-ruta-attack-table">
-                    <thead><tr><th>#</th><th>Contrato</th><th>Capital</th><th>TIN</th><th>Cuota</th><th>Peso y fin previsto</th></tr></thead>
-                    <tbody id="deudaRutaAttackBody"></tbody>
-                    <tfoot id="deudaRutaAttackFoot"></tfoot>
-                  </table>
-                </div>
-              </article>
+                  <div class="table-wrap">
+                    <table class="e19-table deuda-ruta-attack-table">
+                      <thead><tr><th>#</th><th>Contrato</th><th>Capital</th><th>TIN</th><th>Cuota</th><th>Peso y fin previsto</th></tr></thead>
+                      <tbody id="deudaRutaAttackBody"></tbody>
+                      <tfoot id="deudaRutaAttackFoot"></tfoot>
+                    </table>
+                  </div>
+                </article>
+
+                <article class="e19-card deuda-ruta-chart-card">
+                  <h3 class="escenario-motor-panel-title">Cómo se apaga la deuda</h3>
+                  <p class="e19-kpi-note">«Deuda viva» es el principal pendiente de las deudas que esta ruta todavía no ha saldado — cae de golpe el mes en que se salda; no es un calendario de amortización mes a mes.</p>
+                  <svg id="deudaRutaChart" class="deuda-ruta-chart"></svg>
+                </article>
+
+                <article class="e19-card deuda-ruta-calendar-card">
+                  <h3 class="escenario-motor-panel-title">Calendario de amortización</h3>
+                  <p class="e19-kpi-note">Capital vivo mes a mes con la estrategia activa: el calendario declarado de cada contrato (TAE y cuota), adelantado en el mes en que esta ruta lo liquida de golpe.</p>
+                  <div id="deudaRutaAmortChart"></div>
+                  <div class="deuda-ruta-amort-stats" id="deudaRutaAmortStats"></div>
+                  <p class="e19-kpi-note">Detalle por contrato, en el orden de ataque de la pestaña activa: cuota, interés, capital amortizado y saldo restante.</p>
+                  <div id="deudaRutaCalendar"></div>
+                </article>
+              </div>
 
               <div class="deuda-ruta-side">
                 <article class="e19-card deuda-ruta-offer-card" id="deudaRutaOfferCard">
@@ -1471,21 +1488,6 @@
                 </article>
               </div>
             </div>
-
-            <article class="e19-card deuda-ruta-chart-card">
-              <h3 class="escenario-motor-panel-title">Cómo se apaga la deuda</h3>
-              <p class="e19-kpi-note">«Deuda viva» es el principal pendiente de las deudas que esta ruta todavía no ha saldado — cae de golpe el mes en que se salda; no es un calendario de amortización mes a mes.</p>
-              <svg id="deudaRutaChart" class="deuda-ruta-chart"></svg>
-            </article>
-
-            <article class="e19-card deuda-ruta-calendar-card">
-              <h3 class="escenario-motor-panel-title">Calendario de amortización</h3>
-              <p class="e19-kpi-note">Capital vivo mes a mes con la estrategia activa: el calendario declarado de cada contrato (TAE y cuota), adelantado en el mes en que esta ruta lo liquida de golpe.</p>
-              <div id="deudaRutaAmortChart"></div>
-              <div class="deuda-ruta-amort-stats" id="deudaRutaAmortStats"></div>
-              <p class="e19-kpi-note">Detalle por contrato, en el orden de ataque de la pestaña activa: cuota, interés, capital amortizado y saldo restante.</p>
-              <div id="deudaRutaCalendar"></div>
-            </article>
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Antes de aplicar</h3>

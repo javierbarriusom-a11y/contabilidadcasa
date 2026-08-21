@@ -2362,6 +2362,10 @@
   fill: var(--e19-muted);
 }
 
+/* Columnas de flujo independiente (no una sola fila de grid): así el bloque principal (Orden de
+   ataque + gráficos + checklist) sigue apilando sus propias tarjetas sin esperar a que la columna
+   lateral, más alta por la oferta en curso, termine — evitaba un hueco en blanco bajo Orden de
+   ataque del tamaño de toda la columna lateral. */
 .e19-deuda-decidir .deuda-ruta-layout {
   display: grid;
   grid-template-columns: 1fr minmax(260px, 320px);
@@ -2373,17 +2377,15 @@
   min-width: 0;
 }
 
+.e19-deuda-decidir .deuda-ruta-main,
 .e19-deuda-decidir .deuda-ruta-side {
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
+.e19-deuda-decidir .deuda-ruta-main .e19-card,
 .e19-deuda-decidir .deuda-ruta-side .e19-card {
-  padding: 18px;
-}
-
-.e19-deuda-decidir .deuda-ruta-layout > .e19-card {
   padding: 18px;
 }
 
@@ -3660,14 +3662,16 @@
   color: var(--e19-danger);
 }
 
-/* P-11 · tres hitos sobre el colchón, mismo layout que A-5 (`.analisis-networth-milestones`). */
+/* P-11 · tres hitos sobre el colchón, mismo layout que A-5 (`.analisis-networth-milestones`), pero
+   sobre tarjeta clara (sin `.analisis-networth-card` de fondo oscuro): colores de texto propios en
+   vez de los pensados para blanco-sobre-oscuro, que aquí se leían casi invisibles. */
 .e19-plan .plan-prevision-milestones {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid color-mix(in srgb, var(--e19-surface) 20%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--e19-surface) 20%, transparent);
+  border-top: 1px solid var(--e19-border);
+  border-bottom: 1px solid var(--e19-border);
   margin: 12px 0;
 }
 
@@ -3680,7 +3684,7 @@
 .e19-plan .plan-prevision-milestone span {
   font-size: var(--e19-text-xs);
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--e19-surface) 65%, transparent);
+  color: var(--e19-muted);
 }
 
 .e19-plan .plan-prevision-milestone strong {
