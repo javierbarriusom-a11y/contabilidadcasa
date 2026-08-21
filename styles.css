@@ -11049,8 +11049,6 @@ tbody tr:hover {
 .e14b-parity ul { margin: 8px 0 0; padding-left: 20px; }
 .e14b-option.good { border-color: #79b78f; }
 .e14b-option.warn { border-color: #e2b15b; }
-.e14b-legacy { margin-top: 18px; }
-.e14b-legacy summary { cursor: pointer; font-weight: 700; color: var(--muted); }
 
 @media (max-width: 900px) {
   .e14b-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }

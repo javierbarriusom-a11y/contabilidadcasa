@@ -50,6 +50,6 @@ test("T-2 · la muestra de color de la guía de estilo también dice el hex nuev
 });
 
 test("T-2 · viaja en el shell offline versionado", () => {
-  assert.match(worker, /20260814-f1a1/);
+  assert.match(worker, /20260821-d1a1/);
   assert.match(html, /design-tokens\.css\?v=20260814f1a1/);
 });

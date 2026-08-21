@@ -8,7 +8,7 @@
 // (`grep -rl "20260814-f1a1" tests/`) usan este literal como marca de «este fichero forma parte del
 // shell offline», no como versión real — la versión real solo existe en el sitio construido, nunca
 // en el repositorio.
-const CACHE_NAME = "finanzas-casa-shell-20260814-f1a1";
+const CACHE_NAME = "finanzas-casa-shell-20260821-d1a1";
 const SHELL_URLS = [
   "./",
   "./index.html",

@@ -444,6 +444,10 @@ const viewTitles = {
     eyebrow: "Decidir · contratos",
     title: "Contratos de deuda",
   },
+  "deuda-simulador": {
+    eyebrow: "Decidir · simulador visual",
+    title: "Simulador visual de estrategias de deuda",
+  },
   conciliar: {
     eyebrow: "Control · conciliación",
     title: "Conciliación",
@@ -25887,11 +25891,13 @@ const DEUDA_SCREEN_TABS = [
   { id: "deuda-ruta", label: "Ruta" },
   { id: "deuda-comparar", label: "Comparar" },
   { id: "deuda-contratos", label: "Contratos" },
+  { id: "deuda-simulador", label: "Simulador visual" },
 ];
 const DEUDA_SCREEN_TAB_NAV_IDS = {
   "deuda-ruta": "deudaRutaScreenTabs",
   "deuda-comparar": "deudaCompararScreenTabs",
   "deuda-contratos": "deudaContratosScreenTabs",
+  "deuda-simulador": "deudaSimuladorScreenTabs",
 };
 
 function deudaScreenTabsHtml(activeId) {
@@ -25967,6 +25973,14 @@ function renderDeudaContratos() {
   }
   const cuadreEl = qs("deudaContratosCuadre");
   if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
+}
+
+// D-15 · el simulador visual promovido desde «Herramientas avanzadas» a pestaña de Deuda: al
+// entrar en la pestaña se reenvía el estado canónico al iframe por si los contratos cambiaron
+// desde la última vez que se cargó (alta/edición en Contratos, nueva ruta en Ruta/Comparar).
+function renderDeudaSimulador() {
+  renderDeudaScreenTabs("deuda-simulador");
+  sendDebtRoadmapState();
 }
 
 // Vacío = «sin corregir», nunca cero: borra el override y vuelve al valor declarado en vez de
@@ -30270,6 +30284,9 @@ function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "deuda-contratos":
       renderDeudaContratos();
+      break;
+    case "deuda-simulador":
+      renderDeudaSimulador();
       break;
     case "conciliar":
       renderConciliar();

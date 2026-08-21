@@ -80,6 +80,7 @@
               <a href="#deuda-comparar" data-e17-group="analysis">Comparar estrategias de deuda (nuevo)</a>
               <a href="#deuda-ruta" data-e17-group="analysis">Plan de deuda · ruta (nuevo)</a>
               <a href="#deuda-contratos" data-e17-group="analysis">Contratos de deuda (nuevo)</a>
+              <a href="#deuda-simulador" data-e17-group="analysis">Simulador visual de deuda (nuevo)</a>
               <a href="#asesor-decision" data-e17-group="assistants">Asesor ejecutivo (nuevo)</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
@@ -913,7 +914,7 @@
               <div>
                 <p class="panel-kicker">E14b · negociación y aplicación segura</p>
                 <h2>Plan visual de deuda</h2>
-                <p>Registra ofertas, compara estrategias contra el forecast y aplica solo una decisión confirmada y recuperable. El plan visual anterior permanece disponible durante la migración.</p>
+                <p>Registra ofertas, compara estrategias contra el forecast y aplica solo una decisión confirmada y recuperable. Para explorar visualmente distintos supuestos de negociación sin tocar el plan, usa el <a href="#deuda-simulador">simulador visual</a> en Deuda.</p>
               </div>
               <span class="sync-badge">Migración gradual</span>
             </div>
@@ -935,15 +936,6 @@
               <div id="e14bComparison" class="e14b-comparison"></div>
               <div id="e14bParity" class="e14b-parity" aria-live="polite"></div>
             </article>
-            <details class="e14b-legacy"><summary>Plan visual anterior (compatibilidad durante la migración)</summary><p>Se conserva para consultar tareas, notas y supuestos anteriores. Los datos canónicos no pueden editarse desde este módulo.</p>
-            <iframe
-              id="debtRoadmapFrame"
-              class="debt-roadmap-frame"
-              src="debt-roadmap.html?v=20260805e14b1"
-              title="Plan visual de deuda"
-              loading="lazy"
-            ></iframe>
-            </details>
           </section>
 
           <section class="new-life-definitive view-section" id="new-life-definitive">
@@ -1546,6 +1538,26 @@
               </form>
               <p class="e19-kpi-note is-danger" id="deudaContratosAddError" role="alert" hidden></p>
             </div>
+          </section>
+
+          <section class="e19-deuda-decidir view-section" id="deuda-simulador">
+            <nav class="e19-registrar-tabs" id="deudaSimuladorScreenTabs" aria-label="Pestañas de Deuda"></nav>
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · simulador visual</p>
+                <h2 class="e19-heading">Simulador visual de estrategias de deuda</h2>
+                <p class="e19-subtitle">Explora quitas, pagos únicos, refinanciaciones y calendario sin tocar el plan real: lee en solo lectura los contratos y el forecast de Ruta y Comparar, y guarda aquí tus propias tareas, notas y supuestos de negociación.</p>
+              </div>
+            </div>
+            <article class="e19-card">
+              <iframe
+                id="debtRoadmapFrame"
+                class="debt-roadmap-frame"
+                src="debt-roadmap.html?v=20260821d1a1"
+                title="Simulador visual de deuda"
+                loading="lazy"
+              ></iframe>
+            </article>
           </section>
 
           <section class="e19-analisis view-section" id="analisis">
@@ -3838,7 +3850,7 @@
     <script src="canonical-e9-banking.js?v=20260801e9b"></script>
     <script src="canonical-e9-bank-import.js?v=20260801e9b"></script>
     <script src="canonical-e11b-inbox.js?v=20260801e11b1"></script>
-    <script src="e17-experience.js?v=20260811t1a1"></script>
+    <script src="e17-experience.js?v=20260821d1a1"></script>
     <script src="e18-health.js?v=20260808e18a4"></script>
     <script src="canonical-decisions.js?v=20260714d"></script>
     <script src="canonical-commit-barrier.js?v=20260718p05"></script>
@@ -3854,7 +3866,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260811v64a1"></script>
-    <script src="app.js?v=20260814f1a1"></script>
+    <script src="app.js?v=20260821d1a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

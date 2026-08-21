@@ -16,12 +16,15 @@ test("E14a carga y publica el adaptador antes de la aplicación", () => {
   assert.match(worker, /canonical-e14-debt-adapter\.js/);
 });
 
-test("E14b carga el contrato de operaciones y mantiene el plan visual como compatibilidad", () => {
+test("E14b carga el contrato de operaciones; el plan visual pasó de compatibilidad a pestaña propia (D-15)", () => {
   assert.ok(html.indexOf("canonical-e14-operations.js") < html.indexOf("app.js"));
   assert.match(worker, /canonical-e14-operations\.js/);
   assert.match(html, /id="e14bSaveOffer"/);
   assert.match(html, /id="e14bApply"/);
-  assert.match(html, /Plan visual anterior \(compatibilidad durante la migración\)/);
+  // D-15: el plan visual dejó de ser un <details> de compatibilidad dentro de #debt-roadmap y pasó
+  // a ser la pestaña #deuda-simulador de Deuda (ver tests/d1-d2-deuda-tabs-contratos.test.cjs).
+  assert.doesNotMatch(html, /Plan visual anterior \(compatibilidad durante la migración\)/);
+  assert.match(html, /id="deuda-simulador"/);
   assert.match(app, /E14DebtOperations\.optimize/);
   assert.match(app, /FinanceCanonicalE13\?\.buildLab/);
   assert.match(app, /requestOperationConfirmation\(\{/);
