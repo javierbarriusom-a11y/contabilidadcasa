@@ -1,6 +1,50 @@
 # Estado del proyecto
 
-Fecha de revisión: 20 de agosto de 2026.
+Fecha de revisión: 21 de agosto de 2026.
+
+## Cierre de sesión — 21 de agosto de 2026: pixel-perfect de Plan contra `Plan.pdf`
+
+Continuación de la misma sesión «pantalla por pantalla»: con Hoy, Registrar y Movimientos cerrados,
+tocaba Plan. Las 17 tareas (P-1 a P-16) ya estaban en Hecho desde la auditoría de contenido del 15-16
+de agosto, pero ese repaso nunca comparó el resultado visual pixel a pixel contra el mockup. `Plan.pdf`
+resultó ser un documento de auditoría en tres partes — un inventario de destino (no una pantalla), el
+mockup real («Plan, rediseñada y completa») y el propio backlog P-1 a P-16 —, así que el repaso se
+centró en la parte que sí es una pantalla. Dos decisiones de producto se consultaron con el usuario
+antes de tocar nada:
+
+1. **La tabla «Ingresos» no aparece en el mockup** (el ingreso vive en la tarjeta KPI). El usuario
+   pidió fusionarla como primer bloque plegable de la tabla única de presupuesto, en vez de
+   eliminarla o dejarla como tarjeta aparte — mantiene la edición, cambia el envoltorio visual.
+2. **La capa de Sobres (Fase 6)** pide en el mockup una columna «Arrastre» y un desplegable de cuatro
+   reglas por fila; el código ya tenía sobres con una decisión previa distinta (regla editable solo
+   en Ajustes, dos reglas). El usuario pidió respetar esa decisión: se añaden la columna Arrastre y
+   las tres tarjetas de liquidación del mockup, sin reinventar el desplegable de cuatro reglas.
+
+Cambios: cabecera compartida por las tres pestañas (horizonte 12/24/48/Hasta 2036 movido fuera de
+Previsión + nuevo conmutador de sobres, sincronizado con el checkbox de Ajustes); las cuatro tarjetas
+KPI del mockup (Ingreso previsto/Comprometido/Asignado/Sin asignar) con barra de progreso, en vez de
+tres tarjetas más una suelta («Partidas») ajena al diseño; Ingresos fusionado en la tabla única;
+columnas renombradas Presupuesto/Gastado/Restante (Restante ahora siempre visible, nunca un guion, con
+signo invertido en Ingresos para que un ingreso mayor de lo esperado siga siendo verde); pie de tabla
+con el recuento de partidas y «Añadir partida»; columna Arrastre y las tres tarjetas de liquidación de
+sobres; pestaña «Ahorro» renombrada a «Ahorro y objetivos» (cerraba un hallazgo cosmético que ya
+estaba anotado desde el 16 de agosto). Detalle completo, con qué se dejó fuera de alcance
+(desplegable de cuatro reglas por sobre, franja superior de utilidad), en
+`docs/BACKLOG_NUEVE_PANTALLAS.md` §4.
+
+**Validación**: `npm run verify`, exit 0 — **1428/1428 pruebas**, accesibilidad (792 IDs únicos),
+rendimiento (diff 10.000 filas en 36,0 ms; forecast y escenarios en 189,6 ms; recursos 1707 KB), build
+del sitio, privacidad y smoke test, todos en verde. Verificado con Playwright contra el build local a
+1440 px: horizonte compartido persiste al cambiar de pestaña; conmutador de sobres muestra/oculta la
+columna Arrastre y las tres tarjetas sin recargar; Previsión y Ahorro y objetivos siguen renderizando
+sin errores de consola. Sin hallazgos adicionales.
+
+**Hallazgo fuera de alcance, para revisar aparte**: la tira de KPIs compartida por las ocho pantallas
+que no son Hoy (Liquidez hoy/Reserva protegida/Deuda viva/...) usa `Intl.NumberFormat('es-ES')`, cuyo
+CLDR no agrupa miles por debajo de 10.000 (pinta «9270,00 €» en vez de «9.270,00 €»), mientras que el
+mockup sí agrupa desde 1.000. Es un problema de formato global (afecta a toda la app, no solo a Plan);
+no se tocó `money()`/`euro`/`euroPrecise` sin confirmación porque podría romper snapshots de otras
+pantallas.
 
 ## Cierre de sesión — 20 de agosto de 2026: pixel-perfect de Movimientos contra `Movimientos.pdf`
 

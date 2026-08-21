@@ -205,7 +205,7 @@ test("P-8 · handlePlanPrevisionHorizon ignora un horizonte inválido o repetido
 test("P-8 · index.html declara la tabla, el selector de horizonte y la leyenda dentro de #plan", () => {
   const planSection = html.slice(html.indexOf('id="plan"'), html.indexOf('id="update-hub"'));
   assert.match(planSection, /id="planPrevisionTable"/);
-  assert.match(planSection, /id="planPrevisionHorizon"/);
+  assert.match(planSection, /id="planHeaderHorizon"/);
   assert.match(planSection, /data-plan-prevision-horizon="12m"/);
   assert.match(planSection, /data-plan-prevision-horizon="24m"/);
   assert.match(planSection, /data-plan-prevision-horizon="48m"/);

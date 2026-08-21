@@ -549,18 +549,32 @@
           </section>
 
           <section class="view-section e19-plan" id="plan">
-            <div class="section-title">
+            <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Plan</p>
                 <h2 class="e19-heading">Presupuesta el mes, la previsión y el ahorro sin salir de la aplicación</h2>
                 <p class="e19-subtitle">El previsto se edita aquí y se guarda por sesión — Registrar y Movimientos lo muestran de solo lectura.</p>
+              </div>
+              <div class="plan-header-controls">
+                <div class="registrar-mes-filters" role="group" aria-label="Horizonte de Plan" id="planHeaderHorizon">
+                  <button type="button" class="registrar-mes-filter is-active" data-plan-prevision-horizon="12m" aria-pressed="true">12 m</button>
+                  <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="24m" aria-pressed="false">24 m</button>
+                  <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="48m" aria-pressed="false">48 m</button>
+                  <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="full" aria-pressed="false">Completo</button>
+                </div>
+                <div class="plan-sobres-control">
+                  <span class="plan-sobres-label">Sobres · Fase 6</span>
+                  <button type="button" class="plan-sobres-toggle" id="planSobresToggle" data-plan-sobres-toggle aria-pressed="false">
+                    <span class="plan-sobres-dot" aria-hidden="true"></span><span data-plan-sobres-toggle-text>Desactivados</span>
+                  </button>
+                </div>
               </div>
             </div>
 
             <nav class="e19-registrar-tabs" id="planTabs" aria-label="Pestañas de Plan">
               <button type="button" class="e19-registrar-tab" data-plan-tab="mes" aria-selected="true">Mes</button>
               <button type="button" class="e19-registrar-tab" data-plan-tab="prevision" aria-selected="false">Previsión</button>
-              <button type="button" class="e19-registrar-tab" data-plan-tab="ahorro" aria-selected="false">Ahorro</button>
+              <button type="button" class="e19-registrar-tab" data-plan-tab="ahorro" aria-selected="false">Ahorro y objetivos</button>
             </nav>
             <p class="e19-registrar-crumb" id="planCrumb" aria-live="polite"></p>
 
@@ -572,20 +586,15 @@
                     <select id="planMesMonth"></select>
                   </label>
                 </div>
-                <div class="home-kpi-grid" id="planMesKpis"></div>
+                <div class="plan-mes-kpi-grid" id="planMesKpis"></div>
                 <div class="registrar-mes-tables" id="planMesTables"></div>
+                <div class="plan-mes-summary-grid" id="planMesSobresSummary" hidden></div>
               </div>
             </div>
             <div class="e19-registrar-panel" data-plan-panel="prevision" hidden>
               <div class="e19-plan-prevision">
                 <div class="section-title with-action compact">
                   <p class="e19-kpi-note" id="planPrevisionLegend"></p>
-                  <div class="registrar-mes-filters" role="group" aria-label="Horizonte de la previsión" id="planPrevisionHorizon">
-                    <button type="button" class="registrar-mes-filter is-active" data-plan-prevision-horizon="12m" aria-pressed="true">12 m</button>
-                    <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="24m" aria-pressed="false">24 m</button>
-                    <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="48m" aria-pressed="false">48 m</button>
-                    <button type="button" class="registrar-mes-filter" data-plan-prevision-horizon="full" aria-pressed="false">Completo</button>
-                  </div>
                 </div>
                 <div class="table-wrap plan-prevision-table-wrap">
                   <table class="plan-prevision-table" id="planPrevisionTable"></table>
