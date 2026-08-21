@@ -289,6 +289,10 @@ const viewTitles = {
     eyebrow: "Hoy",
     title: "Qué necesita tu atención",
   },
+  "planificacion-partidas": {
+    eyebrow: "Planificación de partidas",
+    title: "Forecast con todas las decisiones recogidas",
+  },
   "update-data": {
     eyebrow: "Actualización del mes",
     title: "Registra ingresos y gastos según van ocurriendo",
@@ -2599,7 +2603,9 @@ function transitionDecisionLifecycle(source, id, toStatus, note = "", options = 
   });
   if (!result.ok) return false;
   decisionWorkflow = result.snapshot;
-  if (api.decisionAffectsPlan(toStatus)) {
+  // "pending" es un borrador persistido: se conserva en el array de origen (igual que
+  // approved/fixed), solo se purga al cancelar — así puede listarse y promoverse más tarde.
+  if (api.decisionAffectsPlan(toStatus) || toStatus === "pending") {
     syncActiveDecisionState(normalizedSource, id, toStatus);
   } else {
     if (normalizedSource === "debt") {
@@ -6965,6 +6971,33 @@ function handleAddProject() {
   renderDecisionHistory();
 }
 
+// Guarda la configuración del formulario como borrador ("pending"): queda visible en
+// Planificación de partidas como provisional, pero no entra en scheduleEligible ni mueve el
+// forecast real hasta promoverla (transitionDecisionLifecycle a "approved") desde el simulador.
+function saveProjectDecisionAsPending() {
+  const decision = projectDecisionFromForm();
+  if (!decision) return;
+  if (laboratorioWriteGuard("Guardar proyecto pendiente")) return;
+  const { preview, title, ...cleanProject } = decision;
+  const nextProject = {
+    ...cleanProject,
+    id: editingProjectId || `project-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    lifecycleState: "pending",
+    locked: false,
+    lockedAt: undefined,
+  };
+  if (editingProjectId) {
+    const previous = projects.find((item) => item.id === editingProjectId);
+    if (decisionLifecycleStatus(previous) === "fixed") return;
+    projects = projects.map((item) => (item.id === editingProjectId ? nextProject : item));
+  } else {
+    projects.push(nextProject);
+  }
+  transitionDecisionLifecycle("project", nextProject.id, "pending", "Proyecto guardado como pendiente, sin aplicar todavía.", { render: false });
+  clearProjectForm();
+  render();
+}
+
 function clearProjectForm() {
   editingProjectId = null;
   pendingProjectDecision = null;
@@ -7666,9 +7699,12 @@ function evaluateDebtDecisionItem(item) {
 
 function updateDebtConfirmState() {
   const confirm = qs("addDebtPayoff");
-  if (!confirm) return;
-  confirm.disabled = !pendingDebtDecision;
-  confirm.textContent = pendingDebtDecision ? "Confirmar y aplicar" : "Primero compara la decisión";
+  if (confirm) {
+    confirm.disabled = !pendingDebtDecision;
+    confirm.textContent = pendingDebtDecision ? "Confirmar y aplicar" : "Primero compara la decisión";
+  }
+  const pending = qs("saveDebtPayoffPending");
+  if (pending) pending.disabled = !pendingDebtDecision;
 }
 
 function debtComparisonStrategy(rawMode = "optimize") {
@@ -7895,6 +7931,36 @@ function applyDebtDecision(decision) {
   recordDecisionEvent("aprobado", { ...nextDecision, source: "debt" }, "Decisión de deuda incorporada tras revisión previa.");
   resetDebtDecisionForm();
   saveDebtLiquidations();
+  render();
+}
+
+// Guarda la decisión comparada como borrador ("pending"): queda visible en Planificación de
+// partidas como provisional, pero no entra en scheduleEligible ni mueve el forecast real hasta
+// promoverla (transitionDecisionLifecycle a "approved") desde su propio origen.
+function saveDebtDecisionAsPending() {
+  const decision = pendingDebtDecision;
+  if (!decision) return;
+  if (laboratorioWriteGuard("Guardar decisión de deuda pendiente")) return;
+  if (decision.targetId && debtLiquidations.some((item) => item.targetId === decision.targetId)) {
+    if (qs("debtDecisionReview")) {
+      qs("debtDecisionReview").innerHTML = `<div class="debt-review-empty">
+        <strong>Decisión ya incorporada</strong>
+        <p>Esta deuda ya tiene una decisión cargada. Elimínala o desbloquéala antes de volver a simularla.</p>
+      </div>`;
+    }
+    updateDebtConfirmState();
+    return;
+  }
+  const { preview, ...cleanDecision } = decision;
+  const nextDecision = {
+    ...cleanDecision,
+    id: `debt-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    lifecycleState: "pending",
+    locked: false,
+  };
+  debtLiquidations.push(nextDecision);
+  transitionDecisionLifecycle("debt", nextDecision.id, "pending", "Decisión guardada como pendiente, sin aplicar todavía.", { render: false });
+  resetDebtDecisionForm();
   render();
 }
 
@@ -10736,6 +10802,108 @@ function renderPrevisionRows(items) {
     renderPrevisionValueRow("Mínimo ajustado", items, (item) => previsionMetric(item.row).adjustedMin),
     ...decisionComparisonRows(items),
   ];
+}
+
+// Planificación de partidas: el forecast central, con lo confirmado (customPlanningRows +
+// decisiones approved/fixed, ya agregado en lastSimulation/projectPlan por recomputeModelIfNeeded)
+// y lo provisional (decisiones pending guardadas desde Control de deuda/Simulador, más la ruta del
+// Agente) en un único sitio. No recalcula nada por su cuenta: solo lee las mismas piezas globales
+// que ya usan Cuadro de mandos y Hoy, para no divergir de lo que el usuario ve en su origen.
+function planificacionPartidasProvisionalItems() {
+  const pendingDebt = debtLiquidations
+    .filter((item) => decisionLifecycleStatus(item) === "pending")
+    .map((item) => ({ item, sourceLabel: "Deuda", origin: "debt-control", originLabel: "Control de deuda", tag: "Pendiente" }));
+  const pendingProjects = projects
+    .filter((item) => decisionLifecycleStatus(item) === "pending")
+    .map((item) => ({ item, sourceLabel: "Proyecto", origin: "simulator", originLabel: "Simulador", tag: "Pendiente" }));
+  const agentRoute = debtLiquidations
+    .filter((item) => isAgentRouteSimulationDecision(item))
+    .map((item) => ({ item, sourceLabel: "Deuda", origin: "savings-agent", originLabel: "Agente de ahorro", tag: "Ruta del Agente" }));
+  return [...pendingDebt, ...pendingProjects, ...agentRoute];
+}
+
+function planificacionPartidasEscenariosPropuestos() {
+  return loadEscenarioMotorSaved().filter((entry) => !entry.archived && entry.estado === "propuesto");
+}
+
+function renderPlanificacionPartidas() {
+  const root = qs("planificacionPartidasRoot");
+  if (!root) return;
+  const months = visualMonths();
+  const items = previsionRowsForMonths(months);
+  if (!items.length) {
+    root.innerHTML = `<div class="empty-state compact">No hay meses visibles para construir el forecast.</div>`;
+    return;
+  }
+  const baseFinal = lastBaseSimulation.at(-1)?.totalLiquidity ?? 0;
+  const activeFinal = lastSimulation.at(-1)?.totalLiquidity ?? 0;
+  const impact = round2(activeFinal - baseFinal);
+  const reserve = cuadroMandosReserve();
+  const floor = FinanceCanonicalCushion.cushionFloor(lastSimulation, reserve);
+  const worst = FinanceCanonicalCushion.worstMonthOf(openSimulationRows(lastSimulation));
+  const worstMonth = worst ? forecastMonths().find((month) => month.key === worst.key) : null;
+  const worstTone = worst ? FinanceCanonicalCushion.cushionTone(worst.value, floor.value) : "";
+  const provisional = planificacionPartidasProvisionalItems();
+  const propuestos = planificacionPartidasEscenariosPropuestos();
+  const colspan = Math.max(2, items.length + 1);
+
+  root.innerHTML = `
+    <div class="planificacion-partidas-kpis">
+      <article class="e19-card ${worstTone}">
+        <span>Peor mes del horizonte</span>
+        <strong>${worstMonth ? `${escapeHtml(worstMonth.label)} · ${money(worst.value, true)}` : "Sin datos"}</strong>
+      </article>
+      <article class="e19-card">
+        <span>Colchón (${floor.basis === "operating-reserve" ? "reserva operativa" : "1 mes de gasto"})</span>
+        <strong>${money(floor.value, true)}</strong>
+      </article>
+      <article class="e19-card">
+        <span>Impacto de las decisiones confirmadas</span>
+        <strong class="${impact >= 0 ? "positive" : "negative"}">${projectPlan.placements.length ? `${impact >= 0 ? "+" : ""}${money(impact, true)} vs. sin decisiones` : "Sin decisiones cargadas"}</strong>
+      </article>
+    </div>
+    <div class="table-wrap planificacion-partidas-table-wrap">
+      <table class="prevision-table planificacion-partidas-table">
+        <thead><tr><th>Indicador</th>${items.map((item) => `<th>${escapeHtml(item.row.month)}</th>`).join("")}</tr></thead>
+        <tbody>
+          ${renderPrevisionGroup("Real / previsto confirmado", "real", colspan)}
+          ${renderPrevisionValueRow("Liquidez total", items, (item) => item.row.totalLiquidity ?? 0, "positive")}
+          ${renderPrevisionValueRow("Resultado del mes", items, (item) => previsionMetric(item.row).result)}
+          ${renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.row).min)}
+          ${renderPrevisionGroup("Sin decisiones (base)", "adjusted", colspan)}
+          ${renderPrevisionValueRow("Liquidez total", items, (item) => lastBaseSimulation[item.index]?.totalLiquidity ?? 0)}
+          ${decisionComparisonRows(items).join("")}
+        </tbody>
+      </table>
+    </div>
+    <div class="planificacion-partidas-provisional">
+      <h3>Provisional</h3>
+      ${provisional.length
+        ? `<ul class="planificacion-partidas-list">${provisional
+            .map(
+              (entry) => `<li>
+          <div>
+            <strong>${escapeHtml(entry.item.name || entry.item.label || "Decisión")}</strong>
+            <span class="e19-badge">${escapeHtml(entry.tag)}</span>
+            <small>${escapeHtml(entry.sourceLabel)} · ${escapeHtml(entry.originLabel)}</small>
+          </div>
+          <div>
+            <b>${money(decisionGrossCost(entry.item), true)}</b>
+            <button type="button" data-home-nav="${entry.origin}">Ir a ${escapeHtml(entry.originLabel)}</button>
+          </div>
+        </li>`,
+            )
+            .join("")}</ul>`
+        : `<p class="empty-state compact">No hay decisiones provisionales guardadas.</p>`}
+    </div>
+    ${propuestos.length
+      ? `<div class="planificacion-partidas-propuestos">
+        <p>${propuestos.length} escenario(s) propuesto(s) esperando confirmación en Cierre. Su impacto no se refleja aquí hasta que se confirmen.
+          <button type="button" data-home-nav="cierre">Ir a Cierre</button>
+        </p>
+      </div>`
+      : ""}
+  `;
 }
 
 function groupPrevisionItemsByYear(items) {
@@ -24336,10 +24504,12 @@ function handleEscenarioGuardadosDelete(id) {
   const entry = list.find((item) => item.id === id);
   saveEscenarioMotorSavedList(list.filter((item) => item.id !== id));
   // Eliminar un plan vigente es posible desde aquí (sin confirmación propia, fuera del alcance de
-  // este cambio) — si ocurre, su reflejo en debtLiquidations se retracta con él en vez de quedar
-  // huérfano, apuntando a un plan que ya no existe.
-  if (entry && (entry.estado === "aplicado" || entry.estado === "vigente") && retractDebtLiquidationsFromEscenario(id)) {
-    saveDebtLiquidations();
+  // este cambio) — si ocurre, sus reflejos en debtLiquidations/projects/customPlanningRows se
+  // retractan con él en vez de quedar huérfanos, apuntando a un plan que ya no existe.
+  if (entry && (entry.estado === "aplicado" || entry.estado === "vigente")) {
+    if (retractDebtLiquidationsFromEscenario(id)) saveDebtLiquidations();
+    if (retractProjectsFromEscenario(id)) saveProjects();
+    if (retractPlanningRowsFromEscenario(id)) saveCustomPlanningRows();
   }
   renderEscenarioGuardados();
 }
@@ -26933,6 +27103,23 @@ function escenarioDecisionAmount(decision) {
   }
 }
 
+// reunificacion/retomar_pagos aterrizan con amount=0 a propósito (escenarioDecisionAmount, "se
+// dejan en 0 antes que inventar un reparto") — sin esto, en Planificación de partidas y en el
+// resto de sitios que solo leen `name` parecería que la decisión no tiene ningún efecto. Se
+// añade como texto de contexto, nunca como cifra de cálculo: no toca escenarioDecisionAmount ni
+// los tests que la cubren.
+function escenarioDebtLiquidationName(decision) {
+  const base = decision.titulo || "Decisión de Escenarios";
+  const params = decision.params || {};
+  if (decision.tipo === "reunificacion" && params.nuevoPrincipal) {
+    return `${base} (nuevo principal ${money(params.nuevoPrincipal, true)})`;
+  }
+  if (decision.tipo === "retomar_pagos" && params.cuota) {
+    return `${base} (cuota retomada ${money(params.cuota, true)}/mes)`;
+  }
+  return base;
+}
+
 function syncDebtLiquidationsFromEscenario(entry) {
   if (!entry) return false;
   const existingTargets = new Set(debtLiquidations.map((item) => item.targetId).filter(Boolean));
@@ -26945,7 +27132,7 @@ function syncDebtLiquidationsFromEscenario(entry) {
       debtLiquidations.push({
         id: `escenario:${entry.id}:${decision.id}:${targetId}`,
         targetId,
-        name: decision.titulo || "Decisión de Escenarios",
+        name: escenarioDebtLiquidationName(decision),
         amount: round2(escenarioDecisionAmount(decision)),
         monthlyRelief: 0,
         lifecycleState: "approved",
@@ -26969,6 +27156,241 @@ function retractDebtLiquidationsFromEscenario(savedId) {
   return debtLiquidations.length !== before;
 }
 
+// E-1/E-1b (17-20 de agosto de 2026): aterrizaje de los tipos de Escenarios sin equivalente en
+// debtLiquidations. Igual que syncDebtLiquidationsFromEscenario, no reconstruye el motor
+// completo: traduce cada decisión al shape mínimo que `projects` ya entiende, replicando la misma
+// aritmética que canonical-scenario-engine.js usa para su propio forecast (mismos campos, mismas
+// fórmulas) para no divergir del preview que el usuario vio al crear el escenario. `traspaso` y
+// `cambio_presupuesto` quedan fuera a propósito: canonical-scenario-engine.js (líneas 61-68) ya
+// explica por qué ninguno de los dos tiene motor de cálculo, y tampoco existen en el catálogo de
+// tipos de la UI — no es un gap de aterrizaje, es que hoy no se pueden crear desde ningún sitio.
+const ESCENARIO_PROJECT_LANDING_TYPES = new Set(["compra", "proyecto", "imprevisto", "propio", "deuda_nueva", "prestamo_familiar"]);
+
+function escenarioResolvedMonthKey(decision) {
+  return decision?.planificacion?.mesResuelto || decision?.planificacion?.mesManual || "";
+}
+
+function escenarioMonthIndex(monthKey) {
+  if (!monthKey) return -1;
+  return forecastMonths().findIndex((month) => month.key === monthKey);
+}
+
+function landScenarioDecisionAsProjects(decision, entry) {
+  if (!decision || !ESCENARIO_PROJECT_LANDING_TYPES.has(decision.tipo)) return [];
+  const params = decision.params || {};
+  const months = forecastMonths();
+  const base = {
+    name: decision.titulo || "Decisión de Escenarios",
+    source: "escenario",
+    escenarioSavedId: entry.id,
+    escenarioDecisionId: decision.id,
+    lifecycleState: "approved",
+    locked: false,
+    mode: "fixed",
+    recurringAmount: 0,
+    recurringDuration: 0,
+    recurringStartOffset: 0,
+  };
+  const withId = (suffix, extra) => ({ ...base, ...extra, id: `escenario-project:${entry.id}:${decision.id}${suffix}` });
+
+  switch (decision.tipo) {
+    case "compra": {
+      const startIndex = escenarioMonthIndex(escenarioResolvedMonthKey(decision));
+      if (startIndex < 0) return [];
+      const month = months[startIndex];
+      if (params.financiacion) {
+        return [withId("", {
+          amount: 0,
+          duration: 1,
+          monthKey: month.key,
+          monthIndex: month.index,
+          recurringAmount: round2(Number(params.financiacion.cuota || 0)),
+          recurringDuration: Math.max(1, Math.floor(Number(params.financiacion.plazo || 1))),
+        })];
+      }
+      return [withId("", { amount: round2(Number(params.importe || 0)), duration: 1, monthKey: month.key, monthIndex: month.index })];
+    }
+    case "proyecto": {
+      const objetivoIndex = escenarioMonthIndex(params.mesObjetivo);
+      if (objetivoIndex < 0) return [];
+      const importe = round2(Number(params.importeObjetivo || 0));
+      if (params.modalidad === "hucha") {
+        const resolvedIndex = escenarioMonthIndex(escenarioResolvedMonthKey(decision));
+        const startIndex = Math.max(0, resolvedIndex >= 0 ? resolvedIndex : 0);
+        if (objetivoIndex > startIndex) {
+          const mesesCount = objetivoIndex - startIndex + 1;
+          const startMonth = months[startIndex];
+          return [withId("", {
+            amount: 0,
+            duration: 1,
+            monthKey: startMonth.key,
+            monthIndex: startMonth.index,
+            recurringAmount: round2(importe / mesesCount),
+            recurringDuration: mesesCount,
+          })];
+        }
+      }
+      const month = months[objetivoIndex];
+      return [withId("", { amount: importe, duration: 1, monthKey: month.key, monthIndex: month.index })];
+    }
+    case "imprevisto": {
+      const startIndex = escenarioMonthIndex(params.mes);
+      if (startIndex < 0) return [];
+      const importe = round2(Number(params.importe || 0));
+      const recurrenciaMeses = params.recurrenciaMeses;
+      if (recurrenciaMeses === undefined || recurrenciaMeses === null) {
+        const month = months[startIndex];
+        return [withId("", { amount: importe, duration: 1, monthKey: month.key, monthIndex: month.index })];
+      }
+      const paso = Math.max(1, Math.floor(Number(recurrenciaMeses)));
+      const entries = [];
+      for (let index = startIndex, occurrence = 0; index < months.length; index += paso, occurrence += 1) {
+        const month = months[index];
+        entries.push(withId(`:${occurrence}`, { amount: importe, duration: 1, monthKey: month.key, monthIndex: month.index }));
+      }
+      return entries;
+    }
+    case "propio": {
+      const startIndex = escenarioMonthIndex(params.mes);
+      if (startIndex < 0) return [];
+      const month = months[startIndex];
+      const extra = { monthKey: month.key, monthIndex: month.index, amount: 0, duration: 1 };
+      if (params.importe !== undefined) extra.amount = round2(Number(params.importe));
+      if (params.mensualidad !== undefined && params.plazo !== undefined) {
+        extra.recurringAmount = round2(Number(params.mensualidad));
+        extra.recurringDuration = Math.max(1, Math.floor(Number(params.plazo)));
+      }
+      return [withId("", extra)];
+    }
+    case "deuda_nueva": {
+      const startIndex = escenarioMonthIndex(params.mes);
+      if (startIndex < 0) return [];
+      const month = months[startIndex];
+      const plazo = Math.max(1, Math.floor(Number(params.plazo || 1)));
+      return [withId("", {
+        amount: round2(-Number(params.principal || 0)),
+        duration: 1,
+        monthKey: month.key,
+        monthIndex: month.index,
+        recurringAmount: round2(Number(params.cuota || 0)),
+        recurringDuration: plazo,
+        recurringStartOffset: 1,
+      })];
+    }
+    case "prestamo_familiar": {
+      const startIndex = escenarioMonthIndex(params.mes);
+      if (startIndex < 0) return [];
+      const month = months[startIndex];
+      const sale = params.direccion === "prestamos";
+      const importe = round2(Number(params.importe || 0));
+      const entries = [withId(":inicial", { amount: sale ? importe : -importe, duration: 1, monthKey: month.key, monthIndex: month.index })];
+      if (params.devolucionMensual !== undefined && params.meses !== undefined) {
+        const devolucion = round2(Number(params.devolucionMensual));
+        const meses = Math.max(1, Math.floor(Number(params.meses)));
+        entries.push(withId(":devolucion", {
+          amount: 0,
+          duration: 1,
+          monthKey: month.key,
+          monthIndex: month.index,
+          recurringAmount: sale ? -devolucion : devolucion,
+          recurringDuration: meses,
+          recurringStartOffset: 1,
+        }));
+      }
+      return entries;
+    }
+    default:
+      return [];
+  }
+}
+
+function syncProjectsFromEscenario(entry) {
+  if (!entry) return false;
+  const existingIds = new Set(projects.map((item) => item.id));
+  let changed = false;
+  (entry.decisiones || []).forEach((decision) => {
+    landScenarioDecisionAsProjects(decision, entry).forEach((project) => {
+      if (existingIds.has(project.id)) return;
+      projects.push(project);
+      existingIds.add(project.id);
+      changed = true;
+    });
+  });
+  return changed;
+}
+
+function retractProjectsFromEscenario(savedId) {
+  const before = projects.length;
+  projects = projects.filter((item) => !(item.source === "escenario" && item.escenarioSavedId === savedId));
+  return projects.length !== before;
+}
+
+// Mismo espíritu que landScenarioDecisionAsProjects, para cambio_ingreso/cambio_gasto: no hay
+// ningún array de ingresos/gastos editable por decisión en el dominio existente, así que aterriza
+// como líneas nuevas y aditivas de `customPlanningRows` (mismo shape que ya usa
+// handleVisualAddRow) en vez de intentar resolver y sobrescribir una fila concreta del
+// presupuesto — un ajuste declarado, no una edición silenciosa de otra partida.
+function landScenarioDecisionAsPlanningRows(decision, entry) {
+  if (!decision || (decision.tipo !== "cambio_ingreso" && decision.tipo !== "cambio_gasto")) return [];
+  const params = decision.params || {};
+  const months = forecastMonths();
+  const startIndex = escenarioMonthIndex(params.mesInicio);
+  if (startIndex < 0) return [];
+  const declaredEndIndex = params.mesFin ? escenarioMonthIndex(params.mesFin) : months.length - 1;
+  const endIndex = declaredEndIndex < 0 ? months.length - 1 : declaredEndIndex;
+  const kind = decision.tipo === "cambio_ingreso" ? "income" : "expense";
+  const rows = [];
+  for (let index = startIndex; index <= endIndex && index < months.length; index += 1) {
+    const month = months[index];
+    let plannedValue;
+    if (decision.tipo === "cambio_ingreso" || params.deltaMensual !== undefined) {
+      plannedValue = round2(Number(params.deltaMensual || 0));
+    } else {
+      const coreSpend = Number(lastSimulation?.[index]?.coreSpend || 0);
+      plannedValue = round2(coreSpend * Number(params.deltaPct || 0));
+    }
+    rows.push({
+      id: `escenario-row:${entry.id}:${decision.id}`,
+      custom: true,
+      kind,
+      sectionName: "Escenarios",
+      label: decision.titulo || "Ajuste de Escenarios",
+      monthKey: month.key,
+      plannedValue,
+      source: "escenario",
+      escenarioSavedId: entry.id,
+      escenarioDecisionId: decision.id,
+    });
+  }
+  return rows;
+}
+
+function syncPlanningRowsFromEscenario(entry) {
+  if (!entry) return false;
+  const existingKeys = new Set(
+    customPlanningRows
+      .filter((row) => row.source === "escenario")
+      .map((row) => `${row.escenarioSavedId}|${row.escenarioDecisionId}|${row.monthKey}`),
+  );
+  let changed = false;
+  (entry.decisiones || []).forEach((decision) => {
+    landScenarioDecisionAsPlanningRows(decision, entry).forEach((row) => {
+      const key = `${row.escenarioSavedId}|${row.escenarioDecisionId}|${row.monthKey}`;
+      if (existingKeys.has(key)) return;
+      customPlanningRows.push(row);
+      existingKeys.add(key);
+      changed = true;
+    });
+  });
+  return changed;
+}
+
+function retractPlanningRowsFromEscenario(savedId) {
+  const before = customPlanningRows.length;
+  customPlanningRows = customPlanningRows.filter((row) => !(row.source === "escenario" && row.escenarioSavedId === savedId));
+  return customPlanningRows.length !== before;
+}
+
 function handleCierrePropuestoConfirm(id) {
   const previous = loadEscenarioMotorSaved();
   const demoted = previous.filter((entry) => entry.id !== id && (entry.estado === "aplicado" || entry.estado === "vigente"));
@@ -26980,11 +27402,21 @@ function handleCierrePropuestoConfirm(id) {
   });
   saveEscenarioMotorSavedList(list);
   let liquidationsChanged = false;
+  let projectsChanged = false;
+  let planningRowsChanged = false;
   demoted.forEach((entry) => {
     if (retractDebtLiquidationsFromEscenario(entry.id)) liquidationsChanged = true;
+    if (retractProjectsFromEscenario(entry.id)) projectsChanged = true;
+    if (retractPlanningRowsFromEscenario(entry.id)) planningRowsChanged = true;
   });
-  if (promoted && syncDebtLiquidationsFromEscenario(promoted)) liquidationsChanged = true;
+  if (promoted) {
+    if (syncDebtLiquidationsFromEscenario(promoted)) liquidationsChanged = true;
+    if (syncProjectsFromEscenario(promoted)) projectsChanged = true;
+    if (syncPlanningRowsFromEscenario(promoted)) planningRowsChanged = true;
+  }
   if (liquidationsChanged) saveDebtLiquidations();
+  if (projectsChanged) saveProjects();
+  if (planningRowsChanged) saveCustomPlanningRows();
   renderCierre();
 }
 
@@ -30387,6 +30819,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "home":
       renderHomeDashboard();
       break;
+    case "planificacion-partidas":
+      renderPlanificacionPartidas();
+      break;
     case "registrar":
       renderRegistrar();
       break;
@@ -30701,6 +31136,14 @@ async function init() {
   qs("syncNow").addEventListener("click", () => saveRemoteState(true));
   qs("migrateLegacyRemote")?.addEventListener("click", migrateLegacyRemoteState);
   qs("addProject").addEventListener("click", handleAddProject);
+  qs("saveProjectPending")?.addEventListener("click", saveProjectDecisionAsPending);
+  qs("planificacionPartidasRoot")?.addEventListener("click", (event) => {
+    const navButton = event.target.closest("[data-home-nav]");
+    const target = navButton?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
+  });
   qs("cancelProjectEdit").addEventListener("click", () => {
     clearProjectForm();
     renderProjectSimulator(lastBaseSimulation, lastSimulation);
@@ -30728,6 +31171,7 @@ async function init() {
   qs("clearProjects").addEventListener("click", handleClearProjects);
   qs("addDebtPayoff").addEventListener("click", handleAddDebtLiquidation);
   qs("reviewDebtPayoff")?.addEventListener("click", stageDebtDecision);
+  qs("saveDebtPayoffPending")?.addEventListener("click", saveDebtDecisionAsPending);
   qs("debtTargetSelect").addEventListener("change", () => {
     pendingDebtDecision = null;
     updateDebtTargetDefaults(true);

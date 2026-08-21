@@ -29,6 +29,10 @@
             <span>Hoy</span>
             <small>Decisiones y caja de este momento</small>
           </a>
+          <a href="#planificacion-partidas" class="nav-primary-link">
+            <span>Planificación de partidas</span>
+            <small>Forecast con lo confirmado y lo provisional</small>
+          </a>
           <!-- R-2: nueva pantalla con cuatro pestañas; el saldo (R-3/R-4) ya vive aquí, las otras
                tres pestañas enlazan de vuelta a su heredada hasta que R-5/R-8/R-9 las construyan. -->
           <a href="#registrar" class="nav-primary-link">
@@ -340,6 +344,17 @@
                 <div class="home-alert-summary" id="homeAlertSummary"></div>
               </article>
             </div>
+          </section>
+
+          <section class="view-section" id="planificacion-partidas">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Planificación de partidas</p>
+                <h2 class="e19-heading">Forecast con todas las decisiones recogidas</h2>
+                <p>Impacto real de lo confirmado y de lo provisional (deuda, proyectos, escenarios) en un único sitio, sin tener que ir pantalla por pantalla.</p>
+              </div>
+            </div>
+            <div id="planificacionPartidasRoot"></div>
           </section>
 
           <section class="view-section e19-registrar" id="registrar">
@@ -2676,6 +2691,7 @@
                   </label>
                   <div class="debt-form-actions">
                     <button id="reviewDebtPayoff" type="button">Comparar decisión</button>
+                    <button id="saveDebtPayoffPending" type="button" disabled>Guardar como pendiente</button>
                     <button id="addDebtPayoff" type="button" disabled>Confirmar y aplicar</button>
                   </div>
                 </div>
@@ -2904,6 +2920,7 @@
                       </label>
                       <div class="project-form-actions">
                         <button id="addProject" type="button">Añadir plan</button>
+                        <button id="saveProjectPending" type="button">Guardar como pendiente</button>
                         <button id="cancelProjectEdit" type="button" class="ghost-button" hidden>Cancelar</button>
                       </div>
                       <div class="project-plan-preview" id="projectPlanPreview"></div>

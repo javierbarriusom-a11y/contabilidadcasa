@@ -2,6 +2,64 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: «Planificación de partidas», forecast unificado con lo confirmado y lo provisional
+
+Petición directa del usuario (no venía de `BACKLOG_OPERACION.md`): una sección nueva, justo después
+de «Hoy», que sea el forecast central de la app — con el impacto de las decisiones tomadas en
+cualquier pantalla (Control de deuda, Simulador de proyectos, Agente de ahorro, Motor de escenarios),
+tanto confirmadas como provisionales, en un único sitio.
+
+**Investigación previa**: el problema ya tenía en el código tres arquitecturas paralelas de
+«decisión provisional → confirmada» (la máquina de estados canónica `canonical-state.js`/
+`canonical-workflow.js`, la ruta del Agente de ahorro y el Motor de escenarios E19/E20), ninguna
+completa por sí sola — el flujo manual de UI nunca usaba el estado `pending` ya soportado por el
+motor, y solo la deuda se sincronizaba de verdad al confirmar un escenario en Cierre. Se decidió
+construir sobre esas piezas existentes en vez de añadir una cuarta.
+
+**Construido**:
+- **Estado `pending` persistido** en Control de deuda y Simulador de proyectos: botón nuevo
+  «Guardar como pendiente» (`saveDebtDecisionAsPending`/`saveProjectDecisionAsPending`, app.js) que
+  guarda la decisión comparada como borrador sin aplicarla — no entra en `scheduleEligible` ni mueve
+  el forecast real hasta promoverla. Ajuste quirúrgico en `transitionDecisionLifecycle` (app.js) para
+  que ya no purgue el item de `debtLiquidations`/`projects` al pasar a `pending`.
+- **Aterrizaje generalizado del Motor de escenarios**: al confirmar un plan en Cierre, además de la
+  deuda (ya existente), ahora también aterrizan `compra`, `proyecto`, `imprevisto`, `propio`,
+  `deuda_nueva` y `prestamo_familiar` (traductor nuevo a `projects`,
+  `landScenarioDecisionAsProjects`) y `cambio_ingreso`/`cambio_gasto` (traductor nuevo a
+  `customPlanningRows`, `landScenarioDecisionAsPlanningRows`), replicando la misma aritmética que
+  `canonical-scenario-engine.js` usa para su propio forecast. `traspaso`/`cambio_presupuesto` quedan
+  fuera a propósito: ni tienen motor de cálculo ni existen en el catálogo de tipos de la UI. Se
+  añadió también una cifra de contexto (`escenarioDebtLiquidationName`) para `reunificacion`/
+  `retomar_pagos`, cuyo importe se deja en 0 a propósito (comportamiento ya probado, no se tocó)
+  — sin la cifra de contexto, esas decisiones parecían «sin impacto» en la pantalla nueva.
+- **Sección `#planificacion-partidas`**: nueva en el nav justo después de «Hoy», con KPIs (peor mes
+  del horizonte y colchón vía `FinanceCanonicalCushion`, único origen de esa fórmula en esta
+  sección; impacto vs. sin decisiones), tabla de Real/previsto confirmado y base sin decisiones
+  (reutilizando `renderPrevisionValueRow`/`decisionComparisonRows`, ya existentes), y un bloque de
+  Provisional con cada decisión pendiente o en ruta del Agente, su importe y un enlace de vuelta a
+  su pantalla de origen.
+
+**Pruebas nuevas**: `tests/planificacion-partidas.test.cjs` (26 pruebas: los seis tipos de
+aterrizaje a `projects`, `cambio_ingreso`/`cambio_gasto` a `customPlanningRows`, idempotencia y
+retirada de ambos traductores, la cifra de contexto de reunificación/retomar pagos, y el cableado en
+`handleCierrePropuestoConfirm`/`handleEscenarioGuardadosDelete`/`transitionDecisionLifecycle`).
+Se actualizaron los sandboxes de `tests/laboratorio-debt-liquidations-escenarios.test.cjs` y
+`tests/e-11b-plan-paralelo.test.cjs` para que sigan aislando `handleCierrePropuestoConfirm`/
+`syncDebtLiquidationsFromEscenario` con las nuevas funciones de las que ahora dependen.
+
+**Validación**: `npm run verify` completo — `npm test` **1531/1531 pruebas** (26 nuevas, cero
+regresiones), accesibilidad (816 IDs únicos), rendimiento (diff 10.000 filas en 47,1 ms; forecast y
+escenarios en 247,0 ms; recursos 1754 KB), `build:site`, privacidad y smoke test, todo en verde.
+`npm run audit:escenarios` (manual, no forma parte de `verify`): 15/17 en modo con motor, igual que
+en la rama base sin estos cambios (confirmado por comparación directa) — las dos comprobaciones
+rotas son de `#deuda-ruta` (línea de tiempo sin pasos), preexistentes y ajenas a este trabajo.
+Verificación manual en navegador (Playwright contra Chromium preinstalado, con el dataset demo
+público): guardar una decisión de deuda como pendiente la muestra en «Provisional» sin afectar el
+KPI de decisiones confirmadas, con enlace de vuelta a Control de deuda.
+
+**Publicado**: commit y push a `claude/recurring-income-expenses-tbb5lc` (autorización permanente
+del 10 de agosto de 2026) y PR en borrador; fusión a `main` en cuanto el CI esté en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: cierre del ciclo O-1 a O-4, quedan O-5 y O-6
 
 Cierre consolidado de la sesión que arrancó con el diagnóstico de consultoría y `BACKLOG_OPERACION.md`

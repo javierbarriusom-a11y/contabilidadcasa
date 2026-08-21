@@ -61,7 +61,7 @@ function typeFor(tipo) {
 }
 
 function debtGroupContext(names) {
-  return sandboxWith(names, { escenarioMotorResolveType: (decision) => typeFor(decision?.tipo) });
+  return sandboxWith(names, { escenarioMotorResolveType: (decision) => typeFor(decision?.tipo), money: (v) => `${v} €` });
 }
 
 // --- escenarioDecisionIsDebt / escenarioDecisionTargetIds -------------------------------------
@@ -112,7 +112,13 @@ test("Laboratorio · reunificacion y retomar_pagos se dejan en 0 antes que inven
 // --- syncDebtLiquidationsFromEscenario -----------------------------------------------------------
 
 function syncContext(debtLiquidations) {
-  const context = debtGroupContext(["escenarioDecisionIsDebt", "escenarioDecisionTargetIds", "escenarioDecisionAmount", "syncDebtLiquidationsFromEscenario"]);
+  const context = debtGroupContext([
+    "escenarioDecisionIsDebt",
+    "escenarioDecisionTargetIds",
+    "escenarioDecisionAmount",
+    "escenarioDebtLiquidationName",
+    "syncDebtLiquidationsFromEscenario",
+  ]);
   context.debtLiquidations = debtLiquidations;
   return context;
 }
