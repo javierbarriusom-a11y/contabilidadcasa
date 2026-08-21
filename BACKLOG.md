@@ -6,6 +6,12 @@ Sitio: `https://javierbarriusom-a11y.github.io/contabilidadcasa/`.
 Este documento **sustituye a `BACKLOG_STATUS.md` como backlog vigente**. Aquel queda como
 registro histórico de las entregas E1-E20, que sigue siendo válido y no se toca.
 
+> **Backlog operativo paralelo, desde el 21 de agosto de 2026.** `BACKLOG_OPERACION.md` ordena un
+> eje distinto: qué le falta al motor y a la interfaz para resolver preguntas de decisión concretas
+> (p. ej. refinanciar deuda a nombre de otro titular) y para que el uso diario no dependa de la
+> memoria del usuario (recordatorios, avisos de completitud, manual actualizado). Usa el prefijo
+> `O-` y no solapa con el trabajo de reconstrucción visual de este documento.
+
 Por qué se rehace: hasta ahora había dos backlogs que no se hablaban. Uno funcional
 (E1-E20, «qué sabe hacer la app») y otro de diseño (el catálogo de mockups, «qué aspecto
 tiene cada pantalla»). El rediseño a seis vistas obliga a fusionarlos, porque organiza el

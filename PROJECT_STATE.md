@@ -2,6 +2,51 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: diagnóstico operativo y nuevo backlog `BACKLOG_OPERACION.md`
+
+El usuario pidió un análisis exhaustivo de la aplicación centrado en el uso y la gestión diaria y
+en la simulación de escenarios, con cuatro preguntas concretas: si se puede simular pedir un
+crédito a nombre de su mujer para cancelar sus deudas, cuándo puede permitirse comprar un coche,
+cómo debería actualizar previsto frente a real, y cómo funciona realmente la ingesta de datos.
+
+**Investigado antes de proponer nada**: cuatro exploraciones de solo lectura sobre el motor de
+escenarios (`canonical-scenario-engine.js`, `canonical-scenario-schema.js`,
+`canonical-debt-comparator.js`, `debt-roadmap.html`), el sistema previsto/real
+(`canonical-forecast.js`, `canonical-e16-monitoring.js`, `canonical-month-close.js`), la ingesta de
+datos (`canonical-e9-bank-import.js`, `canonical-e9-banking.js`, `canonical-e11b-inbox.js`,
+`canonical-ledger.js`) y la arquitectura de navegación (`index.html`, `e17-experience.js`,
+`executive-read-model.js`, `docs/E19_SISTEMA_DISENO.md`, `docs/mockups/HANDOFF_REDISENO_6_VISTAS.md`).
+Se entregó al usuario un artefacto visual (HTML) y un documento Word con el diagnóstico completo,
+respuestas directas a las cuatro preguntas con citas de archivo y línea, un flujo de uso semanal
+sin desarrollo nuevo, y una tabla de ocho mejoras candidatas ordenadas por impacto/esfuerzo.
+
+**Corrección importante antes de convertir esas ocho mejoras en backlog**: la primera exploración
+solo había leído `BACKLOG_STATUS.md` (archivado desde el 10 de agosto) y el final de
+`PROJECT_STATE.md`, no el `BACKLOG.md` vigente. Al revisar `BACKLOG.md` para construir el backlog
+definitivo se confirmó que **dos de las ocho mejoras ya estaban hechas**: la fusión a seis vistas
+(T-1, 11 de agosto) y el control de reserva operativa en la interfaz (V6-1/V6-3, 11 de agosto). Se
+verificaron además contra el código actual las seis restantes (grep directo sobre
+`canonical-scenario-schema.js`, `canonical-e9-notifications.js`, `canonical-month-close.js` y el
+bloque del Asesor ejecutivo en `app.js`) y siguen siendo huecos reales.
+
+**Publicado — `BACKLOG_OPERACION.md`**: nuevo documento con seis tareas (`O-1` a `O-6`), cada una
+con justificación citada, pasos ordenados y detallados, y su puerta de aceptación, más un
+cross-reference explícito a T-3 de `BACKLOG.md` para la conexión PSD2 en vez de duplicarla. Orden:
+O-1 (titularidad en refinanciación/reunificación de deuda — responde a la pregunta del crédito a
+nombre de la mujer), O-2 (recordatorio activo de reales pendientes), O-3 (aviso de completitud
+antes de cerrar el mes), O-4 (generalizar «¿cuánto puedo permitirme?» más allá del coche), O-5
+(actualizar `MANUAL_USUARIO.md`, deliberadamente al final para no reescribirlo dos veces), O-6
+(referencia a T-3, sin duplicar). `BACKLOG.md` y `README.md` enlazan ahora al nuevo documento para
+que cualquier sesión futura lo encuentre sin depender de esta conversación.
+
+**Validación**: cambio documental puro (ningún archivo de código tocado). `npm test` **1459/1459
+pruebas** en verde, cifra idéntica a la última sesión de código (D-15), como cabía esperar de un
+cambio que no toca `app.js` ni los módulos canónicos.
+
+**Publicado**: commit y push a `claude/financial-app-analysis-0618k1` (autorización permanente del
+10 de agosto de 2026, sin preguntar en cada turno) y PR en borrador; fusión a `main` en cuanto el CI
+esté en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: simulador visual de deuda promovido a pestaña de Deuda (D-15)
 
 El usuario adjuntó un HTML (`plan_deuda_visual_v5_sin_wizink.html`) que reconoció como el plan
