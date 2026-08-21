@@ -46,7 +46,7 @@ Misma leyenda que `BACKLOG.md` §0, para no introducir un tercer vocabulario:
 | O-1 | Titularidad en refinanciación/reunificación de deuda | Alto | Medio | ✅ · 21 de agosto de 2026 |
 | O-2 | Recordatorio activo de reales pendientes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
 | O-3 | Aviso de completitud antes de cerrar el mes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
-| O-4 | Generalizar «¿cuánto puedo permitirme?» más allá del coche | Medio | Medio | ✅ |
+| O-4 | Generalizar «¿cuánto puedo permitirme?» más allá del coche | Medio | Medio | ✅ · 21 de agosto de 2026 |
 | O-5 | Actualizar `MANUAL_USUARIO.md` a partir de E17 | Medio | Bajo | ⏳ · deliberadamente al final |
 | O-6 | Conexión bancaria PSD2 real | Medio | Alto | ⛔ · ya rastreada como T-3 en `BACKLOG.md`, depende de contratar proveedor |
 
@@ -271,6 +271,14 @@ constancia de que el diagnóstico la contempló y decidió no duplicarla como ta
 
 ## 1. Próximo paso
 
-**O-1, O-2, O-3 y O-4 hechas (21 de agosto de 2026).** Solo queda **O-5**, actualizar
-`MANUAL_USUARIO.md` — deliberadamente la última, ahora que O-1 a O-4 ya están publicadas y no hay
-que reescribir el manual dos veces.
+**O-1, O-2, O-3 y O-4 hechas (21 de agosto de 2026).** Quedan dos tareas, ninguna bloqueada por
+trabajo local pendiente de este equipo:
+
+- **O-5 · Actualizar `MANUAL_USUARIO.md`** (Impacto medio, esfuerzo bajo, `⏳`). Deliberadamente la
+  última tarea de desarrollo del ciclo, ahora que O-1 a O-4 ya están publicadas y no hay que
+  reescribir el manual dos veces. Siguiente paso natural de esta sesión: sus 5 pasos están
+  detallados arriba, en la sección «O-5».
+- **O-6 · Conexión bancaria PSD2 real** (Impacto medio, esfuerzo alto, `⛔`). No es tarea nueva de
+  este backlog: es **T-3** en `BACKLOG.md` §5, bloqueada por la aceptación de un proveedor externo
+  (GoCardless evaluado, `E9_BANKING.md:5-7`). No se puede avanzar en este documento hasta que esa
+  decisión de producto se tome fuera del equipo de desarrollo.
