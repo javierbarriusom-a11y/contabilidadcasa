@@ -346,6 +346,7 @@ test("D-8 · homeDebtReviewReminders lee reviewDate de las decisiones aplicadas 
 test("D-8 · homeDecisionCandidates incluye los recordatorios de revisión entre las candidatas con fecha", () => {
   const context = sandboxWith(["homeDecisionCandidates"], {
     homeImportSessionCandidate: () => null,
+    homePendingActualsReminder: () => null,
     homeOpenOfferInsight: () => null,
     homeDebtReviewReminders: () => [{ title: "Revisar oferta de deuda aplicada", expiresAt: "2026-08-20", expiryLabel: "20 ago", status: "warn", target: "debt-roadmap", cta: "Revisar" }],
     homeEscenarioReviewReminders: () => [],

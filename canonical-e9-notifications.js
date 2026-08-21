@@ -12,6 +12,10 @@
     planning: "Tienes una revisión de planificación pendiente.",
     quality: "Tienes una revisión de datos pendiente.",
     general: "Tienes una alerta financiera pendiente.",
+    // O-2 (BACKLOG_OPERACION.md): recordatorio de partidas del mes sin real. Texto genérico a
+    // propósito, igual que el resto de categorías — nunca lleva importes ni nombres de partida en
+    // el propio push (containsSensitiveAmounts: false en safePayload).
+    "reales-pendientes": "Tienes partidas del mes sin registrar.",
   });
   const TARGETS = new Set(["alerts-center", "data-audit", "update-data", "executive-advisor"]);
   const text = (value) => String(value ?? "").trim();

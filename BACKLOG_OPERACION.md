@@ -44,8 +44,8 @@ Misma leyenda que `BACKLOG.md` §0, para no introducir un tercer vocabulario:
 | Tarea | Resuelve | Impacto | Esfuerzo | Estado |
 | --- | --- | --- | --- | --- |
 | O-1 | Titularidad en refinanciación/reunificación de deuda | Alto | Medio | ✅ · 21 de agosto de 2026 |
-| O-2 | Recordatorio activo de reales pendientes | Medio | Bajo | ⏳ |
-| O-3 | Aviso de completitud antes de cerrar el mes | Medio | Bajo | ⏳ |
+| O-2 | Recordatorio activo de reales pendientes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
+| O-3 | Aviso de completitud antes de cerrar el mes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
 | O-4 | Generalizar «¿cuánto puedo permitirme?» más allá del coche | Medio | Medio | ⏳ |
 | O-5 | Actualizar `MANUAL_USUARIO.md` a partir de E17 | Medio | Bajo | ⏳ · deliberadamente al final |
 | O-6 | Conexión bancaria PSD2 real | Medio | Alto | ⛔ · ya rastreada como T-3 en `BACKLOG.md`, depende de contratar proveedor |
@@ -136,6 +136,15 @@ ayuda, no algo que la app recuerde por sí sola.
    banner en `#home` solo aparece cuando hay algo pendiente.
 6. Puerta de aceptación estándar antes de marcar ✅.
 
+**Hecho — 21 de agosto de 2026, con un ajuste sobre el plan.** El esquema de
+`canonical-e9-notifications.js` no tiene `enabled` por categoría (es un único interruptor global del
+canal push) — activarlo por defecto habría saltado el consentimiento explícito que E9 exige a
+propósito. Se optó por el recordatorio local en Hoy (`homePendingActualsReminder`, candidata nueva de
+`homeDecisionCandidates`), que no depende de push ni de ningún permiso y por eso llega a quien nunca
+activó notificaciones — la mayoría, según el diagnóstico. La categoría `reales-pendientes` sí se
+añadió al catálogo de push para quien lo tenga activado, reutilizando el target `update-data` ya
+existente. Detalle completo en `PROJECT_STATE.md`.
+
 ---
 
 ## O-3 · Aviso de completitud antes de cerrar el mes
@@ -160,6 +169,13 @@ usuario la recuerde (así lo pide el propio manual, §12), sin ningún apoyo de 
 4. Pruebas: cierre con cero pendientes (sin diálogo), cierre con N pendientes (diálogo, confirmar
    procede, cancelar aborta y no cierra el mes).
 5. Puerta de aceptación estándar antes de marcar ✅.
+
+**Hecho — 21 de agosto de 2026, con una precisión sobre el plan.** El diálogo de confirmación
+(`requestOperationConfirmation`, motivo obligatorio) ya existía para cualquier cierre de mes — no se
+añadió un diálogo nuevo; el que hay se enriquece con `monthCloseConfirmMessage(month,
+pendingActualsForMonthKey(month))`, que menciona el recuento y las partidas concretas cuando hay
+alguna sin real. Sigue sin bloquear: el cierre se puede confirmar igual con huecos conocidos, ahora
+de forma informada. Detalle completo en `PROJECT_STATE.md`.
 
 ---
 
@@ -232,7 +248,6 @@ constancia de que el diagnóstico la contempló y decidió no duplicarla como ta
 
 ## 1. Próximo paso
 
-**O-1 hecha (21 de agosto de 2026).** Siguiente: **O-2 y O-3**, en la misma sesión o en la
-siguiente — comparten la misma fuente de datos (la lista de completitud de «Registrar el mes») y
-son ambas de bajo esfuerzo, así que conviene hacerlas juntas antes que O-4. O-5 cierra el ciclo una
-vez O-1 a O-4 estén publicadas, para no reescribir el manual dos veces.
+**O-1, O-2 y O-3 hechas (21 de agosto de 2026).** Siguiente: **O-4**, generalizar «¿cuánto puedo
+permitirme?» más allá del coche — es la única tarea de esfuerzo medio que queda antes de O-5. O-5
+cierra el ciclo una vez O-1 a O-4 estén publicadas, para no reescribir el manual dos veces.

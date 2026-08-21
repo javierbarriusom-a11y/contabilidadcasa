@@ -2,6 +2,62 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: O-2 y O-3, recordatorio de reales pendientes y aviso al cerrar el mes
+
+Segunda y tercera tarea de `BACKLOG_OPERACION.md`, confirmadas por el usuario («Sigue con o2 y o3»).
+Ambas comparten la misma fuente de datos —qué partidas del mes siguen sin real— para que dejar de
+registrar no dependa solo de la memoria del usuario.
+
+**Construido — O-2**:
+- `app.js`: `pendingActualsForMonthKey(monthKey)`, función pura nueva junto a
+  `registrarActualsEntries` que busca el mes por clave en `baseData.monthlyPlanning.months` y
+  reutiliza `registrarActualsEntries`/`registrarMesCollect` (la misma fuente que ya usa «Registrar
+  el mes» y la pestaña «Reales del mes») para no mantener dos cálculos de lo mismo.
+- `homePendingActualsReminder()`: candidata nueva para las «hasta 3 decisiones» de Hoy
+  (`homeDecisionCandidates`), visible cuando el mes en curso (`registrarActualsDefaultMonthKey()`)
+  tiene partidas sin real. Apunta a `target: "update-data"`, la clave heredada que ya traduce a
+  Registrar › Reales del mes. **Deliberadamente no depende de push**: a diferencia del canal de
+  notificaciones (opt-in, apagado por defecto por diseño de privacidad de E9), esta candidata es
+  local y siempre visible, así que llega a quien nunca activó notificaciones — que es la mayoría,
+  según el propio diagnóstico.
+- `canonical-e9-notifications.js`: nueva categoría `reales-pendientes` en `SAFE_MESSAGES`, con texto
+  genérico sin importes ni nombres de partida (seguía el mismo criterio de privacidad que las
+  categorías existentes). Reutiliza el target `update-data`, ya en la lista blanca — no hizo falta
+  ampliar `TARGETS`.
+- **Ajuste sobre el plan original del backlog**: el borrador de O-2 hablaba de «activar `enabled:
+  true` por defecto solo para esta categoría nueva», pero al leer `canonical-e9-notifications.js` se
+  vio que `enabled` es un único interruptor global del canal push (no hay `enabled` por categoría en
+  el esquema) — activar push por defecto para cualquier categoría violaría el diseño de consentimiento
+  explícito de E9. Se optó por el recordatorio local en Hoy, que no tiene ese problema porque no
+  envía nada fuera de la app.
+
+**Construido — O-3**:
+- `app.js`: `monthCloseConfirmMessage(month, pending)`, función pura que añade al mensaje del cierre
+  de mes cuántas partidas siguen sin real, cuando las hay. **Avisa, no bloquea**: no se creó ningún
+  diálogo nuevo — `closeCurrentMonthTransaction` ya pedía motivo y confirmación explícita
+  (`requestOperationConfirmation`) para cualquier cierre; el cambio solo enriquece el mensaje de ese
+  mismo diálogo con `pendingActualsForMonthKey(month)`, reutilizando la misma fuente que O-2.
+
+**Pruebas nuevas**: `tests/o2-o3-recordatorio-cierre.test.cjs` (18 pruebas: categoría segura sin
+importes, `pendingActualsForMonthKey` con y sin pendientes, `homePendingActualsReminder` en singular/
+plural/recorte, integración en `homeDecisionCandidates`, `monthCloseConfirmMessage` en sus cuatro
+variantes, y el cableado real de `closeCurrentMonthTransaction`).
+
+**Corrección de arrastre**: al añadir la nueva candidata a `homeDecisionCandidates`, cinco ficheros de
+pruebas existentes que sandboxean esa función (`v1-2-asesor-en-hoy`, `d8-d9-deuda-oferta-aplicar`,
+`e11-escenario-revision`, `f1-hoy-dato-ausente`, `h5-hoy-decision-navegacion`) necesitaron el nuevo
+doble `homePendingActualsReminder: () => null` — mismo patrón que ya usaban para
+`homeImportSessionCandidate` y el resto de dependencias de esa función.
+
+**Validación**: `npm run verify` completo — `npm test` **1492/1492 pruebas** (18 nuevas en
+`tests/o2-o3-recordatorio-cierre.test.cjs`, cero regresiones), accesibilidad (806 IDs únicos),
+rendimiento (diff 10.000 filas en 32,2 ms; forecast y escenarios en 172,6 ms; recursos 1728 KB),
+`build:site`, privacidad y smoke test, todo en verde.
+
+**Publicado**: commit y push a `claude/financial-app-analysis-0618k1` (autorización permanente del
+10 de agosto de 2026, sin preguntar en cada turno) y PR en borrador; fusión a `main` en cuanto el CI
+esté en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: O-1, titularidad en refinanciación/reunificación de deuda
 
 Primera tarea del nuevo `BACKLOG_OPERACION.md`, confirmada por el usuario («Ok, empezamos»).

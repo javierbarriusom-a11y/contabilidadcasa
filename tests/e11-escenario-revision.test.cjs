@@ -116,6 +116,7 @@ test("E-11b · homeEscenarioReviewReminders también lee «vigente», el nuevo e
 test("E-11 · homeDecisionCandidates incluye el recordatorio de escenario entre las candidatas con fecha", () => {
   const context = sandboxWith(["homeDecisionCandidates"], {
     homeImportSessionCandidate: () => null,
+    homePendingActualsReminder: () => null,
     homeOpenOfferInsight: () => null,
     homeDebtReviewReminders: () => [],
     homeEscenarioReviewReminders: () => [
