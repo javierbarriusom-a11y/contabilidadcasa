@@ -12546,6 +12546,45 @@ function firstMonthReachingMediolanum(plan, amount) {
   return rows.find((row) => Number(row.agentMediolanum || 0) >= threshold) || null;
 }
 
+// O-4 (BACKLOG_OPERACION.md): "¿cuándo puedo permitirme X?" generalizado más allá del coche.
+// Reutiliza firstMonthReachingMediolanum (fecha en que la caja de ahorro llega a un importe) y el
+// mismo criterio prudente de ratio de deuda que ya usaba el coche, para no mantener dos cálculos
+// de lo mismo. costeObjetivo/colchonObjetivo/capitalFinanciacion/cuotaFinanciacion son neutros:
+// el coche es el primer preset construido encima, no un caso especial del motor.
+function bigPurchaseAffordability(plan, { costeObjetivo = 0, colchonObjetivo = 0, capitalFinanciacion = 0, cuotaFinanciacion = 0, avgIncome = 0, avgDebt = 0 } = {}) {
+  const cashNeedCredit = Math.max(0, round2(costeObjetivo - capitalFinanciacion));
+  const monthCashOnly = firstMonthReachingMediolanum(plan, colchonObjetivo || costeObjetivo);
+  const monthWithCredit = firstMonthReachingMediolanum(plan, cashNeedCredit);
+  const debtRatio = avgIncome ? (avgDebt / avgIncome) * 100 : 0;
+  const debtRatioWithCredit = avgIncome ? ((avgDebt + cuotaFinanciacion) / avgIncome) * 100 : 0;
+  const maxSafePayment = Math.max(0, round2(avgIncome * 0.32 - avgDebt));
+  const safeCredit = debtRatioWithCredit <= 32 && cuotaFinanciacion <= Math.max(1, maxSafePayment);
+  return { cashNeedCredit, monthCashOnly, monthWithCredit, debtRatio, debtRatioWithCredit, maxSafePayment, safeCredit };
+}
+
+function bigPurchaseGoals() {
+  scenarioSettings.bigPurchaseGoals = Array.isArray(scenarioSettings.bigPurchaseGoals) ? scenarioSettings.bigPurchaseGoals : [];
+  return scenarioSettings.bigPurchaseGoals;
+}
+
+function addBigPurchaseGoal({ label, costeObjetivo, colchonObjetivo, capitalFinanciacion, cuotaFinanciacion }) {
+  const goals = bigPurchaseGoals();
+  goals.push({
+    id: `compra-${Date.now()}-${goals.length}`,
+    label: String(label || "").trim() || "Compra grande",
+    costeObjetivo: round2(Number(costeObjetivo) || 0),
+    colchonObjetivo: round2(Number(colchonObjetivo) || 0),
+    capitalFinanciacion: round2(Number(capitalFinanciacion) || 0),
+    cuotaFinanciacion: round2(Number(cuotaFinanciacion) || 0),
+  });
+  saveScenarioSettings();
+}
+
+function removeBigPurchaseGoal(id) {
+  scenarioSettings.bigPurchaseGoals = bigPurchaseGoals().filter((goal) => goal.id !== id);
+  saveScenarioSettings();
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -12561,18 +12600,26 @@ function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const first12 = rows.slice(0, 12);
   const avgIncome = first12.length ? averageRows(first12, (row) => row.income) : 0;
   const avgDebt = first12.length ? averageRows(first12, (row) => row.car + row.refi) : 0;
-  const debtRatio = avgIncome ? (avgDebt / avgIncome) * 100 : 0;
-  const debtRatioWithTere = avgIncome ? ((avgDebt + settings.tereCreditPayment) / avgIncome) * 100 : 0;
-  const maxSafeTerePayment = Math.max(0, round2(avgIncome * 0.32 - avgDebt));
+  const carAffordability = bigPurchaseAffordability(plan, {
+    costeObjetivo: settings.carCost,
+    colchonObjetivo: settings.carReserve,
+    capitalFinanciacion: settings.tereCreditCapital,
+    cuotaFinanciacion: settings.tereCreditPayment,
+    avgIncome,
+    avgDebt,
+  });
+  const debtRatio = carAffordability.debtRatio;
+  const debtRatioWithTere = carAffordability.debtRatioWithCredit;
+  const maxSafeTerePayment = carAffordability.maxSafePayment;
   const bestDebtStep = debtOptimization?.steps?.[0] || null;
   const bestDebt = bestDebtStep?.candidate || agentDebtRecommendations(plan)[0] || null;
   const carReserveGap = Math.max(0, round2(settings.carReserve - Number(balances.mediolanum || 0)));
   const rawCarPot = Number(capacity.avgTransfer12m || 0) * 0.35;
   const carMonthlyPot = carReserveGap && rawCarPot > 0 ? round2(Math.min(carReserveGap, Math.max(150, rawCarPot))) : 0;
-  const carReserveMonth = firstMonthReachingMediolanum(plan, settings.carReserve);
-  const carWithCreditCashNeed = Math.max(0, round2(settings.carCost - settings.tereCreditCapital));
-  const carWithCreditMonth = firstMonthReachingMediolanum(plan, carWithCreditCashNeed);
-  const safeCredit = debtRatioWithTere <= 32 && settings.tereCreditPayment <= Math.max(1, maxSafeTerePayment);
+  const carReserveMonth = carAffordability.monthCashOnly;
+  const carWithCreditCashNeed = carAffordability.cashNeedCredit;
+  const carWithCreditMonth = carAffordability.monthWithCredit;
+  const safeCredit = carAffordability.safeCredit;
   return {
     plan,
     rows,
@@ -13245,6 +13292,53 @@ function renderExecutiveCarPlan(ctx) {
     </div>`;
 }
 
+function renderBigPurchaseGoals(ctx) {
+  const target = qs("executiveBigPurchaseGoals");
+  if (!target) return;
+  const goals = bigPurchaseGoals();
+  if (!goals.length) {
+    target.innerHTML = `<div class="empty-state compact">Sin otros objetivos todavía. Añade uno (reforma, mudanza, etc.) para ver cuándo será viable.</div>`;
+    return;
+  }
+  target.innerHTML = goals.map((goal) => {
+    const result = bigPurchaseAffordability(ctx.plan, {
+      costeObjetivo: goal.costeObjetivo,
+      colchonObjetivo: goal.colchonObjetivo,
+      capitalFinanciacion: goal.capitalFinanciacion,
+      cuotaFinanciacion: goal.cuotaFinanciacion,
+      avgIncome: ctx.avgIncome,
+      avgDebt: ctx.avgDebt,
+    });
+    const monthCash = result.monthCashOnly?.month || "No alcanzado";
+    const creditLine = goal.capitalFinanciacion > 0
+      ? `Con financiación (${money(goal.capitalFinanciacion, true)} ahora, ${money(goal.cuotaFinanciacion, true)}/mes): ${result.monthWithCredit?.month || "No alcanzado"}. Ratio deuda: ${result.debtRatio.toFixed(1)}% -> ${result.debtRatioWithCredit.toFixed(1)}%.`
+      : "";
+    const tone = !goal.capitalFinanciacion || result.safeCredit ? "good" : "danger";
+    return `<article class="executive-car-option ${tone}">
+      <span>${escapeHtml(goal.label)}</span>
+      <strong>${money(goal.costeObjetivo, true)}</strong>
+      <p>Al contado / colchón: ${escapeHtml(monthCash)}. ${escapeHtml(creditLine)}</p>
+      <button type="button" class="secondary" data-big-purchase-remove="${escapeHtml(goal.id)}">Quitar</button>
+    </article>`;
+  }).join("");
+}
+
+function addBigPurchaseGoalFromControls() {
+  const costeObjetivo = parseAmount(qs("executiveBigPurchaseCoste")?.value);
+  if (!costeObjetivo || costeObjetivo <= 0) return;
+  addBigPurchaseGoal({
+    label: qs("executiveBigPurchaseLabel")?.value,
+    costeObjetivo,
+    colchonObjetivo: parseAmount(qs("executiveBigPurchaseColchon")?.value) || 0,
+    capitalFinanciacion: parseAmount(qs("executiveBigPurchaseCapital")?.value) || 0,
+    cuotaFinanciacion: parseAmount(qs("executiveBigPurchaseCuota")?.value) || 0,
+  });
+  ["executiveBigPurchaseLabel", "executiveBigPurchaseCoste", "executiveBigPurchaseColchon", "executiveBigPurchaseCapital", "executiveBigPurchaseCuota"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  scheduleExecutiveAdvisorRender();
+}
+
 function renderExecutiveMonthAgenda(ctx) {
   const target = qs("executiveMonthAgenda");
   if (!target) return;
@@ -13278,6 +13372,7 @@ function renderExecutiveAdvisor({ forceHeavy = false } = {}) {
   renderExecutiveAccounts(ctx);
   renderExecutiveDebtRoute(ctx);
   renderExecutiveCarPlan(ctx);
+  renderBigPurchaseGoals(ctx);
   renderExecutiveMonthAgenda(ctx);
   if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("executive-advisor");
 }
@@ -30825,6 +30920,16 @@ async function init() {
         prepareExecutiveCarProject(true);
         return;
       }
+      if (action === "add-big-purchase") {
+        addBigPurchaseGoalFromControls();
+        return;
+      }
+    }
+    const removeGoalButton = event.target.closest("[data-big-purchase-remove]");
+    if (removeGoalButton) {
+      removeBigPurchaseGoal(removeGoalButton.dataset.bigPurchaseRemove);
+      scheduleExecutiveAdvisorRender();
+      return;
     }
     const debtButton = event.target.closest("[data-executive-debt-target]");
     if (debtButton) {

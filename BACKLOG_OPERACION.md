@@ -46,7 +46,7 @@ Misma leyenda que `BACKLOG.md` §0, para no introducir un tercer vocabulario:
 | O-1 | Titularidad en refinanciación/reunificación de deuda | Alto | Medio | ✅ · 21 de agosto de 2026 |
 | O-2 | Recordatorio activo de reales pendientes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
 | O-3 | Aviso de completitud antes de cerrar el mes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
-| O-4 | Generalizar «¿cuánto puedo permitirme?» más allá del coche | Medio | Medio | ⏳ |
+| O-4 | Generalizar «¿cuánto puedo permitirme?» más allá del coche | Medio | Medio | ✅ |
 | O-5 | Actualizar `MANUAL_USUARIO.md` a partir de E17 | Medio | Bajo | ⏳ · deliberadamente al final |
 | O-6 | Conexión bancaria PSD2 real | Medio | Alto | ⛔ · ya rastreada como T-3 en `BACKLOG.md`, depende de contratar proveedor |
 
@@ -206,6 +206,29 @@ grande (reforma, entrada de vivienda, etc.).
    un caso nuevo (p. ej. una reforma) con fecha e importe distintos.
 6. Puerta de aceptación estándar antes de marcar ✅.
 
+**Hecho — 21 de agosto de 2026.** `canonical-e15-goals.js` (paso 1) resultó ser un motor distinto:
+reparte una capacidad de ahorro mensual entre objetivos con fecha y prioridad (`contributionPlan`),
+no calcula «en qué mes la caja llega a cubrir un coste con o sin financiación». No se tocó — se
+mantiene para lo suyo.
+
+Se extrajo `bigPurchaseAffordability(plan, { costeObjetivo, colchonObjetivo, capitalFinanciacion,
+cuotaFinanciacion, avgIncome, avgDebt })` (`app.js`, junto a `firstMonthReachingMediolanum`), que
+reutiliza esa misma función de fecha-de-caja y el mismo criterio de ratio de deuda prudente (≤32%)
+que ya usaba el coche. `executiveAdvisorContext` ahora calcula el caso coche llamando a esta función
+en vez de repetir la fórmula — regresión cero, verificado con los mismos números que antes.
+
+Encima de ese motor se añadió un formulario mínimo en el Asesor ejecutivo («Otras compras grandes»):
+nombre, coste, colchón, capital financiado y cuota. Cada objetivo guardado
+(`scenarioSettings.bigPurchaseGoals`) se muestra como una tarjeta con su propia fecha al contado y,
+si hay financiación, su propia fecha con crédito y ratio de deuda — mismo cálculo, sin tocar los
+datos del coche. «Coche» sigue siendo el primer preset, ahora construido sobre la función genérica
+en vez de ser un caso especial cableado.
+
+13 pruebas nuevas (`tests/o4-compra-grande-generica.test.cjs`): fórmulas del motor genérico, caso
+coche reproducido exactamente número a número, un caso nuevo (reforma) con fecha e importe propios,
+alta/baja de objetivos, y el cableado de `executiveAdvisorContext`/`renderExecutiveAdvisor`.
+`npm run verify`: 1505/1505 pruebas, accesibilidad, rendimiento, build, privacidad y humo en verde.
+
 ---
 
 ## O-5 · Actualizar `MANUAL_USUARIO.md` a partir de E17
@@ -248,6 +271,6 @@ constancia de que el diagnóstico la contempló y decidió no duplicarla como ta
 
 ## 1. Próximo paso
 
-**O-1, O-2 y O-3 hechas (21 de agosto de 2026).** Siguiente: **O-4**, generalizar «¿cuánto puedo
-permitirme?» más allá del coche — es la única tarea de esfuerzo medio que queda antes de O-5. O-5
-cierra el ciclo una vez O-1 a O-4 estén publicadas, para no reescribir el manual dos veces.
+**O-1, O-2, O-3 y O-4 hechas (21 de agosto de 2026).** Solo queda **O-5**, actualizar
+`MANUAL_USUARIO.md` — deliberadamente la última, ahora que O-1 a O-4 ya están publicadas y no hay
+que reescribir el manual dos veces.

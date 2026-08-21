@@ -2,6 +2,45 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: O-4, generalizar «¿cuánto puedo permitirme?» más allá del coche
+
+Cuarta tarea de `BACKLOG_OPERACION.md`, confirmada por el usuario («vamos con o4»).
+
+**Investigación previa (paso 1 del backlog)**: `canonical-e15-goals.js` no cubre esto — reparte una
+capacidad de ahorro mensual entre objetivos con fecha y prioridad (`contributionPlan`), no calcula
+en qué mes la caja llega a cubrir un coste con o sin financiación. Se dejó intacto.
+
+**Construido**:
+- `app.js`: `bigPurchaseAffordability(plan, { costeObjetivo, colchonObjetivo, capitalFinanciacion,
+  cuotaFinanciacion, avgIncome, avgDebt })`, función pura nueva junto a `firstMonthReachingMediolanum`
+  que reutiliza esa misma función (fecha en que la caja alcanza un importe) y el mismo criterio de
+  ratio de deuda prudente (≤32%) que ya usaba el coche. `executiveAdvisorContext` calcula ahora el
+  caso coche llamando a esta función en vez de repetir la fórmula — regresión cero, verificado número
+  a número contra la fórmula anterior.
+- `bigPurchaseGoals()` / `addBigPurchaseGoal()` / `removeBigPurchaseGoal()`: alta y baja de objetivos
+  de compra grande adicionales (`scenarioSettings.bigPurchaseGoals`), con normalización de importes y
+  nombre por defecto si se deja en blanco.
+- `renderBigPurchaseGoals(ctx)`: pinta cada objetivo guardado como tarjeta con su fecha al contado/
+  colchón y, si tiene financiación, su fecha con crédito y ratio de deuda — mismo cálculo que el
+  coche, datos propios.
+- `index.html`: panel nuevo «Otras compras grandes» en Asesor ejecutivo (`#executive-advisor`), con
+  formulario mínimo (nombre, coste, colchón, capital financiado, cuota) y el listado de objetivos.
+  «Coche» sigue siendo el primer preset, ahora construido sobre la función genérica.
+
+**Pruebas nuevas**: `tests/o4-compra-grande-generica.test.cjs` (13 pruebas: fórmulas del motor
+genérico, caso coche reproducido exactamente número a número contra la fórmula original, un caso
+nuevo —reforma— con fecha e importe distintos, alta/baja de objetivos con id y nombre por defecto, y
+el cableado de `executiveAdvisorContext`/`renderExecutiveAdvisor`).
+
+**Validación**: `npm run verify` completo — `npm test` **1505/1505 pruebas** (13 nuevas en
+`tests/o4-compra-grande-generica.test.cjs`, cero regresiones), accesibilidad (812 IDs únicos),
+rendimiento (diff 10.000 filas en 48,8 ms; forecast y escenarios en 250,5 ms; recursos 1733 KB),
+`build:site`, privacidad y smoke test, todo en verde.
+
+**Publicado**: commit y push a `claude/financial-app-analysis-0618k1` (autorización permanente del
+10 de agosto de 2026, sin preguntar en cada turno) y PR en borrador; fusión a `main` en cuanto el CI
+esté en verde.
+
 ## Cierre de sesión — 21 de agosto de 2026: O-2 y O-3, recordatorio de reales pendientes y aviso al cerrar el mes
 
 Segunda y tercera tarea de `BACKLOG_OPERACION.md`, confirmadas por el usuario («Sigue con o2 y o3»).
