@@ -2,6 +2,47 @@
 
 Fecha de revisión: 21 de agosto de 2026.
 
+## Cierre de sesión — 21 de agosto de 2026: pixel-perfect de Deuda contra `Deuda.pdf`
+
+Continuación de la misma sesión «pantalla por pantalla»: con Hoy, Registrar, Movimientos y Plan
+cerrados, tocaba Deuda (`#deuda-ruta`/`#deuda-comparar`/`#deuda-contratos`). Las 17 tareas ya
+estaban en Hecho desde la auditoría de contenido del 15 de agosto; este repaso comparó el resultado
+visual de `#deuda-ruta` contra la sección B de `Deuda.pdf` («Deuda, rediseñada y completa»).
+
+**Bug encontrado y corregido sin preguntar** (aditivo, afecta a 11 pantallas, no solo a Deuda):
+`viewTitles` no tenía entrada para `deuda-ruta`, `deuda-comparar`, `deuda-contratos` y ocho vistas
+más — la cabecera compartida (el `<h1>` y el recuadro «Para qué sirve») caía en `viewTitles.home` y
+enseñaba «Hoy · Qué necesita tu atención» al entrar en cualquiera de ellas directamente. Encontrado
+mientras se investigaba la queja del usuario sobre enlaces a pantallas legacy («en Hoy, Ver saldos
+lleva a Cuadro de mandos») — confirmado que ese patrón concreto es la política T-4 ya tomada
+(heredadas relegadas a «Versiones anteriores», deliberadamente accesibles, no retiradas del todo
+hasta tener datos de uso); la auditoría completa de enlaces legacy en el resto de pantallas queda
+pendiente para el final de la ronda «pantalla por pantalla», como pidió el usuario.
+
+Dos decisiones de producto consultadas antes de tocar nada:
+
+1. **«Orden de ataque» fusiona el selector de estrategia + «Ruta propuesta» + «Cartera»** en una
+   tabla por contrato (Capital/TIN/Cuota/Peso y fin previsto), fiel al mockup — el usuario pidió
+   reconstruirla en vez de solo reordenar. Sin cálculo nuevo: reutiliza el mismo orden de
+   `debtStrategyOrderedContracts` y el mismo `resultadosById` del motor de escenarios que ya
+   alimentaban las tres piezas sueltas. Bug real encontrado con Playwright: `contract.apr` es
+   `null` (no 0) sin TIN declarado — `Number(null)` da 0 — así que un TIN desconocido se veía como
+   un crédito al 0 % hasta descartar null/undefined explícitamente antes de convertir.
+2. **El enlace a la heredada `#debt-roadmap` para editar una oferta se sustituye por un formulario
+   in situ** — el usuario pidió construirlo en vez de dejarlo enlazado. `updateE14bOffer` reutiliza
+   `E14DebtOperations.normalizeOffer`, la misma validación que ya usaba el alta en `#debt-roadmap`;
+   solo sustituye la oferta existente por su versión normalizada, nunca inventa una nueva.
+
+Además: la tarjeta «Oferta en curso» pasa a fondo oscuro (`--e19-accent-strong`) cuando hay una
+oferta real, como pinta el mockup.
+
+**Validación**: `npm run verify`, exit 0 — **1438/1438 pruebas** (10 nuevas en
+`tests/d13-deuda-pixel-perfect.test.cjs`), accesibilidad (794 IDs únicos), rendimiento (diff 10.000
+filas en 49,1 ms; forecast y escenarios en 267,6 ms; recursos 1717 KB), build del sitio, privacidad
+y smoke test, todos en verde. Verificado con Playwright contra el build local a 1440 px, incluida
+una oferta sembrada de prueba para comprobar la tarjeta oscura y el formulario de edición. Detalle
+completo en `docs/BACKLOG_NUEVE_PANTALLAS.md` §5.
+
 ## Cierre de sesión — 21 de agosto de 2026: pixel-perfect de Plan contra `Plan.pdf`
 
 Continuación de la misma sesión «pantalla por pantalla»: con Hoy, Registrar y Movimientos cerrados,

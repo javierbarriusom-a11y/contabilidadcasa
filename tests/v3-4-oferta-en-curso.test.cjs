@@ -80,6 +80,7 @@ function sandbox({ offer = null, contract = null, funding = "<funding-html>" } =
     applyE14bOffer: async () => {},
     debtLiquidations: [],
     deudaRutaOfferStatusMessage: "",
+    deudaRutaOfferEditOpen: false,
     calls,
     target,
     applyButton,
@@ -133,15 +134,21 @@ test("V3-4 · Deuda pinta la tarjeta al renderizar la ruta", () => {
   assert.match(render, /renderDeudaRutaOffer\(\);/);
 });
 
-test("V3-4 · la tarjeta vive en #deuda-ruta, dentro de la misma columna que Cartera y Antes de aplicar", () => {
+// Repaso pixel-perfect del 21 de agosto de 2026 (Deuda.pdf, sección B): «Cartera» se fusionó
+// dentro de la tabla «Orden de ataque» y «Capacidad de endeudamiento» se movió a la misma columna
+// que Oferta en curso, como pinta el mockup — «Antes de aplicar»/el botón «Aplicar ruta» de la
+// estrategia (que el mockup no muestra en este recorte) pasa a su propia tarjeta al pie de la
+// pantalla, ya fuera de esa columna.
+test("V3-4 · la tarjeta vive en #deuda-ruta, en la misma columna que Capacidad de endeudamiento", () => {
   const sectionStart = html.indexOf('id="deuda-ruta"');
   const sectionEnd = html.indexOf("</section>", sectionStart);
   const section = html.slice(sectionStart, sectionEnd);
   assert.match(section, /id="deudaRutaOffer"/);
+  assert.match(section, /id="deudaRutaOfferCard"/);
   const offerIndex = section.indexOf('id="deudaRutaOffer"');
-  const portfolioIndex = section.indexOf('id="deudaRutaPortfolio"');
+  const capacityIndex = section.indexOf('id="deudaRutaCapacity"');
   const applyIndex = section.indexOf('id="deudaRutaApply"');
-  assert.ok(offerIndex < portfolioIndex && portfolioIndex < applyIndex, "Oferta en curso va antes que Cartera y Antes de aplicar");
+  assert.ok(offerIndex < capacityIndex && capacityIndex < applyIndex, "Oferta en curso va antes que Capacidad de endeudamiento y que Antes de aplicar");
 });
 
 test("V3-4 · el CSS de la tarjeta se reutiliza de asesor-decision, sin declarar colores nuevos", () => {

@@ -2387,6 +2387,102 @@
   padding: 18px;
 }
 
+/* Deuda.pdf (05 de 9, sección B «Deuda, rediseñada y completa») · «Orden de ataque» fusiona el
+   selector de estrategia + la lista «Ruta propuesta» + la tarjeta «Cartera» en una sola tabla por
+   contrato, con el selector pegado a la cabecera de la tarjeta (D-1/D-2/D-3/D-4, sin cálculo
+   nuevo: mismo `debtStrategyOrderedContracts`/`resultadosById` que ya alimentaba esas tres piezas). */
+.e19-deuda-decidir .deuda-ruta-attack-card .registrar-mes-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+/* `table-layout: fixed` + un ancho explícito por columna (en vez de dejar que el auto-layout
+   reparta el espacio sobrante): sin esto, una columna con poco contenido («—») podía inflarse muy
+   por encima de lo necesario y forzar scroll horizontal aunque el resto de columnas cupieran de
+   sobra. `min-width: 0` anula el `table { min-width: 1120px }` genérico de styles.css (pensado
+   para tablas grandes de datos, ver también `.escenario-motor-diff-panel table`), que si no
+   forzaría el scroll aquí igualmente — encontrado con Playwright contra el build local, no con
+   las pruebas. */
+.e19-deuda-decidir .deuda-ruta-attack-table {
+  table-layout: fixed;
+  min-width: 0;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table td,
+.e19-deuda-decidir .deuda-ruta-attack-table th {
+  vertical-align: middle;
+  padding: 11px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table td:nth-child(1),
+.e19-deuda-decidir .deuda-ruta-attack-table th:nth-child(1) {
+  width: 28px;
+  padding-right: 4px;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table td:nth-child(2),
+.e19-deuda-decidir .deuda-ruta-attack-table th:nth-child(2) {
+  width: 200px;
+  white-space: normal;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table td:nth-child(3),
+.e19-deuda-decidir .deuda-ruta-attack-table th:nth-child(3) {
+  width: 100px;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table td:nth-child(4),
+.e19-deuda-decidir .deuda-ruta-attack-table th:nth-child(4) {
+  width: 60px;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table td:nth-child(5),
+.e19-deuda-decidir .deuda-ruta-attack-table th:nth-child(5) {
+  width: 90px;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table td:last-child,
+.e19-deuda-decidir .deuda-ruta-attack-table th:last-child {
+  width: 150px;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-weight {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 130px;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-weight-bar {
+  height: 6px;
+  border-radius: var(--e19-radius-pill);
+  background: var(--e19-surface-sunken);
+  overflow: hidden;
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-weight-bar span {
+  display: block;
+  height: 100%;
+  background: var(--e19-debt);
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-weight small {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
+.e19-deuda-decidir .deuda-ruta-attack-table tfoot td {
+  font-weight: 700;
+  border-top: 2px solid var(--e19-border-strong);
+  color: var(--e19-heading);
+}
+
 .e19-deuda-decidir .deuda-ruta-timeline {
   list-style: none;
   margin: 0;
@@ -2489,6 +2585,166 @@
 .e19-deuda-decidir .deuda-ruta-check.is-danger {
   color: var(--e19-danger);
   background: color-mix(in srgb, var(--e19-danger) 10%, var(--e19-surface-soft));
+}
+
+/* D-10/D-13 (repaso pixel-perfect del 21 de agosto) · la tarjeta «Oferta en curso» pasa a fondo
+   oscuro cuando hay una oferta real, igual que el mockup — vacía se queda con el aspecto neutro de
+   siempre. Reutiliza `--e19-accent-strong`, el mismo navy que ya define el resto del sistema. */
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active {
+  background: var(--e19-accent-strong);
+  border-color: transparent;
+  color: #fff;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .deuda-ruta-offer-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font: 700 var(--e19-text-xs) / 1 var(--e19-font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, #fff 65%, transparent);
+  margin-bottom: 6px;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active h3,
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-subtitle strong {
+  color: #fff;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-subtitle,
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .e19-kpi-note,
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-stat span {
+  color: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-stat strong,
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .panel-kicker {
+  color: #fff;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-stat {
+  background: color-mix(in srgb, #fff 12%, transparent);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-funding-row strong {
+  color: #fff;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-funding-row span {
+  color: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-funding-bar {
+  background: color-mix(in srgb, #fff 15%, transparent);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .asesor-decision-funding-bar span {
+  background: #fff;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .deuda-ruta-check {
+  background: color-mix(in srgb, #fff 10%, transparent);
+  color: color-mix(in srgb, #fff 80%, transparent);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .deuda-ruta-check.is-ok {
+  background: color-mix(in srgb, var(--e19-success) 30%, transparent);
+  color: #d6f5e3;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .deuda-ruta-check.is-danger {
+  background: color-mix(in srgb, var(--e19-danger) 35%, transparent);
+  color: #ffd9d9;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .e19-btn-secondary {
+  background: transparent;
+  border-color: color-mix(in srgb, #fff 40%, transparent);
+  color: #fff;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .e19-btn-primary {
+  background: #2f6fed;
+  border-color: #2f6fed;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .e19-btn-primary:hover:not(:disabled) {
+  background: #4c85f0;
+  border-color: #4c85f0;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-card.is-active .e19-btn-primary:disabled {
+  background: color-mix(in srgb, #fff 20%, transparent);
+  border-color: transparent;
+  color: color-mix(in srgb, #fff 55%, transparent);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-expiry {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: var(--e19-radius-pill);
+  font: 700 var(--e19-text-xs) / 1.6 var(--e19-font-sans);
+  background: color-mix(in srgb, var(--e19-danger) 55%, transparent);
+  color: #fff;
+}
+
+/* Formulario de edición de la oferta (D-13/D-8 · construido in situ para no depender de la
+   heredada #debt-roadmap): plegable, con los mismos campos y la misma validación
+   (`E14DebtOperations.normalizeOffer`) que ya usaba ese formulario. */
+.e19-deuda-decidir .deuda-ruta-offer-edit {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in srgb, #fff 20%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-edit label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: 600 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+  color: color-mix(in srgb, #fff 75%, transparent);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-edit input,
+.e19-deuda-decidir .deuda-ruta-offer-edit select {
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, #fff 30%, transparent);
+  border-radius: var(--e19-radius-sm);
+  background: color-mix(in srgb, #fff 12%, transparent);
+  color: #fff;
+  font: 400 var(--e19-text-base) / 1.2 var(--e19-font-sans);
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-edit-documents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-edit-documents label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.e19-deuda-decidir .deuda-ruta-offer-edit-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* D-2b · el pie de cuadre del capital editado frente a la deuda viva del último cierre. */

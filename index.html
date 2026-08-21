@@ -1438,44 +1438,45 @@
                 <p class="e19-subtitle" id="deudaRutaSubtitle"></p>
               </div>
               <div class="visual-controls">
-                <div class="deuda-decidir-tabs" id="deudaRutaTabs" role="tablist"></div>
                 <a class="e19-btn e19-btn-secondary" href="#deuda-comparar">Comparar estrategias</a>
               </div>
             </div>
 
-            <div id="deudaRutaCapacity"></div>
+            <div class="deuda-ruta-layout">
+              <article class="e19-card deuda-ruta-attack-card">
+                <div class="registrar-mes-card-head">
+                  <div>
+                    <h3 class="escenario-motor-panel-title">Orden de ataque</h3>
+                    <p class="e19-kpi-note" id="deudaRutaAttackNote"></p>
+                  </div>
+                  <div class="deuda-decidir-tabs" id="deudaRutaTabs" role="tablist"></div>
+                </div>
+                <div class="table-wrap">
+                  <table class="e19-table deuda-ruta-attack-table">
+                    <thead><tr><th>#</th><th>Contrato</th><th>Capital</th><th>TIN</th><th>Cuota</th><th>Peso y fin previsto</th></tr></thead>
+                    <tbody id="deudaRutaAttackBody"></tbody>
+                    <tfoot id="deudaRutaAttackFoot"></tfoot>
+                  </table>
+                </div>
+              </article>
+
+              <div class="deuda-ruta-side">
+                <article class="e19-card deuda-ruta-offer-card" id="deudaRutaOfferCard">
+                  <div id="deudaRutaOffer"></div>
+                </article>
+
+                <article class="e19-card">
+                  <h3 class="escenario-motor-panel-title">Capacidad de endeudamiento</h3>
+                  <div id="deudaRutaCapacity"></div>
+                </article>
+              </div>
+            </div>
 
             <article class="e19-card deuda-ruta-chart-card">
               <h3 class="escenario-motor-panel-title">Cómo se apaga la deuda</h3>
               <p class="e19-kpi-note">«Deuda viva» es el principal pendiente de las deudas que esta ruta todavía no ha saldado — cae de golpe el mes en que se salda; no es un calendario de amortización mes a mes.</p>
               <svg id="deudaRutaChart" class="deuda-ruta-chart"></svg>
             </article>
-
-            <div class="deuda-ruta-layout">
-              <article class="e19-card">
-                <h3 class="escenario-motor-panel-title">Ruta propuesta</h3>
-                <ol class="deuda-ruta-timeline" id="deudaRutaTimeline"></ol>
-              </article>
-
-              <div class="deuda-ruta-side">
-                <article class="e19-card">
-                  <h3 class="escenario-motor-panel-title">Oferta en curso</h3>
-                  <div id="deudaRutaOffer"></div>
-                </article>
-
-                <article class="e19-card">
-                  <h3 class="escenario-motor-panel-title">Cartera</h3>
-                  <div class="deuda-ruta-portfolio" id="deudaRutaPortfolio"></div>
-                </article>
-
-                <article class="e19-card">
-                  <h3 class="escenario-motor-panel-title">Antes de aplicar</h3>
-                  <ul class="deuda-ruta-checklist" id="deudaRutaChecklist"></ul>
-                  <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaApply">Aplicar ruta</button>
-                  <p class="e19-kpi-note">Se pedirá un motivo y quedará como escenario aplicado, revisable en «Escenarios guardados».</p>
-                </article>
-              </div>
-            </div>
 
             <article class="e19-card deuda-ruta-calendar-card">
               <h3 class="escenario-motor-panel-title">Calendario de amortización</h3>
@@ -1484,6 +1485,13 @@
               <div class="deuda-ruta-amort-stats" id="deudaRutaAmortStats"></div>
               <p class="e19-kpi-note">Detalle por contrato, en el orden de ataque de la pestaña activa: cuota, interés, capital amortizado y saldo restante.</p>
               <div id="deudaRutaCalendar"></div>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Antes de aplicar</h3>
+              <ul class="deuda-ruta-checklist" id="deudaRutaChecklist"></ul>
+              <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaApply">Aplicar ruta</button>
+              <p class="e19-kpi-note">Se pedirá un motivo y quedará como escenario aplicado, revisable en «Escenarios guardados».</p>
             </article>
           </section>
 

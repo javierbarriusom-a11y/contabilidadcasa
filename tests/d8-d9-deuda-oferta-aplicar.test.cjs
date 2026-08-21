@@ -249,6 +249,7 @@ function sandboxOfferCard(offer, extra = {}) {
     queueRemoteSave: extra.queueRemoteSave || (() => {}),
     debtLiquidations: extra.debtLiquidations || [],
     deudaRutaOfferStatusMessage: extra.deudaRutaOfferStatusMessage || "",
+    deudaRutaOfferEditOpen: false,
   });
   context.renderDeudaRutaOffer();
   return { target, applyButton, applyButtonListeners, editLink, editLinkListeners, context };

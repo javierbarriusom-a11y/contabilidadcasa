@@ -263,15 +263,17 @@ test("V3-3 · la gráfica no enseña la deuda a cero el mes de la firma", () => 
   assert.equal(serie[4].deudaViva, 0, "y se apaga cuando el plazo se agota");
 });
 
-test("V3-3 · la línea de tiempo no lee campos que una reunificación no tiene", () => {
-  const render = extractFunction("renderDeudaRuta");
-  assert.match(render, /const esReunificacion = decision\.tipo === "reunificacion";/);
-  assert.match(render, /Reunificar \$\{\(decision\.params\.deudaIds \|\| \[\]\)\.length\} deudas/);
-  const item = render.slice(render.indexOf("const esReunificacion"), render.indexOf("</li>`;"));
-  assert.ok(
-    !/debts\.get\(decision\.params\.deudaId\)(?!\s*;?\s*\n?\s*$)/.test(item.replace(/esReunificacion \? null : debts\.get\(decision\.params\.deudaId\)/, "")),
-    "solo se busca el contrato cuando la decisión apunta a uno",
-  );
+// Repaso pixel-perfect del 21 de agosto de 2026 (Deuda.pdf): la línea de tiempo «Ruta propuesta» se
+// fusionó dentro de la tabla «Orden de ataque» (`renderDeudaRutaAttackTable`). Una reunificación no
+// apunta a un contrato ni lleva `params.deudaId` — el filtro por `tipo === "amortizacion"` antes de
+// construir `decisionByContractId` es lo que evita que la tabla intente leer ese campo en una
+// decisión que no lo tiene (los contratos reunificados simplemente muestran «según calendario»).
+test("V3-3 · la tabla de Orden de ataque solo lee params.deudaId tras filtrar por tipo amortizacion, nunca sobre una reunificación", () => {
+  const render = extractFunction("renderDeudaRutaAttackTable");
+  assert.match(render, /summary\.decisions\.filter\(\(decision\) => decision\.tipo === "amortizacion"\)/, "primero se filtra por tipo amortizacion");
+  assert.match(render, /\.map\(\(decision\) => \[decision\.params\.deudaId, decision\]\)/, "luego, ya filtrado, se lee params.deudaId");
+  const row = extractFunction("deudaRutaAttackRowHtml");
+  assert.match(row, /decisionByContractId\.get\(contract\.id\)/, "el cruce con cada fila se hace por id de contrato, no al revés");
 });
 
 test("V3-3 · «Consolidar» está en el catálogo, con su propia etiqueta de coste", () => {
