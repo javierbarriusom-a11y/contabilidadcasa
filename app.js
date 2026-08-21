@@ -22537,7 +22537,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     // E-1 (Escenarios.pdf, 17 de agosto): renombrado de «Refinanciar deuda» — mismo id, misma
     // mecánica (sustituye principal/cuota/TIN/plazo), el nombre del mockup real.
     label: "Cambiar condiciones",
-    ayuda: "Sustituye principal, cuota, TIN y plazo de una deuda desde el mes indicado. Las comisiones aún no se modelan como flujo de caja aparte.",
+    ayuda: "Sustituye principal, cuota, TIN y plazo de una deuda desde el mes indicado. Las comisiones aún no se modelan como flujo de caja aparte. El titular es opcional: solo hace falta si el crédito nuevo se pide a nombre de otra persona (p. ej. cancelar una deuda propia con un crédito a nombre de tu pareja).",
     campos: [
       { key: "deudaId", kind: "debt", label: "Deuda" },
       { key: "nuevoPrincipal", kind: "money", label: "Nuevo principal" },
@@ -22545,6 +22545,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "Nuevo TIN (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Nuevo plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de la deuda", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del crédito nuevo", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -22553,9 +22555,15 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       nuevoTIN: escenarioMotorPct(v.nuevoTIN),
       nuevaCuota: v.nuevaCuota,
       nuevoPlazo: escenarioMotorInt(v.nuevoPlazo),
+      titularOrigen: v.titularOrigen || "hogar",
+      titularDestino: v.titularDestino || "hogar",
     }),
-    titulo: (v, h) => `Refinanciar ${h.debtLabel(v.deudaId)}`,
-    detalle: (d) => `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses`,
+    titulo: (v, h) => (v.titularOrigen && v.titularDestino && v.titularOrigen !== v.titularDestino
+      ? `Refinanciar ${h.debtLabel(v.deudaId)} · ${v.titularOrigen} → ${v.titularDestino}`
+      : `Refinanciar ${h.debtLabel(v.deudaId)}`),
+    detalle: (d) => (d.params?.titularOrigen && d.params?.titularDestino && d.params.titularOrigen !== d.params.titularDestino
+      ? `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses · crédito a nombre de ${d.params.titularDestino}`
+      : `${money(d.params?.nuevaCuota, true)}/mes · ${d.params?.nuevoPlazo || 0} meses`),
     importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
   },
   {
@@ -22564,7 +22572,7 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     // E-1: renombrado de «Reunificar varias deudas» — mismo id, misma mecánica, el nombre del
     // mockup real.
     label: "Reunificar deuda",
-    ayuda: "Cierra dos o más deudas y abre una cuenta nueva con el capital, cuota y plazo pactados. Mantén pulsado Ctrl (o Cmd) para elegir varias.",
+    ayuda: "Cierra dos o más deudas y abre una cuenta nueva con el capital, cuota y plazo pactados. Mantén pulsado Ctrl (o Cmd) para elegir varias. El titular es opcional: solo hace falta si el préstamo nuevo se pide a nombre de otra persona.",
     campos: [
       { key: "deudaIds", kind: "debtMulti", label: "Deudas a reunificar (mínimo 2)", ancho: true },
       { key: "nuevoPrincipal", kind: "money", label: "Principal del nuevo préstamo" },
@@ -22572,6 +22580,8 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "nuevoTIN", kind: "pct", label: "TIN del nuevo préstamo (%)" },
       { key: "nuevoPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que entra en vigor" },
+      { key: "titularOrigen", kind: "select", label: "Titular actual de las deudas", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
+      { key: "titularDestino", kind: "select", label: "Titular del préstamo nuevo", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
     ],
     mes: (v) => v.mes,
     params: (v) => ({
@@ -22580,9 +22590,15 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       nuevoTIN: escenarioMotorPct(v.nuevoTIN),
       nuevaCuota: v.nuevaCuota,
       nuevoPlazo: escenarioMotorInt(v.nuevoPlazo),
+      titularOrigen: v.titularOrigen || "hogar",
+      titularDestino: v.titularDestino || "hogar",
     }),
-    titulo: (v) => `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas`,
-    detalle: (d) => `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas`,
+    titulo: (v) => (v.titularOrigen && v.titularDestino && v.titularOrigen !== v.titularDestino
+      ? `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas · ${v.titularOrigen} → ${v.titularDestino}`
+      : `Reunificar ${Array.isArray(v.deudaIds) ? v.deudaIds.length : 0} deudas`),
+    detalle: (d) => (d.params?.titularOrigen && d.params?.titularDestino && d.params.titularOrigen !== d.params.titularDestino
+      ? `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas · préstamo a nombre de ${d.params.titularDestino}`
+      : `${money(d.params?.nuevaCuota, true)}/mes · ${(d.params?.deudaIds || []).length} deudas`),
     importeTexto: (d) => money(d.params?.nuevoPrincipal, true),
   },
   {
@@ -24696,9 +24712,11 @@ function debtModeDecisionForContract(contract, def, values) {
   const type = escenarioMotorTypeById(def?.tipoId);
   if (!type || !contract) return { available: false };
   const effectiveValues = { ...values, deudaId: contract.id };
+  // O-1: titularOrigen/titularDestino son opcionales en el esquema (por defecto "hogar" si no se
+  // tocan) — igual que "parcial", no forman parte de la completitud mínima para calcular.
   const requiredKeys = type.campos
     .map((field) => field.key)
-    .filter((key) => key !== "parcial" && !(def.planMode === "optimo" && (key === "mes" || key === "mesInicio")));
+    .filter((key) => key !== "parcial" && key !== "titularOrigen" && key !== "titularDestino" && !(def.planMode === "optimo" && (key === "mes" || key === "mesInicio")));
   const missing = requiredKeys.some((key) => {
     const value = effectiveValues[key];
     return value === undefined || value === null || value === "" || (typeof value === "number" && !Number.isFinite(value));

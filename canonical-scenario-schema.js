@@ -307,7 +307,11 @@
 
     refinanciacion(params, path, issues) {
       const required = ["deudaId", "nuevoPrincipal", "nuevoTIN", "nuevaCuota", "nuevoPlazo"];
-      const allowed = [...required, "comisiones"];
+      // O-1: titularOrigen/titularDestino son opcionales y aditivos — una decisión sin ellos se
+      // sigue comportando exactamente igual que antes (I-09). Cuando se declaran, permiten modelar
+      // «pedir el crédito nuevo a nombre de otra persona para cancelar la deuda actual» sin tocar la
+      // titularidad real de ningún contrato: ver canonical-scenario-engine.js sobre qué hace cada uno.
+      const allowed = [...required, "comisiones", "titularOrigen", "titularDestino"];
       requireFields(params, required, path, issues);
       rejectExtraProperties(params, allowed, path, issues);
       if (params.deudaId !== undefined && !isNonEmptyString(params.deudaId)) error(issues, `${path}.deudaId`, "invalid-value", "deudaId debe ser una cadena no vacía.");
@@ -316,11 +320,14 @@
       if (params.nuevaCuota !== undefined) requirePositiveNumber(params, "nuevaCuota", path, issues);
       if (params.nuevoPlazo !== undefined && !(isInteger(params.nuevoPlazo) && params.nuevoPlazo >= 1 && params.nuevoPlazo <= 480)) error(issues, `${path}.nuevoPlazo`, "invalid-value", "nuevoPlazo debe ser un entero entre 1 y 480.");
       if (params.comisiones !== undefined && !(isFiniteNumber(params.comisiones) && params.comisiones >= 0)) error(issues, `${path}.comisiones`, "invalid-value", "comisiones debe ser un número ≥ 0.");
+      if (params.titularOrigen !== undefined && !TITULARES.includes(params.titularOrigen)) error(issues, `${path}.titularOrigen`, "invalid-enum", `titularOrigen debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titularDestino !== undefined && !TITULARES.includes(params.titularDestino)) error(issues, `${path}.titularDestino`, "invalid-enum", `titularDestino debe ser uno de: ${TITULARES.join(", ")}.`);
     },
 
     reunificacion(params, path, issues) {
       const required = ["deudaIds", "nuevoPrincipal", "nuevoTIN", "nuevaCuota", "nuevoPlazo"];
-      const allowed = [...required, "comisiones"];
+      // O-1: mismos campos opcionales y con el mismo criterio que refinanciacion, arriba.
+      const allowed = [...required, "comisiones", "titularOrigen", "titularDestino"];
       requireFields(params, required, path, issues);
       rejectExtraProperties(params, allowed, path, issues);
       if (params.deudaIds !== undefined && !(Array.isArray(params.deudaIds) && params.deudaIds.length >= 2 && params.deudaIds.every((id) => isNonEmptyString(id)))) {
@@ -331,6 +338,8 @@
       if (params.nuevaCuota !== undefined) requirePositiveNumber(params, "nuevaCuota", path, issues);
       if (params.nuevoPlazo !== undefined && !(isInteger(params.nuevoPlazo) && params.nuevoPlazo >= 1 && params.nuevoPlazo <= 480)) error(issues, `${path}.nuevoPlazo`, "invalid-value", "nuevoPlazo debe ser un entero entre 1 y 480.");
       if (params.comisiones !== undefined && !(isFiniteNumber(params.comisiones) && params.comisiones >= 0)) error(issues, `${path}.comisiones`, "invalid-value", "comisiones debe ser un número ≥ 0.");
+      if (params.titularOrigen !== undefined && !TITULARES.includes(params.titularOrigen)) error(issues, `${path}.titularOrigen`, "invalid-enum", `titularOrigen debe ser uno de: ${TITULARES.join(", ")}.`);
+      if (params.titularDestino !== undefined && !TITULARES.includes(params.titularDestino)) error(issues, `${path}.titularDestino`, "invalid-enum", `titularDestino debe ser uno de: ${TITULARES.join(", ")}.`);
     },
 
     retomar_pagos(params, path, issues) {
