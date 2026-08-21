@@ -112,6 +112,7 @@ test("H-5 · sin decisiones pendientes en la sesión, el estado no alarma (neutr
 test("H-5 · homeDecisionCandidates incluye la candidata de importación cuando existe", () => {
   const context = sandbox(["homeDecisionCandidates"], {
     homeImportSessionCandidate: () => ({ title: "Movimientos por incorporar", target: "datos-importar", cta: "Continuar importación", expiresAt: "" }),
+    homePendingActualsReminder: () => null,
     homeOpenOfferInsight: () => null,
     homeDebtReviewReminders: () => [],
     homeEscenarioReviewReminders: () => [],
@@ -130,6 +131,7 @@ test("H-5 · homeDecisionCandidates incluye la candidata de importación cuando 
 test("H-5 · sin sesión de importación, homeDecisionCandidates no inventa ninguna candidata", () => {
   const context = sandbox(["homeDecisionCandidates"], {
     homeImportSessionCandidate: () => null,
+    homePendingActualsReminder: () => null,
     homeOpenOfferInsight: () => null,
     homeDebtReviewReminders: () => [],
     homeEscenarioReviewReminders: () => [],

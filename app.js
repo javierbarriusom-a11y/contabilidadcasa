@@ -3686,6 +3686,20 @@ async function saveNormalizedRemoteState(payload) {
   }
 }
 
+// O-3 (BACKLOG_OPERACION.md): avisa, no bloquea. El cierre de mes ya exigía motivo y confirmación
+// explícita para cualquier mes — esto no añade un diálogo nuevo, solo enriquece su mensaje con lo
+// que reutiliza pendingActualsForMonthKey, para que la decisión de cerrar con huecos conocidos (una
+// partida que no aplica ese mes, un dato que llegará tarde) sea informada, no accidental.
+function monthCloseConfirmMessage(month, pending) {
+  const base = `Se congelarán los datos reales de ${month} y se conservará una copia recuperable.`;
+  if (!pending?.count) return base;
+  const preview = pending.labels.slice(0, 5).join(", ");
+  const rest = pending.count > 5 ? "…" : "";
+  const verb = pending.count === 1 ? "Queda" : "Quedan";
+  const noun = pending.count === 1 ? "partida" : "partidas";
+  return `${base} ${verb} ${pending.count} ${noun} sin real: ${preview}${rest}.`;
+}
+
 async function closeCurrentMonthTransaction() {
   const month = openMonthCutoffKey();
   const status = qs("monthCloseStatus");
@@ -3699,7 +3713,7 @@ async function closeCurrentMonthTransaction() {
   }
   const { reason } = await requestOperationConfirmation({
     title: `Cerrar ${month}`,
-    message: `Se congelarán los datos reales de ${month} y se conservará una copia recuperable.`,
+    message: monthCloseConfirmMessage(month, pendingActualsForMonthKey(month)),
     defaultReason: "Mes conciliado y revisado",
     confirmLabel: "Cerrar mes",
   });
@@ -21256,11 +21270,35 @@ function homeEscenarioReviewReminders() {
 // deuda candidata, proyectos en plan). No se toca unifiedActionCenterModel/executiveActions: esas
 // listas las reutilizan otras pantallas (Asesor ejecutivo) con su propio orden, y este reordenado
 // es solo para Hoy.
+// O-2 (BACKLOG_OPERACION.md): recuerda partidas sin real del mes en curso reutilizando
+// pendingActualsForMonthKey (misma fuente que «Registrar el mes»). A diferencia del recordatorio
+// push —que exige que el usuario haya activado notificaciones, apagadas por defecto—, esto es
+// siempre visible en Hoy sin depender de ningún permiso: es la parte que de verdad llega a todo el
+// mundo. target: "update-data" es la clave heredada que ya traduce a Registrar › Reales del mes.
+function homePendingActualsReminder() {
+  const monthKey = registrarActualsDefaultMonthKey();
+  if (!monthKey) return null;
+  const pending = pendingActualsForMonthKey(monthKey);
+  if (!pending.count) return null;
+  const preview = pending.labels.slice(0, 3).join(", ");
+  const rest = pending.count > 3 ? "…" : "";
+  return {
+    title: pending.count === 1 ? "1 partida sin real este mes" : `${pending.count} partidas sin real este mes`,
+    text: `Todavía sin registrar: ${preview}${rest}.`,
+    status: "warn",
+    target: "update-data",
+    cta: "Registrar",
+    expiresAt: "",
+  };
+}
+
 function homeDecisionCandidates({ actionCenter, offer, debtPriorities, loadedDecisions, debtRatioStatus }) {
   const dated = [];
   const undated = [];
   const importCandidate = homeImportSessionCandidate();
   if (importCandidate) undated.push(importCandidate);
+  const pendingActualsReminder = homePendingActualsReminder();
+  if (pendingActualsReminder) undated.push(pendingActualsReminder);
   const offerInsight = homeOpenOfferInsight(offer);
   if (offerInsight) {
     // offer.expiresAt es una clave de mes ("2026-09"), como ya usa escenarioMotorMonthLabel.
@@ -27578,6 +27616,17 @@ function registrarActualsEntries(month) {
   if (!month) return [];
   const collected = registrarMesCollect(month);
   return [...collected.income, ...collected.expense];
+}
+
+// O-2/O-3 (BACKLOG_OPERACION.md): única fuente de «qué queda sin real» para el recordatorio de Hoy
+// y para el aviso al cerrar el mes — ambos reutilizan esto en vez de mantener dos cálculos de lo
+// mismo. Busca el mes por clave en la misma lista que ya usa Registrar, para no depender de qué
+// mes esté seleccionado en esa pantalla en ese momento.
+function pendingActualsForMonthKey(monthKey) {
+  const month = (baseData?.monthlyPlanning?.months || []).find((item) => item.key === monthKey);
+  if (!month) return { count: 0, labels: [] };
+  const pending = registrarActualsEntries(month).filter((entry) => !entry.hasActual);
+  return { count: pending.length, labels: pending.map((entry) => entry.label) };
 }
 
 function registrarActualsBlocks(entries) {
