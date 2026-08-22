@@ -1,6 +1,77 @@
 # Estado del proyecto
 
-Fecha de revisión: 21 de agosto de 2026.
+Fecha de revisión: 22 de agosto de 2026.
+
+## Cierre de sesión — 22 de agosto de 2026: «Planificación de partidas» pasa a ser pantalla de gestión, no solo de lectura
+
+Continuación directa del cierre anterior. El usuario probó «Planificación de partidas» (21 de
+agosto) y señaló, con razón, dos huecos frente a lo pedido desde el principio de la conversación:
+no permitía gestionar nada (para añadir/editar/borrar una partida seguía haciendo falta ir a
+«Cuadro de mandos (heredado)», `#visual-detail`, la pantalla que originó toda esta petición), y la
+parte de forecast era floja comparada con lo que la app ya sabe hacer en «Análisis». Pidió
+explícitamente: gestión completa en la pantalla nueva sin tocar las heredadas ni «Plan», el «real»
+visible aunque sea de solo lectura, un lenguaje visual fresco como el de «Análisis», y reforzar la
+analítica — para él, «la sección estrella de la app».
+
+**Investigación previa (dos rondas)**: primero se confirmó que `#visual-detail` sigue siendo la
+única pantalla con gestión completa (añadir/renombrar/borrar/editar previsto y real); `#plan`·Mes y
+`#cuadro-mandos` (E20-5) editan previsto con impacto en vivo pero nunca añaden/renombran/borran —
+la tarjeta «Partidas» de Ajustes sigue remitiendo a la heredada para eso. Las tres comparten a
+propósito el mismo motor de borradores en memoria (`visualDraftCells`/`visualDraftLabels`/
+`visualDraftDeletes`/`visualSelectedRows`) y las mismas funciones de persistencia/impacto — el
+propio código dice por qué: «dos almacenes habrían dado dos verdades». Se le preguntó al usuario si
+prefería consolidar en `#plan` (ya primaria, ya con el motor) o duplicar en la sección nueva sin
+tocar nada existente; eligió lo segundo. Segunda ronda: se mapeó el lenguaje visual de «Análisis»
+(bandas de colchón coloreadas, hitos, tarjetas `.e19-card`) y el motor de «Escenarios guardados»
+(`escenarioMotorBaseInput`/`runEscenarioMotor`/`escenarioMotorSummaryFor`) para diseñar los cuatro
+añadidos analíticos que el usuario eligió de una lista propuesta.
+
+**Construido, todo dentro de `renderPlanificacionPartidas()` y funciones hermanas nuevas —
+cero cambios a `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/`#mapa-calor`,
+verificado que sus ~10 archivos de test propios siguen en verde sin tocarlos**:
+- **Gestión completa**: tabla con secciones plegables, importe previsto editable por celda
+  (`cuadroMandosStageCell`, reutilizada tal cual), renombrado y borrado inline, checkboxes +
+  «Borrar seleccionadas», y un formulario «Añadir partida» (alta inmediata en
+  `customPlanningRows`, mirror de `handleVisualAddRow`). El «real» se muestra de solo lectura junto
+  a cada celda (`actualAwareInfoForVisualRow`, ya existente) — su edición sigue siendo cosa de
+  «Registrar el mes», coste de desarrollo mínimo tal y como se pidió. Panel de guardado
+  (`saveVisualChanges`/`discardVisualChanges`/`stageSelectedVisualDeletes`, todas reutilizadas sin
+  modificar) y una barra de impacto en vivo (`cuadroMandosImpact`, reutilizada) antes de guardar.
+- **Lenguaje visual**: la sección carga las clases `e19-analisis`/`e19-cuadro-mandos` además de la
+  suya propia (`e19-planificacion-partidas`) para heredar sin duplicar el CSS ya existente de esas
+  pantallas (banda de colchón, pie de impacto, gráfico SVG); solo se añadieron las reglas de dos
+  trazos nuevos (ediciones sin guardar / escenario propuesto) que ninguna pantalla existente tenía.
+- **Cuatro añadidos analíticos**, los cuatro elegidos por el usuario de una lista propuesta:
+  1. Banda de colchón (reutiliza `analisisCushionBand`/`analisisCushionBandHtml`/
+     `analisisCushionWorst` de Análisis tal cual) + gráfico de liquidez con hasta cuatro trazos: sin
+     decisiones, confirmado, ediciones sin guardar de esta pantalla y escenarios propuestos.
+  2. Ranking de impacto por decisión (`planificacionPartidasRankedImpact`): recalcula el plan
+     quitando cada decisión confirmada (o añadiendo cada provisional) una a una, sin persistir nada
+     — mismo patrón «recalcular y restaurar en el `finally`» que ya usa `cuadroMandosRowsWith` con
+     `seriesOverrides`, aplicado aquí a `debtLiquidations`/`projects`.
+  3. Hitos narrativos (`planificacionPartidasHitos`): «libre de deuda en…», «colchón objetivo
+     alcanzado a partir de…», «próximo mes bajo reserva…», mismo patrón que los hitos de patrimonio
+     neto de Análisis.
+  4. Comparador de escenarios propuestos (`planificacionPartidasEscenarioGhosts`): reutiliza el
+     mismo trío que ya usa cada tarjeta de «Escenarios guardados» para calcular el resumen de un
+     escenario sin aplicarlo, y lo dibuja como trazo punteado adicional en el gráfico.
+
+**Pruebas nuevas**: 21 pruebas añadidas a `tests/planificacion-partidas.test.cjs` (ahora 47 en total
+en ese fichero) — handlers de gestión (renombrar/borrar/seleccionar/añadir) con efectos puros sobre
+los diccionarios compartidos, hitos narrativos con datos fabricados, y pruebas de «no
+reimplementación» por regex confirmando que cada bloque nuevo llama a la función genérica existente
+en vez de duplicar su lógica.
+
+**Validación** (`npm run verify`, exit 0): **1552/1552 pruebas** (1531 + 21 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 45,8 ms; forecast y escenarios en 270,4 ms;
+recursos 1779 KB), build del sitio, privacidad y smoke test en verde. Verificación manual con
+Playwright (Chromium preinstalado): expandir una sección y editar una celda muestra la barra de
+impacto y activa «Guardar»; «Descartar» oculta la barra y restaura el valor; «Añadir partida»
+aparece de inmediato sin pasar por «Guardar»; `#visual-detail`, `#plan` y `#cuadro-mandos` siguen
+respondiendo exactamente igual que antes.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
 
 ## Cierre de sesión — 21 de agosto de 2026: «Planificación de partidas», forecast unificado con lo confirmado y lo provisional
 
