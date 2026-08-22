@@ -2,6 +2,50 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (5): totales estilo legacy y lista corta en "buscar mejor mes"
+
+Continuación directa del cierre anterior del mismo día (PR #108 en curso, sobre la misma rama). El
+usuario pidió dos retoques al ver la previsualización en marcha: el modo «buscar la mejor fecha en
+un rango» listaba cada uno de los (hasta 125, con el horizonte del plan hasta 2036) meses candidatos
+uno por uno — scroll infinito —, y pidió una totalización como la de «Cuadro de mandos (heredado)»
+que reflejara el resultado con y sin la decisión simulada.
+
+**Construido**:
+- **Sin lista infinita**: el resultado de «buscar la mejor fecha» ya no lista los meses candidatos
+  probados; muestra solo el mejor, con las mismas tres cifras que el modo manual (mínimo del
+  horizonte, liquidez final, meses de colchón) — el detalle mes a mes ya se ve en la tabla de abajo.
+- **Totales estilo legacy** (`partidasTotalsByKind`, `partidasCalculatedRowHtml`), al final de la
+  tabla de gestión: «Total ingresos», «Total gastos» y «Resultado», con las mismas clases CSS
+  `.visual-calculated-row`/`.total-expense-section`/`.result-section` que ya usa «Cuadro de mandos
+  (heredado)» (definidas en `styles.css`, globales, cero CSS nuevo) — mismo aspecto, agregando con
+  `visualSectionTotal` tal cual, sin reimplementar el cálculo por sección.
+- **Resultado con y sin impacto**: cuando hay una simulación activa, una fila extra «Resultado con
+  la simulación» (`partidasResultConSimulacionRowHtml`) debajo de «Resultado», sumando el mismo
+  delta mes a mes que ya calcula `partidasSimuladorMonthlyDeltas`. Es matemáticamente exacto para
+  cualquier tipo de decisión (no solo compra/deuda_nueva): el delta de liquidez acumulada mes a mes
+  que ya se calculaba es, por construcción, el cambio en Ingresos−Gastos de ese mes. Se decidió no
+  replicar los cuatro «Disponible para traspaso» heredados (dependen de saldos reales de cuenta y de
+  la fecha de nómina — tesorería, no impacto de una decisión); se deja como posible ampliación si
+  el usuario los sigue queriendo.
+
+**Pruebas nuevas**: 6 pruebas añadidas a `tests/o1b-simulador-decision.test.cjs` (ahora 34 en total)
+— `partidasTotalsByKind` sumando por kind y filtrando el otro; `partidasCalculatedRowHtml` con las
+clases correctas; `partidasResultConSimulacionRowHtml` sin previsualización (no pinta nada) y sumando
+el delta mes a mes; cableado por regex en `renderPartidasGestionTable`; confirmación de que
+`partidasSimuladorResultHtml` ya no contiene la lista larga.
+
+**Validación** (`npm run verify`, exit 0): **1593/1593 pruebas** (1587 + 6 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 39,3 ms; forecast y escenarios en 265,3 ms;
+recursos 1816 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright:
+crédito de 15.000 €/315 €/72 meses en modo «buscar mejor mes» sobre 125 meses candidatos → 0
+elementos de lista larga, resultado compacto igual que el modo manual; tabla con «Total ingresos» /
+«Total gastos» / «Resultado» / «Resultado con la simulación» — comprobado con números reales: 270 €
+de resultado base cada mes, 15.270 € en el mes de la inyección del crédito (270 + 15.000) y -45 € en
+los meses siguientes (270 - 315 de cuota), exactamente lo esperado.
+
+**Publicado**: pendiente de commit/push en esta misma rama (PR #108), según la autorización
+permanente de `CLAUDE.md` (verificar CI en verde antes de fusionar).
+
 ## Cierre de sesión — 22 de agosto de 2026 (4): la previsualización del simulador se ve en la tabla de gestión
 
 Continuación directa del cierre anterior del mismo día (PR #107 ya fusionado). Tras probar el
@@ -45,8 +89,8 @@ previsualización muestra guiones en jul-nov 26, `+15.000,00 €` exactamente en
 instante. Cero cambios a `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/
 `#mapa-calor`.
 
-**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
-`CLAUDE.md` (verificar CI en verde antes de fusionar).
+**Publicado**: PR #108 abierto sobre esta misma rama (ampliado en el cierre siguiente antes de
+fusionar).
 
 ## Cierre de sesión — 22 de agosto de 2026 (3): simulador de decisión («¿y si...?») en Planificación de partidas
 

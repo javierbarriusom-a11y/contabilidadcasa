@@ -414,3 +414,84 @@ test("Guardar/Descartar de verdad limpian cualquier previsualización activa, pa
   assert.match(extractFunction("handlePartidasSave"), /partidasSimPreview = null/);
   assert.match(extractFunction("handlePartidasDiscard"), /partidasSimPreview = null/);
 });
+
+// --- Totales estilo pantalla legacy + quitar la lista infinita de "mejor mes" (22 de agosto, 3ª vuelta) ---
+// El usuario pidió una fila de totales como en "Cuadro de mandos (heredado)" que refleje el
+// resultado con y sin la decisión simulada, y que "buscar la mejor fecha" no obligue a hacer scroll
+// por cada uno de los (potencialmente cientos de) meses candidatos del horizonte.
+
+function totalsByKindContext(extra = {}) {
+  return sandboxWith(["partidasTotalsByKind"], {
+    baseData: { monthlyPlanning: { sections: [] } },
+    visualRowsForSection: () => [],
+    visualSectionTotal: () => 0,
+    ...extra,
+  });
+}
+
+test("partidasTotalsByKind suma visualSectionTotal de todas las secciones del kind pedido, ignorando el otro kind", () => {
+  const sections = [
+    { name: "Nómina", kind: "income" },
+    { name: "Alquiler", kind: "expense" },
+    { name: "Otro ingreso", kind: "income" },
+  ];
+  const months = [{ key: "2026-08", label: "ago 26" }, { key: "2026-09", label: "sept 26" }];
+  const totalsBySection = { Nómina: [1000, 1000], Alquiler: [200, 200], "Otro ingreso": [50, 60] };
+  const context = totalsByKindContext({
+    baseData: { monthlyPlanning: { sections } },
+    visualRowsForSection: (section) => [{ id: section.name }],
+    visualSectionTotal: (section, rows, monthsArg, mode, month) => {
+      const index = months.findIndex((m) => m.key === month.key);
+      return totalsBySection[section.name][index];
+    },
+  });
+  assert.equal(JSON.stringify(context.partidasTotalsByKind(months, "income")), JSON.stringify([1050, 1060]));
+  assert.equal(JSON.stringify(context.partidasTotalsByKind(months, "expense")), JSON.stringify([200, 200]));
+});
+
+test("partidasCalculatedRowHtml pinta los valores con las mismas clases visual-calculated-row que usa la pantalla legacy", () => {
+  const context = sandboxWith(["partidasCalculatedRowHtml"], { money: (v) => `${v}€`, escapeHtml: (v) => v });
+  const html = context.partidasCalculatedRowHtml("result-section", "Resultado", "detalle", [100, -50]);
+  assert.match(html, /class="visual-section-row visual-calculated-row result-section"/);
+  assert.match(html, /<strong>Resultado<\/strong>/);
+  assert.match(html, /<td>100€<\/td>/);
+  assert.match(html, /<td>-50€<\/td>/);
+});
+
+function resultConSimContext(extra = {}) {
+  return sandboxWith(["partidasResultConSimulacionRowHtml"], {
+    partidasSimPreview: null,
+    money: (v) => `${v}€`,
+    escapeHtml: (v) => v,
+    ...extra,
+  });
+}
+
+test("partidasResultConSimulacionRowHtml no pinta nada sin previsualización activa", () => {
+  const context = resultConSimContext();
+  assert.equal(context.partidasResultConSimulacionRowHtml([{ key: "2026-08" }], [100]), "");
+});
+
+test("partidasResultConSimulacionRowHtml suma el delta de la previsualización al resultado base, mes a mes — así se ve el resultado con y sin impacto", () => {
+  const context = resultConSimContext({
+    partidasSimPreview: { titulo: "Crédito nuevo", monthlyDeltas: [{ key: "2026-08", value: 0 }, { key: "2026-09", value: -80 }] },
+  });
+  const months = [{ key: "2026-08" }, { key: "2026-09" }];
+  const html = context.partidasResultConSimulacionRowHtml(months, [100, 100]);
+  assert.match(html, /<td>100€<\/td>/);
+  assert.match(html, /<td>20€<\/td>/);
+});
+
+test("renderPartidasGestionTable pinta los totales estilo pantalla legacy y el resultado con simulación", () => {
+  const source = extractFunction("renderPartidasGestionTable");
+  assert.match(source, /partidasTotalsByKind\(months, "income"\)/);
+  assert.match(source, /partidasTotalsByKind\(months, "expense"\)/);
+  assert.match(source, /partidasCalculatedRowHtml\(/);
+  assert.match(source, /partidasResultConSimulacionRowHtml\(/);
+});
+
+test('el modo «buscar mejor mes» ya no lista cada mes candidato (scroll infinito con un horizonte de años) — solo el mejor, con las mismas cifras que el modo manual', () => {
+  const source = extractFunction("partidasSimuladorResultHtml");
+  assert.doesNotMatch(source, /planificacion-partidas-simulador-ranking/);
+  assert.match(source, /asesor-decision-stats/);
+});

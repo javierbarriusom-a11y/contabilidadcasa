@@ -10871,6 +10871,51 @@ function partidasSimPreviewRowHtml(months) {
   </tr>`;
 }
 
+// Totales estilo "Cuadro de mandos (heredado)" (mismos rótulos, mismas clases `.visual-calculated-row`
+// ya definidas en styles.css): Ingresos, Gastos y Resultado del rango visible, agregados con
+// `visualSectionTotal` tal cual — nada nuevo, solo sumar lo que cada sección ya reporta.
+// "Disponible para traspaso" (los cuatro heredados) se queda en la pantalla legacy a propósito: no
+// mide el impacto de una decisión, depende de saldos reales de cuenta y de la fecha de nómina.
+function partidasTotalsByKind(months, kind) {
+  const sections = baseData.monthlyPlanning.sections.filter((section) => section.kind === kind);
+  return months.map((month) =>
+    round2(sections.reduce((sum, section) => sum + visualSectionTotal(section, visualRowsForSection(section, months), months, "planned", month), 0)),
+  );
+}
+
+function partidasCalculatedRowHtml(className, label, detail, values) {
+  return `<tr class="visual-section-row visual-calculated-row ${className}">
+    <td>
+      <div class="visual-calculated-label">
+        <strong>${escapeHtml(label)}</strong>
+        <small>${escapeHtml(detail)}</small>
+      </div>
+    </td>
+    ${values.map((value) => `<td>${money(value, true)}</td>`).join("")}
+    <td></td>
+  </tr>`;
+}
+
+// Resultado "con impacto": el mismo delta neto mes a mes que ya calcula partidasSimuladorMonthlyDeltas
+// (diferencia de liquidez acumulada) es exactamente el cambio en Ingresos-Gastos de ese mes, toque la
+// decisión ingreso, gasto o ambos a la vez — así que sumarlo directamente al Resultado base es
+// correcto para cualquier tipo de decisión, no solo compra/deuda_nueva.
+function partidasResultConSimulacionRowHtml(months, resultValues) {
+  if (!partidasSimPreview) return "";
+  const byMonth = new Map(partidasSimPreview.monthlyDeltas.map((item) => [item.key, item.value]));
+  const values = months.map((month, index) => round2(resultValues[index] + (byMonth.get(month.key) || 0)));
+  return `<tr class="visual-section-row visual-calculated-row result-section planificacion-partidas-sim-preview-row">
+    <td>
+      <div class="visual-calculated-label">
+        <strong>Resultado con la simulación</strong>
+        <small>Si aplicaras «${escapeHtml(partidasSimPreview.titulo)}» — solo previsualización.</small>
+      </div>
+    </td>
+    ${values.map((value) => `<td>${money(value, true)}</td>`).join("")}
+    <td></td>
+  </tr>`;
+}
+
 function renderPartidasGestionTable(months) {
   const table = qs("partidasGestionTable");
   if (!table) return;
@@ -10921,6 +10966,16 @@ function renderPartidasGestionTable(months) {
       </tr>`);
     });
   });
+  const hasSectionRows = baseData.monthlyPlanning.sections.some((section) => visualRowsForSection(section, months).length);
+  if (hasSectionRows) {
+    const incomeTotals = partidasTotalsByKind(months, "income");
+    const expenseTotals = partidasTotalsByKind(months, "expense");
+    const resultTotals = incomeTotals.map((value, index) => round2(value - expenseTotals[index]));
+    body.push(partidasCalculatedRowHtml("", "Total ingresos", "Suma de todas las secciones de ingresos.", incomeTotals));
+    body.push(partidasCalculatedRowHtml("total-expense-section", "Total gastos", "Suma de fijos, variables, suscripciones, financiaciones y proyectos.", expenseTotals));
+    body.push(partidasCalculatedRowHtml("result-section", "Resultado", "Ingresos totales menos total de gastos del mes.", resultTotals));
+    body.push(partidasResultConSimulacionRowHtml(months, resultTotals));
+  }
   table.innerHTML = `<thead><tr><th>Partida</th>${months.map((month) => `<th>${escapeHtml(month.label)}</th>`).join("")}<th></th></tr></thead><tbody>${body.join("") || `<tr><td colspan="${months.length + 2}">Sin partidas en los meses visibles.</td></tr>`}</tbody>`;
 }
 
@@ -11611,24 +11666,35 @@ function partidasSimuladorResultHtml(evaluation) {
       <button type="button" class="ghost-button" data-partidas-sim-clear-preview>Quitar de la tabla</button>
     </div>`;
   }
-  const { scan } = evaluation;
+  const { scan, baseline } = evaluation;
   if (!scan.best) {
     return `<p class="inline-feedback warning">Ningún mes del rango elegido pudo simularse. Revisa importe, cuota y plazo.</p>`;
   }
-  const rows = scan.results
-    .filter((item) => item.summary)
-    .map(
-      (item) => `<li class="${item === scan.best ? "is-best" : ""}">
-        <span>${escapeHtml(item.month.label)}</span>
-        <span>${money(item.summary.minimoLiquidez, true)}</span>
-        <span>${partidasSimuladorMoneyDelta(item.deltaMinimo)}</span>
-      </li>`,
-    )
-    .join("");
+  // Sin lista de candidatos: con un horizonte de años, listar cada mes probado sería un scroll
+  // infinito. Solo el mejor, con las mismas tres cifras que el modo manual — el detalle mes a mes ya
+  // se ve en la tabla de abajo (fila "Simulación" + "Resultado con la simulación").
+  const { summary, month, deltaMinimo } = scan.best;
+  const deltaFinal = summary.liquidezFinal !== null && baseline.liquidezFinal !== null ? round2(summary.liquidezFinal - baseline.liquidezFinal) : null;
+  const testedCount = scan.results.filter((item) => item.summary).length;
   return `<div class="planificacion-partidas-simulador-result">
-    <p class="e19-kpi-note"><span class="e19-badge e19-badge-success">Mejor mes · ${escapeHtml(scan.best.month.label)}</span> deja ${money(scan.best.summary.minimoLiquidez, true)} de mínimo en el horizonte (${partidasSimuladorMoneyDelta(scan.best.deltaMinimo)} vs. sin esta decisión).</p>
-    <ul class="planificacion-partidas-simulador-ranking">${rows}</ul>
-    <p class="e19-kpi-note">Sin guardar nada — el mejor mes ya se ve en la tabla de abajo, fila "Simulación". Para llevarlo al plan real, créalo en "Escenario · simular".</p>
+    <p class="e19-kpi-note"><span class="e19-badge e19-badge-success">Mejor mes · ${escapeHtml(month.label)}</span> de entre ${testedCount} mes(es) probado(s) en el rango elegido.</p>
+    <div class="asesor-decision-stats">
+      <div class="asesor-decision-stat">
+        <span>Mínimo del horizonte con esta decisión</span>
+        <strong>${summary.minimoLiquidez !== null ? money(summary.minimoLiquidez, true) : "—"}</strong>
+        <em>${partidasSimuladorMoneyDelta(deltaMinimo)} vs. sin esta decisión</em>
+      </div>
+      <div class="asesor-decision-stat">
+        <span>Liquidez final</span>
+        <strong>${summary.liquidezFinal !== null ? money(summary.liquidezFinal, true) : "—"}</strong>
+        <em>${partidasSimuladorMoneyDelta(deltaFinal)}</em>
+      </div>
+      <div class="asesor-decision-stat">
+        <span>Meses de colchón</span>
+        <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toFixed(1) : "—"}</strong>
+      </div>
+    </div>
+    <p class="e19-kpi-note">Simulado en ${escapeHtml(month.label)}, sin guardar nada — los importes ya se ven en la tabla de abajo, fila "Simulación" y fila "Resultado con la simulación". Para llevarlo al plan real, créalo en "Escenario · simular".</p>
     <button type="button" class="ghost-button" data-partidas-sim-clear-preview>Quitar de la tabla</button>
   </div>`;
 }
