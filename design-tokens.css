@@ -5433,6 +5433,32 @@
   font-weight: 600;
 }
 
+/* Fila de previsualización del simulador dentro de la tabla de gestión: mismo look que una fila de */
+/* partida real, pero con un borde discontinuo de acento para dejar claro que es una simulación, no */
+/* un dato guardado. */
+.e19-planificacion-partidas .planificacion-partidas-sim-preview-row {
+  background: color-mix(in srgb, var(--e19-accent) 10%, transparent);
+  outline: 1px dashed var(--e19-accent);
+  outline-offset: -1px;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-sim-preview-cell {
+  font-size: var(--e19-text-sm);
+  white-space: nowrap;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-sim-preview-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-sim-preview-heading small {
+  color: var(--e19-muted);
+  font-size: var(--e19-text-xs);
+}
+
 /* --- 3c · mapa de calor --- */
 
 .e19-cuadro-mandos .mapa-calor-card {

@@ -323,3 +323,175 @@ test("syncPartidasSimModoUi muestra el mes único en modo manual y el rango en m
   assert.equal(monthField.has("is-hidden"), false);
   assert.equal(startField.has("is-hidden"), true);
 });
+
+// --- Previsualización en la tabla de gestión (22 de agosto de 2026, 2ª vuelta) -------------------
+// El usuario pidió que los importes simulados se vean en la tabla, sin afectar a ninguna otra
+// pantalla ni guardarse hasta que se haga desde "Escenario · simular" — y que funcione empezando en
+// cualquier mes, no solo el actual. Se resuelve con una fila de solo lectura
+// (partidasSimPreviewRowHtml) que lee partidasSimPreview y alinea sus importes por CLAVE de mes
+// (no por posición de columna), así que el efecto aparece en la columna real del mes elegido, sea
+// cual sea, y desaparece solo con Quitar/nueva simulación/Guardar/Descartar de verdad.
+
+function monthlyDeltasContext(extra = {}) {
+  return sandboxWith(["partidasSimuladorMonthlyDeltas"], { runEscenarioMotor: () => ({ valid: false }), ...extra });
+}
+
+test("partidasSimuladorMonthlyDeltas aísla el efecto mes a mes, funcionando aunque el efecto empiece a mitad del horizonte (no solo el mes actual)", () => {
+  const baseInput = { months: [{ monthKey: "2026-08" }, { monthKey: "2026-09" }, { monthKey: "2026-10" }, { monthKey: "2026-11" }] };
+  const baselineSeries = [{ totalLiquidity: 100 }, { totalLiquidity: 100 }, { totalLiquidity: 100 }, { totalLiquidity: 100 }];
+  // La decisión (un crédito) entra en el índice 2 ("2026-10", NO el primer mes del horizonte):
+  // +500 de principal ese mes (cumulativo: +500), luego -80 de cuota el mes siguiente, que se
+  // arrastra sobre el +500 anterior (cumulativo: +420 = 500 - 80).
+  const decisionSeries = [{ totalLiquidity: 100 }, { totalLiquidity: 100 }, { totalLiquidity: 600 }, { totalLiquidity: 520 }];
+  const context = monthlyDeltasContext({
+    runEscenarioMotor: (input, decisions) => ({ valid: true, series: decisions.length ? decisionSeries : baselineSeries }),
+  });
+  const result = context.partidasSimuladorMonthlyDeltas({ id: "dec_x" }, baseInput);
+  // Comparación por JSON.stringify: el array viene de otro realm de vm, así que deepEqual en modo
+  // estricto lo rechaza por identidad de constructor Array aunque el contenido sea idéntico.
+  assert.equal(JSON.stringify(result), JSON.stringify([
+    { key: "2026-08", value: 0 },
+    { key: "2026-09", value: 0 },
+    { key: "2026-10", value: 500 },
+    { key: "2026-11", value: -80 },
+  ]));
+});
+
+test("partidasSimuladorMonthlyDeltas devuelve [] si el motor rechaza la base o la decisión", () => {
+  const baseInput = { months: [{ monthKey: "2026-08" }] };
+  const context = monthlyDeltasContext({ runEscenarioMotor: () => ({ valid: false }) });
+  assert.equal(JSON.stringify(context.partidasSimuladorMonthlyDeltas({ id: "dec_x" }, baseInput)), "[]");
+});
+
+function previewRowContext(extra = {}) {
+  return sandboxWith(["partidasSimPreviewRowHtml"], {
+    partidasSimPreview: null,
+    partidasSimuladorMoneyDelta: (v) => (v ? `<span>${v}</span>` : "—"),
+    escapeHtml: (v) => v,
+    ...extra,
+  });
+}
+
+test("partidasSimPreviewRowHtml no pinta nada sin previsualización activa", () => {
+  const context = previewRowContext();
+  assert.equal(context.partidasSimPreviewRowHtml([{ key: "2026-08", label: "ago 26" }]), "");
+});
+
+test("partidasSimPreviewRowHtml alinea los importes por clave de mes, no por posición de columna — se ve en el mes elegido aunque no sea el primero visible", () => {
+  const context = previewRowContext({
+    partidasSimPreview: { titulo: "Crédito nuevo", monthlyDeltas: [{ key: "2026-10", value: 500 }, { key: "2026-11", value: -80 }] },
+  });
+  const html = context.partidasSimPreviewRowHtml([
+    { key: "2026-08", label: "ago 26" },
+    { key: "2026-10", label: "oct 26" },
+    { key: "2026-11", label: "nov 26" },
+  ]);
+  assert.match(html, /Crédito nuevo/);
+  assert.match(html, /Previsualización, no guardada/);
+  const cells = [...html.matchAll(/<td class="planificacion-partidas-sim-preview-cell">(.*?)<\/td>/g)].map((m) => m[1]);
+  assert.deepEqual(cells, ["—", "<span>500</span>", "<span>-80</span>"]);
+});
+
+test("renderPartidasGestionTable pinta la fila de previsualización del simulador", () => {
+  assert.match(extractFunction("renderPartidasGestionTable"), /partidasSimPreviewRowHtml\(months\)/);
+});
+
+test("handlePartidasSimular calcula y guarda la previsualización a partir del mes elegido (manual o el mejor encontrado), y repinta la tabla", () => {
+  const source = extractFunction("handlePartidasSimular");
+  assert.match(source, /partidasSimuladorMonthlyDeltas\(/);
+  assert.match(source, /partidasSimPreview = /);
+  assert.match(source, /scan\?\.best\?\.decision/);
+  assert.match(source, /renderPartidasGestionTable\(visualMonths\(\)\)/);
+});
+
+test("handlePartidasSimClearPreview limpia la previsualización sin tocar ningún borrador real", () => {
+  const source = extractFunction("handlePartidasSimClearPreview");
+  assert.match(source, /partidasSimPreview = null/);
+  assert.doesNotMatch(source, /visualDraftCells|customPlanningRows/);
+});
+
+test("Guardar/Descartar de verdad limpian cualquier previsualización activa, para que no quede una simulación obsoleta pintada en la tabla", () => {
+  assert.match(extractFunction("handlePartidasSave"), /partidasSimPreview = null/);
+  assert.match(extractFunction("handlePartidasDiscard"), /partidasSimPreview = null/);
+});
+
+// --- Totales estilo pantalla legacy + quitar la lista infinita de "mejor mes" (22 de agosto, 3ª vuelta) ---
+// El usuario pidió una fila de totales como en "Cuadro de mandos (heredado)" que refleje el
+// resultado con y sin la decisión simulada, y que "buscar la mejor fecha" no obligue a hacer scroll
+// por cada uno de los (potencialmente cientos de) meses candidatos del horizonte.
+
+function totalsByKindContext(extra = {}) {
+  return sandboxWith(["partidasTotalsByKind"], {
+    baseData: { monthlyPlanning: { sections: [] } },
+    visualRowsForSection: () => [],
+    visualSectionTotal: () => 0,
+    ...extra,
+  });
+}
+
+test("partidasTotalsByKind suma visualSectionTotal de todas las secciones del kind pedido, ignorando el otro kind", () => {
+  const sections = [
+    { name: "Nómina", kind: "income" },
+    { name: "Alquiler", kind: "expense" },
+    { name: "Otro ingreso", kind: "income" },
+  ];
+  const months = [{ key: "2026-08", label: "ago 26" }, { key: "2026-09", label: "sept 26" }];
+  const totalsBySection = { Nómina: [1000, 1000], Alquiler: [200, 200], "Otro ingreso": [50, 60] };
+  const context = totalsByKindContext({
+    baseData: { monthlyPlanning: { sections } },
+    visualRowsForSection: (section) => [{ id: section.name }],
+    visualSectionTotal: (section, rows, monthsArg, mode, month) => {
+      const index = months.findIndex((m) => m.key === month.key);
+      return totalsBySection[section.name][index];
+    },
+  });
+  assert.equal(JSON.stringify(context.partidasTotalsByKind(months, "income")), JSON.stringify([1050, 1060]));
+  assert.equal(JSON.stringify(context.partidasTotalsByKind(months, "expense")), JSON.stringify([200, 200]));
+});
+
+test("partidasCalculatedRowHtml pinta los valores con las mismas clases visual-calculated-row que usa la pantalla legacy", () => {
+  const context = sandboxWith(["partidasCalculatedRowHtml"], { money: (v) => `${v}€`, escapeHtml: (v) => v });
+  const html = context.partidasCalculatedRowHtml("result-section", "Resultado", "detalle", [100, -50]);
+  assert.match(html, /class="visual-section-row visual-calculated-row result-section"/);
+  assert.match(html, /<strong>Resultado<\/strong>/);
+  assert.match(html, /<td>100€<\/td>/);
+  assert.match(html, /<td>-50€<\/td>/);
+});
+
+function resultConSimContext(extra = {}) {
+  return sandboxWith(["partidasResultConSimulacionRowHtml"], {
+    partidasSimPreview: null,
+    money: (v) => `${v}€`,
+    escapeHtml: (v) => v,
+    ...extra,
+  });
+}
+
+test("partidasResultConSimulacionRowHtml no pinta nada sin previsualización activa", () => {
+  const context = resultConSimContext();
+  assert.equal(context.partidasResultConSimulacionRowHtml([{ key: "2026-08" }], [100]), "");
+});
+
+test("partidasResultConSimulacionRowHtml suma el delta de la previsualización al resultado base, mes a mes — así se ve el resultado con y sin impacto", () => {
+  const context = resultConSimContext({
+    partidasSimPreview: { titulo: "Crédito nuevo", monthlyDeltas: [{ key: "2026-08", value: 0 }, { key: "2026-09", value: -80 }] },
+  });
+  const months = [{ key: "2026-08" }, { key: "2026-09" }];
+  const html = context.partidasResultConSimulacionRowHtml(months, [100, 100]);
+  assert.match(html, /<td>100€<\/td>/);
+  assert.match(html, /<td>20€<\/td>/);
+});
+
+test("renderPartidasGestionTable pinta los totales estilo pantalla legacy y el resultado con simulación", () => {
+  const source = extractFunction("renderPartidasGestionTable");
+  assert.match(source, /partidasTotalsByKind\(months, "income"\)/);
+  assert.match(source, /partidasTotalsByKind\(months, "expense"\)/);
+  assert.match(source, /partidasCalculatedRowHtml\(/);
+  assert.match(source, /partidasResultConSimulacionRowHtml\(/);
+});
+
+test('el modo «buscar mejor mes» ya no lista cada mes candidato (scroll infinito con un horizonte de años) — solo el mejor, con las mismas cifras que el modo manual', () => {
+  const source = extractFunction("partidasSimuladorResultHtml");
+  assert.doesNotMatch(source, /planificacion-partidas-simulador-ranking/);
+  assert.match(source, /asesor-decision-stats/);
+});

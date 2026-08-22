@@ -2,6 +2,96 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (5): totales estilo legacy y lista corta en "buscar mejor mes"
+
+Continuación directa del cierre anterior del mismo día (PR #108 en curso, sobre la misma rama). El
+usuario pidió dos retoques al ver la previsualización en marcha: el modo «buscar la mejor fecha en
+un rango» listaba cada uno de los (hasta 125, con el horizonte del plan hasta 2036) meses candidatos
+uno por uno — scroll infinito —, y pidió una totalización como la de «Cuadro de mandos (heredado)»
+que reflejara el resultado con y sin la decisión simulada.
+
+**Construido**:
+- **Sin lista infinita**: el resultado de «buscar la mejor fecha» ya no lista los meses candidatos
+  probados; muestra solo el mejor, con las mismas tres cifras que el modo manual (mínimo del
+  horizonte, liquidez final, meses de colchón) — el detalle mes a mes ya se ve en la tabla de abajo.
+- **Totales estilo legacy** (`partidasTotalsByKind`, `partidasCalculatedRowHtml`), al final de la
+  tabla de gestión: «Total ingresos», «Total gastos» y «Resultado», con las mismas clases CSS
+  `.visual-calculated-row`/`.total-expense-section`/`.result-section` que ya usa «Cuadro de mandos
+  (heredado)» (definidas en `styles.css`, globales, cero CSS nuevo) — mismo aspecto, agregando con
+  `visualSectionTotal` tal cual, sin reimplementar el cálculo por sección.
+- **Resultado con y sin impacto**: cuando hay una simulación activa, una fila extra «Resultado con
+  la simulación» (`partidasResultConSimulacionRowHtml`) debajo de «Resultado», sumando el mismo
+  delta mes a mes que ya calcula `partidasSimuladorMonthlyDeltas`. Es matemáticamente exacto para
+  cualquier tipo de decisión (no solo compra/deuda_nueva): el delta de liquidez acumulada mes a mes
+  que ya se calculaba es, por construcción, el cambio en Ingresos−Gastos de ese mes. Se decidió no
+  replicar los cuatro «Disponible para traspaso» heredados (dependen de saldos reales de cuenta y de
+  la fecha de nómina — tesorería, no impacto de una decisión); se deja como posible ampliación si
+  el usuario los sigue queriendo.
+
+**Pruebas nuevas**: 6 pruebas añadidas a `tests/o1b-simulador-decision.test.cjs` (ahora 34 en total)
+— `partidasTotalsByKind` sumando por kind y filtrando el otro; `partidasCalculatedRowHtml` con las
+clases correctas; `partidasResultConSimulacionRowHtml` sin previsualización (no pinta nada) y sumando
+el delta mes a mes; cableado por regex en `renderPartidasGestionTable`; confirmación de que
+`partidasSimuladorResultHtml` ya no contiene la lista larga.
+
+**Validación** (`npm run verify`, exit 0): **1593/1593 pruebas** (1587 + 6 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 39,3 ms; forecast y escenarios en 265,3 ms;
+recursos 1816 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright:
+crédito de 15.000 €/315 €/72 meses en modo «buscar mejor mes» sobre 125 meses candidatos → 0
+elementos de lista larga, resultado compacto igual que el modo manual; tabla con «Total ingresos» /
+«Total gastos» / «Resultado» / «Resultado con la simulación» — comprobado con números reales: 270 €
+de resultado base cada mes, 15.270 € en el mes de la inyección del crédito (270 + 15.000) y -45 € en
+los meses siguientes (270 - 315 de cuota), exactamente lo esperado.
+
+**Publicado**: pendiente de commit/push en esta misma rama (PR #108), según la autorización
+permanente de `CLAUDE.md` (verificar CI en verde antes de fusionar).
+
+## Cierre de sesión — 22 de agosto de 2026 (4): la previsualización del simulador se ve en la tabla de gestión
+
+Continuación directa del cierre anterior del mismo día (PR #107 ya fusionado). Tras probar el
+simulador, el usuario pidió dos cosas concretas: que los importes simulados se incorporen a la
+tabla para ver el impacto de un vistazo, dejando claro que es una simulación previa que «no se
+incorporaría de manera definitiva hasta que lo haga en la pantalla de escenarios tal y como está» —
+y que se pudiera simular a partir de cualquier mes, no solo el actual.
+
+**Construido**:
+- `partidasSimuladorMonthlyDeltas(decision, baseInput)`: aísla el efecto de caja mes a mes de una
+  decisión — `runEscenarioMotor` solo expone liquidez acumulada, así que el efecto de un mes
+  concreto es su delta acumulado (decisión menos base) menos el del mes anterior. Alineado por
+  **clave de mes**, no por posición de columna, así que funciona igual empiece la decisión en el
+  mes que sea (verificado con una decisión que arranca a mitad del horizonte, no en el primero).
+- Fila de previsualización en `#partidasGestionTable` (`partidasSimPreviewRowHtml`, cableada en
+  `renderPartidasGestionTable`): lee `partidasSimPreview` (estado de render puro, nuevo — nunca
+  toca `visualDraftCells`/`customPlanningRows`/`projects`, así que no afecta a ninguna otra
+  pantalla ni queda pendiente de guardar) y pinta el importe de esa decisión en la columna real de
+  cada mes visible, con badge «Simulación» y borde discontinuo para distinguirla de una partida
+  real. `handlePartidasSimular` la rellena con la decisión simulada (la elegida en modo manual, o
+  la mejor encontrada en modo «buscar mejor mes»); un botón «Quitar de la tabla»
+  (`handlePartidasSimClearPreview`) la limpia, y también se limpia sola al Guardar o Descartar de
+  verdad, para que nunca quede una previsualización obsoleta pintada.
+- Nada de esto persiste ni se aplica: para llevar la decisión al plan real sigue haciendo falta
+  crearla en «Escenario · simular», exactamente como pidió el usuario.
+
+**Pruebas nuevas**: 8 pruebas añadidas a `tests/o1b-simulador-decision.test.cjs` (ahora 28 en
+total) — `partidasSimuladorMonthlyDeltas` con una decisión que arranca a mitad del horizonte (no en
+el mes actual) y con el motor rechazando la simulación; `partidasSimPreviewRowHtml` sin
+previsualización activa y alineando importes por mes elegido, no por la primera columna;
+reutilización por regex de `renderPartidasGestionTable`/`handlePartidasSimular`/
+`handlePartidasSimClearPreview`/`handlePartidasSave`/`handlePartidasDiscard`.
+
+**Validación** (`npm run verify`, exit 0): **1587/1587 pruebas** (1579 + 8 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 36,2 ms; forecast y escenarios en 188,8 ms;
+recursos 1812 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright:
+crédito de 15.000 €/315 €/72 meses
+simulado a nombre de Tere empezando en diciembre de 2026 (no el mes actual) → la fila de
+previsualización muestra guiones en jul-nov 26, `+15.000,00 €` exactamente en la columna «dic 26» y
+`-315,00 €` en cada mes posterior hasta agotar el plazo; «Quitar de la tabla» la elimina al
+instante. Cero cambios a `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/
+`#mapa-calor`.
+
+**Publicado**: PR #108 abierto sobre esta misma rama (ampliado en el cierre siguiente antes de
+fusionar).
+
 ## Cierre de sesión — 22 de agosto de 2026 (3): simulador de decisión («¿y si...?») en Planificación de partidas
 
 Continuación directa del cierre anterior del mismo día (PR #106 ya fusionado). Tras ver la pantalla
@@ -60,8 +150,7 @@ Tere en modo «buscar mejor mes» → identifica correctamente ago 26 como mejor
 mínimo) frente a +0 € en el resto del rango, con la fila ganadora resaltada en verde. Cero cambios a
 `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/`#mapa-calor`.
 
-**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
-`CLAUDE.md` (verificar CI en verde antes de fusionar).
+**Publicado**: PR #107 fusionado a `main` (commit `0039846`), CI en verde antes de fusionar.
 
 ## Cierre de sesión — 22 de agosto de 2026 (2): ajuste rápido por rango, gráfico con hover y resumen al inicio en tarjeta oscura
 
