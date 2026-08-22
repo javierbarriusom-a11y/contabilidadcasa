@@ -972,18 +972,25 @@ main {
   transform: translateY(-1px);
 }
 
-/* H-3: tarjeta oscura con la cifra de días hasta el siguiente ingreso. */
-.e6-coverage-card {
+/* H-3: tarjeta oscura con la cifra de días hasta el siguiente ingreso.
+   Especificidad reforzada (.e19-home .home-panel.e6-coverage-card) porque la regla genérica
+   ".e19-home .home-panel" de design-tokens.css tiene más peso que ".e6-coverage-card" sola y
+   pintaba esta tarjeta de fondo claro, dejando el texto blanco de su interior invisible. */
+.e6-coverage-card,
+.e19-home .home-panel.e6-coverage-card {
   margin-bottom: 1rem;
   padding: 1.25rem 1.5rem;
   background: var(--e19-accent-strong, #0b1a30);
   color: #fff;
   border: none;
 }
-.e6-coverage-card .panel-kicker { color: rgba(255, 255, 255, 0.65); }
-.e6-coverage-card h3 { margin: .3rem 0 0; font-size: clamp(30px, 3vw, 42px); line-height: 1; color: #fff; }
+.e6-coverage-card .panel-kicker,
+.e19-home .e6-coverage-card .panel-kicker { color: rgba(255, 255, 255, 0.65); }
+.e6-coverage-card h3,
+.e19-home .e6-coverage-card .module-heading h3 { margin: .3rem 0 0; font-size: clamp(30px, 3vw, 42px); line-height: 1; color: #fff; }
 .e6-coverage-unit { font-size: 15px; font-weight: 600; color: rgba(255, 255, 255, 0.65); }
-.e6-coverage-summary { border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 16px; padding: 1rem; background: rgba(255, 255, 255, 0.06); margin-top: 1rem; }
+.e6-coverage-summary { border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 16px; padding: 1rem; background: rgba(255, 255, 255, 0.06); margin-top: 1rem; color: rgba(255, 255, 255, 0.75); }
+.e6-coverage-summary span { display: block; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; color: rgba(255, 255, 255, 0.65); }
 .e6-coverage-summary strong { display: block; font-size: 1.5rem; margin: .3rem 0; color: #fff; }
 .e6-coverage-summary strong.negative { color: #ff9d9d; }
 .e6-coverage-summary strong.positive { color: #8fe3b8; }
@@ -996,6 +1003,23 @@ main {
 .e6-quality-card p { margin: .35rem 0 0; color: var(--muted); }
 .e6-coverage-form { display: grid; gap: .75rem; }
 .e6-coverage-form label { display: grid; gap: .35rem; }
+/* H-3b: "Guardar ajuste" es la acción principal (persiste el override) y debe distinguirse de
+   "Usar aprendizaje", que solo descarta el override — sin esto ambos botones eran indistinguibles. */
+.e6-coverage-form .dialog-actions button[type="submit"] {
+  border-color: transparent;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 700;
+}
+.e6-coverage-form .dialog-actions button[type="submit"]:hover {
+  border-color: transparent;
+  background: #0c706e;
+}
+.e6-coverage-form .dialog-actions button[type="submit"]:disabled {
+  background: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
 .e6-quality-list { display: grid; gap: .75rem; }
 .e6-quality-card header { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .e6-quality-card dl { display: grid; grid-template-columns: auto 1fr; gap: .25rem .75rem; margin: .75rem 0 0; }

@@ -2,6 +2,36 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (8): legibilidad de la tarjeta de cobertura
+
+El usuario reportó, con dos capturas, que la tarjeta oscura "Hasta el siguiente ingreso" no se leía
+bien y que en el editor "Cobertura aprendida" no se distinguía "Usar aprendizaje" de "Guardar ajuste".
+
+**Diagnóstico**: la regla genérica `.e19-home .home-panel` de `design-tokens.css` (especificidad
+0,2,0) pesa más que `.e6-coverage-card` sola (0,1,0) y, al cargarse después, pintaba esa tarjeta con
+fondo claro en vez del navy previsto — dejando el texto blanco de su interior (resumen, cifra,
+frase) invisible sobre fondo claro. Los dos botones del editor no tenían ninguna regla propia
+(`.secondary` no estaba definida en ningún sitio del CSS): eran visualmente idénticos.
+
+**Corregido** (`styles.css`):
+- Especificidad reforzada de `.e6-coverage-card`/`.panel-kicker`/`h3` (con selectores
+  `.e19-home .home-panel.e6-coverage-card` etc.) para que la tarjeta recupere su fondo navy previsto
+  frente a la regla genérica de `design-tokens.css`.
+- Color explícito en el `<span>` "Margen previsto" (antes heredaba `--ink`, invisible sobre fondo
+  oscuro si la tarjeta perdía su fondo).
+- `.e6-coverage-form .dialog-actions button[type="submit"]` ("Guardar ajuste") pasa a botón primario
+  (fondo teal, texto blanco, con estado `:disabled` propio); "Usar aprendizaje" (`.secondary`)
+  mantiene el estilo neutro/outline ya existente para botones — ahora sí se diferencian.
+
+**Validación** (`npm run verify`, exit 0): 1601/1601 pruebas, accesibilidad (816 IDs únicos),
+rendimiento (diff 10.000 filas en 33,9 ms; forecast y escenarios en 183,6 ms; recursos 1822 KB),
+build del sitio, privacidad y smoke test en verde. QA visual con Playwright contra `dist/` servido
+localmente: capturas de ambas tarjetas confirman texto legible sobre fondo navy y los dos botones
+claramente distintos.
+
+**Publicado**: commit/push/PR en esta misma rama, según la autorización permanente de `CLAUDE.md`
+(fusionar en cuanto el CI esté en verde).
+
 ## Cierre de sesión — 22 de agosto de 2026 (7): fila "Cashflow previsto" + separación visual
 
 Continuación directa del cierre anterior del mismo día (PR #109 ya fusionado). El usuario pidió,
