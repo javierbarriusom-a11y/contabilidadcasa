@@ -5459,6 +5459,13 @@
   font-size: var(--e19-text-xs);
 }
 
+/* Separación visual leve entre "Resultado"/"Cashflow previsto" y el bloque de "Disponible para   */
+/* traspaso" que va justo debajo — un hueco y una línea fina, sin romper la tabla en dos.          */
+.e19-planificacion-partidas .planificacion-partidas-transfer-heading td {
+  padding-top: 20px;
+  border-top: 2px solid var(--e19-border);
+}
+
 /* --- 3c · mapa de calor --- */
 
 .e19-cuadro-mandos .mapa-calor-card {

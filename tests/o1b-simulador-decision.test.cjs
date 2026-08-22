@@ -529,8 +529,17 @@ function transferContext(names, extra = {}) {
   });
 }
 
+test("partidasStartingCaixaByMonth lee el saldo de la simulación de ese mes, o el saldo actual de la cuenta si no hay fila", () => {
+  const context = transferContext(["partidasStartingCaixaByMonth"], {
+    lastSimulation: [{ detailMonthKey: "2026-09", startChecking: 1000 }],
+    accountBalancesFromState: () => ({ caixa: 250 }),
+  });
+  const months = [{ key: "2026-09" }, { key: "2026-10" }];
+  assert.equal(JSON.stringify(context.partidasStartingCaixaByMonth(months)), JSON.stringify([1000, 250]));
+});
+
 test("partidasAvailableForTransferByMonth: caja inicial (de la simulación de ese mes) + ingresos - gastos - reserva, sin bajar de 0", () => {
-  const context = transferContext(["partidasAvailableForTransferByMonth"], {
+  const context = transferContext(["partidasStartingCaixaByMonth", "partidasAvailableForTransferByMonth"], {
     lastSimulation: [{ detailMonthKey: "2026-09", startChecking: 1000 }],
     agentCaixaFloor: () => 300,
   });
@@ -540,6 +549,25 @@ test("partidasAvailableForTransferByMonth: caja inicial (de la simulación de es
   // 2026-10 (sin simulación para ese mes: usa el saldo de caja de accountBalancesFromState=0)
   //   0 + 100 - 900 - 300 = -1100 -> se recorta a 0
   assert.equal(JSON.stringify(result), JSON.stringify([1000, 0]));
+});
+
+test("partidasCashflowByMonth es saldo + resultado del mes, sin recorte a 0 (puede salir negativo, a diferencia de Disponible para traspaso)", () => {
+  const context = transferContext(["partidasStartingCaixaByMonth", "partidasCashflowByMonth"], {
+    lastSimulation: [{ detailMonthKey: "2026-09", startChecking: 1000 }],
+  });
+  const months = [{ key: "2026-09" }, { key: "2026-10" }];
+  const result = context.partidasCashflowByMonth(months, [500, -900]);
+  // 2026-09: 1000 + 500 = 1500
+  // 2026-10 (sin simulación: saldo de accountBalancesFromState=0): 0 + (-900) = -900
+  assert.equal(JSON.stringify(result), JSON.stringify([1500, -900]));
+});
+
+test("renderPartidasGestionTable cablea «Cashflow previsto» justo después de «Resultado»", () => {
+  const source = extractFunction("renderPartidasGestionTable");
+  const resultIndex = source.indexOf('"Resultado"');
+  const cashflowIndex = source.indexOf("Cashflow previsto");
+  assert.ok(resultIndex >= 0 && cashflowIndex > resultIndex, "Cashflow previsto debe cablearse después de Resultado");
+  assert.match(source, /partidasCashflowByMonth\(months, resultTotals\)/);
 });
 
 test("partidasNextMonthPlannedExpenses lee el mes siguiente de lastSimulation aunque quede fuera del rango visible, y no baja de 0", () => {

@@ -2,6 +2,42 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (7): fila "Cashflow previsto" + separación visual
+
+Continuación directa del cierre anterior del mismo día (PR #109 ya fusionado). El usuario pidió,
+justo debajo de "Resultado", una fila de "cashflow previsto" (saldo + resultado del mes, para ver
+el saldo estimado en cada mes) — y que el bloque de "Disponible para traspaso" quedara levemente
+separado visualmente, ya que iba justo debajo.
+
+**Construido**:
+- `partidasStartingCaixaByMonth(months)`: helper extraído de `partidasAvailableForTransferByMonth`
+  (mismo saldo inicial de CaixaBank por mes, de `lastSimulation` o del saldo actual de la cuenta si
+  el mes no tiene fila propia), ahora compartido entre las dos filas que lo necesitan.
+- `partidasCashflowByMonth(months, resultTotals)`: saldo + resultado del mes — a diferencia de
+  "Disponible para traspaso" no resta la reserva operativa ni recorta a 0 (puede salir negativo:
+  es una proyección de saldo, no un límite de traspaso seguro). Nueva fila "Cashflow previsto",
+  justo después de "Resultado" y antes de "Resultado con la simulación"/el bloque de traspaso.
+- Separación visual leve del bloque "Disponible para traspaso": borde superior + hueco en su fila
+  de cabecera (`.planificacion-partidas-transfer-heading`), sin romper la tabla en dos ni tocar
+  `#visual-detail`.
+
+**Pruebas nuevas**: 3 pruebas añadidas a `tests/o1b-simulador-decision.test.cjs` (ahora 42 en
+total, +1 test existente actualizado para la nueva dependencia compartida) — `partidasStartingCaixaByMonth`
+con y sin fila de simulación para el mes, `partidasCashflowByMonth` (incluye un caso negativo, sin
+recorte a 0, a diferencia de "Disponible"), y el orden de cableado en `renderPartidasGestionTable`
+(Cashflow previsto después de Resultado).
+
+**Validación** (`npm run verify`, exit 0): **1601/1601 pruebas** (1598 + 3 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 43,2 ms; forecast y escenarios en 197,5 ms;
+recursos 1821 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright:
+orden de filas confirmado (Total ingresos → Total gastos → Resultado → Cashflow previsto →
+Disponible para traspaso ×4); Cashflow previsto (6.940,00 €) = saldo inicial + Resultado (270,00 €)
+para el mismo mes en que Disponible para traspaso da 4.440,00 € (la diferencia de 2.500,00 € es la
+reserva operativa que Cashflow no resta); salto visual claro antes del bloque de traspaso.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
+
 ## Cierre de sesión — 22 de agosto de 2026 (6): "Disponible para traspaso" en bloque aparte
 
 Continuación directa del cierre anterior del mismo día (PR #108 ya fusionado). El usuario pidió que
@@ -34,8 +70,7 @@ coinciden exactamente entre «Cuadro de mandos (heredado)» y «Planificación d
 con su cabecera propia justo después de «Resultado» / «Resultado con la simulación», en tonos
 azules diferenciados del resto de totales.
 
-**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
-`CLAUDE.md` (verificar CI en verde antes de fusionar).
+**Publicado**: PR #109 fusionado a `main` (commit `ec332b5`).
 
 ## Cierre de sesión — 22 de agosto de 2026 (5): totales estilo legacy y lista corta en "buscar mejor mes"
 
