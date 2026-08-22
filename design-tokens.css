@@ -5158,6 +5158,58 @@
 .e19-cuadro-mandos .cambios-chart-key-after { background: var(--e19-danger); }
 .e19-cuadro-mandos .cambios-chart-key-reserve { background: var(--e19-danger); opacity: 0.6; }
 
+/* Planificación de partidas · gestión + forecast (ver PROJECT_STATE.md). El gráfico y el pie de
+   impacto reutilizan las clases `.cambios-chart-*`/`.e19-impact-bar` ya definidas arriba (por eso
+   la sección carga también las clases `e19-analisis`/`e19-cuadro-mandos`); estas dos reglas solo
+   cubren los dos trazos nuevos (ediciones sin guardar / escenario propuesto) que ninguna pantalla
+   existente necesitaba todavía. */
+.e19-planificacion-partidas .partidas-chart-draft {
+  fill: none;
+  stroke: var(--e19-accent);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+}
+
+.e19-planificacion-partidas .partidas-chart-ghost {
+  fill: none;
+  stroke: var(--e19-debt);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 4;
+  opacity: 0.85;
+}
+
+.e19-planificacion-partidas .partidas-chart-key-draft { background: var(--e19-accent); }
+.e19-planificacion-partidas .partidas-chart-key-ghost { background: var(--e19-debt); opacity: 0.85; }
+
+.e19-planificacion-partidas .planificacion-partidas-hitos,
+.e19-planificacion-partidas .planificacion-partidas-ranked-list,
+.e19-planificacion-partidas .planificacion-partidas-ghost-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-ranked-list li,
+.e19-planificacion-partidas .planificacion-partidas-ghost-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--e19-border);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-ranked-list li > div,
+.e19-planificacion-partidas .planificacion-partidas-ghost-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 /* --- 3c · mapa de calor --- */
 
 .e19-cuadro-mandos .mapa-calor-card {

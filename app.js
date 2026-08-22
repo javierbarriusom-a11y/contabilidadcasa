@@ -10826,84 +10826,616 @@ function planificacionPartidasEscenariosPropuestos() {
   return loadEscenarioMotorSaved().filter((entry) => !entry.archived && entry.estado === "propuesto");
 }
 
+// Gestión de partidas dentro de "Planificación de partidas" — duplica, con nombres e IDs propios,
+// la capacidad de añadir/renombrar/borrar/editar previsto que hoy solo tiene `#visual-detail`
+// (Cuadro de mandos heredado), pero escribe en los MISMOS diccionarios de borrador compartidos
+// (`visualDraftCells`, `visualDraftLabels`, `visualDraftDeletes`, `visualSelectedRows`) y llama a
+// las MISMAS funciones de persistencia/impacto (`cuadroMandosStageCell`, `saveVisualChanges`,
+// `discardVisualChanges`, `stageSelectedVisualDeletes`, `cuadroMandosImpact`) sin modificarlas —
+// decisión explícita del usuario: cero cambios a `#visual-detail`/`#plan`/`#cuadro-mandos`, que
+// siguen operativas en paralelo durante y después de este trabajo.
+const partidasGestionExpanded = new Set();
+
+function partidasSectionKey(section) {
+  return `${section.kind}:${section.name}`;
+}
+
+function togglePartidasSection(key) {
+  if (partidasGestionExpanded.has(key)) partidasGestionExpanded.delete(key);
+  else partidasGestionExpanded.add(key);
+  renderPartidasGestionTable(visualMonths());
+}
+
+function renderPartidasGestionTable(months) {
+  const table = qs("partidasGestionTable");
+  if (!table) return;
+  const body = [];
+  baseData.monthlyPlanning.sections.forEach((section) => {
+    const rows = visualRowsForSection(section, months);
+    if (!rows.length) return;
+    const key = partidasSectionKey(section);
+    const expanded = partidasGestionExpanded.has(key);
+    const totals = months.map((month) => visualSectionTotal(section, rows, months, "planned", month));
+    body.push(`<tr class="visual-section-row">
+      <td>
+        <button type="button" class="visual-section-toggle" data-partidas-section-toggle="${escapeHtml(key)}">
+          ${expanded ? "▾" : "▸"} ${escapeHtml(section.name)}
+        </button>
+      </td>
+      ${totals.map((value) => `<td class="${visualCellClass(section)}">${money(value, true)}</td>`).join("")}
+      <td></td>
+    </tr>`);
+    if (!expanded) return;
+    rows.forEach((row) => {
+      const label = visualDisplayLabel(row);
+      const rowKey = seriesKeyForRow(row);
+      const pendingDelete = isVisualRowPendingDelete(rowKey);
+      const selected = visualSelectedRows.has(rowKey);
+      body.push(`<tr class="visual-line-row ${pendingDelete ? "pending-delete" : ""} ${selected ? "selected" : ""}">
+        <td>
+          <div class="visual-row-heading">
+            <input class="visual-select-row" data-partidas-select-row="${escapeHtml(rowKey)}" type="checkbox" ${selected ? "checked" : ""} ${pendingDelete ? "disabled" : ""} aria-label="Seleccionar ${escapeHtml(label)}" />
+            <div>
+              <input class="visual-label-input" data-partidas-label-key="${escapeHtml(rowKey)}" value="${escapeHtml(label)}" ${pendingDelete ? "disabled" : ""} />
+              <small>${escapeHtml(section.name)}${row.custom ? " · nuevo" : ""}${pendingDelete ? " · se borrará al guardar" : ""}</small>
+            </div>
+          </div>
+        </td>
+        ${months
+          .map((month) => {
+            const info = actualAwareInfoForVisualRow(row, month);
+            const value = visualCellValue(row, month, "planned");
+            const historical = isClosedMonthKey(month.key);
+            return `<td>
+              <input class="visual-amount-input ${historical ? "historical-value" : ""}" data-partidas-cell="${escapeHtml(rowKey)}" data-partidas-month="${month.key}" type="number" step="0.01" value="${amountInputValue(value)}" ${pendingDelete || historical ? "disabled" : ""} />
+              <small class="visual-value-context">Usado ${info.hasActual ? `<strong>${money(info.actual, true)}</strong> (real)` : `${money(info.planned, true)} (previsto)`}</small>
+            </td>`;
+          })
+          .join("")}
+        <td><button class="row-delete-button" type="button" data-partidas-delete="${escapeHtml(rowKey)}" ${pendingDelete ? "disabled" : ""}>${pendingDelete ? "Pendiente" : "Eliminar"}</button></td>
+      </tr>`);
+    });
+  });
+  table.innerHTML = `<thead><tr><th>Partida</th>${months.map((month) => `<th>${escapeHtml(month.label)}</th>`).join("")}<th></th></tr></thead><tbody>${body.join("") || `<tr><td colspan="${months.length + 2}">Sin partidas en los meses visibles.</td></tr>`}</tbody>`;
+}
+
+function renderPartidasImpactBar() {
+  const bar = qs("partidasImpactBar");
+  if (!bar) return;
+  const impact = cuadroMandosImpact();
+  if (!impact.drafts.length) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    return;
+  }
+  bar.hidden = false;
+  if (!impact.ok) {
+    bar.innerHTML = `<div class="cuadro-mandos-impact-head"><p class="e19-eyebrow">Impacto del cambio</p><strong>No se ha podido calcular</strong><small>El motor no acepta esta combinación; los cambios siguen sin guardar.</small></div>
+      <div class="cuadro-mandos-impact-actions"><button type="button" class="e19-btn e19-btn-secondary" data-partidas-discard>Descartar</button></div>`;
+    return;
+  }
+  const { before, after, drafts } = impact;
+  const last = drafts.at(-1);
+  bar.innerHTML = `
+    <div class="cuadro-mandos-impact-head">
+      <p class="e19-eyebrow">Impacto del cambio</p>
+      <strong>${escapeHtml(last?.label || "Cambio")}${last?.monthLabel ? ` · ${escapeHtml(last.monthLabel)}` : ""}</strong>
+      <small>${drafts.length} cambio(s) sin guardar</small>
+    </div>
+    <dl><dt>Mínimo del horizonte</dt>${cuadroMandosBeforeAfter(before.minimo, after.minimo, (value) => money(value, true))}</dl>
+    <dl><dt>Meses ${escapeHtml(cuadroMandosReserveLabel(after))}</dt>${cuadroMandosBeforeAfter(before.bajoReserva, after.bajoReserva, (value) => `${Math.round(Number(value || 0))}`, false)}</dl>
+    <dl><dt>Liquidez al final</dt>${cuadroMandosBeforeAfter(before.final, after.final, (value) => money(value, true))}</dl>
+    <dl title="No se mueve al editar previsto: se mueve desde Simular o Deuda."><dt>Fecha libre de deuda (fija)</dt><dd>${escapeHtml(cuadroMandosDebtFreeReadout())}</dd></dl>
+    <div class="cuadro-mandos-impact-actions">
+      <button type="button" class="e19-btn e19-btn-secondary" data-partidas-discard>Descartar</button>
+      <button type="button" class="e19-btn e19-btn-primary" data-partidas-save>Guardar cambios</button>
+    </div>`;
+}
+
+function renderPartidasSavePanel() {
+  const panel = qs("partidasSavePanel");
+  if (!panel) return;
+  const counts = visualPendingCounts();
+  const pending = counts.cells + counts.labels + counts.deletes;
+  qs("partidasSaveTitle").textContent = pending ? `${pending} cambio(s) pendiente(s)` : "Planificación guardada";
+  const parts = [];
+  if (counts.cells) parts.push(`${counts.cells} importe(s)`);
+  if (counts.labels) parts.push(`${counts.labels} nombre(s)`);
+  if (counts.deletes) parts.push(`${counts.deletes} partida(s) para borrar`);
+  if (counts.selected) parts.push(`${counts.selected} seleccionada(s)`);
+  qs("partidasSaveSummary").textContent = parts.length
+    ? `Se guardarán: ${parts.join(", ")}.`
+    : "Añade, edita o borra partidas arriba. Los cambios se acumulan aquí hasta que los guardes.";
+  panel.classList.toggle("has-pending", pending > 0 || counts.selected > 0);
+  qs("partidasSaveChangesBtn").disabled = pending === 0;
+  qs("partidasDiscardChangesBtn").disabled = pending === 0 && counts.selected === 0;
+  qs("partidasBulkDeleteBtn").disabled = counts.selected === 0;
+}
+
+function renderPartidasGestionBlocks() {
+  const months = visualMonths();
+  renderPartidasGestionTable(months);
+  renderPartidasImpactBar();
+  renderPartidasSavePanel();
+}
+
+function handlePartidasCellChange(input) {
+  const parsed = parseAmount(input.value);
+  const staged = cuadroMandosStageCell(
+    input.dataset.partidasCell,
+    input.dataset.partidasMonth,
+    input.value === "" || parsed === null ? 0 : parsed,
+  );
+  if (!staged) return;
+  renderPartidasGestionBlocks();
+}
+
+function handlePartidasLabelChange(input) {
+  const row = rowForSeriesKey(input.dataset.partidasLabelKey);
+  if (!row) return;
+  const label = input.value.trim();
+  const key = seriesKeyForRow(row);
+  if (!label || label === displayLabelForRow(row)) delete visualDraftLabels[key];
+  else visualDraftLabels[key] = { rowKey: key, oldValue: displayLabelForRow(row), value: label };
+  renderPartidasGestionBlocks();
+}
+
+function handlePartidasDeleteRow(rowKey) {
+  const row = rowForSeriesKey(rowKey);
+  if (!row) return;
+  visualDraftDeletes[rowKey] = { rowKey, label: displayLabelForRow(row) };
+  visualSelectedRows.delete(rowKey);
+  renderPartidasGestionBlocks();
+}
+
+function handlePartidasRowSelect(rowKey, checked) {
+  if (checked) visualSelectedRows.add(rowKey);
+  else visualSelectedRows.delete(rowKey);
+  renderPartidasGestionBlocks();
+}
+
+function handlePartidasBulkDelete() {
+  stageSelectedVisualDeletes();
+  renderPartidasGestionBlocks();
+}
+
+function handlePartidasSave() {
+  saveVisualChanges();
+  announceStatus("Cambios de planificación guardados.");
+}
+
+function handlePartidasDiscard() {
+  discardVisualChanges();
+  announceStatus("Cambios descartados. Los importes vuelven a los guardados.");
+  render();
+}
+
+function partidasAddSingleMonthMode() {
+  return (qs("partidasAddScope")?.value || "single") === "single";
+}
+
+function syncPartidasAddSectionOptions() {
+  const kind = qs("partidasAddKind")?.value || "expense";
+  const sectionSelect = qs("partidasAddSection");
+  if (!sectionSelect) return;
+  const previous = sectionSelect.value;
+  const sections = baseData.monthlyPlanning.sections.filter((section) => section.kind === kind);
+  sectionSelect.innerHTML = sections.map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`).join("");
+  if ([...sectionSelect.options].some((option) => option.value === previous)) sectionSelect.value = previous;
+}
+
+function syncPartidasAddScopeUi() {
+  const start = qs("partidasAddStartMonth");
+  const end = qs("partidasAddEndMonth");
+  if (!start || !end) return;
+  if (partidasAddSingleMonthMode()) {
+    end.value = start.value;
+    end.disabled = true;
+  } else {
+    end.disabled = false;
+  }
+}
+
+function handlePartidasAddRow() {
+  const kind = qs("partidasAddKind").value;
+  const sectionName = qs("partidasAddSection").value;
+  const label = qs("partidasAddLabel").value.trim();
+  const amountInput = qs("partidasAddAmount").value;
+  const parsedAmount = parseAmount(amountInput);
+  const amount = amountInput === "" || parsedAmount === null ? 0 : round2(parsedAmount);
+  const startKey = qs("partidasAddStartMonth").value;
+  const endKey = partidasAddSingleMonthMode() ? startKey : qs("partidasAddEndMonth").value;
+  const feedback = qs("partidasAddFeedback");
+  if (!label) {
+    if (feedback) {
+      feedback.textContent = "Pon un nombre de concepto para crear la línea.";
+      feedback.className = "inline-feedback warning";
+    }
+    qs("partidasAddLabel").focus();
+    return;
+  }
+  const sharedId = `custom-${kind}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const targetMonths = monthsInRange(startKey, endKey);
+  targetMonths.forEach((month) => {
+    customPlanningRows.push({ id: sharedId, custom: true, kind, sectionName, label, monthKey: month.key, plannedValue: amount });
+  });
+  partidasGestionExpanded.add(`${kind}:${sectionName}`);
+  if (expandedPlanningSections[kind]) expandedPlanningSections[kind].add(`${kind}:${sectionName}`);
+  saveCustomPlanningRows();
+  qs("partidasAddLabel").value = "";
+  qs("partidasAddAmount").value = "";
+  render();
+  if (qs("partidasAddFeedback")) {
+    const scopeText = targetMonths.length === 1 ? `solo en ${targetMonths[0].label}` : `de ${targetMonths[0]?.label} a ${targetMonths.at(-1)?.label}`;
+    qs("partidasAddFeedback").textContent = `${label} añadida ${scopeText}. Ya recalcula todo el dashboard.`;
+    qs("partidasAddFeedback").className = "inline-feedback success";
+  }
+}
+
+// --- Bloque analítico: banda de colchón + gráfico de 3-4 líneas --------------------------------
+// La banda reutiliza analisisCushionBand/analisisCushionBandHtml/analisisCushionWorst (Análisis,
+// A-2) tal cual — mismo cálculo y misma escala de tres niveles, sin duplicar lógica ni CSS (el
+// wrapper de esta sección carga la clase `e19-analisis` para heredar sus estilos).
+function partidasCushionBand(months) {
+  const targetMonths = Number(state.emergencyBufferMonths || 0);
+  const band = analisisCushionBand(months, lastSimulation, targetMonths);
+  const worst = analisisCushionWorst(band);
+  return { band, worst, html: analisisCushionBandHtml(band, worst?.key || "") };
+}
+
+function partidasImpactChartHtml(ghosts) {
+  const baseRows = lastBaseSimulation.slice(0, 24);
+  const confirmedRows = lastSimulation.slice(0, 24);
+  if (baseRows.length < 2 || confirmedRows.length < 2) {
+    return `<p class="e19-kpi-note">Hace falta más de un mes de horizonte para dibujar la comparación.</p>`;
+  }
+  const impact = cuadroMandosImpact();
+  const draftRows = impact.drafts.length && impact.ok ? impact.rowsAfter.slice(0, 24) : null;
+  const reserve = cuadroMandosReserve();
+  const ghostSeries = ghosts.map((ghost) => ghost.series?.slice(0, 24)).filter(Boolean);
+  const values = [baseRows, confirmedRows, draftRows, ...ghostSeries]
+    .filter(Boolean)
+    .flat()
+    .map((row) => Number(row.totalLiquidity || 0));
+  const max = Math.max(...values, reserve);
+  const min = Math.min(...values, 0, reserve);
+  const width = 420;
+  const height = 150;
+  const span = max - min || 1;
+  const path = (rows) =>
+    rows
+      .map((row, index) => {
+        const x = (index / Math.max(1, rows.length - 1)) * width;
+        const y = height - ((Number(row.totalLiquidity || 0) - min) / span) * height;
+        return `${index ? "L" : "M"}${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(" ");
+  const reserveY = height - ((reserve - min) / span) * height;
+  const ghostPaths = ghosts.map((ghost) => (ghost.series ? `<path d="${path(ghost.series.slice(0, 24))}" class="partidas-chart-ghost" />` : "")).join("");
+  const ghostLegend = ghosts
+    .filter((ghost) => ghost.series)
+    .map((ghost) => `<span><i class="partidas-chart-key-ghost"></i>${escapeHtml(ghost.entry.nombre || "Escenario propuesto")}</span>`)
+    .join("");
+  return `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Liquidez mes a mes: sin decisiones, confirmado, ediciones sin guardar y escenarios propuestos" preserveAspectRatio="none">
+      ${reserve > 0 ? `<line x1="0" y1="${reserveY.toFixed(1)}" x2="${width}" y2="${reserveY.toFixed(1)}" class="cambios-chart-reserve" />` : ""}
+      <path d="${path(baseRows)}" class="cambios-chart-before" />
+      <path d="${path(confirmedRows)}" class="cambios-chart-after" />
+      ${draftRows ? `<path d="${path(draftRows)}" class="partidas-chart-draft" />` : ""}
+      ${ghostPaths}
+    </svg>
+    <div class="cambios-chart-legend">
+      <span><i class="cambios-chart-key-before"></i>Sin decisiones</span>
+      <span><i class="cambios-chart-key-after"></i>Confirmado</span>
+      ${draftRows ? `<span><i class="partidas-chart-key-draft"></i>Con tus ediciones sin guardar</span>` : ""}
+      ${ghostLegend}
+      ${reserve > 0 ? `<span><i class="cambios-chart-key-reserve"></i>Reserva ${money(reserve, true)}</span>` : ""}
+    </div>`;
+}
+
+// --- Bloque analítico: ranking de impacto por decisión (leave-one-out / add-one-in) ------------
+// Mismo mecanismo "quitar/añadir y volver a calcular sin persistir" que ya usa `cuadroMandosRowsWith`
+// (con `seriesOverrides`) y `cambiosPendientesRanked` (con `visualDraftCells`), aplicado aquí a
+// decisiones reales de deuda/proyectos: restaura `debtLiquidations`/`projects` en el `finally`.
+function planificacionPartidasRowsWithOverride(type, id, forceActive) {
+  const backupDebt = debtLiquidations;
+  const backupProjects = projects;
+  try {
+    if (type === "debt") {
+      debtLiquidations = forceActive
+        ? debtLiquidations.map((item) => (item.id === id ? { ...item, lifecycleState: "approved" } : item))
+        : debtLiquidations.filter((item) => item.id !== id);
+    } else if (type === "project") {
+      projects = forceActive
+        ? projects.map((item) => (item.id === id ? { ...item, lifecycleState: "approved" } : item))
+        : projects.filter((item) => item.id !== id);
+    }
+    const schedule = buildProjectSchedule();
+    return { rows: computeCanonicalScenario(schedule.outflows, { captureEngineRun: false }).rows, ok: true };
+  } catch (error) {
+    return { rows: lastSimulation, ok: false, error };
+  } finally {
+    debtLiquidations = backupDebt;
+    projects = backupProjects;
+  }
+}
+
+function planificacionPartidasRankedImpact() {
+  const active = [
+    ...debtLiquidations
+      .filter((item) => ["approved", "fixed"].includes(decisionLifecycleStatus(item)) || isAgentRouteSimulationDecision(item))
+      .map((item) => ({
+        type: "debt",
+        id: item.id,
+        item,
+        label: item.name || "Decisión de deuda",
+        tag: isAgentRouteSimulationDecision(item) ? "Ruta del Agente" : "Confirmada",
+        origin: "debt-control",
+        originLabel: "Control de deuda",
+        forceActive: false,
+      })),
+    ...projects
+      .filter((item) => ["approved", "fixed"].includes(decisionLifecycleStatus(item)))
+      .map((item) => ({
+        type: "project",
+        id: item.id,
+        item,
+        label: item.name || item.title || "Proyecto",
+        tag: "Confirmada",
+        origin: "simulator",
+        originLabel: "Simulador",
+        forceActive: false,
+      })),
+  ];
+  const provisional = [
+    ...debtLiquidations
+      .filter((item) => decisionLifecycleStatus(item) === "pending")
+      .map((item) => ({
+        type: "debt",
+        id: item.id,
+        item,
+        label: item.name || "Decisión de deuda",
+        tag: "Pendiente",
+        origin: "debt-control",
+        originLabel: "Control de deuda",
+        forceActive: true,
+      })),
+    ...projects
+      .filter((item) => decisionLifecycleStatus(item) === "pending")
+      .map((item) => ({
+        type: "project",
+        id: item.id,
+        item,
+        label: item.name || item.title || "Proyecto",
+        tag: "Pendiente",
+        origin: "simulator",
+        originLabel: "Simulador",
+        forceActive: true,
+      })),
+  ];
+  const decisions = [...active, ...provisional];
+  if (!decisions.length) return [];
+  const currentMinimo = cuadroMandosSummary(lastSimulation).minimo;
+  return decisions
+    .map((decision) => {
+      const alt = planificacionPartidasRowsWithOverride(decision.type, decision.id, decision.forceActive);
+      const altMinimo = alt.ok ? cuadroMandosSummary(alt.rows).minimo : null;
+      const efecto = alt.ok ? cuadroMandosDelta(currentMinimo, altMinimo) : null;
+      return { ...decision, efecto };
+    })
+    .sort((left, right) => Math.abs(right.efecto || 0) - Math.abs(left.efecto || 0));
+}
+
+function planificacionPartidasRankedImpactHtml(ranked) {
+  if (!ranked.length) return `<p class="empty-state compact">No hay decisiones confirmadas ni provisionales que comparar.</p>`;
+  return `<ul class="planificacion-partidas-ranked-list">${ranked
+    .map((decision) => {
+      const efectoText = decision.efecto === null ? "Sin datos" : `${decision.efecto >= 0 ? "+" : ""}${money(decision.efecto, true)} en el mínimo`;
+      const tone = decision.efecto === null ? "" : decision.efecto >= 0 ? "positive" : "negative";
+      return `<li>
+        <div>
+          <strong>${escapeHtml(decision.label)}</strong>
+          <span class="e19-badge">${escapeHtml(decision.tag)}</span>
+          <small>${escapeHtml(decision.originLabel)}</small>
+        </div>
+        <div>
+          <b class="${tone}">${escapeHtml(efectoText)}</b>
+          <button type="button" data-home-nav="${escapeHtml(decision.origin)}">Ir a ${escapeHtml(decision.originLabel)}</button>
+        </div>
+      </li>`;
+    })
+    .join("")}</ul>`;
+}
+
+// --- Bloque analítico: hitos narrativos ---------------------------------------------------------
+// Mismo patrón que analisisNetWorthMilestonesHtml (Análisis, A-5): frases con fecha en vez de
+// cifras sueltas.
+function planificacionPartidasCushionMilestone(floor) {
+  let lastDipIndex = -1;
+  lastSimulation.forEach((row, index) => {
+    if (Number(row.totalLiquidity || 0) < floor.value) lastDipIndex = index;
+  });
+  if (lastDipIndex === -1) return { achieved: true, alreadyMet: true, month: lastSimulation[0] || null };
+  if (lastDipIndex >= lastSimulation.length - 1) return { achieved: false, alreadyMet: false, month: null };
+  return { achieved: true, alreadyMet: false, month: lastSimulation[lastDipIndex + 1] };
+}
+
+function planificacionPartidasNextBelowReserve(floor) {
+  return lastSimulation.find((row) => Number(row.totalLiquidity || 0) < floor.value) || null;
+}
+
+function planificacionPartidasHitos() {
+  const reserve = cuadroMandosReserve();
+  const floor = FinanceCanonicalCushion.cushionFloor(lastSimulation, reserve);
+  const cushionMilestone = planificacionPartidasCushionMilestone(floor);
+  const nextBelow = planificacionPartidasNextBelowReserve(floor);
+  const debtFree = cuadroMandosDebtFreeReadout();
+  const items = [{ tone: "neutral", text: `Libre de deuda: ${debtFree}` }];
+  if (cushionMilestone.achieved && cushionMilestone.alreadyMet) {
+    items.push({ tone: "up", text: "El colchón objetivo se cumple en todo el horizonte visible" });
+  } else if (cushionMilestone.achieved && cushionMilestone.month) {
+    items.push({ tone: "up", text: `Colchón objetivo alcanzado a partir de ${cushionMilestone.month.month || cushionMilestone.month.detailMonthKey}` });
+  } else {
+    items.push({ tone: "down", text: "El colchón objetivo no llega a cumplirse en todo el horizonte visible" });
+  }
+  items.push(
+    nextBelow
+      ? { tone: "down", text: `Próximo mes bajo reserva: ${nextBelow.month || nextBelow.detailMonthKey}` }
+      : { tone: "up", text: "Ningún mes visible cae bajo la reserva" },
+  );
+  return items;
+}
+
+function planificacionPartidasHitosHtml() {
+  const items = planificacionPartidasHitos();
+  const toneBadge = { up: "e19-badge-success", down: "e19-badge-danger", neutral: "e19-badge-neutral" };
+  return `<ul class="planificacion-partidas-hitos">${items
+    .map((item) => `<li><span class="e19-badge ${toneBadge[item.tone] || "e19-badge-neutral"}">${escapeHtml(item.text)}</span></li>`)
+    .join("")}</ul>`;
+}
+
+// --- Bloque analítico: comparador de escenarios propuestos ---------------------------------------
+// Mismo trío que ya usa cada tarjeta de "Escenarios guardados" (escenarioMotorSavedCardHtml) y el
+// comparador A/B de dos escenarios para sacar min/final/libre-de-deuda de un escenario sin
+// aplicarlo: escenarioMotorBaseInput() + runEscenarioMotor() + escenarioMotorSummaryFor().
+function planificacionPartidasEscenarioGhosts() {
+  const propuestos = planificacionPartidasEscenariosPropuestos();
+  if (!propuestos.length) return [];
+  const baseInput = escenarioMotorBaseInput();
+  return propuestos.map((entry) => {
+    const result = runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null);
+    const summary = escenarioMotorSummaryFor(result, baseInput.months);
+    return { entry, summary, series: result?.valid ? result.series : null };
+  });
+}
+
+function planificacionPartidasEscenarioGhostsHtml(ghosts) {
+  if (!ghosts.length) return "";
+  return `<div class="planificacion-partidas-propuestos">
+    <p>${ghosts.length} escenario(s) propuesto(s) esperando confirmación en Cierre — su trazo aparece punteado en el gráfico de arriba, sin contar todavía en el resto de la pantalla.
+      <button type="button" data-home-nav="cierre">Ir a Cierre</button>
+    </p>
+    <ul class="planificacion-partidas-ghost-list">
+      ${ghosts
+        .map(
+          (ghost) => `<li>
+        <strong>${escapeHtml(ghost.entry.nombre || "Escenario")}</strong>
+        <span>Mínimo ${ghost.summary.minimoLiquidez !== null ? money(ghost.summary.minimoLiquidez, true) : "—"}</span>
+        <span>Final ${ghost.summary.liquidezFinal !== null ? money(ghost.summary.liquidezFinal, true) : "—"}</span>
+        <span>Libre de deuda ${escapeHtml(escenarioMotorMonthLabel(ghost.summary.libreDeDeuda))}</span>
+      </li>`,
+        )
+        .join("")}
+    </ul>
+  </div>`;
+}
+
 function renderPlanificacionPartidas() {
   const root = qs("planificacionPartidasRoot");
   if (!root) return;
   const months = visualMonths();
-  const items = previsionRowsForMonths(months);
-  if (!items.length) {
+  if (!months.length) {
     root.innerHTML = `<div class="empty-state compact">No hay meses visibles para construir el forecast.</div>`;
     return;
   }
-  const baseFinal = lastBaseSimulation.at(-1)?.totalLiquidity ?? 0;
-  const activeFinal = lastSimulation.at(-1)?.totalLiquidity ?? 0;
-  const impact = round2(activeFinal - baseFinal);
-  const reserve = cuadroMandosReserve();
-  const floor = FinanceCanonicalCushion.cushionFloor(lastSimulation, reserve);
-  const worst = FinanceCanonicalCushion.worstMonthOf(openSimulationRows(lastSimulation));
-  const worstMonth = worst ? forecastMonths().find((month) => month.key === worst.key) : null;
-  const worstTone = worst ? FinanceCanonicalCushion.cushionTone(worst.value, floor.value) : "";
-  const provisional = planificacionPartidasProvisionalItems();
-  const propuestos = planificacionPartidasEscenariosPropuestos();
-  const colspan = Math.max(2, items.length + 1);
+  const cushion = partidasCushionBand(months);
+  const ghosts = planificacionPartidasEscenarioGhosts();
+  const ranked = planificacionPartidasRankedImpact();
+  const addMonths = selectableMonths();
+  const addDefaultStart = addMonths.find((month) => !isClosedMonthKey(month.key))?.key || addMonths[0]?.key || "";
 
   root.innerHTML = `
-    <div class="planificacion-partidas-kpis">
-      <article class="e19-card ${worstTone}">
-        <span>Peor mes del horizonte</span>
-        <strong>${worstMonth ? `${escapeHtml(worstMonth.label)} · ${money(worst.value, true)}` : "Sin datos"}</strong>
-      </article>
-      <article class="e19-card">
-        <span>Colchón (${floor.basis === "operating-reserve" ? "reserva operativa" : "1 mes de gasto"})</span>
-        <strong>${money(floor.value, true)}</strong>
-      </article>
-      <article class="e19-card">
-        <span>Impacto de las decisiones confirmadas</span>
-        <strong class="${impact >= 0 ? "positive" : "negative"}">${projectPlan.placements.length ? `${impact >= 0 ? "+" : ""}${money(impact, true)} vs. sin decisiones` : "Sin decisiones cargadas"}</strong>
-      </article>
+    <article class="e19-card visual-save-panel" id="partidasSavePanel">
+      <div>
+        <p class="panel-kicker">Cambios de planificación</p>
+        <h3 id="partidasSaveTitle">Planificación guardada</h3>
+        <p id="partidasSaveSummary"></p>
+      </div>
+      <div class="visual-save-actions">
+        <button type="button" class="ghost-button" id="partidasBulkDeleteBtn" data-partidas-bulk-delete>Borrar seleccionadas</button>
+        <button type="button" class="ghost-button" id="partidasDiscardChangesBtn" data-partidas-discard>Descartar</button>
+        <button type="button" id="partidasSaveChangesBtn" data-partidas-save>Guardar cambios</button>
+      </div>
+    </article>
+
+    <aside class="e19-impact-bar" id="partidasImpactBar" hidden aria-live="polite"></aside>
+
+    <article class="e19-card visual-add-card">
+      <div class="module-heading">
+        <div>
+          <p class="panel-kicker">Añadir partida</p>
+          <h3>Nueva línea de previsto</h3>
+          <p>Un gasto o ingreso nuevo, recurrente o puntual — aparece de inmediato, sin pasar por "Guardar".</p>
+        </div>
+      </div>
+      <div class="visual-add-grid">
+        <label>
+          <span>Tipo</span>
+          <select id="partidasAddKind" data-partidas-add-kind>
+            <option value="expense">Gasto</option>
+            <option value="income">Ingreso</option>
+          </select>
+        </label>
+        <label>
+          <span>Bloque</span>
+          <select id="partidasAddSection">${baseData.monthlyPlanning.sections
+            .filter((section) => section.kind === "expense")
+            .map((section) => `<option value="${escapeHtml(section.name)}">${escapeHtml(section.name)}</option>`)
+            .join("")}</select>
+        </label>
+        <label>
+          <span>Concepto</span>
+          <input id="partidasAddLabel" type="text" placeholder="Ej. Trastero, coche, subida nómina" />
+        </label>
+        <label>
+          <span>Importe previsto</span>
+          <input id="partidasAddAmount" type="number" step="0.01" placeholder="0,00" />
+        </label>
+        <label>
+          <span>Alcance</span>
+          <select id="partidasAddScope" data-partidas-add-scope>
+            <option value="single">Solo un mes</option>
+            <option value="range">Rango de meses</option>
+          </select>
+        </label>
+        <label>
+          <span>Desde</span>
+          <select id="partidasAddStartMonth">${monthOptionsHtml(addDefaultStart, addMonths)}</select>
+        </label>
+        <label>
+          <span>Hasta</span>
+          <select id="partidasAddEndMonth" disabled>${monthOptionsHtml(addDefaultStart, addMonths)}</select>
+        </label>
+        <button type="button" data-partidas-add-row>Añadir línea</button>
+      </div>
+      <p class="inline-feedback" id="partidasAddFeedback"></p>
+    </article>
+
+    <div class="table-wrap visual-table-wrap">
+      <table class="visual-matrix" id="partidasGestionTable"></table>
     </div>
-    <div class="table-wrap planificacion-partidas-table-wrap">
-      <table class="prevision-table planificacion-partidas-table">
-        <thead><tr><th>Indicador</th>${items.map((item) => `<th>${escapeHtml(item.row.month)}</th>`).join("")}</tr></thead>
-        <tbody>
-          ${renderPrevisionGroup("Real / previsto confirmado", "real", colspan)}
-          ${renderPrevisionValueRow("Liquidez total", items, (item) => item.row.totalLiquidity ?? 0, "positive")}
-          ${renderPrevisionValueRow("Resultado del mes", items, (item) => previsionMetric(item.row).result)}
-          ${renderPrevisionValueRow("Mínimo", items, (item) => previsionMetric(item.row).min)}
-          ${renderPrevisionGroup("Sin decisiones (base)", "adjusted", colspan)}
-          ${renderPrevisionValueRow("Liquidez total", items, (item) => lastBaseSimulation[item.index]?.totalLiquidity ?? 0)}
-          ${decisionComparisonRows(items).join("")}
-        </tbody>
-      </table>
-    </div>
-    <div class="planificacion-partidas-provisional">
-      <h3>Provisional</h3>
-      ${provisional.length
-        ? `<ul class="planificacion-partidas-list">${provisional
-            .map(
-              (entry) => `<li>
-          <div>
-            <strong>${escapeHtml(entry.item.name || entry.item.label || "Decisión")}</strong>
-            <span class="e19-badge">${escapeHtml(entry.tag)}</span>
-            <small>${escapeHtml(entry.sourceLabel)} · ${escapeHtml(entry.originLabel)}</small>
-          </div>
-          <div>
-            <b>${money(decisionGrossCost(entry.item), true)}</b>
-            <button type="button" data-home-nav="${entry.origin}">Ir a ${escapeHtml(entry.originLabel)}</button>
-          </div>
-        </li>`,
-            )
-            .join("")}</ul>`
-        : `<p class="empty-state compact">No hay decisiones provisionales guardadas.</p>`}
-    </div>
-    ${propuestos.length
-      ? `<div class="planificacion-partidas-propuestos">
-        <p>${propuestos.length} escenario(s) propuesto(s) esperando confirmación en Cierre. Su impacto no se refleja aquí hasta que se confirmen.
-          <button type="button" data-home-nav="cierre">Ir a Cierre</button>
-        </p>
-      </div>`
-      : ""}
+
+    <article class="e19-card analisis-cushion-card">
+      <h3 class="escenario-motor-panel-title">Colchón del horizonte visible</h3>
+      <p class="e19-kpi-note">Meses de gasto que cubre la liquidez, mes a mes.</p>
+      <div class="analisis-cushion-band">${cushion.html}</div>
+      <p class="e19-kpi-note">${cushion.worst ? `<span class="e19-badge e19-badge-danger">Peor mes · ${escapeHtml(cushion.worst.label)}</span> ${cushion.worst.monthsValue.toFixed(1)} meses de colchón.` : "Sin datos suficientes para calcular el peor mes."}</p>
+      <div class="planificacion-partidas-chart">${partidasImpactChartHtml(ghosts)}</div>
+    </article>
+
+    <article class="e19-card">
+      <h3 class="escenario-motor-panel-title">Impacto por decisión</h3>
+      <p class="e19-kpi-note">Cuánto mueve cada decisión el mínimo del horizonte si se quita (confirmadas) o si se aprobara (provisionales).</p>
+      ${planificacionPartidasRankedImpactHtml(ranked)}
+    </article>
+
+    <article class="e19-card">
+      <h3 class="escenario-motor-panel-title">Hitos</h3>
+      ${planificacionPartidasHitosHtml()}
+    </article>
+
+    ${planificacionPartidasEscenarioGhostsHtml(ghosts)}
   `;
+  renderPartidasGestionBlocks();
 }
 
 function groupPrevisionItemsByYear(items) {
@@ -31138,11 +31670,29 @@ async function init() {
   qs("addProject").addEventListener("click", handleAddProject);
   qs("saveProjectPending")?.addEventListener("click", saveProjectDecisionAsPending);
   qs("planificacionPartidasRoot")?.addEventListener("click", (event) => {
+    const sectionToggle = event.target.closest("[data-partidas-section-toggle]");
+    if (sectionToggle) { togglePartidasSection(sectionToggle.dataset.partidasSectionToggle); return; }
+    const deleteButton = event.target.closest("[data-partidas-delete]");
+    if (deleteButton) { handlePartidasDeleteRow(deleteButton.dataset.partidasDelete); return; }
+    if (event.target.closest("[data-partidas-bulk-delete]")) { handlePartidasBulkDelete(); return; }
+    if (event.target.closest("[data-partidas-discard]")) { handlePartidasDiscard(); return; }
+    if (event.target.closest("[data-partidas-save]")) { handlePartidasSave(); return; }
+    if (event.target.closest("[data-partidas-add-row]")) { handlePartidasAddRow(); return; }
     const navButton = event.target.closest("[data-home-nav]");
     const target = navButton?.dataset.homeNav;
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
     history.pushState(null, "", `#${target}`);
     setActiveView(target);
+  });
+  qs("planificacionPartidasRoot")?.addEventListener("change", (event) => {
+    const cell = event.target.closest("[data-partidas-cell]");
+    if (cell) { handlePartidasCellChange(cell); return; }
+    const label = event.target.closest("[data-partidas-label-key]");
+    if (label) { handlePartidasLabelChange(label); return; }
+    const select = event.target.closest("[data-partidas-select-row]");
+    if (select) { handlePartidasRowSelect(select.dataset.partidasSelectRow, select.checked); return; }
+    if (event.target.closest("[data-partidas-add-kind]")) { syncPartidasAddSectionOptions(); return; }
+    if (event.target.closest("[data-partidas-add-scope]")) { syncPartidasAddScopeUi(); return; }
   });
   qs("cancelProjectEdit").addEventListener("click", () => {
     clearProjectForm();

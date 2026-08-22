@@ -382,3 +382,238 @@ test("transitionDecisionLifecycle conserva el item cuando toStatus es 'pending' 
   const source = extractFunction("transitionDecisionLifecycle");
   assert.match(source, /api\.decisionAffectsPlan\(toStatus\) \|\| toStatus === "pending"/);
 });
+
+// =================================================================================================
+// Gestión de partidas dentro de "Planificación de partidas" (22 de agosto de 2026): duplica, con
+// nombres/IDs propios, la capacidad de añadir/renombrar/borrar/editar previsto que hoy solo tiene
+// `#visual-detail` — sin tocar esa pantalla ni `#plan`/`#cuadro-mandos`. Escribe en los mismos
+// diccionarios de borrador compartidos (`visualDraftLabels`, `visualDraftDeletes`,
+// `visualSelectedRows`, `customPlanningRows`) y llama a las mismas funciones de persistencia
+// (`saveVisualChanges`, `discardVisualChanges`, `stageSelectedVisualDeletes`, `cuadroMandosStageCell`,
+// `cuadroMandosImpact`) sin modificarlas.
+// =================================================================================================
+
+function partidasHandlerContext(names, extra = {}) {
+  const context = {
+    round2,
+    money: (v) => `${v} €`,
+    escapeHtml: (v) => String(v ?? ""),
+    seriesKeyForRow: (row) => `${row.kind}|${row.id}`,
+    displayLabelForRow: (row) => row.label || "Concepto",
+    visualDraftLabels: {},
+    visualDraftDeletes: {},
+    visualSelectedRows: new Set(),
+    renderPartidasGestionBlocks: () => {},
+    ...extra,
+  };
+  vm.createContext(context);
+  names.forEach((name) => vm.runInContext(extractFunction(name), context));
+  return context;
+}
+
+test("handlePartidasLabelChange crea un borrador de renombrado y lo borra si vuelve al original", () => {
+  const row = { kind: "expense", id: "trastero", label: "Trastero" };
+  const context = partidasHandlerContext(["handlePartidasLabelChange"], {
+    rowForSeriesKey: () => row,
+  });
+  context.handlePartidasLabelChange({ dataset: { partidasLabelKey: "expense|trastero" }, value: "Trastero Barbera" });
+  assert.equal(context.visualDraftLabels["expense|trastero"].value, "Trastero Barbera");
+  context.handlePartidasLabelChange({ dataset: { partidasLabelKey: "expense|trastero" }, value: "Trastero" });
+  assert.equal(context.visualDraftLabels["expense|trastero"], undefined);
+});
+
+test("handlePartidasLabelChange no hace nada si la fila no existe", () => {
+  const context = partidasHandlerContext(["handlePartidasLabelChange"], { rowForSeriesKey: () => null });
+  context.handlePartidasLabelChange({ dataset: { partidasLabelKey: "expense|no-existe" }, value: "X" });
+  assert.equal(Object.keys(context.visualDraftLabels).length, 0);
+});
+
+test("handlePartidasDeleteRow marca la fila como borrado pendiente y la desmarca de seleccionadas", () => {
+  const row = { kind: "expense", id: "coche", label: "Coche" };
+  const context = partidasHandlerContext(["handlePartidasDeleteRow"], {
+    rowForSeriesKey: () => row,
+    visualSelectedRows: new Set(["expense|coche"]),
+  });
+  context.handlePartidasDeleteRow("expense|coche");
+  assert.equal(context.visualDraftDeletes["expense|coche"].label, "Coche");
+  assert.equal(context.visualSelectedRows.has("expense|coche"), false);
+});
+
+test("handlePartidasRowSelect añade y quita del Set compartido de seleccionadas", () => {
+  const context = partidasHandlerContext(["handlePartidasRowSelect"]);
+  context.handlePartidasRowSelect("expense|coche", true);
+  assert.equal(context.visualSelectedRows.has("expense|coche"), true);
+  context.handlePartidasRowSelect("expense|coche", false);
+  assert.equal(context.visualSelectedRows.has("expense|coche"), false);
+});
+
+test("handlePartidasBulkDelete reutiliza stageSelectedVisualDeletes tal cual, sin reimplementarla", () => {
+  const source = extractFunction("handlePartidasBulkDelete");
+  assert.match(source, /stageSelectedVisualDeletes\(\)/);
+});
+
+test("handlePartidasCellChange reutiliza cuadroMandosStageCell tal cual, sin reimplementar el staging", () => {
+  const source = extractFunction("handlePartidasCellChange");
+  assert.match(source, /cuadroMandosStageCell\(/);
+  assert.doesNotMatch(source, /visualDraftCells\[/);
+});
+
+test("handlePartidasSave reutiliza saveVisualChanges tal cual", () => {
+  assert.match(extractFunction("handlePartidasSave"), /saveVisualChanges\(\);/);
+});
+
+test("handlePartidasDiscard reutiliza discardVisualChanges tal cual y repinta con render()", () => {
+  const source = extractFunction("handlePartidasDiscard");
+  assert.match(source, /discardVisualChanges\(\);/);
+  assert.match(source, /render\(\);/);
+});
+
+test("renderPartidasImpactBar reutiliza cuadroMandosImpact tal cual, sin recalcular el impacto por su cuenta", () => {
+  const source = extractFunction("renderPartidasImpactBar");
+  assert.match(source, /cuadroMandosImpact\(\)/);
+  assert.doesNotMatch(source, /computeCanonicalScenario/);
+});
+
+test("renderPartidasSavePanel reutiliza visualPendingCounts tal cual", () => {
+  assert.match(extractFunction("renderPartidasSavePanel"), /visualPendingCounts\(\)/);
+});
+
+// --- handlePartidasAddRow (alta inmediata en customPlanningRows, mirror de handleVisualAddRow) ---
+
+function partidasAddRowContext(extra = {}) {
+  const fields = {
+    partidasAddKind: { value: "expense" },
+    partidasAddSection: { value: "Gastos fijos" },
+    partidasAddLabel: { value: "Trastero" },
+    partidasAddAmount: { value: "75" },
+    partidasAddStartMonth: { value: "2026-09" },
+    partidasAddEndMonth: { value: "2026-09" },
+    partidasAddFeedback: { textContent: "", className: "" },
+  };
+  const context = {
+    round2,
+    parseAmount: (v) => (v === "" ? null : Number(v)),
+    qs: (id) => fields[id],
+    partidasAddSingleMonthMode: () => true,
+    monthsInRange: () => [{ key: "2026-09", label: "sept 26" }],
+    customPlanningRows: [],
+    partidasGestionExpanded: new Set(),
+    expandedPlanningSections: { expense: new Set(), income: new Set() },
+    saveCustomPlanningRows: () => {},
+    render: () => {},
+    ...extra,
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("handlePartidasAddRow"), context);
+  return context;
+}
+
+test("handlePartidasAddRow añade una entrada custom por cada mes del rango, sin pasar por borradores", () => {
+  const context = partidasAddRowContext();
+  context.handlePartidasAddRow();
+  assert.equal(context.customPlanningRows.length, 1);
+  assert.equal(context.customPlanningRows[0].custom, true);
+  assert.equal(context.customPlanningRows[0].label, "Trastero");
+  assert.equal(context.customPlanningRows[0].plannedValue, 75);
+  assert.equal(context.customPlanningRows[0].monthKey, "2026-09");
+});
+
+test("handlePartidasAddRow no añade nada si falta el concepto", () => {
+  const fields = {
+    partidasAddKind: { value: "expense" },
+    partidasAddSection: { value: "Gastos fijos" },
+    partidasAddLabel: { value: "   ", focus: () => {} },
+    partidasAddAmount: { value: "75" },
+    partidasAddStartMonth: { value: "2026-09" },
+    partidasAddEndMonth: { value: "2026-09" },
+    partidasAddFeedback: { textContent: "", className: "" },
+  };
+  const context = partidasAddRowContext({ qs: (id) => fields[id] });
+  context.handlePartidasAddRow();
+  assert.equal(context.customPlanningRows.length, 0);
+});
+
+// --- Hitos narrativos: cushion milestone / próximo mes bajo reserva ------------------------------
+
+function hitosContext(lastSimulation) {
+  const context = { round2, lastSimulation };
+  vm.createContext(context);
+  [extractFunction("planificacionPartidasCushionMilestone"), extractFunction("planificacionPartidasNextBelowReserve")].forEach((source) =>
+    vm.runInContext(source, context),
+  );
+  return context;
+}
+
+test("planificacionPartidasCushionMilestone dice que ya se cumple si nunca cae bajo el suelo", () => {
+  const context = hitosContext([{ totalLiquidity: 5000 }, { totalLiquidity: 6000 }]);
+  const result = context.planificacionPartidasCushionMilestone({ value: 2000 });
+  assert.equal(result.achieved, true);
+  assert.equal(result.alreadyMet, true);
+});
+
+test("planificacionPartidasCushionMilestone marca el primer mes tras la última caída bajo el suelo", () => {
+  const context = hitosContext([
+    { totalLiquidity: 500, month: "ago 26" },
+    { totalLiquidity: 1500, month: "sept 26" },
+    { totalLiquidity: 3000, month: "oct 26" },
+  ]);
+  const result = context.planificacionPartidasCushionMilestone({ value: 2000 });
+  assert.equal(result.achieved, true);
+  assert.equal(result.alreadyMet, false);
+  assert.equal(result.month.month, "oct 26");
+});
+
+test("planificacionPartidasCushionMilestone dice que no se cumple si el horizonte acaba por debajo", () => {
+  const context = hitosContext([{ totalLiquidity: 3000 }, { totalLiquidity: 500 }]);
+  const result = context.planificacionPartidasCushionMilestone({ value: 2000 });
+  assert.equal(result.achieved, false);
+  assert.equal(result.month, null);
+});
+
+test("planificacionPartidasNextBelowReserve devuelve el primer mes que cae bajo el suelo", () => {
+  const context = hitosContext([
+    { totalLiquidity: 3000, month: "ago 26" },
+    { totalLiquidity: 500, month: "sept 26" },
+    { totalLiquidity: 100, month: "oct 26" },
+  ]);
+  const result = context.planificacionPartidasNextBelowReserve({ value: 2000 });
+  assert.equal(result.month, "sept 26");
+});
+
+test("planificacionPartidasNextBelowReserve devuelve null si ningún mes cae bajo el suelo", () => {
+  const context = hitosContext([{ totalLiquidity: 3000 }, { totalLiquidity: 4000 }]);
+  assert.equal(context.planificacionPartidasNextBelowReserve({ value: 2000 }), null);
+});
+
+// --- Reutilización del motor existente en los bloques analíticos (sin reimplementar) -------------
+
+test("partidasCushionBand reutiliza analisisCushionBand/analisisCushionBandHtml/analisisCushionWorst de Análisis tal cual", () => {
+  const source = extractFunction("partidasCushionBand");
+  assert.match(source, /analisisCushionBand\(/);
+  assert.match(source, /analisisCushionWorst\(/);
+  assert.match(source, /analisisCushionBandHtml\(/);
+});
+
+test("planificacionPartidasRowsWithOverride restaura debtLiquidations/projects en el finally, como cuadroMandosRowsWith con seriesOverrides", () => {
+  const source = extractFunction("planificacionPartidasRowsWithOverride");
+  assert.match(source, /finally\s*\{[\s\S]*debtLiquidations = backupDebt;[\s\S]*projects = backupProjects;[\s\S]*\}/);
+  assert.match(source, /buildProjectSchedule\(\)/);
+  assert.match(source, /computeCanonicalScenario\(/);
+});
+
+test("planificacionPartidasEscenarioGhosts reutiliza el mismo trío que las tarjetas de Escenarios guardados", () => {
+  const source = extractFunction("planificacionPartidasEscenarioGhosts");
+  assert.match(source, /escenarioMotorBaseInput\(\)/);
+  assert.match(source, /runEscenarioMotor\(/);
+  assert.match(source, /escenarioMotorSummaryFor\(/);
+});
+
+test("renderPlanificacionPartidas cablea el bloque de gestión y los cuatro bloques analíticos elegidos", () => {
+  const source = extractFunction("renderPlanificacionPartidas");
+  assert.match(source, /partidasCushionBand\(/);
+  assert.match(source, /partidasImpactChartHtml\(/);
+  assert.match(source, /planificacionPartidasRankedImpact\(\)/);
+  assert.match(source, /planificacionPartidasHitosHtml\(\)/);
+  assert.match(source, /planificacionPartidasEscenarioGhosts\(\)/);
+  assert.match(source, /renderPartidasGestionBlocks\(\);/);
+});
