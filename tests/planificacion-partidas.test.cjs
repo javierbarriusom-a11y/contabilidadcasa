@@ -608,15 +608,17 @@ test("planificacionPartidasEscenarioGhosts reutiliza el mismo trío que las tarj
   assert.match(source, /escenarioMotorSummaryFor\(/);
 });
 
-test("renderPlanificacionPartidas cablea el resumen, el ajuste rápido y los cuatro bloques analíticos elegidos", () => {
+test("renderPlanificacionPartidas cablea el resumen, el simulador, el ajuste rápido y los cuatro bloques analíticos elegidos", () => {
   const source = extractFunction("renderPlanificacionPartidas");
   assert.match(source, /partidasSummaryCardHtml\(\)/);
+  assert.match(source, /partidasSimuladorCardHtml\(\)/);
   assert.match(source, /partidasCushionBand\(/);
   assert.match(source, /partidasImpactChartHtml\(/);
   assert.match(source, /planificacionPartidasRankedImpact\(\)/);
   assert.match(source, /planificacionPartidasEscenarioGhosts\(\)/);
   assert.match(source, /renderPartidasGestionBlocks\(\);/);
   assert.match(source, /syncPartidasEditScopeUi\(\);/);
+  assert.match(source, /syncPartidasSimModoUi\(\);/);
 });
 
 test("partidasSummaryCardHtml (resumen del plan, al inicio) incluye las tres cifras y los hitos", () => {
