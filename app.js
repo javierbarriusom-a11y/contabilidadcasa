@@ -10846,10 +10846,35 @@ function togglePartidasSection(key) {
   renderPartidasGestionTable(visualMonths());
 }
 
+// Fila de previsualización del simulador ("¿Y si...?"): pura lectura de partidasSimPreview, sin
+// tocar visualDraftCells ni ningún estado que otras pantallas compartan — desaparece sola en
+// cuanto se limpia partidasSimPreview (Quitar, nueva simulación, o Guardar/Descartar de verdad).
+function partidasSimPreviewRowHtml(months) {
+  if (!partidasSimPreview) return "";
+  const byMonth = new Map(partidasSimPreview.monthlyDeltas.map((item) => [item.key, item.value]));
+  const cells = months
+    .map((month) => {
+      const value = byMonth.get(month.key) || 0;
+      return `<td class="planificacion-partidas-sim-preview-cell">${value ? partidasSimuladorMoneyDelta(value) : "—"}</td>`;
+    })
+    .join("");
+  return `<tr class="planificacion-partidas-sim-preview-row">
+    <td>
+      <div class="planificacion-partidas-sim-preview-heading">
+        <span class="e19-badge e19-badge-accent">Simulación</span>
+        <strong>${escapeHtml(partidasSimPreview.titulo)}</strong>
+        <small>Previsualización, no guardada</small>
+      </div>
+    </td>
+    ${cells}
+    <td><button type="button" class="row-delete-button" data-partidas-sim-clear-preview>Quitar</button></td>
+  </tr>`;
+}
+
 function renderPartidasGestionTable(months) {
   const table = qs("partidasGestionTable");
   if (!table) return;
-  const body = [];
+  const body = [partidasSimPreviewRowHtml(months)];
   baseData.monthlyPlanning.sections.forEach((section) => {
     const rows = visualRowsForSection(section, months);
     if (!rows.length) return;
@@ -11001,11 +11026,13 @@ function handlePartidasBulkDelete() {
 
 function handlePartidasSave() {
   saveVisualChanges();
+  partidasSimPreview = null;
   announceStatus("Cambios de planificación guardados.");
 }
 
 function handlePartidasDiscard() {
   discardVisualChanges();
+  partidasSimPreview = null;
   announceStatus("Cambios descartados. Los importes vuelven a los guardados.");
   render();
 }
@@ -11380,6 +11407,11 @@ function planificacionPartidasEscenarioGhostsHtml(ghosts) {
 // del dibujado genérico: la fecha aquí no es un campo más, es el propio eje de la búsqueda.
 let partidasSimTipo = "compra";
 let partidasSimValues = {};
+// Previsualización en la tabla de gestión: { titulo, monthlyDeltas } de la última decisión
+// simulada, o null. Puro estado de render — no toca visualDraftCells/customPlanningRows/projects,
+// así que no afecta a ninguna otra pantalla ni sobrevive a "no guardar nada" (se limpia al Guardar/
+// Descartar de verdad, o al pulsar "Quitar").
+let partidasSimPreview = null;
 
 function partidasSimuladorType() {
   return ESCENARIO_MOTOR_TYPES.find((entry) => entry.id === partidasSimTipo) || ESCENARIO_MOTOR_TYPES.find((entry) => entry.id === "compra");
@@ -11518,17 +11550,37 @@ function partidasSimuladorEvaluate() {
     const month = monthByKey(monthKey, selectableMonths());
     const deltaMinimo = summary.minimoLiquidez !== null && baseline.minimoLiquidez !== null ? round2(summary.minimoLiquidez - baseline.minimoLiquidez) : null;
     const deltaFinal = summary.liquidezFinal !== null && baseline.liquidezFinal !== null ? round2(summary.liquidezFinal - baseline.liquidezFinal) : null;
-    return { modo, month, summary, baseline, deltaMinimo, deltaFinal, errors: [] };
+    return { modo, month, summary, baseline, deltaMinimo, deltaFinal, errors: [], decision: built.decision, baseInput };
   }
   const months = monthsInRange(qs("partidasSimRangeStart")?.value || "", qs("partidasSimRangeEnd")?.value || "", selectableMonths());
   if (!months.length) return { modo, errors: ["Selecciona un rango de meses válido."] };
   const scan = partidasSimuladorScanMonths(months, baseInput, baseline);
-  return { modo, scan, baseline, errors: [] };
+  return { modo, scan, baseline, errors: [], baseInput };
 }
 
 function partidasSimuladorMoneyDelta(value) {
   if (value === null || value === undefined) return "—";
   return `<span class="${value >= 0 ? "is-up" : "is-down"}">${value >= 0 ? "+" : ""}${money(value, true)}</span>`;
+}
+
+// Efecto de caja mes a mes de una decisión, aislado del resto del plan: la diferencia entre la
+// serie con la decisión y la serie base, mes a mes (no acumulada) — runEscenarioMotor solo expone
+// liquidez acumulada, así que el efecto de un mes concreto es su delta acumulado menos el del mes
+// anterior. Alineado por clave de mes (no por índice de columna), así que funciona igual empiece la
+// decisión en el mes que sea, no solo en el mes actual.
+function partidasSimuladorMonthlyDeltas(decision, baseInput) {
+  const baselineResult = runEscenarioMotor(baseInput, [], null);
+  const decisionResult = runEscenarioMotor(baseInput, decision ? [decision] : [], null);
+  if (!baselineResult?.valid || !decisionResult?.valid) return [];
+  const baselineSeries = baselineResult.series || [];
+  const decisionSeries = decisionResult.series || [];
+  let previousCumulative = 0;
+  return (baseInput.months || []).map((month, index) => {
+    const cumulative = round2((decisionSeries[index]?.totalLiquidity ?? 0) - (baselineSeries[index]?.totalLiquidity ?? 0));
+    const monthly = round2(cumulative - previousCumulative);
+    previousCumulative = cumulative;
+    return { key: month.monthKey, value: monthly };
+  });
 }
 
 function partidasSimuladorResultHtml(evaluation) {
@@ -11555,7 +11607,8 @@ function partidasSimuladorResultHtml(evaluation) {
           <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toFixed(1) : "—"}</strong>
         </div>
       </div>
-      <p class="e19-kpi-note">Simulado en ${escapeHtml(month?.label || "—")}, sin guardar nada. Para llevarlo al plan real, créalo en "Escenario · simular".</p>
+      <p class="e19-kpi-note">Simulado en ${escapeHtml(month?.label || "—")}, sin guardar nada — los importes ya se ven en la tabla de abajo, fila "Simulación". Para llevarlo al plan real, créalo en "Escenario · simular".</p>
+      <button type="button" class="ghost-button" data-partidas-sim-clear-preview>Quitar de la tabla</button>
     </div>`;
   }
   const { scan } = evaluation;
@@ -11575,13 +11628,26 @@ function partidasSimuladorResultHtml(evaluation) {
   return `<div class="planificacion-partidas-simulador-result">
     <p class="e19-kpi-note"><span class="e19-badge e19-badge-success">Mejor mes · ${escapeHtml(scan.best.month.label)}</span> deja ${money(scan.best.summary.minimoLiquidez, true)} de mínimo en el horizonte (${partidasSimuladorMoneyDelta(scan.best.deltaMinimo)} vs. sin esta decisión).</p>
     <ul class="planificacion-partidas-simulador-ranking">${rows}</ul>
+    <p class="e19-kpi-note">Sin guardar nada — el mejor mes ya se ve en la tabla de abajo, fila "Simulación". Para llevarlo al plan real, créalo en "Escenario · simular".</p>
+    <button type="button" class="ghost-button" data-partidas-sim-clear-preview>Quitar de la tabla</button>
   </div>`;
 }
 
 function handlePartidasSimular() {
   const resultEl = qs("partidasSimResult");
   if (!resultEl) return;
-  resultEl.innerHTML = partidasSimuladorResultHtml(partidasSimuladorEvaluate());
+  const evaluation = partidasSimuladorEvaluate();
+  resultEl.innerHTML = partidasSimuladorResultHtml(evaluation);
+  const decision = evaluation.modo === "manual" ? evaluation.decision : evaluation.scan?.best?.decision;
+  partidasSimPreview = decision && evaluation.baseInput
+    ? { titulo: decision.titulo, monthlyDeltas: partidasSimuladorMonthlyDeltas(decision, evaluation.baseInput) }
+    : null;
+  renderPartidasGestionTable(visualMonths());
+}
+
+function handlePartidasSimClearPreview() {
+  partidasSimPreview = null;
+  renderPartidasGestionTable(visualMonths());
 }
 
 function partidasSimuladorCardHtml() {
@@ -32251,6 +32317,7 @@ async function init() {
     if (event.target.closest("[data-partidas-add-row]")) { handlePartidasAddRow(); return; }
     if (event.target.closest("[data-partidas-edit-stage]")) { handlePartidasBulkEdit(); return; }
     if (event.target.closest("[data-partidas-sim-run]")) { handlePartidasSimular(); return; }
+    if (event.target.closest("[data-partidas-sim-clear-preview]")) { handlePartidasSimClearPreview(); return; }
     const navButton = event.target.closest("[data-home-nav]");
     const target = navButton?.dataset.homeNav;
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;

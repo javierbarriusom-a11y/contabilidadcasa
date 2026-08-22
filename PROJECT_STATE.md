@@ -2,6 +2,52 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (4): la previsualización del simulador se ve en la tabla de gestión
+
+Continuación directa del cierre anterior del mismo día (PR #107 ya fusionado). Tras probar el
+simulador, el usuario pidió dos cosas concretas: que los importes simulados se incorporen a la
+tabla para ver el impacto de un vistazo, dejando claro que es una simulación previa que «no se
+incorporaría de manera definitiva hasta que lo haga en la pantalla de escenarios tal y como está» —
+y que se pudiera simular a partir de cualquier mes, no solo el actual.
+
+**Construido**:
+- `partidasSimuladorMonthlyDeltas(decision, baseInput)`: aísla el efecto de caja mes a mes de una
+  decisión — `runEscenarioMotor` solo expone liquidez acumulada, así que el efecto de un mes
+  concreto es su delta acumulado (decisión menos base) menos el del mes anterior. Alineado por
+  **clave de mes**, no por posición de columna, así que funciona igual empiece la decisión en el
+  mes que sea (verificado con una decisión que arranca a mitad del horizonte, no en el primero).
+- Fila de previsualización en `#partidasGestionTable` (`partidasSimPreviewRowHtml`, cableada en
+  `renderPartidasGestionTable`): lee `partidasSimPreview` (estado de render puro, nuevo — nunca
+  toca `visualDraftCells`/`customPlanningRows`/`projects`, así que no afecta a ninguna otra
+  pantalla ni queda pendiente de guardar) y pinta el importe de esa decisión en la columna real de
+  cada mes visible, con badge «Simulación» y borde discontinuo para distinguirla de una partida
+  real. `handlePartidasSimular` la rellena con la decisión simulada (la elegida en modo manual, o
+  la mejor encontrada en modo «buscar mejor mes»); un botón «Quitar de la tabla»
+  (`handlePartidasSimClearPreview`) la limpia, y también se limpia sola al Guardar o Descartar de
+  verdad, para que nunca quede una previsualización obsoleta pintada.
+- Nada de esto persiste ni se aplica: para llevar la decisión al plan real sigue haciendo falta
+  crearla en «Escenario · simular», exactamente como pidió el usuario.
+
+**Pruebas nuevas**: 8 pruebas añadidas a `tests/o1b-simulador-decision.test.cjs` (ahora 28 en
+total) — `partidasSimuladorMonthlyDeltas` con una decisión que arranca a mitad del horizonte (no en
+el mes actual) y con el motor rechazando la simulación; `partidasSimPreviewRowHtml` sin
+previsualización activa y alineando importes por mes elegido, no por la primera columna;
+reutilización por regex de `renderPartidasGestionTable`/`handlePartidasSimular`/
+`handlePartidasSimClearPreview`/`handlePartidasSave`/`handlePartidasDiscard`.
+
+**Validación** (`npm run verify`, exit 0): **1587/1587 pruebas** (1579 + 8 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 36,2 ms; forecast y escenarios en 188,8 ms;
+recursos 1812 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright:
+crédito de 15.000 €/315 €/72 meses
+simulado a nombre de Tere empezando en diciembre de 2026 (no el mes actual) → la fila de
+previsualización muestra guiones en jul-nov 26, `+15.000,00 €` exactamente en la columna «dic 26» y
+`-315,00 €` en cada mes posterior hasta agotar el plazo; «Quitar de la tabla» la elimina al
+instante. Cero cambios a `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/
+`#mapa-calor`.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
+
 ## Cierre de sesión — 22 de agosto de 2026 (3): simulador de decisión («¿y si...?») en Planificación de partidas
 
 Continuación directa del cierre anterior del mismo día (PR #106 ya fusionado). Tras ver la pantalla
@@ -60,8 +106,7 @@ Tere en modo «buscar mejor mes» → identifica correctamente ago 26 como mejor
 mínimo) frente a +0 € en el resto del rango, con la fila ganadora resaltada en verde. Cero cambios a
 `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/`#mapa-calor`.
 
-**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
-`CLAUDE.md` (verificar CI en verde antes de fusionar).
+**Publicado**: PR #107 fusionado a `main` (commit `0039846`), CI en verde antes de fusionar.
 
 ## Cierre de sesión — 22 de agosto de 2026 (2): ajuste rápido por rango, gráfico con hover y resumen al inicio en tarjeta oscura
 
