@@ -2,6 +2,49 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (2): ajuste rápido por rango, gráfico con hover y resumen al inicio en tarjeta oscura
+
+Continuación directa del cierre anterior del mismo día. Tras probar la pantalla, el usuario pidió
+tres retoques concretos: en «Cuadro de mandos (heredado)» también se puede modificar el importe de
+una partida en un mes concreto o en un rango, no solo celda a celda (mi primera vuelta no traía esa
+pieza); los gráficos debían mejorarse; y las conclusiones/KPIs debían ir al principio de la pantalla
+con el formato de tarjeta oscura que ya usa «Oferta en curso» (Deuda · Ruta), no como badges sueltos.
+
+**Construido, de nuevo sin tocar `#visual-detail`/`#plan`/`#cuadro-mandos`**:
+- **Ajuste rápido** (`handlePartidasBulkEdit`, mirror de `stageVisualBulkEdit`): modificar el
+  previsto de una partida en un mes, un rango, varios meses concretos o todo el rango visible, o
+  borrar la línea entera — reutilizando `cuadroMandosStageCell` por cada mes del alcance, sin
+  reimplementar el staging.
+- **Resumen del plan**, tarjeta oscura al inicio de la sección (`partidasSummaryCardHtml`): mismo
+  componente visual que `.deuda-ruta-offer-card.is-active` de Deuda · Ruta
+  (`.asesor-decision-stats` para las tres cifras grandes, `.deuda-ruta-checklist`/`.deuda-ruta-check`
+  para los hitos como píldoras de color) pero en su propia clase CSS
+  (`.planificacion-partidas-summary`) para no acoplar la pantalla a `.e19-deuda-decidir`/
+  `.e19-asesor-decision`. Los hitos narrativos, antes en su propia tarjeta con badges, se movieron
+  aquí dentro.
+- **Gráfico mejorado**: eje de meses, puntos finales marcados por serie, y un crosshair + tooltip
+  al pasar el ratón que lee el valor de cada trazo (sin decisiones/confirmado/ediciones sin
+  guardar/escenarios propuestos) en el mes señalado — antes solo había leyenda al pie. Se cargó la
+  skill `dataviz` para aplicar sus criterios (marcas finas de extremo redondeado, leyenda siempre
+  presente, capa de hover por defecto en gráficos de línea) sin adoptar su paleta genérica, ya que
+  la app tiene la suya propia (tokens `--e19-*`).
+
+**Pruebas nuevas**: 7 pruebas añadidas a `tests/planificacion-partidas.test.cjs` (ahora 54 en total)
+— `handlePartidasBulkEdit` en sus tres ramas (importe por rango, borrado, sin partida seleccionada),
+reutilización confirmada por regex de `cuadroMandosStageCell`/`cuadroMandosImpact`, y el cableado
+del resumen/ajuste rápido en `renderPlanificacionPartidas`.
+
+**Validación** (`npm run verify`, exit 0): **1559/1559 pruebas** (1552 + 7 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 44,0 ms; forecast y escenarios en 263,4 ms;
+recursos 1794 KB), build del sitio, privacidad y smoke test en verde. Verificación manual con
+Playwright: tarjeta de resumen con las tres cifras y tres hitos en color visibles al cargar;
+«Ajuste rápido» con alcance «Rango» aplica el importe al mes elegido y activa la barra de impacto;
+al pasar el ratón por el gráfico aparecen el crosshair y el tooltip con el valor de cada trazo en
+ese mes.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
+
 ## Cierre de sesión — 22 de agosto de 2026: «Planificación de partidas» pasa a ser pantalla de gestión, no solo de lectura
 
 Continuación directa del cierre anterior. El usuario probó «Planificación de partidas» (21 de

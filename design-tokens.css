@@ -5210,6 +5210,163 @@
   gap: 8px;
 }
 
+/* Resumen del plan: mismo look que la tarjeta "Oferta en curso" de Deuda · Ruta
+   (`.deuda-ruta-offer-card.is-active`), pero siempre activa y en su propia clase para no acoplar
+   esta pantalla a `.e19-deuda-decidir`/`.e19-asesor-decision`. */
+.e19-planificacion-partidas .planificacion-partidas-summary {
+  background: var(--e19-accent-strong);
+  border-color: transparent;
+  color: #fff;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .deuda-ruta-offer-eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font: 700 var(--e19-text-xs) / 1 var(--e19-font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, #fff 65%, transparent);
+  margin-bottom: 6px;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary h3 {
+  color: #fff;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .asesor-decision-subtitle,
+.e19-planificacion-partidas .planificacion-partidas-summary .panel-kicker {
+  color: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .asesor-decision-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .asesor-decision-stat {
+  padding: 12px;
+  border-radius: var(--e19-radius-md);
+  background: color-mix(in srgb, #fff 12%, transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .asesor-decision-stat span {
+  font-size: var(--e19-text-xs);
+  color: color-mix(in srgb, #fff 70%, transparent);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .asesor-decision-stat strong {
+  font-size: var(--e19-text-lg);
+  color: #fff;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .deuda-ruta-checklist {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .deuda-ruta-check {
+  padding: 8px 12px;
+  border-radius: var(--e19-radius-pill);
+  font-size: var(--e19-text-sm);
+  background: color-mix(in srgb, #fff 10%, transparent);
+  color: color-mix(in srgb, #fff 80%, transparent);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .deuda-ruta-check.is-ok {
+  background: color-mix(in srgb, var(--e19-success) 30%, transparent);
+  color: #d6f5e3;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .deuda-ruta-check.is-danger {
+  background: color-mix(in srgb, var(--e19-danger) 35%, transparent);
+  color: #ffd9d9;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-summary .deuda-ruta-check.is-neutral {
+  background: color-mix(in srgb, #fff 10%, transparent);
+  color: color-mix(in srgb, #fff 80%, transparent);
+}
+
+/* Gráfico mejorado: eje de meses, puntos finales, crosshair y tooltip al pasar el ratón — solo
+   reglas nuevas; los trazos base (`.cambios-chart-before`/`.cambios-chart-after`/
+   `.cambios-chart-reserve`/`.cambios-chart-legend`) siguen viniendo de las ya definidas para
+   `#cuadro-mandos`, heredadas porque la sección carga también `e19-cuadro-mandos`. */
+.e19-planificacion-partidas .planificacion-partidas-chart-wrap {
+  position: relative;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-chart-wrap svg {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.e19-planificacion-partidas .cambios-chart-before,
+.e19-planificacion-partidas .cambios-chart-after {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.e19-planificacion-partidas .partidas-chart-axis-label {
+  font-size: 10px;
+  fill: var(--e19-muted);
+}
+
+.e19-planificacion-partidas .partidas-chart-crosshair {
+  stroke: var(--e19-muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+  opacity: 0.7;
+}
+
+.e19-planificacion-partidas .partidas-chart-dot-before { fill: var(--e19-faint); }
+.e19-planificacion-partidas .partidas-chart-dot-after { fill: var(--e19-danger); }
+.e19-planificacion-partidas .partidas-chart-dot-draft { fill: var(--e19-accent); }
+.e19-planificacion-partidas .partidas-chart-dot-ghost { fill: var(--e19-debt); }
+
+.e19-planificacion-partidas .partidas-chart-tooltip {
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+  min-width: 140px;
+  padding: 8px 10px;
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-accent-strong);
+  color: #fff;
+  font-size: var(--e19-text-xs);
+  pointer-events: none;
+  box-shadow: var(--e19-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.18));
+  z-index: 2;
+}
+
+.e19-planificacion-partidas .partidas-chart-tooltip-month {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--e19-text-sm);
+}
+
+.e19-planificacion-partidas .partidas-chart-tooltip div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: color-mix(in srgb, #fff 80%, transparent);
+}
+
+.e19-planificacion-partidas .partidas-chart-tooltip strong {
+  color: #fff;
+}
+
 /* --- 3c · mapa de calor --- */
 
 .e19-cuadro-mandos .mapa-calor-card {

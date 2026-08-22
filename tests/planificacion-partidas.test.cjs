@@ -608,12 +608,106 @@ test("planificacionPartidasEscenarioGhosts reutiliza el mismo trío que las tarj
   assert.match(source, /escenarioMotorSummaryFor\(/);
 });
 
-test("renderPlanificacionPartidas cablea el bloque de gestión y los cuatro bloques analíticos elegidos", () => {
+test("renderPlanificacionPartidas cablea el resumen, el ajuste rápido y los cuatro bloques analíticos elegidos", () => {
   const source = extractFunction("renderPlanificacionPartidas");
+  assert.match(source, /partidasSummaryCardHtml\(\)/);
   assert.match(source, /partidasCushionBand\(/);
   assert.match(source, /partidasImpactChartHtml\(/);
   assert.match(source, /planificacionPartidasRankedImpact\(\)/);
-  assert.match(source, /planificacionPartidasHitosHtml\(\)/);
   assert.match(source, /planificacionPartidasEscenarioGhosts\(\)/);
   assert.match(source, /renderPartidasGestionBlocks\(\);/);
+  assert.match(source, /syncPartidasEditScopeUi\(\);/);
+});
+
+test("partidasSummaryCardHtml (resumen del plan, al inicio) incluye las tres cifras y los hitos", () => {
+  const source = extractFunction("partidasSummaryCardHtml");
+  assert.match(source, /asesor-decision-stats/);
+  assert.match(source, /planificacionPartidasHitosHtml\(\)/);
+});
+
+// --- Ajuste rápido: modificar importe en un mes/rango/varios meses concretos, o borrar la fila ---
+
+test("handlePartidasBulkEdit reutiliza cuadroMandosStageCell para cada mes del alcance, sin reimplementar el staging", () => {
+  const source = extractFunction("handlePartidasBulkEdit");
+  assert.match(source, /cuadroMandosStageCell\(rowKey, month\.key, value\)/);
+  assert.doesNotMatch(source, /visualDraftCells\[key\] = \{/);
+});
+
+// `handlePartidasBulkEdit` es la única función bajo prueba aquí: `selectedPartidasEditRow` y
+// `partidasBulkEditTargetMonths` se mockean directamente (igual que ya hace `partidasHandlerContext`
+// con otros handlers de esta pantalla) en vez de extraerlas también, para no depender de selects
+// reales de mes.
+function partidasBulkEditContext(extra = {}) {
+  const context = {
+    round2,
+    parseAmount: (v) => (v === "" ? null : Number(v)),
+    displayLabelForRow: (row) => row.label || "Concepto",
+    visualDraftCells: {},
+    visualDraftDeletes: {},
+    visualSelectedRows: new Set(),
+    partidasGestionExpanded: new Set(),
+    renderPartidasGestionBlocks: () => {},
+    selectedPartidasEditRow: () => null,
+    partidasBulkEditTargetMonths: () => [],
+    ...extra,
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("handlePartidasBulkEdit"), context);
+  return context;
+}
+
+test("handlePartidasBulkEdit (acción: modificar importe) marca un borrador por cada mes del rango elegido", () => {
+  const row = { kind: "expense", id: "trastero" };
+  const staged = [];
+  const fields = { partidasEditAction: { value: "amount" }, partidasEditAmount: { value: "80" }, partidasBulkEditFeedback: { textContent: "", className: "" } };
+  const context = partidasBulkEditContext({
+    qs: (id) => fields[id],
+    seriesKeyForRow: () => "expense|trastero",
+    selectedPartidasEditRow: () => row,
+    partidasBulkEditTargetMonths: () => [{ key: "2026-09", label: "sept 26" }, { key: "2026-10", label: "oct 26" }],
+    cuadroMandosStageCell: (rowKey, monthKey, value) => staged.push({ rowKey, monthKey, value }),
+  });
+  context.handlePartidasBulkEdit();
+  assert.equal(staged.length, 2);
+  assert.deepEqual(staged.map((item) => item.monthKey), ["2026-09", "2026-10"]);
+  assert.equal(staged[0].value, 80);
+});
+
+test("handlePartidasBulkEdit (acción: borrar línea) marca el borrado y limpia los borradores de importe de esa fila", () => {
+  const row = { kind: "expense", id: "trastero" };
+  const fields = { partidasEditAction: { value: "delete" }, partidasEditAmount: { value: "" }, partidasBulkEditFeedback: { textContent: "", className: "" } };
+  const context = partidasBulkEditContext({
+    qs: (id) => fields[id],
+    seriesKeyForRow: () => "expense|trastero",
+    selectedPartidasEditRow: () => row,
+    displayLabelForRow: () => "Trastero",
+    visualDraftCells: { "expense|trastero|2026-09|planned": { rowKey: "expense|trastero" }, "expense|coche|2026-09|planned": { rowKey: "expense|coche" } },
+    visualSelectedRows: new Set(["expense|trastero"]),
+  });
+  context.handlePartidasBulkEdit();
+  assert.equal(context.visualDraftDeletes["expense|trastero"].label, "Trastero");
+  assert.equal(context.visualSelectedRows.has("expense|trastero"), false);
+  assert.equal(Object.keys(context.visualDraftCells).length, 1);
+  assert.ok(context.visualDraftCells["expense|coche|2026-09|planned"]);
+});
+
+test("handlePartidasBulkEdit no hace nada si no hay partida seleccionada", () => {
+  const fields = { partidasEditAction: { value: "amount" }, partidasEditAmount: { value: "80" }, partidasBulkEditFeedback: { textContent: "", className: "" } };
+  const context = partidasBulkEditContext({ qs: (id) => fields[id] });
+  context.handlePartidasBulkEdit();
+  assert.equal(fields.partidasBulkEditFeedback.textContent, "Selecciona una partida para modificar.");
+});
+
+// --- Gráfico: crosshair + tooltip por mes, sin reimplementar el motor de impacto -----------------
+
+test("partidasImpactChartHtml reutiliza cuadroMandosImpact para el trazo de ediciones sin guardar", () => {
+  const source = extractFunction("partidasImpactChartHtml");
+  assert.match(source, /cuadroMandosImpact\(\)/);
+  assert.match(source, /data-partidas-chart-points/);
+});
+
+test("handlePartidasChartHover no revienta si el punto no está dentro de la envolvente del gráfico", () => {
+  const source = extractFunction("handlePartidasChartHover");
+  assert.match(source, /closest\(".planificacion-partidas-chart-wrap"\)/);
+  assert.match(source, /hidePartidasChartTooltip\(\);/);
 });
