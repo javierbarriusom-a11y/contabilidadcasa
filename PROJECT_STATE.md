@@ -2,6 +2,41 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (6): "Disponible para traspaso" en bloque aparte
+
+Continuación directa del cierre anterior del mismo día (PR #108 ya fusionado). El usuario pidió que
+los cuatro «Disponible para traspaso» de la pantalla heredada («Cuadro de mandos (heredado)») se
+sumaran también aquí, pero en un bloque visualmente diferenciado, justo tras el Resultado — no
+mezclados con las otras filas de totales.
+
+**Construido**: las mismas cuatro fórmulas que `renderVisualDetailTable`
+(`partidasAvailableForTransferByMonth`, `partidasNextMonthPlannedExpenses`,
+`partidasTereSalaryByMonth`), reescritas sobre datos ya globales —
+`lastSimulation`/`accountBalancesFromState`/`agentCaixaFloor` — sin tocar `#visual-detail` para
+nada. El mes siguiente (para la variante «prudente») se lee de `lastSimulation` completo, no solo
+del rango visible de la tabla, igual que hace la pantalla heredada. El bloque
+(`partidasTransferRowsHtml`) lleva su propia fila de cabecera y reutiliza las clases CSS ya
+existentes (`transfer-section`/`transfer-adjusted-section`/`transfer-prudent-section`/
+`transfer-prudent-adjusted-section`, tonos azules en `styles.css`, cero CSS nuevo) para quedar
+visualmente aparte del resto.
+
+**Pruebas nuevas**: 5 pruebas añadidas a `tests/o1b-simulador-decision.test.cjs` (ahora 39 en
+total) — la fórmula de disponible para traspaso (con y sin datos de simulación para ese mes, sin
+bajar de 0), el mes siguiente leído fuera del rango visible, el filtro de nómina de Tere, y
+cableado por regex del bloque completo en `renderPartidasGestionTable`.
+
+**Validación** (`npm run verify`, exit 0): **1598/1598 pruebas** (1593 + 5 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 43,7 ms; forecast y escenarios en 199,6 ms;
+recursos 1820 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright
+comparando ambas pantallas con los mismos datos: las cuatro cifras de julio a diciembre de 2026
+coinciden exactamente entre «Cuadro de mandos (heredado)» y «Planificación de partidas»
+(4.440,00 € / 4.440,00 € / 3.910,00 € / 3.380,00 € / 2.850,00 € / 4.900,00 €); el bloque aparece
+con su cabecera propia justo después de «Resultado» / «Resultado con la simulación», en tonos
+azules diferenciados del resto de totales.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
+
 ## Cierre de sesión — 22 de agosto de 2026 (5): totales estilo legacy y lista corta en "buscar mejor mes"
 
 Continuación directa del cierre anterior del mismo día (PR #108 en curso, sobre la misma rama). El
@@ -43,8 +78,8 @@ elementos de lista larga, resultado compacto igual que el modo manual; tabla con
 de resultado base cada mes, 15.270 € en el mes de la inyección del crédito (270 + 15.000) y -45 € en
 los meses siguientes (270 - 315 de cuota), exactamente lo esperado.
 
-**Publicado**: pendiente de commit/push en esta misma rama (PR #108), según la autorización
-permanente de `CLAUDE.md` (verificar CI en verde antes de fusionar).
+**Publicado**: PR #108 fusionado a `main` (commit `46e52e9`, tras rebase sobre `main` para
+resolver el conflicto de squash-merges consecutivos en la misma rama — ver cierre siguiente).
 
 ## Cierre de sesión — 22 de agosto de 2026 (4): la previsualización del simulador se ve en la tabla de gestión
 
@@ -89,8 +124,7 @@ previsualización muestra guiones en jul-nov 26, `+15.000,00 €` exactamente en
 instante. Cero cambios a `#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/
 `#mapa-calor`.
 
-**Publicado**: PR #108 abierto sobre esta misma rama (ampliado en el cierre siguiente antes de
-fusionar).
+**Publicado**: PR #108 fusionado a `main` (commit `46e52e9`).
 
 ## Cierre de sesión — 22 de agosto de 2026 (3): simulador de decisión («¿y si...?») en Planificación de partidas
 

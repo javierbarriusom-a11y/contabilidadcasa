@@ -10916,6 +10916,67 @@ function partidasResultConSimulacionRowHtml(months, resultValues) {
   </tr>`;
 }
 
+// --- "Disponible para traspaso" heredado, en bloque aparte tras el Resultado --------------------
+// Mismas cuatro fórmulas que renderVisualDetailTable en "Cuadro de mandos (heredado)", reescritas
+// sobre datos ya disponibles aquí (lastSimulation, accountBalancesFromState/agentCaixaFloor
+// globales, los propios Total ingresos/gastos de esta tabla) — sin tocar #visual-detail para nada.
+function partidasAvailableForTransferByMonth(months, incomeTotals, expenseTotals) {
+  const simulationByMonth = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  const floor = agentCaixaFloor();
+  const startingCaixaFallback = Number(accountBalancesFromState().caixa || 0);
+  return months.map((month, index) => {
+    const row = simulationByMonth.get(month.key);
+    const startingCaixa = Number(row?.startChecking ?? startingCaixaFallback);
+    return Math.max(0, round2(startingCaixa + incomeTotals[index] - expenseTotals[index] - floor));
+  });
+}
+
+// El mes siguiente puede caer fuera del rango visible de la tabla, así que se lee directamente de
+// lastSimulation (todo el horizonte), igual que hace la pantalla heredada, no de expenseTotals.
+function partidasNextMonthPlannedExpenses(months) {
+  const simulationByMonth = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  return months.map((month) => {
+    const nextKey = monthKey(addMonths(dateFromMonthKey(month.key), 1));
+    return Math.max(0, round2(Number(simulationByMonth.get(nextKey)?.outflowsBeforeSaving || 0)));
+  });
+}
+
+function partidasTereSalaryByMonth(months) {
+  const rows = baseData.monthlyPlanning.sections
+    .filter((section) => section.kind === "income")
+    .flatMap((section) => visualRowsForSection(section, months))
+    .filter((row) => {
+      if (isVisualRowPendingDelete(seriesKeyForRow(row))) return false;
+      const label = normalizedText(visualDisplayLabel(row));
+      return label.includes("tere") && (label.includes("nomina") || label.includes("salario"));
+    });
+  return months.map((month) => round2(rows.reduce((sum, row) => sum + Number(visualCellValue(row, month, "planned") || 0), 0)));
+}
+
+function partidasTransferRowsHtml(months, incomeTotals, expenseTotals) {
+  const available = partidasAvailableForTransferByMonth(months, incomeTotals, expenseTotals);
+  const nextExpenses = partidasNextMonthPlannedExpenses(months);
+  const tereSalary = partidasTereSalaryByMonth(months);
+  const prudent = available.map((value, index) => Math.max(0, round2(value - nextExpenses[index])));
+  const adjusted = available.map((value, index) => Math.max(0, round2(value + tereSalary[index])));
+  const prudentAdjusted = available.map((value, index) => Math.max(0, round2(value + tereSalary[index] - nextExpenses[index])));
+  const heading = `<tr class="visual-section-row visual-calculated-row">
+    <td colspan="${months.length + 2}">
+      <div class="visual-calculated-label">
+        <strong>Disponible para traspaso</strong>
+        <small>Mismas cuatro cifras que "Cuadro de mandos (heredado)", en bloque aparte.</small>
+      </div>
+    </td>
+  </tr>`;
+  return [
+    heading,
+    partidasCalculatedRowHtml("transfer-section", "Disponible para traspaso", "Referencia: cierre estimado del mes. CaixaBank estimado + ingresos - gastos - reserva operativa común.", available),
+    partidasCalculatedRowHtml("transfer-adjusted-section", "Disponible para traspaso ajustado", "Referencia: día 25 aprox. del mes, tras nómina Tere. Disponible + nómina Tere.", adjusted),
+    partidasCalculatedRowHtml("transfer-prudent-section", "Disponible para traspaso prudente", "Referencia: cierre estimado del mes, cubriendo también los gastos previstos del mes siguiente.", prudent),
+    partidasCalculatedRowHtml("transfer-prudent-adjusted-section", "Disponible para traspaso prudente ajustado", "Referencia: día 25 aprox. del mes, tras nómina Tere y cubriendo los gastos previstos del mes siguiente.", prudentAdjusted),
+  ].join("");
+}
+
 function renderPartidasGestionTable(months) {
   const table = qs("partidasGestionTable");
   if (!table) return;
@@ -10975,6 +11036,7 @@ function renderPartidasGestionTable(months) {
     body.push(partidasCalculatedRowHtml("total-expense-section", "Total gastos", "Suma de fijos, variables, suscripciones, financiaciones y proyectos.", expenseTotals));
     body.push(partidasCalculatedRowHtml("result-section", "Resultado", "Ingresos totales menos total de gastos del mes.", resultTotals));
     body.push(partidasResultConSimulacionRowHtml(months, resultTotals));
+    body.push(partidasTransferRowsHtml(months, incomeTotals, expenseTotals));
   }
   table.innerHTML = `<thead><tr><th>Partida</th>${months.map((month) => `<th>${escapeHtml(month.label)}</th>`).join("")}<th></th></tr></thead><tbody>${body.join("") || `<tr><td colspan="${months.length + 2}">Sin partidas en los meses visibles.</td></tr>`}</tbody>`;
 }

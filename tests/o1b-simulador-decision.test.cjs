@@ -495,3 +495,91 @@ test('el modo «buscar mejor mes» ya no lista cada mes candidato (scroll infini
   assert.doesNotMatch(source, /planificacion-partidas-simulador-ranking/);
   assert.match(source, /asesor-decision-stats/);
 });
+
+// --- "Disponible para traspaso" heredado, en bloque aparte (22 de agosto, 4ª vuelta) -------------
+// Las mismas cuatro cifras que renderVisualDetailTable en "Cuadro de mandos (heredado)", pero
+// reescritas sobre datos globales (lastSimulation, accountBalancesFromState, agentCaixaFloor) sin
+// tocar #visual-detail, en un bloque propio tras el Resultado.
+
+function dateHelpers() {
+  return {
+    monthKey: (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
+    addMonths: (date, count) => new Date(date.getFullYear(), date.getMonth() + count, 1),
+    dateFromMonthKey: (key) => {
+      const [year, month] = key.split("-").map(Number);
+      return new Date(year, month - 1, 1);
+    },
+  };
+}
+
+function transferContext(names, extra = {}) {
+  return sandboxWith(names, {
+    lastSimulation: [],
+    accountBalancesFromState: () => ({ caixa: 0 }),
+    agentCaixaFloor: () => 0,
+    baseData: { monthlyPlanning: { sections: [] } },
+    visualRowsForSection: () => [],
+    isVisualRowPendingDelete: () => false,
+    seriesKeyForRow: (row) => row.label || "row",
+    normalizedText: (v) => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(),
+    visualDisplayLabel: (row) => row.label || "",
+    visualCellValue: () => 0,
+    ...dateHelpers(),
+    ...extra,
+  });
+}
+
+test("partidasAvailableForTransferByMonth: caja inicial (de la simulación de ese mes) + ingresos - gastos - reserva, sin bajar de 0", () => {
+  const context = transferContext(["partidasAvailableForTransferByMonth"], {
+    lastSimulation: [{ detailMonthKey: "2026-09", startChecking: 1000 }],
+    agentCaixaFloor: () => 300,
+  });
+  const months = [{ key: "2026-09" }, { key: "2026-10" }];
+  const result = context.partidasAvailableForTransferByMonth(months, [500, 100], [200, 900]);
+  // 2026-09: 1000 + 500 - 200 - 300 = 1000
+  // 2026-10 (sin simulación para ese mes: usa el saldo de caja de accountBalancesFromState=0)
+  //   0 + 100 - 900 - 300 = -1100 -> se recorta a 0
+  assert.equal(JSON.stringify(result), JSON.stringify([1000, 0]));
+});
+
+test("partidasNextMonthPlannedExpenses lee el mes siguiente de lastSimulation aunque quede fuera del rango visible, y no baja de 0", () => {
+  const context = transferContext(["partidasNextMonthPlannedExpenses"], {
+    lastSimulation: [
+      { detailMonthKey: "2026-09", outflowsBeforeSaving: 1200 },
+      { detailMonthKey: "2026-10", outflowsBeforeSaving: 1500 },
+    ],
+  });
+  // Solo agosto está en el rango visible; su "mes siguiente" (septiembre) sí está en lastSimulation.
+  const months = [{ key: "2026-08" }, { key: "2026-10" }];
+  const result = context.partidasNextMonthPlannedExpenses(months);
+  // ago -> next sept (1200); oct -> next nov (sin dato en lastSimulation -> 0)
+  assert.equal(JSON.stringify(result), JSON.stringify([1200, 0]));
+});
+
+test("partidasTereSalaryByMonth solo suma filas de ingresos cuyo nombre combine «tere» con «nomina»/«salario»", () => {
+  const context = transferContext(["partidasTereSalaryByMonth"], {
+    baseData: { monthlyPlanning: { sections: [{ name: "Ingresos", kind: "income" }, { name: "Gastos fijos", kind: "expense" }] } },
+    visualRowsForSection: (section) => (section.kind === "income" ? [{ label: "Nómina Tere" }, { label: "Bonus Javi" }] : []),
+    visualDisplayLabel: (row) => row.label,
+    visualCellValue: (row) => (row.label === "Nómina Tere" ? 1850 : 500),
+  });
+  const months = [{ key: "2026-09" }];
+  assert.equal(JSON.stringify(context.partidasTereSalaryByMonth(months)), JSON.stringify([1850]));
+});
+
+test("partidasTransferRowsHtml reutiliza partidasCalculatedRowHtml para las cuatro filas heredadas, en un bloque con cabecera propia", () => {
+  const source = extractFunction("partidasTransferRowsHtml");
+  assert.match(source, /partidasAvailableForTransferByMonth\(/);
+  assert.match(source, /partidasNextMonthPlannedExpenses\(/);
+  assert.match(source, /partidasTereSalaryByMonth\(/);
+  assert.match(source, /partidasCalculatedRowHtml\("transfer-section"/);
+  assert.match(source, /partidasCalculatedRowHtml\("transfer-adjusted-section"/);
+  assert.match(source, /partidasCalculatedRowHtml\("transfer-prudent-section"/);
+  assert.match(source, /partidasCalculatedRowHtml\("transfer-prudent-adjusted-section"/);
+  assert.match(source, /colspan="\$\{months\.length \+ 2\}"/);
+});
+
+test("renderPartidasGestionTable cablea el bloque de «Disponible para traspaso» tras el Resultado", () => {
+  const source = extractFunction("renderPartidasGestionTable");
+  assert.match(source, /partidasTransferRowsHtml\(months, incomeTotals, expenseTotals\)/);
+});
