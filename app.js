@@ -10916,19 +10916,32 @@ function partidasResultConSimulacionRowHtml(months, resultValues) {
   </tr>`;
 }
 
+// Saldo de CaixaBank al empezar cada mes, tal y como lo trae la simulación real (lastSimulation);
+// si un mes no tiene fila propia en la simulación, se cae al saldo actual de la cuenta. Compartido
+// entre "Cashflow previsto" y "Disponible para traspaso".
+function partidasStartingCaixaByMonth(months) {
+  const simulationByMonth = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  const startingCaixaFallback = Number(accountBalancesFromState().caixa || 0);
+  return months.map((month) => {
+    const row = simulationByMonth.get(month.key);
+    return Number(row?.startChecking ?? startingCaixaFallback);
+  });
+}
+
+// --- Cashflow previsto: saldo + resultado del mes, justo debajo del Resultado --------------------
+function partidasCashflowByMonth(months, resultTotals) {
+  const startingCaixa = partidasStartingCaixaByMonth(months);
+  return months.map((month, index) => round2(startingCaixa[index] + resultTotals[index]));
+}
+
 // --- "Disponible para traspaso" heredado, en bloque aparte tras el Resultado --------------------
 // Mismas cuatro fórmulas que renderVisualDetailTable en "Cuadro de mandos (heredado)", reescritas
 // sobre datos ya disponibles aquí (lastSimulation, accountBalancesFromState/agentCaixaFloor
 // globales, los propios Total ingresos/gastos de esta tabla) — sin tocar #visual-detail para nada.
 function partidasAvailableForTransferByMonth(months, incomeTotals, expenseTotals) {
-  const simulationByMonth = new Map(lastSimulation.map((row) => [row.detailMonthKey, row]));
+  const startingCaixa = partidasStartingCaixaByMonth(months);
   const floor = agentCaixaFloor();
-  const startingCaixaFallback = Number(accountBalancesFromState().caixa || 0);
-  return months.map((month, index) => {
-    const row = simulationByMonth.get(month.key);
-    const startingCaixa = Number(row?.startChecking ?? startingCaixaFallback);
-    return Math.max(0, round2(startingCaixa + incomeTotals[index] - expenseTotals[index] - floor));
-  });
+  return months.map((month, index) => Math.max(0, round2(startingCaixa[index] + incomeTotals[index] - expenseTotals[index] - floor)));
 }
 
 // El mes siguiente puede caer fuera del rango visible de la tabla, así que se lee directamente de
@@ -10960,7 +10973,7 @@ function partidasTransferRowsHtml(months, incomeTotals, expenseTotals) {
   const prudent = available.map((value, index) => Math.max(0, round2(value - nextExpenses[index])));
   const adjusted = available.map((value, index) => Math.max(0, round2(value + tereSalary[index])));
   const prudentAdjusted = available.map((value, index) => Math.max(0, round2(value + tereSalary[index] - nextExpenses[index])));
-  const heading = `<tr class="visual-section-row visual-calculated-row">
+  const heading = `<tr class="visual-section-row visual-calculated-row planificacion-partidas-transfer-heading">
     <td colspan="${months.length + 2}">
       <div class="visual-calculated-label">
         <strong>Disponible para traspaso</strong>
@@ -11035,6 +11048,7 @@ function renderPartidasGestionTable(months) {
     body.push(partidasCalculatedRowHtml("", "Total ingresos", "Suma de todas las secciones de ingresos.", incomeTotals));
     body.push(partidasCalculatedRowHtml("total-expense-section", "Total gastos", "Suma de fijos, variables, suscripciones, financiaciones y proyectos.", expenseTotals));
     body.push(partidasCalculatedRowHtml("result-section", "Resultado", "Ingresos totales menos total de gastos del mes.", resultTotals));
+    body.push(partidasCalculatedRowHtml("", "Cashflow previsto", "Saldo + resultado del mes: saldo estimado tras cerrar ese mes.", partidasCashflowByMonth(months, resultTotals)));
     body.push(partidasResultConSimulacionRowHtml(months, resultTotals));
     body.push(partidasTransferRowsHtml(months, incomeTotals, expenseTotals));
   }
