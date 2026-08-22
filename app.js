@@ -11366,6 +11366,269 @@ function planificacionPartidasEscenarioGhostsHtml(ghosts) {
   </div>`;
 }
 
+// --- Simulador de decisión: "¿y si...?" -----------------------------------------------------------
+// Compra o crédito hipotéticos, ad-hoc, sin guardar nada ni tocar escenarioMotorDecisions — a
+// diferencia de "Escenario · simular" y de planificacion.modo:"optimo" del motor (que solo busca
+// "el primer mes viable bajo un guardarraíl fijo declarado", ver la cabecera de
+// canonical-scenario-engine.js), esto barre de verdad un rango de meses candidatos y se queda con
+// el que más liquidez mínima deja — el mismo criterio de "mejor mes" que ya usaba
+// evaluateProjectCandidate en el simulador heredado, portado aquí sobre el motor canónico.
+// Reutiliza tal cual el catálogo de campos de "compra"/"deuda_nueva" (ESCENARIO_MOTOR_TYPES,
+// escenarioMotorFieldHtml/ReadFieldValue/EffectiveValues) — mismo patrón que ya usa D-5 (Deuda ›
+// Comparar) para dibujar el mismo catálogo con sus propios id/data-attr — y
+// runEscenarioMotor/escenarioMotorSummaryFor para el cálculo. El campo "mes" del catálogo se excluye
+// del dibujado genérico: la fecha aquí no es un campo más, es el propio eje de la búsqueda.
+let partidasSimTipo = "compra";
+let partidasSimValues = {};
+
+function partidasSimuladorType() {
+  return ESCENARIO_MOTOR_TYPES.find((entry) => entry.id === partidasSimTipo) || ESCENARIO_MOTOR_TYPES.find((entry) => entry.id === "compra");
+}
+
+function partidasSimuladorFieldsHtml(months) {
+  const type = partidasSimuladorType();
+  return type.campos
+    .filter((field) => field.key !== "mes")
+    .map((field) =>
+      escenarioMotorFieldHtml(field, months, partidasSimValues, {
+        idPrefix: "partidasSimField",
+        dataAttr: "data-partidas-sim-field",
+        wrapAttr: "data-partidas-sim-field-wrap",
+      }),
+    )
+    .join("");
+}
+
+function partidasSimuladorSyncValues() {
+  const type = partidasSimuladorType();
+  type.campos.forEach((field) => {
+    if (field.key === "mes") return;
+    const element = qs(escenarioMotorFieldElementId(field.key, "partidasSimField"));
+    if (!element) return;
+    partidasSimValues[field.key] = escenarioMotorReadFieldValue(field, element);
+  });
+}
+
+function partidasSimuladorSyncFieldVisibility() {
+  const type = partidasSimuladorType();
+  const container = qs("partidasSimFields");
+  if (!container) return;
+  type.campos.forEach((field) => {
+    if (typeof field.visibleSi !== "function") return;
+    const wrap = container.querySelector(`[data-partidas-sim-field-wrap="${field.key}"]`);
+    if (wrap) wrap.hidden = !field.visibleSi(partidasSimValues);
+  });
+}
+
+function renderPartidasSimuladorFields() {
+  const container = qs("partidasSimFields");
+  if (!container) return;
+  container.innerHTML = partidasSimuladorFieldsHtml(selectableMonths());
+}
+
+function handlePartidasSimTipoChange(event) {
+  partidasSimuladorSyncValues();
+  partidasSimTipo = event.target.value;
+  renderPartidasSimuladorFields();
+  const resultEl = qs("partidasSimResult");
+  if (resultEl) resultEl.innerHTML = "";
+}
+
+function handlePartidasSimFieldChange(event) {
+  const key = event.target?.dataset?.partidasSimField;
+  if (!key) return;
+  const type = partidasSimuladorType();
+  const field = type.campos.find((item) => item.key === key);
+  if (!field) return;
+  partidasSimValues[key] = escenarioMotorReadFieldValue(field, event.target);
+  if (field.controla) partidasSimuladorSyncFieldVisibility();
+}
+
+function syncPartidasSimModoUi() {
+  const modo = qs("partidasSimModo")?.value || "manual";
+  qs("partidasSimMonthField")?.classList.toggle("is-hidden", modo !== "manual");
+  qs("partidasSimRangeStartField")?.classList.toggle("is-hidden", modo !== "best");
+  qs("partidasSimRangeEndField")?.classList.toggle("is-hidden", modo !== "best");
+}
+
+// Construye y valida una decisión compra/deuda_nueva anclada a un mes concreto, reutilizando el
+// mismo trío type.params()/type.titulo()/Schema.validateDecision que handleEscenarioMotorSubmit —
+// los mismos mensajes de error que vería en "Escenario · simular", no una comprobación paralela.
+function partidasSimuladorBuildDecisionForMonth(monthKey) {
+  const type = partidasSimuladorType();
+  const effective = escenarioMotorEffectiveValues(type, partidasSimValues);
+  const values = { ...effective, mes: monthKey };
+  if (!String(values.nombre || "").trim()) values.nombre = type.id === "compra" ? "Compra" : undefined;
+  const decision = {
+    id: escenarioMotorNewDecisionId(),
+    tipo: type.id,
+    titulo: escenarioMotorTrim(type.titulo(values) || type.label),
+    activa: true,
+    orden: 0,
+    planificacion: { modo: "manual", mesManual: monthKey },
+    params: type.params(values),
+  };
+  const schema = window.FinanceCanonicalScenarioSchema;
+  if (!schema) return { decision: null, errors: ["No se puede comprobar esta decisión: no se ha cargado canonical-scenario-schema.js."] };
+  const issues = [];
+  schema.validateDecision(decision, "$", issues);
+  const errors = issues.filter((issue) => issue.severity === "error").map((issue) => issue.message);
+  return { decision: errors.length ? null : decision, errors };
+}
+
+function partidasSimuladorBaseline(baseInput) {
+  const result = runEscenarioMotor(baseInput, [], null);
+  return escenarioMotorSummaryFor(result, baseInput.months);
+}
+
+function partidasSimuladorRunDecision(decision, baseInput) {
+  const result = runEscenarioMotor(baseInput, decision ? [decision] : [], null);
+  return escenarioMotorSummaryFor(result, baseInput.months);
+}
+
+// Barrido de meses candidatos: corre el motor una vez por mes, mide cuánta liquidez mínima queda en
+// el horizonte con la decisión anclada a ese mes, y se queda con el máximo — "mejor fecha" significa
+// aquí "la que menos araña el colchón", no la más barata ni la de mejor VAN (mismo alcance limitado
+// que el resto del motor declara para "óptimo").
+function partidasSimuladorScanMonths(months, baseInput, baselineSummary) {
+  const results = months.map((month) => {
+    const built = partidasSimuladorBuildDecisionForMonth(month.key);
+    if (!built.decision) return { month, errors: built.errors, summary: null, deltaMinimo: null };
+    const summary = partidasSimuladorRunDecision(built.decision, baseInput);
+    const deltaMinimo = summary.minimoLiquidez !== null && baselineSummary.minimoLiquidez !== null
+      ? round2(summary.minimoLiquidez - baselineSummary.minimoLiquidez)
+      : null;
+    return { month, decision: built.decision, summary, deltaMinimo, errors: [] };
+  });
+  const viable = results.filter((item) => item.summary && item.summary.minimoLiquidez !== null);
+  const best = viable.length ? viable.reduce((a, b) => (b.summary.minimoLiquidez > a.summary.minimoLiquidez ? b : a)) : null;
+  return { results, best };
+}
+
+function partidasSimuladorEvaluate() {
+  partidasSimuladorSyncValues();
+  const baseInput = escenarioMotorBaseInput();
+  const baseline = partidasSimuladorBaseline(baseInput);
+  const modo = qs("partidasSimModo")?.value || "manual";
+  if (modo === "manual") {
+    const monthKey = qs("partidasSimMonth")?.value || "";
+    const built = partidasSimuladorBuildDecisionForMonth(monthKey);
+    if (!built.decision) return { modo, errors: built.errors };
+    const summary = partidasSimuladorRunDecision(built.decision, baseInput);
+    const month = monthByKey(monthKey, selectableMonths());
+    const deltaMinimo = summary.minimoLiquidez !== null && baseline.minimoLiquidez !== null ? round2(summary.minimoLiquidez - baseline.minimoLiquidez) : null;
+    const deltaFinal = summary.liquidezFinal !== null && baseline.liquidezFinal !== null ? round2(summary.liquidezFinal - baseline.liquidezFinal) : null;
+    return { modo, month, summary, baseline, deltaMinimo, deltaFinal, errors: [] };
+  }
+  const months = monthsInRange(qs("partidasSimRangeStart")?.value || "", qs("partidasSimRangeEnd")?.value || "", selectableMonths());
+  if (!months.length) return { modo, errors: ["Selecciona un rango de meses válido."] };
+  const scan = partidasSimuladorScanMonths(months, baseInput, baseline);
+  return { modo, scan, baseline, errors: [] };
+}
+
+function partidasSimuladorMoneyDelta(value) {
+  if (value === null || value === undefined) return "—";
+  return `<span class="${value >= 0 ? "is-up" : "is-down"}">${value >= 0 ? "+" : ""}${money(value, true)}</span>`;
+}
+
+function partidasSimuladorResultHtml(evaluation) {
+  if (!evaluation) return "";
+  if (evaluation.errors.length) {
+    return `<p class="inline-feedback warning">${evaluation.errors.map((message) => escapeHtml(message)).join(" ")}</p>`;
+  }
+  if (evaluation.modo === "manual") {
+    const { summary, month, deltaMinimo, deltaFinal } = evaluation;
+    return `<div class="planificacion-partidas-simulador-result">
+      <div class="asesor-decision-stats">
+        <div class="asesor-decision-stat">
+          <span>Mínimo del horizonte con esta decisión</span>
+          <strong>${summary.minimoLiquidez !== null ? money(summary.minimoLiquidez, true) : "—"}</strong>
+          <em>${partidasSimuladorMoneyDelta(deltaMinimo)} vs. sin esta decisión</em>
+        </div>
+        <div class="asesor-decision-stat">
+          <span>Liquidez final</span>
+          <strong>${summary.liquidezFinal !== null ? money(summary.liquidezFinal, true) : "—"}</strong>
+          <em>${partidasSimuladorMoneyDelta(deltaFinal)}</em>
+        </div>
+        <div class="asesor-decision-stat">
+          <span>Meses de colchón</span>
+          <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toFixed(1) : "—"}</strong>
+        </div>
+      </div>
+      <p class="e19-kpi-note">Simulado en ${escapeHtml(month?.label || "—")}, sin guardar nada. Para llevarlo al plan real, créalo en "Escenario · simular".</p>
+    </div>`;
+  }
+  const { scan } = evaluation;
+  if (!scan.best) {
+    return `<p class="inline-feedback warning">Ningún mes del rango elegido pudo simularse. Revisa importe, cuota y plazo.</p>`;
+  }
+  const rows = scan.results
+    .filter((item) => item.summary)
+    .map(
+      (item) => `<li class="${item === scan.best ? "is-best" : ""}">
+        <span>${escapeHtml(item.month.label)}</span>
+        <span>${money(item.summary.minimoLiquidez, true)}</span>
+        <span>${partidasSimuladorMoneyDelta(item.deltaMinimo)}</span>
+      </li>`,
+    )
+    .join("");
+  return `<div class="planificacion-partidas-simulador-result">
+    <p class="e19-kpi-note"><span class="e19-badge e19-badge-success">Mejor mes · ${escapeHtml(scan.best.month.label)}</span> deja ${money(scan.best.summary.minimoLiquidez, true)} de mínimo en el horizonte (${partidasSimuladorMoneyDelta(scan.best.deltaMinimo)} vs. sin esta decisión).</p>
+    <ul class="planificacion-partidas-simulador-ranking">${rows}</ul>
+  </div>`;
+}
+
+function handlePartidasSimular() {
+  const resultEl = qs("partidasSimResult");
+  if (!resultEl) return;
+  resultEl.innerHTML = partidasSimuladorResultHtml(partidasSimuladorEvaluate());
+}
+
+function partidasSimuladorCardHtml() {
+  const months = selectableMonths();
+  const defaultStart = months.find((month) => !isClosedMonthKey(month.key))?.key || months[0]?.key || "";
+  return `<article class="e19-card visual-add-card planificacion-partidas-simulador">
+    <div class="module-heading">
+      <div>
+        <p class="panel-kicker">¿Y si...?</p>
+        <h3>Simulador de una decisión</h3>
+        <p>Prueba una compra o un crédito nuevo hipotéticos — quién, cuánto, con qué cuota — y mira el impacto en el forecast antes de decidir nada. No guarda nada.</p>
+      </div>
+    </div>
+    <div class="visual-add-grid">
+      <label>
+        <span>Tipo</span>
+        <select id="partidasSimTipoSelect" data-partidas-sim-tipo>
+          <option value="compra"${partidasSimTipo === "compra" ? " selected" : ""}>Compra grande</option>
+          <option value="deuda_nueva"${partidasSimTipo === "deuda_nueva" ? " selected" : ""}>Crédito nuevo</option>
+        </select>
+      </label>
+      <label>
+        <span>Fecha</span>
+        <select id="partidasSimModo" data-partidas-sim-modo>
+          <option value="manual">Un mes concreto</option>
+          <option value="best">Buscar la mejor fecha en un rango</option>
+        </select>
+      </label>
+      <label id="partidasSimMonthField">
+        <span>Mes</span>
+        <select id="partidasSimMonth">${monthOptionsHtml(defaultStart, months)}</select>
+      </label>
+      <label id="partidasSimRangeStartField" class="is-hidden">
+        <span>Desde</span>
+        <select id="partidasSimRangeStart">${monthOptionsHtml(defaultStart, months)}</select>
+      </label>
+      <label id="partidasSimRangeEndField" class="is-hidden">
+        <span>Hasta</span>
+        <select id="partidasSimRangeEnd">${monthOptionsHtml(months.at(-1)?.key || defaultStart, months)}</select>
+      </label>
+    </div>
+    <div class="visual-add-grid" id="partidasSimFields">${partidasSimuladorFieldsHtml(months)}</div>
+    <button type="button" data-partidas-sim-run>Simular impacto</button>
+    <div id="partidasSimResult"></div>
+  </article>`;
+}
+
 // --- Resumen del plan: conclusiones + KPIs, tarjeta oscura al inicio de la pantalla -------------
 // Mismo componente visual que la tarjeta "Oferta en curso" de Deuda · Ruta
 // (`.deuda-ruta-offer-card.is-active`/`.asesor-decision-stats`/`.deuda-ruta-checklist`): fondo
@@ -11593,6 +11856,8 @@ function renderPlanificacionPartidas() {
 
     <aside class="e19-impact-bar" id="partidasImpactBar" hidden aria-live="polite"></aside>
 
+    ${partidasSimuladorCardHtml()}
+
     <article class="e19-card visual-bulk-edit-panel">
       <div class="module-heading">
         <div>
@@ -11725,6 +11990,8 @@ function renderPlanificacionPartidas() {
   `;
   renderPartidasGestionBlocks();
   syncPartidasEditScopeUi();
+  syncPartidasSimModoUi();
+  partidasSimuladorSyncFieldVisibility();
 }
 
 function groupPrevisionItemsByYear(items) {
@@ -23770,9 +24037,17 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "cuota", kind: "money", label: "Cuota mensual" },
       { key: "plazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480 },
       { key: "mes", kind: "month", label: "Mes en que se recibe" },
+      // O-1b: mismo criterio aditivo que compra, arriba — titular es puro metadato.
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]], opcional: true },
     ],
     mes: (v) => v.mes,
-    params: (v) => (v.nombre ? { nombre: v.nombre, principal: v.principal, cuota: v.cuota, plazo: escenarioMotorInt(v.plazo), mes: v.mes } : { principal: v.principal, cuota: v.cuota, plazo: escenarioMotorInt(v.plazo), mes: v.mes }),
+    params: (v) => {
+      const base = v.nombre
+        ? { nombre: v.nombre, principal: v.principal, cuota: v.cuota, plazo: escenarioMotorInt(v.plazo), mes: v.mes }
+        : { principal: v.principal, cuota: v.cuota, plazo: escenarioMotorInt(v.plazo), mes: v.mes };
+      if (v.titular && v.titular !== "hogar") base.titular = v.titular;
+      return base;
+    },
     titulo: (v) => escenarioMotorTrim(v.nombre ? `Deuda nueva · ${v.nombre}` : "Pedir deuda nueva"),
     detalle: (d) => `${money(d.params?.cuota, true)}/mes · ${d.params?.plazo || 0} meses`,
     importeTexto: (d) => money(d.params?.principal, true),
@@ -23816,15 +24091,22 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
       { key: "finCuota", kind: "money", label: "Cuota mensual", visibleSi: (v) => v.financiada === true },
       { key: "finTIN", kind: "pct", label: "TIN (%)", visibleSi: (v) => v.financiada === true },
       { key: "finPlazo", kind: "int", label: "Plazo (meses)", min: 1, max: 480, visibleSi: (v) => v.financiada === true },
+      // O-1b: opcional y aditivo, mismo criterio que titularOrigen/titularDestino en
+      // refinanciacion/reunificacion — puro metadato, no cambia ningún cálculo de caja.
+      { key: "titular", kind: "select", label: "Titular (opcional)", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]], opcional: true },
     ],
     mes: (v) => v.mes,
-    params: (v) => (v.financiada
-      ? {
-        nombre: v.nombre,
-        importe: v.importe,
-        financiacion: { principal: v.finPrincipal, TIN: escenarioMotorPct(v.finTIN), cuota: v.finCuota, plazo: escenarioMotorInt(v.finPlazo) },
-      }
-      : { nombre: v.nombre, importe: v.importe }),
+    params: (v) => {
+      const base = v.financiada
+        ? {
+          nombre: v.nombre,
+          importe: v.importe,
+          financiacion: { principal: v.finPrincipal, TIN: escenarioMotorPct(v.finTIN), cuota: v.finCuota, plazo: escenarioMotorInt(v.finPlazo) },
+        }
+        : { nombre: v.nombre, importe: v.importe };
+      if (v.titular && v.titular !== "hogar") base.titular = v.titular;
+      return base;
+    },
     titulo: (v) => escenarioMotorTrim(`Compra · ${v.nombre || "sin nombre"}`),
     detalle: (d) => (d.params?.financiacion
       ? `${money(d.params.financiacion.cuota, true)}/mes · ${d.params.financiacion.plazo || 0} meses`
@@ -31968,6 +32250,7 @@ async function init() {
     if (event.target.closest("[data-partidas-save]")) { handlePartidasSave(); return; }
     if (event.target.closest("[data-partidas-add-row]")) { handlePartidasAddRow(); return; }
     if (event.target.closest("[data-partidas-edit-stage]")) { handlePartidasBulkEdit(); return; }
+    if (event.target.closest("[data-partidas-sim-run]")) { handlePartidasSimular(); return; }
     const navButton = event.target.closest("[data-home-nav]");
     const target = navButton?.dataset.homeNav;
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
@@ -31985,6 +32268,10 @@ async function init() {
     if (event.target.closest("[data-partidas-add-scope]")) { syncPartidasAddScopeUi(); return; }
     if (event.target.closest("[data-partidas-edit-kind]")) { syncPartidasEditRowOptions(); return; }
     if (event.target.closest("[data-partidas-edit-action]") || event.target.closest("[data-partidas-edit-scope]")) { syncPartidasEditScopeUi(); return; }
+    if (event.target.closest("[data-partidas-sim-tipo]")) { handlePartidasSimTipoChange(event); return; }
+    if (event.target.closest("[data-partidas-sim-modo]")) { syncPartidasSimModoUi(); return; }
+    const simField = event.target.closest("[data-partidas-sim-field]");
+    if (simField) { handlePartidasSimFieldChange(event); return; }
   });
   qs("planificacionPartidasRoot")?.addEventListener("mousemove", handlePartidasChartHover);
   qs("planificacionPartidasRoot")?.addEventListener("mouseleave", hidePartidasChartTooltip);

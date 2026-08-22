@@ -362,11 +362,16 @@
     },
 
     compra(params, path, issues) {
-      const allowed = ["nombre", "importe", "financiacion"];
+      // O-1b: titular es opcional y aditivo, mismo criterio que titularOrigen/titularDestino en
+      // refinanciacion/reunificacion — una compra sin titular se sigue comportando exactamente
+      // igual que antes (I-09). Es puro metadato: no crea contrato ni cambia ningún cálculo de
+      // caja, solo permite anotar «esta compra es para Javi / para Tere» en el simulador.
+      const allowed = ["nombre", "importe", "financiacion", "titular"];
       requireFields(params, ["nombre", "importe"], path, issues);
       rejectExtraProperties(params, allowed, path, issues);
       if (params.nombre !== undefined && !isNonEmptyString(params.nombre)) error(issues, `${path}.nombre`, "invalid-value", "nombre debe ser una cadena no vacía.");
       if (params.importe !== undefined) requirePositiveNumber(params, "importe", path, issues);
+      if (params.titular !== undefined && !TITULARES.includes(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
       if (params.financiacion !== undefined && params.financiacion !== null) {
         const financiacion = params.financiacion;
         const finPath = `${path}.financiacion`;
@@ -459,7 +464,8 @@
     // que no cuenta para «Fecha libre de deuda» (esa cifra sigue leyendo solo la cartera real).
     deuda_nueva(params, path, issues) {
       const required = ["principal", "cuota", "plazo", "mes"];
-      const allowed = [...required, "nombre"];
+      // O-1b: mismo criterio aditivo que compra, arriba — titular es puro metadato.
+      const allowed = [...required, "nombre", "titular"];
       requireFields(params, required, path, issues);
       rejectExtraProperties(params, allowed, path, issues);
       if (params.nombre !== undefined && !isNonEmptyString(params.nombre)) error(issues, `${path}.nombre`, "invalid-value", "nombre debe ser una cadena no vacía.");
@@ -467,6 +473,7 @@
       if (params.cuota !== undefined) requirePositiveNumber(params, "cuota", path, issues);
       if (params.plazo !== undefined && !(isInteger(params.plazo) && params.plazo >= 1 && params.plazo <= 480)) error(issues, `${path}.plazo`, "invalid-value", "plazo debe ser un entero entre 1 y 480.");
       requireMonth(params, "mes", path, issues, params.mes !== undefined);
+      if (params.titular !== undefined && !TITULARES.includes(params.titular)) error(issues, `${path}.titular`, "invalid-enum", `titular debe ser uno de: ${TITULARES.join(", ")}.`);
     },
 
     // E-1: dinero que entra o sale de la familia sin banco de por medio. `direccion` decide el

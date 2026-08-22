@@ -5367,6 +5367,72 @@
   color: #fff;
 }
 
+/* --- Simulador de decisión: "¿y si...?" — misma tarjeta clara que el resto de esta pantalla, con   */
+/* el mismo patrón de tile .asesor-decision-stat que usan Asesor de decisión/Deuda · Ruta, pero en    */
+/* versión clara (fondo suave, no la tarjeta oscura de .planificacion-partidas-summary de arriba).    */
+.e19-planificacion-partidas .planificacion-partidas-simulador .asesor-decision-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador .asesor-decision-stat {
+  padding: 12px;
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador .asesor-decision-stat span {
+  font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador .asesor-decision-stat strong {
+  font-size: var(--e19-text-lg);
+  color: var(--e19-ink);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador .asesor-decision-stat em {
+  font-size: var(--e19-text-xs);
+  font-style: normal;
+  color: var(--e19-muted);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador .is-up { color: var(--e19-success); }
+.e19-planificacion-partidas .planificacion-partidas-simulador .is-down { color: var(--e19-danger); }
+
+.e19-planificacion-partidas .planificacion-partidas-simulador-result {
+  margin-top: 14px;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador-ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador-ranking li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--e19-radius-md);
+  background: var(--e19-surface-soft);
+  font-size: var(--e19-text-sm);
+}
+
+.e19-planificacion-partidas .planificacion-partidas-simulador-ranking li.is-best {
+  background: color-mix(in srgb, var(--e19-success) 16%, var(--e19-surface-soft));
+  font-weight: 600;
+}
+
 /* --- 3c · mapa de calor --- */
 
 .e19-cuadro-mandos .mapa-calor-card {

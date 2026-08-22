@@ -2,6 +2,67 @@
 
 Fecha de revisión: 22 de agosto de 2026.
 
+## Cierre de sesión — 22 de agosto de 2026 (3): simulador de decisión («¿y si...?») en Planificación de partidas
+
+Continuación directa del cierre anterior del mismo día (PR #106 ya fusionado). Tras ver la pantalla
+publicada, el usuario dijo que seguía sin cubrir lo que de verdad necesitaba: «¿dónde están los
+escenarios y su impacto? Si me compro un coche de 3000 euros en noviembre, si me dan un crédito con
+tal capital y tal cuota a partir de septiembre, o a mi mujer, ¿cómo es su impacto? ¿Cuándo sería la
+mejor fecha?». Es decir: simular una decisión hipotética (no una ya cargada en Deuda/Proyectos) y
+que la propia app sugiera cuándo tomarla.
+
+**Investigación previa**: se descartaron dos rutas existentes por no encajar — `bigPurchaseAffordability`
+(Asesor ejecutivo) da una única fecha determinista («cuándo llega la caja»), no compara candidatas
+ni admite titular; `planificacion.modo:"optimo"` del motor canónico (`canonical-scenario-engine.js`)
+solo busca «el primer mes viable bajo un guardarraíl fijo», documentado explícitamente como
+interpretación limitada de «óptimo», no «el mejor». El patrón real de «probar N meses candidatos y
+quedarme con el que más liquidez mínima deja» solo existía en el simulador heredado
+(`evaluateProjectCandidate`, app.js), sobre el motor viejo — había que portarlo al motor canónico.
+Se encontró que D-5 (Deuda › Comparar) ya resuelve un problema parecido — reutilizar el dibujado
+genérico de campos de un tipo de `ESCENARIO_MOTOR_TYPES` (`escenarioMotorFieldHtml`/
+`ReadFieldValue`/`EffectiveValues`) con un `idPrefix`/`dataAttr` propio, sin generar los mismos
+`id` que el formulario real de «Escenario · simular» — y se copió ese mismo patrón aquí.
+
+**Construido**:
+- **Esquema** (`canonical-scenario-schema.js`): campo `titular` opcional (hogar/javi/tere) en
+  `compra` y `deuda_nueva`, mismo criterio aditivo que `titularOrigen`/`titularDestino` en
+  refinanciación/reunificación (O-1) — puro metadato, no cambia ningún cálculo de caja (confirmado:
+  la serie resultante de `resolveEscenario` es idéntica con o sin titular). Se expuso también en el
+  catálogo `ESCENARIO_MOTOR_TYPES` de «Escenario · simular», así que ese formulario gana la misma
+  capacidad de forma gratuita.
+- **Simulador de decisión** («¿Y si...?»), nueva tarjeta en `Planificación de partidas`, arriba del
+  todo junto al resto de paneles de acción: tipo (compra grande / crédito nuevo), los campos reales
+  del tipo elegido dibujados con el mismo motor genérico que D-5 (`partidasSimuladorFieldsHtml`,
+  `idPrefix:"partidasSimField"`), titular opcional, y dos modos de fecha — «un mes concreto»
+  (impacto inmediato: mínimo del horizonte, liquidez final y meses de colchón, comparados contra el
+  plan sin esa decisión) o «buscar la mejor fecha en un rango» (`partidasSimuladorScanMonths`: corre
+  el motor una vez por mes candidato y se queda con el que más liquidez mínima deja — el barrido que
+  no existía en el motor canónico, portado desde el patrón de `evaluateProjectCandidate`). No guarda
+  nada ni toca `escenarioMotorDecisions`: es puramente especulativo, reutilizando tal cual
+  `escenarioMotorBaseInput`/`runEscenarioMotor`/`escenarioMotorSummaryFor` y la validación de
+  `Schema.validateDecision` (mismos mensajes de error que «Escenario · simular»).
+
+**Pruebas nuevas**: `tests/o1b-simulador-decision.test.cjs` (20 pruebas nuevas) — esquema (titular
+opcional/válido/rechazado en ambos tipos), motor (misma serie con/sin titular), catálogo compartido
+(`ESCENARIO_MOTOR_TYPES` ofrece el campo, `params()` lo omite con «hogar»/sin tocar), y el simulador
+en sí: reutilización por regex de `escenarioMotorBaseInput`/`runEscenarioMotor`/
+`escenarioMotorSummaryFor`/`Schema.validateDecision`, `partidasSimuladorScanMonths` se queda con el
+mes de mayor liquidez mínima (con mocks, sin levantar el motor completo), formateo de deltas, y el
+toggle de UI mes-único/rango. Más 1 prueba actualizada en `tests/planificacion-partidas.test.cjs`
+(cableado del simulador en `renderPlanificacionPartidas`).
+
+**Validación** (`npm run verify`, exit 0): **1579/1579 pruebas** (1559 + 20 nuevas), accesibilidad
+(816 IDs únicos), rendimiento (diff 10.000 filas en 46,7 ms; forecast y escenarios en 258,5 ms;
+recursos 1808 KB), build del sitio, privacidad y smoke test en verde. QA manual con Playwright sobre
+datos reales de la demo: compra de 3.000 € (coche) en un mes concreto → mínimo del horizonte
+-2.190 €, liquidez final -3.000 € vs. sin la decisión; crédito de 8.000 €/180 €/48 meses a nombre de
+Tere en modo «buscar mejor mes» → identifica correctamente ago 26 como mejor mes (+8.000 € de
+mínimo) frente a +0 € en el resto del rango, con la fila ganadora resaltada en verde. Cero cambios a
+`#visual-detail`/`#plan`/`#cuadro-mandos`/`#cambios-pendientes`/`#mapa-calor`.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
+
 ## Cierre de sesión — 22 de agosto de 2026 (2): ajuste rápido por rango, gráfico con hover y resumen al inicio en tarjeta oscura
 
 Continuación directa del cierre anterior del mismo día. Tras probar la pantalla, el usuario pidió
