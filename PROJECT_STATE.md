@@ -1,6 +1,50 @@
 # Estado del proyecto
 
-Fecha de revisión: 22 de agosto de 2026.
+Fecha de revisión: 25 de agosto de 2026.
+
+## Cierre de sesión — 25 de agosto de 2026 (1): nueva sección "FAQs y ayuda"
+
+El usuario pidió un manual de usuario para probar la app, basado en casos de uso (actualizar
+datos, predicciones, sacar conclusiones), como una nueva sección de navegación llamada "FAQs y
+ayuda".
+
+**Construido**:
+- Nueva sección estática `#faqs-ayuda` (sin JS de render, mismo tratamiento que la ya existente
+  `#operations-manual`): enlace propio en el menú principal, tras "Ajustes", y entrada en
+  `viewTitles["faqs-ayuda"]` para el título de cabecera. Registrada también en el lanzador
+  "Buscar o abrir" (`e17-experience.js`, `TASKS`, grupo `main`).
+- Tres tarjetas de caso de uso con pasos numerados y enlaces internos (`data-home-nav`) a las
+  pantallas reales que cada paso usa:
+  - **Actualizar datos**: las cuatro pestañas de Registrar, la regla previsto/real/usado, importar
+    extracto en 4 pasos, alta/baja de partidas desde Planificación de partidas.
+  - **Predicciones**: Planificación de partidas y su simulador "¿Y si...?" (tipo, fecha manual o
+    buscar mejor fecha, previsualización en la tabla sin guardar nada), Escenario · simular/
+    guardados para hacerlo permanente, Deuda · comparar/ruta.
+  - **Sacar conclusiones**: Hoy, Análisis (colchón, patrimonio neto, confianza del dato, ¿acierta
+    el plan?), la tarjeta "Resumen del plan" de Planificación de partidas, Mapa de calor.
+  - Cada tarjeta termina con una prueba sugerida concreta con datos de la demo.
+- Un bloque de "Preguntas rápidas" con 7 respuestas en acordeón (`<details>`), reutilizando el
+  patrón ya visto en `#data-audit` (`.canonical-engine-details`) pero con estilos propios
+  (`.e19-faqs`), sobre dónde se guardan los datos, qué significa "Usado", si el simulador guarda
+  algo, cómo deshacer, cómo cerrar el mes, qué son las pantallas heredadas y el campo "Titular".
+- Cero cambios a ninguna pantalla existente: contenido nuevo autocontenido en `index.html`
+  (sección + enlace de navegación), `app.js` (una entrada en `viewTitles`) y `e17-experience.js`
+  (una entrada en `TASKS`), más CSS nueva y scoped en `design-tokens.css`.
+
+**Pruebas**: sin pruebas nuevas — sección estática, mismo criterio que `#operations-manual`
+(no entra en el `switch` de `renderActiveSection`, no hay lógica que probar). Se confirmó que la
+suite completa (1601 pruebas) sigue en verde sin tocar ninguna.
+
+**Validación** (`npm run verify`, exit 0): **1601/1601 pruebas**, accesibilidad (817 IDs únicos),
+rendimiento (diff 10.000 filas en 31,2 ms; forecast y escenarios en 165,9 ms; recursos 1822 KB),
+build del sitio, privacidad y smoke test en verde. QA manual con Playwright: navegación por clic
+en "FAQs y ayuda" activa la pantalla y el título de cabecera correctos; 3 tarjetas de caso de uso y
+7 preguntas visibles; el acordeón abre al pulsar "summary"; los enlaces internos navegan a la
+pantalla real (probado con el de Planificación de partidas); captura de pantalla completa
+revisada visualmente.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
 
 ## Cierre de sesión — 22 de agosto de 2026 (8): legibilidad de la tarjeta de cobertura
 

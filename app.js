@@ -329,6 +329,10 @@ const viewTitles = {
     eyebrow: "Ajustes",
     title: "Cuentas, reserva, partidas y exportación en un mismo sitio",
   },
+  "faqs-ayuda": {
+    eyebrow: "Ayuda",
+    title: "Manual por casos de uso: actualizar, predecir, concluir",
+  },
   "executive-advisor": {
     eyebrow: "Asesor ejecutivo",
     title: "Qué hacer ahora con caja, deuda y coche",

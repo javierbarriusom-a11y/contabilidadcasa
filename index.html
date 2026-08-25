@@ -68,6 +68,10 @@
             <span>Ajustes</span>
             <small>Cuentas, reserva, partidas y exportación</small>
           </a>
+          <a href="#faqs-ayuda" class="nav-primary-link">
+            <span>FAQs y ayuda</span>
+            <small>Manual por casos de uso: actualizar, predecir, concluir</small>
+          </a>
           <div class="e17-nav-actions">
             <button type="button" class="e17-nav-button" data-e17-open="launcher">Buscar o abrir</button>
             <button type="button" class="e17-nav-button" data-e17-open="preferences">Personalizar</button>
@@ -2103,6 +2107,107 @@
                 <em>Ventana de duplicados y desviación por partida se guardan arriba, no aquí.</em>
               </button>
             </div>
+          </section>
+
+          <section class="e19-faqs view-section" id="faqs-ayuda">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Ayuda</p>
+                <h2 class="e19-heading">FAQs y ayuda</h2>
+                <p class="e19-subtitle">Manual rápido por casos de uso, pensado para probar la app con datos reales: actualizar, predecir y sacar conclusiones. Todo lo que describe usa pantallas ya existentes — esta guía en sí no cambia ni guarda nada.</p>
+              </div>
+            </div>
+
+            <article class="e19-card faqs-usecase">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Caso de uso 1</p>
+                  <h3>Actualizar datos</h3>
+                  <p>Meter un saldo, un gasto real o un extracto bancario.</p>
+                </div>
+              </div>
+              <ol class="faqs-steps">
+                <li><strong>Abre <a href="#registrar" data-home-nav="registrar">Registrar</a>.</strong> Es la única puerta de escritura de datos reales, con cuatro pestañas: Saldo de cuentas, Reales del mes, Importar extracto y Lote y Excel.</li>
+                <li><strong>Entiende la regla de las tres cifras:</strong> <em>Previsto</em> es lo que esperabas (se edita en <a href="#plan" data-home-nav="plan">Plan</a>, no aquí), <em>Real</em> es lo que ya ocurrió (se guarda al salir de la casilla; vaciarlo recupera el previsto y escribir 0 significa «ocurrió por cero»), y <em>Usado</em> es la cifra que entra en todos los cálculos: el real cuando existe y, mientras no exista, el previsto.</li>
+                <li><strong>Pruébalo:</strong> anota un real en la pestaña «Reales del mes» para una partida del mes en curso y comprueba que su «Usado» cambia también en <a href="#planificacion-partidas" data-home-nav="planificacion-partidas">Planificación de partidas</a> y en <a href="#analisis" data-home-nav="analisis">Análisis › ¿Acierta el plan?</a>.</li>
+                <li><strong>Para un extracto bancario completo</strong>, usa la pestaña «Importar extracto»: clasifica, revisa duplicados y confirma en 4 pasos — nada se incorpora al plan hasta el paso final.</li>
+                <li><strong>Para dar de alta, renombrar o borrar una partida</strong> (no solo cambiar su importe), hazlo desde <a href="#planificacion-partidas" data-home-nav="planificacion-partidas">Planificación de partidas</a>.</li>
+              </ol>
+            </article>
+
+            <article class="e19-card faqs-usecase">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Caso de uso 2</p>
+                  <h3>Predicciones</h3>
+                  <p>«¿Y si me compro un coche en noviembre?» «¿Y si pido un crédito?» — probar decisiones antes de tomarlas.</p>
+                </div>
+              </div>
+              <ol class="faqs-steps">
+                <li><strong>Abre <a href="#planificacion-partidas" data-home-nav="planificacion-partidas">Planificación de partidas</a>.</strong> Es el forecast unificado con lo confirmado y lo provisional, mes a mes.</li>
+                <li><strong>Usa la tarjeta «¿Y si...?»</strong> (en la misma pantalla): elige <em>Tipo</em> (Compra grande / Crédito nuevo), elige <em>Fecha</em> (un mes concreto, o buscar la mejor fecha en un rango) y rellena importe, financiación o titular. Pulsa «Simular impacto»: aparece una fila con reborde discontinuo dentro de la tabla, con el efecto mes a mes — no guarda nada.</li>
+                <li><strong>Compara la fila de previsualización</strong> con las filas «Resultado» y «Cashflow previsto» de ese mismo mes, justo debajo de la tabla de partidas.</li>
+                <li><strong>Si el resultado te convence</strong>, hazlo permanente desde <a href="#escenario-simular" data-home-nav="escenario-simular">Escenario · simular</a>, guardando la decisión como parte de un escenario real — puedes conservar varios en <a href="#escenario-guardados" data-home-nav="escenario-guardados">Escenario · guardados</a> para comparar.</li>
+                <li><strong>Para decidir el orden de amortización de deuda</strong>, usa <a href="#deuda-comparar" data-home-nav="deuda-comparar">Deuda · comparar</a> (avalancha vs. bola de nieve) y <a href="#deuda-ruta" data-home-nav="deuda-ruta">Deuda · ruta</a>.</li>
+                <li><strong>Pruébalo:</strong> simula una compra de 3.000 € en el mes que elijas y mira cuánto se mueve el «Resultado» y el «Cashflow previsto» de ese mes en la previsualización.</li>
+              </ol>
+            </article>
+
+            <article class="e19-card faqs-usecase">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Caso de uso 3</p>
+                  <h3>Sacar conclusiones</h3>
+                  <p>Leer el plan sin editar nada: qué va bien, qué preocupa y desde cuándo.</p>
+                </div>
+              </div>
+              <ol class="faqs-steps">
+                <li><strong>Empieza cada sesión por <a href="#home" data-home-nav="home">Hoy</a>.</strong> Caja, riesgos y las tres decisiones del día, siempre de solo lectura.</li>
+                <li><strong>Para la lectura ejecutiva completa</strong>, abre <a href="#analisis" data-home-nav="analisis">Análisis</a>: colchón de doce meses con banda de color por mes, patrimonio neto con hitos, confianza del dato y si el plan acierta (previsto frente a real, solo en meses ya cerrados).</li>
+                <li><strong>En <a href="#planificacion-partidas" data-home-nav="planificacion-partidas">Planificación de partidas</a></strong>, la tarjeta «Resumen del plan» reúne peor mes del horizonte, colchón vigente e impacto de las decisiones confirmadas, además de sus propios hitos.</li>
+                <li><strong>Para localizar de un vistazo qué meses van peor</strong>, usa <a href="#mapa-calor" data-home-nav="mapa-calor">Mapa de calor</a>.</li>
+                <li><strong>Pruébalo:</strong> tras simular una decisión (caso de uso 2), vuelve al «Resumen del plan» o a Análisis y comprueba si cambia el peor mes o si aparece un hito nuevo.</li>
+              </ol>
+            </article>
+
+            <article class="e19-card faqs-faq">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Preguntas rápidas</p>
+                  <h3>FAQ</h3>
+                </div>
+              </div>
+              <div class="faqs-accordion">
+                <details>
+                  <summary>¿Dónde se guardan mis datos?</summary>
+                  <p>En este navegador. El panel «Sincronización» del menú lateral permite además guardarlos en la nube (Supabase) si entras con tu cuenta.</p>
+                </details>
+                <details>
+                  <summary>¿Qué significa exactamente «Usado»?</summary>
+                  <p>El real cuando existe; mientras no exista, el previsto. Es la cifra que entra en todos los cálculos del plan.</p>
+                </details>
+                <details>
+                  <summary>¿El simulador «¿Y si...?» guarda algo?</summary>
+                  <p>No. Es una previsualización dentro de la tabla de Planificación de partidas; para que cuente de verdad hay que llevarla a Escenario · simular.</p>
+                </details>
+                <details>
+                  <summary>¿Cómo deshago un cambio antes de guardar?</summary>
+                  <p>El botón «Descartar» de la barra de impacto (Planificación de partidas, Cuadro de mandos, Cambios pendientes) revierte todo lo tocado en la sesión, sin dejar rastro.</p>
+                </details>
+                <details>
+                  <summary>¿Cómo cierro el mes?</summary>
+                  <p>Concilia el extracto en Movimientos o en Conciliación y firma el cierre desde Cierre — nunca al revés.</p>
+                </details>
+                <details>
+                  <summary>¿Qué son las pantallas «heredadas»?</summary>
+                  <p>Versiones anteriores que se mantienen accesibles desde «Herramientas avanzadas» por si falta algo en las nuevas. No son el camino recomendado para trabajar día a día.</p>
+                </details>
+                <details>
+                  <summary>¿Puedo simular para mí o para mi mujer por separado?</summary>
+                  <p>Sí: el simulador «¿Y si...?» y varios motores de escenario incluyen un campo «Titular» (Hogar / Javi / Tere).</p>
+                </details>
+              </div>
+            </article>
           </section>
 
           <section class="visual-detail view-section" id="visual-detail">
