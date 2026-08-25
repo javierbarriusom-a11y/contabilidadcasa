@@ -2,6 +2,48 @@
 
 Fecha de revisión: 25 de agosto de 2026.
 
+## Cierre de sesión — 25 de agosto de 2026 (2): "FAQs y ayuda" más visual e interactiva
+
+Continuación directa del cierre anterior del mismo día (PR #112 ya fusionado). El usuario vio la
+sección estática recién publicada y pidió algo "más visual e interactivo, con un look and feel más
+cuidado".
+
+**Construido**:
+- Los tres casos de uso pasan de tarjetas apiladas a **pestañas** (`.faqs-tabs`, patrón
+  `role="tablist"`/`role="tab"`/`aria-selected`), cada una con un icono SVG propio en línea (lápiz
+  para "Actualizar datos", gráfico con tramo discontinuo para "Predicciones", lupa con check para
+  "Sacar conclusiones") y su color de acento (`--e19-heading`/`--e19-debt`/`--e19-success`, tokens
+  ya existentes) que se repite como borde superior de 3px en el panel activo — sin colores nuevos.
+- Los pasos numerados dejan de usar el marcador `<ol>` por defecto y pasan a insignias circulares
+  (`counter()` de CSS sobre `::before`), más legibles y con más peso visual.
+- El acordeón de preguntas gana una **flecha animada** (rota 90° al abrir, con transición) en vez
+  del triángulo nativo del navegador, y un **buscador en vivo** (`#faqsSearch`) que filtra las 7
+  preguntas por texto según se escribe, con mensaje de "sin resultados" cuando no hay coincidencias.
+- Nueva función `setupFaqsAyuda()` en `app.js`, cableada una sola vez en `init()` (la sección sigue
+  sin `render()` propio: contenido estático, solo interactividad de UI). Gestiona el cambio de
+  pestaña (mostrar/ocultar panel + `aria-selected`) y el filtro del acordeón (reutiliza
+  `normalizedText`, la misma normalización de acentos que ya usa el lanzador "Buscar o abrir").
+- Bug encontrado y corregido durante el QA visual: el icono SVG del buscador y los de las pestañas
+  se veían gigantes (350px) por una regla global preexistente `svg { min-height: 350px }` (pensada
+  para los gráficos de líneas, que fijan su alto por JS) — un `min-height: 0` en los selectores
+  nuevos lo resuelve sin tocar esa regla global ni ningún gráfico existente.
+
+**Pruebas**: sin pruebas nuevas — sigue siendo contenido estático (misma sección, mismo criterio
+que `#operations-manual`); `setupFaqsAyuda()` es cableado de UI sin lógica de negocio que probar.
+Se confirmó que la suite completa (1601 pruebas) sigue en verde.
+
+**Validación** (`npm run verify`, exit 0): **1601/1601 pruebas**, accesibilidad (827 IDs únicos —
++10 sobre la ronda anterior, los `id` de las tres pestañas y sus tres paneles), rendimiento (diff
+10.000 filas en 46,6 ms; forecast y escenarios en 255,3 ms; recursos 1823 KB), build del sitio,
+privacidad y smoke test en verde. QA manual con Playwright: la pestaña activa por defecto es
+"Actualizar datos"; al pulsar cada pestaña se oculta el panel anterior y aparece el nuevo con su
+borde de color; buscar "titular" deja visible solo la pregunta correspondiente; buscar un término
+inexistente vacía la lista y muestra el mensaje de "sin resultados"; capturas de pantalla de las
+tres pestañas y del buscador revisadas visualmente tras corregir el bug del icono.
+
+**Publicado**: pendiente de commit/push/PR en esta misma rama, según la autorización permanente de
+`CLAUDE.md` (verificar CI en verde antes de fusionar).
+
 ## Cierre de sesión — 25 de agosto de 2026 (1): nueva sección "FAQs y ayuda"
 
 El usuario pidió un manual de usuario para probar la app, basado en casos de uso (actualizar

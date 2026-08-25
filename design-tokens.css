@@ -5849,28 +5849,146 @@
   gap: 8px;
 }
 
-/* FAQs y ayuda: manual por casos de uso, en el mismo lenguaje visual que el resto (.e19-card,
-   .panel-kicker) — solo dos piezas propias, los pasos numerados y el acordeón de preguntas. */
-.e19-faqs .faqs-usecase + .faqs-usecase,
+/* FAQs y ayuda: manual interactivo por casos de uso — pestañas con icono propio por caso,
+   pasos numerados como insignias circulares y un acordeón de preguntas con buscador. Todo sobre
+   componentes y tokens ya existentes (.e19-card, .panel-kicker, --e19-heading/--e19-debt/
+   --e19-success como acento por pestaña); nada de esto toca otra pantalla. */
 .e19-faqs .faqs-faq {
   margin-top: 16px;
 }
 
-.e19-faqs .faqs-steps {
-  margin: 12px 0 0;
-  padding-left: 20px;
+.e19-faqs .faqs-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.e19-faqs .faqs-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 10px 10px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-pill);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.e19-faqs .faqs-tab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(11, 18, 32, 0.08);
+}
+
+.e19-faqs .faqs-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.e19-faqs .faqs-tab-icon svg {
+  width: 19px;
+  height: 19px;
+  min-height: 0;
+}
+
+.e19-faqs .faqs-tab-icon-actualizar { background: color-mix(in srgb, var(--e19-heading) 14%, transparent); color: var(--e19-heading); }
+.e19-faqs .faqs-tab-icon-predecir { background: color-mix(in srgb, var(--e19-debt) 16%, transparent); color: var(--e19-debt); }
+.e19-faqs .faqs-tab-icon-concluir { background: color-mix(in srgb, var(--e19-success) 16%, transparent); color: var(--e19-success); }
+
+.e19-faqs .faqs-tab-copy {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 1px;
+}
+
+.e19-faqs .faqs-tab-copy strong {
+  font-size: 14px;
+  color: var(--e19-heading);
+}
+
+.e19-faqs .faqs-tab-copy small {
+  color: var(--e19-muted);
+}
+
+.e19-faqs .faqs-tab.is-active {
+  border-color: var(--e19-heading);
+  box-shadow: 0 6px 18px rgba(11, 18, 32, 0.12);
+}
+
+.e19-faqs .faqs-usecase[data-faqs-panel="actualizar"] { border-top: 3px solid var(--e19-heading); }
+.e19-faqs .faqs-usecase[data-faqs-panel="predecir"] { border-top: 3px solid var(--e19-debt); }
+.e19-faqs .faqs-usecase[data-faqs-panel="concluir"] { border-top: 3px solid var(--e19-success); }
+
+.e19-faqs .faqs-steps {
+  margin: 12px 0 0;
+  padding-left: 0;
+  list-style: none;
+  counter-reset: faqs-step;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .e19-faqs .faqs-steps li {
+  position: relative;
+  padding-left: 38px;
   color: var(--e19-muted);
   line-height: 1.5;
 }
 
+.e19-faqs .faqs-steps li::before {
+  counter-increment: faqs-step;
+  content: counter(faqs-step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--e19-heading) 10%, transparent);
+  color: var(--e19-heading);
+  font-weight: 700;
+  font-size: 12px;
+}
+
 .e19-faqs .faqs-steps li strong {
   color: var(--e19-heading);
+}
+
+.e19-faqs .faqs-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-pill);
+  flex: none;
+}
+
+.e19-faqs .faqs-search svg {
+  width: 15px;
+  height: 15px;
+  min-height: 0;
+  color: var(--e19-muted);
+  flex: none;
+}
+
+.e19-faqs .faqs-search input {
+  border: none;
+  outline: none;
+  font: inherit;
+  min-width: 180px;
+  background: transparent;
 }
 
 .e19-faqs .faqs-accordion {
@@ -5884,6 +6002,11 @@
   border: 1px solid var(--e19-border);
   border-radius: var(--e19-radius-md);
   padding: 10px 14px;
+  transition: background 0.15s ease;
+}
+
+.e19-faqs .faqs-accordion details:hover {
+  border-color: color-mix(in srgb, var(--e19-heading) 30%, var(--e19-border));
 }
 
 .e19-faqs .faqs-accordion details[open] {
@@ -5893,9 +6016,37 @@
 .e19-faqs .faqs-accordion summary {
   cursor: pointer;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+}
+
+.e19-faqs .faqs-accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.e19-faqs .faqs-accordion summary::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-right: 2px solid var(--e19-muted);
+  border-bottom: 2px solid var(--e19-muted);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.e19-faqs .faqs-accordion details[open] summary::after {
+  transform: rotate(45deg);
 }
 
 .e19-faqs .faqs-accordion details p {
   margin: 8px 0 0;
   color: var(--e19-muted);
+}
+
+.e19-faqs .faqs-search-empty {
+  color: var(--e19-muted);
+  margin: 4px 0 0;
 }

@@ -2114,11 +2114,41 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Ayuda</p>
                 <h2 class="e19-heading">FAQs y ayuda</h2>
-                <p class="e19-subtitle">Manual rápido por casos de uso, pensado para probar la app con datos reales: actualizar, predecir y sacar conclusiones. Todo lo que describe usa pantallas ya existentes — esta guía en sí no cambia ni guarda nada.</p>
+                <p class="e19-subtitle">Manual interactivo por casos de uso, pensado para probar la app con datos reales. Todo lo que describe usa pantallas ya existentes — esta guía en sí no cambia ni guarda nada.</p>
               </div>
             </div>
 
-            <article class="e19-card faqs-usecase">
+            <div class="faqs-tabs" role="tablist" aria-label="Casos de uso">
+              <button type="button" class="faqs-tab is-active" role="tab" id="faqsTabActualizar" aria-selected="true" aria-controls="faqsPanelActualizar" data-faqs-tab="actualizar">
+                <span class="faqs-tab-icon faqs-tab-icon-actualizar" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4.5L19 9.5a2 2 0 0 0 0-2.8l-1.7-1.7a2 2 0 0 0-2.8 0L4 15.5V20Z"/><path d="M13 6l3 3"/></svg>
+                </span>
+                <span class="faqs-tab-copy">
+                  <strong>Actualizar datos</strong>
+                  <small>Saldo, reales, extracto</small>
+                </span>
+              </button>
+              <button type="button" class="faqs-tab" role="tab" id="faqsTabPredecir" aria-selected="false" aria-controls="faqsPanelPredecir" data-faqs-tab="predecir">
+                <span class="faqs-tab-icon faqs-tab-icon-predecir" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4"/><path d="M4 20h16"/><path d="M6.5 15.5l4-4 3 3 4.5-5.5"/><path d="M14 12.5l4.5-5.5" stroke-dasharray="2.4 2.4"/></svg>
+                </span>
+                <span class="faqs-tab-copy">
+                  <strong>Predicciones</strong>
+                  <small>Simular antes de decidir</small>
+                </span>
+              </button>
+              <button type="button" class="faqs-tab" role="tab" id="faqsTabConcluir" aria-selected="false" aria-controls="faqsPanelConcluir" data-faqs-tab="concluir">
+                <span class="faqs-tab-icon faqs-tab-icon-concluir" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M7.5 10.5l2 2 3.5-4.5"/><path d="M15.3 15.3L20 20"/></svg>
+                </span>
+                <span class="faqs-tab-copy">
+                  <strong>Sacar conclusiones</strong>
+                  <small>Leer el plan sin editar</small>
+                </span>
+              </button>
+            </div>
+
+            <article class="e19-card faqs-usecase" id="faqsPanelActualizar" role="tabpanel" aria-labelledby="faqsTabActualizar" data-faqs-panel="actualizar">
               <div class="module-heading">
                 <div>
                   <p class="panel-kicker">Caso de uso 1</p>
@@ -2135,7 +2165,7 @@
               </ol>
             </article>
 
-            <article class="e19-card faqs-usecase">
+            <article class="e19-card faqs-usecase" id="faqsPanelPredecir" role="tabpanel" aria-labelledby="faqsTabPredecir" data-faqs-panel="predecir" hidden>
               <div class="module-heading">
                 <div>
                   <p class="panel-kicker">Caso de uso 2</p>
@@ -2153,7 +2183,7 @@
               </ol>
             </article>
 
-            <article class="e19-card faqs-usecase">
+            <article class="e19-card faqs-usecase" id="faqsPanelConcluir" role="tabpanel" aria-labelledby="faqsTabConcluir" data-faqs-panel="concluir" hidden>
               <div class="module-heading">
                 <div>
                   <p class="panel-kicker">Caso de uso 3</p>
@@ -2176,8 +2206,13 @@
                   <p class="panel-kicker">Preguntas rápidas</p>
                   <h3>FAQ</h3>
                 </div>
+                <label class="faqs-search">
+                  <span class="sr-only">Buscar en las preguntas</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20 20"/></svg>
+                  <input type="search" id="faqsSearch" placeholder="Buscar una pregunta…" />
+                </label>
               </div>
-              <div class="faqs-accordion">
+              <div class="faqs-accordion" id="faqsAccordion">
                 <details>
                   <summary>¿Dónde se guardan mis datos?</summary>
                   <p>En este navegador. El panel «Sincronización» del menú lateral permite además guardarlos en la nube (Supabase) si entras con tu cuenta.</p>
@@ -2206,6 +2241,7 @@
                   <summary>¿Puedo simular para mí o para mi mujer por separado?</summary>
                   <p>Sí: el simulador «¿Y si...?» y varios motores de escenario incluyen un campo «Titular» (Hogar / Javi / Tere).</p>
                 </details>
+                <p class="faqs-search-empty" id="faqsSearchEmpty" hidden>No hay preguntas que coincidan con «<span id="faqsSearchEmptyTerm"></span>».</p>
               </div>
             </article>
           </section>

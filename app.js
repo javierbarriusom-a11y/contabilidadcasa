@@ -588,6 +588,44 @@ function openE17Dialog(kind) {
   dialog.showModal();
 }
 
+// FAQs y ayuda: contenido 100% estático (mismo criterio que #operations-manual, fuera del switch
+// de renderActiveSection), así que su interactividad se cablea una sola vez aquí — pestañas por
+// caso de uso y filtro de texto sobre el acordeón de preguntas, sin estado que sobreviva a un
+// cambio de pantalla ni recálculo alguno del plan.
+function setupFaqsAyuda() {
+  const tabs = [...document.querySelectorAll("[data-faqs-tab]")];
+  const panels = [...document.querySelectorAll("[data-faqs-panel]")];
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const target = tab.dataset.faqsTab;
+      tabs.forEach((candidate) => {
+        const active = candidate === tab;
+        candidate.classList.toggle("is-active", active);
+        candidate.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      panels.forEach((panel) => {
+        panel.hidden = panel.dataset.faqsPanel !== target;
+      });
+    });
+  });
+
+  const search = qs("faqsSearch");
+  const items = [...document.querySelectorAll("#faqsAccordion details")];
+  const empty = qs("faqsSearchEmpty");
+  const emptyTerm = qs("faqsSearchEmptyTerm");
+  search?.addEventListener("input", () => {
+    const term = normalizedText(search.value);
+    let visibleCount = 0;
+    items.forEach((item) => {
+      const match = !term || normalizedText(item.textContent).includes(term);
+      item.hidden = !match;
+      if (match) visibleCount += 1;
+    });
+    if (empty) empty.hidden = visibleCount > 0;
+    if (emptyTerm) emptyTerm.textContent = search.value;
+  });
+}
+
 function setupE17Experience() {
   applyE17Preferences();
   document.addEventListener("click", (event) => {
@@ -33362,6 +33400,7 @@ async function init() {
   updateProjectModeUi();
   updateDebtModeUi();
   setupE17Experience();
+  setupFaqsAyuda();
   setupViewNavigation();
   render();
   await setupSupabaseSync();
