@@ -5848,3 +5848,54 @@
   display: flex;
   gap: 8px;
 }
+
+/* FAQs y ayuda: manual por casos de uso, en el mismo lenguaje visual que el resto (.e19-card,
+   .panel-kicker) — solo dos piezas propias, los pasos numerados y el acordeón de preguntas. */
+.e19-faqs .faqs-usecase + .faqs-usecase,
+.e19-faqs .faqs-faq {
+  margin-top: 16px;
+}
+
+.e19-faqs .faqs-steps {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.e19-faqs .faqs-steps li {
+  color: var(--e19-muted);
+  line-height: 1.5;
+}
+
+.e19-faqs .faqs-steps li strong {
+  color: var(--e19-heading);
+}
+
+.e19-faqs .faqs-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.e19-faqs .faqs-accordion details {
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-md);
+  padding: 10px 14px;
+}
+
+.e19-faqs .faqs-accordion details[open] {
+  background: color-mix(in srgb, var(--e19-accent) 6%, transparent);
+}
+
+.e19-faqs .faqs-accordion summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.e19-faqs .faqs-accordion details p {
+  margin: 8px 0 0;
+  color: var(--e19-muted);
+}
