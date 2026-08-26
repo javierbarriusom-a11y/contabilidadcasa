@@ -92,6 +92,7 @@
               <a href="#asesor-decision" data-e17-group="assistants">Asesor ejecutivo (nuevo)</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
+              <a href="#presupuesto-mes" data-e17-group="analysis">Presupuesto del mes (nuevo)</a>
               <a href="#analisis" data-e17-group="analysis">Análisis (nuevo)</a>
               <a href="#cuadro-mandos" data-e17-group="analysis">Cuadro de mandos (nuevo)</a>
               <a href="#cambios-pendientes" data-e17-group="analysis">Cambios pendientes (nuevo)</a>
@@ -2246,6 +2247,17 @@
             </article>
           </section>
 
+          <section class="e19-presupuesto-mes e19-plan-mes view-section" id="presupuesto-mes">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Presupuesto</p>
+                <h2 class="e19-heading">Presupuesto del mes</h2>
+                <p class="e19-subtitle">Analiza los últimos 6 meses de gasto por categoría, sugiere un presupuesto mensual y compara el ritmo diario con lo realmente gastado. La proyección de fin de mes usa una regla lineal simple: gasto acumulado ÷ días transcurridos × días del mes.</p>
+              </div>
+            </div>
+            <div id="presupuestoMesRoot"></div>
+          </section>
+
           <section class="visual-detail view-section" id="visual-detail">
             <div class="hero-grid dashboard-hero" aria-label="Resumen del plan">
               <article class="summary-card primary">
@@ -4030,6 +4042,10 @@
     <script src="canonical-e14-parity.js?v=20260805e14parity1"></script>
     <script src="canonical-e15-goals.js?v=20260805e16a2"></script>
     <script src="canonical-e16-monitoring.js?v=20260805e16a2"></script>
+    <script src="canonical-budget-schema.js?v=20260826a1"></script>
+    <script src="canonical-budget-analyzer.js?v=20260826a1"></script>
+    <script src="canonical-budget-alerts.js?v=20260826a1"></script>
+    <script src="canonical-budget-forecast-category.js?v=20260826a1"></script>
     <script src="executive-read-model.js?v=20260801e6a"></script>
     <script src="canonical-debt-comparator.js?v=20260715a"></script>
     <script src="canonical-e7-analysis.js?v=20260801e7a"></script>

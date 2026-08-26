@@ -67,6 +67,7 @@ let movementMappings = {};
 let debtContractOverrides = {};
 let debtContractCustomEntries = [];
 let debtRoadmapState = {};
+let budgets = [];
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -332,6 +333,10 @@ const viewTitles = {
   "faqs-ayuda": {
     eyebrow: "Ayuda",
     title: "Manual por casos de uso: actualizar, predecir, concluir",
+  },
+  "presupuesto-mes": {
+    eyebrow: "Presupuesto",
+    title: "Ritmo diario de gasto por categoría, con alertas y proyección",
   },
   "executive-advisor": {
     eyebrow: "Asesor ejecutivo",
@@ -951,6 +956,7 @@ function appStatePayload(options = {}) {
     debtContractCustomEntries,
     debtRoadmapState,
     debtContracts: canonicalDebtContractRows(),
+    budgets,
   };
   const payload = window.FinanceCanonicalState?.canonicalizePayload
     ? window.FinanceCanonicalState.canonicalizePayload(rawPayload)
@@ -1382,6 +1388,7 @@ function applyPersistedPayload(payload = {}) {
     payload.debtContractOverrides && typeof payload.debtContractOverrides === "object" ? payload.debtContractOverrides : {};
   debtContractCustomEntries = Array.isArray(payload.debtContractCustomEntries) ? payload.debtContractCustomEntries : [];
   debtRoadmapState = payload.debtRoadmapState && typeof payload.debtRoadmapState === "object" ? payload.debtRoadmapState : {};
+  budgets = Array.isArray(payload.budgets) ? payload.budgets : [];
   canonicalSnapshot =
     payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
       ? payload.canonicalSnapshot
@@ -1447,6 +1454,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("debtContractOverrides"), JSON.stringify(debtContractOverrides));
   storageSet(storageKey("debtContractCustomEntries"), JSON.stringify(debtContractCustomEntries));
   storageSet(storageKey("debtRoadmapState"), JSON.stringify(debtRoadmapState));
+  storageSet(storageKey("budgets"), JSON.stringify(budgets));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
@@ -2326,6 +2334,7 @@ function loadLocalState() {
       debtContractOverrides: JSON.parse(storageGet(storageKey("debtContractOverrides"), "{}")),
       debtContractCustomEntries: JSON.parse(storageGet(storageKey("debtContractCustomEntries"), "[]")),
       debtRoadmapState: JSON.parse(storageGet(storageKey("debtRoadmapState"), "{}")),
+      budgets: JSON.parse(storageGet(storageKey("budgets"), "[]")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
       canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
@@ -2354,6 +2363,7 @@ function loadLocalState() {
     debtContractOverrides = {};
     debtRoadmapState = {};
     debtContractCustomEntries = [];
+    budgets = [];
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -2769,6 +2779,200 @@ function saveMovementMappings() {
 function saveDebtContractOverrides() {
   storageSet(storageKey("debtContractOverrides"), JSON.stringify(debtContractOverrides));
   queueRemoteSave();
+}
+
+function saveBudgets() {
+  storageSet(storageKey("budgets"), JSON.stringify(budgets));
+  queueRemoteSave();
+}
+
+// FASE 1 (S-1, P-2, S-2, U-1): dashboard de presupuesto mensual por categoría, sobre los motores
+// canónicos de FASE 0 (canonical-budget-analyzer/alerts/schema/forecast-category). La "categoría"
+// aquí es la categoría bancaria de classifyTransaction() (row.category), no la partida del plan —
+// es el agrupador que ya usa buildRollupsFromTransactions() para "gasto por categoría y mes".
+function currentBudgetMonthKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function budgetExpenseTransactions(category, monthKey) {
+  return (baseData?.transactions || []).filter(
+    (row) => row.category === category && row.month === monthKey && Number(row.amount || 0) < 0,
+  );
+}
+
+function budgetHistoricalExpenseTransactions(category, beforeMonthKey) {
+  return (baseData?.transactions || []).filter(
+    (row) => row.category === category && Number(row.amount || 0) < 0 && row.month < beforeMonthKey,
+  );
+}
+
+function budgetableCategories() {
+  const set = new Set();
+  (baseData?.transactions || []).forEach((row) => {
+    if (Number(row.amount || 0) < 0 && row.category) set.add(row.category);
+  });
+  return [...set].sort();
+}
+
+function budgetAnalysisForCategory(category, monthKey) {
+  if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer) return null;
+  const historical = budgetHistoricalExpenseTransactions(category, monthKey);
+  return window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer.analyzeCategory(historical, { months: 6 });
+}
+
+function budgetAlertForRow(budget, monthKey) {
+  const spentMovements = budgetExpenseTransactions(budget.categoryId, monthKey);
+  const analysis = budgetAnalysisForCategory(budget.categoryId, monthKey);
+  return window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts.calculateAlert({
+    budgetAmount: budget.amountCap,
+    movements: spentMovements,
+    stdDev: analysis?.stdDev || 0,
+    dateContext: { today: new Date() },
+  });
+}
+
+// S-2: proyección lineal de fin de mes — gasto_acumulado / días_transcurridos * días_totales.
+function budgetProjection(alert, monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dayOfMonth = Math.min(alert.metrics.dayOfMonth || new Date().getDate(), daysInMonth);
+  const projected = dayOfMonth > 0 ? round2((alert.metrics.spent / dayOfMonth) * daysInMonth) : alert.metrics.spent;
+  return { projected, daysInMonth, dayOfMonth, diff: round2(projected - alert.metrics.budgetAmount) };
+}
+
+// P-2: usada también por U-1 (card de Hoy) para un resumen agregado del mes actual.
+function homeBudgetSummary() {
+  if (!window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema || !window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts) return null;
+  const monthKey = currentBudgetMonthKey();
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey);
+  if (!monthBudgets.length) return null;
+  let totalBudgeted = 0;
+  let totalSpent = 0;
+  let worstSeverity = 0;
+  let worstMessage = "";
+  monthBudgets.forEach((budget) => {
+    const alert = budgetAlertForRow(budget, monthKey);
+    totalBudgeted += budget.amountCap;
+    totalSpent += alert.metrics.spent;
+    if (alert.status === "overspend" && alert.severity > worstSeverity) {
+      worstSeverity = alert.severity;
+      worstMessage = `${budget.categoryId}: ${alert.message}`;
+    }
+  });
+  const status = worstSeverity >= 3 ? "danger" : worstSeverity > 0 ? "warn" : "good";
+  return { monthKey, count: monthBudgets.length, totalBudgeted, totalSpent, status, worstMessage };
+}
+
+function handleSuggestBudgets() {
+  if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer || !window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return;
+  const monthKey = currentBudgetMonthKey();
+  let created = 0;
+  budgetableCategories().forEach((category) => {
+    if (window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, monthKey)) return;
+    const analysis = budgetAnalysisForCategory(category, monthKey);
+    if (!analysis) return;
+    budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, {
+      categoryId: category,
+      monthYear: monthKey,
+      amountCap: analysis.recommendation,
+      source: "suggested",
+    });
+    created += 1;
+  });
+  if (created) saveBudgets();
+  renderPresupuestoMes();
+}
+
+function handleBudgetAmountChange(input) {
+  const category = input.dataset.presupuestoMesCategory;
+  const monthKey = input.dataset.presupuestoMesMonth;
+  const amount = Number(input.value);
+  if (!category || !monthKey || !Number.isFinite(amount) || amount <= 0) return;
+  budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, {
+    categoryId: category,
+    monthYear: monthKey,
+    amountCap: amount,
+    source: "manual",
+  });
+  saveBudgets();
+  renderPresupuestoMes();
+}
+
+function handleRemoveBudget(category, monthKey) {
+  budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.delete(budgets, category, monthKey);
+  saveBudgets();
+  renderPresupuestoMes();
+}
+
+function presupuestoMesStatusPill(alert) {
+  if (alert.status === "overspend") {
+    return `<span class="e19-pill e19-pill-warn">Por encima del ritmo</span>`;
+  }
+  if (alert.status === "underspend") {
+    return `<span class="e19-pill e19-pill-safe">Por debajo del ritmo</span>`;
+  }
+  return `<span class="e19-pill e19-pill-safe">En ritmo</span>`;
+}
+
+function presupuestoMesRowHtml(budget, monthKey) {
+  const alert = budgetAlertForRow(budget, monthKey);
+  const projection = budgetProjection(alert, monthKey);
+  const pct = budget.amountCap > 0 ? Math.min(100, Math.round((alert.metrics.spent / budget.amountCap) * 100)) : 0;
+  const barClass = alert.status === "overspend" ? "is-danger" : pct >= 80 ? "is-warn" : "";
+  const projectedClass = projection.diff > 0 ? "negative" : "positive";
+  const sourceNote = budget.source === "suggested" ? ` <small class="note">sugerido</small>` : "";
+  return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
+    <td class="t">${escapeHtml(budget.categoryId)}${sourceNote}</td>
+    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budget.categoryId)}" value="${budget.amountCap}" /></td>
+    <td>${money(alert.metrics.spent, true)}</td>
+    <td>
+      <span class="registrar-mes-progress ${barClass}"><span style="width:${pct}%"></span></span>
+      <small>${pct}%</small>
+    </td>
+    <td>${presupuestoMesStatusPill(alert)}</td>
+    <td class="${projectedClass}">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small></td>
+    <td><button type="button" class="registrar-actuals-plan-link" data-presupuesto-mes-remove="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-remove-month="${escapeHtml(monthKey)}">Quitar</button></td>
+  </tr>`;
+}
+
+function renderPresupuestoMes() {
+  const root = qs("presupuestoMesRoot");
+  if (!root) return;
+  if (!window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema || !window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts || !window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer) {
+    root.innerHTML = `<p class="e19-subtitle">Los motores de presupuesto no están disponibles.</p>`;
+    return;
+  }
+  const monthKey = currentBudgetMonthKey();
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey);
+  const monthLabel = ledgerMonthLabel ? ledgerMonthLabel(monthKey) : monthKey;
+  const today = new Date();
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+  const summary = homeBudgetSummary();
+  const summaryHtml = summary
+    ? `<div class="registrar-mes-card-foot"><p class="e19-kpi-note">Total presupuestado ${money(summary.totalBudgeted, true)} · gastado ${money(summary.totalSpent, true)} · día ${today.getDate()}/${daysInMonth} del mes (${Math.round((today.getDate() / daysInMonth) * 100)}%).</p></div>`
+    : "";
+
+  const rows = monthBudgets.length
+    ? monthBudgets.map((budget) => presupuestoMesRowHtml(budget, monthKey)).join("")
+    : `<tr><td colspan="7" class="registrar-mes-empty">Todavía no hay presupuestos para ${escapeHtml(monthLabel)}. Pulsa «Sugerir presupuestos» para generarlos a partir de los últimos 6 meses.</td></tr>`;
+
+  root.innerHTML = `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(monthLabel)}</h3>
+        <p class="e19-subtitle">Ritmo diario = presupuesto ÷ días del mes. Editable por categoría; la sugerencia usa los últimos 6 meses de gasto real.</p>
+      </div>
+      <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-suggest>Sugerir presupuestos</button>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de mes</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    ${summaryHtml}
+  </article>`;
 }
 
 function saveScenarioSettings() {
@@ -23180,6 +23384,18 @@ function renderHomeDashboard() {
       target: "prevision",
       metadata: actionCenter.readModel?.metrics?.nextIncomeCoverage,
     }),
+    ...(() => {
+      const budgetSummary = homeBudgetSummary();
+      if (!budgetSummary) return [];
+      return [renderHomeKpi({
+        label: "Presupuesto del mes",
+        value: `${money(budgetSummary.totalSpent, true)} / ${money(budgetSummary.totalBudgeted, true)}`,
+        note: budgetSummary.worstMessage || `${budgetSummary.count} categoría${budgetSummary.count === 1 ? "" : "s"} con presupuesto, en ritmo.`,
+        status: budgetSummary.status,
+        cta: "Ver presupuesto",
+        target: "presupuesto-mes",
+      })];
+    })(),
   ].join("");
   renderE6Coverage(actionCenter.coverage);
   renderHomeMonthGlance(balanceDateText, savings.currentSavingTarget);
@@ -32196,6 +32412,9 @@ function renderActiveSection(viewId = viewFromHash()) {
     case "mapa-calor":
       renderMapaCalor();
       break;
+    case "presupuesto-mes":
+      renderPresupuestoMes();
+      break;
     case "update-hub":
       renderUpdateHub();
       break;
@@ -32670,6 +32889,17 @@ async function init() {
   qs("planMesTables")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-plan-mes-planned]");
     if (input) handlePlanMesPlannedChange(input);
+  });
+  qs("presupuestoMesRoot")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-presupuesto-mes-category]");
+    if (input) handleBudgetAmountChange(input);
+  });
+  qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
+    if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }
+    const removeButton = event.target.closest("[data-presupuesto-mes-remove]");
+    if (removeButton) {
+      handleRemoveBudget(removeButton.dataset.presupuestoMesRemove, removeButton.dataset.presupuestoMesRemoveMonth);
+    }
   });
   qs("planMesTables")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-plan-mes-copy]")) { handlePlanMesCopy(); return; }

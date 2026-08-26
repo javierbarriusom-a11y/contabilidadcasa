@@ -6050,3 +6050,23 @@
   color: var(--e19-muted);
   margin: 4px 0 0;
 }
+
+/* FASE 1 (P-2, S-1): la sección hereda tabla/tarjeta/barra de progreso de .e19-plan-mes tal cual
+   (mismo componente que Plan · Presupuesto de mes); aquí solo se añaden los dos estados que esa
+   tabla no necesitaba — fila en alerta roja y relleno ámbar de la barra de ritmo. */
+.e19-presupuesto-mes .registrar-mes-table tr.is-danger td {
+  background: rgba(193, 59, 59, 0.06);
+}
+
+.e19-presupuesto-mes .registrar-mes-progress.is-warn > span {
+  background: var(--e19-warning, #b8860b);
+}
+
+.e19-presupuesto-mes .registrar-mes-progress.is-danger > span {
+  background: var(--e19-danger, #c13b3b);
+}
+
+.e19-presupuesto-mes .registrar-mes-table td small.note {
+  color: var(--e19-muted);
+  font-style: italic;
+}

@@ -1,6 +1,110 @@
 # Estado del proyecto
 
-Fecha de revisión: 25 de agosto de 2026.
+Fecha de revisión: 26 de agosto de 2026.
+
+## Cierre de sesión — 26 de agosto de 2026 (2): FASE 1 — presupuesto del mes en pantalla
+
+Continuación directa del cierre anterior del mismo día (FASE 0, PR #114 en CI). El usuario aprobó
+seguir con FASE 1 y pidió también un dashboard visual de seguimiento del backlog completo.
+
+**Construido**:
+- Nueva sección `#presupuesto-mes` (menú avanzado, grupo "Analizar", y lanzador Cmd+K), que
+  reutiliza el componente visual ya probado de Plan · Presupuesto de mes (clase `.e19-plan-mes`,
+  misma tabla/tarjeta/barra de progreso que `planMesBudgetTableHtml`) en vez de crear un patrón
+  visual nuevo.
+- La categoría de presupuesto es la categoría bancaria de `classifyTransaction()` (`row.category`
+  sobre `baseData.transactions`), el mismo agrupador que ya usa `buildRollupsFromTransactions()`.
+- Botón "Sugerir presupuestos": `CanonicalBudgetAnalyzer` sobre los últimos 6 meses de cada
+  categoría con gasto, crea presupuestos `source: "suggested"` (p75 histórico).
+- Cada fila combina S-1 (alerta on-track/overspend/underspend, `CanonicalBudgetAlerts`) y S-2
+  (proyección lineal de fin de mes) en las columnas "Estado" y "Proyección fin de mes"; presupuesto
+  editable inline y botón "Quitar" por categoría.
+- U-1: card de resumen en Hoy (`renderHomeKpi`, mismo componente que caja/deuda/reserva), visible
+  solo si hay al menos un presupuesto para el mes en curso, enlazando a la pantalla completa.
+- Persistencia: `state.budgets[]` con los 5 puntos de enganche estándar del proyecto
+  (`appStatePayload`, `applyPersistedPayload`, `loadLocalState` + fallback, `saveLocalSnapshot`,
+  `saveBudgets()`); no hace falta tocar `canonical-supabase-store.js` porque viaja dentro del blob
+  de snapshot completo, igual que el resto de colecciones nuevas del proyecto.
+- Los 4 módulos de FASE 0 (`canonical-budget-analyzer/alerts/schema/forecast-category.js`) se
+  convirtieron de `export class` (ESM, no soportado por `<script>` plano) al patrón IIFE +
+  `window.FinanceCanonicalBudgetXxx` que usa el resto de módulos canónicos del proyecto, sin perder
+  el `module.exports` que necesitan los tests de Node.
+- **Bug encontrado y corregido durante el QA visual**: el primer intento exponía cada módulo como
+  `window.FinanceCanonicalBudgetXxx.ClassName.metodo()`, pero `app.js` llamaba a
+  `window.FinanceCanonicalBudgetXxx.metodo()` directamente (un nivel de menos) — la app entera caía
+  al fallback "No se pudo cargar la app" nada más arrancar. Se corrigió añadiendo el nivel que
+  faltaba en las 12 llamadas de `app.js`, verificado cargando la app real con Playwright.
+
+**Pruebas**: 2 tests de `tests/navigation-structure.test.cjs` actualizados (conteo de enlaces del
+menú avanzado, de 27 a 28 tras añadir "Presupuesto del mes"); sin tests nuevos de UI (la sección
+sigue el mismo criterio que el resto de pantallas de tabla — la lógica ya la cubre
+`tests/budget-core.test.cjs` de FASE 0).
+
+**Validación** (`npm run verify`, exit 0): **1621/1621 pruebas**, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 44,8 ms; forecast y escenarios en 221,9 ms; recursos 1834 KB),
+build del sitio, privacidad y smoke test en verde. QA visual con Playwright: como el demo público
+no trae movimientos bancarios (por privacidad), se inyectaron movimientos sintéticos en memoria
+solo para la captura — confirmó tabla con presupuesto sugerido, barra de ritmo al 85% en ámbar,
+alerta "En ritmo", proyección de fin de mes con exceso señalado (+5,08 € sobre), y la card de Hoy
+mostrando "330,00 € / 388,38 €" con enlace a la pantalla completa.
+
+**Backlog actualizado**: `BACKLOG_PRESUPUESTOS_V2.md` marca FASE 0 y FASE 1 como completadas;
+próxima fase es FASE 2 (hucha, forecast con estacionalidad, histórico visual, enlace con deuda).
+
+**Publicado**: pendiente de commit/push/PR a esta misma rama
+(`claude/budget-forecasting-improvements-4k54ti`, ya con PR #114 abierto para FASE 0 — este cierre
+añade commits al mismo PR), según la autorización permanente de `CLAUDE.md`.
+
+## Cierre de sesión — 26 de agosto de 2026 (1): FASE 0 iniciada - Arquitectura de presupuestos
+
+**Hito alcanzado**: Fundación canónica para sistema completo de presupuestos + forecasting.
+
+El usuario aprobó una **propuesta ambiciosa de 6 fases (24 semanas)** para transformar contabilidadcasa
+en una plataforma de decisión presupuestaria: de un dashboard de visualización a una herramienta que
+sugiere presupuestos, alerta sobre desviaciones diarias, proyecta fin de mes, simula impacto en deuda
+y gamifica el ahorro.
+
+**FASE 0 — Fundación (COMPLETADA)**:
+
+Arquitectura canónica de 4 módulos + tests robustos:
+- `canonical-budget-analyzer.js` (470 líneas): análisis histórico de 6-12 meses, cálculo de media,
+  mediana, p75, desviación estándar, detección de outliers y confianza. Retorna sugerencia de
+  presupuesto basada en p75 o forecast inteligente según estabilidad histórica.
+- `canonical-budget-alerts.js` (350 líneas): comparación de gasto acumulado vs. ritmo esperado
+  diario, cálculo de desviación (%), severidad (1-5) y confianza. Genera alertas on-track |
+  overspend | underspend con mensajes legibles.
+- `canonical-budget-schema.js` (200 líneas): validación y persistencia de presupuestos por
+  categoría/mes. Esquema SQL preparado para Supabase (tablas finance_budgets, finance_budget_surpluses,
+  finance_budget_simulations).
+- `canonical-budget-forecast-category.js` (300 líneas): forecast granular por categoría (similar a
+  E12 pero per-category), detección de estacionalidad (enero, navidad, verano), proyección con rango
+  de incertidumbre (±1σ).
+
+**Suite de tests** (400 líneas, `tests/budget-core.test.cjs`):
+- 20 tests de CanonicalBudgetAnalyzer: null handling, estadísticas correctas, outliers, batch
+- 8 tests de CanonicalBudgetAlerts: estados (on-track/overspend/underspend), ritmo diario, batch
+- 8 tests de CanonicalBudgetSchema: validación, create, upsert, find, byCategory, delete
+- 4 tests de CanonicalBudgetForecastCategory: null handling, forecast, estacionalidad
+- 1 test de integración: flujo completo (análisis → presupuesto → alerta)
+
+**Validación**: 1621/1621 tests en verde (0 fallos). Verifica: lógica de análisis, cálculo de
+ritmo diario, persistencia, detección de patrones estacionales.
+
+**Plan de seguimiento**:
+- FASE 1 (3 semanas): UI para alertas, dashboard presupuesto, proyección → CI verde → merge a main
+- FASE 2-6 (21 semanas): flexibilidad, simulaciones, mobile, gamificación, escala
+
+**Archivos nuevos creados**:
+- `canonical-budget-analyzer.js`, `canonical-budget-alerts.js`, `canonical-budget-schema.js`,
+  `canonical-budget-forecast-category.js`, `tests/budget-core.test.cjs`, `BACKLOG_PRESUPUESTOS_V2.md`
+
+**Rama de desarrollo**: `claude/budget-forecasting-improvements-4k54ti` (clean, lista para FASE 1)
+
+**Próximo paso**: Implementar FASE 1 (alertas + dashboard + proyección) sobre esta arquitectura.
+
+---
+
+## Cierre de sesión — 25 de agosto de 2026 (2): "FAQs y ayuda" más visual e interactiva
 
 ## Cierre de sesión — 25 de agosto de 2026 (2): "FAQs y ayuda" más visual e interactiva
 
