@@ -2,6 +2,57 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (6): FASE 3 — simulaciones "¿y si...?"
+
+Continuación directa del cierre anterior (FASE 2, ya fusionada a `main`). El usuario pidió seguir
+con FASE 3 del backlog de presupuestos tal y como está en `BACKLOG_PRESUPUESTOS_V2.md`.
+
+**Construido** (las 4 tareas de FASE 3, ~330 líneas):
+
+- **SIM-1 (motor "¿y si...?")**: nueva tarjeta "Simulador «¿y si...?»" bajo el histórico de
+  `#presupuesto-mes`, con un desplegable de categoría (`budgetableCategories()`) y un campo de
+  cambio mensual en €. La simulación (`budgetSimulation`) vive **solo en memoria, sin persistir**
+  — mismo criterio que el laboratorio efímero de escenarios de E13: no toca `budgets[]`, no tiene
+  punto de guardado, se pierde al recargar. El campo actualiza al cambiar el foco (evento
+  `change`, igual que el resto de inputs numéricos del módulo), no tecla a tecla, para no perder el
+  cursor mientras se escribe.
+- **SIM-2 (impacto en caja/cobertura/deuda a 3/6/12 meses)**: tarjeta "Impacto de la simulación"
+  con una fila por horizonte. Ahorro acumulado = cambio de caja constante × meses; caja proyectada
+  = caja actual (`accountBalancesFromState().total`) + ahorro; cobertura reutiliza
+  `safeCoverageMonths()` con el total presupuestado del mes como salida de referencia (mismo
+  agregado que ya usa `homeBudgetSummary()` para U-1). Aproximación declarada en el propio texto de
+  la tarjeta: el cambio se asume constante, no es un forecast completo de caja.
+  - **Bug real encontrado y corregido durante el propio desarrollo** (antes de publicar): un
+    recorte de presupuesto (delta negativo) se traducía directamente en "ahorro" negativo, como si
+    recortar gasto costara dinero. Corregido invirtiendo el signo (`cashDelta = -delta`): recortar
+    presupuesto libera caja, subirlo la consume. Verificado con Playwright y datos sintéticos
+    inyectados en memoria (recorte de 50€/mes → +150/+300/+600€ a 3/6/12 meses; subida de 50€/mes →
+    -150/-300/-600€), incluida la cobertura resultante (caja proyectada ÷ presupuesto total).
+- **SIM-3 (comparador actual vs. simulado)**: tarjeta "Comparador: actual vs. simulado" sobre el
+  mismo histórico de 12 meses de S-3, reutilizando `budgetAlertForRow()` con un presupuesto
+  sintético para no duplicar el "Gastado" fusionado banco + partidas a mano — solo cambia el
+  importe contra el que se mide el % de cada mes.
+- **LINK-2 (impacto simulado en deuda)**: tarjeta "Impacto simulado en tu deuda", misma mecánica
+  que LINK-1 (reutiliza `debtPriorityCandidates()`/`debtReliefMonthsForItem()` de E13 tal cual),
+  pero alimentada por el ahorro simulado de SIM-1/SIM-2 en vez del margen libre real del mes.
+  Verificado con un stub controlado del motor de deuda (aislado del resto del motor E13/E14, que
+  no es responsabilidad de esta tarea): "Si ahorras 50,00€/mes en Alimentacion, «Préstamo test» se
+  pagaría unos 6 meses antes."
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 31,0 ms; forecast y escenarios en 181,8 ms; recursos 1862 KB). Sin
+tests nuevos de Node (la lógica reutiliza `budgetAlertForRow`/`safeCoverageMonths`/
+`debtReliefMonthsForItem`, ya cubiertos por la suite existente). QA visual y funcional con
+Playwright sobre el sitio construido (`npm run build:site`), con datos sintéticos inyectados en
+memoria (el demo público no trae movimientos bancarios ni deudas con cuota activa): las 4 tarjetas
+nuevas renderizan y recalculan correctamente al cambiar categoría o delta, en ambos sentidos
+(recorte y subida de presupuesto).
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`.
+
+**Próximo paso**: FASE 4 (Experiencia & Mobile — U-2 rediseño de Hoy, U-3 mobile-first, U-4
+lanzador, PERF-1).
+
 ## Cierre de sesión — 26 de agosto de 2026 (5): FASE 2 — hucha, forecast, histórico y deuda
 
 Continuación directa del cierre anterior del mismo día (fix de fusión de fuentes, PR #116

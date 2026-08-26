@@ -3123,6 +3123,188 @@ function presupuestoMesDebtLinkHtml(monthKey) {
   </article>`;
 }
 
+// SIM-1: motor "¿y si...?" — simulación efímera en memoria, como el laboratorio de escenarios de
+// E13 (no persistida, no toca budgets[]): cambia el presupuesto de una categoría por un delta
+// mensual constante y las tarjetas SIM-2/SIM-3/LINK-2 recalculan a partir de este único estado.
+let budgetSimulation = { category: "", delta: 0 };
+
+function budgetSimulationCategory(monthKey) {
+  const categories = budgetableCategories();
+  if (budgetSimulation.category && categories.includes(budgetSimulation.category)) return budgetSimulation.category;
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  return monthBudgets[0]?.categoryId || categories[0] || "";
+}
+
+function budgetSimulationBaseline(category, monthKey) {
+  if (!category) return 0;
+  const existing = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, monthKey);
+  return existing ? existing.amountCap : suggestedAmountForCategory(category, monthKey) || 0;
+}
+
+function handleBudgetSimulationCategoryChange(select) {
+  budgetSimulation = { ...budgetSimulation, category: select.value };
+  renderPresupuestoMes();
+}
+
+function handleBudgetSimulationDeltaChange(input) {
+  const delta = Number(input.value);
+  budgetSimulation = { ...budgetSimulation, delta: Number.isFinite(delta) ? delta : 0 };
+  renderPresupuestoMes();
+}
+
+function presupuestoMesSimulatorHtml(monthKey) {
+  const categories = budgetableCategories();
+  if (!categories.length) return "";
+  const category = budgetSimulationCategory(monthKey);
+  const baseline = budgetSimulationBaseline(category, monthKey);
+  const delta = budgetSimulation.delta || 0;
+  const simulated = round2(Math.max(0, baseline + delta));
+  const options = categories
+    .map((cat) => `<option value="${escapeHtml(cat)}"${cat === category ? " selected" : ""}>${escapeHtml(cat)}</option>`)
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Simulador «¿y si...?»</h3>
+        <p class="e19-subtitle">Cambia el presupuesto de una categoría y mira el impacto en caja, cobertura y deuda de las tarjetas de abajo. Nada se guarda: es una simulación, no un cambio real.</p>
+      </div>
+    </div>
+    <div class="alert-rule-form">
+      <label><span>Categoría</span><select data-presupuesto-mes-sim-category aria-label="Categoría a simular">${options}</select></label>
+      <label><span>Cambio mensual (€)</span><input type="number" step="1" data-presupuesto-mes-sim-delta value="${delta}" aria-label="Cambio mensual en euros (negativo para recortar)" /></label>
+    </div>
+    <div class="registrar-mes-card-foot">
+      <p class="e19-kpi-note">Presupuesto actual de ${escapeHtml(category)}: ${money(baseline, true)}. Simulado: <strong>${money(simulated, true)}</strong> (${delta >= 0 ? "+" : ""}${money(delta, true)}/mes).</p>
+    </div>
+  </article>`;
+}
+
+// SIM-2/LINK-2: impacto compartido de la simulación a 3/6/12 meses. Aproximación declarada (el
+// delta se asume constante cada mes, no un forecast completo de caja): ahorro acumulado = delta ×
+// horizonte; cobertura reutiliza safeCoverageMonths() con el total presupuestado del mes como
+// salida mensual de referencia (mismo agregado que ya calcula homeBudgetSummary() para U-1); deuda
+// reutiliza debtPriorityCandidates()/debtReliefMonthsForItem() tal cual, como en LINK-1 — solo
+// cambia qué importe mensual se le pasa como alivio.
+function budgetSimulationHorizons() {
+  return [3, 6, 12];
+}
+
+function budgetSimulationImpact(monthKey) {
+  const category = budgetSimulationCategory(monthKey);
+  const delta = round2(budgetSimulation.delta || 0);
+  if (!category || !delta) return null;
+  const baseline = budgetSimulationBaseline(category, monthKey);
+  // Un delta negativo (recorte de presupuesto) libera caja; uno positivo (subida) la consume — el
+  // impacto en caja/cobertura/deuda va en el sentido contrario al del cambio de presupuesto.
+  const cashDelta = round2(-delta);
+  const currentCash = accountBalancesFromState().total;
+  const monthlyOutflow = homeBudgetSummary()?.totalBudgeted || 0;
+  const horizons = budgetSimulationHorizons().map((months) => {
+    const savings = round2(cashDelta * months);
+    const cash = round2(currentCash + savings);
+    return { months, savings, cash, coverage: safeCoverageMonths(cash, monthlyOutflow) };
+  });
+  let debt = null;
+  if (cashDelta > 0 && typeof debtPriorityCandidates === "function" && typeof debtReliefMonthsForItem === "function") {
+    const top = debtPriorityCandidates()[0];
+    const reliefMonths = top?.target?.id ? debtReliefMonthsForItem({ targetId: top.target.id, monthlyRelief: cashDelta }, 0) : 0;
+    if (reliefMonths) {
+      debt = {
+        reliefMonths,
+        cashDelta,
+        debtName: typeof debtTargetDisplayName === "function" ? debtTargetDisplayName(top.target) : "tu deuda principal",
+      };
+    }
+  }
+  return { category, delta, baseline, horizons, debt };
+}
+
+function presupuestoMesSimulationImpactHtml(monthKey) {
+  const impact = budgetSimulationImpact(monthKey);
+  if (!impact) return "";
+  const rows = impact.horizons
+    .map(
+      ({ months, savings, cash, coverage }) => `<tr>
+        <td class="t">${months} meses</td>
+        <td class="${savings >= 0 ? "positive" : "negative"}">${savings >= 0 ? "+" : ""}${money(savings, true)}</td>
+        <td>${money(cash, true)}</td>
+        <td>${coverage === null ? "N/D" : `${coverageMonthsText(coverage)} meses`}</td>
+      </tr>`,
+    )
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Impacto de la simulación</h3>
+        <p class="e19-subtitle">Si mantienes el cambio simulado en ${escapeHtml(impact.category)} de forma constante cada mes. Cobertura = caja proyectada ÷ total presupuestado del mes actual — aproximación, no sustituye a la previsión completa de caja.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Horizonte</th><th>Ahorro acumulado</th><th>Caja proyectada</th><th>Cobertura</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+// SIM-3: comparador presupuesto actual vs. simulado sobre el histórico de 12 meses. Reutiliza
+// budgetAlertForRow() con un presupuesto sintético (mismo "Gastado" fusionado banco + partidas a
+// mano que ya usa S-3) para no duplicar esa lógica; solo cambia el importe contra el que se mide.
+function presupuestoMesComparatorHtml(monthKey) {
+  const impact = budgetSimulationImpact(monthKey);
+  if (!impact) return "";
+  const { category, baseline, delta } = impact;
+  const simulatedAmount = round2(Math.max(0, baseline + delta));
+  const months = budgetHistoryMonthKeys(monthKey, 12);
+  let actualOnTrack = 0;
+  let simulatedOnTrack = 0;
+  const rows = months
+    .map((m) => {
+      const spent = budgetAlertForRow({ categoryId: category, amountCap: baseline || 1 }, m).metrics.spent;
+      const actualPct = baseline > 0 ? Math.round((spent / baseline) * 100) : 0;
+      const simulatedPct = simulatedAmount > 0 ? Math.round((spent / simulatedAmount) * 100) : 0;
+      if (actualPct <= 100) actualOnTrack += 1;
+      if (simulatedPct <= 100) simulatedOnTrack += 1;
+      return `<tr><td class="t">${escapeHtml(ledgerMonthLabel(m))}</td><td>${money(spent, true)}</td><td>${actualPct}%</td><td>${simulatedPct}%</td></tr>`;
+    })
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Comparador: actual vs. simulado</h3>
+        <p class="e19-subtitle">${escapeHtml(category)}: con el presupuesto actual (${money(baseline, true)}) habrías ido en ritmo ${actualOnTrack}/${months.length} meses del histórico; con el simulado (${money(simulatedAmount, true)}), ${simulatedOnTrack}/${months.length}.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Mes</th><th>Gastado</th><th>% actual</th><th>% simulado</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+// LINK-2: misma mecánica que LINK-1 (E13, tal cual: debtPriorityCandidates()/
+// debtReliefMonthsForItem()), pero disparada por el delta simulado en SIM-1 en vez del margen
+// libre real del mes — es una simulación, no dinero ya ahorrado.
+function presupuestoMesSimulationDebtLinkHtml(monthKey) {
+  const impact = budgetSimulationImpact(monthKey);
+  if (!impact?.debt) return "";
+  const { reliefMonths, debtName, cashDelta } = impact.debt;
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Impacto simulado en tu deuda</h3>
+        <p class="e19-subtitle">Si el cambio simulado se destinara íntegro a amortizar deuda extra cada mes.</p>
+      </div>
+    </div>
+    <div class="registrar-mes-card-foot">
+      <p class="e19-kpi-note">Si ahorras ${money(cashDelta, true)}/mes en ${escapeHtml(impact.category)}, «${escapeHtml(debtName)}» se pagaría unos <strong>${reliefMonths}</strong> mes${reliefMonths === 1 ? "" : "es"} antes. Estimación de la simulación; no se aplica nada automáticamente.</p>
+    </div>
+  </article>`;
+}
+
 function handleSuggestBudgets() {
   if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer || !window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return;
   const monthKey = currentBudgetMonthKey();
@@ -3311,7 +3493,11 @@ function renderPresupuestoMes() {
   ${presupuestoMesManualPartidasHtml(monthKey)}
   ${presupuestoMesSurplusHtml(monthKey)}
   ${presupuestoMesDebtLinkHtml(monthKey)}
-  ${presupuestoMesHistoryHtml(monthKey)}`;
+  ${presupuestoMesHistoryHtml(monthKey)}
+  ${presupuestoMesSimulatorHtml(monthKey)}
+  ${presupuestoMesSimulationImpactHtml(monthKey)}
+  ${presupuestoMesComparatorHtml(monthKey)}
+  ${presupuestoMesSimulationDebtLinkHtml(monthKey)}`;
 }
 
 function saveScenarioSettings() {
@@ -33235,7 +33421,11 @@ async function init() {
     const select = event.target.closest("[data-presupuesto-mes-partida-category]");
     if (select) { handleBudgetPartidaCategoryChange(select); return; }
     const surplusSelect = event.target.closest("[data-presupuesto-mes-surplus]");
-    if (surplusSelect) handleBudgetSurplusChoice(surplusSelect);
+    if (surplusSelect) { handleBudgetSurplusChoice(surplusSelect); return; }
+    const simCategory = event.target.closest("[data-presupuesto-mes-sim-category]");
+    if (simCategory) { handleBudgetSimulationCategoryChange(simCategory); return; }
+    const simDelta = event.target.closest("[data-presupuesto-mes-sim-delta]");
+    if (simDelta) handleBudgetSimulationDeltaChange(simDelta);
   });
   qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }
