@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/deuda.js");
 const html = read("index.html");
 const css = read("design-tokens.css");
 const worker = read("service-worker.js");
@@ -158,6 +158,6 @@ test("V3-4 · el CSS de la tarjeta se reutiliza de asesor-decision, sin declarar
 
 test("Deuda · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260826f1a1/);
+  assert.match(html, /app\.js\?v=20260826g1a1/);
   assert.match(html, /design-tokens\.css\?v=20260814f1a1/);
 });

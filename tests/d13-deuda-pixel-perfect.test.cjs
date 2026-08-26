@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/deuda.js"), "utf8");
 const E14DebtOperations = require(path.join(root, "canonical-e14-operations.js"));
 
 // Repaso pixel-perfect del 21 de agosto de 2026 (sesión «pantalla por pantalla», continuación de

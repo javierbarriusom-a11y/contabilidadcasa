@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/deuda.js");
 const html = read("index.html");
 
 // D-12 (Deuda) · "comparar la cuota total de deuda contra un umbral, con margen restante". La

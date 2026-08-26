@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/deuda.js"), "utf8");
 
 // Fase 6 · Análisis, segunda fase (17 de agosto): A-4 (cascada del resultado), A-5 (patrimonio neto
 // proyectado), A-8 (reparto del ingreso), A-9 (qué se repite) y A-11 (exportar). Ningún cálculo

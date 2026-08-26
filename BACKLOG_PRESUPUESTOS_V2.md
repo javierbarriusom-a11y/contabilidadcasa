@@ -324,9 +324,35 @@ dejando en `app.js` solo lo que Hoy también usa (`homeBudgetSummary`, `budgetAl
 una sola vez, sin `ReferenceError` en ninguna de sus 19 funciones movidas. Lighthouse tras el piloto:
 73-76 (tres ejecuciones), igual que la baseline pre-piloto — sin regresión, pero sin ganancia
 medible todavía: mover una sola pantalla (~40 KB de ~3,6 MB) no puede notarse; hace falta escalar la
-misma extracción a más pantallas (empezando por las más grandes, ej. el clúster de Cuadro de
-mandos/Planificación de partidas, ~3.000 líneas) para que el ahorro deje de ser ruido. Pendiente de
-decidir con el usuario el ritmo de esa escala.
+misma extracción a más pantallas para que el ahorro deje de ser ruido.
+
+**PERF-1 — escala #2: Deuda, y dos hallazgos que corrigen el propio mecanismo (sesión siguiente)**:
+se descartó el clúster de Cuadro de mandos/Planificación de partidas (~3.000 líneas) como siguiente
+paso: mapeando sus dependencias resultó ser infraestructura de edición (estado de borrador, guardar/
+descartar) compartida por Cuadro de mandos, Cambios pendientes y Plan además de sus dos vistas
+"propietarias" — demasiado entrelazado para mover con seguridad todavía. Se eligió en su lugar el
+clúster de Deuda (`deuda-comparar/ruta/contratos/simulador`, comparten helpers entre sí → un solo
+fragmento para las cuatro), extraído a `views/deuda.js` (~1.350 líneas).
+
+El mapeo encontró dos problemas que el piloto no había mostrado:
+1. Al menos 10 ficheros de test extraen funciones del texto de `app.js` por nombre (balanceando
+   llaves) porque `app.js` es un script de navegador, no un módulo `require`-able — moverlas a
+   `views/` las hace invisibles para ese mecanismo. Arreglado haciendo que esos 10 ficheros lean
+   `app.js` + `views/deuda.js` concatenados, igual que hace el navegador en tiempo de ejecución.
+2. Una referencia **directa** (sin envolver) a una función movida dentro de un
+   `addEventListener(evento, nombreFuncion)` resuelve el nombre al registrar el listener, en el
+   arranque — mucho antes de que el fragmento se descargue. Esto rompía `init()` entero para
+   cualquier pantalla (no solo Deuda): `lastSimulation` nunca se calculaba y toda la app quedaba
+   sustituida por "No se pudo cargar la app". Los 1621 tests no lo detectaron (no ejecutan `init()`
+   de verdad); lo encontró una verificación real en navegador contra `dist/` servido. Arreglado
+   envolviendo las 11 referencias directas encontradas en `(event) => nombreFuncion(event)`.
+
+Validado con `npm run verify` completo y en navegador real: arranque sin `ReferenceError`, las 4
+pantallas renderizan contenido real, el fragmento se descarga una sola vez para las cuatro,
+Análisis/Cierre/Hoy (que dependen de `debtAmortizationSchedule`/`debtCapitalCuadre`, que se
+quedaron en `app.js`) siguen funcionando sin cambios. Sigue pendiente decidir con el usuario el
+ritmo de la siguiente escala (candidatos: Escenario, Cierre/Conciliar — vistas relacionadas y poco
+acopladas con el resto, con el mismo método de mapeo ya afinado).
 
 ---
 

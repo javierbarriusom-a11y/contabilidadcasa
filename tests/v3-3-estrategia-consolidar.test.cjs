@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/deuda.js");
 const html = read("index.html");
 const worker = read("service-worker.js");
 const schema = require(path.join(root, "canonical-scenario-schema.js"));
@@ -305,13 +305,13 @@ test("V3-3 · la pantalla pide la oferta y ya no dice que reunificar no se puede
 });
 
 test("V3-3/D-10 · las cuatro casillas (incluida la vigencia) están conectadas y se pueden borrar de una vez", () => {
-  assert.match(app, /\["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision", "deudaCompararOfferExpiresAt"\]\.forEach\(\(id\) => \{\s*qs\(id\)\?\.addEventListener\("input", handleDeudaCompararOfferInput\);/);
-  assert.match(app, /qs\("deudaCompararOfferClear"\)\?\.addEventListener\("click", handleDeudaCompararOfferClear\);/);
+  assert.match(app, /\["deudaCompararOfferTin", "deudaCompararOfferPlazo", "deudaCompararOfferComision", "deudaCompararOfferExpiresAt"\]\.forEach\(\(id\) => \{\s*qs\(id\)\?\.addEventListener\("input", \(event\) => handleDeudaCompararOfferInput\(event\)\);/);
+  assert.match(app, /qs\("deudaCompararOfferClear"\)\?\.addEventListener\("click", \(event\) => handleDeudaCompararOfferClear\(event\)\);/);
   assert.match(html, /id="deudaCompararOfferClear"/);
   assert.match(html, /id="deudaCompararOfferExpiresAt"/);
 });
 
 test("V3-3 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260826f1a1/);
+  assert.match(html, /app\.js\?v=20260826g1a1/);
 });

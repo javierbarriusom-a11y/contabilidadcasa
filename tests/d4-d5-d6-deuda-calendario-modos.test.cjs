@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/deuda.js");
 const html = read("index.html");
 const engine = require(path.join(root, "canonical-scenario-engine.js"));
 const schema = require(path.join(root, "canonical-scenario-schema.js"));
@@ -874,11 +874,11 @@ test("D-4 · index.html declara el contenedor del calendario dentro de #deuda-ru
 
 test("D-5/D-6 · los manejadores de la sección de modos quedan enlazados en el arranque", () => {
   [
-    'qs("deudaCompararModeContract")?.addEventListener("change", handleDeudaCompararModeContractChange)',
-    'qs("deudaCompararModeSelect")?.addEventListener("change", handleDeudaCompararModeSelectChange)',
-    'qs("deudaCompararModeFields")?.addEventListener("input", handleDeudaCompararModeFieldChange)',
-    'qs("deudaCompararModeCompareBody")?.addEventListener("click", handleDeudaCompararModeCompareClick)',
-    'qs("deudaCompararModeApply")?.addEventListener("click", handleDeudaCompararModeApply)',
+    'qs("deudaCompararModeContract")?.addEventListener("change", (event) => handleDeudaCompararModeContractChange(event))',
+    'qs("deudaCompararModeSelect")?.addEventListener("change", (event) => handleDeudaCompararModeSelectChange(event))',
+    'qs("deudaCompararModeFields")?.addEventListener("input", (event) => handleDeudaCompararModeFieldChange(event))',
+    'qs("deudaCompararModeCompareBody")?.addEventListener("click", (event) => handleDeudaCompararModeCompareClick(event))',
+    'qs("deudaCompararModeApply")?.addEventListener("click", (event) => handleDeudaCompararModeApply(event))',
   ].forEach((snippet) => {
     assert.ok(app.includes(snippet), `Falta el cableado: ${snippet}`);
   });

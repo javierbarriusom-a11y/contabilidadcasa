@@ -2,6 +2,61 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (11): PERF-1 — escala #2 (Deuda) y dos hallazgos serios
+
+Continuación directa del cierre anterior (mecanismo + piloto de "Presupuesto del mes" ya fusionados).
+El usuario pidió seguir escalando; se eligió el clúster de Deuda (`deuda-comparar`, `deuda-ruta`,
+`deuda-contratos`, `deuda-simulador` — comparten helpers entre sí, así que es un solo fragmento para
+las cuatro) por ser el siguiente más grande y razonablemente aislado tras descartar el clúster de
+Cuadro de mandos/Planificación de partidas (~3.000 líneas): ese resultó ser infraestructura de
+edición compartida por Cuadro de mandos, Cambios pendientes y Plan además de las dos vistas
+"propietarias" — demasiado entrelazado para mover con seguridad en esta sesión. Extraído a
+`views/deuda.js` (~1.350 líneas), dejando en `app.js` lo que otras vistas necesitan
+(`debtAmortizationSchedule` para Análisis; `saveDebtCapitalSnapshotAtClose`/`debtCapitalCuadre` para
+Cierre).
+
+**Dos hallazgos que el piloto no había enseñado, y que obligaron a corregir el propio mecanismo de
+PERF-1, no solo a mover código con más cuidado**:
+
+1. **Los tests unitarios extraen funciones directamente del texto de `app.js`** (`extractFunction`/
+   `extractConst`, balanceando llaves, en al menos 10 ficheros de test) porque `app.js` es un script
+   de navegador y no se puede `require()`. Mover una función a `views/deuda.js` la hace invisible
+   para ese mecanismo aunque el código siga siendo correcto — no es un fallo de la extracción, es un
+   fallo de que la búsqueda de texto asumía "todo vive en app.js". Arreglado actualizando el `app`
+   que cada uno de esos 10 ficheros lee para que sea `app.js` + `views/deuda.js` concatenados (igual
+   que hace el navegador en tiempo de ejecución, solo que en un fichero de texto en vez de en el
+   scope global). Detectado por los propios tests (96 fallos), no en producción.
+
+2. **Un `addEventListener(evento, nombreFuncion)` con referencia directa (sin envolver) resuelve
+   `nombreFuncion` en el momento de registrar el listener** — en el arranque, para las vistas de
+   Deuda, mucho antes de que `views/deuda.js` se descargue. Esto rompía `init()` entero (no solo
+   Deuda): `ReferenceError: handleDeudaCompararReserveInput is not defined`, capturado por el
+   `.catch()` de `init()` y sustituyendo toda la página por "No se pudo cargar la app" — **cualquier
+   pantalla, no solo las de Deuda**, porque `lastSimulation` nunca llegaba a calcularse. Los 1621
+   tests no lo vieron (no ejecutan `init()` de verdad; extraen y prueban funciones sueltas). Lo
+   encontró una verificación real en navegador (Playwright contra `dist/` servido) que sí ejecuta la
+   app completa — la misma disciplina que ya venía aplicando para estos PRs, aquí la que evitó
+   publicar una regresión real. Arreglado envolviendo las 11 referencias directas encontradas en
+   `qs(...)?.addEventListener("evento", (event) => nombreFuncion(event))`: el nombre se resuelve al
+   disparar el evento, no al registrarlo, momento en el que la vista (y su fragmento) ya está
+   cargada. Detectado con un script que compara, para cada función movida, sus apariciones totales
+   en el fichero contra las que están seguidas de `(` — una referencia "pelada" (pasada como
+   callback) no lo está.
+
+**Validación**: `npm run verify` completo (1621/1621, incluidos los 10 ficheros de test corregidos);
+verificación real en navegador contra `dist/` servido: arranque sin `ReferenceError` (antes sí lo
+había), las 4 pantallas de Deuda renderizan contenido real, el fragmento se descarga una sola vez
+para las 4 (mismo `src`, no 4 descargas), Análisis/Cierre/Hoy siguen funcionando sin cambios.
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`.
+
+**Próximo paso**: seguir escalando. El clúster de Cuadro de mandos/Planificación de partidas queda
+descartado como próximo objetivo por su acoplamiento; mejores candidatos son vistas con patrón
+similar a Deuda (varias pantallas relacionadas, poco acopladas con el resto) — Escenario
+(`escenario-simular/aplicar/guardados/comparar`) o Cierre/Conciliar son las siguientes a evaluar con
+el mismo método (mapear dependencias por nombre de función Y por referencia "pelada" en
+`addEventListener`, no solo por llamada).
+
 ## Cierre de sesión — 26 de agosto de 2026 (10): PERF-1 — piloto de carga diferida por vista
 
 Continuación directa del cierre anterior. El usuario pidió abordar PERF-1: cómo dividir el JS de la

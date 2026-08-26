@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/deuda.js");
 const html = read("index.html");
 const tokens = read("design-tokens.css");
 const worker = read("service-worker.js");
@@ -201,5 +201,5 @@ test("V6-3 · el control vive en Ajustes, con ayuda y sin romper el shell offlin
   assert.match(app, /addHelpToControl\(\s*"ajustesReserve"/);
   assert.match(tokens, /\.cuadro-mandos-reserve-note\b/);
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260826f1a1/);
+  assert.match(html, /app\.js\?v=20260826g1a1/);
 });
