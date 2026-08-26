@@ -2,7 +2,10 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución — FASE 0, FASE 1, FASE 2 y FASE 3 completadas, FASE 4 siguiente
+**Estado**: Aprobado y en ejecución — FASE 0 a FASE 3 completadas; FASE 4 (Gamificación e
+Inteligencia) con GAME-1/2/3, NOTIF-1 y ML-1 completados y COMP-1 pendiente de decidir enfoque de
+CLI/auth con el usuario. Experiencia & Mobile reordenada como FASE 5, después de esta (petición del
+usuario, 26 de agosto)
 
 ---
 
@@ -208,9 +211,44 @@ movimientos bancarios ni deudas con cuota activa).
 
 ---
 
-### **FASE 4 (Experiencia & Mobile) — Semanas 12-15**
+### **FASE 4 (Gamificación & Inteligencia) — Semanas 12-16**
 
-App usable y brilla en móvil.
+Usuario vuelve cada día, entiende sus patrones. **Reordenada antes que la FASE de Experiencia &
+Mobile** (petición del usuario, 26 de agosto): ninguna de sus tareas depende de U-2/U-3/U-4/PERF-1,
+solo de P-2/S-1/P-3/F-1, ya completados en FASE 0-2.
+
+| Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
+|-------|----------|----------|-----------|--------|
+| **GAME-1** | Sistema de objetivos presupuestarios: metas mensuales por categoría | Medio | P-2 | ✅ |
+| **GAME-2** | Badges/logros: "Ahorrista" (3 meses bajo presupuesto), "Equilibrador", etc. | Bajo | GAME-1 | ✅ |
+| **GAME-3** | Retos: "El mes que menos gastamos todos en comida" | Bajo | GAME-1 | ✅ |
+| **NOTIF-1** | Notificaciones inteligentes: deviación, hito, hucha disponible | Medio | S-1, P-3 | ✅ |
+| **ML-1** | Análisis de cohortes: "Tus meses de julio gastan 15% más" | Bajo | F-1 | ✅ |
+| **COMP-1** | Companion CLI/API: registrar gastos rápido desde terminal | Bajo | P-2 | ⏳ Pendiente — decidir enfoque de auth/despliegue con el usuario antes de construir |
+
+**Construido**:
+- **GAME-1**: `budgetComplianceStreak()` cuenta meses consecutivos sin sobregasto, reutilizando
+  `budgetAlertForRow()`. Tarjeta "Objetivos: meses seguidos dentro de presupuesto".
+- **GAME-2**: badges "Ahorrista" (racha ≥3 dentro de presupuesto) y "Equilibrador" (racha ≥3 en la
+  banda 80-100%, mismos umbrales que los badges de color de S-3). Tarjeta "Logros".
+- **GAME-3**: "el mes que menos gastas" compara la proyección de fin de mes (S-2) con el mínimo
+  histórico real de 12 meses, reutilizando `budgetProjection()`/`budgetAlertForRow()`.
+- **NOTIF-1**: centro de avisos en pantalla (sin canal de push real todavía) que consolida
+  desviación (S-1), hito (badges de GAME-2) y hucha sin decidir (P-3).
+- **ML-1**: agrupa el gasto real histórico (24 meses) por mes de calendario y compara contra la
+  media global de la categoría; solo informa con 2+ observaciones y desviación ≥10%.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 27,9 ms; forecast y escenarios en 150,1 ms; recursos 1874 KB). QA
+visual con Playwright y datos sintéticos: racha de 3 meses gana ambos badges, reto marca
+correctamente "por encima del récord", patrón estacional detecta julio a +58% sobre la media.
+
+---
+
+### **FASE 5 (Experiencia & Mobile) — Semanas 17-20**
+
+App usable y brilla en móvil. Pasa a ir después de Gamificación (petición del usuario, 26 de
+agosto).
 
 | Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
 |-------|----------|----------|-----------|--------|
@@ -218,21 +256,6 @@ App usable y brilla en móvil.
 | **U-3** | Mobile-first: todas las pantallas de presupuestos en 390px | Alto | P-2, P-3, SIM-1 | ⏳ |
 | **U-4** | Lanzador mejorado: acciones de presupuesto | Bajo | S-1, U-2 | ⏳ |
 | **PERF-1** | Optimización de rendimiento: Lighthouse >85 | Bajo | U-3 | ⏳ |
-
----
-
-### **FASE 5 (Gamificación & Inteligencia) — Semanas 16-20**
-
-Usuario vuelve cada día, entiende sus patrones.
-
-| Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
-|-------|----------|----------|-----------|--------|
-| **GAME-1** | Sistema de objetivos presupuestarios: metas mensuales por categoría | Medio | P-2 | ⏳ |
-| **GAME-2** | Badges/logros: "Ahorrista" (3 meses bajo presupuesto), "Equilibrador", etc. | Bajo | GAME-1 | ⏳ |
-| **GAME-3** | Retos: "El mes que menos gastamos todos en comida" | Bajo | GAME-1 | ⏳ |
-| **NOTIF-1** | Notificaciones inteligentes: deviación, hito, hucha disponible | Medio | S-1, P-3 | ⏳ |
-| **ML-1** | Análisis de cohortes: "Tus meses de julio gastan 15% más" | Bajo | F-1 | ⏳ |
-| **COMP-1** | Companion CLI/API: registrar gastos rápido desde terminal | Bajo | P-2 | ⏳ |
 
 ---
 
@@ -309,8 +332,8 @@ Estabilidad, documentación, performance en escala.
 | **1** | S-1, P-2, S-2, U-1 | ~450 | 3 | ✅ |
 | **2** | P-3, F-1, S-3, LINK-1 | ~330 | 3 | ✅ |
 | **3** | SIM-1, SIM-2, SIM-3, LINK-2 | ~330 | 3 | ✅ |
-| **4** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ⏳ |
-| **5** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | 700 | 5 | ⏳ |
+| **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~370 (+ COMP-1 pendiente) | 5 | ⏳ 5/6 |
+| **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ⏳ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ⏳ |
 | **TOTAL** | | **5070 líneas** | **24 semanas** | **En Curso** |
 
@@ -325,9 +348,13 @@ Estabilidad, documentación, performance en escala.
 4. ✅ **FASE 3 completada**: simulador "¿y si...?" (SIM-1), impacto en caja/cobertura/deuda a
    3/6/12 meses (SIM-2), comparador actual vs. simulado (SIM-3), enlace ampliado con deuda
    (LINK-2) (1621/1621 ✓)
-5. **FASE 4 siguiente**: experiencia y mobile (U-2 rediseño de Hoy, U-3 mobile-first, U-4 lanzador,
-   PERF-1)
-6. **Weekly checkpoints**: Estado en PROJECT_STATE.md
+5. ✅ **FASE 4 en curso** (reordenada antes que Experiencia & Mobile, a petición del usuario):
+   objetivos y rachas (GAME-1), badges (GAME-2), retos (GAME-3), notificaciones inteligentes
+   (NOTIF-1) y cohortes estacionales (ML-1) completados (1621/1621 ✓). Falta **COMP-1** (companion
+   CLI): pendiente de decidir con el usuario el enfoque de autenticación/despliegue antes de
+   construirlo, porque escribiría en el Supabase real desde fuera del navegador.
+6. **FASE 5 después**: experiencia y mobile (U-2, U-3, U-4, PERF-1)
+7. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
 

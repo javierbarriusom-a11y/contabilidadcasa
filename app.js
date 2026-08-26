@@ -3305,6 +3305,260 @@ function presupuestoMesSimulationDebtLinkHtml(monthKey) {
   </article>`;
 }
 
+// GAME-1: sistema de objetivos presupuestarios. Cada presupuesto mensual (P-2) YA es la meta; lo
+// que faltaba era medir el cumplimiento en el tiempo. budgetComplianceStreak() cuenta meses
+// consecutivos, terminando en monthKey y hacia atrás, en los que la categoría tuvo presupuesto y
+// quedó dentro de él — reutiliza budgetAlertForRow() mes a mes (mismo "Gastado" fusionado banco +
+// partidas a mano que ya usa S-3), sin recalcular nada. Para en el primer mes sin presupuesto o
+// con sobregasto.
+function budgetComplianceStreak(category, monthKey, maxMonths = 24) {
+  let streak = 0;
+  let cursor = monthKey;
+  for (let i = 0; i < maxMonths; i += 1) {
+    const budget = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, cursor);
+    if (!budget) break;
+    if (budgetAlertForRow(budget, cursor).metrics.spent > budget.amountCap) break;
+    streak += 1;
+    cursor = previousBudgetMonthKey(cursor);
+  }
+  return streak;
+}
+
+// Igual que budgetComplianceStreak(), pero exige además que el gasto quede en la banda 80-100% del
+// presupuesto (ni gran holgura ni sobregasto) — la misma banda que ya usan los badges de S-3
+// (verde <80%, ámbar 80-100%, rojo >100%) para "en ritmo, sin margen de sobra".
+function budgetBalancedStreak(category, monthKey, maxMonths = 24) {
+  let streak = 0;
+  let cursor = monthKey;
+  for (let i = 0; i < maxMonths; i += 1) {
+    const budget = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, cursor);
+    if (!budget || budget.amountCap <= 0) break;
+    const pct = (budgetAlertForRow(budget, cursor).metrics.spent / budget.amountCap) * 100;
+    if (pct < 80 || pct > 100) break;
+    streak += 1;
+    cursor = previousBudgetMonthKey(cursor);
+  }
+  return streak;
+}
+
+function presupuestoMesGoalsHtml(monthKey) {
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  if (!monthBudgets.length) return "";
+  const rows = monthBudgets
+    .map((budget) => {
+      const streak = budgetComplianceStreak(budget.categoryId, monthKey);
+      return `<tr><td class="t">${escapeHtml(budget.categoryId)}</td><td>${streak} mes${streak === 1 ? "" : "es"} seguido${streak === 1 ? "" : "s"}</td></tr>`;
+    })
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Objetivos: meses seguidos dentro de presupuesto</h3>
+        <p class="e19-subtitle">La meta de cada categoría es el propio presupuesto del mes (P-2). La racha cuenta meses consecutivos hasta hoy sin sobregasto; se corta en el primer mes sin presupuesto o por encima de él.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Categoría</th><th>Racha actual</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+// GAME-2: badges/logros, derivados de las rachas de GAME-1. "Ahorrista" premia la constancia
+// (dentro de presupuesto); "Equilibrador" premia además la precisión (ni gran holgura ni
+// sobregasto, banda 80-100%) — son criterios distintos y complementarios, no el mismo umbral dos
+// veces.
+const BUDGET_BADGES = Object.freeze([
+  {
+    id: "ahorrista",
+    icon: "🏅",
+    label: "Ahorrista",
+    description: "3 meses seguidos dentro de presupuesto",
+    streak: (category, monthKey) => budgetComplianceStreak(category, monthKey),
+  },
+  {
+    id: "equilibrador",
+    icon: "⚖️",
+    label: "Equilibrador",
+    description: "3 meses seguidos gastando entre el 80% y el 100% del presupuesto",
+    streak: (category, monthKey) => budgetBalancedStreak(category, monthKey),
+  },
+]);
+
+function budgetBadgesForCategory(category, monthKey) {
+  return BUDGET_BADGES.filter((badge) => badge.streak(category, monthKey) >= 3);
+}
+
+function presupuestoMesBadgesHtml(monthKey) {
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const earned = monthBudgets.flatMap((budget) =>
+    budgetBadgesForCategory(budget.categoryId, monthKey).map((badge) => ({ budget, badge })),
+  );
+  if (!earned.length) return "";
+  const items = earned
+    .map(
+      ({ budget, badge }) =>
+        `<li><strong>${badge.icon} ${escapeHtml(badge.label)}</strong> — ${escapeHtml(budget.categoryId)}: ${escapeHtml(badge.description)}.</li>`,
+    )
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Logros</h3>
+        <p class="e19-subtitle">Insignias ganadas por categoría según su racha actual (GAME-1). Se pierden si el mes en curso rompe la racha.</p>
+      </div>
+    </div>
+    <ul class="commit-barrier-list">${items}</ul>
+  </article>`;
+}
+
+// GAME-3: reto "el mes que menos gastamos" — compara la proyección de fin de mes (S-2) con el
+// mínimo histórico real de los últimos 12 meses para esa categoría (excluyendo el mes en curso).
+// Reutiliza budgetAlertForRow()/budgetProjection() mes a mes, sin nueva lógica de cálculo.
+function budgetHistoricalMinimumSpend(category, monthKey) {
+  const spentValues = recentBudgetMonthKeys(monthKey, 12)
+    .map((m) => budgetAlertForRow({ categoryId: category, amountCap: 1 }, m).metrics.spent)
+    .filter((spent) => spent > 0);
+  return spentValues.length ? Math.min(...spentValues) : null;
+}
+
+function presupuestoMesChallengeHtml(monthKey) {
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const rows = monthBudgets
+    .map((budget) => {
+      const recordMin = budgetHistoricalMinimumSpend(budget.categoryId, monthKey);
+      if (recordMin === null) return null;
+      const projection = budgetProjection(budgetAlertForRow(budget, monthKey), monthKey);
+      const onTrack = projection.projected <= recordMin;
+      return { category: budget.categoryId, recordMin, projected: projection.projected, onTrack };
+    })
+    .filter(Boolean);
+  if (!rows.length) return "";
+  const items = rows
+    .map(
+      ({ category, recordMin, projected, onTrack }) => `<tr class="${onTrack ? "" : ""}">
+        <td class="t">${escapeHtml(category)}</td>
+        <td>${money(recordMin, true)}</td>
+        <td>${money(projected, true)}</td>
+        <td>${onTrack ? `<span class="e19-pill e19-pill-safe">Camino de récord</span>` : `<span class="e19-pill e19-pill-warn">Por encima del récord</span>`}</td>
+      </tr>`,
+    )
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Reto: el mes que menos gastas</h3>
+        <p class="e19-subtitle">Compara la proyección de fin de mes con el mes de menor gasto real de los últimos 12 meses, por categoría.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Categoría</th><th>Récord (mínimo histórico)</th><th>Proyección este mes</th><th>Estado</th></tr></thead>
+        <tbody>${items}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+// NOTIF-1: notificaciones inteligentes. Sin canal de push real todavía (A5-5 sigue pendiente en
+// BACKLOG_STATUS), así que es un centro de avisos en pantalla que consolida tres señales ya
+// calculadas en otras tareas de esta iniciativa — no inventa datos nuevos, solo los reúne:
+// desviación (alertas de sobregasto de S-1), hito (badges recién ganados de GAME-2) y hucha
+// disponible (sobrante sin decidir de P-3).
+function budgetSmartNotifications(monthKey) {
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const notifications = [];
+  monthBudgets.forEach((budget) => {
+    const alert = budgetAlertForRow(budget, monthKey);
+    if (alert.status === "overspend") {
+      notifications.push({ icon: "⚠️", text: `${budget.categoryId}: por encima del ritmo — ${alert.message}` });
+    }
+  });
+  monthBudgets.forEach((budget) => {
+    budgetBadgesForCategory(budget.categoryId, monthKey).forEach((badge) => {
+      notifications.push({ icon: badge.icon, text: `${budget.categoryId}: logro «${badge.label}» — ${badge.description}.` });
+    });
+  });
+  budgetSurplusEntries(monthKey).forEach(({ budget, surplus }) => {
+    if (!budgetSurplusChoices[monthKey]?.[budget.categoryId]) {
+      notifications.push({ icon: "🐷", text: `Hucha disponible en ${budget.categoryId}: ${money(surplus, true)} sin decidir todavía.` });
+    }
+  });
+  return notifications;
+}
+
+function presupuestoMesNotificationsHtml(monthKey) {
+  const notifications = budgetSmartNotifications(monthKey);
+  if (!notifications.length) return "";
+  const items = notifications.map((n) => `<li>${n.icon} ${escapeHtml(n.text)}</li>`).join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Notificaciones inteligentes</h3>
+        <p class="e19-subtitle">Resumen de lo que necesita tu atención este mes: desviaciones, logros y hucha por decidir. Sin canal de push todavía; se consulta aquí.</p>
+      </div>
+    </div>
+    <ul class="commit-barrier-list">${items}</ul>
+  </article>`;
+}
+
+// ML-1: análisis de cohortes estacionales — "tus meses de julio gastan un 15% más". Agrupa el
+// gasto real histórico (24 meses) por mes del calendario y compara la media de cada uno contra la
+// media global de la categoría; solo informa de meses con al menos 2 observaciones y una
+// desviación de 10% o más, para no señalar ruido con muestras pequeñas.
+function budgetCalendarMonthName(monthNumber) {
+  return new Date(2000, monthNumber - 1, 1).toLocaleDateString("es-ES", { month: "long" });
+}
+
+function budgetSeasonalPatterns(category, monthKey, monthsBack = 24) {
+  const spendByCalendarMonth = {};
+  recentBudgetMonthKeys(monthKey, monthsBack)
+    .concat(monthKey)
+    .forEach((m) => {
+      const spent = budgetAlertForRow({ categoryId: category, amountCap: 1 }, m).metrics.spent;
+      if (spent <= 0) return;
+      const calendarMonth = Number(m.split("-")[1]);
+      (spendByCalendarMonth[calendarMonth] ||= []).push(spent);
+    });
+  const allValues = Object.values(spendByCalendarMonth).flat();
+  if (allValues.length < 6) return [];
+  const overallAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+  if (overallAvg <= 0) return [];
+  return Object.entries(spendByCalendarMonth)
+    .filter(([, values]) => values.length >= 2)
+    .map(([calendarMonth, values]) => {
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      return { calendarMonth: Number(calendarMonth), avg, samples: values.length, deviationPct: Math.round(((avg - overallAvg) / overallAvg) * 100) };
+    })
+    .filter((pattern) => Math.abs(pattern.deviationPct) >= 10)
+    .sort((a, b) => Math.abs(b.deviationPct) - Math.abs(a.deviationPct));
+}
+
+function presupuestoMesSeasonalHtml(monthKey) {
+  const categories = budgetableCategories();
+  const items = categories
+    .flatMap((category) => budgetSeasonalPatterns(category, monthKey).slice(0, 1).map((pattern) => ({ category, pattern })))
+    .sort((a, b) => Math.abs(b.pattern.deviationPct) - Math.abs(a.pattern.deviationPct))
+    .slice(0, 8);
+  if (!items.length) return "";
+  const rows = items
+    .map(
+      ({ category, pattern }) => `<li>${escapeHtml(category)}: los meses de <strong>${escapeHtml(budgetCalendarMonthName(pattern.calendarMonth))}</strong> gastan un ${pattern.deviationPct > 0 ? "+" : ""}${pattern.deviationPct}% ${pattern.deviationPct > 0 ? "más" : "menos"} que la media (${pattern.samples} observaciones, media ${money(pattern.avg, true)}).</li>`,
+    )
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Patrones estacionales</h3>
+        <p class="e19-subtitle">Meses del calendario con gasto real significativamente distinto a la media de cada categoría (24 meses de histórico, mínimo 2 observaciones, desviación ≥10%).</p>
+      </div>
+    </div>
+    <ul class="commit-barrier-list">${rows}</ul>
+  </article>`;
+}
+
 function handleSuggestBudgets() {
   if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer || !window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return;
   const monthKey = currentBudgetMonthKey();
@@ -3497,7 +3751,12 @@ function renderPresupuestoMes() {
   ${presupuestoMesSimulatorHtml(monthKey)}
   ${presupuestoMesSimulationImpactHtml(monthKey)}
   ${presupuestoMesComparatorHtml(monthKey)}
-  ${presupuestoMesSimulationDebtLinkHtml(monthKey)}`;
+  ${presupuestoMesSimulationDebtLinkHtml(monthKey)}
+  ${presupuestoMesNotificationsHtml(monthKey)}
+  ${presupuestoMesGoalsHtml(monthKey)}
+  ${presupuestoMesBadgesHtml(monthKey)}
+  ${presupuestoMesChallengeHtml(monthKey)}
+  ${presupuestoMesSeasonalHtml(monthKey)}`;
 }
 
 function saveScenarioSettings() {
