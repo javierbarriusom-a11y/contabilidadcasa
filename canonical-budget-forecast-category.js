@@ -9,7 +9,14 @@
  * Salida: { categoryId, monthlyForecast: { "2026-09": 250±30, ... }, confidence, seasonality }
  */
 
-export class CanonicalBudgetForecastCategory {
+(function attachCanonicalBudgetForecastCategory(root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.FinanceCanonicalBudgetForecastCategory = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function canonicalBudgetForecastCategoryFactory() {
+  "use strict";
+
+class CanonicalBudgetForecastCategory {
   /**
    * Genera forecast por categoría para próximos 6-12 meses.
    *
@@ -172,9 +179,5 @@ export class CanonicalBudgetForecastCategory {
   }
 }
 
-export default CanonicalBudgetForecastCategory;
-
-// CommonJS support for tests
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CanonicalBudgetForecastCategory };
-}
+  return { CanonicalBudgetForecastCategory };
+});

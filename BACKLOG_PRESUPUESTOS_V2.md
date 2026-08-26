@@ -2,7 +2,7 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución (FASE 0 - Fundación)
+**Estado**: Aprobado y en ejecución — FASE 0 y FASE 1 completadas, FASE 2 siguiente
 
 ---
 
@@ -42,23 +42,54 @@ Crear arquitectura canónica compartida y tests robustos.
 
 ---
 
-### **FASE 1 (Visibilidad) — Semanas 3-5**
+### **FASE 1 (Visibilidad) — Semanas 3-5 · COMPLETADA (26 de agosto)**
 
 Usuario ve dónde está cada día, toma decisiones informadas.
 
 | Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
 |-------|----------|----------|-----------|--------|
-| **S-1** | Alertas de desviación por categoría (ritmo vs. real) | Medio | ARCH-0 | ⏳ |
-| **P-2** | Dashboard `#presupuesto-mes`: tabla + barras de progreso | Medio | ARCH-0 | ⏳ |
-| **S-2** | Proyección fin de mes + recomendaciones | Medio | ARCH-0 | ⏳ |
-| **U-1** | Card en "Hoy" resumiendo presupuesto + insignia de ritmo | Bajo | P-2 | ⏳ |
+| **S-1** | Alertas de desviación por categoría (ritmo vs. real) | Medio | ARCH-0 | ✅ |
+| **P-2** | Dashboard `#presupuesto-mes`: tabla + barras de progreso | Medio | ARCH-0 | ✅ |
+| **S-2** | Proyección fin de mes + recomendaciones | Medio | ARCH-0 | ✅ |
+| **U-1** | Card en "Hoy" resumiendo presupuesto + insignia de ritmo | Bajo | P-2 | ✅ |
+
+**Construido**:
+- Nueva sección `#presupuesto-mes` (grupo "Analizar" del menú avanzado, y en el lanzador Cmd+K),
+  reutilizando el componente visual de Plan · Presupuesto de mes (`.e19-plan-mes`, misma tabla,
+  barras de progreso y tarjeta que ya usa `planMesBudgetTableHtml`) para no introducir un patrón
+  visual nuevo.
+- La "categoría" de presupuesto es la categoría bancaria de `classifyTransaction()`
+  (`row.category`), no la partida del plan: es el agrupador que ya usa
+  `buildRollupsFromTransactions()` para "gasto por categoría y mes".
+- Botón "Sugerir presupuestos": ejecuta `CanonicalBudgetAnalyzer` sobre los últimos 6 meses de cada
+  categoría con gasto y crea presupuestos con `source: "suggested"` (p75 histórico).
+- Cada fila combina S-1 (alerta on-track/overspend/underspend vía `CanonicalBudgetAlerts`) y S-2
+  (proyección lineal de fin de mes) en las columnas "Estado" y "Proyección fin de mes".
+- Presupuesto editable inline (`<input type="number">`, mismo patrón que Plan · Presupuesto de
+  mes) y botón "Quitar" por categoría.
+- U-1: card `renderHomeKpi` en Hoy (mismo componente que caja/deuda/reserva) con el agregado del
+  mes — solo aparece si existe al menos un presupuesto para el mes en curso — enlazando a
+  `#presupuesto-mes`.
+- Persistencia: `state.budgets[]` con los 5 puntos de enganche estándar del proyecto
+  (`appStatePayload`, `applyPersistedPayload`, `loadLocalState` + fallback, `saveLocalSnapshot`,
+  `saveBudgets()`), sin tocar `canonical-supabase-store.js` (viaja dentro del blob de snapshot).
+- Los 4 módulos de FASE 0 se convirtieron de `export class` (ESM) al patrón IIFE +
+  `window.FinanceCanonicalBudgetXxx` que usa el resto del proyecto (`canonical-e13-scenarios.js` et
+  al.), manteniendo el `module.exports` para que los tests de Node seguido funcionando sin cambios.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests en verde (incluye 2 tests de estructura
+de navegación actualizados al contar el nuevo enlace), accesibilidad (829 IDs únicos), rendimiento,
+build del sitio, privacidad y smoke test. QA visual con Playwright (datos sintéticos inyectados en
+memoria, ya que el demo público no trae movimientos bancarios): tabla con presupuesto sugerido,
+barra de ritmo al 85% en ámbar, alerta "En ritmo", proyección de fin de mes con exceso señalado, y
+la card de Hoy mostrando "330,00 € / 388,38 €" con enlace a la pantalla completa.
 
 **Criterios de Éxito**:
-- [ ] Usuario ve presupuesto diario con alertas en Hoy
-- [ ] Proyección de fin de mes es auditable contra datos reales
-- [ ] QA móvil: todo legible en 390px sin scroll horizontal
-- [ ] Performance: Hoy carga <1s (1000 movimientos)
-- [ ] Publicado en main
+- [x] Usuario ve presupuesto diario con alertas en Hoy
+- [x] Proyección de fin de mes es auditable contra datos reales
+- [ ] QA móvil: pendiente de verificar en 390px (no se descarta ajuste en FASE 4 — U-3)
+- [x] Performance: Hoy carga <1s (rendimiento global sigue en 44,8 ms/221,9 ms tras el cambio)
+- [ ] Publicado en main — PR pendiente de abrir tras este cierre
 
 ---
 
@@ -186,22 +217,24 @@ Estabilidad, documentación, performance en escala.
 | Fase | Tarea | Líneas de código | Semanas | Estado |
 |------|-------|-----------------|---------|--------|
 | **0** | ARCH-0, P-1, TEST-0 | 1320 | 2 | ✅ |
-| **1** | S-1, P-2, S-2, U-1 | 600 | 3 | ⏳ |
+| **1** | S-1, P-2, S-2, U-1 | ~450 | 3 | ✅ |
 | **2** | P-3, F-1, S-3, LINK-1 | 500 | 3 | ⏳ |
 | **3** | SIM-1, SIM-2, SIM-3, LINK-2 | 600 | 3 | ⏳ |
 | **4** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ⏳ |
 | **5** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | 700 | 5 | ⏳ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ⏳ |
-| **TOTAL** | | **5220 líneas** | **24 semanas** | **En Curso** |
+| **TOTAL** | | **5070 líneas** | **24 semanas** | **En Curso** |
 
 ---
 
 ## 🚀 Próximos Pasos
 
 1. ✅ **FASE 0 completada**: Módulos canónicos, tests (1621/1621 ✓)
-2. **FASE 1 iniciarse**: Crear UI para alertas, dashboard, proyección
-3. **PR a main** (CI verde, revisor aprueba)
-4. **Weekly checkpoints**: Estado en PROJECT_STATE.md
+2. ✅ **FASE 1 completada**: Sección `#presupuesto-mes`, alertas, proyección, card en Hoy (1621/1621 ✓)
+3. **FASE 2 siguiente**: hucha (P-3), forecast por categoría con estacionalidad (F-1), histórico
+   visual de 12 meses (S-3), enlace con metas de deuda (LINK-1)
+4. **PR a main** (CI verde, revisor aprueba)
+5. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
 

@@ -88,6 +88,8 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // de Deuda. D-15 (21 de agosto) añade «Simulador visual de deuda» como cuarta pestaña, promovida
   // desde el `<details>` de compatibilidad que vivía dentro de `#debt-roadmap` (grupo legacy, sin
   // tocar): el enlace nuevo entra en `analysis`, junto al resto de Deuda.
-  assert.equal(byGroup.analysis.length, 12, "Decidir y Analizar suman doce enlaces tras el simulador visual de Deuda");
-  assert.equal(links.length, 27, "veintisiete enlaces en el menú avanzado tras el simulador visual de Deuda");
+  // FASE 1 (P-2, 26 de agosto) añade «Presupuesto del mes» al grupo Analizar, justo delante de
+  // Análisis: primer paso del seguimiento diario de presupuesto antes de la lectura ejecutiva.
+  assert.equal(byGroup.analysis.length, 13, "Decidir y Analizar suman trece enlaces tras Presupuesto del mes");
+  assert.equal(links.length, 28, "veintiocho enlaces en el menú avanzado tras Presupuesto del mes");
 });

@@ -9,7 +9,14 @@
  * Salida: { categoryId, status, severity, confidence, message, metrics }
  */
 
-export class CanonicalBudgetAlerts {
+(function attachCanonicalBudgetAlerts(root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.FinanceCanonicalBudgetAlerts = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function canonicalBudgetAlertsFactory() {
+  "use strict";
+
+class CanonicalBudgetAlerts {
   /**
    * Calcula alerta de desviación para una categoría en el mes actual.
    *
@@ -152,9 +159,5 @@ export class CanonicalBudgetAlerts {
   }
 }
 
-export default CanonicalBudgetAlerts;
-
-// CommonJS support for tests
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CanonicalBudgetAlerts };
-}
+  return { CanonicalBudgetAlerts };
+});

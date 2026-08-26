@@ -10,7 +10,14 @@
  * Salida: { categoryId, average, median, p75, stdDev, seasonality, confidence }
  */
 
-export class CanonicalBudgetAnalyzer {
+(function attachCanonicalBudgetAnalyzer(root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.FinanceCanonicalBudgetAnalyzer = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function canonicalBudgetAnalyzerFactory() {
+  "use strict";
+
+class CanonicalBudgetAnalyzer {
   /**
    * Analiza una categoría de gasto y retorna estadísticas e índice de confianza.
    *
@@ -146,9 +153,5 @@ export class CanonicalBudgetAnalyzer {
   }
 }
 
-export default CanonicalBudgetAnalyzer;
-
-// CommonJS support for tests
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CanonicalBudgetAnalyzer };
-}
+  return { CanonicalBudgetAnalyzer };
+});

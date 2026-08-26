@@ -7,7 +7,14 @@
  * Estructura en state: state.budgets = [ { id, categoryId, monthYear, amountCap, source, appliedAt } ]
  */
 
-export class CanonicalBudgetSchema {
+(function attachCanonicalBudgetSchema(root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.FinanceCanonicalBudgetSchema = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function canonicalBudgetSchemaFactory() {
+  "use strict";
+
+class CanonicalBudgetSchema {
   /**
    * Valida y crea un presupuesto.
    *
@@ -142,9 +149,5 @@ export class CanonicalBudgetSchema {
   }
 }
 
-export default CanonicalBudgetSchema;
-
-// CommonJS support for tests
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CanonicalBudgetSchema };
-}
+  return { CanonicalBudgetSchema };
+});
