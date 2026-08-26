@@ -2,6 +2,54 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (7): FASE 4 — gamificación e inteligencia
+
+Continuación directa del cierre anterior (FASE 3, ya fusionada a `main`). El usuario pidió
+reordenar el backlog: hacer FASE 4 (Gamificación & Inteligencia) antes que la de Experiencia &
+Mobile, dejando esta última para después. Se comprobó que ninguna tarea de la fase reordenada
+depende de U-2/U-3/U-4/PERF-1 (solo de P-2/S-1/P-3/F-1, ya completados), así que era viable, y se
+actualizó `BACKLOG_PRESUPUESTOS_V2.md` con el nuevo orden (FASE 4 = gamificación, FASE 5 =
+experiencia y mobile).
+
+**Decisión tomada con el usuario**: COMP-1 ("Companion CLI/API") implica un script Node que
+escribiría en el Supabase real del hogar con su propio login — infraestructura distinta al resto
+(JS de navegador). Se decidió dejarla para el final de esta fase y pararse a decidir el enfoque de
+autenticación/despliegue antes de tocarla; esta sesión cierra con las otras 5 tareas construidas y
+COMP-1 todavía pendiente.
+
+**Construido** (GAME-1, GAME-2, GAME-3, NOTIF-1, ML-1):
+
+- **GAME-1 (objetivos)**: el propio presupuesto mensual (P-2) ES la meta; lo que faltaba era medir
+  el cumplimiento en el tiempo. `budgetComplianceStreak()` cuenta meses consecutivos hasta hoy sin
+  sobregasto, reutilizando `budgetAlertForRow()` mes a mes — se corta en el primer mes sin
+  presupuesto o con sobregasto. Tarjeta "Objetivos: meses seguidos dentro de presupuesto".
+- **GAME-2 (badges)**: "Ahorrista" (racha de 3+ meses dentro de presupuesto) y "Equilibrador"
+  (racha de 3+ meses gastando en la banda 80-100%, ni holgura ni sobregasto — mismos umbrales que
+  ya usan los badges de color de S-3). Tarjeta "Logros".
+- **GAME-3 (retos)**: "el mes que menos gastas" compara la proyección de fin de mes (S-2) con el
+  mínimo histórico real de los últimos 12 meses por categoría, reutilizando
+  `budgetProjection()`/`budgetAlertForRow()` sin nueva lógica de cálculo.
+- **NOTIF-1 (notificaciones)**: sin canal de push real todavía (A5-5 sigue pendiente), se construyó
+  un centro de avisos en pantalla que consolida tres señales ya calculadas en otras tareas:
+  desviación (sobregasto de S-1), hito (badges recién ganados de GAME-2) y hucha disponible sin
+  decidir (P-3) — no inventa datos nuevos, solo los reúne.
+- **ML-1 (cohortes estacionales)**: agrupa el gasto real histórico (24 meses) por mes de calendario
+  y compara la media de cada uno contra la media global de la categoría; solo informa de meses con
+  2+ observaciones y desviación ≥10%, para no señalar ruido con muestras pequeñas.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 27,9 ms; forecast y escenarios en 150,1 ms; recursos 1874 KB). Sin
+tests nuevos de Node (toda la lógica reutiliza `budgetAlertForRow`/`budgetProjection`/
+`recentBudgetMonthKeys`, ya cubiertos). QA visual y funcional con Playwright y datos sintéticos:
+racha de 3 meses → ambos badges se ganan correctamente y aparecen en Logros y en Notificaciones;
+reto muestra récord histórico correcto (180€) y proyección real (214,62€) marcando "por encima del
+récord"; patrón estacional detecta julio a +58% sobre la media con 2 observaciones.
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`.
+
+**Próximo paso**: COMP-1 (decidir enfoque de CLI/auth antes de construir) para cerrar FASE 4, y
+después FASE 5 (Experiencia & Mobile — U-2, U-3, U-4, PERF-1).
+
 ## Cierre de sesión — 26 de agosto de 2026 (6): FASE 3 — simulaciones "¿y si...?"
 
 Continuación directa del cierre anterior (FASE 2, ya fusionada a `main`). El usuario pidió seguir
