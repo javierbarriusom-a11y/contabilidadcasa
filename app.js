@@ -68,6 +68,7 @@ let debtContractOverrides = {};
 let debtContractCustomEntries = [];
 let debtRoadmapState = {};
 let budgets = [];
+let budgetPartidaOverrides = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -957,6 +958,7 @@ function appStatePayload(options = {}) {
     debtRoadmapState,
     debtContracts: canonicalDebtContractRows(),
     budgets,
+    budgetPartidaOverrides,
   };
   const payload = window.FinanceCanonicalState?.canonicalizePayload
     ? window.FinanceCanonicalState.canonicalizePayload(rawPayload)
@@ -1389,6 +1391,8 @@ function applyPersistedPayload(payload = {}) {
   debtContractCustomEntries = Array.isArray(payload.debtContractCustomEntries) ? payload.debtContractCustomEntries : [];
   debtRoadmapState = payload.debtRoadmapState && typeof payload.debtRoadmapState === "object" ? payload.debtRoadmapState : {};
   budgets = Array.isArray(payload.budgets) ? payload.budgets : [];
+  budgetPartidaOverrides =
+    payload.budgetPartidaOverrides && typeof payload.budgetPartidaOverrides === "object" ? payload.budgetPartidaOverrides : {};
   canonicalSnapshot =
     payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
       ? payload.canonicalSnapshot
@@ -1455,6 +1459,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("debtContractCustomEntries"), JSON.stringify(debtContractCustomEntries));
   storageSet(storageKey("debtRoadmapState"), JSON.stringify(debtRoadmapState));
   storageSet(storageKey("budgets"), JSON.stringify(budgets));
+  storageSet(storageKey("budgetPartidaOverrides"), JSON.stringify(budgetPartidaOverrides));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
@@ -2335,6 +2340,7 @@ function loadLocalState() {
       debtContractCustomEntries: JSON.parse(storageGet(storageKey("debtContractCustomEntries"), "[]")),
       debtRoadmapState: JSON.parse(storageGet(storageKey("debtRoadmapState"), "{}")),
       budgets: JSON.parse(storageGet(storageKey("budgets"), "[]")),
+      budgetPartidaOverrides: JSON.parse(storageGet(storageKey("budgetPartidaOverrides"), "{}")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
       canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
@@ -2364,6 +2370,7 @@ function loadLocalState() {
     debtRoadmapState = {};
     debtContractCustomEntries = [];
     budgets = [];
+    budgetPartidaOverrides = {};
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -2786,6 +2793,87 @@ function saveBudgets() {
   queueRemoteSave();
 }
 
+function saveBudgetPartidaOverrides() {
+  storageSet(storageKey("budgetPartidaOverrides"), JSON.stringify(budgetPartidaOverrides));
+  queueRemoteSave();
+}
+
+// Vocabulario de categorías de gasto que ya produce classifyTransaction() para movimientos
+// bancarios negativos — las mismas que puede tener asignadas una partida del plan.
+const BUDGET_EXPENSE_CATEGORIES = Object.freeze([
+  "Refinanciacion",
+  "Coche",
+  "Creditos antiguos",
+  "Tarjeta Mastercard",
+  "Suministros y telecom",
+  "Vivienda/comunidad",
+  "Efectivo",
+  "Traspasos/ahorro",
+  "Seguros",
+  "Alimentacion",
+  "Otros gastos",
+]);
+
+// Corrección tras feedback del usuario (26 ago, sesión de cierre): "Gastado" solo miraba
+// movimientos bancarios clasificados (row.category), pero el uso real mezcla extracto importado
+// con partidas registradas a mano en "Registrar el mes" — dos modelos de datos distintos sin
+// relación 1:1 previa. Se reutiliza classifyTransaction() sobre el texto de la partida como
+// heurística de categoría por defecto (mismo vocabulario, sin duplicar reglas), con un override
+// persistido por partida para cuando la heurística se equivoca.
+function defaultCategoryForPartida(entry) {
+  return classifyTransaction({ movement: entry.label, details: entry.sectionName, amount: -1 });
+}
+
+function categoryForPartidaEntry(entry) {
+  const rowKey = seriesKeyForRow(entry.row);
+  const override = budgetPartidaOverrides[rowKey];
+  return BUDGET_EXPENSE_CATEGORIES.includes(override) ? override : defaultCategoryForPartida(entry);
+}
+
+function monthObjectForBudgetKey(monthKey) {
+  return selectableMonths({ includeClosed: true }).find((month) => month.key === monthKey) || null;
+}
+
+// Solo cuentan las partidas con real "puro a mano": si el real viene de movimientos bancarios
+// mapeados (planMesUsadoMovementCount > 0), esos movimientos ya están en baseData.transactions y
+// sumarlos otra vez aquí duplicaría el gasto.
+function manualPartidaEntriesForMonth(monthKey) {
+  const monthObj = monthObjectForBudgetKey(monthKey);
+  if (!monthObj) return [];
+  return planMesCollect(monthObj).expense.filter(
+    (entry) => entry.hasActual && Number(entry.usado || 0) > 0 && planMesUsadoMovementCount(entry, monthKey) === 0,
+  );
+}
+
+function manualPartidaEntriesForCategory(categoryId, monthKey) {
+  return manualPartidaEntriesForMonth(monthKey).filter((entry) => categoryForPartidaEntry(entry) === categoryId);
+}
+
+function manualPartidaSpendForCategory(categoryId, monthKey) {
+  return round2(manualPartidaEntriesForCategory(categoryId, monthKey).reduce((sum, entry) => sum + Number(entry.usado || 0), 0));
+}
+
+// Últimos `count` meses (con datos, cerrados o no) estrictamente anteriores a monthKey — acota el
+// coste de recorrer partidas mes a mes para el histórico de sugerencia (P-1), en vez de todo el
+// horizonte de forecast.
+function recentBudgetMonthKeys(beforeMonthKey, count = 6) {
+  return selectableMonths({ includeClosed: true })
+    .map((month) => month.key)
+    .filter((key) => key < beforeMonthKey)
+    .sort()
+    .slice(-count);
+}
+
+// "Movimientos" sintéticos (uno por mes con gasto manual) que se cuelan en el mismo pipeline que
+// ya usan CanonicalBudgetAnalyzer/CanonicalBudgetAlerts, sin tocar esos módulos: cada uno solo
+// necesita {date, amount} para agrupar por mes y sumar en valor absoluto.
+function syntheticManualMovements(categoryId, monthKeys) {
+  return monthKeys
+    .map((monthKey) => ({ monthKey, spend: manualPartidaSpendForCategory(categoryId, monthKey) }))
+    .filter(({ spend }) => spend > 0)
+    .map(({ monthKey, spend }) => ({ date: `${monthKey}-01`, amount: -spend }));
+}
+
 // FASE 1 (S-1, P-2, S-2, U-1): dashboard de presupuesto mensual por categoría, sobre los motores
 // canónicos de FASE 0 (canonical-budget-analyzer/alerts/schema/forecast-category). La "categoría"
 // aquí es la categoría bancaria de classifyTransaction() (row.category), no la partida del plan —
@@ -2811,21 +2899,25 @@ function budgetableCategories() {
   (baseData?.transactions || []).forEach((row) => {
     if (Number(row.amount || 0) < 0 && row.category) set.add(row.category);
   });
+  const monthKey = currentBudgetMonthKey();
+  manualPartidaEntriesForMonth(monthKey).forEach((entry) => set.add(categoryForPartidaEntry(entry)));
   return [...set].sort();
 }
 
 function budgetAnalysisForCategory(category, monthKey) {
   if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer) return null;
   const historical = budgetHistoricalExpenseTransactions(category, monthKey);
-  return window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer.analyzeCategory(historical, { months: 6 });
+  const manual = syntheticManualMovements(category, recentBudgetMonthKeys(monthKey, 6));
+  return window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer.analyzeCategory([...historical, ...manual], { months: 6 });
 }
 
 function budgetAlertForRow(budget, monthKey) {
-  const spentMovements = budgetExpenseTransactions(budget.categoryId, monthKey);
+  const bankMovements = budgetExpenseTransactions(budget.categoryId, monthKey);
+  const manualMovements = syntheticManualMovements(budget.categoryId, [monthKey]);
   const analysis = budgetAnalysisForCategory(budget.categoryId, monthKey);
   return window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts.calculateAlert({
     budgetAmount: budget.amountCap,
-    movements: spentMovements,
+    movements: [...bankMovements, ...manualMovements],
     stdDev: analysis?.stdDev || 0,
     dateContext: { today: new Date() },
   });
@@ -2935,6 +3027,48 @@ function presupuestoMesRowHtml(budget, monthKey) {
   </tr>`;
 }
 
+function presupuestoMesManualPartidaRowHtml(entry, monthKey) {
+  const rowKey = seriesKeyForRow(entry.row);
+  const current = categoryForPartidaEntry(entry);
+  const options = BUDGET_EXPENSE_CATEGORIES.map(
+    (cat) => `<option value="${escapeHtml(cat)}"${cat === current ? " selected" : ""}>${escapeHtml(cat)}</option>`,
+  ).join("");
+  return `<tr>
+    <td class="t">${escapeHtml(entry.label)}</td>
+    <td>${escapeHtml(entry.sectionName)}</td>
+    <td>${money(entry.usado, true)}</td>
+    <td><select data-presupuesto-mes-partida-category="${escapeHtml(rowKey)}" aria-label="Categoría de ${escapeHtml(entry.label)}">${options}</select></td>
+  </tr>`;
+}
+
+function presupuestoMesManualPartidasHtml(monthKey) {
+  const entries = manualPartidaEntriesForMonth(monthKey);
+  if (!entries.length) return "";
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Partidas registradas a mano este mes</h3>
+        <p class="e19-subtitle">Se suman al «Gastado» de su categoría (sin duplicar movimientos ya importados del banco). Si la categoría asignada no es la correcta, cámbiala aquí.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Partida</th><th>Sección</th><th>Importe</th><th>Categoría</th></tr></thead>
+        <tbody>${entries.map((entry) => presupuestoMesManualPartidaRowHtml(entry, monthKey)).join("")}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+function handleBudgetPartidaCategoryChange(select) {
+  const rowKey = select.dataset.presupuestoMesPartidaCategory;
+  const category = select.value;
+  if (!rowKey || !BUDGET_EXPENSE_CATEGORIES.includes(category)) return;
+  budgetPartidaOverrides = { ...budgetPartidaOverrides, [rowKey]: category };
+  saveBudgetPartidaOverrides();
+  renderPresupuestoMes();
+}
+
 function renderPresupuestoMes() {
   const root = qs("presupuestoMesRoot");
   if (!root) return;
@@ -2972,7 +3106,8 @@ function renderPresupuestoMes() {
       </table>
     </div>
     ${summaryHtml}
-  </article>`;
+  </article>
+  ${presupuestoMesManualPartidasHtml(monthKey)}`;
 }
 
 function saveScenarioSettings() {
@@ -32892,7 +33027,9 @@ async function init() {
   });
   qs("presupuestoMesRoot")?.addEventListener("change", (event) => {
     const input = event.target.closest("[data-presupuesto-mes-category]");
-    if (input) handleBudgetAmountChange(input);
+    if (input) { handleBudgetAmountChange(input); return; }
+    const select = event.target.closest("[data-presupuesto-mes-partida-category]");
+    if (select) handleBudgetPartidaCategoryChange(select);
   });
   qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }

@@ -2,6 +2,52 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (4): Gastado fusiona banco + partidas a mano
+
+El usuario probó `#presupuesto-mes` recién publicada y reportó, con captura, que "Gastado" daba
+0,00 € en todas las categorías pese a tener gasto real de agosto — a pesar de que las sugerencias
+de presupuesto (basadas en histórico) sí mostraban cifras no triviales.
+
+**Diagnóstico**: "Gastado" solo miraba movimientos bancarios clasificados (`row.category` sobre
+`baseData.transactions`), pero el usuario registra gasto real de dos formas distintas — a veces
+importando el extracto bancario, a veces a mano en "Registrar el mes" (partida a partida, sin
+extracto detrás). Estas dos vías usan modelos de datos distintos sin relación 1:1 previa: categoría
+bancaria (agrupa por texto de movimiento) vs. partida del plan (línea con nombre propio como
+"Hipoteca" o "Luz"). Cualquier gasto registrado solo a mano quedaba invisible para esta pantalla.
+
+**Construido**:
+- `defaultCategoryForPartida(entry)`: reutiliza `classifyTransaction()` sobre el texto de la
+  partida (label + nombre de sección) como heurística de categoría por defecto — mismo vocabulario
+  que ya usan los movimientos bancarios (`BUDGET_EXPENSE_CATEGORIES`), sin duplicar reglas.
+- `budgetPartidaOverrides` (nuevo, persistido con los 5 puntos de enganche estándar del proyecto):
+  reasignación manual por partida cuando la heurística no acierta.
+- Nueva tabla "Partidas registradas a mano este mes" bajo el presupuesto: lista cada partida con
+  real puro a mano este mes, su sección, importe y un desplegable para corregir la categoría.
+- Salvaguarda anti-duplicado: solo cuenta partidas cuyo real **no** venga de un movimiento bancario
+  ya mapeado (`planMesUsadoMovementCount(entry, monthKey) === 0`) — si viniera de un movimiento
+  mapeado, ese movimiento ya está contado en `baseData.transactions` y sumarlo otra vez duplicaría
+  el gasto.
+- El gasto manual se inyecta como movimiento sintético (`{date, amount}`, uno por mes con gasto) en
+  el mismo pipeline que ya usan `CanonicalBudgetAlerts`/`CanonicalBudgetAnalyzer` — la fusión ocurre
+  en la capa de ensamblado de `app.js`, sin tocar los módulos canónicos de FASE 0 ni sus tests.
+- Aplicado tanto al mes en curso (alertas, ritmo, proyección, card de Hoy) como al histórico de 6
+  meses de "Sugerir presupuestos", para que las sugerencias no infravaloren categorías que el
+  usuario paga sobre todo a mano.
+
+**Pruebas**: sin tests nuevos de Node (la lógica de fusión reutiliza `planMesCollect`/
+`actualAwareInfo`/`classifyTransaction`, ya cubiertos por la suite existente, y los motores
+canónicos de FASE 0 no cambian). QA visual con Playwright: presupuesto de 90 € (histórico
+bancario) + partida manual de 120 € reasignada a la misma categoría → "Gastado" pasa de 0 € a
+120 €, ritmo 100 %, "Por encima del ritmo", proyección 143,08 € con "+53,08 € sobre" — confirma la
+fusión correcta sin duplicar cuando no hay movimientos bancarios ese mes.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 43,0 ms; forecast y escenarios en 208,9 ms; recursos 1841 KB).
+
+**Publicado**: PR #116 abierto sobre `claude/budget-merge-partida-sources`, esperando CI para
+fusionar a `main` (independiente del PR #115 de cierre de sesión, ya fusionado, que solo tocaba
+documentación).
+
 ## Cierre de sesión — 26 de agosto de 2026 (3): FASE 0 + FASE 1 fusionadas y publicadas
 
 Cierre del ciclo completo iniciado en los dos cierres anteriores del mismo día. El PR #114
