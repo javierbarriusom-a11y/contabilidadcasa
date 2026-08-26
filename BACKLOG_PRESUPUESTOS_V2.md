@@ -2,7 +2,7 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución — FASE 0, FASE 1 y FASE 2 completadas, FASE 3 siguiente
+**Estado**: Aprobado y en ejecución — FASE 0, FASE 1, FASE 2 y FASE 3 completadas, FASE 4 siguiente
 
 ---
 
@@ -175,16 +175,36 @@ matemáticamente (200€ → +200€ en el mes siguiente).
 
 ---
 
-### **FASE 3 (Simulaciones) — Semanas 9-11**
+### **FASE 3 (Simulaciones) — Semanas 9-11 · COMPLETADA (26 de agosto)**
 
 "¿Y si corto gasto en comida?" responde al instante.
 
 | Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
 |-------|----------|----------|-----------|--------|
-| **SIM-1** | Motor "¿y si...?" para cambios rápidos de presupuesto | Medio | P-2, F-1 | ⏳ |
-| **SIM-2** | Visualizar impacto en caja, cobertura, deuda a 3/6/12 meses | Medio | SIM-1 | ⏳ |
-| **SIM-3** | Comparador: presupuesto actual vs. simulado en histórico | Bajo | SIM-2 | ⏳ |
-| **LINK-2** | "Si ahorras 50€/mes en comida, deuda se paga 6 meses antes" | Bajo | SIM-2 | ⏳ |
+| **SIM-1** | Motor "¿y si...?" para cambios rápidos de presupuesto | Medio | P-2, F-1 | ✅ |
+| **SIM-2** | Visualizar impacto en caja, cobertura, deuda a 3/6/12 meses | Medio | SIM-1 | ✅ |
+| **SIM-3** | Comparador: presupuesto actual vs. simulado en histórico | Bajo | SIM-2 | ✅ |
+| **LINK-2** | "Si ahorras 50€/mes en comida, deuda se paga 6 meses antes" | Bajo | SIM-2 | ✅ |
+
+**Construido**:
+- **SIM-1**: tarjeta "Simulador «¿y si...?»" con categoría + cambio mensual (€). Simulación
+  efímera en memoria (`budgetSimulation`), sin persistir — mismo criterio que el laboratorio de
+  escenarios de E13: no toca `budgets[]`, se pierde al recargar.
+- **SIM-2**: tarjeta "Impacto de la simulación" (3/6/12 meses: ahorro acumulado, caja proyectada,
+  cobertura), reutilizando `safeCoverageMonths()` y `accountBalancesFromState()`. Bug real
+  corregido antes de publicar: un recorte de presupuesto (delta negativo) se traducía en "ahorro"
+  negativo — corregido invirtiendo el signo (recortar libera caja, subir la consume). Verificado
+  con Playwright y datos sintéticos.
+- **SIM-3**: tarjeta "Comparador: actual vs. simulado" sobre el mismo histórico de 12 meses de S-3,
+  reutilizando `budgetAlertForRow()` con un presupuesto sintético.
+- **LINK-2**: tarjeta "Impacto simulado en tu deuda", misma mecánica que LINK-1
+  (`debtPriorityCandidates()`/`debtReliefMonthsForItem()` de E13 tal cual), alimentada por el
+  ahorro simulado en vez del margen libre real.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 31,0 ms; forecast y escenarios en 181,8 ms; recursos 1862 KB). QA
+visual y funcional con Playwright y datos sintéticos inyectados en memoria (el demo público no trae
+movimientos bancarios ni deudas con cuota activa).
 
 ---
 
@@ -288,7 +308,7 @@ Estabilidad, documentación, performance en escala.
 | **0** | ARCH-0, P-1, TEST-0 | 1320 | 2 | ✅ |
 | **1** | S-1, P-2, S-2, U-1 | ~450 | 3 | ✅ |
 | **2** | P-3, F-1, S-3, LINK-1 | ~330 | 3 | ✅ |
-| **3** | SIM-1, SIM-2, SIM-3, LINK-2 | 600 | 3 | ⏳ |
+| **3** | SIM-1, SIM-2, SIM-3, LINK-2 | ~330 | 3 | ✅ |
 | **4** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ⏳ |
 | **5** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | 700 | 5 | ⏳ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ⏳ |
@@ -302,8 +322,12 @@ Estabilidad, documentación, performance en escala.
 2. ✅ **FASE 1 completada**: Sección `#presupuesto-mes`, alertas, proyección, card en Hoy (1621/1621 ✓)
 3. ✅ **FASE 2 completada**: hucha con arrastre real (P-3), forecast con estacionalidad conectado
    (F-1), histórico visual de 12 meses (S-3), enlace con impacto en deuda (LINK-1) (1621/1621 ✓)
-4. **FASE 3 siguiente**: simulaciones "¿y si...?" (SIM-1 a SIM-3), enlace ampliado con deuda (LINK-2)
-5. **Weekly checkpoints**: Estado en PROJECT_STATE.md
+4. ✅ **FASE 3 completada**: simulador "¿y si...?" (SIM-1), impacto en caja/cobertura/deuda a
+   3/6/12 meses (SIM-2), comparador actual vs. simulado (SIM-3), enlace ampliado con deuda
+   (LINK-2) (1621/1621 ✓)
+5. **FASE 4 siguiente**: experiencia y mobile (U-2 rediseño de Hoy, U-3 mobile-first, U-4 lanzador,
+   PERF-1)
+6. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
 
