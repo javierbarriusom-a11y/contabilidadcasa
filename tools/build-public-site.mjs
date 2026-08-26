@@ -67,6 +67,12 @@ const files = [
   "supabase-config.js",
   "debt-roadmap.html",
   "vendor/xlsx.full.min.js",
+  // PERF-1: fragmentos de vista con carga diferida (views/*.js). index.html nunca los referencia
+  // con src="" —los inyecta app.js en tiempo de ejecución (ver VIEW_CHUNKS/loadViewChunk)—, así
+  // que la comprobación automática de más abajo (recursos referenciados por index.html) no puede
+  // detectar que faltan en esta lista. Cada view añadida a VIEW_CHUNKS necesita su entrada aquí a
+  // mano, o el sitio publicado la serviría con 404 la primera vez que alguien visite esa pantalla.
+  "views/presupuesto-mes.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el

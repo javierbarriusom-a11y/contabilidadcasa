@@ -3,9 +3,9 @@
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
 **Estado**: Aprobado y en ejecución — FASE 0 a FASE 4 completadas. FASE 5 (Experiencia & Mobile)
-con U-2, U-3 y U-4 completados; **PERF-1 pendiente de decisión con el usuario** (el objetivo
-"Lighthouse >85" resultó depender de un payload de JS de ~3,6 MB compartido por las ~30 pantallas,
-arreglo real requiere partir el bundle, mayor alcance del estimado)
+con U-2, U-3 y U-4 completados; **PERF-1 con el mecanismo de carga diferida ya construido y validado
+en un piloto** (una pantalla de ~30 movida, sin bundler); **pendiente decidir con el usuario si se
+escala a más pantallas** para que el JS movido deje de ser ruido frente al total de ~3,6 MB
 
 ---
 
@@ -265,7 +265,7 @@ agosto).
 | **U-2** | Rediseño de "Hoy": grid 2×2 (presupuesto + caja + objetivos + acciones) | Medio | P-2, S-2 | ✅ |
 | **U-3** | Mobile-first: todas las pantallas de presupuestos en 390px | Alto | P-2, P-3, SIM-1 | ✅ |
 | **U-4** | Lanzador mejorado: acciones de presupuesto | Bajo | S-1, U-2 | ✅ |
-| **PERF-1** | Optimización de rendimiento: Lighthouse >85 | Bajo | U-3 | ⏳ Pendiente — decidir alcance con el usuario, ver hallazgos abajo |
+| **PERF-1** | Optimización de rendimiento: Lighthouse >85 | Bajo | U-3 | 🔶 Mecanismo construido y validado (1 pantalla piloto) — decidir con el usuario si se escala, ver hallazgos abajo |
 
 **Construido**:
 - **U-2**: rejilla "de un vistazo" 2×2 en Hoy (`#homeBudgetGlance`) — presupuesto (P-2/U-1), caja
@@ -310,6 +310,23 @@ construir, mismo criterio que se aplicó a COMP-1 en FASE 4.
 
 **Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (830 IDs únicos),
 rendimiento (diff 10.000 filas en 38,4 ms; forecast y escenarios en 196,1 ms; recursos 1879 KB).
+
+**PERF-1 — mecanismo construido y validado con un piloto (sesión siguiente)**: `app.js` es un
+`<script>` clásico, no un módulo ES — todas sus funciones viven en un único scope global. Eso
+permite partir el bundle sin bundler: un fichero movido a `views/` y cargado como `<script>` clásico
+inyectado por JS (no puesto en `index.html`) aterriza en ese mismo scope, así que sus funciones
+siguen disponibles igual que antes. Construido: `VIEW_CHUNKS`/`loadViewChunk()` en `app.js` (carga
+bajo demanda, cachea, no repite descarga) y `renderActiveSection()` ahora espera el fragmento antes
+de renderizar, reutilizando el camino ya existente de `HEAVY_RENDER_VIEWS` (muestra "calculando"
+mientras tanto). Piloto: "Presupuesto del mes" extraído a `views/presupuesto-mes.js` (~760 líneas),
+dejando en `app.js` solo lo que Hoy también usa (`homeBudgetSummary`, `budgetAlertForRow`,
+`budgetComplianceStreak`...). Verificado en navegador real (Playwright): el fragmento se descarga
+una sola vez, sin `ReferenceError` en ninguna de sus 19 funciones movidas. Lighthouse tras el piloto:
+73-76 (tres ejecuciones), igual que la baseline pre-piloto — sin regresión, pero sin ganancia
+medible todavía: mover una sola pantalla (~40 KB de ~3,6 MB) no puede notarse; hace falta escalar la
+misma extracción a más pantallas (empezando por las más grandes, ej. el clúster de Cuadro de
+mandos/Planificación de partidas, ~3.000 líneas) para que el ahorro deje de ser ruido. Pendiente de
+decidir con el usuario el ritmo de esa escala.
 
 ---
 
