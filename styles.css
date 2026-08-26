@@ -890,6 +890,7 @@ main {
 
 .home-dashboard {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -900,6 +901,24 @@ main {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+}
+
+/* U-2 (FASE 5): rejilla "de un vistazo" de 4 tarjetas — 2×2 en vez de las 3 columnas del resto de
+   KPIs de Hoy, para que las 4 encajen limpio sin dejar un hueco a medias. Misma especificidad que
+   .home-kpi-grid (una sola clase) para que el colapso a una columna en ≤860px (definido más abajo
+   sobre .home-kpi-grid) siga ganando por orden de aparición, no quede tapado por esta regla. */
+.home-glance-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-glance-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.home-glance-actions .e19-btn {
+  width: 100%;
 }
 
 .home-kpi-card,

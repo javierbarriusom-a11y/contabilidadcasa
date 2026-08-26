@@ -24049,6 +24049,88 @@ function renderHomeHeaderMeta({ statuses, asOf, source, guidance }) {
     <span class="e19-home-meta-item">${escapeHtml(guidance)}</span>`;
 }
 
+// U-2: resumen de objetivos (GAME-1) para el grid 2×2 de Hoy — cuántas categorías presupuestadas
+// llevan racha activa y cuál es la más larga, reutilizando budgetComplianceStreak() tal cual.
+function homeBudgetGoalsSummary() {
+  if (!window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return null;
+  const monthKey = currentBudgetMonthKey();
+  const monthBudgets = window.FinanceCanonicalBudgetSchema.CanonicalBudgetSchema.findForMonth(budgets, monthKey);
+  if (!monthBudgets.length) return null;
+  const streaks = monthBudgets.map((budget) => budgetComplianceStreak(budget.categoryId, monthKey));
+  return { total: monthBudgets.length, active: streaks.filter((streak) => streak >= 1).length, best: Math.max(0, ...streaks) };
+}
+
+function renderHomeBudgetGlanceActions() {
+  return `<article class="e19-kpi is-good">
+    <div class="e19-kpi-head"><span class="e19-kpi-label">Acciones rápidas</span></div>
+    <div class="home-glance-actions">
+      <button type="button" class="e19-btn e19-btn-secondary" data-home-nav="presupuesto-mes">Presupuesto del mes</button>
+      <button type="button" class="e19-btn e19-btn-secondary" data-home-nav="registrar-mes">Registrar el mes</button>
+      <button type="button" class="e19-btn e19-btn-secondary" data-home-nav="deuda-ruta">Ruta de deuda</button>
+    </div>
+  </article>`;
+}
+
+// U-2 (FASE 5): rejilla "de un vistazo" en Hoy — presupuesto, caja, objetivos y accesos rápidos en
+// 2×2, mobile-first. Reutiliza homeBudgetSummary() (P-2/U-1), los saldos ya calculados por
+// renderHomeDashboard() y las rachas de GAME-1 — no recalcula nada que ya exista.
+function renderHomeBudgetGlance(balances) {
+  const root = qs("homeBudgetGlance");
+  if (!root) return;
+  const budgetSummary = homeBudgetSummary();
+  const goals = homeBudgetGoalsSummary();
+  root.innerHTML = [
+    budgetSummary
+      ? renderHomeKpi({
+          label: "Presupuesto del mes",
+          value: `${money(budgetSummary.totalSpent, true)} / ${money(budgetSummary.totalBudgeted, true)}`,
+          note:
+            budgetSummary.worstMessage ||
+            `${budgetSummary.count} categoría${budgetSummary.count === 1 ? "" : "s"} con presupuesto, en ritmo.`,
+          status: budgetSummary.status,
+          cta: "Ver presupuesto",
+          target: "presupuesto-mes",
+        })
+      : renderHomeKpi({
+          label: "Presupuesto del mes",
+          value: "Sin presupuestos",
+          note: "Aún no hay presupuestos para este mes.",
+          status: "warn",
+          cta: "Sugerir presupuestos",
+          target: "presupuesto-mes",
+        }),
+    renderHomeKpi({
+      label: "Caja disponible",
+      value: money(balances.total, true),
+      note: `CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.`,
+      status: balances.total < 0 ? "danger" : "good",
+      cta: "Ver saldos",
+      target: "visual-detail",
+    }),
+    goals
+      ? renderHomeKpi({
+          label: "Objetivos",
+          value: `${goals.active}/${goals.total} categorías en racha`,
+          note:
+            goals.best > 0
+              ? `Racha más larga: ${goals.best} mes${goals.best === 1 ? "" : "es"} seguido${goals.best === 1 ? "" : "s"} dentro de presupuesto.`
+              : "Ninguna categoría lleva racha todavía.",
+          status: goals.active > 0 ? "good" : "warn",
+          cta: "Ver objetivos",
+          target: "presupuesto-mes",
+        })
+      : renderHomeKpi({
+          label: "Objetivos",
+          value: "Sin datos",
+          note: "Crea presupuestos para empezar a acumular rachas.",
+          status: "warn",
+          cta: "Ir a presupuesto",
+          target: "presupuesto-mes",
+        }),
+    renderHomeBudgetGlanceActions(),
+  ].join("");
+}
+
 function renderHomeDashboard() {
   if (!qs("homeKpis")) return;
   const rows = homeRowsForHorizon();
@@ -24058,6 +24140,7 @@ function renderHomeDashboard() {
   const executiveRows = actionCtx.rows || [];
   const executiveToday = actionCtx.today || {};
   const balances = actionCtx.balances || accountBalancesFromState();
+  renderHomeBudgetGlance(balances);
   const capacity = actionCtx.capacity || {};
   const protectedReserve = round2(Number(
     executiveToday.requiredReserve || actionCtx.immediateTransfer?.reserve || agentCaixaFloor(),

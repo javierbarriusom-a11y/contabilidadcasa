@@ -2,9 +2,10 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución — FASE 0 a FASE 4 completadas (Gamificación e Inteligencia,
-6/6 tareas). FASE 5 (Experiencia & Mobile) siguiente, reordenada después de FASE 4 a petición del
-usuario (26 de agosto)
+**Estado**: Aprobado y en ejecución — FASE 0 a FASE 4 completadas. FASE 5 (Experiencia & Mobile)
+con U-2, U-3 y U-4 completados; **PERF-1 pendiente de decisión con el usuario** (el objetivo
+"Lighthouse >85" resultó depender de un payload de JS de ~3,6 MB compartido por las ~30 pantallas,
+arreglo real requiere partir el bundle, mayor alcance del estimado)
 
 ---
 
@@ -254,17 +255,61 @@ correctamente "por encima del récord", patrón estacional detecta julio a +58% 
 
 ---
 
-### **FASE 5 (Experiencia & Mobile) — Semanas 17-20**
+### **FASE 5 (Experiencia & Mobile) — Semanas 17-20 · 3/4 (26 de agosto)**
 
 App usable y brilla en móvil. Pasa a ir después de Gamificación (petición del usuario, 26 de
 agosto).
 
 | Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
 |-------|----------|----------|-----------|--------|
-| **U-2** | Rediseño de "Hoy": grid 2×2 (presupuesto + caja + objetivos + acciones) | Medio | P-2, S-2 | ⏳ |
-| **U-3** | Mobile-first: todas las pantallas de presupuestos en 390px | Alto | P-2, P-3, SIM-1 | ⏳ |
-| **U-4** | Lanzador mejorado: acciones de presupuesto | Bajo | S-1, U-2 | ⏳ |
-| **PERF-1** | Optimización de rendimiento: Lighthouse >85 | Bajo | U-3 | ⏳ |
+| **U-2** | Rediseño de "Hoy": grid 2×2 (presupuesto + caja + objetivos + acciones) | Medio | P-2, S-2 | ✅ |
+| **U-3** | Mobile-first: todas las pantallas de presupuestos en 390px | Alto | P-2, P-3, SIM-1 | ✅ |
+| **U-4** | Lanzador mejorado: acciones de presupuesto | Bajo | S-1, U-2 | ✅ |
+| **PERF-1** | Optimización de rendimiento: Lighthouse >85 | Bajo | U-3 | ⏳ Pendiente — decidir alcance con el usuario, ver hallazgos abajo |
+
+**Construido**:
+- **U-2**: rejilla "de un vistazo" 2×2 en Hoy (`#homeBudgetGlance`) — presupuesto (P-2/U-1), caja
+  (mismo saldo que "Liquidez hoy"), objetivos (racha más larga y categorías activas, GAME-1) y
+  accesos rápidos (presupuesto, registrar el mes, ruta de deuda). Reutiliza `renderHomeKpi()` tal
+  cual, sin nuevo componente visual.
+- **U-3**: auditoría real a 390px con Playwright (no solo revisión de CSS) en Hoy, Presupuesto del
+  mes, Registrar el mes, Plan de mes y Ruta de deuda. Encontró y corrigió un bug real de
+  "desbordamiento de grid": `.home-dashboard` era un `display:grid` sin `grid-template-columns`
+  explícito, así que sus hijos (incluida la rejilla de seis KPI ya existente, y la nueva de U-2) se
+  desbordaban a 550px en un viewport de 390px — invisible en escritorio, pero recortaba contenido
+  en móvil sin que la página mostrara scroll horizontal (un `overflow-x: clip` en `.workspace` lo
+  ocultaba). Corregido con `grid-template-columns: minmax(0, 1fr)`. Verificado que las 5 pantallas
+  quedan sin desbordamiento tras el fix.
+- **U-4**: ampliado el vocabulario de búsqueda del lanzador (`e17-experience.js`) para que
+  "simulador", "racha", "hucha", "reto" o "estacional" encuentren "Presupuesto del mes" — antes
+  solo se localizaba por "presupuesto". Añadida también su guía contextual ("¿Para qué sirve?"),
+  que no existía.
+
+**PERF-1 — hallazgos, sin construir todavía**: medido con Lighthouse real (`npx lighthouse`) contra
+el sitio construido. Con el perfil por defecto (simula CPU/red de gama baja), la puntuación de
+rendimiento es **55**; sin ese estrangulamiento adicional (perfil `provided`, más parecido a un
+ordenador real), **75-76** en mediciones repetidas — por debajo del objetivo de 85 en ambos casos
+(una primera medición aislada dio 88, pero no se reprodujo; hay ruido real de entorno en este
+sandbox). La causa raíz: ~3,6 MB de JS repartidos en 56 archivos `<script>`, cargados enteros para
+cualquiera de las ~30 pantallas de la app, con "JavaScript sin usar" estimado en 1,7 MB por
+Lighthouse — el motor de arranque (`init()`) ya solo renderiza la pantalla activa
+(`scheduleActiveSectionRender()`), así que no hay ahí trabajo redundante que recortar; el coste es
+descargar/parsear/ejecutar código de pantallas que no se están viendo.
+
+Se probó añadir `defer` a los 56 `<script>` (hipótesis: paralelizar la descarga). Verificado con
+Playwright en varias pantallas sin errores de consola nuevos, pero **la puntuación de Lighthouse
+empeoró (75→72)**: adelanta el primer pintado pero concentra la ejecución de los 56 scripts en un
+solo bloque justo antes de `DOMContentLoaded`, empeorando el "Total Blocking Time" (470ms→2.380ms)
+más de lo que mejora el resto. **Revertido** tras medir — no se publica un cambio que empeora el
+propio objetivo que perseguía.
+
+El arreglo real (dividir `app.js` y cargar cada pantalla bajo demanda) es una reestructuración de
+arquitectura mucho mayor que el esfuerzo "Bajo" que tenía asignado esta tarea, con riesgo de
+regresión en las ~30 pantallas existentes — pendiente de decidir alcance con el usuario antes de
+construir, mismo criterio que se aplicó a COMP-1 en FASE 4.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (830 IDs únicos),
+rendimiento (diff 10.000 filas en 38,4 ms; forecast y escenarios en 196,1 ms; recursos 1879 KB).
 
 ---
 

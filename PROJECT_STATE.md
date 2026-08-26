@@ -2,6 +2,45 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (9): FASE 5 — U-2, U-3, U-4 (PERF-1 pendiente)
+
+Continuación directa del cierre anterior (FASE 4 completa, ya fusionada). El usuario pidió seguir
+con FASE 5 (Experiencia & Mobile).
+
+**Construido**:
+- **U-2**: rejilla "de un vistazo" 2×2 en Hoy (`#homeBudgetGlance`) — presupuesto, caja, objetivos
+  (racha más larga de GAME-1) y accesos rápidos, reutilizando `renderHomeKpi()` tal cual.
+- **U-3**: auditoría real a 390px con Playwright (no solo revisión de CSS) en 5 pantallas. Encontró
+  y corrigió un bug real preexistente: `.home-dashboard` era un `display:grid` sin
+  `grid-template-columns`, así que la rejilla de seis KPI de Hoy (y la nueva de U-2) se desbordaban
+  a 550px en 390px de viewport — invisible en escritorio, oculto en móvil por un
+  `overflow-x:clip` en `.workspace` (sin scroll horizontal visible, pero contenido recortado).
+  Corregido con `grid-template-columns: minmax(0, 1fr)`. Verificado sin desbordamiento en las 5
+  pantallas tras el fix.
+- **U-4**: ampliado el vocabulario de búsqueda del lanzador (`e17-experience.js`) para que
+  "simulador", "racha", "hucha", "reto" o "estacional" encuentren "Presupuesto del mes" (antes solo
+  por "presupuesto"). Añadida su guía contextual, que no existía.
+
+**PERF-1 — investigado, no construido**: medido con Lighthouse real. Puntuación de rendimiento 55
+(perfil por defecto, simula gama baja) / 75-76 (perfil sin estrangulamiento adicional, en
+mediciones repetidas) — por debajo del objetivo de 85 en ambos casos. Causa: ~3,6 MB de JS en 56
+`<script>`, cargados enteros para cualquiera de las ~30 pantallas (el arranque ya solo renderiza la
+pantalla activa, no hay ahí trabajo redundante). Se probó `defer` en los 56 scripts: verificado sin
+errores nuevos con Playwright, pero **empeoró la puntuación de Lighthouse (75→72)** al concentrar
+la ejecución de los 56 scripts en un bloque justo antes de `DOMContentLoaded` — revertido tras
+medir, no se publica un cambio que empeora el objetivo que perseguía. El arreglo real (dividir
+`app.js`, carga bajo demanda por pantalla) es una reestructuración de arquitectura mucho mayor que
+el esfuerzo "Bajo" asignado, con riesgo de regresión en ~30 pantallas — mismo criterio aplicado a
+COMP-1 en FASE 4: pendiente de decidir alcance con el usuario antes de construir.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (830 IDs únicos),
+rendimiento (diff 10.000 filas en 38,4 ms; forecast y escenarios en 196,1 ms; recursos 1879 KB).
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`.
+
+**Próximo paso**: decidir con el usuario el alcance de PERF-1 (code-splitting real vs. otro umbral
+de aceptación) para cerrar FASE 5; después FASE 6 (Polish & Scale).
+
 ## Cierre de sesión — 26 de agosto de 2026 (8): FASE 4 completa — COMP-1 (companion CLI)
 
 Continuación directa del cierre anterior (GAME-1/2/3, NOTIF-1, ML-1 ya fusionados). El usuario pidió
