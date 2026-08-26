@@ -2,6 +2,38 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (3): FASE 0 + FASE 1 fusionadas y publicadas
+
+Cierre del ciclo completo iniciado en los dos cierres anteriores del mismo día. El PR #114
+(FASE 0 + FASE 1 de presupuestos) se marcó listo para revisión, pasó CI en verde y se fusionó a
+`main` según la autorización permanente de `CLAUDE.md`.
+
+**Incidencia de infraestructura encontrada y resuelta**: tras fusionar, el `push` a `main` no
+disparó el workflow `Verify and deploy Pages` — ningún run apareció en la lista de Actions durante
+más de 30 minutos, pese a que el workflow está correctamente configurado (`on: push: branches:
+[main]`, estado `active`) y el commit `e739490` sí llegó a `main` (confirmado con `git fetch`).
+Los dos runs anteriores del mismo PR (disparados por `pull_request`) también habían tardado 16-42
+minutos en pasar de "en cola" a ejecutarse, apuntando a una congestión puntual de runners de GitHub
+Actions para esta cuenta ese día, no a un problema de configuración ni de código. Se resolvió
+disparando manualmente el propio `workflow_dispatch` que ya trae `pages.yml` (vía
+`actions_run_trigger`), apuntando a `main` — el run resultante (#235) arrancó en segundos, y tanto
+`verify` como `deploy` (`Deploy verified artifact`) terminaron en éxito.
+
+**Validación final** (`npm run verify` sobre `main` tras el merge, exit 0): **1621/1621 pruebas**,
+accesibilidad (829 IDs únicos), rendimiento (diff 10.000 filas en 40,8 ms; forecast y escenarios en
+223,6 ms; recursos 1834 KB), build del sitio, privacidad y smoke test en verde.
+
+**Publicado**: sitio actualizado en `https://javierbarriusom-a11y.github.io/contabilidadcasa/` —
+la sección `#presupuesto-mes` (alertas de ritmo, proyección de fin de mes, sugerencia automática de
+presupuesto y card de resumen en Hoy) ya es visible en producción.
+
+**Backlog**: `BACKLOG_PRESUPUESTOS_V2.md` refleja FASE 0 y FASE 1 completadas (7/25 tareas del plan
+de 6 fases). `BACKLOG_STATUS.md` no requiere cambios — esta iniciativa se rastrea en su propio
+documento, no en la tabla de entregas E1-E20.
+
+**Próximo paso**: FASE 2 (P-3 hucha del mes, F-1 forecast por categoría con estacionalidad, S-3
+histórico visual de 12 meses, LINK-1 enlace con metas de ahorro de deuda).
+
 ## Cierre de sesión — 26 de agosto de 2026 (2): FASE 1 — presupuesto del mes en pantalla
 
 Continuación directa del cierre anterior del mismo día (FASE 0, PR #114 en CI). El usuario aprobó
