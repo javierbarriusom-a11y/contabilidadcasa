@@ -69,6 +69,7 @@ let debtContractCustomEntries = [];
 let debtRoadmapState = {};
 let budgets = [];
 let budgetPartidaOverrides = {};
+let budgetSurplusChoices = {};
 let canonicalSnapshot = null;
 let canonicalLedgerSnapshot = null;
 let canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -959,6 +960,7 @@ function appStatePayload(options = {}) {
     debtContracts: canonicalDebtContractRows(),
     budgets,
     budgetPartidaOverrides,
+    budgetSurplusChoices,
   };
   const payload = window.FinanceCanonicalState?.canonicalizePayload
     ? window.FinanceCanonicalState.canonicalizePayload(rawPayload)
@@ -1393,6 +1395,8 @@ function applyPersistedPayload(payload = {}) {
   budgets = Array.isArray(payload.budgets) ? payload.budgets : [];
   budgetPartidaOverrides =
     payload.budgetPartidaOverrides && typeof payload.budgetPartidaOverrides === "object" ? payload.budgetPartidaOverrides : {};
+  budgetSurplusChoices =
+    payload.budgetSurplusChoices && typeof payload.budgetSurplusChoices === "object" ? payload.budgetSurplusChoices : {};
   canonicalSnapshot =
     payload.canonicalSnapshot?.schemaId === window.FinanceCanonicalState?.SCHEMA_ID
       ? payload.canonicalSnapshot
@@ -1460,6 +1464,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("debtRoadmapState"), JSON.stringify(debtRoadmapState));
   storageSet(storageKey("budgets"), JSON.stringify(budgets));
   storageSet(storageKey("budgetPartidaOverrides"), JSON.stringify(budgetPartidaOverrides));
+  storageSet(storageKey("budgetSurplusChoices"), JSON.stringify(budgetSurplusChoices));
   if (canonicalSnapshot) storageSet(storageKey(CANONICAL_STATE_KEY), JSON.stringify(canonicalSnapshot));
   if (canonicalLedgerSnapshot) storageSet(storageKey(CANONICAL_LEDGER_KEY), JSON.stringify(canonicalLedgerSnapshot));
   if (canonicalEngineRuns) storageSet(storageKey(CANONICAL_ENGINE_KEY), JSON.stringify(compactCanonicalEngineRuns()));
@@ -2341,6 +2346,7 @@ function loadLocalState() {
       debtRoadmapState: JSON.parse(storageGet(storageKey("debtRoadmapState"), "{}")),
       budgets: JSON.parse(storageGet(storageKey("budgets"), "[]")),
       budgetPartidaOverrides: JSON.parse(storageGet(storageKey("budgetPartidaOverrides"), "{}")),
+      budgetSurplusChoices: JSON.parse(storageGet(storageKey("budgetSurplusChoices"), "{}")),
       canonicalSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_STATE_KEY), "null")),
       canonicalLedgerSnapshot: JSON.parse(storageGet(storageKey(CANONICAL_LEDGER_KEY), "null")),
       canonicalEngineRuns: JSON.parse(storageGet(storageKey(CANONICAL_ENGINE_KEY), "null")),
@@ -2371,6 +2377,7 @@ function loadLocalState() {
     debtContractCustomEntries = [];
     budgets = [];
     budgetPartidaOverrides = {};
+    budgetSurplusChoices = {};
     canonicalSnapshot = null;
     canonicalLedgerSnapshot = null;
     canonicalEngineRuns = { base: null, active: null, planned: null };
@@ -2798,6 +2805,11 @@ function saveBudgetPartidaOverrides() {
   queueRemoteSave();
 }
 
+function saveBudgetSurplusChoices() {
+  storageSet(storageKey("budgetSurplusChoices"), JSON.stringify(budgetSurplusChoices));
+  queueRemoteSave();
+}
+
 // Vocabulario de categorías de gasto que ya produce classifyTransaction() para movimientos
 // bancarios negativos — las mismas que puede tener asignadas una partida del plan.
 const BUDGET_EXPENSE_CATEGORIES = Object.freeze([
@@ -2856,12 +2868,18 @@ function manualPartidaSpendForCategory(categoryId, monthKey) {
 // Últimos `count` meses (con datos, cerrados o no) estrictamente anteriores a monthKey — acota el
 // coste de recorrer partidas mes a mes para el histórico de sugerencia (P-1), en vez de todo el
 // horizonte de forecast.
+// Aritmética de calendario pura, sin depender de selectableMonths(): esa lista representa la
+// ventana de forecast del plan (futuro + poca inercia hacia atrás desde su fecha de inicio), no
+// "todos los meses con datos bancarios" — usarla aquí dejaba fuera meses históricos reales con
+// movimientos de banco ya importados pero anteriores al arranque del modelo.
 function recentBudgetMonthKeys(beforeMonthKey, count = 6) {
-  return selectableMonths({ includeClosed: true })
-    .map((month) => month.key)
-    .filter((key) => key < beforeMonthKey)
-    .sort()
-    .slice(-count);
+  const [year, month] = beforeMonthKey.split("-").map(Number);
+  const keys = [];
+  for (let i = count; i >= 1; i--) {
+    const date = new Date(year, month - 1 - i, 1);
+    keys.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return keys;
 }
 
 // "Movimientos" sintéticos (uno por mes con gasto manual) que se cuelan en el mismo pipeline que
@@ -2911,6 +2929,16 @@ function budgetAnalysisForCategory(category, monthKey) {
   return window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer.analyzeCategory([...historical, ...manual], { months: 6 });
 }
 
+// S-3 necesita alertas de meses ya cerrados, no solo el actual: CanonicalBudgetAlerts filtra sus
+// movimientos por el mes/año de `dateContext.today`, así que para un mes pasado hay que fingir que
+// "hoy" cae dentro de ese mes (su último día) — si no, el filtro interno nunca encontraría nada y
+// "Gastado" volvería a dar 0 en el histórico, el mismo síntoma que motivó la corrección anterior.
+function budgetDateContextFor(monthKey) {
+  if (monthKey === currentBudgetMonthKey()) return { today: new Date() };
+  const [year, month] = monthKey.split("-").map(Number);
+  return { today: new Date(year, month - 1, new Date(year, month, 0).getDate()) };
+}
+
 function budgetAlertForRow(budget, monthKey) {
   const bankMovements = budgetExpenseTransactions(budget.categoryId, monthKey);
   const manualMovements = syntheticManualMovements(budget.categoryId, [monthKey]);
@@ -2919,7 +2947,7 @@ function budgetAlertForRow(budget, monthKey) {
     budgetAmount: budget.amountCap,
     movements: [...bankMovements, ...manualMovements],
     stdDev: analysis?.stdDev || 0,
-    dateContext: { today: new Date() },
+    dateContext: budgetDateContextFor(monthKey),
   });
 }
 
@@ -2955,18 +2983,158 @@ function homeBudgetSummary() {
   return { monthKey, count: monthBudgets.length, totalBudgeted, totalSpent, status, worstMessage };
 }
 
+// F-1: forecast por categoría con estacionalidad (canonical-budget-forecast-category.js, FASE 0,
+// cargado desde index.html pero sin usar hasta ahora). suggestedBudget() ya decide internamente
+// si usar el forecast (confianza alta) o caer al p75 histórico — no se reimplementa ese criterio.
+function budgetForecastForCategory(category, monthKey) {
+  const forecastApi = window.FinanceCanonicalBudgetForecastCategory?.CanonicalBudgetForecastCategory;
+  if (!forecastApi) return null;
+  const historical = budgetHistoricalExpenseTransactions(category, monthKey);
+  const manual = syntheticManualMovements(category, recentBudgetMonthKeys(monthKey, 12));
+  return forecastApi.forecast([...historical, ...manual], { months: 12, forecastMonths: 3 });
+}
+
+function previousBudgetMonthKey(monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const previous = new Date(year, month - 2, 1);
+  return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// P-3: si el mes anterior se decidió "llevar al mes siguiente" para esta categoría, el sobrante
+// se suma al presupuesto sugerido — la holgura real, no solo un aviso informativo.
+function budgetCarryoverForCategory(category, monthKey) {
+  const choice = budgetSurplusChoices[previousBudgetMonthKey(monthKey)]?.[category];
+  return choice?.choice === "holgura" ? round2(Number(choice.amount || 0)) : 0;
+}
+
+function suggestedAmountForCategory(category, monthKey) {
+  const analysis = budgetAnalysisForCategory(category, monthKey);
+  if (!analysis) return null;
+  const forecastApi = window.FinanceCanonicalBudgetForecastCategory?.CanonicalBudgetForecastCategory;
+  const base = forecastApi ? forecastApi.suggestedBudget(analysis, budgetForecastForCategory(category, monthKey)) : analysis.recommendation;
+  const carryover = budgetCarryoverForCategory(category, monthKey);
+  return carryover > 0 ? round2(base + carryover) : base;
+}
+
+// P-3: gestión de hucha — qué hacer con lo no gastado. Tres opciones, todas persistidas; solo
+// "holgura" tiene efecto automático (ver budgetCarryoverForCategory). "ahorro-fijo" y "flexible"
+// registran la decisión para el histórico, sin mover saldos de cuentas todavía (fuera de alcance
+// de esta fase: requeriría enlazar con el plan de ahorro del hogar, no solo con presupuestos).
+const BUDGET_SURPLUS_CHOICES = Object.freeze({
+  "ahorro-fijo": "Guardar como ahorro",
+  holgura: "Llevar al mes siguiente",
+  flexible: "Gasto flexible esta semana",
+});
+
+function budgetSurplusForRow(budget, monthKey) {
+  const alert = budgetAlertForRow(budget, monthKey);
+  return round2(Math.max(0, budget.amountCap - alert.metrics.spent));
+}
+
+function budgetSurplusEntries(monthKey) {
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  return monthBudgets
+    .map((budget) => ({ budget, surplus: budgetSurplusForRow(budget, monthKey) }))
+    .filter(({ surplus }) => surplus > 0);
+}
+
+function handleBudgetSurplusChoice(select) {
+  const category = select.dataset.presupuestoMesSurplus;
+  const monthKey = select.dataset.presupuestoMesSurplusMonth;
+  const surplus = Number(select.dataset.presupuestoMesSurplusAmount);
+  const choice = select.value;
+  if (!category || !monthKey) return;
+  const monthChoices = { ...(budgetSurplusChoices[monthKey] || {}) };
+  if (choice) {
+    monthChoices[category] = { choice, amount: surplus, appliedAt: new Date().toISOString() };
+  } else {
+    delete monthChoices[category];
+  }
+  budgetSurplusChoices = { ...budgetSurplusChoices, [monthKey]: monthChoices };
+  saveBudgetSurplusChoices();
+  renderPresupuestoMes();
+}
+
+// S-3: histórico visual de 12 meses, presupuesto vs. real, por categoría.
+function budgetHistoryMonthKeys(monthKey, count = 12) {
+  return [...recentBudgetMonthKeys(monthKey, count - 1), monthKey];
+}
+
+function budgetHistoryCellHtml(category, monthKeyForCell) {
+  const budget = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, monthKeyForCell);
+  const monthLabel = escapeHtml(ledgerMonthLabel(monthKeyForCell));
+  if (!budget) return `<td class="registrar-mes-empty" title="${monthLabel}: sin presupuesto">—</td>`;
+  const alert = budgetAlertForRow(budget, monthKeyForCell);
+  const pct = budget.amountCap > 0 ? Math.round((alert.metrics.spent / budget.amountCap) * 100) : 0;
+  const badgeClass = pct > 100 ? "e19-badge-danger" : pct >= 80 ? "e19-badge-warning" : "e19-badge-success";
+  const title = `${monthLabel}: ${money(alert.metrics.spent, true)} de ${money(budget.amountCap, true)} (${pct}%)`;
+  return `<td><span class="e19-badge ${badgeClass}" title="${escapeHtml(title)}">${pct}%</span></td>`;
+}
+
+function presupuestoMesHistoryHtml(monthKey) {
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  if (!monthBudgets.length) return "";
+  const months = budgetHistoryMonthKeys(monthKey, 12);
+  const header = months.map((m) => `<th>${escapeHtml(ledgerMonthLabel(m))}</th>`).join("");
+  const rows = monthBudgets
+    .map(
+      (budget) =>
+        `<tr><td class="t">${escapeHtml(budget.categoryId)}</td>${months.map((m) => budgetHistoryCellHtml(budget.categoryId, m)).join("")}</tr>`,
+    )
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Histórico de 12 meses</h3>
+        <p class="e19-subtitle">% de presupuesto gastado por categoría, mes a mes. Verde: por debajo del 80%. Ámbar: 80-100%. Rojo: por encima del presupuesto.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Categoría</th>${header}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
+// LINK-1: conecta el margen libre del mes con la ruta de deuda ya existente (E13), reutilizando
+// debtPriorityCandidates()/debtReliefMonthsForItem() tal cual — no se reimplementa el cálculo de
+// alivio de deuda, solo se le da como "monthlyRelief" la suma del margen de presupuesto libre.
+function presupuestoMesDebtLinkHtml(monthKey) {
+  if (typeof debtPriorityCandidates !== "function" || typeof debtReliefMonthsForItem !== "function") return "";
+  const totalMargin = round2(budgetSurplusEntries(monthKey).reduce((sum, { surplus }) => sum + surplus, 0));
+  if (totalMargin <= 0) return "";
+  const top = debtPriorityCandidates()[0];
+  if (!top?.target?.id) return "";
+  const reliefMonths = debtReliefMonthsForItem({ targetId: top.target.id, monthlyRelief: totalMargin }, 0);
+  if (!reliefMonths) return "";
+  const debtName = typeof debtTargetDisplayName === "function" ? debtTargetDisplayName(top.target) : "tu deuda principal";
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Impacto en tu deuda</h3>
+        <p class="e19-subtitle">Si el margen libre de este mes se destina a amortizar deuda extra, en vez de gastarlo o guardarlo.</p>
+      </div>
+    </div>
+    <div class="registrar-mes-card-foot">
+      <p class="e19-kpi-note">Margen libre: ${money(totalMargin, true)}. Como pago extra a «${escapeHtml(debtName)}», adelantaría su pago unos <strong>${reliefMonths}</strong> mes${reliefMonths === 1 ? "" : "es"}. Estimación aproximada; no se aplica nada automáticamente — usa «Deuda · ruta» para decidirlo de verdad.</p>
+    </div>
+  </article>`;
+}
+
 function handleSuggestBudgets() {
   if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer || !window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return;
   const monthKey = currentBudgetMonthKey();
   let created = 0;
   budgetableCategories().forEach((category) => {
     if (window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, monthKey)) return;
-    const analysis = budgetAnalysisForCategory(category, monthKey);
-    if (!analysis) return;
+    const amountCap = suggestedAmountForCategory(category, monthKey);
+    if (!amountCap) return;
     budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, {
       categoryId: category,
       monthYear: monthKey,
-      amountCap: analysis.recommendation,
+      amountCap,
       source: "suggested",
     });
     created += 1;
@@ -3060,6 +3228,39 @@ function presupuestoMesManualPartidasHtml(monthKey) {
   </article>`;
 }
 
+function presupuestoMesSurplusRowHtml({ budget, surplus }, monthKey) {
+  const current = budgetSurplusChoices[monthKey]?.[budget.categoryId]?.choice || "";
+  const options = [["", "Sin decidir"], ...Object.entries(BUDGET_SURPLUS_CHOICES)]
+    .map(([value, label]) => `<option value="${escapeHtml(value)}"${value === current ? " selected" : ""}>${escapeHtml(label)}</option>`)
+    .join("");
+  return `<tr>
+    <td class="t">${escapeHtml(budget.categoryId)}</td>
+    <td>${money(surplus, true)}</td>
+    <td>
+      <select data-presupuesto-mes-surplus="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-surplus-month="${escapeHtml(monthKey)}" data-presupuesto-mes-surplus-amount="${surplus}" aria-label="Qué hacer con lo no gastado de ${escapeHtml(budget.categoryId)}">${options}</select>
+    </td>
+  </tr>`;
+}
+
+function presupuestoMesSurplusHtml(monthKey) {
+  const entries = budgetSurplusEntries(monthKey);
+  if (!entries.length) return "";
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Hucha: lo no gastado este mes</h3>
+        <p class="e19-subtitle">"Llevar al mes siguiente" se suma automáticamente al presupuesto sugerido de esa categoría. "Guardar como ahorro" y "gasto flexible" quedan registrados; moverlos de cuenta es manual por ahora.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Categoría</th><th>No gastado</th><th>Decisión</th></tr></thead>
+        <tbody>${entries.map((entry) => presupuestoMesSurplusRowHtml(entry, monthKey)).join("")}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
 function handleBudgetPartidaCategoryChange(select) {
   const rowKey = select.dataset.presupuestoMesPartidaCategory;
   const category = select.value;
@@ -3107,7 +3308,10 @@ function renderPresupuestoMes() {
     </div>
     ${summaryHtml}
   </article>
-  ${presupuestoMesManualPartidasHtml(monthKey)}`;
+  ${presupuestoMesManualPartidasHtml(monthKey)}
+  ${presupuestoMesSurplusHtml(monthKey)}
+  ${presupuestoMesDebtLinkHtml(monthKey)}
+  ${presupuestoMesHistoryHtml(monthKey)}`;
 }
 
 function saveScenarioSettings() {
@@ -33029,7 +33233,9 @@ async function init() {
     const input = event.target.closest("[data-presupuesto-mes-category]");
     if (input) { handleBudgetAmountChange(input); return; }
     const select = event.target.closest("[data-presupuesto-mes-partida-category]");
-    if (select) handleBudgetPartidaCategoryChange(select);
+    if (select) { handleBudgetPartidaCategoryChange(select); return; }
+    const surplusSelect = event.target.closest("[data-presupuesto-mes-surplus]");
+    if (surplusSelect) handleBudgetSurplusChoice(surplusSelect);
   });
   qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }
