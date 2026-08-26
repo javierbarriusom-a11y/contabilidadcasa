@@ -84,6 +84,39 @@ memoria, ya que el demo público no trae movimientos bancarios): tabla con presu
 barra de ritmo al 85% en ámbar, alerta "En ritmo", proyección de fin de mes con exceso señalado, y
 la card de Hoy mostrando "330,00 € / 388,38 €" con enlace a la pantalla completa.
 
+**Corrección post-publicación (26 de agosto, mismo día)**: el usuario probó la pantalla en
+producción y detectó que "Gastado" daba 0,00 € en todas las categorías pese a llevar gasto real
+registrado en agosto. Causa: "Gastado" solo miraba movimientos bancarios clasificados
+(`row.category`), pero el uso real del hogar mezcla extracto importado con partidas registradas a
+mano en "Registrar el mes" — dos modelos de datos sin relación 1:1 (categoría bancaria vs. partida
+del plan). Arreglo:
+
+- `defaultCategoryForPartida()`: reutiliza `classifyTransaction()` sobre el texto de la partida
+  (label + sección) como heurística por defecto, mismo vocabulario que ya usan los movimientos
+  bancarios, sin duplicar reglas de clasificación.
+- `budgetPartidaOverrides` (nuevo, persistido con los 5 puntos de enganche estándar): permite
+  reasignar la categoría de una partida concreta cuando la heurística no acierta, desde una tabla
+  nueva "Partidas registradas a mano este mes" bajo el presupuesto.
+- Solo se suman partidas con real **puro a mano** (`planMesUsadoMovementCount(entry, monthKey) ===
+  0`): si el real de una partida viene de movimientos bancarios ya mapeados, esos movimientos ya
+  están contados en `baseData.transactions` y sumarlos otra vez duplicaría el gasto.
+- El gasto manual se inyecta como "movimiento sintético" (`{date, amount}` por mes) en el mismo
+  pipeline que ya usan `CanonicalBudgetAlerts`/`CanonicalBudgetAnalyzer`, sin tocar esos módulos —
+  la fusión ocurre en la capa de ensamblado de datos de `app.js`, no en el motor canónico.
+- Aplicado tanto al "Gastado" del mes en curso (alertas, ritmo, proyección) como al histórico de 6
+  meses que alimenta "Sugerir presupuestos" (`recentBudgetMonthKeys`, acotado a 6 meses para no
+  recorrer todo el horizonte de forecast).
+- `budgetableCategories()` ahora también ofrece categorías que solo existen vía partida (antes solo
+  las que tenían algún movimiento bancario histórico).
+
+QA visual con Playwright: presupuesto de 90€ (histórico bancario) + partida manual de 120€
+reasignada a la misma categoría → "Gastado" pasa de 0€ a 120€, ritmo al 100%, estado "Por encima
+del ritmo", proyección 143,08€ con "+53,08€ sobre" — confirma la fusión sin duplicar cuando no hay
+movimientos bancarios en el mes en curso.
+
+**Validación tras el arreglo** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs
+únicos), rendimiento (43,0 ms / 208,9 ms).
+
 **Criterios de Éxito**:
 - [x] Usuario ve presupuesto diario con alertas en Hoy
 - [x] Proyección de fin de mes es auditable contra datos reales
