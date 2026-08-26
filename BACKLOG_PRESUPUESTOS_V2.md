@@ -2,10 +2,9 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución — FASE 0 a FASE 3 completadas; FASE 4 (Gamificación e
-Inteligencia) con GAME-1/2/3, NOTIF-1 y ML-1 completados y COMP-1 pendiente de decidir enfoque de
-CLI/auth con el usuario. Experiencia & Mobile reordenada como FASE 5, después de esta (petición del
-usuario, 26 de agosto)
+**Estado**: Aprobado y en ejecución — FASE 0 a FASE 4 completadas (Gamificación e Inteligencia,
+6/6 tareas). FASE 5 (Experiencia & Mobile) siguiente, reordenada después de FASE 4 a petición del
+usuario (26 de agosto)
 
 ---
 
@@ -211,7 +210,7 @@ movimientos bancarios ni deudas con cuota activa).
 
 ---
 
-### **FASE 4 (Gamificación & Inteligencia) — Semanas 12-16**
+### **FASE 4 (Gamificación & Inteligencia) — Semanas 12-16 · COMPLETADA (26 de agosto)**
 
 Usuario vuelve cada día, entiende sus patrones. **Reordenada antes que la FASE de Experiencia &
 Mobile** (petición del usuario, 26 de agosto): ninguna de sus tareas depende de U-2/U-3/U-4/PERF-1,
@@ -224,7 +223,7 @@ solo de P-2/S-1/P-3/F-1, ya completados en FASE 0-2.
 | **GAME-3** | Retos: "El mes que menos gastamos todos en comida" | Bajo | GAME-1 | ✅ |
 | **NOTIF-1** | Notificaciones inteligentes: deviación, hito, hucha disponible | Medio | S-1, P-3 | ✅ |
 | **ML-1** | Análisis de cohortes: "Tus meses de julio gastan 15% más" | Bajo | F-1 | ✅ |
-| **COMP-1** | Companion CLI/API: registrar gastos rápido desde terminal | Bajo | P-2 | ⏳ Pendiente — decidir enfoque de auth/despliegue con el usuario antes de construir |
+| **COMP-1** | Companion CLI: registrar gastos rápido desde terminal | Bajo | P-2 | ✅ (alcance reducido a solo lectura, ver más abajo) |
 
 **Construido**:
 - **GAME-1**: `budgetComplianceStreak()` cuenta meses consecutivos sin sobregasto, reutilizando
@@ -237,6 +236,16 @@ solo de P-2/S-1/P-3/F-1, ya completados en FASE 0-2.
   desviación (S-1), hito (badges de GAME-2) y hucha sin decidir (P-3).
 - **ML-1**: agrupa el gasto real histórico (24 meses) por mes de calendario y compara contra la
   media global de la categoría; solo informa con 2+ observaciones y desviación ≥10%.
+- **COMP-1**: `tools/finanzas-cli.mjs` (`registra <importe> <categoria>`, `pendientes`). Investigar
+  el guardado real antes de construir reveló un protocolo transaccional versionado
+  (`finance_sync_runs`/`finance_state_snapshots`/`finance_source_heads` con concurrencia
+  optimista) mucho más complejo que un simple upsert — reimplementarlo sin poder probarlo contra
+  Supabase real se consideró demasiado arriesgado. Con el usuario, se redujo el alcance: el CLI es
+  **solo lectura** contra Supabase (lee el último estado sincronizado para calcular el ritmo,
+  mismas credenciales que la web) y guarda el gasto en un fichero local
+  (`~/.finanzas-casa/pendientes.jsonl`); confirmarlo de verdad sigue siendo un paso manual en
+  "Registrar el mes". Reutiliza tal cual `canonical-budget-schema.js`, `canonical-budget-alerts.js`
+  y `canonical-supabase-store.js` (ya pensados para Node), sin dependencias nuevas.
 
 **Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
 rendimiento (diff 10.000 filas en 27,9 ms; forecast y escenarios en 150,1 ms; recursos 1874 KB). QA
@@ -332,7 +341,7 @@ Estabilidad, documentación, performance en escala.
 | **1** | S-1, P-2, S-2, U-1 | ~450 | 3 | ✅ |
 | **2** | P-3, F-1, S-3, LINK-1 | ~330 | 3 | ✅ |
 | **3** | SIM-1, SIM-2, SIM-3, LINK-2 | ~330 | 3 | ✅ |
-| **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~370 (+ COMP-1 pendiente) | 5 | ⏳ 5/6 |
+| **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ⏳ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ⏳ |
 | **TOTAL** | | **5070 líneas** | **24 semanas** | **En Curso** |
@@ -348,12 +357,10 @@ Estabilidad, documentación, performance en escala.
 4. ✅ **FASE 3 completada**: simulador "¿y si...?" (SIM-1), impacto en caja/cobertura/deuda a
    3/6/12 meses (SIM-2), comparador actual vs. simulado (SIM-3), enlace ampliado con deuda
    (LINK-2) (1621/1621 ✓)
-5. ✅ **FASE 4 en curso** (reordenada antes que Experiencia & Mobile, a petición del usuario):
+5. ✅ **FASE 4 completada** (reordenada antes que Experiencia & Mobile, a petición del usuario):
    objetivos y rachas (GAME-1), badges (GAME-2), retos (GAME-3), notificaciones inteligentes
-   (NOTIF-1) y cohortes estacionales (ML-1) completados (1621/1621 ✓). Falta **COMP-1** (companion
-   CLI): pendiente de decidir con el usuario el enfoque de autenticación/despliegue antes de
-   construirlo, porque escribiría en el Supabase real desde fuera del navegador.
-6. **FASE 5 después**: experiencia y mobile (U-2, U-3, U-4, PERF-1)
+   (NOTIF-1), cohortes estacionales (ML-1) y companion CLI de solo lectura (COMP-1) (1621/1621 ✓)
+6. **FASE 5 siguiente**: experiencia y mobile (U-2, U-3, U-4, PERF-1)
 7. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
