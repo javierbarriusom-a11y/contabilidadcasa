@@ -2,6 +2,48 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (8): FASE 4 completa — COMP-1 (companion CLI)
+
+Continuación directa del cierre anterior (GAME-1/2/3, NOTIF-1, ML-1 ya fusionados). El usuario pidió
+seguir con COMP-1, la única tarea pendiente de FASE 4.
+
+**Investigación previa a construir nada**: antes de escribir el CLI se investigó cómo persiste
+realmente la app en Supabase (`loadRemoteStateOnce`/`persistRemotePayload` en `app.js`), y resultó
+ser un protocolo transaccional versionado — `finance_sync_runs`, `finance_state_snapshots`,
+`finance_source_heads` con concurrencia optimista (rechaza la escritura con
+`REMOTE_WRITE_CONFLICT` si otra sesión guardó antes) — no un simple upsert de una fila como se
+asumía en el backlog original. Reimplementar ese protocolo completo en un CLI aislado, sin poder
+probarlo antes contra Supabase real, se consideró demasiado arriesgado para los datos reales del
+hogar. Se planteó la disyuntiva al usuario, que eligió la opción seguridad-primero.
+
+**Decisión tomada con el usuario**: el CLI es **solo lectura** contra Supabase (lee el último
+estado sincronizado, con las mismas credenciales que la web, para calcular el ritmo) y **nunca
+escribe** allí — el gasto se guarda en un fichero local
+(`~/.finanzas-casa/pendientes.jsonl`) y se traslada a mano a "Registrar el mes" en la web, que
+sigue siendo la única fuente de verdad y donde ya vive la fusión banco + partidas correcta.
+
+**Construido**: `tools/finanzas-cli.mjs` (`registra <importe> <categoria>`, `pendientes`).
+Reutiliza tal cual `canonical-budget-schema.js`, `canonical-budget-alerts.js` y
+`canonical-supabase-store.js` (los tres ya pensados para `require()` en Node, como hace la suite de
+tests) — sin reimplementar ninguna lógica de negocio, solo el transporte HTTP a la API REST/Auth de
+Supabase con `fetch` nativo (sin añadir dependencias nuevas, igual que el resto de `tools/*.mjs`).
+El "gastado" que calcula es una aproximación **solo con movimientos bancarios ya importados** del
+último snapshot remoto — no incluye partidas registradas a mano (esa fusión es de `app.js` y queda
+fuera de alcance), limitación indicada explícitamente en cada respuesta del CLI.
+
+**Validación**: `npm run verify` (exit 0, 1621/1621 tests) sin regresiones — el CLI es un fichero
+nuevo aislado, no toca `app.js` salvo por la constante `REMOTE_SOURCE_KEY` duplicada intencionalmente
+(comentada para que se note si un día cambia en `app.js`). Probado de punta a punta contra un
+Supabase simulado con un servidor HTTP local (login, lectura de estado legacy/normalizado vía
+`selectAuthoritativeState`, cálculo de ritmo por encima/por debajo del presupuesto, categoría sin
+presupuesto, fallo de red) — nunca contra el Supabase real del usuario, precisamente por ser una
+herramienta de terminal que él ejecutará en su propio equipo con sus propias credenciales.
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`.
+
+**Próximo paso**: FASE 4 queda completa (6/6). Sigue FASE 5 (Experiencia & Mobile — U-2, U-3, U-4,
+PERF-1).
+
 ## Cierre de sesión — 26 de agosto de 2026 (7): FASE 4 — gamificación e inteligencia
 
 Continuación directa del cierre anterior (FASE 3, ya fusionada a `main`). El usuario pidió
