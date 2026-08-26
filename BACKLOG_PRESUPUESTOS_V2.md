@@ -2,7 +2,7 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución — FASE 0 y FASE 1 completadas, FASE 2 siguiente
+**Estado**: Aprobado y en ejecución — FASE 0, FASE 1 y FASE 2 completadas, FASE 3 siguiente
 
 ---
 
@@ -126,16 +126,52 @@ movimientos bancarios en el mes en curso.
 
 ---
 
-### **FASE 2 (Flexibilidad) — Semanas 6-8**
+### **FASE 2 (Flexibilidad) — Semanas 6-8 · COMPLETADA (26 de agosto)**
 
 Presupuestos que aprenden, se adaptan, se mejoran solos.
 
 | Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
 |-------|----------|----------|-----------|--------|
-| **P-3** | Gestión de hucha: no gastado → opciones de decisión | Bajo | P-2 | ⏳ |
-| **F-1** | Forecast por categoría + detección estacionalidad | Medio | ARCH-0 | ⏳ |
-| **S-3** | Histórico visual 12 meses: presupuesto vs. real | Bajo | ARCH-0 | ⏳ |
-| **LINK-1** | Vincular presupuestos a metas de ahorro en deuda | Medio | F-1 | ⏳ |
+| **P-3** | Gestión de hucha: no gastado → opciones de decisión | Bajo | P-2 | ✅ |
+| **F-1** | Forecast por categoría + detección estacionalidad | Medio | ARCH-0 | ✅ |
+| **S-3** | Histórico visual 12 meses: presupuesto vs. real | Bajo | ARCH-0 | ✅ |
+| **LINK-1** | Vincular presupuestos a metas de ahorro en deuda | Medio | F-1 | ✅ |
+
+**Construido**:
+- **F-1**: `canonical-budget-forecast-category.js` (creado en FASE 0, sin usar hasta ahora) entra en
+  juego vía `suggestedAmountForCategory()`. Su propio `suggestedBudget(analysis, forecastData)` ya
+  decide cuándo preferir el forecast con estacionalidad sobre el p75 histórico plano (confianza
+  alta del forecast) — no se reimplementa ese criterio, solo se conecta.
+- **P-3 (hucha)**: nueva tarjeta "Hucha: lo no gastado este mes" bajo el presupuesto, con 3 opciones
+  por categoría con sobrante (guardar como ahorro, llevar al mes siguiente, gasto flexible), mismo
+  patrón de "decisión transitoria con opciones" que ya usa Cierre · Sobres
+  (`cierreSobresChoices`/`cierreSobresResolved`), replicado en vez de inventado. Solo "llevar al mes
+  siguiente" tiene efecto automático real: `budgetCarryoverForCategory()` suma el sobrante al
+  presupuesto sugerido del mes siguiente (`suggestedAmountForCategory`) — verificado: 300€ base +
+  200€ de arrastre = 500€. "Guardar como ahorro" y "gasto flexible" quedan registrados para el
+  histórico; mover saldos entre cuentas queda fuera de alcance de esta fase (requeriría enlazar con
+  el plan de ahorro del hogar, no solo con presupuestos).
+- **S-3**: tarjeta "Histórico de 12 meses" con una fila por categoría presupuestada y una columna
+  por mes, coloreada con los badges ya existentes (`e19-badge-success/-warning/-danger`) según %
+  gastado. Corrige un bug real encontrado en el propio desarrollo: los 12 meses se generaban con
+  `selectableMonths()` (la ventana de forecast del plan, no el calendario), dejando fuera meses
+  históricos anteriores al arranque del modelo — se sustituyó por aritmética de fechas pura
+  (`recentBudgetMonthKeys`). También se corrigió `budgetAlertForRow()` para aceptar meses pasados:
+  `CanonicalBudgetAlerts` filtra sus movimientos por el mes de "hoy", así que para un mes cerrado
+  hay que fingir que "hoy" es su último día (`budgetDateContextFor()`), o "Gastado" volvía a dar 0
+  en todo el histórico — el mismo síntoma que motivó la corrección de FASE 1.
+- **LINK-1**: tarjeta "Impacto en tu deuda" que reutiliza `debtPriorityCandidates()` y
+  `debtReliefMonthsForItem()` del motor de Escenarios (E13) tal cual — no se reimplementa el
+  cálculo de alivio de deuda. Solo aparece si hay margen libre positivo y la deuda candidata tiene
+  cuota activa (no suspendida); verificado con el motor real (2400€ principal + 200€/mes extra → 14
+  meses de alivio, fórmula existente). En el demo público las 3 deudas están suspendidas (0€/mes de
+  cuota activa), así que la tarjeta no aparece ahí — comportamiento correcto, no un fallo.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 39,6 ms; forecast y escenarios en 201,9 ms; recursos 1852 KB). QA
+visual con Playwright: presupuesto sugerido con forecast, hucha con 3 opciones funcionando,
+histórico de 12 meses completo tras el fix de `recentBudgetMonthKeys`, arrastre de hucha verificado
+matemáticamente (200€ → +200€ en el mes siguiente).
 
 ---
 
@@ -251,7 +287,7 @@ Estabilidad, documentación, performance en escala.
 |------|-------|-----------------|---------|--------|
 | **0** | ARCH-0, P-1, TEST-0 | 1320 | 2 | ✅ |
 | **1** | S-1, P-2, S-2, U-1 | ~450 | 3 | ✅ |
-| **2** | P-3, F-1, S-3, LINK-1 | 500 | 3 | ⏳ |
+| **2** | P-3, F-1, S-3, LINK-1 | ~330 | 3 | ✅ |
 | **3** | SIM-1, SIM-2, SIM-3, LINK-2 | 600 | 3 | ⏳ |
 | **4** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ⏳ |
 | **5** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | 700 | 5 | ⏳ |
@@ -264,9 +300,9 @@ Estabilidad, documentación, performance en escala.
 
 1. ✅ **FASE 0 completada**: Módulos canónicos, tests (1621/1621 ✓)
 2. ✅ **FASE 1 completada**: Sección `#presupuesto-mes`, alertas, proyección, card en Hoy (1621/1621 ✓)
-3. **FASE 2 siguiente**: hucha (P-3), forecast por categoría con estacionalidad (F-1), histórico
-   visual de 12 meses (S-3), enlace con metas de deuda (LINK-1)
-4. **PR a main** (CI verde, revisor aprueba)
+3. ✅ **FASE 2 completada**: hucha con arrastre real (P-3), forecast con estacionalidad conectado
+   (F-1), histórico visual de 12 meses (S-3), enlace con impacto en deuda (LINK-1) (1621/1621 ✓)
+4. **FASE 3 siguiente**: simulaciones "¿y si...?" (SIM-1 a SIM-3), enlace ampliado con deuda (LINK-2)
 5. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---

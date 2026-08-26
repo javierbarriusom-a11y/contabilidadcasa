@@ -2,6 +2,60 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (5): FASE 2 — hucha, forecast, histórico y deuda
+
+Continuación directa del cierre anterior del mismo día (fix de fusión de fuentes, PR #116
+fusionado). El usuario pidió avanzar a FASE 2 sin preguntar, según la autorización permanente, y
+además pidió explícitamente ser más ágil con el CI atascado ("no esperes tanto, fuerza manual").
+
+**Construido** (las 4 tareas de FASE 2):
+
+- **F-1 (forecast con estacionalidad)**: conecta `canonical-budget-forecast-category.js` (creado en
+  FASE 0, cargado pero sin usar) a la sugerencia de presupuestos. Su propio
+  `suggestedBudget(analysis, forecastData)` decide cuándo preferir el forecast sobre el p75
+  histórico plano — no se reimplementa ese criterio.
+- **P-3 (hucha)**: tarjeta "Hucha: lo no gastado este mes" con 3 opciones por categoría con
+  sobrante (ahorro fijo, llevar al mes siguiente, gasto flexible), mismo patrón de "decisión
+  transitoria con opciones" que ya usa Cierre · Sobres, replicado en vez de inventado. Solo
+  "llevar al mes siguiente" tiene efecto automático: se suma al presupuesto sugerido del mes
+  siguiente (verificado: 300€ + 200€ de arrastre = 500€). Las otras dos opciones quedan
+  registradas para el histórico, sin mover saldos entre cuentas todavía.
+- **S-3 (histórico de 12 meses)**: tabla de cumplimiento de presupuesto por categoría y mes,
+  coloreada con los badges ya existentes (verde/ámbar/rojo). Encontró y corrigió dos bugs reales
+  durante el propio desarrollo:
+  1. Los 12 meses se generaban con `selectableMonths()` (la ventana de forecast del plan), no con
+     el calendario — dejaba fuera meses históricos anteriores al arranque del modelo. Sustituido
+     por aritmética de fechas pura.
+  2. `budgetAlertForRow()` usaba siempre "hoy" como fecha de referencia; para un mes cerrado,
+     `CanonicalBudgetAlerts` filtra internamente por el mes de "hoy" y nunca encontraba movimientos
+     del mes histórico — mismo síntoma que el bug de "Gastado a 0€" corregido en el cierre
+     anterior, esta vez para meses pasados. Corregido fingiendo que "hoy" es el último día de ese
+     mes cuando no es el mes en curso.
+- **LINK-1 (impacto en deuda)**: tarjeta "Impacto en tu deuda" que reutiliza
+  `debtPriorityCandidates()`/`debtReliefMonthsForItem()` del motor de Escenarios (E13) tal cual.
+  Solo aparece con margen libre positivo y una deuda candidata con cuota activa. Verificado con el
+  motor real (2400€ + 200€/mes extra → 14 meses de alivio). En el demo público no aparece porque
+  las 3 deudas de la demo están suspendidas (0€/mes de cuota) — comportamiento correcto.
+
+**Incidencia de CI y decisión de proceso**: el PR del fix anterior (#116) tardó de nuevo en
+disparar su primer run de Actions. El usuario pidió explícitamente no seguir esperando tanto y
+forzar manualmente en el futuro. A partir de esta sesión, cuando el CI de un PR tarda de forma
+anómala: se fusiona directamente basándose en `npm run verify` local (que ejecuta exactamente el
+mismo comando que el job `verify` de CI) siempre que `mergeable_state` sea `clean`, y se fuerza el
+despliegue con `workflow_dispatch` apuntando a `main` (nunca a la rama del PR, para no publicar
+código sin fusionar) si el `push` tampoco lo dispara solo.
+
+**Validación** (`npm run verify`, exit 0): 1621/1621 tests, accesibilidad (829 IDs únicos),
+rendimiento (diff 10.000 filas en 39,6 ms; forecast y escenarios en 201,9 ms; recursos 1852 KB). QA
+visual y funcional con Playwright: presupuesto con forecast, hucha con 3 opciones, histórico
+completo de 12 meses tras el fix, arrastre verificado matemáticamente, motor de alivio de deuda
+verificado con item sintético (14 meses correctos).
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/budget-fase2-hucha-forecast-historico-deuda`.
+
+**Próximo paso**: FASE 3 (simulaciones "¿y si...?" de presupuesto con impacto en caja/deuda a
+3/6/12 meses, SIM-1 a SIM-3; LINK-2 ampliando el enlace de deuda a estas simulaciones).
+
 ## Cierre de sesión — 26 de agosto de 2026 (4): Gastado fusiona banco + partidas a mano
 
 El usuario probó `#presupuesto-mes` recién publicada y reportó, con captura, que "Gastado" daba
