@@ -2,6 +2,59 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (10): PERF-1 — piloto de carga diferida por vista
+
+Continuación directa del cierre anterior. El usuario pidió abordar PERF-1: cómo dividir el JS de la
+app para cargar cada pantalla bajo demanda, tras confirmar que el arreglo real es mayor esfuerzo del
+estimado (ver cierre (9)).
+
+**Mecanismo (sin bundler)**: `app.js` no es un módulo ES — es un `<script>` clásico, como todo lo
+que carga `index.html` — así que sus 199 funciones `render...` viven en un único scope global
+plano. Precisamente por eso, un fichero movido a `views/` y cargado como `<script>` clásico
+(inyectado por JS bajo demanda, no puesto en el `<head>`) aterriza en ese mismo scope global: sus
+funciones quedan disponibles exactamente igual que si nunca se hubieran movido, sin convertir nada
+a módulos ES ni introducir Vite/esbuild. Añadido a `app.js`: `VIEW_CHUNKS` (mapa vista → fichero),
+`loadViewChunk()` (inyecta el `<script>`, cachea la promesa, no repite la descarga) y
+`renderActiveSection()`/`runActiveSectionRender()` pasan a `async`, esperando el fragmento antes de
+llamar al render — reutilizando el camino ya existente de `HEAVY_RENDER_VIEWS` (rAF + timeout +
+`markViewCalculating`) que ya mostraba "calculando" para vistas lentas, así que la espera de red se
+ve igual que una espera de cómputo. Si la descarga falla, el hueco de la vista muestra un aviso en
+vez de romperse.
+
+**Piloto: "Presupuesto del mes" extraído a `views/presupuesto-mes.js`** (~760 líneas, ~40 KB). Se
+mapeó a mano qué funciones del clúster de presupuesto usa también Hoy (`homeBudgetSummary`,
+`budgetAlertForRow`, `budgetComplianceStreak`, etc., FASE 5 U-2) — esas se quedaron en `app.js`— y
+solo se movió lo exclusivo de la pantalla (simulador, comparador, badges, rachas, notificaciones,
+patrones estacionales). `views/presupuesto-mes.js` no se referencia con `src=` en `index.html` (por
+eso el chequeo automático de `tools/build-public-site.mjs` no lo detecta): se añadió a mano tanto a
+la lista de `build-public-site.mjs` como a `SHELL_URLS` de `service-worker.js` (se precachea igual
+que el resto del shell — la ganancia de rendimiento viene de que `index.html` no lo carga al
+arrancar, no de perder la promesa de uso sin conexión).
+
+**Validación**: `npm run verify` completo (1621/1621 tests — 20 de ellos son "canarios" de versión
+de `app.js?v=` en otras features, actualizados al nuevo valor tras el bump legítimo; accesibilidad
+830 IDs únicos; recursos 1843 KB). Además, verificación real en navegador (Playwright contra
+`dist/` servido): el fragmento se descarga exactamente una vez (confirmado por red, no solo por
+código) la primera vez que se visita Presupuesto del mes, y no se repite en visitas posteriores; las
+19 funciones movidas (simulador, impacto, comparador, badges, rachas, notificaciones, patrones
+estacionales…) se invocaron una a una con datos sintéticos sin ningún `ReferenceError`; Hoy renderiza
+su tarjeta de presupuesto sin cambios.
+
+**Medido con Lighthouse tras el piloto**: 73/76/75 en tres ejecuciones (perfil `provided`) — dentro
+del mismo margen de ruido que la baseline pre-piloto (75-76 en el cierre (9)), sin regresión. Como ya
+se advirtió antes de empezar: mover una sola pantalla (~40 KB de ~3,6 MB) no puede moverse el
+marcador de forma medible — este piloto valida el mecanismo (funciona, no rompe nada, no empeora
+nada), no el objetivo de puntuación. Ganarlo requiere repetir esta misma extracción en un número
+suficiente de las ~30 pantallas para que el JS movido deje de ser ruido frente al total.
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`, reiniciada desde
+`main` (la del cierre anterior ya se había fusionado).
+
+**Próximo paso**: con el mecanismo validado, decidir con el usuario si se escala a más pantallas
+(orden sugerido: las más grandes primero — el clúster de Cuadro de mandos/Planificación de partidas
+ronda ~3.000 líneas, muy por encima de las ~760 de este piloto) y a qué ritmo (una PR por pantalla o
+por lote, cada una verificada por separado).
+
 ## Cierre de sesión — 26 de agosto de 2026 (9): FASE 5 — U-2, U-3, U-4 (PERF-1 pendiente)
 
 Continuación directa del cierre anterior (FASE 4 completa, ya fusionada). El usuario pidió seguir
