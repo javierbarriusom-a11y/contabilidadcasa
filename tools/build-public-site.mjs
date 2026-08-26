@@ -73,6 +73,7 @@ const files = [
   // detectar que faltan en esta lista. Cada view añadida a VIEW_CHUNKS necesita su entrada aquí a
   // mano, o el sitio publicado la serviría con 404 la primera vez que alguien visite esa pantalla.
   "views/presupuesto-mes.js",
+  "views/deuda.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el

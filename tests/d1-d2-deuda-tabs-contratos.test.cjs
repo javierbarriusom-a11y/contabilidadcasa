@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/deuda.js");
 const html = read("index.html");
 const css = read("design-tokens.css");
 const experience = read("e17-experience.js");
@@ -585,7 +585,7 @@ test("D-2c · la tabla delega el borrado y el alta en sus propios manejadores", 
     app,
     /qs\("deudaContratosTable"\)\?\.addEventListener\("click", \(event\) => \{\s*\n\s*const removeButton = event\.target\.closest\("\[data-deuda-contrato-remove\]"\);\s*\n\s*if \(removeButton\) handleDeudaContratosRemoveCustom\(removeButton\.dataset\.deudaContratoRemove\);/
   );
-  assert.match(app, /qs\("deudaContratosAddForm"\)\?\.addEventListener\("submit", handleDeudaContratosAddSubmit\);/);
+  assert.match(app, /qs\("deudaContratosAddForm"\)\?\.addEventListener\("submit", \(event\) => handleDeudaContratosAddSubmit\(event\)\);/);
 });
 
 test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Contratos", () => {
@@ -597,7 +597,7 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
 
 test("D-1/D-2 · viaja en el shell offline versionado (sin bump: solo se tocaron ficheros ya cacheados)", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260826f1a1/);
+  assert.match(html, /app\.js\?v=20260826g1a1/);
   assert.match(html, /design-tokens\.css\?v=20260814f1a1/);
 });
 
