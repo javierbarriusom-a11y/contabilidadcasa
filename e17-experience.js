@@ -19,7 +19,10 @@
     { target: "cuadro-mandos", label: "Cuadro de mandos · detalle por partida (nuevo)", group: "analysis", keywords: "cuadro mandos detalle partida impacto editar celda previsto matriz nuevo e20" },
     { target: "cambios-pendientes", label: "Cambios pendientes (nuevo)", group: "analysis", keywords: "cambios pendientes bandeja revertir guardar descartar impacto conjunto nuevo e20" },
     { target: "mapa-calor", label: "Mapa de calor mensual (nuevo)", group: "analysis", keywords: "mapa calor colchon salud mensual peor mes riesgo nuevo e20" },
-    { target: "presupuesto-mes", label: "Presupuesto del mes (nuevo)", group: "analysis", keywords: "presupuesto mes categoria gasto progreso alertas proyeccion ritmo diario hucha" },
+    // U-4 (FASE 5): mismo destino, vocabulario ampliado con lo construido en FASE 2-4 — simulador,
+    // objetivos/rachas, badges, reto y patrones estacionales no eran localizables por su propio
+    // nombre en el buscador, solo por "presupuesto".
+    { target: "presupuesto-mes", label: "Presupuesto del mes (nuevo)", group: "analysis", keywords: "presupuesto mes categoria gasto progreso alertas proyeccion ritmo diario hucha simulador y si simulacion recorte ahorro impacto caja cobertura objetivos racha badge logro ahorrista equilibrador reto record notificaciones patrones estacionales cohortes" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
     { target: "escenario-simular", label: "Escenario · simular (nuevo)", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados (nuevo)", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
@@ -61,6 +64,7 @@
     "cuadro-mandos": ["Para qué sirve", "Cambiar el previsto de una partida y ver qué le hace al plan antes de guardar.", "Requiere confirmación", "Nada se guarda hasta que pulses «Guardar cambios» en el pie de impacto."],
     "cambios-pendientes": ["Para qué sirve", "Ver el efecto conjunto de todo lo que has tocado en la sesión y revertir línea a línea.", "Requiere confirmación", "Guarda todo de una vez o descarta; cada cambio se puede revertir por separado."],
     "mapa-calor": ["Para qué sirve", "Localizar de un vistazo los meses en los que el colchón se queda corto.", "Solo lectura", "Abre el cuadro de mandos o un escenario para actuar sobre el mes que peor pinta."],
+    "presupuesto-mes": ["Para qué sirve", "Seguir el ritmo de gasto por categoría, decidir la hucha, simular «¿y si...?» y ver rachas y logros.", "Guarda al editar", "El simulador no guarda nada: es una prueba en memoria hasta que recargues la página."],
     forecast: ["Para qué sirve", "Entender la evolución futura de liquidez y gasto.", "Solo lectura", "Abre Escenarios si quieres probar un cambio sin tocar el plan."],
     "new-life-definitive": ["Para qué sirve", "Preparar una decisión de proyecto, deuda o traspaso con su impacto completo.", "Requiere confirmación", "Revisa la comparación antes de preparar cualquier cambio."],
     "new-life-simulation": ["Para qué sirve", "Comparar escenarios de coche, deuda y estabilidad sin modificar el plan.", "Solo lectura", "Guarda o vuelve a calcular el escenario que quieras estudiar."],
