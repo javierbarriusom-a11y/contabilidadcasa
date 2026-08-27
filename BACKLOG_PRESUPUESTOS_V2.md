@@ -2,10 +2,12 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución — FASE 0 a FASE 4 completadas. FASE 5 (Experiencia & Mobile)
-con U-2, U-3 y U-4 completados; **PERF-1 con el mecanismo de carga diferida ya construido y validado
-en un piloto** (una pantalla de ~30 movida, sin bundler); **pendiente decidir con el usuario si se
-escala a más pantallas** para que el JS movido deje de ser ruido frente al total de ~3,6 MB
+**Estado**: Aprobado y en ejecución — FASE 0 a FASE 5 completadas. FASE 5 (Experiencia & Mobile):
+U-2, U-3, U-4 y **PERF-1 cerrado dentro de lo seguro** — mecanismo de carga diferida construido y
+escalado a 4 clústeres de pantallas (piloto/Presupuesto del mes, Deuda, Cierre/Conciliar, Análisis)
+sin bundler; los 6 clústeres restantes quedan descartados por entrelazado con el motor compartido de
+Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver hallazgos abajo. El objetivo
+original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance
 
 ---
 
@@ -265,7 +267,7 @@ agosto).
 | **U-2** | Rediseño de "Hoy": grid 2×2 (presupuesto + caja + objetivos + acciones) | Medio | P-2, S-2 | ✅ |
 | **U-3** | Mobile-first: todas las pantallas de presupuestos en 390px | Alto | P-2, P-3, SIM-1 | ✅ |
 | **U-4** | Lanzador mejorado: acciones de presupuesto | Bajo | S-1, U-2 | ✅ |
-| **PERF-1** | Optimización de rendimiento: Lighthouse >85 | Bajo | U-3 | 🔶 Mecanismo construido y validado (1 pantalla piloto) — decidir con el usuario si se escala, ver hallazgos abajo |
+| **PERF-1** | Optimización de rendimiento: Lighthouse >85 | Bajo | U-3 | ✅ Cerrado dentro de lo seguro: 4 clústeres escalados, sin regresión; Lighthouse >85 no alcanzado, ver hallazgos abajo |
 
 **Construido**:
 - **U-2**: rejilla "de un vistazo" 2×2 en Hoy (`#homeBudgetGlance`) — presupuesto (P-2/U-1), caja
@@ -398,6 +400,31 @@ Validado igual que las escalas anteriores: `npm run verify` completo (1621/1621,
 corregidos) y navegador real — arranque sin `ReferenceError`, 9 pantallas comprobadas, 4 fragmentos
 descargados exactamente una vez cada uno.
 
+**PERF-1 — cierre de fase: los 6 clústeres restantes, descartados**. Se evaluó Asesor ejecutivo
+(el candidato pendiente) y se descartó: `executiveAdvisorContext()` es la base de
+`unifiedActionCenterModel()` (usada directamente desde Hoy y otras rutas núcleo, al menos 7 puntos
+de llamada fuera de Asesor ejecutivo) y también de `newLifeContext()`/`newLifeDefinitiveContext()`
+— mismo entrelazado que ya descartó Escenario. Revisados con ese mismo criterio los cinco
+`HEAVY_RENDER_VIEWS` que quedaban: Agente de ahorro (`buildSavingsAgentPlan()` alcanzable desde Hoy
+y Deuda), Asesor virtual (construido sobre `buildSavingsAgentPlan()`/`agentOptimalDebtPayoffPlan()`),
+Simulación nueva vida y Nueva vida definitiva (ambas sobre `executiveAdvisorContext()`), Plan de
+deuda óptimo (mismo motor de optimización compartido) y Cuadro de mandos (`visual-detail`, que
+resultó ser el mismo clúster de Cuadro de mandos/Planificación de partidas ya descartado en la
+escala #2). Los seis son pantallas heredadas marcadas "sustituida" en `LABORATORIO_CATALOG`: su
+código propio es una capa fina de render sobre un motor de cálculo compartido con Hoy/Deuda/Plan —
+extraerlas movería poco peso de fichero dejando el cálculo real en `app.js`, sin el beneficio que sí
+tuvieron Deuda/Cierre/Análisis.
+
+**Las cuatro escalas fusionadas son el techo seguro de este mecanismo.** Lighthouse no muestra
+ganancia de puntuación medible (igual que la medición acumulada: 73/72/75 perfil `provided`,
+45/55/55 por defecto) pese a una reducción real y verificable de "JavaScript sin usar" (~184 KB de
+~3,6 MB, ~5%) — insuficiente para mover la puntuación compuesta, tal y como se anticipó desde el
+inicio de PERF-1. Ir más allá del objetivo de Lighthouse >85 exigiría tocar el propio motor
+compartido (diferir o memorizar su cálculo, no solo mover ficheros a `views/`) — una
+reestructuración distinta y bastante mayor que el esfuerzo "Bajo" con el que se estimó
+originalmente esta tarea; queda como candidato nuevo a valorar aparte, no como continuación de
+PERF-1. Sin cambios de código en esta sesión de cierre, solo análisis y documentación.
+
 Sigue pendiente decidir con el usuario el ritmo de la siguiente escala (Registrar y Cuadro de
 mandos/Planificación de partidas quedan descartados por su entrelazado; Asesor ejecutivo es el
 siguiente candidato a evaluar) frente a volver a medir cuando el volumen movido sea sustancialmente
@@ -479,7 +506,7 @@ Estabilidad, documentación, performance en escala.
 | **2** | P-3, F-1, S-3, LINK-1 | ~330 | 3 | ✅ |
 | **3** | SIM-1, SIM-2, SIM-3, LINK-2 | ~330 | 3 | ✅ |
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
-| **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ⏳ |
+| **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ⏳ |
 | **TOTAL** | | **5070 líneas** | **24 semanas** | **En Curso** |
 
@@ -497,8 +524,11 @@ Estabilidad, documentación, performance en escala.
 5. ✅ **FASE 4 completada** (reordenada antes que Experiencia & Mobile, a petición del usuario):
    objetivos y rachas (GAME-1), badges (GAME-2), retos (GAME-3), notificaciones inteligentes
    (NOTIF-1), cohortes estacionales (ML-1) y companion CLI de solo lectura (COMP-1) (1621/1621 ✓)
-6. **FASE 5 siguiente**: experiencia y mobile (U-2, U-3, U-4, PERF-1)
-7. **Weekly checkpoints**: Estado en PROJECT_STATE.md
+6. ✅ **FASE 5 completada**: experiencia y mobile (U-2, U-3, U-4) y PERF-1 cerrado dentro de lo
+   seguro (4 clústeres escalados a carga diferida; Lighthouse >85 no alcanzado, reestructuración
+   mayor del motor compartido queda como candidato nuevo a valorar aparte)
+7. **FASE 6 siguiente**: DOC-1, QA-1, SCALE-1, INTEG-1
+8. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
 
