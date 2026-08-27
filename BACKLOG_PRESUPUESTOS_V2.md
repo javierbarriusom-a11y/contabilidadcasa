@@ -436,7 +436,7 @@ Estabilidad, documentación, performance en escala.
 | **DOC-1** | Guía de presupuestos (FAQs, vídeos, casos de uso) | Bajo | Fases 1-5 | ⏳ |
 | **QA-1** | Suite de aceptación: E2E tests de flujos completos | Medio | Fases 1-5 | ⏳ |
 | **SCALE-1** | Audit de performance: 1000 categorías, 10 años histórico | Bajo | U-3 | ✅ |
-| **INTEG-1** | Exportar presupuestos a CSV/JSON para análisis externo | Bajo | P-2 | ⏳ |
+| **INTEG-1** | Exportar presupuestos a CSV/JSON para análisis externo | Bajo | P-2 | ✅ |
 
 **SCALE-1 — auditoría y hallazgo real**: medido con datos sintéticos a la escala pedida (1000
 categorías, 10 años, 360.000 transacciones). `budgetHistoricalExpenseTransactions`/
@@ -452,6 +452,15 @@ Verificación añadida a `tools/check-performance.mjs` (parte de `npm run verify
 escala de 1000 categorías/10 años contra el propio `app.js` y falla si una regresión futura vuelve
 a filtrar el array completo por categoría. `npm run verify` completo: 1621/1621 tests, accesibilidad,
 build, privacidad y smoke en verde.
+
+**INTEG-1 — exportar presupuestos**: dos botones «Exportar CSV»/«Exportar JSON» en Presupuesto del
+mes, junto a «Sugerir presupuestos». Exportan todos los presupuestos guardados (todas las categorías
+y meses, no solo el mes abierto) con gasto real y desviación por fila (reutilizando
+`budgetAlertForRow`), para análisis externo. Mismo patrón de descarga que `downloadCsv` (Blob + `<a
+download>`), sin abstracción nueva. 7 tests nuevos con `budgetAlertForRow` mockeado (orden, campos,
+CSV con BOM, JSON válido, singular/plural, wiring). Verificado en navegador real: ambos botones
+descargan el fichero correcto, sin regresión de arranque. `npm run verify` completo: 1628/1628
+tests, accesibilidad, build, privacidad y smoke en verde.
 
 ---
 
@@ -537,7 +546,9 @@ build, privacidad y smoke en verde.
 6. ✅ **FASE 5 completada**: experiencia y mobile (U-2, U-3, U-4) y PERF-1 cerrado dentro de lo
    seguro (4 clústeres escalados a carga diferida; Lighthouse >85 no alcanzado, reestructuración
    mayor del motor compartido queda como candidato nuevo a valorar aparte)
-7. **FASE 6 siguiente**: DOC-1, QA-1, SCALE-1, INTEG-1
+7. 🔶 **FASE 6 en curso**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real corregido)
+   e INTEG-1 (exportar presupuestos a CSV/JSON) completados; quedan DOC-1 (guía de presupuestos) y
+   QA-1 (suite E2E de flujos completos)
 8. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---

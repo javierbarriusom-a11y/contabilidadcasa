@@ -191,7 +191,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260826a1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827b1", rootId: "presupuestoMesRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
   "deuda-contratos": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-contratos" },
@@ -29933,6 +29933,8 @@ async function init() {
   });
   qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }
+    if (event.target.closest("[data-presupuesto-mes-export-csv]")) { downloadBudgetsCsv(); return; }
+    if (event.target.closest("[data-presupuesto-mes-export-json]")) { downloadBudgetsJson(); return; }
     const removeButton = event.target.closest("[data-presupuesto-mes-remove]");
     if (removeButton) {
       handleRemoveBudget(removeButton.dataset.presupuestoMesRemove, removeButton.dataset.presupuestoMesRemoveMonth);
