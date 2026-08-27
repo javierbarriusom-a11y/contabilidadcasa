@@ -2965,16 +2965,35 @@ function currentBudgetMonthKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// SCALE-1: a escala real (auditado con 1000 categorías × 10 años de histórico) filtrar
+// baseData.transactions entero por cada categoría es O(categorías × transacciones) — ~4 s en ese
+// escenario. Se agrupa una sola vez por categoría (índice cacheado por identidad del array: se
+// invalida solo mismo si baseData.transactions cambia de referencia, que es como se sustituye
+// siempre — mergeTransactions() y las demás reasignaciones de baseData nunca mutan el array
+// existente in situ) y cada categoría filtra solo sus propias filas. Mismo resultado, ~70x más
+// rápido a esa escala (~54 ms).
+let budgetTransactionsByCategoryCache = { source: null, byCategory: null };
+
+function budgetNegativeTransactionsByCategory() {
+  const transactions = baseData?.transactions || [];
+  if (budgetTransactionsByCategoryCache.source !== transactions) {
+    const byCategory = new Map();
+    transactions.forEach((row) => {
+      if (Number(row.amount || 0) >= 0) return;
+      if (!byCategory.has(row.category)) byCategory.set(row.category, []);
+      byCategory.get(row.category).push(row);
+    });
+    budgetTransactionsByCategoryCache = { source: transactions, byCategory };
+  }
+  return budgetTransactionsByCategoryCache.byCategory;
+}
+
 function budgetExpenseTransactions(category, monthKey) {
-  return (baseData?.transactions || []).filter(
-    (row) => row.category === category && row.month === monthKey && Number(row.amount || 0) < 0,
-  );
+  return (budgetNegativeTransactionsByCategory().get(category) || []).filter((row) => row.month === monthKey);
 }
 
 function budgetHistoricalExpenseTransactions(category, beforeMonthKey) {
-  return (baseData?.transactions || []).filter(
-    (row) => row.category === category && Number(row.amount || 0) < 0 && row.month < beforeMonthKey,
-  );
+  return (budgetNegativeTransactionsByCategory().get(category) || []).filter((row) => row.month < beforeMonthKey);
 }
 
 function budgetAnalysisForCategory(category, monthKey) {

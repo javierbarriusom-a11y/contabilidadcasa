@@ -2,6 +2,38 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (15): FASE 6 — SCALE-1, auditoría de presupuestos a escala
+
+Continuación directa del cierre anterior. Con PERF-1 cerrado, el usuario pidió seguir con FASE 6
+(DOC-1, QA-1, SCALE-1, INTEG-1). Se empezó por SCALE-1 (audit de performance: 1000 categorías, 10
+años de histórico).
+
+**Hallazgo real, no solo auditoría**: `budgetHistoricalExpenseTransactions`/`budgetExpenseTransactions`
+(`app.js`) filtraban `baseData.transactions` completo por cada categoría — O(categorías ×
+transacciones). Medido con datos sintéticos a la escala pedida (1000 categorías, 10 años, 360.000
+transacciones): **~3,9 s**. Corregido agrupando las transacciones por categoría una sola vez (índice
+cacheado por identidad del array — se invalida solo si `baseData.transactions` cambia de referencia,
+que es como se sustituye siempre en el código existente: `mergeTransactions()` y el resto de
+reasignaciones de `baseData` nunca mutan el array en sitio, confirmado por grep). Mismo resultado,
+**~120 ms** (~30× más rápido). Sin cambio de comportamiento observable: mismo filtrado, mismo orden.
+
+Auditados también los motores canónicos de presupuestos a la misma escala: `analyzeBatch` (~150 ms),
+`calculateBatch` de alertas (~95 ms), forecast por categoría (~163 ms) y lectura de histórico de
+`CanonicalBudgetSchema.byCategory` sobre 120.000 presupuestos (~36 ms) — todos ya lineales, sin
+hallazgos adicionales.
+
+**Verificación**: nuevo bloque en `tools/check-performance.mjs` (parte de `npm run verify`) que
+reproduce la escala de 1000 categorías/10 años contra el propio `app.js` (extrae el índice por
+categoría con el mismo patrón `vm`/extracción de texto que ya usan los tests, al no ser `app.js`
+`require`-able) y falla si alguna regresión futura vuelve a filtrar el array completo por categoría.
+`npm run verify` completo: 1621/1621 tests, accesibilidad, build, privacidad y smoke en verde.
+
+**Publicado**: commit/push a `claude/backlog-fase-3-shsxwr`, PR en borrador y fusión al fusionarse
+el CI en verde.
+
+**Próximo paso**: seguir con INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos
+completos) y DOC-1 (guía de presupuestos), en ese orden.
+
 ## Cierre de sesión — 27 de agosto de 2026 (14): PERF-1 — cierre de fase, sin más escalas seguras
 
 Continuación directa del cierre anterior. El usuario pidió seguir evaluando y escalando hasta

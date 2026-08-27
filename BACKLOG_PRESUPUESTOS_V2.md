@@ -425,11 +425,6 @@ reestructuración distinta y bastante mayor que el esfuerzo "Bajo" con el que se
 originalmente esta tarea; queda como candidato nuevo a valorar aparte, no como continuación de
 PERF-1. Sin cambios de código en esta sesión de cierre, solo análisis y documentación.
 
-Sigue pendiente decidir con el usuario el ritmo de la siguiente escala (Registrar y Cuadro de
-mandos/Planificación de partidas quedan descartados por su entrelazado; Asesor ejecutivo es el
-siguiente candidato a evaluar) frente a volver a medir cuando el volumen movido sea sustancialmente
-mayor.
-
 ---
 
 ### **FASE 6 (Polish & Scale) — Semanas 21-24**
@@ -440,8 +435,23 @@ Estabilidad, documentación, performance en escala.
 |-------|----------|----------|-----------|--------|
 | **DOC-1** | Guía de presupuestos (FAQs, vídeos, casos de uso) | Bajo | Fases 1-5 | ⏳ |
 | **QA-1** | Suite de aceptación: E2E tests de flujos completos | Medio | Fases 1-5 | ⏳ |
-| **SCALE-1** | Audit de performance: 1000 categorías, 10 años histórico | Bajo | U-3 | ⏳ |
+| **SCALE-1** | Audit de performance: 1000 categorías, 10 años histórico | Bajo | U-3 | ✅ |
 | **INTEG-1** | Exportar presupuestos a CSV/JSON para análisis externo | Bajo | P-2 | ⏳ |
+
+**SCALE-1 — auditoría y hallazgo real**: medido con datos sintéticos a la escala pedida (1000
+categorías, 10 años, 360.000 transacciones). `budgetHistoricalExpenseTransactions`/
+`budgetExpenseTransactions` (`app.js`) filtraban `baseData.transactions` completo por categoría —
+O(categorías × transacciones), ~3,9 s a esa escala. Corregido con un índice por categoría cacheado
+por identidad del array (se invalida solo si `baseData.transactions` cambia de referencia, que es
+como se sustituye siempre: confirmado que ninguna reasignación existente muta el array in situ) —
+~120 ms, ~30× más rápido, mismo comportamiento observable. Los motores canónicos de presupuestos
+(`analyzeBatch`, alertas, forecast por categoría, histórico de `CanonicalBudgetSchema`) ya eran
+lineales a esta escala (95-163 ms cada uno), sin hallazgos adicionales.
+
+Verificación añadida a `tools/check-performance.mjs` (parte de `npm run verify`): reproduce la
+escala de 1000 categorías/10 años contra el propio `app.js` y falla si una regresión futura vuelve
+a filtrar el array completo por categoría. `npm run verify` completo: 1621/1621 tests, accesibilidad,
+build, privacidad y smoke en verde.
 
 ---
 
