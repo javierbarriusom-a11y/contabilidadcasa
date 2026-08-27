@@ -2,6 +2,35 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (18): FASE 6 — DOC-1, guía de presupuestos (cierra FASE 6)
+
+Continuación directa del cierre anterior (QA-1). Última tarea de FASE 6. Encontrado un hueco real:
+«FAQs y ayuda» (A12-4) tenía tres casos de uso (Actualizar, Predecir, Concluir) pero ninguno cubría
+Presupuesto del mes — la mayor pantalla nueva de las FASE 0-6 de este backlog — y el propio bloque
+no tenía **ni un solo test**, pese a llevar dos commits construido (#112/#113).
+
+**Construido**: cuarto caso de uso «Presupuestar» (pestaña + panel, mismo patrón que los otros tres,
+acento de color `--e19-warning` sin usar todavía en esa sección) con sus pasos reales: abrir
+Presupuesto del mes, sugerir, seguir el ritmo, decidir la hucha, exportar CSV/JSON (INTEG-1). Tres
+preguntas nuevas en el acordeón de FAQ (sugerencia, hucha, exportación). El cableado de pestañas/
+búsqueda (`setupFaqsAyuda()` en `app.js`) ya era genérico — no hizo falta tocarlo, la pestaña nueva
+«simplemente funciona».
+
+**Test nuevo** (`tests/doc1-faqs-presupuestar.test.cjs`, 5 casos): contenido estático (pestaña, panel,
+enlaces a pantallas reales, preguntas) + comportamiento real del cableado genérico con un stub mínimo
+de DOM (mismo patrón `vm`/extracción de texto que el resto de la suite) — activar la pestaña oculta
+las demás, la búsqueda filtra el acordeón con las preguntas nuevas. Cubre de paso el cableado
+genérico que no tenía ningún test hasta ahora. Verificado también en navegador real: pestaña, panel,
+enlace de navegación real y búsqueda funcionan.
+
+`npm run verify` completo: 1633/1633 tests, accesibilidad (832 IDs únicos, +2), build, privacidad y
+smoke en verde.
+
+**FASE 6 completa**: DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro hechas.
+
+**Publicado**: commit/push a `claude/backlog-fase-3-shsxwr`, PR en borrador y fusión al fusionarse
+el CI en verde.
+
 ## Cierre de sesión — 27 de agosto de 2026 (17): FASE 6 — QA-1, suite de aceptación E2E
 
 Continuación directa del cierre anterior (INTEG-1). Investigado primero qué infraestructura E2E ya

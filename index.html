@@ -2151,6 +2151,15 @@
                   <small>Leer el plan sin editar</small>
                 </span>
               </button>
+              <button type="button" class="faqs-tab" role="tab" id="faqsTabPresupuestar" aria-selected="false" aria-controls="faqsPanelPresupuestar" data-faqs-tab="presupuestar">
+                <span class="faqs-tab-icon faqs-tab-icon-presupuestar" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5v9"/><path d="M14.8 9.8c0-1-1-1.8-2.8-1.8s-2.6 .8-2.6 1.7c0 2.4 5.4 1 5.4 3.4 0 1-1 1.8-2.8 1.8s-2.8-.8-2.8-1.8"/></svg>
+                </span>
+                <span class="faqs-tab-copy">
+                  <strong>Presupuestar</strong>
+                  <small>Cuánto gastar por categoría</small>
+                </span>
+              </button>
             </div>
 
             <article class="e19-card faqs-usecase" id="faqsPanelActualizar" role="tabpanel" aria-labelledby="faqsTabActualizar" data-faqs-panel="actualizar">
@@ -2205,6 +2214,24 @@
               </ol>
             </article>
 
+            <article class="e19-card faqs-usecase" id="faqsPanelPresupuestar" role="tabpanel" aria-labelledby="faqsTabPresupuestar" data-faqs-panel="presupuestar" hidden>
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Caso de uso 4</p>
+                  <h3>Presupuestar</h3>
+                  <p>Decidir cuánto quiero gastar en cada categoría este mes y seguir el ritmo día a día.</p>
+                </div>
+              </div>
+              <ol class="faqs-steps">
+                <li><strong>Abre <a href="#presupuesto-mes" data-home-nav="presupuesto-mes">Presupuesto del mes</a>.</strong> Analiza los últimos 6 meses de gasto real por categoría (clasificación bancaria, la misma que usa <a href="#analisis" data-home-nav="analisis">Análisis</a>).</li>
+                <li><strong>Pulsa «Sugerir presupuestos»</strong> para rellenar automáticamente cada categoría con datos: un percentil alto de tu propio histórico, o el forecast estacional si tiene confianza suficiente. Puedes editar cualquier importe a mano en cualquier momento.</li>
+                <li><strong>Sigue el ritmo diario</strong>: cada categoría muestra lo gastado, el % del presupuesto consumido y una proyección de fin de mes con el mismo criterio simple (gasto acumulado ÷ días transcurridos × días del mes).</li>
+                <li><strong>Si te sobra dinero en una categoría</strong>, la tarjeta «Hucha» ofrece tres decisiones: guardarlo como ahorro, llevarlo al presupuesto sugerido del mes siguiente, o marcarlo como gasto flexible — ninguna mueve saldos de cuentas todavía.</li>
+                <li><strong>Para analizarlo fuera de la app</strong>, usa «Exportar CSV» o «Exportar JSON»: descarga todos tus presupuestos guardados (todos los meses y categorías), con el gasto real y la desviación de cada uno.</li>
+                <li><strong>Pruébalo:</strong> sugiere los presupuestos del mes, edita uno a mano y comprueba que su estado (verde/ámbar/rojo) y su proyección se recalculan al momento.</li>
+              </ol>
+            </article>
+
             <article class="e19-card faqs-faq">
               <div class="module-heading">
                 <div>
@@ -2245,6 +2272,18 @@
                 <details>
                   <summary>¿Puedo simular para mí o para mi mujer por separado?</summary>
                   <p>Sí: el simulador «¿Y si...?» y varios motores de escenario incluyen un campo «Titular» (Hogar / Javi / Tere).</p>
+                </details>
+                <details>
+                  <summary>¿Cómo decide Presupuesto del mes cuánto sugerir por categoría?</summary>
+                  <p>Con tus últimos 6 meses de gasto real por categoría: usa un percentil alto de tu propio histórico o, si el patrón estacional tiene confianza alta, el forecast de ese mes. Siempre puedes editarlo a mano después.</p>
+                </details>
+                <details>
+                  <summary>¿Qué pasa con lo que me sobra de una categoría (la hucha)?</summary>
+                  <p>Tú decides: guardarlo como ahorro, llevarlo al presupuesto sugerido del mes siguiente o marcarlo como gasto flexible. Ninguna opción mueve saldos de cuentas por sí sola.</p>
+                </details>
+                <details>
+                  <summary>¿Puedo exportar mis presupuestos?</summary>
+                  <p>Sí, desde Presupuesto del mes: «Exportar CSV» o «Exportar JSON» descargan todos los presupuestos guardados (todos los meses y categorías) con el gasto real y la desviación de cada uno, para analizarlos fuera de la app.</p>
                 </details>
                 <p class="faqs-search-empty" id="faqsSearchEmpty" hidden>No hay preguntas que coincidan con «<span id="faqsSearchEmptyTerm"></span>».</p>
               </div>

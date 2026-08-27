@@ -2,12 +2,13 @@
 
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
-**Estado**: Aprobado y en ejecución — FASE 0 a FASE 5 completadas. FASE 5 (Experiencia & Mobile):
+**Estado**: Aprobado y en ejecución — FASE 0 a FASE 6 completadas. FASE 5 (Experiencia & Mobile):
 U-2, U-3, U-4 y **PERF-1 cerrado dentro de lo seguro** — mecanismo de carga diferida construido y
 escalado a 4 clústeres de pantallas (piloto/Presupuesto del mes, Deuda, Cierre/Conciliar, Análisis)
 sin bundler; los 6 clústeres restantes quedan descartados por entrelazado con el motor compartido de
 Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver hallazgos abajo. El objetivo
-original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance
+original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance.
+FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas
 
 ---
 
@@ -433,7 +434,7 @@ Estabilidad, documentación, performance en escala.
 
 | Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
 |-------|----------|----------|-----------|--------|
-| **DOC-1** | Guía de presupuestos (FAQs, vídeos, casos de uso) | Bajo | Fases 1-5 | ⏳ |
+| **DOC-1** | Guía de presupuestos (FAQs, vídeos, casos de uso) | Bajo | Fases 1-5 | ✅ |
 | **QA-1** | Suite de aceptación: E2E tests de flujos completos | Medio | Fases 1-5 | ✅ |
 | **SCALE-1** | Audit de performance: 1000 categorías, 10 años histórico | Bajo | U-3 | ✅ |
 | **INTEG-1** | Exportar presupuestos a CSV/JSON para análisis externo | Bajo | P-2 | ✅ |
@@ -476,6 +477,16 @@ a sus dos proyectos; QA-1 corre en un tercer proyecto sin canal fijado (Chromium
 `test:visual` ni el nuevo `test:e2e` forman parte de `npm run verify` ni de CI — misma decisión que
 ya regía para E18, un navegador headless en el pipeline de despliegue es una decisión de
 infraestructura aparte.
+
+**DOC-1 — guía de presupuestos (cierra FASE 6)**: «FAQs y ayuda» tenía tres casos de uso pero
+ninguno cubría Presupuesto del mes, y el bloque entero no tenía ningún test pese a llevar dos
+commits construido. Añadido un cuarto caso de uso «Presupuestar» (sugerir, ritmo, hucha, exportar
+CSV/JSON) y tres preguntas nuevas al acordeón de FAQ. El cableado de pestañas/búsqueda ya era
+genérico, no hizo falta tocarlo. 5 tests nuevos (contenido + comportamiento real del cableado con un
+stub mínimo de DOM), más verificación en navegador real. `npm run verify` completo: 1633/1633 tests,
+accesibilidad (832 IDs únicos), build, privacidad y smoke en verde.
+
+**FASE 6 completa**: las cuatro tareas (DOC-1, QA-1, SCALE-1, INTEG-1) hechas.
 
 ---
 
@@ -541,7 +552,7 @@ infraestructura aparte.
 | **3** | SIM-1, SIM-2, SIM-3, LINK-2 | ~330 | 3 | ✅ |
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
-| **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ⏳ |
+| **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
 | **TOTAL** | | **5070 líneas** | **24 semanas** | **En Curso** |
 
 ---
@@ -561,9 +572,9 @@ infraestructura aparte.
 6. ✅ **FASE 5 completada**: experiencia y mobile (U-2, U-3, U-4) y PERF-1 cerrado dentro de lo
    seguro (4 clústeres escalados a carga diferida; Lighthouse >85 no alcanzado, reestructuración
    mayor del motor compartido queda como candidato nuevo a valorar aparte)
-7. 🔶 **FASE 6 en curso**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real corregido),
-   INTEG-1 (exportar presupuestos a CSV/JSON) y QA-1 (suite E2E de flujos completos) completados;
-   queda solo DOC-1 (guía de presupuestos)
+7. ✅ **FASE 6 completada**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real
+   corregido), INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos completos) y
+   DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
 8. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
