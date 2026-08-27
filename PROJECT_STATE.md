@@ -2,6 +2,66 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (22): FASE 7 — TRACK-3, pantalla «Estado de la semana»
+
+Continuación directa del cierre anterior (BUD-2). El usuario dejó a mi criterio qué tarea seguir
+entre BUD-3, BUD-4 y TRACK-3; elegí TRACK-3 por ser la que más cambia el "cómo se usa" la app y la
+que BUD-2 acababa de desbloquear (conectar presupuestos y objetivos bajo el mismo motor).
+
+**Construido**: pantalla nueva "Estado de la semana" (`#estado-semana`), que funde tres lecturas que
+hoy viven repartidas en tres pantallas — sin motor nuevo, cada tarjeta reutiliza tal cual la función
+que ya construye esa misma lectura en su pantalla de origen.
+
+- **Alertas de caja anticipadas**: `window.FinanceCanonicalE16.buildReadModel()` sobre
+  `FinanceP2Bridge.e16Input()`, el mismo modelo que ya consume Hoy — hasta 3 alertas y el recuento
+  total, enlace "Ver detalle en Hoy".
+- **Ritmo de presupuesto**: `homeBudgetSummary()` (mensual, ya existente de FASE 1) y la nueva
+  `homeBudgetWeekSummary()` — mismo patrón exacto para la semana ISO en curso, reutilizando
+  `budgetWeekAlertForRow()` de BUD-1 y excluyendo presupuestos de objetivo vía la nueva
+  `categoryBudgetsForWeek()` (análoga a `categoryBudgetsForMonth()` de BUD-2). Una fila por cadencia,
+  enlace "Ver Presupuesto del mes".
+- **Objetivos: próximos vencimientos**: `window.FinanceCanonicalE15.financialCalendar()` sobre
+  `FinanceP2Bridge.goalPlanning()` y `p2State().goals` — mismo calendario que ya usa Huchas —
+  filtrado a eventos `type: "goal"` de los próximos 6 meses, enlace "Ver Huchas".
+- Nuevo chunk de carga diferida `views/estado-semana.js` (mismo patrón PERF-1 que Presupuesto del
+  mes: script clásico inyectado por `loadViewChunk()`, aterriza en el scope global de `app.js`).
+
+**Integración como pantalla de primer nivel**, no solo una tarjeta suelta: entrada en el menú
+avanzado (grupo Analizar, justo tras Presupuesto del mes), en el lanzador «Buscar o abrir»
+(`e17-experience.js`: catálogo `TASKS` + guía «Para qué sirve»/estado/siguiente paso), `viewTitles`,
+`VIEW_CHUNKS`/`HEAVY_RENDER_VIEWS`/dispatcher de `renderActiveSection`. El test canario existente de
+composición del menú avanzado (`tests/navigation-structure.test.cjs`) se actualizó a propósito
+(13→14 enlaces en Analizar, 28→29 en total).
+
+**Hallazgo de paso, corregido**: `tools/build-public-site.mjs` mantiene a mano la lista de chunks de
+vista publicados, con un comentario avisando de que añadir uno a `VIEW_CHUNKS` sin añadirlo también
+ahí serviría un 404 la primera vez que alguien visite esa pantalla — exactamente el tipo de gap que
+ya causó la incidencia de escenarios del 10 de agosto (ver `BACKLOG.md` §8), pero sin ningún canario
+automático que lo impidiera, solo el propio comentario. Añadido uno: un test que compara todo lo
+declarado en `VIEW_CHUNKS` (app.js) contra esa lista y falla si una vista nueva se queda sin publicar.
+
+**Verificación**: 19 tests nuevos (`tests/track3-estado-semana.test.cjs`) — `homeBudgetWeekSummary`/
+`categoryBudgetsForWeek` sobre presupuestos sintéticos, las tres tarjetas con los tres motores
+mockeados en el límite, `renderEstadoSemana` de extremo a extremo, y wiring (nav, chunk, dispatcher,
+lanzador, canario de publicación). `npm run verify` completo: 1706/1706 tests, accesibilidad (834
+IDs, +2 por la sección nueva y su contenedor), rendimiento, build, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): abierta la pantalla desde el
+buscador «Buscar o abrir»; sembrado gasto bancario real y un presupuesto semanal/mensual de la misma
+categoría; las tres tarjetas se pintan con sus tres títulos correctos y la de ritmo muestra "25,00 €
+de 70,00 €" reflejando el gasto sembrado en ambas filas (semana y mes); los tres botones "Ver ..."
+navegan de verdad a Hoy/Presupuesto del mes/Huchas (hash y pantalla visible confirmados); recorrido
+por Presupuesto del mes/Deuda/Cierre/Análisis/Huchas sin regresión ni errores de consola nuevos (el
+tunel externo y el 404 que aparecen ya estaban documentados como ruido preexistente en sesiones
+anteriores).
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+fusionarse el CI en verde.
+
+**Próximo paso**: seguir con BUD-3 (presupuestos anuales/trimestrales), BUD-4 (plantilla de
+repetición), TRACK-1/TRACK-2 (resumen semanal en Hoy, historial de cumplimiento) o FCST-1/FCST-2,
+según prioridad.
+
 ## Cierre de sesión — 27 de agosto de 2026 (21): FASE 7 — BUD-2, presupuestos ligados a objetivos
 
 Continuación directa del cierre anterior (BUD-1). El usuario pidió seguir con BUD-2, siguiente en
