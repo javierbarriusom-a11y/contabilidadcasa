@@ -2,15 +2,20 @@
  * canonical-budget-schema.js
  *
  * Esquema y validación de presupuestos.
- * Define estructura, validación y persistencia de presupuestos por categoría/mes o categoría/semana.
+ * Define estructura, validación y persistencia de presupuestos por categoría/mes, categoría/semana
+ * o categoría/año-trimestre.
  *
  * Estructura en state: state.budgets = [
- *   { id, categoryId, period, monthYear, weekKey, amountCap, source, appliedAt }
+ *   { id, categoryId, period, monthYear, weekKey, year, quarterKey, amountCap, source, appliedAt }
  * ]
- * `period` es "monthly" (por defecto, retrocompatible con presupuestos ya guardados sin el campo)
- * o "weekly". Un presupuesto mensual usa `monthYear` ("YYYY-MM") y `weekKey` es null; uno semanal
- * usa `weekKey` (semana ISO-8601, "YYYY-Www") y `monthYear` se deriva automáticamente (mes del
- * jueves de esa semana, criterio ISO) para poder agruparlo en vistas mensuales si hace falta.
+ * `period` es "monthly" (por defecto, retrocompatible con presupuestos ya guardados sin el campo),
+ * "weekly", "annual" o "quarterly". Un presupuesto mensual usa `monthYear` ("YYYY-MM") y el resto de
+ * campos de periodo quedan a null; uno semanal usa `weekKey` (semana ISO-8601, "YYYY-Www") y
+ * `monthYear` se deriva automáticamente (mes del jueves de esa semana, criterio ISO) para poder
+ * agruparlo en vistas mensuales si hace falta; uno anual usa `year` ("YYYY"); uno trimestral usa
+ * `quarterKey` ("YYYY-Qn", trimestre natural: Q1 ene-mar, Q2 abr-jun, Q3 jul-sep, Q4 oct-dic) — estos
+ * dos últimos no derivan `monthYear` (a diferencia de una semana, no hay un único mes "al que
+ * pertenezcan" con sentido).
  */
 
 (function attachCanonicalBudgetSchema(root, factory) {
@@ -34,9 +39,11 @@ class CanonicalBudgetSchema {
     return {
       id: this._generateId(),
       categoryId: validated.categoryId,
-      period: validated.period, // "monthly" | "weekly"
-      monthYear: validated.monthYear, // "2026-08" format
-      weekKey: validated.weekKey, // "2026-W35" format, null si es mensual
+      period: validated.period, // "monthly" | "weekly" | "annual" | "quarterly"
+      monthYear: validated.monthYear, // "2026-08" format, null si no es mensual/semanal
+      weekKey: validated.weekKey, // "2026-W35" format, null si no es semanal
+      year: validated.year, // "2026" format, null si no es anual
+      quarterKey: validated.quarterKey, // "2026-Q1" format, null si no es trimestral
       amountCap: validated.amountCap,
       source: validated.source, // "suggested" | "manual" | "carryover" | "goal" | "repeated"
       currency: validated.currency || 'EUR',
@@ -50,14 +57,20 @@ class CanonicalBudgetSchema {
   static validate(budget) {
     if (!budget || typeof budget !== 'object') return null;
 
-    const { categoryId, monthYear, weekKey, amountCap, source, currency, appliedAt } = budget;
-    const period = budget.period === 'weekly' ? 'weekly' : 'monthly';
+    const { categoryId, monthYear, weekKey, year, quarterKey, amountCap, source, currency, appliedAt } = budget;
+    const period =
+      budget.period === 'weekly' ? 'weekly'
+      : budget.period === 'annual' ? 'annual'
+      : budget.period === 'quarterly' ? 'quarterly'
+      : 'monthly';
 
     // Validar categoryId
     if (!categoryId || typeof categoryId !== 'string') return null;
 
-    let resolvedMonthYear;
+    let resolvedMonthYear = null;
     let resolvedWeekKey = null;
+    let resolvedYear = null;
+    let resolvedQuarterKey = null;
 
     if (period === 'weekly') {
       // Validar weekKey (semana ISO-8601, formato YYYY-Www)
@@ -66,6 +79,14 @@ class CanonicalBudgetSchema {
       // monthYear es opcional en la entrada para un presupuesto semanal: se deriva de la semana si
       // no se da explícitamente (agrupación por mes, criterio del jueves ISO).
       resolvedMonthYear = monthYear && /^\d{4}-\d{2}$/.test(monthYear) ? monthYear : this.monthYearForWeek(weekKey);
+    } else if (period === 'annual') {
+      // Validar year (formato YYYY)
+      if (!year || !/^\d{4}$/.test(year)) return null;
+      resolvedYear = year;
+    } else if (period === 'quarterly') {
+      // Validar quarterKey (trimestre natural, formato YYYY-Qn)
+      if (!quarterKey || !/^\d{4}-Q[1-4]$/.test(quarterKey)) return null;
+      resolvedQuarterKey = quarterKey;
     } else {
       // Validar monthYear (formato YYYY-MM)
       if (!monthYear || !/^\d{4}-\d{2}$/.test(monthYear)) return null;
@@ -90,6 +111,8 @@ class CanonicalBudgetSchema {
       period,
       monthYear: resolvedMonthYear,
       weekKey: resolvedWeekKey,
+      year: resolvedYear,
+      quarterKey: resolvedQuarterKey,
       amountCap: Math.round(amountCap * 100) / 100,
       source: source || 'manual',
       currency: currency || 'EUR',
@@ -131,15 +154,20 @@ class CanonicalBudgetSchema {
 
   /**
    * Reemplaza o actualiza presupuesto.
-   * Si existe para categoría/periodo (mes o semana), reemplaza; si no, añade.
+   * Si existe para categoría/periodo (mes, semana, año o trimestre), reemplaza; si no, añade.
    */
   static upsert(budgets = [], newBudget) {
     const validated = this.create(newBudget);
     if (!validated) return budgets;
 
-    const index = validated.period === 'weekly'
-      ? budgets.findIndex(b => b.categoryId === validated.categoryId && b.weekKey === validated.weekKey && b.period === 'weekly')
-      : budgets.findIndex(b => b.categoryId === validated.categoryId && b.monthYear === validated.monthYear && (b.period || 'monthly') === 'monthly');
+    const index =
+      validated.period === 'weekly'
+        ? budgets.findIndex(b => b.categoryId === validated.categoryId && b.weekKey === validated.weekKey && b.period === 'weekly')
+        : validated.period === 'annual'
+        ? budgets.findIndex(b => b.categoryId === validated.categoryId && b.year === validated.year && b.period === 'annual')
+        : validated.period === 'quarterly'
+        ? budgets.findIndex(b => b.categoryId === validated.categoryId && b.quarterKey === validated.quarterKey && b.period === 'quarterly')
+        : budgets.findIndex(b => b.categoryId === validated.categoryId && b.monthYear === validated.monthYear && (b.period || 'monthly') === 'monthly');
 
     if (index >= 0) {
       return [...budgets.slice(0, index), validated, ...budgets.slice(index + 1)];
@@ -155,6 +183,12 @@ class CanonicalBudgetSchema {
   static delete(budgets = [], categoryId, periodKey, period = 'monthly') {
     if (period === 'weekly') {
       return budgets.filter(b => !(b.categoryId === categoryId && b.weekKey === periodKey && b.period === 'weekly'));
+    }
+    if (period === 'annual') {
+      return budgets.filter(b => !(b.categoryId === categoryId && b.year === periodKey && b.period === 'annual'));
+    }
+    if (period === 'quarterly') {
+      return budgets.filter(b => !(b.categoryId === categoryId && b.quarterKey === periodKey && b.period === 'quarterly'));
     }
     return budgets.filter(
       b => !(b.categoryId === categoryId && b.monthYear === periodKey && (b.period || 'monthly') === 'monthly')
@@ -178,6 +212,56 @@ class CanonicalBudgetSchema {
   static byCategoryWeek(budgets = [], weekKey) {
     const result = {};
     this.findForWeek(budgets, weekKey).forEach(b => {
+      result[b.categoryId] = b.amountCap;
+    });
+    return result;
+  }
+
+  /**
+   * Busca presupuesto de una categoría en un año específico ("YYYY").
+   */
+  static findForCategoryYear(budgets = [], categoryId, year) {
+    return budgets.find(b => b.categoryId === categoryId && b.year === year && b.period === 'annual');
+  }
+
+  /**
+   * Busca todos los presupuestos anuales de un año.
+   */
+  static findForYear(budgets = [], year) {
+    return budgets.filter(b => b.year === year && b.period === 'annual');
+  }
+
+  /**
+   * Busca presupuesto de una categoría en un trimestre natural específico ("YYYY-Qn").
+   */
+  static findForCategoryQuarter(budgets = [], categoryId, quarterKey) {
+    return budgets.find(b => b.categoryId === categoryId && b.quarterKey === quarterKey && b.period === 'quarterly');
+  }
+
+  /**
+   * Busca todos los presupuestos trimestrales de un trimestre natural.
+   */
+  static findForQuarter(budgets = [], quarterKey) {
+    return budgets.filter(b => b.quarterKey === quarterKey && b.period === 'quarterly');
+  }
+
+  /**
+   * Retorna presupuestos anuales de un año agrupados por categoría.
+   */
+  static byCategoryYear(budgets = [], year) {
+    const result = {};
+    this.findForYear(budgets, year).forEach(b => {
+      result[b.categoryId] = b.amountCap;
+    });
+    return result;
+  }
+
+  /**
+   * Retorna presupuestos trimestrales de un trimestre natural agrupados por categoría.
+   */
+  static byCategoryQuarter(budgets = [], quarterKey) {
+    const result = {};
+    this.findForQuarter(budgets, quarterKey).forEach(b => {
       result[b.categoryId] = b.amountCap;
     });
     return result;
@@ -254,6 +338,46 @@ class CanonicalBudgetSchema {
     const [y, m, d] = range.start.split('-').map(Number);
     const thursday = new Date(y, m - 1, d + 3);
     return `${thursday.getFullYear()}-${String(thursday.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  /**
+   * Año en curso ("YYYY"), hora local — BUD-3 (FASE 7): presupuestos anuales.
+   */
+  static currentYearKey(date = new Date()) {
+    return `${date.getFullYear()}`;
+  }
+
+  /**
+   * Rango de fechas (1 de enero a 31 de diciembre, ambos incluidos) de un año, como fechas
+   * "YYYY-MM-DD". Devuelve null si `year` no tiene formato "YYYY".
+   */
+  static annualRange(year) {
+    if (!/^\d{4}$/.test(year)) return null;
+    return { start: `${year}-01-01`, end: `${year}-12-31` };
+  }
+
+  /**
+   * Trimestre natural en curso ("YYYY-Qn", n=1..4), hora local.
+   */
+  static currentQuarterKey(date = new Date()) {
+    const quarter = Math.floor(date.getMonth() / 3) + 1;
+    return `${date.getFullYear()}-Q${quarter}`;
+  }
+
+  /**
+   * Rango de fechas de un trimestre natural (Q1 ene-mar, Q2 abr-jun, Q3 jul-sep, Q4 oct-dic), como
+   * fechas "YYYY-MM-DD". Devuelve null si `quarterKey` no tiene formato "YYYY-Qn".
+   */
+  static quarterRange(quarterKey) {
+    const match = /^(\d{4})-Q([1-4])$/.exec(quarterKey);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const quarter = Number(match[2]);
+    const startMonth = (quarter - 1) * 3; // 0-indexado
+    const endMonth = startMonth + 2;
+    const start = new Date(year, startMonth, 1);
+    const end = new Date(year, endMonth + 1, 0); // último día del último mes del trimestre
+    return { start: this._isoDateString(start), end: this._isoDateString(end) };
   }
 
   /**

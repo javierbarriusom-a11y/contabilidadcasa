@@ -422,7 +422,11 @@ function exportSandbox({ budgetsData = [], alertsByKey = {} } = {}) {
     budgetRowDisplayLabel: (categoryId) => (categoryId.startsWith("goal:") ? `🎯 ${categoryId.slice(5)}` : categoryId),
   };
   vm.createContext(context);
-  vm.runInContext(extractFunction("budgetsExportRows"), context, { filename: "app.js#bud2-export" });
+  vm.runInContext(
+    [extractFunction("budgetExportPeriodKey"), extractFunction("budgetsExportRows")].join("\n"),
+    context,
+    { filename: "app.js#bud2-export" },
+  );
   return context;
 }
 
@@ -457,7 +461,7 @@ test("BUD-2 · budgetsExportRows resuelve el nombre del objetivo en la columna c
 test("BUD-2 · el botón «Presupuestar objetivo» se pide desde app.js", () => {
   assert.match(app, /data-presupuesto-mes-goal-add\b/);
   assert.match(app, /const goalAddButton = event\.target\.closest\("\[data-presupuesto-mes-goal-add\]"\);/);
-  assert.match(app, /if \(goalAddButton\) handleAddGoalBudget\(goalAddButton\);/);
+  assert.match(app, /if \(goalAddButton\) \{ handleAddGoalBudget\(goalAddButton\); return; \}/);
 });
 
 test("BUD-2 · \"goal\" es una fuente válida en el esquema de presupuestos", () => {
@@ -468,6 +472,6 @@ test("BUD-2 · \"goal\" es una fuente válida en el esquema de presupuestos", ()
 
 test("BUD-2 · el chunk de presupuesto-mes viaja versionado tras el cambio", () => {
   const html = read("index.html");
-  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827e1/);
-  assert.match(html, /app\.js\?v=20260827d1a3/);
+  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827f1/);
+  assert.match(html, /app\.js\?v=20260827d1a4/);
 });

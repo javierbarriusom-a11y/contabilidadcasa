@@ -192,7 +192,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827e1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827f1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
@@ -3116,6 +3116,116 @@ function budgetWeekProjection(alert) {
   const unitIndex = Math.min(alert.metrics.dayOfMonth || 1, unitsInPeriod);
   const projected = unitIndex > 0 ? round2((alert.metrics.spent / unitIndex) * unitsInPeriod) : alert.metrics.spent;
   return { projected, diff: round2(projected - alert.metrics.budgetAmount) };
+}
+
+// BUD-3 (FASE 7): presupuestos anuales/trimestrales, para gastos estacionales (seguros, impuestos)
+// que hoy aparecen como "sobregasto" puntual cuando se pagan de una vez dentro de un mes con
+// presupuesto mensual. Mismo mecanismo que BUD-1 (semanal): CanonicalBudgetAlerts ya acepta un rango
+// de fechas explícito, así que un año o un trimestre natural son solo otro periodo más — sin motor
+// nuevo. `periodType` ("annual" | "quarterly") evita duplicar cuatro veces la misma mecánica.
+// A diferencia de la semanal, SÍ cuenta las partidas registradas a mano (P-3/S-3): un año o
+// trimestre siempre contiene meses completos, así que no hay reparto ambiguo entre dos periodos como
+// podía pasar con una semana a caballo entre dos meses.
+function currentBudgetYearKey(date = new Date()) {
+  return window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.currentYearKey(date) || null;
+}
+
+function currentBudgetQuarterKey(date = new Date()) {
+  return window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.currentQuarterKey(date) || null;
+}
+
+function currentBudgetLongPeriodKey(periodType, date = new Date()) {
+  return periodType === "annual" ? currentBudgetYearKey(date) : currentBudgetQuarterKey(date);
+}
+
+function budgetLongPeriodRange(periodType, periodKey) {
+  const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
+  if (!schema) return null;
+  return periodType === "annual" ? schema.annualRange(periodKey) : schema.quarterRange(periodKey);
+}
+
+// Meses ("YYYY-MM") entre dos fechas "YYYY-MM-DD", ambos incluidos — para sumar las partidas
+// registradas a mano (por mes) de cada mes que cae dentro de un año o trimestre.
+function monthKeysInRange(startIso, endIso) {
+  const [sy, sm] = startIso.split("-").map(Number);
+  const [ey, em] = endIso.split("-").map(Number);
+  const keys = [];
+  let year = sy;
+  let month = sm;
+  while (year < ey || (year === ey && month <= em)) {
+    keys.push(`${year}-${String(month).padStart(2, "0")}`);
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return keys;
+}
+
+function budgetExpenseTransactionsForLongPeriod(category, periodType, periodKey) {
+  const range = budgetLongPeriodRange(periodType, periodKey);
+  if (!range) return [];
+  return (budgetNegativeTransactionsByCategory().get(category) || []).filter(
+    (row) => row.date >= range.start && row.date <= range.end,
+  );
+}
+
+// Igual que budgetWeekDateContext() pero para un año/trimestre: "hoy" se sitúa dentro del propio
+// rango (el día real si es el periodo en curso, su último día si ya pasó), y unitsInPeriod se
+// calcula a partir del rango real (365/366 días para un año, ~90-92 para un trimestre) en vez de un
+// número fijo.
+function budgetLongPeriodDateContext(periodType, periodKey) {
+  const range = budgetLongPeriodRange(periodType, periodKey);
+  if (!range) return { today: new Date() };
+  const isCurrentPeriod = periodKey === currentBudgetLongPeriodKey(periodType);
+  const [sy, sm, sd] = range.start.split("-").map(Number);
+  const startDate = new Date(sy, sm - 1, sd);
+  const [ey, em, ed] = range.end.split("-").map(Number);
+  const endDate = new Date(ey, em - 1, ed);
+  const now = new Date();
+  const referenceIso = isCurrentPeriod
+    ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    : range.end;
+  const clampedIso = referenceIso < range.start ? range.start : referenceIso > range.end ? range.end : referenceIso;
+  const [cy, cm, cd] = clampedIso.split("-").map(Number);
+  const clampedDate = new Date(cy, cm - 1, cd);
+  const unitsInPeriod = Math.round((endDate - startDate) / 86400000) + 1;
+  const unitIndex = Math.round((clampedDate - startDate) / 86400000) + 1;
+  return {
+    today: clampedDate,
+    periodStart: range.start,
+    periodEnd: range.end,
+    unitsInPeriod,
+    unitIndex,
+  };
+}
+
+function budgetLongPeriodAlertForRow(budget, periodType, periodKey) {
+  if (isGoalBudgetCategoryId(budget.categoryId)) {
+    return window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts.calculateAlert({
+      budgetAmount: budget.amountCap,
+      movements: budgetGoalContributionMovements(goalIdFromBudgetCategoryId(budget.categoryId)),
+      stdDev: 0,
+      dateContext: budgetLongPeriodDateContext(periodType, periodKey),
+    });
+  }
+  const range = budgetLongPeriodRange(periodType, periodKey);
+  const bankMovements = budgetExpenseTransactionsForLongPeriod(budget.categoryId, periodType, periodKey);
+  const manualMovements = range ? syntheticManualMovements(budget.categoryId, monthKeysInRange(range.start, range.end)) : [];
+  return window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts.calculateAlert({
+    budgetAmount: budget.amountCap,
+    movements: [...bankMovements, ...manualMovements],
+    stdDev: 0,
+    dateContext: budgetLongPeriodDateContext(periodType, periodKey),
+  });
+}
+
+// "Reparto automático a mensual" (BUD-3): promedio mensual informativo — no crea presupuestos
+// mensuales nuevos, solo ayuda a leer si el gasto real de un mes concreto es razonable frente al
+// total anual/trimestral repartido a partes iguales.
+function budgetLongPeriodMonthlyShare(amountCap, periodType) {
+  return round2(amountCap / (periodType === "annual" ? 12 : 3));
 }
 
 // BUD-2 (FASE 7): presupuestos ligados a objetivos (E15/P2). Un objetivo se presupuesta como un
@@ -30137,7 +30247,10 @@ async function init() {
     if (simDelta) { handleBudgetSimulationDeltaChange(simDelta); return; }
     // BUD-1: presupuesto semanal editado inline (mismo patrón que el mensual de arriba).
     const weekInput = event.target.closest("[data-presupuesto-semana-category]");
-    if (weekInput) handleWeekBudgetAmountChange(weekInput);
+    if (weekInput) { handleWeekBudgetAmountChange(weekInput); return; }
+    // BUD-3: presupuesto anual/trimestral editado inline (mismo patrón que semanal/mensual).
+    const longPeriodInput = event.target.closest("[data-presupuesto-largo-category]");
+    if (longPeriodInput) handleLongPeriodBudgetAmountChange(longPeriodInput);
   });
   qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }
@@ -30163,7 +30276,22 @@ async function init() {
     }
     // BUD-2: presupuestar un objetivo (mensual o semanal, según la cadencia activa).
     const goalAddButton = event.target.closest("[data-presupuesto-mes-goal-add]");
-    if (goalAddButton) handleAddGoalBudget(goalAddButton);
+    if (goalAddButton) { handleAddGoalBudget(goalAddButton); return; }
+    // BUD-3: tipo de periodo largo (año/trimestre), navegación, alta y baja.
+    const longPeriodTypeButton = event.target.closest("[data-presupuesto-largo-type-toggle]");
+    if (longPeriodTypeButton) { handlePresupuestoMesLongPeriodTypeChange(longPeriodTypeButton.dataset.presupuestoLargoTypeToggle); return; }
+    if (event.target.closest("[data-presupuesto-largo-prev]")) { shiftPresupuestoMesLongPeriod(-1); return; }
+    if (event.target.closest("[data-presupuesto-largo-next]")) { shiftPresupuestoMesLongPeriod(1); return; }
+    const longPeriodAddButton = event.target.closest("[data-presupuesto-largo-add]");
+    if (longPeriodAddButton) { handleAddLongPeriodBudget(longPeriodAddButton); return; }
+    const longPeriodRemoveButton = event.target.closest("[data-presupuesto-largo-remove]");
+    if (longPeriodRemoveButton) {
+      handleRemoveLongPeriodBudget(
+        longPeriodRemoveButton.dataset.presupuestoLargoRemove,
+        longPeriodRemoveButton.dataset.presupuestoLargoRemoveType,
+        longPeriodRemoveButton.dataset.presupuestoLargoRemoveKey,
+      );
+    }
   });
   // TRACK-3: los tres botones "Ver ..." de Estado de la semana son enlaces de navegación normales
   // (mismo patrón data-home-nav que el resto de la app), sin acción propia que registrar aquí.
