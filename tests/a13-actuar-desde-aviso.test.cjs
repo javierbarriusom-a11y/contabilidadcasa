@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/analisis.js"), "utf8");
 
 // A-13: "Actuar desde el aviso, sin duplicar el camino" — los avisos de Análisis (A-9 "qué se
 // repite" y A-10 "confianza del dato") dejaban de tener acción real: enlazaban a Movimientos con un

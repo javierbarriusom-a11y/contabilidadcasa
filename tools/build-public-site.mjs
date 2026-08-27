@@ -75,6 +75,7 @@ const files = [
   "views/presupuesto-mes.js",
   "views/deuda.js",
   "views/cierre.js",
+  "views/analisis.js",
 ];
 
 // Esta lista se mantiene a mano, y por eso puede quedarse corta sin que nadie se entere: hasta el
