@@ -11,8 +11,8 @@ original de Lighthouse >85 no se alcanzó y requeriría una reestructuración ma
 FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
 cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
 BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado
-de la semana»), TRACK-1 (ritmo semanal en Hoy) y BUD-4 (plantilla «repetir mes anterior ± %»)
-completadas y publicadas; BUD-3, TRACK-2, FCST-1-2 y UX-B1-3 pendientes.
+de la semana»), TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %») y BUD-3
+(presupuestos anuales/trimestrales) completadas y publicadas; TRACK-2, FCST-1-2 y UX-B1-3 pendientes.
 **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
 separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
@@ -25,7 +25,7 @@ separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 | TRACK-3 | Pantalla "Estado de la semana": alertas de caja + ritmo de presupuesto + vencimientos de objetivos | ✅ Hecho |
 | TRACK-1 | Ritmo semanal añadido a la tarjeta de presupuesto en Hoy | ✅ Hecho |
 | BUD-4 | Plantilla "repetir presupuesto del mes anterior ± %" | ✅ Hecho |
-| BUD-3 | Presupuestos anuales/trimestrales con reparto automático a mensual | ⏳ Pendiente |
+| BUD-3 | Presupuestos anuales/trimestrales con reparto automático a mensual | ✅ Hecho |
 | TRACK-2 | Historial de cumplimiento por categoría (rachas on-track/overspend) | ⏳ Pendiente |
 | FCST-1 | Forecast por categoría a 3 horizontes (semana, mes, +3 meses) | ⏳ Pendiente |
 | FCST-2 | Conectar Escenarios (E13) con Presupuesto del mes | ⏳ Pendiente |
@@ -529,7 +529,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 |-------|----------|-----------|----------|-----------|--------|
 | **BUD-1** | Periodicidad en el esquema de presupuesto: `period: "monthly"\|"weekly"` y `weekKey` (ISO) junto al `monthKey` actual, sin romper los presupuestos mensuales existentes; selector de cadencia en Presupuesto del mes | Alta | Medio | — | ✅ (27/08/2026) |
 | **BUD-2** | Presupuestos ligados a objetivos: la aportación mensual/semanal de un objetivo (A10-3, plan de aportaciones) se registra como un presupuesto más, con su propio ritmo y alerta, como un tercer "tipo" de fila sobre `CanonicalBudgetAlerts` — sin motor nuevo | Alta | Medio | BUD-1 | ✅ (27/08/2026) |
-| **BUD-3** | Presupuestos anuales/trimestrales con reparto automático a mensual, para gastos estacionales (seguros, impuestos) que hoy aparecen como "sobregasto" puntual | Media | Medio | BUD-1 | Pendiente |
+| **BUD-3** | Presupuestos anuales/trimestrales con reparto automático a mensual, para gastos estacionales (seguros, impuestos) que hoy aparecen como "sobregasto" puntual | Media | Medio | BUD-1 | ✅ (27/08/2026) |
 | **BUD-4** | Plantilla "repetir presupuesto del mes anterior ± X%" — evita repetir "Sugerir" cada mes | Baja | Bajo | P-2 | ✅ (27/08/2026) |
 | **TRACK-1** | Resumen semanal de ritmo en Hoy (hoy solo hay lectura mensual) | Media | Bajo | BUD-1 | ✅ (27/08/2026) |
 | **TRACK-2** | Historial de cumplimiento por categoría (racha on-track/overspend), reutilizando el histórico que ya calcula `CanonicalBudgetAnalyzer` | Media | Bajo | — | Pendiente |
@@ -679,6 +679,44 @@ privacidad y smoke en verde. Verificado también en navegador real (Playwright c
 presupuesto de 200€ el mes anterior + ajuste "10" → "Repetir mes anterior" crea 220,00€ con la nota
 "repetido"; una segunda pulsación no lo duplica ni lo sobrescribe — sin errores de consola.
 
+**BUD-3 — construido y publicado (27 de agosto de 2026)**: tercera cadencia — "Anual/Trim." — en
+Presupuesto del mes, para gastos estacionales (seguros, impuestos) que hoy se pagan de una vez y
+aparecen como un "sobregasto" puntual disparatado en el mes que les toca, en vez de leerse contra su
+ciclo real. Mismo mecanismo que BUD-1 (semanal): `CanonicalBudgetAlerts.calculateAlert` ya acepta un
+rango de fechas explícito, así que un año o un trimestre natural son solo otro periodo más — sin
+motor nuevo.
+
+- `canonical-budget-schema.js` gana `period: "annual"` y `"quarterly"`, con `year` ("YYYY") o
+  `quarterKey` ("YYYY-Qn", trimestre natural) junto a los campos ya existentes — retrocompatible con
+  todo lo anterior, y automáticamente excluido de `findForMonth`/`findForWeek` (mismo filtro por
+  `period` que ya excluía lo semanal de lo mensual). Nuevos helpers `annualRange`/`quarterRange`/
+  `currentYearKey`/`currentQuarterKey` y CRUD paralelo (`findForYear`/`findForCategoryYear`/
+  `byCategoryYear` y sus equivalentes de trimestre); `upsert`/`delete` distinguen las cuatro cadencias.
+- `app.js`: `budgetLongPeriodAlertForRow(budget, periodType, periodKey)` generaliza el patrón de
+  `budgetWeekAlertForRow` a un `periodType` ("annual"/"quarterly") en vez de duplicar la mecánica dos
+  veces — mismo índice cacheado de SCALE-1, mismo `calculateAlert`. A diferencia de la semanal, **sí**
+  suma las partidas registradas a mano de cada mes del periodo (`monthKeysInRange` +
+  `syntheticManualMovements`): un año o trimestre siempre contiene meses completos, así que no hay el
+  reparto ambiguo entre dos periodos que sí justificaba excluirlas en BUD-1.
+- Presupuesto del mes gana la tercera pestaña de cadencia con su propia tarjeta: toggle Año
+  completo/Trimestre, navegación anterior/siguiente (el trimestre encadena el año al cruzar Q1↔Q4), y
+  una columna nueva "Reparto mensual" — el "reparto automático a mensual" que pedía la tarea:
+  puramente informativo (`amountCap ÷ 12` o `÷ 3`), no crea presupuestos mensuales nuevos.
+- `budgetsExportRows` (INTEG-1) exporta también los presupuestos anuales/trimestrales, con su propio
+  año/trimestre en la columna "Mes" — generalizado con `budgetExportPeriodKey()` en vez de asumir que
+  todo presupuesto tiene `monthYear` o `weekKey`.
+
+44 tests nuevos (`tests/bud3-presupuesto-anual-trimestral.test.cjs`): esquema (rangos, bisiestos,
+validación, CRUD), cadena real de cálculo incluido el caso central — un pago único de 1200€ pagado en
+marzo contra un año ya cerrado da "en ritmo" en vez de un sobregasto de un mes — combinación de gasto
+bancario y partidas a mano, rama de objetivo, wiring de la vista (toggle, navegación con acarreo de
+año, altas/ediciones/bajas, tabla) y wiring estático. `npm run verify` completo: 1772/1772 tests,
+accesibilidad (834 IDs, sin cambio), rendimiento, build, privacidad y smoke en verde. Verificado
+también en navegador real (Playwright contra `dist/`): un seguro de 1200€ pagado de una vez en enero
+del año pasado se presupuesta como anual, aparece "En ritmo" con "1200,00 €" gastado y "100,00 €/mes"
+de reparto informativo (en vez de la alarma mensual que daría hoy); cambiar a trimestral y dar de
+alta un presupuesto nuevo desde el formulario funciona de punta a punta — sin errores de consola.
+
 ---
 
 ## 🎯 8 Features Diferenciadoras
@@ -744,7 +782,7 @@ presupuesto de 200€ el mes anterior + ajuste "10" → "Repetir mes anterior" c
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3, TRACK-2, FCST-1-2, UX-B1-3 | ~1020 | — | 🔄 En curso |
+| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2, FCST-1-2, UX-B1-3 | ~1400 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -769,8 +807,8 @@ presupuesto de 200€ el mes anterior + ajuste "10" → "Repetir mes anterior" c
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
 8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales), BUD-2
    (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado de la semana»), TRACK-1 (ritmo
-   semanal en Hoy) y BUD-4 (plantilla «repetir mes anterior ± %») completadas y publicadas; quedan
-   BUD-3, TRACK-2, FCST-1-2 y UX-B1-3
+   semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %») y BUD-3 (presupuestos anuales/
+   trimestrales) completadas y publicadas; quedan TRACK-2, FCST-1-2 y UX-B1-3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -845,4 +883,4 @@ de por qué se descartó escalar más con el método de PERF-1).
 ---
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
-PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1 y BUD-4. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4 y BUD-3. Rama: `claude/app-review-improvement-plan-9a6pzr`.

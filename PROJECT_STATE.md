@@ -2,6 +2,61 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (25): FASE 7 — BUD-3, presupuestos anuales/trimestrales
+
+Continuación directa del cierre anterior (BUD-4 + tabla resumen). El usuario pidió seguir con BUD-3
+explícitamente.
+
+**Construido**: tercera cadencia — "Anual/Trim." — en Presupuesto del mes, para gastos estacionales
+(seguros, impuestos) que hoy se pagan de una vez y aparecen como un "sobregasto" puntual disparatado
+en el mes que les toca. Mismo mecanismo que BUD-1 (semanal): `CanonicalBudgetAlerts.calculateAlert`
+ya acepta un rango de fechas explícito, así que un año o un trimestre natural son solo otro periodo
+más — sin motor nuevo.
+
+- `canonical-budget-schema.js` gana `period: "annual"`/`"quarterly"`, con `year`/`quarterKey` junto a
+  los campos ya existentes — retrocompatible, y automáticamente excluido de `findForMonth`/
+  `findForWeek` (mismo filtro por `period` que ya excluía lo semanal). Nuevos helpers
+  `annualRange`/`quarterRange`/`currentYearKey`/`currentQuarterKey` y CRUD paralelo (`findForYear`/
+  `findForCategoryYear`/`byCategoryYear` y sus equivalentes de trimestre).
+- `app.js`: `budgetLongPeriodAlertForRow(budget, periodType, periodKey)` generaliza el patrón de
+  `budgetWeekAlertForRow` con un `periodType` ("annual"/"quarterly") en vez de duplicar la mecánica
+  dos veces. A diferencia de la semanal, sí suma las partidas registradas a mano de cada mes del
+  periodo (`monthKeysInRange` + `syntheticManualMovements`): un año/trimestre siempre contiene meses
+  completos, así que no hay el reparto ambiguo entre dos periodos que justificaba excluirlas en BUD-1.
+- Presupuesto del mes gana la tercera pestaña con su propia tarjeta: toggle Año completo/Trimestre,
+  navegación con acarreo de año al cruzar Q1↔Q4, y una columna "Reparto mensual" — el "reparto
+  automático a mensual" que pedía la tarea: informativo (`amountCap ÷ 12` o `÷ 3`), no crea
+  presupuestos mensuales nuevos.
+- `budgetsExportRows` (INTEG-1) generalizado con `budgetExportPeriodKey()` para exportar también los
+  presupuestos anuales/trimestrales con su propia clave de periodo en la columna "Mes".
+
+**Verificación**: 44 tests nuevos (`tests/bud3-presupuesto-anual-trimestral.test.cjs`) — esquema
+(rangos, bisiestos, validación, CRUD), cadena real de cálculo incluido el caso central (un pago único
+de 1200€ en marzo contra un año ya cerrado da "en ritmo", no un sobregasto de un mes), combinación de
+gasto bancario y partidas a mano, rama de objetivo, wiring de la vista y wiring estático. `npm run
+verify` completo: 1772/1772 tests, accesibilidad (834 IDs, sin cambio), rendimiento, build,
+privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): un seguro de 1200€ pagado de una
+vez en enero del año pasado se presupuesta como anual, aparece "En ritmo" con "1200,00 €" gastado y
+"100,00 €/mes" de reparto informativo (en vez de la alarma mensual que daría hoy); cambiar a
+trimestral y dar de alta un presupuesto nuevo desde el formulario funciona de punta a punta — sin
+errores de consola nuevos.
+
+Versión de `views/presupuesto-mes.js` bumpeada a `20260827f1` y la de `app.js` a `20260827d1a4`
+(`index.html` y los tres ficheros de test que las pinnean actualizados en bloque). Corregidos de paso
+dos tests existentes rotos por el refactor de `budgetsExportRows` (nueva `budgetExportPeriodKey()`
+extraída pero no incluida en sus sandboxes) y uno por el cambio de `if (x) y();` a `if (x) { y();
+return; }` en el listener de click — mismo tipo de ajuste ya visto en sesiones anteriores al tocar
+código compartido.
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: seguir con TRACK-2 (historial de cumplimiento por categoría) o FCST-1/FCST-2, según
+prioridad. Con BUD-1 a BUD-4 completadas, FASE 7 solo tiene pendientes tareas de seguimiento/
+forecasting (TRACK-2, FCST-1-2) y de experiencia (UX-B1-3).
+
 ## Actualización — 27 de agosto de 2026: tabla resumen de FASE 7 en el backlog
 
 A petición del usuario, se añade a `BACKLOG_PRESUPUESTOS_V2.md` una tabla sencilla de 3 columnas

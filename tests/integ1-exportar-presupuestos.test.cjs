@@ -79,7 +79,7 @@ function sandbox({ budgetsData = [], alerts = {} } = {}) {
   };
   vm.createContext(context);
   vm.runInContext(
-    ["budgetsExportRows", "downloadBudgetsCsv", "downloadBudgetsJson"].map(extractFunction).join("\n"),
+    ["budgetExportPeriodKey", "budgetsExportRows", "downloadBudgetsCsv", "downloadBudgetsJson"].map(extractFunction).join("\n"),
     context,
     { filename: "app.js#integ1-exportar-presupuestos" },
   );
@@ -166,6 +166,6 @@ test("INTEG-1 · los botones de exportar viven en Presupuesto del mes y se piden
 });
 
 test("INTEG-1 · el chunk de presupuesto-mes viaja versionado", () => {
-  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827e1/);
-  assert.match(html, /app\.js\?v=20260827d1a3/);
+  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827f1/);
+  assert.match(html, /app\.js\?v=20260827d1a4/);
 });
