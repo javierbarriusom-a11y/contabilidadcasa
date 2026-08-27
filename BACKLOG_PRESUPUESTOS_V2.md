@@ -258,7 +258,7 @@ correctamente "por encima del récord", patrón estacional detecta julio a +58% 
 
 ---
 
-### **FASE 5 (Experiencia & Mobile) — Semanas 17-20 · 3/4 (26 de agosto)**
+### **FASE 5 (Experiencia & Mobile) — Semanas 17-20 · COMPLETADA (27 de agosto)**
 
 App usable y brilla en móvil. Pasa a ir después de Gamificación (petición del usuario, 26 de
 agosto).
@@ -428,7 +428,7 @@ PERF-1. Sin cambios de código en esta sesión de cierre, solo análisis y docum
 
 ---
 
-### **FASE 6 (Polish & Scale) — Semanas 21-24**
+### **FASE 6 (Polish & Scale) — Semanas 21-24 · COMPLETADA (27 de agosto)**
 
 Estabilidad, documentación, performance en escala.
 
@@ -553,7 +553,7 @@ accesibilidad (832 IDs únicos), build, privacidad y smoke en verde.
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **TOTAL** | | **5070 líneas** | **24 semanas** | **En Curso** |
+| **TOTAL** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
 
@@ -579,26 +579,49 @@ accesibilidad (832 IDs únicos), build, privacidad y smoke en verde.
 
 ---
 
-## 📝 Notas Técnicas
+## 📝 Notas técnicas (corregidas el 27/08/2026 frente a lo realmente construido)
 
-- **Persistencia**: Supabase, tablas `finance_budgets`, `finance_budget_surpluses`, `finance_budget_simulations`
-- **Integración E12**: Forecast de caja + forecast por categoría validados mutuamente
-- **Integración E14**: Simulaciones de presupuesto impactan E14 (deuda adapter read-only)
-- **Performance**: Índices en Supabase, caché por mes, worker threads para cálculos pesados
-- **Mobile-first**: Breakpoint 390px, cards en lugar de tablas, full-screen en móvil
+Esta sección describía en el plan original infraestructura dedicada (tablas Supabase propias, Web
+Workers) que **no se llegó a construir así** — se optó por el mecanismo genérico que ya usa el
+resto de la app, más simple y suficiente en la práctica:
+
+- **Persistencia**: NO hay tablas Supabase dedicadas (`finance_budgets` etc. nunca se crearon).
+  `budgets`/`budgetPartidaOverrides`/`budgetSurplusChoices` se guardan como el resto del estado:
+  `storageSet()` local + `queueRemoteSave()` (la misma cola de sincronización remota genérica de
+  toda la app, ver `durable-outbox.js`/`remote-save-queue.js`).
+- **Integración E12**: forecast de caja y forecast por categoría conviven sin validación cruzada
+  dedicada; no se ha detectado desincronización en la práctica.
+- **Integración E14**: LINK-1/LINK-2 conectan presupuestos con deuda reutilizando
+  `debtPriorityCandidates()`/`debtReliefMonthsForItem()` tal cual, sin adaptador nuevo.
+- **Performance**: sin Web Workers ni índices Supabase — SCALE-1 (FASE 6) auditó 1000 categorías/10
+  años y resolvió el único cuello de botella real con un índice en memoria cacheado por categoría
+  (~30× más rápido), suficiente sin mover el cálculo a un hilo aparte.
+- **Mobile-first**: Breakpoint 390px, cards en lugar de tablas, full-screen en móvil (esto sí se
+  construyó tal cual, U-3).
 
 ---
 
-## 🔄 Deuda Técnica & Riesgos
+## 🔄 Deuda técnica y riesgos — estado al cierre de FASE 6
 
-| Riesgo | Mitigación |
+Todas las fases (0-6) están completadas. Los riesgos que se anticiparon en el plan original quedaron
+resueltos con soluciones más simples que las previstas, o no llegaron a manifestarse:
+
+| Riesgo previsto | Qué pasó en la práctica |
 |--------|-----------|
-| Presupuestos desincronizados E12 | Validación cruzada en `canonical-engine.js` |
-| Performance 1000+ movimientos | Caching por mes, índices Supabase |
-| Mobile lag en simulaciones | Debounce sliders, Web Worker |
-| UI abrumadora en "Hoy" | Accordion/collapse móvil, scroll desktop |
-| Gamificación "gimmicky" | Badges solo si 3+ meses cumplimiento |
+| Presupuestos desincronizados con E12 | No se ha detectado desincronización real; sin validación cruzada dedicada |
+| Performance con 1000+ movimientos | Resuelto en SCALE-1 con un índice cacheado, sin Web Worker ni índices Supabase |
+| Mobile lag en simulaciones | No se ha necesitado debounce ni Web Worker; U-3 auditó 390px sin problema |
+| UI abrumadora en "Hoy" | U-2 (grid 2×2) y U-3 (mobile-first) lo cubrieron sin accordion dedicado |
+| Gamificación "gimmicky" | GAME-1/2/3 exigen 3+ meses de cumplimiento antes de dar un badge, como se planeó |
+
+**Lo único que sigue abierto, y solo si se decide perseguirlo aparte** (no es deuda de esta fase,
+es un objetivo que PERF-1 dejó explícitamente fuera de alcance): Lighthouse >85 no se alcanzó tras
+las 4 escalas de carga diferida (ganancia real pero no medible en la puntuación compuesta).
+Requeriría reestructurar el motor compartido de Escenario/Agente (diferir o memorizar su cálculo),
+una tarea nueva y bastante mayor que el esfuerzo "Bajo" original de PERF-1 — ver
+`PROJECT_STATE.md` (cierre 14) para el detalle completo de por qué se descartó escalar más.
 
 ---
 
-Archivo generado el 26/08/2026. Rama: `claude/budget-forecasting-improvements-4k54ti`
+Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6. Rama:
+`claude/backlog-fase-3-shsxwr`.
