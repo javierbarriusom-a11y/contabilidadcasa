@@ -9,9 +9,10 @@ sin bundler; los 6 clústeres restantes quedan descartados por entrelazado con e
 Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver hallazgos abajo. El objetivo
 original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance.
 FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
-cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026** — pendiente de
-ejecución, ver sección propia. **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado
-como candidato nuevo y separado**, sin comprometer esfuerzo hasta valorarlo aparte.
+cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
+BUD-1 (presupuestos semanales) completada y publicada; BUD-2-4, TRACK-1-3, FCST-1-2 y UX-B1-3
+pendientes. **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato
+nuevo y separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
 ---
 
@@ -503,7 +504,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 
 | Tarea | Qué hace | Prioridad | Esfuerzo | Bloqueador | Estado |
 |-------|----------|-----------|----------|-----------|--------|
-| **BUD-1** | Periodicidad en el esquema de presupuesto: `period: "monthly"\|"weekly"` y `weekKey` (ISO) junto al `monthKey` actual, sin romper los presupuestos mensuales existentes; selector de cadencia en Presupuesto del mes | Alta | Medio | — | Pendiente |
+| **BUD-1** | Periodicidad en el esquema de presupuesto: `period: "monthly"\|"weekly"` y `weekKey` (ISO) junto al `monthKey` actual, sin romper los presupuestos mensuales existentes; selector de cadencia en Presupuesto del mes | Alta | Medio | — | ✅ (27/08/2026) |
 | **BUD-2** | Presupuestos ligados a objetivos: la aportación mensual/semanal de un objetivo (A10-3, plan de aportaciones) se registra como un presupuesto más, con su propio ritmo y alerta, como un tercer "tipo" de fila sobre `CanonicalBudgetAlerts` — sin motor nuevo | Alta | Medio | BUD-1 | Pendiente |
 | **BUD-3** | Presupuestos anuales/trimestrales con reparto automático a mensual, para gastos estacionales (seguros, impuestos) que hoy aparecen como "sobregasto" puntual | Media | Medio | BUD-1 | Pendiente |
 | **BUD-4** | Plantilla "repetir presupuesto del mes anterior ± X%" — evita repetir "Sugerir" cada mes | Baja | Bajo | P-2 | Pendiente |
@@ -517,8 +518,35 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | **UX-B3** | Importar presupuestos desde CSV/JSON — hoy solo existe la exportación (INTEG-1); falta el camino inverso para reponer un plan | Baja | Bajo | INTEG-1 | Pendiente |
 
 **Orden propuesto**: BUD-1 → BUD-2 → TRACK-3 (las que más cambian el "cómo se usa" la app; TRACK-3
-depende de que BUD-2 ya exista), el resto según hueco. Ninguna tarea empezada — pendiente de
-priorización final del usuario antes de tocar código.
+depende de que BUD-2 ya exista), el resto según hueco.
+
+**BUD-1 — construido y publicado (27 de agosto de 2026)**: `canonical-budget-schema.js` gana
+`period` ("monthly" por defecto, retrocompatible con todo presupuesto ya guardado sin ese campo) y
+`weekKey` (semana ISO-8601), con helpers propios (`weekKeyFromDate`/`weekRange`/`monthYearForWeek`)
+y CRUD period-aware (`findForWeek`/`findForCategoryWeek`/`byCategoryWeek`, `upsert`/`delete`
+distinguen mes de semana; `findForMonth`/`byCategory` excluyen semanales aunque su mes derivado
+coincida). `canonical-budget-alerts.js`: `calculateAlert` generalizado a un periodo explícito
+(`dateContext.periodStart`/`periodEnd`/`unitsInPeriod`/`unitIndex`) sin cambiar su salida por
+defecto para el mes natural — mismo código, mismos nombres de métrica (`dayOfMonth`/`daysInMonth`),
+solo con un rango de fechas alternativo cuando se pasa. Nuevas funciones en `app.js`
+(`currentBudgetWeekKey`, `budgetExpenseTransactionsForWeek`, `budgetWeekDateContext`,
+`budgetWeekAlertForRow`, `budgetWeekProjection`) reutilizan el índice cacheado por categoría de
+SCALE-1. Presupuesto del mes gana un selector Mensual/Semanal: en semanal muestra una tarjeta propia
+con navegación entre semanas, alta/edición/baja de presupuestos semanales y el mismo patrón de
+ritmo/estado/proyección que la vista mensual — las demás tarjetas (simulador, hucha, badges, retos,
+estacional) siguen atadas al mes, sin cambios. Alcance declarado: los presupuestos semanales solo
+cuentan gasto bancario clasificado; las partidas registradas a mano (sin fecha diaria) siguen
+sumándose solo al mes. Confianza de las alertas semanales fija en "alta" (sin banda histórica
+semanal todavía — tarea de FCST-1).
+
+30 tests nuevos (`tests/bud1-presupuesto-semanal.test.cjs`): aritmética de semana ISO (incluida la
+semana 53 y el límite de año), validación/CRUD del esquema, generalización de alertas, cadena real
+de cálculo sobre transacciones sintéticas y wiring de la vista (mockeando el cálculo, mismo patrón
+que INTEG-1). `npm run verify` completo: 1663/1663 tests, accesibilidad (832 IDs), rendimiento,
+build, privacidad y smoke en verde. Verificado también en navegador real (Playwright contra `dist/`):
+alternar cadencia, añadir/editar/quitar un presupuesto semanal con gasto real reflejado, navegar
+entre semanas y volver a mensual, sin errores de consola nuevos ni regresión en Hoy/Deuda/Cierre/
+Análisis.
 
 ---
 
@@ -585,7 +613,7 @@ priorización final del usuario antes de tocar código.
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1-4, TRACK-1-3, FCST-1-2, UX-B1-3 | — | — | 🆕 Propuesta |
+| **7** | BUD-1 (✅), BUD-2-4, TRACK-1-3, FCST-1-2, UX-B1-3 | ~470 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -608,9 +636,8 @@ priorización final del usuario antes de tocar código.
 7. ✅ **FASE 6 completada**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real
    corregido), INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos completos) y
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
-8. 🆕 **FASE 7 propuesta (27 de agosto)**: multi-cadencia (BUD-1-4), seguimiento unificado
-   (TRACK-1-3) y forecasting conectado a escenarios (FCST-1-2), más tres mejoras de uso
-   (UX-B1-3) — pendiente de priorización final antes de empezar
+8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 completada y publicada (presupuestos
+   semanales); quedan BUD-2-4, TRACK-1-3, FCST-1-2 y UX-B1-3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
