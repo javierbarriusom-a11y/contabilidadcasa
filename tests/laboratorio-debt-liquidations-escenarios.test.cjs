@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8");
 
 // Laboratorio · debtLiquidations (20 de agosto de 2026) — la última de las tres decisiones de
 // producto de §7 del backlog. Deuda · Ruta y Deuda · Comparar aplican decisiones de deuda a través

@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8");
 
 // Fase 5 · Cierre (pantalla 08, Cierre.pdf, auditado el 16 de agosto): ritual secuencial de tres
 // pasos reales — Conciliar cuentas, Resolver diferencias, Firmar y archivar — en vez de los cuatro
