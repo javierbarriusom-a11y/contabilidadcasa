@@ -53,6 +53,11 @@ function sandbox({ budgetsData = [], alerts = {} } = {}) {
     csvValue: (value) => `"${String(value === null || value === undefined ? "" : value).replaceAll('"', '""')}"`,
     budgetAlertForRow: (budget) =>
       alerts[`${budget.categoryId}|${budget.monthYear}`] || { status: "on-track", metrics: { spent: 0, deviationPercent: 0 } },
+    // BUD-2: budgetsExportRows ahora resuelve presupuestos semanales vía budgetWeekAlertForRow y
+    // muestra el nombre del objetivo en vez del `categoryId` en bruto — ninguna fixture de INTEG-1
+    // usa ninguna de las dos cosas, así que basta con mocks mínimos (identidad / no-llamado).
+    budgetWeekAlertForRow: () => { throw new Error("no fixture de INTEG-1 es semanal"); },
+    budgetRowDisplayLabel: (categoryId) => categoryId,
     announceStatus: (text) => announcements.push(text),
     Blob: class {
       constructor(parts, options) {
@@ -161,6 +166,6 @@ test("INTEG-1 · los botones de exportar viven en Presupuesto del mes y se piden
 });
 
 test("INTEG-1 · el chunk de presupuesto-mes viaja versionado", () => {
-  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827c1/);
-  assert.match(html, /app\.js\?v=20260827c1a1/);
+  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827d1/);
+  assert.match(html, /app\.js\?v=20260827d1a1/);
 });

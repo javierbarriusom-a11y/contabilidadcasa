@@ -60,7 +60,7 @@ function budgetSurplusForRow(budget, monthKey) {
 }
 
 function budgetSurplusEntries(monthKey) {
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
   return monthBudgets
     .map((budget) => ({ budget, surplus: budgetSurplusForRow(budget, monthKey) }))
     .filter(({ surplus }) => surplus > 0);
@@ -107,7 +107,7 @@ function presupuestoMesHistoryHtml(monthKey) {
   const rows = monthBudgets
     .map(
       (budget) =>
-        `<tr><td class="t">${escapeHtml(budget.categoryId)}</td>${months.map((m) => budgetHistoryCellHtml(budget.categoryId, m)).join("")}</tr>`,
+        `<tr><td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}</td>${months.map((m) => budgetHistoryCellHtml(budget.categoryId, m)).join("")}</tr>`,
     )
     .join("");
   return `<article class="e19-card registrar-mes-card">
@@ -159,7 +159,7 @@ let budgetSimulation = { category: "", delta: 0 };
 function budgetSimulationCategory(monthKey) {
   const categories = budgetableCategories();
   if (budgetSimulation.category && categories.includes(budgetSimulation.category)) return budgetSimulation.category;
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
   return monthBudgets[0]?.categoryId || categories[0] || "";
 }
 
@@ -352,7 +352,7 @@ function budgetBalancedStreak(category, monthKey, maxMonths = 24) {
 }
 
 function presupuestoMesGoalsHtml(monthKey) {
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
   if (!monthBudgets.length) return "";
   const rows = monthBudgets
     .map((budget) => {
@@ -402,7 +402,7 @@ function budgetBadgesForCategory(category, monthKey) {
 }
 
 function presupuestoMesBadgesHtml(monthKey) {
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
   const earned = monthBudgets.flatMap((budget) =>
     budgetBadgesForCategory(budget.categoryId, monthKey).map((badge) => ({ budget, badge })),
   );
@@ -435,7 +435,7 @@ function budgetHistoricalMinimumSpend(category, monthKey) {
 }
 
 function presupuestoMesChallengeHtml(monthKey) {
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
   const rows = monthBudgets
     .map((budget) => {
       const recordMin = budgetHistoricalMinimumSpend(budget.categoryId, monthKey);
@@ -478,7 +478,7 @@ function presupuestoMesChallengeHtml(monthKey) {
 // desviación (alertas de sobregasto de S-1), hito (badges recién ganados de GAME-2) y hucha
 // disponible (sobrante sin decidir de P-3).
 function budgetSmartNotifications(monthKey) {
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || [];
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
   const notifications = [];
   monthBudgets.forEach((budget) => {
     const alert = budgetAlertForRow(budget, monthKey);
@@ -596,10 +596,13 @@ function budgetsExportRows() {
   return [...budgets]
     .sort((a, b) => (a.monthYear === b.monthYear ? a.categoryId.localeCompare(b.categoryId) : a.monthYear.localeCompare(b.monthYear)))
     .map((budget) => {
-      const alert = budgetAlertForRow(budget, budget.monthYear);
+      // BUD-2: un presupuesto semanal se mide sobre su semana (weekKey), no sobre el mes al que se
+      // agrupa (monthYear es solo agrupación para vistas mensuales) — de lo contrario "gastado"
+      // saldría del mes completo en vez de los 7 días reales del presupuesto.
+      const alert = budget.period === "weekly" ? budgetWeekAlertForRow(budget, budget.weekKey) : budgetAlertForRow(budget, budget.monthYear);
       return {
-        mes: budget.monthYear,
-        categoria: budget.categoryId,
+        mes: budget.period === "weekly" ? budget.weekKey : budget.monthYear,
+        categoria: budgetRowDisplayLabel(budget.categoryId),
         presupuesto: budget.amountCap,
         gastado: alert.metrics.spent,
         desviacion_pct: alert.metrics.deviationPercent,
@@ -731,8 +734,8 @@ function presupuestoMesWeekRowHtml(budget, weekKey) {
   const barClass = alert.status === "overspend" ? "is-danger" : pct >= 80 ? "is-warn" : "";
   const projectedClass = projection.diff > 0 ? "negative" : "positive";
   return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
-    <td class="t">${escapeHtml(budget.categoryId)}</td>
-    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-semana-category="${escapeHtml(budget.categoryId)}" data-presupuesto-semana-week="${escapeHtml(weekKey)}" aria-label="Presupuesto semanal de ${escapeHtml(budget.categoryId)}" value="${budget.amountCap}" /></td>
+    <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}</td>
+    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-semana-category="${escapeHtml(budget.categoryId)}" data-presupuesto-semana-week="${escapeHtml(weekKey)}" aria-label="Presupuesto semanal de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
     <td>${money(alert.metrics.spent, true)}</td>
     <td>
       <span class="registrar-mes-progress ${barClass}"><span style="width:${pct}%"></span></span>
@@ -752,8 +755,56 @@ function presupuestoMesAddWeeklyRowHtml(weekKey) {
   return `<tr>
     <td class="t"><select data-presupuesto-semana-new-category aria-label="Categoría del nuevo presupuesto semanal">${options}</select></td>
     <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-semana-new-amount aria-label="Importe del nuevo presupuesto semanal" placeholder="Importe" /></td>
-    <td colspan="4"><button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-semana-add data-presupuesto-semana-add-week="${escapeHtml(weekKey)}">Añadir</button></td>
+    <td colspan="5"><button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-semana-add data-presupuesto-semana-add-week="${escapeHtml(weekKey)}">Añadir</button></td>
   </tr>`;
+}
+
+// BUD-2 (FASE 7): fila de alta para presupuestar un objetivo (E15/P2), en la misma tabla que las
+// categorías bancarias — mismo patrón que presupuestoMesAddWeeklyRowHtml, sirve tanto al mes como a
+// la semana según `period`. La etiqueta de cada opción muestra la aportación mensual que ya propone
+// el plan E15 (contributionPlan), como referencia, sin obligar a usarla.
+function presupuestoMesGoalOptionLabel(goal, period) {
+  const monthly = goalProposedMonthlyContribution(goal.id);
+  if (!monthly) return goal.name;
+  if (period === "weekly") return `${goal.name} (E15 sugiere ≈${round2(monthly / 4.345)} €/semana)`;
+  return `${goal.name} (E15 sugiere ${money(monthly, true)}/mes)`;
+}
+
+function presupuestoMesAddGoalRowHtml(periodKey, period) {
+  const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
+  const periodBudgets = period === "weekly" ? (schema?.findForWeek(budgets, periodKey) || []) : (schema?.findForMonth(budgets, periodKey) || []);
+  const budgeted = new Set(
+    periodBudgets.filter((b) => isGoalBudgetCategoryId(b.categoryId)).map((b) => goalIdFromBudgetCategoryId(b.categoryId)),
+  );
+  const available = activeGoalsForBudget().filter((goal) => !budgeted.has(goal.id));
+  if (!available.length) return "";
+  const options = available
+    .map((goal) => `<option value="${escapeHtml(goal.id)}">${escapeHtml(presupuestoMesGoalOptionLabel(goal, period))}</option>`)
+    .join("");
+  return `<tr>
+    <td class="t">🎯 <select data-presupuesto-mes-goal-new-id aria-label="Objetivo a presupuestar">${options}</select></td>
+    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-goal-new-amount aria-label="Aportación a presupuestar" placeholder="Importe" /></td>
+    <td colspan="5"><button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-goal-add data-presupuesto-mes-goal-add-period="${period}" data-presupuesto-mes-goal-add-key="${escapeHtml(periodKey)}">Presupuestar objetivo</button></td>
+  </tr>`;
+}
+
+function handleAddGoalBudget(button) {
+  const period = button.dataset.presupuestoMesGoalAddPeriod;
+  const periodKey = button.dataset.presupuestoMesGoalAddKey;
+  const row = button.closest("tr");
+  const goalId = row?.querySelector("[data-presupuesto-mes-goal-new-id]")?.value;
+  const amount = Number(row?.querySelector("[data-presupuesto-mes-goal-new-amount]")?.value);
+  if (!goalId || !periodKey || !Number.isFinite(amount) || amount <= 0) return;
+  const payload = { categoryId: goalBudgetCategoryId(goalId), amountCap: amount, source: "goal" };
+  if (period === "weekly") {
+    payload.period = "weekly";
+    payload.weekKey = periodKey;
+  } else {
+    payload.monthYear = periodKey;
+  }
+  budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, payload);
+  saveBudgets();
+  renderPresupuestoMes();
 }
 
 function presupuestoMesWeeklyHtml() {
@@ -777,7 +828,7 @@ function presupuestoMesWeeklyHtml() {
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
         <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de semana</th><th></th></tr></thead>
-        <tbody>${rows}${presupuestoMesAddWeeklyRowHtml(weekKey)}</tbody>
+        <tbody>${rows}${presupuestoMesAddWeeklyRowHtml(weekKey)}${presupuestoMesAddGoalRowHtml(weekKey, "weekly")}</tbody>
       </table>
     </div>
   </article>`;
@@ -822,8 +873,8 @@ function presupuestoMesRowHtml(budget, monthKey) {
   const projectedClass = projection.diff > 0 ? "negative" : "positive";
   const sourceNote = budget.source === "suggested" ? ` <small class="note">sugerido</small>` : "";
   return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
-    <td class="t">${escapeHtml(budget.categoryId)}${sourceNote}</td>
-    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budget.categoryId)}" value="${budget.amountCap}" /></td>
+    <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}${sourceNote}</td>
+    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
     <td>${money(alert.metrics.spent, true)}</td>
     <td>
       <span class="registrar-mes-progress ${barClass}"><span style="width:${pct}%"></span></span>
@@ -960,7 +1011,7 @@ function renderPresupuestoMes() {
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
         <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de mes</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
+        <tbody>${rows}${presupuestoMesAddGoalRowHtml(monthKey, "monthly")}</tbody>
       </table>
     </div>
     ${summaryHtml}

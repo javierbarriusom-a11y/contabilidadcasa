@@ -10,9 +10,10 @@ Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver halla
 original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance.
 FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
 cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
-BUD-1 (presupuestos semanales) completada y publicada; BUD-2-4, TRACK-1-3, FCST-1-2 y UX-B1-3
-pendientes. **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato
-nuevo y separado**, sin comprometer esfuerzo hasta valorarlo aparte.
+BUD-1 (presupuestos semanales) y BUD-2 (presupuestos ligados a objetivos) completadas y publicadas;
+BUD-3-4, TRACK-1-3, FCST-1-2 y UX-B1-3 pendientes. **PERF-2 (motor Escenario/Agente para
+Lighthouse >85) queda anotado como candidato nuevo y separado**, sin comprometer esfuerzo hasta
+valorarlo aparte.
 
 ---
 
@@ -505,7 +506,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | Tarea | Qué hace | Prioridad | Esfuerzo | Bloqueador | Estado |
 |-------|----------|-----------|----------|-----------|--------|
 | **BUD-1** | Periodicidad en el esquema de presupuesto: `period: "monthly"\|"weekly"` y `weekKey` (ISO) junto al `monthKey` actual, sin romper los presupuestos mensuales existentes; selector de cadencia en Presupuesto del mes | Alta | Medio | — | ✅ (27/08/2026) |
-| **BUD-2** | Presupuestos ligados a objetivos: la aportación mensual/semanal de un objetivo (A10-3, plan de aportaciones) se registra como un presupuesto más, con su propio ritmo y alerta, como un tercer "tipo" de fila sobre `CanonicalBudgetAlerts` — sin motor nuevo | Alta | Medio | BUD-1 | Pendiente |
+| **BUD-2** | Presupuestos ligados a objetivos: la aportación mensual/semanal de un objetivo (A10-3, plan de aportaciones) se registra como un presupuesto más, con su propio ritmo y alerta, como un tercer "tipo" de fila sobre `CanonicalBudgetAlerts` — sin motor nuevo | Alta | Medio | BUD-1 | ✅ (27/08/2026) |
 | **BUD-3** | Presupuestos anuales/trimestrales con reparto automático a mensual, para gastos estacionales (seguros, impuestos) que hoy aparecen como "sobregasto" puntual | Media | Medio | BUD-1 | Pendiente |
 | **BUD-4** | Plantilla "repetir presupuesto del mes anterior ± X%" — evita repetir "Sugerir" cada mes | Baja | Bajo | P-2 | Pendiente |
 | **TRACK-1** | Resumen semanal de ritmo en Hoy (hoy solo hay lectura mensual) | Media | Bajo | BUD-1 | Pendiente |
@@ -547,6 +548,38 @@ build, privacidad y smoke en verde. Verificado también en navegador real (Playw
 alternar cadencia, añadir/editar/quitar un presupuesto semanal con gasto real reflejado, navegar
 entre semanas y volver a mensual, sin errores de consola nuevos ni regresión en Hoy/Deuda/Cierre/
 Análisis.
+
+**BUD-2 — construido y publicado (27 de agosto de 2026)**: un objetivo (E15/P2, `p2State().goals`)
+se presupuesta como un tercer "tipo" de fila sobre el mismo `budgets[]`/`CanonicalBudgetAlerts` —
+sin motor nuevo. La única pieza nueva es una convención de nombre: `categoryId = "goal:<id>"` (nunca
+choca con una categoría bancaria real), que `budgetAlertForRow()`/`budgetWeekAlertForRow()` detectan
+para medir "aportado" (las contribuciones reales del objetivo, `contributions[].amount`/`date`,
+convertidas en movimientos sintéticos) en vez de gasto bancario. Edición inline y baja se
+**reutilizan sin tocarlas**: `handleBudgetAmountChange`/`handleRemoveBudget` y sus equivalentes
+semanales ya operaban sobre `categoryId` como cadena opaca. Nueva fila "Presupuestar objetivo" en
+ambas tablas (mensual y semanal) — solo ofrece objetivos activos con importe pendiente, y su
+etiqueta muestra la aportación mensual que ya propone el plan E15 (`contributionPlan`, capacidad/
+prioridad/reserva) como referencia, reutilizando ese motor sin reimplementarlo. `budgetRowDisplayLabel()`
+resuelve el nombre real del objetivo en vez del `categoryId` en bruto en todas las vistas (tabla,
+histórico, exportación CSV/JSON — que de paso corrigió un fallo real ya existente en BUD-1: exportaba
+un presupuesto semanal midiéndolo sobre su mes completo en vez de su semana). Las tarjetas pensadas
+solo para gasto (hucha, reto "el mes que menos gastas", rachas/badges, notificaciones de sobregasto,
+simulador) **excluyen deliberadamente** los presupuestos de objetivo vía `categoryBudgetsForMonth()`:
+su lectura "por debajo/encima es bueno/malo" queda invertida para una aportación (contribuir de más
+es la meta, no un sobregasto a evitar), así que mostrarlas ahí habría sido engañoso en vez de útil.
+
+24 tests nuevos (`tests/bud2-presupuestos-objetivos.test.cjs`): convención de nombre y etiqueta,
+cadena real de cálculo con contribuciones sintéticas, exclusión category-only, wiring de alta/edición/
+baja en ambas cadencias, exportación con objetivos y semanas mezcladas, y la fuente `"goal"` en el
+esquema. `npm run verify` completo: 1687/1687 tests, accesibilidad (832 IDs), rendimiento, build,
+privacidad y smoke en verde. Verificado también en navegador real (Playwright contra `dist/`): crear
+un objetivo real y una aportación de 40€ desde la pantalla de Huchas, presupuestarlo desde Presupuesto
+del mes con la sugerencia E15 visible, ver "aportado" reflejar la contribución real, exportar CSV sin
+ningún `"goal:"` en bruto (con el nombre del objetivo en su lugar), confirmar que deja de ofrecerse en
+la fila de alta una vez presupuestado y que vuelve a aparecer al quitarlo, y disponibilidad también en
+cadencia semanal — sin regresión en Hoy/Deuda/Cierre/Análisis/Huchas. (Los dos avisos de consola de
+"404" que aparecen en este flujo se confirmaron preexistentes: idénticos en un `git worktree` limpio
+de `main` sin ningún cambio de BUD-2, mismo método ya usado en la sesión de INTEG-1.)
 
 ---
 
@@ -613,7 +646,7 @@ Análisis.
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2-4, TRACK-1-3, FCST-1-2, UX-B1-3 | ~470 | — | 🔄 En curso |
+| **7** | BUD-1 (✅), BUD-2 (✅), BUD-3-4, TRACK-1-3, FCST-1-2, UX-B1-3 | ~670 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -636,8 +669,9 @@ Análisis.
 7. ✅ **FASE 6 completada**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real
    corregido), INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos completos) y
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
-8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 completada y publicada (presupuestos
-   semanales); quedan BUD-2-4, TRACK-1-3, FCST-1-2 y UX-B1-3
+8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales) y BUD-2
+   (presupuestos ligados a objetivos) completadas y publicadas; quedan BUD-3-4, TRACK-1-3, FCST-1-2
+   y UX-B1-3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -711,5 +745,5 @@ de por qué se descartó escalar más con el método de PERF-1).
 
 ---
 
-Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6 y al proponer FASE 7 y
-PERF-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
+PERF-2, y al completar BUD-1 y BUD-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.
