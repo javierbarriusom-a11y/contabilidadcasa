@@ -5901,6 +5901,7 @@
 .e19-faqs .faqs-tab-icon-actualizar { background: color-mix(in srgb, var(--e19-heading) 14%, transparent); color: var(--e19-heading); }
 .e19-faqs .faqs-tab-icon-predecir { background: color-mix(in srgb, var(--e19-debt) 16%, transparent); color: var(--e19-debt); }
 .e19-faqs .faqs-tab-icon-concluir { background: color-mix(in srgb, var(--e19-success) 16%, transparent); color: var(--e19-success); }
+.e19-faqs .faqs-tab-icon-presupuestar { background: color-mix(in srgb, var(--e19-warning) 18%, transparent); color: var(--e19-warning); }
 
 .e19-faqs .faqs-tab-copy {
   display: flex;
@@ -5925,6 +5926,7 @@
 .e19-faqs .faqs-usecase[data-faqs-panel="actualizar"] { border-top: 3px solid var(--e19-heading); }
 .e19-faqs .faqs-usecase[data-faqs-panel="predecir"] { border-top: 3px solid var(--e19-debt); }
 .e19-faqs .faqs-usecase[data-faqs-panel="concluir"] { border-top: 3px solid var(--e19-success); }
+.e19-faqs .faqs-usecase[data-faqs-panel="presupuestar"] { border-top: 3px solid var(--e19-warning); }
 
 .e19-faqs .faqs-steps {
   margin: 12px 0 0;
