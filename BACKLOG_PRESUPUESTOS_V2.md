@@ -10,8 +10,9 @@ Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver halla
 original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance.
 FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
 cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
-BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos) y TRACK-3 (pantalla «Estado
-de la semana») completadas y publicadas; BUD-3-4, TRACK-1-2, FCST-1-2 y UX-B1-3 pendientes.
+BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado
+de la semana») y TRACK-1 (ritmo semanal en Hoy) completadas y publicadas; BUD-3-4, TRACK-2, FCST-1-2
+y UX-B1-3 pendientes.
 **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
 separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
@@ -509,7 +510,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | **BUD-2** | Presupuestos ligados a objetivos: la aportación mensual/semanal de un objetivo (A10-3, plan de aportaciones) se registra como un presupuesto más, con su propio ritmo y alerta, como un tercer "tipo" de fila sobre `CanonicalBudgetAlerts` — sin motor nuevo | Alta | Medio | BUD-1 | ✅ (27/08/2026) |
 | **BUD-3** | Presupuestos anuales/trimestrales con reparto automático a mensual, para gastos estacionales (seguros, impuestos) que hoy aparecen como "sobregasto" puntual | Media | Medio | BUD-1 | Pendiente |
 | **BUD-4** | Plantilla "repetir presupuesto del mes anterior ± X%" — evita repetir "Sugerir" cada mes | Baja | Bajo | P-2 | Pendiente |
-| **TRACK-1** | Resumen semanal de ritmo en Hoy (hoy solo hay lectura mensual) | Media | Bajo | BUD-1 | Pendiente |
+| **TRACK-1** | Resumen semanal de ritmo en Hoy (hoy solo hay lectura mensual) | Media | Bajo | BUD-1 | ✅ (27/08/2026) |
 | **TRACK-2** | Historial de cumplimiento por categoría (racha on-track/overspend), reutilizando el histórico que ya calcula `CanonicalBudgetAnalyzer` | Media | Bajo | — | Pendiente |
 | **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | ✅ (27/08/2026) |
 | **FCST-1** | Forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses), exponiendo a nivel semanal la banda de confianza que `canonical-budget-forecast-category.js` ya calcula | Media | Medio | BUD-1 | Pendiente |
@@ -616,6 +617,26 @@ sembrado gasto real y un presupuesto semanal/mensual de la misma categoría, las
 muestran datos reales («25,00 € de 70,00 €» reflejando el gasto sembrado), y los tres botones "Ver
 ..." navegan de verdad a Hoy/Presupuesto del mes/Huchas — sin regresión en el resto de pantallas.
 
+**TRACK-1 — construido y publicado (27 de agosto de 2026)**: "Presupuesto del mes" en Hoy (la
+tarjeta 2×2 de U-2) solo leía el mes en curso; ahora incorpora también el ritmo de la semana ISO
+actual, sin tarjeta nueva ni cambio de rejilla. Reutiliza tal cual `homeBudgetWeekSummary()`
+(construida en TRACK-3): un nuevo `homeBudgetWeekNoteSuffix()` la formatea como una segunda frase
+dentro de la misma nota de la tarjeta ("Esta semana: 25,00 € / 70,00 €."), en las dos ramas
+existentes — con presupuesto mensual y sin él (un hogar que solo presupuesta por semana esa
+categoría también ve su ritmo, aunque la tarjeta siga diciendo "Sin presupuestos" del mes). El
+semáforo (bueno/aviso/peligro) de la tarjeta sigue dependiendo solo del resumen mensual, a propósito:
+mezclar los dos umbrales en una sola insignia habría hecho ambiguo a cuál de las dos cadencias se
+refiere "Fuera de umbral". Cero cambios de motor, cero pantallas nuevas — el esfuerzo íntegro fue de
+lectura conjunta.
+
+9 tests nuevos (`tests/track1-resumen-semanal-hoy.test.cjs`): formateo del sufijo, las dos ramas de
+`renderHomeBudgetGlance` con y sin resumen semanal, la rama "Sin presupuestos" con y sin ritmo
+semanal, y que el estado de la tarjeta no cambia por el aviso semanal. `npm run verify` completo:
+1715/1715 tests, accesibilidad (834 IDs), rendimiento, build, privacidad y smoke en verde. Verificado
+también en navegador real (Playwright contra `dist/`): sembrado un presupuesto semanal de 70€ con
+25€ de gasto real en la semana ISO en curso y uno mensual de 200€ para otra categoría, Hoy muestra
+«1 categoría con presupuesto, en ritmo. Esta semana: 25,00 € / 70,00 €.» sin errores de consola.
+
 ---
 
 ## 🎯 8 Features Diferenciadoras
@@ -681,7 +702,7 @@ muestran datos reales («25,00 € de 70,00 €» reflejando el gasto sembrado),
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), BUD-3-4, TRACK-1-2, FCST-1-2, UX-B1-3 | ~940 | — | 🔄 En curso |
+| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-3-4, TRACK-2, FCST-1-2, UX-B1-3 | ~955 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -705,8 +726,8 @@ muestran datos reales («25,00 € de 70,00 €» reflejando el gasto sembrado),
    corregido), INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos completos) y
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
 8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales), BUD-2
-   (presupuestos ligados a objetivos) y TRACK-3 (pantalla «Estado de la semana») completadas y
-   publicadas; quedan BUD-3-4, TRACK-1-2 y FCST-1-2, UX-B1-3
+   (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado de la semana») y TRACK-1 (ritmo
+   semanal en Hoy) completadas y publicadas; quedan BUD-3-4, TRACK-2, FCST-1-2 y UX-B1-3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -781,4 +802,4 @@ de por qué se descartó escalar más con el método de PERF-1).
 ---
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
-PERF-2, y al completar BUD-1, BUD-2 y TRACK-3. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+PERF-2, y al completar BUD-1, BUD-2, TRACK-3 y TRACK-1. Rama: `claude/app-review-improvement-plan-9a6pzr`.

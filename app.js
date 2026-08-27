@@ -23589,6 +23589,15 @@ function renderHomeBudgetGlanceActions() {
   </article>`;
 }
 
+// TRACK-1 (FASE 7): hoy "Presupuesto del mes" en Hoy solo tenía lectura mensual. Añade el ritmo de
+// la semana ISO en curso como una segunda línea dentro de la misma tarjeta (homeBudgetWeekSummary,
+// ya construida para TRACK-3) en vez de una tarjeta nueva — evita romper la rejilla 2×2 de U-2 y no
+// exige un segundo clic para ver que esta semana va peor que el mes en conjunto.
+function homeBudgetWeekNoteSuffix(weekSummary) {
+  if (!weekSummary) return "";
+  return ` Esta semana: ${money(weekSummary.totalSpent, true)} / ${money(weekSummary.totalBudgeted, true)}.`;
+}
+
 // U-2 (FASE 5): rejilla "de un vistazo" en Hoy — presupuesto, caja, objetivos y accesos rápidos en
 // 2×2, mobile-first. Reutiliza homeBudgetSummary() (P-2/U-1), los saldos ya calculados por
 // renderHomeDashboard() y las rachas de GAME-1 — no recalcula nada que ya exista.
@@ -23596,6 +23605,7 @@ function renderHomeBudgetGlance(balances) {
   const root = qs("homeBudgetGlance");
   if (!root) return;
   const budgetSummary = homeBudgetSummary();
+  const weekSummary = homeBudgetWeekSummary(); // TRACK-1
   const goals = homeBudgetGoalsSummary();
   root.innerHTML = [
     budgetSummary
@@ -23603,8 +23613,9 @@ function renderHomeBudgetGlance(balances) {
           label: "Presupuesto del mes",
           value: `${money(budgetSummary.totalSpent, true)} / ${money(budgetSummary.totalBudgeted, true)}`,
           note:
-            budgetSummary.worstMessage ||
-            `${budgetSummary.count} categoría${budgetSummary.count === 1 ? "" : "s"} con presupuesto, en ritmo.`,
+            (budgetSummary.worstMessage ||
+            `${budgetSummary.count} categoría${budgetSummary.count === 1 ? "" : "s"} con presupuesto, en ritmo.`) +
+            homeBudgetWeekNoteSuffix(weekSummary),
           status: budgetSummary.status,
           cta: "Ver presupuesto",
           target: "presupuesto-mes",
@@ -23612,7 +23623,7 @@ function renderHomeBudgetGlance(balances) {
       : renderHomeKpi({
           label: "Presupuesto del mes",
           value: "Sin presupuestos",
-          note: "Aún no hay presupuestos para este mes.",
+          note: "Aún no hay presupuestos para este mes." + homeBudgetWeekNoteSuffix(weekSummary),
           status: "warn",
           cta: "Sugerir presupuestos",
           target: "presupuesto-mes",
