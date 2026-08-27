@@ -2,6 +2,58 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (14): PERF-1 — cierre de fase, sin más escalas seguras
+
+Continuación directa del cierre anterior. El usuario pidió seguir evaluando y escalando hasta
+acabar la fase, y al terminar actualizar backlog y PROJECT_STATE con el estado real.
+
+**Evaluado Asesor ejecutivo** (candidato señalado como pendiente en el cierre anterior) y
+**descartado**: `executiveAdvisorContext()` es la base de `unifiedActionCenterModel()`, usada
+directamente desde Hoy y otras rutas de render núcleo (al menos 7 puntos de llamada fuera de
+Asesor ejecutivo, entre ellos el propio centro de acción unificada de Hoy), y también la base de
+`newLifeContext()`/`newLifeDefinitiveContext()` — mismo patrón de entrelazado que ya descartó
+Escenario en la escala #3.
+
+Con ese hallazgo se revisaron los cinco `HEAVY_RENDER_VIEWS` que quedaban sin extraer, para
+comprobar si el motivo se generalizaba:
+- **Agente de ahorro**: `buildSavingsAgentPlan()` se llama directamente desde código alcanzable
+  desde Hoy y desde Deuda (origen "Ruta del Agente"), y la propia `executiveAdvisorContext()` la
+  usa — núcleo compartido.
+- **Asesor virtual**: `virtualAdvisorContext()` se construye directamente sobre
+  `buildSavingsAgentPlan()` y `agentOptimalDebtPayoffPlan()` — mismo motor.
+- **Simulación nueva vida** y **Nueva vida definitiva**: ambas construyen su contexto directamente
+  sobre `executiveAdvisorContext()`.
+- **Plan de deuda óptimo**: construido sobre el mismo motor de optimización de deuda compartido.
+- **Cuadro de mandos** (`visual-detail`): resultó ser parte del clúster de Cuadro de
+  mandos/Planificación de partidas ya descartado en la escala #2 (motor de edición compartido con
+  Cambios pendientes y Plan).
+
+**Conclusión**: los seis `HEAVY_RENDER_VIEWS` que quedaban sin mover recaen, cada uno, en uno de
+los dos clústeres ya descartados por entrelazado (el motor Escenario/Agente, o Cuadro de
+mandos/Planificación de partidas). No queda ninguna escala más de bajo riesgo con el método actual
+("mover el fichero completo, dejar en `app.js` solo lo que otras vistas usan"): las seis son
+pantallas heredadas ya marcadas "sustituida" en `LABORATORIO_CATALOG`, cuyo código propio es una
+capa fina de render sobre un motor de cálculo compartido — extraerlas movería poco peso de fichero
+y dejaría el 100% del cálculo real en `app.js`, sin el beneficio que sí tuvieron Deuda/Cierre/
+Análisis.
+
+**Las cuatro escalas fusionadas (piloto, Deuda, Cierre/Conciliar, Análisis) son el techo seguro de
+esta fase.** Lighthouse sigue sin mostrar ganancia medible de puntuación (73/72/75 perfil
+`provided`, 45/55/55 perfil por defecto — igual que la medición acumulada anterior) aunque el
+"JavaScript sin usar" bajó de forma verificable (~184 KB movidos de ~3,6 MB totales, ~5%). Esto ya
+se había anticipado desde el inicio de PERF-1: mover una fracción tan pequeña del bundle no puede
+mover la puntuación compuesta. Ir más allá exigiría tocar el motor compartido en sí (diferir o
+memorizar su cálculo, no solo mover ficheros) — una reestructuración distinta y bastante mayor que
+el esfuerzo "Bajo" con el que se estimó originalmente PERF-1, y por tanto una tarea nueva a valorar
+aparte si el usuario quiere perseguir el objetivo de Lighthouse >85, no una continuación de esta.
+
+**Sin cambios de código esta sesión** — solo análisis de dependencias y cierre de documentación
+(`PROJECT_STATE.md`, `BACKLOG_PRESUPUESTOS_V2.md`). `npm test` re-ejecutado igualmente antes de
+publicar (1621/1621, sin cambios de comportamiento esperados).
+
+**Publicado**: commit/push a `claude/backlog-fase-3-shsxwr`, PR en borrador y fusión al fusionarse
+el CI en verde, igual que las escalas anteriores.
+
 ## Cierre de sesión — 27 de agosto de 2026 (13): PERF-1 — medición acumulada y escala #4 (Análisis)
 
 Continuación directa del cierre anterior. El usuario pidió medir primero el efecto acumulado de
