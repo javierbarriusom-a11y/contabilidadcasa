@@ -2,6 +2,14 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Actualización — 27 de agosto de 2026: tabla resumen de FASE 7 en el backlog
+
+A petición del usuario, se añade a `BACKLOG_PRESUPUESTOS_V2.md` una tabla sencilla de 3 columnas
+(Tarea / Descripción / Estado) justo tras el párrafo de cabecera, con el estado real de las 13 tareas
+de FASE 7 (BUD-1/2/3/4, TRACK-1/2/3, FCST-1/2, UX-B1/2/3) más PERF-2 — de un vistazo, sin tener que
+leer la tabla detallada (prioridad/esfuerzo/bloqueador) que sigue más abajo. Sin cambios de código;
+`npm test`: 1727/1727 en verde.
+
 ## Cierre de sesión — 27 de agosto de 2026 (24): FASE 7 — BUD-4, plantilla "repetir mes anterior ± %"
 
 Continuación directa del cierre anterior (TRACK-1). El usuario dejó a mi criterio qué tarea seguir
