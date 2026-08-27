@@ -2,6 +2,48 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (23): FASE 7 — TRACK-1, ritmo semanal en Hoy
+
+Continuación directa del cierre anterior (TRACK-3). Con TRACK-3 fusionada pregunté si seguir
+encadenando tareas o parar por hoy; el usuario contestó "continuamos". Elegí TRACK-1 por ser esfuerzo
+"Bajo", no bloqueada por nada pendiente y de las que más se notan en el día a día (Hoy es la pantalla
+de más uso).
+
+**Construido**: la tarjeta "Presupuesto del mes" de la rejilla 2×2 de Hoy (U-2) solo leía el ritmo
+mensual; ahora incorpora también el de la semana ISO en curso, sin tarjeta nueva ni tocar la rejilla.
+
+- `homeBudgetWeekNoteSuffix()` (nueva, `app.js`): formatea `homeBudgetWeekSummary()` (ya construida
+  en TRACK-3) como una segunda frase — `" Esta semana: 25,00 € / 70,00 €."` — que se concatena a la
+  nota existente en `renderHomeBudgetGlance()`.
+- Cubre las dos ramas de la tarjeta: con presupuesto mensual (se añade al mensaje existente) y sin
+  él — "Sin presupuestos" — donde un hogar que solo presupuesta esa categoría por semana también ve
+  su ritmo, en vez de que la tarjeta calle esa información solo porque el mes no tiene nada.
+- El semáforo (bueno/aviso/peligro) de la tarjeta sigue dependiendo únicamente del resumen mensual, a
+  propósito: mezclar los dos umbrales en una sola insignia "Fuera de umbral" haría ambiguo a cuál de
+  las dos cadencias se refiere.
+- Cero motores nuevos, cero pantallas nuevas: todo el esfuerzo fue de lectura conjunta sobre dos
+  funciones que ya existían (`homeBudgetSummary`/`homeBudgetWeekSummary`).
+
+**Verificación**: 9 tests nuevos (`tests/track1-resumen-semanal-hoy.test.cjs`) — formateo del sufijo,
+las dos ramas de `renderHomeBudgetGlance` con y sin resumen semanal, la rama "Sin presupuestos" con y
+sin ritmo semanal, y que el estado de la tarjeta no cambia por el aviso semanal. `npm run verify`
+completo: 1715/1715 tests, accesibilidad (834 IDs, sin cambio — no se tocó el DOM estático),
+rendimiento, build, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): sembrado un presupuesto semanal de
+70€ con 25€ de gasto real en la semana ISO en curso y uno mensual de 200€ para otra categoría, Hoy
+muestra «1 categoría con presupuesto, en ritmo. Esta semana: 25,00 € / 70,00 €.» sin errores de
+consola nuevos.
+
+Versión de `app.js` bumpeada a `20260827d1a2` (`index.html` y los ficheros de test que la pinnean
+actualizados en bloque); ningún chunk de `views/` cambió, así que sus versiones quedan igual.
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: seguir con BUD-3 (presupuestos anuales/trimestrales), BUD-4 (plantilla de
+repetición), TRACK-2 (historial de cumplimiento por categoría) o FCST-1/FCST-2, según prioridad.
+
 ## Cierre de sesión — 27 de agosto de 2026 (22): FASE 7 — TRACK-3, pantalla «Estado de la semana»
 
 Continuación directa del cierre anterior (BUD-2). El usuario dejó a mi criterio qué tarea seguir
