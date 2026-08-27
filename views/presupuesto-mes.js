@@ -649,6 +649,140 @@ function downloadBudgetsJson() {
   announceStatus(`Presupuestos exportados a JSON (${rows.length} fila${rows.length === 1 ? "" : "s"}).`);
 }
 
+// BUD-1 (FASE 7): selector de cadencia mensual/semanal. Estado de vista pura, no persistido (igual
+// que budgetSimulation más arriba) — se reinicia al recargar, mismo patrón ya usado en esta vista.
+let presupuestoMesCadence = "monthly";
+let presupuestoMesActiveWeekKey = null;
+
+function currentPresupuestoMesWeekKey() {
+  if (!presupuestoMesActiveWeekKey) presupuestoMesActiveWeekKey = currentBudgetWeekKey();
+  return presupuestoMesActiveWeekKey;
+}
+
+function handlePresupuestoMesCadenceChange(cadence) {
+  if (cadence !== "monthly" && cadence !== "weekly") return;
+  presupuestoMesCadence = cadence;
+  renderPresupuestoMes();
+}
+
+function shiftPresupuestoMesWeek(deltaWeeks) {
+  const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
+  const range = schema?.weekRange(currentPresupuestoMesWeekKey());
+  if (!range) return;
+  const [y, m, d] = range.start.split("-").map(Number);
+  const shifted = new Date(y, m - 1, d + deltaWeeks * 7);
+  presupuestoMesActiveWeekKey = currentBudgetWeekKey(shifted);
+  renderPresupuestoMes();
+}
+
+function budgetWeekLabel(weekKey) {
+  const range = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.weekRange(weekKey);
+  if (!range) return weekKey;
+  const fmt = (iso) => {
+    const [y, m, d] = iso.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+  };
+  return `${fmt(range.start)} – ${fmt(range.end)}`;
+}
+
+function handleWeekBudgetAmountChange(input) {
+  const category = input.dataset.presupuestoSemanaCategory;
+  const weekKey = input.dataset.presupuestoSemanaWeek;
+  const amount = Number(input.value);
+  if (!category || !weekKey || !Number.isFinite(amount) || amount <= 0) return;
+  budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, {
+    categoryId: category,
+    period: "weekly",
+    weekKey,
+    amountCap: amount,
+    source: "manual",
+  });
+  saveBudgets();
+  renderPresupuestoMes();
+}
+
+function handleRemoveWeekBudget(category, weekKey) {
+  budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.delete(budgets, category, weekKey, "weekly");
+  saveBudgets();
+  renderPresupuestoMes();
+}
+
+function handleAddWeekBudget(button) {
+  const weekKey = button.dataset.presupuestoSemanaAddWeek;
+  const row = button.closest("tr");
+  const category = row?.querySelector("[data-presupuesto-semana-new-category]")?.value;
+  const amount = Number(row?.querySelector("[data-presupuesto-semana-new-amount]")?.value);
+  if (!category || !weekKey || !Number.isFinite(amount) || amount <= 0) return;
+  budgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.upsert(budgets, {
+    categoryId: category,
+    period: "weekly",
+    weekKey,
+    amountCap: amount,
+    source: "manual",
+  });
+  saveBudgets();
+  renderPresupuestoMes();
+}
+
+function presupuestoMesWeekRowHtml(budget, weekKey) {
+  const alert = budgetWeekAlertForRow(budget, weekKey);
+  const projection = budgetWeekProjection(alert);
+  const pct = budget.amountCap > 0 ? Math.min(100, Math.round((alert.metrics.spent / budget.amountCap) * 100)) : 0;
+  const barClass = alert.status === "overspend" ? "is-danger" : pct >= 80 ? "is-warn" : "";
+  const projectedClass = projection.diff > 0 ? "negative" : "positive";
+  return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
+    <td class="t">${escapeHtml(budget.categoryId)}</td>
+    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-semana-category="${escapeHtml(budget.categoryId)}" data-presupuesto-semana-week="${escapeHtml(weekKey)}" aria-label="Presupuesto semanal de ${escapeHtml(budget.categoryId)}" value="${budget.amountCap}" /></td>
+    <td>${money(alert.metrics.spent, true)}</td>
+    <td>
+      <span class="registrar-mes-progress ${barClass}"><span style="width:${pct}%"></span></span>
+      <small>${pct}%</small>
+    </td>
+    <td>${presupuestoMesStatusPill(alert)}</td>
+    <td class="${projectedClass}">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small></td>
+    <td><button type="button" class="registrar-actuals-plan-link" data-presupuesto-semana-remove="${escapeHtml(budget.categoryId)}" data-presupuesto-semana-remove-week="${escapeHtml(weekKey)}">Quitar</button></td>
+  </tr>`;
+}
+
+function presupuestoMesAddWeeklyRowHtml(weekKey) {
+  const existing = new Set((window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForWeek(budgets, weekKey) || []).map((b) => b.categoryId));
+  const available = budgetableCategories().filter((cat) => !existing.has(cat));
+  if (!available.length) return "";
+  const options = available.map((cat) => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
+  return `<tr>
+    <td class="t"><select data-presupuesto-semana-new-category aria-label="Categoría del nuevo presupuesto semanal">${options}</select></td>
+    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-semana-new-amount aria-label="Importe del nuevo presupuesto semanal" placeholder="Importe" /></td>
+    <td colspan="4"><button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-semana-add data-presupuesto-semana-add-week="${escapeHtml(weekKey)}">Añadir</button></td>
+  </tr>`;
+}
+
+function presupuestoMesWeeklyHtml() {
+  const weekKey = currentPresupuestoMesWeekKey();
+  const weekBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForWeek(budgets, weekKey) || [];
+  const label = budgetWeekLabel(weekKey);
+  const rows = weekBudgets.length
+    ? weekBudgets.map((budget) => presupuestoMesWeekRowHtml(budget, weekKey)).join("")
+    : `<tr><td colspan="6" class="registrar-mes-empty">Todavía no hay presupuestos semanales para ${escapeHtml(label)}.</td></tr>`;
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Presupuesto semanal · ${escapeHtml(label)}</h3>
+        <p class="e19-subtitle">Ritmo diario = presupuesto ÷ 7. Solo cuenta el gasto bancario clasificado de esta categoría en la semana; las partidas registradas a mano (sin fecha diaria) siguen sumándose solo al presupuesto mensual.</p>
+      </div>
+      <div class="cuadro-mandos-controls">
+        <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-semana-prev>← Semana anterior</button>
+        <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-semana-next>Semana siguiente →</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de semana</th><th></th></tr></thead>
+        <tbody>${rows}${presupuestoMesAddWeeklyRowHtml(weekKey)}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
 function handleBudgetAmountChange(input) {
   const category = input.dataset.presupuestoMesCategory;
   const monthKey = input.dataset.presupuestoMesMonth;
@@ -784,8 +918,20 @@ function renderPresupuestoMes() {
     return;
   }
   const monthKey = currentBudgetMonthKey();
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey);
   const monthLabel = ledgerMonthLabel ? ledgerMonthLabel(monthKey) : monthKey;
+
+  // BUD-1 (FASE 7): selector de cadencia. Siempre visible, encima de todo lo demás.
+  const cadenceToggleHtml = `<div class="cuadro-mandos-controls" role="group" aria-label="Cadencia del presupuesto">
+    <button type="button" class="e19-btn ${presupuestoMesCadence === "monthly" ? "e19-btn-primary" : "e19-btn-secondary"}" data-presupuesto-mes-cadence="monthly" aria-pressed="${presupuestoMesCadence === "monthly"}">Mensual</button>
+    <button type="button" class="e19-btn ${presupuestoMesCadence === "weekly" ? "e19-btn-primary" : "e19-btn-secondary"}" data-presupuesto-mes-cadence="weekly" aria-pressed="${presupuestoMesCadence === "weekly"}">Semanal</button>
+  </div>`;
+
+  if (presupuestoMesCadence === "weekly") {
+    root.innerHTML = `${cadenceToggleHtml}${presupuestoMesWeeklyHtml()}`;
+    return;
+  }
+
+  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey);
   const today = new Date();
   const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
 
@@ -798,7 +944,8 @@ function renderPresupuestoMes() {
     ? monthBudgets.map((budget) => presupuestoMesRowHtml(budget, monthKey)).join("")
     : `<tr><td colspan="7" class="registrar-mes-empty">Todavía no hay presupuestos para ${escapeHtml(monthLabel)}. Pulsa «Sugerir presupuestos» para generarlos a partir de los últimos 6 meses.</td></tr>`;
 
-  root.innerHTML = `<article class="e19-card registrar-mes-card">
+  root.innerHTML = `${cadenceToggleHtml}
+  <article class="e19-card registrar-mes-card">
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(monthLabel)}</h3>

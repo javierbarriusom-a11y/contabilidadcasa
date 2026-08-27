@@ -2,6 +2,64 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (20): FASE 7 — BUD-1, presupuestos semanales
+
+Continuación directa del cierre anterior (propuesta de FASE 7 + PERF-2). El usuario pidió empezar,
+en el orden ya acordado: BUD-1 primero.
+
+**Construido**: periodicidad semanal en el motor de presupuestos, de extremo a extremo.
+
+- `canonical-budget-schema.js`: nuevo campo `period` ("monthly" por defecto — retrocompatible con
+  todo presupuesto ya guardado sin el campo — o "weekly") y `weekKey` (semana ISO-8601, "YYYY-Www").
+  Helpers propios de aritmética de semana (`weekKeyFromDate`/`weekRange`/`monthYearForWeek`, hora
+  local en todo momento, mismo criterio que el resto del fichero — nunca UTC, para no desalinear con
+  `row.date`). CRUD period-aware: `findForWeek`/`findForCategoryWeek`/`byCategoryWeek` nuevos;
+  `findForMonth`/`findForCategoryMonth`/`byCategory` excluyen presupuestos semanales aunque su mes
+  derivado coincida; `upsert` distingue por (categoría, semana) o (categoría, mes) según `period`;
+  `delete` gana un 4º argumento `period = "monthly"` que mantiene su firma de 3 argumentos intacta
+  para las ~15 llamadas existentes.
+- `canonical-budget-alerts.js`: `calculateAlert` generalizado a un periodo explícito
+  (`dateContext.periodStart`/`periodEnd`/`unitsInPeriod`/`unitIndex`) sin cambiar su salida por
+  defecto para un mes natural — mismos nombres de métrica (`dayOfMonth`/`daysInMonth`, ahora
+  "unidad actual"/"unidades totales" del periodo cuando no es un mes), mismo código ejecutado cuando
+  no se pasa periodo explícito. Los 20 tests existentes de FASE 0 siguen en verde sin tocarlos.
+- `app.js`: `currentBudgetWeekKey`, `budgetExpenseTransactionsForWeek` (reutiliza el índice cacheado
+  por categoría de SCALE-1, filtrando por `row.date` en vez de `row.month`), `budgetWeekDateContext`
+  (mismo truco que `budgetDateContextFor` para semanas ya cerradas) y `budgetWeekAlertForRow`/
+  `budgetWeekProjection`.
+- `views/presupuesto-mes.js`: selector Mensual/Semanal en la cabecera. En semanal, tarjeta propia con
+  navegación entre semanas, alta (categoría + importe), edición inline y baja de presupuestos
+  semanales, con el mismo patrón de ritmo/estado/proyección que la tabla mensual. El resto de
+  tarjetas (simulador, hucha, histórico, badges, retos, estacional) siguen atadas solo al mes, sin
+  cambios de comportamiento.
+- **Alcance declarado**: los presupuestos semanales solo cuentan gasto bancario clasificado; las
+  partidas registradas a mano (P-3/S-3) no tienen fecha diaria y no se pueden repartir de forma
+  fiable entre semanas, así que siguen sumándose solo al presupuesto mensual. La confianza de las
+  alertas semanales queda fija en "alta" (sin banda histórica de variabilidad semana a semana
+  todavía — tarea de FCST-1, no de BUD-1).
+- Chunk versionado: `views/presupuesto-mes.js?v=20260827c1` y `app.js?v=20260827c1a1` (bump desde
+  `b1`/`b1a1`), propagado a los 21 ficheros de test que fijan esa cifra.
+
+**Verificación**: 30 tests nuevos (`tests/bud1-presupuesto-semanal.test.cjs`) — aritmética de semana
+ISO (incluida la semana 53 de 2026 y el límite de año, y el rechazo de una semana 53 inexistente en
+2025), validación/CRUD del esquema, generalización de `calculateAlert`, cadena real de cálculo sobre
+transacciones sintéticas (sin mocks del motor) y wiring de la vista (mockeando el cálculo, mismo
+patrón que INTEG-1). `npm run verify` completo: 1663/1663 tests, accesibilidad (832 IDs), rendimiento,
+build, privacidad y smoke en verde. Verificado también en navegador real (Playwright contra `dist/`,
+`@playwright/test` reinstalado en este contenedor — mismo hueco de instalación ya documentado en
+sesiones anteriores, no del repositorio): alternar cadencia, añadir un presupuesto semanal con gasto
+bancario real reflejado correctamente, editar el importe inline, navegar entre semanas y volver,
+quitar el presupuesto, volver a mensual sin perder nada, y recorrido por Hoy/Deuda/Cierre/Análisis
+sin errores de consola nuevos (los dos avisos que aparecen — un 404 y un intento de red externo a
+`cdn.jsdelivr.net` — ya estaban documentados como ruido preexistente de `dist/` en la sesión de
+INTEG-1, confirmados de nuevo aquí).
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+fusionarse el CI en verde.
+
+**Próximo paso**: seguir con BUD-2 (presupuestos ligados a objetivos, E15) según el orden acordado
+para FASE 7.
+
 ## Cierre de sesión — 27 de agosto de 2026 (19): revisión de la app y propuesta de FASE 7 + PERF-2
 
 Con FASE 6 cerrada (sesión anterior), el usuario pidió una nueva revisión de la app y un plan de

@@ -191,7 +191,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827b1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827c1", rootId: "presupuestoMesRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
   "deuda-contratos": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-contratos" },
@@ -3032,6 +3032,74 @@ function budgetProjection(alert, monthKey) {
   const dayOfMonth = Math.min(alert.metrics.dayOfMonth || new Date().getDate(), daysInMonth);
   const projected = dayOfMonth > 0 ? round2((alert.metrics.spent / dayOfMonth) * daysInMonth) : alert.metrics.spent;
   return { projected, daysInMonth, dayOfMonth, diff: round2(projected - alert.metrics.budgetAmount) };
+}
+
+// BUD-1 (FASE 7): presupuestos semanales. Misma mecánica que la mensual (budgetAlertForRow/
+// budgetProjection) pero sobre una semana ISO-8601 en vez de un mes natural — reutiliza el mismo
+// índice cacheado por categoría de SCALE-1 (budgetNegativeTransactionsByCategory) filtrando por
+// `row.date` en vez de por `row.month`, y el mismo motor de alertas (CanonicalBudgetAlerts),
+// generalizado para aceptar un periodo explícito sin cambiar su comportamiento mensual por defecto.
+// Alcance deliberado: solo cuenta movimientos bancarios clasificados. Las partidas registradas a
+// mano (P-3/S-3) solo tienen un importe por mes, sin fecha diaria, así que no se pueden repartir de
+// forma fiable entre semanas — siguen sumándose únicamente al presupuesto mensual.
+function currentBudgetWeekKey(date = new Date()) {
+  return window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.weekKeyFromDate(date) || null;
+}
+
+function budgetExpenseTransactionsForWeek(category, weekKey) {
+  const range = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.weekRange(weekKey);
+  if (!range) return [];
+  return (budgetNegativeTransactionsByCategory().get(category) || []).filter(
+    (row) => row.date >= range.start && row.date <= range.end,
+  );
+}
+
+// Igual que budgetDateContextFor() pero para una semana: "hoy" se sitúa en el propio rango de la
+// semana (el día real si es la semana en curso, el domingo si ya pasó) para que el filtrado interno
+// de CanonicalBudgetAlerts encuentre movimientos también en semanas ya cerradas.
+function budgetWeekDateContext(weekKey) {
+  const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
+  const range = schema?.weekRange(weekKey);
+  if (!range) return { today: new Date() };
+  const isCurrentWeek = weekKey === currentBudgetWeekKey();
+  const [sy, sm, sd] = range.start.split("-").map(Number);
+  const startDate = new Date(sy, sm - 1, sd);
+  const now = new Date();
+  const referenceIso = isCurrentWeek
+    ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    : range.end;
+  const clampedIso = referenceIso < range.start ? range.start : referenceIso > range.end ? range.end : referenceIso;
+  const [cy, cm, cd] = clampedIso.split("-").map(Number);
+  const clampedDate = new Date(cy, cm - 1, cd);
+  const unitIndex = Math.round((clampedDate - startDate) / 86400000) + 1;
+  return {
+    today: clampedDate,
+    periodStart: range.start,
+    periodEnd: range.end,
+    unitsInPeriod: 7,
+    unitIndex,
+  };
+}
+
+function budgetWeekAlertForRow(budget, weekKey) {
+  const movements = budgetExpenseTransactionsForWeek(budget.categoryId, weekKey);
+  return window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts.calculateAlert({
+    budgetAmount: budget.amountCap,
+    movements,
+    // Sin banda de confianza histórica todavía (requeriría analizar variabilidad semana a semana,
+    // fuera del alcance de BUD-1); confianza queda en "alta" salvo que el propio presupuesto sea muy
+    // bajo frente a un stdDev real que se calcule más adelante (FCST-1).
+    stdDev: 0,
+    dateContext: budgetWeekDateContext(weekKey),
+  });
+}
+
+// Proyección de fin de semana — misma fórmula lineal que budgetProjection(), sobre 7 unidades.
+function budgetWeekProjection(alert) {
+  const unitsInPeriod = alert.metrics.daysInMonth || 7;
+  const unitIndex = Math.min(alert.metrics.dayOfMonth || 1, unitsInPeriod);
+  const projected = unitIndex > 0 ? round2((alert.metrics.spent / unitIndex) * unitsInPeriod) : alert.metrics.spent;
+  return { projected, diff: round2(projected - alert.metrics.budgetAmount) };
 }
 
 // P-2: usada también por U-1 (card de Hoy) para un resumen agregado del mes actual.
@@ -29929,7 +29997,10 @@ async function init() {
     const simCategory = event.target.closest("[data-presupuesto-mes-sim-category]");
     if (simCategory) { handleBudgetSimulationCategoryChange(simCategory); return; }
     const simDelta = event.target.closest("[data-presupuesto-mes-sim-delta]");
-    if (simDelta) handleBudgetSimulationDeltaChange(simDelta);
+    if (simDelta) { handleBudgetSimulationDeltaChange(simDelta); return; }
+    // BUD-1: presupuesto semanal editado inline (mismo patrón que el mensual de arriba).
+    const weekInput = event.target.closest("[data-presupuesto-semana-category]");
+    if (weekInput) handleWeekBudgetAmountChange(weekInput);
   });
   qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }
@@ -29938,6 +30009,17 @@ async function init() {
     const removeButton = event.target.closest("[data-presupuesto-mes-remove]");
     if (removeButton) {
       handleRemoveBudget(removeButton.dataset.presupuestoMesRemove, removeButton.dataset.presupuestoMesRemoveMonth);
+      return;
+    }
+    // BUD-1: selector de cadencia mensual/semanal y navegación entre semanas.
+    const cadenceButton = event.target.closest("[data-presupuesto-mes-cadence]");
+    if (cadenceButton) { handlePresupuestoMesCadenceChange(cadenceButton.dataset.presupuestoMesCadence); return; }
+    if (event.target.closest("[data-presupuesto-semana-prev]")) { shiftPresupuestoMesWeek(-1); return; }
+    if (event.target.closest("[data-presupuesto-semana-next]")) { shiftPresupuestoMesWeek(1); return; }
+    if (event.target.closest("[data-presupuesto-semana-add]")) { handleAddWeekBudget(event.target.closest("[data-presupuesto-semana-add]")); return; }
+    const weekRemoveButton = event.target.closest("[data-presupuesto-semana-remove]");
+    if (weekRemoveButton) {
+      handleRemoveWeekBudget(weekRemoveButton.dataset.presupuestoSemanaRemove, weekRemoveButton.dataset.presupuestoSemanaRemoveWeek);
     }
   });
   qs("planMesTables")?.addEventListener("click", (event) => {

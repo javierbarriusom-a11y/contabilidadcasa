@@ -18,13 +18,19 @@
 
 class CanonicalBudgetAlerts {
   /**
-   * Calcula alerta de desviación para una categoría en el mes actual.
+   * Calcula alerta de desviación para una categoría en el mes actual (o en cualquier otro periodo,
+   * ver `dateContext.periodStart`/`periodEnd` más abajo).
    *
    * @param {Object} param
-   * @param {number} param.budgetAmount - Presupuesto para el mes (€)
-   * @param {Array} param.movements - Movimientos del mes hasta hoy
+   * @param {number} param.budgetAmount - Presupuesto para el periodo (€)
+   * @param {Array} param.movements - Movimientos hasta hoy (se filtran por periodo aquí dentro)
    * @param {number} param.stdDev - Desviación estándar histórica
-   * @param {Object} param.dateContext - { today: Date, daysInMonth: number }
+   * @param {Object} param.dateContext - { today: Date, daysInMonth: number } para un mes natural
+   *   (comportamiento original, sin cambios); o, para un periodo arbitrario (p. ej. una semana ISO,
+   *   BUD-1), { today, periodStart: "YYYY-MM-DD", periodEnd: "YYYY-MM-DD", unitsInPeriod, unitIndex }
+   *   — con los cuatro presentes, el filtrado de movimientos usa ese rango de fechas en vez del mes
+   *   natural de `today`, y el ritmo esperado se calcula sobre `unitsInPeriod` unidades en vez de
+   *   días del mes.
    * @returns {Object} { status, severity, confidence, message, metrics }
    */
   static calculateAlert({
@@ -34,18 +40,30 @@ class CanonicalBudgetAlerts {
     dateContext = {},
   }) {
     const today = dateContext.today || new Date();
-    const daysInMonth = dateContext.daysInMonth || this._getDaysInMonth(today);
-    const dayOfMonth = today.getDate();
+    const hasCustomPeriod =
+      typeof dateContext.periodStart === 'string' &&
+      typeof dateContext.periodEnd === 'string' &&
+      Number.isFinite(dateContext.unitsInPeriod) &&
+      Number.isFinite(dateContext.unitIndex);
 
-    // Movimientos del mes actual
-    const monthMovements = movements.filter(m => {
-      const date = new Date(m.date);
-      return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-    });
+    const unitsInPeriod = hasCustomPeriod ? dateContext.unitsInPeriod : (dateContext.daysInMonth || this._getDaysInMonth(today));
+    const unitIndex = hasCustomPeriod ? dateContext.unitIndex : today.getDate();
 
-    const spent = monthMovements.reduce((sum, m) => sum + Math.abs(m.amount), 0);
-    const expectedRate = budgetAmount / daysInMonth;
-    const expectedAccumulated = expectedRate * dayOfMonth;
+    // Movimientos del periodo: rango explícito de fechas si se dio (p. ej. una semana ISO),
+    // si no el mes natural de `today` — comportamiento original, sin cambios.
+    const periodMovements = hasCustomPeriod
+      ? movements.filter(m => {
+          const iso = typeof m.date === 'string' ? m.date.slice(0, 10) : this._isoDateString(new Date(m.date));
+          return iso >= dateContext.periodStart && iso <= dateContext.periodEnd;
+        })
+      : movements.filter(m => {
+          const date = new Date(m.date);
+          return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
+        });
+
+    const spent = periodMovements.reduce((sum, m) => sum + Math.abs(m.amount), 0);
+    const expectedRate = budgetAmount / unitsInPeriod;
+    const expectedAccumulated = expectedRate * unitIndex;
     const deviation = spent - expectedAccumulated;
     const deviationPercent = expectedAccumulated > 0
       ? Math.round((deviation / expectedAccumulated) * 100)
@@ -75,8 +93,8 @@ class CanonicalBudgetAlerts {
       spent,
       expectedAccumulated,
       budgetAmount,
-      dayOfMonth,
-      daysInMonth,
+      dayOfMonth: unitIndex,
+      daysInMonth: unitsInPeriod,
       confidence,
     });
 
@@ -92,8 +110,12 @@ class CanonicalBudgetAlerts {
         dailyRate: Math.round(expectedRate * 100) / 100,
         deviationAmount: Math.round(deviation * 100) / 100,
         deviationPercent,
-        dayOfMonth,
-        daysInMonth,
+        // Nombres históricos (dayOfMonth/daysInMonth) conservados tal cual para no romper a los
+        // consumidores existentes (budgetProjection() en app.js, tests) — para un periodo que no es
+        // un mes natural (p. ej. una semana ISO) representan "unidad actual" y "unidades totales"
+        // del periodo, no literalmente día/días del mes.
+        dayOfMonth: unitIndex,
+        daysInMonth: unitsInPeriod,
       },
     };
   }
@@ -156,6 +178,14 @@ class CanonicalBudgetAlerts {
    */
   static _getDaysInMonth(date) {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  }
+
+  /**
+   * "YYYY-MM-DD" en hora local, para comparar contra `dateContext.periodStart`/`periodEnd` cuando
+   * `movements[].date` no es ya un string (por ejemplo, viene como objeto Date).
+   */
+  static _isoDateString(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
 }
 
