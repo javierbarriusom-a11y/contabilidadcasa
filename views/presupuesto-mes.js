@@ -589,6 +589,66 @@ function handleSuggestBudgets() {
   renderPresupuestoMes();
 }
 
+// INTEG-1: todos los presupuestos guardados (todas las categorías y meses, no solo el mes abierto),
+// con el gasto real y la desviación de cada uno vía budgetAlertForRow — para análisis externo (hoja
+// de cálculo, script propio), no solo lo que ya se ve en la tabla del mes actual.
+function budgetsExportRows() {
+  return [...budgets]
+    .sort((a, b) => (a.monthYear === b.monthYear ? a.categoryId.localeCompare(b.categoryId) : a.monthYear.localeCompare(b.monthYear)))
+    .map((budget) => {
+      const alert = budgetAlertForRow(budget, budget.monthYear);
+      return {
+        mes: budget.monthYear,
+        categoria: budget.categoryId,
+        presupuesto: budget.amountCap,
+        gastado: alert.metrics.spent,
+        desviacion_pct: alert.metrics.deviationPercent,
+        estado: alert.status,
+        origen: budget.source,
+        moneda: budget.currency,
+      };
+    });
+}
+
+function downloadBudgetsCsv() {
+  const rows = budgetsExportRows();
+  const header = ["Mes", "Categoria", "Presupuesto", "Gastado", "Desviacion (%)", "Estado", "Origen", "Moneda"];
+  const lines = rows.map((row) =>
+    [row.mes, row.categoria, row.presupuesto, row.gastado, row.desviacion_pct, row.estado, row.origen, row.moneda].map(csvValue).join(";"),
+  );
+  const csvContent = `\uFEFF${[header.map(csvValue).join(";"), ...lines].join("\r\n")}`;
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "presupuestos.csv";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+    link.remove();
+  }, 1000);
+  announceStatus(`Presupuestos exportados a CSV (${rows.length} fila${rows.length === 1 ? "" : "s"}).`);
+}
+
+function downloadBudgetsJson() {
+  const rows = budgetsExportRows();
+  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "presupuestos.json";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+    link.remove();
+  }, 1000);
+  announceStatus(`Presupuestos exportados a JSON (${rows.length} fila${rows.length === 1 ? "" : "s"}).`);
+}
+
 function handleBudgetAmountChange(input) {
   const category = input.dataset.presupuestoMesCategory;
   const monthKey = input.dataset.presupuestoMesMonth;
@@ -744,7 +804,11 @@ function renderPresupuestoMes() {
         <h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(monthLabel)}</h3>
         <p class="e19-subtitle">Ritmo diario = presupuesto ÷ días del mes. Editable por categoría; la sugerencia usa los últimos 6 meses de gasto real.</p>
       </div>
-      <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-suggest>Sugerir presupuestos</button>
+      <div class="cuadro-mandos-controls">
+        <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-suggest>Sugerir presupuestos</button>
+        <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-export-csv>Exportar CSV</button>
+        <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-export-json>Exportar JSON</button>
+      </div>
     </div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
