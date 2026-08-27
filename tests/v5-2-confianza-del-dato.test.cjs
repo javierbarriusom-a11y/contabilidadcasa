@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/cierre.js");
 const html = read("index.html");
 const css = read("design-tokens.css");
 const worker = read("service-worker.js");
@@ -164,6 +164,6 @@ test("V5-2 · el panel vive en #conciliar, junto a «Al cerrar el mes», con su 
 
 test("V5-2 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260826g1a1/);
+  assert.match(html, /app\.js\?v=20260826h1a1/);
   assert.match(html, /design-tokens\.css\?v=20260814f1a1/);
 });

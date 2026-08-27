@@ -350,9 +350,33 @@ El mapeo encontró dos problemas que el piloto no había mostrado:
 Validado con `npm run verify` completo y en navegador real: arranque sin `ReferenceError`, las 4
 pantallas renderizan contenido real, el fragmento se descarga una sola vez para las cuatro,
 Análisis/Cierre/Hoy (que dependen de `debtAmortizationSchedule`/`debtCapitalCuadre`, que se
-quedaron en `app.js`) siguen funcionando sin cambios. Sigue pendiente decidir con el usuario el
-ritmo de la siguiente escala (candidatos: Escenario, Cierre/Conciliar — vistas relacionadas y poco
-acopladas con el resto, con el mismo método de mapeo ya afinado).
+quedaron en `app.js`) siguen funcionando sin cambios.
+
+**PERF-1 — escala #3: Cierre/Conciliar (sesión siguiente)**: se evaluó Escenario primero y se
+descartó — `homeDebtOutlook`/`loadEscenarioMotorSaved`/`saveEscenarioMotorSavedList` son utilidades
+muy compartidas (Hoy, Cierre, Mapa de calor) que solo viven ahí por historia de construcción, no
+porque sean exclusivas de Escenario. Se eligió Cierre/Conciliar (comparten helpers de sobres/
+cuadre/versiones, un solo fragmento para las dos), extraído a `views/cierre.js` (~1.270 líneas). 8
+funciones se quedaron en `app.js` por dependencias cruzadas (Análisis, el propio flujo de guardado
+de cierre de mes, Escenarios al borrar un guardado aplicado).
+
+Dos problemas más, encontrados antes de publicar:
+1. Cuatro variables de estado y una constante estaban dentro del rango movido; dos de las
+   variables y la constante se usan desde `app.js` — se quedaron ahí tras comprobar cada una.
+2. El propio script que busca referencias "peladas" en `addEventListener` (construido en la escala
+   #2) tenía un fallo: su regex no reconocía `async function`, así que se le escapó
+   `handleCierreReopen` — misma rotura de arranque completo que la escala #2. Lo encontró la
+   verificación en navegador de esta sesión (no `npm run verify`), confirmando que ese paso es
+   obligatorio en cada escala, no solo la primera vez. Corregido el sitio y el propio script de
+   detección.
+
+Validado igual que la escala #2: `npm run verify` completo (11 ficheros de test más corregidos) y
+navegador real — arranque sin `ReferenceError`, 10 pantallas comprobadas, 3 fragmentos descargados
+una sola vez cada uno pese a servir 7 vistas entre los tres.
+
+Sigue pendiente decidir con el usuario el ritmo de la siguiente escala (candidatos: Registrar,
+Análisis, Asesor ejecutivo) o parar a medir con Lighthouse el efecto acumulado de las tres escalas
+ya fusionadas, para saber si ya hay ganancia real o sigue siendo ruido.
 
 ---
 

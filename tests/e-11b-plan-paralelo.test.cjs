@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/cierre.js");
 const html = read("index.html");
 
 // E-11b (bloque de decisiones de diseño, 20 de agosto): "Aplicar crea un plan paralelo, no

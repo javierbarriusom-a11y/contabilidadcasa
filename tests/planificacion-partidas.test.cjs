@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8");
 
 // Planificación de partidas (21 de agosto de 2026): aterrizaje generalizado del Motor de
 // escenarios (compra/proyecto/imprevisto/propio/deuda_nueva/prestamo_familiar → `projects`;

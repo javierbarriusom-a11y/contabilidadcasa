@@ -2,6 +2,55 @@
 
 Fecha de revisión: 26 de agosto de 2026.
 
+## Cierre de sesión — 26 de agosto de 2026 (12): PERF-1 — escala #3 (Cierre/Conciliar)
+
+Continuación directa del cierre anterior. El usuario pidió seguir escalando ("adelante con ello")
+tras la recomendación de ir a por grupos de vistas relacionadas y poco acopladas — Escenario o
+Cierre/Conciliar. Se evaluaron ambos antes de tocar código: Escenario resultó tener más entrelazado
+del esperado (`homeDebtOutlook`, `loadEscenarioMotorSaved`/`saveEscenarioMotorSavedList` son
+utilidades muy compartidas — Hoy, Cierre, Mapa de calor — que viven ahí solo por historia de
+construcción), así que se eligió Cierre/Conciliar (comparten helpers de sobres/cuadre/versiones,
+un solo fragmento para las dos), extraído a `views/cierre.js` (~1.270 líneas).
+
+**Mapeo de dependencias** (mismo método afinado en la escala #2, con dos comprobaciones: por
+llamada Y por referencia "pelada"): 8 funciones debieron quedarse en `app.js` porque otras vistas
+las usan directamente — `cierreAccountReconciliation` (Análisis y otra pantalla), `sobresSettlementsForSign`
+y `cierreSobresResolved` (el propio flujo de guardado de cierre de mes, alcanzable sin haber
+visitado Cierre), `recordCierreAprendizaje`+`loadCierreAprendizajeHistory`+`saveCierreAprendizajeHistory`
+(mismo flujo), `retractDebtLiquidationsFromEscenario`/`retractProjectsFromEscenario`/
+`retractPlanningRowsFromEscenario` (Escenarios, al borrar un guardado aplicado), `cierreVersionRows`
+y `cierreMonthsCurrentlyReopened` (Análisis).
+
+**Dos problemas más encontrados y corregidos, antes de que llegaran a producción**:
+1. Cuatro variables de estado (`cierreActiveStep`, `cierreEvidenceContext`, `cierreClassifyEntryId`,
+   `cierreSobresChoices`) y una constante (`CIERRE_ACCOUNT_LABELS`) estaban dentro del rango movido.
+   De las cuatro variables, dos (`cierreClassifyEntryId`, `cierreSobresChoices`) y la constante se
+   usan desde `app.js` — se quedaron ahí; las otras dos, sin ningún uso fuera de Cierre, se movieron
+   sin problema. Encontrado con el mismo script de dependencias, antes de tocar nada más.
+2. **El script de reescritura para detectar referencias "peladas" en `addEventListener` usaba una
+   regex que no reconocía `async function`** — se le escapó `handleCierreReopen` (`async function
+   handleCierreReopen()`), cuya referencia directa (`addEventListener("click", handleCierreReopen)`)
+   rompía el arranque completo otra vez (mismo síntoma que la escala #2: `ReferenceError`, toda la
+   app sustituida por "No se pudo cargar la app"). Esta vez lo encontró la propia verificación en
+   navegador de esta sesión, no una casualidad — confirma que el paso de arranque real (no solo
+   `npm run verify`) es obligatorio en cada escala, no solo la primera vez que se tropieza. Corregido
+   envolviendo la referencia y corrigiendo el propio script de detección para futuras escalas.
+
+**Validación**: `npm run verify` completo (1621/1621, 11 ficheros de test más corregidos para leer
+`app.js` + `views/cierre.js` concatenados); verificación en navegador real: arranque sin
+`ReferenceError`, 10 pantallas comprobadas (incluidas todas las ya migradas: presupuesto-mes,
+deuda-comparar/ruta, cierre, conciliar, más home/análisis/planificación/escenario/registrar sin
+cambios), 3 fragmentos (`presupuesto-mes.js`, `deuda.js`, `cierre.js`) descargados exactamente una
+vez cada uno pese a servir 7 vistas entre los tres, las 10 funciones retenidas en `app.js` por
+dependencias cruzadas ejecutadas sin error.
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`.
+
+**Próximo paso**: seguir escalando (candidatos siguientes: Registrar, Análisis, Asesor ejecutivo —
+vistas grandes y con relativamente pocas dependencias cruzadas conocidas hasta ahora) o medir con
+Lighthouse el efecto acumulado de las tres escalas ya fusionadas antes de continuar, para saber si
+ya hay ganancia real o sigue siendo ruido.
+
 ## Cierre de sesión — 26 de agosto de 2026 (11): PERF-1 — escala #2 (Deuda) y dos hallazgos serios
 
 Continuación directa del cierre anterior (mecanismo + piloto de "Presupuesto del mes" ya fusionados).
