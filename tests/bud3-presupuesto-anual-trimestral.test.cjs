@@ -535,7 +535,7 @@ test("BUD-3 · el listener de change conecta la edición inline anual/trimestral
 });
 
 test("BUD-3 · versión del chunk de Presupuesto del mes y de app.js actualizadas", () => {
-  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260827g1/);
+  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260827h1/);
   const html = read("index.html");
   assert.match(html, /<script src="app\.js\?v=20260827d1a4"><\/script>/);
 });
