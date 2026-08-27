@@ -232,6 +232,11 @@ function computationSandbox(transactions) {
       extractFunction("currentBudgetWeekKey"),
       extractFunction("budgetExpenseTransactionsForWeek"),
       extractFunction("budgetWeekDateContext"),
+      // BUD-2: budgetWeekAlertForRow ahora comprueba isGoalBudgetCategoryId antes de decidir cómo
+      // calcular "gastado"; ninguno de estos tests usa presupuestos de objetivos, pero la función
+      // debe existir para que la rama category-only no lance ReferenceError.
+      'const GOAL_BUDGET_CATEGORY_PREFIX = "goal:";',
+      extractFunction("isGoalBudgetCategoryId"),
       extractFunction("budgetWeekAlertForRow"),
       extractFunction("budgetWeekProjection"),
     ].join("\n"),
@@ -282,7 +287,7 @@ test("BUD-1 · currentBudgetWeekKey delega en el esquema canónico", () => {
 // Parte D: wiring de la vista — cadencia, tabla semanal, altas/ediciones/bajas
 // ============================================================================
 
-function viewSandbox({ budgetsData = [], alert = null, projection = null, categories = [] } = {}) {
+function viewSandbox({ budgetsData = [], alert = null, projection = null, categories = [], goals = [] } = {}) {
   const saved = [];
   const rendered = [];
   const context = {
@@ -293,6 +298,9 @@ function viewSandbox({ budgetsData = [], alert = null, projection = null, catego
     budgetWeekAlertForRow: () => alert || { status: "on-track", metrics: { spent: 0, dayOfMonth: 1, daysInMonth: 7 } },
     budgetWeekProjection: () => projection || { projected: 0, diff: 0 },
     budgetableCategories: () => categories,
+    // BUD-2: p2State() mockeado — estos tests de BUD-1 no ejercitan objetivos, así que basta con
+    // devolver la lista de fixtures (vacía por defecto) sin reconstruir scenarioSettings/P2Domain.
+    p2State: () => ({ goals }),
     money: (v) => `€${v}`,
     round2: (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100,
   };
@@ -313,6 +321,19 @@ function viewSandbox({ budgetsData = [], alert = null, projection = null, catego
       extractFunction("handleWeekBudgetAmountChange"),
       extractFunction("handleRemoveWeekBudget"),
       extractFunction("handleAddWeekBudget"),
+      // BUD-2: presupuestos ligados a objetivos — mismas filas/tabla, ahora también con la fila de
+      // alta "Presupuestar objetivo" y la etiqueta legible en vez del `categoryId` en bruto.
+      'const GOAL_BUDGET_CATEGORY_PREFIX = "goal:";',
+      extractFunction("isGoalBudgetCategoryId"),
+      extractFunction("goalIdFromBudgetCategoryId"),
+      extractFunction("goalBudgetCategoryId"),
+      extractFunction("goalNameById"),
+      extractFunction("activeGoalsForBudget"),
+      extractFunction("budgetRowDisplayLabel"),
+      extractFunction("goalProposedMonthlyContribution"),
+      extractFunction("presupuestoMesGoalOptionLabel"),
+      extractFunction("presupuestoMesAddGoalRowHtml"),
+      extractFunction("handleAddGoalBudget"),
       extractFunction("presupuestoMesWeekRowHtml"),
       extractFunction("presupuestoMesAddWeeklyRowHtml"),
       extractFunction("presupuestoMesWeeklyHtml"),
@@ -442,6 +463,6 @@ test("BUD-1 · el selector de cadencia y la navegación semanal se piden desde a
 
 test("BUD-1 · el chunk de presupuesto-mes viaja versionado tras el cambio", () => {
   const html = read("index.html");
-  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827c1/);
-  assert.match(html, /app\.js\?v=20260827c1a1/);
+  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827d1/);
+  assert.match(html, /app\.js\?v=20260827d1a1/);
 });

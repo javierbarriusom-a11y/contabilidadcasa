@@ -2,6 +2,66 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (21): FASE 7 — BUD-2, presupuestos ligados a objetivos
+
+Continuación directa del cierre anterior (BUD-1). El usuario pidió seguir con BUD-2, siguiente en
+el orden acordado para FASE 7.
+
+**Construido**: un objetivo (E15/P2, `p2State().goals`) se presupuesta como un tercer "tipo" de fila
+sobre el mismo `budgets[]`/`CanonicalBudgetAlerts` de siempre — sin motor nuevo, tal y como quedó
+planteado al proponer la fase.
+
+- Convención de nombre, sin tocar el esquema: `categoryId = "goal:<id>"` (nunca lo produce
+  `classifyTransaction()`, así que no puede chocar con una categoría bancaria real).
+  `budgetAlertForRow()`/`budgetWeekAlertForRow()` (`app.js`) detectan el prefijo y miden "aportado"
+  a partir de `budgetGoalContributionMovements()` — las contribuciones reales del objetivo
+  (`contributions[].amount`/`date`) convertidas en movimientos sintéticos, mismo truco que
+  `syntheticManualMovements` ya usaba para partidas a mano.
+- Edición inline y baja **no se tocaron**: `handleBudgetAmountChange`/`handleRemoveBudget` y sus
+  equivalentes semanales (BUD-1) ya operaban sobre `categoryId` como cadena opaca, así que
+  funcionan igual para una fila de objetivo sin ningún cambio.
+- Nueva fila de alta "Presupuestar objetivo" en `views/presupuesto-mes.js`, en ambas tablas (mensual
+  y semanal): solo ofrece objetivos activos con importe pendiente
+  (`activeGoalsForBudget()`, mismo filtro que ya aplica `CanonicalE15.contributionPlan()`), y cada
+  opción muestra la aportación mensual que ese plan ya propone (`goalProposedMonthlyContribution()`,
+  reutilizando `contributionPlan()` sin reimplementar capacidad/prioridad/reserva) como referencia.
+- `budgetRowDisplayLabel()` resuelve el nombre real del objetivo en vez del `categoryId` en bruto:
+  tabla principal, histórico de 12 meses y exportación CSV/JSON. De paso corrigió un fallo real ya
+  presente desde BUD-1: `budgetsExportRows()` medía un presupuesto **semanal** con
+  `budgetAlertForRow()` sobre su mes completo en vez de `budgetWeekAlertForRow()` sobre su semana —
+  el CSV exportado daba un "gastado" incorrecto para cualquier presupuesto semanal. Corregido de paso
+  (branch por `budget.period`), con test de regresión.
+- Exclusión deliberada, vía `categoryBudgetsForMonth()` (nueva): las tarjetas pensadas solo para
+  gasto (hucha, reto "el mes que menos gastas", rachas/badges GAME-1/2, notificaciones de
+  sobregasto, resumen de Hoy vía `homeBudgetSummary()`, elección por defecto del simulador) excluyen
+  los presupuestos de objetivo. Motivo: su lectura "por debajo/encima del presupuesto es bueno/malo"
+  queda invertida para una aportación (contribuir de más es la meta, no un sobregasto a evitar) —
+  mostrarlas ahí habría sido una alerta o sugerencia engañosa, no solo una omisión cosmética.
+- Chunk versionado: `views/presupuesto-mes.js?v=20260827d1` y `app.js?v=20260827d1a1` (bump desde
+  `c1`/`c1a1`), propagado a los ficheros de test que fijan esa cifra.
+
+**Verificación**: 24 tests nuevos (`tests/bud2-presupuestos-objetivos.test.cjs`) — convención de
+nombre y etiqueta legible, cadena real de cálculo con contribuciones sintéticas (sin mockear el
+motor), exclusión category-only, wiring de alta/edición/baja en ambas cadencias, exportación con
+objetivos y semanas mezcladas, y la nueva fuente `"goal"` en el esquema. `npm run verify` completo:
+1687/1687 tests, accesibilidad (832 IDs), rendimiento, build, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): creado un objetivo real
+("Vacaciones") y una aportación manual de 40€ desde la pantalla de Huchas; presupuestado desde
+Presupuesto del mes viendo la sugerencia E15 en la propia opción ("E15 sugiere 96,67 €/mes");
+"Aportado" en la fila refleja los 40€ reales; la fila de alta deja de ofrecer el objetivo una vez
+presupuestado y vuelve a ofrecerlo al quitarlo; exportado a CSV sin ningún `"goal:"` en bruto (con
+"Vacaciones" en su lugar); disponible también en cadencia semanal; sin regresión en Hoy/Deuda/Cierre/
+Análisis/Huchas. Dos avisos de consola "404" que aparecen en este flujo se confirmaron preexistentes
+comparando contra un `git worktree` limpio de `main` (mismo método ya usado en la sesión de INTEG-1):
+aparecen idénticos sin ningún cambio de BUD-2, así que son ruido del entorno, no una regresión.
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+fusionarse el CI en verde.
+
+**Próximo paso**: seguir con BUD-3 (presupuestos anuales/trimestrales) o BUD-4 (plantilla de
+repetición) según el orden acordado para FASE 7; TRACK-3 puede empezar ahora que BUD-2 ya existe.
+
 ## Cierre de sesión — 27 de agosto de 2026 (20): FASE 7 — BUD-1, presupuestos semanales
 
 Continuación directa del cierre anterior (propuesta de FASE 7 + PERF-2). El usuario pidió empezar,

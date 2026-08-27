@@ -191,7 +191,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827c1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827d1", rootId: "presupuestoMesRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
   "deuda-contratos": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-contratos" },
@@ -3014,6 +3014,14 @@ function budgetDateContextFor(monthKey) {
 }
 
 function budgetAlertForRow(budget, monthKey) {
+  if (isGoalBudgetCategoryId(budget.categoryId)) {
+    return window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts.calculateAlert({
+      budgetAmount: budget.amountCap,
+      movements: budgetGoalContributionMovements(goalIdFromBudgetCategoryId(budget.categoryId)),
+      stdDev: 0,
+      dateContext: budgetDateContextFor(monthKey),
+    });
+  }
   const bankMovements = budgetExpenseTransactions(budget.categoryId, monthKey);
   const manualMovements = syntheticManualMovements(budget.categoryId, [monthKey]);
   const analysis = budgetAnalysisForCategory(budget.categoryId, monthKey);
@@ -3082,7 +3090,9 @@ function budgetWeekDateContext(weekKey) {
 }
 
 function budgetWeekAlertForRow(budget, weekKey) {
-  const movements = budgetExpenseTransactionsForWeek(budget.categoryId, weekKey);
+  const movements = isGoalBudgetCategoryId(budget.categoryId)
+    ? budgetGoalContributionMovements(goalIdFromBudgetCategoryId(budget.categoryId))
+    : budgetExpenseTransactionsForWeek(budget.categoryId, weekKey);
   return window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts.calculateAlert({
     budgetAmount: budget.amountCap,
     movements,
@@ -3102,11 +3112,86 @@ function budgetWeekProjection(alert) {
   return { projected, diff: round2(projected - alert.metrics.budgetAmount) };
 }
 
+// BUD-2 (FASE 7): presupuestos ligados a objetivos (E15/P2). Un objetivo se presupuesta como un
+// tercer "tipo" de fila sobre el mismo budgets[]/CanonicalBudgetAlerts — sin motor nuevo: solo una
+// convención de nombre (`categoryId = "goal:<id>"`, nunca choca con una categoría bancaria real) que
+// budgetAlertForRow()/budgetWeekAlertForRow() ya detectan arriba, y "gastado" pasa a ser "aportado"
+// (las propias contribuciones registradas en P2, `p2State().goals[].contributions[]`, en vez de
+// movimientos bancarios). Edición inline y baja se reutilizan tal cual (handleBudgetAmountChange/
+// handleRemoveBudget y sus equivalentes semanales): operan sobre `categoryId` como cadena opaca, sin
+// saber ni necesitar saber que es un objetivo.
+const GOAL_BUDGET_CATEGORY_PREFIX = "goal:";
+
+function goalBudgetCategoryId(goalId) {
+  return `${GOAL_BUDGET_CATEGORY_PREFIX}${goalId}`;
+}
+
+function isGoalBudgetCategoryId(categoryId) {
+  return typeof categoryId === "string" && categoryId.startsWith(GOAL_BUDGET_CATEGORY_PREFIX);
+}
+
+function goalIdFromBudgetCategoryId(categoryId) {
+  return categoryId.slice(GOAL_BUDGET_CATEGORY_PREFIX.length);
+}
+
+// Objetivos presupuestables: activos y con importe pendiente — mismo filtro que ya aplica
+// CanonicalE15.contributionPlan() para no proponer aportar a algo pausado, cancelado o ya cumplido.
+function activeGoalsForBudget() {
+  return (p2State().goals || [])
+    .map((goal) => window.P2Domain?.goalSnapshot(goal) || goal)
+    .filter((goal) => goal.status === "active" && (goal.remaining === undefined || goal.remaining > 0));
+}
+
+function goalNameById(goalId) {
+  return (p2State().goals || []).find((goal) => goal.id === goalId)?.name || "Objetivo eliminado";
+}
+
+// "Movimientos" sintéticos a partir de las aportaciones reales del objetivo (mismo truco que
+// syntheticManualMovements para partidas a mano): cada aportación ya lleva fecha y mes, así que
+// CanonicalBudgetAlerts las filtra por periodo exactamente igual que un movimiento bancario.
+function budgetGoalContributionMovements(goalId) {
+  const goal = (p2State().goals || []).find((item) => item.id === goalId);
+  if (!goal) return [];
+  return (goal.contributions || []).map((contribution) => ({
+    date: contribution.date || (contribution.month ? `${contribution.month}-01` : ""),
+    amount: -Math.abs(Number(contribution.amount) || 0),
+  }));
+}
+
+// Aportación mensual que ya propone el plan E15 (contributionPlan, capacidad/prioridad/reserva) —
+// se ofrece como referencia al presupuestar, sin reimplementar ese cálculo.
+function goalProposedMonthlyContribution(goalId) {
+  const api = window.FinanceCanonicalE15;
+  const planning = window.FinanceP2Bridge?.goalPlanning?.();
+  if (!api || !planning) return null;
+  const plan = api.contributionPlan({ ...planning, goals: p2State().goals });
+  return plan.plans.find((item) => item.id === goalId)?.proposedMonthly || null;
+}
+
+// Etiqueta a mostrar en vez del `categoryId` en bruto: el nombre real del objetivo para una fila
+// "goal:...", o la propia categoría bancaria sin cambios.
+function budgetRowDisplayLabel(categoryId) {
+  return isGoalBudgetCategoryId(categoryId) ? `🎯 ${goalNameById(goalIdFromBudgetCategoryId(categoryId))}` : categoryId;
+}
+
+// Presupuestos de un mes que son categorías bancarias reales, nunca objetivos — para las tarjetas
+// pensadas solo para gasto (hucha, reto, rachas, badges, notificaciones, simulador): su lectura
+// "por debajo/encima del presupuesto es bueno/malo" queda invertida para una aportación a un
+// objetivo (contribuir de más es la meta, no un sobregasto a evitar), así que se excluyen ahí en vez
+// de mostrar una alerta o sugerencia engañosa.
+function categoryBudgetsForMonth(monthKey) {
+  return (window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey) || []).filter(
+    (budget) => !isGoalBudgetCategoryId(budget.categoryId),
+  );
+}
+
 // P-2: usada también por U-1 (card de Hoy) para un resumen agregado del mes actual.
+// BUD-2: solo categorías bancarias reales — un objetivo "por encima del ritmo" de aportación es
+// buena noticia, no un aviso de sobregasto que deba disparar el estado "danger"/"warn" de Hoy.
 function homeBudgetSummary() {
   if (!window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema || !window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts) return null;
   const monthKey = currentBudgetMonthKey();
-  const monthBudgets = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForMonth(budgets, monthKey);
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
   if (!monthBudgets.length) return null;
   let totalBudgeted = 0;
   let totalSpent = 0;
@@ -30020,7 +30105,11 @@ async function init() {
     const weekRemoveButton = event.target.closest("[data-presupuesto-semana-remove]");
     if (weekRemoveButton) {
       handleRemoveWeekBudget(weekRemoveButton.dataset.presupuestoSemanaRemove, weekRemoveButton.dataset.presupuestoSemanaRemoveWeek);
+      return;
     }
+    // BUD-2: presupuestar un objetivo (mensual o semanal, según la cadencia activa).
+    const goalAddButton = event.target.closest("[data-presupuesto-mes-goal-add]");
+    if (goalAddButton) handleAddGoalBudget(goalAddButton);
   });
   qs("planMesTables")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-plan-mes-copy]")) { handlePlanMesCopy(); return; }
