@@ -2,6 +2,51 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (24): FASE 7 — BUD-4, plantilla "repetir mes anterior ± %"
+
+Continuación directa del cierre anterior (TRACK-1). El usuario dejó a mi criterio qué tarea seguir
+entre BUD-3, BUD-4, TRACK-2 y FCST-1/2 ("seguimos con la que creas mejor"); elegí BUD-4 por ser
+esfuerzo "Bajo", sin ambigüedad de diseño y de valor inmediato en el uso diario (evita repetir
+"Sugerir presupuestos" cada mes cuando lo único que hace falta es partir de lo ya presupuestado).
+
+**Construido**: botón "Repetir mes anterior ± %" en Presupuesto del mes, junto a "Sugerir
+presupuestos", con un input numérico para el ajuste porcentual (0 por defecto, admite negativos).
+
+- Sin motor nuevo: reutiliza `categoryBudgetsForMonth()` (BUD-2) para leer el mes anterior — ya
+  excluye los presupuestos de objetivo, que no tendría sentido "repetir" mientras el objetivo siga
+  activo — y el mismo `upsert()`/`saveBudgets()` que ya usa "Sugerir" para escribir el mes en curso.
+- Cada categoría del mes anterior sin presupuesto todavía este mes se crea con
+  `amountCap = anterior × (1 + %/100)`; una categoría ya presupuestada este mes se deja intacta,
+  mismo criterio de "no pisar" que ya tenía "Sugerir presupuestos".
+- Nueva fuente `"repeated"` en el esquema (`canonical-budget-schema.js`), mismo patrón que `"goal"`
+  de BUD-2, con su propia nota `<small class="note">repetido</small>` en la fila de la tabla, junto a
+  la ya existente "sugerido".
+- Un ajuste que deja el importe resultante en cero o negativo (p. ej. "-100%") no crea el
+  presupuesto, en vez de guardar un `amountCap` inválido.
+
+**Verificación**: 15 tests nuevos (`tests/bud4-repetir-presupuesto.test.cjs`) — fuente válida en el
+esquema, cadena real de `handleRepeatPreviousMonthBudgets` (sin presupuestos previos, copia sin
+ajuste, ajuste positivo y negativo, exclusión de objetivos, no duplica lo ya presupuestado, ajuste
+que anula el importe), la nota "repetido" en `presupuestoMesRowHtml`, y wiring estático. `npm run
+verify` completo: 1727/1727 tests, accesibilidad (834 IDs, sin cambio — no se tocó el DOM estático),
+rendimiento, build, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): sembrado un presupuesto de 200€ el
+mes anterior, ajuste "10" y pulsar "Repetir mes anterior" crea 220,00€ con la nota "repetido"; una
+segunda pulsación no lo duplica ni lo sobrescribe — sin errores de consola nuevos.
+
+Versión de `views/presupuesto-mes.js` bumpeada a `20260827e1` y la de `app.js` a `20260827d1a3`
+(`index.html` y los ficheros de test que las pinnean actualizados en bloque, incluidos los tres tests
+de BUD-1/BUD-2/INTEG-1 que fijan la versión exacta del chunk de Presupuesto del mes). Siguiendo el
+precedente ya sentado en BUD-1/BUD-2, `canonical-budget-schema.js` no lleva versión propia bumpeada
+en `index.html` — ese fichero nunca se ha versionado por separado en este proyecto.
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: seguir con BUD-3 (presupuestos anuales/trimestrales), TRACK-2 (historial de
+cumplimiento por categoría) o FCST-1/FCST-2, según prioridad.
+
 ## Cierre de sesión — 27 de agosto de 2026 (23): FASE 7 — TRACK-1, ritmo semanal en Hoy
 
 Continuación directa del cierre anterior (TRACK-3). Con TRACK-3 fusionada pregunté si seguir
