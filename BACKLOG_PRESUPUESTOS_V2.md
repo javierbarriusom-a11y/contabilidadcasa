@@ -16,6 +16,27 @@ completadas y publicadas; BUD-3, TRACK-2, FCST-1-2 y UX-B1-3 pendientes.
 **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
 separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
+## ✅ Resumen rápido — FASE 7 (actualizado 27/08/2026)
+
+| Tarea | Descripción | Estado |
+|-------|-------------|--------|
+| BUD-1 | Presupuestos semanales (periodicidad `monthly`\|`weekly` en el esquema) | ✅ Hecho |
+| BUD-2 | Presupuestos ligados a objetivos (aportación de una hucha como presupuesto más) | ✅ Hecho |
+| TRACK-3 | Pantalla "Estado de la semana": alertas de caja + ritmo de presupuesto + vencimientos de objetivos | ✅ Hecho |
+| TRACK-1 | Ritmo semanal añadido a la tarjeta de presupuesto en Hoy | ✅ Hecho |
+| BUD-4 | Plantilla "repetir presupuesto del mes anterior ± %" | ✅ Hecho |
+| BUD-3 | Presupuestos anuales/trimestrales con reparto automático a mensual | ⏳ Pendiente |
+| TRACK-2 | Historial de cumplimiento por categoría (rachas on-track/overspend) | ⏳ Pendiente |
+| FCST-1 | Forecast por categoría a 3 horizontes (semana, mes, +3 meses) | ⏳ Pendiente |
+| FCST-2 | Conectar Escenarios (E13) con Presupuesto del mes | ⏳ Pendiente |
+| UX-B1 | Vista móvil de Presupuesto del mes | ⏳ Pendiente |
+| UX-B2 | Edición masiva de presupuestos (±X% a todas las categorías) | ⏳ Pendiente |
+| UX-B3 | Importar presupuestos desde CSV/JSON | ⏳ Pendiente |
+| PERF-2 | Reestructurar el motor Escenario/Agente para Lighthouse >85 | ⏳ Candidato aparte, sin empezar |
+
+Detalle completo (prioridad, esfuerzo, bloqueadores y qué se construyó exactamente en cada tarea ya
+hecha) en la tabla de FASE 7 y las secciones narrativas que siguen.
+
 ---
 
 ## Resumen Ejecutivo
