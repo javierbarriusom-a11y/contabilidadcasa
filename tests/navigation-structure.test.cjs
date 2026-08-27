@@ -90,6 +90,9 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // tocar): el enlace nuevo entra en `analysis`, junto al resto de Deuda.
   // FASE 1 (P-2, 26 de agosto) añade «Presupuesto del mes» al grupo Analizar, justo delante de
   // Análisis: primer paso del seguimiento diario de presupuesto antes de la lectura ejecutiva.
-  assert.equal(byGroup.analysis.length, 13, "Decidir y Analizar suman trece enlaces tras Presupuesto del mes");
-  assert.equal(links.length, 28, "veintiocho enlaces en el menú avanzado tras Presupuesto del mes");
+  // FASE 7 (TRACK-3, 27 de agosto) añade «Estado de la semana» justo detrás de Presupuesto del mes:
+  // funde alertas de caja (E16), ritmo de presupuesto y vencimientos de objetivos (E15) en una sola
+  // lectura de solo lectura.
+  assert.equal(byGroup.analysis.length, 14, "Decidir y Analizar suman catorce enlaces tras Estado de la semana");
+  assert.equal(links.length, 29, "veintinueve enlaces en el menú avanzado tras Estado de la semana");
 });

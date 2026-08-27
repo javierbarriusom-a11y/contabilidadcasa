@@ -10,10 +10,10 @@ Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver halla
 original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance.
 FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
 cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
-BUD-1 (presupuestos semanales) y BUD-2 (presupuestos ligados a objetivos) completadas y publicadas;
-BUD-3-4, TRACK-1-3, FCST-1-2 y UX-B1-3 pendientes. **PERF-2 (motor Escenario/Agente para
-Lighthouse >85) queda anotado como candidato nuevo y separado**, sin comprometer esfuerzo hasta
-valorarlo aparte.
+BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos) y TRACK-3 (pantalla «Estado
+de la semana») completadas y publicadas; BUD-3-4, TRACK-1-2, FCST-1-2 y UX-B1-3 pendientes.
+**PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
+separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
 ---
 
@@ -511,7 +511,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | **BUD-4** | Plantilla "repetir presupuesto del mes anterior ± X%" — evita repetir "Sugerir" cada mes | Baja | Bajo | P-2 | Pendiente |
 | **TRACK-1** | Resumen semanal de ritmo en Hoy (hoy solo hay lectura mensual) | Media | Bajo | BUD-1 | Pendiente |
 | **TRACK-2** | Historial de cumplimiento por categoría (racha on-track/overspend), reutilizando el histórico que ya calcula `CanonicalBudgetAnalyzer` | Media | Bajo | — | Pendiente |
-| **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | Pendiente |
+| **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | ✅ (27/08/2026) |
 | **FCST-1** | Forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses), exponiendo a nivel semanal la banda de confianza que `canonical-budget-forecast-category.js` ya calcula | Media | Medio | BUD-1 | Pendiente |
 | **FCST-2** | Conectar el laboratorio de Escenarios (E13) con Presupuesto del mes: "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?", reutilizando los dos motores existentes sin duplicar cálculo | Media | Alto | — | Pendiente |
 | **UX-B1** | Vista móvil de presupuestos por categoría (el resto del shell ya migró a E19/E17; Presupuesto del mes se quedó con la tabla densa de escritorio) | Media | Medio | — | Pendiente |
@@ -581,6 +581,41 @@ cadencia semanal — sin regresión en Hoy/Deuda/Cierre/Análisis/Huchas. (Los d
 "404" que aparecen en este flujo se confirmaron preexistentes: idénticos en un `git worktree` limpio
 de `main` sin ningún cambio de BUD-2, mismo método ya usado en la sesión de INTEG-1.)
 
+**TRACK-3 — construido y publicado (27 de agosto de 2026)**: pantalla nueva "Estado de la semana"
+(`#estado-semana`, `views/estado-semana.js`, chunk de carga diferida igual que Presupuesto del mes)
+que funde tres lecturas hoy repartidas en tres pantallas — sin motor nuevo, cada tarjeta reutiliza
+tal cual la función que ya construye esa misma lectura en su pantalla de origen:
+
+- **Alertas de caja anticipadas**: `window.FinanceCanonicalE16.buildReadModel()` sobre
+  `FinanceP2Bridge.e16Input()`, el mismo modelo que ya consume Hoy — hasta 3 alertas con más
+  recuento total, enlace "Ver detalle en Hoy".
+- **Ritmo de presupuesto**: `homeBudgetSummary()` (mensual, ya existente) y `homeBudgetWeekSummary()`
+  (nueva, mismo patrón exacto para la semana ISO en curso — reutiliza `budgetWeekAlertForRow()` de
+  BUD-1 y excluye presupuestos de objetivo vía `categoryBudgetsForWeek()`, análoga a
+  `categoryBudgetsForMonth()` de BUD-2), una fila por cadencia, enlace "Ver Presupuesto del mes".
+- **Objetivos: próximos vencimientos**: `window.FinanceCanonicalE15.financialCalendar()` sobre
+  `FinanceP2Bridge.goalPlanning()` y `p2State().goals` — mismo calendario que ya usa Huchas —
+  filtrado a eventos `type: "goal"` de los próximos 6 meses, enlace "Ver Huchas".
+
+Integración completa como pantalla de primer nivel, no solo una tarjeta suelta: entrada en el menú
+avanzado (grupo Analizar, justo tras Presupuesto del mes), en el lanzador «Buscar o abrir»
+(`e17-experience.js`, catálogo `TASKS` + guía «Para qué sirve»/estado/siguiente paso), `viewTitles`,
+`VIEW_CHUNKS`/`HEAVY_RENDER_VIEWS`/dispatcher de `renderActiveSection`. De paso se añadió
+`"views/estado-semana.js"` a la lista de `tools/build-public-site.mjs` — y, al detectar que esa lista
+no tenía ningún canario automático (solo un comentario de aviso manual, el mismo tipo de gap que ya
+causó la incidencia de escenarios del 10 de agosto), se añadió uno: un test nuevo que compara todo lo
+declarado en `VIEW_CHUNKS` contra esa lista y falla si una vista nueva se queda sin publicar.
+
+19 tests nuevos (`tests/track3-estado-semana.test.cjs`): `homeBudgetWeekSummary`/
+`categoryBudgetsForWeek` sobre presupuestos sintéticos, las tres tarjetas con los tres motores
+mockeados en el límite, `renderEstadoSemana` de extremo a extremo, y wiring (nav, chunk, dispatcher,
+lanzador, canario de publicación). `npm run verify` completo: 1706/1706 tests, accesibilidad (834
+IDs, +2 por la sección y su contenedor), rendimiento, build, privacidad y smoke en verde. Verificado
+también en navegador real (Playwright contra `dist/`): abierta la pantalla desde el buscador,
+sembrado gasto real y un presupuesto semanal/mensual de la misma categoría, las tres tarjetas
+muestran datos reales («25,00 € de 70,00 €» reflejando el gasto sembrado), y los tres botones "Ver
+..." navegan de verdad a Hoy/Presupuesto del mes/Huchas — sin regresión en el resto de pantallas.
+
 ---
 
 ## 🎯 8 Features Diferenciadoras
@@ -646,7 +681,7 @@ de `main` sin ningún cambio de BUD-2, mismo método ya usado en la sesión de I
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2 (✅), BUD-3-4, TRACK-1-3, FCST-1-2, UX-B1-3 | ~670 | — | 🔄 En curso |
+| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), BUD-3-4, TRACK-1-2, FCST-1-2, UX-B1-3 | ~940 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -669,9 +704,9 @@ de `main` sin ningún cambio de BUD-2, mismo método ya usado en la sesión de I
 7. ✅ **FASE 6 completada**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real
    corregido), INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos completos) y
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
-8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales) y BUD-2
-   (presupuestos ligados a objetivos) completadas y publicadas; quedan BUD-3-4, TRACK-1-3, FCST-1-2
-   y UX-B1-3
+8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales), BUD-2
+   (presupuestos ligados a objetivos) y TRACK-3 (pantalla «Estado de la semana») completadas y
+   publicadas; quedan BUD-3-4, TRACK-1-2 y FCST-1-2, UX-B1-3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -746,4 +781,4 @@ de por qué se descartó escalar más con el método de PERF-1).
 ---
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
-PERF-2, y al completar BUD-1 y BUD-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+PERF-2, y al completar BUD-1, BUD-2 y TRACK-3. Rama: `claude/app-review-improvement-plan-9a6pzr`.

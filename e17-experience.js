@@ -23,6 +23,7 @@
     // objetivos/rachas, badges, reto y patrones estacionales no eran localizables por su propio
     // nombre en el buscador, solo por "presupuesto".
     { target: "presupuesto-mes", label: "Presupuesto del mes (nuevo)", group: "analysis", keywords: "presupuesto mes categoria gasto progreso alertas proyeccion ritmo diario hucha simulador y si simulacion recorte ahorro impacto caja cobertura objetivos racha badge logro ahorrista equilibrador reto record notificaciones patrones estacionales cohortes" },
+    { target: "estado-semana", label: "Estado de la semana (nuevo)", group: "analysis", keywords: "estado semana mes resumen alertas caja riesgo e16 ritmo presupuesto objetivos vencimientos calendario e15 track-3" },
     { target: "forecast", label: "Prever", group: "analysis", keywords: "forecast proyeccion liquidez futuro" },
     { target: "escenario-simular", label: "Escenario · simular (nuevo)", group: "analysis", keywords: "escenario motor decision amortizar deuda nuevo e20 simular refinanciar reunificar quita retomar pagos compra proyecto imprevisto cambio ingreso gasto" },
     { target: "escenario-guardados", label: "Escenario · guardados (nuevo)", group: "analysis", keywords: "escenario motor guardados aplicado nuevo e20" },
@@ -65,6 +66,7 @@
     "cambios-pendientes": ["Para qué sirve", "Ver el efecto conjunto de todo lo que has tocado en la sesión y revertir línea a línea.", "Requiere confirmación", "Guarda todo de una vez o descarta; cada cambio se puede revertir por separado."],
     "mapa-calor": ["Para qué sirve", "Localizar de un vistazo los meses en los que el colchón se queda corto.", "Solo lectura", "Abre el cuadro de mandos o un escenario para actuar sobre el mes que peor pinta."],
     "presupuesto-mes": ["Para qué sirve", "Seguir el ritmo de gasto por categoría, decidir la hucha, simular «¿y si...?» y ver rachas y logros.", "Guarda al editar", "El simulador no guarda nada: es una prueba en memoria hasta que recargues la página."],
+    "estado-semana": ["Para qué sirve", "Ver de un vistazo alertas de caja, ritmo de presupuesto y próximos vencimientos de objetivos, sin ir pantalla por pantalla.", "Solo lectura", "Cada tarjeta enlaza a la pantalla donde sí se actúa (Hoy, Presupuesto del mes o Huchas)."],
     forecast: ["Para qué sirve", "Entender la evolución futura de liquidez y gasto.", "Solo lectura", "Abre Escenarios si quieres probar un cambio sin tocar el plan."],
     "new-life-definitive": ["Para qué sirve", "Preparar una decisión de proyecto, deuda o traspaso con su impacto completo.", "Requiere confirmación", "Revisa la comparación antes de preparar cualquier cambio."],
     "new-life-simulation": ["Para qué sirve", "Comparar escenarios de coche, deuda y estabilidad sin modificar el plan.", "Solo lectura", "Guarda o vuelve a calcular el escenario que quieras estudiar."],

@@ -180,6 +180,7 @@ const HEAVY_RENDER_VIEWS = new Set([
   "cierre",
   "conciliar",
   "analisis",
+  "estado-semana",
 ]);
 
 // PERF-1 (FASE 6): piloto de carga diferida por vista. `app.js` no es un módulo — es un <script>
@@ -192,6 +193,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827d1", rootId: "presupuestoMesRoot" },
+  "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
   "deuda-contratos": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-contratos" },
@@ -404,6 +406,10 @@ const viewTitles = {
   "presupuesto-mes": {
     eyebrow: "Presupuesto",
     title: "Ritmo diario de gasto por categoría, con alertas y proyección",
+  },
+  "estado-semana": {
+    eyebrow: "Estado",
+    title: "Caja, ritmo de presupuesto y objetivos, en una sola lectura",
   },
   "executive-advisor": {
     eyebrow: "Asesor ejecutivo",
@@ -3208,6 +3214,38 @@ function homeBudgetSummary() {
   });
   const status = worstSeverity >= 3 ? "danger" : worstSeverity > 0 ? "warn" : "good";
   return { monthKey, count: monthBudgets.length, totalBudgeted, totalSpent, status, worstMessage };
+}
+
+// TRACK-3 (FASE 7): mismo agregado que homeBudgetSummary(), para la semana ISO en curso. Solo
+// categorías bancarias reales, mismo motivo que categoryBudgetsForMonth (un objetivo "por encima
+// del ritmo" de aportación es buena noticia, no un aviso de sobregasto).
+function categoryBudgetsForWeek(weekKey) {
+  return (window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForWeek(budgets, weekKey) || []).filter(
+    (budget) => !isGoalBudgetCategoryId(budget.categoryId),
+  );
+}
+
+function homeBudgetWeekSummary() {
+  if (!window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema || !window.FinanceCanonicalBudgetAlerts?.CanonicalBudgetAlerts) return null;
+  const weekKey = currentBudgetWeekKey();
+  if (!weekKey) return null;
+  const weekBudgets = categoryBudgetsForWeek(weekKey);
+  if (!weekBudgets.length) return null;
+  let totalBudgeted = 0;
+  let totalSpent = 0;
+  let worstSeverity = 0;
+  let worstMessage = "";
+  weekBudgets.forEach((budget) => {
+    const alert = budgetWeekAlertForRow(budget, weekKey);
+    totalBudgeted += budget.amountCap;
+    totalSpent += alert.metrics.spent;
+    if (alert.status === "overspend" && alert.severity > worstSeverity) {
+      worstSeverity = alert.severity;
+      worstMessage = `${budget.categoryId}: ${alert.message}`;
+    }
+  });
+  const status = worstSeverity >= 3 ? "danger" : worstSeverity > 0 ? "warn" : "good";
+  return { weekKey, count: weekBudgets.length, totalBudgeted, totalSpent, status, worstMessage };
 }
 
 function previousBudgetMonthKey(monthKey) {
@@ -29597,6 +29635,9 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "presupuesto-mes":
       renderPresupuestoMes();
       break;
+    case "estado-semana":
+      renderEstadoSemana();
+      break;
     case "update-hub":
       renderUpdateHub();
       break;
@@ -30110,6 +30151,15 @@ async function init() {
     // BUD-2: presupuestar un objetivo (mensual o semanal, según la cadencia activa).
     const goalAddButton = event.target.closest("[data-presupuesto-mes-goal-add]");
     if (goalAddButton) handleAddGoalBudget(goalAddButton);
+  });
+  // TRACK-3: los tres botones "Ver ..." de Estado de la semana son enlaces de navegación normales
+  // (mismo patrón data-home-nav que el resto de la app), sin acción propia que registrar aquí.
+  qs("estadoSemanaRoot")?.addEventListener("click", (event) => {
+    const navButton = event.target.closest("[data-home-nav]");
+    const target = navButton?.dataset.homeNav;
+    if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
+    history.pushState(null, "", `#${target}`);
+    setActiveView(target);
   });
   qs("planMesTables")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-plan-mes-copy]")) { handlePlanMesCopy(); return; }
