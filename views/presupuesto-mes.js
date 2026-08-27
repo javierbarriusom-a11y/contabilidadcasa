@@ -589,6 +589,34 @@ function handleSuggestBudgets() {
   renderPresupuestoMes();
 }
 
+// BUD-4: plantilla "repetir presupuesto del mes anterior ± X%" — evita tener que pulsar "Sugerir
+// presupuestos" (que recalcula desde cero contra el histórico) cada mes cuando lo único que se
+// quiere es partir de lo ya presupuestado. Reutiliza categoryBudgetsForMonth() (BUD-2, ya excluye
+// los presupuestos de objetivo: repetirlos no tendría sentido, se presupuestan desde su propia fila
+// mientras el objetivo siga activo) y el mismo upsert/saveBudgets que el resto de altas.
+function handleRepeatPreviousMonthBudgets(button) {
+  if (!window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return;
+  const monthKey = currentBudgetMonthKey();
+  const pctInput = button.closest(".cuadro-mandos-controls")?.querySelector("[data-presupuesto-mes-repeat-pct]");
+  const pct = Number(pctInput?.value || 0);
+  const factor = 1 + (Number.isFinite(pct) ? pct : 0) / 100;
+  let created = 0;
+  categoryBudgetsForMonth(previousBudgetMonthKey(monthKey)).forEach((previous) => {
+    if (window.FinanceCanonicalBudgetSchema.CanonicalBudgetSchema.findForCategoryMonth(budgets, previous.categoryId, monthKey)) return;
+    const amountCap = round2(previous.amountCap * factor);
+    if (!(amountCap > 0)) return;
+    budgets = window.FinanceCanonicalBudgetSchema.CanonicalBudgetSchema.upsert(budgets, {
+      categoryId: previous.categoryId,
+      monthYear: monthKey,
+      amountCap,
+      source: "repeated",
+    });
+    created += 1;
+  });
+  if (created) saveBudgets();
+  renderPresupuestoMes();
+}
+
 // INTEG-1: todos los presupuestos guardados (todas las categorías y meses, no solo el mes abierto),
 // con el gasto real y la desviación de cada uno vía budgetAlertForRow — para análisis externo (hoja
 // de cálculo, script propio), no solo lo que ya se ve en la tabla del mes actual.
@@ -871,7 +899,8 @@ function presupuestoMesRowHtml(budget, monthKey) {
   const pct = budget.amountCap > 0 ? Math.min(100, Math.round((alert.metrics.spent / budget.amountCap) * 100)) : 0;
   const barClass = alert.status === "overspend" ? "is-danger" : pct >= 80 ? "is-warn" : "";
   const projectedClass = projection.diff > 0 ? "negative" : "positive";
-  const sourceNote = budget.source === "suggested" ? ` <small class="note">sugerido</small>` : "";
+  const sourceNote =
+    budget.source === "suggested" ? ` <small class="note">sugerido</small>` : budget.source === "repeated" ? ` <small class="note">repetido</small>` : "";
   return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
     <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}${sourceNote}</td>
     <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
@@ -993,17 +1022,19 @@ function renderPresupuestoMes() {
 
   const rows = monthBudgets.length
     ? monthBudgets.map((budget) => presupuestoMesRowHtml(budget, monthKey)).join("")
-    : `<tr><td colspan="7" class="registrar-mes-empty">Todavía no hay presupuestos para ${escapeHtml(monthLabel)}. Pulsa «Sugerir presupuestos» para generarlos a partir de los últimos 6 meses.</td></tr>`;
+    : `<tr><td colspan="7" class="registrar-mes-empty">Todavía no hay presupuestos para ${escapeHtml(monthLabel)}. Pulsa «Sugerir presupuestos» para generarlos a partir de los últimos 6 meses, o «Repetir mes anterior» para partir de lo ya presupuestado.</td></tr>`;
 
   root.innerHTML = `${cadenceToggleHtml}
   <article class="e19-card registrar-mes-card">
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(monthLabel)}</h3>
-        <p class="e19-subtitle">Ritmo diario = presupuesto ÷ días del mes. Editable por categoría; la sugerencia usa los últimos 6 meses de gasto real.</p>
+        <p class="e19-subtitle">Ritmo diario = presupuesto ÷ días del mes. Editable por categoría; la sugerencia usa los últimos 6 meses de gasto real, o «Repetir mes anterior» copia lo ya presupuestado con el ajuste ± % indicado.</p>
       </div>
       <div class="cuadro-mandos-controls">
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-suggest>Sugerir presupuestos</button>
+        <input type="number" step="1" value="0" size="3" data-presupuesto-mes-repeat-pct aria-label="Ajuste porcentual al repetir el presupuesto del mes anterior" />
+        <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-repeat>Repetir mes anterior ± %</button>
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-export-csv>Exportar CSV</button>
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-export-json>Exportar JSON</button>
       </div>

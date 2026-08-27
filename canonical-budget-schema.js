@@ -38,7 +38,7 @@ class CanonicalBudgetSchema {
       monthYear: validated.monthYear, // "2026-08" format
       weekKey: validated.weekKey, // "2026-W35" format, null si es mensual
       amountCap: validated.amountCap,
-      source: validated.source, // "suggested" | "manual" | "carryover" | "goal"
+      source: validated.source, // "suggested" | "manual" | "carryover" | "goal" | "repeated"
       currency: validated.currency || 'EUR',
       appliedAt: validated.appliedAt || new Date().toISOString(),
     };
@@ -76,7 +76,7 @@ class CanonicalBudgetSchema {
     if (typeof amountCap !== 'number' || amountCap <= 0) return null;
 
     // Validar source
-    const validSources = ['suggested', 'manual', 'carryover', 'goal'];
+    const validSources = ['suggested', 'manual', 'carryover', 'goal', 'repeated'];
     if (source && !validSources.includes(source)) return null;
 
     // Validar currency (ISO 4217)
