@@ -1,6 +1,56 @@
 # Estado del proyecto
 
-Fecha de revisión: 26 de agosto de 2026.
+Fecha de revisión: 27 de agosto de 2026.
+
+## Cierre de sesión — 27 de agosto de 2026 (13): PERF-1 — medición acumulada y escala #4 (Análisis)
+
+Continuación directa del cierre anterior. El usuario pidió medir primero el efecto acumulado de
+las tres escalas ya fusionadas (piloto + Deuda + Cierre/Conciliar) y luego seguir escalando.
+
+**Medición (Lighthouse, mismo método que en sesiones anteriores, 3 ejecuciones por perfil)**:
+- Perfil `provided`: 73/72/75 — igual que antes de empezar PERF-1 (75-76) y que tras el piloto
+  (73-76). Sin movimiento.
+- Perfil por defecto: 45/55/55 — mismo ruido de entorno ya documentado (TBT osciló entre 70 ms y
+  2.612 ms en ejecuciones idénticas); tampoco se distingue de la línea base (55).
+- Lo que sí bajó de forma verificable: "JavaScript sin usar" estimado por Lighthouse pasó de
+  ~1,7 MB a 1,54 MB — coincide con los ~184 KB ya movidos a `views/` (presupuesto-mes + deuda +
+  cierre), pero es solo ~5% del total de ~3,6 MB, insuficiente para mover la puntuación compuesta.
+  Conclusión: las tres escalas no rompen nada y reducen JS cargado de más, pero la ganancia
+  medible sigue pendiente de mover una fracción mucho mayor del bundle.
+
+**Escala #4: Análisis**. Antes de tocar código se evaluó Registrar (candidato natural por tamaño)
+y se descartó: `pendingActualsForMonthKey`/`registrarActualsDefaultMonthKey` alimentan el
+recordatorio de Hoy, y `registrarRecordSessionChange`/`resetRegistrarBalanceBaseline`/
+`renderRegistrarImpactFooter` se disparan desde el propio flujo de edición de saldos (no solo
+desde la pantalla Registrar) — mismo patrón de entrelazado que ya descartó Escenario y Cuadro de
+mandos/Planificación de partidas. Se eligió Análisis en su lugar: un clúster limpio y con nombre
+propio (`analisis*`/`handleAnalisis*`, ~740 líneas), extraído a `views/analisis.js`. Se automatizó
+por fin el mapeo de dependencias (antes manual): un script calcula el cierre transitivo de "qué se
+queda en `app.js`" partiendo de las funciones con uso externo conocido y siguiendo sus propias
+llamadas internas hasta el punto fijo — encontró 10 definiciones que debían quedarse
+(`analisisCushionBand`/`Worst`/`BandHtml`, `ANALISIS_CUSHION_LEVEL_LABELS`, `analisisBlockSums`,
+`analisisSavingSum`, `ANALISIS_CASCADA_BLOCKS`, `analisisCascadaRows`/`Html`, `analisisAccuracyRow`)
+que Hoy, Plan · Previsión y el propio flujo de cierre de mes necesitan.
+
+Un hallazgo más, de un tipo distinto a los de las escalas #2/#3: un test (Bloque 5, "retirar del
+menú no toca ningún camino funcional suelto") comprobaba un fragmento de HTML generado por código
+que se movió, buscándolo como texto literal dentro de `app.js` — mi búsqueda automática de
+dependencias solo rastrea nombres de función/constante citados por identificador, así que no lo
+detectó de antemano. Lo encontró la propia suite de tests al fallar (1 de 1621), no la
+verificación en navegador esta vez. Recordatorio: la búsqueda automática reduce el trabajo manual,
+pero no sustituye correr la suite completa tras cada escala.
+
+**Validación**: `npm run verify` completo (1621/1621, 6 ficheros de test más corregidos) y
+verificación en navegador real — arranque sin `ReferenceError`, 9 pantallas comprobadas, 4
+fragmentos (`presupuesto-mes.js`, `deuda.js`, `cierre.js`, `analisis.js`) descargados exactamente
+una vez cada uno.
+
+**Publicado**: pendiente de commit/push/PR — rama `claude/backlog-fase-3-shsxwr`.
+
+**Próximo paso**: seguir escalando (Registrar y el clúster de Cuadro de mandos/Planificación de
+partidas siguen descartados por su entrelazado con Hoy/Plan/Escenarios; revisar Asesor ejecutivo
+como candidato) o volver a medir con Lighthouse cuando el volumen movido sea sustancialmente mayor
+(~184 KB movidos hasta ahora + lo de esta escala, todavía lejos del ~3,6 MB total).
 
 ## Cierre de sesión — 26 de agosto de 2026 (12): PERF-1 — escala #3 (Cierre/Conciliar)
 

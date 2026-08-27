@@ -374,9 +374,34 @@ Validado igual que la escala #2: `npm run verify` completo (11 ficheros de test 
 navegador real — arranque sin `ReferenceError`, 10 pantallas comprobadas, 3 fragmentos descargados
 una sola vez cada uno pese a servir 7 vistas entre los tres.
 
-Sigue pendiente decidir con el usuario el ritmo de la siguiente escala (candidatos: Registrar,
-Análisis, Asesor ejecutivo) o parar a medir con Lighthouse el efecto acumulado de las tres escalas
-ya fusionadas, para saber si ya hay ganancia real o sigue siendo ruido.
+**PERF-1 — medición acumulada (sesión siguiente)**: Lighthouse tras las tres escalas fusionadas —
+73/72/75 (perfil `provided`) y 45/55/55 (perfil por defecto), ambos dentro del mismo margen de
+ruido que la baseline pre-PERF-1. El "JavaScript sin usar" estimado sí bajó (~1,7 MB → 1,54 MB,
+coincide con los ~184 KB movidos), pero es solo ~5% de los ~3,6 MB totales — insuficiente para
+mover la puntuación compuesta. Sin regresión, sin ganancia medible todavía.
+
+**PERF-1 — escala #4: Análisis**. Se evaluó Registrar y se descartó por el mismo motivo que
+Escenario: varias de sus funciones alimentan el recordatorio de Hoy y el propio flujo de edición de
+saldos, no solo su propia pantalla. Análisis (`analisis*`/`handleAnalisis*`, ~740 líneas, nombre de
+clúster limpio) sí se pudo extraer a `views/analisis.js`. El mapeo de dependencias se automatizó
+por fin: un script calcula el cierre transitivo de "qué se queda en `app.js`" partiendo de las
+funciones con uso externo conocido y seguido sus llamadas internas hasta el punto fijo — encontró
+10 definiciones a mantener en `app.js` (colchón de Hoy/Plan · Previsión, cascada del resultado de
+Plan · Previsión, precisión del plan del propio flujo de cierre de mes).
+
+Un hallazgo de tipo distinto a los de las escalas #2/#3: un test comprobaba un fragmento de HTML
+generado por código movido, buscándolo como texto literal en `app.js` — la búsqueda automática de
+dependencias (por identificador) no lo detecta. Lo encontró la propia suite de tests al fallar (1
+de 1621), recordando que ese paso sigue siendo necesario pese a la automatización.
+
+Validado igual que las escalas anteriores: `npm run verify` completo (1621/1621, 6 ficheros de test
+corregidos) y navegador real — arranque sin `ReferenceError`, 9 pantallas comprobadas, 4 fragmentos
+descargados exactamente una vez cada uno.
+
+Sigue pendiente decidir con el usuario el ritmo de la siguiente escala (Registrar y Cuadro de
+mandos/Planificación de partidas quedan descartados por su entrelazado; Asesor ejecutivo es el
+siguiente candidato a evaluar) frente a volver a medir cuando el volumen movido sea sustancialmente
+mayor.
 
 ---
 

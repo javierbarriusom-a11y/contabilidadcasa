@@ -7,7 +7,7 @@ const vm = require("node:vm");
 const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const html = read("index.html");
-const app = read("app.js");
+const app = read("app.js") + "\n" + read("views/analisis.js");
 const experience = read("e17-experience.js");
 
 // Bloque 5 del plan de cierre (docs/BACKLOG_NUEVE_PANTALLAS.md §7, 20 de agosto): E-14, A-12 y

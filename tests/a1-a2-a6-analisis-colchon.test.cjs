@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/analisis.js"), "utf8");
 
 // Fase 6 · Análisis (pantalla 07, Analisis.pdf, auditado el 16 de agosto): primer incremento real —
 // A-1 (pantalla de solo lectura), A-2 (banda de doce meses de colchón, misma escala de tres niveles

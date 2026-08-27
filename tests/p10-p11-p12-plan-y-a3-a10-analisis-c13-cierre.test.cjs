@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8");
+const app = fs.readFileSync(path.join(root, "app.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/cierre.js"), "utf8") + "\n" + fs.readFileSync(path.join(root, "views/analisis.js"), "utf8");
 
 // Bloque 2 del plan de cierre (docs/BACKLOG_NUEVE_PANTALLAS.md §7): seis tareas sueltas sin bloqueo
 // real — P-10/P-11/P-12 (Plan), A-3/A-10 (Análisis) y C-13 (Cierre). Ninguna dependía de trabajo sin
