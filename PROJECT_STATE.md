@@ -2,6 +2,49 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (17): FASE 6 — QA-1, suite de aceptación E2E
+
+Continuación directa del cierre anterior (INTEG-1). Investigado primero qué infraestructura E2E ya
+existía: `playwright.config.cjs` + `tests/e18-visual-regression.spec.cjs` (de A13-5), pero es pura
+comparación de píxeles (12 capturas, 6 flujos × 2 viewports) — no verifica comportamiento real, y
+`npm run test:visual` **no forma parte de `npm run verify` ni de CI**, nunca lo ha hecho (misma
+decisión que se mantiene aquí: un navegador headless en el pipeline de despliegue es una decisión de
+infraestructura aparte, fuera del alcance "Bajo"/"Medio" de estas tareas). Los 1628 tests de
+`node --test` tampoco son E2E de verdad: extraen funciones de `app.js` por texto y las corren en un
+`vm` aislado, sin arrancar la app real ni ejercitar `init()`, el enrutado por hash o la carga
+diferida de PERF-1.
+
+**Construido**: `tests/qa1-flujos-completos.spec.cjs`, con dos flujos reales sobre un navegador de
+verdad:
+1. **Presupuesto del mes de punta a punta**: siembra 4 meses de gasto sintético con las mismas
+   funciones que usa el propio flujo de importación (`mergeTransactions`/`refreshMovementRollups`,
+   no un atajo interno inventado) → «Sugerir presupuestos» → edita el importe sugerido → comprueba
+   que Estado/Proyección se recalculan con el nuevo valor → exporta CSV y JSON (INTEG-1) y verifica
+   que el fichero descargado contiene la fila editada.
+2. **Recorrido por las seis pantallas principales** (Hoy, Presupuesto, Deuda · comparar, Análisis,
+   Cierre, Conciliar) con datos sembrados: confirma que ninguna queda en blanco ni dispara errores de
+   página — el tipo de regresión que las 4 escalas de PERF-1 (carga diferida) podrían introducir y
+   que ni los tests `vm` ni el screenshot-diff de E18 detectarían.
+
+Verificado que la suite tiene dientes de verdad: rompiendo a propósito el selector del botón de
+exportar CSV, el primer flujo falla exactamente donde debía; revertido y vuelto a confirmar en verde.
+
+**Ajustes de infraestructura, mínimos y justificados**: `playwright.config.cjs` fijaba
+`channel: "chrome"` para TODOS los proyectos (necesario para que el screenshot-diff de E18 sea
+reproducible con fuentes/GPU reales) — se movió esa fijación a los proyectos "desktop"/"mobile" de
+E18 exclusivamente, y se añadió un tercer proyecto "e2e" sin canal fijado (usa el Chromium que
+Playwright resuelva en cada máquina) para QA-1, que no necesita fidelidad de píxel. `package.json`:
+`test:visual` mantiene su alcance original (solo E18, sin cambios de comportamiento); nuevo
+`test:e2e` para QA-1. De paso, `@playwright/test` (declarado en `package.json` pero ausente de
+`node_modules` en esta sesión) se instaló limpiamente sin conflicto de versión — un hueco de
+instalación de este contenedor, no del repositorio.
+
+**Publicado**: commit/push a `claude/backlog-fase-3-shsxwr`, PR en borrador y fusión al fusionarse
+el CI en verde (`npm run verify`, sin cambios: ni `test:visual` ni `test:e2e` forman parte de esa
+cadena).
+
+**Próximo paso**: FASE 6 queda con solo DOC-1 pendiente (guía de presupuestos).
+
 ## Cierre de sesión — 27 de agosto de 2026 (16): FASE 6 — INTEG-1, exportar presupuestos a CSV/JSON
 
 Continuación directa del cierre anterior (SCALE-1). Añadidos dos botones «Exportar CSV»/«Exportar

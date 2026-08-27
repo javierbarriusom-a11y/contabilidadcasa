@@ -434,7 +434,7 @@ Estabilidad, documentación, performance en escala.
 | Tarea | Qué hace | Esfuerzo | Bloqueador | Estado |
 |-------|----------|----------|-----------|--------|
 | **DOC-1** | Guía de presupuestos (FAQs, vídeos, casos de uso) | Bajo | Fases 1-5 | ⏳ |
-| **QA-1** | Suite de aceptación: E2E tests de flujos completos | Medio | Fases 1-5 | ⏳ |
+| **QA-1** | Suite de aceptación: E2E tests de flujos completos | Medio | Fases 1-5 | ✅ |
 | **SCALE-1** | Audit de performance: 1000 categorías, 10 años histórico | Bajo | U-3 | ✅ |
 | **INTEG-1** | Exportar presupuestos a CSV/JSON para análisis externo | Bajo | P-2 | ✅ |
 
@@ -461,6 +461,21 @@ download>`), sin abstracción nueva. 7 tests nuevos con `budgetAlertForRow` mock
 CSV con BOM, JSON válido, singular/plural, wiring). Verificado en navegador real: ambos botones
 descargan el fichero correcto, sin regresión de arranque. `npm run verify` completo: 1628/1628
 tests, accesibilidad, build, privacidad y smoke en verde.
+
+**QA-1 — suite de aceptación E2E**: la infraestructura de screenshot-diff de E18
+(`e18-visual-regression.spec.cjs`) ya existía pero solo compara píxeles, no comportamiento, y nunca
+ha corrido en CI (no forma parte de `npm run verify`). Nueva `tests/qa1-flujos-completos.spec.cjs`
+con dos flujos reales en navegador: (1) Presupuesto del mes de punta a punta — sembrar histórico
+(con las mismas funciones que usa la importación real), sugerir, editar el importe, exportar CSV/JSON
+y comprobar el contenido descargado; (2) recorrido por las seis pantallas principales con datos
+sembrados, comprobando que ninguna queda en blanco ni dispara errores — el tipo de regresión que las
+4 escalas de carga diferida de PERF-1 podrían introducir. Verificado que detecta regresiones de
+verdad (se rompió a propósito un selector y el test falló donde debía). Ajuste mínimo a
+`playwright.config.cjs`: el `channel: "chrome"` que necesita E18 para píxeles reproducibles se movió
+a sus dos proyectos; QA-1 corre en un tercer proyecto sin canal fijado (Chromium por defecto). Ni
+`test:visual` ni el nuevo `test:e2e` forman parte de `npm run verify` ni de CI — misma decisión que
+ya regía para E18, un navegador headless en el pipeline de despliegue es una decisión de
+infraestructura aparte.
 
 ---
 
@@ -546,9 +561,9 @@ tests, accesibilidad, build, privacidad y smoke en verde.
 6. ✅ **FASE 5 completada**: experiencia y mobile (U-2, U-3, U-4) y PERF-1 cerrado dentro de lo
    seguro (4 clústeres escalados a carga diferida; Lighthouse >85 no alcanzado, reestructuración
    mayor del motor compartido queda como candidato nuevo a valorar aparte)
-7. 🔶 **FASE 6 en curso**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real corregido)
-   e INTEG-1 (exportar presupuestos a CSV/JSON) completados; quedan DOC-1 (guía de presupuestos) y
-   QA-1 (suite E2E de flujos completos)
+7. 🔶 **FASE 6 en curso**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real corregido),
+   INTEG-1 (exportar presupuestos a CSV/JSON) y QA-1 (suite E2E de flujos completos) completados;
+   queda solo DOC-1 (guía de presupuestos)
 8. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
