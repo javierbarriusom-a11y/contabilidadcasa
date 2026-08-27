@@ -8,7 +8,10 @@ escalado a 4 clústeres de pantallas (piloto/Presupuesto del mes, Deuda, Cierre/
 sin bundler; los 6 clústeres restantes quedan descartados por entrelazado con el motor compartido de
 Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver hallazgos abajo. El objetivo
 original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance.
-FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas
+FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
+cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026** — pendiente de
+ejecución, ver sección propia. **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado
+como candidato nuevo y separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
 ---
 
@@ -490,6 +493,35 @@ accesibilidad (832 IDs únicos), build, privacidad y smoke en verde.
 
 ---
 
+### **FASE 7 (Multi-cadencia, seguimiento unificado y forecasting) — PROPUESTA (27 de agosto de 2026)**
+
+Punto de partida de esta fase: presupuestos hoy son **solo mensuales** por categoría bancaria
+(`canonical-budget-schema.js` no tiene concepto de periodicidad, solo `monthKey`); Objetivos (E15,
+`canonical-e15-goals.js`) y Presupuestos (FASE 0-6) son **dos motores separados** que no se hablan
+entre sí; y alertas de caja (E16), ritmo de presupuesto (FASE 1) y calendario de objetivos (E15)
+viven en tres pantallas distintas sin una lectura conjunta.
+
+| Tarea | Qué hace | Prioridad | Esfuerzo | Bloqueador | Estado |
+|-------|----------|-----------|----------|-----------|--------|
+| **BUD-1** | Periodicidad en el esquema de presupuesto: `period: "monthly"\|"weekly"` y `weekKey` (ISO) junto al `monthKey` actual, sin romper los presupuestos mensuales existentes; selector de cadencia en Presupuesto del mes | Alta | Medio | — | Pendiente |
+| **BUD-2** | Presupuestos ligados a objetivos: la aportación mensual/semanal de un objetivo (A10-3, plan de aportaciones) se registra como un presupuesto más, con su propio ritmo y alerta, como un tercer "tipo" de fila sobre `CanonicalBudgetAlerts` — sin motor nuevo | Alta | Medio | BUD-1 | Pendiente |
+| **BUD-3** | Presupuestos anuales/trimestrales con reparto automático a mensual, para gastos estacionales (seguros, impuestos) que hoy aparecen como "sobregasto" puntual | Media | Medio | BUD-1 | Pendiente |
+| **BUD-4** | Plantilla "repetir presupuesto del mes anterior ± X%" — evita repetir "Sugerir" cada mes | Baja | Bajo | P-2 | Pendiente |
+| **TRACK-1** | Resumen semanal de ritmo en Hoy (hoy solo hay lectura mensual) | Media | Bajo | BUD-1 | Pendiente |
+| **TRACK-2** | Historial de cumplimiento por categoría (racha on-track/overspend), reutilizando el histórico que ya calcula `CanonicalBudgetAnalyzer` | Media | Bajo | — | Pendiente |
+| **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | Pendiente |
+| **FCST-1** | Forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses), exponiendo a nivel semanal la banda de confianza que `canonical-budget-forecast-category.js` ya calcula | Media | Medio | BUD-1 | Pendiente |
+| **FCST-2** | Conectar el laboratorio de Escenarios (E13) con Presupuesto del mes: "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?", reutilizando los dos motores existentes sin duplicar cálculo | Media | Alto | — | Pendiente |
+| **UX-B1** | Vista móvil de presupuestos por categoría (el resto del shell ya migró a E19/E17; Presupuesto del mes se quedó con la tabla densa de escritorio) | Media | Medio | — | Pendiente |
+| **UX-B2** | Edición masiva de presupuestos (±X% a todas las categorías de golpe, útil tras una subida de sueldo o inflación) | Baja | Bajo | — | Pendiente |
+| **UX-B3** | Importar presupuestos desde CSV/JSON — hoy solo existe la exportación (INTEG-1); falta el camino inverso para reponer un plan | Baja | Bajo | INTEG-1 | Pendiente |
+
+**Orden propuesto**: BUD-1 → BUD-2 → TRACK-3 (las que más cambian el "cómo se usa" la app; TRACK-3
+depende de que BUD-2 ya exista), el resto según hueco. Ninguna tarea empezada — pendiente de
+priorización final del usuario antes de tocar código.
+
+---
+
 ## 🎯 8 Features Diferenciadoras
 
 1. **Presupuestos Inteligentes que Aprenden**
@@ -553,7 +585,8 @@ accesibilidad (832 IDs únicos), build, privacidad y smoke en verde.
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **TOTAL** | | **5070 líneas** | **24 semanas** | **Completado** |
+| **7** | BUD-1-4, TRACK-1-3, FCST-1-2, UX-B1-3 | — | — | 🆕 Propuesta |
+| **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
 
@@ -575,7 +608,10 @@ accesibilidad (832 IDs únicos), build, privacidad y smoke en verde.
 7. ✅ **FASE 6 completada**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real
    corregido), INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos completos) y
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
-8. **Weekly checkpoints**: Estado en PROJECT_STATE.md
+8. 🆕 **FASE 7 propuesta (27 de agosto)**: multi-cadencia (BUD-1-4), seguimiento unificado
+   (TRACK-1-3) y forecasting conectado a escenarios (FCST-1-2), más tres mejoras de uso
+   (UX-B1-3) — pendiente de priorización final antes de empezar
+9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
 
@@ -623,5 +659,30 @@ una tarea nueva y bastante mayor que el esfuerzo "Bajo" original de PERF-1 — v
 
 ---
 
-Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6. Rama:
-`claude/backlog-fase-3-shsxwr`.
+---
+
+## 🆕 PERF-2 — candidato nuevo y separado: Lighthouse >85 vía motor compartido (propuesto 27/08/2026)
+
+**No es continuación de PERF-1** (FASE 5) — es una reestructuración distinta y bastante mayor, tal y
+como quedó anotado al cerrar esa fase (ver `PROJECT_STATE.md`, cierre 14, para el detalle completo
+de por qué se descartó escalar más con el método de PERF-1).
+
+- **Qué exigiría de verdad**: diferir o memoizar el cálculo del propio motor Escenario/Agente
+  (`executiveAdvisorContext`, `buildSavingsAgentPlan`, etc.), no solo mover el fichero de la vista
+  que lo consume — ese motor se llama directamente desde Hoy y otras rutas núcleo, entrelazado con
+  al menos 7 puntos de llamada.
+- **Riesgo**: al ser código núcleo compartido, cualquier cambio de estrategia de cálculo (lazy,
+  memo, worker) puede afectar a Hoy, Deuda, Asesor y Nueva vida a la vez — necesita su propia
+  batería de regresión antes de tocarlo, no reutilizar las 4 escalas ya hechas en PERF-1.
+- **Alcance propuesto a validar aparte** (no dentro de FASE 7): auditar qué parte de
+  `executiveAdvisorContext` se recalcula en cada render vs. qué podría memoizarse por
+  `monthKey`/estado, medir Lighthouse antes/después de memoizar (sin mover ficheros todavía), y
+  solo si eso mueve la puntuación, plantear la extracción real del motor a un módulo aparte.
+- **Esfuerzo estimado**: Alto (frente al "Bajo" original de PERF-1) — trátese como su propia fase,
+  no como una tarea suelta de FASE 6/7.
+- **Estado**: Pendiente de decisión del usuario sobre si perseguirlo; sin trabajo iniciado.
+
+---
+
+Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6 y al proponer FASE 7 y
+PERF-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.

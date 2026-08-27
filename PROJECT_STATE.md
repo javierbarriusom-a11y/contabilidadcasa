@@ -2,6 +2,41 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (19): revisión de la app y propuesta de FASE 7 + PERF-2
+
+Con FASE 6 cerrada (sesión anterior), el usuario pidió una nueva revisión de la app y un plan de
+mejora orientado a uso, seguimiento, forecasting y presupuestos (semanal, mensual, por objetivos),
+y por separado que se documentara como candidato nuevo la reestructuración del motor
+Escenario/Agente para perseguir Lighthouse >85 (explícitamente fuera de alcance de PERF-1 al
+cerrarlo).
+
+**Sin cambios de código esta sesión** — solo revisión y documentación. Hallazgos de la revisión:
+presupuestos hoy son solo mensuales (`canonical-budget-schema.js` no tiene concepto de
+periodicidad); Objetivos (E15) y Presupuestos (FASE 0-6) son dos motores separados sin enlace; y
+alertas de caja (E16), ritmo de presupuesto y calendario de objetivos viven en tres pantallas
+distintas sin lectura conjunta.
+
+**Añadido a `BACKLOG_PRESUPUESTOS_V2.md`**:
+- **FASE 7 (propuesta, sin empezar)**: BUD-1 a BUD-4 (periodicidad semanal, presupuestos ligados a
+  objetivos, presupuestos anuales/trimestrales repartidos a mensual, plantilla de repetición),
+  TRACK-1 a TRACK-3 (resumen semanal de ritmo, historial de cumplimiento, pantalla única de estado
+  semana/mes), FCST-1 y FCST-2 (forecast a 3 horizontes, conexión con el laboratorio de Escenarios)
+  y UX-B1 a UX-B3 (vista móvil, edición masiva, importar CSV/JSON). Orden propuesto: BUD-1 → BUD-2
+  → TRACK-3, resto según hueco.
+- **PERF-2 (candidato nuevo y separado, no continuación de PERF-1)**: reestructurar el motor
+  compartido Escenario/Agente (diferir o memoizar `executiveAdvisorContext` y afines) para intentar
+  de verdad Lighthouse >85. Esfuerzo estimado Alto, con su propia batería de regresión antes de
+  tocar el motor núcleo (usado desde Hoy y al menos 7 puntos de llamada más). Alcance propuesto:
+  auditar y medir el efecto de memoizar antes de plantear una extracción real de módulo.
+
+`npm test`: 1633/1633 en verde (sin cambios de comportamiento esperados, solo documentación).
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión
+al fusionarse el CI en verde.
+
+**Próximo paso**: priorizar y empezar FASE 7 (BUD-1 primero) si el usuario lo confirma; PERF-2
+queda pendiente de decisión, sin trabajo iniciado.
+
 ## Cierre de sesión — 27 de agosto de 2026 (18): FASE 6 — DOC-1, guía de presupuestos (cierra FASE 6)
 
 Continuación directa del cierre anterior (QA-1). Última tarea de FASE 6. Encontrado un hueco real:
