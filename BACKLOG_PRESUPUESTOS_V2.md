@@ -11,8 +11,9 @@ original de Lighthouse >85 no se alcanzó y requeriría una reestructuración ma
 FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
 cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
 BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado
-de la semana»), TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %») y BUD-3
-(presupuestos anuales/trimestrales) completadas y publicadas; TRACK-2, FCST-1-2 y UX-B1-3 pendientes.
+de la semana»), TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3
+(presupuestos anuales/trimestrales) y TRACK-2 (historial de cumplimiento por categoría) completadas
+y publicadas; FCST-1-2 y UX-B1-3 pendientes.
 **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
 separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
@@ -26,7 +27,7 @@ separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 | TRACK-1 | Ritmo semanal añadido a la tarjeta de presupuesto en Hoy | ✅ Hecho |
 | BUD-4 | Plantilla "repetir presupuesto del mes anterior ± %" | ✅ Hecho |
 | BUD-3 | Presupuestos anuales/trimestrales con reparto automático a mensual | ✅ Hecho |
-| TRACK-2 | Historial de cumplimiento por categoría (rachas on-track/overspend) | ⏳ Pendiente |
+| TRACK-2 | Historial de cumplimiento por categoría (rachas on-track/overspend) | ✅ Hecho |
 | FCST-1 | Forecast por categoría a 3 horizontes (semana, mes, +3 meses) | ⏳ Pendiente |
 | FCST-2 | Conectar Escenarios (E13) con Presupuesto del mes | ⏳ Pendiente |
 | UX-B1 | Vista móvil de Presupuesto del mes | ⏳ Pendiente |
@@ -532,7 +533,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | **BUD-3** | Presupuestos anuales/trimestrales con reparto automático a mensual, para gastos estacionales (seguros, impuestos) que hoy aparecen como "sobregasto" puntual | Media | Medio | BUD-1 | ✅ (27/08/2026) |
 | **BUD-4** | Plantilla "repetir presupuesto del mes anterior ± X%" — evita repetir "Sugerir" cada mes | Baja | Bajo | P-2 | ✅ (27/08/2026) |
 | **TRACK-1** | Resumen semanal de ritmo en Hoy (hoy solo hay lectura mensual) | Media | Bajo | BUD-1 | ✅ (27/08/2026) |
-| **TRACK-2** | Historial de cumplimiento por categoría (racha on-track/overspend), reutilizando el histórico que ya calcula `CanonicalBudgetAnalyzer` | Media | Bajo | — | Pendiente |
+| **TRACK-2** | Historial de cumplimiento por categoría (racha on-track/overspend), reutilizando el histórico que ya calcula `CanonicalBudgetAnalyzer` | Media | Bajo | — | ✅ (27/08/2026) |
 | **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | ✅ (27/08/2026) |
 | **FCST-1** | Forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses), exponiendo a nivel semanal la banda de confianza que `canonical-budget-forecast-category.js` ya calcula | Media | Medio | BUD-1 | Pendiente |
 | **FCST-2** | Conectar el laboratorio de Escenarios (E13) con Presupuesto del mes: "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?", reutilizando los dos motores existentes sin duplicar cálculo | Media | Alto | — | Pendiente |
@@ -717,6 +718,36 @@ del año pasado se presupuesta como anual, aparece "En ritmo" con "1200,00 €" 
 de reparto informativo (en vez de la alarma mensual que daría hoy); cambiar a trimestral y dar de
 alta un presupuesto nuevo desde el formulario funciona de punta a punta — sin errores de consola.
 
+**TRACK-2 — construido y publicado (27 de agosto de 2026)**: historial de cumplimiento por
+categoría, ampliando la tarjeta ya existente de GAME-1 ("Objetivos: meses seguidos dentro de
+presupuesto") en vez de crear una tarjeta nueva que hubiera duplicado el "Histórico de 12 meses" de
+S-3 (que ya muestra el % exacto mes a mes). GAME-1 solo tenía la racha ACTUAL
+(`budgetComplianceStreak`, se corta en el primer sobregasto); esta tarea añade dos columnas:
+
+- **Mejor racha** (`budgetLongestComplianceStreak`, nueva): un récord histórico que no se pierde solo
+  porque la racha viva se rompa — sigue recorriendo el historial tras un sobregasto en vez de
+  detenerse ahí, reiniciando el contador en vez de abandonar el escaneo. Mismo criterio de parada que
+  GAME-1: se detiene en el primer mes sin presupuesto (sin datos que clasificar).
+- **Últimos 6 meses** (`budgetComplianceHistorySequenceHtml`, nueva): una secuencia visual compacta
+  ✓/✗/· (dentro de presupuesto / sobregasto / sin presupuesto ese mes) — la misma clasificación
+  binaria que ya cuentan las rachas, más legible de un vistazo que el % exacto de S-3 para responder
+  "¿qué meses rompieron la racha?". Reutiliza `budgetHistoryMonthKeys()` (S-3) para la ventana de
+  meses, sin reimplementar el recorrido.
+
+Ninguna de las dos funciones existía antes, y GAME-1/GAME-2 no tenían ningún test dedicado desde que
+se construyeron en FASE 4 — este trabajo también cierra ese hueco de cobertura, no solo añade lo
+nuevo.
+
+9 tests nuevos (`tests/track2-historial-cumplimiento.test.cjs`): `budgetLongestComplianceStreak`
+(sin presupuestos, racha ininterrumpida igual a la actual, una racha mejor que ya se rompió sin que
+la actual la borre, corte en el primer mes sin presupuesto), la secuencia visual con los tres
+símbolos, y `presupuestoMesGoalsHtml` con las cuatro columnas (incluida la concordancia singular/
+plural). `npm run verify` completo: 1781/1781 tests, accesibilidad (834 IDs, sin cambio), rendimiento,
+build, privacidad y smoke en verde. Verificado también en navegador real (Playwright contra `dist/`):
+sembrado un sobregasto a propósito en el 4º de 7 meses de histórico, la tarjeta muestra "Racha
+actual: 3 meses seguidos", "Mejor racha: 3 meses" y la secuencia "✓ ✓ ✗ ✓ ✓ ✓" — sin errores de
+consola nuevos.
+
 ---
 
 ## 🎯 8 Features Diferenciadoras
@@ -782,7 +813,7 @@ alta un presupuesto nuevo desde el formulario funciona de punta a punta — sin 
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2, FCST-1-2, UX-B1-3 | ~1400 | — | 🔄 En curso |
+| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2 (✅), FCST-1-2, UX-B1-3 | ~1450 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -807,8 +838,9 @@ alta un presupuesto nuevo desde el formulario funciona de punta a punta — sin 
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
 8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales), BUD-2
    (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado de la semana»), TRACK-1 (ritmo
-   semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %») y BUD-3 (presupuestos anuales/
-   trimestrales) completadas y publicadas; quedan TRACK-2, FCST-1-2 y UX-B1-3
+   semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3 (presupuestos anuales/
+   trimestrales) y TRACK-2 (historial de cumplimiento por categoría) completadas y publicadas; quedan
+   FCST-1-2 y UX-B1-3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -883,4 +915,4 @@ de por qué se descartó escalar más con el método de PERF-1).
 ---
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
-PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4 y BUD-3. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4, BUD-3 y TRACK-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.

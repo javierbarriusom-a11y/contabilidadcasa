@@ -351,25 +351,73 @@ function budgetBalancedStreak(category, monthKey, maxMonths = 24) {
   return streak;
 }
 
+// TRACK-2 (FASE 7): además de la racha ACTUAL (GAME-1, budgetComplianceStreak — se corta en el
+// primer sobregasto), la mejor racha histórica: un récord que no se pierde solo porque el mes en
+// curso rompa la racha viva. Mismo criterio de parada que GAME-1 (se detiene en el primer mes sin
+// presupuesto, sin datos que clasificar) pero, a diferencia de la actual, sigue recorriendo el
+// historial tras un sobregasto en vez de detenerse ahí — solo reinicia el contador.
+function budgetLongestComplianceStreak(category, monthKey, maxMonths = 24) {
+  let best = 0;
+  let current = 0;
+  let cursor = monthKey;
+  for (let i = 0; i < maxMonths; i += 1) {
+    const budget = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, cursor);
+    if (!budget) break;
+    if (budgetAlertForRow(budget, cursor).metrics.spent > budget.amountCap) {
+      current = 0;
+    } else {
+      current += 1;
+      if (current > best) best = current;
+    }
+    cursor = previousBudgetMonthKey(cursor);
+  }
+  return best;
+}
+
+// TRACK-2: secuencia de cumplimiento (dentro de presupuesto / sobregasto) de los últimos meses, la
+// misma clasificación binaria que ya cuentan las rachas — más legible de un vistazo que la tabla
+// completa de "Histórico de 12 meses" (S-3), que muestra el % exacto de cada mes en vez de si ese
+// mes rompió o no la racha. Reutiliza budgetHistoryMonthKeys() (S-3) para la ventana de meses.
+function budgetComplianceHistorySequenceHtml(category, monthKey, count = 6) {
+  return budgetHistoryMonthKeys(monthKey, count)
+    .map((cursorMonthKey) => {
+      const label = escapeHtml(ledgerMonthLabel(cursorMonthKey));
+      const budget = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, category, cursorMonthKey);
+      if (!budget) return `<span class="e19-badge" title="${label}: sin presupuesto">·</span>`;
+      const compliant = budgetAlertForRow(budget, cursorMonthKey).metrics.spent <= budget.amountCap;
+      const cls = compliant ? "e19-badge-success" : "e19-badge-danger";
+      const title = `${label}: ${compliant ? "dentro de presupuesto" : "sobregasto"}`;
+      return `<span class="e19-badge ${cls}" title="${escapeHtml(title)}">${compliant ? "✓" : "✗"}</span>`;
+    })
+    .join(" ");
+}
+
 function presupuestoMesGoalsHtml(monthKey) {
   const monthBudgets = categoryBudgetsForMonth(monthKey);
   if (!monthBudgets.length) return "";
   const rows = monthBudgets
     .map((budget) => {
       const streak = budgetComplianceStreak(budget.categoryId, monthKey);
-      return `<tr><td class="t">${escapeHtml(budget.categoryId)}</td><td>${streak} mes${streak === 1 ? "" : "es"} seguido${streak === 1 ? "" : "s"}</td></tr>`;
+      const best = budgetLongestComplianceStreak(budget.categoryId, monthKey);
+      const history = budgetComplianceHistorySequenceHtml(budget.categoryId, monthKey);
+      return `<tr>
+        <td class="t">${escapeHtml(budget.categoryId)}</td>
+        <td>${streak} mes${streak === 1 ? "" : "es"} seguido${streak === 1 ? "" : "s"}</td>
+        <td>${best} mes${best === 1 ? "" : "es"}</td>
+        <td>${history}</td>
+      </tr>`;
     })
     .join("");
   return `<article class="e19-card registrar-mes-card">
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Objetivos: meses seguidos dentro de presupuesto</h3>
-        <p class="e19-subtitle">La meta de cada categoría es el propio presupuesto del mes (P-2). La racha cuenta meses consecutivos hasta hoy sin sobregasto; se corta en el primer mes sin presupuesto o por encima de él.</p>
+        <p class="e19-subtitle">La meta de cada categoría es el propio presupuesto del mes (P-2). La racha actual cuenta meses consecutivos hasta hoy sin sobregasto y se corta en el primero por encima de él; la mejor racha es el récord histórico, que no se pierde al romperse la actual. Los últimos 6 meses: ✓ dentro de presupuesto, ✗ sobregasto, · sin presupuesto ese mes.</p>
       </div>
     </div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
-        <thead><tr><th>Categoría</th><th>Racha actual</th></tr></thead>
+        <thead><tr><th>Categoría</th><th>Racha actual</th><th>Mejor racha</th><th>Últimos 6 meses</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>

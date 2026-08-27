@@ -2,6 +2,52 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (26): FASE 7 — TRACK-2, historial de cumplimiento
+
+Continuación directa del cierre anterior (BUD-3). El usuario pidió seguir con TRACK-2 explícitamente.
+
+**Construido**: historial de cumplimiento por categoría, ampliando la tarjeta ya existente de GAME-1
+("Objetivos: meses seguidos dentro de presupuesto") en vez de crear una tarjeta nueva que hubiera
+duplicado el "Histórico de 12 meses" de S-3 (que ya muestra el % exacto mes a mes). GAME-1 solo tenía
+la racha ACTUAL (`budgetComplianceStreak`, se corta en el primer sobregasto); esta tarea añade dos
+columnas:
+
+- **Mejor racha** (`budgetLongestComplianceStreak`, nueva): un récord histórico que no se pierde solo
+  porque la racha viva se rompa — sigue recorriendo el historial tras un sobregasto en vez de
+  detenerse ahí, reiniciando el contador en vez de abandonar el escaneo.
+- **Últimos 6 meses** (`budgetComplianceHistorySequenceHtml`, nueva): secuencia visual compacta
+  ✓/✗/· (dentro de presupuesto / sobregasto / sin presupuesto ese mes), reutilizando
+  `budgetHistoryMonthKeys()` (S-3) para la ventana de meses en vez de reimplementar el recorrido.
+
+Antes de diseñar esto, revisé lo que ya existía (GAME-1's racha actual, GAME-2's badges, S-3's grid
+de %) para no construir una tercera vista redundante de lo mismo — la decisión fue ampliar la tabla
+ya existente con las dos columnas que de verdad faltaban, no una tarjeta nueva.
+
+**Hallazgo de paso**: GAME-1/GAME-2 (construidas en FASE 4) no tenían ningún test dedicado desde
+entonces. Este trabajo también cierra ese hueco de cobertura, no solo añade lo nuevo.
+
+**Verificación**: 9 tests nuevos (`tests/track2-historial-cumplimiento.test.cjs`) —
+`budgetLongestComplianceStreak` (sin presupuestos, racha ininterrumpida igual a la actual, una racha
+mejor que ya se rompió sin que la actual la borre, corte en el primer mes sin presupuesto), la
+secuencia visual con los tres símbolos, y `presupuestoMesGoalsHtml` con las cuatro columnas. `npm run
+verify` completo: 1781/1781 tests, accesibilidad (834 IDs, sin cambio), rendimiento, build,
+privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): sembrado un sobregasto a propósito
+en el 4º de 7 meses de histórico, la tarjeta muestra "Racha actual: 3 meses seguidos", "Mejor racha:
+3 meses" y la secuencia "✓ ✓ ✗ ✓ ✓ ✓" — sin errores de consola nuevos.
+
+Versión de `views/presupuesto-mes.js` bumpeada a `20260827g1` (los cuatro ficheros de test que la
+pinnean actualizados en bloque); `app.js` no cambió esta vez, así que su versión sigue en
+`20260827d1a4`.
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: de FASE 7 solo quedan FCST-1 (forecast por categoría a 3 horizontes), FCST-2
+(conectar Escenarios con Presupuesto del mes) y UX-B1-3 (móvil, edición masiva, importar). BUD-1 a
+BUD-4, TRACK-1 a TRACK-3 están todas completas y publicadas.
+
 ## Cierre de sesión — 27 de agosto de 2026 (25): FASE 7 — BUD-3, presupuestos anuales/trimestrales
 
 Continuación directa del cierre anterior (BUD-4 + tabla resumen). El usuario pidió seguir con BUD-3
