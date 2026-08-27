@@ -617,6 +617,82 @@ function presupuestoMesSeasonalHtml(monthKey) {
   </article>`;
 }
 
+// FCST-1 (FASE 7): forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses). Sin
+// motor nuevo: `canonical-budget-forecast-category.js` ya calculaba predicted/±range/confidence por
+// mes, pero solo se usaba internamente para "Sugerir presupuestos" (suggestedBudget) — la banda de
+// confianza en sí nunca se mostraba. Cierre de mes reutiliza tal cual budgetProjection() (S-2, ya
+// visible en la tabla de arriba); lo único nuevo es el horizonte semanal (el forecast del mes en
+// curso ÷ 4,345 semanas/mes, mismo criterio ya usado en presupuestoMesGoalOptionLabel) y exponer la
+// banda de +3 meses que hasta ahora se calculaba y se descartaba.
+function budgetForecastHorizons(category, monthKey) {
+  const forecastApi = window.FinanceCanonicalBudgetForecastCategory?.CanonicalBudgetForecastCategory;
+  if (!forecastApi) return null;
+  const historical = budgetHistoricalExpenseTransactions(category, monthKey);
+  const manual = syntheticManualMovements(category, recentBudgetMonthKeys(monthKey, 12));
+  // forecastMonths: 4 → el mes en curso (índice 0) y los tres siguientes, para que el índice 3 sea
+  // de verdad "+3 meses" desde hoy (budgetForecastForCategory usa 3 para otro propósito: sugerir
+  // presupuesto con los 3 primeros meses del forecast, no necesita el cuarto).
+  const forecast = forecastApi.forecast([...historical, ...manual], { months: 12, forecastMonths: 4 });
+  if (!forecast) return null;
+  const monthKeys = Object.keys(forecast.monthlyForecast);
+  const currentMonthForecast = forecast.monthlyForecast[monthKeys[0]] || null;
+  const threeMonthsOut = forecast.monthlyForecast[monthKeys[3]] || null;
+  const week = currentMonthForecast
+    ? {
+        predicted: round2(currentMonthForecast.predicted / 4.345),
+        range: `±${round2(Number(currentMonthForecast.range.replace("±", "")) / 4.345)}`,
+        confidence: currentMonthForecast.confidence,
+      }
+    : null;
+  return { week, threeMonthsOut };
+}
+
+function budgetForecastConfidenceLabel(confidence) {
+  return confidence === "high" ? "alta" : confidence === "medium" ? "media" : "baja";
+}
+
+function presupuestoMesForecastHorizonsRowHtml(budget, monthKey) {
+  const horizons = budgetForecastHorizons(budget.categoryId, monthKey);
+  if (!horizons) {
+    return `<tr><td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}</td><td colspan="3" class="registrar-mes-empty">Histórico insuficiente para forecast (hacen falta 6+ meses de datos).</td></tr>`;
+  }
+  const alert = budgetAlertForRow(budget, monthKey);
+  const projection = budgetProjection(alert, monthKey);
+  const weekCell = horizons.week
+    ? `${money(horizons.week.predicted, true)} <small class="note">${horizons.week.range}, confianza ${budgetForecastConfidenceLabel(horizons.week.confidence)}</small>`
+    : `<span class="registrar-mes-empty">—</span>`;
+  const monthCloseCell = `${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small>`;
+  const threeMonthsCell = horizons.threeMonthsOut
+    ? `${money(horizons.threeMonthsOut.predicted, true)} <small class="note">${horizons.threeMonthsOut.range}, confianza ${budgetForecastConfidenceLabel(horizons.threeMonthsOut.confidence)}</small>`
+    : `<span class="registrar-mes-empty">—</span>`;
+  return `<tr>
+    <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}</td>
+    <td>${weekCell}</td>
+    <td>${monthCloseCell}</td>
+    <td>${threeMonthsCell}</td>
+  </tr>`;
+}
+
+function presupuestoMesForecastHorizonsHtml(monthKey) {
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
+  if (!monthBudgets.length) return "";
+  const rows = monthBudgets.map((budget) => presupuestoMesForecastHorizonsRowHtml(budget, monthKey)).join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Forecast por categoría: 3 horizontes</h3>
+        <p class="e19-subtitle">Semana: media semanal estimada a partir del forecast de este mes. Cierre de mes: la misma proyección de la tabla de arriba (gasto acumulado ÷ día transcurrido × días del mes). +3 meses: la banda de confianza (± desviación, alta/media/baja) que ya calcula el motor de forecast por categoría — hasta ahora solo se usaba para "Sugerir presupuestos", nunca se mostraba directamente.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+        <thead><tr><th>Categoría</th><th>Semana</th><th>Cierre de mes</th><th>+3 meses</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </article>`;
+}
+
 function handleSuggestBudgets() {
   if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer || !window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return;
   const monthKey = currentBudgetMonthKey();
@@ -1299,5 +1375,6 @@ function renderPresupuestoMes() {
   ${presupuestoMesGoalsHtml(monthKey)}
   ${presupuestoMesBadgesHtml(monthKey)}
   ${presupuestoMesChallengeHtml(monthKey)}
-  ${presupuestoMesSeasonalHtml(monthKey)}`;
+  ${presupuestoMesSeasonalHtml(monthKey)}
+  ${presupuestoMesForecastHorizonsHtml(monthKey)}`;
 }

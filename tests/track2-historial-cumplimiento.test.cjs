@@ -185,5 +185,5 @@ test("TRACK-2 · presupuestoMesGoalsHtml usa singular para racha/mejor racha de 
 // ============================================================================
 
 test("TRACK-2 · la versión del chunk de Presupuesto del mes está actualizada", () => {
-  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260827g1/);
+  assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260827h1/);
 });

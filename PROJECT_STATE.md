@@ -2,6 +2,48 @@
 
 Fecha de revisión: 27 de agosto de 2026.
 
+## Cierre de sesión — 27 de agosto de 2026 (27): FASE 7 — FCST-1, forecast a 3 horizontes
+
+Continuación directa del cierre anterior (TRACK-2). El usuario pidió seguir con FCST-1
+explícitamente.
+
+**Construido**: forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses) en
+Presupuesto del mes. Sin motor nuevo: `canonical-budget-forecast-category.js` ya calculaba
+`predicted`/`±range`/`confidence` mes a mes, pero solo se usaba internamente para "Sugerir
+presupuestos" (`suggestedBudget`) — la banda de confianza en sí nunca llegaba a mostrarse.
+
+- **Cierre de mes**: reutiliza tal cual `budgetProjection()` (S-2), ya visible en la tabla principal
+  — no se recalcula nada, solo se consolida junto a los otros dos horizontes en una lectura conjunta.
+- **Semana** (nuevo): el forecast del mes en curso dividido entre 4,345 semanas/mes, mismo criterio
+  de conversión ya usado en `presupuestoMesGoalOptionLabel` (BUD-2).
+- **+3 meses** (nuevo): llamando al motor con `forecastMonths: 4` (en vez de los 3 que usa "Sugerir
+  presupuestos") para que el índice 3 caiga de verdad 3 meses después de hoy, mostrado con su
+  `predicted`, `±range` y `confidence` (alta/media/baja) tal cual los calcula el motor.
+- Categorías con menos de 6 meses de histórico avisan explícitamente ("Histórico insuficiente para
+  forecast") en vez de fallar o mostrar un dato inventado.
+
+**Verificación**: 9 tests nuevos (`tests/fcst1-forecast-horizontes.test.cjs`) — cadena real sobre el
+motor canónico de forecast (sin histórico suficiente, gasto estable con confianza alta, verificación
+de que "+3 meses" cae de verdad 3 meses después del mes en curso), formateo de la tarjeta (aviso de
+histórico insuficiente, las tres columnas con su banda de confianza, traducción alta/media/baja) y
+wiring estático. `npm run verify` completo: 1790/1790 tests, accesibilidad (834 IDs, sin cambio),
+rendimiento, build, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): con 6 meses de histórico estable a
+100€/mes, la tarjeta muestra "Semana: 23,01 € ±0, confianza alta", "Cierre de mes: 0,00 € / 300,00 €
+margen" (proyección real reutilizada, sin duplicar el cálculo) y "+3 meses: 100,00 € ±0, confianza
+alta" — sin errores de consola nuevos.
+
+Versión de `views/presupuesto-mes.js` bumpeada a `20260827h1` (los cinco ficheros de test que la
+pinnean actualizados en bloque); `app.js` no cambió esta vez.
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: de FASE 7 solo quedan FCST-2 (conectar Escenarios con Presupuesto del mes) y
+UX-B1-3 (móvil, edición masiva, importar). BUD-1 a BUD-4, TRACK-1 a TRACK-3 y FCST-1 están todas
+completas y publicadas.
+
 ## Cierre de sesión — 27 de agosto de 2026 (26): FASE 7 — TRACK-2, historial de cumplimiento
 
 Continuación directa del cierre anterior (BUD-3). El usuario pidió seguir con TRACK-2 explícitamente.
