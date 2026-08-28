@@ -130,5 +130,5 @@ test("UX-B1 · la regla CSS no afecta a `.plan-mes-budget-table` en general, sol
 
 test("UX-B1 · index.html referencia la versión bumpeada de design-tokens.css", () => {
   const html = read("index.html");
-  assert.match(html, /design-tokens\.css\?v=20260828h1/);
+  assert.match(html, /design-tokens\.css\?v=20260828i1/);
 });

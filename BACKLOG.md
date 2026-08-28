@@ -686,7 +686,7 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 | ID | Pieza | Estado |
 | --- | --- | --- |
 | P-1 | Eje de tipo de acción (`actionType`) por movimiento | ✅ Construido 28/08/2026 |
-| P-2 | Deslizadores sobre el motor de escenarios existente | Pendiente |
+| P-2 | Deslizadores sobre el motor de escenarios existente | ✅ Construido 28/08/2026 |
 | P-3 | Plantillas de mes con nombre (estacionalidad ya detectada) | Pendiente |
 | P-4 | Verificar si «decisión recomendada» del Asesor ejecutivo sigue sin criterio | Pendiente |
 | P-5 | Objetivos en la exportación de Análisis (A-11) | Pendiente |
@@ -713,3 +713,15 @@ partida» de M-7, para no arriesgar ese camino ya verificado); Análisis gana un
 acción» sobre el mismo periodo que la cascada de A-4. Campo aditivo con valor por defecto seguro
 (sin entrada, se ofrece la sugerencia sin confirmar o el hueco): sin cambios en ninguna pantalla ya
 verificada. Detalle completo y cifras de validación en `PROJECT_STATE.md`.
+
+**P-2 construido**: `<input type="range">` enlazado al campo numérico que ya existía
+(`deltaMensual` de `cambio_ingreso`/`cambio_gasto`, `deltaPct` de `cambio_gasto` en modo
+porcentaje), sincronizado en los dos sentidos con su pareja — arrastrar el deslizador mueve el
+número, escribir en el número mueve el deslizador, ninguno pisa al otro mientras está enfocado.
+Ningún motor nuevo: la vista previa en vivo (debounce de 120 ms, mismo patrón que ya usaba el
+guardarraíl de la simulación) reutiliza tal cual `runEscenarioMotor`/`escenarioMotorSummaryFor` para
+comparar reserva protegida y meses de colchón antes/después de la decisión en curso, en un bloque
+propio (`#escenarioMotorLivePreview`) aparte de la comparativa de seis KPI ya verificada — no la
+sustituye. Sin importe puesto o con un cambio de 0€ no hay vista previa que mostrar (hueco, no una
+cifra inventada); se oculta también al cambiar de tipo de decisión o al añadir la decisión de
+verdad. Detalle completo y cifras de validación en `PROJECT_STATE.md`.

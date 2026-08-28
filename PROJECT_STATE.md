@@ -2,6 +2,68 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (34): P-2 — deslizadores sobre el motor de escenarios existente
+
+Continuación directa del cierre anterior (P-1). El usuario pidió seguir con P-2 del plan de mejora
+corregido (ver §9 de `BACKLOG.md`): «cambio_gasto/cambio_ingreso ya calculan el impacto exacto de
+«¿y si gasto 200€ más al mes?». Solo falta enlazar un `input type="range"` al campo de importe que
+ya existe».
+
+**Construido**: deslizador enlazado al campo numérico ya existente, con vista previa en vivo del
+impacto — ningún motor nuevo, ninguna pantalla nueva.
+
+- `deltaMensual` de `cambio_ingreso` y `cambio_gasto` (±1.000€, pasos de 10) y `deltaPct` de
+  `cambio_gasto` en modo porcentaje (±50 puntos, pasos de 1) ganan un `<input type="range">` propio
+  (`field.range` en el catálogo `ESCENARIO_MOTOR_TYPES`), pintado por
+  `escenarioMotorFieldControlHtml` junto al número que ya existía — mismo `data-escenario-motor-field`
+  que el número, así que el mismo listener delegado que ya escuchaba el formulario (sin uno nuevo)
+  recibe también sus eventos.
+- Sincronización en los dos sentidos (`escenarioMotorSyncRangePairValue`): arrastrar el deslizador
+  escribe la misma cifra en el número y viceversa, sin pisar el control que el usuario tiene
+  enfocado en ese momento. Un `<input type="range">` no admite "vacío" — sin valor todavía se
+  posiciona en 0 (una posición real, «sin cambio», no un valor fabricado); el número de al lado
+  sigue en blanco hasta que el usuario escribe o arrastra.
+- **Vista previa en vivo** (`renderEscenarioMotorLivePreview`, debounce de 120ms — mismo patrón que
+  ya usaba el guardarraíl de la simulación, `escenarioMotorPreviewDebounceTimer` propio para no
+  cancelarse entre sí si se tocan los dos a la vez): construye un borrador de decisión
+  (`escenarioMotorDraftPreviewDecision`, misma forma que `handleEscenarioMotorSubmit` pero sin
+  pasar por el contrato ni escribir en `escenarioMotorDecisions`) y reutiliza tal cual
+  `runEscenarioMotor`/`escenarioMotorSummaryFor` — el mismo motor y el mismo resumen que ya
+  construyen la comparativa de seis KPI — para comparar reserva protegida y meses de colchón
+  antes/después, en un bloque propio (`#escenarioMotorLivePreview`) aparte de esa comparativa ya
+  verificada, sin sustituirla. Sin importe puesto o con un cambio de 0€ no hay vista previa (hueco,
+  no una cifra inventada); se oculta al cambiar de tipo de decisión o al añadir la decisión de
+  verdad (la comparativa de siempre ya la recoge en ese momento).
+- Campo aditivo sobre un formulario que ya existía: la comprobación en Deuda › Comparar («¿y si...?»
+  con `partidasSimTipo`) reutiliza el mismo dibujado de campo pero solo ofrece «compra»/«deuda
+  nueva», nunca `cambio_ingreso`/`cambio_gasto`, así que no puede alcanzar el `range` nuevo — sin
+  riesgo de un deslizador huérfano sin su listener en esa pantalla.
+
+**Verificación**: 26 pruebas nuevas en `tests/p2-deslizadores-escenario.test.cjs` (catálogo de
+rangos, HTML del control con/sin deslizador, sincronización número↔deslizador con el foco
+respetado, debounce programado solo para campos con `range`, construcción del borrador de
+previsualización en sus casos límite —sin tipo, sin importe, cambio de 0€, modo porcentaje, sin mes
+elegido—, render de la vista previa en sus tres estados, y el cableado de ocultarla al cambiar de
+tipo o al añadir la decisión). `npm run verify` completo: **1903/1903 pruebas**, accesibilidad (838
+IDs), rendimiento, build del sitio, privacidad y smoke en verde. Verificado también en navegador
+real (Playwright contra `dist/`, Chromium): el deslizador aparece con los atributos correctos
+(min="-1000" max="1000" step="10"), arrastrarlo a 500 mueve el número a 500 y la vista previa
+muestra «Reserva protegida: 69.420,00 € → 131.420,00 € (+62.000,00 €) · Meses de colchón: 16.3 →
+30.9 (+14.6)»; escribir «-200» directamente en el número mueve el deslizador a -200 y la vista
+previa recalcula con el signo correcto; cambiar de tipo de decisión oculta la vista previa; sin
+errores de consola propios.
+
+`app.js` bumpeado a `20260828c1a1`; `design-tokens.css` a `20260828i1` (estilos del deslizador y de
+la vista previa). Los 26 y 8 ficheros de prueba respectivamente que pineaban las versiones
+anteriores se actualizaron en bloque.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de P-1), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: P-3 a P-6 del plan de mejora corregido siguen en la cola (ver §9 de `BACKLOG.md`).
+P-3 (plantillas de mes con nombre, sobre la estacionalidad que el analizador de presupuestos ya
+detecta) es la siguiente pieza sin dependencias.
+
 ## Cierre de sesión — 28 de agosto de 2026 (33): P-1 — eje de tipo de acción por movimiento
 
 El usuario pidió ejecutar el plan de mejora corregido (revisión de un plan original de seis fases de
