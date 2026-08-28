@@ -689,14 +689,14 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 | P-2 | Deslizadores sobre el motor de escenarios existente | ✅ Construido 28/08/2026 |
 | P-3 | Plantillas de mes con nombre (estacionalidad ya detectada) | ✅ Construido 28/08/2026 |
 | P-4 | Verificar si «decisión recomendada» del Asesor ejecutivo sigue sin criterio | Pendiente |
-| P-5 | Objetivos en la exportación de Análisis (A-11) | Pendiente |
-| P-6 | Atajo de teclado Cmd/Ctrl+K para el buscador (A12-3) | Pendiente |
+| P-5 | Objetivos en la exportación de Análisis (A-11) | ✅ Construido 28/08/2026 |
+| P-6 | Atajo de teclado Cmd/Ctrl+K para el buscador (A12-3) | ✅ Construido 28/08/2026 |
 
 Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (presupuesto por
 «sobres», alerta de gasto hormiga, entre otras — **#3 «puntuación única de salud financiera», #4
-«comparar más de dos escenarios guardados», #5 «archivo automático del informe de cierre» y #6
-«ritual de revisión anual» ya están construidas, ver más abajo**) y un punto aislado fuera de la
-cola —retirar
+«comparar más de dos escenarios guardados», #5 «archivo automático del informe de cierre», #6
+«ritual de revisión anual», #9/P-5 «objetivos en el export de Análisis» y #10/P-6 «atajo Cmd/Ctrl+K»
+ya están construidas, ver más abajo**) y un punto aislado fuera de la cola —retirar
 el widget «Asistente financiero» (`index.html:3959-3984`,
 `assistantRecommendationForQuestion()` en `app.js`), que finge diálogo abierto con cuatro palabras
 clave cuando el resto de la app se apoya en decisiones trazables con evidencia—, con su propia
@@ -775,3 +775,20 @@ marcados a la vez. Guardar un escenario nuevo hace que la selección vuelva a «
 dejar cero avisa en vez de fabricar una tabla vacía. Con más de dos escenarios la tabla pasa de ancho
 fijo a `is-multi` (auto), apoyándose en el `.table-wrap` con scroll horizontal que ya envolvía la
 tabla.
+
+**#9/P-5 construido** («Objetivos en la exportación de Análisis»): una fila más sobre el mismo
+exportador de A-11, no uno nuevo. `analisisExportContext()` gana un campo `goals` construido con
+`savingsGoalsList()`/`savingsGoalsContributions()` (P-13/P-16, los mismos que ya alimentan la
+pestaña Ahorro de Plan) — el acumulado real, no uno recalculado aparte. Como el progreso de un
+objetivo no es una serie «por mes» como el resto de bloques, se archiva como sección propia al final
+tanto del CSV como del PDF («Objetivos de ahorro»), con el porcentaje sobre el importe objetivo o un
+aviso honesto («sin importe objetivo») cuando el objetivo no tiene uno declarado — nunca un
+porcentaje inventado.
+
+**#10/P-6 construido** («Atajo de teclado Cmd/Ctrl+K»): el catálogo y la búsqueda difusa del
+lanzador «Buscar o abrir» (E17, `e17-experience.js`) ya existían; solo faltaba el cableado. Un
+`keydown` global dentro de `setupE17Experience()` llama a `openE17Dialog("launcher")` con
+Cmd/Ctrl+K, sin robar el atajo si ya hay un `<dialog>` nativo abierto (evita apilar sobre un
+formulario en curso). El botón «Buscar o abrir» anuncia el atajo en su `title`/
+`aria-keyshortcuts` para que se pueda descubrir sin documentación aparte. Ningún diálogo ni motor de
+búsqueda nuevo.

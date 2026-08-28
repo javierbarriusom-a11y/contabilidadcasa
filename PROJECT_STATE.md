@@ -2,6 +2,63 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (38): #9/#10 (P-5/P-6) — objetivos en el export de Análisis y atajo Cmd/Ctrl+K
+
+Continuación directa del cierre anterior (#3/#4). El usuario pidió seguir con la Ola 4 del "orden
+recomendado" (ver `BACKLOG.md` §9): #9/P-5 («Objetivos en la exportación de Análisis») y #10/P-6
+(«Atajo de teclado Cmd/Ctrl+K»), las dos piezas de relleno barato que cierran esa ola.
+
+**Construido — #9/P-5**: `analisisExportContext()` (`views/analisis.js`) gana un campo `goals`
+construido con `savingsGoalsList()`/`savingsGoalsContributions()` (P-13/P-16, los mismos que ya usa
+la pestaña Ahorro de Plan) — el acumulado real por objetivo, sin recalcularlo aparte. Como el
+progreso de un objetivo no es una serie "por mes" como el resto de bloques del export, se añade como
+sección propia al final tanto de `analisisExportCsvContent` como de `analisisExportPrintHtml`
+("Objetivos de ahorro"), con el porcentaje sobre el importe objetivo o "sin importe objetivo"/"sin
+objetivos declarados" cuando corresponda — nunca un porcentaje o una tabla inventados. Ningún
+exportador nuevo: sigue siendo el mismo `handleAnalisisDownload`/`downloadAnalisisCsv`/`window.print()`
+de A-11.
+
+**Construido — #10/P-6**: `setupE17Experience()` (app.js) gana un `document.addEventListener
+("keydown", ...)` global que, con Cmd/Ctrl+K y sin ningún `<dialog>` nativo ya abierto, llama a
+`openE17Dialog("launcher")` — la misma función que ya abre el lanzador al hacer clic en «Buscar o
+abrir». El botón anuncia el atajo en `title`/`aria-keyshortcuts` para que se descubra sin
+documentación aparte. Ningún catálogo, búsqueda difusa ni diálogo nuevos — el `<dialog>` nativo ya
+cerraba con Escape sin código propio.
+
+**Verificación**: 29 pruebas nuevas — 6 en `tests/a4-a5-a8-a9-a11-analisis-segunda-fase.test.cjs`
+(`analisisExportContext` arma `goals` correctamente desde los motores reales de P-13/P-16 sin
+recalcular el acumulado; el CSV y el PDF pintan el bloque de objetivos con su progreso o el aviso
+honesto sin objetivos/sin importe) y 7 en `tests/o10-atajo-teclado-lanzador.test.cjs`
+(Cmd+K/Ctrl+K abren el lanzador con `preventDefault`, sin modificador o con otra tecla no hace nada,
+con un `<dialog>` ya abierto no apila, wiring estático del botón y del listener). Se actualizó 1 test
+existente (`tests/a4-a5-a8-a9-a11-analisis-segunda-fase.test.cjs`, el context literal del CSV) para
+incluir el nuevo campo `goals`, sin cambiar su comportamiento. `npm run verify` completo:
+**1984/1984 pruebas**, accesibilidad (841 IDs), rendimiento, build del sitio, privacidad y smoke en
+verde.
+
+Verificado también en navegador real (Playwright contra `dist/`, Chromium): Ctrl+K y Meta+K (Cmd)
+reales abren el lanzador de verdad, mueven el foco al campo de búsqueda, Escape nativo lo cierra, y
+un segundo Ctrl+K con el diálogo ya abierto no apila un segundo `<dialog>`; el botón muestra el
+`title` con el atajo. En Análisis, sobrescribiendo `savingsGoalsList`/`savingsGoalsContributions`
+con datos de ejemplo (mismo límite que en verificaciones anteriores, sin sesión real),
+`analisisExportContext()` real calcula `goals` correctamente (25% de progreso en un objetivo con
+importe, "sin importe objetivo" en uno sin importe), el CSV y el PDF reales incluyen el bloque
+"Objetivos de ahorro" con el formato esperado, y un clic real en «Exportar CSV» dispara una
+descarga real del navegador. Sin errores de consola propios.
+
+`app.js` bumpeado a `20260828g1a1`; el chunk `views/analisis.js` (cargado bajo demanda) bumpeado por
+separado a `20260828b1` en su entrada de `VIEW_CHUNKS` — sin tocar la versión de los demás chunks
+(`presupuesto-mes.js`, `deuda.js`, `cierre.js`, `estado-semana.js`), que no se modificaron esta
+sesión. Sin cambios en `design-tokens.css`. Los ficheros que pineaban la versión anterior de `app.js`
+se actualizaron en bloque.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de #3/#4), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: Ola 4 completa. Quedan P-4 (verificación barata, sin construir nada) y, si
+confirma que el hueco es real, #7/#8 (Ola 5) — más el punto aislado de retirar el Asistente
+financiero. Ver §9 de `BACKLOG.md`.
+
 ## Cierre de sesión — 28 de agosto de 2026 (37): #3/#4 — puntuación de salud financiera y comparar más de dos escenarios
 
 Continuación directa del cierre anterior (P-3). El usuario pidió completar la Ola 3 del "orden
