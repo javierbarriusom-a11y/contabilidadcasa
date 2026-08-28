@@ -2,6 +2,67 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (40): #7 — presupuesto por sobres
+
+Continuación directa del cierre anterior (P-4). Con la verificación de P-4 hecha y el hueco de #7
+("presupuesto por sobres: mover lo que sobra entre categorías") confirmado como real —no existía ya
+en ningún otro rincón del código, solo "traspaso" entre cuentas bancarias, un concepto distinto—,
+el usuario pidió seguir directamente con lo pendiente del plan de mejora, así que #7 entra en la
+Ola 5.
+
+**Construido**: `handleBudgetEnvelopeTransfer` (`views/presupuesto-mes.js`) deja mover a media de
+mes el sobrante ya disponible de una categoría a otra del mismo mes, sin esperar al cierre. Ningún
+motor nuevo: el sobrante es la misma cifra que ya calcula `budgetSurplusForRow`/`budgetSurplusEntries`
+(la hucha, ya construida), y el traspaso reutiliza el único camino de escritura de presupuestos que
+ya existía (`CanonicalBudgetSchema.upsert` + `saveBudgets`, el mismo de la edición inline de la
+tabla, UX-B2 y BUD-4) — dos `upsert` consecutivos en la misma operación (resta en origen, suma en
+destino) y una sola persistencia al final, porque el esquema de presupuestos no trae ningún
+invariante de conservación (a diferencia de `transferConservation` entre cuentas): la propia función
+es la que tiene que garantizar que el total no cambie. El tope de lo que se puede mover
+(`budgetEnvelopeTransferMaxAmount`) es el sobrante menos un céntimo, nunca el sobrante entero, porque
+`CanonicalBudgetSchema.validate()` rechaza un `amountCap` en 0 — dejar la categoría de origen
+exactamente a cero no es una opción. La tarjeta nueva ("Mover sobrante entre categorías") se añade en
+Presupuesto del mes justo debajo de la hucha; sin sobrante en ninguna categoría, o con una sola
+categoría presupuestada ese mes (no hay entre qué elegir), no aparece — hueco honesto, no un
+formulario sin nada útil que hacer.
+
+**Verificación**: 20 pruebas nuevas en `tests/o7-sobres-presupuesto.test.cjs` — tope de traspaso
+(sobrante menos un céntimo, con y sin gasto real, sin presupuesto en origen), cadena real del
+traspaso (mueve el importe, conserva el total, rechaza mover más de lo que sobra, rechaza la misma
+categoría como origen y destino, rechaza importes inválidos, no hace nada sin categorías elegidas,
+permite mover justo hasta el tope), render de la tarjeta (sin sobrante no aparece, con una sola
+categoría no aparece, con sobrante y 2+ categorías pinta ambos selects con el sobrante real, excluye
+presupuestos de objetivo) y wiring estático. Se corrigieron 5 pruebas existentes
+(`tests/bud1-presupuesto-semanal.test.cjs`, `bud2-presupuestos-objetivos.test.cjs`,
+`bud3-presupuesto-anual-trimestral.test.cjs`, `integ1-exportar-presupuestos.test.cjs`,
+`track2-historial-cumplimiento.test.cjs`) que fijaban en duro la versión anterior del chunk de
+`views/presupuesto-mes.js`, sin cambiar su comportamiento. `npm run verify` completo: **2000/2000
+pruebas**, accesibilidad (841 IDs), rendimiento, build del sitio, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`, Chromium): con dos categorías de
+ejemplo (Comida 100€ presupuestados/40€ gastados, Ocio 50€/50€ gastados — sembradas escribiendo
+directamente la variable `budgets` compartida entre los `<script>` clásicos de la página, y forzando
+`budgetAlertForRow` a un gasto controlado, mismo límite de siempre sin sesión real), la tarjeta real
+aparece con "Comida · sobran 60,00 €" como única opción de origen; un intento real de mover 90€ se
+rechaza con el mensaje real "Como mucho puedes mover 60,00 € de Comida: es lo que sobra ahora mismo."
+sin tocar los presupuestos; un traspaso real de 30€ los aplica de verdad (Comida queda en 70€, Ocio
+en 80€, total conservado en 150€), el aviso accesible real dice "Movidos 30,00 € de Comida a Ocio." y
+la fila de la tabla principal de Comida refleja el nuevo importe (70) en su input real. Sin errores
+de consola propios.
+
+`app.js` bumpeado a `20260828h1a1`; el chunk `views/presupuesto-mes.js` (cargado bajo demanda)
+bumpeado por separado a `20260828c1` en su entrada de `VIEW_CHUNKS` — sin tocar la versión de los
+demás chunks (`deuda.js`, que compartía el mismo valor anterior por coincidencia, `analisis.js`,
+`cierre.js`, `estado-semana.js`), que no se modificaron esta sesión. Sin cambios en
+`design-tokens.css`. Los ficheros que pineaban la versión anterior de `app.js` se actualizaron en
+bloque (solo `index.html` la pinaba fuera de los propios tests).
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de P-4), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: sigue #8 (alerta de gasto hormiga), también confirmado como hueco real en la misma
+verificación de P-4, y el punto aislado de retirar el Asistente financiero.
+
 ## Cierre de sesión — 28 de agosto de 2026 (39): P-4 verificado (solo documentación, sin construir nada)
 
 Continuación directa del cierre anterior (#9/#10). El usuario pidió acabar con lo pendiente del plan
