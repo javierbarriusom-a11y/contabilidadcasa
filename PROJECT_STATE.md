@@ -2,6 +2,78 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (36): P-3 — plantillas de mes con nombre
+
+Continuación directa del cierre anterior (#5/#6). El usuario pidió seguir con la cola del plan de
+mejora corregido dejando la elección en mi mano («lo que creas que sea mejor»); se eligió P-3
+(«Plantillas de mes con nombre») por ser la siguiente pieza en el orden numérico de §9 de
+`BACKLOG.md` y la que `PROJECT_STATE.md` (34) ya señalaba como «la siguiente pieza sin
+dependencias».
+
+**Investigación previa**: P-3 no tenía más spec que una línea de tabla. Se auditó qué motor de
+«estacionalidad» reutilizar entre tres candidatos existentes — `_detectSeasonality` de
+`CanonicalBudgetAnalyzer` (retrospectivo, por mes de calendario concreto), `_detectMonthlySeasonality`
+de `CanonicalBudgetForecastCategory` (índice por mes-del-año, ya usado por `budgetForecastForCategory`
+sin exponerse en pantalla) y `budgetSeasonalPatterns` (ML-1, `views/presupuesto-mes.js`) — y se
+confirmó que este último es «el analizador de presupuestos» al que se refería la nota de (34): ya
+vive en Presupuesto del mes, ya agrupa gasto real por mes de calendario y categoría (24 meses de
+histórico, mínimo 2 observaciones, desviación ≥10%), y ya está expuesto en pantalla como la tarjeta
+«Patrones estacionales» — sin acción del usuario sobre él.
+
+**Construido**: sobre ese mismo `budgetSeasonalPatterns`, sin motor nuevo, una tarjeta «Plantilla de
+[mes]» en Presupuesto del mes que deja ponerle un nombre al mes del calendario en curso cuando ya
+hay un patrón real detectado en alguna categoría («Diciembre» → «Navidad», «Julio» → «Vacaciones de
+verano»).
+
+- El nombre es solo una etiqueta local del usuario — `mes-plantilla-nombres`, mismo patrón
+  local-only de `storageKey`/`storageGet`/`storageSet` que C-13/D-2b/#5/#6 — guardada por número de
+  mes (1-12), no por año: nombrado una vez, reaparece automáticamente cada vez que ese mes del
+  calendario vuelva a repetirse, el año que viene y los siguientes.
+- Regla transversal 04 (no fabricar): sin ningún patrón detectado y sin nombre guardado, la tarjeta
+  no aparece — no se ofrece nombrar un mes sin nada real detrás. Si un año no hay patrón para un mes
+  ya nombrado en el pasado, el nombre se conserva con un aviso honesto («sin patrones detectados
+  este año, pero el nombre se conserva») en vez de fabricar una cifra.
+- No cambia ningún presupuesto ni importe: es puramente informativo/mnemónico, no toca
+  `suggestedAmountForCategory` ni ningún motor de sugerencia.
+- Wiring: `presupuestoMesTemplateHtml` colgada en `renderPresupuestoMes()` justo debajo de la
+  tarjeta de patrones estacionales ya existente; `data-mes-plantilla-nombre-save`/`-remove`
+  añadidos al listener delegado de clics ya existente de `#presupuestoMesRoot`, mismo patrón que el
+  resto de acciones de esa pantalla.
+
+**Verificación**: 19 pruebas nuevas en `tests/p3-plantillas-mes-con-nombre.test.cjs` (almacenamiento
+robusto ante JSON corrupto/array, guardar/quitar con recorte a 60 caracteres y sin guardar cadena
+vacía, render con y sin patrones, orden por desviación absoluta, aislamiento por mes-del-calendario,
+persistencia del nombre sin patrones, escape del nombre libre del usuario contra XSS, wiring
+estático de render y de los dos manejadores de clic, y reutilización literal de
+`budgetSeasonalPatterns` sin motor nuevo). Se actualizó 1 test existente
+(`tests/fcst1-forecast-horizontes.test.cjs`) para tolerar la tarjeta nueva insertada entre
+`presupuestoMesSeasonalHtml` y `presupuestoMesForecastHorizonsHtml`, sin cambiar su comportamiento.
+`npm run verify` completo: **1950/1950 pruebas**, accesibilidad (842 IDs), rendimiento, build del
+sitio, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`, Chromium): dado que el sitio
+público no trae datos de banco reales sin sesión, se sobrescribieron `currentBudgetMonthKey`,
+`budgetableCategories` y `budgetSeasonalPatterns` (funciones globales, mismo límite que ya usan los
+tests unitarios) con datos de ejemplo controlados (diciembre, Regalos +55%, Comida -14%) y a partir
+de ahí se ejecutó el camino real de producción sin mocks: `renderPresupuestoMes()` real pinta la
+tarjeta «Plantilla de diciembre» con ambos patrones listados; el clic real en «Guardar nombre»
+guarda «Navidad» en la clave real de `localStorage` (`mes-plantilla-nombres:...`); un re-render
+limpio (recarga simulada) conserva el nombre; el clic real en «Quitar nombre» lo borra de
+`localStorage` y la tarjeta conserva los patrones detectados. Sin errores de consola propios (el
+único aviso es la CDN de Supabase bloqueada por el proxy TLS del sandbox, ruido ya conocido y ajeno
+al cambio).
+
+`app.js` bumpeado a `20260828e1a1` (sin cambios en `design-tokens.css`: la tarjeta nueva reutiliza
+clases ya existentes — `e19-card`, `registrar-mes-card`, `commit-barrier-list`,
+`cuadro-mandos-controls`, `e19-btn`). Los 25 ficheros que pineaban la versión anterior de `app.js` se
+actualizaron en bloque.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de #5/#6), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: quedan P-4, P-5, P-6 del plan corregido y las candidatas #3, #4, #7, #8, #10 más el
+punto aislado de retirar el Asistente financiero. Ver §9 de `BACKLOG.md` para el orden recomendado.
+
 ## Cierre de sesión — 28 de agosto de 2026 (35): #5/#6 — archivo automático del informe de cierre y ritual de revisión anual
 
 Continuación directa del cierre anterior (P-1/P-2). El usuario pidió seguir con la Ola 2 del "orden

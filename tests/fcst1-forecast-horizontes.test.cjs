@@ -192,5 +192,5 @@ test("FCST-1 · budgetForecastConfidenceLabel traduce los tres niveles", () => {
 // ============================================================================
 
 test("FCST-1 · la tarjeta de horizontes está conectada en renderPresupuestoMes", () => {
-  assert.match(viewSrc, /\$\{presupuestoMesSeasonalHtml\(monthKey\)\}\s*\$\{presupuestoMesForecastHorizonsHtml\(monthKey\)\}/);
+  assert.match(viewSrc, /\$\{presupuestoMesSeasonalHtml\(monthKey\)\}[\s\S]{0,120}\$\{presupuestoMesForecastHorizonsHtml\(monthKey\)\}/);
 });

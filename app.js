@@ -30765,7 +30765,13 @@ async function init() {
         longPeriodRemoveButton.dataset.presupuestoLargoRemoveType,
         longPeriodRemoveButton.dataset.presupuestoLargoRemoveKey,
       );
+      return;
     }
+    // P-3: guardar/quitar el nombre de la plantilla de mes («Diciembre» → «Navidad»).
+    const plantillaSaveButton = event.target.closest("[data-mes-plantilla-nombre-save]");
+    if (plantillaSaveButton) { handleMesPlantillaNombreSave(plantillaSaveButton.dataset.mesPlantillaNombreSave); return; }
+    const plantillaRemoveButton = event.target.closest("[data-mes-plantilla-nombre-remove]");
+    if (plantillaRemoveButton) handleMesPlantillaNombreRemove(plantillaRemoveButton.dataset.mesPlantillaNombreRemove);
   });
   // TRACK-3: los tres botones "Ver ..." de Estado de la semana son enlaces de navegación normales
   // (mismo patrón data-home-nav que el resto de la app), sin acción propia que registrar aquí.
