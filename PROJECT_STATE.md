@@ -2,6 +2,39 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (43): «Ver saldos» en Hoy dejaba de llevar a una pantalla legacy
+
+Queja directa del usuario sobre una captura de la tarjeta «Caja disponible» de Hoy: su botón «Ver
+saldos» llevaba a `#visual-detail` («Cuadro de mandos» heredado, relegado a «Versiones anteriores»
+por V2-8) — «no debe ser así».
+
+**Investigación**: la nota de alcance de V1-3 (21 de agosto) ya documentaba esto como deliberado
+en su momento — «hoy no existe pantalla nueva que enseñe lo que [Ver saldos] enseña» —, pero R-11
+(sesión posterior) construyó exactamente esa pantalla nueva mientras tanto: la clave heredada
+`update-hub` ya redirige (`REGISTRAR_LEGACY_HASH_TABS` + `setActiveView`) a Registrar · Saldo de
+cuentas, la pestaña real donde hoy se ven y se editan CaixaBank y Mediolanum. La propia tabla de
+auditoría de Laboratorio confirma que `#visual-detail` está «sustituida» (su saldo editable quedó
+bloqueado en solo lectura — `VISUAL_DETAIL_BALANCE_LEGACY_READONLY` — y redirige al usuario al
+mismo Registrar · Saldo de cuentas). Es decir: el botón llevaba a una pantalla cuyo único mensaje
+sobre el saldo es «edítalo en Registrar», en vez de llevar directamente ahí.
+
+**Corregido**: las dos tarjetas «Ver saldos» de Hoy («Caja disponible» de la rejilla de un vistazo
+U-2, «Liquidez hoy» de la fila de KPI H-1) cambian su `target` de `"visual-detail"` a `"update-hub"`.
+No se tocó la tarjeta «Ver flujo» (sigue saliendo hacia `#cashflow`, todavía relegada sin sustituta
+nueva) ni los usos de `"Ver saldos"` dentro de las pantallas heredadas propias (Asesor ejecutivo,
+Asesor virtual, Agente ahorro, Simulación nueva vida) — esas siguen intactas en «Versiones
+anteriores», fuera de alcance de esta queja.
+
+`app.js` bumpeado a `20260828k1a1` (siguiente letra de la serie del día); las 26 pruebas que fijan
+esa versión exacta en `index.html` se actualizaron en el mismo cambio.
+
+**Validación**: `npm run verify`, exit 0 — **2017/2017 pruebas**, accesibilidad (834 IDs únicos),
+rendimiento (diff 10.000 filas en 63,1 ms; forecast y escenarios en 281,8 ms; recursos 1717 KB),
+build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/saldos-hoy-legacy-screen-3f9390`, PR en borrador y fusión a
+`main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 28 de agosto de 2026 (42): retirado el widget «Asistente financiero» — plan de mejora post-E20 completo
 
 Continuación directa del cierre anterior (#8). Con la Ola 5 cerrada (P-4, #7, #8), solo quedaba el

@@ -23977,7 +23977,10 @@ function renderHomeBudgetGlance(balances) {
       note: `CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.`,
       status: balances.total < 0 ? "danger" : "good",
       cta: "Ver saldos",
-      target: "visual-detail",
+      // R-11 ya redirige "update-hub" a Registrar · Saldo de cuentas (setActiveView +
+      // REGISTRAR_LEGACY_HASH_TABS): la pantalla real donde se ven y editan los saldos hoy,
+      // en vez del cuadro de mandos heredado, que solo los muestra en modo solo lectura.
+      target: "update-hub",
     }),
     goals
       ? renderHomeKpi({
@@ -24070,7 +24073,10 @@ function renderHomeDashboard() {
       note: `A ${balanceDateText}: CaixaBank ${money(balances.caixa, true)} y Mediolanum ${money(balances.mediolanum, true)}.`,
       status: adjustedStatus,
       cta: "Ver saldos",
-      target: "visual-detail",
+      // Mismo motivo que la tarjeta "Caja disponible" de la rejilla de un vistazo: Registrar ·
+      // Saldo de cuentas es la pantalla real que edita el saldo; #visual-detail solo lo enseña
+      // en modo solo lectura y redirige ahí de todas formas.
+      target: "update-hub",
       metadata: actionCenter.readModel?.metrics?.liquidity,
     }),
     renderHomeKpi({

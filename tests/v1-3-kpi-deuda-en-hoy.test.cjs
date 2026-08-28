@@ -139,12 +139,12 @@ test("V1-3 · los dos KPI están en Hoy, con su nota y su salida hacia las vista
   // Los dos KPI nuevos salen hacia las pantallas nuevas de la vista Deuda (`#deuda-ruta` y
   // `#deuda-comparar`), no hacia `#debt-control` ni `#debt-roadmap`, que son las heredadas.
   //
-  // Nota deliberada de alcance: otras tarjetas de Hoy —«Ver saldos» y «Ver flujo»— siguen saliendo
-  // hacia `#visual-detail` y `#cashflow`, que V2-8 relegó. No es un descuido ni algo que arregle
-  // V1-3: hoy no existe pantalla nueva que enseñe lo que esas dos enseñan, y repuntarlas a
-  // `#cuadro-mandos` mandaría al usuario a algo que no es lo que promete el botón. Relegar nunca
-  // fue desconectar. Lo resuelve T-1, cuando la navegación de seis vistas decida qué enseña cada
-  // sitio; mientras tanto conviene que quede escrito y no que se descubra por sorpresa.
+  // Nota de alcance (actualizada tras R-11): la tarjeta «Ver flujo» de Hoy sigue saliendo hacia
+  // `#cashflow`, que V2-8 relegó — no hay pantalla nueva que enseñe lo mismo todavía. «Ver saldos»
+  // ya no comparte ese caso: desde que R-11 redirige la clave heredada `update-hub` a
+  // Registrar · Saldo de cuentas, esa sí es la pantalla real que edita el saldo, así que «Ver
+  // saldos» apunta ahí en vez de a `#visual-detail` (que solo lo enseña en solo lectura y
+  // redirige al mismo sitio de todas formas).
   const nuevos = render.slice(render.indexOf('label: "Deuda pendiente"'), render.indexOf('label: "Capacidad libre real"'));
   assert.match(nuevos, /target: "deuda-ruta"/);
   assert.match(nuevos, /target: "deuda-comparar"/);
@@ -166,5 +166,5 @@ test("V1-3 · la rejilla de Hoy pasa a tres columnas para que las seis tarjetas 
 
 test("V1-3 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260828j1a1/);
+  assert.match(html, /app\.js\?v=20260828k1a1/);
 });
