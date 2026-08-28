@@ -687,7 +687,7 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 | --- | --- | --- |
 | P-1 | Eje de tipo de acción (`actionType`) por movimiento | ✅ Construido 28/08/2026 |
 | P-2 | Deslizadores sobre el motor de escenarios existente | ✅ Construido 28/08/2026 |
-| P-3 | Plantillas de mes con nombre (estacionalidad ya detectada) | Pendiente |
+| P-3 | Plantillas de mes con nombre (estacionalidad ya detectada) | ✅ Construido 28/08/2026 |
 | P-4 | Verificar si «decisión recomendada» del Asesor ejecutivo sigue sin criterio | Pendiente |
 | P-5 | Objetivos en la exportación de Análisis (A-11) | Pendiente |
 | P-6 | Atajo de teclado Cmd/Ctrl+K para el buscador (A12-3) | Pendiente |
@@ -742,3 +742,16 @@ honesto mientras tanto, «X/12 meses archivados»), Ajustes agrega sus totales y
 presupuesto por categoría del año siguiente reutilizando tal cual
 `CanonicalBudgetAnalyzer.analyzeCategory` (S-1, el mismo motor que ya usa Presupuesto del mes) sobre
 la ventana de doce meses del año cerrado — ningún motor nuevo, solo una ventana distinta.
+
+**P-3 construido** («Plantillas de mes con nombre»): sobre `budgetSeasonalPatterns` (ML-1), que ya
+detectaba en Presupuesto del mes qué categorías gastan de forma significativamente distinta en un
+mes del calendario concreto (24 meses de histórico, mínimo 2 observaciones, desviación ≥10%), se
+añade una tarjeta que deja ponerle un nombre al mes en curso cuando ya hay un patrón real detectado
+— «Diciembre» → «Navidad», «Julio» → «Vacaciones de verano». El nombre es solo una etiqueta local del
+usuario (`mes-plantilla-nombres`, mismo patrón local-only que C-13/D-2b/#5, guardado por número de
+mes 1-12): nunca cambia ningún presupuesto ni importe, y no fabrica una plantilla donde no hay
+patrón detectado — sin patrones y sin nombre guardado, la tarjeta no aparece. Nombrado el mes, el
+nombre reaparece automáticamente cada vez que ese mes del calendario vuelva a repetirse, el año que
+viene y los siguientes; si un año no hay patrón detectado para ese mes, el nombre se conserva con un
+aviso honesto en vez de inventar una cifra. Ningún motor de estacionalidad nuevo: la tarjeta llama a
+`budgetSeasonalPatterns` tal cual.

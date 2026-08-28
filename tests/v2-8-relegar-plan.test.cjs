@@ -70,5 +70,5 @@ test("V2-8 · el lanzador conserva `visual-detail`; E-14/A-12 retiran las otras 
 
 test("V2-8 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260828d1a1/);
+  assert.match(html, /app\.js\?v=20260828e1a1/);
 });

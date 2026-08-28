@@ -617,6 +617,81 @@ function presupuestoMesSeasonalHtml(monthKey) {
   </article>`;
 }
 
+// P-3 (plan de mejora post-E20): plantillas de mes con nombre. Sobre el mismo `budgetSeasonalPatterns`
+// de ML-1 — sin motor nuevo — deja ponerle un nombre al mes del calendario actual («Diciembre» →
+// «Navidad») cuando ya hay un patrón estacional real detectado en alguna categoría. El nombre es
+// solo una etiqueta local del usuario, nunca cambia ningún presupuesto ni importe; se guarda por
+// número de mes (1-12) para que reaparezca automáticamente cada vez que ese mes vuelva a repetirse,
+// el año que viene y los siguientes.
+function mesPlantillaNombresStorageKey() {
+  return storageKey("mes-plantilla-nombres");
+}
+
+function loadMesPlantillaNombres() {
+  try {
+    const parsed = JSON.parse(storageGet(mesPlantillaNombresStorageKey(), "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveMesPlantillaNombres(names) {
+  storageSet(mesPlantillaNombresStorageKey(), JSON.stringify(names));
+}
+
+function handleMesPlantillaNombreSave(calendarMonth) {
+  const input = document.querySelector("#presupuestoMesRoot [data-mes-plantilla-nombre-input]");
+  const value = (input?.value || "").trim();
+  const names = loadMesPlantillaNombres();
+  if (value) names[calendarMonth] = value.slice(0, 60);
+  else delete names[calendarMonth];
+  saveMesPlantillaNombres(names);
+  renderPresupuestoMes();
+}
+
+function handleMesPlantillaNombreRemove(calendarMonth) {
+  const names = loadMesPlantillaNombres();
+  delete names[calendarMonth];
+  saveMesPlantillaNombres(names);
+  renderPresupuestoMes();
+}
+
+function presupuestoMesTemplateHtml(monthKey) {
+  const calendarMonth = Number(monthKey.split("-")[1]);
+  const monthName = budgetCalendarMonthName(calendarMonth);
+  const patterns = budgetableCategories()
+    .map((category) => ({ category, pattern: budgetSeasonalPatterns(category, monthKey).find((p) => p.calendarMonth === calendarMonth) }))
+    .filter(({ pattern }) => pattern)
+    .sort((a, b) => Math.abs(b.pattern.deviationPct) - Math.abs(a.pattern.deviationPct));
+  const names = loadMesPlantillaNombres();
+  const currentName = names[calendarMonth] || "";
+  if (!patterns.length && !currentName) return "";
+  const patternsHtml = patterns.length
+    ? `<ul class="commit-barrier-list">${patterns
+        .map(
+          ({ category, pattern }) =>
+            `<li>${escapeHtml(category)}: ${pattern.deviationPct > 0 ? "+" : ""}${pattern.deviationPct}% frente a la media (${pattern.samples} observaciones, media ${money(pattern.avg, true)}).</li>`,
+        )
+        .join("")}</ul>`
+    : `<p class="e19-subtitle">Sin patrones estacionales detectados este año para ${escapeHtml(monthName)}, pero el nombre se conserva.</p>`;
+  const formHtml = `<div class="cuadro-mandos-controls">
+      <input type="text" value="${escapeHtml(currentName)}" placeholder="Ej. Navidad, Vuelta al cole" maxlength="60" data-mes-plantilla-nombre-input aria-label="Nombre de ${escapeHtml(monthName)}" />
+      <button type="button" class="e19-btn e19-btn-secondary" data-mes-plantilla-nombre-save="${calendarMonth}">${currentName ? "Actualizar nombre" : "Guardar nombre"}</button>
+      ${currentName ? `<button type="button" class="e19-btn e19-btn-secondary" data-mes-plantilla-nombre-remove="${calendarMonth}">Quitar nombre</button>` : ""}
+    </div>`;
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Plantilla de ${escapeHtml(monthName)}${currentName ? ` — «${escapeHtml(currentName)}»` : ""}</h3>
+        <p class="e19-subtitle">Cuando ${escapeHtml(monthName)} vuelva a repetirse el año que viene, este nombre y estos patrones reaparecen aquí. No cambia ningún presupuesto ni importe: solo recuerda por qué este mes suele ser distinto.</p>
+      </div>
+    </div>
+    ${patternsHtml}
+    ${formHtml}
+  </article>`;
+}
+
 // FCST-1 (FASE 7): forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses). Sin
 // motor nuevo: `canonical-budget-forecast-category.js` ya calculaba predicted/±range/confidence por
 // mes, pero solo se usaba internamente para "Sugerir presupuestos" (suggestedBudget) — la banda de
@@ -1531,5 +1606,6 @@ function renderPresupuestoMes() {
   ${presupuestoMesBadgesHtml(monthKey)}
   ${presupuestoMesChallengeHtml(monthKey)}
   ${presupuestoMesSeasonalHtml(monthKey)}
+  ${presupuestoMesTemplateHtml(monthKey)}
   ${presupuestoMesForecastHorizonsHtml(monthKey)}`;
 }
