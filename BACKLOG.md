@@ -673,3 +673,43 @@ como una regresión.
 V3-3 (10 de agosto) añadió una comprobación decimoséptima —«Consolidar» sin oferta no inventa
 cifras—, que pasa en los dos modos porque no depende del motor sino de la oferta. **Las referencias
 vigentes son 17/17 con el motor y 7/17 sin él.**
+
+## 9. Plan de mejora post-E20 (28 de agosto de 2026)
+
+Una revisión del plan de mejora original (seis fases de 12-16 semanas) encontró que siete de sus
+nueve rasgos ya estaban construidos y verificados en este backlog o en `BACKLOG_NUEVE_PANTALLAS.md`
+— el rediseño a seis vistas que proponía recuperar de cero ya se decidió el 10 de agosto y se
+superó con la reconstrucción de nueve pantallas de más arriba. Se sustituyó por un plan corregido de
+seis piezas aditivas (P-1 a P-6), cada una reutilizando un motor ya existente, ninguna reabriendo una
+pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
+
+| ID | Pieza | Estado |
+| --- | --- | --- |
+| P-1 | Eje de tipo de acción (`actionType`) por movimiento | ✅ Construido 28/08/2026 |
+| P-2 | Deslizadores sobre el motor de escenarios existente | Pendiente |
+| P-3 | Plantillas de mes con nombre (estacionalidad ya detectada) | Pendiente |
+| P-4 | Verificar si «decisión recomendada» del Asesor ejecutivo sigue sin criterio | Pendiente |
+| P-5 | Objetivos en la exportación de Análisis (A-11) | Pendiente |
+| P-6 | Atajo de teclado Cmd/Ctrl+K para el buscador (A12-3) | Pendiente |
+
+Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (puntuación única de
+salud financiera, comparar más de dos escenarios guardados, archivo automático del informe de
+cierre, ritual de revisión anual, presupuesto por «sobres», alerta de gasto hormiga, entre otras) y
+un punto aislado fuera de la cola —retirar el widget «Asistente financiero» (`index.html:3959-3984`,
+`assistantRecommendationForQuestion()` en `app.js`), que finge diálogo abierto con cuatro palabras
+clave cuando el resto de la app se apoya en decisiones trazables con evidencia—, con su propia
+validación y su propio commit cuando se aborde.
+
+**P-1 construido**: `actionType` vive en su propio diccionario `movementActionTypes` (misma dualidad
+single/concepto que `movementMappings` de M-7 — `transactionIdentity` para un ajuste puntual,
+`movementMappingKey` para una regla de concepto), con siete valores fijos (`gasto_fijo`,
+`gasto_variable`, `ingreso`, `transferencia_interna`, `pago_deuda`, `aportacion_ahorro`, `ajuste`).
+La sugerencia sale del mismo bloque de partida que ya usan Plan/Análisis (`sectionName`) — sin
+partida no hay sugerencia, hueco en vez de invención. El campo «¿es recurrente?» viaja en la misma
+entrada, confirmable por el usuario en vez de la inferencia muda de A-9. Movimientos gana un filtro
+y una columna (`movementActionTypeFilter`, badge sugerido/confirmado); el diálogo de detalle gana su
+propio bloque de edición con su propio botón («Guardar tipo de acción», independiente de «Guardar
+partida» de M-7, para no arriesgar ese camino ya verificado); Análisis gana una tarjeta «Por tipo de
+acción» sobre el mismo periodo que la cascada de A-4. Campo aditivo con valor por defecto seguro
+(sin entrada, se ofrece la sugerencia sin confirmar o el hueco): sin cambios en ninguna pantalla ya
+verificada. Detalle completo y cifras de validación en `PROJECT_STATE.md`.

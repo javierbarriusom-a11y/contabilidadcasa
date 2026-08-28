@@ -1696,6 +1696,12 @@
               <div class="analisis-recurring-list" id="analisisRecurring"></div>
               <p class="e19-insight is-warn" id="analisisRecurringNote" hidden></p>
             </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Por tipo de acción</h3>
+              <p class="e19-kpi-note">Gasto del periodo (mismo selector que «De dónde sale el resultado») agrupado por tipo de acción, el campo que se asigna en Movimientos.</p>
+              <div class="analisis-recurring-list" id="analisisActionTypeBreakdown"></div>
+            </article>
           </section>
 
           <section class="e19-cierre view-section" id="cierre">
@@ -3878,6 +3884,20 @@
                   <span>&nbsp;</span>
                   <input id="movementDateTo" type="date" />
                 </label>
+                <label>
+                  <span>Tipo de acción</span>
+                  <select id="movementActionTypeFilter">
+                    <option value="">Todos</option>
+                    <option value="gasto_fijo">Gasto fijo</option>
+                    <option value="gasto_variable">Gasto variable</option>
+                    <option value="ingreso">Ingreso</option>
+                    <option value="transferencia_interna">Transferencia interna</option>
+                    <option value="pago_deuda">Pago de deuda</option>
+                    <option value="aportacion_ahorro">Aportación a ahorro</option>
+                    <option value="ajuste">Ajuste</option>
+                    <option value="sin-tipo">Sin tipo</option>
+                  </select>
+                </label>
                 <div class="movement-range-shortcuts registrar-mes-filters" id="movementRangeShortcuts" role="group" aria-label="Atajos de rango">
                   <button type="button" class="registrar-mes-filter" data-movement-range="mes">Este mes</button>
                   <button type="button" class="registrar-mes-filter" data-movement-range="trimestre">Últimos 3 meses</button>
@@ -3946,6 +3966,7 @@
                     <th>Partida</th>
                     <th>Importe</th>
                     <th>Saldo</th>
+                    <th>Tipo de acción</th>
                     <th>Origen</th>
                     <th>Cuenta</th>
                     <th></th>
@@ -4130,7 +4151,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260811v64a1"></script>
-    <script src="app.js?v=20260828a1a1"></script>
+    <script src="app.js?v=20260828b1a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
