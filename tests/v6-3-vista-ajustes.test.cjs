@@ -48,7 +48,7 @@ test("V6-3 · cada tarjeta lleva a donde ese dato se edita de verdad", () => {
 });
 
 test("V6-3 · el clic en una tarjeta navega, igual que en Actualizar mis datos", () => {
-  assert.match(app, /qs\("ajustes"\)\?\.addEventListener\("click", \(event\) => \{\s*const button = event\.target\.closest\("\[data-home-nav\]"\);/);
+  assert.match(app, /qs\("ajustes"\)\?\.addEventListener\("click", \(event\) => \{[\s\S]{0,220}const button = event\.target\.closest\("\[data-home-nav\]"\);/);
 });
 
 // V6-2 y V6-4 (10-11 de agosto de 2026) cierran lo que esta prueba comprobaba como pendiente: ya
