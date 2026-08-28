@@ -2,6 +2,62 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (42): retirado el widget «Asistente financiero» — plan de mejora post-E20 completo
+
+Continuación directa del cierre anterior (#8). Con la Ola 5 cerrada (P-4, #7, #8), solo quedaba el
+punto aislado fuera de la cola: retirar el widget «Asistente financiero». Al ser la retirada de una
+pantalla en uso, se confirmó explícitamente con el usuario antes de tocar nada (regla de
+`CLAUDE.md`: un cambio así se consulta igualmente aunque el CI vaya a estar en verde) — el usuario
+confirmó "Sí, retíralo ahora".
+
+**Investigación previa (para no dejar nada roto)**: antes de borrar, se comprobó qué dependía del
+motor canónico que el widget usaba (`FinanceCanonicalE9Assistant.localDisclosure`,
+`canonical-e9-assistant.js`) — solo el propio widget lo llamaba. Ese motor es infraestructura general
+(preparación/validación de una consulta contra el modelo ejecutivo canónico, prohibición explícita de
+contenido de escritura, citas obligatorias) sin acoplar a ninguna UI concreta, y todo apunta a que se
+construyó pensando en un futuro motor de recomendación real (T-6, ya documentado como tarea explícita
+desde el 12 de agosto). Se decidió no borrarlo: la retirada es del widget, no de esa infraestructura
+reutilizable.
+
+**Retirado**:
+- `index.html`: el `<aside id="financeAssistant">` completo (botón, panel, accesos rápidos,
+  pregunta libre, respuesta) — 26 líneas.
+- `app.js`: `assistantDashboardContext`, `assistantRecommendationForQuestion`,
+  `renderAssistantAnswer`, `handleAssistantAsk`, `toggleAssistant` (las cinco funciones del widget,
+  ninguna con otro llamador) y su wiring de clics/teclado en el bootstrap.
+- `styles.css`: las diez reglas del widget (`.finance-assistant`, `.assistant-toggle`,
+  `.assistant-panel`, `.assistant-head`, `.assistant-quick-actions`, `.assistant-answer`,
+  `.assistant-mini-kpis` y sus variantes).
+- `tests/e9-interface.test.cjs`: se quitó la única prueba que verificaba la divulgación del widget
+  ("el asistente visible se identifica como local y sin escrituras") — esa UI ya no existe, así que
+  no fabrica una superficie nueva que comprobar; se dejó un comentario explicando por qué.
+
+Eliminación pura, sin construir nada nuevo: sus cuatro lecturas (viabilidad de proyectos, ahorro
+12m, prioridad de deuda, lectura general de caja) ya estaban mejor servidas con evidencia trazable en
+otras pantallas (Asesor ejecutivo, Análisis, Hoy) antes incluso de esta sesión.
+
+**Verificación**: nueva `tests/retiro-asistente-financiero.test.cjs` (5 pruebas) — el widget y sus
+IDs ya no están en `index.html`, las cinco funciones y su wiring ya no están en `app.js`, las reglas
+ya no están en `styles.css`, y el motor canónico E9 sigue intacto y cargado (no se tocó). `npm run
+verify` completo: **2017/2017 pruebas**, accesibilidad (**834 IDs** — bajan de 841 a 834, exactamente
+los 7 IDs del widget retirado), rendimiento, build del sitio, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`, Chromium): el widget no aparece en
+ninguna de cinco pantallas reales probadas (Hoy, Análisis, Deuda · Ruta, Presupuesto del mes, Asesor
+ejecutivo), y el resto del shell sigue con vida — el lanzador E17 sigue abriendo con Ctrl+K real. Sin
+errores de consola propios.
+
+`app.js` bumpeado a `20260828j1a1`; `styles.css` bumpeado a `20260828a1` (no tenía versión propia
+bumpeada en toda esta ronda del plan de mejora). Ningún chunk de `VIEW_CHUNKS` tocado esta vez. Los
+ficheros que pineaban las versiones anteriores se actualizaron en bloque.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de #8), PR en borrador y fusión al ponerse el CI en verde.
+
+**Con esto, el plan de mejora post-E20 completo queda cerrado**: P-1 a P-6, las diez candidatas
+auditadas (#3 a #10, todas construidas salvo ninguna descartada) y el punto aislado del Asistente
+financiero — 11 de 11 piezas en `main`. No queda ningún elemento pendiente en `BACKLOG.md` §9.
+
 ## Cierre de sesión — 28 de agosto de 2026 (41): #8 — alerta de gasto hormiga
 
 Continuación directa del cierre anterior (#7). Con #7 fusionado, sigue #8 ("alerta de gasto

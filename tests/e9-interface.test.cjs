@@ -36,13 +36,11 @@ test("el centro de alertas distingue las pruebas locales del web push remoto", (
   assert.match(ui, /Las pruebas del navegador son locales/);
 });
 
-test("el asistente visible se identifica como local y sin escrituras", () => {
-  const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
-  assert.match(html, /Asistente local del dashboard/);
-  assert.match(app, /Asistente externo desactivado/);
-  assert.match(app, /No modifica ningún dato/);
-  assert.match(app, /borradores conversacionales remotos también permanecen desactivados/);
-});
+// El widget "Asistente financiero" (la única superficie que mostraba esta divulgación) se retiró el
+// 28 de agosto de 2026 — ver tests/retiro-asistente-financiero.test.cjs. El motor canónico E9 que le
+// daba soporte (`canonical-e9-assistant.js`, `localDisclosure`) sigue intacto como infraestructura
+// para un futuro motor de recomendación real (T-6); solo se retiró la UI que lo mostraba, así que
+// esta prueba —que comprobaba esa UI— ya no tiene superficie que verificar.
 
 test("la interfaz declara la colaboración desactivada y no ofrece invitaciones prematuras", () => {
   assert.match(ui, /Sin invitaciones ni acceso remoto/);
