@@ -701,6 +701,80 @@ function presupuestoMesSeasonalHtml(monthKey) {
   </article>`;
 }
 
+// #8 (plan de mejora post-E20, Ola 5): alerta de "gasto hormiga" — cada vez más cargos pequeños en
+// una categoría, un patrón que ni `budgetSeasonalPatterns` (ML-1, agrega el TOTAL por mes) ni A-9
+// "Recurrentes" (agrupa por concepto y variación de importe) cubren: ninguno de los dos mira el
+// CONTEO de cargos pequeños. Confirmado como hueco real tras la verificación de P-4 — no existía ya
+// en ningún otro rincón del código. Mismo rigor que ML-1: no opina con pocos datos (mínimo 10 cargos
+// en la ventana), compara conteos entre la primera y la segunda mitad de la ventana en vez de un mes
+// contra otro (menos ruido que comparar un único mes) y exige un crecimiento del 30% o más — más
+// exigente que el 10% de ML-1, porque un conteo de cargos es más ruidoso que un importe total.
+
+// Umbral de "cargo pequeño" propio de cada categoría: la mitad de su importe mediano en la ventana
+// analizada — un cargo pequeño en "Comida" no es el mismo importe que uno pequeño en "Coche".
+function budgetSmallChargeThreshold(transactions) {
+  if (!transactions.length) return 0;
+  const amounts = transactions.map((row) => Math.abs(Number(row.amount || 0))).sort((a, b) => a - b);
+  const median = amounts[Math.floor(amounts.length / 2)];
+  return round2(median * 0.5);
+}
+
+function budgetAntSpendingSignal(category, monthKey, monthsBack = 6) {
+  const months = recentBudgetMonthKeys(monthKey, monthsBack).concat(monthKey);
+  const txByMonth = months.map((m) => budgetExpenseTransactions(category, m));
+  const allTx = txByMonth.flat();
+  if (allTx.length < 10) return null;
+  const threshold = budgetSmallChargeThreshold(allTx);
+  if (threshold <= 0) return null;
+  const smallCountsByMonth = txByMonth.map((tx) => tx.filter((row) => Math.abs(Number(row.amount || 0)) <= threshold).length);
+  const mid = Math.ceil(smallCountsByMonth.length / 2);
+  const earlier = smallCountsByMonth.slice(0, mid);
+  const later = smallCountsByMonth.slice(mid);
+  if (!earlier.length || !later.length) return null;
+  const earlierAvg = earlier.reduce((a, b) => a + b, 0) / earlier.length;
+  const laterAvg = later.reduce((a, b) => a + b, 0) / later.length;
+  if (earlierAvg <= 0 || laterAvg <= earlierAvg) return null;
+  const growthPct = Math.round(((laterAvg - earlierAvg) / earlierAvg) * 100);
+  if (growthPct < 30) return null;
+  const recentSmallTx = txByMonth[txByMonth.length - 1].filter((row) => Math.abs(Number(row.amount || 0)) <= threshold);
+  return {
+    category,
+    threshold,
+    earlierAvgCount: round2(earlierAvg),
+    laterAvgCount: round2(laterAvg),
+    growthPct,
+    recentCount: recentSmallTx.length,
+    recentTotal: round2(recentSmallTx.reduce((sum, row) => sum + Math.abs(Number(row.amount || 0)), 0)),
+  };
+}
+
+function budgetAntSpendingSignals(monthKey) {
+  return budgetableCategories()
+    .map((category) => budgetAntSpendingSignal(category, monthKey))
+    .filter(Boolean)
+    .sort((a, b) => b.growthPct - a.growthPct);
+}
+
+function presupuestoMesAntSpendingHtml(monthKey) {
+  const signals = budgetAntSpendingSignals(monthKey).slice(0, 8);
+  if (!signals.length) return "";
+  const rows = signals
+    .map(
+      (signal) =>
+        `<li>${escapeHtml(signal.category)}: los cargos de ${money(signal.threshold, true)} o menos han pasado de ${signal.earlierAvgCount} a ${signal.laterAvgCount} al mes (+${signal.growthPct}%) — este mes van ${signal.recentCount}, ${money(signal.recentTotal, true)} en total.</li>`,
+    )
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Gasto hormiga</h3>
+        <p class="e19-subtitle">Categorías con cada vez más cargos pequeños (por debajo de la mitad de su importe mediano), comparando la primera y la segunda mitad de los últimos 7 meses. Mínimo 10 cargos en la ventana y un crecimiento del 30% o más para no señalar ruido.</p>
+      </div>
+    </div>
+    <ul class="commit-barrier-list">${rows}</ul>
+  </article>`;
+}
+
 // P-3 (plan de mejora post-E20): plantillas de mes con nombre. Sobre el mismo `budgetSeasonalPatterns`
 // de ML-1 — sin motor nuevo — deja ponerle un nombre al mes del calendario actual («Diciembre» →
 // «Navidad») cuando ya hay un patrón estacional real detectado en alguna categoría. El nombre es
@@ -1691,6 +1765,7 @@ function renderPresupuestoMes() {
   ${presupuestoMesBadgesHtml(monthKey)}
   ${presupuestoMesChallengeHtml(monthKey)}
   ${presupuestoMesSeasonalHtml(monthKey)}
+  ${presupuestoMesAntSpendingHtml(monthKey)}
   ${presupuestoMesTemplateHtml(monthKey)}
   ${presupuestoMesForecastHorizonsHtml(monthKey)}`;
 }

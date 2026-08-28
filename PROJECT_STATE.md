@@ -2,6 +2,66 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (41): #8 — alerta de gasto hormiga
+
+Continuación directa del cierre anterior (#7). Con #7 fusionado, sigue #8 ("alerta de gasto
+hormiga"), también confirmado como hueco real en la verificación de P-4: ni `budgetSeasonalPatterns`
+(ML-1, agrega el TOTAL de gasto por mes) ni A-9 "Recurrentes" (agrupa por concepto y variación de
+importe) miran el CONTEO de cargos pequeños, que es justo lo que distingue al gasto hormiga de una
+subida de gasto normal.
+
+**Construido**: `budgetAntSpendingSignal(category, monthKey, monthsBack=6)`
+(`views/presupuesto-mes.js`) compara, por categoría, cuántos cargos por debajo de la mitad del
+importe mediano de esa categoría (`budgetSmallChargeThreshold`, un umbral relativo, no un importe
+fijo arbitrario — un cargo "pequeño" en Comida no es el mismo importe que uno pequeño en Coche) hay
+en la primera mitad de una ventana de 7 meses (los 6 anteriores + el actual) frente a la segunda
+mitad. Mismo rigor que ML-1: no opina con pocos datos (mínimo 10 cargos en toda la ventana) ni sin
+crecimiento (`earlierAvg` tiene que ser positivo y menor que `laterAvg`, para no fabricar un
+porcentaje de "crecimiento infinito" partiendo de cero) y exige un crecimiento del 30% o más — más
+exigente que el 10% de ML-1, porque un conteo de cargos es más ruidoso que un importe agregado.
+`budgetAntSpendingSignals(monthKey)` agrega todas las categorías con `budgetableCategories()` (no
+solo las presupuestadas este mes — el gasto hormiga suele pasar desapercibido precisamente en
+categorías que nadie está presupuestando) y ordena por crecimiento descendente. La tarjeta nueva
+("Gasto hormiga") vive en Presupuesto del mes justo debajo de "Patrones estacionales" (ML-1), su
+vecina más próxima conceptualmente; sin ninguna categoría con crecimiento significativo, no aparece.
+Ningún motor nuevo de análisis de movimientos: reutiliza `budgetExpenseTransactions`/
+`recentBudgetMonthKeys`, ya construidos por ML-1/S-1.
+
+**Verificación**: 13 pruebas nuevas en `tests/o8-gasto-hormiga.test.cjs` — umbral de cargo pequeño
+(mitad de la mediana, con y sin transacciones), la señal (pocos datos, crecimiento real y
+significativo con las cifras exactas esperadas, sin crecimiento, crecimiento insuficiente por debajo
+del 30%, sin cargos pequeños al principio de la ventana no fabrica un % infinito), la agregación por
+categorías (ordena por crecimiento, vacío sin ninguna señal) y el render de la tarjeta (sin señales
+no aparece, con una señal real pinta categoría/umbral/crecimiento), más wiring estático. Se
+corrigieron los mismos 5 archivos de test que ya fijaban en duro la versión del chunk de
+`views/presupuesto-mes.js` (bumpeada de nuevo por este cambio) — `bud1-presupuesto-semanal`,
+`bud2-presupuestos-objetivos`, `bud3-presupuesto-anual-trimestral`, `integ1-exportar-presupuestos`,
+`track2-historial-cumplimiento` — sin cambiar su comportamiento. `npm run verify` completo:
+**2013/2013 pruebas**, accesibilidad (841 IDs), rendimiento, build del sitio, privacidad y smoke en
+verde.
+
+Verificado también en navegador real (Playwright contra `dist/`, Chromium): con una categoría de
+ejemplo ("ComidaHormigaTest") sembrada directamente en `baseData.transactions` (identificador global
+compartido entre los `<script>` clásicos de la página, mismo límite de siempre sin sesión real) con
+2 cargos de 20€ todos los meses y cargos de 2€ subiendo de 1/mes a 3/mes a lo largo de los 7 meses de
+la ventana, la tarjeta real "Gasto hormiga" aparece con el texto real: "ComidaHormigaTest: los
+cargos de 10,00 € o menos han pasado de 1 a 3 al mes (+200%) — este mes van 3, 6,00 € en total." —
+cifras exactamente como las calcula la función real, sin mocks salvo la fuente de movimientos. Sin
+errores de consola propios.
+
+`app.js` bumpeado a `20260828i1a1`; el chunk `views/presupuesto-mes.js` (cargado bajo demanda)
+bumpeado por separado a `20260828d1` en su entrada de `VIEW_CHUNKS` — sin tocar la versión de los
+demás chunks, que no se modificaron esta sesión. Sin cambios en `design-tokens.css`. Los ficheros que
+pineaban la versión anterior de `app.js` se actualizaron en bloque.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de #7), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: con P-4, #7 y #8 completos, la Ola 5 queda cerrada. Solo sigue el punto aislado de
+retirar el Asistente financiero (`index.html:3959-3984`,
+`assistantRecommendationForQuestion()` en `app.js`), fuera de la cola del plan de mejora — una
+retirada de una pantalla en uso, con su propia validación y su propio commit.
+
 ## Cierre de sesión — 28 de agosto de 2026 (40): #7 — presupuesto por sobres
 
 Continuación directa del cierre anterior (P-4). Con la verificación de P-4 hecha y el hueco de #7
