@@ -2,6 +2,37 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (39): P-4 verificado (solo documentación, sin construir nada)
+
+Continuación directa del cierre anterior (#9/#10). El usuario pidió acabar con lo pendiente del plan
+de mejora: la primera pieza es P-4, la única de las "tres verificaciones baratas" que quedaba sin
+resolver ("¿sigue faltando el criterio de «decisión recomendada» del Asesor ejecutivo?").
+
+**Verificado, sin cambios de código**: `renderAsesorDecision()`/`asesorDecisionOpenOffers()` (app.js)
+siguen exactamente igual que en la última revisión — la "decisión abierta" es la oferta de deuda real
+más urgente por fecha de vencimiento (`offers[0]` tras ordenar por `expiresAt`), sin ningún motor de
+puntuación o comparación entre alternativas. No es un hueco nuevo: la sesión del 12 de agosto de 2026
+ya investigó esto a fondo (ver entrada "reclasifica 1d/2e" más abajo en este documento), confirmó que
+depende de un "motor de recomendación genérico" que el proyecto decidió explícitamente no fabricar sin
+un criterio real (documentado en `docs/E19_SISTEMA_DISENO.md` §5 y §8), y guardó esa construcción
+futura como tarea explícita **T-6** ("Motor de recomendación real") en `BACKLOG.md`. Dieciséis días
+después, el código de `asesor-decision` no ha cambiado en ese punto — sigue siendo la misma decisión
+de producto tomada entonces, no un olvido que verificar de cero.
+
+**Qué cambió en el repositorio**: solo `BACKLOG.md` — la fila de P-4 en la tabla de §9 pasa de
+"Pendiente" a "✅ Verificado 28/08/2026 (sigue sin motor, por decisión de producto)", y se añade un
+párrafo narrativo explicando el porqué junto a los de las demás piezas de la Ola 4.
+
+**Validación**: `npm test` — **1984/1984 pruebas**, sin cambios respecto a la entrega anterior (cambio
+de solo documentación, ningún archivo `.js` tocado).
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión de
+#9/#10), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: con P-4 verificado y el hueco de #7/#8 confirmado como real (investigación aparte,
+sin código de negocio existente para "sobres" ni "gasto hormiga"), ambas entran en la Ola 5. Sigue
+además el punto aislado de retirar el Asistente financiero.
+
 ## Cierre de sesión — 28 de agosto de 2026 (38): #9/#10 (P-5/P-6) — objetivos en el export de Análisis y atajo Cmd/Ctrl+K
 
 Continuación directa del cierre anterior (#3/#4). El usuario pidió seguir con la Ola 4 del "orden
