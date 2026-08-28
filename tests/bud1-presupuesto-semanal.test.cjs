@@ -463,6 +463,6 @@ test("BUD-1 · el selector de cadencia y la navegación semanal se piden desde a
 
 test("BUD-1 · el chunk de presupuesto-mes viaja versionado tras el cambio", () => {
   const html = read("index.html");
-  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827h1/);
-  assert.match(html, /app\.js\?v=20260827d1a4/);
+  assert.match(app, /views\/presupuesto-mes\.js\?v=20260827i1/);
+  assert.match(html, /app\.js\?v=20260827d1a5/);
 });

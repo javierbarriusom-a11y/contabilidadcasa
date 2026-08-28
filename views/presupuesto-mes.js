@@ -635,8 +635,10 @@ function budgetForecastHorizons(category, monthKey) {
   const forecast = forecastApi.forecast([...historical, ...manual], { months: 12, forecastMonths: 4 });
   if (!forecast) return null;
   const monthKeys = Object.keys(forecast.monthlyForecast);
-  const currentMonthForecast = forecast.monthlyForecast[monthKeys[0]] || null;
-  const threeMonthsOut = forecast.monthlyForecast[monthKeys[3]] || null;
+  const weekMonthKey = monthKeys[0];
+  const threeMonthsOutMonthKey = monthKeys[3];
+  const currentMonthForecast = forecast.monthlyForecast[weekMonthKey] || null;
+  const threeMonthsOut = forecast.monthlyForecast[threeMonthsOutMonthKey] || null;
   const week = currentMonthForecast
     ? {
         predicted: round2(currentMonthForecast.predicted / 4.345),
@@ -644,11 +646,39 @@ function budgetForecastHorizons(category, monthKey) {
         confidence: currentMonthForecast.confidence,
       }
     : null;
-  return { week, threeMonthsOut };
+  return { week, threeMonthsOut, weekMonthKey, threeMonthsOutMonthKey };
 }
 
 function budgetForecastConfidenceLabel(confidence) {
   return confidence === "high" ? "alta" : confidence === "medium" ? "media" : "baja";
+}
+
+// FCST-2 (FASE 7): conecta el laboratorio de Escenarios (E13, en app.js) con el forecast por
+// categoría de FCST-1 — sin recalcular ninguno de los dos motores. Un evento de E13 solo participa
+// aquí si se etiquetó con una categoría al crearlo (categoryId, ver e13BudgetCategoryOptions en
+// app.js); "pérdida de ingreso" no aplica a una categoría de gasto y se excluye. e13ScenarioEvents
+// es el mismo estado global que ya usa renderE13ScenarioLab (declarado con let en app.js, visible
+// aquí igual que budgets/budgetSurplusChoices, ver cabecera del archivo).
+function e13EventCoversMonth(event, targetMonthKey) {
+  if (!event?.monthKey || !targetMonthKey) return false;
+  const start = dateFromMonthKey(event.monthKey);
+  const duration = Math.max(1, Math.round(Number(event.duration) || 1));
+  for (let i = 0; i < duration; i += 1) {
+    if (monthKey(addMonths(start, i)) === targetMonthKey) return true;
+  }
+  return false;
+}
+
+function budgetScenarioImpactForMonth(category, targetMonthKey) {
+  if (!category || !targetMonthKey || !Array.isArray(e13ScenarioEvents)) return null;
+  const events = e13ScenarioEvents.filter(
+    (event) => event.categoryId === category && event.type !== "income-loss" && e13EventCoversMonth(event, targetMonthKey),
+  );
+  if (!events.length) return null;
+  return {
+    amount: round2(events.reduce((total, event) => total + Number(event.amount || 0), 0)),
+    labels: events.map((event) => event.label).join(", "),
+  };
 }
 
 function presupuestoMesForecastHorizonsRowHtml(budget, monthKey) {
@@ -658,12 +688,14 @@ function presupuestoMesForecastHorizonsRowHtml(budget, monthKey) {
   }
   const alert = budgetAlertForRow(budget, monthKey);
   const projection = budgetProjection(alert, monthKey);
+  const weekImpact = budgetScenarioImpactForMonth(budget.categoryId, horizons.weekMonthKey);
+  const threeMonthsImpact = budgetScenarioImpactForMonth(budget.categoryId, horizons.threeMonthsOutMonthKey);
   const weekCell = horizons.week
-    ? `${money(horizons.week.predicted, true)} <small class="note">${horizons.week.range}, confianza ${budgetForecastConfidenceLabel(horizons.week.confidence)}</small>`
+    ? `${money(round2(horizons.week.predicted + (weekImpact ? weekImpact.amount / 4.345 : 0)), true)} <small class="note">${horizons.week.range}, confianza ${budgetForecastConfidenceLabel(horizons.week.confidence)}</small>${weekImpact ? `<br><small class="note">+${money(round2(weekImpact.amount / 4.345), true)} por escenario «${escapeHtml(weekImpact.labels)}»</small>` : ""}`
     : `<span class="registrar-mes-empty">—</span>`;
   const monthCloseCell = `${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small>`;
   const threeMonthsCell = horizons.threeMonthsOut
-    ? `${money(horizons.threeMonthsOut.predicted, true)} <small class="note">${horizons.threeMonthsOut.range}, confianza ${budgetForecastConfidenceLabel(horizons.threeMonthsOut.confidence)}</small>`
+    ? `${money(round2(horizons.threeMonthsOut.predicted + (threeMonthsImpact ? threeMonthsImpact.amount : 0)), true)} <small class="note">${horizons.threeMonthsOut.range}, confianza ${budgetForecastConfidenceLabel(horizons.threeMonthsOut.confidence)}</small>${threeMonthsImpact ? `<br><small class="note">+${money(threeMonthsImpact.amount, true)} por escenario «${escapeHtml(threeMonthsImpact.labels)}»</small>` : ""}`
     : `<span class="registrar-mes-empty">—</span>`;
   return `<tr>
     <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}</td>
@@ -681,7 +713,7 @@ function presupuestoMesForecastHorizonsHtml(monthKey) {
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Forecast por categoría: 3 horizontes</h3>
-        <p class="e19-subtitle">Semana: media semanal estimada a partir del forecast de este mes. Cierre de mes: la misma proyección de la tabla de arriba (gasto acumulado ÷ día transcurrido × días del mes). +3 meses: la banda de confianza (± desviación, alta/media/baja) que ya calcula el motor de forecast por categoría — hasta ahora solo se usaba para "Sugerir presupuestos", nunca se mostraba directamente.</p>
+        <p class="e19-subtitle">Semana: media semanal estimada a partir del forecast de este mes. Cierre de mes: la misma proyección de la tabla de arriba (gasto acumulado ÷ día transcurrido × días del mes). +3 meses: la banda de confianza (± desviación, alta/media/baja) que ya calcula el motor de forecast por categoría — hasta ahora solo se usaba para "Sugerir presupuestos", nunca se mostraba directamente. Si en el laboratorio de Escenarios (E13) hay un evento etiquetado con esta categoría y activo en ese mes, su importe se suma aquí — así ves cómo cambia tu proyección si aplicas esa decisión.</p>
       </div>
     </div>
     <div class="table-wrap">

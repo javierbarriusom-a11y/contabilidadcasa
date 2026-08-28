@@ -125,7 +125,7 @@ test("FCST-1 · budgetForecastHorizons: la categoría sin datos en absoluto tamb
 // Parte B: presupuestoMesForecastHorizonsRowHtml/Html — formateo
 // ============================================================================
 
-function viewSandbox({ categoryBudgets = [], horizons = null, alert = null, projection = null } = {}) {
+function viewSandbox({ categoryBudgets = [], horizons = null, alert = null, projection = null, scenarioEvents = [] } = {}) {
   const context = {
     categoryBudgetsForMonth: () => categoryBudgets,
     budgetForecastHorizons: () => horizons,
@@ -133,6 +133,8 @@ function viewSandbox({ categoryBudgets = [], horizons = null, alert = null, proj
     budgetProjection: () => projection || { projected: 0, diff: 0 },
     budgetRowDisplayLabel: (id) => id,
     money: (v) => `€${v}`,
+    round2: (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100,
+    e13ScenarioEvents: scenarioEvents,
     escapeHtml: (value) =>
       String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"),
   };
@@ -140,6 +142,8 @@ function viewSandbox({ categoryBudgets = [], horizons = null, alert = null, proj
   vm.runInContext(
     [
       extractFunction("budgetForecastConfidenceLabel"),
+      extractFunction("e13EventCoversMonth"),
+      extractFunction("budgetScenarioImpactForMonth"),
       extractFunction("presupuestoMesForecastHorizonsRowHtml"),
       extractFunction("presupuestoMesForecastHorizonsHtml"),
     ].join("\n"),
