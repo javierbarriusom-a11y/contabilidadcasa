@@ -205,7 +205,7 @@ const VIEW_CHUNKS = {
   "deuda-simulador": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-simulador" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
-  analisis: { src: "views/analisis.js?v=20260828a1", rootId: "analisis" },
+  analisis: { src: "views/analisis.js?v=20260828b1", rootId: "analisis" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
 // la caché de "ya cargado"/"cargando" se indexa por `src`, no por vista, para no pedir el mismo
@@ -717,6 +717,16 @@ function setupE17Experience() {
     if (event.target.closest("[data-e17-close]")) { event.target.closest("dialog")?.close(); return; }
     const result = event.target.closest("[data-e17-target]");
     if (result) { qs("e17LauncherDialog")?.close(); navigateE17(result.dataset.e17Target); }
+  });
+  // #10/P-6 (Ola 4, plan de mejora post-E20 · 28/08/2026): el catálogo y la búsqueda difusa del
+  // lanzador ya existían (data-e17-open="launcher" arriba); solo faltaba el atajo. Sin diálogo nativo
+  // ya abierto (evita apilar sobre un formulario en curso) y sin robar el atajo si el navegador lo
+  // usa para otra cosa fuera de la página.
+  document.addEventListener("keydown", (event) => {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "k") return;
+    if (document.querySelector("dialog[open]")) return;
+    event.preventDefault();
+    openE17Dialog("launcher");
   });
   qs("e17LauncherSearch")?.addEventListener("input", (event) => renderE17Launcher(event.target.value));
   qs("e17SavePreferences")?.addEventListener("click", () => {

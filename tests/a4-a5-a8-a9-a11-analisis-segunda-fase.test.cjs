@@ -298,9 +298,130 @@ test("A-11 · el CSV incluye la banda de colchón, el patrimonio neto y la casca
     cascada: { rows: [{ label: "Ingresos", value: 1000 }], resultado: 200 },
     split: { ingreso: 1000, groups: [{ label: "Gastos fijos", value: 400, pct: 40 }] },
     recurring: [{ label: "Netflix", current: 20, pct: 0 }],
+    goals: [],
   });
   assert.match(csv, /Colchón \(meses\)/);
   assert.match(csv, /Patrimonio neto/);
   assert.match(csv, /Ingresos/);
   assert.match(csv, /Netflix/);
+});
+
+// --- #9/P-5 (Ola 4, plan de mejora post-E20): objetivos de ahorro en el export de Análisis --------
+
+test("#9/P-5 · analisisExportContext arma `goals` a partir de savingsGoalsList/savingsGoalsContributions, sin recalcular el acumulado", () => {
+  const context = sandboxWith(["analisisExportContext"], baseHelpers({
+    ANALISIS_WINDOWS: { "12": { label: "12 meses" } },
+    analisisWindowKey: "12",
+    analisisWindowMonths: () => [],
+    state: {},
+    analisisCushionBand: () => [],
+    lastSimulation: [],
+    analisisNetWorthSeries: () => [],
+    analisisAccuracyRows: () => [],
+    analisisAccuracySummary: () => ({}),
+    analisisPeriodMonths: () => [],
+    analisisCascadaRows: () => ({ rows: [], resultado: 0 }),
+    analisisPeriodLabel: () => "Mes en curso",
+    analisisIncomeSplit: () => ({ ingreso: 0, groups: [] }),
+    baseData: { transactions: [] },
+    openMonthCutoffKey: () => "2026-08",
+    analisisRecurringItems: () => [],
+    defaultBalanceDate: () => "2026-08-28",
+    savingsGoalsList: () => [
+      { id: "g1", label: "Fondo de emergencia", targetAmount: 1000 },
+      { id: "g2", label: "Sin importe puesto", targetAmount: 0 },
+    ],
+    savingsGoalsContributions: () => ({ g1: 250, g2: 40 }),
+  }));
+  const result = context.analisisExportContext();
+  assert.deepEqual(Array.from(result.goals, (goal) => ({ ...goal })), [
+    { label: "Fondo de emergencia", target: 1000, accumulated: 250, pct: 25 },
+    { label: "Sin importe puesto", target: 0, accumulated: 40, pct: null },
+  ]);
+});
+
+test("#9/P-5 · el CSV añade el bloque de objetivos de ahorro con su progreso, o el aviso honesto si no hay ninguno", () => {
+  const context = sandboxWith(["analisisExportCsvContent"], baseHelpers());
+  const withGoals = context.analisisExportCsvContent({
+    periodLabel: "Mes en curso",
+    cushion: [],
+    netWorth: [],
+    accuracyRows: [],
+    accuracySummary: {},
+    cascada: { rows: [], resultado: 0 },
+    split: { ingreso: 0, groups: [] },
+    recurring: [],
+    goals: [{ label: "Fondo de emergencia", target: 1000, accumulated: 250, pct: 25 }],
+  });
+  assert.match(withGoals, /Objetivos de ahorro/);
+  assert.match(withGoals, /Fondo de emergencia/);
+  assert.match(withGoals, /25% de 1000.00 €/);
+
+  const withoutGoals = context.analisisExportCsvContent({
+    periodLabel: "Mes en curso",
+    cushion: [],
+    netWorth: [],
+    accuracyRows: [],
+    accuracySummary: {},
+    cascada: { rows: [], resultado: 0 },
+    split: { ingreso: 0, groups: [] },
+    recurring: [],
+    goals: [],
+  });
+  assert.match(withoutGoals, /sin objetivos declarados/);
+});
+
+test("#9/P-5 · un objetivo sin importe objetivo lo dice en vez de fabricar un porcentaje", () => {
+  const context = sandboxWith(["analisisExportCsvContent"], baseHelpers());
+  const csv = context.analisisExportCsvContent({
+    periodLabel: "Mes en curso",
+    cushion: [],
+    netWorth: [],
+    accuracyRows: [],
+    accuracySummary: {},
+    cascada: { rows: [], resultado: 0 },
+    split: { ingreso: 0, groups: [] },
+    recurring: [],
+    goals: [{ label: "Viaje", target: 0, accumulated: 40, pct: null }],
+  });
+  assert.match(csv, /Viaje/);
+  assert.match(csv, /sin importe objetivo/);
+});
+
+test("#9/P-5 · el PDF (analisisExportPrintHtml) pinta la tabla de objetivos con su progreso", () => {
+  const context = sandboxWith(["analisisExportPrintHtml"], baseHelpers());
+  const html = context.analisisExportPrintHtml({
+    windowLabel: "12 meses",
+    periodLabel: "Mes en curso",
+    calculatedAt: "2026-08-28",
+    cushion: [],
+    netWorth: [],
+    accuracyRows: [],
+    accuracySummary: {},
+    cascada: { rows: [], resultado: 0 },
+    split: { groups: [] },
+    recurring: [],
+    goals: [{ label: "Fondo de emergencia", target: 1000, accumulated: 250, pct: 25 }],
+  });
+  assert.match(html, /<h2>Objetivos de ahorro<\/h2>/);
+  assert.match(html, /Fondo de emergencia/);
+  assert.match(html, /25% de 1000.00 €/);
+});
+
+test("#9/P-5 · el PDF sin ningún objetivo declarado lo dice en vez de una tabla vacía", () => {
+  const context = sandboxWith(["analisisExportPrintHtml"], baseHelpers());
+  const html = context.analisisExportPrintHtml({
+    windowLabel: "12 meses",
+    periodLabel: "Mes en curso",
+    calculatedAt: "2026-08-28",
+    cushion: [],
+    netWorth: [],
+    accuracyRows: [],
+    accuracySummary: {},
+    cascada: { rows: [], resultado: 0 },
+    split: { groups: [] },
+    recurring: [],
+    goals: [],
+  });
+  assert.match(html, /Todavía no hay ningún objetivo declarado\./);
 });

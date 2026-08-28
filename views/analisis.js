@@ -429,6 +429,16 @@ function analisisExportContext() {
   const currentMonth = analisisPeriodMonths("mes-actual")[0] || windowMonths[0];
   const split = currentMonth ? analisisIncomeSplit(currentMonth) : { ingreso: 0, groups: [] };
   const recurring = analisisRecurringItems(baseData?.transactions || [], currentMonth?.key || openMonthCutoffKey());
+  // #9/P-5 (Ola 4, plan de mejora post-E20 · 28/08/2026): una fila más sobre el mismo export, no un
+  // exportador nuevo. Reutiliza tal cual savingsGoalsList()/savingsGoalsContributions() (P-13/P-16,
+  // ya usados por la pestaña Ahorro de Plan) — el mismo acumulado real, no uno recalculado aparte.
+  // No es una serie "por mes" como el resto de bloques: es el estado actual de cada objetivo.
+  const goalContributions = savingsGoalsContributions();
+  const goals = savingsGoalsList().map((goal) => {
+    const target = round2(Number(goal.targetAmount || 0));
+    const accumulated = round2(Number(goalContributions[goal.id] || 0));
+    return { label: goal.label, target, accumulated, pct: target > 0 ? Math.round((accumulated / target) * 100) : null };
+  });
   return {
     windowLabel: ANALISIS_WINDOWS[analisisWindowKey]?.label || "12 meses",
     periodLabel: analisisPeriodLabel(),
@@ -440,6 +450,7 @@ function analisisExportContext() {
     cascada,
     split,
     recurring,
+    goals,
   };
 }
 
@@ -467,6 +478,11 @@ function analisisExportCsvContent(context) {
   lines.push([]);
   lines.push(["Qué se repite", "", "", ""].map(csvValue).join(";"));
   context.recurring.forEach((item) => lines.push(["Recurrente", item.label, item.current, item.pct === null ? "sin dato anterior" : `${item.pct}% vs trimestre anterior`].map(csvValue).join(";")));
+  lines.push([]);
+  lines.push(["Objetivos de ahorro", "", "", context.goals.length ? "" : "sin objetivos declarados"].map(csvValue).join(";"));
+  context.goals.forEach((goal) =>
+    lines.push(["Objetivo", goal.label, goal.accumulated, goal.target > 0 ? `${goal.pct}% de ${money(goal.target, true)}` : "sin importe objetivo"].map(csvValue).join(";")),
+  );
   return `﻿${lines.join("\r\n")}`;
 }
 
@@ -497,7 +513,13 @@ function analisisExportPrintHtml(context) {
     <h2>En qué se va</h2>
     <table><thead><tr><th>Bloque</th><th>Importe</th><th>%</th></tr></thead><tbody>${context.split.groups.map((group) => `<tr><td>${escapeHtml(group.label)}</td><td>${money(group.value, true)}</td><td>${group.pct}%</td></tr>`).join("")}</tbody></table>
     <h2>Qué se repite</h2>
-    <table><thead><tr><th>Concepto</th><th>Este trimestre</th><th>Variación</th></tr></thead><tbody>${context.recurring.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${money(item.current, true)}</td><td>${item.pct === null ? "—" : `${item.pct}%`}</td></tr>`).join("")}</tbody></table>`;
+    <table><thead><tr><th>Concepto</th><th>Este trimestre</th><th>Variación</th></tr></thead><tbody>${context.recurring.map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${money(item.current, true)}</td><td>${item.pct === null ? "—" : `${item.pct}%`}</td></tr>`).join("")}</tbody></table>
+    <h2>Objetivos de ahorro</h2>
+    ${
+      context.goals.length
+        ? `<table><thead><tr><th>Objetivo</th><th>Acumulado</th><th>Progreso</th></tr></thead><tbody>${context.goals.map((goal) => `<tr><td>${escapeHtml(goal.label)}</td><td>${money(goal.accumulated, true)}</td><td>${goal.target > 0 ? `${goal.pct}% de ${money(goal.target, true)}` : "sin importe objetivo"}</td></tr>`).join("")}</tbody></table>`
+        : `<p>Todavía no hay ningún objetivo declarado.</p>`
+    }`;
 }
 
 function handleAnalisisDownload(kind) {
