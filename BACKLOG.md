@@ -697,11 +697,8 @@ Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (pr
 «comparar más de dos escenarios guardados», #5 «archivo automático del informe de cierre», #6
 «ritual de revisión anual», #7 «presupuesto por sobres», #8 «alerta de gasto hormiga», #9/P-5
 «objetivos en el export de Análisis» y #10/P-6 «atajo Cmd/Ctrl+K» ya están construidas, ver más
-abajo**) y un punto aislado fuera de la cola —retirar
-el widget «Asistente financiero» (`index.html:3959-3984`,
-`assistantRecommendationForQuestion()` en `app.js`), que finge diálogo abierto con cuatro palabras
-clave cuando el resto de la app se apoya en decisiones trazables con evidencia—, con su propia
-validación y su propio commit cuando se aborde.
+abajo**) y un punto aislado fuera de la cola —**retirar el widget «Asistente financiero», también
+hecho, ver más abajo**.
 
 **P-1 construido**: `actionType` vive en su propio diccionario `movementActionTypes` (misma dualidad
 single/concepto que `movementMappings` de M-7 — `transactionIdentity` para un ajuste puntual,
@@ -835,3 +832,17 @@ analizar (`budgetableCategories()`, no solo las presupuestadas este mes — el p
 gasto que pasa desapercibido precisamente porque nadie lo está presupuestando). Ningún motor nuevo
 de análisis de movimientos: reutiliza `budgetExpenseTransactions`/`recentBudgetMonthKeys`, ya
 construidos.
+
+**Retirado el «Asistente financiero»**: el widget flotante (`#financeAssistant`, presente en las
+40+ pantallas) emparejaba el texto libre contra cuatro palabras clave (deuda/proyecto/ahorro/caja) y
+rellenaba una plantilla con cifras reales — honesto sobre lo que era («análisis local basado en
+reglas»), pero el único rincón de la app que fingía diálogo abierto cuando el resto del diseño se
+apoya en decisiones trazables con evidencia. Sus cuatro lecturas ya estaban mejor servidas en otro
+sitio (prioridad de deuda en el Asesor ejecutivo, ahorro/caja en Análisis, decisiones abiertas en
+Hoy), así que la retirada es una eliminación pura, sin construir nada nuevo: el `<aside>` de
+`index.html`, sus cinco funciones (`assistantDashboardContext`, `assistantRecommendationForQuestion`,
+`renderAssistantAnswer`, `handleAssistantAsk`, `toggleAssistant`) y su wiring en `app.js`, y sus
+reglas en `styles.css`. El motor canónico E9 que le daba soporte (`canonical-e9-assistant.js`,
+`FinanceCanonicalE9Assistant`) no se toca — sin más llamador que este widget, pero es infraestructura
+general (validación de citas, prohibición de contenido de escritura) pensada para un futuro motor de
+recomendación real (T-6, `docs/E19_SISTEMA_DISENO.md` §5/§8), no parte del widget que se retira.
