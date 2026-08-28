@@ -1458,6 +1458,23 @@
   min-height: 84px;
 }
 
+/* P-2: el deslizador convive con el número al que está enlazado (mismo campo, dos controles) — sin
+   el borde/relleno pensado para texto, que en un <input type="range"> se ve roto. */
+.e19-escenario-motor .escenario-motor-form-grid .escenario-motor-field-range {
+  border: none;
+  background: transparent;
+  padding: 4px 0 0;
+  width: 100%;
+}
+
+.e19-escenario-motor .escenario-motor-live-preview {
+  margin-bottom: 14px;
+}
+
+.e19-escenario-motor .escenario-motor-live-preview p {
+  margin: 4px 0 0;
+}
+
 .e19-escenario-motor .escenario-motor-form-error {
   margin-bottom: 14px;
 }

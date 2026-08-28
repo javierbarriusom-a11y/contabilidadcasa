@@ -24972,6 +24972,9 @@ let escenarioMotorDecisions = [];
 let escenarioMotorSavedSeq = 0;
 let escenarioMotorGuardrailValue = null;
 let escenarioMotorGuardrailDebounceTimer = null;
+// P-2: mismo patrón de debounce que el guardarraíl (120ms), pero para la vista previa en vivo del
+// deslizador — temporizador propio para no cancelarse entre sí si el usuario toca los dos a la vez.
+let escenarioMotorPreviewDebounceTimer = null;
 // E-9: conmutador «Vista familiar» — sustituye la comparativa técnica (tabla de seis indicadores +
 // validación) por una tarjeta con las cuatro cifras que importan en casa. No cambia ningún cálculo.
 let escenarioMotorFamilyView = false;
@@ -25323,7 +25326,9 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     ayuda: "Suma o resta un importe fijo al ingreso mensual entre dos meses. En negativo modela una bajada de sueldo o el fin de un ingreso.",
     campos: [
       { key: "titular", kind: "select", label: "Titular", opciones: [["hogar", "Hogar"], ["javi", "Javi"], ["tere", "Tere"]] },
-      { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)" },
+      // P-2: deslizador sobre el mismo campo — ±1.000€/mes cubre de sobra una subida de sueldo o la
+      // pérdida de un ingreso; el número de al lado sigue admitiendo cualquier cifra fuera de rango.
+      { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)", range: { min: -1000, max: 1000, step: 10 } },
       { key: "mesInicio", kind: "month", label: "Desde" },
       { key: "mesFin", kind: "monthOptional", label: "Hasta", ayuda: "Vacío = hasta el final del horizonte." },
     ],
@@ -25343,8 +25348,10 @@ const ESCENARIO_MOTOR_TYPES = Object.freeze([
     campos: [
       { key: "bloque", kind: "text", label: "Bloque de gasto" },
       { key: "modoCambio", kind: "select", label: "Cómo se expresa", controla: true, opciones: [["importe", "Importe fijo al mes"], ["porcentaje", "Porcentaje del gasto"]] },
-      { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)", visibleSi: (v) => (v.modoCambio || "importe") === "importe" },
-      { key: "deltaPct", kind: "number", label: "Cambio (%, negativo si baja)", visibleSi: (v) => v.modoCambio === "porcentaje" },
+      // P-2: mismo deslizador que cambio_ingreso; deltaPct lleva el suyo propio en puntos
+      // porcentuales, coherente con el ±50% que ya acepta el campo numérico sin deslizador.
+      { key: "deltaMensual", kind: "number", label: "Cambio mensual (€, negativo si baja)", visibleSi: (v) => (v.modoCambio || "importe") === "importe", range: { min: -1000, max: 1000, step: 10 } },
+      { key: "deltaPct", kind: "number", label: "Cambio (%, negativo si baja)", visibleSi: (v) => v.modoCambio === "porcentaje", range: { min: -50, max: 50, step: 1 } },
       { key: "mesInicio", kind: "month", label: "Desde" },
       { key: "mesFin", kind: "monthOptional", label: "Hasta", ayuda: "Vacío = hasta el final del horizonte." },
     ],
@@ -25496,6 +25503,13 @@ function escenarioMotorFieldElementId(key, idPrefix = "escenarioMotorField") {
   return `${idPrefix}_${key}`;
 }
 
+// P-2: id propio del deslizador, distinto del campo numérico que ya existía — ambos comparten el
+// mismo `data-escenario-motor-field` para que el listener delegado ya cableado (M-3/E-2) los trate
+// como el mismo campo sin necesitar una segunda escucha.
+function escenarioMotorRangeElementId(key, idPrefix = "escenarioMotorField") {
+  return `${idPrefix}_${key}_range`;
+}
+
 function escenarioMotorMonthOptionsHtml(months, selected, placeholder) {
   const head = placeholder ? `<option value="">${escapeHtml(placeholder)}</option>` : "";
   return head + months
@@ -25538,8 +25552,17 @@ function escenarioMotorFieldControlHtml(field, months, values, { idPrefix = "esc
       return `<input ${attrs} type="number" step="0.01" placeholder="%" value="${value === undefined ? "" : escapeHtml(String(value))}"${numberAttrs} />`;
     case "int":
       return `<input ${attrs} type="number" step="1"${numberAttrs} value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
-    case "number":
-      return `<input ${attrs} type="number" step="0.01" placeholder="€" value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
+    case "number": {
+      const numberInput = `<input ${attrs} type="number" step="0.01" placeholder="€" value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
+      if (!field.range) return numberInput;
+      // P-2: el <input type="range"> no admite "vacío" — sin valor todavía se posiciona en 0 (sin
+      // cambio), una posición real y no fabricada, mientras el número de al lado sigue en blanco
+      // hasta que el usuario escriba o arrastre.
+      const rangeId = escenarioMotorRangeElementId(field.key, idPrefix);
+      const rangeValue = Number.isFinite(value) ? value : 0;
+      const rangeInput = `<input id="${rangeId}" ${dataAttr}="${escapeHtml(field.key)}" type="range" class="escenario-motor-field-range" min="${field.range.min}" max="${field.range.max}" step="${field.range.step}" value="${rangeValue}" aria-label="${escapeHtml(field.label)} (deslizador)" />`;
+      return `${numberInput}${rangeInput}`;
+    }
     case "date":
       return `<input ${attrs} type="date" value="${value === undefined ? "" : escapeHtml(String(value))}" />`;
     default:
@@ -26417,6 +26440,9 @@ function handleEscenarioMotorSubmit(event) {
   escenarioMotorDecisions.push(decision);
   escenarioMotorResetDraft(type);
   renderEscenarioSimular();
+  // P-2: la decisión ya está añadida (y su impacto, en la comparativa de siempre) — la vista previa
+  // del borrador vacío no tiene nada que mostrar.
+  renderEscenarioMotorLivePreview();
 }
 
 function escenarioMotorDebtLabelById(deudaId) {
@@ -26438,6 +26464,9 @@ function handleEscenarioMotorTypeChange(event) {
   escenarioMotorDraftTipo = event.target.value;
   escenarioMotorShowFormErrors([]);
   renderEscenarioMotorForm(escenarioMotorBaseInput());
+  // P-2: la vista previa es del tipo anterior — se oculta al cambiar, en vez de dejar una cifra de
+  // un campo que ya no se ve.
+  renderEscenarioMotorLivePreview();
 }
 
 // E-1b: el constructor de tipos propios es un panel plegable independiente del formulario de
@@ -26499,7 +26528,8 @@ function handleEscenarioMotorCustomCreate() {
 
 // Solo reacciona a los campos que gobiernan la visibilidad de otros (la casilla «la financio», el
 // selector de modalidad…); el resto se lee al enviar, para no reconstruir el formulario mientras se
-// escribe en él.
+// escribe en él. P-2 es la excepción puntual: un campo con deslizador (`field.range`) sincroniza su
+// pareja número/rango y dispara la vista previa en vivo, sin tocar el resto del formulario.
 function handleEscenarioMotorFieldChange(event) {
   const key = event.target?.dataset?.escenarioMotorField;
   if (!key) return;
@@ -26508,11 +26538,95 @@ function handleEscenarioMotorFieldChange(event) {
   if (!field) return;
   escenarioMotorDraftValues[key] = escenarioMotorReadFieldValue(field, event.target);
   if (field.controla) escenarioMotorSyncFieldVisibility();
+  if (field.range) {
+    escenarioMotorSyncRangePairValue(field, event.target);
+    clearTimeout(escenarioMotorPreviewDebounceTimer);
+    escenarioMotorPreviewDebounceTimer = setTimeout(renderEscenarioMotorLivePreview, 120);
+  }
+}
+
+// El número y el deslizador comparten `data-escenario-motor-field`, así que ambos disparan este
+// mismo manejador — pero cada uno solo actualiza su propio valor visible, no el del otro. Sin este
+// paso, arrastrar el deslizador no movería la cifra del campo numérico (y viceversa al escribir).
+// `document.activeElement` evita pisar el control que el usuario tiene enfocado ahora mismo si
+// llega un evento tardío.
+function escenarioMotorSyncRangePairValue(field, changedElement) {
+  const numberEl = qs(escenarioMotorFieldElementId(field.key));
+  const rangeEl = qs(escenarioMotorRangeElementId(field.key));
+  if (!numberEl || !rangeEl) return;
+  const target = changedElement === numberEl ? rangeEl : numberEl;
+  if (document.activeElement === target) return;
+  if (target === rangeEl) {
+    const parsed = Number(changedElement.value);
+    target.value = Number.isFinite(parsed) ? String(parsed) : "0";
+  } else {
+    target.value = changedElement.value;
+  }
 }
 
 function handleEscenarioMotorRemove(id) {
   escenarioMotorDecisions = escenarioMotorDecisions.filter((decision) => decision.id !== id);
   renderEscenarioSimular();
+}
+
+// P-2: construye la misma forma de decisión que `handleEscenarioMotorSubmit` (id/tipo/planificacion/
+// params), pero sin pasar por el contrato ni escribir en `escenarioMotorDecisions` — es un borrador
+// de usar y tirar solo para la vista previa. Sin delta (campo vacío o en 0, «sin cambio») no hay
+// nada que previsualizar: null, no un impacto fabricado con un número que el usuario no ha puesto.
+function escenarioMotorDraftPreviewDecision() {
+  const type = escenarioMotorTypeOrCustomById(escenarioMotorDraftTipo);
+  if (!type || (type.id !== "cambio_ingreso" && type.id !== "cambio_gasto")) return null;
+  const values = escenarioMotorEffectiveValues(type, escenarioMotorDraftValues);
+  const delta = type.id === "cambio_gasto" && values.modoCambio === "porcentaje" ? values.deltaPct : values.deltaMensual;
+  if (!Number.isFinite(delta) || delta === 0) return null;
+  const mesManual = type.mes(values);
+  return {
+    id: "escenario-motor-preview-draft",
+    tipo: type.id,
+    titulo: "Vista previa",
+    activa: true,
+    orden: escenarioMotorDecisions.length,
+    planificacion: mesManual ? { modo: "manual", mesManual } : { modo: "optimo" },
+    params: type.params(values),
+  };
+}
+
+// Reutiliza tal cual `runEscenarioMotor`/`escenarioMotorSummaryFor` — el mismo motor y el mismo
+// resumen que ya construyen la comparativa de seis KPI de `renderEscenarioSimular` — sobre un bloque
+// propio (`#escenarioMotorLivePreview`), aparte de la tarjeta de comparación ya verificada: no la
+// sustituye ni la reutiliza, así que no hay riesgo de dejarla en un estado a medias si la vista
+// previa se oculta antes de terminar de cargar.
+function renderEscenarioMotorLivePreview() {
+  const container = qs("escenarioMotorLivePreview");
+  if (!container) return;
+  const draft = escenarioMotorDraftPreviewDecision();
+  if (!draft) {
+    container.hidden = true;
+    container.innerHTML = "";
+    return;
+  }
+  const baseInput = escenarioMotorBaseInput();
+  const before = runEscenarioMotor(baseInput, escenarioMotorDecisions, escenarioMotorGuardrailValue);
+  const after = runEscenarioMotor(baseInput, [...escenarioMotorDecisions, draft], escenarioMotorGuardrailValue);
+  if (!before?.valid || !after?.valid) {
+    container.hidden = true;
+    container.innerHTML = "";
+    return;
+  }
+  const beforeSummary = escenarioMotorSummaryFor(before, baseInput.months);
+  const afterSummary = escenarioMotorSummaryFor(after, baseInput.months);
+  const reserveDelta = Number.isFinite(beforeSummary.liquidezFinal) && Number.isFinite(afterSummary.liquidezFinal)
+    ? round2(afterSummary.liquidezFinal - beforeSummary.liquidezFinal)
+    : null;
+  const cushionDelta = Number.isFinite(beforeSummary.mesesColchon) && Number.isFinite(afterSummary.mesesColchon)
+    ? round2(afterSummary.mesesColchon - beforeSummary.mesesColchon)
+    : null;
+  container.hidden = false;
+  container.innerHTML = `<strong>Vista previa en vivo · sin añadir todavía</strong>
+    <p>Reserva protegida: ${money(beforeSummary.liquidezFinal ?? 0, true)} → ${money(afterSummary.liquidezFinal ?? 0, true)}
+      (${reserveDelta === null ? "—" : `${reserveDelta >= 0 ? "+" : ""}${money(reserveDelta, true)}`})</p>
+    <p>Meses de colchón: ${(beforeSummary.mesesColchon ?? 0).toFixed(1)} → ${(afterSummary.mesesColchon ?? 0).toFixed(1)}
+      (${cushionDelta === null ? "—" : `${cushionDelta >= 0 ? "+" : ""}${cushionDelta.toFixed(1)}`})</p>`;
 }
 
 // E-2 (Escenarios.pdf): "el resultado se recalcula al editar, con 120 ms de debounce sobre el
