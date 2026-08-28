@@ -773,6 +773,127 @@ function handleRepeatPreviousMonthBudgets(button) {
   renderPresupuestoMes();
 }
 
+// UX-B2 (FASE 7): edición masiva ±X% de todo lo ya presupuestado este mes — útil tras una subida de
+// sueldo o un repunte de inflación, sin tener que tocar categoría por categoría. Mismo input de
+// ajuste que ya usa BUD-4 (mismo semántico ± %, evita duplicar el control), pero opera sobre
+// categoryBudgetsForMonth(monthKey) del mes EN CURSO en vez de copiar desde el mes anterior — solo
+// ajusta lo que ya existe, no crea presupuestos nuevos. El `source` original de cada fila se
+// conserva (una categoría "sugerido" sigue siendo "sugerido" tras el ajuste): el ajuste masivo
+// cambia el importe, no cómo se decidió originalmente.
+function handleBulkAdjustBudgets(button) {
+  if (!window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema) return;
+  const monthKey = currentBudgetMonthKey();
+  const pctInput = button.closest(".cuadro-mandos-controls")?.querySelector("[data-presupuesto-mes-repeat-pct]");
+  const pct = Number(pctInput?.value || 0);
+  const factor = 1 + (Number.isFinite(pct) ? pct : 0) / 100;
+  let adjusted = 0;
+  categoryBudgetsForMonth(monthKey).forEach((budget) => {
+    const amountCap = round2(budget.amountCap * factor);
+    if (!(amountCap > 0)) return;
+    budgets = window.FinanceCanonicalBudgetSchema.CanonicalBudgetSchema.upsert(budgets, {
+      categoryId: budget.categoryId,
+      monthYear: monthKey,
+      amountCap,
+      source: budget.source,
+    });
+    adjusted += 1;
+  });
+  if (adjusted) saveBudgets();
+  renderPresupuestoMes();
+  announceStatus(
+    adjusted
+      ? `Ajuste de ${pct > 0 ? "+" : ""}${pct}% aplicado a ${adjusted} categoría${adjusted === 1 ? "" : "s"}.`
+      : "No hay presupuestos este mes a los que aplicar el ajuste.",
+  );
+}
+
+// UX-B3 (FASE 7): importar presupuestos desde CSV/JSON — el camino inverso de INTEG-1 (exportar).
+// Reutiliza splitDataLine() (ya usado por parseMovementsFromCsvText para detectar el delimitador y
+// desentrecomillar celdas, sin motor de parseo nuevo) con su propio mapa de cabeceras, en vez de
+// reutilizar canonicalHeader()/parseTabularText() — esas alias "categoria"/"presupuesto" a
+// sectionName/planned para el lote de Registrar (tipo/mes/bloque/concepto), un dominio distinto; una
+// reutilización literal habría sido una coincidencia de nombres, no un ajuste real. Solo repone
+// presupuestos MENSUALES del mes en curso, sobre categorías ya conocidas (budgetableCategories()):
+// las filas con una categoría de objetivo (🎯, ver budgetRowDisplayLabel) se omiten explícitamente,
+// porque el nombre del objetivo no es una clave fiable para recuperar su categoryId "goal:<id>".
+function budgetImportHeaderKey(value) {
+  const text = normalizedText(value).replace(/[^a-z0-9]/g, "");
+  const aliases = { categoria: "categoria", category: "categoria", categoryid: "categoria", presupuesto: "presupuesto", importe: "presupuesto", amount: "presupuesto", amountcap: "presupuesto", cap: "presupuesto" };
+  return aliases[text] || text;
+}
+
+function parseBudgetsFromTabularText(text) {
+  const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+  const headers = splitDataLine(lines[0]).map(budgetImportHeaderKey);
+  return lines
+    .slice(1)
+    .map((line) => {
+      const cells = splitDataLine(line);
+      const record = headers.reduce((acc, header, index) => {
+        acc[header] = cells[index] ?? "";
+        return acc;
+      }, {});
+      return { categoria: String(record.categoria || "").trim(), presupuesto: parseAmount(record.presupuesto) };
+    })
+    .filter((row) => row.categoria && row.presupuesto !== null);
+}
+
+function parseBudgetsFromJsonText(text) {
+  const data = JSON.parse(text);
+  const list = Array.isArray(data) ? data : [];
+  return list
+    .map((item) => ({
+      categoria: String(item?.categoria ?? item?.categoryId ?? item?.category ?? "").trim(),
+      presupuesto: parseAmount(item?.presupuesto ?? item?.amountCap ?? item?.amount),
+    }))
+    .filter((row) => row.categoria && row.presupuesto !== null);
+}
+
+async function handlePresupuestoMesImportFile(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const schema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
+  if (!schema) return;
+  const text = await file.text();
+  let rows;
+  try {
+    rows = file.name.toLowerCase().endsWith(".json") ? parseBudgetsFromJsonText(text) : parseBudgetsFromTabularText(text);
+  } catch {
+    announceStatus("No se pudo leer el fichero: comprueba que sea un CSV o JSON válido.");
+    input.value = "";
+    return;
+  }
+  if (!rows.length) {
+    announceStatus('El fichero no tiene filas importables. Se esperan columnas "Categoria" y "Presupuesto" (el mismo formato que exporta esta pantalla).');
+    input.value = "";
+    return;
+  }
+  const monthKey = currentBudgetMonthKey();
+  const known = new Set(budgetableCategories());
+  let imported = 0;
+  let skipped = 0;
+  rows.forEach((row) => {
+    if (!known.has(row.categoria) || !(row.presupuesto > 0)) {
+      skipped += 1;
+      return;
+    }
+    budgets = schema.upsert(budgets, {
+      categoryId: row.categoria,
+      monthYear: monthKey,
+      amountCap: round2(row.presupuesto),
+      source: "imported",
+    });
+    imported += 1;
+  });
+  if (imported) saveBudgets();
+  renderPresupuestoMes();
+  announceStatus(
+    `Importados ${imported} presupuesto${imported === 1 ? "" : "s"} para ${monthKey}` +
+      (skipped ? ` (${skipped} fila${skipped === 1 ? "" : "s"} omitida${skipped === 1 ? "" : "s"}: categoría no reconocida, de objetivo, o importe inválido).` : "."),
+  );
+}
+
 // BUD-3: clave de periodo que sirve tanto para ordenar como para mostrar en la exportación,
 // cualquiera que sea la cadencia — evita que el `sort`/`mes` de abajo dependan de `monthYear`, que
 // es null para un presupuesto anual o trimestral.
@@ -987,8 +1108,8 @@ function presupuestoMesAddGoalRowHtml(periodKey, period) {
     .map((goal) => `<option value="${escapeHtml(goal.id)}">${escapeHtml(presupuestoMesGoalOptionLabel(goal, period))}</option>`)
     .join("");
   return `<tr>
-    <td class="t">🎯 <select data-presupuesto-mes-goal-new-id aria-label="Objetivo a presupuestar">${options}</select></td>
-    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-goal-new-amount aria-label="Aportación a presupuestar" placeholder="Importe" /></td>
+    <td class="t" data-label="Objetivo">🎯 <select data-presupuesto-mes-goal-new-id aria-label="Objetivo a presupuestar">${options}</select></td>
+    <td data-label="Importe"><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-goal-new-amount aria-label="Aportación a presupuestar" placeholder="Importe" /></td>
     <td colspan="5"><button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-goal-add data-presupuesto-mes-goal-add-period="${period}" data-presupuesto-mes-goal-add-key="${escapeHtml(periodKey)}">Presupuestar objetivo</button></td>
   </tr>`;
 }
@@ -1241,17 +1362,17 @@ function presupuestoMesRowHtml(budget, monthKey) {
   const barClass = alert.status === "overspend" ? "is-danger" : pct >= 80 ? "is-warn" : "";
   const projectedClass = projection.diff > 0 ? "negative" : "positive";
   const sourceNote =
-    budget.source === "suggested" ? ` <small class="note">sugerido</small>` : budget.source === "repeated" ? ` <small class="note">repetido</small>` : "";
+    budget.source === "suggested" ? ` <small class="note">sugerido</small>` : budget.source === "repeated" ? ` <small class="note">repetido</small>` : budget.source === "imported" ? ` <small class="note">importado</small>` : "";
   return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
-    <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}${sourceNote}</td>
-    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
-    <td>${money(alert.metrics.spent, true)}</td>
-    <td>
+    <td class="t" data-label="Categoría">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}${sourceNote}</td>
+    <td data-label="Presupuesto"><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
+    <td data-label="Gastado">${money(alert.metrics.spent, true)}</td>
+    <td data-label="Ritmo">
       <span class="registrar-mes-progress ${barClass}"><span style="width:${pct}%"></span></span>
       <small>${pct}%</small>
     </td>
-    <td>${presupuestoMesStatusPill(alert)}</td>
-    <td class="${projectedClass}">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small></td>
+    <td data-label="Estado">${presupuestoMesStatusPill(alert)}</td>
+    <td class="${projectedClass}" data-label="Proyección fin de mes">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small></td>
     <td><button type="button" class="registrar-actuals-plan-link" data-presupuesto-mes-remove="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-remove-month="${escapeHtml(monthKey)}">Quitar</button></td>
   </tr>`;
 }
@@ -1377,18 +1498,20 @@ function renderPresupuestoMes() {
     <div class="registrar-mes-card-head plan-mes-budget-head">
       <div>
         <h3 class="escenario-motor-panel-title">Presupuesto de ${escapeHtml(monthLabel)}</h3>
-        <p class="e19-subtitle">Ritmo diario = presupuesto ÷ días del mes. Editable por categoría; la sugerencia usa los últimos 6 meses de gasto real, o «Repetir mes anterior» copia lo ya presupuestado con el ajuste ± % indicado.</p>
+        <p class="e19-subtitle">Ritmo diario = presupuesto ÷ días del mes. Editable por categoría; la sugerencia usa los últimos 6 meses de gasto real, «Repetir mes anterior» copia lo ya presupuestado y «Aplicar a todas» ajusta de golpe lo ya presupuestado este mes — ambas con el ± % indicado. Importa un CSV/JSON con columnas «Categoria»/«Presupuesto» (el mismo formato que exporta esta pantalla) para reponer un plan entero.</p>
       </div>
       <div class="cuadro-mandos-controls">
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-suggest>Sugerir presupuestos</button>
-        <input type="number" step="1" value="0" size="3" data-presupuesto-mes-repeat-pct aria-label="Ajuste porcentual al repetir el presupuesto del mes anterior" />
+        <input type="number" step="1" value="0" size="3" data-presupuesto-mes-repeat-pct aria-label="Ajuste porcentual (± %) para repetir el mes anterior o aplicar a todas las categorías de este mes" />
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-repeat>Repetir mes anterior ± %</button>
+        <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-bulk-adjust>Aplicar ± % a todas</button>
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-export-csv>Exportar CSV</button>
         <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-export-json>Exportar JSON</button>
+        <input type="file" accept=".csv,.json,application/json,text/csv" data-presupuesto-mes-import-file aria-label="Importar presupuestos desde un fichero CSV o JSON" />
       </div>
     </div>
     <div class="table-wrap">
-      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table presupuesto-mes-primary-table">
         <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de mes</th><th></th></tr></thead>
         <tbody>${rows}${presupuestoMesAddGoalRowHtml(monthKey, "monthly")}</tbody>
       </table>

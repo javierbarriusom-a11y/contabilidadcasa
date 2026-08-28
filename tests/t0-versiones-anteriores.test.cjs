@@ -167,7 +167,7 @@ test("T-0 · el grupo, su encabezado y su interruptor están en el shell publica
   assert.match(app, /E17_DEFAULT_PREFERENCES = \{ analysis: true, assistants: true, data: true, legacy: true \}/);
   assert.match(app, /const preferences = \{ \.\.\.E17_DEFAULT_PREFERENCES \}/);
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260827d1a5/);
+  assert.match(html, /app\.js\?v=20260827d1a6/);
 });
 
 test("T-0 · relegar no esconde una pantalla del lanzador: sigue siendo alcanzable", () => {

@@ -192,7 +192,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827i1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260828a1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
@@ -30272,12 +30272,17 @@ async function init() {
     if (weekInput) { handleWeekBudgetAmountChange(weekInput); return; }
     // BUD-3: presupuesto anual/trimestral editado inline (mismo patrón que semanal/mensual).
     const longPeriodInput = event.target.closest("[data-presupuesto-largo-category]");
-    if (longPeriodInput) handleLongPeriodBudgetAmountChange(longPeriodInput);
+    if (longPeriodInput) { handleLongPeriodBudgetAmountChange(longPeriodInput); return; }
+    // UX-B3: fichero CSV/JSON elegido para importar presupuestos.
+    const importFile = event.target.closest("[data-presupuesto-mes-import-file]");
+    if (importFile) handlePresupuestoMesImportFile(importFile);
   });
   qs("presupuestoMesRoot")?.addEventListener("click", (event) => {
     if (event.target.closest("[data-presupuesto-mes-suggest]")) { handleSuggestBudgets(); return; }
     const repeatButton = event.target.closest("[data-presupuesto-mes-repeat]");
     if (repeatButton) { handleRepeatPreviousMonthBudgets(repeatButton); return; }
+    const bulkAdjustButton = event.target.closest("[data-presupuesto-mes-bulk-adjust]");
+    if (bulkAdjustButton) { handleBulkAdjustBudgets(bulkAdjustButton); return; }
     if (event.target.closest("[data-presupuesto-mes-export-csv]")) { downloadBudgetsCsv(); return; }
     if (event.target.closest("[data-presupuesto-mes-export-json]")) { downloadBudgetsJson(); return; }
     const removeButton = event.target.closest("[data-presupuesto-mes-remove]");

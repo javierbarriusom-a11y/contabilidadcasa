@@ -4790,6 +4790,73 @@
   }
 }
 
+/* UX-B1 (FASE 7): Presupuesto del mes es la única tabla que se quedó atrás cuando el resto del
+   shell migró a un diseño mobile-first (U-3) — sus 7 columnas obligan a `min-width: 720px` y, por
+   tanto, a desplazamiento horizontal en un móvil de 390px. En vez de reescribir su HTML como una
+   lista de tarjetas (duplicando la lógica de renderizado que ya vive en presupuestoMesRowHtml), se
+   convierte la fila en tarjeta con CSS puro: la tabla sigue siendo una `<table>` semántica en
+   escritorio, y solo esta tabla concreta (`.e19-plan-mes .presupuesto-mes-primary-table`, no las otras que
+   comparten `.plan-mes-budget-table`) cambia de layout por debajo de 640px, apoyándose en los
+   `data-label` que ya llevan sus celdas. */
+@media (max-width: 640px) {
+  .e19-plan-mes .presupuesto-mes-primary-table {
+    min-width: 0;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table thead {
+    display: none;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table,
+  .e19-plan-mes .presupuesto-mes-primary-table tbody,
+  .e19-plan-mes .presupuesto-mes-primary-table tr,
+  .e19-plan-mes .presupuesto-mes-primary-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table tbody tr {
+    margin-bottom: 12px;
+    border: 1px solid var(--e19-border);
+    border-radius: 10px;
+    padding: 6px 12px;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--e19-surface-sunken);
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table tr td:last-child {
+    border-bottom: none;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table td[data-label]::before {
+    content: attr(data-label);
+    font: 600 var(--e19-text-xs) / 1.2 var(--e19-font-sans);
+    color: var(--e19-muted);
+    text-align: left;
+    flex: 0 0 auto;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table td:not([data-label]) {
+    justify-content: flex-start;
+  }
+
+  .e19-plan-mes .presupuesto-mes-primary-table td input[type="number"] {
+    max-width: 120px;
+  }
+}
+
 /* -------------------------------------------------------------------------------------------- */
 /* Cuadro de mandos con impacto (E20-5, mockups 3a/3b/3c) — todo bajo .e19-cuadro-mandos, que     */
 /* comparten `#cuadro-mandos`, `#cambios-pendientes` y `#mapa-calor`.                             */

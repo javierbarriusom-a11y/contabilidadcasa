@@ -2,6 +2,86 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (30): FASE 7 completa — UX-B2 (edición masiva) y UX-B3 (importar CSV/JSON)
+
+Continuación directa del cierre anterior (UX-B1). El usuario pidió seguir con UX-B1, UX-B2 y UX-B3 en
+un solo turno; este cierre cubre UX-B2 y UX-B3, con lo que **FASE 7 queda completa (12/12 tareas)**.
+
+**Construido — UX-B2**: edición masiva ±X% de todo lo ya presupuestado este mes (útil tras una
+subida de sueldo o inflación). Reutiliza el mismo input de ajuste de BUD-4 (un input, dos botones:
+"Repetir mes anterior" y el nuevo "Aplicar ± % a todas") y `categoryBudgetsForMonth()`. A diferencia
+de BUD-4 (copia desde el mes anterior, solo rellena huecos), `handleBulkAdjustBudgets` multiplica
+cada `amountCap` YA existente este mes por `1 + pct/100` y conserva el `source` original de cada
+fila.
+
+**Construido — UX-B3**: importar presupuestos desde CSV/JSON, el camino inverso de INTEG-1. Sin
+motor de parseo nuevo: reutiliza `splitDataLine()` (ya usado por el importador de movimientos) con su
+propio mapa de cabeceras (`Categoria`/`Presupuesto` y alternativas en inglés) — no
+`canonicalHeader()`/`parseTabularText()`, que alias esos mismos nombres a un dominio distinto (lote
+de Registrar). Solo repone presupuestos mensuales del mes en curso sobre categorías conocidas; las
+filas de un objetivo (🎯) se omiten porque su nombre no permite recuperar el `categoryId` de forma
+fiable. Cada fila usa `upsert()` con `source: "imported"` — nueva fuente añadida a
+`canonical-budget-schema.js` (bug propio detectado y corregido antes de publicar: `validSources` no
+incluía "imported", así que el primer intento de `upsert` habría fallado en silencio) — y su propia
+nota "importado" en la fila. El fichero se elige con un `<input type="file">` normal, mismo patrón ya
+usado por `excelDataFile`/`stateBackupFile`.
+
+**Verificación**: 9 tests nuevos (`tests/uxb2-edicion-masiva.test.cjs`) + 18 tests nuevos
+(`tests/uxb3-importar-presupuestos.test.cjs`). `npm run verify` completo: 1838/1838 tests,
+accesibilidad (835 IDs), rendimiento, build, privacidad y smoke en verde. Verificado también en
+navegador real (Playwright contra `dist/`): "Aplicar +10% a todas" sobre dos categorías cambia sus
+importes exactamente ×1,1 y anuncia el recuento; borrar un presupuesto e importar un CSV de una línea
+lo repone con el importe correcto, la nota "importado" y el anuncio correspondiente — sin errores de
+consola en ninguno de los dos flujos.
+
+`app.js` bumpeado a `20260827d1a6` (nuevo wiring de listeners para el botón de ajuste masivo y el
+input de importación); `views/presupuesto-mes.js` se queda en `20260828a1` (sin cambio de versión
+respecto a UX-B1: sigue siendo el mismo fichero servido, sin necesidad de un nuevo bump al no haber
+publicado una versión intermedia entretanto).
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: FASE 7 está completa. Queda pendiente, sin comprometer esfuerzo, el candidato
+**PERF-2** (reestructurar el motor Escenario/Agente para Lighthouse >85) — solo si el usuario decide
+valorarlo. Ninguna otra tarea de presupuestos/forecasting queda abierta.
+
+## Cierre de sesión — 28 de agosto de 2026 (29): FASE 7 — UX-B1, vista móvil de Presupuesto del mes
+
+Continuación directa del cierre anterior (FCST-2). El usuario pidió seguir con UX-B1, UX-B2 y UX-B3
+explícitamente, en ese orden; este cierre cubre solo UX-B1.
+
+**Construido**: vista móvil de la tabla principal de Presupuesto del mes ("Presupuesto de {mes}", 7
+columnas) — la única pantalla de presupuestos que se quedó con `min-width: 720px` y desplazamiento
+horizontal cuando el resto del shell migró a un diseño mobile-first (U-3). Sin reescribir su HTML
+como una lista de tarjetas (habría duplicado la lógica de `presupuestoMesRowHtml`), la fila se
+convierte en tarjeta con CSS puro por debajo de 640px:
+
+- `presupuestoMesRowHtml`/`presupuestoMesAddGoalRowHtml` ganan `data-label` en sus celdas de datos.
+- Solo esa `<table>` lleva la clase nueva `presupuesto-mes-primary-table`; las ~10 tablas restantes
+  de la pantalla comparten `.plan-mes-budget-table` pero no la clase nueva, así que no cambian.
+- `design-tokens.css`: `@media (max-width: 640px)` con `.e19-plan-mes .presupuesto-mes-primary-table`
+  oculta el `<thead>` y convierte cada `<tr>`/`<td>` en tarjeta con el `data-label` como etiqueta vía
+  `::before`. Tuvo que ir prefijado con `.e19-plan-mes` porque la regla existente
+  `.e19-plan-mes .registrar-mes-table { min-width: 720px }` (dos clases) gana en especificidad a una
+  regla de una sola clase — detectado solo en el navegador real, no en los tests `vm` (no calculan
+  especificidad CSS).
+
+**Verificación**: 7 tests nuevos (`tests/uxb1-vista-movil-presupuesto.test.cjs`). `npm run verify`
+completo: 1811/1811 tests, accesibilidad (835 IDs), rendimiento, build, privacidad y smoke en verde.
+Verificado también en navegador real (Playwright contra `dist/`, 390×844): la fila deja de tener
+720px fijos, el `<thead>` queda oculto y cada campo aparece con su etiqueta; a 1280px la tabla sigue
+siendo la tabla densa de siempre — sin errores de consola en ninguno de los dos anchos.
+
+Versión de `views/presupuesto-mes.js` bumpeada a `20260828a1`; `design-tokens.css` a `20260828g1`
+(los ficheros de test que las pinnean actualizados en bloque). `app.js` no cambió esta vez.
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: seguir con UX-B2 (edición masiva ±X%) y UX-B3 (importar CSV/JSON), en ese orden,
+tal como pidió el usuario.
+
 ## Cierre de sesión — 28 de agosto de 2026 (28): FASE 7 — FCST-2, Escenarios conectado con Presupuesto del mes
 
 Continuación directa del cierre anterior (FCST-1). El usuario pidió seguir con FCST-2 explícitamente.

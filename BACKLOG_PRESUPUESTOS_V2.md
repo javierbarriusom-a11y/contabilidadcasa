@@ -9,16 +9,17 @@ sin bundler; los 6 clústeres restantes quedan descartados por entrelazado con e
 Escenario/Agente o con Cuadro de mandos/Planificación de partidas — ver hallazgos abajo. El objetivo
 original de Lighthouse >85 no se alcanzó y requeriría una reestructuración mayor, fuera de alcance.
 FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas. **FASE 7 (Multi-
-cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
-BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado
-de la semana»), TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3
-(presupuestos anuales/trimestrales), TRACK-2 (historial de cumplimiento por categoría), FCST-1
-(forecast a 3 horizontes) y FCST-2 (Escenarios conectado con Presupuesto del mes) completadas y
-publicadas; queda UX-B1-3.
+cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026 — COMPLETADA el 28
+de agosto de 2026**: BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos),
+TRACK-3 (pantalla «Estado de la semana»), TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir
+mes anterior ± %»), BUD-3 (presupuestos anuales/trimestrales), TRACK-2 (historial de cumplimiento
+por categoría), FCST-1 (forecast a 3 horizontes), FCST-2 (Escenarios conectado con Presupuesto del
+mes), UX-B1 (vista móvil de la tabla principal), UX-B2 (edición masiva ±X%) y UX-B3 (importar
+CSV/JSON) — las doce completadas y publicadas.
 **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
 separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
-## ✅ Resumen rápido — FASE 7 (actualizado 27/08/2026)
+## ✅ Resumen rápido — FASE 7 (completada, actualizado 28/08/2026)
 
 | Tarea | Descripción | Estado |
 |-------|-------------|--------|
@@ -31,9 +32,9 @@ separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 | TRACK-2 | Historial de cumplimiento por categoría (rachas on-track/overspend) | ✅ Hecho |
 | FCST-1 | Forecast por categoría a 3 horizontes (semana, mes, +3 meses) | ✅ Hecho |
 | FCST-2 | Conectar Escenarios (E13) con Presupuesto del mes | ✅ Hecho |
-| UX-B1 | Vista móvil de Presupuesto del mes | ⏳ Pendiente |
-| UX-B2 | Edición masiva de presupuestos (±X% a todas las categorías) | ⏳ Pendiente |
-| UX-B3 | Importar presupuestos desde CSV/JSON | ⏳ Pendiente |
+| UX-B1 | Vista móvil de Presupuesto del mes | ✅ Hecho |
+| UX-B2 | Edición masiva de presupuestos (±X% a todas las categorías) | ✅ Hecho |
+| UX-B3 | Importar presupuestos desde CSV/JSON | ✅ Hecho |
 | PERF-2 | Reestructurar el motor Escenario/Agente para Lighthouse >85 | ⏳ Candidato aparte, sin empezar |
 
 Detalle completo (prioridad, esfuerzo, bloqueadores y qué se construyó exactamente en cada tarea ya
@@ -538,9 +539,9 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | ✅ (27/08/2026) |
 | **FCST-1** | Forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses), exponiendo a nivel semanal la banda de confianza que `canonical-budget-forecast-category.js` ya calcula | Media | Medio | BUD-1 | ✅ (27/08/2026) |
 | **FCST-2** | Conectar el laboratorio de Escenarios (E13) con Presupuesto del mes: "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?", reutilizando los dos motores existentes sin duplicar cálculo | Media | Alto | — | ✅ (28/08/2026) |
-| **UX-B1** | Vista móvil de presupuestos por categoría (el resto del shell ya migró a E19/E17; Presupuesto del mes se quedó con la tabla densa de escritorio) | Media | Medio | — | Pendiente |
-| **UX-B2** | Edición masiva de presupuestos (±X% a todas las categorías de golpe, útil tras una subida de sueldo o inflación) | Baja | Bajo | — | Pendiente |
-| **UX-B3** | Importar presupuestos desde CSV/JSON — hoy solo existe la exportación (INTEG-1); falta el camino inverso para reponer un plan | Baja | Bajo | INTEG-1 | Pendiente |
+| **UX-B1** | Vista móvil de presupuestos por categoría (el resto del shell ya migró a E19/E17; Presupuesto del mes se quedó con la tabla densa de escritorio) | Media | Medio | — | ✅ (28/08/2026) |
+| **UX-B2** | Edición masiva de presupuestos (±X% a todas las categorías de golpe, útil tras una subida de sueldo o inflación) | Baja | Bajo | — | ✅ (28/08/2026) |
+| **UX-B3** | Importar presupuestos desde CSV/JSON — hoy solo existe la exportación (INTEG-1); falta el camino inverso para reponer un plan | Baja | Bajo | INTEG-1 | ✅ (28/08/2026) |
 
 **Orden propuesto**: BUD-1 → BUD-2 → TRACK-3 (las que más cambian el "cómo se usa" la app; TRACK-3
 depende de que BUD-2 ya exista), el resto según hueco.
@@ -822,6 +823,89 @@ tarjeta de Presupuesto del mes pasa a mostrar "Semana: 58,11 € (+13,81 € por
 extraordinario»)" y "+3 meses: 252,50 € (+60,00 € por escenario «Gasto extraordinario»)" — sin
 errores de consola.
 
+**UX-B1 — construido y publicado (28 de agosto de 2026)**: vista móvil de la tabla principal de
+Presupuesto del mes ("Presupuesto de {mes}", 7 columnas), la única pantalla de presupuestos que se
+quedó con `min-width: 720px` y desplazamiento horizontal cuando el resto del shell migró a un diseño
+mobile-first (U-3). Sin reescribir su HTML como una lista de tarjetas — que habría duplicado la
+lógica de `presupuestoMesRowHtml` en una segunda función de render — la fila se convierte en tarjeta
+con CSS puro por debajo de 640px, apoyándose en `data-label` en cada celda:
+
+- `presupuestoMesRowHtml` y `presupuestoMesAddGoalRowHtml` (fila de "presupuestar objetivo") ganan
+  `data-label="Categoría"`/`"Presupuesto"`/`"Gastado"`/`"Ritmo"`/`"Estado"`/`"Proyección fin de
+  mes"` en sus celdas de datos; la celda del botón "Quitar" no lleva label — el botón ya se explica
+  solo.
+- Solo la `<table>` principal lleva la clase nueva `presupuesto-mes-primary-table` (además de las
+  que ya tenía); las otras ~10 tablas de la pantalla comparten `.plan-mes-budget-table` pero no la
+  clase nueva, así que no se ven afectadas y siguen con su desplazamiento horizontal de siempre.
+- `design-tokens.css`: bajo `@media (max-width: 640px)`, `.e19-plan-mes
+  .presupuesto-mes-primary-table` oculta el `<thead>`, convierte cada `<tr>` en una tarjeta con
+  borde y cada `<td>` en una fila flexible (`justify-content: space-between`) con el `data-label`
+  pintado como etiqueta a la izquierda vía `::before`. Necesitó ir prefijado con `.e19-plan-mes`
+  (no solo la clase nueva) porque la regla existente `.e19-plan-mes .registrar-mes-table {
+  min-width: 720px }` tiene mayor especificidad (dos clases) que una regla de una sola clase, así
+  que sin el prefijo el `min-width: 0` de la vista móvil perdía silenciosamente el pulso en el
+  navegador real (detectado en la verificación, no en los tests `vm`, que no calculan especificidad
+  CSS).
+
+7 tests nuevos (`tests/uxb1-vista-movil-presupuesto.test.cjs`): `data-label` correctos en ambas
+filas, solo la tabla principal lleva la clase nueva, la regla CSS existe y está acotada a esa clase
+(no a `.plan-mes-budget-table` en general), y wiring de versión. `npm run verify` completo:
+1811/1811 tests, accesibilidad (835 IDs), rendimiento, build, privacidad y smoke en verde. Verificado
+también en navegador real (Playwright contra `dist/`, viewport 390×844): la fila pasa de 720px de
+ancho fijo a ajustarse al viewport, el `<thead>` queda oculto y cada campo aparece con su etiqueta
+("Categoría", "Presupuesto", "Gastado"…); a 1280px la tabla sigue siendo la tabla densa de siempre
+(fila de 957px) — sin errores de consola en ninguno de los dos anchos.
+
+**UX-B2 — construido y publicado (28 de agosto de 2026)**: edición masiva ±X% de todo lo ya
+presupuestado este mes — útil tras una subida de sueldo o un repunte de inflación, sin editar
+categoría por categoría. Reutiliza el mismo input de ajuste porcentual de BUD-4 (mismo semántico
+± %, un único control para dos botones: "Repetir mes anterior" y el nuevo "Aplicar ± % a todas") y
+`categoryBudgetsForMonth()` (BUD-2, excluye presupuestos de objetivo). A diferencia de BUD-4, que
+copia desde el mes anterior y solo rellena huecos, `handleBulkAdjustBudgets` opera sobre lo que YA
+existe este mes: multiplica cada `amountCap` por `1 + pct/100` y conserva el `source` original de
+cada fila (un presupuesto "sugerido" sigue siendo "sugerido" tras el ajuste — el ajuste masivo cambia
+el importe, no cómo se decidió originalmente). Un ajuste que dejaría el importe en 0 o negativo se
+descarta fila a fila, misma regla que ya usa BUD-4.
+
+9 tests nuevos (`tests/uxb2-edicion-masiva.test.cjs`): multiplicación real sobre presupuestos
+sintéticos, conservación del `source`, ajustes negativos, exclusión de presupuestos de objetivo, caso
+sin presupuestos este mes, importe resultante ≤0 descartado, wiring estático y validación de que
+"imported" (necesaria para UX-B3) también es una fuente válida del esquema.
+
+**UX-B3 — construido y publicado (28 de agosto de 2026)**: importar presupuestos desde CSV/JSON — el
+camino inverso de INTEG-1 (exportar). Sin motor de parseo nuevo: reutiliza `splitDataLine()` (ya
+usado por `parseMovementsFromCsvText` para detectar el delimitador y desentrecomillar celdas) con su
+propio mapa de cabeceras (`budgetImportHeaderKey`) — deliberadamente NO `canonicalHeader()`/
+`parseTabularText()`, que alias "categoria"/"presupuesto" a `sectionName`/`planned` para el lote de
+Registrar (tipo/mes/bloque/concepto), un dominio distinto; reutilizar eso habría sido una
+coincidencia de nombres, no un ajuste real. Acepta CSV (con `;`, `,` o tabulador, y coma o punto
+decimal) y JSON, con las cabeceras/claves de la propia exportación (`Categoria`/`Presupuesto`,
+`categoria`/`presupuesto`) o alternativas en inglés (`Category`/`Amount`, `categoryId`/`amountCap`).
+Solo repone presupuestos **mensuales del mes en curso**, sobre categorías ya conocidas
+(`budgetableCategories()`); las filas de un objetivo (🎯, ver `budgetRowDisplayLabel`) se omiten
+explícitamente, porque el nombre del objetivo no es una clave fiable para recuperar su `categoryId`
+("goal:<id>"). Cada fila importada usa `upsert()` (mismo mecanismo que "Sugerir"/"Repetir") con
+`source: "imported"` — nueva fuente válida añadida a `canonical-budget-schema.js` (antes solo
+`validSources` = suggested/manual/carryover/goal/repeated) y su propia nota "importado" en la fila,
+igual que "sugerido"/"repetido". El fichero se elige con un `<input type="file">` normal (mismo
+patrón ya usado por `excelDataFile`/`stateBackupFile`, sin card `.file-drop` nueva por ser un control
+suelto en la cabecera, no una pantalla de importación dedicada) y anuncia el resultado
+(`announceStatus`) con el recuento de importados/omitidos.
+
+18 tests nuevos (`tests/uxb3-importar-presupuestos.test.cjs`): parseo puro de CSV (`;`/coma decimal,
+cabeceras alternativas, filas inválidas descartadas, fichero solo-cabecera) y JSON (claves propias y
+alternativas, no-array), cadena real de `handlePresupuestoMesImportFile` (importa, actualiza en vez
+de duplicar, omite categoría desconocida/de objetivo, fichero sin filas, JSON mal formado, sin
+fichero seleccionado) y wiring estático. `npm run verify` completo tras ambas tareas: 1838/1838
+tests, accesibilidad (835 IDs), rendimiento, build, privacidad y smoke en verde. Verificado también
+en navegador real (Playwright contra `dist/`): "Aplicar +10% a todas" sobre dos categorías
+presupuestadas cambia sus importes exactamente ×1,1 y anuncia "Ajuste de +10% aplicado a 2
+categorías"; borrar el presupuesto de "alimentacion" e importar un CSV de una línea
+(`Categoria;Presupuesto\nalimentacion;321,50`) lo repone con el importe correcto, la nota "importado"
+visible y el anuncio "Importados 1 presupuesto para 2026-08" — sin errores de consola en ninguno de
+los dos flujos. Con esto, **FASE 7 queda completa**: las doce tareas propuestas el 27 de agosto
+(BUD-1 a UX-B3) están construidas, verificadas y publicadas.
+
 ---
 
 ## 🎯 8 Features Diferenciadoras
@@ -887,7 +971,7 @@ errores de consola.
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2 (✅), FCST-1 (✅), FCST-2 (✅), UX-B1-3 | ~1620 | — | 🔄 En curso |
+| **7** | BUD-1 a UX-B3, las 12 tareas (✅) | ~1720 | — | ✅ Completada |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -910,12 +994,12 @@ errores de consola.
 7. ✅ **FASE 6 completada**: SCALE-1 (auditoría de presupuestos a escala, con hallazgo real
    corregido), INTEG-1 (exportar presupuestos a CSV/JSON), QA-1 (suite E2E de flujos completos) y
    DOC-1 (guía de presupuestos, cuarto caso de uso «Presupuestar»)
-8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales), BUD-2
-   (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado de la semana»), TRACK-1 (ritmo
-   semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3 (presupuestos anuales/
-   trimestrales), TRACK-2 (historial de cumplimiento por categoría), FCST-1 (forecast a 3
-   horizontes) y FCST-2 (Escenarios conectado con Presupuesto del mes) completadas y publicadas;
-   queda UX-B1-3
+8. ✅ **FASE 7 completada (propuesta el 27 de agosto, cerrada el 28)**: BUD-1 (presupuestos
+   semanales), BUD-2 (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado de la semana»),
+   TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3 (presupuestos
+   anuales/trimestrales), TRACK-2 (historial de cumplimiento por categoría), FCST-1 (forecast a 3
+   horizontes), FCST-2 (Escenarios conectado con Presupuesto del mes), UX-B1 (vista móvil de la
+   tabla principal), UX-B2 (edición masiva ±X%) y UX-B3 (importar CSV/JSON)
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -991,4 +1075,5 @@ de por qué se descartó escalar más con el método de PERF-1).
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
 PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4, BUD-3, TRACK-2 y FCST-1; actualizado el
-28/08/2026 al completar FCST-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+28/08/2026 al completar FCST-2, UX-B1, UX-B2 y UX-B3 — con lo que FASE 7 queda completa (12/12
+tareas). Rama: `claude/app-review-improvement-plan-9a6pzr`.
