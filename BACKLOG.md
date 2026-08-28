@@ -688,7 +688,7 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 | P-1 | Eje de tipo de acción (`actionType`) por movimiento | ✅ Construido 28/08/2026 |
 | P-2 | Deslizadores sobre el motor de escenarios existente | ✅ Construido 28/08/2026 |
 | P-3 | Plantillas de mes con nombre (estacionalidad ya detectada) | ✅ Construido 28/08/2026 |
-| P-4 | Verificar si «decisión recomendada» del Asesor ejecutivo sigue sin criterio | Pendiente |
+| P-4 | Verificar si «decisión recomendada» del Asesor ejecutivo sigue sin criterio | ✅ Verificado 28/08/2026 (sigue sin motor, por decisión de producto) |
 | P-5 | Objetivos en la exportación de Análisis (A-11) | ✅ Construido 28/08/2026 |
 | P-6 | Atajo de teclado Cmd/Ctrl+K para el buscador (A12-3) | ✅ Construido 28/08/2026 |
 
@@ -792,3 +792,15 @@ Cmd/Ctrl+K, sin robar el atajo si ya hay un `<dialog>` nativo abierto (evita api
 formulario en curso). El botón «Buscar o abrir» anuncia el atajo en su `title`/
 `aria-keyshortcuts` para que se pueda descubrir sin documentación aparte. Ningún diálogo ni motor de
 búsqueda nuevo.
+
+**P-4 verificado, sin construir nada**: `renderAsesorDecision()` (app.js) sigue eligiendo "la
+decisión abierta" con `asesorDecisionOpenOffers()[0]` — la oferta de deuda real más urgente por
+fecha de vencimiento, sin ningún criterio de puntuación o comparación entre alternativas. No es un
+descuido: la sesión del 12 de agosto de 2026 ya lo revisó a fondo, encontró que 1d (Asesor
+ejecutivo) y 2e (Escenarios guardados) comparten la misma raíz — dependen de un "motor de
+recomendación genérico" que el proyecto decidió explícitamente no fabricar sin un criterio real
+definido (documentado en `docs/E19_SISTEMA_DISENO.md` §5 y §8) — y guardó esa construcción futura
+como tarea explícita **T-6** ("Motor de recomendación real"). Dieciséis días después el código no ha
+cambiado en ese punto: sigue siendo la misma decisión de producto, no un hueco nuevo que verificar
+de cero. No se construye nada en P-4; se confirma que la nota permanente sigue vigente y se cierra
+la verificación.
