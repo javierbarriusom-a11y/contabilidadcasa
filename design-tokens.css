@@ -3480,6 +3480,32 @@
   }
 }
 
+/* #5/#6 del plan de mejora (28/08/2026) · lista de informes de cierre archivados en Ajustes y su
+   resumen de revisión anual — mismo `.e19-table`/`.e19-kpi-note` que el resto de la pantalla, solo
+   necesitan el layout de fila propio de la lista. */
+.cierre-report-archive-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.cierre-report-archive-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--e19-border);
+}
+
+.cierre-report-archive-item:last-child {
+  border-bottom: none;
+}
+
 /* C-12 · el contenedor de evidencia imprimible está fuera de `.e19-cierre` (vive junto al cierre
    de `.app-shell`) para que `@media print` pueda esconder todo lo demás sin pelearse con el resto
    de reglas de layout de la pantalla. Solo se ve durante `window.print()`, marcado por la clase que

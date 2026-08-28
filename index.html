@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260828i1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260828j1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -2095,6 +2095,20 @@
               <p class="e19-kpi-note" id="ajustesExportNote"></p>
             </article>
 
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Informes de cierre archivados</h3>
+              <p class="e19-kpi-note">Un informe por cada mes firmado en Cierre, congelado en el momento de firmarlo — no se regenera con datos que hayan podido cambiar después.</p>
+              <ul class="cierre-report-archive-list" id="cierreReportArchiveList"></ul>
+              <p class="e19-kpi-note" id="cierreReportArchiveEmpty" hidden>Todavía no hay ningún mes firmado.</p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Revisión anual</h3>
+              <p class="e19-kpi-note">Cuando los doce meses de un año están archivados, resume el año y sugiere el presupuesto por categoría del siguiente — mismo motor que ya usa Presupuesto del mes.</p>
+              <p class="e19-kpi-note" id="annualReviewProgressNote" hidden></p>
+              <div id="annualReviewContent" hidden></div>
+            </article>
+
             <div class="update-route-grid" id="ajustesRouteGrid">
               <button class="e19-route-card" type="button" data-home-nav="visual-detail">
                 <span class="e19-route-step">Cuentas</span>
@@ -4152,7 +4166,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260811v64a1"></script>
-    <script src="app.js?v=20260828c1a1"></script>
+    <script src="app.js?v=20260828d1a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

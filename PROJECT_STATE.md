@@ -2,6 +2,79 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (35): #5/#6 — archivo automático del informe de cierre y ritual de revisión anual
+
+Continuación directa del cierre anterior (P-1/P-2). El usuario pidió seguir con la Ola 2 del "orden
+recomendado" del plan de mejora corregido (ver §9 de `BACKLOG.md`): #5 («Archivo automático del
+informe de cierre») y #6 («Ritual de revisión anual»), en ese orden porque #6 depende de #5 como
+materia prima.
+
+**Construido — #5**: al firmar un cierre (`closeCurrentMonthTransaction`), el informe de ese mes se
+archiva localmente, automáticamente, sin acción del usuario.
+
+- Reutiliza tal cual `ajustesExportMonthLines`/`registrarMesCollect`/`registrarMesTotals` (V6-4) —
+  el mismo informe que ya se podía pedir a mano desde Ajustes, no un exportador nuevo. Se guarda
+  tanto el texto ya formateado (`pdfLines`) como los totales estructurados (`totals`), para que #6
+  pueda sumar cifras reales sin volver a parsear un PDF de mentira.
+- Diccionario nuevo `cierre-report-archive`, mismo patrón local que `cierre-aprendizaje` (C-13) y
+  la foto de deuda de D-2b: no toca el RPC transaccional de cierre ni el esquema remoto de
+  Supabase, un mes que se reabre y se vuelve a firmar sustituye su entrada, nunca la duplica.
+- Un mes sin ninguna partida de ingreso o gasto (caso degenerado, no debería darse en la práctica)
+  no se archiva: nada que archivar todavía, no un informe vacío fabricado.
+- Ajustes gana una tarjeta «Informes de cierre archivados»: un botón «Descargar PDF» por mes que
+  descarga exactamente las líneas congeladas en el momento del cierre (`P2Export.downloadPlainPdf`,
+  reutilizado tal cual) — nunca las regenera con datos que hayan podido cambiar después (una
+  partida renombrada, una categoría reclasificada). Sin ningún mes archivado, lo dice
+  explícitamente.
+
+**Construido — #6**, encadenada tras #5: cuando los doce meses de un año están archivados de
+verdad, Ajustes agrega el año y sugiere el presupuesto por categoría del siguiente.
+
+- `annualReviewReadyYear` solo declara un año «listo» con sus doce meses presentes en el archivo de
+  #5 — mientras tanto, un progreso honesto («Revisión anual de 2026: 3/12 meses archivados
+  todavía»), nunca un resumen a medias disfrazado de completo (regla transversal 04). Con dos años
+  completos, se queda con el más reciente.
+- El resumen del año (`annualReviewSummary`) suma los `totals` ya guardados por #5 — sin
+  recalcular nada, sin volver a tocar `baseData.transactions` para las cifras agregadas.
+- La sugerencia de presupuesto (`annualReviewCategorySuggestions`) reutiliza tal cual
+  `CanonicalBudgetAnalyzer.analyzeCategory` (S-1, el mismo motor que ya usa Presupuesto del mes vía
+  `budgetAnalysisForCategory`) sobre la ventana de doce meses del año cerrado en vez de la ventana
+  rodante de seis meses que usa el presupuesto mensual — ningún motor nuevo, solo una ventana
+  distinta y la fuente ya cacheada `budgetNegativeTransactionsByCategory` (SCALE-1). Sin categorías
+  con datos suficientes, lo dice en vez de una tabla vacía.
+- Misma tarjeta de Ajustes, debajo del archivo de #5: nota de progreso o, cuando el año está listo,
+  totales del año más tabla de categoría/media/sugerido para el año siguiente/confianza.
+
+**Verificación**: 28 pruebas nuevas en `tests/p5-p6-archivo-cierre-revision-anual.test.cjs`
+(archivado sin duplicar, mes sin partidas que no se archiva, `totals` estructurados, descarga
+exacta sin recalcular, render de la lista y su aviso de vacío, agrupación por año, año listo/no
+listo con uno o dos años completos, resumen sumado, sugerencias filtradas por año y ordenadas,
+render de la revisión anual en sus tres estados, cableado en `closeCurrentMonthTransaction`/
+`renderAjustes`/el listener delegado de Ajustes). Se actualizó 1 test existente
+(`tests/v6-3-vista-ajustes.test.cjs`) para reflejar el nuevo bloque en el listener delegado de
+`#ajustes`, sin cambiar su comportamiento. `npm run verify` completo: **1931/1931 pruebas**,
+accesibilidad (842 IDs), rendimiento, build del sitio, privacidad y smoke en verde. Verificado
+también en navegador real (Playwright contra `dist/`, Chromium): estado vacío correcto al cargar
+Ajustes; tras sembrar doce meses de 2026 directamente en la clave real de `localStorage`
+(`storageKey("cierre-report-archive")`) y volver a pintar, la lista muestra las doce filas con su
+mes y fecha de firma correctos, la revisión anual detecta el año completo y suma los totales
+correctamente (36.000,00 € de ingresos, 24.000,00 € de gastos usados frente a 25.200,00 € previsto
+— cifras exactas para doce meses de 3.000/2.000€), y «Sin categorías con datos suficientes» se
+muestra con honestidad al no haber transacciones reales sembradas; el clic en «Descargar PDF» de
+una fila archivada dispara una descarga real del navegador (`resumen-mes-2026-01.pdf`); sin errores
+de consola propios.
+
+`app.js` bumpeado a `20260828d1a1`; `design-tokens.css` a `20260828j1` (layout de la lista de
+informes archivados). Los 26 y 8 ficheros de prueba respectivamente que pineaban las versiones
+anteriores se actualizaron en bloque.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de P-2), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: quedan P-3, P-4, P-5, P-6 del plan corregido y las candidatas #3, #4, #7, #8, #10
+más el punto aislado de retirar el Asistente financiero. Ver §9 de `BACKLOG.md` para el orden
+recomendado por olas — la ola 3 (impacto medio, sin bloqueos duros) es la siguiente.
+
 ## Cierre de sesión — 28 de agosto de 2026 (34): P-2 — deslizadores sobre el motor de escenarios existente
 
 Continuación directa del cierre anterior (P-1). El usuario pidió seguir con P-2 del plan de mejora

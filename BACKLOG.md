@@ -693,9 +693,10 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 | P-6 | Atajo de teclado Cmd/Ctrl+K para el buscador (A12-3) | Pendiente |
 
 Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (puntuación única de
-salud financiera, comparar más de dos escenarios guardados, archivo automático del informe de
-cierre, ritual de revisión anual, presupuesto por «sobres», alerta de gasto hormiga, entre otras) y
-un punto aislado fuera de la cola —retirar el widget «Asistente financiero» (`index.html:3959-3984`,
+salud financiera, comparar más de dos escenarios guardados, presupuesto por «sobres», alerta de
+gasto hormiga, entre otras — **#5 «archivo automático del informe de cierre» y #6 «ritual de
+revisión anual» ya están construidas, ver más abajo**) y un punto aislado fuera de la cola —retirar
+el widget «Asistente financiero» (`index.html:3959-3984`,
 `assistantRecommendationForQuestion()` en `app.js`), que finge diálogo abierto con cuatro palabras
 clave cuando el resto de la app se apoya en decisiones trazables con evidencia—, con su propia
 validación y su propio commit cuando se aborde.
@@ -725,3 +726,19 @@ propio (`#escenarioMotorLivePreview`) aparte de la comparativa de seis KPI ya ve
 sustituye. Sin importe puesto o con un cambio de 0€ no hay vista previa que mostrar (hueco, no una
 cifra inventada); se oculta también al cambiar de tipo de decisión o al añadir la decisión de
 verdad. Detalle completo y cifras de validación en `PROJECT_STATE.md`.
+
+**#5 construido** («Archivo automático del informe de cierre»): al firmar un cierre, el mismo
+informe que V6-4 ya generaba a mano desde Ajustes (`ajustesExportMonthLines`/
+`registrarMesCollect`/`registrarMesTotals`, reutilizados tal cual) se archiva localmente —
+`cierre-report-archive`, mismo patrón que `cierre-aprendizaje` de C-13 y la foto de deuda de D-2b:
+no toca el RPC transaccional de cierre ni el esquema remoto de Supabase. Ajustes gana una lista de
+informes archivados con un botón «Descargar PDF» por mes, que descarga exactamente las líneas
+congeladas en el momento del cierre — no las regenera con datos que hayan podido cambiar después
+(una partida renombrada, una categoría reclasificada).
+
+**#6 construido** («Ritual de revisión anual»), encadenada tras #5 como indicaba el orden
+recomendado: cuando los doce meses de un año están archivados de verdad (nunca antes — un progreso
+honesto mientras tanto, «X/12 meses archivados»), Ajustes agrega sus totales y sugiere el
+presupuesto por categoría del año siguiente reutilizando tal cual
+`CanonicalBudgetAnalyzer.analyzeCategory` (S-1, el mismo motor que ya usa Presupuesto del mes) sobre
+la ventana de doce meses del año cerrado — ningún motor nuevo, solo una ventana distinta.

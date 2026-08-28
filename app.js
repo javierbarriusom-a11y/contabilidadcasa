@@ -4444,6 +4444,9 @@ async function closeCurrentMonthTransaction() {
     // D-2b: cada cierre firmado congela una foto nueva de la deuda viva — mismo espíritu local que
     // C-13, no toca el RPC transaccional ni el esquema remoto.
     saveDebtCapitalSnapshotAtClose({ total: homeDebtOutlook().pendingPrincipal, monthKey: month, closedAt });
+    // #5 del plan de mejora: archiva el informe de este mes tal como quedó en el momento del
+    // cierre — mismo espíritu local que C-13/D-2b.
+    recordCierreReportArchive(month, closedAt);
     saveLocalSnapshot();
     renderReconciliation();
     if (qs("conciliarTitle")) renderConciliar();
@@ -21989,6 +21992,8 @@ function renderAjustes() {
   renderAjustesExportNote();
   renderAjustesSobres();
   renderAjustesLaboratorio();
+  renderCierreReportArchive();
+  renderAnnualReview();
 
   const balances = accountBalancesFromState();
   const accountsSummary = qs("ajustesAccountsSummary");
@@ -27729,6 +27734,161 @@ function recordCierreAprendizaje(monthKey, closedAt) {
   saveCierreAprendizajeHistory(history);
 }
 
+// #5 del plan de mejora ("Archivo automático del informe de cierre", 28/08/2026): mismo patrón
+// local que `cierre-aprendizaje` (C-13) — no toca el RPC transaccional ni el esquema remoto de
+// Supabase, es un archivo derivado que se acumula, uno por mes firmado. El informe archivado es
+// exactamente el que ya se podía pedir a mano desde Ajustes (V6-4, `ajustesExportMonthLines`/
+// `registrarMesCollect`/`registrarMesTotals`), congelado en el momento del cierre para no depender
+// de regenerarlo con datos que puedan cambiar después (una partida renombrada, una categoría
+// reclasificada). `totals` viaja aparte de `pdfLines` (no solo el texto ya formateado) para que #6
+// pueda sumar cifras reales sin tener que volver a parsear un PDF de mentira.
+function loadCierreReportArchive() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("cierre-report-archive"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCierreReportArchive(list) {
+  storageSet(storageKey("cierre-report-archive"), JSON.stringify(list));
+}
+
+function recordCierreReportArchive(monthKey, closedAt) {
+  const monthObj = cuadroMandosAllMonths().find((item) => item.key === monthKey);
+  if (!monthObj) return;
+  const entries = registrarMesCollect(monthObj);
+  if (!entries.income.length && !entries.expense.length) return;
+  const totals = registrarMesTotals(entries);
+  const pdfLines = ajustesExportMonthLines(monthObj, entries, totals);
+  const archive = loadCierreReportArchive().filter((entry) => entry.monthKey !== monthKey);
+  archive.unshift({ monthKey, closedAt, pdfLines, totals });
+  saveCierreReportArchive(archive);
+}
+
+function handleCierreReportArchiveDownload(monthKey) {
+  const entry = loadCierreReportArchive().find((item) => item.monthKey === monthKey);
+  if (!entry) return;
+  window.P2Export.downloadPlainPdf(entry.pdfLines, `resumen-mes-${monthKey}.pdf`);
+  announceStatus(`PDF archivado de ${registrarMesLongMonth(monthKey)} descargado.`);
+}
+
+function renderCierreReportArchive() {
+  const list = qs("cierreReportArchiveList");
+  const empty = qs("cierreReportArchiveEmpty");
+  if (!list) return;
+  const archive = loadCierreReportArchive();
+  if (empty) empty.hidden = Boolean(archive.length);
+  list.innerHTML = archive
+    .map(
+      (entry) => `<li class="cierre-report-archive-item">
+        <span>${escapeHtml(registrarMesLongMonth(entry.monthKey))} · firmado el ${escapeHtml(formatIsoDate((entry.closedAt || "").slice(0, 10)))}</span>
+        <button type="button" class="e19-btn e19-btn-secondary" data-cierre-report-download="${escapeHtml(entry.monthKey)}">Descargar PDF</button>
+      </li>`,
+    )
+    .join("");
+}
+
+// #6 del plan de mejora ("Ritual de revisión anual", 28/08/2026), encadenada tras #5: agrega los
+// doce informes mensuales que #5 archiva. Solo aparece cuando los doce meses de un año están
+// archivados de verdad (regla transversal 04: un progreso honesto mientras tanto, nunca un resumen
+// a medias disfrazado de completo) — construirlo antes de #5 habría obligado a re-derivar esos doce
+// totales a mano, la razón por la que el plan las encadena en ese orden.
+function cierreReportArchiveYearProgress() {
+  const byYear = new Map();
+  loadCierreReportArchive().forEach((entry) => {
+    const year = String(entry.monthKey || "").slice(0, 4);
+    if (!/^\d{4}$/.test(year)) return;
+    if (!byYear.has(year)) byYear.set(year, new Set());
+    byYear.get(year).add(entry.monthKey);
+  });
+  return byYear;
+}
+
+function annualReviewReadyYear() {
+  const byYear = cierreReportArchiveYearProgress();
+  const complete = [...byYear.keys()].filter((year) => byYear.get(year).size === 12).sort();
+  return complete.at(-1) || null;
+}
+
+function annualReviewSummary(year) {
+  const monthKeys = Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, "0")}`);
+  const archive = loadCierreReportArchive();
+  const months = monthKeys.map((key) => archive.find((entry) => entry.monthKey === key)).filter(Boolean);
+  if (months.length !== 12) return null;
+  const totals = months.reduce(
+    (sum, entry) => ({
+      incomeUsed: round2(sum.incomeUsed + Number(entry.totals?.incomeUsed || 0)),
+      incomePlanned: round2(sum.incomePlanned + Number(entry.totals?.incomePlanned || 0)),
+      expenseUsed: round2(sum.expenseUsed + Number(entry.totals?.expenseUsed || 0)),
+      expensePlanned: round2(sum.expensePlanned + Number(entry.totals?.expensePlanned || 0)),
+    }),
+    { incomeUsed: 0, incomePlanned: 0, expenseUsed: 0, expensePlanned: 0 },
+  );
+  return { year, months, totals };
+}
+
+// Reutiliza tal cual CanonicalBudgetAnalyzer.analyzeCategory (S-1, ya usado por Presupuesto del mes
+// vía `budgetAnalysisForCategory`) sobre la ventana de doce meses del año cerrado, no un motor
+// nuevo — la única diferencia es la ventana (el año entero) y la fuente (`budgetNegativeTransactionsByCategory`,
+// ya cacheada por categoría a escala real, SCALE-1).
+function annualReviewCategorySuggestions(year, limit = 8) {
+  const analyzer = window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer;
+  if (!analyzer) return [];
+  const byCategory = budgetNegativeTransactionsByCategory();
+  const suggestions = [];
+  byCategory.forEach((rows, category) => {
+    const yearRows = rows.filter((row) => String(row.month || "").startsWith(`${year}-`));
+    const analysis = analyzer.analyzeCategory(yearRows, { months: 12 });
+    if (!analysis) return;
+    suggestions.push({ category, ...analysis });
+  });
+  return suggestions.sort((a, b) => b.recommendation - a.recommendation).slice(0, limit);
+}
+
+const ANNUAL_REVIEW_CONFIDENCE_LABELS = { high: "Alta", medium: "Media", low: "Baja" };
+
+function renderAnnualReview() {
+  const container = qs("annualReviewContent");
+  const note = qs("annualReviewProgressNote");
+  if (!container) return;
+  const readyYear = annualReviewReadyYear();
+  if (!readyYear) {
+    container.hidden = true;
+    container.innerHTML = "";
+    if (note) {
+      const byYear = cierreReportArchiveYearProgress();
+      const [progressYear, progressMonths] = [...byYear.entries()].sort((a, b) => b[1].size - a[1].size || b[0].localeCompare(a[0]))[0] || [];
+      note.hidden = false;
+      note.textContent = progressYear
+        ? `Revisión anual de ${progressYear}: ${progressMonths.size}/12 meses archivados todavía.`
+        : "Todavía no hay ningún mes archivado: se irá completando a medida que firmes cierres mensuales en Cierre.";
+    }
+    return;
+  }
+  if (note) note.hidden = true;
+  const summary = annualReviewSummary(readyYear);
+  const suggestions = annualReviewCategorySuggestions(readyYear);
+  const nextYear = Number(readyYear) + 1;
+  container.hidden = false;
+  container.innerHTML = `
+    <p class="e19-kpi-note">Los doce meses de ${escapeHtml(readyYear)} están archivados. Ingresos usados ${money(summary.totals.incomeUsed, true)} (previsto ${money(summary.totals.incomePlanned, true)}) · Gastos usados ${money(summary.totals.expenseUsed, true)} (previsto ${money(summary.totals.expensePlanned, true)}).</p>
+    ${
+      suggestions.length
+        ? `<div class="table-wrap"><table class="e19-table">
+      <thead><tr><th>Categoría</th><th>Media mensual ${escapeHtml(readyYear)}</th><th>Sugerido para ${nextYear}</th><th>Confianza</th></tr></thead>
+      <tbody>${suggestions
+        .map(
+          (item) =>
+            `<tr><td>${escapeHtml(item.category || "Sin categoría")}</td><td>${money(item.average, true)}</td><td>${money(item.recommendation, true)}</td><td>${escapeHtml(ANNUAL_REVIEW_CONFIDENCE_LABELS[item.confidence] || item.confidence)}</td></tr>`,
+        )
+        .join("")}</tbody>
+    </table></div>`
+        : `<p class="e19-kpi-note">Ninguna categoría tiene datos suficientes para sugerir presupuesto de ${nextYear}.</p>`
+    }`;
+}
+
 
 // ---------------------------------------------------------------------------------------------
 // Asesor ejecutivo (E20-2, mockup 1d). "La decisión abierta" = la oferta de deuda registrada más
@@ -31163,6 +31323,11 @@ async function init() {
     setActiveView(target, { focus: true });
   });
   qs("ajustes")?.addEventListener("click", (event) => {
+    const downloadButton = event.target.closest("[data-cierre-report-download]");
+    if (downloadButton) {
+      handleCierreReportArchiveDownload(downloadButton.dataset.cierreReportDownload);
+      return;
+    }
     const button = event.target.closest("[data-home-nav]");
     const target = button?.dataset.homeNav;
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
