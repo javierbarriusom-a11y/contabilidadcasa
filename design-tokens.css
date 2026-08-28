@@ -818,10 +818,34 @@
   color: var(--e19-ink);
 }
 
-.deuda-contratos-entity small {
-  display: block;
-  color: var(--e19-muted);
+/* D-2d · entidad, tipo, número y estado también editables en la propia fila: mismo tratamiento
+   visual que el input numérico, pero alineado a la izquierda y sin el ancho máximo estrecho que
+   necesitan las cifras. */
+.deuda-contratos-table td input[type="text"],
+.deuda-contratos-table td select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-sm);
+  font: 400 var(--e19-text-sm) / 1.2 var(--e19-font-sans);
+  text-align: left;
+  background: var(--e19-surface);
+  color: var(--e19-ink);
+}
+
+.deuda-contratos-entity-input {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.deuda-contratos-entity-meta {
+  display: flex;
+  gap: 4px;
+}
+
+.deuda-contratos-entity-meta input {
   font-size: var(--e19-text-xs);
+  color: var(--e19-muted);
 }
 
 /* D-2c · alta de contratos: fila resaltada para lo añadido a mano, botón de quitarla (mismo patrón

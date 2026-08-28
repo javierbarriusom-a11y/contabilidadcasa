@@ -1149,23 +1149,35 @@ function deudaContratosQualityBadge(quality) {
   return { label: `Faltan ${missing} dato(s)`, tone: "e19-badge-danger" };
 }
 
+function deudaContratosStatusOptionsHtml(current) {
+  return DEBT_CONTRACT_ADD_STATUSES.map(
+    (value) => `<option value="${value}"${value === current ? " selected" : ""}>${escapeHtml(deudaContratosStatusBadge(value).label)}</option>`
+  ).join("");
+}
+
 function deudaContratosRowHtml(contract) {
   const edited = Boolean(debtContractOverrides[contract.id]);
   const isCustom = Boolean(contract.custom);
-  const status = deudaContratosStatusBadge(contract.paymentStatus);
   const quality = deudaContratosQualityBadge(contract.dataQuality);
   const aprValue = contract.apr === null || contract.apr === undefined ? "" : contract.apr;
-  return `<tr data-deuda-contrato-row="${escapeHtml(contract.id)}"${isCustom ? ' class="deuda-contratos-row-custom"' : ""}>
+  const installments = Math.max(0, Math.floor(Number(contract.remainingInstallments) || 0));
+  const id = escapeHtml(contract.id);
+  const entityLabel = escapeHtml(contract.entity);
+  return `<tr data-deuda-contrato-row="${id}"${isCustom ? ' class="deuda-contratos-row-custom"' : ""}>
       <td class="deuda-contratos-entity">
-        <strong>${escapeHtml(contract.entity)}</strong>
-        <small>${escapeHtml(contract.type)}${contract.number ? ` · ${escapeHtml(contract.number)}` : ""}</small>
+        <input type="text" class="deuda-contratos-entity-input" maxlength="80" data-deuda-contrato-id="${id}" data-deuda-contrato-field="entity" value="${entityLabel}" aria-label="Entidad de ${entityLabel}" />
+        <span class="deuda-contratos-entity-meta">
+          <input type="text" maxlength="40" placeholder="Tipo" data-deuda-contrato-id="${id}" data-deuda-contrato-field="type" value="${escapeHtml(contract.type)}" aria-label="Tipo de contrato de ${entityLabel}" />
+          <input type="text" maxlength="60" placeholder="Número" data-deuda-contrato-id="${id}" data-deuda-contrato-field="number" value="${escapeHtml(contract.number || "")}" aria-label="Número de contrato de ${entityLabel}" />
+        </span>
       </td>
-      <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="currentPrincipal" value="${round2(contract.currentPrincipal)}" aria-label="Capital pendiente de ${escapeHtml(contract.entity)}" /></td>
-      <td><input type="number" min="0" max="60" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="apr" value="${aprValue}" placeholder="sin dato" aria-label="TAE de ${escapeHtml(contract.entity)}" /></td>
-      <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${escapeHtml(contract.id)}" data-deuda-contrato-field="currentPayment" value="${round2(contract.currentPayment)}" aria-label="Cuota mensual de ${escapeHtml(contract.entity)}" /></td>
-      <td><span class="e19-badge ${status.tone}">${escapeHtml(status.label)}</span></td>
+      <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="currentPrincipal" value="${round2(contract.currentPrincipal)}" aria-label="Capital pendiente de ${entityLabel}" /></td>
+      <td><input type="number" min="0" max="60" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="apr" value="${aprValue}" placeholder="sin dato" aria-label="TAE de ${entityLabel}" /></td>
+      <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="currentPayment" value="${round2(contract.currentPayment)}" aria-label="Cuota mensual de ${entityLabel}" /></td>
+      <td><input type="number" min="0" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="remainingInstallments" value="${installments}" aria-label="Plazos restantes de ${entityLabel}" /></td>
+      <td><select data-deuda-contrato-id="${id}" data-deuda-contrato-field="paymentStatus" aria-label="Estado de ${entityLabel}">${deudaContratosStatusOptionsHtml(contract.paymentStatus)}</select></td>
       <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}</td>
-      <td>${isCustom ? `<button type="button" class="deuda-contratos-row-remove" data-deuda-contrato-remove="${escapeHtml(contract.id)}" aria-label="Eliminar el contrato de ${escapeHtml(contract.entity)}">×</button>` : ""}</td>
+      <td><button type="button" class="deuda-contratos-row-remove" data-deuda-contrato-remove="${id}" aria-label="Eliminar el contrato de ${entityLabel}">×</button></td>
     </tr>`;
 }
 
@@ -1175,7 +1187,7 @@ function renderDeudaContratos() {
   if (!body) return;
   const contracts = debtContractSourceRows();
   body.innerHTML = `<thead><tr>
-        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Estado</th><th>Calidad del dato</th><th></th>
+        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th></th>
       </tr></thead>
       <tbody>${contracts.map(deudaContratosRowHtml).join("")}</tbody>`;
   const overriddenCount = contracts.filter((contract) => debtContractOverrides[contract.id]).length;
@@ -1197,23 +1209,52 @@ function renderDeudaSimulador() {
   sendDebtRoadmapState();
 }
 
-// Vacío = «sin corregir», nunca cero: borra el override y vuelve al valor declarado en vez de
-// clavar un 0 que se leería como «no debe nada». Un valor fuera de rango no se guarda ni se avisa
-// aparte — el redibujado siguiente vuelve a enseñar el último valor válido, la misma disciplina que
-// ya usan los demás campos numéricos de la app.
+// Vacío = «sin corregir», nunca cero ni cadena vacía forzada: borra el override y vuelve al valor
+// declarado en vez de clavar un dato que se leería como real. Un valor fuera de rango no se guarda
+// ni se avisa aparte — el redibujado siguiente vuelve a enseñar el último valor válido, la misma
+// disciplina que ya usan los demás campos numéricos de la app. Entidad/tipo/número son texto libre
+// (D-2d): igual que el capital, vaciarlos borra el override en vez de guardar "".
 function deudaContratosParseFieldValue(field, raw) {
   const trimmed = String(raw ?? "").trim();
+  if (DEBT_CONTRACT_TEXT_FIELDS.includes(field)) {
+    return trimmed === "" ? { clear: true } : { value: trimmed };
+  }
   if (trimmed === "") return { clear: true };
   const value = Number(trimmed.replace(",", "."));
   if (!Number.isFinite(value) || value < 0) return { invalid: true };
   if (field === "apr" && value > 60) return { invalid: true };
+  if (DEBT_CONTRACT_INTEGER_FIELDS.includes(field)) return { value: Math.floor(value) };
   return { value: round2(value) };
+}
+
+// D-2d · el estado no sigue la disciplina «vacío = sin corregir» del resto de campos porque es un
+// <select>, siempre con un valor de los cuatro válidos — nunca en blanco. Además necesita escribir
+// más de un campo a la vez: `reunified` y (para «Liquidada») `currentPrincipal` a 0, exactamente
+// las mismas reglas de negocio que ya aplicaba el alta (`deudaContratosAddFormParse`), para que el
+// normalizador (`canonical-debt-contracts.js`, que deriva paymentStatus de esos campos, no del
+// texto) clasifique el contrato como se acaba de pedir.
+function handleDeudaContratosStatusChange(id, rawValue) {
+  if (!DEBT_CONTRACT_ADD_STATUSES.includes(rawValue)) {
+    renderDeudaContratos();
+    return;
+  }
+  const nextContract = { ...(debtContractOverrides[id] || {}) };
+  nextContract.paymentStatus = rawValue;
+  nextContract.reunified = rawValue === "reunified";
+  if (rawValue === "settled") nextContract.currentPrincipal = 0;
+  debtContractOverrides = { ...debtContractOverrides, [id]: nextContract };
+  saveDebtContractOverrides();
+  renderDeudaContratos();
 }
 
 function handleDeudaContratosFieldChange(input) {
   const id = input.dataset.deudaContratoId;
   const field = input.dataset.deudaContratoField;
   if (!id || !DEBT_CONTRACT_EDITABLE_FIELDS.includes(field)) return;
+  if (field === "paymentStatus") {
+    handleDeudaContratosStatusChange(id, input.value);
+    return;
+  }
   const parsed = deudaContratosParseFieldValue(field, input.value);
   if (parsed.invalid) {
     renderDeudaContratos();
@@ -1316,16 +1357,31 @@ function handleDeudaContratosAddSubmit(event) {
   renderDeudaContratos();
 }
 
-function handleDeudaContratosRemoveCustom(id) {
-  if (!id || !debtContractCustomEntries.some((entry) => entry.id === id)) return;
-  debtContractCustomEntries = debtContractCustomEntries.filter((entry) => entry.id !== id);
+// D-2d · eliminar ya no está reservado a lo dado de alta a mano: un contrato de ejemplo también se
+// puede quitar, aunque no exista en ningún array borrable (`DEBT_PORTFOLIO` es código). Se marca en
+// `debtContractHiddenExampleIds` — la misma puerta única que ya filtra `debtPortfolioWithOverrides`
+// — en vez de mutar la constante. Cualquier borrado pide confirmación primero, mismo patrón que
+// `handleSavingsGoalAction`/objetivos: no hay deshacer.
+function handleDeudaContratosRemove(id) {
+  if (!id) return;
+  const isCustom = debtContractCustomEntries.some((entry) => entry.id === id);
+  const isExample = !isCustom && DEBT_PORTFOLIO.some((entry) => entry.id === id) && !debtContractHiddenExampleIds.includes(id);
+  if (!isCustom && !isExample) return;
+  const label = debtContractSourceRows().find((row) => row.id === id)?.entity || "este contrato";
+  if (!window.confirm(`¿Eliminar el contrato de «${label}»?`)) return;
+  if (isCustom) {
+    debtContractCustomEntries = debtContractCustomEntries.filter((entry) => entry.id !== id);
+    saveDebtContractCustomEntries();
+  } else {
+    debtContractHiddenExampleIds = [...debtContractHiddenExampleIds, id];
+    saveDebtContractHiddenExampleIds();
+  }
   if (debtContractOverrides[id]) {
     const nextOverrides = { ...debtContractOverrides };
     delete nextOverrides[id];
     debtContractOverrides = nextOverrides;
     saveDebtContractOverrides();
   }
-  saveDebtContractCustomEntries();
   renderDeudaContratos();
 }
 
