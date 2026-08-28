@@ -16,8 +16,9 @@ mes anterior ± %»), BUD-3 (presupuestos anuales/trimestrales), TRACK-2 (histor
 por categoría), FCST-1 (forecast a 3 horizontes), FCST-2 (Escenarios conectado con Presupuesto del
 mes), UX-B1 (vista móvil de la tabla principal), UX-B2 (edición masiva ±X%) y UX-B3 (importar
 CSV/JSON) — las doce completadas y publicadas.
-**PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
-separado**, sin comprometer esfuerzo hasta valorarlo aparte.
+**PERF-2 (motor Escenario/Agente para Lighthouse >85) evaluado el 28 de agosto de 2026** — la
+memoización que se iba a auditar ya existía desde antes de PERF-1 y Lighthouse sigue igual (76,
+perfil `provided`, medición fresca de hoy); no se recomienda construirlo, ver hallazgos.
 
 ## ✅ Resumen rápido — FASE 7 (completada, actualizado 28/08/2026)
 
@@ -35,7 +36,7 @@ separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 | UX-B1 | Vista móvil de Presupuesto del mes | ✅ Hecho |
 | UX-B2 | Edición masiva de presupuestos (±X% a todas las categorías) | ✅ Hecho |
 | UX-B3 | Importar presupuestos desde CSV/JSON | ✅ Hecho |
-| PERF-2 | Reestructurar el motor Escenario/Agente para Lighthouse >85 | ⏳ Candidato aparte, sin empezar |
+| PERF-2 | Reestructurar el motor Escenario/Agente para Lighthouse >85 | ❌ Evaluado, no recomendado (28/08/2026) |
 
 Detalle completo (prioridad, esfuerzo, bloqueadores y qué se construyó exactamente en cada tarea ya
 hecha) en la tabla de FASE 7 y las secciones narrativas que siguen.
@@ -1069,11 +1070,58 @@ de por qué se descartó escalar más con el método de PERF-1).
   solo si eso mueve la puntuación, plantear la extracción real del motor a un módulo aparte.
 - **Esfuerzo estimado**: Alto (frente al "Bajo" original de PERF-1) — trátese como su propia fase,
   no como una tarea suelta de FASE 6/7.
-- **Estado**: Pendiente de decisión del usuario sobre si perseguirlo; sin trabajo iniciado.
+- **Estado**: Evaluado el 28/08/2026 (solo análisis y medición, sin cambios de código) — **no se
+  recomienda perseguirlo**, ver hallazgos abajo.
+
+**PERF-2 — evaluación (28 de agosto de 2026), sin cambios de código**: se hizo justo el primer paso
+que el propio alcance propuesto pedía ("auditar qué se recalcula vs. qué podría memoizarse, medir
+antes de mover ficheros") — el resultado cierra la pregunta sin necesidad de construir nada.
+
+1. **La memoización que se iba a "auditar" ya existe, y es anterior a PERF-1.** `buildSavingsAgentPlan`
+   ya cachea por firma (`savingsAgentPlanCache`, clave = firma de simulación + suelo de caja +
+   saldos + huella de las filas) y `agentOptimalDebtPayoffPlan` — la parte realmente cara del motor
+   (búsqueda voraz de hasta 12 pasos de liquidación) — ya está cacheada por firma
+   (`agentDebtOptimizationCache`) **y además diferida 650ms fuera de la carga inicial**
+   (`scheduleHeavyAdvisorRefresh`, solo para las pantallas de `HEAVY_RENDER_VIEWS`), mostrando un
+   plan "Calculando" (`emptyAgentDebtOptimization`) mientras tanto. `git log -S` sobre estos tres
+   identificadores los sitúa en un commit muy anterior a FASE 5/PERF-1 (`2f99ff4`, "bloque 4 del plan
+   de cierre") — es decir, **Lighthouse ya midió 55/75-76 en PERF-1 con esta memoización puesta**, no
+   sin ella. Auditar "qué podría memoizarse" no habría encontrado apenas nada nuevo: lo obvio ya
+   estaba hecho antes de que se propusiera PERF-2.
+2. **Medición fresca de hoy, mismo método que PERF-1** (`npx lighthouse` contra `dist/` real,
+   servido en local): perfil `provided` → **76** (idéntico al cierre de PERF-1: 73/72/75), "JavaScript
+   sin usar" estimado 1.523 KiB (prácticamente el mismo 1,54 MB de entonces), peso total 3.436 KiB,
+   tiempo de arranque de script 1,4s. Perfil por defecto → 30 esta vez (PERF-1 cerró en 45/55/55);
+   dado el ruido de entorno que el propio PERF-1 ya documentó en este sandbox (una medición aislada
+   dio 88 sin reproducirse), este dato por defecto no se toma como señal fiable — el perfil
+   `provided` es el que PERF-1 usó como referencia principal, y ese se mantiene clavado en el mismo
+   sitio. **Conclusión de la medición: las ~1.700 líneas añadidas en toda FASE 7 no movieron la
+   puntuación ni para bien ni para mal** (esperable — ~50 KB sobre 3,4 MB no puede notarse), pero
+   tampoco lo hizo la memoización preexistente del motor Escenario/Agente, que ya estaba puesta
+   cuando PERF-1 midió por primera vez.
+3. **Por qué no merece la pena perseguirlo tal y como estaba planteado**: el propio diagnóstico de
+   PERF-1 ya lo decía ("la causa raíz: ~3,6 MB de JS... el coste es descargar/parsear/ejecutar
+   código") y esta medición lo confirma con datos de hoy — el cuello de botella es el peso total de
+   script cargado en cada pantalla, no el cálculo en tiempo de ejecución del motor Escenario/Agente
+   (que ya está memoizado y diferido). Mover la aguja de verdad exigiría no memoizar más, sino dejar
+   de cargar ese motor entero quien no lo necesita — exactamente lo que PERF-1 ya intentó y descartó
+   para este mismo clúster (`executiveAdvisorContext`/`buildSavingsAgentPlan` alimentan al menos 7
+   puntos de llamada en Hoy, Deuda, Asesor y Nueva vida) por el riesgo de romper esas pantallas al
+   partirlo. Ninguna de las dos mitades del plan original de PERF-2 (memoizar primero, extraer
+   después solo si mueve la aguja) sobrevive a esta evaluación: la primera ya estaba hecha y no basta;
+   la segunda es la misma reestructuración de alto riesgo que PERF-1 ya evitó por buenas razones.
+4. **Recomendación**: cerrar PERF-2 sin construir nada. Lighthouse >85 seguiría fuera de alcance sin
+   una reestructuración mucho mayor (partir el motor compartido función a función, no fichero a
+   fichero, con su propia batería de regresión) que ningún dato de esta evaluación justifica todavía
+   — no hay ninguna queja de lentitud real de un usuario, solo el objetivo de puntuación en sí.
+   Queda documentado por si en el futuro cambia el criterio (por ejemplo, si aparece una queja real
+   de rendimiento en un dispositivo concreto, que sería una motivación distinta y más concreta que
+   perseguir una cifra de Lighthouse).
 
 ---
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
 PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4, BUD-3, TRACK-2 y FCST-1; actualizado el
 28/08/2026 al completar FCST-2, UX-B1, UX-B2 y UX-B3 — con lo que FASE 7 queda completa (12/12
-tareas). Rama: `claude/app-review-improvement-plan-9a6pzr`.
+tareas) — y al evaluar PERF-2 (sin construir nada; no se recomienda perseguirlo, ver hallazgos).
+Rama: `claude/app-review-improvement-plan-9a6pzr`.
