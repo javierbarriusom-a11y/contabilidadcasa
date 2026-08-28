@@ -12,8 +12,9 @@ FASE 6 (Polish & Scale): DOC-1, QA-1, SCALE-1 e INTEG-1, las cuatro completadas.
 cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026, en curso**:
 BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado
 de la semana»), TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3
-(presupuestos anuales/trimestrales), TRACK-2 (historial de cumplimiento por categoría) y FCST-1
-(forecast a 3 horizontes) completadas y publicadas; FCST-2 y UX-B1-3 pendientes.
+(presupuestos anuales/trimestrales), TRACK-2 (historial de cumplimiento por categoría), FCST-1
+(forecast a 3 horizontes) y FCST-2 (Escenarios conectado con Presupuesto del mes) completadas y
+publicadas; queda UX-B1-3.
 **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
 separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
@@ -29,7 +30,7 @@ separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 | BUD-3 | Presupuestos anuales/trimestrales con reparto automático a mensual | ✅ Hecho |
 | TRACK-2 | Historial de cumplimiento por categoría (rachas on-track/overspend) | ✅ Hecho |
 | FCST-1 | Forecast por categoría a 3 horizontes (semana, mes, +3 meses) | ✅ Hecho |
-| FCST-2 | Conectar Escenarios (E13) con Presupuesto del mes | ⏳ Pendiente |
+| FCST-2 | Conectar Escenarios (E13) con Presupuesto del mes | ✅ Hecho |
 | UX-B1 | Vista móvil de Presupuesto del mes | ⏳ Pendiente |
 | UX-B2 | Edición masiva de presupuestos (±X% a todas las categorías) | ⏳ Pendiente |
 | UX-B3 | Importar presupuestos desde CSV/JSON | ⏳ Pendiente |
@@ -536,7 +537,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | **TRACK-2** | Historial de cumplimiento por categoría (racha on-track/overspend), reutilizando el histórico que ya calcula `CanonicalBudgetAnalyzer` | Media | Bajo | — | ✅ (27/08/2026) |
 | **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | ✅ (27/08/2026) |
 | **FCST-1** | Forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses), exponiendo a nivel semanal la banda de confianza que `canonical-budget-forecast-category.js` ya calcula | Media | Medio | BUD-1 | ✅ (27/08/2026) |
-| **FCST-2** | Conectar el laboratorio de Escenarios (E13) con Presupuesto del mes: "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?", reutilizando los dos motores existentes sin duplicar cálculo | Media | Alto | — | Pendiente |
+| **FCST-2** | Conectar el laboratorio de Escenarios (E13) con Presupuesto del mes: "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?", reutilizando los dos motores existentes sin duplicar cálculo | Media | Alto | — | ✅ (28/08/2026) |
 | **UX-B1** | Vista móvil de presupuestos por categoría (el resto del shell ya migró a E19/E17; Presupuesto del mes se quedó con la tabla densa de escritorio) | Media | Medio | — | Pendiente |
 | **UX-B2** | Edición masiva de presupuestos (±X% a todas las categorías de golpe, útil tras una subida de sueldo o inflación) | Baja | Bajo | — | Pendiente |
 | **UX-B3** | Importar presupuestos desde CSV/JSON — hoy solo existe la exportación (INTEG-1); falta el camino inverso para reponer un plan | Baja | Bajo | INTEG-1 | Pendiente |
@@ -777,6 +778,50 @@ contra `dist/`): con 6 meses de histórico estable a 100€/mes, la tarjeta mues
 ±0, confianza alta", "Cierre de mes: 0,00 € / 300,00 € margen" (proyección real reutilizada, sin
 duplicar el cálculo) y "+3 meses: 100,00 € ±0, confianza alta" — sin errores de consola.
 
+**FCST-2 — construido y publicado (28 de agosto de 2026)**: conecta el laboratorio de Escenarios
+(E13, "Tablero familiar de decisiones") con el forecast por categoría de Presupuesto del mes
+(FCST-1) — responde a "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?" sin
+motor nuevo por ningún lado: ni E13 (`canonical-e13-scenarios.js`, simula caja agregada) ni el
+forecast por categoría (`canonical-budget-forecast-category.js`) se recalculan; solo se combinan sus
+salidas ya calculadas.
+
+- `canonical-e13-scenarios.js`: los eventos ganan un campo opcional `categoryId` (`""` por defecto,
+  retrocompatible con todo evento ya creado) que `normalizeEvent` conserva tal cual. No participa en
+  `simulate()` — es puro metadato de qué categoría de presupuesto representa el evento; la
+  simulación de caja agregada de E13 no cambia en absoluto.
+- Formulario de eventos de E13 (`index.html`, `#e13EventBuilder`): nuevo selector "Categoría
+  (opcional)" (`#e13EventCategory`), poblado por `e13BudgetCategoryOptions()` (app.js) — mismo
+  criterio de categorías que `budgetableCategories()` de Presupuesto del mes, pero autocontenido en
+  app.js para no depender de que ese chunk diferido (PERF-1) ya esté cargado, ya que el laboratorio
+  de Escenarios vive en "Tablero familiar de decisiones", una pantalla distinta. El chip de cada
+  evento añade `🏷️ <categoría>` cuando la tiene.
+- `views/presupuesto-mes.js`: `budgetForecastHorizons` (FCST-1) ahora también expone el `monthKey`
+  real de cada horizonte (`weekMonthKey`, `threeMonthsOutMonthKey`). Nueva
+  `budgetScenarioImpactForMonth(category, monthKey)` suma el importe de los eventos de E13
+  etiquetados con esa categoría y activos ese mes (excluyendo "pérdida de ingreso", que no aplica a
+  una categoría de gasto); `e13ScenarioEvents` es el mismo estado global de app.js que ya lee
+  `renderE13ScenarioLab` (visible en el chunk diferido igual que `budgets`/`budgetSurplusChoices`,
+  patrón ya usado en todo el archivo). Cuando hay impacto, se suma al `predicted` de "Semana"
+  (prorrateado ÷4,345, mismo criterio que el resto del horizonte) y "+3 meses", con una nota "+X € por
+  escenario «Nombre»"; "Cierre de mes" no se toca — sigue siendo la proyección real (S-2), no una
+  hipótesis.
+
+23 tests nuevos (`tests/fcst2-escenarios-presupuesto.test.cjs`): `categoryId` no cambia
+`simulate()`, cobertura de meses de un evento (inicio + duración, ni un mes antes ni uno de más),
+suma solo eventos de la categoría correcta activos ese mes y no de tipo "pérdida de ingreso", fila
+sin cambios cuando no hay eventos, fila con importe ajustado y nota cuando sí los hay (semana
+prorrateada y +3 meses en bruto), categoría sin relación no ve impacto, y wiring estático
+(formulario, `addE13ScenarioEvent`, `e13BudgetCategoryOptions`, `categoryId` en
+`canonical-e13-scenarios.js`). `tests/fcst1-forecast-horizontes.test.cjs` ampliado con los nuevos
+mocks (`round2`, `e13ScenarioEvents: []`) para seguir verde sin cambiar ninguna aserción existente.
+`npm run verify` completo: 1804/1804 tests, accesibilidad (835 IDs), rendimiento, build, privacidad
+y smoke en verde. Verificado también en navegador real (Playwright contra `dist/`): con 6 meses de
+histórico estable en "alimentacion" (semana 44,30 €, +3 meses 192,50 €), al añadir un evento de
+Escenarios de 60 €/mes etiquetado "alimentacion" desde el mes en curso y 4 meses de duración, la
+tarjeta de Presupuesto del mes pasa a mostrar "Semana: 58,11 € (+13,81 € por escenario «Gasto
+extraordinario»)" y "+3 meses: 252,50 € (+60,00 € por escenario «Gasto extraordinario»)" — sin
+errores de consola.
+
 ---
 
 ## 🎯 8 Features Diferenciadoras
@@ -842,7 +887,7 @@ duplicar el cálculo) y "+3 meses: 100,00 € ±0, confianza alta" — sin error
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2 (✅), FCST-1 (✅), FCST-2, UX-B1-3 | ~1560 | — | 🔄 En curso |
+| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2 (✅), FCST-1 (✅), FCST-2 (✅), UX-B1-3 | ~1620 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -868,8 +913,9 @@ duplicar el cálculo) y "+3 meses: 100,00 € ±0, confianza alta" — sin error
 8. 🔄 **FASE 7 en curso (propuesta el 27 de agosto)**: BUD-1 (presupuestos semanales), BUD-2
    (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado de la semana»), TRACK-1 (ritmo
    semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3 (presupuestos anuales/
-   trimestrales), TRACK-2 (historial de cumplimiento por categoría) y FCST-1 (forecast a 3
-   horizontes) completadas y publicadas; quedan FCST-2 y UX-B1-3
+   trimestrales), TRACK-2 (historial de cumplimiento por categoría), FCST-1 (forecast a 3
+   horizontes) y FCST-2 (Escenarios conectado con Presupuesto del mes) completadas y publicadas;
+   queda UX-B1-3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -944,4 +990,5 @@ de por qué se descartó escalar más con el método de PERF-1).
 ---
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
-PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4, BUD-3, TRACK-2 y FCST-1. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4, BUD-3, TRACK-2 y FCST-1; actualizado el
+28/08/2026 al completar FCST-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.

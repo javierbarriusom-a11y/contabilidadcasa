@@ -1,6 +1,56 @@
 # Estado del proyecto
 
-Fecha de revisión: 27 de agosto de 2026.
+Fecha de revisión: 28 de agosto de 2026.
+
+## Cierre de sesión — 28 de agosto de 2026 (28): FASE 7 — FCST-2, Escenarios conectado con Presupuesto del mes
+
+Continuación directa del cierre anterior (FCST-1). El usuario pidió seguir con FCST-2 explícitamente.
+
+**Construido**: conecta el laboratorio de Escenarios (E13, "Tablero familiar de decisiones") con el
+forecast por categoría de Presupuesto del mes (FCST-1) — responde a "si aplico esta decisión, ¿cómo
+cambia mi proyección por categoría?" sin motor nuevo por ningún lado: ni E13
+(`canonical-e13-scenarios.js`, simula caja agregada) ni el forecast por categoría
+(`canonical-budget-forecast-category.js`) se recalculan; solo se combinan sus salidas ya calculadas.
+
+- `canonical-e13-scenarios.js`: los eventos ganan un campo opcional `categoryId` (`""` por defecto,
+  retrocompatible) que `normalizeEvent` conserva tal cual, sin participar en `simulate()` — puro
+  metadato de qué categoría de presupuesto representa el evento.
+- Formulario de eventos de E13 (`#e13EventBuilder`): nuevo selector "Categoría (opcional)"
+  (`#e13EventCategory`), poblado por `e13BudgetCategoryOptions()` (app.js) — mismo criterio que
+  `budgetableCategories()` de Presupuesto del mes, pero autocontenido en app.js para no depender de
+  que ese chunk diferido ya esté cargado (el laboratorio de Escenarios vive en otra pantalla). El
+  chip de cada evento añade `🏷️ <categoría>` cuando la tiene.
+- `views/presupuesto-mes.js`: `budgetForecastHorizons` (FCST-1) ahora también expone el `monthKey`
+  real de cada horizonte. Nueva `budgetScenarioImpactForMonth(category, monthKey)` suma el importe de
+  los eventos de E13 etiquetados con esa categoría y activos ese mes (excluyendo "pérdida de
+  ingreso"), leyendo el mismo `e13ScenarioEvents` global que ya usa `renderE13ScenarioLab`. Cuando hay
+  impacto, se suma al `predicted` de "Semana" (prorrateado ÷4,345) y "+3 meses", con una nota "+X € por
+  escenario «Nombre»"; "Cierre de mes" no se toca — sigue siendo la proyección real (S-2), no una
+  hipótesis.
+
+**Verificación**: 23 tests nuevos (`tests/fcst2-escenarios-presupuesto.test.cjs`) — `categoryId` no
+cambia `simulate()`, cobertura de meses de un evento, suma solo eventos de la categoría correcta
+activos ese mes y no de tipo "pérdida de ingreso", fila sin cambios cuando no hay eventos, fila con
+importe ajustado y nota cuando sí los hay, categoría sin relación no ve impacto, y wiring estático.
+`tests/fcst1-forecast-horizontes.test.cjs` ampliado con los nuevos mocks para seguir verde sin cambiar
+ninguna aserción existente. `npm run verify` completo: 1804/1804 tests, accesibilidad (835 IDs),
+rendimiento, build, privacidad y smoke en verde.
+
+Verificado también en navegador real (Playwright contra `dist/`): con 6 meses de histórico estable en
+"alimentacion" (semana 44,30 €, +3 meses 192,50 €), al añadir un evento de Escenarios de 60 €/mes
+etiquetado "alimentacion" desde el mes en curso y 4 meses de duración, la tarjeta de Presupuesto del
+mes pasa a mostrar "Semana: 58,11 € (+13,81 € por escenario «Gasto extraordinario»)" y "+3 meses:
+252,50 € (+60,00 € por escenario «Gasto extraordinario»)" — sin errores de consola.
+
+Versión de `views/presupuesto-mes.js` bumpeada a `20260827i1`; `app.js` a `20260827d1a5` (los
+ficheros de test que las pinnean actualizados en bloque).
+
+**Publicado**: commit/push a `claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: de FASE 7 solo queda UX-B1-3 (vista móvil, edición masiva ±X%, importar
+CSV/JSON). Todo lo demás (BUD-1 a BUD-4, TRACK-1 a TRACK-3, FCST-1, FCST-2) está completo y
+publicado.
 
 ## Cierre de sesión — 27 de agosto de 2026 (27): FASE 7 — FCST-1, forecast a 3 horizontes
 

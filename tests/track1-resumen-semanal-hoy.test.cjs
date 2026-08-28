@@ -162,5 +162,5 @@ test("TRACK-1 · renderHomeBudgetGlance consulta homeBudgetWeekSummary()", () =>
 
 test("TRACK-1 · la versión de app.js está actualizada en index.html", () => {
   const html = read("index.html");
-  assert.match(html, /<script src="app\.js\?v=20260827d1a4"><\/script>/);
+  assert.match(html, /<script src="app\.js\?v=20260827d1a5"><\/script>/);
 });

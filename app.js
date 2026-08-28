@@ -192,7 +192,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827h1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827i1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
@@ -15856,9 +15856,23 @@ function e13EventLabel(type) {
   }[type] || "Evento";
 }
 
+// FCST-2 (FASE 7): categorías disponibles para etiquetar un evento de Escenarios (E13) con una
+// categoría de presupuesto — mismo criterio que budgetableCategories() (vista Presupuesto del mes,
+// que puede no estar cargada todavía) pero usando solo funciones que ya viven en app.js, para que
+// el laboratorio de Escenarios (siempre cargado) no dependa de un chunk diferido.
+function e13BudgetCategoryOptions() {
+  const set = new Set();
+  (baseData?.transactions || []).forEach((row) => {
+    if (Number(row.amount || 0) < 0 && row.category) set.add(row.category);
+  });
+  manualPartidaEntriesForMonth(currentBudgetMonthKey()).forEach((entry) => set.add(categoryForPartidaEntry(entry)));
+  return [...set].sort();
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
+  const categorySelect = qs("e13EventCategory");
   if (!comparison || !monthSelect) return;
   const forecast = canonicalScenarioResults.base?.forecast;
   const E13 = window.FinanceCanonicalE13;
@@ -15869,9 +15883,15 @@ function renderE13ScenarioLab() {
   const previousMonth = monthSelect.value;
   monthSelect.innerHTML = forecast.series.map((month) => `<option value="${escapeHtml(month.monthKey)}">${escapeHtml(month.label || month.monthKey)}</option>`).join("");
   if (forecast.series.some((month) => month.monthKey === previousMonth)) monthSelect.value = previousMonth;
+  if (categorySelect) {
+    const previousCategory = categorySelect.value;
+    const categoryOptions = e13BudgetCategoryOptions().map((cat) => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join("");
+    categorySelect.innerHTML = `<option value="">Sin categoría (solo caja)</option>${categoryOptions}`;
+    if (e13BudgetCategoryOptions().includes(previousCategory)) categorySelect.value = previousCategory;
+  }
   const lab = E13.buildLab(forecast, e13ScenarioEvents, { generatedAt: forecast.generatedAt });
   qs("e13EventList").innerHTML = lab.events.length
-    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${money(event.amount, true)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
+    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${money(event.amount, true)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
     : '<span class="e13-empty-events">Sin eventos añadidos. Los tres escenarios muestran solo sus supuestos base.</span>';
   comparison.innerHTML = `<div class="e13-comparison-head" role="row">
       <span>Escenario</span><span>Caja mínima</span><span>Meses negativos</span><span>Ahorro final</span><span>Deuda simulada</span><span>Recuperación</span>
@@ -15935,6 +15955,7 @@ function addE13ScenarioEvent() {
   const amount = Math.max(0, parseAmount(qs("e13EventAmount")?.value) ?? 0);
   const monthKeyValue = qs("e13EventMonth")?.value || "";
   const duration = Math.max(1, Math.round(Number(qs("e13EventDuration")?.value || 1)));
+  const categoryId = qs("e13EventCategory")?.value || "";
   if (!amount || !monthKeyValue) {
     qs("e13ScenarioStatus").textContent = "Indica mes e importe para añadir el evento.";
     return;
@@ -15946,6 +15967,7 @@ function addE13ScenarioEvent() {
     amount,
     monthKey: monthKeyValue,
     duration,
+    categoryId,
   }];
   renderE13ScenarioLab();
 }

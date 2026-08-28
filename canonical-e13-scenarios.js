@@ -41,6 +41,11 @@
       monthKey: text(raw.monthKey),
       amount: Math.max(0, round(raw.amount)),
       duration: Math.max(1, Math.round(number(raw.duration) || 1)),
+      // FCST-2 (FASE 7): etiqueta opcional a una categoría de presupuesto ("" = sin categoría,
+      // comportamiento idéntico al de siempre: el evento solo afecta a la caja agregada). No
+      // participa en simulate() — es metadato que Presupuesto del mes lee para sumar este importe
+      // al forecast por categoría en los meses que el evento cubre, sin tocar este motor.
+      categoryId: text(raw.categoryId || ""),
     };
   }
 
