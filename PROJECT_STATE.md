@@ -2,6 +2,71 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (37): #3/#4 — puntuación de salud financiera y comparar más de dos escenarios
+
+Continuación directa del cierre anterior (P-3). El usuario pidió completar la Ola 3 del "orden
+recomendado" (ver artefacto "Revisión del Plan de Mejora" y `BACKLOG.md` §9): #3 («Puntuación única
+de salud financiera») y #4 («Comparar más de dos escenarios guardados»), las dos candidatas que
+quedaban de esa ola tras P-3.
+
+**Construido — #3**: `homeHealthScore(statuses)` (app.js, junto a `homeOverallStatus`) combina los
+mismos seis estados categóricos que ya clasifica cada KPI de Hoy en una media simple (good=100,
+warn=50, danger=0), redondeada. Investigación previa confirmó que `coverageStatus` (cobertura del
+fondo de emergencia) se calculaba en `renderHomeDashboard()` pero no entraba en ningún agregado —ni
+siquiera en el pill de `homeOverallStatus`, que solo usa cinco de los seis—, así que la puntuación
+usa los seis, un dato más honesto que el que ya se mostraba. Sin estados que combinar (`[]`) devuelve
+`null`, nunca una cifra inventada. `renderHomeHeaderMeta` gana un parámetro `health` opcional
+(retrocompatible: sin él no pinta nada) que muestra el badge «Salud financiera: X/100» junto al pill
+existente, con el desglose (cuántos KPI en cada tono) en el `title` del badge.
+
+**Construido — #4**: E-12 (comparador de escenarios) estaba fijo a exactamente dos por los dos
+`<select>` de `#escenario-comparar`, no por el motor — `runEscenarioMotor`/`escenarioMotorSummaryFor`
+ya eran genéricos por escenario (`escenarioMotorCompareCandidates()`, sin límite, reutilizada tal
+cual). Se sustituyen los selects por un `<fieldset>` de checkboxes (`escenarioCompararSelected`,
+estado nuevo por-sesión) y `escenarioMotorCompareThreeHtml` (firma fija A/B) se generaliza a
+`escenarioMotorCompareTableHtml(baseSummary, entries)`, que pinta una columna por cada entrada. Por
+defecto se marcan todos los candidatos disponibles; guardar/archivar un escenario nuevo cambia la
+firma del conjunto de candidatos y reinicia la selección a «todos» (mismo criterio que antes usaba
+`dataset.count` en los selects); una selección manual se respeta mientras el conjunto no cambie;
+desmarcar todos muestra un aviso en vez de fabricar una tabla vacía. Con más de dos escenarios
+marcados la tabla lleva la clase `is-multi` (ancho automático en vez del `34%/22%/22%/22%` fijo que
+solo tenía sentido con Plan+A+B), apoyándose en el `.table-wrap` con scroll horizontal que ya
+envolvía la tabla.
+
+**Verificación**: 20 pruebas nuevas en
+`tests/o3-o4-salud-financiera-y-comparar-escenarios.test.cjs` (`homeHealthScore` con todo good/todo
+danger/mezcla/vacío/valores inválidos, `renderHomeHeaderMeta` con y sin `health`,
+`renderEscenarioComparar` en sus seis casos —menos de dos candidatos, selección por defecto a
+«todos», selección manual respetada, reinicio de selección al cambiar el conjunto, aviso al
+desmarcar todos, un solo escenario marcado—, `handleEscenarioCompararPick` marcar/desmarcar/sin
+duplicar/sin id, y wiring estático de HTML y del listener delegado). Se actualizó 1 test existente
+(`tests/e1-e1b-escenarios-tipos-nuevos.test.cjs`) para probar `escenarioMotorCompareTableHtml` en vez
+de la función retirada `escenarioMotorCompareThreeHtml`, con casos nuevos de 1, 2 y 4 escenarios.
+`npm run verify` completo: **1972/1972 pruebas**, accesibilidad (841 IDs — dos `<select>` menos, un
+`<fieldset>` más, cifra exacta y esperada), rendimiento, build del sitio, privacidad y smoke en
+verde.
+
+Verificado también en navegador real (Playwright contra `dist/`, Chromium): `homeHealthScore` puro
+da 100/50/`null` en los tres casos de control; `renderHomeHeaderMeta` real pinta el badge «Salud
+financiera: 82/100» con el desglose correcto en el título; en Comparar escenarios, sobrescribiendo
+`escenarioMotorCompareCandidates`/`escenarioMotorBaseInput`/`runEscenarioMotor`/
+`escenarioMotorSummaryFor` con datos de ejemplo (mismo límite que en verificaciones anteriores, sin
+sesión real), `renderEscenarioComparar()` real pinta 4 checkboxes marcados por defecto y una tabla de
+6 columnas con la clase `is-multi`; desmarcar dos con clics reales reduce la tabla a 4 columnas;
+desmarcar los dos restantes muestra el aviso «Marca al menos un escenario…» en vez de una tabla
+vacía. Sin errores de consola propios.
+
+`app.js` bumpeado a `20260828f1a1`; `design-tokens.css` a `20260828k1` (picker de checkboxes y
+`.is-multi` de la tabla de comparar). Los ficheros que pineaban las versiones anteriores se
+actualizaron en bloque.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz` (reiniciada desde `main` tras la fusión
+de P-3), PR en borrador y fusión al ponerse el CI en verde.
+
+**Próximo paso**: Ola 3 completa (#3, #4, P-3). Quedan P-4, P-5, P-6 del plan corregido y las
+candidatas #7, #8 (Ola 5, condicionadas a la verificación de P-4), #9/P-5 y #10/P-6 (Ola 4), más el
+punto aislado de retirar el Asistente financiero. Ver §9 de `BACKLOG.md`.
+
 ## Cierre de sesión — 28 de agosto de 2026 (36): P-3 — plantillas de mes con nombre
 
 Continuación directa del cierre anterior (#5/#6). El usuario pidió seguir con la cola del plan de

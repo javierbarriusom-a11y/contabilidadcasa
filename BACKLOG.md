@@ -692,10 +692,11 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 | P-5 | Objetivos en la exportación de Análisis (A-11) | Pendiente |
 | P-6 | Atajo de teclado Cmd/Ctrl+K para el buscador (A12-3) | Pendiente |
 
-Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (puntuación única de
-salud financiera, comparar más de dos escenarios guardados, presupuesto por «sobres», alerta de
-gasto hormiga, entre otras — **#5 «archivo automático del informe de cierre» y #6 «ritual de
-revisión anual» ya están construidas, ver más abajo**) y un punto aislado fuera de la cola —retirar
+Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (presupuesto por
+«sobres», alerta de gasto hormiga, entre otras — **#3 «puntuación única de salud financiera», #4
+«comparar más de dos escenarios guardados», #5 «archivo automático del informe de cierre» y #6
+«ritual de revisión anual» ya están construidas, ver más abajo**) y un punto aislado fuera de la
+cola —retirar
 el widget «Asistente financiero» (`index.html:3959-3984`,
 `assistantRecommendationForQuestion()` en `app.js`), que finge diálogo abierto con cuatro palabras
 clave cuando el resto de la app se apoya en decisiones trazables con evidencia—, con su propia
@@ -755,3 +756,22 @@ nombre reaparece automáticamente cada vez que ese mes del calendario vuelva a r
 viene y los siguientes; si un año no hay patrón detectado para ese mes, el nombre se conserva con un
 aviso honesto en vez de inventar una cifra. Ningún motor de estacionalidad nuevo: la tarjeta llama a
 `budgetSeasonalPatterns` tal cual.
+
+**#3 construido** («Puntuación única de salud financiera»): `homeHealthScore` combina los mismos
+seis estados categóricos (good/warn/danger) que ya clasifica cada KPI de Hoy —incluida la cobertura
+del fondo de emergencia (`coverageStatus`), que se calculaba pero no entraba en ningún agregado, ni
+siquiera en el pill de `homeOverallStatus`— en una media simple (good=100, warn=50, danger=0). Sin
+estados que combinar no fabrica una cifra: devuelve `null` y no se pinta ningún badge. Se muestra
+junto al pill existente en la cabecera de Hoy («Salud financiera: 82/100»), con el desglose real
+(cuántos KPI en cada tono) en el título del badge — ningún motor de puntuación nuevo, solo un
+agregado numérico sobre estados que ya se calculaban.
+
+**#4 construido** («Comparar más de dos escenarios guardados»): E-12 estaba limitado a un par por
+los dos `<select>` fijos de la pantalla, no por el motor — `runEscenarioMotor`/
+`escenarioMotorSummaryFor` ya eran genéricos por escenario. Los dos selects se sustituyen por una
+lista de checkboxes sobre `escenarioMotorCompareCandidates()` (reutilizada tal cual) y la tabla de
+seis indicadores acepta cualquier número de columnas — por defecto, todos los escenarios guardados
+marcados a la vez. Guardar un escenario nuevo hace que la selección vuelva a «todos»; desmarcar hasta
+dejar cero avisa en vez de fabricar una tabla vacía. Con más de dos escenarios la tabla pasa de ancho
+fijo a `is-multi` (auto), apoyándose en el `.table-wrap` con scroll horizontal que ya envolvía la
+tabla.

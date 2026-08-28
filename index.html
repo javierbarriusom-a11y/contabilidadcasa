@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260808e18a4" />
     <link rel="stylesheet" href="styles.css?v=20260808e18a4" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260828j1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260828k1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -1378,8 +1378,8 @@
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Decidir · comparar escenarios</p>
-                <h2 class="e19-heading">Dos escenarios, uno al lado del otro</h2>
-                <p class="e19-subtitle">Los mismos seis indicadores de la comparativa, con el plan vigente como referencia. Los avisos (E-6b) no se pueden comparar: no son escenarios viables.</p>
+                <h2 class="e19-heading">Varios escenarios, uno al lado del otro</h2>
+                <p class="e19-subtitle">Los mismos seis indicadores de la comparativa, con el plan vigente como referencia y una columna por cada escenario marcado abajo. Los avisos (E-6b) no se pueden comparar: no son escenarios viables.</p>
               </div>
               <div class="visual-controls">
                 <button type="button" class="e19-btn e19-btn-secondary" id="escenarioCompararBack">Volver a guardados</button>
@@ -1389,16 +1389,7 @@
             <p class="e19-subtitle" id="escenarioCompararEmpty">Hacen falta al menos dos escenarios guardados (no avisos) para comparar.</p>
 
             <div id="escenarioCompararLayout" hidden>
-              <div class="escenario-motor-compare-selectors">
-                <label>
-                  <span>Escenario A</span>
-                  <select id="escenarioCompararA"></select>
-                </label>
-                <label>
-                  <span>Escenario B</span>
-                  <select id="escenarioCompararB"></select>
-                </label>
-              </div>
+              <fieldset class="escenario-motor-compare-picker" id="escenarioCompararPicker" aria-label="Escenarios a comparar"></fieldset>
               <div class="table-wrap escenario-motor-compare-wrap" id="escenarioCompararBody"></div>
             </div>
           </section>
@@ -4166,7 +4157,7 @@
     <script src="p2-domain.js?v=20260805e16a2"></script>
     <script src="p2-private-store.js?v=20260717a"></script>
     <script src="p2-export.js?v=20260811v64a1"></script>
-    <script src="app.js?v=20260828e1a1"></script>
+    <script src="app.js?v=20260828f1a1"></script>
     <script src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
