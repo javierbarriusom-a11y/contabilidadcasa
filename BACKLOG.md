@@ -695,9 +695,9 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (presupuesto por
 «sobres», alerta de gasto hormiga, entre otras — **#3 «puntuación única de salud financiera», #4
 «comparar más de dos escenarios guardados», #5 «archivo automático del informe de cierre», #6
-«ritual de revisión anual», #7 «presupuesto por sobres», #9/P-5 «objetivos en el export de Análisis»
-y #10/P-6 «atajo Cmd/Ctrl+K» ya están construidas, ver más abajo**) y un punto aislado fuera de la
-cola —retirar
+«ritual de revisión anual», #7 «presupuesto por sobres», #8 «alerta de gasto hormiga», #9/P-5
+«objetivos en el export de Análisis» y #10/P-6 «atajo Cmd/Ctrl+K» ya están construidas, ver más
+abajo**) y un punto aislado fuera de la cola —retirar
 el widget «Asistente financiero» (`index.html:3959-3984`,
 `assistantRecommendationForQuestion()` en `app.js`), que finge diálogo abierto con cuatro palabras
 clave cuando el resto de la app se apoya en decisiones trazables con evidencia—, con su propia
@@ -820,3 +820,18 @@ céntimo, nunca el sobrante entero: `CanonicalBudgetSchema.validate()` rechaza u
 así que dejar la categoría de origen exactamente a 0 no es una opción. Sin sobrante en ninguna
 categoría, o con una sola categoría presupuestada ese mes, la tarjeta no aparece — hueco honesto, no
 un formulario sin nada que hacer.
+
+**#8 construido** («Alerta de gasto hormiga»): confirmado como hueco real tras la verificación de
+P-4 — ni `budgetSeasonalPatterns` (ML-1, agrega el TOTAL por mes) ni A-9 «Recurrentes» (agrupa por
+concepto y variación de importe) miran el CONTEO de cargos pequeños, que es lo que caracteriza al
+gasto hormiga. `budgetAntSpendingSignal` compara, por categoría, cuántos cargos por debajo de la
+mitad del importe mediano de la categoría hay en la primera mitad de los últimos 7 meses frente a la
+segunda; con mismo rigor que ML-1 — mínimo 10 cargos en la ventana antes de opinar, y un crecimiento
+del 30% o más (más exigente que el 10% de ML-1, porque un conteo de cargos es más ruidoso que un
+importe agregado) — para no fabricar una alerta con ruido. Sin datos suficientes o sin crecimiento
+significativo, ninguna categoría aparece. La tarjeta nueva («Gasto hormiga») vive en Presupuesto del
+mes, junto a «Patrones estacionales» (ML-1), del que reutiliza tal cual el listado de categorías a
+analizar (`budgetableCategories()`, no solo las presupuestadas este mes — el punto es detectar el
+gasto que pasa desapercibido precisamente porque nadie lo está presupuestando). Ningún motor nuevo
+de análisis de movimientos: reutiliza `budgetExpenseTransactions`/`recentBudgetMonthKeys`, ya
+construidos.
