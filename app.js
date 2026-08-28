@@ -192,7 +192,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // markViewCalculating) es el mismo que ya usa el resto de vistas pesadas para mostrar "calculando"
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
-  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260827i1", rootId: "presupuestoMesRoot" },
+  "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260828a1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },

@@ -13,8 +13,8 @@ cadencia, seguimiento unificado y forecasting) propuesta el 27 de agosto de 2026
 BUD-1 (presupuestos semanales), BUD-2 (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado
 de la semana»), TRACK-1 (ritmo semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3
 (presupuestos anuales/trimestrales), TRACK-2 (historial de cumplimiento por categoría), FCST-1
-(forecast a 3 horizontes) y FCST-2 (Escenarios conectado con Presupuesto del mes) completadas y
-publicadas; queda UX-B1-3.
+(forecast a 3 horizontes), FCST-2 (Escenarios conectado con Presupuesto del mes) y UX-B1 (vista
+móvil de la tabla principal) completadas y publicadas; quedan UX-B2 y UX-B3.
 **PERF-2 (motor Escenario/Agente para Lighthouse >85) queda anotado como candidato nuevo y
 separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 
@@ -31,7 +31,7 @@ separado**, sin comprometer esfuerzo hasta valorarlo aparte.
 | TRACK-2 | Historial de cumplimiento por categoría (rachas on-track/overspend) | ✅ Hecho |
 | FCST-1 | Forecast por categoría a 3 horizontes (semana, mes, +3 meses) | ✅ Hecho |
 | FCST-2 | Conectar Escenarios (E13) con Presupuesto del mes | ✅ Hecho |
-| UX-B1 | Vista móvil de Presupuesto del mes | ⏳ Pendiente |
+| UX-B1 | Vista móvil de Presupuesto del mes | ✅ Hecho |
 | UX-B2 | Edición masiva de presupuestos (±X% a todas las categorías) | ⏳ Pendiente |
 | UX-B3 | Importar presupuestos desde CSV/JSON | ⏳ Pendiente |
 | PERF-2 | Reestructurar el motor Escenario/Agente para Lighthouse >85 | ⏳ Candidato aparte, sin empezar |
@@ -538,7 +538,7 @@ viven en tres pantallas distintas sin una lectura conjunta.
 | **TRACK-3** | Pantalla única "Estado de la semana/mes": funde alertas de caja (E16) + ritmo de presupuesto + próximos vencimientos de objetivos (E15), hoy dispersos en 3 pantallas | Alta | Alto | BUD-2 | ✅ (27/08/2026) |
 | **FCST-1** | Forecast por categoría a 3 horizontes (semana, cierre de mes, +3 meses), exponiendo a nivel semanal la banda de confianza que `canonical-budget-forecast-category.js` ya calcula | Media | Medio | BUD-1 | ✅ (27/08/2026) |
 | **FCST-2** | Conectar el laboratorio de Escenarios (E13) con Presupuesto del mes: "si aplico esta decisión, ¿cómo cambia mi proyección por categoría?", reutilizando los dos motores existentes sin duplicar cálculo | Media | Alto | — | ✅ (28/08/2026) |
-| **UX-B1** | Vista móvil de presupuestos por categoría (el resto del shell ya migró a E19/E17; Presupuesto del mes se quedó con la tabla densa de escritorio) | Media | Medio | — | Pendiente |
+| **UX-B1** | Vista móvil de presupuestos por categoría (el resto del shell ya migró a E19/E17; Presupuesto del mes se quedó con la tabla densa de escritorio) | Media | Medio | — | ✅ (28/08/2026) |
 | **UX-B2** | Edición masiva de presupuestos (±X% a todas las categorías de golpe, útil tras una subida de sueldo o inflación) | Baja | Bajo | — | Pendiente |
 | **UX-B3** | Importar presupuestos desde CSV/JSON — hoy solo existe la exportación (INTEG-1); falta el camino inverso para reponer un plan | Baja | Bajo | INTEG-1 | Pendiente |
 
@@ -822,6 +822,39 @@ tarjeta de Presupuesto del mes pasa a mostrar "Semana: 58,11 € (+13,81 € por
 extraordinario»)" y "+3 meses: 252,50 € (+60,00 € por escenario «Gasto extraordinario»)" — sin
 errores de consola.
 
+**UX-B1 — construido y publicado (28 de agosto de 2026)**: vista móvil de la tabla principal de
+Presupuesto del mes ("Presupuesto de {mes}", 7 columnas), la única pantalla de presupuestos que se
+quedó con `min-width: 720px` y desplazamiento horizontal cuando el resto del shell migró a un diseño
+mobile-first (U-3). Sin reescribir su HTML como una lista de tarjetas — que habría duplicado la
+lógica de `presupuestoMesRowHtml` en una segunda función de render — la fila se convierte en tarjeta
+con CSS puro por debajo de 640px, apoyándose en `data-label` en cada celda:
+
+- `presupuestoMesRowHtml` y `presupuestoMesAddGoalRowHtml` (fila de "presupuestar objetivo") ganan
+  `data-label="Categoría"`/`"Presupuesto"`/`"Gastado"`/`"Ritmo"`/`"Estado"`/`"Proyección fin de
+  mes"` en sus celdas de datos; la celda del botón "Quitar" no lleva label — el botón ya se explica
+  solo.
+- Solo la `<table>` principal lleva la clase nueva `presupuesto-mes-primary-table` (además de las
+  que ya tenía); las otras ~10 tablas de la pantalla comparten `.plan-mes-budget-table` pero no la
+  clase nueva, así que no se ven afectadas y siguen con su desplazamiento horizontal de siempre.
+- `design-tokens.css`: bajo `@media (max-width: 640px)`, `.e19-plan-mes
+  .presupuesto-mes-primary-table` oculta el `<thead>`, convierte cada `<tr>` en una tarjeta con
+  borde y cada `<td>` en una fila flexible (`justify-content: space-between`) con el `data-label`
+  pintado como etiqueta a la izquierda vía `::before`. Necesitó ir prefijado con `.e19-plan-mes`
+  (no solo la clase nueva) porque la regla existente `.e19-plan-mes .registrar-mes-table {
+  min-width: 720px }` tiene mayor especificidad (dos clases) que una regla de una sola clase, así
+  que sin el prefijo el `min-width: 0` de la vista móvil perdía silenciosamente el pulso en el
+  navegador real (detectado en la verificación, no en los tests `vm`, que no calculan especificidad
+  CSS).
+
+7 tests nuevos (`tests/uxb1-vista-movil-presupuesto.test.cjs`): `data-label` correctos en ambas
+filas, solo la tabla principal lleva la clase nueva, la regla CSS existe y está acotada a esa clase
+(no a `.plan-mes-budget-table` en general), y wiring de versión. `npm run verify` completo:
+1811/1811 tests, accesibilidad (835 IDs), rendimiento, build, privacidad y smoke en verde. Verificado
+también en navegador real (Playwright contra `dist/`, viewport 390×844): la fila pasa de 720px de
+ancho fijo a ajustarse al viewport, el `<thead>` queda oculto y cada campo aparece con su etiqueta
+("Categoría", "Presupuesto", "Gastado"…); a 1280px la tabla sigue siendo la tabla densa de siempre
+(fila de 957px) — sin errores de consola en ninguno de los dos anchos.
+
 ---
 
 ## 🎯 8 Features Diferenciadoras
@@ -887,7 +920,7 @@ errores de consola.
 | **4** | GAME-1-3, NOTIF-1, ML-1, COMP-1 | ~450 | 5 | ✅ |
 | **5** | U-2, U-3, U-4, PERF-1 | 800 | 4 | ✅ |
 | **6** | DOC-1, QA-1, SCALE-1, INTEG-1 | 300 | 4 | ✅ |
-| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2 (✅), FCST-1 (✅), FCST-2 (✅), UX-B1-3 | ~1620 | — | 🔄 En curso |
+| **7** | BUD-1 (✅), BUD-2 (✅), TRACK-3 (✅), TRACK-1 (✅), BUD-4 (✅), BUD-3 (✅), TRACK-2 (✅), FCST-1 (✅), FCST-2 (✅), UX-B1 (✅), UX-B2, UX-B3 | ~1670 | — | 🔄 En curso |
 | **TOTAL (0-6)** | | **5070 líneas** | **24 semanas** | **Completado** |
 
 ---
@@ -914,8 +947,8 @@ errores de consola.
    (presupuestos ligados a objetivos), TRACK-3 (pantalla «Estado de la semana»), TRACK-1 (ritmo
    semanal en Hoy), BUD-4 (plantilla «repetir mes anterior ± %»), BUD-3 (presupuestos anuales/
    trimestrales), TRACK-2 (historial de cumplimiento por categoría), FCST-1 (forecast a 3
-   horizontes) y FCST-2 (Escenarios conectado con Presupuesto del mes) completadas y publicadas;
-   queda UX-B1-3
+   horizontes), FCST-2 (Escenarios conectado con Presupuesto del mes) y UX-B1 (vista móvil de la
+   tabla principal) completadas y publicadas; quedan UX-B2 y UX-B3
 9. **Weekly checkpoints**: Estado en PROJECT_STATE.md
 
 ---
@@ -991,4 +1024,4 @@ de por qué se descartó escalar más con el método de PERF-1).
 
 Archivo generado el 26/08/2026, actualizado el 27/08/2026 al cerrar FASE 6, al proponer FASE 7 y
 PERF-2, y al completar BUD-1, BUD-2, TRACK-3, TRACK-1, BUD-4, BUD-3, TRACK-2 y FCST-1; actualizado el
-28/08/2026 al completar FCST-2. Rama: `claude/app-review-improvement-plan-9a6pzr`.
+28/08/2026 al completar FCST-2 y UX-B1. Rama: `claude/app-review-improvement-plan-9a6pzr`.

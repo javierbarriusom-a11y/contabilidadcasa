@@ -598,7 +598,7 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
 test("D-1/D-2 · viaja en el shell offline versionado (sin bump: solo se tocaron ficheros ya cacheados)", () => {
   assert.match(worker, /20260821-d1a1/);
   assert.match(html, /app\.js\?v=20260827d1a5/);
-  assert.match(html, /design-tokens\.css\?v=20260814f1a1/);
+  assert.match(html, /design-tokens\.css\?v=20260828g1/);
 });
 
 test("D-2 · el CSS reutiliza .e19-table en vez de declarar una tabla nueva desde cero", () => {

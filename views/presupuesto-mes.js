@@ -987,8 +987,8 @@ function presupuestoMesAddGoalRowHtml(periodKey, period) {
     .map((goal) => `<option value="${escapeHtml(goal.id)}">${escapeHtml(presupuestoMesGoalOptionLabel(goal, period))}</option>`)
     .join("");
   return `<tr>
-    <td class="t">🎯 <select data-presupuesto-mes-goal-new-id aria-label="Objetivo a presupuestar">${options}</select></td>
-    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-goal-new-amount aria-label="Aportación a presupuestar" placeholder="Importe" /></td>
+    <td class="t" data-label="Objetivo">🎯 <select data-presupuesto-mes-goal-new-id aria-label="Objetivo a presupuestar">${options}</select></td>
+    <td data-label="Importe"><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-goal-new-amount aria-label="Aportación a presupuestar" placeholder="Importe" /></td>
     <td colspan="5"><button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-goal-add data-presupuesto-mes-goal-add-period="${period}" data-presupuesto-mes-goal-add-key="${escapeHtml(periodKey)}">Presupuestar objetivo</button></td>
   </tr>`;
 }
@@ -1243,15 +1243,15 @@ function presupuestoMesRowHtml(budget, monthKey) {
   const sourceNote =
     budget.source === "suggested" ? ` <small class="note">sugerido</small>` : budget.source === "repeated" ? ` <small class="note">repetido</small>` : "";
   return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
-    <td class="t">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}${sourceNote}</td>
-    <td><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
-    <td>${money(alert.metrics.spent, true)}</td>
-    <td>
+    <td class="t" data-label="Categoría">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}${sourceNote}</td>
+    <td data-label="Presupuesto"><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
+    <td data-label="Gastado">${money(alert.metrics.spent, true)}</td>
+    <td data-label="Ritmo">
       <span class="registrar-mes-progress ${barClass}"><span style="width:${pct}%"></span></span>
       <small>${pct}%</small>
     </td>
-    <td>${presupuestoMesStatusPill(alert)}</td>
-    <td class="${projectedClass}">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small></td>
+    <td data-label="Estado">${presupuestoMesStatusPill(alert)}</td>
+    <td class="${projectedClass}" data-label="Proyección fin de mes">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small></td>
     <td><button type="button" class="registrar-actuals-plan-link" data-presupuesto-mes-remove="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-remove-month="${escapeHtml(monthKey)}">Quitar</button></td>
   </tr>`;
 }
@@ -1388,7 +1388,7 @@ function renderPresupuestoMes() {
       </div>
     </div>
     <div class="table-wrap">
-      <table class="e19-table registrar-mes-table plan-mes-budget-table">
+      <table class="e19-table registrar-mes-table plan-mes-budget-table presupuesto-mes-primary-table">
         <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de mes</th><th></th></tr></thead>
         <tbody>${rows}${presupuestoMesAddGoalRowHtml(monthKey, "monthly")}</tbody>
       </table>
