@@ -2,6 +2,79 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (33): P-1 — eje de tipo de acción por movimiento
+
+El usuario pidió ejecutar el plan de mejora corregido (revisión de un plan original de seis fases de
+12-16 semanas, que encontró que siete de sus nueve rasgos ya estaban construidos — ver §9 de
+`BACKLOG.md`), empezando por P-1: el único hallazgo real de esa auditoría — falta un eje de tipo de
+acción a nivel de movimiento, más allá de `kind: income/expense` y del bloque de partida
+(fijo/variable/financiación) que ya usan Plan y Análisis.
+
+**Construido**: `actionType` como campo propio del movimiento, con siete valores fijos (`gasto_fijo`,
+`gasto_variable`, `ingreso`, `transferencia_interna`, `pago_deuda`, `aportacion_ahorro`, `ajuste`).
+
+- Diccionario nuevo `movementActionTypes`, con la misma dualidad single/concepto que `movementMappings`
+  de M-7 (`transactionIdentity` para un ajuste puntual, `movementMappingKey` para una regla de
+  concepto que también cubre movimientos futuros). Persistencia calcada del mismo patrón que
+  `movementMappings` en las cinco piezas (`appStatePayload`, `applyPersistedPayload`, `storageSet`
+  al guardar, carga desde `localStorage`, reinicio en el `catch`) más su propia
+  `saveMovementActionTypes()` — viaja en el mismo payload que ya sincroniza con Supabase, sin tocar
+  el sistema de entidades canónicas de auditoría (mismo alcance que ya se dejó fuera para
+  `debtContractOverrides`/`budgets` en sesiones anteriores).
+- La sugerencia automática (`suggestedActionTypeForMovement`) sale del mismo bloque de partida que ya
+  usan Plan/Análisis (`mapping.row.sectionName`, vía `mappingForMovement`), no de una taxonomía
+  inventada aparte: "Financiaciones" sugiere pago de deuda porque hoy es la única sección de ese
+  bloque. Sin partida asignada no hay sugerencia — hueco, no invención (regla transversal 04).
+  `actionTypeForMovement` combina entrada confirmada (gana siempre) y sugerencia sin confirmar.
+- «¿Es recurrente?» viaja en la misma entrada (`recurring: true|false|null`), confirmable por el
+  usuario en el diálogo de detalle, en vez de la inferencia muda de A-9 (que sigue existiendo tal
+  cual, sin tocar, para el aviso "qué se repite" de Análisis).
+- **Movimientos**: nueva columna «Tipo de acción» (badge sugerido/confirmado, entre Saldo y Origen —
+  sin romper la adyacencia Categoría→Partida→Importe ni Origen→Cuenta→[Ver] que ya comprobaban los
+  tests existentes) y nuevo filtro `movementActionTypeFilter` (siete valores + «Sin tipo»), aplicado
+  en `movementsRangeAndSearchList` (compartido por la tabla y el recuento de chips). El diálogo de
+  detalle gana su propio bloque de edición — select de tipo, select de recurrencia, casilla
+  «recordar» y su propio botón «Guardar tipo de acción» (`handleMovementActionTypeSave`),
+  deliberadamente independiente de «Guardar partida» de M-7 para no tocar ese camino ya verificado
+  ni sus pruebas.
+- **Análisis**: nueva tarjeta «Por tipo de acción» (`analisisActionTypeRows`/`analisisActionTypeHtml`
+  en `views/analisis.js`), mismo periodo que la cascada de A-4 (`analisisPeriodMonths`), solo gastos
+  — la pregunta que resuelve es "¿cuánto de lo gastado es deuda, discrecional, recurrente?", no un
+  segundo reparto del ingreso (esa es A-8).
+- Campo aditivo con valor por defecto seguro (sin entrada, sugerencia sin confirmar o hueco
+  explícito): cero cambios de comportamiento en ninguna pantalla ya verificada.
+
+**Verificación**: 24 pruebas nuevas en `tests/p1-eje-tipo-de-accion.test.cjs` (catálogo, sugerencia
+desde el bloque de partida, dualidad single/concepto, badge en sus tres estados, opciones del
+`<select>`, guardado con/sin «recordar», filtro de Movimientos, desglose de Análisis, cableado HTML y
+persistencia). Se actualizaron 3 archivos de prueba existentes para reflejar el campo nuevo sin
+cambiar su comportamiento: `tests/d1-d2-deuda-tabs-contratos.test.cjs` (la adyacencia de claves en
+`appStatePayload` ahora incluye `movementActionTypes`), `tests/m1-m11-movimientos.test.cjs` y
+`tests/a13-actuar-desde-aviso.test.cjs` (mocks nuevos para las funciones que `renderMovementDetailDialog`/
+`renderDetailedMovements` ya ejecutan de verdad en esas pruebas). `npm run verify` completo:
+**1877/1877 pruebas**, accesibilidad (837 IDs), rendimiento, build del sitio, privacidad y smoke en
+verde. Verificado también en navegador real (Playwright contra `dist/`, Chromium): cabecera de la
+tabla con la columna nueva en el sitio correcto, filtro presente con sus ocho opciones, `Sin tipo`/
+`(sugerido)`/opciones del `<select>` calculados por el código real cargado en la página (no una
+copia), tarjeta de Análisis renderizando su estado vacío correcto — el sitio público sirve un
+`data.js` de demostración con cero movimientos por privacidad (`sourceWorkbookStatus: "Demostración
+anonimizada"`), así que no hay fila real que abrir en ese entorno; sin errores de consola propios (el
+único visto, `ERR_TUNNEL_CONNECTION_FAILED`, es el mismo ruido de red del sandbox ya documentado en
+cierres anteriores).
+
+`app.js` bumpeado a `20260828b1a1` (mismo día que D-2d, siguiente letra de la serie); `views/analisis.js`
+a `20260828a1` (su fragmento de carga diferida, sin tocar desde el 26 de agosto). Los 25 ficheros de
+prueba que pineaban la versión anterior de `app.js` como marca del shell offline se actualizaron en
+bloque a `20260828b1a1`, mismo patrón que la sesión anterior.
+
+**Publicado**: commit/push a `claude/plan-mejora-p1-m4djlz`, PR en borrador y fusión al ponerse el CI
+en verde.
+
+**Próximo paso**: P-2 a P-6 del plan de mejora corregido siguen en la cola (ver §9 de `BACKLOG.md`
+para el orden recomendado por olas) — P-2 (deslizadores sobre el motor de escenarios existente) es la
+siguiente pieza sin dependencias y con mejor relación impacto/esfuerzo. El punto aislado «retirar el
+Asistente financiero» sigue fuera de la cola, sin turno fijo.
+
 ## Cierre de sesión — 28 de agosto de 2026 (32): D-2d — editar y eliminar cualquier contrato de deuda
 
 El usuario, viendo la pantalla Deuda › Contratos en producción, pidió poder modificar el nombre, el

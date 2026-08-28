@@ -64,6 +64,10 @@ let deletedPlanningRows = {};
 let seriesOverrides = {};
 let rowLabelOverrides = {};
 let movementMappings = {};
+// P-1: eje de tipo de acción por movimiento, diccionario aditivo con la misma forma que
+// `movementMappings` (single key con `transactionIdentity`, o de concepto con `movementMappingKey`)
+// — ver `actionTypeForMovement` más abajo.
+let movementActionTypes = {};
 let debtContractOverrides = {};
 let debtContractCustomEntries = [];
 let debtContractHiddenExampleIds = [];
@@ -201,7 +205,7 @@ const VIEW_CHUNKS = {
   "deuda-simulador": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-simulador" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
-  analisis: { src: "views/analisis.js?v=20260826a1", rootId: "analisis" },
+  analisis: { src: "views/analisis.js?v=20260828a1", rootId: "analisis" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
 // la caché de "ya cargado"/"cargando" se indexa por `src`, no por vista, para no pedir el mismo
@@ -1026,6 +1030,7 @@ function appStatePayload(options = {}) {
     seriesOverrides,
     rowLabelOverrides,
     movementMappings,
+    movementActionTypes,
     debtContractOverrides,
     debtContractCustomEntries,
     debtContractHiddenExampleIds,
@@ -1461,6 +1466,8 @@ function applyPersistedPayload(payload = {}) {
   seriesOverrides = payload.seriesOverrides && typeof payload.seriesOverrides === "object" ? payload.seriesOverrides : {};
   rowLabelOverrides = payload.rowLabelOverrides && typeof payload.rowLabelOverrides === "object" ? payload.rowLabelOverrides : {};
   movementMappings = payload.movementMappings && typeof payload.movementMappings === "object" ? payload.movementMappings : {};
+  movementActionTypes =
+    payload.movementActionTypes && typeof payload.movementActionTypes === "object" ? payload.movementActionTypes : {};
   debtContractOverrides =
     payload.debtContractOverrides && typeof payload.debtContractOverrides === "object" ? payload.debtContractOverrides : {};
   debtContractCustomEntries = Array.isArray(payload.debtContractCustomEntries) ? payload.debtContractCustomEntries : [];
@@ -1533,6 +1540,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("seriesOverrides"), JSON.stringify(seriesOverrides));
   storageSet(storageKey("rowLabelOverrides"), JSON.stringify(rowLabelOverrides));
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
+  storageSet(storageKey("movementActionTypes"), JSON.stringify(movementActionTypes));
   storageSet(storageKey("debtContractOverrides"), JSON.stringify(debtContractOverrides));
   storageSet(storageKey("debtContractCustomEntries"), JSON.stringify(debtContractCustomEntries));
   storageSet(storageKey("debtContractHiddenExampleIds"), JSON.stringify(debtContractHiddenExampleIds));
@@ -2416,6 +2424,7 @@ function loadLocalState() {
       seriesOverrides: JSON.parse(storageGet(storageKey("seriesOverrides"), "{}")),
       rowLabelOverrides: JSON.parse(storageGet(storageKey("rowLabelOverrides"), "{}")),
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
+      movementActionTypes: JSON.parse(storageGet(storageKey("movementActionTypes"), "{}")),
       debtContractOverrides: JSON.parse(storageGet(storageKey("debtContractOverrides"), "{}")),
       debtContractCustomEntries: JSON.parse(storageGet(storageKey("debtContractCustomEntries"), "[]")),
       debtContractHiddenExampleIds: JSON.parse(storageGet(storageKey("debtContractHiddenExampleIds"), "[]")),
@@ -2448,6 +2457,7 @@ function loadLocalState() {
     seriesOverrides = {};
     rowLabelOverrides = {};
     movementMappings = {};
+    movementActionTypes = {};
     debtContractOverrides = {};
     debtRoadmapState = {};
     debtContractCustomEntries = [];
@@ -2864,6 +2874,11 @@ function saveRowLabelOverrides() {
 
 function saveMovementMappings() {
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
+  queueRemoteSave();
+}
+
+function saveMovementActionTypes() {
+  storageSet(storageKey("movementActionTypes"), JSON.stringify(movementActionTypes));
   queueRemoteSave();
 }
 
@@ -18384,6 +18399,65 @@ function mappingForMovement(transaction) {
   return exact ? { kind, row: exact, source: "exact" } : null;
 }
 
+// P-1: catálogo del eje de tipo de acción — aditivo sobre `kind` (income/expense), no lo sustituye.
+// Siete valores fijos, sin taxonomía configurable (regla transversal 09: un catálogo, no uno por
+// pantalla), pensados para responder "¿cuánto de lo gastado es deuda, discrecional o recurrente?"
+// que ni el `kind` de dos valores ni la partida (bloque fijo/variable/financiación) contestan solos.
+const ACTION_TYPES = [
+  { id: "gasto_fijo", label: "Gasto fijo" },
+  { id: "gasto_variable", label: "Gasto variable" },
+  { id: "ingreso", label: "Ingreso" },
+  { id: "transferencia_interna", label: "Transferencia interna" },
+  { id: "pago_deuda", label: "Pago de deuda" },
+  { id: "aportacion_ahorro", label: "Aportación a ahorro" },
+  { id: "ajuste", label: "Ajuste" },
+];
+
+const ACTION_TYPE_LABELS = Object.fromEntries(ACTION_TYPES.map((item) => [item.id, item.label]));
+
+// La sugerencia sale del mismo bloque de partida que ya usan Plan/Análisis (`sectionName`), no de
+// una segunda inferencia inventada: "Financiaciones" sugiere pago de deuda porque hoy es la única
+// sección de ese bloque. Sin mapping (sin partida todavía) no hay sugerencia — hueco, no invención
+// (regla transversal 04).
+const ACTION_TYPE_SECTION_SUGGESTION = {
+  Ingresos: "ingreso",
+  "Gastos fijos": "gasto_fijo",
+  "Gastos variables": "gasto_variable",
+  Financiaciones: "pago_deuda",
+};
+
+function suggestedActionTypeForMovement(row) {
+  const mapping = mappingForMovement(row);
+  return mapping ? ACTION_TYPE_SECTION_SUGGESTION[mapping.row.sectionName] || null : null;
+}
+
+// Misma dualidad single/concepto que `mappingForMovement`: un ajuste puntual (`transactionIdentity`)
+// gana siempre a una regla de concepto (`movementMappingKey`) más antigua.
+function actionTypeEntryForMovement(transaction) {
+  const single = movementActionTypes[transactionIdentity(transaction)];
+  if (single?.actionType) return { ...single, source: "single" };
+  const stored = movementActionTypes[movementMappingKey(transaction)];
+  if (stored?.actionType) return { ...stored, source: "dictionary" };
+  return null;
+}
+
+// Sin confirmación del usuario, se ofrece la sugerencia derivada de la partida (`confirmed: false`)
+// para que Movimientos y Análisis tengan algo que mostrar/agrupar sin fabricar una decisión que
+// nadie tomó — el badge y el desglose distinguen sugerido de confirmado.
+function actionTypeForMovement(transaction) {
+  const entry = actionTypeEntryForMovement(transaction);
+  if (entry) return { actionType: entry.actionType, recurring: entry.recurring ?? null, confirmed: true, source: entry.source };
+  const suggested = suggestedActionTypeForMovement(transaction);
+  return suggested ? { actionType: suggested, recurring: null, confirmed: false, source: "suggested" } : null;
+}
+
+function movementActionTypeOptions(selected = "") {
+  return [
+    `<option value="">Sin asignar todavía</option>`,
+    ...ACTION_TYPES.map((item) => `<option value="${item.id}" ${item.id === selected ? "selected" : ""}>${escapeHtml(item.label)}</option>`),
+  ].join("");
+}
+
 function movementMappingOptions(kind, selected = "") {
   return [
     `<option value="">Sin asignar todavía</option>`,
@@ -19558,6 +19632,8 @@ function movementsActFromAlert({ search = "", chip = "todos", dateFrom = "", dat
   if (fromField) fromField.value = dateFrom;
   const toField = qs("movementDateTo");
   if (toField) toField.value = dateTo;
+  const actionTypeField = qs("movementActionTypeFilter");
+  if (actionTypeField) actionTypeField.value = "";
   movementsChipFilter = MOVEMENT_CHIPS.some((item) => item.id === chip) ? chip : "todos";
   movementsPendingAutoSelect = typeof matcher === "function" ? matcher : null;
   history.pushState(null, "", "#movements");
@@ -19573,9 +19649,16 @@ function movementsRangeAndSearchList() {
   const dateFrom = qs("movementDateFrom")?.value || "";
   const dateTo = qs("movementDateTo")?.value || "";
   const search = normalizedText(qs("movementSearch")?.value || "");
+  const actionTypeFilter = qs("movementActionTypeFilter")?.value || "";
   return transactions.filter((row) => {
     if (dateFrom && String(row.date) < dateFrom) return false;
     if (dateTo && String(row.date) > dateTo) return false;
+    if (actionTypeFilter) {
+      const entry = actionTypeForMovement(row);
+      if (actionTypeFilter === "sin-tipo") {
+        if (entry) return false;
+      } else if (!entry || entry.actionType !== actionTypeFilter) return false;
+    }
     if (!search) return true;
     const amountText = normalizedText(`${row.amount} ${money(Math.abs(Number(row.amount || 0)), true)}`);
     if (amountText.includes(search)) return true;
@@ -19640,6 +19723,18 @@ function movementPartidaBadge(row) {
   const mapping = mappingForMovement(row);
   if (!mapping) return `<span class="e19-badge e19-badge-warning">Sin partida</span>`;
   return `<span class="e19-badge e19-badge-neutral">${escapeHtml(mapping.row.sectionName)} · ${escapeHtml(displayLabelForRow(mapping.row))}</span>`;
+}
+
+// P-1: mismo patrón que `movementPartidaBadge` — hueco sin sugerencia ni confirmación, tono
+// "sugerido" (no confirmado por el usuario) o "confirmado" según de dónde salga `actionTypeForMovement`.
+function movementActionTypeBadge(row) {
+  const entry = actionTypeForMovement(row);
+  if (!entry) return `<span class="e19-badge e19-badge-warning">Sin tipo</span>`;
+  const label = ACTION_TYPE_LABELS[entry.actionType] || entry.actionType;
+  const recurringSuffix = entry.recurring === true ? " · recurrente" : entry.recurring === false ? " · puntual" : "";
+  return entry.confirmed
+    ? `<span class="e19-badge e19-badge-neutral">${escapeHtml(label)}${escapeHtml(recurringSuffix)}</span>`
+    : `<span class="e19-badge e19-badge-accent">${escapeHtml(label)} (sugerido)</span>`;
 }
 
 // M-9: totales de la vista filtrada, no del extracto completo — se recalculan con el mismo
@@ -19735,6 +19830,7 @@ function renderDetailedMovements() {
         <td>${movementPartidaBadge(row)}</td>
         <td class="${row.amount < 0 ? "negative" : "positive"}">${money(row.amount, true)}</td>
         <td>${row.balance === null || row.balance === undefined ? "" : money(row.balance, true)}</td>
+        <td>${movementActionTypeBadge(row)}</td>
         <td>${escapeHtml(row.source || "")}</td>
         <td>${escapeHtml(row.account || "—")}</td>
         <td><button type="button" class="e19-btn e19-btn-secondary movements-row-detail" data-movement-detail-index="${index}">Ver</button></td>
@@ -19957,6 +20053,26 @@ function renderMovementDetailDialog() {
       </label>
       <p class="e19-kpi-note" id="movementDetailRememberHint">Sin marcar, solo reclasifica este movimiento. Marcada, se aplicará a todos los movimientos con el mismo concepto (${escapeHtml(movementDisplayName(row))}), incluidos los futuros — es la misma regla que ya usan Registrar y el importador.</p>
       <button type="button" class="e19-btn e19-btn-primary" id="movementDetailSave">Guardar partida</button>
+    </div>
+    <div class="movement-detail-action-type">
+      <label>
+        <span>Tipo de acción</span>
+        <select id="movementDetailActionType">${movementActionTypeOptions(actionTypeForMovement(row)?.actionType || "")}</select>
+      </label>
+      <label>
+        <span>¿Es recurrente?</span>
+        <select id="movementDetailRecurring">
+          <option value="">Sin marcar</option>
+          <option value="true" ${actionTypeForMovement(row)?.recurring === true ? "selected" : ""}>Sí, se repite cada mes</option>
+          <option value="false" ${actionTypeForMovement(row)?.recurring === false ? "selected" : ""}>No, es puntual</option>
+        </select>
+      </label>
+      <label class="movement-detail-remember">
+        <input type="checkbox" id="movementDetailActionTypeRemember" />
+        <span>Recordar para los que empiecen igual</span>
+      </label>
+      <p class="e19-kpi-note" id="movementDetailActionTypeHint">P-1: eje aditivo sobre la partida — "¿cuánto de lo gastado es deuda, discrecional o recurrente?". Sin marcar «recordar», solo se aplica a este movimiento; marcada, se aplicará también a los movimientos futuros del mismo concepto.</p>
+      <button type="button" class="e19-btn e19-btn-primary" id="movementDetailActionTypeSave">Guardar tipo de acción</button>
     </div>`;
 }
 
@@ -19994,6 +20110,35 @@ function handleMovementReclassify() {
     remember
       ? `Regla guardada para «${movementDisplayName(row)}»: se aplicará también a movimientos futuros. ${applied} importe(s) reales recalculados desde movimientos.`
       : `Partida guardada solo para este movimiento. ${applied} importe(s) reales recalculados desde movimientos.`,
+  );
+  renderMovementDetailDialog();
+  renderDetailedMovements();
+}
+
+// P-1: guarda `actionType`/`recurring` en su propio diccionario (`movementActionTypes`), con la
+// misma dualidad single/concepto que M-7 usa para la partida — pero es su propio botón y su propia
+// función: no reescribe `handleMovementReclassify` para no arriesgar el camino ya verificado de
+// partida (mismo criterio que llevó a no fabricar una segunda taxonomía: cada concepto, su propia
+// puerta de guardado, sin mezclar sus efectos).
+function handleMovementActionTypeSave() {
+  const row = movementDetailTransaction;
+  const select = qs("movementDetailActionType");
+  if (!row || !select) return;
+  const actionType = select.value;
+  if (!actionType) {
+    announceStatus("Elige un tipo de acción antes de guardar.");
+    return;
+  }
+  const recurringRaw = qs("movementDetailRecurring")?.value ?? "";
+  const recurring = recurringRaw === "true" ? true : recurringRaw === "false" ? false : null;
+  const remember = Boolean(qs("movementDetailActionTypeRemember")?.checked);
+  const key = remember ? movementMappingKey(row) : transactionIdentity(row);
+  movementActionTypes[key] = { actionType, recurring, updatedAt: new Date().toISOString() };
+  saveMovementActionTypes();
+  announceStatus(
+    remember
+      ? `Tipo de acción guardado como regla para «${movementDisplayName(row)}»: se aplicará también a movimientos futuros.`
+      : "Tipo de acción guardado solo para este movimiento.",
   );
   renderMovementDetailDialog();
   renderDetailedMovements();
@@ -30846,6 +30991,7 @@ async function init() {
   qs("movementSearch").addEventListener("input", renderDetailedMovements);
   qs("movementDateFrom")?.addEventListener("change", renderDetailedMovements);
   qs("movementDateTo")?.addEventListener("change", renderDetailedMovements);
+  qs("movementActionTypeFilter")?.addEventListener("change", renderDetailedMovements);
   qs("movementRangeShortcuts")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-movement-range]");
     if (button) handleMovementsRangeShortcut(button.dataset.movementRange);
@@ -30868,6 +31014,7 @@ async function init() {
   qs("movementDetailDialog")?.addEventListener("click", (event) => {
     if (event.target === event.currentTarget) closeMovementDetailDialog();
     else if (event.target.id === "movementDetailSave") handleMovementReclassify();
+    else if (event.target.id === "movementDetailActionTypeSave") handleMovementActionTypeSave();
   });
   qs("movementDetailDialog")?.addEventListener("close", () => {
     movementDetailTransaction = null;

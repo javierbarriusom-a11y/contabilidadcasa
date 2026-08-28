@@ -112,6 +112,7 @@ function sandboxRenderDetailedMovements(extra = {}) {
     movementsChipCounts: () => ({}),
     mappingForMovement: () => null,
     movementPartidaBadge: () => "",
+    movementActionTypeBadge: () => "",
     movementsTotals: () => ({ income: 0, expense: 0 }),
     escapeHtml: (v) => String(v ?? ""),
     formatIsoDate: (v) => v,

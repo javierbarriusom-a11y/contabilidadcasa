@@ -142,6 +142,8 @@ test("M-6 · el panel de detalle trae el campo Cuenta, con el mismo hueco cuando
     money: (v) => String(v),
     movementDisplayName: (row) => row.movement,
     movementMappingOptions: () => "<option></option>",
+    actionTypeForMovement: () => null,
+    movementActionTypeOptions: () => "<option></option>",
   });
   context.renderMovementDetailDialog();
   assert.match(content.innerHTML, /<dt>Cuenta<\/dt><dd>CaixaBank<\/dd>/);
@@ -159,6 +161,8 @@ test("M-6 · el campo Cuenta muestra un hueco («—») en vez de fabricar un va
     money: (v) => String(v),
     movementDisplayName: (row) => row.movement,
     movementMappingOptions: () => "<option></option>",
+    actionTypeForMovement: () => null,
+    movementActionTypeOptions: () => "<option></option>",
   });
   context.renderMovementDetailDialog();
   assert.match(content.innerHTML, /<dt>Cuenta<\/dt><dd>—<\/dd>/);
@@ -397,6 +401,8 @@ test("M-6 · abrir el detalle identifica la fila por su posición en la lista fi
     money: (v) => String(v),
     movementDisplayName: (row) => row.movement,
     movementMappingOptions: () => "<option></option>",
+    actionTypeForMovement: () => null,
+    movementActionTypeOptions: () => "<option></option>",
   });
   context.handleMovementDetailOpen(0);
   assert.equal(context.movementDetailTransaction.movement, "MERCADONA");

@@ -241,6 +241,45 @@ function handleAnalisisActuarRepite(keysRaw, label) {
   });
 }
 
+// P-1: desglose de gasto del periodo (mismo `periodMonths` que la cascada de A-4) por tipo de
+// acción — reutiliza `actionTypeForMovement` (app.js), el mismo campo que edita Movimientos, no un
+// cálculo aparte. Solo gastos (amount < 0): la pregunta que resuelve es "¿cuánto de lo gastado es
+// deuda, discrecional, recurrente?", no un segundo reparto del ingreso (esa es A-8).
+function analisisActionTypeRows(transactions, periodMonths) {
+  const monthKeys = new Set((periodMonths || []).map((month) => month.key));
+  const totals = new Map();
+  let unclassified = 0;
+  (transactions || []).forEach((row) => {
+    if (!(Number(row.amount) < 0)) return;
+    if (!monthKeys.has(String(row.date || "").slice(0, 7))) return;
+    const amount = Math.abs(Number(row.amount) || 0);
+    const entry = actionTypeForMovement(row);
+    if (!entry) {
+      unclassified = round2(unclassified + amount);
+      return;
+    }
+    totals.set(entry.actionType, round2((totals.get(entry.actionType) || 0) + amount));
+  });
+  const rows = ACTION_TYPES.filter((type) => totals.has(type.id))
+    .map((type) => ({ id: type.id, label: type.label, value: totals.get(type.id) }))
+    .sort((a, b) => b.value - a.value);
+  return { rows, unclassified };
+}
+
+function analisisActionTypeHtml(breakdown) {
+  if (!breakdown.rows.length && !breakdown.unclassified) {
+    return `<p class="e19-kpi-note">Sin gastos con tipo de acción en este periodo.</p>`;
+  }
+  const maxValue = Math.max(1, ...breakdown.rows.map((row) => row.value), breakdown.unclassified);
+  const rowHtml = (label, value, toneClass) => `<div class="analisis-recurring-item">
+        <div class="analisis-recurring-head"><strong>${escapeHtml(label)}</strong><span>${money(value, true)}</span></div>
+        <div class="analisis-recurring-track"><div class="analisis-recurring-bar ${toneClass}" style="width:${round2((value / maxValue) * 100)}%"></div></div>
+      </div>`;
+  const rowsHtml = breakdown.rows.map((row) => rowHtml(row.label, row.value, "")).join("");
+  const unclassifiedHtml = breakdown.unclassified ? rowHtml("Sin tipo de acción todavía", breakdown.unclassified, "is-danger") : "";
+  return `${rowsHtml}${unclassifiedHtml}`;
+}
+
 function analisisAccuracyRows(months) {
   return months
     .filter((month) => isClosedMonthKey(month.key))
@@ -587,6 +626,10 @@ function renderAnalisis() {
     recurringNote.innerHTML = note;
     recurringNote.hidden = !note;
   }
+
+  // P-1: desglose por tipo de acción, mismo periodo que la cascada de A-4.
+  const actionTypeEl = qs("analisisActionTypeBreakdown");
+  if (actionTypeEl) actionTypeEl.innerHTML = analisisActionTypeHtml(analisisActionTypeRows(baseData?.transactions || [], periodMonths));
 }
 
 function handleAnalisisWindow(windowKey) {
