@@ -695,8 +695,9 @@ pantalla ya verificada — misma regla del §1 de `BACKLOG_STATUS.md`.
 Diez candidatas más quedaron identificadas sin el mismo nivel de auditoría (presupuesto por
 «sobres», alerta de gasto hormiga, entre otras — **#3 «puntuación única de salud financiera», #4
 «comparar más de dos escenarios guardados», #5 «archivo automático del informe de cierre», #6
-«ritual de revisión anual», #9/P-5 «objetivos en el export de Análisis» y #10/P-6 «atajo Cmd/Ctrl+K»
-ya están construidas, ver más abajo**) y un punto aislado fuera de la cola —retirar
+«ritual de revisión anual», #7 «presupuesto por sobres», #9/P-5 «objetivos en el export de Análisis»
+y #10/P-6 «atajo Cmd/Ctrl+K» ya están construidas, ver más abajo**) y un punto aislado fuera de la
+cola —retirar
 el widget «Asistente financiero» (`index.html:3959-3984`,
 `assistantRecommendationForQuestion()` en `app.js`), que finge diálogo abierto con cuatro palabras
 clave cuando el resto de la app se apoya en decisiones trazables con evidencia—, con su propia
@@ -804,3 +805,18 @@ como tarea explícita **T-6** ("Motor de recomendación real"). Dieciséis días
 cambiado en ese punto: sigue siendo la misma decisión de producto, no un hueco nuevo que verificar
 de cero. No se construye nada en P-4; se confirma que la nota permanente sigue vigente y se cierra
 la verificación.
+
+**#7 construido** («Presupuesto por sobres»): confirmado como hueco real tras la verificación de
+P-4 (no existía ya en ningún otro rincón del código — solo «traspaso» entre cuentas bancarias, un
+concepto distinto). `handleBudgetEnvelopeTransfer` deja mover a media de mes el sobrante ya
+disponible de una categoría a otra del mismo mes, sin esperar al cierre. Ningún motor nuevo: el
+sobrante es la misma cifra que ya calcula `budgetSurplusForRow`/`budgetSurplusEntries` (la hucha), y
+el traspaso reutiliza el único camino de escritura de presupuestos que ya existe
+(`CanonicalBudgetSchema.upsert` + `saveBudgets`, el mismo de la edición inline, UX-B2 y BUD-4) — dos
+`upsert` en la misma operación (resta en origen, suma en destino) y una sola persistencia, ya que el
+esquema no trae ningún invariante de conservación para presupuestos (a diferencia de
+`transferConservation` entre cuentas). El tope de lo que se puede mover es el sobrante menos un
+céntimo, nunca el sobrante entero: `CanonicalBudgetSchema.validate()` rechaza un `amountCap` en 0,
+así que dejar la categoría de origen exactamente a 0 no es una opción. Sin sobrante en ninguna
+categoría, o con una sola categoría presupuestada ese mes, la tarjeta no aparece — hueco honesto, no
+un formulario sin nada que hacer.

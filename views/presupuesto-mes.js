@@ -66,6 +66,90 @@ function budgetSurplusEntries(monthKey) {
     .filter(({ surplus }) => surplus > 0);
 }
 
+// #7: cuánto se puede mover de una categoría sin dejarla en 0 — CanonicalBudgetSchema.validate()
+// rechaza amountCap <= 0, así que el tope real es el sobrante menos un céntimo, no el sobrante entero.
+function budgetEnvelopeTransferMaxAmount(fromCategory, monthKey) {
+  const budget = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema.findForCategoryMonth(budgets, fromCategory, monthKey);
+  if (!budget) return 0;
+  const surplus = budgetSurplusForRow(budget, monthKey);
+  return round2(Math.max(0, Math.min(surplus, round2(budget.amountCap - 0.01))));
+}
+
+// #7 · Presupuesto por "sobres": mover el sobrante ya disponible (misma cifra que la hucha de
+// arriba) de una categoría a otra del mismo mes, a media de mes. Reutiliza el único camino de
+// escritura de presupuestos que ya existe (CanonicalBudgetSchema.upsert + saveBudgets, el mismo de
+// handleBudgetAmountChange/UX-B2/BUD-4) — no crea uno nuevo. No hay ningún invariante de
+// conservación para presupuestos (a diferencia de transferConservation entre cuentas): esta función
+// es la que tiene que garantizarlo, restando de origen y sumando a destino en la misma operación.
+function handleBudgetEnvelopeTransfer(button) {
+  const card = button.closest(".registrar-mes-card");
+  const fromCategory = card?.querySelector("[data-presupuesto-mes-envelope-from]")?.value;
+  const toCategory = card?.querySelector("[data-presupuesto-mes-envelope-to]")?.value;
+  const amountInput = card?.querySelector("[data-presupuesto-mes-envelope-amount]");
+  const monthKey = button.dataset.presupuestoMesEnvelopeMonth;
+  const amount = round2(Number(amountInput?.value));
+  if (!fromCategory || !toCategory || !monthKey) return;
+  if (fromCategory === toCategory) {
+    announceStatus("Elige dos categorías distintas para mover el sobrante.");
+    return;
+  }
+  if (!Number.isFinite(amount) || amount <= 0) {
+    announceStatus("Escribe un importe mayor que 0 para mover.");
+    return;
+  }
+  const maxAmount = budgetEnvelopeTransferMaxAmount(fromCategory, monthKey);
+  if (amount > maxAmount) {
+    announceStatus(`Como mucho puedes mover ${money(maxAmount, true)} de ${budgetRowDisplayLabel(fromCategory)}: es lo que sobra ahora mismo.`);
+    return;
+  }
+  const CanonicalBudgetSchema = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
+  const fromBudget = CanonicalBudgetSchema?.findForCategoryMonth(budgets, fromCategory, monthKey);
+  const toBudget = CanonicalBudgetSchema?.findForCategoryMonth(budgets, toCategory, monthKey);
+  if (!CanonicalBudgetSchema || !fromBudget || !toBudget) return;
+  let next = CanonicalBudgetSchema.upsert(budgets, {
+    categoryId: fromCategory,
+    monthYear: monthKey,
+    amountCap: round2(fromBudget.amountCap - amount),
+    source: fromBudget.source || "manual",
+  });
+  next = CanonicalBudgetSchema.upsert(next, {
+    categoryId: toCategory,
+    monthYear: monthKey,
+    amountCap: round2(toBudget.amountCap + amount),
+    source: toBudget.source || "manual",
+  });
+  budgets = next;
+  saveBudgets();
+  announceStatus(`Movidos ${money(amount, true)} de ${budgetRowDisplayLabel(fromCategory)} a ${budgetRowDisplayLabel(toCategory)}.`);
+  renderPresupuestoMes();
+}
+
+function presupuestoMesEnvelopeHtml(monthKey) {
+  const sources = budgetSurplusEntries(monthKey);
+  const monthBudgets = categoryBudgetsForMonth(monthKey);
+  if (!sources.length || monthBudgets.length < 2) return "";
+  const sourceOptions = sources
+    .map(({ budget, surplus }) => `<option value="${escapeHtml(budget.categoryId)}">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))} · sobran ${money(surplus, true)}</option>`)
+    .join("");
+  const targetOptions = monthBudgets
+    .map((budget) => `<option value="${escapeHtml(budget.categoryId)}">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}</option>`)
+    .join("");
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Mover sobrante entre categorías</h3>
+        <p class="e19-subtitle">Traspasa a media de mes lo que ya sobra de una categoría a otra, sin esperar al cierre. Como mucho se puede mover el sobrante actual de la categoría de origen (la misma cifra que la hucha de arriba).</p>
+      </div>
+    </div>
+    <div class="cuadro-mandos-controls">
+      <select data-presupuesto-mes-envelope-from aria-label="Mover sobrante de">${sourceOptions}</select>
+      <select data-presupuesto-mes-envelope-to aria-label="Mover sobrante a">${targetOptions}</select>
+      <input type="number" step="1" min="1" data-presupuesto-mes-envelope-amount aria-label="Importe a mover" placeholder="Importe" />
+      <button type="button" class="e19-btn e19-btn-secondary" data-presupuesto-mes-envelope-submit data-presupuesto-mes-envelope-month="${escapeHtml(monthKey)}">Mover sobrante</button>
+    </div>
+  </article>`;
+}
+
 function handleBudgetSurplusChoice(select) {
   const category = select.dataset.presupuestoMesSurplus;
   const monthKey = select.dataset.presupuestoMesSurplusMonth;
@@ -1595,6 +1679,7 @@ function renderPresupuestoMes() {
   </article>
   ${presupuestoMesManualPartidasHtml(monthKey)}
   ${presupuestoMesSurplusHtml(monthKey)}
+  ${presupuestoMesEnvelopeHtml(monthKey)}
   ${presupuestoMesDebtLinkHtml(monthKey)}
   ${presupuestoMesHistoryHtml(monthKey)}
   ${presupuestoMesSimulatorHtml(monthKey)}
