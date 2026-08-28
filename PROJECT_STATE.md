@@ -2,6 +2,49 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (31): PERF-2 evaluado — no se recomienda construirlo
+
+El usuario pidió valorar PERF-2 (candidato anotado al cerrar FASE 7). Sin cambios de código: solo el
+análisis y la medición que el propio alcance propuesto de PERF-2 pedía como primer paso ("auditar qué
+se recalcula vs. qué podría memoizarse, medir antes de mover ficheros").
+
+**Hallazgo 1**: la memoización que se iba a auditar ya existe. `buildSavingsAgentPlan` cachea por
+firma (`savingsAgentPlanCache`) y `agentOptimalDebtPayoffPlan` — la parte cara del motor, búsqueda
+voraz de hasta 12 pasos — también cachea por firma (`agentDebtOptimizationCache`) y además se difiere
+650ms fuera de la carga inicial (`scheduleHeavyAdvisorRefresh`, solo para las pantallas de
+`HEAVY_RENDER_VIEWS`), mostrando un plan "Calculando" mientras tanto. `git log -S` sitúa estos tres
+identificadores en un commit muy anterior a FASE 5/PERF-1 — es decir, PERF-1 ya midió 55/75-76 con
+esta memoización puesta, no sin ella.
+
+**Hallazgo 2**: medición fresca con `npx lighthouse` contra `dist/` real (mismo método que PERF-1).
+Perfil `provided`: **76**, idéntico al cierre de PERF-1 (73/72/75); "JavaScript sin usar" 1.523 KiB
+(prácticamente el mismo 1,54 MB de entonces); peso total 3.436 KiB. Perfil por defecto dio 30 (PERF-1
+cerró en 45/55/55) pero no se toma como señal fiable — mismo ruido de entorno que PERF-1 ya
+documentó en este sandbox (una medición aislada dio 88 sin reproducirse). Las ~1.700 líneas añadidas
+en toda FASE 7 no movieron la puntuación del perfil `provided`, como era de esperar.
+
+**Conclusión**: ninguna de las dos mitades del plan original de PERF-2 sobrevive a esta evaluación.
+La memoización (mitad barata) ya estaba hecha antes de que se propusiera y no basta por sí sola —
+confirma el propio diagnóstico de PERF-1: el cuello de botella es el peso total de script cargado
+(~3,4 MB), no el cálculo en tiempo de ejecución. La extracción real del motor (mitad cara) es la
+misma reestructuración de alto riesgo que PERF-1 ya evitó para este clúster
+(`executiveAdvisorContext`/`buildSavingsAgentPlan` alimentan al menos 7 puntos de llamada en Hoy,
+Deuda, Asesor y Nueva vida) — partirla función a función, no fichero a fichero, sin que ningún dato
+de esta evaluación justifique ese riesgo (no hay queja real de lentitud, solo el objetivo de
+puntuación en sí).
+
+**Recomendación entregada al usuario**: cerrar PERF-2 sin construir nada. Queda documentado en
+`BACKLOG_PRESUPUESTOS_V2.md` por si en el futuro cambia el criterio (por ejemplo, una queja real de
+rendimiento en un dispositivo concreto).
+
+**Publicado**: solo documentación (`BACKLOG_PRESUPUESTOS_V2.md`, este archivo) — commit/push a
+`claude/app-review-improvement-plan-9a6pzr`, PR en borrador y fusión al ponerse el CI en verde. Sin
+cambios de código de producto: `npm run verify` se corrió igualmente para confirmar que la sesión no
+deja nada roto (1838/1838 tests, sin cambios respecto al cierre anterior).
+
+**Próximo paso**: FASE 7 sigue completa (12/12). No queda ninguna tarea de presupuestos/forecasting
+abierta ni ningún candidato de rendimiento pendiente de decisión — PERF-2 queda cerrado, no en espera.
+
 ## Cierre de sesión — 28 de agosto de 2026 (30): FASE 7 completa — UX-B2 (edición masiva) y UX-B3 (importar CSV/JSON)
 
 Continuación directa del cierre anterior (UX-B1). El usuario pidió seguir con UX-B1, UX-B2 y UX-B3 en
