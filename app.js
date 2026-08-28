@@ -66,6 +66,7 @@ let rowLabelOverrides = {};
 let movementMappings = {};
 let debtContractOverrides = {};
 let debtContractCustomEntries = [];
+let debtContractHiddenExampleIds = [];
 let debtRoadmapState = {};
 let budgets = [];
 let budgetPartidaOverrides = {};
@@ -194,10 +195,10 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260828a1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-ruta" },
-  "deuda-contratos": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20260826a1", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-ruta" },
+  "deuda-contratos": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-simulador" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260826a1", rootId: "analisis" },
@@ -1027,6 +1028,7 @@ function appStatePayload(options = {}) {
     movementMappings,
     debtContractOverrides,
     debtContractCustomEntries,
+    debtContractHiddenExampleIds,
     debtRoadmapState,
     debtContracts: canonicalDebtContractRows(),
     budgets,
@@ -1462,6 +1464,7 @@ function applyPersistedPayload(payload = {}) {
   debtContractOverrides =
     payload.debtContractOverrides && typeof payload.debtContractOverrides === "object" ? payload.debtContractOverrides : {};
   debtContractCustomEntries = Array.isArray(payload.debtContractCustomEntries) ? payload.debtContractCustomEntries : [];
+  debtContractHiddenExampleIds = Array.isArray(payload.debtContractHiddenExampleIds) ? payload.debtContractHiddenExampleIds : [];
   debtRoadmapState = payload.debtRoadmapState && typeof payload.debtRoadmapState === "object" ? payload.debtRoadmapState : {};
   budgets = Array.isArray(payload.budgets) ? payload.budgets : [];
   budgetPartidaOverrides =
@@ -1532,6 +1535,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("movementMappings"), JSON.stringify(movementMappings));
   storageSet(storageKey("debtContractOverrides"), JSON.stringify(debtContractOverrides));
   storageSet(storageKey("debtContractCustomEntries"), JSON.stringify(debtContractCustomEntries));
+  storageSet(storageKey("debtContractHiddenExampleIds"), JSON.stringify(debtContractHiddenExampleIds));
   storageSet(storageKey("debtRoadmapState"), JSON.stringify(debtRoadmapState));
   storageSet(storageKey("budgets"), JSON.stringify(budgets));
   storageSet(storageKey("budgetPartidaOverrides"), JSON.stringify(budgetPartidaOverrides));
@@ -2414,6 +2418,7 @@ function loadLocalState() {
       movementMappings: JSON.parse(storageGet(storageKey("movementMappings"), "{}")),
       debtContractOverrides: JSON.parse(storageGet(storageKey("debtContractOverrides"), "{}")),
       debtContractCustomEntries: JSON.parse(storageGet(storageKey("debtContractCustomEntries"), "[]")),
+      debtContractHiddenExampleIds: JSON.parse(storageGet(storageKey("debtContractHiddenExampleIds"), "[]")),
       debtRoadmapState: JSON.parse(storageGet(storageKey("debtRoadmapState"), "{}")),
       budgets: JSON.parse(storageGet(storageKey("budgets"), "[]")),
       budgetPartidaOverrides: JSON.parse(storageGet(storageKey("budgetPartidaOverrides"), "{}")),
@@ -2446,6 +2451,7 @@ function loadLocalState() {
     debtContractOverrides = {};
     debtRoadmapState = {};
     debtContractCustomEntries = [];
+    debtContractHiddenExampleIds = [];
     budgets = [];
     budgetPartidaOverrides = {};
     budgetSurplusChoices = {};
@@ -7948,13 +7954,30 @@ function debtPortfolioTargetForDecision(item) {
 // `debtContractCustomEntries` (D-2c) guarda los contratos completos que el hogar ha dado de alta
 // desde esa misma pantalla. Se combinan aquí, en el único punto por el que pasan Ruta, Comparar,
 // Hoy y el motor de escenarios — no hay una segunda puerta de escritura para el contrato.
-const DEBT_CONTRACT_EDITABLE_FIELDS = ["currentPrincipal", "apr", "currentPayment"];
+// D-2d · entidad, tipo, número, plazos restantes y estado también son corregibles a mano, con el
+// mismo mecanismo de override que ya usaban capital/TAE/cuota — no hace falta un segundo formulario
+// de edición, la propia fila de la tabla es el formulario.
+const DEBT_CONTRACT_TEXT_FIELDS = ["entity", "type", "number"];
+const DEBT_CONTRACT_INTEGER_FIELDS = ["remainingInstallments"];
+const DEBT_CONTRACT_EDITABLE_FIELDS = [
+  ...DEBT_CONTRACT_TEXT_FIELDS,
+  "currentPrincipal",
+  "apr",
+  "currentPayment",
+  ...DEBT_CONTRACT_INTEGER_FIELDS,
+  "paymentStatus",
+];
 
+// D-2d · un contrato de ejemplo eliminado no se puede borrar de DEBT_PORTFOLIO (es código, no
+// dato), así que se marca como oculto aquí — mismo patrón de puerta única que los overrides:
+// `debtContractBundle()` es la única función que lee `debtContractHiddenExampleIds`.
 function debtPortfolioWithOverrides() {
-  return [...DEBT_PORTFOLIO, ...debtContractCustomEntries].map((row) => {
-    const override = debtContractOverrides[row.id];
-    return override ? { ...row, ...override } : row;
-  });
+  return [...DEBT_PORTFOLIO, ...debtContractCustomEntries]
+    .filter((row) => !debtContractHiddenExampleIds.includes(row.id))
+    .map((row) => {
+      const override = debtContractOverrides[row.id];
+      return override ? { ...row, ...override } : row;
+    });
 }
 
 // D-2c · id incremental para un contrato dado de alta a mano, sin colisionar con los de ejemplo
@@ -7972,6 +7995,11 @@ function nextDebtContractCustomId() {
 
 function saveDebtContractCustomEntries() {
   storageSet(storageKey("debtContractCustomEntries"), JSON.stringify(debtContractCustomEntries));
+  queueRemoteSave();
+}
+
+function saveDebtContractHiddenExampleIds() {
+  storageSet(storageKey("debtContractHiddenExampleIds"), JSON.stringify(debtContractHiddenExampleIds));
   queueRemoteSave();
 }
 
@@ -30612,7 +30640,7 @@ async function init() {
   });
   qs("deudaContratosTable")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-deuda-contrato-remove]");
-    if (removeButton) handleDeudaContratosRemoveCustom(removeButton.dataset.deudaContratoRemove);
+    if (removeButton) handleDeudaContratosRemove(removeButton.dataset.deudaContratoRemove);
   });
   qs("deudaContratosAddForm")?.addEventListener("submit", (event) => handleDeudaContratosAddSubmit(event));
   qs("deudaContratosCuadre")?.addEventListener("click", (event) => {

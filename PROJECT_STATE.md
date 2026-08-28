@@ -2,6 +2,58 @@
 
 Fecha de revisión: 28 de agosto de 2026.
 
+## Cierre de sesión — 28 de agosto de 2026 (32): D-2d — editar y eliminar cualquier contrato de deuda
+
+El usuario, viendo la pantalla Deuda › Contratos en producción, pidió poder modificar el nombre, el
+resto de datos y eliminar un contrato — «igual que los podemos dar de alta». Hasta ahora (D-2/D-2c)
+solo capital pendiente, TAE y cuota eran editables tras el alta, y solo los contratos añadidos a mano
+se podían eliminar; los tres de ejemplo (Entidad A/B/C) eran fijos.
+
+**Construido**: la fila de la tabla de Deuda › Contratos pasa a ser el propio formulario de edición.
+
+- Entidad, tipo y número de contrato son ahora `<input type="text">` (antes texto fijo); plazos
+  restantes es un input numérico nuevo (columna añadida); estado es un `<select>` con las mismas
+  cuatro opciones que el alta (antes una insignia de solo lectura). `DEBT_CONTRACT_EDITABLE_FIELDS`
+  crece de 3 a 8 campos.
+- Cambiar el estado no escribe solo `paymentStatus`: como el normalizador
+  (`canonical-debt-contracts.js`) deriva el estado real de `reunified` y `currentPrincipal`, no del
+  texto, `handleDeudaContratosStatusChange` replica las mismas reglas que ya usaba el alta —
+  "Reunificada" marca `reunified: true`, "Liquidada" fuerza `currentPrincipal: 0` — para que el
+  cambio se vea reflejado de verdad, no solo en la etiqueta.
+- El botón de eliminar (×) ya no se condiciona a `isCustom`: cualquier fila lo lleva. Un contrato
+  dado de alta se sigue borrando de `debtContractCustomEntries`; uno de ejemplo no se puede quitar de
+  `DEBT_PORTFOLIO` (es código, no dato), así que se marca en un array nuevo,
+  `debtContractHiddenExampleIds`, que `debtPortfolioWithOverrides()` filtra — misma puerta única que
+  ya combinaba overrides y altas. Todo borrado pide confirmación primero
+  (`window.confirm`, mismo patrón que objetivos de ahorro): no hay deshacer.
+- Persistencia: `debtContractHiddenExampleIds` viaja por el mismo camino que
+  `debtContractCustomEntries` (estado en memoria, `appStatePayload`, `saveLocalSnapshot`, la carga
+  desde `localStorage` y su reseteo), incluida la sincronización remota.
+
+**Verificación**: 27 pruebas nuevas o reescritas en `tests/d1-d2-deuda-tabs-contratos.test.cjs`
+(campos editables, parseo de texto/enteros, el efecto de cambiar el estado, el borrado con y sin
+confirmación de altas y de ejemplos, el pintado de la fila). `npm run verify` completo: **1853/1853
+pruebas**, accesibilidad (835 IDs), rendimiento, build del sitio, privacidad y smoke en verde.
+Verificado también en navegador real (Playwright contra `dist/`): renombrar una entidad guarda el
+override y lo refleja en el aviso de cabecera; marcar "Liquidada" pone el capital a 0 al vuelo;
+eliminar un contrato de ejemplo pide confirmación con su nombre real y, al aceptar, desaparece de la
+tabla — sin errores de consola achacables al cambio (el único error visto,
+`ERR_TUNNEL_CONNECTION_FAILED`, se reproduce igual en una pantalla sin tocar, es ruido de red del
+entorno).
+
+`app.js` bumpeado a `20260828a1a1` (nuevo día: reinicia la serie tras `20260827d1a6`);
+`views/deuda.js` a `20260828a1`; `design-tokens.css` a `20260828h1` (nuevos estilos de texto/select
+en la tabla). Los 26 ficheros de prueba que pineaban la versión anterior de `app.js`/`design-tokens.css`
+como marca del shell offline se actualizaron en bloque a los valores nuevos.
+
+**Publicado**: commit/push a `claude/debt-contracts-editing-qbp29p`, PR en borrador y fusión al
+ponerse el CI en verde.
+
+**Próximo paso**: ninguna tarea abierta relacionada. El texto de ayuda bajo la tabla se actualizó
+para reflejar la nueva capacidad; queda pendiente, si el usuario lo pide más adelante, un mecanismo
+para "restablecer los contratos de ejemplo" si alguien borra los tres por error — no se ha construido
+porque nadie lo ha pedido todavía.
+
 ## Cierre de sesión — 28 de agosto de 2026 (31): PERF-2 evaluado — no se recomienda construirlo
 
 El usuario pidió valorar PERF-2 (candidato anotado al cerrar FASE 7). Sin cambios de código: solo el
