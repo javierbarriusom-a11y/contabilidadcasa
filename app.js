@@ -23868,11 +23868,34 @@ function homeOverallStatus(statuses = []) {
   return { tone: "good", label: "Estable" };
 }
 
-function renderHomeHeaderMeta({ statuses, asOf, source, guidance }) {
+// #3 (Ola 3, plan de mejora post-E20 · 28/08/2026): puntuación única de salud financiera. No es un
+// motor nuevo — combina los mismos estados categóricos (good/warn/danger) que ya clasifica cada KPI
+// de Hoy, incluida la cobertura del fondo de emergencia (coverageStatus), que se calculaba pero no
+// entraba en ningún agregado (ni siquiera en el pill de homeOverallStatus). good=100, warn=50,
+// danger=0, media simple — sin fabricar nada: sin estados que combinar, no hay puntuación (null),
+// nunca un número inventado.
+function homeHealthScore(statuses = []) {
+  const points = { good: 100, warn: 50, danger: 0 };
+  const valid = statuses.filter((status) => Object.hasOwn(points, status));
+  if (!valid.length) return null;
+  const score = Math.round(valid.reduce((sum, status) => sum + points[status], 0) / valid.length);
+  return {
+    score,
+    good: valid.filter((status) => status === "good").length,
+    warn: valid.filter((status) => status === "warn").length,
+    danger: valid.filter((status) => status === "danger").length,
+  };
+}
+
+function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
   const meta = qs("homeHeaderMeta");
   if (!meta) return;
   const overall = homeOverallStatus(statuses);
+  const healthHtml = health
+    ? `<span class="e19-home-meta-item home-health-score" title="${escapeHtml(`${health.good} en buen estado, ${health.warn} con aviso, ${health.danger} en riesgo, sobre ${health.good + health.warn + health.danger} indicadores.`)}">Salud financiera: <strong>${health.score}/100</strong></span>`
+    : "";
   meta.innerHTML = `<span class="status-pill ${overall.tone}">${escapeHtml(overall.label)}</span>
+    ${healthHtml}
     <span class="e19-home-meta-item">Analizado a ${escapeHtml(asOf ?? HOME_MISSING_VALUE)} · ${escapeHtml(source)}</span>
     <span class="e19-home-meta-item">${escapeHtml(guidance)}</span>`;
 }
@@ -24024,6 +24047,7 @@ function renderHomeDashboard() {
   // frases que ya traía (eyebrow, título y subtítulo siguen tal cual en el HTML).
   renderHomeHeaderMeta({
     statuses: [adjustedStatus, debtRatioStatus, freeCapacityStatus, reserveStatus, riskStatus],
+    health: homeHealthScore([adjustedStatus, debtRatioStatus, freeCapacityStatus, reserveStatus, riskStatus, coverageStatus]),
     asOf: balanceDateText,
     source: state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado",
     guidance: actionCenter.actions?.[0]?.label || "Sin decisiones pendientes: revisa las tarjetas de abajo.",
@@ -24987,6 +25011,12 @@ let escenarioMotorFamilyView = false;
 // borrador de decisión (`escenarioMotorDraftValues`), que sigue siendo del tipo seleccionado.
 let escenarioMotorCustomBuilderOpen = false;
 let escenarioMotorCustomDraft = { familia: "Vida", campos: ["importe"] };
+// #4 (Ola 3, plan de mejora post-E20): qué escenarios guardados están marcados para comparar a la
+// vez (E-12 pasa de A/B fijos a cualquier número). `escenarioCompararSignature` detecta cuándo
+// cambia el conjunto de candidatos (uno se guarda/archiva) para reiniciar la selección a «todos» —
+// mismo criterio que antes usaba `dataset.count` en los selects.
+let escenarioCompararSelected = [];
+let escenarioCompararSignature = "";
 
 function escenarioMotorBaseInput() {
   return canonicalEngineInput(projectPlan.outflows || []);
@@ -26928,13 +26958,18 @@ function handleEscenarioGuardadosNew() {
 }
 
 // ---------------------------------------------------------------------------------------------
-// E-12: "Tabla de tres columnas —plan, escenario A, escenario B— con los mismos seis indicadores."
-// Sin color de dirección (a diferencia de E-3): comparar A contra B no tiene un «mejor» universal
-// sin saber cuál de los dos se está defendiendo, así que se deja la lectura al usuario. Los avisos
-// (E-6b) no entran en los selectores — no son escenarios viables que comparar, son un límite
-// conocido.
+// E-12: "Tabla de N+1 columnas —plan, y un escenario guardado por cada uno marcado— con los mismos
+// seis indicadores." Sin color de dirección (a diferencia de E-3): comparar A contra B no tiene un
+// «mejor» universal sin saber cuál de los dos se está defendiendo, así que se deja la lectura al
+// usuario. Los avisos (E-6b) no entran en la lista de candidatos — no son escenarios viables que
+// comparar, es un límite conocido.
+//
+// #4 (Ola 3, plan de mejora post-E20 · 28/08/2026): la tabla estaba fija a exactamente dos
+// escenarios (A/B) por los dos <select> de la pantalla, no por el motor — `runEscenarioMotor`/
+// `escenarioMotorSummaryFor` ya eran genéricos por escenario. Se sustituyen los selects por una
+// lista de checkboxes («qué escenarios comparar») y la tabla acepta cualquier número de columnas.
 // ---------------------------------------------------------------------------------------------
-function escenarioMotorCompareThreeHtml(baseSummary, summaryA, summaryB, nameA, nameB) {
+function escenarioMotorCompareTableHtml(baseSummary, entries) {
   const rows = [
     ["Reserva protegida", (s) => (s.liquidezFinal !== null ? money(s.liquidezFinal, true) : "—")],
     ["Meses de colchón", (s) => (s.mesesColchon !== null ? s.mesesColchon.toFixed(1) : "—")],
@@ -26943,10 +26978,15 @@ function escenarioMotorCompareThreeHtml(baseSummary, summaryA, summaryB, nameA, 
     ["Peor mes", (s) => (s.peorMesClave ? `${escenarioMotorMonthLabel(s.peorMesClave)} · ${money(s.peorMesValor ?? 0, true)}` : "—")],
     ["Capacidad libre real", (s) => (s.capacidadLibre !== null ? money(s.capacidadLibre, true) : "—")],
   ];
-  return `<table class="e19-table escenario-motor-compare-table">
-    <thead><tr><th>Indicador</th><th>Plan</th><th>${escapeHtml(nameA)}</th><th>${escapeHtml(nameB)}</th></tr></thead>
+  const multiClass = entries.length > 2 ? " is-multi" : "";
+  const headerCells = entries.map(({ nombre }) => `<th>${escapeHtml(nombre)}</th>`).join("");
+  return `<table class="e19-table escenario-motor-compare-table${multiClass}">
+    <thead><tr><th>Indicador</th><th>Plan</th>${headerCells}</tr></thead>
     <tbody>${rows
-      .map(([label, format]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(format(baseSummary))}</td><td><strong>${escapeHtml(format(summaryA))}</strong></td><td><strong>${escapeHtml(format(summaryB))}</strong></td></tr>`)
+      .map(([label, format]) => {
+        const cells = entries.map(({ summary }) => `<td><strong>${escapeHtml(format(summary))}</strong></td>`).join("");
+        return `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(format(baseSummary))}</td>${cells}</tr>`;
+      })
       .join("")}</tbody>
   </table>`;
 }
@@ -26957,42 +26997,60 @@ function escenarioMotorCompareCandidates() {
 
 function renderEscenarioComparar() {
   renderScenarioDependencyNotice("escenario-comparar");
-  const selectA = qs("escenarioCompararA");
-  const selectB = qs("escenarioCompararB");
+  const picker = qs("escenarioCompararPicker");
   const body = qs("escenarioCompararBody");
   const empty = qs("escenarioCompararEmpty");
   const layout = qs("escenarioCompararLayout");
-  if (!selectA || !selectB || !body) return;
+  if (!picker || !body) return;
 
   const list = escenarioMotorCompareCandidates();
   if (list.length < 2) {
     if (empty) empty.hidden = false;
     if (layout) layout.hidden = true;
+    picker.innerHTML = "";
     body.innerHTML = "";
+    escenarioCompararSelected = [];
+    escenarioCompararSignature = "";
     return;
   }
   if (empty) empty.hidden = true;
   if (layout) layout.hidden = false;
 
-  const options = list.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.nombre || "Escenario")}</option>`).join("");
-  if (selectA.dataset.count !== String(list.length)) {
-    selectA.innerHTML = options;
-    selectB.innerHTML = options;
-    selectB.selectedIndex = Math.min(1, list.length - 1);
-    selectA.dataset.count = String(list.length);
-    selectB.dataset.count = String(list.length);
+  // Un candidato nuevo (guardado/archivado/restaurado) cambia la firma: la selección vuelve a
+  // «todos», igual que antes el segundo select saltaba por defecto al segundo candidato.
+  const signature = list.map((entry) => entry.id).join(",");
+  if (signature !== escenarioCompararSignature) {
+    escenarioCompararSelected = list.map((entry) => entry.id);
+    escenarioCompararSignature = signature;
   }
 
-  const entryA = list.find((entry) => entry.id === selectA.value) || list[0];
-  const entryB = list.find((entry) => entry.id === selectB.value) || list[1];
+  picker.innerHTML = list
+    .map(
+      (entry) =>
+        `<label><input type="checkbox" data-escenario-comparar-pick="${escapeHtml(entry.id)}" ${escenarioCompararSelected.includes(entry.id) ? "checked" : ""} /><span>${escapeHtml(entry.nombre || "Escenario")}</span></label>`,
+    )
+    .join("");
+
+  const selected = list.filter((entry) => escenarioCompararSelected.includes(entry.id));
+  if (!selected.length) {
+    body.innerHTML = `<p class="e19-subtitle">Marca al menos un escenario de la lista de arriba para verlo comparado con el plan.</p>`;
+    return;
+  }
   const baseInput = escenarioMotorBaseInput();
   const baseSummary = escenarioMotorSummaryFor(runEscenarioMotor(baseInput, [], null), baseInput.months);
-  const summaryA = escenarioMotorSummaryFor(runEscenarioMotor(baseInput, entryA.decisiones || [], entryA.guardrailValue ?? null), baseInput.months);
-  const summaryB = escenarioMotorSummaryFor(runEscenarioMotor(baseInput, entryB.decisiones || [], entryB.guardrailValue ?? null), baseInput.months);
-  body.innerHTML = escenarioMotorCompareThreeHtml(baseSummary, summaryA, summaryB, entryA.nombre || "Escenario A", entryB.nombre || "Escenario B");
+  const entries = selected.map((entry) => ({
+    nombre: entry.nombre || "Escenario",
+    summary: escenarioMotorSummaryFor(runEscenarioMotor(baseInput, entry.decisiones || [], entry.guardrailValue ?? null), baseInput.months),
+  }));
+  body.innerHTML = escenarioMotorCompareTableHtml(baseSummary, entries);
 }
 
-function handleEscenarioCompararSelect() {
+function handleEscenarioCompararPick(checkbox) {
+  const id = checkbox.dataset.escenarioCompararPick;
+  if (!id) return;
+  escenarioCompararSelected = checkbox.checked
+    ? [...escenarioCompararSelected, id].filter((value, index, arr) => arr.indexOf(value) === index)
+    : escenarioCompararSelected.filter((existing) => existing !== id);
   renderEscenarioComparar();
 }
 
@@ -31028,8 +31086,10 @@ async function init() {
   });
   qs("escenarioGuardadosCompare")?.addEventListener("click", () => escenarioMotorNavigate("escenario-comparar"));
   qs("escenarioCompararBack")?.addEventListener("click", () => escenarioMotorNavigate("escenario-guardados"));
-  qs("escenarioCompararA")?.addEventListener("change", handleEscenarioCompararSelect);
-  qs("escenarioCompararB")?.addEventListener("change", handleEscenarioCompararSelect);
+  qs("escenarioCompararPicker")?.addEventListener("change", (event) => {
+    const checkbox = event.target.closest("[data-escenario-comparar-pick]");
+    if (checkbox) handleEscenarioCompararPick(checkbox);
+  });
   // PERF-1: referencia envuelta en una función anónima, no directa — estos handlers viven en
   // views/deuda.js (carga diferida). Una referencia directa (`addEventListener("x", handlerName)`)
   // resolvería el nombre al registrar el listener, en el arranque, antes de que el fragmento se

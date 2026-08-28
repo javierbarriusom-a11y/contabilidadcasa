@@ -281,14 +281,41 @@ test("E-1b · escenarioMotorCustomTypeEntry solo incluye los campos elegidos, m�
   assert.equal(params.mensualidad, undefined);
 });
 
-// E-12 · comparar dos escenarios guardados
+// E-12 · comparar escenarios guardados (#4, Ola 3 del plan de mejora post-E20: cualquier número,
+// no solo dos)
 
-test("E-12 · escenarioMotorCompareThreeHtml pinta las tres columnas con los nombres de A y B", () => {
-  const context = sandboxWith(["escenarioMotorCompareThreeHtml", "escenarioMotorMonthLabel"], baseHelpers());
+test("E-12/#4 · escenarioMotorCompareTableHtml pinta una columna por cada escenario, con su nombre", () => {
+  const context = sandboxWith(["escenarioMotorCompareTableHtml", "escenarioMotorMonthLabel"], baseHelpers());
   const summary = { liquidezFinal: 1000, mesesColchon: 2, libreDeDeuda: null, ahorroAnual: 500, peorMesClave: null, peorMesValor: null, capacidadLibre: 300 };
-  const html = context.escenarioMotorCompareThreeHtml(summary, summary, summary, "Escenario A", "Escenario B");
+  const html = context.escenarioMotorCompareTableHtml(summary, [
+    { nombre: "Escenario A", summary },
+    { nombre: "Escenario B", summary },
+  ]);
   assert.match(html, /Escenario A/);
   assert.match(html, /Escenario B/);
   assert.match(html, /Reserva protegida/);
   assert.match(html, /Capacidad libre real/);
+  assert.ok(!html.includes("is-multi"), "con solo dos escenarios no hace falta el modificador de ancho variable");
+});
+
+test("E-12/#4 · escenarioMotorCompareTableHtml admite más de dos escenarios a la vez", () => {
+  const context = sandboxWith(["escenarioMotorCompareTableHtml", "escenarioMotorMonthLabel"], baseHelpers());
+  const summary = { liquidezFinal: 1000, mesesColchon: 2, libreDeDeuda: null, ahorroAnual: 500, peorMesClave: null, peorMesValor: null, capacidadLibre: 300 };
+  const html = context.escenarioMotorCompareTableHtml(summary, [
+    { nombre: "Escenario A", summary },
+    { nombre: "Escenario B", summary },
+    { nombre: "Escenario C", summary },
+    { nombre: "Escenario D", summary },
+  ]);
+  assert.match(html, /Escenario A/);
+  assert.match(html, /Escenario D/);
+  assert.match(html, /<th>Indicador<\/th><th>Plan<\/th><th>Escenario A<\/th><th>Escenario B<\/th><th>Escenario C<\/th><th>Escenario D<\/th>/);
+  assert.match(html, /class="e19-table escenario-motor-compare-table is-multi"/);
+});
+
+test("E-12/#4 · escenarioMotorCompareTableHtml con un solo escenario marcado sigue funcionando", () => {
+  const context = sandboxWith(["escenarioMotorCompareTableHtml", "escenarioMotorMonthLabel"], baseHelpers());
+  const summary = { liquidezFinal: 1000, mesesColchon: 2, libreDeDeuda: null, ahorroAnual: 500, peorMesClave: null, peorMesValor: null, capacidadLibre: 300 };
+  const html = context.escenarioMotorCompareTableHtml(summary, [{ nombre: "Solo uno", summary }]);
+  assert.match(html, /<th>Indicador<\/th><th>Plan<\/th><th>Solo uno<\/th>/);
 });
