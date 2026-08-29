@@ -2,6 +2,41 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (52): TT5 — el suelo del colchón como parámetro vivo
+
+Octava tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. La reserva operativa (el suelo del
+colchón) ya era configurable desde Ajustes desde V6-1/V6-3 (10-20 de agosto) — pero un número fijo
+que la persona escribe una vez y `cushionFloor` usa tal cual para siempre, sin nada que avise si el
+gasto real se ha movido mucho desde entonces.
+
+**Construido**: `cushionFloorDrift(configuredReserve, rows)`, añadida a `canonical-cushion.js` junto
+a `cushionFloor` sin tocarla — nada de lo que ya la usa (Plan, mapa de calor, comparador de deuda)
+cambia de comportamiento. Compara la reserva configurada con lo que las salidas del mes actual
+sugerirían ahora mismo (mismo cálculo «un mes de salidas» que `cushionFloor` usa cuando no hay
+reserva, forzado vía `cushionFloor(rows, 0)`) y marca `stale: true` cuando se han separado un 20% o
+más en cualquier dirección (`CUSHION_DRIFT_THRESHOLD`, exportada) — ni "casi igual" ni ruido de un
+mes suelto. Sin reserva configurada no hay nada que comparar (`driftRatio: null`); sin gasto real
+conocido tampoco divide por cero.
+
+Sin UI propia todavía en este cierre, igual que TT1: motor listo para que la nota de Ajustes (o
+cualquier otro consumidor de la reserva operativa) avise cuando convenga revisarla, sin construir esa
+pantalla en esta tarea.
+
+**Verificación**: 6 pruebas nuevas en `tests/canonical-cushion.test.cjs` — sin reserva no hay
+comparación, reserva alineada no está desfasada, muy por debajo y muy por encima sí lo están, el
+límite exacto del 20% ya cuenta, y sin filas no divide por cero. `canonical-cushion.js` bumpeado a
+`?v=20260829tt5a1`.
+
+**Validación**: `npm run verify`, exit 0 — **2073/2073 pruebas** (2067 + 6 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde. (Nota
+de higiene de esta sesión: `npm test` mostró dos veces un `fail 2` fantasma solo cuando su salida se
+canalizaba con `| tail`, sin ningún `not ok` real localizable — desapareció siempre al redirigir a
+un fichero (`> log 2>&1`), en 6/6 repeticiones así; artefacto del propio pipe, no un fallo real.)
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente y última tarea del
+Bloque 1 (`SP2`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (51): TT1 — reparto del colchón entre corriente y remunerado
 
 Séptima tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. La app ya modela dos cuentas reales

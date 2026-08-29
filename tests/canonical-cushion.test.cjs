@@ -132,3 +132,53 @@ test("cushionAccountSplit · ignora una reserva operativa configurada: usa siemp
   const split = Cushion.cushionAccountSplit(3000, rows, { instantAccessDays: 7 });
   assert.equal(split.instantAccessAmount, 210);
 });
+
+// TT5 · Bloque 1: el suelo del colchón (reserva operativa) como parámetro vivo — cushionFloorDrift
+// no cambia cushionFloor, solo compara el número fijo configurado con lo que el gasto real actual
+// sugeriría ahora mismo.
+
+test("cushionFloorDrift · sin reserva configurada, no hay nada que comparar", () => {
+  const rows = [{ coreSpend: 900, car: 0, refi: 0 }];
+  const drift = Cushion.cushionFloorDrift(0, rows);
+  assert.equal(drift.configured, 0);
+  assert.equal(drift.live, 900);
+  assert.equal(drift.driftRatio, null);
+  assert.equal(drift.stale, false);
+});
+
+test("cushionFloorDrift · reserva alineada con el gasto real actual: no está desfasada", () => {
+  const rows = [{ coreSpend: 900, car: 0, refi: 0 }];
+  const drift = Cushion.cushionFloorDrift(950, rows); // ~5.6% de diferencia
+  assert.equal(drift.configured, 950);
+  assert.equal(drift.live, 900);
+  assert.equal(drift.stale, false);
+});
+
+test("cushionFloorDrift · reserva muy por debajo del gasto real actual: desfasada (stale)", () => {
+  const rows = [{ coreSpend: 900, car: 0, refi: 0 }];
+  const drift = Cushion.cushionFloorDrift(600, rows); // -33%
+  assert.equal(drift.driftRatio, -0.33);
+  assert.equal(drift.stale, true);
+});
+
+test("cushionFloorDrift · reserva muy por encima del gasto real actual: también desfasada", () => {
+  const rows = [{ coreSpend: 900, car: 0, refi: 0 }];
+  const drift = Cushion.cushionFloorDrift(1500, rows); // +67%
+  assert.equal(drift.driftRatio, 0.67);
+  assert.equal(drift.stale, true);
+});
+
+test("cushionFloorDrift · el umbral del 20% es el límite exacto: justo en el 20% ya cuenta como desfasada", () => {
+  const rows = [{ coreSpend: 1000, car: 0, refi: 0 }];
+  const drift = Cushion.cushionFloorDrift(1200, rows); // exactamente +20%
+  assert.equal(drift.driftRatio, 0.2);
+  assert.equal(drift.stale, true);
+  assert.equal(Cushion.CUSHION_DRIFT_THRESHOLD, 0.2);
+});
+
+test("cushionFloorDrift · sin gasto real conocido (sin filas) y con reserva configurada, no divide por cero", () => {
+  const drift = Cushion.cushionFloorDrift(500, []);
+  assert.equal(drift.live, 0);
+  assert.equal(drift.driftRatio, null);
+  assert.equal(drift.stale, false);
+});

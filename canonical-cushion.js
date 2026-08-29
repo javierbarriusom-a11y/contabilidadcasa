@@ -87,5 +87,32 @@
     };
   }
 
-  return { SCHEMA_ID, cushionFloor, cushionTone, cushionLevel, worstMonthOf, cushionAccountSplit };
+  // TT5: la reserva operativa configurada (Ajustes) es un número fijo que la persona escribe una
+  // vez — `cushionFloor` la usa tal cual, para siempre, aunque el gasto real actual haya cambiado
+  // mucho desde entonces. `cushionFloorDrift` no toca `cushionFloor` (nada deja de funcionar como
+  // antes): compara el suelo configurado con lo que las salidas del mes actual sugerirían ahora
+  // mismo (el mismo cálculo "un mes de salidas" que ya usa cushionFloor cuando no hay reserva, vía
+  // cushionFloor(rows, 0) para forzarlo) y marca `stale` cuando se han separado un 20% o más — ni
+  // "casi igual" ni ruido de un mes suelto. Sin reserva configurada no hay nada que comparar.
+  const CUSHION_DRIFT_THRESHOLD = 0.2;
+
+  function cushionFloorDrift(configuredReserve, rows) {
+    const configured = Math.max(0, number(configuredReserve));
+    const live = round2(cushionFloor(rows, 0).basisValue);
+    if (configured <= 0) return { configured: 0, live, driftRatio: null, stale: false };
+    const driftRatio = live > 0 ? round2((configured - live) / live) : null;
+    const stale = driftRatio !== null && Math.abs(driftRatio) >= CUSHION_DRIFT_THRESHOLD;
+    return { configured: round2(configured), live, driftRatio, stale };
+  }
+
+  return {
+    SCHEMA_ID,
+    cushionFloor,
+    cushionTone,
+    cushionLevel,
+    worstMonthOf,
+    cushionAccountSplit,
+    CUSHION_DRIFT_THRESHOLD,
+    cushionFloorDrift,
+  };
 });
