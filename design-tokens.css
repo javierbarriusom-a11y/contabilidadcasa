@@ -4029,6 +4029,26 @@
   color: var(--e19-success);
 }
 
+/* A16-3 · recurrentes/suscripciones detectadas — misma rejilla que "Qué se repite" (A-9), sin la
+   barra de progreso: aquí no hay un máximo relativo que representar, cada fila es un cargo fijo. */
+.e19-analisis .analisis-subscriptions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.e19-analisis .analisis-subscription-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.e19-analisis .analisis-subscription-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--e19-text-sm);
+}
+
 .e19-conciliar .conciliar-history-row span {
   color: var(--e19-muted);
 }

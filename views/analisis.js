@@ -241,6 +241,40 @@ function handleAnalisisActuarRepite(keysRaw, label) {
   });
 }
 
+// A16-3: detección de recurrentes/suscripciones — distinto de A-9 (qué concepto pesa más y ha
+// crecido, comparando trimestres): esto busca cargos de importe exactamente igual que se repiten mes
+// a mes (candidatos a suscripción) y da su coste mensual y anualizado. Mismo movementMappingKey()/
+// movementDisplayName() que ya usan A-9/M-7/M-8 — ninguna normalización de texto en paralelo. Todo
+// el histórico visible, no una ventana: una suscripción de hace 8 meses sigue siendo relevante hoy.
+function analisisSubscriptionsResult(transactions) {
+  if (!window.FinanceCanonicalForecast?.detectRecurringSubscriptions) return null;
+  const movements = (transactions || [])
+    .filter((row) => Number(row.amount) < 0)
+    .map((row) => ({
+      pattern: movementMappingKey(row),
+      label: movementDisplayName(row),
+      category: row.category,
+      amount: row.amount,
+      month: row.month || String(row.date || "").slice(0, 7),
+    }));
+  return window.FinanceCanonicalForecast.detectRecurringSubscriptions(movements);
+}
+
+const ANALISIS_SUBSCRIPTION_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
+
+function analisisSubscriptionsHtml(result) {
+  if (!result || !result.detected.length) {
+    return `<p class="e19-kpi-note">Sin cargos del mismo importe repetidos al menos ${result?.minMonths ?? 3} meses todavía.</p>`;
+  }
+  const rows = result.detected
+    .map((item) => `<div class="analisis-subscription-item">
+      <div class="analisis-subscription-head"><strong>${escapeHtml(item.label)}</strong><span>${money(item.monthlyCost, true)}/mes</span></div>
+      <small>${escapeHtml(item.category || "Sin categoría")} · visto ${item.sampleMonths} meses · ${money(item.annualCost, true)}/año · confianza ${escapeHtml(ANALISIS_SUBSCRIPTION_CONFIDENCE_LABEL[item.confidence] || item.confidence)}</small>
+    </div>`)
+    .join("");
+  return `${rows}<p class="e19-kpi-note">Total detectado: ${money(result.totalMonthlyCost, true)}/mes (${money(result.totalAnnualCost, true)}/año). Candidatos a confirmar a mano: un mismo importe repetido no siempre es una suscripción real.</p>`;
+}
+
 // P-1: desglose de gasto del periodo (mismo `periodMonths` que la cascada de A-4) por tipo de
 // acción — reutiliza `actionTypeForMovement` (app.js), el mismo campo que edita Movimientos, no un
 // cálculo aparte. Solo gastos (amount < 0): la pregunta que resuelve es "¿cuánto de lo gastado es
@@ -648,6 +682,10 @@ function renderAnalisis() {
     recurringNote.innerHTML = note;
     recurringNote.hidden = !note;
   }
+
+  // A16-3: recurrentes de importe fijo (candidatos a suscripción), sobre todo el histórico visible.
+  const subscriptionsEl = qs("analisisSubscriptions");
+  if (subscriptionsEl) subscriptionsEl.innerHTML = analisisSubscriptionsHtml(analisisSubscriptionsResult(baseData?.transactions || []));
 
   // P-1: desglose por tipo de acción, mismo periodo que la cascada de A-4.
   const actionTypeEl = qs("analisisActionTypeBreakdown");

@@ -2,6 +2,364 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (78): DI5 — reestructuración conjunta ante una caída de ingresos, y cierre del Bloque 4
+
+Última tarea del Bloque 4 (solo su fila en la tabla: sin spec detallada, «Deuda: instrumentos», M,
+Alto).
+
+**Decisión de alcance**: a diferencia de comparar una deuda a la vez (ya cubierto por Deuda ›
+Comparar), «conjunta» significa mirar TODOS los contratos de deuda activos juntos frente a un
+ingreso reducido, y proponer en qué orden aliviarlos hasta volver a un ratio deuda/ingresos
+sostenible — no una negociación de quita con un acreedor (eso ya lo cubre
+`canonical-debt-comparator.js` para deuda impagada), sino una reestructuración preventiva antes de
+dejar de pagar nada. Reutiliza los contratos reales de Deuda › Contratos (`debtContractSourceRows`,
+D-2) en vez de pedir capital/TAE/cuota a mano, y el ratio de deuda/ingresos seguro ya configurable
+en Ajustes › Alertas (H-9) en vez de un 35% fijo aparte.
+
+**Construido**: `canonical-joint-restructuring.js` (nuevo) — `jointRestructuringPlan(input)`: suma
+la cuota conjunta de los contratos, calcula el ratio frente al ingreso declarado y cuánto alivio
+mensual hace falta para bajar al ratio seguro; ordena los contratos por TAE descendente (el más caro
+primero, porque alargar su plazo ahorra más por cada mes añadido) y propone alargar el plazo un 50%
+contrato a contrato hasta cubrir el alivio necesario — reutiliza la misma cuota francesa estándar
+que DI1, en un módulo independiente a propósito (mismo criterio de autonomía que el resto de motores
+canónicos). Si ni alargando todos los plazos se cubre el alivio necesario, `sufficient: false` lo
+dice explícitamente en vez de fingir una solución. En `app.js`, `di5RestructuringContracts()` mapea
+los contratos activos con cuota; `handleDi5CompareJointRestructuring()` pide solo el ingreso mensual
+tras la caída y pinta la propuesta completa. Tarjeta nueva «Reestructuración conjunta ante una caída
+de ingresos» en Ajustes, junto a la de DI1. `canonical-joint-restructuring.js` añadido a la
+whitelist de `tools/build-public-site.mjs` y cargado en `index.html`. `app.js` bumpeado a
+`?v=20260829v1`.
+
+**Verificación**: 16 pruebas nuevas — 6 en `tests/canonical-joint-restructuring.test.cjs` (por
+debajo del ratio seguro no propone cambios, prioriza el tipo más caro, un contrato puede bastar y
+deja el resto sin tocar, puede no ser suficiente ni agotando todos los plazos, sin ingreso no
+fabrica un ratio, sin contratos no hay nada que reestructurar) y 10 en
+`tests/di5-reestructuracion-conjunta.test.cjs` (mapeo de contratos activos con cuota, sin ingreso
+avisa, sin contratos avisa, por debajo del ratio no hace falta reestructurar, por encima propone
+alargar el plazo del más caro, usa el ratio configurado en Ajustes › Alertas y no un 35% fijo, no
+persiste nada, HTML/wiring/ayuda, motor registrado).
+
+**Validación**: `npm run verify`, exit 0 — **2308/2308 pruebas** (2292 + 16 nuevas), accesibilidad
+(898 IDs, +3), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+**Cierre del Bloque 4**: las 8 tareas completadas en esta sesión — OPT-5, A16-1, A16-3, A15-1, PV4,
+UX1, DI1, DI5. Cifras finales: 2308/2308 pruebas, 898 IDs de accesibilidad, todo en verde, incluido
+el CI real de GitHub Actions (confirmado en el PR tras OPT-5, que además valida que el nuevo
+presupuesto Lighthouse funciona en el runner real, no solo en este entorno).
+
+## Cierre de sesión — 29 de agosto de 2026 (77): DI1 — hipoteca variable → fija bajo escenarios de tipos
+
+Séptima tarea del Bloque 4. Con spec detallada en la fila de la tabla («Usa el motor base/
+favorable/tensión ya existente»).
+
+**Hallazgo antes de construir**: el motor base/favorable/tensión que ya existe
+(`canonical-e13-scenarios.js`, E13) trabaja con factores de ingreso/gasto para el Laboratorio de
+escenarios general — no hay ningún registro de hipoteca ni motor de amortización con tipo variable/
+fijo en toda la app (se buscó en `canonical-debt-contracts.js` y `canonical-debt-comparator.js`,
+ninguno modela tipos de interés). **Decisión de alcance**: se reutiliza el *marco* de tres
+escenarios (mismos tres nombres — base/favorable/tensión — mismo criterio de "tres lecturas, no
+una"), no el motor de E13 literalmente, porque sus factores de ingreso/gasto no aplican a un tipo de
+interés. Calculadora puntual, sin datos de mercado reales — mismo criterio que A19-3 (comparador de
+tarifas): el hogar declara capital pendiente, plazo, tipo variable actual y la oferta de tipo fijo.
+
+**Construido**: `canonical-mortgage-rate-scenarios.js` (nuevo) — `monthlyPayment(principal, tipo,
+meses)`: cuota francesa estándar (amortización a cuota constante), lineal si el tipo es 0 (sin
+dividir por cero). `evaluateMortgageRateScenarios(input)`: tres escenarios con los mismos nombres
+que el Laboratorio (base: sin cambio; favorable: −1 punto; tensión: +1,5 puntos, sin bajar de 0%),
+cada uno con la cuota y coste total de seguir en variable frente a pasarse a fijo, y el veredicto
+(`cheaper`: `"variable"`/`"fixed"`/`"tie"`). En `app.js`, `handleDi1CompareMortgageScenarios()` lee
+los cuatro campos y rellena la nota con los tres escenarios. Tarjeta nueva «Hipoteca variable → fija
+bajo escenarios de tipos» en Ajustes, junto al comparador de tarifas de A19-3.
+`canonical-mortgage-rate-scenarios.js` añadido a la whitelist de `tools/build-public-site.mjs` y
+cargado en `index.html`. `app.js` bumpeado a `?v=20260829u1`.
+
+**Verificación**: 13 pruebas nuevas — 7 en `tests/canonical-mortgage-rate-scenarios.test.cjs`
+(cuota francesa estándar, tipo 0 lineal, sin capital cuota 0, los tres escenarios con los nombres de
+E13, en tensión la variable puede salir más cara, el delta nunca deja un tipo negativo, empate real)
+y 6 en `tests/di1-hipoteca-variable-fija.test.cjs` (sin capital avisa, con datos válidos muestra los
+tres escenarios, no persiste nada en `scenarioSettings`, HTML/wiring/ayuda, motor registrado).
+
+**Validación**: `npm run verify`, exit 0 — **2292/2292 pruebas** (2279 + 13 nuevas), accesibilidad
+(895 IDs, +6), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+## Cierre de sesión — 29 de agosto de 2026 (76): UX1 — deshacer de 10 segundos en vez de confirmaciones modales
+
+Sexta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Auditar cada modal de
+confirmación reversible»).
+
+**Auditoría, antes de construir**: toda la app tenía solo tres `confirm()` nativos. Dos eran
+exactamente lo que describe la tarea — «¿eliminar X?» antes de un `splice` reversible sobre un
+array (una alerta en el centro de alertas, un objetivo de ahorro en Plan · Ahorro) — y se
+convierten aquí. El tercero (`registrarConsolidateSessionChanges`, «la reserva queda por debajo del
+mínimo con estos cambios, ¿seguro que quieres consolidarlos?») **se queda como `confirm()` a
+propósito**: no es un «¿seguro que borro?» sino un aviso de riesgo antes de perder la red de
+seguridad de «Descartar todo» de la sesión de Registrar el mes — deshacerlo después no tiene el
+mismo sentido que reinsertar un elemento en una lista, y convertirlo habría ido más allá de lo que
+pedía la tarea.
+
+**Construido**: `showUndoToast(message, onUndo, timeoutMs = 10000)`/`hideUndoToast()`/
+`handleUndoToastClick()` (nuevas, `app.js`) — un aviso fijo abajo con un botón «Deshacer» real, no
+solo un texto que desaparece solo; un segundo aviso antes de que expire el primero cancela su
+temporizador (nunca dos avisos «finalizando» a la vez). `handleAlertRuleAction`/
+`handleSavingsGoalAction`: la rama «delete» ya no llama a `confirm()` — borra de inmediato (guarda y
+repinta igual que antes) y ofrece el aviso de deshacer, cuyo callback reinserta el elemento borrado
+en su posición original y vuelve a guardar. Aviso nuevo `#undoToast` en `index.html`, fuera de
+`#mainContent` para sobrevivir al cambio de vista mientras está visible. `app.js` bumpeado a
+`?v=20260829t1`.
+
+**Verificación**: 10 pruebas nuevas en `tests/ux1-deshacer-diez-segundos.test.cjs` (el aviso se
+muestra con su mensaje, el botón deshace y oculta sin esperar al temporizador, pasado el tiempo se
+oculta solo sin deshacer nada, un segundo aviso cancela el temporizador del primero, las dos ramas
+de borrado ya no usan `confirm()` y sí reinsertan al deshacer, el tercer `confirm()` de riesgo sigue
+intacto a propósito, solo queda un `confirm()` en toda `app.js`, cableado del botón, el aviso vive
+fuera de `#mainContent`) y 1 prueba corregida en `tests/p13-p16-ahorro-objetivos.test.cjs` (ya no
+simula `window.confirm`, ahora comprueba el borrado directo con el nuevo aviso).
+
+**Validación**: `npm run verify`, exit 0 — **2279/2279 pruebas** (2269 + 10 nuevas, 1 test existente
+corregido para el nuevo comportamiento en vez de sumar), accesibilidad (889 IDs, +3: el aviso, su
+mensaje y su botón), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+## Cierre de sesión — 29 de agosto de 2026 (75): PV4 — bandas de confianza, no una sola línea
+
+Quinta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Sombrea el forecast con la
+estacionalidad/desviación ya calculadas»).
+
+**Decisión de alcance**: se añade a la misma tarjeta donde ya vive el termómetro de PV2
+(`renderE13ScenarioLab()` → «Aprendizaje E12b», Laboratorio de escenarios): ahí ya están calculados
+`forecast.series` (la liquidez proyectada) y `learning` (`learnFromHistory().deviations`, el mismo
+aprendizaje de E12b) en el mismo render, así que la banda no trae ningún dato nuevo, solo los
+combina. Ventana de 12 meses en pantalla — la banda ya crece con el tiempo, mostrar años enteros
+solo comprimiría la vista sin ganar legibilidad.
+
+**Construido**: `canonical-forecast.js` ganó `confidenceBands(series, learning, options)` — margen
+base = desviación media absoluta de las partidas con historial suficiente (`deviations` de
+`learnFromHistory`, sin recalcular nada); se ensancha con la raíz del número de meses hacia delante
+(un mes 9 es más incierto que el mes 1, mismo criterio de un paseo aleatorio) con tope en 3× el
+margen base (`CONFIDENCE_BAND_MAX_WIDENING`) para que un forecast de varios años no acabe con una
+banda absurda; confianza agregada (alta/media/baja) según la peor confianza de las partidas usadas.
+Sin historial suficiente, el margen es 0 en toda la serie — banda de ancho cero, honesto, no una
+anchura inventada. En `app.js`: `pv4ConfidenceBandHtml()` pinta una columna por mes (barra sombreada
+del extremo bajo al alto, marca fina en el centro), tarjeta nueva «Bandas de confianza» junto al
+termómetro de PV2 en el Laboratorio de escenarios.
+
+**Verificación**: 9 pruebas nuevas — 4 en `tests/canonical-forecast.test.cjs` (sin desviaciones
+aprendidas el margen es 0, el margen sale de la desviación media absoluta, la banda se ensancha con
+la raíz de los meses con tope, una sola partida de baja confianza basta para bajar la confianza
+agregada) y 5 en `tests/pv4-bandas-confianza.test.cjs` (sin bandas avisa, sin historial lo dice
+explícitamente, pinta una columna por mes, cableado real en `renderE13ScenarioLab()`, motor
+versionado).
+
+**Validación**: `npm run verify`, exit 0 — **2269/2269 pruebas** (2260 + 9 nuevas), accesibilidad
+(886 IDs, sin cambios — la tarjeta se pinta dentro de un contenedor ya existente), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde. CI de GitHub Actions también verde en el
+PR (confirma además que el nuevo presupuesto Lighthouse de OPT-5 funciona de verdad en el runner
+real, no solo en este entorno).
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+## Cierre de sesión — 29 de agosto de 2026 (74): A15-1 — registro de supuestos fiscales
+
+Cuarta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Registro de supuestos
+fiscales en el registro central (A7-2) | Tributación conjunta/individual, retenciones, aportaciones
+deducibles, alquiler y familia numerosa como supuestos versionados, editables en un único lugar»).
+
+**Hallazgo antes de construir**: A7-2 («Registro central de supuestos») ya estaba construido a nivel
+de motor — `buildAssumptionRegistry()` en `canonical-forecast.js`, con ocho supuestos generales del
+forecast (saldos iniciales, factores de ingreso/gasto, ahorro objetivo, ajuste automático) — pero
+**ningún sitio de la app lo llamaba nunca**: cero referencias fuera de su propio test. Un motor
+terminado y probado, sin ninguna pantalla que lo mostrara. A15-1 termina de conectarlo: los cinco
+supuestos fiscales entran en esa misma lista, en vez de crear un registro fiscal aparte, y por fin
+hay una tarjeta real en Ajustes que lo muestra — «editables en un único lugar» tal como pedía la
+tarea, no solo los fiscales sino los trece juntos.
+
+**Construido**: `canonical-forecast.js` ganó cinco definiciones nuevas en `ASSUMPTION_DEFINITIONS`
+(tributación conjunta, retenciones, aportaciones deducibles, alquiler deducible, familia numerosa),
+bajo un nuevo prefijo de ruta `fiscal.*`. En `app.js`: getters `fiscalWithholdingRate()`/
+`fiscalDeductibleContributions()`/`fiscalDeductibleRent()` (0 si no está configurado, mismo patrón
+que DI2); `assumptionRegistryInput()` combina saldos y política del forecast (de `state`, los mismos
+valores que ya usa el resto de la app) con los cinco fiscales; `renderAjustesAssumptionRegistry()`
+pinta la lista completa de trece supuestos con su valor formateado por unidad (€, %, ×, Sí/No) y la
+fecha de la última actualización real; `persistAssumptionRegistry()` guarda la foto en
+`scenarioSettings.assumptionRegistry` solo cuando de verdad se edita un supuesto fiscal — no en cada
+render, para no convertir una visita a Ajustes en una escritura. Tarjeta nueva «Registro de
+supuestos» en `index.html`. `canonical-forecast.js` bumpeado a `?v=20260829a151a1`, `app.js` a
+`?v=20260829r1`.
+
+**Bug real encontrado por los tests, antes de publicar**: `buildAssumptionRegistry()` calculaba un
+booleano sin configurar como `raw !== false`, que da `true` para `undefined` — un sesgo silencioso
+hacia «sí» que nadie eligió. Nunca se notó porque el único booleano que ya existía
+(`autoCapSavings`) siempre llegaba con valor explícito en su test y su verdadero valor por defecto
+en la app SÍ es `true`. Con los dos booleanos fiscales nuevos (tributación conjunta, familia
+numerosa), donde lo honesto es partir de `false`, el sesgo se hizo visible. Corregido a
+`raw === true` (exige un `true` explícito; ausencia de dato es `false`) — y para no invertir sin
+querer el comportamiento real de `autoCapSavings` (que si sigue vale `true` por defecto en la app),
+`assumptionRegistryInput()` le aplica el mismo `?? true` que ya usa su propio checkbox.
+
+**Verificación**: 13 pruebas nuevas en `tests/a15-1-registro-supuestos-fiscales.test.cjs` (las cinco
+definiciones en el registro junto a las ocho generales, valores por defecto honestos sin
+configuración, los tres getters numéricos, `assumptionRegistryInput()` combina saldos/política/
+fiscales de `state`, la lista pinta las 13 filas con etiqueta/valor/fecha, un handler no guarda si
+no cambia, guarda y deja la foto nueva si cambia, cableado en `renderAjustes()`/
+`saveScenarioSettings()`/los cinco listeners/el HTML) y 1 prueba de ajuste en
+`tests/canonical-forecast.test.cjs` (el conteo de 8 a 13 supuestos, con su explicación).
+
+**Validación**: `npm run verify`, exit 0 — **2260/2260 pruebas** (2249 + 11 nuevas en
+`tests/a15-1-registro-supuestos-fiscales.test.cjs`; el conteo de 8 a 13 en
+`tests/canonical-forecast.test.cjs` es un ajuste sobre una prueba ya existente, no una prueba
+nueva), accesibilidad (886 IDs, +6: los cinco campos fiscales y la lista del registro), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+## Cierre de sesión — 29 de agosto de 2026 (73): A16-3 — detección de recurrentes/suscripciones
+
+Tercera tarea del Bloque 4. Con spec detallada en la fila de la tabla («Agrupación por patrón e
+importe reutilizando el aprendizaje de estacionalidad de E12b; coste mensual y anualizado por
+suscripción, sin escribir nada sin confirmar»).
+
+**Hallazgo antes de construir**: ya existe «Qué se repite» (A-9, en Análisis) — agrupa por
+`movementMappingKey()` (misma clave de concepto que M-7/M-8) y compara el peso de cada concepto
+entre trimestres, avisando de los que han crecido sin decisión. Distinto de lo que pide A16-3: A-9
+no exige que el importe sea el mismo mes a mes (una categoría que sube o baja sigue contando), y no
+da un coste mensual/anualizado por partida — dos preguntas relacionadas pero no iguales («¿qué
+concepto pesa más y ha crecido?» frente a «¿qué cargos de importe fijo se repiten, y cuánto cuestan
+al año?»). Se añade como tarjeta nueva junto a A-9 en Análisis, reutilizando su misma clave de
+concepto (`movementMappingKey`/`movementDisplayName`) en vez de una segunda normalización de texto.
+
+**Construido**: `canonical-forecast.js` (E12b) ganó `detectRecurringSubscriptions(movements, options)`
+— agrupa por `pattern` (ya resuelto por quien llama) e importe exacto; un cambio de precio real
+cuenta como grupo aparte a propósito, para no fusionar una subida de tarifa con el histórico previo;
+exige un mínimo de meses (3 por defecto) para no marcar como recurrente una coincidencia de dos
+meses; reutiliza `confidence()` tal cual (mismo criterio por tamaño de muestra que `learnFromHistory`)
+— el «aprendizaje de estacionalidad de E12b» que pedía la tarea. Cada resultado sale con
+`confirmRequired`/`confirmed`, igual que las `deviations` de `learnFromHistory`: el motor nunca
+escribe nada, solo detecta. En `views/analisis.js`: `analisisSubscriptionsResult()` construye los
+movimientos con `movementMappingKey()`/`movementDisplayName()` (A-9/M-7/M-8, sin normalización
+nueva) y llama al motor; `analisisSubscriptionsHtml()` pinta la tarjeta «Recurrentes y suscripciones
+detectadas» con coste mensual, anualizado, meses vistos y confianza por partida, y el total agregado.
+Tarjeta nueva en `index.html`, junto a «Qué se repite». `views/analisis.js` bumpeado a
+`?v=20260829a163b1` (VIEW_CHUNKS en `app.js`), `canonical-forecast.js` a `?v=20260829a163a1`, `app.js`
+a `?v=20260829q1`.
+
+**Verificación**: 13 pruebas nuevas — 6 en `tests/canonical-forecast.test.cjs` (detección con 3+
+meses da coste mensual/anualizado, por debajo del mínimo no detecta, cambio de precio real cuenta
+como grupo aparte, ingresos y sin patrón se ignoran, totales agregados y confianza por tamaño de
+muestra, nunca escribe nada) y 7 en `tests/a16-3-recurrentes-suscripciones.test.cjs` (detección real
+con `movementMappingKey`/`movementDisplayName` extraídas de `app.js`, movement+details distintos no
+se confunden, HTML sin detecciones explica el mínimo de meses, HTML con detecciones, cableado en
+`renderAnalisis()`, tarjeta en el documento, motor versionado).
+
+**Validación**: `npm run verify`, exit 0 — **2249/2249 pruebas** (2236 + 13 nuevas), accesibilidad
+(880 IDs, +1: `analisisSubscriptions`), rendimiento, build del sitio, privacidad y smoke test, todos
+en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+## Cierre de sesión — 29 de agosto de 2026 (72): A16-1 — puntuación de salud financiera compuesta
+
+Segunda tarea del Bloque 4. Con spec detallada en la fila de la tabla («Cifra única (colchón, ratio
+deuda/ingresos, cumplimiento de presupuesto, progreso de objetivos, frescura de datos) visible en
+«Hoy», con cada componente explicado y su peso — mismo patrón que A2-6»).
+
+**Hallazgo antes de construir**: ya existe un «Salud financiera: X/100» en la cabecera de Hoy —
+`homeHealthScore()`, de Ola 3 candidata #3 (28/08/2026, un día antes de esta sesión), documentado
+explícitamente como «no hay motor nuevo»: media simple de los mismos estados good/warn/danger que ya
+clasifica cada KPI, sin nombre ni peso por componente. Es justo lo que A16-1 pide construir de
+verdad. Sustituir esa tarjeta habría roto una pantalla en uso y su test ya verificado
+(`tests/o3-o4-salud-financiera-y-comparar-escenarios.test.cjs`) sin que el usuario lo pidiera —
+**decisión de alcance**: se añade como tarjeta nueva, complementaria, sin tocar `homeHealthScore()`
+ni su badge existente.
+
+**Construido**: `canonical-health-score.js` (nuevo) — `compositeHealthScore(input)`: cinco
+componentes con peso igual (20% cada uno) — colchón, ratio deuda/ingresos, cumplimiento de
+presupuesto, progreso de objetivos, frescura de datos —, cada uno 0-1 aportado por quien llama. Un
+componente en `null` (no en 0) se excluye y su peso se reparte entre los conocidos, para no fabricar
+una cifra cuando el dato simplemente no existe (p. ej. un hogar sin objetivos activos). En `app.js`:
+`homeHealthScoreComponents(ctx)` calcula los cinco a partir de valores **ya calculados en otro
+sitio**, ninguno de nuevo — colchón de `balances.caixa`/`protectedReserve` (los mismos locals de
+`reserveStatus`), ratio de deuda de `savings.debtToIncomeRatio`/`debtRatioDangerAt` (el umbral
+configurable de Ajustes › Alertas, H-9), cumplimiento de `homeBudgetSummary()` (U-1), progreso de
+objetivos de `P2Domain.goalSnapshot()` ponderado por importe (solo objetivos activos), frescura de
+`dataFreshnessReport()` (extraído de `renderE11bStatus()`, mismo cálculo que ya se ve en Datos ·
+Actualización). `renderHomeHealthScoreCard()` pinta la tarjeta nueva «Salud financiera compuesta» en
+Hoy con la cifra y la lista de componentes (etiqueta, peso, puntuación), oculta si no hay ningún
+componente calculable. `canonical-health-score.js` añadido a la whitelist de
+`tools/build-public-site.mjs` y cargado en `index.html`. `app.js` bumpeado a `?v=20260829p1`.
+
+**Bug real encontrado por los tests, antes de publicar**: `clamp01(null)` devolvía `0` en vez de
+`null` — `Number(null)` es `0`, no `NaN`, así que un componente sin dato se puntuaba como el peor
+caso posible en vez de excluirse (mismo patrón de bug que `taxTableStatus`, A15-5, Bloque 2).
+Corregido con un guardia explícito para `null`/`undefined` antes de convertir a número.
+
+**Verificación**: 20 pruebas nuevas en `tests/a16-1-salud-financiera-compuesta.test.cjs` — 5 sobre
+`compositeHealthScore` (media ponderada, componente desconocido excluido y no fabricado, sin ningún
+componente conocido no fabrica cifra, recorte a 0-1, etiqueta y peso por componente), 8 sobre
+`homeHealthScoreComponents` (cada uno de los cinco, con y sin dato disponible), 3 sobre
+`renderHomeHealthScoreCard` (oculta sin cifra, pinta cifra y componentes, avisa de puntuación
+parcial), 4 de cableado (llamada real dentro de `renderHomeDashboard()`, HTML de la tarjeta, motor
+registrado, y que `homeHealthScore()`/Ola 3 #3 sigue intacto — no se sustituyó nada existente).
+
+**Validación**: `npm run verify`, exit 0 — **2236/2236 pruebas** (2216 + 20 nuevas), accesibilidad
+(879 IDs, +3: `homeHealthScoreCard`, `homeHealthScoreValue`, `homeHealthScoreBreakdown`),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+## Cierre de sesión — 29 de agosto de 2026 (71): OPT-5 — presupuesto de rendimiento real (Lighthouse CI)
+
+Primera tarea del Bloque 4 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (nivel 0, esfuerzo M, beneficio alto).
+Con spec detallada en `BACKLOG_OPTIMIZACION.md`.
+
+**Por qué.** `tools/check-performance.mjs` solo comprobaba que `app.js + styles.css + data.js` no
+superasen 5 MB combinados — medía peso de fichero fuente, no la experiencia real de carga. El
+pipeline podía dar verde con LCP/TBT reales muy malos si el peso total cabía bajo el límite.
+
+**Construido**: `.lighthouserc.cjs` (nuevo) — configuración de Lighthouse CI (`@lhci/cli`, nueva
+devDependency) contra `dist/index.html` ya construido por `build:site`, `numberOfRuns: 3` con
+agregación por mediana. `tools/check-lighthouse-budget.mjs` (nuevo) — exige que `dist/` exista y que
+Chromium de Playwright esté instalado (mensajes de error explícitos si no), resuelve
+`chromium.executablePath()` y lo pasa como `CHROME_PATH` al `lhci autorun` que lanza. Nuevo script
+`npm run test:performance-lh`, deliberadamente **fuera** de `npm run verify` (mismo motivo que
+`test:visual`/`test:e2e`/`test:a11y-axe`: no forzar un navegador instalado para quien solo quiera
+correr `npm test`). `tools/check-performance.mjs` pierde el `throw` por peso de fichero (lo sustituye
+este presupuesto); sigue registrando el tamaño en el log, solo como dato informativo.
+`.github/workflows/pages.yml` instala Chromium (`npx playwright install --with-deps chromium`) y
+corre `npm run test:performance-lh` en el job `verify`, después de `npm run verify` y antes de los
+pasos de despliegue — así corre en cada PR, no solo antes de publicar. `.lighthouseci/` (los informes
+de cada corrida) añadido a `.gitignore`.
+
+**Los umbrales, con su origen real**: medidos contra este `dist/` con Chromium (formFactor mobile,
+throttling simulado — así imita Lighthouse una red móvil media): mediana ~1,4 s de LCP y ~2,7-3,4 s
+de TBT en carga templada, pero el primer arranque en frío del navegador puede rondar 11 s de LCP y
+5,2 s de TBT solo por coste de arranque, no por regresión real — de ahí `numberOfRuns: 3` con mediana.
+Presupuestos con margen real sobre la mediana observada, no sobre el mejor caso: LCP < 6000 ms,
+TBT < 8000 ms (proxy de laboratorio de INP — INP no es medible sin interacción real de usuario), CLS
+< 0.1. Quedan documentados en el propio `.lighthouserc.cjs` como punto de partida, no como cifra
+final — exactamente lo que pedía la tarea («ajustar tras la primera medición real, que dará la línea
+base»).
+
+**Verificación**: 6 pruebas nuevas en `tests/opt5-presupuesto-lighthouse.test.cjs` (script y
+devDependency en `package.json`, presupuestos reales de LCP/TBT/CLS en `.lighthouserc.cjs`,
+comprobaciones de `dist/`/Chromium en el wrapper, retirada del `throw` de peso de fichero, orden de
+pasos y alcance-en-cada-PR en `pages.yml`, `.lighthouseci/` en `.gitignore`). Deliberadamente
+estáticas — lanzar Lighthouse de verdad necesita un navegador y un `dist/` construido, y `npm test`
+tiene que seguir siendo rápido y sin dependencia de navegador. El recorrido real (`lhci autorun`
+completo, con fallo real cuando se fuerza un umbral imposible y éxito real con los umbrales
+definitivos) se verificó a mano contra un `dist/` de verdad antes de este commit.
+
+**Validación**: `npm run verify`, exit 0 — **2216/2216 pruebas** (2210 + 6 nuevas), accesibilidad
+(876 IDs, sin cambios — esta tarea no toca `index.html`), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `npm run test:performance-lh` verificado a mano contra el `dist/`
+construido en esta sesión: 3 corridas de Lighthouse, presupuestos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (70): A19-3 — comparador educativo de tarifas fijas, y cierre del Bloque 2
 
 Última tarea programada del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla:

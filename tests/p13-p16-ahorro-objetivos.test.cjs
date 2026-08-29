@@ -172,14 +172,14 @@ test("P-13 · handleSavingsGoalAction sube/baja prioridad intercambiando el orde
   assert.deepEqual(context.scenarioSettings.savingsGoals.map((g) => g.id), ["g2", "g1"]);
 });
 
-test("P-13 · handleSavingsGoalAction borra el objetivo tras confirmar", () => {
+test("P-13 · handleSavingsGoalAction borra el objetivo directamente (UX1: deshacer, no confirm())", () => {
   const context = sandboxWith(
     ["handleSavingsGoalAction", "savingsGoalsList"],
     baseHelpers({
       scenarioSettings: { savingsGoals: [{ id: "g1", label: "A" }, { id: "g2", label: "B" }] },
       saveScenarioSettings: () => {},
       renderPlanAhorro: () => {},
-      window: { confirm: () => true },
+      showUndoToast: () => {},
     }),
   );
   const row = { dataset: { savingsGoalId: "g1" } };

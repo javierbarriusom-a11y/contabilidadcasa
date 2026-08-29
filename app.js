@@ -205,7 +205,7 @@ const VIEW_CHUNKS = {
   "deuda-simulador": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-simulador" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
-  analisis: { src: "views/analisis.js?v=20260828b1", rootId: "analisis" },
+  analisis: { src: "views/analisis.js?v=20260829a163b1", rootId: "analisis" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
 // la caché de "ya cargado"/"cargando" se indexa por `src`, no por vista, para no pedir el mismo
@@ -3457,6 +3457,17 @@ function saveScenarioSettings() {
     // asegurado: dato del hogar que se sincroniza y se restaura, 0 significa «sin configurar».
     emergencyCreditLimit: round2(Math.max(0, Number(state.emergencyCreditLimit || 0))),
     emergencyCreditRate: round2(Math.max(0, Number(state.emergencyCreditRate || 0))),
+    // A15-1 · los cinco supuestos fiscales del hogar, mismo criterio que el resto: dato del hogar
+    // que se sincroniza y se restaura, 0/false significa «sin configurar».
+    fiscalJointTaxation: !!state.fiscalJointTaxation,
+    fiscalWithholdingRate: round2(Math.max(0, Math.min(100, Number(state.fiscalWithholdingRate || 0)))),
+    fiscalDeductibleContributions: round2(Math.max(0, Number(state.fiscalDeductibleContributions || 0))),
+    fiscalDeductibleRent: round2(Math.max(0, Number(state.fiscalDeductibleRent || 0))),
+    fiscalLargeFamily: !!state.fiscalLargeFamily,
+    // A15-1 · última fotografía del registro central de supuestos (A7-2): buildAssumptionRegistry()
+    // la recalcula al editar cualquier supuesto fiscal, comparando contra esta para no adelantar
+    // updatedAt de un valor que no ha cambiado.
+    assumptionRegistry: scenarioSettings.assumptionRegistry || null,
     // V6-2 · los dos umbrales de Ajustes que no encajan como regla de alertas: 0 significa «sin
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
@@ -3774,6 +3785,40 @@ function announceStatus(message) {
   window.setTimeout(() => {
     status.textContent = message;
   }, 10);
+}
+
+// UX1: deshacer de 10 segundos en vez de confirmaciones modales, para acciones reversibles con un
+// splice simple (borrar una alerta, un objetivo). Auditoría de los `confirm()` de la app (28/08-
+// 29/08/2026): solo había tres en total. Dos son justo esto — "¿eliminar X?" antes de un splice
+// reversible — y se convierten aquí. El tercero (registrarConsolidateSessionChanges, "la reserva
+// queda por debajo del mínimo, ¿seguro?") se queda como confirm(): no es "¿seguro que quieres
+// borrar?" sino un aviso de riesgo antes de perder la red de seguridad de "Descartar todo" de la
+// sesión — deshacerlo después no tiene el mismo sentido que reinsertar un elemento en una lista.
+let undoToastTimer = null;
+let undoToastCallback = null;
+
+function showUndoToast(message, onUndo, timeoutMs = 10000) {
+  const toast = qs("undoToast");
+  const messageEl = qs("undoToastMessage");
+  if (!toast || !messageEl) return;
+  if (undoToastTimer) window.clearTimeout(undoToastTimer);
+  messageEl.textContent = message;
+  undoToastCallback = onUndo;
+  toast.hidden = false;
+  undoToastTimer = window.setTimeout(hideUndoToast, timeoutMs);
+}
+
+function hideUndoToast() {
+  const toast = qs("undoToast");
+  if (toast) toast.hidden = true;
+  if (undoToastTimer) { window.clearTimeout(undoToastTimer); undoToastTimer = null; }
+  undoToastCallback = null;
+}
+
+function handleUndoToastClick() {
+  const callback = undoToastCallback;
+  hideUndoToast();
+  if (callback) callback();
 }
 
 function activeViewTitle(viewId) {
@@ -6434,6 +6479,22 @@ function applyHelpTooltips() {
     "Año fiscal al que corresponde esta tabla (tramos de IRPF, mínimos personales, etc.). Sin una tabla para el año en curso, la nota de abajo avisa de que la actualización anual sigue pendiente.",
   );
   qs("ajustesTariffCompare")?.setAttribute("data-help", "Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo. También calcula a qué precio variable medio ambas costarían lo mismo — no trae ningún precio de mercado real, tú pones los tuyos.");
+  qs("ajustesFiscalJointTaxation")?.setAttribute("data-help", "Marca si declaráis tributación conjunta. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos, sin estimar ningún resultado de IRPF.");
+  addHelpToControl(
+    "ajustesFiscalWithholdingRate",
+    "Retenciones aplicadas sobre el ingreso principal, en %. Vacío significa sin configurar, no cero.",
+  );
+  addHelpToControl(
+    "ajustesFiscalDeductibleContributions",
+    "Aportaciones deducibles al año (plan de pensiones u otras), en euros. Vacío significa sin configurar, no cero.",
+  );
+  addHelpToControl(
+    "ajustesFiscalDeductibleRent",
+    "Alquiler deducible al año, en euros. Vacío significa sin configurar, no cero.",
+  );
+  qs("ajustesFiscalLargeFamily")?.setAttribute("data-help", "Marca si sois familia numerosa. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos.");
+  qs("ajustesMortgageScenariosCompare")?.setAttribute("data-help", "Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos (base/favorable/tensión, mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: tú pones los tuyos.");
+  qs("ajustesJointRestructuringCompare")?.setAttribute("data-help", "Con los contratos activos de Deuda › Contratos, propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro configurado en Ajustes › Alertas, dado el ingreso mensual que indiques.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -15134,6 +15195,83 @@ function handleAjustesCompareTariffs() {
   note.textContent = `Fija: ${money(result.fixedMonthlyCost, true)}/mes · Variable: ${money(result.variableMonthlyCost, true)}/mes. ${verdictText}${breakEvenText}`;
 }
 
+// DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo criterio que A19-3 (comparador de
+// tarifas): calculadora puntual, sin persistir nada en scenarioSettings — lee los campos y muestra
+// el resultado en el momento.
+function handleDi1CompareMortgageScenarios() {
+  const note = qs("ajustesMortgageScenariosNote");
+  if (!note) return;
+  const principal = parseAmount(qs("ajustesMortgagePrincipal")?.value);
+  if (!principal || principal <= 0) {
+    note.textContent = "Indica el capital pendiente (mayor que 0) para comparar.";
+    return;
+  }
+  const result = window.FinanceCanonicalMortgageRateScenarios?.evaluateMortgageRateScenarios({
+    principal,
+    months: parseAmount(qs("ajustesMortgageMonths")?.value),
+    currentVariableRate: parseAmount(qs("ajustesMortgageVariableRate")?.value),
+    fixedRateOffer: parseAmount(qs("ajustesMortgageFixedRate")?.value),
+  });
+  if (!result) return;
+  const rows = result.scenarios.map((scenario) => {
+    const verdict = scenario.cheaper === "tie"
+      ? "empatan"
+      : `sale más barata la ${scenario.cheaper === "fixed" ? "fija" : "variable"}, por ${money(scenario.difference, true)} en total`;
+    return `<li><strong>${escapeHtml(scenario.label)}</strong> (variable al ${scenario.variableRate}%): cuota variable ${money(scenario.variableMonthlyPayment, true)}/mes (${money(scenario.variableTotalCost, true)} en total) frente a cuota fija ${money(scenario.fixedMonthlyPayment, true)}/mes (${money(scenario.fixedTotalCost, true)} en total) — ${verdict}.</li>`;
+  }).join("");
+  note.innerHTML = `<ul class="commit-barrier-list">${rows}</ul>`;
+}
+
+// DI5: reestructuración conjunta ante una caída de ingresos. Reutiliza los contratos reales de
+// Deuda · Contratos (debtContractSourceRows, D-2) en vez de pedir de nuevo capital/TAE/cuota a
+// mano — solo los activos con cuota registrada, mismo filtro que ya usa el resto de la app para
+// "deuda que de verdad tira de la caja cada mes".
+function di5RestructuringContracts() {
+  return debtContractSourceRows()
+    .filter((contract) => contract.paymentStatus === "active" && Number(contract.currentPayment) > 0)
+    .map((contract) => ({
+      id: contract.id,
+      label: contract.entity || contract.type || contract.id,
+      balance: Number(contract.currentPrincipal) || 0,
+      rate: Number(contract.apr) || 0,
+      monthsRemaining: Math.max(1, Math.round(Number(contract.remainingInstallments) || 1)),
+      monthlyPayment: Number(contract.currentPayment) || 0,
+    }));
+}
+
+// Mismo umbral configurable de Ajustes › Alertas que ya usa Hoy (H-9) para el ratio deuda/ingresos —
+// no un 35% fijo aparte.
+function handleDi5CompareJointRestructuring() {
+  const note = qs("ajustesJointRestructuringNote");
+  if (!note) return;
+  const monthlyIncome = parseAmount(qs("ajustesJointRestructuringIncome")?.value);
+  if (!monthlyIncome || monthlyIncome <= 0) {
+    note.textContent = "Indica el ingreso mensual tras la caída (mayor que 0) para comparar.";
+    return;
+  }
+  const contracts = di5RestructuringContracts();
+  if (!contracts.length) {
+    note.textContent = "No hay contratos de deuda activos con cuota mensual registrada en Deuda › Contratos.";
+    return;
+  }
+  const safeRatio = (alertThresholdOverride("debtRatio") ?? 32) / 100;
+  const result = window.FinanceCanonicalJointRestructuring?.jointRestructuringPlan({ contracts, monthlyIncome, safeRatio });
+  if (!result) return;
+  const ratioPct = result.currentRatio === null ? "—" : Math.round(result.currentRatio * 100);
+  if (!result.overBudget) {
+    note.innerHTML = `<p>Con ${money(monthlyIncome, true)}/mes, la cuota conjunta actual (${money(result.currentTotalPayment, true)}/mes, ${ratioPct}% del ingreso) ya está por debajo del ${Math.round(safeRatio * 100)}% de ratio seguro. Sin necesidad de reestructurar nada.</p>`;
+    return;
+  }
+  const rows = result.proposals.map((proposal) => proposal.action === "sin cambios"
+    ? `<li><strong>${escapeHtml(proposal.label)}</strong>: sin cambios, cuota ${money(proposal.currentMonthlyPayment, true)}/mes.</li>`
+    : `<li><strong>${escapeHtml(proposal.label)}</strong>: alargar de ${proposal.currentMonths} a ${proposal.extendedMonths} meses — cuota de ${money(proposal.currentMonthlyPayment, true)} a ${money(proposal.newMonthlyPayment, true)}/mes (alivio de ${money(proposal.relief, true)}/mes).</li>`
+  ).join("");
+  const summary = result.sufficient
+    ? `Alivio conseguido: ${money(result.totalReliefAchieved, true)}/mes, cubre el ${money(result.reliefNeeded, true)}/mes que hacía falta.`
+    : `Alivio conseguido: ${money(result.totalReliefAchieved, true)}/mes — no cubre del todo el ${money(result.reliefNeeded, true)}/mes que haría falta ni alargando todos los plazos. Hace falta negociar quita, refinanciación u otra fuente de ingresos.`;
+  note.innerHTML = `<p>Cuota conjunta actual: ${money(result.currentTotalPayment, true)}/mes (${ratioPct}% del ingreso). Ratio seguro: ${Math.round(safeRatio * 100)}%.</p><ul class="commit-barrier-list">${rows}</ul><p>${escapeHtml(summary)}</p>`;
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -16320,6 +16458,37 @@ function deviationThermometerHtml(deviations) {
     .join("")}</ul>`;
 }
 
+const PV4_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
+
+// PV4: bandas de confianza sobre la liquidez proyectada, no una sola línea. Cada columna es un mes;
+// la barra sombreada va del extremo bajo al alto de la banda, con una marca en el centro (el valor
+// previsto sin margen). Ventana de 12 meses a propósito — la banda ya se ensancha con el tiempo
+// (confidenceBands), mostrar años enteros aquí solo comprimiría la vista sin añadir nada legible.
+function pv4ConfidenceBandHtml(bands) {
+  if (!bands.length) return '<p class="e19-kpi-note">Sin previsión disponible todavía.</p>';
+  const values = bands.flatMap((band) => [band.low, band.high]);
+  const min = Math.min(0, ...values);
+  const max = Math.max(1, ...values);
+  const span = Math.max(1, max - min);
+  const pct = (value) => Math.round(((value - min) / span) * 100);
+  const cols = bands.map((band) => {
+    const bottom = pct(band.low);
+    const height = Math.max(2, pct(band.high) - bottom);
+    return `<div class="pv4-band-col">
+      <div class="pv4-band-track">
+        <div class="pv4-band-range" style="bottom:${bottom}%;height:${height}%" title="${escapeHtml(`${money(band.low, true)} a ${money(band.high, true)}`)}"></div>
+        <div class="pv4-band-center" style="bottom:${pct(band.center)}%"></div>
+      </div>
+      <small>${escapeHtml(band.label)}</small>
+    </div>`;
+  }).join("");
+  const first = bands[0];
+  const note = first.sampleConcepts
+    ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} partida(s) con historial suficiente. Se ensancha cuanto más lejos está el mes.`
+    : "Sin historial conciliado suficiente todavía: la banda es de ancho cero, no un margen inventado.";
+  return `<div class="pv4-band-list">${cols}</div><p class="e19-kpi-note">${note}</p>`;
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -16357,12 +16526,14 @@ function renderE13ScenarioLab() {
   const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
   const history = [...matchedMonths.values()].map((month) => ({ monthKey: month.monthKey, conceptId: "monthly-net", label: "Flujo mensual", planned: (() => { const row = forecast.series.find((item) => item.monthKey === month.monthKey); return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN; })(), actual: Number(month.bankIncome) - Number(month.bankExpense), amount: Number(month.bankIncome) - Number(month.bankExpense), reconciled: true }));
   const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
+  const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
   const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
     <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
+    <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>
@@ -21111,6 +21282,20 @@ function e11bAreaLabel(key) {
   return { balances: "Saldos", movements: "Movimientos", actuals: "Reales", forecast: "Previsión", debt: "Deuda" }[key] || key;
 }
 
+// A16-1: extraído de renderE11bStatus() para que el componente "frescura de datos" de la puntuación
+// compuesta de salud financiera reutilice exactamente el mismo cálculo que ya se muestra en Datos ·
+// Actualización, en vez de una segunda derivación con criterio propio.
+function dataFreshnessReport() {
+  if (!E11bInbox) return null;
+  const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: String(key).match(/\d{4}-\d{2}/)?.[0] ? `${String(key).match(/\d{4}-\d{2}/)[0]}-01` : "" }));
+  return E11bInbox.freshness({
+    balanceDate: state?.balanceDate || balanceSettings.balanceDate || "",
+    movements: baseData?.transactions || [], actuals: actualMonths,
+    forecastDate: baseData?.metadata?.generatedAt?.slice(0, 10) || "",
+    debtDate: canonicalDebtContractRows().length ? (baseData?.metadata?.generatedAt?.slice(0, 10) || "") : "",
+  }, { asOf: new Date().toISOString().slice(0, 10) });
+}
+
 function renderE11bStatus() {
   if (!E11bInbox) return;
   const toggle = qs("toggleDataInbox");
@@ -21129,13 +21314,7 @@ function renderE11bStatus() {
       return `<article class="e19-inbox-item"><div class="e19-inbox-item-head"><strong>${escapeHtml(item.sourceLabel)}</strong><span class="e19-badge ${badgeClass[item.status] || "e19-badge-neutral"}">${escapeHtml(status)}</span></div><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
     }).join("") : `<article class="e19-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
   }
-  const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: String(key).match(/\d{4}-\d{2}/)?.[0] ? `${String(key).match(/\d{4}-\d{2}/)[0]}-01` : "" }));
-  const report = E11bInbox.freshness({
-    balanceDate: state?.balanceDate || balanceSettings.balanceDate || "",
-    movements: baseData?.transactions || [], actuals: actualMonths,
-    forecastDate: baseData?.metadata?.generatedAt?.slice(0, 10) || "",
-    debtDate: canonicalDebtContractRows().length ? (baseData?.metadata?.generatedAt?.slice(0, 10) || "") : "",
-  }, { asOf: new Date().toISOString().slice(0, 10) });
+  const report = dataFreshnessReport();
   const freshness = qs("updateFreshness");
   if (freshness) freshness.innerHTML = Object.entries(report.areas).map(([key, area]) => {
     const pillClass = area.status === "current" ? "e19-pill-safe" : "e19-pill-warn";
@@ -22533,6 +22712,153 @@ function handleEmergencyCreditRateChange(event) {
   announceStatus(next > 0 ? `TIN de la línea de crédito guardado en ${next}%.` : "TIN de la línea de crédito borrado.");
 }
 
+// A15-1 · registro de supuestos fiscales, en el registro central (A7-2: buildAssumptionRegistry(),
+// hasta ahora construido pero sin ningún sitio de la app que lo llamara). Cinco campos —tributación
+// conjunta/individual, retenciones, aportaciones deducibles, alquiler deducible y familia numerosa—
+// que se versionan junto a los ocho supuestos generales del forecast (saldos iniciales y política),
+// todos en una única lista editable, mismo patrón de campo único que SP2/DI2 para cada uno.
+function fiscalWithholdingRate() {
+  const configured = Number(state?.fiscalWithholdingRate || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function fiscalDeductibleContributions() {
+  const configured = Number(state?.fiscalDeductibleContributions || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function fiscalDeductibleRent() {
+  const configured = Number(state?.fiscalDeductibleRent || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+// Solo la política del forecast (saldos, factores de ingreso/gasto) más los cinco fiscales — no
+// todo lo que acepta buildForecast() en la simulación completa (E13), que no hace falta para
+// versionar los supuestos por sí solos.
+function assumptionRegistryInput() {
+  const balances = accountBalancesFromState();
+  return {
+    openingBalances: { checking: balances.caixa, savings: balances.mediolanum },
+    policy: {
+      incomeFactor: state?.incomeFactor, annualIncomeGrowth: state?.annualIncomeGrowth,
+      expenseFactor: state?.expenseFactor, annualInflation: state?.annualInflation,
+      // Mismo valor por defecto que ya usa el propio checkbox (V6-3): buildAssumptionRegistry()
+      // trata un booleano sin dato como "no" (A15-1), así que aquí hay que dar el true real cuando
+      // autoCapSavings todavía no se ha tocado, o el registro mostraría "No" para el comportamiento
+      // que en realidad está activo.
+      plannedMonthlySaving: state?.recommendedSavings, autoCapSavings: state?.autoCapSavings ?? true,
+    },
+    fiscal: {
+      jointTaxation: state?.fiscalJointTaxation, withholdingRate: fiscalWithholdingRate(),
+      deductibleContributions: fiscalDeductibleContributions(), deductibleRent: fiscalDeductibleRent(),
+      largeFamily: state?.fiscalLargeFamily,
+    },
+  };
+}
+
+function syncFiscalAssumptionControls() {
+  const setValue = (id, value) => { const field = qs(id); if (field && document.activeElement !== field) field.value = value > 0 ? String(value) : ""; };
+  const setChecked = (id, checked) => { const field = qs(id); if (field && document.activeElement !== field) field.checked = !!checked; };
+  setChecked("ajustesFiscalJointTaxation", state?.fiscalJointTaxation);
+  setValue("ajustesFiscalWithholdingRate", fiscalWithholdingRate());
+  setValue("ajustesFiscalDeductibleContributions", fiscalDeductibleContributions());
+  setValue("ajustesFiscalDeductibleRent", fiscalDeductibleRent());
+  setChecked("ajustesFiscalLargeFamily", state?.fiscalLargeFamily);
+}
+
+const ASSUMPTION_REGISTRY_UNIT_FORMAT = {
+  EUR: (value) => money(value, true),
+  percent: (value) => `${value}%`,
+  ratio: (value) => `×${value}`,
+  boolean: (value) => (value ? "Sí" : "No"),
+};
+
+// Recalcula siempre con los valores actuales (para que la lista nunca muestre un supuesto general
+// desfasado si se editó fuera de esta tarjeta) — nunca persiste por sí sola; eso lo hace
+// persistAssumptionRegistry(), solo cuando de verdad se edita un supuesto fiscal.
+function renderAjustesAssumptionRegistry() {
+  const list = qs("ajustesAssumptionRegistry");
+  if (!list || !window.FinanceCanonicalForecast?.buildAssumptionRegistry) return;
+  const registry = window.FinanceCanonicalForecast.buildAssumptionRegistry(
+    assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" },
+  );
+  list.innerHTML = registry.items.map((item) => {
+    const format = ASSUMPTION_REGISTRY_UNIT_FORMAT[item.unit] || ((value) => String(value));
+    return `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(format(item.value))}</strong><small>Actualizado ${escapeHtml(formatIsoDate(item.updatedAt.slice(0, 10)))}</small></li>`;
+  }).join("");
+}
+
+function persistAssumptionRegistry() {
+  scenarioSettings.assumptionRegistry = window.FinanceCanonicalForecast?.buildAssumptionRegistry(
+    assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" },
+  ) || null;
+}
+
+function handleFiscalJointTaxationChange(event) {
+  if (!state) return;
+  state.fiscalJointTaxation = !!event.target.checked;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(state.fiscalJointTaxation ? "Tributación conjunta guardada." : "Tributación individual guardada.");
+}
+
+function fiscalNumericFieldFromValue(raw, { max = Infinity } = {}) {
+  const text = String(raw ?? "").trim().replace(",", ".");
+  if (!text) return 0;
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return round2(Math.min(max, parsed));
+}
+
+function handleFiscalWithholdingRateChange(event) {
+  if (!state) return;
+  const next = fiscalNumericFieldFromValue(event.target.value, { max: 100 });
+  const previous = fiscalWithholdingRate();
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.fiscalWithholdingRate = next;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(next > 0 ? `Retenciones guardadas en ${next}%.` : "Retenciones borradas.");
+}
+
+function handleFiscalDeductibleContributionsChange(event) {
+  if (!state) return;
+  const next = fiscalNumericFieldFromValue(event.target.value);
+  const previous = fiscalDeductibleContributions();
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.fiscalDeductibleContributions = next;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(next > 0 ? `Aportaciones deducibles guardadas en ${money(next, true)}.` : "Aportaciones deducibles borradas.");
+}
+
+function handleFiscalDeductibleRentChange(event) {
+  if (!state) return;
+  const next = fiscalNumericFieldFromValue(event.target.value);
+  const previous = fiscalDeductibleRent();
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.fiscalDeductibleRent = next;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(next > 0 ? `Alquiler deducible guardado en ${money(next, true)}.` : "Alquiler deducible borrado.");
+}
+
+function handleFiscalLargeFamilyChange(event) {
+  if (!state) return;
+  state.fiscalLargeFamily = !!event.target.checked;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(state.fiscalLargeFamily ? "Familia numerosa guardada." : "Familia numerosa desmarcada.");
+}
+
 /* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
    Reúne lo que hoy vive repartido, sin reimplementarlo: la reserva operativa se guarda de verdad
    aquí (ver el bloque V6-1/V6-3 anterior); cuentas, partidas y umbrales solo se leen para el resumen
@@ -22556,6 +22882,8 @@ function renderAjustes() {
   renderMaintenanceFeeAccounts();
   renderInsurancePolicies();
   renderTaxTables();
+  syncFiscalAssumptionControls();
+  renderAjustesAssumptionRegistry();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -24218,8 +24546,20 @@ function handleAlertRuleAction(event) {
     setActiveView(target, { focus: true });
     return;
   } else if (action === "delete") {
-    if (!window.confirm("¿Eliminar esta alerta?")) return;
+    // UX1: deshacer de 10 segundos en vez de un modal de confirmación — borra ya (reversible, un
+    // simple splice) y ofrece revertirlo, en vez de bloquear la interacción con un "¿seguro?".
+    const removed = scenarioSettings.alerts[index];
     scenarioSettings.alerts.splice(index, 1);
+    saveScenarioSettings();
+    renderAlertsCenter();
+    renderHomeFamilyAndAlerts();
+    showUndoToast(`Alerta «${removed.name || "sin nombre"}» eliminada.`, () => {
+      scenarioSettings.alerts.splice(index, 0, removed);
+      saveScenarioSettings();
+      renderAlertsCenter();
+      renderHomeFamilyAndAlerts();
+    });
+    return;
   } else if (action === "toggle") {
     scenarioSettings.alerts[index] = UxSettings.normalizeAlert({
       ...scenarioSettings.alerts[index],
@@ -24536,6 +24876,54 @@ function homeHealthScore(statuses = []) {
   };
 }
 
+// A16-1: los cinco componentes de la puntuación compuesta de salud financiera. Ninguno se calcula
+// de nuevo — cada uno reutiliza un valor que renderHomeDashboard() ya tiene (ctx) o un motor ya
+// existente (presupuesto, objetivos, frescura de datos). Componente en null (no cero) cuando el dato
+// simplemente no existe todavía (sin objetivos activos, sin reserva configurada...), para que
+// compositeHealthScore() lo excluya en vez de fabricar una cifra.
+function homeHealthScoreComponents(ctx = {}) {
+  const cushion = ctx.protectedReserve > 0 ? Math.min(1, ctx.caixa / ctx.protectedReserve) : null;
+  const debtRatio = ctx.debtRatioDangerAt > 0 ? Math.max(0, 1 - ctx.debtToIncomeRatio / ctx.debtRatioDangerAt) : null;
+  const budgetSummary = homeBudgetSummary();
+  const budgetCompliance = budgetSummary
+    ? (budgetSummary.totalSpent <= 0 ? 1 : Math.min(1, budgetSummary.totalBudgeted / budgetSummary.totalSpent))
+    : null;
+  const activeGoals = (p2.goals || [])
+    .map((goal) => window.P2Domain?.goalSnapshot(goal) || goal)
+    .filter((goal) => goal.status === "active" && goal.target > 0);
+  const goalsTarget = activeGoals.reduce((sum, goal) => sum + goal.target, 0);
+  const goalsSaved = activeGoals.reduce((sum, goal) => sum + goal.saved, 0);
+  const goalsProgress = goalsTarget > 0 ? Math.min(1, goalsSaved / goalsTarget) : null;
+  const freshnessReport = dataFreshnessReport();
+  const dataFreshness = freshnessReport ? freshnessReport.coveragePercent / 100 : null;
+  return { cushion, debtRatio, budgetCompliance, goalsProgress, dataFreshness };
+}
+
+// A16-1: complementa (no sustituye) el badge "Salud financiera: X/100" de la cabecera — ese es
+// homeHealthScore() (Ola 3 #3), un promedio rápido de los mismos estados good/warn/danger que ya
+// clasifica cada KPI de Hoy. Esta tarjeta es el motor compuesto que pide A16-1: cinco componentes
+// con nombre, peso y cifra propios, no un promedio de semáforos.
+function renderHomeHealthScoreCard(result) {
+  const card = qs("homeHealthScoreCard");
+  const value = qs("homeHealthScoreValue");
+  const list = qs("homeHealthScoreBreakdown");
+  if (!card || !value || !list) return;
+  if (!result || result.value === null) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  value.textContent = String(result.value);
+  const rows = result.components.map((component) => {
+    const known = component.score !== null;
+    return `<li class="home-health-score-item${known ? "" : " is-unknown"}"><span class="home-health-score-label">${escapeHtml(component.label)} <small>(peso ${Math.round(component.weight * 100)}%)</small></span><span class="home-health-score-value">${known ? `${component.score}/100` : "sin datos"}</span></li>`;
+  });
+  if (!result.complete) {
+    rows.push(`<li class="home-health-score-note">Puntuación parcial: ${result.missing.length} de ${result.components.length} componentes sin datos todavía; su peso se reparte entre el resto.</li>`);
+  }
+  list.innerHTML = rows.join("");
+}
+
 function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
   const meta = qs("homeHeaderMeta");
   if (!meta) return;
@@ -24704,6 +25092,13 @@ function renderHomeDashboard() {
     source: state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado",
     guidance: actionCenter.actions?.[0]?.label || "Sin decisiones pendientes: revisa las tarjetas de abajo.",
   });
+
+  // A16-1: puntuación compuesta, reutilizando los mismos locals que acaban de calcular
+  // debtRatioStatus/reserveStatus arriba — nada se deriva dos veces.
+  const compositeInputs = homeHealthScoreComponents({
+    caixa: balances.caixa, protectedReserve, debtToIncomeRatio: savings.debtToIncomeRatio, debtRatioDangerAt,
+  });
+  renderHomeHealthScoreCard(window.FinanceCanonicalHealthScore?.compositeHealthScore(compositeInputs));
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
@@ -30190,8 +30585,22 @@ function handleSavingsGoalAction(event) {
   if (index < 0) return;
   const action = button.dataset.savingsGoalAction;
   if (action === "delete") {
-    if (!window.confirm(`¿Eliminar el objetivo «${goals[index].label}»?`)) return;
+    // UX1: deshacer de 10 segundos en vez de un modal de confirmación — mismo criterio que la
+    // alerta (handleAlertRuleAction): borrar un objetivo de la lista es un splice reversible, no
+    // hace falta bloquear la interacción para confirmarlo.
+    const removed = goals[index];
     goals.splice(index, 1);
+    scenarioSettings.savingsGoals = goals;
+    saveScenarioSettings();
+    renderPlanAhorro();
+    showUndoToast(`Objetivo «${removed.label}» eliminado.`, () => {
+      const restored = savingsGoalsList().slice();
+      restored.splice(index, 0, removed);
+      scenarioSettings.savingsGoals = restored;
+      saveScenarioSettings();
+      renderPlanAhorro();
+    });
+    return;
   } else if (action === "up" && index > 0) {
     [goals[index - 1], goals[index]] = [goals[index], goals[index - 1]];
   } else if (action === "down" && index < goals.length - 1) {
@@ -32104,6 +32513,14 @@ async function init() {
     renderTaxTables();
   });
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
+  qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
+  qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
+  qs("ajustesFiscalJointTaxation")?.addEventListener("change", handleFiscalJointTaxationChange);
+  qs("ajustesFiscalWithholdingRate")?.addEventListener("change", handleFiscalWithholdingRateChange);
+  qs("ajustesFiscalDeductibleContributions")?.addEventListener("change", handleFiscalDeductibleContributionsChange);
+  qs("ajustesFiscalDeductibleRent")?.addEventListener("change", handleFiscalDeductibleRentChange);
+  qs("ajustesFiscalLargeFamily")?.addEventListener("change", handleFiscalLargeFamilyChange);
+  qs("undoToastButton")?.addEventListener("click", handleUndoToastClick);
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
     if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }

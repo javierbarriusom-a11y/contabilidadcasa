@@ -38,7 +38,7 @@ test("E12a crea un registro central, versionado y estable de supuestos", () => {
   const second = forecast.buildAssumptionRegistry(input, first, { generatedAt: "2026-08-02T09:00:00.000Z" });
 
   assert.equal(first.schemaId, forecast.ASSUMPTIONS_SCHEMA_ID);
-  assert.equal(first.items.length, 8);
+  assert.equal(first.items.length, 13); // 8 originales + 5 fiscales (A15-1)
   assert.equal(first.items.find((item) => item.id === "annualInflation").value, 0);
   assert.equal(second.fingerprint, first.fingerprint);
   assert.equal(second.items[0].updatedAt, first.items[0].updatedAt);
@@ -141,4 +141,112 @@ test("E12b adapta el horizonte sin mostrar puntos falsamente precisos a largo pl
   assert.equal(horizon[0].resolution, "month");
   assert.equal(horizon.find((item) => item.resolution === "quarter").display, "range");
   assert.equal(horizon.at(-1).resolution, "year");
+});
+
+// --- A16-3: detectRecurringSubscriptions ------------------------------------------------------
+
+function subscriptionMovements(pattern, amount, months, category = "Suscripciones") {
+  return months.map((month) => ({ pattern, label: pattern, category, amount: -amount, month }));
+}
+
+test("detectRecurringSubscriptions · un cargo igual repetido 3+ meses se detecta, con coste mensual y anualizado", () => {
+  const result = forecast.detectRecurringSubscriptions(
+    subscriptionMovements("NETFLIX", 12.99, ["2026-05", "2026-06", "2026-07"]),
+  );
+  assert.equal(result.detected.length, 1);
+  const item = result.detected[0];
+  assert.equal(item.monthlyCost, 12.99);
+  assert.equal(item.annualCost, 155.88);
+  assert.equal(item.sampleMonths, 3);
+  assert.equal(item.confirmRequired, true);
+  assert.equal(item.confirmed, false);
+});
+
+test("detectRecurringSubscriptions · por debajo del mínimo de meses, no se detecta", () => {
+  const result = forecast.detectRecurringSubscriptions(
+    subscriptionMovements("GIMNASIO", 30, ["2026-06", "2026-07"]),
+  );
+  assert.equal(result.detected.length, 0);
+});
+
+test("detectRecurringSubscriptions · un cambio de precio real cuenta como grupo aparte, no se fusiona con el histórico", () => {
+  const rows = [
+    ...subscriptionMovements("SPOTIFY", 9.99, ["2026-01", "2026-02", "2026-03"]),
+    ...subscriptionMovements("SPOTIFY", 11.99, ["2026-04", "2026-05", "2026-06"]),
+  ];
+  const result = forecast.detectRecurringSubscriptions(rows);
+  assert.equal(result.detected.length, 2);
+  assert.deepEqual(result.detected.map((item) => item.monthlyCost).sort((a, b) => a - b), [9.99, 11.99]);
+});
+
+test("detectRecurringSubscriptions · ingresos y movimientos sin patrón se ignoran", () => {
+  const result = forecast.detectRecurringSubscriptions([
+    { pattern: "NOMINA", label: "Nómina", amount: 2000, month: "2026-06" }, // ingreso, no cuenta
+    { pattern: "", label: "", amount: -20, month: "2026-06" }, // sin patrón
+    ...subscriptionMovements("NETFLIX", 12.99, ["2026-05", "2026-06", "2026-07"]),
+  ]);
+  assert.equal(result.detected.length, 1);
+  assert.equal(result.detected[0].pattern, "NETFLIX");
+});
+
+test("detectRecurringSubscriptions · totales agregados y confianza reutilizan el mismo criterio que learnFromHistory", () => {
+  const result = forecast.detectRecurringSubscriptions([
+    ...subscriptionMovements("NETFLIX", 12.99, ["2026-05", "2026-06", "2026-07"]),
+    ...subscriptionMovements("GIMNASIO", 30, ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"]),
+  ]);
+  assert.equal(result.totalMonthlyCost, 42.99);
+  assert.equal(result.totalAnnualCost, 515.88);
+  const gym = result.detected.find((item) => item.pattern === "GIMNASIO");
+  assert.equal(gym.confidence, "medium"); // 6 meses: confidence() da "medium" a partir de 6
+  const netflix = result.detected.find((item) => item.pattern === "NETFLIX");
+  assert.equal(netflix.confidence, "low"); // 3 meses: por debajo de 6
+});
+
+test("detectRecurringSubscriptions · nunca escribe nada, solo detecta (mismo criterio que learnFromHistory)", () => {
+  assert.doesNotMatch(fs.readFileSync(path.join(root, "canonical-forecast.js"), "utf8").split("function detectRecurringSubscriptions")[1].split("\n\n  function adaptiveHorizon")[0], /localStorage|save|persist/i);
+});
+
+// --- PV4: confidenceBands ---------------------------------------------------------------------
+
+function seriesFixture(values) {
+  return values.map((value, index) => ({ monthKey: `2026-${String(index + 1).padStart(2, "0")}`, label: `Mes ${index + 1}`, totals: { closingLiquidity: value } }));
+}
+
+test("confidenceBands · sin desviaciones aprendidas todavía, el margen es 0 en toda la serie (honesto, no inventado)", () => {
+  const bands = forecast.confidenceBands(seriesFixture([1000, 1200, 1400]), { deviations: [] });
+  bands.forEach((band) => {
+    assert.equal(band.margin, 0);
+    assert.equal(band.low, band.center);
+    assert.equal(band.high, band.center);
+  });
+  assert.equal(bands[0].confidence, "low");
+});
+
+test("confidenceBands · el margen sale de la desviación media absoluta de las partidas con historial", () => {
+  const learning = { deviations: [
+    { conceptId: "a", sampleMonths: 6, averageDelta: 100, confidence: "high" },
+    { conceptId: "b", sampleMonths: 6, averageDelta: -60, confidence: "high" },
+  ] };
+  const bands = forecast.confidenceBands(seriesFixture([1000]), learning);
+  assert.equal(bands[0].margin, 80); // (|100| + |-60|) / 2
+  assert.equal(bands[0].low, 920);
+  assert.equal(bands[0].high, 1080);
+  assert.equal(bands[0].confidence, "high");
+});
+
+test("confidenceBands · la banda se ensancha con la raíz de los meses hacia delante, con tope", () => {
+  const learning = { deviations: [{ conceptId: "a", sampleMonths: 6, averageDelta: 100, confidence: "medium" }] };
+  const bands = forecast.confidenceBands(seriesFixture([1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]), learning);
+  assert.equal(bands[0].margin, 100); // mes 1: ×1
+  assert.equal(bands[3].margin, 200); // mes 4: ×2 (sqrt(4))
+  assert.equal(bands[9].margin, 300); // mes 10: sqrt(10)≈3.16, topado a ×3 (CONFIDENCE_BAND_MAX_WIDENING)
+});
+
+test("confidenceBands · una sola partida en baja confianza basta para que la banda entera sea de baja confianza", () => {
+  const learning = { deviations: [
+    { conceptId: "a", sampleMonths: 6, averageDelta: 10, confidence: "high" },
+    { conceptId: "b", sampleMonths: 2, averageDelta: 5, confidence: "low" },
+  ] };
+  const bands = forecast.confidenceBands(seriesFixture([1000]), learning);
+  assert.equal(bands[0].confidence, "low");
 });

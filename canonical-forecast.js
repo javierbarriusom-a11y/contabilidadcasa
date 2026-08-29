@@ -50,6 +50,14 @@
     ["annualInflation", "Inflación anual de gastos", "percent", "policy.annualInflation"],
     ["plannedMonthlySaving", "Ahorro mensual objetivo", "EUR", "policy.plannedMonthlySaving"],
     ["autoCapSavings", "Ajuste automático del ahorro", "boolean", "policy.autoCapSavings"],
+    // A15-1: los cinco supuestos fiscales del hogar entran en el mismo registro central que ya
+    // versionaba los ocho anteriores (A7-2, hasta ahora sin ningún sitio que lo llamara) — un único
+    // sitio editable, no uno nuevo en paralelo.
+    ["fiscalJointTaxation", "Tributación conjunta", "boolean", "fiscal.jointTaxation"],
+    ["fiscalWithholdingRate", "Retenciones aplicadas", "percent", "fiscal.withholdingRate"],
+    ["fiscalDeductibleContributions", "Aportaciones deducibles anuales", "EUR", "fiscal.deductibleContributions"],
+    ["fiscalDeductibleRent", "Alquiler deducible anual", "EUR", "fiscal.deductibleRent"],
+    ["fiscalLargeFamily", "Familia numerosa", "boolean", "fiscal.largeFamily"],
   ];
 
   function valueAt(input, path) {
@@ -61,7 +69,10 @@
     const generatedAt = metadata.generatedAt || new Date().toISOString();
     const items = ASSUMPTION_DEFINITIONS.map(([id, label, unit, path]) => {
       const raw = valueAt(input, path);
-      const value = unit === "boolean" ? raw !== false : number(raw);
+      // A15-1: `raw !== false` daba `true` para un booleano sin configurar todavía (undefined) — un
+      // sesgo silencioso hacia "sí" que nadie eligió. `=== true` exige un `true` explícito; ausencia
+      // de dato es `false`, no una suposición.
+      const value = unit === "boolean" ? raw === true : number(raw);
       const prior = previousItems.get(id);
       const unchanged = prior && prior.value === value;
       return {
@@ -209,6 +220,76 @@
     };
   }
 
+  // PV4: bandas de confianza sobre la liquidez proyectada — no recalcula ninguna desviación, usa
+  // las que ya calculó learnFromHistory().deviations (mismo aprendizaje de E12b que reutilizó PV2).
+  // El margen base es la desviación media absoluta de las partidas con historial suficiente; crece
+  // con la raíz del número de meses hacia delante (un mes 9 es más incierto que el mes 1: mismo
+  // criterio de acumulación de error de un paseo aleatorio, no una suposición nueva por mes) y se
+  // limita a MAX_WIDENING veces el margen base para que un forecast de varios años no termine con
+  // una banda absurdamente ancha. Sin historial suficiente (deviations vacío), el margen es 0 en
+  // toda la serie — una banda de ancho cero es honesta: "no hay suficiente aprendizaje para estimar
+  // la incertidumbre todavía", no una anchura inventada.
+  const CONFIDENCE_BAND_MAX_WIDENING = 3;
+
+  function confidenceBands(series = [], learning = {}, options = {}) {
+    const deviations = (Array.isArray(learning.deviations) ? learning.deviations : []).filter((item) => item.sampleMonths > 0);
+    const baseMargin = deviations.length
+      ? round(deviations.reduce((sum, item) => sum + Math.abs(number(item.averageDelta)), 0) / deviations.length)
+      : 0;
+    const bandConfidence = !deviations.length ? "low"
+      : deviations.every((item) => item.confidence === "high") ? "high"
+        : deviations.some((item) => item.confidence === "low") ? "low" : "medium";
+    return series.map((row, index) => {
+      const center = round(number(row.totals?.closingLiquidity ?? row.closingLiquidity));
+      const widening = Math.min(CONFIDENCE_BAND_MAX_WIDENING, Math.sqrt(index + 1));
+      const margin = round(baseMargin * widening);
+      return {
+        monthKey: text(row.monthKey), label: text(row.label),
+        center, low: round(center - margin), high: round(center + margin), margin,
+      };
+    }).map((band) => ({ ...band, confidence: bandConfidence, sampleConcepts: deviations.length }));
+  }
+
+  // A16-3: detección de recurrentes/suscripciones. Reutiliza confidence() tal cual (mismo criterio
+  // de confianza por tamaño de muestra que learnFromHistory) — mismo "aprendizaje de estacionalidad
+  // de E12b" que pide la tarea, no un cálculo nuevo. Motor agnóstico de cómo se calculó el patrón:
+  // recibe `pattern`/`label` ya resueltos (quien llama pasa movementMappingKey()/movementDisplayName(),
+  // la misma clave de concepto que ya usan A-9/M-7/M-8 en vez de una segunda normalización de texto
+  // en paralelo) y el importe exacto: dos cargos con el mismo concepto pero precio distinto (una
+  // subida de tarifa) cuentan como grupos separados a propósito, para no fusionar un cambio de
+  // precio real con el histórico anterior. Nunca escribe nada — cada resultado sale con
+  // confirmRequired/confirmed, igual que las deviations de learnFromHistory, para que clasificar un
+  // cargo como suscripción sea siempre una confirmación manual.
+  function detectRecurringSubscriptions(movements = [], options = {}) {
+    const minMonths = Math.max(2, Math.round(number(options.minMonths) || 3));
+    const expenses = movements.filter((row) => number(row.amount) < 0 && text(row.pattern) && /^\d{4}-\d{2}/.test(text(row.month)));
+    const groups = new Map();
+    expenses.forEach((row) => {
+      const amount = round(Math.abs(number(row.amount)));
+      const key = `${text(row.pattern)}|${amount}`;
+      if (!groups.has(key)) {
+        groups.set(key, { pattern: text(row.pattern), label: text(row.label || row.pattern), category: text(row.category), amount, months: new Set() });
+      }
+      groups.get(key).months.add(text(row.month).slice(0, 7));
+    });
+    const detected = [...groups.values()]
+      .filter((group) => group.months.size >= minMonths)
+      .map((group) => ({
+        pattern: group.pattern, label: group.label, category: group.category,
+        monthlyCost: group.amount, annualCost: round(group.amount * 12),
+        sampleMonths: group.months.size, confidence: confidence(group.months.size),
+        confirmRequired: true, confirmed: false,
+      }))
+      .sort((a, b) => b.annualCost - a.annualCost);
+    return {
+      schemaId: `${LEARNING_SCHEMA_ID}/recurring-subscriptions/v1`,
+      generatedAt: options.generatedAt || new Date().toISOString(),
+      minMonths, detected,
+      totalMonthlyCost: round(detected.reduce((sum, item) => sum + item.monthlyCost, 0)),
+      totalAnnualCost: round(detected.reduce((sum, item) => sum + item.annualCost, 0)),
+    };
+  }
+
   function adaptiveHorizon(series = [], options = {}) {
     const monthlyUntil = Math.max(1, Math.round(number(options.monthlyUntil) || 12));
     const quarterlyUntil = Math.max(monthlyUntil, Math.round(number(options.quarterlyUntil) || 36));
@@ -231,5 +312,5 @@
     });
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity };
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands };
 });

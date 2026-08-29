@@ -1,0 +1,132 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+
+const root = path.resolve(__dirname, "..");
+const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
+const app = read("app.js");
+const html = read("index.html");
+
+// UX1 · Bloque 4: deshacer de 10 segundos en vez de confirmaciones modales. Auditoría de los tres
+// `confirm()` de toda la app (28-29/08/2026): dos eran "¿eliminar X?" antes de un splice reversible
+// (alerta, objetivo de ahorro) — se convierten aquí a deshacer-de-10-segundos. El tercero
+// (registrarConsolidateSessionChanges) es un aviso de riesgo, no un "¿seguro que borro?" — se queda
+// como confirm() a propósito, y un test de este archivo lo comprueba explícitamente.
+
+function extractFunction(name) {
+  const start = app.indexOf(`function ${name}(`);
+  assert.ok(start >= 0, `No existe la función ${name} en app.js`);
+  const parenStart = app.indexOf("(", start);
+  let parenDepth = 0;
+  let bodyStart = -1;
+  for (let index = parenStart; index < app.length; index += 1) {
+    if (app[index] === "(") parenDepth += 1;
+    else if (app[index] === ")") {
+      parenDepth -= 1;
+      if (parenDepth === 0) { bodyStart = app.indexOf("{", index); break; }
+    }
+  }
+  assert.ok(bodyStart >= 0, `No se encontró el cuerpo de ${name}`);
+  let depth = 0;
+  for (let index = bodyStart; index < app.length; index += 1) {
+    if (app[index] === "{") depth += 1;
+    else if (app[index] === "}") {
+      depth -= 1;
+      if (depth === 0) return app.slice(start, index + 1);
+    }
+  }
+  throw new Error(`La función ${name} no cierra sus llaves`);
+}
+
+function fakeEl() {
+  return { hidden: true, textContent: "" };
+}
+
+function toastSandbox() {
+  const elements = { undoToast: fakeEl(), undoToastMessage: fakeEl() };
+  const context = {
+    qs: (id) => elements[id] || null,
+    window: { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (id) => clearTimeout(id) },
+    undoToastTimer: null,
+    undoToastCallback: null,
+  };
+  vm.createContext(context);
+  ["showUndoToast", "hideUndoToast", "handleUndoToastClick"].forEach((name) => vm.runInContext(extractFunction(name), context));
+  return { ctx: context, elements };
+}
+
+test("showUndoToast · muestra el aviso con el mensaje, oculto por defecto", () => {
+  const { ctx, elements } = toastSandbox();
+  ctx.showUndoToast("Alerta «Reserva baja» eliminada.", () => {}, 50);
+  assert.equal(elements.undoToast.hidden, false);
+  assert.equal(elements.undoToastMessage.textContent, "Alerta «Reserva baja» eliminada.");
+});
+
+test("handleUndoToastClick · llama al deshacer y oculta el aviso, no espera al temporizador", () => {
+  const { ctx, elements } = toastSandbox();
+  let undone = false;
+  ctx.showUndoToast("Objetivo eliminado.", () => { undone = true; }, 10000);
+  ctx.handleUndoToastClick();
+  assert.equal(undone, true);
+  assert.equal(elements.undoToast.hidden, true);
+});
+
+test("showUndoToast · pasado el tiempo sin pulsar Deshacer, el aviso se oculta solo y no llama al deshacer", async () => {
+  const { ctx, elements } = toastSandbox();
+  let undone = false;
+  ctx.showUndoToast("Alerta eliminada.", () => { undone = true; }, 20);
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(elements.undoToast.hidden, true);
+  assert.equal(undone, false);
+});
+
+test("showUndoToast · un segundo aviso antes de que expire el primero cancela el temporizador anterior", async () => {
+  const { ctx } = toastSandbox();
+  let firstUndone = false;
+  let secondUndone = false;
+  ctx.showUndoToast("Primero", () => { firstUndone = true; }, 20);
+  ctx.showUndoToast("Segundo", () => { secondUndone = true; }, 20);
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(firstUndone, false);
+  assert.equal(secondUndone, false); // ninguno se llama solo por expirar: eso es lo esperado, ambos "final"
+});
+
+test("handleAlertRuleAction · borrar una alerta ya no usa confirm(): borra ya y ofrece deshacer", () => {
+  const source = extractFunction("handleAlertRuleAction");
+  assert.doesNotMatch(source, /window\.confirm/);
+  assert.match(source, /scenarioSettings\.alerts\.splice\(index, 1\)/);
+  assert.match(source, /showUndoToast\(/);
+  assert.match(source, /scenarioSettings\.alerts\.splice\(index, 0, removed\)/); // el deshacer reinserta en su sitio
+});
+
+test("handleSavingsGoalAction · borrar un objetivo ya no usa confirm(): borra ya y ofrece deshacer", () => {
+  const source = extractFunction("handleSavingsGoalAction");
+  assert.doesNotMatch(source, /window\.confirm/);
+  assert.match(source, /goals\.splice\(index, 1\)/);
+  assert.match(source, /showUndoToast\(/);
+  assert.match(source, /restored\.splice\(index, 0, removed\)/); // el deshacer reinserta en su sitio
+});
+
+test("registrarConsolidateSessionChanges · el aviso de riesgo (reserva bajo mínimo) sigue como confirm(), a propósito", () => {
+  const source = extractFunction("registrarConsolidateSessionChanges");
+  assert.match(source, /window\.confirm\(/);
+});
+
+test("solo queda un confirm() en toda la app.js — el de registrarConsolidateSessionChanges", () => {
+  const matches = app.match(/window\.confirm\(/g) || [];
+  assert.equal(matches.length, 1);
+});
+
+test("el botón de deshacer está cableado", () => {
+  assert.match(app, /qs\("undoToastButton"\)\?\.addEventListener\("click", handleUndoToastClick\)/);
+});
+
+test("el aviso de deshacer vive fuera de #mainContent, para sobrevivir al cambio de vista", () => {
+  const mainStart = html.indexOf('<main id="mainContent"');
+  const toastStart = html.indexOf('id="undoToast"');
+  assert.ok(toastStart >= 0 && toastStart < mainStart, "El aviso debe declararse antes de <main>");
+  assert.match(html, /id="undoToastMessage"/);
+  assert.match(html, /id="undoToastButton"/);
+});
