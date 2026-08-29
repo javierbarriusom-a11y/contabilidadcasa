@@ -2,6 +2,37 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (68): A16-6 — hitos y rachas en el historial de auditoría
+
+Decimoquinta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin
+spec detallada). «Historial de auditoría» = `monthClosures`, el mismo registro de cierres/reaperturas
+de mes que ya consume `FinanceCanonicalE5.latestMonthOperation`/`isMonthClosed`, con su tarjeta
+«Historial operativo» en Datos · Auditoría (`e8OperationalTimeline`). Sin tabla ni estado nuevo: se
+trata de un cálculo puro sobre datos que ya existen.
+
+**Construido**: en `canonical-e5-operations.js`, `auditMilestonesAndStreaks(monthClosures)` — se
+queda con el último estado de cada mes (reabrir después de cerrar cuenta como reabierto, no como si
+nunca hubiera pasado), calcula la racha actual (meses consecutivos en el calendario, sin huecos,
+terminando en el más reciente, cerrados) y la racha más larga histórica, y compara el total de meses
+cerrados con una escala de hitos fija (`MILESTONE_STEPS`: 5/10/25/50/100) — `nextMilestone` es `null`,
+no un número inventado, cuando ya se alcanzaron todos. En `app.js`, `renderAuditMilestonesStreaks()`
+rellena una tarjeta nueva «Hitos y rachas» en el mismo `audit-layout` que «Historial operativo» y
+«Presupuesto de rendimiento» (Datos · Auditoría), llamada desde `renderE8AuditExtensions()`.
+`canonical-e5-operations.js` bumpeado a `?v=20260829a166a1`, `app.js` a `?v=20260829m1`.
+
+**Verificación**: 10 pruebas nuevas — 7 en `tests/canonical-e5-operations.test.cjs` (sin cierres,
+racha simple, un hueco de calendario la corta, un mes reabierto cuenta por su último estado no por su
+historial completo, hitos exactos, todos los hitos alcanzados sin inventar el siguiente) y 3 en
+`tests/a16-6-hitos-rachas.test.cjs` (la tarjeta vive junto al historial operativo, reutiliza
+`monthClosures` sin datos nuevos, `renderE8AuditExtensions` la rellena).
+
+**Validación**: `npm run verify`, exit 0 — **2183/2183 pruebas** (2173 + 10 nuevas), accesibilidad
+(862 IDs, +1 por el contenedor nuevo), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (67): PV2 — termómetro de desviación por partida
 
 Decimocuarta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con nota de alcance propia:

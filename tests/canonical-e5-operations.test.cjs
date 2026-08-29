@@ -43,3 +43,83 @@ test("la verificación enumera copias inválidas", () => {
   assert.equal(result.valid, 1);
   assert.equal(result.invalid[0].id, "bad");
 });
+
+// A16-6 · Bloque 2: hitos y rachas sobre el mismo historial de cierres (monthClosures) que ya usa
+// latestMonthOperation/isMonthClosed — sin tabla ni estado nuevo. Una racha exige meses consecutivos
+// en el calendario, sin huecos; reabrir un mes lo saca de la racha porque cuenta el último estado.
+
+function closure(monthKey, status, at) {
+  return status === "closed"
+    ? { monthKey, status: "closed", closedAt: at }
+    : { monthKey, status: "reopened", occurredAt: at };
+}
+
+test("auditMilestonesAndStreaks · sin cierres, todo en cero y el primer hito por delante", () => {
+  const result = e5.auditMilestonesAndStreaks([]);
+  assert.equal(result.totalClosed, 0);
+  assert.equal(result.currentStreak, 0);
+  assert.equal(result.longestStreak, 0);
+  assert.deepEqual(result.reachedMilestones, []);
+  assert.equal(result.nextMilestone, 5);
+  assert.equal(result.monthsUntilNextMilestone, 5);
+});
+
+test("auditMilestonesAndStreaks · meses consecutivos cerrados forman una racha", () => {
+  const result = e5.auditMilestonesAndStreaks([
+    closure("2026-01", "closed", "2026-02-01"),
+    closure("2026-02", "closed", "2026-03-01"),
+    closure("2026-03", "closed", "2026-04-01"),
+  ]);
+  assert.equal(result.totalClosed, 3);
+  assert.equal(result.currentStreak, 3);
+  assert.equal(result.longestStreak, 3);
+});
+
+test("auditMilestonesAndStreaks · un hueco de calendario corta la racha aunque ambos lados estén cerrados", () => {
+  const result = e5.auditMilestonesAndStreaks([
+    closure("2026-01", "closed", "2026-02-01"),
+    closure("2026-03", "closed", "2026-04-01"), // febrero no tiene cierre registrado
+  ]);
+  assert.equal(result.currentStreak, 1);
+  assert.equal(result.longestStreak, 1);
+});
+
+test("auditMilestonesAndStreaks · un mes reabierto cuenta por su último estado, no por su historial completo", () => {
+  const result = e5.auditMilestonesAndStreaks([
+    closure("2026-01", "closed", "2026-02-01"),
+    closure("2026-02", "closed", "2026-03-01"),
+    closure("2026-02", "reopened", "2026-03-05"), // febrero se reabre después de cerrarse
+  ]);
+  assert.equal(result.currentStreak, 0, "el último estado de febrero es reabierto");
+  assert.equal(result.longestStreak, 1, "febrero cuenta como reabierto (su último estado), así que solo enero forma racha");
+});
+
+test("auditMilestonesAndStreaks · reconoce solo el último estado de cada mes, no cualquier operación histórica", () => {
+  const result = e5.auditMilestonesAndStreaks([
+    closure("2026-01", "closed", "2026-02-01"),
+    closure("2026-01", "reopened", "2026-02-02"),
+    closure("2026-01", "closed", "2026-02-03"), // se vuelve a cerrar después
+  ]);
+  assert.equal(result.currentStreak, 1, "el último estado de enero es cerrado otra vez");
+});
+
+test("auditMilestonesAndStreaks · los hitos se marcan al alcanzar el número exacto de meses cerrados", () => {
+  const fiveClosed = Array.from({ length: 5 }, (_, index) => closure(`2026-0${index + 1}`, "closed", `2026-${String(index + 2).padStart(2, "0")}-01`));
+  const result = e5.auditMilestonesAndStreaks(fiveClosed);
+  assert.deepEqual(result.reachedMilestones, [5]);
+  assert.equal(result.nextMilestone, 10);
+  assert.equal(result.monthsUntilNextMilestone, 5);
+});
+
+test("auditMilestonesAndStreaks · con todos los hitos alcanzados, nextMilestone es null, no un número inventado", () => {
+  const hundredClosed = Array.from({ length: 100 }, (_, index) => {
+    const year = 2018 + Math.floor(index / 12);
+    const month = String((index % 12) + 1).padStart(2, "0");
+    return closure(`${year}-${month}`, "closed", `${year}-${month}-28`);
+  });
+  const result = e5.auditMilestonesAndStreaks(hundredClosed);
+  assert.equal(result.totalClosed, 100);
+  assert.deepEqual(result.reachedMilestones, e5.MILESTONE_STEPS.slice());
+  assert.equal(result.nextMilestone, null);
+  assert.equal(result.monthsUntilNextMilestone, null);
+});

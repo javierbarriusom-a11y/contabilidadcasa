@@ -2029,6 +2029,29 @@ function renderDataAudit() {
   renderE8AuditExtensions(snapshot, rows);
 }
 
+// A16-6 · hitos y rachas en el historial de auditoría. Reutiliza monthClosures tal cual, el mismo
+// historial que ya lee latestMonthOperation/isMonthClosed — sin tabla ni estado nuevo.
+function renderAuditMilestonesStreaks() {
+  const target = qs("a166MilestonesStreaks");
+  if (!target) return;
+  const result = window.FinanceCanonicalE5?.auditMilestonesAndStreaks(monthClosures);
+  if (!result) return;
+  const streakText = result.currentStreak > 0
+    ? `Racha actual: ${result.currentStreak} mes(es) cerrados seguidos${result.currentStreak === result.longestStreak && result.longestStreak > 0 ? " (tu mejor racha)" : ""}.`
+    : "Sin racha activa: el mes más reciente no está cerrado o hay un hueco.";
+  const milestonesText = result.reachedMilestones.length
+    ? `Hitos alcanzados: ${result.reachedMilestones.join(", ")} meses cerrados.`
+    : "Todavía sin hitos alcanzados.";
+  const nextText = result.nextMilestone !== null
+    ? `Próximo hito: ${result.nextMilestone} meses (${result.monthsUntilNextMilestone} por delante).`
+    : "Has alcanzado todos los hitos definidos.";
+  target.innerHTML = `<div class="audit-kpi-grid">
+    <article class="audit-kpi good"><span>Meses cerrados</span><strong>${result.totalClosed}</strong><p>${escapeHtml(streakText)}</p></article>
+    <article class="audit-kpi ${result.longestStreak > 0 ? "good" : "warn"}"><span>Racha más larga</span><strong>${result.longestStreak}</strong><p>meses consecutivos cerrados, sin huecos ni reaperturas</p></article>
+    <article class="audit-kpi"><span>Hitos</span><strong>${result.reachedMilestones.length}/${result.milestones.length}</strong><p>${escapeHtml(milestonesText)} ${escapeHtml(nextText)}</p></article>
+  </div>`;
+}
+
 function renderE8AuditExtensions(snapshot, rows) {
   const e8 = window.FinanceCanonicalE8;
   if (!e8) return;
@@ -2053,6 +2076,7 @@ function renderE8AuditExtensions(snapshot, rows) {
   if (timelineTarget) timelineTarget.innerHTML = timeline.length
     ? timeline.slice(0, 30).map((item) => `<div class="audit-timeline-item"><span>${escapeHtml(new Date(item.at).toLocaleString("es-ES"))}</span><div><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.type)} · ${escapeHtml(item.status)}</p></div></div>`).join("")
     : `<div class="audit-empty"><strong>Sin eventos operativos</strong></div>`;
+  renderAuditMilestonesStreaks();
   const payloadBytes = new TextEncoder().encode(JSON.stringify(appStatePayload({ includeCanonical: false }))).length;
   const budget = e8.performanceBudget({ rowCount: rows.length + movements.length, renderMs: performance.now() - started, payloadBytes });
   const budgetTarget = qs("e8PerformanceBudget");
