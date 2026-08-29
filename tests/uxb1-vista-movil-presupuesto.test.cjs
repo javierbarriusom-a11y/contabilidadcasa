@@ -101,7 +101,7 @@ test("UX-B1 · la fila de añadir objetivo también lleva data-label en sus dos 
 test("UX-B1 · la tabla principal de Presupuesto del mes lleva la clase presupuesto-mes-primary-table", () => {
   assert.match(
     viewSrc,
-    /<table class="e19-table registrar-mes-table plan-mes-budget-table presupuesto-mes-primary-table">\s*<thead><tr><th>Categoría<\/th><th>Presupuesto<\/th><th>Gastado<\/th><th>Ritmo<\/th><th>Estado<\/th><th>Proyección fin de mes<\/th><th><\/th><\/tr><\/thead>/,
+    /<table class="e19-table registrar-mes-table plan-mes-budget-table presupuesto-mes-primary-table">\s*<thead><tr><th>Categoría<\/th><th>Presupuesto<\/th><th>Gastado<\/th><th>Ritmo<\/th><th>Estado<\/th><th>Proyección fin de mes<\/th><th><span class="sr-only">Acciones<\/span><\/th><\/tr><\/thead>/,
   );
 });
 
@@ -130,5 +130,5 @@ test("UX-B1 · la regla CSS no afecta a `.plan-mes-budget-table` en general, sol
 
 test("UX-B1 · index.html referencia la versión bumpeada de design-tokens.css", () => {
   const html = read("index.html");
-  assert.match(html, /design-tokens\.css\?v=20260828k1/);
+  assert.match(html, /design-tokens\.css\?v=20260829opt4a1/);
 });

@@ -3426,6 +3426,9 @@ function saveScenarioSettings() {
     // V6-1 · la reserva operativa del hogar. Vive aquí, junto al resto de la política del plan,
     // porque es un dato del hogar que se sincroniza y se restaura, no una preferencia del navegador.
     operatingReserve: round2(Math.max(0, Number(state.operatingReserve || 0))),
+    // SP2 · capital asegurado del seguro de vida, igual que la reserva operativa: dato del hogar
+    // que se sincroniza y se restaura, 0 significa «sin configurar».
+    lifeInsuranceCapital: round2(Math.max(0, Number(state.lifeInsuranceCapital || 0))),
     // V6-2 · los dos umbrales de Ajustes que no encajan como regla de alertas: 0 significa «sin
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
@@ -3963,6 +3966,24 @@ function setupViewNavigation() {
     setActiveView(viewFromHash(), { focus: true });
   });
   setActiveView(viewFromHash(), { focus: false, announce: false });
+}
+
+// OPT-4: cualquier `.table-wrap` que desborde horizontalmente necesita foco de teclado para poder
+// desplazarse (axe-core: scrollable-region-focusable). 65 plantillas distintas generan esa clase,
+// muchas de ellas con render diferido (loadViewChunk); en vez de tocar cada una a mano, un único
+// observador cubre las que ya existen y las que aparezcan después. Solo marca las que de verdad
+// desbordan — no añade una parada de tabulación a una tabla que ya cabe entera.
+function markScrollableTableWraps(root = document) {
+  root.querySelectorAll(".table-wrap:not([tabindex])").forEach((el) => {
+    if (el.scrollWidth > el.clientWidth) el.setAttribute("tabindex", "0");
+  });
+}
+
+function watchScrollableTableWraps() {
+  markScrollableTableWraps();
+  const observer = new MutationObserver(() => markScrollableTableWraps());
+  observer.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener("resize", () => markScrollableTableWraps());
 }
 
 // H-8: mismas cuatro cifras que ya usan los primeros KPI de Hoy (Liquidez, Deuda pendiente,
@@ -6340,6 +6361,10 @@ function applyHelpTooltips() {
   addHelpToControl(
     "ajustesReserve",
     "Colchón que quieres proteger, en euros. Es el suelo del pie de impacto de Plan, del color del mapa de calor y del comparador de deuda. Vacío significa sin reserva configurada, no cero.",
+  );
+  addHelpToControl(
+    "ajustesLifeInsuranceCapital",
+    "Capital asegurado de tu seguro de vida, en euros. Se compara con la deuda pendiente total para avisar si quedaría algo sin cubrir. Vacío significa sin capital configurado, no cero.",
   );
   addHelpToControl(
     "ajustesDuplicateWindow",
@@ -21987,6 +22012,59 @@ function renderAjustesReserveNote() {
     : "Sin reserva operativa configurada: el pie de impacto de Plan cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas, el comparador de deuda secuencia con un suelo de 0 € y el colchón CaixaBank vuelve al que tengas guardado en Agente ahorro/Asesor ejecutivo (2.500 € si tampoco lo tocaste nunca). Escribe aquí el colchón que quieres proteger para que todas hablen de la misma cifra.";
 }
 
+/* ---- SP2 · brecha de cobertura de vida frente a deuda pendiente ------------------------------
+   Mismo patrón que la reserva operativa (V6-1/V6-3): un único número editable en Ajustes, guardado
+   como un dato más del hogar. Sin inventario de pólizas todavía (SP1, más adelante, sin relación de
+   dependencia con esta tarea): compara ese capital agregado con homeDebtOutlook().pendingPrincipal,
+   la misma cifra de deuda pendiente que ya usa el KPI de Hoy — no un cálculo aparte. */
+function lifeInsuranceCapital() {
+  const configured = Number(state?.lifeInsuranceCapital || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function lifeInsuranceCapitalFromField(raw) {
+  const text = String(raw ?? "").trim().replace(",", ".");
+  if (!text) return 0;
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return round2(parsed);
+}
+
+function syncLifeInsuranceCapitalControl() {
+  const field = qs("ajustesLifeInsuranceCapital");
+  if (!field || document.activeElement === field) return;
+  const capital = lifeInsuranceCapital();
+  field.value = capital > 0 ? String(capital) : "";
+}
+
+function renderAjustesLifeInsuranceCapitalNote() {
+  const note = qs("ajustesLifeInsuranceCapitalNote");
+  if (!note) return;
+  const capital = lifeInsuranceCapital();
+  const deuda = homeDebtOutlook().pendingPrincipal;
+  const gap = window.FinanceCanonicalLifeCoverage?.evaluateLifeCoverageGap(capital, deuda);
+  if (!gap) return;
+  if (!capital) {
+    note.textContent = `Sin capital asegurado configurado. Deuda pendiente actual: ${money(deuda, true)}.`;
+    return;
+  }
+  note.textContent = gap.covered
+    ? `Cobertura suficiente: ${money(capital, true)} cubre la deuda pendiente actual (${money(deuda, true)}).`
+    : `Brecha de ${money(gap.gap, true)} sin cubrir: el capital asegurado (${money(capital, true)}) no llega a la deuda pendiente actual (${money(deuda, true)}).`;
+}
+
+function handleLifeInsuranceCapitalChange(event) {
+  if (!state) return;
+  const next = lifeInsuranceCapitalFromField(event.target.value);
+  const previous = round2(Math.max(0, Number(state.lifeInsuranceCapital || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.lifeInsuranceCapital = next;
+  saveScenarioSettings();
+  renderAjustesLifeInsuranceCapitalNote();
+  announceStatus(next > 0 ? `Capital asegurado guardado en ${money(next, true)}.` : "Capital asegurado borrado.");
+}
+
 /* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
    Reúne lo que hoy vive repartido, sin reimplementarlo: la reserva operativa se guarda de verdad
    aquí (ver el bloque V6-1/V6-3 anterior); cuentas, partidas y umbrales solo se leen para el resumen
@@ -21996,6 +22074,8 @@ function renderAjustesReserveNote() {
 function renderAjustes() {
   syncOperatingReserveControl();
   renderAjustesReserveNote();
+  syncLifeInsuranceCapitalControl();
+  renderAjustesLifeInsuranceCapitalNote();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -29843,6 +29923,17 @@ function laboratorioVisitasText(entry) {
   return `Abierta ${vecesText} · última el ${escapeHtml(formatIsoDate(visitas.last))}.`;
 }
 
+// OPT-2: el contador de T-4 ya registra toda pantalla, heredada o nueva, pero su ficha solo
+// enseñaba el lado heredado. Sin el lado nuevo al lado, "sustituida" seguía siendo la impresión de
+// quien mira, no una comparación real de uso — este texto añade el segundo número que faltaba.
+function laboratorioDestinoVisitasText(entry) {
+  if (!entry.destino) return "";
+  const visitas = viewVisitSummary(entry.destino.hash);
+  if (!visitas.count) return `${entry.destino.label}: 0 visitas registradas todavía.`;
+  const vecesText = visitas.count === 1 ? "1 vez" : `${visitas.count} veces`;
+  return `${entry.destino.label}: abierta ${vecesText} · última el ${escapeHtml(formatIsoDate(visitas.last))}.`;
+}
+
 function laboratorioDetailHtml(entry, snapshotContext) {
   if (!entry) return `<p class="e19-kpi-note">Elige una pantalla heredada para ver su ficha.</p>`;
   const instantanea = snapshotContext ? formatIsoDate(snapshotContext.fecha.slice(0, 10)) : "sin cierre firmado";
@@ -29853,7 +29944,7 @@ function laboratorioDetailHtml(entry, snapshotContext) {
     <p class="e19-kpi-note"><strong>Recogida en</strong><br>${entry.backlogTask ? escapeHtml(entry.backlogTask) : "Sin tarea propia"}</p>
     ${entry.nota ? `<p class="e19-kpi-note laboratorio-card-nota">${escapeHtml(entry.nota)}</p>` : ""}
     <p class="e19-kpi-note"><strong>Escritura</strong><br>${escapeHtml(entry.evidenciaEscritura || "")}</p>
-    <p class="e19-kpi-note"><strong>Visitas</strong><br>${laboratorioVisitasText(entry)}</p>
+    <p class="e19-kpi-note"><strong>Visitas</strong><br>${laboratorioVisitasText(entry)}${entry.destino ? `<br>${laboratorioDestinoVisitasText(entry)}` : ""}</p>
     <p class="e19-kpi-note">Instantánea del ${escapeHtml(instantanea)}</p>
     <button type="button" class="e19-btn e19-btn-secondary" data-laboratorio-open-readonly="${escapeHtml(entry.hash)}">Abrir en solo lectura</button>`;
 }
@@ -31375,6 +31466,7 @@ async function init() {
   qs("cuadroMandosStart")?.addEventListener("change", renderCuadroMandos);
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
+  qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
   qs("ajustesSobresEnabled")?.addEventListener("change", handleSobresToggle);
@@ -31505,6 +31597,7 @@ async function init() {
   setupE17Experience();
   setupFaqsAyuda();
   setupViewNavigation();
+  watchScrollableTableWraps();
   render();
   await setupSupabaseSync();
 }

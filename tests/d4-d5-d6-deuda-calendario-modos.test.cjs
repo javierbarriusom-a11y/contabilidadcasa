@@ -858,7 +858,7 @@ test("D-5/D-6 · index.html declara los elementos del selector de modo y de su c
 test("D-6 · la cabecera de la comparativa trae los cinco indicadores del criterio (mes, caja mínima, coste, cuota resultante, resultado)", () => {
   assert.match(
     html,
-    /<thead><tr><th>Modo<\/th><th>Mes<\/th><th>Caja mínima<\/th><th>Coste<\/th><th>Cuota resultante<\/th><th>Resultado<\/th><th><\/th><\/tr><\/thead>/,
+    /<thead><tr><th>Modo<\/th><th>Mes<\/th><th>Caja mínima<\/th><th>Coste<\/th><th>Cuota resultante<\/th><th>Resultado<\/th><th><span class="sr-only">Acciones<\/span><\/th><\/tr><\/thead>/,
   );
 });
 

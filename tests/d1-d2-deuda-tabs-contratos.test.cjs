@@ -77,12 +77,16 @@ test("D-1/D-15 · las cuatro pestañas son Ruta, Comparar, Contratos y Simulador
   assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador"]);
 });
 
-test("D-1 · deudaScreenTabsHtml marca is-active solo en la pestaña activa, con aria-selected", () => {
+test("D-1/OPT-4 · deudaScreenTabsHtml marca is-active y aria-current=\"page\" solo en la pestaña activa", () => {
+  // OPT-4 (axe: aria-allowed-attr): son enlaces a rutas distintas, no pestañas ARIA sobre un único
+  // panel — aria-selected no es un atributo válido en un <a> sin role="tab". aria-current="page" es
+  // el marcador correcto de "enlace activo" para navegación real, mismo patrón que el menú lateral.
   const { deudaScreenTabsHtml } = sandboxTabs();
   const result = deudaScreenTabsHtml("deuda-comparar");
-  assert.match(result, /class="e19-registrar-tab is-active" href="#deuda-comparar" aria-selected="true"/);
-  assert.match(result, /class="e19-registrar-tab" href="#deuda-ruta" aria-selected="false"/);
-  assert.match(result, /class="e19-registrar-tab" href="#deuda-contratos" aria-selected="false"/);
+  assert.match(result, /class="e19-registrar-tab is-active" href="#deuda-comparar" aria-current="page"/);
+  assert.match(result, /class="e19-registrar-tab" href="#deuda-ruta">/);
+  assert.match(result, /class="e19-registrar-tab" href="#deuda-contratos">/);
+  assert.doesNotMatch(result, /aria-selected/);
 });
 
 test("D-1 · cada pestalla enlaza con hash real, no con un manejador de clic exclusivo", () => {
@@ -802,8 +806,8 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
 
 test("D-1/D-2/D-2d · viaja en el shell offline versionado, con bump de app.js/deuda.js/design-tokens.css por la edición y el borrado universal de contratos", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260828k1a1/);
-  assert.match(html, /design-tokens\.css\?v=20260828k1/);
+  assert.match(html, /app\.js\?v=20260829b1/);
+  assert.match(html, /design-tokens\.css\?v=20260829opt4a1/);
   assert.match(app, /views\/deuda\.js\?v=20260828a1/);
 });
 

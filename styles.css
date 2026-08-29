@@ -415,7 +415,10 @@ h2 {
 }
 
 .e17-view-guide div { display: grid; gap: 3px; }
-.e17-view-guide strong { color: var(--teal); font-size: 11px; text-transform: uppercase; }
+/* OPT-4 (axe: color-contrast): var(--teal) (#0f8f8c) da 3,94:1 sobre --surface, por debajo de
+   4,5:1 — override local en vez de tocar --teal (84 usos en toda la hoja de estilos, muchos como
+   fondo con texto claro encima donde ya cumple), 15% más oscuro y 5,16:1. */
+.e17-view-guide strong { color: #0d7a77; font-size: 11px; text-transform: uppercase; }
 .e17-view-guide span { color: var(--muted); font-size: 12px; line-height: 1.35; }
 .e17-view-guide button { align-self: center; white-space: nowrap; }
 
@@ -677,10 +680,12 @@ h2 {
   background: #fff7e5;
 }
 
-/* H-2: hora del último guardado, dentro del mismo chip. */
+/* H-2: hora del último guardado, dentro del mismo chip. OPT-4 (axe: color-contrast): opacity 0.8
+   bajaba el contraste de las tres variantes de color (local/nube/aviso) por debajo de 4.5:1 sobre
+   su propio fondo; 0.9 lo deja por encima incluso en la variante más ajustada (aviso, 4,65:1). */
 .durability-status small {
   font-size: 10.5px;
-  opacity: 0.8;
+  opacity: 0.9;
   white-space: nowrap;
 }
 
@@ -1187,7 +1192,10 @@ main {
 
 .status-pill.danger {
   background: #fff0ef;
-  color: var(--red);
+  /* OPT-4 (axe: color-contrast): var(--red) (#c44945) da 4,32:1 sobre este fondo concreto, por
+     debajo de 4,5:1 — override local en vez de tocar --red (42 usos en toda la hoja de estilos),
+     5% más oscuro y 4,72:1. */
+  color: #ba4542;
 }
 
 .secondary-button {
@@ -1827,7 +1835,12 @@ main {
   margin-bottom: 16px;
 }
 
-.section-title p:not(.panel-kicker) {
+/* OPT-4 (axe: color-contrast): esta regla es anterior al sistema E19 y gana por especificidad a
+   `.e19-subtitle { color: var(--e19-muted) }` (design-tokens.css) — le imponía el --muted heredado
+   (#64727b, 4,36:1 sobre el fondo real de .section-title, por debajo de 4,5:1) en vez de dejarle su
+   propio --e19-muted (#5b6578, 5,16:1). Se excluye aquí para que cada pantalla migrada a E19 use el
+   tono que ya tenía pensado; las pantallas heredadas sin .e19-subtitle no cambian. */
+.section-title p:not(.panel-kicker):not(.e19-subtitle) {
   color: var(--muted);
   font-size: 13px;
   margin-top: 4px;

@@ -2,6 +2,402 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Fix de CI — 29 de agosto de 2026: `npm ci` antes de `npm run verify`
+
+Detectado por el propio CI del PR #159 (Bloque 1), no en local: `.github/workflows/pages.yml`
+ejecutaba `npm run verify` sin ningún paso de instalación de dependencias antes. Nunca había hecho
+falta porque nada en el pipeline de `verify` necesitaba un paquete real de `node_modules` — hasta
+OPT-3 (minificar el artefacto publicado, cierre 48), que añadió `esbuild` como dependencia real de
+`tools/build-public-site.mjs`, invocado por `build:site` dentro de `verify`. Cada commit de este
+Bloque 1 a partir de OPT-3 falló en CI con `Cannot find package 'esbuild'`, en verde siempre en
+local porque el entorno de esta sesión ya tenía `node_modules` poblado de instalaciones manuales
+anteriores.
+
+**Corregido**: `npm ci` (con `cache: npm` en `actions/setup-node`) antes de `npm run verify`.
+Verificado en local reproduciendo el camino exacto de CI: `npm ci` limpio + `npm run verify` —
+2081/2081 pruebas, accesibilidad, rendimiento, build y privacidad en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (53): SP2 — brecha de cobertura de vida frente a deuda pendiente — Bloque 1 completo
+
+Novena y última tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Sin inventario de pólizas
+todavía (SP1, bloque 2, sin relación de dependencia con esta tarea) ni ningún dato de seguros en el
+modelo — «Seguros» solo existía como categoría de gasto. La deuda pendiente total sí existía ya
+(`homeDebtOutlook().pendingPrincipal`, el mismo KPI que usa Hoy).
+
+**Construido**:
+- `canonical-life-coverage.js` — motor puro nuevo (`FinanceCanonicalLifeCoverage`, mismo patrón que
+  `canonical-cushion.js`/`canonical-leverage-barrier.js`). `evaluateLifeCoverageGap(capital, deuda)`
+  calcula la brecha (`gap`, nunca negativa), si está cubierta (`covered`) y el ratio de cobertura
+  (`null` sin deuda que cubrir, en vez de un ratio que no significa nada).
+- A diferencia de AP4/CP3 (motor sin consumidor porque su motor futuro no existe aún), SP2 no tiene
+  ningún «AP3»/«CP1» que lo vaya a usar más adelante — ni SP1 ni ningún otro `SP*` lo cita como
+  dependencia—, así que sin ningún dato real que comparar el motor quedaría inerte. Se añadió el
+  mínimo imprescindible: una tarjeta más en Ajustes («Cobertura de vida frente a deuda»), mismo
+  patrón exacto que la reserva operativa (V6-1/V6-3) — un único campo `ajustesLifeInsuranceCapital`,
+  persistido como `state.lifeInsuranceCapital` en `scenarioSettings` (dato del hogar, se sincroniza y
+  se restaura, 0 = sin configurar), con su nota de resultado y su ayuda contextual (A12-4).
+
+**Verificación**: 7 pruebas nuevas en `tests/canonical-life-coverage.test.cjs` — cobertura suficiente
+sin brecha, brecha exacta, cubierto justo al límite, sin capital configurado (toda la deuda es
+brecha), sin deuda pendiente (ratio no aplica), valores negativos/inválidos tratados como cero, y
+carga en `index.html` antes de `app.js`. `app.js` bumpeado a `?v=20260829b1` (27 ficheros
+actualizados en bloque); `canonical-life-coverage.js` cargado en `index.html` y en la lista blanca de
+`tools/build-public-site.mjs`.
+
+**Validación**: `npm run verify`, exit 0 — **2081/2081 pruebas** (2073 + 8 nuevas — 7 del motor + 1
+de wiring), accesibilidad (**836 IDs**, +2 por el campo y su nota nuevos), rendimiento, build del
+sitio, privacidad y smoke test, todos en verde.
+
+**Con esto, el Bloque 1 completo de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` queda construido**: AP4, OPT-1,
+OPT-2, OPT-3, OPT-4, CP3, TT1, TT5 y SP2 — las 9 tareas de nivel 0 (sin ninguna dependencia, crítico
+o alto beneficio), en el orden que el propio documento fijó. Cinco de ellas (AP4, CP3, TT1, TT5,
+SP2) partían solo de una nota de una línea, sin documento de detalle propio, y su alcance se decidió
+en cada cierre de esta sesión — conviene revisarlas con el usuario antes de dar el bloque por
+cerrado del todo. Sigue abierta la tarea de seguimiento `task_379a2b45` (auditoría del resto de
+`color-contrast` de OPT-4). El siguiente objetivo recomendado es el Bloque 2 del mismo documento.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (52): TT5 — el suelo del colchón como parámetro vivo
+
+Octava tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. La reserva operativa (el suelo del
+colchón) ya era configurable desde Ajustes desde V6-1/V6-3 (10-20 de agosto) — pero un número fijo
+que la persona escribe una vez y `cushionFloor` usa tal cual para siempre, sin nada que avise si el
+gasto real se ha movido mucho desde entonces.
+
+**Construido**: `cushionFloorDrift(configuredReserve, rows)`, añadida a `canonical-cushion.js` junto
+a `cushionFloor` sin tocarla — nada de lo que ya la usa (Plan, mapa de calor, comparador de deuda)
+cambia de comportamiento. Compara la reserva configurada con lo que las salidas del mes actual
+sugerirían ahora mismo (mismo cálculo «un mes de salidas» que `cushionFloor` usa cuando no hay
+reserva, forzado vía `cushionFloor(rows, 0)`) y marca `stale: true` cuando se han separado un 20% o
+más en cualquier dirección (`CUSHION_DRIFT_THRESHOLD`, exportada) — ni "casi igual" ni ruido de un
+mes suelto. Sin reserva configurada no hay nada que comparar (`driftRatio: null`); sin gasto real
+conocido tampoco divide por cero.
+
+Sin UI propia todavía en este cierre, igual que TT1: motor listo para que la nota de Ajustes (o
+cualquier otro consumidor de la reserva operativa) avise cuando convenga revisarla, sin construir esa
+pantalla en esta tarea.
+
+**Verificación**: 6 pruebas nuevas en `tests/canonical-cushion.test.cjs` — sin reserva no hay
+comparación, reserva alineada no está desfasada, muy por debajo y muy por encima sí lo están, el
+límite exacto del 20% ya cuenta, y sin filas no divide por cero. `canonical-cushion.js` bumpeado a
+`?v=20260829tt5a1`.
+
+**Validación**: `npm run verify`, exit 0 — **2073/2073 pruebas** (2067 + 6 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde. (Nota
+de higiene de esta sesión: `npm test` mostró dos veces un `fail 2` fantasma solo cuando su salida se
+canalizaba con `| tail`, sin ningún `not ok` real localizable — desapareció siempre al redirigir a
+un fichero (`> log 2>&1`), en 6/6 repeticiones así; artefacto del propio pipe, no un fallo real.)
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente y última tarea del
+Bloque 1 (`SP2`).
+
+## Cierre de sesión — 29 de agosto de 2026 (51): TT1 — reparto del colchón entre corriente y remunerado
+
+Séptima tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. La app ya modela dos cuentas reales
+(CaixaBank «corriente», Mediolanum «remunerada») y ya calcula el colchón de emergencia agregado
+(`canonical-cushion.js`, en producción), pero nada decidía cuánto de ese colchón debería quedarse en
+la cuenta sin rendimiento por acceso inmediato y cuánto podía moverse a la remunerada.
+
+**Construido**: `cushionAccountSplit(total, rows, { instantAccessDays = 7 })`, añadida directamente a
+`canonical-cushion.js` (la propia nota de la tarea pide extenderlo, no crear un motor aparte). No
+inventa un segundo umbral: reutiliza el mismo cálculo de salidas mensuales que ya usa `cushionFloor`
+(`rows[0].coreSpend/car/refi`, vía `cushionFloor(rows, 0)` para forzar siempre la rama «un mes de
+salidas» aunque haya una reserva operativa configurada — el acceso inmediato no depende de esa
+reserva). Con esa cifra mensual calcula un gasto diario y multiplica por `instantAccessDays` (7 por
+defecto, el tiempo razonable de margen para que llegue un traspaso entre las dos cuentas propias):
+esa cantidad se queda en corriente, el resto del colchón —si lo hay— se propone para la remunerada.
+Sin datos de salida conocidos, el acceso inmediato es cero y todo el colchón se propone a la
+remunerada; un total negativo o inválido se trata como cero, sin repartir de más.
+
+Sin UI propia todavía en este cierre — extiende un motor ya consumido por varias pantallas
+(`cushionFloor`/`cushionTone`/`cushionLevel` ya se usan en Hoy, Plan y Análisis), así que
+`cushionAccountSplit` queda disponible para que cualquiera de ellas lo llame cuando se decida dónde
+mostrar el reparto propuesto.
+
+**Verificación**: 7 pruebas nuevas en `tests/canonical-cushion.test.cjs` — reparto normal, colchón
+insuficiente para cubrir ni el acceso inmediato, número de días personalizado, valor por defecto (7
+días), sin filas de salida, total negativo, y que ignora una reserva operativa configurada.
+`canonical-cushion.js` bumpeado a `?v=20260829tt1a1` (sin pruebas de versión que actualizar: nada la
+pineaba literalmente).
+
+**Validación**: `npm run verify`, exit 0 — **2067/2067 pruebas** (2060 + 7 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`TT5`).
+
+## Cierre de sesión — 29 de agosto de 2026 (50): CP3 — ninguna recomendación sin su cita
+
+Sexta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Regla de diseño del bloque Copiloto
+("ninguna recomendación sin su cita"), que se construye antes que el motor que la consumirá (CP1,
+"próxima mejor acción", bloque 8, todavía sin construir) — mismo patrón que AP4 con AP3 en esta
+misma sesión.
+
+**Hallazgo antes de construir nada**: la app ya tenía este control, pero acoplado a una sola
+superficie que nunca llegó a activarse — `canonical-e9-assistant.js` (`validateResponse`) rechaza
+cualquier respuesta del asistente de IA externa sin `citations` que referencien el catálogo de
+evidencia de la consulta (`sourceCatalog`). Motor de infraestructura general, sin UI propia desde
+que se retiró su widget (cierre #42, 28 de agosto). CP3 generaliza ese mismo control para que
+cualquier recomendación de la app lo reutilice, no solo esa consulta.
+
+**Construido**: `canonical-recommendation-citation.js` — motor puro nuevo
+(`FinanceCanonicalRecommendationCitation`, mismo patrón que `canonical-leverage-barrier.js`).
+`validateRecommendation(recommendation, { availableSources })` bloquea si falta el texto de la
+recomendación o si no trae ninguna cita no vacía; si se le pasa el catálogo de evidencia disponible
+(array de objetos con `id`, o `Set` de IDs), bloquea también citar algo que no está en ese catálogo
+— mismos dos motivos que ya usaba `canonical-e9-assistant.js` (`citations-missing`/`citation-unknown`),
+generalizados. `validateRecommendations(lista)` agrega varias a la vez.
+
+Sin CP1 construido todavía, este motor no tiene consumidor de interfaz — mismo patrón ya aceptado en
+este repositorio para infraestructura por delante de su UI: se carga en `index.html` (antes de
+`app.js`) y en la lista blanca de `tools/build-public-site.mjs`, con cobertura de pruebas completa.
+No se retrofita sobre superficies de recomendación existentes (asesor ejecutivo heredado, comparador
+de deuda): cambiar su formato de texto a un array de citas estructurado es un refactor mayor, fuera
+del alcance "S" de esta tarea — queda disponible para cuando CP1 (o cualquier otra pantalla) lo
+necesite.
+
+**Verificación**: 13 pruebas nuevas en `tests/canonical-recommendation-citation.test.cjs` — carga en
+navegador real, texto y cita obligatorios por separado, citas vacías no cuentan, alias
+`label`/`title`, sin catálogo no comprueba existencia (solo formato), con catálogo (array u objeto
+`Set`) bloquea una cita inventada, agregación de varias recomendaciones, y que el script está
+montado en `index.html` antes de `app.js`.
+
+**Validación**: `npm run verify`, exit 0 — **2060/2060 pruebas** (2047 + 13 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`TT1`).
+
+## Cierre de sesión — 29 de agosto de 2026 (49): OPT-4 — accesibilidad verificada de verdad (axe-core)
+
+Quinta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. `tools/check-accessibility.mjs`
+comprobaba exactamente cuatro cosas (IDs duplicados, cuatro patrones de marcado, botones vacíos) —
+cero medida real de WCAG.
+
+**Construido**: `@axe-core/playwright` como dependencia de test. `tests/opt4-axe-accessibility.spec.cjs`
+corre axe contra las seis pantallas que ya visita `tests/qa1-flujos-completos.spec.cjs` (home,
+presupuesto-mes, deuda-comparar, analisis, cierre, conciliar) reutilizando su navegación, sin
+recorrido nuevo. Nuevo proyecto Playwright `a11y` (`playwright.config.cjs`) y script
+`npm run test:a11y-axe` — **fuera de `npm run verify`/CI**, misma decisión de infraestructura ya
+tomada para toda la suite Playwright de este repo (QA-1, visual regression): navegador headless en
+CI es una decisión aparte, no la de esta tarea.
+
+**Triage de la primera pasada** — corregido en firme, con prueba unitaria o del propio spec:
+- **Crítico** `aria-allowed-attr`: las pestañas de Deuda (Ruta/Comparar/Contratos/Simulador,
+  `views/deuda.js`) usaban `aria-selected` en un `<a>` de navegación real entre rutas distintas —
+  atributo no válido sin `role="tab"`. Cambiado a `aria-current="page"`, mismo patrón que ya usa
+  `setActiveView` para el menú lateral.
+- **Serio** `scrollable-region-focusable`: 65 plantillas distintas generan `.table-wrap` (tablas
+  con scroll horizontal) sin foco de teclado. En vez de tocar las 65 a mano,
+  `markScrollableTableWraps`/`watchScrollableTableWraps` (`app.js`, llamado una vez en `init()`) usa
+  un `MutationObserver` que marca `tabindex="0"` solo en las que de verdad desbordan
+  (`scrollWidth > clientWidth`), cubriendo también el render diferido de `views/*.js`.
+- **Minor** `empty-table-header`: cuatro `<th></th>` de columnas de acciones (Presupuesto del mes ×3,
+  Deuda · Comparar, Deuda · Contratos) ganan `<span class="sr-only">Acciones</span>`.
+- **Moderado** `region`: `#topbarStatusStrip` (la tira de cinco cifras fuera de `<main>`) gana
+  `role="region" aria-label="Resumen de cifras clave"`.
+- **Serio** `color-contrast`, seis casos concretos, todos con override local para no tocar tokens
+  compartidos de amplio uso sin revisión: el chip de guardado (`.durability-status small`, opacity
+  0.8→0.9), `--e19-eyebrow` (token huérfano de la migración T-2 del 12 de agosto, seguía en el azul
+  de antes — pasa al mismo navy que `--e19-accent`/`--e19-heading`), un bug de especificidad CSS que
+  le robaba su color a `.e19-subtitle` dentro de `.section-title`, `.status-pill.danger`,
+  `.e19-badge-warning` y `.e17-view-guide strong` — cada uno documentado con su ratio antes/después
+  en el propio CSS.
+
+**Fuera de esta tarea, a propósito**: `color-contrast` reveló mucho más de lo esperado — cada
+corrección destapaba más elementos con el mismo defecto por debajo. Los seis casos de arriba se
+corrigieron sin tocar `--teal` (84 usos en `styles.css`), `--red` (42 usos) ni `--e19-warning` (17
+usos, varios como fondo): cambiar esos tokens compartidos es una decisión de sistema de diseño que
+afecta a toda la app, no un parche puntual de esta tarea. `tests/opt4-axe-accessibility.spec.cjs`
+admite explícitamente el resto de `color-contrast` sin bloquear (filtra por `violation.id`, exige
+cero de cualquier otro tipo). Tarea de seguimiento `task_379a2b45` puesta en cola con el detalle
+completo (enlaces sin estilo con azul de navegador por defecto sobre fondo oscuro en Análisis,
+insignias blanco-sobre-verde, texto verde sobre gris, meta-texto `--e19-faint` sobre blanco).
+
+**Verificación**: 5 pruebas nuevas en `tests/opt4-accessibility-fixes.test.cjs` (las piezas sin
+navegador: el observador de `table-wrap`, el landmark de `topbarStatusStrip`, la opacidad del chip,
+ninguna pestaña de Deuda con `aria-selected`) + 6 pruebas en el spec de Playwright (una por pantalla,
+cero violaciones salvo `color-contrast`) + pruebas existentes actualizadas donde el marcado cambió
+(`tests/d1-d2-deuda-tabs-contratos.test.cjs`, `tests/d4-d5-d6-deuda-calendario-modos.test.cjs`,
+`tests/uxb1-vista-movil-presupuesto.test.cjs`, `tests/t2-acento-navy.test.cjs`). `design-tokens.css`
+bumpeado a `?v=20260829opt4a1`; los 7 ficheros que pineaban la versión anterior se actualizaron en
+bloque.
+
+**Validación**: `npm run verify`, exit 0 — **2047/2047 pruebas**, accesibilidad estructural (834
+IDs, sin cambio — nada de lo tocado añade IDs nuevos), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `npm run test:a11y-axe` (Playwright, proyecto `a11y`): 6/6 en verde
+contra el sitio publicado.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`CP3`).
+
+## Cierre de sesión — 29 de agosto de 2026 (48): OPT-3 — minificar el artefacto publicado
+
+Cuarta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. `tools/build-public-site.mjs` copiaba
+los ficheros fuente a `dist/` tal cual, sin minificar — `app.js` pesaba 1,54 MB sin comprimir en cada
+visita.
+
+**Construido**: `esbuild` (`^0.28.2`) como dependencia de desarrollo. Al final de
+`tools/build-public-site.mjs` —después de copiar todos los ficheros y de la reescritura de
+`CACHE_NAME`, que necesita el texto exacto sin minificar— un paso nuevo minifica en sitio cada `.js`
+y `.css` ya copiado a `dist` (`esbuild.transformSync(..., { minify: true })`), sin tocar el fuente del
+repositorio. Excepciones deliberadas: los `.html` (esbuild no minifica HTML, y alterar el marcado
+publicado es justo lo que `test:smoke` vigila que no pase), `vendor/xlsx.full.min.js` (ya llega
+minificado de origen) y `service-worker.js` (pesa poco, y `dist/service-worker.js` necesita seguir
+siendo legible para depurar la caché en producción — la prueba existente de `CACHE_NAME` ya
+comprobaba su formato exacto). Resultado: `app.js` baja de 1.545.255 a 1.001.092 bytes (-35 %);
+`styles.css` de 202.356 a 161.907 bytes (-20 %).
+
+**Hallazgo durante la validación, corregido en el propio motor de PDF**: minificar cambió el `\n`
+escapado de un literal de plantilla de `p2-export.js` (la fila de objeto libre del xref del PDF,
+`"0000000000 65535 f \n"`, boilerplate del formato PDF) por un salto de línea real. Eso rompía el
+límite de palabra (`\b`) justo antes del literal y hacía que la cadena de 15 dígitos cruzara el
+umbral de 13-19 que `test:privacy` vigila como posible número de tarjeta — falso positivo solo en
+`dist`, ninguna cifra real de por medio. Corregido en la fuente con `"0".repeat(10)` en vez del
+literal de diez ceros seguidos (mismo PDF resultante, byte a byte); `p2-export.js` bumpeado a
+`?v=20260829opt3a1`.
+
+**Verificación**: 5 pruebas nuevas en `tests/opt3-minify-dist.test.cjs` (JS/CSS minificado y
+sensiblemente más ligero, `.html` intacto byte a byte, el vendor ya minificado no se reminifica,
+`service-worker.js` sigue legible, y construir `dist` nunca modifica el fuente del repositorio).
+
+**Validación**: `npm run verify`, exit 0 — **2041/2041 pruebas** (2036 + 5 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+Comprobación explícita pedida por la propia tarea: `npm run test:privacy` y `npm run test:smoke`
+contra el `dist/` minificado, ambos en verde. Verificado también con Playwright (proyecto `e2e`)
+contra el sitio minificado: recorrido por Hoy, Presupuesto, Deuda, Análisis y Cierre sin errores; el
+otro escenario de ese spec falla igual que en `main` sin minificar (limitación previa de este
+Chromium en este entorno, no una regresión de la minificación).
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-4`).
+
+## Cierre de sesión — 29 de agosto de 2026 (47): OPT-2 — instrumentar uso real de pantallas heredadas
+
+Tercera tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Hallazgo antes de construir nada: el
+contador de visitas por pantalla (`VISIT_COUNTS_KEY`/`recordViewVisit`/`viewVisitSummary`, `app.js`)
+**ya existe** desde T-4 (introducido el 22 de agosto de 2026 para el veredicto de Laboratorio) y ya
+registra automáticamente **todas** las vistas, heredadas y nuevas, sin distinción — la primera tarea
+de OPT-2 («añadir un contador ligero en `localStorage`... para las 10 rutas heredadas y, ya puestos,
+para las nuevas marcadas "(nuevo)"») estaba resuelta de fábrica, siete días antes de empezar esta
+tarea, por una necesidad distinta.
+
+Lo que faltaba de verdad, y es lo único que se ha construido: la ficha de cada heredada en
+Laboratorio (Ajustes) mostraba su propio contador de visitas, pero no el de su pantalla nueva
+equivalente — sin las dos cifras una junto a otra no hay comparación real, solo el dato de un lado.
+
+**Construido**: `laboratorioDestinoVisitasText(entry)` (`app.js`) — mismo patrón que
+`laboratorioVisitasText`, pero sobre `entry.destino.hash` en vez de `entry.hash`. `laboratorioDetailHtml`
+añade esta segunda línea bajo «Visitas» solo cuando la heredada tiene un destino nuevo registrado en
+`LABORATORIO_CATALOG` (13 de las 17 entradas del catálogo; las 4 sin destino — Movimientos, Guía
+operativa, Asesor virtual y Centro de alertas — no tienen pantalla gemela que comparar). Ningún
+motor nuevo: reutiliza `viewVisitSummary`, ya construido.
+
+**Verificación**: 4 pruebas nuevas en `tests/l1-l10-fase7-laboratorio.test.cjs` (sin destino no hay
+nada que pintar, sin visitas del destino todavía, consulta el contador del hash del destino y no el
+de la heredada, y la ficha completa añade o no la comparación según haya destino). Dos pruebas
+existentes de esa misma suite se actualizaron para simular también la función nueva en su sandbox
+aislado. `app.js` bumpeado a `20260829a1`; los 29 ficheros que pineaban la versión anterior
+(`20260828k1a1`) se actualizaron en bloque, incluidas las dos pruebas cuyo `assert.match` literal ya
+había cambiado en el cierre de OPT-1 para admitir `defer`.
+
+**Sobre el plazo de 30 días de la propia tarea** (arranca el contador que bloquea `OPT-10`, bloque 7):
+el contador real lleva corriendo desde el 22 de agosto, 7 días antes de esta sesión, aunque no fue
+construido para esto. El plazo formal de OPT-2 empieza a contar desde hoy de todos modos, no
+retroactivamente — sigue haciendo falta usar la app con normalidad un mínimo de 30 días antes de
+leer los datos en `OPT-10`.
+
+**Validación**: `npm run verify`, exit 0 — **2036/2036 pruebas** (2032 + 4 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-3`).
+
+## Cierre de sesión — 29 de agosto de 2026 (46): OPT-1 — `defer` en los `<script>` de `index.html`
+
+Segunda tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, tal cual estaba especificada en
+`BACKLOG_OPTIMIZACION.md`: `index.html` cargaba 57 `<script src="...">` síncronos y en orden
+(líneas 4008-4136: `supabase-js`, `vendor/xlsx.full.min.js`, `data.js`, los `canonical-*.js`,
+`app.js`, `p2-ui.js`…), sin `defer` ni `async`, bloqueando el parseo del HTML y el primer pintado
+hasta descargar y ejecutar los 57 uno detrás de otro.
+
+**Cambiado**: `defer` añadido a los 57 `<script src="...">` del bloque. `defer` conserva el orden de
+ejecución declarado (a diferencia de `async`), así que no cambia ningún comportamiento — solo deja de
+bloquear el parseo del documento. El único `<script>` inline (registro del Service Worker, al final
+del body) se dejó sin tocar: ya se ejecuta al final del documento y no depende de orden con los
+anteriores.
+
+**Verificación**: 3 pruebas nuevas en `tests/opt1-defer-scripts.test.cjs` (todo `<script src>` lleva
+`defer`, el script inline del Service Worker sigue al final sin necesitarlo, y el orden declarado se
+conserva — los módulos canónicos siguen cargando antes que `app.js`). Dos pruebas existentes que
+fijaban literalmente `<script src="app.js?v=...">` (`tests/track1-resumen-semanal-hoy.test.cjs`,
+`tests/bud3-presupuesto-anual-trimestral.test.cjs`) se actualizaron para admitir el atributo nuevo.
+
+**Comprobación en navegador real**: `npm run test:visual` (Playwright, canal `chrome` fijo para
+comparación de píxeles) no pudo ejecutarse en este entorno — el binario `chrome` real no está
+disponible en la sesión remota (`Chromium distribution 'chrome' is not found`), solo el Chromium
+empaquetado en `/opt/pw-browsers`. Como sustituto se ejecutó `npm run test:e2e` (proyecto `e2e`,
+sin canal fijo, acepta cualquier Chromium vía `PLAYWRIGHT_CHROMIUM_PATH`) contra el sitio construido
+con `defer`: la app arranca, todos los `canonical-*.js` (incluido el nuevo
+`canonical-leverage-barrier.js` de AP4) se sirven y ejecutan correctamente, y el recorrido por Hoy,
+Presupuesto, Deuda, Análisis y Cierre pasa sin errores ni pantallas en blanco. El otro escenario del
+mismo spec (editar una celda de Presupuesto del mes) falla igual en un *worktree* limpio de `main`
+sin ningún cambio de esta sesión — limitación previa de este Chromium concreto en este entorno
+(`Protocol error: session closed`), no una regresión de `defer`.
+
+**Validación**: `npm run verify`, exit 0 — **2032/2032 pruebas** (2029 + 3 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-2`).
+
+## Cierre de sesión — 29 de agosto de 2026 (45): AP4 — barrera de seguridad antes de simular apalancamiento
+
+Primera tarea construida del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («lo mejor primero: sin
+ninguna dependencia, crítico o alto beneficio»), a petición directa del usuario de arrancar por ese
+bloque. AP4 es la única tarea `Crítico` del bloque, y el propio documento señala por qué va primero:
+el bloque de apalancamiento (`AP1`-`AP6`) es el único punto de todo el backlog donde la app pasaría
+de comparar decisiones a sugerir tomar deuda nueva, así que su guardarraíl se construye antes que el
+simulador que lo usará (`AP3`, bloque 9, todavía sin construir).
+
+**Construido**: `canonical-leverage-barrier.js` — motor puro nuevo (`FinanceCanonicalLeverageBarrier`,
+sin DOM ni estado global), con el mismo patrón que `canonical-commit-barrier.js`
+(`blockers`/`warnings`/`checks`/`summary`/`status`). `evaluateLeverageBarrier(input)` comprueba tres
+condiciones mínimas antes de que tenga sentido explorar pedir deuda para invertir:
+1. El colchón de emergencia está en o por encima de su suelo (mismos campos `value`/`floor` que ya
+   produce `canonical-cushion.js`; bloquea también si no se ha calculado).
+2. La deuda existente no tiene incidencias críticas o de error pendientes.
+3. La cuota mensual de deuda ya comprometida no supera el 35% del ingreso mensual neto — umbral
+   prudente propio de este guardarraíl, no un límite legal ni bancario; bloquea también si falta el
+   ingreso.
+
+Al no existir todavía AP3, este motor no tiene consumidor de interfaz — mismo patrón ya aceptado en
+este repositorio para infraestructura construida por delante de su UI (`canonical-e9-assistant.js`,
+ver cierre #42): se carga en `index.html` (antes de `app.js`) y en la lista blanca de
+`tools/build-public-site.mjs`, con cobertura de pruebas completa, a la espera de que AP3 lo consuma.
+
+**Verificación**: 12 pruebas nuevas en `tests/canonical-leverage-barrier.test.cjs` — carga en
+navegador real (`vm`), los tres guardarraíles por separado y bloqueando a la vez, los límites
+estrictos de cada umbral (justo en el suelo pasa, justo en el 35% bloquea), datos que faltan
+(colchón e ingreso sin calcular) y que el script está montado en `index.html` antes de `app.js`.
+
+**Validación**: `npm run verify`, exit 0 — **2029/2029 pruebas** (2017 + 12 nuevas), accesibilidad
+(834 IDs, sin cambio — el motor no tiene DOM propio), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-1`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (44): `BACKLOG_ULTIMATE_SEPTIEMBRE.md` — backlog vigente + ampliación en un único orden
 
 Petición directa del usuario: partiendo de dos artefactos de propuesta generados en esta misma
