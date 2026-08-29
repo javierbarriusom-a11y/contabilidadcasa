@@ -2,6 +2,21 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Fix de CI — 29 de agosto de 2026: `npm ci` antes de `npm run verify`
+
+Detectado por el propio CI del PR #159 (Bloque 1), no en local: `.github/workflows/pages.yml`
+ejecutaba `npm run verify` sin ningún paso de instalación de dependencias antes. Nunca había hecho
+falta porque nada en el pipeline de `verify` necesitaba un paquete real de `node_modules` — hasta
+OPT-3 (minificar el artefacto publicado, cierre 48), que añadió `esbuild` como dependencia real de
+`tools/build-public-site.mjs`, invocado por `build:site` dentro de `verify`. Cada commit de este
+Bloque 1 a partir de OPT-3 falló en CI con `Cannot find package 'esbuild'`, en verde siempre en
+local porque el entorno de esta sesión ya tenía `node_modules` poblado de instalaciones manuales
+anteriores.
+
+**Corregido**: `npm ci` (con `cache: npm` en `actions/setup-node`) antes de `npm run verify`.
+Verificado en local reproduciendo el camino exacto de CI: `npm ci` limpio + `npm run verify` —
+2081/2081 pruebas, accesibilidad, rendimiento, build y privacidad en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (53): SP2 — brecha de cobertura de vida frente a deuda pendiente — Bloque 1 completo
 
 Novena y última tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Sin inventario de pólizas
