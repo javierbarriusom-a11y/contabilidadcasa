@@ -1198,6 +1198,52 @@ main {
   color: #ba4542;
 }
 
+/* PV2 · termómetro de desviación por partida: barra de progreso coloreada por severidad, mismos
+   tonos que .status-pill.warn/.danger y --green para que el color signifique lo mismo en toda la
+   pantalla. */
+.pv2-thermometer-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pv2-thermometer-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pv2-thermometer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pv2-thermometer-track {
+  background: #e5e7eb;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.pv2-thermometer-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+}
+
+.pv2-thermometer-fill.medium {
+  background: #9b5f06;
+}
+
+.pv2-thermometer-fill.high {
+  background: #ba4542;
+}
+
 .secondary-button {
   display: inline-flex;
   align-items: center;

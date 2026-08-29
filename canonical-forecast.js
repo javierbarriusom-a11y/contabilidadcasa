@@ -156,6 +156,23 @@
     return sample >= 12 ? "high" : sample >= 6 ? "medium" : "low";
   }
 
+  // PV2: la desviación media en euros (averageDelta) no dice por sí sola si una partida va "algo
+  // desviada" o "muy desviada" — 50 € es ruido en una hipoteca de 900 € y una alarma en una cuota de
+  // gimnasio de 40 €. deviationSeverity normaliza contra lo previsto medio (averagePlanned) para dar
+  // tres bandas comparables entre partidas de tamaños muy distintos, mismo criterio de tres bandas
+  // que cashSeverityBand (E16/CP5).
+  const DEVIATION_SEVERITY_THRESHOLDS = { medium: 0.1, high: 0.25 };
+
+  function deviationSeverity(averageDelta, averagePlanned) {
+    const delta = Math.abs(number(averageDelta));
+    const planned = Math.abs(number(averagePlanned));
+    if (planned < 0.005) return delta < 0.005 ? "low" : "high";
+    const ratio = delta / planned;
+    if (ratio >= DEVIATION_SEVERITY_THRESHOLDS.high) return "high";
+    if (ratio >= DEVIATION_SEVERITY_THRESHOLDS.medium) return "medium";
+    return "low";
+  }
+
   function learnFromHistory(records = [], metadata = {}) {
     const usable = records.filter((record) => record?.reconciled === true && /^\d{4}-\d{2}$/.test(text(record.monthKey)));
     const concepts = new Map();
@@ -168,9 +185,11 @@
       const comparable = concept.rows.filter((row) => Number.isFinite(Number(row.planned)) && Number.isFinite(Number(row.actual)));
       const deltas = comparable.map((row) => number(row.actual) - number(row.planned));
       const averageDelta = deltas.length ? round(deltas.reduce((sum, value) => sum + value, 0) / deltas.length) : 0;
+      const averagePlanned = comparable.length ? round(comparable.reduce((sum, row) => sum + number(row.planned), 0) / comparable.length) : 0;
       return {
         conceptId: concept.conceptId, label: concept.label, sampleMonths: comparable.length,
-        averageDelta, suggestedAdjustment: averageDelta, confidence: confidence(comparable.length),
+        averageDelta, averagePlanned, severity: deviationSeverity(averageDelta, averagePlanned),
+        suggestedAdjustment: averageDelta, confidence: confidence(comparable.length),
         confirmRequired: true, applied: false,
       };
     }).filter((item) => item.sampleMonths > 0);
@@ -212,5 +231,5 @@
     });
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon };
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity };
 });

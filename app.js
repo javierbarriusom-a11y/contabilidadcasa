@@ -16176,6 +16176,30 @@ function e13BudgetCategoryOptions() {
   return [...set].sort();
 }
 
+// PV2 · termómetro de desviación por partida. Visualiza lo que learnFromHistory() (E12b) ya calcula
+// — un termómetro por partida en vez del texto de una sola línea que solo mostraba la primera. La
+// barra usa severity (bajo/medio/alto, normalizado contra lo previsto medio de esa partida) para que
+// una desviación de 50 € no se lea igual en una hipoteca que en una cuota de gimnasio.
+function deviationThermometerHtml(deviations) {
+  if (!Array.isArray(deviations) || !deviations.length) {
+    return '<p class="e19-kpi-note">Sin partidas con historial conciliado suficiente todavía.</p>';
+  }
+  const severityLabel = { high: "Desviación alta", medium: "Desviación moderada", low: "Ajustada" };
+  const severityPillClass = { high: "danger", medium: "warn", low: "" };
+  return `<ul class="pv2-thermometer-list">${deviations
+    .map((item) => {
+      const ratio = item.averagePlanned
+        ? Math.min(1, Math.abs(item.averageDelta) / Math.abs(item.averagePlanned))
+        : (item.averageDelta ? 1 : 0);
+      return `<li class="pv2-thermometer-item">
+        <div class="pv2-thermometer-head"><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${severityPillClass[item.severity] || ""}">${severityLabel[item.severity] || item.severity}</span></div>
+        <div class="pv2-thermometer-track"><div class="pv2-thermometer-fill ${escapeHtml(item.severity)}" style="width:${Math.round(ratio * 100)}%"></div></div>
+        <span class="e19-kpi-note">${money(item.averageDelta, true)} de media sobre ${money(item.averagePlanned, true)} previsto · ${item.sampleMonths} mes(es) · confianza ${escapeHtml(item.confidence)}</span>
+      </li>`;
+    })
+    .join("")}</ul>`;
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -16218,7 +16242,7 @@ function renderE13ScenarioLab() {
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
-    <article class="e6-quality-card"><header><strong>Aprendizaje E12b</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p>Solo meses conciliados · confianza ${escapeHtml(learning.deviations[0]?.confidence || "low")} · ${learning.deviations.length ? `ajuste sugerido ${money(learning.deviations[0].suggestedAdjustment, true)}, pendiente de confirmar` : "sin ajuste aplicable"}.</p></article>
+    <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>

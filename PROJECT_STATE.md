@@ -2,6 +2,46 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (67): PV2 — termómetro de desviación por partida
+
+Decimocuarta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con nota de alcance propia:
+«Visualiza lo que `learnFromHistory()` ya calcula». La tarjeta «Aprendizaje E12b» (Análisis avanzado,
+`e13AdvancedAnalysis`) ya llamaba a `learnFromHistory()` pero solo mostraba `deviations[0]` en una
+línea de texto — el resto de partidas del array quedaban calculadas y nunca visibles.
+
+**Decisión de alcance**: sin cálculo nuevo. `learnFromHistory()` ya calculaba `averageDelta` por
+partida, pero no una referencia normalizada para saber si esa desviación es grande o pequeña — 50 €
+es ruido en una hipoteca de 900 € y una alarma en una cuota de gimnasio de 40 €. Se añade
+`averagePlanned` (el mismo bucle que ya calculaba `averageDelta`, una reducción más) y
+`deviationSeverity(averageDelta, averagePlanned)` (tres bandas por ratio, mismo criterio de
+`cashSeverityBand`/E16), y se sustituye el texto de una línea por una barra («termómetro») por cada
+partida del array.
+
+**Construido**: en `canonical-forecast.js`, `deviationSeverity` (bandas en 10%/25%,
+`DEVIATION_SEVERITY_THRESHOLDS` exportado; sin previsto medio conocido, cualquier desviación real
+cuenta como alta) y `averagePlanned`/`severity` añadidos a cada entrada de `deviations`. En `app.js`,
+`deviationThermometerHtml(deviations)` renderiza una lista de barras coloreadas por severidad (verde/
+ámbar/rojo, mismos tonos que `.status-pill.warn`/`.danger`), cada una con su ancho proporcional al
+ratio de desviación. La tarjeta «Aprendizaje E12b» pasa a listar todas las partidas, no solo la
+primera. CSS nuevo y con ámbito propio (`.pv2-thermometer-*`) en vez de tocar clases compartidas.
+`canonical-forecast.js` bumpeado a `?v=20260829pv2b1`, `app.js` a `?v=20260829l1`, `styles.css` a
+`?v=20260829pv2a1` (con cuidado: ese mismo `20260828a1` lo compartían por coincidencia
+`manifest.webmanifest`, `e18-health.js` y `views/deuda.js` — se bumpeó solo la referencia de
+`styles.css`, no las otras tres).
+
+**Verificación**: 10 pruebas nuevas — 5 en `tests/canonical-forecast.test.cjs` (las tres bandas de
+`deviationSeverity`, sus límites exactos en 10%/25%, sin previsto medio conocido, y dos casos de
+`learnFromHistory` con severidad baja y alta reales) y 5 en `tests/pv2-termometro-desviacion.test.cjs`
+(sin desviaciones, una fila por partida no solo la primera, severidad alta con su pill y ancho de
+barra, sin previsto medio la barra queda a tope, y que la tarjeta usa el termómetro).
+
+**Validación**: `npm run verify`, exit 0 — **2173/2173 pruebas** (2163 + 10 nuevas), accesibilidad
+(861 IDs, sin cambio — el termómetro es contenido dinámico, sin IDs fijos nuevos en `index.html`),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (66): SP5 — deducible óptimo según el colchón disponible
 
 Decimotercera tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con nota de alcance propia:

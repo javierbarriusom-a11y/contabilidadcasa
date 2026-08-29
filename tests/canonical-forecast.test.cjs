@@ -95,6 +95,46 @@ test("E12b aprende desviaciones y estacionalidad solo de histórico conciliado",
   assert.equal(learned.deviations[0].applied, false);
 });
 
+// PV2 · Bloque 2: la desviación media en euros no dice por sí sola si una partida va poco o muy
+// desviada — deviationSeverity normaliza contra lo previsto medio para dar tres bandas comparables.
+
+test("deviationSeverity · tres bandas según el ratio frente a lo previsto medio", () => {
+  assert.equal(forecast.deviationSeverity(5, 1000), "low"); // 0.5%
+  assert.equal(forecast.deviationSeverity(150, 1000), "medium"); // 15%
+  assert.equal(forecast.deviationSeverity(300, 1000), "high"); // 30%
+});
+
+test("deviationSeverity · los límites de cada banda son estrictos (10% y 25%)", () => {
+  assert.equal(forecast.deviationSeverity(100, 1000), "medium", "justo en el 10% ya cuenta como moderada");
+  assert.equal(forecast.deviationSeverity(99.99, 1000), "low");
+  assert.equal(forecast.deviationSeverity(250, 1000), "high", "justo en el 25% ya cuenta como alta");
+});
+
+test("deviationSeverity · sin previsto medio conocido (0), cualquier desviación real es alta, ninguna es baja por defecto", () => {
+  assert.equal(forecast.deviationSeverity(50, 0), "high");
+  assert.equal(forecast.deviationSeverity(0, 0), "low");
+});
+
+test("learnFromHistory · cada desviación lleva su previsto medio y severidad, sin recalcular fuera", () => {
+  const learned = forecast.learnFromHistory([
+    { monthKey: "2026-01", conceptId: "salary", label: "Nómina", planned: 2000, actual: 2100, reconciled: true },
+    { monthKey: "2026-02", conceptId: "salary", label: "Nómina", planned: 2000, actual: 2200, reconciled: true },
+  ], { generatedAt: "2026-08-02T12:00:00.000Z" });
+  const salary = learned.deviations[0];
+  assert.equal(salary.averagePlanned, 2000);
+  assert.equal(salary.averageDelta, 150);
+  assert.equal(salary.severity, "low"); // 150/2000 = 7,5%, por debajo del 10%
+});
+
+test("learnFromHistory · una partida con desviación grande frente a lo previsto sale como alta", () => {
+  const learned = forecast.learnFromHistory([
+    { monthKey: "2026-01", conceptId: "leisure", label: "Ocio", planned: 100, actual: 160, reconciled: true },
+    { monthKey: "2026-02", conceptId: "leisure", label: "Ocio", planned: 100, actual: 140, reconciled: true },
+  ], { generatedAt: "2026-08-02T12:00:00.000Z" });
+  assert.equal(learned.deviations[0].averageDelta, 50);
+  assert.equal(learned.deviations[0].severity, "high"); // 50/100 = 50%
+});
+
 test("E12b adapta el horizonte sin mostrar puntos falsamente precisos a largo plazo", () => {
   const series = Array.from({ length: 40 }, (_, index) => ({ monthKey: `${2026 + Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`, totals: { closingLiquidity: 1000 + index } }));
   const horizon = forecast.adaptiveHorizon(series, { monthlyUntil: 12, quarterlyUntil: 36 });
