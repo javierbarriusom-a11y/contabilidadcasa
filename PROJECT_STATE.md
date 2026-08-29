@@ -2,6 +2,43 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (55-57): OPT-19, OPT-21, OPT-22 — tres tareas de gobernanza documental
+
+Tres tareas seguidas del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con spec completa en
+`BACKLOG_OPTIMIZACION.md` (Fase 4, gobernanza continua) — ninguna toca código de la aplicación.
+
+**OPT-19 · Checklist de reutilización de componentes `.e19-*` en PR**: nuevo
+`.github/pull_request_template.md` — antes de crear una clase `.e19-<pantalla>` nueva, comprobar
+contra el catálogo de `docs/E19_SISTEMA_DISENO.md` §3 (`.e19-card`, `.e19-btn-*`, `.e19-kpi`,
+`.e19-table`, `.e19-badge-*`, `.e19-stepper`…) si ya existe algo reutilizable. Coste continuo bajo,
+según pide la propia tarea: una pregunta más en la plantilla, no un proceso nuevo.
+
+**OPT-21 · Checklist mensual de heurísticos de Nielsen**: nuevo `docs/OPT21_CHECKLIST_NIELSEN.md` —
+los diez heurísticos con su pregunta guía, aplicados a Hoy/Registrar/Plan (las tres pantallas de uso
+diario), y un registro de revisiones donde cada pasada mensual añade su fecha y sus hallazgos reales
+como tareas nuevas del backlog. Esta sesión deja el hábito listo, no ejecuta la primera revisión: sin
+mirar de verdad las tres pantallas contra los diez heurísticos no hay hallazgo real que documentar, y
+fabricar uno sería justo la deriva de UX sin comprobar que este hábito existe para evitar. Primera
+revisión real pendiente para la próxima vez que se retome esta cadencia.
+
+**OPT-22 · Decidir el modelo Hogar/Javi/Tere**: nuevo `docs/OPT22_MODELO_HOGAR.md`. Revisado el
+código real (`ux-settings.js`: `inferOwner`/`familyWeight`/`aggregateFamilyContext`) y el esquema de
+datos (`supabase_schema.sql`): «Vista familiar» es un filtro de lectura sobre un único dueño de
+datos, a propósito — una sola cuenta de Supabase para todo el hogar (`SUPABASE_SETUP.md`: se entra
+"con el mismo usuario" desde cualquier ordenador), "Javi"/"Tere" son una etiqueta de texto inferida
+sobre movimientos y partidas (no una identidad con la que se inicia sesión), y aunque el esquema sí
+tiene una columna `owner` en `finance_accounts`, ninguna política RLS filtra por ella — todas
+filtran por `user_id = auth.uid()`, la única cuenta compartida. Documentado explícitamente qué NO
+construir sobre este modelo (control de acceso por persona, atribución exacta y obligatoria por
+`inferOwner`) y qué implicaría de verdad pasar a multiusuario real, si algún día se decide.
+
+**Validación**: `npm run verify`, exit 0 — **2085/2085 pruebas** (sin cambio, ningún test tocado),
+accesibilidad (836 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (54): OPT-6 — sacar la configuración de «Hoy», Bloque 2 en marcha
 
 Primera tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («el resto de lo barato, sin
