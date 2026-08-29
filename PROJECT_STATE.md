@@ -2,6 +2,35 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (61): CP5 — presupuesto de riesgo con severidad graduada
+
+Octava tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. El umbral de caja de A11-5
+(`canonical-e16-monitoring.js`, en producción, consumido en Hoy y Estado de la semana) era binario:
+por debajo del mínimo configurado, alerta (`high`, o `critical` si ya es negativa); por encima,
+silencio total, sin ningún aviso de que se estaba acercando.
+
+**Construido**: `cashSeverityBand(liquidity, minimumLiquidity)` — tres bandas en vez de dos:
+`critical` (negativa), `high` (por debajo del mínimo, igual que antes) y `medium`, nueva, dentro de
+un margen del 20% por encima del mínimo (`CASH_APPROACHING_RATIO`, exportada) — avisa antes de
+cruzar el umbral, no solo al cruzarlo. Sin mínimo configurado (0, «sin configurar»), la banda media
+no significa nada — cualquier caja positiva estaría «dentro del 20% de cero» — así que se omite,
+solo queda `critical` para una caja negativa. `predictiveAlerts` usa la nueva función tal cual;
+ambos consumidores existentes (`p2-ui.js`, panel E16 montado en Hoy; `views/estado-semana.js`)
+reciben la severidad nueva sin cambio de wiring — ya renderizaban `severity` como texto genérico,
+sin dar por hecho que solo existieran dos valores.
+
+**Verificación**: 5 pruebas nuevas en `tests/canonical-e16-monitoring.test.cjs` — las tres bandas,
+sus límites exactos (cero justo sigue siendo `high`, justo en el mínimo ya es `medium`, justo en el
+margen del 20% ya no alerta), sin mínimo configurado la banda media se omite, y `predictiveAlerts`
+añade/omite la alerta media según corresponda. `canonical-e16-monitoring.js` bumpeado a
+`?v=20260829cp5a1`.
+
+**Validación**: `npm run verify`, exit 0 — **2113/2113 pruebas** (2108 + 5 nuevas), accesibilidad
+(838 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (60): A15-3 — evento de renta en el calendario financiero
 
 Séptima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Su propio texto pide mostrar «el

@@ -27,6 +27,21 @@
     return "media";
   }
 
+  // CP5: el umbral de caja era binario — por debajo del mínimo, alerta ("high", o "critical" si ya
+  // es negativa); por encima, silencio total, sin ningún aviso de que se está acercando. Tres
+  // bandas: "critical" (negativa), "high" (por debajo del mínimo, como siempre) y "medium" — nueva,
+  // dentro de un margen por encima del mínimo (20% por defecto) — para avisar antes de cruzarlo, no
+  // solo al cruzarlo. Sin mínimo configurado (0, "sin configurar"), la banda media no significa
+  // nada — cualquier caja positiva estaría "dentro del 20% de cero" — así que se omite.
+  const CASH_APPROACHING_RATIO = 1.2;
+
+  function cashSeverityBand(liquidity, minimumLiquidity) {
+    if (liquidity < 0) return "critical";
+    if (liquidity < minimumLiquidity) return "high";
+    if (minimumLiquidity > 0 && liquidity < minimumLiquidity * CASH_APPROACHING_RATIO) return "medium";
+    return null;
+  }
+
   function predictiveAlerts(forecast = {}, riskBudget = {}, context = {}) {
     const budget = normalizeRiskBudget(riskBudget);
     const series = Array.isArray(forecast.series) ? forecast.series : [];
@@ -37,10 +52,13 @@
       const variation = round2(liquidity - previous);
       const horizon = index + 1;
       const key = monthKey(row.monthKey) || text(row.monthKey);
-      if (liquidity < budget.minimumLiquidity) alerts.push({
-        id: `cash-${key}`, type: "cash", severity: liquidity < 0 ? "critical" : "high", monthKey: key, horizon,
+      const cashSeverity = cashSeverityBand(liquidity, budget.minimumLiquidity);
+      if (cashSeverity) alerts.push({
+        id: `cash-${key}`, type: "cash", severity: cashSeverity, monthKey: key, horizon,
         confidence: confidenceFor(row), amount: round2(liquidity), threshold: budget.minimumLiquidity,
-        message: `La caja prevista queda en ${round2(liquidity)} €, por debajo del mínimo de ${budget.minimumLiquidity} €.`,
+        message: cashSeverity === "medium"
+          ? `La caja prevista queda en ${round2(liquidity)} €, cerca del mínimo de ${budget.minimumLiquidity} € (dentro de un margen del ${Math.round((CASH_APPROACHING_RATIO - 1) * 100)}%).`
+          : `La caja prevista queda en ${round2(liquidity)} €, por debajo del mínimo de ${budget.minimumLiquidity} €.`,
         evidence: ["forecast canónico", `horizonte ${horizon} mes(es)`, `umbral de caja ${budget.minimumLiquidity} €`],
       });
       if (index && budget.maximumMonthlyVariation && Math.abs(variation) > budget.maximumMonthlyVariation) alerts.push({
@@ -124,5 +142,5 @@
     return { schemaId: SCHEMA_ID, version: 1, readOnly: true, generatedAt: text(input.generatedAt) || new Date().toISOString(), alerts, changes, quality, recommendations };
   }
 
-  return { SCHEMA_ID, normalizeRiskBudget, predictiveAlerts, changeSummary, predictionQuality, traceableRecommendations, buildReadModel };
+  return { SCHEMA_ID, normalizeRiskBudget, predictiveAlerts, changeSummary, predictionQuality, traceableRecommendations, buildReadModel, cashSeverityBand, CASH_APPROACHING_RATIO };
 });
