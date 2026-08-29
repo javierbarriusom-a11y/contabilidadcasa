@@ -2,6 +2,48 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (48): OPT-3 — minificar el artefacto publicado
+
+Cuarta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. `tools/build-public-site.mjs` copiaba
+los ficheros fuente a `dist/` tal cual, sin minificar — `app.js` pesaba 1,54 MB sin comprimir en cada
+visita.
+
+**Construido**: `esbuild` (`^0.28.2`) como dependencia de desarrollo. Al final de
+`tools/build-public-site.mjs` —después de copiar todos los ficheros y de la reescritura de
+`CACHE_NAME`, que necesita el texto exacto sin minificar— un paso nuevo minifica en sitio cada `.js`
+y `.css` ya copiado a `dist` (`esbuild.transformSync(..., { minify: true })`), sin tocar el fuente del
+repositorio. Excepciones deliberadas: los `.html` (esbuild no minifica HTML, y alterar el marcado
+publicado es justo lo que `test:smoke` vigila que no pase), `vendor/xlsx.full.min.js` (ya llega
+minificado de origen) y `service-worker.js` (pesa poco, y `dist/service-worker.js` necesita seguir
+siendo legible para depurar la caché en producción — la prueba existente de `CACHE_NAME` ya
+comprobaba su formato exacto). Resultado: `app.js` baja de 1.545.255 a 1.001.092 bytes (-35 %);
+`styles.css` de 202.356 a 161.907 bytes (-20 %).
+
+**Hallazgo durante la validación, corregido en el propio motor de PDF**: minificar cambió el `\n`
+escapado de un literal de plantilla de `p2-export.js` (la fila de objeto libre del xref del PDF,
+`"0000000000 65535 f \n"`, boilerplate del formato PDF) por un salto de línea real. Eso rompía el
+límite de palabra (`\b`) justo antes del literal y hacía que la cadena de 15 dígitos cruzara el
+umbral de 13-19 que `test:privacy` vigila como posible número de tarjeta — falso positivo solo en
+`dist`, ninguna cifra real de por medio. Corregido en la fuente con `"0".repeat(10)` en vez del
+literal de diez ceros seguidos (mismo PDF resultante, byte a byte); `p2-export.js` bumpeado a
+`?v=20260829opt3a1`.
+
+**Verificación**: 5 pruebas nuevas en `tests/opt3-minify-dist.test.cjs` (JS/CSS minificado y
+sensiblemente más ligero, `.html` intacto byte a byte, el vendor ya minificado no se reminifica,
+`service-worker.js` sigue legible, y construir `dist` nunca modifica el fuente del repositorio).
+
+**Validación**: `npm run verify`, exit 0 — **2041/2041 pruebas** (2036 + 5 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+Comprobación explícita pedida por la propia tarea: `npm run test:privacy` y `npm run test:smoke`
+contra el `dist/` minificado, ambos en verde. Verificado también con Playwright (proyecto `e2e`)
+contra el sitio minificado: recorrido por Hoy, Presupuesto, Deuda, Análisis y Cierre sin errores; el
+otro escenario de ese spec falla igual que en `main` sin minificar (limitación previa de este
+Chromium en este entorno, no una regresión de la minificación).
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-4`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (47): OPT-2 — instrumentar uso real de pantallas heredadas
 
 Tercera tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Hallazgo antes de construir nada: el

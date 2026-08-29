@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import esbuild from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const destination = path.join(root, "dist");
@@ -142,3 +143,23 @@ fs.writeFileSync(
   path.join(destination, "version.json"),
   `${JSON.stringify({ version: process.env.GITHUB_SHA || "local", builtAt: new Date().toISOString() }, null, 2)}\n`,
 );
+
+// OPT-3: el artefacto publicado copiaba el código fuente tal cual, sin minificar — 1,54 MB de app.js
+// sin comprimir, en cada visita. Minifica JS y CSS **solo en la copia de `dist`**, después de todo lo
+// anterior: el código fuente que se edita y testea no se toca. `vendor/xlsx.full.min.js` ya llega
+// minificado de origen; los `.html` no se tocan porque esbuild no minifica HTML y alterar el marcado
+// publicado es justo lo que `test:smoke` comprueba que no pase. `service-worker.js` tampoco se
+// minifica: pesa poco, y `dist/service-worker.js` necesita seguir siendo legible byte a byte para
+// depurar la caché en producción — además de que la reescritura de `CACHE_NAME` de más arriba
+// depende de encontrar el texto exacto `const CACHE_NAME = "...";`, con sus espacios, en el archivo
+// ya copiado.
+const minifyLoaders = { ".js": "js", ".css": "css" };
+const minifySkip = new Set(["vendor/xlsx.full.min.js", "service-worker.js"]);
+for (const relative of files) {
+  const loader = minifyLoaders[path.extname(relative)];
+  if (!loader || minifySkip.has(relative)) continue;
+  const target = path.join(destination, relative);
+  const source = fs.readFileSync(target, "utf8");
+  const { code } = esbuild.transformSync(source, { minify: true, loader, sourcefile: relative });
+  fs.writeFileSync(target, code);
+}
