@@ -2,6 +2,42 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (51): TT1 — reparto del colchón entre corriente y remunerado
+
+Séptima tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. La app ya modela dos cuentas reales
+(CaixaBank «corriente», Mediolanum «remunerada») y ya calcula el colchón de emergencia agregado
+(`canonical-cushion.js`, en producción), pero nada decidía cuánto de ese colchón debería quedarse en
+la cuenta sin rendimiento por acceso inmediato y cuánto podía moverse a la remunerada.
+
+**Construido**: `cushionAccountSplit(total, rows, { instantAccessDays = 7 })`, añadida directamente a
+`canonical-cushion.js` (la propia nota de la tarea pide extenderlo, no crear un motor aparte). No
+inventa un segundo umbral: reutiliza el mismo cálculo de salidas mensuales que ya usa `cushionFloor`
+(`rows[0].coreSpend/car/refi`, vía `cushionFloor(rows, 0)` para forzar siempre la rama «un mes de
+salidas» aunque haya una reserva operativa configurada — el acceso inmediato no depende de esa
+reserva). Con esa cifra mensual calcula un gasto diario y multiplica por `instantAccessDays` (7 por
+defecto, el tiempo razonable de margen para que llegue un traspaso entre las dos cuentas propias):
+esa cantidad se queda en corriente, el resto del colchón —si lo hay— se propone para la remunerada.
+Sin datos de salida conocidos, el acceso inmediato es cero y todo el colchón se propone a la
+remunerada; un total negativo o inválido se trata como cero, sin repartir de más.
+
+Sin UI propia todavía en este cierre — extiende un motor ya consumido por varias pantallas
+(`cushionFloor`/`cushionTone`/`cushionLevel` ya se usan en Hoy, Plan y Análisis), así que
+`cushionAccountSplit` queda disponible para que cualquiera de ellas lo llame cuando se decida dónde
+mostrar el reparto propuesto.
+
+**Verificación**: 7 pruebas nuevas en `tests/canonical-cushion.test.cjs` — reparto normal, colchón
+insuficiente para cubrir ni el acceso inmediato, número de días personalizado, valor por defecto (7
+días), sin filas de salida, total negativo, y que ignora una reserva operativa configurada.
+`canonical-cushion.js` bumpeado a `?v=20260829tt1a1` (sin pruebas de versión que actualizar: nada la
+pineaba literalmente).
+
+**Validación**: `npm run verify`, exit 0 — **2067/2067 pruebas** (2060 + 7 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`TT5`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (50): CP3 — ninguna recomendación sin su cita
 
 Sexta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Regla de diseño del bloque Copiloto

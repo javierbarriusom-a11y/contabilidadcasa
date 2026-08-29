@@ -12,6 +12,10 @@
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  function round2(value) {
+    return Math.round((number(value) + Number.EPSILON) * 100) / 100;
+  }
+
   // El suelo de referencia del color: la reserva operativa si está configurada; si no, un mes de
   // salidas del primer mes del horizonte. Se devuelve de qué se compone (basis/basisValue), no un
   // texto ya formateado — cada pantalla que lo consuma decide cómo lo dice.
@@ -61,5 +65,27 @@
     return { key, value: number(worst[liquidityField]), row: worst };
   }
 
-  return { SCHEMA_ID, cushionFloor, cushionTone, cushionLevel, worstMonthOf };
+  // TT1: reparto del colchón entre la cuenta corriente (acceso inmediato, sin remuneración) y una
+  // cuenta remunerada (rendimiento, pero con el retraso de un traspaso entre cuentas propias). Solo
+  // necesita quedarse en corriente lo que se pudiera necesitar antes de que ese traspaso llegue —
+  // no el colchón entero. Reutiliza el mismo cálculo de salidas mensuales que ya usa cushionFloor
+  // (rows[0].coreSpend/car/refi, vía cushionFloor(rows, 0) para forzar la rama "un mes de salidas"
+  // aunque haya una reserva operativa configurada) en vez de inventar un segundo umbral aparte.
+  function cushionAccountSplit(total, rows, { instantAccessDays = 7 } = {}) {
+    const totalSafe = Math.max(0, number(total));
+    const monthlyOutflow = cushionFloor(rows, 0).basisValue;
+    const dailyOutflow = monthlyOutflow / 30;
+    const instantAccessAmount = round2(Math.max(0, dailyOutflow * instantAccessDays));
+    const corriente = round2(Math.min(totalSafe, instantAccessAmount));
+    const remunerado = round2(Math.max(0, totalSafe - corriente));
+    return {
+      total: round2(totalSafe),
+      corriente,
+      remunerado,
+      instantAccessDays,
+      instantAccessAmount,
+    };
+  }
+
+  return { SCHEMA_ID, cushionFloor, cushionTone, cushionLevel, worstMonthOf, cushionAccountSplit };
 });
