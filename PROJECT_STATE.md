@@ -2,6 +2,39 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (60): A15-3 — evento de renta en el calendario financiero
+
+Séptima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Su propio texto pide mostrar «el
+pago o devolución» de la Renta, pero el estimador que calcularía esa cifra (A15-2, «Estimador de
+resultado de IRPF») está en el Bloque 9 —mucho más grande, «Alta» esfuerzo, depende de A15-1 (registro
+de supuestos fiscales)— sin construir todavía. Ninguna de las dos existía en el código antes de este
+cierre.
+
+**Decisión de alcance**: la fecha de cierre de la Campaña de la Renta (30 de junio) es fija por ley,
+conocida sin necesidad de ningún estimador — se añade el evento con esa fecha ahora, con su
+incertidumbre declarada de verdad (`amount: null`, no un cero inventado, más `uncertain: true`),
+dejando el resultado en euros para cuando exista A15-2. No se ha construido ningún estimador fiscal
+en esta tarea.
+
+**Construido**: `canonical-e15-goals.js`, `financialCalendar()` añade un evento `type: "renta"` en
+el mes de junio de cada año dentro del horizonte, con `source` explicando por qué no lleva importe.
+Ese motor ya alimentaba el calendario ICS de A17-2 (esta misma sesión) y el panel heredado de
+Huchas (p2-ui.js) — ambos reciben el evento nuevo sin cambio de wiring. Corregido de paso en
+`financialCalendarIcsContent` (A17-2): un evento con `amount: null` mostraba «0,00 €» en la
+descripción del `.ics` (`money(null)` trata `null` como cero) — ahora dice «importe por determinar».
+
+**Verificación**: 2 pruebas nuevas en `tests/canonical-e15-goals.test.cjs` (el evento aparece solo en
+junio, con `amount: null` y `uncertain: true`; un evento por año dentro del horizonte) y 1 en
+`tests/a17-2-calendario-ics.test.cjs` (el `.ics` dice «importe por determinar», no una cifra
+formateada). `canonical-e15-goals.js` bumpeado a `?v=20260829a153a1`; `app.js` a `?v=20260829f1`.
+
+**Validación**: `npm run verify`, exit 0 — **2108/2108 pruebas** (2105 + 3 nuevas), accesibilidad
+(838 IDs, sin cambio — no añade UI nueva), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (59): A17-2 — exportación ICS del calendario financiero
 
 Sexta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («exportación/suscripción ICS del

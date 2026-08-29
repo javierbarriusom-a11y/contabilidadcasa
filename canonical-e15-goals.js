@@ -75,6 +75,13 @@
       if (debtTotal) events.push({ type: "debt", label: "Cuotas de deuda", amount: round2(debtTotal), source: "contratos canónicos" });
       goals.filter((goal) => monthKey(goal.targetDate) === key).forEach((goal) => events.push({ type: "goal", label: `Fecha objetivo: ${goal.name}`, amount: goal.remaining, source: "objetivos" }));
       reviews.filter((review) => monthKey(review.monthKey) === key).forEach(() => events.push({ type: "review", label: "Revisión mensual", amount: 0, source: "E15" }));
+      // A15-3: la Campaña de la Renta española cierra el 30 de junio cada año — fecha fija por ley,
+      // conocida sin necesidad de ningún estimador. `amount: null` (no 0) y `uncertain: true`
+      // porque el resultado (pago o devolución, y cuánto) todavía no se calcula en ningún sitio:
+      // eso es A15-2 (Estimador de resultado de IRPF), tarea aparte, mucho más grande y sin
+      // construir. Aparece igualmente en el calendario con su incertidumbre declarada, en vez de
+      // esperar a que exista el estimador para que la fecha sea visible.
+      if (/-06$/.test(key)) events.push({ type: "renta", label: "Campaña de la Renta (pago o devolución)", amount: null, source: "campaña anual, resultado sin estimar (falta A15-2)", uncertain: true });
       events.push({ type: "forecast", label: "Previsión canónica", amount: round2(month.totals?.closingLiquidity), source: "forecast canónico" });
       return { monthKey: key, label: text(month.label || key), closingLiquidity: round2(month.totals?.closingLiquidity), events };
     });

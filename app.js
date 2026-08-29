@@ -22324,7 +22324,9 @@ function financialCalendarIcsContent(calendar, generatedAt = new Date()) {
     const dateStart = `${String(row.monthKey || "").replace("-", "")}01`;
     const descriptionLines = [
       `Cierre previsto: ${money(row.closingLiquidity, true)}`,
-      ...(row.events || []).map((event) => `${event.label}: ${money(event.amount, true)} (${event.source})`),
+      // A15-3: un evento con amount: null (p. ej. la Campaña de la Renta, sin estimador todavía)
+      // no es un importe de cero — money(null) lo convertiría en "0,00 €", una cifra falsa.
+      ...(row.events || []).map((event) => `${event.label}: ${event.amount === null ? "importe por determinar" : money(event.amount, true)} (${event.source})`),
     ];
     return [
       "BEGIN:VEVENT",

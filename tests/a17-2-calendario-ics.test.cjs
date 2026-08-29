@@ -100,6 +100,23 @@ test("financialCalendarIcsContent con un mes sin eventos solo lleva el cierre pr
   assert.match(ics, /DESCRIPTION:Cierre previsto: -150\.00 €\r\n/);
 });
 
+// A15-3: un evento con amount: null (la Campaña de la Renta, sin estimador todavía) no es un
+// importe de cero — money(null) lo convertiría en "0,00 €", una cifra falsa.
+test("financialCalendarIcsContent dice \"importe por determinar\" para un evento sin importe, no 0,00 €", () => {
+  const context = calendarSandbox();
+  const calendar = {
+    rows: [{
+      monthKey: "2026-06",
+      label: "Junio 2026",
+      closingLiquidity: 1000,
+      events: [{ type: "renta", label: "Campaña de la Renta (pago o devolución)", amount: null, source: "campaña anual" }],
+    }],
+  };
+  const ics = context.financialCalendarIcsContent(calendar, new Date("2026-08-29T12:00:00.000Z"));
+  assert.match(ics, /Campaña de la Renta \(pago o devolución\): importe por determinar \(campaña anual\)/);
+  assert.doesNotMatch(ics, /Campaña de la Renta \(pago o devolución\): [\d.,]+ €/, "un importe desconocido no debe convertirse en una cifra formateada");
+});
+
 test("financialCalendarIcsContent sin filas produce un calendario vacío pero válido", () => {
   const context = calendarSandbox();
   const ics = context.financialCalendarIcsContent({ rows: [] }, new Date("2026-08-29T12:00:00.000Z"));
