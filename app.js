@@ -205,7 +205,7 @@ const VIEW_CHUNKS = {
   "deuda-simulador": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-simulador" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
-  analisis: { src: "views/analisis.js?v=20260828b1", rootId: "analisis" },
+  analisis: { src: "views/analisis.js?v=20260829a163b1", rootId: "analisis" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
 // la caché de "ya cargado"/"cargando" se indexa por `src`, no por vista, para no pedir el mismo

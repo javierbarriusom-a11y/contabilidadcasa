@@ -142,3 +142,66 @@ test("E12b adapta el horizonte sin mostrar puntos falsamente precisos a largo pl
   assert.equal(horizon.find((item) => item.resolution === "quarter").display, "range");
   assert.equal(horizon.at(-1).resolution, "year");
 });
+
+// --- A16-3: detectRecurringSubscriptions ------------------------------------------------------
+
+function subscriptionMovements(pattern, amount, months, category = "Suscripciones") {
+  return months.map((month) => ({ pattern, label: pattern, category, amount: -amount, month }));
+}
+
+test("detectRecurringSubscriptions · un cargo igual repetido 3+ meses se detecta, con coste mensual y anualizado", () => {
+  const result = forecast.detectRecurringSubscriptions(
+    subscriptionMovements("NETFLIX", 12.99, ["2026-05", "2026-06", "2026-07"]),
+  );
+  assert.equal(result.detected.length, 1);
+  const item = result.detected[0];
+  assert.equal(item.monthlyCost, 12.99);
+  assert.equal(item.annualCost, 155.88);
+  assert.equal(item.sampleMonths, 3);
+  assert.equal(item.confirmRequired, true);
+  assert.equal(item.confirmed, false);
+});
+
+test("detectRecurringSubscriptions · por debajo del mínimo de meses, no se detecta", () => {
+  const result = forecast.detectRecurringSubscriptions(
+    subscriptionMovements("GIMNASIO", 30, ["2026-06", "2026-07"]),
+  );
+  assert.equal(result.detected.length, 0);
+});
+
+test("detectRecurringSubscriptions · un cambio de precio real cuenta como grupo aparte, no se fusiona con el histórico", () => {
+  const rows = [
+    ...subscriptionMovements("SPOTIFY", 9.99, ["2026-01", "2026-02", "2026-03"]),
+    ...subscriptionMovements("SPOTIFY", 11.99, ["2026-04", "2026-05", "2026-06"]),
+  ];
+  const result = forecast.detectRecurringSubscriptions(rows);
+  assert.equal(result.detected.length, 2);
+  assert.deepEqual(result.detected.map((item) => item.monthlyCost).sort((a, b) => a - b), [9.99, 11.99]);
+});
+
+test("detectRecurringSubscriptions · ingresos y movimientos sin patrón se ignoran", () => {
+  const result = forecast.detectRecurringSubscriptions([
+    { pattern: "NOMINA", label: "Nómina", amount: 2000, month: "2026-06" }, // ingreso, no cuenta
+    { pattern: "", label: "", amount: -20, month: "2026-06" }, // sin patrón
+    ...subscriptionMovements("NETFLIX", 12.99, ["2026-05", "2026-06", "2026-07"]),
+  ]);
+  assert.equal(result.detected.length, 1);
+  assert.equal(result.detected[0].pattern, "NETFLIX");
+});
+
+test("detectRecurringSubscriptions · totales agregados y confianza reutilizan el mismo criterio que learnFromHistory", () => {
+  const result = forecast.detectRecurringSubscriptions([
+    ...subscriptionMovements("NETFLIX", 12.99, ["2026-05", "2026-06", "2026-07"]),
+    ...subscriptionMovements("GIMNASIO", 30, ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"]),
+  ]);
+  assert.equal(result.totalMonthlyCost, 42.99);
+  assert.equal(result.totalAnnualCost, 515.88);
+  const gym = result.detected.find((item) => item.pattern === "GIMNASIO");
+  assert.equal(gym.confidence, "medium"); // 6 meses: confidence() da "medium" a partir de 6
+  const netflix = result.detected.find((item) => item.pattern === "NETFLIX");
+  assert.equal(netflix.confidence, "low"); // 3 meses: por debajo de 6
+});
+
+test("detectRecurringSubscriptions · nunca escribe nada, solo detecta (mismo criterio que learnFromHistory)", () => {
+  assert.doesNotMatch(fs.readFileSync(path.join(root, "canonical-forecast.js"), "utf8").split("function detectRecurringSubscriptions")[1].split("\n\n  function adaptiveHorizon")[0], /localStorage|save|persist/i);
+});

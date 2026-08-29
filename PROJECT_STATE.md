@@ -2,6 +2,50 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (73): A16-3 — detección de recurrentes/suscripciones
+
+Tercera tarea del Bloque 4. Con spec detallada en la fila de la tabla («Agrupación por patrón e
+importe reutilizando el aprendizaje de estacionalidad de E12b; coste mensual y anualizado por
+suscripción, sin escribir nada sin confirmar»).
+
+**Hallazgo antes de construir**: ya existe «Qué se repite» (A-9, en Análisis) — agrupa por
+`movementMappingKey()` (misma clave de concepto que M-7/M-8) y compara el peso de cada concepto
+entre trimestres, avisando de los que han crecido sin decisión. Distinto de lo que pide A16-3: A-9
+no exige que el importe sea el mismo mes a mes (una categoría que sube o baja sigue contando), y no
+da un coste mensual/anualizado por partida — dos preguntas relacionadas pero no iguales («¿qué
+concepto pesa más y ha crecido?» frente a «¿qué cargos de importe fijo se repiten, y cuánto cuestan
+al año?»). Se añade como tarjeta nueva junto a A-9 en Análisis, reutilizando su misma clave de
+concepto (`movementMappingKey`/`movementDisplayName`) en vez de una segunda normalización de texto.
+
+**Construido**: `canonical-forecast.js` (E12b) ganó `detectRecurringSubscriptions(movements, options)`
+— agrupa por `pattern` (ya resuelto por quien llama) e importe exacto; un cambio de precio real
+cuenta como grupo aparte a propósito, para no fusionar una subida de tarifa con el histórico previo;
+exige un mínimo de meses (3 por defecto) para no marcar como recurrente una coincidencia de dos
+meses; reutiliza `confidence()` tal cual (mismo criterio por tamaño de muestra que `learnFromHistory`)
+— el «aprendizaje de estacionalidad de E12b» que pedía la tarea. Cada resultado sale con
+`confirmRequired`/`confirmed`, igual que las `deviations` de `learnFromHistory`: el motor nunca
+escribe nada, solo detecta. En `views/analisis.js`: `analisisSubscriptionsResult()` construye los
+movimientos con `movementMappingKey()`/`movementDisplayName()` (A-9/M-7/M-8, sin normalización
+nueva) y llama al motor; `analisisSubscriptionsHtml()` pinta la tarjeta «Recurrentes y suscripciones
+detectadas» con coste mensual, anualizado, meses vistos y confianza por partida, y el total agregado.
+Tarjeta nueva en `index.html`, junto a «Qué se repite». `views/analisis.js` bumpeado a
+`?v=20260829a163b1` (VIEW_CHUNKS en `app.js`), `canonical-forecast.js` a `?v=20260829a163a1`, `app.js`
+a `?v=20260829q1`.
+
+**Verificación**: 13 pruebas nuevas — 6 en `tests/canonical-forecast.test.cjs` (detección con 3+
+meses da coste mensual/anualizado, por debajo del mínimo no detecta, cambio de precio real cuenta
+como grupo aparte, ingresos y sin patrón se ignoran, totales agregados y confianza por tamaño de
+muestra, nunca escribe nada) y 7 en `tests/a16-3-recurrentes-suscripciones.test.cjs` (detección real
+con `movementMappingKey`/`movementDisplayName` extraídas de `app.js`, movement+details distintos no
+se confunden, HTML sin detecciones explica el mínimo de meses, HTML con detecciones, cableado en
+`renderAnalisis()`, tarjeta en el documento, motor versionado).
+
+**Validación**: `npm run verify`, exit 0 — **2249/2249 pruebas** (2236 + 13 nuevas), accesibilidad
+(880 IDs, +1: `analisisSubscriptions`), rendimiento, build del sitio, privacidad y smoke test, todos
+en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (72): A16-1 — puntuación de salud financiera compuesta
 
 Segunda tarea del Bloque 4. Con spec detallada en la fila de la tabla («Cifra única (colchón, ratio
