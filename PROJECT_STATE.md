@@ -2,6 +2,45 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (46): OPT-1 — `defer` en los `<script>` de `index.html`
+
+Segunda tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, tal cual estaba especificada en
+`BACKLOG_OPTIMIZACION.md`: `index.html` cargaba 57 `<script src="...">` síncronos y en orden
+(líneas 4008-4136: `supabase-js`, `vendor/xlsx.full.min.js`, `data.js`, los `canonical-*.js`,
+`app.js`, `p2-ui.js`…), sin `defer` ni `async`, bloqueando el parseo del HTML y el primer pintado
+hasta descargar y ejecutar los 57 uno detrás de otro.
+
+**Cambiado**: `defer` añadido a los 57 `<script src="...">` del bloque. `defer` conserva el orden de
+ejecución declarado (a diferencia de `async`), así que no cambia ningún comportamiento — solo deja de
+bloquear el parseo del documento. El único `<script>` inline (registro del Service Worker, al final
+del body) se dejó sin tocar: ya se ejecuta al final del documento y no depende de orden con los
+anteriores.
+
+**Verificación**: 3 pruebas nuevas en `tests/opt1-defer-scripts.test.cjs` (todo `<script src>` lleva
+`defer`, el script inline del Service Worker sigue al final sin necesitarlo, y el orden declarado se
+conserva — los módulos canónicos siguen cargando antes que `app.js`). Dos pruebas existentes que
+fijaban literalmente `<script src="app.js?v=...">` (`tests/track1-resumen-semanal-hoy.test.cjs`,
+`tests/bud3-presupuesto-anual-trimestral.test.cjs`) se actualizaron para admitir el atributo nuevo.
+
+**Comprobación en navegador real**: `npm run test:visual` (Playwright, canal `chrome` fijo para
+comparación de píxeles) no pudo ejecutarse en este entorno — el binario `chrome` real no está
+disponible en la sesión remota (`Chromium distribution 'chrome' is not found`), solo el Chromium
+empaquetado en `/opt/pw-browsers`. Como sustituto se ejecutó `npm run test:e2e` (proyecto `e2e`,
+sin canal fijo, acepta cualquier Chromium vía `PLAYWRIGHT_CHROMIUM_PATH`) contra el sitio construido
+con `defer`: la app arranca, todos los `canonical-*.js` (incluido el nuevo
+`canonical-leverage-barrier.js` de AP4) se sirven y ejecutan correctamente, y el recorrido por Hoy,
+Presupuesto, Deuda, Análisis y Cierre pasa sin errores ni pantallas en blanco. El otro escenario del
+mismo spec (editar una celda de Presupuesto del mes) falla igual en un *worktree* limpio de `main`
+sin ningún cambio de esta sesión — limitación previa de este Chromium concreto en este entorno
+(`Protocol error: session closed`), no una regresión de `defer`.
+
+**Validación**: `npm run verify`, exit 0 — **2032/2032 pruebas** (2029 + 3 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-2`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (45): AP4 — barrera de seguridad antes de simular apalancamiento
 
 Primera tarea construida del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («lo mejor primero: sin
