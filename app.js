@@ -6386,6 +6386,10 @@ function applyHelpTooltips() {
     "TAE de la cuenta, en %. El registro ordena tus cuentas remuneradas de mayor a menor TAE y calcula la media ponderada por saldo, no solo la mejor tasa aislada.",
   );
   addHelpToControl(
+    "ajustesMaintenanceFeeRequirement",
+    "Qué exige el banco para librarte de la comisión (nómina domiciliada, gasto mínimo con tarjeta, etc.). Marca cada mes si se cumplió: si no, la cuenta queda como comisión en riesgo.",
+  );
+  addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
   );
@@ -14862,6 +14866,84 @@ function addRemuneratedAccountFromControls() {
   renderRemuneratedAccounts();
 }
 
+// TT4 · alerta de comisiones de mantenimiento y vinculación. Mismo patrón que las cuentas
+// remuneradas: un registro simple en scenarioSettings, sin cuenta real conectada. La app no puede
+// saber por sí sola si la nómina, la domiciliación o el gasto con tarjeta del mes cumplen la
+// vinculación exigida por el banco — eso se marca a mano, mes a mes; lo que sí calcula la app es la
+// alerta: qué cuentas quedarían sin vinculación cumplida y qué comisión se aplicaría por ello.
+function maintenanceFeeAccounts() {
+  scenarioSettings.maintenanceFeeAccounts = Array.isArray(scenarioSettings.maintenanceFeeAccounts) ? scenarioSettings.maintenanceFeeAccounts : [];
+  return scenarioSettings.maintenanceFeeAccounts;
+}
+
+function addMaintenanceFeeAccount({ name, fee, requirement }) {
+  const accounts = maintenanceFeeAccounts();
+  accounts.push({
+    id: `mantenimiento-${Date.now()}-${accounts.length}`,
+    name: String(name || "").trim() || "Cuenta corriente",
+    fee: round2(Math.max(0, Number(fee) || 0)),
+    requirement: String(requirement || "").trim(),
+    met: true,
+  });
+  saveScenarioSettings();
+}
+
+function removeMaintenanceFeeAccount(id) {
+  scenarioSettings.maintenanceFeeAccounts = maintenanceFeeAccounts().filter((account) => account.id !== id);
+  saveScenarioSettings();
+}
+
+function setMaintenanceFeeAccountMet(id, met) {
+  const account = maintenanceFeeAccounts().find((item) => item.id === id);
+  if (!account) return;
+  account.met = Boolean(met);
+  saveScenarioSettings();
+}
+
+// Solo alertan las cuentas con comisión (una comisión de 0 no tiene nada que evitar) y vinculación
+// marcada como no cumplida. La comisión total es la suma de las cuentas en riesgo este mes.
+function maintenanceFeeAlerts() {
+  const atRisk = maintenanceFeeAccounts().filter((account) => account.fee > 0 && !account.met);
+  const totalFee = round2(atRisk.reduce((sum, account) => sum + account.fee, 0));
+  return { accounts: maintenanceFeeAccounts(), atRisk, totalFee };
+}
+
+function renderMaintenanceFeeAccounts() {
+  const target = qs("ajustesMaintenanceFeeAccounts");
+  const note = qs("ajustesMaintenanceFeeAccountsNote");
+  if (!target) return;
+  const alerts = maintenanceFeeAlerts();
+  target.innerHTML = alerts.accounts.length
+    ? `<ul class="commit-barrier-list">${alerts.accounts
+        .map((account) => {
+          const risky = account.fee > 0 && !account.met;
+          return `<li class="commit-barrier-item"><div><strong>${escapeHtml(account.name)}</strong>${risky ? ` <span class="status-pill danger">Comisión en riesgo</span>` : ""}</div><span>${money(account.fee, true)}/mes si no se cumple${account.requirement ? ` · ${escapeHtml(account.requirement)}` : ""}</span><label class="month-picker"><input type="checkbox" data-maintenance-met="${escapeHtml(account.id)}" ${account.met ? "checked" : ""} /> Vinculación cumplida este mes</label><button type="button" class="e19-btn e19-btn-secondary" data-maintenance-remove="${escapeHtml(account.id)}">Quitar</button></li>`;
+        })
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin cuentas con comisión de mantenimiento registradas todavía.</p>`;
+  if (note) {
+    note.textContent = alerts.atRisk.length
+      ? `${alerts.atRisk.length} cuenta(s) sin vinculación cumplida: ${money(alerts.totalFee, true)}/mes en riesgo.`
+      : alerts.accounts.length
+        ? "Todas las cuentas registradas cumplen su vinculación este mes."
+        : "";
+  }
+}
+
+function addMaintenanceFeeAccountFromControls() {
+  const name = qs("ajustesMaintenanceFeeName")?.value;
+  if (!name || !String(name).trim()) return;
+  addMaintenanceFeeAccount({
+    name,
+    fee: parseAmount(qs("ajustesMaintenanceFeeAmount")?.value),
+    requirement: qs("ajustesMaintenanceFeeRequirement")?.value,
+  });
+  ["ajustesMaintenanceFeeName", "ajustesMaintenanceFeeAmount", "ajustesMaintenanceFeeRequirement"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderMaintenanceFeeAccounts();
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -22156,6 +22238,7 @@ function renderAjustes() {
   syncLifeInsuranceCapitalControl();
   renderAjustesLifeInsuranceCapitalNote();
   renderRemuneratedAccounts();
+  renderMaintenanceFeeAccounts();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -31673,6 +31756,19 @@ async function init() {
     if (!removeButton) return;
     removeRemuneratedAccount(removeButton.dataset.remuneratedRemove);
     renderRemuneratedAccounts();
+  });
+  qs("ajustesMaintenanceFeeAdd")?.addEventListener("click", addMaintenanceFeeAccountFromControls);
+  qs("ajustesMaintenanceFeeAccounts")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-maintenance-remove]");
+    if (!removeButton) return;
+    removeMaintenanceFeeAccount(removeButton.dataset.maintenanceRemove);
+    renderMaintenanceFeeAccounts();
+  });
+  qs("ajustesMaintenanceFeeAccounts")?.addEventListener("change", (event) => {
+    const checkbox = event.target.closest("[data-maintenance-met]");
+    if (!checkbox) return;
+    setMaintenanceFeeAccountMet(checkbox.dataset.maintenanceMet, checkbox.checked);
+    renderMaintenanceFeeAccounts();
   });
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");

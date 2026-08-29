@@ -2,6 +2,55 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (63): TT4 — alerta de comisiones de mantenimiento y vinculación
+
+Décima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Concepto nuevo, distinto de TT3 (cuentas remuneradas): cuentas corrientes que cobran
+comisión de mantenimiento salvo que se cumpla una vinculación (nómina domiciliada, gasto mínimo con
+tarjeta, etc.). La app no puede saber por sí sola si la vinculación del mes se cumplió —eso no vive en
+ningún dato del hogar ya modelado—, así que se marca a mano, mes a mes; lo que sí calcula la app es la
+alerta: qué cuentas quedarían sin vinculación cumplida y cuánta comisión total se aplicaría por ello.
+
+**Decisión de alcance**: mismo patrón que TT3/`bigPurchaseGoals` — un array simple en
+`scenarioSettings`, sin cuenta bancaria real conectada ni dominio de datos nuevo.
+
+**Construido**: `maintenanceFeeAccounts()`, `addMaintenanceFeeAccount({name, fee, requirement})`
+(nace con `met: true` para no alertar en falso el primer día) y `removeMaintenanceFeeAccount(id)`
+(CRUD), `setMaintenanceFeeAccountMet(id, met)` (marca el mes) y `maintenanceFeeAlerts()` (filtra las
+cuentas con comisión > 0 y vinculación no cumplida; una comisión de 0 nunca alerta, no hay nada que
+evitar; suma solo el total en riesgo, no el de todas las cuentas registradas). Tarjeta nueva
+«Comisiones de mantenimiento y vinculación» en Ajustes, justo debajo de «Cuentas remuneradas»:
+formulario nombre/comisión/vinculación exigida, lista con insignia «Comisión en riesgo» y checkbox
+«Vinculación cumplida este mes» por fila, nota-resumen con el total en riesgo. Wiring: `renderAjustes()`
+llama a `renderMaintenanceFeeAccounts()`; listeners de añadir, quitar (delegado) y del checkbox
+(delegado, evento `change`); ayuda contextual en el campo de vinculación exigida.
+
+**Verificación**: 10 pruebas nuevas en `tests/tt4-alerta-comisiones-mantenimiento.test.cjs` — sin
+cuentas nada alerta, alta con vinculación cumplida por defecto, normalización de nombre/comisión,
+marcar como no cumplida activa la alerta con su comisión, comisión 0 nunca alerta pese a no cumplir,
+el total suma solo las cuentas en riesgo, retirada por id, más las comprobaciones estáticas de
+HTML/wiring/`renderAjustes`. `app.js` bumpeado a `?v=20260829h1`.
+
+**Bug real encontrado y corregido al bumpear la versión**: el bump anterior (TT3, `g1`) dejó 26
+archivos de test sin actualizar aunque la comprobación final de «sin cadenas antiguas sueltas» no
+detectó nada raro — falso negativo. Esos 26 archivos fijan la versión con un regex de la forma
+`/app.js\?v=.../ ` (con barra invertida solo delante del `?`, el punto sin escapar), mientras que mi
+patrón de `sed` para el bump asumía la barra invertida delante del punto en vez de delante del `?` (o
+ninguna). Como ninguno de los dos patrones de `sed` coincidía con el texto real, no tocaron esos 26
+archivos — y la comprobación final buscaba ese mismo patrón erróneo, así que tampoco detectó el
+desajuste. Se detectó porque `npm test` sí lo capta de verdad (26 fallos exactos, uno por archivo) al
+comparar el texto contra la versión real de `index.html`. Corregido sustituyendo directamente la
+cadena de versión (`20260829g1` → `20260829h1`) sin depender de qué carácter va escapado alrededor,
+verificado con `npm test` limpio (2132/2132) después.
+
+**Validación**: `npm run verify`, exit 0 — **2132/2132 pruebas** (2122 + 10 nuevas), accesibilidad (851
+IDs, +6 por los 6 IDs nuevos del formulario/lista/nota — las filas y checkboxes de cada cuenta son
+dinámicos, no cuentan como IDs estáticos), rendimiento, build del sitio, privacidad y smoke test, todos
+en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (62): TT3 — registro comparado de cuentas remuneradas activas
 
 Novena tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec

@@ -2044,6 +2044,28 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comisiones de mantenimiento y vinculación</h3>
+              <p class="e19-kpi-note">Cuentas corrientes que cobran comisión salvo que cumplas una vinculación (nómina, gasto con tarjeta...). Marca cada mes si se cumplió: si no, avisa de la comisión en riesgo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesMaintenanceFeeName" type="text" placeholder="Cuenta corriente" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión (€/mes)</span>
+                  <input id="ajustesMaintenanceFeeAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Vinculación exigida</span>
+                  <input id="ajustesMaintenanceFeeRequirement" type="text" placeholder="Nómina domiciliada" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMaintenanceFeeAdd">Añadir cuenta</button>
+              <div id="ajustesMaintenanceFeeAccounts"></div>
+              <p class="e19-kpi-note" id="ajustesMaintenanceFeeAccountsNote"></p>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
               <div class="cuadro-mandos-controls">
@@ -4175,7 +4197,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829g1"></script>
+    <script defer src="app.js?v=20260829h1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
