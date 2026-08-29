@@ -2,6 +2,41 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (59): A17-2 — exportación ICS del calendario financiero
+
+Sexta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («exportación/suscripción ICS del
+calendario financiero, solo lectura»). El calendario financiero (E15: cuotas de deuda, vencimientos
+de objetivos, revisiones y cierre previsto por mes) ya existía y ya se usaba en Huchas y Estado de la
+semana (`FinanceCanonicalE15.financialCalendar`), pero solo dentro de la propia app.
+
+**Decisión de alcance**: exportación a fichero `.ics` descargable, no suscripción con URL propia. El
+sitio es estático (GitHub Pages, sin backend) — una suscripción de verdad necesitaría un endpoint que
+recalculara en cada sondeo del calendario del usuario, infraestructura de servidor que este proyecto
+no tiene. Documentado explícitamente en el propio código para que nadie confunda "descargar de nuevo
+cuando cambie algo" con sincronización automática.
+
+**Construido**: `financialCalendarIcsContent(calendar, generatedAt)` (`app.js`) genera un
+`VCALENDAR` (RFC 5545) con un `VEVENT` por mes del calendario ya calculado — fecha el día 1 de cada
+mes (todo el mes no tiene una fecha más precisa en los datos), resumen "Calendario financiero:
+<mes>" y descripción con el cierre previsto y cada evento del mes (cuota de deuda, vencimiento de
+objetivo, revisión), escapados según RFC 5545. `handleAjustesExportIcs()` reutiliza exactamente el
+mismo ensamblado de datos reales que ya usa Estado de la semana
+(`FinanceP2Bridge.goalPlanning()` + `p2State().goals`/`e15.reviews`), sin inventar una vía nueva.
+Botón "Descargar calendario (.ics)" en la tarjeta Exportar de Ajustes, junto a CSV y PDF (V6-4), con
+ayuda contextual (A12-4).
+
+**Verificación**: 9 pruebas nuevas en `tests/a17-2-calendario-ics.test.cjs` — escapado de texto,
+`VCALENDAR` válido con un `VEVENT` por mes, fecha en formato `YYYYMMDD`, descripción con eventos y
+cierre previsto, un mes sin eventos, calendario vacío, los dos avisos cuando falta el motor o no hay
+meses, y que el botón está montado con su ayuda. `app.js` bumpeado a `?v=20260829e1`.
+
+**Validación**: `npm run verify`, exit 0 — **2105/2105 pruebas** (2096 + 9 nuevas), accesibilidad
+(**838 IDs**, +1 por el botón nuevo), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (58): A16-5 — comparador bola de nieve / avalancha / óptimo
 
 Quinta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con spec completa en

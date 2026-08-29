@@ -6380,6 +6380,7 @@ function applyHelpTooltips() {
   );
   qs("ajustesExportCsv")?.setAttribute("data-help", "El mismo CSV completo del flujo mensual que ya descarga Plan, ahora también desde aquí.");
   qs("ajustesExportPdf")?.setAttribute("data-help", "Previsto, real y desviación de cada partida del mes abierto en Registrar el mes, en un PDF de una página por cada 42 líneas.");
+  qs("ajustesExportIcs")?.setAttribute("data-help", "Un evento por mes con cuotas de deuda, vencimientos de objetivos, revisiones y cierre previsto — importa el fichero en Google/Apple Calendar. Solo lectura: no se sincroniza solo, hay que volver a descargarlo si algo cambia.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -22296,6 +22297,83 @@ function handleAjustesExportPdf() {
   announceStatus(`PDF de ${registrarMesLongMonth(month.key)} descargado.`);
 }
 
+// A17-2: exportación del calendario financiero (E15, cuotas de deuda/vencimientos de
+// objetivos/revisiones/cierre previsto por mes) a un fichero .ics, para verlo en Google/Apple
+// Calendar. Solo lectura, un fichero descargado, no una suscripción con URL propia: este sitio es
+// estático (GitHub Pages, sin backend) y una suscripción real necesitaría un endpoint que
+// recalculara en cada sondeo — el .ics descargable es lo que la propia nota de la tarea admite
+// ("solo lectura") sin fabricar infraestructura de servidor que no existe. Reutiliza
+// FinanceCanonicalE15.financialCalendar tal cual (ya en producción, Huchas/Estado de la semana);
+// no calcula nada nuevo.
+function icsEscapeText(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
+}
+
+function icsDateStamp(value) {
+  return String(value ?? "").replace(/[-:]/g, "").replace(/\.\d{3}/, "").replace("Z", "") + "Z";
+}
+
+function financialCalendarIcsContent(calendar, generatedAt = new Date()) {
+  const rows = Array.isArray(calendar?.rows) ? calendar.rows : [];
+  const stamp = icsDateStamp(generatedAt.toISOString());
+  const events = rows.map((row, index) => {
+    const dateStart = `${String(row.monthKey || "").replace("-", "")}01`;
+    const descriptionLines = [
+      `Cierre previsto: ${money(row.closingLiquidity, true)}`,
+      ...(row.events || []).map((event) => `${event.label}: ${money(event.amount, true)} (${event.source})`),
+    ];
+    return [
+      "BEGIN:VEVENT",
+      `UID:finanzas-casa-calendario-${row.monthKey || index}@contabilidadcasa`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${dateStart}`,
+      `SUMMARY:${icsEscapeText(`Calendario financiero: ${row.label}`)}`,
+      `DESCRIPTION:${icsEscapeText(descriptionLines.join("\n"))}`,
+      "END:VEVENT",
+    ].join("\r\n");
+  });
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Finanzas Casa//Calendario financiero//ES",
+    "CALSCALE:GREGORIAN",
+    ...events,
+    "END:VCALENDAR",
+  ].join("\r\n") + "\r\n";
+}
+
+function handleAjustesExportIcs() {
+  const api = window.FinanceCanonicalE15;
+  const planning = window.FinanceP2Bridge?.goalPlanning?.();
+  if (!api || !planning) {
+    announceStatus("El calendario financiero (E15) no está disponible todavía.");
+    return;
+  }
+  const p2 = p2State();
+  const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [] });
+  if (!calendar.rows.length) {
+    announceStatus("No hay meses en el calendario financiero todavía.");
+    return;
+  }
+  const blob = new Blob([financialCalendarIcsContent(calendar)], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "calendario-financiero.ics";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  window.setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 0);
+  announceStatus(`Calendario financiero exportado: ${calendar.rows.length} mes(es).`);
+}
+
 function handleOperatingReserveChange(event) {
   if (!state) return;
   const next = operatingReserveFromField(event.target.value);
@@ -31512,6 +31590,7 @@ async function init() {
   });
   qs("ajustesExportCsv")?.addEventListener("click", downloadCsv);
   qs("ajustesExportPdf")?.addEventListener("click", handleAjustesExportPdf);
+  qs("ajustesExportIcs")?.addEventListener("click", handleAjustesExportIcs);
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
     if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }
