@@ -229,7 +229,7 @@ test("L-3 · laboratorioDetailFor localiza la ficha exacta por hash", () => {
 });
 
 test("L-3 · laboratorioDetailHtml muestra qué hacía, dónde vive ahora, tarea, instantánea y el botón de abrir en solo lectura", () => {
-  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v, laboratorioVisitasText: () => "0 visitas registradas todavía." };
+  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v, laboratorioVisitasText: () => "0 visitas registradas todavía.", laboratorioDestinoVisitasText: () => "" };
   vm.createContext(context);
   vm.runInContext(`${extractConst("LABORATORIO_VEREDICTO_LABEL")}\n${extractConst("LABORATORIO_VEREDICTO_BADGE")}\n${extractFunction("laboratorioDetailHtml")}`, context);
   const entry = {
@@ -255,8 +255,67 @@ test("L-3 · laboratorioDetailHtml muestra qué hacía, dónde vive ahora, tarea
   assert.match(context.laboratorioDetailHtml(null), /Elige una pantalla heredada/);
 });
 
+// --- OPT-2 · comparación de uso nueva vs. heredada del mismo par --------------------------------
+
+test("OPT-2 · laboratorioDestinoVisitasText sin destino no devuelve nada que pintar", () => {
+  const context = { viewVisitSummary: () => ({ count: 0, last: "" }) };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("laboratorioDestinoVisitasText"), context);
+  assert.equal(context.laboratorioDestinoVisitasText({ destino: null }), "");
+});
+
+test("OPT-2 · laboratorioDestinoVisitasText sin visitas del destino todavía", () => {
+  const context = { viewVisitSummary: () => ({ count: 0, last: "" }) };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("laboratorioDestinoVisitasText"), context);
+  const out = context.laboratorioDestinoVisitasText({ destino: { hash: "escenario-simular", label: "Escenarios · Simular" } });
+  assert.equal(out, "Escenarios · Simular: 0 visitas registradas todavía.");
+});
+
+test("OPT-2 · laboratorioDestinoVisitasText consulta el contador del hash del destino, no el de la heredada", () => {
+  const seen = [];
+  const context = {
+    escapeHtml: (v) => String(v ?? ""),
+    formatIsoDate: (v) => v,
+    viewVisitSummary: (hash) => {
+      seen.push(hash);
+      return hash === "escenario-simular" ? { count: 12, last: "2026-08-20" } : { count: 999, last: "no-debe-usarse" };
+    },
+  };
+  vm.createContext(context);
+  vm.runInContext(extractFunction("laboratorioDestinoVisitasText"), context);
+  const out = context.laboratorioDestinoVisitasText({
+    hash: "simulator",
+    destino: { hash: "escenario-simular", label: "Escenarios · Simular" },
+  });
+  assert.deepEqual(seen, ["escenario-simular"]);
+  assert.equal(out, "Escenarios · Simular: abierta 12 veces · última el 2026-08-20.");
+});
+
+test("OPT-2 · laboratorioDetailHtml añade la comparación con el destino solo cuando existe", () => {
+  const context = {
+    escapeHtml: (v) => String(v ?? ""),
+    formatIsoDate: (v) => v,
+    laboratorioVisitasText: () => "Abierta 3 veces · última el 2026-08-10.",
+    laboratorioDestinoVisitasText: (entry) => (entry.destino ? "Escenarios · Simular: abierta 12 veces · última el 2026-08-20." : ""),
+  };
+  vm.createContext(context);
+  vm.runInContext(`${extractConst("LABORATORIO_VEREDICTO_LABEL")}\n${extractConst("LABORATORIO_VEREDICTO_BADGE")}\n${extractFunction("laboratorioDetailHtml")}`, context);
+  const conDestino = context.laboratorioDetailHtml({
+    hash: "simulator", label: "Simulador", veredicto: "sustituida", queHacia: "x", dondeViveAhora: "Escenarios",
+    destino: { hash: "escenario-simular", label: "Escenarios · Simular" }, backlogTask: null, nota: "", evidenciaEscritura: "y",
+  }, null);
+  assert.match(conDestino, /Escenarios · Simular: abierta 12 veces/);
+
+  const sinDestino = context.laboratorioDetailHtml({
+    hash: "movements", label: "Movimientos", veredicto: "adoptada", queHacia: "x", dondeViveAhora: "Movimientos",
+    destino: null, backlogTask: "M-1", nota: "", evidenciaEscritura: "y",
+  }, null);
+  assert.doesNotMatch(sinDestino, /Escenarios · Simular/);
+});
+
 test("L-3 · laboratorioDetailHtml pinta la nota de desviación solo cuando existe", () => {
-  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v, laboratorioVisitasText: () => "0 visitas registradas todavía." };
+  const context = { escapeHtml: (v) => String(v ?? ""), formatIsoDate: (v) => v, laboratorioVisitasText: () => "0 visitas registradas todavía.", laboratorioDestinoVisitasText: () => "" };
   vm.createContext(context);
   vm.runInContext(`${extractConst("LABORATORIO_VEREDICTO_LABEL")}\n${extractConst("LABORATORIO_VEREDICTO_BADGE")}\n${extractFunction("laboratorioDetailHtml")}`, context);
   const out = context.laboratorioDetailHtml({ hash: "movements", label: "Movimientos", veredicto: "adoptada", queHacia: "x", dondeViveAhora: "Movimientos", destino: null, backlogTask: "M-1", nota: "Nota de prueba", evidenciaEscritura: "y" }, null);

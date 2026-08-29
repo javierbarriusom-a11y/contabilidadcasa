@@ -2,6 +2,48 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (47): OPT-2 — instrumentar uso real de pantallas heredadas
+
+Tercera tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Hallazgo antes de construir nada: el
+contador de visitas por pantalla (`VISIT_COUNTS_KEY`/`recordViewVisit`/`viewVisitSummary`, `app.js`)
+**ya existe** desde T-4 (introducido el 22 de agosto de 2026 para el veredicto de Laboratorio) y ya
+registra automáticamente **todas** las vistas, heredadas y nuevas, sin distinción — la primera tarea
+de OPT-2 («añadir un contador ligero en `localStorage`... para las 10 rutas heredadas y, ya puestos,
+para las nuevas marcadas "(nuevo)"») estaba resuelta de fábrica, siete días antes de empezar esta
+tarea, por una necesidad distinta.
+
+Lo que faltaba de verdad, y es lo único que se ha construido: la ficha de cada heredada en
+Laboratorio (Ajustes) mostraba su propio contador de visitas, pero no el de su pantalla nueva
+equivalente — sin las dos cifras una junto a otra no hay comparación real, solo el dato de un lado.
+
+**Construido**: `laboratorioDestinoVisitasText(entry)` (`app.js`) — mismo patrón que
+`laboratorioVisitasText`, pero sobre `entry.destino.hash` en vez de `entry.hash`. `laboratorioDetailHtml`
+añade esta segunda línea bajo «Visitas» solo cuando la heredada tiene un destino nuevo registrado en
+`LABORATORIO_CATALOG` (13 de las 17 entradas del catálogo; las 4 sin destino — Movimientos, Guía
+operativa, Asesor virtual y Centro de alertas — no tienen pantalla gemela que comparar). Ningún
+motor nuevo: reutiliza `viewVisitSummary`, ya construido.
+
+**Verificación**: 4 pruebas nuevas en `tests/l1-l10-fase7-laboratorio.test.cjs` (sin destino no hay
+nada que pintar, sin visitas del destino todavía, consulta el contador del hash del destino y no el
+de la heredada, y la ficha completa añade o no la comparación según haya destino). Dos pruebas
+existentes de esa misma suite se actualizaron para simular también la función nueva en su sandbox
+aislado. `app.js` bumpeado a `20260829a1`; los 29 ficheros que pineaban la versión anterior
+(`20260828k1a1`) se actualizaron en bloque, incluidas las dos pruebas cuyo `assert.match` literal ya
+había cambiado en el cierre de OPT-1 para admitir `defer`.
+
+**Sobre el plazo de 30 días de la propia tarea** (arranca el contador que bloquea `OPT-10`, bloque 7):
+el contador real lleva corriendo desde el 22 de agosto, 7 días antes de esta sesión, aunque no fue
+construido para esto. El plazo formal de OPT-2 empieza a contar desde hoy de todos modos, no
+retroactivamente — sigue haciendo falta usar la app con normalidad un mínimo de 30 días antes de
+leer los datos en `OPT-10`.
+
+**Validación**: `npm run verify`, exit 0 — **2036/2036 pruebas** (2032 + 4 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-3`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (46): OPT-1 — `defer` en los `<script>` de `index.html`
 
 Segunda tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, tal cual estaba especificada en

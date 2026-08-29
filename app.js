@@ -29843,6 +29843,17 @@ function laboratorioVisitasText(entry) {
   return `Abierta ${vecesText} · última el ${escapeHtml(formatIsoDate(visitas.last))}.`;
 }
 
+// OPT-2: el contador de T-4 ya registra toda pantalla, heredada o nueva, pero su ficha solo
+// enseñaba el lado heredado. Sin el lado nuevo al lado, "sustituida" seguía siendo la impresión de
+// quien mira, no una comparación real de uso — este texto añade el segundo número que faltaba.
+function laboratorioDestinoVisitasText(entry) {
+  if (!entry.destino) return "";
+  const visitas = viewVisitSummary(entry.destino.hash);
+  if (!visitas.count) return `${entry.destino.label}: 0 visitas registradas todavía.`;
+  const vecesText = visitas.count === 1 ? "1 vez" : `${visitas.count} veces`;
+  return `${entry.destino.label}: abierta ${vecesText} · última el ${escapeHtml(formatIsoDate(visitas.last))}.`;
+}
+
 function laboratorioDetailHtml(entry, snapshotContext) {
   if (!entry) return `<p class="e19-kpi-note">Elige una pantalla heredada para ver su ficha.</p>`;
   const instantanea = snapshotContext ? formatIsoDate(snapshotContext.fecha.slice(0, 10)) : "sin cierre firmado";
@@ -29853,7 +29864,7 @@ function laboratorioDetailHtml(entry, snapshotContext) {
     <p class="e19-kpi-note"><strong>Recogida en</strong><br>${entry.backlogTask ? escapeHtml(entry.backlogTask) : "Sin tarea propia"}</p>
     ${entry.nota ? `<p class="e19-kpi-note laboratorio-card-nota">${escapeHtml(entry.nota)}</p>` : ""}
     <p class="e19-kpi-note"><strong>Escritura</strong><br>${escapeHtml(entry.evidenciaEscritura || "")}</p>
-    <p class="e19-kpi-note"><strong>Visitas</strong><br>${laboratorioVisitasText(entry)}</p>
+    <p class="e19-kpi-note"><strong>Visitas</strong><br>${laboratorioVisitasText(entry)}${entry.destino ? `<br>${laboratorioDestinoVisitasText(entry)}` : ""}</p>
     <p class="e19-kpi-note">Instantánea del ${escapeHtml(instantanea)}</p>
     <button type="button" class="e19-btn e19-btn-secondary" data-laboratorio-open-readonly="${escapeHtml(entry.hash)}">Abrir en solo lectura</button>`;
 }
