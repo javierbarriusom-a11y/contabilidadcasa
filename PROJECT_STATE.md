@@ -1,6 +1,37 @@
 # Estado del proyecto
 
-Fecha de revisión: 28 de agosto de 2026.
+Fecha de revisión: 29 de agosto de 2026.
+
+## Cierre de sesión — 29 de agosto de 2026 (44): `BACKLOG_ULTIMATE_SEPTIEMBRE.md` — backlog vigente + ampliación en un único orden
+
+Petición directa del usuario: partiendo de dos artefactos de propuesta generados en esta misma
+sesión (30 y luego 50 ideas nuevas de producto — previsión que se autoajusta con datos reales,
+inversión, apalancamiento y deuda estratégica, copiloto proactivo, experiencia, fiscalidad de
+cartera, tesorería táctica, instrumentos de deuda y seguros), fusionarlas con las 49 tareas ya
+existentes de `BACKLOG_UNIFICADO.md` en un backlog global con prioridades esfuerzo-beneficio, y
+dejarlo en el repositorio como `.md` consultable en cualquier momento.
+
+**Reordenación cuestionada explícitamente por el usuario**: la primera fusión apilaba las 50 tareas
+nuevas detrás de las 49 vigentes. Al pedir reconsiderar ese orden, se recalculó por completo por
+**nivel de dependencia real** (nivel 0 = no depende de nada de este documento; nivel 1 = depende
+solo de nivel 0; etc.), no por procedencia. Hallazgo: la mayoría de las 50 ideas no dependen de
+ninguna tarea pendiente del backlog vigente — se apoyan en motores ya en producción
+(`canonical-forecast.js`, `canonical-debt-comparator.js`, `canonical-cushion.js`,
+`canonical-e13-scenarios.js`, `canonical-decisions.js`), así que quedaron entreveradas con lo
+vigente desde el primer bloque en vez de aparcadas al final.
+
+**Publicado**: `BACKLOG_ULTIMATE_SEPTIEMBRE.md` — 99 tareas en 11 bloques, con leyenda de
+esfuerzo/beneficio/origen (11 orígenes: los 2 del backlog vigente más las 9 categorías nuevas), la
+explicación del método de reordenación, y cada tarea con su dependencia real citada cuando existe.
+Documento solo de planificación: no toca código de la aplicación. Existe además una versión visual
+interactiva (checklist marcable, filtros por origen/estado/conjunto) publicada como artefacto en
+esta sesión de Claude, fuera del repositorio.
+
+**Validación**: `npm test`, exit 0 — **2017/2017 pruebas** (sin cambios de comportamiento; cambio
+puramente documental).
+
+**Publicado**: commit y push a `claude/financial-app-improvements-mhun2h`, PR en borrador y fusión a
+`main` al ponerse el CI en verde.
 
 ## Cierre de sesión — 28 de agosto de 2026 (43): «Ver saldos» en Hoy dejaba de llevar a una pantalla legacy
 
