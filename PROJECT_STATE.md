@@ -2,6 +2,47 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (70): A19-3 — comparador educativo de tarifas fijas, y cierre del Bloque 2
+
+Última tarea programada del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla:
+sin spec detallada, «Bajo-Medio, oportunista»). Sin relación con A19-1/A19-2 (enlace de solo lectura,
+informe PDF certificado) más allá de compartir prefijo: A19-3 es un comparador educativo de tarifas
+(luz, gas o cualquier tarifa con precio por unidad de consumo), sin dependencia de esas dos.
+
+**Decisión de alcance**: calculadora puntual, sin precios de mercado reales — el hogar declara su
+consumo y ambos precios (fijo y variable estimado), sin persistir nada en `scenarioSettings` (mismo
+criterio que `handleAjustesExportIcs`: una acción, no un dato del hogar que se sincroniza). La
+pregunta educativa no es «¿cuál es más barata hoy?» sino «¿a qué precio variable ambas costarían lo
+mismo?» — el break-even, más útil para decidir que una comparación de un solo punto.
+
+**Construido**: `canonical-tariff-comparator.js` (nuevo) — `compareFixedVsVariableTariff(input)`:
+coste mensual de cada tarifa (consumo × precio + cargo fijo opcional de cada una), cuál es más barata
+(`"fixed"`/`"variable"`/`"tie"`) y `breakEvenVariablePrice` (el precio variable al que ambas
+costarían lo mismo; `null` sin consumo, no una división por cero). En `app.js`,
+`handleAjustesCompareTariffs()` lee los campos y rellena la nota de resultado. Tarjeta nueva
+«Comparador educativo de tarifas fijas» en Ajustes. `canonical-tariff-comparator.js` añadido a la
+whitelist de `tools/build-public-site.mjs` y cargado en `index.html` (`?v=20260829a193a1`), `app.js`
+bumpeado a `?v=20260829o1`.
+
+**Verificación**: 13 pruebas nuevas — 7 en `tests/canonical-tariff-comparator.test.cjs` (fija más
+barata, variable más barata, empate real no un desempate arbitrario, cargos fijos de cada tarifa,
+break-even, sin consumo sin dividir por cero, valores negativos recortados a cero) y 6 en
+`tests/a19-3-comparador-tarifas.test.cjs` (sin consumo avisa, resultado con datos válidos, HTML/
+script/wiring/ayuda, y que no persiste nada en `scenarioSettings`).
+
+**Validación**: `npm run verify`, exit 0 — **2210/2210 pruebas** (2197 + 13 nuevas), accesibilidad
+(876 IDs, +7), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+**Cierre del Bloque 2**: de las 18 tareas de la tabla, 17 completadas en esta sesión (OPT-6, OPT-19,
+OPT-21, OPT-22, A16-5, A17-2, A15-3, CP5, TT3, TT4, DI2, SP1, SP5, PV2, A16-6, A15-5, A19-3). Solo
+**OPT-18** queda pendiente, bloqueada por la política de red del entorno (el proxy de egress deniega
+`javierbarriusom-a11y.github.io`, confirmado con `curl` y con el estado del proxy): necesita que el
+usuario compruebe la cabecera `content-encoding` del sitio publicado, o una sesión futura donde ese
+bloqueo no aplique.
+
 ## Cierre de sesión — 29 de agosto de 2026 (69): A15-5 — tablas fiscales versionadas y su actualización anual
 
 Decimosexta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec

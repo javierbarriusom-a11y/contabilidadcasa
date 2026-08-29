@@ -2139,6 +2139,35 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
+              <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Consumo mensual (kWh u otra unidad)</span>
+                  <input id="ajustesTariffConsumption" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Precio fijo (€/unidad)</span>
+                  <input id="ajustesTariffFixedPrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cargo fijo mensual — tarifa fija (€)</span>
+                  <input id="ajustesTariffFixedFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Precio variable estimado (€/unidad)</span>
+                  <input id="ajustesTariffVariablePrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cargo fijo mensual — tarifa variable (€)</span>
+                  <input id="ajustesTariffVariableFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesTariffCompare">Comparar</button>
+              <p class="e19-kpi-note" id="ajustesTariffComparatorNote"></p>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
               <div class="cuadro-mandos-controls">
@@ -4250,6 +4279,7 @@
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
+    <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4276,7 +4306,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829n1"></script>
+    <script defer src="app.js?v=20260829o1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

@@ -6433,6 +6433,7 @@ function applyHelpTooltips() {
     "ajustesTaxTableYear",
     "Año fiscal al que corresponde esta tabla (tramos de IRPF, mínimos personales, etc.). Sin una tabla para el año en curso, la nota de abajo avisa de que la actualización anual sigue pendiente.",
   );
+  qs("ajustesTariffCompare")?.setAttribute("data-help", "Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo. También calcula a qué precio variable medio ambas costarían lo mismo — no trae ningún precio de mercado real, tú pones los tuyos.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -15103,6 +15104,34 @@ function addTaxTableFromControls() {
     if (qs(id)) qs(id).value = "";
   });
   renderTaxTables();
+}
+
+// A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin
+// persistir nada: lee los campos, muestra el resultado. No trae ningún precio de mercado real — el
+// hogar declara su consumo y ambos precios.
+function handleAjustesCompareTariffs() {
+  const note = qs("ajustesTariffComparatorNote");
+  if (!note) return;
+  const consumption = parseAmount(qs("ajustesTariffConsumption")?.value);
+  if (!consumption || consumption <= 0) {
+    note.textContent = "Indica un consumo mensual mayor que 0 para comparar.";
+    return;
+  }
+  const result = window.FinanceCanonicalTariffComparator?.compareFixedVsVariableTariff({
+    monthlyConsumption: consumption,
+    fixedPricePerUnit: parseAmount(qs("ajustesTariffFixedPrice")?.value),
+    variablePricePerUnit: parseAmount(qs("ajustesTariffVariablePrice")?.value),
+    fixedStandingCharge: parseAmount(qs("ajustesTariffFixedFee")?.value),
+    variableStandingCharge: parseAmount(qs("ajustesTariffVariableFee")?.value),
+  });
+  if (!result) return;
+  const verdictText = result.cheaper === "tie"
+    ? "Ambas tarifas cuestan lo mismo con estos precios."
+    : `La tarifa ${result.cheaper === "fixed" ? "fija" : "variable"} sale más barata este mes, por ${money(result.difference, true)}.`;
+  const breakEvenText = result.breakEvenVariablePrice !== null
+    ? ` Con este consumo, la fija y la variable costarían lo mismo si la variable rondara ${result.breakEvenVariablePrice.toFixed(4)} €/unidad de media.`
+    : "";
+  note.textContent = `Fija: ${money(result.fixedMonthlyCost, true)}/mes · Variable: ${money(result.variableMonthlyCost, true)}/mes. ${verdictText}${breakEvenText}`;
 }
 
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
@@ -32074,6 +32103,7 @@ async function init() {
     removeTaxTable(removeButton.dataset.taxTableRemove);
     renderTaxTables();
   });
+  qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
     if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }
