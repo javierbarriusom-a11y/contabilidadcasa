@@ -3429,6 +3429,10 @@ function saveScenarioSettings() {
     // SP2 · capital asegurado del seguro de vida, igual que la reserva operativa: dato del hogar
     // que se sincroniza y se restaura, 0 significa «sin configurar».
     lifeInsuranceCapital: round2(Math.max(0, Number(state.lifeInsuranceCapital || 0))),
+    // DI2 · límite y TIN de la línea de crédito de emergencia, mismo criterio que el capital
+    // asegurado: dato del hogar que se sincroniza y se restaura, 0 significa «sin configurar».
+    emergencyCreditLimit: round2(Math.max(0, Number(state.emergencyCreditLimit || 0))),
+    emergencyCreditRate: round2(Math.max(0, Number(state.emergencyCreditRate || 0))),
     // V6-2 · los dos umbrales de Ajustes que no encajan como regla de alertas: 0 significa «sin
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
@@ -6365,6 +6369,14 @@ function applyHelpTooltips() {
   addHelpToControl(
     "ajustesLifeInsuranceCapital",
     "Capital asegurado de tu seguro de vida, en euros. Se compara con la deuda pendiente total para avisar si quedaría algo sin cubrir. Vacío significa sin capital configurado, no cero.",
+  );
+  addHelpToControl(
+    "ajustesEmergencyCreditLimit",
+    "Límite de una línea de crédito de emergencia, en euros. Se compara con tu reserva operativa: si la cubre por completo, calcula el coste estimado de disponer de ella de verdad frente a mantener ese dinero inmovilizado.",
+  );
+  addHelpToControl(
+    "ajustesEmergencyCreditRate",
+    "TIN de la línea de crédito, en %. Se usa junto al límite para estimar el coste en intereses de una disposición de emergencia de 3 meses.",
   );
   addHelpToControl(
     "ajustesDuplicateWindow",
@@ -22221,6 +22233,87 @@ function handleLifeInsuranceCapitalChange(event) {
   announceStatus(next > 0 ? `Capital asegurado guardado en ${money(next, true)}.` : "Capital asegurado borrado.");
 }
 
+// DI2 · línea de crédito de emergencia frente a colchón líquido. Mismo patrón de campo único que el
+// capital asegurado (SP2): dos números configurables en Ajustes (límite y TIN de la línea), sin línea
+// de crédito real conectada. Reutiliza el colchón operativo ya configurado (cuadroMandosReserve) en
+// vez de pedir un segundo valor de colchón que se desincronizaría del que ya usan Plan y el mapa de
+// calor.
+function emergencyCreditLimit() {
+  const configured = Number(state?.emergencyCreditLimit || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function emergencyCreditRate() {
+  const configured = Number(state?.emergencyCreditRate || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function emergencyCreditFieldFromValue(raw) {
+  const text = String(raw ?? "").trim().replace(",", ".");
+  if (!text) return 0;
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return round2(parsed);
+}
+
+function syncEmergencyCreditLineControls() {
+  const limitField = qs("ajustesEmergencyCreditLimit");
+  if (limitField && document.activeElement !== limitField) {
+    const limit = emergencyCreditLimit();
+    limitField.value = limit > 0 ? String(limit) : "";
+  }
+  const rateField = qs("ajustesEmergencyCreditRate");
+  if (rateField && document.activeElement !== rateField) {
+    const rate = emergencyCreditRate();
+    rateField.value = rate > 0 ? String(rate) : "";
+  }
+}
+
+function renderAjustesEmergencyCreditLineNote() {
+  const note = qs("ajustesEmergencyCreditLineNote");
+  if (!note) return;
+  const floor = cuadroMandosReserve();
+  const limit = emergencyCreditLimit();
+  const rate = emergencyCreditRate();
+  const evaluation = window.FinanceCanonicalEmergencyCreditLine?.evaluateEmergencyCreditLine(floor, limit, rate);
+  if (!evaluation) return;
+  if (evaluation.covered === null) {
+    note.textContent = "Configura antes la reserva operativa en Ajustes: sin colchón de referencia no hay nada que comparar.";
+    return;
+  }
+  if (!limit) {
+    note.textContent = `Sin línea de crédito configurada todavía. Colchón operativo de referencia: ${money(floor, true)}.`;
+    return;
+  }
+  note.textContent = evaluation.covered
+    ? `La línea (${money(limit, true)}) cubre el colchón operativo (${money(floor, true)}) por completo. Usarla ${evaluation.drawMonths} meses en una emergencia costaría ${money(evaluation.estimatedDrawCost, true)} en intereses.`
+    : `La línea (${money(limit, true)}) cubre solo parte del colchón operativo (${money(floor, true)}): queda una brecha de ${money(evaluation.gap, true)} sin cubrir.`;
+}
+
+function handleEmergencyCreditLimitChange(event) {
+  if (!state) return;
+  const next = emergencyCreditFieldFromValue(event.target.value);
+  const previous = round2(Math.max(0, Number(state.emergencyCreditLimit || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.emergencyCreditLimit = next;
+  saveScenarioSettings();
+  renderAjustesEmergencyCreditLineNote();
+  announceStatus(next > 0 ? `Límite de la línea de crédito guardado en ${money(next, true)}.` : "Límite de la línea de crédito borrado.");
+}
+
+function handleEmergencyCreditRateChange(event) {
+  if (!state) return;
+  const next = emergencyCreditFieldFromValue(event.target.value);
+  const previous = round2(Math.max(0, Number(state.emergencyCreditRate || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.emergencyCreditRate = next;
+  saveScenarioSettings();
+  renderAjustesEmergencyCreditLineNote();
+  announceStatus(next > 0 ? `TIN de la línea de crédito guardado en ${next}%.` : "TIN de la línea de crédito borrado.");
+}
+
 /* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
    Reúne lo que hoy vive repartido, sin reimplementarlo: la reserva operativa se guarda de verdad
    aquí (ver el bloque V6-1/V6-3 anterior); cuentas, partidas y umbrales solo se leen para el resumen
@@ -22237,6 +22330,8 @@ function renderAjustes() {
   renderAjustesReserveNote();
   syncLifeInsuranceCapitalControl();
   renderAjustesLifeInsuranceCapitalNote();
+  syncEmergencyCreditLineControls();
+  renderAjustesEmergencyCreditLineNote();
   renderRemuneratedAccounts();
   renderMaintenanceFeeAccounts();
   syncDuplicateWindowControl();
@@ -31740,6 +31835,8 @@ async function init() {
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
   qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
+  qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
+  qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
   qs("ajustesSobresEnabled")?.addEventListener("change", handleSobresToggle);

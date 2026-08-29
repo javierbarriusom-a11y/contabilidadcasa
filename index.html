@@ -2018,6 +2018,22 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
+              <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Límite de la línea</span>
+                  <input id="ajustesEmergencyCreditLimit" type="number" min="0" step="500" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>TIN de la línea (%)</span>
+                  <input id="ajustesEmergencyCreditRate" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
               <p class="e19-kpi-note">Registro comparado de las cuentas remuneradas activas: cuál paga mejor TAE y qué rendimiento medio da el conjunto, ponderado por saldo.</p>
               <div class="cuadro-mandos-controls">
@@ -4171,6 +4187,7 @@
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
+    <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4197,7 +4214,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829h1"></script>
+    <script defer src="app.js?v=20260829i1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

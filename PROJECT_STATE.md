@@ -2,6 +2,44 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (64): DI2 — línea de crédito de emergencia frente a colchón líquido
+
+Undécima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Pregunta: ¿sustituye una línea de crédito de emergencia parte del colchón líquido que hoy
+se mantiene inmovilizado sin rendimiento? Sin ningún concepto de «línea de crédito» en el código
+todavía (DI3, más adelante en el backlog, habla de revolving ya contratado — algo distinto).
+
+**Decisión de alcance**: campo único, mismo patrón que el capital asegurado (SP2) — dos números
+configurables en Ajustes (límite y TIN de la línea), sin línea de crédito real conectada. Reutiliza el
+colchón operativo ya configurado (`cuadroMandosReserve`, el mismo suelo que usan Plan y el mapa de
+calor) en vez de pedir un segundo valor de colchón que se desincronizaría del real.
+
+**Construido**: `canonical-emergency-credit-line.js` (nuevo) — `evaluateEmergencyCreditLine(cushionFloor,
+creditLimit, creditRate, drawMonths = DEFAULT_DRAW_MONTHS)`: sin colchón de referencia configurado
+devuelve `covered: null` (nada que comparar, no un `false` que fingiría una brecha inventada); con
+colchón, calcula la brecha sin cubrir (`gap`) y, si la línea cubre total o parcialmente el colchón, el
+coste estimado en intereses de disponer de ella de verdad — sobre el mínimo entre colchón y límite, no
+sobre el colchón completo si el límite fuera menor — asumiendo una disposición de `DEFAULT_DRAW_MONTHS`
+(3, exportada) meses. En `app.js`: `emergencyCreditLimit()`/`emergencyCreditRate()` (getters),
+`syncEmergencyCreditLineControls()`, `renderAjustesEmergencyCreditLineNote()` y los handlers de cambio
+de cada campo, mismo esqueleto que `lifeInsuranceCapital`. Tarjeta nueva «Línea de crédito de
+emergencia» en Ajustes, junto a la de cobertura de vida. `saveScenarioSettings()` amplía su
+whitelist con `emergencyCreditLimit`/`emergencyCreditRate`.
+
+**Verificación**: 12 pruebas nuevas en `tests/di2-linea-credito-emergencia.test.cjs` — sin colchón
+configurado no compara nada, cobertura completa, brecha parcial, sin línea configurada (brecha =
+colchón entero, coste 0), el coste usa el mínimo entre colchón y límite (no el colchón completo cuando
+el límite es menor), límite/TIN negativos se recortan a 0, más las comprobaciones estáticas de
+HTML/script/wiring/`renderAjustes`/`saveScenarioSettings`. `app.js` bumpeado a `?v=20260829i1` (con
+sustitución directa de la cadena de versión, tras el fallo de escapado del bump anterior).
+
+**Validación**: `npm run verify`, exit 0 — **2144/2144 pruebas** (2132 + 12 nuevas), accesibilidad (854
+IDs, +3 por los 3 IDs nuevos del formulario/nota), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (63): TT4 — alerta de comisiones de mantenimiento y vinculación
 
 Décima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
