@@ -1,5 +1,11 @@
 # Backlog de optimización — rendimiento, navegación y UX
 
+> **El orden de ejecución de este documento quedó fusionado.** Desde el 29 de agosto de 2026, el
+> orden de ejecución conjunto con `BACKLOG_PATRIMONIO_Y_FINANZAS.md` vive en `BACKLOG_UNIFICADO.md`.
+> Este archivo conserva íntegro el detalle de cada tarea `OPT-*` (contexto, pasos, resultado
+> esperado); para saber en qué orden se ejecuta junto al backlog de nuevas funcionalidades, ve a
+> `BACKLOG_UNIFICADO.md`.
+
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 Este documento nace de una auditoría crítica pedida explícitamente por el usuario («analiza la app

@@ -1,5 +1,10 @@
 # Backlog patrimonio y finanzas
 
+> **El orden de ejecución de este documento quedó fusionado.** Desde el 29 de agosto de 2026, el
+> orden de ejecución conjunto con `BACKLOG_OPTIMIZACION.md` vive en `BACKLOG_UNIFICADO.md`. Este
+> archivo conserva íntegro el detalle de cada tarea (contexto, prioridad, resultado esperado); para
+> saber en qué orden se ejecuta junto al resto del backlog de optimización, ve a `BACKLOG_UNIFICADO.md`.
+
 Fecha de creación: 29 de agosto de 2026.
 
 Propuesta de nuevas funcionalidades para `contabilidadcasa`, continuación de
