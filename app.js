@@ -6494,6 +6494,7 @@ function applyHelpTooltips() {
   );
   qs("ajustesFiscalLargeFamily")?.setAttribute("data-help", "Marca si sois familia numerosa. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos.");
   qs("ajustesMortgageScenariosCompare")?.setAttribute("data-help", "Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos (base/favorable/tensión, mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: tú pones los tuyos.");
+  qs("ajustesJointRestructuringCompare")?.setAttribute("data-help", "Con los contratos activos de Deuda › Contratos, propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro configurado en Ajustes › Alertas, dado el ingreso mensual que indiques.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -15219,6 +15220,56 @@ function handleDi1CompareMortgageScenarios() {
     return `<li><strong>${escapeHtml(scenario.label)}</strong> (variable al ${scenario.variableRate}%): cuota variable ${money(scenario.variableMonthlyPayment, true)}/mes (${money(scenario.variableTotalCost, true)} en total) frente a cuota fija ${money(scenario.fixedMonthlyPayment, true)}/mes (${money(scenario.fixedTotalCost, true)} en total) — ${verdict}.</li>`;
   }).join("");
   note.innerHTML = `<ul class="commit-barrier-list">${rows}</ul>`;
+}
+
+// DI5: reestructuración conjunta ante una caída de ingresos. Reutiliza los contratos reales de
+// Deuda · Contratos (debtContractSourceRows, D-2) en vez de pedir de nuevo capital/TAE/cuota a
+// mano — solo los activos con cuota registrada, mismo filtro que ya usa el resto de la app para
+// "deuda que de verdad tira de la caja cada mes".
+function di5RestructuringContracts() {
+  return debtContractSourceRows()
+    .filter((contract) => contract.paymentStatus === "active" && Number(contract.currentPayment) > 0)
+    .map((contract) => ({
+      id: contract.id,
+      label: contract.entity || contract.type || contract.id,
+      balance: Number(contract.currentPrincipal) || 0,
+      rate: Number(contract.apr) || 0,
+      monthsRemaining: Math.max(1, Math.round(Number(contract.remainingInstallments) || 1)),
+      monthlyPayment: Number(contract.currentPayment) || 0,
+    }));
+}
+
+// Mismo umbral configurable de Ajustes › Alertas que ya usa Hoy (H-9) para el ratio deuda/ingresos —
+// no un 35% fijo aparte.
+function handleDi5CompareJointRestructuring() {
+  const note = qs("ajustesJointRestructuringNote");
+  if (!note) return;
+  const monthlyIncome = parseAmount(qs("ajustesJointRestructuringIncome")?.value);
+  if (!monthlyIncome || monthlyIncome <= 0) {
+    note.textContent = "Indica el ingreso mensual tras la caída (mayor que 0) para comparar.";
+    return;
+  }
+  const contracts = di5RestructuringContracts();
+  if (!contracts.length) {
+    note.textContent = "No hay contratos de deuda activos con cuota mensual registrada en Deuda › Contratos.";
+    return;
+  }
+  const safeRatio = (alertThresholdOverride("debtRatio") ?? 32) / 100;
+  const result = window.FinanceCanonicalJointRestructuring?.jointRestructuringPlan({ contracts, monthlyIncome, safeRatio });
+  if (!result) return;
+  const ratioPct = result.currentRatio === null ? "—" : Math.round(result.currentRatio * 100);
+  if (!result.overBudget) {
+    note.innerHTML = `<p>Con ${money(monthlyIncome, true)}/mes, la cuota conjunta actual (${money(result.currentTotalPayment, true)}/mes, ${ratioPct}% del ingreso) ya está por debajo del ${Math.round(safeRatio * 100)}% de ratio seguro. Sin necesidad de reestructurar nada.</p>`;
+    return;
+  }
+  const rows = result.proposals.map((proposal) => proposal.action === "sin cambios"
+    ? `<li><strong>${escapeHtml(proposal.label)}</strong>: sin cambios, cuota ${money(proposal.currentMonthlyPayment, true)}/mes.</li>`
+    : `<li><strong>${escapeHtml(proposal.label)}</strong>: alargar de ${proposal.currentMonths} a ${proposal.extendedMonths} meses — cuota de ${money(proposal.currentMonthlyPayment, true)} a ${money(proposal.newMonthlyPayment, true)}/mes (alivio de ${money(proposal.relief, true)}/mes).</li>`
+  ).join("");
+  const summary = result.sufficient
+    ? `Alivio conseguido: ${money(result.totalReliefAchieved, true)}/mes, cubre el ${money(result.reliefNeeded, true)}/mes que hacía falta.`
+    : `Alivio conseguido: ${money(result.totalReliefAchieved, true)}/mes — no cubre del todo el ${money(result.reliefNeeded, true)}/mes que haría falta ni alargando todos los plazos. Hace falta negociar quita, refinanciación u otra fuente de ingresos.`;
+  note.innerHTML = `<p>Cuota conjunta actual: ${money(result.currentTotalPayment, true)}/mes (${ratioPct}% del ingreso). Ratio seguro: ${Math.round(safeRatio * 100)}%.</p><ul class="commit-barrier-list">${rows}</ul><p>${escapeHtml(summary)}</p>`;
 }
 
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
@@ -32463,6 +32514,7 @@ async function init() {
   });
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
+  qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
   qs("ajustesFiscalJointTaxation")?.addEventListener("change", handleFiscalJointTaxationChange);
   qs("ajustesFiscalWithholdingRate")?.addEventListener("change", handleFiscalWithholdingRateChange);
   qs("ajustesFiscalDeductibleContributions")?.addEventListener("change", handleFiscalDeductibleContributionsChange);

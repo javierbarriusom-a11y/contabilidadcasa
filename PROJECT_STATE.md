@@ -2,6 +2,53 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (78): DI5 — reestructuración conjunta ante una caída de ingresos, y cierre del Bloque 4
+
+Última tarea del Bloque 4 (solo su fila en la tabla: sin spec detallada, «Deuda: instrumentos», M,
+Alto).
+
+**Decisión de alcance**: a diferencia de comparar una deuda a la vez (ya cubierto por Deuda ›
+Comparar), «conjunta» significa mirar TODOS los contratos de deuda activos juntos frente a un
+ingreso reducido, y proponer en qué orden aliviarlos hasta volver a un ratio deuda/ingresos
+sostenible — no una negociación de quita con un acreedor (eso ya lo cubre
+`canonical-debt-comparator.js` para deuda impagada), sino una reestructuración preventiva antes de
+dejar de pagar nada. Reutiliza los contratos reales de Deuda › Contratos (`debtContractSourceRows`,
+D-2) en vez de pedir capital/TAE/cuota a mano, y el ratio de deuda/ingresos seguro ya configurable
+en Ajustes › Alertas (H-9) en vez de un 35% fijo aparte.
+
+**Construido**: `canonical-joint-restructuring.js` (nuevo) — `jointRestructuringPlan(input)`: suma
+la cuota conjunta de los contratos, calcula el ratio frente al ingreso declarado y cuánto alivio
+mensual hace falta para bajar al ratio seguro; ordena los contratos por TAE descendente (el más caro
+primero, porque alargar su plazo ahorra más por cada mes añadido) y propone alargar el plazo un 50%
+contrato a contrato hasta cubrir el alivio necesario — reutiliza la misma cuota francesa estándar
+que DI1, en un módulo independiente a propósito (mismo criterio de autonomía que el resto de motores
+canónicos). Si ni alargando todos los plazos se cubre el alivio necesario, `sufficient: false` lo
+dice explícitamente en vez de fingir una solución. En `app.js`, `di5RestructuringContracts()` mapea
+los contratos activos con cuota; `handleDi5CompareJointRestructuring()` pide solo el ingreso mensual
+tras la caída y pinta la propuesta completa. Tarjeta nueva «Reestructuración conjunta ante una caída
+de ingresos» en Ajustes, junto a la de DI1. `canonical-joint-restructuring.js` añadido a la
+whitelist de `tools/build-public-site.mjs` y cargado en `index.html`. `app.js` bumpeado a
+`?v=20260829v1`.
+
+**Verificación**: 16 pruebas nuevas — 6 en `tests/canonical-joint-restructuring.test.cjs` (por
+debajo del ratio seguro no propone cambios, prioriza el tipo más caro, un contrato puede bastar y
+deja el resto sin tocar, puede no ser suficiente ni agotando todos los plazos, sin ingreso no
+fabrica un ratio, sin contratos no hay nada que reestructurar) y 10 en
+`tests/di5-reestructuracion-conjunta.test.cjs` (mapeo de contratos activos con cuota, sin ingreso
+avisa, sin contratos avisa, por debajo del ratio no hace falta reestructurar, por encima propone
+alargar el plazo del más caro, usa el ratio configurado en Ajustes › Alertas y no un 35% fijo, no
+persiste nada, HTML/wiring/ayuda, motor registrado).
+
+**Validación**: `npm run verify`, exit 0 — **2308/2308 pruebas** (2292 + 16 nuevas), accesibilidad
+(898 IDs, +3), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
+**Cierre del Bloque 4**: las 8 tareas completadas en esta sesión — OPT-5, A16-1, A16-3, A15-1, PV4,
+UX1, DI1, DI5. Cifras finales: 2308/2308 pruebas, 898 IDs de accesibilidad, todo en verde, incluido
+el CI real de GitHub Actions (confirmado en el PR tras OPT-5, que además valida que el nuevo
+presupuesto Lighthouse funciona en el runner real, no solo en este entorno).
+
 ## Cierre de sesión — 29 de agosto de 2026 (77): DI1 — hipoteca variable → fija bajo escenarios de tipos
 
 Séptima tarea del Bloque 4. Con spec detallada en la fila de la tabla («Usa el motor base/

@@ -2227,6 +2227,22 @@
               <div class="e19-kpi-note" id="ajustesMortgageScenariosNote"></div>
             </article>
 
+            <!-- DI5: reestructuración conjunta ante una caída de ingresos. Usa los contratos reales
+                 de Deuda › Contratos (activos, con cuota) — solo pide el ingreso mensual tras la
+                 caída, y propone en qué orden alargar plazos hasta el ratio seguro configurado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Reestructuración conjunta ante una caída de ingresos</h3>
+              <p class="e19-kpi-note">Mira todos tus contratos de deuda activos juntos frente a un ingreso reducido, y propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ingreso mensual tras la caída (€)</span>
+                  <input id="ajustesJointRestructuringIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesJointRestructuringCompare">Comparar</button>
+              <div class="e19-kpi-note" id="ajustesJointRestructuringNote"></div>
+            </article>
+
             <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
                  (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
                  editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
@@ -4374,6 +4390,7 @@
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
+    <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4400,7 +4417,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829u1"></script>
+    <script defer src="app.js?v=20260829v1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
