@@ -50,6 +50,14 @@
     ["annualInflation", "Inflación anual de gastos", "percent", "policy.annualInflation"],
     ["plannedMonthlySaving", "Ahorro mensual objetivo", "EUR", "policy.plannedMonthlySaving"],
     ["autoCapSavings", "Ajuste automático del ahorro", "boolean", "policy.autoCapSavings"],
+    // A15-1: los cinco supuestos fiscales del hogar entran en el mismo registro central que ya
+    // versionaba los ocho anteriores (A7-2, hasta ahora sin ningún sitio que lo llamara) — un único
+    // sitio editable, no uno nuevo en paralelo.
+    ["fiscalJointTaxation", "Tributación conjunta", "boolean", "fiscal.jointTaxation"],
+    ["fiscalWithholdingRate", "Retenciones aplicadas", "percent", "fiscal.withholdingRate"],
+    ["fiscalDeductibleContributions", "Aportaciones deducibles anuales", "EUR", "fiscal.deductibleContributions"],
+    ["fiscalDeductibleRent", "Alquiler deducible anual", "EUR", "fiscal.deductibleRent"],
+    ["fiscalLargeFamily", "Familia numerosa", "boolean", "fiscal.largeFamily"],
   ];
 
   function valueAt(input, path) {
@@ -61,7 +69,10 @@
     const generatedAt = metadata.generatedAt || new Date().toISOString();
     const items = ASSUMPTION_DEFINITIONS.map(([id, label, unit, path]) => {
       const raw = valueAt(input, path);
-      const value = unit === "boolean" ? raw !== false : number(raw);
+      // A15-1: `raw !== false` daba `true` para un booleano sin configurar todavía (undefined) — un
+      // sesgo silencioso hacia "sí" que nadie eligió. `=== true` exige un `true` explícito; ausencia
+      // de dato es `false`, no una suposición.
+      const value = unit === "boolean" ? raw === true : number(raw);
       const prior = previousItems.get(id);
       const unchanged = prior && prior.value === value;
       return {

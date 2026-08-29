@@ -2,6 +2,60 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (74): A15-1 — registro de supuestos fiscales
+
+Cuarta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Registro de supuestos
+fiscales en el registro central (A7-2) | Tributación conjunta/individual, retenciones, aportaciones
+deducibles, alquiler y familia numerosa como supuestos versionados, editables en un único lugar»).
+
+**Hallazgo antes de construir**: A7-2 («Registro central de supuestos») ya estaba construido a nivel
+de motor — `buildAssumptionRegistry()` en `canonical-forecast.js`, con ocho supuestos generales del
+forecast (saldos iniciales, factores de ingreso/gasto, ahorro objetivo, ajuste automático) — pero
+**ningún sitio de la app lo llamaba nunca**: cero referencias fuera de su propio test. Un motor
+terminado y probado, sin ninguna pantalla que lo mostrara. A15-1 termina de conectarlo: los cinco
+supuestos fiscales entran en esa misma lista, en vez de crear un registro fiscal aparte, y por fin
+hay una tarjeta real en Ajustes que lo muestra — «editables en un único lugar» tal como pedía la
+tarea, no solo los fiscales sino los trece juntos.
+
+**Construido**: `canonical-forecast.js` ganó cinco definiciones nuevas en `ASSUMPTION_DEFINITIONS`
+(tributación conjunta, retenciones, aportaciones deducibles, alquiler deducible, familia numerosa),
+bajo un nuevo prefijo de ruta `fiscal.*`. En `app.js`: getters `fiscalWithholdingRate()`/
+`fiscalDeductibleContributions()`/`fiscalDeductibleRent()` (0 si no está configurado, mismo patrón
+que DI2); `assumptionRegistryInput()` combina saldos y política del forecast (de `state`, los mismos
+valores que ya usa el resto de la app) con los cinco fiscales; `renderAjustesAssumptionRegistry()`
+pinta la lista completa de trece supuestos con su valor formateado por unidad (€, %, ×, Sí/No) y la
+fecha de la última actualización real; `persistAssumptionRegistry()` guarda la foto en
+`scenarioSettings.assumptionRegistry` solo cuando de verdad se edita un supuesto fiscal — no en cada
+render, para no convertir una visita a Ajustes en una escritura. Tarjeta nueva «Registro de
+supuestos» en `index.html`. `canonical-forecast.js` bumpeado a `?v=20260829a151a1`, `app.js` a
+`?v=20260829r1`.
+
+**Bug real encontrado por los tests, antes de publicar**: `buildAssumptionRegistry()` calculaba un
+booleano sin configurar como `raw !== false`, que da `true` para `undefined` — un sesgo silencioso
+hacia «sí» que nadie eligió. Nunca se notó porque el único booleano que ya existía
+(`autoCapSavings`) siempre llegaba con valor explícito en su test y su verdadero valor por defecto
+en la app SÍ es `true`. Con los dos booleanos fiscales nuevos (tributación conjunta, familia
+numerosa), donde lo honesto es partir de `false`, el sesgo se hizo visible. Corregido a
+`raw === true` (exige un `true` explícito; ausencia de dato es `false`) — y para no invertir sin
+querer el comportamiento real de `autoCapSavings` (que si sigue vale `true` por defecto en la app),
+`assumptionRegistryInput()` le aplica el mismo `?? true` que ya usa su propio checkbox.
+
+**Verificación**: 13 pruebas nuevas en `tests/a15-1-registro-supuestos-fiscales.test.cjs` (las cinco
+definiciones en el registro junto a las ocho generales, valores por defecto honestos sin
+configuración, los tres getters numéricos, `assumptionRegistryInput()` combina saldos/política/
+fiscales de `state`, la lista pinta las 13 filas con etiqueta/valor/fecha, un handler no guarda si
+no cambia, guarda y deja la foto nueva si cambia, cableado en `renderAjustes()`/
+`saveScenarioSettings()`/los cinco listeners/el HTML) y 1 prueba de ajuste en
+`tests/canonical-forecast.test.cjs` (el conteo de 8 a 13 supuestos, con su explicación).
+
+**Validación**: `npm run verify`, exit 0 — **2260/2260 pruebas** (2249 + 11 nuevas en
+`tests/a15-1-registro-supuestos-fiscales.test.cjs`; el conteo de 8 a 13 en
+`tests/canonical-forecast.test.cjs` es un ajuste sobre una prueba ya existente, no una prueba
+nueva), accesibilidad (886 IDs, +6: los cinco campos fiscales y la lista del registro), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (73): A16-3 — detección de recurrentes/suscripciones
 
 Tercera tarea del Bloque 4. Con spec detallada en la fila de la tabla («Agrupación por patrón e

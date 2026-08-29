@@ -2190,6 +2190,38 @@
               <p class="e19-kpi-note" id="ajustesTariffComparatorNote"></p>
             </article>
 
+            <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
+                 (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
+                 editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
+                 fiscales más los ocho generales del forecast que ya calculaba el motor). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Registro de supuestos</h3>
+              <p class="e19-kpi-note">Supuestos fiscales del hogar, versionados junto a los del forecast — un único lugar, no una cifra suelta en cada pantalla.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tributación conjunta</span>
+                  <input id="ajustesFiscalJointTaxation" type="checkbox" />
+                </label>
+                <label class="month-picker">
+                  <span>Retenciones (%)</span>
+                  <input id="ajustesFiscalWithholdingRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Aportaciones deducibles al año (€)</span>
+                  <input id="ajustesFiscalDeductibleContributions" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Alquiler deducible al año (€)</span>
+                  <input id="ajustesFiscalDeductibleRent" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Familia numerosa</span>
+                  <input id="ajustesFiscalLargeFamily" type="checkbox" />
+                </label>
+              </div>
+              <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
@@ -4278,7 +4310,7 @@
     <script defer src="canonical-state.js?v=20260717p0"></script>
     <script defer src="canonical-ledger.js?v=20260713d"></script>
     <script defer src="canonical-engine.js?v=20260713e"></script>
-    <script defer src="canonical-forecast.js?v=20260829a163a1"></script>
+    <script defer src="canonical-forecast.js?v=20260829a151a1"></script>
     <script defer src="canonical-cushion.js?v=20260829sp5a1"></script>
     <script defer src="canonical-e13-scenarios.js?v=20260802e13b1"></script>
     <script defer src="canonical-daily-engine.js?v=20260714a"></script>
@@ -4330,7 +4362,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829q1"></script>
+    <script defer src="app.js?v=20260829r1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

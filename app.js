@@ -3457,6 +3457,17 @@ function saveScenarioSettings() {
     // asegurado: dato del hogar que se sincroniza y se restaura, 0 significa «sin configurar».
     emergencyCreditLimit: round2(Math.max(0, Number(state.emergencyCreditLimit || 0))),
     emergencyCreditRate: round2(Math.max(0, Number(state.emergencyCreditRate || 0))),
+    // A15-1 · los cinco supuestos fiscales del hogar, mismo criterio que el resto: dato del hogar
+    // que se sincroniza y se restaura, 0/false significa «sin configurar».
+    fiscalJointTaxation: !!state.fiscalJointTaxation,
+    fiscalWithholdingRate: round2(Math.max(0, Math.min(100, Number(state.fiscalWithholdingRate || 0)))),
+    fiscalDeductibleContributions: round2(Math.max(0, Number(state.fiscalDeductibleContributions || 0))),
+    fiscalDeductibleRent: round2(Math.max(0, Number(state.fiscalDeductibleRent || 0))),
+    fiscalLargeFamily: !!state.fiscalLargeFamily,
+    // A15-1 · última fotografía del registro central de supuestos (A7-2): buildAssumptionRegistry()
+    // la recalcula al editar cualquier supuesto fiscal, comparando contra esta para no adelantar
+    // updatedAt de un valor que no ha cambiado.
+    assumptionRegistry: scenarioSettings.assumptionRegistry || null,
     // V6-2 · los dos umbrales de Ajustes que no encajan como regla de alertas: 0 significa «sin
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
@@ -6434,6 +6445,20 @@ function applyHelpTooltips() {
     "Año fiscal al que corresponde esta tabla (tramos de IRPF, mínimos personales, etc.). Sin una tabla para el año en curso, la nota de abajo avisa de que la actualización anual sigue pendiente.",
   );
   qs("ajustesTariffCompare")?.setAttribute("data-help", "Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo. También calcula a qué precio variable medio ambas costarían lo mismo — no trae ningún precio de mercado real, tú pones los tuyos.");
+  qs("ajustesFiscalJointTaxation")?.setAttribute("data-help", "Marca si declaráis tributación conjunta. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos, sin estimar ningún resultado de IRPF.");
+  addHelpToControl(
+    "ajustesFiscalWithholdingRate",
+    "Retenciones aplicadas sobre el ingreso principal, en %. Vacío significa sin configurar, no cero.",
+  );
+  addHelpToControl(
+    "ajustesFiscalDeductibleContributions",
+    "Aportaciones deducibles al año (plan de pensiones u otras), en euros. Vacío significa sin configurar, no cero.",
+  );
+  addHelpToControl(
+    "ajustesFiscalDeductibleRent",
+    "Alquiler deducible al año, en euros. Vacío significa sin configurar, no cero.",
+  );
+  qs("ajustesFiscalLargeFamily")?.setAttribute("data-help", "Marca si sois familia numerosa. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -22541,6 +22566,153 @@ function handleEmergencyCreditRateChange(event) {
   announceStatus(next > 0 ? `TIN de la línea de crédito guardado en ${next}%.` : "TIN de la línea de crédito borrado.");
 }
 
+// A15-1 · registro de supuestos fiscales, en el registro central (A7-2: buildAssumptionRegistry(),
+// hasta ahora construido pero sin ningún sitio de la app que lo llamara). Cinco campos —tributación
+// conjunta/individual, retenciones, aportaciones deducibles, alquiler deducible y familia numerosa—
+// que se versionan junto a los ocho supuestos generales del forecast (saldos iniciales y política),
+// todos en una única lista editable, mismo patrón de campo único que SP2/DI2 para cada uno.
+function fiscalWithholdingRate() {
+  const configured = Number(state?.fiscalWithholdingRate || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function fiscalDeductibleContributions() {
+  const configured = Number(state?.fiscalDeductibleContributions || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function fiscalDeductibleRent() {
+  const configured = Number(state?.fiscalDeductibleRent || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+// Solo la política del forecast (saldos, factores de ingreso/gasto) más los cinco fiscales — no
+// todo lo que acepta buildForecast() en la simulación completa (E13), que no hace falta para
+// versionar los supuestos por sí solos.
+function assumptionRegistryInput() {
+  const balances = accountBalancesFromState();
+  return {
+    openingBalances: { checking: balances.caixa, savings: balances.mediolanum },
+    policy: {
+      incomeFactor: state?.incomeFactor, annualIncomeGrowth: state?.annualIncomeGrowth,
+      expenseFactor: state?.expenseFactor, annualInflation: state?.annualInflation,
+      // Mismo valor por defecto que ya usa el propio checkbox (V6-3): buildAssumptionRegistry()
+      // trata un booleano sin dato como "no" (A15-1), así que aquí hay que dar el true real cuando
+      // autoCapSavings todavía no se ha tocado, o el registro mostraría "No" para el comportamiento
+      // que en realidad está activo.
+      plannedMonthlySaving: state?.recommendedSavings, autoCapSavings: state?.autoCapSavings ?? true,
+    },
+    fiscal: {
+      jointTaxation: state?.fiscalJointTaxation, withholdingRate: fiscalWithholdingRate(),
+      deductibleContributions: fiscalDeductibleContributions(), deductibleRent: fiscalDeductibleRent(),
+      largeFamily: state?.fiscalLargeFamily,
+    },
+  };
+}
+
+function syncFiscalAssumptionControls() {
+  const setValue = (id, value) => { const field = qs(id); if (field && document.activeElement !== field) field.value = value > 0 ? String(value) : ""; };
+  const setChecked = (id, checked) => { const field = qs(id); if (field && document.activeElement !== field) field.checked = !!checked; };
+  setChecked("ajustesFiscalJointTaxation", state?.fiscalJointTaxation);
+  setValue("ajustesFiscalWithholdingRate", fiscalWithholdingRate());
+  setValue("ajustesFiscalDeductibleContributions", fiscalDeductibleContributions());
+  setValue("ajustesFiscalDeductibleRent", fiscalDeductibleRent());
+  setChecked("ajustesFiscalLargeFamily", state?.fiscalLargeFamily);
+}
+
+const ASSUMPTION_REGISTRY_UNIT_FORMAT = {
+  EUR: (value) => money(value, true),
+  percent: (value) => `${value}%`,
+  ratio: (value) => `×${value}`,
+  boolean: (value) => (value ? "Sí" : "No"),
+};
+
+// Recalcula siempre con los valores actuales (para que la lista nunca muestre un supuesto general
+// desfasado si se editó fuera de esta tarjeta) — nunca persiste por sí sola; eso lo hace
+// persistAssumptionRegistry(), solo cuando de verdad se edita un supuesto fiscal.
+function renderAjustesAssumptionRegistry() {
+  const list = qs("ajustesAssumptionRegistry");
+  if (!list || !window.FinanceCanonicalForecast?.buildAssumptionRegistry) return;
+  const registry = window.FinanceCanonicalForecast.buildAssumptionRegistry(
+    assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" },
+  );
+  list.innerHTML = registry.items.map((item) => {
+    const format = ASSUMPTION_REGISTRY_UNIT_FORMAT[item.unit] || ((value) => String(value));
+    return `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(format(item.value))}</strong><small>Actualizado ${escapeHtml(formatIsoDate(item.updatedAt.slice(0, 10)))}</small></li>`;
+  }).join("");
+}
+
+function persistAssumptionRegistry() {
+  scenarioSettings.assumptionRegistry = window.FinanceCanonicalForecast?.buildAssumptionRegistry(
+    assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" },
+  ) || null;
+}
+
+function handleFiscalJointTaxationChange(event) {
+  if (!state) return;
+  state.fiscalJointTaxation = !!event.target.checked;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(state.fiscalJointTaxation ? "Tributación conjunta guardada." : "Tributación individual guardada.");
+}
+
+function fiscalNumericFieldFromValue(raw, { max = Infinity } = {}) {
+  const text = String(raw ?? "").trim().replace(",", ".");
+  if (!text) return 0;
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return round2(Math.min(max, parsed));
+}
+
+function handleFiscalWithholdingRateChange(event) {
+  if (!state) return;
+  const next = fiscalNumericFieldFromValue(event.target.value, { max: 100 });
+  const previous = fiscalWithholdingRate();
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.fiscalWithholdingRate = next;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(next > 0 ? `Retenciones guardadas en ${next}%.` : "Retenciones borradas.");
+}
+
+function handleFiscalDeductibleContributionsChange(event) {
+  if (!state) return;
+  const next = fiscalNumericFieldFromValue(event.target.value);
+  const previous = fiscalDeductibleContributions();
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.fiscalDeductibleContributions = next;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(next > 0 ? `Aportaciones deducibles guardadas en ${money(next, true)}.` : "Aportaciones deducibles borradas.");
+}
+
+function handleFiscalDeductibleRentChange(event) {
+  if (!state) return;
+  const next = fiscalNumericFieldFromValue(event.target.value);
+  const previous = fiscalDeductibleRent();
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.fiscalDeductibleRent = next;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(next > 0 ? `Alquiler deducible guardado en ${money(next, true)}.` : "Alquiler deducible borrado.");
+}
+
+function handleFiscalLargeFamilyChange(event) {
+  if (!state) return;
+  state.fiscalLargeFamily = !!event.target.checked;
+  persistAssumptionRegistry();
+  saveScenarioSettings();
+  renderAjustesAssumptionRegistry();
+  announceStatus(state.fiscalLargeFamily ? "Familia numerosa guardada." : "Familia numerosa desmarcada.");
+}
+
 /* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
    Reúne lo que hoy vive repartido, sin reimplementarlo: la reserva operativa se guarda de verdad
    aquí (ver el bloque V6-1/V6-3 anterior); cuentas, partidas y umbrales solo se leen para el resumen
@@ -22564,6 +22736,8 @@ function renderAjustes() {
   renderMaintenanceFeeAccounts();
   renderInsurancePolicies();
   renderTaxTables();
+  syncFiscalAssumptionControls();
+  renderAjustesAssumptionRegistry();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -32167,6 +32341,11 @@ async function init() {
     renderTaxTables();
   });
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
+  qs("ajustesFiscalJointTaxation")?.addEventListener("change", handleFiscalJointTaxationChange);
+  qs("ajustesFiscalWithholdingRate")?.addEventListener("change", handleFiscalWithholdingRateChange);
+  qs("ajustesFiscalDeductibleContributions")?.addEventListener("change", handleFiscalDeductibleContributionsChange);
+  qs("ajustesFiscalDeductibleRent")?.addEventListener("change", handleFiscalDeductibleRentChange);
+  qs("ajustesFiscalLargeFamily")?.addEventListener("change", handleFiscalLargeFamilyChange);
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
     if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }

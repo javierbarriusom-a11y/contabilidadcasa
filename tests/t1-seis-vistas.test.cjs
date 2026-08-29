@@ -57,6 +57,6 @@ test("T-1 · el lanzador refleja el cambio: Ajustes es nueva, Decidir ya no est�
 test("T-1 · viaja en el shell offline versionado", () => {
   const worker = read("service-worker.js");
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20260829q1/);
+  assert.match(html, /app.js\?v=20260829r1/);
   assert.match(html, /e17-experience\.js\?v=20260821d1a1/);
 });

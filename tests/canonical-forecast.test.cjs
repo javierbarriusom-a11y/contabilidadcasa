@@ -38,7 +38,7 @@ test("E12a crea un registro central, versionado y estable de supuestos", () => {
   const second = forecast.buildAssumptionRegistry(input, first, { generatedAt: "2026-08-02T09:00:00.000Z" });
 
   assert.equal(first.schemaId, forecast.ASSUMPTIONS_SCHEMA_ID);
-  assert.equal(first.items.length, 8);
+  assert.equal(first.items.length, 13); // 8 originales + 5 fiscales (A15-1)
   assert.equal(first.items.find((item) => item.id === "annualInflation").value, 0);
   assert.equal(second.fingerprint, first.fingerprint);
   assert.equal(second.items[0].updatedAt, first.items[0].updatedAt);
