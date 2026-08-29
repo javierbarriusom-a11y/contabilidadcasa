@@ -2,6 +2,36 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (58): A16-5 — comparador bola de nieve / avalancha / óptimo
+
+Quinta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con spec completa en
+`BACKLOG_PATRIMONIO_Y_FINANZAS.md`. Avalancha (ataca primero el TAE más alto, matemáticamente
+óptima) y bola de nieve (ataca primero el saldo más pequeño, motivadora) ya se comparaban en Deuda ·
+Ruta con su propio «coste total ejecutado» (`debtStrategySummary`, ya en producción) — pero cada una
+en su pestaña, sin decir nunca en euros cuánto cuesta elegir la motivadora en vez de la óptima.
+
+**Construido**: `debtStrategyMotivationalGap(baseInput, reserveValue)` (`app.js`) resta los dos
+`costeTotal` que `debtStrategySummary` ya calcula para "avalancha" y "bola-nieve", sin recalcular
+nada; devuelve `null` si cualquiera de las dos no es viable en el horizonte actual, para no comparar
+una ruta completa con una a medias. `deudaRutaMotivationalGapText(gap)` redacta el resultado sin dar
+por hecho el signo — dice lo que la cifra diga de verdad (extra, empate, o incluso bola de nieve más
+barata, si la cartera lo diera así) en vez de afirmar una relación que podría no cumplirse. Nueva
+nota `#deudaRutaMotivationalGapNote` en la tarjeta "Antes de aplicar" de Deuda · Ruta, siempre
+visible —no solo con Bola de nieve seleccionada—, como contexto de decisión antes de aplicar
+cualquiera de las dos.
+
+**Verificación**: 11 pruebas nuevas en `tests/a16-5-brecha-motivadora-deuda.test.cjs` — brecha
+normal, empate, el caso inverso (bola de nieve más barata, sin invertir la lógica a la fuerza), sin
+decisiones en ninguna estrategia, cada estrategia por separado sin ser viable, la redacción de los
+tres casos de signo, y que la nota vive en Deuda · Ruta. `app.js` bumpeado a `?v=20260829d1`.
+
+**Validación**: `npm run verify`, exit 0 — **2096/2096 pruebas** (2085 + 11 nuevas), accesibilidad
+(**837 IDs**, +1 por la nota nueva), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (55-57): OPT-19, OPT-21, OPT-22 — tres tareas de gobernanza documental
 
 Tres tareas seguidas del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con spec completa en

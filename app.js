@@ -27386,6 +27386,37 @@ function debtStrategySummary(strategyId, baseInput, reserveValue) {
   };
 }
 
+// A16-5: avalancha (ataca primero el TAE más alto) y bola de nieve (ataca primero el saldo más
+// pequeño) ya se comparan por separado, pestaña a pestaña, con su propio "coste total ejecutado" —
+// pero nada decía nunca, en euros, cuánto cuesta elegir la opción motivadora (bola de nieve, premia
+// victorias rápidas) en vez de la matemáticamente óptima (avalancha, minimiza el interés total).
+// Reutiliza debtStrategySummary tal cual, sin recalcular nada: solo resta sus dos costeTotal. Si
+// cualquiera de las dos no es viable en este horizonte, la comparación no significa nada — se
+// devuelve null en vez de una cifra que compararía una ruta completa con una a medias.
+function debtStrategyMotivationalGap(baseInput, reserveValue) {
+  const optimal = debtStrategySummary("avalancha", baseInput, reserveValue);
+  const motivational = debtStrategySummary("bola-nieve", baseInput, reserveValue);
+  if (!optimal.total || !motivational.total || !optimal.viable || !motivational.viable) return null;
+  return {
+    optimalCost: optimal.costeTotal,
+    motivationalCost: motivational.costeTotal,
+    extraCost: round2(motivational.costeTotal - optimal.costeTotal),
+  };
+}
+
+// A16-5: la copia no da por hecho que la motivadora siempre sale más cara — dice lo que la cifra
+// diga de verdad para no afirmar algo falso en una cartera donde no se cumpliera.
+function deudaRutaMotivationalGapText(gap) {
+  if (!gap) return "";
+  if (gap.extraCost > 0) {
+    return `Elegir Bola de nieve en vez de Avalancha costaría ${money(gap.extraCost, true)} más en tu cartera actual (Avalancha ${money(gap.optimalCost, true)} · Bola de nieve ${money(gap.motivationalCost, true)}).`;
+  }
+  if (gap.extraCost < 0) {
+    return `En tu cartera actual, Bola de nieve sale ${money(Math.abs(gap.extraCost), true)} más barata que Avalancha (Avalancha ${money(gap.optimalCost, true)} · Bola de nieve ${money(gap.motivationalCost, true)}).`;
+  }
+  return `Avalancha y Bola de nieve cuestan lo mismo en tu cartera actual: ${money(gap.optimalCost, true)}.`;
+}
+
 // V1-3 · «Deuda pendiente» y «Libre de deuda» para Hoy. Las dos cifras salen del mismo sitio que
 // las de `#deuda-comparar` —los contratos que el motor considera accionables, `escenarioMotorDebtOptions`—
 // para que Hoy y Deuda no puedan contar historias distintas sobre la misma deuda. Ojo: no coincide

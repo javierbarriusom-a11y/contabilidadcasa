@@ -78,5 +78,5 @@ test("V3-5 · las tres heredadas de Deuda siguen relegadas, sin duplicados", () 
 
 test("V3-5 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app\.js\?v=20260829c1/);
+  assert.match(html, /app\.js\?v=20260829d1/);
 });

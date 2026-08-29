@@ -891,6 +891,11 @@ function renderDeudaRuta() {
   }
   if (applyButton) applyButton.disabled = summary.total === 0 || !summary.viable;
 
+  // A16-5: siempre visible, no solo con Bola de nieve seleccionada — es contexto de decisión antes
+  // de aplicar cualquiera de las dos, no una nota que solo aparece cuando ya se ha elegido.
+  const motivationalGapNote = qs("deudaRutaMotivationalGapNote");
+  if (motivationalGapNote) motivationalGapNote.textContent = deudaRutaMotivationalGapText(debtStrategyMotivationalGap(baseInput, debtStrategyReserveValue));
+
   const aggregate = debtStrategyAggregateCalendar(summary.decisions, resultadosById, calendarContracts, baseInput.months);
   const baselineInterest = debtAmortizationTotalInterest(calendarContracts, baseInput.months.length);
   const amortChart = qs("deudaRutaAmortChart");
