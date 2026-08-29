@@ -6493,6 +6493,7 @@ function applyHelpTooltips() {
     "Alquiler deducible al año, en euros. Vacío significa sin configurar, no cero.",
   );
   qs("ajustesFiscalLargeFamily")?.setAttribute("data-help", "Marca si sois familia numerosa. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos.");
+  qs("ajustesMortgageScenariosCompare")?.setAttribute("data-help", "Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos (base/favorable/tensión, mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: tú pones los tuyos.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -15191,6 +15192,33 @@ function handleAjustesCompareTariffs() {
     ? ` Con este consumo, la fija y la variable costarían lo mismo si la variable rondara ${result.breakEvenVariablePrice.toFixed(4)} €/unidad de media.`
     : "";
   note.textContent = `Fija: ${money(result.fixedMonthlyCost, true)}/mes · Variable: ${money(result.variableMonthlyCost, true)}/mes. ${verdictText}${breakEvenText}`;
+}
+
+// DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo criterio que A19-3 (comparador de
+// tarifas): calculadora puntual, sin persistir nada en scenarioSettings — lee los campos y muestra
+// el resultado en el momento.
+function handleDi1CompareMortgageScenarios() {
+  const note = qs("ajustesMortgageScenariosNote");
+  if (!note) return;
+  const principal = parseAmount(qs("ajustesMortgagePrincipal")?.value);
+  if (!principal || principal <= 0) {
+    note.textContent = "Indica el capital pendiente (mayor que 0) para comparar.";
+    return;
+  }
+  const result = window.FinanceCanonicalMortgageRateScenarios?.evaluateMortgageRateScenarios({
+    principal,
+    months: parseAmount(qs("ajustesMortgageMonths")?.value),
+    currentVariableRate: parseAmount(qs("ajustesMortgageVariableRate")?.value),
+    fixedRateOffer: parseAmount(qs("ajustesMortgageFixedRate")?.value),
+  });
+  if (!result) return;
+  const rows = result.scenarios.map((scenario) => {
+    const verdict = scenario.cheaper === "tie"
+      ? "empatan"
+      : `sale más barata la ${scenario.cheaper === "fixed" ? "fija" : "variable"}, por ${money(scenario.difference, true)} en total`;
+    return `<li><strong>${escapeHtml(scenario.label)}</strong> (variable al ${scenario.variableRate}%): cuota variable ${money(scenario.variableMonthlyPayment, true)}/mes (${money(scenario.variableTotalCost, true)} en total) frente a cuota fija ${money(scenario.fixedMonthlyPayment, true)}/mes (${money(scenario.fixedTotalCost, true)} en total) — ${verdict}.</li>`;
+  }).join("");
+  note.innerHTML = `<ul class="commit-barrier-list">${rows}</ul>`;
 }
 
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
@@ -32434,6 +32462,7 @@ async function init() {
     renderTaxTables();
   });
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
+  qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
   qs("ajustesFiscalJointTaxation")?.addEventListener("change", handleFiscalJointTaxationChange);
   qs("ajustesFiscalWithholdingRate")?.addEventListener("change", handleFiscalWithholdingRateChange);
   qs("ajustesFiscalDeductibleContributions")?.addEventListener("change", handleFiscalDeductibleContributionsChange);

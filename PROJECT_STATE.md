@@ -2,6 +2,43 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (77): DI1 — hipoteca variable → fija bajo escenarios de tipos
+
+Séptima tarea del Bloque 4. Con spec detallada en la fila de la tabla («Usa el motor base/
+favorable/tensión ya existente»).
+
+**Hallazgo antes de construir**: el motor base/favorable/tensión que ya existe
+(`canonical-e13-scenarios.js`, E13) trabaja con factores de ingreso/gasto para el Laboratorio de
+escenarios general — no hay ningún registro de hipoteca ni motor de amortización con tipo variable/
+fijo en toda la app (se buscó en `canonical-debt-contracts.js` y `canonical-debt-comparator.js`,
+ninguno modela tipos de interés). **Decisión de alcance**: se reutiliza el *marco* de tres
+escenarios (mismos tres nombres — base/favorable/tensión — mismo criterio de "tres lecturas, no
+una"), no el motor de E13 literalmente, porque sus factores de ingreso/gasto no aplican a un tipo de
+interés. Calculadora puntual, sin datos de mercado reales — mismo criterio que A19-3 (comparador de
+tarifas): el hogar declara capital pendiente, plazo, tipo variable actual y la oferta de tipo fijo.
+
+**Construido**: `canonical-mortgage-rate-scenarios.js` (nuevo) — `monthlyPayment(principal, tipo,
+meses)`: cuota francesa estándar (amortización a cuota constante), lineal si el tipo es 0 (sin
+dividir por cero). `evaluateMortgageRateScenarios(input)`: tres escenarios con los mismos nombres
+que el Laboratorio (base: sin cambio; favorable: −1 punto; tensión: +1,5 puntos, sin bajar de 0%),
+cada uno con la cuota y coste total de seguir en variable frente a pasarse a fijo, y el veredicto
+(`cheaper`: `"variable"`/`"fixed"`/`"tie"`). En `app.js`, `handleDi1CompareMortgageScenarios()` lee
+los cuatro campos y rellena la nota con los tres escenarios. Tarjeta nueva «Hipoteca variable → fija
+bajo escenarios de tipos» en Ajustes, junto al comparador de tarifas de A19-3.
+`canonical-mortgage-rate-scenarios.js` añadido a la whitelist de `tools/build-public-site.mjs` y
+cargado en `index.html`. `app.js` bumpeado a `?v=20260829u1`.
+
+**Verificación**: 13 pruebas nuevas — 7 en `tests/canonical-mortgage-rate-scenarios.test.cjs`
+(cuota francesa estándar, tipo 0 lineal, sin capital cuota 0, los tres escenarios con los nombres de
+E13, en tensión la variable puede salir más cara, el delta nunca deja un tipo negativo, empate real)
+y 6 en `tests/di1-hipoteca-variable-fija.test.cjs` (sin capital avisa, con datos válidos muestra los
+tres escenarios, no persiste nada en `scenarioSettings`, HTML/wiring/ayuda, motor registrado).
+
+**Validación**: `npm run verify`, exit 0 — **2292/2292 pruebas** (2279 + 13 nuevas), accesibilidad
+(895 IDs, +6), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (76): UX1 — deshacer de 10 segundos en vez de confirmaciones modales
 
 Sexta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Auditar cada modal de

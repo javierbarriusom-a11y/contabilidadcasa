@@ -2199,6 +2199,34 @@
               <p class="e19-kpi-note" id="ajustesTariffComparatorNote"></p>
             </article>
 
+            <!-- DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo marco de tres
+                 escenarios (base/favorable/tensión) que ya usa el Laboratorio de escenarios (E13),
+                 aplicado al tipo de interés — calculadora puntual, sin tipos de mercado reales. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Hipoteca variable → fija bajo escenarios de tipos</h3>
+              <p class="e19-kpi-note">Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos — base, favorable y tensión (mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: pones los tuyos.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Capital pendiente (€)</span>
+                  <input id="ajustesMortgagePrincipal" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Meses restantes</span>
+                  <input id="ajustesMortgageMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="240" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo variable actual (%)</span>
+                  <input id="ajustesMortgageVariableRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Oferta de tipo fijo (%)</span>
+                  <input id="ajustesMortgageFixedRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMortgageScenariosCompare">Comparar</button>
+              <div class="e19-kpi-note" id="ajustesMortgageScenariosNote"></div>
+            </article>
+
             <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
                  (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
                  editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
@@ -4345,6 +4373,7 @@
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
+    <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4371,7 +4400,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829t1"></script>
+    <script defer src="app.js?v=20260829u1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
