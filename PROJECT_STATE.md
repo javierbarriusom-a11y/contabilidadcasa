@@ -2,6 +2,42 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (62): TT3 — registro comparado de cuentas remuneradas activas
+
+Novena tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). No existía ningún registro de cuentas remuneradas en el código: TT1 (Bloque 1) asumía una
+única cuenta remunerada conceptual para dividir el colchón; TT3 es la primera tarea que deja anotar
+varias cuentas nombradas con su TAE.
+
+**Decisión de alcance**: mismo patrón que `bigPurchaseGoals` — un array simple en `scenarioSettings`
+(dato del hogar, se sincroniza y se restaura solo, sin migración de esquema ni cuenta bancaria real
+conectada), consistente con «S» de esfuerzo.
+
+**Construido**: `remuneratedAccounts()` (lee/inicializa el array), `addRemuneratedAccount({name,
+balance, rate, notes})` y `removeRemuneratedAccount(id)` (CRUD, normalizan nombre/saldo/TAE — saldo y
+TAE negativos se recortan a 0, nombre vacío cae a «Cuenta remunerada»), `remuneratedAccountsCompared()`
+(ordena por TAE descendente —la mejor primero—, desempate por saldo descendente, y calcula la media
+ponderada por saldo, no una media simple de tasas, para que una cuenta casi vacía con TAE alta no
+distorsione el conjunto) y `renderRemuneratedAccounts()`/`addRemuneratedAccountFromControls()` para la
+UI. Tarjeta nueva «Cuentas remuneradas» en Ajustes (formulario nombre/saldo/TAE/notas, botón Añadir,
+lista con insignia «Mejor TAE» en la cuenta líder y botón Quitar por fila, nota-resumen con saldo total
+y TAE media ponderada), en la misma línea visual que las tarjetas de Ajustes ya añadidas esta sesión
+(SP2, ICS). Wiring: `renderAjustes()` llama a `renderRemuneratedAccounts()`; listener del botón Añadir
+y listener delegado en el contenedor para `[data-remunerated-remove]`; ayuda contextual en el campo TAE.
+
+**Verificación**: 9 pruebas nuevas en `tests/tt3-cuentas-remuneradas.test.cjs` — lista vacía sin
+dividir por cero, alta/baja normalizadas, orden por TAE descendente con desempate por saldo, la media
+ponderada frente a la media simple (caso donde difieren claramente: 1,4% ponderada frente a 3% simple),
+más las comprobaciones estáticas de HTML/wiring/`renderAjustes`. `app.js` bumpeado a `?v=20260829g1`
+(actualizado en `index.html` y en los 26 archivos de test que fijan esa cadena de versión).
+
+**Validación**: `npm run verify`, exit 0 — **2122/2122 pruebas** (2113 + 9 nuevas), accesibilidad (845
+IDs, +7 por los 7 IDs nuevos del formulario/lista/nota), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (61): CP5 — presupuesto de riesgo con severidad graduada
 
 Octava tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. El umbral de caja de A11-5

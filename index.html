@@ -2018,6 +2018,32 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
+              <p class="e19-kpi-note">Registro comparado de las cuentas remuneradas activas: cuál paga mejor TAE y qué rendimiento medio da el conjunto, ponderado por saldo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesRemuneratedName" type="text" placeholder="Cuenta naranja" />
+                </label>
+                <label class="month-picker">
+                  <span>Saldo</span>
+                  <input id="ajustesRemuneratedBalance" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>TAE (%)</span>
+                  <input id="ajustesRemuneratedRate" type="number" min="0" step="0.05" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesRemuneratedNotes" type="text" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesRemuneratedAdd">Añadir cuenta</button>
+              <div id="ajustesRemuneratedAccounts"></div>
+              <p class="e19-kpi-note" id="ajustesRemuneratedAccountsNote"></p>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
               <div class="cuadro-mandos-controls">
@@ -4149,7 +4175,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829f1"></script>
+    <script defer src="app.js?v=20260829g1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

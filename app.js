@@ -6382,6 +6382,10 @@ function applyHelpTooltips() {
   qs("ajustesExportPdf")?.setAttribute("data-help", "Previsto, real y desviación de cada partida del mes abierto en Registrar el mes, en un PDF de una página por cada 42 líneas.");
   qs("ajustesExportIcs")?.setAttribute("data-help", "Un evento por mes con cuotas de deuda, vencimientos de objetivos, revisiones y cierre previsto — importa el fichero en Google/Apple Calendar. Solo lectura: no se sincroniza solo, hay que volver a descargarlo si algo cambia.");
   addHelpToControl(
+    "ajustesRemuneratedRate",
+    "TAE de la cuenta, en %. El registro ordena tus cuentas remuneradas de mayor a menor TAE y calcula la media ponderada por saldo, no solo la mejor tasa aislada.",
+  );
+  addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
   );
@@ -14789,6 +14793,75 @@ function removeBigPurchaseGoal(id) {
   saveScenarioSettings();
 }
 
+// TT3 · registro comparado de cuentas remuneradas activas. Mismo patrón que bigPurchaseGoals: un
+// array simple en scenarioSettings (dato del hogar, se sincroniza y se restaura), sin dominio de
+// datos nuevo ni migración de esquema — CRUD local, no una cuenta bancaria real conectada.
+function remuneratedAccounts() {
+  scenarioSettings.remuneratedAccounts = Array.isArray(scenarioSettings.remuneratedAccounts) ? scenarioSettings.remuneratedAccounts : [];
+  return scenarioSettings.remuneratedAccounts;
+}
+
+function addRemuneratedAccount({ name, balance, rate, notes }) {
+  const accounts = remuneratedAccounts();
+  accounts.push({
+    id: `remunerada-${Date.now()}-${accounts.length}`,
+    name: String(name || "").trim() || "Cuenta remunerada",
+    balance: round2(Math.max(0, Number(balance) || 0)),
+    rate: round2(Math.max(0, Number(rate) || 0)),
+    notes: String(notes || "").trim(),
+  });
+  saveScenarioSettings();
+}
+
+function removeRemuneratedAccount(id) {
+  scenarioSettings.remuneratedAccounts = remuneratedAccounts().filter((account) => account.id !== id);
+  saveScenarioSettings();
+}
+
+// Comparado por TAE descendente — la mejor cuenta primero. La media ponderada por saldo dice el
+// rendimiento real de conjunto, no solo la mejor tasa aislada (que podría ser una cuenta casi vacía
+// sin peso real en el total).
+function remuneratedAccountsCompared() {
+  const sorted = remuneratedAccounts().slice().sort((a, b) => b.rate - a.rate || b.balance - a.balance);
+  const totalBalance = round2(sorted.reduce((sum, account) => sum + account.balance, 0));
+  const weightedRate = totalBalance > 0 ? round2(sorted.reduce((sum, account) => sum + account.balance * account.rate, 0) / totalBalance) : 0;
+  return { accounts: sorted, totalBalance, weightedRate, bestId: sorted[0]?.id || "" };
+}
+
+function renderRemuneratedAccounts() {
+  const target = qs("ajustesRemuneratedAccounts");
+  const note = qs("ajustesRemuneratedAccountsNote");
+  if (!target) return;
+  const compared = remuneratedAccountsCompared();
+  target.innerHTML = compared.accounts.length
+    ? `<ul class="commit-barrier-list">${compared.accounts
+        .map(
+          (account) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(account.name)}</strong>${account.id === compared.bestId ? ` <span class="status-pill">Mejor TAE</span>` : ""}</div><span>${money(account.balance, true)} · ${account.rate.toFixed(2)}% TAE${account.notes ? ` · ${escapeHtml(account.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-remunerated-remove="${escapeHtml(account.id)}">Quitar</button></li>`,
+        )
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin cuentas remuneradas registradas todavía.</p>`;
+  if (note) {
+    note.textContent = compared.accounts.length
+      ? `${money(compared.totalBalance, true)} en ${compared.accounts.length} cuenta(s) · TAE media ponderada por saldo: ${compared.weightedRate.toFixed(2)}%.`
+      : "";
+  }
+}
+
+function addRemuneratedAccountFromControls() {
+  const name = qs("ajustesRemuneratedName")?.value;
+  if (!name || !String(name).trim()) return;
+  addRemuneratedAccount({
+    name,
+    balance: parseAmount(qs("ajustesRemuneratedBalance")?.value),
+    rate: parseAmount(qs("ajustesRemuneratedRate")?.value),
+    notes: qs("ajustesRemuneratedNotes")?.value,
+  });
+  ["ajustesRemuneratedName", "ajustesRemuneratedBalance", "ajustesRemuneratedRate", "ajustesRemuneratedNotes"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderRemuneratedAccounts();
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -22082,6 +22155,7 @@ function renderAjustes() {
   renderAjustesReserveNote();
   syncLifeInsuranceCapitalControl();
   renderAjustesLifeInsuranceCapitalNote();
+  renderRemuneratedAccounts();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -31593,6 +31667,13 @@ async function init() {
   qs("ajustesExportCsv")?.addEventListener("click", downloadCsv);
   qs("ajustesExportPdf")?.addEventListener("click", handleAjustesExportPdf);
   qs("ajustesExportIcs")?.addEventListener("click", handleAjustesExportIcs);
+  qs("ajustesRemuneratedAdd")?.addEventListener("click", addRemuneratedAccountFromControls);
+  qs("ajustesRemuneratedAccounts")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-remunerated-remove]");
+    if (!removeButton) return;
+    removeRemuneratedAccount(removeButton.dataset.remuneratedRemove);
+    renderRemuneratedAccounts();
+  });
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
     if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }
