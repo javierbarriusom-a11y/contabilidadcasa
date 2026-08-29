@@ -21111,6 +21111,20 @@ function e11bAreaLabel(key) {
   return { balances: "Saldos", movements: "Movimientos", actuals: "Reales", forecast: "Previsión", debt: "Deuda" }[key] || key;
 }
 
+// A16-1: extraído de renderE11bStatus() para que el componente "frescura de datos" de la puntuación
+// compuesta de salud financiera reutilice exactamente el mismo cálculo que ya se muestra en Datos ·
+// Actualización, en vez de una segunda derivación con criterio propio.
+function dataFreshnessReport() {
+  if (!E11bInbox) return null;
+  const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: String(key).match(/\d{4}-\d{2}/)?.[0] ? `${String(key).match(/\d{4}-\d{2}/)[0]}-01` : "" }));
+  return E11bInbox.freshness({
+    balanceDate: state?.balanceDate || balanceSettings.balanceDate || "",
+    movements: baseData?.transactions || [], actuals: actualMonths,
+    forecastDate: baseData?.metadata?.generatedAt?.slice(0, 10) || "",
+    debtDate: canonicalDebtContractRows().length ? (baseData?.metadata?.generatedAt?.slice(0, 10) || "") : "",
+  }, { asOf: new Date().toISOString().slice(0, 10) });
+}
+
 function renderE11bStatus() {
   if (!E11bInbox) return;
   const toggle = qs("toggleDataInbox");
@@ -21129,13 +21143,7 @@ function renderE11bStatus() {
       return `<article class="e19-inbox-item"><div class="e19-inbox-item-head"><strong>${escapeHtml(item.sourceLabel)}</strong><span class="e19-badge ${badgeClass[item.status] || "e19-badge-neutral"}">${escapeHtml(status)}</span></div><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
     }).join("") : `<article class="e19-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
   }
-  const actualMonths = [...Object.keys(incomeActuals), ...Object.keys(expenseActuals)].map((key) => ({ date: String(key).match(/\d{4}-\d{2}/)?.[0] ? `${String(key).match(/\d{4}-\d{2}/)[0]}-01` : "" }));
-  const report = E11bInbox.freshness({
-    balanceDate: state?.balanceDate || balanceSettings.balanceDate || "",
-    movements: baseData?.transactions || [], actuals: actualMonths,
-    forecastDate: baseData?.metadata?.generatedAt?.slice(0, 10) || "",
-    debtDate: canonicalDebtContractRows().length ? (baseData?.metadata?.generatedAt?.slice(0, 10) || "") : "",
-  }, { asOf: new Date().toISOString().slice(0, 10) });
+  const report = dataFreshnessReport();
   const freshness = qs("updateFreshness");
   if (freshness) freshness.innerHTML = Object.entries(report.areas).map(([key, area]) => {
     const pillClass = area.status === "current" ? "e19-pill-safe" : "e19-pill-warn";
@@ -24536,6 +24544,54 @@ function homeHealthScore(statuses = []) {
   };
 }
 
+// A16-1: los cinco componentes de la puntuación compuesta de salud financiera. Ninguno se calcula
+// de nuevo — cada uno reutiliza un valor que renderHomeDashboard() ya tiene (ctx) o un motor ya
+// existente (presupuesto, objetivos, frescura de datos). Componente en null (no cero) cuando el dato
+// simplemente no existe todavía (sin objetivos activos, sin reserva configurada...), para que
+// compositeHealthScore() lo excluya en vez de fabricar una cifra.
+function homeHealthScoreComponents(ctx = {}) {
+  const cushion = ctx.protectedReserve > 0 ? Math.min(1, ctx.caixa / ctx.protectedReserve) : null;
+  const debtRatio = ctx.debtRatioDangerAt > 0 ? Math.max(0, 1 - ctx.debtToIncomeRatio / ctx.debtRatioDangerAt) : null;
+  const budgetSummary = homeBudgetSummary();
+  const budgetCompliance = budgetSummary
+    ? (budgetSummary.totalSpent <= 0 ? 1 : Math.min(1, budgetSummary.totalBudgeted / budgetSummary.totalSpent))
+    : null;
+  const activeGoals = (p2.goals || [])
+    .map((goal) => window.P2Domain?.goalSnapshot(goal) || goal)
+    .filter((goal) => goal.status === "active" && goal.target > 0);
+  const goalsTarget = activeGoals.reduce((sum, goal) => sum + goal.target, 0);
+  const goalsSaved = activeGoals.reduce((sum, goal) => sum + goal.saved, 0);
+  const goalsProgress = goalsTarget > 0 ? Math.min(1, goalsSaved / goalsTarget) : null;
+  const freshnessReport = dataFreshnessReport();
+  const dataFreshness = freshnessReport ? freshnessReport.coveragePercent / 100 : null;
+  return { cushion, debtRatio, budgetCompliance, goalsProgress, dataFreshness };
+}
+
+// A16-1: complementa (no sustituye) el badge "Salud financiera: X/100" de la cabecera — ese es
+// homeHealthScore() (Ola 3 #3), un promedio rápido de los mismos estados good/warn/danger que ya
+// clasifica cada KPI de Hoy. Esta tarjeta es el motor compuesto que pide A16-1: cinco componentes
+// con nombre, peso y cifra propios, no un promedio de semáforos.
+function renderHomeHealthScoreCard(result) {
+  const card = qs("homeHealthScoreCard");
+  const value = qs("homeHealthScoreValue");
+  const list = qs("homeHealthScoreBreakdown");
+  if (!card || !value || !list) return;
+  if (!result || result.value === null) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  value.textContent = String(result.value);
+  const rows = result.components.map((component) => {
+    const known = component.score !== null;
+    return `<li class="home-health-score-item${known ? "" : " is-unknown"}"><span class="home-health-score-label">${escapeHtml(component.label)} <small>(peso ${Math.round(component.weight * 100)}%)</small></span><span class="home-health-score-value">${known ? `${component.score}/100` : "sin datos"}</span></li>`;
+  });
+  if (!result.complete) {
+    rows.push(`<li class="home-health-score-note">Puntuación parcial: ${result.missing.length} de ${result.components.length} componentes sin datos todavía; su peso se reparte entre el resto.</li>`);
+  }
+  list.innerHTML = rows.join("");
+}
+
 function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
   const meta = qs("homeHeaderMeta");
   if (!meta) return;
@@ -24704,6 +24760,13 @@ function renderHomeDashboard() {
     source: state?.balanceMode === "manual" ? "saldos declarados a mano" : "libro canónico calculado",
     guidance: actionCenter.actions?.[0]?.label || "Sin decisiones pendientes: revisa las tarjetas de abajo.",
   });
+
+  // A16-1: puntuación compuesta, reutilizando los mismos locals que acaban de calcular
+  // debtRatioStatus/reserveStatus arriba — nada se deriva dos veces.
+  const compositeInputs = homeHealthScoreComponents({
+    caixa: balances.caixa, protectedReserve, debtToIncomeRatio: savings.debtToIncomeRatio, debtRatioDangerAt,
+  });
+  renderHomeHealthScoreCard(window.FinanceCanonicalHealthScore?.compositeHealthScore(compositeInputs));
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({

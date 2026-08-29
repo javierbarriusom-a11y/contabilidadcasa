@@ -1244,6 +1244,53 @@ main {
   background: #ba4542;
 }
 
+/* A16-1 · puntuación compuesta de salud financiera: lista de componentes con su peso, misma
+   estructura de fila que .home-insight pero sin la barra de color lateral (no hay un único estado
+   good/warn/danger por fila, solo una cifra 0-100). */
+.home-health-score-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-health-score-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.home-health-score-item:last-child {
+  border-bottom: none;
+}
+
+.home-health-score-label small {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.home-health-score-value {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.home-health-score-item.is-unknown .home-health-score-value {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.home-health-score-note {
+  color: var(--muted);
+  font-size: 12px;
+  padding-top: 4px;
+}
+
 .secondary-button {
   display: inline-flex;
   align-items: center;

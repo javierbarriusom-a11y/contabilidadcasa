@@ -238,6 +238,20 @@
                  rápidos en una rejilla 2×2, mobile-first (colapsa a una columna en 860px). -->
             <div class="home-kpi-grid home-glance-grid" id="homeBudgetGlance"></div>
 
+            <!-- A16-1: puntuación compuesta de salud financiera (colchón, ratio deuda/ingresos,
+                 cumplimiento de presupuesto, progreso de objetivos, frescura de datos), cada
+                 componente con su peso. Complementa el badge "Salud financiera: X/100" de la
+                 cabecera (Ola 3 #3) — oculta hasta tener al menos un componente calculable. -->
+            <article class="home-panel" id="homeHealthScoreCard" hidden>
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Salud financiera compuesta</p>
+                  <h3><span id="homeHealthScoreValue">—</span>/100</h3>
+                </div>
+              </div>
+              <ul class="home-health-score-list" id="homeHealthScoreBreakdown"></ul>
+            </article>
+
             <!-- Hoy.pdf «Hoy, alineada»: la cifra manda — el bloque de cobertura conserva su tarjeta
                  propia, en paralelo con «Agosto en una línea» (misma fila, mismo peso visual). -->
             <div class="home-layout">
@@ -4280,6 +4294,7 @@
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
+    <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4306,7 +4321,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829o1"></script>
+    <script defer src="app.js?v=20260829p1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

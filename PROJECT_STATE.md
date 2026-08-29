@@ -2,6 +2,56 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (72): A16-1 — puntuación de salud financiera compuesta
+
+Segunda tarea del Bloque 4. Con spec detallada en la fila de la tabla («Cifra única (colchón, ratio
+deuda/ingresos, cumplimiento de presupuesto, progreso de objetivos, frescura de datos) visible en
+«Hoy», con cada componente explicado y su peso — mismo patrón que A2-6»).
+
+**Hallazgo antes de construir**: ya existe un «Salud financiera: X/100» en la cabecera de Hoy —
+`homeHealthScore()`, de Ola 3 candidata #3 (28/08/2026, un día antes de esta sesión), documentado
+explícitamente como «no hay motor nuevo»: media simple de los mismos estados good/warn/danger que ya
+clasifica cada KPI, sin nombre ni peso por componente. Es justo lo que A16-1 pide construir de
+verdad. Sustituir esa tarjeta habría roto una pantalla en uso y su test ya verificado
+(`tests/o3-o4-salud-financiera-y-comparar-escenarios.test.cjs`) sin que el usuario lo pidiera —
+**decisión de alcance**: se añade como tarjeta nueva, complementaria, sin tocar `homeHealthScore()`
+ni su badge existente.
+
+**Construido**: `canonical-health-score.js` (nuevo) — `compositeHealthScore(input)`: cinco
+componentes con peso igual (20% cada uno) — colchón, ratio deuda/ingresos, cumplimiento de
+presupuesto, progreso de objetivos, frescura de datos —, cada uno 0-1 aportado por quien llama. Un
+componente en `null` (no en 0) se excluye y su peso se reparte entre los conocidos, para no fabricar
+una cifra cuando el dato simplemente no existe (p. ej. un hogar sin objetivos activos). En `app.js`:
+`homeHealthScoreComponents(ctx)` calcula los cinco a partir de valores **ya calculados en otro
+sitio**, ninguno de nuevo — colchón de `balances.caixa`/`protectedReserve` (los mismos locals de
+`reserveStatus`), ratio de deuda de `savings.debtToIncomeRatio`/`debtRatioDangerAt` (el umbral
+configurable de Ajustes › Alertas, H-9), cumplimiento de `homeBudgetSummary()` (U-1), progreso de
+objetivos de `P2Domain.goalSnapshot()` ponderado por importe (solo objetivos activos), frescura de
+`dataFreshnessReport()` (extraído de `renderE11bStatus()`, mismo cálculo que ya se ve en Datos ·
+Actualización). `renderHomeHealthScoreCard()` pinta la tarjeta nueva «Salud financiera compuesta» en
+Hoy con la cifra y la lista de componentes (etiqueta, peso, puntuación), oculta si no hay ningún
+componente calculable. `canonical-health-score.js` añadido a la whitelist de
+`tools/build-public-site.mjs` y cargado en `index.html`. `app.js` bumpeado a `?v=20260829p1`.
+
+**Bug real encontrado por los tests, antes de publicar**: `clamp01(null)` devolvía `0` en vez de
+`null` — `Number(null)` es `0`, no `NaN`, así que un componente sin dato se puntuaba como el peor
+caso posible en vez de excluirse (mismo patrón de bug que `taxTableStatus`, A15-5, Bloque 2).
+Corregido con un guardia explícito para `null`/`undefined` antes de convertir a número.
+
+**Verificación**: 20 pruebas nuevas en `tests/a16-1-salud-financiera-compuesta.test.cjs` — 5 sobre
+`compositeHealthScore` (media ponderada, componente desconocido excluido y no fabricado, sin ningún
+componente conocido no fabrica cifra, recorte a 0-1, etiqueta y peso por componente), 8 sobre
+`homeHealthScoreComponents` (cada uno de los cinco, con y sin dato disponible), 3 sobre
+`renderHomeHealthScoreCard` (oculta sin cifra, pinta cifra y componentes, avisa de puntuación
+parcial), 4 de cableado (llamada real dentro de `renderHomeDashboard()`, HTML de la tarjeta, motor
+registrado, y que `homeHealthScore()`/Ola 3 #3 sigue intacto — no se sustituyó nada existente).
+
+**Validación**: `npm run verify`, exit 0 — **2236/2236 pruebas** (2216 + 20 nuevas), accesibilidad
+(879 IDs, +3: `homeHealthScoreCard`, `homeHealthScoreValue`, `homeHealthScoreBreakdown`),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (71): OPT-5 — presupuesto de rendimiento real (Lighthouse CI)
 
 Primera tarea del Bloque 4 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (nivel 0, esfuerzo M, beneficio alto).
