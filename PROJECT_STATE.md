@@ -2,6 +2,55 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (71): OPT-5 — presupuesto de rendimiento real (Lighthouse CI)
+
+Primera tarea del Bloque 4 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (nivel 0, esfuerzo M, beneficio alto).
+Con spec detallada en `BACKLOG_OPTIMIZACION.md`.
+
+**Por qué.** `tools/check-performance.mjs` solo comprobaba que `app.js + styles.css + data.js` no
+superasen 5 MB combinados — medía peso de fichero fuente, no la experiencia real de carga. El
+pipeline podía dar verde con LCP/TBT reales muy malos si el peso total cabía bajo el límite.
+
+**Construido**: `.lighthouserc.cjs` (nuevo) — configuración de Lighthouse CI (`@lhci/cli`, nueva
+devDependency) contra `dist/index.html` ya construido por `build:site`, `numberOfRuns: 3` con
+agregación por mediana. `tools/check-lighthouse-budget.mjs` (nuevo) — exige que `dist/` exista y que
+Chromium de Playwright esté instalado (mensajes de error explícitos si no), resuelve
+`chromium.executablePath()` y lo pasa como `CHROME_PATH` al `lhci autorun` que lanza. Nuevo script
+`npm run test:performance-lh`, deliberadamente **fuera** de `npm run verify` (mismo motivo que
+`test:visual`/`test:e2e`/`test:a11y-axe`: no forzar un navegador instalado para quien solo quiera
+correr `npm test`). `tools/check-performance.mjs` pierde el `throw` por peso de fichero (lo sustituye
+este presupuesto); sigue registrando el tamaño en el log, solo como dato informativo.
+`.github/workflows/pages.yml` instala Chromium (`npx playwright install --with-deps chromium`) y
+corre `npm run test:performance-lh` en el job `verify`, después de `npm run verify` y antes de los
+pasos de despliegue — así corre en cada PR, no solo antes de publicar. `.lighthouseci/` (los informes
+de cada corrida) añadido a `.gitignore`.
+
+**Los umbrales, con su origen real**: medidos contra este `dist/` con Chromium (formFactor mobile,
+throttling simulado — así imita Lighthouse una red móvil media): mediana ~1,4 s de LCP y ~2,7-3,4 s
+de TBT en carga templada, pero el primer arranque en frío del navegador puede rondar 11 s de LCP y
+5,2 s de TBT solo por coste de arranque, no por regresión real — de ahí `numberOfRuns: 3` con mediana.
+Presupuestos con margen real sobre la mediana observada, no sobre el mejor caso: LCP < 6000 ms,
+TBT < 8000 ms (proxy de laboratorio de INP — INP no es medible sin interacción real de usuario), CLS
+< 0.1. Quedan documentados en el propio `.lighthouserc.cjs` como punto de partida, no como cifra
+final — exactamente lo que pedía la tarea («ajustar tras la primera medición real, que dará la línea
+base»).
+
+**Verificación**: 6 pruebas nuevas en `tests/opt5-presupuesto-lighthouse.test.cjs` (script y
+devDependency en `package.json`, presupuestos reales de LCP/TBT/CLS en `.lighthouserc.cjs`,
+comprobaciones de `dist/`/Chromium en el wrapper, retirada del `throw` de peso de fichero, orden de
+pasos y alcance-en-cada-PR en `pages.yml`, `.lighthouseci/` en `.gitignore`). Deliberadamente
+estáticas — lanzar Lighthouse de verdad necesita un navegador y un `dist/` construido, y `npm test`
+tiene que seguir siendo rápido y sin dependencia de navegador. El recorrido real (`lhci autorun`
+completo, con fallo real cuando se fuerza un umbral imposible y éxito real con los umbrales
+definitivos) se verificó a mano contra un `dist/` de verdad antes de este commit.
+
+**Validación**: `npm run verify`, exit 0 — **2216/2216 pruebas** (2210 + 6 nuevas), accesibilidad
+(876 IDs, sin cambios — esta tarea no toca `index.html`), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `npm run test:performance-lh` verificado a mano contra el `dist/`
+construido en esta sesión: 3 corridas de Lighthouse, presupuestos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (70): A19-3 — comparador educativo de tarifas fijas, y cierre del Bloque 2
 
 Última tarea programada del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla:

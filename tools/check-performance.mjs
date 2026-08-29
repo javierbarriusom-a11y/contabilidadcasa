@@ -28,8 +28,12 @@ E13.buildLab(forecast, [{ id: "stress", type: "expense", monthKey: periods[0].mo
 const forecastElapsed = performance.now() - forecastStarted;
 if (!forecast.valid || forecast.series.length !== 10000) throw new Error("Forecast de 10.000 periodos inválido");
 if (forecastElapsed > 1000) throw new Error(`Forecast y escenarios con 10.000 periodos tardaron ${forecastElapsed.toFixed(1)} ms`);
+// OPT-5: el umbral de peso de fichero que había aquí (assets > 5 MB) medía cuánto pesa el código
+// fuente, no la experiencia real de carga — daba verde con una carga móvil mala si el peso total
+// cabía bajo el límite. Lo sustituye `npm run test:performance-lh`
+// (tools/check-lighthouse-budget.mjs), que mide LCP/TBT/CLS reales con Lighthouse contra el `dist/`
+// ya construido. El tamaño se sigue registrando abajo, solo como dato informativo del log.
 const assets = ["app.js", "styles.css", "data.js"].reduce((sum, name) => sum + fs.statSync(new URL(`../${name}`, import.meta.url)).size, 0);
-if (assets > 5 * 1024 * 1024) throw new Error(`Los recursos principales superan 5 MB: ${assets}`);
 
 // SCALE-1 (FASE 6): auditoría de presupuestos a 1000 categorías × 10 años de histórico (120 meses).
 // Encontró y corrigió un O(categorías × transacciones) real en budgetHistoricalExpenseTransactions/
