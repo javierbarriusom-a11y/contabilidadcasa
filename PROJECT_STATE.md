@@ -2,6 +2,49 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (50): CP3 — ninguna recomendación sin su cita
+
+Sexta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Regla de diseño del bloque Copiloto
+("ninguna recomendación sin su cita"), que se construye antes que el motor que la consumirá (CP1,
+"próxima mejor acción", bloque 8, todavía sin construir) — mismo patrón que AP4 con AP3 en esta
+misma sesión.
+
+**Hallazgo antes de construir nada**: la app ya tenía este control, pero acoplado a una sola
+superficie que nunca llegó a activarse — `canonical-e9-assistant.js` (`validateResponse`) rechaza
+cualquier respuesta del asistente de IA externa sin `citations` que referencien el catálogo de
+evidencia de la consulta (`sourceCatalog`). Motor de infraestructura general, sin UI propia desde
+que se retiró su widget (cierre #42, 28 de agosto). CP3 generaliza ese mismo control para que
+cualquier recomendación de la app lo reutilice, no solo esa consulta.
+
+**Construido**: `canonical-recommendation-citation.js` — motor puro nuevo
+(`FinanceCanonicalRecommendationCitation`, mismo patrón que `canonical-leverage-barrier.js`).
+`validateRecommendation(recommendation, { availableSources })` bloquea si falta el texto de la
+recomendación o si no trae ninguna cita no vacía; si se le pasa el catálogo de evidencia disponible
+(array de objetos con `id`, o `Set` de IDs), bloquea también citar algo que no está en ese catálogo
+— mismos dos motivos que ya usaba `canonical-e9-assistant.js` (`citations-missing`/`citation-unknown`),
+generalizados. `validateRecommendations(lista)` agrega varias a la vez.
+
+Sin CP1 construido todavía, este motor no tiene consumidor de interfaz — mismo patrón ya aceptado en
+este repositorio para infraestructura por delante de su UI: se carga en `index.html` (antes de
+`app.js`) y en la lista blanca de `tools/build-public-site.mjs`, con cobertura de pruebas completa.
+No se retrofita sobre superficies de recomendación existentes (asesor ejecutivo heredado, comparador
+de deuda): cambiar su formato de texto a un array de citas estructurado es un refactor mayor, fuera
+del alcance "S" de esta tarea — queda disponible para cuando CP1 (o cualquier otra pantalla) lo
+necesite.
+
+**Verificación**: 13 pruebas nuevas en `tests/canonical-recommendation-citation.test.cjs` — carga en
+navegador real, texto y cita obligatorios por separado, citas vacías no cuentan, alias
+`label`/`title`, sin catálogo no comprueba existencia (solo formato), con catálogo (array u objeto
+`Set`) bloquea una cita inventada, agregación de varias recomendaciones, y que el script está
+montado en `index.html` antes de `app.js`.
+
+**Validación**: `npm run verify`, exit 0 — **2060/2060 pruebas** (2047 + 13 nuevas), accesibilidad
+(834 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`TT1`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (49): OPT-4 — accesibilidad verificada de verdad (axe-core)
 
 Quinta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. `tools/check-accessibility.mjs`
