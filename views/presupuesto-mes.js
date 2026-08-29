@@ -1386,7 +1386,7 @@ function presupuestoMesWeeklyHtml() {
     </div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
-        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de semana</th><th></th></tr></thead>
+        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de semana</th><th><span class="sr-only">Acciones</span></th></tr></thead>
         <tbody>${rows}${presupuestoMesAddWeeklyRowHtml(weekKey)}${presupuestoMesAddGoalRowHtml(weekKey, "weekly")}</tbody>
       </table>
     </div>
@@ -1550,7 +1550,7 @@ function presupuestoLargoHtml() {
     </div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table">
-        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de periodo</th><th>Reparto mensual</th><th></th></tr></thead>
+        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de periodo</th><th>Reparto mensual</th><th><span class="sr-only">Acciones</span></th></tr></thead>
         <tbody>${rows}${presupuestoLargoAddRowHtml(periodType, periodKey)}</tbody>
       </table>
     </div>
@@ -1745,7 +1745,7 @@ function renderPresupuestoMes() {
     </div>
     <div class="table-wrap">
       <table class="e19-table registrar-mes-table plan-mes-budget-table presupuesto-mes-primary-table">
-        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de mes</th><th></th></tr></thead>
+        <thead><tr><th>Categoría</th><th>Presupuesto</th><th>Gastado</th><th>Ritmo</th><th>Estado</th><th>Proyección fin de mes</th><th><span class="sr-only">Acciones</span></th></tr></thead>
         <tbody>${rows}${presupuestoMesAddGoalRowHtml(monthKey, "monthly")}</tbody>
       </table>
     </div>

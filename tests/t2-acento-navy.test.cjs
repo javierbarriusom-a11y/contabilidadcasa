@@ -13,8 +13,11 @@ const designSystem = read("design-system.html");
 // T-2 · el acento interactivo pasa de azul (`#0072E3`) a navy (`#293E5E`), el mismo tono que ya
 // usaba `--e19-heading` — así lo pide el handoff, que nombra ese navy como «primario, títulos, pie
 // de impacto» a la vez. El hover (`#1B2C48`) es el que el propio handoff llama «Navy hover». Fuera
-// de alcance a propósito: `--e19-accent-strong` (ya era navy oscuro, no es el token que nombra T-2)
-// y `--e19-eyebrow` (un cian distinto, tampoco nombrado).
+// de alcance a propósito en su momento: `--e19-accent-strong` (ya era navy oscuro, no es el token
+// que nombra T-2) y `--e19-eyebrow` (un cian distinto, tampoco nombrado por el handoff) — este
+// último sí se migró después, el 29 de agosto de 2026 (OPT-4), al quedar como el único token sin
+// pasar al navy y fallar el contraste mínimo de accesibilidad (2,51:1, por debajo de 4,5:1) sobre
+// el fondo real donde se usa.
 
 test("T-2 · el acento interactivo es el mismo navy que los títulos", () => {
   assert.match(css, /--e19-accent:\s*#293e5e;/);
@@ -37,11 +40,18 @@ test("T-2 · el azul anterior ya no es el valor de ningún token, solo queda cit
   assert.doesNotMatch(css, /:\s*#005bb8;/i);
 });
 
-test("T-2 · lo que no nombra el handoff no se toca: fondo fuerte, semánticos y eyebrow siguen igual", () => {
+test("T-2 · lo que no nombra el handoff no se toca: fondo fuerte y semánticos siguen igual", () => {
   assert.match(css, /--e19-accent-strong:\s*#0b1a30;/);
-  assert.match(css, /--e19-eyebrow:\s*#049ff9;/);
   assert.match(css, /--e19-success:\s*#1f9d55;/);
   assert.match(css, /--e19-danger:\s*#c13b3b;/);
+});
+
+// OPT-4 (29 de agosto de 2026, axe: color-contrast): --e19-eyebrow quedó huérfano de T-2, sin
+// migrar al navy junto con --e19-accent/--e19-heading — 2,51:1 sobre el fondo real, por debajo de
+// los 4,5:1 exigidos. Mismo navy que el resto de la migración: 9,5:1.
+test("OPT-4 · --e19-eyebrow migra al mismo navy que --e19-accent/--e19-heading, por contraste", () => {
+  assert.match(css, /--e19-eyebrow:\s*#293e5e;/);
+  assert.doesNotMatch(css, /--e19-eyebrow:\s*#049ff9;/);
 });
 
 test("T-2 · la muestra de color de la guía de estilo también dice el hex nuevo", () => {
@@ -51,5 +61,5 @@ test("T-2 · la muestra de color de la guía de estilo también dice el hex nuev
 
 test("T-2 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /design-tokens\.css\?v=20260828k1/);
+  assert.match(html, /design-tokens\.css\?v=20260829opt4a1/);
 });

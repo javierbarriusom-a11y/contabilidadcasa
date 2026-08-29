@@ -27,7 +27,11 @@
   --e19-heading: #293e5e;
   --e19-muted: #5b6578;
   --e19-faint: #a9b1bf;
-  --e19-eyebrow: #049ff9;
+  /* OPT-4 (axe: color-contrast): #049ff9 era el azul de antes de T-2 (12 de agosto de 2026, ver
+     --e19-accent más abajo) — quedó huérfano en este único token, sin migrar al navy junto con el
+     resto, y da solo 2,51:1 sobre --e19-canvas/section-title (necesita 4,5:1). Mismo navy que
+     --e19-accent/--e19-heading: 9,5:1, coherente con la migración que ya se hizo en todo lo demás. */
+  --e19-eyebrow: #293e5e;
 
   /* Acento interactivo — T-2 (12 de agosto de 2026): pasa de azul (`#0072E3`) a navy (`#293E5E`),
      el mismo tono que ya usaba `--e19-heading`, siguiendo el handoff. El hover (`#1B2C48`) es el
@@ -725,7 +729,10 @@
 
 .e19-badge-warning {
   background: var(--e19-warning-soft);
-  color: var(--e19-warning);
+  /* OPT-4 (axe: color-contrast): var(--e19-warning) (#c78b12) da solo 2,77:1 sobre este fondo
+     concreto, muy por debajo de 4,5:1 — override local en vez de tocar --e19-warning (17 usos,
+     varios como fondo), 25% más oscuro y 4,63:1. */
+  color: #95680e;
   border-color: var(--e19-warning-soft-border);
 }
 

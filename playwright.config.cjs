@@ -24,5 +24,8 @@ module.exports = defineConfig({
     // QA-1: acepta comportamiento, no píxeles — sin canal fijado, usa el Chromium que Playwright
     // resuelva en cada máquina (el empaquetado por defecto), sin depender de tener Chrome instalado.
     { name: "e2e", testMatch: "qa1-flujos-completos.spec.cjs", use: { viewport: { width: 1280, height: 720 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {} } },
+    // OPT-4: axe-core contra las pantallas que QA-1 ya visita. Igual que "e2e", sin canal de Chrome
+    // fijado — no comprueba píxeles, así que no necesita el Chrome real del proyecto "desktop".
+    { name: "a11y", testMatch: "opt4-axe-accessibility.spec.cjs", use: { viewport: { width: 1280, height: 720 }, launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {} } },
   ],
 });

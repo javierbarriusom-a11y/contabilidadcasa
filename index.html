@@ -8,7 +8,7 @@
     <link rel="manifest" href="manifest.webmanifest?v=20260828a1" />
     <link rel="stylesheet" href="styles.css?v=20260828a1" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
-    <link rel="stylesheet" href="design-tokens.css?v=20260828k1" />
+    <link rel="stylesheet" href="design-tokens.css?v=20260829opt4a1" />
   </head>
   <body>
     <a class="skip-link" href="#mainContent">Saltar al contenido</a>
@@ -207,7 +207,7 @@
         </header>
         <!-- H-8: tira de cuatro cifras vivas, en la cabecera de las ocho vistas que no son Hoy
              (ahí ya están en su propia rejilla de seis). Mismo cálculo que homeKpis, sin repetirlo. -->
-        <div class="topbar-status-strip" id="topbarStatusStrip" hidden></div>
+        <div class="topbar-status-strip" id="topbarStatusStrip" role="region" aria-label="Resumen de cifras clave" hidden></div>
         <section class="e17-view-guide" id="e17ViewGuide" aria-label="Guía de la pantalla actual"></section>
 
         <main id="mainContent" tabindex="-1">
@@ -1459,7 +1459,7 @@
               <p class="e19-kpi-note">Comparativa de los ocho modos sobre el mismo contrato — el activo usa lo que hayas escrito arriba, el resto su propia sugerencia. Caja mínima, coste y cuota se colorean frente al plan sin decisión, al principal pendiente y a la cuota actual:</p>
               <div class="table-wrap">
                 <table class="e19-table deuda-decidir-mode-compare" id="deudaCompararModeCompare">
-                  <thead><tr><th>Modo</th><th>Mes</th><th>Caja mínima</th><th>Coste</th><th>Cuota resultante</th><th>Resultado</th><th></th></tr></thead>
+                  <thead><tr><th>Modo</th><th>Mes</th><th>Caja mínima</th><th>Coste</th><th>Cuota resultante</th><th>Resultado</th><th><span class="sr-only">Acciones</span></th></tr></thead>
                   <tbody id="deudaCompararModeCompareBody"></tbody>
                 </table>
               </div>

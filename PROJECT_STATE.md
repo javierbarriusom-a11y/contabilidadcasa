@@ -2,6 +2,70 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (49): OPT-4 — accesibilidad verificada de verdad (axe-core)
+
+Quinta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. `tools/check-accessibility.mjs`
+comprobaba exactamente cuatro cosas (IDs duplicados, cuatro patrones de marcado, botones vacíos) —
+cero medida real de WCAG.
+
+**Construido**: `@axe-core/playwright` como dependencia de test. `tests/opt4-axe-accessibility.spec.cjs`
+corre axe contra las seis pantallas que ya visita `tests/qa1-flujos-completos.spec.cjs` (home,
+presupuesto-mes, deuda-comparar, analisis, cierre, conciliar) reutilizando su navegación, sin
+recorrido nuevo. Nuevo proyecto Playwright `a11y` (`playwright.config.cjs`) y script
+`npm run test:a11y-axe` — **fuera de `npm run verify`/CI**, misma decisión de infraestructura ya
+tomada para toda la suite Playwright de este repo (QA-1, visual regression): navegador headless en
+CI es una decisión aparte, no la de esta tarea.
+
+**Triage de la primera pasada** — corregido en firme, con prueba unitaria o del propio spec:
+- **Crítico** `aria-allowed-attr`: las pestañas de Deuda (Ruta/Comparar/Contratos/Simulador,
+  `views/deuda.js`) usaban `aria-selected` en un `<a>` de navegación real entre rutas distintas —
+  atributo no válido sin `role="tab"`. Cambiado a `aria-current="page"`, mismo patrón que ya usa
+  `setActiveView` para el menú lateral.
+- **Serio** `scrollable-region-focusable`: 65 plantillas distintas generan `.table-wrap` (tablas
+  con scroll horizontal) sin foco de teclado. En vez de tocar las 65 a mano,
+  `markScrollableTableWraps`/`watchScrollableTableWraps` (`app.js`, llamado una vez en `init()`) usa
+  un `MutationObserver` que marca `tabindex="0"` solo en las que de verdad desbordan
+  (`scrollWidth > clientWidth`), cubriendo también el render diferido de `views/*.js`.
+- **Minor** `empty-table-header`: cuatro `<th></th>` de columnas de acciones (Presupuesto del mes ×3,
+  Deuda · Comparar, Deuda · Contratos) ganan `<span class="sr-only">Acciones</span>`.
+- **Moderado** `region`: `#topbarStatusStrip` (la tira de cinco cifras fuera de `<main>`) gana
+  `role="region" aria-label="Resumen de cifras clave"`.
+- **Serio** `color-contrast`, seis casos concretos, todos con override local para no tocar tokens
+  compartidos de amplio uso sin revisión: el chip de guardado (`.durability-status small`, opacity
+  0.8→0.9), `--e19-eyebrow` (token huérfano de la migración T-2 del 12 de agosto, seguía en el azul
+  de antes — pasa al mismo navy que `--e19-accent`/`--e19-heading`), un bug de especificidad CSS que
+  le robaba su color a `.e19-subtitle` dentro de `.section-title`, `.status-pill.danger`,
+  `.e19-badge-warning` y `.e17-view-guide strong` — cada uno documentado con su ratio antes/después
+  en el propio CSS.
+
+**Fuera de esta tarea, a propósito**: `color-contrast` reveló mucho más de lo esperado — cada
+corrección destapaba más elementos con el mismo defecto por debajo. Los seis casos de arriba se
+corrigieron sin tocar `--teal` (84 usos en `styles.css`), `--red` (42 usos) ni `--e19-warning` (17
+usos, varios como fondo): cambiar esos tokens compartidos es una decisión de sistema de diseño que
+afecta a toda la app, no un parche puntual de esta tarea. `tests/opt4-axe-accessibility.spec.cjs`
+admite explícitamente el resto de `color-contrast` sin bloquear (filtra por `violation.id`, exige
+cero de cualquier otro tipo). Tarea de seguimiento `task_379a2b45` puesta en cola con el detalle
+completo (enlaces sin estilo con azul de navegador por defecto sobre fondo oscuro en Análisis,
+insignias blanco-sobre-verde, texto verde sobre gris, meta-texto `--e19-faint` sobre blanco).
+
+**Verificación**: 5 pruebas nuevas en `tests/opt4-accessibility-fixes.test.cjs` (las piezas sin
+navegador: el observador de `table-wrap`, el landmark de `topbarStatusStrip`, la opacidad del chip,
+ninguna pestaña de Deuda con `aria-selected`) + 6 pruebas en el spec de Playwright (una por pantalla,
+cero violaciones salvo `color-contrast`) + pruebas existentes actualizadas donde el marcado cambió
+(`tests/d1-d2-deuda-tabs-contratos.test.cjs`, `tests/d4-d5-d6-deuda-calendario-modos.test.cjs`,
+`tests/uxb1-vista-movil-presupuesto.test.cjs`, `tests/t2-acento-navy.test.cjs`). `design-tokens.css`
+bumpeado a `?v=20260829opt4a1`; los 7 ficheros que pineaban la versión anterior se actualizaron en
+bloque.
+
+**Validación**: `npm run verify`, exit 0 — **2047/2047 pruebas**, accesibilidad estructural (834
+IDs, sin cambio — nada de lo tocado añade IDs nuevos), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `npm run test:a11y-axe` (Playwright, proyecto `a11y`): 6/6 en verde
+contra el sitio publicado.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`CP3`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (48): OPT-3 — minificar el artefacto publicado
 
 Cuarta tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. `tools/build-public-site.mjs` copiaba

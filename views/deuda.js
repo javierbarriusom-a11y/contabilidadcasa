@@ -1115,9 +1115,15 @@ const DEUDA_SCREEN_TAB_NAV_IDS = {
 };
 
 function deudaScreenTabsHtml(activeId) {
+  // OPT-4 (axe: aria-allowed-attr, crítico): cada pestaña es un enlace real a otra ruta con su
+  // propio hash (Ruta/Comparar/Contratos/Simulador son cuatro view-section independientes, no un
+  // único panel que cambia de contenido), así que `aria-selected` no es válido aquí — ese atributo
+  // solo lo admiten elementos con role="tab"/"option"/etc. `aria-current="page"` es el marcador
+  // correcto para "enlace activo dentro de esta navegación", mismo patrón que ya usa setActiveView
+  // para el menú lateral.
   return DEUDA_SCREEN_TABS.map(
     (tab) =>
-      `<a class="e19-registrar-tab${tab.id === activeId ? " is-active" : ""}" href="#${tab.id}" aria-selected="${tab.id === activeId}">${escapeHtml(tab.label)}</a>`
+      `<a class="e19-registrar-tab${tab.id === activeId ? " is-active" : ""}" href="#${tab.id}"${tab.id === activeId ? ' aria-current="page"' : ""}>${escapeHtml(tab.label)}</a>`
   ).join("");
 }
 
@@ -1187,7 +1193,7 @@ function renderDeudaContratos() {
   if (!body) return;
   const contracts = debtContractSourceRows();
   body.innerHTML = `<thead><tr>
-        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th></th>
+        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th><span class="sr-only">Acciones</span></th>
       </tr></thead>
       <tbody>${contracts.map(deudaContratosRowHtml).join("")}</tbody>`;
   const overriddenCount = contracts.filter((contract) => debtContractOverrides[contract.id]).length;

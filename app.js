@@ -3965,6 +3965,24 @@ function setupViewNavigation() {
   setActiveView(viewFromHash(), { focus: false, announce: false });
 }
 
+// OPT-4: cualquier `.table-wrap` que desborde horizontalmente necesita foco de teclado para poder
+// desplazarse (axe-core: scrollable-region-focusable). 65 plantillas distintas generan esa clase,
+// muchas de ellas con render diferido (loadViewChunk); en vez de tocar cada una a mano, un único
+// observador cubre las que ya existen y las que aparezcan después. Solo marca las que de verdad
+// desbordan — no añade una parada de tabulación a una tabla que ya cabe entera.
+function markScrollableTableWraps(root = document) {
+  root.querySelectorAll(".table-wrap:not([tabindex])").forEach((el) => {
+    if (el.scrollWidth > el.clientWidth) el.setAttribute("tabindex", "0");
+  });
+}
+
+function watchScrollableTableWraps() {
+  markScrollableTableWraps();
+  const observer = new MutationObserver(() => markScrollableTableWraps());
+  observer.observe(document.body, { childList: true, subtree: true });
+  window.addEventListener("resize", () => markScrollableTableWraps());
+}
+
 // H-8: mismas cuatro cifras que ya usan los primeros KPI de Hoy (Liquidez, Deuda pendiente,
 // Capacidad libre real, Reserva protegida) — mismas funciones, no una fórmula paralela.
 // H-8, alineada con el mockup de Laboratorio (19 de agosto de 2026, el mismo que documenta la barra
@@ -31516,6 +31534,7 @@ async function init() {
   setupE17Experience();
   setupFaqsAyuda();
   setupViewNavigation();
+  watchScrollableTableWraps();
   render();
   await setupSupabaseSync();
 }
