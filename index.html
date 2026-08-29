@@ -210,6 +210,15 @@
         <div class="topbar-status-strip" id="topbarStatusStrip" role="region" aria-label="Resumen de cifras clave" hidden></div>
         <section class="e17-view-guide" id="e17ViewGuide" aria-label="Guía de la pantalla actual"></section>
 
+        <!-- UX1: deshacer de 10 segundos en vez de confirmaciones modales — la acción reversible ya
+             ocurrió; este aviso ofrece revertirla en vez de haber bloqueado la interacción antes con
+             un "¿seguro?". Fuera de #mainContent para que sobreviva al cambio de vista mientras está
+             visible. -->
+        <div class="undo-toast" id="undoToast" role="status" aria-live="polite" hidden>
+          <span id="undoToastMessage"></span>
+          <button type="button" class="e19-btn e19-btn-secondary" id="undoToastButton">Deshacer</button>
+        </div>
+
         <main id="mainContent" tabindex="-1">
           <p class="sr-only" id="appLiveStatus" role="status" aria-live="polite" aria-atomic="true"></p>
           <section class="home-dashboard view-section e19-home" id="home">
@@ -4362,7 +4371,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829s1"></script>
+    <script defer src="app.js?v=20260829t1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

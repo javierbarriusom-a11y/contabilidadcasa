@@ -3787,6 +3787,40 @@ function announceStatus(message) {
   }, 10);
 }
 
+// UX1: deshacer de 10 segundos en vez de confirmaciones modales, para acciones reversibles con un
+// splice simple (borrar una alerta, un objetivo). Auditoría de los `confirm()` de la app (28/08-
+// 29/08/2026): solo había tres en total. Dos son justo esto — "¿eliminar X?" antes de un splice
+// reversible — y se convierten aquí. El tercero (registrarConsolidateSessionChanges, "la reserva
+// queda por debajo del mínimo, ¿seguro?") se queda como confirm(): no es "¿seguro que quieres
+// borrar?" sino un aviso de riesgo antes de perder la red de seguridad de "Descartar todo" de la
+// sesión — deshacerlo después no tiene el mismo sentido que reinsertar un elemento en una lista.
+let undoToastTimer = null;
+let undoToastCallback = null;
+
+function showUndoToast(message, onUndo, timeoutMs = 10000) {
+  const toast = qs("undoToast");
+  const messageEl = qs("undoToastMessage");
+  if (!toast || !messageEl) return;
+  if (undoToastTimer) window.clearTimeout(undoToastTimer);
+  messageEl.textContent = message;
+  undoToastCallback = onUndo;
+  toast.hidden = false;
+  undoToastTimer = window.setTimeout(hideUndoToast, timeoutMs);
+}
+
+function hideUndoToast() {
+  const toast = qs("undoToast");
+  if (toast) toast.hidden = true;
+  if (undoToastTimer) { window.clearTimeout(undoToastTimer); undoToastTimer = null; }
+  undoToastCallback = null;
+}
+
+function handleUndoToastClick() {
+  const callback = undoToastCallback;
+  hideUndoToast();
+  if (callback) callback();
+}
+
 function activeViewTitle(viewId) {
   return (viewTitles[viewId] || viewTitles.home).title;
 }
@@ -24433,8 +24467,20 @@ function handleAlertRuleAction(event) {
     setActiveView(target, { focus: true });
     return;
   } else if (action === "delete") {
-    if (!window.confirm("¿Eliminar esta alerta?")) return;
+    // UX1: deshacer de 10 segundos en vez de un modal de confirmación — borra ya (reversible, un
+    // simple splice) y ofrece revertirlo, en vez de bloquear la interacción con un "¿seguro?".
+    const removed = scenarioSettings.alerts[index];
     scenarioSettings.alerts.splice(index, 1);
+    saveScenarioSettings();
+    renderAlertsCenter();
+    renderHomeFamilyAndAlerts();
+    showUndoToast(`Alerta «${removed.name || "sin nombre"}» eliminada.`, () => {
+      scenarioSettings.alerts.splice(index, 0, removed);
+      saveScenarioSettings();
+      renderAlertsCenter();
+      renderHomeFamilyAndAlerts();
+    });
+    return;
   } else if (action === "toggle") {
     scenarioSettings.alerts[index] = UxSettings.normalizeAlert({
       ...scenarioSettings.alerts[index],
@@ -30460,8 +30506,22 @@ function handleSavingsGoalAction(event) {
   if (index < 0) return;
   const action = button.dataset.savingsGoalAction;
   if (action === "delete") {
-    if (!window.confirm(`¿Eliminar el objetivo «${goals[index].label}»?`)) return;
+    // UX1: deshacer de 10 segundos en vez de un modal de confirmación — mismo criterio que la
+    // alerta (handleAlertRuleAction): borrar un objetivo de la lista es un splice reversible, no
+    // hace falta bloquear la interacción para confirmarlo.
+    const removed = goals[index];
     goals.splice(index, 1);
+    scenarioSettings.savingsGoals = goals;
+    saveScenarioSettings();
+    renderPlanAhorro();
+    showUndoToast(`Objetivo «${removed.label}» eliminado.`, () => {
+      const restored = savingsGoalsList().slice();
+      restored.splice(index, 0, removed);
+      scenarioSettings.savingsGoals = restored;
+      saveScenarioSettings();
+      renderPlanAhorro();
+    });
+    return;
   } else if (action === "up" && index > 0) {
     [goals[index - 1], goals[index]] = [goals[index], goals[index - 1]];
   } else if (action === "down" && index < goals.length - 1) {
@@ -32379,6 +32439,7 @@ async function init() {
   qs("ajustesFiscalDeductibleContributions")?.addEventListener("change", handleFiscalDeductibleContributionsChange);
   qs("ajustesFiscalDeductibleRent")?.addEventListener("change", handleFiscalDeductibleRentChange);
   qs("ajustesFiscalLargeFamily")?.addEventListener("change", handleFiscalLargeFamilyChange);
+  qs("undoToastButton")?.addEventListener("click", handleUndoToastClick);
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
     if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }

@@ -758,6 +758,35 @@ main {
   pointer-events: none;
 }
 
+/* UX1 · deshacer de 10 segundos: aviso fijo abajo, mismo estilo oscuro que el aviso de recálculo de
+   arriba, con un botón real en vez de un simple texto que desaparece solo. */
+.undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 61;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 18px;
+  border-radius: 999px;
+  background: rgba(19, 31, 38, 0.94);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 18px 38px rgba(15, 31, 38, 0.18);
+}
+
+.undo-toast[hidden] {
+  display: none;
+}
+
+.undo-toast #undoToastButton {
+  background: #fff;
+  color: #131f26;
+  border-color: #fff;
+}
+
 @keyframes viewIn {
   from {
     opacity: 0;

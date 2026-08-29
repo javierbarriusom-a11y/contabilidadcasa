@@ -2,6 +2,45 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (76): UX1 — deshacer de 10 segundos en vez de confirmaciones modales
+
+Sexta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Auditar cada modal de
+confirmación reversible»).
+
+**Auditoría, antes de construir**: toda la app tenía solo tres `confirm()` nativos. Dos eran
+exactamente lo que describe la tarea — «¿eliminar X?» antes de un `splice` reversible sobre un
+array (una alerta en el centro de alertas, un objetivo de ahorro en Plan · Ahorro) — y se
+convierten aquí. El tercero (`registrarConsolidateSessionChanges`, «la reserva queda por debajo del
+mínimo con estos cambios, ¿seguro que quieres consolidarlos?») **se queda como `confirm()` a
+propósito**: no es un «¿seguro que borro?» sino un aviso de riesgo antes de perder la red de
+seguridad de «Descartar todo» de la sesión de Registrar el mes — deshacerlo después no tiene el
+mismo sentido que reinsertar un elemento en una lista, y convertirlo habría ido más allá de lo que
+pedía la tarea.
+
+**Construido**: `showUndoToast(message, onUndo, timeoutMs = 10000)`/`hideUndoToast()`/
+`handleUndoToastClick()` (nuevas, `app.js`) — un aviso fijo abajo con un botón «Deshacer» real, no
+solo un texto que desaparece solo; un segundo aviso antes de que expire el primero cancela su
+temporizador (nunca dos avisos «finalizando» a la vez). `handleAlertRuleAction`/
+`handleSavingsGoalAction`: la rama «delete» ya no llama a `confirm()` — borra de inmediato (guarda y
+repinta igual que antes) y ofrece el aviso de deshacer, cuyo callback reinserta el elemento borrado
+en su posición original y vuelve a guardar. Aviso nuevo `#undoToast` en `index.html`, fuera de
+`#mainContent` para sobrevivir al cambio de vista mientras está visible. `app.js` bumpeado a
+`?v=20260829t1`.
+
+**Verificación**: 10 pruebas nuevas en `tests/ux1-deshacer-diez-segundos.test.cjs` (el aviso se
+muestra con su mensaje, el botón deshace y oculta sin esperar al temporizador, pasado el tiempo se
+oculta solo sin deshacer nada, un segundo aviso cancela el temporizador del primero, las dos ramas
+de borrado ya no usan `confirm()` y sí reinsertan al deshacer, el tercer `confirm()` de riesgo sigue
+intacto a propósito, solo queda un `confirm()` en toda `app.js`, cableado del botón, el aviso vive
+fuera de `#mainContent`) y 1 prueba corregida en `tests/p13-p16-ahorro-objetivos.test.cjs` (ya no
+simula `window.confirm`, ahora comprueba el borrado directo con el nuevo aviso).
+
+**Validación**: `npm run verify`, exit 0 — **2279/2279 pruebas** (2269 + 10 nuevas, 1 test existente
+corregido para el nuevo comportamiento en vez de sumar), accesibilidad (889 IDs, +3: el aviso, su
+mensaje y su botón), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (75): PV4 — bandas de confianza, no una sola línea
 
 Quinta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Sombrea el forecast con la
