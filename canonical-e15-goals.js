@@ -68,6 +68,7 @@
     const goals = (input.goals || []).map(normalizeGoal);
     const debts = Array.isArray(input.debts) ? input.debts : [];
     const reviews = Array.isArray(input.reviews) ? input.reviews : [];
+    const policies = Array.isArray(input.policies) ? input.policies : [];
     const rows = series.map((month) => {
       const key = monthKey(month.monthKey);
       const events = [];
@@ -82,6 +83,14 @@
       // construir. Aparece igualmente en el calendario con su incertidumbre declarada, en vez de
       // esperar a que exista el estimador para que la fecha sea visible.
       if (/-06$/.test(key)) events.push({ type: "renta", label: "Campaña de la Renta (pago o devolución)", amount: null, source: "campaña anual, resultado sin estimar (falta A15-2)", uncertain: true });
+      // SP1: cada póliza del inventario aparece en su mes de vencimiento, con la prima anual como
+      // importe (null si no se declaró, no un 0 inventado) — mismo criterio que el evento de la
+      // Renta: la incertidumbre se declara, no se rellena con un número que nadie confirmó.
+      policies.filter((policy) => monthKey(policy.renewalDate) === key).forEach((policy) => events.push({
+        type: "policy", label: `Vencimiento de póliza: ${text(policy.name)}`,
+        amount: Number.isFinite(Number(policy.premium)) && Number(policy.premium) > 0 ? round2(policy.premium) : null,
+        source: "inventario de pólizas", uncertain: !(Number.isFinite(Number(policy.premium)) && Number(policy.premium) > 0),
+      }));
       events.push({ type: "forecast", label: "Previsión canónica", amount: round2(month.totals?.closingLiquidity), source: "forecast canónico" });
       return { monthKey: key, label: text(month.label || key), closingLiquidity: round2(month.totals?.closingLiquidity), events };
     });

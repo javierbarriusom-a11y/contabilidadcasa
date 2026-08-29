@@ -2082,6 +2082,31 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Inventario de pólizas</h3>
+              <p class="e19-kpi-note">Pólizas de seguro con su fecha de vencimiento. Aparecen en el calendario financiero (.ics) el mes en que vencen, con la prima si la conoces.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesInsurancePolicyName" type="text" placeholder="Seguro de hogar" />
+                </label>
+                <label class="month-picker">
+                  <span>Vencimiento</span>
+                  <input id="ajustesInsurancePolicyDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Prima anual (€)</span>
+                  <input id="ajustesInsurancePolicyPremium" type="number" min="0" step="10" inputmode="decimal" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesInsurancePolicyNotes" type="text" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesInsurancePolicyAdd">Añadir póliza</button>
+              <div id="ajustesInsurancePolicies"></div>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
               <div class="cuadro-mandos-controls">
@@ -4176,7 +4201,7 @@
     <script defer src="legacy-debt-roadmap-engine.js?v=20260805e14parity1"></script>
     <script defer src="canonical-e14-operations.js?v=20260805e14b1"></script>
     <script defer src="canonical-e14-parity.js?v=20260805e14parity1"></script>
-    <script defer src="canonical-e15-goals.js?v=20260829a153a1"></script>
+    <script defer src="canonical-e15-goals.js?v=20260829sp1a1"></script>
     <script defer src="canonical-e16-monitoring.js?v=20260829cp5a1"></script>
     <script defer src="canonical-budget-schema.js?v=20260826a1"></script>
     <script defer src="canonical-budget-analyzer.js?v=20260826a1"></script>
@@ -4214,7 +4239,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829i1"></script>
+    <script defer src="app.js?v=20260829j1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

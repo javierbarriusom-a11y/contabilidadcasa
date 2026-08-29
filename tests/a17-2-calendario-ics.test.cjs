@@ -139,6 +139,7 @@ test("handleAjustesExportIcs avisa si el calendario no tiene meses todavía", ()
   const context = sandboxWith(["handleAjustesExportIcs"], {
     window: { FinanceCanonicalE15: { financialCalendar: () => ({ rows: [] }) }, FinanceP2Bridge: { goalPlanning: () => ({}) } },
     p2State: () => ({ goals: [], e15: {} }),
+    insurancePolicies: () => [],
     announceStatus: (text) => announcements.push(text),
   });
   context.handleAjustesExportIcs();

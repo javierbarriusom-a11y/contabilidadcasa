@@ -2,6 +2,43 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (65): SP1 — inventario de pólizas con vencimientos en el calendario
+
+Duodécima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Sin ningún inventario de pólizas en el código todavía (SP2, Bloque 1, usaba un único
+capital agregado, sin pólizas individuales).
+
+**Decisión de alcance**: mismo patrón de registro que TT3/TT4 — un array simple en
+`scenarioSettings`, sin dominio de datos nuevo. Cada póliza declara nombre, fecha de vencimiento
+(obligatoria) y, opcionalmente, prima anual y notas. «Con vencimientos en el calendario» se toma al
+pie de la letra: se integra en `financialCalendar()` (E15), reutilizando el motor ya en producción en
+vez de construir un calendario aparte.
+
+**Construido**: en `canonical-e15-goals.js`, `financialCalendar()` acepta ahora `input.policies` y
+añade un evento `type: "policy"` por póliza en su mes de vencimiento — mismo criterio que el evento de
+la Renta (A15-3): si no se declaró prima, `amount: null` y `uncertain: true` (no un 0 inventado). En
+`app.js`: `insurancePolicies()`, `addInsurancePolicy({name, renewalDate, premium, notes})` (una fecha
+con formato inválido se descarta, no se guarda a medias), `removeInsurancePolicy(id)` y
+`renderInsurancePolicies()` (ordena por vencimiento). Tarjeta nueva «Inventario de pólizas» en
+Ajustes. `handleAjustesExportIcs()` pasa `policies: insurancePolicies()` a `financialCalendar()`, así
+que las pólizas ya aparecen en el .ics exportado (A17-2) sin cambiar ese exportador.
+`canonical-e15-goals.js` bumpeado a `?v=20260829sp1a1`, `app.js` a `?v=20260829j1`.
+
+**Verificación**: 4 pruebas nuevas en `tests/canonical-e15-goals.test.cjs`-style añadidas a
+`tests/sp1-inventario-polizas.test.cjs` para el motor (evento con prima, evento sin prima con
+incertidumbre marcada, sin pólizas no hay eventos, varias pólizas el mismo mes), más CRUD y las
+comprobaciones estáticas de HTML/wiring/`renderAjustes`/`handleAjustesExportIcs` — 11 en total.
+Corrige de paso `tests/a17-2-calendario-ics.test.cjs`: su sandbox de `handleAjustesExportIcs` no
+declaraba `insurancePolicies`, la nueva dependencia — un `ReferenceError` real, detectado por
+`npm test` (1 fallo), no un fallo de la propia función.
+
+**Validación**: `npm run verify`, exit 0 — **2155/2155 pruebas** (2144 + 11 nuevas), accesibilidad
+(860 IDs, +6 por los 6 IDs nuevos del formulario/lista), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (64): DI2 — línea de crédito de emergencia frente a colchón líquido
 
 Undécima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec

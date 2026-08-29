@@ -6402,6 +6402,10 @@ function applyHelpTooltips() {
     "Qué exige el banco para librarte de la comisión (nómina domiciliada, gasto mínimo con tarjeta, etc.). Marca cada mes si se cumplió: si no, la cuenta queda como comisión en riesgo.",
   );
   addHelpToControl(
+    "ajustesInsurancePolicyDate",
+    "Fecha de vencimiento de la póliza. Aparece en el calendario financiero (.ics) ese mes, con la prima si la has indicado.",
+  );
+  addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
   );
@@ -14956,6 +14960,60 @@ function addMaintenanceFeeAccountFromControls() {
   renderMaintenanceFeeAccounts();
 }
 
+// SP1 · inventario de pólizas con vencimientos en el calendario. Mismo patrón que TT3/TT4: un
+// array simple en scenarioSettings, sin dominio de datos nuevo. Cada póliza declara su fecha de
+// vencimiento (YYYY-MM-DD) y, opcionalmente, su prima anual — el calendario financiero (E15,
+// handleAjustesExportIcs) las muestra en su mes de vencimiento con la incertidumbre declarada si
+// no hay prima registrada, igual que ya hace con la Renta (A15-3).
+function insurancePolicies() {
+  scenarioSettings.insurancePolicies = Array.isArray(scenarioSettings.insurancePolicies) ? scenarioSettings.insurancePolicies : [];
+  return scenarioSettings.insurancePolicies;
+}
+
+function addInsurancePolicy({ name, renewalDate, premium, notes }) {
+  const accounts = insurancePolicies();
+  accounts.push({
+    id: `poliza-${Date.now()}-${accounts.length}`,
+    name: String(name || "").trim() || "Póliza",
+    renewalDate: /^\d{4}-\d{2}-\d{2}$/.test(String(renewalDate || "").trim()) ? String(renewalDate).trim() : "",
+    premium: round2(Math.max(0, Number(premium) || 0)),
+    notes: String(notes || "").trim(),
+  });
+  saveScenarioSettings();
+}
+
+function removeInsurancePolicy(id) {
+  scenarioSettings.insurancePolicies = insurancePolicies().filter((policy) => policy.id !== id);
+  saveScenarioSettings();
+}
+
+function renderInsurancePolicies() {
+  const target = qs("ajustesInsurancePolicies");
+  if (!target) return;
+  const policies = insurancePolicies().slice().sort((a, b) => (a.renewalDate || "9999").localeCompare(b.renewalDate || "9999"));
+  target.innerHTML = policies.length
+    ? `<ul class="commit-barrier-list">${policies
+        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong></div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin pólizas registradas todavía.</p>`;
+}
+
+function addInsurancePolicyFromControls() {
+  const name = qs("ajustesInsurancePolicyName")?.value;
+  const renewalDate = qs("ajustesInsurancePolicyDate")?.value;
+  if (!name || !String(name).trim() || !renewalDate) return;
+  addInsurancePolicy({
+    name,
+    renewalDate,
+    premium: parseAmount(qs("ajustesInsurancePolicyPremium")?.value),
+    notes: qs("ajustesInsurancePolicyNotes")?.value,
+  });
+  ["ajustesInsurancePolicyName", "ajustesInsurancePolicyDate", "ajustesInsurancePolicyPremium", "ajustesInsurancePolicyNotes"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderInsurancePolicies();
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -22334,6 +22392,7 @@ function renderAjustes() {
   renderAjustesEmergencyCreditLineNote();
   renderRemuneratedAccounts();
   renderMaintenanceFeeAccounts();
+  renderInsurancePolicies();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -22608,7 +22667,7 @@ function handleAjustesExportIcs() {
     return;
   }
   const p2 = p2State();
-  const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [] });
+  const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [], policies: insurancePolicies() });
   if (!calendar.rows.length) {
     announceStatus("No hay meses en el calendario financiero todavía.");
     return;
@@ -31866,6 +31925,13 @@ async function init() {
     if (!checkbox) return;
     setMaintenanceFeeAccountMet(checkbox.dataset.maintenanceMet, checkbox.checked);
     renderMaintenanceFeeAccounts();
+  });
+  qs("ajustesInsurancePolicyAdd")?.addEventListener("click", addInsurancePolicyFromControls);
+  qs("ajustesInsurancePolicies")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-policy-remove]");
+    if (!removeButton) return;
+    removeInsurancePolicy(removeButton.dataset.policyRemove);
+    renderInsurancePolicies();
   });
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
