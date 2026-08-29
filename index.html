@@ -2113,6 +2113,32 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Tablas fiscales</h3>
+              <p class="e19-kpi-note">Registro de qué año fiscal está cubierto (tramos de IRPF, mínimos personales, etc.), para saber cuándo toca la actualización anual. No calcula nada fiscal por sí solo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Año</span>
+                  <input id="ajustesTaxTableYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
+                </label>
+                <label class="month-picker">
+                  <span>Etiqueta</span>
+                  <input id="ajustesTaxTableLabel" type="text" placeholder="IRPF 2026: tramos y mínimo personal" />
+                </label>
+                <label class="month-picker">
+                  <span>Origen</span>
+                  <input id="ajustesTaxTableSource" type="text" placeholder="Agencia Tributaria" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesTaxTableNotes" type="text" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesTaxTableAdd">Añadir tabla</button>
+              <div id="ajustesTaxTables"></div>
+              <p class="e19-kpi-note" id="ajustesTaxTablesNote"></p>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
               <div class="cuadro-mandos-controls">
@@ -4223,6 +4249,7 @@
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
+    <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4249,7 +4276,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829m1"></script>
+    <script defer src="app.js?v=20260829n1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

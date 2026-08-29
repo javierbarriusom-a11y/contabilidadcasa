@@ -2,6 +2,40 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (69): A15-5 — tablas fiscales versionadas y su actualización anual
+
+Decimosexta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Sin dependencia con A15-1 («Registro de supuestos fiscales», M, Bloque 3) ni A15-2
+(«Estimador de resultado de IRPF», L, Bloque 9) pese al tema compartido: A15-5 es la infraestructura
+de *versionado* (qué año está cubierto), no el registro de valores fiscales reales ni ningún cálculo
+— eso les toca a esas dos tareas, más adelante y con más alcance.
+
+**Decisión de alcance**: registro simple, mismo patrón que TT3/TT4/SP1 — un array en
+`scenarioSettings` con año, etiqueta libre, origen y notas. Ninguna cifra fiscal (tramos, mínimos
+personales) se fabrica ni se guarda con estructura propia todavía: eso es trabajo de A15-1.
+
+**Construido**: `canonical-tax-tables.js` (nuevo) — `taxTableStatus(tables, currentYear)`: años
+registrados (sin duplicados, entradas con año inválido se ignoran), año más reciente, y si el año en
+curso está cubierto (`stale: null` cuando el año en curso no se pudo determinar, no un booleano
+inventado). En `app.js`: `taxTables()`, `addTaxTable({year, label, source, notes})` (año fuera de
+2000-2100 se descarta) y `removeTaxTable(id)` (CRUD), `renderTaxTables()` (avisa si la actualización
+anual sigue pendiente). Tarjeta nueva «Tablas fiscales» en Ajustes, junto al inventario de pólizas.
+`canonical-tax-tables.js` añadido a la whitelist de `tools/build-public-site.mjs` y cargado en
+`index.html` (`?v=20260829a155a1`), `app.js` bumpeado a `?v=20260829n1`.
+
+**Verificación**: 14 pruebas nuevas — 6 en `tests/canonical-tax-tables.test.cjs` (sin tablas, año
+cubierto, solo años anteriores, duplicados, año en curso indeterminado da `null` no `true` — bug real
+detectado y corregido: `Number(null)` es `0`, un año «válido» falso que colaba `currentYearCovered` en
+`true` antes de comprobar si el año era conocido de verdad — y años inválidos ignorados) y 8 en
+`tests/a15-5-tablas-fiscales.test.cjs` (CRUD, HTML/script/wiring/`renderAjustes`/`renderTaxTables`).
+
+**Validación**: `npm run verify`, exit 0 — **2197/2197 pruebas** (2183 + 14 nuevas), accesibilidad
+(869 IDs, +7 por los 7 IDs nuevos del formulario/lista/nota), rendimiento, build del sitio, privacidad
+y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (68): A16-6 — hitos y rachas en el historial de auditoría
 
 Decimoquinta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin

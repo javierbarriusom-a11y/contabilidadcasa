@@ -6430,6 +6430,10 @@ function applyHelpTooltips() {
     "Fecha de vencimiento de la póliza. Aparece en el calendario financiero (.ics) ese mes, con la prima si la has indicado.",
   );
   addHelpToControl(
+    "ajustesTaxTableYear",
+    "Año fiscal al que corresponde esta tabla (tramos de IRPF, mínimos personales, etc.). Sin una tabla para el año en curso, la nota de abajo avisa de que la actualización anual sigue pendiente.",
+  );
+  addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
   );
@@ -15038,6 +15042,69 @@ function addInsurancePolicyFromControls() {
   renderInsurancePolicies();
 }
 
+// A15-5 · tablas fiscales versionadas y su actualización anual. Mismo patrón de registro que
+// TT3/TT4/SP1: un array simple en scenarioSettings. No calcula nada fiscal — solo registra qué año
+// está cubierto, para que A15-1/A15-2 (más adelante) tengan de dónde leer y para avisar cuando el
+// año en curso todavía no tiene tabla registrada. Ninguna cifra fiscal se fabrica aquí.
+function taxTables() {
+  scenarioSettings.taxTables = Array.isArray(scenarioSettings.taxTables) ? scenarioSettings.taxTables : [];
+  return scenarioSettings.taxTables;
+}
+
+function addTaxTable({ year, label, source, notes }) {
+  const tables = taxTables();
+  const parsedYear = Math.round(Number(year));
+  tables.push({
+    id: `tabla-fiscal-${Date.now()}-${tables.length}`,
+    year: Number.isFinite(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null,
+    label: String(label || "").trim() || "Tabla fiscal",
+    source: String(source || "").trim(),
+    notes: String(notes || "").trim(),
+  });
+  saveScenarioSettings();
+}
+
+function removeTaxTable(id) {
+  scenarioSettings.taxTables = taxTables().filter((table) => table.id !== id);
+  saveScenarioSettings();
+}
+
+function renderTaxTables() {
+  const target = qs("ajustesTaxTables");
+  const note = qs("ajustesTaxTablesNote");
+  if (!target) return;
+  const tables = taxTables().slice().sort((a, b) => (b.year || 0) - (a.year || 0));
+  target.innerHTML = tables.length
+    ? `<ul class="commit-barrier-list">${tables
+        .map((table) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(table.label)}</strong>${table.year ? ` <span class="status-pill">${table.year}</span>` : ""}</div><span>${table.source ? `${escapeHtml(table.source)}` : "Sin origen indicado"}${table.notes ? ` · ${escapeHtml(table.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-tax-table-remove="${escapeHtml(table.id)}">Quitar</button></li>`)
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin tablas fiscales registradas todavía.</p>`;
+  if (note) {
+    const status = window.FinanceCanonicalTaxTables?.taxTableStatus(tables, new Date().getFullYear());
+    note.textContent = !status
+      ? ""
+      : status.currentYearCovered
+        ? `Año en curso (${status.currentYear}) cubierto. Último año registrado: ${status.latestYear}.`
+        : `Sin tabla fiscal registrada para ${status.currentYear} todavía${status.latestYear ? ` (la más reciente es de ${status.latestYear})` : ""}: la actualización anual sigue pendiente.`;
+  }
+}
+
+function addTaxTableFromControls() {
+  const year = qs("ajustesTaxTableYear")?.value;
+  const label = qs("ajustesTaxTableLabel")?.value;
+  if (!year || !label || !String(label).trim()) return;
+  addTaxTable({
+    year,
+    label,
+    source: qs("ajustesTaxTableSource")?.value,
+    notes: qs("ajustesTaxTableNotes")?.value,
+  });
+  ["ajustesTaxTableYear", "ajustesTaxTableLabel", "ajustesTaxTableSource", "ajustesTaxTableNotes"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderTaxTables();
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -22459,6 +22526,7 @@ function renderAjustes() {
   renderRemuneratedAccounts();
   renderMaintenanceFeeAccounts();
   renderInsurancePolicies();
+  renderTaxTables();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -31998,6 +32066,13 @@ async function init() {
     if (!removeButton) return;
     removeInsurancePolicy(removeButton.dataset.policyRemove);
     renderInsurancePolicies();
+  });
+  qs("ajustesTaxTableAdd")?.addEventListener("click", addTaxTableFromControls);
+  qs("ajustesTaxTables")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-tax-table-remove]");
+    if (!removeButton) return;
+    removeTaxTable(removeButton.dataset.taxTableRemove);
+    renderTaxTables();
   });
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
