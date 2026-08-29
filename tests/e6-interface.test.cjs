@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 
-test("Hoy permite revisar, guardar y retirar el ajuste de cobertura", () => {
+test("Hoy muestra la lectura de cobertura; Ajustes permite revisar, guardar y retirar el ajuste (OPT-6)", () => {
   ["e6CoveragePanel", "e6NextIncomeDate", "e6DailyOutflow", "e6CoverageReset"].forEach((id) => assert.match(html, new RegExp(`id="${id}"`)));
   assert.match(app, /scenarioSettings\.e6Coverage/);
   assert.match(app, /saveScenarioSettings\(\)/);

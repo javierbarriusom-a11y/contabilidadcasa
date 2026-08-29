@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const os = require("node:os");
 const { execFileSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
@@ -55,13 +56,24 @@ test("el smoke test pide todos los recursos del index publicado, no una muestra"
 // prueba ejecuta el build de verdad y comprueba que el resultado publicado no es el fichero fuente
 // tal cual, para que un futuro retroceso de esa lógica rompa `npm test`, no el sitio en producción.
 test("build:site reescribe CACHE_NAME de service-worker.js en cada build, nunca lo deja fijo", () => {
-  const distWorkerPath = path.join(root, "dist", "service-worker.js");
-  execFileSync(process.execPath, [path.join(root, "tools/build-public-site.mjs")], { cwd: root, stdio: "pipe" });
-  const sourceWorker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
-  const distWorker = fs.readFileSync(distWorkerPath, "utf8");
-  const sourceCacheName = sourceWorker.match(/const CACHE_NAME = "([^"]*)";/)?.[1];
-  const distCacheName = distWorker.match(/const CACHE_NAME = "([^"]*)";/)?.[1];
-  assert.ok(sourceCacheName, "service-worker.js debería declarar CACHE_NAME");
-  assert.ok(distCacheName, "dist/service-worker.js debería declarar CACHE_NAME");
-  assert.notEqual(distCacheName, sourceCacheName, "el build debe versionar CACHE_NAME, no copiarlo tal cual");
+  // OPT-6: destino propio, no `dist/` — node --test corre archivos en paralelo, y `dist/` también
+  // lo escribe tests/opt3-minify-dist.test.cjs; sin aislar, el fs.rmSync de un proceso puede borrar
+  // lo que el otro está leyendo a mitad de copia (visto en CI: ENOENT intermitente).
+  const tempDist = fs.mkdtempSync(path.join(os.tmpdir(), "public-site-assets-dist-"));
+  try {
+    execFileSync(process.execPath, [path.join(root, "tools/build-public-site.mjs")], {
+      cwd: root,
+      stdio: "pipe",
+      env: { ...process.env, BUILD_PUBLIC_SITE_DEST: tempDist },
+    });
+    const sourceWorker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
+    const distWorker = fs.readFileSync(path.join(tempDist, "service-worker.js"), "utf8");
+    const sourceCacheName = sourceWorker.match(/const CACHE_NAME = "([^"]*)";/)?.[1];
+    const distCacheName = distWorker.match(/const CACHE_NAME = "([^"]*)";/)?.[1];
+    assert.ok(sourceCacheName, "service-worker.js debería declarar CACHE_NAME");
+    assert.ok(distCacheName, "dist/service-worker.js debería declarar CACHE_NAME");
+    assert.notEqual(distCacheName, sourceCacheName, "el build debe versionar CACHE_NAME, no copiarlo tal cual");
+  } finally {
+    fs.rmSync(tempDist, { recursive: true, force: true });
+  }
 });

@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
     <link rel="manifest" href="manifest.webmanifest?v=20260828a1" />
-    <link rel="stylesheet" href="styles.css?v=20260828a1" />
+    <link rel="stylesheet" href="styles.css?v=20260829pv2a1" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
     <link rel="stylesheet" href="design-tokens.css?v=20260829opt4a1" />
   </head>
@@ -266,27 +266,6 @@
                 <p class="home-month-glance-confidence" id="homeMonthGlanceConfidence"></p>
               </article>
             </div>
-
-            <!-- H-3b: editor de cobertura aprendida, bajo la tarjeta anterior. -->
-            <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
-              <div class="module-heading">
-                <div>
-                  <p class="panel-kicker">Cobertura aprendida</p>
-                  <h3>Corrige fecha o gasto diario</h3>
-                  <p>Se calcula solo con movimientos conciliados. Corregir aquí no pierde la estimación aprendida: «Usar aprendizaje» la recupera.</p>
-                </div>
-                <span class="status-pill" id="e6CoverageEditorStatus">Aprendido</span>
-              </div>
-              <form class="e6-coverage-form" id="e6CoverageForm">
-                <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
-                <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
-                <div class="dialog-actions">
-                  <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
-                  <button type="submit" id="e6CoverageSave">Guardar ajuste</button>
-                </div>
-              </form>
-              <p class="e6-coverage-source" id="e6CoverageSource"></p>
-            </article>
 
             <!-- Hoy.pdf: «primero qué hacer, después de dónde sale» — decisiones abiertas (con la
                  lectura de hoy como primera línea) en paralelo con los próximos hitos. -->
@@ -1536,6 +1515,7 @@
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Antes de aplicar</h3>
               <ul class="deuda-ruta-checklist" id="deudaRutaChecklist"></ul>
+              <p class="e19-kpi-note" id="deudaRutaMotivationalGapNote"></p>
               <button type="button" class="e19-btn e19-btn-primary" id="deudaRutaApply">Aplicar ruta</button>
               <p class="e19-kpi-note">Se pedirá un motivo y quedará como escenario aplicado, revisable en «Escenarios guardados».</p>
             </article>
@@ -1989,9 +1969,33 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Ajustes</p>
                 <h2 class="e19-heading">Cuentas, reserva, umbrales, partidas y exportación en un mismo sitio</h2>
-                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La reserva operativa, los dos umbrales de abajo y la exportación son la excepción: se hacen desde aquí mismo.</p>
+                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La cobertura aprendida, la reserva operativa, los dos umbrales de abajo y la exportación son la excepción: se hacen desde aquí mismo.</p>
               </div>
             </div>
+
+            <!-- OPT-6: editor de cobertura aprendida (H-3b), trasladado desde «Hoy» — es
+                 configuración puntual, no lectura diaria; no encajaba en una pantalla pensada como
+                 «una lectura y tres decisiones» (mockup 1a). «Hoy» conserva solo la lectura
+                 (#e6CoveragePanel). Misma lógica de guardado/reset, sin tocarla. -->
+            <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Cobertura aprendida</p>
+                  <h3>Corrige fecha o gasto diario</h3>
+                  <p>Se calcula solo con movimientos conciliados. Corregir aquí no pierde la estimación aprendida: «Usar aprendizaje» la recupera.</p>
+                </div>
+                <span class="status-pill" id="e6CoverageEditorStatus">Aprendido</span>
+              </div>
+              <form class="e6-coverage-form" id="e6CoverageForm">
+                <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
+                <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
+                <div class="dialog-actions">
+                  <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
+                  <button type="submit" id="e6CoverageSave">Guardar ajuste</button>
+                </div>
+              </form>
+              <p class="e6-coverage-source" id="e6CoverageSource"></p>
+            </article>
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Reserva operativa</h3>
@@ -2004,6 +2008,12 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Deducible óptimo del seguro</h3>
+              <p class="e19-kpi-note">Cuanta más franquicia asumas, menor la prima — pero mayor el golpe de caja si hay un siniestro. Esta cifra es la mayor franquicia habitual que tu colchón, por encima del suelo protegido, podría absorber sin caer por debajo de ese suelo.</p>
+              <p class="e19-kpi-note" id="ajustesOptimalDeductibleNote"></p>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cobertura de vida frente a deuda</h3>
               <p class="e19-kpi-note">Si la persona asegurada faltara, ¿la indemnización cubre lo que queda por pagar de toda la deuda viva? Sin inventario de pólizas todavía: un único capital agregado.</p>
               <label class="month-picker">
@@ -2011,6 +2021,150 @@
                 <input id="ajustesLifeInsuranceCapital" type="number" min="0" step="1000" inputmode="decimal" placeholder="Sin configurar" />
               </label>
               <p class="e19-kpi-note" id="ajustesLifeInsuranceCapitalNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
+              <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Límite de la línea</span>
+                  <input id="ajustesEmergencyCreditLimit" type="number" min="0" step="500" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>TIN de la línea (%)</span>
+                  <input id="ajustesEmergencyCreditRate" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
+              <p class="e19-kpi-note">Registro comparado de las cuentas remuneradas activas: cuál paga mejor TAE y qué rendimiento medio da el conjunto, ponderado por saldo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesRemuneratedName" type="text" placeholder="Cuenta naranja" />
+                </label>
+                <label class="month-picker">
+                  <span>Saldo</span>
+                  <input id="ajustesRemuneratedBalance" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>TAE (%)</span>
+                  <input id="ajustesRemuneratedRate" type="number" min="0" step="0.05" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesRemuneratedNotes" type="text" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesRemuneratedAdd">Añadir cuenta</button>
+              <div id="ajustesRemuneratedAccounts"></div>
+              <p class="e19-kpi-note" id="ajustesRemuneratedAccountsNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comisiones de mantenimiento y vinculación</h3>
+              <p class="e19-kpi-note">Cuentas corrientes que cobran comisión salvo que cumplas una vinculación (nómina, gasto con tarjeta...). Marca cada mes si se cumplió: si no, avisa de la comisión en riesgo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesMaintenanceFeeName" type="text" placeholder="Cuenta corriente" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión (€/mes)</span>
+                  <input id="ajustesMaintenanceFeeAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Vinculación exigida</span>
+                  <input id="ajustesMaintenanceFeeRequirement" type="text" placeholder="Nómina domiciliada" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMaintenanceFeeAdd">Añadir cuenta</button>
+              <div id="ajustesMaintenanceFeeAccounts"></div>
+              <p class="e19-kpi-note" id="ajustesMaintenanceFeeAccountsNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Inventario de pólizas</h3>
+              <p class="e19-kpi-note">Pólizas de seguro con su fecha de vencimiento. Aparecen en el calendario financiero (.ics) el mes en que vencen, con la prima si la conoces.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesInsurancePolicyName" type="text" placeholder="Seguro de hogar" />
+                </label>
+                <label class="month-picker">
+                  <span>Vencimiento</span>
+                  <input id="ajustesInsurancePolicyDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Prima anual (€)</span>
+                  <input id="ajustesInsurancePolicyPremium" type="number" min="0" step="10" inputmode="decimal" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesInsurancePolicyNotes" type="text" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesInsurancePolicyAdd">Añadir póliza</button>
+              <div id="ajustesInsurancePolicies"></div>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Tablas fiscales</h3>
+              <p class="e19-kpi-note">Registro de qué año fiscal está cubierto (tramos de IRPF, mínimos personales, etc.), para saber cuándo toca la actualización anual. No calcula nada fiscal por sí solo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Año</span>
+                  <input id="ajustesTaxTableYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
+                </label>
+                <label class="month-picker">
+                  <span>Etiqueta</span>
+                  <input id="ajustesTaxTableLabel" type="text" placeholder="IRPF 2026: tramos y mínimo personal" />
+                </label>
+                <label class="month-picker">
+                  <span>Origen</span>
+                  <input id="ajustesTaxTableSource" type="text" placeholder="Agencia Tributaria" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesTaxTableNotes" type="text" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesTaxTableAdd">Añadir tabla</button>
+              <div id="ajustesTaxTables"></div>
+              <p class="e19-kpi-note" id="ajustesTaxTablesNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
+              <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Consumo mensual (kWh u otra unidad)</span>
+                  <input id="ajustesTariffConsumption" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Precio fijo (€/unidad)</span>
+                  <input id="ajustesTariffFixedPrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cargo fijo mensual — tarifa fija (€)</span>
+                  <input id="ajustesTariffFixedFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Precio variable estimado (€/unidad)</span>
+                  <input id="ajustesTariffVariablePrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cargo fijo mensual — tarifa variable (€)</span>
+                  <input id="ajustesTariffVariableFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesTariffCompare">Comparar</button>
+              <p class="e19-kpi-note" id="ajustesTariffComparatorNote"></p>
             </article>
 
             <article class="e19-card">
@@ -2088,10 +2242,11 @@
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Exportar</h3>
-              <p class="e19-kpi-note">El CSV completo del flujo mensual y el PDF del mes abierto en Registrar el mes, desde un único sitio.</p>
+              <p class="e19-kpi-note">El CSV completo del flujo mensual, el PDF del mes abierto en Registrar el mes y el calendario financiero (cuotas, vencimientos de objetivos, revisiones y cierre previsto por mes) para Google/Apple Calendar, desde un único sitio.</p>
               <div class="cuadro-mandos-controls">
                 <button type="button" class="e19-btn e19-btn-secondary" id="ajustesExportCsv">Descargar CSV completo</button>
                 <button type="button" class="e19-btn e19-btn-primary" id="ajustesExportPdf">Descargar PDF del mes</button>
+                <button type="button" class="e19-btn e19-btn-secondary" id="ajustesExportIcs">Descargar calendario (.ics)</button>
               </div>
               <p class="e19-kpi-note" id="ajustesExportNote"></p>
             </article>
@@ -3627,6 +3782,10 @@
                 <div class="module-heading"><div><p class="panel-kicker">E8 · Capacidad</p><h3>Presupuesto de rendimiento</h3><p>Controla volumen, peso del estado y tiempo de preparación de la vista.</p></div></div>
                 <div id="e8PerformanceBudget"></div>
               </article>
+              <article class="audit-panel">
+                <div class="module-heading"><div><p class="panel-kicker">A16-6 · Constancia</p><h3>Hitos y rachas</h3><p>Meses cerrados seguidos, tu mejor racha histórica y los hitos alcanzados en el historial de cierres.</p></div></div>
+                <div id="a166MilestonesStreaks"></div>
+              </article>
             </div>
 
             <div class="audit-layout">
@@ -4096,8 +4255,8 @@
     <script defer src="canonical-state.js?v=20260717p0"></script>
     <script defer src="canonical-ledger.js?v=20260713d"></script>
     <script defer src="canonical-engine.js?v=20260713e"></script>
-    <script defer src="canonical-forecast.js?v=20260802e12b1"></script>
-    <script defer src="canonical-cushion.js?v=20260829tt5a1"></script>
+    <script defer src="canonical-forecast.js?v=20260829pv2b1"></script>
+    <script defer src="canonical-cushion.js?v=20260829sp5a1"></script>
     <script defer src="canonical-e13-scenarios.js?v=20260802e13b1"></script>
     <script defer src="canonical-daily-engine.js?v=20260714a"></script>
     <script defer src="canonical-debt-contracts.js?v=20260714b"></script>
@@ -4107,8 +4266,8 @@
     <script defer src="legacy-debt-roadmap-engine.js?v=20260805e14parity1"></script>
     <script defer src="canonical-e14-operations.js?v=20260805e14b1"></script>
     <script defer src="canonical-e14-parity.js?v=20260805e14parity1"></script>
-    <script defer src="canonical-e15-goals.js?v=20260805e16a2"></script>
-    <script defer src="canonical-e16-monitoring.js?v=20260805e16a2"></script>
+    <script defer src="canonical-e15-goals.js?v=20260829sp1a1"></script>
+    <script defer src="canonical-e16-monitoring.js?v=20260829cp5a1"></script>
     <script defer src="canonical-budget-schema.js?v=20260826a1"></script>
     <script defer src="canonical-budget-analyzer.js?v=20260826a1"></script>
     <script defer src="canonical-budget-alerts.js?v=20260826a1"></script>
@@ -4118,6 +4277,9 @@
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
+    <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
+    <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
+    <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4135,7 +4297,7 @@
     <script defer src="canonical-workflow.js?v=20260714a"></script>
     <script defer src="canonical-supabase-store.js?v=20260801e6c"></script>
     <script defer src="canonical-month-close.js?v=20260731e4"></script>
-    <script defer src="canonical-e5-operations.js?v=20260801e5"></script>
+    <script defer src="canonical-e5-operations.js?v=20260829a166a1"></script>
     <script defer src="snapshot-restore.js?v=20260731a"></script>
     <script defer src="durable-outbox.js?v=20260731e1"></script>
     <script defer src="remote-save-queue.js?v=20260731e4h"></script>
@@ -4144,7 +4306,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829b1"></script>
+    <script defer src="app.js?v=20260829o1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

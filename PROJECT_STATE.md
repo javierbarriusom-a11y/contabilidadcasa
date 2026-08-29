@@ -2,6 +2,552 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (70): A19-3 — comparador educativo de tarifas fijas, y cierre del Bloque 2
+
+Última tarea programada del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla:
+sin spec detallada, «Bajo-Medio, oportunista»). Sin relación con A19-1/A19-2 (enlace de solo lectura,
+informe PDF certificado) más allá de compartir prefijo: A19-3 es un comparador educativo de tarifas
+(luz, gas o cualquier tarifa con precio por unidad de consumo), sin dependencia de esas dos.
+
+**Decisión de alcance**: calculadora puntual, sin precios de mercado reales — el hogar declara su
+consumo y ambos precios (fijo y variable estimado), sin persistir nada en `scenarioSettings` (mismo
+criterio que `handleAjustesExportIcs`: una acción, no un dato del hogar que se sincroniza). La
+pregunta educativa no es «¿cuál es más barata hoy?» sino «¿a qué precio variable ambas costarían lo
+mismo?» — el break-even, más útil para decidir que una comparación de un solo punto.
+
+**Construido**: `canonical-tariff-comparator.js` (nuevo) — `compareFixedVsVariableTariff(input)`:
+coste mensual de cada tarifa (consumo × precio + cargo fijo opcional de cada una), cuál es más barata
+(`"fixed"`/`"variable"`/`"tie"`) y `breakEvenVariablePrice` (el precio variable al que ambas
+costarían lo mismo; `null` sin consumo, no una división por cero). En `app.js`,
+`handleAjustesCompareTariffs()` lee los campos y rellena la nota de resultado. Tarjeta nueva
+«Comparador educativo de tarifas fijas» en Ajustes. `canonical-tariff-comparator.js` añadido a la
+whitelist de `tools/build-public-site.mjs` y cargado en `index.html` (`?v=20260829a193a1`), `app.js`
+bumpeado a `?v=20260829o1`.
+
+**Verificación**: 13 pruebas nuevas — 7 en `tests/canonical-tariff-comparator.test.cjs` (fija más
+barata, variable más barata, empate real no un desempate arbitrario, cargos fijos de cada tarifa,
+break-even, sin consumo sin dividir por cero, valores negativos recortados a cero) y 6 en
+`tests/a19-3-comparador-tarifas.test.cjs` (sin consumo avisa, resultado con datos válidos, HTML/
+script/wiring/ayuda, y que no persiste nada en `scenarioSettings`).
+
+**Validación**: `npm run verify`, exit 0 — **2210/2210 pruebas** (2197 + 13 nuevas), accesibilidad
+(876 IDs, +7), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+**Cierre del Bloque 2**: de las 18 tareas de la tabla, 17 completadas en esta sesión (OPT-6, OPT-19,
+OPT-21, OPT-22, A16-5, A17-2, A15-3, CP5, TT3, TT4, DI2, SP1, SP5, PV2, A16-6, A15-5, A19-3). Solo
+**OPT-18** queda pendiente, bloqueada por la política de red del entorno (el proxy de egress deniega
+`javierbarriusom-a11y.github.io`, confirmado con `curl` y con el estado del proxy): necesita que el
+usuario compruebe la cabecera `content-encoding` del sitio publicado, o una sesión futura donde ese
+bloqueo no aplique.
+
+## Cierre de sesión — 29 de agosto de 2026 (69): A15-5 — tablas fiscales versionadas y su actualización anual
+
+Decimosexta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Sin dependencia con A15-1 («Registro de supuestos fiscales», M, Bloque 3) ni A15-2
+(«Estimador de resultado de IRPF», L, Bloque 9) pese al tema compartido: A15-5 es la infraestructura
+de *versionado* (qué año está cubierto), no el registro de valores fiscales reales ni ningún cálculo
+— eso les toca a esas dos tareas, más adelante y con más alcance.
+
+**Decisión de alcance**: registro simple, mismo patrón que TT3/TT4/SP1 — un array en
+`scenarioSettings` con año, etiqueta libre, origen y notas. Ninguna cifra fiscal (tramos, mínimos
+personales) se fabrica ni se guarda con estructura propia todavía: eso es trabajo de A15-1.
+
+**Construido**: `canonical-tax-tables.js` (nuevo) — `taxTableStatus(tables, currentYear)`: años
+registrados (sin duplicados, entradas con año inválido se ignoran), año más reciente, y si el año en
+curso está cubierto (`stale: null` cuando el año en curso no se pudo determinar, no un booleano
+inventado). En `app.js`: `taxTables()`, `addTaxTable({year, label, source, notes})` (año fuera de
+2000-2100 se descarta) y `removeTaxTable(id)` (CRUD), `renderTaxTables()` (avisa si la actualización
+anual sigue pendiente). Tarjeta nueva «Tablas fiscales» en Ajustes, junto al inventario de pólizas.
+`canonical-tax-tables.js` añadido a la whitelist de `tools/build-public-site.mjs` y cargado en
+`index.html` (`?v=20260829a155a1`), `app.js` bumpeado a `?v=20260829n1`.
+
+**Verificación**: 14 pruebas nuevas — 6 en `tests/canonical-tax-tables.test.cjs` (sin tablas, año
+cubierto, solo años anteriores, duplicados, año en curso indeterminado da `null` no `true` — bug real
+detectado y corregido: `Number(null)` es `0`, un año «válido» falso que colaba `currentYearCovered` en
+`true` antes de comprobar si el año era conocido de verdad — y años inválidos ignorados) y 8 en
+`tests/a15-5-tablas-fiscales.test.cjs` (CRUD, HTML/script/wiring/`renderAjustes`/`renderTaxTables`).
+
+**Validación**: `npm run verify`, exit 0 — **2197/2197 pruebas** (2183 + 14 nuevas), accesibilidad
+(869 IDs, +7 por los 7 IDs nuevos del formulario/lista/nota), rendimiento, build del sitio, privacidad
+y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (68): A16-6 — hitos y rachas en el historial de auditoría
+
+Decimoquinta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin
+spec detallada). «Historial de auditoría» = `monthClosures`, el mismo registro de cierres/reaperturas
+de mes que ya consume `FinanceCanonicalE5.latestMonthOperation`/`isMonthClosed`, con su tarjeta
+«Historial operativo» en Datos · Auditoría (`e8OperationalTimeline`). Sin tabla ni estado nuevo: se
+trata de un cálculo puro sobre datos que ya existen.
+
+**Construido**: en `canonical-e5-operations.js`, `auditMilestonesAndStreaks(monthClosures)` — se
+queda con el último estado de cada mes (reabrir después de cerrar cuenta como reabierto, no como si
+nunca hubiera pasado), calcula la racha actual (meses consecutivos en el calendario, sin huecos,
+terminando en el más reciente, cerrados) y la racha más larga histórica, y compara el total de meses
+cerrados con una escala de hitos fija (`MILESTONE_STEPS`: 5/10/25/50/100) — `nextMilestone` es `null`,
+no un número inventado, cuando ya se alcanzaron todos. En `app.js`, `renderAuditMilestonesStreaks()`
+rellena una tarjeta nueva «Hitos y rachas» en el mismo `audit-layout` que «Historial operativo» y
+«Presupuesto de rendimiento» (Datos · Auditoría), llamada desde `renderE8AuditExtensions()`.
+`canonical-e5-operations.js` bumpeado a `?v=20260829a166a1`, `app.js` a `?v=20260829m1`.
+
+**Verificación**: 10 pruebas nuevas — 7 en `tests/canonical-e5-operations.test.cjs` (sin cierres,
+racha simple, un hueco de calendario la corta, un mes reabierto cuenta por su último estado no por su
+historial completo, hitos exactos, todos los hitos alcanzados sin inventar el siguiente) y 3 en
+`tests/a16-6-hitos-rachas.test.cjs` (la tarjeta vive junto al historial operativo, reutiliza
+`monthClosures` sin datos nuevos, `renderE8AuditExtensions` la rellena).
+
+**Validación**: `npm run verify`, exit 0 — **2183/2183 pruebas** (2173 + 10 nuevas), accesibilidad
+(862 IDs, +1 por el contenedor nuevo), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (67): PV2 — termómetro de desviación por partida
+
+Decimocuarta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con nota de alcance propia:
+«Visualiza lo que `learnFromHistory()` ya calcula». La tarjeta «Aprendizaje E12b» (Análisis avanzado,
+`e13AdvancedAnalysis`) ya llamaba a `learnFromHistory()` pero solo mostraba `deviations[0]` en una
+línea de texto — el resto de partidas del array quedaban calculadas y nunca visibles.
+
+**Decisión de alcance**: sin cálculo nuevo. `learnFromHistory()` ya calculaba `averageDelta` por
+partida, pero no una referencia normalizada para saber si esa desviación es grande o pequeña — 50 €
+es ruido en una hipoteca de 900 € y una alarma en una cuota de gimnasio de 40 €. Se añade
+`averagePlanned` (el mismo bucle que ya calculaba `averageDelta`, una reducción más) y
+`deviationSeverity(averageDelta, averagePlanned)` (tres bandas por ratio, mismo criterio de
+`cashSeverityBand`/E16), y se sustituye el texto de una línea por una barra («termómetro») por cada
+partida del array.
+
+**Construido**: en `canonical-forecast.js`, `deviationSeverity` (bandas en 10%/25%,
+`DEVIATION_SEVERITY_THRESHOLDS` exportado; sin previsto medio conocido, cualquier desviación real
+cuenta como alta) y `averagePlanned`/`severity` añadidos a cada entrada de `deviations`. En `app.js`,
+`deviationThermometerHtml(deviations)` renderiza una lista de barras coloreadas por severidad (verde/
+ámbar/rojo, mismos tonos que `.status-pill.warn`/`.danger`), cada una con su ancho proporcional al
+ratio de desviación. La tarjeta «Aprendizaje E12b» pasa a listar todas las partidas, no solo la
+primera. CSS nuevo y con ámbito propio (`.pv2-thermometer-*`) en vez de tocar clases compartidas.
+`canonical-forecast.js` bumpeado a `?v=20260829pv2b1`, `app.js` a `?v=20260829l1`, `styles.css` a
+`?v=20260829pv2a1` (con cuidado: ese mismo `20260828a1` lo compartían por coincidencia
+`manifest.webmanifest`, `e18-health.js` y `views/deuda.js` — se bumpeó solo la referencia de
+`styles.css`, no las otras tres).
+
+**Verificación**: 10 pruebas nuevas — 5 en `tests/canonical-forecast.test.cjs` (las tres bandas de
+`deviationSeverity`, sus límites exactos en 10%/25%, sin previsto medio conocido, y dos casos de
+`learnFromHistory` con severidad baja y alta reales) y 5 en `tests/pv2-termometro-desviacion.test.cjs`
+(sin desviaciones, una fila por partida no solo la primera, severidad alta con su pill y ancho de
+barra, sin previsto medio la barra queda a tope, y que la tarjeta usa el termómetro).
+
+**Validación**: `npm run verify`, exit 0 — **2173/2173 pruebas** (2163 + 10 nuevas), accesibilidad
+(861 IDs, sin cambio — el termómetro es contenido dinámico, sin IDs fijos nuevos en `index.html`),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (66): SP5 — deducible óptimo según el colchón disponible
+
+Decimotercera tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con nota de alcance propia:
+«Extiende `canonical-cushion.js`».
+
+**Decisión de alcance**: nada que guardar. Cuanta más franquicia (deducible) asume un seguro, menor
+la prima pero mayor el golpe de caja si hay un siniestro — la pregunta es cuánta franquicia podría
+absorber el colchón sin caer por debajo del suelo protegido. Ambas cifras ya existen: el colchón
+líquido actual (`accountBalancesFromState().total`) y el suelo (`cushionFloor` con `lastSimulation` y
+la reserva operativa configurada, el mismo que ya usan Plan y el mapa de calor). Nota puramente
+derivada en Ajustes, sin formulario ni campo nuevo.
+
+**Construido**: en `canonical-cushion.js`, `optimalDeductibleFor(cushion, floor, deductibleOptions =
+DEFAULT_DEDUCTIBLE_OPTIONS)` — calcula la holgura (lo que sobra por encima del suelo, no el colchón
+entero: el suelo sigue siendo para lo que ya protege) y, de una lista de franquicias habituales
+(150/300/500/1.000 €, exportada como `DEFAULT_DEDUCTIBLE_OPTIONS`), cuáles caben en esa holgura;
+`optimal` es la mayor que cabe, o `null` si ninguna cabe todavía (no se fuerza la más baja como
+«óptima» cuando en realidad ninguna es segura). En `app.js`, `renderAjustesOptimalDeductibleNote()`
+calcula ambas cifras con las funciones ya en producción y rellena la nota. Tarjeta nueva «Deducible
+óptimo del seguro» en Ajustes, junto a la de reserva operativa. `canonical-cushion.js` bumpeado a
+`?v=20260829sp5a1`, `app.js` a `?v=20260829k1`.
+
+**Verificación**: 8 pruebas nuevas — 6 en `tests/canonical-cushion.test.cjs` (holgura de sobra,
+holgura ajustada que recorta las opciones, sin holgura ninguna franquicia es segura, opciones por
+defecto, colchón/suelo negativos se tratan como cero) y 2 en `tests/sp5-deducible-optimo.test.cjs`
+(la nota vive en Ajustes; `renderAjustesOptimalDeductibleNote` reutiliza las funciones existentes y
+no llama a `saveScenarioSettings`, confirmando que no persiste nada nuevo).
+
+**Validación**: `npm run verify`, exit 0 — **2163/2163 pruebas** (2155 + 8 nuevas), accesibilidad (861
+IDs, +1 por la nota nueva), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (65): SP1 — inventario de pólizas con vencimientos en el calendario
+
+Duodécima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Sin ningún inventario de pólizas en el código todavía (SP2, Bloque 1, usaba un único
+capital agregado, sin pólizas individuales).
+
+**Decisión de alcance**: mismo patrón de registro que TT3/TT4 — un array simple en
+`scenarioSettings`, sin dominio de datos nuevo. Cada póliza declara nombre, fecha de vencimiento
+(obligatoria) y, opcionalmente, prima anual y notas. «Con vencimientos en el calendario» se toma al
+pie de la letra: se integra en `financialCalendar()` (E15), reutilizando el motor ya en producción en
+vez de construir un calendario aparte.
+
+**Construido**: en `canonical-e15-goals.js`, `financialCalendar()` acepta ahora `input.policies` y
+añade un evento `type: "policy"` por póliza en su mes de vencimiento — mismo criterio que el evento de
+la Renta (A15-3): si no se declaró prima, `amount: null` y `uncertain: true` (no un 0 inventado). En
+`app.js`: `insurancePolicies()`, `addInsurancePolicy({name, renewalDate, premium, notes})` (una fecha
+con formato inválido se descarta, no se guarda a medias), `removeInsurancePolicy(id)` y
+`renderInsurancePolicies()` (ordena por vencimiento). Tarjeta nueva «Inventario de pólizas» en
+Ajustes. `handleAjustesExportIcs()` pasa `policies: insurancePolicies()` a `financialCalendar()`, así
+que las pólizas ya aparecen en el .ics exportado (A17-2) sin cambiar ese exportador.
+`canonical-e15-goals.js` bumpeado a `?v=20260829sp1a1`, `app.js` a `?v=20260829j1`.
+
+**Verificación**: 4 pruebas nuevas en `tests/canonical-e15-goals.test.cjs`-style añadidas a
+`tests/sp1-inventario-polizas.test.cjs` para el motor (evento con prima, evento sin prima con
+incertidumbre marcada, sin pólizas no hay eventos, varias pólizas el mismo mes), más CRUD y las
+comprobaciones estáticas de HTML/wiring/`renderAjustes`/`handleAjustesExportIcs` — 11 en total.
+Corrige de paso `tests/a17-2-calendario-ics.test.cjs`: su sandbox de `handleAjustesExportIcs` no
+declaraba `insurancePolicies`, la nueva dependencia — un `ReferenceError` real, detectado por
+`npm test` (1 fallo), no un fallo de la propia función.
+
+**Validación**: `npm run verify`, exit 0 — **2155/2155 pruebas** (2144 + 11 nuevas), accesibilidad
+(860 IDs, +6 por los 6 IDs nuevos del formulario/lista), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (64): DI2 — línea de crédito de emergencia frente a colchón líquido
+
+Undécima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Pregunta: ¿sustituye una línea de crédito de emergencia parte del colchón líquido que hoy
+se mantiene inmovilizado sin rendimiento? Sin ningún concepto de «línea de crédito» en el código
+todavía (DI3, más adelante en el backlog, habla de revolving ya contratado — algo distinto).
+
+**Decisión de alcance**: campo único, mismo patrón que el capital asegurado (SP2) — dos números
+configurables en Ajustes (límite y TIN de la línea), sin línea de crédito real conectada. Reutiliza el
+colchón operativo ya configurado (`cuadroMandosReserve`, el mismo suelo que usan Plan y el mapa de
+calor) en vez de pedir un segundo valor de colchón que se desincronizaría del real.
+
+**Construido**: `canonical-emergency-credit-line.js` (nuevo) — `evaluateEmergencyCreditLine(cushionFloor,
+creditLimit, creditRate, drawMonths = DEFAULT_DRAW_MONTHS)`: sin colchón de referencia configurado
+devuelve `covered: null` (nada que comparar, no un `false` que fingiría una brecha inventada); con
+colchón, calcula la brecha sin cubrir (`gap`) y, si la línea cubre total o parcialmente el colchón, el
+coste estimado en intereses de disponer de ella de verdad — sobre el mínimo entre colchón y límite, no
+sobre el colchón completo si el límite fuera menor — asumiendo una disposición de `DEFAULT_DRAW_MONTHS`
+(3, exportada) meses. En `app.js`: `emergencyCreditLimit()`/`emergencyCreditRate()` (getters),
+`syncEmergencyCreditLineControls()`, `renderAjustesEmergencyCreditLineNote()` y los handlers de cambio
+de cada campo, mismo esqueleto que `lifeInsuranceCapital`. Tarjeta nueva «Línea de crédito de
+emergencia» en Ajustes, junto a la de cobertura de vida. `saveScenarioSettings()` amplía su
+whitelist con `emergencyCreditLimit`/`emergencyCreditRate`.
+
+**Verificación**: 12 pruebas nuevas en `tests/di2-linea-credito-emergencia.test.cjs` — sin colchón
+configurado no compara nada, cobertura completa, brecha parcial, sin línea configurada (brecha =
+colchón entero, coste 0), el coste usa el mínimo entre colchón y límite (no el colchón completo cuando
+el límite es menor), límite/TIN negativos se recortan a 0, más las comprobaciones estáticas de
+HTML/script/wiring/`renderAjustes`/`saveScenarioSettings`. `app.js` bumpeado a `?v=20260829i1` (con
+sustitución directa de la cadena de versión, tras el fallo de escapado del bump anterior).
+
+**Validación**: `npm run verify`, exit 0 — **2144/2144 pruebas** (2132 + 12 nuevas), accesibilidad (854
+IDs, +3 por los 3 IDs nuevos del formulario/nota), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (63): TT4 — alerta de comisiones de mantenimiento y vinculación
+
+Décima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). Concepto nuevo, distinto de TT3 (cuentas remuneradas): cuentas corrientes que cobran
+comisión de mantenimiento salvo que se cumpla una vinculación (nómina domiciliada, gasto mínimo con
+tarjeta, etc.). La app no puede saber por sí sola si la vinculación del mes se cumplió —eso no vive en
+ningún dato del hogar ya modelado—, así que se marca a mano, mes a mes; lo que sí calcula la app es la
+alerta: qué cuentas quedarían sin vinculación cumplida y cuánta comisión total se aplicaría por ello.
+
+**Decisión de alcance**: mismo patrón que TT3/`bigPurchaseGoals` — un array simple en
+`scenarioSettings`, sin cuenta bancaria real conectada ni dominio de datos nuevo.
+
+**Construido**: `maintenanceFeeAccounts()`, `addMaintenanceFeeAccount({name, fee, requirement})`
+(nace con `met: true` para no alertar en falso el primer día) y `removeMaintenanceFeeAccount(id)`
+(CRUD), `setMaintenanceFeeAccountMet(id, met)` (marca el mes) y `maintenanceFeeAlerts()` (filtra las
+cuentas con comisión > 0 y vinculación no cumplida; una comisión de 0 nunca alerta, no hay nada que
+evitar; suma solo el total en riesgo, no el de todas las cuentas registradas). Tarjeta nueva
+«Comisiones de mantenimiento y vinculación» en Ajustes, justo debajo de «Cuentas remuneradas»:
+formulario nombre/comisión/vinculación exigida, lista con insignia «Comisión en riesgo» y checkbox
+«Vinculación cumplida este mes» por fila, nota-resumen con el total en riesgo. Wiring: `renderAjustes()`
+llama a `renderMaintenanceFeeAccounts()`; listeners de añadir, quitar (delegado) y del checkbox
+(delegado, evento `change`); ayuda contextual en el campo de vinculación exigida.
+
+**Verificación**: 10 pruebas nuevas en `tests/tt4-alerta-comisiones-mantenimiento.test.cjs` — sin
+cuentas nada alerta, alta con vinculación cumplida por defecto, normalización de nombre/comisión,
+marcar como no cumplida activa la alerta con su comisión, comisión 0 nunca alerta pese a no cumplir,
+el total suma solo las cuentas en riesgo, retirada por id, más las comprobaciones estáticas de
+HTML/wiring/`renderAjustes`. `app.js` bumpeado a `?v=20260829h1`.
+
+**Bug real encontrado y corregido al bumpear la versión**: el bump anterior (TT3, `g1`) dejó 26
+archivos de test sin actualizar aunque la comprobación final de «sin cadenas antiguas sueltas» no
+detectó nada raro — falso negativo. Esos 26 archivos fijan la versión con un regex de la forma
+`/app.js\?v=.../ ` (con barra invertida solo delante del `?`, el punto sin escapar), mientras que mi
+patrón de `sed` para el bump asumía la barra invertida delante del punto en vez de delante del `?` (o
+ninguna). Como ninguno de los dos patrones de `sed` coincidía con el texto real, no tocaron esos 26
+archivos — y la comprobación final buscaba ese mismo patrón erróneo, así que tampoco detectó el
+desajuste. Se detectó porque `npm test` sí lo capta de verdad (26 fallos exactos, uno por archivo) al
+comparar el texto contra la versión real de `index.html`. Corregido sustituyendo directamente la
+cadena de versión (`20260829g1` → `20260829h1`) sin depender de qué carácter va escapado alrededor,
+verificado con `npm test` limpio (2132/2132) después.
+
+**Validación**: `npm run verify`, exit 0 — **2132/2132 pruebas** (2122 + 10 nuevas), accesibilidad (851
+IDs, +6 por los 6 IDs nuevos del formulario/lista/nota — las filas y checkboxes de cada cuenta son
+dinámicos, no cuentan como IDs estáticos), rendimiento, build del sitio, privacidad y smoke test, todos
+en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (62): TT3 — registro comparado de cuentas remuneradas activas
+
+Novena tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec
+detallada). No existía ningún registro de cuentas remuneradas en el código: TT1 (Bloque 1) asumía una
+única cuenta remunerada conceptual para dividir el colchón; TT3 es la primera tarea que deja anotar
+varias cuentas nombradas con su TAE.
+
+**Decisión de alcance**: mismo patrón que `bigPurchaseGoals` — un array simple en `scenarioSettings`
+(dato del hogar, se sincroniza y se restaura solo, sin migración de esquema ni cuenta bancaria real
+conectada), consistente con «S» de esfuerzo.
+
+**Construido**: `remuneratedAccounts()` (lee/inicializa el array), `addRemuneratedAccount({name,
+balance, rate, notes})` y `removeRemuneratedAccount(id)` (CRUD, normalizan nombre/saldo/TAE — saldo y
+TAE negativos se recortan a 0, nombre vacío cae a «Cuenta remunerada»), `remuneratedAccountsCompared()`
+(ordena por TAE descendente —la mejor primero—, desempate por saldo descendente, y calcula la media
+ponderada por saldo, no una media simple de tasas, para que una cuenta casi vacía con TAE alta no
+distorsione el conjunto) y `renderRemuneratedAccounts()`/`addRemuneratedAccountFromControls()` para la
+UI. Tarjeta nueva «Cuentas remuneradas» en Ajustes (formulario nombre/saldo/TAE/notas, botón Añadir,
+lista con insignia «Mejor TAE» en la cuenta líder y botón Quitar por fila, nota-resumen con saldo total
+y TAE media ponderada), en la misma línea visual que las tarjetas de Ajustes ya añadidas esta sesión
+(SP2, ICS). Wiring: `renderAjustes()` llama a `renderRemuneratedAccounts()`; listener del botón Añadir
+y listener delegado en el contenedor para `[data-remunerated-remove]`; ayuda contextual en el campo TAE.
+
+**Verificación**: 9 pruebas nuevas en `tests/tt3-cuentas-remuneradas.test.cjs` — lista vacía sin
+dividir por cero, alta/baja normalizadas, orden por TAE descendente con desempate por saldo, la media
+ponderada frente a la media simple (caso donde difieren claramente: 1,4% ponderada frente a 3% simple),
+más las comprobaciones estáticas de HTML/wiring/`renderAjustes`. `app.js` bumpeado a `?v=20260829g1`
+(actualizado en `index.html` y en los 26 archivos de test que fijan esa cadena de versión).
+
+**Validación**: `npm run verify`, exit 0 — **2122/2122 pruebas** (2113 + 9 nuevas), accesibilidad (845
+IDs, +7 por los 7 IDs nuevos del formulario/lista/nota), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (61): CP5 — presupuesto de riesgo con severidad graduada
+
+Octava tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. El umbral de caja de A11-5
+(`canonical-e16-monitoring.js`, en producción, consumido en Hoy y Estado de la semana) era binario:
+por debajo del mínimo configurado, alerta (`high`, o `critical` si ya es negativa); por encima,
+silencio total, sin ningún aviso de que se estaba acercando.
+
+**Construido**: `cashSeverityBand(liquidity, minimumLiquidity)` — tres bandas en vez de dos:
+`critical` (negativa), `high` (por debajo del mínimo, igual que antes) y `medium`, nueva, dentro de
+un margen del 20% por encima del mínimo (`CASH_APPROACHING_RATIO`, exportada) — avisa antes de
+cruzar el umbral, no solo al cruzarlo. Sin mínimo configurado (0, «sin configurar»), la banda media
+no significa nada — cualquier caja positiva estaría «dentro del 20% de cero» — así que se omite,
+solo queda `critical` para una caja negativa. `predictiveAlerts` usa la nueva función tal cual;
+ambos consumidores existentes (`p2-ui.js`, panel E16 montado en Hoy; `views/estado-semana.js`)
+reciben la severidad nueva sin cambio de wiring — ya renderizaban `severity` como texto genérico,
+sin dar por hecho que solo existieran dos valores.
+
+**Verificación**: 5 pruebas nuevas en `tests/canonical-e16-monitoring.test.cjs` — las tres bandas,
+sus límites exactos (cero justo sigue siendo `high`, justo en el mínimo ya es `medium`, justo en el
+margen del 20% ya no alerta), sin mínimo configurado la banda media se omite, y `predictiveAlerts`
+añade/omite la alerta media según corresponda. `canonical-e16-monitoring.js` bumpeado a
+`?v=20260829cp5a1`.
+
+**Validación**: `npm run verify`, exit 0 — **2113/2113 pruebas** (2108 + 5 nuevas), accesibilidad
+(838 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (60): A15-3 — evento de renta en el calendario financiero
+
+Séptima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Su propio texto pide mostrar «el
+pago o devolución» de la Renta, pero el estimador que calcularía esa cifra (A15-2, «Estimador de
+resultado de IRPF») está en el Bloque 9 —mucho más grande, «Alta» esfuerzo, depende de A15-1 (registro
+de supuestos fiscales)— sin construir todavía. Ninguna de las dos existía en el código antes de este
+cierre.
+
+**Decisión de alcance**: la fecha de cierre de la Campaña de la Renta (30 de junio) es fija por ley,
+conocida sin necesidad de ningún estimador — se añade el evento con esa fecha ahora, con su
+incertidumbre declarada de verdad (`amount: null`, no un cero inventado, más `uncertain: true`),
+dejando el resultado en euros para cuando exista A15-2. No se ha construido ningún estimador fiscal
+en esta tarea.
+
+**Construido**: `canonical-e15-goals.js`, `financialCalendar()` añade un evento `type: "renta"` en
+el mes de junio de cada año dentro del horizonte, con `source` explicando por qué no lleva importe.
+Ese motor ya alimentaba el calendario ICS de A17-2 (esta misma sesión) y el panel heredado de
+Huchas (p2-ui.js) — ambos reciben el evento nuevo sin cambio de wiring. Corregido de paso en
+`financialCalendarIcsContent` (A17-2): un evento con `amount: null` mostraba «0,00 €» en la
+descripción del `.ics` (`money(null)` trata `null` como cero) — ahora dice «importe por determinar».
+
+**Verificación**: 2 pruebas nuevas en `tests/canonical-e15-goals.test.cjs` (el evento aparece solo en
+junio, con `amount: null` y `uncertain: true`; un evento por año dentro del horizonte) y 1 en
+`tests/a17-2-calendario-ics.test.cjs` (el `.ics` dice «importe por determinar», no una cifra
+formateada). `canonical-e15-goals.js` bumpeado a `?v=20260829a153a1`; `app.js` a `?v=20260829f1`.
+
+**Validación**: `npm run verify`, exit 0 — **2108/2108 pruebas** (2105 + 3 nuevas), accesibilidad
+(838 IDs, sin cambio — no añade UI nueva), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (59): A17-2 — exportación ICS del calendario financiero
+
+Sexta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («exportación/suscripción ICS del
+calendario financiero, solo lectura»). El calendario financiero (E15: cuotas de deuda, vencimientos
+de objetivos, revisiones y cierre previsto por mes) ya existía y ya se usaba en Huchas y Estado de la
+semana (`FinanceCanonicalE15.financialCalendar`), pero solo dentro de la propia app.
+
+**Decisión de alcance**: exportación a fichero `.ics` descargable, no suscripción con URL propia. El
+sitio es estático (GitHub Pages, sin backend) — una suscripción de verdad necesitaría un endpoint que
+recalculara en cada sondeo del calendario del usuario, infraestructura de servidor que este proyecto
+no tiene. Documentado explícitamente en el propio código para que nadie confunda "descargar de nuevo
+cuando cambie algo" con sincronización automática.
+
+**Construido**: `financialCalendarIcsContent(calendar, generatedAt)` (`app.js`) genera un
+`VCALENDAR` (RFC 5545) con un `VEVENT` por mes del calendario ya calculado — fecha el día 1 de cada
+mes (todo el mes no tiene una fecha más precisa en los datos), resumen "Calendario financiero:
+<mes>" y descripción con el cierre previsto y cada evento del mes (cuota de deuda, vencimiento de
+objetivo, revisión), escapados según RFC 5545. `handleAjustesExportIcs()` reutiliza exactamente el
+mismo ensamblado de datos reales que ya usa Estado de la semana
+(`FinanceP2Bridge.goalPlanning()` + `p2State().goals`/`e15.reviews`), sin inventar una vía nueva.
+Botón "Descargar calendario (.ics)" en la tarjeta Exportar de Ajustes, junto a CSV y PDF (V6-4), con
+ayuda contextual (A12-4).
+
+**Verificación**: 9 pruebas nuevas en `tests/a17-2-calendario-ics.test.cjs` — escapado de texto,
+`VCALENDAR` válido con un `VEVENT` por mes, fecha en formato `YYYYMMDD`, descripción con eventos y
+cierre previsto, un mes sin eventos, calendario vacío, los dos avisos cuando falta el motor o no hay
+meses, y que el botón está montado con su ayuda. `app.js` bumpeado a `?v=20260829e1`.
+
+**Validación**: `npm run verify`, exit 0 — **2105/2105 pruebas** (2096 + 9 nuevas), accesibilidad
+(**838 IDs**, +1 por el botón nuevo), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (58): A16-5 — comparador bola de nieve / avalancha / óptimo
+
+Quinta tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con spec completa en
+`BACKLOG_PATRIMONIO_Y_FINANZAS.md`. Avalancha (ataca primero el TAE más alto, matemáticamente
+óptima) y bola de nieve (ataca primero el saldo más pequeño, motivadora) ya se comparaban en Deuda ·
+Ruta con su propio «coste total ejecutado» (`debtStrategySummary`, ya en producción) — pero cada una
+en su pestaña, sin decir nunca en euros cuánto cuesta elegir la motivadora en vez de la óptima.
+
+**Construido**: `debtStrategyMotivationalGap(baseInput, reserveValue)` (`app.js`) resta los dos
+`costeTotal` que `debtStrategySummary` ya calcula para "avalancha" y "bola-nieve", sin recalcular
+nada; devuelve `null` si cualquiera de las dos no es viable en el horizonte actual, para no comparar
+una ruta completa con una a medias. `deudaRutaMotivationalGapText(gap)` redacta el resultado sin dar
+por hecho el signo — dice lo que la cifra diga de verdad (extra, empate, o incluso bola de nieve más
+barata, si la cartera lo diera así) en vez de afirmar una relación que podría no cumplirse. Nueva
+nota `#deudaRutaMotivationalGapNote` en la tarjeta "Antes de aplicar" de Deuda · Ruta, siempre
+visible —no solo con Bola de nieve seleccionada—, como contexto de decisión antes de aplicar
+cualquiera de las dos.
+
+**Verificación**: 11 pruebas nuevas en `tests/a16-5-brecha-motivadora-deuda.test.cjs` — brecha
+normal, empate, el caso inverso (bola de nieve más barata, sin invertir la lógica a la fuerza), sin
+decisiones en ninguna estrategia, cada estrategia por separado sin ser viable, la redacción de los
+tres casos de signo, y que la nota vive en Deuda · Ruta. `app.js` bumpeado a `?v=20260829d1`.
+
+**Validación**: `npm run verify`, exit 0 — **2096/2096 pruebas** (2085 + 11 nuevas), accesibilidad
+(**837 IDs**, +1 por la nota nueva), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (55-57): OPT-19, OPT-21, OPT-22 — tres tareas de gobernanza documental
+
+Tres tareas seguidas del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con spec completa en
+`BACKLOG_OPTIMIZACION.md` (Fase 4, gobernanza continua) — ninguna toca código de la aplicación.
+
+**OPT-19 · Checklist de reutilización de componentes `.e19-*` en PR**: nuevo
+`.github/pull_request_template.md` — antes de crear una clase `.e19-<pantalla>` nueva, comprobar
+contra el catálogo de `docs/E19_SISTEMA_DISENO.md` §3 (`.e19-card`, `.e19-btn-*`, `.e19-kpi`,
+`.e19-table`, `.e19-badge-*`, `.e19-stepper`…) si ya existe algo reutilizable. Coste continuo bajo,
+según pide la propia tarea: una pregunta más en la plantilla, no un proceso nuevo.
+
+**OPT-21 · Checklist mensual de heurísticos de Nielsen**: nuevo `docs/OPT21_CHECKLIST_NIELSEN.md` —
+los diez heurísticos con su pregunta guía, aplicados a Hoy/Registrar/Plan (las tres pantallas de uso
+diario), y un registro de revisiones donde cada pasada mensual añade su fecha y sus hallazgos reales
+como tareas nuevas del backlog. Esta sesión deja el hábito listo, no ejecuta la primera revisión: sin
+mirar de verdad las tres pantallas contra los diez heurísticos no hay hallazgo real que documentar, y
+fabricar uno sería justo la deriva de UX sin comprobar que este hábito existe para evitar. Primera
+revisión real pendiente para la próxima vez que se retome esta cadencia.
+
+**OPT-22 · Decidir el modelo Hogar/Javi/Tere**: nuevo `docs/OPT22_MODELO_HOGAR.md`. Revisado el
+código real (`ux-settings.js`: `inferOwner`/`familyWeight`/`aggregateFamilyContext`) y el esquema de
+datos (`supabase_schema.sql`): «Vista familiar» es un filtro de lectura sobre un único dueño de
+datos, a propósito — una sola cuenta de Supabase para todo el hogar (`SUPABASE_SETUP.md`: se entra
+"con el mismo usuario" desde cualquier ordenador), "Javi"/"Tere" son una etiqueta de texto inferida
+sobre movimientos y partidas (no una identidad con la que se inicia sesión), y aunque el esquema sí
+tiene una columna `owner` en `finance_accounts`, ninguna política RLS filtra por ella — todas
+filtran por `user_id = auth.uid()`, la única cuenta compartida. Documentado explícitamente qué NO
+construir sobre este modelo (control de acceso por persona, atribución exacta y obligatoria por
+`inferOwner`) y qué implicaría de verdad pasar a multiusuario real, si algún día se decide.
+
+**Validación**: `npm run verify`, exit 0 — **2085/2085 pruebas** (sin cambio, ningún test tocado),
+accesibilidad (836 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
+## Cierre de sesión — 29 de agosto de 2026 (54): OPT-6 — sacar la configuración de «Hoy», Bloque 2 en marcha
+
+Primera tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («el resto de lo barato, sin
+bloqueos»), con spec completa en `BACKLOG_OPTIMIZACION.md`. El editor de «cobertura aprendida»
+(H-3b, fecha de próximo ingreso y gasto diario) era configuración puntual, no lectura diaria — no
+encajaba en «Hoy», pensada como «una lectura y tres decisiones» (mockup 1a).
+
+**Construido**: `#e6CoverageEditor` (formulario completo) se traslada de `#home` a `#ajustes`, como
+una tarjeta más junto a Reserva operativa y Cobertura de vida — misma lógica de guardado/reset, sin
+tocarla (`saveE6Coverage`/`resetE6Coverage`/`scenarioSettings.e6Coverage` intactos). «Hoy» conserva
+solo la lectura (`#e6CoveragePanel`). `renderAjustes()` llama ahora también a `renderE6Coverage()`
+para que la ficha llegue rellena aunque Ajustes se visite antes que Hoy en la sesión (antes solo se
+disparaba desde el render de Hoy).
+
+**Hallazgo durante la validación — bug real de la suite, no de la app**: al repetir `npm test`
+varias veces seguidas, unas veces salía limpio y otras con fallos intermitentes (`ENOENT` al leer
+`dist/canonical-debt-contracts.js`). Aislado y confirmado en 1 de cada 2-3 ejecuciones: dos ficheros
+de test (`tests/opt3-minify-dist.test.cjs`, de OPT-3, y el ya existente
+`tests/public-site-assets.test.cjs`) invocan de verdad `tools/build-public-site.mjs`, que empieza
+borrando `dist/` entero — `node --test` corre archivos en paralelo, así que el `fs.rmSync` de un
+proceso podía borrar lo que el otro estaba leyendo a mitad de copia. Esto probablemente explica el
+«`fail 2` fantasma» que esta misma sesión atribuyó a un artefacto del pipe `| tail` en el cierre de
+TT5 — no lo era.
+
+**Corregido**: `tools/build-public-site.mjs` acepta `BUILD_PUBLIC_SITE_DEST` (variable de entorno)
+para el directorio de destino; sin ella, sigue siendo `dist/` de siempre — cero cambio de
+comportamiento en `build:site` local o en CI. Los dos ficheros de test ahora construyen cada uno en
+su propio directorio temporal aislado (`fs.mkdtempSync`), nunca en `dist/` compartido.
+
+**Verificación**: 4 pruebas nuevas en `tests/opt6-mover-cobertura-a-ajustes.test.cjs` (el formulario
+vive en Ajustes y ya no en Hoy, la lectura se queda en Hoy sin duplicarse, `renderAjustes` llama a
+`renderE6Coverage`, y guardar/retirar siguen usando la misma lógica). `app.js` bumpeado a
+`?v=20260829c1`. **5 ejecuciones seguidas de la suite de estos dos ficheros y 3 de la suite
+completa, todas limpias**, tras el fix de la condición de carrera (antes: 1 de cada 2-3 con fallos).
+
+**Validación**: `npm ci` limpio + `npm run verify`, exit 0 — **2085/2085 pruebas** (2081 + 4
+nuevas), accesibilidad (836 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup` (rama reiniciada desde
+`main` tras la fusión del Bloque 1), PR en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Fix de CI — 29 de agosto de 2026: `npm ci` antes de `npm run verify`
 
 Detectado por el propio CI del PR #159 (Bloque 1), no en local: `.github/workflows/pages.yml`

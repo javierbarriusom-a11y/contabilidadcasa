@@ -2029,6 +2029,29 @@ function renderDataAudit() {
   renderE8AuditExtensions(snapshot, rows);
 }
 
+// A16-6 · hitos y rachas en el historial de auditoría. Reutiliza monthClosures tal cual, el mismo
+// historial que ya lee latestMonthOperation/isMonthClosed — sin tabla ni estado nuevo.
+function renderAuditMilestonesStreaks() {
+  const target = qs("a166MilestonesStreaks");
+  if (!target) return;
+  const result = window.FinanceCanonicalE5?.auditMilestonesAndStreaks(monthClosures);
+  if (!result) return;
+  const streakText = result.currentStreak > 0
+    ? `Racha actual: ${result.currentStreak} mes(es) cerrados seguidos${result.currentStreak === result.longestStreak && result.longestStreak > 0 ? " (tu mejor racha)" : ""}.`
+    : "Sin racha activa: el mes más reciente no está cerrado o hay un hueco.";
+  const milestonesText = result.reachedMilestones.length
+    ? `Hitos alcanzados: ${result.reachedMilestones.join(", ")} meses cerrados.`
+    : "Todavía sin hitos alcanzados.";
+  const nextText = result.nextMilestone !== null
+    ? `Próximo hito: ${result.nextMilestone} meses (${result.monthsUntilNextMilestone} por delante).`
+    : "Has alcanzado todos los hitos definidos.";
+  target.innerHTML = `<div class="audit-kpi-grid">
+    <article class="audit-kpi good"><span>Meses cerrados</span><strong>${result.totalClosed}</strong><p>${escapeHtml(streakText)}</p></article>
+    <article class="audit-kpi ${result.longestStreak > 0 ? "good" : "warn"}"><span>Racha más larga</span><strong>${result.longestStreak}</strong><p>meses consecutivos cerrados, sin huecos ni reaperturas</p></article>
+    <article class="audit-kpi"><span>Hitos</span><strong>${result.reachedMilestones.length}/${result.milestones.length}</strong><p>${escapeHtml(milestonesText)} ${escapeHtml(nextText)}</p></article>
+  </div>`;
+}
+
 function renderE8AuditExtensions(snapshot, rows) {
   const e8 = window.FinanceCanonicalE8;
   if (!e8) return;
@@ -2053,6 +2076,7 @@ function renderE8AuditExtensions(snapshot, rows) {
   if (timelineTarget) timelineTarget.innerHTML = timeline.length
     ? timeline.slice(0, 30).map((item) => `<div class="audit-timeline-item"><span>${escapeHtml(new Date(item.at).toLocaleString("es-ES"))}</span><div><strong>${escapeHtml(item.label)}</strong><p>${escapeHtml(item.type)} · ${escapeHtml(item.status)}</p></div></div>`).join("")
     : `<div class="audit-empty"><strong>Sin eventos operativos</strong></div>`;
+  renderAuditMilestonesStreaks();
   const payloadBytes = new TextEncoder().encode(JSON.stringify(appStatePayload({ includeCanonical: false }))).length;
   const budget = e8.performanceBudget({ rowCount: rows.length + movements.length, renderMs: performance.now() - started, payloadBytes });
   const budgetTarget = qs("e8PerformanceBudget");
@@ -3429,6 +3453,10 @@ function saveScenarioSettings() {
     // SP2 · capital asegurado del seguro de vida, igual que la reserva operativa: dato del hogar
     // que se sincroniza y se restaura, 0 significa «sin configurar».
     lifeInsuranceCapital: round2(Math.max(0, Number(state.lifeInsuranceCapital || 0))),
+    // DI2 · límite y TIN de la línea de crédito de emergencia, mismo criterio que el capital
+    // asegurado: dato del hogar que se sincroniza y se restaura, 0 significa «sin configurar».
+    emergencyCreditLimit: round2(Math.max(0, Number(state.emergencyCreditLimit || 0))),
+    emergencyCreditRate: round2(Math.max(0, Number(state.emergencyCreditRate || 0))),
     // V6-2 · los dos umbrales de Ajustes que no encajan como regla de alertas: 0 significa «sin
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
@@ -6367,6 +6395,14 @@ function applyHelpTooltips() {
     "Capital asegurado de tu seguro de vida, en euros. Se compara con la deuda pendiente total para avisar si quedaría algo sin cubrir. Vacío significa sin capital configurado, no cero.",
   );
   addHelpToControl(
+    "ajustesEmergencyCreditLimit",
+    "Límite de una línea de crédito de emergencia, en euros. Se compara con tu reserva operativa: si la cubre por completo, calcula el coste estimado de disponer de ella de verdad frente a mantener ese dinero inmovilizado.",
+  );
+  addHelpToControl(
+    "ajustesEmergencyCreditRate",
+    "TIN de la línea de crédito, en %. Se usa junto al límite para estimar el coste en intereses de una disposición de emergencia de 3 meses.",
+  );
+  addHelpToControl(
     "ajustesDuplicateWindow",
     "Cuántos días de diferencia por el mismo importe cuentan como candidato a duplicado al importar un extracto. Vacío usa 7 días.",
   );
@@ -6380,6 +6416,24 @@ function applyHelpTooltips() {
   );
   qs("ajustesExportCsv")?.setAttribute("data-help", "El mismo CSV completo del flujo mensual que ya descarga Plan, ahora también desde aquí.");
   qs("ajustesExportPdf")?.setAttribute("data-help", "Previsto, real y desviación de cada partida del mes abierto en Registrar el mes, en un PDF de una página por cada 42 líneas.");
+  qs("ajustesExportIcs")?.setAttribute("data-help", "Un evento por mes con cuotas de deuda, vencimientos de objetivos, revisiones y cierre previsto — importa el fichero en Google/Apple Calendar. Solo lectura: no se sincroniza solo, hay que volver a descargarlo si algo cambia.");
+  addHelpToControl(
+    "ajustesRemuneratedRate",
+    "TAE de la cuenta, en %. El registro ordena tus cuentas remuneradas de mayor a menor TAE y calcula la media ponderada por saldo, no solo la mejor tasa aislada.",
+  );
+  addHelpToControl(
+    "ajustesMaintenanceFeeRequirement",
+    "Qué exige el banco para librarte de la comisión (nómina domiciliada, gasto mínimo con tarjeta, etc.). Marca cada mes si se cumplió: si no, la cuenta queda como comisión en riesgo.",
+  );
+  addHelpToControl(
+    "ajustesInsurancePolicyDate",
+    "Fecha de vencimiento de la póliza. Aparece en el calendario financiero (.ics) ese mes, con la prima si la has indicado.",
+  );
+  addHelpToControl(
+    "ajustesTaxTableYear",
+    "Año fiscal al que corresponde esta tabla (tramos de IRPF, mínimos personales, etc.). Sin una tabla para el año en curso, la nota de abajo avisa de que la actualización anual sigue pendiente.",
+  );
+  qs("ajustesTariffCompare")?.setAttribute("data-help", "Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo. También calcula a qué precio variable medio ambas costarían lo mismo — no trae ningún precio de mercado real, tú pones los tuyos.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -14788,6 +14842,298 @@ function removeBigPurchaseGoal(id) {
   saveScenarioSettings();
 }
 
+// TT3 · registro comparado de cuentas remuneradas activas. Mismo patrón que bigPurchaseGoals: un
+// array simple en scenarioSettings (dato del hogar, se sincroniza y se restaura), sin dominio de
+// datos nuevo ni migración de esquema — CRUD local, no una cuenta bancaria real conectada.
+function remuneratedAccounts() {
+  scenarioSettings.remuneratedAccounts = Array.isArray(scenarioSettings.remuneratedAccounts) ? scenarioSettings.remuneratedAccounts : [];
+  return scenarioSettings.remuneratedAccounts;
+}
+
+function addRemuneratedAccount({ name, balance, rate, notes }) {
+  const accounts = remuneratedAccounts();
+  accounts.push({
+    id: `remunerada-${Date.now()}-${accounts.length}`,
+    name: String(name || "").trim() || "Cuenta remunerada",
+    balance: round2(Math.max(0, Number(balance) || 0)),
+    rate: round2(Math.max(0, Number(rate) || 0)),
+    notes: String(notes || "").trim(),
+  });
+  saveScenarioSettings();
+}
+
+function removeRemuneratedAccount(id) {
+  scenarioSettings.remuneratedAccounts = remuneratedAccounts().filter((account) => account.id !== id);
+  saveScenarioSettings();
+}
+
+// Comparado por TAE descendente — la mejor cuenta primero. La media ponderada por saldo dice el
+// rendimiento real de conjunto, no solo la mejor tasa aislada (que podría ser una cuenta casi vacía
+// sin peso real en el total).
+function remuneratedAccountsCompared() {
+  const sorted = remuneratedAccounts().slice().sort((a, b) => b.rate - a.rate || b.balance - a.balance);
+  const totalBalance = round2(sorted.reduce((sum, account) => sum + account.balance, 0));
+  const weightedRate = totalBalance > 0 ? round2(sorted.reduce((sum, account) => sum + account.balance * account.rate, 0) / totalBalance) : 0;
+  return { accounts: sorted, totalBalance, weightedRate, bestId: sorted[0]?.id || "" };
+}
+
+function renderRemuneratedAccounts() {
+  const target = qs("ajustesRemuneratedAccounts");
+  const note = qs("ajustesRemuneratedAccountsNote");
+  if (!target) return;
+  const compared = remuneratedAccountsCompared();
+  target.innerHTML = compared.accounts.length
+    ? `<ul class="commit-barrier-list">${compared.accounts
+        .map(
+          (account) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(account.name)}</strong>${account.id === compared.bestId ? ` <span class="status-pill">Mejor TAE</span>` : ""}</div><span>${money(account.balance, true)} · ${account.rate.toFixed(2)}% TAE${account.notes ? ` · ${escapeHtml(account.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-remunerated-remove="${escapeHtml(account.id)}">Quitar</button></li>`,
+        )
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin cuentas remuneradas registradas todavía.</p>`;
+  if (note) {
+    note.textContent = compared.accounts.length
+      ? `${money(compared.totalBalance, true)} en ${compared.accounts.length} cuenta(s) · TAE media ponderada por saldo: ${compared.weightedRate.toFixed(2)}%.`
+      : "";
+  }
+}
+
+function addRemuneratedAccountFromControls() {
+  const name = qs("ajustesRemuneratedName")?.value;
+  if (!name || !String(name).trim()) return;
+  addRemuneratedAccount({
+    name,
+    balance: parseAmount(qs("ajustesRemuneratedBalance")?.value),
+    rate: parseAmount(qs("ajustesRemuneratedRate")?.value),
+    notes: qs("ajustesRemuneratedNotes")?.value,
+  });
+  ["ajustesRemuneratedName", "ajustesRemuneratedBalance", "ajustesRemuneratedRate", "ajustesRemuneratedNotes"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderRemuneratedAccounts();
+}
+
+// TT4 · alerta de comisiones de mantenimiento y vinculación. Mismo patrón que las cuentas
+// remuneradas: un registro simple en scenarioSettings, sin cuenta real conectada. La app no puede
+// saber por sí sola si la nómina, la domiciliación o el gasto con tarjeta del mes cumplen la
+// vinculación exigida por el banco — eso se marca a mano, mes a mes; lo que sí calcula la app es la
+// alerta: qué cuentas quedarían sin vinculación cumplida y qué comisión se aplicaría por ello.
+function maintenanceFeeAccounts() {
+  scenarioSettings.maintenanceFeeAccounts = Array.isArray(scenarioSettings.maintenanceFeeAccounts) ? scenarioSettings.maintenanceFeeAccounts : [];
+  return scenarioSettings.maintenanceFeeAccounts;
+}
+
+function addMaintenanceFeeAccount({ name, fee, requirement }) {
+  const accounts = maintenanceFeeAccounts();
+  accounts.push({
+    id: `mantenimiento-${Date.now()}-${accounts.length}`,
+    name: String(name || "").trim() || "Cuenta corriente",
+    fee: round2(Math.max(0, Number(fee) || 0)),
+    requirement: String(requirement || "").trim(),
+    met: true,
+  });
+  saveScenarioSettings();
+}
+
+function removeMaintenanceFeeAccount(id) {
+  scenarioSettings.maintenanceFeeAccounts = maintenanceFeeAccounts().filter((account) => account.id !== id);
+  saveScenarioSettings();
+}
+
+function setMaintenanceFeeAccountMet(id, met) {
+  const account = maintenanceFeeAccounts().find((item) => item.id === id);
+  if (!account) return;
+  account.met = Boolean(met);
+  saveScenarioSettings();
+}
+
+// Solo alertan las cuentas con comisión (una comisión de 0 no tiene nada que evitar) y vinculación
+// marcada como no cumplida. La comisión total es la suma de las cuentas en riesgo este mes.
+function maintenanceFeeAlerts() {
+  const atRisk = maintenanceFeeAccounts().filter((account) => account.fee > 0 && !account.met);
+  const totalFee = round2(atRisk.reduce((sum, account) => sum + account.fee, 0));
+  return { accounts: maintenanceFeeAccounts(), atRisk, totalFee };
+}
+
+function renderMaintenanceFeeAccounts() {
+  const target = qs("ajustesMaintenanceFeeAccounts");
+  const note = qs("ajustesMaintenanceFeeAccountsNote");
+  if (!target) return;
+  const alerts = maintenanceFeeAlerts();
+  target.innerHTML = alerts.accounts.length
+    ? `<ul class="commit-barrier-list">${alerts.accounts
+        .map((account) => {
+          const risky = account.fee > 0 && !account.met;
+          return `<li class="commit-barrier-item"><div><strong>${escapeHtml(account.name)}</strong>${risky ? ` <span class="status-pill danger">Comisión en riesgo</span>` : ""}</div><span>${money(account.fee, true)}/mes si no se cumple${account.requirement ? ` · ${escapeHtml(account.requirement)}` : ""}</span><label class="month-picker"><input type="checkbox" data-maintenance-met="${escapeHtml(account.id)}" ${account.met ? "checked" : ""} /> Vinculación cumplida este mes</label><button type="button" class="e19-btn e19-btn-secondary" data-maintenance-remove="${escapeHtml(account.id)}">Quitar</button></li>`;
+        })
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin cuentas con comisión de mantenimiento registradas todavía.</p>`;
+  if (note) {
+    note.textContent = alerts.atRisk.length
+      ? `${alerts.atRisk.length} cuenta(s) sin vinculación cumplida: ${money(alerts.totalFee, true)}/mes en riesgo.`
+      : alerts.accounts.length
+        ? "Todas las cuentas registradas cumplen su vinculación este mes."
+        : "";
+  }
+}
+
+function addMaintenanceFeeAccountFromControls() {
+  const name = qs("ajustesMaintenanceFeeName")?.value;
+  if (!name || !String(name).trim()) return;
+  addMaintenanceFeeAccount({
+    name,
+    fee: parseAmount(qs("ajustesMaintenanceFeeAmount")?.value),
+    requirement: qs("ajustesMaintenanceFeeRequirement")?.value,
+  });
+  ["ajustesMaintenanceFeeName", "ajustesMaintenanceFeeAmount", "ajustesMaintenanceFeeRequirement"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderMaintenanceFeeAccounts();
+}
+
+// SP1 · inventario de pólizas con vencimientos en el calendario. Mismo patrón que TT3/TT4: un
+// array simple en scenarioSettings, sin dominio de datos nuevo. Cada póliza declara su fecha de
+// vencimiento (YYYY-MM-DD) y, opcionalmente, su prima anual — el calendario financiero (E15,
+// handleAjustesExportIcs) las muestra en su mes de vencimiento con la incertidumbre declarada si
+// no hay prima registrada, igual que ya hace con la Renta (A15-3).
+function insurancePolicies() {
+  scenarioSettings.insurancePolicies = Array.isArray(scenarioSettings.insurancePolicies) ? scenarioSettings.insurancePolicies : [];
+  return scenarioSettings.insurancePolicies;
+}
+
+function addInsurancePolicy({ name, renewalDate, premium, notes }) {
+  const accounts = insurancePolicies();
+  accounts.push({
+    id: `poliza-${Date.now()}-${accounts.length}`,
+    name: String(name || "").trim() || "Póliza",
+    renewalDate: /^\d{4}-\d{2}-\d{2}$/.test(String(renewalDate || "").trim()) ? String(renewalDate).trim() : "",
+    premium: round2(Math.max(0, Number(premium) || 0)),
+    notes: String(notes || "").trim(),
+  });
+  saveScenarioSettings();
+}
+
+function removeInsurancePolicy(id) {
+  scenarioSettings.insurancePolicies = insurancePolicies().filter((policy) => policy.id !== id);
+  saveScenarioSettings();
+}
+
+function renderInsurancePolicies() {
+  const target = qs("ajustesInsurancePolicies");
+  if (!target) return;
+  const policies = insurancePolicies().slice().sort((a, b) => (a.renewalDate || "9999").localeCompare(b.renewalDate || "9999"));
+  target.innerHTML = policies.length
+    ? `<ul class="commit-barrier-list">${policies
+        .map((policy) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(policy.name)}</strong></div><span>${policy.renewalDate ? `Vence el ${escapeHtml(policy.renewalDate)}` : "Sin fecha de vencimiento"}${policy.premium ? ` · ${money(policy.premium, true)}/año` : ""}${policy.notes ? ` · ${escapeHtml(policy.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-policy-remove="${escapeHtml(policy.id)}">Quitar</button></li>`)
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin pólizas registradas todavía.</p>`;
+}
+
+function addInsurancePolicyFromControls() {
+  const name = qs("ajustesInsurancePolicyName")?.value;
+  const renewalDate = qs("ajustesInsurancePolicyDate")?.value;
+  if (!name || !String(name).trim() || !renewalDate) return;
+  addInsurancePolicy({
+    name,
+    renewalDate,
+    premium: parseAmount(qs("ajustesInsurancePolicyPremium")?.value),
+    notes: qs("ajustesInsurancePolicyNotes")?.value,
+  });
+  ["ajustesInsurancePolicyName", "ajustesInsurancePolicyDate", "ajustesInsurancePolicyPremium", "ajustesInsurancePolicyNotes"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderInsurancePolicies();
+}
+
+// A15-5 · tablas fiscales versionadas y su actualización anual. Mismo patrón de registro que
+// TT3/TT4/SP1: un array simple en scenarioSettings. No calcula nada fiscal — solo registra qué año
+// está cubierto, para que A15-1/A15-2 (más adelante) tengan de dónde leer y para avisar cuando el
+// año en curso todavía no tiene tabla registrada. Ninguna cifra fiscal se fabrica aquí.
+function taxTables() {
+  scenarioSettings.taxTables = Array.isArray(scenarioSettings.taxTables) ? scenarioSettings.taxTables : [];
+  return scenarioSettings.taxTables;
+}
+
+function addTaxTable({ year, label, source, notes }) {
+  const tables = taxTables();
+  const parsedYear = Math.round(Number(year));
+  tables.push({
+    id: `tabla-fiscal-${Date.now()}-${tables.length}`,
+    year: Number.isFinite(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null,
+    label: String(label || "").trim() || "Tabla fiscal",
+    source: String(source || "").trim(),
+    notes: String(notes || "").trim(),
+  });
+  saveScenarioSettings();
+}
+
+function removeTaxTable(id) {
+  scenarioSettings.taxTables = taxTables().filter((table) => table.id !== id);
+  saveScenarioSettings();
+}
+
+function renderTaxTables() {
+  const target = qs("ajustesTaxTables");
+  const note = qs("ajustesTaxTablesNote");
+  if (!target) return;
+  const tables = taxTables().slice().sort((a, b) => (b.year || 0) - (a.year || 0));
+  target.innerHTML = tables.length
+    ? `<ul class="commit-barrier-list">${tables
+        .map((table) => `<li class="commit-barrier-item"><div><strong>${escapeHtml(table.label)}</strong>${table.year ? ` <span class="status-pill">${table.year}</span>` : ""}</div><span>${table.source ? `${escapeHtml(table.source)}` : "Sin origen indicado"}${table.notes ? ` · ${escapeHtml(table.notes)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-tax-table-remove="${escapeHtml(table.id)}">Quitar</button></li>`)
+        .join("")}</ul>`
+    : `<p class="e19-kpi-note">Sin tablas fiscales registradas todavía.</p>`;
+  if (note) {
+    const status = window.FinanceCanonicalTaxTables?.taxTableStatus(tables, new Date().getFullYear());
+    note.textContent = !status
+      ? ""
+      : status.currentYearCovered
+        ? `Año en curso (${status.currentYear}) cubierto. Último año registrado: ${status.latestYear}.`
+        : `Sin tabla fiscal registrada para ${status.currentYear} todavía${status.latestYear ? ` (la más reciente es de ${status.latestYear})` : ""}: la actualización anual sigue pendiente.`;
+  }
+}
+
+function addTaxTableFromControls() {
+  const year = qs("ajustesTaxTableYear")?.value;
+  const label = qs("ajustesTaxTableLabel")?.value;
+  if (!year || !label || !String(label).trim()) return;
+  addTaxTable({
+    year,
+    label,
+    source: qs("ajustesTaxTableSource")?.value,
+    notes: qs("ajustesTaxTableNotes")?.value,
+  });
+  ["ajustesTaxTableYear", "ajustesTaxTableLabel", "ajustesTaxTableSource", "ajustesTaxTableNotes"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderTaxTables();
+}
+
+// A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin
+// persistir nada: lee los campos, muestra el resultado. No trae ningún precio de mercado real — el
+// hogar declara su consumo y ambos precios.
+function handleAjustesCompareTariffs() {
+  const note = qs("ajustesTariffComparatorNote");
+  if (!note) return;
+  const consumption = parseAmount(qs("ajustesTariffConsumption")?.value);
+  if (!consumption || consumption <= 0) {
+    note.textContent = "Indica un consumo mensual mayor que 0 para comparar.";
+    return;
+  }
+  const result = window.FinanceCanonicalTariffComparator?.compareFixedVsVariableTariff({
+    monthlyConsumption: consumption,
+    fixedPricePerUnit: parseAmount(qs("ajustesTariffFixedPrice")?.value),
+    variablePricePerUnit: parseAmount(qs("ajustesTariffVariablePrice")?.value),
+    fixedStandingCharge: parseAmount(qs("ajustesTariffFixedFee")?.value),
+    variableStandingCharge: parseAmount(qs("ajustesTariffVariableFee")?.value),
+  });
+  if (!result) return;
+  const verdictText = result.cheaper === "tie"
+    ? "Ambas tarifas cuestan lo mismo con estos precios."
+    : `La tarifa ${result.cheaper === "fixed" ? "fija" : "variable"} sale más barata este mes, por ${money(result.difference, true)}.`;
+  const breakEvenText = result.breakEvenVariablePrice !== null
+    ? ` Con este consumo, la fija y la variable costarían lo mismo si la variable rondara ${result.breakEvenVariablePrice.toFixed(4)} €/unidad de media.`
+    : "";
+  note.textContent = `Fija: ${money(result.fixedMonthlyCost, true)}/mes · Variable: ${money(result.variableMonthlyCost, true)}/mes. ${verdictText}${breakEvenText}`;
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -15950,6 +16296,30 @@ function e13BudgetCategoryOptions() {
   return [...set].sort();
 }
 
+// PV2 · termómetro de desviación por partida. Visualiza lo que learnFromHistory() (E12b) ya calcula
+// — un termómetro por partida en vez del texto de una sola línea que solo mostraba la primera. La
+// barra usa severity (bajo/medio/alto, normalizado contra lo previsto medio de esa partida) para que
+// una desviación de 50 € no se lea igual en una hipoteca que en una cuota de gimnasio.
+function deviationThermometerHtml(deviations) {
+  if (!Array.isArray(deviations) || !deviations.length) {
+    return '<p class="e19-kpi-note">Sin partidas con historial conciliado suficiente todavía.</p>';
+  }
+  const severityLabel = { high: "Desviación alta", medium: "Desviación moderada", low: "Ajustada" };
+  const severityPillClass = { high: "danger", medium: "warn", low: "" };
+  return `<ul class="pv2-thermometer-list">${deviations
+    .map((item) => {
+      const ratio = item.averagePlanned
+        ? Math.min(1, Math.abs(item.averageDelta) / Math.abs(item.averagePlanned))
+        : (item.averageDelta ? 1 : 0);
+      return `<li class="pv2-thermometer-item">
+        <div class="pv2-thermometer-head"><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${severityPillClass[item.severity] || ""}">${severityLabel[item.severity] || item.severity}</span></div>
+        <div class="pv2-thermometer-track"><div class="pv2-thermometer-fill ${escapeHtml(item.severity)}" style="width:${Math.round(ratio * 100)}%"></div></div>
+        <span class="e19-kpi-note">${money(item.averageDelta, true)} de media sobre ${money(item.averagePlanned, true)} previsto · ${item.sampleMonths} mes(es) · confianza ${escapeHtml(item.confidence)}</span>
+      </li>`;
+    })
+    .join("")}</ul>`;
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -15992,7 +16362,7 @@ function renderE13ScenarioLab() {
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
-    <article class="e6-quality-card"><header><strong>Aprendizaje E12b</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p>Solo meses conciliados · confianza ${escapeHtml(learning.deviations[0]?.confidence || "low")} · ${learning.deviations.length ? `ajuste sugerido ${money(learning.deviations[0].suggestedAdjustment, true)}, pendiente de confirmar` : "sin ajuste aplicable"}.</p></article>
+    <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>
@@ -22012,6 +22382,23 @@ function renderAjustesReserveNote() {
     : "Sin reserva operativa configurada: el pie de impacto de Plan cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas, el comparador de deuda secuencia con un suelo de 0 € y el colchón CaixaBank vuelve al que tengas guardado en Agente ahorro/Asesor ejecutivo (2.500 € si tampoco lo tocaste nunca). Escribe aquí el colchón que quieres proteger para que todas hablen de la misma cifra.";
 }
 
+// SP5 · deducible óptimo según el colchón disponible. Sin campo nuevo: reutiliza el colchón líquido
+// actual (accountBalancesFromState().total) y el mismo suelo que ya usan Plan y el mapa de calor
+// (cushionFloor con lastSimulation y la reserva operativa configurada) — puramente derivado, nada
+// que guardar.
+function renderAjustesOptimalDeductibleNote() {
+  const note = qs("ajustesOptimalDeductibleNote");
+  if (!note) return;
+  const cushion = accountBalancesFromState().total;
+  const floor = FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+  const result = window.FinanceCanonicalCushion?.optimalDeductibleFor(cushion, floor);
+  if (!result) return;
+  const optionsText = result.options.map((value) => money(value, true)).join(", ");
+  note.textContent = result.optimal
+    ? `Colchón actual: ${money(result.cushion, true)}. Suelo protegido: ${money(result.floor, true)}. Con una holgura de ${money(result.slack, true)} por encima del suelo, podrías asumir con seguridad una franquicia de hasta ${money(result.optimal, true)} (de las opciones habituales: ${optionsText}).`
+    : `Colchón actual: ${money(result.cushion, true)}. Suelo protegido: ${money(result.floor, true)}. Sin holgura por encima del suelo (${money(result.slack, true)}): de momento ninguna de las franquicias habituales (${optionsText}) sería segura de asumir.`;
+}
+
 /* ---- SP2 · brecha de cobertura de vida frente a deuda pendiente ------------------------------
    Mismo patrón que la reserva operativa (V6-1/V6-3): un único número editable en Ajustes, guardado
    como un dato más del hogar. Sin inventario de pólizas todavía (SP1, más adelante, sin relación de
@@ -22065,6 +22452,87 @@ function handleLifeInsuranceCapitalChange(event) {
   announceStatus(next > 0 ? `Capital asegurado guardado en ${money(next, true)}.` : "Capital asegurado borrado.");
 }
 
+// DI2 · línea de crédito de emergencia frente a colchón líquido. Mismo patrón de campo único que el
+// capital asegurado (SP2): dos números configurables en Ajustes (límite y TIN de la línea), sin línea
+// de crédito real conectada. Reutiliza el colchón operativo ya configurado (cuadroMandosReserve) en
+// vez de pedir un segundo valor de colchón que se desincronizaría del que ya usan Plan y el mapa de
+// calor.
+function emergencyCreditLimit() {
+  const configured = Number(state?.emergencyCreditLimit || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function emergencyCreditRate() {
+  const configured = Number(state?.emergencyCreditRate || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function emergencyCreditFieldFromValue(raw) {
+  const text = String(raw ?? "").trim().replace(",", ".");
+  if (!text) return 0;
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return round2(parsed);
+}
+
+function syncEmergencyCreditLineControls() {
+  const limitField = qs("ajustesEmergencyCreditLimit");
+  if (limitField && document.activeElement !== limitField) {
+    const limit = emergencyCreditLimit();
+    limitField.value = limit > 0 ? String(limit) : "";
+  }
+  const rateField = qs("ajustesEmergencyCreditRate");
+  if (rateField && document.activeElement !== rateField) {
+    const rate = emergencyCreditRate();
+    rateField.value = rate > 0 ? String(rate) : "";
+  }
+}
+
+function renderAjustesEmergencyCreditLineNote() {
+  const note = qs("ajustesEmergencyCreditLineNote");
+  if (!note) return;
+  const floor = cuadroMandosReserve();
+  const limit = emergencyCreditLimit();
+  const rate = emergencyCreditRate();
+  const evaluation = window.FinanceCanonicalEmergencyCreditLine?.evaluateEmergencyCreditLine(floor, limit, rate);
+  if (!evaluation) return;
+  if (evaluation.covered === null) {
+    note.textContent = "Configura antes la reserva operativa en Ajustes: sin colchón de referencia no hay nada que comparar.";
+    return;
+  }
+  if (!limit) {
+    note.textContent = `Sin línea de crédito configurada todavía. Colchón operativo de referencia: ${money(floor, true)}.`;
+    return;
+  }
+  note.textContent = evaluation.covered
+    ? `La línea (${money(limit, true)}) cubre el colchón operativo (${money(floor, true)}) por completo. Usarla ${evaluation.drawMonths} meses en una emergencia costaría ${money(evaluation.estimatedDrawCost, true)} en intereses.`
+    : `La línea (${money(limit, true)}) cubre solo parte del colchón operativo (${money(floor, true)}): queda una brecha de ${money(evaluation.gap, true)} sin cubrir.`;
+}
+
+function handleEmergencyCreditLimitChange(event) {
+  if (!state) return;
+  const next = emergencyCreditFieldFromValue(event.target.value);
+  const previous = round2(Math.max(0, Number(state.emergencyCreditLimit || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.emergencyCreditLimit = next;
+  saveScenarioSettings();
+  renderAjustesEmergencyCreditLineNote();
+  announceStatus(next > 0 ? `Límite de la línea de crédito guardado en ${money(next, true)}.` : "Límite de la línea de crédito borrado.");
+}
+
+function handleEmergencyCreditRateChange(event) {
+  if (!state) return;
+  const next = emergencyCreditFieldFromValue(event.target.value);
+  const previous = round2(Math.max(0, Number(state.emergencyCreditRate || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.emergencyCreditRate = next;
+  saveScenarioSettings();
+  renderAjustesEmergencyCreditLineNote();
+  announceStatus(next > 0 ? `TIN de la línea de crédito guardado en ${next}%.` : "TIN de la línea de crédito borrado.");
+}
+
 /* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
    Reúne lo que hoy vive repartido, sin reimplementarlo: la reserva operativa se guarda de verdad
    aquí (ver el bloque V6-1/V6-3 anterior); cuentas, partidas y umbrales solo se leen para el resumen
@@ -22072,10 +22540,22 @@ function handleLifeInsuranceCapitalChange(event) {
    arriesgaría dos caminos que se desincronicen sin necesidad—. Construir esos editores propios queda
    para cuando haga falta de verdad, no antes. */
 function renderAjustes() {
+  // OPT-6: el editor de cobertura aprendida (#e6CoverageEditor) vive aquí, no en «Hoy» — pero se
+  // rellena con la misma función que ya usaba «Hoy» (renderE6Coverage, guardada por
+  // qs("e6CoveragePanel"), que sigue existiendo allí). Se llama aquí también para que la ficha
+  // llegue rellena aunque Ajustes se visite antes que Hoy en la sesión.
+  renderE6Coverage();
   syncOperatingReserveControl();
   renderAjustesReserveNote();
+  renderAjustesOptimalDeductibleNote();
   syncLifeInsuranceCapitalControl();
   renderAjustesLifeInsuranceCapitalNote();
+  syncEmergencyCreditLineControls();
+  renderAjustesEmergencyCreditLineNote();
+  renderRemuneratedAccounts();
+  renderMaintenanceFeeAccounts();
+  renderInsurancePolicies();
+  renderTaxTables();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -22289,6 +22769,85 @@ function handleAjustesExportPdf() {
   const totals = registrarMesTotals(entries);
   window.P2Export.downloadPlainPdf(ajustesExportMonthLines(month, entries, totals), `resumen-mes-${month.key}.pdf`);
   announceStatus(`PDF de ${registrarMesLongMonth(month.key)} descargado.`);
+}
+
+// A17-2: exportación del calendario financiero (E15, cuotas de deuda/vencimientos de
+// objetivos/revisiones/cierre previsto por mes) a un fichero .ics, para verlo en Google/Apple
+// Calendar. Solo lectura, un fichero descargado, no una suscripción con URL propia: este sitio es
+// estático (GitHub Pages, sin backend) y una suscripción real necesitaría un endpoint que
+// recalculara en cada sondeo — el .ics descargable es lo que la propia nota de la tarea admite
+// ("solo lectura") sin fabricar infraestructura de servidor que no existe. Reutiliza
+// FinanceCanonicalE15.financialCalendar tal cual (ya en producción, Huchas/Estado de la semana);
+// no calcula nada nuevo.
+function icsEscapeText(value) {
+  return String(value ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
+}
+
+function icsDateStamp(value) {
+  return String(value ?? "").replace(/[-:]/g, "").replace(/\.\d{3}/, "").replace("Z", "") + "Z";
+}
+
+function financialCalendarIcsContent(calendar, generatedAt = new Date()) {
+  const rows = Array.isArray(calendar?.rows) ? calendar.rows : [];
+  const stamp = icsDateStamp(generatedAt.toISOString());
+  const events = rows.map((row, index) => {
+    const dateStart = `${String(row.monthKey || "").replace("-", "")}01`;
+    const descriptionLines = [
+      `Cierre previsto: ${money(row.closingLiquidity, true)}`,
+      // A15-3: un evento con amount: null (p. ej. la Campaña de la Renta, sin estimador todavía)
+      // no es un importe de cero — money(null) lo convertiría en "0,00 €", una cifra falsa.
+      ...(row.events || []).map((event) => `${event.label}: ${event.amount === null ? "importe por determinar" : money(event.amount, true)} (${event.source})`),
+    ];
+    return [
+      "BEGIN:VEVENT",
+      `UID:finanzas-casa-calendario-${row.monthKey || index}@contabilidadcasa`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${dateStart}`,
+      `SUMMARY:${icsEscapeText(`Calendario financiero: ${row.label}`)}`,
+      `DESCRIPTION:${icsEscapeText(descriptionLines.join("\n"))}`,
+      "END:VEVENT",
+    ].join("\r\n");
+  });
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Finanzas Casa//Calendario financiero//ES",
+    "CALSCALE:GREGORIAN",
+    ...events,
+    "END:VCALENDAR",
+  ].join("\r\n") + "\r\n";
+}
+
+function handleAjustesExportIcs() {
+  const api = window.FinanceCanonicalE15;
+  const planning = window.FinanceP2Bridge?.goalPlanning?.();
+  if (!api || !planning) {
+    announceStatus("El calendario financiero (E15) no está disponible todavía.");
+    return;
+  }
+  const p2 = p2State();
+  const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [], policies: insurancePolicies() });
+  if (!calendar.rows.length) {
+    announceStatus("No hay meses en el calendario financiero todavía.");
+    return;
+  }
+  const blob = new Blob([financialCalendarIcsContent(calendar)], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "calendario-financiero.ics";
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  window.setTimeout(() => {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 0);
+  announceStatus(`Calendario financiero exportado: ${calendar.rows.length} mes(es).`);
 }
 
 function handleOperatingReserveChange(event) {
@@ -27381,6 +27940,37 @@ function debtStrategySummary(strategyId, baseInput, reserveValue) {
   };
 }
 
+// A16-5: avalancha (ataca primero el TAE más alto) y bola de nieve (ataca primero el saldo más
+// pequeño) ya se comparan por separado, pestaña a pestaña, con su propio "coste total ejecutado" —
+// pero nada decía nunca, en euros, cuánto cuesta elegir la opción motivadora (bola de nieve, premia
+// victorias rápidas) en vez de la matemáticamente óptima (avalancha, minimiza el interés total).
+// Reutiliza debtStrategySummary tal cual, sin recalcular nada: solo resta sus dos costeTotal. Si
+// cualquiera de las dos no es viable en este horizonte, la comparación no significa nada — se
+// devuelve null en vez de una cifra que compararía una ruta completa con una a medias.
+function debtStrategyMotivationalGap(baseInput, reserveValue) {
+  const optimal = debtStrategySummary("avalancha", baseInput, reserveValue);
+  const motivational = debtStrategySummary("bola-nieve", baseInput, reserveValue);
+  if (!optimal.total || !motivational.total || !optimal.viable || !motivational.viable) return null;
+  return {
+    optimalCost: optimal.costeTotal,
+    motivationalCost: motivational.costeTotal,
+    extraCost: round2(motivational.costeTotal - optimal.costeTotal),
+  };
+}
+
+// A16-5: la copia no da por hecho que la motivadora siempre sale más cara — dice lo que la cifra
+// diga de verdad para no afirmar algo falso en una cartera donde no se cumpliera.
+function deudaRutaMotivationalGapText(gap) {
+  if (!gap) return "";
+  if (gap.extraCost > 0) {
+    return `Elegir Bola de nieve en vez de Avalancha costaría ${money(gap.extraCost, true)} más en tu cartera actual (Avalancha ${money(gap.optimalCost, true)} · Bola de nieve ${money(gap.motivationalCost, true)}).`;
+  }
+  if (gap.extraCost < 0) {
+    return `En tu cartera actual, Bola de nieve sale ${money(Math.abs(gap.extraCost), true)} más barata que Avalancha (Avalancha ${money(gap.optimalCost, true)} · Bola de nieve ${money(gap.motivationalCost, true)}).`;
+  }
+  return `Avalancha y Bola de nieve cuestan lo mismo en tu cartera actual: ${money(gap.optimalCost, true)}.`;
+}
+
 // V1-3 · «Deuda pendiente» y «Libre de deuda» para Hoy. Las dos cifras salen del mismo sitio que
 // las de `#deuda-comparar` —los contratos que el motor considera accionables, `escenarioMotorDebtOptions`—
 // para que Hoy y Deuda no puedan contar historias distintas sobre la misma deuda. Ojo: no coincide
@@ -31467,6 +32057,8 @@ async function init() {
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
   qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
+  qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
+  qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
   qs("ajustesSobresEnabled")?.addEventListener("change", handleSobresToggle);
@@ -31476,6 +32068,42 @@ async function init() {
   });
   qs("ajustesExportCsv")?.addEventListener("click", downloadCsv);
   qs("ajustesExportPdf")?.addEventListener("click", handleAjustesExportPdf);
+  qs("ajustesExportIcs")?.addEventListener("click", handleAjustesExportIcs);
+  qs("ajustesRemuneratedAdd")?.addEventListener("click", addRemuneratedAccountFromControls);
+  qs("ajustesRemuneratedAccounts")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-remunerated-remove]");
+    if (!removeButton) return;
+    removeRemuneratedAccount(removeButton.dataset.remuneratedRemove);
+    renderRemuneratedAccounts();
+  });
+  qs("ajustesMaintenanceFeeAdd")?.addEventListener("click", addMaintenanceFeeAccountFromControls);
+  qs("ajustesMaintenanceFeeAccounts")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-maintenance-remove]");
+    if (!removeButton) return;
+    removeMaintenanceFeeAccount(removeButton.dataset.maintenanceRemove);
+    renderMaintenanceFeeAccounts();
+  });
+  qs("ajustesMaintenanceFeeAccounts")?.addEventListener("change", (event) => {
+    const checkbox = event.target.closest("[data-maintenance-met]");
+    if (!checkbox) return;
+    setMaintenanceFeeAccountMet(checkbox.dataset.maintenanceMet, checkbox.checked);
+    renderMaintenanceFeeAccounts();
+  });
+  qs("ajustesInsurancePolicyAdd")?.addEventListener("click", addInsurancePolicyFromControls);
+  qs("ajustesInsurancePolicies")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-policy-remove]");
+    if (!removeButton) return;
+    removeInsurancePolicy(removeButton.dataset.policyRemove);
+    renderInsurancePolicies();
+  });
+  qs("ajustesTaxTableAdd")?.addEventListener("click", addTaxTableFromControls);
+  qs("ajustesTaxTables")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-tax-table-remove]");
+    if (!removeButton) return;
+    removeTaxTable(removeButton.dataset.taxTableRemove);
+    renderTaxTables();
+  });
+  qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   const handleLaboratorioContainerClick = (event) => {
     const openReadOnlyButton = event.target.closest("[data-laboratorio-open-readonly]");
     if (openReadOnlyButton) { handleLaboratorioOpenReadOnly(openReadOnlyButton.dataset.laboratorioOpenReadonly); return; }

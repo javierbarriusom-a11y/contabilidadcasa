@@ -4,7 +4,14 @@ import { fileURLToPath } from "node:url";
 import esbuild from "esbuild";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const destination = path.join(root, "dist");
+// OPT-3/OPT-6: dos suites de pruebas invocan este script de verdad (necesitan un `dist` recién
+// construido para comparar contra el fuente) y `node --test` corre archivos de test en paralelo —
+// sin este override, ambos procesos comparten el mismo `dist/`, y el `fs.rmSync` de uno puede
+// borrar lo que el otro está leyendo a mitad de copia. Sin la variable, el destino sigue siendo
+// `dist/` de siempre: el comportamiento por defecto (build:site local y en CI) no cambia.
+const destination = process.env.BUILD_PUBLIC_SITE_DEST
+  ? path.resolve(process.env.BUILD_PUBLIC_SITE_DEST)
+  : path.join(root, "dist");
 const files = [
   "index.html",
   "styles.css",
@@ -41,6 +48,9 @@ const files = [
   "canonical-leverage-barrier.js",
   "canonical-recommendation-citation.js",
   "canonical-life-coverage.js",
+  "canonical-emergency-credit-line.js",
+  "canonical-tax-tables.js",
+  "canonical-tariff-comparator.js",
   "canonical-e7-analysis.js",
   "canonical-e8-operations.js",
   "canonical-e9-foundation.js",

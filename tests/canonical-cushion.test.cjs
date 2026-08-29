@@ -182,3 +182,40 @@ test("cushionFloorDrift · sin gasto real conocido (sin filas) y con reserva con
   assert.equal(drift.driftRatio, null);
   assert.equal(drift.stale, false);
 });
+
+// SP5 · Bloque 2: la mayor franquicia habitual que la holgura del colchón (lo que sobra por encima
+// del suelo protegido, no el colchón entero) podría absorber sin caer por debajo de ese suelo.
+
+test("optimalDeductibleFor · con holgura de sobra, la óptima es la mayor de las opciones habituales", () => {
+  const result = Cushion.optimalDeductibleFor(3000, 1000, [150, 300, 500, 1000]);
+  assert.equal(result.slack, 2000);
+  assert.equal(result.optimal, 1000);
+  assert.deepEqual(result.affordable, [150, 300, 500, 1000]);
+});
+
+test("optimalDeductibleFor · con holgura ajustada, solo caben las franquicias más bajas", () => {
+  const result = Cushion.optimalDeductibleFor(1400, 1000, [150, 300, 500, 1000]);
+  assert.equal(result.slack, 400);
+  assert.equal(result.optimal, 300);
+  assert.deepEqual(result.affordable, [150, 300]);
+});
+
+test("optimalDeductibleFor · sin holgura (colchón en el suelo o por debajo), ninguna franquicia es segura (null, no la más baja)", () => {
+  const result = Cushion.optimalDeductibleFor(800, 1000, [150, 300, 500, 1000]);
+  assert.equal(result.slack, 0);
+  assert.equal(result.optimal, null);
+  assert.deepEqual(result.affordable, []);
+});
+
+test("optimalDeductibleFor · sin lista de opciones, usa las habituales por defecto (150/300/500/1000)", () => {
+  assert.deepEqual(Cushion.DEFAULT_DEDUCTIBLE_OPTIONS, [150, 300, 500, 1000]);
+  const result = Cushion.optimalDeductibleFor(5000, 1000);
+  assert.deepEqual(result.options, [150, 300, 500, 1000]);
+});
+
+test("optimalDeductibleFor · colchón o suelo negativos se tratan como cero, no rompen el cálculo", () => {
+  const result = Cushion.optimalDeductibleFor(-500, -200, [150]);
+  assert.equal(result.cushion, 0);
+  assert.equal(result.floor, 0);
+  assert.equal(result.slack, 0);
+});

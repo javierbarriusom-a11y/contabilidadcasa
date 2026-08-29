@@ -105,6 +105,34 @@
     return { configured: round2(configured), live, driftRatio, stale };
   }
 
+  // SP5: la franquicia (deducible) de un seguro es una apuesta calculada — cuanto más alta, menor
+  // la prima, pero mayor el golpe de caja si hay un siniestro. optimalDeductibleFor no dice "elige
+  // la más alta posible": dice cuál es la mayor franquicia, de las opciones habituales, que la
+  // holgura del colchón (lo que sobra por encima del suelo protegido, no el colchón entero — el
+  // suelo sigue siendo para lo que ya protege) podría absorber sin caer por debajo de ese suelo.
+  const DEFAULT_DEDUCTIBLE_OPTIONS = [150, 300, 500, 1000];
+
+  function optimalDeductibleFor(cushion, floor, deductibleOptions = DEFAULT_DEDUCTIBLE_OPTIONS) {
+    const available = round2(Math.max(0, number(cushion)));
+    const protectedFloor = round2(Math.max(0, number(floor)));
+    const slack = round2(Math.max(0, available - protectedFloor));
+    const options = (Array.isArray(deductibleOptions) ? deductibleOptions : DEFAULT_DEDUCTIBLE_OPTIONS)
+      .map((value) => round2(number(value)))
+      .filter((value) => value > 0)
+      .sort((a, b) => a - b);
+    const affordable = options.filter((value) => value <= slack);
+    return {
+      cushion: available,
+      floor: protectedFloor,
+      slack,
+      options,
+      affordable,
+      // null cuando ninguna franquicia habitual cabe en la holgura disponible: no forzar la más
+      // baja como "óptima" cuando en realidad ninguna es segura todavía.
+      optimal: affordable.length ? affordable[affordable.length - 1] : null,
+    };
+  }
+
   return {
     SCHEMA_ID,
     cushionFloor,
@@ -114,5 +142,7 @@
     cushionAccountSplit,
     CUSHION_DRIFT_THRESHOLD,
     cushionFloorDrift,
+    DEFAULT_DEDUCTIBLE_OPTIONS,
+    optimalDeductibleFor,
   };
 });

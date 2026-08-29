@@ -93,6 +93,62 @@
     return { ...restored, importBatches: updatedBatches };
   }
 
+  // A16-6: hitos y rachas sobre el mismo historial de cierres (monthClosures) que ya usa
+  // latestMonthOperation/isMonthClosed — sin tabla ni estado nuevo. Una racha es un tramo de meses
+  // consecutivos en el calendario (sin huecos) cuyo último estado es "closed"; reabrir un mes lo saca
+  // de la racha aunque se vuelva a cerrar después, porque cuenta el último estado de cada mes, no si
+  // alguna vez estuvo cerrado.
+  const MILESTONE_STEPS = Object.freeze([5, 10, 25, 50, 100]);
+
+  function nextMonthKey(key) {
+    const [year, month] = text(key).split("-").map(Number);
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    return `${nextYear}-${String(nextMonth).padStart(2, "0")}`;
+  }
+
+  function auditMilestonesAndStreaks(monthClosures = []) {
+    const list = Array.isArray(monthClosures) ? monthClosures : [];
+    const byMonth = new Map();
+    list.forEach((item) => {
+      const key = text(item.monthKey);
+      if (!validMonthKey(key)) return;
+      const at = text(item.occurredAt || item.reopenedAt || item.closedAt);
+      const current = byMonth.get(key);
+      const currentAt = current ? text(current.occurredAt || current.reopenedAt || current.closedAt) : "";
+      if (!current || at.localeCompare(currentAt) >= 0) byMonth.set(key, item);
+    });
+    const months = [...byMonth.keys()].sort();
+    const totalClosed = months.filter((key) => byMonth.get(key).status === "closed").length;
+    let currentStreak = 0;
+    for (let index = months.length - 1; index >= 0; index -= 1) {
+      if (byMonth.get(months[index]).status !== "closed") break;
+      if (index < months.length - 1 && nextMonthKey(months[index]) !== months[index + 1]) break;
+      currentStreak += 1;
+    }
+    let longestStreak = 0;
+    let running = 0;
+    let previousKey = null;
+    months.forEach((key) => {
+      const isClosed = byMonth.get(key).status === "closed";
+      const consecutive = previousKey ? nextMonthKey(previousKey) === key : true;
+      running = isClosed ? (consecutive ? running + 1 : 1) : 0;
+      longestStreak = Math.max(longestStreak, running);
+      previousKey = key;
+    });
+    const reachedMilestones = MILESTONE_STEPS.filter((step) => totalClosed >= step);
+    const nextMilestone = MILESTONE_STEPS.find((step) => totalClosed < step) ?? null;
+    return {
+      totalClosed,
+      currentStreak,
+      longestStreak,
+      milestones: MILESTONE_STEPS,
+      reachedMilestones,
+      nextMilestone,
+      monthsUntilNextMilestone: nextMilestone === null ? null : nextMilestone - totalClosed,
+    };
+  }
+
   function buildRetentionPlan(snapshots = [], policy = {}) {
     const effective = { ...DEFAULT_RETENTION_POLICY, ...(policy || {}) };
     const ordered = snapshots.slice().sort((a, b) => text(b.created_at).localeCompare(text(a.created_at)));
@@ -118,6 +174,6 @@
       invalid: results.filter((item) => !item.valid), results };
   }
 
-  return { SCHEMA_ID, DEFAULT_RETENTION_POLICY, latestMonthOperation, isMonthClosed, reopenMonth,
-    createImportBatch, undoImportBatch, buildRetentionPlan, verifySnapshotSet, validMonthKey };
+  return { SCHEMA_ID, DEFAULT_RETENTION_POLICY, MILESTONE_STEPS, latestMonthOperation, isMonthClosed, reopenMonth,
+    createImportBatch, undoImportBatch, buildRetentionPlan, verifySnapshotSet, validMonthKey, auditMilestonesAndStreaks };
 });
