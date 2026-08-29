@@ -267,27 +267,6 @@
               </article>
             </div>
 
-            <!-- H-3b: editor de cobertura aprendida, bajo la tarjeta anterior. -->
-            <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
-              <div class="module-heading">
-                <div>
-                  <p class="panel-kicker">Cobertura aprendida</p>
-                  <h3>Corrige fecha o gasto diario</h3>
-                  <p>Se calcula solo con movimientos conciliados. Corregir aquí no pierde la estimación aprendida: «Usar aprendizaje» la recupera.</p>
-                </div>
-                <span class="status-pill" id="e6CoverageEditorStatus">Aprendido</span>
-              </div>
-              <form class="e6-coverage-form" id="e6CoverageForm">
-                <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
-                <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
-                <div class="dialog-actions">
-                  <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
-                  <button type="submit" id="e6CoverageSave">Guardar ajuste</button>
-                </div>
-              </form>
-              <p class="e6-coverage-source" id="e6CoverageSource"></p>
-            </article>
-
             <!-- Hoy.pdf: «primero qué hacer, después de dónde sale» — decisiones abiertas (con la
                  lectura de hoy como primera línea) en paralelo con los próximos hitos. -->
             <div class="home-layout">
@@ -1989,9 +1968,33 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Ajustes</p>
                 <h2 class="e19-heading">Cuentas, reserva, umbrales, partidas y exportación en un mismo sitio</h2>
-                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La reserva operativa, los dos umbrales de abajo y la exportación son la excepción: se hacen desde aquí mismo.</p>
+                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La cobertura aprendida, la reserva operativa, los dos umbrales de abajo y la exportación son la excepción: se hacen desde aquí mismo.</p>
               </div>
             </div>
+
+            <!-- OPT-6: editor de cobertura aprendida (H-3b), trasladado desde «Hoy» — es
+                 configuración puntual, no lectura diaria; no encajaba en una pantalla pensada como
+                 «una lectura y tres decisiones» (mockup 1a). «Hoy» conserva solo la lectura
+                 (#e6CoveragePanel). Misma lógica de guardado/reset, sin tocarla. -->
+            <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Cobertura aprendida</p>
+                  <h3>Corrige fecha o gasto diario</h3>
+                  <p>Se calcula solo con movimientos conciliados. Corregir aquí no pierde la estimación aprendida: «Usar aprendizaje» la recupera.</p>
+                </div>
+                <span class="status-pill" id="e6CoverageEditorStatus">Aprendido</span>
+              </div>
+              <form class="e6-coverage-form" id="e6CoverageForm">
+                <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
+                <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
+                <div class="dialog-actions">
+                  <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
+                  <button type="submit" id="e6CoverageSave">Guardar ajuste</button>
+                </div>
+              </form>
+              <p class="e6-coverage-source" id="e6CoverageSource"></p>
+            </article>
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Reserva operativa</h3>
@@ -4144,7 +4147,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829b1"></script>
+    <script defer src="app.js?v=20260829c1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

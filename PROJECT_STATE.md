@@ -2,6 +2,48 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (54): OPT-6 — sacar la configuración de «Hoy», Bloque 2 en marcha
+
+Primera tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («el resto de lo barato, sin
+bloqueos»), con spec completa en `BACKLOG_OPTIMIZACION.md`. El editor de «cobertura aprendida»
+(H-3b, fecha de próximo ingreso y gasto diario) era configuración puntual, no lectura diaria — no
+encajaba en «Hoy», pensada como «una lectura y tres decisiones» (mockup 1a).
+
+**Construido**: `#e6CoverageEditor` (formulario completo) se traslada de `#home` a `#ajustes`, como
+una tarjeta más junto a Reserva operativa y Cobertura de vida — misma lógica de guardado/reset, sin
+tocarla (`saveE6Coverage`/`resetE6Coverage`/`scenarioSettings.e6Coverage` intactos). «Hoy» conserva
+solo la lectura (`#e6CoveragePanel`). `renderAjustes()` llama ahora también a `renderE6Coverage()`
+para que la ficha llegue rellena aunque Ajustes se visite antes que Hoy en la sesión (antes solo se
+disparaba desde el render de Hoy).
+
+**Hallazgo durante la validación — bug real de la suite, no de la app**: al repetir `npm test`
+varias veces seguidas, unas veces salía limpio y otras con fallos intermitentes (`ENOENT` al leer
+`dist/canonical-debt-contracts.js`). Aislado y confirmado en 1 de cada 2-3 ejecuciones: dos ficheros
+de test (`tests/opt3-minify-dist.test.cjs`, de OPT-3, y el ya existente
+`tests/public-site-assets.test.cjs`) invocan de verdad `tools/build-public-site.mjs`, que empieza
+borrando `dist/` entero — `node --test` corre archivos en paralelo, así que el `fs.rmSync` de un
+proceso podía borrar lo que el otro estaba leyendo a mitad de copia. Esto probablemente explica el
+«`fail 2` fantasma» que esta misma sesión atribuyó a un artefacto del pipe `| tail` en el cierre de
+TT5 — no lo era.
+
+**Corregido**: `tools/build-public-site.mjs` acepta `BUILD_PUBLIC_SITE_DEST` (variable de entorno)
+para el directorio de destino; sin ella, sigue siendo `dist/` de siempre — cero cambio de
+comportamiento en `build:site` local o en CI. Los dos ficheros de test ahora construyen cada uno en
+su propio directorio temporal aislado (`fs.mkdtempSync`), nunca en `dist/` compartido.
+
+**Verificación**: 4 pruebas nuevas en `tests/opt6-mover-cobertura-a-ajustes.test.cjs` (el formulario
+vive en Ajustes y ya no en Hoy, la lectura se queda en Hoy sin duplicarse, `renderAjustes` llama a
+`renderE6Coverage`, y guardar/retirar siguen usando la misma lógica). `app.js` bumpeado a
+`?v=20260829c1`. **5 ejecuciones seguidas de la suite de estos dos ficheros y 3 de la suite
+completa, todas limpias**, tras el fix de la condición de carrera (antes: 1 de cada 2-3 con fallos).
+
+**Validación**: `npm ci` limpio + `npm run verify`, exit 0 — **2085/2085 pruebas** (2081 + 4
+nuevas), accesibilidad (836 IDs, sin cambio), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup` (rama reiniciada desde
+`main` tras la fusión del Bloque 1), PR en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Fix de CI — 29 de agosto de 2026: `npm ci` antes de `npm run verify`
 
 Detectado por el propio CI del PR #159 (Bloque 1), no en local: `.github/workflows/pages.yml`

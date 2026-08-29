@@ -22072,6 +22072,11 @@ function handleLifeInsuranceCapitalChange(event) {
    arriesgaría dos caminos que se desincronicen sin necesidad—. Construir esos editores propios queda
    para cuando haga falta de verdad, no antes. */
 function renderAjustes() {
+  // OPT-6: el editor de cobertura aprendida (#e6CoverageEditor) vive aquí, no en «Hoy» — pero se
+  // rellena con la misma función que ya usaba «Hoy» (renderE6Coverage, guardada por
+  // qs("e6CoveragePanel"), que sigue existiendo allí). Se llama aquí también para que la ficha
+  // llegue rellena aunque Ajustes se visite antes que Hoy en la sesión.
+  renderE6Coverage();
   syncOperatingReserveControl();
   renderAjustesReserveNote();
   syncLifeInsuranceCapitalControl();
