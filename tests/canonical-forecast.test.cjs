@@ -205,3 +205,48 @@ test("detectRecurringSubscriptions · totales agregados y confianza reutilizan e
 test("detectRecurringSubscriptions · nunca escribe nada, solo detecta (mismo criterio que learnFromHistory)", () => {
   assert.doesNotMatch(fs.readFileSync(path.join(root, "canonical-forecast.js"), "utf8").split("function detectRecurringSubscriptions")[1].split("\n\n  function adaptiveHorizon")[0], /localStorage|save|persist/i);
 });
+
+// --- PV4: confidenceBands ---------------------------------------------------------------------
+
+function seriesFixture(values) {
+  return values.map((value, index) => ({ monthKey: `2026-${String(index + 1).padStart(2, "0")}`, label: `Mes ${index + 1}`, totals: { closingLiquidity: value } }));
+}
+
+test("confidenceBands · sin desviaciones aprendidas todavía, el margen es 0 en toda la serie (honesto, no inventado)", () => {
+  const bands = forecast.confidenceBands(seriesFixture([1000, 1200, 1400]), { deviations: [] });
+  bands.forEach((band) => {
+    assert.equal(band.margin, 0);
+    assert.equal(band.low, band.center);
+    assert.equal(band.high, band.center);
+  });
+  assert.equal(bands[0].confidence, "low");
+});
+
+test("confidenceBands · el margen sale de la desviación media absoluta de las partidas con historial", () => {
+  const learning = { deviations: [
+    { conceptId: "a", sampleMonths: 6, averageDelta: 100, confidence: "high" },
+    { conceptId: "b", sampleMonths: 6, averageDelta: -60, confidence: "high" },
+  ] };
+  const bands = forecast.confidenceBands(seriesFixture([1000]), learning);
+  assert.equal(bands[0].margin, 80); // (|100| + |-60|) / 2
+  assert.equal(bands[0].low, 920);
+  assert.equal(bands[0].high, 1080);
+  assert.equal(bands[0].confidence, "high");
+});
+
+test("confidenceBands · la banda se ensancha con la raíz de los meses hacia delante, con tope", () => {
+  const learning = { deviations: [{ conceptId: "a", sampleMonths: 6, averageDelta: 100, confidence: "medium" }] };
+  const bands = forecast.confidenceBands(seriesFixture([1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]), learning);
+  assert.equal(bands[0].margin, 100); // mes 1: ×1
+  assert.equal(bands[3].margin, 200); // mes 4: ×2 (sqrt(4))
+  assert.equal(bands[9].margin, 300); // mes 10: sqrt(10)≈3.16, topado a ×3 (CONFIDENCE_BAND_MAX_WIDENING)
+});
+
+test("confidenceBands · una sola partida en baja confianza basta para que la banda entera sea de baja confianza", () => {
+  const learning = { deviations: [
+    { conceptId: "a", sampleMonths: 6, averageDelta: 10, confidence: "high" },
+    { conceptId: "b", sampleMonths: 2, averageDelta: 5, confidence: "low" },
+  ] };
+  const bands = forecast.confidenceBands(seriesFixture([1000]), learning);
+  assert.equal(bands[0].confidence, "low");
+});

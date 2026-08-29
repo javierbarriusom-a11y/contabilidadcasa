@@ -16345,6 +16345,37 @@ function deviationThermometerHtml(deviations) {
     .join("")}</ul>`;
 }
 
+const PV4_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
+
+// PV4: bandas de confianza sobre la liquidez proyectada, no una sola línea. Cada columna es un mes;
+// la barra sombreada va del extremo bajo al alto de la banda, con una marca en el centro (el valor
+// previsto sin margen). Ventana de 12 meses a propósito — la banda ya se ensancha con el tiempo
+// (confidenceBands), mostrar años enteros aquí solo comprimiría la vista sin añadir nada legible.
+function pv4ConfidenceBandHtml(bands) {
+  if (!bands.length) return '<p class="e19-kpi-note">Sin previsión disponible todavía.</p>';
+  const values = bands.flatMap((band) => [band.low, band.high]);
+  const min = Math.min(0, ...values);
+  const max = Math.max(1, ...values);
+  const span = Math.max(1, max - min);
+  const pct = (value) => Math.round(((value - min) / span) * 100);
+  const cols = bands.map((band) => {
+    const bottom = pct(band.low);
+    const height = Math.max(2, pct(band.high) - bottom);
+    return `<div class="pv4-band-col">
+      <div class="pv4-band-track">
+        <div class="pv4-band-range" style="bottom:${bottom}%;height:${height}%" title="${escapeHtml(`${money(band.low, true)} a ${money(band.high, true)}`)}"></div>
+        <div class="pv4-band-center" style="bottom:${pct(band.center)}%"></div>
+      </div>
+      <small>${escapeHtml(band.label)}</small>
+    </div>`;
+  }).join("");
+  const first = bands[0];
+  const note = first.sampleConcepts
+    ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} partida(s) con historial suficiente. Se ensancha cuanto más lejos está el mes.`
+    : "Sin historial conciliado suficiente todavía: la banda es de ancho cero, no un margen inventado.";
+  return `<div class="pv4-band-list">${cols}</div><p class="e19-kpi-note">${note}</p>`;
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -16382,12 +16413,14 @@ function renderE13ScenarioLab() {
   const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
   const history = [...matchedMonths.values()].map((month) => ({ monthKey: month.monthKey, conceptId: "monthly-net", label: "Flujo mensual", planned: (() => { const row = forecast.series.find((item) => item.monthKey === month.monthKey); return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN; })(), actual: Number(month.bankIncome) - Number(month.bankExpense), amount: Number(month.bankIncome) - Number(month.bankExpense), reconciled: true }));
   const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
+  const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
   const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
     <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
+    <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>

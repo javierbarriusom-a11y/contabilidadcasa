@@ -220,6 +220,36 @@
     };
   }
 
+  // PV4: bandas de confianza sobre la liquidez proyectada — no recalcula ninguna desviación, usa
+  // las que ya calculó learnFromHistory().deviations (mismo aprendizaje de E12b que reutilizó PV2).
+  // El margen base es la desviación media absoluta de las partidas con historial suficiente; crece
+  // con la raíz del número de meses hacia delante (un mes 9 es más incierto que el mes 1: mismo
+  // criterio de acumulación de error de un paseo aleatorio, no una suposición nueva por mes) y se
+  // limita a MAX_WIDENING veces el margen base para que un forecast de varios años no termine con
+  // una banda absurdamente ancha. Sin historial suficiente (deviations vacío), el margen es 0 en
+  // toda la serie — una banda de ancho cero es honesta: "no hay suficiente aprendizaje para estimar
+  // la incertidumbre todavía", no una anchura inventada.
+  const CONFIDENCE_BAND_MAX_WIDENING = 3;
+
+  function confidenceBands(series = [], learning = {}, options = {}) {
+    const deviations = (Array.isArray(learning.deviations) ? learning.deviations : []).filter((item) => item.sampleMonths > 0);
+    const baseMargin = deviations.length
+      ? round(deviations.reduce((sum, item) => sum + Math.abs(number(item.averageDelta)), 0) / deviations.length)
+      : 0;
+    const bandConfidence = !deviations.length ? "low"
+      : deviations.every((item) => item.confidence === "high") ? "high"
+        : deviations.some((item) => item.confidence === "low") ? "low" : "medium";
+    return series.map((row, index) => {
+      const center = round(number(row.totals?.closingLiquidity ?? row.closingLiquidity));
+      const widening = Math.min(CONFIDENCE_BAND_MAX_WIDENING, Math.sqrt(index + 1));
+      const margin = round(baseMargin * widening);
+      return {
+        monthKey: text(row.monthKey), label: text(row.label),
+        center, low: round(center - margin), high: round(center + margin), margin,
+      };
+    }).map((band) => ({ ...band, confidence: bandConfidence, sampleConcepts: deviations.length }));
+  }
+
   // A16-3: detección de recurrentes/suscripciones. Reutiliza confidence() tal cual (mismo criterio
   // de confianza por tamaño de muestra que learnFromHistory) — mismo "aprendizaje de estacionalidad
   // de E12b" que pide la tarea, no un cálculo nuevo. Motor agnóstico de cómo se calculó el patrón:
@@ -282,5 +312,5 @@
     });
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions };
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands };
 });

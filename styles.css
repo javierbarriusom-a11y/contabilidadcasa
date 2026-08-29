@@ -1291,6 +1291,49 @@ main {
   padding-top: 4px;
 }
 
+/* PV4 · bandas de confianza: una columna por mes, con una barra sombreada del extremo bajo al alto
+   de la banda y una marca fina en el centro (el valor previsto sin margen). */
+.pv4-band-list {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.pv4-band-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1 0 auto;
+  min-width: 28px;
+}
+
+.pv4-band-track {
+  position: relative;
+  width: 14px;
+  height: 90px;
+  border-radius: 4px;
+  background: var(--surface-soft);
+}
+
+.pv4-band-range {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 4px;
+  background: rgba(47, 74, 120, 0.28);
+}
+
+.pv4-band-center {
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  height: 2px;
+  background: var(--green);
+}
+
 .secondary-button {
   display: inline-flex;
   align-items: center;

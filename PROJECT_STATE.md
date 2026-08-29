@@ -2,6 +2,44 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (75): PV4 — bandas de confianza, no una sola línea
+
+Quinta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Sombrea el forecast con la
+estacionalidad/desviación ya calculadas»).
+
+**Decisión de alcance**: se añade a la misma tarjeta donde ya vive el termómetro de PV2
+(`renderE13ScenarioLab()` → «Aprendizaje E12b», Laboratorio de escenarios): ahí ya están calculados
+`forecast.series` (la liquidez proyectada) y `learning` (`learnFromHistory().deviations`, el mismo
+aprendizaje de E12b) en el mismo render, así que la banda no trae ningún dato nuevo, solo los
+combina. Ventana de 12 meses en pantalla — la banda ya crece con el tiempo, mostrar años enteros
+solo comprimiría la vista sin ganar legibilidad.
+
+**Construido**: `canonical-forecast.js` ganó `confidenceBands(series, learning, options)` — margen
+base = desviación media absoluta de las partidas con historial suficiente (`deviations` de
+`learnFromHistory`, sin recalcular nada); se ensancha con la raíz del número de meses hacia delante
+(un mes 9 es más incierto que el mes 1, mismo criterio de un paseo aleatorio) con tope en 3× el
+margen base (`CONFIDENCE_BAND_MAX_WIDENING`) para que un forecast de varios años no acabe con una
+banda absurda; confianza agregada (alta/media/baja) según la peor confianza de las partidas usadas.
+Sin historial suficiente, el margen es 0 en toda la serie — banda de ancho cero, honesto, no una
+anchura inventada. En `app.js`: `pv4ConfidenceBandHtml()` pinta una columna por mes (barra sombreada
+del extremo bajo al alto, marca fina en el centro), tarjeta nueva «Bandas de confianza» junto al
+termómetro de PV2 en el Laboratorio de escenarios.
+
+**Verificación**: 9 pruebas nuevas — 4 en `tests/canonical-forecast.test.cjs` (sin desviaciones
+aprendidas el margen es 0, el margen sale de la desviación media absoluta, la banda se ensancha con
+la raíz de los meses con tope, una sola partida de baja confianza basta para bajar la confianza
+agregada) y 5 en `tests/pv4-bandas-confianza.test.cjs` (sin bandas avisa, sin historial lo dice
+explícitamente, pinta una columna por mes, cableado real en `renderE13ScenarioLab()`, motor
+versionado).
+
+**Validación**: `npm run verify`, exit 0 — **2269/2269 pruebas** (2260 + 9 nuevas), accesibilidad
+(886 IDs, sin cambios — la tarjeta se pinta dentro de un contenedor ya existente), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde. CI de GitHub Actions también verde en el
+PR (confirma además que el nuevo presupuesto Lighthouse de OPT-5 funciona de verdad en el runner
+real, no solo en este entorno).
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`.
+
 ## Cierre de sesión — 29 de agosto de 2026 (74): A15-1 — registro de supuestos fiscales
 
 Cuarta tarea del Bloque 4. Con spec detallada en la fila de la tabla («Registro de supuestos
