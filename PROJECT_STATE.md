@@ -2,6 +2,48 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (53): SP2 — brecha de cobertura de vida frente a deuda pendiente — Bloque 1 completo
+
+Novena y última tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Sin inventario de pólizas
+todavía (SP1, bloque 2, sin relación de dependencia con esta tarea) ni ningún dato de seguros en el
+modelo — «Seguros» solo existía como categoría de gasto. La deuda pendiente total sí existía ya
+(`homeDebtOutlook().pendingPrincipal`, el mismo KPI que usa Hoy).
+
+**Construido**:
+- `canonical-life-coverage.js` — motor puro nuevo (`FinanceCanonicalLifeCoverage`, mismo patrón que
+  `canonical-cushion.js`/`canonical-leverage-barrier.js`). `evaluateLifeCoverageGap(capital, deuda)`
+  calcula la brecha (`gap`, nunca negativa), si está cubierta (`covered`) y el ratio de cobertura
+  (`null` sin deuda que cubrir, en vez de un ratio que no significa nada).
+- A diferencia de AP4/CP3 (motor sin consumidor porque su motor futuro no existe aún), SP2 no tiene
+  ningún «AP3»/«CP1» que lo vaya a usar más adelante — ni SP1 ni ningún otro `SP*` lo cita como
+  dependencia—, así que sin ningún dato real que comparar el motor quedaría inerte. Se añadió el
+  mínimo imprescindible: una tarjeta más en Ajustes («Cobertura de vida frente a deuda»), mismo
+  patrón exacto que la reserva operativa (V6-1/V6-3) — un único campo `ajustesLifeInsuranceCapital`,
+  persistido como `state.lifeInsuranceCapital` en `scenarioSettings` (dato del hogar, se sincroniza y
+  se restaura, 0 = sin configurar), con su nota de resultado y su ayuda contextual (A12-4).
+
+**Verificación**: 7 pruebas nuevas en `tests/canonical-life-coverage.test.cjs` — cobertura suficiente
+sin brecha, brecha exacta, cubierto justo al límite, sin capital configurado (toda la deuda es
+brecha), sin deuda pendiente (ratio no aplica), valores negativos/inválidos tratados como cero, y
+carga en `index.html` antes de `app.js`. `app.js` bumpeado a `?v=20260829b1` (27 ficheros
+actualizados en bloque); `canonical-life-coverage.js` cargado en `index.html` y en la lista blanca de
+`tools/build-public-site.mjs`.
+
+**Validación**: `npm run verify`, exit 0 — **2081/2081 pruebas** (2073 + 8 nuevas — 7 del motor + 1
+de wiring), accesibilidad (**836 IDs**, +2 por el campo y su nota nuevos), rendimiento, build del
+sitio, privacidad y smoke test, todos en verde.
+
+**Con esto, el Bloque 1 completo de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` queda construido**: AP4, OPT-1,
+OPT-2, OPT-3, OPT-4, CP3, TT1, TT5 y SP2 — las 9 tareas de nivel 0 (sin ninguna dependencia, crítico
+o alto beneficio), en el orden que el propio documento fijó. Cinco de ellas (AP4, CP3, TT1, TT5,
+SP2) partían solo de una nota de una línea, sin documento de detalle propio, y su alcance se decidió
+en cada cierre de esta sesión — conviene revisarlas con el usuario antes de dar el bloque por
+cerrado del todo. Sigue abierta la tarea de seguimiento `task_379a2b45` (auditoría del resto de
+`color-contrast` de OPT-4). El siguiente objetivo recomendado es el Bloque 2 del mismo documento.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (52): TT5 — el suelo del colchón como parámetro vivo
 
 Octava tarea del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. La reserva operativa (el suelo del

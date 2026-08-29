@@ -2004,6 +2004,16 @@
             </article>
 
             <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cobertura de vida frente a deuda</h3>
+              <p class="e19-kpi-note">Si la persona asegurada faltara, ¿la indemnización cubre lo que queda por pagar de toda la deuda viva? Sin inventario de pólizas todavía: un único capital agregado.</p>
+              <label class="month-picker">
+                <span>Capital asegurado</span>
+                <input id="ajustesLifeInsuranceCapital" type="number" min="0" step="1000" inputmode="decimal" placeholder="Sin configurar" />
+              </label>
+              <p class="e19-kpi-note" id="ajustesLifeInsuranceCapitalNote"></p>
+            </article>
+
+            <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
               <div class="cuadro-mandos-controls">
@@ -4107,6 +4117,7 @@
     <script defer src="canonical-debt-comparator.js?v=20260715a"></script>
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
+    <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4133,7 +4144,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829a1"></script>
+    <script defer src="app.js?v=20260829b1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

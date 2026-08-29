@@ -3426,6 +3426,9 @@ function saveScenarioSettings() {
     // V6-1 · la reserva operativa del hogar. Vive aquí, junto al resto de la política del plan,
     // porque es un dato del hogar que se sincroniza y se restaura, no una preferencia del navegador.
     operatingReserve: round2(Math.max(0, Number(state.operatingReserve || 0))),
+    // SP2 · capital asegurado del seguro de vida, igual que la reserva operativa: dato del hogar
+    // que se sincroniza y se restaura, 0 significa «sin configurar».
+    lifeInsuranceCapital: round2(Math.max(0, Number(state.lifeInsuranceCapital || 0))),
     // V6-2 · los dos umbrales de Ajustes que no encajan como regla de alertas: 0 significa «sin
     // configurar», igual que la reserva operativa.
     duplicateWindowDays: state.duplicateWindowDays ? Math.round(Math.max(1, Math.min(60, Number(state.duplicateWindowDays)))) : 0,
@@ -6358,6 +6361,10 @@ function applyHelpTooltips() {
   addHelpToControl(
     "ajustesReserve",
     "Colchón que quieres proteger, en euros. Es el suelo del pie de impacto de Plan, del color del mapa de calor y del comparador de deuda. Vacío significa sin reserva configurada, no cero.",
+  );
+  addHelpToControl(
+    "ajustesLifeInsuranceCapital",
+    "Capital asegurado de tu seguro de vida, en euros. Se compara con la deuda pendiente total para avisar si quedaría algo sin cubrir. Vacío significa sin capital configurado, no cero.",
   );
   addHelpToControl(
     "ajustesDuplicateWindow",
@@ -22005,6 +22012,59 @@ function renderAjustesReserveNote() {
     : "Sin reserva operativa configurada: el pie de impacto de Plan cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas, el comparador de deuda secuencia con un suelo de 0 € y el colchón CaixaBank vuelve al que tengas guardado en Agente ahorro/Asesor ejecutivo (2.500 € si tampoco lo tocaste nunca). Escribe aquí el colchón que quieres proteger para que todas hablen de la misma cifra.";
 }
 
+/* ---- SP2 · brecha de cobertura de vida frente a deuda pendiente ------------------------------
+   Mismo patrón que la reserva operativa (V6-1/V6-3): un único número editable en Ajustes, guardado
+   como un dato más del hogar. Sin inventario de pólizas todavía (SP1, más adelante, sin relación de
+   dependencia con esta tarea): compara ese capital agregado con homeDebtOutlook().pendingPrincipal,
+   la misma cifra de deuda pendiente que ya usa el KPI de Hoy — no un cálculo aparte. */
+function lifeInsuranceCapital() {
+  const configured = Number(state?.lifeInsuranceCapital || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function lifeInsuranceCapitalFromField(raw) {
+  const text = String(raw ?? "").trim().replace(",", ".");
+  if (!text) return 0;
+  const parsed = Number(text);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return round2(parsed);
+}
+
+function syncLifeInsuranceCapitalControl() {
+  const field = qs("ajustesLifeInsuranceCapital");
+  if (!field || document.activeElement === field) return;
+  const capital = lifeInsuranceCapital();
+  field.value = capital > 0 ? String(capital) : "";
+}
+
+function renderAjustesLifeInsuranceCapitalNote() {
+  const note = qs("ajustesLifeInsuranceCapitalNote");
+  if (!note) return;
+  const capital = lifeInsuranceCapital();
+  const deuda = homeDebtOutlook().pendingPrincipal;
+  const gap = window.FinanceCanonicalLifeCoverage?.evaluateLifeCoverageGap(capital, deuda);
+  if (!gap) return;
+  if (!capital) {
+    note.textContent = `Sin capital asegurado configurado. Deuda pendiente actual: ${money(deuda, true)}.`;
+    return;
+  }
+  note.textContent = gap.covered
+    ? `Cobertura suficiente: ${money(capital, true)} cubre la deuda pendiente actual (${money(deuda, true)}).`
+    : `Brecha de ${money(gap.gap, true)} sin cubrir: el capital asegurado (${money(capital, true)}) no llega a la deuda pendiente actual (${money(deuda, true)}).`;
+}
+
+function handleLifeInsuranceCapitalChange(event) {
+  if (!state) return;
+  const next = lifeInsuranceCapitalFromField(event.target.value);
+  const previous = round2(Math.max(0, Number(state.lifeInsuranceCapital || 0)));
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.lifeInsuranceCapital = next;
+  saveScenarioSettings();
+  renderAjustesLifeInsuranceCapitalNote();
+  announceStatus(next > 0 ? `Capital asegurado guardado en ${money(next, true)}.` : "Capital asegurado borrado.");
+}
+
 /* ---- V6-3 · vista Ajustes -----------------------------------------------------------------------
    Reúne lo que hoy vive repartido, sin reimplementarlo: la reserva operativa se guarda de verdad
    aquí (ver el bloque V6-1/V6-3 anterior); cuentas, partidas y umbrales solo se leen para el resumen
@@ -22014,6 +22074,8 @@ function renderAjustesReserveNote() {
 function renderAjustes() {
   syncOperatingReserveControl();
   renderAjustesReserveNote();
+  syncLifeInsuranceCapitalControl();
+  renderAjustesLifeInsuranceCapitalNote();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -31404,6 +31466,7 @@ async function init() {
   qs("cuadroMandosStart")?.addEventListener("change", renderCuadroMandos);
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
+  qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
   qs("ajustesSobresEnabled")?.addEventListener("change", handleSobresToggle);
