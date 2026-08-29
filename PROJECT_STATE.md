@@ -2,6 +2,44 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (45): AP4 — barrera de seguridad antes de simular apalancamiento
+
+Primera tarea construida del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` («lo mejor primero: sin
+ninguna dependencia, crítico o alto beneficio»), a petición directa del usuario de arrancar por ese
+bloque. AP4 es la única tarea `Crítico` del bloque, y el propio documento señala por qué va primero:
+el bloque de apalancamiento (`AP1`-`AP6`) es el único punto de todo el backlog donde la app pasaría
+de comparar decisiones a sugerir tomar deuda nueva, así que su guardarraíl se construye antes que el
+simulador que lo usará (`AP3`, bloque 9, todavía sin construir).
+
+**Construido**: `canonical-leverage-barrier.js` — motor puro nuevo (`FinanceCanonicalLeverageBarrier`,
+sin DOM ni estado global), con el mismo patrón que `canonical-commit-barrier.js`
+(`blockers`/`warnings`/`checks`/`summary`/`status`). `evaluateLeverageBarrier(input)` comprueba tres
+condiciones mínimas antes de que tenga sentido explorar pedir deuda para invertir:
+1. El colchón de emergencia está en o por encima de su suelo (mismos campos `value`/`floor` que ya
+   produce `canonical-cushion.js`; bloquea también si no se ha calculado).
+2. La deuda existente no tiene incidencias críticas o de error pendientes.
+3. La cuota mensual de deuda ya comprometida no supera el 35% del ingreso mensual neto — umbral
+   prudente propio de este guardarraíl, no un límite legal ni bancario; bloquea también si falta el
+   ingreso.
+
+Al no existir todavía AP3, este motor no tiene consumidor de interfaz — mismo patrón ya aceptado en
+este repositorio para infraestructura construida por delante de su UI (`canonical-e9-assistant.js`,
+ver cierre #42): se carga en `index.html` (antes de `app.js`) y en la lista blanca de
+`tools/build-public-site.mjs`, con cobertura de pruebas completa, a la espera de que AP3 lo consuma.
+
+**Verificación**: 12 pruebas nuevas en `tests/canonical-leverage-barrier.test.cjs` — carga en
+navegador real (`vm`), los tres guardarraíles por separado y bloqueando a la vez, los límites
+estrictos de cada umbral (justo en el suelo pasa, justo en el 35% bloquea), datos que faltan
+(colchón e ingreso sin calcular) y que el script está montado en `index.html` antes de `app.js`.
+
+**Validación**: `npm run verify`, exit 0 — **2029/2029 pruebas** (2017 + 12 nuevas), accesibilidad
+(834 IDs, sin cambio — el motor no tiene DOM propio), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR en borrador y
+fusión a `main` al ponerse el CI en verde. Sigue en la misma rama la siguiente tarea del Bloque 1
+(`OPT-1`).
+
 ## Cierre de sesión — 29 de agosto de 2026 (44): `BACKLOG_ULTIMATE_SEPTIEMBRE.md` — backlog vigente + ampliación en un único orden
 
 Petición directa del usuario: partiendo de dos artefactos de propuesta generados en esta misma

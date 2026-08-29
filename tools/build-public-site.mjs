@@ -37,6 +37,7 @@ const files = [
   "canonical-budget-forecast-category.js",
   "executive-read-model.js",
   "canonical-debt-comparator.js",
+  "canonical-leverage-barrier.js",
   "canonical-e7-analysis.js",
   "canonical-e8-operations.js",
   "canonical-e9-foundation.js",
