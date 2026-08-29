@@ -2,6 +2,40 @@
 
 Fecha de revisión: 29 de agosto de 2026.
 
+## Cierre de sesión — 29 de agosto de 2026 (66): SP5 — deducible óptimo según el colchón disponible
+
+Decimotercera tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, con nota de alcance propia:
+«Extiende `canonical-cushion.js`».
+
+**Decisión de alcance**: nada que guardar. Cuanta más franquicia (deducible) asume un seguro, menor
+la prima pero mayor el golpe de caja si hay un siniestro — la pregunta es cuánta franquicia podría
+absorber el colchón sin caer por debajo del suelo protegido. Ambas cifras ya existen: el colchón
+líquido actual (`accountBalancesFromState().total`) y el suelo (`cushionFloor` con `lastSimulation` y
+la reserva operativa configurada, el mismo que ya usan Plan y el mapa de calor). Nota puramente
+derivada en Ajustes, sin formulario ni campo nuevo.
+
+**Construido**: en `canonical-cushion.js`, `optimalDeductibleFor(cushion, floor, deductibleOptions =
+DEFAULT_DEDUCTIBLE_OPTIONS)` — calcula la holgura (lo que sobra por encima del suelo, no el colchón
+entero: el suelo sigue siendo para lo que ya protege) y, de una lista de franquicias habituales
+(150/300/500/1.000 €, exportada como `DEFAULT_DEDUCTIBLE_OPTIONS`), cuáles caben en esa holgura;
+`optimal` es la mayor que cabe, o `null` si ninguna cabe todavía (no se fuerza la más baja como
+«óptima» cuando en realidad ninguna es segura). En `app.js`, `renderAjustesOptimalDeductibleNote()`
+calcula ambas cifras con las funciones ya en producción y rellena la nota. Tarjeta nueva «Deducible
+óptimo del seguro» en Ajustes, junto a la de reserva operativa. `canonical-cushion.js` bumpeado a
+`?v=20260829sp5a1`, `app.js` a `?v=20260829k1`.
+
+**Verificación**: 8 pruebas nuevas — 6 en `tests/canonical-cushion.test.cjs` (holgura de sobra,
+holgura ajustada que recorta las opciones, sin holgura ninguna franquicia es segura, opciones por
+defecto, colchón/suelo negativos se tratan como cero) y 2 en `tests/sp5-deducible-optimo.test.cjs`
+(la nota vive en Ajustes; `renderAjustesOptimalDeductibleNote` reutiliza las funciones existentes y
+no llama a `saveScenarioSettings`, confirmando que no persiste nada nuevo).
+
+**Validación**: `npm run verify`, exit 0 — **2163/2163 pruebas** (2155 + 8 nuevas), accesibilidad (861
+IDs, +1 por la nota nueva), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/backlog-ultimate-septiembre-b1-9awzup`, PR [#160](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/160)
+en borrador y fusión a `main` al ponerse el CI en verde.
+
 ## Cierre de sesión — 29 de agosto de 2026 (65): SP1 — inventario de pólizas con vencimientos en el calendario
 
 Duodécima tarea del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (solo su fila en la tabla: sin spec

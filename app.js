@@ -22238,6 +22238,23 @@ function renderAjustesReserveNote() {
     : "Sin reserva operativa configurada: el pie de impacto de Plan cuenta meses en negativo, el mapa de calor colorea contra un mes de salidas, el comparador de deuda secuencia con un suelo de 0 € y el colchón CaixaBank vuelve al que tengas guardado en Agente ahorro/Asesor ejecutivo (2.500 € si tampoco lo tocaste nunca). Escribe aquí el colchón que quieres proteger para que todas hablen de la misma cifra.";
 }
 
+// SP5 · deducible óptimo según el colchón disponible. Sin campo nuevo: reutiliza el colchón líquido
+// actual (accountBalancesFromState().total) y el mismo suelo que ya usan Plan y el mapa de calor
+// (cushionFloor con lastSimulation y la reserva operativa configurada) — puramente derivado, nada
+// que guardar.
+function renderAjustesOptimalDeductibleNote() {
+  const note = qs("ajustesOptimalDeductibleNote");
+  if (!note) return;
+  const cushion = accountBalancesFromState().total;
+  const floor = FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+  const result = window.FinanceCanonicalCushion?.optimalDeductibleFor(cushion, floor);
+  if (!result) return;
+  const optionsText = result.options.map((value) => money(value, true)).join(", ");
+  note.textContent = result.optimal
+    ? `Colchón actual: ${money(result.cushion, true)}. Suelo protegido: ${money(result.floor, true)}. Con una holgura de ${money(result.slack, true)} por encima del suelo, podrías asumir con seguridad una franquicia de hasta ${money(result.optimal, true)} (de las opciones habituales: ${optionsText}).`
+    : `Colchón actual: ${money(result.cushion, true)}. Suelo protegido: ${money(result.floor, true)}. Sin holgura por encima del suelo (${money(result.slack, true)}): de momento ninguna de las franquicias habituales (${optionsText}) sería segura de asumir.`;
+}
+
 /* ---- SP2 · brecha de cobertura de vida frente a deuda pendiente ------------------------------
    Mismo patrón que la reserva operativa (V6-1/V6-3): un único número editable en Ajustes, guardado
    como un dato más del hogar. Sin inventario de pólizas todavía (SP1, más adelante, sin relación de
@@ -22386,6 +22403,7 @@ function renderAjustes() {
   renderE6Coverage();
   syncOperatingReserveControl();
   renderAjustesReserveNote();
+  renderAjustesOptimalDeductibleNote();
   syncLifeInsuranceCapitalControl();
   renderAjustesLifeInsuranceCapitalNote();
   syncEmergencyCreditLineControls();
