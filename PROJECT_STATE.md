@@ -20,7 +20,7 @@ otra vista cambia de comportamiento).
 test, todos en verde. `app.js` bumpeado a `?v=20260830h2` (26 pruebas de cadena de versión
 actualizadas en el mismo commit).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #166, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (89): Bloque 6 (arranque) — A14-1, contrato canónico `canonical-assets.js`
 
