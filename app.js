@@ -25021,6 +25021,7 @@ function homeHealthScoreComponents(ctx = {}) {
   const budgetCompliance = budgetSummary
     ? (budgetSummary.totalSpent <= 0 ? 1 : Math.min(1, budgetSummary.totalBudgeted / budgetSummary.totalSpent))
     : null;
+  const p2 = p2State();
   const activeGoals = (p2.goals || [])
     .map((goal) => window.P2Domain?.goalSnapshot(goal) || goal)
     .filter((goal) => goal.status === "active" && goal.target > 0);

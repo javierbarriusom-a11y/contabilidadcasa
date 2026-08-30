@@ -2,6 +2,39 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (85): fix — «Hoy» se quedaba en blanco por debajo de la cabecera
+
+**Reportado por el usuario** con capturas de pantalla: en «Hoy», por debajo de la cabecera (salud
+financiera, presupuesto, objetivos) todo quedaba vacío — la tarjeta oscura de cobertura se quedaba
+en «Calculando» sin resolver nunca, «El mes en una línea», «Decisiones abiertas», «Próximos hitos»,
+«Meses a vigilar», «Lectura del hogar» y «Señales que requieren revisión» no pintaban nada.
+
+**Diagnóstico**: se montó el sitio público (`npm run build:site`) y se abrió con Playwright/Chromium
+para capturar el error real en consola, en vez de inspeccionar el código a ciegas. Traza exacta:
+`ReferenceError: p2 is not defined` en `homeHealthScoreComponents()`, la función que A16-1 (Bloque 4,
+cierre de sesión 82-83) añadió a `renderHomeDashboard()`. Esa función leía `p2.goals` directamente,
+pero `p2` no es una variable global en `app.js` — en cada otro sitio del fichero es siempre un local
+(`const p2 = p2State();`) declarado al principio de la función que lo usa. Al lanzarse esa excepción
+a mitad de `renderHomeDashboard()`, toda la instrucción `qs("homeKpis").innerHTML = [...]` y todo lo
+que venía después en la misma función (cobertura, mes en una línea, decisiones, prioridades, banda de
+meses, familia y alertas) se quedaba sin ejecutar — de ahí el patrón exacto que describía el usuario:
+todo en blanco a partir de un punto concreto de la pantalla, nunca antes.
+
+**Arreglado**: una línea en `app.js` (`homeHealthScoreComponents()`) — `const p2 = p2State();` antes
+de leer `p2.goals`, igual que hace el resto del fichero. `app.js` bumpeado a `?v=20260830f1`; todas
+las pruebas que fijan esa cadena de versión en `index.html` (26 ficheros) actualizadas en el mismo
+commit. `tests/a16-1-salud-financiera-compuesta.test.cjs` tenía el mismo bug reflejado en su sandbox
+de pruebas (stubeaba `p2` global en vez de `p2State()`) — corregido para que la prueba hubiera
+atrapado esto antes de publicar.
+
+**Validación**: `npm run verify`, exit 0 — **2340/2340 pruebas** (sin pruebas nuevas, es un fix de una
+línea con su sandbox de test corregido), accesibilidad (911 IDs, sin cambio), rendimiento, build del
+sitio, privacidad y smoke test, todos en verde. Confirmado además con Playwright contra el sitio
+construido: antes del fix, `homeKpis` vacío y `ReferenceError: p2 is not defined` en consola; después,
+la rejilla de seis KPI se pinta con datos reales y no queda ningún `pageerror` en consola.
+
+**Publicado**: commit y push a `claude/artefacto-bloque-5-ryfopr`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (84): CP4 — comparación automática de escenarios en la revisión mensual, cierre del Bloque 3
 
 Séptima y última tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio —
