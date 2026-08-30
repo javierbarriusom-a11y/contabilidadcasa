@@ -2,6 +2,28 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (93): Bloque 7 — IV1 (núcleo), registro de cartera por posición
+
+Primera tarea del Bloque 7, acotada por presupuesto de tokens. IV1 es la tarea más grande de toda la
+ampliación de septiembre (talla L, sin ficha de detalle, crítica porque IV2/IV3/IV4/IV5/IV6, FC1/FC2/FC3/FC4
+y AP1 dependen de ella) — esta sesión construye solo el contrato canónico de posiciones y el registro
+manual mínimo, mismo patrón que A14-1.
+
+**IV1 (núcleo)**: nuevo `canonical-portfolio.js` (`FinanceCanonicalPortfolio`) — `normalizePositions`,
+`validatePositions`, `summarizePositions`, con el mismo guardia de A14-1/A16-1/SP4 contra "campo ausente
+== valor por defecto": sin procedencia declarada la posición se marca `unknown`, nunca `declared`; un
+coste o valor `null`/`undefined` no se confunde con un dato declarado de cero. Tarjeta nueva de Ajustes
+"Cartera de inversión: registro por posición" (tipo, nombre/ticker, cantidad, coste, valor actual, fecha,
+procedencia) muestra la plusvalía/minusvalía por posición y del conjunto. Sin posiciones registradas,
+tarjeta neutra. **Quedan para sesiones aparte**: TWR/XIRR (IV2), lotes FIFO para plusvalías por venta
+parcial (FC1), rebalanceo, correlación y todo lo demás del Bloque 7 que depende de este contrato.
+
+**Validación**: `npm run verify`, exit 0 — **2460/2460 pruebas** (2454 + 6 nuevas), accesibilidad
+(956 IDs, +10 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en
+verde. `app.js` bumpeado a `?v=20260830h5` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (92): Bloque 6 — A14-2 (núcleo), patrimonio neto de hoy
 
 Cuarta tarea del Bloque 6, acotada por presupuesto de tokens tras descartar OPT-16 (migración a ES
