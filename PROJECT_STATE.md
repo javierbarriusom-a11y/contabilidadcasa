@@ -1,6 +1,43 @@
 # Estado del proyecto
 
-Fecha de revisión: 29 de agosto de 2026.
+Fecha de revisión: 30 de agosto de 2026.
+
+## Cierre de sesión — 30 de agosto de 2026 (79): OPT-7 — resumir «modo familiar» y «alertas» en «Hoy», Bloque 3 en marcha
+
+Primera tarea del Bloque 3 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Con spec completa en
+`BACKLOG_OPTIMIZACION.md` (a diferencia de las cinco ideas de ampliación del mismo bloque, que no
+tienen documento de detalle propio).
+
+**Hallazgo antes de construir**: `renderHomeFamilyAndAlerts()` ya mostraba un resumen, no el panel
+completo original — pero «modo familiar» seguía siendo una rejilla de tres cifras (ingresos medios,
+gastos imputados, margen medio) y «alertas» seguía describiendo la primera alerta en una frase.
+Ninguno de los dos es «una línea de estado + enlace», que es lo que pide la tarea. Tampoco existe
+una pantalla «vista familiar» propia a la que enlazar (OPT-22, cerrada el mismo bloque anterior: es
+un filtro de lectura sobre el selector lateral `#familyContextSwitch`, no una vista aparte) — el
+enlace de familia no puede navegar a ningún sitio que no exista.
+
+**Construido**: `renderHomeFamilyAndAlerts()` reescrito — el panel de familia baja a un párrafo
+`.home-status-line` con la etiqueta del contexto activo, el margen medio y un botón «Cambiar
+contexto»; el panel de alertas baja a otro con el recuento de las que requieren atención, el total
+de activas y el botón «Configurar alertas» que ya existía (sin la frase describiendo la primera
+alerta). El botón «Cambiar contexto» usa un atributo nuevo y genérico, `data-scroll-focus`, cableado
+en la delegación de clics de `setupE17Experience()`: lleva el foco al elemento indicado
+(`#familyContextSwitch`, siempre presente en la barra lateral) sin navegar de vista — es un patrón
+reutilizable para cualquier enlace futuro a un control que ya está siempre visible. `styles.css`:
+retirado `.home-family-grid` (y sus reglas asociadas, ya sin uso) y añadido `.home-status-line`.
+`app.js` bumpeado a `?v=20260830a1`; actualizadas las 26 pruebas existentes que fijaban en un
+regex la versión anterior (`20260829v1`) para comprobar que el shell offline viaja versionado.
+
+**Verificación**: 5 pruebas nuevas en `tests/opt7-resumen-familia-alertas.test.cjs` (el panel de
+familia ya no repite el desglose de tres cifras, enlaza al selector lateral en vez de a una vista
+propia, el panel de alertas ya no describe la primera alerta y conserva el botón Configurar,
+`data-scroll-focus` está cableado con `scrollIntoView`, `styles.css` refleja el cambio).
+
+**Validación**: `npm ci` + `npm run verify`, exit 0 — **2313/2313 pruebas** (2308 + 5 nuevas),
+accesibilidad (898 IDs, sin cambio — no se tocó ningún `id`), rendimiento, build del sitio,
+privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
 
 ## Cierre de sesión — 29 de agosto de 2026 (78): DI5 — reestructuración conjunta ante una caída de ingresos, y cierre del Bloque 4
 

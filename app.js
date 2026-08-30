@@ -716,7 +716,15 @@ function setupE17Experience() {
     if (open) { openE17Dialog(open.dataset.e17Open); return; }
     if (event.target.closest("[data-e17-close]")) { event.target.closest("dialog")?.close(); return; }
     const result = event.target.closest("[data-e17-target]");
-    if (result) { qs("e17LauncherDialog")?.close(); navigateE17(result.dataset.e17Target); }
+    if (result) { qs("e17LauncherDialog")?.close(); navigateE17(result.dataset.e17Target); return; }
+    // OPT-7: enlaces que no navegan a otra vista, solo llevan el foco a un control que ya está
+    // siempre visible (p. ej. el selector lateral de contexto familiar).
+    const scrollFocus = event.target.closest("[data-scroll-focus]");
+    if (scrollFocus) {
+      const target = qs(scrollFocus.dataset.scrollFocus);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      target?.querySelector("button, [tabindex], input, select")?.focus();
+    }
   });
   // #10/P-6 (Ola 4, plan de mejora post-E20 · 28/08/2026): el catálogo y la búsqueda difusa del
   // lanzador ya existían (data-e17-open="launcher" arriba); solo faltaba el atajo. Sin diálogo nativo
@@ -24425,36 +24433,35 @@ function alertStatusMeta(alert) {
   return { label: "En control", tone: "good" };
 }
 
+// OPT-7 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3): «modo familiar» y «alertas» eran paneles
+// completos duplicando contenido que ya vive en su propia pantalla (el selector lateral de
+// contexto, el Centro de alertas) y competían por atención con las decisiones abiertas. Cada
+// panel baja a una sola línea de estado + un enlace a donde vive el detalle completo — no hay una
+// pantalla «vista familiar» separada (OPT-22: es un filtro de lectura, no una vista propia), así
+// que el enlace de familia enfoca el selector lateral (`#familyContextSwitch`) en vez de navegar.
 function renderHomeFamilyAndAlerts() {
   const familyTarget = qs("homeFamilySummary");
   if (familyTarget) {
     const family = familyContextSnapshot();
     const meta = familyContextMeta(family.context);
     const averageDivisor = Math.max(1, family.months.length);
-    familyTarget.innerHTML = `<div class="home-context-head">
-        <div><p class="panel-kicker">Modo familiar · ${escapeHtml(meta.label)}</p><h3>Capacidad por titular</h3></div>
-        <span class="status-pill ${family.net >= 0 ? "good" : "danger"}">${family.months.length} meses</span>
-      </div>
-      <div class="home-family-grid">
-        <div><span>Ingresos medios</span><strong>${money(family.income / averageDivisor, true)}</strong></div>
-        <div><span>Gastos imputados</span><strong>${money(family.expenses / averageDivisor, true)}</strong></div>
-        <div><span>Margen medio</span><strong>${money(family.net / averageDivisor, true)}</strong></div>
-      </div>
-      <p>${escapeHtml(meta.note)} Cambia la vista desde el selector lateral.</p>`;
+    const netAvg = family.net / averageDivisor;
+    familyTarget.innerHTML = `<p class="home-status-line">
+        <span class="status-pill ${family.net >= 0 ? "good" : "danger"}">${escapeHtml(meta.label)}</span>
+        Margen medio ${money(netAvg, true)}/mes.
+        <button type="button" class="link-button" data-scroll-focus="familyContextSwitch">Cambiar contexto</button>
+      </p>`;
   }
 
   const alertTarget = qs("homeAlertSummary");
   if (alertTarget) {
     const alerts = evaluatedUxAlerts();
     const attention = alerts.filter((alert) => alert.triggered || alert.overdue);
-    const first = attention[0];
-    const metric = first ? UX_ALERT_METRICS[first.metric] : null;
-    alertTarget.innerHTML = `<div class="home-context-head">
-        <div><p class="panel-kicker">Alertas configurables</p><h3>${attention.length ? `${attention.length} requieren atención` : "Todo bajo control"}</h3></div>
-        <span class="status-pill ${attention.length ? "warn" : "good"}">${alerts.filter((alert) => !alert.paused).length} activas</span>
-      </div>
-      <p>${first ? `${escapeHtml(first.name)}: ${escapeHtml(metric?.format(first.value) || String(first.value ?? "sin dato"))}.` : "No hay umbrales rebasados ni revisiones vencidas."}</p>
-      <button type="button" class="secondary-button" data-home-nav="alerts-center">Configurar alertas</button>`;
+    alertTarget.innerHTML = `<p class="home-status-line">
+        <span class="status-pill ${attention.length ? "warn" : "good"}">${attention.length ? `${attention.length} requieren atención` : "Todo bajo control"}</span>
+        ${alerts.filter((alert) => !alert.paused).length} alertas activas.
+        <button type="button" class="secondary-button compact-button" data-home-nav="alerts-center">Configurar alertas</button>
+      </p>`;
   }
 }
 

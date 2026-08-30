@@ -10698,23 +10698,6 @@ tbody tr:hover {
   margin: 2px 0 0;
 }
 
-.home-family-grid {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.home-family-grid > div {
-  background: #f4f8f8;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  display: grid;
-  gap: 5px;
-  min-width: 0;
-  padding: 12px;
-}
-
-.home-family-grid span,
 .alert-kpi-grid span,
 .alert-rule-result span,
 .alert-rule-form label > span {
@@ -10724,11 +10707,6 @@ tbody tr:hover {
   text-transform: uppercase;
 }
 
-.home-family-grid strong {
-  font-size: clamp(1rem, 1.5vw, 1.3rem);
-  overflow-wrap: anywhere;
-}
-
 .home-family-summary > p,
 .home-alert-summary > p {
   color: var(--muted);
@@ -10736,8 +10714,12 @@ tbody tr:hover {
   margin: 0;
 }
 
-.home-alert-summary .secondary-button {
-  justify-self: start;
+/* OPT-7: «modo familiar» y «alertas» bajan de panel completo a una línea de estado. */
+.home-status-line {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 /* UX-5: alertas configurables */
@@ -10906,7 +10888,6 @@ tbody tr:hover {
 }
 
 @media (max-width: 760px) {
-  .home-family-grid,
   .alert-kpi-grid,
   .alert-rule-form {
     grid-template-columns: 1fr;
