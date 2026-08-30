@@ -58,6 +58,7 @@ const files = [
   "canonical-self-insurance.js",
   "canonical-mortgage-rate-scenarios.js",
   "canonical-joint-restructuring.js",
+  "canonical-assets.js",
   "canonical-e7-analysis.js",
   "canonical-e8-operations.js",
   "canonical-e9-foundation.js",

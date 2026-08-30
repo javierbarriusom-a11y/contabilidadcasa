@@ -2,6 +2,39 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (89): Bloque 6 (arranque) — A14-1, contrato canónico `canonical-assets.js`
+
+Primera tarea del Bloque 6 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` ("los grandes cimientos"). Se eligió
+A14-1 sobre IV1 (también nivel 0, también estructural) por tener spec ya escrita en
+`BACKLOG_PATRIMONIO_Y_FINANZAS.md` (E21) y menos diseño desde cero — sesión con presupuesto de
+tokens ajustado.
+
+**A14-1 — contrato canónico de activos**: `canonical-assets.js` (nuevo) tipa activos (cuenta,
+inversión, pensión, inmueble, vehículo, otro) con valor, fecha de valoración y procedencia
+(`declared`/`estimated`/`unknown`). Sin procedencia declarada, el activo se marca `unknown`
+explícitamente — nunca se reinterpreta como `declared` ni se estima en silencio (mismo guardia que
+A16-1/SP4 contra "campo ausente == valor por defecto", aplicado aquí también al valor: `null` no se
+confunde con un cero declarado). `normalizeAssets()` agrega el patrimonio por tipo y detecta
+duplicados/procedencia desconocida sin invalidar el conjunto salvo error real (id duplicado).
+
+Es solo el contrato — sin vista propia todavía: A14-2 (vista «Patrimonio»), A14-3 (importación de
+valoraciones) y A14-4 (concentración de riesgo) quedan para sesiones siguientes del mismo bloque, ya
+desbloqueadas por este. Cumple A14-6 (compatibilidad): `normalizeAssets([])` da un resultado neutro
+(patrimonio 0, sin activos) y el script se registra en `index.html` con `defer` sin engancharse a
+ninguna vista existente — un hogar sin activos configurados ve la app exactamente igual que hoy.
+
+Bug atrapado por los tests antes de publicar: al añadir el `<script>` nuevo, `npm run verify` falló
+en `tools/build-public-site.mjs` — la lista explícita de recursos a copiar a `dist/` no incluía
+`canonical-assets.js` y el build lo habría dejado fuera del sitio publicado. Corregido añadiéndolo a
+esa lista.
+
+**Validación**: `npm run verify`, exit 0 — **2442/2442 pruebas** (2433 + 9 nuevas de
+`tests/a14-1-contrato-canonico-activos.test.cjs`), accesibilidad (937 IDs, sin cambio — no hay UI
+nueva), rendimiento, build del sitio (con `canonical-assets.js` ya incluido), privacidad y smoke
+test, todos en verde.
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (88): fix — el chequeo «Published availability» llevaba fallando desde OPT-3
 
 **Reportado por el usuario** con una captura de la pestaña Actions de GitHub: el workflow programado
