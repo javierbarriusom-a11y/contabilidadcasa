@@ -2,6 +2,26 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (90): Bloque 6 — A14-4, desglose por tipo y concentración de riesgo
+
+Segunda tarea del Bloque 6, la más sencilla de las tres que A14-1 desbloqueaba (S frente a M de A14-2
+y A14-3) — elegida por presupuesto de tokens ajustado en la sesión.
+
+**A14-4 — desglose por tipo y concentración**: tarjeta nueva en Ajustes ("Patrimonio: desglose por
+tipo") con un registro manual mínimo de activos (tipo, etiqueta, valor, fecha, procedencia) — la
+importación con bandeja previa y comparación antes de sobrescribir es A14-3, sesión aparte. Todo el
+cálculo delega en `FinanceCanonicalAssets.normalizeAssets()` (A14-1): reparto del patrimonio por
+tipo en €/%, aviso de concentración alta (>50% en un solo tipo) y recuento de activos sin procedencia
+declarada. Sin activos registrados, la tarjeta pide registrar antes de mostrar nada (A14-6: ninguna
+otra vista cambia de comportamiento).
+
+**Validación**: `npm run verify`, exit 0 — **2447/2447 pruebas** (2442 + 5 nuevas), accesibilidad
+(945 IDs, +8 por los campos nuevos de la tarjeta), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde. `app.js` bumpeado a `?v=20260830h2` (26 pruebas de cadena de versión
+actualizadas en el mismo commit).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (89): Bloque 6 (arranque) — A14-1, contrato canónico `canonical-assets.js`
 
 Primera tarea del Bloque 6 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` ("los grandes cimientos"). Se eligió
