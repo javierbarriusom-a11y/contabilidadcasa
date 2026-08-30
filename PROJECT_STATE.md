@@ -2,6 +2,49 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (80): A17-1 — widget de solo lectura (saldo, próximo evento, colchón)
+
+Segunda tarea del Bloque 3. Con spec completa en `BACKLOG_PATRIMONIO_Y_FINANZAS.md` (E24a): «widget
+de pantalla de inicio y complicación de reloj, sin ninguna capacidad de escritura».
+
+**Decisión de alcance, antes de construir**: un widget de pantalla de inicio nativo (iOS/Android) y
+una complicación de reloj (watchOS/Wear OS) no son construibles desde un sitio estático sin una app
+nativa que los hospede — ninguno de los dos sistemas operativos expone esa superficie a una PWA, y
+una complicación de reloj necesita tiempo de ejecución nativo. Mismo motivo por el que A17-4
+(«captura por voz») ya declaró «requiere A5-1 operativo, fuera de este documento». Lo que sí ofrece
+la plataforma web sin ninguna app nativa es un atajo de acceso directo
+(`manifest.webmanifest` → `shortcuts`, visible con una pulsación larga sobre el icono ya instalado)
+a una pantalla de solo lectura que carga al instante los tres datos más pedidos — eso es lo que
+construye esta tarea.
+
+**Construido**: nueva vista `#widget` — tres tarjetas de solo lectura (Saldo, Próximo evento,
+Colchón), sin ningún `<input>`, `<select>` ni acción de escritura, con un enlace de vuelta a «Hoy»
+para cualquier edición. `widgetSnapshot()`/`renderWidgetView()` (nuevas, `app.js`) reutilizan
+exactamente los mismos cálculos que «Hoy» — `unifiedActionCenterModel()` para el saldo,
+`rangeKpiMetric(homeRowsForHorizon())` para el colchón (mínimo ajustado del horizonte) — y el
+calendario financiero (`window.FinanceCanonicalE15.financialCalendar()`, A15-3/E15) para el próximo
+evento: el primer evento con fecha propia de los meses futuros, descartando el "forecast" que se
+añade a todos los meses por ser el cierre previsto, no un evento propio. Sin motor paralelo. Enlace
+en el menú avanzado (grupo Datos) y entrada en el catálogo de búsqueda de `e17-experience.js`.
+`manifest.webmanifest` añade `shortcuts` con una entrada a `./#widget` — el equivalente web real a
+un atajo de pantalla de inicio. `app.js` bumpeado a `?v=20260830b1`, `manifest.webmanifest` a
+`?v=20260830a1`.
+
+**Verificación**: 6 pruebas nuevas en `tests/a17-1-widget-solo-lectura.test.cjs` (la sección existe
+sin ningún control de escritura, enlaza de vuelta a Hoy, `widgetSnapshot` reutiliza los cálculos de
+Hoy sin motor paralelo, el router despacha `#widget` con título propio, es localizable desde el
+buscador y el menú avanzado, el manifest ofrece el atajo). Ajustadas dos pruebas existentes que
+fijaban el recuento exacto de enlaces del menú avanzado (`tests/navigation-structure.test.cjs`,
+29→30 enlaces, grupo Datos con el widget al frente) y corregida una fijación de versión que mi
+primer intento de bump había tocado por error (`views/deuda.js?v=20260828a1`, un chunk que no se
+tocó en esta sesión — coincidía por texto con la versión anterior del manifest).
+
+**Validación**: `npm run verify`, exit 0 — **2319/2319 pruebas** (2313 + 6 nuevas), accesibilidad
+(906 IDs, +8 por los nuevos elementos del widget), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (79): OPT-7 — resumir «modo familiar» y «alertas» en «Hoy», Bloque 3 en marcha
 
 Primera tarea del Bloque 3 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Con spec completa en

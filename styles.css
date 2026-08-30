@@ -10707,6 +10707,40 @@ tbody tr:hover {
   text-transform: uppercase;
 }
 
+/* A17-1: widget de solo lectura — mismo patrón de tarjeta que el resto de la app, sin controles. */
+.widget-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.widget-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+}
+
+.widget-card strong {
+  font-size: clamp(1.3rem, 2.4vw, 1.7rem);
+  overflow-wrap: anywhere;
+}
+
+.widget-card p {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .widget-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .home-family-summary > p,
 .home-alert-summary > p {
   color: var(--muted);

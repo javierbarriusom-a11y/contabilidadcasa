@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
-    <link rel="manifest" href="manifest.webmanifest?v=20260828a1" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260830a1" />
     <link rel="stylesheet" href="styles.css?v=20260829pv2a1" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
     <link rel="stylesheet" href="design-tokens.css?v=20260829opt4a1" />
@@ -102,6 +102,7 @@
               <a href="#forecast" data-e17-group="analysis">Proyección</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="datos">Datos</p>
+              <a href="#widget" data-e17-group="data">Widget de solo lectura (nuevo)</a>
               <a href="#datos-importar" data-e17-group="data">Importar extracto en 4 pasos (nuevo)</a>
               <a href="#registrar-mes" data-e17-group="data">Registrar el mes (nuevo)</a>
               <a href="#data-entry" data-e17-group="data">Carga de datos</a>
@@ -354,6 +355,36 @@
                   <button type="button" class="secondary-button compact-button" data-home-nav="alerts-center">Configurar</button>
                 </div>
                 <div class="home-alert-summary" id="homeAlertSummary"></div>
+              </article>
+            </div>
+          </section>
+
+          <!-- A17-1: widget de solo lectura, pensado para abrirse por atajo (manifest.webmanifest
+               → shortcuts), no navegando desde el menú principal. Sin ninguna capacidad de
+               escritura — solo lectura de las mismas tres cifras que ya calcula Hoy. -->
+          <section class="view-section widget-view" id="widget">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker">Widget de solo lectura</p>
+                <h2>Saldo, próximo evento y colchón, sin abrir el resto de la app</h2>
+                <p>Pensado para un atajo del icono instalado (o para dejar esta pestaña abierta). No permite editar nada — para eso, <a href="#home" data-home-nav="home">abre «Hoy»</a>.</p>
+              </div>
+            </div>
+            <div class="widget-card-grid" id="widgetCards">
+              <article class="widget-card">
+                <p class="panel-kicker">Saldo</p>
+                <strong id="widgetBalance">—</strong>
+                <p id="widgetBalanceNote"></p>
+              </article>
+              <article class="widget-card">
+                <p class="panel-kicker">Próximo evento</p>
+                <strong id="widgetNextEvent">—</strong>
+                <p id="widgetNextEventNote"></p>
+              </article>
+              <article class="widget-card">
+                <p class="panel-kicker">Colchón</p>
+                <strong id="widgetCushion">—</strong>
+                <p id="widgetCushionNote"></p>
               </article>
             </div>
           </section>
@@ -4417,7 +4448,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830a1"></script>
+    <script defer src="app.js?v=20260830b1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

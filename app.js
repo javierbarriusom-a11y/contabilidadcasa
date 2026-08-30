@@ -376,6 +376,10 @@ const viewTitles = {
     eyebrow: "Fin de mes",
     title: "Concilia, resuelve y firma el cierre del mes",
   },
+  widget: {
+    eyebrow: "Solo lectura",
+    title: "Saldo, próximo evento y colchón, sin abrir el resto de la app",
+  },
   analisis: {
     eyebrow: "Analizar",
     title: "La lectura ejecutiva de tu plan, con procedencia",
@@ -24465,6 +24469,76 @@ function renderHomeFamilyAndAlerts() {
   }
 }
 
+// A17-1 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, BACKLOG_PATRIMONIO_Y_FINANZAS.md E24a):
+// «widget de pantalla de inicio y complicación de reloj» tal cual está escrito no es construible
+// desde un sitio estático sin app nativa que lo hospede — ni iOS ni Android exponen esa superficie
+// del sistema operativo a una PWA, y una complicación de reloj necesita tiempo de ejecución nativo
+// de watchOS/Wear OS (mismo motivo por el que A17-4, «captura por voz», declaró «requiere A5-1
+// operativo, fuera de este documento»). Lo que sí ofrece la plataforma web sin ninguna app nativa
+// es un atajo de acceso directo (manifest.webmanifest → "shortcuts", visible con una pulsación
+// larga sobre el icono ya instalado) a una pantalla de solo lectura que carga al instante los tres
+// datos más pedidos — eso es lo que construye esta tarea: #widget, sin ningún control de escritura,
+// reutilizando exactamente las mismas cifras que ya calcula «Hoy» (nunca un cálculo paralelo).
+function widgetSnapshot() {
+  const actionCenter = unifiedActionCenterModel();
+  const actionCtx = actionCenter.context || {};
+  const balances = actionCtx.balances || accountBalancesFromState();
+  const metrics = rangeKpiMetric(homeRowsForHorizon());
+
+  let nextEvent = null;
+  const calendarApi = window.FinanceCanonicalE15;
+  const planning = window.FinanceP2Bridge?.goalPlanning?.();
+  if (calendarApi && planning) {
+    const p2 = p2State();
+    const calendar = calendarApi.financialCalendar({
+      ...planning,
+      goals: p2.goals,
+      reviews: p2.e15?.reviews || [],
+      policies: insurancePolicies(),
+    });
+    for (const row of calendar.rows || []) {
+      // "forecast" se añade a todos los meses (es el cierre previsto, no un evento con fecha
+      // propia): el próximo evento real es el primero que no sea ese.
+      const found = (row.events || []).find((event) => event.type !== "forecast");
+      if (found) { nextEvent = { ...found, monthLabel: row.label }; break; }
+    }
+  }
+
+  return {
+    balanceTotal: balances.total,
+    balanceAsOf: actionCenter.asOf,
+    cushionMin: metrics?.adjustedMin ?? null,
+    cushionMonth: metrics?.adjustedMinMonth || "",
+    cushionDate: metrics?.adjustedMinDate || "",
+    nextEvent,
+  };
+}
+
+function renderWidgetView() {
+  if (!qs("widgetBalance")) return;
+  const snapshot = widgetSnapshot();
+
+  qs("widgetBalance").textContent = money(snapshot.balanceTotal, true);
+  qs("widgetBalanceNote").textContent = snapshot.balanceAsOf ? `A ${snapshot.balanceAsOf}.` : "";
+
+  const eventEl = qs("widgetNextEvent");
+  const eventNoteEl = qs("widgetNextEventNote");
+  if (snapshot.nextEvent) {
+    eventEl.textContent = snapshot.nextEvent.label;
+    eventNoteEl.textContent = `${snapshot.nextEvent.monthLabel} · ${
+      snapshot.nextEvent.amount === null ? "importe por determinar" : money(snapshot.nextEvent.amount, true)
+    }`;
+  } else {
+    eventEl.textContent = "Sin eventos previstos";
+    eventNoteEl.textContent = "El calendario financiero no tiene vencimientos, objetivos ni revisiones por delante.";
+  }
+
+  qs("widgetCushion").textContent = snapshot.cushionMin === null ? "—" : money(snapshot.cushionMin, true);
+  qs("widgetCushionNote").textContent = snapshot.cushionMin === null
+    ? "Sin rango suficiente para calcular mínimos."
+    : `Mínimo ajustado en ${snapshot.cushionMonth}${snapshot.cushionDate ? ` (${snapshot.cushionDate})` : ""}.`;
+}
+
 function alertRuleOptions(selected, options) {
   return options.map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
 }
@@ -31503,6 +31577,9 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "reconciliation":
       renderReconciliation();
+      break;
+    case "widget":
+      renderWidgetView();
       break;
     default:
       break;

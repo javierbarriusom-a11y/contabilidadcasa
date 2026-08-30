@@ -7,5 +7,13 @@
   "display": "standalone",
   "background_color": "#f5f7fb",
   "theme_color": "#0b1f33",
-  "lang": "es"
+  "lang": "es",
+  "shortcuts": [
+    {
+      "name": "Widget de solo lectura",
+      "short_name": "Widget",
+      "description": "Saldo, próximo evento y colchón, sin abrir el resto de la app",
+      "url": "./#widget"
+    }
+  ]
 }

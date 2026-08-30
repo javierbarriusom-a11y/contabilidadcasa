@@ -14,6 +14,10 @@
     // duplicarla solo daría dos resultados iguales en el buscador.
     { target: "ajustes", label: "Ajustes", group: "main", keywords: "ajustes reserva operativa cuentas partidas umbrales exportar csv v6" },
     { target: "faqs-ayuda", label: "FAQs y ayuda", group: "main", keywords: "faq ayuda manual usuario casos de uso actualizar datos predicciones simular conclusiones preguntas frecuentes" },
+    // A17-1 (bloque 3, septiembre): solo lectura, pensado para un atajo del icono instalado, no
+    // para navegar desde el menú — pero sigue siendo localizable desde el buscador como cualquier
+    // otra pantalla.
+    { target: "widget", label: "Widget de solo lectura (nuevo)", group: "data", keywords: "widget saldo colchon proximo evento atajo shortcut inicio reloj a17 solo lectura" },
     { target: "datos-importar", label: "Importar extracto en 4 pasos (nuevo)", group: "data", keywords: "importar extracto csv excel duplicados reglas clasificar incorporar deshacer nuevo e20 v4-4" },
     { target: "registrar-mes", label: "Registrar el mes (nuevo)", group: "data", keywords: "registrar mes real previsto usado desviacion partida guardado automatico nuevo e20 copiar reales" },
     { target: "cuadro-mandos", label: "Cuadro de mandos · detalle por partida (nuevo)", group: "analysis", keywords: "cuadro mandos detalle partida impacto editar celda previsto matriz nuevo e20" },
