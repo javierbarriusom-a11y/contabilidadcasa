@@ -2484,13 +2484,14 @@
               <div class="e19-kpi-note" id="a14AssetBreakdown"></div>
             </article>
 
-            <!-- IV1 (núcleo): registro de cartera por posición. Contrato canónico
-                 canonical-portfolio.js — base para IV2 (TWR/XIRR), FC1 (FIFO) y el resto
-                 del bloque de inversión, que quedan para sesiones aparte. Sin posiciones
-                 registradas, tarjeta neutra. -->
+            <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
+                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR), FC1 (FIFO) y
+                 el resto del bloque de inversión, que quedan para sesiones aparte. La correlación
+                 real entre activos (lo que pide IV4 además de la concentración) necesita datos de
+                 mercado y queda pendiente. Sin posiciones registradas, tarjeta neutra. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cartera de inversión: registro por posición</h3>
-              <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición y del conjunto de la cartera.</p>
+              <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición, el reparto por tipo y el aviso de sobreexposición.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Tipo</span>
@@ -2534,6 +2535,7 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
               <div class="e19-kpi-note" id="iv1PositionSummary"></div>
+              <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
             </article>
 
             <article class="e19-card">
@@ -4695,7 +4697,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830h5"></script>
+    <script defer src="app.js?v=20260830h6"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
