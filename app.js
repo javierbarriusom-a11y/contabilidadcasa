@@ -4557,6 +4557,9 @@ async function closeCurrentMonthTransaction() {
     // un historial local (no toca el RPC transaccional ni el esquema remoto, ver el comentario junto
     // a `recordCierreAprendizaje`).
     recordCierreAprendizaje(month, closedAt);
+    // PV3: el cierre firmado es el disparador de la recalibración en cascada del aprendizaje de
+    // desviaciones (E12b) — mismo espíritu local que recordCierreAprendizaje, justo encima.
+    recalibrateForecastLearning(month, closedAt);
     // D-2b: cada cierre firmado congela una foto nueva de la deuda viva — mismo espíritu local que
     // C-13, no toca el RPC transaccional ni el esquema remoto.
     saveDebtCapitalSnapshotAtClose({ total: homeDebtOutlook().pendingPrincipal, monthKey: month, closedAt });
@@ -16535,8 +16538,9 @@ function renderE13ScenarioLab() {
       <span>${money(scenario.metrics.debtImpact, true)}</span>
       <span>${scenario.metrics.recoveryMonth === null ? "Sin ruptura" : scenario.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(scenario.metrics.recoveryMonth)}</span>
     </div>`).join("")}`;
-  const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
-  const history = [...matchedMonths.values()].map((month) => ({ monthKey: month.monthKey, conceptId: "monthly-net", label: "Flujo mensual", planned: (() => { const row = forecast.series.find((item) => item.monthKey === month.monthKey); return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN; })(), actual: Number(month.bankIncome) - Number(month.bankExpense), amount: Number(month.bankIncome) - Number(month.bankExpense), reconciled: true }));
+  // PV3: misma construcción del histórico que usa recalibrateForecastLearning() al cerrar el mes,
+  // ahora compartida en reconciledMonthlyNetHistory() en vez de duplicada.
+  const history = reconciledMonthlyNetHistory();
   const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
   const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
@@ -22903,6 +22907,7 @@ function renderAjustes() {
   renderAjustesSobres();
   renderAjustesLaboratorio();
   renderCierreReportArchive();
+  renderPv5Diary();
   renderAnnualReview();
 
   const balances = accountBalancesFromState();
@@ -28992,6 +28997,119 @@ function handleCierreReportArchiveDownload(monthKey) {
   if (!entry) return;
   window.P2Export.downloadPlainPdf(entry.pdfLines, `resumen-mes-${monthKey}.pdf`);
   announceStatus(`PDF archivado de ${registrarMesLongMonth(monthKey)} descargado.`);
+}
+
+// PV3/PV5 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "previsión viva" — sin documento de
+// detalle propio, resumen en su Nota): "recalibración en cascada al cerrar el mes — dispara
+// learnFromHistory() al confirmar el cierre mensual (A1-2)" y "diario de por qué cambió cada
+// cifra". Antes de este cambio, learnFromHistory() solo se recalculaba al abrir el Laboratorio de
+// escenarios (E13): un hogar que nunca visita esa pantalla avanzada no se enteraba de que sus
+// desviaciones habían cambiado. El cierre de mes (A1-2) es el momento exacto en que aparecen
+// registros `reconciled` nuevos, así que es el disparador natural — mismo patrón local que C-13
+// (`recordCierreAprendizaje`): no toca el RPC transaccional ni el esquema remoto. PV5 se construye
+// a la vez porque sin él la recalibración sería silenciosa: un ajuste sugerido que cambia de un
+// cierre a otro sin dejar rastro no es distinto de que no exista. Ninguna previsión se ajusta sola
+// (regla transversal 04): el aprendizaje sigue con `confirmRequired: true`/`applied: false`; esto
+// solo registra qué cambió y por qué.
+function reconciledMonthlyNetHistory() {
+  const forecast = canonicalScenarioResults.base?.forecast;
+  if (!forecast) return [];
+  const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
+  return [...matchedMonths.values()].map((month) => ({
+    monthKey: month.monthKey,
+    conceptId: "monthly-net",
+    label: "Flujo mensual",
+    planned: (() => {
+      const row = forecast.series.find((item) => item.monthKey === month.monthKey);
+      return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN;
+    })(),
+    actual: Number(month.bankIncome) - Number(month.bankExpense),
+    amount: Number(month.bankIncome) - Number(month.bankExpense),
+    reconciled: true,
+  }));
+}
+
+function loadPv3LearningSnapshot() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("pv3-learning-snapshot"), "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePv3LearningSnapshot(snapshot) {
+  storageSet(storageKey("pv3-learning-snapshot"), JSON.stringify(snapshot));
+}
+
+const PV5_DIARY_MAX_ENTRIES = 200;
+
+function loadPv5Diary() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("pv5-diary"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePv5Diary(list) {
+  storageSet(storageKey("pv5-diary"), JSON.stringify(list.slice(0, PV5_DIARY_MAX_ENTRIES)));
+}
+
+function pv5DiaryReason(entry) {
+  if (entry.previousDelta === null) {
+    return `Primera vez con historial suficiente (${entry.sampleMonths} mes(es)): desviación media ${money(entry.newDelta, true)}, confianza ${entry.newConfidence}.`;
+  }
+  return `Pasó de ${money(entry.previousDelta, true)} a ${money(entry.newDelta, true)} de desviación media (confianza ${entry.newConfidence}).`;
+}
+
+function recalibrateForecastLearning(monthKey, closedAt) {
+  const learning = window.FinanceCanonicalForecast?.learnFromHistory(reconciledMonthlyNetHistory(), { generatedAt: closedAt });
+  if (!learning) return [];
+  const previous = loadPv3LearningSnapshot();
+  const nextSnapshot = {};
+  const newEntries = [];
+  learning.deviations.forEach((deviation) => {
+    const before = previous[deviation.conceptId];
+    nextSnapshot[deviation.conceptId] = { averageDelta: deviation.averageDelta, severity: deviation.severity, sampleMonths: deviation.sampleMonths };
+    const changed = !before || Math.abs(before.averageDelta - deviation.averageDelta) >= 0.01 || before.severity !== deviation.severity;
+    if (!changed) return;
+    const entry = {
+      id: `${deviation.conceptId}-${closedAt}`,
+      at: closedAt,
+      monthKey,
+      conceptId: deviation.conceptId,
+      label: deviation.label,
+      previousDelta: before ? before.averageDelta : null,
+      newDelta: deviation.averageDelta,
+      previousSeverity: before ? before.severity : null,
+      newSeverity: deviation.severity,
+      sampleMonths: deviation.sampleMonths,
+      newConfidence: deviation.confidence,
+    };
+    entry.reason = pv5DiaryReason(entry);
+    newEntries.push(entry);
+  });
+  savePv3LearningSnapshot(nextSnapshot);
+  if (newEntries.length) savePv5Diary([...newEntries, ...loadPv5Diary()]);
+  return newEntries;
+}
+
+function renderPv5Diary() {
+  const list = qs("pv5DiaryList");
+  const empty = qs("pv5DiaryEmpty");
+  if (!list) return;
+  const diary = loadPv5Diary();
+  if (empty) empty.hidden = Boolean(diary.length);
+  list.innerHTML = diary
+    .map(
+      (entry) => `<li class="pv5-diary-item">
+        <span>${escapeHtml(registrarMesLongMonth(entry.monthKey))} · ${escapeHtml(entry.label)}</span>
+        <p class="e19-kpi-note">${escapeHtml(entry.reason)}</p>
+      </li>`,
+    )
+    .join("");
 }
 
 function renderCierreReportArchive() {

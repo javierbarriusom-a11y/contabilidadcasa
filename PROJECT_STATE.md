@@ -2,6 +2,45 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (81): PV3/PV5 — recalibración en cascada al cerrar el mes y diario de por qué cambió cada cifra
+
+Tercera y cuarta tarea del Bloque 3 (construidas juntas por dependencia real: PV5 sin PV3 no
+tendría qué registrar, y PV3 sin PV5 sería una recalibración silenciosa). Ninguna de las dos tiene
+documento de detalle propio — son ampliación de septiembre, resumidas en su columna Nota:
+PV3 «dispara `learnFromHistory()` al confirmar el cierre mensual (A1-2)»; PV5 «prerrequisito de
+confianza para PV1» (bloque 8, todavía pendiente).
+
+**Hallazgo antes de construir**: `learnFromHistory()` (E12b) ya se recalculaba, pero solo al abrir
+el Laboratorio de escenarios (E13) — un hogar que nunca visita esa pantalla avanzada no se enteraba
+nunca de que sus desviaciones habían cambiado. El cierre de mes (A1-2) es el momento exacto en que
+aparecen registros `reconciled` nuevos: es el disparador natural, mismo patrón local que C-13
+(`recordCierreAprendizaje`, ya enganchado en `closeCurrentMonthTransaction`).
+
+**Construido**: `reconciledMonthlyNetHistory()` (nueva, `app.js`) extrae la construcción del
+histórico que antes vivía duplicada dentro de `renderE13ScenarioLab()` — ahora la comparte con el
+disparador nuevo. `recalibrateForecastLearning(monthKey, closedAt)` llama a `learnFromHistory()`
+con ese histórico, compara cada desviación con la última fotografía guardada
+(`pv3-learning-snapshot`, local) y, si cambió de verdad (delta ≥ 1 céntimo o cambio de severidad),
+añade una entrada al diario PV5 (`pv5-diary`, local, acotado a 200 entradas) con la cifra anterior,
+la nueva y un motivo en lenguaje llano (`pv5DiaryReason`). Enganchado en
+`closeCurrentMonthTransaction()` justo después de `recordCierreAprendizaje`. El diario se lee en
+Ajustes (`renderPv5Diary()`, tarjeta nueva «Diario de recalibración de la previsión», junto al
+archivo de informes de cierre) — no se inventa una pantalla propia. Ningún ajuste se aplica solo:
+el aprendizaje sigue con `confirmRequired: true`/`applied: false` (regla transversal 04); esto solo
+registra qué cambió y por qué. `app.js` bumpeado a `?v=20260830c1`.
+
+**Verificación**: 6 pruebas nuevas en `tests/pv3-pv5-recalibracion-diario.test.cjs` (el cierre
+dispara la recalibración, `recalibrateForecastLearning` usa el histórico compartido sin motor
+paralelo, el Laboratorio reutiliza `reconciledMonthlyNetHistory` sin duplicar el histórico, nunca
+se marca `applied: true`, cada cambio queda con cifra anterior/nueva/motivo en un diario acotado,
+PV5 se lee en Ajustes).
+
+**Validación**: `npm run verify`, exit 0 — **2325/2325 pruebas** (2319 + 6 nuevas), accesibilidad
+(908 IDs, +2 por la tarjeta del diario), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (80): A17-1 — widget de solo lectura (saldo, próximo evento, colchón)
 
 Segunda tarea del Bloque 3. Con spec completa en `BACKLOG_PATRIMONIO_Y_FINANZAS.md` (E24a): «widget
