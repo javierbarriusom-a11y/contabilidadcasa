@@ -26158,6 +26158,29 @@ function escenarioMotorBaseInput() {
   return canonicalEngineInput(projectPlan.outflows || []);
 }
 
+// CP6 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "copiloto proactivo" — sin documento de
+// detalle propio, resumen en su Nota): "pasa cada decisión grande por el escenario de tensión una
+// vez" antes de comprometer dinero. Mismo factor de tensión que ya usa canonical-e13-scenarios.js
+// (ingresos ×0,9, gastos ×1,1) — no un umbral nuevo. Se aplica a los campos que
+// canonical-scenario-engine.js sí lee de cada mes (income, coreSpend, variableOperationalSpend,
+// endOfMonthOutflows); `baseInput.policy.incomeFactor/expenseFactor` no sirven aquí porque ese
+// motor no los consume (son metadata para otro cálculo).
+const CP6_TENSION_INCOME_FACTOR = 0.9;
+const CP6_TENSION_EXPENSE_FACTOR = 1.1;
+
+function escenarioMotorTensionInput(baseInput) {
+  return {
+    ...baseInput,
+    months: (baseInput.months || []).map((month) => ({
+      ...month,
+      income: round2(Number(month.income || 0) * CP6_TENSION_INCOME_FACTOR),
+      coreSpend: round2(Number(month.coreSpend || 0) * CP6_TENSION_EXPENSE_FACTOR),
+      variableOperationalSpend: round2(Number(month.variableOperationalSpend || 0) * CP6_TENSION_EXPENSE_FACTOR),
+      endOfMonthOutflows: round2(Number(month.endOfMonthOutflows || 0) * CP6_TENSION_EXPENSE_FACTOR),
+    })),
+  };
+}
+
 // Incluye el plan reunificado sintético (canonicalDebtContractRows añade «reunified-plan-current»
 // cuando existe) además de los contratos con nombre propio, para que amortizar el plan combinado
 // sea un objetivo válido igual que cualquier otra deuda activa.
@@ -27860,6 +27883,25 @@ function renderEscenarioAplicar() {
   const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
   const kpis = qs("escenarioAplicarKpis");
   if (kpis) kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
+
+  // CP6: el mismo plan (mismas decisiones, mismo guardarraíl), una vez bajo el escenario de
+  // tensión. No sustituye la validación contra el contrato de arriba, la complementa: esa dice si
+  // el plan es válido hoy, esta dice si seguiría siéndolo si ingresos y gastos van peor.
+  const tensionResult = runEscenarioMotor(escenarioMotorTensionInput(baseInput), escenarioMotorDecisions, escenarioMotorGuardrailValue);
+  const tensionSummary = escenarioMotorSummaryFor(tensionResult, baseInput.months);
+  const tensionNote = qs("escenarioAplicarTensionNote");
+  if (tensionNote) {
+    const tensionResultados = tensionResult?.resultados || [];
+    const tensionRejected = tensionResultados.filter((item) => item.resultado !== "aplicada").length;
+    const minimoLiquidezText = tensionSummary.minimoLiquidez === null ? "sin datos" : money(tensionSummary.minimoLiquidez, true);
+    if (!tensionResultados.length) {
+      tensionNote.textContent = "No se pudo calcular el escenario de tensión para este plan.";
+    } else if (!tensionRejected) {
+      tensionNote.textContent = `Con ingresos un 10 % más bajos y gastos un 10 % más altos, el plan seguiría aplicándose entero. Caja mínima bajo tensión: ${minimoLiquidezText}.`;
+    } else {
+      tensionNote.textContent = `Con ingresos un 10 % más bajos y gastos un 10 % más altos, ${tensionRejected} de ${tensionResultados.length} decisión(es) dejarían de aplicarse. Caja mínima bajo tensión: ${minimoLiquidezText}. Revísalo antes de confirmar: esto no bloquea la confirmación, solo la informa.`;
+    }
+  }
   const validationList = qs("escenarioAplicarValidationList");
   if (validationList) {
     validationList.innerHTML = escenarioMotorValidationChecklistHtml(

@@ -1360,6 +1360,14 @@
               <ul class="deuda-ruta-checklist" id="escenarioAplicarValidationList"></ul>
             </article>
 
+            <!-- CP6: antes de comprometer dinero, el mismo plan se pasa una vez por el escenario de
+                 tensión (ingresos −10 %, gastos +10 %, mismo factor que el Laboratorio E13) para ver
+                 si aguanta, no solo si cuadra en el caso base. -->
+            <article class="e19-card" id="escenarioAplicarTensionCard">
+              <h3 class="escenario-motor-panel-title">¿Y si viene mal dado? (escenario de tensión)</h3>
+              <p class="e19-kpi-note" id="escenarioAplicarTensionNote"></p>
+            </article>
+
             <div class="escenario-motor-layout escenario-motor-layout-apply">
               <article class="e19-card escenario-motor-diff-panel">
                 <h3 class="escenario-motor-panel-title" id="escenarioAplicarChangesTitle">Cambios en el plan</h3>
@@ -4455,7 +4463,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830c1"></script>
+    <script defer src="app.js?v=20260830d1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

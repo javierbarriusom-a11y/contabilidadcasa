@@ -2,6 +2,44 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (82): CP6 — «¿Y si...?» antes de comprometer dinero
+
+Quinta tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio — resumen en
+su Nota: «pasa cada decisión grande por el escenario de tensión una vez».
+
+**Decisión de alcance**: «decisión grande» se interpreta como confirmar un plan en «Decidir ·
+aplicar escenario» (`escenario-aplicar`) — es el único punto de la app donde un conjunto de
+decisiones (amortizar, refinanciar, comprar, reunificar…) pasa de simulación a compromiso real
+(«nada se escribe hasta confirmar con un motivo»). El factor de tensión reutiliza exactamente el ya
+establecido en `canonical-e13-scenarios.js` para el Laboratorio (ingresos ×0,9, gastos ×1,1) — no
+un umbral nuevo.
+
+**Hallazgo antes de construir**: `baseInput.policy.incomeFactor/expenseFactor` existían en la
+entrada del motor, pero `canonical-scenario-engine.js` no los lee en ningún sitio — son metadata de
+otro cálculo. El motor sí lee `income`, `coreSpend`, `variableOperationalSpend` y
+`endOfMonthOutflows` de cada mes directamente, así que la tensión tiene que escalar esos campos, no
+la política.
+
+**Construido**: `escenarioMotorTensionInput(baseInput)` (nueva, `app.js`) clona `baseInput.months`
+escalando esos cuatro campos con `CP6_TENSION_INCOME_FACTOR`/`CP6_TENSION_EXPENSE_FACTOR` (0,9/1,1),
+sin mutar el original. `renderEscenarioAplicar()` ejecuta `runEscenarioMotor()` una vez más con esa
+entrada, las mismas decisiones y el mismo guardarraíl, y escribe una nota en la tarjeta nueva
+«¿Y si viene mal dado?» (justo después de la validación contra el contrato y antes del formulario
+de confirmación): si el plan seguiría aplicándose entero bajo tensión, o cuántas decisiones dejarían
+de aplicarse y la caja mínima resultante. No bloquea el botón de confirmar — informa, no decide por
+el usuario (regla transversal 04).
+
+**Verificación**: 4 pruebas nuevas en `tests/cp6-escenario-tension-antes-de-comprometer.test.cjs`
+(reutiliza el factor de E13 en vez de inventar uno, escala los campos correctos sin mutar el input
+original, `renderEscenarioAplicar` calcula la tensión con las mismas decisiones/guardarraíl sin
+bloquear la confirmación, la tarjeta existe en el sitio correcto del formulario).
+
+**Validación**: `npm run verify`, exit 0 — **2329/2329 pruebas** (2325 + 4 nuevas), accesibilidad
+(910 IDs, +2), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260830d1`.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (81): PV3/PV5 — recalibración en cascada al cerrar el mes y diario de por qué cambió cada cifra
 
 Tercera y cuarta tarea del Bloque 3 (construidas juntas por dependencia real: PV5 sin PV3 no
