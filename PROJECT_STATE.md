@@ -2,6 +2,33 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (88): fix — el chequeo «Published availability» llevaba fallando desde OPT-3
+
+**Reportado por el usuario** con una captura de la pestaña Actions de GitHub: el workflow programado
+`Published availability` (`.github/workflows/availability.yml`, cada 6 horas) llevaba en rojo desde
+el run #73, sin que nadie lo hubiera notado.
+
+**Diagnóstico**: el propio despliegue a Pages (`pages.yml`) seguía en verde y el sitio publicado
+funciona con normalidad — el fallo estaba solo en el chequeo de disponibilidad. Reconstruyendo el
+sitio localmente (`npm run build:site`) se confirmó la causa: `grep -q '"publicDemo":true'` busca el
+JSON literal, pero **OPT-3** (minificación del artefacto publicado con esbuild, fusionada en el PR
+#159 — Bloque 1, run #73) convierte `dist/data.js` a JS minificado — la clave pierde comillas y
+`true` se convierte en `!0` (`publicDemo:!0`). El chequeo quedó desincronizado con el propio cambio
+que lo rompió; los otros dos chequeos (`<main id="mainContent"` y `"version"` de `version.json`, que
+no se minifica) seguían pasando.
+
+**Arreglado**: el grep de `publicDemo` en `availability.yml` pasa a un patrón que acepta ambas formas
+— `grep -Eq '"?publicDemo"?:\s*(true|!0)'` —, válido tanto para el JSON literal como para la salida
+minificada de esbuild. Verificado contra el `dist/data.js` real construido en esta sesión y contra el
+literal JSON sin minificar.
+
+**Validación**: `npm run verify`, exit 0 — **2433/2433 pruebas** (sin pruebas nuevas: es un fix de un
+workflow de CI, no de la app), accesibilidad (937 IDs, sin cambio), rendimiento, build del sitio,
+privacidad y smoke test, todos en verde — mismas cifras que el cierre 87, este cambio no toca código
+de la aplicación.
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (87): Bloque 5 (tanda B) — PV6, UX3, UX5, UX6, SP4, cierre del Bloque 5
 
 Segunda tanda del Bloque 5 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (5 de 9 tareas) — con la tanda A (85)

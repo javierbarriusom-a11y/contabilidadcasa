@@ -22,5 +22,5 @@ jobs:
           curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/data.js" --output "$RUNNER_TEMP/site-data.js"
           curl --fail --silent --show-error --location --retry 3 --max-time 30 "$SITE_URL/version.json" --output "$RUNNER_TEMP/site-version.json"
           grep -q '<main id="mainContent"' "$RUNNER_TEMP/site-index.html"
-          grep -q '"publicDemo":true' "$RUNNER_TEMP/site-data.js"
+          grep -Eq '"?publicDemo"?:\s*(true|!0)' "$RUNNER_TEMP/site-data.js"
           grep -q '"version"' "$RUNNER_TEMP/site-version.json"
