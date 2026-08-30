@@ -2484,6 +2484,58 @@
               <div class="e19-kpi-note" id="a14AssetBreakdown"></div>
             </article>
 
+            <!-- IV1 (núcleo): registro de cartera por posición. Contrato canónico
+                 canonical-portfolio.js — base para IV2 (TWR/XIRR), FC1 (FIFO) y el resto
+                 del bloque de inversión, que quedan para sesiones aparte. Sin posiciones
+                 registradas, tarjeta neutra. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cartera de inversión: registro por posición</h3>
+              <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición y del conjunto de la cartera.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tipo</span>
+                  <select id="iv1PositionType">
+                    <option value="fondo">Fondo</option>
+                    <option value="accion">Acción</option>
+                    <option value="etf">ETF</option>
+                    <option value="cripto">Cripto</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Nombre / ticker</span>
+                  <input id="iv1PositionLabel" type="text" placeholder="p. ej. Fondo Global" />
+                </label>
+                <label class="month-picker">
+                  <span>Cantidad</span>
+                  <input id="iv1PositionQuantity" type="number" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Coste (€)</span>
+                  <input id="iv1PositionCost" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Valor actual (€)</span>
+                  <input id="iv1PositionValue" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de valoración</span>
+                  <input id="iv1PositionDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Procedencia</span>
+                  <select id="iv1PositionProvenance">
+                    <option value="declared">Declarado (dato tuyo)</option>
+                    <option value="estimated">Estimado</option>
+                    <option value="unknown">Desconocido</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
+              <ul class="commit-barrier-list" id="iv1PositionList"></ul>
+              <div class="e19-kpi-note" id="iv1PositionSummary"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
@@ -4616,6 +4668,7 @@
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
     <script defer src="canonical-assets.js?v=20260830a141a1"></script>
+    <script defer src="canonical-portfolio.js?v=20260830iv1a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4642,7 +4695,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830h4"></script>
+    <script defer src="app.js?v=20260830h5"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

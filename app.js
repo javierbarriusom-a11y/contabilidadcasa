@@ -15637,6 +15637,86 @@ function renderA14AssetBreakdown() {
   note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}. Deuda pendiente: ${money(debt, true)}. <strong>Patrimonio neto: ${money(netWorthAfterDebt, true)}</strong>.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
 }
 
+const IV1_POSITION_TYPE_LABELS = { fondo: "Fondo", accion: "Acción", etf: "ETF", cripto: "Cripto", otro: "Otro" };
+
+function iv1PositionsList() {
+  return Array.isArray(scenarioSettings.portfolioPositions) ? scenarioSettings.portfolioPositions : [];
+}
+
+function saveIv1PositionsList(next) {
+  scenarioSettings.portfolioPositions = next;
+  saveScenarioSettings();
+}
+
+function clearIv1PositionForm() {
+  const labelInput = qs("iv1PositionLabel");
+  const quantityInput = qs("iv1PositionQuantity");
+  const costInput = qs("iv1PositionCost");
+  const valueInput = qs("iv1PositionValue");
+  if (labelInput) labelInput.value = "";
+  if (quantityInput) quantityInput.value = "";
+  if (costInput) costInput.value = "";
+  if (valueInput) valueInput.value = "";
+}
+
+function saveIv1Position() {
+  const type = qs("iv1PositionType")?.value || "otro";
+  const label = (qs("iv1PositionLabel")?.value || "").trim();
+  const quantity = parseAmount(qs("iv1PositionQuantity")?.value);
+  const costBasis = parseAmount(qs("iv1PositionCost")?.value);
+  const currentValue = parseAmount(qs("iv1PositionValue")?.value);
+  const asOf = qs("iv1PositionDate")?.value || "";
+  const provenance = qs("iv1PositionProvenance")?.value || "unknown";
+  if (!label) {
+    announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
+    return;
+  }
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, provenance }];
+  saveIv1PositionsList(next);
+  clearIv1PositionForm();
+  renderIv1PositionList();
+  renderIv1PositionSummary();
+  announceStatus(`Posición «${label}» registrada.`);
+}
+
+function removeIv1Position(id) {
+  saveIv1PositionsList(iv1PositionsList().filter((position) => position.id !== id));
+  renderIv1PositionList();
+  renderIv1PositionSummary();
+}
+
+function renderIv1PositionList() {
+  const list = qs("iv1PositionList");
+  if (!list) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    list.innerHTML = `<li class="e19-kpi-note">Sin posiciones registradas todavía.</li>`;
+    return;
+  }
+  const normalized = engine.normalizePositions(rows);
+  list.innerHTML = normalized.positions.map((position) => {
+    const typeLabel = IV1_POSITION_TYPE_LABELS[position.type] || "Otro";
+    const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span></span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+  }).join("");
+}
+
+function renderIv1PositionSummary() {
+  const note = qs("iv1PositionSummary");
+  if (!note) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    note.innerHTML = `<p>Registra al menos una posición para ver la plusvalía o minusvalía de la cartera.</p>`;
+    return;
+  }
+  const result = engine.normalizePositions(rows);
+  const { totalCost, totalValue, gainLoss, gainLossPct } = result.summary;
+  const gainClass = gainLoss > 0 ? "positive" : gainLoss < 0 ? "negative" : "";
+  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong>.</p>`;
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -23319,6 +23399,8 @@ function renderAjustes() {
   renderA18RuleList();
   renderA14AssetList();
   renderA14AssetBreakdown();
+  renderIv1PositionList();
+  renderIv1PositionSummary();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -33262,6 +33344,12 @@ async function init() {
     const removeButton = event.target.closest("[data-a14-asset-remove]");
     if (!removeButton) return;
     removeA14Asset(removeButton.dataset.a14AssetRemove);
+  });
+  qs("iv1PositionAdd")?.addEventListener("click", saveIv1Position);
+  qs("iv1PositionList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-iv1-position-remove]");
+    if (!removeButton) return;
+    removeIv1Position(removeButton.dataset.iv1PositionRemove);
   });
   qs("a18RuleList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-a18-rule-remove]");
