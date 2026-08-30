@@ -2,6 +2,36 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (84): CP4 — comparación automática de escenarios en la revisión mensual, cierre del Bloque 3
+
+Séptima y última tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio —
+resumen en su Nota: «extiende A10-5».
+
+**Construido**: `e15ScenarioComparison(forecast)` (nueva, `p2-ui.js`) llama a
+`FinanceCanonicalE13.buildLab(forecast, [], {...})` —el mismo motor de tres escenarios del
+Laboratorio, sin eventos manuales— sobre el forecast vigente que ya usa `renderE15Planning()`
+(A10-5). `e15ScenarioComparisonHtml()` la pinta como una lectura más del panel de objetivos y
+calendario, antes del botón «Registrar revisión»: aparece sola al abrir la pantalla, sin que nadie
+tenga que pedirla. Al pulsar «Registrar revisión», la fotografía de los tres escenarios
+(`scenarioComparison`) se guarda dentro del propio registro de la revisión (`p2.e15.reviews[]`,
+junto a `monthKey`/`completedAt`/`notes` que ya existían) — «extiende A10-5» literalmente: mismo
+registro, un campo más, ningún cambio a su forma de guardarse ni de leerse.
+
+**Verificación**: 6 pruebas nuevas en `tests/cp4-comparacion-escenarios-revision-mensual.test.cjs`
+(reutiliza `buildLab` sin eventos manuales, no rompe sin forecast suficiente, pinta las tres
+lecturas, la revisión guarda la fotografía dentro del registro de A10-5 sin tocar su forma, la
+comparación es automática y no bajo pedido, `p2-ui.js` viaja versionado).
+
+**Validación**: `npm run verify`, exit 0 — **2340/2340 pruebas** (2334 + 6 nuevas), accesibilidad
+(911 IDs, sin cambio — no se añadió ningún `id` nuevo), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `p2-ui.js` bumpeado a `?v=20260830cp4a1`; `app.js` no se tocó en esta
+tarea, así que su versión se queda en `?v=20260830e1`.
+
+**Cierre del Bloque 3**: las siete tareas completadas en esta sesión — OPT-7, A17-1, PV3, PV5, CP6,
+UX2, CP4. Cifras finales: 2340/2340 pruebas, 911 IDs de accesibilidad, todo en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (83): UX2 — «dato real / simulación / decisión aplicada», siempre visible
 
 Sexta tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio — resumen en su
