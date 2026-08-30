@@ -205,7 +205,7 @@ const VIEW_CHUNKS = {
   "deuda-simulador": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-simulador" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
-  analisis: { src: "views/analisis.js?v=20260829a163b1", rootId: "analisis" },
+  analisis: { src: "views/analisis.js?v=20260830ux3a1", rootId: "analisis" },
 };
 // Varias vistas pueden compartir un mismo fichero (p. ej. las 4 de Deuda viven en views/deuda.js):
 // la caché de "ya cargado"/"cargando" se indexa por `src`, no por vista, para no pedir el mismo
@@ -643,14 +643,45 @@ function navigateE17(target) {
   setActiveView(target, { focus: true });
 }
 
+// UX6: extiende el lanzador (A12-3) para reconocer preguntas de importe ("¿me puedo permitir
+// 300€?", "cuánto me queda", "300 euros disponibles") sin ningún motor nuevo — reutiliza la misma
+// caja disponible y reserva protegida que ya calcula Hoy (A15-4 usa el mismo par). Un número suelto
+// sin marca de euro ni palabra clave (p. ej. "12" buscando un mes) nunca se interpreta como importe.
+const UX6_AMOUNT_QUESTION_KEYWORDS = ["puedo gastar", "me puedo permitir", "cuanto", "disponible", "me queda", "me sobra"];
+
+function e17ParseAmountQuery(query) {
+  const text = normalizedText(query);
+  const amountMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(eur|euros?|€)?/);
+  if (!amountMatch) return null;
+  const hasEuroMark = Boolean(amountMatch[2]) || text.includes("€");
+  const hasKeyword = UX6_AMOUNT_QUESTION_KEYWORDS.some((keyword) => text.includes(keyword));
+  if (!hasEuroMark && !hasKeyword) return null;
+  const amount = Number(String(amountMatch[1]).replace(",", "."));
+  return Number.isFinite(amount) && amount > 0 ? amount : null;
+}
+
+function e17AmountAnswerHtml(amount) {
+  const balances = accountBalancesFromState();
+  const protectedReserve = agentCaixaFloor();
+  const available = round2(Number(balances.caixa || 0) - protectedReserve);
+  const marginAfter = round2(available - amount);
+  const affordable = marginAfter >= 0;
+  return `<div class="e17-launcher-answer">
+    <strong>${affordable ? "Sí" : "No"} te lo puedes permitir hoy</strong>
+    <p>Caja disponible por encima de la reserva protegida: ${escapeHtml(money(available, true))}. Gastar ${escapeHtml(money(amount, true))} ${affordable ? "dejaría" : "haría falta"} ${escapeHtml(money(Math.abs(marginAfter), true))} ${affordable ? "de margen." : "más de lo disponible."}</p>
+  </div>`;
+}
+
 function renderE17Launcher(query = "") {
   const results = qs("e17LauncherResults");
   if (!results) return;
-  const term = normalizedText(query);
   const matches = E17Experience?.findTasks(query, normalizedText) || [];
-  results.innerHTML = matches.length
+  const amount = e17ParseAmountQuery(query);
+  const answerHtml = amount !== null ? e17AmountAnswerHtml(amount) : "";
+  const matchesHtml = matches.length
     ? matches.map((item) => `<button type="button" data-e17-target="${escapeHtml(item.target)}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.keywords.split(" ").slice(0, 4).join(" · "))}</span></button>`).join("")
-    : "<p>No encuentro esa tarea. Prueba con deuda, movimientos, objetivos o conciliar.</p>";
+    : answerHtml ? "" : "<p>No encuentro esa tarea. Prueba con deuda, movimientos, objetivos o conciliar.</p>";
+  results.innerHTML = answerHtml + matchesHtml;
 }
 
 function openE17Dialog(kind) {
@@ -18255,6 +18286,33 @@ function previsionWorstOf(metrics) {
   return metrics.reduce((worst, current) => (current.metric.min < worst.metric.min ? current : worst), metrics[0]);
 }
 
+// PV6: mismos dos componentes móviles que previsionMetric() ya deriva de la fila (earlyOutflows
+// antes del cobro, ingreso previo a nómina) — sin volver a calcular el forecast, solo se exponen
+// para que el motor de sensibilidad resuelva el punto de cruce.
+function previsionSensitivityNote(worst) {
+  const engine = window.FinanceCanonicalForecastSensitivity;
+  const note = qs("previsionSensitivityNote");
+  if (!engine || !note || !worst) { if (note) note.textContent = ""; return; }
+  const row = worst.item.row;
+  const outflowsBeforeIncome = row.outflowsBeforeSaving ?? Number(row.coreSpend || 0) + Number(row.car || 0) + Number(row.refi || 0) + Number(row.projectOutflow || 0);
+  const lateOutflows = Math.max(0, Number(row.endOfMonthOutflows || 0));
+  const income = Number(row.prePayrollIncome || 0);
+  const expense = Math.max(0, outflowsBeforeIncome - lateOutflows);
+  const result = engine.verdictSensitivity({ adjustedMin: worst.metric.adjustedMin, income, expense });
+  const parts = [];
+  if (result.incomeDropPercent !== null) {
+    parts.push(result.incomeDropPercent >= 0
+      ? `el ingreso previo a nómina aguanta caer hasta un ${Math.abs(result.incomeDropPercent)}% (hasta ${money(result.incomeThreshold, true)}) antes de que el mínimo ajustado cruce cero`
+      : `el ingreso previo a nómina necesitaría subir un ${Math.abs(result.incomeDropPercent)}% (hasta ${money(result.incomeThreshold, true)}) para que el mínimo ajustado deje de estar en negativo`);
+  }
+  if (result.expenseRisePercent !== null) {
+    parts.push(result.expenseRisePercent >= 0
+      ? `el gasto previo al cobro aguanta subir hasta un ${Math.abs(result.expenseRisePercent)}% (hasta ${money(result.expenseThreshold, true)}) antes de cruzar cero`
+      : `el gasto previo al cobro necesitaría bajar un ${Math.abs(result.expenseRisePercent)}% (hasta ${money(result.expenseThreshold, true)}) para dejar de estar en negativo`);
+  }
+  note.textContent = parts.length ? `Sensibilidad de ${row.month}: ${parts.join("; ")}.` : "";
+}
+
 // Titular en prosa del mockup: "El punto delicado es {mes}". No inventa un "todo va bien" cuando
 // hay más de un mes ajustado — lo dice, en vez de esconder que el peor mes no es el único.
 function previsionHeadlineHtml(metrics, floor) {
@@ -18467,6 +18525,7 @@ function renderPrevision() {
     if (qs("previsionSubheadline")) qs("previsionSubheadline").textContent = "";
     qs("previsionBand").innerHTML = "";
     if (qs("previsionBandLegend")) qs("previsionBandLegend").textContent = "";
+    if (qs("previsionSensitivityNote")) qs("previsionSensitivityNote").textContent = "";
     qs("previsionMonthlyTable").innerHTML = "";
     qs("previsionDayPanel").innerHTML = "";
     return;
@@ -18477,6 +18536,7 @@ function renderPrevision() {
   const headline = previsionHeadlineHtml(metrics, floor);
   qs("previsionHeadline").textContent = headline.title;
   qs("previsionSubheadline").textContent = headline.subtitle;
+  previsionSensitivityNote(previsionWorstOf(metrics));
 
   if (!previsionSelectedMonthKey || !items.some((item) => item.row.detailMonthKey === previsionSelectedMonthKey)) {
     previsionSelectedMonthKey = headline.worstKey;
@@ -22768,6 +22828,41 @@ function renderAjustesOptimalDeductibleNote() {
     : `Colchón actual: ${money(result.cushion, true)}. Suelo protegido: ${money(result.floor, true)}. Sin holgura por encima del suelo (${money(result.slack, true)}): de momento ninguna de las franquicias habituales (${optionsText}) sería segura de asumir.`;
 }
 
+// SP4 · autoseguro vs. comprar seguro para riesgos pequeños. Mismo cushionFloor() que SP5 (arriba):
+// un golpe que rompería el suelo protegido se asegura siempre, pase lo que pase con la prima —
+// calculadora puntual, no persiste nada.
+function handleSp4CompareInsurance() {
+  const note = qs("sp4Note");
+  if (!note) return;
+  const potentialLoss = parseAmount(qs("sp4PotentialLoss")?.value);
+  if (!potentialLoss || potentialLoss <= 0) {
+    note.textContent = "Indica el golpe potencial (mayor que 0) para comparar.";
+    return;
+  }
+  const engine = window.FinanceCanonicalSelfInsurance;
+  if (!engine?.evaluateSelfInsurance) return;
+  const cushionFloorValue = FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+  const result = engine.evaluateSelfInsurance({
+    potentialLoss,
+    annualPremium: parseAmount(qs("sp4AnnualPremium")?.value),
+    probabilityPercent: qs("sp4Probability")?.value === "" ? null : parseAmount(qs("sp4Probability")?.value),
+    cushionFloorValue,
+  });
+  if (result.affordableWithinCushion === false) {
+    note.innerHTML = `<p>Suelo protegido: ${money(cushionFloorValue, true)}. Un golpe de ${money(potentialLoss, true)} lo rompería — asegúralo, pase lo que pase con la prima.</p>`;
+    return;
+  }
+  const parts = [`<p>Suelo protegido: ${money(cushionFloorValue, true)} — este golpe lo absorbe sin problema.</p>`];
+  if (result.expectedAnnualLoss !== null) {
+    parts.push(result.recommendation === "self-insure"
+      ? `<p>Coste esperado al año: ${money(result.expectedAnnualLoss, true)} frente a una prima de ${money(result.annualPremium, true)} (${result.premiumMarkupPercent}% por encima) — sale más barato autoasegurarse.</p>`
+      : `<p>Coste esperado al año: ${money(result.expectedAnnualLoss, true)} frente a una prima de ${money(result.annualPremium, true)} — la prima compensa a este precio.</p>`);
+  } else {
+    parts.push(`<p>Sin probabilidad estimada, no se puede comparar el coste esperado. ${result.breakEvenYears !== null ? `La prima actual equivaldría al golpe potencial en ${result.breakEvenYears} año(s).` : "Indica una prima anual para ver ese dato."}</p>`);
+  }
+  note.innerHTML = parts.join("");
+}
+
 /* ---- SP2 · brecha de cobertura de vida frente a deuda pendiente ------------------------------
    Mismo patrón que la reserva operativa (V6-1/V6-3): un único número editable en Ajustes, guardado
    como un dato más del hogar. Sin inventario de pólizas todavía (SP1, más adelante, sin relación de
@@ -25091,6 +25186,14 @@ function homeMonthAtAGlance(asOfDate, plannedSaving) {
     movementCount: movements.length,
     reconciledCount,
     confidenceLabel,
+    // UX3: cifras crudas junto a las filas ya formateadas, para que la comparación de dos momentos
+    // pueda calcular una diferencia numérica sin tener que reinterpretar money() en sentido
+    // contrario. Aditivo: no cambia ningún campo que ya se leyera.
+    incomeTotal,
+    expenseTotal,
+    plannedExpense,
+    deviation,
+    unclassifiedCount: unclassified.length,
   };
 }
 
@@ -25295,6 +25398,63 @@ function renderHomeBudgetGlance(balances) {
         }),
     renderHomeBudgetGlanceActions(),
   ].join("");
+}
+
+// UX5: modo reunión para decidir en pareja — enseña un bloque de Hoy cada vez, en grande, para que
+// dos personas revisen lo mismo sin que el resto de la pantalla distraiga. No es un motor nuevo: el
+// mismo DOM que renderHomeDashboard() ya pinta, marcado con data-meeting-step, se muestra u oculta
+// paso a paso con la utilidad .is-hidden (OPT-9) — nunca toca el atributo `hidden` nativo, que sigue
+// siendo de quien lo puso (p. ej. homeHealthScoreCard, oculta cuando no hay datos que mostrar).
+const MEETING_MODE_STEPS = [
+  { step: "1", label: "Salud financiera y cifras clave" },
+  { step: "2", label: "Cobertura y el mes en curso" },
+  { step: "3", label: "Decisiones abiertas y próximos hitos" },
+  { step: "4", label: "Riesgo, hogar y alertas" },
+];
+let meetingModeActive = false;
+let meetingModeStepIndex = 0;
+
+function renderMeetingMode() {
+  const home = qs("home");
+  const bar = qs("meetingModeBar");
+  const toggle = qs("homeMeetingModeToggle");
+  if (!home) return;
+  if (toggle) {
+    toggle.setAttribute("aria-pressed", meetingModeActive ? "true" : "false");
+    toggle.textContent = meetingModeActive ? "Salir del modo reunión" : "Modo reunión";
+  }
+  if (bar) bar.hidden = !meetingModeActive;
+  if (!meetingModeActive) {
+    document.querySelectorAll("[data-meeting-step]").forEach((el) => el.classList.remove("is-hidden"));
+    return;
+  }
+  const current = MEETING_MODE_STEPS[meetingModeStepIndex];
+  document.querySelectorAll("[data-meeting-step]").forEach((el) => {
+    el.classList.toggle("is-hidden", el.dataset.meetingStep !== current.step);
+  });
+  const label = qs("meetingModeStepLabel");
+  if (label) label.textContent = `${meetingModeStepIndex + 1}/${MEETING_MODE_STEPS.length} · ${current.label}`;
+  const prevButton = qs("meetingModePrev");
+  if (prevButton) prevButton.disabled = meetingModeStepIndex === 0;
+  const nextButton = qs("meetingModeNext");
+  if (nextButton) nextButton.disabled = meetingModeStepIndex === MEETING_MODE_STEPS.length - 1;
+}
+
+function toggleMeetingMode() {
+  meetingModeActive = !meetingModeActive;
+  meetingModeStepIndex = 0;
+  renderMeetingMode();
+}
+
+function meetingModeGo(delta) {
+  meetingModeStepIndex = Math.min(MEETING_MODE_STEPS.length - 1, Math.max(0, meetingModeStepIndex + delta));
+  renderMeetingMode();
+}
+
+function exitMeetingMode() {
+  if (!meetingModeActive) return;
+  meetingModeActive = false;
+  renderMeetingMode();
 }
 
 function renderHomeDashboard() {
@@ -32649,6 +32809,10 @@ async function init() {
     setActiveView(target);
   });
   qs("analisisPeriodSelect")?.addEventListener("change", (event) => handleAnalisisPeriod(event.target.value));
+  // UX3: envuelta, no directa — renderUx3Comparison vive en views/analisis.js (carga diferida).
+  qs("analisis")?.addEventListener("change", (event) => {
+    if (event.target.closest("[data-ux3-month]")) renderUx3Comparison();
+  });
   qs("debt-liquidation-plan")?.addEventListener("click", (event) => {
     const targetButton = event.target.closest("[data-debt-plan-target]");
     if (targetButton) {
@@ -32812,6 +32976,10 @@ async function init() {
     setActiveView(target, { focus: true });
   });
   qs("homeHorizon")?.addEventListener("change", renderHomeDashboard);
+  qs("homeMeetingModeToggle")?.addEventListener("click", toggleMeetingMode);
+  qs("meetingModePrev")?.addEventListener("click", () => meetingModeGo(-1));
+  qs("meetingModeNext")?.addEventListener("click", () => meetingModeGo(1));
+  qs("meetingModeExit")?.addEventListener("click", exitMeetingMode);
   qs("home")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-home-nav]");
     const target = button?.dataset.homeNav;
@@ -32941,6 +33109,7 @@ async function init() {
   qs("a18IncomeJavi")?.addEventListener("change", saveA18Incomes);
   qs("a18IncomeTere")?.addEventListener("change", saveA18Incomes);
   qs("a18RuleSave")?.addEventListener("click", saveA18Rule);
+  qs("sp4Run")?.addEventListener("click", handleSp4CompareInsurance);
   qs("a18RuleList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-a18-rule-remove]");
     if (!removeButton) return;

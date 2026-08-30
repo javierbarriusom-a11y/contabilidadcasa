@@ -245,18 +245,29 @@
                   </select>
                 </label>
                 <button type="button" class="secondary" data-e17-open="guide">Guía de este flujo</button>
+                <!-- UX5: modo reunión para decidir en pareja — enseña un bloque de Hoy cada vez, en
+                     grande, sin distraer con el resto; sin dato nuevo, solo enseña/oculta lo que ya
+                     está en el DOM (data-meeting-step). -->
+                <button type="button" class="secondary" id="homeMeetingModeToggle" aria-pressed="false">Modo reunión</button>
               </div>
+            </div>
+
+            <div class="meeting-mode-bar" id="meetingModeBar" hidden>
+              <button type="button" class="e19-btn e19-btn-secondary" id="meetingModePrev">← Anterior</button>
+              <span id="meetingModeStepLabel" role="status" aria-live="polite"></span>
+              <button type="button" class="e19-btn e19-btn-secondary" id="meetingModeNext">Siguiente →</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="meetingModeExit">Salir del modo reunión</button>
             </div>
 
             <!-- U-2 (FASE 5): resumen "de un vistazo" — presupuesto, caja, objetivos y accesos
                  rápidos en una rejilla 2×2, mobile-first (colapsa a una columna en 860px). -->
-            <div class="home-kpi-grid home-glance-grid" id="homeBudgetGlance"></div>
+            <div class="home-kpi-grid home-glance-grid" id="homeBudgetGlance" data-meeting-step="1"></div>
 
             <!-- A16-1: puntuación compuesta de salud financiera (colchón, ratio deuda/ingresos,
                  cumplimiento de presupuesto, progreso de objetivos, frescura de datos), cada
                  componente con su peso. Complementa el badge "Salud financiera: X/100" de la
                  cabecera (Ola 3 #3) — oculta hasta tener al menos un componente calculable. -->
-            <article class="home-panel" id="homeHealthScoreCard" hidden>
+            <article class="home-panel" id="homeHealthScoreCard" hidden data-meeting-step="1">
               <div class="module-heading">
                 <div>
                   <p class="panel-kicker">Salud financiera compuesta</p>
@@ -268,7 +279,7 @@
 
             <!-- Hoy.pdf «Hoy, alineada»: la cifra manda — el bloque de cobertura conserva su tarjeta
                  propia, en paralelo con «Agosto en una línea» (misma fila, mismo peso visual). -->
-            <div class="home-layout">
+            <div class="home-layout" data-meeting-step="2">
               <!-- H-3: tarjeta oscura con la cifra, unidad, insignia de confianza, margen previsto y fecha de ingreso. -->
               <article class="home-panel e6-coverage-card" id="e6CoveragePanel">
                 <div class="module-heading">
@@ -297,7 +308,7 @@
 
             <!-- Hoy.pdf: «primero qué hacer, después de dónde sale» — decisiones abiertas (con la
                  lectura de hoy como primera línea) en paralelo con los próximos hitos. -->
-            <div class="home-layout">
+            <div class="home-layout" data-meeting-step="3">
               <article class="home-panel home-main-panel">
                 <div class="module-heading">
                   <div>
@@ -321,11 +332,11 @@
               </article>
             </div>
 
-            <div class="home-kpi-grid" id="homeKpis"></div>
+            <div class="home-kpi-grid" id="homeKpis" data-meeting-step="1"></div>
 
             <!-- Hoy.pdf: «en Hoy no hay tira de estado» — la rejilla de seis ya cubre ese hueco;
                  debajo, una sola fila con riesgo, modo familiar y alertas. -->
-            <div class="home-layout home-layout-triple home-context-layout">
+            <div class="home-layout home-layout-triple home-context-layout" data-meeting-step="4">
               <article class="home-panel">
                 <div class="module-heading">
                   <div>
@@ -1749,6 +1760,26 @@
               <p class="e19-kpi-note">Gasto del periodo (mismo selector que «De dónde sale el resultado») agrupado por tipo de acción, el campo que se asigna en Movimientos.</p>
               <div class="analisis-recurring-list" id="analisisActionTypeBreakdown"></div>
             </article>
+
+            <!-- UX3: comparar dos momentos en el tiempo, no solo "ahora" — reutiliza
+                 homeMonthAtAGlance() (H-6) para dos meses cualesquiera. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparar dos momentos</h3>
+              <p class="e19-kpi-note">Ingresos, gasto previsto/real, desviación y movimientos sin clasificar de dos meses cualesquiera, lado a lado.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Momento A</span>
+                  <select id="ux3MonthA" data-ux3-month></select>
+                </label>
+                <label class="month-picker">
+                  <span>Momento B</span>
+                  <select id="ux3MonthB" data-ux3-month></select>
+                </label>
+              </div>
+              <div class="table-wrap">
+                <table class="home-month-table" id="ux3ComparisonTable"></table>
+              </div>
+            </article>
           </section>
 
           <section class="e19-cierre view-section" id="cierre">
@@ -2086,6 +2117,31 @@
               <h3 class="escenario-motor-panel-title">Deducible óptimo del seguro</h3>
               <p class="e19-kpi-note">Cuanta más franquicia asumas, menor la prima — pero mayor el golpe de caja si hay un siniestro. Esta cifra es la mayor franquicia habitual que tu colchón, por encima del suelo protegido, podría absorber sin caer por debajo de ese suelo.</p>
               <p class="e19-kpi-note" id="ajustesOptimalDeductibleNote"></p>
+            </article>
+
+            <!-- SP4: autoseguro vs. comprar seguro para riesgos pequeños. Un golpe que rompería el
+                 suelo protegido (mismo cushionFloor() que SP5, arriba) se asegura siempre, pase lo
+                 que pase con la prima — solo por debajo de ese suelo entra en juego la prima frente
+                 al coste esperado, y solo si se declara una probabilidad. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Autoseguro vs. comprar seguro</h3>
+              <p class="e19-kpi-note">Para un riesgo pequeño (móvil, electrodoméstico, garantía extendida...): si tu colchón absorbe el golpe sin problema, ¿compensa pagar la prima o sale más barato asumirlo tú mismo?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Golpe potencial (€)</span>
+                  <input id="sp4PotentialLoss" type="number" min="0" step="10" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Prima anual del seguro (€)</span>
+                  <input id="sp4AnnualPremium" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Probabilidad anual estimada (%, opcional)</span>
+                  <input id="sp4Probability" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="sp4Run">Comparar</button>
+              <div class="e19-kpi-note" id="sp4Note"></div>
             </article>
 
             <article class="e19-card">
@@ -3339,6 +3395,10 @@
             <article class="e19-card prevision-band-card">
               <div class="prevision-band-track" id="previsionBand" role="img" aria-label="Banda de liquidez por mes, del mínimo antes de cobros al máximo tras cobros"></div>
               <p class="e19-kpi-note" id="previsionBandLegend"></p>
+              <!-- PV6: sensibilidad del mes del punto delicado — qué cambio de ingreso o gasto
+                   cambiaría el veredicto (mínimo ajustado positivo/negativo), sin volver a calcular
+                   el forecast — solo compara los mismos componentes que ya usa previsionMetric(). -->
+              <p class="e19-kpi-note" id="previsionSensitivityNote"></p>
             </article>
 
             <div class="cambios-pendientes-layout prevision-layout">
@@ -4505,6 +4565,8 @@
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-pension-simulator.js?v=20260830a154a1"></script>
     <script defer src="canonical-household-split.js?v=20260830a181a1"></script>
+    <script defer src="canonical-forecast-sensitivity.js?v=20260830pv6a1"></script>
+    <script defer src="canonical-self-insurance.js?v=20260830sp4a1"></script>
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
@@ -4533,7 +4595,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830g1"></script>
+    <script defer src="app.js?v=20260830h1"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

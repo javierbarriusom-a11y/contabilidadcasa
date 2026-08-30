@@ -2,6 +2,52 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (87): Bloque 5 (tanda B) — PV6, UX3, UX5, UX6, SP4, cierre del Bloque 5
+
+Segunda tanda del Bloque 5 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (5 de 9 tareas) — con la tanda A (85)
+el bloque queda completo: 9/9.
+
+**PV6 — sensibilidad: qué previsión cambiaría el veredicto**: `canonical-forecast-sensitivity.js`
+(nuevo) resuelve algebraicamente, para el mes del punto delicado de Previsión, qué % de caída de
+ingreso o subida de gasto haría que el mínimo ajustado cruzara cero — sin recalcular el forecast,
+solo los mismos dos componentes que `previsionMetric()` ya deriva. Nota junto a la banda de liquidez
+de Previsión.
+
+**UX3 — comparar dos momentos en el tiempo, no solo «ahora»**: nueva tarjeta en Análisis que
+reutiliza `homeMonthAtAGlance()` (H-6) para dos meses cualesquiera, lado a lado con la diferencia.
+`homeMonthAtAGlance()` gana campos numéricos crudos (aditivos, sin romper nada que ya la leyera) para
+poder calcular la diferencia sin reinterpretar `money()`. Vive en `views/analisis.js` (carga
+diferida), no en `app.js`.
+
+**UX5 — modo reunión para decidir en pareja**: botón nuevo en Hoy que enseña un bloque a la vez (KPIs
+y salud financiera, cobertura y el mes, decisiones y próximos hitos, riesgo y hogar) con controles
+Anterior/Siguiente/Salir. Sin motor ni dato nuevo: marca los seis bloques ya existentes con
+`data-meeting-step` y usa la utilidad `.is-hidden` (OPT-9) para mostrarlos u ocultarlos — nunca toca
+el atributo `hidden` nativo, que sigue siendo de quien lo puso (p. ej. la tarjeta de salud financiera,
+oculta cuando no hay datos).
+
+**UX6 — búsqueda que entiende preguntas de importe**: extiende el lanzador «Buscar o abrir» (A12-3)
+— una pregunta con importe («¿puedo gastar 300€?», «300 euros disponibles») antepone una respuesta
+calculada (caja disponible menos reserva protegida, mismo par que usa A15-4) a los resultados de
+tarea de siempre. Un número suelto sin € ni palabra clave nunca se interpreta como importe.
+
+**SP4 — autoseguro vs. comprar seguro para riesgos pequeños**: `canonical-self-insurance.js` (nuevo)
+usa `cushionFloor()` (mismo suelo que SP5, la tarjeta justo encima en Ajustes) como gate duro: un
+golpe que rompería el suelo protegido se asegura siempre, pase lo que pase con la prima. Por debajo
+de ese suelo, compara el coste esperado (con una probabilidad anual declarada) frente a la prima; sin
+probabilidad, no fabrica una recomendación — solo dice cuántos años de prima equivalen al golpe.
+Bug real atrapado por los tests antes de publicar: `Number(null)` es `0`, no `NaN` — sin guardia
+explícito, «sin probabilidad declarada» se leía como «probabilidad cero» (mismo patrón que A16-1).
+
+**Validación**: `npm run verify`, exit 0 — **2433/2433 pruebas** (2380 + 1 corregida por el nuevo
+`data-meeting-step` en un test de V1-3 + 52 nuevas), accesibilidad (937 IDs, +15), rendimiento, build
+del sitio, privacidad y smoke test, todos en verde. Confirmado además con Playwright contra el sitio
+construido: sin errores de consola al navegar Hoy (incluido el modo reunión), Análisis y Ajustes.
+`app.js` bumpeado a `?v=20260830h1` (26 pruebas actualizadas); `views/analisis.js` a
+`?v=20260830ux3a1`.
+
+**Publicado**: commit y push a `claude/artefacto-bloque-5-ryfopr`, PR #163.
+
 ## Cierre de sesión — 30 de agosto de 2026 (86): Bloque 5 (tanda A) — OPT-9, OPT-20, A15-4, A18-1
 
 Primera tanda del Bloque 5 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (4 de 9 tareas; la segunda tanda

@@ -54,6 +54,8 @@ const files = [
   "canonical-health-score.js",
   "canonical-pension-simulator.js",
   "canonical-household-split.js",
+  "canonical-forecast-sensitivity.js",
+  "canonical-self-insurance.js",
   "canonical-mortgage-rate-scenarios.js",
   "canonical-joint-restructuring.js",
   "canonical-e7-analysis.js",
