@@ -1,5 +1,8 @@
 # Backlog Ultimate Septiembre — vigente + ampliación, en un único orden
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+> Este es el documento vigente — la única cola con trabajo pendiente de la ruta principal.
+
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 Este documento fusiona **dos generaciones de backlog** en un único orden de ejecución de 99 tareas:

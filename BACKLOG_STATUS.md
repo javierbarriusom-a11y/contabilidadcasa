@@ -1,5 +1,9 @@
 # Backlog maestro — registro histórico de las entregas E1-E20
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+> Su §0 es la tabla maestra de estado de las entregas E1-E20; el estado de E21 en adelante se
+> sigue en `BACKLOG_ULTIMATE_SEPTIEMBRE.md` y en el registro de cierres de `PROJECT_STATE.md`.
+
 > **Este documento ya no es el backlog vigente.** Desde el 10 de agosto de 2026 el backlog
 > operativo es **`BACKLOG.md`**, que fusiona el rediseño a seis vistas con la evolución
 > funcional y mide el estado sobre el código publicado.

@@ -2,6 +2,54 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (86): Bloque 5 (tanda A) — OPT-9, OPT-20, A15-4, A18-1
+
+Primera tanda del Bloque 5 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (4 de 9 tareas; la segunda tanda
+—PV6, UX3, UX5, UX6, SP4— queda para la siguiente sesión de este mismo bloque).
+
+**OPT-9 — auditoría de los `!important` de `styles.css`**: de 23 declaraciones, 4 (dos en
+`.agent-debt-order-warning`, dos en `.agent-agreement-note`) no tenían ninguna regla más específica
+ni estilo inline que superar — peso muerto, quitadas sin cambio visual. Las 19 restantes son
+legítimas (utilidades `[hidden]`/`.is-hidden`/`.sr-only`, el override universal
+`prefers-reduced-motion`, el hide del sidebar móvil, y el color de fondo de
+`.prevision-group-row` que necesita ganar al hover y a la columna fija) y quedan documentadas con
+un comentario `OPT-9:` justo encima explicando a qué gana cada una.
+
+**OPT-20 — consolidar los backlogs sueltos en una única fuente viva**: el repositorio acumulaba
+once documentos `BACKLOG*.md` en cuatro generaciones de reordenación, cada uno apuntando solo al
+inmediatamente anterior. `BACKLOG_INDICE.md` (nuevo) es el mapa único: dice, para cada documento,
+su estado (vigente/casi cerrado/histórico/detalle de referencia) y a qué apunta — sin fusionar
+contenido, cada backlog conserva su detalle íntegro. Los once documentos ganan un puntero de vuelta
+al índice. La skill `finanzas-casa-workflow` (Modo Inicio, paso 2) se actualiza para rutar primero
+por el índice y `BACKLOG_ULTIMATE_SEPTIEMBRE.md` en vez de `BACKLOG_STATUS.md` (que solo cubre
+E1-E20, no E21 en adelante — corregido también en su propia cabecera).
+
+**A15-4 — simulador de aportación a plan de pensiones**: `canonical-pension-simulator.js` (nuevo)
+compara el ahorro fiscal estimado de una aportación frente al límite deducible vigente (1.500€,
+límite general español desde la reforma de 2021, versionado por año como `canonical-tax-tables.js`)
+y frente a la liquidez que la aportación inmoviliza (el importe entero, no solo la parte deducible,
+comparado contra la reserva protegida). El tipo marginal usa la retención declarada en el registro
+de supuestos fiscales de A15-1 — sin motor de tramos de IRPF real (A15-2, sin construir), es el
+único dato de tipo impositivo que la app ya tiene. Tarjeta nueva en Ajustes junto al registro de
+supuestos, sin escribir nada — calculadora puntual.
+
+**A18-1 — reglas de reparto configurables por categoría (E25)**: `canonical-household-split.js`
+(nuevo) reemplaza el 50/50 implícito de `familyContextMeta()` por una regla explícita — partes
+iguales (comportamiento de siempre por defecto), proporcional a los ingresos declarados de cada
+titular, o un importe fijo a cargo de uno de los dos —, configurable por categoría o con una regla
+por defecto. No calcula ningún saldo «quién debe a quién»: eso es A18-2, que depende de este y
+queda en el Bloque 8. Tarjeta nueva en Ajustes con la lista de categorías reales de
+`e13BudgetCategoryOptions()`.
+
+**Validación**: `npm run verify`, exit 0 — **2380/2380 pruebas** (2340 + 40 nuevas: 3 OPT-9 + 3
+OPT-20 + 7 `canonical-pension-simulator` + 9 A15-4 + 10 `canonical-household-split` + 8 A18-1),
+accesibilidad (922 IDs, +11 por los campos nuevos de las dos tarjetas), rendimiento, build del
+sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a `?v=20260830g1` (26 pruebas que
+fijan esa cadena actualizadas en el mismo commit).
+
+**Publicado**: commit y push a `claude/artefacto-bloque-5-ryfopr`, sobre el fix de «Hoy» (85) ya en
+el PR #163.
+
 ## Cierre de sesión — 30 de agosto de 2026 (85): fix — «Hoy» se quedaba en blanco por debajo de la cabecera
 
 **Reportado por el usuario** con capturas de pantalla: en «Hoy», por debajo de la cabecera (salud

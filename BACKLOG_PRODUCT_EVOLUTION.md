@@ -1,5 +1,8 @@
 # Backlog de evolución del producto
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+> Histórico (E10-E18) — la numeración continúa en `BACKLOG_PATRIMONIO_Y_FINANZAS.md` (E21-E26).
+
 Fecha de creación: 1 de agosto de 2026.
 
 Este backlog comienza después del cierre de E9. Conserva la activación externa pendiente de E10 y

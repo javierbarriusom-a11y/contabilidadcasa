@@ -15334,6 +15334,133 @@ function handleDi5CompareJointRestructuring() {
   note.innerHTML = `<p>Cuota conjunta actual: ${money(result.currentTotalPayment, true)}/mes (${ratioPct}% del ingreso). Ratio seguro: ${Math.round(safeRatio * 100)}%.</p><ul class="commit-barrier-list">${rows}</ul><p>${escapeHtml(summary)}</p>`;
 }
 
+// A15-4: la retención declarada en A15-1 hace de tipo marginal estimado — sin motor de tramos de
+// IRPF real (A15-2, sin construir), es el único dato de tipo impositivo que la app ya tiene, en
+// vez de inventar un tramo. La reserva protegida usa el mismo suelo de política que Hoy
+// (agentCaixaFloor), sin la maquinaria completa del centro de acciones que esta pantalla no
+// necesita para una comparación puntual.
+function handleA154SimulatePension() {
+  const note = qs("pensionSimNote");
+  if (!note) return;
+  const contribution = parseAmount(qs("pensionSimContribution")?.value);
+  if (!contribution || contribution <= 0) {
+    note.textContent = "Indica el importe a aportar (mayor que 0) para simular.";
+    return;
+  }
+  const engine = window.FinanceCanonicalPensionSimulator;
+  if (!engine?.simulateContribution) return;
+  const balances = accountBalancesFromState();
+  const result = engine.simulateContribution({
+    contribution,
+    year: new Date().getFullYear(),
+    marginalRatePercent: fiscalWithholdingRate(),
+    checkingBalance: balances.caixa,
+    protectedReserve: agentCaixaFloor(),
+  });
+  const limitLine = result.limit === null
+    ? "Sin límite deducible registrado para este año."
+    : result.exceedsLimit
+    ? `Supera el límite deducible de ${money(result.limit, true)}: solo ${money(result.deductibleAmount, true)} es deducible, el resto aporta sin beneficio fiscal.`
+    : `Dentro del límite deducible de ${money(result.limit, true)} — quedan ${money(result.remainingRoom, true)} de cupo tras esta aportación.`;
+  const savingLine = result.estimatedTaxSaving === null
+    ? "Sin retención declarada en Ajustes › Registro de supuestos, no se puede estimar el ahorro fiscal."
+    : `Ahorro fiscal estimado: ${money(result.estimatedTaxSaving, true)} (al ${Math.round(result.marginalRate * 100)}% de retención declarada) — coste neto real ${money(result.netCost, true)}.`;
+  const reserveLine = result.marginAfter === null
+    ? ""
+    : result.breaksReserve
+    ? `<p class="negative">Esta aportación completa dejaría la reserva protegida por debajo de su suelo en ${money(Math.abs(result.marginAfter), true)} — el dinero de un plan de pensiones no se rescata libremente antes de jubilación.</p>`
+    : `<p>Tras aportar, seguirían ${money(result.marginAfter, true)} por encima de la reserva protegida.</p>`;
+  note.innerHTML = `<p>${escapeHtml(limitLine)}</p><p>${escapeHtml(savingLine)}</p>${reserveLine}`;
+}
+
+// A18-1: reglas de reparto configurables por categoría (E25). scenarioSettings.householdSplit
+// guarda los ingresos declarados de cada titular, la regla por defecto y las reglas por categoría —
+// registro simple, mismo patrón que taxTables() (A15-5). No calcula ningún saldo "quién debe a
+// quién" (A18-2, más adelante); solo persiste las reglas que ese motor futuro leerá. Sin ninguna
+// regla guardada, todo cae a "partes iguales" — el mismo 50/50 que ya asumía familyContextMeta().
+function householdSplitSettings() {
+  const raw = scenarioSettings.householdSplit || {};
+  const engine = window.FinanceCanonicalHouseholdSplit;
+  return {
+    incomes: { javi: Number(raw.incomes?.javi) || 0, tere: Number(raw.incomes?.tere) || 0 },
+    defaultRule: engine ? engine.normalizeRule(raw.defaultRule) : { mode: "equal", payer: "javi", amount: null },
+    categoryRules: raw.categoryRules && typeof raw.categoryRules === "object" ? raw.categoryRules : {},
+  };
+}
+
+function saveHouseholdSplitSettings(next) {
+  scenarioSettings.householdSplit = next;
+  saveScenarioSettings();
+}
+
+function renderA18RuleCategoryOptions() {
+  const select = qs("a18RuleCategory");
+  if (!select) return;
+  const current = select.value;
+  const categories = e13BudgetCategoryOptions();
+  select.innerHTML = `<option value="">Regla por defecto</option>${categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}`;
+  if (categories.includes(current)) select.value = current;
+}
+
+function a18RuleLabel(rule) {
+  if (rule.mode === "fixed") return `importe fijo: ${rule.payer === "javi" ? "Javi" : "Tere"} aporta ${money(rule.amount, true)}, el resto lo cubre ${rule.payer === "javi" ? "Tere" : "Javi"}`;
+  if (rule.mode === "income-proportional") return "proporcional a los ingresos declarados";
+  return "a partes iguales";
+}
+
+function renderA18RuleList() {
+  const list = qs("a18RuleList");
+  if (!list) return;
+  const engine = window.FinanceCanonicalHouseholdSplit;
+  const settings = householdSplitSettings();
+  const rows = [
+    `<li class="commit-barrier-item"><strong>Regla por defecto</strong><span>${escapeHtml(a18RuleLabel(settings.defaultRule))}</span></li>`,
+    ...Object.entries(settings.categoryRules).map(([category, rule]) =>
+      `<li class="commit-barrier-item"><strong>${escapeHtml(category)}</strong><span>${escapeHtml(a18RuleLabel(engine ? engine.normalizeRule(rule) : rule))}</span><button type="button" class="e19-btn e19-btn-secondary" data-a18-rule-remove="${escapeHtml(category)}">Quitar</button></li>`,
+    ),
+  ];
+  list.innerHTML = rows.join("");
+}
+
+function syncA18IncomeControls() {
+  const settings = householdSplitSettings();
+  const javi = qs("a18IncomeJavi");
+  const tere = qs("a18IncomeTere");
+  if (javi && document.activeElement !== javi) javi.value = settings.incomes.javi > 0 ? String(settings.incomes.javi) : "";
+  if (tere && document.activeElement !== tere) tere.value = settings.incomes.tere > 0 ? String(settings.incomes.tere) : "";
+}
+
+function saveA18Incomes() {
+  const settings = householdSplitSettings();
+  settings.incomes = { javi: parseAmount(qs("a18IncomeJavi")?.value), tere: parseAmount(qs("a18IncomeTere")?.value) };
+  saveHouseholdSplitSettings(settings);
+  renderA18RuleList();
+}
+
+function saveA18Rule() {
+  const engine = window.FinanceCanonicalHouseholdSplit;
+  if (!engine) return;
+  const category = qs("a18RuleCategory")?.value || "";
+  const rule = engine.normalizeRule({
+    mode: qs("a18RuleMode")?.value,
+    payer: qs("a18RulePayer")?.value,
+    amount: parseAmount(qs("a18RuleAmount")?.value),
+  });
+  const settings = householdSplitSettings();
+  if (category) settings.categoryRules[category] = rule;
+  else settings.defaultRule = rule;
+  saveHouseholdSplitSettings(settings);
+  renderA18RuleList();
+  announceStatus(category ? `Regla de reparto guardada para «${category}».` : "Regla de reparto por defecto guardada.");
+}
+
+function removeA18Rule(category) {
+  const settings = householdSplitSettings();
+  delete settings.categoryRules[category];
+  saveHouseholdSplitSettings(settings);
+  renderA18RuleList();
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -22947,6 +23074,9 @@ function renderAjustes() {
   renderTaxTables();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
+  syncA18IncomeControls();
+  renderA18RuleCategoryOptions();
+  renderA18RuleList();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -32807,6 +32937,15 @@ async function init() {
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
+  qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
+  qs("a18IncomeJavi")?.addEventListener("change", saveA18Incomes);
+  qs("a18IncomeTere")?.addEventListener("change", saveA18Incomes);
+  qs("a18RuleSave")?.addEventListener("click", saveA18Rule);
+  qs("a18RuleList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-a18-rule-remove]");
+    if (!removeButton) return;
+    removeA18Rule(removeButton.dataset.a18RuleRemove);
+  });
   qs("ajustesFiscalJointTaxation")?.addEventListener("change", handleFiscalJointTaxationChange);
   qs("ajustesFiscalWithholdingRate")?.addEventListener("change", handleFiscalWithholdingRateChange);
   qs("ajustesFiscalDeductibleContributions")?.addEventListener("change", handleFiscalDeductibleContributionsChange);

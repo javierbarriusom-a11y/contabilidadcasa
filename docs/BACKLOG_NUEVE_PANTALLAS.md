@@ -1,5 +1,9 @@
 # Backlog "Nueve pantallas" — rediseño en curso
 
+> Mapa de todos los backlogs del repositorio: [`../BACKLOG_INDICE.md`](../BACKLOG_INDICE.md)
+> (OPT-20). Histórico — el rediseño E19/E20 que describe está completo y verificado
+> (`BACKLOG_STATUS.md` §0); el trabajo vigente vive en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`.
+
 > Copia de trabajo del backlog generado el **14 de agosto de 2026** a partir de los nueve
 > mockups del rediseño (Hoy, Registrar, Movimientos, Plan, Deuda, Escenarios, Análisis, Cierre,
 > Laboratorio) y de `Backlog_Global.pdf` V4. Vivía solo como artifact de claude.ai; se guarda

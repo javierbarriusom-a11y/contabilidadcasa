@@ -2318,6 +2318,70 @@
               <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
             </article>
 
+            <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
+                 frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
+                 (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
+                 estimado — sin tabla de tramos real (A15-2 no está construido todavía). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de aportación a plan de pensiones</h3>
+              <p class="e19-kpi-note">Aportación deducible frente al límite legal vigente, ahorro fiscal estimado con tu retención declarada y si la aportación completa compromete tu reserva protegida.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Aportación a simular (€)</span>
+                  <input id="pensionSimContribution" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
+              <div class="e19-kpi-note" id="pensionSimNote"></div>
+            </article>
+
+            <!-- A18-1: reglas de reparto configurables por categoría (E25, hogares con ingresos o
+                 cuentas no simétricas). Sustituye el 50/50 implícito de familyContextMeta() por una
+                 regla explícita, por defecto o por categoría — sin calcular ningún saldo "quién debe
+                 a quién" todavía (A18-2, más adelante). Vacío = partes iguales, mismo comportamiento
+                 que hoy. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Reglas de reparto del hogar</h3>
+              <p class="e19-kpi-note">Cómo se reparte cada categoría de gasto compartido entre Javi y Tere: a partes iguales (comportamiento de siempre), proporcional a los ingresos declarados, o un importe fijo a cargo de uno de los dos.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ingreso mensual de Javi (€)</span>
+                  <input id="a18IncomeJavi" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Ingreso mensual de Tere (€)</span>
+                  <input id="a18IncomeTere" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Categoría (vacío = regla por defecto)</span>
+                  <select id="a18RuleCategory"><option value="">Regla por defecto</option></select>
+                </label>
+                <label class="month-picker">
+                  <span>Modo de reparto</span>
+                  <select id="a18RuleMode">
+                    <option value="equal">Partes iguales</option>
+                    <option value="income-proportional">Proporcional a ingresos</option>
+                    <option value="fixed">Importe fijo</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Titular del importe fijo</span>
+                  <select id="a18RulePayer">
+                    <option value="javi">Javi</option>
+                    <option value="tere">Tere</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe fijo (€, solo si el modo es «Importe fijo»)</span>
+                  <input id="a18RuleAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18RuleSave">Guardar regla</button>
+              <ul class="commit-barrier-list" id="a18RuleList"></ul>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
@@ -4439,6 +4503,8 @@
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
+    <script defer src="canonical-pension-simulator.js?v=20260830a154a1"></script>
+    <script defer src="canonical-household-split.js?v=20260830a181a1"></script>
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
@@ -4467,7 +4533,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830f1"></script>
+    <script defer src="app.js?v=20260830g1"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

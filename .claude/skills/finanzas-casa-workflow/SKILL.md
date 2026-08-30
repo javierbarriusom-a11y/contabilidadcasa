@@ -34,11 +34,14 @@ Objetivo: arrancar la sesión con contexto real del proyecto, sin tocar ningún 
    recientes bajo "Cierre de sesión — ..." (están en orden cronológico descendente, las
    últimas entradas arriba). Extrae: qué se hizo en la última sesión, qué pruebas pasaron,
    y si quedó algo publicado o pendiente de publicar (rama, PR).
-2. **Backlog**: lee `BACKLOG_STATUS.md`, en particular la tabla "Estado maestro de
-   entregas" (sección 0) y localiza cualquier entrega marcada `Parcial` o `Pendiente`, y el
-   apartado narrativo más reciente al final del fichero. Si existe, consulta también
-   `BACKLOG_PRODUCT_EVOLUTION.md` para el detalle de entregas E10-E18 si la entrega activa
-   cae en ese rango.
+2. **Backlog**: el repositorio acumula varios documentos `BACKLOG*.md` de distintas
+   generaciones — `BACKLOG_INDICE.md` (OPT-20) es el mapa que dice cuál es la fuente viva de
+   cada uno. Para saber qué es lo siguiente, ve directo a `BACKLOG_ULTIMATE_SEPTIEMBRE.md`
+   (sección "Orden de ejecución") — es la única cola con trabajo pendiente de la ruta
+   principal. `BACKLOG_STATUS.md`, sección 0 ("Estado maestro de entregas"), sigue siendo la
+   tabla de estado de las entregas E1-E20; si necesitas el detalle de una entrega E10-E18,
+   consulta `BACKLOG_PRODUCT_EVOLUTION.md`. Si algo no cuadra entre documentos, `BACKLOG_INDICE.md`
+   tiene la tabla completa de qué sustituye a qué.
 3. **Git, brevemente** (no exhaustivo, no ejecutivo — solo lectura):
    - `git status` (¿hay cambios sin commitear?)
    - `git branch --show-current` (¿en qué rama estamos?)

@@ -21,6 +21,8 @@
   box-sizing: border-box;
 }
 
+/* OPT-9: utilidades de ocultar — deben ganar siempre a cualquier display propio del componente
+   (flex, grid, block…) sin que cada pantalla tenga que igualar su especificidad. */
 [hidden] {
   display: none !important;
 }
@@ -5845,8 +5847,8 @@ body {
 }
 
 .agent-debt-order-warning {
-  margin-top: 6px !important;
-  color: #8b650f !important;
+  margin-top: 6px;
+  color: #8b650f;
 }
 
 .agent-debt-control-row input,
@@ -5886,8 +5888,8 @@ body {
 }
 
 .agent-agreement-note {
-  margin-top: 4px !important;
-  color: var(--green) !important;
+  margin-top: 4px;
+  color: var(--green);
 }
 
 .agent-decision-board {
@@ -7998,6 +8000,9 @@ body {
   max-width: 260px;
 }
 
+/* OPT-9: el color de fondo de una fila-grupo debe ganar al hover (0-3-1, más específico que
+   0-1-1 aquí) y al fondo de la columna fija (`td:first-child`) — si no, hover o el sticky column
+   tapan la distinción visual "esto es un total", no una fila normal. */
 .prevision-group-row td {
   color: #ffffff;
   background: #2267a9 !important;
@@ -10988,6 +10993,8 @@ tbody tr:hover {
 }
 
 /* UX-6: navigation, accessibility and responsive shell */
+/* OPT-9: patrón estándar de utilidad "solo lector de pantalla" (WebAIM) — se aplica a decenas de
+   elementos de tipos distintos y debe ganar siempre a la regla propia de cada uno. */
 .sr-only {
   border: 0 !important;
   clip: rect(0, 0, 0, 0) !important;
@@ -11062,6 +11069,8 @@ tbody tr:hover {
     display: inline-flex;
   }
 
+  /* OPT-9: :not() genérico contra el display propio (flex/grid/block) de cada hijo del sidebar —
+     sin !important, un hijo con su propio display seguiría visible al colapsar el menú móvil. */
   .sidebar:not(.mobile-open) > :not(.brand-block) {
     display: none !important;
   }
@@ -11080,6 +11089,8 @@ tbody tr:hover {
   }
 }
 
+/* OPT-9: patrón estándar de accesibilidad — debe ganar a la duración/transición que declare
+   cada componente, sin tener que auditar cada uno por separado cuando se añade una animación. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -52,6 +52,8 @@ const files = [
   "canonical-tax-tables.js",
   "canonical-tariff-comparator.js",
   "canonical-health-score.js",
+  "canonical-pension-simulator.js",
+  "canonical-household-split.js",
   "canonical-mortgage-rate-scenarios.js",
   "canonical-joint-restructuring.js",
   "canonical-e7-analysis.js",
