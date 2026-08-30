@@ -2438,6 +2438,51 @@
               <ul class="commit-barrier-list" id="a18RuleList"></ul>
             </article>
 
+            <!-- A14-4: desglose por tipo y concentración de riesgo. Depende solo del contrato
+                 canónico A14-1 (canonical-assets.js); registro manual mínimo aquí — la
+                 importación/actualización con bandeja previa es A14-3, sesión aparte. Sin activos
+                 registrados, tarjeta neutra (A14-6). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Patrimonio: desglose por tipo</h3>
+              <p class="e19-kpi-note">Registra tus activos (cuenta, inversión, pensión, inmueble, vehículo, otro) para ver el reparto de tu patrimonio y detectar sobreexposición a un solo tipo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tipo</span>
+                  <select id="a14AssetType">
+                    <option value="cuenta">Cuenta</option>
+                    <option value="inversion">Inversión</option>
+                    <option value="pension">Pensión</option>
+                    <option value="inmueble">Inmueble</option>
+                    <option value="vehiculo">Vehículo</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Etiqueta</span>
+                  <input id="a14AssetLabel" type="text" placeholder="p. ej. Piso habitual" />
+                </label>
+                <label class="month-picker">
+                  <span>Valor (€)</span>
+                  <input id="a14AssetValue" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de valoración</span>
+                  <input id="a14AssetDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Procedencia</span>
+                  <select id="a14AssetProvenance">
+                    <option value="declared">Declarado (dato tuyo)</option>
+                    <option value="estimated">Estimado (tasación, mercado)</option>
+                    <option value="unknown">Desconocido</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a14AssetAdd">Añadir activo</button>
+              <ul class="commit-barrier-list" id="a14AssetList"></ul>
+              <div class="e19-kpi-note" id="a14AssetBreakdown"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
@@ -4596,7 +4641,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830h1"></script>
+    <script defer src="app.js?v=20260830h2"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

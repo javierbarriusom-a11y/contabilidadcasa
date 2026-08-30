@@ -15492,6 +15492,86 @@ function removeA18Rule(category) {
   renderA18RuleList();
 }
 
+// A14-4: desglose por tipo y concentración de riesgo. Lee scenarioSettings.assets (activos
+// declarados a mano, mismo patrón de registro simple que A18-1) y delega toda la normalización en
+// FinanceCanonicalAssets (A14-1) — sin motor propio. Sin activos registrados, el hogar ve un estado
+// neutro (A14-6): ninguna otra vista cambia de comportamiento.
+const A14_ASSET_TYPE_LABELS = { cuenta: "Cuenta", inversion: "Inversión", pension: "Pensión", inmueble: "Inmueble", vehiculo: "Vehículo", otro: "Otro" };
+const A14_PROVENANCE_LABELS = { declared: "declarado", estimated: "estimado", unknown: "desconocido" };
+
+function assetsList() {
+  return Array.isArray(scenarioSettings.assets) ? scenarioSettings.assets : [];
+}
+
+function saveAssetsList(next) {
+  scenarioSettings.assets = next;
+  saveScenarioSettings();
+}
+
+function saveA14Asset() {
+  const type = qs("a14AssetType")?.value || "otro";
+  const label = (qs("a14AssetLabel")?.value || "").trim();
+  const value = parseAmount(qs("a14AssetValue")?.value);
+  const asOf = qs("a14AssetDate")?.value || "";
+  const provenance = qs("a14AssetProvenance")?.value || "unknown";
+  if (!label) {
+    announceStatus("Indica una etiqueta para el activo antes de guardarlo.");
+    return;
+  }
+  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, owner: "household" }];
+  saveAssetsList(next);
+  const labelInput = qs("a14AssetLabel");
+  const valueInput = qs("a14AssetValue");
+  if (labelInput) labelInput.value = "";
+  if (valueInput) valueInput.value = "";
+  renderA14AssetList();
+  renderA14AssetBreakdown();
+  announceStatus(`Activo «${label}» registrado.`);
+}
+
+function removeA14Asset(id) {
+  saveAssetsList(assetsList().filter((asset) => asset.id !== id));
+  renderA14AssetList();
+  renderA14AssetBreakdown();
+}
+
+function renderA14AssetList() {
+  const list = qs("a14AssetList");
+  if (!list) return;
+  const rows = assetsList().map((asset) => {
+    const typeLabel = A14_ASSET_TYPE_LABELS[asset.type] || "Otro";
+    const provenanceLabel = A14_PROVENANCE_LABELS[asset.provenance] || "desconocido";
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
+  });
+  list.innerHTML = rows.join("") || `<li class="e19-kpi-note">Sin activos registrados todavía.</li>`;
+}
+
+function renderA14AssetBreakdown() {
+  const note = qs("a14AssetBreakdown");
+  if (!note) return;
+  const engine = window.FinanceCanonicalAssets;
+  const rows = assetsList();
+  if (!engine || !rows.length) {
+    note.innerHTML = `<p>Registra al menos un activo para ver el desglose por tipo y detectar sobreexposición.</p>`;
+    return;
+  }
+  const result = engine.normalizeAssets(rows);
+  const netWorth = result.summary.netWorth;
+  const byType = Object.entries(result.summary.totalsByType)
+    .filter(([, total]) => total > 0)
+    .sort(([, a], [, b]) => b - a)
+    .map(([type, total]) => {
+      const pct = netWorth > 0 ? Math.round((total / netWorth) * 100) : 0;
+      const warning = pct > 50 ? " — concentración alta" : "";
+      return `<li>${escapeHtml(A14_ASSET_TYPE_LABELS[type] || "Otro")}: ${money(total, true)} (${pct}%${warning})</li>`;
+    });
+  const unknownCount = result.assets.filter((asset) => asset.provenance === "unknown").length;
+  const unknownLine = unknownCount
+    ? `<p class="negative">${unknownCount} activo(s) sin procedencia declarada — su valor no se estima, se marca desconocido.</p>`
+    : "";
+  note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
+}
+
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
   const plan = buildSavingsAgentPlan();
   const rows = agentVisibleRows(plan);
@@ -23172,6 +23252,8 @@ function renderAjustes() {
   syncA18IncomeControls();
   renderA18RuleCategoryOptions();
   renderA18RuleList();
+  renderA14AssetList();
+  renderA14AssetBreakdown();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -33110,6 +33192,12 @@ async function init() {
   qs("a18IncomeTere")?.addEventListener("change", saveA18Incomes);
   qs("a18RuleSave")?.addEventListener("click", saveA18Rule);
   qs("sp4Run")?.addEventListener("click", handleSp4CompareInsurance);
+  qs("a14AssetAdd")?.addEventListener("click", saveA14Asset);
+  qs("a14AssetList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-a14-asset-remove]");
+    if (!removeButton) return;
+    removeA14Asset(removeButton.dataset.a14AssetRemove);
+  });
   qs("a18RuleList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-a18-rule-remove]");
     if (!removeButton) return;
