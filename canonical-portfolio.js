@@ -147,15 +147,40 @@
     };
   }
 
+  const REBALANCE_THRESHOLD_PCT = 10;
+
+  function hasAnyTarget(targets = {}) {
+    return POSITION_TYPES.some((type) => knownNumber(targets[type]) && number(targets[type]) > 0);
+  }
+
+  // IV6: sugerencia de rebalanceo solo cuando el usuario ha declarado objetivos —
+  // sin objetivos, no hay "desviación" que sugerir (mismo guardia que el resto del
+  // contrato contra inferir un dato que nadie ha declarado).
+  function rebalanceSuggestions(totalsByType = {}, totalValue = 0, targets = {}, thresholdPct = REBALANCE_THRESHOLD_PCT) {
+    if (!hasAnyTarget(targets) || totalValue <= 0) return [];
+    return POSITION_TYPES.map((type) => {
+      const currentValue = totalsByType[type] || 0;
+      const currentPct = round2((currentValue / totalValue) * 100);
+      const targetPct = knownNumber(targets[type]) ? number(targets[type]) : 0;
+      const deviation = round2(currentPct - targetPct);
+      const targetValue = round2((targetPct / 100) * totalValue);
+      const amount = round2(targetValue - currentValue);
+      const action = Math.abs(deviation) <= thresholdPct ? "ok" : amount > 0 ? "comprar" : "vender";
+      return { type, currentPct, targetPct, deviation, amount, action };
+    }).filter((row) => row.currentPct > 0 || row.targetPct > 0);
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
     POSITION_TYPES,
     PROVENANCE_VALUES,
+    REBALANCE_THRESHOLD_PCT,
     normalizePosition,
     normalizePositions,
     validatePositions,
     positionQuality,
     summarizePositions,
+    rebalanceSuggestions,
   };
 });
