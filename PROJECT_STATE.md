@@ -19,7 +19,7 @@ en `canonical-portfolio.js` y 4 de integración en `app.js`/`index.html`), acces
 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
 bumpeado a `?v=20260830h7` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #171 abierto (borrador), a la espera de su CI.
 
 ## Cierre de sesión — 30 de agosto de 2026 (94): Bloque 7 — IV4, concentración de la cartera
 
