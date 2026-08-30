@@ -18,7 +18,7 @@ mercado y queda para sesión aparte.
 (957 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
 bumpeado a `?v=20260830h6` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #170 abierto (borrador), a la espera de su CI.
 
 ## Cierre de sesión — 30 de agosto de 2026 (93): Bloque 7 — IV1 (núcleo), registro de cartera por posición
 
