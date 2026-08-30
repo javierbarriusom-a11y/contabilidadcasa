@@ -27,7 +27,7 @@ workflow de CI, no de la app), accesibilidad (937 IDs, sin cambio), rendimiento,
 privacidad y smoke test, todos en verde — mismas cifras que el cierre 87, este cambio no toca código
 de la aplicación.
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #164, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (87): Bloque 5 (tanda B) — PV6, UX3, UX5, UX6, SP4, cierre del Bloque 5
 
