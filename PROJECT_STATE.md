@@ -18,7 +18,7 @@ Solo `confirmA14AssetUpdate()` aplica el cambio, sustituyendo el activo por su i
 (946 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
 bumpeado a `?v=20260830h3` (26 pruebas de cadena de versión actualizadas en el mismo commit).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #167, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (90): Bloque 6 — A14-4, desglose por tipo y concentración de riesgo
 
