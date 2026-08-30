@@ -15600,6 +15600,15 @@ function renderA14AssetList() {
   list.innerHTML = rows.join("") || `<li class="e19-kpi-note">Sin activos registrados todavía.</li>`;
 }
 
+// A14-2 (núcleo, sin histórico ni banda de confianza todavía — sesión aparte): patrimonio neto de
+// hoy, activos (A14-1) menos deuda pendiente (canonical-debt-contracts.js, ya en producción). Vive
+// en la misma tarjeta de Ajustes en vez de una vista de navegación nueva, para no interferir con
+// OPT-15 (consolidación del menú a 6 rutas, todavía pendiente).
+function totalDebtOutstanding() {
+  if (!DebtContracts) return 0;
+  return DebtContracts.summarizeContracts(debtContractBundle()).currentPrincipal || 0;
+}
+
 function renderA14AssetBreakdown() {
   const note = qs("a14AssetBreakdown");
   if (!note) return;
@@ -15611,6 +15620,8 @@ function renderA14AssetBreakdown() {
   }
   const result = engine.normalizeAssets(rows);
   const netWorth = result.summary.netWorth;
+  const debt = totalDebtOutstanding();
+  const netWorthAfterDebt = round2(netWorth - debt);
   const byType = Object.entries(result.summary.totalsByType)
     .filter(([, total]) => total > 0)
     .sort(([, a], [, b]) => b - a)
@@ -15623,7 +15634,7 @@ function renderA14AssetBreakdown() {
   const unknownLine = unknownCount
     ? `<p class="negative">${unknownCount} activo(s) sin procedencia declarada — su valor no se estima, se marca desconocido.</p>`
     : "";
-  note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
+  note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}. Deuda pendiente: ${money(debt, true)}. <strong>Patrimonio neto: ${money(netWorthAfterDebt, true)}</strong>.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
 }
 
 function executiveAdvisorContext({ allowHeavy = true } = {}) {

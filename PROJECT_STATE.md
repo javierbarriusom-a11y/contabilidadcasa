@@ -2,6 +2,25 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (92): Bloque 6 — A14-2 (núcleo), patrimonio neto de hoy
+
+Cuarta tarea del Bloque 6, acotada por presupuesto de tokens tras descartar OPT-16 (migración a ES
+modules) por riesgo/radio de impacto — toca decenas de ficheros y cambia cómo `app.js` accede a los
+globales `window.FinanceCanonicalX`, no un cambio mecánico acotable en esta sesión.
+
+**A14-2 (núcleo)**: en vez de una vista de navegación nueva (que interferiría con OPT-15, todavía
+pendiente, sobre el mismo menú), el patrimonio neto vive en la misma tarjeta de Ajustes de A14-4.
+`totalDebtOutstanding()` reutiliza `DebtContracts.summarizeContracts()` (ya en producción, sin motor
+nuevo) para restar la deuda pendiente del patrimonio de activos y mostrar "Patrimonio neto:
+activos − deuda". Histórico mes a mes y banda de confianza (lo que pedía el A14-2 original) quedan
+para sesión aparte.
+
+**Validación**: `npm run verify`, exit 0 — **2454/2454 pruebas** (2451 + 3 nuevas), accesibilidad
+(946 IDs, sin cambio — no hay campos nuevos), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde. `app.js` bumpeado a `?v=20260830h4` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (91): Bloque 6 — A14-3 (núcleo), actualizar valoración sin sobrescribir en silencio
 
 Tercera tarea del Bloque 6, acotada por presupuesto de tokens: solo el núcleo de A14-3 — el
@@ -18,7 +37,7 @@ Solo `confirmA14AssetUpdate()` aplica el cambio, sustituyendo el activo por su i
 (946 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
 bumpeado a `?v=20260830h3` (26 pruebas de cadena de versión actualizadas en el mismo commit).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #167, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (90): Bloque 6 — A14-4, desglose por tipo y concentración de riesgo
 
