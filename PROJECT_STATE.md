@@ -33,7 +33,7 @@ esa lista.
 nueva), rendimiento, build del sitio (con `canonical-assets.js` ya incluido), privacidad y smoke
 test, todos en verde.
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #165, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (88): fix — el chequeo «Published availability» llevaba fallando desde OPT-3
 
