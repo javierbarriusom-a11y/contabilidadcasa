@@ -15676,6 +15676,7 @@ function saveIv1Position() {
   clearIv1PositionForm();
   renderIv1PositionList();
   renderIv1PositionSummary();
+  renderIv1PositionConcentration();
   announceStatus(`Posición «${label}» registrada.`);
 }
 
@@ -15683,6 +15684,7 @@ function removeIv1Position(id) {
   saveIv1PositionsList(iv1PositionsList().filter((position) => position.id !== id));
   renderIv1PositionList();
   renderIv1PositionSummary();
+  renderIv1PositionConcentration();
 }
 
 function renderIv1PositionList() {
@@ -15715,6 +15717,36 @@ function renderIv1PositionSummary() {
   const { totalCost, totalValue, gainLoss, gainLossPct } = result.summary;
   const gainClass = gainLoss > 0 ? "positive" : gainLoss < 0 ? "negative" : "";
   note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong>.</p>`;
+}
+
+// IV4: concentración por tipo y por posición individual, con aviso de sobreexposición
+// (>50%, mismo umbral que A14-4 para el patrimonio). La correlación real entre activos
+// necesita datos de mercado y queda fuera de esta tarjeta.
+function renderIv1PositionConcentration() {
+  const note = qs("iv1PositionConcentration");
+  if (!note) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    note.innerHTML = "";
+    return;
+  }
+  const result = engine.normalizePositions(rows);
+  const totalValue = result.summary.totalValue;
+  const byType = Object.entries(result.summary.totalsByType)
+    .filter(([, total]) => total > 0)
+    .sort(([, a], [, b]) => b - a)
+    .map(([type, total]) => {
+      const pct = totalValue > 0 ? Math.round((total / totalValue) * 100) : 0;
+      const warning = pct > 50 ? " — concentración alta" : "";
+      return `<li>${escapeHtml(IV1_POSITION_TYPE_LABELS[type] || "Otro")}: ${money(total, true)} (${pct}%${warning})</li>`;
+    });
+  const topPosition = [...result.positions].sort((a, b) => b.currentValue - a.currentValue)[0];
+  const topPct = topPosition && totalValue > 0 ? Math.round((topPosition.currentValue / totalValue) * 100) : 0;
+  const topWarning = topPosition && topPct > 50
+    ? `<p class="negative">«${escapeHtml(topPosition.label)}» concentra el ${topPct}% de la cartera — sobreexposición a una sola posición.</p>`
+    : "";
+  note.innerHTML = `<ul class="e19-kpi-note">${byType.join("")}</ul>${topWarning}`;
 }
 
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
@@ -23401,6 +23433,7 @@ function renderAjustes() {
   renderA14AssetBreakdown();
   renderIv1PositionList();
   renderIv1PositionSummary();
+  renderIv1PositionConcentration();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();

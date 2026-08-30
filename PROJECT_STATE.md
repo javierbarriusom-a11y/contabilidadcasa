@@ -2,6 +2,24 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (94): Bloque 7 — IV4, concentración de la cartera
+
+Segunda tarea del Bloque 7, elegida por ser la más barata de las desbloqueadas: reutiliza casi tal
+cual el patrón ya construido en A14-4 (concentración por tipo, aviso >50%) aplicado a
+`canonical-portfolio.js` (IV1), sin contrato nuevo.
+
+**IV4**: `renderIv1PositionConcentration()` añade a la tarjeta de cartera el reparto por tipo (misma
+lógica y umbral que A14-4: aviso "concentración alta" si un tipo supera el 50% del valor total) y un
+aviso nuevo de sobreexposición cuando una sola posición individual supera el 50% de la cartera. **La
+correlación real entre activos** (lo que pedía IV4 además de la concentración) necesita datos de
+mercado y queda para sesión aparte.
+
+**Validación**: `npm run verify`, exit 0 — **2464/2464 pruebas** (2460 + 4 nuevas), accesibilidad
+(957 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260830h6` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #170 abierto (borrador), a la espera de su CI.
+
 ## Cierre de sesión — 30 de agosto de 2026 (93): Bloque 7 — IV1 (núcleo), registro de cartera por posición
 
 Primera tarea del Bloque 7, acotada por presupuesto de tokens. IV1 es la tarea más grande de toda la
@@ -22,7 +40,7 @@ parcial (FC1), rebalanceo, correlación y todo lo demás del Bloque 7 que depend
 (956 IDs, +10 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en
 verde. `app.js` bumpeado a `?v=20260830h5` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #169 abierto (borrador), a la espera de su CI.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #169, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (92): Bloque 6 — A14-2 (núcleo), patrimonio neto de hoy
 
