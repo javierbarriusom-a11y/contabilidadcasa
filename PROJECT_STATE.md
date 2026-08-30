@@ -2,6 +2,25 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (95): Bloque 7 — IV6, rebalanceo guiado por umbral
+
+Tercera tarea del Bloque 7, elegida por ser la más barata de las desbloqueadas: reutiliza otra vez
+`canonical-portfolio.js` (IV1/IV4), sin contrato nuevo salvo la función de cálculo.
+
+**IV6**: `canonical-portfolio.js` gana `rebalanceSuggestions(totalsByType, totalValue, targets,
+thresholdPct = 10)` — sin objetivos declarados por el usuario no hay "desviación" que sugerir (mismo
+guardia del resto del contrato contra inferir un dato que nadie ha declarado); con objetivos, compara
+el % real por tipo frente al objetivo y, si la desviación supera 10 puntos, calcula el importe exacto
+a comprar o vender para volver a él. Tarjeta nueva de Ajustes "Cartera: objetivo de reparto y
+rebalanceo" (5 campos de % por tipo + botón «Guardar objetivos»), junto a la de IV1/IV4.
+
+**Validación**: `npm run verify`, exit 0 — **2473/2473 pruebas** (2464 + 9 nuevas: 5 del cálculo puro
+en `canonical-portfolio.js` y 4 de integración en `app.js`/`index.html`), accesibilidad (964 IDs, +7
+por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260830h7` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (94): Bloque 7 — IV4, concentración de la cartera
 
 Segunda tarea del Bloque 7, elegida por ser la más barata de las desbloqueadas: reutiliza casi tal

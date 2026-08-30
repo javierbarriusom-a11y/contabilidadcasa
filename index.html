@@ -2538,6 +2538,37 @@
               <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
             </article>
 
+            <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
+                 sin objetivos declarados, tarjeta neutra (mismo guardia que el resto del contrato). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cartera: objetivo de reparto y rebalanceo</h3>
+              <p class="e19-kpi-note">Fija el % objetivo por tipo de activo. Cuando el reparto real se desvíe más de 10 puntos del objetivo, verás cuánto comprar o vender para volver a él.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Fondo (%)</span>
+                  <input id="iv6TargetFondo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Acción (%)</span>
+                  <input id="iv6TargetAccion" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>ETF (%)</span>
+                  <input id="iv6TargetEtf" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cripto (%)</span>
+                  <input id="iv6TargetCripto" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Otro (%)</span>
+                  <input id="iv6TargetOtro" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
+              <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
@@ -4697,7 +4728,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830h6"></script>
+    <script defer src="app.js?v=20260830h7"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

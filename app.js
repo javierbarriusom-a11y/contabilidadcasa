@@ -15677,6 +15677,7 @@ function saveIv1Position() {
   renderIv1PositionList();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderIv6Rebalance();
   announceStatus(`Posición «${label}» registrada.`);
 }
 
@@ -15685,6 +15686,7 @@ function removeIv1Position(id) {
   renderIv1PositionList();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderIv6Rebalance();
 }
 
 function renderIv1PositionList() {
@@ -15747,6 +15749,61 @@ function renderIv1PositionConcentration() {
     ? `<p class="negative">«${escapeHtml(topPosition.label)}» concentra el ${topPct}% de la cartera — sobreexposición a una sola posición.</p>`
     : "";
   note.innerHTML = `<ul class="e19-kpi-note">${byType.join("")}</ul>${topWarning}`;
+}
+
+const IV6_TARGET_FIELDS = { fondo: "iv6TargetFondo", accion: "iv6TargetAccion", etf: "iv6TargetEtf", cripto: "iv6TargetCripto", otro: "iv6TargetOtro" };
+
+function iv6PortfolioTargets() {
+  return scenarioSettings.portfolioTargets && typeof scenarioSettings.portfolioTargets === "object" ? scenarioSettings.portfolioTargets : {};
+}
+
+function syncIv6TargetControls() {
+  const targets = iv6PortfolioTargets();
+  Object.entries(IV6_TARGET_FIELDS).forEach(([type, fieldId]) => {
+    const field = qs(fieldId);
+    if (!field || document.activeElement === field) return;
+    const configured = Number(targets[type] || 0);
+    field.value = configured > 0 ? String(configured) : "";
+  });
+}
+
+function saveIv6Targets() {
+  const targets = {};
+  Object.entries(IV6_TARGET_FIELDS).forEach(([type, fieldId]) => {
+    const value = parseAmount(qs(fieldId)?.value);
+    if (value > 0) targets[type] = value;
+  });
+  scenarioSettings.portfolioTargets = targets;
+  saveScenarioSettings();
+  renderIv6Rebalance();
+  announceStatus("Objetivos de reparto guardados.");
+}
+
+// IV6: sugerencia de compra/venta cuando el reparto real se desvía del objetivo más de
+// REBALANCE_THRESHOLD_PCT puntos. Sin objetivos declarados, tarjeta neutra.
+function renderIv6Rebalance() {
+  const note = qs("iv6RebalanceSummary");
+  if (!note) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  const targets = iv6PortfolioTargets();
+  if (!engine || !rows.length) {
+    note.innerHTML = `<p>Registra al menos una posición para ver sugerencias de rebalanceo.</p>`;
+    return;
+  }
+  const result = engine.normalizePositions(rows);
+  const suggestions = engine.rebalanceSuggestions(result.summary.totalsByType, result.summary.totalValue, targets);
+  if (!suggestions.length) {
+    note.innerHTML = `<p>Fija al menos un objetivo por tipo para ver sugerencias de rebalanceo.</p>`;
+    return;
+  }
+  const rows2 = suggestions.map((row) => {
+    const label = IV1_POSITION_TYPE_LABELS[row.type] || "Otro";
+    if (row.action === "ok") return `<li>${escapeHtml(label)}: ${row.currentPct}% (objetivo ${row.targetPct}%) — dentro del umbral</li>`;
+    const verb = row.action === "comprar" ? "Comprar" : "Vender";
+    return `<li class="negative">${escapeHtml(label)}: ${row.currentPct}% (objetivo ${row.targetPct}%) — ${verb} ${money(Math.abs(row.amount), true)}</li>`;
+  });
+  note.innerHTML = `<ul class="e19-kpi-note">${rows2.join("")}</ul>`;
 }
 
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
@@ -23434,6 +23491,8 @@ function renderAjustes() {
   renderIv1PositionList();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  syncIv6TargetControls();
+  renderIv6Rebalance();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -33384,6 +33443,7 @@ async function init() {
     if (!removeButton) return;
     removeIv1Position(removeButton.dataset.iv1PositionRemove);
   });
+  qs("iv6TargetSave")?.addEventListener("click", saveIv6Targets);
   qs("a18RuleList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-a18-rule-remove]");
     if (!removeButton) return;
