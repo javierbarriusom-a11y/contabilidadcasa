@@ -2,6 +2,24 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (91): Bloque 6 — A14-3 (núcleo), actualizar valoración sin sobrescribir en silencio
+
+Tercera tarea del Bloque 6, acotada por presupuesto de tokens: solo el núcleo de A14-3 — el
+guardarraíl de "nunca se sobrescribe un valor sin comparación previa" — reutilizando el formulario
+de A14-4. La importación CSV y el paso formal por la bandeja previa E11b (que el texto original de
+A14-3 describe) quedan para una sesión aparte; ahora mismo solo hay entrada manual.
+
+**A14-3 (núcleo)**: al guardar un activo cuyo tipo+etiqueta ya existe, `saveA14Asset()` ya no lo
+duplica ni lo pisa — construye `a14PendingAssetUpdate` y `renderA14AssetPendingCompare()` muestra
+valor y fecha anteriores frente a los nuevos, con botones «Confirmar actualización» / «Cancelar».
+Solo `confirmA14AssetUpdate()` aplica el cambio, sustituyendo el activo por su id.
+
+**Validación**: `npm run verify`, exit 0 — **2451/2451 pruebas** (2447 + 4 nuevas), accesibilidad
+(946 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260830h3` (26 pruebas de cadena de versión actualizadas en el mismo commit).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (90): Bloque 6 — A14-4, desglose por tipo y concentración de riesgo
 
 Segunda tarea del Bloque 6, la más sencilla de las tres que A14-1 desbloqueaba (S frente a M de A14-2
