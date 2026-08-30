@@ -15508,6 +15508,23 @@ function saveAssetsList(next) {
   saveScenarioSettings();
 }
 
+let a14PendingAssetUpdate = null;
+
+function findA14AssetMatch(type, label) {
+  const key = label.trim().toLocaleLowerCase("es");
+  return assetsList().find((asset) => asset.type === type && asset.label.trim().toLocaleLowerCase("es") === key) || null;
+}
+
+function clearA14AssetForm() {
+  const labelInput = qs("a14AssetLabel");
+  const valueInput = qs("a14AssetValue");
+  if (labelInput) labelInput.value = "";
+  if (valueInput) valueInput.value = "";
+}
+
+// A14-3 (núcleo, sin CSV todavía — sesión aparte): actualizar un activo ya registrado nunca
+// sobrescribe en silencio. Si tipo+etiqueta coinciden con uno existente, se pide confirmación
+// mostrando valor/fecha anteriores frente a los nuevos antes de aplicar el cambio.
 function saveA14Asset() {
   const type = qs("a14AssetType")?.value || "otro";
   const label = (qs("a14AssetLabel")?.value || "").trim();
@@ -15518,15 +15535,52 @@ function saveA14Asset() {
     announceStatus("Indica una etiqueta para el activo antes de guardarlo.");
     return;
   }
+  const existing = findA14AssetMatch(type, label);
+  if (existing) {
+    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance } };
+    renderA14AssetPendingCompare();
+    return;
+  }
   const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, owner: "household" }];
   saveAssetsList(next);
-  const labelInput = qs("a14AssetLabel");
-  const valueInput = qs("a14AssetValue");
-  if (labelInput) labelInput.value = "";
-  if (valueInput) valueInput.value = "";
+  clearA14AssetForm();
   renderA14AssetList();
   renderA14AssetBreakdown();
   announceStatus(`Activo «${label}» registrado.`);
+}
+
+function renderA14AssetPendingCompare() {
+  const box = qs("a14AssetPendingCompare");
+  if (!box) return;
+  if (!a14PendingAssetUpdate) {
+    box.hidden = true;
+    box.innerHTML = "";
+    return;
+  }
+  const { existing, next } = a14PendingAssetUpdate;
+  box.hidden = false;
+  box.innerHTML = `<p><strong>«${escapeHtml(existing.label)}» ya está registrado.</strong> Valor anterior: ${money(Number(existing.value) || 0, true)} (${escapeHtml(existing.asOf || "sin fecha")}). Valor nuevo: ${money(Number(next.value) || 0, true)} (${escapeHtml(next.asOf || "sin fecha")}).</p>
+    <button type="button" class="e19-btn e19-btn-secondary" id="a14AssetConfirmUpdate">Confirmar actualización</button>
+    <button type="button" class="e19-btn e19-btn-secondary" id="a14AssetCancelUpdate">Cancelar</button>`;
+  qs("a14AssetConfirmUpdate")?.addEventListener("click", confirmA14AssetUpdate);
+  qs("a14AssetCancelUpdate")?.addEventListener("click", cancelA14AssetUpdate);
+}
+
+function confirmA14AssetUpdate() {
+  if (!a14PendingAssetUpdate) return;
+  const { existing, next } = a14PendingAssetUpdate;
+  saveAssetsList(assetsList().map((asset) => asset.id === existing.id ? { ...asset, ...next } : asset));
+  a14PendingAssetUpdate = null;
+  clearA14AssetForm();
+  renderA14AssetPendingCompare();
+  renderA14AssetList();
+  renderA14AssetBreakdown();
+  announceStatus(`Activo «${next.label}» actualizado.`);
+}
+
+function cancelA14AssetUpdate() {
+  a14PendingAssetUpdate = null;
+  renderA14AssetPendingCompare();
 }
 
 function removeA14Asset(id) {
