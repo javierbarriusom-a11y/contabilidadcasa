@@ -639,6 +639,33 @@ h2 {
   gap: 10px;
 }
 
+/* UX2: mismo lenguaje visual de píldora que .durability-status, justo al lado en el cromado. */
+.data-nature-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border: 1px solid #d8d3c4;
+  border-radius: 999px;
+  color: #5c5344;
+  background: #f7f4ec;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.data-nature-badge.data-nature-simulation {
+  color: #4f4488;
+  border-color: #c9c3e4;
+  background: #ebe9f6;
+}
+
+.data-nature-badge.data-nature-applied {
+  color: #1d6b3b;
+  border-color: #a8d5b7;
+  background: #edf8f0;
+}
+
 .durability-status {
   display: inline-flex;
   align-items: center;

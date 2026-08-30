@@ -3968,6 +3968,52 @@ function recordViewVisit(viewId) {
   storageSet(storageKey(VISIT_COUNTS_KEY), JSON.stringify(counts));
 }
 
+// UX2 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "experiencia" — sin documento de detalle
+// propio, resumen en su Nota): "«dato real / simulación / decisión aplicada», siempre visible —
+// lleva el rigor previsto/real/usado (A6/A3-8) al cromado de cada pantalla". A6/A3-8 ya distinguen
+// previsto/real/usado dentro de Registrar y Plan; esto es la versión de un vistazo para las ~40
+// pantallas de la app, en el cromado compartido (fuera de <main>, igual que el chip de
+// sincronización de A0-3), no una insignia que cada pantalla tenga que pintar por su cuenta.
+//
+// Clasificación explícita en vez de heurística por nombre — así una pantalla nueva no hereda un
+// estado equivocado por casualidad. Por defecto "real" (la mayoría: Hoy, Registrar, Cierre,
+// Análisis, Ajustes, Deuda › Contratos/Ruta, Presupuesto del mes...). "simulation" son las pantallas
+// cuyo propósito entero es explorar sin comprometer nada (nunca escriben en el libro/plan vigente).
+// "applied" son las que muestran una decisión que ya se aplicó o se está aplicando de verdad.
+const UX2_VIEW_NATURE = {
+  "escenario-simular": "simulation",
+  "escenario-comparar": "simulation",
+  "deuda-comparar": "simulation",
+  "deuda-simulador": "simulation",
+  forecast: "simulation",
+  prevision: "simulation",
+  simulator: "simulation",
+  "new-life-simulation": "simulation",
+  "new-life-definitive": "simulation",
+  "debt-liquidation-plan": "simulation",
+  "escenario-aplicar": "applied",
+  "escenario-guardados": "applied",
+  "debt-roadmap": "applied",
+};
+
+const UX2_NATURE_LABEL = {
+  real: "Dato real",
+  simulation: "Simulación",
+  applied: "Decisión aplicada",
+};
+
+function viewDataNature(viewId) {
+  return UX2_VIEW_NATURE[viewId] || "real";
+}
+
+function renderDataNatureBadge(viewId) {
+  const badge = qs("dataNatureBadge");
+  if (!badge) return;
+  const nature = viewDataNature(viewId);
+  badge.className = `data-nature-badge${nature === "real" ? "" : ` data-nature-${nature}`}`;
+  badge.textContent = UX2_NATURE_LABEL[nature];
+}
+
 function viewVisitSummary(viewId) {
   return loadVisitCounts()[viewId] || { count: 0, last: "" };
 }
@@ -4023,6 +4069,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
     viewTitle.classList.toggle("sr-only", hasOwnHeader);
   }
   document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
+  renderDataNatureBadge(viewId);
   renderTopbarStatusStrip(viewId);
   renderE17ViewGuide(viewId);
   if (viewChanged) window.scrollTo({ top: 0, behavior: "instant" });

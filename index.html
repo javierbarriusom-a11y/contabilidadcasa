@@ -197,6 +197,10 @@
             <h1 id="viewTitle" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="topbar-status">
+            <!-- UX2: "dato real / simulación / decisión aplicada", siempre visible — lleva el rigor
+                 previsto/real/usado (A6/A3-8) al cromado compartido, fuera de <main> igual que el
+                 chip de sincronización, así que ninguna de las ~40 pantallas se queda sin él. -->
+            <div class="data-nature-badge" id="dataNatureBadge" role="status"></div>
             <!-- H-2: chip de sincronización, visible en las nueve pantallas (fuera de <main>). -->
             <div class="durability-status durability-local" id="durabilityStatus" role="status" aria-live="polite">
               <span id="durabilityBadge">Local</span>
@@ -4463,7 +4467,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830d1"></script>
+    <script defer src="app.js?v=20260830e1"></script>
     <script defer src="p2-ui.js?v=20260805e16a2"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

@@ -2,6 +2,42 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (83): UX2 — «dato real / simulación / decisión aplicada», siempre visible
+
+Sexta tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio — resumen en su
+Nota: «lleva el rigor previsto/real/usado (A6) al cromado de cada pantalla».
+
+**Decisión de alcance**: A6/A3-8 ya distinguen previsto/real/usado dentro de Registrar y Plan, celda
+a celda. UX2 no repite eso — construye la versión de un vistazo para las ~cuarenta pantallas de la
+app, en el cromado compartido (`.topbar`, fuera de `<main>`, igual que el chip de sincronización de
+A0-3), no una insignia que cada pantalla tuviera que pintar por su cuenta. Clasificación explícita
+por `viewId` en vez de heurística por nombre, con «real» como valor por defecto: así una pantalla
+nueva que nadie clasifique a propósito no hereda un estado equivocado por casualidad — hereda el
+más conservador y más frecuente.
+
+**Construido**: `UX2_VIEW_NATURE` (nueva, `app.js`) — trece pantallas explícitas en `simulation`
+(Escenario · simular/comparar, Deuda · comparar/simulador, Prever, Previsión, Simulador,
+Simulación/Definitiva de vida nueva, Plan deuda óptimo: ninguna escribe en el libro o el plan
+vigente) y tres en `applied` (Decidir · aplicar escenario, Escenarios guardados, Plan de deuda:
+muestran una decisión ya aplicada o aplicándose de verdad); todo lo demás cae en `real` por
+defecto. `renderDataNatureBadge(viewId)` escribe la píldora nueva `#dataNatureBadge` en el topbar,
+enganchada en `setActiveView()` junto a `renderTopbarStatusStrip` — se repinta en cada cambio de
+vista, para las tres pantallas con cabecera propia (Hoy, Registrar, Movimientos) igual que para el
+resto, porque vive fuera del bloque de eyebrow/título que esas tres ocultan. `styles.css` añade
+`.data-nature-badge` con el mismo lenguaje visual de píldora que `.durability-status`, en sus tres
+tonos.
+
+**Verificación**: 5 pruebas nuevas en `tests/ux2-dato-real-simulacion-decision.test.cjs` (el badge
+vive en el topbar junto al chip de sincronización, la clasificación es explícita y «real» por
+defecto ante una pantalla no clasificada, `renderDataNatureBadge` escribe la etiqueta y el tono
+correctos, `setActiveView` lo repinta en cada cambio de vista, `styles.css` define los tres tonos).
+
+**Validación**: `npm run verify`, exit 0 — **2334/2334 pruebas** (2329 + 5 nuevas), accesibilidad
+(911 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260830e1`.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (82): CP6 — «¿Y si...?» antes de comprometer dinero
 
 Quinta tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio — resumen en
