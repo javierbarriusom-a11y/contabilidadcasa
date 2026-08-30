@@ -161,10 +161,10 @@ test("V1-3 · los dos KPI están en Hoy, con su nota y su salida hacia las vista
 
 test("V1-3 · la rejilla de Hoy pasa a tres columnas para que las seis tarjetas cuadren", () => {
   assert.match(styles, /\.home-kpi-grid \{\s*display: grid;\s*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
-  assert.match(html, /<div class="home-kpi-grid" id="homeKpis"><\/div>/);
+  assert.match(html, /<div class="home-kpi-grid" id="homeKpis" data-meeting-step="1"><\/div>/);
 });
 
 test("V1-3 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20260830e1/);
+  assert.match(html, /app.js\?v=20260830h1/);
 });

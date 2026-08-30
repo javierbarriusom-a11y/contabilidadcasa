@@ -2,6 +2,133 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (87): Bloque 5 (tanda B) — PV6, UX3, UX5, UX6, SP4, cierre del Bloque 5
+
+Segunda tanda del Bloque 5 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (5 de 9 tareas) — con la tanda A (85)
+el bloque queda completo: 9/9.
+
+**PV6 — sensibilidad: qué previsión cambiaría el veredicto**: `canonical-forecast-sensitivity.js`
+(nuevo) resuelve algebraicamente, para el mes del punto delicado de Previsión, qué % de caída de
+ingreso o subida de gasto haría que el mínimo ajustado cruzara cero — sin recalcular el forecast,
+solo los mismos dos componentes que `previsionMetric()` ya deriva. Nota junto a la banda de liquidez
+de Previsión.
+
+**UX3 — comparar dos momentos en el tiempo, no solo «ahora»**: nueva tarjeta en Análisis que
+reutiliza `homeMonthAtAGlance()` (H-6) para dos meses cualesquiera, lado a lado con la diferencia.
+`homeMonthAtAGlance()` gana campos numéricos crudos (aditivos, sin romper nada que ya la leyera) para
+poder calcular la diferencia sin reinterpretar `money()`. Vive en `views/analisis.js` (carga
+diferida), no en `app.js`.
+
+**UX5 — modo reunión para decidir en pareja**: botón nuevo en Hoy que enseña un bloque a la vez (KPIs
+y salud financiera, cobertura y el mes, decisiones y próximos hitos, riesgo y hogar) con controles
+Anterior/Siguiente/Salir. Sin motor ni dato nuevo: marca los seis bloques ya existentes con
+`data-meeting-step` y usa la utilidad `.is-hidden` (OPT-9) para mostrarlos u ocultarlos — nunca toca
+el atributo `hidden` nativo, que sigue siendo de quien lo puso (p. ej. la tarjeta de salud financiera,
+oculta cuando no hay datos).
+
+**UX6 — búsqueda que entiende preguntas de importe**: extiende el lanzador «Buscar o abrir» (A12-3)
+— una pregunta con importe («¿puedo gastar 300€?», «300 euros disponibles») antepone una respuesta
+calculada (caja disponible menos reserva protegida, mismo par que usa A15-4) a los resultados de
+tarea de siempre. Un número suelto sin € ni palabra clave nunca se interpreta como importe.
+
+**SP4 — autoseguro vs. comprar seguro para riesgos pequeños**: `canonical-self-insurance.js` (nuevo)
+usa `cushionFloor()` (mismo suelo que SP5, la tarjeta justo encima en Ajustes) como gate duro: un
+golpe que rompería el suelo protegido se asegura siempre, pase lo que pase con la prima. Por debajo
+de ese suelo, compara el coste esperado (con una probabilidad anual declarada) frente a la prima; sin
+probabilidad, no fabrica una recomendación — solo dice cuántos años de prima equivalen al golpe.
+Bug real atrapado por los tests antes de publicar: `Number(null)` es `0`, no `NaN` — sin guardia
+explícito, «sin probabilidad declarada» se leía como «probabilidad cero» (mismo patrón que A16-1).
+
+**Validación**: `npm run verify`, exit 0 — **2433/2433 pruebas** (2380 + 1 corregida por el nuevo
+`data-meeting-step` en un test de V1-3 + 52 nuevas), accesibilidad (937 IDs, +15), rendimiento, build
+del sitio, privacidad y smoke test, todos en verde. Confirmado además con Playwright contra el sitio
+construido: sin errores de consola al navegar Hoy (incluido el modo reunión), Análisis y Ajustes.
+`app.js` bumpeado a `?v=20260830h1` (26 pruebas actualizadas); `views/analisis.js` a
+`?v=20260830ux3a1`.
+
+**Publicado**: commit y push a `claude/artefacto-bloque-5-ryfopr`, PR #163.
+
+## Cierre de sesión — 30 de agosto de 2026 (86): Bloque 5 (tanda A) — OPT-9, OPT-20, A15-4, A18-1
+
+Primera tanda del Bloque 5 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (4 de 9 tareas; la segunda tanda
+—PV6, UX3, UX5, UX6, SP4— queda para la siguiente sesión de este mismo bloque).
+
+**OPT-9 — auditoría de los `!important` de `styles.css`**: de 23 declaraciones, 4 (dos en
+`.agent-debt-order-warning`, dos en `.agent-agreement-note`) no tenían ninguna regla más específica
+ni estilo inline que superar — peso muerto, quitadas sin cambio visual. Las 19 restantes son
+legítimas (utilidades `[hidden]`/`.is-hidden`/`.sr-only`, el override universal
+`prefers-reduced-motion`, el hide del sidebar móvil, y el color de fondo de
+`.prevision-group-row` que necesita ganar al hover y a la columna fija) y quedan documentadas con
+un comentario `OPT-9:` justo encima explicando a qué gana cada una.
+
+**OPT-20 — consolidar los backlogs sueltos en una única fuente viva**: el repositorio acumulaba
+once documentos `BACKLOG*.md` en cuatro generaciones de reordenación, cada uno apuntando solo al
+inmediatamente anterior. `BACKLOG_INDICE.md` (nuevo) es el mapa único: dice, para cada documento,
+su estado (vigente/casi cerrado/histórico/detalle de referencia) y a qué apunta — sin fusionar
+contenido, cada backlog conserva su detalle íntegro. Los once documentos ganan un puntero de vuelta
+al índice. La skill `finanzas-casa-workflow` (Modo Inicio, paso 2) se actualiza para rutar primero
+por el índice y `BACKLOG_ULTIMATE_SEPTIEMBRE.md` en vez de `BACKLOG_STATUS.md` (que solo cubre
+E1-E20, no E21 en adelante — corregido también en su propia cabecera).
+
+**A15-4 — simulador de aportación a plan de pensiones**: `canonical-pension-simulator.js` (nuevo)
+compara el ahorro fiscal estimado de una aportación frente al límite deducible vigente (1.500€,
+límite general español desde la reforma de 2021, versionado por año como `canonical-tax-tables.js`)
+y frente a la liquidez que la aportación inmoviliza (el importe entero, no solo la parte deducible,
+comparado contra la reserva protegida). El tipo marginal usa la retención declarada en el registro
+de supuestos fiscales de A15-1 — sin motor de tramos de IRPF real (A15-2, sin construir), es el
+único dato de tipo impositivo que la app ya tiene. Tarjeta nueva en Ajustes junto al registro de
+supuestos, sin escribir nada — calculadora puntual.
+
+**A18-1 — reglas de reparto configurables por categoría (E25)**: `canonical-household-split.js`
+(nuevo) reemplaza el 50/50 implícito de `familyContextMeta()` por una regla explícita — partes
+iguales (comportamiento de siempre por defecto), proporcional a los ingresos declarados de cada
+titular, o un importe fijo a cargo de uno de los dos —, configurable por categoría o con una regla
+por defecto. No calcula ningún saldo «quién debe a quién»: eso es A18-2, que depende de este y
+queda en el Bloque 8. Tarjeta nueva en Ajustes con la lista de categorías reales de
+`e13BudgetCategoryOptions()`.
+
+**Validación**: `npm run verify`, exit 0 — **2380/2380 pruebas** (2340 + 40 nuevas: 3 OPT-9 + 3
+OPT-20 + 7 `canonical-pension-simulator` + 9 A15-4 + 10 `canonical-household-split` + 8 A18-1),
+accesibilidad (922 IDs, +11 por los campos nuevos de las dos tarjetas), rendimiento, build del
+sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a `?v=20260830g1` (26 pruebas que
+fijan esa cadena actualizadas en el mismo commit).
+
+**Publicado**: commit y push a `claude/artefacto-bloque-5-ryfopr`, sobre el fix de «Hoy» (85) ya en
+el PR #163.
+
+## Cierre de sesión — 30 de agosto de 2026 (85): fix — «Hoy» se quedaba en blanco por debajo de la cabecera
+
+**Reportado por el usuario** con capturas de pantalla: en «Hoy», por debajo de la cabecera (salud
+financiera, presupuesto, objetivos) todo quedaba vacío — la tarjeta oscura de cobertura se quedaba
+en «Calculando» sin resolver nunca, «El mes en una línea», «Decisiones abiertas», «Próximos hitos»,
+«Meses a vigilar», «Lectura del hogar» y «Señales que requieren revisión» no pintaban nada.
+
+**Diagnóstico**: se montó el sitio público (`npm run build:site`) y se abrió con Playwright/Chromium
+para capturar el error real en consola, en vez de inspeccionar el código a ciegas. Traza exacta:
+`ReferenceError: p2 is not defined` en `homeHealthScoreComponents()`, la función que A16-1 (Bloque 4,
+cierre de sesión 82-83) añadió a `renderHomeDashboard()`. Esa función leía `p2.goals` directamente,
+pero `p2` no es una variable global en `app.js` — en cada otro sitio del fichero es siempre un local
+(`const p2 = p2State();`) declarado al principio de la función que lo usa. Al lanzarse esa excepción
+a mitad de `renderHomeDashboard()`, toda la instrucción `qs("homeKpis").innerHTML = [...]` y todo lo
+que venía después en la misma función (cobertura, mes en una línea, decisiones, prioridades, banda de
+meses, familia y alertas) se quedaba sin ejecutar — de ahí el patrón exacto que describía el usuario:
+todo en blanco a partir de un punto concreto de la pantalla, nunca antes.
+
+**Arreglado**: una línea en `app.js` (`homeHealthScoreComponents()`) — `const p2 = p2State();` antes
+de leer `p2.goals`, igual que hace el resto del fichero. `app.js` bumpeado a `?v=20260830f1`; todas
+las pruebas que fijan esa cadena de versión en `index.html` (26 ficheros) actualizadas en el mismo
+commit. `tests/a16-1-salud-financiera-compuesta.test.cjs` tenía el mismo bug reflejado en su sandbox
+de pruebas (stubeaba `p2` global en vez de `p2State()`) — corregido para que la prueba hubiera
+atrapado esto antes de publicar.
+
+**Validación**: `npm run verify`, exit 0 — **2340/2340 pruebas** (sin pruebas nuevas, es un fix de una
+línea con su sandbox de test corregido), accesibilidad (911 IDs, sin cambio), rendimiento, build del
+sitio, privacidad y smoke test, todos en verde. Confirmado además con Playwright contra el sitio
+construido: antes del fix, `homeKpis` vacío y `ReferenceError: p2 is not defined` en consola; después,
+la rejilla de seis KPI se pinta con datos reales y no queda ningún `pageerror` en consola.
+
+**Publicado**: commit y push a `claude/artefacto-bloque-5-ryfopr`.
+
 ## Cierre de sesión — 30 de agosto de 2026 (84): CP4 — comparación automática de escenarios en la revisión mensual, cierre del Bloque 3
 
 Séptima y última tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio —

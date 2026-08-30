@@ -1,5 +1,8 @@
 # Backlog unificado — patrimonio/finanzas + optimización
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+> Histórico — el orden de ejecución vigente pasó a `BACKLOG_ULTIMATE_SEPTIEMBRE.md` el 29/08/2026.
+
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 Este documento fusiona, por decisión explícita del usuario, dos backlogs nacidos de auditorías

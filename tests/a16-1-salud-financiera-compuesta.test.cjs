@@ -102,7 +102,7 @@ function componentsSandbox(ctx, { budgetSummary = null, activeGoals = [], freshn
   const context = sandboxWith(["homeHealthScoreComponents"], {
     homeBudgetSummary: () => budgetSummary,
     dataFreshnessReport: () => (freshnessPercent === null ? null : { coveragePercent: freshnessPercent }),
-    p2: { goals: activeGoals },
+    p2State: () => ({ goals: activeGoals }),
     window: { P2Domain: { goalSnapshot: (goal) => goal } },
   });
   return context.homeHealthScoreComponents(ctx);

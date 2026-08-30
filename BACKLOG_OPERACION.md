@@ -1,5 +1,7 @@
 # Backlog operativo — decisiones rápidas y uso diario
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+
 Fecha: 21 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 Este documento nace de un diagnóstico de consultoría hecho el 21 de agosto de 2026 sobre cuatro

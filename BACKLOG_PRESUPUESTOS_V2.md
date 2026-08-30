@@ -1,5 +1,7 @@
 # Backlog Integrado: Presupuestos + Forecasting (v2)
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+
 **Fecha**: 26 de agosto de 2026  
 **Versión**: Integración de BACKLOG_PRESUPUESTOS.md + Plan Ambicioso  
 **Estado**: Aprobado y en ejecución — FASE 0 a FASE 6 completadas. FASE 5 (Experiencia & Mobile):

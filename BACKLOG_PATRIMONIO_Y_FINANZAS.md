@@ -1,5 +1,7 @@
 # Backlog patrimonio y finanzas
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+
 > **El orden de ejecución de este documento quedó fusionado.** Desde el 29 de agosto de 2026, el
 > orden de ejecución conjunto con `BACKLOG_OPTIMIZACION.md` vive en `BACKLOG_UNIFICADO.md`. Este
 > archivo conserva íntegro el detalle de cada tarea (contexto, prioridad, resultado esperado); para

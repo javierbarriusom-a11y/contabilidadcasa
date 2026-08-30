@@ -1,5 +1,7 @@
 # Backlog operativo — seis vistas × evolución funcional
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+
 Fecha: 10 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 Sitio: `https://javierbarriusom-a11y.github.io/contabilidadcasa/`.
 

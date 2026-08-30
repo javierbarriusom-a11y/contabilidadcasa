@@ -1,5 +1,8 @@
 # Backlog de Presupuestos y Seguimiento — P-1 a U-3
 
+> Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
+> Histórico — continuado por [`BACKLOG_PRESUPUESTOS_V2.md`](BACKLOG_PRESUPUESTOS_V2.md).
+
 Fecha: 22 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 ## Contexto

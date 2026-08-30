@@ -578,6 +578,61 @@ function handleAnalisisPeriod(periodKey) {
   renderAnalisis();
 }
 
+// UX3: comparar dos momentos en el tiempo, no solo "ahora" — reutiliza homeMonthAtAGlance()
+// (app.js, H-6) para dos meses cualesquiera en vez de un motor nuevo. Vive en Análisis, junto al
+// resto de lecturas de solo consulta: no escribe nada, cada fila dice sobre qué mes se calcula.
+function ux3DefaultMonthKeys(months) {
+  if (!months.length) return { a: "", b: "" };
+  const currentKey = String(state?.balanceDate || defaultBalanceDate()).slice(0, 7);
+  const index = months.findIndex((month) => month.key === currentKey);
+  const aIndex = index >= 0 ? index : months.length - 1;
+  const bIndex = aIndex > 0 ? aIndex - 1 : Math.min(months.length - 1, aIndex + 1);
+  return { a: months[aIndex]?.key || "", b: months[bIndex]?.key || "" };
+}
+
+function renderUx3MonthOptions() {
+  const selectA = qs("ux3MonthA");
+  const selectB = qs("ux3MonthB");
+  if (!selectA || !selectB) return;
+  const months = selectableMonths({ includeClosed: true });
+  const defaults = ux3DefaultMonthKeys(months);
+  const keyA = selectA.value || defaults.a;
+  const keyB = selectB.value || defaults.b;
+  selectA.innerHTML = monthOptionsHtml(keyA, months);
+  selectB.innerHTML = monthOptionsHtml(keyB, months);
+}
+
+function ux3ComparisonRow(label, valueA, valueB, { isMoney = true } = {}) {
+  const delta = valueA === null || valueB === null ? null : round2(valueA - valueB);
+  const format = (value) => (isMoney ? money(value, true) : String(value));
+  const formatDelta = (value) => (isMoney ? registrarMesSignedMoney(value) : (value > 0 ? `+${value}` : String(value)));
+  return {
+    label,
+    valueA: valueA === null ? "—" : format(valueA),
+    valueB: valueB === null ? "—" : format(valueB),
+    delta: delta === null ? "—" : formatDelta(delta),
+  };
+}
+
+function renderUx3Comparison() {
+  const target = qs("ux3ComparisonTable");
+  if (!target) return;
+  const keyA = qs("ux3MonthA")?.value;
+  const keyB = qs("ux3MonthB")?.value;
+  if (!keyA || !keyB) { target.innerHTML = ""; return; }
+  const glanceA = homeMonthAtAGlance(`${keyA}-01`, 0);
+  const glanceB = homeMonthAtAGlance(`${keyB}-01`, 0);
+  const rows = [
+    ux3ComparisonRow("Ingresos", glanceA.incomeTotal, glanceB.incomeTotal),
+    ux3ComparisonRow("Gasto previsto", glanceA.plannedExpense, glanceB.plannedExpense),
+    ux3ComparisonRow("Gasto real", glanceA.expenseTotal, glanceB.expenseTotal),
+    ux3ComparisonRow("Desviación", glanceA.deviation, glanceB.deviation),
+    ux3ComparisonRow("Movimientos sin clasificar", glanceA.unclassifiedCount, glanceB.unclassifiedCount, { isMoney: false }),
+  ];
+  target.innerHTML = `<thead><tr><th>Métrica</th><th>${escapeHtml(glanceA.monthLabel)}</th><th>${escapeHtml(glanceB.monthLabel)}</th><th>Diferencia</th></tr></thead>
+    <tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${escapeHtml(row.valueA)}</td><td>${escapeHtml(row.valueB)}</td><td>${escapeHtml(row.delta)}</td></tr>`).join("")}</tbody>`;
+}
+
 function renderAnalisis() {
   const band = qs("analisisCushionBand");
   if (!band || !lastSimulation.length) return;
@@ -690,6 +745,10 @@ function renderAnalisis() {
   // P-1: desglose por tipo de acción, mismo periodo que la cascada de A-4.
   const actionTypeEl = qs("analisisActionTypeBreakdown");
   if (actionTypeEl) actionTypeEl.innerHTML = analisisActionTypeHtml(analisisActionTypeRows(baseData?.transactions || [], periodMonths));
+
+  // UX3: comparar dos momentos en el tiempo — independiente de la ventana/periodo de arriba.
+  renderUx3MonthOptions();
+  renderUx3Comparison();
 }
 
 function handleAnalisisWindow(windowKey) {
