@@ -19,7 +19,7 @@ para sesión aparte.
 (946 IDs, sin cambio — no hay campos nuevos), rendimiento, build del sitio, privacidad y smoke test,
 todos en verde. `app.js` bumpeado a `?v=20260830h4` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #168, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (91): Bloque 6 — A14-3 (núcleo), actualizar valoración sin sobrescribir en silencio
 
