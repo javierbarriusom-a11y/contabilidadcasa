@@ -1,6 +1,229 @@
 # Estado del proyecto
 
-Fecha de revisión: 29 de agosto de 2026.
+Fecha de revisión: 30 de agosto de 2026.
+
+## Cierre de sesión — 30 de agosto de 2026 (84): CP4 — comparación automática de escenarios en la revisión mensual, cierre del Bloque 3
+
+Séptima y última tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio —
+resumen en su Nota: «extiende A10-5».
+
+**Construido**: `e15ScenarioComparison(forecast)` (nueva, `p2-ui.js`) llama a
+`FinanceCanonicalE13.buildLab(forecast, [], {...})` —el mismo motor de tres escenarios del
+Laboratorio, sin eventos manuales— sobre el forecast vigente que ya usa `renderE15Planning()`
+(A10-5). `e15ScenarioComparisonHtml()` la pinta como una lectura más del panel de objetivos y
+calendario, antes del botón «Registrar revisión»: aparece sola al abrir la pantalla, sin que nadie
+tenga que pedirla. Al pulsar «Registrar revisión», la fotografía de los tres escenarios
+(`scenarioComparison`) se guarda dentro del propio registro de la revisión (`p2.e15.reviews[]`,
+junto a `monthKey`/`completedAt`/`notes` que ya existían) — «extiende A10-5» literalmente: mismo
+registro, un campo más, ningún cambio a su forma de guardarse ni de leerse.
+
+**Verificación**: 6 pruebas nuevas en `tests/cp4-comparacion-escenarios-revision-mensual.test.cjs`
+(reutiliza `buildLab` sin eventos manuales, no rompe sin forecast suficiente, pinta las tres
+lecturas, la revisión guarda la fotografía dentro del registro de A10-5 sin tocar su forma, la
+comparación es automática y no bajo pedido, `p2-ui.js` viaja versionado).
+
+**Validación**: `npm run verify`, exit 0 — **2340/2340 pruebas** (2334 + 6 nuevas), accesibilidad
+(911 IDs, sin cambio — no se añadió ningún `id` nuevo), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `p2-ui.js` bumpeado a `?v=20260830cp4a1`; `app.js` no se tocó en esta
+tarea, así que su versión se queda en `?v=20260830e1`.
+
+**Cierre del Bloque 3**: las siete tareas completadas en esta sesión — OPT-7, A17-1, PV3, PV5, CP6,
+UX2, CP4. Cifras finales: 2340/2340 pruebas, 911 IDs de accesibilidad, todo en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
+## Cierre de sesión — 30 de agosto de 2026 (83): UX2 — «dato real / simulación / decisión aplicada», siempre visible
+
+Sexta tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio — resumen en su
+Nota: «lleva el rigor previsto/real/usado (A6) al cromado de cada pantalla».
+
+**Decisión de alcance**: A6/A3-8 ya distinguen previsto/real/usado dentro de Registrar y Plan, celda
+a celda. UX2 no repite eso — construye la versión de un vistazo para las ~cuarenta pantallas de la
+app, en el cromado compartido (`.topbar`, fuera de `<main>`, igual que el chip de sincronización de
+A0-3), no una insignia que cada pantalla tuviera que pintar por su cuenta. Clasificación explícita
+por `viewId` en vez de heurística por nombre, con «real» como valor por defecto: así una pantalla
+nueva que nadie clasifique a propósito no hereda un estado equivocado por casualidad — hereda el
+más conservador y más frecuente.
+
+**Construido**: `UX2_VIEW_NATURE` (nueva, `app.js`) — trece pantallas explícitas en `simulation`
+(Escenario · simular/comparar, Deuda · comparar/simulador, Prever, Previsión, Simulador,
+Simulación/Definitiva de vida nueva, Plan deuda óptimo: ninguna escribe en el libro o el plan
+vigente) y tres en `applied` (Decidir · aplicar escenario, Escenarios guardados, Plan de deuda:
+muestran una decisión ya aplicada o aplicándose de verdad); todo lo demás cae en `real` por
+defecto. `renderDataNatureBadge(viewId)` escribe la píldora nueva `#dataNatureBadge` en el topbar,
+enganchada en `setActiveView()` junto a `renderTopbarStatusStrip` — se repinta en cada cambio de
+vista, para las tres pantallas con cabecera propia (Hoy, Registrar, Movimientos) igual que para el
+resto, porque vive fuera del bloque de eyebrow/título que esas tres ocultan. `styles.css` añade
+`.data-nature-badge` con el mismo lenguaje visual de píldora que `.durability-status`, en sus tres
+tonos.
+
+**Verificación**: 5 pruebas nuevas en `tests/ux2-dato-real-simulacion-decision.test.cjs` (el badge
+vive en el topbar junto al chip de sincronización, la clasificación es explícita y «real» por
+defecto ante una pantalla no clasificada, `renderDataNatureBadge` escribe la etiqueta y el tono
+correctos, `setActiveView` lo repinta en cada cambio de vista, `styles.css` define los tres tonos).
+
+**Validación**: `npm run verify`, exit 0 — **2334/2334 pruebas** (2329 + 5 nuevas), accesibilidad
+(911 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260830e1`.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
+## Cierre de sesión — 30 de agosto de 2026 (82): CP6 — «¿Y si...?» antes de comprometer dinero
+
+Quinta tarea del Bloque 3. Ampliación de septiembre, sin documento de detalle propio — resumen en
+su Nota: «pasa cada decisión grande por el escenario de tensión una vez».
+
+**Decisión de alcance**: «decisión grande» se interpreta como confirmar un plan en «Decidir ·
+aplicar escenario» (`escenario-aplicar`) — es el único punto de la app donde un conjunto de
+decisiones (amortizar, refinanciar, comprar, reunificar…) pasa de simulación a compromiso real
+(«nada se escribe hasta confirmar con un motivo»). El factor de tensión reutiliza exactamente el ya
+establecido en `canonical-e13-scenarios.js` para el Laboratorio (ingresos ×0,9, gastos ×1,1) — no
+un umbral nuevo.
+
+**Hallazgo antes de construir**: `baseInput.policy.incomeFactor/expenseFactor` existían en la
+entrada del motor, pero `canonical-scenario-engine.js` no los lee en ningún sitio — son metadata de
+otro cálculo. El motor sí lee `income`, `coreSpend`, `variableOperationalSpend` y
+`endOfMonthOutflows` de cada mes directamente, así que la tensión tiene que escalar esos campos, no
+la política.
+
+**Construido**: `escenarioMotorTensionInput(baseInput)` (nueva, `app.js`) clona `baseInput.months`
+escalando esos cuatro campos con `CP6_TENSION_INCOME_FACTOR`/`CP6_TENSION_EXPENSE_FACTOR` (0,9/1,1),
+sin mutar el original. `renderEscenarioAplicar()` ejecuta `runEscenarioMotor()` una vez más con esa
+entrada, las mismas decisiones y el mismo guardarraíl, y escribe una nota en la tarjeta nueva
+«¿Y si viene mal dado?» (justo después de la validación contra el contrato y antes del formulario
+de confirmación): si el plan seguiría aplicándose entero bajo tensión, o cuántas decisiones dejarían
+de aplicarse y la caja mínima resultante. No bloquea el botón de confirmar — informa, no decide por
+el usuario (regla transversal 04).
+
+**Verificación**: 4 pruebas nuevas en `tests/cp6-escenario-tension-antes-de-comprometer.test.cjs`
+(reutiliza el factor de E13 en vez de inventar uno, escala los campos correctos sin mutar el input
+original, `renderEscenarioAplicar` calcula la tensión con las mismas decisiones/guardarraíl sin
+bloquear la confirmación, la tarjeta existe en el sitio correcto del formulario).
+
+**Validación**: `npm run verify`, exit 0 — **2329/2329 pruebas** (2325 + 4 nuevas), accesibilidad
+(910 IDs, +2), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260830d1`.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
+## Cierre de sesión — 30 de agosto de 2026 (81): PV3/PV5 — recalibración en cascada al cerrar el mes y diario de por qué cambió cada cifra
+
+Tercera y cuarta tarea del Bloque 3 (construidas juntas por dependencia real: PV5 sin PV3 no
+tendría qué registrar, y PV3 sin PV5 sería una recalibración silenciosa). Ninguna de las dos tiene
+documento de detalle propio — son ampliación de septiembre, resumidas en su columna Nota:
+PV3 «dispara `learnFromHistory()` al confirmar el cierre mensual (A1-2)»; PV5 «prerrequisito de
+confianza para PV1» (bloque 8, todavía pendiente).
+
+**Hallazgo antes de construir**: `learnFromHistory()` (E12b) ya se recalculaba, pero solo al abrir
+el Laboratorio de escenarios (E13) — un hogar que nunca visita esa pantalla avanzada no se enteraba
+nunca de que sus desviaciones habían cambiado. El cierre de mes (A1-2) es el momento exacto en que
+aparecen registros `reconciled` nuevos: es el disparador natural, mismo patrón local que C-13
+(`recordCierreAprendizaje`, ya enganchado en `closeCurrentMonthTransaction`).
+
+**Construido**: `reconciledMonthlyNetHistory()` (nueva, `app.js`) extrae la construcción del
+histórico que antes vivía duplicada dentro de `renderE13ScenarioLab()` — ahora la comparte con el
+disparador nuevo. `recalibrateForecastLearning(monthKey, closedAt)` llama a `learnFromHistory()`
+con ese histórico, compara cada desviación con la última fotografía guardada
+(`pv3-learning-snapshot`, local) y, si cambió de verdad (delta ≥ 1 céntimo o cambio de severidad),
+añade una entrada al diario PV5 (`pv5-diary`, local, acotado a 200 entradas) con la cifra anterior,
+la nueva y un motivo en lenguaje llano (`pv5DiaryReason`). Enganchado en
+`closeCurrentMonthTransaction()` justo después de `recordCierreAprendizaje`. El diario se lee en
+Ajustes (`renderPv5Diary()`, tarjeta nueva «Diario de recalibración de la previsión», junto al
+archivo de informes de cierre) — no se inventa una pantalla propia. Ningún ajuste se aplica solo:
+el aprendizaje sigue con `confirmRequired: true`/`applied: false` (regla transversal 04); esto solo
+registra qué cambió y por qué. `app.js` bumpeado a `?v=20260830c1`.
+
+**Verificación**: 6 pruebas nuevas en `tests/pv3-pv5-recalibracion-diario.test.cjs` (el cierre
+dispara la recalibración, `recalibrateForecastLearning` usa el histórico compartido sin motor
+paralelo, el Laboratorio reutiliza `reconciledMonthlyNetHistory` sin duplicar el histórico, nunca
+se marca `applied: true`, cada cambio queda con cifra anterior/nueva/motivo en un diario acotado,
+PV5 se lee en Ajustes).
+
+**Validación**: `npm run verify`, exit 0 — **2325/2325 pruebas** (2319 + 6 nuevas), accesibilidad
+(908 IDs, +2 por la tarjeta del diario), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
+## Cierre de sesión — 30 de agosto de 2026 (80): A17-1 — widget de solo lectura (saldo, próximo evento, colchón)
+
+Segunda tarea del Bloque 3. Con spec completa en `BACKLOG_PATRIMONIO_Y_FINANZAS.md` (E24a): «widget
+de pantalla de inicio y complicación de reloj, sin ninguna capacidad de escritura».
+
+**Decisión de alcance, antes de construir**: un widget de pantalla de inicio nativo (iOS/Android) y
+una complicación de reloj (watchOS/Wear OS) no son construibles desde un sitio estático sin una app
+nativa que los hospede — ninguno de los dos sistemas operativos expone esa superficie a una PWA, y
+una complicación de reloj necesita tiempo de ejecución nativo. Mismo motivo por el que A17-4
+(«captura por voz») ya declaró «requiere A5-1 operativo, fuera de este documento». Lo que sí ofrece
+la plataforma web sin ninguna app nativa es un atajo de acceso directo
+(`manifest.webmanifest` → `shortcuts`, visible con una pulsación larga sobre el icono ya instalado)
+a una pantalla de solo lectura que carga al instante los tres datos más pedidos — eso es lo que
+construye esta tarea.
+
+**Construido**: nueva vista `#widget` — tres tarjetas de solo lectura (Saldo, Próximo evento,
+Colchón), sin ningún `<input>`, `<select>` ni acción de escritura, con un enlace de vuelta a «Hoy»
+para cualquier edición. `widgetSnapshot()`/`renderWidgetView()` (nuevas, `app.js`) reutilizan
+exactamente los mismos cálculos que «Hoy» — `unifiedActionCenterModel()` para el saldo,
+`rangeKpiMetric(homeRowsForHorizon())` para el colchón (mínimo ajustado del horizonte) — y el
+calendario financiero (`window.FinanceCanonicalE15.financialCalendar()`, A15-3/E15) para el próximo
+evento: el primer evento con fecha propia de los meses futuros, descartando el "forecast" que se
+añade a todos los meses por ser el cierre previsto, no un evento propio. Sin motor paralelo. Enlace
+en el menú avanzado (grupo Datos) y entrada en el catálogo de búsqueda de `e17-experience.js`.
+`manifest.webmanifest` añade `shortcuts` con una entrada a `./#widget` — el equivalente web real a
+un atajo de pantalla de inicio. `app.js` bumpeado a `?v=20260830b1`, `manifest.webmanifest` a
+`?v=20260830a1`.
+
+**Verificación**: 6 pruebas nuevas en `tests/a17-1-widget-solo-lectura.test.cjs` (la sección existe
+sin ningún control de escritura, enlaza de vuelta a Hoy, `widgetSnapshot` reutiliza los cálculos de
+Hoy sin motor paralelo, el router despacha `#widget` con título propio, es localizable desde el
+buscador y el menú avanzado, el manifest ofrece el atajo). Ajustadas dos pruebas existentes que
+fijaban el recuento exacto de enlaces del menú avanzado (`tests/navigation-structure.test.cjs`,
+29→30 enlaces, grupo Datos con el widget al frente) y corregida una fijación de versión que mi
+primer intento de bump había tocado por error (`views/deuda.js?v=20260828a1`, un chunk que no se
+tocó en esta sesión — coincidía por texto con la versión anterior del manifest).
+
+**Validación**: `npm run verify`, exit 0 — **2319/2319 pruebas** (2313 + 6 nuevas), accesibilidad
+(906 IDs, +8 por los nuevos elementos del widget), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
+
+## Cierre de sesión — 30 de agosto de 2026 (79): OPT-7 — resumir «modo familiar» y «alertas» en «Hoy», Bloque 3 en marcha
+
+Primera tarea del Bloque 3 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`. Con spec completa en
+`BACKLOG_OPTIMIZACION.md` (a diferencia de las cinco ideas de ampliación del mismo bloque, que no
+tienen documento de detalle propio).
+
+**Hallazgo antes de construir**: `renderHomeFamilyAndAlerts()` ya mostraba un resumen, no el panel
+completo original — pero «modo familiar» seguía siendo una rejilla de tres cifras (ingresos medios,
+gastos imputados, margen medio) y «alertas» seguía describiendo la primera alerta en una frase.
+Ninguno de los dos es «una línea de estado + enlace», que es lo que pide la tarea. Tampoco existe
+una pantalla «vista familiar» propia a la que enlazar (OPT-22, cerrada el mismo bloque anterior: es
+un filtro de lectura sobre el selector lateral `#familyContextSwitch`, no una vista aparte) — el
+enlace de familia no puede navegar a ningún sitio que no exista.
+
+**Construido**: `renderHomeFamilyAndAlerts()` reescrito — el panel de familia baja a un párrafo
+`.home-status-line` con la etiqueta del contexto activo, el margen medio y un botón «Cambiar
+contexto»; el panel de alertas baja a otro con el recuento de las que requieren atención, el total
+de activas y el botón «Configurar alertas» que ya existía (sin la frase describiendo la primera
+alerta). El botón «Cambiar contexto» usa un atributo nuevo y genérico, `data-scroll-focus`, cableado
+en la delegación de clics de `setupE17Experience()`: lleva el foco al elemento indicado
+(`#familyContextSwitch`, siempre presente en la barra lateral) sin navegar de vista — es un patrón
+reutilizable para cualquier enlace futuro a un control que ya está siempre visible. `styles.css`:
+retirado `.home-family-grid` (y sus reglas asociadas, ya sin uso) y añadido `.home-status-line`.
+`app.js` bumpeado a `?v=20260830a1`; actualizadas las 26 pruebas existentes que fijaban en un
+regex la versión anterior (`20260829v1`) para comprobar que el shell offline viaja versionado.
+
+**Verificación**: 5 pruebas nuevas en `tests/opt7-resumen-familia-alertas.test.cjs` (el panel de
+familia ya no repite el desglose de tres cifras, enlaza al selector lateral en vez de a una vista
+propia, el panel de alertas ya no describe la primera alerta y conserva el botón Configurar,
+`data-scroll-focus` está cableado con `scrollIntoView`, `styles.css` refleja el cambio).
+
+**Validación**: `npm ci` + `npm run verify`, exit 0 — **2313/2313 pruebas** (2308 + 5 nuevas),
+accesibilidad (898 IDs, sin cambio — no se tocó ningún `id`), rendimiento, build del sitio,
+privacidad y smoke test, todos en verde.
+
+**Publicado**: commit y push a `claude/estado-desarrollos-tjkx3c`.
 
 ## Cierre de sesión — 29 de agosto de 2026 (78): DI5 — reestructuración conjunta ante una caída de ingresos, y cierre del Bloque 4
 

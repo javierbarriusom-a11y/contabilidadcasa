@@ -376,6 +376,10 @@ const viewTitles = {
     eyebrow: "Fin de mes",
     title: "Concilia, resuelve y firma el cierre del mes",
   },
+  widget: {
+    eyebrow: "Solo lectura",
+    title: "Saldo, próximo evento y colchón, sin abrir el resto de la app",
+  },
   analisis: {
     eyebrow: "Analizar",
     title: "La lectura ejecutiva de tu plan, con procedencia",
@@ -716,7 +720,15 @@ function setupE17Experience() {
     if (open) { openE17Dialog(open.dataset.e17Open); return; }
     if (event.target.closest("[data-e17-close]")) { event.target.closest("dialog")?.close(); return; }
     const result = event.target.closest("[data-e17-target]");
-    if (result) { qs("e17LauncherDialog")?.close(); navigateE17(result.dataset.e17Target); }
+    if (result) { qs("e17LauncherDialog")?.close(); navigateE17(result.dataset.e17Target); return; }
+    // OPT-7: enlaces que no navegan a otra vista, solo llevan el foco a un control que ya está
+    // siempre visible (p. ej. el selector lateral de contexto familiar).
+    const scrollFocus = event.target.closest("[data-scroll-focus]");
+    if (scrollFocus) {
+      const target = qs(scrollFocus.dataset.scrollFocus);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      target?.querySelector("button, [tabindex], input, select")?.focus();
+    }
   });
   // #10/P-6 (Ola 4, plan de mejora post-E20 · 28/08/2026): el catálogo y la búsqueda difusa del
   // lanzador ya existían (data-e17-open="launcher" arriba); solo faltaba el atajo. Sin diálogo nativo
@@ -3956,6 +3968,52 @@ function recordViewVisit(viewId) {
   storageSet(storageKey(VISIT_COUNTS_KEY), JSON.stringify(counts));
 }
 
+// UX2 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "experiencia" — sin documento de detalle
+// propio, resumen en su Nota): "«dato real / simulación / decisión aplicada», siempre visible —
+// lleva el rigor previsto/real/usado (A6/A3-8) al cromado de cada pantalla". A6/A3-8 ya distinguen
+// previsto/real/usado dentro de Registrar y Plan; esto es la versión de un vistazo para las ~40
+// pantallas de la app, en el cromado compartido (fuera de <main>, igual que el chip de
+// sincronización de A0-3), no una insignia que cada pantalla tenga que pintar por su cuenta.
+//
+// Clasificación explícita en vez de heurística por nombre — así una pantalla nueva no hereda un
+// estado equivocado por casualidad. Por defecto "real" (la mayoría: Hoy, Registrar, Cierre,
+// Análisis, Ajustes, Deuda › Contratos/Ruta, Presupuesto del mes...). "simulation" son las pantallas
+// cuyo propósito entero es explorar sin comprometer nada (nunca escriben en el libro/plan vigente).
+// "applied" son las que muestran una decisión que ya se aplicó o se está aplicando de verdad.
+const UX2_VIEW_NATURE = {
+  "escenario-simular": "simulation",
+  "escenario-comparar": "simulation",
+  "deuda-comparar": "simulation",
+  "deuda-simulador": "simulation",
+  forecast: "simulation",
+  prevision: "simulation",
+  simulator: "simulation",
+  "new-life-simulation": "simulation",
+  "new-life-definitive": "simulation",
+  "debt-liquidation-plan": "simulation",
+  "escenario-aplicar": "applied",
+  "escenario-guardados": "applied",
+  "debt-roadmap": "applied",
+};
+
+const UX2_NATURE_LABEL = {
+  real: "Dato real",
+  simulation: "Simulación",
+  applied: "Decisión aplicada",
+};
+
+function viewDataNature(viewId) {
+  return UX2_VIEW_NATURE[viewId] || "real";
+}
+
+function renderDataNatureBadge(viewId) {
+  const badge = qs("dataNatureBadge");
+  if (!badge) return;
+  const nature = viewDataNature(viewId);
+  badge.className = `data-nature-badge${nature === "real" ? "" : ` data-nature-${nature}`}`;
+  badge.textContent = UX2_NATURE_LABEL[nature];
+}
+
 function viewVisitSummary(viewId) {
   return loadVisitCounts()[viewId] || { count: 0, last: "" };
 }
@@ -4011,6 +4069,7 @@ function setActiveView(viewId = viewFromHash(), { focus = false, announce = true
     viewTitle.classList.toggle("sr-only", hasOwnHeader);
   }
   document.title = UxShell?.makeDocumentTitle?.(copy.title) || `${copy.title} | Finanzas Casa`;
+  renderDataNatureBadge(viewId);
   renderTopbarStatusStrip(viewId);
   renderE17ViewGuide(viewId);
   if (viewChanged) window.scrollTo({ top: 0, behavior: "instant" });
@@ -4545,6 +4604,9 @@ async function closeCurrentMonthTransaction() {
     // un historial local (no toca el RPC transaccional ni el esquema remoto, ver el comentario junto
     // a `recordCierreAprendizaje`).
     recordCierreAprendizaje(month, closedAt);
+    // PV3: el cierre firmado es el disparador de la recalibración en cascada del aprendizaje de
+    // desviaciones (E12b) — mismo espíritu local que recordCierreAprendizaje, justo encima.
+    recalibrateForecastLearning(month, closedAt);
     // D-2b: cada cierre firmado congela una foto nueva de la deuda viva — mismo espíritu local que
     // C-13, no toca el RPC transaccional ni el esquema remoto.
     saveDebtCapitalSnapshotAtClose({ total: homeDebtOutlook().pendingPrincipal, monthKey: month, closedAt });
@@ -16523,8 +16585,9 @@ function renderE13ScenarioLab() {
       <span>${money(scenario.metrics.debtImpact, true)}</span>
       <span>${scenario.metrics.recoveryMonth === null ? "Sin ruptura" : scenario.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(scenario.metrics.recoveryMonth)}</span>
     </div>`).join("")}`;
-  const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
-  const history = [...matchedMonths.values()].map((month) => ({ monthKey: month.monthKey, conceptId: "monthly-net", label: "Flujo mensual", planned: (() => { const row = forecast.series.find((item) => item.monthKey === month.monthKey); return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN; })(), actual: Number(month.bankIncome) - Number(month.bankExpense), amount: Number(month.bankIncome) - Number(month.bankExpense), reconciled: true }));
+  // PV3: misma construcción del histórico que usa recalibrateForecastLearning() al cerrar el mes,
+  // ahora compartida en reconciledMonthlyNetHistory() en vez de duplicada.
+  const history = reconciledMonthlyNetHistory();
   const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
   const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
@@ -22891,6 +22954,7 @@ function renderAjustes() {
   renderAjustesSobres();
   renderAjustesLaboratorio();
   renderCierreReportArchive();
+  renderPv5Diary();
   renderAnnualReview();
 
   const balances = accountBalancesFromState();
@@ -24425,37 +24489,106 @@ function alertStatusMeta(alert) {
   return { label: "En control", tone: "good" };
 }
 
+// OPT-7 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3): «modo familiar» y «alertas» eran paneles
+// completos duplicando contenido que ya vive en su propia pantalla (el selector lateral de
+// contexto, el Centro de alertas) y competían por atención con las decisiones abiertas. Cada
+// panel baja a una sola línea de estado + un enlace a donde vive el detalle completo — no hay una
+// pantalla «vista familiar» separada (OPT-22: es un filtro de lectura, no una vista propia), así
+// que el enlace de familia enfoca el selector lateral (`#familyContextSwitch`) en vez de navegar.
 function renderHomeFamilyAndAlerts() {
   const familyTarget = qs("homeFamilySummary");
   if (familyTarget) {
     const family = familyContextSnapshot();
     const meta = familyContextMeta(family.context);
     const averageDivisor = Math.max(1, family.months.length);
-    familyTarget.innerHTML = `<div class="home-context-head">
-        <div><p class="panel-kicker">Modo familiar · ${escapeHtml(meta.label)}</p><h3>Capacidad por titular</h3></div>
-        <span class="status-pill ${family.net >= 0 ? "good" : "danger"}">${family.months.length} meses</span>
-      </div>
-      <div class="home-family-grid">
-        <div><span>Ingresos medios</span><strong>${money(family.income / averageDivisor, true)}</strong></div>
-        <div><span>Gastos imputados</span><strong>${money(family.expenses / averageDivisor, true)}</strong></div>
-        <div><span>Margen medio</span><strong>${money(family.net / averageDivisor, true)}</strong></div>
-      </div>
-      <p>${escapeHtml(meta.note)} Cambia la vista desde el selector lateral.</p>`;
+    const netAvg = family.net / averageDivisor;
+    familyTarget.innerHTML = `<p class="home-status-line">
+        <span class="status-pill ${family.net >= 0 ? "good" : "danger"}">${escapeHtml(meta.label)}</span>
+        Margen medio ${money(netAvg, true)}/mes.
+        <button type="button" class="link-button" data-scroll-focus="familyContextSwitch">Cambiar contexto</button>
+      </p>`;
   }
 
   const alertTarget = qs("homeAlertSummary");
   if (alertTarget) {
     const alerts = evaluatedUxAlerts();
     const attention = alerts.filter((alert) => alert.triggered || alert.overdue);
-    const first = attention[0];
-    const metric = first ? UX_ALERT_METRICS[first.metric] : null;
-    alertTarget.innerHTML = `<div class="home-context-head">
-        <div><p class="panel-kicker">Alertas configurables</p><h3>${attention.length ? `${attention.length} requieren atención` : "Todo bajo control"}</h3></div>
-        <span class="status-pill ${attention.length ? "warn" : "good"}">${alerts.filter((alert) => !alert.paused).length} activas</span>
-      </div>
-      <p>${first ? `${escapeHtml(first.name)}: ${escapeHtml(metric?.format(first.value) || String(first.value ?? "sin dato"))}.` : "No hay umbrales rebasados ni revisiones vencidas."}</p>
-      <button type="button" class="secondary-button" data-home-nav="alerts-center">Configurar alertas</button>`;
+    alertTarget.innerHTML = `<p class="home-status-line">
+        <span class="status-pill ${attention.length ? "warn" : "good"}">${attention.length ? `${attention.length} requieren atención` : "Todo bajo control"}</span>
+        ${alerts.filter((alert) => !alert.paused).length} alertas activas.
+        <button type="button" class="secondary-button compact-button" data-home-nav="alerts-center">Configurar alertas</button>
+      </p>`;
   }
+}
+
+// A17-1 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, BACKLOG_PATRIMONIO_Y_FINANZAS.md E24a):
+// «widget de pantalla de inicio y complicación de reloj» tal cual está escrito no es construible
+// desde un sitio estático sin app nativa que lo hospede — ni iOS ni Android exponen esa superficie
+// del sistema operativo a una PWA, y una complicación de reloj necesita tiempo de ejecución nativo
+// de watchOS/Wear OS (mismo motivo por el que A17-4, «captura por voz», declaró «requiere A5-1
+// operativo, fuera de este documento»). Lo que sí ofrece la plataforma web sin ninguna app nativa
+// es un atajo de acceso directo (manifest.webmanifest → "shortcuts", visible con una pulsación
+// larga sobre el icono ya instalado) a una pantalla de solo lectura que carga al instante los tres
+// datos más pedidos — eso es lo que construye esta tarea: #widget, sin ningún control de escritura,
+// reutilizando exactamente las mismas cifras que ya calcula «Hoy» (nunca un cálculo paralelo).
+function widgetSnapshot() {
+  const actionCenter = unifiedActionCenterModel();
+  const actionCtx = actionCenter.context || {};
+  const balances = actionCtx.balances || accountBalancesFromState();
+  const metrics = rangeKpiMetric(homeRowsForHorizon());
+
+  let nextEvent = null;
+  const calendarApi = window.FinanceCanonicalE15;
+  const planning = window.FinanceP2Bridge?.goalPlanning?.();
+  if (calendarApi && planning) {
+    const p2 = p2State();
+    const calendar = calendarApi.financialCalendar({
+      ...planning,
+      goals: p2.goals,
+      reviews: p2.e15?.reviews || [],
+      policies: insurancePolicies(),
+    });
+    for (const row of calendar.rows || []) {
+      // "forecast" se añade a todos los meses (es el cierre previsto, no un evento con fecha
+      // propia): el próximo evento real es el primero que no sea ese.
+      const found = (row.events || []).find((event) => event.type !== "forecast");
+      if (found) { nextEvent = { ...found, monthLabel: row.label }; break; }
+    }
+  }
+
+  return {
+    balanceTotal: balances.total,
+    balanceAsOf: actionCenter.asOf,
+    cushionMin: metrics?.adjustedMin ?? null,
+    cushionMonth: metrics?.adjustedMinMonth || "",
+    cushionDate: metrics?.adjustedMinDate || "",
+    nextEvent,
+  };
+}
+
+function renderWidgetView() {
+  if (!qs("widgetBalance")) return;
+  const snapshot = widgetSnapshot();
+
+  qs("widgetBalance").textContent = money(snapshot.balanceTotal, true);
+  qs("widgetBalanceNote").textContent = snapshot.balanceAsOf ? `A ${snapshot.balanceAsOf}.` : "";
+
+  const eventEl = qs("widgetNextEvent");
+  const eventNoteEl = qs("widgetNextEventNote");
+  if (snapshot.nextEvent) {
+    eventEl.textContent = snapshot.nextEvent.label;
+    eventNoteEl.textContent = `${snapshot.nextEvent.monthLabel} · ${
+      snapshot.nextEvent.amount === null ? "importe por determinar" : money(snapshot.nextEvent.amount, true)
+    }`;
+  } else {
+    eventEl.textContent = "Sin eventos previstos";
+    eventNoteEl.textContent = "El calendario financiero no tiene vencimientos, objetivos ni revisiones por delante.";
+  }
+
+  qs("widgetCushion").textContent = snapshot.cushionMin === null ? "—" : money(snapshot.cushionMin, true);
+  qs("widgetCushionNote").textContent = snapshot.cushionMin === null
+    ? "Sin rango suficiente para calcular mínimos."
+    : `Mínimo ajustado en ${snapshot.cushionMonth}${snapshot.cushionDate ? ` (${snapshot.cushionDate})` : ""}.`;
 }
 
 function alertRuleOptions(selected, options) {
@@ -26070,6 +26203,29 @@ let escenarioCompararSignature = "";
 
 function escenarioMotorBaseInput() {
   return canonicalEngineInput(projectPlan.outflows || []);
+}
+
+// CP6 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "copiloto proactivo" — sin documento de
+// detalle propio, resumen en su Nota): "pasa cada decisión grande por el escenario de tensión una
+// vez" antes de comprometer dinero. Mismo factor de tensión que ya usa canonical-e13-scenarios.js
+// (ingresos ×0,9, gastos ×1,1) — no un umbral nuevo. Se aplica a los campos que
+// canonical-scenario-engine.js sí lee de cada mes (income, coreSpend, variableOperationalSpend,
+// endOfMonthOutflows); `baseInput.policy.incomeFactor/expenseFactor` no sirven aquí porque ese
+// motor no los consume (son metadata para otro cálculo).
+const CP6_TENSION_INCOME_FACTOR = 0.9;
+const CP6_TENSION_EXPENSE_FACTOR = 1.1;
+
+function escenarioMotorTensionInput(baseInput) {
+  return {
+    ...baseInput,
+    months: (baseInput.months || []).map((month) => ({
+      ...month,
+      income: round2(Number(month.income || 0) * CP6_TENSION_INCOME_FACTOR),
+      coreSpend: round2(Number(month.coreSpend || 0) * CP6_TENSION_EXPENSE_FACTOR),
+      variableOperationalSpend: round2(Number(month.variableOperationalSpend || 0) * CP6_TENSION_EXPENSE_FACTOR),
+      endOfMonthOutflows: round2(Number(month.endOfMonthOutflows || 0) * CP6_TENSION_EXPENSE_FACTOR),
+    })),
+  };
 }
 
 // Incluye el plan reunificado sintético (canonicalDebtContractRows añade «reunified-plan-current»
@@ -27774,6 +27930,25 @@ function renderEscenarioAplicar() {
   const scenarioSummary = escenarioMotorSummaryFor(result, baseInput.months);
   const kpis = qs("escenarioAplicarKpis");
   if (kpis) kpis.innerHTML = escenarioMotorKpiCardsHtml(baseSummary, scenarioSummary);
+
+  // CP6: el mismo plan (mismas decisiones, mismo guardarraíl), una vez bajo el escenario de
+  // tensión. No sustituye la validación contra el contrato de arriba, la complementa: esa dice si
+  // el plan es válido hoy, esta dice si seguiría siéndolo si ingresos y gastos van peor.
+  const tensionResult = runEscenarioMotor(escenarioMotorTensionInput(baseInput), escenarioMotorDecisions, escenarioMotorGuardrailValue);
+  const tensionSummary = escenarioMotorSummaryFor(tensionResult, baseInput.months);
+  const tensionNote = qs("escenarioAplicarTensionNote");
+  if (tensionNote) {
+    const tensionResultados = tensionResult?.resultados || [];
+    const tensionRejected = tensionResultados.filter((item) => item.resultado !== "aplicada").length;
+    const minimoLiquidezText = tensionSummary.minimoLiquidez === null ? "sin datos" : money(tensionSummary.minimoLiquidez, true);
+    if (!tensionResultados.length) {
+      tensionNote.textContent = "No se pudo calcular el escenario de tensión para este plan.";
+    } else if (!tensionRejected) {
+      tensionNote.textContent = `Con ingresos un 10 % más bajos y gastos un 10 % más altos, el plan seguiría aplicándose entero. Caja mínima bajo tensión: ${minimoLiquidezText}.`;
+    } else {
+      tensionNote.textContent = `Con ingresos un 10 % más bajos y gastos un 10 % más altos, ${tensionRejected} de ${tensionResultados.length} decisión(es) dejarían de aplicarse. Caja mínima bajo tensión: ${minimoLiquidezText}. Revísalo antes de confirmar: esto no bloquea la confirmación, solo la informa.`;
+    }
+  }
   const validationList = qs("escenarioAplicarValidationList");
   if (validationList) {
     validationList.innerHTML = escenarioMotorValidationChecklistHtml(
@@ -28911,6 +29086,119 @@ function handleCierreReportArchiveDownload(monthKey) {
   if (!entry) return;
   window.P2Export.downloadPlainPdf(entry.pdfLines, `resumen-mes-${monthKey}.pdf`);
   announceStatus(`PDF archivado de ${registrarMesLongMonth(monthKey)} descargado.`);
+}
+
+// PV3/PV5 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "previsión viva" — sin documento de
+// detalle propio, resumen en su Nota): "recalibración en cascada al cerrar el mes — dispara
+// learnFromHistory() al confirmar el cierre mensual (A1-2)" y "diario de por qué cambió cada
+// cifra". Antes de este cambio, learnFromHistory() solo se recalculaba al abrir el Laboratorio de
+// escenarios (E13): un hogar que nunca visita esa pantalla avanzada no se enteraba de que sus
+// desviaciones habían cambiado. El cierre de mes (A1-2) es el momento exacto en que aparecen
+// registros `reconciled` nuevos, así que es el disparador natural — mismo patrón local que C-13
+// (`recordCierreAprendizaje`): no toca el RPC transaccional ni el esquema remoto. PV5 se construye
+// a la vez porque sin él la recalibración sería silenciosa: un ajuste sugerido que cambia de un
+// cierre a otro sin dejar rastro no es distinto de que no exista. Ninguna previsión se ajusta sola
+// (regla transversal 04): el aprendizaje sigue con `confirmRequired: true`/`applied: false`; esto
+// solo registra qué cambió y por qué.
+function reconciledMonthlyNetHistory() {
+  const forecast = canonicalScenarioResults.base?.forecast;
+  if (!forecast) return [];
+  const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
+  return [...matchedMonths.values()].map((month) => ({
+    monthKey: month.monthKey,
+    conceptId: "monthly-net",
+    label: "Flujo mensual",
+    planned: (() => {
+      const row = forecast.series.find((item) => item.monthKey === month.monthKey);
+      return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN;
+    })(),
+    actual: Number(month.bankIncome) - Number(month.bankExpense),
+    amount: Number(month.bankIncome) - Number(month.bankExpense),
+    reconciled: true,
+  }));
+}
+
+function loadPv3LearningSnapshot() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("pv3-learning-snapshot"), "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePv3LearningSnapshot(snapshot) {
+  storageSet(storageKey("pv3-learning-snapshot"), JSON.stringify(snapshot));
+}
+
+const PV5_DIARY_MAX_ENTRIES = 200;
+
+function loadPv5Diary() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("pv5-diary"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePv5Diary(list) {
+  storageSet(storageKey("pv5-diary"), JSON.stringify(list.slice(0, PV5_DIARY_MAX_ENTRIES)));
+}
+
+function pv5DiaryReason(entry) {
+  if (entry.previousDelta === null) {
+    return `Primera vez con historial suficiente (${entry.sampleMonths} mes(es)): desviación media ${money(entry.newDelta, true)}, confianza ${entry.newConfidence}.`;
+  }
+  return `Pasó de ${money(entry.previousDelta, true)} a ${money(entry.newDelta, true)} de desviación media (confianza ${entry.newConfidence}).`;
+}
+
+function recalibrateForecastLearning(monthKey, closedAt) {
+  const learning = window.FinanceCanonicalForecast?.learnFromHistory(reconciledMonthlyNetHistory(), { generatedAt: closedAt });
+  if (!learning) return [];
+  const previous = loadPv3LearningSnapshot();
+  const nextSnapshot = {};
+  const newEntries = [];
+  learning.deviations.forEach((deviation) => {
+    const before = previous[deviation.conceptId];
+    nextSnapshot[deviation.conceptId] = { averageDelta: deviation.averageDelta, severity: deviation.severity, sampleMonths: deviation.sampleMonths };
+    const changed = !before || Math.abs(before.averageDelta - deviation.averageDelta) >= 0.01 || before.severity !== deviation.severity;
+    if (!changed) return;
+    const entry = {
+      id: `${deviation.conceptId}-${closedAt}`,
+      at: closedAt,
+      monthKey,
+      conceptId: deviation.conceptId,
+      label: deviation.label,
+      previousDelta: before ? before.averageDelta : null,
+      newDelta: deviation.averageDelta,
+      previousSeverity: before ? before.severity : null,
+      newSeverity: deviation.severity,
+      sampleMonths: deviation.sampleMonths,
+      newConfidence: deviation.confidence,
+    };
+    entry.reason = pv5DiaryReason(entry);
+    newEntries.push(entry);
+  });
+  savePv3LearningSnapshot(nextSnapshot);
+  if (newEntries.length) savePv5Diary([...newEntries, ...loadPv5Diary()]);
+  return newEntries;
+}
+
+function renderPv5Diary() {
+  const list = qs("pv5DiaryList");
+  const empty = qs("pv5DiaryEmpty");
+  if (!list) return;
+  const diary = loadPv5Diary();
+  if (empty) empty.hidden = Boolean(diary.length);
+  list.innerHTML = diary
+    .map(
+      (entry) => `<li class="pv5-diary-item">
+        <span>${escapeHtml(registrarMesLongMonth(entry.monthKey))} · ${escapeHtml(entry.label)}</span>
+        <p class="e19-kpi-note">${escapeHtml(entry.reason)}</p>
+      </li>`,
+    )
+    .join("");
 }
 
 function renderCierreReportArchive() {
@@ -31496,6 +31784,9 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "reconciliation":
       renderReconciliation();
+      break;
+    case "widget":
+      renderWidgetView();
       break;
     default:
       break;

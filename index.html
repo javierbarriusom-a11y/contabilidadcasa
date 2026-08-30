@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
-    <link rel="manifest" href="manifest.webmanifest?v=20260828a1" />
+    <link rel="manifest" href="manifest.webmanifest?v=20260830a1" />
     <link rel="stylesheet" href="styles.css?v=20260829pv2a1" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
     <link rel="stylesheet" href="design-tokens.css?v=20260829opt4a1" />
@@ -102,6 +102,7 @@
               <a href="#forecast" data-e17-group="analysis">Proyección</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="datos">Datos</p>
+              <a href="#widget" data-e17-group="data">Widget de solo lectura (nuevo)</a>
               <a href="#datos-importar" data-e17-group="data">Importar extracto en 4 pasos (nuevo)</a>
               <a href="#registrar-mes" data-e17-group="data">Registrar el mes (nuevo)</a>
               <a href="#data-entry" data-e17-group="data">Carga de datos</a>
@@ -196,6 +197,10 @@
             <h1 id="viewTitle" tabindex="-1">Planifica liquidez, ahorro y refinanciación desde la fecha de análisis</h1>
           </div>
           <div class="topbar-status">
+            <!-- UX2: "dato real / simulación / decisión aplicada", siempre visible — lleva el rigor
+                 previsto/real/usado (A6/A3-8) al cromado compartido, fuera de <main> igual que el
+                 chip de sincronización, así que ninguna de las ~40 pantallas se queda sin él. -->
+            <div class="data-nature-badge" id="dataNatureBadge" role="status"></div>
             <!-- H-2: chip de sincronización, visible en las nueve pantallas (fuera de <main>). -->
             <div class="durability-status durability-local" id="durabilityStatus" role="status" aria-live="polite">
               <span id="durabilityBadge">Local</span>
@@ -354,6 +359,36 @@
                   <button type="button" class="secondary-button compact-button" data-home-nav="alerts-center">Configurar</button>
                 </div>
                 <div class="home-alert-summary" id="homeAlertSummary"></div>
+              </article>
+            </div>
+          </section>
+
+          <!-- A17-1: widget de solo lectura, pensado para abrirse por atajo (manifest.webmanifest
+               → shortcuts), no navegando desde el menú principal. Sin ninguna capacidad de
+               escritura — solo lectura de las mismas tres cifras que ya calcula Hoy. -->
+          <section class="view-section widget-view" id="widget">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker">Widget de solo lectura</p>
+                <h2>Saldo, próximo evento y colchón, sin abrir el resto de la app</h2>
+                <p>Pensado para un atajo del icono instalado (o para dejar esta pestaña abierta). No permite editar nada — para eso, <a href="#home" data-home-nav="home">abre «Hoy»</a>.</p>
+              </div>
+            </div>
+            <div class="widget-card-grid" id="widgetCards">
+              <article class="widget-card">
+                <p class="panel-kicker">Saldo</p>
+                <strong id="widgetBalance">—</strong>
+                <p id="widgetBalanceNote"></p>
+              </article>
+              <article class="widget-card">
+                <p class="panel-kicker">Próximo evento</p>
+                <strong id="widgetNextEvent">—</strong>
+                <p id="widgetNextEventNote"></p>
+              </article>
+              <article class="widget-card">
+                <p class="panel-kicker">Colchón</p>
+                <strong id="widgetCushion">—</strong>
+                <p id="widgetCushionNote"></p>
               </article>
             </div>
           </section>
@@ -1327,6 +1362,14 @@
             <article class="e19-card escenario-motor-validation" id="escenarioAplicarValidationCard">
               <h3 class="escenario-motor-panel-title">Validación contra el contrato</h3>
               <ul class="deuda-ruta-checklist" id="escenarioAplicarValidationList"></ul>
+            </article>
+
+            <!-- CP6: antes de comprometer dinero, el mismo plan se pasa una vez por el escenario de
+                 tensión (ingresos −10 %, gastos +10 %, mismo factor que el Laboratorio E13) para ver
+                 si aguanta, no solo si cuadra en el caso base. -->
+            <article class="e19-card" id="escenarioAplicarTensionCard">
+              <h3 class="escenario-motor-panel-title">¿Y si viene mal dado? (escenario de tensión)</h3>
+              <p class="e19-kpi-note" id="escenarioAplicarTensionNote"></p>
             </article>
 
             <div class="escenario-motor-layout escenario-motor-layout-apply">
@@ -2364,6 +2407,13 @@
               <p class="e19-kpi-note">Un informe por cada mes firmado en Cierre, congelado en el momento de firmarlo — no se regenera con datos que hayan podido cambiar después.</p>
               <ul class="cierre-report-archive-list" id="cierreReportArchiveList"></ul>
               <p class="e19-kpi-note" id="cierreReportArchiveEmpty" hidden>Todavía no hay ningún mes firmado.</p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Diario de recalibración de la previsión</h3>
+              <p class="e19-kpi-note">Por qué cambió cada cifra: cada cierre de mes recalcula el aprendizaje de desviaciones (E12b) y registra aquí lo que cambió, con la cifra anterior y la nueva — nunca aplica un ajuste solo.</p>
+              <ul class="pv5-diary-list" id="pv5DiaryList"></ul>
+              <p class="e19-kpi-note" id="pv5DiaryEmpty" hidden>Todavía no ha cambiado ninguna cifra tras un cierre de mes.</p>
             </article>
 
             <article class="e19-card">
@@ -4417,8 +4467,8 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260829v1"></script>
-    <script defer src="p2-ui.js?v=20260805e16a2"></script>
+    <script defer src="app.js?v=20260830e1"></script>
+    <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
         navigator.serviceWorker.register("./service-worker.js").catch(() => {});

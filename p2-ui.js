@@ -93,6 +93,32 @@
     </section>`;
   }
 
+  // CP4 (BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 3, ampliación "copiloto proactivo" — sin documento
+  // de detalle propio, resumen en su Nota): "comparación automática de escenarios en la revisión
+  // mensual — extiende A10-5". Reutiliza el mismo motor de tres escenarios del Laboratorio (E13,
+  // base/favorable/tensión) sobre el forecast vigente, sin eventos manuales — es la lectura de
+  // "¿cómo habría ido el mes bajo las tres lecturas?", no una simulación nueva que el usuario tenga
+  // que configurar. "Automática" quiere decir que aparece sola al abrir la revisión y que su
+  // fotografía se guarda sola dentro del propio registro de revisión (A10-5), no que ajuste nada.
+  function e15ScenarioComparison(forecast) {
+    const api13 = root.FinanceCanonicalE13;
+    if (!api13 || !forecast?.series?.length) return null;
+    const lab = api13.buildLab(forecast, [], { generatedAt: forecast.generatedAt });
+    return lab.scenarios.map((scenario) => ({
+      id: scenario.id,
+      label: scenario.label,
+      minChecking: scenario.metrics.minChecking,
+      negativeMonths: scenario.metrics.negativeMonths,
+    }));
+  }
+
+  function e15ScenarioComparisonHtml(scenarios) {
+    if (!scenarios) return '<p class="p2-help">Sin forecast suficiente para comparar escenarios.</p>';
+    return `<div class="p2-list">${scenarios
+      .map((scenario) => `<div class="p2-contribution"><span><strong>${esc(scenario.label)}</strong></span><small>Caja mínima ${euro(scenario.minChecking)} · ${scenario.negativeMonths} mes(es) en negativo</small></div>`)
+      .join("")}</div>`;
+  }
+
   function renderE15Planning() {
     const api = root.FinanceCanonicalE15;
     const planning = bridge()?.goalPlanning?.();
@@ -104,12 +130,13 @@
     const conflicts = api.detectConflicts(plan);
     const calendar = api.financialCalendar({ ...planning, goals: p2.goals, reviews: p2.e15?.reviews || [] });
     const currentMonth = calendar.rows[0]?.monthKey || "";
-    target.querySelector("[data-p2-body]").innerHTML = `<div class="p2-kpis"><div class="p2-kpi"><span>Capacidad mensual</span><strong>${euro(plan.monthlyCapacity)}</strong></div><div class="p2-kpi"><span>Reserva</span><strong>${euro(plan.reserve)}</strong></div><div class="p2-kpi"><span>Conflictos</span><strong>${conflicts.conflicts.length}</strong></div><div class="p2-kpi"><span>Sin asignar</span><strong>${euro(plan.unassignedCapacity)}</strong></div></div><div class="p2-list">${plan.plans.length ? plan.plans.map((goal) => `<section class="p2-item"><div class="p2-item-head"><div><h4>${esc(goal.name)}</h4><p class="p2-help">${goal.months} meses · ${esc(goal.priority)}</p></div><span class="p2-status${goal.delayed ? " warn" : ""}">${goal.delayed ? "Revisar" : "Compatible"}</span></div><p><strong>${euro(goal.proposedMonthly)}/mes</strong> de ${euro(goal.requiredMonthly)}/mes.</p><p class="p2-help">${esc(goal.explanation)}</p></section>`).join("") : '<div class="p2-empty">Crea un objetivo para calcular aportaciones.</div>'}</div><div class="p2-list">${conflicts.conflicts.length ? conflicts.conflicts.map((item) => `<div class="p2-contribution"><span>${esc(item.goal)} · faltan ${euro(item.shortage)}/mes</span><small>${esc(item.alternatives.join(" · "))}</small></div>`).join("") : '<p class="p2-help">No hay conflictos de capacidad.</p>'}</div><div class="p2-list">${calendar.rows.slice(0, 12).map((row) => `<div class="p2-contribution"><span><strong>${esc(row.label)}</strong> · cierre ${euro(row.closingLiquidity)}</span><small>${esc(row.events.map((event) => event.label).join(" · "))}</small></div>`).join("")}</div><div class="p2-actions"><button class="p2-button secondary" type="button" data-e15-review>Registrar revisión de ${esc(currentMonth || "este mes")}</button></div>`;
+    const scenarioComparison = e15ScenarioComparison(planning.forecast);
+    target.querySelector("[data-p2-body]").innerHTML = `<div class="p2-kpis"><div class="p2-kpi"><span>Capacidad mensual</span><strong>${euro(plan.monthlyCapacity)}</strong></div><div class="p2-kpi"><span>Reserva</span><strong>${euro(plan.reserve)}</strong></div><div class="p2-kpi"><span>Conflictos</span><strong>${conflicts.conflicts.length}</strong></div><div class="p2-kpi"><span>Sin asignar</span><strong>${euro(plan.unassignedCapacity)}</strong></div></div><div class="p2-list">${plan.plans.length ? plan.plans.map((goal) => `<section class="p2-item"><div class="p2-item-head"><div><h4>${esc(goal.name)}</h4><p class="p2-help">${goal.months} meses · ${esc(goal.priority)}</p></div><span class="p2-status${goal.delayed ? " warn" : ""}">${goal.delayed ? "Revisar" : "Compatible"}</span></div><p><strong>${euro(goal.proposedMonthly)}/mes</strong> de ${euro(goal.requiredMonthly)}/mes.</p><p class="p2-help">${esc(goal.explanation)}</p></section>`).join("") : '<div class="p2-empty">Crea un objetivo para calcular aportaciones.</div>'}</div><div class="p2-list">${conflicts.conflicts.length ? conflicts.conflicts.map((item) => `<div class="p2-contribution"><span>${esc(item.goal)} · faltan ${euro(item.shortage)}/mes</span><small>${esc(item.alternatives.join(" · "))}</small></div>`).join("") : '<p class="p2-help">No hay conflictos de capacidad.</p>'}</div><div class="p2-list">${calendar.rows.slice(0, 12).map((row) => `<div class="p2-contribution"><span><strong>${esc(row.label)}</strong> · cierre ${euro(row.closingLiquidity)}</span><small>${esc(row.events.map((event) => event.label).join(" · "))}</small></div>`).join("")}</div><h4>Comparación automática de escenarios (CP4)</h4>${e15ScenarioComparisonHtml(scenarioComparison)}<div class="p2-actions"><button class="p2-button secondary" type="button" data-e15-review>Registrar revisión de ${esc(currentMonth || "este mes")}</button></div>`;
     target.querySelector("[data-e15-review]")?.addEventListener("click", () => {
       if (!currentMonth) return;
       const latest = state();
       const reviews = (latest.e15?.reviews || []).filter((item) => item.monthKey !== currentMonth);
-      save({ ...latest, e15: { ...latest.e15, reviews: [...reviews, { monthKey: currentMonth, completedAt: new Date().toISOString(), notes: "Revisión E15" }] } });
+      save({ ...latest, e15: { ...latest.e15, reviews: [...reviews, { monthKey: currentMonth, completedAt: new Date().toISOString(), notes: "Revisión E15", scenarios: scenarioComparison }] } });
       renderE15Planning();
     });
   }

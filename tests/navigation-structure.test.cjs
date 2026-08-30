@@ -58,8 +58,9 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   }, {});
 
   // V4-4 añade «Importar extracto en 4 pasos» al frente del grupo Datos: es el primer paso del
-  // flujo (importar antes de registrar a mano lo que quede).
-  assert.deepEqual(byGroup.data, ["datos-importar", "registrar-mes", "data-entry", "conciliar"]);
+  // flujo (importar antes de registrar a mano lo que quede). A17-1 añade el widget de solo lectura
+  // por delante de eso: no es un paso del flujo de datos, es un atajo de consulta.
+  assert.deepEqual(byGroup.data, ["widget", "datos-importar", "registrar-mes", "data-entry", "conciliar"]);
   // El grupo relegado sigue el orden que tenían las pantallas en el propio menú: primero lo que
   // estaba en Decidir (V3-5, según su posición original) y en Analizar (V2-8), luego Datos (V4-6)
   // y por último Cierre (V5-3, con «operations-manual» como única superviviente del bloque 5).
@@ -94,5 +95,6 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // funde alertas de caja (E16), ritmo de presupuesto y vencimientos de objetivos (E15) en una sola
   // lectura de solo lectura.
   assert.equal(byGroup.analysis.length, 14, "Decidir y Analizar suman catorce enlaces tras Estado de la semana");
-  assert.equal(links.length, 29, "veintinueve enlaces en el menú avanzado tras Estado de la semana");
+  // A17-1 añade el widget de solo lectura: treinta enlaces.
+  assert.equal(links.length, 30, "treinta enlaces en el menú avanzado tras el widget de solo lectura");
 });
