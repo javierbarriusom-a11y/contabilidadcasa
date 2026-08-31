@@ -2,6 +2,25 @@
 
 Fecha de revisión: 31 de agosto de 2026.
 
+## Cierre de sesión — 31 de agosto de 2026 (98): Bloque 7 — FC2, traspaso entre fondos sin peaje fiscal
+
+Sexta tarea del Bloque 7. Reutiliza otra vez `canonical-portfolio.js` (IV1/IV4/IV6), sin contrato
+nuevo salvo las dos funciones de traspaso.
+
+**FC2**: `isFundToFundTransfer(sourceType, targetType)` codifica la regla fiscal española real —
+solo fondo→fondo está exento; cualquier otro par de tipos es una venta+compra normal, y
+`saveIv1Transfer()` lo rechaza en vez de fingir un traspaso que no lo es. `applyFundTransfer(position,
+changes)` conserva el coste y la fecha de adquisición originales (para el futuro cálculo FIFO de
+FC1) mientras actualiza nombre/tipo/cantidad/valor del destino. Nuevo selector "Traspasar posición"
+en la tarjeta de cartera (IV1), junto al formulario existente de alta.
+
+**Validación**: `npm run verify`, exit 0 — **2503/2503 pruebas** (2493 + 10 nuevas: 6 del motor puro
+en `canonical-portfolio.js` y 4 de integración en `app.js`/`index.html`), accesibilidad (970 IDs, +2),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a
+`?v=20260831h2` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #174 abierto (borrador), a la espera de su CI.
+
 ## Cierre de sesión — 31 de agosto de 2026 (97): Bloque 7 — SP3, seguro de hogar vs. valor de reposición
 
 Quinta tarea del Bloque 7. Mismo patrón exacto que SP2 (`canonical-life-coverage.js`): motor puro
@@ -18,7 +37,7 @@ en `canonical-home-insurance.js` y 4 de integración en `app.js`/`index.html`), 
 +3 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
 `app.js` bumpeado a `?v=20260831h1` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #173 abierto (borrador), a la espera de su CI.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #173, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (96): Bloque 7 — DI3, detector y priorizador de revolving
 

@@ -2553,6 +2553,16 @@
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
+              <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
+                   de arriba como destino del traspaso; conserva coste y fecha de adquisición
+                   originales (solo aplica fondo→fondo, la única regla fiscal española real). -->
+              <label class="month-picker">
+                <span>Traspasar posición (sin peaje fiscal, solo fondo→fondo)</span>
+                <select id="iv1TransferSource">
+                  <option value="">-- Selecciona una posición --</option>
+                </select>
+              </label>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionTransfer">Traspasar</button>
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
               <div class="e19-kpi-note" id="iv1PositionSummary"></div>
               <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
@@ -4749,7 +4759,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260831h1"></script>
+    <script defer src="app.js?v=20260831h2"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
