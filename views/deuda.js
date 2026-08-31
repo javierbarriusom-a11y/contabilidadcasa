@@ -896,6 +896,11 @@ function renderDeudaRuta() {
   const motivationalGapNote = qs("deudaRutaMotivationalGapNote");
   if (motivationalGapNote) motivationalGapNote.textContent = deudaRutaMotivationalGapText(debtStrategyMotivationalGap(baseInput, debtStrategyReserveValue));
 
+  // DI3: aviso aparte de las revolving detectadas, con su orden de prioridad por TAE — no
+  // sustituye a la ruta activa, es contexto adicional visible siempre, igual que A16-5.
+  const revolvingNote = qs("deudaRutaRevolvingNote");
+  if (revolvingNote) revolvingNote.textContent = deudaRutaRevolvingText(DebtContracts?.prioritizeRevolving(contracts) || []);
+
   const aggregate = debtStrategyAggregateCalendar(summary.decisions, resultadosById, calendarContracts, baseInput.months);
   const baselineInterest = debtAmortizationTotalInterest(calendarContracts, baseInput.months.length);
   const amortChart = qs("deudaRutaAmortChart");

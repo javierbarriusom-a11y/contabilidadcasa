@@ -2,6 +2,28 @@
 
 Fecha de revisión: 30 de agosto de 2026.
 
+## Cierre de sesión — 30 de agosto de 2026 (96): Bloque 7 — DI3, detector y priorizador de revolving
+
+Cuarta tarea del Bloque 7. Detección **solo por lo declarado**: `canonical-debt-contracts.js` gana
+`isRevolvingType(type)` (patrón `/revolving|tarjeta/i` sobre el campo `type` ya existente en cada
+contrato) — nunca infiere revolving de un TAE alto por sí solo, que también existe en préstamos
+personales sin serlo. Cada contrato normalizado gana el campo `revolving`.
+
+**Priorización**: `prioritizeRevolving(contracts)` filtra las revolving activas y las ordena por TAE
+descendente — mismo criterio que la ruta avalancha ya construida en A16-5/D-2, aplicado solo al
+subconjunto revolving porque suele concentrar el TAE más alto. En Deuda · Ruta, junto a la nota de
+A16-5 (siempre visible, no solo con una pestaña seleccionada), nueva nota `#deudaRutaRevolvingNote`
+con `deudaRutaRevolvingText()` que lista las revolving detectadas y su orden de prioridad; sin
+ninguna, no dice nada.
+
+**Validación**: `npm run verify`, exit 0 — **2481/2481 pruebas** (2473 + 8 nuevas: 5 de detección/
+priorización pura en `canonical-debt-contracts.js` y 3 de integración en `app.js`/`views/deuda.js`/
+`index.html`), accesibilidad (965 IDs, +1), rendimiento, build del sitio, privacidad y smoke test,
+todos en verde. `app.js` bumpeado a `?v=20260830h8` (26 pruebas de cadena de versión actualizadas) y
+`views/deuda.js` a `?v=20260830di3a1` (carga diferida, bump propio de sus 4 rutas en `app.js`).
+
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #172 abierto (borrador), a la espera de su CI.
+
 ## Cierre de sesión — 30 de agosto de 2026 (95): Bloque 7 — IV6, rebalanceo guiado por umbral
 
 Tercera tarea del Bloque 7, elegida por ser la más barata de las desbloqueadas: reutiliza otra vez
@@ -19,7 +41,7 @@ en `canonical-portfolio.js` y 4 de integración en `app.js`/`index.html`), acces
 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
 bumpeado a `?v=20260830h7` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #171 abierto (borrador), a la espera de su CI.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #171, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (94): Bloque 7 — IV4, concentración de la cartera
 
