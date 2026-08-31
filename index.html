@@ -2175,6 +2175,29 @@
               <p class="e19-kpi-note" id="ajustesHomeInsuranceNote"></p>
             </article>
 
+            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
+                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
+                 conexión todavía a un dividendo real de la cartera de IV1). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
+              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Dividendo bruto (€)</span>
+                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Retención en origen (%)</span>
+                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo del ahorro en España (%)</span>
+                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
               <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
@@ -4722,6 +4745,7 @@
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
     <script defer src="canonical-home-insurance.js?v=20260831sp3a1"></script>
+    <script defer src="canonical-dividend-tax.js?v=20260831fc4a1"></script>
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
@@ -4760,7 +4784,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260831h3"></script>
+    <script defer src="app.js?v=20260831h4"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

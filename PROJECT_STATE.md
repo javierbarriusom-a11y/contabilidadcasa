@@ -2,6 +2,30 @@
 
 Fecha de revisión: 31 de agosto de 2026.
 
+## Cierre de sesión — 31 de agosto de 2026 (100): Bloque 7 — FC4, retención de dividendos y doble imposición
+
+Octava tarea del Bloque 7, elegida por ser la más barata de las cuatro restantes desbloqueadas
+(UX4 es transversal con riesgo de desbordar el alcance; A16-4 necesita una fecha de renovación que
+A16-3 no guarda; DI4 necesita un concepto de aval ausente del todo en el código).
+
+**FC4**: nuevo motor puro `canonical-dividend-tax.js` con `calculateDividendTax({grossAmount,
+foreignWithholdingPct, spanishSavingsRatePct})` — aplica la regla real de la deducción por doble
+imposición internacional (art. 80 LIRPF): la retención practicada en origen es deducible en la cuota
+española solo hasta el límite de lo que esa misma renta tributaría aquí, nunca la retención completa.
+El exceso sobre ese límite se calcula aparte (`excessForeignWithholding`) y se muestra explícitamente
+como no recuperable sin reclamarlo al país de origen, en vez de darlo por perdido en silencio o
+fingir que se deduce entero. Sin importe bruto o sin tipo del ahorro español declarados, no fabrica
+ningún cálculo. Nueva tarjeta de Ajustes "Retención de dividendos y doble imposición" (tres campos:
+dividendo bruto, retención en origen %, tipo del ahorro español %), junto a la de SP3. Calculadora
+suelta, sin conexión todavía a un dividendo real de la cartera de IV1 — eso queda fuera del núcleo.
+
+**Validación**: `npm run verify`, exit 0 — **2526/2526 pruebas** (2513 + 13 nuevas: 8 del motor puro
+en `canonical-dividend-tax.js` y 5 de integración en `app.js`/`index.html`), accesibilidad (975 IDs,
++4 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js` bumpeado a `?v=20260831h4` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 31 de agosto de 2026 (99): Bloque 7 — A16-2, tendencia histórica de la salud financiera
 
 Séptima tarea del Bloque 7. `homeHealthScoreComponents()`/`compositeHealthScore()` (A16-1) siempre

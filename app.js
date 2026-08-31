@@ -23329,6 +23329,65 @@ function handleHomeInsuranceChange(field) {
   };
 }
 
+// FC4 · retención de dividendos extranjeros y deducción por doble imposición internacional. Motor
+// puro en canonical-dividend-tax.js: calculateDividendTax() aplica el límite real de la deducción
+// (lo menor entre lo retenido fuera y lo que esa renta tributaría en España) y muestra aparte el
+// exceso de retención no recuperable — sin fabricar un cálculo sin importe bruto o tipo del ahorro
+// declarados. Sin conexión todavía a un dividendo real de la cartera (IV1): tres campos sueltos en
+// Ajustes, calculadora pura.
+function dividendGrossAmount() {
+  const configured = Number(state?.dividendGrossAmount || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function dividendForeignWithholdingPct() {
+  const configured = Number(state?.dividendForeignWithholdingPct || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function dividendSpanishSavingsRatePct() {
+  const configured = Number(state?.dividendSpanishSavingsRatePct || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function syncDividendTaxControls() {
+  const setValue = (id, value) => { const field = qs(id); if (field && document.activeElement !== field) field.value = value > 0 ? String(value) : ""; };
+  setValue("ajustesDividendGrossAmount", dividendGrossAmount());
+  setValue("ajustesDividendForeignWithholdingPct", dividendForeignWithholdingPct());
+  setValue("ajustesDividendSpanishSavingsRatePct", dividendSpanishSavingsRatePct());
+}
+
+function renderAjustesDividendTaxNote() {
+  const note = qs("ajustesDividendTaxNote");
+  if (!note) return;
+  const result = window.FinanceCanonicalDividendTax?.calculateDividendTax({
+    grossAmount: dividendGrossAmount(),
+    foreignWithholdingPct: dividendForeignWithholdingPct(),
+    spanishSavingsRatePct: dividendSpanishSavingsRatePct(),
+  });
+  if (!result) {
+    note.textContent = "Indica el importe bruto del dividendo y el tipo del ahorro aplicable para ver la retención neta.";
+    return;
+  }
+  const excessNote = result.excessForeignWithholding > 0
+    ? ` Quedan ${money(result.excessForeignWithholding, true)} de retención de origen sin deducir (por encima de lo que tributaría en España); no se recuperan sin reclamarlos al país de origen.`
+    : "";
+  note.textContent = `Bruto ${money(result.grossAmount, true)}: retención de origen ${money(result.foreignWithheld, true)}, cuota española adicional ${money(result.additionalSpanishTax, true)} (tras deducir ${money(result.creditableForeignTax, true)} de doble imposición). Neto: ${money(result.netAmount, true)}.${excessNote}`;
+}
+
+function handleDividendTaxChange(field, { max = Infinity } = {}) {
+  return (event) => {
+    if (!state) return;
+    const next = fiscalNumericFieldFromValue(event.target.value, { max });
+    const previous = Number(state[field] || 0);
+    event.target.value = next > 0 ? String(next) : "";
+    if (next === previous) return;
+    state[field] = next;
+    saveScenarioSettings();
+    renderAjustesDividendTaxNote();
+  };
+}
+
 // DI2 · línea de crédito de emergencia frente a colchón líquido. Mismo patrón de campo único que el
 // capital asegurado (SP2): dos números configurables en Ajustes (límite y TIN de la línea), sin línea
 // de crédito real conectada. Reutiliza el colchón operativo ya configurado (cuadroMandosReserve) en
@@ -23576,6 +23635,8 @@ function renderAjustes() {
   renderAjustesLifeInsuranceCapitalNote();
   syncHomeInsuranceControls();
   renderAjustesHomeInsuranceNote();
+  syncDividendTaxControls();
+  renderAjustesDividendTaxNote();
   syncEmergencyCreditLineControls();
   renderAjustesEmergencyCreditLineNote();
   renderRemuneratedAccounts();
@@ -33524,6 +33585,9 @@ async function init() {
   qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
   qs("ajustesHomeInsuranceCoverage")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceCoverage"));
   qs("ajustesHomeInsuranceReplacementValue")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceReplacementValue"));
+  qs("ajustesDividendGrossAmount")?.addEventListener("change", handleDividendTaxChange("dividendGrossAmount"));
+  qs("ajustesDividendForeignWithholdingPct")?.addEventListener("change", handleDividendTaxChange("dividendForeignWithholdingPct", { max: 100 }));
+  qs("ajustesDividendSpanishSavingsRatePct")?.addEventListener("change", handleDividendTaxChange("dividendSpanishSavingsRatePct", { max: 100 }));
   qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
   qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
