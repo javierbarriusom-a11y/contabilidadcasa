@@ -147,6 +147,29 @@
     };
   }
 
+  // FC2: un traspaso entre fondos de inversión no es un hecho imponible en España — solo
+  // fondo→fondo cumple esa regla fiscal; cualquier otro par de tipos es una venta+compra normal.
+  function isFundToFundTransfer(sourceType, targetType) {
+    return sourceType === "fondo" && targetType === "fondo";
+  }
+
+  function applyFundTransfer(position = {}, changes = {}) {
+    const merged = {
+      ...position,
+      type: changes.type !== undefined ? changes.type : position.type,
+      label: changes.label !== undefined ? changes.label : position.label,
+      ticker: changes.ticker !== undefined ? changes.ticker : position.ticker,
+      quantity: changes.quantity !== undefined ? changes.quantity : position.quantity,
+      currentValue: changes.currentValue !== undefined ? changes.currentValue : position.currentValue,
+      // El coste y la fecha de adquisición originales se conservan para el futuro cálculo FIFO
+      // (FC1) — un traspaso sin peaje fiscal nunca reinicia la base de coste.
+      costBasis: position.costBasis,
+      asOf: position.asOf,
+      provenance: position.provenance,
+    };
+    return normalizePosition(merged, 0);
+  }
+
   const REBALANCE_THRESHOLD_PCT = 10;
 
   function hasAnyTarget(targets = {}) {
@@ -182,5 +205,7 @@
     positionQuality,
     summarizePositions,
     rebalanceSuggestions,
+    isFundToFundTransfer,
+    applyFundTransfer,
   };
 });

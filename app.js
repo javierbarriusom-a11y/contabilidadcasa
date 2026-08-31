@@ -15675,15 +15675,47 @@ function saveIv1Position() {
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
+  renderIv1TransferOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
   announceStatus(`Posición «${label}» registrada.`);
 }
 
+// FC2: solo fondo→fondo cumple la regla fiscal española de traspaso sin peaje — cualquier otro
+// par de tipos se rechaza en vez de fingir un traspaso que no lo es.
+function saveIv1Transfer() {
+  const sourceId = qs("iv1TransferSource")?.value || "";
+  if (!sourceId) {
+    announceStatus("Selecciona qué posición traspasas antes de continuar.");
+    return;
+  }
+  const source = iv1PositionsList().find((position) => position.id === sourceId);
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!source || !engine) return;
+  const targetType = qs("iv1PositionType")?.value || "fondo";
+  if (!engine.isFundToFundTransfer(source.type, targetType)) {
+    announceStatus("El traspaso sin peaje fiscal (FC2) solo aplica entre fondos de inversión — la posición de origen o el tipo de destino no es «Fondo».");
+    return;
+  }
+  const label = (qs("iv1PositionLabel")?.value || "").trim() || source.label;
+  const quantity = parseAmount(qs("iv1PositionQuantity")?.value) || source.quantity;
+  const currentValue = parseAmount(qs("iv1PositionValue")?.value) || source.currentValue;
+  const transferred = engine.applyFundTransfer(source, { type: targetType, label, quantity, currentValue });
+  saveIv1PositionsList(iv1PositionsList().map((position) => (position.id === sourceId ? transferred : position)));
+  clearIv1PositionForm();
+  renderIv1PositionList();
+  renderIv1TransferOptions();
+  renderIv1PositionSummary();
+  renderIv1PositionConcentration();
+  renderIv6Rebalance();
+  announceStatus(`«${source.label}» traspasado a «${label}» sin coste fiscal — coste y fecha de adquisición conservados.`);
+}
+
 function removeIv1Position(id) {
   saveIv1PositionsList(iv1PositionsList().filter((position) => position.id !== id));
   renderIv1PositionList();
+  renderIv1TransferOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -15704,6 +15736,17 @@ function renderIv1PositionList() {
     const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
     return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span></span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
+}
+
+// FC2: opciones del selector de traspaso — cualquier posición registrada puede figurar como
+// origen; la elegibilidad real (fondo→fondo) se comprueba al ejecutar el traspaso, no aquí.
+function renderIv1TransferOptions() {
+  const select = qs("iv1TransferSource");
+  if (!select) return;
+  const previous = select.value;
+  const options = iv1PositionsList().map((position) => `<option value="${escapeHtml(position.id)}">${escapeHtml(position.label)}</option>`);
+  select.innerHTML = `<option value="">-- Selecciona una posición --</option>${options.join("")}`;
+  if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
 }
 
 function renderIv1PositionSummary() {
@@ -23547,6 +23590,7 @@ function renderAjustes() {
   renderA14AssetList();
   renderA14AssetBreakdown();
   renderIv1PositionList();
+  renderIv1TransferOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
@@ -33506,6 +33550,7 @@ async function init() {
     removeA14Asset(removeButton.dataset.a14AssetRemove);
   });
   qs("iv1PositionAdd")?.addEventListener("click", saveIv1Position);
+  qs("iv1PositionTransfer")?.addEventListener("click", saveIv1Transfer);
   qs("iv1PositionList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-iv1-position-remove]");
     if (!removeButton) return;

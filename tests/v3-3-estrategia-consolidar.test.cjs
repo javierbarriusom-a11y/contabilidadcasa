@@ -313,5 +313,5 @@ test("V3-3/D-10 · las cuatro casillas (incluida la vigencia) están conectadas 
 
 test("V3-3 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20260831h1/);
+  assert.match(html, /app.js\?v=20260831h2/);
 });
