@@ -22,7 +22,7 @@ A16-1 corregida por el refactor de `renderHomeDashboard()`, no una prueba nueva)
 (971 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
 bumpeado a `?v=20260831h3` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #175 abierto (borrador), a la espera de su CI.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #175, fusionado a `main`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (98): Bloque 7 — FC2, traspaso entre fondos sin peaje fiscal
 
