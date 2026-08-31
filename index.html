@@ -2155,6 +2155,25 @@
               <p class="e19-kpi-note" id="ajustesLifeInsuranceCapitalNote"></p>
             </article>
 
+            <!-- SP3: seguro de hogar (contenido) vs. valor de reposición de bienes declarado. Mismo
+                 patrón de dos campos + nota que SP2 (capital de vida vs. deuda): motor puro en
+                 canonical-home-insurance.js, sin inventario de pólizas. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Seguro de hogar vs. valor de reposición</h3>
+              <p class="e19-kpi-note">Si hubiera un siniestro total del contenido del hogar, ¿la cobertura del seguro basta para reponerlo todo?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Cobertura del seguro (€)</span>
+                  <input id="ajustesHomeInsuranceCoverage" type="number" min="0" step="100" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Valor de reposición de bienes (€)</span>
+                  <input id="ajustesHomeInsuranceReplacementValue" type="number" min="0" step="100" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesHomeInsuranceNote"></p>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
               <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
@@ -4691,6 +4710,7 @@
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
+    <script defer src="canonical-home-insurance.js?v=20260831sp3a1"></script>
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
@@ -4729,7 +4749,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260830h8"></script>
+    <script defer src="app.js?v=20260831h1"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

@@ -23230,6 +23230,62 @@ function handleLifeInsuranceCapitalChange(event) {
   announceStatus(next > 0 ? `Capital asegurado guardado en ${money(next, true)}.` : "Capital asegurado borrado.");
 }
 
+// SP3 · seguro de hogar (contenido) vs. valor de reposición de bienes. Mismo patrón de dos campos
+// que DI2 (línea de crédito): números sueltos en Ajustes, sin inventario de pólizas todavía.
+function homeInsuranceCoverage() {
+  const configured = Number(state?.homeInsuranceCoverage || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function homeInsuranceReplacementValue() {
+  const configured = Number(state?.homeInsuranceReplacementValue || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function syncHomeInsuranceControls() {
+  const coverageField = qs("ajustesHomeInsuranceCoverage");
+  const replacementField = qs("ajustesHomeInsuranceReplacementValue");
+  if (coverageField && document.activeElement !== coverageField) {
+    const coverage = homeInsuranceCoverage();
+    coverageField.value = coverage > 0 ? String(coverage) : "";
+  }
+  if (replacementField && document.activeElement !== replacementField) {
+    const replacement = homeInsuranceReplacementValue();
+    replacementField.value = replacement > 0 ? String(replacement) : "";
+  }
+}
+
+function renderAjustesHomeInsuranceNote() {
+  const note = qs("ajustesHomeInsuranceNote");
+  if (!note) return;
+  const coverage = homeInsuranceCoverage();
+  const replacementValue = homeInsuranceReplacementValue();
+  const gap = window.FinanceCanonicalHomeInsurance?.evaluateHomeInsuranceGap(coverage, replacementValue);
+  if (!gap) return;
+  if (!replacementValue) {
+    note.textContent = coverage
+      ? `Sin valor de reposición configurado. Cobertura actual: ${money(coverage, true)}.`
+      : "Configura la cobertura del seguro y el valor de reposición de bienes para ver la comparación.";
+    return;
+  }
+  note.textContent = gap.covered
+    ? `Cobertura suficiente: ${money(coverage, true)} cubre el valor de reposición declarado (${money(replacementValue, true)}).`
+    : `Brecha de ${money(gap.gap, true)} sin cubrir: la cobertura (${money(coverage, true)}) no llega al valor de reposición declarado (${money(replacementValue, true)}).`;
+}
+
+function handleHomeInsuranceChange(field) {
+  return (event) => {
+    if (!state) return;
+    const next = lifeInsuranceCapitalFromField(event.target.value);
+    const previous = round2(Math.max(0, Number(state[field] || 0)));
+    event.target.value = next > 0 ? String(next) : "";
+    if (next === previous) return;
+    state[field] = next;
+    saveScenarioSettings();
+    renderAjustesHomeInsuranceNote();
+  };
+}
+
 // DI2 · línea de crédito de emergencia frente a colchón líquido. Mismo patrón de campo único que el
 // capital asegurado (SP2): dos números configurables en Ajustes (límite y TIN de la línea), sin línea
 // de crédito real conectada. Reutiliza el colchón operativo ya configurado (cuadroMandosReserve) en
@@ -23475,6 +23531,8 @@ function renderAjustes() {
   renderAjustesOptimalDeductibleNote();
   syncLifeInsuranceCapitalControl();
   renderAjustesLifeInsuranceCapitalNote();
+  syncHomeInsuranceControls();
+  renderAjustesHomeInsuranceNote();
   syncEmergencyCreditLineControls();
   renderAjustesEmergencyCreditLineNote();
   renderRemuneratedAccounts();
@@ -33385,6 +33443,8 @@ async function init() {
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
   qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
+  qs("ajustesHomeInsuranceCoverage")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceCoverage"));
+  qs("ajustesHomeInsuranceReplacementValue")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceReplacementValue"));
   qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
   qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
