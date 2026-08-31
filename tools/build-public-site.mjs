@@ -49,6 +49,7 @@ const files = [
   "canonical-recommendation-citation.js",
   "canonical-life-coverage.js",
   "canonical-home-insurance.js",
+  "canonical-dividend-tax.js",
   "canonical-emergency-credit-line.js",
   "canonical-tax-tables.js",
   "canonical-tariff-comparator.js",

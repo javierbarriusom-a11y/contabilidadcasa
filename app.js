@@ -2160,7 +2160,10 @@ function renderE6DebtQuality() {
   target.innerHTML = contracts.length ? `<div class="e6-quality-list">${contracts.map((contract) => {
     const quality = contract.dataQuality || DebtContracts.contractQuality(contract, contract);
     const missing = quality.missing || [];
-    return `<article class="e6-quality-card"><header><strong>${escapeHtml(`${contract.entity} ${contract.type}`)}</strong><span class="status-pill ${quality.complete ? "good" : quality.completeness >= 75 ? "warn" : "danger"}">${quality.completeness}%</span></header>
+    // UX4: la píldora de completitud llevaba solo el color como diferencia entre sus tres estados —
+    // se añade la palabra ("completo"/"parcial"/"incompleto") para que no dependa solo de él.
+    const completenessWord = quality.complete ? "completo" : quality.completeness >= 75 ? "parcial" : "incompleto";
+    return `<article class="e6-quality-card"><header><strong>${escapeHtml(`${contract.entity} ${contract.type}`)}</strong><span class="status-pill ${quality.complete ? "good" : quality.completeness >= 75 ? "warn" : "danger"}">${quality.completeness}% ${completenessWord}</span></header>
       <p>${missing.length ? `Desconocido: ${missing.map((field) => e6DebtFieldLabels[field] || field).join(", ")}.` : "Contrato completo para el análisis."}</p>
       <p>Confianza ${escapeHtml(quality.confidence)} · fuente ${escapeHtml(contract.source || "desconocida")}.</p></article>`;
   }).join("")}</div>` : `<div class="audit-empty"><strong>Sin contratos</strong><p>No hay deuda que revisar.</p></div>`;
@@ -2176,7 +2179,7 @@ function renderE6KpiQuality() {
     ...entry,
     reconciled: entry.reconciled === true || entry.status === "matched" || entry.reconciliationStatus === "matched",
   })), { horizonMonths: forecastMonths().length });
-  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} mes(es) · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
+  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} mes(es) · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)} · ${scenario.calibrated ? "calibrado" : "sin calibrar"}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
   target.innerHTML = (metrics.length ? `<div class="e6-quality-list">${metrics.map((item) => `<article class="e6-quality-card">
     <header><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${item.confidence === "high" ? "good" : item.confidence === "medium" ? "warn" : "danger"}">${escapeHtml(item.confidence)}</span></header>
     <dl><dt>Fecha</dt><dd>${escapeHtml(item.asOf)}</dd><dt>Fuente</dt><dd>${escapeHtml(item.source)}</dd><dt>Método</dt><dd>${escapeHtml(item.method)}</dd><dt>Cobertura</dt><dd>${escapeHtml(item.coverage)}</dd></dl>
@@ -23329,6 +23332,65 @@ function handleHomeInsuranceChange(field) {
   };
 }
 
+// FC4 · retención de dividendos extranjeros y deducción por doble imposición internacional. Motor
+// puro en canonical-dividend-tax.js: calculateDividendTax() aplica el límite real de la deducción
+// (lo menor entre lo retenido fuera y lo que esa renta tributaría en España) y muestra aparte el
+// exceso de retención no recuperable — sin fabricar un cálculo sin importe bruto o tipo del ahorro
+// declarados. Sin conexión todavía a un dividendo real de la cartera (IV1): tres campos sueltos en
+// Ajustes, calculadora pura.
+function dividendGrossAmount() {
+  const configured = Number(state?.dividendGrossAmount || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function dividendForeignWithholdingPct() {
+  const configured = Number(state?.dividendForeignWithholdingPct || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function dividendSpanishSavingsRatePct() {
+  const configured = Number(state?.dividendSpanishSavingsRatePct || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function syncDividendTaxControls() {
+  const setValue = (id, value) => { const field = qs(id); if (field && document.activeElement !== field) field.value = value > 0 ? String(value) : ""; };
+  setValue("ajustesDividendGrossAmount", dividendGrossAmount());
+  setValue("ajustesDividendForeignWithholdingPct", dividendForeignWithholdingPct());
+  setValue("ajustesDividendSpanishSavingsRatePct", dividendSpanishSavingsRatePct());
+}
+
+function renderAjustesDividendTaxNote() {
+  const note = qs("ajustesDividendTaxNote");
+  if (!note) return;
+  const result = window.FinanceCanonicalDividendTax?.calculateDividendTax({
+    grossAmount: dividendGrossAmount(),
+    foreignWithholdingPct: dividendForeignWithholdingPct(),
+    spanishSavingsRatePct: dividendSpanishSavingsRatePct(),
+  });
+  if (!result) {
+    note.textContent = "Indica el importe bruto del dividendo y el tipo del ahorro aplicable para ver la retención neta.";
+    return;
+  }
+  const excessNote = result.excessForeignWithholding > 0
+    ? ` Quedan ${money(result.excessForeignWithholding, true)} de retención de origen sin deducir (por encima de lo que tributaría en España); no se recuperan sin reclamarlos al país de origen.`
+    : "";
+  note.textContent = `Bruto ${money(result.grossAmount, true)}: retención de origen ${money(result.foreignWithheld, true)}, cuota española adicional ${money(result.additionalSpanishTax, true)} (tras deducir ${money(result.creditableForeignTax, true)} de doble imposición). Neto: ${money(result.netAmount, true)}.${excessNote}`;
+}
+
+function handleDividendTaxChange(field, { max = Infinity } = {}) {
+  return (event) => {
+    if (!state) return;
+    const next = fiscalNumericFieldFromValue(event.target.value, { max });
+    const previous = Number(state[field] || 0);
+    event.target.value = next > 0 ? String(next) : "";
+    if (next === previous) return;
+    state[field] = next;
+    saveScenarioSettings();
+    renderAjustesDividendTaxNote();
+  };
+}
+
 // DI2 · línea de crédito de emergencia frente a colchón líquido. Mismo patrón de campo único que el
 // capital asegurado (SP2): dos números configurables en Ajustes (límite y TIN de la línea), sin línea
 // de crédito real conectada. Reutiliza el colchón operativo ya configurado (cuadroMandosReserve) en
@@ -23576,6 +23638,8 @@ function renderAjustes() {
   renderAjustesLifeInsuranceCapitalNote();
   syncHomeInsuranceControls();
   renderAjustesHomeInsuranceNote();
+  syncDividendTaxControls();
+  renderAjustesDividendTaxNote();
   syncEmergencyCreditLineControls();
   renderAjustesEmergencyCreditLineNote();
   renderRemuneratedAccounts();
@@ -33524,6 +33588,9 @@ async function init() {
   qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
   qs("ajustesHomeInsuranceCoverage")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceCoverage"));
   qs("ajustesHomeInsuranceReplacementValue")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceReplacementValue"));
+  qs("ajustesDividendGrossAmount")?.addEventListener("change", handleDividendTaxChange("dividendGrossAmount"));
+  qs("ajustesDividendForeignWithholdingPct")?.addEventListener("change", handleDividendTaxChange("dividendForeignWithholdingPct", { max: 100 }));
+  qs("ajustesDividendSpanishSavingsRatePct")?.addEventListener("change", handleDividendTaxChange("dividendSpanishSavingsRatePct", { max: 100 }));
   qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
   qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
