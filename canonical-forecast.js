@@ -278,6 +278,9 @@
         pattern: group.pattern, label: group.label, category: group.category,
         monthlyCost: group.amount, annualCost: round(group.amount * 12),
         sampleMonths: group.months.size, confidence: confidence(group.months.size),
+        // A16-4: los meses reales en que se vio el cargo, ordenados — hace falta para estimar cuándo
+        // vuelve a cobrarse (A16-3 solo exponía el recuento, no las fechas).
+        monthsSeen: [...group.months].sort(),
         confirmRequired: true, confirmed: false,
       }))
       .sort((a, b) => b.annualCost - a.annualCost);

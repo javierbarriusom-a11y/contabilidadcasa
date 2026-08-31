@@ -49,7 +49,7 @@ function sandbox() {
     ANALISIS_SUBSCRIPTION_CONFIDENCE_LABEL: { high: "alta", medium: "media", low: "baja" },
   };
   vm.createContext(context);
-  ["movementKindFromAmount", "normalizedText", "movementMappingKey", "movementDisplayName", "analisisSubscriptionsResult", "analisisSubscriptionsHtml"]
+  ["movementKindFromAmount", "normalizedText", "movementMappingKey", "movementDisplayName", "analisisSubscriptionsResult", "analisisRenewalAdvisory", "analisisSubscriptionsHtml"]
     .forEach((name) => vm.runInContext(extractFunction(name), context));
   return context;
 }

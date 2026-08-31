@@ -4049,6 +4049,12 @@
   font-size: var(--e19-text-sm);
 }
 
+/* A16-4 · aviso de renovación próxima — el texto ya dice "decide si la mantienes..." (UX4: nunca
+   solo el color), esto solo lo resalta. */
+.e19-analisis .analisis-subscription-item .e19-kpi-note.is-warn {
+  color: var(--e19-warning);
+}
+
 .e19-conciliar .conciliar-history-row span {
   color: var(--e19-muted);
 }

@@ -262,15 +262,30 @@ function analisisSubscriptionsResult(transactions) {
 
 const ANALISIS_SUBSCRIPTION_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
 
+// A16-4: aviso de renovación por suscripción detectada, sobre canonical-renewal-advisor.js. Solo
+// avisa de una fecha cuando el motor la puede estimar de verdad (cadencia regular, no mensual) — con
+// una sola aparición o huecos irregulares no inventa ninguna, y para lo mensual dice explícitamente
+// que no hay una fecha de renovación distinta que dar.
+function analisisRenewalAdvisory(item) {
+  if (!window.FinanceCanonicalRenewalAdvisor?.renewalAdvisory) return null;
+  return window.FinanceCanonicalRenewalAdvisor.renewalAdvisory(item, openMonthCutoffKey(), {});
+}
+
 function analisisSubscriptionsHtml(result) {
   if (!result || !result.detected.length) {
     return `<p class="e19-kpi-note">Sin cargos del mismo importe repetidos al menos ${result?.minMonths ?? 3} meses todavía.</p>`;
   }
   const rows = result.detected
-    .map((item) => `<div class="analisis-subscription-item">
+    .map((item) => {
+      const advisory = analisisRenewalAdvisory(item);
+      const advisoryClass = advisory?.action === "decidir-antes-de-renovar" ? " is-warn" : "";
+      const advisoryHtml = advisory ? `<p class="e19-kpi-note${advisoryClass}">${escapeHtml(advisory.note)}</p>` : "";
+      return `<div class="analisis-subscription-item">
       <div class="analisis-subscription-head"><strong>${escapeHtml(item.label)}</strong><span>${money(item.monthlyCost, true)}/mes</span></div>
       <small>${escapeHtml(item.category || "Sin categoría")} · visto ${item.sampleMonths} meses · ${money(item.annualCost, true)}/año · confianza ${escapeHtml(ANALISIS_SUBSCRIPTION_CONFIDENCE_LABEL[item.confidence] || item.confidence)}</small>
-    </div>`)
+      ${advisoryHtml}
+    </div>`;
+    })
     .join("");
   return `${rows}<p class="e19-kpi-note">Total detectado: ${money(result.totalMonthlyCost, true)}/mes (${money(result.totalAnnualCost, true)}/año). Candidatos a confirmar a mano: un mismo importe repetido no siempre es una suscripción real.</p>`;
 }
