@@ -202,7 +202,8 @@ test("renderHomeDashboard calcula y pinta la puntuación compuesta reutilizando 
   const source = extractFunction("renderHomeDashboard");
   assert.match(source, /homeHealthScoreComponents\(\{/);
   assert.match(source, /caixa: balances\.caixa, protectedReserve, debtToIncomeRatio: savings\.debtToIncomeRatio, debtRatioDangerAt/);
-  assert.match(source, /renderHomeHealthScoreCard\(window\.FinanceCanonicalHealthScore\?\.compositeHealthScore\(compositeInputs\)\)/);
+  assert.match(source, /window\.FinanceCanonicalHealthScore\?\.compositeHealthScore\(compositeInputs\)/);
+  assert.match(source, /renderHomeHealthScoreCard\(compositeResult\)/);
 });
 
 test("la tarjeta vive en #home, oculta por defecto", () => {

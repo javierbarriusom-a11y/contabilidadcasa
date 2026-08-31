@@ -2,6 +2,28 @@
 
 Fecha de revisión: 31 de agosto de 2026.
 
+## Cierre de sesión — 31 de agosto de 2026 (99): Bloque 7 — A16-2, tendencia histórica de la salud financiera
+
+Séptima tarea del Bloque 7. `homeHealthScoreComponents()`/`compositeHealthScore()` (A16-1) siempre
+leen el estado vivo de hoy — no hay un histórico mensual con los cinco componentes ya calculado para
+recomponer el pasado. En vez de fabricar una tendencia con datos que no existen, A16-2 (núcleo)
+empieza a acumular un registro real por día a partir de hoy.
+
+**A16-2**: `canonical-health-score.js` gana `recordSnapshot(history, date, value)` (como mucho un
+registro por día — releer la misma jornada actualiza el valor, no lo duplica; sin valor calculable no
+guarda nada) y `trendSummary(history)` (diferencia entre el primer y el último registro, sin
+regresión ni media móvil). `renderHomeDashboard()` registra el snapshot del día cada vez que recalcula
+la puntuación compuesta y pinta la nota de tendencia junto a la tarjeta de A16-1; sin histórico
+todavía, dice explícitamente "se irá acumulando a partir de hoy" en vez de fingir una tendencia.
+
+**Validación**: `npm run verify`, exit 0 — **2513/2513 pruebas** (2503 + 10 nuevas: 6 del motor puro
+en `canonical-health-score.js` y 4 de integración en `app.js`/`index.html`; 1 prueba existente de
+A16-1 corregida por el refactor de `renderHomeDashboard()`, no una prueba nueva), accesibilidad
+(971 IDs, +1), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`
+bumpeado a `?v=20260831h3` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 31 de agosto de 2026 (98): Bloque 7 — FC2, traspaso entre fondos sin peaje fiscal
 
 Sexta tarea del Bloque 7. Reutiliza otra vez `canonical-portfolio.js` (IV1/IV4/IV6), sin contrato
