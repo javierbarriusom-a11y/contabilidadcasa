@@ -2,6 +2,42 @@
 
 Fecha de revisión: 31 de agosto de 2026.
 
+## Cierre de sesión — 31 de agosto de 2026 (102): Bloque 7 — A16-4, avisos de renovación con acción sugerida
+
+Décima tarea del Bloque 7 (10/13). Dependía de A16-3 (detección de recurrentes/suscripciones), que
+solo guardaba un recuento de meses vistos (`sampleMonths`), no las fechas — sin eso no había forma de
+estimar cuándo vuelve a cobrarse una suscripción sin inventar el dato.
+
+**Preparación en A16-3**: `detectRecurringSubscriptions` (`canonical-forecast.js`) gana `monthsSeen`
+— los meses reales en que se vio el cargo, ordenados — junto al `sampleMonths` que ya tenía; adición,
+no cambia nada existente.
+
+**A16-4**: nuevo motor puro `canonical-renewal-advisor.js` con `renewalAdvisory(subscription,
+referenceMonth, options)`. Solo infiere una cadencia cuando el hueco entre TODAS las apariciones
+vistas es idéntico — con una sola aparición, o con huecos irregulares, dice explícitamente que no hay
+fecha estimable en vez de adivinarla. Con cadencia mensual (el caso más común: la mayoría de lo que
+detecta A16-3 se cobra cada mes) dice que no hay una fecha de renovación distinta que avisar — el
+aviso solo tiene sentido para cargos de cadencia más larga (anual, semestral...). Con cadencia
+regular no mensual, calcula la próxima renovación y sugiere "decidir antes de renovar" cuando cae
+dentro de la ventana de aviso (2 meses por defecto) o "sin acción todavía" si está más lejos.
+
+En `views/analisis.js`: `analisisRenewalAdvisory(item)` llama al motor con `openMonthCutoffKey()`
+como mes de referencia (el mes abierto, mismo criterio que ya usa esa vista); `analisisSubscriptionsHtml`
+pinta la nota de aviso bajo cada suscripción detectada, sin fabricar ninguna cuando el motor no puede
+estimar una fecha. Nueva regla de estilo scoped a `.e19-analisis` para resaltar el aviso "decidir
+antes de renovar" — el texto ya dice la acción en palabras (mismo criterio que UX4), el color solo
+lo realza.
+
+**Validación**: `npm run verify`, exit 0 — **2542/2542 pruebas** (2528 + 14 nuevas: 10 del motor puro
+en `canonical-renewal-advisor.js` y 4 de integración en `app.js`/`views/analisis.js`/`index.html`; 1
+prueba existente de A16-3 corregida para extraer también `analisisRenewalAdvisory` en su sandbox, no
+una prueba nueva), accesibilidad (975 IDs, sin cambio), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `app.js` bumpeado a `?v=20260831h6`, `canonical-forecast.js` a
+`?v=20260831a164a1`, `views/analisis.js` a `?v=20260831a164c1` (26 pruebas de cadena de versión de
+`app.js` actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 31 de agosto de 2026 (101): Bloque 7 — UX4, ninguna cifra financiera solo por color
 
 Novena tarea del Bloque 7 (9/13), la última marcada "Alto" impacto que quedaba desbloqueada (depende
@@ -31,7 +67,7 @@ las dos píldoras corregidas), accesibilidad (975 IDs, sin cambio — no hay cam
 build del sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a `?v=20260831h5` (26
 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #176 (junto con FC4), fusionado a `main`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (100): Bloque 7 — FC4, retención de dividendos y doble imposición
 
@@ -55,7 +91,7 @@ en `canonical-dividend-tax.js` y 5 de integración en `app.js`/`index.html`), ac
 +4 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
 `app.js` bumpeado a `?v=20260831h4` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #176 (junto con UX4), fusionado a `main`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (99): Bloque 7 — A16-2, tendencia histórica de la salud financiera
 
