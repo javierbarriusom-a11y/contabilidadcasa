@@ -31,7 +31,7 @@ las dos píldoras corregidas), accesibilidad (975 IDs, sin cambio — no hay cam
 build del sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a `?v=20260831h5` (26
 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #176 (junto con FC4), fusionado a `main`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (100): Bloque 7 — FC4, retención de dividendos y doble imposición
 
@@ -55,7 +55,7 @@ en `canonical-dividend-tax.js` y 5 de integración en `app.js`/`index.html`), ac
 +4 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
 `app.js` bumpeado a `?v=20260831h4` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #176 (junto con UX4), fusionado a `main`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (99): Bloque 7 — A16-2, tendencia histórica de la salud financiera
 
