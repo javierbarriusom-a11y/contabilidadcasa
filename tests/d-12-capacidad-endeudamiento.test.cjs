@@ -58,6 +58,10 @@ function sandboxCapacity({ ratio, income, debtPayment, dangerAt = 32 }) {
     round2,
     savingsPlanCalculations: () => ({ debtToIncomeRatio: ratio, monthlyIncomeTotal: income, debtServiceMonthlyTotal: debtPayment }),
     alertThresholdOverride: (id) => (id === "debtRatio" ? dangerAt : null),
+    // DI4: debtCapacityStatus también calcula el impacto de los avales — sin ninguno declarado en
+    // estas pruebas de D-12 (anteriores a DI4), que no calcula nada.
+    window: {},
+    loanGuaranteeMonthly: () => 0,
   });
 }
 
@@ -99,8 +103,52 @@ test("D-12 · sin umbral configurado, cae al 32% por defecto (mismo que Hoy)", (
     round2,
     savingsPlanCalculations: () => ({ debtToIncomeRatio: 0.3, monthlyIncomeTotal: 3000, debtServiceMonthlyTotal: 900 }),
     alertThresholdOverride: () => null,
+    window: {},
+    loanGuaranteeMonthly: () => 0,
   });
   assert.equal(context.debtCapacityStatus().dangerAt, 0.32);
+});
+
+// --- DI4: impacto de los avales dados sobre el margen ------------------------------------------
+
+test("DI4 · debtCapacityStatus pasa el margen y el aval declarado al motor canónico", () => {
+  let received = null;
+  const context = sandboxWith(["debtCapacityStatus"], {
+    round2,
+    savingsPlanCalculations: () => ({ debtToIncomeRatio: 0.15, monthlyIncomeTotal: 3000, debtServiceMonthlyTotal: 450 }),
+    alertThresholdOverride: (id) => (id === "debtRatio" ? 32 : null),
+    window: { FinanceCanonicalLoanGuarantees: { guaranteeCapacityImpact: (margin, guaranteed) => { received = { margin, guaranteed }; return { guaranteedMonthlyTotal: guaranteed, remainingMargin: margin - guaranteed, exceedsCapacity: guaranteed > margin }; } } },
+    loanGuaranteeMonthly: () => 200,
+  });
+  const result = context.debtCapacityStatus();
+  assert.deepEqual(received, { margin: result.marginEuros, guaranteed: 200 });
+  assert.equal(result.guaranteeImpact.remainingMargin, result.marginEuros - 200);
+});
+
+test("DI4 · debtCapacityHtml pinta el aviso del aval cuando lo hay, resaltado si consume toda la capacidad", () => {
+  const context = sandboxWith(["debtCapacityHtml"], {
+    escapeHtml: (v) => String(v ?? ""),
+    money: (v) => `${v}€`,
+  });
+  const out = context.debtCapacityHtml({
+    ratio: 0.15, dangerAt: 0.32, status: "good", marginEuros: 500, income: 3000, debtPayment: 450,
+    guaranteeImpact: { guaranteedMonthlyTotal: 700, remainingMargin: 0, exceedsCapacity: true },
+  });
+  assert.match(out, /Avales dados: 700€\/mes/);
+  assert.match(out, /Consumen toda la capacidad disponible/);
+  assert.match(out, /e19-kpi-note is-danger/);
+});
+
+test("DI4 · debtCapacityHtml no pinta nada del aval cuando no hay ninguno declarado", () => {
+  const context = sandboxWith(["debtCapacityHtml"], {
+    escapeHtml: (v) => String(v ?? ""),
+    money: (v) => `${v}€`,
+  });
+  const out = context.debtCapacityHtml({
+    ratio: 0.15, dangerAt: 0.32, status: "good", marginEuros: 500, income: 3000, debtPayment: 450,
+    guaranteeImpact: { guaranteedMonthlyTotal: 0, remainingMargin: 500, exceedsCapacity: false },
+  });
+  assert.doesNotMatch(out, /Avales dados/);
 });
 
 // --- debtCapacityHtml: mensaje coherente con el estado -----------------------------------------

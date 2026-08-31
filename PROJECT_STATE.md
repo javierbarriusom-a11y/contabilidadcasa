@@ -2,6 +2,37 @@
 
 Fecha de revisión: 31 de agosto de 2026.
 
+## Cierre de sesión — 31 de agosto de 2026 (103): Bloque 7 — DI4, impacto de avales en la capacidad de endeudamiento
+
+Undécima tarea del Bloque 7 (11/13), la última que quedaba desbloqueada — solo queda OPT-10, con
+gate de 30 días. No existía ningún concepto de aval (garantía de la deuda de otra persona) en el
+código; se construye desde cero, apoyándose en D-12 (`debtCapacityStatus`/`debtCapacityHtml`, margen
+antes de superar el umbral de deuda/ingresos) en vez de duplicar ese cálculo.
+
+**DI4**: nuevo motor puro `canonical-loan-guarantees.js` con `guaranteeCapacityImpact(marginEuros,
+guaranteedMonthlyTotal)` — un banco descuenta la cuota de un aval dado de la capacidad de
+endeudamiento propia como si fuera deuda propia, aunque hoy no se esté pagando; el motor resta esa
+cuota del margen que ya calcula D-12 y avisa explícitamente cuando el aval por sí solo consume toda
+la capacidad disponible, aunque el ratio de deuda/ingresos de arriba no lo refleje todavía. Campo
+único en Ajustes ("Avales dados", cuota mensual equivalente — sin inventario de avales todavía, mismo
+patrón que DI2); `debtCapacityStatus()`/`debtCapacityHtml()` (Deuda › Ruta y Comparar) ganan el aviso,
+sin tarjeta nueva.
+
+**Bug encontrado de paso**: al tocar `saveScenarioSettings()` para persistir el campo nuevo, se vio
+que los campos de SP3 (cobertura/valor de reposición del seguro de hogar) y FC4 (los tres de la
+calculadora de dividendos) nunca se habían añadido a la lista explícita que esa función persiste —
+se editaban en `state` y sobrevivían a la sesión en curso, pero no a recargar la página. Corregido
+aquí, con una prueba de persistencia nueva en cada uno de sus test files (`sp3-app-integracion.test.cjs`,
+`fc4-app-integracion.test.cjs`) que antes no existía.
+
+**Validación**: `npm run verify`, exit 0 — **2560/2560 pruebas** (2542 + 18 nuevas: 6 del motor puro
+en `canonical-loan-guarantees.js`, 6 de integración/cableado de DI4, 4 de comportamiento combinado en
+`tests/d-12-capacidad-endeudamiento.test.cjs` y 2 de regresión de persistencia en SP3/FC4),
+accesibilidad (977 IDs, +2), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js` bumpeado a `?v=20260831h7` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 31 de agosto de 2026 (102): Bloque 7 — A16-4, avisos de renovación con acción sugerida
 
 Décima tarea del Bloque 7 (10/13). Dependía de A16-3 (detección de recurrentes/suscripciones), que

@@ -3503,6 +3503,18 @@ function saveScenarioSettings() {
     // asegurado: dato del hogar que se sincroniza y se restaura, 0 significa «sin configurar».
     emergencyCreditLimit: round2(Math.max(0, Number(state.emergencyCreditLimit || 0))),
     emergencyCreditRate: round2(Math.max(0, Number(state.emergencyCreditRate || 0))),
+    // DI4 · cuota mensual equivalente de avales dados, mismo criterio que la línea de crédito.
+    loanGuaranteeMonthly: round2(Math.max(0, Number(state.loanGuaranteeMonthly || 0))),
+    // SP3 · cobertura del seguro de hogar y valor de reposición de bienes — faltaban en esta lista
+    // desde que se construyeron: se editaban en `state` pero nunca sobrevivían a un recargar la
+    // página, porque `saveScenarioSettings()` solo persiste lo que aparece aquí explícitamente.
+    homeInsuranceCoverage: round2(Math.max(0, Number(state.homeInsuranceCoverage || 0))),
+    homeInsuranceReplacementValue: round2(Math.max(0, Number(state.homeInsuranceReplacementValue || 0))),
+    // FC4 · los tres campos de la calculadora de retención de dividendos — mismo fallo de
+    // persistencia que SP3, corregido aquí.
+    dividendGrossAmount: round2(Math.max(0, Number(state.dividendGrossAmount || 0))),
+    dividendForeignWithholdingPct: round2(Math.max(0, Math.min(100, Number(state.dividendForeignWithholdingPct || 0)))),
+    dividendSpanishSavingsRatePct: round2(Math.max(0, Math.min(100, Number(state.dividendSpanishSavingsRatePct || 0)))),
     // A15-1 · los cinco supuestos fiscales del hogar, mismo criterio que el resto: dato del hogar
     // que se sincroniza y se restaura, 0/false significa «sin configurar».
     fiscalJointTaxation: !!state.fiscalJointTaxation,
@@ -19266,7 +19278,10 @@ function debtCapacityStatus() {
   const warnAt = dangerAt * 0.8125;
   const status = ratio > dangerAt ? "danger" : ratio > warnAt ? "warn" : "good";
   const marginEuros = round2(Math.max(0, income * dangerAt - debtPayment));
-  return { ratio, income, debtPayment, dangerAt, status, marginEuros };
+  // DI4: impacto de los avales dados sobre ese mismo margen — un banco los descuenta como si fueran
+  // deuda propia, aunque hoy no se estén pagando.
+  const guaranteeImpact = window.FinanceCanonicalLoanGuarantees?.guaranteeCapacityImpact(marginEuros, loanGuaranteeMonthly());
+  return { ratio, income, debtPayment, dangerAt, status, marginEuros, guaranteeImpact };
 }
 
 function debtCapacityHtml(capacity) {
@@ -19276,6 +19291,14 @@ function debtCapacityHtml(capacity) {
   const marginNote = capacity.marginEuros > 0
     ? `Margen restante antes del umbral: ${money(capacity.marginEuros, true)}/mes.`
     : `Ya supera el umbral del ${thresholdText}: no queda margen para más cuota mensual sin superarlo más.`;
+  const guarantee = capacity.guaranteeImpact;
+  const guaranteeNote = guarantee && guarantee.guaranteedMonthlyTotal > 0
+    ? `<p class="e19-kpi-note${guarantee.exceedsCapacity ? " is-danger" : ""}">Avales dados: ${money(guarantee.guaranteedMonthlyTotal, true)}/mes ya descontados de ese margen. ${
+        guarantee.exceedsCapacity
+          ? "Consumen toda la capacidad disponible: no queda margen real para deuda nueva aunque el ratio de arriba no lo refleje todavía."
+          : `Margen real tras los avales: ${money(guarantee.remainingMargin, true)}/mes.`
+      }</p>`
+    : "";
   return `<article class="e19-card deuda-capacidad-card">
     <div class="section-title with-action">
       <div>
@@ -19285,6 +19308,7 @@ function debtCapacityHtml(capacity) {
       <span class="e19-badge ${badge}">${escapeHtml(ratioText)} de ${escapeHtml(thresholdText)}</span>
     </div>
     <p class="e19-kpi-note${capacity.status === "danger" ? " is-danger" : ""}">${marginNote}</p>
+    ${guaranteeNote}
   </article>`;
 }
 
@@ -23391,6 +23415,43 @@ function handleDividendTaxChange(field, { max = Infinity } = {}) {
   };
 }
 
+// DI4 · impacto de un aval dado en la capacidad de endeudamiento futura (D-12). Mismo patrón de
+// campo único declarado que DI2: la cuota mensual equivalente del aval, sin inventario de avales
+// todavía. Se guarda aquí, en Ajustes; el impacto se calcula y se muestra donde ya vive D-12 (Deuda ·
+// Ruta y Comparar), reutilizando debtCapacityStatus()/debtCapacityHtml() en vez de una tarjeta nueva.
+function loanGuaranteeMonthly() {
+  const configured = Number(state?.loanGuaranteeMonthly || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function syncLoanGuaranteeControl() {
+  const field = qs("ajustesLoanGuaranteeMonthly");
+  if (field && document.activeElement !== field) {
+    const value = loanGuaranteeMonthly();
+    field.value = value > 0 ? String(value) : "";
+  }
+}
+
+function renderAjustesLoanGuaranteeNote() {
+  const note = qs("ajustesLoanGuaranteeNote");
+  if (!note) return;
+  const value = loanGuaranteeMonthly();
+  note.textContent = value > 0
+    ? `${money(value, true)}/mes de avales dados: se descuentan de tu propio margen de endeudamiento en Deuda › Ruta y Comparar, aunque hoy no los estés pagando.`
+    : "Sin avales dados declarados. Si has avalado la deuda de otra persona, indica aquí la cuota mensual que asumirías si tuvieras que responder por ella.";
+}
+
+function handleLoanGuaranteeMonthlyChange(event) {
+  if (!state) return;
+  const next = emergencyCreditFieldFromValue(event.target.value);
+  const previous = loanGuaranteeMonthly();
+  event.target.value = next > 0 ? String(next) : "";
+  if (next === previous) return;
+  state.loanGuaranteeMonthly = next;
+  saveScenarioSettings();
+  renderAjustesLoanGuaranteeNote();
+}
+
 // DI2 · línea de crédito de emergencia frente a colchón líquido. Mismo patrón de campo único que el
 // capital asegurado (SP2): dos números configurables en Ajustes (límite y TIN de la línea), sin línea
 // de crédito real conectada. Reutiliza el colchón operativo ya configurado (cuadroMandosReserve) en
@@ -23642,6 +23703,8 @@ function renderAjustes() {
   renderAjustesDividendTaxNote();
   syncEmergencyCreditLineControls();
   renderAjustesEmergencyCreditLineNote();
+  syncLoanGuaranteeControl();
+  renderAjustesLoanGuaranteeNote();
   renderRemuneratedAccounts();
   renderMaintenanceFeeAccounts();
   renderInsurancePolicies();
@@ -33593,6 +33656,7 @@ async function init() {
   qs("ajustesDividendSpanishSavingsRatePct")?.addEventListener("change", handleDividendTaxChange("dividendSpanishSavingsRatePct", { max: 100 }));
   qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
   qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
+  qs("ajustesLoanGuaranteeMonthly")?.addEventListener("change", handleLoanGuaranteeMonthlyChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
   qs("ajustesSobresEnabled")?.addEventListener("change", handleSobresToggle);

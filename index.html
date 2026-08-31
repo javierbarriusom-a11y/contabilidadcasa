@@ -2214,6 +2214,21 @@
               <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
             </article>
 
+            <!-- DI4: impacto de un aval dado en la capacidad de endeudamiento futura. Un banco
+                 descuenta la cuota del aval de tu propia capacidad como si fuera deuda tuya, aunque
+                 hoy no la estés pagando. Campo único aquí; el impacto se calcula y se muestra en
+                 Deuda › Ruta y Comparar, junto a la capacidad de endeudamiento (D-12) que ya vive
+                 ahí — sin inventario de avales todavía. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Avales dados</h3>
+              <p class="e19-kpi-note">Si has avalado la deuda de otra persona, esa cuota se descuenta de tu propia capacidad de endeudamiento futura — aunque hoy no la pagues tú.</p>
+              <label class="month-picker">
+                <span>Cuota mensual equivalente del aval (€)</span>
+                <input id="ajustesLoanGuaranteeMonthly" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+              </label>
+              <p class="e19-kpi-note" id="ajustesLoanGuaranteeNote"></p>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
               <p class="e19-kpi-note">Registro comparado de las cuentas remuneradas activas: cuál paga mejor TAE y qué rendimiento medio da el conjunto, ponderado por saldo.</p>
@@ -4748,6 +4763,7 @@
     <script defer src="canonical-home-insurance.js?v=20260831sp3a1"></script>
     <script defer src="canonical-dividend-tax.js?v=20260831fc4a1"></script>
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
+    <script defer src="canonical-loan-guarantees.js?v=20260831di4a1"></script>
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
@@ -4785,7 +4801,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260831h6"></script>
+    <script defer src="app.js?v=20260831h7"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
