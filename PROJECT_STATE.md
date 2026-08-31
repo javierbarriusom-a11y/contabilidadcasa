@@ -36,7 +36,7 @@ smoke test, todos en verde. `app.js` bumpeado a `?v=20260831h6`, `canonical-fore
 `?v=20260831a164a1`, `views/analisis.js` a `?v=20260831a164c1` (26 pruebas de cadena de versión de
 `app.js` actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #177, fusionado a `main`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (101): Bloque 7 — UX4, ninguna cifra financiera solo por color
 
