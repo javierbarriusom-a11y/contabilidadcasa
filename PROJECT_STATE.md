@@ -1,6 +1,24 @@
 # Estado del proyecto
 
-Fecha de revisión: 30 de agosto de 2026.
+Fecha de revisión: 31 de agosto de 2026.
+
+## Cierre de sesión — 31 de agosto de 2026 (97): Bloque 7 — SP3, seguro de hogar vs. valor de reposición
+
+Quinta tarea del Bloque 7. Mismo patrón exacto que SP2 (`canonical-life-coverage.js`): motor puro
+`canonical-home-insurance.js` con `evaluateHomeInsuranceGap(coverage, replacementValue)` — gap simple
+entre cobertura declarada y valor de reposición de bienes, `null` en el ratio cuando no hay valor de
+reposición declarado (sin denominador no hay ratio que signifique nada), sin inventario de pólizas.
+
+**SP3**: nueva tarjeta de Ajustes "Seguro de hogar vs. valor de reposición" (dos campos: cobertura del
+seguro, valor de reposición de bienes) junto a la de SP2 (capital de vida vs. deuda). Sin valor de
+reposición configurado, la nota no fabrica una comparación.
+
+**Validación**: `npm run verify`, exit 0 — **2493/2493 pruebas** (2481 + 12 nuevas: 8 del motor puro
+en `canonical-home-insurance.js` y 4 de integración en `app.js`/`index.html`), accesibilidad (968 IDs,
++3 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js` bumpeado a `?v=20260831h1` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (96): Bloque 7 — DI3, detector y priorizador de revolving
 
