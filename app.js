@@ -199,10 +199,10 @@ const HEAVY_RENDER_VIEWS = new Set([
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260828d1", rootId: "presupuestoMesRoot" },
   "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
-  "deuda-comparar": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-comparar" },
-  "deuda-ruta": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-ruta" },
-  "deuda-contratos": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-contratos" },
-  "deuda-simulador": { src: "views/deuda.js?v=20260828a1", rootId: "deuda-simulador" },
+  "deuda-comparar": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-comparar" },
+  "deuda-ruta": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-ruta" },
+  "deuda-contratos": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-contratos" },
+  "deuda-simulador": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-simulador" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260830ux3a1", rootId: "analisis" },
@@ -29151,6 +29151,14 @@ function deudaRutaMotivationalGapText(gap) {
     return `En tu cartera actual, Bola de nieve sale ${money(Math.abs(gap.extraCost), true)} más barata que Avalancha (Avalancha ${money(gap.optimalCost, true)} · Bola de nieve ${money(gap.motivationalCost, true)}).`;
   }
   return `Avalancha y Bola de nieve cuestan lo mismo en tu cartera actual: ${money(gap.optimalCost, true)}.`;
+}
+
+// DI3: redacta el orden de prioridad de las deudas revolving detectadas (ya calculado por
+// `prioritizeRevolving`, TAE descendente) — sin ninguna, no dice nada en vez de forzar una frase vacía.
+function deudaRutaRevolvingText(prioritized = []) {
+  if (!prioritized.length) return "";
+  const list = prioritized.map((contract) => `${contract.entity} (${contract.apr ?? "TAE desconocido"}%)`).join(", ");
+  return `Revolving detectada — suele concentrar el TAE más alto: ${list}. Prioridad de pago sugerida en ese orden.`;
 }
 
 // V1-3 · «Deuda pendiente» y «Libre de deuda» para Hoy. Las dos cifras salen del mismo sitio que

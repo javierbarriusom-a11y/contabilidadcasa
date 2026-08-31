@@ -79,6 +79,15 @@
     return value !== undefined && value !== null && String(value).trim() !== "" && String(value).toLowerCase() !== "unknown";
   }
 
+  const REVOLVING_TYPE_PATTERN = /revolving|tarjeta/i;
+
+  // DI3: detección solo por lo que el hogar ya declaró en `type` (p. ej. "Tarjeta",
+  // "Tarjeta de crédito") — nunca infiere revolving de un TAE alto por sí solo, que
+  // también existe en préstamos personales sin ser revolving.
+  function isRevolvingType(type) {
+    return REVOLVING_TYPE_PATTERN.test(String(type || ""));
+  }
+
   function contractQuality(contract = {}, raw = {}) {
     const agreementKnown = contract.agreement?.status === "none" || known(contract.agreement?.source);
     const fields = {
@@ -139,6 +148,7 @@
       source: raw.source || "workbook",
       owner: raw.owner || "household",
       apr: known(raw.apr ?? raw.tae) ? nonNegative(raw.apr ?? raw.tae) : null,
+      revolving: isRevolvingType(raw.type),
     };
     const arrears = estimateArrears(contract, options.asOfMonthKey);
     const normalized = { ...contract, arrearsMonths: arrears.months, arrearsEstimated: arrears.amount };
@@ -215,6 +225,15 @@
     };
   }
 
+  // DI3: prioriza las deudas revolving activas por TAE descendente — mismo criterio que la
+  // ruta avalancha (A16-5/D-2), aplicado solo al subconjunto revolving en vez de a toda la
+  // cartera, porque el revolving suele concentrar el TAE más alto y conviene señalarlo aparte.
+  function prioritizeRevolving(contracts = []) {
+    return contracts
+      .filter((contract) => contract.revolving && contract.paymentStatus === "active")
+      .sort((a, b) => (b.apr ?? 0) - (a.apr ?? 0));
+  }
+
   function summarizeContracts(result = {}) {
     const contracts = result.contracts || [];
     return {
@@ -239,5 +258,7 @@
     contractQuality,
     resumePlan,
     summarizeContracts,
+    isRevolvingType,
+    prioritizeRevolving,
   };
 });
