@@ -19,7 +19,7 @@ en `canonical-portfolio.js` y 4 de integración en `app.js`/`index.html`), acces
 rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a
 `?v=20260831h2` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #174 abierto (borrador), a la espera de su CI.
 
 ## Cierre de sesión — 31 de agosto de 2026 (97): Bloque 7 — SP3, seguro de hogar vs. valor de reposición
 
