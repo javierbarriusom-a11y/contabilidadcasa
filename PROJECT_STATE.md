@@ -22,7 +22,7 @@ priorización pura en `canonical-debt-contracts.js` y 3 de integración en `app.
 todos en verde. `app.js` bumpeado a `?v=20260830h8` (26 pruebas de cadena de versión actualizadas) y
 `views/deuda.js` a `?v=20260830di3a1` (carga diferida, bump propio de sus 4 rutas en `app.js`).
 
-**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #172 abierto (borrador), a la espera de su CI.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #172, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (95): Bloque 7 — IV6, rebalanceo guiado por umbral
 
