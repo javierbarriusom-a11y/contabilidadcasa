@@ -2160,7 +2160,10 @@ function renderE6DebtQuality() {
   target.innerHTML = contracts.length ? `<div class="e6-quality-list">${contracts.map((contract) => {
     const quality = contract.dataQuality || DebtContracts.contractQuality(contract, contract);
     const missing = quality.missing || [];
-    return `<article class="e6-quality-card"><header><strong>${escapeHtml(`${contract.entity} ${contract.type}`)}</strong><span class="status-pill ${quality.complete ? "good" : quality.completeness >= 75 ? "warn" : "danger"}">${quality.completeness}%</span></header>
+    // UX4: la píldora de completitud llevaba solo el color como diferencia entre sus tres estados —
+    // se añade la palabra ("completo"/"parcial"/"incompleto") para que no dependa solo de él.
+    const completenessWord = quality.complete ? "completo" : quality.completeness >= 75 ? "parcial" : "incompleto";
+    return `<article class="e6-quality-card"><header><strong>${escapeHtml(`${contract.entity} ${contract.type}`)}</strong><span class="status-pill ${quality.complete ? "good" : quality.completeness >= 75 ? "warn" : "danger"}">${quality.completeness}% ${completenessWord}</span></header>
       <p>${missing.length ? `Desconocido: ${missing.map((field) => e6DebtFieldLabels[field] || field).join(", ")}.` : "Contrato completo para el análisis."}</p>
       <p>Confianza ${escapeHtml(quality.confidence)} · fuente ${escapeHtml(contract.source || "desconocida")}.</p></article>`;
   }).join("")}</div>` : `<div class="audit-empty"><strong>Sin contratos</strong><p>No hay deuda que revisar.</p></div>`;
@@ -2176,7 +2179,7 @@ function renderE6KpiQuality() {
     ...entry,
     reconciled: entry.reconciled === true || entry.status === "matched" || entry.reconciliationStatus === "matched",
   })), { horizonMonths: forecastMonths().length });
-  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} mes(es) · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
+  const scenarioHtml = calibrated ? `<div class="e7-scenario-quality"><strong>Escenarios probabilísticos</strong><p>Solo histórico conciliado · ${calibrated.sampleMonths} mes(es) · confianza ${escapeHtml(calibrated.confidence)} · salida ${calibrated.display === "range" ? "por bandas" : "puntual"}.</p><div class="e6-quality-list">${calibrated.scenarios.map((scenario) => `<article class="e6-quality-card"><header><strong>${scenario.id === "stress" ? "Tensión" : scenario.id === "optimistic" ? "Optimista" : "Base"}</strong><span class="status-pill ${scenario.calibrated ? "warn" : "danger"}">P${Math.round(scenario.percentile * 100)} · ${scenario.calibrated ? "calibrado" : "sin calibrar"}</span></header><p>Flujo mensual calibrado: ${money(scenario.monthlyNet, true)}.</p></article>`).join("")}</div>${calibrated.warning ? `<p class="debt-review-note">${escapeHtml(calibrated.warning)}</p>` : ""}</div>` : "";
   target.innerHTML = (metrics.length ? `<div class="e6-quality-list">${metrics.map((item) => `<article class="e6-quality-card">
     <header><strong>${escapeHtml(item.label)}</strong><span class="status-pill ${item.confidence === "high" ? "good" : item.confidence === "medium" ? "warn" : "danger"}">${escapeHtml(item.confidence)}</span></header>
     <dl><dt>Fecha</dt><dd>${escapeHtml(item.asOf)}</dd><dt>Fuente</dt><dd>${escapeHtml(item.source)}</dd><dt>Método</dt><dd>${escapeHtml(item.method)}</dd><dt>Cobertura</dt><dd>${escapeHtml(item.coverage)}</dd></dl>

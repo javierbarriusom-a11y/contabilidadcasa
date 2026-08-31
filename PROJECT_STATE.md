@@ -2,6 +2,37 @@
 
 Fecha de revisión: 31 de agosto de 2026.
 
+## Cierre de sesión — 31 de agosto de 2026 (101): Bloque 7 — UX4, ninguna cifra financiera solo por color
+
+Novena tarea del Bloque 7 (9/13), la última marcada "Alto" impacto que quedaba desbloqueada (depende
+de OPT-4, ya construido). Se había señalado como la de mayor riesgo de desbordar el alcance por ser
+transversal a toda la app — así que antes de tocar nada se hizo la auditoría real en vez de asumir el
+tamaño del problema.
+
+**Auditoría**: todos los usos de `.status-pill` y `.e19-badge` en `app.js`, y todo el patrón
+`.negative`/`.positive` sobre cifras de `money()`. Resultado — la app ya era conforme en casi todos
+los sitios por dos motivos que ya existían: `money()` antepone un "-" literal a los importes
+negativos (`Intl.NumberFormat`), así que el color nunca es la única pista del signo; y casi todas las
+píldoras de estado ya emparejan el tono con una palabra ("Viable"/"Vigilar", "Activo"/"Desactivado",
+el nombre de la confianza, "Fuera de umbral"/"Cerca del umbral" de H-4...). Se encontraron **dos**
+píldoras reales sin esa palabra — un porcentaje de completitud de contrato de deuda y un percentil de
+escenario calibrado, ambas con el tono como única diferencia entre sus estados — y son las únicas que
+se tocan en este núcleo.
+
+**UX4**: la píldora de completitud (`renderE6DebtQuality`) añade "completo"/"parcial"/"incompleto"
+junto al `%`; la píldora de percentil (`renderE6KpiQuality`) añade "calibrado"/"sin calibrar" junto a
+la `P##`. El resto de la superficie transversal (cientos de cifras firmadas con `.negative`/
+`.positive`, el resto de píldoras que ya llevan texto) queda **fuera de este núcleo por ya ser
+conforme**, no por no haberse revisado — la auditoría cubrió toda la familia `.status-pill`/
+`.e19-badge` de `app.js`.
+
+**Validación**: `npm run verify`, exit 0 — **2528/2528 pruebas** (2526 + 2 nuevas de regresión sobre
+las dos píldoras corregidas), accesibilidad (975 IDs, sin cambio — no hay campos nuevos), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a `?v=20260831h5` (26
+pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+
 ## Cierre de sesión — 31 de agosto de 2026 (100): Bloque 7 — FC4, retención de dividendos y doble imposición
 
 Octava tarea del Bloque 7, elegida por ser la más barata de las cuatro restantes desbloqueadas
