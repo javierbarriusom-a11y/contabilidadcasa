@@ -65,5 +65,30 @@
     };
   }
 
-  return { COMPONENTS, compositeHealthScore };
+  // A16-2: guarda como mucho un registro por día — releer la misma jornada actualiza el valor en
+  // vez de duplicar la fecha. Sin valor conocido (null/undefined) no se guarda nada: la tendencia
+  // solo se acumula con puntuaciones reales, nunca con un hueco fingido como cero.
+  function recordSnapshot(history = [], date, value) {
+    const list = Array.isArray(history) ? [...history] : [];
+    if (value === null || value === undefined) return list;
+    const day = String(date || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return list;
+    const roundedValue = round1(value);
+    const existingIndex = list.findIndex((entry) => entry.date === day);
+    if (existingIndex >= 0) list[existingIndex] = { date: day, value: roundedValue };
+    else list.push({ date: day, value: roundedValue });
+    return list.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // Compara el primer y el último registro disponibles — no una regresión lineal ni una media
+  // móvil, solo "de dónde veníamos a dónde estamos", que es todo lo que A16-2 pide como núcleo.
+  function trendSummary(history = []) {
+    const list = Array.isArray(history) ? history : [];
+    if (list.length < 2) return null;
+    const first = list[0];
+    const last = list[list.length - 1];
+    return { first, last, delta: round1(last.value - first.value), count: list.length };
+  }
+
+  return { COMPONENTS, compositeHealthScore, recordSnapshot, trendSummary };
 });

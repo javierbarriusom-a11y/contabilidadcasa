@@ -25714,6 +25714,38 @@ function renderHomeHealthScoreCard(result) {
   list.innerHTML = rows.join("");
 }
 
+// A16-2: tendencia histórica de la puntuación compuesta. Sin histórico previo (el motor no
+// recalcula el pasado, solo empieza a acumularse desde hoy), la nota lo dice explícitamente en
+// vez de fingir una tendencia que no existe.
+function homeHealthScoreHistory() {
+  return Array.isArray(scenarioSettings.healthScoreHistory) ? scenarioSettings.healthScoreHistory : [];
+}
+
+function recordHomeHealthScoreSnapshot(value, date) {
+  const engine = window.FinanceCanonicalHealthScore;
+  if (!engine || value === null || value === undefined) return;
+  const day = String(date || "").slice(0, 10);
+  const current = homeHealthScoreHistory();
+  const existing = current.find((entry) => entry.date === day);
+  if (existing && existing.value === value) return;
+  scenarioSettings.healthScoreHistory = engine.recordSnapshot(current, day, value);
+  saveScenarioSettings();
+}
+
+function renderHomeHealthScoreTrend() {
+  const note = qs("homeHealthScoreTrendNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalHealthScore;
+  const trend = engine?.trendSummary(homeHealthScoreHistory());
+  if (!trend) {
+    note.textContent = "Tendencia: se irá acumulando a partir de hoy, un registro por día.";
+    return;
+  }
+  const arrow = trend.delta > 0 ? "↑" : trend.delta < 0 ? "↓" : "→";
+  const sign = trend.delta > 0 ? "+" : "";
+  note.textContent = `Tendencia: ${arrow} ${sign}${trend.delta} puntos desde ${trend.first.date} (${trend.first.value}) hasta ${trend.last.date} (${trend.last.value}), ${trend.count} registros.`;
+}
+
 function renderHomeHeaderMeta({ statuses, health, asOf, source, guidance }) {
   const meta = qs("homeHeaderMeta");
   if (!meta) return;
@@ -25945,7 +25977,10 @@ function renderHomeDashboard() {
   const compositeInputs = homeHealthScoreComponents({
     caixa: balances.caixa, protectedReserve, debtToIncomeRatio: savings.debtToIncomeRatio, debtRatioDangerAt,
   });
-  renderHomeHealthScoreCard(window.FinanceCanonicalHealthScore?.compositeHealthScore(compositeInputs));
+  const compositeResult = window.FinanceCanonicalHealthScore?.compositeHealthScore(compositeInputs);
+  renderHomeHealthScoreCard(compositeResult);
+  recordHomeHealthScoreSnapshot(compositeResult?.value ?? null, new Date().toISOString().slice(0, 10));
+  renderHomeHealthScoreTrend();
 
   qs("homeKpis").innerHTML = [
     renderHomeKpi({
