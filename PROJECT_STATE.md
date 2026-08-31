@@ -18,7 +18,7 @@ en `canonical-home-insurance.js` y 4 de integración en `app.js`/`index.html`), 
 +3 por los campos nuevos), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
 `app.js` bumpeado a `?v=20260831h1` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #173 abierto (borrador), a la espera de su CI.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #173, fusionado a `main`.
 
 ## Cierre de sesión — 30 de agosto de 2026 (96): Bloque 7 — DI3, detector y priorizador de revolving
 
