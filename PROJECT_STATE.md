@@ -27,7 +27,8 @@ al principio del panel de E16 en Herramientas avanzadas.
 formulario), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `p2-ui.js`
 bumpeado a `?v=20260902cp1a1` (una prueba de cadena de versión actualizada).
 
-**Publicado**: pendiente de commit y push a `claude/cp1-proxima-mejor-accion`.
+**Publicado**: fusionado en `main` mediante `18178c7` — PR #185, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (106): Bloque 8 — FC1, plusvalías por FIFO en cada venta parcial
 
