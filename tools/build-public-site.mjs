@@ -64,6 +64,8 @@ const files = [
   "canonical-joint-restructuring.js",
   "canonical-assets.js",
   "canonical-portfolio.js",
+  "canonical-share-link.js",
+  "share.html",
   "canonical-e7-analysis.js",
   "canonical-e8-operations.js",
   "canonical-e9-foundation.js",
