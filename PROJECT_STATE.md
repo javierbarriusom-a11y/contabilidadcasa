@@ -35,7 +35,8 @@ privacidad y smoke test, todos en verde. `app.js`/`canonical-portfolio.js` bumpe
 función para comprobar su contenido — al alargar esa función con FC1, el recorte dejaba fuera el
 texto que buscaban; se amplió el recorte, sin tocar la aserción en sí.
 
-**Publicado**: pendiente de commit y push a `claude/fc1-plusvalias-fifo-venta-parcial`.
+**Publicado**: fusionado en `main` mediante `4f60e53` — PR #183, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (105): Bloque 8 — IV2, rentabilidad real (XIRR) de la cartera
 
