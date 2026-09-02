@@ -2,6 +2,44 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (105): Bloque 8 — IV2, rentabilidad real (XIRR) de la cartera
+
+Segunda tarea nueva del Bloque 8. Antes de tocar código se detectó otra vez una brecha real entre
+lo que pide el título de la tarea y lo que el dato actual permite: `canonical-portfolio.js` (IV1)
+solo guardaba una foto fija por posición (coste total, valor actual, fecha de valoración) — sin
+fecha de adquisición ni historial de aportaciones. TWR (rentabilidad ponderada por tiempo) exige
+valoraciones intermedias en cada movimiento, que esta app no registra (no hay cotización de mercado,
+solo el valor que el usuario declara); con un único movimiento por posición, TWR coincide
+matemáticamente con XIRR, así que presentarla como una segunda cifra distinta habría sido una
+etiqueta técnica sin respaldo. Alcance acordado con el usuario: construir XIRR de verdad (genérica,
+válida para N flujos) y añadir un histórico de aportaciones múltiples por posición para que XIRR
+empiece a divergir de la rentabilidad simple en cuanto haya más de un movimiento — en vez de fingir
+un TWR que la app no puede calcular honestamente.
+
+**IV2**: `canonical-portfolio.js` gana `xirr(flows)` — motor puro (bisección sobre la ecuación
+estándar de Excel: flujos negativos = aportado, positivos = devuelto/valor final), con capacidad
+para N flujos, no solo 2. Cada posición gana `acquisitionDate` (fecha de la primera aportación,
+la del coste ya existente) y `contributions[]` (aportaciones adicionales con su propia fecha; solo
+dinero aportado, nunca retiradas — una retirada parcial cambiaría el coste según qué lote se vende,
+FIFO, tarea FC1 aparte). `costBasis` pasa a ser coste inicial + suma de aportaciones, sin romper
+ninguna posición existente sin aportaciones registradas (retrocompatible). `applyFundTransfer` (FC2)
+se corrige para conservar `acquisitionDate`/`contributions` en un traspaso — sin este cambio, un
+traspaso sin peaje fiscal habría reiniciado en silencio la XIRR de la posición, contradiciendo su
+propio principio de "nunca reinicia la base de coste". `summarizePositions` gana la XIRR agregada de
+toda la cartera (todos los flujos juntos, no la media de las XIRR individuales). Nueva tarjeta en
+Ajustes: fecha de primera aportación en el formulario existente, más un formulario aparte para
+añadir aportaciones a una posición ya registrada. Sin fecha de aportación o valor, la XIRR se
+informa como no calculable con el motivo explícito — nunca una tasa inventada.
+
+**Validación**: `npm run verify`, exit 0 — **2596/2596 pruebas** (2574 + 22 nuevas: 13 en
+`tests/iv2-rentabilidad-real-twr-xirr.test.cjs` — motor `xirr()`, `normalizePosition` con
+aportaciones, XIRR agregada de la cartera y regresión de `applyFundTransfer` — y 9 en
+`tests/iv2-app-integracion.test.cjs`), accesibilidad (984 IDs, +5), rendimiento, build del sitio,
+privacidad y smoke test, todos en verde. `app.js`/`canonical-portfolio.js` bumpeados a
+`?v=20260902iv2a1` (26 pruebas de cadena de versión actualizadas).
+
+**Publicado**: pendiente de commit y push a `claude/artifact-update-execution-plan-lxzp4w`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (104): Bloque 8 — PV1, autoajuste de la previsión por niveles de confianza
 
 Primera tarea del Bloque 8 que arrancaba de cero (A14-2/A14-3 ya se habían adelantado en la tanda de
