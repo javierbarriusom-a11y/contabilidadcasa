@@ -64,7 +64,9 @@ el proyecto Supabase real (panel de Supabase → SQL Editor, o `supabase db push
 función de generar enlaces funcione en producción; sin ella, `saveA19ShareLink()` fallará con un
 error de Supabase (tabla/función inexistente) de forma visible y contenida, nunca en silencio.
 
-**Publicado**: pendiente de commit y push a `claude/a19-1-enlace-solo-lectura`.
+**Publicado**: fusionado en `main` mediante `635926a` — PR #195, CI (`verify`) en verde, sin
+conflicto de fusión. **Recordatorio pendiente**: la migración SQL sigue sin aplicarse al proyecto
+Supabase real — acción manual del usuario, fuera del alcance de esta sesión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (111): Bloque 8 — OPT-8, jerarquía visual real en «Hoy»
 
