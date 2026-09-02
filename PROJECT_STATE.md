@@ -34,7 +34,8 @@ accesibilidad (995 IDs, +5 por el nuevo formulario), rendimiento, build del siti
 test, todos en verde. `app.js`/`canonical-portfolio.js`/`canonical-e15-goals.js` bumpeados a
 `?v=20260902iv3a1` (pruebas de cadena de versión actualizadas en masa).
 
-**Publicado**: pendiente de commit y push a `claude/iv3-aportaciones-programadas-calendario`.
+**Publicado**: fusionado en `main` mediante `3a8abd7` — PR #187, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (107): Bloque 8 — CP1, motor de próxima mejor acción
 
