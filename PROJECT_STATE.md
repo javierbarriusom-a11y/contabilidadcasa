@@ -38,7 +38,8 @@ de migración, para que este fallo no pueda reaparecer en silencio.
 no requiere `npm run verify` completo (accesibilidad/rendimiento/build/privacidad/smoke test no
 tienen nada que verificar en un archivo `.sql` fuera del sitio publicado).
 
-**Publicado**: pendiente de commit y push a la rama de trabajo en curso.
+**Publicado**: fusionado en `main` mediante `6bbe514` — PR #199, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 **Nota de la sesión**: el propio usuario confirmó en producción, contra su proyecto Supabase real,
 que el enlace funciona correctamente de extremo a extremo tras el arreglo — vista de forecast a 6
