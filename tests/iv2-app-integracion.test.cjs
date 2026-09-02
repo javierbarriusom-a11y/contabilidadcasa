@@ -47,7 +47,7 @@ test("IV2: renderIv1PositionList muestra la XIRR de cada posición junto al rest
 });
 
 test("IV2: renderIv1PositionSummary muestra la XIRR de la cartera y explica por qué TWR coincide con ella hoy", () => {
-  const block = appSource.slice(appSource.indexOf("function renderIv1PositionSummary"), appSource.indexOf("function renderIv1PositionSummary") + 1400);
+  const block = appSource.slice(appSource.indexOf("function renderIv1PositionSummary"), appSource.indexOf("function renderIv1PositionSummary") + 2200);
   assert.match(block, /iv2XirrLabel\(xirr\)/);
   assert.match(block, /valoraciones intermedias que esta app no registra/);
 });
