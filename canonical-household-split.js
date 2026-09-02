@@ -71,5 +71,36 @@
     return { javi: half, tere: round2(total - half), mode: "equal" };
   }
 
-  return { SCHEMA_ID, MODES, normalizeRule, resolveRuleForCategory, splitShares };
+  // A18-2: saldo continuo "quién debe a quién" — cada gasto compartido registrado ya fue pagado al
+  // 100% por uno de los dos titulares (`paidBy`); el reparto de A18-1 (resolveRuleForCategory +
+  // splitShares) dice cuál era su cuota justa, así que el otro titular le debe esa cuota. Se
+  // acumula en un único saldo neto (nunca dos saldos que se contradigan): positivo cuando Tere debe
+  // a Javi, negativo cuando Javi debe a Tere. Sin gastos registrados el saldo es 0 — no una cifra
+  // ausente, sino el resultado correcto de no haber nada que repartir todavía. No toca el libro
+  // principal de movimientos: lee y devuelve, nunca escribe.
+  function runningBalance(entries = [], settings = {}) {
+    const incomes = settings.incomes || {};
+    const categoryRules = settings.categoryRules || {};
+    const defaultRule = settings.defaultRule || { mode: "equal", payer: "javi", amount: null };
+    let net = 0;
+    const breakdown = (Array.isArray(entries) ? entries : []).map((entry) => {
+      const amount = Math.max(0, round2(entry?.amount));
+      const paidBy = entry?.paidBy === "tere" ? "tere" : "javi";
+      const rule = resolveRuleForCategory(categoryRules, entry?.category, defaultRule);
+      const shares = splitShares({ amount, rule, incomes });
+      const owed = paidBy === "javi" ? shares.tere : shares.javi;
+      net = round2(net + (paidBy === "javi" ? owed : -owed));
+      return { id: String(entry?.id || ""), date: String(entry?.date || ""), category: String(entry?.category || ""), amount, paidBy, shares, owed };
+    });
+    return {
+      schemaId: `${SCHEMA_ID}/running-balance-v1`,
+      entries: breakdown,
+      net,
+      owes: net > 0 ? "tere" : net < 0 ? "javi" : null,
+      owedTo: net > 0 ? "javi" : net < 0 ? "tere" : null,
+      amount: round2(Math.abs(net)),
+    };
+  }
+
+  return { SCHEMA_ID, MODES, normalizeRule, resolveRuleForCategory, splitShares, runningBalance };
 });
