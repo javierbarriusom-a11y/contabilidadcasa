@@ -141,6 +141,41 @@
     });
   }
 
+  // CP1: próxima mejor acción — de las alertas anticipadas que ya calcula E16 (A11-1), la más
+  // urgente, citada contra el catálogo de fuentes de canonical-e9-assistant.js (sourceCatalog) y
+  // verificada por CP3/canonical-recommendation-citation.js. Sin revivir el asistente retirado:
+  // ninguna consulta a IA, solo su vocabulario de citas sobre datos que ya existen aquí mismo. Sin
+  // alertas, o si ninguna pasa la validación de citas, no hay próxima mejor acción que mostrar —
+  // nunca una recomendación inventada.
+  const CP1_SEVERITY_RANK = { critical: 0, high: 1, medium: 2 };
+  const CP1_ALERT_LABELS = { cash: "Revisar la caja prevista", variation: "Revisar la variación prevista", debt: "Revisar el ratio de deuda" };
+
+  function cp1NextBestAction(model) {
+    const assistantApi = root.FinanceCanonicalE9Assistant;
+    const citationApi = root.FinanceCanonicalRecommendationCitation;
+    const alerts = model?.alerts?.alerts || [];
+    if (!assistantApi || !citationApi || !alerts.length) return null;
+    const sources = assistantApi.sourceCatalog({ alerts: alerts.map((item) => ({ id: item.id, label: item.message })) });
+    const availableSources = new Set(sources.map((item) => item.id));
+    const candidates = [...alerts]
+      .sort((a, b) => (CP1_SEVERITY_RANK[a.severity] ?? 3) - (CP1_SEVERITY_RANK[b.severity] ?? 3))
+      .map((alert) => ({
+        label: CP1_ALERT_LABELS[alert.type] || "Revisar la evidencia",
+        message: alert.message,
+        severity: alert.severity,
+        citations: [`alert:${alert.id}`],
+      }));
+    const validated = citationApi.validateRecommendations(candidates, { availableSources });
+    const index = validated.results.findIndex((result) => result.valid);
+    return index === -1 ? null : candidates[index];
+  }
+
+  function cp1NextBestActionHtml(action) {
+    if (!action) return '<p class="p2-help">No hay ninguna alerta con evidencia citable ahora mismo.</p>';
+    const tone = action.severity === "critical" ? " danger" : action.severity === "high" ? " warn" : "";
+    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(action.label)}</strong><span class="p2-status${tone}">${esc(action.severity)}</span></div><p>${esc(action.message)}</p><p class="p2-help">Cita: ${esc(action.citations.join(", "))}.</p></article>`;
+  }
+
   function renderE16Monitoring() {
     const api = root.FinanceCanonicalE16;
     const input = bridge()?.e16Input?.();
@@ -152,7 +187,9 @@
     const budget = model.alerts.riskBudget;
     const alerts = model.alerts.alerts;
     const changes = [...model.changes.movements.map((item) => `${item.label}: ${euro(item.amount)}`), ...model.changes.deviations.map((item) => `${item.label}: ${euro(item.delta)}`), ...model.changes.assumptions.map((item) => item.label), ...model.changes.goals.map((item) => item.label)];
+    const nextBestAction = cp1NextBestAction(model);
     target.querySelector("[data-p2-body]").innerHTML = `
+      <section class="p2-list"><h4>Próxima mejor acción (CP1)</h4>${cp1NextBestActionHtml(nextBestAction)}</section>
       <form class="p2-form p2-grid three" data-e16-budget-form>
         <label class="p2-field"><span>Caja mínima (€)</span><input name="minimumLiquidity" type="number" min="0" step="0.01" value="${esc(budget.minimumLiquidity)}" /></label>
         <label class="p2-field"><span>Variación mensual máxima (€)</span><input name="maximumMonthlyVariation" type="number" min="0" step="0.01" value="${esc(budget.maximumMonthlyVariation)}" /></label>

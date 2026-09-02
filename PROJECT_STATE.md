@@ -2,6 +2,33 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (107): Bloque 8 — CP1, motor de próxima mejor acción
+
+Cuarta tarea nueva del Bloque 8, encadenada tras FC1. CP1 depende de CP3 (`canonical-recommendation-
+citation.js`, ya construida en el bloque 1 — regla: ninguna recomendación sin al menos una cita a
+evidencia real) y pide usar `canonical-e9-assistant.js` sin revivir el asistente retirado.
+Investigación previa: el "centro de acciones unificado" (`unifiedActionCenterModel`) ya existente en
+`app.js` resultó ser un conjunto de acciones de asesor con textos guionizados de sesiones muy
+tempranas (proyecto coche, crédito de Tere), sin evidencia formal citable — no era la base correcta.
+Las alertas anticipadas de caja/deuda de E16 (A11-1, `canonical-e16-monitoring.js`), en cambio, ya
+son evidencia real con severidad y mensaje, y viven en el mismo panel P2 (`p2-ui.js`) — la base
+correcta para "la próxima mejor acción".
+
+**CP1**: `p2-ui.js` gana `cp1NextBestAction(model)` — toma las alertas de E16 ya calculadas, las
+ordena por severidad (crítica > alta > media), construye una cita `alert:<id>` para la más urgente
+usando `canonical-e9-assistant.js` (`sourceCatalog()`, el mismo vocabulario que usaba el asistente
+retirado — ninguna consulta a IA, solo su formato de citas sobre datos que ya existen) y la valida
+con CP3 antes de mostrarla. Sin alertas, o si la cita no pasara la validación, no hay próxima mejor
+acción que mostrar — nunca una recomendación inventada. Nueva sección "Próxima mejor acción (CP1)"
+al principio del panel de E16 en Herramientas avanzadas.
+
+**Validación**: `npm run verify`, exit 0 — **2626/2626 pruebas** (2618 + 8 nuevas en
+`tests/cp1-proxima-mejor-accion.test.cjs`), accesibilidad (990 IDs, sin cambio — no añade campos de
+formulario), rendimiento, build del sitio, privacidad y smoke test, todos en verde. `p2-ui.js`
+bumpeado a `?v=20260902cp1a1` (una prueba de cadena de versión actualizada).
+
+**Publicado**: pendiente de commit y push a `claude/cp1-proxima-mejor-accion`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (106): Bloque 8 — FC1, plusvalías por FIFO en cada venta parcial
 
 Tercera tarea nueva del Bloque 8, encadenada tras IV2 sin pausa (autorización del usuario: seguir
