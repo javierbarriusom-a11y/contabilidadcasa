@@ -29,7 +29,8 @@ de `styles.css`. Accesibilidad (1002 IDs, sin cambio — no se tocó ningún for
 build del sitio, privacidad y smoke test, todos en verde. Solo `styles.css` bumpeado a
 `?v=20260902opt8a1` (el HTML se reorganizó, pero `app.js` no cambió, así que su versión no se toca).
 
-**Publicado**: pendiente de commit y push a `claude/opt8-jerarquia-visual-hoy`.
+**Publicado**: fusionado en `main` mediante `17cf803` — PR #193, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (110): Bloque 8 — A18-2, saldo continuo «quién debe a quién»
 
