@@ -53,11 +53,16 @@ grant select, insert, update on public.finance_share_links to authenticated;
 -- función de abajo, así que un fallo de configuración de RLS no puede filtrar enlaces ajenos.
 revoke all on public.finance_share_links from anon;
 
+-- "extensions" en el search_path es obligatorio aquí: Supabase suele traer pgcrypto ya
+-- preinstalada en el esquema "extensions" (para su propio uso interno), así que el
+-- "create extension if not exists pgcrypto" de arriba no la mueve a "public" si ya existía.
+-- Sin "extensions" en el search_path, digest() no se encuentra y la función falla en
+-- tiempo de ejecución para todo el mundo, aunque el token sea válido.
 create or replace function public.get_finance_share_link(p_token text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   result jsonb;
