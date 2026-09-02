@@ -38,7 +38,8 @@ formulario, solo dos opciones a un selector ya existente), rendimiento, build de
 smoke test, todos en verde. `app.js`/`canonical-e13-scenarios.js` bumpeados a `?v=20260902a145a1`
 (pruebas de cadena de versión actualizadas en masa).
 
-**Publicado**: pendiente de commit y push a `claude/a14-5-patrimonio-laboratorio-escenarios`.
+**Publicado**: fusionado en `main` mediante `5b9b54f` — PR #189, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (108): Bloque 8 — IV3, aportaciones programadas en el calendario financiero
 
