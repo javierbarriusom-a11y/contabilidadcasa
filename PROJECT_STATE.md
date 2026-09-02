@@ -38,7 +38,8 @@ accesibilidad (979 IDs, +2), rendimiento, build del sitio, privacidad y smoke te
 actualizadas). El entorno de esta sesión no tenía `node_modules` instalado (bloqueaba `build:site`
 por `esbuild` ausente); se resolvió con `npm install`, sin tocar el código.
 
-**Publicado**: pendiente de commit y push a `claude/artifact-update-execution-plan-lxzp4w`.
+**Publicado**: fusionado en `main` mediante `6dad839` — PR #179, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 31 de agosto de 2026 (103): Bloque 7 — DI4, impacto de avales en la capacidad de endeudamiento
 
