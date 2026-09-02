@@ -2559,10 +2559,11 @@
             </article>
 
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
-                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR), FC1 (FIFO) y
-                 el resto del bloque de inversión, que quedan para sesiones aparte. La correlación
-                 real entre activos (lo que pide IV4 además de la concentración) necesita datos de
-                 mercado y queda pendiente. Sin posiciones registradas, tarjeta neutra. -->
+                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR, construida
+                 aquí), FC1 (FIFO) y el resto del bloque de inversión, que quedan para sesiones
+                 aparte. La correlación real entre activos (lo que pide IV4 además de la
+                 concentración) necesita datos de mercado y queda pendiente. Sin posiciones
+                 registradas, tarjeta neutra. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cartera de inversión: registro por posición</h3>
               <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición, el reparto por tipo y el aviso de sobreexposición.</p>
@@ -2597,6 +2598,13 @@
                   <span>Fecha de valoración</span>
                   <input id="iv1PositionDate" type="date" />
                 </label>
+                <!-- IV2: fecha de la primera aportación (la del coste de arriba). Sin ella no hay
+                     flujo de caja que fechar y la rentabilidad anualizada (XIRR) no es calculable
+                     para esa posición — se dice así, nunca con una fecha inventada. -->
+                <label class="month-picker">
+                  <span>Fecha de la primera aportación</span>
+                  <input id="iv1PositionAcquisitionDate" type="date" />
+                </label>
                 <label class="month-picker">
                   <span>Procedencia</span>
                   <select id="iv1PositionProvenance">
@@ -2620,6 +2628,27 @@
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
               <div class="e19-kpi-note" id="iv1PositionSummary"></div>
               <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
+              <!-- IV2: aportación adicional a una posición ya registrada, con su propia fecha —
+                   la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más de un
+                   movimiento. Sin retiradas: una retirada parcial cambia el coste según qué lote
+                   se vende (FIFO, FC1), fuera de esta tarjeta a propósito. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Añadir aportación a</span>
+                  <select id="iv1ContributionTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe aportado (€)</span>
+                  <input id="iv1ContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de la aportación</span>
+                  <input id="iv1ContributionDate" type="date" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ContributionAdd">Añadir aportación</button>
             </article>
 
             <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
@@ -4789,7 +4818,7 @@
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
     <script defer src="canonical-assets.js?v=20260830a141a1"></script>
-    <script defer src="canonical-portfolio.js?v=20260830iv1a1"></script>
+    <script defer src="canonical-portfolio.js?v=20260902iv2a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4816,7 +4845,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902pv1a1"></script>
+    <script defer src="app.js?v=20260902iv2a1"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

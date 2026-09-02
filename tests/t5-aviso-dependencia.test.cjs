@@ -164,5 +164,5 @@ test("T-5 · el comparador no enseña 0,00 € cuando no ha calculado nada", () 
 
 test("T-5 · viaja en el shell offline versionado", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20260902pv1a1/);
+  assert.match(html, /app.js\?v=20260902iv2a1/);
 });

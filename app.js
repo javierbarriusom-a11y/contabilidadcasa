@@ -15684,10 +15684,12 @@ function clearIv1PositionForm() {
   const quantityInput = qs("iv1PositionQuantity");
   const costInput = qs("iv1PositionCost");
   const valueInput = qs("iv1PositionValue");
+  const acquisitionInput = qs("iv1PositionAcquisitionDate");
   if (labelInput) labelInput.value = "";
   if (quantityInput) quantityInput.value = "";
   if (costInput) costInput.value = "";
   if (valueInput) valueInput.value = "";
+  if (acquisitionInput) acquisitionInput.value = "";
 }
 
 function saveIv1Position() {
@@ -15697,20 +15699,60 @@ function saveIv1Position() {
   const costBasis = parseAmount(qs("iv1PositionCost")?.value);
   const currentValue = parseAmount(qs("iv1PositionValue")?.value);
   const asOf = qs("iv1PositionDate")?.value || "";
+  // IV2: fecha de la primera aportación (la del coste de arriba) — sin ella esa aportación no
+  // entra en la XIRR de la posición, pero la posición se registra igual (mismo criterio que el
+  // resto de campos opcionales del contrato).
+  const acquisitionDate = qs("iv1PositionAcquisitionDate")?.value || "";
   const provenance = qs("iv1PositionProvenance")?.value || "unknown";
   if (!label) {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, provenance }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, contributions: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
   renderIv1TransferOptions();
+  renderIv1ContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
   announceStatus(`Posición «${label}» registrada.`);
+}
+
+// IV2: aportación adicional a una posición ya registrada, con su propia fecha — el histórico de
+// aportaciones (canonical-portfolio.js) es lo que hace que la XIRR de la posición deje de
+// coincidir con su rentabilidad simple en cuanto hay más de un movimiento. Solo dinero aportado
+// (importe > 0); una retirada parcial cambiaría el coste según qué lote se vende (FIFO, FC1),
+// fuera de aquí a propósito.
+function saveIv1Contribution() {
+  const targetId = qs("iv1ContributionTarget")?.value || "";
+  const amount = parseAmount(qs("iv1ContributionAmount")?.value);
+  const date = qs("iv1ContributionDate")?.value || "";
+  if (!targetId) {
+    announceStatus("Selecciona a qué posición añades la aportación.");
+    return;
+  }
+  if (!(amount > 0)) {
+    announceStatus("Indica un importe aportado mayor que cero.");
+    return;
+  }
+  if (!date) {
+    announceStatus("Indica la fecha de la aportación.");
+    return;
+  }
+  const rows = iv1PositionsList();
+  const target = rows.find((position) => position.id === targetId);
+  if (!target) return;
+  const nextContributions = [...(Array.isArray(target.contributions) ? target.contributions : []), { id: `contribution-${Date.now()}`, date, amount }];
+  saveIv1PositionsList(rows.map((position) => (position.id === targetId ? { ...position, contributions: nextContributions } : position)));
+  qs("iv1ContributionAmount").value = "";
+  qs("iv1ContributionDate").value = "";
+  renderIv1PositionList();
+  renderIv1PositionSummary();
+  renderIv1PositionConcentration();
+  renderIv6Rebalance();
+  announceStatus(`Aportación de ${money(amount, true)} añadida a «${target.label}».`);
 }
 
 // FC2: solo fondo→fondo cumple la regla fiscal española de traspaso sin peaje — cualquier otro
@@ -15737,6 +15779,7 @@ function saveIv1Transfer() {
   clearIv1PositionForm();
   renderIv1PositionList();
   renderIv1TransferOptions();
+  renderIv1ContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -15747,9 +15790,27 @@ function removeIv1Position(id) {
   saveIv1PositionsList(iv1PositionsList().filter((position) => position.id !== id));
   renderIv1PositionList();
   renderIv1TransferOptions();
+  renderIv1ContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+}
+
+// IV2: motivo legible de por qué una XIRR no es calculable — nunca una cifra inventada cuando
+// faltan fechas/flujos suficientes (mismo criterio que el resto del contrato de cartera).
+const IV2_XIRR_REASON_LABELS = {
+  "insufficient-flows": "falta la fecha de la primera aportación o la de valoración",
+  "single-direction-flows": "falta el valor actual o la aportación con la que compararlo",
+  "same-date-flows": "aportación y valoración están en la misma fecha",
+  "no-bracket": "no se encontró una tasa anualizada razonable",
+  "not-converged": "el cálculo no convergió",
+};
+
+function iv2XirrLabel(result) {
+  if (!result || result.ratePct === null) {
+    return `XIRR no calculable (${IV2_XIRR_REASON_LABELS[result?.reason] || "datos insuficientes"})`;
+  }
+  return `XIRR ${result.ratePct >= 0 ? "+" : ""}${result.ratePct}% anual`;
 }
 
 function renderIv1PositionList() {
@@ -15765,7 +15826,8 @@ function renderIv1PositionList() {
   list.innerHTML = normalized.positions.map((position) => {
     const typeLabel = IV1_POSITION_TYPE_LABELS[position.type] || "Otro";
     const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span></span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    const contributionsNote = position.contributions.length ? ` · ${position.contributions.length} aportación(es) adicional(es)` : "";
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
 }
 
@@ -15773,6 +15835,16 @@ function renderIv1PositionList() {
 // origen; la elegibilidad real (fondo→fondo) se comprueba al ejecutar el traspaso, no aquí.
 function renderIv1TransferOptions() {
   const select = qs("iv1TransferSource");
+  if (!select) return;
+  const previous = select.value;
+  const options = iv1PositionsList().map((position) => `<option value="${escapeHtml(position.id)}">${escapeHtml(position.label)}</option>`);
+  select.innerHTML = `<option value="">-- Selecciona una posición --</option>${options.join("")}`;
+  if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
+}
+
+// IV2: opciones del selector de aportación — mismo patrón que renderIv1TransferOptions.
+function renderIv1ContributionOptions() {
+  const select = qs("iv1ContributionTarget");
   if (!select) return;
   const previous = select.value;
   const options = iv1PositionsList().map((position) => `<option value="${escapeHtml(position.id)}">${escapeHtml(position.label)}</option>`);
@@ -15790,9 +15862,15 @@ function renderIv1PositionSummary() {
     return;
   }
   const result = engine.normalizePositions(rows);
-  const { totalCost, totalValue, gainLoss, gainLossPct } = result.summary;
+  const { totalCost, totalValue, gainLoss, gainLossPct, xirr } = result.summary;
   const gainClass = gainLoss > 0 ? "positive" : gainLoss < 0 ? "negative" : "";
-  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong>.</p>`;
+  // IV2: con un único movimiento por posición, la rentabilidad ponderada por tiempo (TWR)
+  // coincide exactamente con la ponderada por dinero (XIRR) — no hay una segunda cifra distinta
+  // que inventar. Divergirán en cuanto una posición tenga más de una aportación; aun así, un TWR
+  // propiamente dicho seguiría necesitando valoraciones intermedias que esta app no registra
+  // (no hay cotización de mercado, solo el valor que tú declaras). Se dice así en vez de fingir
+  // dos cifras donde hoy solo hay una honesta.
+  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La rentabilidad ponderada por tiempo (TWR) exige valoraciones intermedias que esta app no registra; con un único movimiento por posición coincide con la XIRR de arriba. Añade más de una aportación a una posición y ambas empezarán a divergir de verdad.</p>`;
 }
 
 // IV4: concentración por tipo y por posición individual, con aviso de sobreexposición
@@ -23783,6 +23861,7 @@ function renderAjustes() {
   renderA14AssetBreakdown();
   renderIv1PositionList();
   renderIv1TransferOptions();
+  renderIv1ContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
@@ -33801,6 +33880,7 @@ async function init() {
   });
   qs("iv1PositionAdd")?.addEventListener("click", saveIv1Position);
   qs("iv1PositionTransfer")?.addEventListener("click", saveIv1Transfer);
+  qs("iv1ContributionAdd")?.addEventListener("click", saveIv1Contribution);
   qs("iv1PositionList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-iv1-position-remove]");
     if (!removeButton) return;
