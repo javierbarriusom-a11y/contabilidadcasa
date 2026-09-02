@@ -2680,6 +2680,32 @@
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1DisposalAdd">Registrar venta parcial</button>
+
+              <!-- IV3: aportación futura ya decidida pero todavía no ejecutada — solo fecha,
+                   importe y una nota opcional. No toca coste, unidades, XIRR ni FIFO: su único
+                   destino es el calendario financiero (A10-2), igual que ya hacen los vencimientos
+                   de pólizas (SP1) o la Campaña de la Renta (A15-3). -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Programar aportación futura a</span>
+                  <select id="iv1ScheduledContributionTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe previsto (€)</span>
+                  <input id="iv1ScheduledContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha prevista</span>
+                  <input id="iv1ScheduledContributionDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Nota (opcional)</span>
+                  <input id="iv1ScheduledContributionNote" type="text" placeholder="" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ScheduledContributionAdd">Programar aportación</button>
             </article>
 
             <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
@@ -4824,7 +4850,7 @@
     <script defer src="legacy-debt-roadmap-engine.js?v=20260805e14parity1"></script>
     <script defer src="canonical-e14-operations.js?v=20260805e14b1"></script>
     <script defer src="canonical-e14-parity.js?v=20260805e14parity1"></script>
-    <script defer src="canonical-e15-goals.js?v=20260829sp1a1"></script>
+    <script defer src="canonical-e15-goals.js?v=20260902iv3a1"></script>
     <script defer src="canonical-e16-monitoring.js?v=20260829cp5a1"></script>
     <script defer src="canonical-budget-schema.js?v=20260826a1"></script>
     <script defer src="canonical-budget-analyzer.js?v=20260826a1"></script>
@@ -4849,7 +4875,7 @@
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
     <script defer src="canonical-assets.js?v=20260830a141a1"></script>
-    <script defer src="canonical-portfolio.js?v=20260902fc1a1"></script>
+    <script defer src="canonical-portfolio.js?v=20260902iv3a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4876,7 +4902,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902fc1a1"></script>
+    <script defer src="app.js?v=20260902iv3a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

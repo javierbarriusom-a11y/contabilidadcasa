@@ -15708,13 +15708,14 @@ function saveIv1Position() {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, contributions: [], disposals: [] }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, contributions: [], disposals: [], scheduledContributions: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
+  renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -15795,6 +15796,62 @@ function saveIv1Disposal() {
   announceStatus(`Venta parcial de «${target.label}» registrada.`);
 }
 
+// IV3: aportación futura ya decidida pero todavía no ejecutada — solo fecha, importe y una nota
+// opcional. A diferencia de saveIv1Contribution, nunca toca coste, unidades, XIRR ni FIFO: su
+// único destino es el calendario financiero (A10-2), igual que ya hacen los vencimientos de
+// pólizas (SP1) o la Campaña de la Renta (A15-3).
+function saveIv1ScheduledContribution() {
+  const targetId = qs("iv1ScheduledContributionTarget")?.value || "";
+  const amount = parseAmount(qs("iv1ScheduledContributionAmount")?.value);
+  const date = qs("iv1ScheduledContributionDate")?.value || "";
+  const note = (qs("iv1ScheduledContributionNote")?.value || "").trim();
+  if (!targetId) {
+    announceStatus("Selecciona a qué posición programas la aportación.");
+    return;
+  }
+  if (!(amount > 0)) {
+    announceStatus("Indica un importe programado mayor que cero.");
+    return;
+  }
+  if (!date) {
+    announceStatus("Indica la fecha prevista de la aportación.");
+    return;
+  }
+  const rows = iv1PositionsList();
+  const target = rows.find((position) => position.id === targetId);
+  if (!target) return;
+  const nextScheduled = [...(Array.isArray(target.scheduledContributions) ? target.scheduledContributions : []), { id: `scheduled-${Date.now()}`, date, amount, note }];
+  saveIv1PositionsList(rows.map((position) => (position.id === targetId ? { ...position, scheduledContributions: nextScheduled } : position)));
+  qs("iv1ScheduledContributionAmount").value = "";
+  qs("iv1ScheduledContributionDate").value = "";
+  qs("iv1ScheduledContributionNote").value = "";
+  renderIv1ScheduledContributionOptions();
+  announceStatus(`Aportación programada de ${money(amount, true)} añadida a «${target.label}» para el calendario financiero.`);
+}
+
+// IV3: opciones del selector de aportación programada — mismo patrón que renderIv1ContributionOptions.
+function renderIv1ScheduledContributionOptions() {
+  const select = qs("iv1ScheduledContributionTarget");
+  if (!select) return;
+  const previous = select.value;
+  const options = iv1PositionsList().map((position) => `<option value="${escapeHtml(position.id)}">${escapeHtml(position.label)}</option>`);
+  select.innerHTML = `<option value="">-- Selecciona una posición --</option>${options.join("")}`;
+  if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
+}
+
+// IV3: aplana las aportaciones programadas de todas las posiciones para el calendario financiero
+// (A10-2) — cada entrada lleva ya la etiqueta de su posición para que el evento sea legible.
+function iv1ScheduledContributionsForCalendar() {
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) return [];
+  return engine.normalizePositions(rows).positions.flatMap((position) => (position.scheduledContributions || []).map((item) => ({
+    date: item.date,
+    amount: item.amount,
+    label: item.note ? `${position.label} · ${item.note}` : position.label,
+  })));
+}
+
 // FC2: solo fondo→fondo cumple la regla fiscal española de traspaso sin peaje — cualquier otro
 // par de tipos se rechaza en vez de fingir un traspaso que no lo es.
 function saveIv1Transfer() {
@@ -15821,6 +15878,7 @@ function saveIv1Transfer() {
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
+  renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -15833,6 +15891,7 @@ function removeIv1Position(id) {
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
+  renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -23932,6 +23991,7 @@ function renderAjustes() {
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
+  renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
@@ -25430,7 +25490,7 @@ window.FinanceP2Bridge = {
     const rows = canonicalScenarioResults.active?.rows || canonicalScenarioResults.base?.rows || [];
     const capacityRows = rows.slice(0, 12).map((row) => Math.max(0, Number(row.netBeforeSaving || 0)));
     const monthlyCapacity = capacityRows.length ? round2(capacityRows.reduce((sum, value) => sum + value, 0) / capacityRows.length) : 0;
-    return { forecast, debts: p2DebtRows(), monthlyCapacity, reserve: Number(state?.operatingReserve || 0), startMonth: forecast.series?.[0]?.monthKey || "" };
+    return { forecast, debts: p2DebtRows(), monthlyCapacity, reserve: Number(state?.operatingReserve || 0), startMonth: forecast.series?.[0]?.monthKey || "", investmentContributions: iv1ScheduledContributionsForCalendar() };
   },
   e16Input: () => {
     const p2 = p2State();
@@ -33952,6 +34012,7 @@ async function init() {
   qs("iv1PositionTransfer")?.addEventListener("click", saveIv1Transfer);
   qs("iv1ContributionAdd")?.addEventListener("click", saveIv1Contribution);
   qs("iv1DisposalAdd")?.addEventListener("click", saveIv1Disposal);
+  qs("iv1ScheduledContributionAdd")?.addEventListener("click", saveIv1ScheduledContribution);
   qs("iv1PositionList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-iv1-position-remove]");
     if (!removeButton) return;
