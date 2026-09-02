@@ -2,6 +2,44 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (110): Bloque 8 — A18-2, saldo continuo «quién debe a quién»
+
+Séptima tarea nueva del Bloque 8, encadenada tras A14-5. A18-2 depende de A18-1
+(`canonical-household-split.js`, ya construido: reglas de reparto configurables por categoría —
+partes iguales, proporcional a ingresos declarados o importe fijo — pero sin ningún cálculo de saldo,
+solo las reglas que un motor futuro leería). Según su propia descripción en
+`BACKLOG_PATRIMONIO_Y_FINANZAS.md`: "cálculo permanente visible para ambas partes, sin afectar al
+libro principal". Investigación previa: ni el sistema de titularidad por movimiento (`owner` en
+`p2MovementRows()`, inferido de texto vía `P2Domain.inferOwner`) ni `familyContextMeta()` (nota
+descriptiva del filtro Javi/Tere/Hogar) tienen ningún concepto de "quién pagó" un gasto compartido
+concreto — son ejes distintos, no la base de este saldo. A18-2 necesitaba su propio registro manual
+de gastos compartidos, con el mismo patrón que `assetsList()` (A14) o `iv1PositionsList()` (IV1):
+una lista aparte en `scenarioSettings`, nunca en el libro principal de movimientos.
+
+**A18-2**: `canonical-household-split.js` gana `runningBalance(entries, settings)` — cada gasto
+compartido registrado (`{category, amount, paidBy}`) ya fue pagado al 100% por un titular; la regla
+de reparto de A18-1 para esa categoría (`resolveRuleForCategory` + `splitShares`, sin motor nuevo)
+dice cuál era su cuota justa, así que el otro titular le debe esa cuota. Se acumula en un único
+saldo neto (positivo = Tere debe a Javi, negativo = Javi debe a Tere, nunca dos cifras que se
+contradigan) — con cero gastos registrados el saldo es exactamente 0, un resultado correcto (no una
+cifra ausente: no hay nada que repartir todavía). `app.js` añade un registro manual de gastos
+compartidos (`householdSplitEntriesList()`, con fecha/categoría/importe/pagador) y una tarjeta de
+saldo continuo que se refresca también al cambiar cualquier regla de reparto o los ingresos
+declarados. Nueva tarjeta "Saldo continuo: quién debe a quién" en Ajustes, justo debajo de las
+reglas de reparto (A18-1).
+
+**Validación**: `npm run verify`, exit 0 — **2678/2678 pruebas** (2658 + 20 nuevas: 11 en
+`tests/a18-2-saldo-continuo.test.cjs` — saldo cero sin gastos, dirección de la deuda según quién
+pagó, cancelación de gastos simétricos, reglas de importe fijo y proporcional a ingresos, categoría
+sin regla propia cae al defecto, acumulación en un único neto, titular desconocido cae a Javi,
+importe negativo nunca genera deuda fantasma — y 9 en `tests/a18-2-app-integracion.test.cjs`), más 3
+pruebas existentes de `tests/a18-1-reglas-reparto.test.cjs` actualizadas para sandboxear las nuevas
+llamadas a `renderA18BalanceCard()`. Accesibilidad (1002 IDs, +7 por el nuevo formulario), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde. `app.js`/`canonical-household-split.js`
+bumpeados a `?v=20260902a182a1` (pruebas de cadena de versión actualizadas en masa).
+
+**Publicado**: pendiente de commit y push a `claude/a18-2-saldo-continuo-household-split`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (109): Bloque 8 — A14-5, integración de patrimonio con el laboratorio de escenarios
 
 Sexta tarea nueva del Bloque 8, encadenada tras IV3. A14-5 depende de A14-1 (`canonical-assets.js`,

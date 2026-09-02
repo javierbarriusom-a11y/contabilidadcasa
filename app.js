@@ -15497,6 +15497,7 @@ function saveA18Incomes() {
   settings.incomes = { javi: parseAmount(qs("a18IncomeJavi")?.value), tere: parseAmount(qs("a18IncomeTere")?.value) };
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
+  renderA18BalanceCard();
 }
 
 function saveA18Rule() {
@@ -15513,6 +15514,7 @@ function saveA18Rule() {
   else settings.defaultRule = rule;
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
+  renderA18BalanceCard();
   announceStatus(category ? `Regla de reparto guardada para «${category}».` : "Regla de reparto por defecto guardada.");
 }
 
@@ -15521,6 +15523,89 @@ function removeA18Rule(category) {
   delete settings.categoryRules[category];
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
+  renderA18BalanceCard();
+}
+
+// A18-2: gastos compartidos registrados a mano (mismo patrón que assetsList()/iv1PositionsList()) —
+// cada uno ya fue pagado al 100% por un titular (paidBy); el saldo continuo (runningBalance) es lo
+// que el otro le debe según la regla de reparto de A18-1 para esa categoría. Lista aparte del libro
+// principal de movimientos: nunca lo toca ni lo modifica.
+const A18_OWNER_LABELS = { javi: "Javi", tere: "Tere" };
+
+function householdSplitEntriesList() {
+  return Array.isArray(scenarioSettings.householdSplitEntries) ? scenarioSettings.householdSplitEntries : [];
+}
+
+function saveHouseholdSplitEntriesList(next) {
+  scenarioSettings.householdSplitEntries = next;
+  saveScenarioSettings();
+}
+
+function renderA18EntryCategoryOptions() {
+  const select = qs("a18EntryCategory");
+  if (!select) return;
+  const current = select.value;
+  const categories = e13BudgetCategoryOptions();
+  select.innerHTML = `<option value="">Sin categoría (regla por defecto)</option>${categories.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("")}`;
+  if (categories.includes(current)) select.value = current;
+}
+
+function saveA18Entry() {
+  const category = qs("a18EntryCategory")?.value || "";
+  const amount = parseAmount(qs("a18EntryAmount")?.value);
+  const date = qs("a18EntryDate")?.value || "";
+  const paidBy = qs("a18EntryPaidBy")?.value === "tere" ? "tere" : "javi";
+  if (!(amount > 0)) {
+    announceStatus("Indica un importe mayor que cero para el gasto compartido.");
+    return;
+  }
+  const next = [...householdSplitEntriesList(), { id: `split-${Date.now()}`, category, amount, date, paidBy }];
+  saveHouseholdSplitEntriesList(next);
+  qs("a18EntryAmount").value = "";
+  qs("a18EntryDate").value = "";
+  renderA18EntryList();
+  renderA18BalanceCard();
+  announceStatus(`Gasto compartido de ${money(amount, true)} registrado.`);
+}
+
+function removeA18Entry(id) {
+  saveHouseholdSplitEntriesList(householdSplitEntriesList().filter((entry) => entry.id !== id));
+  renderA18EntryList();
+  renderA18BalanceCard();
+}
+
+function a18EntryLabel(entry) {
+  const dateLabel = entry.date ? ` · ${escapeHtml(entry.date)}` : "";
+  return `${escapeHtml(entry.category || "Sin categoría")} · ${money(entry.amount, true)} · pagado por ${escapeHtml(A18_OWNER_LABELS[entry.paidBy] || "Javi")}${dateLabel}`;
+}
+
+function renderA18EntryList() {
+  const list = qs("a18EntryList");
+  if (!list) return;
+  const entries = householdSplitEntriesList();
+  list.innerHTML = entries.length
+    ? entries.map((entry) => `<li class="commit-barrier-item"><span>${a18EntryLabel(entry)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a18-entry-remove="${escapeHtml(entry.id)}">Quitar</button></li>`).join("")
+    : `<li class="e19-kpi-note">Sin gastos compartidos registrados todavía.</li>`;
+}
+
+// A18-2: saldo continuo — sin nada que declarar, no hay saldo pendiente (nunca un "no calculable"
+// inventado: cero gastos compartidos es, honestamente, un saldo en cero).
+function a18BalanceLabel(balance) {
+  if (!balance.owes) return "Sin saldo pendiente entre Javi y Tere.";
+  return `${escapeHtml(A18_OWNER_LABELS[balance.owes])} debe a ${escapeHtml(A18_OWNER_LABELS[balance.owedTo])}: ${money(balance.amount, true)}.`;
+}
+
+function renderA18BalanceCard() {
+  const note = qs("a18BalanceCard");
+  if (!note) return;
+  const engine = window.FinanceCanonicalHouseholdSplit;
+  const entries = householdSplitEntriesList();
+  if (!engine || !entries.length) {
+    note.innerHTML = `<p>Registra al menos un gasto compartido para ver el saldo continuo entre Javi y Tere.</p>`;
+    return;
+  }
+  const balance = engine.runningBalance(entries, householdSplitSettings());
+  note.innerHTML = `<p><strong>${a18BalanceLabel(balance)}</strong></p>`;
 }
 
 // A14-4: desglose por tipo y concentración de riesgo. Lee scenarioSettings.assets (activos
@@ -24017,6 +24102,9 @@ function renderAjustes() {
   syncA18IncomeControls();
   renderA18RuleCategoryOptions();
   renderA18RuleList();
+  renderA18EntryCategoryOptions();
+  renderA18EntryList();
+  renderA18BalanceCard();
   renderA14AssetList();
   renderA14AssetBreakdown();
   renderIv1PositionList();
@@ -34055,6 +34143,12 @@ async function init() {
     const removeButton = event.target.closest("[data-a18-rule-remove]");
     if (!removeButton) return;
     removeA18Rule(removeButton.dataset.a18RuleRemove);
+  });
+  qs("a18EntrySave")?.addEventListener("click", saveA18Entry);
+  qs("a18EntryList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-a18-entry-remove]");
+    if (!removeButton) return;
+    removeA18Entry(removeButton.dataset.a18EntryRemove);
   });
   qs("ajustesFiscalJointTaxation")?.addEventListener("change", handleFiscalJointTaxationChange);
   qs("ajustesFiscalWithholdingRate")?.addEventListener("change", handleFiscalWithholdingRateChange);

@@ -2514,6 +2514,39 @@
               <ul class="commit-barrier-list" id="a18RuleList"></ul>
             </article>
 
+            <!-- A18-2: saldo continuo "quién debe a quién" — depende de A18-1. Cada gasto compartido
+                 registrado aquí ya fue pagado al 100% por uno de los dos; el reparto de arriba dice
+                 cuál era su cuota justa, así que el saldo acumula lo que el otro le debe. Cálculo
+                 permanente y aparte del libro principal de movimientos: nunca lo toca. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Saldo continuo: quién debe a quién</h3>
+              <p class="e19-kpi-note">Registra un gasto compartido y quién lo pagó. El saldo se calcula con la regla de reparto de arriba para esa categoría — nunca modifica tus movimientos conciliados.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Categoría (vacío = regla por defecto)</span>
+                  <select id="a18EntryCategory"><option value="">Sin categoría (regla por defecto)</option></select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe (€)</span>
+                  <input id="a18EntryAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha</span>
+                  <input id="a18EntryDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Pagado por</span>
+                  <select id="a18EntryPaidBy">
+                    <option value="javi">Javi</option>
+                    <option value="tere">Tere</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18EntrySave">Registrar gasto compartido</button>
+              <div class="e19-kpi-note" id="a18BalanceCard"></div>
+              <ul class="commit-barrier-list" id="a18EntryList"></ul>
+            </article>
+
             <!-- A14-4: desglose por tipo y concentración de riesgo. Depende solo del contrato
                  canónico A14-1 (canonical-assets.js); registro manual mínimo aquí — la
                  importación/actualización con bandeja previa es A14-3, sesión aparte. Sin activos
@@ -4871,7 +4904,7 @@
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-pension-simulator.js?v=20260830a154a1"></script>
-    <script defer src="canonical-household-split.js?v=20260830a181a1"></script>
+    <script defer src="canonical-household-split.js?v=20260902a182a1"></script>
     <script defer src="canonical-forecast-sensitivity.js?v=20260830pv6a1"></script>
     <script defer src="canonical-self-insurance.js?v=20260830sp4a1"></script>
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
@@ -4904,7 +4937,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902a145a1"></script>
+    <script defer src="app.js?v=20260902a182a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
