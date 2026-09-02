@@ -38,7 +38,8 @@ aportaciones, XIRR agregada de la cartera y regresión de `applyFundTransfer` �
 privacidad y smoke test, todos en verde. `app.js`/`canonical-portfolio.js` bumpeados a
 `?v=20260902iv2a1` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/artifact-update-execution-plan-lxzp4w`.
+**Publicado**: fusionado en `main` mediante `4a26efd` — PR #181, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (104): Bloque 8 — PV1, autoajuste de la previsión por niveles de confianza
 
