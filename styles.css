@@ -1158,6 +1158,30 @@ main {
   padding: 18px;
 }
 
+/* OPT-8: jerarquía visual real en «Hoy» — la zona principal (cobertura, el mes en una línea,
+   decisiones abiertas, KPIs) agrupa sus bloques con el mismo espaciado que ya usaba `.home-layout`
+   suelto; la de detalle baja de peso reutilizando los tokens E19 ya existentes (--e19-muted, escala
+   --e19-text-*), sin inventar ningún color o tamaño nuevo. Mismo scroll de la página de siempre —
+   ningún contenedor con overflow propio. */
+.home-primary-section,
+.home-secondary-section {
+  display: grid;
+  gap: 16px;
+}
+
+.home-secondary-label {
+  margin: 4px 0 0;
+}
+
+.home-secondary-section .module-heading h3 {
+  font-size: var(--e19-text-md, 15px);
+  color: var(--e19-muted, var(--muted));
+}
+
+.home-secondary-section .panel-kicker {
+  color: var(--e19-muted, var(--muted));
+}
+
 .home-insight-list,
 .home-action-grid,
 .home-priority-list {
