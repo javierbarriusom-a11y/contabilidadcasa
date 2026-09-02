@@ -15708,12 +15708,13 @@ function saveIv1Position() {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, contributions: [] }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, contributions: [], disposals: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
+  renderIv1DisposalOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -15729,6 +15730,9 @@ function saveIv1Contribution() {
   const targetId = qs("iv1ContributionTarget")?.value || "";
   const amount = parseAmount(qs("iv1ContributionAmount")?.value);
   const date = qs("iv1ContributionDate")?.value || "";
+  // FC1: las unidades son opcionales — sin ellas, la aportación sigue sumando al coste total pero
+  // no entra en el reparto FIFO de una venta futura (no hay unidades que atribuirle).
+  const quantity = parseAmount(qs("iv1ContributionQuantity")?.value);
   if (!targetId) {
     announceStatus("Selecciona a qué posición añades la aportación.");
     return;
@@ -15744,15 +15748,51 @@ function saveIv1Contribution() {
   const rows = iv1PositionsList();
   const target = rows.find((position) => position.id === targetId);
   if (!target) return;
-  const nextContributions = [...(Array.isArray(target.contributions) ? target.contributions : []), { id: `contribution-${Date.now()}`, date, amount }];
+  const nextContributions = [...(Array.isArray(target.contributions) ? target.contributions : []), { id: `contribution-${Date.now()}`, date, amount, quantity: quantity > 0 ? quantity : 0 }];
   saveIv1PositionsList(rows.map((position) => (position.id === targetId ? { ...position, contributions: nextContributions } : position)));
   qs("iv1ContributionAmount").value = "";
   qs("iv1ContributionDate").value = "";
+  qs("iv1ContributionQuantity").value = "";
   renderIv1PositionList();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
   announceStatus(`Aportación de ${money(amount, true)} añadida a «${target.label}».`);
+}
+
+// FC1: venta parcial de una posición ya registrada — unidades vendidas e importe recibido, con su
+// fecha. El reparto de qué lote se vende (FIFO) lo decide canonical-portfolio.js al normalizar, no
+// aquí: esta función solo valida y guarda la venta como un movimiento más.
+function saveIv1Disposal() {
+  const targetId = qs("iv1DisposalTarget")?.value || "";
+  const quantitySold = parseAmount(qs("iv1DisposalQuantity")?.value);
+  const saleProceeds = parseAmount(qs("iv1DisposalProceeds")?.value);
+  const date = qs("iv1DisposalDate")?.value || "";
+  if (!targetId) {
+    announceStatus("Selecciona qué posición vendes en parte.");
+    return;
+  }
+  if (!(quantitySold > 0)) {
+    announceStatus("Indica cuántas unidades vendes, mayor que cero.");
+    return;
+  }
+  if (!date) {
+    announceStatus("Indica la fecha de la venta.");
+    return;
+  }
+  const rows = iv1PositionsList();
+  const target = rows.find((position) => position.id === targetId);
+  if (!target) return;
+  const nextDisposals = [...(Array.isArray(target.disposals) ? target.disposals : []), { id: `disposal-${Date.now()}`, date, quantitySold, saleProceeds }];
+  saveIv1PositionsList(rows.map((position) => (position.id === targetId ? { ...position, disposals: nextDisposals } : position)));
+  qs("iv1DisposalQuantity").value = "";
+  qs("iv1DisposalProceeds").value = "";
+  qs("iv1DisposalDate").value = "";
+  renderIv1PositionList();
+  renderIv1PositionSummary();
+  renderIv1PositionConcentration();
+  renderIv6Rebalance();
+  announceStatus(`Venta parcial de «${target.label}» registrada.`);
 }
 
 // FC2: solo fondo→fondo cumple la regla fiscal española de traspaso sin peaje — cualquier otro
@@ -15780,6 +15820,7 @@ function saveIv1Transfer() {
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
+  renderIv1DisposalOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -15791,6 +15832,7 @@ function removeIv1Position(id) {
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
+  renderIv1DisposalOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
@@ -15827,7 +15869,8 @@ function renderIv1PositionList() {
     const typeLabel = IV1_POSITION_TYPE_LABELS[position.type] || "Otro";
     const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
     const contributionsNote = position.contributions.length ? ` · ${position.contributions.length} aportación(es) adicional(es)` : "";
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    const realizedNote = fc1RealizedGainLabel(position.realizedGain, position.disposals.length);
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
 }
 
@@ -15852,6 +15895,24 @@ function renderIv1ContributionOptions() {
   if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
 }
 
+// FC1: opciones del selector de venta parcial — mismo patrón que renderIv1TransferOptions.
+function renderIv1DisposalOptions() {
+  const select = qs("iv1DisposalTarget");
+  if (!select) return;
+  const previous = select.value;
+  const options = iv1PositionsList().map((position) => `<option value="${escapeHtml(position.id)}">${escapeHtml(position.label)}</option>`);
+  select.innerHTML = `<option value="">-- Selecciona una posición --</option>${options.join("")}`;
+  if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
+}
+
+// FC1: motivo legible de por qué una plusvalía realizada no es calculable — nunca una cifra a
+// medias que parezca completa.
+function fc1RealizedGainLabel(realizedGain, disposalCount) {
+  if (!disposalCount) return "";
+  if (realizedGain === null) return "plusvalía realizada no calculable (venta sin lotes suficientes a esa fecha)";
+  return `plusvalía realizada ${money(realizedGain, true)} (FIFO, ${disposalCount} venta(s))`;
+}
+
 function renderIv1PositionSummary() {
   const note = qs("iv1PositionSummary");
   if (!note) return;
@@ -15862,7 +15923,7 @@ function renderIv1PositionSummary() {
     return;
   }
   const result = engine.normalizePositions(rows);
-  const { totalCost, totalValue, gainLoss, gainLossPct, xirr } = result.summary;
+  const { totalCost, totalValue, gainLoss, gainLossPct, xirr, totalRealizedGain } = result.summary;
   const gainClass = gainLoss > 0 ? "positive" : gainLoss < 0 ? "negative" : "";
   // IV2: con un único movimiento por posición, la rentabilidad ponderada por tiempo (TWR)
   // coincide exactamente con la ponderada por dinero (XIRR) — no hay una segunda cifra distinta
@@ -15870,7 +15931,15 @@ function renderIv1PositionSummary() {
   // propiamente dicho seguiría necesitando valoraciones intermedias que esta app no registra
   // (no hay cotización de mercado, solo el valor que tú declaras). Se dice así en vez de fingir
   // dos cifras donde hoy solo hay una honesta.
-  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La rentabilidad ponderada por tiempo (TWR) exige valoraciones intermedias que esta app no registra; con un único movimiento por posición coincide con la XIRR de arriba. Añade más de una aportación a una posición y ambas empezarán a divergir de verdad.</p>`;
+  // FC1: la plusvalía realizada (ya vendida, FIFO) es una cifra aparte de la plusvalía de arriba
+  // (no realizada, sobre lo que queda) — sumarlas sería mezclar ganancia ya cobrada con ganancia
+  // todavía sobre el papel.
+  const realizedNote = totalRealizedGain === null
+    ? "Hay ventas registradas sin lotes suficientes a su fecha — la plusvalía realizada de la cartera no es calculable hasta corregirlas."
+    : totalRealizedGain !== 0
+      ? `Plusvalía realizada (ya vendida, FIFO): <strong class="${totalRealizedGain > 0 ? "positive" : "negative"}">${money(totalRealizedGain, true)}</strong>.`
+      : "";
+  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La rentabilidad ponderada por tiempo (TWR) exige valoraciones intermedias que esta app no registra; con un único movimiento por posición coincide con la XIRR de arriba. Añade más de una aportación a una posición y ambas empezarán a divergir de verdad.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}`;
 }
 
 // IV4: concentración por tipo y por posición individual, con aviso de sobreexposición
@@ -23862,6 +23931,7 @@ function renderAjustes() {
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
+  renderIv1DisposalOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
@@ -33881,6 +33951,7 @@ async function init() {
   qs("iv1PositionAdd")?.addEventListener("click", saveIv1Position);
   qs("iv1PositionTransfer")?.addEventListener("click", saveIv1Transfer);
   qs("iv1ContributionAdd")?.addEventListener("click", saveIv1Contribution);
+  qs("iv1DisposalAdd")?.addEventListener("click", saveIv1Disposal);
   qs("iv1PositionList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-iv1-position-remove]");
     if (!removeButton) return;

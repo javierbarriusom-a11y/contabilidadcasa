@@ -109,15 +109,34 @@
   // IV2: aportaciones adicionales de una posición ya registrada — cada una con su propia fecha,
   // para que la XIRR de la posición deje de coincidir con la rentabilidad simple en cuanto haya
   // más de un movimiento. Solo dinero aportado (importe > 0); una retirada parcial cambiaría el
-  // coste base según qué lote se vende (FIFO, tarea FC1 aparte) y queda fuera de aquí a propósito.
+  // coste base según qué lote se vende (FIFO — FC1, más abajo). `quantity` es opcional: sin ella,
+  // la aportación sigue sumando al coste total de la posición pero no entra en el reparto FIFO de
+  // FC1 (no hay unidades que atribuirle en una venta futura) — un hueco honesto, no una unidad
+  // inventada.
   function normalizeContributions(rows = []) {
     return (Array.isArray(rows) ? rows : [])
       .map((row, index) => ({
         id: String(row?.id || `contribution-${index + 1}`),
         date: asOfDate(row?.date),
         amount: knownNumber(row?.amount) ? nonNegative(row.amount) : 0,
+        quantity: knownNumber(row?.quantity) ? nonNegative(row.quantity) : 0,
       }))
       .filter((row) => row.date && row.amount > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // FC1: ventas parciales de una posición — unidades vendidas e importe recibido, con su fecha.
+  // El reparto de qué lote se vende (fifoLedger, más abajo) es responsabilidad del motor, no de
+  // esta normalización: aquí solo se descarta lo que no tiene ni fecha ni unidades vendidas.
+  function normalizeDisposals(rows = []) {
+    return (Array.isArray(rows) ? rows : [])
+      .map((row, index) => ({
+        id: String(row?.id || `disposal-${index + 1}`),
+        date: asOfDate(row?.date),
+        quantitySold: knownNumber(row?.quantitySold) ? nonNegative(row.quantitySold) : 0,
+        saleProceeds: knownNumber(row?.saleProceeds) ? nonNegative(row.saleProceeds) : 0,
+      }))
+      .filter((row) => row.date && row.quantitySold > 0)
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
@@ -127,6 +146,56 @@
     contributions.forEach((contribution) => flows.push({ date: contribution.date, amount: -contribution.amount }));
     if (asOf && currentValue > 0) flows.push({ date: asOf, amount: currentValue });
     return flows;
+  }
+
+  // FC1: FIFO real sobre los lotes con unidades conocidas (adquisición inicial + aportaciones con
+  // `quantity`), procesados en orden cronológico estricto — nunca por el orden en que se
+  // introdujeron. Una venta solo consume lotes con fecha igual o anterior a la suya (no se puede
+  // vender lo que aún no se había comprado); si las unidades disponibles a esa fecha no cubren la
+  // venta, se marca `shortfall` y la plusvalía de esa venta queda `null` — nunca una cifra a medias
+  // que parezca completa (regla transversal: dato ausente no es cero, tampoco se estima en
+  // silencio). El coste y las unidades que quedan tras todas las ventas son los que definen la
+  // posición restante — la plusvalía/minusvalía no realizada (gainLoss) se calcula sobre eso, nunca
+  // sobre lo ya vendido.
+  function fifoLedger({ acquisitionDate, initialCost, initialQuantity, contributions = [], disposals = [] }) {
+    const lots = [];
+    if (acquisitionDate && initialQuantity > 0) lots.push({ date: acquisitionDate, cost: initialCost, quantity: initialQuantity });
+    contributions.forEach((contribution) => {
+      if (contribution.quantity > 0) lots.push({ date: contribution.date, cost: contribution.amount, quantity: contribution.quantity });
+    });
+    lots.sort((a, b) => a.date.localeCompare(b.date));
+    const pool = lots.map((lot) => ({ ...lot }));
+
+    const realizedDisposals = disposals.map((disposal) => {
+      let remaining = disposal.quantitySold;
+      let consumedCost = 0;
+      pool.forEach((lot) => {
+        if (remaining <= 0 || lot.quantity <= 0 || lot.date > disposal.date) return;
+        const costPerUnit = lot.cost / lot.quantity;
+        const consumedQuantity = Math.min(lot.quantity, remaining);
+        consumedCost += costPerUnit * consumedQuantity;
+        lot.quantity = round2(lot.quantity - consumedQuantity);
+        lot.cost = round2(lot.cost - costPerUnit * consumedQuantity);
+        remaining = round2(remaining - consumedQuantity);
+      });
+      const shortfall = round2(Math.max(0, remaining));
+      const roundedConsumedCost = round2(consumedCost);
+      return {
+        ...disposal,
+        consumedCost: roundedConsumedCost,
+        shortfall,
+        realizedGain: shortfall > 0 ? null : round2(disposal.saleProceeds - roundedConsumedCost),
+      };
+    });
+
+    const remainingQuantity = round2(pool.reduce((sum, lot) => sum + Math.max(0, lot.quantity), 0));
+    const remainingCost = round2(pool.reduce((sum, lot) => sum + Math.max(0, lot.cost), 0));
+    // Sin ventas, no hay plusvalía realizada que informar — null, no cero (cero significaría "se
+    // vendió y no hubo ganancia ni pérdida", una afirmación distinta de "no se ha vendido nada").
+    const totalRealizedGain = !realizedDisposals.length || realizedDisposals.some((disposal) => disposal.realizedGain === null)
+      ? null
+      : round2(realizedDisposals.reduce((sum, disposal) => sum + disposal.realizedGain, 0));
+    return { lots, disposals: realizedDisposals, remainingQuantity, remainingCost, totalRealizedGain };
   }
 
   // IV1 (núcleo): sin procedencia declarada, la posición se marca "unknown" —
@@ -152,7 +221,7 @@
 
   function normalizePosition(raw = {}, index = 0) {
     const provenance = provenanceOf(raw);
-    const quantity = knownNumber(raw.quantity) ? number(raw.quantity) : 0;
+    const initialQuantity = knownNumber(raw.quantity) ? number(raw.quantity) : 0;
     const initialCost = knownNumber(raw.costBasis) ? nonNegative(raw.costBasis) : 0;
     const currentValue = knownNumber(raw.currentValue) ? nonNegative(raw.currentValue) : 0;
     const asOf = asOfDate(raw.asOf || raw.valuationDate || raw.date);
@@ -161,8 +230,22 @@
     // calculable — se informa así, nunca con una fecha inventada.
     const acquisitionDate = asOfDate(raw.acquisitionDate);
     const contributions = normalizeContributions(raw.contributions);
+    const disposals = normalizeDisposals(raw.disposals);
     const additionalContributed = round2(contributions.reduce((sum, contribution) => sum + contribution.amount, 0));
-    const costBasis = round2(initialCost + additionalContributed);
+    // FC1: solo con al menos una venta registrada se sustituyen coste y unidades por lo que
+    // realmente queda tras el reparto FIFO — sin ventas, la posición se comporta exactamente como
+    // antes de FC1 (retrocompatible con IV1/IV2).
+    const hasDisposals = disposals.length > 0;
+    const ledger = fifoLedger({ acquisitionDate, initialCost, initialQuantity, contributions, disposals });
+    const untrackedContributionsCost = round2(
+      contributions.filter((contribution) => contribution.quantity <= 0).reduce((sum, contribution) => sum + contribution.amount, 0),
+    );
+    const quantity = hasDisposals
+      ? ledger.remainingQuantity
+      : round2(initialQuantity + contributions.reduce((sum, contribution) => sum + contribution.quantity, 0));
+    const costBasis = hasDisposals
+      ? round2(ledger.remainingCost + untrackedContributionsCost)
+      : round2(initialCost + additionalContributed);
     const cashFlows = positionCashFlows({ acquisitionDate, initialCost, contributions, asOf, currentValue });
     const position = {
       id: String(raw.id || `position-${index + 1}`),
@@ -172,13 +255,17 @@
       label: String(raw.label || raw.name || raw.ticker || "Posición sin nombre").trim(),
       ticker: known(raw.ticker) ? String(raw.ticker).trim().toUpperCase() : "",
       quantity,
+      initialQuantity,
       costBasis,
+      initialCost,
       currentValue,
       gainLoss: round2(currentValue - costBasis),
       gainLossPct: costBasis > 0 ? round2(((currentValue - costBasis) / costBasis) * 100) : 0,
       asOf,
       acquisitionDate,
       contributions,
+      disposals: ledger.disposals,
+      realizedGain: ledger.totalRealizedGain,
       provenance,
       notes: known(raw.notes) ? String(raw.notes).trim() : "",
     };
@@ -210,14 +297,25 @@
     let totalCost = 0;
     let totalValue = 0;
     const pooledCashFlows = [];
+    // FC1: plusvalía realizada agregada de toda la cartera — solo si todas las posiciones con
+    // ventas registradas pudieron calcularla sin `shortfall`; si una sola queda incompleta, el
+    // total se informa como no calculable en vez de sumar solo lo que sí se pudo (entendería un
+    // total más bajo del real, silenciosamente).
+    let realizedGain = 0;
+    let realizedGainKnown = true;
     positions.forEach((position) => {
       totalsByType[position.type] = round2((totalsByType[position.type] || 0) + position.currentValue);
       totalCost = round2(totalCost + position.costBasis);
       totalValue = round2(totalValue + position.currentValue);
       pooledCashFlows.push(...(position.cashFlows || []));
+      // Sin ventas, `realizedGain` es null pero no contamina el total (no hay nada que sumar);
+      // con ventas y sin poder calcularla (shortfall), sí lo hace — ahí sí falta un dato real.
+      if (position.disposals.length && position.realizedGain === null) realizedGainKnown = false;
+      else if (realizedGainKnown) realizedGain = round2(realizedGain + (position.realizedGain || 0));
     });
     const gainLoss = round2(totalValue - totalCost);
     return {
+      totalRealizedGain: realizedGainKnown ? realizedGain : null,
       totalCost,
       totalValue,
       gainLoss,
@@ -249,20 +347,29 @@
   }
 
   function applyFundTransfer(position = {}, changes = {}) {
+    // El coste, las unidades y la fecha de adquisición originales se conservan para que la XIRR
+    // (IV2) y el FIFO (FC1) de la posición no se reinicien con el traspaso — un traspaso sin peaje
+    // fiscal nunca reinicia la base de coste. Se reconstruyen desde `initialCost`/`initialQuantity`
+    // (los que ya trae la posición normalizada), no desde `costBasis`/`quantity` finales: esos son
+    // el resultado ya neto de aportaciones y ventas, no la entrada que espera normalizePosition().
+    // Si el traspaso declara una cantidad nueva (fondo de destino con un NAV distinto, unidades no
+    // comparables con las del origen), las unidades de cada aportación dejan de ser válidas en la
+    // nueva denominación — se conserva su coste en euros (sigue contando para la XIRR) pero se
+    // limpian sus unidades, de modo que el reparto FIFO no mezcle unidades de dos fondos distintos.
+    const quantityOverridden = changes.quantity !== undefined;
     const merged = {
       ...position,
       type: changes.type !== undefined ? changes.type : position.type,
       label: changes.label !== undefined ? changes.label : position.label,
       ticker: changes.ticker !== undefined ? changes.ticker : position.ticker,
-      quantity: changes.quantity !== undefined ? changes.quantity : position.quantity,
+      quantity: quantityOverridden ? changes.quantity : position.initialQuantity,
       currentValue: changes.currentValue !== undefined ? changes.currentValue : position.currentValue,
-      // El coste y la fecha de adquisición originales se conservan para el futuro cálculo FIFO
-      // (FC1) — un traspaso sin peaje fiscal nunca reinicia la base de coste. Por la misma razón,
-      // el histórico de aportaciones (IV2) tampoco se reinicia: la XIRR del traspaso sigue
-      // contando desde la primera aportación real, no desde la fecha del traspaso.
-      costBasis: position.contributions.length ? round2(position.costBasis - position.contributions.reduce((sum, c) => sum + c.amount, 0)) : position.costBasis,
+      costBasis: position.initialCost,
       acquisitionDate: position.acquisitionDate,
-      contributions: position.contributions,
+      contributions: quantityOverridden
+        ? position.contributions.map((contribution) => ({ ...contribution, quantity: 0 }))
+        : position.contributions,
+      disposals: position.disposals,
       asOf: position.asOf,
       provenance: position.provenance,
     };
@@ -307,5 +414,6 @@
     isFundToFundTransfer,
     applyFundTransfer,
     xirr,
+    fifoLedger,
   };
 });

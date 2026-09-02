@@ -2,6 +2,41 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (106): Bloque 8 — FC1, plusvalías por FIFO en cada venta parcial
+
+Tercera tarea nueva del Bloque 8, encadenada tras IV2 sin pausa (autorización del usuario: seguir
+todo el bloque hasta cerrarlo). `canonical-portfolio.js` no tenía ningún concepto de "lote" (unidades
+compradas en una fecha y a un coste concretos) ni de venta parcial — con IV2 ya había fechas y
+aportaciones, pero sin unidades por aportación no había con qué hacer FIFO de verdad.
+
+**FC1**: `contributions[]` (IV2) gana `quantity` opcional — sin ella, la aportación sigue sumando al
+coste total pero no entra en el reparto FIFO. Nuevo `disposals[]` por posición (venta parcial:
+unidades vendidas, importe recibido, fecha) y `fifoLedger()`, motor puro que procesa lotes (adquisición
+inicial + aportaciones con unidades) y ventas en **orden cronológico estricto** — una venta nunca
+consume un lote fechado después de ella, decisivo para que introducir movimientos fuera de orden no
+falsee el reparto. Si las unidades disponibles a esa fecha no cubren la venta, `realizedGain` queda
+`null` con `shortfall` explícito — nunca una plusvalía a medias que parezca completa. `quantity` y
+`costBasis` de la posición pasan a reflejar solo lo que queda tras todas las ventas (retrocompatible:
+sin ventas, exactamente el mismo cálculo que antes de FC1). `applyFundTransfer` (FC2) se corrige otra
+vez para conservar `disposals`/`initialCost`/`initialQuantity` — y, cuando el traspaso declara una
+cantidad nueva (fondo de destino con NAV distinto), limpia las unidades de las aportaciones porque ya
+no son comparables en la nueva denominación, conservando su coste en euros para la XIRR.
+`summarizePositions` gana `totalRealizedGain` (agregado FIFO de toda la cartera, null si una sola
+posición queda con `shortfall`). Nueva tarjeta en Ajustes: unidades opcionales en la aportación, y un
+formulario de venta parcial por posición.
+
+**Validación**: `npm run verify`, exit 0 — **2618/2618 pruebas** (2596 + 22 nuevas: 13 en
+`tests/fc1-plusvalias-fifo-venta-parcial.test.cjs` — `fifoLedger()`, orden cronológico estricto,
+`shortfall`, `normalizePosition`/`summarizePositions`/`applyFundTransfer` — y 9 en
+`tests/fc1-app-integracion.test.cjs`), accesibilidad (990 IDs, +6), rendimiento, build del sitio,
+privacidad y smoke test, todos en verde. `app.js`/`canonical-portfolio.js` bumpeados a
+`?v=20260902fc1a1` (26 pruebas de cadena de versión actualizadas). De paso, dos pruebas de
+`tests/iv2-app-integracion.test.cjs` usaban un recorte de caracteres fijo sobre el cuerpo de una
+función para comprobar su contenido — al alargar esa función con FC1, el recorte dejaba fuera el
+texto que buscaban; se amplió el recorte, sin tocar la aserción en sí.
+
+**Publicado**: pendiente de commit y push a `claude/fc1-plusvalias-fifo-venta-parcial`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (105): Bloque 8 — IV2, rentabilidad real (XIRR) de la cartera
 
 Segunda tarea nueva del Bloque 8. Antes de tocar código se detectó otra vez una brecha real entre

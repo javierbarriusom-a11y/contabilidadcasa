@@ -2628,10 +2628,10 @@
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
               <div class="e19-kpi-note" id="iv1PositionSummary"></div>
               <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
-              <!-- IV2: aportación adicional a una posición ya registrada, con su propia fecha —
-                   la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más de un
-                   movimiento. Sin retiradas: una retirada parcial cambia el coste según qué lote
-                   se vende (FIFO, FC1), fuera de esta tarjeta a propósito. -->
+              <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
+                   fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
+                   de un movimiento. Las unidades son opcionales: sin ellas, la aportación sigue
+                   sumando al coste total pero no entra en el reparto FIFO de una venta futura. -->
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Añadir aportación a</span>
@@ -2644,11 +2644,42 @@
                   <input id="iv1ContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
                 <label class="month-picker">
+                  <span>Unidades compradas (opcional)</span>
+                  <input id="iv1ContributionQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
                   <span>Fecha de la aportación</span>
                   <input id="iv1ContributionDate" type="date" />
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1ContributionAdd">Añadir aportación</button>
+
+              <!-- FC1: venta parcial de una posición ya registrada. El reparto FIFO de qué lote
+                   se vende (más antiguo primero) lo calcula canonical-portfolio.js; aquí solo se
+                   registra el movimiento (unidades vendidas, importe recibido, fecha). Sin
+                   unidades suficientes en lotes con fecha anterior a la venta, la plusvalía
+                   realizada se informa como no calculable — nunca una cifra inventada. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Vender parte de</span>
+                  <select id="iv1DisposalTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Unidades vendidas</span>
+                  <input id="iv1DisposalQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Importe recibido (€)</span>
+                  <input id="iv1DisposalProceeds" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de la venta</span>
+                  <input id="iv1DisposalDate" type="date" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1DisposalAdd">Registrar venta parcial</button>
             </article>
 
             <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
@@ -4818,7 +4849,7 @@
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
     <script defer src="canonical-joint-restructuring.js?v=20260829di5a1"></script>
     <script defer src="canonical-assets.js?v=20260830a141a1"></script>
-    <script defer src="canonical-portfolio.js?v=20260902iv2a1"></script>
+    <script defer src="canonical-portfolio.js?v=20260902fc1a1"></script>
     <script defer src="canonical-e7-analysis.js?v=20260801e7a"></script>
     <script defer src="canonical-e8-operations.js?v=20260801e8a"></script>
     <script defer src="canonical-e9-foundation.js?v=20260801e9a"></script>
@@ -4845,7 +4876,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902iv2a1"></script>
+    <script defer src="app.js?v=20260902fc1a1"></script>
     <script defer src="p2-ui.js?v=20260830cp4a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

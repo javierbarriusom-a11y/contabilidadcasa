@@ -806,7 +806,7 @@ test("D-2c · el formulario de alta y su error viven en el HTML de Deuda › Con
 
 test("D-1/D-2/D-2d · viaja en el shell offline versionado, con bump de app.js/deuda.js/design-tokens.css por la edición y el borrado universal de contratos", () => {
   assert.match(worker, /20260821-d1a1/);
-  assert.match(html, /app.js\?v=20260902iv2a1/);
+  assert.match(html, /app.js\?v=20260902fc1a1/);
   assert.match(html, /design-tokens\.css\?v=20260829opt4a1/);
   assert.match(app, /views\/deuda\.js\?v=20260830di3a1/);
 });
