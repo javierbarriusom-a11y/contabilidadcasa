@@ -38,7 +38,8 @@ llamadas a `renderA18BalanceCard()`. Accesibilidad (1002 IDs, +7 por el nuevo fo
 build del sitio, privacidad y smoke test, todos en verde. `app.js`/`canonical-household-split.js`
 bumpeados a `?v=20260902a182a1` (pruebas de cadena de versión actualizadas en masa).
 
-**Publicado**: pendiente de commit y push a `claude/a18-2-saldo-continuo-household-split`.
+**Publicado**: fusionado en `main` mediante `150f935` — PR #191, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (109): Bloque 8 — A14-5, integración de patrimonio con el laboratorio de escenarios
 
