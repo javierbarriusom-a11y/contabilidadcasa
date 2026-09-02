@@ -125,6 +125,23 @@
       .sort((a, b) => a.date.localeCompare(b.date));
   }
 
+  // IV3: aportaciones programadas (planificadas, todavía no ejecutadas) — solo fecha, importe y
+  // una nota opcional. A diferencia de `contributions` (IV2), nunca suman al coste ni entran en la
+  // XIRR o el FIFO: son un plan, no un movimiento real. Su único destino es el calendario
+  // financiero (E15/A10-2), igual que ya hacen los vencimientos de pólizas (SP1) o la Campaña de la
+  // Renta (A15-3) — la fecha se declara, el resultado no se inventa.
+  function normalizeScheduledContributions(rows = []) {
+    return (Array.isArray(rows) ? rows : [])
+      .map((row, index) => ({
+        id: String(row?.id || `scheduled-${index + 1}`),
+        date: asOfDate(row?.date),
+        amount: knownNumber(row?.amount) ? nonNegative(row.amount) : 0,
+        note: known(row?.note) ? String(row.note).trim() : "",
+      }))
+      .filter((row) => row.date && row.amount > 0)
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
+
   // FC1: ventas parciales de una posición — unidades vendidas e importe recibido, con su fecha.
   // El reparto de qué lote se vende (fifoLedger, más abajo) es responsabilidad del motor, no de
   // esta normalización: aquí solo se descarta lo que no tiene ni fecha ni unidades vendidas.
@@ -266,6 +283,8 @@
       contributions,
       disposals: ledger.disposals,
       realizedGain: ledger.totalRealizedGain,
+      // IV3: plan, no movimiento — nunca toca costBasis/quantity/cashFlows/FIFO de arriba.
+      scheduledContributions: normalizeScheduledContributions(raw.scheduledContributions),
       provenance,
       notes: known(raw.notes) ? String(raw.notes).trim() : "",
     };

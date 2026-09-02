@@ -69,6 +69,9 @@
     const debts = Array.isArray(input.debts) ? input.debts : [];
     const reviews = Array.isArray(input.reviews) ? input.reviews : [];
     const policies = Array.isArray(input.policies) ? input.policies : [];
+    // IV3: aportaciones de inversión programadas (planificadas, todavía no ejecutadas) — mismo
+    // criterio que las pólizas de SP1: fecha e importe declarados, sin inventar recurrencia.
+    const investmentContributions = Array.isArray(input.investmentContributions) ? input.investmentContributions : [];
     const rows = series.map((month) => {
       const key = monthKey(month.monthKey);
       const events = [];
@@ -90,6 +93,15 @@
         type: "policy", label: `Vencimiento de póliza: ${text(policy.name)}`,
         amount: Number.isFinite(Number(policy.premium)) && Number(policy.premium) > 0 ? round2(policy.premium) : null,
         source: "inventario de pólizas", uncertain: !(Number.isFinite(Number(policy.premium)) && Number(policy.premium) > 0),
+      }));
+      // IV3: aportación programada declarada en una posición de cartera (fecha e importe ya
+      // conocidos, aún no ejecutada) — mismo criterio de certeza que SP1: el importe está declarado,
+      // así que no lleva `uncertain: true`.
+      investmentContributions.filter((item) => monthKey(item.date) === key).forEach((item) => events.push({
+        type: "investment-contribution",
+        label: `Aportación programada: ${text(item.label) || "cartera de inversión"}`,
+        amount: round2(item.amount),
+        source: "cartera de inversión (IV3)",
       }));
       events.push({ type: "forecast", label: "Previsión canónica", amount: round2(month.totals?.closingLiquidity), source: "forecast canónico" });
       return { monthKey: key, label: text(month.label || key), closingLiquidity: round2(month.totals?.closingLiquidity), events };

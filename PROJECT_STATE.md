@@ -2,6 +2,40 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (108): Bloque 8 — IV3, aportaciones programadas en el calendario financiero
+
+Quinta tarea nueva del Bloque 8, encadenada tras CP1 (A19-1 queda deliberadamente aparcada para el
+final del bloque, por decisión explícita del usuario, al requerir una superficie de acceso anónimo
+nueva de naturaleza distinta a las demás). IV3 pide que una aportación futura ya decidida (p. ej. "en
+diciembre meto la paga extra en el fondo") aparezca en el calendario financiero (A10-2,
+`canonical-e15-goals.js`) sin confundirse con un movimiento real: no debe sumar al coste, no debe
+entrar en la XIRR (IV2) ni en el reparto FIFO de una venta futura (FC1) — es un plan, no un hecho.
+
+**IV3**: nuevo campo `scheduledContributions[]` por posición (`canonical-portfolio.js`), normalizado
+por `normalizeScheduledContributions()` — solo fecha, importe positivo y una nota opcional; filas sin
+fecha o sin importe se descartan, el resto se ordena cronológicamente. Se añade a `normalizePosition()`
+en un campo aparte, sin tocar `costBasis`, `quantity`, `cashFlows` ni `xirr` (verificado con una prueba
+que compara ambos resultados con y sin aportaciones programadas). `applyFundTransfer` (FC2) las
+conserva automáticamente al traspasar una posición, vía el `spread` existente — no hizo falta tocar su
+código. `canonical-e15-goals.js` (`financialCalendar()`) gana el mismo patrón que ya usan las pólizas
+de SP1: un evento `investment-contribution` por cada aportación programada cuyo mes coincida, con el
+importe declarado (nunca `null` ni inventado, porque aquí sí se conoce). `app.js` aplana las
+aportaciones programadas de todas las posiciones (`iv1ScheduledContributionsForCalendar()`) y las
+inyecta en `window.FinanceP2Bridge.goalPlanning()` como `investmentContributions` — el único punto de
+inyección necesario, porque los tres sitios que llaman a `financialCalendar()` parten de `{...planning,
+...}`. Nueva tarjeta en Ajustes: "Programar aportación futura" (posición, importe, fecha, nota
+opcional) junto a las de aportación (IV2) y venta parcial (FC1).
+
+**Validación**: `npm run verify`, exit 0 — **2641/2641 pruebas** (2626 + 15 nuevas: 7 en
+`tests/iv3-aportaciones-programadas-calendario.test.cjs` — normalización, backward-compatibility con
+`costBasis`/`quantity`/`cashFlows`/`xirr` sin cambio, conservación en `applyFundTransfer`, generación de
+eventos en `financialCalendar()` dentro y fuera de rango — y 8 en `tests/iv3-app-integracion.test.cjs`),
+accesibilidad (995 IDs, +5 por el nuevo formulario), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde. `app.js`/`canonical-portfolio.js`/`canonical-e15-goals.js` bumpeados a
+`?v=20260902iv3a1` (pruebas de cadena de versión actualizadas en masa).
+
+**Publicado**: pendiente de commit y push a `claude/iv3-aportaciones-programadas-calendario`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (107): Bloque 8 — CP1, motor de próxima mejor acción
 
 Cuarta tarea nueva del Bloque 8, encadenada tras FC1. CP1 depende de CP3 (`canonical-recommendation-
