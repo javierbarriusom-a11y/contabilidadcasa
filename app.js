@@ -15608,6 +15608,85 @@ function renderA18BalanceCard() {
   note.innerHTML = `<p><strong>${a18BalanceLabel(balance)}</strong></p>`;
 }
 
+// A19-1: enlace de solo lectura, redactado y caducable — depende de una sesión remota (mismo
+// guardián que el resto de escritura en Supabase): sin sesión no hay a quién atribuir el enlace
+// (owner_user_id), así que no se genera ninguno. El token en crudo solo existe en la URL que se
+// entrega al asesor externo; nunca se guarda (finance_share_links.token_hash guarda solo su hash,
+// mismo criterio que las invitaciones de hogar de E9-1).
+const A19_SHARE_VIEW_LABELS = { "debt-plan": "Plan de deuda", "forecast-6m": "Forecast a 6 meses" };
+
+function a19ShareUrl(rawToken) {
+  const basePath = location.pathname.replace(/index\.html$/, "");
+  return `${location.origin}${basePath}share.html#token=${encodeURIComponent(rawToken)}`;
+}
+
+async function saveA19ShareLink() {
+  const engine = window.FinanceCanonicalShareLink;
+  const status = qs("a19ShareStatus");
+  if (!engine) return;
+  if (!supabaseClient || !remoteUser) {
+    if (status) status.textContent = "Inicia sesión para generar un enlace compartible.";
+    return;
+  }
+  const viewType = qs("a19ShareViewType")?.value || "";
+  if (!engine.VIEW_TYPES.includes(viewType)) {
+    if (status) status.textContent = "Selecciona qué vista quieres compartir.";
+    return;
+  }
+  const ttlDays = engine.normalizeTtlDays(parseAmount(qs("a19ShareTtlDays")?.value));
+  const sourceData = viewType === "debt-plan" ? canonicalDebtContractRows() : (canonicalScenarioResults.base?.forecast?.series || []);
+  const payload = engine.buildSharePayload(viewType, sourceData);
+  const rawToken = engine.generateShareToken();
+  const tokenHash = await engine.hashToken(rawToken);
+  const expiresAt = engine.expiresAtFrom(ttlDays);
+  const { error } = await supabaseClient.from("finance_share_links").insert({
+    owner_user_id: remoteUser.id,
+    token_hash: tokenHash,
+    view_type: viewType,
+    payload,
+    expires_at: expiresAt,
+  });
+  if (error) {
+    if (status) status.textContent = "No se pudo generar el enlace. Vuelve a intentarlo.";
+    return;
+  }
+  if (status) status.textContent = `Enlace generado (caduca el ${expiresAt.slice(0, 10)}): ${a19ShareUrl(rawToken)}`;
+  renderA19ShareLinkList();
+}
+
+async function renderA19ShareLinkList() {
+  const list = qs("a19ShareLinkList");
+  if (!list) return;
+  if (!supabaseClient || !remoteUser) {
+    list.innerHTML = `<li class="e19-kpi-note">Inicia sesión para ver tus enlaces compartidos.</li>`;
+    return;
+  }
+  const engine = window.FinanceCanonicalShareLink;
+  const { data, error } = await supabaseClient
+    .from("finance_share_links")
+    .select("id,view_type,created_at,expires_at,revoked_at")
+    .eq("owner_user_id", remoteUser.id)
+    .order("created_at", { ascending: false });
+  if (error || !data) {
+    list.innerHTML = `<li class="e19-kpi-note">No se pudieron cargar los enlaces.</li>`;
+    return;
+  }
+  list.innerHTML = data.length
+    ? data.map((row) => {
+        const expired = engine ? engine.isExpired(row.expires_at, row.revoked_at) : true;
+        const statusLabel = row.revoked_at ? "revocado" : expired ? "caducado" : `activo hasta ${String(row.expires_at).slice(0, 10)}`;
+        const revokeButton = row.revoked_at ? "" : `<button type="button" class="e19-btn e19-btn-secondary" data-a19-share-revoke="${escapeHtml(row.id)}">Revocar</button>`;
+        return `<li class="commit-barrier-item"><strong>${escapeHtml(A19_SHARE_VIEW_LABELS[row.view_type] || row.view_type)}</strong><span>${escapeHtml(statusLabel)} · creado ${escapeHtml(String(row.created_at).slice(0, 10))}</span>${revokeButton}</li>`;
+      }).join("")
+    : `<li class="e19-kpi-note">Sin enlaces compartidos todavía.</li>`;
+}
+
+async function revokeA19ShareLink(id) {
+  if (!supabaseClient || !remoteUser || !id) return;
+  await supabaseClient.from("finance_share_links").update({ revoked_at: new Date().toISOString() }).eq("id", id).eq("owner_user_id", remoteUser.id);
+  renderA19ShareLinkList();
+}
+
 // A14-4: desglose por tipo y concentración de riesgo. Lee scenarioSettings.assets (activos
 // declarados a mano, mismo patrón de registro simple que A18-1) y delega toda la normalización en
 // FinanceCanonicalAssets (A14-1) — sin motor propio. Sin activos registrados, el hogar ve un estado
@@ -24105,6 +24184,7 @@ function renderAjustes() {
   renderA18EntryCategoryOptions();
   renderA18EntryList();
   renderA18BalanceCard();
+  renderA19ShareLinkList();
   renderA14AssetList();
   renderA14AssetBreakdown();
   renderIv1PositionList();
@@ -34149,6 +34229,12 @@ async function init() {
     const removeButton = event.target.closest("[data-a18-entry-remove]");
     if (!removeButton) return;
     removeA18Entry(removeButton.dataset.a18EntryRemove);
+  });
+  qs("a19ShareSave")?.addEventListener("click", saveA19ShareLink);
+  qs("a19ShareLinkList")?.addEventListener("click", (event) => {
+    const revokeButton = event.target.closest("[data-a19-share-revoke]");
+    if (!revokeButton) return;
+    revokeA19ShareLink(revokeButton.dataset.a19ShareRevoke);
   });
   qs("ajustesFiscalJointTaxation")?.addEventListener("change", handleFiscalJointTaxationChange);
   qs("ajustesFiscalWithholdingRate")?.addEventListener("change", handleFiscalWithholdingRateChange);

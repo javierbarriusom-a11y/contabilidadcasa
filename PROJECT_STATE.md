@@ -2,6 +2,70 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (112): Bloque 8 — A19-1, enlace de solo lectura, redactado y caducable. **Cierra el Bloque 8.**
+
+Novena y última tarea del Bloque 8, tras posponerse deliberadamente hasta el final por decisión
+explícita del usuario: a diferencia de las siete anteriores, requería abrir la primera superficie de
+acceso anónimo de la app sobre datos financieros reales. Depende de A14-1 (ya construida).
+
+**Investigación previa**: hoy Supabase tiene todas sus políticas RLS restringidas a
+`to authenticated using (auth.uid() = user_id)` — cero acceso anónimo en ninguna tabla.
+`backend/server.mjs` existe pero no está desplegado en ningún sitio (sin Procfile/render/vercel ni
+paso de CI que lo publique), así que extender ese backend habría exigido levantar hosting nuevo, no
+solo escribir código. Se planteó la disyuntiva al usuario explícitamente (exportación estática
+redactada, de riesgo mínimo, frente al enlace vivo con RLS anónimo en Supabase, que sí cumple el
+100% del spec pero exige que el usuario aplique la migración a su base de datos real) — eligió el
+enlace vivo con RLS anónimo.
+
+**Diseño de seguridad**: para minimizar la superficie de riesgo de esa elección, el rol `anon` no
+tiene **ningún** privilegio directo sobre la tabla nueva (`revoke all ... from anon`) — la única
+puerta de lectura es una función `security definer`, `get_finance_share_link(token)`, que decide
+expiración/revocación dentro de la propia base de datos y solo devuelve el payload ya redactado en
+el momento de compartir (nunca una consulta en vivo a las tablas reales del hogar). Un fallo de
+configuración de RLS no puede filtrar enlaces ajenos porque no hay ningún `select` posible fuera de
+esa función. El token en crudo **nunca se persiste** — solo su SHA-256 (`token_hash`, mismo criterio
+que `finance_household_invitations.token_hash`, ya en producción desde E9-1) — y solo existe en la
+URL entregada al asesor, en el fragmento (`#token=...`, nunca la query string, para que no viaje en
+ninguna petición HTTP ni quede en logs de acceso del hosting estático). Un `expires_at` ausente o
+corrupto se trata como caducado, nunca como "vivo por defecto" (falla cerrado). Un `update` solo
+puede marcar `revoked_at` — la política RLS exige `revoked_at is not null` en el `with check`, así
+que ni el cliente ni un bug propio pueden reescribir el payload o la caducidad de un enlace ya
+emitido.
+
+**Construido**:
+- `migrations/20260902_a19_1_share_links.sql` — tabla `finance_share_links` (RLS: el hogar
+  autenticado crea/lista/revoca sus propios enlaces; `anon` sin privilegios directos) y la función
+  `get_finance_share_link(token)`.
+- `canonical-share-link.js` — motor puro: `generateShareToken()`/`hashToken()` (Web Crypto,
+  `crypto.subtle.digest`), `normalizeTtlDays()`/`expiresAtFrom()`/`isExpired()`, y
+  `redactDebtPlanView()`/`redactForecastView()` — cada vista declara explícitamente los campos que
+  comparte (entidad/tipo/principal/cuota; o mes/ingresos/gastos/ahorro/liquidez agregados a 6
+  meses), nunca "todo menos lo prohibido" — sin número de cuenta, sin notas, sin movimientos
+  individuales ni desglose por categoría.
+- `app.js`: tarjeta en Ajustes para generar (requiere sesión remota — el enlace pertenece a quien lo
+  genera), listar y revocar enlaces.
+- `share.html`: página independiente nueva (mismo patrón que `debt-roadmap.html`, ya en la
+  whitelist del sitio público) — sin `app.js`, sin service worker, sin ningún dato local; lee el
+  token del fragmento de la URL y llama a la función RPC. Un token inválido, caducado o revocado
+  siempre muestra el mismo mensaje genérico, para no dar pistas a quien intente adivinar tokens
+  ajenos.
+
+**Validación**: `npm run verify`, exit 0 — **2712/2712 pruebas** (2685 + 27 nuevas: 13 en
+`tests/a19-1-enlace-solo-lectura.test.cjs` y 14 en `tests/a19-1-app-integracion.test.cjs`, incluidas
+comprobaciones de que la migración nunca concede privilegios directos a `anon` sobre la tabla y de
+que `share.html` no carga `app.js` ni el service worker). Accesibilidad (1007 IDs, +5 por el nuevo
+formulario), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js`/`canonical-share-link.js` bumpeados a `?v=20260902a191a1`.
+
+**Pendiente de acción manual del usuario, fuera de este PR**: la migración SQL
+(`migrations/20260902_a19_1_share_links.sql`) no se aplica sola — este repositorio no tiene ningún
+runner de migraciones en CI (ninguna migración anterior lo tenía tampoco). Hay que ejecutarla contra
+el proyecto Supabase real (panel de Supabase → SQL Editor, o `supabase db push`/CLI) antes de que la
+función de generar enlaces funcione en producción; sin ella, `saveA19ShareLink()` fallará con un
+error de Supabase (tabla/función inexistente) de forma visible y contenida, nunca en silencio.
+
+**Publicado**: pendiente de commit y push a `claude/a19-1-enlace-solo-lectura`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (111): Bloque 8 — OPT-8, jerarquía visual real en «Hoy»
 
 Octava y última tarea nueva del Bloque 8 antes de A19-1 (deliberadamente aparcada al final, por

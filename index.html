@@ -2557,6 +2557,34 @@
               <ul class="commit-barrier-list" id="a18EntryList"></ul>
             </article>
 
+            <!-- A19-1: enlace de solo lectura, redactado y caducable — depende de A14-1. Comparte
+                 el plan de deuda o el forecast a 6 meses con un asesor externo sin cuenta propia ni
+                 acceso a movimientos individuales. El token en crudo solo existe en la URL que se
+                 genera al pulsar «Generar enlace»: nunca se guarda (Supabase solo almacena su
+                 hash), y la página que lo consume (share.html) es independiente de esta app, sin
+                 sesión ni datos locales. Requiere sesión remota iniciada — el enlace pertenece a
+                 quien lo genera. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Enlace de solo lectura para un asesor externo</h3>
+              <p class="e19-kpi-note">Comparte una vista concreta y redactada — nunca movimientos individuales — con quien no tiene cuenta propia. Caduca solo, y puedes revocarlo antes si hace falta.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Qué compartir</span>
+                  <select id="a19ShareViewType">
+                    <option value="debt-plan">Plan de deuda</option>
+                    <option value="forecast-6m">Forecast a 6 meses</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Caduca en (días)</span>
+                  <input id="a19ShareTtlDays" type="number" min="1" max="90" step="1" value="14" inputmode="decimal" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a19ShareSave">Generar enlace</button>
+              <p class="inline-feedback" id="a19ShareStatus" role="status"></p>
+              <ul class="commit-barrier-list" id="a19ShareLinkList"></ul>
+            </article>
+
             <!-- A14-4: desglose por tipo y concentración de riesgo. Depende solo del contrato
                  canónico A14-1 (canonical-assets.js); registro manual mínimo aquí — la
                  importación/actualización con bandeja previa es A14-3, sesión aparte. Sin activos
@@ -4915,6 +4943,7 @@
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-pension-simulator.js?v=20260830a154a1"></script>
     <script defer src="canonical-household-split.js?v=20260902a182a1"></script>
+    <script defer src="canonical-share-link.js?v=20260902a191a1"></script>
     <script defer src="canonical-forecast-sensitivity.js?v=20260830pv6a1"></script>
     <script defer src="canonical-self-insurance.js?v=20260830sp4a1"></script>
     <script defer src="canonical-mortgage-rate-scenarios.js?v=20260829di1a1"></script>
@@ -4947,7 +4976,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902a182a1"></script>
+    <script defer src="app.js?v=20260902a191a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

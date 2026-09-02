@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Vista compartida de solo lectura</title>
+<style>
+:root{--navy:#0b1f33;--teal:#0f8f8c;--bg:#eef3f6;--card:#fff;--text:#1a1100;--muted:#5b6578;--line:#d8e2e7}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:760px;margin:0 auto;padding:32px 20px 60px}
+header{margin-bottom:20px}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+h1{font-size:26px;margin:8px 0 6px;color:var(--navy)}
+header p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 10px 26px rgba(11,31,51,.06)}
+.notice{border-radius:10px;padding:14px;font-size:14px;line-height:1.5}
+.notice.bad{background:#fdeaea;border:1px solid #f0c9c9;color:#7a1f1f}
+.notice.info{background:#eef5ff;border:1px solid #d4e3ff;color:#1f3d6e}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+tfoot td{font-weight:800;color:var(--navy)}
+.footnote{margin-top:18px;font-size:12.5px;color:var(--muted);line-height:1.5}
+.footnote a{color:var(--teal)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Enlace de solo lectura</p>
+    <h1 id="shareTitle">Vista compartida</h1>
+    <p>Generado por el titular de estos datos para un asesor externo. No incluye movimientos individuales de ninguna cuenta y no permite editar nada.</p>
+  </header>
+  <div class="card">
+    <div id="shareError" class="notice bad" hidden>Este enlace no es válido, ha sido revocado o ya ha caducado. Pide al titular que genere uno nuevo.</div>
+    <div id="shareContent"></div>
+  </div>
+  <p class="footnote" id="shareGeneratedAt"></p>
+  <p class="footnote">¿Eres el titular de estos datos? <a href="index.html">Abre la app completa</a>.</p>
+</div>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script defer src="supabase-config.js?v=20260602a"></script>
+<script>
+// A19-1: página independiente, sin app.js ni service worker — no toca ningún dato local del
+// titular. Lee el token solo del fragmento de la URL (después de "#"), nunca de la query string,
+// para que no viaje en ninguna petición HTTP ni quede en logs de acceso del hosting estático.
+// Un token ausente, revocado o caducado nunca distingue el motivo — siempre el mismo mensaje
+// genérico, para no dar pistas a quien intenta adivinar tokens ajenos.
+(function () {
+  function tokenFromHash() {
+    const match = /(?:^|&)token=([^&]+)/.exec(String(location.hash || "").replace(/^#/, ""));
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
+  function showError() {
+    document.getElementById("shareError").hidden = false;
+  }
+
+  function money(value) {
+    const number = Number(value);
+    return `${Number.isFinite(number) ? number.toFixed(2) : "0.00"} €`;
+  }
+
+  function renderDebtPlan(payload) {
+    document.getElementById("shareTitle").textContent = "Plan de deuda";
+    const rows = Array.isArray(payload.debts) ? payload.debts : [];
+    const totalPrincipal = rows.reduce((sum, row) => sum + (Number(row.currentPrincipal) || 0), 0);
+    const totalPayment = rows.reduce((sum, row) => sum + (Number(row.currentPayment) || 0), 0);
+    document.getElementById("shareContent").innerHTML = `<table>
+      <thead><tr><th>Entidad</th><th>Tipo</th><th>Principal pendiente</th><th>Cuota mensual</th></tr></thead>
+      <tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.entity)}</td><td>${escapeHtml(row.type)}</td><td>${money(row.currentPrincipal)}</td><td>${money(row.currentPayment)}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td colspan="2">Total</td><td>${money(totalPrincipal)}</td><td>${money(totalPayment)}</td></tr></tfoot>
+    </table>`;
+  }
+
+  function renderForecast(payload) {
+    document.getElementById("shareTitle").textContent = "Forecast a 6 meses";
+    const rows = Array.isArray(payload.months) ? payload.months : [];
+    document.getElementById("shareContent").innerHTML = `<table>
+      <thead><tr><th>Mes</th><th>Ingresos</th><th>Gastos</th><th>Ahorro</th><th>Liquidez de cierre</th></tr></thead>
+      <tbody>${rows.map((row) => `<tr><td>${escapeHtml(row.label)}</td><td>${money(row.income)}</td><td>${money(row.outflows)}</td><td>${money(row.saving)}</td><td>${money(row.closingLiquidity)}</td></tr>`).join("")}</tbody>
+    </table>`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+
+  async function init() {
+    const token = tokenFromHash();
+    if (!token || !window.supabase || !window.SUPABASE_CONFIG) { showError(); return; }
+    const client = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
+    let payload = null;
+    try {
+      const { data, error } = await client.rpc("get_finance_share_link", { p_token: token });
+      if (!error) payload = data;
+    } catch {
+      payload = null;
+    }
+    if (!payload) { showError(); return; }
+    if (String(payload.schemaId || "").endsWith("/debt-plan-v1")) renderDebtPlan(payload);
+    else if (String(payload.schemaId || "").endsWith("/forecast-6m-v1")) renderForecast(payload);
+    else { showError(); return; }
+    const generatedAt = String(payload.generatedAt || "").slice(0, 10);
+    if (generatedAt) document.getElementById("shareGeneratedAt").textContent = `Datos generados el ${generatedAt}.`;
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
