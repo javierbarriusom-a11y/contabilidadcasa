@@ -91,5 +91,5 @@ test("la vista se pinta antes de registrar la revisión: la comparación es auto
 });
 
 test("p2-ui.js viaja versionado en el shell tras el cambio", () => {
-  assert.match(html, /p2-ui\.js\?v=20260830cp4a1/);
+  assert.match(html, /p2-ui\.js\?v=20260902cp1a1/);
 });
