@@ -2,6 +2,44 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (109): Bloque 8 — A14-5, integración de patrimonio con el laboratorio de escenarios
+
+Sexta tarea nueva del Bloque 8, encadenada tras IV3. A14-5 depende de A14-1 (`canonical-assets.js`,
+ya construido) y pide, según su propia descripción en `BACKLOG_PATRIMONIO_Y_FINANZAS.md`: "un evento
+simulado puede afectar también a activos («caída de mercado del 20%», «revalorización del inmueble»),
+reutilizando `canonical-e13-scenarios.js` sin motor nuevo". El laboratorio de escenarios (E13, tarjeta
+"Qué pasa si cambia el plan") ya simulaba cinco eventos de caja (pérdida de ingreso, gasto, coche,
+mudanza, deuda) contra tres perfiles (Base/Favorable/Tensión), pero no tenía ningún concepto de
+patrimonio — los activos declarados (A14-1) vivían en una tarjeta de Ajustes completamente aparte.
+
+**A14-5**: `canonical-e13-scenarios.js` gana dos eventos nuevos, "market-crash" y
+"property-revaluation" — a diferencia de los cinco ya existentes, no tocan la caja proyectada (una
+caída de mercado no es un gasto que sale de la cuenta corriente) y no dependen del perfil simulado
+(los factores de ingreso/gasto de Base/Favorable/Tensión no cambian el valor de un fondo o un piso).
+Su `amount` pasa a representar un porcentaje (0-100), no un importe en euros, con signo fijo por tipo
+de evento (una caída siempre resta, una revalorización siempre suma). Nueva función pura
+`assetImpact(assets, events)`: aplica el porcentaje solo a los activos cuyo tipo coincide (inversión
+para la caída de mercado, inmueble para la revalorización), componiendo (no sumando) varios eventos
+del mismo tipo — dos caídas del 20% dejan un 64% del valor original, no un 60% — y sin bajar nunca de
+cero. Sin activos declarados o sin ningún evento de patrimonio añadido, `assetImpact` es `null`, nunca
+un 0 inventado. `buildLab()` la incorpora como un campo más, sin romper ninguna llamada anterior
+(retrocompatible: sin `metadata.assets`, comportamiento idéntico a antes de A14-5). `app.js` aplana
+los activos declarados (`e13AssetsForLab()`, delega en `FinanceCanonicalAssets.normalizeAssets()`) y
+los pasa a las tres llamadas del motor (simulación en vivo, guardar escenario reproducible, recalcular
+copia guardada). Nueva tarjeta "Patrimonio simulado (A14-5)" en el panel de análisis avanzado del
+laboratorio, con el patrimonio antes/después y el desglose por evento.
+
+**Validación**: `npm run verify`, exit 0 — **2658/2658 pruebas** (2641 + 17 nuevas: 9 en
+`tests/a14-5-patrimonio-laboratorio-escenarios.test.cjs` — los dos eventos no tocan la caja,
+`assetImpact` con activos/eventos ausentes, caída de mercado, revalorización, composición de dos
+eventos, suelo de cero, aislamiento de eventos de caja, retrocompatibilidad sin `metadata.assets` — y
+8 en `tests/a14-5-app-integracion.test.cjs`), accesibilidad (995 IDs, sin cambio — no añade campos de
+formulario, solo dos opciones a un selector ya existente), rendimiento, build del sitio, privacidad y
+smoke test, todos en verde. `app.js`/`canonical-e13-scenarios.js` bumpeados a `?v=20260902a145a1`
+(pruebas de cadena de versión actualizadas en masa).
+
+**Publicado**: pendiente de commit y push a `claude/a14-5-patrimonio-laboratorio-escenarios`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (108): Bloque 8 — IV3, aportaciones programadas en el calendario financiero
 
 Quinta tarea nueva del Bloque 8, encadenada tras CP1 (A19-1 queda deliberadamente aparcada para el
