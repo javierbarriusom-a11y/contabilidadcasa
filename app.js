@@ -3538,6 +3538,9 @@ function saveScenarioSettings() {
     // pregunta en cada render. Vive aquí, no solo en memoria, porque debe sobrevivir a recargar.
     registrarMesAnnualAck: state.registrarMesAnnualAck || {},
     autoCapSavings: state.autoCapSavings,
+    // PV1 · igual que autoCapSavings: política de simulación del hogar, se sincroniza y se
+    // restaura. `undefined` (nunca tocado) se trata como activado en todos los puntos de lectura.
+    autoAdjustForecastBias: state.autoAdjustForecastBias,
     incomeFactor: state.incomeFactor,
     expenseFactor: state.expenseFactor,
     savingsPlan: scenarioSettings.savingsPlan || {},
@@ -7043,6 +7046,14 @@ function computeCanonicalScenario(projectOutflows = [], options = {}) {
     { reason: `forecast-${persistedContext || "auxiliary"}` },
   );
   if (!scenario.forecast.valid) throw new Error(`El forecast canónico no mantiene la paridad en ${context}.`);
+  // PV1: solo sobre "base" — el mismo forecast del que ya aprende PV2/PV3/PV4/PV5 en el Laboratorio
+  // de escenarios (siempre `canonicalScenarioResults.base`, nunca `.active`/`.planned`). "active" y
+  // "planned" son simulaciones puntuales que el usuario está explorando a propósito (con sus
+  // propios proyectos/eventos); no deben verse alteradas por un aprendizaje que no pidió ahí.
+  if (persistedContext === "base") {
+    const biasLearning = requiredCanonicalForecast().learnFromHistory(reconciledMonthlyNetHistory(), { generatedAt: scenario.forecast.generatedAt });
+    scenario.forecast.series = requiredCanonicalForecast().applyLearnedBias(scenario.forecast.series, biasLearning, { enabled: state?.autoAdjustForecastBias !== false });
+  }
   scenarioSettings.forecastAssumptions = scenario.forecast.assumptions;
   const snapshot = scenario.snapshot;
   assertCanonicalSnapshot(snapshot, context);
@@ -7083,6 +7094,11 @@ function modelComputationSignature() {
       // mínimo diario seguiría juzgándose con la reserva anterior hasta el siguiente recálculo.
       operatingReserve: round2(Math.max(0, Number(state.operatingReserve || 0))),
       autoCapSavings: Boolean(state.autoCapSavings),
+      // PV1: gobierna si el forecast "base" incorpora la desviación aprendida de alta confianza
+      // (ver computeCanonicalScenario) — igual que operatingReserve arriba, si no entra en la firma
+      // el resultado quedaría en caché con el ajuste de la última vez que se recalculó, aunque el
+      // usuario acabe de tocar el interruptor.
+      autoAdjustForecastBias: state.autoAdjustForecastBias !== false,
       incomeFactor: state.incomeFactor ?? 1,
       expenseFactor: state.expenseFactor ?? 1,
       balanceDate: state.balanceDate || "",
@@ -17126,6 +17142,7 @@ function renderE13ScenarioLab() {
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
     <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
+    <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
@@ -23415,6 +23432,52 @@ function handleDividendTaxChange(field, { max = Infinity } = {}) {
   };
 }
 
+// PV1 · autoajuste de la previsión por niveles de confianza. Interruptor único en Ajustes, mismo
+// patrón que autoCapSavings (política de simulación visible y desactivable, activada por defecto):
+// gobierna si computeCanonicalScenario() deja que applyLearnedBias() desplace el forecast "base"
+// cuando la desviación aprendida alcanza confianza alta. `state.autoAdjustForecastBias` nunca
+// tocado (undefined) cuenta como activado, igual que el resto de políticas booleanas del hogar.
+function autoAdjustForecastBiasEnabled() {
+  return state?.autoAdjustForecastBias !== false;
+}
+
+function syncAutoAdjustForecastBiasControl() {
+  const field = qs("ajustesAutoAdjustForecastBias");
+  if (field) field.checked = autoAdjustForecastBiasEnabled();
+}
+
+function handleAutoAdjustForecastBiasChange(event) {
+  if (!state) return;
+  state.autoAdjustForecastBias = Boolean(event.target.checked);
+  saveScenarioSettings();
+  render();
+  renderAjustesAutoAdjustForecastBiasNote();
+}
+
+// Estado legible del autoajuste, para pintar la misma frase en Ajustes y en el Laboratorio de
+// escenarios (E13) sin duplicar la lógica de confianza. Lee el `learnedBias` que ya trae cada mes
+// del forecast "base" — nunca recalcula nada por su cuenta.
+function pv1AutoAdjustBiasNote(learnedBias) {
+  if (!learnedBias) return "Sin previsión disponible todavía para calcular el autoajuste.";
+  if (!learnedBias.enabled) {
+    return "Autoajuste desactivado: la previsión no incorpora la desviación aprendida aunque la confianza sea alta. Actívalo arriba para que se aplique sola.";
+  }
+  if (learnedBias.applied) {
+    return `Autoajuste activo: ${money(learnedBias.monthlyAmount, true)}/mes de desviación aprendida (confianza alta, ${learnedBias.sampleMonths} meses conciliados) — la caja proyectada del escenario base ya lo incluye, acumulado mes a mes.`;
+  }
+  if (learnedBias.sampleMonths > 0) {
+    return `Autoajuste en espera: la desviación aprendida tiene confianza ${PV4_CONFIDENCE_LABEL[learnedBias.confidence] || learnedBias.confidence} (${learnedBias.sampleMonths} meses conciliados) — hace falta confianza alta (≥12 meses) para que se aplique sola. Sigue como sugerencia pendiente de confirmar.`;
+  }
+  return "Sin historial conciliado suficiente todavía para calcular un autoajuste.";
+}
+
+function renderAjustesAutoAdjustForecastBiasNote() {
+  const note = qs("ajustesAutoAdjustForecastBiasNote");
+  if (!note) return;
+  const learnedBias = canonicalScenarioResults.base?.forecast?.series?.[0]?.learnedBias || null;
+  note.textContent = pv1AutoAdjustBiasNote(learnedBias);
+}
+
 // DI4 · impacto de un aval dado en la capacidad de endeudamiento futura (D-12). Mismo patrón de
 // campo único declarado que DI2: la cuota mensual equivalente del aval, sin inventario de avales
 // todavía. Se guarda aquí, en Ajustes; el impacto se calcula y se muestra donde ya vive D-12 (Deuda ·
@@ -23705,6 +23768,8 @@ function renderAjustes() {
   renderAjustesEmergencyCreditLineNote();
   syncLoanGuaranteeControl();
   renderAjustesLoanGuaranteeNote();
+  syncAutoAdjustForecastBiasControl();
+  renderAjustesAutoAdjustForecastBiasNote();
   renderRemuneratedAccounts();
   renderMaintenanceFeeAccounts();
   renderInsurancePolicies();
@@ -30030,11 +30095,28 @@ function savePv5Diary(list) {
   storageSet(storageKey("pv5-diary"), JSON.stringify(list.slice(0, PV5_DIARY_MAX_ENTRIES)));
 }
 
-function pv5DiaryReason(entry) {
-  if (entry.previousDelta === null) {
-    return `Primera vez con historial suficiente (${entry.sampleMonths} mes(es)): desviación media ${money(entry.newDelta, true)}, confianza ${entry.newConfidence}.`;
+// PV1 · el único concepto real que alimenta este aprendizaje hoy es "monthly-net" (ver
+// reconciledMonthlyNetHistory) — el mismo que computeCanonicalScenario() usa para el autoajuste
+// del forecast "base" cuando su confianza llega a "alta". El cruce exacto de ese umbral (entra o
+// sale de "alta") es la noticia que más le importa a quien lee este diario, así que se anuncia
+// aparte de la desviación en sí.
+function pv1AutoAdjustTransitionNote(entry) {
+  if (entry.conceptId !== "monthly-net") return "";
+  if (entry.newConfidence === "high" && entry.previousConfidence !== "high") {
+    return " A partir de ahora la previsión aplica este ajuste sola en el escenario base (confianza alta, PV1) — desactivable en Ajustes.";
   }
-  return `Pasó de ${money(entry.previousDelta, true)} a ${money(entry.newDelta, true)} de desviación media (confianza ${entry.newConfidence}).`;
+  if (entry.previousConfidence === "high" && entry.newConfidence !== "high") {
+    return " La previsión deja de aplicarlo sola: la confianza ya no es alta.";
+  }
+  return "";
+}
+
+function pv5DiaryReason(entry) {
+  const transition = pv1AutoAdjustTransitionNote(entry);
+  if (entry.previousDelta === null) {
+    return `Primera vez con historial suficiente (${entry.sampleMonths} mes(es)): desviación media ${money(entry.newDelta, true)}, confianza ${entry.newConfidence}.${transition}`;
+  }
+  return `Pasó de ${money(entry.previousDelta, true)} a ${money(entry.newDelta, true)} de desviación media (confianza ${entry.newConfidence}).${transition}`;
 }
 
 function recalibrateForecastLearning(monthKey, closedAt) {
@@ -30045,8 +30127,8 @@ function recalibrateForecastLearning(monthKey, closedAt) {
   const newEntries = [];
   learning.deviations.forEach((deviation) => {
     const before = previous[deviation.conceptId];
-    nextSnapshot[deviation.conceptId] = { averageDelta: deviation.averageDelta, severity: deviation.severity, sampleMonths: deviation.sampleMonths };
-    const changed = !before || Math.abs(before.averageDelta - deviation.averageDelta) >= 0.01 || before.severity !== deviation.severity;
+    nextSnapshot[deviation.conceptId] = { averageDelta: deviation.averageDelta, severity: deviation.severity, sampleMonths: deviation.sampleMonths, confidence: deviation.confidence };
+    const changed = !before || Math.abs(before.averageDelta - deviation.averageDelta) >= 0.01 || before.severity !== deviation.severity || before.confidence !== deviation.confidence;
     if (!changed) return;
     const entry = {
       id: `${deviation.conceptId}-${closedAt}`,
@@ -30058,6 +30140,7 @@ function recalibrateForecastLearning(monthKey, closedAt) {
       newDelta: deviation.averageDelta,
       previousSeverity: before ? before.severity : null,
       newSeverity: deviation.severity,
+      previousConfidence: before ? before.confidence : null,
       sampleMonths: deviation.sampleMonths,
       newConfidence: deviation.confidence,
     };
@@ -33657,6 +33740,7 @@ async function init() {
   qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
   qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
   qs("ajustesLoanGuaranteeMonthly")?.addEventListener("change", handleLoanGuaranteeMonthlyChange);
+  qs("ajustesAutoAdjustForecastBias")?.addEventListener("change", handleAutoAdjustForecastBiasChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
   qs("ajustesSobresEnabled")?.addEventListener("change", handleSobresToggle);

@@ -1,6 +1,44 @@
 # Estado del proyecto
 
-Fecha de revisión: 31 de agosto de 2026.
+Fecha de revisión: 2 de septiembre de 2026.
+
+## Cierre de sesión — 2 de septiembre de 2026 (104): Bloque 8 — PV1, autoajuste de la previsión por niveles de confianza
+
+Primera tarea del Bloque 8 que arrancaba de cero (A14-2/A14-3 ya se habían adelantado en la tanda de
+A14-1). Antes de tocar código se detectó una tensión real: PV1 pide "el ajuste que hoy nunca se
+aplica solo", pero `learnFromHistory()` (E12b) y la propia sesión que construyó su prerrequisito
+(PV5) fijan a propósito `confirmRequired: true`/`applied: false` en cada desviación — una regla que
+se repite en toda la app (CP3, `detectRecurringSubscriptions`, A11-4) y que un test existente
+(`pv3-pv5-recalibracion-diario.test.cjs`) verifica explícitamente. Alcance acordado con el usuario
+antes de implementar: un canal nuevo y aparte, que nunca toca `recalibrateForecastLearning()` ni el
+libro conciliado, solo se activa con confianza alta (≥12 meses, el mismo umbral que ya usa
+`confidence()`), y con un interruptor visible y desactivable — mismo patrón que `autoCapSavings`.
+
+**PV1**: `canonical-forecast.js` gana `applyLearnedBias(series, learning, options)`, motor puro que
+desplaza `closingChecking`/`closingLiquidity` de cada mes futuro de forma acumulada (mes 1 = 1×
+desviación media, mes 2 = 2×...) cuando la desviación del concepto "monthly-net" tiene confianza
+alta y el interruptor está activado; con confianza media/baja, desactivado, o sin desviación, no
+cambia nada — sigue como sugerencia, igual que antes. Nunca toca ingreso, gasto ni ahorro aplicado.
+`computeCanonicalScenario()` lo aplica solo sobre el escenario **base** (el mismo que ya usan
+PV2/PV3/PV4/PV5 en el Laboratorio de escenarios) — nunca sobre `active`/`planned`, las simulaciones
+que el usuario está explorando a propósito. Interruptor único en Ajustes ("Autoajuste de la
+previsión", activado por defecto, mismo criterio que `autoCapSavings`) que entra en
+`modelComputationSignature()` para que recalcule al tocarlo. El Laboratorio de escenarios (E13) gana
+una tarjeta que dice si el autoajuste está activo, en espera (confianza insuficiente) o desactivado.
+`recalibrateForecastLearning()`/`pv5DiaryReason()` ahora también registran el cruce exacto de
+confianza (entra o sale de "alta"), para que el diario de PV5 anuncie el momento en que el autoajuste
+empieza o deja de aplicarse — la trazabilidad que PV5 se construyó para dar.
+
+**Validación**: `npm run verify`, exit 0 — **2574/2574 pruebas** (2560 + 14 nuevas en
+`tests/pv1-autoajuste-confianza.test.cjs`: 6 del motor puro `applyLearnedBias`, 8 de
+integración/cableado en `computeCanonicalScenario`, `modelComputationSignature`,
+`saveScenarioSettings`, el interruptor de Ajustes, el diario de PV5 y el Laboratorio de escenarios),
+accesibilidad (979 IDs, +2), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js`/`canonical-forecast.js` bumpeados a `?v=20260902pv1a1` (26 pruebas de cadena de versión
+actualizadas). El entorno de esta sesión no tenía `node_modules` instalado (bloqueaba `build:site`
+por `esbuild` ausente); se resolvió con `npm install`, sin tocar el código.
+
+**Publicado**: pendiente de commit y push a `claude/artifact-update-execution-plan-lxzp4w`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (103): Bloque 7 — DI4, impacto de avales en la capacidad de endeudamiento
 
