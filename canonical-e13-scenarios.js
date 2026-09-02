@@ -7,7 +7,12 @@
 
   const SCHEMA_ID = "finance-e13-scenario-lab/v1";
   const SAVED_SCHEMA_ID = "finance-e13-saved-scenario/v1";
-  const EVENT_TYPES = Object.freeze(["income-loss", "expense", "car", "move", "debt"]);
+  // A14-5: dos eventos que no tocan la caja (a diferencia de los cinco de arriba) sino el valor de
+  // los activos declarados (A14-1) — "amount" pasa a ser un porcentaje (0-100), no un importe en
+  // euros. Reutilizan este mismo motor, sin motor nuevo: cada uno tiene un tipo de activo objetivo y
+  // un signo fijo (una caída de mercado siempre resta, una revalorización siempre suma).
+  const EVENT_TYPES = Object.freeze(["income-loss", "expense", "car", "move", "debt", "market-crash", "property-revaluation"]);
+  const ASSET_SHOCK_TARGET_TYPE = Object.freeze({ "market-crash": "inversion", "property-revaluation": "inmueble" });
   const PROFILES = Object.freeze([
     { id: "base", label: "Base", incomeFactor: 1, expenseFactor: 1 },
     { id: "favorable", label: "Favorable", incomeFactor: 1.03, expenseFactor: 0.97 },
@@ -50,9 +55,38 @@
   }
 
   function eventImpact(event, monthIndex, startIndex) {
+    // A14-5: una caída de mercado o una revalorización del inmueble no son un gasto ni un ingreso —
+    // no deben sumar ni restar de la caja proyectada, solo del patrimonio (assetImpact() más abajo).
+    if (ASSET_SHOCK_TARGET_TYPE[event.type]) return { income: 0, outflow: 0, debt: 0 };
     if (startIndex < 0 || monthIndex < startIndex || monthIndex >= startIndex + event.duration) return { income: 0, outflow: 0, debt: 0 };
     if (event.type === "income-loss") return { income: -event.amount, outflow: 0, debt: 0 };
     return { income: 0, outflow: event.amount, debt: event.type === "debt" ? event.amount : 0 };
+  }
+
+  // A14-5: impacto de los eventos de patrimonio (caída de mercado / revalorización del inmueble)
+  // sobre los activos declarados (A14-1) — independiente del perfil (Base/Favorable/Tensión), porque
+  // esos factores solo afectan a ingresos y gastos, no al valor de un activo. Varios eventos sobre el
+  // mismo tipo de activo se componen (encadenan), no se suman: dos caídas del 20% dejan un 64% del
+  // valor original, no un 60%. Sin activos declarados o sin ningún evento de este tipo, no hay
+  // patrimonio que simular — null, nunca un 0 inventado.
+  function assetImpact(assets = [], events = []) {
+    const shocks = events.filter((event) => ASSET_SHOCK_TARGET_TYPE[event.type]);
+    if (!assets.length || !shocks.length) return null;
+    const netWorthBefore = round(assets.reduce((sum, asset) => sum + number(asset.value), 0));
+    const adjusted = assets.map((asset) => {
+      const factor = shocks
+        .filter((event) => ASSET_SHOCK_TARGET_TYPE[event.type] === asset.type)
+        .reduce((acc, event) => acc * (1 + (event.type === "market-crash" ? -1 : 1) * (event.amount / 100)), 1);
+      return factor === 1 ? asset : { ...asset, value: round(Math.max(0, number(asset.value) * factor)) };
+    });
+    const netWorthAfter = round(adjusted.reduce((sum, asset) => sum + number(asset.value), 0));
+    return {
+      schemaId: `${SCHEMA_ID}/asset-impact-v1`,
+      netWorthBefore,
+      netWorthAfter,
+      delta: round(netWorthAfter - netWorthBefore),
+      shocks: shocks.map((event) => ({ id: event.id, type: event.type, label: event.label, pct: event.amount, targetType: ASSET_SHOCK_TARGET_TYPE[event.type] })),
+    };
   }
 
   function recoveryMonth(rows) {
@@ -129,6 +163,9 @@
       writesPlan: false,
       events: normalizedEvents,
       scenarios: PROFILES.map((profile) => simulate(forecast, profile, normalizedEvents)),
+      // A14-5: sin `metadata.assets` (llamadas de antes de A14-5, o un hogar sin activos
+      // registrados), assetImpact queda exactamente igual que sin esta tarea — null.
+      assetImpact: assetImpact(Array.isArray(metadata.assets) ? metadata.assets : [], normalizedEvents),
     };
   }
 
@@ -188,5 +225,5 @@
       overwroteOriginal: false };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, buildLab, normalizeEvent, simulate, prudentSimulation, correlateRisks, sensitivity, saveScenario, recalculateSavedScenario };
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, saveScenario, recalculateSavedScenario };
 });

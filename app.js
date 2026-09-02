@@ -17232,7 +17232,38 @@ function e13EventLabel(type) {
     car: "Coche",
     move: "Mudanza",
     debt: "Pago de deuda",
+    "market-crash": "Caída de mercado",
+    "property-revaluation": "Revalorización del inmueble",
   }[type] || "Evento";
+}
+
+// A14-5: a diferencia de los cinco eventos de arriba (importe en euros), estos dos representan un
+// porcentaje sobre el valor de los activos afectados — mostrarlos con money() sería inventar una
+// cifra en euros que el evento no declara.
+const E13_ASSET_SHOCK_TYPES = ["market-crash", "property-revaluation"];
+function e13EventAmountLabel(event) {
+  return E13_ASSET_SHOCK_TYPES.includes(event.type) ? `${event.amount}%` : money(event.amount, true);
+}
+
+// A14-5: activos declarados (A14-1), ya normalizados, para que el laboratorio de escenarios (E13)
+// pueda simular una caída de mercado o una revalorización del inmueble sobre patrimonio real — sin
+// activos registrados, la lista queda vacía y assetImpact() del motor devuelve null (nunca un 0
+// inventado).
+function e13AssetsForLab() {
+  const engine = window.FinanceCanonicalAssets;
+  if (!engine) return [];
+  return engine.normalizeAssets(assetsList()).assets;
+}
+
+// A14-5: tarjeta de patrimonio simulado — antes/después de aplicar las caídas de mercado o
+// revalorizaciones añadidas a la simulación. Sin activos declarados o sin ningún evento de este
+// tipo, no hay nada que comparar (assetImpact === null): se dice así, nunca un 0 inventado.
+function e13AssetImpactHtml(assetImpact) {
+  if (!assetImpact) {
+    return `<p class="e19-kpi-note">${assetsList().length ? "Añade un evento de caída de mercado o revalorización del inmueble para ver su efecto en el patrimonio declarado." : "Registra activos en Patrimonio (Ajustes) para ver el efecto de estos eventos en tu patrimonio."}</p>`;
+  }
+  const shockList = assetImpact.shocks.map((shock) => `<li>${escapeHtml(shock.label)}: ${shock.pct}% sobre «${escapeHtml(A14_ASSET_TYPE_LABELS[shock.targetType] || shock.targetType)}»</li>`).join("");
+  return `<p>Patrimonio antes: ${money(assetImpact.netWorthBefore, true)}. Después: <strong class="${assetImpact.delta < 0 ? "negative" : assetImpact.delta > 0 ? "positive" : ""}">${money(assetImpact.netWorthAfter, true)}</strong> (${assetImpact.delta >= 0 ? "+" : ""}${money(assetImpact.delta, true)}).</p><ul class="e19-kpi-note">${shockList}</ul>`;
 }
 
 // FCST-2 (FASE 7): categorías disponibles para etiquetar un evento de Escenarios (E13) con una
@@ -17323,9 +17354,9 @@ function renderE13ScenarioLab() {
     categorySelect.innerHTML = `<option value="">Sin categoría (solo caja)</option>${categoryOptions}`;
     if (e13BudgetCategoryOptions().includes(previousCategory)) categorySelect.value = previousCategory;
   }
-  const lab = E13.buildLab(forecast, e13ScenarioEvents, { generatedAt: forecast.generatedAt });
+  const lab = E13.buildLab(forecast, e13ScenarioEvents, { generatedAt: forecast.generatedAt, assets: e13AssetsForLab() });
   qs("e13EventList").innerHTML = lab.events.length
-    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${money(event.amount, true)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
+    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${e13EventAmountLabel(event)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
     : '<span class="e13-empty-events">Sin eventos añadidos. Los tres escenarios muestran solo sus supuestos base.</span>';
   comparison.innerHTML = `<div class="e13-comparison-head" role="row">
       <span>Escenario</span><span>Caja mínima</span><span>Meses negativos</span><span>Ahorro final</span><span>Deuda simulada</span><span>Recuperación</span>
@@ -17353,6 +17384,7 @@ function renderE13ScenarioLab() {
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>
+    <article class="e6-quality-card"><header><strong>Patrimonio simulado (A14-5)</strong><span class="status-pill ${lab.assetImpact ? (lab.assetImpact.delta < 0 ? "warn" : "good") : ""}">${lab.assetImpact ? money(lab.assetImpact.delta, true) : "Sin eventos de patrimonio"}</span></header>${e13AssetImpactHtml(lab.assetImpact)}</article>
   </div>`;
   let localSaved = [];
   try { localSaved = JSON.parse(storageGet(storageKey("e13SavedScenarios"), "[]")); } catch { localSaved = []; }
@@ -17368,7 +17400,7 @@ function saveE13ReproducibleScenario() {
   const forecast = canonicalScenarioResults.base?.forecast;
   const E13 = window.FinanceCanonicalE13;
   if (!forecast || !E13) return;
-  const saved = E13.saveScenario(forecast, e13ScenarioEvents, { name: `Escenario ${new Date().toLocaleString("es-ES")}` });
+  const saved = E13.saveScenario(forecast, e13ScenarioEvents, { name: `Escenario ${new Date().toLocaleString("es-ES")}`, assets: e13AssetsForLab() });
   scenarioSettings.e13SavedScenarios = [...(Array.isArray(scenarioSettings.e13SavedScenarios) ? scenarioSettings.e13SavedScenarios : []), saved].slice(-20);
   storageSet(storageKey("e13SavedScenarios"), JSON.stringify(scenarioSettings.e13SavedScenarios));
   saveScenarioSettings();
@@ -17382,7 +17414,7 @@ function rerunE13SavedScenario(id) {
   try { localSaved = JSON.parse(storageGet(storageKey("e13SavedScenarios"), "[]")); } catch { localSaved = []; }
   const saved = (scenarioSettings.e13SavedScenarios || localSaved).find((item) => item.id === id);
   if (!forecast || !saved) return;
-  const rerun = window.FinanceCanonicalE13.recalculateSavedScenario(saved, forecast);
+  const rerun = window.FinanceCanonicalE13.recalculateSavedScenario(saved, forecast, { assets: e13AssetsForLab() });
   e13ScenarioEvents = rerun.recalculated.events;
   renderE13ScenarioLab();
   qs("e13ScenarioStatus").textContent = `Copia recalculada contra la huella ${rerun.currentForecastFingerprint}; el original permanece intacto.`;
