@@ -50,7 +50,8 @@ general estatal y la autonómica de Madrid (con su fuente real, verificada por t
 estimador calcule nada. Esta sesión no pudo verificar esos tramos por sí misma (acceso bloqueado a
 las fuentes fiscales) y decidió no fabricarlos.
 
-**Publicado**: pendiente de commit y push a `claude/a15-2-estimador-irpf`.
+**Publicado**: fusionado en `main` mediante `12baa88` — PR #197, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (112): Bloque 8 — A19-1, enlace de solo lectura, redactado y caducable. **Cierra el Bloque 8.**
 
