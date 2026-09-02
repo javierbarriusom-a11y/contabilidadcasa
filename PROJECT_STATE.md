@@ -50,7 +50,8 @@ rendimiento, build del sitio, privacidad y smoke test, todos en verde.
 `app.js`/`canonical-leverage-simulator.js` bumpeados a `?v=20260902ap3a1` (26 pruebas de cadena de
 versión actualizadas en masa).
 
-**Publicado**: pendiente de commit y push a la rama de trabajo en curso.
+**Publicado**: fusionado en `main` mediante `e65df92` — PR #201, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (114): fix — A19-1, `get_finance_share_link` no encontraba `digest()` tras aplicar la migración
 
