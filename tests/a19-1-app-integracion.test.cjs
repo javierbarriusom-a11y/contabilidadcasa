@@ -90,3 +90,11 @@ test("la migración SQL de A19-1 nunca concede privilegios directos a anon sobre
 test("la migración SQL solo permite update a un enlace propio, y solo para revocarlo (nunca reactivar ni reescribir)", () => {
   assert.match(migrationSource, /with check \(\(select auth\.uid\(\)\) = owner_user_id and revoked_at is not null\)/);
 });
+
+// Fallo real detectado tras aplicar la migración a un proyecto Supabase real: pgcrypto suele venir
+// preinstalada en el esquema "extensions" (para uso interno de Supabase), no en "public" — así que
+// digest() no se encuentra si el search_path de la función solo incluye "public", y get_finance_
+// share_link falla en tiempo de ejecución para todo el mundo, aunque el token sea válido.
+test("get_finance_share_link incluye \"extensions\" en su search_path, para que digest() se resuelva aunque pgcrypto esté fuera de \"public\"", () => {
+  assert.match(migrationSource, /set search_path = public, extensions/);
+});

@@ -2,6 +2,48 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (114): fix — A19-1, `get_finance_share_link` no encontraba `digest()` tras aplicar la migración
+
+Al aplicar `migrations/20260902_a19_1_share_links.sql` contra el proyecto Supabase real (acción
+manual pendiente desde la sesión 112), el usuario verificó los tres controles de seguridad (sin
+privilegios directos de `anon` sobre la tabla, `EXECUTE` concedido sobre la función, RLS activado —
+los tres correctos) pero al probar el enlace de extremo a extremo, la primera apertura ya mostraba
+"enlace no válido", antes de revocar nada.
+
+**Causa**: `get_finance_share_link` llama a `digest(p_token, 'sha256')` (de la extensión
+`pgcrypto`) con `set search_path = public`. En Supabase, `pgcrypto` suele venir preinstalada de
+fábrica en el esquema `extensions` (uso interno del propio Supabase) — el `create extension if not
+exists pgcrypto` de la migración no la reubica si ya existía. Sin `extensions` en el `search_path`
+de la función, `digest()` no se encuentra y la llamada falla en tiempo de ejecución para cualquier
+token, válido o no — `share.html` trata cualquier error de la misma forma que un token inválido, sin
+distinguir el motivo (diseño deliberado, para no dar pistas a quien intente adivinar tokens ajenos),
+así que el síntoma en pantalla era indistinguible de un enlace caducado. Confirmado en el proyecto
+real del usuario: `select extnamespace::regnamespace from pg_extension where extname='pgcrypto'`
+devolvió `extensions`. Este es el primer uso de `digest()` en SQL en todo el repositorio — el
+patrón previo de `finance_household_invitations.token_hash` calcula el hash en JS (Web Crypto), no
+en Postgres, así que este caso no tenía precedente verificado contra el esquema real de extensiones
+de un proyecto Supabase.
+
+**Corregido**: `set search_path = public, extensions` en `get_finance_share_link`
+(`migrations/20260902_a19_1_share_links.sql`), con comentario explicando el porqué. El usuario
+aplicó el `create or replace function` corregido directamente en su proyecto Supabase real y
+confirmó que el enlace funciona correctamente de extremo a extremo (apertura válida antes de
+revocar, mensaje genérico después de revocar). Nuevo test de regresión en
+`tests/a19-1-app-integracion.test.cjs` que exige `search_path = public, extensions` en el archivo
+de migración, para que este fallo no pueda reaparecer en silencio.
+
+**Validación**: `npm test`, exit 0 — **2733/2733 pruebas** (2732 + 1 nueva). No afecta a
+`app.js` ni a ningún fichero versionado del sitio público — cambio exclusivo de
+`migrations/20260902_a19_1_share_links.sql` (SQL, no se sirve como recurso estático) y de un test;
+no requiere `npm run verify` completo (accesibilidad/rendimiento/build/privacidad/smoke test no
+tienen nada que verificar en un archivo `.sql` fuera del sitio publicado).
+
+**Publicado**: pendiente de commit y push a la rama de trabajo en curso.
+
+**Nota de la sesión**: el propio usuario confirmó en producción, contra su proyecto Supabase real,
+que el enlace funciona correctamente de extremo a extremo tras el arreglo — vista de forecast a 6
+meses visible antes de revocar, y bloqueada (mensaje genérico) después de revocar.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (113): Bloque 9 — A15-2, estimador de resultado de IRPF
 
 Primera tarea del Bloque 9. Depende de A15-1 (ya construida). Se investigaron también las otras
