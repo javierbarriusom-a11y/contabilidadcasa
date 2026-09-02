@@ -2423,6 +2423,54 @@
               <div class="e19-kpi-note" id="irpfEstimatorNote"></div>
             </article>
 
+            <!-- AP3: simulador de apalancamiento (pedir deuda nueva para invertir) — explorar, no
+                 ejecutar. Depende de AP4 (canonical-leverage-barrier.js): sin sus condiciones
+                 mínimas verificadas (colchón por encima del suelo, deuda actual sin incidencias
+                 críticas, cuota actual contenida), no hay simulación que mostrar. Los tres
+                 escenarios de rentabilidad esperada los declara el hogar — el motor no inventa
+                 ninguna cifra de mercado. La lectura favorable/desfavorable es una sugerencia que
+                 se explica con números, nunca una orden: nada se ejecuta ni se persiste como
+                 decisión, solo como exploración guardada. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de apalancamiento (explorar, no ejecutar)</h3>
+              <p class="e19-kpi-note">Antes de pedir deuda nueva para invertir: comprueba primero el guardarraíl de seguridad y, si lo superas, explora el coste de esa deuda frente a tres escenarios de rentabilidad esperada que tú declares. Ninguna cifra de mercado se inventa aquí, y ningún resultado es una recomendación de actuar — solo una lectura que puedes aceptar o descartar.</p>
+              <div class="e19-kpi-note" id="ap3BarrierStatus"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Deuda nueva a simular (€)</span>
+                  <input id="ap3DebtAmount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo de la deuda nueva (% anual)</span>
+                  <input id="ap3DebtRate" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Rentabilidad esperada, pesimista (% anual)</span>
+                  <input id="ap3ReturnPessimistic" type="number" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Rentabilidad esperada, base (% anual)</span>
+                  <input id="ap3ReturnBase" type="number" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Rentabilidad esperada, optimista (% anual)</span>
+                  <input id="ap3ReturnOptimistic" type="number" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ap3SimulateRun">Simular</button>
+              <div class="e19-kpi-note" id="ap3SimulatorNote"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre del escenario a guardar</span>
+                  <input id="ap3ScenarioName" type="text" placeholder="Ej. Hipoteca para invertir en fondo indexado" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ap3ScenarioSave">Guardar escenario explorado</button>
+              <ul class="commit-barrier-list" id="ap3ScenarioList"></ul>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
               <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
@@ -5000,6 +5048,7 @@
     <script defer src="executive-read-model.js?v=20260801e6a"></script>
     <script defer src="canonical-debt-comparator.js?v=20260715a"></script>
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
+    <script defer src="canonical-leverage-simulator.js?v=20260902ap3a1"></script>
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
     <script defer src="canonical-home-insurance.js?v=20260831sp3a1"></script>
@@ -5045,7 +5094,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902a152a1"></script>
+    <script defer src="app.js?v=20260902ap3a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

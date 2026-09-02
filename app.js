@@ -15404,6 +15404,124 @@ function handleAjustesEstimateIrpf() {
   note.innerHTML = `<p class="${result.calculable && result.direction === "payment" ? "negative" : result.calculable && result.direction === "refund" ? "positive" : ""}">${escapeHtml(irpfResultLabel(result))}</p>`;
 }
 
+// AP3 · simulador de apalancamiento (pedir deuda nueva para invertir) — explorar, no ejecutar.
+// Depende de AP4 (canonical-leverage-barrier.js), a propósito: sin sus condiciones mínimas
+// verificadas no hay simulación que mostrar, así que el propio guardarraíl se recalcula y se
+// muestra antes de intentar nada. Mismas fuentes de datos que ya usan otras pantallas — nada nuevo
+// que declarar aparte: colchón (accountBalancesFromState/cushionFloor, igual que SP4/SP5), ingreso
+// mensual y cuota de deuda actual (igual que window.FinanceP2Bridge.e16Input). Sin ningún registro
+// propio de incidencias de deuda todavía, debtQualityIssues va vacío — no hay ninguna señal real
+// que fabricar ahí.
+function ap3LeverageBarrierInput() {
+  const monthlyDebtService = p2DebtRows().reduce((sum, debt) => sum + Math.max(0, Number(debt.currentPayment || 0)), 0);
+  const monthlyIncome = Math.max(0, Number(state?.baseHouseholdIncome || baseData?.assumptions?.monthlyIncome || 0));
+  return {
+    cushion: {
+      value: accountBalancesFromState().total,
+      floor: FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+    },
+    debtQualityIssues: [],
+    monthlyIncome,
+    monthlyDebtService,
+  };
+}
+
+function renderAp3BarrierStatus() {
+  const box = qs("ap3BarrierStatus");
+  const engine = window.FinanceCanonicalLeverageBarrier;
+  if (!engine) return null;
+  const result = engine.evaluateLeverageBarrier(ap3LeverageBarrierInput());
+  if (box) {
+    box.innerHTML = result.valid
+      ? `<p>Guardarraíl superado: colchón, deuda actual e ingreso verificados. Puedes explorar la simulación de abajo.</p>`
+      : `<p>Guardarraíl no superado — antes de explorar deuda nueva, resuelve:</p><ul class="commit-barrier-list">${result.blockers.map((item) => `<li><strong>${escapeHtml(item.title)}</strong>: ${escapeHtml(item.detail)}</li>`).join("")}</ul>`;
+  }
+  return result;
+}
+
+let ap3LastResult = null;
+
+// La lectura favorable/desfavorable de cada escenario es una sugerencia apoyada en los números de
+// al lado, nunca una orden — se dice así de forma explícita para que quede claro que se puede
+// aceptar o descartar.
+function ap3ResultHtml(result) {
+  if (!result.calculable) {
+    if (result.reason === "barrier-blocked") return "Guardarraíl no superado — resuelve los bloqueos de arriba antes de simular.";
+    if (result.reason === "missing-debt-amount") return "Indica el importe de deuda nueva a simular (mayor que 0).";
+    return "Faltan datos para calcular.";
+  }
+  const assessmentLabel = { favorable: "lectura favorable", desfavorable: "lectura desfavorable", neutral: "lectura neutra" };
+  const rows = ["pessimistic", "base", "optimistic"].map((key) => {
+    const scenario = result.scenarios[key];
+    return `<li><strong>${escapeHtml(scenario.label)} (${scenario.ratePercent}%)</strong>: rendimiento esperado ${money(scenario.expectedAnnualReturn, true)}/año, coste de la deuda ${money(result.annualDebtCost, true)}/año → resultado neto ${money(scenario.netAnnualResult, true)}/año (${assessmentLabel[scenario.assessment]}, no una orden — revisa los números antes de aceptarla).</li>`;
+  }).join("");
+  return `<p>Deuda nueva: ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% anual → coste de la deuda ${money(result.annualDebtCost, true)}/año.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+}
+
+function handleAp3Simulate() {
+  const note = qs("ap3SimulatorNote");
+  if (!note) return;
+  const barrierResult = renderAp3BarrierStatus();
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  if (!engine || !barrierResult) return;
+  const result = engine.simulateLeverage({
+    barrierResult,
+    newDebtAmount: parseAmount(qs("ap3DebtAmount")?.value),
+    newDebtAnnualRatePercent: parseAmount(qs("ap3DebtRate")?.value),
+    expectedReturnScenarios: {
+      pessimisticPercent: parseAmount(qs("ap3ReturnPessimistic")?.value),
+      basePercent: parseAmount(qs("ap3ReturnBase")?.value),
+      optimisticPercent: parseAmount(qs("ap3ReturnOptimistic")?.value),
+    },
+  });
+  ap3LastResult = result.calculable ? result : null;
+  note.innerHTML = ap3ResultHtml(result);
+}
+
+function ap3LeverageScenarios() {
+  scenarioSettings.ap3LeverageScenarios = Array.isArray(scenarioSettings.ap3LeverageScenarios) ? scenarioSettings.ap3LeverageScenarios : [];
+  return scenarioSettings.ap3LeverageScenarios;
+}
+
+function ap3ScenarioLabel(row) {
+  const result = row.result;
+  const assessmentLabel = { favorable: "favorable", desfavorable: "desfavorable", neutral: "neutra" };
+  return `Deuda ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% · escenario base: lectura ${assessmentLabel[result.scenarios.base.assessment]}`;
+}
+
+function renderAp3ScenarioList() {
+  const list = qs("ap3ScenarioList");
+  if (!list) return;
+  const rows = ap3LeverageScenarios();
+  list.innerHTML = rows.length
+    ? rows.map((row) => `<li class="commit-barrier-item"><strong>${escapeHtml(row.name)}</strong><span>${escapeHtml(ap3ScenarioLabel(row))} · ${escapeHtml(String(row.createdAt).slice(0, 10))}</span><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-remove="${escapeHtml(row.id)}">Eliminar</button></li>`).join("")
+    : `<li class="e19-kpi-note">Sin escenarios explorados guardados todavía.</li>`;
+}
+
+// Guarda una exploración ya calculada — nunca una decisión tomada ni una posición real de deuda o
+// inversión, mismo espíritu que canonical-e13-scenarios.js (saveScenario).
+function saveAp3Scenario() {
+  if (!ap3LastResult) {
+    announceStatus("Simula primero un escenario calculable antes de guardarlo.");
+    return;
+  }
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  if (!engine) return;
+  const name = qs("ap3ScenarioName")?.value || "";
+  const saved = engine.saveScenario(ap3LastResult, { name });
+  scenarioSettings.ap3LeverageScenarios = [...ap3LeverageScenarios(), saved];
+  saveScenarioSettings();
+  if (qs("ap3ScenarioName")) qs("ap3ScenarioName").value = "";
+  renderAp3ScenarioList();
+  announceStatus("Escenario de apalancamiento guardado.");
+}
+
+function removeAp3Scenario(id) {
+  scenarioSettings.ap3LeverageScenarios = ap3LeverageScenarios().filter((row) => row.id !== id);
+  saveScenarioSettings();
+  renderAp3ScenarioList();
+}
+
 // A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin
 // persistir nada: lee los campos, muestra el resultado. No trae ningún precio de mercado real — el
 // hogar declara su consumo y ambos precios.
@@ -24290,6 +24408,8 @@ function renderAjustes() {
   renderInsurancePolicies();
   renderTaxTables();
   renderIrpfBracketScales();
+  renderAp3BarrierStatus();
+  renderAp3ScenarioList();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -34316,6 +34436,13 @@ async function init() {
     renderIrpfBracketScales();
   });
   qs("irpfEstimateRun")?.addEventListener("click", handleAjustesEstimateIrpf);
+  qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
+  qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
+  qs("ap3ScenarioList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-ap3-scenario-remove]");
+    if (!removeButton) return;
+    removeAp3Scenario(removeButton.dataset.ap3ScenarioRemove);
+  });
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
