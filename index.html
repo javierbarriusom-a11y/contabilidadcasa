@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0b1f33" />
     <title>Dashboard financiero personal</title>
     <link rel="manifest" href="manifest.webmanifest?v=20260830a1" />
-    <link rel="stylesheet" href="styles.css?v=20260829pv2a1" />
+    <link rel="stylesheet" href="styles.css?v=20260902opt8a1" />
     <link rel="stylesheet" href="p2.css?v=20260801e9c" />
     <link rel="stylesheet" href="design-tokens.css?v=20260829opt4a1" />
   </head>
@@ -263,54 +263,45 @@
                  rápidos en una rejilla 2×2, mobile-first (colapsa a una columna en 860px). -->
             <div class="home-kpi-grid home-glance-grid" id="homeBudgetGlance" data-meeting-step="1"></div>
 
-            <!-- A16-1: puntuación compuesta de salud financiera (colchón, ratio deuda/ingresos,
-                 cumplimiento de presupuesto, progreso de objetivos, frescura de datos), cada
-                 componente con su peso. Complementa el badge "Salud financiera: X/100" de la
-                 cabecera (Ola 3 #3) — oculta hasta tener al menos un componente calculable. -->
-            <article class="home-panel" id="homeHealthScoreCard" hidden data-meeting-step="1">
-              <div class="module-heading">
-                <div>
-                  <p class="panel-kicker">Salud financiera compuesta</p>
-                  <h3><span id="homeHealthScoreValue">—</span>/100</h3>
-                </div>
+            <!-- OPT-8: jerarquía visual real — máximo 4 bloques en la zona principal, sin scroll en
+                 desktop: cobertura + «el mes en una línea» (misma fila), decisiones abiertas, KPIs
+                 principales. El resto (salud financiera, próximos hitos, banda de 12 meses, modo
+                 familiar, alertas) pasa a la sección de detalle de abajo — con el mismo scroll de
+                 siempre de la página, no un scroll anidado nuevo. -->
+            <div class="home-primary-section">
+              <!-- Hoy.pdf «Hoy, alineada»: la cifra manda — el bloque de cobertura conserva su tarjeta
+                   propia, en paralelo con «Agosto en una línea» (misma fila, mismo peso visual). -->
+              <div class="home-layout" data-meeting-step="2">
+                <!-- H-3: tarjeta oscura con la cifra, unidad, insignia de confianza, margen previsto y fecha de ingreso. -->
+                <article class="home-panel e6-coverage-card" id="e6CoveragePanel">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Hasta el siguiente ingreso</p>
+                      <h3><span id="e6CoverageDays">—</span> <span class="e6-coverage-unit">día(s)</span></h3>
+                    </div>
+                    <span class="status-pill" id="e6CoverageStatus">Calculando</span>
+                  </div>
+                  <div class="e6-coverage-summary" id="e6CoverageSummary"></div>
+                </article>
+
+                <!-- H-6: Ingresos/Gasto previsto/Gasto real a hoy/Desviación + dos filas de señal + nota de confianza. -->
+                <article class="home-panel home-month-glance" id="homeMonthGlance">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Este mes</p>
+                      <h3 id="homeMonthGlanceTitle">El mes en una línea</h3>
+                    </div>
+                    <span class="e19-kpi-meta">Ejecución del mes en curso</span>
+                  </div>
+                  <div class="home-month-glance-rows" id="homeMonthGlanceRows"></div>
+                  <p class="home-month-glance-confidence" id="homeMonthGlanceConfidence"></p>
+                </article>
               </div>
-              <ul class="home-health-score-list" id="homeHealthScoreBreakdown"></ul>
-              <p class="e19-kpi-note" id="homeHealthScoreTrendNote"></p>
-            </article>
 
-            <!-- Hoy.pdf «Hoy, alineada»: la cifra manda — el bloque de cobertura conserva su tarjeta
-                 propia, en paralelo con «Agosto en una línea» (misma fila, mismo peso visual). -->
-            <div class="home-layout" data-meeting-step="2">
-              <!-- H-3: tarjeta oscura con la cifra, unidad, insignia de confianza, margen previsto y fecha de ingreso. -->
-              <article class="home-panel e6-coverage-card" id="e6CoveragePanel">
-                <div class="module-heading">
-                  <div>
-                    <p class="panel-kicker">Hasta el siguiente ingreso</p>
-                    <h3><span id="e6CoverageDays">—</span> <span class="e6-coverage-unit">día(s)</span></h3>
-                  </div>
-                  <span class="status-pill" id="e6CoverageStatus">Calculando</span>
-                </div>
-                <div class="e6-coverage-summary" id="e6CoverageSummary"></div>
-              </article>
-
-              <!-- H-6: Ingresos/Gasto previsto/Gasto real a hoy/Desviación + dos filas de señal + nota de confianza. -->
-              <article class="home-panel home-month-glance" id="homeMonthGlance">
-                <div class="module-heading">
-                  <div>
-                    <p class="panel-kicker">Este mes</p>
-                    <h3 id="homeMonthGlanceTitle">El mes en una línea</h3>
-                  </div>
-                  <span class="e19-kpi-meta">Ejecución del mes en curso</span>
-                </div>
-                <div class="home-month-glance-rows" id="homeMonthGlanceRows"></div>
-                <p class="home-month-glance-confidence" id="homeMonthGlanceConfidence"></p>
-              </article>
-            </div>
-
-            <!-- Hoy.pdf: «primero qué hacer, después de dónde sale» — decisiones abiertas (con la
-                 lectura de hoy como primera línea) en paralelo con los próximos hitos. -->
-            <div class="home-layout" data-meeting-step="3">
-              <article class="home-panel home-main-panel">
+              <!-- Hoy.pdf: «primero qué hacer, después de dónde sale» — decisiones abiertas es el
+                   bloque principal de esta zona; los próximos hitos, al ser contexto de apoyo, pasan
+                   a la sección de detalle (mismo paso de modo reunión, data-meeting-step="3"). -->
+              <article class="home-panel home-main-panel" data-meeting-step="3">
                 <div class="module-heading">
                   <div>
                     <p class="panel-kicker">Centro único</p>
@@ -322,7 +313,28 @@
                 <div class="home-action-grid" id="homeActions"></div>
               </article>
 
-              <article class="home-panel">
+              <div class="home-kpi-grid" id="homeKpis" data-meeting-step="1"></div>
+            </div>
+
+            <p class="e19-kpi-note home-secondary-label">Contexto y detalle adicional — sin esto, «Hoy» ya responde si el mes va bien.</p>
+
+            <div class="home-secondary-section">
+              <!-- A16-1: puntuación compuesta de salud financiera (colchón, ratio deuda/ingresos,
+                   cumplimiento de presupuesto, progreso de objetivos, frescura de datos), cada
+                   componente con su peso. Complementa el badge "Salud financiera: X/100" de la
+                   cabecera (Ola 3 #3) — oculta hasta tener al menos un componente calculable. -->
+              <article class="home-panel" id="homeHealthScoreCard" hidden data-meeting-step="1">
+                <div class="module-heading">
+                  <div>
+                    <p class="panel-kicker">Salud financiera compuesta</p>
+                    <h3><span id="homeHealthScoreValue">—</span>/100</h3>
+                  </div>
+                </div>
+                <ul class="home-health-score-list" id="homeHealthScoreBreakdown"></ul>
+                <p class="e19-kpi-note" id="homeHealthScoreTrendNote"></p>
+              </article>
+
+              <article class="home-panel" data-meeting-step="3">
                 <div class="module-heading">
                   <div>
                     <p class="panel-kicker">Contexto</p>
@@ -331,47 +343,45 @@
                 </div>
                 <div class="home-priority-list" id="homePriorities"></div>
               </article>
-            </div>
 
-            <div class="home-kpi-grid" id="homeKpis" data-meeting-step="1"></div>
-
-            <!-- Hoy.pdf: «en Hoy no hay tira de estado» — la rejilla de seis ya cubre ese hueco;
-                 debajo, una sola fila con riesgo, modo familiar y alertas. -->
-            <div class="home-layout home-layout-triple home-context-layout" data-meeting-step="4">
-              <article class="home-panel">
-                <div class="module-heading">
-                  <div>
-                    <p class="panel-kicker">Riesgo</p>
-                    <h3>Meses a vigilar</h3>
+              <!-- Hoy.pdf: «en Hoy no hay tira de estado» — la rejilla de seis ya cubre ese hueco;
+                   debajo, una sola fila con riesgo, modo familiar y alertas. -->
+              <div class="home-layout home-layout-triple home-context-layout" data-meeting-step="4">
+                <article class="home-panel">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Riesgo</p>
+                      <h3>Meses a vigilar</h3>
+                    </div>
                   </div>
-                </div>
-                <!-- H-7: mini banda de doce meses, mismo color que el mapa de calor (V2-7). -->
-                <div class="cuadro-mandos-band" id="homeMonthBand" aria-label="Colchón de los próximos doce meses"></div>
-                <div class="table-wrap home-table-wrap">
-                  <table class="home-month-table" id="homeMonthTable"></table>
-                </div>
-              </article>
-
-              <article class="home-panel">
-                <div class="module-heading">
-                  <div>
-                    <p class="panel-kicker">Modo familiar</p>
-                    <h3 id="homeFamilyTitle">Lectura del hogar</h3>
+                  <!-- H-7: mini banda de doce meses, mismo color que el mapa de calor (V2-7). -->
+                  <div class="cuadro-mandos-band" id="homeMonthBand" aria-label="Colchón de los próximos doce meses"></div>
+                  <div class="table-wrap home-table-wrap">
+                    <table class="home-month-table" id="homeMonthTable"></table>
                   </div>
-                </div>
-                <div class="home-family-summary" id="homeFamilySummary"></div>
-              </article>
+                </article>
 
-              <article class="home-panel">
-                <div class="module-heading with-inline-action">
-                  <div>
-                    <p class="panel-kicker">Alertas configurables</p>
-                    <h3>Señales que requieren revisión</h3>
+                <article class="home-panel">
+                  <div class="module-heading">
+                    <div>
+                      <p class="panel-kicker">Modo familiar</p>
+                      <h3 id="homeFamilyTitle">Lectura del hogar</h3>
+                    </div>
                   </div>
-                  <button type="button" class="secondary-button compact-button" data-home-nav="alerts-center">Configurar</button>
-                </div>
-                <div class="home-alert-summary" id="homeAlertSummary"></div>
-              </article>
+                  <div class="home-family-summary" id="homeFamilySummary"></div>
+                </article>
+
+                <article class="home-panel">
+                  <div class="module-heading with-inline-action">
+                    <div>
+                      <p class="panel-kicker">Alertas configurables</p>
+                      <h3>Señales que requieren revisión</h3>
+                    </div>
+                    <button type="button" class="secondary-button compact-button" data-home-nav="alerts-center">Configurar</button>
+                  </div>
+                  <div class="home-alert-summary" id="homeAlertSummary"></div>
+                </article>
+              </div>
             </div>
           </section>
 

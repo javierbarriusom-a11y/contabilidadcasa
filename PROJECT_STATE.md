@@ -2,6 +2,35 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (111): Bloque 8 — OPT-8, jerarquía visual real en «Hoy»
+
+Octava y última tarea nueva del Bloque 8 antes de A19-1 (deliberadamente aparcada al final, por
+decisión explícita del usuario). OPT-8 depende de OPT-6 y OPT-7 (ambas ya construidas en bloques
+anteriores: sacar la configuración de «Hoy» y resumir «modo familiar»/«alertas» a una línea). Con
+spec completa en `BACKLOG_OPTIMIZACION.md`: "Hoy" tenía ~10 módulos (`.home-panel`/`.home-kpi-grid`)
+con el mismo peso visual — nada le decía al usuario por dónde empezar a mirar.
+
+**OPT-8**: `index.html` reagrupa los bloques de `#home` en dos secciones — `.home-primary-section`
+(máximo 4 bloques, sin scroll adicional en desktop: cobertura + «el mes en una línea» en la misma
+fila, decisiones abiertas, KPIs principales) y `.home-secondary-section` (salud financiera compuesta,
+próximos hitos, banda de 12 meses, modo familiar y alertas — contexto de apoyo, con el mismo scroll
+de página de siempre, ningún contenedor con `overflow` propio). Los atributos `data-meeting-step`
+del modo reunión (UX5) se conservan uno a uno en cada bloque movido — la selección
+`document.querySelectorAll("[data-meeting-step]")` no depende de la posición en el DOM, así que
+mover elementos entre secciones no afecta al modo reunión. `styles.css` da menos peso tipográfico a
+los títulos de la sección de detalle reutilizando los tokens E19 ya existentes (`--e19-text-md`,
+`--e19-muted`) — ninguno inventado. Ningún módulo se elimina, solo se reordena y pesa distinto.
+
+**Validación**: `npm run verify`, exit 0 — **2685/2685 pruebas** (2678 + 7 nuevas en
+`tests/opt8-jerarquia-visual-hoy.test.cjs` — contenido exacto de cada sección, los diez módulos
+siguen presentes, los cuatro pasos del modo reunión siguen representados, los tokens reutilizados,
+sin scroll anidado), más `tests/e17-interface.test.cjs` actualizada para la nueva cadena de versión
+de `styles.css`. Accesibilidad (1002 IDs, sin cambio — no se tocó ningún formulario), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde. Solo `styles.css` bumpeado a
+`?v=20260902opt8a1` (el HTML se reorganizó, pero `app.js` no cambió, así que su versión no se toca).
+
+**Publicado**: pendiente de commit y push a `claude/opt8-jerarquia-visual-hoy`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (110): Bloque 8 — A18-2, saldo continuo «quién debe a quién»
 
 Séptima tarea nueva del Bloque 8, encadenada tras A14-5. A18-2 depende de A18-1
