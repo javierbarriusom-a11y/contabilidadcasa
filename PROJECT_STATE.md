@@ -31,7 +31,7 @@ en `canonical-loan-guarantees.js`, 6 de integración/cableado de DI4, 4 de compo
 accesibilidad (977 IDs, +2), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
 `app.js` bumpeado a `?v=20260831h7` (26 pruebas de cadena de versión actualizadas).
 
-**Publicado**: pendiente de commit y push a `claude/siguiente-bloque-codigo-4r2x41`.
+**Publicado**: commit y push a `claude/siguiente-bloque-codigo-4r2x41`, PR #178, fusionado a `main`.
 
 ## Cierre de sesión — 31 de agosto de 2026 (102): Bloque 7 — A16-4, avisos de renovación con acción sugerida
 
