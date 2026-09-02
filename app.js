@@ -15291,6 +15291,119 @@ function addTaxTableFromControls() {
   renderTaxTables();
 }
 
+// A15-2 · estimador de resultado de IRPF — depende de A15-1 (registro de supuestos fiscales, ya
+// construido) y de que el hogar registre aquí las dos escalas reales (general estatal y
+// autonómica) con su fuente: este motor nunca trae tramos de fábrica (ver
+// canonical-irpf-estimator.js). Mismo patrón de registro simple que A15-5 (taxTables), un array por
+// escala en scenarioSettings.
+function irpfBracketScales() {
+  scenarioSettings.irpfBracketScales = Array.isArray(scenarioSettings.irpfBracketScales) ? scenarioSettings.irpfBracketScales : [];
+  return scenarioSettings.irpfBracketScales;
+}
+
+function saveIrpfBracketScale({ kind, region, year, brackets, sourceTitle, sourceUrl, checkedAt }) {
+  const engine = window.FinanceCanonicalIrpfEstimator;
+  if (!engine) return;
+  const scales = irpfBracketScales();
+  const parsedYear = Math.round(Number(year));
+  const next = [...scales, {
+    id: `irpf-escala-${Date.now()}`,
+    kind: kind === "regional" ? "regional" : "state",
+    region: kind === "regional" ? String(region || "").trim() : "",
+    year: Number.isFinite(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null,
+    brackets: engine.parseBracketScaleInput(brackets) || [],
+    source: {
+      title: String(sourceTitle || "").trim(),
+      authority: "Declarado por el hogar",
+      url: String(sourceUrl || "").trim(),
+      checkedAt: String(checkedAt || "").trim(),
+    },
+  }];
+  scenarioSettings.irpfBracketScales = next;
+  saveScenarioSettings();
+}
+
+function removeIrpfBracketScale(id) {
+  scenarioSettings.irpfBracketScales = irpfBracketScales().filter((scale) => scale.id !== id);
+  saveScenarioSettings();
+}
+
+const IRPF_SCALE_KIND_LABELS = { state: "Escala general estatal", regional: "Escala autonómica" };
+
+function irpfScaleLabel(scale) {
+  const engine = window.FinanceCanonicalIrpfEstimator;
+  const validation = engine ? engine.validateBracketScale(scale) : { valid: false, issues: ["motor-no-disponible"] };
+  const kindLabel = IRPF_SCALE_KIND_LABELS[scale.kind] || "Escala";
+  const regionLabel = scale.kind === "regional" && scale.region ? ` (${scale.region})` : "";
+  const yearLabel = scale.year ? ` · ${scale.year}` : "";
+  const statusLabel = validation.valid ? "lista para calcular" : `incompleta: ${validation.issues.join(", ")}`;
+  return `${kindLabel}${regionLabel}${yearLabel} · ${statusLabel}`;
+}
+
+function renderIrpfBracketScales() {
+  const list = qs("irpfBracketScaleList");
+  if (!list) return;
+  const scales = irpfBracketScales();
+  list.innerHTML = scales.length
+    ? scales.map((scale) => `<li class="commit-barrier-item"><span>${escapeHtml(irpfScaleLabel(scale))}</span><button type="button" class="e19-btn e19-btn-secondary" data-irpf-scale-remove="${escapeHtml(scale.id)}">Quitar</button></li>`).join("")
+    : `<li class="e19-kpi-note">Sin escalas registradas todavía.</li>`;
+}
+
+function saveIrpfBracketScaleFromControls() {
+  const kind = qs("irpfScaleKind")?.value || "state";
+  const region = qs("irpfScaleRegion")?.value || "";
+  const year = qs("irpfScaleYear")?.value || "";
+  const brackets = qs("irpfScaleBrackets")?.value || "";
+  const sourceTitle = qs("irpfScaleSourceTitle")?.value || "";
+  const sourceUrl = qs("irpfScaleSourceUrl")?.value || "";
+  const checkedAt = qs("irpfScaleCheckedAt")?.value || "";
+  if (!brackets.trim()) {
+    announceStatus("Indica los tramos antes de registrar la escala.");
+    return;
+  }
+  saveIrpfBracketScale({ kind, region, year, brackets, sourceTitle, sourceUrl, checkedAt });
+  ["irpfScaleYear", "irpfScaleBrackets", "irpfScaleSourceTitle", "irpfScaleSourceUrl", "irpfScaleCheckedAt"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderIrpfBracketScales();
+  announceStatus("Escala de IRPF registrada.");
+}
+
+// A15-2: el motor decide si hay bastante para calcular (dos escalas válidas, con fuente completa)
+// — la última escala registrada de cada tipo, nunca una elegida al azar entre varias del mismo año.
+function latestIrpfScale(kind) {
+  const scales = irpfBracketScales().filter((scale) => scale.kind === kind);
+  return scales.length ? scales[scales.length - 1] : null;
+}
+
+function irpfResultLabel(result) {
+  if (!result.calculable) {
+    return "Faltan tramos fiscales: registra la escala general estatal y la autonómica (con su fuente) antes de estimar.";
+  }
+  const range = result.resultRange;
+  const directionLabel = result.direction === "refund" ? "a devolver" : result.direction === "payment" ? "a pagar" : "sin diferencia";
+  return `Estimación ${directionLabel}: entre ${money(Math.abs(range.low), true)} y ${money(Math.abs(range.high), true)} (según la base imponible declarada). ${result.warning}`;
+}
+
+function handleAjustesEstimateIrpf() {
+  const note = qs("irpfEstimatorNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalIrpfEstimator;
+  if (!engine) return;
+  const baseLow = parseAmount(qs("irpfBaseLow")?.value);
+  const baseHigh = parseAmount(qs("irpfBaseHigh")?.value) || baseLow;
+  const withholdingsPaid = parseAmount(qs("irpfWithholdingsPaid")?.value);
+  const stateScale = latestIrpfScale("state");
+  const regionalScale = latestIrpfScale("regional");
+  const result = engine.estimateIrpfResult({
+    taxableBaseRange: { low: baseLow, high: baseHigh },
+    withholdingsPaid,
+    stateScale: stateScale || {},
+    regionalScale: regionalScale || {},
+  });
+  note.innerHTML = `<p class="${result.calculable && result.direction === "payment" ? "negative" : result.calculable && result.direction === "refund" ? "positive" : ""}">${escapeHtml(irpfResultLabel(result))}</p>`;
+}
+
 // A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin
 // persistir nada: lee los campos, muestra el resultado. No trae ningún precio de mercado real — el
 // hogar declara su consumo y ambos precios.
@@ -24176,6 +24289,7 @@ function renderAjustes() {
   renderMaintenanceFeeAccounts();
   renderInsurancePolicies();
   renderTaxTables();
+  renderIrpfBracketScales();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -34194,6 +34308,14 @@ async function init() {
     removeTaxTable(removeButton.dataset.taxTableRemove);
     renderTaxTables();
   });
+  qs("irpfScaleAdd")?.addEventListener("click", saveIrpfBracketScaleFromControls);
+  qs("irpfBracketScaleList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-irpf-scale-remove]");
+    if (!removeButton) return;
+    removeIrpfBracketScale(removeButton.dataset.irpfScaleRemove);
+    renderIrpfBracketScales();
+  });
+  qs("irpfEstimateRun")?.addEventListener("click", handleAjustesEstimateIrpf);
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);

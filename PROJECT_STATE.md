@@ -2,6 +2,56 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (113): Bloque 9 — A15-2, estimador de resultado de IRPF
+
+Primera tarea del Bloque 9. Depende de A15-1 (ya construida). Se investigaron también las otras
+dos tareas del bloque antes de empezar: **OPT-17** (carga diferida por vista) queda descartada por
+ahora — depende de OPT-16 (migración a ES modules), ya rechazada en la sesión 92 por riesgo
+(126 llamadas a `window.FinanceCanonicalX` en 35 globales distintos de `app.js`, más el convenio de
+sandboxing con `vm` que usan los tests) y sin novedad desde entonces; su objetivo real (menos JS en
+la carga inicial) ya está parcialmente cubierto por PERF-1. **AP3** queda para después de A15-2.
+
+**Corrección de alcance durante la sesión**: al intentar verificar los tramos reales del IRPF (para
+construir A15-2 con la Comunidad de Madrid, como pidió el usuario), el acceso a
+`sede.agenciatributaria.gob.es` y a las fuentes secundarias encontradas (Raisin, Anfix, TaxDown)
+resultó bloqueado por el proxy de salida del entorno — solo quedaba un resumen de búsqueda agregado
+que se contradecía a sí mismo entre "escala estatal" y "escala combinada". Fabricar una tabla de
+tramos sin poder verificarla habría violado el mismo criterio que ya advertía A15-5
+(`canonical-tax-tables.js`): "ninguna cifra fiscal se fabrica aquí". Se replanteó el enfoque al
+usuario y se confirmó: en vez de codificar tramos a ciegas, el motor se construye completo y
+genérico, y es el propio usuario quien registra las dos escalas reales (general estatal y
+autonómica de Madrid) con su fuente — el estimador nunca calcula nada sin ellas.
+
+**Construido**: `canonical-irpf-estimator.js` — `validateBracketScale()` exige tramos con límites
+estrictamente crecientes, el último abierto (sin límite superior), tipos entre 0 y 100, y una
+fuente completa (título, autoridad, URL `https://`, fecha `AAAA-MM-DD` — mismo criterio de
+completitud que A2-3); `progressiveTax()` aplica cada tramo solo a la porción de base que cae
+dentro de él (nunca el tipo marginal a toda la base); `estimateIrpfResult()` combina la escala
+estatal y la autonómica sobre un **rango** de base imponible declarado por el hogar (no una única
+cifra: la app no calcula la base liquidable real, así que el rango refleja honestamente la
+incertidumbre de esa entrada, no un margen inventado) y devuelve un rango de resultado (a devolver
+o a pagar), con cita de ambas fuentes y el mismo aviso profesional que A2-3. Sin las dos escalas
+válidas, `calculable` queda en `false` con el motivo exacto — nunca un resultado a medias.
+`app.js` añade un registro de escalas (`irpfBracketScales()`, mismo patrón que A15-5) con una
+entrada de texto plano para los tramos (`"límite:tipo, límite:tipo, ..."`, sin construir un editor
+de filas dinámicas) y una tarjeta de estimación que usa siempre la última escala registrada de cada
+tipo. Nuevas tarjetas en Ajustes: "Escalas de IRPF (estatal y autonómica)" y "Estimador de
+resultado de IRPF".
+
+**Validación**: `npm run verify`, exit 0 — **2732/2732 pruebas** (2712 + 20 nuevas: 13 en
+`tests/a15-2-estimador-irpf.test.cjs` — validación de tramos, cálculo progresivo, coherencia de
+dirección del resultado según la base, colapso del rango cuando mín=máx, no calculable sin las dos
+escalas — y 7 en `tests/a15-2-app-integracion.test.cjs`). Accesibilidad (1021 IDs, +14 por el nuevo
+formulario), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js`/`canonical-irpf-estimator.js` bumpeados a `?v=20260902a152a1`.
+
+**Nota para el usuario**: la tarjeta de escalas empieza vacía — hace falta registrar la escala
+general estatal y la autonómica de Madrid (con su fuente real, verificada por ti) antes de que el
+estimador calcule nada. Esta sesión no pudo verificar esos tramos por sí misma (acceso bloqueado a
+las fuentes fiscales) y decidió no fabricarlos.
+
+**Publicado**: pendiente de commit y push a `claude/a15-2-estimador-irpf`.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (112): Bloque 8 — A19-1, enlace de solo lectura, redactado y caducable. **Cierra el Bloque 8.**
 
 Novena y última tarea del Bloque 8, tras posponerse deliberadamente hasta el final por decisión

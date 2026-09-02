@@ -2355,6 +2355,74 @@
               <p class="e19-kpi-note" id="ajustesTaxTablesNote"></p>
             </article>
 
+            <!-- A15-2: estimador de resultado de IRPF, depende de A15-1. Este motor nunca trae
+                 tramos de fábrica (ni la escala general estatal ni ninguna autonómica) — cambian
+                 cada año y por comunidad autónoma. Sin las dos escalas registradas aquí, con su
+                 fuente, el estimador dice explícitamente que faltan datos, nunca inventa un
+                 resultado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Escalas de IRPF (estatal y autonómica)</h3>
+              <p class="e19-kpi-note">Registra la escala general estatal y la de tu comunidad autónoma, con su fuente — el estimador de abajo no calcula nada hasta que las dos estén registradas. Tramos como "límite:tipo, límite:tipo, ...", el último sin límite: por ejemplo <code>12450:9.5, 20200:12, :22.5</code>.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tipo de escala</span>
+                  <select id="irpfScaleKind">
+                    <option value="state">General estatal</option>
+                    <option value="regional">Autonómica</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Comunidad autónoma (solo si es autonómica)</span>
+                  <input id="irpfScaleRegion" type="text" placeholder="Madrid" />
+                </label>
+                <label class="month-picker">
+                  <span>Año</span>
+                  <input id="irpfScaleYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
+                </label>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tramos (límite:tipo, ...)</span>
+                  <input id="irpfScaleBrackets" type="text" placeholder="12450:9.5, 20200:12, :22.5" />
+                </label>
+                <label class="month-picker">
+                  <span>Fuente</span>
+                  <input id="irpfScaleSourceTitle" type="text" placeholder="Agencia Tributaria" />
+                </label>
+                <label class="month-picker">
+                  <span>URL de la fuente</span>
+                  <input id="irpfScaleSourceUrl" type="url" placeholder="https://sede.agenciatributaria.gob.es/..." />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de comprobación</span>
+                  <input id="irpfScaleCheckedAt" type="date" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="irpfScaleAdd">Registrar escala</button>
+              <ul class="commit-barrier-list" id="irpfBracketScaleList"></ul>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Estimador de resultado de IRPF</h3>
+              <p class="e19-kpi-note">Estimación orientativa a partir de las escalas registradas arriba — nunca sustituye asesoría fiscal ni el simulador oficial de la Agencia Tributaria. El resultado se muestra como rango, no como una única cifra.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Base imponible general estimada, mínimo (€)</span>
+                  <input id="irpfBaseLow" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Base imponible general estimada, máximo (€)</span>
+                  <input id="irpfBaseHigh" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Retenciones y pagos a cuenta ya realizados (€)</span>
+                  <input id="irpfWithholdingsPaid" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="irpfEstimateRun">Estimar resultado</button>
+              <div class="e19-kpi-note" id="irpfEstimatorNote"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
               <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
@@ -4939,6 +5007,7 @@
     <script defer src="canonical-emergency-credit-line.js?v=20260829di2a1"></script>
     <script defer src="canonical-loan-guarantees.js?v=20260831di4a1"></script>
     <script defer src="canonical-tax-tables.js?v=20260829a155a1"></script>
+    <script defer src="canonical-irpf-estimator.js?v=20260902a152a1"></script>
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-pension-simulator.js?v=20260830a154a1"></script>
@@ -4976,7 +5045,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902a191a1"></script>
+    <script defer src="app.js?v=20260902a152a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
