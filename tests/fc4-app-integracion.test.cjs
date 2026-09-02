@@ -32,3 +32,15 @@ test("FC4: los tres campos guardan en scenarioSettings al cambiar", () => {
   assert.match(appSource, /qs\("ajustesDividendForeignWithholdingPct"\)\?\.addEventListener\("change", handleDividendTaxChange\("dividendForeignWithholdingPct", \{ max: 100 \}\)\);/);
   assert.match(appSource, /qs\("ajustesDividendSpanishSavingsRatePct"\)\?\.addEventListener\("change", handleDividendTaxChange\("dividendSpanishSavingsRatePct", \{ max: 100 \}\)\);/);
 });
+
+// DI4 (bug encontrado de paso): estos tres campos se editaban en `state` pero saveScenarioSettings()
+// no los copiaba a la lista explícita que persiste — sobrevivían a la sesión en curso, no a recargar
+// la página. Corregido junto con DI4, que tocaba la misma función.
+test("FC4: saveScenarioSettings persiste los tres campos, no solo el evento", () => {
+  const start = appSource.indexOf("function saveScenarioSettings(");
+  const end = appSource.indexOf("\n}", start);
+  const body = appSource.slice(start, end);
+  assert.match(body, /dividendGrossAmount: round2\(Math\.max\(0, Number\(state\.dividendGrossAmount \|\| 0\)\)\)/);
+  assert.match(body, /dividendForeignWithholdingPct: round2\(Math\.max\(0, Math\.min\(100, Number\(state\.dividendForeignWithholdingPct \|\| 0\)\)\)\)/);
+  assert.match(body, /dividendSpanishSavingsRatePct: round2\(Math\.max\(0, Math\.min\(100, Number\(state\.dividendSpanishSavingsRatePct \|\| 0\)\)\)\)/);
+});

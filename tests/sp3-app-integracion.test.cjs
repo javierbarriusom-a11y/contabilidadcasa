@@ -25,3 +25,14 @@ test("SP3: los dos campos guardan en scenarioSettings al cambiar", () => {
   assert.match(appSource, /qs\("ajustesHomeInsuranceCoverage"\)\?\.addEventListener\("change", handleHomeInsuranceChange\("homeInsuranceCoverage"\)\);/);
   assert.match(appSource, /qs\("ajustesHomeInsuranceReplacementValue"\)\?\.addEventListener\("change", handleHomeInsuranceChange\("homeInsuranceReplacementValue"\)\);/);
 });
+
+// DI4 (bug encontrado de paso): estos dos campos se editaban en `state` pero saveScenarioSettings()
+// no los copiaba a la lista explícita que persiste — sobrevivían a la sesión en curso, no a recargar
+// la página. Corregido junto con DI4, que tocaba la misma función.
+test("SP3: saveScenarioSettings persiste la cobertura y el valor de reposición, no solo el evento", () => {
+  const start = appSource.indexOf("function saveScenarioSettings(");
+  const end = appSource.indexOf("\n}", start);
+  const body = appSource.slice(start, end);
+  assert.match(body, /homeInsuranceCoverage: round2\(Math\.max\(0, Number\(state\.homeInsuranceCoverage \|\| 0\)\)\)/);
+  assert.match(body, /homeInsuranceReplacementValue: round2\(Math\.max\(0, Number\(state\.homeInsuranceReplacementValue \|\| 0\)\)\)/);
+});
