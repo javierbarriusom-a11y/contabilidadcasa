@@ -537,7 +537,7 @@ test("BUD-3 · el listener de change conecta la edición inline anual/trimestral
 test("BUD-3 · versión del chunk de Presupuesto del mes y de app.js actualizadas", () => {
   assert.match(appSrc, /views\/presupuesto-mes\.js\?v=20260828d1/);
   const html = read("index.html");
-  assert.match(html, /<script defer src="app.js\?v=20260831h7"><\/script>/);
+  assert.match(html, /<script defer src="app.js\?v=20260902pv1a1"><\/script>/);
 });
 
 test("BUD-3 · budgetsExportRows exporta presupuestos anuales/trimestrales con su propia clave de periodo", () => {

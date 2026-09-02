@@ -315,5 +315,46 @@
     });
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands };
+  // PV1: autoajuste de la previsión por niveles de confianza — depende de PV5 y reutiliza
+  // learnFromHistory() (E12b) tal cual. Antes de esto, cada desviación salía siempre con
+  // `confirmRequired: true`/`applied: false`, a propósito (regla transversal: ninguna previsión se
+  // ajusta sola sin que alguien lo confirme) — learnFromHistory() no cambia, sigue sin aplicar
+  // nada. PV1 abre un canal nuevo y explícito, separado de esa marca, que solo actúa cuando la
+  // muestra es lo bastante grande para llamarla evidencia (confianza "alta", el mismo umbral de
+  // ≥12 meses que ya usa confidence()): con confianza media o baja, o con el interruptor
+  // desactivado, no cambia nada — sigue siendo una sugerencia sin aplicar, igual que antes. Y solo
+  // desplaza el cierre de caja proyectado (`closingChecking`/`closingLiquidity`), acumulado mes a
+  // mes porque cada mes futuro hereda el saldo del anterior; nunca reescribe el desglose de
+  // ingreso/gasto ni el ahorro aplicado, y cada mes lleva su propia marca `learnedBias` explícita —
+  // la previsión sigue pareciendo previsión, nunca un dato real disfrazado.
+  function applyLearnedBias(series = [], learning = {}, options = {}) {
+    const enabled = options.enabled !== false;
+    const conceptId = text(options.conceptId || "monthly-net");
+    const deviations = Array.isArray(learning.deviations) ? learning.deviations : [];
+    const deviation = deviations.find((item) => item.conceptId === conceptId) || null;
+    const eligible = Boolean(enabled && deviation && deviation.confidence === "high");
+    const monthlyAmount = eligible ? round(deviation.averageDelta) : 0;
+    return series.map((month, index) => {
+      const cumulativeAmount = eligible ? round(monthlyAmount * (index + 1)) : 0;
+      const totals = eligible
+        ? {
+            ...month.totals,
+            closingChecking: round(number(month.totals.closingChecking) + cumulativeAmount),
+            closingLiquidity: round(number(month.totals.closingLiquidity) + cumulativeAmount),
+          }
+        : month.totals;
+      return {
+        ...month,
+        totals,
+        learnedBias: {
+          conceptId, enabled, applied: eligible,
+          confidence: deviation ? deviation.confidence : "low",
+          sampleMonths: deviation ? deviation.sampleMonths : 0,
+          monthlyAmount, cumulativeAmount,
+        },
+      };
+    });
+  }
+
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, applyLearnedBias };
 });
