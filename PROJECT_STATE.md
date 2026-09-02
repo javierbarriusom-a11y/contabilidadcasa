@@ -2,6 +2,56 @@
 
 Fecha de revisión: 2 de septiembre de 2026.
 
+## Cierre de sesión — 2 de septiembre de 2026 (115): Bloque 9 — AP3, simulador de apalancamiento (explorar, no ejecutar). **Cierra el Bloque 9.**
+
+Última tarea del Bloque 9 (tras A15-2 y el aplazamiento decidido de OPT-17). Depende de AP4
+(`canonical-leverage-barrier.js`, guardarraíl ya construido antes que este simulador, a propósito).
+Es la tarea de mayor riesgo del backlog entero según sus propias notas finales: el único punto
+donde la app pasa de comparar decisiones a explorar pedir deuda nueva para invertir.
+
+**Decisiones explícitas del usuario, antes de implementar**: (1) el resultado incluye una lectura
+direccional (favorable/desfavorable) por escenario — no solo números — pero esa lectura se presenta
+siempre como algo que el usuario puede aceptar o descartar, nunca como una orden ni una acción
+automática; (2) el simulador sí puede guardar los escenarios explorados (a diferencia de SP4, que es
+puramente puntual), para poder revisarlos o compararlos después.
+
+**Construido**: `canonical-leverage-simulator.js` — `simulateLeverage()` exige un `barrierResult`
+de AP4 con `valid === true`; sin él (ausente o bloqueado), no calcula nada y devuelve los mismos
+bloqueadores del guardarraíl, nunca una simulación parcial. Con el guardarraíl superado, calcula el
+coste anual de la deuda nueva (importe × tipo declarado) y lo compara contra tres escenarios de
+rentabilidad esperada (pesimista/base/optimista) que declara el hogar — el motor no inventa ninguna
+cifra de mercado ni de rendimiento futuro, mismo criterio que A15-2 con los tramos de IRPF. Cada
+escenario lleva una lectura `favorable`/`desfavorable`/`neutral` según si el rendimiento esperado
+supera el coste de la deuda, siempre acompañada en la interfaz de la frase "no una orden — revisa
+los números antes de aceptarla". `saveScenario()` guarda una fotografía del resultado ya calculado
+(nunca una posición real de deuda ni de inversión), con su propio `schemaId`.
+
+`app.js` reutiliza exactamente las mismas fuentes de datos que ya usan otras pantallas para
+alimentar el guardarraíl — sin declarar ningún dato nuevo: colchón actual y su suelo (igual que
+SP4/SP5, `accountBalancesFromState()`/`cushionFloor()`), ingreso mensual y cuota de deuda actual
+(igual que `window.FinanceP2Bridge.e16Input()`). `debtQualityIssues` queda vacío: no existe todavía
+en la app ningún registro real de incidencias por deuda con severidad, así que dejarlo vacío es
+honesto (no hay señal que fabricar), no un hueco. Los escenarios guardados viven en
+`scenarioSettings.ap3LeverageScenarios[]`, sincronizados con el mismo mecanismo genérico que ya usan
+las escalas de IRPF (A15-2) o los activos declarados (A14) — sin tabla ni migración nueva en
+Supabase, a diferencia de A19-1 (que sí necesitaba acceso anónimo). Nueva tarjeta "Simulador de
+apalancamiento (explorar, no ejecutar)" en Ajustes, justo debajo del estimador de IRPF: guardarraíl
+recalculado y mostrado antes de nada, formulario de deuda nueva y tres escenarios de rentabilidad,
+resultado con la lectura por escenario, y lista de escenarios guardados con opción de eliminar.
+
+**Validación**: `npm run verify`, exit 0 — **2752/2752 pruebas** (2733 + 19 nuevas: 10 en
+`tests/ap3-simulador-apalancamiento.test.cjs` — sin guardarraíl ready no calcula nada, sin importe
+de deuda no calcula, coste y tres escenarios correctos, lectura favorable/desfavorable/neutra según
+el rendimiento declarado, sin escenarios de rentabilidad el rendimiento esperado es 0 (nunca una
+cifra de mercado inventada), el aviso profesional deja claro que es una lectura aceptable o
+descartable, `saveScenario` guarda una fotografía con su propio schemaId — y 9 en
+`tests/ap3-app-integracion.test.cjs`). Accesibilidad (1032 IDs, +11 por el nuevo formulario),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js`/`canonical-leverage-simulator.js` bumpeados a `?v=20260902ap3a1` (26 pruebas de cadena de
+versión actualizadas en masa).
+
+**Publicado**: pendiente de commit y push a la rama de trabajo en curso.
+
 ## Cierre de sesión — 2 de septiembre de 2026 (114): fix — A19-1, `get_finance_share_link` no encontraba `digest()` tras aplicar la migración
 
 Al aplicar `migrations/20260902_a19_1_share_links.sql` contra el proyecto Supabase real (acción

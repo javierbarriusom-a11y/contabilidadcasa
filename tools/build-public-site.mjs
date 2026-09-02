@@ -47,6 +47,7 @@ const files = [
   "executive-read-model.js",
   "canonical-debt-comparator.js",
   "canonical-leverage-barrier.js",
+  "canonical-leverage-simulator.js",
   "canonical-recommendation-citation.js",
   "canonical-life-coverage.js",
   "canonical-home-insurance.js",
