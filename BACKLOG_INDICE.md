@@ -12,14 +12,22 @@
 
 ## Para saber qué hacer a continuación
 
-**Ve directo a [`BACKLOG_ULTIMATE_SEPTIEMBRE.md`](BACKLOG_ULTIMATE_SEPTIEMBRE.md), sección "Orden
-de ejecución".** A fecha de esta auditoría (30 de agosto de 2026) es el único documento con
-trabajo pendiente de la cola principal — Bloque 5 en adelante — y su tabla de 99 tareas ya
-reconcilia los dos backlogs vigentes anteriores (`BACKLOG_PATRIMONIO_Y_FINANZAS.md`,
-`BACKLOG_OPTIMIZACION.md`) con la ampliación de septiembre. `PROJECT_STATE.md` lleva el registro
-de qué se cerró en cada sesión; `BACKLOG_STATUS.md` §0 lleva la tabla maestra de entregas E1-E20
-únicamente — no se extendió a E21 en adelante, cuyo estado se sigue en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`
-y en `PROJECT_STATE.md`.
+**Actualizado el 3 de septiembre de 2026: `BACKLOG_ULTIMATE_SEPTIEMBRE.md` ya no tiene 99 tareas
+pendientes.** Su propia tabla sigue sin reflejarlo, pero `PROJECT_STATE.md` (sesiones 47 y 115 a 134)
+confirma que 94 de esas 99 ya están construidas, con test y fusionadas a `main`. Solo quedan
+`OPT-10`, `OPT-11`, `OPT-12`, `OPT-13` y `OPT-15`, bloqueadas por el reloj de 30 días de `OPT-2`
+(arrancó el 29 de agosto, no cumple hasta finales de septiembre) — no por esfuerzo. `OPT-14`,
+`OPT-16` y `OPT-17` quedaron cerradas como decisión de no construirlas.
+
+**El siguiente trabajo real de producto vive en [`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`](BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md)**:
+51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda
+según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo), ninguna de
+las cuales depende del remanente de `OPT-10` a `OPT-15` — ambas colas avanzan en paralelo. Su
+Bloque 1 (entrada de datos) va primero por decisión explícita del usuario, no por el criterio de
+esfuerzo/beneficio por defecto. `PROJECT_STATE.md` lleva el registro de qué se cerró en cada sesión;
+`BACKLOG_STATUS.md` §0 lleva la tabla maestra de entregas E1-E20 únicamente — no se extendió a E21
+en adelante, cuyo estado se sigue en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, en
+`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` y en `PROJECT_STATE.md`.
 
 El único trabajo pendiente **fuera** de esa cola es `O-5` en `BACKLOG_OPERACION.md` (actualizar
 `MANUAL_USUARIO.md` tras E17) — de baja prioridad, dejado deliberadamente para el final.
@@ -28,7 +36,8 @@ El único trabajo pendiente **fuera** de esa cola es `O-5` en `BACKLOG_OPERACION
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **`BACKLOG_ULTIMATE_SEPTIEMBRE.md`** | 🟢 **Vigente — única cola con trabajo abierto** | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia | — |
+| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`** | 🟢 **Vigente — cola principal de trabajo nuevo** | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) va primero por decisión explícita | — |
+| `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | 🟡 Casi cerrado — 94/99 hechas, 5 en espera de calendario | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia. Su tabla de estado no refleja el cierre real — ver `PROJECT_STATE.md` | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` para el trabajo nuevo; su propio remanente (`OPT-10/11/12/13/15`) sigue vigente aquí hasta que cumpla el plazo de `OPT-2` |
 | `BACKLOG_OPERACION.md` | 🟡 Casi cerrado (O-1 a O-4 hechos, O-5 pendiente) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |
 | `BACKLOG_UNIFICADO.md` | ⚪ Histórico | Fusionó el orden de ejecución de `BACKLOG_PATRIMONIO_Y_FINANZAS.md` + `BACKLOG_OPTIMIZACION.md` (49 tareas) | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (29/08) |
 | `BACKLOG_PATRIMONIO_Y_FINANZAS.md` | 📚 Detalle de referencia | Contexto, prioridad y resultado esperado de cada tarea `A14`-`A19` (E21-E26) — el orden de ejecución vive en otro sitio | Orden fusionado en `BACKLOG_UNIFICADO.md` → `BACKLOG_ULTIMATE_SEPTIEMBRE.md`; contenido intacto |
