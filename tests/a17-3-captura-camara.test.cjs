@@ -125,6 +125,28 @@ test("confirmReceiptCapture · un importe negativo o cero se rechaza igual que u
   assert.ok(calls.logs.some((log) => log.tone === "danger"));
 });
 
+// DEX8: revisión de copy — con un único campo sin rellenar, el aviso lo nombra en vez de mandar a
+// repasar los tres. Con más de uno, se queda en el mensaje genérico (nombrarlos todos no ayuda más).
+test("confirmReceiptCapture · con solo el comercio vacío, el aviso nombra el comercio, no «faltan datos»", () => {
+  const source = extractFunction(app, "confirmReceiptCapture");
+  const context = { qs: (id) => ({ receiptCaptureAmount: { value: "23.45" }, receiptCaptureDate: { value: "2026-09-03" }, receiptCaptureMerchant: { value: "" } }[id]), parseAmount: (v) => Number(v), receiptCaptureDraft: { file: {} }, showImportLog: (title, body) => { context.logged = { title, body }; } };
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  vm.runInContext("confirmReceiptCapture();", context);
+  assert.equal(context.logged.title, "Falta el comercio");
+  assert.match(context.logged.body, /^Completa el comercio antes de confirmar\.$/);
+});
+
+test("confirmReceiptCapture · sin importe ni fecha, el aviso los nombra a los dos con «y»", () => {
+  const source = extractFunction(app, "confirmReceiptCapture");
+  const context = { qs: (id) => ({ receiptCaptureAmount: { value: "" }, receiptCaptureDate: { value: "" }, receiptCaptureMerchant: { value: "Mercadona" } }[id]), parseAmount: (v) => (v === "" ? null : Number(v)), receiptCaptureDraft: { file: {} }, showImportLog: (title, body) => { context.logged = { title, body }; } };
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  vm.runInContext("confirmReceiptCapture();", context);
+  assert.equal(context.logged.title, "Faltan datos");
+  assert.match(context.logged.body, /^Completa el importe y la fecha antes de confirmar\.$/);
+});
+
 test("renderMovementDetailDialog muestra el botón de ver ticket solo cuando hay adjunto enlazado", () => {
   const body = extractFunction(app, "renderMovementDetailDialog");
   assert.match(body, /receiptAttachments\[transactionIdentity\(row\)\]/);

@@ -2,6 +2,69 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (136): primera oleada del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` — DEX7, DEX9, DEX3, DEX8, DEX11
+
+Aviso previo, antes de tocar código: el artefacto que abrió la sesión («Ajustes y Hoy») ya estaba
+cerrado y publicado por completo (HD-1 a HD-5, AJ-1 a AJ-3, sesiones 130-134) — se lo señalé al
+usuario en vez de repetir trabajo ya hecho, y acordamos seguir con el backlog vivo de verdad:
+`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 1 (protocolo de entrada de datos, `DEX1`-`DEX11`,
+priorizado completo por decisión explícita del usuario en la sesión 135).
+
+De las 11 tareas del Bloque 1, esta primera oleada acomete las 5 de esfuerzo S/S-M — nivel 0 real,
+sin dependencias entre sí ni con el resto de la oleada, mismo criterio de riesgo/superficie mínima
+que ya se usó en HD-1 a HD-5:
+
+- **DEX9 — bandeja previa con progreso hasta cero**: `dataInboxPendingSummary()` (nueva) cuenta las
+  entradas `ready`/`blocked` de `dataInbox` (las resueltas —`applied`/`undone`/`discarded`— no
+  cuentan) y las ordena por `createdAt` ascendente. `renderE11bStatus()` la usa: con pendientes,
+  muestra el contador («N pendiente(s) de confirmar — la más antigua primero») y lista esas en vez
+  de las últimas creadas; sin pendientes, «Sin pendientes: la bandeja está al día». No existía nada
+  de esto antes — se confirmó por búsqueda exhaustiva que A6-2 nunca contaba pendientes.
+- **DEX7 — valores por defecto que aprenden**: no existía ningún mecanismo de «recordar» en el
+  repositorio (búsqueda exhaustiva de `lastUsed`/`remember`/`defaultFor` sin resultado). Se implementó
+  acotado al único sitio real de entrada manual repetida por partida: Registrar · Reales.
+  `lastActualForEntry()` busca, para una partida sin real este mes, el real más reciente de un mes
+  anterior de esa misma partida y lo ofrece — **nunca como `value`, solo como `placeholder`** (texto
+  gris): si el usuario no lo teclea explícitamente, no se guarda nada. «Cuenta» del enunciado
+  original no aplica a este flujo (Reales no tiene selector de cuenta) — decisión propia, documentada
+  aquí en vez de forzar un campo que no existe.
+- **DEX3 — plantillas de un toque para lo recurrente**: la tarjeta de recurrentes/suscripciones
+  detectadas de Análisis (A16-3) era solo informativa. Se añadió un botón «Repetir hoy» por cargo
+  detectado; `handleAnalisisRepeatSubscription()` construye un movimiento con el mismo importe/
+  concepto y lo pasa por el mismo camino que un ticket de cámara — `addE11bInboxItem` →
+  `applyStagedMovementImport` (bandeja previa + lote reversible de `FinanceCanonicalE5`) — nunca
+  escribe en `baseData.transactions` directamente. El toque en sí es la confirmación explícita: el
+  usuario ya está viendo importe, meses vistos y confianza antes de pulsar.
+- **DEX8 — errores en lenguaje de persona**: revisión de copy, sin motor nuevo. Dos mejoras reales:
+  (1) `confirmReceiptCapture` decía «Faltan datos» aunque solo faltara un campo de los tres — ahora
+  nombra el que falta («Falta el comercio») y solo cae al genérico con más de uno; (2) las 4 apariciones
+  de «No se pudo leer Excel: la librería de lectura no está disponible todavía» (que suena a fallo
+  cuando en realidad Excel solo tarda en cargar la primera vez) pasan a «Excel todavía está cargando
+  — Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.»
+- **DEX11 — confirmación por gesto en móvil**: no existía nada táctil en toda la app (búsqueda
+  exhaustiva de `touchstart`/`swipe`/`longpress` sin resultado). `wireGestureConfirm()` añade, solo en
+  dispositivos táctiles (`isTouchInputDevice()`), la exigencia de mantener pulsado 600 ms (con relleno
+  visual, `.gesture-confirm`/`.is-holding` en `styles.css`) sobre los mismos botones de confirmación
+  explícita que ya existían (A6-5) — `receiptCaptureConfirm` y `confirmMovementInbox` — sin sustituirlos
+  ni añadir un paso nuevo. En teclado/ratón no cambia nada.
+
+**Deliberadamente fuera de esta oleada** (quedan en el Bloque 1, para una siguiente): `DEX1`, `DEX4`,
+`DEX5`, `DEX10` (esfuerzo M, cada una es un patrón de interacción nuevo que merece su propia revisión
+de diseño); `DEX2` (depende de `DEX1`); `DEX6` (condicionada a que `A5-1` esté activo en producción,
+que hoy no lo está).
+
+**Validación**: `node_modules` no existía en este checkout; `npm install` (336 paquetes) antes de
+validar. `npm run verify`, exit 0 — **2955/2955 pruebas** (2935 previas + 20 nuevas: 18 en
+`tests/dex-oleada2-bloque1.test.cjs` más 2 añadidas a `tests/a17-3-captura-camara.test.cjs`;
+`tests/r9-registrar-lote-excel.test.cjs` se ajustó al copy nuevo de DEX8), accesibilidad estructural
+(1083 IDs únicos), rendimiento (diff 10.000 filas en 55,5 ms; forecast y escenarios en 261,2 ms),
+`build:site`, privacidad y humo en verde.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 1, filas de `DEX7`/`DEX9`/
+`DEX3`/`DEX8`/`DEX11` marcadas ✅ Hecho.
+
+**Pendiente de publicar**: rama `claude/session-eilejl`, PR por abrir tras este commit.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (135): nace `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`
 
 Pedido explícito del usuario: crear un nuevo documento de backlog, «Ultimate Septiembre Oleada 2»,

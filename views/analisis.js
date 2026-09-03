@@ -284,10 +284,35 @@ function analisisSubscriptionsHtml(result) {
       <div class="analisis-subscription-head"><strong>${escapeHtml(item.label)}</strong><span>${money(item.monthlyCost, true)}/mes</span></div>
       <small>${escapeHtml(item.category || "Sin categoría")} · visto ${item.sampleMonths} meses · ${money(item.annualCost, true)}/año · confianza ${escapeHtml(ANALISIS_SUBSCRIPTION_CONFIDENCE_LABEL[item.confidence] || item.confidence)}</small>
       ${advisoryHtml}
+      <button type="button" class="secondary-button" data-analisis-repeat-subscription="${escapeHtml(item.label)}" data-analisis-repeat-amount="${item.monthlyCost}" data-analisis-repeat-category="${escapeHtml(item.category || "")}">Repetir hoy</button>
     </div>`;
     })
     .join("");
   return `${rows}<p class="e19-kpi-note">Total detectado: ${money(result.totalMonthlyCost, true)}/mes (${money(result.totalAnnualCost, true)}/año). Candidatos a confirmar a mano: un mismo importe repetido no siempre es una suscripción real.</p>`;
+}
+
+// DEX3: "repetir el de nómina de ayer" — un solo toque, sobre un cargo que A16-3 ya detectó y el
+// usuario ya está viendo en pantalla (importe, meses vistos, confianza), no un asistente nuevo. El
+// toque en sí es la confirmación explícita (A6-5): igual que confirmReceiptCapture, entra por la
+// bandeja previa (E11b) y el mismo lote reversible que cualquier extracto (`applyStagedMovementImport`
+// → `FinanceCanonicalE5.createImportBatch`), nunca escribe en baseData.transactions directamente.
+function handleAnalisisRepeatSubscription(label, amount, category) {
+  const parsedAmount = Number(amount);
+  if (!label || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const [movement, ...detailParts] = String(label).split(" · ");
+  const row = {
+    date: today, valueDate: today, movement: movement || label,
+    details: detailParts.join(" · ") || "Repetido desde recurrentes detectados (DEX3)",
+    amount: -Math.abs(round2(parsedAmount)), balance: null, category: category || "",
+    source: "manual-template", statementOrder: 0,
+  };
+  const imported = [row];
+  const comparison = { valid: true, additions: imported, changes: [], duplicates: [], removals: [] };
+  const inboxItem = addE11bInboxItem({ source: "manual-template", sourceLabel: `Plantilla: ${movement || label}`, rows: imported, comparison });
+  if (!inboxItem) return;
+  pendingE11bApply = { imported, inboxItem };
+  applyStagedMovementImport();
 }
 
 // P-1: desglose de gasto del periodo (mismo `periodMonths` que la cascada de A-4) por tipo de

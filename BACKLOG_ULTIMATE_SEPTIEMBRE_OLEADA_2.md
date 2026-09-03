@@ -72,6 +72,9 @@ mismo criterio de nivel de dependencia → esfuerzo → beneficio que el documen
 | Multidispositivo | Extiende `A5-3` y `A0-9` |
 
 Estado: todas las tareas de este documento están ⏳ (ninguna tiene código todavía) salvo aviso contrario.
+Primera oleada del Bloque 1 (DEX7, DEX9, DEX3, DEX8, DEX11 — las cinco de esfuerzo S/S-M) cerrada el
+3 de septiembre de 2026 (sesión 136 de `PROJECT_STATE.md`, detalle completo ahí); marcadas ✅ en la
+tabla de abajo.
 
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
@@ -79,11 +82,11 @@ Estado: todas las tareas de este documento están ⏳ (ninguna tiene código tod
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 1 | DEX7 | Valores por defecto que aprenden | Entrada de datos | S | Medio | Mejora local de `A6-3`: recuerda el último importe/cuenta por categoría |
-| 2 | DEX9 | Bandeja previa con progreso hasta cero | Entrada de datos | S | Medio | Presentación sobre `A6-2`: cuántas entradas quedan, la más antigua primero |
-| 3 | DEX3 | Plantillas de un toque para lo recurrente | Entrada de datos | S-M | Alto | Reutiliza la detección de `A16-3`; «repetir el de nómina de ayer» |
-| 4 | DEX8 | Errores explicados en lenguaje de persona | Entrada de datos | S-M | Medio | Revisión de copy transversal, sin motor nuevo |
-| 5 | DEX11 | Confirmación por gesto en móvil | Entrada de datos | S-M | Medio | Capa de interacción sobre `A6-2`/`A6-5`, misma confirmación explícita |
+| 1 | ✅ DEX7 | Valores por defecto que aprenden | Entrada de datos | S | Medio | Hecho — Registrar · Reales sugiere por `placeholder` el último real de la partida, nunca como `value` |
+| 2 | ✅ DEX9 | Bandeja previa con progreso hasta cero | Entrada de datos | S | Medio | Hecho — contador de pendientes y orden por antigüedad en `renderE11bStatus()` |
+| 3 | ✅ DEX3 | Plantillas de un toque para lo recurrente | Entrada de datos | S-M | Alto | Hecho — botón «Repetir hoy» en Análisis, vía bandeja previa/lote reversible |
+| 4 | ✅ DEX8 | Errores explicados en lenguaje de persona | Entrada de datos | S-M | Medio | Hecho — mensaje específico por campo en captura de ticket + copy de Excel menos técnico |
+| 5 | ✅ DEX11 | Confirmación por gesto en móvil | Entrada de datos | S-M | Medio | Hecho — mantener pulsado 600 ms en táctil sobre los botones de A6-5 ya existentes |
 | 6 | DEX1 | Barra de captura rápida | Entrada de datos | M | Alto | Se apoya en `A12-3` y `UX6`; patrón de mando de acciones, no un asistente de IA |
 | 7 | DEX4 | Deshacer universal | Entrada de datos | M | Alto | Extiende el deshacer de 10 s de `UX1` a cualquier acción, con pila visible |
 | 8 | DEX5 | Onboarding progresivo por desbloqueo | Entrada de datos | M | Alto | Se apoya en `A6-1` y `A12-5`; un hogar nuevo ve solo lo mínimo la primera semana |

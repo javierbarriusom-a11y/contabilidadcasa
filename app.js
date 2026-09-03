@@ -3896,6 +3896,42 @@ function handleUndoToastClick() {
   if (callback) callback();
 }
 
+// DEX11: capa de gesto sobre la confirmación explícita que ya existe (A6-2/A6-5) — los mismos
+// botones "Confirmar X" / "Cancelar" de siempre (`receiptCaptureConfirm`, `confirmMovementInbox`...),
+// sin sustituirlos ni añadir un paso nuevo. En un dispositivo táctil, un toque suelto sobre el botón
+// de confirmar ya no basta: hace falta mantenerlo pulsado (`GESTURE_CONFIRM_HOLD_MS`), con un
+// relleno visual de progreso, antes de que el clic llegue de verdad al manejador. En teclado/ratón no
+// cambia nada — el clic sigue confirmando al instante, como siempre.
+const GESTURE_CONFIRM_HOLD_MS = 600;
+
+function isTouchInputDevice() {
+  return typeof window !== "undefined" && (("ontouchstart" in window) || Number(window.navigator?.maxTouchPoints) > 0);
+}
+
+function wireGestureConfirm(button) {
+  if (!button || button.dataset.gestureConfirmWired === "true") return;
+  button.dataset.gestureConfirmWired = "true";
+  if (!isTouchInputDevice()) return;
+  button.classList.add("gesture-confirm");
+  let holdTimer = null;
+  const start = (event) => {
+    event.preventDefault();
+    button.classList.add("is-holding");
+    holdTimer = window.setTimeout(() => {
+      button.classList.remove("is-holding");
+      button.click();
+    }, GESTURE_CONFIRM_HOLD_MS);
+  };
+  const cancel = () => {
+    if (holdTimer) window.clearTimeout(holdTimer);
+    button.classList.remove("is-holding");
+  };
+  button.addEventListener("touchstart", start, { passive: false });
+  button.addEventListener("touchend", cancel);
+  button.addEventListener("touchcancel", cancel);
+  button.addEventListener("touchmove", cancel);
+}
+
 function activeViewTitle(viewId) {
   return (viewTitles[viewId] || viewTitles.home).title;
 }
@@ -21065,7 +21101,7 @@ async function handleMovementExcelImport(event) {
   const file = event.target.files?.[0];
   if (!file) return;
   if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    qs("movementImportStatus").innerHTML = `<strong>No se pudo leer Excel</strong><p>La librería de lectura de Excel no está disponible todavía.</p>`;
+    qs("movementImportStatus").innerHTML = `<strong>Excel todavía está cargando</strong><p>Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.</p>`;
     return;
   }
   try {
@@ -21082,6 +21118,7 @@ async function handleMovementExcelImport(event) {
     pendingE11bApply = { imported, inboxItem };
     qs("movementImportStatus").innerHTML = `<strong>Vista previa · aún no se ha incorporado nada</strong><p>${comparison.additions?.length || 0} alta(s), ${comparison.duplicates?.length || 0} duplicado(s) y ${buildPendingMovementMappings(imported).length} relación(es) por revisar.</p><div class="data-actions"><button id="confirmMovementInbox" type="button" ${comparison.valid === false ? "disabled" : ""}>Confirmar extracto</button><button id="cancelMovementInbox" class="secondary" type="button">Cancelar</button></div>`;
     qs("confirmMovementInbox")?.addEventListener("click", applyStagedMovementImport);
+    wireGestureConfirm(qs("confirmMovementInbox"));
     qs("cancelMovementInbox")?.addEventListener("click", () => {
       pendingE11bApply = null;
       if (inboxItem) dataInbox = dataInbox.map((item) => item.id === inboxItem.id ? E11bInbox.transition(item, "discarded") : item);
@@ -21643,7 +21680,7 @@ async function handleDatosImportarFile(event) {
   try {
     if (isExcel) {
       if (!window.XLSX || typeof window.XLSX.read !== "function") {
-        datosImportarShowStep1Note("No se pudo leer Excel: la librería de lectura no está disponible todavía.", true);
+        datosImportarShowStep1Note("Excel todavía está cargando: pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", true);
         return;
       }
       const workbook = window.XLSX.read(await file.arrayBuffer(), { type: "array" });
@@ -23108,6 +23145,16 @@ function dataFreshnessReport() {
   }, { asOf: new Date().toISOString().slice(0, 10) });
 }
 
+// DEX9: antes solo se veían las 4 últimas entradas por fecha de creación descendente, sin contar
+// cuántas seguían abiertas de verdad. "Pendiente" es `ready` (lista para confirmar) o `blocked`
+// (requiere revisión antes) — `applied`/`undone`/`discarded` ya están resueltas, no cuentan.
+function dataInboxPendingSummary(items = []) {
+  const pending = (items || [])
+    .filter((item) => item.status === "ready" || item.status === "blocked")
+    .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+  return { pending, remaining: pending.length };
+}
+
 function renderE11bStatus() {
   if (!E11bInbox) return;
   const toggle = qs("toggleDataInbox");
@@ -23118,13 +23165,22 @@ function renderE11bStatus() {
   }
   const summary = qs("dataInboxSummary");
   if (summary) {
-    const items = dataInbox.slice(-4).reverse();
+    const { pending, remaining } = dataInboxPendingSummary(dataInbox);
+    // Con pendientes, se enseñan esas — la más antigua primero, para vaciar la cola por orden de
+    // llegada — en vez de las últimas creadas, que taparían una entrada bloqueada desde hace días.
+    const items = remaining ? pending.slice(0, 4) : dataInbox.slice(-4).reverse();
     const badgeClass = { ready: "e19-badge-accent", blocked: "e19-badge-warning", applied: "e19-badge-success", undone: "e19-badge-neutral", discarded: "e19-badge-neutral" };
-    summary.innerHTML = items.length ? items.map((item) => {
+    const progressHtml = !dataInbox.length
+      ? ""
+      : remaining
+        ? `<p class="e19-kpi-note" id="dataInboxPendingCount"><strong>${remaining}</strong> pendiente${remaining === 1 ? "" : "s"} de confirmar — la más antigua primero.</p>`
+        : `<p class="e19-kpi-note" id="dataInboxPendingCount">Sin pendientes: la bandeja está al día.</p>`;
+    const itemsHtml = items.length ? items.map((item) => {
       const counts = item.comparison || {};
       const status = { ready: "Lista para confirmar", blocked: "Requiere revisión", applied: "Aplicada", undone: "Deshecha", discarded: "Descartada" }[item.status] || item.status;
       return `<article class="e19-inbox-item"><div class="e19-inbox-item-head"><strong>${escapeHtml(item.sourceLabel)}</strong><span class="e19-badge ${badgeClass[item.status] || "e19-badge-neutral"}">${escapeHtml(status)}</span></div><p>${item.rows?.length || 0} fila(s) · ${counts.additions?.length || 0} altas · ${counts.changes?.length || 0} cambios · ${counts.duplicates?.length || 0} duplicados. El fichero original no se conserva.</p></article>`;
     }).join("") : `<article class="e19-inbox-item"><strong>Bandeja preparada</strong><p>Selecciona un CSV, Excel, tabla o extracto. Nada se incorporará antes de comparar y confirmar.</p></article>`;
+    summary.innerHTML = progressHtml + itemsHtml;
   }
   const report = dataFreshnessReport();
   const freshness = qs("updateFreshness");
@@ -23260,6 +23316,7 @@ function renderReceiptCaptureReview(fields) {
     </div>`;
   qs("receiptCaptureConfirm")?.addEventListener("click", confirmReceiptCapture);
   qs("receiptCaptureCancel")?.addEventListener("click", cancelReceiptCapture);
+  wireGestureConfirm(qs("receiptCaptureConfirm"));
 }
 
 function cancelReceiptCapture() {
@@ -23275,8 +23332,16 @@ function confirmReceiptCapture() {
   const amount = parseAmount(qs("receiptCaptureAmount")?.value);
   const date = qs("receiptCaptureDate")?.value;
   const merchant = String(qs("receiptCaptureMerchant")?.value || "").trim();
-  if (!amount || amount <= 0 || !date || !merchant) {
-    showImportLog("Faltan datos", "Importe, fecha y comercio son obligatorios antes de confirmar.", "danger", "receiptCameraStatus");
+  // DEX8: en vez de "faltan datos" genérico, decir cuál — el reconocimiento automático puede fallar
+  // en un solo campo de los tres, y "faltan datos" obliga a repasarlos todos para averiguar cuál.
+  const missing = [];
+  if (!amount || amount <= 0) missing.push("el importe");
+  if (!date) missing.push("la fecha");
+  if (!merchant) missing.push("el comercio");
+  if (missing.length) {
+    const title = missing.length === 1 ? `Falta ${missing[0]}` : "Faltan datos";
+    const detail = missing.join(", ").replace(/, ([^,]*)$/, " y $1");
+    showImportLog(title, `Completa ${detail} antes de confirmar.`, "danger", "receiptCameraStatus");
     return;
   }
   const row = {
@@ -23595,7 +23660,7 @@ async function handleExcelImport(event) {
     return;
   }
   if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    showImportLog("No se pudo leer Excel", "La librería de lectura de Excel no está disponible todavía.", "danger");
+    showImportLog("Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger");
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -23664,7 +23729,7 @@ async function processRegistrarExcelFile(file) {
     return;
   }
   if (!window.XLSX || typeof window.XLSX.read !== "function") {
-    showImportLog("No se pudo leer Excel", "La librería de lectura de Excel no está disponible todavía.", "danger", "registrarBatchLog");
+    showImportLog("Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger", "registrarBatchLog");
     return;
   }
   const buffer = await file.arrayBuffer();
@@ -31888,15 +31953,38 @@ function registrarActualsTotals(entries) {
   };
 }
 
+// DEX7: sugerencia de importe real por partida, tomada del último mes anterior en que esa misma
+// partida (mismo `row.id`, la primera mitad de `entry.key`) tuvo un real capturado de verdad — nunca
+// se rellena sola: aparece solo como `placeholder` (texto gris, nunca `value`), así que si el usuario
+// no la teclea explícitamente, no se guarda nada (mismo principio que "ninguna escritura durante
+// vistas previas" del resto del backlog). Sin real anterior, no hay sugerencia — hueco, no invención.
+function lastActualForEntry(entry, month) {
+  if (!month) return null;
+  const rowId = String(entry.key || "").split("|")[0];
+  if (!rowId) return null;
+  const actuals = actualsForKind(entry.kind);
+  const priorMonths = (baseData?.monthlyPlanning?.months || [])
+    .filter((item) => item.key < month.key)
+    .sort((a, b) => b.key.localeCompare(a.key));
+  for (const priorMonth of priorMonths) {
+    const stored = actuals[`${rowId}|${priorMonth.key}`];
+    if (Number.isFinite(Number(stored))) return { amount: Number(stored), monthLabel: priorMonth.label };
+  }
+  return null;
+}
+
 // R-6b: el previsto de esta fila no se edita aquí (celda de solo lectura, ninguna escritura de
 // `planned` en toda la pestaña) — el enlace lleva a Plan, la única pantalla donde se edita.
-function registrarActualsRowHtml(entry, monthClosed) {
+function registrarActualsRowHtml(entry, monthClosed, month) {
   const status = registrarActualsStatus(entry);
+  const suggestion = entry.hasActual ? null : lastActualForEntry(entry, month);
+  const placeholder = suggestion ? suggestion.amount.toFixed(2) : "sin real";
+  const titleAttr = suggestion ? ` title="Sugerido: último real registrado, ${escapeHtml(money(suggestion.amount, true))} en ${escapeHtml(suggestion.monthLabel)}"` : "";
   return `<tr data-registrar-actuals-key="${escapeHtml(entry.key)}">
     <td>${escapeHtml(entry.sectionName)}</td>
     <td>${escapeHtml(entry.label)}<button type="button" class="registrar-actuals-plan-link" data-home-nav="cuadro-mandos">Ver en Plan</button></td>
     <td>${money(entry.planned, true)}</td>
-    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="sin real"${monthClosed ? " disabled" : ""} /></td>
+    <td><input type="number" step="0.01" inputmode="decimal" data-registrar-actuals-actual="${escapeHtml(entry.key)}" data-registrar-actuals-kind="${escapeHtml(entry.kind)}" aria-label="Real de ${escapeHtml(entry.label)}" value="${entry.hasActual ? entry.actual : ""}" placeholder="${escapeHtml(placeholder)}"${titleAttr}${monthClosed ? " disabled" : ""} /></td>
     <td><strong>${money(entry.used, true)}</strong></td>
     <td class="${varianceClassForKind(entry.kind, entry.hasActual ? entry.variance : "")}">${entry.hasActual ? registrarMesSignedMoney(entry.variance) : "—"}</td>
     <td><span class="status-pill ${status.tone}">${escapeHtml(status.label)}</span></td>
@@ -31939,7 +32027,7 @@ function renderRegistrarActuals() {
 
   if (qs("registrarActualsBody")) {
     qs("registrarActualsBody").innerHTML = visible.length
-      ? visible.map((entry) => registrarActualsRowHtml(entry, monthClosed)).join("")
+      ? visible.map((entry) => registrarActualsRowHtml(entry, monthClosed, month)).join("")
       : `<tr><td colspan="7" class="registrar-mes-empty">Este bloque no tiene partidas este mes.</td></tr>`;
   }
 
@@ -34836,6 +34924,11 @@ async function init() {
     if (actuarConfianza) { handleAnalisisActuarConfianza(actuarConfianza.dataset.analisisActuarConfianza); return; }
     const actuarRepite = event.target.closest("[data-analisis-actuar-repite]");
     if (actuarRepite) { handleAnalisisActuarRepite(actuarRepite.dataset.analisisActuarRepite, actuarRepite.dataset.analisisActuarLabel); return; }
+    const repeatSubscription = event.target.closest("[data-analisis-repeat-subscription]");
+    if (repeatSubscription) {
+      handleAnalisisRepeatSubscription(repeatSubscription.dataset.analisisRepeatSubscription, repeatSubscription.dataset.analisisRepeatAmount, repeatSubscription.dataset.analisisRepeatCategory);
+      return;
+    }
     const navButton = event.target.closest("[data-home-nav]");
     const target = navButton?.dataset.homeNav;
     if (!target || !document.getElementById(target)?.classList.contains("view-section")) return;
