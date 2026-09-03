@@ -16733,6 +16733,76 @@ function renderIv1PositionSummary() {
   note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La rentabilidad ponderada por tiempo (TWR) exige valoraciones intermedias que esta app no registra; con un único movimiento por posición coincide con la XIRR de arriba. Añade más de una aportación a una posición y ambas empezarán a divergir de verdad.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}`;
 }
 
+// FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de IV1/IV2 y
+// reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya calcula FC1 (fifoLedger,
+// dentro de normalizePositions) — sin motor de cálculo nuevo, solo la agregación por año y el
+// arrastre de pérdidas de años anteriores, que el hogar declara (la app no tiene un histórico
+// fiscal multi-año propio). Solo neta transmisiones contra transmisiones, nunca contra rendimientos
+// del capital mobiliario.
+function fc3PriorLossesList() {
+  return Array.isArray(scenarioSettings.fc3PriorLosses) ? scenarioSettings.fc3PriorLosses : [];
+}
+
+function saveFc3PriorLossesList(next) {
+  scenarioSettings.fc3PriorLosses = next;
+  saveScenarioSettings();
+}
+
+function saveFc3PriorLoss() {
+  const amount = parseAmount(qs("fc3PriorLossAmount")?.value);
+  const year = String(qs("fc3PriorLossYear")?.value || "").trim();
+  if (!(amount > 0) || !/^\d{4}$/.test(year)) {
+    announceStatus("Indica un importe mayor que cero y un año de 4 dígitos para la pérdida arrastrada.");
+    return;
+  }
+  const next = [...fc3PriorLossesList(), { id: `fc3loss-${Date.now()}`, year, amount }];
+  saveFc3PriorLossesList(next);
+  qs("fc3PriorLossAmount").value = "";
+  qs("fc3PriorLossYear").value = "";
+  renderFc3PriorLossList();
+  announceStatus(`Pérdida arrastrada de ${money(amount, true)} (${year}) registrada.`);
+}
+
+function removeFc3PriorLoss(id) {
+  saveFc3PriorLossesList(fc3PriorLossesList().filter((entry) => entry.id !== id));
+  renderFc3PriorLossList();
+}
+
+function renderFc3PriorLossList() {
+  const list = qs("fc3PriorLossList");
+  if (!list) return;
+  const rows = fc3PriorLossesList();
+  list.innerHTML = rows.length
+    ? rows.map((entry) => `<li class="commit-barrier-item"><span>${escapeHtml(entry.year)}: ${money(entry.amount, true)}</span><button type="button" class="e19-btn e19-btn-secondary" data-fc3-loss-remove="${escapeHtml(entry.id)}">Quitar</button></li>`).join("")
+    : `<li class="e19-kpi-note">Sin pérdidas arrastradas registradas.</li>`;
+}
+
+function fc3ResultHtml(result) {
+  if (!result.calculable) {
+    if (result.reason === "incomplete-disposal") return `Hay ventas de ${escapeHtml(result.year)} sin lotes suficientes a su fecha (FIFO) — la compensación de ese año no es calculable hasta corregirlas.`;
+    return "Indica un año de 4 dígitos para calcular la compensación.";
+  }
+  const netClass = result.netResult > 0 ? "positive" : result.netResult < 0 ? "negative" : "";
+  const appliedLine = result.priorLossesApplied.length
+    ? `<p>Pérdidas arrastradas aplicadas: ${result.priorLossesApplied.map((entry) => `${money(entry.amount, true)} (${escapeHtml(entry.year)})`).join(", ")} — total ${money(result.totalPriorLossesApplied, true)}.</p>`
+    : "";
+  const carryLine = result.newCarryForward
+    ? `<p class="e19-kpi-note">Pérdida de ${escapeHtml(result.year)} pendiente de compensar: ${money(result.newCarryForward.amount, true)}, arrastrable hasta ${Number(result.year) + window.FinanceCanonicalPortfolio.LOSS_CARRYFORWARD_YEARS}.</p>`
+    : "";
+  return `<p>Ganancias realizadas de ${escapeHtml(result.year)}: ${money(result.yearGains, true)}. Pérdidas realizadas: ${money(result.yearLosses, true)}.</p><p><strong class="${netClass}">Resultado neto del año: ${money(result.netResult, true)}</strong></p>${appliedLine}<p><strong>Base imponible del ahorro tras compensar: ${money(result.taxableNet, true)}</strong></p>${carryLine}<p class="e19-kpi-note">Solo transmisiones contra transmisiones (Ley IRPF art. 49) — no incluye el cruce con rendimientos del capital mobiliario. Verifica con un profesional antes de declarar.</p>`;
+}
+
+function handleFc3Compare() {
+  const note = qs("fc3CompareNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine) return;
+  const year = String(qs("fc3Year")?.value || "").trim();
+  const positions = engine.normalizePositions(iv1PositionsList()).positions;
+  const result = engine.yearEndCompensation({ positions, year, priorLosses: fc3PriorLossesList() });
+  note.innerHTML = fc3ResultHtml(result);
+}
+
 // IV4: concentración por tipo y por posición individual, con aviso de sobreexposición
 // (>50%, mismo umbral que A14-4 para el patrimonio). La correlación real entre activos
 // necesita datos de mercado y queda fuera de esta tarjeta.
@@ -24767,6 +24837,7 @@ function renderAjustes() {
   renderIv1DisposalOptions();
   renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
+  renderFc3PriorLossList();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
   renderIv6Rebalance();
@@ -34808,6 +34879,13 @@ async function init() {
   qs("iv1ContributionAdd")?.addEventListener("click", saveIv1Contribution);
   qs("iv1DisposalAdd")?.addEventListener("click", saveIv1Disposal);
   qs("iv1ScheduledContributionAdd")?.addEventListener("click", saveIv1ScheduledContribution);
+  qs("fc3CompareRun")?.addEventListener("click", handleFc3Compare);
+  qs("fc3PriorLossSave")?.addEventListener("click", saveFc3PriorLoss);
+  qs("fc3PriorLossList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-fc3-loss-remove]");
+    if (!removeButton) return;
+    removeFc3PriorLoss(removeButton.dataset.fc3LossRemove);
+  });
   qs("iv1PositionList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-iv1-position-remove]");
     if (!removeButton) return;

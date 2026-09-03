@@ -2,6 +2,44 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (122): Bloque 10 — FC3, compensación de pérdidas y ganancias a cierre de año
+
+Séptima tarea del Bloque 10, encadenada tras A19-2. Depende de IV1 e IV2. Tarea de ampliación sin
+ficha de detalle propia; se acotó explícitamente a lo que la app puede sostener honestamente: netear
+transmisiones (compraventas de la cartera) contra transmisiones, con arrastre de pérdidas a 4
+ejercicios (Ley IRPF art. 49) — **nunca** el cruce del 25% contra rendimientos del capital mobiliario
+(dividendos, intereses), que exigiría datos que esta app no declara. Se dice así de forma explícita en
+el propio resultado, no solo en un comentario de código.
+
+**Construido**: `canonical-portfolio.js` gana `yearEndCompensation({positions, year, priorLosses})` —
+reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya calcula FC1 (`fifoLedger`,
+dentro de `normalizePositions`), sin motor de cálculo nuevo: agrupa los `disposals` de todas las
+posiciones por año natural, suma ganancias y pérdidas por separado, y calcula el neto. Una sola venta
+del año con `realizedGain: null` (shortfall de FIFO) invalida la compensación de ese año entero —
+nunca un neto a medias que parezca completo. Las pérdidas arrastradas de años anteriores (que el
+hogar declara, porque la app no tiene histórico fiscal multi-año propio) se aplican de la más antigua
+a la más nueva primero, dentro de la ventana de 4 ejercicios; el sobrante que no se pudo aplicar
+queda disponible para años futuros, y una pérdida fuera de ventana no se aplica.
+
+`app.js` añade el registro de pérdidas arrastradas (`fc3PriorLossesList()`, año + importe, mismo
+patrón de lista simple que el resto de la app) y `handleFc3Compare()`, que normaliza las posiciones
+de IV1 y llama al motor. Nueva tarjeta "Compensación de pérdidas y ganancias a cierre de año" en
+Ajustes, justo después del registro de posiciones de IV1/FC1.
+
+**Validación**: `npm run verify`, exit 0 — **2860/2860 pruebas** (2844 + 16 nuevas: 9 en
+`tests/fc3-compensacion-perdidas-ganancias.test.cjs` — sin año no calcula nada, una venta incompleta
+invalida el año entero, neta correctamente ganancias/pérdidas del año, aplica pérdidas arrastradas de
+la más antigua primero, una pérdida fuera de la ventana de 4 ejercicios no se aplica, un año con
+pérdida neta genera un nuevo arrastre sin compensarse contra sí mismo — y 7 en
+`tests/fc3-app-integracion.test.cjs`). Accesibilidad (1051 IDs, +7 por la nueva tarjeta), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde. `app.js`/`canonical-portfolio.js`
+bumpeados a `?v=20260903fc3a1` (27 referencias del marcador de versión de `app.js` actualizadas en
+masa).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (121): Bloque 10 — A19-2, informe PDF certificado
 
 Sexta tarea del Bloque 10, encadenada tras AP2. Depende de A14-2 y A14-3 (ya construidas). Según su

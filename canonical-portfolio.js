@@ -452,6 +452,75 @@
     };
   }
 
+  const YEAR_END_COMPENSATION_SCHEMA_ID = "finance-canonical-portfolio/year-end-compensation-v1";
+  // Ley IRPF art. 49: una pérdida patrimonial no compensada arrastra 4 ejercicios frente a
+  // ganancias patrimoniales futuras. Este motor solo neta transmisiones (las plusvalías/minusvalías
+  // realizadas de FC1) contra transmisiones — nunca contra rendimientos del capital mobiliario
+  // (dividendos, intereses), que necesitarían un dato que esta app no declara; ese 25% cruzado de la
+  // ley queda fuera de alcance a propósito, no simulado.
+  const LOSS_CARRYFORWARD_YEARS = 4;
+
+  // FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de IV1/IV2 y
+  // reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya calcula FC1
+  // (fifoLedger, dentro de normalizePositions) — sin motor de cálculo nuevo, solo la agregación por
+  // año natural y el arrastre. Una sola venta con `realizedGain: null` (shortfall de FIFO) invalida
+  // la compensación de ese año entero — nunca neta un resultado a medias que parezca completo.
+  function yearEndCompensation({ positions = [], year, priorLosses = [] } = {}) {
+    const targetYear = String(year || "");
+    if (!/^\d{4}$/.test(targetYear)) {
+      return { schemaId: YEAR_END_COMPENSATION_SCHEMA_ID, calculable: false, reason: "missing-year" };
+    }
+    const yearDisposals = (Array.isArray(positions) ? positions : [])
+      .flatMap((position) => (Array.isArray(position?.disposals) ? position.disposals : []))
+      .filter((disposal) => String(disposal?.date || "").startsWith(`${targetYear}-`));
+    if (yearDisposals.some((disposal) => disposal.realizedGain === null)) {
+      return { schemaId: YEAR_END_COMPENSATION_SCHEMA_ID, calculable: false, reason: "incomplete-disposal", year: targetYear };
+    }
+    const yearGains = round2(yearDisposals.reduce((sum, disposal) => sum + Math.max(0, number(disposal.realizedGain)), 0));
+    const yearLosses = round2(yearDisposals.reduce((sum, disposal) => sum + Math.min(0, number(disposal.realizedGain)), 0));
+    const netResult = round2(yearGains + yearLosses);
+
+    // Las pérdidas de años anteriores dentro de la ventana de 4 ejercicios se aplican de la más
+    // antigua a la más nueva primero — así son las que antes caducan las que primero se consumen.
+    const targetYearNum = Number(targetYear);
+    const eligiblePriorLosses = (Array.isArray(priorLosses) ? priorLosses : [])
+      .map((entry) => ({ year: String(entry?.year || ""), amount: round2(Math.max(0, number(entry?.amount))) }))
+      .filter((entry) => /^\d{4}$/.test(entry.year) && Number(entry.year) < targetYearNum && Number(entry.year) >= targetYearNum - LOSS_CARRYFORWARD_YEARS)
+      .sort((a, b) => Number(a.year) - Number(b.year));
+
+    let remainingGainToOffset = Math.max(0, netResult);
+    const priorLossesApplied = [];
+    const remainingPriorLosses = [];
+    eligiblePriorLosses.forEach((entry) => {
+      if (remainingGainToOffset <= 0 || entry.amount <= 0) {
+        if (entry.amount > 0) remainingPriorLosses.push({ year: entry.year, amount: entry.amount });
+        return;
+      }
+      const applied = round2(Math.min(entry.amount, remainingGainToOffset));
+      remainingGainToOffset = round2(remainingGainToOffset - applied);
+      priorLossesApplied.push({ year: entry.year, amount: applied });
+      const leftover = round2(entry.amount - applied);
+      if (leftover > 0) remainingPriorLosses.push({ year: entry.year, amount: leftover });
+    });
+    const totalPriorLossesApplied = round2(priorLossesApplied.reduce((sum, entry) => sum + entry.amount, 0));
+    const taxableNet = netResult > 0 ? round2(netResult - totalPriorLossesApplied) : netResult;
+    const newCarryForward = netResult < 0 ? { year: targetYear, amount: round2(Math.abs(netResult)) } : null;
+
+    return {
+      schemaId: YEAR_END_COMPENSATION_SCHEMA_ID,
+      calculable: true,
+      year: targetYear,
+      yearGains,
+      yearLosses,
+      netResult,
+      priorLossesApplied,
+      totalPriorLossesApplied,
+      taxableNet,
+      newCarryForward,
+      remainingPriorLosses,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -467,6 +536,9 @@
     isFundToFundTransfer,
     applyFundTransfer,
     xirr,
+    YEAR_END_COMPENSATION_SCHEMA_ID,
+    LOSS_CARRYFORWARD_YEARS,
+    yearEndCompensation,
     fifoLedger,
     opportunityCost,
   };
