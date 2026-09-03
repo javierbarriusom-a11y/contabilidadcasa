@@ -3,6 +3,15 @@
 > Mapa de todos los backlogs del repositorio: [`BACKLOG_INDICE.md`](BACKLOG_INDICE.md) (OPT-20).
 > Este es el documento vigente — la única cola con trabajo pendiente de la ruta principal.
 
+> **Corrección de estado — 3 de septiembre de 2026.** La tabla de este documento sigue marcando sus 99
+> tareas como ⏳, pero `PROJECT_STATE.md` (sesiones 47 y 115 a 134) confirma que **94 ya están construidas,
+> con test y fusionadas a `main`**. Solo quedan `OPT-10`, `OPT-11`, `OPT-12`, `OPT-13` y `OPT-15`, bloqueadas
+> por el reloj de 30 días de `OPT-2` (arrancó el 29 de agosto, no cumple hasta finales de septiembre) — no
+> por esfuerzo. `OPT-14`, `OPT-16` y `OPT-17` quedaron cerradas como decisión de no construirlas. El
+> siguiente trabajo nuevo de producto vive en
+> [`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`](BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md) (51 tareas), que no
+> depende de este remanente y puede avanzar en paralelo.
+
 Fecha: 29 de agosto de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
 Este documento fusiona **dos generaciones de backlog** en un único orden de ejecución de 99 tareas:

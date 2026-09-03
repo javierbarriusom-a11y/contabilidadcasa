@@ -2,6 +2,37 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (135): nace `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`
+
+Pedido explícito del usuario: crear un nuevo documento de backlog, «Ultimate Septiembre Oleada 2»,
+formalizando las 51 ideas propuestas en la conversación (previsión viva, escenarios, entrada de
+datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio y vida,
+continuidad e IA, multidispositivo), y priorizar explícitamente el bloque de entrada de datos.
+
+**Corrección de estado, previa a fusionar nada**: `BACKLOG_ULTIMATE_SEPTIEMBRE.md` seguía marcando
+sus 99 tareas como pendientes en su propia tabla. Revisado contra este mismo documento (sesiones 47
+y 115 a 134) y el historial de commits, **94 de esas 99 ya están construidas, con test y fusionadas
+a `main`**. Solo quedan `OPT-10`, `OPT-11`, `OPT-12`, `OPT-13` y `OPT-15`, bloqueadas por el reloj
+de 30 días de `OPT-2` (arrancó el 29 de agosto, sesión 47; no cumple hasta finales de septiembre) —
+no por esfuerzo. `OPT-14`, `OPT-16` y `OPT-17` no están pendientes: quedaron cerradas como decisión
+explícita de no construirlas, con motivo técnico documentado. Se añadió una nota de corrección en
+la cabecera de `BACKLOG_ULTIMATE_SEPTIEMBRE.md` y se actualizó `BACKLOG_INDICE.md` en consecuencia.
+
+**Contenido del documento nuevo**: 51 tareas en 6 bloques. El Bloque 1 es el protocolo de entrada de
+datos completo (`DEX1`-`DEX11`), adelantado por decisión explícita del usuario en vez del criterio
+de esfuerzo/beneficio por defecto — justificado porque ninguna de las 11 depende de otra tarea de
+esta misma oleada, así que adelantarlas no salta ninguna dependencia real. Los bloques 2 a 5 siguen
+el criterio habitual (nivel de dependencia → esfuerzo → beneficio); el Bloque 6 aísla las dos tareas
+condicionadas a que `E10` active `A5-1` en producción (`DEX6`, ya contada en el Bloque 1, y `RGX3`).
+Ninguna de las 51 tareas depende del remanente de `OPT-10` a `OPT-15`: ambas colas avanzan en
+paralelo sin bloquearse.
+
+**Validación**: cambio puramente documental (tres ficheros `.md`, ningún código tocado).
+`node_modules` no existía en este checkout; tras `npm install` (336 paquetes), `npm run verify`
+pasa completo: **2935/2935 pruebas**, accesibilidad estructural (1083 IDs únicos), rendimiento
+(diff 10.000 filas en 47,4 ms; forecast y escenarios en 226,4 ms), `build:site`, privacidad y humo
+en verde — mismas cifras que la sesión 134, confirmando que no hay regresión.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (134): OPT-23 resuelta — el sticky ya funciona de verdad en toda la app
 
 Investigación pedida explícitamente por el usuario sobre la nota de sesión 133 («investigar ahora
