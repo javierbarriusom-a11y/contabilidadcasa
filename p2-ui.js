@@ -183,22 +183,38 @@
   // que lo más urgente encabece la lista y no solo lo más próximo en el tiempo.
   const E16_LIST_LIMIT = 3;
 
+  // HD-5: destino de "ver detalle completo" — panel plegable en la misma Hoy, no una vista propia
+  // en Herramientas avanzadas (esa sección ya es, por su propio texto en index.html, el archivo de
+  // pantallas heredadas — meter ahí datos vivos de cada carga sería confuso). Mismo mecanismo que
+  // ya usa Presupuesto del mes (planMesCollapsedBlocks/data-plan-mes-block-toggle): estado en
+  // memoria, sin persistir entre sesiones.
+  const e16Expanded = { alerts: false, changes: false };
+
   function e16TopAlertsHtml(alerts) {
     if (!alerts.length) return '<div class="p2-empty">No hay riesgos que superen el presupuesto configurado.</div>';
-    const top = [...alerts].sort((a, b) => (CP1_SEVERITY_RANK[a.severity] ?? 3) - (CP1_SEVERITY_RANK[b.severity] ?? 3)).slice(0, E16_LIST_LIMIT);
-    const items = top.map((item) => `<article class="p2-item"><div class="p2-item-head"><strong>${esc(item.monthKey)} · ${esc(item.severity)}</strong><span class="p2-status${item.severity === "critical" ? " danger" : " warn"}">${esc(item.confidence)}</span></div><p>${esc(item.message)}</p><p class="p2-help">${esc(item.evidence.join(" · "))}</p></article>`).join("");
-    const rest = alerts.length - top.length;
-    const note = rest > 0 ? `<p class="p2-help">${alerts.length} alertas en total, ordenadas por severidad — se muestran las ${top.length} más urgentes.</p>` : "";
-    return items + note;
+    const ranked = [...alerts].sort((a, b) => (CP1_SEVERITY_RANK[a.severity] ?? 3) - (CP1_SEVERITY_RANK[b.severity] ?? 3));
+    const visible = e16Expanded.alerts ? ranked : ranked.slice(0, E16_LIST_LIMIT);
+    const items = visible.map((item) => `<article class="p2-item"><div class="p2-item-head"><strong>${esc(item.monthKey)} · ${esc(item.severity)}</strong><span class="p2-status${item.severity === "critical" ? " danger" : " warn"}">${esc(item.confidence)}</span></div><p>${esc(item.message)}</p><p class="p2-help">${esc(item.evidence.join(" · "))}</p></article>`).join("");
+    const rest = ranked.length - visible.length;
+    const toggle = rest > 0
+      ? `<button type="button" class="p2-button secondary" data-e16-expand="alerts">Ver ${rest} alerta${rest === 1 ? "" : "s"} más</button>`
+      : e16Expanded.alerts && ranked.length > E16_LIST_LIMIT
+        ? `<button type="button" class="p2-button secondary" data-e16-collapse="alerts">Mostrar solo las urgentes</button>`
+        : "";
+    return items + (toggle ? `<div class="p2-actions">${toggle}</div>` : "");
   }
 
   function e16RecentChangesHtml(changes) {
     if (!changes.length) return '<div class="p2-empty">No hay cambios comparables todavía.</div>';
-    const top = changes.slice(0, E16_LIST_LIMIT + 2);
-    const items = top.map((item) => `<div class="p2-contribution"><span>${esc(item)}</span></div>`).join("");
-    const rest = changes.length - top.length;
-    const note = rest > 0 ? `<p class="p2-help">Se muestran ${top.length} de ${changes.length} cambios.</p>` : "";
-    return items + note;
+    const visible = e16Expanded.changes ? changes : changes.slice(0, E16_LIST_LIMIT + 2);
+    const items = visible.map((item) => `<div class="p2-contribution"><span>${esc(item)}</span></div>`).join("");
+    const rest = changes.length - visible.length;
+    const toggle = rest > 0
+      ? `<button type="button" class="p2-button secondary" data-e16-expand="changes">Ver ${rest} cambio${rest === 1 ? "" : "s"} más</button>`
+      : e16Expanded.changes && changes.length > E16_LIST_LIMIT + 2
+        ? `<button type="button" class="p2-button secondary" data-e16-collapse="changes">Mostrar menos</button>`
+        : "";
+    return items + (toggle ? `<div class="p2-actions">${toggle}</div>` : "");
   }
 
   // CP2: detección de "dinero parado". Depende de AP1 (canonical-debt-comparator.js) y reutiliza tal
@@ -289,6 +305,13 @@
       save({ ...p2, e16: { ...p2.e16, riskBudget: nextBudget } });
       notice(target.querySelector("[data-e16-notice]"), "Presupuesto de riesgo guardado. El plan no se ha modificado.");
       renderE16Monitoring();
+    });
+    // HD-5: expandir/plegar los listados recortados por HD-4, sin salir de Hoy.
+    target.querySelectorAll("[data-e16-expand]").forEach((button) => {
+      button.addEventListener("click", () => { e16Expanded[button.dataset.e16Expand] = true; renderE16Monitoring(); });
+    });
+    target.querySelectorAll("[data-e16-collapse]").forEach((button) => {
+      button.addEventListener("click", () => { e16Expanded[button.dataset.e16Collapse] = false; renderE16Monitoring(); });
     });
   }
 

@@ -2,6 +2,39 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (131): HD-5 — panel plegable, cierra el bloque Hoy del spin-off «Ajustes y Hoy»
+
+Última tarea del bloque Hoy (HD-1 a HD-4 ya cerradas en la sesión 130, PR #227). HD-5 —dónde vive
+"ver detalle completo" cuando el listado recortado por HD-4 se queda corto— quedaba explícitamente
+sin decidir. Antes de construir nada se contrastó la alternativa candidata contra el propio código:
+`index.html:3371` describe «Herramientas avanzadas» como el destino de «versiones anteriores... no
+es el camino recomendado para trabajar día a día» — el archivo de pantallas heredadas (Laboratorio
+vive ahí). Meter ahí datos vivos, recalculados en cada carga de Hoy, habría sido una mala
+arquitectura de información, no solo una cuestión de gusto: la propia sección ya está marcada como
+secundaria/heredada.
+
+**Decisión, propuesta al usuario y confirmada**: panel plegable en la misma Hoy, no una vista nueva.
+Motivos, de mayor a menor peso: (1) el hallazgo de arriba sobre «Herramientas avanzadas»; (2) HD-1
+ya acotó el volumen real a un máximo teórico manejable (18 meses × alertas), el problema de escala
+que justificaría una vista propia ya no existe; (3) coherencia con un mecanismo que el repositorio
+ya usa en dos sitios (`plan-mes-block-toggle` de Presupuesto del mes, el acordeón de Laboratorio),
+sin introducir una tercera forma de plegar contenido; (4) coste de descubrimiento — una vista aparte
+solo se visita si el usuario sabe que existe.
+
+**Construido**: `p2-ui.js` gana el estado en memoria `e16Expanded` ({alerts, changes}, sin persistir
+entre sesiones — mismo criterio que `planMesCollapsedBlocks`) y botones `data-e16-expand`/
+`data-e16-collapse` («Ver N alertas/cambios más» / «Mostrar solo las urgentes» · «Mostrar menos»)
+en `e16TopAlertsHtml()` y `e16RecentChangesHtml()` (HD-4, sesión 130). Cableado en
+`renderE16Monitoring()` igual que ya hace el formulario de presupuesto de riesgo: los botones se
+recrean en cada render (dentro del `innerHTML` reemplazado), así que su listener no se acumula.
+Sin clases de UI nuevas: reutiliza `.p2-button.secondary` y `.p2-actions`, ya existentes en `p2.css`.
+
+**Con esto se cierra el bloque Hoy completo** (HD-1 a HD-5) del spin-off «Ajustes y Hoy». Queda
+pendiente el bloque Ajustes (AJ-1 a AJ-3), sin empezar.
+
+**Validación**: `npm run verify`, exit 0 — **2935/2935 pruebas**, accesibilidad, rendimiento,
+`build:site`, privacidad y humo, todo en verde.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (130): HD-1 a HD-4 — Hoy deja de volcar una década de alertas y el historial completo de movimientos
 
 Spin-off «Ajustes y Hoy» (fuera de las 99 tareas de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, priorizado
