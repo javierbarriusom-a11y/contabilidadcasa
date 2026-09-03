@@ -151,6 +151,55 @@
     return brackets;
   }
 
+  // FC5: venta parcial optimizando el tramo del ahorro. Depende de IV2 y reutiliza tal cual
+  // validateBracketScale/progressiveTax — mismo motor que A15-2, sin escala nueva que inventar: el
+  // hogar registra la escala del tramo del ahorro con la misma tarjeta de escalas de IRPF (un
+  // `kind` más, "savings"). Dado lo que ya se ha realizado este año (la base del ahorro ya generada,
+  // por ejemplo el resultado de FC3) y la plusvalía de una venta que se está valorando, dice cuánto
+  // de esa plusvalía cabe todavía en el tramo actual antes de saltar al siguiente, y el coste
+  // marginal de vender el excedente ahora. Nunca decide por el hogar — la venta sigue siendo suya.
+  function bracketFor(brackets, base) {
+    let previousLimit = 0;
+    for (const bracket of brackets) {
+      const upper = bracket.limit === null ? Infinity : number(bracket.limit);
+      if (base < upper) return { bracket, previousLimit, upper };
+      previousLimit = upper;
+    }
+    return { bracket: brackets[brackets.length - 1], previousLimit, upper: Infinity };
+  }
+
+  function optimizePartialSale({ scale, alreadyRealizedGain, proposedGain } = {}) {
+    const check = validateBracketScale(scale || {});
+    if (!check.valid) {
+      return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-scale", issues: check.issues, warning: PROFESSIONAL_WARNING };
+    }
+    const gain = Math.max(0, number(proposedGain));
+    if (gain <= 0) {
+      return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-gain", warning: PROFESSIONAL_WARNING };
+    }
+    const base = Math.max(0, number(alreadyRealizedGain));
+    const { bracket: currentBracket, upper } = bracketFor(scale.brackets, base);
+    const roomInCurrentBracket = upper === Infinity ? null : round2(Math.max(0, upper - base));
+    const withinBracket = roomInCurrentBracket === null || gain <= roomInCurrentBracket;
+    const suggestedAmountWithinBracket = roomInCurrentBracket === null ? gain : round2(Math.min(gain, roomInCurrentBracket));
+    const excessOverBracket = round2(Math.max(0, gain - suggestedAmountWithinBracket));
+    const taxBefore = progressiveTax(base, scale.brackets);
+    const taxAfter = progressiveTax(round2(base + gain), scale.brackets);
+    return {
+      schemaId: SCHEMA_ID,
+      calculable: true,
+      alreadyRealizedGain: base,
+      proposedGain: gain,
+      currentBracketRatePct: round2(number(currentBracket.rate)),
+      roomInCurrentBracket,
+      withinBracket,
+      suggestedAmountWithinBracket,
+      excessOverBracket,
+      marginalTax: round2(taxAfter - taxBefore),
+      warning: PROFESSIONAL_WARNING,
+    };
+  }
+
   return {
     SCHEMA_ID,
     PROFESSIONAL_WARNING,
@@ -159,5 +208,6 @@
     progressiveTax,
     estimateIrpfResult,
     parseBracketScaleInput,
+    optimizePartialSale,
   };
 });

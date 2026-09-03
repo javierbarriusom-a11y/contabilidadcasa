@@ -15346,7 +15346,7 @@ function saveIrpfBracketScale({ kind, region, year, brackets, sourceTitle, sourc
   const parsedYear = Math.round(Number(year));
   const next = [...scales, {
     id: `irpf-escala-${Date.now()}`,
-    kind: kind === "regional" ? "regional" : "state",
+    kind: kind === "regional" ? "regional" : kind === "savings" ? "savings" : "state",
     region: kind === "regional" ? String(region || "").trim() : "",
     year: Number.isFinite(parsedYear) && parsedYear >= 2000 && parsedYear <= 2100 ? parsedYear : null,
     brackets: engine.parseBracketScaleInput(brackets) || [],
@@ -15366,7 +15366,7 @@ function removeIrpfBracketScale(id) {
   saveScenarioSettings();
 }
 
-const IRPF_SCALE_KIND_LABELS = { state: "Escala general estatal", regional: "Escala autonómica" };
+const IRPF_SCALE_KIND_LABELS = { state: "Escala general estatal", regional: "Escala autonómica", savings: "Escala del tramo del ahorro" };
 
 function irpfScaleLabel(scale) {
   const engine = window.FinanceCanonicalIrpfEstimator;
@@ -15440,6 +15440,36 @@ function handleAjustesEstimateIrpf() {
     regionalScale: regionalScale || {},
   });
   note.innerHTML = `<p class="${result.calculable && result.direction === "payment" ? "negative" : result.calculable && result.direction === "refund" ? "positive" : ""}">${escapeHtml(irpfResultLabel(result))}</p>`;
+}
+
+// FC5: venta parcial optimizando el tramo del ahorro. Depende de IV2 y reutiliza tal cual el motor
+// de tramos progresivos de A15-2 (validateBracketScale/progressiveTax vía optimizePartialSale) — el
+// hogar registra la escala del tramo del ahorro con la misma tarjeta de escalas de arriba (kind
+// "savings"), sin escala nueva que inventar. Nunca es una recomendación de vender, solo información.
+function fc5ResultHtml(result) {
+  if (!result.calculable) {
+    if (result.reason === "missing-scale") return "Registra primero la escala del tramo del ahorro (arriba, «Tramo del ahorro») antes de calcular.";
+    return "Indica la plusvalía de la venta que valoras (mayor que cero) para calcular.";
+  }
+  const bracketLine = result.roomInCurrentBracket === null
+    ? `Tramo actual (${result.currentBracketRatePct}%): sin límite superior, toda la plusvalía cabe en este tramo.`
+    : `Tramo actual (${result.currentBracketRatePct}%): quedan ${money(result.roomInCurrentBracket, true)} de margen antes de saltar al siguiente tipo.`;
+  const fitLine = result.withinBracket
+    ? `Los ${money(result.proposedGain, true)} que valoras vender caben enteros en el tramo actual.`
+    : `De los ${money(result.proposedGain, true)} que valoras vender, ${money(result.suggestedAmountWithinBracket, true)} caben en el tramo actual — el resto (${money(result.excessOverBracket, true)}) tributaría ya en el siguiente tipo.`;
+  return `<p>${escapeHtml(bracketLine)}</p><p>${escapeHtml(fitLine)}</p><p>Coste marginal estimado de realizar toda la plusvalía ahora: ${money(result.marginalTax, true)}.</p><p class="e19-kpi-note">${escapeHtml(result.warning)} No es una recomendación de vender — solo información para decidir cuánto y cuándo.</p>`;
+}
+
+function handleFc5Optimize() {
+  const note = qs("fc5OptimizeNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalIrpfEstimator;
+  if (!engine) return;
+  const alreadyRealizedGain = parseAmount(qs("fc5AlreadyRealized")?.value);
+  const proposedGain = parseAmount(qs("fc5ProposedGain")?.value);
+  const scale = latestIrpfScale("savings");
+  const result = engine.optimizePartialSale({ scale: scale || {}, alreadyRealizedGain, proposedGain });
+  note.innerHTML = fc5ResultHtml(result);
 }
 
 // AP3 · simulador de apalancamiento (pedir deuda nueva para invertir) — explorar, no ejecutar.
@@ -34847,6 +34877,7 @@ async function init() {
     renderIrpfBracketScales();
   });
   qs("irpfEstimateRun")?.addEventListener("click", handleAjustesEstimateIrpf);
+  qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
   qs("ap3ScenarioList")?.addEventListener("click", (event) => {
