@@ -625,6 +625,23 @@
                     </label>
                     <p class="data-hint">Si subes XLS/XLSX, lee el libro completo como fuente del modelo. Si subes CSV/TXT, lo importa como lote con las cabeceras anteriores.</p>
                   </article>
+                  <article class="data-card">
+                    <div class="module-heading">
+                      <div>
+                        <p class="panel-kicker">Cámara</p>
+                        <h3>Foto de ticket o factura</h3>
+                      </div>
+                    </div>
+                    <label class="file-drop" id="receiptCameraDrop">
+                      <span class="file-drop-title">Hacer foto al ticket</span>
+                      <span class="file-drop-subtitle">El texto se reconoce en tu propio navegador; la foto no sale de este dispositivo salvo que la sincronices tú mismo con el resto del expediente privado.</span>
+                      <span class="file-drop-button">Abrir cámara</span>
+                      <span class="file-drop-name" id="receiptCameraFileName">Ningún ticket capturado</span>
+                      <input id="receiptCameraInput" type="file" accept="image/*" capture="environment" />
+                    </label>
+                    <div class="data-import-log" id="receiptCameraStatus" role="status" aria-live="polite"></div>
+                    <div id="receiptCameraReview"></div>
+                  </article>
                 </div>
                 <div class="data-import-log" id="registrarBatchLog" role="status" aria-live="polite"></div>
               </article>
@@ -5215,7 +5232,8 @@
     <script defer src="canonical-e9-notifications.js?v=20260801e9a"></script>
     <script defer src="canonical-e9-banking.js?v=20260801e9b"></script>
     <script defer src="canonical-e9-bank-import.js?v=20260801e9b"></script>
-    <script defer src="canonical-e11b-inbox.js?v=20260801e11b1"></script>
+    <script defer src="canonical-e11b-inbox.js?v=20260903a173a1"></script>
+    <script defer src="canonical-receipt-ocr.js?v=20260903a173a1"></script>
     <script defer src="e17-experience.js?v=20260821d1a1"></script>
     <script defer src="e18-health.js?v=20260828a1"></script>
     <script defer src="canonical-decisions.js?v=20260714d"></script>
@@ -5232,7 +5250,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260903tt2a1"></script>
+    <script defer src="app.js?v=20260903a173a1"></script>
     <script defer src="p2-ui.js?v=20260903tt2a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

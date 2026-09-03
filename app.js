@@ -21,6 +21,7 @@ const MODEL_END_MONTH = 11;
 const UxSettings = globalThis.FinanceUxSettings || null;
 const UxShell = globalThis.FinanceUxShell || null;
 const E11bInbox = globalThis.FinanceCanonicalE11b || null;
+const ReceiptOcr = globalThis.FinanceCanonicalReceiptOcr || null;
 const E17Experience = globalThis.FinanceE17Experience || null;
 const E18Health = globalThis.FinanceE18Health || null;
 
@@ -53,6 +54,10 @@ let monthClosures = [];
 let importBatches = [];
 let dataInbox = [];
 let updateReceipts = [];
+// A17-3: enlaza un adjunto cifrado (A3-5, P2PrivateStore) con el movimiento que generó al
+// confirmarse — clave por transactionIdentity(row), el mismo identificador estable que ya usa
+// movementMappings para "solo este movimiento" (nunca un id propio nuevo en la fila del libro).
+let receiptAttachments = {};
 let e11bSettings = { enabled: true };
 let pendingE11bApply = null;
 let pendingLegacyMigrationState = null;
@@ -1075,6 +1080,7 @@ function appStatePayload(options = {}) {
     importBatches,
     dataInbox,
     updateReceipts,
+    receiptAttachments,
     e11b: { schemaId: E11bInbox?.SCHEMA_ID || "finance-e11b-update-inbox/v1", enabled: e11bSettings.enabled !== false },
     balanceSettings,
     scenarioSettings,
@@ -1510,6 +1516,7 @@ function applyPersistedPayload(payload = {}) {
   importBatches = Array.isArray(payload.importBatches) ? payload.importBatches : [];
   dataInbox = Array.isArray(payload.dataInbox) ? payload.dataInbox : [];
   updateReceipts = Array.isArray(payload.updateReceipts) ? payload.updateReceipts : [];
+  receiptAttachments = payload.receiptAttachments && typeof payload.receiptAttachments === "object" ? payload.receiptAttachments : {};
   e11bSettings = payload.e11b && typeof payload.e11b === "object" ? payload.e11b : { enabled: true };
   balanceSettings = payload.balanceSettings && typeof payload.balanceSettings === "object" ? payload.balanceSettings : {};
   scenarioSettings = payload.scenarioSettings && typeof payload.scenarioSettings === "object" ? payload.scenarioSettings : {};
@@ -1585,6 +1592,7 @@ function saveLocalSnapshot() {
   storageSet(storageKey("importBatches"), JSON.stringify(importBatches));
   storageSet(storageKey("dataInbox"), JSON.stringify(dataInbox));
   storageSet(storageKey("updateReceipts"), JSON.stringify(updateReceipts));
+  storageSet(storageKey("receiptAttachments"), JSON.stringify(receiptAttachments));
   storageSet(storageKey("e11b"), JSON.stringify(e11bSettings));
   storageSet(storageKey("balanceSettings"), JSON.stringify(balanceSettings));
   storageSet(storageKey("scenarioSettings"), JSON.stringify(scenarioSettings));
@@ -2496,6 +2504,7 @@ function loadLocalState() {
       importBatches: JSON.parse(storageGet(storageKey("importBatches"), "[]")),
       dataInbox: JSON.parse(storageGet(storageKey("dataInbox"), "[]")),
       updateReceipts: JSON.parse(storageGet(storageKey("updateReceipts"), "[]")),
+      receiptAttachments: JSON.parse(storageGet(storageKey("receiptAttachments"), "{}")),
       e11b: JSON.parse(storageGet(storageKey("e11b"), "{}")),
       balanceSettings: JSON.parse(storageGet(storageKey("balanceSettings"), "{}")),
       scenarioSettings: JSON.parse(storageGet(storageKey("scenarioSettings"), "{}")),
@@ -2529,6 +2538,7 @@ function loadLocalState() {
     importBatches = [];
     dataInbox = [];
     updateReceipts = [];
+    receiptAttachments = {};
     e11bSettings = { enabled: true };
     balanceSettings = {};
     scenarioSettings = {};
@@ -22417,6 +22427,7 @@ function renderMovementDetailDialog() {
       <div><dt>Origen</dt><dd>${escapeHtml(row.source || "—")}</dd></div>
       <div><dt>Cuenta</dt><dd>${escapeHtml(row.account || "—")}</dd></div>
     </dl>
+    ${receiptAttachments[transactionIdentity(row)] ? `<div class="movement-detail-attachment"><button type="button" class="e19-btn e19-btn-secondary" id="movementDetailViewReceipt">Ver foto del ticket (A17-3)</button></div>` : ""}
     <div class="movement-detail-reclassify">
       <label>
         <span>Partida</span>
@@ -22449,6 +22460,7 @@ function renderMovementDetailDialog() {
       <p class="e19-kpi-note" id="movementDetailActionTypeHint">P-1: eje aditivo sobre la partida — "¿cuánto de lo gastado es deuda, discrecional o recurrente?". Sin marcar «recordar», solo se aplica a este movimiento; marcada, se aplicará también a los movimientos futuros del mismo concepto.</p>
       <button type="button" class="e19-btn e19-btn-primary" id="movementDetailActionTypeSave">Guardar tipo de acción</button>
     </div>`;
+  qs("movementDetailViewReceipt")?.addEventListener("click", () => viewReceiptAttachment(row));
 }
 
 // M-7: cambio de partida con regla — reutiliza tal cual el mismo diccionario y el mismo camino de
@@ -23146,6 +23158,166 @@ function toggleE11bInbox() {
   saveLocalSnapshot();
   renderE11bStatus();
   showImportLog(e11bSettings.enabled ? "Bandeja previa activada" : "Compatibilidad clásica activada", e11bSettings.enabled ? "Las nuevas importaciones volverán a pasar por el asistente común." : "Los flujos anteriores siguen disponibles; no se ha perdido ninguna entrada.", "warning");
+}
+
+// ---------------------------------------------------------------------------------------------
+// A17-3 · Captura por cámara (OCR de tickets/facturas) — BACKLOG_ULTIMATE_SEPTIEMBRE.md bloque 6.
+// "Extracción de importe/fecha/comercio/categoría que entra siempre a la bandeja previa (A6-2),
+// nunca directa al libro; adjunto cifrado enlazado al movimiento (A3-5)". Reutiliza tal cual:
+//   - el mismo camino de aplicación que un extracto bancario (pendingE11bApply/
+//     applyStagedMovementImport): un ticket es, como un extracto, una lista de movimientos por
+//     confirmar, aquí con una sola fila;
+//   - la categoría nunca se inventa aquí: se deja vacía y la propone el mismo motor de reglas por
+//     concepto (mappingForMovement) que ya usa cualquier movimiento importado, desde el detalle del
+//     movimiento — no un segundo clasificador;
+//   - el adjunto cifrado es P2PrivateStore (A3-5), la misma pieza que ya usa el expediente privado
+//     de documentos de deuda, aquí enlazada por transactionIdentity() en vez de por id de deuda,
+//     porque un movimiento importado no tiene un id propio estable.
+// El motor de OCR (Tesseract.js) se carga bajo demanda desde CDN solo al abrir esta tarjeta, nunca
+// en la carga normal de la app, para no tocar el presupuesto de rendimiento real de OPT-5.
+// ---------------------------------------------------------------------------------------------
+
+const RECEIPT_OCR_CDN_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+let receiptOcrEngineLoad = null;
+let receiptCaptureDraft = null;
+
+function loadReceiptOcrEngine() {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return Promise.reject(new Error("La captura por cámara necesita un navegador."));
+  }
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  if (receiptOcrEngineLoad) return receiptOcrEngineLoad;
+  receiptOcrEngineLoad = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = RECEIPT_OCR_CDN_URL;
+    script.async = true;
+    script.onload = () => (window.Tesseract ? resolve(window.Tesseract) : reject(new Error("El motor de OCR no se pudo inicializar.")));
+    script.onerror = () => reject(new Error("No se pudo cargar el motor de OCR. Comprueba la conexión e inténtalo de nuevo."));
+    document.head.appendChild(script);
+  }).catch((error) => {
+    receiptOcrEngineLoad = null;
+    throw error;
+  });
+  return receiptOcrEngineLoad;
+}
+
+async function runReceiptOcr(file) {
+  const Tesseract = await loadReceiptOcrEngine();
+  const result = await Tesseract.recognize(file, "spa");
+  return result?.data?.text || "";
+}
+
+function receiptFieldsFromOcrText(text) {
+  if (!ReceiptOcr) return { amount: { calculable: false }, date: { calculable: false }, merchant: { calculable: false } };
+  return ReceiptOcr.extractReceiptFields(text, { today: new Date().toISOString().slice(0, 10) });
+}
+
+async function handleReceiptCameraCapture(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  const fileNameEl = qs("receiptCameraFileName");
+  if (fileNameEl) fileNameEl.textContent = file.name || "Foto capturada";
+  showImportLog("Reconociendo el ticket…", "El texto se está leyendo en tu propio navegador. Puede tardar unos segundos.", "", "receiptCameraStatus");
+  const reviewEl = qs("receiptCameraReview");
+  if (reviewEl) reviewEl.innerHTML = "";
+  let text = "";
+  try {
+    text = await runReceiptOcr(file);
+  } catch (error) {
+    showImportLog("No se pudo leer el ticket automáticamente", `${error.message || "Inténtalo de nuevo."} Puedes rellenar los datos a mano.`, "warning", "receiptCameraStatus");
+  }
+  const fields = receiptFieldsFromOcrText(text);
+  if (receiptCaptureDraft?.previewUrl) URL.revokeObjectURL(receiptCaptureDraft.previewUrl);
+  receiptCaptureDraft = { file, previewUrl: URL.createObjectURL(file) };
+  renderReceiptCaptureReview(fields);
+}
+
+function renderReceiptCaptureReview(fields) {
+  const container = qs("receiptCameraReview");
+  if (!container || !receiptCaptureDraft) return;
+  const amountValue = fields.amount?.calculable ? Math.abs(fields.amount.value).toFixed(2) : "";
+  const dateValue = fields.date?.calculable ? fields.date.value : new Date().toISOString().slice(0, 10);
+  const merchantValue = fields.merchant?.calculable ? fields.merchant.value : "";
+  const allCalculable = fields.amount?.calculable && fields.date?.calculable && fields.merchant?.calculable;
+  container.innerHTML = `
+    <div class="receipt-capture-review">
+      <img class="receipt-capture-thumb" src="${receiptCaptureDraft.previewUrl}" alt="Foto del ticket capturado" />
+      <div class="receipt-capture-fields">
+        <label><span>Importe (€)</span><input id="receiptCaptureAmount" type="number" step="0.01" min="0" value="${escapeHtml(amountValue)}" /></label>
+        <label><span>Fecha</span><input id="receiptCaptureDate" type="date" value="${escapeHtml(dateValue)}" /></label>
+        <label><span>Comercio</span><input id="receiptCaptureMerchant" type="text" value="${escapeHtml(merchantValue)}" placeholder="Nombre del comercio" /></label>
+      </div>
+      <p class="data-hint">${allCalculable ? "Reconocido automáticamente — revisa antes de confirmar." : "El reconocimiento no encontró todos los datos con certeza — complétalos antes de confirmar."} La categoría se propondrá igual que en cualquier movimiento importado, desde el detalle del movimiento. Nada se incorpora al libro sin tu confirmación.</p>
+      <div class="data-actions">
+        <button id="receiptCaptureConfirm" type="button">Confirmar y registrar</button>
+        <button id="receiptCaptureCancel" class="secondary" type="button">Descartar</button>
+      </div>
+    </div>`;
+  qs("receiptCaptureConfirm")?.addEventListener("click", confirmReceiptCapture);
+  qs("receiptCaptureCancel")?.addEventListener("click", cancelReceiptCapture);
+}
+
+function cancelReceiptCapture() {
+  if (receiptCaptureDraft?.previewUrl) URL.revokeObjectURL(receiptCaptureDraft.previewUrl);
+  receiptCaptureDraft = null;
+  const reviewEl = qs("receiptCameraReview");
+  if (reviewEl) reviewEl.innerHTML = "";
+  showImportLog("Captura descartada", "No se ha registrado ningún movimiento.", "", "receiptCameraStatus");
+}
+
+function confirmReceiptCapture() {
+  if (!receiptCaptureDraft) return;
+  const amount = parseAmount(qs("receiptCaptureAmount")?.value);
+  const date = qs("receiptCaptureDate")?.value;
+  const merchant = String(qs("receiptCaptureMerchant")?.value || "").trim();
+  if (!amount || amount <= 0 || !date || !merchant) {
+    showImportLog("Faltan datos", "Importe, fecha y comercio son obligatorios antes de confirmar.", "danger", "receiptCameraStatus");
+    return;
+  }
+  const row = {
+    date, valueDate: date, movement: merchant,
+    details: "Ticket capturado por cámara (A17-3)",
+    amount: -Math.abs(round2(amount)), balance: null, category: "",
+    source: "receipt-photo", statementOrder: 0,
+  };
+  const imported = [row];
+  const comparison = { valid: true, additions: imported, changes: [], duplicates: [], removals: [] };
+  const inboxItem = addE11bInboxItem({ source: "receipt-photo", sourceLabel: merchant, rows: imported, comparison });
+  pendingE11bApply = { imported, inboxItem };
+  const draft = receiptCaptureDraft;
+  applyStagedMovementImport();
+  const store = typeof P2PrivateStore !== "undefined" ? P2PrivateStore : null;
+  if (inboxItem && store) {
+    store.put(inboxItem.id, draft.file).then(() => {
+      receiptAttachments[transactionIdentity(row)] = { inboxItemId: inboxItem.id, storage: "local", mimeType: draft.file.type, createdAt: new Date().toISOString() };
+      saveLocalSnapshot();
+    }).catch(() => {
+      showImportLog("Movimiento registrado sin adjunto", "El ticket se incorporó al libro, pero la foto no se pudo guardar cifrada en este dispositivo.", "warning", "receiptCameraStatus");
+    });
+  }
+  if (draft.previewUrl) URL.revokeObjectURL(draft.previewUrl);
+  receiptCaptureDraft = null;
+  const reviewEl = qs("receiptCameraReview");
+  if (reviewEl) reviewEl.innerHTML = "";
+  const fileNameEl = qs("receiptCameraFileName");
+  if (fileNameEl) fileNameEl.textContent = "Ningún ticket capturado";
+}
+
+async function viewReceiptAttachment(row) {
+  const link = receiptAttachments[transactionIdentity(row)];
+  if (!link) return;
+  const store = typeof P2PrivateStore !== "undefined" ? P2PrivateStore : null;
+  if (!store) return;
+  try {
+    const blob = await store.get(link.inboxItemId);
+    if (!blob) { announceStatus("No se encontró la foto guardada en este dispositivo."); return; }
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank", "noopener");
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch {
+    announceStatus("No se pudo abrir el adjunto del ticket.");
+  }
 }
 
 async function undoLastImportBatch() {
@@ -34312,6 +34484,7 @@ async function init() {
   qs("registrarBatchClearBtn")?.addEventListener("click", handleRegistrarBatchClear);
   qs("registrarBatchTemplateBtn")?.addEventListener("click", downloadRegistrarBatchTemplate);
   qs("registrarExcelDataFile")?.addEventListener("change", handleRegistrarExcelImport);
+  qs("receiptCameraInput")?.addEventListener("change", handleReceiptCameraCapture);
   const registrarExcelDrop = qs("registrarExcelDrop");
   if (registrarExcelDrop) {
     registrarExcelDrop.addEventListener("dragover", handleRegistrarExcelDragOver);

@@ -57,3 +57,12 @@ test("D-2b · sin descuadre no aparece ninguna tarea de esa causa", () => {
   const tasks = api.reconciliationTasks({ unclassified: [{ id: "m1" }], debtCapitalMismatches: [] });
   assert.ok(!tasks.some((item) => item.cause === "debt-capital-mismatch"));
 });
+
+// A17-3: la captura por cámara es una fuente más de la bandeja, con el mismo ciclo de
+// comparación/confirmación que cualquier otra — nunca una segunda puerta de escritura.
+test("A17-3 · receipt-photo es una fuente reconocida de la bandeja", () => {
+  assert.ok(api.SOURCES.has("receipt-photo"));
+  const item = api.buildInboxItem({ source: "receipt-photo", sourceLabel: "MERCADONA", rows: [{ id: "a", amount: -2.45 }], comparison: { valid: true } }, { id: "inbox-4", at: "2026-09-03T10:00:00Z" });
+  assert.equal(item.source, "receipt-photo");
+  assert.equal(item.status, "ready");
+});
