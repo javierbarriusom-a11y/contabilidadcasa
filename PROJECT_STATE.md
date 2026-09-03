@@ -2,6 +2,49 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (118): Bloque 10 — IV5, coste de oportunidad junto a cada decisión de caja
+
+Tercera tarea del Bloque 10, encadenada tras A18-3. Depende de IV1 e IV2 (`canonical-portfolio.js`,
+ambos ya construidos: registro de cartera por posición y su rentabilidad real, XIRR/TWR). Según su
+propia nota en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, "habilita AP1" (comparador amortizar vs. invertir,
+siguiente tarea del bloque).
+
+**Decisión de alcance, sin ficha de detalle que la resolviera** (IV5 es una de las 50 tareas de
+ampliación sin documento propio): "cada decisión de caja" podría leerse como todo el motor de
+escenarios de 11 tipos que usan Deuda, el laboratorio E13 y Planificación de partidas —
+retrocompatibilizarlo entero se salía muy por encima del esfuerzo M declarado y arriesgaba tocar
+demasiada superficie ya probada. Se acotó a la única decisión que representa literalmente un importe
+de caja que sale del bolsillo del hogar hoy: la **compra al contado** del "Simulador de decisión"
+("¿y si...?") en Planificación de partidas — una compra financiada no cuenta (ese dinero no sale de
+caja hoy, se paga a plazos) ni el resto de tipos (deuda nueva, refinanciación...) representan "gastar
+caja que se podría haber invertido". La función pura queda reutilizable tal cual para AP1, que sí
+necesitará compararla con amortizar deuda.
+
+**Construido**: `canonical-portfolio.js` gana `opportunityCost({amount, months, annualReturnPct})` —
+compone el importe al tipo anual declarado durante el horizonte en meses restantes; sin importe, sin
+horizonte o sin una rentabilidad anual **conocida** (no `Number(null)`, que colapsa a 0 y por poco se
+cuela como "0% asumido" en la primera versión, corregido antes de publicar), `calculable: false`,
+nunca un coste de oportunidad inventado. `app.js` añade `iv5PortfolioAnnualReturnPct()` (reutiliza la
+misma XIRR real de la cartera que ya muestra la tarjeta de posiciones de IV1/IV2, nunca una cifra de
+mercado nueva) y `partidasSimuladorOpportunityCostFor()`, que solo calcula para una compra sin
+financiar. El simulador de decisión ("¿y si...?" en Planificación de partidas) gana una cuarta
+estadística, "Coste de oportunidad, si se hubiera invertido en tu cartera", junto a las tres ya
+existentes (mínimo del horizonte, liquidez final, meses de colchón) — en el modo manual y en el modo
+"mejor mes".
+
+**Validación**: `npm run verify`, exit 0 — **2804/2804 pruebas** (2789 + 15 nuevas: 8 en
+`tests/iv5-coste-oportunidad.test.cjs` — sin importe/horizonte/rentabilidad conocida no calcula nada,
+compone correctamente sobre horizontes de menos de un año, una rentabilidad negativa reduce el valor
+proyectado, un importe negativo se trata como cero — y 7 en `tests/iv5-app-integracion.test.cjs`).
+Accesibilidad (1037 IDs, sin cambio: solo HTML dinámico, ningún id estático nuevo), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde. `app.js`/`canonical-portfolio.js`
+bumpeados a `?v=20260903iv5a1` (27 referencias del marcador de versión de `app.js` actualizadas en
+masa, mismo mecanismo que en sesiones anteriores).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (117): Bloque 10 — A18-3, liquidación con doble confirmación
 
 Segunda tarea del Bloque 10, encadenada tras AP6. Depende de A18-2 (`canonical-household-split.js`,

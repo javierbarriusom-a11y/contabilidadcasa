@@ -12659,12 +12659,48 @@ function partidasSimuladorEvaluate() {
     const month = monthByKey(monthKey, selectableMonths());
     const deltaMinimo = summary.minimoLiquidez !== null && baseline.minimoLiquidez !== null ? round2(summary.minimoLiquidez - baseline.minimoLiquidez) : null;
     const deltaFinal = summary.liquidezFinal !== null && baseline.liquidezFinal !== null ? round2(summary.liquidezFinal - baseline.liquidezFinal) : null;
-    return { modo, month, summary, baseline, deltaMinimo, deltaFinal, errors: [], decision: built.decision, baseInput };
+    const opportunityCost = partidasSimuladorOpportunityCostFor(built.decision, month, baseInput);
+    return { modo, month, summary, baseline, deltaMinimo, deltaFinal, opportunityCost, errors: [], decision: built.decision, baseInput };
   }
   const months = monthsInRange(qs("partidasSimRangeStart")?.value || "", qs("partidasSimRangeEnd")?.value || "", selectableMonths());
   if (!months.length) return { modo, errors: ["Selecciona un rango de meses válido."] };
   const scan = partidasSimuladorScanMonths(months, baseInput, baseline);
+  if (scan.best) scan.best.opportunityCost = partidasSimuladorOpportunityCostFor(scan.best.decision, scan.best.month, baseInput);
   return { modo, scan, baseline, errors: [], baseInput };
+}
+
+// IV5: coste de oportunidad de una compra al contado frente a haber dejado ese importe invertido en
+// la cartera real del hogar el resto del horizonte modelado. Depende de IV1/IV2
+// (canonical-portfolio.js): usa la XIRR real de la cartera declarada — el mismo dato que ya muestra
+// la tarjeta de posiciones (renderIv1PositionSummary) — nunca una cifra de mercado inventada. Sin
+// cartera registrada o sin XIRR calculable, no hay coste de oportunidad que mostrar. Solo aplica a
+// una compra sin financiar: una compra financiada no saca el importe de la caja del hogar hoy, así
+// que no hay nada que hubiera podido quedarse invertido en su lugar.
+function iv5PortfolioAnnualReturnPct() {
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) return null;
+  return engine.normalizePositions(rows).summary.xirr.ratePct;
+}
+
+function partidasSimuladorOpportunityCostFor(decision, month, baseInput) {
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine || !decision || decision.tipo !== "compra" || decision.params?.financiacion) return null;
+  const annualReturnPct = iv5PortfolioAnnualReturnPct();
+  if (annualReturnPct === null) return null;
+  const months = Array.isArray(baseInput?.months) ? baseInput.months : [];
+  const monthIndex = months.findIndex((entry) => entry.monthKey === month?.key);
+  const remainingMonths = monthIndex >= 0 ? months.length - monthIndex : months.length;
+  return engine.opportunityCost({ amount: decision.params?.importe, months: remainingMonths, annualReturnPct });
+}
+
+function partidasSimuladorOpportunityCostHtml(opportunityCost) {
+  if (!opportunityCost || !opportunityCost.calculable) return "";
+  return `<div class="asesor-decision-stat">
+      <span>Coste de oportunidad, si se hubiera invertido en tu cartera</span>
+      <strong>${money(opportunityCost.gain, true)}</strong>
+      <em>a la XIRR real de tu cartera (${opportunityCost.annualReturnPct >= 0 ? "+" : ""}${opportunityCost.annualReturnPct}% anual) durante los ${opportunityCost.months} mes(es) restantes del horizonte</em>
+    </div>`;
 }
 
 function partidasSimuladorMoneyDelta(value) {
@@ -12698,7 +12734,7 @@ function partidasSimuladorResultHtml(evaluation) {
     return `<p class="inline-feedback warning">${evaluation.errors.map((message) => escapeHtml(message)).join(" ")}</p>`;
   }
   if (evaluation.modo === "manual") {
-    const { summary, month, deltaMinimo, deltaFinal } = evaluation;
+    const { summary, month, deltaMinimo, deltaFinal, opportunityCost } = evaluation;
     return `<div class="planificacion-partidas-simulador-result">
       <div class="asesor-decision-stats">
         <div class="asesor-decision-stat">
@@ -12715,6 +12751,7 @@ function partidasSimuladorResultHtml(evaluation) {
           <span>Meses de colchón</span>
           <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toFixed(1) : "—"}</strong>
         </div>
+        ${partidasSimuladorOpportunityCostHtml(opportunityCost)}
       </div>
       <p class="e19-kpi-note">Simulado en ${escapeHtml(month?.label || "—")}, sin guardar nada — los importes ya se ven en la tabla de abajo, fila "Simulación". Para llevarlo al plan real, créalo en "Escenario · simular".</p>
       <button type="button" class="ghost-button" data-partidas-sim-clear-preview>Quitar de la tabla</button>
@@ -12727,7 +12764,7 @@ function partidasSimuladorResultHtml(evaluation) {
   // Sin lista de candidatos: con un horizonte de años, listar cada mes probado sería un scroll
   // infinito. Solo el mejor, con las mismas tres cifras que el modo manual — el detalle mes a mes ya
   // se ve en la tabla de abajo (fila "Simulación" + "Resultado con la simulación").
-  const { summary, month, deltaMinimo } = scan.best;
+  const { summary, month, deltaMinimo, opportunityCost } = scan.best;
   const deltaFinal = summary.liquidezFinal !== null && baseline.liquidezFinal !== null ? round2(summary.liquidezFinal - baseline.liquidezFinal) : null;
   const testedCount = scan.results.filter((item) => item.summary).length;
   return `<div class="planificacion-partidas-simulador-result">
@@ -12747,6 +12784,7 @@ function partidasSimuladorResultHtml(evaluation) {
         <span>Meses de colchón</span>
         <strong>${summary.mesesColchon !== null && summary.mesesColchon !== undefined ? summary.mesesColchon.toFixed(1) : "—"}</strong>
       </div>
+      ${partidasSimuladorOpportunityCostHtml(opportunityCost)}
     </div>
     <p class="e19-kpi-note">Simulado en ${escapeHtml(month.label)}, sin guardar nada — los importes ya se ven en la tabla de abajo, fila "Simulación" y fila "Resultado con la simulación". Para llevarlo al plan real, créalo en "Escenario · simular".</p>
     <button type="button" class="ghost-button" data-partidas-sim-clear-preview>Quitar de la tabla</button>
