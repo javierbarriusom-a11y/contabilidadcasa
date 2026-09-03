@@ -160,7 +160,7 @@ sin bloqueo · ⛔ bloqueado). Todas las tareas de este documento están ⏳ sal
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 52 | IV1 | Registro de cartera por posición | Inversión | L | Crítico (estructural) | La más grande de toda la ampliación; todo el bloque de inversión y fiscalidad de cartera depende de esta |
-| 53 | OPT-14 | Fusionar los seis pares de pantallas gemelas documentados | Optimización | L | Crítico | |
+| 53 | OPT-14 | Fusionar los seis pares de pantallas gemelas documentados | Optimización | L | Crítico | Corrección 3-sep: relegación y paridad de los 6 pares ya confirmadas por el usuario el 10-12 de agosto (`BACKLOG.md` §2-3); solo queda retirar código, y eso depende de OPT-2 igual que OPT-11/12/13 — no es nivel 0 de verdad, ver `BACKLOG_OPTIMIZACION.md` |
 | 54 | A17-4 | Captura por voz | Patrimonio | M-L | Alto | Requiere A5-1 operativo (fuera de este documento) |
 | 55 | A14-1 | Contrato canónico `canonical-assets.js` | Patrimonio | L | Alto (estructural) | Todo E21-E22 depende de esto |
 | 56 | A17-3 | Captura por cámara (OCR de tickets/facturas) | Patrimonio | L | Alto (máxima retención) | |

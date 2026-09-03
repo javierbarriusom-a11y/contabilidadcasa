@@ -60,7 +60,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
 | 2 | OPT-13 | Retirar cada heredada en cuanto su función está cubierta | Crítico | L | ⛔ · depende de OPT-12 |
-| 2 | OPT-14 | Fusionar los seis pares de pantallas gemelas documentados | Crítico | L | ⏳ |
+| 2 | OPT-14 | Fusionar los seis pares de pantallas gemelas documentados | Crítico | L | 🟡 · relegación y paridad confirmadas, retirada de código ⛔ depende de OPT-2 |
 | 2 | OPT-15 | Menú lateral a 6 rutas principales, sin «Herramientas avanzadas» | Alto | S | ⛔ · depende de OPT-11 a OPT-14 |
 | 3 | OPT-16 | Migrar módulos a ES modules | Medio (habilitador) | M-L | ⏳ |
 | 3 | OPT-17 | Carga diferida (`import()`) por vista activa | Alto | L | ⛔ · depende de OPT-16 |
@@ -323,22 +323,44 @@ no mover a «Versiones anteriores» otra vez.
 
 ### OPT-14 · Fusionar los seis pares de pantallas gemelas documentados
 
+**Corrección del 3 de septiembre de 2026, sin cambio de código.** Esta tarea se redactó el 29 de
+agosto como si los seis pares siguieran conviviendo por decidir; no era así. `BACKLOG.md` §3 registra
+una decisión directa del usuario, tomada el **10 de agosto**: *«En vez de quitar las pantallas
+fusionadas, pasarlas a una sección tipo Versiones anteriores»* — precisamente para no perder una
+función que solo viviera en la heredada. Comprobado contra el sitio real: los seis pares de abajo
+llevan relegados desde el 10-12 de agosto (V1-4, V2-8, V3-5, V4-6, V5-3), y `BACKLOG.md` §2 documenta,
+vista por vista, que el propio usuario confirmó en el sitio publicado que cada pantalla nueva cubre lo
+que se usaba de la heredada. Es decir: el trabajo de riesgo real de esta tarea —confirmar paridad de
+función antes de tocar nada— **ya está hecho**, casi tres semanas antes de que este documento la
+diera por pendiente.
+
+Lo que **no** está hecho es la mitad literal de "fusionar... y retirar la heredada como en OPT-13":
+el código de las seis heredadas sigue existiendo (relegar no es retirar). Retirarlo ahora, solo para
+estos seis pares, crearía una excepción injustificada frente al resto de heredadas (OPT-10 a OPT-13),
+que esperan a los datos reales de uso de OPT-2 precisamente para no repetir el patrón de decidir a
+ciegas. Por eso el estado pasa a 🟡 (parcial, con la omisión documentada) en vez de ✅: la retirada de
+código de estos seis pares se hace **junto con** OPT-11/OPT-12/OPT-13, bajo el mismo criterio de
+evidencia, cuando el gate de 30 días de OPT-2 libere a finales de septiembre — no antes, y no como
+tarea suelta.
+
 **Tareas**, uno por par, siguiendo el mapa 4a de `docs/E19_SISTEMA_DISENO.md` §10:
 
-| Nueva | Heredada a fundir |
-|---|---|
-| `#conciliar` | `#reconciliation` |
-| `#deuda-ruta` | `#debt-roadmap` |
-| `#cuadro-mandos` | `#visual-detail` |
-| `#registrar-mes` | `#update-data` |
-| `#escenario-simular` | `#new-life-simulation` |
-| `#asesor-decision` | `#executive-advisor` |
+| Nueva | Heredada a fundir | Relegada a «Versiones anteriores» / Laboratorio | Paridad confirmada por el usuario |
+|---|---|---|---|
+| `#conciliar` | `#reconciliation` | ✅ V5-3 (10 ago) | ✅ 12 ago |
+| `#deuda-ruta` | `#debt-roadmap` | ✅ V3-5 (10 ago) | ✅ 12 ago |
+| `#cuadro-mandos` | `#visual-detail` | ✅ V2-8 (10 ago) | ✅ 12 ago |
+| `#registrar-mes` | `#update-data` | ✅ V4-6 (10 ago) | ✅ 12 ago |
+| `#escenario-simular` | `#new-life-simulation` | ✅ V2-8 (10 ago) | ✅ 12 ago |
+| `#asesor-decision` | `#executive-advisor` | ✅ V1-4 (11 ago) | ✅ 12 ago |
 
 Para cada par: confirmar (con OPT-10/OPT-12 si aplica) que la nueva cubre todo lo que se usa de la
-heredada, fusionar, y retirar la heredada como en OPT-13.
+heredada —**hecho, las seis, ver tabla**—, y retirar la heredada **junto con** OPT-11/OPT-12/OPT-13,
+no antes.
 
-**Resultado esperado:** los 6 pares de pantallas gemelas dejan de existir como decisión pendiente —
-es el grueso del trabajo de esta fase.
+**Resultado esperado:** los 6 pares de pantallas gemelas dejan de existir como decisión pendiente de
+producto —**hecho**—; su código deja de existir cuando se retire el resto de heredadas bajo datos
+reales de uso.
 
 ---
 
