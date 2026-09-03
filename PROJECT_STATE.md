@@ -44,9 +44,8 @@ actualizadas para sandboxear la nueva llamada a `renderA18SettlementCard()`. Acc
 `app.js`/`canonical-household-split.js` bumpeados a `?v=20260903a183a1` (27 referencias del marcador
 de versión de `app.js` actualizadas en masa, mismo mecanismo que en sesiones anteriores).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `02044d5` — PR #205, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (116): Bloque 10 — AP6, alerta cuando el líquido ya no sostiene la deuda tomada. **Abre el Bloque 10.**
 
