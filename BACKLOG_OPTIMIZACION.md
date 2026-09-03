@@ -496,6 +496,33 @@ es.
 
 ---
 
+### OPT-23 · `overflow-x: clip` en `.workspace` invalida `position: sticky` en toda vista
+
+**Hallazgo (3-sep-2026, sesión AJ-2):** al dar a la barra de anclas de Ajustes `position: sticky`
+(mismo patrón que ya usa `.meeting-mode-bar` en Hoy), no se quedaba fija al hacer scroll. Verificado
+con Playwright: `.workspace` (`styles.css`, el armazón que envuelve `main` en todas las vistas) tiene
+`overflow-x: clip`, que basta para que el navegador calcule el `position: sticky` de cualquier
+descendiente contra `.workspace` en vez de contra el viewport — y como `.workspace` nunca actúa como
+contenedor de scroll de verdad (el documento entero es el que hace scroll), el elemento nunca llega a
+«pegarse»: se comporta como si no tuviera `sticky`. No es un límite nuevo: `.meeting-mode-bar` lo
+arrastra desde que se construyó, sin que nadie lo detectara porque Hoy nunca obliga a un scroll tan
+largo como para notarlo.
+
+**Tareas:**
+1. Averiguar por qué `.workspace` lleva `overflow-x: clip` — motivo original y si sigue haciendo
+   falta, o si el mismo efecto (cortar un desbordamiento horizontal puntual, p. ej. una tabla ancha)
+   se puede acotar al contenedor concreto que lo necesita en vez de al shell completo.
+2. Si se puede retirar o acotar sin reintroducir el problema que resolvía, hacerlo y confirmar con
+   Playwright que `.meeting-mode-bar` y `.e19-ajustes-anchors` (AJ-2) quedan realmente fijos al
+   hacer scroll, no solo fijos arriba del contenido.
+3. Si no se puede retirar sin riesgo, dejarlo documentado como límite conocido donde ya se nombra
+   (`design-tokens.css`, comentario AJ-1/AJ-2) y aquí, en vez de que cada sticky nuevo lo redescubra.
+
+**Resultado esperado:** o bien el shell deja de romper `position: sticky` en toda vista, o bien queda
+documentado como límite conocido y deliberado, no como una sorpresa que cada tarea futura repita.
+
+---
+
 ## 6. Orden de ejecución consolidado
 
 1. OPT-1 → OPT-2 → OPT-3 → OPT-4 → OPT-5 *(Fase 0 completa primero; sin riesgo y sienta la base de
@@ -509,3 +536,5 @@ es.
 8. OPT-12 → OPT-13 → OPT-14 → OPT-15 *(el grueso: fusión real de pantallas a 6 vistas)*
 9. OPT-16 → OPT-17 *(ES modules + carga diferida, más natural una vez reducidas las pantallas)*
 10. OPT-20 → OPT-21 → OPT-22 *(gobernanza, continua desde el principio pero sin fecha de cierre)*
+11. OPT-23 *(investigación acotada, en paralelo cuando haya hueco — no bloquea nada ni bloquea a
+    nadie)*
