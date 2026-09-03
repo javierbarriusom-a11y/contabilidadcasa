@@ -473,5 +473,5 @@ test("BUD-2 · \"goal\" es una fuente válida en el esquema de presupuestos", ()
 test("BUD-2 · el chunk de presupuesto-mes viaja versionado tras el cambio", () => {
   const html = read("index.html");
   assert.match(app, /views\/presupuesto-mes\.js\?v=20260828d1/);
-  assert.match(html, /app.js\?v=20260903ap6a1/);
+  assert.match(html, /app.js\?v=20260903a183a1/);
 });

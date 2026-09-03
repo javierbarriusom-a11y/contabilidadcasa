@@ -15789,6 +15789,7 @@ function saveA18Incomes() {
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
   renderA18BalanceCard();
+  renderA18SettlementCard();
 }
 
 function saveA18Rule() {
@@ -15806,6 +15807,7 @@ function saveA18Rule() {
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
   renderA18BalanceCard();
+  renderA18SettlementCard();
   announceStatus(category ? `Regla de reparto guardada para «${category}».` : "Regla de reparto por defecto guardada.");
 }
 
@@ -15815,6 +15817,7 @@ function removeA18Rule(category) {
   saveHouseholdSplitSettings(settings);
   renderA18RuleList();
   renderA18BalanceCard();
+  renderA18SettlementCard();
 }
 
 // A18-2: gastos compartidos registrados a mano (mismo patrón que assetsList()/iv1PositionsList()) —
@@ -15856,6 +15859,7 @@ function saveA18Entry() {
   qs("a18EntryDate").value = "";
   renderA18EntryList();
   renderA18BalanceCard();
+  renderA18SettlementCard();
   announceStatus(`Gasto compartido de ${money(amount, true)} registrado.`);
 }
 
@@ -15863,6 +15867,7 @@ function removeA18Entry(id) {
   saveHouseholdSplitEntriesList(householdSplitEntriesList().filter((entry) => entry.id !== id));
   renderA18EntryList();
   renderA18BalanceCard();
+  renderA18SettlementCard();
 }
 
 function a18EntryLabel(entry) {
@@ -15897,6 +15902,97 @@ function renderA18BalanceCard() {
   }
   const balance = engine.runningBalance(entries, householdSplitSettings());
   note.innerHTML = `<p><strong>${a18BalanceLabel(balance)}</strong></p>`;
+}
+
+// A18-3: liquidación con doble confirmación — depende de A18-2. El saldo continuo de arriba nunca se
+// registra como transferencia interna por sí solo; esta tarjeta es el único camino para eso, y exige
+// que Javi y Tere confirmen por separado antes de registrarla, mismo ciclo de aprobación que el
+// cierre/reapertura de mes (E5). Los gastos que ya cubre una liquidación confirmada
+// (`householdSettlements()[].entryIds`) salen del saldo pendiente para siempre — un gasto nuevo
+// empieza un saldo distinto, nunca se mezcla con uno ya liquidado.
+function householdSettlements() {
+  return Array.isArray(scenarioSettings.householdSettlements) ? scenarioSettings.householdSettlements : [];
+}
+
+function saveHouseholdSettlements(next) {
+  scenarioSettings.householdSettlements = next;
+  saveScenarioSettings();
+}
+
+function a18SettledEntryIds() {
+  return householdSettlements().flatMap((settlement) => (Array.isArray(settlement.entryIds) ? settlement.entryIds : []));
+}
+
+function a18CurrentProposal() {
+  const engine = window.FinanceCanonicalHouseholdSplit;
+  if (!engine) return { hasPendingBalance: false, entryIds: [] };
+  return engine.proposeSettlement(householdSplitEntriesList(), householdSplitSettings(), a18SettledEntryIds());
+}
+
+// La confirmación en curso se guarda aparte del saldo (para que Javi confirme hoy y Tere mañana, en
+// otro dispositivo) pero solo es válida mientras cubra exactamente los mismos gastos pendientes de
+// ahora mismo — si el saldo cambió mientras tanto (nuevo gasto, regla editada...), la confirmación en
+// curso queda obsoleta y se descarta entera, nunca se liquida un importe que ya no es el real.
+function a18SettlementConfirmationState(proposal) {
+  const raw = scenarioSettings.householdSettlementConfirmation;
+  if (!raw || !Array.isArray(raw.entryIds)) return null;
+  const sameEntries = raw.entryIds.length === proposal.entryIds.length && raw.entryIds.every((id) => proposal.entryIds.includes(id));
+  return sameEntries ? raw : null;
+}
+
+function confirmA18Settlement(party) {
+  const engine = window.FinanceCanonicalHouseholdSplit;
+  if (!engine) return;
+  const proposal = a18CurrentProposal();
+  if (!proposal.hasPendingBalance) return;
+  const current = a18SettlementConfirmationState(proposal) || { entryIds: proposal.entryIds, javiConfirmedAt: null, tereConfirmedAt: null };
+  const now = new Date().toISOString();
+  const next = { ...current, [`${party}ConfirmedAt`]: now };
+  const confirmations = { javi: Boolean(next.javiConfirmedAt), tere: Boolean(next.tereConfirmedAt) };
+  const result = engine.confirmSettlement(proposal, confirmations, {
+    javiConfirmedAt: next.javiConfirmedAt,
+    tereConfirmedAt: next.tereConfirmedAt,
+  });
+  if (result.status === "confirmed") {
+    saveHouseholdSettlements([...householdSettlements(), result]);
+    scenarioSettings.householdSettlementConfirmation = null;
+    saveScenarioSettings();
+    announceStatus(`Liquidación confirmada por ambos: ${money(result.amount, true)}.`);
+  } else {
+    scenarioSettings.householdSettlementConfirmation = next;
+    saveScenarioSettings();
+    const otherParty = party === "javi" ? "tere" : "javi";
+    announceStatus(`Confirmación de ${A18_OWNER_LABELS[party]} registrada. Falta la de ${A18_OWNER_LABELS[otherParty]}.`);
+  }
+  renderA18SettlementCard();
+  renderA18BalanceCard();
+}
+
+function a18SettlementLabel(settlement) {
+  return `${A18_OWNER_LABELS[settlement.from] || settlement.from} pagó a ${A18_OWNER_LABELS[settlement.to] || settlement.to}: ${money(settlement.amount, true)}, confirmado el ${String(settlement.confirmedAt).slice(0, 10)}.`;
+}
+
+function renderA18SettlementCard() {
+  const box = qs("a18SettlementProposal");
+  const history = qs("a18SettlementHistory");
+  const engine = window.FinanceCanonicalHouseholdSplit;
+  if (box && engine) {
+    const proposal = a18CurrentProposal();
+    if (!proposal.hasPendingBalance) {
+      box.innerHTML = `<p>Sin saldo pendiente que liquidar.</p>`;
+    } else {
+      const confirmation = a18SettlementConfirmationState(proposal);
+      const javiDone = Boolean(confirmation?.javiConfirmedAt);
+      const tereDone = Boolean(confirmation?.tereConfirmedAt);
+      box.innerHTML = `<p><strong>${escapeHtml(A18_OWNER_LABELS[proposal.from])} debe a ${escapeHtml(A18_OWNER_LABELS[proposal.to])}: ${money(proposal.amount, true)}</strong>, sobre ${proposal.entryIds.length} gasto(s) compartido(s) pendiente(s). Se registra como transferencia interna solo cuando ambos confirmen.</p><p>${javiDone ? "✓ Javi ha confirmado." : "Javi no ha confirmado todavía."} ${tereDone ? "✓ Tere ha confirmado." : "Tere no ha confirmado todavía."}</p>`;
+    }
+  }
+  if (history) {
+    const settlements = householdSettlements();
+    history.innerHTML = settlements.length
+      ? settlements.slice().reverse().map((settlement) => `<li class="commit-barrier-item"><span>${escapeHtml(a18SettlementLabel(settlement))}</span></li>`).join("")
+      : `<li class="e19-kpi-note">Sin liquidaciones confirmadas todavía.</li>`;
+  }
 }
 
 // A19-1: enlace de solo lectura, redactado y caducable — depende de una sesión remota (mismo
@@ -24479,6 +24575,7 @@ function renderAjustes() {
   renderA18EntryCategoryOptions();
   renderA18EntryList();
   renderA18BalanceCard();
+  renderA18SettlementCard();
   renderA19ShareLinkList();
   renderA14AssetList();
   renderA14AssetBreakdown();
@@ -34545,6 +34642,8 @@ async function init() {
     if (!removeButton) return;
     removeA18Entry(removeButton.dataset.a18EntryRemove);
   });
+  qs("a18ConfirmJavi")?.addEventListener("click", () => confirmA18Settlement("javi"));
+  qs("a18ConfirmTere")?.addEventListener("click", () => confirmA18Settlement("tere"));
   qs("a19ShareSave")?.addEventListener("click", saveA19ShareLink);
   qs("a19ShareLinkList")?.addEventListener("click", (event) => {
     const revokeButton = event.target.closest("[data-a19-share-revoke]");

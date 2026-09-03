@@ -68,7 +68,7 @@ test("householdSplitSettings · sin nada guardado, la regla por defecto es parte
 test("saveA18Rule · sin categoría seleccionada, guarda la regla por defecto", () => {
   const scenarioSettings = {};
   const fields = { a18RuleCategory: "", a18RuleMode: "income-proportional", a18RulePayer: "javi", a18RuleAmount: "" };
-  const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "saveA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "householdSplitEntriesList"], {
+  const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "saveA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "renderA18SettlementCard", "a18CurrentProposal", "householdSettlements", "a18SettledEntryIds", "householdSplitEntriesList"], {
     scenarioSettings,
     qs: (id) => (id in fields ? { value: fields[id] } : (id === "a18RuleList" ? { innerHTML: "" } : null)),
   });
@@ -80,7 +80,7 @@ test("saveA18Rule · sin categoría seleccionada, guarda la regla por defecto", 
 test("saveA18Rule · con categoría seleccionada, guarda la regla solo para esa categoría", () => {
   const scenarioSettings = {};
   const fields = { a18RuleCategory: "Alimentación", a18RuleMode: "fixed", a18RulePayer: "tere", a18RuleAmount: "50" };
-  const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "saveA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "householdSplitEntriesList"], {
+  const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "saveA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "renderA18SettlementCard", "a18CurrentProposal", "householdSettlements", "a18SettledEntryIds", "householdSplitEntriesList"], {
     scenarioSettings,
     qs: (id) => (id in fields ? { value: fields[id] } : (id === "a18RuleList" ? { innerHTML: "" } : null)),
   });
@@ -93,7 +93,7 @@ test("saveA18Rule · con categoría seleccionada, guarda la regla solo para esa 
 
 test("removeA18Rule · quita solo la categoría indicada", () => {
   const scenarioSettings = { householdSplit: { categoryRules: { Alimentación: { mode: "equal" }, Ocio: { mode: "fixed", payer: "javi", amount: 20 } } } };
-  const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "removeA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "householdSplitEntriesList"], {
+  const ctx = sandboxWith(["householdSplitSettings", "saveHouseholdSplitSettings", "removeA18Rule", "renderA18RuleList", "a18RuleLabel", "renderA18BalanceCard", "renderA18SettlementCard", "a18CurrentProposal", "householdSettlements", "a18SettledEntryIds", "householdSplitEntriesList"], {
     scenarioSettings,
     qs: () => ({ innerHTML: "" }),
   });

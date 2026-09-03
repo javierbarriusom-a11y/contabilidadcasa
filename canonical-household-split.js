@@ -102,5 +102,73 @@
     };
   }
 
-  return { SCHEMA_ID, MODES, normalizeRule, resolveRuleForCategory, splitShares, runningBalance };
+  const SETTLEMENT_SCHEMA_ID = "finance-canonical-household-split/settlement-v1";
+
+  // A18-3: liquidación con doble confirmación — depende de A18-2 (runningBalance). El saldo continuo
+  // de A18-2 nunca se registra como transferencia interna por sí solo ("sin afectar al libro
+  // principal", por diseño de esa misma tarea); A18-3 es el único camino para eso, y exige que ambos
+  // titulares confirmen por separado antes de registrarla — mismo ciclo de aprobación que el
+  // cierre/reapertura de mes (E5), nunca una sola confirmación. Una liquidación confirmada cubre
+  // exactamente los gastos compartidos pendientes en ese momento (`entryIds`); los que se registren
+  // después empiezan un saldo nuevo, nunca se mezclan con uno ya liquidado.
+  function pendingSplitEntries(entries, settledEntryIds = []) {
+    const settled = new Set((Array.isArray(settledEntryIds) ? settledEntryIds : []).map(String));
+    return (Array.isArray(entries) ? entries : []).filter((entry) => !settled.has(String(entry?.id)));
+  }
+
+  // Sin saldo pendiente (todo ya liquidado o sin gastos compartidos), no hay nada que proponer —
+  // `hasPendingBalance: false`, nunca una liquidación de importe cero.
+  function proposeSettlement(entries, settings, settledEntryIds = []) {
+    const pending = pendingSplitEntries(entries, settledEntryIds);
+    const balance = runningBalance(pending, settings);
+    if (!balance.owes) return { schemaId: SETTLEMENT_SCHEMA_ID, hasPendingBalance: false, entryIds: [] };
+    return {
+      schemaId: SETTLEMENT_SCHEMA_ID,
+      hasPendingBalance: true,
+      amount: balance.amount,
+      from: balance.owes,
+      to: balance.owedTo,
+      entryIds: pending.map((entry) => String(entry.id)),
+    };
+  }
+
+  // Nunca registra con una sola confirmación — si falta alguna, devuelve status "pending" con quién
+  // falta, para que la interfaz lo pida explícitamente, nunca lo asuma ni lo complete a medias.
+  function confirmSettlement(proposal, confirmations = {}, metadata = {}) {
+    if (!proposal || !proposal.hasPendingBalance) {
+      return { schemaId: SETTLEMENT_SCHEMA_ID, status: "no-pending-balance" };
+    }
+    const javiConfirmed = Boolean(confirmations.javi);
+    const tereConfirmed = Boolean(confirmations.tere);
+    const missing = [];
+    if (!javiConfirmed) missing.push("javi");
+    if (!tereConfirmed) missing.push("tere");
+    if (missing.length) return { schemaId: SETTLEMENT_SCHEMA_ID, status: "pending", missing };
+    const confirmedAt = metadata.confirmedAt || new Date().toISOString();
+    return {
+      schemaId: SETTLEMENT_SCHEMA_ID,
+      status: "confirmed",
+      id: String(metadata.id || `settlement-${Date.now()}`),
+      amount: proposal.amount,
+      from: proposal.from,
+      to: proposal.to,
+      entryIds: proposal.entryIds,
+      javiConfirmedAt: metadata.javiConfirmedAt || confirmedAt,
+      tereConfirmedAt: metadata.tereConfirmedAt || confirmedAt,
+      confirmedAt,
+    };
+  }
+
+  return {
+    SCHEMA_ID,
+    MODES,
+    normalizeRule,
+    resolveRuleForCategory,
+    splitShares,
+    runningBalance,
+    SETTLEMENT_SCHEMA_ID,
+    pendingSplitEntries,
+    proposeSettlement,
+    confirmSettlement,
+  };
 });

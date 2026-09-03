@@ -2685,6 +2685,19 @@
               <ul class="commit-barrier-list" id="a18EntryList"></ul>
             </article>
 
+            <!-- A18-3: liquidación con doble confirmación — depende de A18-2. El saldo continuo de
+                 arriba nunca se registra como transferencia interna por sí solo; esta tarjeta es el
+                 único camino para eso, y exige que Javi y Tere confirmen por separado antes de
+                 registrarla, mismo ciclo de aprobación que el cierre/reapertura de mes (E5). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Liquidación con doble confirmación</h3>
+              <p class="e19-kpi-note">El saldo continuo de arriba nunca se registra por sí solo como transferencia interna entre Javi y Tere: cada liquidación periódica sugerida exige que ambos confirmen por separado, mismo ciclo de aprobación que el cierre y la reapertura de mes.</p>
+              <div class="e19-kpi-note" id="a18SettlementProposal"></div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmJavi">Confirmo yo, Javi</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmTere">Confirmo yo, Tere</button>
+              <ul class="commit-barrier-list" id="a18SettlementHistory"></ul>
+            </article>
+
             <!-- A19-1: enlace de solo lectura, redactado y caducable — depende de A14-1. Comparte
                  el plan de deuda o el forecast a 6 meses con un asesor externo sin cuenta propia ni
                  acceso a movimientos individuales. El token en crudo solo existe en la URL que se
@@ -5073,7 +5086,7 @@
     <script defer src="canonical-tariff-comparator.js?v=20260829a193a1"></script>
     <script defer src="canonical-health-score.js?v=20260829a161a1"></script>
     <script defer src="canonical-pension-simulator.js?v=20260830a154a1"></script>
-    <script defer src="canonical-household-split.js?v=20260902a182a1"></script>
+    <script defer src="canonical-household-split.js?v=20260903a183a1"></script>
     <script defer src="canonical-share-link.js?v=20260902a191a1"></script>
     <script defer src="canonical-forecast-sensitivity.js?v=20260830pv6a1"></script>
     <script defer src="canonical-self-insurance.js?v=20260830sp4a1"></script>
@@ -5107,7 +5120,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260903ap6a1"></script>
+    <script defer src="app.js?v=20260903a183a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
