@@ -50,9 +50,8 @@ marcador de versión de `app.js` actualizadas en masa, mismo mecanismo que en se
 (`Cannot find package 'esbuild'`), sin relación con el código de esta sesión. Se resolvió con
 `npm install` antes de repetir la validación completa.
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `60959d1` — PR #203, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (115): Bloque 9 — AP3, simulador de apalancamiento (explorar, no ejecutar). **Cierra el Bloque 9.**
 
