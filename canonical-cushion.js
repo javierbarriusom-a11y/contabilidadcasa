@@ -133,6 +133,32 @@
     };
   }
 
+  // TT2: escalera de vencimientos para el exceso sobre el colchón (depende de CP2, que ya identifica
+  // ese exceso como "dinero parado", y de TT1 — mismo patrón de repartir por plazo, no por
+  // rentabilidad). No es una previsión de mercado ni inventa ningún tipo de interés: reparte el
+  // importe en tramos iguales con vencimientos escalonados cada `intervalMonths` — pura estructura
+  // de plazos, para no dejarlo todo bloqueado al mismo vencimiento ni todo en el mismo día de
+  // acceso. Sin importe que escalonar, no hay tramos que inventar.
+  const DEFAULT_LADDER_RUNGS = 4;
+  const DEFAULT_LADDER_INTERVAL_MONTHS = 3;
+
+  function cushionMaturityLadder(amount, { rungs = DEFAULT_LADDER_RUNGS, intervalMonths = DEFAULT_LADDER_INTERVAL_MONTHS } = {}) {
+    const total = round2(Math.max(0, number(amount)));
+    const rungCount = Math.max(1, Math.floor(number(rungs, DEFAULT_LADDER_RUNGS)));
+    const months = Math.max(1, Math.floor(number(intervalMonths, DEFAULT_LADDER_INTERVAL_MONTHS)));
+    if (total <= 0) return { total: 0, rungCount, intervalMonths: months, rungs: [] };
+    const base = Math.floor((total / rungCount) * 100) / 100;
+    let assigned = 0;
+    const ladderRungs = [];
+    for (let index = 1; index <= rungCount; index += 1) {
+      const isLast = index === rungCount;
+      const rungAmount = isLast ? round2(total - assigned) : base;
+      assigned = round2(assigned + rungAmount);
+      ladderRungs.push({ index, months: months * index, amount: rungAmount });
+    }
+    return { total, rungCount, intervalMonths: months, rungs: ladderRungs };
+  }
+
   return {
     SCHEMA_ID,
     cushionFloor,
@@ -144,5 +170,8 @@
     cushionFloorDrift,
     DEFAULT_DEDUCTIBLE_OPTIONS,
     optimalDeductibleFor,
+    DEFAULT_LADDER_RUNGS,
+    DEFAULT_LADDER_INTERVAL_MONTHS,
+    cushionMaturityLadder,
   };
 });

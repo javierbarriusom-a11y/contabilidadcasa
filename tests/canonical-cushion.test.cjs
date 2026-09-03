@@ -219,3 +219,50 @@ test("optimalDeductibleFor · colchón o suelo negativos se tratan como cero, no
   assert.equal(result.floor, 0);
   assert.equal(result.slack, 0);
 });
+
+// TT2 · Bloque 11: escalera de vencimientos para el exceso sobre el colchón. Depende de CP2 (el
+// exceso ya identificado como dinero parado) y de TT1 (mismo patrón de repartir por plazo, no por
+// rentabilidad). No inventa ningún tipo de interés: solo reparte el importe en tramos iguales con
+// vencimientos escalonados cada intervalMonths.
+
+test("cushionMaturityLadder · sin importe, no hay tramos que inventar", () => {
+  const ladder = Cushion.cushionMaturityLadder(0);
+  assert.equal(ladder.total, 0);
+  assert.deepEqual(ladder.rungs, []);
+});
+
+test("cushionMaturityLadder · importe negativo se trata como cero", () => {
+  const ladder = Cushion.cushionMaturityLadder(-500);
+  assert.equal(ladder.total, 0);
+  assert.deepEqual(ladder.rungs, []);
+});
+
+test("cushionMaturityLadder · reparte en 4 tramos de 3 meses por defecto, la suma exacta cae en el último tramo", () => {
+  const ladder = Cushion.cushionMaturityLadder(1000);
+  assert.equal(ladder.rungCount, 4);
+  assert.equal(ladder.intervalMonths, 3);
+  assert.equal(ladder.rungs.length, 4);
+  assert.deepEqual(ladder.rungs.map((rung) => rung.months), [3, 6, 9, 12]);
+  assert.deepEqual(ladder.rungs.map((rung) => rung.amount), [250, 250, 250, 250]);
+  const sum = ladder.rungs.reduce((acc, rung) => acc + rung.amount, 0);
+  assert.equal(Math.round(sum * 100) / 100, 1000);
+});
+
+test("cushionMaturityLadder · un importe que no divide exacto no pierde ni un céntimo: el resto va al último tramo", () => {
+  const ladder = Cushion.cushionMaturityLadder(1000.01);
+  const sum = ladder.rungs.reduce((acc, rung) => acc + rung.amount, 0);
+  assert.equal(Math.round(sum * 100) / 100, 1000.01);
+  assert.equal(ladder.rungs[3].amount, 250.01);
+});
+
+test("cushionMaturityLadder · número de tramos e intervalo personalizables", () => {
+  const ladder = Cushion.cushionMaturityLadder(600, { rungs: 3, intervalMonths: 2 });
+  assert.equal(ladder.rungCount, 3);
+  assert.deepEqual(ladder.rungs.map((rung) => rung.months), [2, 4, 6]);
+  assert.deepEqual(ladder.rungs.map((rung) => rung.amount), [200, 200, 200]);
+});
+
+test("cushionMaturityLadder · valores por defecto expuestos (4 tramos, cada 3 meses)", () => {
+  assert.equal(Cushion.DEFAULT_LADDER_RUNGS, 4);
+  assert.equal(Cushion.DEFAULT_LADDER_INTERVAL_MONTHS, 3);
+});

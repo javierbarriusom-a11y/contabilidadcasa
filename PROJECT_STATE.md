@@ -2,6 +2,42 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (126): Bloque 11 — TT2, escalera de vencimientos para el exceso sobre el colchón
+
+Segunda tarea del Bloque 11, encadenada tras CP2. Depende de CP2 (el exceso sobre el colchón, ya
+identificado como «dinero parado») y de TT1 (`cushionAccountSplit`, reparto del colchón entre
+corriente y remunerada — construida el 29 de agosto sin pantalla propia hasta hoy, igual que TT5).
+
+**Construido**: `cushionMaturityLadder(amount, {rungs = 4, intervalMonths = 3})`, motor nuevo en
+`canonical-cushion.js`. No es una previsión de mercado ni inventa ningún tipo de interés: reparte el
+importe en tramos iguales (el resto de un reparto no exacto cae siempre en el último tramo, sin
+perder ningún céntimo) con vencimientos escalonados cada `intervalMonths` — pura estructura de
+plazos, para no dejarlo todo bloqueado al mismo vencimiento. `tt2MaturityLadderSummary()` en `app.js`
+junta las dos piezas en una sola foto: cuánto del colchón está en corriente/remunerada
+(`FinanceCanonicalCushion.cushionAccountSplit`, TT1) y cómo escalonar el exceso que queda por encima
+(`cp2IdleCashSummary()`, CP2, alimentando el nuevo motor). Expuesto en
+`window.FinanceP2Bridge.maturityLadder`. Nueva sección «Escalera de vencimientos (TT2)» en el panel
+de E16 (Herramientas avanzadas), justo debajo de «Dinero parado (CP2)» — a diferencia de CP1/CP2, no
+pasa por el ciclo de cita de CP3: es un reparto estructural determinista, como el propio TT1, no una
+recomendación del copiloto.
+
+**Validación**: `npm run verify`, exit 0 — **2912/2912 pruebas** (2898 + 14 nuevas: 6 del motor en
+`tests/canonical-cushion.test.cjs` — sin importe no hay tramos, importe negativo se trata como cero,
+reparto por defecto en 4 tramos de 3/6/9/12 meses, un importe no exacto no pierde ningún céntimo,
+número de tramos e intervalo personalizables, valores por defecto expuestos; y 8 de integración en
+`tests/tt2-escalera-vencimientos.test.cjs` — HTML sin colchón ni exceso, con el reparto de TT1, con
+cada tramo de la escalera, sin datos del puente no revienta, `app.js` reutiliza CP2/TT1 sin motor de
+rentabilidad nuevo, el puente expone `maturityLadder`, `p2-ui.js` pinta la sección junto a CP2).
+Accesibilidad (1057 IDs, sin cambio — sección dinámica dentro de un panel ya existente, ningún campo
+de formulario nuevo), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`canonical-cushion.js`/`app.js`/`p2-ui.js` bumpeados a `?v=20260903tt2a1` (29 referencias del
+marcador de versión de `app.js`/`p2-ui.js` actualizadas en masa; `canonical-cushion.js` no tenía
+pruebas que fijaran su versión literalmente, igual que en TT1).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (125): Bloque 11 — CP2, detección de «dinero parado». **Abre el Bloque 11.**
 
 Primera tarea del Bloque 11, a petición directa del usuario tras cerrar el Bloque 10. Depende de AP1
