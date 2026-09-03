@@ -164,7 +164,7 @@ sin bloqueo · ⛔ bloqueado). Todas las tareas de este documento están ⏳ sal
 | 54 | A17-4 | Captura por voz | Patrimonio | M-L | Alto | Requiere A5-1 operativo (fuera de este documento) |
 | 55 | A14-1 | Contrato canónico `canonical-assets.js` | Patrimonio | L | Alto (estructural) | Todo E21-E22 depende de esto |
 | 56 | A17-3 | Captura por cámara (OCR de tickets/facturas) | Patrimonio | L | Alto (máxima retención) | |
-| 57 | OPT-16 | Migrar módulos a ES modules | Optimización | M-L | Medio (habilitador) | |
+| 57 | OPT-16 | Migrar módulos a ES modules | Optimización | M-L | Medio (habilitador) | Evaluada y descartada el 3-sep: rompería `require()` en 103 tests y arriesga el sandbox `vm.createContext` del que dependen otros 113 — ver `BACKLOG_OPTIMIZACION.md` |
 
 ### Bloque 7 — Nivel 1: S, con OPT-2/4, A14-1, A16-1/3/5 e IV1 ya construidos
 
@@ -205,7 +205,7 @@ sin bloqueo · ⛔ bloqueado). Todas las tareas de este documento están ⏳ sal
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 82 | A15-2 | Estimador de resultado de IRPF | Patrimonio | L | Alto (estacional) | Depende de A15-1 |
-| 83 | OPT-17 | Carga diferida (`import()`) por vista activa | Optimización | L | Alto | Depende de OPT-16 |
+| 83 | OPT-17 | Carga diferida (`import()`) por vista activa | Optimización | L | Alto | Evaluada y descartada el 3-sep: `app.js` (77% del JS publicado) queda fuera de cualquier estrategia sin ES modules; el ahorro alcanzable en el resto es de un solo dígito porcentual sobre un presupuesto de rendimiento que ya se cumple con margen — ver `BACKLOG_OPTIMIZACION.md` |
 | 84 | AP3 | Simulador de apalancamiento (pedir deuda para invertir) | Apalancamiento | L | Medio (exploratorio) | Depende de AP4; explorar, no ejecutar |
 
 ### Bloque 10 — Nivel 2: retirada de heredadas, patrimonio compartido y el primer apalancamiento comparado

@@ -2,6 +2,51 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (129): Bloque 6 — OPT-16/OPT-17, evaluadas y descartadas sin código
+
+Última tarea libre que quedaba tras A17-3 y la corrección de OPT-14. Antes de escribir código se
+investigó, como en las dos anteriores, si el texto del backlog resistía el contraste con el
+repositorio real — no resistió, por partida doble.
+
+**OPT-16 (migrar a ES modules)**: su propia ficha afirma que es "un cambio de mecanismo de carga,
+no de lógica" y que "`npm test` debe seguir en verde sin cambios". Comprobado: los 61
+`canonical-*.js` los cargan **103 archivos de test** con `require()` directo, que no puede leer un
+fichero con `export` nativo sin convertirlo a `import()` asíncrono — ya contradice "sin cambios".
+Peor aún, `app.js` y `p2-ui.js` (las piezas que de verdad pesan) **nunca se cargan con `require()`**:
+**113 archivos de test** extraen una función suelta de su código fuente como texto y la ejecutan en
+un `vm.createContext` aislado — la técnica de la que depende el grueso de las 2935 pruebas del
+proyecto. Convertirlos a ES modules de verdad arriesga romperla de forma sutil y difícil de
+verificar entera.
+
+**Alternativa evaluada y también descartada**: carga diferida por vista sin tocar el sistema de
+módulos, inyectando un `<script>` bajo demanda (misma técnica que Tesseract.js en A17-3). Medido
+contra `dist/`: `app.js` pesa **1,13 MB minificado, el 77% de todo el JavaScript publicado**
+(1,40 MB en total); los cinco `canonical-*.js` más grandes suman **~65 KB, un 4,4%**. `app.js` —el
+77%— queda fuera de cualquier estrategia sin ES modules, y el presupuesto de rendimiento real
+(Lighthouse) ya se cumple con margen amplio (LCP medido ~1,4 s contra un límite de 6 s). El ahorro
+máximo alcanzable, de un solo dígito porcentual sobre un presupuesto que ya pasa con holgura, no
+justifica el esfuerzo ni el riesgo.
+
+**Decisión, consultada con el usuario en dos pasos** (primero la elección de enfoque, luego los
+números que la volvían de retorno casi nulo): no se ejecuta ni OPT-16 ni OPT-17 ahora. Corregido
+`BACKLOG_OPTIMIZACION.md` (tabla maestra y ambas fichas, `⏳`/`⛔` → `🟡` con el hallazgo completo) y
+`BACKLOG_ULTIMATE_SEPTIEMBRE.md` (nota en ambas filas). Revisar solo si el presupuesto de Lighthouse
+empieza a incumplirse de verdad, o si `app.js` se divide en piezas más pequeñas por otro motivo.
+
+**Conclusión de la sesión completa (127-129)**: de las tres tareas que el Bloque 6 daba por libres
+tras el cierre del 2 de septiembre (OPT-14, A17-3, OPT-16), **solo A17-3 tenía retorno real y se
+construyó** (PR #221). OPT-14 y OPT-16/17 quedan correctamente reclasificadas — no son trabajo
+perdido, es la cola real del backlog: **no queda ninguna tarea con retorno real ejecutable hasta
+que el gate de 30 días de OPT-2 libere, a finales de septiembre**, momento en el que se retira de
+una vez el código de OPT-11/12/13/14 bajo datos reales de uso.
+
+**Validación**: `npm test`, exit 0 — **2935/2935 pruebas** (sin cambios funcionales; solo para
+confirmar que la sesión no tocó nada de código, solo `BACKLOG_OPTIMIZACION.md` y
+`BACKLOG_ULTIMATE_SEPTIEMBRE.md`).
+
+**Publicado**: pendiente de commit/push a `claude/artifact-update-execution-plan-0cipqq`, PR en
+borrador y fusión en cuanto el CI esté en verde, según la autorización permanente del usuario.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (128): Bloque 6 — OPT-14, corrección de estado sin código
 
 Al ir a implementar OPT-14 (fusionar los seis pares de pantallas gemelas) se encontró una
