@@ -521,6 +521,26 @@ largo como para notarlo.
 **Resultado esperado:** o bien el shell deja de romper `position: sticky` en toda vista, o bien queda
 documentado como límite conocido y deliberado, no como una sorpresa que cada tarea futura repita.
 
+**Resuelto (3-sep-2026).** La causa real no era solo `.workspace`: retirar su `overflow-x: clip` era
+seguro (sin desbordamiento horizontal en 10 pantallas × 4 anchos con Playwright) pero no bastaba —
+el sticky seguía sin funcionar. La causa de fondo estaba un nivel más abajo, en `html, body {
+overflow-x: hidden; }` (`styles.css`): la especificación obliga a que `overflow-y` compute como
+`auto` cuando solo `overflow-x` se fija a un valor no-`visible`, así que esa única regla convertía
+tanto a `html` como a `body` en contenedores de scroll independientes. `body`, con altura `auto`
+(igual a la de su contenido, nunca desarrolla scroll propio de verdad), seguía contando como el
+«contenedor de scroll más cercano» para cualquier `position: sticky` descendiente — que se quedaba
+calculando su posición contra un `scrollTop` de `body` que nunca cambia, mientras el scroll real
+ocurre en `html` (`document.scrollingElement`). Quitar `overflow-x: hidden` de `body` sin más
+reabría desbordamiento horizontal real en varias pantallas a móvil (visual-detail, home,
+deuda-ruta, análisis, movements) — sí hacía trabajo de verdad, no era una segunda red redundante.
+La solución final, confirmada con Playwright (10 pantallas × 4 anchos, sin desbordamiento; AJ-2 y
+`.meeting-mode-bar` verificados fijos en pantalla al hacer scroll, no solo arriba del contenido):
+`overflow: clip` en los dos ejes de `body` en vez de `overflow-x: hidden` — `clip` nunca establece
+contenedor de scroll (a diferencia de `hidden`/`auto`), así que el sticky ya no calcula su posición
+contra un `scrollTop` que nunca cambia, y el desbordamiento horizontal sigue tan contenido como
+antes. `.workspace` mantiene su limpieza (la regla `overflow-x: clip` retirada seguía siendo
+redundante, aunque no fuera la causa principal).
+
 ---
 
 ## 6. Orden de ejecución consolidado
@@ -536,5 +556,4 @@ documentado como límite conocido y deliberado, no como una sorpresa que cada ta
 8. OPT-12 → OPT-13 → OPT-14 → OPT-15 *(el grueso: fusión real de pantallas a 6 vistas)*
 9. OPT-16 → OPT-17 *(ES modules + carga diferida, más natural una vez reducidas las pantallas)*
 10. OPT-20 → OPT-21 → OPT-22 *(gobernanza, continua desde el principio pero sin fecha de cierre)*
-11. OPT-23 *(investigación acotada, en paralelo cuando haya hueco — no bloquea nada ni bloquea a
-    nadie)*
+11. ~~OPT-23~~ *(resuelta el 3-sep-2026, ver nota bajo la tarea — sin código pendiente)*

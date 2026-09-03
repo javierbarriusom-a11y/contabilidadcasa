@@ -5433,10 +5433,27 @@ svg {
 }
 
 /* Keep wide analytical tables inside their own scroll areas. */
-html,
-body {
+/* OPT-23 (3-sep-2026): overflow-x:hidden vivía en html Y body. La especificación obliga a que
+   overflow-y compute como auto cuando solo overflow-x se fija a un valor no-visible — así que las
+   dos reglas convertían tanto a html como a body en contenedores de scroll independientes. body,
+   con altura auto (igual a la de su contenido), nunca desarrolla scroll propio de verdad — pero
+   sigue contando como el "contenedor de scroll más cercano" para cualquier position:sticky
+   descendiente, que se queda calculando su posición contra un scrollTop que nunca cambia (el
+   scroll real ocurre en html, document.scrollingElement). Quitar overflow-x:hidden de body sin más
+   reabría desbordamiento horizontal real en varias pantallas a móvil (visual-detail, home,
+   deuda-ruta, análisis, movements): sí hacía trabajo de verdad. La solución, confirmada con
+   Playwright en 10 pantallas × 4 anchos: `overflow: clip` en los dos ejes de body en vez de
+   overflow-x:hidden — clip nunca establece contenedor de scroll (a diferencia de hidden/auto), así
+   que el sticky ya no calcula su posición contra un scrollTop de body que nunca cambia, y el
+   desbordamiento horizontal sigue tan contenido como antes. */
+html {
   max-width: 100%;
   overflow-x: hidden;
+}
+
+body {
+  max-width: 100%;
+  overflow: clip;
 }
 
 .workspace,
@@ -5452,9 +5469,13 @@ body {
   min-width: 0;
 }
 
-.workspace {
-  overflow-x: clip;
-}
+/* OPT-23 (3-sep-2026): `.workspace { overflow-x: clip; }` vivió aquí desde que se escribió esta
+   regla — probablemente una segunda red de seguridad para las tablas anchas, redundante con
+   `html, body { overflow-x: hidden }` de arriba. Retirada tras comprobar con Playwright que ningún
+   desbordamiento horizontal aparece sin ella, en 10 pantallas (incluidas las de tabla más ancha:
+   cuadro de mandos, plan, deuda-ruta, análisis) y 4 anchos de viewport (375 a 1440px). Además
+   invalidaba `position: sticky` en cualquier descendiente — `.meeting-mode-bar` (Hoy) y
+   `.e19-ajustes-anchors` (Ajustes, AJ-2) quedan fijas de verdad al hacer scroll a partir de aquí. */
 
 /* The sidebar reduces the usable canvas well before the viewport reaches 1280px. */
 @media (max-width: 1440px) {
