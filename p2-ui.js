@@ -210,6 +210,24 @@
     return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(signal.label)}</strong></div><p>${euro(signal.idleAmount)} por encima del suelo del colchón (${euro(signal.floor)}).${gainLine} Compara amortizar deuda frente a invertir en Ajustes (AP1).</p><p class="p2-help">Cita: ${esc(signal.citations.join(", "))}.</p></article>`;
   }
 
+  // TT2: escalera de vencimientos para el exceso sobre el colchón. Depende de CP2 (idleCash, ya
+  // pintado arriba) y de TT1 (accountSplit, sin pantalla propia hasta esta tarea) — ambos ya
+  // calculados por tt2MaturityLadderSummary en app.js, sin motor propio aquí. No es una
+  // recomendación del copiloto (no pasa por CP3): es un reparto estructural, como el propio TT1.
+  function tt2MaturityLadderHtml() {
+    const summary = bridge()?.maturityLadder?.();
+    if (!summary) return "";
+    const split = summary.accountSplit;
+    const splitLine = split && split.total > 0
+      ? `<p>De tu colchón (${euro(split.total)}): ${euro(split.corriente)} en corriente (acceso inmediato, ${split.instantAccessDays} días) y ${euro(split.remunerado)} en remunerada.</p>`
+      : '<p class="p2-help">Sin colchón que repartir entre corriente y remunerada ahora mismo.</p>';
+    const ladder = summary.ladder;
+    const ladderBody = ladder && ladder.rungs.length
+      ? `<ul class="p2-list">${ladder.rungs.map((rung) => `<li>Tramo ${rung.index}: ${euro(rung.amount)} a ${rung.months} meses</li>`).join("")}</ul>`
+      : '<p class="p2-help">Sin exceso sobre el colchón que escalonar ahora mismo.</p>';
+    return `<article class="p2-item">${splitLine}${ladderBody}</article>`;
+  }
+
   function renderE16Monitoring() {
     const api = root.FinanceCanonicalE16;
     const input = bridge()?.e16Input?.();
@@ -226,6 +244,7 @@
     target.querySelector("[data-p2-body]").innerHTML = `
       <section class="p2-list"><h4>Próxima mejor acción (CP1)</h4>${cp1NextBestActionHtml(nextBestAction)}</section>
       <section class="p2-list"><h4>Dinero parado (CP2)</h4>${cp2IdleCashHtml(idleCashSignal)}</section>
+      <section class="p2-list"><h4>Escalera de vencimientos (TT2)</h4>${tt2MaturityLadderHtml()}</section>
       <form class="p2-form p2-grid three" data-e16-budget-form>
         <label class="p2-field"><span>Caja mínima (€)</span><input name="minimumLiquidity" type="number" min="0" step="0.01" value="${esc(budget.minimumLiquidity)}" /></label>
         <label class="p2-field"><span>Variación mensual máxima (€)</span><input name="maximumMonthlyVariation" type="number" min="0" step="0.01" value="${esc(budget.maximumMonthlyVariation)}" /></label>

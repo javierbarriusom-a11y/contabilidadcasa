@@ -12703,6 +12703,20 @@ function cp2IdleCashSummary() {
   return { idleAmount, floor, total: balances.total, opportunityCost };
 }
 
+// TT2: escalera de vencimientos para el exceso sobre el colchón. Depende de CP2 (el exceso ya
+// identificado como dinero parado, cp2IdleCashSummary) y de TT1 (cushionAccountSplit — reparto del
+// colchón en sí entre corriente y remunerada, sin UI propia hasta ahora). Junta ambas piezas en una
+// sola foto: cuánto del colchón está en corriente/remunerada (TT1) y cómo escalonar en tramos de
+// vencimiento el exceso que queda por encima (CP2) — sin motor de rentabilidad nuevo, la escalera es
+// pura estructura de plazos, nunca una previsión de tipos.
+function tt2MaturityLadderSummary() {
+  const idle = cp2IdleCashSummary();
+  const cushionAmount = round2(Math.min(idle.total, idle.floor));
+  const accountSplit = FinanceCanonicalCushion.cushionAccountSplit(cushionAmount, lastSimulation);
+  const ladder = FinanceCanonicalCushion.cushionMaturityLadder(idle.idleAmount);
+  return { idleAmount: idle.idleAmount, floor: idle.floor, accountSplit, ladder };
+}
+
 function partidasSimuladorOpportunityCostFor(decision, month, baseInput) {
   const engine = window.FinanceCanonicalPortfolio;
   if (!engine || !decision || decision.tipo !== "compra" || decision.params?.financiacion) return null;
@@ -26447,6 +26461,7 @@ window.FinanceP2Bridge = {
   },
   alerts: evaluatedUxAlerts,
   idleCash: cp2IdleCashSummary,
+  maturityLadder: tt2MaturityLadderSummary,
   exportModel: p2ExportModel,
   privateCloudAvailable: () => Boolean(supabaseClient && remoteUser),
   uploadPrivateAttachment: async (id, blob) => {
