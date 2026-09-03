@@ -129,6 +129,51 @@
     };
   }
 
+  const AMORTIZE_VS_INVEST_SCHEMA_ID = "finance.amortize-vs-invest";
+
+  // AP1: comparador amortizar vs. invertir. Depende de IV1/IV2 (canonical-portfolio.js) e IV5, que
+  // habilita esta tarea a propósito: el lado de "invertir" es exactamente
+  // FinanceCanonicalPortfolio.opportunityCost() ya calculado — quien llama lo pasa resuelto
+  // (`investmentResult`), mismo patrón de composición que AP3 con el guardarraíl de AP4. Este motor
+  // no reimplementa esa cuenta ni inventa ninguna cifra de mercado: el tipo de la deuda
+  // (`debtAnnualRatePct`) lo declara el hogar, igual que AP3 con el tipo de la deuda nueva. Nunca
+  // decide por el hogar — da los dos números y una lectura que se puede aceptar o descartar.
+  function knownFinite(value) {
+    return typeof value === "number" && Number.isFinite(value);
+  }
+
+  function compareAmortizeVsInvest({ amount = 0, months = 0, debtAnnualRatePct = null, remainingPrincipal = null, investmentResult = null } = {}) {
+    const cashAmount = Math.max(0, round2(amount));
+    const horizonMonths = Math.max(0, Math.floor(finite(months)));
+    // `Number(null)` es 0, así que un TIN o un principal pendiente ausentes (null/undefined) no
+    // pueden pasar por `Number()` directamente sin colarse como un 0 asumido — se exige un número
+    // real de partida, mismo criterio que opportunityCost (IV5).
+    const debtRate = knownFinite(debtAnnualRatePct) ? debtAnnualRatePct : NaN;
+    if (cashAmount <= 0 || horizonMonths <= 0 || !Number.isFinite(debtRate)) {
+      return { schema: AMORTIZE_VS_INVEST_SCHEMA_ID, calculable: false };
+    }
+    const cappedAmount = knownFinite(remainingPrincipal)
+      ? Math.min(cashAmount, Math.max(0, round2(remainingPrincipal)))
+      : cashAmount;
+    const years = horizonMonths / 12;
+    const amortizeSavings = round2(cappedAmount * (debtRate / 100) * years);
+    const investCalculable = Boolean(investmentResult && investmentResult.calculable);
+    const investGain = investCalculable ? round2(investmentResult.gain) : null;
+    const assessment = !investCalculable
+      ? "invertir-no-calculable"
+      : investGain > amortizeSavings ? "invertir" : investGain < amortizeSavings ? "amortizar" : "neutral";
+    return {
+      schema: AMORTIZE_VS_INVEST_SCHEMA_ID,
+      calculable: true,
+      amount: cappedAmount,
+      months: horizonMonths,
+      debtAnnualRatePct: round2(debtRate),
+      amortizeSavings,
+      investGain,
+      assessment,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -138,5 +183,7 @@
     normalizeAlternative,
     compareActionAlternatives,
     compareAgreements,
+    AMORTIZE_VS_INVEST_SCHEMA_ID,
+    compareAmortizeVsInvest,
   };
 });

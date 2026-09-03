@@ -2,6 +2,48 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (119): Bloque 10 — AP1, comparador amortizar vs. invertir
+
+Cuarta tarea del Bloque 10, encadenada tras IV5. Depende de IV1 e IV2 (`canonical-portfolio.js`,
+ambos ya en `main`) y reutiliza directamente IV5 (`opportunityCost`), que la habilitaba a propósito.
+Extiende `canonical-debt-comparator.js`, como pedía su nota en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`.
+
+**Construido**: `compareAmortizeVsInvest({amount, months, debtAnnualRatePct, remainingPrincipal,
+investmentResult})` — compara el ahorro de intereses de amortizar anticipadamente una deuda existente
+(`amount × TIN/100 × años`) contra `investmentResult.gain`, el mismo objeto que ya devuelve
+`FinanceCanonicalPortfolio.opportunityCost()` (IV5): este motor nunca recalcula ese lado, lo recibe
+ya resuelto, mismo patrón de composición que AP3 con el guardarraíl de AP4. El importe a amortizar se
+limita al principal pendiente real de la deuda seleccionada (`remainingPrincipal`) — nunca amortiza
+más de lo que se debe. Sin importe, horizonte o TIN declarado, `calculable: false`; sin
+`investmentResult` calculable, la lectura es `invertir-no-calculable`, nunca una comparación contra
+una cifra inventada.
+
+**Bug atrapado antes de publicar**: el mismo fallo de `Number(null)` que ya había aparecido en IV5
+(colapsa a `0`, un número finito válido) se coló dos veces más aquí — en el TIN de la deuda y en el
+principal pendiente, ambos con valor por defecto `null`. Sin el guardia, un TIN no declarado se leía
+como 0% (calculable, en vez de rechazado) y un principal no declarado limitaba el importe a
+amortizar a cero. Corregido con `knownFinite()` (exige `typeof value === "number"` antes de aceptarlo)
+antes de que las pruebas se escribieran contra el comportamiento correcto.
+
+`app.js` añade una tarjeta "Comparador: amortizar vs. invertir" en Ajustes, justo debajo de la
+alerta de AP6: selector de la deuda a amortizar (de `p2DebtRows()`, solo las que tienen principal
+pendiente), importe disponible, TIN de esa deuda declarado por el hogar (ningún contrato de deuda de
+la app guarda un tipo de interés propio) y horizonte en meses. El lado de invertir reutiliza
+`iv5PortfolioAnnualReturnPct()` tal cual — la misma XIRR real de la cartera que ya usa IV5, ninguna
+cifra de mercado nueva.
+
+**Validación**: `npm run verify`, exit 0 — **2824/2824 pruebas** (2804 + 20 nuevas: 12 en
+`tests/ap1-amortizar-vs-invertir.test.cjs` — sin importe/horizonte/TIN no calcula nada, el importe se
+limita al principal pendiente, sin `investmentResult` la lectura es no-calculable, las tres lecturas
+(amortizar/invertir/neutral) según cuál gana más — y 8 en `tests/ap1-app-integracion.test.cjs`).
+Accesibilidad (1043 IDs, +6 por la nueva tarjeta), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde. `app.js`/`canonical-debt-comparator.js` bumpeados a `?v=20260903ap1a1` (27
+referencias del marcador de versión de `app.js` actualizadas en masa).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (118): Bloque 10 — IV5, coste de oportunidad junto a cada decisión de caja
 
 Tercera tarea del Bloque 10, encadenada tras A18-3. Depende de IV1 e IV2 (`canonical-portfolio.js`,
