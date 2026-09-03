@@ -16197,6 +16197,64 @@ async function revokeA19ShareLink(id) {
   renderA19ShareLinkList();
 }
 
+// A19-2: informe PDF certificado. Depende de A14-2/A14-3 (patrimonio, ya construidas): "capacidad de
+// pago, patrimonio neto (si existe E21), calendario de deuda y colchón, con fecha y advertencia de
+// que es un resumen propio, no una certificación bancaria" (BACKLOG_PATRIMONIO_Y_FINANZAS.md).
+// Reutiliza el escritor de PDF sin librería externa ya construido (P2Export.downloadPlainPdf,
+// OPT-3/V6-4) y exactamente las mismas fuentes de datos que ya calcula el resto de la app —
+// monthlyFreeCapacity, FinanceCanonicalAssets (A14-1), p2DebtRows, accountBalancesFromState/
+// cushionFloor — ningún motor nuevo, ningún dato nuevo que declarar.
+function a19CertifiedReportLines() {
+  const generatedAt = new Date().toISOString();
+  const lines = [
+    "INFORME FINANCIERO — RESUMEN PROPIO, NO ES UNA CERTIFICACIÓN BANCARIA",
+    `Generado: ${generatedAt.slice(0, 10)}`,
+    "",
+    "CAPACIDAD DE PAGO",
+    `Capacidad libre mensual media: ${money(monthlyFreeCapacity(lastSimulation), true)}`,
+    "",
+  ];
+  const assetsEngine = window.FinanceCanonicalAssets;
+  const declaredAssets = assetsList();
+  lines.push("PATRIMONIO NETO");
+  if (assetsEngine && declaredAssets.length) {
+    const netWorth = assetsEngine.normalizeAssets(declaredAssets).summary.netWorth;
+    const debt = totalDebtOutstanding();
+    lines.push(
+      `Patrimonio total declarado: ${money(netWorth, true)}`,
+      `Deuda pendiente: ${money(debt, true)}`,
+      `Patrimonio neto: ${money(round2(netWorth - debt), true)}`,
+    );
+  } else {
+    lines.push("Sin activos declarados (Ajustes › Patrimonio): patrimonio neto no calculable.");
+  }
+  lines.push("", "CALENDARIO DE DEUDA");
+  const pendingDebts = p2DebtRows().filter((debt) => debt.currentPrincipal > 0);
+  if (pendingDebts.length) {
+    pendingDebts.forEach((debt) => lines.push(`${debt.entity} · ${debt.type}: ${money(debt.currentPrincipal, true)} pendiente, cuota ${money(debt.currentPayment, true)}/mes`));
+  } else {
+    lines.push("Sin deuda pendiente registrada.");
+  }
+  const balances = accountBalancesFromState();
+  const cushionEngine = window.FinanceCanonicalCushion;
+  const floor = cushionEngine ? cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()) : null;
+  lines.push(
+    "",
+    "COLCHÓN DE EMERGENCIA",
+    `Colchón actual: ${money(balances.total, true)}`,
+    floor ? `Suelo configurado: ${money(floor.value, true)}` : "Suelo del colchón no calculable.",
+    "",
+    "Este documento es un resumen elaborado por el propio hogar a partir de los datos que ha declarado en la app. No constituye una certificación bancaria ni un documento oficial — verifica cualquier decisión con la documentación contractual real y, si procede, con tu entidad bancaria.",
+  );
+  return lines;
+}
+
+function downloadA19CertifiedReport() {
+  if (!window.P2Export) return;
+  const today = new Date().toISOString().slice(0, 10);
+  window.P2Export.downloadPlainPdf(a19CertifiedReportLines(), `informe-certificado-${today}.pdf`);
+}
+
 // A14-4: desglose por tipo y concentración de riesgo. Lee scenarioSettings.assets (activos
 // declarados a mano, mismo patrón de registro simple que A18-1) y delega toda la normalización en
 // FinanceCanonicalAssets (A14-1) — sin motor propio. Sin activos registrados, el hogar ve un estado
@@ -34770,6 +34828,7 @@ async function init() {
   qs("a18ConfirmJavi")?.addEventListener("click", () => confirmA18Settlement("javi"));
   qs("a18ConfirmTere")?.addEventListener("click", () => confirmA18Settlement("tere"));
   qs("a19ShareSave")?.addEventListener("click", saveA19ShareLink);
+  qs("a19CertifiedReportDownload")?.addEventListener("click", downloadA19CertifiedReport);
   qs("a19ShareLinkList")?.addEventListener("click", (event) => {
     const revokeButton = event.target.closest("[data-a19-share-revoke]");
     if (!revokeButton) return;

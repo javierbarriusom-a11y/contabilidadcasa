@@ -2,6 +2,41 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (121): Bloque 10 — A19-2, informe PDF certificado
+
+Sexta tarea del Bloque 10, encadenada tras AP2. Depende de A14-2 y A14-3 (ya construidas). Según su
+descripción en `BACKLOG_PATRIMONIO_Y_FINANZAS.md`: "capacidad de pago, patrimonio neto (si existe
+E21), calendario de deuda y colchón, con fecha y advertencia de que es un resumen propio, no una
+certificación bancaria".
+
+**Construido**: `a19CertifiedReportLines()` en `app.js` ensambla las cuatro piezas exigidas
+reutilizando exactamente las mismas fuentes de datos que ya calcula el resto de la app — sin motor
+nuevo, sin dato nuevo que declarar: `monthlyFreeCapacity(lastSimulation)` (capacidad de pago),
+`FinanceCanonicalAssets.normalizeAssets()` + `totalDebtOutstanding()` (patrimonio neto, con aviso
+explícito de "no calculable" si no hay activos declarados en vez de una cifra inventada),
+`p2DebtRows()` filtrado a deuda con principal pendiente (calendario de deuda) y
+`accountBalancesFromState()`/`FinanceCanonicalCushion.cushionFloor()` (colchón, misma fuente que
+AP3/AP6). El PDF en sí reutiliza el escritor sin librería externa que ya existía
+(`P2Export.downloadPlainPdf`, de OPT-3/V6-4) — ningún motor de PDF nuevo. La advertencia de que es un
+resumen propio, nunca una certificación bancaria, aparece dos veces en el documento: en la cabecera y
+en el pie.
+
+Nueva tarjeta "Informe PDF certificado" en Ajustes, justo debajo del enlace de solo lectura de A19-1:
+un único botón, sin formulario — todos los datos ya están declarados en otras pantallas.
+
+**Validación**: `npm run verify`, exit 0 — **2844/2844 pruebas** (2834 + 10 nuevas, todas en
+`tests/a19-2-informe-pdf-certificado.test.cjs` — las cuatro piezas exigidas con fecha, el patrimonio
+neto reutiliza A14-1 sin motor propio, sin activos declarados dice explícitamente que no es
+calculable, el calendario de deuda y el colchón reutilizan las mismas fuentes que AP1-AP3/AP6, el
+aviso de "no es una certificación bancaria" aparece en cabecera y pie, el escritor de PDF sigue
+siendo el mismo de OPT-3/V6-4). Accesibilidad (1044 IDs, +1 por el nuevo botón), rendimiento, build
+del sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a `?v=20260903a192a1` (27
+referencias del marcador de versión actualizadas en masa).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (120): Bloque 10 — AP2, punto de equilibrio tipo deuda vs. tipo esperado de inversión
 
 Quinta tarea del Bloque 10, encadenada tras AP1. Depende de IV2, y reutiliza directamente las
