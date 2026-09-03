@@ -2,6 +2,52 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (117): Bloque 10 — A18-3, liquidación con doble confirmación
+
+Segunda tarea del Bloque 10, encadenada tras AP6. Depende de A18-2 (`canonical-household-split.js`,
+ya construido: saldo continuo "quién debe a quién" entre Javi y Tere sobre los gastos compartidos
+registrados a mano, sin tocar nunca el libro principal de movimientos). Antes de acometerla se
+comprobó si OPT-11 (siguiente en el orden del bloque) ya era viable: OPT-2 arrancó el 29 de agosto
+(sesión 47) y el plazo de 30 días que exige OPT-10 no se cumple hasta finales de septiembre, así que
+OPT-11 sigue bloqueada y se saltó a A18-3.
+
+Según su propia descripción en `BACKLOG_PATRIMONIO_Y_FINANZAS.md`: "cada liquidación periódica
+sugerida requiere confirmación de ambas partes antes de registrarse como transferencia interna,
+mismo patrón que el ciclo de aprobación de E5". A18-2 calcula el saldo pero nunca lo registra como
+transferencia real ("sin afectar al libro principal", por diseño); A18-3 es el único camino para
+convertir ese saldo en algo registrado, y exige que Javi y Tere confirmen por separado.
+
+**Construido**: `canonical-household-split.js` gana `proposeSettlement(entries, settings,
+settledEntryIds)` — calcula el saldo pendiente (`runningBalance`) solo sobre los gastos compartidos
+que ninguna liquidación anterior ya cubrió (`pendingSplitEntries`), y devuelve `hasPendingBalance:
+false` sin nada que liquidar, nunca una liquidación de importe cero. `confirmSettlement(proposal,
+confirmations)` nunca registra nada con una sola confirmación: sin ambas (`javi`/`tere`), devuelve
+`status: "pending"` con la lista exacta de quién falta; con ambas, devuelve el registro confirmado
+con los mismos `entryIds` de la propuesta, para que esos gastos no vuelvan a proponerse.
+
+`app.js` guarda las liquidaciones confirmadas en `scenarioSettings.householdSettlements[]` (mismo
+patrón de lista que el resto de la app) y la confirmación en curso aparte
+(`householdSettlementConfirmation`), para que una persona confirme hoy y la otra mañana en otro
+dispositivo — pero solo si sigue cubriendo exactamente los mismos gastos: si el saldo pendiente
+cambió mientras tanto (nuevo gasto, regla editada), la confirmación en curso se descarta entera en
+vez de liquidar un importe que ya no es el real. Dos botones, "Confirmo yo, Javi" y "Confirmo yo,
+Tere", en la nueva tarjeta "Liquidación con doble confirmación" en Ajustes, justo debajo del saldo
+continuo (A18-2), con el historial de liquidaciones ya confirmadas.
+
+**Validación**: `npm run verify`, exit 0 — **2789/2789 pruebas** (2770 + 19 nuevas: 11 en
+`tests/a18-3-liquidacion-doble-confirmacion.test.cjs` — sin saldo no hay propuesta, la propuesta trae
+los gastos exactos que cubre, un gasto ya liquidado no vuelve a proponerse, nunca registra con una
+sola confirmación, con ambas queda confirmada con los mismos `entryIds` — y 8 en
+`tests/a18-3-app-integracion.test.cjs`), más 3 pruebas existentes de `tests/a18-1-reglas-reparto.test.cjs`
+actualizadas para sandboxear la nueva llamada a `renderA18SettlementCard()`. Accesibilidad (1037 IDs,
++4 por la nueva tarjeta), rendimiento, build del sitio, privacidad y smoke test, todos en verde.
+`app.js`/`canonical-household-split.js` bumpeados a `?v=20260903a183a1` (27 referencias del marcador
+de versión de `app.js` actualizadas en masa, mismo mecanismo que en sesiones anteriores).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (116): Bloque 10 — AP6, alerta cuando el líquido ya no sostiene la deuda tomada. **Abre el Bloque 10.**
 
 Primera tarea del Bloque 10 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, a petición directa del usuario de
