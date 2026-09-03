@@ -2,6 +2,47 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (130): HD-1 a HD-4 — Hoy deja de volcar una década de alertas y el historial completo de movimientos
+
+Spin-off «Ajustes y Hoy» (fuera de las 99 tareas de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, priorizado
+explícitamente por el usuario el mismo 3-sep-2026): las cuatro primeras tareas del bloque Hoy
+(HD-1 a HD-4), decididas y construidas en la misma sesión. HD-5 (destino de "ver detalle completo")
+sigue sin decidir y no se ha construido.
+
+**HD-1 — horizonte de alertas acotado a 18 meses**: `predictiveAlerts()` recorría todo
+`forecast.series`, que llega hasta `MODEL_END_YEAR`/`MODEL_END_MONTH` (diciembre de 2036, ~124
+meses vista) — hasta ~249 tarjetas en el límite teórico. `FinanceP2Bridge.e16Input()` (`app.js`)
+ahora recorta ese `forecast.series` a `E16_ALERT_HORIZON_MONTHS = 18` antes de pasarlo al motor de
+E16. `goalPlanning()` no se toca: Previsión sigue viendo el horizonte completo.
+
+**HD-2 — "qué cambió" ya no vuelca el historial completo**: sin revisión E15 registrada,
+`changeSummary()` recibía `since` vacío → `sinceTime = 0` → el filtro `!sinceTime || ...` era
+siempre cierto y listaba `p2MovementRows()` entero desde el origen. `e16Input()` calcula ahora
+`lastReviewAt` con una cadena de fallback: revisión E15 más reciente → cierre de mes más reciente
+(mismo criterio que `reopenLatestMonthTransaction()`, `monthClosures` con `status === "closed"`) →
+30 días como último recurso si tampoco hay ningún mes cerrado.
+
+**HD-3 — `deviations`/`assumptions` dejan de ser ramas muertas**: `changeSummary()` esperaba ambos
+campos y `e16Input()` nunca los rellenaba. Se decidió cablearlos con fuentes reales ya calculadas en
+el repo, en vez de retirar el soporte: `deviations` desde el mismo `learnFromHistory()` de E12b que
+ya usan PV2/PV3 (aprendizaje de desviación previsto/real); `assumptions` desde
+`scenarioSettings.assumptionRegistry.items` (A7-2, ya versionado con `updatedAt` por supuesto).
+
+**HD-4 — listas largas, recortadas con el patrón ya probado en Estado de la semana**: `p2-ui.js`
+gana `e16TopAlertsHtml()` (alertas ordenadas por `CP1_SEVERITY_RANK` — severidad real, no
+cronología — recortadas a 3, con contador si sobran) y `e16RecentChangesHtml()` (mismo recorte para
+"qué cambió"), reemplazando los dos `.map()` sin límite de `renderE16Monitoring()`. Sin enlace de
+"ver detalle completo": su destino es HD-5, sin decidir todavía.
+
+**Decisión propia, no puesta al usuario** (detalle de implementación, no de producto): el recorte de
+"qué cambió" se fija en 5 líneas — mismo orden de magnitud que el 3 de Estado de la semana, algo
+más generoso porque aquí conviven movimientos, desviaciones, supuestos y objetivos en una sola
+lista.
+
+**Validación**: `npm run verify`, exit 0 — **2935/2935 pruebas**, accesibilidad, rendimiento,
+`build:site`, privacidad y humo, todo en verde. (El entorno no traía `node_modules` instalado al
+empezar la sesión — `npm install` antes de validar, sin relación con este cambio.)
+
 ## Cierre de sesión — 3 de septiembre de 2026 (129): Bloque 6 — OPT-16/OPT-17, evaluadas y descartadas sin código
 
 Última tarea libre que quedaba tras A17-3 y la corrección de OPT-14. Antes de escribir código se
