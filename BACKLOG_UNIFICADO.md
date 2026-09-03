@@ -139,6 +139,7 @@ sin bloqueo · ⛔ bloqueado). Todas las tareas de este documento están ⏳ sal
 | 47 | OPT-21 | Checklist mensual de heurísticos de Nielsen | Optimización | S, mensual | Medio | |
 | 48 | OPT-22 | Decidir y documentar el modelo Hogar/Javi/Tere | Optimización | S | Medio | |
 | 49 | A19-3 | Comparador educativo de tarifas fijas | Patrimonio | S | Bajo-Medio | Depende de encontrar una fuente externa fiable; oportunista |
+| 50 | OPT-23 | `overflow-x: clip` en `.workspace` invalida `position: sticky` en toda vista | Optimización | S (investigación) | Medio | Hallazgo del 3-sep-2026 (AJ-2, Ajustes); no bloquea ni depende de nada |
 
 ## Puerta de aceptación
 

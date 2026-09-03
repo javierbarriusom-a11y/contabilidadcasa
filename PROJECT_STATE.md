@@ -2,6 +2,28 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (133): OPT-23 — el límite de sticky de AJ-2 entra en el backlog
+
+Solo documentación, sin código: el hallazgo de la sesión 132 (`.workspace` con `overflow-x: clip`
+invalida `position: sticky` en cualquier vista, incluida la barra de anclas de Ajustes recién
+construida y, sin que nadie lo hubiera notado hasta ahora, `.meeting-mode-bar` en Hoy) se formaliza
+como **OPT-23** en `BACKLOG_OPTIMIZACION.md` (detalle completo, tareas, resultado esperado) y en
+`BACKLOG_UNIFICADO.md` (orden #50, bloque «Gobernanza continua + oportunista»). No bloquea nada ni
+depende de nada — investigación acotada para cuando haya hueco.
+
+**Estado del resto del backlog, repasado antes de buscar «el siguiente bloque»**: la foto de la
+sesión 129 sigue vigente. De las tareas pendientes del backlog definitivo de septiembre
+(`BACKLOG_ULTIMATE_SEPTIEMBRE.md`), ninguna tiene retorno ejecutable hoy mismo: OPT-18 sigue
+bloqueada por la política de red del sandbox (confirmado de nuevo esta sesión, sin cambios);
+OPT-10/11/12/13/14/15 siguen esperando los ~30 días de telemetría de OPT-2, que no cumple hasta
+finales de septiembre; A17-4 depende de la activación de infraestructura externa (E10/A5-1), una
+decisión de presupuesto fuera de este documento; OPT-16/17 están cerradas por decisión ya tomada.
+OPT-23, con este cierre, queda registrada pero **no** desbloquea nada de lo anterior — es trabajo
+nuevo, no una tarea que estuviera esperando.
+
+**Validación**: `npm test`, exit 0 — **2935/2935 pruebas** (sin cambios funcionales; solo
+documentación).
+
 ## Cierre de sesión — 3 de septiembre de 2026 (132): AJ-1/AJ-2 — Ajustes pasa de 42 tarjetas planas a 9 dominios con barra de anclas
 
 Bloque Ajustes del spin-off «Ajustes y Hoy» (bloque Hoy, HD-1 a HD-5, ya cerrado en las sesiones
