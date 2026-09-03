@@ -3383,6 +3383,28 @@ svg {
   font-weight: 800;
 }
 
+/* DEX11: en un dispositivo táctil, el botón de confirmar explícito (A6-5) pide mantener pulsado en
+   vez de un toque suelto — el relleno visual es la única pista de que hace falta el gesto completo. */
+.gesture-confirm {
+  position: relative;
+  overflow: hidden;
+}
+
+.gesture-confirm::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scaleX(0);
+  transform-origin: left;
+  pointer-events: none;
+}
+
+.gesture-confirm.is-holding::after {
+  transform: scaleX(1);
+  transition: transform 0.6s linear;
+}
+
 .data-hint {
   color: var(--muted);
   font-size: 12px;

@@ -178,7 +178,7 @@ test("R-9 · sin la librería XLSX disponible, el aviso se pinta en registrarBat
   const file = { name: "libro.xlsx", arrayBuffer: async () => new ArrayBuffer(4) };
   await processRegistrarExcelFile(file);
   assert.deepEqual(calls, [
-    ["No se pudo leer Excel", "La librería de lectura de Excel no está disponible todavía.", "danger", "registrarBatchLog"],
+    ["Excel todavía está cargando", "Pasa la primera vez que se usa en la sesión. Espera unos segundos y vuelve a intentarlo.", "danger", "registrarBatchLog"],
   ]);
 });
 
