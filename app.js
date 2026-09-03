@@ -18,6 +18,10 @@ const derivedControlIds = [
 
 const MODEL_END_YEAR = 2036;
 const MODEL_END_MONTH = 11;
+// HD-1 (spin-off Ajustes/Hoy, 3-sep-2026): las alertas anticipadas de caja (E16) miraban el
+// horizonte completo del modelo (~124 meses) en vez de un plazo accionable. 18 meses, decidido el
+// 3-sep-2026 — el resto del horizonte sigue disponible en Previsión, sin recortar.
+const E16_ALERT_HORIZON_MONTHS = 18;
 const UxSettings = globalThis.FinanceUxSettings || null;
 const UxShell = globalThis.FinanceUxShell || null;
 const E11bInbox = globalThis.FinanceCanonicalE11b || null;
@@ -26619,13 +26623,32 @@ window.FinanceP2Bridge = {
     const p2 = p2State();
     const planning = window.FinanceP2Bridge.goalPlanning();
     const lastReview = (p2.e15?.reviews || []).slice().sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))[0];
+    // HD-2: sin revisión E15 previa, "qué cambió" caía a sinceTime=0 y volcaba el historial
+    // completo de movimientos. Decidido el 3-sep-2026: el último cierre de mes (A1-2) como fuente
+    // por defecto; si tampoco hay ningún mes cerrado, 30 días como último recurso.
+    const lastClosedMonth = monthClosures.filter((item) => item.status === "closed" && isClosedMonthKey(item.monthKey))
+      .sort((a, b) => String(b.closedAt || b.occurredAt).localeCompare(String(a.closedAt || a.occurredAt)))[0];
+    const lastReviewAt = lastReview?.completedAt || lastClosedMonth?.closedAt || lastClosedMonth?.occurredAt
+      || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const monthlyDebt = p2DebtRows().reduce((sum, debt) => sum + Math.max(0, Number(debt.currentPayment || 0)), 0);
     const monthlyIncome = Math.max(0, Number(state?.baseHouseholdIncome || baseData?.assumptions?.monthlyIncome || 0));
+    // HD-3: deviations/assumptions nunca llegaban rellenos a changeSummary() — dos ramas muertas.
+    // Ambas ya tienen una fuente real en el repo, reutilizada tal cual: el aprendizaje de previsión
+    // de E12b (mismo learnFromHistory() que PV2/PV3) y el registro de supuestos versionado (A7-2).
+    const learning = window.FinanceCanonicalForecast?.learnFromHistory(reconciledMonthlyNetHistory());
+    const deviations = (learning?.deviations || []).map((item) => ({ label: item.label, delta: item.averageDelta, source: "aprendizaje de previsión (E12b)" }));
+    const assumptions = (scenarioSettings.assumptionRegistry?.items || []).map((item) => ({ label: item.label, updatedAt: item.updatedAt, source: item.source }));
     return {
       ...planning,
+      // HD-1: recorta el horizonte de las alertas a E16_ALERT_HORIZON_MONTHS; Previsión sigue
+      // usando goalPlanning().forecast completo, sin recortar.
+      forecast: { ...planning.forecast, series: (planning.forecast?.series || []).slice(0, E16_ALERT_HORIZON_MONTHS) },
       movements: p2MovementRows(),
       goals: p2.goals.map((goal) => window.P2Domain?.goalSnapshot(goal) || goal),
+      deviations,
+      assumptions,
       lastReview,
+      lastReviewAt,
       riskBudget: p2.e16?.riskBudget,
       predictionSamples: p2.e16?.predictionSamples || [],
       debtRatio: monthlyIncome ? round2((monthlyDebt / monthlyIncome) * 100) : 0,

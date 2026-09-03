@@ -176,6 +176,31 @@
     return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(action.label)}</strong><span class="p2-status${tone}">${esc(action.severity)}</span></div><p>${esc(action.message)}</p><p class="p2-help">Cita: ${esc(action.citations.join(", "))}.</p></article>`;
   }
 
+  // HD-4 (spin-off Ajustes/Hoy, 3-sep-2026): con el horizonte ya acotado (HD-1) el listado de
+  // alertas deja de ser inabarcable, pero sigue pudiendo tener varias entradas a la vez — mismo
+  // patrón de recorte que ya usa Estado de la semana (views/estado-semana.js: alerts.slice(0,3) +
+  // contador), aquí ordenado por severidad real (CP1_SEVERITY_RANK) en vez de por horizonte, para
+  // que lo más urgente encabece la lista y no solo lo más próximo en el tiempo.
+  const E16_LIST_LIMIT = 3;
+
+  function e16TopAlertsHtml(alerts) {
+    if (!alerts.length) return '<div class="p2-empty">No hay riesgos que superen el presupuesto configurado.</div>';
+    const top = [...alerts].sort((a, b) => (CP1_SEVERITY_RANK[a.severity] ?? 3) - (CP1_SEVERITY_RANK[b.severity] ?? 3)).slice(0, E16_LIST_LIMIT);
+    const items = top.map((item) => `<article class="p2-item"><div class="p2-item-head"><strong>${esc(item.monthKey)} · ${esc(item.severity)}</strong><span class="p2-status${item.severity === "critical" ? " danger" : " warn"}">${esc(item.confidence)}</span></div><p>${esc(item.message)}</p><p class="p2-help">${esc(item.evidence.join(" · "))}</p></article>`).join("");
+    const rest = alerts.length - top.length;
+    const note = rest > 0 ? `<p class="p2-help">${alerts.length} alertas en total, ordenadas por severidad — se muestran las ${top.length} más urgentes.</p>` : "";
+    return items + note;
+  }
+
+  function e16RecentChangesHtml(changes) {
+    if (!changes.length) return '<div class="p2-empty">No hay cambios comparables todavía.</div>';
+    const top = changes.slice(0, E16_LIST_LIMIT + 2);
+    const items = top.map((item) => `<div class="p2-contribution"><span>${esc(item)}</span></div>`).join("");
+    const rest = changes.length - top.length;
+    const note = rest > 0 ? `<p class="p2-help">Se muestran ${top.length} de ${changes.length} cambios.</p>` : "";
+    return items + note;
+  }
+
   // CP2: detección de "dinero parado". Depende de AP1 (canonical-debt-comparator.js) y reutiliza tal
   // cual la caja idle ya calculada por el puente (cp2IdleCashSummary en app.js — mismas fuentes que
   // AP1/IV5: colchón, XIRR real de la cartera, opportunityCost). Citada contra el catálogo de
@@ -253,8 +278,8 @@
       </form>
       <div data-e16-notice></div>
       <div class="p2-kpis"><div class="p2-kpi"><span>Alertas anticipadas</span><strong>${alerts.length}</strong></div><div class="p2-kpi"><span>Error medio</span><strong>${euro(model.quality.meanAbsoluteError)}</strong></div><div class="p2-kpi"><span>Muestras completas</span><strong>${model.quality.samples}</strong></div><div class="p2-kpi"><span>Confianza</span><strong>${esc(model.quality.confidence)}</strong></div></div>
-      <section class="p2-list"><h4>Alertas anticipadas de caja</h4>${alerts.length ? alerts.map((item) => `<article class="p2-item"><div class="p2-item-head"><strong>${esc(item.monthKey)} · ${esc(item.severity)}</strong><span class="p2-status${item.severity === "critical" ? " danger" : " warn"}">${esc(item.confidence)}</span></div><p>${esc(item.message)}</p><p class="p2-help">${esc(item.evidence.join(" · "))}</p></article>`).join("") : '<div class="p2-empty">No hay riesgos que superen el presupuesto configurado.</div>'}</section>
-      <section class="p2-list"><h4>Qué cambió desde la última revisión</h4><p class="p2-help">${esc(model.changes.summary)}</p>${changes.length ? changes.map((item) => `<div class="p2-contribution"><span>${esc(item)}</span></div>`).join("") : '<div class="p2-empty">No hay cambios comparables todavía.</div>'}</section>
+      <section class="p2-list"><h4>Alertas anticipadas de caja</h4>${e16TopAlertsHtml(alerts)}</section>
+      <section class="p2-list"><h4>Qué cambió desde la última revisión</h4><p class="p2-help">${esc(model.changes.summary)}</p>${e16RecentChangesHtml(changes)}</section>
       <section class="p2-list"><h4>Calidad de predicción</h4><p class="p2-help">${esc(model.quality.note)} Sesgo: ${euro(model.quality.bias)}.</p>${model.quality.categories.length ? model.quality.categories.map((item) => `<div class="p2-contribution"><span>${esc(item.category)}</span><strong>${euro(item.meanAbsoluteError)} · ${item.samples} muestras</strong></div>`).join("") : ""}</section>
       <section class="p2-list"><h4>Recomendaciones trazables</h4>${model.recommendations.recommendations.map((item) => `<article class="p2-item"><strong>${esc(item.action)}</strong><p>${esc(item.message)}</p><p class="p2-help">Evidencia: ${esc(item.evidence.join(" · "))}. Alternativas: ${esc(item.alternatives.join(" · "))}.</p></article>`).join("") || '<div class="p2-empty">No hay recomendaciones nuevas.</div>'}<p class="p2-help">${esc(model.recommendations.note)}</p></section>`;
     target.querySelector("[data-e16-budget-form]")?.addEventListener("submit", (event) => {
