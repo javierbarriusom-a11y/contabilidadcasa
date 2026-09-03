@@ -176,6 +176,40 @@
     return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(action.label)}</strong><span class="p2-status${tone}">${esc(action.severity)}</span></div><p>${esc(action.message)}</p><p class="p2-help">Cita: ${esc(action.citations.join(", "))}.</p></article>`;
   }
 
+  // CP2: detección de "dinero parado". Depende de AP1 (canonical-debt-comparator.js) y reutiliza tal
+  // cual la caja idle ya calculada por el puente (cp2IdleCashSummary en app.js — mismas fuentes que
+  // AP1/IV5: colchón, XIRR real de la cartera, opportunityCost). Citada contra el catálogo de
+  // fuentes de canonical-e9-assistant.js (sourceCatalog) y verificada por CP3 antes de mostrarse —
+  // mismo patrón que CP1. Sin caja por encima del suelo del colchón, o si la cita no pasara la
+  // validación, no hay señal que mostrar — nunca una cifra inventada.
+  function cp2IdleCashSignal() {
+    const assistantApi = root.FinanceCanonicalE9Assistant;
+    const citationApi = root.FinanceCanonicalRecommendationCitation;
+    const idle = bridge()?.idleCash?.();
+    if (!assistantApi || !citationApi || !idle || !(idle.idleAmount > 0)) return null;
+    const sources = assistantApi.sourceCatalog({
+      metrics: { idleCash: { id: "idle-cash", label: "Líquido por encima del suelo del colchón", value: idle.idleAmount } },
+    });
+    const availableSources = new Set(sources.map((item) => item.id));
+    const candidate = {
+      label: "Dinero parado",
+      idleAmount: idle.idleAmount,
+      floor: idle.floor,
+      opportunityCost: idle.opportunityCost,
+      citations: ["metric:idle-cash"],
+    };
+    const validated = citationApi.validateRecommendation(candidate, { availableSources });
+    return validated.valid ? candidate : null;
+  }
+
+  function cp2IdleCashHtml(signal) {
+    if (!signal) return '<p class="p2-help">Sin caja por encima del suelo del colchón ahora mismo, o sin evidencia citable.</p>';
+    const gainLine = signal.opportunityCost && signal.opportunityCost.calculable
+      ? ` Si se hubiera invertido a la rentabilidad real de tu cartera, habría generado ${euro(signal.opportunityCost.gain)} en 12 meses.`
+      : "";
+    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(signal.label)}</strong></div><p>${euro(signal.idleAmount)} por encima del suelo del colchón (${euro(signal.floor)}).${gainLine} Compara amortizar deuda frente a invertir en Ajustes (AP1).</p><p class="p2-help">Cita: ${esc(signal.citations.join(", "))}.</p></article>`;
+  }
+
   function renderE16Monitoring() {
     const api = root.FinanceCanonicalE16;
     const input = bridge()?.e16Input?.();
@@ -188,8 +222,10 @@
     const alerts = model.alerts.alerts;
     const changes = [...model.changes.movements.map((item) => `${item.label}: ${euro(item.amount)}`), ...model.changes.deviations.map((item) => `${item.label}: ${euro(item.delta)}`), ...model.changes.assumptions.map((item) => item.label), ...model.changes.goals.map((item) => item.label)];
     const nextBestAction = cp1NextBestAction(model);
+    const idleCashSignal = cp2IdleCashSignal();
     target.querySelector("[data-p2-body]").innerHTML = `
       <section class="p2-list"><h4>Próxima mejor acción (CP1)</h4>${cp1NextBestActionHtml(nextBestAction)}</section>
+      <section class="p2-list"><h4>Dinero parado (CP2)</h4>${cp2IdleCashHtml(idleCashSignal)}</section>
       <form class="p2-form p2-grid three" data-e16-budget-form>
         <label class="p2-field"><span>Caja mínima (€)</span><input name="minimumLiquidity" type="number" min="0" step="0.01" value="${esc(budget.minimumLiquidity)}" /></label>
         <label class="p2-field"><span>Variación mensual máxima (€)</span><input name="maximumMonthlyVariation" type="number" min="0" step="0.01" value="${esc(budget.maximumMonthlyVariation)}" /></label>
