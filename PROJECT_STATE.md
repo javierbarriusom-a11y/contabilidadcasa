@@ -34,9 +34,8 @@ Accesibilidad (1057 IDs, +2 por la nueva tarjeta), rendimiento, build del sitio,
 test, todos en verde. `app.js` bumpeado a `?v=20260903ap5a1` (27 referencias del marcador de versión
 actualizadas en masa).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `01ace16` — PR #215, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (123): Bloque 10 — FC5, venta parcial optimizando el tramo del ahorro
 
