@@ -4966,15 +4966,18 @@
 
 /* -------------------------------------------------------------------------------------------- */
 /* AJ-1/AJ-2 (spin-off Ajustes/Hoy, 3-sep-2026) — las 42 tarjetas de Ajustes, antes una lista      */
-/* plana, agrupadas en dominios temáticos con una barra de anclas arriba, decidida el 3-sep-2026.  */
-/* Botones, no <a href="#...">: el hashchange global de setupViewNavigation() interpretaría un     */
-/* hash que no es una vista real y sacaría al usuario de Ajustes de vuelta a Hoy. Sin              */
-/* position:sticky — .workspace (app-shell) usa overflow-x:clip, que ya rompe cualquier sticky     */
-/* dentro de una vista (mismo límite que ya tiene .meeting-mode-bar en Hoy): se queda como barra    */
-/* fija arriba del contenido, no fija en pantalla al hacer scroll. */
+/* plana, agrupadas en dominios temáticos con una barra de anclas fija arriba, decidida el         */
+/* 3-sep-2026. Botones, no <a href="#...">: el hashchange global de setupViewNavigation()          */
+/* interpretaría un hash que no es una vista real y sacaría al usuario de Ajustes de vuelta a Hoy. */
+/* position:sticky funciona desde OPT-23 (styles.css: body pasa de overflow-x:hidden a             */
+/* overflow:clip, la causa real — ver la nota bajo OPT-23 en BACKLOG_OPTIMIZACION.md) — antes se    */
+/* quedaba como barra fija arriba del contenido, no fija en pantalla al hacer scroll.               */
 /* -------------------------------------------------------------------------------------------- */
 
 .e19-ajustes-anchors {
+  position: sticky;
+  top: 8px;
+  z-index: 30;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -4993,7 +4996,7 @@
 }
 
 .e19-ajustes-group {
-  scroll-margin-top: 16px;
+  scroll-margin-top: 72px;
 }
 
 .e19-ajustes-group-title {

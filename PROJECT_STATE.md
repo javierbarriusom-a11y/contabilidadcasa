@@ -2,6 +2,51 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (134): OPT-23 resuelta — el sticky ya funciona de verdad en toda la app
+
+Investigación pedida explícitamente por el usuario sobre la nota de sesión 133 («investigar ahora
+si el `overflow-x: clip` de `.workspace` se puede acotar sin riesgo»). La respuesta corta es que sí
+se podía acotar sin riesgo, pero esa no era la causa real del problema — hacía falta seguir
+investigando un nivel más abajo para arreglar el sticky de verdad.
+
+**Lo que se encontró, en orden:**
+1. `.workspace { overflow-x: clip; }` se pudo retirar sin reabrir desbordamiento horizontal —
+   confirmado con Playwright en 10 pantallas × 4 anchos (375 a 1440px), incluidas las de tabla más
+   ancha (`visual-detail`, `plan`, `deuda-ruta`, `análisis`). Pero el sticky de AJ-2 seguía sin
+   funcionar tras retirarlo: no era la causa (única).
+2. Segunda hipótesis, descartada tras probarla: la animación de entrada de `.view-section`
+   (`animation: viewIn 180ms ease both`) deja un `transform: matrix(1,0,0,1,0,0)` permanente tras
+   terminar. Se neutralizó y el sticky seguía roto — tampoco era la causa (al menos no la única
+   determinante).
+3. Causa real, aislada por eliminación y confirmada con el patrón de ancestros completo: `html,
+   body { overflow-x: hidden; }` en `styles.css`. La especificación de CSS obliga a que
+   `overflow-y` compute como `auto` cuando solo `overflow-x` se fija a un valor no-`visible` — así
+   que esa única regla convertía tanto a `html` como a `body` en contenedores de scroll
+   independientes. `body`, con altura `auto` (igual a la de su contenido), nunca desarrolla scroll
+   propio de verdad — pero sigue contando como el contenedor de scroll más cercano para cualquier
+   `position: sticky` descendiente, que calcula su posición contra un `scrollTop` de `body` que
+   nunca cambia, mientras el scroll real ocurre en `html` (`document.scrollingElement`).
+4. Quitar `overflow-x: hidden` de `body` sin más reabría desbordamiento horizontal real a móvil en
+   varias pantallas (`visual-detail`, `home`, `deuda-ruta`, `análisis`, `movements`) — la regla sí
+   hacía trabajo de verdad, no era una segunda red redundante como sí lo era la de `.workspace`.
+5. **Solución final**: `overflow: clip` en los dos ejes de `body`, en vez de `overflow-x: hidden`.
+   `clip` nunca establece contenedor de scroll (a diferencia de `hidden`/`auto`), así que el sticky
+   deja de calcular su posición contra un `scrollTop` que nunca cambia, y el desbordamiento
+   horizontal sigue tan contenido como antes.
+
+**Confirmado con Playwright, no solo con tests**: 10 pantallas × 4 anchos sin ningún desbordamiento
+horizontal, y tanto la barra de anclas de Ajustes (AJ-2) como `.meeting-mode-bar` de Hoy quedan
+fijas de verdad en pantalla al hacer scroll (se estabilizan en `top: 8px` y se quedan ahí, en vez
+de desplazarse con el contenido). `.e19-ajustes-anchors` recupera `position: sticky` en
+`design-tokens.css`, que ya estaba declarado pero no llegaba a funcionar hasta esta sesión.
+
+**Backlog actualizado**: `BACKLOG_OPTIMIZACION.md` (nota de resolución bajo OPT-23, con la causa
+real explicada — la hipótesis original apuntaba solo a `.workspace`, que resultó ser una limpieza
+válida pero no la causa) y `BACKLOG_UNIFICADO.md` (fila #50 marcada resuelta).
+
+**Validación**: `npm run verify`, exit 0 — **2935/2935 pruebas**, accesibilidad, rendimiento,
+`build:site`, privacidad y humo, todo en verde.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (133): OPT-23 — el límite de sticky de AJ-2 entra en el backlog
 
 Solo documentación, sin código: el hallazgo de la sesión 132 (`.workspace` con `overflow-x: clip`
