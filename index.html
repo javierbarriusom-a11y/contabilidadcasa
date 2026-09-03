@@ -2756,6 +2756,16 @@
               <ul class="commit-barrier-list" id="a19ShareLinkList"></ul>
             </article>
 
+            <!-- A19-2: informe PDF certificado — depende de A14-2/A14-3. Capacidad de pago,
+                 patrimonio neto, calendario de deuda y colchón, con fecha y advertencia de que es
+                 un resumen propio, no una certificación bancaria. Reutiliza el escritor de PDF sin
+                 librería externa ya construido (P2Export.downloadPlainPdf, OPT-3/V6-4). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Informe PDF certificado</h3>
+              <p class="e19-kpi-note">Descarga un resumen en PDF con capacidad de pago, patrimonio neto, calendario de deuda y colchón de emergencia, con fecha. Es un resumen elaborado por ti a partir de tus propios datos — no es una certificación bancaria ni un documento oficial.</p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a19CertifiedReportDownload">Descargar informe PDF certificado</button>
+            </article>
+
             <!-- A14-4: desglose por tipo y concentración de riesgo. Depende solo del contrato
                  canónico A14-1 (canonical-assets.js); registro manual mínimo aquí — la
                  importación/actualización con bandeja previa es A14-3, sesión aparte. Sin activos
@@ -5150,7 +5160,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260903ap2a1"></script>
+    <script defer src="app.js?v=20260903a192a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
