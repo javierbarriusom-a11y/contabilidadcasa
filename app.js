@@ -12683,6 +12683,26 @@ function iv5PortfolioAnnualReturnPct() {
   return engine.normalizePositions(rows).summary.xirr.ratePct;
 }
 
+// CP2: detección de "dinero parado". Depende de AP1 (comparador amortizar vs. invertir) y reutiliza
+// exactamente las mismas fuentes ya construidas por AP1/IV5 — colchón (accountBalancesFromState/
+// cushionFloor, igual que AP3/AP6), XIRR real de la cartera (iv5PortfolioAnnualReturnPct) y
+// opportunityCost (IV5) — sin motor nuevo. Dinero parado es el líquido por encima del suelo del
+// colchón: ni protege nada (eso ya lo cubre el suelo) ni está invertido ni amortizando deuda. Solo
+// informa lo que se le escaparía en 12 meses si se hubiera invertido a la rentabilidad real de la
+// cartera — nunca decide amortizar ni invertir por el hogar, ese paso sigue siendo el comparador
+// de AP1.
+function cp2IdleCashSummary() {
+  const balances = accountBalancesFromState();
+  const floor = FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+  const idleAmount = round2(Math.max(0, balances.total - floor));
+  if (idleAmount <= 0) return { idleAmount: 0, floor, total: balances.total, opportunityCost: null };
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  const opportunityCost = portfolioEngine
+    ? portfolioEngine.opportunityCost({ amount: idleAmount, months: 12, annualReturnPct: iv5PortfolioAnnualReturnPct() })
+    : null;
+  return { idleAmount, floor, total: balances.total, opportunityCost };
+}
+
 function partidasSimuladorOpportunityCostFor(decision, month, baseInput) {
   const engine = window.FinanceCanonicalPortfolio;
   if (!engine || !decision || decision.tipo !== "compra" || decision.params?.financiacion) return null;
@@ -26426,6 +26446,7 @@ window.FinanceP2Bridge = {
     };
   },
   alerts: evaluatedUxAlerts,
+  idleCash: cp2IdleCashSummary,
   exportModel: p2ExportModel,
   privateCloudAvailable: () => Boolean(supabaseClient && remoteUser),
   uploadPrivateAttachment: async (id, blob) => {

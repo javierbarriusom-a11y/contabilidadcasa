@@ -2,6 +2,47 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (125): Bloque 11 — CP2, detección de «dinero parado». **Abre el Bloque 11.**
+
+Primera tarea del Bloque 11, a petición directa del usuario tras cerrar el Bloque 10. Depende de AP1
+(comparador amortizar vs. invertir). Ampliación sin ficha de detalle propia; se resolvió reutilizando
+por completo el precedente de CP1 (motor de próxima mejor acción, bloque 8): mismo ciclo de
+cita-y-validación contra CP3 (`canonical-recommendation-citation.js`), mismo catálogo de fuentes
+(`canonical-e9-assistant.js`, `sourceCatalog()`), sin revivir ninguna consulta a IA.
+
+**Construido**: `cp2IdleCashSummary()` en `app.js` — el líquido por encima del suelo del colchón
+(`accountBalancesFromState()`/`FinanceCanonicalCushion.cushionFloor()`, misma fuente que AP3/AP6) es
+dinero parado: ni protege nada (eso ya lo cubre el suelo) ni está invertido ni amortizando deuda.
+Reutiliza tal cual `iv5PortfolioAnnualReturnPct()` y `FinanceCanonicalPortfolio.opportunityCost()`
+(IV5) para decir lo que se le habría escapado en 12 meses si se hubiera invertido a la rentabilidad
+real de la cartera — sin motor nuevo. Expuesto en `window.FinanceP2Bridge.idleCash`.
+`p2-ui.js` gana `cp2IdleCashSignal()`, que cita esa caja parada contra `sourceCatalog()` (un `metric:
+idle-cash`) y la verifica con CP3 antes de mostrarla — sin caja por encima del suelo, o si la cita no
+pasara la validación, no hay señal que inventar. Nueva sección "Dinero parado (CP2)" en el panel de
+E16 (Herramientas avanzadas), justo debajo de "Próxima mejor acción (CP1)".
+
+**Bug atrapado antes de publicar**: `sourceCatalog({metrics: [...]})` con un array devolvía siempre
+`[]` — el helper interno `object()` de `canonical-e9-assistant.js` descarta cualquier valor que sea
+un array (`Array.isArray(value) ? {} : value`), así que `metrics` necesita ser un objeto con clave
+libre, nunca una lista. `decisions`/`alerts` sí aceptan array (usan `list()`, no `object()`) — CP1 no
+lo había necesitado porque solo cita alertas. Corregido antes de publicar, con la prueba de
+regresión ya verificando la forma correcta.
+
+**Validación**: `npm run verify`, exit 0 — **2898/2898 pruebas** (2888 + 10 nuevas, todas en
+`tests/cp2-dinero-parado.test.cjs` — sin caja por encima del suelo no hay señal, la cita siempre
+existe en el catálogo, sin `opportunityCost` calculable nunca inventa la ganancia que se habría
+generado). Un detalle de la propia sesión: una de las pruebas también tropezó con el mismo problema
+de `vm.createContext` que AP5 (un array de otro realm de V8 comparado con `assert.deepEqual` como si
+no fuera el mismo), resuelto igual, envolviendo el array en `[...]`. Accesibilidad (1057 IDs, sin
+cambio — sección dinámica dentro de un panel ya existente, ningún campo de formulario nuevo),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`/`p2-ui.js` bumpeados
+a `?v=20260903cp2a1` (28 referencias del marcador de versión de `app.js`/`p2-ui.js` actualizadas en
+masa, mismo mecanismo que en sesiones anteriores).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (124): Bloque 10 — AP5, deuda nueva y existente en una sola cola de prioridad. **Cierra el Bloque 10 salvo OPT-11/OPT-12/OPT-13.**
 
 Novena y última tarea nueva del Bloque 10 en esta sesión, encadenada tras FC5. Depende de AP3
