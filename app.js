@@ -15494,8 +15494,24 @@ function renderAp3ScenarioList() {
   if (!list) return;
   const rows = ap3LeverageScenarios();
   list.innerHTML = rows.length
-    ? rows.map((row) => `<li class="commit-barrier-item"><strong>${escapeHtml(row.name)}</strong><span>${escapeHtml(ap3ScenarioLabel(row))} · ${escapeHtml(String(row.createdAt).slice(0, 10))}</span><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-remove="${escapeHtml(row.id)}">Eliminar</button></li>`).join("")
+    ? rows.map((row) => {
+        const takenTag = row.takenAt ? ` · tomada el ${escapeHtml(String(row.takenAt).slice(0, 10))}` : "";
+        const toggleLabel = row.takenAt ? "Desmarcar como tomada" : "Marcar como tomada";
+        return `<li class="commit-barrier-item"><strong>${escapeHtml(row.name)}</strong><span>${escapeHtml(ap3ScenarioLabel(row))} · ${escapeHtml(String(row.createdAt).slice(0, 10))}${takenTag}</span><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-taken-toggle="${escapeHtml(row.id)}">${toggleLabel}</button><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-remove="${escapeHtml(row.id)}">Eliminar</button></li>`;
+      }).join("")
     : `<li class="e19-kpi-note">Sin escenarios explorados guardados todavía.</li>`;
+}
+
+// AP6: marcar (o desmarcar) un escenario explorado de AP3 como deuda realmente tomada en la vida
+// real — un hecho que declara el propio hogar, igual que un activo en A14 o una escala de IRPF en
+// A15-1, nunca algo que la app infiera ni ejecute por su cuenta. `takenAt` es la única diferencia
+// entre "explorado" (AP3) y "tomado" (lo que vigila AP6).
+function toggleAp3ScenarioTaken(id) {
+  scenarioSettings.ap3LeverageScenarios = ap3LeverageScenarios().map((row) =>
+    row.id === id ? { ...row, takenAt: row.takenAt ? null : new Date().toISOString() } : row);
+  saveScenarioSettings();
+  renderAp3ScenarioList();
+  renderAp6Alert();
 }
 
 // Guarda una exploración ya calculada — nunca una decisión tomada ni una posición real de deuda o
@@ -15513,6 +15529,7 @@ function saveAp3Scenario() {
   saveScenarioSettings();
   if (qs("ap3ScenarioName")) qs("ap3ScenarioName").value = "";
   renderAp3ScenarioList();
+  renderAp6Alert();
   announceStatus("Escenario de apalancamiento guardado.");
 }
 
@@ -15520,6 +15537,49 @@ function removeAp3Scenario(id) {
   scenarioSettings.ap3LeverageScenarios = ap3LeverageScenarios().filter((row) => row.id !== id);
   saveScenarioSettings();
   renderAp3ScenarioList();
+  renderAp6Alert();
+}
+
+// AP6 · alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada. Depende de AP3:
+// solo existe deuda de apalancamiento que vigilar cuando el hogar ha marcado algún escenario
+// guardado como tomado (toggleAp3ScenarioTaken). Reutiliza exactamente la misma fuente de colchón
+// que ya usa el guardarraíl de AP4 (ap3LeverageBarrierInput) — nada nuevo que declarar aparte.
+function ap6SustainabilityInput() {
+  return {
+    cushion: {
+      value: accountBalancesFromState().total,
+      floor: FinanceCanonicalCushion.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+    },
+    scenarios: ap3LeverageScenarios(),
+  };
+}
+
+const AP6_STATUS_LABEL = {
+  "sin-deuda-tomada": "Sin ninguna deuda de apalancamiento marcada como tomada todavía. Márcala en la lista de escenarios guardados de arriba en cuanto la pidas de verdad.",
+  "colchon-sin-calcular": "No se puede calcular el colchón de emergencia actual todavía.",
+};
+
+function ap6ResultHtml(result) {
+  if (AP6_STATUS_LABEL[result.status]) return `<p>${AP6_STATUS_LABEL[result.status]}</p>`;
+  const cssClass = result.status === "insostenible" ? "negative" : result.status === "ajustado" ? "warning" : "positive";
+  const headline = {
+    sostenible: `Colchón sostenible: ${money(result.cushionValue, true)} por encima del suelo (${money(result.cushionFloor, true)}), con ${result.takenCount} deuda(s) tomada(s) por ${money(result.monthlyDebtService, true)}/mes.`,
+    ajustado: `Aviso temprano: el colchón (${money(result.cushionValue, true)}) sigue por encima del suelo (${money(result.cushionFloor, true)}) pero con poco margen, con ${result.takenCount} deuda(s) tomada(s) por ${money(result.monthlyDebtService, true)}/mes.`,
+    insostenible: `Alerta: el colchón (${money(result.cushionValue, true)}) ya no llega al suelo (${money(result.cushionFloor, true)}) — no sostiene la deuda tomada. Diferencia: ${money(result.shortfall, true)}.`,
+  }[result.status];
+  const rows = (result.takenScenarios || [])
+    .map((row) => `<li>${escapeHtml(row.name)}: ${money(row.monthlyDebtService, true)}/mes, tomada el ${escapeHtml(String(row.takenAt).slice(0, 10))}</li>`)
+    .join("");
+  return `<p class="${cssClass}">${headline}</p><ul class="commit-barrier-list">${rows}</ul>`;
+}
+
+function renderAp6Alert() {
+  const box = qs("ap6SustainabilityAlert");
+  const engine = window.FinanceCanonicalLeverageSustainability;
+  if (!box || !engine) return null;
+  const result = engine.evaluateLeverageSustainability(ap6SustainabilityInput());
+  box.innerHTML = ap6ResultHtml(result);
+  return result;
 }
 
 // A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin
@@ -24410,6 +24470,7 @@ function renderAjustes() {
   renderIrpfBracketScales();
   renderAp3BarrierStatus();
   renderAp3ScenarioList();
+  renderAp6Alert();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -34439,6 +34500,11 @@ async function init() {
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
   qs("ap3ScenarioList")?.addEventListener("click", (event) => {
+    const toggleButton = event.target.closest("[data-ap3-scenario-taken-toggle]");
+    if (toggleButton) {
+      toggleAp3ScenarioTaken(toggleButton.dataset.ap3ScenarioTakenToggle);
+      return;
+    }
     const removeButton = event.target.closest("[data-ap3-scenario-remove]");
     if (!removeButton) return;
     removeAp3Scenario(removeButton.dataset.ap3ScenarioRemove);

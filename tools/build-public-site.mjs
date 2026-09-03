@@ -48,6 +48,7 @@ const files = [
   "canonical-debt-comparator.js",
   "canonical-leverage-barrier.js",
   "canonical-leverage-simulator.js",
+  "canonical-leverage-sustainability.js",
   "canonical-recommendation-citation.js",
   "canonical-life-coverage.js",
   "canonical-home-insurance.js",

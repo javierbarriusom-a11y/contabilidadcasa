@@ -1,6 +1,58 @@
 # Estado del proyecto
 
-Fecha de revisión: 2 de septiembre de 2026.
+Fecha de revisión: 3 de septiembre de 2026.
+
+## Cierre de sesión — 3 de septiembre de 2026 (116): Bloque 10 — AP6, alerta cuando el líquido ya no sostiene la deuda tomada. **Abre el Bloque 10.**
+
+Primera tarea del Bloque 10 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, a petición directa del usuario de
+continuar por ahí. Depende de AP3 (bloque 9, ya construido): AP6 es el primer punto del backlog
+donde la app reconoce que una deuda de apalancamiento explorada pudo haberse pedido de verdad fuera
+de la app, y vigila si el colchón la sigue sosteniendo.
+
+**Decisión de diseño, sin instrucción previa que la resolviera**: AP3 guarda siempre una fotografía
+exploratoria de un escenario ("nunca guarda una posición real de deuda ni de inversión", por diseño
+explícito de esa misma tarea), así que no existe en la app ningún registro de deuda de apalancamiento
+"real" que AP6 pudiera leer directamente. Fabricar esa distinción habría sido inventar una señal que
+no existe. Se resolvió con el mismo criterio que ya usa el resto de la app para todo dato que solo el
+hogar puede conocer (activos declarados en A14, escalas de IRPF en A15-1): el hogar marca
+explícitamente, con un botón en la propia lista de escenarios guardados de AP3, cuál de esos
+escenarios explorados se tomó de verdad (`takenAt`). No es una inferencia ni una ejecución
+automática — es un hecho declarado, reversible (se puede desmarcar), y solo a partir de ahí AP6 tiene
+algo que vigilar.
+
+**Construido**: `canonical-leverage-sustainability.js` — motor puro nuevo
+(`FinanceCanonicalLeverageSustainability`), mismo patrón sin DOM ni estado global que
+`canonical-leverage-barrier.js`/`canonical-leverage-simulator.js`. `evaluateLeverageSustainability()`
+filtra los escenarios guardados de AP3 por `takenAt` y, sin ninguno marcado como tomado, devuelve
+`sin-deuda-tomada` — nunca un falso "sostenible" sobre una deuda que no existe. Con al menos una deuda
+tomada, compara el colchón de emergencia actual (mismas fuentes ya usadas por AP3/AP4:
+`accountBalancesFromState()`/`cushionFloor()`) contra su suelo en tres niveles: `sostenible` (por
+encima del suelo con margen), `ajustado` (por encima del suelo pero dentro de un 20% de margen —
+mismo umbral que `cushionFloorDrift`, aviso temprano) e `insostenible` (por debajo del suelo, con el
+hueco exacto). Sin colchón calculable, `colchon-sin-calcular`, nunca una lectura a medias.
+
+`app.js` añade `toggleAp3ScenarioTaken()` (botón "Marcar/Desmarcar como tomada" en cada fila de
+`ap3ScenarioList`) y `renderAp6Alert()`, que se recalcula al guardar, eliminar o marcar/desmarcar
+cualquier escenario, y también en el arranque de la app. Nueva tarjeta en Ajustes, justo debajo del
+simulador de AP3: "Alerta: colchón frente a la deuda de apalancamiento tomada".
+
+**Validación**: `npm run verify`, exit 0 — **2770/2770 pruebas** (2752 + 18 nuevas: 9 en
+`tests/ap6-alerta-liquidez-deuda-tomada.test.cjs` — sin escenarios tomados no alerta, sin colchón
+calculable no inventa una lectura, los tres niveles sostenible/ajustado/insostenible con el hueco
+exacto, la cuota mensual suma solo los escenarios marcados como tomados — y 9 en
+`tests/ap6-app-integracion.test.cjs`). Accesibilidad (1033 IDs, +1 por la nueva tarjeta), rendimiento,
+build del sitio, privacidad y smoke test, todos en verde.
+`app.js`/`canonical-leverage-sustainability.js` versionados a `?v=20260903ap6a1` (27 referencias del
+marcador de versión de `app.js` actualizadas en masa, mismo mecanismo que en sesiones anteriores).
+
+**Nota de entorno**: al empezar la sesión, `node_modules` no existía en el contenedor (clon nuevo sin
+`npm install` previo) — el primer intento de `npm run verify` falló en los pasos de minificación
+(`Cannot find package 'esbuild'`), sin relación con el código de esta sesión. Se resolvió con
+`npm install` antes de repetir la validación completa.
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
 
 ## Cierre de sesión — 2 de septiembre de 2026 (115): Bloque 9 — AP3, simulador de apalancamiento (explorar, no ejecutar). **Cierra el Bloque 9.**
 
