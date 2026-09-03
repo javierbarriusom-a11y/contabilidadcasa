@@ -62,8 +62,8 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 2 | OPT-13 | Retirar cada heredada en cuanto su función está cubierta | Crítico | L | ⛔ · depende de OPT-12 |
 | 2 | OPT-14 | Fusionar los seis pares de pantallas gemelas documentados | Crítico | L | 🟡 · relegación y paridad confirmadas, retirada de código ⛔ depende de OPT-2 |
 | 2 | OPT-15 | Menú lateral a 6 rutas principales, sin «Herramientas avanzadas» | Alto | S | ⛔ · depende de OPT-11 a OPT-14 |
-| 3 | OPT-16 | Migrar módulos a ES modules | Medio (habilitador) | M-L | ⏳ |
-| 3 | OPT-17 | Carga diferida (`import()`) por vista activa | Alto | L | ⛔ · depende de OPT-16 |
+| 3 | OPT-16 | Migrar módulos a ES modules | Medio (habilitador) | M-L | 🟡 · evaluada el 3-sep, no se ejecuta — ver ficha |
+| 3 | OPT-17 | Carga diferida (`import()`) por vista activa | Alto | L | 🟡 · evaluada el 3-sep, no se ejecuta — ver ficha |
 | 3 | OPT-18 | Verificar/activar compresión Brotli-Gzip del artefacto publicado | Medio | S | ⏳ |
 | 4 | OPT-19 | Checklist de PR: reutilizar catálogo `.e19-*` antes de crear clase nueva | Medio | S, continuo | ⏳ |
 | 4 | OPT-20 | Consolidar los backlogs y fases sueltas en una única fuente viva | Medio | M | ⏳ |
@@ -385,29 +385,52 @@ Paralelizable con la Fase 2; se beneficia de ella (menos pantallas → menos mó
 
 ### OPT-16 · Migrar a ES modules
 
-**Tareas:**
-1. Convertir cada `canonical-*.js` y módulo de vista (`views/*.js`) a `export`/`import` nativo,
-   manteniendo exactamente la misma API pública que hoy exponen como globales.
-2. Cambiar los `<script src="...">` de `index.html` a `<script type="module" src="...">`.
-3. `npm test` debe seguir en verde sin cambios — es un cambio de mecanismo de carga, no de lógica.
+**Evaluada el 3 de septiembre de 2026, sin cambio de código — no se ejecuta.** Antes de escribir
+nada se investigó el alcance real, y la premisa clave de la tarea 3 ("`npm test` debe seguir en
+verde sin cambios — es un cambio de mecanismo de carga, no de lógica") es falsa contra el estado
+actual del repositorio:
 
-**Resultado esperado:** base técnica lista para carga diferida (OPT-17), sin cambiar comportamiento.
+- Los 61 `canonical-*.js` siguen el mismo patrón UMD (`module.exports` + global de respaldo) y los
+  cargan **103 archivos de test** con `require(...)` directo. Un fichero con `export` nativo no se
+  puede cargar con `require()` en Node sin marcarlo como módulo ES — como mínimo, esos 103 tests
+  tendrían que reescribirse a `import()` asíncrono. Eso ya contradice "sin cambios".
+- `app.js` y `p2-ui.js` (las dos piezas más grandes, y las que de verdad pesan) **nunca se cargan
+  con `require()`**: **113 archivos de test** leen su código fuente como texto y extraen una
+  función suelta para ejecutarla en un `vm.createContext` aislado con dependencias simuladas a
+  mano. Convertirlos a ES modules de verdad arriesga romper esa técnica de forma sutil y difícil de
+  verificar entera — el grueso de la cobertura de pruebas del proyecto (2935 pruebas) depende de
+  ella.
+
+Consultado con el usuario: se descarta la conversión a ES modules. Ver OPT-17 para la alternativa
+evaluada y también descartada.
+
+**Resultado esperado:** ninguno — tarea evaluada y no ejecutada. Si en el futuro cambia la técnica
+de pruebas de `app.js`/`p2-ui.js` (por ejemplo, si se dividen en piezas más pequeñas por otro
+motivo), esta evaluación debería repetirse desde cero, no darse por buena sin más.
 
 ---
 
 ### OPT-17 · Carga diferida por vista activa
 
-**Depende de:** OPT-16.
+**Evaluada el 3 de septiembre de 2026, sin cambio de código — no se ejecuta.** Descartada la
+conversión a ES modules (OPT-16), se evaluó una alternativa que consigue el mismo objetivo sin
+tocar el sistema de módulos: inyectar un `<script>` bajo demanda al navegar a cada vista, con la
+misma técnica de carga perezosa ya usada en A17-3 para Tesseract.js (sin arriesgar los 216 archivos
+de test que dependen de `require()`/`vm.createContext` sobre los ficheros actuales).
 
-**Tareas:**
-1. Identificar qué módulos usa cada una de las 6 vistas finales (tras la Fase 2, esto es mucho más
-   simple que hoy).
-2. Sustituir el `import` estático de los módulos específicos de una vista (p. ej. el motor de deuda
-   solo hace falta en la vista Deuda) por `import()` dinámico, disparado al navegar a esa vista.
-3. Medir con Lighthouse CI (OPT-5) el efecto en LCP/tiempo hasta interactividad del primer acceso a
-   «Hoy».
+Se midió el techo real de esa alternativa contra `dist/` construido: `app.js` pesa **1,13 MB
+minificado, el 77% de todo el JavaScript publicado** (1,40 MB en total). Los cinco `canonical-*.js`
+más grandes —los candidatos naturales para diferir— suman entre todos **~65 KB, un 4,4% del
+total**. `app.js` es exactamente el fichero descartado en OPT-16 por el riesgo sobre los 113 tests
+de `vm.createContext`, así que queda fuera de cualquier estrategia de carga diferida sin ES
+modules. El presupuesto de rendimiento real (OPT-5, Lighthouse) ya se cumple con margen amplio (LCP
+medido ~1,4 s contra un límite de 6 s). Con eso, el ahorro máximo alcanzable —un solo dígito
+porcentual sobre un presupuesto que ya pasa con holgura— no justifica el esfuerzo ni el riesgo de
+tocar la carga de `app.js`.
 
-**Resultado esperado:** menos JS descargado y ejecutado en la puerta de entrada de la app.
+**Resultado esperado:** ninguno — tarea evaluada y no ejecutada. Revisar si el presupuesto de
+Lighthouse empieza a incumplirse de verdad, o si algún día se divide `app.js` en piezas más
+pequeñas por otro motivo (lo que también reabriría OPT-16).
 
 ---
 
