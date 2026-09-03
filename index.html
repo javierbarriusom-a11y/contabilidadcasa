@@ -2110,30 +2110,165 @@
               </div>
             </div>
 
-            <!-- OPT-6: editor de cobertura aprendida (H-3b), trasladado desde «Hoy» — es
-                 configuración puntual, no lectura diaria; no encajaba en una pantalla pensada como
-                 «una lectura y tres decisiones» (mockup 1a). «Hoy» conserva solo la lectura
-                 (#e6CoveragePanel). Misma lógica de guardado/reset, sin tocarla. -->
-            <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
-              <div class="module-heading">
-                <div>
-                  <p class="panel-kicker">Cobertura aprendida</p>
-                  <h3>Corrige fecha o gasto diario</h3>
-                  <p>Se calcula solo con movimientos conciliados. Corregir aquí no pierde la estimación aprendida: «Usar aprendizaje» la recupera.</p>
-                </div>
-                <span class="status-pill" id="e6CoverageEditorStatus">Aprendido</span>
+            <nav class="e19-ajustes-anchors" id="ajustesAnchors" aria-label="Secciones de Ajustes">
+                <button type="button" data-ajustes-anchor="ajustes-hogar">Hogar</button>
+                <button type="button" data-ajustes-anchor="ajustes-reserva">Reserva y colchón</button>
+                <button type="button" data-ajustes-anchor="ajustes-seguros">Seguros</button>
+                <button type="button" data-ajustes-anchor="ajustes-fiscal">Fiscal</button>
+                <button type="button" data-ajustes-anchor="ajustes-deuda">Deuda y apalancamiento</button>
+                <button type="button" data-ajustes-anchor="ajustes-patrimonio">Patrimonio e inversión</button>
+                <button type="button" data-ajustes-anchor="ajustes-laboratorio">Simuladores y Laboratorio</button>
+                <button type="button" data-ajustes-anchor="ajustes-operacion">Presupuesto y operación</button>
+                <button type="button" data-ajustes-anchor="ajustes-datos">Datos y exportación</button>
+                <button type="button" data-ajustes-anchor="ajustes-navegacion">Navegación</button>
+            </nav>
+
+            <div class="e19-ajustes-group" id="ajustes-hogar" aria-labelledby="ajustes-hogar-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-hogar-title">Hogar</h3>
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
+              <p class="e19-kpi-note">Registro comparado de las cuentas remuneradas activas: cuál paga mejor TAE y qué rendimiento medio da el conjunto, ponderado por saldo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesRemuneratedName" type="text" placeholder="Cuenta naranja" />
+                </label>
+                <label class="month-picker">
+                  <span>Saldo</span>
+                  <input id="ajustesRemuneratedBalance" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>TAE (%)</span>
+                  <input id="ajustesRemuneratedRate" type="number" min="0" step="0.05" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesRemuneratedNotes" type="text" placeholder="Opcional" />
+                </label>
               </div>
-              <form class="e6-coverage-form" id="e6CoverageForm">
-                <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
-                <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
-                <div class="dialog-actions">
-                  <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
-                  <button type="submit" id="e6CoverageSave">Guardar ajuste</button>
-                </div>
-              </form>
-              <p class="e6-coverage-source" id="e6CoverageSource"></p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesRemuneratedAdd">Añadir cuenta</button>
+              <div id="ajustesRemuneratedAccounts"></div>
+              <p class="e19-kpi-note" id="ajustesRemuneratedAccountsNote"></p>
             </article>
 
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comisiones de mantenimiento y vinculación</h3>
+              <p class="e19-kpi-note">Cuentas corrientes que cobran comisión salvo que cumplas una vinculación (nómina, gasto con tarjeta...). Marca cada mes si se cumplió: si no, avisa de la comisión en riesgo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesMaintenanceFeeName" type="text" placeholder="Cuenta corriente" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión (€/mes)</span>
+                  <input id="ajustesMaintenanceFeeAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Vinculación exigida</span>
+                  <input id="ajustesMaintenanceFeeRequirement" type="text" placeholder="Nómina domiciliada" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMaintenanceFeeAdd">Añadir cuenta</button>
+              <div id="ajustesMaintenanceFeeAccounts"></div>
+              <p class="e19-kpi-note" id="ajustesMaintenanceFeeAccountsNote"></p>
+            </article>
+
+            <!-- A18-1: reglas de reparto configurables por categoría (E25, hogares con ingresos o
+                 cuentas no simétricas). Sustituye el 50/50 implícito de familyContextMeta() por una
+                 regla explícita, por defecto o por categoría — sin calcular ningún saldo "quién debe
+                 a quién" todavía (A18-2, más adelante). Vacío = partes iguales, mismo comportamiento
+                 que hoy. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Reglas de reparto del hogar</h3>
+              <p class="e19-kpi-note">Cómo se reparte cada categoría de gasto compartido entre Javi y Tere: a partes iguales (comportamiento de siempre), proporcional a los ingresos declarados, o un importe fijo a cargo de uno de los dos.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ingreso mensual de Javi (€)</span>
+                  <input id="a18IncomeJavi" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Ingreso mensual de Tere (€)</span>
+                  <input id="a18IncomeTere" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Categoría (vacío = regla por defecto)</span>
+                  <select id="a18RuleCategory"><option value="">Regla por defecto</option></select>
+                </label>
+                <label class="month-picker">
+                  <span>Modo de reparto</span>
+                  <select id="a18RuleMode">
+                    <option value="equal">Partes iguales</option>
+                    <option value="income-proportional">Proporcional a ingresos</option>
+                    <option value="fixed">Importe fijo</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Titular del importe fijo</span>
+                  <select id="a18RulePayer">
+                    <option value="javi">Javi</option>
+                    <option value="tere">Tere</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe fijo (€, solo si el modo es «Importe fijo»)</span>
+                  <input id="a18RuleAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18RuleSave">Guardar regla</button>
+              <ul class="commit-barrier-list" id="a18RuleList"></ul>
+            </article>
+
+            <!-- A18-2: saldo continuo "quién debe a quién" — depende de A18-1. Cada gasto compartido
+                 registrado aquí ya fue pagado al 100% por uno de los dos; el reparto de arriba dice
+                 cuál era su cuota justa, así que el saldo acumula lo que el otro le debe. Cálculo
+                 permanente y aparte del libro principal de movimientos: nunca lo toca. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Saldo continuo: quién debe a quién</h3>
+              <p class="e19-kpi-note">Registra un gasto compartido y quién lo pagó. El saldo se calcula con la regla de reparto de arriba para esa categoría — nunca modifica tus movimientos conciliados.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Categoría (vacío = regla por defecto)</span>
+                  <select id="a18EntryCategory"><option value="">Sin categoría (regla por defecto)</option></select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe (€)</span>
+                  <input id="a18EntryAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha</span>
+                  <input id="a18EntryDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Pagado por</span>
+                  <select id="a18EntryPaidBy">
+                    <option value="javi">Javi</option>
+                    <option value="tere">Tere</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18EntrySave">Registrar gasto compartido</button>
+              <div class="e19-kpi-note" id="a18BalanceCard"></div>
+              <ul class="commit-barrier-list" id="a18EntryList"></ul>
+            </article>
+
+            <!-- A18-3: liquidación con doble confirmación — depende de A18-2. El saldo continuo de
+                 arriba nunca se registra como transferencia interna por sí solo; esta tarjeta es el
+                 único camino para eso, y exige que Javi y Tere confirmen por separado antes de
+                 registrarla, mismo ciclo de aprobación que el cierre/reapertura de mes (E5). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Liquidación con doble confirmación</h3>
+              <p class="e19-kpi-note">El saldo continuo de arriba nunca se registra por sí solo como transferencia interna entre Javi y Tere: cada liquidación periódica sugerida exige que ambos confirmen por separado, mismo ciclo de aprobación que el cierre y la reapertura de mes.</p>
+              <div class="e19-kpi-note" id="a18SettlementProposal"></div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmJavi">Confirmo yo, Javi</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmTere">Confirmo yo, Tere</button>
+              <ul class="commit-barrier-list" id="a18SettlementHistory"></ul>
+            </article>
+            </div>
+
+            <div class="e19-ajustes-group" id="ajustes-reserva" aria-labelledby="ajustes-reserva-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-reserva-title">Reserva y colchón</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Reserva operativa</h3>
               <p class="e19-kpi-note">El colchón que no quieres tocar. Lo usan el pie de impacto de Plan, el color del mapa de calor y, si no indicas otra, el guardarraíl del comparador de deuda.</p>
@@ -2144,6 +2279,25 @@
               <p class="e19-kpi-note" id="ajustesReserveNote"></p>
             </article>
 
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
+              <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Límite de la línea</span>
+                  <input id="ajustesEmergencyCreditLimit" type="number" min="0" step="500" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>TIN de la línea (%)</span>
+                  <input id="ajustesEmergencyCreditRate" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
+            </article>
+            </div>
+
+            <div class="e19-ajustes-group" id="ajustes-seguros" aria-labelledby="ajustes-seguros-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-seguros-title">Seguros</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Deducible óptimo del seguro</h3>
               <p class="e19-kpi-note">Cuanta más franquicia asumas, menor la prima — pero mayor el golpe de caja si hay un siniestro. Esta cifra es la mayor franquicia habitual que tu colchón, por encima del suelo protegido, podría absorber sin caer por debajo de ese suelo.</p>
@@ -2204,123 +2358,6 @@
               <p class="e19-kpi-note" id="ajustesHomeInsuranceNote"></p>
             </article>
 
-            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
-                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
-                 conexión todavía a un dividendo real de la cartera de IV1). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
-              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Dividendo bruto (€)</span>
-                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Retención en origen (%)</span>
-                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo del ahorro en España (%)</span>
-                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
-              <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Límite de la línea</span>
-                  <input id="ajustesEmergencyCreditLimit" type="number" min="0" step="500" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>TIN de la línea (%)</span>
-                  <input id="ajustesEmergencyCreditRate" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
-            </article>
-
-            <!-- DI4: impacto de un aval dado en la capacidad de endeudamiento futura. Un banco
-                 descuenta la cuota del aval de tu propia capacidad como si fuera deuda tuya, aunque
-                 hoy no la estés pagando. Campo único aquí; el impacto se calcula y se muestra en
-                 Deuda › Ruta y Comparar, junto a la capacidad de endeudamiento (D-12) que ya vive
-                 ahí — sin inventario de avales todavía. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Avales dados</h3>
-              <p class="e19-kpi-note">Si has avalado la deuda de otra persona, esa cuota se descuenta de tu propia capacidad de endeudamiento futura — aunque hoy no la pagues tú.</p>
-              <label class="month-picker">
-                <span>Cuota mensual equivalente del aval (€)</span>
-                <input id="ajustesLoanGuaranteeMonthly" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
-              </label>
-              <p class="e19-kpi-note" id="ajustesLoanGuaranteeNote"></p>
-            </article>
-
-            <!-- PV1: autoajuste de la previsión por niveles de confianza. Interruptor único, mismo
-                 patrón que «Ajustar automáticamente si falta caja» (autoCapSavings): política de
-                 simulación visible y desactivable, activada por defecto. Solo actúa con confianza
-                 alta (≥12 meses conciliados) y solo sobre el escenario base — con confianza media o
-                 baja sigue como sugerencia sin aplicar, igual que el termómetro de desviación. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Autoajuste de la previsión</h3>
-              <p class="e19-kpi-note">Con confianza alta, la previsión desplaza sola los cierres de caja futuros por la desviación media aprendida — nunca toca el libro real. Con confianza media o baja sigue como una sugerencia pendiente de confirmar, igual que hasta ahora.</p>
-              <label class="toggle">
-                <input id="ajustesAutoAdjustForecastBias" type="checkbox" checked />
-                <span>Aplicar automáticamente cuando la confianza sea alta</span>
-              </label>
-              <p class="e19-kpi-note" id="ajustesAutoAdjustForecastBiasNote"></p>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
-              <p class="e19-kpi-note">Registro comparado de las cuentas remuneradas activas: cuál paga mejor TAE y qué rendimiento medio da el conjunto, ponderado por saldo.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Nombre</span>
-                  <input id="ajustesRemuneratedName" type="text" placeholder="Cuenta naranja" />
-                </label>
-                <label class="month-picker">
-                  <span>Saldo</span>
-                  <input id="ajustesRemuneratedBalance" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>TAE (%)</span>
-                  <input id="ajustesRemuneratedRate" type="number" min="0" step="0.05" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Notas</span>
-                  <input id="ajustesRemuneratedNotes" type="text" placeholder="Opcional" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesRemuneratedAdd">Añadir cuenta</button>
-              <div id="ajustesRemuneratedAccounts"></div>
-              <p class="e19-kpi-note" id="ajustesRemuneratedAccountsNote"></p>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Comisiones de mantenimiento y vinculación</h3>
-              <p class="e19-kpi-note">Cuentas corrientes que cobran comisión salvo que cumplas una vinculación (nómina, gasto con tarjeta...). Marca cada mes si se cumplió: si no, avisa de la comisión en riesgo.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Nombre</span>
-                  <input id="ajustesMaintenanceFeeName" type="text" placeholder="Cuenta corriente" />
-                </label>
-                <label class="month-picker">
-                  <span>Comisión (€/mes)</span>
-                  <input id="ajustesMaintenanceFeeAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Vinculación exigida</span>
-                  <input id="ajustesMaintenanceFeeRequirement" type="text" placeholder="Nómina domiciliada" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMaintenanceFeeAdd">Añadir cuenta</button>
-              <div id="ajustesMaintenanceFeeAccounts"></div>
-              <p class="e19-kpi-note" id="ajustesMaintenanceFeeAccountsNote"></p>
-            </article>
-
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Inventario de pólizas</h3>
               <p class="e19-kpi-note">Pólizas de seguro con su fecha de vencimiento. Aparecen en el calendario financiero (.ics) el mes en que vencen, con la prima si la conoces.</p>
@@ -2344,6 +2381,32 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ajustesInsurancePolicyAdd">Añadir póliza</button>
               <div id="ajustesInsurancePolicies"></div>
+            </article>
+            </div>
+
+            <div class="e19-ajustes-group" id="ajustes-fiscal" aria-labelledby="ajustes-fiscal-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-fiscal-title">Fiscal</h3>
+            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
+                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
+                 conexión todavía a un dividendo real de la cartera de IV1). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
+              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Dividendo bruto (€)</span>
+                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Retención en origen (%)</span>
+                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo del ahorro en España (%)</span>
+                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
             </article>
 
             <article class="e19-card">
@@ -2460,6 +2523,103 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="fc5OptimizeRun">Calcular</button>
               <div class="e19-kpi-note" id="fc5OptimizeNote"></div>
+            </article>
+
+            <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
+                 (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
+                 editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
+                 fiscales más los ocho generales del forecast que ya calculaba el motor). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Registro de supuestos</h3>
+              <p class="e19-kpi-note">Supuestos fiscales del hogar, versionados junto a los del forecast — un único lugar, no una cifra suelta en cada pantalla.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tributación conjunta</span>
+                  <input id="ajustesFiscalJointTaxation" type="checkbox" />
+                </label>
+                <label class="month-picker">
+                  <span>Retenciones (%)</span>
+                  <input id="ajustesFiscalWithholdingRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Aportaciones deducibles al año (€)</span>
+                  <input id="ajustesFiscalDeductibleContributions" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Alquiler deducible al año (€)</span>
+                  <input id="ajustesFiscalDeductibleRent" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Familia numerosa</span>
+                  <input id="ajustesFiscalLargeFamily" type="checkbox" />
+                </label>
+              </div>
+              <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
+            </article>
+
+            <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
+                 frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
+                 (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
+                 estimado — sin tabla de tramos real (A15-2 no está construido todavía). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de aportación a plan de pensiones</h3>
+              <p class="e19-kpi-note">Aportación deducible frente al límite legal vigente, ahorro fiscal estimado con tu retención declarada y si la aportación completa compromete tu reserva protegida.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Aportación a simular (€)</span>
+                  <input id="pensionSimContribution" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
+              <div class="e19-kpi-note" id="pensionSimNote"></div>
+            </article>
+
+            <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
+                 IV1/IV2 y reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya
+                 calcula FC1 (fifoLedger) — sin motor de cálculo nuevo. Solo neta transmisiones
+                 contra transmisiones, nunca contra rendimientos del capital mobiliario (dividendos,
+                 intereses): ese 25% cruzado de la Ley IRPF queda fuera de alcance a propósito. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Compensación de pérdidas y ganancias a cierre de año</h3>
+              <p class="e19-kpi-note">Neta las plusvalías y minusvalías realizadas del año elegido (mismo cálculo FIFO que ya usa la venta parcial de arriba) y aplica pérdidas de años anteriores dentro de la ventana legal de 4 ejercicios. Solo transmisiones contra transmisiones — no sustituye asesoría fiscal.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Año a cerrar</span>
+                  <input id="fc3Year" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
+              <div class="e19-kpi-note" id="fc3CompareNote"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Pérdida arrastrada de un año anterior (€)</span>
+                  <input id="fc3PriorLossAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Año de esa pérdida</span>
+                  <input id="fc3PriorLossYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2025" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc3PriorLossSave">Registrar pérdida arrastrada</button>
+              <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
+            </article>
+            </div>
+
+            <div class="e19-ajustes-group" id="ajustes-deuda" aria-labelledby="ajustes-deuda-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-deuda-title">Deuda y apalancamiento</h3>
+            <!-- DI4: impacto de un aval dado en la capacidad de endeudamiento futura. Un banco
+                 descuenta la cuota del aval de tu propia capacidad como si fuera deuda tuya, aunque
+                 hoy no la estés pagando. Campo único aquí; el impacto se calcula y se muestra en
+                 Deuda › Ruta y Comparar, junto a la capacidad de endeudamiento (D-12) que ya vive
+                 ahí — sin inventario de avales todavía. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Avales dados</h3>
+              <p class="e19-kpi-note">Si has avalado la deuda de otra persona, esa cuota se descuenta de tu propia capacidad de endeudamiento futura — aunque hoy no la pagues tú.</p>
+              <label class="month-picker">
+                <span>Cuota mensual equivalente del aval (€)</span>
+                <input id="ajustesLoanGuaranteeMonthly" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+              </label>
+              <p class="e19-kpi-note" id="ajustesLoanGuaranteeNote"></p>
             </article>
 
             <!-- AP3: simulador de apalancamiento (pedir deuda nueva para invertir) — explorar, no
@@ -2644,187 +2804,10 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="ajustesJointRestructuringCompare">Comparar</button>
               <div class="e19-kpi-note" id="ajustesJointRestructuringNote"></div>
             </article>
+            </div>
 
-            <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
-                 (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
-                 editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
-                 fiscales más los ocho generales del forecast que ya calculaba el motor). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Registro de supuestos</h3>
-              <p class="e19-kpi-note">Supuestos fiscales del hogar, versionados junto a los del forecast — un único lugar, no una cifra suelta en cada pantalla.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Tributación conjunta</span>
-                  <input id="ajustesFiscalJointTaxation" type="checkbox" />
-                </label>
-                <label class="month-picker">
-                  <span>Retenciones (%)</span>
-                  <input id="ajustesFiscalWithholdingRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Aportaciones deducibles al año (€)</span>
-                  <input id="ajustesFiscalDeductibleContributions" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Alquiler deducible al año (€)</span>
-                  <input id="ajustesFiscalDeductibleRent" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Familia numerosa</span>
-                  <input id="ajustesFiscalLargeFamily" type="checkbox" />
-                </label>
-              </div>
-              <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
-            </article>
-
-            <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
-                 frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
-                 (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
-                 estimado — sin tabla de tramos real (A15-2 no está construido todavía). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Simulador de aportación a plan de pensiones</h3>
-              <p class="e19-kpi-note">Aportación deducible frente al límite legal vigente, ahorro fiscal estimado con tu retención declarada y si la aportación completa compromete tu reserva protegida.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Aportación a simular (€)</span>
-                  <input id="pensionSimContribution" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
-              <div class="e19-kpi-note" id="pensionSimNote"></div>
-            </article>
-
-            <!-- A18-1: reglas de reparto configurables por categoría (E25, hogares con ingresos o
-                 cuentas no simétricas). Sustituye el 50/50 implícito de familyContextMeta() por una
-                 regla explícita, por defecto o por categoría — sin calcular ningún saldo "quién debe
-                 a quién" todavía (A18-2, más adelante). Vacío = partes iguales, mismo comportamiento
-                 que hoy. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Reglas de reparto del hogar</h3>
-              <p class="e19-kpi-note">Cómo se reparte cada categoría de gasto compartido entre Javi y Tere: a partes iguales (comportamiento de siempre), proporcional a los ingresos declarados, o un importe fijo a cargo de uno de los dos.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Ingreso mensual de Javi (€)</span>
-                  <input id="a18IncomeJavi" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Ingreso mensual de Tere (€)</span>
-                  <input id="a18IncomeTere" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Categoría (vacío = regla por defecto)</span>
-                  <select id="a18RuleCategory"><option value="">Regla por defecto</option></select>
-                </label>
-                <label class="month-picker">
-                  <span>Modo de reparto</span>
-                  <select id="a18RuleMode">
-                    <option value="equal">Partes iguales</option>
-                    <option value="income-proportional">Proporcional a ingresos</option>
-                    <option value="fixed">Importe fijo</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Titular del importe fijo</span>
-                  <select id="a18RulePayer">
-                    <option value="javi">Javi</option>
-                    <option value="tere">Tere</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Importe fijo (€, solo si el modo es «Importe fijo»)</span>
-                  <input id="a18RuleAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a18RuleSave">Guardar regla</button>
-              <ul class="commit-barrier-list" id="a18RuleList"></ul>
-            </article>
-
-            <!-- A18-2: saldo continuo "quién debe a quién" — depende de A18-1. Cada gasto compartido
-                 registrado aquí ya fue pagado al 100% por uno de los dos; el reparto de arriba dice
-                 cuál era su cuota justa, así que el saldo acumula lo que el otro le debe. Cálculo
-                 permanente y aparte del libro principal de movimientos: nunca lo toca. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Saldo continuo: quién debe a quién</h3>
-              <p class="e19-kpi-note">Registra un gasto compartido y quién lo pagó. El saldo se calcula con la regla de reparto de arriba para esa categoría — nunca modifica tus movimientos conciliados.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Categoría (vacío = regla por defecto)</span>
-                  <select id="a18EntryCategory"><option value="">Sin categoría (regla por defecto)</option></select>
-                </label>
-                <label class="month-picker">
-                  <span>Importe (€)</span>
-                  <input id="a18EntryAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha</span>
-                  <input id="a18EntryDate" type="date" />
-                </label>
-                <label class="month-picker">
-                  <span>Pagado por</span>
-                  <select id="a18EntryPaidBy">
-                    <option value="javi">Javi</option>
-                    <option value="tere">Tere</option>
-                  </select>
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a18EntrySave">Registrar gasto compartido</button>
-              <div class="e19-kpi-note" id="a18BalanceCard"></div>
-              <ul class="commit-barrier-list" id="a18EntryList"></ul>
-            </article>
-
-            <!-- A18-3: liquidación con doble confirmación — depende de A18-2. El saldo continuo de
-                 arriba nunca se registra como transferencia interna por sí solo; esta tarjeta es el
-                 único camino para eso, y exige que Javi y Tere confirmen por separado antes de
-                 registrarla, mismo ciclo de aprobación que el cierre/reapertura de mes (E5). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Liquidación con doble confirmación</h3>
-              <p class="e19-kpi-note">El saldo continuo de arriba nunca se registra por sí solo como transferencia interna entre Javi y Tere: cada liquidación periódica sugerida exige que ambos confirmen por separado, mismo ciclo de aprobación que el cierre y la reapertura de mes.</p>
-              <div class="e19-kpi-note" id="a18SettlementProposal"></div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmJavi">Confirmo yo, Javi</button>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmTere">Confirmo yo, Tere</button>
-              <ul class="commit-barrier-list" id="a18SettlementHistory"></ul>
-            </article>
-
-            <!-- A19-1: enlace de solo lectura, redactado y caducable — depende de A14-1. Comparte
-                 el plan de deuda o el forecast a 6 meses con un asesor externo sin cuenta propia ni
-                 acceso a movimientos individuales. El token en crudo solo existe en la URL que se
-                 genera al pulsar «Generar enlace»: nunca se guarda (Supabase solo almacena su
-                 hash), y la página que lo consume (share.html) es independiente de esta app, sin
-                 sesión ni datos locales. Requiere sesión remota iniciada — el enlace pertenece a
-                 quien lo genera. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Enlace de solo lectura para un asesor externo</h3>
-              <p class="e19-kpi-note">Comparte una vista concreta y redactada — nunca movimientos individuales — con quien no tiene cuenta propia. Caduca solo, y puedes revocarlo antes si hace falta.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Qué compartir</span>
-                  <select id="a19ShareViewType">
-                    <option value="debt-plan">Plan de deuda</option>
-                    <option value="forecast-6m">Forecast a 6 meses</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Caduca en (días)</span>
-                  <input id="a19ShareTtlDays" type="number" min="1" max="90" step="1" value="14" inputmode="decimal" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a19ShareSave">Generar enlace</button>
-              <p class="inline-feedback" id="a19ShareStatus" role="status"></p>
-              <ul class="commit-barrier-list" id="a19ShareLinkList"></ul>
-            </article>
-
-            <!-- A19-2: informe PDF certificado — depende de A14-2/A14-3. Capacidad de pago,
-                 patrimonio neto, calendario de deuda y colchón, con fecha y advertencia de que es
-                 un resumen propio, no una certificación bancaria. Reutiliza el escritor de PDF sin
-                 librería externa ya construido (P2Export.downloadPlainPdf, OPT-3/V6-4). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Informe PDF certificado</h3>
-              <p class="e19-kpi-note">Descarga un resumen en PDF con capacidad de pago, patrimonio neto, calendario de deuda y colchón de emergencia, con fecha. Es un resumen elaborado por ti a partir de tus propios datos — no es una certificación bancaria ni un documento oficial.</p>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a19CertifiedReportDownload">Descargar informe PDF certificado</button>
-            </article>
-
+            <div class="e19-ajustes-group" id="ajustes-patrimonio" aria-labelledby="ajustes-patrimonio-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-patrimonio-title">Patrimonio e inversión</h3>
             <!-- A14-4: desglose por tipo y concentración de riesgo. Depende solo del contrato
                  canónico A14-1 (canonical-assets.js); registro manual mínimo aquí — la
                  importación/actualización con bandeja previa es A14-3, sesión aparte. Sin activos
@@ -3021,36 +3004,6 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1ScheduledContributionAdd">Programar aportación</button>
             </article>
 
-            <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
-                 IV1/IV2 y reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya
-                 calcula FC1 (fifoLedger) — sin motor de cálculo nuevo. Solo neta transmisiones
-                 contra transmisiones, nunca contra rendimientos del capital mobiliario (dividendos,
-                 intereses): ese 25% cruzado de la Ley IRPF queda fuera de alcance a propósito. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Compensación de pérdidas y ganancias a cierre de año</h3>
-              <p class="e19-kpi-note">Neta las plusvalías y minusvalías realizadas del año elegido (mismo cálculo FIFO que ya usa la venta parcial de arriba) y aplica pérdidas de años anteriores dentro de la ventana legal de 4 ejercicios. Solo transmisiones contra transmisiones — no sustituye asesoría fiscal.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Año a cerrar</span>
-                  <input id="fc3Year" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
-              <div class="e19-kpi-note" id="fc3CompareNote"></div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Pérdida arrastrada de un año anterior (€)</span>
-                  <input id="fc3PriorLossAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Año de esa pérdida</span>
-                  <input id="fc3PriorLossYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2025" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc3PriorLossSave">Registrar pérdida arrastrada</button>
-              <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
-            </article>
-
             <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
                  sin objetivos declarados, tarjeta neutra (mismo guardia que el resto del contrato). -->
             <article class="e19-card">
@@ -3081,30 +3034,10 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
               <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
             </article>
+            </div>
 
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
-              <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Ventana de duplicados (días)</span>
-                  <input id="ajustesDuplicateWindow" type="number" min="1" max="60" step="1" inputmode="numeric" placeholder="7" />
-                </label>
-                <label class="month-picker">
-                  <span>Desviación por partida (%)</span>
-                  <input id="ajustesPartidaThreshold" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesPartidaNote"></p>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Sobres · Fase 6</h3>
-              <p class="e19-kpi-note">Un sobre por partida de Gastos variables: lo no gastado o lo gastado de más se liquida al cerrar el mes. Con la bandera apagada, Plan y Cierre siguen como siempre.</p>
-              <label class="ajustes-sobres-toggle"><input id="ajustesSobresEnabled" type="checkbox" /> Activar sobres</label>
-              <div id="ajustesSobresRules"></div>
-            </article>
-
+            <div class="e19-ajustes-group" id="ajustes-laboratorio" aria-labelledby="ajustes-laboratorio-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-laboratorio-title">Simuladores y Laboratorio</h3>
             <!-- L-8: Laboratorio (docs/BACKLOG_NUEVE_PANTALLAS.md §09) vive DENTRO de Ajustes, no
                  como pantalla ni ruta propia — así L-10 («sin rutas colgando tras la retirada») no
                  tiene ningún hash que pueda quedar apuntando a un sitio vacío. Reconstruida el 20 de
@@ -3154,6 +3087,126 @@
                 </ol>
               </div>
             </article>
+            </div>
+
+            <div class="e19-ajustes-group" id="ajustes-operacion" aria-labelledby="ajustes-operacion-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-operacion-title">Presupuesto y operación</h3>
+            <!-- OPT-6: editor de cobertura aprendida (H-3b), trasladado desde «Hoy» — es
+                 configuración puntual, no lectura diaria; no encajaba en una pantalla pensada como
+                 «una lectura y tres decisiones» (mockup 1a). «Hoy» conserva solo la lectura
+                 (#e6CoveragePanel). Misma lógica de guardado/reset, sin tocarla. -->
+            <article class="home-panel e6-coverage-editor" id="e6CoverageEditor">
+              <div class="module-heading">
+                <div>
+                  <p class="panel-kicker">Cobertura aprendida</p>
+                  <h3>Corrige fecha o gasto diario</h3>
+                  <p>Se calcula solo con movimientos conciliados. Corregir aquí no pierde la estimación aprendida: «Usar aprendizaje» la recupera.</p>
+                </div>
+                <span class="status-pill" id="e6CoverageEditorStatus">Aprendido</span>
+              </div>
+              <form class="e6-coverage-form" id="e6CoverageForm">
+                <label><span>Siguiente ingreso</span><input id="e6NextIncomeDate" type="date" /></label>
+                <label><span>Gasto diario previsto</span><input id="e6DailyOutflow" type="number" min="0" step="0.01" /></label>
+                <div class="dialog-actions">
+                  <button type="button" class="secondary" id="e6CoverageReset">Usar aprendizaje</button>
+                  <button type="submit" id="e6CoverageSave">Guardar ajuste</button>
+                </div>
+              </form>
+              <p class="e6-coverage-source" id="e6CoverageSource"></p>
+            </article>
+
+            <!-- PV1: autoajuste de la previsión por niveles de confianza. Interruptor único, mismo
+                 patrón que «Ajustar automáticamente si falta caja» (autoCapSavings): política de
+                 simulación visible y desactivable, activada por defecto. Solo actúa con confianza
+                 alta (≥12 meses conciliados) y solo sobre el escenario base — con confianza media o
+                 baja sigue como sugerencia sin aplicar, igual que el termómetro de desviación. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Autoajuste de la previsión</h3>
+              <p class="e19-kpi-note">Con confianza alta, la previsión desplaza sola los cierres de caja futuros por la desviación media aprendida — nunca toca el libro real. Con confianza media o baja sigue como una sugerencia pendiente de confirmar, igual que hasta ahora.</p>
+              <label class="toggle">
+                <input id="ajustesAutoAdjustForecastBias" type="checkbox" checked />
+                <span>Aplicar automáticamente cuando la confianza sea alta</span>
+              </label>
+              <p class="e19-kpi-note" id="ajustesAutoAdjustForecastBiasNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
+              <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ventana de duplicados (días)</span>
+                  <input id="ajustesDuplicateWindow" type="number" min="1" max="60" step="1" inputmode="numeric" placeholder="7" />
+                </label>
+                <label class="month-picker">
+                  <span>Desviación por partida (%)</span>
+                  <input id="ajustesPartidaThreshold" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesPartidaNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Sobres · Fase 6</h3>
+              <p class="e19-kpi-note">Un sobre por partida de Gastos variables: lo no gastado o lo gastado de más se liquida al cerrar el mes. Con la bandera apagada, Plan y Cierre siguen como siempre.</p>
+              <label class="ajustes-sobres-toggle"><input id="ajustesSobresEnabled" type="checkbox" /> Activar sobres</label>
+              <div id="ajustesSobresRules"></div>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Diario de recalibración de la previsión</h3>
+              <p class="e19-kpi-note">Por qué cambió cada cifra: cada cierre de mes recalcula el aprendizaje de desviaciones (E12b) y registra aquí lo que cambió, con la cifra anterior y la nueva — nunca aplica un ajuste solo.</p>
+              <ul class="pv5-diary-list" id="pv5DiaryList"></ul>
+              <p class="e19-kpi-note" id="pv5DiaryEmpty" hidden>Todavía no ha cambiado ninguna cifra tras un cierre de mes.</p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Revisión anual</h3>
+              <p class="e19-kpi-note">Cuando los doce meses de un año están archivados, resume el año y sugiere el presupuesto por categoría del siguiente — mismo motor que ya usa Presupuesto del mes.</p>
+              <p class="e19-kpi-note" id="annualReviewProgressNote" hidden></p>
+              <div id="annualReviewContent" hidden></div>
+            </article>
+            </div>
+
+            <div class="e19-ajustes-group" id="ajustes-datos" aria-labelledby="ajustes-datos-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-datos-title">Datos y exportación</h3>
+            <!-- A19-1: enlace de solo lectura, redactado y caducable — depende de A14-1. Comparte
+                 el plan de deuda o el forecast a 6 meses con un asesor externo sin cuenta propia ni
+                 acceso a movimientos individuales. El token en crudo solo existe en la URL que se
+                 genera al pulsar «Generar enlace»: nunca se guarda (Supabase solo almacena su
+                 hash), y la página que lo consume (share.html) es independiente de esta app, sin
+                 sesión ni datos locales. Requiere sesión remota iniciada — el enlace pertenece a
+                 quien lo genera. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Enlace de solo lectura para un asesor externo</h3>
+              <p class="e19-kpi-note">Comparte una vista concreta y redactada — nunca movimientos individuales — con quien no tiene cuenta propia. Caduca solo, y puedes revocarlo antes si hace falta.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Qué compartir</span>
+                  <select id="a19ShareViewType">
+                    <option value="debt-plan">Plan de deuda</option>
+                    <option value="forecast-6m">Forecast a 6 meses</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Caduca en (días)</span>
+                  <input id="a19ShareTtlDays" type="number" min="1" max="90" step="1" value="14" inputmode="decimal" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a19ShareSave">Generar enlace</button>
+              <p class="inline-feedback" id="a19ShareStatus" role="status"></p>
+              <ul class="commit-barrier-list" id="a19ShareLinkList"></ul>
+            </article>
+
+            <!-- A19-2: informe PDF certificado — depende de A14-2/A14-3. Capacidad de pago,
+                 patrimonio neto, calendario de deuda y colchón, con fecha y advertencia de que es
+                 un resumen propio, no una certificación bancaria. Reutiliza el escritor de PDF sin
+                 librería externa ya construido (P2Export.downloadPlainPdf, OPT-3/V6-4). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Informe PDF certificado</h3>
+              <p class="e19-kpi-note">Descarga un resumen en PDF con capacidad de pago, patrimonio neto, calendario de deuda y colchón de emergencia, con fecha. Es un resumen elaborado por ti a partir de tus propios datos — no es una certificación bancaria ni un documento oficial.</p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a19CertifiedReportDownload">Descargar informe PDF certificado</button>
+            </article>
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Exportar</h3>
@@ -3172,21 +3225,10 @@
               <ul class="cierre-report-archive-list" id="cierreReportArchiveList"></ul>
               <p class="e19-kpi-note" id="cierreReportArchiveEmpty" hidden>Todavía no hay ningún mes firmado.</p>
             </article>
+            </div>
 
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Diario de recalibración de la previsión</h3>
-              <p class="e19-kpi-note">Por qué cambió cada cifra: cada cierre de mes recalcula el aprendizaje de desviaciones (E12b) y registra aquí lo que cambió, con la cifra anterior y la nueva — nunca aplica un ajuste solo.</p>
-              <ul class="pv5-diary-list" id="pv5DiaryList"></ul>
-              <p class="e19-kpi-note" id="pv5DiaryEmpty" hidden>Todavía no ha cambiado ninguna cifra tras un cierre de mes.</p>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Revisión anual</h3>
-              <p class="e19-kpi-note">Cuando los doce meses de un año están archivados, resume el año y sugiere el presupuesto por categoría del siguiente — mismo motor que ya usa Presupuesto del mes.</p>
-              <p class="e19-kpi-note" id="annualReviewProgressNote" hidden></p>
-              <div id="annualReviewContent" hidden></div>
-            </article>
-
+            <div class="e19-ajustes-group" id="ajustes-navegacion" aria-labelledby="ajustes-navegacion-title">
+              <h3 class="e19-ajustes-group-title" id="ajustes-navegacion-title">Navegación</h3>
             <div class="update-route-grid" id="ajustesRouteGrid">
               <button class="e19-route-card" type="button" data-home-nav="visual-detail">
                 <span class="e19-route-step">Cuentas</span>
@@ -3213,6 +3255,8 @@
                 <em>Ventana de duplicados y desviación por partida se guardan arriba, no aquí.</em>
               </button>
             </div>
+            </div>
+
           </section>
 
           <section class="e19-faqs view-section" id="faqs-ayuda">
