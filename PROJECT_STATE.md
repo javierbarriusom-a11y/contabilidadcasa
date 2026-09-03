@@ -2,6 +2,76 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (127): Bloque 6 — A17-3, captura por cámara (OCR de tickets/facturas)
+
+Retoma el Bloque 6 (los seis cimientos caros sin dependencias) tras dejarlo a medias el 2 de
+septiembre con solo IV1 y A14-1 construidos. De las tres tareas libres que quedaban en ese bloque
+(OPT-14, A17-3, OPT-16), se abordó primero A17-3 por ser la única con beneficio directo y visible
+para el hogar ya mismo — "máxima retención" en su ficha — frente a OPT-14 (deuda técnica sin
+presión de calendario, porque su único consumidor OPT-15 sigue bloqueado hasta finales de
+septiembre por el gate de OPT-2) y OPT-16 (habilitador puro, sin superficie de producto).
+
+**Decisión de arquitectura consultada con el usuario antes de escribir código**: "OCR" exige
+reconocer texto en una foto, y este repositorio no tenía ninguna dependencia de terceros pesada
+(solo `xlsx.full.min.js` vendorizado y `supabase-js` por CDN) ni ningún precedente de motor de
+imagen. Un motor de OCR real (Tesseract.js/WASM) pesa 1-5 MB — cargarlo en la carga normal de la
+app habría arriesgado el presupuesto de rendimiento de OPT-5 (Lighthouse, vigilado en cada PR).
+Se planteó al usuario entre vendorizarlo en el repo, cargarlo bajo demanda desde CDN, o lanzar un
+v1 sin OCR automático; eligió **CDN bajo demanda** — mismo criterio que ya usa `supabase-js`, sin
+peso en el repositorio, con el procesamiento de la imagen igualmente 100% local en el navegador
+(la foto nunca sale del dispositivo, solo el motor de OCR se descarga la primera vez).
+
+**Construido**:
+- `canonical-receipt-ocr.js`, motor puro nuevo: `extractReceiptFields(text)` sobre el texto que ya
+  devolvió el OCR (nunca toca una imagen ni un navegador, por eso se prueba entero en Node con
+  tickets fijos). Importe: prioriza líneas con "total a pagar" > "importe total" > "total" >
+  "importe" > "a pagar" sobre el importe más alto de todo el texto si ninguna coincide; nunca
+  confunde "SUBTOTAL" con "TOTAL" (límite de palabra). Fecha: valida el calendario real (rechaza
+  31 de febrero), normaliza años de dos cifras y descarta fechas futuras si se declara `today`.
+  Comercio: la primera línea de las seis iniciales que parezca un nombre, no un dato suelto. Cada
+  campo declara `calculable: false` si no hay certeza — nunca un valor inventado. La categoría
+  **no** se extrae aquí a propósito: queda vacía y la propone el mismo motor de reglas por
+  concepto (`mappingForMovement`) que ya reclasifica cualquier movimiento importado, evitando un
+  segundo clasificador.
+- `canonical-e11b-inbox.js` gana la fuente `"receipt-photo"` en `SOURCES` — un ticket es una fuente
+  más de la bandeja previa (A6-2), con el mismo ciclo de comparación/confirmación que un CSV o un
+  extracto, nunca una segunda puerta de escritura.
+- `app.js`: tarjeta nueva "Foto de ticket o factura" en Registrar › Lote y Excel, junto a "Pegar
+  tabla" y "Excel". `handleReceiptCameraCapture` recibe el archivo del `<input type="file"
+  accept="image/*" capture="environment">` (cámara nativa, sin dependencia nueva), carga
+  Tesseract.js bajo demanda (`loadReceiptOcrEngine`, un `<script>` inyectado una sola vez, nunca
+  referenciado en `index.html`) y reconoce el texto en español. Los tres campos extraídos se
+  muestran editables junto a una miniatura de la foto (`renderReceiptCaptureReview`) — nunca se
+  confirma nada sin que el hogar lo revise, tanto si el reconocimiento acertó como si no. Al
+  confirmar, `confirmReceiptCapture` reutiliza tal cual el mismo camino que ya usa un extracto
+  bancario (`pendingE11bApply`/`applyStagedMovementImport`): un ticket es, como un extracto, una
+  lista de movimientos por confirmar, aquí con una sola fila con importe siempre negativo. El
+  adjunto cifrado (A3-5) reutiliza `P2PrivateStore` (la misma pieza del expediente privado de
+  documentos de deuda), enlazado por `transactionIdentity(row)` — el mismo identificador estable
+  que ya usa `movementMappings` para "solo este movimiento", porque un movimiento importado no
+  tiene un id propio. `renderMovementDetailDialog` gana un botón "Ver foto del ticket" cuando existe
+  el enlace. Nuevo estado persistido `receiptAttachments` (guardado/cargado igual que `dataInbox`).
+
+**Validación**: `npm run verify`, exit 0 — **2935/2935 pruebas** (2912 + 23 nuevas: 13 del motor en
+`tests/canonical-receipt-ocr.test.cjs`, 1 de la nueva fuente en `tests/canonical-e11b-inbox.test.cjs`
+y 9 de integración en `tests/a17-3-captura-camara.test.cjs` — carga diferida del motor de OCR nunca
+como `<script>`, reutilización real de `applyStagedMovementImport` con un movimiento negativo,
+validación de campos obligatorios antes de confirmar, botón de adjunto condicionado al enlace).
+Corregidas también 3 pruebas preexistentes de `tests/m1-m11-movimientos.test.cjs` que sandboxeaban
+`renderMovementDetailDialog` sin los nuevos globales (`receiptAttachments`/`transactionIdentity`).
+Accesibilidad (1062 IDs, +5 por la nueva tarjeta de cámara), rendimiento, build del sitio, privacidad
+y smoke test, todos en verde. `app.js`/`canonical-e11b-inbox.js`/`canonical-receipt-ocr.js`
+bumpeados a `?v=20260903a173a1` (27 referencias del marcador de versión de `app.js` actualizadas en
+masa, mismo mecanismo que en sesiones anteriores; `p2-ui.js` no se tocó, así que conserva el
+marcador de TT2).
+
+**Nota de entorno**: `node_modules` no estaba instalado al empezar esta sesión (`npm ci` fue
+necesario antes de poder ejecutar `npm run build:site`/Lighthouse) — sin relación con el código de
+esta tarea, probablemente una sesión anterior con un entorno efímero distinto.
+
+**Publicado**: pendiente de commit/push a `claude/artifact-update-execution-plan-0cipqq`, PR en
+borrador y fusión en cuanto el CI esté en verde, según la autorización permanente del usuario.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (126): Bloque 11 — TT2, escalera de vencimientos para el exceso sobre el colchón
 
 Segunda tarea del Bloque 11, encadenada tras CP2. Depende de CP2 (el exceso sobre el colchón, ya

@@ -79,6 +79,7 @@ const files = [
   "canonical-e9-banking.js",
   "canonical-e9-bank-import.js",
   "canonical-e11b-inbox.js",
+  "canonical-receipt-ocr.js",
   "e17-experience.js",
   "e18-health.js",
   "canonical-decisions.js",

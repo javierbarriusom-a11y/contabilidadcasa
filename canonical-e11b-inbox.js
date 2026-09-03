@@ -7,7 +7,7 @@
 
   const SCHEMA_ID = "finance-e11b-update-inbox/v1";
   const STATUSES = new Set(["draft", "ready", "blocked", "applied", "undone", "discarded"]);
-  const SOURCES = new Set(["manual", "pasted-table", "csv", "excel-workbook", "bank-statement", "psd2"]);
+  const SOURCES = new Set(["manual", "pasted-table", "csv", "excel-workbook", "bank-statement", "psd2", "receipt-photo"]);
   const clone = (value) => JSON.parse(JSON.stringify(value ?? null));
   const text = (value) => String(value ?? "").trim();
   const finite = (value) => Number.isFinite(Number(value));

@@ -8353,6 +8353,42 @@ body {
   font-weight: 700;
 }
 
+.movement-detail-attachment {
+  margin: 0 0 16px;
+}
+
+/* A17-3: revisión de la captura por cámara antes de confirmar en Registrar › Lote y Excel. */
+.receipt-capture-review {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.receipt-capture-thumb {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e2e2);
+  object-fit: contain;
+  align-self: flex-start;
+}
+
+.receipt-capture-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px 16px;
+}
+
+.receipt-capture-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
 .movement-detail-reclassify {
   display: flex;
   flex-direction: column;
