@@ -34,9 +34,8 @@ de formulario nuevo), rendimiento, build del sitio, privacidad y smoke test, tod
 marcador de versión de `app.js`/`p2-ui.js` actualizadas en masa; `canonical-cushion.js` no tenía
 pruebas que fijaran su versión literalmente, igual que en TT1).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `e8b565c` — PR #219, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (125): Bloque 11 — CP2, detección de «dinero parado». **Abre el Bloque 11.**
 
