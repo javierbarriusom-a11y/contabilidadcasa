@@ -2483,6 +2483,36 @@
               <div class="e19-kpi-note" id="ap6SustainabilityAlert"></div>
             </article>
 
+            <!-- AP1: comparador amortizar vs. invertir. Depende de IV1/IV2 e IV5 (opportunityCost,
+                 ya construido): compara el ahorro de intereses de amortizar anticipadamente una
+                 deuda existente frente a lo que ese mismo importe podría haber generado invertido
+                 en la cartera real del hogar. El TIN de la deuda lo declara el hogar: ningún
+                 contrato de deuda de la app guarda un tipo de interés propio. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador: amortizar vs. invertir</h3>
+              <p class="e19-kpi-note">Para un importe de caja disponible, compara amortizar anticipadamente una deuda existente frente a invertirlo en tu cartera real (misma rentabilidad XIRR que ya usa el simulador de decisión, IV5). Ninguna cifra de mercado se inventa aquí — solo el TIN de la deuda, que declaras tú.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Deuda a amortizar</span>
+                  <select id="ap1DebtSelect"></select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe disponible (€)</span>
+                  <input id="ap1Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>TIN de esa deuda (% anual)</span>
+                  <input id="ap1DebtRate" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte a comparar (meses)</span>
+                  <input id="ap1Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ap1CompareRun">Comparar</button>
+              <div class="e19-kpi-note" id="ap1CompareNote"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
               <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
@@ -5071,7 +5101,7 @@
     <script defer src="canonical-budget-alerts.js?v=20260826a1"></script>
     <script defer src="canonical-budget-forecast-category.js?v=20260826a1"></script>
     <script defer src="executive-read-model.js?v=20260801e6a"></script>
-    <script defer src="canonical-debt-comparator.js?v=20260715a"></script>
+    <script defer src="canonical-debt-comparator.js?v=20260903ap1a1"></script>
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
     <script defer src="canonical-leverage-simulator.js?v=20260902ap3a1"></script>
     <script defer src="canonical-leverage-sustainability.js?v=20260903ap6a1"></script>
@@ -5120,7 +5150,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260903iv5a1"></script>
+    <script defer src="app.js?v=20260903ap1a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {

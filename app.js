@@ -15620,6 +15620,71 @@ function renderAp6Alert() {
   return result;
 }
 
+// AP1: comparador amortizar vs. invertir. Depende de IV1/IV2 e IV5 (opportunityCost, ya construido):
+// para un importe de caja disponible, compara el ahorro de intereses de amortizar anticipadamente
+// una deuda existente contra lo que ese mismo importe podría haber generado invertido en la cartera
+// real del hogar. El lado de invertir reutiliza tal cual iv5PortfolioAnnualReturnPct() y
+// FinanceCanonicalPortfolio.opportunityCost(), sin ninguna cifra de mercado nueva; el TIN de la
+// deuda lo declara el hogar (ningún contrato de deuda de la app guarda un tipo de interés), mismo
+// criterio que AP3 con el tipo de la deuda nueva a simular.
+function ap1DebtOptionsHtml() {
+  const debts = p2DebtRows().filter((debt) => debt.currentPrincipal > 0);
+  if (!debts.length) return `<option value="">Sin deuda pendiente registrada</option>`;
+  return debts.map((debt) => `<option value="${escapeHtml(debt.id)}">${escapeHtml(debt.entity)} · ${escapeHtml(debt.type)} · ${money(debt.currentPrincipal, true)} pendiente</option>`).join("");
+}
+
+function renderAp1DebtOptions() {
+  const select = qs("ap1DebtSelect");
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = ap1DebtOptionsHtml();
+  if ([...select.options].some((option) => option.value === current)) select.value = current;
+}
+
+const AP1_ASSESSMENT_LABEL = {
+  amortizar: "amortizar",
+  invertir: "invertir",
+  neutral: "cualquiera de las dos — el resultado es prácticamente el mismo",
+};
+
+// La lectura amortizar/invertir es una sugerencia apoyada en los números de al lado, nunca una
+// orden — se dice así de forma explícita, mismo criterio que AP3 con sus escenarios de rentabilidad.
+function ap1ResultHtml(result, investmentAnnualReturnPct) {
+  if (!result.calculable) {
+    return "Indica un importe, un horizonte en meses y el TIN de la deuda (todos mayores que cero) para comparar.";
+  }
+  const investLine = result.investGain === null
+    ? "Sin cartera registrada o sin XIRR calculable (IV1/IV2): no se puede comparar contra invertir todavía."
+    : `Invertir en tu cartera real (XIRR ${investmentAnnualReturnPct >= 0 ? "+" : ""}${investmentAnnualReturnPct}% anual): ganarías ${money(result.investGain, true)}.`;
+  const readLine = result.assessment === "invertir-no-calculable"
+    ? "Lectura no disponible: falta la rentabilidad real de tu cartera."
+    : `Lectura: te compensa más ${AP1_ASSESSMENT_LABEL[result.assessment]} — no una orden, revisa los números antes de aceptarla.`;
+  return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} mes(es): te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>`;
+}
+
+function handleAp1Compare() {
+  const note = qs("ap1CompareNote");
+  if (!note) return;
+  const debtComparator = window.FinanceDebtComparator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!debtComparator || !portfolioEngine) return;
+  const debtId = qs("ap1DebtSelect")?.value || "";
+  const debt = p2DebtRows().find((row) => row.id === debtId) || null;
+  const amount = parseAmount(qs("ap1Amount")?.value);
+  const debtAnnualRatePct = parseAmount(qs("ap1DebtRate")?.value);
+  const months = Math.round(parseAmount(qs("ap1Months")?.value));
+  const investmentAnnualReturnPct = iv5PortfolioAnnualReturnPct();
+  const investmentResult = portfolioEngine.opportunityCost({ amount, months, annualReturnPct: investmentAnnualReturnPct });
+  const result = debtComparator.compareAmortizeVsInvest({
+    amount,
+    months,
+    debtAnnualRatePct,
+    remainingPrincipal: debt ? debt.currentPrincipal : null,
+    investmentResult,
+  });
+  note.innerHTML = ap1ResultHtml(result, investmentAnnualReturnPct);
+}
+
 // A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin
 // persistir nada: lee los campos, muestra el resultado. No trae ningún precio de mercado real — el
 // hogar declara su consumo y ambos precios.
@@ -24605,6 +24670,7 @@ function renderAjustes() {
   renderAp3BarrierStatus();
   renderAp3ScenarioList();
   renderAp6Alert();
+  renderAp1DebtOptions();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -34644,6 +34710,7 @@ async function init() {
     if (!removeButton) return;
     removeAp3Scenario(removeButton.dataset.ap3ScenarioRemove);
   });
+  qs("ap1CompareRun")?.addEventListener("click", handleAp1Compare);
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
