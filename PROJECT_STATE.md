@@ -42,8 +42,8 @@ el gate de OPT-2 libere a finales de septiembre.
 **Validación**: sin cambios de código; `npm test` no aplica (solo `.md`). No se ha tocado
 `app.js`/`index.html`/ningún `canonical-*.js`.
 
-**Publicado**: pendiente de commit/push a `claude/artifact-update-execution-plan-0cipqq`, PR en
-borrador y fusión en cuanto el CI esté en verde, según la autorización permanente del usuario.
+**Publicado**: fusionado en `main` mediante `fe297e2` — PR #223, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (127): Bloque 6 — A17-3, captura por cámara (OCR de tickets/facturas)
 
