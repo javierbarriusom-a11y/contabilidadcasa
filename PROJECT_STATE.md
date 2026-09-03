@@ -2,6 +2,42 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (124): Bloque 10 — AP5, deuda nueva y existente en una sola cola de prioridad. **Cierra el Bloque 10 salvo OPT-11/OPT-12/OPT-13.**
+
+Novena y última tarea nueva del Bloque 10 en esta sesión, encadenada tras FC5. Depende de AP3
+(escenarios de apalancamiento marcados como tomados, AP6 — `takenAt`) y A16-5 (criterios avalancha/
+bola de nieve, ya construidos en la Ruta de deuda). Con esto el Bloque 10 queda completo salvo
+OPT-11/OPT-12/OPT-13, que siguen bloqueadas por el plazo de 30 días de OPT-2 (arrancó el 29 de
+agosto, no se cumple hasta finales de septiembre) — se comprobó al empezar la sesión y de nuevo aquí,
+sigue sin cumplirse.
+
+**Construido**: `ap5UnifiedDebtQueue(strategyId)` en `app.js` — mezcla la deuda existente
+(`escenarioMotorDebtOptions()`, misma fuente que la Ruta de deuda) con la deuda de apalancamiento que
+el hogar ha marcado como tomada en AP3/AP6 (`ap3LeverageScenarios().filter(s => s.takenAt)`) en una
+única lista, y la ordena con los mismos dos criterios de A16-5 — avalancha (TAE descendente) o bola
+de nieve (saldo/principal ascendente) — sin inventar un tercer criterio. Un escenario de AP3 solo
+explorado (sin `takenAt`) nunca entra en la cola: no es una deuda real todavía, mismo criterio que ya
+usa AP6 para su alerta. Nueva tarjeta "Deuda: cola única de prioridad (nueva y existente)" en
+Ajustes, justo debajo del comparador de AP1: un selector de criterio y la lista ordenada, que se
+refresca también al marcar o desmarcar una deuda de apalancamiento como tomada.
+
+**Validación**: `npm run verify`, exit 0 — **2888/2888 pruebas** (2875 + 13 nuevas: 6 en
+`tests/ap5-cola-prioridad-deuda.test.cjs` — un escenario solo explorado nunca entra en la cola,
+mezcla correctamente ambas fuentes, avalancha y bola de nieve ordenan igual que A16-5 — y 7 en
+`tests/ap5-app-integracion.test.cjs`). Un detalle de la propia sesión: las dos primeras pruebas de
+`ap5-cola-prioridad-deuda.test.cjs` fallaron al principio con `assert.deepEqual([], [])` dentro de un
+sandbox de `vm` — el array devuelto pertenece al realm del contexto de `vm`, con un prototipo
+`Array` distinto al del proceso principal, así que `deepEqual` lo compara como si no fuera
+"reference-equal" aunque el contenido sea idéntico; se corrigió comparando `.length` en vez del
+array entero, y envolviendo los arrays de comparación en `[...]` para forzarlos al realm principal.
+Accesibilidad (1057 IDs, +2 por la nueva tarjeta), rendimiento, build del sitio, privacidad y smoke
+test, todos en verde. `app.js` bumpeado a `?v=20260903ap5a1` (27 referencias del marcador de versión
+actualizadas en masa).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (123): Bloque 10 — FC5, venta parcial optimizando el tramo del ahorro
 
 Octava tarea del Bloque 10, encadenada tras FC3. Depende de IV2. Ampliación sin ficha de detalle
