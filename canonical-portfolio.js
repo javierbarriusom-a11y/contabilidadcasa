@@ -418,6 +418,40 @@
     }).filter((row) => row.currentPct > 0 || row.targetPct > 0);
   }
 
+  // IV5: coste de oportunidad de un importe de caja frente a haberlo dejado invertido en la cartera
+  // real del hogar. `annualReturnPct` es siempre un dato que quien llama ya calculó (la XIRR real de
+  // summarizePositions, IV2) — este motor no inventa ninguna cifra de mercado ni de rendimiento
+  // futuro, mismo criterio que AP3 con los escenarios de rentabilidad esperada. Sin importe, sin
+  // horizonte o sin una rentabilidad anual conocida, no hay coste de oportunidad que mostrar, nunca
+  // un 0% asumido en su lugar.
+  function opportunityCost({ amount, months, annualReturnPct } = {}) {
+    const principal = Math.max(0, number(amount));
+    const horizonMonths = Math.max(0, number(months));
+    // `Number(null)` es 0, así que una rentabilidad ausente (null/undefined) no puede pasar por
+    // `Number()` directamente sin colarse como un 0% asumido — se exige un número real de partida.
+    const rate = typeof annualReturnPct === "number" && Number.isFinite(annualReturnPct) ? annualReturnPct : NaN;
+    if (principal <= 0 || horizonMonths <= 0 || !Number.isFinite(rate)) {
+      return {
+        calculable: false,
+        amount: principal,
+        months: horizonMonths,
+        annualReturnPct: Number.isFinite(rate) ? round2(rate) : null,
+        projectedValue: null,
+        gain: null,
+      };
+    }
+    const years = horizonMonths / 12;
+    const projectedValue = round2(principal * Math.pow(1 + rate / 100, years));
+    return {
+      calculable: true,
+      amount: principal,
+      months: horizonMonths,
+      annualReturnPct: round2(rate),
+      projectedValue,
+      gain: round2(projectedValue - principal),
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -434,5 +468,6 @@
     applyFundTransfer,
     xirr,
     fifoLedger,
+    opportunityCost,
   };
 });
