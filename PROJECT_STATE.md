@@ -2,6 +2,48 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (132): AJ-1/AJ-2 — Ajustes pasa de 42 tarjetas planas a 9 dominios con barra de anclas
+
+Bloque Ajustes del spin-off «Ajustes y Hoy» (bloque Hoy, HD-1 a HD-5, ya cerrado en las sesiones
+130-131, PR #227/#228). AJ-3 (verificación previa, sin código) se resolvió primero: `docs/
+BACKLOG_NUEVE_PANTALLAS.md` (L-9) confirma que el mecanismo de retirada de Laboratorio al cerrar la
+Fase 7 está «construido, sin activar» — coincide con `LABORATORIO_PHASE_RETIRED = false` en
+`app.js`. Laboratorio sigue en Ajustes y entra en AJ-1 con grupo propio, en vez de quedar fuera por
+una retirada que todavía no ha ocurrido.
+
+**AJ-1 — 42 tarjetas agrupadas en 9 dominios**: inventariadas las 42 (`<article class="e19-card">`
+más `e6CoverageEditor` y `laboratorioCard`, ambas con clase adicional) con sus 26 comentarios de
+contexto adjuntos, y reasignadas sin tocar una sola línea de su contenido a: Hogar (5), Reserva y
+colchón (2), Seguros (5), Fiscal (8), Deuda y apalancamiento (8), Patrimonio e inversión (3),
+Simuladores y Laboratorio (1), Presupuesto y operación (6), Datos y exportación (4) — más
+Navegación, que no es una tarjeta sino el `update-route-grid` de accesos a otras pantallas, ya
+existente al final de Ajustes. La reasignación se hizo con un script Node de un solo uso (no
+versionado) que localiza cada tarjeta por sus líneas de apertura/cierre exactas, mueve su texto
+byte a byte y verifica que los 227 `id` originales de la sección sobreviven exactamente una vez
+antes de escribir el resultado — cero retipeo manual en un bloque de 1113 líneas. Contenedores en
+`<div>`, no `<section>`: 15 pruebas ya existentes (`a15-1-registro-supuestos-fiscales`,
+`l1-l10-fase7-laboratorio`, etc.) delimitan «dentro de #ajustes» buscando el primer `<section` o
+`</section>` desde el inicio de la vista — un `<section>` anidado por cada grupo las habría roto
+sin que ninguna lógica de producto hubiera cambiado.
+
+**AJ-2 — barra de anclas**: barra de botones (nunca `<a href="#...">`: el `hashchange` global de
+`setupViewNavigation()` interpreta cualquier hash que no sea una vista real y devuelve a Hoy —
+confirmado antes de escribir el HTML) que hace `scrollIntoView` sobre cada grupo, cableada una vez
+en `init()` junto al resto de listeners estáticos de Ajustes. Sin `position: sticky`: `.workspace`
+(el armazón de la app) usa `overflow-x: clip`, que ya invalida cualquier sticky dentro de una
+vista — mismo límite, sin corregir hasta ahora, que ya tenía `.meeting-mode-bar` en Hoy. Corregir
+ese límite compartido queda fuera de esta tarea (afecta a todo el shell, no solo a Ajustes); la
+barra queda fija arriba del contenido, no fija en pantalla al hacer scroll.
+
+**Verificado visualmente** con Playwright headless contra el sitio servido en local (el suite de
+tests no cubre renderizado real): las nueve tarjetas de cada grupo aparecen en su sitio, el clic en
+cada botón de ancla salta al grupo correcto sin tocar `location.hash` ni ocultar `#ajustes`, y
+Laboratorio conserva intacta su barra de herramientas, filtros y panel de detalle.
+
+**Validación**: `npm run verify`, exit 0 — **2935/2935 pruebas**, accesibilidad (1083 IDs únicos,
+antes 1062 — los 21 nuevos de grupos/ancla), rendimiento, `build:site`, privacidad y humo, todo en
+verde.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (131): HD-5 — panel plegable, cierra el bloque Hoy del spin-off «Ajustes y Hoy»
 
 Última tarea del bloque Hoy (HD-1 a HD-4 ya cerradas en la sesión 130, PR #227). HD-5 —dónde vive

@@ -4965,6 +4965,46 @@
 }
 
 /* -------------------------------------------------------------------------------------------- */
+/* AJ-1/AJ-2 (spin-off Ajustes/Hoy, 3-sep-2026) — las 42 tarjetas de Ajustes, antes una lista      */
+/* plana, agrupadas en dominios temáticos con una barra de anclas arriba, decidida el 3-sep-2026.  */
+/* Botones, no <a href="#...">: el hashchange global de setupViewNavigation() interpretaría un     */
+/* hash que no es una vista real y sacaría al usuario de Ajustes de vuelta a Hoy. Sin              */
+/* position:sticky — .workspace (app-shell) usa overflow-x:clip, que ya rompe cualquier sticky     */
+/* dentro de una vista (mismo límite que ya tiene .meeting-mode-bar en Hoy): se queda como barra    */
+/* fija arriba del contenido, no fija en pantalla al hacer scroll. */
+/* -------------------------------------------------------------------------------------------- */
+
+.e19-ajustes-anchors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 12px 14px;
+  background: var(--e19-surface);
+  border: 1px solid var(--e19-border);
+  border-radius: var(--e19-radius-lg);
+  box-shadow: var(--e19-shadow-card);
+}
+
+.e19-ajustes-anchors button {
+  min-height: 32px;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.e19-ajustes-group {
+  scroll-margin-top: 16px;
+}
+
+.e19-ajustes-group-title {
+  margin: 0 0 14px;
+  padding-top: 4px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--e19-heading);
+}
+
+/* -------------------------------------------------------------------------------------------- */
 /* Cuadro de mandos con impacto (E20-5, mockups 3a/3b/3c) — todo bajo .e19-cuadro-mandos, que     */
 /* comparten `#cuadro-mandos`, `#cambios-pendientes` y `#mapa-calor`.                             */
 /* -------------------------------------------------------------------------------------------- */

@@ -35088,6 +35088,13 @@ async function init() {
   qs("detailMonth").addEventListener("change", renderMonthlyDetails);
   qs("cuadroMandosStart")?.addEventListener("change", renderCuadroMandos);
   qs("cuadroMandosSpan")?.addEventListener("change", renderCuadroMandos);
+  // AJ-2: barra de anclas de Ajustes — botones, no <a href>, para no disparar el hashchange
+  // global (viewFromHash() no reconocería el id de un grupo y devolvería "home").
+  qs("ajustesAnchors")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-ajustes-anchor]");
+    if (!button) return;
+    document.getElementById(button.dataset.ajustesAnchor)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
   qs("ajustesReserve")?.addEventListener("change", handleOperatingReserveChange);
   qs("ajustesLifeInsuranceCapital")?.addEventListener("change", handleLifeInsuranceCapitalChange);
   qs("ajustesHomeInsuranceCoverage")?.addEventListener("change", handleHomeInsuranceChange("homeInsuranceCoverage"));
