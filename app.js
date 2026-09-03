@@ -15580,6 +15580,7 @@ function toggleAp3ScenarioTaken(id) {
   saveScenarioSettings();
   renderAp3ScenarioList();
   renderAp6Alert();
+  renderAp5Queue();
 }
 
 // Guarda una exploración ya calculada — nunca una decisión tomada ni una posición real de deuda o
@@ -15733,6 +15734,46 @@ function handleAp1Compare() {
   });
   const breakEven = debtComparator.breakEvenInvestmentRatePct(debtAnnualRatePct, months);
   note.innerHTML = ap1ResultHtml(result, investmentAnnualReturnPct, breakEven);
+}
+
+// AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3 (escenarios de
+// apalancamiento marcados como tomados, AP6 — `takenAt`) y A16-5 (criterios avalancha/bola de nieve,
+// ya construidos en la Ruta de deuda): reutiliza tal cual esos dos criterios de orden, sin inventar
+// un tercero, mezclando la deuda de apalancamiento realmente tomada con la deuda existente
+// (`escenarioMotorDebtOptions`) en una única lista. Una deuda solo explorada en AP3 (sin `takenAt`)
+// nunca entra en la cola: no es una deuda real todavía.
+const AP5_SOURCE_LABELS = { existente: "Deuda existente", apalancamiento: "Apalancamiento (AP3, tomada)" };
+
+function ap5UnifiedDebtQueue(strategyId) {
+  const existing = escenarioMotorDebtOptions().map((contract) => ({
+    id: contract.id,
+    label: escenarioMotorDebtLabel(contract),
+    principal: Math.max(0, Number(contract.currentPrincipal) || 0),
+    apr: Number(contract.apr) || 0,
+    source: "existente",
+  }));
+  const taken = ap3LeverageScenarios()
+    .filter((scenario) => scenario.takenAt)
+    .map((scenario) => ({
+      id: scenario.id,
+      label: scenario.name || "Deuda de apalancamiento",
+      principal: Math.max(0, Number(scenario.result?.newDebtAmount) || 0),
+      apr: Number(scenario.result?.newDebtAnnualRatePercent) || 0,
+      source: "apalancamiento",
+    }));
+  const combined = [...existing, ...taken];
+  if (strategyId === "bola-nieve") return combined.sort((a, b) => a.principal - b.principal);
+  return combined.sort((a, b) => b.apr - a.apr);
+}
+
+function renderAp5Queue() {
+  const list = qs("ap5QueueList");
+  if (!list) return;
+  const strategyId = qs("ap5StrategySelect")?.value === "bola-nieve" ? "bola-nieve" : "avalancha";
+  const queue = ap5UnifiedDebtQueue(strategyId);
+  list.innerHTML = queue.length
+    ? queue.map((item, index) => `<li class="commit-barrier-item"><strong>${index + 1}. ${escapeHtml(item.label)}</strong><span>${escapeHtml(AP5_SOURCE_LABELS[item.source])} · ${money(item.principal, true)} pendiente · ${item.apr}% TAE</span></li>`).join("")
+    : `<li class="e19-kpi-note">Sin deuda existente ni deuda de apalancamiento tomada que priorizar.</li>`;
 }
 
 // A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin
@@ -24849,6 +24890,7 @@ function renderAjustes() {
   renderAp3ScenarioList();
   renderAp6Alert();
   renderAp1DebtOptions();
+  renderAp5Queue();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -34891,6 +34933,7 @@ async function init() {
     removeAp3Scenario(removeButton.dataset.ap3ScenarioRemove);
   });
   qs("ap1CompareRun")?.addEventListener("click", handleAp1Compare);
+  qs("ap5StrategySelect")?.addEventListener("change", renderAp5Queue);
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);

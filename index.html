@@ -2535,6 +2535,26 @@
               <div class="e19-kpi-note" id="ap1CompareNote"></div>
             </article>
 
+            <!-- AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3
+                 (escenarios marcados como tomados en AP6) y A16-5 (criterios avalancha/bola de
+                 nieve, ya construidos en la Ruta de deuda) — mismos dos criterios, sin inventar un
+                 tercero. Una deuda solo explorada en AP3 (sin marcar como tomada) nunca entra en la
+                 cola: no es una deuda real todavía. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Deuda: cola única de prioridad (nueva y existente)</h3>
+              <p class="e19-kpi-note">Mezcla la deuda existente con la deuda de apalancamiento que hayas marcado como tomada (arriba, en el simulador de AP3) en una única cola de prioridad de pago, con el mismo criterio de la Ruta de deuda.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Criterio de orden</span>
+                  <select id="ap5StrategySelect">
+                    <option value="avalancha">Avalancha (mayor TAE primero)</option>
+                    <option value="bola-nieve">Bola de nieve (menor saldo primero)</option>
+                  </select>
+                </label>
+              </div>
+              <ul class="commit-barrier-list" id="ap5QueueList"></ul>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
               <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
@@ -5212,7 +5232,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260903fc5a1"></script>
+    <script defer src="app.js?v=20260903ap5a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
