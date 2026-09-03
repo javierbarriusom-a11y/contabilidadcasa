@@ -15649,7 +15649,7 @@ const AP1_ASSESSMENT_LABEL = {
 
 // La lectura amortizar/invertir es una sugerencia apoyada en los números de al lado, nunca una
 // orden — se dice así de forma explícita, mismo criterio que AP3 con sus escenarios de rentabilidad.
-function ap1ResultHtml(result, investmentAnnualReturnPct) {
+function ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) {
   if (!result.calculable) {
     return "Indica un importe, un horizonte en meses y el TIN de la deuda (todos mayores que cero) para comparar.";
   }
@@ -15659,7 +15659,26 @@ function ap1ResultHtml(result, investmentAnnualReturnPct) {
   const readLine = result.assessment === "invertir-no-calculable"
     ? "Lectura no disponible: falta la rentabilidad real de tu cartera."
     : `Lectura: te compensa más ${AP1_ASSESSMENT_LABEL[result.assessment]} — no una orden, revisa los números antes de aceptarla.`;
-  return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} mes(es): te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>`;
+  const breakEvenLine = ap2BreakEvenLine(breakEven, investmentAnnualReturnPct);
+  return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} mes(es): te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>${breakEvenLine}`;
+}
+
+// AP2: punto de equilibrio entre el TIN de la deuda y la rentabilidad de inversión esperada.
+// Depende de IV2 y reutiliza el mismo TIN/horizonte que AP1 ya pide — el importe se cancela en la
+// ecuación, así que no hace falta un formulario aparte. Compara ese punto de equilibrio contra la
+// XIRR real de la cartera (misma fuente que AP1/IV5) para decir si hoy ya la supera o no, sin
+// convertirlo en una orden.
+function ap2BreakEvenLine(breakEven, investmentAnnualReturnPct) {
+  if (!breakEven || !breakEven.calculable) return "";
+  const rate = breakEven.breakEvenAnnualReturnPct;
+  const rateLabel = `${rate >= 0 ? "+" : ""}${rate}%`;
+  if (investmentAnnualReturnPct === null) {
+    return `<p class="e19-kpi-note">Punto de equilibrio: a partir de ${rateLabel} anual de rentabilidad de inversión, invertir compensa más que amortizar. Sin XIRR real de tu cartera (IV1/IV2) para compararlo.</p>`;
+  }
+  const comparison = investmentAnnualReturnPct >= rate
+    ? "tu cartera ya lo supera"
+    : "tu cartera todavía no llega a ese punto";
+  return `<p class="e19-kpi-note">Punto de equilibrio: a partir de ${rateLabel} anual de rentabilidad de inversión, invertir compensa más que amortizar — ${comparison}.</p>`;
 }
 
 function handleAp1Compare() {
@@ -15682,7 +15701,8 @@ function handleAp1Compare() {
     remainingPrincipal: debt ? debt.currentPrincipal : null,
     investmentResult,
   });
-  note.innerHTML = ap1ResultHtml(result, investmentAnnualReturnPct);
+  const breakEven = debtComparator.breakEvenInvestmentRatePct(debtAnnualRatePct, months);
+  note.innerHTML = ap1ResultHtml(result, investmentAnnualReturnPct, breakEven);
 }
 
 // A19-3 · comparador educativo de tarifas fijas frente a variables. Calculadora puntual, sin

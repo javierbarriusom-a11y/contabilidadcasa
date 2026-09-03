@@ -2,6 +2,36 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (120): Bloque 10 — AP2, punto de equilibrio tipo deuda vs. tipo esperado de inversión
+
+Quinta tarea del Bloque 10, encadenada tras AP1. Depende de IV2, y reutiliza directamente las
+fórmulas de AP1 (interés simple sobre la deuda amortizada, compuesto sobre la inversión). Tarea de
+esfuerzo S: el importe se cancela en la ecuación de equilibrio, así que no hace falta ni un dato
+nuevo ni un formulario aparte — se resolvió como una extensión de la misma tarjeta de AP1.
+
+**Construido**: `canonical-debt-comparator.js` gana `breakEvenInvestmentRatePct(debtAnnualRatePct,
+months)` — despeja la rentabilidad de inversión anual a la que `compareAmortizeVsInvest` (AP1) daría
+exactamente neutral, a partir del mismo TIN y horizonte que ya pide AP1. Con un horizonte de un año
+coincide con el TIN exacto (interés simple y compuesto coinciden al primer año); con horizontes
+mayores queda por debajo del TIN, porque el interés compuesto de la inversión adelanta al simple de
+la deuda. `app.js` calcula el punto de equilibrio en el mismo `handleAp1Compare()` (sin motor nuevo
+que llamar aparte) y añade una línea al resultado que lo compara contra la XIRR real de la cartera
+(misma fuente que AP1/IV5): dice explícitamente si la cartera ya lo supera o no, sin convertirlo en
+una orden ni en un motivo para actuar.
+
+**Validación**: `npm run verify`, exit 0 — **2834/2834 pruebas** (2824 + 10 nuevas: 6 en
+`tests/ap2-punto-equilibrio.test.cjs` — sin TIN/horizonte no calcula nada, coincide con el TIN al
+primer año, queda por debajo del TIN en horizontes mayores, el punto de equilibrio calculado deja
+invertir y amortizar prácticamente empatados a redondeo de 2 decimales — y 4 en
+`tests/ap2-app-integracion.test.cjs`, incluida una prueba que confirma que no se declaró ningún campo
+nuevo). Accesibilidad (1043 IDs, sin cambio — ningún id estático nuevo), rendimiento, build del
+sitio, privacidad y smoke test, todos en verde. `app.js`/`canonical-debt-comparator.js` bumpeados a
+`?v=20260903ap2a1` (27 referencias del marcador de versión de `app.js` actualizadas en masa).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (119): Bloque 10 — AP1, comparador amortizar vs. invertir
 
 Cuarta tarea del Bloque 10, encadenada tras IV5. Depende de IV1 e IV2 (`canonical-portfolio.js`,

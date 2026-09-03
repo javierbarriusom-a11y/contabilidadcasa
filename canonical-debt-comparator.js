@@ -174,6 +174,32 @@
     };
   }
 
+  const BREAK_EVEN_SCHEMA_ID = "finance.amortize-vs-invest-break-even";
+
+  // AP2: punto de equilibrio entre el TIN de una deuda y la rentabilidad de inversión esperada.
+  // Depende de IV2 y usa exactamente las mismas dos fórmulas que compareAmortizeVsInvest (AP1):
+  // interés simple sobre la deuda amortizada, compuesto sobre la inversión. El importe se cancela
+  // en ambos lados de la ecuación — no hace falta declararlo para saber a qué rentabilidad de
+  // inversión el resultado sería neutral (ni amortizar ni invertir gana). Nunca inventa el TIN ni
+  // el horizonte: ambos los declara el hogar, igual que en AP1.
+  function breakEvenInvestmentRatePct(debtAnnualRatePct, months) {
+    const debtRate = knownFinite(debtAnnualRatePct) ? debtAnnualRatePct : NaN;
+    const horizonMonths = Math.max(0, Math.floor(finite(months)));
+    if (!Number.isFinite(debtRate) || horizonMonths <= 0) {
+      return { schema: BREAK_EVEN_SCHEMA_ID, calculable: false };
+    }
+    const years = horizonMonths / 12;
+    // (1 + r/100)^years - 1 = (debtRate/100) × years  →  despeja r.
+    const breakEvenPct = round2(100 * (Math.pow(1 + (debtRate / 100) * years, 1 / years) - 1));
+    return {
+      schema: BREAK_EVEN_SCHEMA_ID,
+      calculable: true,
+      debtAnnualRatePct: round2(debtRate),
+      months: horizonMonths,
+      breakEvenAnnualReturnPct: breakEvenPct,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -182,6 +208,8 @@
     strategyLabel,
     normalizeAlternative,
     compareActionAlternatives,
+    BREAK_EVEN_SCHEMA_ID,
+    breakEvenInvestmentRatePct,
     compareAgreements,
     AMORTIZE_VS_INVEST_SCHEMA_ID,
     compareAmortizeVsInvest,
