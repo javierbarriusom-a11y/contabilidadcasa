@@ -39,9 +39,8 @@ rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`/
 a `?v=20260903cp2a1` (28 referencias del marcador de versión de `app.js`/`p2-ui.js` actualizadas en
 masa, mismo mecanismo que en sesiones anteriores).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `08d127c` — PR #217, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (124): Bloque 10 — AP5, deuda nueva y existente en una sola cola de prioridad. **Cierra el Bloque 10 salvo OPT-11/OPT-12/OPT-13.**
 
@@ -114,9 +113,8 @@ rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`/
 `canonical-irpf-estimator.js` bumpeados a `?v=20260903fc5a1` (27 referencias del marcador de versión
 de `app.js` actualizadas en masa).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `64959a9` — PR #214, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (122): Bloque 10 — FC3, compensación de pérdidas y ganancias a cierre de año
 
@@ -152,9 +150,8 @@ build del sitio, privacidad y smoke test, todos en verde. `app.js`/`canonical-po
 bumpeados a `?v=20260903fc3a1` (27 referencias del marcador de versión de `app.js` actualizadas en
 masa).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `6fca7fa` — PR #213, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (121): Bloque 10 — A19-2, informe PDF certificado
 
@@ -187,9 +184,8 @@ siendo el mismo de OPT-3/V6-4). Accesibilidad (1044 IDs, +1 por el nuevo botón)
 del sitio, privacidad y smoke test, todos en verde. `app.js` bumpeado a `?v=20260903a192a1` (27
 referencias del marcador de versión actualizadas en masa).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `4c8596d` — PR #212, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (120): Bloque 10 — AP2, punto de equilibrio tipo deuda vs. tipo esperado de inversión
 
@@ -217,9 +213,8 @@ nuevo). Accesibilidad (1043 IDs, sin cambio — ningún id estático nuevo), ren
 sitio, privacidad y smoke test, todos en verde. `app.js`/`canonical-debt-comparator.js` bumpeados a
 `?v=20260903ap2a1` (27 referencias del marcador de versión de `app.js` actualizadas en masa).
 
-**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
-a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
-ciclo.
+**Publicado**: fusionado en `main` mediante `f1c6ba3` — PR #211, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (119): Bloque 10 — AP1, comparador amortizar vs. invertir
 
