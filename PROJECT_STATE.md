@@ -69,8 +69,8 @@ marcador de TT2).
 necesario antes de poder ejecutar `npm run build:site`/Lighthouse) — sin relación con el código de
 esta tarea, probablemente una sesión anterior con un entorno efímero distinto.
 
-**Publicado**: pendiente de commit/push a `claude/artifact-update-execution-plan-0cipqq`, PR en
-borrador y fusión en cuanto el CI esté en verde, según la autorización permanente del usuario.
+**Publicado**: fusionado en `main` mediante `2549c65` — PR #221, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (126): Bloque 11 — TT2, escalera de vencimientos para el exceso sobre el colchón
 
