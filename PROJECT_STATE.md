@@ -44,8 +44,8 @@ una vez el código de OPT-11/12/13/14 bajo datos reales de uso.
 confirmar que la sesión no tocó nada de código, solo `BACKLOG_OPTIMIZACION.md` y
 `BACKLOG_ULTIMATE_SEPTIEMBRE.md`).
 
-**Publicado**: pendiente de commit/push a `claude/artifact-update-execution-plan-0cipqq`, PR en
-borrador y fusión en cuanto el CI esté en verde, según la autorización permanente del usuario.
+**Publicado**: fusionado en `main` mediante `9b9cba7` — PR #225, CI (`verify`) en verde, sin
+conflicto de fusión.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (128): Bloque 6 — OPT-14, corrección de estado sin código
 
