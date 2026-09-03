@@ -2,6 +2,46 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (123): Bloque 10 — FC5, venta parcial optimizando el tramo del ahorro
+
+Octava tarea del Bloque 10, encadenada tras FC3. Depende de IV2. Ampliación sin ficha de detalle
+propia; se resolvió reutilizando por completo el motor de tramos progresivos que ya construyó A15-2
+para la escala general de IRPF (`validateBracketScale`/`progressiveTax` en
+`canonical-irpf-estimator.js`), aplicado ahora a la escala del tramo del ahorro — sin motor de
+cálculo nuevo, sin fabricar ningún tipo impositivo.
+
+**Construido**: `optimizePartialSale({scale, alreadyRealizedGain, proposedGain})` en
+`canonical-irpf-estimator.js` — localiza en qué tramo cae la base ya generada este año, calcula
+cuánto margen queda hasta el siguiente tipo (`null` si el tramo es abierto, sin límite superior),
+reparte la plusvalía propuesta entre lo que cabe en el tramo actual y el excedente que ya tributaría
+al tipo siguiente, y calcula el coste marginal real con `progressiveTax` (progresivo, nunca el tipo
+marginal aplicado a toda la base). Sin escala válida o sin plusvalía declarada, `calculable: false`.
+
+**Bug atrapado antes de publicar**: `saveIrpfBracketScale()` colapsaba cualquier `kind` que no fuera
+`"regional"` a `"state"` — al añadir la tercera opción del selector ("Tramo del ahorro"), una escala
+del ahorro se habría guardado silenciosamente como si fuera la escala general estatal, corrompiendo
+ambos cálculos. Corregido (`kind === "regional" ? "regional" : kind === "savings" ? "savings" :
+"state"`) antes de escribir la tarjeta nueva, con una prueba de regresión dedicada.
+
+`app.js`/`index.html`: la escala del tramo del ahorro se registra con la misma tarjeta de escalas de
+IRPF de A15-2 (un `kind` más, sin campo nuevo), y una nueva tarjeta "Venta parcial: optimizar el
+tramo del ahorro" en Ajustes, justo debajo del estimador de IRPF: base ya generada este año (el
+hogar puede leerla del resultado de FC3, sin acoplamiento automático entre ambas tarjetas) e importe
+de la plusvalía que valora vender.
+
+**Validación**: `npm run verify`, exit 0 — **2875/2875 pruebas** (2860 + 15 nuevas: 8 en
+`tests/fc5-venta-parcial-tramo-ahorro.test.cjs` — sin escala/plusvalía no calcula nada, reparte
+correctamente entre lo que cabe y el excedente, calcula el coste marginal progresivo real, un tramo
+abierto no tiene límite superior que informar — y 7 en `tests/fc5-app-integracion.test.cjs`, incluida
+la prueba de regresión del bug de `kind`). Accesibilidad (1055 IDs, +4 por la nueva tarjeta),
+rendimiento, build del sitio, privacidad y smoke test, todos en verde. `app.js`/
+`canonical-irpf-estimator.js` bumpeados a `?v=20260903fc5a1` (27 referencias del marcador de versión
+de `app.js` actualizadas en masa).
+
+**Publicado**: pendiente de commit, push a `claude/bloque-10-backlog-kp1o1x`, PR en borrador y fusión
+a `main` en cuanto el CI esté en verde, según la autorización permanente del usuario para todo el
+ciclo.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (122): Bloque 10 — FC3, compensación de pérdidas y ganancias a cierre de año
 
 Séptima tarea del Bloque 10, encadenada tras A19-2. Depende de IV1 e IV2. Tarea de ampliación sin
