@@ -2,6 +2,49 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (128): Bloque 6 — OPT-14, corrección de estado sin código
+
+Al ir a implementar OPT-14 (fusionar los seis pares de pantallas gemelas) se encontró una
+contradicción entre dos documentos del propio repositorio, antes de escribir ninguna línea de
+código: `BACKLOG_OPTIMIZACION.md` (29 de agosto) la da por pendiente ("fusionar... y retirar la
+heredada como en OPT-13"), pero `BACKLOG.md` §3 registra una decisión directa del usuario, tomada
+el **10 de agosto**: *"En vez de quitar las pantallas fusionadas, pasarlas a una sección tipo
+Versiones anteriores"* — para no arriesgar perder una función que solo viviera en la heredada.
+
+**Comprobado contra el sitio real**, no solo contra el texto: los seis pares que cita OPT-14
+(`#conciliar`/`#reconciliation`, `#deuda-ruta`/`#debt-roadmap`, `#cuadro-mandos`/`#visual-detail`,
+`#registrar-mes`/`#update-data`, `#escenario-simular`/`#new-life-simulation`,
+`#asesor-decision`/`#executive-advisor`) llevan relegados fuera de la navegación principal desde el
+10-12 de agosto (V1-4, V2-8, V3-5, V4-6, V5-3), y `BACKLOG.md` §2 documenta, vista por vista, que el
+propio usuario confirmó en el sitio publicado que cada pantalla nueva cubre lo que se usaba de la
+heredada. El trabajo de riesgo real de OPT-14 —confirmar paridad de función antes de tocar nada— ya
+estaba hecho, casi tres semanas antes de que el documento del 29 de agosto la diera por pendiente.
+
+**Decisión, consultada con el usuario antes de tocar nada** (retirar una pantalla en uso, aunque sea
+una heredada ya relegada, entra en la categoría de "se consulta igualmente" de `CLAUDE.md`): no
+retirar el código de estos seis pares ahora, aunque la paridad ya esté confirmada — para no crear una
+excepción frente al resto de heredadas (OPT-10 a OPT-13), que esperan los datos reales de uso de
+OPT-2 precisamente para no decidir a ciegas. La retirada de código de estos seis se hace **junto
+con** OPT-11/OPT-12/OPT-13, bajo el mismo criterio de evidencia, cuando el gate de 30 días libere a
+finales de septiembre.
+
+**Corregido, sin cambio de código**: `BACKLOG_OPTIMIZACION.md` (tabla maestra y ficha de OPT-14,
+estado `⏳` → `🟡` con la omisión documentada) y `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (nota de OPT-14
+explicando que no es nivel 0 de verdad: la retirada de código depende de OPT-2 igual que
+OPT-11/12/13). El artefacto de seguimiento externo (`Backlog Ultimate Septiembre`) también se
+actualiza para reflejar esta corrección.
+
+**Consecuencia práctica para el orden de ejecución**: de las tres tareas que el Bloque 6 daba por
+libres tras A17-3 (OPT-14, OPT-16), solo **OPT-16** (migrar a ES modules) es genuinamente ejecutable
+ahora mismo sin ningún bloqueo real — es la única tarea de todo el backlog en ese estado hasta que
+el gate de OPT-2 libere a finales de septiembre.
+
+**Validación**: sin cambios de código; `npm test` no aplica (solo `.md`). No se ha tocado
+`app.js`/`index.html`/ningún `canonical-*.js`.
+
+**Publicado**: pendiente de commit/push a `claude/artifact-update-execution-plan-0cipqq`, PR en
+borrador y fusión en cuanto el CI esté en verde, según la autorización permanente del usuario.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (127): Bloque 6 — A17-3, captura por cámara (OCR de tickets/facturas)
 
 Retoma el Bloque 6 (los seis cimientos caros sin dependencias) tras dejarlo a medias el 2 de
