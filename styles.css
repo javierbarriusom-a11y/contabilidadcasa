@@ -8793,6 +8793,12 @@ tbody tr:hover {
   color: var(--green);
 }
 
+/* AP6: mismo ámbar que .commit-barrier-item.warning, para el aviso temprano de sostenibilidad de
+   deuda de apalancamiento (ni sostenible ni ya insostenible). */
+.warning {
+  color: #c98516;
+}
+
 .merchant-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

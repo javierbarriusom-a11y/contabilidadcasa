@@ -2471,6 +2471,18 @@
               <ul class="commit-barrier-list" id="ap3ScenarioList"></ul>
             </article>
 
+            <!-- AP6: alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada.
+                 Depende de AP3: la única deuda de apalancamiento que existe en la app es la que se
+                 exploró y guardó arriba. AP3 nunca guarda una posición real, así que este motor solo
+                 vigila los escenarios que el propio hogar ha marcado explícitamente como tomados con
+                 el botón "Marcar como tomada" de la lista de arriba — nunca una inferencia
+                 automática ni una deuda inventada. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Alerta: colchón frente a la deuda de apalancamiento tomada</h3>
+              <p class="e19-kpi-note">Cuando marques arriba un escenario explorado como tomado de verdad, esta alerta vigila si el colchón de emergencia actual sigue cubriendo su suelo mientras esa deuda sigue viva. No inventa ninguna deuda: solo mira los escenarios que tú mismo has marcado como tomados.</p>
+              <div class="e19-kpi-note" id="ap6SustainabilityAlert"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
               <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
@@ -5049,6 +5061,7 @@
     <script defer src="canonical-debt-comparator.js?v=20260715a"></script>
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
     <script defer src="canonical-leverage-simulator.js?v=20260902ap3a1"></script>
+    <script defer src="canonical-leverage-sustainability.js?v=20260903ap6a1"></script>
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>
     <script defer src="canonical-home-insurance.js?v=20260831sp3a1"></script>
@@ -5094,7 +5107,7 @@
     <script defer src="p2-domain.js?v=20260805e16a2"></script>
     <script defer src="p2-private-store.js?v=20260717a"></script>
     <script defer src="p2-export.js?v=20260829opt3a1"></script>
-    <script defer src="app.js?v=20260902ap3a1"></script>
+    <script defer src="app.js?v=20260903ap6a1"></script>
     <script defer src="p2-ui.js?v=20260902cp1a1"></script>
     <script>
       if ("serviceWorker" in navigator && location.protocol !== "file:") {
