@@ -89,6 +89,6 @@ test("buildSharePayload rechaza un tipo de vista desconocido — nunca comparte 
   assert.throws(() => Share.buildSharePayload("movimientos-completos", []), /desconocido/);
 });
 
-test("VIEW_TYPES solo declara las dos vistas del spec de A19-1", () => {
-  assert.deepEqual(Share.VIEW_TYPES, ["debt-plan", "forecast-6m"]);
+test("VIEW_TYPES declara las vistas del spec de A19-1 más la vista para hijos de MDX1", () => {
+  assert.deepEqual(Share.VIEW_TYPES, ["debt-plan", "forecast-6m", "kids-summary"]);
 });

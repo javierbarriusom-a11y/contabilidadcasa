@@ -1588,6 +1588,19 @@ function presupuestoMesStatusPill(alert) {
   return `<span class="e19-pill e19-pill-safe">En ritmo</span>`;
 }
 
+// PVX4: banda de normalidad por categoría en vivo — reutiliza tal cual budgetAnalysisForCategory()
+// (p25/p75 históricos, ya calculado para sugerir presupuesto) comparado contra la proyección de fin
+// de mes que ya calcula budgetProjection() (S-2), no contra el gasto parcial a día de hoy: comparar
+// un gasto a medio mes contra un p25-p75 de meses completos sería una comparación falsa. Sin al
+// menos 3 meses de historial (analyzeCategory ya lo exige), no hay banda que mostrar — nunca un
+// rango inventado sobre 1-2 meses.
+function pvx4NormalityBandLabel(analysis, projectedSpend) {
+  if (!analysis) return "";
+  if (projectedSpend < analysis.p25) return `por debajo de lo normal (histórico ${money(analysis.p25, true)}-${money(analysis.p75, true)})`;
+  if (projectedSpend > analysis.p75) return `por encima de lo normal (histórico ${money(analysis.p25, true)}-${money(analysis.p75, true)})`;
+  return `dentro de lo normal (histórico ${money(analysis.p25, true)}-${money(analysis.p75, true)})`;
+}
+
 function presupuestoMesRowHtml(budget, monthKey) {
   const alert = budgetAlertForRow(budget, monthKey);
   const projection = budgetProjection(alert, monthKey);
@@ -1596,6 +1609,7 @@ function presupuestoMesRowHtml(budget, monthKey) {
   const projectedClass = projection.diff > 0 ? "negative" : "positive";
   const sourceNote =
     budget.source === "suggested" ? ` <small class="note">sugerido</small>` : budget.source === "repeated" ? ` <small class="note">repetido</small>` : budget.source === "imported" ? ` <small class="note">importado</small>` : "";
+  const normalityBand = pvx4NormalityBandLabel(budgetAnalysisForCategory(budget.categoryId, monthKey), projection.projected);
   return `<tr class="${alert.status === "overspend" ? "is-danger" : ""}">
     <td class="t" data-label="Categoría">${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}${sourceNote}</td>
     <td data-label="Presupuesto"><input type="number" step="1" min="1" inputmode="decimal" data-presupuesto-mes-category="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-month="${escapeHtml(monthKey)}" aria-label="Presupuesto de ${escapeHtml(budgetRowDisplayLabel(budget.categoryId))}" value="${budget.amountCap}" /></td>
@@ -1605,7 +1619,7 @@ function presupuestoMesRowHtml(budget, monthKey) {
       <small>${pct}%</small>
     </td>
     <td data-label="Estado">${presupuestoMesStatusPill(alert)}</td>
-    <td class="${projectedClass}" data-label="Proyección fin de mes">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small></td>
+    <td class="${projectedClass}" data-label="Proyección fin de mes">${money(projection.projected, true)}<br><small class="note">${projection.diff > 0 ? `+${money(projection.diff, true)} sobre` : `${money(Math.abs(projection.diff), true)} margen`}</small>${normalityBand ? `<br><small class="note">${escapeHtml(normalityBand)}</small>` : ""}</td>
     <td><button type="button" class="registrar-actuals-plan-link" data-presupuesto-mes-remove="${escapeHtml(budget.categoryId)}" data-presupuesto-mes-remove-month="${escapeHtml(monthKey)}">Quitar</button></td>
   </tr>`;
 }

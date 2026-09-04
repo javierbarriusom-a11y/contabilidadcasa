@@ -207,7 +207,7 @@ const HEAVY_RENDER_VIEWS = new Set([
 // mientras tanto, así que la espera de red se ve exactamente igual que una espera de cómputo.
 const VIEW_CHUNKS = {
   "presupuesto-mes": { src: "views/presupuesto-mes.js?v=20260828d1", rootId: "presupuestoMesRoot" },
-  "estado-semana": { src: "views/estado-semana.js?v=20260827a1", rootId: "estadoSemanaRoot" },
+  "estado-semana": { src: "views/estado-semana.js?v=20260904a1", rootId: "estadoSemanaRoot" },
   "deuda-comparar": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-comparar" },
   "deuda-ruta": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-ruta" },
   "deuda-contratos": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-contratos" },
@@ -16670,7 +16670,19 @@ function renderA18SettlementCard() {
 // (owner_user_id), así que no se genera ninguno. El token en crudo solo existe en la URL que se
 // entrega al asesor externo; nunca se guarda (finance_share_links.token_hash guarda solo su hash,
 // mismo criterio que las invitaciones de hogar de E9-1).
-const A19_SHARE_VIEW_LABELS = { "debt-plan": "Plan de deuda", "forecast-6m": "Forecast a 6 meses" };
+const A19_SHARE_VIEW_LABELS = { "debt-plan": "Plan de deuda", "forecast-6m": "Forecast a 6 meses", "kids-summary": "Vista para hijos (colchón y patrimonio)" };
+
+// MDX1: fuente de las dos cifras de la vista para hijos — colchón (liquidez total de las cuentas
+// declaradas) y patrimonio neto (A14-2, ya calculado por lpNetWorthSnapshot para LPX1/LPX2). Sin
+// activos declarados, netWorth queda null explícito — nunca un cero inventado.
+function mdx1KidsSummarySource() {
+  const balances = accountBalancesFromState();
+  const netWorthSnapshot = lpNetWorthSnapshot();
+  return {
+    cushion: Number.isFinite(Number(balances?.total)) ? balances.total : null,
+    netWorth: netWorthSnapshot.calculable ? netWorthSnapshot.netWorth : null,
+  };
+}
 
 function a19ShareUrl(rawToken) {
   const basePath = location.pathname.replace(/index\.html$/, "");
@@ -16691,7 +16703,11 @@ async function saveA19ShareLink() {
     return;
   }
   const ttlDays = engine.normalizeTtlDays(parseAmount(qs("a19ShareTtlDays")?.value));
-  const sourceData = viewType === "debt-plan" ? canonicalDebtContractRows() : (canonicalScenarioResults.base?.forecast?.series || []);
+  const sourceData = viewType === "debt-plan"
+    ? canonicalDebtContractRows()
+    : viewType === "kids-summary"
+      ? mdx1KidsSummarySource()
+      : (canonicalScenarioResults.base?.forecast?.series || []);
   const payload = engine.buildSharePayload(viewType, sourceData);
   const rawToken = engine.generateShareToken();
   const tokenHash = await engine.hashToken(rawToken);
@@ -19189,6 +19205,21 @@ function pv4ConfidenceBandHtml(bands) {
   return `<div class="pv4-band-list">${cols}</div><p class="e19-kpi-note">${note}</p>`;
 }
 
+// ESX4: malla de dos supuestos cruzados — extiende la tarjeta de Sensibilidad (que varía un
+// supuesto cada vez) con una cuadrícula que varía ingresos y gastos a la vez, reutilizando
+// sensitivityGrid() (canonical-e13-scenarios.js, A8-6/A8-1). Cada celda es la caja mínima proyectada
+// bajo esa combinación — verde si sigue en positivo, rojo si cruzaría a negativo.
+function esx4SensitivityGridHtml(grid) {
+  if (!grid?.rows?.length) return "";
+  const header = `<tr><th></th>${grid.rows[0].cells.map((cell) => `<th>Gastos ${cell.expenseDeltaPct > 0 ? "+" : ""}${cell.expenseDeltaPct}%</th>`).join("")}</tr>`;
+  const rows = grid.rows
+    .map((row) => `<tr><th>Ingresos ${row.incomeDeltaPct > 0 ? "+" : ""}${row.incomeDeltaPct}%</th>${row.cells
+      .map((cell) => `<td class="${cell.minChecking < 0 ? "negative" : "positive"}">${money(cell.minChecking, true)}</td>`)
+      .join("")}</tr>`)
+    .join("");
+  return `<div class="table-wrap"><table class="e19-table esx4-sensitivity-grid"><thead>${header}</thead><tbody>${rows}</tbody></table></div><p class="e19-kpi-note">Caja mínima proyectada del horizonte completo bajo cada combinación de ingresos y gastos a la vez (caso base ${money(grid.baselineMinChecking, true)}).</p>`;
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -19232,12 +19263,14 @@ function renderE13ScenarioLab() {
   const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
+  const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
     <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
     <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
+    <article class="e6-quality-card esx4-sensitivity-grid-card"><header><strong>ESX4 · malla de ingresos × gastos</strong><span class="status-pill">${sensitivityGrid.rows.length}×${sensitivityGrid.rows.length}</span></header>${esx4SensitivityGridHtml(sensitivityGrid)}</article>
     <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>
     <article class="e6-quality-card"><header><strong>Patrimonio simulado (A14-5)</strong><span class="status-pill ${lab.assetImpact ? (lab.assetImpact.delta < 0 ? "warn" : "good") : ""}">${lab.assetImpact ? money(lab.assetImpact.delta, true) : "Sin eventos de patrimonio"}</span></header>${e13AssetImpactHtml(lab.assetImpact)}</article>
   </div>`;

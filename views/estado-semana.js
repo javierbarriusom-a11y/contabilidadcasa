@@ -113,8 +113,60 @@ function estadoSemanaGoalDeadlinesHtml() {
   </article>`;
 }
 
+// CPX1: resumen semanal proactivo — añade la próxima mejor acción de CP1 como cabecera de "Estado
+// de la semana", antes de las tres lecturas pasivas de arriba. Misma selección que ya usa
+// cp1NextBestAction() en p2-ui.js (mismo catálogo de fuentes E9 y el mismo validador de citas CP3):
+// se repite aquí, no se reimporta, porque p2-ui.js encierra esa función en su propio cierre y este
+// script vive en el scope global de app.js — mismo criterio de pequeñas funciones compartidas entre
+// módulos independientes que ya usan los motores canónicos (DI5). Nunca decide nada por el hogar,
+// solo prioriza qué mirar primero.
+const CPX1_SEVERITY_RANK = { critical: 0, high: 1, medium: 2 };
+const CPX1_ALERT_LABELS = { cash: "Revisar la caja prevista", variation: "Revisar la variación prevista", debt: "Revisar el ratio de deuda" };
+
+function cpx1WeeklyPriorityAction(alerts) {
+  const assistantApi = window.FinanceCanonicalE9Assistant;
+  const citationApi = window.FinanceCanonicalRecommendationCitation;
+  if (!assistantApi || !citationApi || !alerts.length) return null;
+  const sources = assistantApi.sourceCatalog({ alerts: alerts.map((item) => ({ id: item.id, label: item.message })) });
+  const availableSources = new Set(sources.map((item) => item.id));
+  const candidates = [...alerts]
+    .sort((a, b) => (CPX1_SEVERITY_RANK[a.severity] ?? 3) - (CPX1_SEVERITY_RANK[b.severity] ?? 3))
+    .map((alert) => ({
+      label: CPX1_ALERT_LABELS[alert.type] || "Revisar la evidencia",
+      message: alert.message,
+      severity: alert.severity,
+      citations: [`alert:${alert.id}`],
+      evidence: Array.isArray(alert.evidence) ? alert.evidence : [],
+      confidence: alert.confidence || "",
+    }));
+  const validated = citationApi.validateRecommendations(candidates, { availableSources });
+  const index = validated.results.findIndex((result) => result.valid);
+  return index === -1 ? null : candidates[index];
+}
+
+function cpx1WeeklyPriorityHtml(alerts) {
+  if (alerts === null) return `<p class="e19-subtitle">El seguimiento predictivo de caja (E16) no está disponible todavía.</p>`;
+  const action = cpx1WeeklyPriorityAction(alerts);
+  if (!action) return `<p class="e19-subtitle">Sin ninguna alerta que priorizar esta semana.</p>`;
+  const evidenceItems = (action.evidence || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const confidenceItem = action.confidence ? `<li>Confianza del dato: ${escapeHtml(action.confidence)}</li>` : "";
+  return `<p><strong>${escapeHtml(action.label)}</strong></p><p>${escapeHtml(action.message)}</p><details class="p2-details"><summary>Ver por qué</summary><ul class="e19-kpi-note">${evidenceItems}${confidenceItem}<li>Cita: ${escapeHtml(action.citations.join(", "))}</li></ul></details>`;
+}
+
+function estadoSemanaPriorityHtml() {
+  return `<article class="e19-card registrar-mes-card">
+    <div class="registrar-mes-card-head plan-mes-budget-head">
+      <div>
+        <h3 class="escenario-motor-panel-title">Empieza por aquí esta semana</h3>
+        <p class="e19-subtitle">La alerta más urgente con evidencia citable (CP1), antes de las tres lecturas de abajo.</p>
+      </div>
+    </div>
+    ${cpx1WeeklyPriorityHtml(estadoSemanaCashAlerts())}
+  </article>`;
+}
+
 function renderEstadoSemana() {
   const root = qs("estadoSemanaRoot");
   if (!root) return;
-  root.innerHTML = `${estadoSemanaCashAlertsHtml()}${estadoSemanaBudgetRhythmHtml()}${estadoSemanaGoalDeadlinesHtml()}`;
+  root.innerHTML = `${estadoSemanaPriorityHtml()}${estadoSemanaCashAlertsHtml()}${estadoSemanaBudgetRhythmHtml()}${estadoSemanaGoalDeadlinesHtml()}`;
 }

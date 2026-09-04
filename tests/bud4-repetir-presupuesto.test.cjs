@@ -159,15 +159,20 @@ function rowSandbox({ alert, projection }) {
   const context = {
     budgetAlertForRow: () => alert,
     budgetProjection: () => projection,
+    // PVX4 (misma oleada): banda de normalidad — sin análisis histórico mockeado aquí, no debe
+    // añadir nada a la fila (comportamiento ya cubierto en tests/pvx4-banda-normalidad-categoria).
+    budgetAnalysisForCategory: () => null,
     budgetRowDisplayLabel: (id) => id,
     money: (v) => `€${v}`,
     escapeHtml: (value) =>
       String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"),
   };
   vm.createContext(context);
-  vm.runInContext([extractFunction("presupuestoMesStatusPill"), extractFunction("presupuestoMesRowHtml")].join("\n"), context, {
-    filename: "views/presupuesto-mes.js#bud4-row",
-  });
+  vm.runInContext(
+    [extractFunction("pvx4NormalityBandLabel"), extractFunction("presupuestoMesStatusPill"), extractFunction("presupuestoMesRowHtml")].join("\n"),
+    context,
+    { filename: "views/presupuesto-mes.js#bud4-row" },
+  );
   return context;
 }
 

@@ -211,6 +211,27 @@
     return { schemaId: `${SCHEMA_ID}/sensitivity-v1`, baselineMinChecking: baseline, dominantFactors: variations.slice(0, 3) };
   }
 
+  // ESX4: malla de dos supuestos cruzados. sensitivity() ya varía ingresos/gastos/eventos uno a la
+  // vez (one-at-a-time); esta malla varía ingresos Y gastos a la vez sobre una cuadrícula de pasos
+  // simétricos alrededor del caso base — reutiliza tal cual simulate() (A8-1), sin motor nuevo. Cinco
+  // pasos por eje (±10% en incrementos de 5% con el paso por defecto) para que la malla se lea de un
+  // vistazo, no un mapa de calor de precisión artificial.
+  const GRID_STEPS = Object.freeze([-2, -1, 0, 1, 2]);
+
+  function sensitivityGrid(forecast = {}, events = [], options = {}) {
+    const step = Math.abs(number(options.step) || 0.05);
+    const baseline = simulate(forecast, PROFILES[0], events).metrics.minChecking;
+    const rows = GRID_STEPS.map((incomeStep) => ({
+      incomeDeltaPct: round(incomeStep * step * 100),
+      cells: GRID_STEPS.map((expenseStep) => {
+        const profile = { ...PROFILES[0], incomeFactor: 1 + incomeStep * step, expenseFactor: 1 + expenseStep * step };
+        const minChecking = simulate(forecast, profile, events).metrics.minChecking;
+        return { expenseDeltaPct: round(expenseStep * step * 100), minChecking: round(minChecking), impact: round(minChecking - baseline) };
+      }),
+    }));
+    return { schemaId: `${SCHEMA_ID}/sensitivity-grid-v1`, step, baselineMinChecking: round(baseline), rows };
+  }
+
   function saveScenario(forecast = {}, events = [], metadata = {}) {
     const lab = buildLab(forecast, events, metadata);
     return { schemaId: SAVED_SCHEMA_ID, id: text(metadata.id || `scenario-${Date.now()}`), name: text(metadata.name || "Escenario guardado"),
@@ -225,5 +246,5 @@
       overwroteOriginal: false };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, saveScenario, recalculateSavedScenario };
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, saveScenario, recalculateSavedScenario };
 });
