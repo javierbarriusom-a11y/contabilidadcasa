@@ -5,7 +5,9 @@ const fs = require("node:fs");
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 
 test("AP2: handleAp1Compare también calcula el punto de equilibrio con el mismo TIN/horizonte", () => {
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 1300);
+  // DLX1 añadió el cálculo del guardarraíl de colchón entre el punto de equilibrio y el pintado del
+  // resultado — la ventana crece de 1300 a 1800, la comprobación sigue siendo la misma.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 1800);
   assert.match(block, /debtComparator\.breakEvenInvestmentRatePct\(debtAnnualRatePct, months\)/);
   assert.match(block, /ap1ResultHtml\(result, investmentAnnualReturnPct, breakEven\)/);
 });

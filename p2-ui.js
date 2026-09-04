@@ -170,10 +170,24 @@
     return index === -1 ? null : candidates[index];
   }
 
-  function cp1NextBestActionHtml(action) {
+  // CPX3: transparencia de recomendaciones ignoradas — el registro (firstShownAt/lastShownAt/
+  // dismissedAt) se guarda en app.js (scenarioSettings, vía window.FinanceP2Bridge, este módulo no
+  // tiene acceso directo a esas variables); aquí solo se decide cuándo y cómo avisar de que una
+  // recomendación lleva abierta varios días sin resolverse, con un botón para descartarla a
+  // propósito. No cambia en nada qué recomienda CP1 — cp1NextBestAction sigue igual.
+  const CPX3_IGNORED_DAYS_THRESHOLD = 3;
+
+  function cpx3IgnoredNoteHtml(entry) {
+    if (!entry) return "";
+    const days = Math.floor((Date.now() - new Date(entry.firstShownAt).getTime()) / 86400000);
+    if (days < CPX3_IGNORED_DAYS_THRESHOLD) return "";
+    return `<p class="p2-help">Llevas ${days} día(s) viendo este aviso sin resolverlo. <button type="button" class="p2-button secondary" data-cpx3-dismiss="${esc(entry.signature)}">Descartar</button></p>`;
+  }
+
+  function cp1NextBestActionHtml(action, trackedEntry) {
     if (!action) return '<p class="p2-help">No hay ninguna alerta con evidencia citable ahora mismo.</p>';
     const tone = action.severity === "critical" ? " danger" : action.severity === "high" ? " warn" : "";
-    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(action.label)}</strong><span class="p2-status${tone}">${esc(action.severity)}</span></div><p>${esc(action.message)}</p><p class="p2-help">Cita: ${esc(action.citations.join(", "))}.</p></article>`;
+    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(action.label)}</strong><span class="p2-status${tone}">${esc(action.severity)}</span></div><p>${esc(action.message)}</p><p class="p2-help">Cita: ${esc(action.citations.join(", "))}.</p>${cpx3IgnoredNoteHtml(trackedEntry)}</article>`;
   }
 
   // HD-4 (spin-off Ajustes/Hoy, 3-sep-2026): con el horizonte ya acotado (HD-1) el listado de
@@ -281,9 +295,10 @@
     const alerts = model.alerts.alerts;
     const changes = [...model.changes.movements.map((item) => `${item.label}: ${euro(item.amount)}`), ...model.changes.deviations.map((item) => `${item.label}: ${euro(item.delta)}`), ...model.changes.assumptions.map((item) => item.label), ...model.changes.goals.map((item) => item.label)];
     const nextBestAction = cp1NextBestAction(model);
+    const cpx3Entry = bridge()?.trackRecommendation?.(nextBestAction) || null;
     const idleCashSignal = cp2IdleCashSignal();
     target.querySelector("[data-p2-body]").innerHTML = `
-      <section class="p2-list"><h4>Próxima mejor acción (CP1)</h4>${cp1NextBestActionHtml(nextBestAction)}</section>
+      <section class="p2-list"><h4>Próxima mejor acción (CP1)</h4>${cp1NextBestActionHtml(nextBestAction, cpx3Entry)}</section>
       <section class="p2-list"><h4>Dinero parado (CP2)</h4>${cp2IdleCashHtml(idleCashSignal)}</section>
       <section class="p2-list"><h4>Escalera de vencimientos (TT2)</h4>${tt2MaturityLadderHtml()}</section>
       <form class="p2-form p2-grid three" data-e16-budget-form>
@@ -312,6 +327,12 @@
     });
     target.querySelectorAll("[data-e16-collapse]").forEach((button) => {
       button.addEventListener("click", () => { e16Expanded[button.dataset.e16Collapse] = false; renderE16Monitoring(); });
+    });
+    target.querySelectorAll("[data-cpx3-dismiss]").forEach((button) => {
+      button.addEventListener("click", () => {
+        bridge()?.dismissRecommendation?.(button.dataset.cpx3Dismiss);
+        renderE16Monitoring();
+      });
     });
   }
 

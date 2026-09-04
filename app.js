@@ -12981,6 +12981,53 @@ function tt2MaturityLadderSummary() {
   return { idleAmount: idle.idleAmount, floor: idle.floor, accountSplit, ladder };
 }
 
+// CPX3: transparencia de recomendaciones ignoradas. CP1 (p2-ui.js, cp1NextBestAction) es efímera —
+// se recalcula en cada render, sin guardar nunca cuánto lleva mostrándose la misma recomendación ni
+// si el hogar la ha descartado a propósito. Este registro no cambia en nada qué recomienda CP1: solo
+// hace visible cuánto lleva abierta, para que "ignorarla" sea una decisión consciente, no un olvido.
+// Guardado en scenarioSettings, mismo patrón de "hecho declarado" que A5-3/A14-3 — un descartar es
+// siempre del hogar, nunca automático. Expuesto en window.FinanceP2Bridge para que p2-ui.js (un
+// módulo separado, sin acceso directo a las variables de app.js) pueda llamarlo.
+function cpx3RecommendationLog() {
+  return Array.isArray(scenarioSettings.cpx3RecommendationLog) ? scenarioSettings.cpx3RecommendationLog : [];
+}
+
+function cpx3SignatureFor(action) {
+  return (action?.citations || []).join("|") || String(action?.label || "");
+}
+
+// Se llama en cada render de CP1 con la recomendación actual (o null si no hay ninguna). Una
+// recomendación nueva (concepto/cita distinta) abre una entrada nueva; la misma recomendación
+// seguida solo actualiza `lastShownAt`, para saber desde cuándo lleva abierta sin resolverse.
+function cpx3TrackRecommendation(action) {
+  if (!action) return null;
+  const signature = cpx3SignatureFor(action);
+  if (!signature) return null;
+  const now = new Date().toISOString();
+  const log = cpx3RecommendationLog();
+  const existing = log.find((entry) => entry.signature === signature && !entry.dismissedAt);
+  if (existing) {
+    existing.lastShownAt = now;
+    existing.label = action.label;
+    existing.severity = action.severity;
+  } else {
+    log.push({ signature, label: action.label, severity: action.severity, firstShownAt: now, lastShownAt: now, dismissedAt: null });
+  }
+  scenarioSettings.cpx3RecommendationLog = log;
+  saveScenarioSettings();
+  return existing || log[log.length - 1];
+}
+
+function cpx3DismissRecommendation(signature) {
+  const log = cpx3RecommendationLog();
+  const entry = log.find((item) => item.signature === signature && !item.dismissedAt);
+  if (!entry) return null;
+  entry.dismissedAt = new Date().toISOString();
+  scenarioSettings.cpx3RecommendationLog = log;
+  saveScenarioSettings();
+  return entry;
+}
+
 function partidasSimuladorOpportunityCostFor(decision, month, baseInput) {
   const engine = window.FinanceCanonicalPortfolio;
   if (!engine || !decision || decision.tipo !== "compra" || decision.params?.financiacion) return null;
@@ -15992,6 +16039,22 @@ function ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) {
   return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} mes(es): te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>${breakEvenLine}`;
 }
 
+// DLX1: guardarraíl de colchón antes de amortizar — mismo suelo (cushionFloor) y misma composición
+// de reserva (cuadroMandosReserve) que ya usa AP6 para la deuda de apalancamiento tomada, aplicado
+// aquí al importe que se va a amortizar en el comparador. Se ve siempre que el importe sea válido,
+// antes de la lectura amortizar/invertir — para que el estado del colchón se vea antes de decidir
+// con ese resultado, no después. Nunca bloquea el cálculo: solo informa.
+const DLX1_STATUS_CLASS = { insostenible: "negative", ajustado: "warning", sostenible: "positive" };
+
+function dlx1GuardrailHtml(result) {
+  const headline = {
+    sostenible: `Colchón a salvo: tras amortizar quedarían ${money(result.remaining, true)}, por encima del suelo (${money(result.floor, true)}).`,
+    ajustado: `Aviso: tras amortizar quedarían ${money(result.remaining, true)}, por encima del suelo (${money(result.floor, true)}) pero con poco margen.`,
+    insostenible: `Alerta: amortizar ${money(result.amount, true)} dejaría el colchón en ${money(result.remaining, true)}, por debajo del suelo (${money(result.floor, true)}). Diferencia: ${money(result.shortfall, true)}.`,
+  }[result.status];
+  return `<p class="${DLX1_STATUS_CLASS[result.status]}"><strong>Guardarraíl de colchón</strong> — ${headline}</p>`;
+}
+
 // AP2: punto de equilibrio entre el TIN de la deuda y la rentabilidad de inversión esperada.
 // Depende de IV2 y reutiliza el mismo TIN/horizonte que AP1 ya pide — el importe se cancela en la
 // ecuación, así que no hace falta un formulario aparte. Compara ese punto de equilibrio contra la
@@ -16031,7 +16094,15 @@ function handleAp1Compare() {
     investmentResult,
   });
   const breakEven = debtComparator.breakEvenInvestmentRatePct(debtAnnualRatePct, months);
-  note.innerHTML = ap1ResultHtml(result, investmentAnnualReturnPct, breakEven);
+  const cushionEngine = window.FinanceCanonicalCushion;
+  const guardrail = cushionEngine && Number.isFinite(amount) && amount > 0
+    ? cushionEngine.amortizeCushionGuardrail({
+      amount,
+      liquidity: accountBalancesFromState().total,
+      floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+    })
+    : null;
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven);
 }
 
 // AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3 (escenarios de
@@ -16767,6 +16838,40 @@ function renderA14AssetBreakdown() {
     ? `<p class="negative">${unknownCount} activo(s) sin procedencia declarada — su valor no se estima, se marca desconocido.</p>`
     : "";
   note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}. Deuda pendiente: ${money(debt, true)}. <strong>Patrimonio neto: ${money(netWorthAfterDebt, true)}</strong>.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
+  renderIvx8HousingExposure();
+}
+
+// IVX8: sobreexposición cruzada vivienda-inversión — el valor de la vivienda (A14, tipo "inmueble")
+// frente al total de la cartera de inversión (IV4, scenarioSettings.portfolioPositions). Ninguno de
+// los dos avisa hoy de esta pareja concreta: A14-4 avisa de concentración por tipo dentro del
+// patrimonio neto completo (seis tipos a la vez), IV4 avisa de concentración dentro de la cartera
+// (solo entre posiciones). Mismo umbral del 50% que los dos — ni "casi igual" ni ruido por una
+// diferencia pequeña. Se recalcula desde renderA14AssetBreakdown() y renderIv1PositionConcentration()
+// para no depender de en cuál de los dos cambió el dato.
+function ivx8HousingExposure() {
+  const assetsEngine = window.FinanceCanonicalAssets;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!assetsEngine || !portfolioEngine) return null;
+  const housingValue = assetsEngine.normalizeAssets(assetsList()).summary.totalsByType.inmueble || 0;
+  const portfolioValue = portfolioEngine.normalizePositions(iv1PositionsList()).summary.totalValue || 0;
+  const combined = round2(housingValue + portfolioValue);
+  if (combined <= 0) return null;
+  const housingPct = Math.round((housingValue / combined) * 100);
+  const dominant = housingPct > 50 ? "vivienda" : housingPct < 50 ? "cartera" : null;
+  return { housingValue: round2(housingValue), portfolioValue: round2(portfolioValue), combined, housingPct, portfolioPct: 100 - housingPct, dominant };
+}
+
+function renderIvx8HousingExposure() {
+  const note = qs("ivx8HousingExposure");
+  if (!note) return;
+  const result = ivx8HousingExposure();
+  if (!result || !result.dominant) {
+    note.innerHTML = "";
+    return;
+  }
+  const dominantLabel = result.dominant === "vivienda" ? "la vivienda" : "la cartera de inversión";
+  const dominantPct = result.dominant === "vivienda" ? result.housingPct : result.portfolioPct;
+  note.innerHTML = `<p class="warning">Sobreexposición cruzada: ${dominantLabel} concentra el ${dominantPct}% del conjunto vivienda + cartera de inversión (${money(result.housingValue, true)} vivienda, ${money(result.portfolioValue, true)} cartera).</p>`;
 }
 
 const IV1_POSITION_TYPE_LABELS = { fondo: "Fondo", accion: "Acción", etf: "ETF", cripto: "Cripto", otro: "Otro" };
@@ -17182,6 +17287,7 @@ function renderIv1PositionConcentration() {
   const rows = iv1PositionsList();
   if (!engine || !rows.length) {
     note.innerHTML = "";
+    renderIvx8HousingExposure();
     return;
   }
   const result = engine.normalizePositions(rows);
@@ -17200,6 +17306,7 @@ function renderIv1PositionConcentration() {
     ? `<p class="negative">«${escapeHtml(topPosition.label)}» concentra el ${topPct}% de la cartera — sobreexposición a una sola posición.</p>`
     : "";
   note.innerHTML = `<ul class="e19-kpi-note">${byType.join("")}</ul>${topWarning}`;
+  renderIvx8HousingExposure();
 }
 
 const IV6_TARGET_FIELDS = { fondo: "iv6TargetFondo", accion: "iv6TargetAccion", etf: "iv6TargetEtf", cripto: "iv6TargetCripto", otro: "iv6TargetOtro" };
@@ -26968,6 +27075,8 @@ window.FinanceP2Bridge = {
   alerts: evaluatedUxAlerts,
   idleCash: cp2IdleCashSummary,
   maturityLadder: tt2MaturityLadderSummary,
+  trackRecommendation: cpx3TrackRecommendation,
+  dismissRecommendation: cpx3DismissRecommendation,
   exportModel: p2ExportModel,
   privateCloudAvailable: () => Boolean(supabaseClient && remoteUser),
   uploadPrivateAttachment: async (id, blob) => {

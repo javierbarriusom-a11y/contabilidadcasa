@@ -79,6 +79,12 @@ día (sesión 137). Tercera oleada (DEX2, la última que no dependía de infraes
 también el mismo día (sesión 138). Del Bloque 1 solo queda `DEX6`, condicionada a que `A5-1` esté
 activo en producción — no se puede empezar todavía.
 
+Primera oleada del Bloque 2 (DLX1, IVX8, CPX3 — tres de las cuatro tareas de esfuerzo S) cerrada el
+4 de septiembre de 2026 (sesión 139 de `PROJECT_STATE.md`, detalle completo ahí); marcadas ✅ en la
+tabla de abajo. `RGX2`, la cuarta, queda marcada ⚠️ y sin construir: desajuste de alcance detectado
+(ver su fila), pendiente de decisión con el usuario. El resto del Bloque 2 (8 tareas de esfuerzo
+S-M) y los Bloques 3-6 siguen sin empezar.
+
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
 ### Bloque 1 — Entrada de datos, priorizado completo por decisión explícita (11 tareas, nivel 0)
@@ -101,10 +107,10 @@ activo en producción — no se puede empezar todavía.
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 12 | DLX1 | Guardarraíl de colchón antes de amortizar | Deuda-liquidez | S | Crítico | Extiende `cushionFloor()`/`cushionFloorDrift()` (`canonical-cushion.js`, `TT5`) y `AP1` |
-| 13 | IVX8 | Sobreexposición cruzada vivienda-inversión | Inversión 2 | S | Medio | Extiende `IV4` y `A14-4` |
-| 14 | RGX2 | Alerta de concentración de conocimiento | Continuidad e IA | S | Medio | Depende de `A5-3`; misma lógica que `A14-4` aplicada al conocimiento, no al dinero |
-| 15 | CPX3 | Transparencia de recomendaciones ignoradas | Copiloto 2 | S | Medio | Depende de `CP1` y `A11-4` |
+| 12 | ✅ DLX1 | Guardarraíl de colchón antes de amortizar | Deuda-liquidez | S | Crítico | Hecho — `amortizeCushionGuardrail()` en `canonical-cushion.js` (mismo patrón tri-estado que `AP6`), pintado antes del resultado de `AP1` |
+| 13 | ✅ IVX8 | Sobreexposición cruzada vivienda-inversión | Inversión 2 | S | Medio | Hecho — `ivx8HousingExposure()`, aviso en Cartera (`A14-4`) y en Concentración (`IV1`) |
+| 14 | ⚠️ RGX2 | Alerta de concentración de conocimiento | Continuidad e IA | S | Medio | **No construida — desajuste de alcance detectado**: `A5-3` (`canonical-e9-household.js`) está marcado «Implementado» en `BACKLOG_STATUS.md` pero es un motor aislado sin ningún consumidor de UI; construir RGX2 tal como está descrita exigiría antes levantar de cero toda la pantalla de miembros del hogar, muy por encima de esfuerzo S. Pendiente de decidir con el usuario. |
+| 15 | ✅ CPX3 | Transparencia de recomendaciones ignoradas | Copiloto 2 | S | Medio | Hecho — registro `cpx3RecommendationLog` (vía `window.FinanceP2Bridge`), aviso a partir de 3 días y botón de descartar en la tarjeta de `CP1` |
 | 16 | APX5 | Coste total de refinanciar, no solo el tipo | Apalancamiento 2 | S-M | Alto | Depende de `DI1`; punto de equilibrio en meses entre ahorro de tipo y coste de cancelación |
 | 17 | APX6 | Amortizar: reducir cuota vs. reducir plazo | Apalancamiento 2 | S-M | Alto | Extiende `compareAmortizeVsInvest()` (`canonical-debt-comparator.js`, `AP1`) y `A9-3` |
 | 18 | LPX3 | Checklist de continuidad ante fallecimiento o incapacidad | Patrimonio y vida | S-M | Alto | Depende de `A14-1` y `SP1` |

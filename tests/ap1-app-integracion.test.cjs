@@ -50,3 +50,30 @@ test("AP1: ap1DebtOptionsHtml solo lista deudas con principal pendiente", () => 
   const block = appSource.slice(appSource.indexOf("function ap1DebtOptionsHtml("), appSource.indexOf("function ap1DebtOptionsHtml(") + 400);
   assert.match(block, /debt\.currentPrincipal > 0/);
 });
+
+// ---------------------------------------------------------------------------------------------
+// DLX1 (Oleada 2, Bloque 2) · guardarraíl de colchón antes de amortizar — se ve siempre que el
+// importe de AP1 sea válido, calculado con el mismo suelo/reserva que ya usa AP6.
+// ---------------------------------------------------------------------------------------------
+
+test("DLX1: handleAp1Compare calcula el guardarraíl con el mismo suelo y reserva que AP6, solo con importe válido", () => {
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 1600);
+  assert.match(block, /window\.FinanceCanonicalCushion/);
+  assert.match(block, /Number\.isFinite\(amount\) && amount > 0/);
+  assert.match(block, /cushionEngine\.amortizeCushionGuardrail\(/);
+  assert.match(block, /liquidity: accountBalancesFromState\(\)\.total/);
+  assert.match(block, /cushionEngine\.cushionFloor\(lastSimulation, cuadroMandosReserve\(\)\)\.value/);
+});
+
+test("DLX1: el guardarraíl se antepone a la lectura amortizar/invertir, no la sustituye", () => {
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 1600);
+  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ ap1ResultHtml\(/);
+});
+
+test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del estado", () => {
+  const block = appSource.slice(appSource.indexOf("function dlx1GuardrailHtml("), appSource.indexOf("function dlx1GuardrailHtml(") + 900);
+  assert.match(block, /sostenible/);
+  assert.match(block, /ajustado/);
+  assert.match(block, /insostenible/);
+  assert.doesNotMatch(block, /bloque|deshabilita|impide/i);
+});

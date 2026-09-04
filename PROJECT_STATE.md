@@ -1,6 +1,75 @@
 # Estado del proyecto
 
-Fecha de revisión: 3 de septiembre de 2026.
+Fecha de revisión: 4 de septiembre de 2026.
+
+## Cierre de sesión — 4 de septiembre de 2026 (139): primera oleada del Bloque 2 — DLX1, IVX8, CPX3
+
+Continuación directa de la sesión 138 (pedido explícito del usuario: «seguimos con el bloque 2»),
+las tres primeras tareas de esfuerzo S del Bloque 2 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` que
+sí eran construibles tal como están descritas. La cuarta, `RGX2`, se investigó y **no** se construyó
+— ver el aviso al final de este cierre.
+
+- **DLX1 — guardarraíl de colchón antes de amortizar**: `AP1` (comparador amortizar vs. invertir) no
+  avisaba si amortizar dejaba el líquido por debajo del colchón operativo. Se añadió
+  `amortizeCushionGuardrail({amount, liquidity, floor})` en `canonical-cushion.js`, reutilizando
+  **el mismo patrón tri-estado que ya usa `AP6`** (`sostenible`/`ajustado`/`insostenible`, con el
+  mismo margen de aviso temprano del 20 %) en vez de inventar una escala nueva. `handleAp1Compare()`
+  calcula el guardarraíl con el colchón real (`cushionFloor()` + `cuadroMandosReserve()`) y lo pinta
+  **antes** del resultado del comparador, no lo sustituye — la decisión de amortizar sigue siendo del
+  usuario, esto solo hace visible el coste en colchón.
+- **IVX8 — sobreexposición cruzada vivienda-inversión**: ni `A14-4` (patrimonio) ni `IV1`
+  (concentración de cartera) cruzaban vivienda contra inversión — cada uno mide su propio universo.
+  `ivx8HousingExposure()` calcula el peso de la vivienda sobre patrimonio total y avisa cuando
+  domina la asignación; `renderIvx8HousingExposure()` se llama desde **ambas** pantallas
+  (`renderA14AssetBreakdown` e `renderIv1PositionConcentration`, en sus dos ramas) para que el aviso
+  aparezca donde el usuario ya está mirando, sin crear una tercera pantalla.
+- **CPX3 — transparencia de recomendaciones ignoradas**: `CP1` (próxima mejor acción) es efímera —
+  se recalcula en cada render sin guardar cuánto lleva mostrándose la misma recomendación, así que
+  ignorarla nunca se notaba. Se añadió `cpx3RecommendationLog` (`scenarioSettings`, persistencia
+  gratis al ser un blob único) con `cpx3TrackRecommendation()`/`cpx3DismissRecommendation()` en
+  `app.js`, expuestas a `p2-ui.js` vía **el puente explícito `window.FinanceP2Bridge`** (el único
+  camino entre los dos módulos, ya usado por `idleCash`/`maturityLadder`) — nunca acceso directo
+  entre ficheros con alcance propio. A partir de 3 días mostrando la misma recomendación
+  (`CPX3_IGNORED_DAYS_THRESHOLD`), la tarjeta de `CP1` añade el aviso y un botón de descartar; si la
+  misma alerta reaparece tras descartarse, abre una entrada nueva en vez de reutilizar la
+  descartada, para que quede constancia de que se ignoró una vez.
+
+**Hallazgo — `RGX2` no se construyó, desajuste de alcance**: el backlog describe RGX2 como «misma
+lógica que `A14-4` aplicada al conocimiento, no al dinero», dependiente de `A5-3`
+(`canonical-e9-household.js`). La investigación confirmó que `A5-3` está marcado «Implementado» en
+`BACKLOG_STATUS.md`, pero es un motor completamente aislado — sin un solo consumidor de UI, solo sus
+propios tests. Construir RGX2 tal como está descrita no es extender una pantalla existente (como
+`IVX8` sobre `A14-4`/`IV1`): exigiría levantar de cero toda una pantalla de miembros del hogar antes
+de poder mostrar ninguna alerta sobre ella — muy por encima de esfuerzo S, y un patrón ya visto antes
+(`DEX10` tenía un gap parecido, mucho menor, con el backlog desactualizado respecto al código real).
+Se marca ⚠️ en el backlog en vez de ✅ o de omitirse en silencio; queda pendiente de decidir con el
+usuario si se reclasifica como tarea M/L propia, se construye igualmente en esta oleada ampliando el
+alcance, o se pospone.
+
+**Validación**: `npm run verify`, exit 0 — **3041/3041 pruebas** (2990 + 14 de la sesión 138 ya
+contadas + nuevas de esta sesión: ~8 en `tests/canonical-cushion.test.cjs`, 3 en
+`tests/ap1-app-integracion.test.cjs`, 12 en `tests/ivx8-sobreexposicion-vivienda-cartera.test.cjs`
+—nuevo—, ~9 en `tests/cp1-proxima-mejor-accion.test.cjs`, 8 en
+`tests/cpx3-transparencia-recomendaciones.test.cjs` —nuevo—), accesibilidad, rendimiento,
+`build:site`, privacidad y humo en verde. Se corrigió además una ventana de regex fija en
+`tests/ap2-app-integracion.test.cjs` (de 1300 a 1800 caracteres) que el alargamiento de
+`handleAp1Compare()` por DLX1 había dejado corta — mismo patrón de fragilidad ya documentado en
+sesiones anteriores, nunca se acorta el código para encajar en la ventana, se ensancha la ventana.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 2, filas de `DLX1`, `IVX8`
+y `CPX3` marcadas ✅ Hecho; fila de `RGX2` marcada ⚠️ con el hallazgo de alcance. Quedan 8 tareas de
+esfuerzo S-M del Bloque 2 (APX5, APX6, LPX3, RGX1, RGX4, IVX7, MDX2) más `RGX2` pendiente de
+decisión, y los Bloques 3-6 completos (36 tareas) sin empezar.
+
+**Nota sobre la rama de trabajo**: al reanudar esta sesión, `claude/session-eilejl` había vuelto a
+divergir de `main` — el mismo patrón de sesiones anteriores (el PR de DEX2, #235, ya se había
+fusionado por squash). Se aplicó el procedimiento ya establecido: `git stash` de los cambios en
+curso (Bloque 2, aún sin comitear), `git checkout -B claude/session-eilejl origin/main` para
+reiniciar la rama desde la última `main` (confirmando antes que el diff entre la punta antigua y
+`origin/main` era vacío, es decir contenido idéntico tras el squash), y `git stash pop` para
+recuperar el trabajo en curso sobre la base limpia.
+
+**Pendiente de publicar**: rama `claude/session-eilejl`, PR por abrir tras este commit.
 
 ## Cierre de sesión — 3 de septiembre de 2026 (138): DEX2 — entrada en lenguaje natural, sin voz
 

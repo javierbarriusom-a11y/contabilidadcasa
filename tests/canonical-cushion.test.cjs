@@ -266,3 +266,55 @@ test("cushionMaturityLadder · valores por defecto expuestos (4 tramos, cada 3 m
   assert.equal(Cushion.DEFAULT_LADDER_RUNGS, 4);
   assert.equal(Cushion.DEFAULT_LADDER_INTERVAL_MONTHS, 3);
 });
+
+// DLX1 (Oleada 2, Bloque 2): guardarraíl de colchón antes de amortizar deuda con caja disponible.
+// Mismo margen de aviso temprano (20%) y los mismos tres estados que ya usa AP6
+// (canonical-leverage-sustainability.js) para la deuda de apalancamiento tomada — aquí aplicado a
+// una amortización puntual, no a una cuota recurrente.
+
+test("amortizeCushionGuardrail · sostenible: tras amortizar sobra más de un 20% por encima del suelo", () => {
+  const result = Cushion.amortizeCushionGuardrail({ amount: 1000, liquidity: 5000, floor: 2000 });
+  // remaining = 4000, suelo 2000, aviso temprano a partir de 2400 -> 4000 está claramente por encima
+  assert.equal(result.remaining, 4000);
+  assert.equal(result.status, "sostenible");
+  assert.equal(result.shortfall, 0);
+});
+
+test("amortizeCushionGuardrail · ajustado: por encima del suelo pero dentro del margen de aviso (20%)", () => {
+  const result = Cushion.amortizeCushionGuardrail({ amount: 2900, liquidity: 5000, floor: 2000 });
+  // remaining = 2100, suelo 2000, aviso temprano hasta 2400 -> 2100 cae en el tramo "ajustado"
+  assert.equal(result.remaining, 2100);
+  assert.equal(result.status, "ajustado");
+  assert.equal(result.shortfall, 0);
+});
+
+test("amortizeCushionGuardrail · insostenible: amortizar deja el colchón por debajo del suelo, con la diferencia exacta", () => {
+  const result = Cushion.amortizeCushionGuardrail({ amount: 3500, liquidity: 5000, floor: 2000 });
+  // remaining = 1500, por debajo del suelo de 2000 -> shortfall 500
+  assert.equal(result.remaining, 1500);
+  assert.equal(result.status, "insostenible");
+  assert.equal(result.shortfall, 500);
+});
+
+test("amortizeCushionGuardrail · el límite es estricto: justo en el suelo ya no es insostenible", () => {
+  const result = Cushion.amortizeCushionGuardrail({ amount: 3000, liquidity: 5000, floor: 2000 });
+  assert.equal(result.remaining, 2000);
+  assert.equal(result.status, "ajustado"); // en el suelo exacto, pero por debajo del aviso temprano (2400)
+});
+
+test("amortizeCushionGuardrail · justo en el margen de aviso temprano ya es sostenible (límite estricto)", () => {
+  const result = Cushion.amortizeCushionGuardrail({ amount: 2600, liquidity: 5000, floor: 2000 });
+  assert.equal(result.remaining, 2400); // exactamente floor * 1.2
+  assert.equal(result.status, "sostenible");
+});
+
+test("amortizeCushionGuardrail · nunca bloquea el cálculo: siempre devuelve un resultado, incluso amortizando más de lo disponible", () => {
+  const result = Cushion.amortizeCushionGuardrail({ amount: 6000, liquidity: 5000, floor: 2000 });
+  assert.equal(result.remaining, -1000);
+  assert.equal(result.status, "insostenible");
+  assert.equal(result.shortfall, 3000);
+});
+
+test("amortizeCushionGuardrail · margen de aviso temprano expuesto (20%, mismo que AP6)", () => {
+  assert.equal(Cushion.AMORTIZE_EARLY_WARNING_MARGIN, 0.2);
+});
