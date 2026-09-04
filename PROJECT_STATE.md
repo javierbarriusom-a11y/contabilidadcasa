@@ -2,6 +2,64 @@
 
 Fecha de revisión: 4 de septiembre de 2026.
 
+## Cierre de sesión — 4 de septiembre de 2026 (145): cuarta y última oleada del Bloque 3 — PVX3 (ya cubierta), PVX2, ESX2, APX2 — Bloque 3 completo (20/20)
+
+Continuación directa de la sesión 144 (pedido del usuario: seguir con el Bloque 3). Antes de
+construir se verificó a mano la dependencia declarada de las cuatro tareas restantes.
+
+- **PVX3 (recalculo instantáneo al introducir un dato) — reclasificada como ya cubierta ✅**: se
+  comprobaron dos cosas antes de construir nada. (1) La previsión base ya se recalcula sola en cada
+  cambio: `recomputeModelIfNeeded()` usa una caché con firma (`modelComputationSignature()`) que se
+  invalida sola — no existe ni un botón "recalcular" en toda la app. (2) El `reconciled` que
+  alimenta la recalibración de aprendizaje de `PV3` es un estado por MES completo (`matched`, en
+  `canonicalLedgerSnapshot.reconciliation.months`), no por movimiento importado — no hay ningún
+  dato a medio mes sobre el que recalibrar antes de cerrar el mes. Dicho de otro modo: la previsión
+  ya es instantánea, y la recalibración de aprendizaje es mensual por diseño del modelo de datos
+  (no un hueco de construcción). Puesto al usuario antes de decidir: confirmó reclasificarla como
+  ya cubierta, no bloqueada, en vez de construir algo sobre una premisa que no encajaba con cómo
+  funciona la app.
+- **PVX2 — multihorizonte simultáneo**: `pvx2AdaptiveHorizonHtml()`, nueva en app.js. Reutiliza tal
+  cual `adaptiveHorizon()` (A7-1, canonical-forecast.js) — hasta ahora la tarjeta "Horizonte
+  adaptativo" del Laboratorio de escenarios solo mostraba un recuento (X periodos, Y bandas); ahora
+  pinta los periodos de verdad en una tabla: mensual a corto plazo, trimestral y anual a medio/largo
+  plazo, todos a la vez.
+- **ESX2 — plantillas de eventos de vida**: `ESX2_EVENT_TEMPLATES` (9 plantillas) y
+  `applyE13EventTemplate()`, nuevas en app.js. Extienden el constructor de eventos (A8-2, los 7
+  tipos ya existentes) con nombres reales que un hogar reconoce ("nace un hijo", "boda") en vez de
+  tener que adivinar a qué tipo abstracto corresponde su situación. Cada plantilla solo fija el
+  tipo y limpia el importe genérico de partida (500) — nunca fija un importe ni una duración: cada
+  vida cuesta lo que cueste de verdad, y cuánto dura lo decide el hogar.
+- **APX2 — crédito con garantía de cartera (Lombard)**: `lombardCreditCapacity()`, nueva en
+  `canonical-leverage-simulator.js`. Capacidad de préstamo contra la cartera real (IV1) a un LTV
+  que declara el hogar, nunca un LTV "típico" (30-50% según entidad y activo) inventado por el
+  motor. Deliberadamente fuera del guardarraíl AP4 de `simulateLeverage()`: un préstamo con
+  garantía real tiene ejecución en tiempo real por parte del banco, un perfil de riesgo distinto al
+  de la deuda sin garantizar que sí vigila AP4. Primer paso de `APX3` (Bloque 4, simulador de
+  ejecución de garantía / margin call), que todavía no modela ese riesgo — el aviso lo deja
+  explícito en el propio resultado.
+
+**Con esto el Bloque 3 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` queda completo: 20/20 tareas**
+(15 hechas de verdad, 1 ya cubierta por arquitectura existente, 4 reclasificadas con motivo
+documentado a lo largo de las cuatro oleadas — IVX1, IVX5, APX4 y ninguna otra bloqueada sin
+motivo). Quedan los Bloques 4-6 completos (17 tareas) sin empezar.
+
+**Validación**: `npm run verify`, exit 0 — **3218/3218 pruebas** (3198 + 20 nuevas: 5 en
+`tests/pvx2-multihorizonte-simultaneo.test.cjs` —nuevo—, 10 en
+`tests/esx2-plantillas-eventos-vida.test.cjs` —nuevo— y 8 en
+`tests/apx2-credito-garantia-cartera.test.cjs` —nuevo—, PVX3 no añadió pruebas por no requerir
+código nuevo). Accesibilidad: 1113 IDs únicos (+5: los campos nuevos de ESX2 y APX2). Rendimiento,
+`build:site`, privacidad y humo: en verde. Sin pruebas fijas de ventana que corregir esta vez —
+ninguna de las tres tareas construidas tocó una función que otro test ya recortaba con un límite de
+caracteres.
+
+**Backlog**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` — PVX3, PVX2, ESX2, APX2 marcadas ✅ (PVX3
+con nota explícita de "ya cubierta por arquitectura existente, sin motor nuevo"). Bloque 3
+completo. Quedan los Bloques 4-6 (17 tareas) sin empezar — decisión pendiente del usuario sobre si
+continuar con ellos.
+
+**Pendiente de publicar**: validado en local, pendiente de commit/push/PR/fusión según el flujo
+autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 4 de septiembre de 2026 (144): tercera oleada del Bloque 3 — PVX4, ESX4, CPX1, MDX1 (IVX1 y APX4 reclasificadas)
 
 Continuación directa de la sesión 143 (pedido del usuario: seguir con el Bloque 3). Antes de

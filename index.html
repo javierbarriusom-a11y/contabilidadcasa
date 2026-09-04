@@ -955,6 +955,20 @@
                 <span class="sync-badge">Solo simulación</span>
               </div>
               <form class="e13-event-builder" id="e13EventBuilder">
+                <!-- ESX2: plantillas de eventos de vida, con nombre real en vez del tipo abstracto —
+                     solo fija el tipo y limpia el importe; nunca inventa una cifra ni una duración. -->
+                <label><span>Plantilla de evento de vida (opcional)</span><select id="esx2EventTemplate">
+                  <option value="">-- Elige una plantilla --</option>
+                  <option value="child">Nace un hijo</option>
+                  <option value="wedding">Boda</option>
+                  <option value="car">Compra de coche</option>
+                  <option value="move">Mudanza</option>
+                  <option value="reduced-hours">Reducción de jornada</option>
+                  <option value="early-retirement">Jubilación anticipada</option>
+                  <option value="extra-debt-payment">Pago extra de una deuda</option>
+                  <option value="market-crash">Caída de mercado</option>
+                  <option value="property-revaluation">Revalorización del inmueble</option>
+                </select></label>
                 <label><span>Evento</span><select id="e13EventType">
                   <option value="income-loss">Pérdida de ingreso</option>
                   <option value="expense">Gasto extraordinario</option>
@@ -2725,6 +2739,27 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ap3ScenarioSave">Guardar escenario explorado</button>
               <ul class="commit-barrier-list" id="ap3ScenarioList"></ul>
+            </article>
+
+            <!-- APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (simulador de
+                 ejecución de garantía, todavía sin construir). LTV y tipo los declara el hogar,
+                 nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo
+                 con garantía real tiene un perfil de riesgo distinto al de la deuda sin garantizar. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Crédito con garantía de cartera (Lombard)</h3>
+              <p class="e19-kpi-note">Cuánto podrías pedir prestado contra tu cartera de inversión real (Inversión › Cartera), a un LTV que tú declares. No modela el riesgo de ejecución de garantía si la cartera cae de valor — eso lo añadirá APX3 más adelante.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>LTV declarado (%)</span>
+                  <input id="apx2LtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 50" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo del crédito (% anual)</span>
+                  <input id="apx2RatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="apx2LombardRun">Calcular</button>
+              <div class="e19-kpi-note" id="apx2LombardNote"></div>
             </article>
 
             <!-- AP6: alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada.

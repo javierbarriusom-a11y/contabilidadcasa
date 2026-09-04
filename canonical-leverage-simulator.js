@@ -90,5 +90,35 @@
     };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, PROFESSIONAL_WARNING, simulateLeverage, saveScenario };
+  // APX2 — crédito con garantía de cartera (Lombard): cuánto se podría pedir prestado contra la
+  // cartera de inversión real (IV1) a un LTV que declara el hogar — nunca un LTV "típico" (30-50%
+  // según entidad y activo, imposible de generalizar sin inventar un dato) inventado por este motor.
+  // Primer paso de APX3 (simulador de ejecución de garantía / margin call, Bloque 4): APX2 solo dice
+  // la capacidad y el coste anual, sin modelar qué pasa si la cartera cae de valor — ese riesgo es
+  // justo lo que añade APX3 encima de esto. No pasa por el guardarraíl AP4 de simulateLeverage(): un
+  // préstamo Lombard tiene garantía real (la propia cartera) y ejecución en tiempo real por parte
+  // del banco, un perfil de riesgo distinto al de la deuda sin garantizar que sí vigila AP4.
+  const LOMBARD_SCHEMA_ID = "finance-canonical-lombard-credit/v1";
+
+  function lombardCreditCapacity({ portfolioValue, ltvPct, annualRatePct } = {}) {
+    const value = Math.max(0, round2(portfolioValue));
+    const ltv = number(ltvPct);
+    if (!(value > 0) || !(ltv > 0) || ltv > 100) {
+      return { schemaId: LOMBARD_SCHEMA_ID, calculable: false };
+    }
+    const capacity = round2(value * (ltv / 100));
+    const rate = Math.max(0, number(annualRatePct));
+    return {
+      schemaId: LOMBARD_SCHEMA_ID,
+      calculable: true,
+      portfolioValue: value,
+      ltvPct: round2(ltv),
+      capacity,
+      annualRatePct: round2(rate),
+      annualCost: round2(capacity * (rate / 100)),
+      warning: "No modela el riesgo de ejecución de garantía si la cartera cae de valor (APX3, todavía sin construir) — antes de pedir un crédito así, entiende que el banco puede exigir más garantía o liquidar posiciones automáticamente si el valor de la cartera baja.",
+    };
+  }
+
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, PROFESSIONAL_WARNING, simulateLeverage, saveScenario, LOMBARD_SCHEMA_ID, lombardCreditCapacity };
 });
