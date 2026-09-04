@@ -2,6 +2,104 @@
 
 Fecha de revisión: 4 de septiembre de 2026.
 
+## Cierre de sesión — 4 de septiembre de 2026 (140): RGX1 y RGX2 — hogar compartido, simulacro de pérdida de acceso y concentración de conocimiento
+
+Continuación directa de la sesión 139: al terminar esa oleada se preguntó al usuario cómo resolver
+el desajuste de alcance de `RGX2` (reclasificar, ampliar el alcance ahora, o auditar antes el resto
+del backlog). Antes de que respondiera, esta sesión encontró que `RGX1` (Bloque 2, fila 19) tiene
+**exactamente el mismo problema**: también depende de `A5-3`, el mismo motor sin UI. Se preguntó de
+nuevo, con las tres mismas opciones aplicadas a ambas tareas — el usuario eligió **abordar las dos
+ya, con todo el alcance necesario**: construir la pantalla mínima de hogar compartido que le faltaba
+a `A5-3`, en vez de reclasificar o posponer.
+
+**Investigación antes de tocar código**: `A5-3` (`canonical-e9-household.js`) tiene reglas de
+negocio completas (roles, permisos, invariantes) pero cero consumidores de UI. Peor aún: la
+migración original (`migrations/20260801_e9_household.sql`) solo concede `select` al rol
+`authenticated` — el comentario del propio fichero dice "las escrituras quedan reservadas al
+backend/RPC", asumiendo un backend propio (`backend/server.mjs`) que, como ya documentó A19-1 sobre
+ese mismo backend, nunca llegó a desplegarse en ningún sitio. Sin escrituras no hay invitación
+posible, con o sin pantalla — el hueco real era más profundo que "falta una pantalla".
+
+**Diseño — mismo patrón que A19-1**: en vez de esperar a un backend que no existe, se escribió
+`migrations/20260904_e9_household_writes.sql` con cuatro funciones `security definer`:
+- `finance_household_create` — arranque: el usuario autenticado crea su propio hogar y su fila de
+  miembro `owner`. Un usuario con hogar propio ya creado no puede crear un segundo.
+- `finance_household_invite` — solo `owner`/`admin` (comprobado con la función `finance_household_
+  role` ya existente desde E9-1), exige rol permitido y al menos un área. El correo de quien se
+  invita nunca llega a esta función: el cliente ya envía su hash (`invitee_hash`), calculado con
+  `FinanceCanonicalShareLink.hashToken()` — **el mismo motor Web Crypto que ya usa A19-1**, sin
+  duplicar la lógica de hash en un segundo sitio.
+- `finance_household_accept` — la función más delicada: quien acepta todavía no es miembro, así que
+  no tiene visibilidad RLS sobre el hogar (mismo motivo por el que `get_finance_share_link`, de
+  A19-1, necesita saltarse RLS para el rol `anon`). Compara el hash del correo propio (tabla
+  `auth.users`, nunca expuesta directamente al cliente) contra `invitee_hash`: la invitación solo la
+  puede aceptar la cuenta a la que se destinó, nunca "quien tenga el enlace" — a diferencia de
+  A19-1, donde sí basta con tener el enlace porque solo comparte una vista redactada, no acceso de
+  escritura a datos reales. Repite el mismo hallazgo de seguridad que ya costó un fix real en
+  A19-1: `set search_path = public, extensions`, porque `pgcrypto`/`digest()` suele vivir en el
+  esquema `extensions` de Supabase, no en `public`.
+- `finance_household_revoke` — solo `owner`/`admin`, nunca contra la persona propietaria (mismo
+  invariante que `canonical-e9-household.js#revokeMember`).
+
+Ninguna de las cuatro tablas del hogar recibe `grant` directo de escritura — toda escritura pasa por
+estas funciones, nunca por un `insert`/`update` suelto del cliente.
+
+**Construido en `app.js`/`index.html`** (todo dentro del grupo «Datos y exportación» de Ajustes,
+junto a A19-1, por la misma familia temática):
+- Tarjeta **«Hogar compartido»**: lista de miembros activos con rol y áreas, invitaciones pendientes
+  con su caducidad, formulario de invitar (correo, rol, áreas) y botón de retirar (nunca visible
+  para el propietario). `canonical-e9-household.js` sigue siendo la única fuente de las reglas
+  (`can()`/`activeMember()`/`ROLES`/`SHARED_AREAS`) — `app.js` no las reimplementa, solo llama a
+  Supabase para escribir.
+- **RGX2 — concentración de conocimiento**: `rgxKnowledgeConcentration()`, misma lógica que A14-4
+  (concentración de patrimonio por tipo) aplicada al hogar en vez de al dinero. Solo avisa con 2+
+  miembros activos — con una sola persona en el hogar avisar sería ruido, no información — y solo de
+  las áreas cubiertas por menos de dos personas. Pintado en Patrimonio, junto al desglose de A14-4.
+- **RGX1 — simulacro guiado de pérdida de acceso**: `rgx1AccessLossReadiness()`, checklist de tres
+  puntos que combina A0-9 y A5-3 sin ejecutar ninguna acción por sí solo: copia de emergencia
+  reciente (≤30 días), redundancia (2+ personas con rol `owner`/`admin`) y cobertura por área
+  (reutiliza `rgxKnowledgeConcentration`). Como la app nunca había registrado cuándo se descargó la
+  última copia, se añadió `scenarioSettings.lastEmergencyBackupAt` — se empieza a registrar desde
+  esta sesión, nunca se inventa una fecha pasada; sin copia previa, el punto dice explícitamente
+  "nunca se ha descargado", no un dato falso.
+- La invitación se acepta desde un fragmento de URL propio (`#household-invite=token`, nunca la
+  query string, mismo criterio que A19-1) leído al arrancar sesión — antes de la carga de estado
+  remoto — y la URL se limpia (`history.replaceState`) en cuanto se lee, se acepte o no.
+
+**Aviso deliberado — igual que hizo A19-1 con la suya, más explícito aquí porque el propio proyecto
+ya lo pedía por escrito**: `E9_HOUSEHOLD.md` advierte textualmente "No debe desplegarse el modelo
+compartido hasta revisar la migración RLS y disponer de dos cuentas de prueba independientes". Esta
+sesión no tiene acceso a un proyecto Supabase real ni a una segunda cuenta, así que **no se ha
+podido verificar en vivo** el guion de aceptación de nueve pasos que el propio documento describe
+(invitar, aceptar con una segunda cuenta, revocar, conflicto de revisión). Lo que sí se ha verificado
+es la lógica pura (checks de arriba, 40 pruebas nuevas) y, por lectura adversarial del SQL, que cada
+función comprueba sesión y permiso antes de escribir, que ningún hash llega en crudo y que los
+invariantes de `canonical-e9-household.js` (owner irretirable, invitación con áreas) se repiten en
+SQL. **Pendiente de acción manual del usuario, fuera de esta sesión**: aplicar
+`migrations/20260904_e9_household_writes.sql` contra el proyecto Supabase real (iguales pasos que ya
+describió la sesión 108 para A19-1) y completar el guion de aceptación de `E9_HOUSEHOLD.md` con una
+segunda cuenta antes de confiar en la función de invitar en producción. Sin la migración aplicada,
+`createRgxHousehold()`/`inviteRgxHouseholdMember()` fallarán con un error de Supabase visible y
+contenido (tabla/función inexistente), nunca en silencio — mismo comportamiento que A19-1 documentó
+para su propia migración pendiente.
+
+**Validación**: `npm run verify`, exit 0 — **3072/3072 pruebas** (3041 + 31 nuevas: 6 en
+`tests/rgx2-concentracion-conocimiento.test.cjs` —nuevo—, 10 en
+`tests/rgx1-simulacro-perdida-acceso.test.cjs` —nuevo—, 14 en
+`tests/e9-household-app-integracion.test.cjs` —nuevo— y 1 ajuste en
+`tests/d8-d9-deuda-oferta-aplicar.test.cjs`, un recuento fijo de llamadas a
+`requestOperationConfirmation` que la nueva llamada de `revokeRgxHouseholdMember` dejó corto — de 5 a
+6, mismo patrón de fragilidad ya documentado en sesiones anteriores), accesibilidad (1090 IDs),
+rendimiento, `build:site`, privacidad y humo en verde.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 2, filas de `RGX1` y
+`RGX2` marcadas ✅ Hecho (con el aviso de acción manual pendiente); la fila «41-bis» que había creado
+la reclasificación de la sesión 139 se retira, y la nota de `MDX1` (Bloque 3) se actualiza — su
+dependencia de `A5-3` ya no es un hueco. Quedan 6 tareas de esfuerzo S-M del Bloque 2 (APX5, APX6,
+LPX3, RGX4, IVX7, MDX2) y los Bloques 3-6 completos sin empezar.
+
+**Pendiente de publicar**: rama `claude/session-eilejl`, PR por abrir tras este commit.
+
 ## Cierre de sesión — 4 de septiembre de 2026 (139): primera oleada del Bloque 2 — DLX1, IVX8, CPX3
 
 Continuación directa de la sesión 138 (pedido explícito del usuario: «seguimos con el bloque 2»),

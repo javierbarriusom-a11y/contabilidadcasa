@@ -81,9 +81,11 @@ activo en producción — no se puede empezar todavía.
 
 Primera oleada del Bloque 2 (DLX1, IVX8, CPX3 — tres de las cuatro tareas de esfuerzo S) cerrada el
 4 de septiembre de 2026 (sesión 139 de `PROJECT_STATE.md`, detalle completo ahí); marcadas ✅ en la
-tabla de abajo. `RGX2`, la cuarta, queda marcada ⚠️ y sin construir: desajuste de alcance detectado
-(ver su fila), pendiente de decisión con el usuario. El resto del Bloque 2 (8 tareas de esfuerzo
-S-M) y los Bloques 3-6 siguen sin empezar.
+tabla de abajo. `RGX2`, la cuarta, se investigó y quedó marcada ⚠️ por un desajuste de alcance
+(`A5-3` sin UI). Consultado el usuario, decidió no reclasificarla: construir la pantalla mínima de
+hogar compartido que le faltaba a `A5-3`, y con ella también `RGX1` (Bloque 2, fila 19, misma
+dependencia). Ambas cerradas el mismo día (sesión 140), marcadas ✅. Quedan 6 tareas de esfuerzo S-M
+del Bloque 2 (APX5, APX6, LPX3, RGX4, IVX7, MDX2) y los Bloques 3-6 sin empezar.
 
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
@@ -109,12 +111,12 @@ S-M) y los Bloques 3-6 siguen sin empezar.
 |---|---|---|---|---|---|---|
 | 12 | ✅ DLX1 | Guardarraíl de colchón antes de amortizar | Deuda-liquidez | S | Crítico | Hecho — `amortizeCushionGuardrail()` en `canonical-cushion.js` (mismo patrón tri-estado que `AP6`), pintado antes del resultado de `AP1` |
 | 13 | ✅ IVX8 | Sobreexposición cruzada vivienda-inversión | Inversión 2 | S | Medio | Hecho — `ivx8HousingExposure()`, aviso en Cartera (`A14-4`) y en Concentración (`IV1`) |
-| 14 | ⚠️ RGX2 | Alerta de concentración de conocimiento | Continuidad e IA | S | Medio | **No construida — desajuste de alcance detectado**: `A5-3` (`canonical-e9-household.js`) está marcado «Implementado» en `BACKLOG_STATUS.md` pero es un motor aislado sin ningún consumidor de UI; construir RGX2 tal como está descrita exigiría antes levantar de cero toda la pantalla de miembros del hogar, muy por encima de esfuerzo S. Pendiente de decidir con el usuario. |
+| 14 | ✅ RGX2 | Alerta de concentración de conocimiento | Continuidad e IA | ~~S~~ → M/L real | Medio | Hecho — decisión del usuario del 4 de septiembre de 2026: en vez de reclasificarla, se construyó la pantalla mínima de hogar compartido (`A5-3`) que le faltaba a `A5-3`, compartida con `RGX1` (fila 19). Ver detalle en la fila 19 y en la sesión 140 de `PROJECT_STATE.md`. |
 | 15 | ✅ CPX3 | Transparencia de recomendaciones ignoradas | Copiloto 2 | S | Medio | Hecho — registro `cpx3RecommendationLog` (vía `window.FinanceP2Bridge`), aviso a partir de 3 días y botón de descartar en la tarjeta de `CP1` |
 | 16 | APX5 | Coste total de refinanciar, no solo el tipo | Apalancamiento 2 | S-M | Alto | Depende de `DI1`; punto de equilibrio en meses entre ahorro de tipo y coste de cancelación |
 | 17 | APX6 | Amortizar: reducir cuota vs. reducir plazo | Apalancamiento 2 | S-M | Alto | Extiende `compareAmortizeVsInvest()` (`canonical-debt-comparator.js`, `AP1`) y `A9-3` |
 | 18 | LPX3 | Checklist de continuidad ante fallecimiento o incapacidad | Patrimonio y vida | S-M | Alto | Depende de `A14-1` y `SP1` |
-| 19 | RGX1 | Simulacro guiado de pérdida de acceso | Continuidad e IA | S-M | Alto | Depende de `A0-9` y `A5-3` |
+| 19 | ✅ RGX1 | Simulacro guiado de pérdida de acceso | Continuidad e IA | S-M | Alto | Hecho — igual que `RGX2` (fila 14), dependía de `A5-3` sin UI. Se construyó la tarjeta «Hogar compartido» (miembros, roles, áreas, invitar/retirar) en Ajustes, con escritura real vía `migrations/20260904_e9_household_writes.sql` (funciones security definer, mismo patrón que `A19-1`) — y sobre ella, el simulacro de tres puntos (copia de emergencia, redundancia, cobertura por área). **Pendiente de acción manual del usuario**: aplicar la migración al proyecto Supabase real y verificar con dos cuentas, exactamente como pidió `E9_HOUSEHOLD.md` antes de desplegar el modelo compartido. |
 | 20 | RGX4 | Explicación en dos niveles | Continuidad e IA | S-M | Medio | Capa sobre `A7-3`, `A11-4` y `CP1` |
 | 21 | IVX7 | Coste medio de adquisición (DCA) visible | Inversión 2 | S-M | Medio | Depende de `IV3` |
 | 22 | MDX2 | Exportación en formato abierto y documentado | Multidispositivo | S-M | Medio | Depende de `A0-9`; esquema JSON publicado, decisión de gobierno de datos |
@@ -141,7 +143,7 @@ S-M) y los Bloques 3-6 siguen sin empezar.
 | 38 | IVX1 | Multidivisa y exposición cambiaria | Inversión 2 | M | Medio | Depende de `IV1` y `A14-1` |
 | 39 | IVX5 | Máxima caída (drawdown) y tiempo de recuperación | Inversión 2 | M | Medio-Alto | Depende de `IV1` e `IV2` |
 | 40 | IVX6 | Glide path de aportaciones por horizonte | Inversión 2 | M | Medio | Depende de `IV1` y `A10-1` |
-| 41 | MDX1 | Vista educativa para hijos | Multidispositivo | M | Medio | Depende de `A5-3` y `A19-1`; vista de solo lectura y simplificada del colchón y el patrimonio |
+| 41 | MDX1 | Vista educativa para hijos | Multidispositivo | M | Medio | Depende de `A5-3` y `A19-1`; vista de solo lectura y simplificada del colchón y el patrimonio. La dependencia de `A5-3` ya no es un hueco: la tarjeta «Hogar compartido» (RGX1/RGX2, sesión 140) le da la UI e invitación real que le faltaba. |
 | 42 | APX2 | Crédito con garantía de cartera (Lombard) | Apalancamiento 2 | M-L | Medio | Depende de `A14-1` e `IV1`; primer paso de `APX3` (Bloque 4) |
 
 ### Bloque 4 — Segunda capa: depende de una tarea de esta misma oleada (3 tareas, nivel 1)

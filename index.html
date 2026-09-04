@@ -2860,6 +2860,10 @@
               <div class="e19-kpi-note" id="a14AssetPendingCompare" hidden></div>
               <ul class="commit-barrier-list" id="a14AssetList"></ul>
               <div class="e19-kpi-note" id="a14AssetBreakdown"></div>
+              <!-- RGX2: misma lógica que A14-4 aplicada al conocimiento del hogar en vez de al
+                   dinero. Solo avisa con 2+ miembros activos y un área compartida con menos de dos
+                   personas con acceso — con una sola persona en el hogar, avisar sería ruido. -->
+              <div class="e19-kpi-note" id="rgxKnowledgeConcentration"></div>
             </article>
 
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
@@ -3182,6 +3186,27 @@
 
             <div class="e19-ajustes-group" id="ajustes-datos" aria-labelledby="ajustes-datos-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-datos-title">Datos y exportación</h3>
+            <!-- E9-1 (RGX1/RGX2): hogar compartido — miembros, roles y áreas. La tabla y el modelo
+                 de solo lectura ya existían (canonical-e9-household.js, migrations/20260801_
+                 e9_household.sql); esta tarjeta añade la interfaz y las funciones de escritura
+                 (migrations/20260904_e9_household_writes.sql, security definer, mismo patrón que
+                 A19-1) que faltaban. El correo de quien se invita nunca se guarda en crudo — solo
+                 su hash, igual que el token de la invitación. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Hogar compartido</h3>
+              <p class="e19-kpi-note">Invita a alguien más con acceso limitado por áreas (planificación, movimientos, deudas, huchas, documentos, escenarios). Nadie entra por tener un enlace: la invitación solo la puede aceptar la cuenta a la que se envió.</p>
+              <div id="rgxHouseholdCard"></div>
+            </article>
+
+            <!-- RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9)
+                 y el hogar compartido de arriba. No ejecuta ninguna acción, solo hace visible qué
+                 falta y por qué, con la copia y la invitación a un clic de distancia. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulacro: ¿qué pasa si pierdes el acceso?</h3>
+              <p class="e19-kpi-note">Repaso guiado de tres puntos: copia de emergencia reciente, alguien más con rol de propietario o administrador, y cobertura por área. Descarga tu copia en «Datos» y gestiona el hogar arriba si algo falta.</p>
+              <div id="rgx1AccessDrill"></div>
+            </article>
+
             <!-- A19-1: enlace de solo lectura, redactado y caducable — depende de A14-1. Comparte
                  el plan de deuda o el forecast a 6 meses con un asesor externo sin cuenta propia ni
                  acceso a movimientos individuales. El token en crudo solo existe en la URL que se
