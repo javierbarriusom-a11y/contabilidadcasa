@@ -106,6 +106,23 @@ de 2026 (sesión 143), sin ningún hallazgo de alcance: `A11-3`/`learnFromHistor
 tramos progresivos necesario. Quedan 10 tareas del Bloque 3 y los Bloques 4-6 completos (17 tareas)
 sin empezar.
 
+Tercera oleada del Bloque 3 (PVX4, ESX4, CPX1, MDX1 — cuatro tareas más) cerrada el 4 de septiembre
+de 2026 (sesión 144). Antes de construir se verificaron las dependencias declaradas de las diez
+tareas restantes: dos hallazgos reales, los dos puestos al usuario antes de tocar código. `IVX1`
+(multidivisa) — ninguna posición ni activo guarda divisa hoy, y el tipo de cambio exigiría
+mantenimiento manual permanente sin cotizaciones en vivo (la app funciona sin red por diseño) —
+reclasificada ⚠️. `APX4` (correlación activo apalancado-ingresos) — ni serie histórica de
+rendimientos ni metadato de sector/empleador del hogar sobre el que construir ninguna lectura,
+estadística o cualitativa — reclasificada ⚠️. Las otras cuatro no tenían ningún hueco de alcance:
+`PVX4` reutiliza el p25/p75 histórico que ya calculaba `budgetAnalysisForCategory()` (S-1, hasta
+ahora solo usado para sugerir presupuesto, nunca mostrado); `ESX4` extiende `sensitivity()` (A8-6)
+a una malla 2D reutilizando `simulate()` tal cual; `CPX1` añade la próxima mejor acción de `CP1`
+como cabecera de «Estado de la semana» (TRACK-3), repitiendo su pequeña función de selección (no
+accesible desde fuera del cierre de p2-ui.js) en vez de reimportar un motor nuevo; `MDX1` es un
+tercer `viewType` del mecanismo de enlace de `A19-1`, sin motor de compartición nuevo. Quedan 4
+tareas del Bloque 3 (`PVX3`, `PVX2`, `ESX2`, `APX2`) y los Bloques 4-6 completos (17 tareas) sin
+empezar.
+
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
 ### Bloque 1 — Entrada de datos, priorizado completo por decisión explícita (11 tareas, nivel 0)
@@ -146,23 +163,23 @@ sin empezar.
 |---|---|---|---|---|---|---|
 | 23 | ✅ PVX1 | Backtesting público del propio motor | Previsión viva 2 | M | Alto | Hecho — `renderPvx1Backtest()` en Ajustes (no escondido dentro del Laboratorio de escenarios E13): reutiliza `learnFromHistory()` sobre `reconciledMonthlyNetHistory()` (mismo aprendizaje de `A11-3`/`E12b` que ya alimenta PV1-PV4), mes a mes previsto vs. real conciliado más el resumen de desviación media |
 | 24 | PVX3 | Recalculo instantáneo al introducir un dato | Previsión viva 2 | M | Alto | Depende de `PV3` y `A6-4` |
-| 25 | PVX4 | Banda de normalidad por categoría en vivo | Previsión viva 2 | M | Alto | Depende de `PV2` |
+| 25 | ✅ PVX4 | Banda de normalidad por categoría en vivo | Previsión viva 2 | M | Alto | Hecho — `pvx4NormalityBandLabel()` en `views/presupuesto-mes.js`: reutiliza `budgetAnalysisForCategory()` (p25/p75 históricos, S-1, ya usado para sugerir presupuesto), comparado contra la proyección de fin de mes (S-2) — nunca contra el gasto parcial a día de hoy, que sería una comparación falsa contra meses completos |
 | 26 | PVX2 | Multihorizonte simultáneo | Previsión viva 2 | M | Medio | Consume el contrato `A7-1` |
 | 27 | ESX2 | Plantillas de eventos de vida | Escenarios 2 | M | Alto | Extiende el constructor de eventos `A8-2` |
-| 28 | ESX4 | Malla de dos supuestos cruzados | Escenarios 2 | M | Medio | Depende de `A8-6` y `A8-1` |
+| 28 | ✅ ESX4 | Malla de dos supuestos cruzados | Escenarios 2 | M | Medio | Hecho — `sensitivityGrid()` (`canonical-e13-scenarios.js`): extiende `sensitivity()` (A8-6, un supuesto cada vez) a una cuadrícula 5×5 que varía ingresos y gastos a la vez alrededor del caso base (A8-1), reutilizando `simulate()` tal cual — sin motor nuevo |
 | 29 | ✅ IVX2 | Comparación contra un índice de referencia | Inversión 2 | M | Alto | Hecho — `compareAgainstBenchmark()` (`canonical-portfolio.js`), índice anualizado declarado por el hogar (sin precio de mercado real) frente a la XIRR de la cartera; comparación explícitamente aproximada, no exacta (money-weighted vs. flujos que el índice no vive) |
 | 30 | ✅ IVX4 | Coste compuesto de comisiones | Inversión 2 | M | Alto | Hecho — `compoundedFeeCost()` (`canonical-portfolio.js`): comisión anual declarada opcional por posición (`feePct`, nuevo campo de `IV1`), coste compuesto puro sobre un horizonte declarado por el hogar, sin asumir ninguna rentabilidad de mercado que no se ha declarado |
 | 31 | ✅ APX1 | Coste de la deuda neto de fiscalidad real | Apalancamiento 2 | M | Alto | Hecho — `netDebtCostAfterTax()` (`canonical-debt-comparator.js`) eleva el punto de equilibrio de `AP2` con el tipo del ahorro ya declarado en FC4 (`dividendSpanishSavingsRatePct`, sin campo duplicado ni tramo de IRPF inventado); avisa aparte si hay pérdidas `FC3` pendientes de compensar |
-| 32 | APX4 | Correlación entre activo apalancado e ingresos | Apalancamiento 2 | M | Alto | Depende de `AP3` e `IV4` |
-| 33 | CPX1 | Resumen semanal proactivo | Copiloto 2 | M | Alto | Depende de `CP1` y `CP3`; reutiliza `A5-4` si existe |
+| 32 | ⚠️ APX4 | Correlación entre activo apalancado e ingresos | Apalancamiento 2 | M | Alto | Reclasificada — ni `AP3` (simula deuda de forma abstracta, sin ligarla a un activo o sector) ni `IV4` (no clasifica sector/riesgo por posición) guardan lo necesario, y la app no registra en ningún sitio el sector o empleador del hogar. Sin serie histórica de rendimientos para una correlación estadística real ni metadato para una lectura cualitativa. El usuario confirmó reclasificar el 4 de septiembre de 2026 |
+| 33 | ✅ CPX1 | Resumen semanal proactivo | Copiloto 2 | M | Alto | Hecho — `cpx1WeeklyPriorityAction()` añade la próxima mejor acción de `CP1` (mismo catálogo de fuentes E9 y validador de citas `CP3` que ya usa p2-ui.js) como cabecera de «Estado de la semana» (TRACK-3), antes de sus tres lecturas pasivas. `A5-4` (push) sigue sin backend real — se omite en vez de simular una integración que no existe |
 | 34 | ✅ CPX2 | Modo segunda opinión para decisiones externas | Copiloto 2 | M | Alto | Hecho — `cpx2SecondOpinionResult()` en Ajustes: para una decisión externa (todavía no un objeto formal de `escenarioMotorDecisions`) el hogar declara solo su impacto mensual en caja, y se pasa por el plan base (`A8-2`) y por el mismo escenario de tensión de `CP6` (ingresos ×0,9, gastos ×1,1) — nunca bloquea, solo informa |
 | 35 | ✅ FCX1 | Rescate de pensiones modelado | Fiscalidad 2 | M | Alto | Hecho — `marginalTaxOnAdditionalIncome()` (`canonical-irpf-estimator.js`): coste marginal de un rescate en forma de capital sumado a la renta general, por tramos reales si las dos escalas están registradas (`A15-2`), o con el tipo marginal declarado como respaldo (`A15-4`/`A15-1`). No modela reducciones por antigüedad de las aportaciones ni la modalidad en forma de renta — fuera de alcance sin inventar reglas de transitoriedad que la app no registra |
 | 36 | ✅ LPX1 | Calculadora de independencia financiera | Patrimonio y vida | M | Alto | Hecho — `financialIndependenceTarget()` (`canonical-assets.js`): capital objetivo = gasto anual (previsión viva, `A7-1`) ÷ tasa de retirada que declara el hogar (sin un 4% por defecto), frente al patrimonio neto `A14-2` |
 | 37 | ✅ LPX2 | Runway patrimonial completo | Patrimonio y vida | M | Alto | Hecho — `netWorthRunway()` (`canonical-assets.js`): meses de patrimonio neto completo (`A14-2`) frente al colchón líquido de `DLX1`, con aviso de qué % es inmueble/vehículo/pensión (`A14-4`) y por tanto no gastable sin vender |
-| 38 | IVX1 | Multidivisa y exposición cambiaria | Inversión 2 | M | Medio | Depende de `IV1` y `A14-1` |
+| 38 | ⚠️ IVX1 | Multidivisa y exposición cambiaria | Inversión 2 | M | Medio | Reclasificada — ninguna posición de cartera (`IV1`) ni activo (`A14-1`) guarda una divisa hoy: todo se asume en euros. Construirla de verdad exige una dimensión nueva (divisa por posición) y un tipo de cambio que el hogar declararía a mano y tendría que mantener actualizado (la app funciona sin red, por diseño, sin cotizaciones en vivo). El usuario confirmó reclasificar el 4 de septiembre de 2026 |
 | 39 | ⚠️ IVX5 | Máxima caída (drawdown) y tiempo de recuperación | Inversión 2 | M | Medio-Alto | Reclasificada — la app solo guarda el valor actual de cada posición, sin histórico de valoraciones intermedias (mismo hueco que ya reconoce IV2 para el TWR real). Sin esa serie temporal no hay drawdown que calcular sin inventarlo; usar las fechas de aportaciones/disposals como proxy daría una cifra con apariencia de precisión pero de fondo engañosa. Bloqueada hasta que se decida construir un registro de valoraciones periódicas por posición — decisión de producto aparte, no colada dentro de esta fila |
 | 40 | ✅ IVX6 | Glide path de aportaciones por horizonte | Inversión 2 | M | Medio | Hecho — primero se construyó el vínculo posición↔objetivo que no existía (`goalId` opcional en `IV1`, decisión explícita del usuario), y sobre él `glidePathForGoal()` (`canonical-portfolio.js`) da la banda de horizonte (crecimiento/transición/conservador) por objetivo con fecha (`A10-1`). Nunca recomienda qué posición concreta ajustar: esta app no clasifica el riesgo/volatilidad por posición, así que no hay dato para respaldar esa precisión |
-| 41 | MDX1 | Vista educativa para hijos | Multidispositivo | M | Medio | Depende de `A5-3` y `A19-1`; vista de solo lectura y simplificada del colchón y el patrimonio. La dependencia de `A5-3` ya no es un hueco: la tarjeta «Hogar compartido» (RGX1/RGX2, sesión 140) le da la UI e invitación real que le faltaba. |
+| 41 | ✅ MDX1 | Vista educativa para hijos | Multidispositivo | M | Medio | Hecho — tercer `viewType` («kids-summary») del mecanismo de enlace de `A19-1`, sin motor de compartición nuevo: `redactKidsSummaryView()` (`canonical-share-link.js`) solo expone colchón y patrimonio neto (`A14-2`, vía `lpNetWorthSnapshot`), redondeados, sin ninguna cuenta ni movimiento. La dependencia de `A5-3` ya no era un hueco (RGX1/RGX2, sesión 140) |
 | 42 | APX2 | Crédito con garantía de cartera (Lombard) | Apalancamiento 2 | M-L | Medio | Depende de `A14-1` e `IV1`; primer paso de `APX3` (Bloque 4) |
 
 ### Bloque 4 — Segunda capa: depende de una tarea de esta misma oleada (3 tareas, nivel 1)

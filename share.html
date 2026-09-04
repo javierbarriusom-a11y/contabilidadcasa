@@ -32,7 +32,7 @@ tfoot td{font-weight:800;color:var(--navy)}
   <header>
     <p class="eyebrow">Enlace de solo lectura</p>
     <h1 id="shareTitle">Vista compartida</h1>
-    <p>Generado por el titular de estos datos para un asesor externo. No incluye movimientos individuales de ninguna cuenta y no permite editar nada.</p>
+    <p>Generado por el titular de estos datos para compartirlos de forma segura. No incluye movimientos individuales de ninguna cuenta y no permite editar nada.</p>
   </header>
   <div class="card">
     <div id="shareError" class="notice bad" hidden>Este enlace no es válido, ha sido revocado o ya ha caducado. Pide al titular que genere uno nuevo.</div>
@@ -76,6 +76,17 @@ tfoot td{font-weight:800;color:var(--navy)}
     </table>`;
   }
 
+  function renderKidsSummary(payload) {
+    document.getElementById("shareTitle").textContent = "Cómo va el dinero de la familia";
+    const cushionLine = payload.cushion === null
+      ? "El colchón (dinero guardado por si hace falta) no está calculable ahora mismo."
+      : `El colchón (dinero guardado por si hace falta) es de <strong>${money(payload.cushion)}</strong>.`;
+    const netWorthLine = payload.netWorth === null
+      ? "El patrimonio (todo lo que tiene la familia menos lo que debe) no está calculable ahora mismo."
+      : `El patrimonio (todo lo que tiene la familia menos lo que debe) es de <strong>${money(payload.netWorth)}</strong>.`;
+    document.getElementById("shareContent").innerHTML = `<p>${cushionLine}</p><p>${netWorthLine}</p>`;
+  }
+
   function renderForecast(payload) {
     document.getElementById("shareTitle").textContent = "Forecast a 6 meses";
     const rows = Array.isArray(payload.months) ? payload.months : [];
@@ -103,6 +114,7 @@ tfoot td{font-weight:800;color:var(--navy)}
     if (!payload) { showError(); return; }
     if (String(payload.schemaId || "").endsWith("/debt-plan-v1")) renderDebtPlan(payload);
     else if (String(payload.schemaId || "").endsWith("/forecast-6m-v1")) renderForecast(payload);
+    else if (String(payload.schemaId || "").endsWith("/kids-summary-v1")) renderKidsSummary(payload);
     else { showError(); return; }
     const generatedAt = String(payload.generatedAt || "").slice(0, 10);
     if (generatedAt) document.getElementById("shareGeneratedAt").textContent = `Datos generados el ${generatedAt}.`;

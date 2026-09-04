@@ -2,6 +2,76 @@
 
 Fecha de revisión: 4 de septiembre de 2026.
 
+## Cierre de sesión — 4 de septiembre de 2026 (144): tercera oleada del Bloque 3 — PVX4, ESX4, CPX1, MDX1 (IVX1 y APX4 reclasificadas)
+
+Continuación directa de la sesión 143 (pedido del usuario: seguir con el Bloque 3). Antes de
+construir se verificaron a mano las dependencias declaradas de las diez tareas restantes — mismo
+criterio que todas las oleadas anteriores. Dos hallazgos reales, los dos puestos al usuario antes
+de tocar código:
+
+- **IVX1 (multidivisa) — reclasificada ⚠️**: ninguna posición de cartera (`IV1`) ni activo (`A14-1`)
+  guarda una divisa hoy — todo se asume en euros. Construirla de verdad exige una dimensión nueva
+  (divisa por posición) y un tipo de cambio que el hogar tendría que declarar a mano y mantener
+  actualizado, porque la app funciona sin red por diseño (sin cotizaciones en vivo). El usuario
+  confirmó reclasificar en vez de asumir esa carga de mantenimiento manual nueva y permanente.
+- **APX4 (correlación entre activo apalancado e ingresos) — reclasificada ⚠️**: ni `AP3` (simula
+  deuda de forma abstracta, sin ligarla a un activo o sector) ni `IV4` (no clasifica sector/riesgo
+  por posición) guardan lo necesario, y la app no registra en ningún sitio el sector o empleador
+  del hogar. Sin serie histórica de rendimientos para una correlación estadística real, ni ningún
+  metadato para siquiera una lectura cualitativa (¿la inversión apalancada es del mismo sector que
+  el empleo?). El usuario confirmó reclasificar: no hay ningún dato real sobre el que construir
+  esto sin inventarlo.
+
+Las otras cuatro no tuvieron ningún hallazgo de alcance:
+
+- **PVX4 — banda de normalidad por categoría en vivo**: `pvx4NormalityBandLabel()`, nueva en
+  `views/presupuesto-mes.js`. Reutiliza tal cual `budgetAnalysisForCategory()` (p25/p75 históricos,
+  S-1) — hasta ahora solo alimentaba `suggestedAmountForCategory()` y el `stdDev` de las alertas,
+  nunca se mostraba el rango en sí. La comparación es contra la proyección de fin de mes que ya
+  calcula `budgetProjection()` (S-2), nunca contra el gasto parcial a día de hoy — comparar un gasto
+  a medio mes contra un p25-p75 de meses completos habría sido una comparación falsa.
+- **ESX4 — malla de dos supuestos cruzados**: `sensitivityGrid()`, nueva en
+  `canonical-e13-scenarios.js`. `sensitivity()` (A8-6) ya variaba ingresos/gastos/eventos uno a la
+  vez (one-at-a-time); la malla varía ingresos Y gastos a la vez sobre una cuadrícula 5×5 simétrica
+  alrededor del caso base (A8-1), reutilizando `simulate()` tal cual — sin motor de cálculo nuevo.
+- **CPX1 — resumen semanal proactivo**: `cpx1WeeklyPriorityAction()`, nueva en
+  `views/estado-semana.js`. Añade la próxima mejor acción de `CP1` (mismo catálogo de fuentes E9 y
+  el mismo validador de citas `CP3` que ya usa p2-ui.js) como cabecera de «Estado de la semana»
+  (TRACK-3), antes de sus tres lecturas pasivas. La selección de `cp1NextBestAction()` vive dentro
+  del cierre privado de p2-ui.js y este script comparte el scope global de app.js — se repitió la
+  función (pequeña, pura, ~20 líneas) en vez de forzar el límite de módulo, mismo criterio de
+  pequeñas funciones compartidas entre motores independientes que ya usa DI5. `A5-4` (push) sigue
+  sin backend real (solo infraestructura local) — se omitió del todo en vez de simular una
+  integración que no existe; el backlog ya lo permitía ("si existe").
+- **MDX1 — vista educativa para hijos**: tercer `viewType` («kids-summary») del mecanismo de
+  enlace de solo lectura, redactado y caducable de `A19-1` — nunca un motor de compartición nuevo.
+  `redactKidsSummaryView()` (`canonical-share-link.js`) solo expone dos cifras redondas (colchón,
+  patrimonio neto vía `lpNetWorthSnapshot`, A14-2), null explícito si no son calculables, nunca un
+  cero inventado. `share.html` gana `renderKidsSummary()`, la misma página independiente sin app.js
+  ni service worker que ya usan `debt-plan`/`forecast-6m`.
+
+**Validación**: `npm run verify`, exit 0 — **3198/3198 pruebas** (3169 + 29 nuevas: 7 en
+`tests/esx4-malla-supuestos-cruzados.test.cjs` —nuevo—, 9 en
+`tests/pvx4-banda-normalidad-categoria.test.cjs` —nuevo—, 7 en
+`tests/cpx1-resumen-semanal-proactivo.test.cjs` —nuevo— y 8 en
+`tests/mdx1-vista-educativa-hijos.test.cjs` —nuevo—, más ajustes en tests ya existentes que estas
+cuatro tareas tocaban). Accesibilidad: 1108 IDs únicos (sin cambio — ninguna de las cuatro tareas
+añadió un `id` de HTML nuevo). Rendimiento, `build:site`, privacidad y humo: en verde. Se
+corrigieron cinco pruebas fijas de ventana/valor que estas tareas dejaron desalineadas (mismo
+patrón de fragilidad ya documentado en sesiones anteriores): `tests/a14-5-app-integracion.test.cjs`
+(6400→7200 caracteres, la nueva tarjeta de malla de ESX4 empujó dos coincidencias fuera de rango),
+`tests/bud4-repetir-presupuesto.test.cjs`/`tests/uxb1-vista-movil-presupuesto.test.cjs` (mock nuevo
+de `budgetAnalysisForCategory` en sus sandboxes, tras añadir PVX4), `tests/track3-estado-semana.test.cjs`
+(nueva tarjeta de prioridad de CPX1, versión del chunk `estado-semana.js` bumped a `20260904a1`) y
+`tests/a19-1-enlace-solo-lectura.test.cjs` (`VIEW_TYPES` ahora incluye `kids-summary`).
+
+**Backlog**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` — PVX4, ESX4, CPX1, MDX1 marcadas ✅; IVX1 y
+APX4 marcadas ⚠️ reclasificadas con el motivo. Quedan 4 tareas del Bloque 3 (`PVX3`, `PVX2`, `ESX2`,
+`APX2`) y los Bloques 4-6 completos (17 tareas) sin empezar.
+
+**Pendiente de publicar**: validado en local, pendiente de commit/push/PR/fusión según el flujo
+autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 4 de septiembre de 2026 (143): segunda oleada del Bloque 3 — PVX1, IVX4, FCX1, CPX2
 
 Continuación directa de la sesión 142 (pedido del usuario: seguir con el Bloque 3). Antes de

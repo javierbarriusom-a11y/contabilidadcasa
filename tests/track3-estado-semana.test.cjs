@@ -112,9 +112,9 @@ test("TRACK-3 · homeBudgetWeekSummary sin semana en curso (motor no disponible)
 // Parte B: las tres tarjetas — motores mockeados en el límite
 // ============================================================================
 
-function cardSandbox({ e16 = null, e15 = null, p2Bridge = null, monthlySummary = null, weeklySummary = null, p2Goals = [] } = {}) {
+function cardSandbox({ e16 = null, e15 = null, p2Bridge = null, monthlySummary = null, weeklySummary = null, p2Goals = [], assistantApi = null, citationApi = null } = {}) {
   const context = {
-    window: { FinanceCanonicalE16: e16, FinanceCanonicalE15: e15, FinanceP2Bridge: p2Bridge },
+    window: { FinanceCanonicalE16: e16, FinanceCanonicalE15: e15, FinanceP2Bridge: p2Bridge, FinanceCanonicalE9Assistant: assistantApi, FinanceCanonicalRecommendationCitation: citationApi },
     homeBudgetSummary: () => monthlySummary,
     homeBudgetWeekSummary: () => weeklySummary,
     p2State: () => ({ goals: p2Goals }),
@@ -132,6 +132,9 @@ function cardSandbox({ e16 = null, e15 = null, p2Bridge = null, monthlySummary =
       extractFunction("estadoSemanaBudgetRhythmHtml"),
       extractFunction("estadoSemanaGoalDeadlines"),
       extractFunction("estadoSemanaGoalDeadlinesHtml"),
+      extractFunction("cpx1WeeklyPriorityAction"),
+      extractFunction("cpx1WeeklyPriorityHtml"),
+      extractFunction("estadoSemanaPriorityHtml"),
       extractFunction("renderEstadoSemana"),
     ].join("\n"),
     context,
@@ -230,6 +233,7 @@ test("TRACK-3 · renderEstadoSemana pinta las tres tarjetas dentro del elemento 
   });
   context.qs = () => html;
   context.renderEstadoSemana();
+  assert.match(html.innerHTML, /Empieza por aquí esta semana/);
   assert.match(html.innerHTML, /Alertas de caja anticipadas/);
   assert.match(html.innerHTML, /Ritmo de presupuesto/);
   assert.match(html.innerHTML, /próximos vencimientos/);
@@ -240,7 +244,7 @@ test("TRACK-3 · renderEstadoSemana pinta las tres tarjetas dentro del elemento 
 // ============================================================================
 
 test("TRACK-3 · la nueva pantalla está registrada en VIEW_CHUNKS, HEAVY_RENDER_VIEWS y el dispatcher", () => {
-  assert.match(appSrc, /"estado-semana": \{ src: "views\/estado-semana\.js\?v=20260827a1", rootId: "estadoSemanaRoot" \}/);
+  assert.match(appSrc, /"estado-semana": \{ src: "views\/estado-semana\.js\?v=20260904a1", rootId: "estadoSemanaRoot" \}/);
   assert.match(appSrc, /"estado-semana",\n\]\);/);
   assert.match(appSrc, /case "estado-semana":\s*renderEstadoSemana\(\);/);
 });
@@ -272,5 +276,5 @@ test("TRACK-3 · canario de publicación: toda vista en VIEW_CHUNKS está en la 
 });
 
 test("TRACK-3 · el chunk de estado-semana viaja versionado", () => {
-  assert.match(appSrc, /views\/estado-semana\.js\?v=20260827a1/);
+  assert.match(appSrc, /views\/estado-semana\.js\?v=20260904a1/);
 });

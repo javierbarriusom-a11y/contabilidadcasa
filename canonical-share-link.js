@@ -13,7 +13,7 @@
   // expiración/revocación. La lectura/escritura remota vive en app.js.
 
   const SCHEMA_ID = "finance-a19-1-share-link/v1";
-  const VIEW_TYPES = Object.freeze(["debt-plan", "forecast-6m"]);
+  const VIEW_TYPES = Object.freeze(["debt-plan", "forecast-6m", "kids-summary"]);
   const TOKEN_BYTES = 32;
   const DEFAULT_TTL_DAYS = 14;
   const MAX_TTL_DAYS = 90;
@@ -119,9 +119,32 @@
     };
   }
 
+  // MDX1: vista educativa para hijos (o cualquier persona sin usuario propio ni interés en el
+  // detalle) — solo dos cifras redondas, colchón y patrimonio neto, ninguna cuenta, movimiento ni
+  // deuda individual. La dependencia de A5-3 ya no era un hueco (E9-1/RGX1/RGX2 ya dan invitación
+  // real al hogar); esta vista reutiliza tal cual el mecanismo de enlace redactado y caducable de
+  // A19-1, un tercer viewType más, nunca un motor de compartición nuevo. Sin alguna de las dos
+  // cifras (patrimonio sin activos declarados, p. ej.), null explícito — nunca un cero inventado.
+  function redactKidsSummaryView({ cushion, netWorth } = {}) {
+    // `Number(null)` es 0, no NaN: hay que descartar null/undefined antes de convertir, o un
+    // patrimonio no calculable (null explícito, nunca inventado) se leería aquí como un 0 real.
+    const roundedOrNull = (value) => {
+      if (value === null || value === undefined) return null;
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? round2(parsed) : null;
+    };
+    return {
+      schemaId: `${SCHEMA_ID}/kids-summary-v1`,
+      generatedAt: new Date().toISOString(),
+      cushion: roundedOrNull(cushion),
+      netWorth: roundedOrNull(netWorth),
+    };
+  }
+
   function buildSharePayload(viewType, data) {
     if (viewType === "debt-plan") return redactDebtPlanView(data);
     if (viewType === "forecast-6m") return redactForecastView(data);
+    if (viewType === "kids-summary") return redactKidsSummaryView(data);
     throw new Error(`Tipo de vista de A19-1 desconocido: ${viewType}`);
   }
 
@@ -137,6 +160,7 @@
     isExpired,
     redactDebtPlanView,
     redactForecastView,
+    redactKidsSummaryView,
     buildSharePayload,
   };
 });
