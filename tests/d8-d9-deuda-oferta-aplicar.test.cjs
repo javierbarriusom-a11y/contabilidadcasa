@@ -168,9 +168,11 @@ test("D-8 · applyE14bOffer pide allowReviewDate y guarda reviewDate en e14Appli
   assert.match(fn, /reviewDate,\s*\n\s*\};/);
 });
 
-test("D-8 · las otras cinco llamadas a requestOperationConfirmation siguen destructurando solo el motivo", () => {
+test("D-8 · las otras llamadas a requestOperationConfirmation siguen destructurando solo el motivo", () => {
+  // RGX1 (Oleada 2 Bloque 2/3) añadió revokeRgxHouseholdMember, una séptima llamada más que
+  // tampoco pide reviewDate — el recuento crece de 5 a 6, la comprobación sigue siendo la misma.
   const occurrences = [...app.matchAll(/const \{ reason(?::\s*\w+)? \} = await requestOperationConfirmation\(\{/g)];
-  assert.equal(occurrences.length, 5, "deben quedar 5 llamadas que no piden reviewDate (la sexta, la de la oferta, sí lo pide)");
+  assert.equal(occurrences.length, 6, "deben quedar 6 llamadas que no piden reviewDate (la de la oferta sí lo pide, aparte)");
 });
 
 // --- deudaRutaOfferChecklist (D-9) — misma validación que E14DebtOperations.prepareApplication ---

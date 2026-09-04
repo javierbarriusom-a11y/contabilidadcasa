@@ -272,6 +272,7 @@ const E14DebtParity = globalThis.FinanceCanonicalE14Parity || null;
 const ExecutiveReadModel = globalThis.FinanceExecutiveReadModel || null;
 const DebtComparator = globalThis.FinanceDebtComparator || null;
 const E7Analysis = globalThis.FinanceCanonicalE7 || null;
+const E9Household = globalThis.FinanceCanonicalE9Household || null;
 const DEBT_LIQUIDATION_ASSUMPTIONS = {
   baseStartingLiquidity: 9000,
   targetReserve: 3000,
@@ -1345,6 +1346,10 @@ function downloadStateBackup() {
       appVersion: "e3-emergency-backup",
     });
     const date = downloadBackupEnvelope(envelope);
+    // RGX1: primer punto del simulacro de pérdida de acceso — nunca se inventa una fecha pasada,
+    // solo se empieza a registrar desde la primera copia descargada tras esta sesión.
+    scenarioSettings.lastEmergencyBackupAt = new Date().toISOString();
+    saveScenarioSettings();
     setStateBackupStatus(
       "Copia completa descargada",
       `${date}. ${stateBackupSummaryMarkup(envelope.summary)}`,
@@ -5075,6 +5080,8 @@ async function setupSupabaseSync() {
   if (remoteUser) {
     await readDurableRemoteSave();
     await loadRemoteState();
+    await acceptRgxHouseholdInvitationFromUrl();
+    await refreshRgxHouseholdCard();
   }
 
   supabaseClient.auth.onAuthStateChange(async (_event, session) => {
@@ -5094,6 +5101,8 @@ async function setupSupabaseSync() {
     if (remoteUser) {
       await readDurableRemoteSave();
       await loadRemoteState();
+      await acceptRgxHouseholdInvitationFromUrl();
+      await refreshRgxHouseholdCard();
     }
   });
 }
@@ -16637,6 +16646,217 @@ async function revokeA19ShareLink(id) {
   renderA19ShareLinkList();
 }
 
+// E9-1 (RGX1/RGX2, Oleada 2 Bloque 2/3): hogar compartido — miembros, roles y áreas. La migración
+// original (20260801_e9_household.sql) dejó tablas y lectura vía RLS listas, pero ninguna escritura
+// — reservada a "backend/RPC" en su propio comentario, asumiendo un backend propio
+// (backend/server.mjs) que nunca llegó a desplegarse en ningún sitio (mismo hallazgo, exactamente,
+// que ya documentó A19-1 sobre ese backend). migrations/20260904_e9_household_writes.sql sustituye
+// ese backend inexistente por funciones security definer, igual que A19-1 resolvió su propio hueco.
+// canonical-e9-household.js sigue siendo la referencia de reglas (ROLES/SHARED_AREAS/can/
+// activeMember) — esta sección solo añade la interfaz y las llamadas de escritura a Supabase.
+//
+// Aviso deliberado, igual que hizo A19-1 con la suya: la migración SQL no se aplica sola (este
+// repositorio no tiene runner de migraciones en CI) y E9_HOUSEHOLD.md advierte explícitamente no
+// desplegar el modelo compartido sin revisar antes la migración RLS con dos cuentas de prueba
+// independientes — algo que esta sesión no puede hacer sin acceso a un proyecto Supabase real.
+let rgxHousehold = { household: null, members: [], invitations: [], role: null };
+
+function rgxHouseholdState() {
+  return { members: rgxHousehold.members };
+}
+
+async function loadRgxHouseholdState() {
+  if (!supabaseClient || !remoteUser) { rgxHousehold = { household: null, members: [], invitations: [], role: null }; return; }
+  const { data: households } = await supabaseClient.from("finance_households").select("id,name,owner_user_id,revision");
+  const list = Array.isArray(households) ? households : [];
+  const household = list.find((row) => row.owner_user_id === remoteUser.id) || list[0] || null;
+  if (!household) { rgxHousehold = { household: null, members: [], invitations: [], role: null }; return; }
+  const [{ data: members }, { data: invitations }] = await Promise.all([
+    supabaseClient.from("finance_household_members").select("user_id,role,areas,status,joined_at,revoked_at").eq("household_id", household.id),
+    supabaseClient.from("finance_household_invitations").select("id,role,areas,status,created_at,expires_at,accepted_at").eq("household_id", household.id).order("created_at", { ascending: false }),
+  ]);
+  const normalizedMembers = (members || []).map((row) => ({ userId: row.user_id, role: row.role, areas: row.areas || [], status: row.status, joinedAt: row.joined_at, revokedAt: row.revoked_at || "" }));
+  const role = E9Household ? E9Household.activeMember({ members: normalizedMembers }, remoteUser.id)?.role || null : null;
+  rgxHousehold = { household, members: normalizedMembers, invitations: invitations || [], role };
+}
+
+async function createRgxHousehold(name) {
+  if (!supabaseClient || !remoteUser) return { ok: false, message: "Inicia sesión para crear tu hogar compartido." };
+  const householdId = crypto.randomUUID();
+  const { error } = await supabaseClient.rpc("finance_household_create", { p_household_id: householdId, p_name: name || "" });
+  if (error) return { ok: false, message: "No se pudo crear el hogar. Vuelve a intentarlo." };
+  await loadRgxHouseholdState();
+  return { ok: true };
+}
+
+function rgxHouseholdInviteUrl(rawToken) {
+  const basePath = location.pathname.replace(/index\.html$/, "");
+  return `${location.origin}${basePath}index.html#household-invite=${encodeURIComponent(rawToken)}`;
+}
+
+async function inviteRgxHouseholdMember({ email, role, areas, ttlDays } = {}) {
+  const shareEngine = window.FinanceCanonicalShareLink;
+  if (!shareEngine || !E9Household) return { ok: false, message: "Falta el motor de invitaciones." };
+  if (!supabaseClient || !remoteUser || !rgxHousehold.household) return { ok: false, message: "Crea primero tu hogar compartido." };
+  if (!E9Household.can(rgxHouseholdState(), remoteUser.id, "members:invite")) return { ok: false, message: "No tienes permiso para invitar." };
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return { ok: false, message: "Falta el correo de quien invitas." };
+  const selectedAreas = (areas || []).filter((area) => E9Household.SHARED_AREAS.includes(area));
+  if (!selectedAreas.length) return { ok: false, message: "Elige al menos un área compartida." };
+  const rawToken = shareEngine.generateShareToken();
+  const [tokenHash, inviteeHash] = await Promise.all([shareEngine.hashToken(rawToken), shareEngine.hashToken(normalizedEmail)]);
+  const { error } = await supabaseClient.rpc("finance_household_invite", {
+    p_household_id: rgxHousehold.household.id,
+    p_invitation_id: crypto.randomUUID(),
+    p_invitee_hash: inviteeHash,
+    p_token_hash: tokenHash,
+    p_role: role || "member",
+    p_areas: selectedAreas,
+    p_ttl_days: ttlDays || 14,
+  });
+  if (error) return { ok: false, message: "No se pudo generar la invitación." };
+  await loadRgxHouseholdState();
+  return { ok: true, url: rgxHouseholdInviteUrl(rawToken) };
+}
+
+// La invitación se acepta desde una URL propia (#household-invite=token), nunca por tener el
+// enlace a secas: finance_household_accept (security definer) comprueba en la base de datos que el
+// correo de quien acepta coincide con el hash guardado al invitar — a diferencia de A19-1, donde sí
+// basta con tener el enlace porque solo comparte una vista redactada, no acceso de escritura.
+async function acceptRgxHouseholdInvitationFromUrl() {
+  const match = /household-invite=([^&]+)/.exec(location.hash || "");
+  if (!match) return;
+  history.replaceState(null, "", location.pathname + location.search);
+  if (!supabaseClient || !remoteUser) return;
+  const token = decodeURIComponent(match[1]);
+  const { error } = await supabaseClient.rpc("finance_household_accept", { p_token: token });
+  if (!error) await loadRgxHouseholdState();
+  const status = qs("rgxHouseholdInviteStatus");
+  if (status) status.textContent = error ? "No se pudo aceptar la invitación. Puede haber caducado o no ser para esta cuenta." : "Te has unido al hogar compartido.";
+}
+
+async function revokeRgxHouseholdMember(userId) {
+  if (!supabaseClient || !remoteUser || !rgxHousehold.household || !userId) return;
+  const { reason } = await requestOperationConfirmation({
+    title: "Retirar acceso al hogar compartido",
+    message: "Esta persona pierde acceso de inmediato. Puedes volver a invitarla más tarde si hace falta.",
+    defaultReason: "Acceso retirado por decisión del hogar",
+    confirmLabel: "Retirar acceso",
+  });
+  if (!reason) return;
+  const { error } = await supabaseClient.rpc("finance_household_revoke", { p_household_id: rgxHousehold.household.id, p_user_id: userId, p_reason: reason });
+  if (!error) await loadRgxHouseholdState();
+  renderRgxHouseholdCard();
+}
+
+const RGX_ROLE_LABELS = { owner: "Propietario", admin: "Administrador", member: "Miembro", viewer: "Solo lectura" };
+const RGX_AREA_LABELS = { planning: "Planificación", movements: "Movimientos", debts: "Deudas", goals: "Huchas/objetivos", documents: "Documentos", scenarios: "Escenarios" };
+
+function renderRgxHouseholdCard() {
+  const container = qs("rgxHouseholdCard");
+  if (!container) return;
+  if (!supabaseClient || !remoteUser) {
+    container.innerHTML = `<p class="e19-kpi-note">Inicia sesión para gestionar el hogar compartido.</p>`;
+    return;
+  }
+  if (!rgxHousehold.household) {
+    container.innerHTML = `<p class="e19-kpi-note">Todavía no tienes un hogar compartido. Créalo para poder invitar a alguien más con acceso limitado por áreas.</p><button type="button" class="e19-btn e19-btn-secondary" id="rgxHouseholdCreate">Crear hogar compartido</button>`;
+    return;
+  }
+  const engine = E9Household;
+  const canInvite = engine ? engine.can(rgxHouseholdState(), remoteUser.id, "members:invite") : false;
+  const canManage = engine ? engine.can(rgxHouseholdState(), remoteUser.id, "members:manage") : false;
+  const membersHtml = rgxHousehold.members.filter((member) => member.status === "active").map((member) => {
+    const revokeButton = canManage && member.role !== "owner"
+      ? `<button type="button" class="e19-btn e19-btn-secondary" data-rgx-household-revoke="${escapeHtml(member.userId)}">Retirar</button>`
+      : "";
+    const areasText = member.areas.map((area) => RGX_AREA_LABELS[area] || area).join(", ") || "sin áreas";
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(RGX_ROLE_LABELS[member.role] || member.role)}</strong><span>${escapeHtml(areasText)}</span>${revokeButton}</li>`;
+  }).join("") || `<li class="e19-kpi-note">Sin miembros activos.</li>`;
+  const pendingHtml = rgxHousehold.invitations.filter((invitation) => invitation.status === "pending").map((invitation) => {
+    const areasText = (invitation.areas || []).map((area) => RGX_AREA_LABELS[area] || area).join(", ");
+    return `<li class="e19-kpi-note">Invitación pendiente (${escapeHtml(RGX_ROLE_LABELS[invitation.role] || invitation.role)}, ${escapeHtml(areasText)}) — caduca ${escapeHtml(String(invitation.expires_at).slice(0, 10))}</li>`;
+  }).join("");
+  const inviteFormHtml = canInvite ? `
+    <div class="cuadro-mandos-controls">
+      <label class="month-picker"><span>Correo de quien invitas</span><input id="rgxHouseholdInviteEmail" type="email" /></label>
+      <label class="month-picker"><span>Rol</span>
+        <select id="rgxHouseholdInviteRole">
+          <option value="admin">Administrador</option>
+          <option value="member" selected>Miembro</option>
+          <option value="viewer">Solo lectura</option>
+        </select>
+      </label>
+    </div>
+    <div class="rgx-household-areas">${engine.SHARED_AREAS.map((area) => `<label><input type="checkbox" data-rgx-household-area value="${escapeHtml(area)}" checked /> ${escapeHtml(RGX_AREA_LABELS[area] || area)}</label>`).join("")}</div>
+    <button type="button" class="e19-btn e19-btn-secondary" id="rgxHouseholdInviteSave">Invitar</button>
+    <p class="inline-feedback" id="rgxHouseholdInviteStatus" role="status"></p>` : "";
+  container.innerHTML = `<ul class="commit-barrier-list">${membersHtml}${pendingHtml}</ul>${inviteFormHtml}`;
+}
+
+async function refreshRgxHouseholdCard() {
+  await loadRgxHouseholdState();
+  renderRgxHouseholdCard();
+  renderRgx1AccessDrill();
+}
+
+// RGX2: alerta de concentración de conocimiento — misma lógica que A14-4 (concentración de
+// patrimonio por tipo) aplicada al hogar compartido en vez de al dinero. Solo tiene sentido con 2+
+// miembros activos: con un hogar de una sola persona toda la concentración es inevitable y avisar
+// sería ruido, no información nueva.
+function rgxKnowledgeConcentration(state) {
+  if (!E9Household || !state) return null;
+  const active = (state.members || []).filter((member) => member.status === "active");
+  if (active.length < 2) return null;
+  const gaps = E9Household.SHARED_AREAS.filter((area) => active.filter((member) => member.areas.includes(area)).length < 2);
+  if (!gaps.length) return null;
+  return { areas: gaps, totalMembers: active.length };
+}
+
+function renderRgxKnowledgeConcentration() {
+  const note = qs("rgxKnowledgeConcentration");
+  if (!note) return;
+  const result = rgxKnowledgeConcentration(rgxHouseholdState());
+  if (!result) { note.innerHTML = ""; return; }
+  const areasText = result.areas.map((area) => RGX_AREA_LABELS[area] || area).join(", ");
+  note.innerHTML = `<p class="warning">Concentración de conocimiento: solo una persona del hogar tiene acceso a ${escapeHtml(areasText)}. Si esa persona no está disponible, nadie más podría gestionarlo.</p>`;
+}
+
+// RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9, ya real) y el
+// hogar compartido de arriba (A5-3). No ejecuta ninguna acción por sí sola: solo hace visible el
+// estado real de cada punto, con la copia y la invitación a un clic de distancia si falta algo.
+const RGX1_BACKUP_STALE_DAYS = 30;
+
+function rgx1AccessLossReadiness(state, backupAt, now = new Date()) {
+  const backupCheck = (() => {
+    const backupTime = backupAt ? new Date(backupAt).getTime() : NaN;
+    if (!Number.isFinite(backupTime)) return { id: "backup", ok: false, detail: "Nunca se ha descargado una copia de emergencia." };
+    const ageDays = Math.floor((now.getTime() - backupTime) / (24 * 60 * 60 * 1000));
+    return ageDays <= RGX1_BACKUP_STALE_DAYS
+      ? { id: "backup", ok: true, detail: `Última copia hace ${ageDays} día(s).` }
+      : { id: "backup", ok: false, detail: `Última copia hace ${ageDays} día(s) — más de ${RGX1_BACKUP_STALE_DAYS}.` };
+  })();
+  const active = (state?.members || []).filter((member) => member.status === "active");
+  const stewards = active.filter((member) => member.role === "owner" || member.role === "admin");
+  const householdCheck = stewards.length >= 2
+    ? { id: "household", ok: true, detail: `${stewards.length} personas con rol de propietario o administrador.` }
+    : { id: "household", ok: false, detail: active.length <= 1 ? "Nadie más tiene acceso al hogar compartido todavía." : "Solo una persona tiene rol de propietario o administrador." };
+  const concentration = rgxKnowledgeConcentration(state);
+  const coverageCheck = { id: "coverage", ok: !concentration, detail: concentration ? `${concentration.areas.length} área(s) con un solo punto de acceso.` : "Cada área compartida tiene al menos dos personas con acceso." };
+  const checks = [backupCheck, householdCheck, coverageCheck];
+  return { checks, ready: checks.every((check) => check.ok) };
+}
+
+const RGX1_CHECK_LABELS = { backup: "Copia de emergencia", household: "Redundancia en el hogar", coverage: "Cobertura por área" };
+
+function renderRgx1AccessDrill() {
+  const container = qs("rgx1AccessDrill");
+  if (!container) return;
+  const result = rgx1AccessLossReadiness(rgxHouseholdState(), scenarioSettings.lastEmergencyBackupAt);
+  const itemsHtml = result.checks.map((check) => `<li class="${check.ok ? "" : "negative"}"><strong>${escapeHtml(RGX1_CHECK_LABELS[check.id])}:</strong> ${escapeHtml(check.detail)}</li>`).join("");
+  container.innerHTML = `<ul class="e19-kpi-note">${itemsHtml}</ul>${result.ready ? "<p>Preparación completa frente a una pérdida de acceso.</p>" : ""}`;
+}
+
 // A19-2: informe PDF certificado. Depende de A14-2/A14-3 (patrimonio, ya construidas): "capacidad de
 // pago, patrimonio neto (si existe E21), calendario de deuda y colchón, con fecha y advertencia de
 // que es un resumen propio, no una certificación bancaria" (BACKLOG_PATRIMONIO_Y_FINANZAS.md).
@@ -16839,6 +17059,7 @@ function renderA14AssetBreakdown() {
     : "";
   note.innerHTML = `<p>Patrimonio total registrado: ${money(netWorth, true)}. Deuda pendiente: ${money(debt, true)}. <strong>Patrimonio neto: ${money(netWorthAfterDebt, true)}</strong>.</p><ul class="e19-kpi-note">${byType.join("")}</ul>${unknownLine}`;
   renderIvx8HousingExposure();
+  renderRgxKnowledgeConcentration();
 }
 
 // IVX8: sobreexposición cruzada vivienda-inversión — el valor de la vivienda (A14, tipo "inmueble")
@@ -17288,6 +17509,7 @@ function renderIv1PositionConcentration() {
   if (!engine || !rows.length) {
     note.innerHTML = "";
     renderIvx8HousingExposure();
+    renderRgxKnowledgeConcentration();
     return;
   }
   const result = engine.normalizePositions(rows);
@@ -17307,6 +17529,7 @@ function renderIv1PositionConcentration() {
     : "";
   note.innerHTML = `<ul class="e19-kpi-note">${byType.join("")}</ul>${topWarning}`;
   renderIvx8HousingExposure();
+  renderRgxKnowledgeConcentration();
 }
 
 const IV6_TARGET_FIELDS = { fondo: "iv6TargetFondo", accion: "iv6TargetAccion", etf: "iv6TargetEtf", cripto: "iv6TargetCripto", otro: "iv6TargetOtro" };
@@ -25528,6 +25751,7 @@ function renderAjustes() {
   renderA18EntryList();
   renderA18BalanceCard();
   renderA18SettlementCard();
+  refreshRgxHouseholdCard();
   renderA19ShareLinkList();
   renderA14AssetList();
   renderA14AssetBreakdown();
@@ -35669,6 +35893,24 @@ async function init() {
   });
   qs("a18ConfirmJavi")?.addEventListener("click", () => confirmA18Settlement("javi"));
   qs("a18ConfirmTere")?.addEventListener("click", () => confirmA18Settlement("tere"));
+  qs("rgxHouseholdCard")?.addEventListener("click", (event) => {
+    const createButton = event.target.closest("#rgxHouseholdCreate");
+    if (createButton) { createRgxHousehold("").then(() => { renderRgxHouseholdCard(); renderRgx1AccessDrill(); }); return; }
+    const inviteButton = event.target.closest("#rgxHouseholdInviteSave");
+    if (inviteButton) {
+      const email = qs("rgxHouseholdInviteEmail")?.value || "";
+      const role = qs("rgxHouseholdInviteRole")?.value || "member";
+      const areas = Array.from(document.querySelectorAll("[data-rgx-household-area]:checked")).map((input) => input.value);
+      inviteRgxHouseholdMember({ email, role, areas, ttlDays: 14 }).then((result) => {
+        const status = qs("rgxHouseholdInviteStatus");
+        if (status) status.textContent = result.ok ? `Invitación creada. Copia y envía este enlace: ${result.url}` : result.message;
+        renderRgxHouseholdCard();
+      });
+      return;
+    }
+    const revokeButton = event.target.closest("[data-rgx-household-revoke]");
+    if (revokeButton) revokeRgxHouseholdMember(revokeButton.dataset.rgxHouseholdRevoke);
+  });
   qs("a19ShareSave")?.addEventListener("click", saveA19ShareLink);
   qs("a19CertifiedReportDownload")?.addEventListener("click", downloadA19CertifiedReport);
   qs("a19ShareLinkList")?.addEventListener("click", (event) => {
