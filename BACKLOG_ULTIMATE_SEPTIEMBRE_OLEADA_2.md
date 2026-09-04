@@ -75,8 +75,9 @@ Estado: todas las tareas de este documento están ⏳ (ninguna tiene código tod
 Primera oleada del Bloque 1 (DEX7, DEX9, DEX3, DEX8, DEX11 — las cinco de esfuerzo S/S-M) cerrada el
 3 de septiembre de 2026 (sesión 136 de `PROJECT_STATE.md`, detalle completo ahí); marcadas ✅ en la
 tabla de abajo. Segunda oleada (DEX1, DEX4, DEX5, DEX10 — las cuatro de esfuerzo M) cerrada el mismo
-día (sesión 137). Del Bloque 1 solo quedan `DEX2` (depende de `DEX1`, ya desbloqueada) y `DEX6`
-(condicionada a que `A5-1` esté activo en producción).
+día (sesión 137). Tercera oleada (DEX2, la última que no dependía de infraestructura externa) cerrada
+también el mismo día (sesión 138). Del Bloque 1 solo queda `DEX6`, condicionada a que `A5-1` esté
+activo en producción — no se puede empezar todavía.
 
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
@@ -93,7 +94,7 @@ día (sesión 137). Del Bloque 1 solo quedan `DEX2` (depende de `DEX1`, ya desbl
 | 7 | ✅ DEX4 | Deshacer universal | Entrada de datos | M | Alto | Hecho — `undoStack` real, corrige un bug de pérdida silenciosa de deshacer; contador «+N más» visible |
 | 8 | ✅ DEX5 | Onboarding progresivo por desbloqueo | Entrada de datos | M | Alto | Hecho — decisión del usuario: sin ocultar nada, solo guía de Hoy + Registrar la primera semana |
 | 9 | ✅ DEX10 | Corrección en lote | Entrada de datos | M | Medio-Alto | Hecho — la selección múltiple ya existía (M-8); se añadió el lote de tipo de acción, que faltaba |
-| 10 | DEX2 | Entrada en lenguaje natural, sin voz | Entrada de datos | M-L | Alto | Depende de `DEX1` para no duplicar interfaz; siempre a bandeja previa (`A6-2`) |
+| 10 | ✅ DEX2 | Entrada en lenguaje natural, sin voz | Entrada de datos | M-L | Alto | Hecho — mismo campo del lanzador (DEX1), más vocabulario y fecha relativa/explícita, siempre a bandeja previa |
 | 11 | DEX6 | Extracto completo por foto o PDF | Entrada de datos | L | Alto | Extiende `A17-3`; **condicionada a `A5-1` activo** (ver Bloque 6) — el resto del bloque no espera a esta |
 
 ### Bloque 2 — Cimientos y victorias rápidas del resto de la ola (11 tareas, nivel 0, S/S-M)

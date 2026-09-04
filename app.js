@@ -725,16 +725,69 @@ function e17AmountAnswerHtml(amount) {
   </div>`;
 }
 
-// DEX1: barra de captura rápida — extiende el lanzador (A12-3/UX6) con un tercer tipo de resultado,
-// «crear movimiento», sobre el mismo patrón de mando de acciones que ya usa UX6 para preguntas de
-// importe: reglas fijas sobre palabras clave, no un asistente de IA. Un verbo de captura ("gasto",
-// "pagué", "ingreso"...) más un importe reconocible son las dos condiciones — sin las dos, no hay
-// resultado, para no competir con la búsqueda de tareas ni con la respuesta de importe de UX6 (sus
-// palabras clave no se solapan: UX6 pregunta "¿puedo...?", esto ordena "gasto X").
-const E17_CAPTURE_EXPENSE_KEYWORDS = ["gasto", "gaste", "pague", "pago", "compra", "compre"];
-const E17_CAPTURE_INCOME_KEYWORDS = ["ingreso", "ingrese", "cobre", "cobro"];
+// DEX1/DEX2: barra de captura rápida en lenguaje natural — extiende el lanzador (A12-3/UX6) con un
+// tercer tipo de resultado, «crear movimiento», sobre el mismo patrón de mando de acciones que ya
+// usa UX6 para preguntas de importe: reglas fijas sobre palabras clave, no un asistente de IA ni
+// reconocimiento de voz (DEX2 es explícitamente «sin voz» — sigue siendo texto tecleado en el mismo
+// campo de siempre, nunca un micrófono). Un verbo de captura ("gasto", "he pagado", "ingreso"...)
+// más un importe reconocible son las dos condiciones — sin las dos, no hay resultado, para no
+// competir con la búsqueda de tareas ni con la respuesta de importe de UX6 (sus palabras clave no se
+// solapan: UX6 pregunta "¿puedo...?", esto ordena "gasto X"). DEX2 amplía el vocabulario (más formas
+// naturales del mismo verbo) y añade fecha — relativa ("ayer", "hoy", "mañana") o explícita ("3 de
+// septiembre[ de 2026]") — sin tocar la interfaz: mismo campo, mismo botón, misma bandeja previa.
+// DEX2: solo formas sin ambigüedad de dirección del dinero — "abonado" y "cobrado" se quedan fuera
+// a propósito: "me han abonado" es ingreso pero "he abonado la factura" es gasto, y "he cobrado" es
+// ingreso pero "me han cobrado" es gasto. Con reglas fijas de una palabra no hay forma segura de
+// distinguirlos — mejor no reconocer la orden que adivinar la dirección del dinero al revés.
+const E17_CAPTURE_EXPENSE_KEYWORDS = ["gasto", "gaste", "pague", "pago", "compra", "compre", "gastado", "pagado", "comprado"];
+const E17_CAPTURE_INCOME_KEYWORDS = ["ingreso", "ingrese", "cobre", "cobro", "ingresado", "recibido", "recibi"];
 
-function e17ParseQuickCaptureQuery(query) {
+// DEX2: los meses en español, sin acentos (se compara contra normalizedText) — solo para el patrón
+// «D de MES[ de AAAA]»; ninguna otra forma de fecha (ni DD/MM ni DD-MM) para no arriesgar que un día
+// suelto se confunda con el importe, que también es un número suelto.
+const E17_CAPTURE_MONTHS = {
+  enero: 1, febrero: 2, marzo: 3, abril: 4, mayo: 5, junio: 6,
+  julio: 7, agosto: 8, septiembre: 9, octubre: 10, noviembre: 11, diciembre: 12,
+};
+const E17_CAPTURE_RELATIVE_DAYS = { hoy: 0, ayer: -1, anteayer: -2, manana: 1 };
+
+// DEX2: busca una fecha en las palabras ya partidas (no en el texto crudo) para poder marcar sus
+// índices y excluirlos limpiamente del importe y del concepto después — una fecha relativa siempre
+// gana a una explícita si aparecen las dos (raro, pero la primera que se reconoce es la que cuenta).
+// Toda la aritmética se hace en UTC a partir del día local de `today` — nunca con toISOString()
+// directo sobre una fecha construida en local, que se desplaza un día en zonas horarias por delante
+// de UTC (medianoche local del 3 de septiembre en Madrid es aún el 2 de septiembre en UTC).
+function e17ExtractNaturalDate(words, today = new Date()) {
+  const normalizedWords = words.map((word) => normalizedText(word).replace(/[^a-z0-9]/g, ""));
+  const todayUtcDayMs = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  for (let index = 0; index < normalizedWords.length; index += 1) {
+    if (Object.prototype.hasOwnProperty.call(E17_CAPTURE_RELATIVE_DAYS, normalizedWords[index])) {
+      const offsetMs = todayUtcDayMs + E17_CAPTURE_RELATIVE_DAYS[normalizedWords[index]] * 86400000;
+      return { date: new Date(offsetMs).toISOString().slice(0, 10), indexes: new Set([index]) };
+    }
+  }
+  for (let index = 0; index < normalizedWords.length - 2; index += 1) {
+    const day = Number(normalizedWords[index]);
+    if (!Number.isInteger(day) || day < 1 || day > 31) continue;
+    if (normalizedWords[index + 1] !== "de") continue;
+    const month = E17_CAPTURE_MONTHS[normalizedWords[index + 2]];
+    if (!month) continue;
+    let year = today.getFullYear();
+    let lastIndex = index + 2;
+    if (normalizedWords[index + 3] === "de" && /^\d{4}$/.test(normalizedWords[index + 4] || "")) {
+      year = Number(normalizedWords[index + 4]);
+      lastIndex = index + 4;
+    }
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) continue; // 31 de febrero, etc. — hueco, no invención
+    const indexes = new Set();
+    for (let i = index; i <= lastIndex; i += 1) indexes.add(i);
+    return { date: date.toISOString().slice(0, 10), indexes };
+  }
+  return null;
+}
+
+function e17ParseQuickCaptureQuery(query, today = new Date()) {
   const raw = String(query || "").trim();
   if (!raw) return null;
   const words = raw.split(/\s+/);
@@ -742,12 +795,17 @@ function e17ParseQuickCaptureQuery(query) {
   const isExpense = words.some((word) => E17_CAPTURE_EXPENSE_KEYWORDS.includes(wordKeyword(word)));
   const isIncome = !isExpense && words.some((word) => E17_CAPTURE_INCOME_KEYWORDS.includes(wordKeyword(word)));
   if (!isExpense && !isIncome) return null;
-  const amountMatch = raw.match(/\d+(?:[.,]\d+)?/);
+  // La fecha se extrae y se retira antes de buscar el importe — si no, el día de una fecha explícita
+  // ("3 de septiembre") podría leerse como el importe.
+  const naturalDate = e17ExtractNaturalDate(words, today);
+  const dateIndexes = naturalDate?.indexes || new Set();
+  const remainingWords = words.filter((_word, index) => !dateIndexes.has(index));
+  const amountMatch = remainingWords.join(" ").match(/\d+(?:[.,]\d+)?/);
   if (!amountMatch) return null;
   const amount = round2(Number(amountMatch[0].replace(",", ".")));
   if (!Number.isFinite(amount) || amount <= 0) return null;
   const currencyWords = ["eur", "euro", "euros"];
-  const concept = words
+  const concept = remainingWords
     .filter((word) => {
       if (word.includes(amountMatch[0])) return false;
       const normalizedWord = wordKeyword(word);
@@ -756,19 +814,23 @@ function e17ParseQuickCaptureQuery(query) {
     .join(" ")
     .trim();
   if (!concept) return null;
-  return { amount, concept, kind: isIncome ? "income" : "expense" };
+  const date = naturalDate?.date || today.toISOString().slice(0, 10);
+  return { amount, concept, kind: isIncome ? "income" : "expense", date };
 }
 
-function e17QuickCaptureHtml(capture) {
+function e17QuickCaptureHtml(capture, today = new Date().toISOString().slice(0, 10)) {
   if (!capture) return "";
   const verb = capture.kind === "income" ? "Ingreso" : "Gasto";
-  return `<button type="button" class="e17-launcher-create" data-e17-create-movement data-e17-create-amount="${capture.amount}" data-e17-create-concept="${escapeHtml(capture.concept)}" data-e17-create-kind="${capture.kind}">
-    <strong>Crear ${verb.toLowerCase()}: ${escapeHtml(money(capture.amount, true))} · ${escapeHtml(capture.concept)}</strong>
+  // DEX2: la fecha solo se menciona cuando no es hoy — "toda cifra futura declara origen/fecha", y
+  // repetir "hoy" en cada resultado sería ruido sin información nueva.
+  const dateNote = capture.date && capture.date !== today ? ` · ${escapeHtml(formatIsoDate(capture.date))}` : "";
+  return `<button type="button" class="e17-launcher-create" data-e17-create-movement data-e17-create-amount="${capture.amount}" data-e17-create-concept="${escapeHtml(capture.concept)}" data-e17-create-kind="${capture.kind}" data-e17-create-date="${escapeHtml(capture.date || today)}">
+    <strong>Crear ${verb.toLowerCase()}: ${escapeHtml(money(capture.amount, true))} · ${escapeHtml(capture.concept)}${dateNote}</strong>
     <span>Se añade a la bandeja previa para confirmar, como cualquier otro movimiento — nada se incorpora todavía.</span>
   </button>`;
 }
 
-// DEX1: crea el movimiento por el mismo camino que un ticket de cámara (A17-3) o una plantilla
+// DEX1/DEX2: crea el movimiento por el mismo camino que un ticket de cámara (A17-3) o una plantilla
 // repetida (DEX3) — bandeja previa (E11b) → `applyStagedMovementImport` → lote reversible de
 // `FinanceCanonicalE5`. Nunca una cuarta forma de escribir en `baseData.transactions`.
 function handleE17QuickCapture(dataset) {
@@ -777,9 +839,11 @@ function handleE17QuickCapture(dataset) {
   const kind = dataset?.e17CreateKind === "income" ? "income" : "expense";
   if (!Number.isFinite(amount) || amount <= 0 || !concept) return;
   const today = new Date().toISOString().slice(0, 10);
+  const requestedDate = String(dataset?.e17CreateDate || "").trim();
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : today;
   const row = {
-    date: today, valueDate: today, movement: concept,
-    details: "Creado desde la barra de captura rápida (DEX1)",
+    date, valueDate: date, movement: concept,
+    details: "Creado desde la barra de captura rápida (DEX1/DEX2)",
     amount: kind === "income" ? Math.abs(round2(amount)) : -Math.abs(round2(amount)),
     balance: null, category: "", source: "manual-quick-capture", statementOrder: 0,
   };
