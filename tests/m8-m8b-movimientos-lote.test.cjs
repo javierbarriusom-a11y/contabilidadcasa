@@ -418,3 +418,119 @@ test("M-8b · handleMovementReclassify (M-7) también refresca una sesión de im
   assert.match(fn, /const key = remember \? movementMappingKey\(row\) : transactionIdentity\(row\);/);
   assert.match(fn, /if \(remember\) datosImportarRefreshRowsForMappings\(new Set\(\[key\]\)\);/);
 });
+
+// ---------------------------------------------------------------------------------------------
+// DEX10 (Oleada 2, Bloque 1) · corrección en lote también del tipo de acción, no solo la partida.
+// La selección múltiple y el lote de partida (esto de arriba) ya existían desde M-8/M-8b — lo nuevo
+// es un segundo campo independiente que escribe `movementActionTypes`, la misma puerta que ya usa
+// el detalle individual (`handleMovementActionTypeSave`), sin tocar `recurring` (regla transversal
+// 04: hueco, no invención — adivinarlo en lote sería fabricar una decisión que nadie tomó).
+// ---------------------------------------------------------------------------------------------
+
+test("DEX10 · index.html declara el selector de tipo de acción del lote junto al de partida", () => {
+  assert.match(html, /id="movementsBulkActionType"/);
+});
+
+test("DEX10 · el selector de tipo de acción del lote queda enlazado a renderMovementsBulkBar en el arranque", () => {
+  assert.ok(app.includes('qs("movementsBulkActionType")?.addEventListener("change", renderMovementsBulkBar)'));
+});
+
+function sandboxBulkBarWithActionType({ selected = [0, 1] } = {}) {
+  const els = {
+    movementsBulkBar: fakeEl(), movementsBulkCount: fakeEl(), movementsBulkPartida: fakeEl(),
+    movementsBulkActionType: fakeEl(), movementsBulkNote: fakeEl(), movementsBulkApply: fakeEl(),
+  };
+  const context = sandboxWith(["renderMovementsBulkBar", "movementsSelectedRows", "movementsSelectedConceptKeys"], {
+    qs: (id) => els[id] || null,
+    movementsFilteredList: () => ROWS,
+    movementsSelectedIndexes: new Set(selected),
+    movementMappingKey: keyFor,
+    movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
+    mappingForMovement: () => null,
+    movementMappingOptions: (kind) => `<option value="x-${kind}">x</option>`,
+    movementActionTypeOptions: (selectedValue) => `<option value="pago_deuda" ${selectedValue === "pago_deuda" ? "selected" : ""}>Pago de deuda</option>`,
+  });
+  context.renderMovementsBulkBar();
+  return { context, els };
+}
+
+test("DEX10 · con selección homogénea, el selector de tipo de acción también se rellena y habilita", () => {
+  const { els } = sandboxBulkBarWithActionType({ selected: [0, 1] });
+  assert.equal(els.movementsBulkActionType.disabled, false);
+  assert.match(els.movementsBulkActionType.innerHTML, /Pago de deuda/);
+});
+
+test("DEX10 · mezclar ingresos y gastos también bloquea el selector de tipo de acción, no solo el de partida", () => {
+  const { els } = sandboxBulkBarWithActionType({ selected: [0, 3] }); // Mercadona (gasto) + Nómina (ingreso)
+  assert.equal(els.movementsBulkActionType.disabled, true);
+  assert.equal(els.movementsBulkActionType.innerHTML, "");
+});
+
+function sandboxBulkApplyWithActionType({ selected = [0, 1], partidaValue = "", actionTypeValue = "" } = {}) {
+  const calls = [];
+  const movementMappings = {};
+  const movementActionTypes = {};
+  const partidaSelect = partidaValue
+    ? { value: partidaValue, options: [{}, { textContent: "Gastos fijos · Alimentación" }], selectedIndex: 1 }
+    : { value: "", options: [], selectedIndex: -1 };
+  const actionTypeSelect = actionTypeValue
+    ? { value: actionTypeValue, options: [{}, { textContent: "Pago de deuda" }], selectedIndex: 1 }
+    : { value: "", options: [], selectedIndex: -1 };
+  const context = sandboxWith(["handleMovementsBulkApply", "movementsSelectedRows", "movementsSelectedConceptKeys"], {
+    movementsFilteredList: () => ROWS,
+    movementsSelectedIndexes: new Set(selected),
+    qs: (id) => ({ movementsBulkPartida: partidaSelect, movementsBulkActionType: actionTypeSelect }[id] || null),
+    movementMappingKey: keyFor,
+    movementKindFromAmount: (amount) => (amount >= 0 ? "income" : "expense"),
+    movementMappings,
+    movementActionTypes,
+    mappingForMovement: () => null,
+    saveMovementMappings: () => calls.push("saveMovementMappings"),
+    saveMovementActionTypes: () => calls.push("saveMovementActionTypes"),
+    applyMovementMappingsToActuals: () => { calls.push("applyMovementMappingsToActuals"); return 4; },
+    buildPendingMovementMappings: () => [],
+    datosImportarRefreshRowsForMappings: () => calls.push("datosImportarRefreshRowsForMappings"),
+    saveIncomeActuals: () => calls.push("saveIncomeActuals"),
+    saveExpenseActuals: () => calls.push("saveExpenseActuals"),
+    refreshAllSectionsAfterDataChange: () => calls.push("refreshAllSectionsAfterDataChange"),
+    announceStatus: (message) => calls.push(["announceStatus", message]),
+    renderDetailedMovements: () => calls.push("renderDetailedMovements"),
+    baseData: { transactions: [] },
+    pendingMovementMappings: [],
+  });
+  context.handleMovementsBulkApply();
+  return { calls, movementMappings, movementActionTypes };
+}
+
+test("DEX10 · solo tipo de acción (sin partida): escribe movementActionTypes, nunca movementMappings, y recurring queda sin decidir", () => {
+  const { calls, movementMappings, movementActionTypes } = sandboxBulkApplyWithActionType({ selected: [0, 1], actionTypeValue: "pago_deuda" });
+  assert.deepEqual(movementMappings, {});
+  assert.equal(Object.keys(movementActionTypes).length, 1);
+  const saved = movementActionTypes[keyFor(ROWS[0])];
+  assert.equal(saved.actionType, "pago_deuda");
+  assert.equal(saved.recurring, null);
+  assert.ok(calls.includes("saveMovementActionTypes"));
+  assert.ok(!calls.includes("saveMovementMappings"));
+  assert.ok(!calls.includes("applyMovementMappingsToActuals"), "sin partida, no hay reales que recalcular");
+  assert.deepEqual(calls.at(-2), ["announceStatus", "1 concepto(s) (2 movimiento(s)) tipo de acción asignado como «Pago de deuda»."]);
+});
+
+test("DEX10 · partida y tipo de acción a la vez: escribe los dos diccionarios en el mismo lote", () => {
+  const { movementMappings, movementActionTypes } = sandboxBulkApplyWithActionType({
+    selected: [0, 1], partidaValue: "gastos-alimentacion", actionTypeValue: "pago_deuda",
+  });
+  assert.equal(Object.keys(movementMappings).length, 1);
+  assert.equal(Object.keys(movementActionTypes).length, 1);
+});
+
+test("DEX10 · ni partida ni tipo de acción elegidos: aplicar no hace nada", () => {
+  const { calls, movementMappings, movementActionTypes } = sandboxBulkApplyWithActionType({ selected: [0, 1] });
+  assert.deepEqual(calls, []);
+  assert.deepEqual(movementMappings, {});
+  assert.deepEqual(movementActionTypes, {});
+});
+
+test("DEX10 · el mensaje de partida sola es exactamente el mismo texto que antes de esta tarea (cero regresión de copy)", () => {
+  const { calls } = sandboxBulkApplyWithActionType({ selected: [0, 1], partidaValue: "gastos-alimentacion" });
+  assert.deepEqual(calls.at(-2), ["announceStatus", "1 concepto(s) (2 movimiento(s)) reclasificados a «Gastos fijos · Alimentación». 4 importe(s) reales recalculados desde movimientos."]);
+});

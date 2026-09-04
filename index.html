@@ -218,15 +218,23 @@
         <!-- UX1: deshacer de 10 segundos en vez de confirmaciones modales — la acción reversible ya
              ocurrió; este aviso ofrece revertirla en vez de haber bloqueado la interacción antes con
              un "¿seguro?". Fuera de #mainContent para que sobreviva al cambio de vista mientras está
-             visible. -->
+             visible. DEX4: pila real detrás — el aviso muestra la deshacer más reciente y
+             #undoToastCount cuántas más siguen pendientes debajo, sin perderlas en silencio. -->
         <div class="undo-toast" id="undoToast" role="status" aria-live="polite" hidden>
           <span id="undoToastMessage"></span>
+          <span class="undo-toast-count" id="undoToastCount" hidden></span>
           <button type="button" class="e19-btn e19-btn-secondary" id="undoToastButton">Deshacer</button>
         </div>
 
         <main id="mainContent" tabindex="-1">
           <p class="sr-only" id="appLiveStatus" role="status" aria-live="polite" aria-atomic="true"></p>
           <section class="home-dashboard view-section e19-home" id="home">
+            <!-- DEX5: guía de primeros pasos, no ocultamiento de pantallas — decisión explícita del
+                 usuario (3-sep-2026): todas las pantallas quedan visibles desde el primer día, esto
+                 solo señala por dónde empezar durante la primera semana de uso real. Reutiliza
+                 .e19-next-step (OPT-19), el mismo componente de "siguiente paso" que ya usa A6-1
+                 en #updateNextStep — ninguna clase de banner nueva. -->
+            <article class="dex5-onboarding-banner e19-next-step" id="dex5OnboardingBanner" aria-live="polite" hidden></article>
             <div class="section-title with-action">
               <div>
                 <p class="panel-kicker e19-eyebrow">Hoy</p>
@@ -5091,6 +5099,13 @@
               <label class="movements-bulk-field">
                 <span>Partida</span>
                 <select id="movementsBulkPartida"></select>
+              </label>
+              <!-- DEX10: segundo campo opcional, independiente de la partida — igual que en el
+                   detalle individual (P-1), asignar partida y tipo de acción son dos puertas de
+                   guardado distintas que no se mezclan entre sí. -->
+              <label class="movements-bulk-field">
+                <span>Tipo de acción</span>
+                <select id="movementsBulkActionType"></select>
               </label>
               <p class="e19-kpi-note" id="movementsBulkNote"></p>
               <div class="movements-bulk-actions">

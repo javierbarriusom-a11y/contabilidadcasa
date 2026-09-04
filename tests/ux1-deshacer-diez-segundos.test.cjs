@@ -14,6 +14,11 @@ const html = read("index.html");
 // (alerta, objetivo de ahorro) — se convierten aquí a deshacer-de-10-segundos. El tercero
 // (registrarConsolidateSessionChanges) es un aviso de riesgo, no un "¿seguro que borro?" — se queda
 // como confirm() a propósito, y un test de este archivo lo comprueba explícitamente.
+//
+// DEX4 (Oleada 2, Bloque 1): `undoToastCallback`/`undoToastTimer` eran una única casilla — una
+// segunda `showUndoToast` mientras la primera seguía viva pisaba su callback sin avisar, perdiendo
+// en silencio la posibilidad de deshacer la primera acción. Pasa a una pila real (`undoStack`); los
+// tests de abajo se actualizaron para probar la coexistencia en vez de la pérdida silenciosa.
 
 function extractFunction(name) {
   const start = app.indexOf(`function ${name}(`);
@@ -45,23 +50,26 @@ function fakeEl() {
 }
 
 function toastSandbox() {
-  const elements = { undoToast: fakeEl(), undoToastMessage: fakeEl() };
+  const elements = { undoToast: fakeEl(), undoToastMessage: fakeEl(), undoToastCount: fakeEl() };
   const context = {
     qs: (id) => elements[id] || null,
     window: { setTimeout: (fn, ms) => setTimeout(fn, ms), clearTimeout: (id) => clearTimeout(id) },
-    undoToastTimer: null,
-    undoToastCallback: null,
+    undoStack: [],
   };
   vm.createContext(context);
-  ["showUndoToast", "hideUndoToast", "handleUndoToastClick"].forEach((name) => vm.runInContext(extractFunction(name), context));
+  const maxDeclaration = app.match(/const UNDO_STACK_MAX = \d+;/);
+  assert.ok(maxDeclaration, "No existe UNDO_STACK_MAX en app.js");
+  vm.runInContext(maxDeclaration[0], context);
+  ["renderUndoToast", "dismissUndoEntry", "showUndoToast", "hideUndoToast", "handleUndoToastClick"].forEach((name) => vm.runInContext(extractFunction(name), context));
   return { ctx: context, elements };
 }
 
-test("showUndoToast · muestra el aviso con el mensaje, oculto por defecto", () => {
+test("showUndoToast · muestra el aviso con el mensaje, oculto por defecto, sin contador de más pendientes", () => {
   const { ctx, elements } = toastSandbox();
   ctx.showUndoToast("Alerta «Reserva baja» eliminada.", () => {}, 50);
   assert.equal(elements.undoToast.hidden, false);
   assert.equal(elements.undoToastMessage.textContent, "Alerta «Reserva baja» eliminada.");
+  assert.equal(elements.undoToastCount.hidden, true);
 });
 
 test("handleUndoToastClick · llama al deshacer y oculta el aviso, no espera al temporizador", () => {
@@ -82,8 +90,33 @@ test("showUndoToast · pasado el tiempo sin pulsar Deshacer, el aviso se oculta 
   assert.equal(undone, false);
 });
 
-test("showUndoToast · un segundo aviso antes de que expire el primero cancela el temporizador anterior", async () => {
-  const { ctx } = toastSandbox();
+// DEX4: antes, un segundo aviso mientras el primero seguía vivo pisaba su callback en silencio —
+// ahora ambos coexisten en la pila, cada uno con su propio temporizador y su propia posibilidad real
+// de deshacerse, y el aviso enseña un contador de cuántos más siguen pendientes debajo del visible.
+test("showUndoToast · un segundo aviso antes de que expire el primero NO pisa su callback: ambos coexisten en la pila", () => {
+  const { ctx, elements } = toastSandbox();
+  let firstUndone = false;
+  let secondUndone = false;
+  ctx.showUndoToast("Primero", () => { firstUndone = true; }, 20000);
+  ctx.showUndoToast("Segundo", () => { secondUndone = true; }, 20000);
+  // El aviso visible muestra siempre la más reciente, con un contador de las que quedan debajo.
+  assert.equal(elements.undoToastMessage.textContent, "Segundo");
+  assert.equal(elements.undoToastCount.hidden, false);
+  assert.equal(elements.undoToastCount.textContent, "+1 más");
+  // Deshacer la visible (Segundo) no toca la más antigua (Primero): sigue en la pila, deshacible.
+  ctx.handleUndoToastClick();
+  assert.equal(secondUndone, true);
+  assert.equal(firstUndone, false);
+  assert.equal(elements.undoToast.hidden, false);
+  assert.equal(elements.undoToastMessage.textContent, "Primero");
+  assert.equal(elements.undoToastCount.hidden, true);
+  ctx.handleUndoToastClick();
+  assert.equal(firstUndone, true);
+  assert.equal(elements.undoToast.hidden, true);
+});
+
+test("showUndoToast · pasado el tiempo sin pulsar Deshacer, ambos avisos pendientes expiran solos y ninguno llama al deshacer", async () => {
+  const { ctx, elements } = toastSandbox();
   let firstUndone = false;
   let secondUndone = false;
   ctx.showUndoToast("Primero", () => { firstUndone = true; }, 20);
@@ -91,6 +124,20 @@ test("showUndoToast · un segundo aviso antes de que expire el primero cancela e
   await new Promise((resolve) => setTimeout(resolve, 60));
   assert.equal(firstUndone, false);
   assert.equal(secondUndone, false); // ninguno se llama solo por expirar: eso es lo esperado, ambos "final"
+  assert.equal(elements.undoToast.hidden, true);
+});
+
+test("showUndoToast · un sexto aviso mientras cinco siguen vivos retira el más antiguo en silencio (tope defensivo)", () => {
+  const { ctx } = toastSandbox();
+  const order = [];
+  for (let index = 1; index <= 5; index += 1) {
+    ctx.showUndoToast(`Aviso ${index}`, () => order.push(index), 20000);
+  }
+  assert.equal(ctx.undoStack.length, 5);
+  ctx.showUndoToast("Aviso 6", () => order.push(6), 20000);
+  assert.equal(ctx.undoStack.length, 5);
+  assert.equal(ctx.undoStack.map((entry) => entry.message).includes("Aviso 1"), false); // el más antiguo, retirado
+  assert.equal(ctx.undoStack.map((entry) => entry.message).includes("Aviso 6"), true);
 });
 
 test("handleAlertRuleAction · borrar una alerta ya no usa confirm(): borra ya y ofrece deshacer", () => {
@@ -128,5 +175,6 @@ test("el aviso de deshacer vive fuera de #mainContent, para sobrevivir al cambio
   const toastStart = html.indexOf('id="undoToast"');
   assert.ok(toastStart >= 0 && toastStart < mainStart, "El aviso debe declararse antes de <main>");
   assert.match(html, /id="undoToastMessage"/);
+  assert.match(html, /id="undoToastCount"/);
   assert.match(html, /id="undoToastButton"/);
 });

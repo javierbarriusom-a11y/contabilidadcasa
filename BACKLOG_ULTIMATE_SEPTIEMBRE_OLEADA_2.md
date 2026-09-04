@@ -74,7 +74,9 @@ mismo criterio de nivel de dependencia → esfuerzo → beneficio que el documen
 Estado: todas las tareas de este documento están ⏳ (ninguna tiene código todavía) salvo aviso contrario.
 Primera oleada del Bloque 1 (DEX7, DEX9, DEX3, DEX8, DEX11 — las cinco de esfuerzo S/S-M) cerrada el
 3 de septiembre de 2026 (sesión 136 de `PROJECT_STATE.md`, detalle completo ahí); marcadas ✅ en la
-tabla de abajo.
+tabla de abajo. Segunda oleada (DEX1, DEX4, DEX5, DEX10 — las cuatro de esfuerzo M) cerrada el mismo
+día (sesión 137). Del Bloque 1 solo quedan `DEX2` (depende de `DEX1`, ya desbloqueada) y `DEX6`
+(condicionada a que `A5-1` esté activo en producción).
 
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
@@ -87,10 +89,10 @@ tabla de abajo.
 | 3 | ✅ DEX3 | Plantillas de un toque para lo recurrente | Entrada de datos | S-M | Alto | Hecho — botón «Repetir hoy» en Análisis, vía bandeja previa/lote reversible |
 | 4 | ✅ DEX8 | Errores explicados en lenguaje de persona | Entrada de datos | S-M | Medio | Hecho — mensaje específico por campo en captura de ticket + copy de Excel menos técnico |
 | 5 | ✅ DEX11 | Confirmación por gesto en móvil | Entrada de datos | S-M | Medio | Hecho — mantener pulsado 600 ms en táctil sobre los botones de A6-5 ya existentes |
-| 6 | DEX1 | Barra de captura rápida | Entrada de datos | M | Alto | Se apoya en `A12-3` y `UX6`; patrón de mando de acciones, no un asistente de IA |
-| 7 | DEX4 | Deshacer universal | Entrada de datos | M | Alto | Extiende el deshacer de 10 s de `UX1` a cualquier acción, con pila visible |
-| 8 | DEX5 | Onboarding progresivo por desbloqueo | Entrada de datos | M | Alto | Se apoya en `A6-1` y `A12-5`; un hogar nuevo ve solo lo mínimo la primera semana |
-| 9 | DEX10 | Corrección en lote | Entrada de datos | M | Medio-Alto | Se apoya en el centro de calidad `A3-3`; reclasificar varios movimientos a la vez |
+| 6 | ✅ DEX1 | Barra de captura rápida | Entrada de datos | M | Alto | Hecho — tercer resultado del lanzador (Cmd/Ctrl+K): «gasto 12,50 mercadona» crea el movimiento vía bandeja previa |
+| 7 | ✅ DEX4 | Deshacer universal | Entrada de datos | M | Alto | Hecho — `undoStack` real, corrige un bug de pérdida silenciosa de deshacer; contador «+N más» visible |
+| 8 | ✅ DEX5 | Onboarding progresivo por desbloqueo | Entrada de datos | M | Alto | Hecho — decisión del usuario: sin ocultar nada, solo guía de Hoy + Registrar la primera semana |
+| 9 | ✅ DEX10 | Corrección en lote | Entrada de datos | M | Medio-Alto | Hecho — la selección múltiple ya existía (M-8); se añadió el lote de tipo de acción, que faltaba |
 | 10 | DEX2 | Entrada en lenguaje natural, sin voz | Entrada de datos | M-L | Alto | Depende de `DEX1` para no duplicar interfaz; siempre a bandeja previa (`A6-2`) |
 | 11 | DEX6 | Extracto completo por foto o PDF | Entrada de datos | L | Alto | Extiende `A17-3`; **condicionada a `A5-1` activo** (ver Bloque 6) — el resto del bloque no espera a esta |
 
