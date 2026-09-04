@@ -2,6 +2,75 @@
 
 Fecha de revisión: 4 de septiembre de 2026.
 
+## Cierre de sesión — 4 de septiembre de 2026 (142): primera oleada del Bloque 3 — APX1, IVX2, LPX1, LPX2, IVX6 (IVX5 reclasificada)
+
+Continuación directa de la sesión 141 (pedido del usuario: seguir con el Bloque 3, 20 tareas M/M-L).
+Antes de construir se verificaron a mano las dependencias declaradas de un primer grupo de cinco
+tareas — mismo criterio que RGX1/RGX2, no fiarse de que "M/M-L" signifique sin sorpresas. Dos
+hallazgos reales, los dos puestos al usuario antes de tocar código:
+
+- **IVX5 (drawdown) — reclasificada ⚠️**: la app solo guarda el valor actual de cada posición, no
+  una serie temporal de valoraciones intermedias (el mismo hueco que IV2 ya reconoce para el TWR
+  real). Sin esa serie no hay caída máxima que calcular sin inventarla; usar las fechas de
+  aportaciones/disposals como proxy habría dado una cifra con apariencia de precisión pero
+  sistemáticamente engañosa (plana entre movimientos). Se recomendó al usuario reclasificar en vez
+  de construir un registro de valoraciones periódicas "de paso" — eso es una decisión de producto
+  aparte (carga de mantenimiento manual nueva y permanente), no algo que quepa dentro de esta fila.
+  El usuario lo confirmó.
+- **IVX6 (glide path) — vínculo construido primero**: dependía de un enlace posición↔objetivo que
+  tampoco existía (IV1 y A10-1 eran dos registros independientes). A diferencia de IVX5, aquí el
+  usuario pidió construir el vínculo antes de la tarea en sí, con todo el alcance que hiciera falta.
+
+Las otras cuatro no tuvieron ningún hallazgo — sus dependencias (`AP2`, `A15-1`, `FC1`, `IV2`,
+`A14-2`, `A7-1`, `A14-4`) ya eran reales y con UI:
+
+- **APX1 — coste de la deuda neto de fiscalidad real**: `netDebtCostAfterTax()`, nueva en
+  `canonical-debt-comparator.js`. El punto de equilibrio de AP2 (`breakEvenInvestmentRatePct`) da
+  por hecha una rentabilidad de inversión libre de impuestos — nunca lo fue de verdad, porque la
+  plusvalía tributa y el interés de deuda personal no es deducible. Se "eleva" el punto de
+  equilibrio dividiéndolo por (1 − tipo del ahorro), reutilizando el mismo campo que ya declara el
+  hogar en FC4 (`dividendSpanishSavingsRatePct`) — sin duplicar el campo ni inventar un tramo de
+  IRPF. Si hay pérdidas `FC3` pendientes de compensar, se avisa aparte (sin mezclar ambas cifras: no
+  hay forma honesta de saber cuánta plusvalía futura absorberán).
+- **IVX2 — comparación contra un índice de referencia**: `compareAgainstBenchmark()`, nueva en
+  `canonical-portfolio.js`. El índice lo declara el hogar (rentabilidad anualizada, sin traer ningún
+  precio de mercado real) y se compara contra la XIRR de la cartera — la nota deja explícito que es
+  una comparación aproximada por construcción (XIRR es money-weighted, el índice no vive esos
+  mismos flujos de caja).
+- **LPX1 — calculadora de independencia financiera**: `financialIndependenceTarget()`, nueva en
+  `canonical-assets.js`. Capital objetivo = gasto anual (promedio de la previsión viva, `lastSimulation`,
+  no un único mes) ÷ tasa de retirada que declara el hogar — nunca un 4% por defecto que nadie ha
+  elegido, mismo criterio que el resto de supuestos del hogar. Frente al patrimonio neto de A14-2.
+- **LPX2 — runway patrimonial completo**: `netWorthRunway()`, misma familia que LPX1. A diferencia
+  del colchón de DLX1 (solo liquidez), cuenta todo el patrimonio neto — así que avisa aparte de qué
+  % es inmueble/vehículo/pensión (A14-4) y por tanto no gastable sin vender o pedir prestado sobre
+  ello.
+- **IVX6 — glide path de aportaciones por horizonte**: primero, campo `goalId` opcional al
+  registrar una posición (`IV1`), con un selector que solo ofrece objetivos activos con fecha
+  (`A10-1`, vía `activeGoalsForBudget()`/`P2Domain`, el registro real de objetivos que ya usa el
+  presupuesto). Luego `glidePathForGoal()`/`glidePathBand()`, nuevas en `canonical-portfolio.js`: banda
+  de horizonte (crecimiento 5+ años / transición 2-5 / conservador <2) por objetivo con al menos una
+  posición vinculada. Deliberadamente NO recomienda qué posición concreta ajustar — esta app no
+  clasifica el riesgo/volatilidad por posición (fondo/acción/ETF/cripto son tipos, no un rating de
+  riesgo), así que inventar una regla de "vende X%" habría sido fabricar precisión inexistente.
+
+**Validación**: `npm run verify`, exit 0 — **3140/3140 pruebas** (3114 + 26 nuevas: 6 en
+`tests/apx1-coste-deuda-neto-fiscalidad.test.cjs` —nuevo—, 6 en
+`tests/ivx2-comparacion-indice-referencia.test.cjs` —nuevo—, 8 en
+`tests/lpx1-lpx2-independencia-runway.test.cjs` —nuevo— y 6 en
+`tests/ivx6-glide-path-objetivo.test.cjs` —nuevo—), accesibilidad (1098 IDs, +6 por los campos/
+tarjetas nuevas), rendimiento, `build:site`, privacidad y humo en verde. Se corrigieron cuatro
+ventanas de test fijas que el nuevo campo `goalId` de `saveIv1Position()` dejó cortas
+(`tests/iv2-app-integracion.test.cjs` ×2, `tests/fc1-app-integracion.test.cjs`,
+`tests/iv3-app-integracion.test.cjs` — mismo patrón de fragilidad ya documentado en sesiones
+anteriores) y una regex que esperaba el literal de la posición sin el campo nuevo.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 3 — APX1, IVX2, LPX1,
+LPX2, IVX6 marcadas ✅ Hecho; IVX5 marcada ⚠️ reclasificada con el motivo. Quedan 14 tareas del
+Bloque 3 y los Bloques 4-6 completos (17 tareas) sin empezar.
+
+**Pendiente de publicar**: rama `claude/session-eilejl`, PR por abrir tras este commit.
+
 ## Cierre de sesión — 4 de septiembre de 2026 (141): cierre del Bloque 2 — APX5, APX6, LPX3, RGX4, IVX7, MDX2
 
 Continuación directa de la sesión 140 (pedido explícito del usuario: seguir con las tareas S-M

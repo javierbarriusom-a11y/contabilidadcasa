@@ -90,6 +90,16 @@ restantes (APX5, APX6, LPX3, RGX4, IVX7, MDX2) cerradas también el 4 de septiem
 `A7-3`, `A11-4`, `CP1`, `IV3`, `A0-9`) se verificaron primero y todas tenían UI real. **Con esto el
 Bloque 2 queda completo (11/11 tareas)**. Quedan los Bloques 3-6 sin empezar (36 tareas).
 
+Primera oleada del Bloque 3 (APX1, IVX2, LPX1, LPX2, IVX6 — cinco de las veinte tareas) cerrada el 4
+de septiembre de 2026 (sesión 142). Antes de construir se verificaron las dependencias declaradas
+(mismo criterio que RGX1/RGX2): dos hallazgos reales. `IVX5` (drawdown) depende de una serie
+temporal de valoraciones que la app no guarda — reclasificada ⚠️, sin construir nada sobre datos
+inventados. `IVX6` (glide path) dependía de un vínculo posición↔objetivo que tampoco existía;
+consultado el usuario, decidió construirlo primero (campo `goalId` opcional en `IV1`) en vez de
+reclasificar. Las otras cuatro (`APX1`, `IVX2`, `LPX1`, `LPX2`) no tenían ningún hueco de alcance —
+sus dependencias (`AP2`, `A15-1`, `FC1`, `IV2`, `A14-2`, `A7-1`, `A14-4`) ya eran reales y con UI.
+Quedan 14 tareas del Bloque 3 y los Bloques 4-6 completos (17 tareas) sin empezar.
+
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
 ### Bloque 1 — Entrada de datos, priorizado completo por decisión explícita (11 tareas, nivel 0)
@@ -134,18 +144,18 @@ Bloque 2 queda completo (11/11 tareas)**. Quedan los Bloques 3-6 sin empezar (36
 | 26 | PVX2 | Multihorizonte simultáneo | Previsión viva 2 | M | Medio | Consume el contrato `A7-1` |
 | 27 | ESX2 | Plantillas de eventos de vida | Escenarios 2 | M | Alto | Extiende el constructor de eventos `A8-2` |
 | 28 | ESX4 | Malla de dos supuestos cruzados | Escenarios 2 | M | Medio | Depende de `A8-6` y `A8-1` |
-| 29 | IVX2 | Comparación contra un índice de referencia | Inversión 2 | M | Alto | Depende de `xirr()` (`canonical-portfolio.js`, `IV2`) |
+| 29 | ✅ IVX2 | Comparación contra un índice de referencia | Inversión 2 | M | Alto | Hecho — `compareAgainstBenchmark()` (`canonical-portfolio.js`), índice anualizado declarado por el hogar (sin precio de mercado real) frente a la XIRR de la cartera; comparación explícitamente aproximada, no exacta (money-weighted vs. flujos que el índice no vive) |
 | 30 | IVX4 | Coste compuesto de comisiones | Inversión 2 | M | Alto | Depende de `IV1` |
-| 31 | APX1 | Coste de la deuda neto de fiscalidad real | Apalancamiento 2 | M | Alto | Depende de `breakEvenInvestmentRatePct()` (`canonical-debt-comparator.js`, `AP2`), `A15-1` y `FC1` |
+| 31 | ✅ APX1 | Coste de la deuda neto de fiscalidad real | Apalancamiento 2 | M | Alto | Hecho — `netDebtCostAfterTax()` (`canonical-debt-comparator.js`) eleva el punto de equilibrio de `AP2` con el tipo del ahorro ya declarado en FC4 (`dividendSpanishSavingsRatePct`, sin campo duplicado ni tramo de IRPF inventado); avisa aparte si hay pérdidas `FC3` pendientes de compensar |
 | 32 | APX4 | Correlación entre activo apalancado e ingresos | Apalancamiento 2 | M | Alto | Depende de `AP3` e `IV4` |
 | 33 | CPX1 | Resumen semanal proactivo | Copiloto 2 | M | Alto | Depende de `CP1` y `CP3`; reutiliza `A5-4` si existe |
 | 34 | CPX2 | Modo segunda opinión para decisiones externas | Copiloto 2 | M | Alto | Depende de `A8-2` y `CP6` |
 | 35 | FCX1 | Rescate de pensiones modelado | Fiscalidad 2 | M | Alto | Depende de `A15-4` y `A15-2` |
-| 36 | LPX1 | Calculadora de independencia financiera | Patrimonio y vida | M | Alto | Depende de `A14-2` y `A7-1` |
-| 37 | LPX2 | Runway patrimonial completo | Patrimonio y vida | M | Alto | Depende de `A14-2` y `A14-4` |
+| 36 | ✅ LPX1 | Calculadora de independencia financiera | Patrimonio y vida | M | Alto | Hecho — `financialIndependenceTarget()` (`canonical-assets.js`): capital objetivo = gasto anual (previsión viva, `A7-1`) ÷ tasa de retirada que declara el hogar (sin un 4% por defecto), frente al patrimonio neto `A14-2` |
+| 37 | ✅ LPX2 | Runway patrimonial completo | Patrimonio y vida | M | Alto | Hecho — `netWorthRunway()` (`canonical-assets.js`): meses de patrimonio neto completo (`A14-2`) frente al colchón líquido de `DLX1`, con aviso de qué % es inmueble/vehículo/pensión (`A14-4`) y por tanto no gastable sin vender |
 | 38 | IVX1 | Multidivisa y exposición cambiaria | Inversión 2 | M | Medio | Depende de `IV1` y `A14-1` |
-| 39 | IVX5 | Máxima caída (drawdown) y tiempo de recuperación | Inversión 2 | M | Medio-Alto | Depende de `IV1` e `IV2` |
-| 40 | IVX6 | Glide path de aportaciones por horizonte | Inversión 2 | M | Medio | Depende de `IV1` y `A10-1` |
+| 39 | ⚠️ IVX5 | Máxima caída (drawdown) y tiempo de recuperación | Inversión 2 | M | Medio-Alto | Reclasificada — la app solo guarda el valor actual de cada posición, sin histórico de valoraciones intermedias (mismo hueco que ya reconoce IV2 para el TWR real). Sin esa serie temporal no hay drawdown que calcular sin inventarlo; usar las fechas de aportaciones/disposals como proxy daría una cifra con apariencia de precisión pero de fondo engañosa. Bloqueada hasta que se decida construir un registro de valoraciones periódicas por posición — decisión de producto aparte, no colada dentro de esta fila |
+| 40 | ✅ IVX6 | Glide path de aportaciones por horizonte | Inversión 2 | M | Medio | Hecho — primero se construyó el vínculo posición↔objetivo que no existía (`goalId` opcional en `IV1`, decisión explícita del usuario), y sobre él `glidePathForGoal()` (`canonical-portfolio.js`) da la banda de horizonte (crecimiento/transición/conservador) por objetivo con fecha (`A10-1`). Nunca recomienda qué posición concreta ajustar: esta app no clasifica el riesgo/volatilidad por posición, así que no hay dato para respaldar esa precisión |
 | 41 | MDX1 | Vista educativa para hijos | Multidispositivo | M | Medio | Depende de `A5-3` y `A19-1`; vista de solo lectura y simplificada del colchón y el patrimonio. La dependencia de `A5-3` ya no es un hueco: la tarjeta «Hogar compartido» (RGX1/RGX2, sesión 140) le da la UI e invitación real que le faltaba. |
 | 42 | APX2 | Crédito con garantía de cartera (Lombard) | Apalancamiento 2 | M-L | Medio | Depende de `A14-1` e `IV1`; primer paso de `APX3` (Bloque 4) |
 

@@ -134,6 +134,66 @@
     };
   }
 
+  const FINANCIAL_INDEPENDENCE_SCHEMA_ID = "finance.financial-independence";
+
+  // LPX1: capital objetivo = gasto anual declarado / tasa de retirada objetivo (regla de la renta
+  // perpetua, sin motor de proyección de mercado). La tasa la declara el hogar (nunca un 4% por
+  // defecto que nadie ha elegido) — mismo criterio que el tipo del ahorro de FC4 o la retención de
+  // A15-1: un supuesto del hogar, no uno que la app dé por hecho.
+  function financialIndependenceTarget({ annualExpenses, withdrawalRatePct, netWorth } = {}) {
+    const expenses = number(annualExpenses, null);
+    const rate = number(withdrawalRatePct, null);
+    const worth = number(netWorth, null);
+    if (!knownNumber(expenses) || expenses <= 0 || !knownNumber(rate) || rate <= 0 || !knownNumber(worth)) {
+      return { schema: FINANCIAL_INDEPENDENCE_SCHEMA_ID, calculable: false };
+    }
+    const targetCorpus = round2(expenses / (rate / 100));
+    const gap = round2(Math.max(0, targetCorpus - worth));
+    const progressPct = targetCorpus > 0 ? Math.round(Math.min(100, Math.max(0, (worth / targetCorpus) * 100))) : 0;
+    return {
+      schema: FINANCIAL_INDEPENDENCE_SCHEMA_ID,
+      calculable: true,
+      annualExpenses: round2(expenses),
+      withdrawalRatePct: round2(rate),
+      targetCorpus,
+      netWorth: round2(worth),
+      gap,
+      progressPct,
+      reached: worth >= targetCorpus,
+    };
+  }
+
+  const NET_WORTH_RUNWAY_SCHEMA_ID = "finance.net-worth-runway";
+
+  // LPX2: cuántos meses aguantaría el patrimonio neto completo si el ingreso se cortara del todo
+  // (gasto mensual medio, mismo criterio que cushionFloor). A diferencia del colchón (solo líquido),
+  // aquí se cuenta TODO el patrimonio neto — así que se avisa aparte de qué parte no es líquida
+  // (inmueble/vehículo/pensión: no se puede gastar sin vender o pedir prestado sobre ello) para que
+  // la cifra no se lea como "dinero disponible ya", que no lo es.
+  const ILLIQUID_ASSET_TYPES = ["inmueble", "vehiculo", "pension"];
+
+  function netWorthRunway({ netWorth, monthlyBurn, totalsByType } = {}) {
+    const worth = number(netWorth, null);
+    const burn = number(monthlyBurn, null);
+    if (!knownNumber(worth) || !knownNumber(burn) || burn <= 0) {
+      return { schema: NET_WORTH_RUNWAY_SCHEMA_ID, calculable: false };
+    }
+    const months = worth <= 0 ? 0 : Math.floor(worth / burn);
+    const byType = totalsByType && typeof totalsByType === "object" ? totalsByType : {};
+    const illiquidTotal = round2(ILLIQUID_ASSET_TYPES.reduce((sum, type) => sum + number(byType[type]), 0));
+    const grossTotal = round2(Object.values(byType).reduce((sum, value) => sum + number(value), 0));
+    const illiquidPct = grossTotal > 0 ? Math.round((illiquidTotal / grossTotal) * 100) : 0;
+    return {
+      schema: NET_WORTH_RUNWAY_SCHEMA_ID,
+      calculable: true,
+      netWorth: round2(worth),
+      monthlyBurn: round2(burn),
+      months,
+      illiquidTotal,
+      illiquidPct,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -144,5 +204,10 @@
     validateAssets,
     assetQuality,
     summarizeAssets,
+    FINANCIAL_INDEPENDENCE_SCHEMA_ID,
+    financialIndependenceTarget,
+    NET_WORTH_RUNWAY_SCHEMA_ID,
+    ILLIQUID_ASSET_TYPES,
+    netWorthRunway,
   };
 });
