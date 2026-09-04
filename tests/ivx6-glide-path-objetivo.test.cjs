@@ -85,7 +85,8 @@ test("index.html: selector de objetivo asociado (opcional) al registrar una posi
 test("app.js: saveIv1Position guarda goalId y renderIvx6GlidePath está cableado en el render() central y en las mutaciones de posición", () => {
   const saveBlock = extractFunction("saveIv1Position");
   assert.match(saveBlock, /qs\("iv1PositionGoalId"\)\?\.value/);
-  assert.match(saveBlock, /goalId, contributions: \[\]/);
+  // IVX4 (misma oleada, tarea siguiente) añadió feePct entre goalId y contributions.
+  assert.match(saveBlock, /goalId, feePct, contributions: \[\]/);
   assert.match(saveBlock, /renderIvx6GlidePath\(\);/);
   const removeBlock = extractFunction("removeIv1Position");
   assert.match(removeBlock, /renderIvx6GlidePath\(\);/);

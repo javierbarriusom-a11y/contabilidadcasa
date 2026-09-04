@@ -100,6 +100,12 @@ reclasificar. Las otras cuatro (`APX1`, `IVX2`, `LPX1`, `LPX2`) no tenían ning�
 sus dependencias (`AP2`, `A15-1`, `FC1`, `IV2`, `A14-2`, `A7-1`, `A14-4`) ya eran reales y con UI.
 Quedan 14 tareas del Bloque 3 y los Bloques 4-6 completos (17 tareas) sin empezar.
 
+Segunda oleada del Bloque 3 (PVX1, IVX4, FCX1, CPX2 — cuatro tareas más) cerrada el 4 de septiembre
+de 2026 (sesión 143), sin ningún hallazgo de alcance: `A11-3`/`learnFromHistory` (PVX1), `IV1`
+(IVX4), `A15-2`/`A15-4` (FCX1) y `A8-2`/`CP6` (CPX2) ya eran reales, con UI o con el motor de
+tramos progresivos necesario. Quedan 10 tareas del Bloque 3 y los Bloques 4-6 completos (17 tareas)
+sin empezar.
+
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
 ### Bloque 1 — Entrada de datos, priorizado completo por decisión explícita (11 tareas, nivel 0)
@@ -138,19 +144,19 @@ Quedan 14 tareas del Bloque 3 y los Bloques 4-6 completos (17 tareas) sin empeza
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 23 | PVX1 | Backtesting público del propio motor | Previsión viva 2 | M | Alto | Reutiliza `learnFromHistory()` (`canonical-forecast.js`) y `A11-3` |
+| 23 | ✅ PVX1 | Backtesting público del propio motor | Previsión viva 2 | M | Alto | Hecho — `renderPvx1Backtest()` en Ajustes (no escondido dentro del Laboratorio de escenarios E13): reutiliza `learnFromHistory()` sobre `reconciledMonthlyNetHistory()` (mismo aprendizaje de `A11-3`/`E12b` que ya alimenta PV1-PV4), mes a mes previsto vs. real conciliado más el resumen de desviación media |
 | 24 | PVX3 | Recalculo instantáneo al introducir un dato | Previsión viva 2 | M | Alto | Depende de `PV3` y `A6-4` |
 | 25 | PVX4 | Banda de normalidad por categoría en vivo | Previsión viva 2 | M | Alto | Depende de `PV2` |
 | 26 | PVX2 | Multihorizonte simultáneo | Previsión viva 2 | M | Medio | Consume el contrato `A7-1` |
 | 27 | ESX2 | Plantillas de eventos de vida | Escenarios 2 | M | Alto | Extiende el constructor de eventos `A8-2` |
 | 28 | ESX4 | Malla de dos supuestos cruzados | Escenarios 2 | M | Medio | Depende de `A8-6` y `A8-1` |
 | 29 | ✅ IVX2 | Comparación contra un índice de referencia | Inversión 2 | M | Alto | Hecho — `compareAgainstBenchmark()` (`canonical-portfolio.js`), índice anualizado declarado por el hogar (sin precio de mercado real) frente a la XIRR de la cartera; comparación explícitamente aproximada, no exacta (money-weighted vs. flujos que el índice no vive) |
-| 30 | IVX4 | Coste compuesto de comisiones | Inversión 2 | M | Alto | Depende de `IV1` |
+| 30 | ✅ IVX4 | Coste compuesto de comisiones | Inversión 2 | M | Alto | Hecho — `compoundedFeeCost()` (`canonical-portfolio.js`): comisión anual declarada opcional por posición (`feePct`, nuevo campo de `IV1`), coste compuesto puro sobre un horizonte declarado por el hogar, sin asumir ninguna rentabilidad de mercado que no se ha declarado |
 | 31 | ✅ APX1 | Coste de la deuda neto de fiscalidad real | Apalancamiento 2 | M | Alto | Hecho — `netDebtCostAfterTax()` (`canonical-debt-comparator.js`) eleva el punto de equilibrio de `AP2` con el tipo del ahorro ya declarado en FC4 (`dividendSpanishSavingsRatePct`, sin campo duplicado ni tramo de IRPF inventado); avisa aparte si hay pérdidas `FC3` pendientes de compensar |
 | 32 | APX4 | Correlación entre activo apalancado e ingresos | Apalancamiento 2 | M | Alto | Depende de `AP3` e `IV4` |
 | 33 | CPX1 | Resumen semanal proactivo | Copiloto 2 | M | Alto | Depende de `CP1` y `CP3`; reutiliza `A5-4` si existe |
-| 34 | CPX2 | Modo segunda opinión para decisiones externas | Copiloto 2 | M | Alto | Depende de `A8-2` y `CP6` |
-| 35 | FCX1 | Rescate de pensiones modelado | Fiscalidad 2 | M | Alto | Depende de `A15-4` y `A15-2` |
+| 34 | ✅ CPX2 | Modo segunda opinión para decisiones externas | Copiloto 2 | M | Alto | Hecho — `cpx2SecondOpinionResult()` en Ajustes: para una decisión externa (todavía no un objeto formal de `escenarioMotorDecisions`) el hogar declara solo su impacto mensual en caja, y se pasa por el plan base (`A8-2`) y por el mismo escenario de tensión de `CP6` (ingresos ×0,9, gastos ×1,1) — nunca bloquea, solo informa |
+| 35 | ✅ FCX1 | Rescate de pensiones modelado | Fiscalidad 2 | M | Alto | Hecho — `marginalTaxOnAdditionalIncome()` (`canonical-irpf-estimator.js`): coste marginal de un rescate en forma de capital sumado a la renta general, por tramos reales si las dos escalas están registradas (`A15-2`), o con el tipo marginal declarado como respaldo (`A15-4`/`A15-1`). No modela reducciones por antigüedad de las aportaciones ni la modalidad en forma de renta — fuera de alcance sin inventar reglas de transitoriedad que la app no registra |
 | 36 | ✅ LPX1 | Calculadora de independencia financiera | Patrimonio y vida | M | Alto | Hecho — `financialIndependenceTarget()` (`canonical-assets.js`): capital objetivo = gasto anual (previsión viva, `A7-1`) ÷ tasa de retirada que declara el hogar (sin un 4% por defecto), frente al patrimonio neto `A14-2` |
 | 37 | ✅ LPX2 | Runway patrimonial completo | Patrimonio y vida | M | Alto | Hecho — `netWorthRunway()` (`canonical-assets.js`): meses de patrimonio neto completo (`A14-2`) frente al colchón líquido de `DLX1`, con aviso de qué % es inmueble/vehículo/pensión (`A14-4`) y por tanto no gastable sin vender |
 | 38 | IVX1 | Multidivisa y exposición cambiaria | Inversión 2 | M | Medio | Depende de `IV1` y `A14-1` |

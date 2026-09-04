@@ -18,9 +18,9 @@ test("IV2: saveIv1Position lee la fecha de adquisición y registra la posición 
   // ventana crece de 1200 a 1500, la comprobación sigue siendo la misma.
   const block = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 1500);
   assert.match(block, /qs\("iv1PositionAcquisitionDate"\)\?\.value/);
-  // IVX6 (Oleada 2 Bloque 3) añadió goalId entre provenance y contributions — el objeto sigue
-  // guardando contributions vacío, solo cambia lo que hay justo antes.
-  assert.match(block, /acquisitionDate, provenance, goalId, contributions: \[\]/);
+  // IVX6 añadió goalId e IVX4 (misma oleada) feePct, los dos entre provenance y contributions —
+  // el objeto sigue guardando contributions vacío, solo cambia lo que hay justo antes.
+  assert.match(block, /acquisitionDate, provenance, goalId, feePct, contributions: \[\]/);
 });
 
 test("IV2: saveIv1Contribution valida posición, importe positivo y fecha antes de guardar", () => {

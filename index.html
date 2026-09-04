@@ -2565,6 +2565,15 @@
               <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
             </article>
 
+            <!-- PVX1: backtesting público del propio motor de previsión — el mismo aprendizaje que
+                 ya alimenta PV1/PV2/PV3/PV4, mostrado aquí en vez de escondido dentro del
+                 Laboratorio de escenarios (E13). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Backtesting: cómo ha acertado la previsión</h3>
+              <p class="e19-kpi-note">Mes a mes, lo que la previsión decía frente a lo realmente conciliado con el banco — solo meses ya cerrados y conciliados, nunca una previsión sin confirmar.</p>
+              <div id="pvx1Backtest"></div>
+            </article>
+
             <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
                  frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
                  (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
@@ -2580,6 +2589,46 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
               <div class="e19-kpi-note" id="pensionSimNote"></div>
+            </article>
+
+            <!-- FCX1: rescate de pensiones modelado, como capital único sumado a la base general del
+                 año. Con las dos escalas de tramos ya registradas arriba (A15-2) usa el coste
+                 marginal real por tramos; sin ellas, cae al tipo marginal declarado (A15-4/A15-1).
+                 No modela reducciones (40% de aportaciones anteriores a 2007, mínimo exento) ni la
+                 modalidad en forma de renta — la app no registra cuándo se hizo cada aportación. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Rescate de pensiones (capital único)</h3>
+              <p class="e19-kpi-note">Coste marginal estimado de rescatar el plan como capital, sumado a tu renta general del año — no incluye reducciones fiscales por antigüedad de las aportaciones ni la modalidad en forma de renta.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe a rescatar (€)</span>
+                  <input id="fcx1WithdrawalAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Renta general del año antes del rescate (€)</span>
+                  <input id="fcx1CurrentAnnualIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fcx1WithdrawalRun">Simular rescate</button>
+              <div class="e19-kpi-note" id="fcx1WithdrawalNote"></div>
+            </article>
+
+            <!-- CPX2: modo segunda opinión para decisiones externas al plan (una oferta de coche, un
+                 préstamo que propone otra persona, un cambio de trabajo) — todavía no son un objeto
+                 formal de escenarioMotorDecisions, solo un impacto mensual en caja que comprobar
+                 antes de comprometerse. Reutiliza el plan base (A8-2) y el mismo escenario de
+                 tensión de CP6 (ingresos ×0,9, gastos ×1,1). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Segunda opinión: decisión externa al plan</h3>
+              <p class="e19-kpi-note">Antes de comprometerte a algo fuera del plan (una oferta, un préstamo que te proponen, un cambio de ingresos), comprueba si tu caja lo aguanta — también si el año viene peor de lo esperado.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Impacto mensual en caja (€, negativo si añade gasto)</span>
+                  <input id="cpx2MonthlyImpact" type="number" step="1" inputmode="decimal" placeholder="Ej. -300" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="cpx2SecondOpinionRun">Comprobar</button>
+              <div class="e19-kpi-note" id="cpx2SecondOpinionNote"></div>
             </article>
 
             <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
@@ -2965,6 +3014,12 @@
                     <option value="">-- Sin objetivo asociado --</option>
                   </select>
                 </label>
+                <!-- IVX4: comisión anual declarada (TER/gastos de gestión, %), opcional. Sin ella
+                     no hay coste compuesto de comisión que calcular para esta posición. -->
+                <label class="month-picker">
+                  <span>Comisión anual declarada (%, opcional)</span>
+                  <input id="iv1PositionFeePct" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 1.5" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
               <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
@@ -2984,6 +3039,12 @@
               <label class="month-picker">
                 <span>Índice de referencia (rentabilidad anualizada declarada, %)</span>
                 <input type="number" step="0.01" id="iv1BenchmarkAnnualReturnPct" placeholder="Ej. 7 (MSCI World)" />
+              </label>
+              <!-- IVX4: horizonte para el coste compuesto de comisiones de cada posición con
+                   comisión declarada — sin horizonte no hay nada que proyectar. -->
+              <label class="month-picker">
+                <span>Horizonte para el coste de comisiones (años)</span>
+                <input type="number" min="1" step="1" id="ivx4FeeHorizonYears" placeholder="Ej. 10" />
               </label>
               <div class="e19-kpi-note" id="iv1PositionSummary"></div>
               <div class="e19-kpi-note" id="iv1PositionConcentration"></div>

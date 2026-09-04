@@ -27,9 +27,9 @@ test("IV3: el botón de aportación programada está cableado a saveIv1Scheduled
 
 test("IV3: renderIv1ScheduledContributionOptions existe y se llama junto al resto de renders de cartera", () => {
   assert.match(appSource, /function renderIv1ScheduledContributionOptions/);
-  // IVX6 (Oleada 2 Bloque 3) añadió el campo goalId y su comentario antes de esta llamada — la
-  // ventana crece de 1400 a 1700, la comprobación sigue siendo la misma.
-  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 1700);
+  // IVX6 añadió el campo goalId e IVX4 (misma oleada) el campo feePct, cada uno con su comentario,
+  // antes de esta llamada — la ventana crece de 1400 a 2000, la comprobación sigue siendo la misma.
+  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 2000);
   assert.match(saveBlock, /renderIv1ScheduledContributionOptions\(\);/);
   const transferBlock = appSource.slice(appSource.indexOf("function saveIv1Transfer("), appSource.indexOf("function saveIv1Transfer(") + 1400);
   assert.match(transferBlock, /renderIv1ScheduledContributionOptions\(\);/);
