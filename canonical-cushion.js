@@ -159,6 +159,32 @@
     return { total, rungCount, intervalMonths: months, rungs: ladderRungs };
   }
 
+  // DLX1: guardarraíl de colchón antes de amortizar deuda con caja disponible. Mismos tres estados y
+  // el mismo margen de aviso temprano (20%) que ya usa AP6 (canonical-leverage-sustainability.js,
+  // EARLY_WARNING_MARGIN) para la deuda de apalancamiento tomada — aquí aplicado a una amortización
+  // puntual en vez de a una cuota recurrente. No es el mismo umbral que CUSHION_DRIFT_THRESHOLD (ese
+  // mide si la reserva configurada se ha quedado desfasada; este mide cuánto margen queda tras
+  // gastar). Motor puro: nunca bloquea nada por sí solo, solo informa del estado resultante — quien
+  // lo use decide si avisa, si pide confirmación extra, o ambas cosas.
+  const AMORTIZE_EARLY_WARNING_MARGIN = 0.2;
+
+  function amortizeCushionGuardrail({ amount, liquidity, floor } = {}) {
+    const amountSafe = round2(Math.max(0, number(amount)));
+    const liquiditySafe = round2(number(liquidity));
+    const floorSafe = round2(Math.max(0, number(floor)));
+    const remaining = round2(liquiditySafe - amountSafe);
+    const earlyWarningFloor = round2(floorSafe * (1 + AMORTIZE_EARLY_WARNING_MARGIN));
+    const status = remaining < floorSafe ? "insostenible" : remaining < earlyWarningFloor ? "ajustado" : "sostenible";
+    return {
+      amount: amountSafe,
+      liquidity: liquiditySafe,
+      floor: floorSafe,
+      remaining,
+      status,
+      shortfall: status === "insostenible" ? round2(floorSafe - remaining) : 0,
+    };
+  }
+
   return {
     SCHEMA_ID,
     cushionFloor,
@@ -173,5 +199,7 @@
     DEFAULT_LADDER_RUNGS,
     DEFAULT_LADDER_INTERVAL_MONTHS,
     cushionMaturityLadder,
+    AMORTIZE_EARLY_WARNING_MARGIN,
+    amortizeCushionGuardrail,
   };
 });

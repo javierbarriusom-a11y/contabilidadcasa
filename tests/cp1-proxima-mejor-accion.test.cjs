@@ -51,6 +51,8 @@ function sandbox() {
   vm.createContext(context);
   vm.runInContext(`const CP1_SEVERITY_RANK = ${JSON.stringify({ critical: 0, high: 1, medium: 2 })};`, context);
   vm.runInContext(`const CP1_ALERT_LABELS = ${JSON.stringify({ cash: "Revisar la caja prevista", variation: "Revisar la variación prevista", debt: "Revisar el ratio de deuda" })};`, context);
+  vm.runInContext(`const CPX3_IGNORED_DAYS_THRESHOLD = 3;`, context);
+  vm.runInContext(extractFunction("cpx3IgnoredNoteHtml"), context);
   vm.runInContext(extractFunction("cp1NextBestAction"), context);
   vm.runInContext(extractFunction("cp1NextBestActionHtml"), context);
   return context;
@@ -113,9 +115,65 @@ test("cp1NextBestActionHtml · con acción, muestra la etiqueta, el mensaje y la
 test("p2-ui.js: renderE16Monitoring pinta la próxima mejor acción (CP1) en su propia sección", () => {
   assert.match(ui, /Próxima mejor acción \(CP1\)/);
   assert.match(ui, /cp1NextBestAction\(model\)/);
-  assert.match(ui, /cp1NextBestActionHtml\(nextBestAction\)/);
+  assert.match(ui, /cp1NextBestActionHtml\(nextBestAction, cpx3Entry\)/);
 });
 
 test("p2-ui.js está versionado en index.html", () => {
   assert.match(html, /p2-ui\.js\?v=/);
+});
+
+// ---------------------------------------------------------------------------------------------
+// CPX3 (Oleada 2, Bloque 2) · transparencia de recomendaciones ignoradas — no cambia qué recomienda
+// CP1, solo hace visible cuánto lleva abierta la misma recomendación sin resolverse, con un botón
+// para descartarla a propósito. El registro (firstShownAt/dismissedAt) se guarda en app.js
+// (scenarioSettings) y llega aquí ya calculado vía window.FinanceP2Bridge.trackRecommendation.
+// ---------------------------------------------------------------------------------------------
+
+const SAMPLE_ACTION = { label: "Revisar la caja prevista", message: "La caja prevista queda en -100 €.", severity: "critical", citations: ["alert:cash-2026-10"] };
+
+test("cpx3IgnoredNoteHtml · sin entrada, no avisa de nada", () => {
+  const ctx = sandbox();
+  assert.equal(ctx.cpx3IgnoredNoteHtml(null), "");
+});
+
+test("cpx3IgnoredNoteHtml · recién mostrada (menos del umbral), todavía no avisa", () => {
+  const ctx = sandbox();
+  const entry = { signature: "alert:cash-2026-10", firstShownAt: new Date().toISOString() };
+  assert.equal(ctx.cpx3IgnoredNoteHtml(entry), "");
+});
+
+test("cpx3IgnoredNoteHtml · pasado el umbral de días, avisa con el número de días y un botón de descartar", () => {
+  const ctx = sandbox();
+  const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+  const entry = { signature: "alert:cash-2026-10", firstShownAt: fiveDaysAgo };
+  const output = ctx.cpx3IgnoredNoteHtml(entry);
+  assert.match(output, /5 día\(s\)/);
+  assert.match(output, /data-cpx3-dismiss="alert:cash-2026-10"/);
+  assert.match(output, /Descartar/);
+});
+
+test("cp1NextBestActionHtml · con una entrada de seguimiento reciente, no añade el aviso de ignorada", () => {
+  const ctx = sandbox();
+  const entry = { signature: "alert:cash-2026-10", firstShownAt: new Date().toISOString() };
+  const output = ctx.cp1NextBestActionHtml(SAMPLE_ACTION, entry);
+  assert.doesNotMatch(output, /Descartar/);
+});
+
+test("cp1NextBestActionHtml · con una entrada de seguimiento antigua, añade el aviso y el botón dentro de la misma tarjeta", () => {
+  const ctx = sandbox();
+  const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+  const entry = { signature: "alert:cash-2026-10", firstShownAt: tenDaysAgo };
+  const output = ctx.cp1NextBestActionHtml(SAMPLE_ACTION, entry);
+  assert.match(output, /10 día\(s\)/);
+  assert.match(output, /Revisar la caja prevista/); // sigue mostrando la acción normal
+});
+
+test("p2-ui.js: la recomendación se registra en cada render, vía el puente de app.js", () => {
+  assert.match(ui, /const cpx3Entry = bridge\(\)\?\.trackRecommendation\?\.\(nextBestAction\) \|\| null;/);
+});
+
+test("p2-ui.js: el botón de descartar llama a dismissRecommendation y vuelve a renderizar", () => {
+  const block = ui.slice(ui.indexOf('target.querySelectorAll("[data-cpx3-dismiss]")'), ui.indexOf('target.querySelectorAll("[data-cpx3-dismiss]")') + 300);
+  assert.match(block, /bridge\(\)\?\.dismissRecommendation\?\.\(button\.dataset\.cpx3Dismiss\)/);
+  assert.match(block, /renderE16Monitoring\(\)/);
 });
