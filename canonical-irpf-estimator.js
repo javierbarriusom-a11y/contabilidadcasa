@@ -200,6 +200,36 @@
     };
   }
 
+  // FCX1: coste marginal de sumar un importe (p. ej. un rescate de pensiones en forma de capital)
+  // a la renta general ya prevista del año — mismo principio que optimizePartialSale (coste
+  // marginal por tramos), pero sobre la escala general (estatal + autonómica) en vez de la del
+  // ahorro, y sin partir de una plusvalía ya realizada sino de la renta general estimada del hogar.
+  // Sin las dos escalas registradas con fuente completa, no hay tramo real que aplicar — se informa
+  // así, nunca con un tipo marginal inventado.
+  function marginalTaxOnAdditionalIncome({ amount, currentAnnualIncome, stateScale, regionalScale } = {}) {
+    const additional = Math.max(0, round2(amount));
+    if (!(additional > 0)) return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-amount", warning: PROFESSIONAL_WARNING };
+    const stateCheck = validateBracketScale(stateScale || {});
+    const regionalCheck = validateBracketScale(regionalScale || {});
+    if (!stateCheck.valid || !regionalCheck.valid) {
+      return { schemaId: SCHEMA_ID, calculable: false, reason: "missing-brackets", issues: { state: stateCheck.issues, regional: regionalCheck.issues }, warning: PROFESSIONAL_WARNING };
+    }
+    const base = Math.max(0, number(currentAnnualIncome));
+    const combinedTax = (value) => round2(progressiveTax(value, stateScale.brackets) + progressiveTax(value, regionalScale.brackets));
+    const marginalTax = round2(combinedTax(round2(base + additional)) - combinedTax(base));
+    return {
+      schemaId: SCHEMA_ID,
+      calculable: true,
+      amount: additional,
+      currentAnnualIncome: base,
+      marginalTax,
+      netAmount: round2(additional - marginalTax),
+      effectiveRatePct: additional > 0 ? round2((marginalTax / additional) * 100) : 0,
+      sources: [scaleCitation(stateScale), scaleCitation(regionalScale)],
+      warning: PROFESSIONAL_WARNING,
+    };
+  }
+
   return {
     SCHEMA_ID,
     PROFESSIONAL_WARNING,
@@ -209,5 +239,6 @@
     estimateIrpfResult,
     parseBracketScaleInput,
     optimizePartialSale,
+    marginalTaxOnAdditionalIncome,
   };
 });

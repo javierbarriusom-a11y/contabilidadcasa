@@ -2,6 +2,61 @@
 
 Fecha de revisión: 4 de septiembre de 2026.
 
+## Cierre de sesión — 4 de septiembre de 2026 (143): segunda oleada del Bloque 3 — PVX1, IVX4, FCX1, CPX2
+
+Continuación directa de la sesión 142 (pedido del usuario: seguir con el Bloque 3). Antes de
+construir se verificaron a mano las dependencias declaradas de un segundo grupo de cuatro tareas —
+mismo criterio que las oleadas anteriores. Esta vez, sin ningún hallazgo de alcance: las cuatro
+dependencias (`A11-3`/`learnFromHistory`, `IV1`, `A15-2`/`A15-4`, `A8-2`/`CP6`) ya eran reales, con
+UI o con el motor necesario ya construido.
+
+- **PVX1 — backtesting público del propio motor**: `renderPvx1Backtest()`, nueva en Ajustes.
+  Reutiliza tal cual `learnFromHistory()` sobre `reconciledMonthlyNetHistory()` — el mismo
+  aprendizaje (A11-3/E12b) que ya alimenta PV1-PV4, hasta ahora escondido dentro del Laboratorio de
+  escenarios (E13), una pantalla avanzada que un hogar no visita necesariamente. Mes a mes: lo
+  previsto contra lo real conciliado con el banco, más el resumen de desviación media. El único
+  concepto real disponible hoy es "monthly-net" — no se inventa un desglose por partida para meses
+  ya cerrados que la app no reconstruye.
+- **IVX4 — coste compuesto de comisiones**: `compoundedFeeCost()`, nueva en
+  `canonical-portfolio.js`, más el campo opcional `feePct` (comisión anual declarada, TER/gastos de
+  gestión) en cada posición de `IV1`. Aísla el efecto puro de la comisión compuesta sobre un
+  horizonte declarado por el hogar — deliberadamente sin asumir ninguna rentabilidad de mercado (eso
+  exigiría un supuesto de crecimiento que el hogar no ha declarado); el "valor neto de comisión" se
+  calcula igual que un capital que pierde feePct% compuesto cada año.
+- **FCX1 — rescate de pensiones modelado**: `marginalTaxOnAdditionalIncome()`, nueva en
+  `canonical-irpf-estimator.js`. El rescate en forma de capital se suma a la renta general del año;
+  con las dos escalas de tramos ya registradas (A15-2) usa el coste marginal real por tramos (mismo
+  principio que `optimizePartialSale`, FC5, pero sobre la escala general en vez de la del ahorro),
+  sin ellas cae al tipo marginal declarado (`fiscalWithholdingRate`, A15-4/A15-1) como respaldo —
+  nunca 0% ni un tramo inventado. No modela reducciones por antigüedad de las aportaciones (el 40%
+  de las anteriores a 2007) ni la modalidad en forma de renta: la app no registra cuándo se hizo
+  cada aportación al plan, así que reproducir esa regla de transitoriedad habría exigido inventar un
+  dato que no existe.
+- **CPX2 — modo segunda opinión para decisiones externas**: `cpx2SecondOpinionResult()`, nueva en
+  Ajustes. Para una decisión que todavía no es un objeto formal de `escenarioMotorDecisions` (una
+  oferta de coche, un préstamo que propone otra persona, un cambio de trabajo), el hogar declara
+  solo su impacto mensual en caja (positivo o negativo), aplicado como permanente al horizonte
+  completo — la lectura prudente para algo que se plantea comprometer indefinidamente. Se pasa por
+  el plan base real (A8-2, `escenarioMotorBaseInput`) y por el mismo escenario de tensión de CP6
+  (ingresos ×0,9, gastos ×1,1, `escenarioMotorTensionInput`) — nunca un motor nuevo. Nunca bloquea
+  ni decide por el hogar, solo informa.
+
+**Validación**: `npm run verify`, exit 0 — **3169/3169 pruebas** (3140 + 29 nuevas: 8 en
+`tests/ivx4-coste-comisiones.test.cjs` —nuevo—, 7 en `tests/fcx1-rescate-pensiones.test.cjs`
+—nuevo—, 6 en `tests/pvx1-backtesting-publico.test.cjs` —nuevo— y 8 en
+`tests/cpx2-segunda-opinion-decision-externa.test.cjs` —nuevo—). Accesibilidad: 1108 IDs únicos
+(+10 sobre los 1098 de la sesión 142). Rendimiento, `build:site`, privacidad y humo: en verde. Se
+corrigieron dos pruebas fijas de ventana que el nuevo campo `feePct` de `saveIv1Position()` dejó
+cortas (`tests/fc1-app-integracion.test.cjs`, `tests/iv3-app-integracion.test.cjs`, 1700→2000
+caracteres, mismo patrón de fragilidad ya documentado en sesiones anteriores) y el literal exacto
+del objeto de posición en `tests/iv2-app-integracion.test.cjs`/`tests/ivx6-glide-path-objetivo.test.cjs`.
+
+**Backlog**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` — PVX1, IVX4, FCX1, CPX2 marcadas ✅. Quedan
+10 tareas del Bloque 3 y los Bloques 4-6 completos (17 tareas) sin empezar.
+
+**Pendiente de publicar**: validado en local, pendiente de commit/push/PR/fusión según el flujo
+autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 4 de septiembre de 2026 (142): primera oleada del Bloque 3 — APX1, IVX2, LPX1, LPX2, IVX6 (IVX5 reclasificada)
 
 Continuación directa de la sesión 141 (pedido del usuario: seguir con el Bloque 3, 20 tareas M/M-L).

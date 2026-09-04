@@ -15815,6 +15815,44 @@ function fc5ResultHtml(result) {
   return `<p>${escapeHtml(bracketLine)}</p><p>${escapeHtml(fitLine)}</p><p>Coste marginal estimado de realizar toda la plusvalía ahora: ${money(result.marginalTax, true)}.</p><p class="e19-kpi-note">${escapeHtml(result.warning)} No es una recomendación de vender — solo información para decidir cuánto y cuándo.</p>`;
 }
 
+// FCX1: rescate de pensiones modelado, como capital único sumado a la renta general del año. Con
+// las dos escalas de tramos ya registradas (A15-2) usa el coste marginal real por tramos
+// (marginalTaxOnAdditionalIncome); sin ellas, cae al tipo marginal declarado en A15-1/A15-4
+// (fiscalWithholdingRate) como estimación plana — nunca 0% ni un tramo inventado. Nunca modela
+// reducciones (40% de aportaciones anteriores a 2007, mínimo exento) ni la modalidad en forma de
+// renta: la app no registra cuándo se hizo cada aportación al plan.
+function fcx1ResultHtml(result) {
+  if (!result.calculable) {
+    return "Indica un importe a rescatar mayor que cero. Sin tramos de IRPF registrados (arriba) ni retención declarada (Ajustes › supuestos fiscales), no hay tipo marginal con el que estimar el coste.";
+  }
+  const methodLine = result.method === "progressive-brackets"
+    ? "Calculado por tramos progresivos (escala general estatal + autonómica registradas arriba)."
+    : `Calculado con el tipo marginal declarado (${result.effectiveRatePct}%, A15-1) — registra las dos escalas de tramos arriba para un coste marginal real por tramos.`;
+  return `<p>Coste marginal estimado: <strong class="negative">${money(result.marginalTax, true)}</strong> (${result.effectiveRatePct}% efectivo sobre el rescate). Neto tras impuesto: ${money(result.netAmount, true)}.</p><p class="e19-kpi-note">${escapeHtml(methodLine)}</p><p class="e19-kpi-note">No incluye reducciones por antigüedad de las aportaciones ni la modalidad en forma de renta. Verifica con un profesional antes de decidir.</p>`;
+}
+
+function handleFcx1SimulateWithdrawal() {
+  const note = qs("fcx1WithdrawalNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalIrpfEstimator;
+  if (!engine) return;
+  const amount = parseAmount(qs("fcx1WithdrawalAmount")?.value);
+  const currentAnnualIncome = parseAmount(qs("fcx1CurrentAnnualIncome")?.value);
+  const stateScale = latestIrpfScale("state");
+  const regionalScale = latestIrpfScale("regional");
+  let result = engine.marginalTaxOnAdditionalIncome({ amount, currentAnnualIncome, stateScale: stateScale || {}, regionalScale: regionalScale || {} });
+  if (result.calculable) {
+    result = { ...result, method: "progressive-brackets" };
+  } else if (result.reason === "missing-brackets" && amount > 0) {
+    const flatRate = fiscalWithholdingRate();
+    if (flatRate > 0) {
+      const marginalTax = round2(amount * (flatRate / 100));
+      result = { calculable: true, method: "flat-marginal-rate", marginalTax, netAmount: round2(amount - marginalTax), effectiveRatePct: flatRate };
+    }
+  }
+  note.innerHTML = fcx1ResultHtml(result);
+}
+
 function handleFc5Optimize() {
   const note = qs("fc5OptimizeNote");
   if (!note) return;
@@ -17326,11 +17364,13 @@ function clearIv1PositionForm() {
   const costInput = qs("iv1PositionCost");
   const valueInput = qs("iv1PositionValue");
   const acquisitionInput = qs("iv1PositionAcquisitionDate");
+  const feePctInput = qs("iv1PositionFeePct");
   if (labelInput) labelInput.value = "";
   if (quantityInput) quantityInput.value = "";
   if (costInput) costInput.value = "";
   if (valueInput) valueInput.value = "";
   if (acquisitionInput) acquisitionInput.value = "";
+  if (feePctInput) feePctInput.value = "";
 }
 
 function saveIv1Position() {
@@ -17348,11 +17388,13 @@ function saveIv1Position() {
   // IVX6: objetivo asociado (opcional, A10-1) — vínculo que antes no existía entre una posición de
   // cartera y un objetivo con fecha, necesario para la banda de horizonte del glide path.
   const goalId = qs("iv1PositionGoalId")?.value || "";
+  // IVX4: comisión anual declarada (TER/gastos de gestión, %) — opcional, nunca un valor de fábrica.
+  const feePct = parseAmount(qs("iv1PositionFeePct")?.value);
   if (!label) {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, contributions: [], disposals: [], scheduledContributions: [] }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, contributions: [], disposals: [], scheduledContributions: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
@@ -17576,7 +17618,8 @@ function renderIv1PositionList() {
     const contributionsNote = position.contributions.length ? ` · ${position.contributions.length} aportación(es) adicional(es)` : "";
     const realizedNote = fc1RealizedGainLabel(position.realizedGain, position.disposals.length);
     const averageCostNote = ivx7AverageCostLabel(position);
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    const feeCostNote = ivx4FeeCostLabel(position);
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
 }
 
@@ -17591,6 +17634,20 @@ function ivx7AverageCostLabel(position) {
   const averageCost = round2(position.costBasis / position.quantity);
   const currentPrice = round2(position.currentValue / position.quantity);
   return `coste medio ${money(averageCost, true)}/ud. · precio actual ${money(currentPrice, true)}/ud.`;
+}
+
+// IVX4: coste compuesto de comisiones — solo para posiciones con comisión anual declarada
+// (feePct > 0) y con un horizonte introducido en #ivx4FeeHorizonYears. Aísla el efecto puro de la
+// comisión (compoundedFeeCost, canonical-portfolio.js), sin inventar un supuesto de rentabilidad de
+// mercado que el hogar no ha declarado.
+function ivx4FeeCostLabel(position) {
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine || !position || !(position.feePct > 0)) return "";
+  const years = parseAmount(qs("ivx4FeeHorizonYears")?.value);
+  if (!(years > 0)) return "";
+  const result = engine.compoundedFeeCost({ currentValue: position.currentValue, feePct: position.feePct, years });
+  if (!result.calculable) return "";
+  return `comisión ${position.feePct}%/año: coste compuesto a ${years} año(s) ${money(result.totalFeeCost, true)}`;
 }
 
 // FC2: opciones del selector de traspaso — cualquier posición registrada puede figurar como
@@ -26075,6 +26132,7 @@ function renderAjustes() {
   renderAjustesLaboratorio();
   renderCierreReportArchive();
   renderPv5Diary();
+  renderPvx1Backtest();
   renderAnnualReview();
 
   const balances = accountBalancesFromState();
@@ -29472,6 +29530,59 @@ function escenarioMotorTensionInput(baseInput) {
   };
 }
 
+// CPX2: modo segunda opinión para decisiones externas al plan (una oferta de coche, un préstamo que
+// propone otra persona, un cambio de trabajo) — decisiones que todavía no son un objeto formal de
+// escenarioMotorDecisions (con familia, tipo y planificación propios), solo un impacto mensual en
+// caja que el hogar quiere comprobar antes de comprometerse. Reutiliza tal cual el plan base (A8-2,
+// escenarioMotorBaseInput) y el mismo escenario de tensión de CP6 (ingresos ×0,9, gastos ×1,1) —
+// nunca un motor de cálculo nuevo. El impacto se suma a `income` de cada mes del horizonte completo
+// (positivo = más ingreso, negativo = más gasto): tratarlo como permanente es la lectura prudente
+// para una decisión que se está valorando comprometer indefinidamente; para un impacto temporal ya
+// existe el Laboratorio de escenarios (E13) con duración configurable.
+function cpx2SecondOpinionInput(monthlyImpact) {
+  const baseInput = escenarioMotorBaseInput();
+  return {
+    ...baseInput,
+    months: (baseInput.months || []).map((month) => ({ ...month, income: round2(Number(month.income || 0) + Number(monthlyImpact || 0)) })),
+  };
+}
+
+function cpx2SecondOpinionResult(monthlyImpact) {
+  const impact = Number(monthlyImpact);
+  if (!Number.isFinite(impact) || impact === 0) return { calculable: false };
+  const adjustedInput = cpx2SecondOpinionInput(impact);
+  const baseResult = runEscenarioMotor(adjustedInput, [], escenarioMotorGuardrailValue);
+  const tensionResult = runEscenarioMotor(escenarioMotorTensionInput(adjustedInput), [], escenarioMotorGuardrailValue);
+  if (!baseResult || !tensionResult) return { calculable: false };
+  return {
+    calculable: true,
+    monthlyImpact: round2(impact),
+    baseSummary: escenarioMotorSummaryFor(baseResult, adjustedInput.months),
+    tensionSummary: escenarioMotorSummaryFor(tensionResult, adjustedInput.months),
+  };
+}
+
+function cpx2SecondOpinionHtml(result) {
+  if (!result.calculable) {
+    return '<p class="e19-kpi-note">Indica el impacto mensual en caja de la decisión (negativo si añade gasto, positivo si añade ingreso) para pasarla por el plan.</p>';
+  }
+  const { baseSummary, tensionSummary } = result;
+  const line = (summary, label) => summary.minimoLiquidez === null
+    ? `<p>${label}: no se pudo calcular.</p>`
+    : `<p>${label}: caja mínima ${money(summary.minimoLiquidez, true)}${summary.minimoLiquidez < 0 ? " — bajaría de cero" : ""}.</p>`;
+  const verdict = tensionSummary.minimoLiquidez !== null && tensionSummary.minimoLiquidez < 0
+    ? "Bajo el escenario de tensión (ingresos un 10% más bajos, gastos un 10% más altos) esta decisión dejaría la caja en negativo en algún mes. Revísalo antes de comprometerte."
+    : "Incluso bajo el escenario de tensión (ingresos un 10% más bajos, gastos un 10% más altos), la caja se mantendría en positivo con esta decisión.";
+  return `${line(baseSummary, "Escenario base")}${line(tensionSummary, "Escenario de tensión")}<p class="e19-kpi-note">${escapeHtml(verdict)} Segunda opinión, no una decisión tomada por la app.</p>`;
+}
+
+function handleCpx2SecondOpinion() {
+  const note = qs("cpx2SecondOpinionNote");
+  if (!note) return;
+  const monthlyImpact = parseAmount(qs("cpx2MonthlyImpact")?.value);
+  note.innerHTML = cpx2SecondOpinionHtml(cpx2SecondOpinionResult(monthlyImpact));
+}
+
 // Incluye el plan reunificado sintético (canonicalDebtContractRows añade «reunified-plan-current»
 // cuando existe) además de los contratos con nombre propio, para que amortizar el plan combinado
 // sea un objetivo válido igual que cualquier otra deuda activa.
@@ -32469,6 +32580,43 @@ function renderPv5Diary() {
       </li>`,
     )
     .join("");
+}
+
+// PVX1: backtesting público del propio motor de previsión — el mismo aprendizaje que ya alimenta
+// PV1/PV2/PV3/PV4 (learnFromHistory sobre reconciledMonthlyNetHistory, A11-3), pero mostrado aquí en
+// Ajustes en vez de escondido dentro del Laboratorio de escenarios (E13), una pantalla avanzada que
+// un hogar no visita necesariamente. Mes a mes: lo previsto contra lo real conciliado con el banco,
+// más el resumen de desviación media que ya calcula el mismo aprendizaje. El único concepto real
+// que alimenta este histórico hoy es "monthly-net" (reconciledMonthlyNetHistory) — nunca se inventa
+// un desglose por partida que la app no reconstruye para meses ya cerrados.
+function pvx1BacktestHtml(history, learning) {
+  const usable = (Array.isArray(history) ? history : []).filter((record) => Number.isFinite(record.planned) && Number.isFinite(record.actual));
+  if (!usable.length) {
+    return '<p class="e19-kpi-note">Sin meses conciliados todavía — el backtesting empieza en cuanto haya al menos un mes cerrado y conciliado con el banco.</p>';
+  }
+  const rows = [...usable]
+    .sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1))
+    .map((record) => {
+      const delta = round2(record.actual - record.planned);
+      const deltaClass = delta > 0 ? "positive" : delta < 0 ? "negative" : "";
+      return `<li class="commit-barrier-item"><span>${escapeHtml(record.monthKey)}</span><span>previsto ${money(record.planned, true)} · real ${money(record.actual, true)} · <span class="${deltaClass}">${delta > 0 ? "+" : ""}${money(delta, true)}</span></span></li>`;
+    })
+    .join("");
+  const summary = learning?.deviations?.[0];
+  const summaryLine = summary
+    ? `<p class="e19-kpi-note">Desviación media histórica: ${money(summary.averageDelta, true)} sobre ${summary.sampleMonths} mes(es) conciliado(s), confianza ${escapeHtml(summary.confidence)}.</p>`
+    : "";
+  const warningLine = learning?.warning ? `<p class="e19-kpi-note">${escapeHtml(learning.warning)}</p>` : "";
+  return `<ul class="commit-barrier-list">${rows}</ul>${summaryLine}${warningLine}`;
+}
+
+function renderPvx1Backtest() {
+  const container = qs("pvx1Backtest");
+  if (!container) return;
+  const forecast = canonicalScenarioResults.base?.forecast;
+  const history = reconciledMonthlyNetHistory();
+  const learning = window.FinanceCanonicalForecast?.learnFromHistory(history, { generatedAt: forecast?.generatedAt }) || {};
+  container.innerHTML = pvx1BacktestHtml(history, learning);
 }
 
 function renderCierreReportArchive() {
@@ -36160,6 +36308,8 @@ async function init() {
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
   qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
+  qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);
+  qs("cpx2SecondOpinionRun")?.addEventListener("click", handleCpx2SecondOpinion);
   qs("a18IncomeJavi")?.addEventListener("change", saveA18Incomes);
   qs("a18IncomeTere")?.addEventListener("change", saveA18Incomes);
   qs("a18RuleSave")?.addEventListener("click", saveA18Rule);
@@ -36176,6 +36326,7 @@ async function init() {
   qs("iv1DisposalAdd")?.addEventListener("click", saveIv1Disposal);
   qs("iv1ScheduledContributionAdd")?.addEventListener("click", saveIv1ScheduledContribution);
   qs("iv1BenchmarkAnnualReturnPct")?.addEventListener("input", renderIv1PositionSummary);
+  qs("ivx4FeeHorizonYears")?.addEventListener("input", renderIv1PositionList);
   qs("lpx1WithdrawalRatePct")?.addEventListener("input", renderLpx1FinancialIndependence);
   qs("fc3CompareRun")?.addEventListener("click", handleFc3Compare);
   qs("fc3PriorLossSave")?.addEventListener("click", saveFc3PriorLoss);

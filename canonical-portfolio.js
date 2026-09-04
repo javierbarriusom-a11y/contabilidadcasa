@@ -287,6 +287,10 @@
       scheduledContributions: normalizeScheduledContributions(raw.scheduledContributions),
       provenance,
       notes: known(raw.notes) ? String(raw.notes).trim() : "",
+      // IVX4: comisión anual declarada por el hogar (TER/gastos de gestión, %). 0 significa "sin
+      // comisión declarada", nunca "comisión cero confirmada" — igual que el resto de campos
+      // opcionales de este contrato.
+      feePct: knownNumber(raw.feePct) ? nonNegative(raw.feePct) : 0,
     };
     return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: xirr(cashFlows) };
   }
@@ -599,6 +603,31 @@
     };
   }
 
+  // IVX4: coste compuesto de comisiones — aísla el efecto puro de la comisión anual declarada
+  // (feePct) sobre el valor actual a lo largo de un horizonte, sin asumir ninguna rentabilidad de
+  // mercado (eso exigiría inventar un supuesto de crecimiento que el hogar no ha declarado). El
+  // valor "neto de comisión" se calcula igual que un capital que pierde feePct% compuesto cada año
+  // — la misma mecánica de interés compuesto que ya usa el resto de la app, aplicada en sentido
+  // contrario.
+  const FEE_COST_SCHEMA_ID = "finanzas-casa-portfolio-fee-cost";
+
+  function compoundedFeeCost({ currentValue, feePct, years } = {}) {
+    if (!(number(currentValue) > 0) || !(number(feePct) > 0) || !(number(years) > 0)) {
+      return { schema: FEE_COST_SCHEMA_ID, calculable: false };
+    }
+    const grossValue = round2(currentValue);
+    const netValue = round2(grossValue * Math.pow(1 - number(feePct) / 100, number(years)));
+    return {
+      schema: FEE_COST_SCHEMA_ID,
+      calculable: true,
+      feePct: number(feePct),
+      years: number(years),
+      grossValue,
+      netValue,
+      totalFeeCost: round2(grossValue - netValue),
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -625,5 +654,7 @@
     GLIDE_PATH_BANDS,
     glidePathBand,
     glidePathForGoal,
+    FEE_COST_SCHEMA_ID,
+    compoundedFeeCost,
   };
 });
