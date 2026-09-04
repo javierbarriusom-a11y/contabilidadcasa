@@ -123,6 +123,21 @@ tercer `viewType` del mecanismo de enlace de `A19-1`, sin motor de compartición
 tareas del Bloque 3 (`PVX3`, `PVX2`, `ESX2`, `APX2`) y los Bloques 4-6 completos (17 tareas) sin
 empezar.
 
+Cuarta y última oleada del Bloque 3 (PVX3, PVX2, ESX2, APX2) cerrada el 4 de septiembre de 2026
+(sesión 145) — **con esto el Bloque 3 queda completo (20/20 tareas)**. `PVX3` resultó ya cubierta
+por la arquitectura existente, sin motor nuevo: la previsión se recalcula sola en cada cambio
+(`recomputeModelIfNeeded()`, caché con firma, sin botón "recalcular" en toda la app), y el
+`reconciled` que alimenta la recalibración de `PV3` es un estado por mes completo, no por
+movimiento importado — no hay un dato a medio mes sobre el que recalibrar antes de cerrarlo; la
+granularidad mensual es del modelo de datos, no un hueco de construcción. El usuario confirmó
+reclasificarla como hecha en vez de construir algo sobre una premisa que no encajaba. Las otras
+tres no tuvieron ningún hallazgo: `PVX2` pinta de verdad los periodos que ya calculaba
+`adaptiveHorizon()` (A7-1), antes solo resumidos en un recuento; `ESX2` son 9 plantillas con nombre
+real que mapean a los 7 tipos ya existentes del constructor de eventos (A8-2), sin fijar nunca un
+importe ni una duración; `APX2` es `lombardCreditCapacity()`, capacidad de crédito contra la
+cartera real (IV1) a un LTV declarado por el hogar, primer paso de `APX3` (Bloque 4). Quedan los
+Bloques 4-6 completos (17 tareas) sin empezar.
+
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
 ### Bloque 1 — Entrada de datos, priorizado completo por decisión explícita (11 tareas, nivel 0)
@@ -162,10 +177,10 @@ empezar.
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 23 | ✅ PVX1 | Backtesting público del propio motor | Previsión viva 2 | M | Alto | Hecho — `renderPvx1Backtest()` en Ajustes (no escondido dentro del Laboratorio de escenarios E13): reutiliza `learnFromHistory()` sobre `reconciledMonthlyNetHistory()` (mismo aprendizaje de `A11-3`/`E12b` que ya alimenta PV1-PV4), mes a mes previsto vs. real conciliado más el resumen de desviación media |
-| 24 | PVX3 | Recalculo instantáneo al introducir un dato | Previsión viva 2 | M | Alto | Depende de `PV3` y `A6-4` |
+| 24 | ✅ PVX3 | Recalculo instantáneo al introducir un dato | Previsión viva 2 | M | Alto | Hecho — ya cubierta por la arquitectura existente, sin motor nuevo: la previsión (`A7-1`) se recalcula sola en cada cambio vía `recomputeModelIfNeeded()` (caché con firma, sin botón "recalcular" en toda la app), y el `reconciled` que alimenta la recalibración de `PV3` es un estado por MES completo (matched, no por movimiento importado) — no existe un dato a medio mes sobre el que recalibrar antes de cerrarlo; la granularidad mensual es del modelo de datos, no un hueco de construcción |
 | 25 | ✅ PVX4 | Banda de normalidad por categoría en vivo | Previsión viva 2 | M | Alto | Hecho — `pvx4NormalityBandLabel()` en `views/presupuesto-mes.js`: reutiliza `budgetAnalysisForCategory()` (p25/p75 históricos, S-1, ya usado para sugerir presupuesto), comparado contra la proyección de fin de mes (S-2) — nunca contra el gasto parcial a día de hoy, que sería una comparación falsa contra meses completos |
-| 26 | PVX2 | Multihorizonte simultáneo | Previsión viva 2 | M | Medio | Consume el contrato `A7-1` |
-| 27 | ESX2 | Plantillas de eventos de vida | Escenarios 2 | M | Alto | Extiende el constructor de eventos `A8-2` |
+| 26 | ✅ PVX2 | Multihorizonte simultáneo | Previsión viva 2 | M | Medio | Hecho — `pvx2AdaptiveHorizonHtml()` pinta de verdad los periodos que ya calculaba `adaptiveHorizon()` (`A7-1`), hasta ahora solo resumidos en un recuento: corto (mensual), medio (trimestral) y largo plazo (anual) a la vez en una sola tabla |
+| 27 | ✅ ESX2 | Plantillas de eventos de vida | Escenarios 2 | M | Alto | Hecho — 9 plantillas con nombre real (`ESX2_EVENT_TEMPLATES`) que mapean a los 7 tipos ya existentes del constructor de eventos (`A8-2`), solo fijan el tipo y limpian el importe genérico de partida — nunca inventan un importe ni una duración |
 | 28 | ✅ ESX4 | Malla de dos supuestos cruzados | Escenarios 2 | M | Medio | Hecho — `sensitivityGrid()` (`canonical-e13-scenarios.js`): extiende `sensitivity()` (A8-6, un supuesto cada vez) a una cuadrícula 5×5 que varía ingresos y gastos a la vez alrededor del caso base (A8-1), reutilizando `simulate()` tal cual — sin motor nuevo |
 | 29 | ✅ IVX2 | Comparación contra un índice de referencia | Inversión 2 | M | Alto | Hecho — `compareAgainstBenchmark()` (`canonical-portfolio.js`), índice anualizado declarado por el hogar (sin precio de mercado real) frente a la XIRR de la cartera; comparación explícitamente aproximada, no exacta (money-weighted vs. flujos que el índice no vive) |
 | 30 | ✅ IVX4 | Coste compuesto de comisiones | Inversión 2 | M | Alto | Hecho — `compoundedFeeCost()` (`canonical-portfolio.js`): comisión anual declarada opcional por posición (`feePct`, nuevo campo de `IV1`), coste compuesto puro sobre un horizonte declarado por el hogar, sin asumir ninguna rentabilidad de mercado que no se ha declarado |
@@ -180,7 +195,7 @@ empezar.
 | 39 | ⚠️ IVX5 | Máxima caída (drawdown) y tiempo de recuperación | Inversión 2 | M | Medio-Alto | Reclasificada — la app solo guarda el valor actual de cada posición, sin histórico de valoraciones intermedias (mismo hueco que ya reconoce IV2 para el TWR real). Sin esa serie temporal no hay drawdown que calcular sin inventarlo; usar las fechas de aportaciones/disposals como proxy daría una cifra con apariencia de precisión pero de fondo engañosa. Bloqueada hasta que se decida construir un registro de valoraciones periódicas por posición — decisión de producto aparte, no colada dentro de esta fila |
 | 40 | ✅ IVX6 | Glide path de aportaciones por horizonte | Inversión 2 | M | Medio | Hecho — primero se construyó el vínculo posición↔objetivo que no existía (`goalId` opcional en `IV1`, decisión explícita del usuario), y sobre él `glidePathForGoal()` (`canonical-portfolio.js`) da la banda de horizonte (crecimiento/transición/conservador) por objetivo con fecha (`A10-1`). Nunca recomienda qué posición concreta ajustar: esta app no clasifica el riesgo/volatilidad por posición, así que no hay dato para respaldar esa precisión |
 | 41 | ✅ MDX1 | Vista educativa para hijos | Multidispositivo | M | Medio | Hecho — tercer `viewType` («kids-summary») del mecanismo de enlace de `A19-1`, sin motor de compartición nuevo: `redactKidsSummaryView()` (`canonical-share-link.js`) solo expone colchón y patrimonio neto (`A14-2`, vía `lpNetWorthSnapshot`), redondeados, sin ninguna cuenta ni movimiento. La dependencia de `A5-3` ya no era un hueco (RGX1/RGX2, sesión 140) |
-| 42 | APX2 | Crédito con garantía de cartera (Lombard) | Apalancamiento 2 | M-L | Medio | Depende de `A14-1` e `IV1`; primer paso de `APX3` (Bloque 4) |
+| 42 | ✅ APX2 | Crédito con garantía de cartera (Lombard) | Apalancamiento 2 | M-L | Medio | Hecho — `lombardCreditCapacity()` (`canonical-leverage-simulator.js`): capacidad de crédito contra la cartera real (`IV1`) a un LTV declarado por el hogar, nunca un LTV "típico" inventado. Fuera del guardarraíl `AP4` a propósito (perfil de riesgo distinto al de la deuda sin garantizar). Primer paso de `APX3` (Bloque 4), que todavía no modela el riesgo de ejecución de garantía |
 
 ### Bloque 4 — Segunda capa: depende de una tarea de esta misma oleada (3 tareas, nivel 1)
 

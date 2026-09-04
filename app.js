@@ -15939,6 +15939,32 @@ function handleAp3Simulate() {
   note.innerHTML = ap3ResultHtml(result);
 }
 
+// APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (Bloque 4, simulador de
+// ejecución de garantía). Capacidad de préstamo contra la cartera real (IV1) a un LTV que declara
+// el hogar, nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo con
+// garantía real tiene un perfil de riesgo distinto al de la deuda sin garantizar que sí vigila AP4.
+function apx2LombardResultHtml(result) {
+  if (!result.calculable) {
+    return "Registra al menos una posición de cartera (IV1) y declara el LTV (%) para calcular la capacidad de crédito.";
+  }
+  return `<p>Cartera actual: ${money(result.portfolioValue, true)}. Al ${result.ltvPct}% de LTV declarado: capacidad de crédito <strong>${money(result.capacity, true)}</strong>.</p><p>Coste anual al ${result.annualRatePct}%: ${money(result.annualCost, true)}/año.</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+}
+
+function handleApx2LombardSimulate() {
+  const note = qs("apx2LombardNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  const portfolio = window.FinanceCanonicalPortfolio;
+  if (!engine || !portfolio) return;
+  const portfolioValue = portfolio.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const result = engine.lombardCreditCapacity({
+    portfolioValue,
+    ltvPct: parseAmount(qs("apx2LtvPct")?.value),
+    annualRatePct: parseAmount(qs("apx2RatePct")?.value),
+  });
+  note.innerHTML = apx2LombardResultHtml(result);
+}
+
 function ap3LeverageScenarios() {
   scenarioSettings.ap3LeverageScenarios = Array.isArray(scenarioSettings.ap3LeverageScenarios) ? scenarioSettings.ap3LeverageScenarios : [];
   return scenarioSettings.ap3LeverageScenarios;
@@ -19220,6 +19246,23 @@ function esx4SensitivityGridHtml(grid) {
   return `<div class="table-wrap"><table class="e19-table esx4-sensitivity-grid"><thead>${header}</thead><tbody>${rows}</tbody></table></div><p class="e19-kpi-note">Caja mínima proyectada del horizonte completo bajo cada combinación de ingresos y gastos a la vez (caso base ${money(grid.baselineMinChecking, true)}).</p>`;
 }
 
+// PVX2: multihorizonte simultáneo — hasta ahora la tarjeta "Horizonte adaptativo" solo mostraba un
+// recuento (X periodos, Y bandas), reutiliza tal cual adaptiveHorizon() (A7-1, ya calculado para
+// esa misma tarjeta) pero pintando los periodos de verdad: corto, medio y largo plazo a la vez en
+// una sola tabla, en vez de tener que inferir las bandas del recuento.
+function pvx2AdaptiveHorizonHtml(horizon) {
+  if (!horizon?.length) return "";
+  const rows = horizon
+    .map((item) => {
+      const liquidity = item.display === "range"
+        ? `${money(item.minLiquidity, true)} a ${money(item.maxLiquidity, true)}`
+        : money(item.closingLiquidity, true);
+      return `<tr><td>${escapeHtml(item.period)}</td><td>${escapeHtml(item.resolution)}</td><td>${liquidity}</td></tr>`;
+    })
+    .join("");
+  return `<div class="table-wrap"><table class="e19-table pvx2-horizon-table"><thead><tr><th>Periodo</th><th>Resolución</th><th>Liquidez de cierre</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -19271,7 +19314,7 @@ function renderE13ScenarioLab() {
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card esx4-sensitivity-grid-card"><header><strong>ESX4 · malla de ingresos × gastos</strong><span class="status-pill">${sensitivityGrid.rows.length}×${sensitivityGrid.rows.length}</span></header>${esx4SensitivityGridHtml(sensitivityGrid)}</article>
-    <article class="e6-quality-card"><header><strong>Horizonte adaptativo</strong><span class="status-pill">${horizon.length} periodos</span></header><p>Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo.</p></article>
+    <article class="e6-quality-card pvx2-horizon-card"><header><strong>PVX2 · multihorizonte simultáneo</strong><span class="status-pill">${horizon.length} periodos</span></header><p class="e19-kpi-note">Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo, todas a la vez.</p>${pvx2AdaptiveHorizonHtml(horizon)}</article>
     <article class="e6-quality-card"><header><strong>Patrimonio simulado (A14-5)</strong><span class="status-pill ${lab.assetImpact ? (lab.assetImpact.delta < 0 ? "warn" : "good") : ""}">${lab.assetImpact ? money(lab.assetImpact.delta, true) : "Sin eventos de patrimonio"}</span></header>${e13AssetImpactHtml(lab.assetImpact)}</article>
   </div>`;
   let localSaved = [];
@@ -19306,6 +19349,33 @@ function rerunE13SavedScenario(id) {
   e13ScenarioEvents = rerun.recalculated.events;
   renderE13ScenarioLab();
   qs("e13ScenarioStatus").textContent = `Copia recalculada contra la huella ${rerun.currentForecastFingerprint}; el original permanece intacto.`;
+}
+
+// ESX2: plantillas de eventos de vida — extiende el constructor de eventos (A8-2, los 7 tipos ya
+// existentes) con nombres reales que un hogar reconoce ("nace un hijo", "boda") en vez de tener que
+// adivinar a qué tipo abstracto corresponde su situación. Cada plantilla solo fija el tipo (y limpia
+// el importe, que ya no tendría sentido dejarlo en el 500 genérico de partida): nunca fija un
+// importe ni una duración por el hogar — cada vida cuesta lo que cueste de verdad, y cuánto dura es
+// una decisión suya, no una estimación estadística que esta app pueda respaldar.
+const ESX2_EVENT_TEMPLATES = Object.freeze([
+  { id: "child", label: "Nace un hijo", type: "expense" },
+  { id: "wedding", label: "Boda", type: "expense" },
+  { id: "car", label: "Compra de coche", type: "car" },
+  { id: "move", label: "Mudanza", type: "move" },
+  { id: "reduced-hours", label: "Reducción de jornada", type: "income-loss" },
+  { id: "early-retirement", label: "Jubilación anticipada", type: "income-loss" },
+  { id: "extra-debt-payment", label: "Pago extra de una deuda", type: "debt" },
+  { id: "market-crash", label: "Caída de mercado", type: "market-crash" },
+  { id: "property-revaluation", label: "Revalorización del inmueble", type: "property-revaluation" },
+]);
+
+function applyE13EventTemplate(templateId) {
+  const template = ESX2_EVENT_TEMPLATES.find((item) => item.id === templateId);
+  if (!template) return;
+  const typeSelect = qs("e13EventType");
+  const amountInput = qs("e13EventAmount");
+  if (typeSelect) typeSelect.value = template.type;
+  if (amountInput) amountInput.value = "";
 }
 
 function addE13ScenarioEvent() {
@@ -35774,6 +35844,7 @@ async function init() {
       setActiveView(navButton.dataset.homeNav);
     }
   });
+  qs("esx2EventTemplate")?.addEventListener("change", (event) => applyE13EventTemplate(event.target.value));
   qs("e13EventBuilder")?.addEventListener("submit", (event) => {
     event.preventDefault();
     addE13ScenarioEvent();
@@ -36324,6 +36395,7 @@ async function init() {
   qs("irpfEstimateRun")?.addEventListener("click", handleAjustesEstimateIrpf);
   qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
+  qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
   qs("ap3ScenarioList")?.addEventListener("click", (event) => {
     const toggleButton = event.target.closest("[data-ap3-scenario-taken-toggle]");
