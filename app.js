@@ -652,6 +652,50 @@ function navigateE17(target) {
   setActiveView(target, { focus: true });
 }
 
+// DEX5: guía de primeros pasos para un hogar nuevo — decisión explícita del usuario (3-sep-2026):
+// sin ocultar ninguna pantalla, solo señalar por dónde empezar durante la primera semana de uso
+// real (arranca la primera vez que la app corre con datos, no en una fecha de calendario fija).
+// Hoy + Registrar son el mínimo señalado, tal como se decidió — el resto sigue accesible desde el
+// primer minuto, coherente con no fabricar una restricción de acceso que nadie pidió.
+const DEX5_FIRST_USE_KEY = "dex5-first-use-at";
+const DEX5_DISMISSED_KEY = "dex5-onboarding-dismissed";
+const DEX5_FIRST_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function dex5EnsureFirstUseRecorded() {
+  const key = storageKey(DEX5_FIRST_USE_KEY);
+  const existing = storageGet(key, "");
+  if (existing) return existing;
+  const now = new Date().toISOString();
+  storageSet(key, now);
+  return now;
+}
+
+function dex5IsFirstWeek(firstUseAt, now = new Date()) {
+  if (!firstUseAt) return false;
+  const started = new Date(firstUseAt);
+  if (Number.isNaN(started.getTime())) return false;
+  return now.getTime() - started.getTime() < DEX5_FIRST_WEEK_MS;
+}
+
+function renderDex5OnboardingBanner() {
+  const banner = qs("dex5OnboardingBanner");
+  if (!banner) return;
+  const firstUseAt = dex5EnsureFirstUseRecorded();
+  const dismissed = storageGet(storageKey(DEX5_DISMISSED_KEY), "") === "true";
+  if (dismissed || !dex5IsFirstWeek(firstUseAt)) {
+    banner.hidden = true;
+    banner.innerHTML = "";
+    return;
+  }
+  banner.hidden = false;
+  banner.innerHTML = `<div><p class="panel-kicker e19-eyebrow">Primeros pasos</p><h3>Empieza por Registrar y repasa Hoy cada día</h3><p>Con la app recién empezada, esto es lo esencial — el resto de pantallas sigue disponible cuando lo necesites, nada queda oculto.</p></div><div class="dex5-onboarding-actions"><button type="button" class="e19-btn e19-btn-primary" data-home-nav="registrar">Ir a Registrar</button><button type="button" class="e19-btn e19-btn-secondary" id="dex5OnboardingDismiss">Ya lo tengo claro</button></div>`;
+}
+
+function handleDex5OnboardingDismiss() {
+  storageSet(storageKey(DEX5_DISMISSED_KEY), "true");
+  renderDex5OnboardingBanner();
+}
+
 // UX6: extiende el lanzador (A12-3) para reconocer preguntas de importe ("¿me puedo permitir
 // 300€?", "cuánto me queda", "300 euros disponibles") sin ningún motor nuevo — reutiliza la misma
 // caja disponible y reserva protegida que ya calcula Hoy (A15-4 usa el mismo par). Un número suelto
@@ -681,16 +725,86 @@ function e17AmountAnswerHtml(amount) {
   </div>`;
 }
 
+// DEX1: barra de captura rápida — extiende el lanzador (A12-3/UX6) con un tercer tipo de resultado,
+// «crear movimiento», sobre el mismo patrón de mando de acciones que ya usa UX6 para preguntas de
+// importe: reglas fijas sobre palabras clave, no un asistente de IA. Un verbo de captura ("gasto",
+// "pagué", "ingreso"...) más un importe reconocible son las dos condiciones — sin las dos, no hay
+// resultado, para no competir con la búsqueda de tareas ni con la respuesta de importe de UX6 (sus
+// palabras clave no se solapan: UX6 pregunta "¿puedo...?", esto ordena "gasto X").
+const E17_CAPTURE_EXPENSE_KEYWORDS = ["gasto", "gaste", "pague", "pago", "compra", "compre"];
+const E17_CAPTURE_INCOME_KEYWORDS = ["ingreso", "ingrese", "cobre", "cobro"];
+
+function e17ParseQuickCaptureQuery(query) {
+  const raw = String(query || "").trim();
+  if (!raw) return null;
+  const words = raw.split(/\s+/);
+  const wordKeyword = (word) => normalizedText(word).replace(/[^a-z]/g, "");
+  const isExpense = words.some((word) => E17_CAPTURE_EXPENSE_KEYWORDS.includes(wordKeyword(word)));
+  const isIncome = !isExpense && words.some((word) => E17_CAPTURE_INCOME_KEYWORDS.includes(wordKeyword(word)));
+  if (!isExpense && !isIncome) return null;
+  const amountMatch = raw.match(/\d+(?:[.,]\d+)?/);
+  if (!amountMatch) return null;
+  const amount = round2(Number(amountMatch[0].replace(",", ".")));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const currencyWords = ["eur", "euro", "euros"];
+  const concept = words
+    .filter((word) => {
+      if (word.includes(amountMatch[0])) return false;
+      const normalizedWord = wordKeyword(word);
+      return !E17_CAPTURE_EXPENSE_KEYWORDS.includes(normalizedWord) && !E17_CAPTURE_INCOME_KEYWORDS.includes(normalizedWord) && !currencyWords.includes(normalizedWord);
+    })
+    .join(" ")
+    .trim();
+  if (!concept) return null;
+  return { amount, concept, kind: isIncome ? "income" : "expense" };
+}
+
+function e17QuickCaptureHtml(capture) {
+  if (!capture) return "";
+  const verb = capture.kind === "income" ? "Ingreso" : "Gasto";
+  return `<button type="button" class="e17-launcher-create" data-e17-create-movement data-e17-create-amount="${capture.amount}" data-e17-create-concept="${escapeHtml(capture.concept)}" data-e17-create-kind="${capture.kind}">
+    <strong>Crear ${verb.toLowerCase()}: ${escapeHtml(money(capture.amount, true))} · ${escapeHtml(capture.concept)}</strong>
+    <span>Se añade a la bandeja previa para confirmar, como cualquier otro movimiento — nada se incorpora todavía.</span>
+  </button>`;
+}
+
+// DEX1: crea el movimiento por el mismo camino que un ticket de cámara (A17-3) o una plantilla
+// repetida (DEX3) — bandeja previa (E11b) → `applyStagedMovementImport` → lote reversible de
+// `FinanceCanonicalE5`. Nunca una cuarta forma de escribir en `baseData.transactions`.
+function handleE17QuickCapture(dataset) {
+  const amount = Number(dataset?.e17CreateAmount);
+  const concept = String(dataset?.e17CreateConcept || "").trim();
+  const kind = dataset?.e17CreateKind === "income" ? "income" : "expense";
+  if (!Number.isFinite(amount) || amount <= 0 || !concept) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const row = {
+    date: today, valueDate: today, movement: concept,
+    details: "Creado desde la barra de captura rápida (DEX1)",
+    amount: kind === "income" ? Math.abs(round2(amount)) : -Math.abs(round2(amount)),
+    balance: null, category: "", source: "manual-quick-capture", statementOrder: 0,
+  };
+  const imported = [row];
+  const comparison = { valid: true, additions: imported, changes: [], duplicates: [], removals: [] };
+  const inboxItem = addE11bInboxItem({ source: "manual-quick-capture", sourceLabel: `Captura rápida: ${concept}`, rows: imported, comparison });
+  if (!inboxItem) return;
+  pendingE11bApply = { imported, inboxItem };
+  applyStagedMovementImport();
+  qs("e17LauncherDialog")?.close();
+}
+
 function renderE17Launcher(query = "") {
   const results = qs("e17LauncherResults");
   if (!results) return;
   const matches = E17Experience?.findTasks(query, normalizedText) || [];
   const amount = e17ParseAmountQuery(query);
   const answerHtml = amount !== null ? e17AmountAnswerHtml(amount) : "";
+  // Una pregunta de importe (UX6) y una orden de captura (DEX1) no deberían disparar a la vez —
+  // en la práctica sus palabras clave no se solapan, pero si UX6 ya respondió, se le da prioridad.
+  const captureHtml = answerHtml ? "" : e17QuickCaptureHtml(e17ParseQuickCaptureQuery(query));
   const matchesHtml = matches.length
     ? matches.map((item) => `<button type="button" data-e17-target="${escapeHtml(item.target)}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.keywords.split(" ").slice(0, 4).join(" · "))}</span></button>`).join("")
-    : answerHtml ? "" : "<p>No encuentro esa tarea. Prueba con deuda, movimientos, objetivos o conciliar.</p>";
-  results.innerHTML = answerHtml + matchesHtml;
+    : answerHtml || captureHtml ? "" : "<p>No encuentro esa tarea. Prueba con deuda, movimientos, objetivos o conciliar.</p>";
+  results.innerHTML = answerHtml + captureHtml + matchesHtml;
 }
 
 function openE17Dialog(kind) {
@@ -761,6 +875,8 @@ function setupE17Experience() {
     if (event.target.closest("[data-e17-close]")) { event.target.closest("dialog")?.close(); return; }
     const result = event.target.closest("[data-e17-target]");
     if (result) { qs("e17LauncherDialog")?.close(); navigateE17(result.dataset.e17Target); return; }
+    const createMovement = event.target.closest("[data-e17-create-movement]");
+    if (createMovement) { handleE17QuickCapture(createMovement.dataset); return; }
     // OPT-7: enlaces que no navegan a otra vista, solo llevan el foco a un control que ya está
     // siempre visible (p. ej. el selector lateral de contexto familiar).
     const scrollFocus = event.target.closest("[data-scroll-focus]");
@@ -3869,31 +3985,65 @@ function announceStatus(message) {
 // queda por debajo del mínimo, ¿seguro?") se queda como confirm(): no es "¿seguro que quieres
 // borrar?" sino un aviso de riesgo antes de perder la red de seguridad de "Descartar todo" de la
 // sesión — deshacerlo después no tiene el mismo sentido que reinsertar un elemento en una lista.
-let undoToastTimer = null;
-let undoToastCallback = null;
+// DEX4: deshacer universal, con pila visible. Antes `undoToastCallback`/`undoToastTimer` eran una
+// única casilla — una segunda `showUndoToast` mientras la primera seguía viva pisaba su callback sin
+// avisar: se perdía en silencio la posibilidad de deshacer la primera acción (borrar una alerta y
+// luego un objetivo en menos de 10 s dejaba la alerta sin poder deshacerse, sin que nadie lo notara).
+// Ahora es una pila real (`undoStack`), cada entrada con su propio temporizador independiente; el
+// aviso siempre muestra la más reciente, con un contador de cuántas más siguen pendientes debajo.
+const UNDO_STACK_MAX = 5;
+let undoStack = [];
 
-function showUndoToast(message, onUndo, timeoutMs = 10000) {
+function renderUndoToast() {
   const toast = qs("undoToast");
   const messageEl = qs("undoToastMessage");
+  const countEl = qs("undoToastCount");
   if (!toast || !messageEl) return;
-  if (undoToastTimer) window.clearTimeout(undoToastTimer);
-  messageEl.textContent = message;
-  undoToastCallback = onUndo;
+  const top = undoStack[undoStack.length - 1];
+  if (!top) {
+    toast.hidden = true;
+    return;
+  }
+  messageEl.textContent = top.message;
+  if (countEl) {
+    const extra = undoStack.length - 1;
+    countEl.textContent = extra ? `+${extra} más` : "";
+    countEl.hidden = !extra;
+  }
   toast.hidden = false;
-  undoToastTimer = window.setTimeout(hideUndoToast, timeoutMs);
+}
+
+function dismissUndoEntry(entry) {
+  const index = undoStack.indexOf(entry);
+  if (index === -1) return;
+  undoStack.splice(index, 1);
+  renderUndoToast();
+}
+
+function showUndoToast(message, onUndo, timeoutMs = 10000) {
+  // Tope defensivo: con solo dos consumidores hoy (alerta, objetivo) es un caso límite improbable,
+  // pero evita que una pila sin cerrar crezca sin límite — la más antigua se retira en silencio, sin
+  // ejecutar su callback (igual que una expiración normal).
+  if (undoStack.length >= UNDO_STACK_MAX) dismissUndoEntry(undoStack[0]);
+  const entry = { message, onUndo, timer: null };
+  entry.timer = window.setTimeout(() => dismissUndoEntry(entry), timeoutMs);
+  undoStack.push(entry);
+  renderUndoToast();
 }
 
 function hideUndoToast() {
-  const toast = qs("undoToast");
-  if (toast) toast.hidden = true;
-  if (undoToastTimer) { window.clearTimeout(undoToastTimer); undoToastTimer = null; }
-  undoToastCallback = null;
+  undoStack.forEach((entry) => window.clearTimeout(entry.timer));
+  undoStack = [];
+  renderUndoToast();
 }
 
 function handleUndoToastClick() {
-  const callback = undoToastCallback;
-  hideUndoToast();
-  if (callback) callback();
+  const top = undoStack[undoStack.length - 1];
+  if (!top) return;
+  window.clearTimeout(top.timer);
+  undoStack.pop();
+  renderUndoToast();
+  top.onUndo?.();
 }
 
 // DEX11: capa de gesto sobre la confirmación explícita que ya existe (A6-2/A6-5) — los mismos
@@ -22307,6 +22457,7 @@ function renderMovementsBulkBar() {
   const bar = qs("movementsBulkBar");
   const countLabel = qs("movementsBulkCount");
   const partidaSelect = qs("movementsBulkPartida");
+  const actionTypeSelect = qs("movementsBulkActionType");
   const noteEl = qs("movementsBulkNote");
   const applyButton = qs("movementsBulkApply");
   if (!bar) return;
@@ -22322,12 +22473,17 @@ function renderMovementsBulkBar() {
   // Una partida es de ingresos o de gastos (`availableSeriesRows(kind)`); una selección que mezcla
   // los dos no tiene una sola partida válida que ofrecer, así que se bloquea con el motivo en vez
   // de enseñar una lista que solo serviría para la mitad de lo seleccionado (regla transversal 08).
+  // Mismo bloqueo para el tipo de acción, por simplicidad — no añade un segundo criterio de mezcla.
   if (kinds.size > 1) {
     if (partidaSelect) {
       partidaSelect.innerHTML = "";
       partidaSelect.disabled = true;
     }
-    if (noteEl) noteEl.textContent = "Selecciona movimientos del mismo tipo (todo ingresos o todo gastos) para asignarles la misma partida.";
+    if (actionTypeSelect) {
+      actionTypeSelect.innerHTML = "";
+      actionTypeSelect.disabled = true;
+    }
+    if (noteEl) noteEl.textContent = "Selecciona movimientos del mismo tipo (todo ingresos o todo gastos) para asignarles la misma partida o tipo de acción.";
     if (applyButton) applyButton.disabled = true;
     return;
   }
@@ -22337,13 +22493,18 @@ function renderMovementsBulkBar() {
     partidaSelect.disabled = false;
     partidaSelect.innerHTML = movementMappingOptions(kind, previousValue);
   }
+  if (actionTypeSelect) {
+    const previousValue = actionTypeSelect.value;
+    actionTypeSelect.disabled = false;
+    actionTypeSelect.innerHTML = movementActionTypeOptions(previousValue);
+  }
   const alreadyMapped = [...concepts.values()].filter((row) => mappingForMovement(row)).length;
   if (noteEl) {
     noteEl.textContent = alreadyMapped
       ? `${alreadyMapped} de los ${concepts.size} concepto(s) ya tenían otra partida asignada: se sobrescribirá.`
-      : `Se aplicará a los ${concepts.size} concepto(s) seleccionados, incluidos los movimientos futuros con el mismo concepto — la misma regla que «Ver › Guardar partida».`;
+      : `Se aplicará a los ${concepts.size} concepto(s) seleccionados, incluidos los movimientos futuros con el mismo concepto — la misma regla que «Ver › Guardar partida». Partida y tipo de acción se guardan por separado: rellena solo lo que quieras cambiar.`;
   }
-  if (applyButton) applyButton.disabled = !partidaSelect?.value;
+  if (applyButton) applyButton.disabled = !partidaSelect?.value && !actionTypeSelect?.value;
 }
 
 function handleMovementsSelectToggle(event) {
@@ -22398,27 +22559,48 @@ function datosImportarRefreshRowsForMappings(keys) {
 // ya usaban M-7 (`handleMovementReclassify`) y la revisión de importación
 // (`applyPendingMovementMappings`) — regla transversal 01: ninguna tercera forma de escribir una
 // clasificación, solo una tercera forma de elegir a qué conceptos se le aplica.
+//
+// DEX10 (Oleada 2, Bloque 1): partida y tipo de acción son opcionales e independientes — igual que
+// en el detalle individual (`handleMovementReclassify`/`handleMovementActionTypeSave`, dos puertas
+// de guardado separadas), se puede rellenar una, la otra, o las dos a la vez. El tipo de acción en
+// lote nunca toca `recurring`: adivinarlo en lote sería inventar una decisión que nadie tomó — queda
+// `null`, igual que al guardarlo desde el detalle sin marcarlo explícitamente.
 function handleMovementsBulkApply() {
   const rows = movementsSelectedRows();
   const partidaSelect = qs("movementsBulkPartida");
-  if (!rows.length || !partidaSelect?.value) return;
+  const actionTypeSelect = qs("movementsBulkActionType");
+  if (!rows.length || (!partidaSelect?.value && !actionTypeSelect?.value)) return;
   const kinds = new Set(rows.map((row) => movementKindFromAmount(row.amount)));
   if (kinds.size > 1) return;
   const kind = [...kinds][0];
   const concepts = movementsSelectedConceptKeys(rows);
-  const label = partidaSelect.options[partidaSelect.selectedIndex]?.textContent || "";
-  const rowKeyValue = partidaSelect.value;
-  concepts.forEach((_row, key) => {
-    movementMappings[key] = { kind, rowKey: rowKeyValue, label, updatedAt: new Date().toISOString() };
-  });
-  saveMovementMappings();
-  const applied = applyMovementMappingsToActuals();
-  pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
-  datosImportarRefreshRowsForMappings(new Set(concepts.keys()));
-  saveIncomeActuals();
-  saveExpenseActuals();
+  const messages = [];
+  let applied = 0;
+  if (partidaSelect?.value) {
+    const label = partidaSelect.options[partidaSelect.selectedIndex]?.textContent || "";
+    const rowKeyValue = partidaSelect.value;
+    concepts.forEach((_row, key) => {
+      movementMappings[key] = { kind, rowKey: rowKeyValue, label, updatedAt: new Date().toISOString() };
+    });
+    saveMovementMappings();
+    applied = applyMovementMappingsToActuals();
+    pendingMovementMappings = buildPendingMovementMappings(baseData.transactions || []);
+    datosImportarRefreshRowsForMappings(new Set(concepts.keys()));
+    saveIncomeActuals();
+    saveExpenseActuals();
+    // Mismo texto exacto que antes de DEX10 cuando solo se aplica partida (regresión cero de copy).
+    messages.push(`reclasificados a «${label}». ${applied} importe(s) reales recalculados desde movimientos.`);
+  }
+  if (actionTypeSelect?.value) {
+    const actionLabel = actionTypeSelect.options[actionTypeSelect.selectedIndex]?.textContent || "";
+    concepts.forEach((_row, key) => {
+      movementActionTypes[key] = { actionType: actionTypeSelect.value, recurring: null, updatedAt: new Date().toISOString() };
+    });
+    saveMovementActionTypes();
+    messages.push(`tipo de acción asignado como «${actionLabel}».`);
+  }
   refreshAllSectionsAfterDataChange();
-  announceStatus(`${concepts.size} concepto(s) (${rows.length} movimiento(s)) reclasificados a «${label}». ${applied} importe(s) reales recalculados desde movimientos.`);
+  announceStatus(`${concepts.size} concepto(s) (${rows.length} movimiento(s)) ${messages.join(" ")}`);
   movementsSelectedIndexes.clear();
   renderDetailedMovements();
 }
@@ -34240,6 +34422,7 @@ async function init() {
   }
   loadWorkbookOverride();
   loadLocalState();
+  renderDex5OnboardingBanner();
   ensureCompleteFinancingSection();
   repairFinancingSectionFromReference();
   ensureVariableOperationalSection();
@@ -35078,6 +35261,7 @@ async function init() {
   qs("movementRows")?.addEventListener("change", handleMovementsSelectToggle);
   qs("movementsSelectAll")?.addEventListener("change", handleMovementsSelectAll);
   qs("movementsBulkPartida")?.addEventListener("change", renderMovementsBulkBar);
+  qs("movementsBulkActionType")?.addEventListener("change", renderMovementsBulkBar);
   qs("movementsBulkClear")?.addEventListener("click", handleMovementsBulkClear);
   qs("movementsBulkApply")?.addEventListener("click", handleMovementsBulkApply);
   qs("movementsExportButton")?.addEventListener("click", handleMovementsExport);
@@ -35108,6 +35292,7 @@ async function init() {
   qs("meetingModeNext")?.addEventListener("click", () => meetingModeGo(1));
   qs("meetingModeExit")?.addEventListener("click", exitMeetingMode);
   qs("home")?.addEventListener("click", (event) => {
+    if (event.target.closest("#dex5OnboardingDismiss")) { handleDex5OnboardingDismiss(); return; }
     const button = event.target.closest("[data-home-nav]");
     const target = button?.dataset.homeNav;
     // H-5: homeNavTargetIsValid (no el chequeo de vista-real a pelo) para que las decisiones

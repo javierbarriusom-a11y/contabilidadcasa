@@ -53,6 +53,8 @@ function sandboxWith(names, extra = {}) {
   };
   vm.createContext(context);
   vm.runInContext(extractConst("UX6_AMOUNT_QUESTION_KEYWORDS"), context);
+  vm.runInContext(extractConst("E17_CAPTURE_EXPENSE_KEYWORDS"), context);
+  vm.runInContext(extractConst("E17_CAPTURE_INCOME_KEYWORDS"), context);
   vm.runInContext(extractFunction("normalizedText"), context);
   names.forEach((name) => vm.runInContext(extractFunction(name), context));
   return context;
@@ -101,9 +103,11 @@ test("e17AmountAnswerHtml · sin margen suficiente, dice que no y cuánto faltar
   assert.match(html2, /100\.00/); // faltarían 100 (disponible 200 - 300)
 });
 
+const RENDER_LAUNCHER_NAMES = ["renderE17Launcher", "e17ParseAmountQuery", "e17AmountAnswerHtml", "e17ParseQuickCaptureQuery", "e17QuickCaptureHtml"];
+
 test("renderE17Launcher · con una pregunta de importe, antepone la respuesta a las tareas encontradas", () => {
   const results = { innerHTML: "" };
-  const ctx = sandboxWith(["renderE17Launcher", "e17ParseAmountQuery", "e17AmountAnswerHtml"], {
+  const ctx = sandboxWith(RENDER_LAUNCHER_NAMES, {
     qs: (id) => (id === "e17LauncherResults" ? results : null),
     E17Experience: { findTasks: () => [] },
     accountBalancesFromState: () => ({ caixa: 5000 }),
@@ -116,7 +120,7 @@ test("renderE17Launcher · con una pregunta de importe, antepone la respuesta a 
 
 test("renderE17Launcher · sin pregunta de importe, mantiene el comportamiento de siempre", () => {
   const results = { innerHTML: "" };
-  const ctx = sandboxWith(["renderE17Launcher", "e17ParseAmountQuery", "e17AmountAnswerHtml"], {
+  const ctx = sandboxWith(RENDER_LAUNCHER_NAMES, {
     qs: (id) => (id === "e17LauncherResults" ? results : null),
     E17Experience: { findTasks: () => [] },
   });
@@ -128,4 +132,124 @@ test("el lanzador sigue definido y el motor de importes vive junto a él", () =>
   assert.match(app, /function renderE17Launcher/);
   assert.match(app, /function e17ParseAmountQuery/);
   assert.match(app, /function e17AmountAnswerHtml/);
+});
+
+// ---------------------------------------------------------------------------------------------
+// DEX1 (Oleada 2, Bloque 1) · barra de captura rápida — tercer tipo de resultado del lanzador,
+// junto a la navegación (A12-3) y la respuesta de importe (UX6): «gasto 12,50 mercadona» ofrece
+// crear ese movimiento, sin escribir nada hasta que se pulse el botón.
+// ---------------------------------------------------------------------------------------------
+
+// deepEqual sobre el objeto tal cual devuelve el vm falla por prototipos de distinto realm, no por
+// contenido (mismo aviso que ya deja tests/m8-m8b-movimientos-lote.test.cjs) — se compara con
+// {...result}, un objeto llano reconstruido en el realm del test.
+test("e17ParseQuickCaptureQuery · un verbo de gasto más un importe reconoce el concepto (sin acentos)", () => {
+  const ctx = sandboxWith(["e17ParseQuickCaptureQuery"]);
+  assert.deepEqual({ ...ctx.e17ParseQuickCaptureQuery("gasto 12,50 mercadona") }, { amount: 12.5, concept: "mercadona", kind: "expense" });
+  assert.deepEqual({ ...ctx.e17ParseQuickCaptureQuery("pagué 20 luz") }, { amount: 20, concept: "luz", kind: "expense" });
+});
+
+test("e17ParseQuickCaptureQuery · un verbo de ingreso reconoce kind income", () => {
+  const ctx = sandboxWith(["e17ParseQuickCaptureQuery"]);
+  assert.deepEqual({ ...ctx.e17ParseQuickCaptureQuery("ingreso 50 reembolso") }, { amount: 50, concept: "reembolso", kind: "income" });
+});
+
+test("e17ParseQuickCaptureQuery · concepto de varias palabras se conserva completo, con su capitalización original", () => {
+  const ctx = sandboxWith(["e17ParseQuickCaptureQuery"]);
+  assert.deepEqual({ ...ctx.e17ParseQuickCaptureQuery("compra 45 El Corte Inglés") }, { amount: 45, concept: "El Corte Inglés", kind: "expense" });
+});
+
+test("e17ParseQuickCaptureQuery · sin verbo de captura, no dispara (sería una búsqueda o pregunta de importe, no una orden)", () => {
+  const ctx = sandboxWith(["e17ParseQuickCaptureQuery"]);
+  assert.equal(ctx.e17ParseQuickCaptureQuery("300€"), null);
+  assert.equal(ctx.e17ParseQuickCaptureQuery("¿puedo gastar 300€?"), null); // "gastar" no es "gasto": no se confunde con UX6
+});
+
+test("e17ParseQuickCaptureQuery · con verbo pero sin importe reconocible, no dispara", () => {
+  const ctx = sandboxWith(["e17ParseQuickCaptureQuery"]);
+  assert.equal(ctx.e17ParseQuickCaptureQuery("gasto mercadona"), null);
+});
+
+test("e17ParseQuickCaptureQuery · con verbo e importe pero sin concepto, no dispara (hueco, no invención)", () => {
+  const ctx = sandboxWith(["e17ParseQuickCaptureQuery"]);
+  assert.equal(ctx.e17ParseQuickCaptureQuery("gasto 20"), null);
+});
+
+test("e17QuickCaptureHtml · pinta importe y concepto, y avisa de que no se incorpora nada todavía", () => {
+  const ctx = sandboxWith(["e17QuickCaptureHtml"]);
+  const output = ctx.e17QuickCaptureHtml({ amount: 12.5, concept: "mercadona", kind: "expense" });
+  assert.match(output, /data-e17-create-movement/);
+  assert.match(output, /data-e17-create-amount="12\.5"/);
+  assert.match(output, /data-e17-create-concept="mercadona"/);
+  assert.match(output, /data-e17-create-kind="expense"/);
+  assert.match(output, /nada se incorpora todavía/);
+});
+
+test("e17QuickCaptureHtml · sin captura, no pinta nada", () => {
+  const ctx = sandboxWith(["e17QuickCaptureHtml"]);
+  assert.equal(ctx.e17QuickCaptureHtml(null), "");
+});
+
+test("renderE17Launcher · una orden de captura reconocida se ofrece como resultado, sin sustituir la búsqueda de tareas", () => {
+  const results = { innerHTML: "" };
+  const ctx = sandboxWith(RENDER_LAUNCHER_NAMES, {
+    qs: (id) => (id === "e17LauncherResults" ? results : null),
+    E17Experience: { findTasks: () => [] },
+  });
+  ctx.renderE17Launcher("gasto 12,50 mercadona");
+  assert.match(results.innerHTML, /data-e17-create-movement/);
+  assert.match(results.innerHTML, /Crear gasto: 12\.50 €/);
+  assert.doesNotMatch(results.innerHTML, /No encuentro esa tarea/);
+});
+
+test("handleE17QuickCapture · crea el movimiento por la bandeja previa, nunca escribe directamente, y cierra el lanzador", () => {
+  const calls = [];
+  const dialog = { closed: false, close() { this.closed = true; } };
+  const ctx = sandboxWith(["handleE17QuickCapture"], {
+    round2: (v) => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100,
+    addE11bInboxItem: (input) => { calls.push(["addE11bInboxItem", input]); return { id: "inbox-dex1-1" }; },
+    applyStagedMovementImport: () => calls.push("applyStagedMovementImport"),
+    pendingE11bApply: null,
+    qs: (id) => (id === "e17LauncherDialog" ? dialog : null),
+  });
+  ctx.handleE17QuickCapture({ e17CreateAmount: "12.5", e17CreateConcept: "mercadona", e17CreateKind: "expense" });
+  const [, input] = calls[0];
+  assert.equal(input.source, "manual-quick-capture");
+  const row = input.rows[0];
+  assert.equal(row.movement, "mercadona");
+  assert.equal(row.amount, -12.5);
+  assert.equal(calls[1], "applyStagedMovementImport");
+  assert.equal(ctx.pendingE11bApply.imported[0].movement, "mercadona");
+  assert.equal(dialog.closed, true);
+});
+
+test("handleE17QuickCapture · un ingreso guarda el importe en positivo", () => {
+  const calls = [];
+  const ctx = sandboxWith(["handleE17QuickCapture"], {
+    round2: (v) => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100,
+    addE11bInboxItem: (input) => { calls.push(input); return { id: "inbox-dex1-2" }; },
+    applyStagedMovementImport: () => {},
+    pendingE11bApply: null,
+    qs: () => null,
+  });
+  ctx.handleE17QuickCapture({ e17CreateAmount: "50", e17CreateConcept: "reembolso", e17CreateKind: "income" });
+  assert.equal(calls[0].rows[0].amount, 50);
+});
+
+test("handleE17QuickCapture · sin importe o concepto válido, no crea nada", () => {
+  const calls = [];
+  const ctx = sandboxWith(["handleE17QuickCapture"], {
+    round2: (v) => v,
+    addE11bInboxItem: (input) => { calls.push(input); return { id: "x" }; },
+    applyStagedMovementImport: () => calls.push("applyStagedMovementImport"),
+    qs: () => null,
+  });
+  ctx.handleE17QuickCapture({ e17CreateAmount: "0", e17CreateConcept: "mercadona", e17CreateKind: "expense" });
+  ctx.handleE17QuickCapture({ e17CreateAmount: "12", e17CreateConcept: "", e17CreateKind: "expense" });
+  assert.deepEqual(calls, []);
+});
+
+test("el botón de crear movimiento del lanzador está cableado en la delegación de clics de setupE17Experience", () => {
+  assert.match(app, /const createMovement = event\.target\.closest\("\[data-e17-create-movement\]"\);/);
+  assert.match(app, /if \(createMovement\) \{ handleE17QuickCapture\(createMovement\.dataset\); return; \}/);
 });

@@ -2,6 +2,63 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (137): segunda oleada del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` — DEX1, DEX4, DEX5, DEX10
+
+Continuación directa de la sesión 136 (pedido explícito del usuario: «sigue con DEX1, DEX4, DEX5,
+DEX10»), las cuatro tareas de esfuerzo M que quedaron fuera de la primera oleada a propósito, por
+merecer cada una su propia revisión de diseño.
+
+**Antes de tocar código**, una decisión que solo podía tomar el usuario: DEX5 pide que «un hogar
+nuevo vea solo lo mínimo la primera semana», y no hay forma de inferir del código qué dispara ese
+desbloqueo ni qué cuenta como «mínimo». Se le preguntó explícitamente: eligió **«sin ocultar nada,
+solo guiar»** (ninguna pantalla se retira, solo se señala por dónde empezar) y **«Hoy + Registrar»**
+como el mínimo destacado. Esto simplifica DEX5 de verdad: nada de A12-5 (ocultar grupos de
+navegación), solo un banner de guía.
+
+- **DEX10 — corrección en lote**: investigación previa reveló que la selección múltiple y el lote de
+  partida **ya estaban construidos** desde M-8/M-8b (15 de agosto de 2026) — el backlog estaba
+  desactualizado en este punto. El gap real, y lo único que se construyó: la barra de lote
+  (`renderMovementsBulkBar`/`handleMovementsBulkApply`, `#movementsBulkBar`) no cubría el **tipo de
+  acción** (`movementActionTypes`), solo la partida (`movementMappings`). Se añadió un segundo
+  selector independiente (`#movementsBulkActionType`) — partida y tipo de acción se pueden aplicar
+  por separado o juntos, mismo patrón dual que ya usa el detalle individual. `recurring` se deja
+  siempre `null` en lote: adivinarlo sería inventar una decisión que nadie tomó. El mensaje de
+  cuando solo se aplica partida es char por char el mismo que antes de esta tarea (cero regresión de
+  copy, verificado con test).
+- **DEX4 — deshacer universal, con pila visible**: `undoToastCallback`/`undoToastTimer` eran una
+  única casilla — un bug real y silencioso: borrar una alerta y luego un objetivo en menos de 10 s
+  pisaba el callback del primero sin avisar, perdiendo la posibilidad de deshacerlo. Ahora es una
+  pila real (`undoStack`, tope defensivo de 5), cada entrada con su propio temporizador; el aviso
+  muestra la más reciente con un contador («+N más») de las que siguen pendientes debajo. Los dos
+  consumidores existentes (alerta, objetivo) no cambiaron una línea — el arreglo es interno.
+- **DEX1 — barra de captura rápida**: tercer tipo de resultado en el lanzador (Cmd/Ctrl+K, A12-3),
+  junto a la navegación y la respuesta de importe de UX6 — reglas fijas sobre un verbo de captura
+  («gasto», «pagué», «ingreso»...) más un importe reconocible, sin motor de IA. «gasto 12,50
+  mercadona» ofrece un botón «Crear gasto» que entra por la misma bandeja previa y el mismo lote
+  reversible que un ticket de cámara o una plantilla de recurrentes (DEX3) — nunca escribe directo.
+  Las palabras clave de UX6 y de DEX1 no se solapan (verificado con test): «¿puedo gastar 300€?»
+  sigue siendo solo una pregunta.
+- **DEX5 — guía de primeros pasos**: no existía ningún mecanismo de «primer uso» en el repositorio
+  (búsqueda exhaustiva sin resultado). `dex5EnsureFirstUseRecorded()` marca la primera vez que la
+  app corre con datos (no una fecha de calendario); durante 7 días reales desde esa marca, Hoy
+  muestra un banner (`.e19-next-step`, el mismo componente ya catalogado que usa A6-1 en
+  `#updateNextStep` — ninguna clase de banner nueva, OPT-19) señalando Registrar + Hoy como punto de
+  partida, con un botón «Ya lo tengo claro» para descartarlo antes de tiempo si se quiere. Pasada la
+  semana o descartado, desaparece solo — ninguna pantalla queda oculta en ningún momento.
+
+**Validación**: `npm run verify`, exit 0 — **2990/2990 pruebas** (2955 previas + 35 nuevas: 8 en
+`tests/m8-m8b-movimientos-lote.test.cjs` para DEX10, 13 en `tests/ux6-busqueda-importes.test.cjs`
+para DEX1, 12 en `tests/dex5-guia-primeros-pasos.test.cjs` nuevo, más las reescritas de
+`tests/ux1-deshacer-diez-segundos.test.cjs` para DEX4; `tests/h5-hoy-decision-navegacion.test.cjs`
+ajustada a la ventana de texto tras el añadido de DEX5 sin cambiar lo que comprueba), accesibilidad
+estructural (1086 IDs únicos), rendimiento, `build:site`, privacidad y humo en verde.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 1, filas de `DEX1`/`DEX4`/
+`DEX5`/`DEX10` marcadas ✅ Hecho. Con esto, del Bloque 1 (11 tareas) solo quedan `DEX2` (depende de
+`DEX1`, ya desbloqueada) y `DEX6` (condicionada a que `A5-1` esté activo en producción).
+
+**Pendiente de publicar**: rama `claude/session-eilejl`, PR por abrir tras este commit.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (136): primera oleada del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` — DEX7, DEX9, DEX3, DEX8, DEX11
 
 Aviso previo, antes de tocar código: el artefacto que abrió la sesión («Ajustes y Hoy») ya estaba

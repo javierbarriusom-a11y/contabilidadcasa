@@ -177,7 +177,9 @@ test("H-5 · homeNavTargetIsValid rechaza un target vacío o inventado", () => {
 test("H-5 · el manejador de clics de #home usa homeNavTargetIsValid en vez del chequeo de vista-real directo", () => {
   const start = app.indexOf('qs("home")?.addEventListener("click"');
   assert.ok(start >= 0, "No se encontró el manejador de clics de #home");
-  const snippet = app.slice(start, start + 400);
+  // DEX5 añadió una rama previa (descartar la guía de primeros pasos) que empuja un poco el resto
+  // del manejador — la ventana crece de 400 a 600, la comprobación sigue siendo la misma.
+  const snippet = app.slice(start, start + 600);
   assert.match(snippet, /homeNavTargetIsValid\(target\)/);
 });
 

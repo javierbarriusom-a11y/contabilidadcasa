@@ -443,6 +443,10 @@ h2 {
 /* UX6: respuesta directa a una pregunta de importe, encima de las tareas encontradas. */
 .e17-launcher-answer { display: grid; gap: 4px; padding: 10px 12px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .e17-launcher-answer p { margin: 0; color: var(--muted); font-size: 13px; }
+
+/* DEX1: distingue el resultado de "crear movimiento" de los de navegación, con el mismo acento que
+   ya usa el resto de la app para acciones primarias. */
+.e17-launcher-create { border-color: var(--teal); border-width: 2px; margin-bottom: 2px; }
 .e17-preferences { display: grid; gap: 10px; margin: 18px 0; border: 0; padding: 0; }
 .e17-preferences label { display: flex; align-items: center; gap: 9px; }
 
@@ -845,6 +849,17 @@ main {
 }
 
 .undo-toast[hidden] {
+  display: none;
+}
+
+.undo-toast-count {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
+.undo-toast-count[hidden] {
   display: none;
 }
 
@@ -3381,6 +3396,34 @@ svg {
 .data-actions button:last-child {
   color: var(--muted);
   font-weight: 800;
+}
+
+/* DEX5: guía de primeros pasos de Hoy — mismo patrón flex que .update-next-step (contenido a la
+   izquierda, acciones a la derecha), sobre el look ya dado por .e19-next-step. */
+.dex5-onboarding-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.dex5-onboarding-banner[hidden] {
+  display: none;
+}
+
+.dex5-onboarding-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .dex5-onboarding-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* DEX11: en un dispositivo táctil, el botón de confirmar explícito (A6-5) pide mantener pulsado en
