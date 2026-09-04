@@ -71,5 +71,21 @@
     };
   }
 
-  return { RATE_SCENARIOS, monthlyPayment, evaluateMortgageRateScenarios };
+  // APX5: coste total de refinanciar, no solo el tipo. El ahorro mensual de pasarse a fijo no basta
+  // por sí solo para decidir — hay que descontar la comisión de cancelación/subrogación y los gastos
+  // de novación antes de saber si compensa y en cuántos meses. Usa el escenario "base" (tipos sin
+  // cambio) como referencia: es la comparación que el hogar puede verificar hoy mismo, no una
+  // proyección de qué harán los tipos en el futuro. Sin ahorro mensual real (la fija no sale más
+  // barata en base), el punto de equilibrio no es calculable — nunca se divide por un ahorro
+  // negativo o cero, ni se inventa un plazo.
+  function refinancingBreakEvenMonths(scenarios, refinancingCost) {
+    const cost = Math.max(0, number(refinancingCost));
+    const base = (Array.isArray(scenarios) ? scenarios : []).find((scenario) => scenario.id === "base");
+    if (!base) return { calculable: false, monthlySavings: 0, cost, months: null };
+    const monthlySavings = round2(base.variableMonthlyPayment - base.fixedMonthlyPayment);
+    if (monthlySavings <= 0) return { calculable: false, monthlySavings, cost, months: null };
+    return { calculable: true, monthlySavings, cost, months: Math.ceil(cost / monthlySavings) };
+  }
+
+  return { RATE_SCENARIOS, monthlyPayment, evaluateMortgageRateScenarios, refinancingBreakEvenMonths };
 });

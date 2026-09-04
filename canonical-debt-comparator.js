@@ -200,6 +200,64 @@
     };
   }
 
+  const REDUCE_QUOTA_VS_TERM_SCHEMA_ID = "finance.amortize-reduce-quota-vs-term";
+
+  // Cuota francesa estándar — misma fórmula que canonical-mortgage-rate-scenarios.js (DI1),
+  // duplicada aquí a propósito en vez de importada: mismo criterio de autonomía que ya sigue el
+  // resto de motores canónicos de este repo (ver DI5 sobre por qué no comparten módulo).
+  function amortizedMonthlyPayment(principal, annualRatePct, months) {
+    const p = Math.max(0, round2(finite(principal)));
+    const n = Math.max(1, Math.round(finite(months)));
+    const monthlyRate = finite(annualRatePct) / 100 / 12;
+    if (p <= 0) return 0;
+    if (monthlyRate === 0) return round2(p / n);
+    const factor = Math.pow(1 + monthlyRate, n);
+    return round2((p * monthlyRate * factor) / (factor - 1));
+  }
+
+  // APX6: amortizar reduciendo cuota (misma duración, cuota más baja) frente a reduciendo plazo
+  // (misma cuota, menos meses) — dos formas reales de aplicar el mismo importe extra que
+  // compareAmortizeVsInvest (AP1) no distingue: esa función solo estima el ahorro total con interés
+  // simple, nunca recalcula la cuota ni el plazo nuevos con la fórmula de amortización real.
+  // "Reducir plazo" despeja n de la fórmula de anualidad (n = -ln(1 - r·P/M) / ln(1+r)): cuántos
+  // meses hacen falta para pagar el principal restante manteniendo la cuota actual.
+  function amortizeReduceQuotaVsTerm({ principal = 0, annualRatePct = null, months = 0, lumpSum = 0 } = {}) {
+    const p = Math.max(0, round2(finite(principal)));
+    const n = Math.max(1, Math.round(finite(months)));
+    const rate = knownFinite(annualRatePct) ? annualRatePct : NaN;
+    const extra = Math.max(0, round2(finite(lumpSum)));
+    if (p <= 0 || n <= 0 || !Number.isFinite(rate) || extra <= 0 || extra >= p) {
+      return { schema: REDUCE_QUOTA_VS_TERM_SCHEMA_ID, calculable: false };
+    }
+    const remainingPrincipal = round2(p - extra);
+    const currentPayment = amortizedMonthlyPayment(p, rate, n);
+    const monthlyRate = rate / 100 / 12;
+    const reducedPayment = amortizedMonthlyPayment(remainingPrincipal, rate, n);
+    // Si la cuota actual no llegaría ni a cubrir el interés del principal restante, no se puede
+    // despejar un plazo más corto — se queda en el plazo actual (hueco, no un número inventado).
+    const reducedMonths = monthlyRate === 0
+      ? Math.max(1, Math.ceil(remainingPrincipal / currentPayment))
+      : currentPayment > remainingPrincipal * monthlyRate
+        ? Math.max(1, Math.ceil(-Math.log(1 - (remainingPrincipal * monthlyRate) / currentPayment) / Math.log(1 + monthlyRate)))
+        : n;
+    const currentTotalCost = round2(currentPayment * n);
+    const reduceQuotaTotalCost = round2(reducedPayment * n);
+    const reduceTermTotalCost = round2(currentPayment * reducedMonths);
+    return {
+      schema: REDUCE_QUOTA_VS_TERM_SCHEMA_ID,
+      calculable: true,
+      principal: p,
+      remainingPrincipal,
+      months: n,
+      annualRatePct: round2(rate),
+      lumpSum: extra,
+      currentPayment,
+      currentTotalCost,
+      reduceQuota: { newPayment: reducedPayment, paymentReduction: round2(currentPayment - reducedPayment), months: n, totalCost: reduceQuotaTotalCost, interestSaved: round2(currentTotalCost - reduceQuotaTotalCost) },
+      reduceTerm: { payment: currentPayment, newMonths: reducedMonths, monthsReduced: Math.max(0, n - reducedMonths), totalCost: reduceTermTotalCost, interestSaved: round2(currentTotalCost - reduceTermTotalCost) },
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -213,5 +271,7 @@
     compareAgreements,
     AMORTIZE_VS_INVEST_SCHEMA_ID,
     compareAmortizeVsInvest,
+    REDUCE_QUOTA_VS_TERM_SCHEMA_ID,
+    amortizeReduceQuotaVsTerm,
   };
 });

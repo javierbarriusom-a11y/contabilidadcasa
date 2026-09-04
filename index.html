@@ -2792,6 +2792,12 @@
                   <span>Oferta de tipo fijo (%)</span>
                   <input id="ajustesMortgageFixedRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
                 </label>
+                <!-- APX5: coste total de refinanciar, no solo el tipo — comisión de cancelación/
+                     subrogación + gastos de novación, para el punto de equilibrio en meses. -->
+                <label class="month-picker">
+                  <span>Coste de refinanciar (€)</span>
+                  <input id="ajustesMortgageRefinancingCost" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMortgageScenariosCompare">Comparar</button>
               <div class="e19-kpi-note" id="ajustesMortgageScenariosNote"></div>
@@ -2864,6 +2870,17 @@
                    dinero. Solo avisa con 2+ miembros activos y un área compartida con menos de dos
                    personas con acceso — con una sola persona en el hogar, avisar sería ruido. -->
               <div class="e19-kpi-note" id="rgxKnowledgeConcentration"></div>
+            </article>
+
+            <!-- LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1
+                 (activos con procedencia, arriba) y SP1 (inventario de pólizas, en Ajustes ›
+                 Seguros). Dos puntos se verifican solos con datos reales; los otros tres no tienen
+                 ninguna fuente de datos en la app (testamento, beneficiarios, a quién avisar) —
+                 quedan como casillas que confirma el propio hogar, nunca inventadas. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Continuidad ante fallecimiento o incapacidad</h3>
+              <p class="e19-kpi-note">Checklist de lo que hace falta para que otra persona pueda hacerse cargo — no ejecuta ninguna acción, solo hace visible qué falta.</p>
+              <div id="lpx3ContinuityChecklist"></div>
             </article>
 
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.

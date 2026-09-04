@@ -164,6 +164,8 @@
         message: alert.message,
         severity: alert.severity,
         citations: [`alert:${alert.id}`],
+        evidence: Array.isArray(alert.evidence) ? alert.evidence : [],
+        confidence: alert.confidence || "",
       }));
     const validated = citationApi.validateRecommendations(candidates, { availableSources });
     const index = validated.results.findIndex((result) => result.valid);
@@ -184,10 +186,21 @@
     return `<p class="p2-help">Llevas ${days} día(s) viendo este aviso sin resolverlo. <button type="button" class="p2-button secondary" data-cpx3-dismiss="${esc(entry.signature)}">Descartar</button></p>`;
   }
 
+  // RGX4: explicación en dos niveles — capa sobre A7-3/A11-4/CP1, sin motor nuevo. Nivel 1 (siempre
+  // visible): la etiqueta y el mensaje en lenguaje llano, igual que antes. Nivel 2 (desplegable,
+  // <details> nativo — sin estado de JS propio que mantener): la evidencia real que ya calculaba
+  // E16 (A11-1, evidence[]/confidence) y la cita verificada por CP3, para quien quiera comprobar el
+  // porqué en vez de solo leer la frase.
+  function rgx4TwoLevelExplanationHtml(action) {
+    const evidenceItems = (action.evidence || []).map((item) => `<li>${esc(item)}</li>`).join("");
+    const confidenceItem = action.confidence ? `<li>Confianza del dato: ${esc(action.confidence)}</li>` : "";
+    return `<details class="p2-details"><summary>Ver por qué</summary><ul class="p2-help">${evidenceItems}${confidenceItem}<li>Cita: ${esc(action.citations.join(", "))}</li></ul></details>`;
+  }
+
   function cp1NextBestActionHtml(action, trackedEntry) {
     if (!action) return '<p class="p2-help">No hay ninguna alerta con evidencia citable ahora mismo.</p>';
     const tone = action.severity === "critical" ? " danger" : action.severity === "high" ? " warn" : "";
-    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(action.label)}</strong><span class="p2-status${tone}">${esc(action.severity)}</span></div><p>${esc(action.message)}</p><p class="p2-help">Cita: ${esc(action.citations.join(", "))}.</p>${cpx3IgnoredNoteHtml(trackedEntry)}</article>`;
+    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(action.label)}</strong><span class="p2-status${tone}">${esc(action.severity)}</span></div><p>${esc(action.message)}</p>${rgx4TwoLevelExplanationHtml(action)}${cpx3IgnoredNoteHtml(trackedEntry)}</article>`;
   }
 
   // HD-4 (spin-off Ajustes/Hoy, 3-sep-2026): con el horizonte ya acotado (HD-1) el listado de
