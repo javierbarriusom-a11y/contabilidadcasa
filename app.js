@@ -4082,42 +4082,6 @@ function wireGestureConfirm(button) {
   button.addEventListener("touchmove", cancel);
 }
 
-// DEX11: capa de gesto sobre la confirmación explícita que ya existe (A6-2/A6-5) — los mismos
-// botones "Confirmar X" / "Cancelar" de siempre (`receiptCaptureConfirm`, `confirmMovementInbox`...),
-// sin sustituirlos ni añadir un paso nuevo. En un dispositivo táctil, un toque suelto sobre el botón
-// de confirmar ya no basta: hace falta mantenerlo pulsado (`GESTURE_CONFIRM_HOLD_MS`), con un
-// relleno visual de progreso, antes de que el clic llegue de verdad al manejador. En teclado/ratón no
-// cambia nada — el clic sigue confirmando al instante, como siempre.
-const GESTURE_CONFIRM_HOLD_MS = 600;
-
-function isTouchInputDevice() {
-  return typeof window !== "undefined" && (("ontouchstart" in window) || Number(window.navigator?.maxTouchPoints) > 0);
-}
-
-function wireGestureConfirm(button) {
-  if (!button || button.dataset.gestureConfirmWired === "true") return;
-  button.dataset.gestureConfirmWired = "true";
-  if (!isTouchInputDevice()) return;
-  button.classList.add("gesture-confirm");
-  let holdTimer = null;
-  const start = (event) => {
-    event.preventDefault();
-    button.classList.add("is-holding");
-    holdTimer = window.setTimeout(() => {
-      button.classList.remove("is-holding");
-      button.click();
-    }, GESTURE_CONFIRM_HOLD_MS);
-  };
-  const cancel = () => {
-    if (holdTimer) window.clearTimeout(holdTimer);
-    button.classList.remove("is-holding");
-  };
-  button.addEventListener("touchstart", start, { passive: false });
-  button.addEventListener("touchend", cancel);
-  button.addEventListener("touchcancel", cancel);
-  button.addEventListener("touchmove", cancel);
-}
-
 function activeViewTitle(viewId) {
   return (viewTitles[viewId] || viewTitles.home).title;
 }
