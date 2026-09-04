@@ -14,9 +14,13 @@ test("IV2: la tarjeta de cartera tiene la fecha de adquisición y el formulario 
 });
 
 test("IV2: saveIv1Position lee la fecha de adquisición y registra la posición con contributions vacío", () => {
-  const block = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 1200);
+  // IVX6 (Oleada 2 Bloque 3) añadió el campo goalId y su comentario antes del literal — la
+  // ventana crece de 1200 a 1500, la comprobación sigue siendo la misma.
+  const block = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 1500);
   assert.match(block, /qs\("iv1PositionAcquisitionDate"\)\?\.value/);
-  assert.match(block, /acquisitionDate, provenance, contributions: \[\]/);
+  // IVX6 (Oleada 2 Bloque 3) añadió goalId entre provenance y contributions — el objeto sigue
+  // guardando contributions vacío, solo cambia lo que hay justo antes.
+  assert.match(block, /acquisitionDate, provenance, goalId, contributions: \[\]/);
 });
 
 test("IV2: saveIv1Contribution valida posición, importe positivo y fecha antes de guardar", () => {
@@ -33,7 +37,9 @@ test("IV2: el botón de aportación está cableado a saveIv1Contribution", () =>
 
 test("IV2: renderIv1ContributionOptions existe y se llama junto al resto de renders de cartera al registrar/traspasar/quitar", () => {
   assert.match(appSource, /function renderIv1ContributionOptions/);
-  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 1400);
+  // IVX6 (Oleada 2 Bloque 3) añadió el campo goalId y su comentario antes de esta llamada — la
+  // ventana crece de 1400 a 1700, la comprobación sigue siendo la misma.
+  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 1700);
   assert.match(saveBlock, /renderIv1ContributionOptions\(\);/);
   const transferBlock = appSource.slice(appSource.indexOf("function saveIv1Transfer"), appSource.indexOf("function saveIv1Transfer") + 1400);
   assert.match(transferBlock, /renderIv1ContributionOptions\(\);/);

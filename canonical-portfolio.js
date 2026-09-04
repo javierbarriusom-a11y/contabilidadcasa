@@ -521,6 +521,84 @@
     };
   }
 
+  const BENCHMARK_COMPARISON_SCHEMA_ID = "finance.portfolio-benchmark-comparison";
+
+  // IVX2: comparación contra un índice de referencia. La XIRR de la cartera es ponderada por dinero
+  // (money-weighted); el índice se compara con la rentabilidad anualizada que el hogar declara para
+  // el mismo periodo — una comparación aproximada por construcción (el índice no vive las mismas
+  // entradas/salidas de caja que la cartera real), así que se dice así, nunca como una cifra exacta.
+  function compareAgainstBenchmark(xirrResult, benchmarkAnnualReturnPct) {
+    const portfolioPct = xirrResult && xirrResult.ratePct !== null ? number(xirrResult.ratePct, null) : null;
+    const benchmarkPct = typeof benchmarkAnnualReturnPct === "number" && Number.isFinite(benchmarkAnnualReturnPct) ? benchmarkAnnualReturnPct : null;
+    if (portfolioPct === null || benchmarkPct === null) return { schema: BENCHMARK_COMPARISON_SCHEMA_ID, calculable: false };
+    const deltaPct = round2(portfolioPct - benchmarkPct);
+    return {
+      schema: BENCHMARK_COMPARISON_SCHEMA_ID,
+      calculable: true,
+      portfolioPct: round2(portfolioPct),
+      benchmarkPct: round2(benchmarkPct),
+      deltaPct,
+      beatsBenchmark: deltaPct > 0,
+    };
+  }
+
+  const GLIDE_PATH_SCHEMA_ID = "finance.portfolio-glide-path";
+  const GLIDE_PATH_BANDS = {
+    OVERDUE: "overdue",
+    CONSERVATIVE: "conservative",
+    TRANSITION: "transition",
+    GROWTH: "growth",
+  };
+
+  // IVX6: banda de horizonte por objetivo asociado — no una recomendación de a qué posición mover
+  // cada euro, porque esta app no clasifica el riesgo/volatilidad real de cada posición (fondo,
+  // acción, ETF y cripto son etiquetas de tipo, no un rating de riesgo). Se dice la fase estándar
+  // (crecimiento/transición/conservador) y se deja la decisión de qué posición concreta ajustar al
+  // hogar — inventar una regla de "vende X% de cripto" sin datos de riesgo sería fabricar precisión
+  // que no existe.
+  function glidePathBand(monthsRemaining) {
+    if (!Number.isFinite(monthsRemaining)) return GLIDE_PATH_BANDS.OVERDUE;
+    if (monthsRemaining < 0) return GLIDE_PATH_BANDS.OVERDUE;
+    if (monthsRemaining < 24) return GLIDE_PATH_BANDS.CONSERVATIVE;
+    if (monthsRemaining < 60) return GLIDE_PATH_BANDS.TRANSITION;
+    return GLIDE_PATH_BANDS.GROWTH;
+  }
+
+  function monthsBetween(targetDate, fromDate) {
+    const target = asOfDate(targetDate);
+    const from = asOfDate(fromDate);
+    if (!target || !from) return null;
+    const [ty, tm] = target.split("-").map(Number);
+    const [fy, fm] = from.split("-").map(Number);
+    return (ty - fy) * 12 + (tm - fm);
+  }
+
+  function glidePathForGoal({ goalId, goalName, targetDate, positions = [] } = {}, now = new Date()) {
+    if (!known(goalId) || !known(targetDate)) return { schema: GLIDE_PATH_SCHEMA_ID, calculable: false };
+    const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const monthsRemaining = monthsBetween(targetDate, nowKey);
+    const linked = (Array.isArray(positions) ? positions : []).filter((position) => position.goalId === goalId);
+    const totalValue = round2(linked.reduce((sum, position) => sum + number(position.currentValue), 0));
+    const rows = linked
+      .map((position) => ({
+        id: position.id,
+        label: position.label,
+        value: round2(number(position.currentValue)),
+        pct: totalValue > 0 ? Math.round((number(position.currentValue) / totalValue) * 100) : 0,
+      }))
+      .sort((a, b) => b.value - a.value);
+    return {
+      schema: GLIDE_PATH_SCHEMA_ID,
+      calculable: true,
+      goalId,
+      goalName: String(goalName || "Objetivo"),
+      monthsRemaining,
+      band: glidePathBand(monthsRemaining),
+      totalValue,
+      positions: rows,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -541,5 +619,11 @@
     yearEndCompensation,
     fifoLedger,
     opportunityCost,
+    BENCHMARK_COMPARISON_SCHEMA_ID,
+    compareAgainstBenchmark,
+    GLIDE_PATH_SCHEMA_ID,
+    GLIDE_PATH_BANDS,
+    glidePathBand,
+    glidePathForGoal,
   };
 });

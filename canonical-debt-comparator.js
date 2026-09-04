@@ -258,6 +258,30 @@
     };
   }
 
+  const NET_DEBT_COST_SCHEMA_ID = "finance.net-debt-cost-after-tax";
+
+  // APX1: el punto de equilibrio de AP2 (breakEvenInvestmentRatePct) asume implícitamente una
+  // rentabilidad de inversión libre de impuestos — nunca lo fue de verdad. El interés de la deuda
+  // del hogar no es deducible (deuda personal, no de una actividad económica ni un alquiler
+  // declarado), pero la plusvalía de invertir sí tributa al tipo del ahorro. Así que el rendimiento
+  // PREVIO a impuestos que hace falta para igualar de verdad el coste de la deuda es mayor que el
+  // punto de equilibrio nominal: hay que "elevarlo" para compensar el mordisco fiscal a la salida.
+  // Reutiliza el mismo tipo del ahorro que declara el hogar en FC4 (dividendSpanishSavingsRatePct) —
+  // ni un tramo de IRPF inventado ni un segundo campo duplicado para el mismo dato.
+  function netDebtCostAfterTax(breakEven, savingsTaxRatePct) {
+    if (!breakEven || !breakEven.calculable) return { schema: NET_DEBT_COST_SCHEMA_ID, calculable: false };
+    const rate = finite(savingsTaxRatePct);
+    if (!(rate > 0) || rate >= 100) return { schema: NET_DEBT_COST_SCHEMA_ID, calculable: false };
+    const requiredPretaxReturnPct = round2(breakEven.breakEvenAnnualReturnPct / (1 - rate / 100));
+    return {
+      schema: NET_DEBT_COST_SCHEMA_ID,
+      calculable: true,
+      breakEvenAnnualReturnPct: breakEven.breakEvenAnnualReturnPct,
+      savingsTaxRatePct: round2(rate),
+      requiredPretaxReturnPct,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -273,5 +297,7 @@
     compareAmortizeVsInvest,
     REDUCE_QUOTA_VS_TERM_SCHEMA_ID,
     amortizeReduceQuotaVsTerm,
+    NET_DEBT_COST_SCHEMA_ID,
+    netDebtCostAfterTax,
   };
 });

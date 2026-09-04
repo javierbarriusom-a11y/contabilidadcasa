@@ -2883,6 +2883,25 @@
               <div id="lpx3ContinuityChecklist"></div>
             </article>
 
+            <!-- LPX1: capital objetivo de independencia financiera (patrimonio neto A14-2 frente a
+                 gasto anual estimado de la previsión viva ÷ tasa de retirada declarada por el
+                 hogar). Regla de la renta perpetua, sin proyección de mercado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Independencia financiera</h3>
+              <label class="month-picker">
+                <span>Tasa de retirada objetivo (%)</span>
+                <input type="number" step="0.01" min="0" id="lpx1WithdrawalRatePct" placeholder="Ej. 4" />
+              </label>
+              <div class="e19-kpi-note" id="lpx1FinancialIndependence"></div>
+            </article>
+
+            <!-- LPX2: runway del patrimonio neto completo (no solo el colchón líquido, DLX1) frente
+                 al gasto mensual medio de la previsión viva, con aviso de qué parte no es líquida. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Runway patrimonial completo</h3>
+              <div class="e19-kpi-note" id="lpx2NetWorthRunway"></div>
+            </article>
+
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
                  Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR, construida
                  aquí), FC1 (FIFO) y el resto del bloque de inversión, que quedan para sesiones
@@ -2938,6 +2957,14 @@
                     <option value="unknown">Desconocido</option>
                   </select>
                 </label>
+                <!-- IVX6: objetivo asociado (opcional) — solo objetivos con fecha, para calcular
+                     el horizonte del glide path más abajo. -->
+                <label class="month-picker">
+                  <span>Objetivo asociado (opcional)</span>
+                  <select id="iv1PositionGoalId">
+                    <option value="">-- Sin objetivo asociado --</option>
+                  </select>
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
               <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
@@ -2951,12 +2978,23 @@
               </label>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionTransfer">Traspasar</button>
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
+              <!-- IVX2: comparación contra un índice de referencia. Calculadora puntual, no se
+                   trae ningún precio de mercado real — el hogar declara la rentabilidad anualizada
+                   del índice para el mismo periodo. -->
+              <label class="month-picker">
+                <span>Índice de referencia (rentabilidad anualizada declarada, %)</span>
+                <input type="number" step="0.01" id="iv1BenchmarkAnnualReturnPct" placeholder="Ej. 7 (MSCI World)" />
+              </label>
               <div class="e19-kpi-note" id="iv1PositionSummary"></div>
               <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
               <!-- IVX8: sobreexposición cruzada vivienda-inversión — extiende IV4 (esta tarjeta) y
                    A14-4 (Patrimonio), comparando vivienda contra cartera de inversión, la pareja
                    concreta que ninguno de los dos avisa por separado. -->
               <div class="e19-kpi-note" id="ivx8HousingExposure"></div>
+              <!-- IVX6: glide path por objetivo — banda de horizonte de cada objetivo con al menos
+                   una posición vinculada arriba. No recomienda a qué posición mover cada euro (esta
+                   app no clasifica el riesgo de cada posición), solo la fase estándar. -->
+              <div id="ivx6GlidePath"></div>
               <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
                    fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
                    de un movimiento. Las unidades son opcionales: sin ellas, la aportación sigue

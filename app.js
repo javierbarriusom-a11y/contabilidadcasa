@@ -16046,7 +16046,28 @@ function ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) {
     ? "Lectura no disponible: falta la rentabilidad real de tu cartera."
     : `Lectura: te compensa más ${AP1_ASSESSMENT_LABEL[result.assessment]} — no una orden, revisa los números antes de aceptarla.`;
   const breakEvenLine = ap2BreakEvenLine(breakEven, investmentAnnualReturnPct);
-  return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} mes(es): te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>${breakEvenLine}`;
+  return `<p>Amortizar ${money(result.amount, true)} de esa deuda al ${result.debtAnnualRatePct}% TIN durante ${result.months} mes(es): te ahorras ${money(result.amortizeSavings, true)} en intereses.</p><p>${investLine}</p><p class="e19-kpi-note">${readLine}</p>${breakEvenLine}${apx1NetDebtCostHtml(breakEven)}`;
+}
+
+// APX1: el punto de equilibrio (AP2) asume implícitamente una rentabilidad de inversión libre de
+// impuestos. Reutiliza netDebtCostAfterTax() con el mismo tipo del ahorro que ya declara el hogar
+// en FC4 (dividendSpanishSavingsRatePct) — sin tramo de IRPF inventado ni campo duplicado. Si hay
+// pérdidas de años anteriores pendientes de compensar (FC3), lo dice como matiz aparte: mientras
+// existan, la próxima plusvalía real tributará menos que el tipo declarado, sin intentar mezclar
+// ambas cifras en una sola (no hay forma honesta de saber cuánta plusvalía futura se compensará).
+function apx1NetDebtCostHtml(breakEven) {
+  const comparator = window.FinanceDebtComparator;
+  if (!comparator) return "";
+  const savingsRate = dividendSpanishSavingsRatePct();
+  const result = comparator.netDebtCostAfterTax(breakEven, savingsRate);
+  if (!result.calculable) {
+    return savingsRate > 0 ? "" : `<p class="e19-kpi-note">Declara tu tipo del ahorro en Ajustes › Fiscalidad (mismo campo que la retención de dividendos, FC4) para ver el coste de esta deuda neto de fiscalidad real.</p>`;
+  }
+  const pendingLosses = fc3PriorLossesList().reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+  const lossNote = pendingLosses > 0
+    ? ` Tienes ${money(pendingLosses, true)} de pérdidas de años anteriores pendientes de compensar (FC3) — mientras existan, la próxima plusvalía real que realices tributará por debajo del ${result.savingsTaxRatePct}% declarado.`
+    : "";
+  return `<p class="e19-kpi-note"><strong>Coste neto de fiscalidad real:</strong> ese ${result.breakEvenAnnualReturnPct}% de punto de equilibrio da por hecha una ganancia libre de impuestos. Contando que la plusvalía tributa al ${result.savingsTaxRatePct}% declarado (y el interés de esta deuda no es deducible), la rentabilidad ANTES de impuestos que de verdad hace falta es ${result.requiredPretaxReturnPct}%.${lossNote}</p>`;
 }
 
 // DLX1: guardarraíl de colchón antes de amortizar — mismo suelo (cushionFloor) y misma composición
@@ -16929,6 +16950,89 @@ function handleLpx3ManualCheckToggle(id, checked) {
   renderLpx3ContinuityChecklist();
 }
 
+// LPX1/LPX2: patrimonio neto de hoy (A14-2: activos A14-1 menos deuda pendiente) y gasto mensual
+// medio (mismo criterio que cushionFloor — coreSpend+car+refi de la previsión viva, aquí promediado
+// sobre el horizonte disponible en vez de solo el primer mes, para no sobreponderar un mes atípico).
+// Recálculo independiente del que ya hace renderA14AssetBreakdown — mismo criterio que IVX8 (cada
+// tarjeta que necesita esta cifra la recalcula desde su propia fuente, sin acoplarse al DOM de otra).
+function lpNetWorthSnapshot() {
+  const engine = window.FinanceCanonicalAssets;
+  const rows = assetsList();
+  if (!engine || !rows.length) return { calculable: false };
+  const result = engine.normalizeAssets(rows);
+  const netWorth = result.summary.netWorth;
+  const debt = totalDebtOutstanding();
+  return { calculable: true, netWorth: round2(netWorth - debt), totalsByType: result.summary.totalsByType };
+}
+
+function lpAverageMonthlyOutflow() {
+  const rows = (Array.isArray(lastSimulation) ? lastSimulation : []).slice(0, 12);
+  if (!rows.length) return null;
+  const total = rows.reduce((sum, row) => sum + Number(row.coreSpend || 0) + Number(row.car || 0) + Number(row.refi || 0), 0);
+  return round2(total / rows.length);
+}
+
+// LPX1: capital objetivo de independencia financiera. La tasa de retirada la declara el hogar (sin
+// un 4% por defecto que nadie ha elegido) — mismo criterio que el resto de supuestos del hogar
+// (A15-1, FC4). Gasto anual = gasto mensual medio de la previsión viva × 12.
+function renderLpx1FinancialIndependence() {
+  const note = qs("lpx1FinancialIndependence");
+  if (!note) return;
+  const engine = window.FinanceCanonicalAssets;
+  const snapshot = lpNetWorthSnapshot();
+  const monthlyOutflow = lpAverageMonthlyOutflow();
+  const withdrawalRatePct = parseAmount(qs("lpx1WithdrawalRatePct")?.value);
+  if (!engine || !snapshot.calculable) {
+    note.innerHTML = `<p>Registra al menos un activo (A14-1) para calcular tu capital objetivo de independencia financiera.</p>`;
+    return;
+  }
+  if (!monthlyOutflow) {
+    note.innerHTML = `<p>Sin previsión viva calculada todavía — hace falta un gasto mensual medio para estimar el gasto anual.</p>`;
+    return;
+  }
+  if (!qs("lpx1WithdrawalRatePct")?.value) {
+    note.innerHTML = `<p>Declara tu tasa de retirada objetivo (%) para calcular el capital que necesitas.</p>`;
+    return;
+  }
+  const result = engine.financialIndependenceTarget({ annualExpenses: monthlyOutflow * 12, withdrawalRatePct, netWorth: snapshot.netWorth });
+  if (!result.calculable) {
+    note.innerHTML = `<p>Indica una tasa de retirada mayor que 0 para calcular el capital objetivo.</p>`;
+    return;
+  }
+  const statusLine = result.reached
+    ? `<strong class="positive">Ya alcanzas el capital objetivo.</strong>`
+    : `Progreso: <strong>${result.progressPct}%</strong> — faltan ${money(result.gap, true)} para llegar.`;
+  note.innerHTML = `<p>Gasto anual estimado: ${money(result.annualExpenses, true)} (gasto mensual medio de tu previsión viva × 12). Al ${result.withdrawalRatePct}% de retirada, capital objetivo: <strong>${money(result.targetCorpus, true)}</strong>.</p><p>Patrimonio neto actual: ${money(result.netWorth, true)}. ${statusLine}</p><p class="e19-kpi-note">Regla de la renta perpetua (capital objetivo = gasto anual / tasa de retirada) — no proyecta rentabilidad de mercado ni cuándo la alcanzarás, solo dónde estás hoy frente al objetivo.</p>`;
+}
+
+// LPX2: cuántos meses aguantaría el patrimonio neto completo si el ingreso se cortara del todo —
+// a diferencia del colchón (DLX1, solo liquidez), aquí entra todo el patrimonio, con el aviso aparte
+// de qué parte no es líquida (A14-4: inmueble/vehículo/pensión) para no leerlo como dinero disponible.
+function renderLpx2NetWorthRunway() {
+  const note = qs("lpx2NetWorthRunway");
+  if (!note) return;
+  const engine = window.FinanceCanonicalAssets;
+  const snapshot = lpNetWorthSnapshot();
+  const monthlyOutflow = lpAverageMonthlyOutflow();
+  if (!engine || !snapshot.calculable) {
+    note.innerHTML = `<p>Registra al menos un activo (A14-1) para calcular el runway de tu patrimonio.</p>`;
+    return;
+  }
+  if (!monthlyOutflow) {
+    note.innerHTML = `<p>Sin previsión viva calculada todavía — hace falta un gasto mensual medio para estimar el runway.</p>`;
+    return;
+  }
+  const result = engine.netWorthRunway({ netWorth: snapshot.netWorth, monthlyBurn: monthlyOutflow, totalsByType: snapshot.totalsByType });
+  if (!result.calculable) {
+    note.innerHTML = `<p>Sin gasto mensual medio calculable todavía.</p>`;
+    return;
+  }
+  const illiquidNote = result.illiquidPct > 0
+    ? ` <span class="e19-kpi-note">${result.illiquidPct}% de ese patrimonio es inmueble, vehículo o pensión — no se puede gastar sin vender o pedir prestado sobre ello, así que el runway realmente disponible es menor.</span>`
+    : "";
+  note.innerHTML = `<p>Con un gasto medio de ${money(result.monthlyBurn, true)}/mes y patrimonio neto de ${money(result.netWorth, true)}: <strong>${result.months} mes(es) de runway</strong> si el ingreso se cortara por completo.${illiquidNote}</p>`;
+}
+
 // RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9, ya real) y el
 // hogar compartido de arriba (A5-3). No ejecuta ninguna acción por sí sola: solo hace visible el
 // estado real de cada punto, con la copia y la invitación a un clic de distancia si falta algo.
@@ -17241,11 +17345,14 @@ function saveIv1Position() {
   // resto de campos opcionales del contrato).
   const acquisitionDate = qs("iv1PositionAcquisitionDate")?.value || "";
   const provenance = qs("iv1PositionProvenance")?.value || "unknown";
+  // IVX6: objetivo asociado (opcional, A10-1) — vínculo que antes no existía entre una posición de
+  // cartera y un objetivo con fecha, necesario para la banda de horizonte del glide path.
+  const goalId = qs("iv1PositionGoalId")?.value || "";
   if (!label) {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, contributions: [], disposals: [], scheduledContributions: [] }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, contributions: [], disposals: [], scheduledContributions: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
@@ -17256,6 +17363,7 @@ function saveIv1Position() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+  renderIvx6GlidePath();
   announceStatus(`Posición «${label}» registrada.`);
 }
 
@@ -17432,6 +17540,7 @@ function removeIv1Position(id) {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+  renderIvx6GlidePath();
 }
 
 // IV2: motivo legible de por qué una XIRR no es calculable — nunca una cifra inventada cuando
@@ -17505,6 +17614,53 @@ function renderIv1ContributionOptions() {
   if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
 }
 
+// IVX6: opciones del selector de objetivo asociado — solo objetivos activos con fecha objetivo
+// (A10-1); sin fecha no hay horizonte que calcular, así que no tendría sentido ofrecerlo aquí.
+function renderIv1GoalOptions() {
+  const select = qs("iv1PositionGoalId");
+  if (!select) return;
+  const previous = select.value;
+  const options = activeGoalsForBudget()
+    .filter((goal) => goal.targetDate)
+    .map((goal) => `<option value="${escapeHtml(goal.id)}">${escapeHtml(goal.name)}</option>`);
+  select.innerHTML = `<option value="">-- Sin objetivo asociado --</option>${options.join("")}`;
+  if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
+}
+
+// IVX6: glide path por objetivo — banda de horizonte (crecimiento/transición/conservador) de cada
+// objetivo con al menos una posición vinculada. Depende de IV1 (posiciones, con el nuevo campo
+// goalId) y A10-1 (objetivos con fecha, ya reales vía FinanceCanonicalE15/P2Domain).
+const IVX6_BAND_LABELS = {
+  growth: "Crecimiento (5+ años): horizonte largo, hay margen para asumir volatilidad.",
+  transition: "Transición (2-5 años): conviene ir revisando progresivamente la exposición a lo más volátil.",
+  conservative: "Conservador (menos de 2 años): prioriza proteger lo alcanzado sobre seguir creciendo.",
+  overdue: "Objetivo vencido o sin fecha calculable: revisa la fecha objetivo en el plan.",
+};
+
+function renderIvx6GlidePath() {
+  const container = qs("ivx6GlidePath");
+  if (!container) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const positions = iv1PositionsList();
+  const linkedGoalIds = new Set(positions.map((position) => position.goalId).filter(Boolean));
+  if (!engine || !linkedGoalIds.size) {
+    container.innerHTML = `<p class="e19-kpi-note">Vincula una posición a un objetivo con fecha (arriba, al registrar la posición) para ver su banda de horizonte.</p>`;
+    return;
+  }
+  const goals = activeGoalsForBudget();
+  const cards = [...linkedGoalIds].map((goalId) => {
+    const goal = goals.find((item) => item.id === goalId);
+    if (!goal || !goal.targetDate) return "";
+    const result = engine.glidePathForGoal({ goalId, goalName: goal.name, targetDate: goal.targetDate, positions });
+    if (!result.calculable) return "";
+    const rows = result.positions.map((position) => `<li>${escapeHtml(position.label)}: ${money(position.value, true)} (${position.pct}%)</li>`).join("");
+    return `<li><strong>${escapeHtml(result.goalName)}</strong> — ${IVX6_BAND_LABELS[result.band]}<ul class="commit-barrier-list">${rows}</ul></li>`;
+  }).filter(Boolean);
+  container.innerHTML = cards.length
+    ? `<ul class="e19-kpi-note">${cards.join("")}</ul>`
+    : `<p class="e19-kpi-note">Los objetivos vinculados ya no tienen fecha objetivo o fueron eliminados.</p>`;
+}
+
 // FC1: opciones del selector de venta parcial — mismo patrón que renderIv1TransferOptions.
 function renderIv1DisposalOptions() {
   const select = qs("iv1DisposalTarget");
@@ -17549,7 +17705,24 @@ function renderIv1PositionSummary() {
     : totalRealizedGain !== 0
       ? `Plusvalía realizada (ya vendida, FIFO): <strong class="${totalRealizedGain > 0 ? "positive" : "negative"}">${money(totalRealizedGain, true)}</strong>.`
       : "";
-  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La rentabilidad ponderada por tiempo (TWR) exige valoraciones intermedias que esta app no registra; con un único movimiento por posición coincide con la XIRR de arriba. Añade más de una aportación a una posición y ambas empezarán a divergir de verdad.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}`;
+  note.innerHTML = `<p>Coste total: ${money(totalCost, true)}. Valor actual: ${money(totalValue, true)}. <strong class="${gainClass}">Plusvalía: ${money(gainLoss, true)} (${gainLossPct}%)</strong> · <strong>${escapeHtml(iv2XirrLabel(xirr))}</strong> de toda la cartera.</p><p class="e19-kpi-note">La rentabilidad ponderada por tiempo (TWR) exige valoraciones intermedias que esta app no registra; con un único movimiento por posición coincide con la XIRR de arriba. Añade más de una aportación a una posición y ambas empezarán a divergir de verdad.</p>${realizedNote ? `<p class="e19-kpi-note">${realizedNote}</p>` : ""}${ivx2BenchmarkComparisonHtml(engine, xirr)}`;
+}
+
+// IVX2: comparación contra un índice de referencia declarado por el hogar (no se trae ningún precio
+// de mercado real). Aproximada por construcción: la XIRR de la cartera es ponderada por dinero, el
+// índice se compara con la rentabilidad anualizada que el hogar declara para el mismo periodo — se
+// dice así en la propia nota, no se presenta como una cifra exacta.
+function ivx2BenchmarkComparisonHtml(engine, xirr) {
+  const benchmarkPct = parseAmount(qs("iv1BenchmarkAnnualReturnPct")?.value);
+  if (!qs("iv1BenchmarkAnnualReturnPct")?.value) return "";
+  const result = engine.compareAgainstBenchmark(xirr, benchmarkPct);
+  if (!result.calculable) return "";
+  const verdict = result.beatsBenchmark
+    ? `tu cartera supera al índice declarado por ${result.deltaPct >= 0 ? "+" : ""}${result.deltaPct} puntos`
+    : result.deltaPct === 0
+      ? "tu cartera empata con el índice declarado"
+      : `tu cartera queda por debajo del índice declarado por ${result.deltaPct} puntos`;
+  return `<p class="e19-kpi-note">Frente al índice de referencia declarado (${result.benchmarkPct}% anual): ${verdict}. Comparación aproximada — la XIRR es ponderada por dinero (tus fechas reales de entrada/salida), el índice no vive esos mismos flujos de caja.</p>`;
 }
 
 // FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de IV1/IV2 y
@@ -25880,16 +26053,20 @@ function renderAjustes() {
   renderA14AssetList();
   renderA14AssetBreakdown();
   renderLpx3ContinuityChecklist();
+  renderLpx1FinancialIndependence();
+  renderLpx2NetWorthRunway();
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
   renderIv1DisposalOptions();
   renderIv1ScheduledContributionOptions();
+  renderIv1GoalOptions();
   renderIv1PositionSummary();
   renderFc3PriorLossList();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
   renderIv6Rebalance();
+  renderIvx6GlidePath();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
   renderAjustesPartidaNote();
@@ -35998,6 +36175,8 @@ async function init() {
   qs("iv1ContributionAdd")?.addEventListener("click", saveIv1Contribution);
   qs("iv1DisposalAdd")?.addEventListener("click", saveIv1Disposal);
   qs("iv1ScheduledContributionAdd")?.addEventListener("click", saveIv1ScheduledContribution);
+  qs("iv1BenchmarkAnnualReturnPct")?.addEventListener("input", renderIv1PositionSummary);
+  qs("lpx1WithdrawalRatePct")?.addEventListener("input", renderLpx1FinancialIndependence);
   qs("fc3CompareRun")?.addEventListener("click", handleFc3Compare);
   qs("fc3PriorLossSave")?.addEventListener("click", saveFc3PriorLoss);
   qs("fc3PriorLossList")?.addEventListener("click", (event) => {
