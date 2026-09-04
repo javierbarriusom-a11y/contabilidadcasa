@@ -2,6 +2,54 @@
 
 Fecha de revisión: 3 de septiembre de 2026.
 
+## Cierre de sesión — 3 de septiembre de 2026 (138): DEX2 — entrada en lenguaje natural, sin voz
+
+Continuación directa de la sesión 137 (pedido explícito del usuario: «sigue con DEX2»), la última
+tarea del Bloque 1 que no dependía de infraestructura externa (solo quedaba `DEX2`, ya desbloqueada
+al construirse `DEX1`, y `DEX6`, condicionada a `A5-1`).
+
+**Diseño**: DEX2 «depende de DEX1 para no duplicar interfaz» — se interpretó en sentido literal:
+en vez de una segunda vía de captura, se amplió `e17ParseQuickCaptureQuery()` (la misma función de
+DEX1) con dos capacidades nuevas, mismo campo del lanzador, mismo botón, misma bandeja previa:
+
+- **Vocabulario ampliado**: además de "gasto"/"pagué"/"ingreso", ahora reconoce "he gastado", "he
+  pagado", "he comprado" (gasto) y "me han ingresado", "he recibido" (ingreso). Deliberadamente
+  **no** se añadieron "abonado" ni "cobrado": «me han abonado» es ingreso pero «he abonado la
+  factura» es gasto; «he cobrado» es ingreso pero «me han cobrado» es gasto. Con reglas fijas de una
+  palabra no hay forma segura de distinguir el sentido — se prefirió no reconocer la orden antes que
+  adivinar la dirección del dinero al revés (verificado con test que ambas quedan fuera).
+- **Fecha relativa**: "hoy"/"ayer"/"anteayer"/"mañana" — «ayer gasto 20 gasolina» pone la fecha del
+  movimiento un día antes, no hoy.
+- **Fecha explícita**: patrón «D de MES[ de AAAA]» («el 3 de septiembre», «20 de diciembre de
+  2025»). La fecha se extrae y se retira del texto **antes** de buscar el importe — si no, el día de
+  la fecha se leería como el importe. Una fecha imposible (31 de febrero) no se reconoce y esas
+  palabras quedan disponibles para el resto del análisis — hueco, no invención.
+- **Bug real encontrado y corregido durante la implementación, antes de publicar nada**: construir
+  la fecha explícita con `new Date(year, month-1, day)` y luego `.toISOString()` se desplaza un día
+  en cualquier zona horaria por delante de UTC (medianoche local del 3 de septiembre en Madrid es
+  aún el 2 de septiembre en UTC). El entorno de esta sesión corre en UTC, así que ningún test local
+  lo habría detectado — se encontró por revisión propia del código, no por un test en rojo. Corregido
+  construyendo y leyendo la fecha enteramente en aritmética UTC (`Date.UTC`/`getUTCMonth`/
+  `getUTCDate`), documentado en el propio código para que no se reintroduzca.
+- La confirmación (`e17QuickCaptureHtml`) menciona la fecha solo cuando no es hoy, para no repetir
+  información sin valor.
+
+**Validación**: `npm run verify`, exit 0 — **3004/3004 pruebas** (2990 previas + 14 nuevas, todas en
+`tests/ux6-busqueda-importes.test.cjs`, el mismo fichero de DEX1 — no uno nuevo, porque es la misma
+función evolucionada), accesibilidad, rendimiento, `build:site`, privacidad y humo en verde.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 1, fila de `DEX2` marcada
+✅ Hecho. Con esto, del Bloque 1 (11 tareas) solo queda `DEX6`, condicionada a que `A5-1` esté activo
+en producción — el resto de la oleada 2 (Bloques 2-6, 40 tareas) sigue sin empezar.
+
+**Nota sobre la rama de trabajo**: al reanudar esta sesión, `claude/session-eilejl` había vuelto a
+divergir de `main` (mismo patrón de la sesión anterior: seguir comiteando en la rama tras un
+squash-merge). Esta vez se reinició la rama desde `origin/main` antes de empezar (en vez de fusionar
+y arriesgar otra duplicación), siguiendo la instrucción del propio flujo de trabajo para ramas ya
+fusionadas.
+
+**Pendiente de publicar**: rama `claude/session-eilejl`, PR por abrir tras este commit.
+
 ## Cierre de sesión — 3 de septiembre de 2026 (137): segunda oleada del Bloque 1 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` — DEX1, DEX4, DEX5, DEX10
 
 Continuación directa de la sesión 136 (pedido explícito del usuario: «sigue con DEX1, DEX4, DEX5,
