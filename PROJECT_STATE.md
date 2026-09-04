@@ -2,6 +2,68 @@
 
 Fecha de revisión: 4 de septiembre de 2026.
 
+## Cierre de sesión — 4 de septiembre de 2026 (141): cierre del Bloque 2 — APX5, APX6, LPX3, RGX4, IVX7, MDX2
+
+Continuación directa de la sesión 140 (pedido explícito del usuario: seguir con las tareas S-M
+restantes del Bloque 2). A diferencia de RGX1/RGX2, esta oleada **no tuvo ningún hallazgo de
+alcance**: antes de construir se verificaron las 9 dependencias declaradas por el backlog (`DI1`,
+`A9-3`, `A14-1`, `SP1`, `A7-3`, `A11-4`, `CP1`, `IV3`, `A0-9`) directamente en el código, no en
+`BACKLOG_STATUS.md` (que ya había demostrado estar equivocado con `A5-3`) — las 9 tenían un
+consumidor de UI real, así que las seis tareas se construyeron tal como estaban descritas.
+
+- **APX5 — coste total de refinanciar**: `refinancingBreakEvenMonths()` extiende
+  `canonical-mortgage-rate-scenarios.js` (DI1) con un campo nuevo (coste de refinanciar) en la misma
+  tarjeta. Usa el escenario "base" (tipos sin cambio) como referencia — es la comparación que el
+  hogar puede verificar hoy, no una proyección de qué harán los tipos. Sin ahorro mensual real en
+  base, el punto de equilibrio no es calculable — nunca se divide por un ahorro negativo o cero.
+- **APX6 — reducir cuota vs. reducir plazo**: `amortizeReduceQuotaVsTerm()`, nueva en
+  `canonical-debt-comparator.js`, con la fórmula real de amortización francesa (duplicada a
+  propósito de la de DI1, mismo criterio de autonomía que ya sigue DI5) — `compareAmortizeVsInvest`
+  (AP1) solo estima con interés simple, nunca recalcula cuota ni plazo reales. Usa el **plazo real
+  restante del contrato** (`remainingInstallments`, `debtContractSourceRows`), no el "horizonte a
+  comparar" que ya pide AP1 — son dos datos distintos, confundirlos habría sido un bug real.
+- **LPX3 — checklist de continuidad**: `lpx3ContinuityChecklist()`, dos puntos automáticos
+  (activos con procedencia de `A14-1`, pólizas registradas de `SP1`) y tres casillas que confirma el
+  propio hogar (testamento, beneficiarios, a quién avisar) — la app no tiene ninguna fuente de datos
+  para esos tres, así que quedan como confirmación manual persistida, nunca inferida.
+- **RGX4 — explicación en dos niveles**: capa sobre la tarjeta de próxima mejor acción de `CP1`
+  (`p2-ui.js`). Nivel 1 (etiqueta + mensaje en lenguaje llano) sigue siempre visible; nivel 2, nuevo,
+  es un `<details>`/`<summary>` nativo (sin estado de JS propio) con la evidencia real que ya
+  calculaba E16/A11-1 (`evidence[]`, `confidence`) y la cita verificada por CP3 — antes esa cita se
+  mostraba siempre, ahora se pliega junto con el resto del "porqué".
+- **IVX7 — coste medio de adquisición visible**: `ivx7AverageCostLabel()`. `costBasis` y `quantity`
+  ya existían en cada posición normalizada (IV1/FC1); solo faltaba dividirlos y mostrarlos junto al
+  precio actual por unidad, para ver de un vistazo si el mercado está por encima o por debajo de lo
+  que costó de media. Sin unidades declaradas (`quantity` 0, típico de fondos sin tracking de
+  participaciones), no se muestra nada — nunca se divide por cero.
+- **MDX2 — exportación en formato abierto y documentado**: el formato ya era JSON abierto de hecho
+  (A0-9, `state-contract.js`) pero no estaba documentado en ningún sitio propio. Nuevo
+  `MDX2_FORMATO_EXPORTACION.md`: describe el sobre (`format`/`formatVersion`/`checksum`/`payload`),
+  el contrato de campos del payload y una decisión de gobierno de datos explícita (qué sube
+  `formatVersion` vs. `payload.version`, que los campos desconocidos se conservan nunca se
+  descartan, que el checksum es obligatorio para confiar en el contenido). El documento no repite a
+  mano las listas de campos: `tests/mdx2-formato-exportacion-documentado.test.cjs` las extrae de
+  `state-contract.js` y falla si el documento se desincroniza del motor real.
+
+**Validación**: `npm run verify`, exit 0 — **3114/3114 pruebas** (3072 + 42 nuevas: 7 en
+`tests/apx5-coste-total-refinanciar.test.cjs` —nuevo—, 9 en
+`tests/apx6-reducir-cuota-vs-plazo.test.cjs` —nuevo—, 10 en
+`tests/lpx3-continuidad-checklist.test.cjs` —nuevo—, 4 en `tests/rgx4` (ampliación de
+`tests/cp1-proxima-mejor-accion.test.cjs`), 4 en `tests/ivx7-coste-medio-adquisicion.test.cjs`
+—nuevo— y 8 en `tests/mdx2-formato-exportacion-documentado.test.cjs` —nuevo—), accesibilidad (1092
+IDs, +2 por el campo de coste de refinanciar y el checkbox del checklist), rendimiento, `build:site`,
+privacidad y humo en verde. Se corrigieron además dos ventanas de test fijas que este alargamiento
+dejó cortas (`tests/iv2-app-integracion.test.cjs`, 1200→1600 caracteres) y un sandbox de vm que no
+cargaba una función nueva de la que ahora depende (`tests/di1-hipoteca-variable-fija.test.cjs`, le
+faltaba `apx5RefinancingBreakEvenHtml`) — mismo patrón de fragilidad ya documentado en sesiones
+anteriores.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, Bloque 2, las 6 filas restantes
+marcadas ✅ Hecho. **Con esto el Bloque 2 queda completo (11/11 tareas)**. Quedan los Bloques 3-6
+(36 tareas) sin empezar.
+
+**Pendiente de publicar**: rama `claude/session-eilejl`, PR por abrir tras este commit.
+
 ## Cierre de sesión — 4 de septiembre de 2026 (140): RGX1 y RGX2 — hogar compartido, simulacro de pérdida de acceso y concentración de conocimiento
 
 Continuación directa de la sesión 139: al terminar esa oleada se preguntó al usuario cómo resolver

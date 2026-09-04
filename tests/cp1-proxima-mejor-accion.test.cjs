@@ -54,6 +54,7 @@ function sandbox() {
   vm.runInContext(`const CPX3_IGNORED_DAYS_THRESHOLD = 3;`, context);
   vm.runInContext(extractFunction("cpx3IgnoredNoteHtml"), context);
   vm.runInContext(extractFunction("cp1NextBestAction"), context);
+  vm.runInContext(extractFunction("rgx4TwoLevelExplanationHtml"), context);
   vm.runInContext(extractFunction("cp1NextBestActionHtml"), context);
   return context;
 }
@@ -176,4 +177,48 @@ test("p2-ui.js: el botón de descartar llama a dismissRecommendation y vuelve a 
   const block = ui.slice(ui.indexOf('target.querySelectorAll("[data-cpx3-dismiss]")'), ui.indexOf('target.querySelectorAll("[data-cpx3-dismiss]")') + 300);
   assert.match(block, /bridge\(\)\?\.dismissRecommendation\?\.\(button\.dataset\.cpx3Dismiss\)/);
   assert.match(block, /renderE16Monitoring\(\)/);
+});
+
+// ---------------------------------------------------------------------------------------------
+// RGX4 (Oleada 2, Bloque 2) · explicación en dos niveles — capa sobre A7-3/A11-4/CP1, sin motor
+// nuevo. Nivel 1 (siempre visible): etiqueta + mensaje en lenguaje llano, igual que antes. Nivel 2
+// (<details>/<summary> nativo, sin estado de JS): la evidencia real de E16 (evidence[]/confidence)
+// y la cita verificada por CP3, para quien quiera comprobar el porqué.
+// ---------------------------------------------------------------------------------------------
+
+test("cp1NextBestAction · lleva la evidencia y la confianza reales de la alerta, no solo la etiqueta y el mensaje", () => {
+  const ctx = sandbox();
+  const model = {
+    alerts: E16.predictiveAlerts(forecastWith(-100), { minimumLiquidity: 500, maximumMonthlyVariation: 0, maximumDebtRatio: 100 }, { debtRatio: 0 }),
+  };
+  const action = ctx.cp1NextBestAction(model);
+  const sourceAlert = model.alerts.alerts[0];
+  assert.deepEqual(action.evidence, sourceAlert.evidence);
+  assert.equal(action.confidence, sourceAlert.confidence);
+});
+
+test("rgx4TwoLevelExplanationHtml · envuelve la evidencia, la confianza y la cita dentro de un <details> plegado por defecto", () => {
+  const ctx = sandbox();
+  const html = ctx.rgx4TwoLevelExplanationHtml({ evidence: ["forecast canónico", "umbral de caja 500 €"], confidence: "alta", citations: ["alert:cash-2026-10"] });
+  assert.match(html, /^<details class="p2-details"><summary>Ver por qué<\/summary>/);
+  assert.match(html, /forecast canónico/);
+  assert.match(html, /umbral de caja 500 €/);
+  assert.match(html, /Confianza del dato: alta/);
+  assert.match(html, /Cita: alert:cash-2026-10/);
+});
+
+test("rgx4TwoLevelExplanationHtml · sin evidencia ni confianza declaradas, no inventa ninguna línea — solo la cita", () => {
+  const ctx = sandbox();
+  const html = ctx.rgx4TwoLevelExplanationHtml({ citations: ["alert:debt-ratio"] });
+  assert.doesNotMatch(html, /Confianza del dato/);
+  assert.match(html, /<ul class="p2-help"><li>Cita: alert:debt-ratio<\/li><\/ul>/);
+});
+
+test("cp1NextBestActionHtml · el mensaje en lenguaje llano queda fuera del <details> (nivel 1 siempre visible)", () => {
+  const ctx = sandbox();
+  const action = { label: "Revisar la caja prevista", message: "La caja prevista queda en -100 €.", severity: "critical", citations: ["alert:cash-2026-10"], evidence: ["forecast canónico"], confidence: "alta" };
+  const output = ctx.cp1NextBestActionHtml(action);
+  const messageIndex = output.indexOf("La caja prevista queda en -100");
+  const detailsIndex = output.indexOf("<details");
+  assert.ok(messageIndex >= 0 && detailsIndex >= 0 && messageIndex < detailsIndex, "el mensaje debe aparecer antes del <details>, nunca solo dentro de él");
 });

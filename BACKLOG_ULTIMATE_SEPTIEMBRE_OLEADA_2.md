@@ -84,8 +84,11 @@ Primera oleada del Bloque 2 (DLX1, IVX8, CPX3 — tres de las cuatro tareas de e
 tabla de abajo. `RGX2`, la cuarta, se investigó y quedó marcada ⚠️ por un desajuste de alcance
 (`A5-3` sin UI). Consultado el usuario, decidió no reclasificarla: construir la pantalla mínima de
 hogar compartido que le faltaba a `A5-3`, y con ella también `RGX1` (Bloque 2, fila 19, misma
-dependencia). Ambas cerradas el mismo día (sesión 140), marcadas ✅. Quedan 6 tareas de esfuerzo S-M
-del Bloque 2 (APX5, APX6, LPX3, RGX4, IVX7, MDX2) y los Bloques 3-6 sin empezar.
+dependencia). Ambas cerradas el mismo día (sesión 140), marcadas ✅. Las 6 tareas de esfuerzo S-M
+restantes (APX5, APX6, LPX3, RGX4, IVX7, MDX2) cerradas también el 4 de septiembre de 2026 (sesión
+141), sin ningún hallazgo de alcance — las 9 dependencias declaradas (`DI1`, `A9-3`, `A14-1`, `SP1`,
+`A7-3`, `A11-4`, `CP1`, `IV3`, `A0-9`) se verificaron primero y todas tenían UI real. **Con esto el
+Bloque 2 queda completo (11/11 tareas)**. Quedan los Bloques 3-6 sin empezar (36 tareas).
 
 ## 2. Orden de ejecución — 51 tareas en 6 bloques
 
@@ -113,13 +116,13 @@ del Bloque 2 (APX5, APX6, LPX3, RGX4, IVX7, MDX2) y los Bloques 3-6 sin empezar.
 | 13 | ✅ IVX8 | Sobreexposición cruzada vivienda-inversión | Inversión 2 | S | Medio | Hecho — `ivx8HousingExposure()`, aviso en Cartera (`A14-4`) y en Concentración (`IV1`) |
 | 14 | ✅ RGX2 | Alerta de concentración de conocimiento | Continuidad e IA | ~~S~~ → M/L real | Medio | Hecho — decisión del usuario del 4 de septiembre de 2026: en vez de reclasificarla, se construyó la pantalla mínima de hogar compartido (`A5-3`) que le faltaba a `A5-3`, compartida con `RGX1` (fila 19). Ver detalle en la fila 19 y en la sesión 140 de `PROJECT_STATE.md`. |
 | 15 | ✅ CPX3 | Transparencia de recomendaciones ignoradas | Copiloto 2 | S | Medio | Hecho — registro `cpx3RecommendationLog` (vía `window.FinanceP2Bridge`), aviso a partir de 3 días y botón de descartar en la tarjeta de `CP1` |
-| 16 | APX5 | Coste total de refinanciar, no solo el tipo | Apalancamiento 2 | S-M | Alto | Depende de `DI1`; punto de equilibrio en meses entre ahorro de tipo y coste de cancelación |
-| 17 | APX6 | Amortizar: reducir cuota vs. reducir plazo | Apalancamiento 2 | S-M | Alto | Extiende `compareAmortizeVsInvest()` (`canonical-debt-comparator.js`, `AP1`) y `A9-3` |
-| 18 | LPX3 | Checklist de continuidad ante fallecimiento o incapacidad | Patrimonio y vida | S-M | Alto | Depende de `A14-1` y `SP1` |
+| 16 | ✅ APX5 | Coste total de refinanciar, no solo el tipo | Apalancamiento 2 | S-M | Alto | Hecho — `refinancingBreakEvenMonths()` extiende `canonical-mortgage-rate-scenarios.js` (DI1): meses de equilibrio entre el ahorro mensual (escenario base) y el coste de refinanciar declarado |
+| 17 | ✅ APX6 | Amortizar: reducir cuota vs. reducir plazo | Apalancamiento 2 | S-M | Alto | Hecho — `amortizeReduceQuotaVsTerm()` en `canonical-debt-comparator.js`, cuota francesa real (no la estimación de interés simple de `compareAmortizeVsInvest`), en la misma tarjeta de `AP1` con el plazo real del contrato |
+| 18 | ✅ LPX3 | Checklist de continuidad ante fallecimiento o incapacidad | Patrimonio y vida | S-M | Alto | Hecho — dos puntos automáticos (`A14-1`/`SP1`) y tres casillas que confirma el hogar (testamento, beneficiarios, a quién avisar), sin fuente de datos en la app para inventarlas |
 | 19 | ✅ RGX1 | Simulacro guiado de pérdida de acceso | Continuidad e IA | S-M | Alto | Hecho — igual que `RGX2` (fila 14), dependía de `A5-3` sin UI. Se construyó la tarjeta «Hogar compartido» (miembros, roles, áreas, invitar/retirar) en Ajustes, con escritura real vía `migrations/20260904_e9_household_writes.sql` (funciones security definer, mismo patrón que `A19-1`) — y sobre ella, el simulacro de tres puntos (copia de emergencia, redundancia, cobertura por área). **Pendiente de acción manual del usuario**: aplicar la migración al proyecto Supabase real y verificar con dos cuentas, exactamente como pidió `E9_HOUSEHOLD.md` antes de desplegar el modelo compartido. |
-| 20 | RGX4 | Explicación en dos niveles | Continuidad e IA | S-M | Medio | Capa sobre `A7-3`, `A11-4` y `CP1` |
-| 21 | IVX7 | Coste medio de adquisición (DCA) visible | Inversión 2 | S-M | Medio | Depende de `IV3` |
-| 22 | MDX2 | Exportación en formato abierto y documentado | Multidispositivo | S-M | Medio | Depende de `A0-9`; esquema JSON publicado, decisión de gobierno de datos |
+| 20 | ✅ RGX4 | Explicación en dos niveles | Continuidad e IA | S-M | Medio | Hecho — capa sobre la tarjeta de `CP1`: nivel 1 (etiqueta+mensaje) siempre visible, nivel 2 (`<details>` nativo) con la evidencia real de `A11-4`/E16 y la cita de CP3 |
+| 21 | ✅ IVX7 | Coste medio de adquisición (DCA) visible | Inversión 2 | S-M | Medio | Hecho — `ivx7AverageCostLabel()`: `costBasis`/`quantity` ya existían por posición (`IV1`/`FC1`), solo faltaba dividirlos y mostrarlos junto al precio actual por unidad |
+| 22 | ✅ MDX2 | Exportación en formato abierto y documentado | Multidispositivo | S-M | Medio | Hecho — `MDX2_FORMATO_EXPORTACION.md` documenta el sobre JSON de `state-contract.js` (A0-9) y la decisión de gobierno de datos; un test compara el documento contra las constantes reales para que nunca se desincronicen |
 
 ### Bloque 3 — El cuerpo de la ola: previsión, escenarios, cartera y copiloto (20 tareas, nivel 0, M/M-L)
 

@@ -15618,6 +15618,7 @@ function addInsurancePolicyFromControls() {
     if (qs(id)) qs(id).value = "";
   });
   renderInsurancePolicies();
+  renderLpx3ContinuityChecklist();
 }
 
 // A15-5 · tablas fiscales versionadas y su actualización anual. Mismo patrón de registro que
@@ -16082,6 +16083,30 @@ function ap2BreakEvenLine(breakEven, investmentAnnualReturnPct) {
   return `<p class="e19-kpi-note">Punto de equilibrio: a partir de ${rateLabel} anual de rentabilidad de inversión, invertir compensa más que amortizar — ${comparison}.</p>`;
 }
 
+// APX6: amortizar reduciendo cuota (misma duración, cuota más baja) frente a reduciendo plazo
+// (misma cuota, menos meses) — misma deuda/importe/TIN que ya pide la tarjeta de AP1, sin ningún
+// campo nuevo. Usa el plazo REAL restante del contrato de deuda (remainingInstallments), nunca el
+// "horizonte a comparar" de AP1 — son dos datos distintos: cuánto queda de la deuda en realidad
+// frente a cuánto tiempo se quiere comparar la decisión de amortizar vs. invertir.
+function apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct) {
+  const comparator = window.FinanceDebtComparator;
+  if (!comparator || !debt) return "";
+  const contract = debtContractSourceRows().find((row) => row.id === debt.id);
+  const remainingMonths = Math.round(Number(contract?.remainingInstallments) || 0);
+  if (remainingMonths <= 0) return "";
+  const result = comparator.amortizeReduceQuotaVsTerm({
+    principal: debt.currentPrincipal,
+    annualRatePct: debtAnnualRatePct,
+    months: remainingMonths,
+    lumpSum: amount,
+  });
+  if (!result.calculable) return "";
+  return `<div class="e19-kpi-note"><p><strong>Reducir cuota vs. reducir plazo</strong> (plazo real restante del contrato: ${result.months} meses):</p><ul class="commit-barrier-list">
+    <li>Reducir cuota: pasa de ${money(result.currentPayment, true)}/mes a ${money(result.reduceQuota.newPayment, true)}/mes (−${money(result.reduceQuota.paymentReduction, true)}), mismo plazo — ahorra ${money(result.reduceQuota.interestSaved, true)} en intereses.</li>
+    <li>Reducir plazo: sigue en ${money(result.currentPayment, true)}/mes, pero termina ${result.reduceTerm.monthsReduced} mes(es) antes — ahorra ${money(result.reduceTerm.interestSaved, true)} en intereses.</li>
+  </ul></div>`;
+}
+
 function handleAp1Compare() {
   const note = qs("ap1CompareNote");
   if (!note) return;
@@ -16111,7 +16136,7 @@ function handleAp1Compare() {
       floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
     })
     : null;
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven);
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
 }
 
 // AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3 (escenarios de
@@ -16206,7 +16231,21 @@ function handleDi1CompareMortgageScenarios() {
       : `sale más barata la ${scenario.cheaper === "fixed" ? "fija" : "variable"}, por ${money(scenario.difference, true)} en total`;
     return `<li><strong>${escapeHtml(scenario.label)}</strong> (variable al ${scenario.variableRate}%): cuota variable ${money(scenario.variableMonthlyPayment, true)}/mes (${money(scenario.variableTotalCost, true)} en total) frente a cuota fija ${money(scenario.fixedMonthlyPayment, true)}/mes (${money(scenario.fixedTotalCost, true)} en total) — ${verdict}.</li>`;
   }).join("");
-  note.innerHTML = `<ul class="commit-barrier-list">${rows}</ul>`;
+  note.innerHTML = `<ul class="commit-barrier-list">${rows}</ul>${apx5RefinancingBreakEvenHtml(result.scenarios)}`;
+}
+
+// APX5: coste total de refinanciar, no solo el tipo — extiende la misma tarjeta de DI1 con el
+// punto de equilibrio en meses entre el ahorro mensual (escenario base) y la comisión de
+// cancelación/subrogación + gastos de novación declarados por el hogar.
+function apx5RefinancingBreakEvenHtml(scenarios) {
+  const engine = window.FinanceCanonicalMortgageRateScenarios;
+  if (!engine) return "";
+  const refinancingCost = parseAmount(qs("ajustesMortgageRefinancingCost")?.value);
+  const result = engine.refinancingBreakEvenMonths(scenarios, refinancingCost);
+  if (!result.calculable) {
+    return `<p class="e19-kpi-note">Con estos datos, la fija no ahorra cuota al mes en el escenario base — no hay ningún coste de refinanciar que compense.</p>`;
+  }
+  return `<p class="e19-kpi-note">Refinanciar cuesta ${money(result.cost, true)} y ahorra ${money(result.monthlySavings, true)}/mes en el escenario base: se recupera el coste en ${result.months} mes(es).</p>`;
 }
 
 // DI5: reestructuración conjunta ante una caída de ingresos. Reutiliza los contratos reales de
@@ -16822,6 +16861,74 @@ function renderRgxKnowledgeConcentration() {
   note.innerHTML = `<p class="warning">Concentración de conocimiento: solo una persona del hogar tiene acceso a ${escapeHtml(areasText)}. Si esa persona no está disponible, nadie más podría gestionarlo.</p>`;
 }
 
+// LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1 (activos con
+// procedencia) y SP1 (inventario de pólizas) — dos puntos que la app ya sabe responder con datos
+// reales. Los otros tres (testamento, beneficiarios, a quién avisar) no tienen ninguna fuente de
+// datos en la app: son casillas que confirma el propio hogar, persistidas tal cual, nunca inferidas.
+const LPX3_MANUAL_ITEMS = [
+  { id: "will", label: "Testamento hecho y actualizado" },
+  { id: "beneficiaries", label: "Beneficiarios de las pólizas revisados y al día" },
+  { id: "documentsKnown", label: "Alguien de confianza sabe dónde están los documentos clave" },
+];
+
+function lpx3ManualChecks() {
+  scenarioSettings.lpx3ManualChecks = scenarioSettings.lpx3ManualChecks && typeof scenarioSettings.lpx3ManualChecks === "object" ? scenarioSettings.lpx3ManualChecks : {};
+  return scenarioSettings.lpx3ManualChecks;
+}
+
+function lpx3ContinuityChecklist(assets, policies, manualChecks) {
+  const assetsEngine = window.FinanceCanonicalAssets;
+  const normalized = assetsEngine ? assetsEngine.normalizeAssets(assets || []) : null;
+  const assetRows = normalized ? normalized.assets : [];
+  const unknownCount = assetRows.filter((asset) => asset.provenance === "unknown").length;
+  const assetsCheck = {
+    id: "assets",
+    label: "Activos documentados con procedencia",
+    ok: assetRows.length > 0 && unknownCount === 0,
+    detail: assetRows.length === 0
+      ? "Sin activos registrados todavía."
+      : unknownCount > 0
+        ? `${unknownCount} activo(s) sin procedencia declarada.`
+        : `${assetRows.length} activo(s), todos con procedencia declarada.`,
+  };
+  const policyCount = (policies || []).length;
+  const policiesCheck = {
+    id: "policies",
+    label: "Pólizas de seguro registradas",
+    ok: policyCount > 0,
+    detail: policyCount > 0 ? `${policyCount} póliza(s) registrada(s).` : "Sin ninguna póliza registrada todavía.",
+  };
+  const manual = LPX3_MANUAL_ITEMS.map((item) => ({
+    id: item.id,
+    label: item.label,
+    ok: Boolean(manualChecks?.[item.id]),
+    detail: manualChecks?.[item.id] ? "Confirmado por el hogar." : "Pendiente de confirmar.",
+  }));
+  const checks = [assetsCheck, policiesCheck, ...manual];
+  return { checks, ready: checks.every((check) => check.ok) };
+}
+
+function renderLpx3ContinuityChecklist() {
+  const container = qs("lpx3ContinuityChecklist");
+  if (!container) return;
+  const result = lpx3ContinuityChecklist(assetsList(), insurancePolicies(), lpx3ManualChecks());
+  const itemsHtml = result.checks.map((check) => {
+    const isManual = LPX3_MANUAL_ITEMS.some((item) => item.id === check.id);
+    const manualToggle = isManual
+      ? `<label><input type="checkbox" data-lpx3-manual-check="${escapeHtml(check.id)}" ${check.ok ? "checked" : ""} /> Confirmar</label>`
+      : "";
+    return `<li class="${check.ok ? "" : "negative"}"><strong>${escapeHtml(check.label)}:</strong> ${escapeHtml(check.detail)} ${manualToggle}</li>`;
+  }).join("");
+  container.innerHTML = `<ul class="e19-kpi-note">${itemsHtml}</ul>${result.ready ? "<p>Checklist completo.</p>" : ""}`;
+}
+
+function handleLpx3ManualCheckToggle(id, checked) {
+  const checks = lpx3ManualChecks();
+  checks[id] = Boolean(checked);
+  saveScenarioSettings();
+  renderLpx3ContinuityChecklist();
+}
+
 // RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9, ya real) y el
 // hogar compartido de arriba (A5-3). No ejecuta ninguna acción por sí sola: solo hace visible el
 // estado real de cada punto, con la copia y la invitación a un clic de distancia si falta algo.
@@ -16969,6 +17076,7 @@ function saveA14Asset() {
   clearA14AssetForm();
   renderA14AssetList();
   renderA14AssetBreakdown();
+  renderLpx3ContinuityChecklist();
   announceStatus(`Activo «${label}» registrado.`);
 }
 
@@ -16998,6 +17106,7 @@ function confirmA14AssetUpdate() {
   renderA14AssetPendingCompare();
   renderA14AssetList();
   renderA14AssetBreakdown();
+  renderLpx3ContinuityChecklist();
   announceStatus(`Activo «${next.label}» actualizado.`);
 }
 
@@ -17010,6 +17119,7 @@ function removeA14Asset(id) {
   saveAssetsList(assetsList().filter((asset) => asset.id !== id));
   renderA14AssetList();
   renderA14AssetBreakdown();
+  renderLpx3ContinuityChecklist();
 }
 
 function renderA14AssetList() {
@@ -17356,8 +17466,22 @@ function renderIv1PositionList() {
     const gainClass = position.gainLoss > 0 ? "positive" : position.gainLoss < 0 ? "negative" : "";
     const contributionsNote = position.contributions.length ? ` · ${position.contributions.length} aportación(es) adicional(es)` : "";
     const realizedNote = fc1RealizedGainLabel(position.realizedGain, position.disposals.length);
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    const averageCostNote = ivx7AverageCostLabel(position);
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
+}
+
+// IVX7: coste medio de adquisición (DCA) visible — depende de IV3 (aportaciones programadas, ya
+// construidas). costBasis y quantity ya existen en cada posición normalizada (IV1/FC1); lo único
+// que faltaba era dividirlos y mostrarlos junto al precio actual por unidad, para ver de un vistazo
+// si el precio de mercado está por encima o por debajo de lo que costó de media. Solo aplica a
+// posiciones con unidades reales (quantity > 0) — un fondo sin unidades declaradas no tiene coste
+// "por unidad" que mostrar, y dividir por cero nunca es una opción.
+function ivx7AverageCostLabel(position) {
+  if (!position || !(position.quantity > 0)) return "";
+  const averageCost = round2(position.costBasis / position.quantity);
+  const currentPrice = round2(position.currentValue / position.quantity);
+  return `coste medio ${money(averageCost, true)}/ud. · precio actual ${money(currentPrice, true)}/ud.`;
 }
 
 // FC2: opciones del selector de traspaso — cualquier posición registrada puede figurar como
@@ -25755,6 +25879,7 @@ function renderAjustes() {
   renderA19ShareLinkList();
   renderA14AssetList();
   renderA14AssetBreakdown();
+  renderLpx3ContinuityChecklist();
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
@@ -35817,6 +35942,12 @@ async function init() {
     if (!removeButton) return;
     removeInsurancePolicy(removeButton.dataset.policyRemove);
     renderInsurancePolicies();
+    renderLpx3ContinuityChecklist();
+  });
+  qs("lpx3ContinuityChecklist")?.addEventListener("change", (event) => {
+    const checkbox = event.target.closest("[data-lpx3-manual-check]");
+    if (!checkbox) return;
+    handleLpx3ManualCheckToggle(checkbox.dataset.lpx3ManualCheck, checkbox.checked);
   });
   qs("ajustesTaxTableAdd")?.addEventListener("click", addTaxTableFromControls);
   qs("ajustesTaxTables")?.addEventListener("click", (event) => {

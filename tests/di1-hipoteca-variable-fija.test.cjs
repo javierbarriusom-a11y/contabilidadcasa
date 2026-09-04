@@ -53,6 +53,9 @@ function fieldSandbox(values) {
     window: { FinanceCanonicalMortgageRateScenarios: require("../canonical-mortgage-rate-scenarios.js") },
   };
   vm.createContext(context);
+  // APX5 (Oleada 2 Bloque 2) extendió esta misma función con el punto de equilibrio de refinanciar
+  // — necesita apx5RefinancingBreakEvenHtml cargada en el mismo sandbox.
+  vm.runInContext(extractFunction("apx5RefinancingBreakEvenHtml"), context);
   vm.runInContext(extractFunction("handleDi1CompareMortgageScenarios"), context);
   context.handleDi1CompareMortgageScenarios();
   return notes.result;
@@ -81,7 +84,7 @@ test("no persiste nada en scenarioSettings: es una calculadora puntual", () => {
   assert.doesNotMatch(body, /saveScenarioSettings/);
 });
 
-test("la calculadora vive en #ajustes con sus cuatro campos, botón y nota", () => {
+test("la calculadora vive en #ajustes con sus campos (los cuatro originales más el de APX5), botón y nota", () => {
   const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
   assert.ok(openTag, "No existe la sección #ajustes");
   const start = openTag.index + openTag[0].length;
@@ -91,6 +94,8 @@ test("la calculadora vive en #ajustes con sus cuatro campos, botón y nota", () 
   assert.match(ajustes, /id="ajustesMortgageMonths"/);
   assert.match(ajustes, /id="ajustesMortgageVariableRate"/);
   assert.match(ajustes, /id="ajustesMortgageFixedRate"/);
+  // APX5: coste total de refinanciar, no solo el tipo.
+  assert.match(ajustes, /id="ajustesMortgageRefinancingCost"/);
   assert.match(ajustes, /id="ajustesMortgageScenariosCompare"/);
   assert.match(ajustes, /id="ajustesMortgageScenariosNote"/);
 });
