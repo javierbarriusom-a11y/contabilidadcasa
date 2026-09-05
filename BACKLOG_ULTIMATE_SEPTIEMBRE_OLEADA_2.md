@@ -201,7 +201,7 @@ Bloques 4-6 completos (17 tareas) sin empezar.
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 43 | APX3 | Simulador de ejecución de garantía (margin call) | Apalancamiento 2 | L | Crítico | Depende de `APX2` (Bloque 3) y `A8-1`; extiende el guardarraíl `AP4` al nuevo instrumento — pendiente, dejada para una sesión con más margen (decisión explícita del usuario el 5-sep) |
+| 43 | ✅ APX3 | Simulador de ejecución de garantía (margin call) | Apalancamiento 2 | L | Crítico | Hecho — `lombardMarginCallSimulation()` (`canonical-leverage-simulator.js`): el hogar declara el importe realmente pedido, el LTV de mantenimiento del banco y una caída de cartera a explorar; si la llamada se dispara, calcula garantía adicional y liquidación forzosa (las dos salidas reales), sin decidir cuál tomar. Extiende el guardarraíl `AP4` reutilizando `amortizeCushionGuardrail()` (DLX1) contra la garantía exigida |
 | 44 | ✅ DLX2 | Regla de reparto automático del excedente | Deuda-liquidez | M | Alto | Hecho — `surplusAllocationRule()` (`canonical-cushion.js`): reserva primero del excedente lo que hace falta para no perforar el suelo (`DLX1`) y reparte el resto según el veredicto ya calculado por `AP1`; sin veredicto claro, la parte libre queda sin repartir en vez de un 50/50 inventado |
 | 45 | ✅ DLX3 | Retrospectiva de «¿me habría quedado sin colchón?» | Deuda-liquidez | M | Medio | Hecho — `cushionRetrospective()` (`canonical-cushion.js`): reconstruye la liquidez de cada mes conciliado hacia atrás desde la liquidez de hoy, con el mismo historial real de `PVX1` y el suelo VIGENTE (nunca uno histórico, que la app no guarda versionado); aproximación declarada, no reconstruye traspasos puntuales entre cuentas |
 

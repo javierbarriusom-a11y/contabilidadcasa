@@ -2762,6 +2762,33 @@
               <div class="e19-kpi-note" id="apx2LombardNote"></div>
             </article>
 
+            <!-- APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de
+                 APX2. El hogar declara cuánto pidió prestado de verdad, el LTV de mantenimiento del
+                 banco y una caída hipotética de la cartera — nunca un umbral "típico" inventado.
+                 Extiende el guardarraíl AP4 al nuevo instrumento: si la caída dispara la llamada,
+                 compara la garantía adicional necesaria contra el mismo guardarraíl de colchón que
+                 ya usan DLX1/AP1. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de ejecución de garantía (margin call)</h3>
+              <p class="e19-kpi-note">Si tomaste el crédito con garantía de cartera de arriba, simula qué pasaría si la cartera cayera de valor: si se dispararía una llamada de garantía, y cuánta garantía adicional o liquidación forzosa exigiría el banco. No decide cuál de las dos opciones tomar.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe realmente pedido prestado (€)</span>
+                  <input id="apx3LoanAmount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>LTV de mantenimiento del banco (%)</span>
+                  <input id="apx3MaintenanceLtvPct" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Ej. 70" />
+                </label>
+                <label class="month-picker">
+                  <span>Caída de la cartera a explorar (%)</span>
+                  <input id="apx3StressDropPct" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Ej. 20" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="apx3MarginCallRun">Simular caída</button>
+              <div class="e19-kpi-note" id="apx3MarginCallNote"></div>
+            </article>
+
             <!-- AP6: alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada.
                  Depende de AP3: la única deuda de apalancamiento que existe en la app es la que se
                  exploró y guardó arriba. AP3 nunca guarda una posición real, así que este motor solo

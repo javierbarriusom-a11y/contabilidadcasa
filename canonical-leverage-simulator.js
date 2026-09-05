@@ -120,5 +120,64 @@
     };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, PROFESSIONAL_WARNING, simulateLeverage, saveScenario, LOMBARD_SCHEMA_ID, lombardCreditCapacity };
+  // APX3 — simulador de ejecución de garantía (margin call) sobre el crédito Lombard de APX2.
+  // Depende de APX2 (capacidad de préstamo ya calculada) y sigue el mismo criterio de A8-1/AP3: el
+  // hogar declara los supuestos a explorar (cuánto pidió prestado de verdad, el LTV de mantenimiento
+  // que exige el banco y la caída hipotética de la cartera), nunca un valor "típico" inventado por
+  // este motor. Extiende el guardarraíl AP4 al nuevo instrumento: AP4 vigila el riesgo de la deuda
+  // SIN garantizar (ratio cuota/ingreso); este motor vigila el riesgo propio de la deuda CON
+  // garantía real — que la cartera caiga por debajo del LTV de mantenimiento y dispare una llamada
+  // de garantía — con las dos salidas reales que tendría el hogar ante esa llamada: aportar más
+  // garantía o que el banco liquide posiciones. Nunca decide cuál tomar, solo calcula ambas.
+  const MARGIN_CALL_SCHEMA_ID = "finance-canonical-lombard-margin-call/v1";
+
+  function lombardMarginCallSimulation({ portfolioValue, loanAmount, maintenanceLtvPct, stressDropPct } = {}) {
+    const value = Math.max(0, round2(portfolioValue));
+    const loan = Math.max(0, round2(loanAmount));
+    const maintenanceLtv = number(maintenanceLtvPct);
+    const drop = number(stressDropPct);
+    if (!(value > 0) || !(loan > 0) || !(maintenanceLtv > 0) || maintenanceLtv >= 100 || !(drop >= 0) || drop >= 100) {
+      return { schemaId: MARGIN_CALL_SCHEMA_ID, calculable: false };
+    }
+    const maintenanceRatio = maintenanceLtv / 100;
+    const stressedPortfolioValue = round2(value * (1 - drop / 100));
+    const stressedLtvPct = round2((loan / stressedPortfolioValue) * 100);
+    const marginCallTriggered = stressedLtvPct > maintenanceLtv;
+    // Cash/garantía adicional que restauraría el LTV de mantenimiento sin vender nada:
+    // loan / (stressedPortfolioValue + aportación) = maintenanceRatio.
+    const additionalCollateralNeeded = marginCallTriggered
+      ? round2(Math.max(0, loan / maintenanceRatio - stressedPortfolioValue))
+      : 0;
+    // Importe que el banco liquidaría (vendido, reduce cartera Y deuda a la vez) para restaurar el
+    // mismo LTV de mantenimiento: (loan - X) / (stressedPortfolioValue - X) = maintenanceRatio.
+    const forcedLiquidationAmount = marginCallTriggered
+      ? round2(Math.max(0, (loan - maintenanceRatio * stressedPortfolioValue) / (1 - maintenanceRatio)))
+      : 0;
+    return {
+      schemaId: MARGIN_CALL_SCHEMA_ID,
+      calculable: true,
+      portfolioValue: value,
+      loanAmount: loan,
+      maintenanceLtvPct: round2(maintenanceLtv),
+      stressDropPct: round2(drop),
+      currentLtvPct: round2((loan / value) * 100),
+      stressedPortfolioValue,
+      stressedLtvPct,
+      marginCallTriggered,
+      additionalCollateralNeeded,
+      forcedLiquidationAmount,
+    };
+  }
+
+  return {
+    SCHEMA_ID,
+    SAVED_SCHEMA_ID,
+    PROFESSIONAL_WARNING,
+    simulateLeverage,
+    saveScenario,
+    LOMBARD_SCHEMA_ID,
+    lombardCreditCapacity,
+    MARGIN_CALL_SCHEMA_ID,
+    lombardMarginCallSimulation,
+  };
 });
