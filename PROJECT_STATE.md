@@ -2,6 +2,38 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (148): Oleada 2 Bloque 4 — cierre (APX3)
+
+Continuación directa de la sesión 147 (DLX2/DLX3 ya construidas y fusionadas; `APX3` había quedado
+aparcada a propósito, esfuerzo L, para una sesión con más margen). El usuario pidió seguir con ella.
+
+- **APX3 — simulador de ejecución de garantía (margin call)**: `lombardMarginCallSimulation()`,
+  nueva en `canonical-leverage-simulator.js`, junto a `lombardCreditCapacity()` (APX2). El hogar
+  declara tres datos que este motor nunca inventa: cuánto pidió prestado de verdad (no
+  necesariamente la capacidad máxima que calcula APX2), el LTV de mantenimiento que exige el banco,
+  y una caída hipotética de la cartera a explorar. Si esa caída sube el LTV por encima del de
+  mantenimiento, calcula las dos salidas reales que tendría el hogar ante la llamada de garantía:
+  aportar más garantía (importe exacto que restaura el LTV de mantenimiento sin vender nada) o que
+  el banco liquide posiciones (importe exacto que restaura el mismo LTV vendiendo cartera y
+  reduciendo deuda a la vez) — nunca decide cuál tomar. Extiende el guardarraíl AP4 al nuevo
+  instrumento tal como pedía el backlog: cuando la llamada se dispara, reutiliza
+  `amortizeCushionGuardrail()` (DLX1, ya construido) para comparar la garantía adicional exigida
+  contra el colchón real del hogar, en vez de reimplementar un guardarraíl propio. Tarjeta nueva en
+  Ajustes (`apx3MarginCallResultHtml()`/`handleApx3MarginCallSimulate()` en `app.js`), justo debajo
+  de la tarjeta de crédito Lombard de APX2.
+
+**Con esto el Bloque 4 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` queda completo: 3/3 tareas**
+(`APX3`, `DLX2`, `DLX3`). De la Oleada 2 completa quedan 5 tareas del Bloque 5 (grandes apuestas de
+esfuerzo L) y `RGX3` del Bloque 6 (condicionada a que `A5-1` esté activo en producción) — 45/51 en
+total.
+
+**Validación**: `npm run verify`, exit 0 — **3247/3247 pruebas** (3237 + 10 nuevas, todas en
+`tests/apx3-margin-call.test.cjs`). Accesibilidad: 1119 IDs únicos (+5: los cinco campos nuevos de
+la tarjeta de APX3). Rendimiento, `build:site`, privacidad y humo: en verde.
+
+**Pendiente de publicar**: validado en local, pendiente de commit/push/PR/fusión según el flujo
+autorizado en `CLAUDE.md`.
+
 ## Cierre de sesión — 5 de septiembre de 2026 (147): Oleada 2 Bloque 4 — primera oleada (DLX2, DLX3)
 
 Continuación directa de la sesión 146 (apertura de sesión: revisar estado y planificar los

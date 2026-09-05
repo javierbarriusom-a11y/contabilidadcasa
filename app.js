@@ -15965,6 +15965,49 @@ function handleApx2LombardSimulate() {
   note.innerHTML = apx2LombardResultHtml(result);
 }
 
+// APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de APX2. El
+// hogar declara cuánto pidió prestado de verdad (loanAmount, no necesariamente la capacidad máxima
+// de APX2), el LTV de mantenimiento que exige el banco y una caída hipotética de la cartera a
+// explorar — igual que AP3 con sus escenarios de rentabilidad, ningún supuesto lo inventa este
+// motor. Si la caída dispara la llamada de garantía, se compara además la aportación de garantía
+// necesaria contra el mismo guardarraíl de colchón que ya usan DLX1/AP1 (amortizeCushionGuardrail):
+// extiende ese guardarraíl al nuevo instrumento, en vez de reimplementar uno propio.
+function apx3MarginCallResultHtml(result, guardrail) {
+  if (!result || !result.calculable) {
+    return "Declara cuánto pediste prestado de verdad, el LTV de mantenimiento del banco y una caída de cartera a explorar (0-99%) para simular la llamada de garantía.";
+  }
+  const stateLine = `<p>LTV actual: ${result.currentLtvPct}%. Con una caída del ${result.stressDropPct}%, la cartera pasaría de ${money(result.portfolioValue, true)} a ${money(result.stressedPortfolioValue, true)}, y el LTV subiría al ${result.stressedLtvPct}% (mantenimiento: ${result.maintenanceLtvPct}%).</p>`;
+  if (!result.marginCallTriggered) {
+    return `${stateLine}<p class="e19-kpi-note positive">Con esa caída, el LTV se mantendría por debajo del de mantenimiento — no se dispararía una llamada de garantía.</p>`;
+  }
+  const guardrailLine = guardrail ? dlx1GuardrailHtml(guardrail) : "";
+  return `${stateLine}<p class="e19-kpi-note negative"><strong>Llamada de garantía:</strong> el banco exigiría, a tu elección, ${money(result.additionalCollateralNeeded, true)} de garantía adicional, o liquidar ${money(result.forcedLiquidationAmount, true)} de la cartera, para volver al LTV de mantenimiento. Esta simulación no decide cuál de las dos opciones tomar.</p>${guardrailLine}`;
+}
+
+function handleApx3MarginCallSimulate() {
+  const note = qs("apx3MarginCallNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  const portfolio = window.FinanceCanonicalPortfolio;
+  if (!engine || !portfolio) return;
+  const portfolioValue = portfolio.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const result = engine.lombardMarginCallSimulation({
+    portfolioValue,
+    loanAmount: parseAmount(qs("apx3LoanAmount")?.value),
+    maintenanceLtvPct: parseAmount(qs("apx3MaintenanceLtvPct")?.value),
+    stressDropPct: parseAmount(qs("apx3StressDropPct")?.value),
+  });
+  const cushionEngine = window.FinanceCanonicalCushion;
+  const guardrail = cushionEngine && result.calculable && result.marginCallTriggered
+    ? cushionEngine.amortizeCushionGuardrail({
+      amount: result.additionalCollateralNeeded,
+      liquidity: accountBalancesFromState().total,
+      floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+    })
+    : null;
+  note.innerHTML = apx3MarginCallResultHtml(result, guardrail);
+}
+
 function ap3LeverageScenarios() {
   scenarioSettings.ap3LeverageScenarios = Array.isArray(scenarioSettings.ap3LeverageScenarios) ? scenarioSettings.ap3LeverageScenarios : [];
   return scenarioSettings.ap3LeverageScenarios;
@@ -36455,6 +36498,7 @@ async function init() {
   qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
+  qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
   qs("ap3ScenarioList")?.addEventListener("click", (event) => {
     const toggleButton = event.target.closest("[data-ap3-scenario-taken-toggle]");
