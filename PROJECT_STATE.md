@@ -1,6 +1,34 @@
 # Estado del proyecto
 
-Fecha de revisión: 4 de septiembre de 2026.
+Fecha de revisión: 5 de septiembre de 2026.
+
+## Cierre de sesión — 5 de septiembre de 2026 (146): reconciliación del backlog e índice de estado — sin código nuevo
+
+Sesión de cierre a petición del usuario ("cierra y actualiza backlog y el artefacto de status de
+desarrollos"), sin construir ninguna tarea nueva del backlog. Con los Bloques 1-3 de
+`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` ya cerrados (sesiones 137-145), el mapa de backlogs
+(`BACKLOG_INDICE.md`) había quedado desactualizado: su sección "Para saber qué hacer a
+continuación" y la fila de la tabla `Mapa completo` seguían describiendo la Oleada 2 como si
+ningún bloque estuviera cerrado.
+
+- **`BACKLOG_INDICE.md`**: actualizado con el estado real — Bloques 1-3 cerrados (42/51 tareas: 38
+  construidas de verdad, 1 ya cubierta por arquitectura existente sin motor nuevo (`PVX3`) y 3
+  reclasificadas con hueco de datos real documentado, `APX4`/`IVX1`/`IVX5`, ninguna bloqueada sin
+  motivo). Quedan los Bloques 4-6 (9 tareas nuevas) sin empezar. Estado de la fila cambiado de
+  🟢 (vigente, sin matizar) a 🟡 (vigente, con el progreso real indicado).
+- **`BACKLOG_STATUS.md`**: revisado, sin cambios — su §0 (tabla maestra E1-E20) es correcto tal
+  cual; ninguna entrega E1-E20 cambió de estado esta sesión (el trabajo de esta oleada es E21 en
+  adelante, que ese documento explícitamente no cubre — se seguía ya en
+  `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` y en este archivo).
+- **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`**: ya estaba al día — se actualizó al cierre de cada
+  oleada a lo largo de las sesiones 142-145, no requería ningún cambio adicional.
+
+**Validación**: `npm run verify`, exit 0 — **3218/3218 pruebas** (sin cambio, ningún test nuevo:
+esta sesión no tocó código, solo documentación de estado). Accesibilidad: 1113 IDs únicos.
+Rendimiento, `build:site`, privacidad y humo: en verde.
+
+**Pendiente de publicar**: validado en local, pendiente de commit/push/PR/fusión según el flujo
+autorizado en `CLAUDE.md`.
 
 ## Cierre de sesión — 4 de septiembre de 2026 (145): cuarta y última oleada del Bloque 3 — PVX3 (ya cubierta), PVX2, ESX2, APX2 — Bloque 3 completo (20/20)
 
