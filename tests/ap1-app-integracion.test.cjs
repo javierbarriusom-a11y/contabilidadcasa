@@ -66,8 +66,8 @@ test("DLX1: handleAp1Compare calcula el guardarraíl con el mismo suelo y reserv
 });
 
 test("DLX1: el guardarraíl se antepone a la lectura amortizar/invertir, no la sustituye", () => {
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 1600);
-  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ ap1ResultHtml\(/);
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 2200);
+  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ ap1ResultHtml\(/);
 });
 
 test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del estado", () => {
@@ -76,4 +76,26 @@ test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del e
   assert.match(block, /ajustado/);
   assert.match(block, /insostenible/);
   assert.doesNotMatch(block, /bloque|deshabilita|impide/i);
+});
+
+// ---------------------------------------------------------------------------------------------
+// DLX2 (Oleada 2, Bloque 4) · reparto automático del excedente — extiende el mismo `amount` y el
+// mismo guardarraíl de DLX1 dentro de handleAp1Compare, sin ningún campo ni motor nuevo.
+// ---------------------------------------------------------------------------------------------
+
+test("DLX2: handleAp1Compare calcula el reparto con el mismo suelo/liquidez que el guardarraíl y el veredicto de AP1", () => {
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 2200);
+  assert.match(block, /cushionEngine\.surplusAllocationRule\(/);
+  assert.match(block, /assessment: result\.calculable \? result\.assessment : null/);
+});
+
+test("DLX2: dlx2SurplusAllocationHtml nunca inventa un reparto sin veredicto claro de AP1", () => {
+  const block = appSource.slice(appSource.indexOf("function dlx2SurplusAllocationHtml("), appSource.indexOf("function dlx2SurplusAllocationHtml(") + 900);
+  assert.match(block, /sin reparto automático/);
+  assert.doesNotMatch(block, /50\s*\/\s*50|mitad y mitad/i);
+});
+
+test("DLX2: sin resultado calculable, dlx2SurplusAllocationHtml no devuelve nada", () => {
+  const block = appSource.slice(appSource.indexOf("function dlx2SurplusAllocationHtml("), appSource.indexOf("function dlx2SurplusAllocationHtml(") + 300);
+  assert.match(block, /if \(!allocation \|\| !allocation\.calculable\) return "";/);
 });

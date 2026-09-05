@@ -24,15 +24,18 @@ confirma que 94 de esas 99 ya están construidas, con test y fusionadas a `main`
 según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo), ninguna de
 las cuales depende del remanente de `OPT-10` a `OPT-15` — ambas colas avanzan en paralelo.
 
-**Actualizado el 4 de septiembre de 2026 (sesiones 137-145): los Bloques 1, 2 y 3 de esa cola ya
-están cerrados (42/51 tareas).** Bloque 1 (entrada de datos, 11 tareas) fue primero por decisión
-explícita del usuario, no por esfuerzo/beneficio: 10 construidas, `DEX6` sigue condicionada a que
-`A5-1` esté activo en producción (Bloque 6). Bloque 2 (11 tareas) y Bloque 3 (20 tareas) están
-100% resueltos: 27 construidas de verdad (1 de ellas, `PVX3`, resultó ya cubierta por arquitectura
-existente sin motor nuevo) y 3 reclasificadas con hueco de datos real documentado (`APX4`, `IVX1`,
-`IVX5` — ninguna bloqueada sin motivo). **Quedan los Bloques 4-6 (9 tareas nuevas: `APX3`/`DLX2`/
-`DLX3` en el 4, 5 grandes apuestas de esfuerzo L en el 5, `RGX3` en el 6 condicionada a `A5-1`)
-sin empezar.** `PROJECT_STATE.md` lleva el registro de qué se cerró en cada sesión;
+**Actualizado el 5 de septiembre de 2026 (sesiones 137-147): los Bloques 1, 2 y 3 de esa cola ya
+están cerrados, y el Bloque 4 tiene sus dos tareas de esfuerzo M hechas (44/51 tareas).** Bloque 1
+(entrada de datos, 11 tareas) fue primero por decisión explícita del usuario, no por
+esfuerzo/beneficio: 10 construidas, `DEX6` sigue condicionada a que `A5-1` esté activo en
+producción (Bloque 6). Bloque 2 (11 tareas) y Bloque 3 (20 tareas) están 100% resueltos: 27
+construidas de verdad (1 de ellas, `PVX3`, resultó ya cubierta por arquitectura existente sin motor
+nuevo) y 3 reclasificadas con hueco de datos real documentado (`APX4`, `IVX1`, `IVX5` — ninguna
+bloqueada sin motivo). Del Bloque 4, `DLX2` y `DLX3` ya están construidas (sesión 147); solo queda
+`APX3` (esfuerzo L, dejada explícitamente para una sesión con más margen). **Quedan 7 tareas sin
+empezar: `APX3` en el Bloque 4, las 5 grandes apuestas de esfuerzo L del Bloque 5, y `RGX3` en el
+Bloque 6 condicionada a que `A5-1` esté activo en producción.** `PROJECT_STATE.md` lleva el
+registro de qué se cerró en cada sesión;
 `BACKLOG_STATUS.md` §0 lleva la tabla maestra de entregas E1-E20 únicamente — no se extendió a E21
 en adelante, cuyo estado se sigue en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, en
 `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` y en `PROJECT_STATE.md`.
@@ -44,7 +47,7 @@ El único trabajo pendiente **fuera** de esa cola es `O-5` en `BACKLOG_OPERACION
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`** | 🟡 **Vigente — Bloques 1-3 cerrados (42/51), quedan los Bloques 4-6** | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | — |
+| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`** | 🟡 **Vigente — Bloques 1-3 cerrados y Bloque 4 con 2/3 hechas (44/51), quedan 7 tareas** | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | — |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | 🟡 Casi cerrado — 94/99 hechas, 5 en espera de calendario | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia. Su tabla de estado no refleja el cierre real — ver `PROJECT_STATE.md` | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` para el trabajo nuevo; su propio remanente (`OPT-10/11/12/13/15`) sigue vigente aquí hasta que cumpla el plazo de `OPT-2` |
 | `BACKLOG_OPERACION.md` | 🟡 Casi cerrado (O-1 a O-4 hechos, O-5 pendiente) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |
 | `BACKLOG_UNIFICADO.md` | ⚪ Histórico | Fusionó el orden de ejecución de `BACKLOG_PATRIMONIO_Y_FINANZAS.md` + `BACKLOG_OPTIMIZACION.md` (49 tareas) | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (29/08) |

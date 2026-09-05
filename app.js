@@ -16192,6 +16192,23 @@ function apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct) {
   </ul></div>`;
 }
 
+// DLX2: reparto automático del excedente — mismo `amount`, guardarraíl y AP1 ya calculados arriba
+// en handleAp1Compare, sin ningún campo ni motor nuevo. En vez de solo avisar del estado del
+// colchón (DLX1) o dar dos cifras a comparar (AP1), reparte el importe: primero lo que hace falta
+// para no perforar el suelo, y solo el resto según lo que ya diga AP1. Sin un veredicto claro de
+// AP1 (empate o sin rentabilidad de cartera), la parte libre se declara sin reparto — nunca un
+// 50/50 inventado.
+function dlx2SurplusAllocationHtml(allocation) {
+  if (!allocation || !allocation.calculable) return "";
+  const parts = [];
+  if (allocation.toCushion > 0) parts.push(`${money(allocation.toCushion, true)} para reforzar el colchón hasta su suelo`);
+  if (allocation.toDebt > 0) parts.push(`${money(allocation.toDebt, true)} a amortizar deuda (AP1: amortizar gana)`);
+  if (allocation.toInvestment > 0) parts.push(`${money(allocation.toInvestment, true)} a invertir (AP1: invertir gana)`);
+  if (allocation.unassigned > 0) parts.push(`${money(allocation.unassigned, true)} sin reparto automático — AP1 no tiene un veredicto claro (empate o sin rentabilidad de cartera), decide tú`);
+  if (!parts.length) return "";
+  return `<p class="e19-kpi-note"><strong>Reparto automático del excedente (DLX2)</strong>: ${parts.join("; ")}.</p>`;
+}
+
 function handleAp1Compare() {
   const note = qs("ap1CompareNote");
   if (!note) return;
@@ -16221,7 +16238,15 @@ function handleAp1Compare() {
       floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
     })
     : null;
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
+  const surplusAllocation = cushionEngine && Number.isFinite(amount) && amount > 0
+    ? cushionEngine.surplusAllocationRule({
+      amount,
+      liquidity: accountBalancesFromState().total,
+      floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+      assessment: result.calculable ? result.assessment : null,
+    })
+    : null;
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
 }
 
 // AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3 (escenarios de
@@ -26236,6 +26261,7 @@ function renderAjustes() {
   renderCierreReportArchive();
   renderPv5Diary();
   renderPvx1Backtest();
+  renderDlx3Retrospective();
   renderAnnualReview();
 
   const balances = accountBalancesFromState();
@@ -32720,6 +32746,39 @@ function renderPvx1Backtest() {
   const history = reconciledMonthlyNetHistory();
   const learning = window.FinanceCanonicalForecast?.learnFromHistory(history, { generatedAt: forecast?.generatedAt }) || {};
   container.innerHTML = pvx1BacktestHtml(history, learning);
+}
+
+// DLX3: retrospectiva "¿me habría quedado sin colchón?" — usa el mismo historial real conciliado
+// que PVX1 (reconciledMonthlyNetHistory) sobre el suelo vigente del colchón (mismo cushionFloor que
+// ya usan DLX1/AP6). Reconstrucción aproximada, no una cifra con apariencia de precisión histórica:
+// ver la nota de cushionRetrospective (canonical-cushion.js) sobre lo que no se reconstruye
+// (traspasos puntuales entre cuentas).
+const DLX3_STATUS_CLASS = { negativo: "negative", ajustado: "warning", holgado: "positive" };
+
+function dlx3RetrospectiveHtml(result) {
+  if (!result || !result.calculable) {
+    return '<p class="e19-kpi-note">Sin meses conciliados todavía — la retrospectiva empieza en cuanto haya al menos un mes cerrado y conciliado con el banco.</p>';
+  }
+  const rows = result.months
+    .map((month) => `<li class="commit-barrier-item"><span>${escapeHtml(month.monthKey)}</span><span>flujo neto real ${money(month.netFlow, true)} · liquidez reconstruida <span class="${DLX3_STATUS_CLASS[month.status]}">${money(month.estimatedBalance, true)}</span></span></li>`)
+    .join("");
+  const breachLine = result.breachCount > 0
+    ? `<p class="e19-kpi-note">En ${result.breachCount} de ${result.months.length} mes(es), la liquidez reconstruida habría quedado por debajo del suelo actual (${money(result.floor, true)}). El peor: ${escapeHtml(result.worstMonth.monthKey)}, ${money(result.worstMonth.estimatedBalance, true)}.</p>`
+    : `<p class="e19-kpi-note">En ningún mes conciliado la liquidez reconstruida habría bajado del suelo actual (${money(result.floor, true)}).</p>`;
+  return `<ul class="commit-barrier-list">${rows}</ul>${breachLine}<p class="e19-kpi-note">Reconstrucción aproximada: solo con el flujo neto real conciliado, anclada en tu liquidez de hoy y con el suelo vigente — no reconstruye traspasos puntuales entre cuentas (aportaciones a inversión, amortizaciones extra) que también habrían movido la liquidez real de esos meses.</p>`;
+}
+
+function renderDlx3Retrospective() {
+  const container = qs("dlx3Retrospective");
+  if (!container) return;
+  const cushionEngine = window.FinanceCanonicalCushion;
+  if (!cushionEngine) return;
+  const history = reconciledMonthlyNetHistory();
+  const result = cushionEngine.cushionRetrospective(history, {
+    currentLiquidity: accountBalancesFromState().total,
+    floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+  });
+  container.innerHTML = dlx3RetrospectiveHtml(result);
 }
 
 function renderCierreReportArchive() {
