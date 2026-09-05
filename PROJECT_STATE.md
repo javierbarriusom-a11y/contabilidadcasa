@@ -2,6 +2,53 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (151): Oleada 2 Bloque 5 — tercera tarea (IVX3) y retirada de FCX2
+
+Continuación directa de la sesión 150 (ESX3 fusionada). Antes de seguir con las tres tareas
+restantes del Bloque 5 (`ESX1`, `IVX3`, `FCX2`), todas con preguntas de alcance abiertas, se
+consolidaron y se plantearon juntas al usuario. Respuestas:
+
+- **ESX1**: cientos de trayectorias (no miles), en el hilo principal — sin Web Worker.
+- **IVX3**: tipo genérico, pero con un formulario de alta propio (nombre, volumen de inversión,
+  rentabilidad y lo que se considere relevante), igual que el alta de créditos.
+- **FCX2**: la residencia fiscal del hogar será siempre España — no es una hipótesis real.
+
+Con eso resuelto:
+
+- **FCX2 retirada del backlog activo**: marcada "Evaluada y descartada el 5-sep" en
+  `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`, mismo patrón que `OPT-14`/`OPT-16`/`OPT-17` en el
+  backlog original — una decisión de no construir, no un olvido ni un bloqueo técnico. Sin código
+  que cambiar.
+
+- **IVX3 — activos alternativos**: `canonical-assets.js` (A14-1) gana un tipo propio `"alternativo"`
+  (cripto, participación no cotizada, arte, coleccionables...) en vez de fundirlo en el tipo
+  genérico `"otro"` que ya existía — a diferencia del resto de tipos, aquí interesa la rentabilidad
+  frente a lo invertido, y eso pide un dato que los demás no necesitan. Nueva función pura
+  `alternativeAssetReturn({value, investedAmount})`: rentabilidad = (valor actual − importe
+  invertido) / importe invertido, **derivada** de los dos datos que el hogar ya declara para
+  cualquier activo, nunca pedida como un tercer porcentaje que habría que mantener sincronizado a
+  mano. Sin importe invertido conocido y positivo, `calculable: false` — nunca un 0% inventado.
+  `assetQuality()` exige el importe invertido para la completitud solo en el tipo `"alternativo"`;
+  el resto de tipos quedan exactamente igual que antes. Formulario de alta en la tarjeta de
+  Patrimonio (Ajustes) con dos campos nuevos, opcionales para cualquier tipo pero con sentido real
+  solo en "Alternativo": categoría (texto libre, sin taxonomía cerrada inventada) e importe
+  invertido — un importe vacío se guarda como `null`, nunca como `0` (0 significaría "invertiste
+  nada"). La lista de activos ya registrados muestra la rentabilidad calculada cuando hay datos
+  para ello.
+
+- **Validación**: `npm run verify` en verde — **3280/3280 tests** (3268 anteriores + 12 nuevos de
+  `tests/ivx3-activos-alternativos.test.cjs`: tipo nuevo aceptado sin caer a "otro", rentabilidad no
+  calculable sin importe invertido/con importe 0, cálculo exacto de ganancia y de pérdida,
+  `returnInfo` adjunto en `normalizeAsset`, completitud de `assetQuality` condicionada al tipo,
+  campos del formulario en `index.html`, importe vacío guardado como `null`, y render de categoría y
+  rentabilidad en la lista), accesibilidad estructural **1123 IDs únicos** (+2 por los dos campos
+  nuevos del formulario), rendimiento dentro de los umbrales de `OPT-5` (forecast y escenarios ~154
+  ms), `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+- **Bloque 5 — estado tras esta tarea**: 3/5 hechas (`PVX5`, `ESX3`, `IVX3`), 1 retirada (`FCX2`).
+  Queda solo `ESX1` (Monte Carlo, ya acotado a cientos de trayectorias en el hilo principal, sin
+  duda de alcance pendiente).
+
 ## Cierre de sesión — 5 de septiembre de 2026 (150): Oleada 2 Bloque 5 — segunda tarea (ESX3) y una corrección real de motor
 
 Continuación directa de la sesión 149 (PVX5 fusionada). El usuario confirmó seguir con `ESX3` en la

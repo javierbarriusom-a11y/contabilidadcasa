@@ -7,7 +7,10 @@
 
   const SCHEMA_ID = "finanzas-casa-assets";
   const SCHEMA_VERSION = 1;
-  const ASSET_TYPES = ["cuenta", "inversion", "pension", "inmueble", "vehiculo", "otro"];
+  // IVX3: "alternativo" es un tipo propio, no una entrada más de "otro" — a diferencia del resto,
+  // aquí interesa la rentabilidad frente a lo invertido (cripto, participaciones no cotizadas, arte,
+  // coleccionables...), y eso exige un importe invertido que los demás tipos no necesitan declarar.
+  const ASSET_TYPES = ["cuenta", "inversion", "pension", "inmueble", "vehiculo", "alternativo", "otro"];
   const PROVENANCE_VALUES = ["declared", "estimated", "unknown"];
 
   function number(value, fallback = 0) {
@@ -55,6 +58,9 @@
   // A14-1: sin procedencia declarada, el activo se marca "unknown" — nunca se
   // reinterpreta como "declared" ni se estima en silencio (mismo guardia de
   // A16-1/SP4 contra "campo ausente == valor por defecto").
+  // IVX3: para un activo "alternativo" el importe invertido cuenta para la completitud igual que el
+  // resto de campos — sin él no hay rentabilidad que calcular, así que es tan "dato que falta" como
+  // la procedencia. Para el resto de tipos no se pide (no lo necesitan).
   function assetQuality(asset = {}, raw = {}) {
     const fields = {
       value: knownNumber(raw.value),
@@ -63,6 +69,7 @@
       type: known(raw.type),
       owner: known(raw.owner),
     };
+    if (asset.type === "alternativo") fields.investedAmount = knownNumber(raw.investedAmount);
     const missing = Object.entries(fields).filter(([, complete]) => !complete).map(([field]) => field);
     const completeness = Math.round(((Object.keys(fields).length - missing.length) / Object.keys(fields).length) * 100);
     return {
@@ -74,22 +81,45 @@
     };
   }
 
+  // IVX3: rentabilidad = valor actual declarado (mismo campo que ya usan todos los activos) menos
+  // el importe invertido declarado, sobre ese importe. Nunca se calcula sin un importe invertido
+  // conocido y positivo — dividir por 0 o por "sin dato" daría una cifra con apariencia de precisión
+  // que no existe; se declara `calculable: false` en su lugar, igual que el resto de motores de la
+  // casa ante un hueco de datos real.
+  function alternativeAssetReturn({ value, investedAmount } = {}) {
+    const invested = knownNumber(investedAmount) ? nonNegative(investedAmount) : null;
+    if (invested === null || invested <= 0) return { calculable: false };
+    const current = knownNumber(value) ? nonNegative(value) : 0;
+    return {
+      calculable: true,
+      investedAmount: invested,
+      value: current,
+      returnAmount: round2(current - invested),
+      returnPct: round2(((current - invested) / invested) * 100),
+    };
+  }
+
   function normalizeAsset(raw = {}, index = 0) {
     const provenance = provenanceOf(raw);
+    const type = assetType(raw.type);
+    const value = knownNumber(raw.value) ? nonNegative(raw.value) : 0;
+    const investedAmount = knownNumber(raw.investedAmount) ? nonNegative(raw.investedAmount) : null;
     const asset = {
       id: String(raw.id || `asset-${index + 1}`),
       schemaId: SCHEMA_ID,
       schemaVersion: SCHEMA_VERSION,
-      type: assetType(raw.type),
+      type,
       label: String(raw.label || raw.name || "Activo sin nombre").trim(),
-      value: knownNumber(raw.value) ? nonNegative(raw.value) : 0,
+      value,
       asOf: asOfDate(raw.asOf || raw.valuationDate || raw.date),
       provenance,
       owner: String(raw.owner || "household").trim(),
       source: known(raw.source) ? String(raw.source).trim() : "",
       notes: known(raw.notes) ? String(raw.notes).trim() : "",
+      category: known(raw.category) ? String(raw.category).trim() : "",
+      investedAmount,
     };
-    return { ...asset, dataQuality: assetQuality(asset, raw) };
+    return { ...asset, returnInfo: alternativeAssetReturn({ value, investedAmount }), dataQuality: assetQuality(asset, raw) };
   }
 
   function validateAssets(assets = []) {
@@ -203,6 +233,7 @@
     normalizeAssets,
     validateAssets,
     assetQuality,
+    alternativeAssetReturn,
     summarizeAssets,
     FINANCIAL_INDEPENDENCE_SCHEMA_ID,
     financialIndependenceTarget,
