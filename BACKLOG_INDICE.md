@@ -47,10 +47,30 @@ en adelante, cuyo estado se sigue en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, en
 reescrito como guía de orientación (mapa de navegación real + remisión al manual interactivo interno
 `#faqs-ayuda` para el paso a paso), corrigiendo además tres afirmaciones obsoletas que seguían
 marcando como «no disponibles» funciones ya construidas (E15, E16, aplicación de ofertas de deuda de
-E14b). Con esto, `BACKLOG_OPERACION.md` solo tiene pendiente `O-6` (PSD2), bloqueada por decisión de
-proveedor externo. **No queda ningún trabajo de producto ni de documentación construible hoy** en
-ninguna de las colas activas — todo lo pendiente depende de condiciones externas (`A5-1` en
-producción, el reloj de `OPT-2`, o la contratación de un proveedor PSD2).
+E14b). Con esto, `BACKLOG_OPERACION.md` queda **100% cerrado salvo `O-6`** (PSD2), bloqueada por
+decisión de proveedor externo.
+
+## Cierre de ciclo — 5 de septiembre de 2026: no queda trabajo construible en ninguna cola activa
+
+Con `O-5` cerrada, las tres colas activas del proyecto llegan al mismo punto a la vez: todo lo que
+dependía de esfuerzo propio está construido, y todo lo que queda depende de una condición externa,
+no de una decisión pendiente del equipo. No hay una cuarta cola por abrir hoy — **el siguiente
+backlog no existe todavía** y debería nacer de una de estas tres condiciones, o de una prioridad
+nueva que el hogar decida traer:
+
+| Cola | Qué queda | Condición de desbloqueo | Quién la controla |
+| --- | --- | --- | --- |
+| `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | `OPT-10`, `OPT-11`, `OPT-12`, `OPT-13`, `OPT-15` | Reloj de 30 días de `OPT-2` (arrancó 29 de agosto) | Calendario — cumple a finales de septiembre de 2026 |
+| `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | `RGX3` (Bloque 6) y `DEX6` (Bloque 1) | `A5-1` (IA) activo en producción real, no solo en base local | Externa — activación de infraestructura, sin fecha conocida |
+| `BACKLOG_OPERACION.md` | `O-6` (= `T-3` en `BACKLOG.md`) | Contratación de un proveedor PSD2 (candidato evaluado: GoCardless) | Decisión de producto fuera del equipo de desarrollo |
+
+**Para quien retome la sesión:** no hay ningún ítem de las tablas de arriba accionable hoy sin que
+una de esas tres condiciones cambie primero — verificarlo contra el calendario y contra el estado
+real de `A5-1`/PSD2 antes de asumir que sigue bloqueado. Si ninguna cambió y el hogar no trae una
+prioridad nueva, no hay backlog que abrir todavía; si trae una, ese es el germen del próximo
+documento `BACKLOG_*.md`, y esta tabla es su punto de partida. El detalle sesión a sesión de todo lo
+cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a `O-5`) vive en `PROJECT_STATE.md`, sesiones 137 a
+153.
 
 ## Mapa completo
 
@@ -58,7 +78,7 @@ producción, el reloj de `OPT-2`, o la contratación de un proveedor PSD2).
 | --- | --- | --- | --- |
 | **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`** | 🟡 **Vigente — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada)** | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | — |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | 🟡 Casi cerrado — 94/99 hechas, 5 en espera de calendario | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia. Su tabla de estado no refleja el cierre real — ver `PROJECT_STATE.md` | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` para el trabajo nuevo; su propio remanente (`OPT-10/11/12/13/15`) sigue vigente aquí hasta que cumpla el plazo de `OPT-2` |
-| `BACKLOG_OPERACION.md` | 🟡 Casi cerrado (O-1 a O-4 hechos, O-5 pendiente) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |
+| `BACKLOG_OPERACION.md` | 🟡 Casi cerrado — O-1 a O-5 hechos, solo `O-6` (PSD2, bloqueada por proveedor externo) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |
 | `BACKLOG_UNIFICADO.md` | ⚪ Histórico | Fusionó el orden de ejecución de `BACKLOG_PATRIMONIO_Y_FINANZAS.md` + `BACKLOG_OPTIMIZACION.md` (49 tareas) | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (29/08) |
 | `BACKLOG_PATRIMONIO_Y_FINANZAS.md` | 📚 Detalle de referencia | Contexto, prioridad y resultado esperado de cada tarea `A14`-`A19` (E21-E26) — el orden de ejecución vive en otro sitio | Orden fusionado en `BACKLOG_UNIFICADO.md` → `BACKLOG_ULTIMATE_SEPTIEMBRE.md`; contenido intacto |
 | `BACKLOG_OPTIMIZACION.md` | 📚 Detalle de referencia | Contexto, pasos y resultado esperado de cada tarea `OPT-1` a `OPT-22` | Orden fusionado en `BACKLOG_UNIFICADO.md` → `BACKLOG_ULTIMATE_SEPTIEMBRE.md`; contenido intacto |
