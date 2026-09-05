@@ -185,6 +185,71 @@
       baseline: buildLab(forecast, events, options), writesPlan: false };
   }
 
+  // ESX1: Monte Carlo de cientos de trayectorias sobre la incertidumbre YA calibrada por
+  // prudentSimulation() (A8-3) — nunca una distribución inventada aparte. Con solo tres percentiles
+  // conocidos (P10/P50/P90, del historial real conciliado o del rango manual declarado si no hay
+  // historial suficiente) la estimación de tres puntos habitual es un triángulo(P10, P50, P90);
+  // se declara así, no se disfraza de distribución real medida. Cada mes del horizonte recibe una
+  // desviación aleatoria de ese triángulo, que se acumula sobre el cierre de caja del escenario base
+  // — mismo patrón que ya usa PV1 (applyLearnedBias) para acumular una desviación mensual sobre el
+  // horizonte, aquí hecho estocástico en vez de determinista. Acotado a un número de trayectorias
+  // moderado (cientos, no miles) para que quepa en el hilo principal sin arriesgar el presupuesto de
+  // rendimiento de OPT-5 — decisión explícita del usuario en vez de miles de trayectorias con Web
+  // Worker.
+  const MONTE_CARLO_DEFAULT_TRAJECTORIES = 300;
+  const MONTE_CARLO_MAX_TRAJECTORIES = 500;
+
+  function triangularSample(min, mode, max, randomFn) {
+    if (max <= min) return mode;
+    const u = randomFn();
+    const cutoff = (mode - min) / (max - min);
+    return u < cutoff
+      ? min + Math.sqrt(u * (max - min) * (mode - min))
+      : max - Math.sqrt((1 - u) * (max - min) * (max - mode));
+  }
+
+  function monteCarloSimulation(forecast = {}, events = [], options = {}) {
+    const monteCarloSchemaId = `${SCHEMA_ID}/monte-carlo-v1`;
+    const prudent = prudentSimulation(forecast, events, options);
+    const { p10, p50, p90 } = prudent.percentiles;
+    const baseline = prudent.baseline.scenarios.find((scenario) => scenario.id === "base") || prudent.baseline.scenarios[0];
+    const monthCount = baseline?.rows?.length || 0;
+    // p90 < p10 solo puede venir de un rango manual invertido (mínimo declarado por encima del
+    // máximo) — un dato mal introducido, no una incertidumbre real que simular.
+    if (!monthCount || !Number.isFinite(p10) || !Number.isFinite(p90) || p90 < p10) {
+      return { schemaId: monteCarloSchemaId, calculable: false, prudent };
+    }
+    const trajectories = Math.max(1, Math.min(MONTE_CARLO_MAX_TRAJECTORIES, Math.round(number(options.trajectories) || MONTE_CARLO_DEFAULT_TRAJECTORIES)));
+    const randomFn = typeof options.randomFn === "function" ? options.randomFn : Math.random;
+    const minCheckings = [];
+    let breaches = 0;
+    for (let trajectory = 0; trajectory < trajectories; trajectory += 1) {
+      let cumulativeDeviation = 0;
+      let worst = Infinity;
+      for (let month = 0; month < monthCount; month += 1) {
+        cumulativeDeviation = round(cumulativeDeviation + triangularSample(p10, p50, p90, randomFn));
+        const checking = round(number(baseline.rows[month].closingChecking) + cumulativeDeviation);
+        if (checking < worst) worst = checking;
+      }
+      minCheckings.push(worst);
+      if (worst < 0) breaches += 1;
+    }
+    minCheckings.sort((a, b) => a - b);
+    return {
+      schemaId: monteCarloSchemaId,
+      calculable: true,
+      trajectories,
+      maxTrajectories: MONTE_CARLO_MAX_TRAJECTORIES,
+      monthCount,
+      source: prudent.source,
+      calibrated: prudent.calibrated,
+      warning: prudent.warning,
+      breachProbabilityPct: round((breaches / trajectories) * 100),
+      minCheckingPercentiles: { p10: quantile(minCheckings, 0.1), p50: quantile(minCheckings, 0.5), p90: quantile(minCheckings, 0.9) },
+      writesPlan: false,
+    };
+  }
+
   function correlateRisks(events = [], rules = []) {
     const normalized = events.map(normalizeEvent);
     const blockedPairs = [];
@@ -303,5 +368,5 @@
       overwroteOriginal: false };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, saveScenario, recalculateSavedScenario };
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, MONTE_CARLO_DEFAULT_TRAJECTORIES, MONTE_CARLO_MAX_TRAJECTORIES, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, monteCarloSimulation, saveScenario, recalculateSavedScenario };
 });

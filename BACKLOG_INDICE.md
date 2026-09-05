@@ -24,20 +24,20 @@ confirma que 94 de esas 99 ya están construidas, con test y fusionadas a `main`
 según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo), ninguna de
 las cuales depende del remanente de `OPT-10` a `OPT-15` — ambas colas avanzan en paralelo.
 
-**Actualizado el 5 de septiembre de 2026 (sesiones 137-151): los Bloques 1 a 4 de esa cola ya están
-cerrados y el Bloque 5 está prácticamente cerrado (48/51 tareas; 3 hechas + 1 retirada de 5).**
-Bloque 1 (entrada de datos, 11 tareas) fue primero por decisión explícita del usuario, no por
-esfuerzo/beneficio: 10 construidas, `DEX6` sigue condicionada a que `A5-1` esté activo en producción
-(Bloque 6). Bloque 2 (11 tareas) y Bloque 3 (20 tareas) están 100% resueltos: 27 construidas de
-verdad (1 de ellas, `PVX3`, resultó ya cubierta por arquitectura existente sin motor nuevo) y 3
-reclasificadas con hueco de datos real documentado (`APX4`, `IVX1`, `IVX5` — ninguna bloqueada sin
-motivo). Bloque 4 (3 tareas: `DLX2`/`DLX3` sesión 147, `APX3` sesión 148) también 100% resuelto. Del
-Bloque 5 (5 tareas, esfuerzo L/M-L) están hechas `PVX5` (sesión 149), `ESX3` (sesión 150, que además
-corrigió un bug real preexistente en `simulate()` de `canonical-e13-scenarios.js`) e `IVX3` (sesión
-151); `FCX2` quedó retirada del backlog activo (sesión 151: el hogar confirma que su residencia
-fiscal será siempre España, sin hipótesis real que simular). **Queda solo `ESX1` (Monte Carlo, ya
-acotado por el usuario a cientos de trayectorias en el hilo principal) del Bloque 5, y `RGX3` en el
-Bloque 6 condicionada a que `A5-1` esté activo en producción.**
+**Actualizado el 5 de septiembre de 2026 (sesiones 137-152): los Bloques 1 a 5 de esa cola ya están
+cerrados (49/51 construidas + 1 retirada de forma justificada = 50/51).** Bloque 1 (entrada de
+datos, 11 tareas) fue primero por decisión explícita del usuario, no por esfuerzo/beneficio: 10
+construidas, `DEX6` sigue condicionada a que `A5-1` esté activo en producción (Bloque 6). Bloque 2
+(11 tareas) y Bloque 3 (20 tareas) están 100% resueltos: 27 construidas de verdad (1 de ellas,
+`PVX3`, resultó ya cubierta por arquitectura existente sin motor nuevo) y 3 reclasificadas con hueco
+de datos real documentado (`APX4`, `IVX1`, `IVX5` — ninguna bloqueada sin motivo). Bloque 4 (3
+tareas: `DLX2`/`DLX3` sesión 147, `APX3` sesión 148) también 100% resuelto. Bloque 5 (5 tareas,
+esfuerzo L/M-L) cerrado con `PVX5` (sesión 149), `ESX3` (sesión 150, que además corrigió un bug real
+preexistente en `simulate()` de `canonical-e13-scenarios.js`), `IVX3` (sesión 151) y `ESX1` (sesión
+152, Monte Carlo acotado por el usuario a cientos de trayectorias en el hilo principal); `FCX2`
+quedó retirada del backlog activo (sesión 151: el hogar confirma que su residencia fiscal será
+siempre España, sin hipótesis real que simular). **Solo queda `RGX3` del Bloque 6, condicionada a
+que `A5-1` esté activo en producción — el resto de la Oleada 2 está cerrado.**
 `PROJECT_STATE.md` lleva el registro de qué se cerró en cada sesión;
 `BACKLOG_STATUS.md` §0 lleva la tabla maestra de entregas E1-E20 únicamente — no se extendió a E21
 en adelante, cuyo estado se sigue en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, en
@@ -50,7 +50,7 @@ El único trabajo pendiente **fuera** de esa cola es `O-5` en `BACKLOG_OPERACION
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`** | 🟡 **Vigente — Bloques 1-4 cerrados, Bloque 5 casi cerrado (48/51), queda 1 tarea** | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | — |
+| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`** | 🟡 **Vigente — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada)** | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | — |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | 🟡 Casi cerrado — 94/99 hechas, 5 en espera de calendario | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia. Su tabla de estado no refleja el cierre real — ver `PROJECT_STATE.md` | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` para el trabajo nuevo; su propio remanente (`OPT-10/11/12/13/15`) sigue vigente aquí hasta que cumpla el plazo de `OPT-2` |
 | `BACKLOG_OPERACION.md` | 🟡 Casi cerrado (O-1 a O-4 hechos, O-5 pendiente) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |
 | `BACKLOG_UNIFICADO.md` | ⚪ Histórico | Fusionó el orden de ejecución de `BACKLOG_PATRIMONIO_Y_FINANZAS.md` + `BACKLOG_OPTIMIZACION.md` (49 tareas) | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (29/08) |

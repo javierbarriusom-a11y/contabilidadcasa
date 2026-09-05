@@ -19338,6 +19338,24 @@ function esx4SensitivityGridHtml(grid) {
   return `<div class="table-wrap"><table class="e19-table esx4-sensitivity-grid"><thead>${header}</thead><tbody>${rows}</tbody></table></div><p class="e19-kpi-note">Caja mínima proyectada del horizonte completo bajo cada combinación de ingresos y gastos a la vez (caso base ${money(grid.baselineMinChecking, true)}).</p>`;
 }
 
+// ESX1: Monte Carlo de cientos de trayectorias — extiende la tarjeta de Simulación prudente (A8-3)
+// con la probabilidad de ruptura y la banda P10/P50/P90 de la caja mínima sobre el horizonte
+// completo, en vez de un único percentil puntual. Un rango sin calibrar (sin historial suficiente)
+// hereda la misma advertencia que ya usa Simulación prudente, en vez de fingir mayor confianza por
+// venir de "muchas" trayectorias — más trayectorias no arreglan un dato de partida sin calibrar.
+function esx1MonteCarloHtml(result) {
+  if (!result?.calculable) return '<p class="e19-kpi-note">Sin horizonte o sin rango de incertidumbre válido para simular.</p>';
+  const { p10, p50, p90 } = result.minCheckingPercentiles;
+  const breachClass = result.breachProbabilityPct > 0 ? "negative" : "positive";
+  const warningLine = result.warning ? `<p class="e19-kpi-note">${escapeHtml(result.warning)}</p>` : "";
+  return `<p>Probabilidad de que la caja llegue a negativo en algún mes: <span class="${breachClass}"><strong>${result.breachProbabilityPct}%</strong></span> de ${result.trajectories} trayectorias (tope ${result.maxTrajectories}, hilo principal).</p>
+    <ul class="commit-barrier-list">
+      <li class="commit-barrier-item"><span>Caja mínima · P10 (peor de cada 10)</span><span>${money(p10, true)}</span></li>
+      <li class="commit-barrier-item"><span>Caja mínima · P50 (mediana)</span><span>${money(p50, true)}</span></li>
+      <li class="commit-barrier-item"><span>Caja mínima · P90 (mejor de cada 10)</span><span>${money(p90, true)}</span></li>
+    </ul>${warningLine}<p class="e19-kpi-note">Cada mes recibe una desviación aleatoria de un triángulo(P10, P50, P90) tomado del mismo rango que Simulación prudente — nunca una distribución inventada aparte.</p>`;
+}
+
 // ESX3: escenario inverso — extiende la tarjeta de Sensibilidad (A8-6) con el punto de cruce EXACTO
 // para el horizonte completo (bisección sobre el propio simulate(), no una extrapolación lineal de
 // un solo paso como la que ya usaba sensitivity()). Un plan ya roto hoy no tiene un punto de cruce
@@ -19416,6 +19434,7 @@ function renderE13ScenarioLab() {
   const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
   const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
@@ -19425,6 +19444,7 @@ function renderE13ScenarioLab() {
     <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
+    <article class="e6-quality-card"><header><strong>ESX1 · Monte Carlo (${monteCarlo.calculable ? monteCarlo.trajectories : 0} trayectorias)</strong><span class="status-pill ${monteCarlo.calculable && monteCarlo.calibrated ? "good" : "warn"}">${monteCarlo.calculable ? escapeHtml(monteCarlo.source) : "sin datos"}</span></header>${esx1MonteCarloHtml(monteCarlo)}</article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>ESX3 · escenario inverso</strong><span class="status-pill ${inverseScenario.alreadyBroken ? "warn" : "good"}">${inverseScenario.alreadyBroken ? "Ya roto" : "Punto de cruce"}</span></header>${esx3InverseScenarioHtml(inverseScenario)}</article>
     <article class="e6-quality-card esx4-sensitivity-grid-card"><header><strong>ESX4 · malla de ingresos × gastos</strong><span class="status-pill">${sensitivityGrid.rows.length}×${sensitivityGrid.rows.length}</span></header>${esx4SensitivityGridHtml(sensitivityGrid)}</article>
