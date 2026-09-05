@@ -185,6 +185,77 @@
     };
   }
 
+  // DLX2: reparto automático del excedente mensual. Depende de DLX1 (mismo suelo y liquidez de
+  // amortizeCushionGuardrail) y del veredicto que ya calcula AP1 (compareAmortizeVsInvest,
+  // canonical-debt-comparator.js): primero protege el colchón hasta su suelo con la parte del
+  // excedente que haga falta, y solo lo que sobra por encima del suelo queda libre para amortizar
+  // o invertir, según lo que ya diga AP1. Sin un veredicto claro de AP1 (empate o sin rentabilidad
+  // de cartera calculable), la parte libre queda "unassigned" — nunca se inventa un reparto 50/50
+  // sin criterio real.
+  function surplusAllocationRule({ amount, liquidity, floor, assessment } = {}) {
+    const amountSafe = round2(Math.max(0, number(amount)));
+    if (amountSafe <= 0) return { calculable: false };
+    const liquiditySafe = round2(number(liquidity));
+    const floorSafe = round2(Math.max(0, number(floor)));
+    const headroom = Math.max(0, round2(liquiditySafe - floorSafe));
+    const toCushion = round2(Math.min(amountSafe, Math.max(0, amountSafe - headroom)));
+    const spendable = round2(amountSafe - toCushion);
+    let toDebt = 0;
+    let toInvestment = 0;
+    let unassigned = 0;
+    if (spendable > 0) {
+      if (assessment === "amortizar") toDebt = spendable;
+      else if (assessment === "invertir") toInvestment = spendable;
+      else unassigned = spendable;
+    }
+    return {
+      calculable: true,
+      amount: amountSafe,
+      liquidity: liquiditySafe,
+      floor: floorSafe,
+      toCushion,
+      spendable,
+      assessment: assessment || null,
+      toDebt,
+      toInvestment,
+      unassigned,
+    };
+  }
+
+  // DLX3: retrospectiva "¿me habría quedado sin colchón?". Reconstruye la liquidez de cada mes ya
+  // conciliado (mismo historial real que ya expone PVX1, reconciledMonthlyNetHistory en app.js)
+  // caminando hacia atrás desde la liquidez de HOY: balance_del_mes = balance_del_mes_siguiente -
+  // flujo_neto_real de ese mes. Compara esa liquidez reconstruida contra el suelo VIGENTE
+  // (cushionFloor, misma función que ya usan DLX1/AP6) — nunca un suelo histórico, porque la
+  // reserva operativa no se guarda versionada en el tiempo. Es una aproximación explícita: no
+  // reconstruye traspasos puntuales entre cuentas (aportaciones a inversión, amortizaciones extra)
+  // que también movieron la liquidez real de esos meses — solo el flujo neto agregado que PVX1 ya
+  // usa, nunca una cifra con apariencia de precisión histórica que la app no tiene.
+  function cushionRetrospective(history, { currentLiquidity, floor } = {}) {
+    const rows = (Array.isArray(history) ? history : [])
+      .filter((record) => Number.isFinite(record?.actual))
+      .slice()
+      .sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1));
+    if (!rows.length) return { calculable: false };
+    const floorSafe = round2(Math.max(0, number(floor)));
+    let runningBalance = round2(number(currentLiquidity));
+    const months = rows.map((record) => {
+      const estimatedBalance = runningBalance;
+      const netFlow = round2(number(record.actual));
+      runningBalance = round2(runningBalance - netFlow);
+      return { monthKey: record.monthKey, netFlow, estimatedBalance, status: cushionLevel(estimatedBalance, floorSafe) };
+    });
+    const worstMonth = months.reduce((worst, month) => (!worst || month.estimatedBalance < worst.estimatedBalance ? month : worst), null);
+    return {
+      calculable: true,
+      floor: floorSafe,
+      currentLiquidity: round2(number(currentLiquidity)),
+      months,
+      worstMonth,
+      breachCount: months.filter((month) => month.status !== "holgado").length,
+    };
+  }
+
   return {
     SCHEMA_ID,
     cushionFloor,
@@ -201,5 +272,7 @@
     cushionMaturityLadder,
     AMORTIZE_EARLY_WARNING_MARGIN,
     amortizeCushionGuardrail,
+    surplusAllocationRule,
+    cushionRetrospective,
   };
 });

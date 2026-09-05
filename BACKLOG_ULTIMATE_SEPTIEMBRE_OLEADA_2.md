@@ -201,9 +201,9 @@ Bloques 4-6 completos (17 tareas) sin empezar.
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 43 | APX3 | Simulador de ejecución de garantía (margin call) | Apalancamiento 2 | L | Crítico | Depende de `APX2` (Bloque 3) y `A8-1`; extiende el guardarraíl `AP4` al nuevo instrumento |
-| 44 | DLX2 | Regla de reparto automático del excedente | Deuda-liquidez | M | Alto | Depende de `DLX1` (Bloque 2), `AP1` e `IV2` |
-| 45 | DLX3 | Retrospectiva de «¿me habría quedado sin colchón?» | Deuda-liquidez | M | Medio | Depende de `DLX1` (Bloque 2) y del backtesting `PVX1` (Bloque 3) |
+| 43 | APX3 | Simulador de ejecución de garantía (margin call) | Apalancamiento 2 | L | Crítico | Depende de `APX2` (Bloque 3) y `A8-1`; extiende el guardarraíl `AP4` al nuevo instrumento — pendiente, dejada para una sesión con más margen (decisión explícita del usuario el 5-sep) |
+| 44 | ✅ DLX2 | Regla de reparto automático del excedente | Deuda-liquidez | M | Alto | Hecho — `surplusAllocationRule()` (`canonical-cushion.js`): reserva primero del excedente lo que hace falta para no perforar el suelo (`DLX1`) y reparte el resto según el veredicto ya calculado por `AP1`; sin veredicto claro, la parte libre queda sin repartir en vez de un 50/50 inventado |
+| 45 | ✅ DLX3 | Retrospectiva de «¿me habría quedado sin colchón?» | Deuda-liquidez | M | Medio | Hecho — `cushionRetrospective()` (`canonical-cushion.js`): reconstruye la liquidez de cada mes conciliado hacia atrás desde la liquidez de hoy, con el mismo historial real de `PVX1` y el suelo VIGENTE (nunca uno histórico, que la app no guarda versionado); aproximación declarada, no reconstruye traspasos puntuales entre cuentas |
 
 ### Bloque 5 — Grandes apuestas: coste alto, mejor con lo anterior ya asentado (5 tareas, nivel 0-1, L)
 

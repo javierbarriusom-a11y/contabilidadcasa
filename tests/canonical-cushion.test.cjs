@@ -318,3 +318,99 @@ test("amortizeCushionGuardrail · nunca bloquea el cálculo: siempre devuelve un
 test("amortizeCushionGuardrail · margen de aviso temprano expuesto (20%, mismo que AP6)", () => {
   assert.equal(Cushion.AMORTIZE_EARLY_WARNING_MARGIN, 0.2);
 });
+
+// ---------------------------------------------------------------------------------------------
+// DLX2 (Oleada 2, Bloque 4) · reparto automático del excedente — primero protege el colchón hasta
+// su suelo, y solo lo que sobra por encima queda libre para amortizar o invertir, según AP1.
+// ---------------------------------------------------------------------------------------------
+
+test("surplusAllocationRule · sin excedente, no calculable", () => {
+  assert.deepEqual(Cushion.surplusAllocationRule({ amount: 0, liquidity: 5000, floor: 2000, assessment: "amortizar" }), { calculable: false });
+});
+
+test("surplusAllocationRule · con margen de sobra por encima del suelo, todo el excedente queda libre", () => {
+  const result = Cushion.surplusAllocationRule({ amount: 300, liquidity: 5000, floor: 2000, assessment: "invertir" });
+  assert.equal(result.toCushion, 0);
+  assert.equal(result.spendable, 300);
+  assert.equal(result.toInvestment, 300);
+  assert.equal(result.toDebt, 0);
+  assert.equal(result.unassigned, 0);
+});
+
+test("surplusAllocationRule · liquidez ya en el suelo, todo el excedente refuerza el colchón", () => {
+  const result = Cushion.surplusAllocationRule({ amount: 300, liquidity: 2000, floor: 2000, assessment: "amortizar" });
+  assert.equal(result.toCushion, 300);
+  assert.equal(result.spendable, 0);
+  assert.equal(result.toDebt, 0);
+});
+
+test("surplusAllocationRule · parte protege el colchón y el resto sigue el veredicto de AP1 (amortizar)", () => {
+  // liquidez 2100, suelo 2000 -> solo 100 € de margen; excedente de 300 -> 200 al colchón, 100 libres
+  const result = Cushion.surplusAllocationRule({ amount: 300, liquidity: 2100, floor: 2000, assessment: "amortizar" });
+  assert.equal(result.toCushion, 200);
+  assert.equal(result.spendable, 100);
+  assert.equal(result.toDebt, 100);
+  assert.equal(result.toInvestment, 0);
+});
+
+test("surplusAllocationRule · sin veredicto claro de AP1 (empate o sin cartera), la parte libre queda sin repartir", () => {
+  const result = Cushion.surplusAllocationRule({ amount: 300, liquidity: 5000, floor: 2000, assessment: "neutral" });
+  assert.equal(result.spendable, 300);
+  assert.equal(result.toDebt, 0);
+  assert.equal(result.toInvestment, 0);
+  assert.equal(result.unassigned, 300);
+  assert.equal(result.assessment, "neutral");
+});
+
+// ---------------------------------------------------------------------------------------------
+// DLX3 (Oleada 2, Bloque 4) · retrospectiva "¿me habría quedado sin colchón?" — reconstrucción
+// hacia atrás desde la liquidez de hoy, con el flujo neto real ya conciliado (mismo historial que
+// PVX1) y el suelo VIGENTE (nunca uno histórico, que la app no guarda versionado).
+// ---------------------------------------------------------------------------------------------
+
+test("cushionRetrospective · sin meses conciliados, no calculable", () => {
+  assert.deepEqual(Cushion.cushionRetrospective([], { currentLiquidity: 3000, floor: 2000 }), { calculable: false });
+});
+
+test("cushionRetrospective · descarta registros sin flujo real numérico", () => {
+  const result = Cushion.cushionRetrospective([{ monthKey: "2026-01", actual: NaN }], { currentLiquidity: 3000, floor: 2000 });
+  assert.equal(result.calculable, false);
+});
+
+test("cushionRetrospective · reconstruye hacia atrás desde la liquidez de hoy, mes más reciente primero", () => {
+  // Hoy: 3000 €. En 2026-02 el flujo neto real fue +500 -> a cierre de 2026-01 había 2500.
+  // En 2026-01 el flujo neto real fue -800 -> antes de ese mes había 3300.
+  const history = [
+    { monthKey: "2026-01", actual: -800 },
+    { monthKey: "2026-02", actual: 500 },
+  ];
+  const result = Cushion.cushionRetrospective(history, { currentLiquidity: 3000, floor: 2000 });
+  assert.equal(result.calculable, true);
+  assert.deepEqual(result.months[0], { monthKey: "2026-02", netFlow: 500, estimatedBalance: 3000, status: "holgado" });
+  assert.deepEqual(result.months[1], { monthKey: "2026-01", netFlow: -800, estimatedBalance: 2500, status: "holgado" });
+});
+
+test("cushionRetrospective · marca el mes en que la liquidez reconstruida habría caído por debajo del suelo vigente", () => {
+  // Hoy: 3000 €, suelo 2000 €. A cierre de 2026-02 la liquidez reconstruida es 3000 (holgado); un
+  // mes antes (fin de 2026-01, antes del flujo de +1500 de febrero) sería 1500 -> ajustado.
+  const history = [
+    { monthKey: "2026-01", actual: -100 },
+    { monthKey: "2026-02", actual: 1500 },
+  ];
+  const result = Cushion.cushionRetrospective(history, { currentLiquidity: 3000, floor: 2000 });
+  assert.equal(result.months[0].estimatedBalance, 3000);
+  assert.equal(result.months[0].status, "holgado");
+  assert.equal(result.months[1].estimatedBalance, 1500);
+  assert.equal(result.months[1].status, "ajustado");
+  assert.equal(result.breachCount, 1);
+  assert.equal(result.worstMonth.monthKey, "2026-01");
+});
+
+test("cushionRetrospective · usa el suelo vigente (cushionLevel), no uno histórico, y cuenta las brechas", () => {
+  const history = [{ monthKey: "2026-01", actual: 2000 }];
+  // Hoy 1500 €, suelo 2000 € -> antes de este único mes conciliado había 1500-2000=-500 € (negativo)
+  const result = Cushion.cushionRetrospective(history, { currentLiquidity: 1500, floor: 2000 });
+  assert.equal(result.months[0].estimatedBalance, 1500);
+  assert.equal(result.months[0].status, "ajustado");
+  assert.equal(result.breachCount, 1);
+});

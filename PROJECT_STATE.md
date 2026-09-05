@@ -2,6 +2,60 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (147): Oleada 2 Bloque 4 — primera oleada (DLX2, DLX3)
+
+Continuación directa de la sesión 146 (apertura de sesión: revisar estado y planificar los
+próximos desarrollos). Con los Bloques 1-3 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` ya
+cerrados, se decidió empezar el Bloque 4 por las dos tareas de esfuerzo M (`DLX2`, `DLX3`),
+dejando `APX3` (esfuerzo L) para una sesión con más margen — decisión explícita del usuario.
+
+- **DLX2 — reparto automático del excedente**: `surplusAllocationRule()`, nueva en
+  `canonical-cushion.js`. Depende de `DLX1` (guardarraíl de colchón, ya construido) y del veredicto
+  que ya calcula `AP1` (`compareAmortizeVsInvest`): primero reserva del excedente lo que haga falta
+  para no perforar el suelo del colchón, y solo lo que sobra por encima queda libre para amortizar
+  o invertir, según lo que ya diga AP1. Sin veredicto claro de AP1 (empate o sin rentabilidad de
+  cartera calculable), la parte libre se declara "sin reparto automático" — nunca un 50/50
+  inventado. Se integra en el mismo comparador de AP1 (`handleAp1Compare`/`dlx2SurplusAllocationHtml`
+  en `app.js`), reutilizando el mismo importe, suelo y liquidez que ya calcula el guardarraíl de
+  DLX1: no añade ningún campo nuevo al formulario.
+- **DLX3 — retrospectiva «¿me habría quedado sin colchón?»**: `cushionRetrospective()`, nueva en
+  `canonical-cushion.js`, con su propia tarjeta en Ajustes (`dlx3RetrospectiveHtml()`/
+  `renderDlx3Retrospective()` en `app.js`, grupo "Deuda y apalancamiento"). Reconstruye la liquidez
+  de cada mes ya conciliado con el banco caminando hacia atrás desde la liquidez de HOY, usando el
+  mismo historial real que ya expone `PVX1` (`reconciledMonthlyNetHistory`) y comparándolo contra el
+  suelo VIGENTE del colchón (mismo `cushionFloor` que ya usan DLX1/AP6) — nunca un suelo histórico,
+  porque la reserva operativa no se guarda versionada en el tiempo. Declarado explícitamente como
+  una aproximación: no reconstruye traspasos puntuales entre cuentas (aportaciones a inversión,
+  amortizaciones extra) que también habrían movido la liquidez real de esos meses — solo el flujo
+  neto agregado, el mismo dato real que ya usa PVX1, nunca una cifra con apariencia de precisión
+  histórica que la app no tiene.
+
+**Nota sobre la sesión 146**: su cierre decía "pendiente de publicar" para el commit de
+reconciliación del backlog. Al abrir esta sesión se confirmó por `git` que ese commit ya estaba
+fusionado en `main` (PR #243) — la nota de la sesión 146 quedó desactualizada por sí sola, sin que
+nadie lo publicara aparte; no hubo ningún push pendiente que recuperar.
+
+**Validación**: `npm run verify`, exit 0 — **3237/3237 pruebas** (3218 + 19 nuevas: 10 en
+`tests/canonical-cushion.test.cjs` —`surplusAllocationRule` y `cushionRetrospective`—, 3 en
+`tests/ap1-app-integracion.test.cjs` —wiring de DLX2— y 7 en
+`tests/dlx3-retrospectiva-colchon.test.cjs` —nuevo—, más el ajuste de ventana ya documentado más
+abajo). Accesibilidad: 1114 IDs únicos (+1: `dlx3Retrospective`). Rendimiento, `build:site`,
+privacidad y humo: en verde.
+
+Se corrigió una prueba fija de ventana que DLX2 dejó desalineada (mismo patrón de fragilidad ya
+documentado en sesiones anteriores): `tests/ap2-app-integracion.test.cjs` (1800→2100 caracteres, el
+nuevo cálculo del reparto de DLX2 dentro de `handleAp1Compare` empujó la comprobación del punto de
+equilibrio fuera de la ventana anterior).
+
+**Nota de entorno**: al arrancar esta sesión, `npm run verify` fallaba en 6 pruebas de `build:site`
+por falta del paquete `esbuild` en `node_modules` (contenedor con `node_modules` incompleto, no un
+regresión de código) — `npm install esbuild` lo resolvió antes de validar; no es una acción de
+producto ni requiere seguimiento.
+
+**Pendiente de publicar**: validado en local, pendiente de commit/push/PR/fusión según el flujo
+autorizado en `CLAUDE.md`. Queda `APX3` (simulador de ejecución de garantía) como única tarea
+abierta del Bloque 4.
+
 ## Cierre de sesión — 5 de septiembre de 2026 (146): reconciliación del backlog e índice de estado — sin código nuevo
 
 Sesión de cierre a petición del usuario ("cierra y actualiza backlog y el artefacto de status de
