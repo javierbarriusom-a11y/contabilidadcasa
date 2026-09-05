@@ -3365,6 +3365,18 @@
               <p class="e19-kpi-note" id="pv5DiaryEmpty" hidden>Todavía no ha cambiado ninguna cifra tras un cierre de mes.</p>
             </article>
 
+            <!-- PVX5: árbol causal navegable de una cifra. Combina la serie ya decompuesta del
+                 forecast (A7-3) con el diario de recalibración (PV5) de arriba — sin motor nuevo. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Árbol causal de una cifra</h3>
+              <p class="e19-kpi-note">Elige un mes y navega por qué es esa cifra: ingresos y salidas, y dentro de cada una, cuánto es recurrente, ajuste manual, deuda o proyecto — con el motivo del diario de arriba si ese cierre cambió algo.</p>
+              <label class="month-picker">
+                <span>Mes</span>
+                <select id="pvx5MonthSelect"></select>
+              </label>
+              <div id="pvx5CausalTree"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Revisión anual</h3>
               <p class="e19-kpi-note">Cuando los doce meses de un año están archivados, resume el año y sugiere el presupuesto por categoría del siguiente — mismo motor que ya usa Presupuesto del mes.</p>
