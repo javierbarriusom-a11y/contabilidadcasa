@@ -2,6 +2,35 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (154): cierre de ciclo — handoff para el siguiente backlog
+
+Continuación directa de la sesión 153 (`O-5` fusionada, PR #250). Sin ningún ítem de backlog
+construible hoy en ninguna de las tres colas activas, esta sesión no añade código ni tareas nuevas:
+consolida el cierre en `BACKLOG_INDICE.md` y en el artefacto de estado, para que quien retome la
+sesión (o abra el siguiente backlog) tenga un punto de partida único en vez de tener que reconstruir
+el estado leyendo sesión a sesión.
+
+- **`BACKLOG_INDICE.md`**: nueva sección «Cierre de ciclo — no queda trabajo construible en ninguna
+  cola activa», con una tabla de las tres condiciones de desbloqueo pendientes (`OPT-2` a finales de
+  septiembre para `OPT-10/11/12/13/15`; `A5-1` en producción real para `RGX3`/`DEX6`; contratación de
+  proveedor PSD2 para `O-6`) y quién las controla. Fila de `BACKLOG_OPERACION.md` en el «Mapa
+  completo» corregida (O-1 a O-5 hechas, no «O-5 pendiente»).
+- **Artefacto de estado** («Ajustes y Hoy»): reescrito para reflejar el cierre completo de la Oleada
+  2 (50/51) y de `BACKLOG_OPERACION.md` (O-1 a O-5), con las nueve tareas del Bloque 4+5 y `O-5`
+  documentadas con su PR real, y la misma tabla de condiciones de desbloqueo que `BACKLOG_INDICE.md`
+  como sección final — pensada explícitamente como semilla del próximo backlog, no solo como
+  registro histórico.
+- **Sin cambios de código ni de comportamiento** — esta sesión es documentación de cierre pura.
+
+- **Validación**: `npm run verify` en verde — **3292/3292 pruebas** (sin cambio: ningún test nuevo,
+  no se tocó código), accesibilidad estructural sin cambios (**1123 IDs únicos**), rendimiento dentro
+  de los umbrales de `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+- **Estado general tras esta sesión**: idéntico al de la sesión 153 en sustancia — no queda ningún
+  trabajo de producto ni de documentación construible. Lo nuevo es que ese estado queda documentado
+  de forma explícita y centralizada para la siguiente sesión, en vez de tener que inferirse de varias
+  entradas de este mismo archivo.
+
 ## Cierre de sesión — 5 de septiembre de 2026 (153): O-5 — manual de usuario reescrito, sin código nuevo
 
 Continuación directa de la sesión 152 (Bloque 5 de la Oleada 2 cerrado). Con la Oleada 2 en 50/51 y
