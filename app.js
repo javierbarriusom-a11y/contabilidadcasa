@@ -17278,7 +17278,7 @@ function downloadA19CertifiedReport() {
 // declarados a mano, mismo patrón de registro simple que A18-1) y delega toda la normalización en
 // FinanceCanonicalAssets (A14-1) — sin motor propio. Sin activos registrados, el hogar ve un estado
 // neutro (A14-6): ninguna otra vista cambia de comportamiento.
-const A14_ASSET_TYPE_LABELS = { cuenta: "Cuenta", inversion: "Inversión", pension: "Pensión", inmueble: "Inmueble", vehiculo: "Vehículo", otro: "Otro" };
+const A14_ASSET_TYPE_LABELS = { cuenta: "Cuenta", inversion: "Inversión", pension: "Pensión", inmueble: "Inmueble", vehiculo: "Vehículo", alternativo: "Alternativo", otro: "Otro" };
 const A14_PROVENANCE_LABELS = { declared: "declarado", estimated: "estimado", unknown: "desconocido" };
 
 function assetsList() {
@@ -17300,8 +17300,12 @@ function findA14AssetMatch(type, label) {
 function clearA14AssetForm() {
   const labelInput = qs("a14AssetLabel");
   const valueInput = qs("a14AssetValue");
+  const categoryInput = qs("a14AssetCategory");
+  const investedAmountInput = qs("a14AssetInvestedAmount");
   if (labelInput) labelInput.value = "";
   if (valueInput) valueInput.value = "";
+  if (categoryInput) categoryInput.value = "";
+  if (investedAmountInput) investedAmountInput.value = "";
 }
 
 // A14-3 (núcleo, sin CSV todavía — sesión aparte): actualizar un activo ya registrado nunca
@@ -17313,17 +17317,23 @@ function saveA14Asset() {
   const value = parseAmount(qs("a14AssetValue")?.value);
   const asOf = qs("a14AssetDate")?.value || "";
   const provenance = qs("a14AssetProvenance")?.value || "unknown";
+  // IVX3: opcionales para cualquier tipo, pero solo con sentido de verdad en "alternativo" — un
+  // importe invertido vacío se guarda como null, nunca como 0 (0 significaría "invertiste nada",
+  // que no es lo mismo que "no lo has dicho").
+  const category = (qs("a14AssetCategory")?.value || "").trim();
+  const investedAmountRaw = qs("a14AssetInvestedAmount")?.value;
+  const investedAmount = investedAmountRaw === "" || investedAmountRaw === undefined ? null : parseAmount(investedAmountRaw);
   if (!label) {
     announceStatus("Indica una etiqueta para el activo antes de guardarlo.");
     return;
   }
   const existing = findA14AssetMatch(type, label);
   if (existing) {
-    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance } };
+    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance, category, investedAmount } };
     renderA14AssetPendingCompare();
     return;
   }
-  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, owner: "household" }];
+  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, category, investedAmount, owner: "household" }];
   saveAssetsList(next);
   clearA14AssetForm();
   renderA14AssetList();
@@ -17374,13 +17384,27 @@ function removeA14Asset(id) {
   renderLpx3ContinuityChecklist();
 }
 
+// IVX3: rentabilidad calculada con alternativeAssetReturn() (canonical-assets.js) — nunca se pide
+// como un porcentaje aparte que el hogar tendría que mantener sincronizado a mano con el valor
+// actual y el importe invertido; se deriva de los dos, y solo se muestra cuando hay importe
+// invertido conocido y positivo (si no, calculable: false, sin fabricar un 0% que no es cierto).
+function a14AssetReturnLabel(asset) {
+  const engine = window.FinanceCanonicalAssets;
+  if (!engine) return "";
+  const result = engine.alternativeAssetReturn({ value: Number(asset.value) || 0, investedAmount: asset.investedAmount });
+  if (!result.calculable) return "";
+  const sign = result.returnPct >= 0 ? "+" : "";
+  return ` · rentabilidad ${sign}${result.returnPct}% (${sign}${money(result.returnAmount, true)} sobre ${money(result.investedAmount, true)} invertidos)`;
+}
+
 function renderA14AssetList() {
   const list = qs("a14AssetList");
   if (!list) return;
   const rows = assetsList().map((asset) => {
     const typeLabel = A14_ASSET_TYPE_LABELS[asset.type] || "Otro";
     const provenanceLabel = A14_PROVENANCE_LABELS[asset.provenance] || "desconocido";
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
+    const categoryLabel = asset.category ? ` · ${escapeHtml(asset.category)}` : "";
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)}${categoryLabel} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}${a14AssetReturnLabel(asset)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
   });
   list.innerHTML = rows.join("") || `<li class="e19-kpi-note">Sin activos registrados todavía.</li>`;
 }
