@@ -49,7 +49,7 @@ Misma leyenda que `BACKLOG.md` §0, para no introducir un tercer vocabulario:
 | O-2 | Recordatorio activo de reales pendientes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
 | O-3 | Aviso de completitud antes de cerrar el mes | Medio | Bajo | ✅ · 21 de agosto de 2026 |
 | O-4 | Generalizar «¿cuánto puedo permitirme?» más allá del coche | Medio | Medio | ✅ · 21 de agosto de 2026 |
-| O-5 | Actualizar `MANUAL_USUARIO.md` a partir de E17 | Medio | Bajo | ⏳ · deliberadamente al final |
+| O-5 | Actualizar `MANUAL_USUARIO.md` a partir de E17 | Medio | Bajo | ✅ · 5 de septiembre de 2026 |
 | O-6 | Conexión bancaria PSD2 real | Medio | Alto | ⛔ · ya rastreada como T-3 en `BACKLOG.md`, depende de contratar proveedor |
 
 ---
@@ -233,31 +233,43 @@ alta/baja de objetivos, y el cableado de `executiveAdvisorContext`/`renderExecut
 
 ---
 
-## O-5 · Actualizar `MANUAL_USUARIO.md` a partir de E17
+## O-5 · Actualizar `MANUAL_USUARIO.md` a partir de E17 — ✅ Hecho el 5 de septiembre de 2026
 
-**Por qué se deja para el final, a propósito.** El manual está fechado el 2 de agosto de 2026 y
-declara explícitamente cubrir «hasta E14a» (`MANUAL_USUARIO.md:3-5`) — es anterior a E17, E18, E19 y
-E20, que son justo las entregas que más pantallas añadieron, y no cubre más del 40% de las
-secciones que existen hoy. Es la única guía en lenguaje no técnico y hoy describe una app que ya no
-existe. Se deja en último lugar porque O-1 a O-4 van a cambiar comportamiento que el manual
-tendría que documentar de todas formas — escribirlo antes significaría reescribirlo otra vez
-después.
+**Por qué se dejó para el final, a propósito.** El manual estaba fechado el 2 de agosto de 2026 y
+declaraba explícitamente cubrir «hasta E14a» — anterior a E17, E18, E19, E20 y a los 51 tareas de
+la Oleada 2, que son justo las entregas que más pantallas añadieron. Se dejó en último lugar porque
+O-1 a O-4 iban a cambiar comportamiento que el manual tendría que documentar de todas formas — y,
+en efecto, para cuando se abordó, ya no quedaba ningún otro trabajo de producto construible en la
+sesión (Oleada 2 en 50/51, remanente bloqueado por condiciones externas).
 
-**Tareas, en orden:**
+**Hallazgo real al auditarlo, que cambió el alcance previsto:** el manual anterior no solo tenía
+huecos, **desinformaba activamente** — su sección «Funciones todavía no disponibles» seguía
+marcando como pendientes tres entregas ya construidas y verificadas (E15 objetivos/calendario, E16
+alertas predictivas, y la aplicación de ofertas de deuda al plan real de E14b vía
+`applyE14bOffer()`). Y la propia aplicación ya tenía, desde E17-E19, un manual interactivo en vivo
+(`#faqs-ayuda`, cuatro casos de uso enlazados a las pantallas reales) que cubre el paso a paso mejor
+de lo que un documento externo puede mantener actualizado.
 
-1. Auditar sección por sección contra la navegación actual (`#home`, «Herramientas avanzadas»,
-   «Versiones anteriores») y marcar qué nombres de pantalla cambiaron (p. ej. «Actualizar» →
-   `#update-hub`, «Previsión» → `#prevision` ya construida de verdad desde el 15 de agosto).
-2. Reescribir el «Recorrido recomendado» (§3) y la «Rutina recomendada» (§12) con los nombres de
-   pantalla y el flujo vigentes — incorporando el ritual propuesto en el diagnóstico original
-   (abrir siempre por Hoy, un único hueco semanal para reales, Asesor ejecutivo para el coche,
-   Laboratorio de escenarios para el resto).
-3. Añadir las secciones nuevas de O-1 (titularidad en refinanciación) y O-4 (compra grande
-   genérica) una vez publicadas.
-4. Actualizar la fecha de revisión de cabecera y, si procede, regenerar
-   `MANUAL_USUARIO_FINANZAS_CASA.docx` a partir del Markdown.
-5. No requiere puerta de aceptación técnica (no toca código), pero sí revisión de que los nombres
-   de pantalla citados existen realmente en `index.html` antes de darlo por cerrado.
+**Decisión de alcance, no en el plan original de 5 pasos:** en vez de narrar cada pantalla paso a
+paso por fuera de la aplicación (lo que habría vuelto a quedar obsoleto en el próximo cambio de
+navegación, el mismo problema que hizo falta este O-5), el manual se reescribió como guía de
+orientación — conceptos, mapa de navegación real con sus 10 pantallas primarias y los cuatro grupos
+de «Herramientas avanzadas», el índice de los 10 dominios de Ajustes — que remite explícitamente a
+`#faqs-ayuda` para el «cómo hago X», y conserva solo lo que un documento externo aporta de verdad:
+copias/recuperación, trabajo sin conexión, rutinas, problemas frecuentes y, sobre todo, una lista de
+«funciones todavía no disponibles» auditada contra el código real en vez de heredada.
+
+**Verificado uno por uno contra el código antes de cerrar** (paso 5 del plan original): las 10
+anclas de pantalla citadas existen en `index.html` (`#home`, `#planificacion-partidas`, `#registrar`,
+`#movements`, `#plan`, `#deuda-ruta`, `#update-hub`, `#cierre`, `#ajustes`, `#faqs-ayuda`, más
+`#conciliar` y `#cambios-pendientes` citadas en el cuerpo). La lista final de «no disponible» se
+contrastó contra `BACKLOG_STATUS.md` (E15/E16 «Verificado») y `PROJECT_STATE.md` (A5-1 en base local
+sin activar en producción, hogar compartido con pantalla mínima RGX1/RGX2, PSD2 bloqueada como O-6).
+
+**No incluido, deliberadamente:** regenerar `MANUAL_USUARIO_FINANZAS_CASA.docx` — no existe en el
+repositorio ningún script de conversión Markdown→docx (se generó una vez de forma externa) ni
+`pandoc` disponible en este entorno para producirlo de forma fiable. Queda como acción manual futura
+si se necesita una copia `.docx` actualizada, en vez de fabricar una conversión improvisada.
 
 ---
 
@@ -273,14 +285,13 @@ constancia de que el diagnóstico la contempló y decidió no duplicarla como ta
 
 ## 1. Próximo paso
 
-**O-1, O-2, O-3 y O-4 hechas (21 de agosto de 2026).** Quedan dos tareas, ninguna bloqueada por
-trabajo local pendiente de este equipo:
+**O-1 a O-5 hechas.** `O-5` cerró el 5 de septiembre de 2026 — detalle completo arriba, en su propia
+sección. Queda una única tarea, no bloqueada por trabajo local de este equipo:
 
-- **O-5 · Actualizar `MANUAL_USUARIO.md`** (Impacto medio, esfuerzo bajo, `⏳`). Deliberadamente la
-  última tarea de desarrollo del ciclo, ahora que O-1 a O-4 ya están publicadas y no hay que
-  reescribir el manual dos veces. Siguiente paso natural de esta sesión: sus 5 pasos están
-  detallados arriba, en la sección «O-5».
 - **O-6 · Conexión bancaria PSD2 real** (Impacto medio, esfuerzo alto, `⛔`). No es tarea nueva de
   este backlog: es **T-3** en `BACKLOG.md` §5, bloqueada por la aceptación de un proveedor externo
   (GoCardless evaluado, `E9_BANKING.md:5-7`). No se puede avanzar en este documento hasta que esa
   decisión de producto se tome fuera del equipo de desarrollo.
+
+Con esto, `BACKLOG_OPERACION.md` queda en el mismo estado que la Oleada 2: todo lo construible está
+construido, y lo único pendiente depende de una decisión o condición externa.
