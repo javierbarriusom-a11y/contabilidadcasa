@@ -2,6 +2,55 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (150): Oleada 2 Bloque 5 — segunda tarea (ESX3) y una corrección real de motor
+
+Continuación directa de la sesión 149 (PVX5 fusionada). El usuario confirmó seguir con `ESX3` en la
+misma sesión tras el CI en verde de PVX5.
+
+- **ESX3 — escenario inverso: «¿qué tendría que cambiar?»**: `inverseScenario()`
+  (`canonical-e13-scenarios.js`). Depende de `A8-6` (`sensitivity()`, que ya identificaba el factor
+  dominante con una extrapolación lineal de un solo paso de prueba) y de `PV6`
+  (`verdictSensitivity()`, que ya resolvía el punto de cruce EXACTO pero solo para el mínimo
+  ajustado de un mes concreto de Previsión). ESX3 busca ese mismo punto de cruce exacto — por
+  bisección sobre el propio `simulate()` (A8-1), nunca una extrapolación — pero para el horizonte
+  completo (caja mínima de toda la simulación base), factor a factor (ingresos, gastos y, si hay
+  eventos declarados, también sobre su importe). Un caso base ya roto hoy no tiene un punto de cruce
+  que buscar hacia delante: se dice explícitamente (`alreadyBroken: true`) en vez de fabricar un
+  porcentaje sin sentido. Un eje sin cruce dentro de un rango realista (ingreso: 0-100% de caída;
+  gasto/eventos: hasta triplicar, configurable) también lo dice con su propia nota, en vez de
+  extrapolar más allá de lo que de verdad se probó. Sin motor de simulación nuevo: la bisección solo
+  llama repetidamente a `simulate()`, ya existente. UI en el Laboratorio de escenarios (E13), tarjeta
+  nueva junto a Sensibilidad y la malla de ESX4, sin controles nuevos (se recalcula solo con el
+  forecast y los eventos ya declarados en el laboratorio).
+
+- **Corrección real encontrada al construir ESX3, no un efecto secundario buscado**: `simulate()`
+  usaba `profile.incomeFactor || 1` / `profile.expenseFactor || 1` para aplicar el factor del
+  perfil — como `0` es falsy en JS, un `incomeFactor: 0` (pérdida total de ingreso) o
+  `expenseFactor: 0` se leía como "sin dato" y se sustituía por `1`, dejando el ingreso o el gasto
+  intactos en vez de a cero. Nadie lo había disparado antes: los perfiles existentes (`PROFILES`) y
+  los pasos de `sensitivity()`/`sensitivityGrid()` nunca llegan exactamente a 0. El eje de ingresos
+  de ESX3 sí explora ese extremo (una pérdida total de ingreso es un escenario real que un hogar
+  puede querer ver), y lo disparó de inmediato: con `incomeFactor: 0`, la caja mínima proyectada
+  salía idéntica al caso base en vez de mostrar el colapso real. Corregido con
+  `Number.isFinite(profile.incomeFactor) ? profile.incomeFactor : 1` (mismo patrón para
+  `expenseFactor`) — 0 es un valor válido, no una ausencia. `npm run verify` completo sigue en verde
+  tras el cambio, confirmando que ningún otro caso dependía del comportamiento anterior.
+
+- **Validación**: `npm run verify` en verde — **3268/3268 tests** (3255 anteriores + 13 nuevos de
+  `tests/esx3-escenario-inverso.test.cjs`: regresión del bug de `simulate()`, caso ya roto sin punto
+  de cruce, cruce exacto de ingresos y de gastos verificado independientemente contra `simulate()`,
+  eje sin cruce dentro del rango explorado con su nota, eje de eventos ausente sin eventos y presente
+  con eventos, ausencia de umbrales hardcodeados, render HTML de los dos casos y cableado en
+  `renderE13ScenarioLab`), accesibilidad estructural sin cambios (**1121 IDs únicos** — ESX3 no añade
+  controles nuevos, solo una tarjeta de solo lectura), rendimiento dentro de los umbrales de `OPT-5`
+  (forecast y escenarios 142.1 ms), `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+- **Bloque 5 — estado tras esta tarea**: 2/5 hechas (`PVX5`, `ESX3`). Quedan `ESX1` (Monte Carlo,
+  pendiente de validar coste contra `OPT-5` antes de construir), `IVX3` (activos alternativos,
+  pendiente de aclarar alcance) y `FCX2` (residencia fiscal, pendiente de confirmar si es una
+  hipótesis real del hogar) — las tres con preguntas abiertas planteadas al usuario antes de
+  empezar, sin resolver todavía.
+
 ## Cierre de sesión — 5 de septiembre de 2026 (149): Oleada 2 Bloque 5 — primera tarea (PVX5)
 
 Continuación directa de la sesión 148 (Bloque 4 cerrado del todo). El usuario pidió seguir con el
