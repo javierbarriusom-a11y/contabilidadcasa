@@ -210,7 +210,7 @@ Bloques 4-6 completos (17 tareas) sin empezar.
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 46 | ESX1 | Monte Carlo de miles de trayectorias | Escenarios 2 | L | Alto | Amplía `prudentSimulation()` (`canonical-e13-scenarios.js`, `A8-3`); validar coste contra `OPT-5` |
-| 47 | PVX5 | Árbol causal navegable de una cifra | Previsión viva 2 | M-L | Medio | Depende de `PV5` y `A7-3` |
+| 47 | ✅ PVX5 | Árbol causal navegable de una cifra | Previsión viva 2 | M-L | Medio | Hecho — `causalTreeForMonth()` (`canonical-forecast.js`): combina la serie decompuesta del forecast (A7-3) con el diario de PV5 sin motor nuevo. Raíz = flujo neto del mes, ramas = ingresos/salidas, hojas = mismo desglose real/recurrencia/evento/deuda/proyecto/ajuste que ya calculaba A7-3. "Evento puntual" se declara aunque siempre salga en 0 (el motor no lo distingue todavía de un ajuste manual); la explicación causal de la raíz solo viene del diario cuando hay una entrada exacta para ese mes, nunca baja a hojas (PV5 no aprende por partida) |
 | 48 | ESX3 | Escenario inverso: «¿qué tendría que cambiar?» | Escenarios 2 | L | Alto | Depende de `A8-6` y `PV6` |
 | 49 | IVX3 | Activos alternativos | Inversión 2 | L | Medio | Depende de `A14-1` |
 | 50 | FCX2 | Simulador de cambio de residencia fiscal | Fiscalidad 2 | L | Bajo-Medio, oportunista | Depende de `A15-1` y `A15-5`; solo si el hogar se lo plantea de verdad |

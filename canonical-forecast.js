@@ -8,7 +8,16 @@
   const SCHEMA_ID = "finance-canonical-forecast/v1";
   const ASSUMPTIONS_SCHEMA_ID = "finance-forecast-assumptions/v1";
   const LEARNING_SCHEMA_ID = "finance-forecast-learning/v1";
+  const CAUSAL_TREE_SCHEMA_ID = "finance-forecast-causal-tree/v1";
   const TOLERANCE = 0.02;
+  const CAUSAL_TREE_COMPONENT_LABELS = {
+    real: "Real (fuera de recurrencia)",
+    recurrence: "Recurrente",
+    event: "Evento puntual",
+    debt: "Deuda (coche + refinanciación)",
+    project: "Proyecto",
+    manualAdjustment: "Ajuste manual",
+  };
 
   function number(value) {
     const parsed = Number(value);
@@ -356,5 +365,43 @@
     });
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, applyLearnedBias };
+  // PVX5 (Oleada 2 Bloque 5): árbol causal navegable de una cifra. Depende de A7-3
+  // (decomposeMonth, ya en la serie del forecast) y de PV5 (el diario de por qué cambió cada
+  // cifra) — no es un motor nuevo, es una vista combinada de los dos: la raíz es el flujo neto del
+  // mes (ingresos menos salidas antes de ahorro), las ramas son ingresos/salidas y las hojas son el
+  // mismo desglose real/recurrencia/evento/deuda/proyecto/ajuste manual que ya calcula
+  // decomposeMonth. "event" hoy siempre sale a 0: el motor mensual no distingue todavía un evento
+  // puntual de un ajuste manual, así que se declara la hoja igualmente en vez de omitirla, para que
+  // no parezca un hueco de datos en lugar de una categoría del esquema sin uso real todavía. La
+  // explicación causal de la raíz (por qué cambió el flujo neto de un cierre a otro) viene del
+  // diario de PV5 cuando existe una entrada para ese mes exacto — PV5 solo aprende sobre el
+  // concepto agregado "monthly-net", nunca por partida, así que esa explicación no baja a las
+  // ramas ni a las hojas: fingir un desglose causal que el aprendizaje no reconstruye sería más
+  // engañoso que no darlo.
+  function causalTreeForMonth(monthKey, { series, diary } = {}) {
+    const key = text(monthKey);
+    const month = (Array.isArray(series) ? series : []).find((item) => item.monthKey === key);
+    if (!key || !month) return { schemaId: CAUSAL_TREE_SCHEMA_ID, calculable: false };
+    const income = round(number(month.totals?.income));
+    const outflow = round(number(month.totals?.outflowsBeforeSaving));
+    const leavesOf = (components = {}) => Object.keys(CAUSAL_TREE_COMPONENT_LABELS).map((id) => ({
+      id, label: CAUSAL_TREE_COMPONENT_LABELS[id], amount: round(number(components[id])),
+    }));
+    const diaryEntries = (Array.isArray(diary) ? diary : [])
+      .filter((entry) => entry.conceptId === "monthly-net" && entry.monthKey === key)
+      .map((entry) => ({ reason: text(entry.reason), at: text(entry.at) }));
+    return {
+      schemaId: CAUSAL_TREE_SCHEMA_ID,
+      calculable: true,
+      monthKey: key,
+      label: text(month.label),
+      root: { id: "monthly-net", label: "Flujo neto del mes", amount: round(income - outflow), explanation: month.explanation || null, diary: diaryEntries },
+      branches: [
+        { id: "income", label: "Ingresos", amount: income, leaves: leavesOf(month.components?.income) },
+        { id: "outflow", label: "Salidas (antes de ahorro)", amount: outflow, leaves: leavesOf(month.components?.outflow) },
+      ],
+    };
+  }
+
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, applyLearnedBias, causalTreeForMonth };
 });

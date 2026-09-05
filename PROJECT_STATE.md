@@ -2,6 +2,46 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (149): Oleada 2 Bloque 5 — primera tarea (PVX5)
+
+Continuación directa de la sesión 148 (Bloque 4 cerrado del todo). El usuario pidió seguir con el
+Bloque 5 (las 5 grandes apuestas de esfuerzo L/M-L). Antes de construir se propuso un orden razonado
+— empezar por la más pequeña (`PVX5`, M-L) y dejar `ESX1` (Monte Carlo) condicionada a resolver antes
+su validación de coste contra `OPT-5`, e `IVX3`/`FCX2` con preguntas de alcance abiertas — y el
+usuario confirmó: construir `PVX5` ahora y seguir con `ESX3` si el CI sale verde y queda margen.
+
+- **PVX5 — árbol causal navegable de una cifra**: `causalTreeForMonth(monthKey, {series, diary})`
+  (`canonical-forecast.js`). No es un motor nuevo: combina dos piezas ya construidas sin tocarlas —
+  la serie ya decompuesta del forecast base (`decomposeMonth`, A7-3) y el diario de recalibración
+  (PV5, `pv5-diary` en `localStorage`). La raíz es el flujo neto del mes (ingresos menos salidas
+  antes de ahorro); las ramas son ingresos/salidas; las hojas son el mismo desglose
+  real/recurrencia/evento/deuda/proyecto/ajuste manual que ya calculaba A7-3 — ninguna cifra nueva,
+  solo una vista distinta de las que ya existían. La hoja "evento puntual" se declara igual aunque
+  hoy siempre salga en 0 € (el motor mensual no distingue todavía un evento puntual de un ajuste
+  manual): omitirla habría parecido un hueco de datos en vez de una categoría del esquema sin uso
+  real todavía. La explicación causal de la raíz (por qué cambió el flujo neto de un cierre a otro)
+  solo aparece cuando el diario de PV5 tiene una entrada exacta para ese mes — PV5 aprende solo
+  sobre el concepto agregado "monthly-net", nunca por partida, así que esa explicación no baja a las
+  ramas ni a las hojas: bajarla habría sido fingir una causalidad más fina de la que el aprendizaje
+  reconstruye de verdad. UI en Ajustes, justo debajo del diario de PV5: un selector de mes (el hogar
+  elige, nunca un mes "representativo" por defecto) y un árbol navegable con `<details>` anidados
+  (mismo patrón ya usado en trazabilidad de decisiones, sin CSS nuevo). 8 tests nuevos
+  (`tests/pvx5-causal-tree.test.cjs`): no calculable sin mes o con mes inexistente en la serie, raíz
+  y ramas cuadran exactamente con los totales del mes, hojas iguales al desglose real de A7-3 (con
+  verificación explícita de que "evento" nunca se inventa un valor), filtro exacto de diario por
+  mes+concepto (dos casos negativos: mes distinto, concepto distinto), export de esquema/función,
+  campos de la tarjeta en `index.html`, cableado de `renderPvx5CausalTree` (fuente de datos, listener
+  del selector, llamada en `renderAjustes`) y declaración explícita de la hoja "evento" en el HTML.
+
+- **Validación**: `npm run verify` en verde — **3255/3255 tests** (3247 anteriores + 8 nuevos de
+  PVX5), accesibilidad estructural verificada (**1121 IDs únicos**, +2 sobre la sesión 148 por el
+  selector de mes y el contenedor del árbol), rendimiento dentro de los umbrales de `OPT-5`
+  (forecast y escenarios 161.9 ms, recursos 2023 KB), `build:site`/`test:privacy`/`test:smoke` sin
+  incidencias.
+
+- **Bloque 5 — estado tras esta tarea**: 1/5 hecha (`PVX5`). Siguiente paso ya decidido por el
+  usuario: `ESX3` (escenario inverso) en esta misma sesión si queda margen tras esta entrega.
+
 ## Cierre de sesión — 5 de septiembre de 2026 (148): Oleada 2 Bloque 4 — cierre (APX3)
 
 Continuación directa de la sesión 147 (DLX2/DLX3 ya construidas y fusionadas; `APX3` había quedado

@@ -26303,6 +26303,7 @@ function renderAjustes() {
   renderAjustesLaboratorio();
   renderCierreReportArchive();
   renderPv5Diary();
+  renderPvx5CausalTree();
   renderPvx1Backtest();
   renderDlx3Retrospective();
   renderAnnualReview();
@@ -32824,6 +32825,49 @@ function renderDlx3Retrospective() {
   container.innerHTML = dlx3RetrospectiveHtml(result);
 }
 
+// PVX5 (Oleada 2 Bloque 5): árbol causal navegable de una cifra. No es un motor nuevo: combina la
+// serie ya decompuesta del forecast base (A7-3, decomposeMonth en canonical-forecast.js) con el
+// diario de PV5 (por qué cambió el flujo neto de un cierre a otro). El hogar elige el mes con el
+// selector — nunca un mes "por defecto representativo" inventado por este motor — y navega la
+// raíz/ramas/hojas con <details> anidados, mismo patrón ya usado en trazabilidad de decisiones.
+function pvx5CausalTreeHtml(tree) {
+  if (!tree || !tree.calculable) {
+    return '<p class="e19-kpi-note">Elige un mes con previsión calculada para navegar su árbol causal.</p>';
+  }
+  const branchHtml = (branch) => {
+    const leaves = branch.leaves
+      .map((leaf) => `<li class="commit-barrier-item"><span>${escapeHtml(leaf.label)}</span><span>${money(leaf.amount, true)}</span></li>`)
+      .join("");
+    return `<details class="decision-history-events">
+        <summary>${escapeHtml(branch.label)}: ${money(branch.amount, true)}</summary>
+        <ul class="commit-barrier-list">${leaves}</ul>
+      </details>`;
+  };
+  const diaryHtml = tree.root.diary.length
+    ? tree.root.diary.map((entry) => `<p class="e19-kpi-note">${escapeHtml(entry.reason)}</p>`).join("")
+    : '<p class="e19-kpi-note">Sin cambio de aprendizaje (PV5) registrado en el cierre de este mes.</p>';
+  return `<details class="decision-history-events" open>
+      <summary>Flujo neto del mes (${escapeHtml(tree.label)}): ${money(tree.root.amount, true)}</summary>
+      ${diaryHtml}
+      ${tree.branches.map(branchHtml).join("")}
+      <p class="e19-kpi-note">«Evento puntual» sale siempre en 0 €: el motor mensual no distingue todavía un evento puntual de un ajuste manual — la hoja se declara igual, para que no parezca un hueco de datos en vez de una categoría del esquema sin uso real todavía.</p>
+    </details>`;
+}
+
+function renderPvx5CausalTree() {
+  const select = qs("pvx5MonthSelect");
+  const container = qs("pvx5CausalTree");
+  if (!select || !container) return;
+  const engine = window.FinanceCanonicalForecast;
+  const forecast = canonicalScenarioResults.base?.forecast;
+  if (!engine || !forecast) { container.innerHTML = ""; return; }
+  const months = selectableMonths({ includeClosed: true });
+  const requested = select.value || months.find((month) => month.key === forecast.series?.[0]?.monthKey)?.key || months[0]?.key || "";
+  select.innerHTML = monthOptionsHtml(requested, months);
+  const tree = engine.causalTreeForMonth(select.value, { series: forecast.series, diary: loadPv5Diary() });
+  container.innerHTML = pvx5CausalTreeHtml(tree);
+}
+
 function renderCierreReportArchive() {
   const list = qs("cierreReportArchiveList");
   const empty = qs("cierreReportArchiveEmpty");
@@ -36499,6 +36543,7 @@ async function init() {
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
   qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
+  qs("pvx5MonthSelect")?.addEventListener("change", renderPvx5CausalTree);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
   qs("ap3ScenarioList")?.addEventListener("click", (event) => {
     const toggleButton = event.target.closest("[data-ap3-scenario-taken-toggle]");
