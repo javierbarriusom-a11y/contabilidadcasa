@@ -1,13 +1,21 @@
 # Manual de usuario de Finanzas Casa
 
-Fecha de revisión: 2 de agosto de 2026.
+Fecha de revisión: 5 de septiembre de 2026.
 
-Este manual explica cómo trabajar con las funciones disponibles y verificadas hasta E14a. Está pensado
-para el uso cotidiano del hogar, sin necesidad de conocer la arquitectura técnica de la aplicación.
+Este manual explica **cómo está organizada la aplicación y qué hace cada pieza**, para poder moverte
+por ella sin conocer su arquitectura técnica. Para el **paso a paso de una tarea concreta** ("¿cómo
+registro un gasto?", "¿cómo comparo dos estrategias de deuda?"), usa la guía interactiva **FAQs y
+ayuda** (`#faqs-ayuda`) dentro de la propia aplicación: enlaza a las pantallas reales con sus rutas
+actuales y se ha mantenido al día en cada cambio de navegación — este documento no repite ese
+contenido para no quedar desincronizado de nuevo la próxima vez que una pantalla cambie de sitio.
 
-> **Alcance actual:** el forecast y los escenarios avanzados están disponibles; el plan visual de deuda
-> ya puede leer los datos canónicos, pero todavía no puede aplicar ofertas o estrategias al plan real.
-> Esa aplicación segura forma parte de E14b y continúa pendiente.
+> **Por qué este manual cambió de forma.** La versión anterior (2 de agosto de 2026, alcance «hasta
+> E14a») narraba cada pantalla paso a paso por fuera de la aplicación. Cubría menos del 40% de las
+> pantallas de hoy y, peor aún, dos entregas ya construidas y verificadas — E15 (objetivos y
+> calendario) y E16 (alertas predictivas) — seguían marcadas como «no disponibles», igual que la
+> aplicación de ofertas de deuda al plan real (E14b), ya operativa. Esta versión resuelve ambos
+> problemas: describe el mapa de navegación tal como es hoy y remite el paso a paso al lugar que
+> realmente se mantiene actualizado.
 
 ## 1. Antes de empezar
 
@@ -24,11 +32,12 @@ financiera real, usa la sesión privada o una copia local controlada.
 
 ### Comprobar el estado de guardado
 
-Antes de editar, mira el indicador de estado situado en la parte superior. Puede mostrar:
+El indicador de sincronización vive en la cabecera, visible desde cualquier pantalla (no solo desde
+Ajustes). Puede mostrar:
 
 | Estado | Significado | Qué hacer |
 | --- | --- | --- |
-| Guardado local | Los cambios están conservados en este navegador | Puedes seguir trabajando; sincroniza cuando recuperes la conexión |
+| Local | Los cambios están conservados en este navegador | Puedes seguir trabajando; sincroniza cuando recuperes la conexión |
 | Pendiente remoto | Existe una revisión esperando enviarse a Supabase | Mantén la pestaña abierta si puedes y revisa la conexión |
 | Sincronizado | La copia local y la remota coinciden | Puedes cerrar con normalidad |
 | Conflicto | Otra sesión ha publicado una revisión diferente | No sobrescribas; compara las copias y elige conscientemente cuál recuperar |
@@ -38,8 +47,19 @@ cambios no estarán disponibles en otros dispositivos hasta completar la sincron
 
 ### Elegir el ámbito familiar
 
-Cuando aparezca el selector, elige `Hogar`, `Javi` o `Tere`. Este filtro cambia la lectura de ingresos,
-gastos, margen y decisiones, pero no borra los datos de los otros titulares.
+El selector **Hogar / Javi / Tere**, en la barra lateral, cambia la lectura de ingresos, gastos,
+margen y decisiones al titular elegido, sin borrar ni ocultar los datos de los demás. Es un filtro de
+lectura: para cambiar quién ve o edita cada dato, no para separar cuentas.
+
+### Buscar o abrir una pantalla (Cmd/Ctrl+K)
+
+El botón **Buscar o abrir** de la barra lateral (o el atajo `Cmd/Ctrl+K`) abre un buscador que salta
+directamente a cualquier pantalla por nombre, sin memorizar en qué grupo de navegación vive. Es la vía
+más rápida cuando sabes qué quieres hacer pero no dónde está — especialmente útil para las pantallas
+de "Herramientas avanzadas" (sección 4).
+
+**Personalizar**, junto al buscador, ajusta preferencias de la propia interfaz (no de los datos
+financieros).
 
 ## 2. Conceptos esenciales
 
@@ -53,217 +73,88 @@ gastos, margen y decisiones, pero no borra los datos de los otros titulares.
 | Supuesto | Hipótesis editable que afecta a una previsión o escenario, pero no es un dato ocurrido |
 | Revisión | Copia versionada del estado que permite auditar y recuperar cambios |
 | Escenario | Simulación separada del plan vigente; no modifica los datos reales por sí sola |
+| Dato real / simulación / decisión aplicada | Distintivo visible en la cabecera de cada pantalla que dice de qué tipo es la cifra que estás mirando |
 
 Regla práctica: **vaciar un real recupera el previsto; escribir `0` registra un real de cero euros**.
 
-## 3. Recorrido recomendado
-
-Para el trabajo normal sigue este orden:
-
-1. Abre **Hoy** para detectar lo que necesita atención.
-2. Entra en **Actualizar** y elige el tipo de dato que vas a poner al día.
-3. Registra saldos, ingresos, gastos o movimientos.
-4. Abre **Conciliación** para comprobar que banco, reales y saldos cuentan la misma historia.
-5. Revisa **Previsión** y **Proyección**.
-6. Usa **Deuda y proyectos** o el **Simulador** para comparar decisiones sin modificar el plan.
-7. Revisa el estado de sincronización antes de cerrar.
-
-## 4. Pantalla Hoy
-
-**Hoy** es la portada de trabajo. Resume:
-
-- cobertura hasta el siguiente ingreso;
-- liquidez, reserva y capacidad libre;
-- tres decisiones priorizadas;
-- próximos hitos y meses a vigilar;
-- lectura del hogar o titular seleccionado;
-- alertas y calidad de los datos utilizados.
-
-Utiliza los botones de cada tarjeta para ir a saldos, flujo, reserva, previsión, ahorro o comparación.
-Las recomendaciones muestran fuente, fecha, método, cobertura y confianza. Una confianza baja indica que
-faltan datos o histórico suficiente; no debe interpretarse como una certeza.
-
-## 5. Actualizar datos
-
-La portada **Actualizar** ofrece seis rutas.
-
-### 5.1 Actualizar saldos de cuentas
-
-1. Pulsa **Saldo actual — Actualizar mis cuentas**.
-2. Comprueba la fecha del análisis y los saldos de CaixaBank y Mediolanum.
-3. Introduce el saldo real de cada cuenta.
-4. Comprueba que los resultados y mínimos se recalculan.
-
-El saldo real se guarda al introducirlo. Utiliza siempre la fecha a la que corresponde, especialmente
-si estás copiándolo desde una aplicación bancaria.
-
-### 5.2 Registrar ingresos y gastos reales
-
-1. Pulsa **Lo ocurrido — Registrar ingresos y gastos reales**.
-2. Localiza el concepto y el mes.
-3. Introduce el importe en la columna de real.
-4. Revisa las columnas `Previsto`, `Real` y `Usado`.
-
-Los reales se guardan automáticamente y no aparecen en el panel de cambios futuros. Si corriges una
-casilla, la nueva cifra sustituye al real anterior dentro de una revisión recuperable.
-
-### 5.3 Cambiar previsiones futuras
-
-1. Pulsa **Plan futuro — Cambiar previsiones**.
-2. Modifica el importe previsto o utiliza **Añadir línea** para crear una partida.
-3. Pulsa **Preparar cambio pendiente** cuando utilices el ajuste rápido.
-4. Revisa el resumen de diferencias.
-5. Pulsa **Guardar cambios** para aplicarlas.
-
-A diferencia de los reales, las previsiones no se aplican al abandonar una casilla. Permanecen como
-cambios pendientes hasta confirmar el guardado. **Descartar** elimina únicamente ese borrador.
-
-### 5.4 Importar o revisar movimientos
-
-1. Entra en **Movimientos** desde Actualizar.
-2. Selecciona el extracto bancario Excel compatible.
-3. Revisa fecha, concepto, importe, saldo y clasificación detectada.
-4. Confirma la incorporación desde la bandeja previa cuando se muestre.
-5. Ve a **Conciliación** para resolver movimientos sin clasificar o diferencias.
-
-La aplicación admite el formato de extracto con `Fecha`, `Fecha valor`, `Movimiento`, `Más datos`,
-`Importe` y `Saldo`. La importación actualiza el último saldo real cuando puede identificarlo.
-
-### 5.5 Cargar CSV, Excel o tablas pegadas
-
-En **Carga de datos** puedes añadir una línea manual, pegar una tabla o importar un fichero.
-
-1. Mantén activa la **Bandeja**.
-2. Elige el tipo de dato y la fuente.
-3. Pega la tabla o selecciona el fichero.
-4. Revisa columnas detectadas, altas, cambios, duplicados, bajas y efecto mensual.
-5. Confirma solo si la comparación es correcta.
-6. Conserva el recibo de la actualización.
-
-Nada entra en el libro desde la bandeja sin comparación y confirmación. **Deshacer último lote** crea una
-revisión nueva; no borra el historial de la operación.
-
-### 5.6 Conciliar y cerrar el mes
-
-1. Abre **Conciliación**.
-2. Pulsa **Recalcular** y revisa paridad, saldos e invariantes.
-3. Resuelve las tareas de movimientos sin clasificar, saldos discontinuos o reales incoherentes.
-4. Descarga la evidencia si necesitas conservar una copia del control.
-5. Pulsa **Cerrar mes actual** únicamente cuando los datos reales estén completos.
-6. Revisa la vista previa y confirma.
-
-Cerrar un mes congela sus reales, crea auditoría y arrastra al mes siguiente solo las previsiones que
-correspondan. **Reabrir último mes** exige un motivo y crea una revisión nueva; no elimina el cierre previo.
-
-## 6. Previsión, proyección y ahorro
-
-### Previsión mensual
-
-Muestra la lectura mensual de ingresos, gastos, ahorro y saldos. Úsala para comprobar importes cercanos
-y detectar meses con caja insuficiente.
-
-### Proyección de liquidez
-
-Presenta la evolución futura de la liquidez. Consume el forecast canónico, por lo que comparte la misma
-base que las demás vistas. Si aparece un bloqueo de paridad, revisa los datos e invariantes antes de usar
-la proyección para decidir.
-
-### Plan ahorro
-
-Compara el ahorro actual, corriente y aconsejable. Los supuestos son ajustables y el horizonte lejano se
-muestra mediante bandas cuando no existe evidencia suficiente para una cifra exacta.
-
-### Flujo mensual
-
-Permite revisar el flujo de caja por años y meses y descargarlo como CSV. Es útil para análisis externo o
-para compartir una copia sin entregar acceso a toda la aplicación.
-
-## 7. Escenarios y simulaciones
-
-### Laboratorio Deuda y proyectos
-
-Permite comparar escenarios base, favorable y de tensión e introducir eventos como:
-
-- pérdida temporal de ingresos;
-- subida de gastos;
-- avería o gasto extraordinario;
-- coche o mudanza;
-- nueva deuda;
-- ingreso extraordinario.
-
-Indica importe, fecha y duración. Compara caja mínima, meses negativos, ahorro, deuda y tiempo de
-recuperación. La simulación prudente puede mostrar percentiles, tamaño de muestra y reglas de correlación.
-
-Puedes guardar un escenario y recalcular una copia con datos nuevos. El original se conserva.
-
-> **Importante:** simular o guardar un escenario no modifica el plan financiero vigente. La promoción
-> confirmada de un escenario al plan todavía no está disponible.
-
-### Simulador de decisiones
-
-Ofrece variantes `Base`, `Prudente` y `Ahorro alto`, además de proyectos e imprevistos. Utiliza
-**Comparar plan** para revisar el efecto antes de tomar una decisión.
-
-## 8. Deuda y decisiones familiares
-
-### Plan familiar
-
-Reúne deuda, coche y estabilidad. Muestra alternativas familiares, impacto mensual por cuenta y una
-explicación de la ruta recomendada. **Restablecer** devuelve los supuestos de esa vista a su punto inicial.
-
-### Control de deuda
-
-Muestra deuda por entidad y producto y permite comparar liquidación o refinanciación. Primero utiliza
-**Comparar decisión**; una comparación no aplica por sí sola ningún cambio.
-
-### Plan visual de deuda
-
-El plan visual recibe en modo de solo lectura los saldos, contratos, capacidad y forecast canónicos.
-Puedes trabajar con sus tareas, notas y supuestos propios, que sí forman parte de las copias versionadas.
-
-Actualmente no debes utilizar el plan visual para aplicar automáticamente una oferta o estrategia al
-plan financiero. Ofertas, optimización con restricciones, integración completa con escenarios y
-aplicación confirmada corresponden a E14b.
-
-### Vistas de apoyo
-
-- **Asesor ejecutivo:** ordena decisiones inmediatas y presenta la agenda ejecutiva.
-- **Asesor virtual:** reúne decisiones preparadas para comparar; no ejecuta servicios externos de IA.
-- **Plan deuda óptimo:** muestra una ruta propuesta para salir de deuda sin perder estabilidad.
-- **Agente ahorro:** combina agenda de caja, reglas de ahorro y candidatas de liquidación.
-
-Las recomendaciones son apoyo a la decisión. Los efectos legales y fiscales son informativos y deben
-contrastarse con un profesional cuando una operación tenga consecuencias jurídicas o tributarias.
-
-## 9. Alertas, calidad y auditoría
-
-### Centro de alertas
-
-Permite crear, editar, pausar, reactivar y eliminar reglas con umbral, frecuencia y acción recomendada.
-Las alertas locales funcionan sin activar servicios externos. Web push continúa desactivado.
-
-### Datos y auditoría
-
-Utiliza esta pantalla para consultar:
-
-- procedencia y certeza de los datos;
-- campos conocidos y desconocidos de deuda;
-- movimientos sin clasificar y saldos discontinuos;
-- historial de sincronizaciones, cierres, restauraciones y conflictos;
-- controles automáticos y rendimiento.
-
-**Reconstruir índice** rehace el índice de consulta; **Descargar inventario** genera una evidencia del
-estado conocido. Ninguna de estas acciones corrige automáticamente cifras financieras.
-
-## 10. Copias, restauración y recuperación
+## 3. Mapa de navegación
+
+La barra lateral tiene dos niveles. El primero son las pantallas de uso frecuente:
+
+| Pantalla | Ruta | Para qué sirve |
+| --- | --- | --- |
+| Hoy | `#home` | Portada: qué necesita atención ahora mismo |
+| Planificación de partidas | `#planificacion-partidas` | Gestión y forecast con todas las decisiones ya recogidas |
+| Registrar | `#registrar` | Única puerta de escritura de datos reales — saldo, reales, extracto, lote |
+| Movimientos | `#movements` | Extracto, clasificación y saldo por cuenta |
+| Plan | `#plan` | Mes, previsión y ahorro |
+| Deuda | `#deuda-ruta` | Ruta, estrategias y ofertas de deuda |
+| Datos | `#update-hub` | Punto de entrada a saldos, reales e importaciones |
+| Cierre | `#cierre` | Conciliación y confianza del dato antes de cerrar el mes |
+| Ajustes | `#ajustes` | Cuentas, reserva, seguros, fiscalidad, deuda, patrimonio, laboratorio y exportación |
+| FAQs y ayuda | `#faqs-ayuda` | El manual interactivo paso a paso — úsalo para el "cómo hago X" |
+
+El segundo nivel, desplegable bajo **Herramientas avanzadas**, agrupa el resto en cuatro bloques:
+**Decidir** (escenarios, comparar estrategias de deuda, asesor ejecutivo), **Analizar** (presupuesto,
+estado de la semana, análisis, cuadro de mandos, mapa de calor, previsión, proyección), **Datos**
+(widget de solo lectura, importar extracto, registrar el mes, carga de datos, conciliación) y
+**Versiones anteriores** (pantallas heredadas que se conservan por continuidad, sin ser la vía
+recomendada). No hace falta memorizar este mapa: el buscador (`Cmd/Ctrl+K`, sección 1) llega
+directamente a cualquiera de ellas.
+
+### Ajustes: diez dominios bajo una misma pantalla
+
+Ajustes agrupa 42 tarjetas en dominios con su propia barra de anclas interna para saltar entre ellos:
+Hogar, Reserva operativa, Seguros, Fiscalidad, Deuda y apalancamiento, Simuladores y Laboratorio,
+Patrimonio e inversión, Presupuesto y operación, Datos y exportación, y Navegación. Cada tarjeta
+explica su propio propósito y sus límites al abrirla — este manual no repite esa explicación tarjeta
+por tarjeta porque quedaría obsoleta con cada tarjeta nueva; para el detalle de una tarjeta concreta,
+ábrela directamente o consulta su grupo con la barra de anclas.
+
+**Simuladores y Laboratorio**, dentro de Ajustes, merece una mención aparte: es donde vive el
+Laboratorio de escenarios (simulación prudente, sensibilidad, escenario inverso, Monte Carlo de
+cientos de trayectorias, malla de ingresos × gastos, árbol causal navegable de una cifra) y el archivo
+de pantallas heredadas. Simular ahí **nunca modifica el plan vigente** por sí solo.
+
+## 4. Recorrido recomendado
+
+Para el trabajo normal:
+
+1. Abre **Hoy** para detectar lo que necesita atención — cobertura, liquidez, próxima decisión.
+2. Si hay que registrar algo, entra en **Registrar** y elige la pestaña que corresponda (saldo,
+   reales, extracto o lote).
+3. Revisa **Cierre** para comprobar que banco, reales y saldos cuentan la misma historia antes de
+   cerrar el mes.
+4. Consulta **Plan** (previsión y ahorro) y, si necesitas explorar una decisión sin comprometerla,
+   el **Laboratorio de escenarios** (dentro de Ajustes) o el comparador de **Deuda**.
+5. Revisa el indicador de sincronización antes de cerrar la sesión.
+
+Para el paso a paso detallado de cada uno de estos pasos, con capturas de la propia interfaz, usa
+**FAQs y ayuda** (`#faqs-ayuda`): sus cuatro casos de uso — Actualizar datos, Predicciones, Sacar
+conclusiones y Presupuestar — cubren exactamente este recorrido con los nombres de pantalla reales.
+
+## 5. Alertas, calidad y auditoría
+
+**Hoy** resume alertas y próxima mejor acción sin necesidad de visitar otra pantalla; el horizonte que
+mira está acotado a los próximos 18 meses, no al final del modelo. Para el detalle completo:
+
+- **Análisis** y **Cuadro de mandos** (Herramientas avanzadas › Analizar): procedencia y certeza de
+  los datos, campos conocidos y desconocidos de deuda, controles automáticos y rendimiento.
+- **Conciliación** (`#conciliar`): movimientos sin clasificar, saldos discontinuos y reales
+  incoherentes, con recálculo bajo demanda.
+- **Centro de alertas** (Versiones anteriores): reglas propias con umbral, frecuencia y acción
+  recomendada. Las alertas locales funcionan sin servicios externos; el envío por web push sigue
+  desactivado.
+
+Una recomendación con confianza baja indica falta de datos o histórico suficiente — no debe
+interpretarse como una certeza.
+
+## 6. Copias, restauración y recuperación
 
 ### Descargar una copia completa
 
-1. Abre **Carga de datos**.
-2. Pulsa **Descargar copia completa**.
-3. Guarda el fichero en una ubicación privada.
-
-La copia incluye una versión y una huella de integridad. Trátala como información financiera sensible.
+Desde **Ajustes › Datos y exportación**, **Descargar copia completa** guarda un fichero con versión y
+huella de integridad. Trátalo como información financiera sensible.
 
 ### Recuperar una versión de Supabase
 
@@ -277,79 +168,88 @@ activo. Si existe un conflicto entre sesiones, descarga primero la copia que no 
 
 ### Verificar copias
 
-**Verificar copias** comprueba huellas y ensaya una muestra restaurable. La política protege revisiones
-recientes, cierres, reaperturas, importaciones, deshacer y restauraciones. No elimina copias automáticamente.
+**Verificar copias** comprueba huellas y ensaya una muestra restaurable. La política protege
+revisiones recientes, cierres, reaperturas, importaciones, deshacer y restauraciones. No elimina
+copias automáticamente.
 
-## 11. Trabajo sin conexión y entre dispositivos
+## 7. Trabajo sin conexión y entre dispositivos
 
 - Después de una primera visita, el shell puede abrir sin conexión.
 - Los cambios se conservan localmente y la cola pendiente sobrevive al cierre del navegador.
 - Cuando vuelve la red, las revisiones pendientes se envían en orden y sin duplicados.
 - Si dos dispositivos editan a la vez, una sesión obsoleta queda bloqueada para evitar sobrescrituras.
-- Los adjuntos privados se cifran; la clave no se guarda ni sincroniza. Sin la clave no podrán descifrarse
-  desde otro dispositivo.
+- Los adjuntos privados se cifran; la clave no se guarda ni sincroniza. Sin la clave no podrán
+  descifrarse desde otro dispositivo.
 
-Antes de cambiar de dispositivo, espera a que el indicador muestre **Sincronizado** o descarga una copia.
+Antes de cambiar de dispositivo, espera a que el indicador muestre **Sincronizado** o descarga una
+copia (sección 6).
 
-## 12. Rutinas recomendadas
+## 8. Rutinas recomendadas
 
 ### Revisión rápida semanal
 
 1. Abrir **Hoy** y revisar alertas y cobertura.
-2. Actualizar saldos reales.
-3. Importar movimientos recientes.
-4. Clasificar diferencias importantes.
-5. Revisar previsión de los dos meses siguientes.
-6. Confirmar que el estado queda sincronizado.
+2. Registrar saldos y reales pendientes en **Registrar**.
+3. Importar movimientos recientes en **Movimientos**.
+4. Revisar **Plan** para los dos meses siguientes.
+5. Confirmar que el estado queda sincronizado.
 
 ### Cierre mensual
 
-1. Importar el extracto completo del mes.
+1. Importar el extracto completo del mes (**Registrar › Importar extracto**).
 2. Registrar ingresos y gastos reales que falten.
-3. Conciliar movimientos, saldos y reales.
-4. Revisar la previsión del mes siguiente.
-5. Descargar evidencia o copia completa.
+3. Conciliar movimientos, saldos y reales en **Cierre**.
+4. Revisar la previsión del mes siguiente en **Plan**.
+5. Descargar evidencia o copia completa (sección 6).
 6. Cerrar el mes con vista previa y confirmación.
 7. Comprobar que la revisión queda sincronizada.
 
 ### Antes de una decisión importante
 
 1. Actualizar saldos, deuda y previsiones.
-2. Resolver avisos de calidad relevantes.
-3. Crear un escenario sin alterar el plan.
-4. Comparar caja mínima, meses negativos, coste y recuperación.
+2. Resolver avisos de calidad relevantes (sección 5).
+3. Crear un escenario en el Laboratorio sin alterar el plan.
+4. Comparar caja mínima, meses negativos, coste y recuperación — el escenario inverso y el Monte
+   Carlo del Laboratorio ayudan a ver el margen real, no solo el caso central.
 5. Conservar la simulación o exportar la información.
-6. Aplicar manualmente solo las decisiones soportadas y confirmables en la versión actual.
+6. Aplicar la decisión desde la pantalla correspondiente (Deuda, Plan o Ajustes) solo cuando el
+   simulacro confirme el resultado esperado.
 
-## 13. Problemas frecuentes
+## 9. Problemas frecuentes
 
 | Problema | Comprobación o solución segura |
 | --- | --- |
 | Un real no aparece en el cálculo | Comprueba si la casilla quedó vacía; vacío usa el previsto y cero debe escribirse como `0` |
-| Una previsión no se aplicó | Revisa el panel de cambios pendientes y pulsa **Guardar cambios** |
+| Una previsión no se aplicó | Revisa el panel de cambios pendientes (`#cambios-pendientes`) y confirma el guardado |
 | La sincronización no termina | Sigue trabajando localmente, revisa la conexión y no abras otra sesión para sobrescribir |
 | Aparece un conflicto | Compara fechas y huellas; descarga una copia antes de elegir la versión local o remota |
 | El extracto tiene duplicados | No confirmes la bandeja hasta revisar las coincidencias y el efecto mensual |
-| El forecast queda bloqueado | Abre Conciliación y revisa invariantes, paridad y datos incompletos |
+| El forecast queda bloqueado | Abre Cierre/Conciliación y revisa invariantes, paridad y datos incompletos |
 | Una recomendación tiene confianza baja | Revisa histórico conciliado, fechas, campos desconocidos y supuestos manuales |
-| La interfaz parece antigua tras una actualización | Recarga una vez para que el nuevo shell offline tome el control |
+| No encuentras una pantalla | Usa el buscador `Cmd/Ctrl+K` (sección 1) en vez de navegar por la barra lateral |
 | No puedes recuperar un adjunto cifrado | Utiliza la clave con la que se cifró; la aplicación no la almacena ni puede reconstruirla |
 
-## 14. Funciones todavía no disponibles
+## 10. Funciones todavía no disponibles
 
-No deben darse por terminadas ni utilizarse como si estuvieran activas:
+Auditado contra el estado real del código el 5 de septiembre de 2026 — a diferencia de la versión
+anterior de este manual, esta lista **no incluye** objetivos y calendario (E15), alertas predictivas
+(E16) ni la aplicación de ofertas de deuda al plan real (E14b): las tres están construidas, verificadas
+y en uso. Lo que sigue genuinamente pendiente:
 
-- aplicación automática y recuperable de una estrategia de deuda u oferta negociada;
-- optimización completa de deuda con restricciones reales dentro del plan;
-- retirada definitiva del plan visual en `iframe`;
-- objetivos y calendario financiero integrados de E15;
-- alertas predictivas y explicación continua de errores de E16;
-- navegación simplificada definitiva de E17;
-- backend privado de IA, hogar compartido, web push y conexión bancaria PSD2 de E10.
+- **Conexión bancaria PSD2 real** (`O-6`): bloqueada por la contratación de un proveedor externo
+  (candidato evaluado: GoCardless), no por trabajo pendiente propio.
+- **Asistente de IA en producción real** (`A5-1`): construido con backend privado propio, pero
+  todavía no activo fuera de base local. Mientras tanto, la captura por voz y un puñado de tareas
+  condicionadas (`DEX6`, `RGX3`) quedan a la espera de esa activación — el resto de la aplicación
+  funciona con normalidad sin él.
+- **Notificaciones por web push**: las alertas locales funcionan sin servicios externos; el envío
+  push sigue desactivado.
+- **Hogar compartido**: existe una pantalla mínima de miembros y simulacro de pérdida de acceso; no
+  es todavía la integración completa (roles, permisos por titular) prevista originalmente.
 
-La aplicación sigue siendo plenamente utilizable sin estos servicios externos.
+La aplicación es plenamente utilizable sin estos servicios externos.
 
-## 15. Regla de seguridad final
+## 11. Regla de seguridad final
 
 Antes de confirmar una importación, cierre, reapertura, restauración o cambio futuro:
 
@@ -358,4 +258,3 @@ Antes de confirmar una importación, cierre, reapertura, restauración o cambio 
 3. verifica qué cifras cambian;
 4. conserva una copia si la operación es importante;
 5. confirma que el estado termina sincronizado.
-

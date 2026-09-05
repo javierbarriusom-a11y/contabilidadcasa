@@ -43,8 +43,14 @@ que `A5-1` esté activo en producción — el resto de la Oleada 2 está cerrado
 en adelante, cuyo estado se sigue en `BACKLOG_ULTIMATE_SEPTIEMBRE.md`, en
 `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` y en `PROJECT_STATE.md`.
 
-El único trabajo pendiente **fuera** de esa cola es `O-5` en `BACKLOG_OPERACION.md` (actualizar
-`MANUAL_USUARIO.md` tras E17) — de baja prioridad, dejado deliberadamente para el final.
+**Actualizado el 5 de septiembre de 2026 (sesión 153): `O-5` también cerrada** — `MANUAL_USUARIO.md`
+reescrito como guía de orientación (mapa de navegación real + remisión al manual interactivo interno
+`#faqs-ayuda` para el paso a paso), corrigiendo además tres afirmaciones obsoletas que seguían
+marcando como «no disponibles» funciones ya construidas (E15, E16, aplicación de ofertas de deuda de
+E14b). Con esto, `BACKLOG_OPERACION.md` solo tiene pendiente `O-6` (PSD2), bloqueada por decisión de
+proveedor externo. **No queda ningún trabajo de producto ni de documentación construible hoy** en
+ninguna de las colas activas — todo lo pendiente depende de condiciones externas (`A5-1` en
+producción, el reloj de `OPT-2`, o la contratación de un proveedor PSD2).
 
 ## Mapa completo
 

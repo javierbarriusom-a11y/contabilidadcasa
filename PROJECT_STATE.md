@@ -2,6 +2,64 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (153): O-5 — manual de usuario reescrito, sin código nuevo
+
+Continuación directa de la sesión 152 (Bloque 5 de la Oleada 2 cerrado). Con la Oleada 2 en 50/51 y
+el remanente bloqueado por condiciones externas (`A5-1` en producción, reloj de `OPT-2`), no quedaba
+ningún ítem de backlog construible. Único trabajo documentado pendiente: `O-5` en
+`BACKLOG_OPERACION.md` (actualizar `MANUAL_USUARIO.md` tras E17), de baja prioridad y dejado
+deliberadamente para el final. Recomendación explícita antes de construir: hacerlo ahora — la razón
+para posponerlo (priorizar la Oleada 2) ya no aplicaba, y esperar solo acumula más hueco documental,
+nunca lo abarata.
+
+- **Auditoría previa (antes de escribir nada):** el manual anterior (fechado 2 de agosto, alcance
+  «hasta E14a») no solo tenía huecos de cobertura — **desinformaba activamente**. Su sección
+  «Funciones todavía no disponibles» seguía marcando como pendientes tres entregas ya construidas y
+  verificadas: E15 (objetivos y calendario) y E16 (alertas predictivas), ambas «Verificado» en
+  `BACKLOG_STATUS.md`, y la aplicación de ofertas de deuda al plan real de E14b, ya operativa vía
+  `applyE14bOffer()`. Segundo hallazgo: la propia aplicación construyó, entre E17 y E19, un manual
+  interactivo en vivo (`#faqs-ayuda`, cuatro casos de uso — Actualizar, Predecir, Concluir,
+  Presupuestar — enlazados a las pantallas reales con sus anclas vigentes) que cubre el paso a paso
+  mejor de lo que un documento externo puede mantener sincronizado.
+
+- **Decisión de alcance, distinta del plan original de 5 pasos:** en vez de narrar cada pantalla
+  paso a paso por fuera de la aplicación (lo que habría quedado obsoleto en el próximo cambio de
+  navegación — el mismo problema que motivó este `O-5`), `MANUAL_USUARIO.md` se reescribió como guía
+  de orientación: conceptos esenciales, mapa de navegación real (10 pantallas primarias + 4 grupos de
+  «Herramientas avanzadas» + índice de los 10 dominios de Ajustes), remitiendo explícitamente a
+  `#faqs-ayuda` para el «cómo hago X». Conserva solo lo que un documento externo aporta de verdad:
+  copias/recuperación, trabajo sin conexión y multidispositivo, rutinas recomendadas, problemas
+  frecuentes y, sobre todo, una lista de «funciones todavía no disponibles» reconstruida contra el
+  código real en vez de heredada sin revisar (quedan genuinamente pendientes: PSD2/`O-6`, `A5-1` en
+  producción real, web push, e integración completa de hogar compartido más allá de la pantalla
+  mínima de `RGX1`/`RGX2`).
+
+- **Verificación de anclas (paso 5 del plan original de O-5):** las 12 rutas citadas en el manual
+  (`#home`, `#planificacion-partidas`, `#registrar`, `#movements`, `#plan`, `#deuda-ruta`,
+  `#update-hub`, `#cierre`, `#ajustes`, `#faqs-ayuda`, `#conciliar`, `#cambios-pendientes`) se
+  confirmaron una a una contra `index.html` antes de cerrar.
+
+- **No incluido, deliberadamente:** regenerar `MANUAL_USUARIO_FINANZAS_CASA.docx`. No existe en el
+  repositorio ningún script de conversión Markdown→docx (se generó una vez de forma externa, fuera
+  de este flujo) ni `pandoc` disponible en este entorno para producirlo de forma fiable. Queda como
+  acción manual futura si se necesita una copia `.docx` actualizada, en vez de fabricar una
+  conversión improvisada con una herramienta no verificada para ese formato.
+
+- **`BACKLOG_OPERACION.md`**: `O-5` marcada hecha; su sección de detalle documenta el hallazgo y la
+  decisión de alcance. Con esto, `BACKLOG_OPERACION.md` queda en el mismo estado que la Oleada 2:
+  todo lo construible está construido, solo pendiente `O-6` (PSD2), bloqueada por decisión externa de
+  proveedor, no por esfuerzo.
+
+- **Validación**: `npm run verify` en verde — **3292/3292 pruebas** (sin cambio: esta sesión no tocó
+  código, solo documentación de usuario y de backlog), accesibilidad estructural sin cambios (**1123
+  IDs únicos**), rendimiento dentro de los umbrales de `OPT-5`, `build:site`/`test:privacy`/
+  `test:smoke` sin incidencias.
+
+- **Estado general tras esta sesión:** no queda ningún trabajo de producto ni de documentación
+  construible hoy. Lo único pendiente en todo el proyecto son condiciones externas: `RGX3` y `DEX6`
+  (activación real de `A5-1`), `OPT-10/11/12/13/15` (reloj de 30 días de `OPT-2`, cumple a finales de
+  septiembre) y `O-6`/PSD2 (contratación de proveedor).
+
 ## Cierre de sesión — 5 de septiembre de 2026 (152): Oleada 2 Bloque 5 — cuarta tarea (ESX1), cierre del bloque
 
 Continuación directa de la sesión 151 (IVX3 fusionada, FCX2 retirada). Última tarea pendiente del
