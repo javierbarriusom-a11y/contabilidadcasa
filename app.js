@@ -19314,6 +19314,26 @@ function esx4SensitivityGridHtml(grid) {
   return `<div class="table-wrap"><table class="e19-table esx4-sensitivity-grid"><thead>${header}</thead><tbody>${rows}</tbody></table></div><p class="e19-kpi-note">Caja mínima proyectada del horizonte completo bajo cada combinación de ingresos y gastos a la vez (caso base ${money(grid.baselineMinChecking, true)}).</p>`;
 }
 
+// ESX3: escenario inverso — extiende la tarjeta de Sensibilidad (A8-6) con el punto de cruce EXACTO
+// para el horizonte completo (bisección sobre el propio simulate(), no una extrapolación lineal de
+// un solo paso como la que ya usaba sensitivity()). Un plan ya roto hoy no tiene un punto de cruce
+// que buscar hacia delante — se dice, en vez de fabricar un porcentaje sin sentido.
+function esx3InverseScenarioHtml(result) {
+  if (!result) return "";
+  if (result.alreadyBroken) {
+    return `<p class="e19-kpi-note">El caso base ya está roto hoy (caja mínima ${money(result.baselineMinChecking, true)}) — no hay un punto de cruce que buscar hacia delante, el plan ya lo cruzó.</p>`;
+  }
+  const rows = result.factors
+    .map((factor) => {
+      if (!factor.calculable) return `<li class="commit-barrier-item"><span>${escapeHtml(factor.label)}</span><span>${escapeHtml(factor.note)}</span></li>`;
+      const percent = factor.id === "income" ? factor.dropPercent : factor.risePercent;
+      const verb = factor.id === "income" ? "caer" : "subir";
+      return `<li class="commit-barrier-item"><span>${escapeHtml(factor.label)}</span><span>tendría que ${verb} un <strong>${percent}%</strong> para romper el plan en este horizonte</span></li>`;
+    })
+    .join("");
+  return `<ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">Punto de cruce exacto por bisección sobre el propio simulador — no una extrapolación lineal — sobre el caso base (caja mínima ${money(result.baselineMinChecking, true)}).</p>`;
+}
+
 // PVX2: multihorizonte simultáneo — hasta ahora la tarjeta "Horizonte adaptativo" solo mostraba un
 // recuento (X periodos, Y bandas), reutiliza tal cual adaptiveHorizon() (A7-1, ya calculado para
 // esa misma tarjeta) pero pintando los periodos de verdad: corto, medio y largo plazo a la vez en
@@ -19375,12 +19395,14 @@ function renderE13ScenarioLab() {
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
+  const inverseScenario = E13.inverseScenario(forecast, e13ScenarioEvents);
   qs("e13AdvancedAnalysis").innerHTML = `<div class="e6-quality-list">
     <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
     <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
+    <article class="e6-quality-card"><header><strong>ESX3 · escenario inverso</strong><span class="status-pill ${inverseScenario.alreadyBroken ? "warn" : "good"}">${inverseScenario.alreadyBroken ? "Ya roto" : "Punto de cruce"}</span></header>${esx3InverseScenarioHtml(inverseScenario)}</article>
     <article class="e6-quality-card esx4-sensitivity-grid-card"><header><strong>ESX4 · malla de ingresos × gastos</strong><span class="status-pill">${sensitivityGrid.rows.length}×${sensitivityGrid.rows.length}</span></header>${esx4SensitivityGridHtml(sensitivityGrid)}</article>
     <article class="e6-quality-card pvx2-horizon-card"><header><strong>PVX2 · multihorizonte simultáneo</strong><span class="status-pill">${horizon.length} periodos</span></header><p class="e19-kpi-note">Mensual a corto plazo; ${horizon.filter((item) => item.display === "range").length} bandas trimestrales/anuales a largo plazo, todas a la vez.</p>${pvx2AdaptiveHorizonHtml(horizon)}</article>
     <article class="e6-quality-card"><header><strong>Patrimonio simulado (A14-5)</strong><span class="status-pill ${lab.assetImpact ? (lab.assetImpact.delta < 0 ? "warn" : "good") : ""}">${lab.assetImpact ? money(lab.assetImpact.delta, true) : "Sin eventos de patrimonio"}</span></header>${e13AssetImpactHtml(lab.assetImpact)}</article>

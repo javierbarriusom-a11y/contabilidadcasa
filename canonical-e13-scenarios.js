@@ -111,8 +111,11 @@
         total.debt += impact.debt;
         return total;
       }, { income: 0, outflow: 0, debt: 0 });
-      const income = round(number(month.totals?.income) * number(profile.incomeFactor || 1) + impacts.income);
-      const outflows = round(number(month.totals?.outflowsBeforeSaving) * number(profile.expenseFactor || 1) + impacts.outflow);
+      // ESX3: `|| 1` trataba un incomeFactor/expenseFactor de 0 (pérdida total de ingreso, motor
+      // inverso probando ese extremo) como "no viene dato" y lo sustituía por 1 — 0 es un valor
+      // válido, no una ausencia. `Number.isFinite` distingue las dos cosas de verdad.
+      const income = round(number(month.totals?.income) * (Number.isFinite(profile.incomeFactor) ? profile.incomeFactor : 1) + impacts.income);
+      const outflows = round(number(month.totals?.outflowsBeforeSaving) * (Number.isFinite(profile.expenseFactor) ? profile.expenseFactor : 1) + impacts.outflow);
       const targetSaving = number(month.totals?.saving);
       const available = checking + income - outflows;
       const saving = autoCapSavings ? round(Math.max(0, Math.min(targetSaving, available - outflows))) : round(targetSaving);
@@ -232,6 +235,60 @@
     return { schemaId: `${SCHEMA_ID}/sensitivity-grid-v1`, step, baselineMinChecking: round(baseline), rows };
   }
 
+  // ESX3: escenario inverso — «¿qué tendría que cambiar?». Depende de A8-6 (sensitivity(), que ya
+  // identifica el factor dominante pero solo con una extrapolación lineal de un único paso de
+  // prueba) y de PV6 (verdictSensitivity(), que ya resuelve el punto de cruce EXACTO pero solo para
+  // el mínimo ajustado de un mes concreto de Previsión). Aquí se busca el punto de cruce exacto —
+  // por bisección sobre el propio simulate() (A8-1), nunca una extrapolación — para el horizonte
+  // completo (minChecking de toda la simulación base), factor a factor. Ningún motor de simulación
+  // nuevo: la bisección solo llama repetidamente a simulate(), ya existente.
+  function findFactorCrossing(probe, lowerBound, upperBound, { tolerance = 0.5, maxIterations = 30 } = {}) {
+    const lowerValue = probe(lowerBound);
+    const upperValue = probe(upperBound);
+    if (lowerValue === 0) return lowerBound;
+    if (upperValue === 0) return upperBound;
+    if (Math.sign(lowerValue) === Math.sign(upperValue)) return null;
+    let low = lowerBound; let high = upperBound; let lowValue = lowerValue;
+    for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+      const mid = (low + high) / 2;
+      const midValue = probe(mid);
+      if (Math.abs(midValue) <= tolerance) return mid;
+      if (Math.sign(midValue) === Math.sign(lowValue)) { low = mid; lowValue = midValue; } else { high = mid; }
+    }
+    return (low + high) / 2;
+  }
+
+  function inverseScenario(forecast = {}, events = [], options = {}) {
+    const minCheckingWith = (profile, adjustedEvents = events) => simulate(forecast, profile, adjustedEvents).metrics.minChecking;
+    const baseline = round(minCheckingWith(PROFILES[0]));
+    const verdict = baseline >= 0 ? "safe" : "danger";
+    // Un plan ya roto hoy no tiene "punto de cruce" que buscar hacia delante — decirlo en vez de
+    // fabricar un porcentaje sin sentido sobre un veredicto que ya es negativo.
+    if (verdict === "danger") return { schemaId: `${SCHEMA_ID}/inverse-scenario-v1`, verdict, baselineMinChecking: baseline, alreadyBroken: true, factors: [] };
+
+    const incomeCrossing = findFactorCrossing((factor) => minCheckingWith({ ...PROFILES[0], incomeFactor: factor }), 0, 1);
+    const expenseCeiling = Math.max(1, number(options.expenseCeiling) || 3);
+    const expenseCrossing = findFactorCrossing((factor) => minCheckingWith({ ...PROFILES[0], expenseFactor: factor }), 1, expenseCeiling);
+
+    const factors = [
+      { id: "income", label: "Ingresos", calculable: incomeCrossing !== null,
+        dropPercent: incomeCrossing !== null ? round((1 - incomeCrossing) * 100) : null,
+        note: incomeCrossing !== null ? "" : "Ni perdiendo todo el ingreso (bajada del 100%) se rompe el plan en este horizonte." },
+      { id: "expenses", label: "Gastos", calculable: expenseCrossing !== null,
+        risePercent: expenseCrossing !== null ? round((expenseCrossing - 1) * 100) : null,
+        note: expenseCrossing !== null ? "" : `Ni multiplicando el gasto por ${expenseCeiling} se rompe el plan en el rango explorado.` },
+    ];
+    // Eventos: solo tiene sentido escalar lo que el hogar ya declaró — sin eventos temporales
+    // activos en el laboratorio, este eje no existe (null explícito, nunca un 0% inventado).
+    if (events.length) {
+      const eventCrossing = findFactorCrossing((factor) => minCheckingWith(PROFILES[0], events.map((event) => ({ ...event, amount: number(event.amount) * factor }))), 1, expenseCeiling);
+      factors.push({ id: "events", label: "Eventos", calculable: eventCrossing !== null,
+        risePercent: eventCrossing !== null ? round((eventCrossing - 1) * 100) : null,
+        note: eventCrossing !== null ? "" : `Ni multiplicando el importe de los eventos declarados por ${expenseCeiling} se rompe el plan en el rango explorado.` });
+    }
+    return { schemaId: `${SCHEMA_ID}/inverse-scenario-v1`, verdict, baselineMinChecking: baseline, alreadyBroken: false, expenseCeiling, factors };
+  }
+
   function saveScenario(forecast = {}, events = [], metadata = {}) {
     const lab = buildLab(forecast, events, metadata);
     return { schemaId: SAVED_SCHEMA_ID, id: text(metadata.id || `scenario-${Date.now()}`), name: text(metadata.name || "Escenario guardado"),
@@ -246,5 +303,5 @@
       overwroteOriginal: false };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, saveScenario, recalculateSavedScenario };
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, saveScenario, recalculateSavedScenario };
 });
