@@ -2,6 +2,52 @@
 
 Fecha de revisión: 5 de septiembre de 2026.
 
+## Cierre de sesión — 5 de septiembre de 2026 (152): Oleada 2 Bloque 5 — cuarta tarea (ESX1), cierre del bloque
+
+Continuación directa de la sesión 151 (IVX3 fusionada, FCX2 retirada). Última tarea pendiente del
+Bloque 5: `ESX1`, Monte Carlo, ya acotada por el usuario a cientos de trayectorias en el hilo
+principal (sin Web Worker), para no arriesgar el presupuesto de rendimiento de `OPT-5`.
+
+- **ESX1 — Monte Carlo de cientos de trayectorias**: `monteCarloSimulation()`
+  (`canonical-e13-scenarios.js`), extiende `prudentSimulation()` (A8-3) en vez de inventar una
+  distribución aparte. Con solo tres percentiles conocidos (P10/P50/P90, del historial real
+  conciliado o del rango manual declarado si no hay historial suficiente), la incertidumbre de cada
+  mes se muestrea de un triángulo(P10, P50, P90) — la estimación de tres puntos habitual cuando solo
+  se conocen esos tres valores, declarada como tal, nunca disfrazada de distribución real medida.
+  Cada trayectoria acumula una desviación aleatoria mes a mes sobre el cierre de caja del escenario
+  base (mismo patrón que ya usa PV1 para acumular una desviación mensual determinista, aquí hecho
+  estocástico) y se registra su caja mínima; con cientos de trayectorias, el resultado es la
+  probabilidad de que la caja llegue a negativo en algún mes y la banda P10/P50/P90 de la caja
+  mínima — no un único percentil puntual como daba `prudentSimulation()` por sí sola. Tope duro de
+  500 trayectorias (`MONTE_CARLO_MAX_TRAJECTORIES`), por defecto 300 (`MONTE_CARLO_DEFAULT_TRAJECTORIES`):
+  aunque se pidan miles, nunca se ejecutan — decisión explícita del usuario, no un límite técnico
+  descubierto sobre la marcha. Un rango manual sin calibrar hereda la misma advertencia que ya usa
+  Simulación prudente: más trayectorias no arreglan un dato de partida sin calibrar. UI en el
+  Laboratorio de escenarios (E13), tarjeta nueva junto a Simulación prudente.
+
+- **Validación de rendimiento (la razón de ser de esta acotación)**: `npm run verify` completo,
+  incluido `test:performance` (umbrales de `OPT-5`), sigue en verde con el Monte Carlo activo en
+  cada render del laboratorio: forecast y escenarios en 163.0 ms (dentro de margen), recursos 2029
+  KB. Confirma que "cientos de trayectorias en el hilo principal" era una acotación con margen real,
+  no ajustada al límite.
+
+- **Validación**: `npm run verify` en verde — **3292/3292 tests** (3280 anteriores + 12 nuevos de
+  `tests/esx1-monte-carlo.test.cjs`: tope de trayectorias nunca superado aunque se pidan miles,
+  valor por defecto en cientos, rango manual invertido no calculable, rango degenerado en 0
+  reproduce exactamente el mínimo del escenario base, reproducibilidad con `randomFn` determinista,
+  herencia de fuente/calibración/advertencia de `prudentSimulation()` sin duplicar la calibración,
+  ausencia de una probabilidad hardcodeada, exports, render HTML de ambos casos y cableado en
+  `renderE13ScenarioLab`), accesibilidad estructural sin cambios (**1123 IDs únicos** — ESX1 no añade
+  controles, solo una tarjeta de solo lectura), rendimiento dentro de los umbrales de `OPT-5` (ver
+  arriba), `build:site`/`test:privacy`/`test:smoke` sin incidencias. Se amplió también la ventana de
+  un test de integración de A14-5 (`tests/a14-5-app-integracion.test.cjs`, 7200→7900 caracteres) que
+  la nueva tarjeta de Monte Carlo había desbordado.
+
+- **Bloque 5 de la Oleada 2 — CERRADO**: 4/5 tareas construidas (`PVX5`, `ESX3`, `IVX3`, `ESX1`), 1
+  retirada por decisión explícita (`FCX2`). Con esto la Oleada 2 completa queda en 50/51 (49
+  construidas + 1 retirada de forma justificada), solo pendiente `RGX3` del Bloque 6, condicionada a
+  que `A5-1` esté activo en producción real.
+
 ## Cierre de sesión — 5 de septiembre de 2026 (151): Oleada 2 Bloque 5 — tercera tarea (IVX3) y retirada de FCX2
 
 Continuación directa de la sesión 150 (ESX3 fusionada). Antes de seguir con las tres tareas
