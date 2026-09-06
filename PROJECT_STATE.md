@@ -1,6 +1,57 @@
 # Estado del proyecto
 
-Fecha de revisión: 5 de septiembre de 2026.
+Fecha de revisión: 6 de septiembre de 2026.
+
+## Cierre de sesión — 6 de septiembre de 2026 (155): nace `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`
+
+Continuación directa de la sesión 154 (cierre de ciclo, sin trabajo construible en ninguna cola). El
+hogar pidió una auditoría crítica de producto sobre cuatro frentes: que las previsiones se autoajusten
+con datos reales, inversión, pedir deuda para invertir (apalancamiento) y decidir cancelar deuda
+existente o no según el líquido real, con más de 40 propuestas nuevas y máximo detalle de UX/UI.
+
+- **Diagnóstico previo (documento independiente, no en el repositorio):** seis hallazgos sobre el
+  estado real del código antes de proponer nada. El más relevante: no se encontró ningún mecanismo de
+  invalidación o recómputo cruzado (`recompute`/`invalidate`/`dirty`/`cascade`) fuera de
+  `canonical-scenario-schema.js` — metas (E15), plan de deuda (E14b), sostenibilidad de apalancamiento
+  y presupuesto de riesgo (E16) se recalculan solo al abrir esa pantalla, no cuando cambia el dato del
+  que dependen. Otros hallazgos: toda la simulación descansa en datos introducidos a mano (PSD2, `O-6`,
+  sigue sin fecha); señales de sobre-extensión ya visibles (42 tarjetas/10 dominios en Ajustes,
+  Laboratorio sin retirar, `PROJECT_STATE.md` superando las 12.500 líneas); el apalancamiento se simula
+  pero no se gobierna (sin techo declarado, a diferencia del colchón); las decisiones de amortizar o
+  apalancarse son puntuales, no vivas; y que el principio de nunca ejecutar automáticamente una
+  recomendación (`A11-4`) sigue siendo acertado y se respeta en las 46 propuestas.
+
+- **Cruce contra el código real antes de escribir el backlog** (el mismo paso que el propio diagnóstico
+  exigía): de las 46 propuestas, **5 resultaron ya construidas** en la Oleada 2 —
+  `INV3`≈`IVX2` (comparador de benchmark), `INV5`≈`IVX4` (coste compuesto de comisiones),
+  `LEV2`≈`APX1` (coste de deuda neto de fiscalidad), `GOB1`≈`OPT-2`/`OPT-10` (auditoría de uso real de
+  pantallas) y `GOB2`≈`OPT-11`/`12`/`13` (retirada de Laboratorio) — y quedan retiradas con motivo
+  documentado, igual que `FCX2` en su momento. Otras **9 necesitaron reducir su alcance** por el mismo
+  hueco de datos que ya bloqueó `APX4`/`IVX1`/`IVX5` en la Oleada 2: sin serie histórica de
+  valoraciones por posición ni clasificación de clase de activo/sector/divisa, no hay correlación ni
+  volatilidad de cartera real que calcular sin inventar precisión.
+
+- **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` (nuevo)**: 44 tareas accionables en 5 bloques — 3
+  verificaciones de código obligatorias antes de construir nada (`VER-1`/`VER-2`/`VER-3`, para no
+  repetir lo que ya pasó una vez con `PVX3`: motor nuevo sobre algo que quizá ya funciona), un bloque
+  de cimiento (`LEV1`, `PVC1`, `DEB1`), un bloque de alto impacto y bajo riesgo (11 tareas S/S-M/M sin
+  preguntas de alcance), un bloque de apuestas grandes (10 tareas L, cada una con su pregunta de
+  alcance explícita para el hogar) y un bloque de relleno (16 tareas). Ninguna tarea ejecuta una acción
+  financiera real sin confirmación — mismo contrato que `A11-4`.
+
+- **`BACKLOG_INDICE.md`**: nueva entrada apuntando a la Oleada 3 como backlog vigente; el «Cierre de
+  ciclo» del 5 de septiembre queda marcado como histórico (ya no describe el estado actual) sin borrar
+  la tabla de las tres condiciones externas, que siguen sin resolverse; fila nueva en el «Mapa
+  completo» con la Oleada 3 como 🟢 vigente y la Oleada 2 pasando a «Sustituido/reconciliado por»
+  apuntar a ella para el trabajo de estos cuatro frentes.
+
+- **Sin cambios de código ni de comportamiento** — esta sesión es planificación pura, ningún módulo
+  `canonical-*.js` se ha tocado.
+
+- **Validación**: `npm run verify` en verde tras instalar dependencias (`node_modules` no existía en
+  este contenedor) — **3292/3292 pruebas** (sin cambio: ningún test nuevo, no se tocó código),
+  accesibilidad estructural sin cambios (**1123 IDs únicos**), rendimiento dentro de los umbrales de
+  `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
 
 ## Cierre de sesión — 5 de septiembre de 2026 (154): cierre de ciclo — handoff para el siguiente backlog
 
