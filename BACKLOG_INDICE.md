@@ -50,13 +50,24 @@ marcando como «no disponibles» funciones ya construidas (E15, E16, aplicación
 E14b). Con esto, `BACKLOG_OPERACION.md` queda **100% cerrado salvo `O-6`** (PSD2), bloqueada por
 decisión de proveedor externo.
 
-## Cierre de ciclo — 5 de septiembre de 2026: no queda trabajo construible en ninguna cola activa
+**Actualizado el 6 de septiembre de 2026: nace el siguiente backlog, con trabajo accionable ya
+identificado.** El hogar pidió una auditoría crítica de producto sobre previsión autoajustable,
+inversión, apalancamiento y deuda según liquidez. Esa auditoría cruzó sus 46 propuestas contra el
+código real de la Oleada 2 antes de convertirlas en tareas: encontró que 5 ya estaban construidas
+(retiradas con motivo documentado) y que 9 necesitaban reducir su alcance por el mismo hueco de datos
+que ya bloqueó `APX4`/`IVX1`/`IVX5`. **El siguiente trabajo real de producto vive en
+[`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`](BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md)**: 44 tareas
+accionables (3 verificaciones de código + 41 tareas nuevas) en 5 bloques, ninguna bloqueada por las
+tres condiciones externas de la tabla de abajo — resuelve el «cierre de ciclo» que sigue a
+continuación, sin esperar a ninguna de ellas.
 
-Con `O-5` cerrada, las tres colas activas del proyecto llegan al mismo punto a la vez: todo lo que
-dependía de esfuerzo propio está construido, y todo lo que queda depende de una condición externa,
-no de una decisión pendiente del equipo. No hay una cuarta cola por abrir hoy — **el siguiente
-backlog no existe todavía** y debería nacer de una de estas tres condiciones, o de una prioridad
-nueva que el hogar decida traer:
+## Cierre de ciclo anterior — 5 de septiembre de 2026 (histórico)
+
+Con `O-5` cerrada, las tres colas activas del proyecto habían llegado al mismo punto a la vez: todo lo
+que dependía de esfuerzo propio estaba construido, y todo lo que quedaba dependía de una condición
+externa. Esa situación ya no describe el estado actual — `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` es
+el backlog que faltaba — pero la tabla de las tres condiciones externas sigue vigente sin cambios,
+porque ninguna de esas tres colas se resolvió con la Oleada 3:
 
 | Cola | Qué queda | Condición de desbloqueo | Quién la controla |
 | --- | --- | --- | --- |
@@ -64,19 +75,18 @@ nueva que el hogar decida traer:
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | `RGX3` (Bloque 6) y `DEX6` (Bloque 1) | `A5-1` (IA) activo en producción real, no solo en base local | Externa — activación de infraestructura, sin fecha conocida |
 | `BACKLOG_OPERACION.md` | `O-6` (= `T-3` en `BACKLOG.md`) | Contratación de un proveedor PSD2 (candidato evaluado: GoCardless) | Decisión de producto fuera del equipo de desarrollo |
 
-**Para quien retome la sesión:** no hay ningún ítem de las tablas de arriba accionable hoy sin que
-una de esas tres condiciones cambie primero — verificarlo contra el calendario y contra el estado
-real de `A5-1`/PSD2 antes de asumir que sigue bloqueado. Si ninguna cambió y el hogar no trae una
-prioridad nueva, no hay backlog que abrir todavía; si trae una, ese es el germen del próximo
-documento `BACKLOG_*.md`, y esta tabla es su punto de partida. El detalle sesión a sesión de todo lo
-cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a `O-5`) vive en `PROJECT_STATE.md`, sesiones 137 a
-153.
+**Para quien retome la sesión:** las tres condiciones externas de arriba siguen sin cambiar — no dejan
+de vigilarse solo porque exista un backlog nuevo. Verificarlas contra el calendario y contra el estado
+real de `A5-1`/PSD2 sigue siendo el primer paso antes de asumir que alguna sigue bloqueada. El detalle
+sesión a sesión de todo lo cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a `O-5`) vive en
+`PROJECT_STATE.md`, sesiones 137 a 153; el de la Oleada 3, desde la sesión 155.
 
 ## Mapa completo
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md`** | 🟡 **Vigente — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada)** | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | — |
+| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`** | 🟢 **Vigente — 44 tareas accionables, sin código todavía** | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | — |
+| `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | 🟡 Casi cerrado — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada) | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` para el trabajo nuevo de estos cuatro frentes; su propio remanente (`RGX3`) sigue vigente aquí hasta que `A5-1` esté en producción |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | 🟡 Casi cerrado — 94/99 hechas, 5 en espera de calendario | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia. Su tabla de estado no refleja el cierre real — ver `PROJECT_STATE.md` | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` para el trabajo nuevo; su propio remanente (`OPT-10/11/12/13/15`) sigue vigente aquí hasta que cumpla el plazo de `OPT-2` |
 | `BACKLOG_OPERACION.md` | 🟡 Casi cerrado — O-1 a O-5 hechos, solo `O-6` (PSD2, bloqueada por proveedor externo) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |
 | `BACKLOG_UNIFICADO.md` | ⚪ Histórico | Fusionó el orden de ejecución de `BACKLOG_PATRIMONIO_Y_FINANZAS.md` + `BACKLOG_OPTIMIZACION.md` (49 tareas) | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` (29/08) |
