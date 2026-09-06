@@ -2,7 +2,23 @@
 
 Fecha de revisión: 6 de septiembre de 2026.
 
-## Cierre de sesión — 6 de septiembre de 2026 (155): nace `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`
+## Cierre de sesión — 6 de septiembre de 2026 (156): corrige `LEV5` perdida en la Oleada 3
+
+Continuación directa de la sesión 155, al construir un artefacto de seguimiento de
+`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`. Al preparar ese tablero se recontaron las 46 propuestas
+originales contra las tablas ya fusionadas y no cuadraban: `LEV5` (colchón de garantía dinámico) se
+había redactado en el análisis previo pero se perdió al escribir el documento final — ni construida,
+ni retirada, ni en ningún bloque. El propio recuento de cabecera ("44 tareas accionables, 41 nuevas +
+3 verificaciones") ya asumía que estaba, así que el error era de la tabla, no del recuento.
+
+- **Corrección**: `LEV5` añadida al Bloque 4 (apuestas grandes) como fila 18, con alcance reducido
+  (⚠️) por el mismo motivo que `IVX5`/`APX4` — sin histórico de valoraciones de la cartera pignorada,
+  la volatilidad no es calculable; se declara a mano por clase de activo en vez de derivarse de una
+  serie que la app no guarda. El resto de filas de los Bloques 4 y 5 se renumeraron (18→41) para
+  mantener la secuencia; los encabezados de "10 tareas" y "10 preguntas de alcance" del Bloque 4 pasan
+  a "11".
+- **Sin cambios de código** — misma naturaleza que la sesión 155.
+- **Validación**: `npm test` en verde — 3292/3292 pruebas (sin cambio, no se tocó código).
 
 Continuación directa de la sesión 154 (cierre de ciclo, sin trabajo construible en ninguna cola). El
 hogar pidió una auditoría crítica de producto sobre cuatro frentes: que las previsiones se autoajusten
