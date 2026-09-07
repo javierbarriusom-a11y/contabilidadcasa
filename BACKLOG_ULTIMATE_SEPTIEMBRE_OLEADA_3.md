@@ -71,6 +71,7 @@ lo que pasó con `PVX3` en la Oleada 2 (recálculo instantáneo del forecast ya 
 | 🔍 | Verificación de código previa, obligatoria antes de decidir si construir la tarea que depende de ella |
 | ⚠️ | Alcance reducido respecto a la propuesta original, por un hueco de datos ya documentado en la Oleada 2 |
 | ⚪ | Retirada — ya construida en otra tarea, o sin hipótesis real que la sostenga |
+| ✅ | Hecho — código construido y validado, con el PR real de referencia |
 
 ---
 
@@ -100,11 +101,14 @@ Ninguna construye nada. Cada una decide si la tarea de cimiento que depende de e
 falta completa, hace falta reducida, o no hace falta en absoluto — el mismo desenlace que tuvo `PVX3`
 en la Oleada 2 (motor que ya existía, solo faltaba activarlo).
 
-| ID | Verificación | Qué decide | Nota |
+**Resueltas el 7 de septiembre de 2026** (sesión 157), por lectura de código — sin ejecución en
+caliente, mismo nivel de rigor que el resto de verificaciones de esta familia de backlogs:
+
+| ID | Verificación | Qué decide | Resultado |
 |---|---|---|---|
-| `VER-1` | ¿El forecast recalculado por `recomputeModelIfNeeded()` (`PVX3`) se repropaga a metas (`E15`/`A10-4`), plan de deuda (`E14b`/`AP1`), sostenibilidad de apalancamiento (`APX3`) y presupuesto de riesgo (`A11-5`) sin abrir esas pantallas? | Alcance final de `PVC1` | Si ya se repropaga, `PVC1` se reduce a hacerlo *visible* (un indicador "recalculado hace X" por módulo). Si no se repropaga, `PVC1` construye el motor de cascada completo. |
-| `VER-2` | ¿`AP1` (comparador amortizar-vs-invertir) ya se recalcula solo en cada cierre de mes, o solo cuando se abre su pantalla? | Alcance final de `DEB1` | Mismo patrón que `VER-1`, aplicado al comparador de deuda en vez de al forecast. |
-| `VER-3` | ¿`FC3` (pérdidas pendientes de compensar, citado por `APX1`) ya identifica posiciones con pérdida **latente** (no vendida) candidatas a venta antes de cierre fiscal, o solo trackea pérdidas ya realizadas? | Alcance final de `INV6` | Si `FC3` ya cubre pérdidas latentes, `INV6` se retira igual que `INV3`/`INV5`. Si no, `INV6` construye solo esa pieza que falta. |
+| ✅ `VER-1` | ¿El forecast recalculado por `recomputeModelIfNeeded()` (`PVX3`) se repropaga a metas (`E15`/`A10-4`), plan de deuda (`E14b`/`AP1`), sostenibilidad de apalancamiento (`APX3`) y presupuesto de riesgo (`A11-5`) sin abrir esas pantallas? | Alcance final de `PVC1` | **Sí, se repropaga.** `recomputeModelIfNeeded()` (`app.js:7392`) corre en cada `render()` global (`app.js:35559`) y, por firma (`modelComputationSignature()`), repuebla `canonicalScenarioResults` (`app.js:7340`). `goalPlanning()` y `e16Input()` leen ese mismo objeto en directo (`app.js:27857-27858`, `27893`), sin caché propia que pueda quedar obsoleta. Único matiz: `APX3` no es un dato ambiental — es un simulador manual (`handleApx3MarginCallSimulate()`, `app.js:15987`) que exige una caída hipotética declarada a mano en cada uso, así que el criterio de "cascada automática" no le aplica igual que a metas/riesgo. **`PVC1` queda reducida** a añadir el indicador visible ("recalculado hace X") que hoy falta — el motor de cascada ya existe. |
+| ✅ `VER-2` | ¿`AP1` (comparador amortizar-vs-invertir) ya se recalcula solo en cada cierre de mes, o solo cuando se abre su pantalla? | Alcance final de `DEB1` | **Sí, se recalcula solo.** `agentOptimalDebtPayoffPlan()` (`app.js:14366`) usa una clave de caché que se autoinvalida por firma (`agentDebtOptimizationCacheKey()`), además de limpiarse explícitamente en `recomputeModelIfNeeded()` (`app.js:7400`). **`DEB1` queda reducida** al aviso visible de cambio de veredicto entre cierres — no hace falta motor nuevo. |
+| ✅ `VER-3` | ¿`FC3` (pérdidas pendientes de compensar, citado por `APX1`) ya identifica posiciones con pérdida **latente** (no vendida) candidatas a venta antes de cierre fiscal, o solo trackea pérdidas ya realizadas? | Alcance final de `INV6` | **No, `FC3` solo cubre pérdidas ya realizadas** — trabaja exclusivamente sobre ventas vía FIFO (`app.js:17919` y ss., "Solo transmisiones contra transmisiones"). **`INV6` se confirma, no se retira.** Esfuerzo real menor al estimado: el dato base (`gainLoss` no realizado por posición) ya lo calcula `fifoLedger()` en `canonical-portfolio.js:175` — `INV6` es filtrar y rankear posiciones con `gainLoss` negativo respetando la norma de no recompra, no un motor nuevo. |
 
 ---
 
@@ -112,9 +116,9 @@ en la Oleada 2 (motor que ya existía, solo faltaba activarlo).
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 1 | ⏳ LEV1 | Política de apalancamiento del hogar | Apalancamiento | M | Alto | Un límite máximo de deuda-para-invertir sobre patrimonio neto o ingresos, declarado por el hogar de antemano, que ninguna otra tarea de este bloque deje superar sin confirmación explícita — mismo patrón que el guardarraíl de colchón (`DLX1`). No necesita verificación previa: `APX2`/`APX3` dejan constancia explícita de que el crédito Lombard queda **a propósito fuera** del guardarraíl general de deuda (`AP4`), por tener un perfil de riesgo distinto — confirma que el hueco es real, no una lectura errónea del código. |
-| 2 | ⏳/🔍 PVC1 | Motor de recálculo en cascada (alcance según `VER-1`) | Previsión viva | M-L (si `VER-1` confirma que hace falta motor nuevo) / S (si solo falta visibilizarlo) | Alto | Al cerrar un mes o recalibrar el forecast, que metas, plan de deuda, apalancamiento y presupuesto de riesgo quedan al día sin que el hogar tenga que abrir cada pantalla — con un indicador "recalculado hace X" por módulo dependiente para que el hecho de que ocurrió sea visible, no solo cierto puertas adentro. |
-| 3 | ⏳/🔍 DEB1 | Amortizar-vs-invertir recalculado cada cierre (alcance según `VER-2`) | Deuda-liquidez | M (si hace falta motor) / S (si solo falta el aviso) | Alto | Que `AP1` avise cuando su veredicto cambie de sentido entre un cierre y el siguiente, en vez de exigir que el hogar vuelva a abrir la pantalla para descubrirlo. |
+| 1 | ✅ LEV1 | Política de apalancamiento del hogar | Apalancamiento | M | Alto | Hecho (sesión 157). Un límite máximo de deuda-para-invertir sobre patrimonio neto o ingreso anual, declarado por el hogar de antemano, con guardarraíl puro `evaluateLeveragePolicy()` (`canonical-leverage-barrier.js`) que compara ese límite contra la deuda de apalancamiento ya tomada (reutiliza `FinanceCanonicalLeverageSustainability.takenScenariosOf`, la misma fuente que ya vigila `AP6`) y contra lo que `AP3` esté explorando ahora. Tarjeta nueva en Ajustes › Deuda y apalancamiento; el simulador de `AP3` muestra el impacto sobre el límite antes de marcar una exploración como tomada. Como el guardarraíl de colchón (`DLX1`), nunca bloquea — solo informa. A propósito no cubre el crédito Lombard de `APX2`/`APX3`: su nota ya dejaba constancia de que ese instrumento queda fuera del guardarraíl general de deuda (`AP4`) por tener un perfil de riesgo distinto. |
+| 2 | ⏳ PVC1 | Indicador de recálculo visible (alcance confirmado por `VER-1`) | Previsión viva | S | Alto | `VER-1` confirmó que el motor de cascada ya existe (`recomputeModelIfNeeded()` repropaga por firma a metas/riesgo sin caché obsoleta); `PVC1` se reduce a un indicador "recalculado hace X" por módulo dependiente, para que el hecho de que ya ocurrió sea visible y no solo cierto puertas adentro. No incluye `APX3` (simulador manual, fuera de este patrón — ver `VER-1`). |
+| 3 | ⏳ DEB1 | Aviso de cambio de veredicto (alcance confirmado por `VER-2`) | Deuda-liquidez | S | Alto | `VER-2` confirmó que `AP1` ya se recalcula solo por firma en cada cierre; `DEB1` se reduce a que avise cuando su veredicto cambie de sentido entre un cierre y el siguiente, en vez de exigir que el hogar vuelva a abrir la pantalla para descubrirlo. |
 
 ---
 
@@ -169,7 +173,7 @@ propia fila.
 | 30 | ⏳ PVC9 | "Por qué cambió tu previsión", en una frase | Previsión viva | S-M | Bajo | Combina el árbol causal `PVX5` con el detector de cambio estructural `PVC3` en un resumen de lenguaje natural de una línea, para quien no quiere navegar el árbol completo. |
 | 31 | ⚠️ INV2 | Alerta de desviación de rebalanceo | Inversión | S-M | Alto | Depende directamente de que `INV1` exista — sin clasificación de clase de activo por posición no hay "objetivo" con el que comparar la cartera real. Si el hogar decide no abrir esa dimensión de datos (pregunta de `INV1`), esta tarea queda igualmente en espera. |
 | 32 | ⚠️ INV4 | Alerta de concentración en una sola posición | Inversión | S-M | Medio | Alcance reducido a propósito: sin serie histórica de rendimientos ni clasificación de sector/divisa por posición (mismo hueco que ya bloqueó `APX4`/`IVX1`/`IVX5`), no hay correlación estadística real que calcular. Lo que sí es calculable hoy es un umbral simple de "% del total en una única posición", sobre los datos que `IV1` ya guarda. |
-| 33 | 🔍→⏳/⚪ INV6 | Compensación de pérdidas latentes antes del cierre fiscal | Inversión / Fiscalidad | M (si `VER-3` confirma que hace falta) | Alto | Ver `VER-3`: solo se construye si `FC3` no cubre ya la identificación de pérdidas latentes (no realizadas) candidatas a venta antes de cierre fiscal, respetando la norma de no recompra. |
+| 33 | ⏳ INV6 | Compensación de pérdidas latentes antes del cierre fiscal (confirmada por `VER-3`) | Inversión / Fiscalidad | S-M (reducido: `gainLoss` no realizado ya lo calcula `fifoLedger()`, solo falta filtrar/rankear candidatas) | Alto | `VER-3` confirmó que `FC3` solo cubre pérdidas ya realizadas — `INV6` identifica posiciones con `gainLoss` negativo (ya calculado por posición en `canonical-portfolio.js`) candidatas a venta antes de cierre fiscal, respetando la norma de no recompra. |
 | 34 | ⏳ INV7 | Escalera de liquidez de la cartera | Inversión | M | Medio | Clasifica cada activo por días hasta convertirlo en caja sin penalización severa, y lo cruza con el colchón (`canonical-cushion.js`) — distinto de `LPX2` (runway de patrimonio neto total) porque aquí importa la velocidad de conversión, no el valor total. |
 | 35 | ⏳ INV8 | Seguimiento de plan de aportación periódica (DCA) | Inversión | S-M | Bajo | `IVX7` ya muestra el coste medio de adquisición hacia atrás; esta tarea mira hacia delante — registra el calendario de aportaciones previsto y avisa de retraso acumulado, con el efecto estimado sobre la meta ligada (`goalId`, `IVX6`) si no se recupera. |
 | 36 | ⏳ LEV8 | Registro de la tesis de apalancamiento | Apalancamiento | S-M | Medio | Al activar apalancamiento, guardar qué se espera ganar, a qué horizonte y qué invalidaría la decisión — mismo patrón de diario que ya usa `PV5` para el forecast, aplicado aquí a una decisión de apalancamiento. |
@@ -203,10 +207,18 @@ escritura ni decisión de producto: se pueden resolver en una sola sesión. Su r
 esfuerzo real de `PVC1`, `DEB1` e `INV6` — construir esas tres sin esta verificación arriesga repetir
 exactamente lo que ya pasó una vez con `PVX3` (motor nuevo sobre algo que ya funcionaba).
 
+**Resuelto el 7 de septiembre de 2026 (sesión 157):** las tres confirmaron que el motor de cascada por
+firma ya existe — `PVC1` y `DEB1` quedan reducidas a un indicador visible (esfuerzo `S` cada una,
+detalle en el Bloque 2), e `INV6` se confirma con esfuerzo reducido (Bloque 5). Ninguna de las tres se
+retiró. Detalle completo en la tabla de resultados del Bloque 1.
+
 **Paso 2 — Bloque 2 (cimiento): `LEV1` primero, `PVC1`/`DEB1` con el alcance que el Paso 1 confirme.**
 `LEV1` no depende de ninguna verificación y es la pieza que más gobierno añade con menos ambigüedad —
 razón para construirla ya. `PVC1` y `DEB1` cierran el bloque con el esfuerzo real, no el estimado a
 ciegas.
+
+**`LEV1` hecha el 7 de septiembre de 2026 (sesión 157).** Quedan `PVC1` y `DEB1` (esfuerzo `S` cada
+una, confirmado en el Paso 1) para cerrar el Bloque 2.
 
 **Paso 3 — Bloque 3 completo (11 tareas S/S-M/M).** Ninguna depende de una decisión de alcance ni de
 otra tarea de esta oleada fuera del propio bloque (`DEB2` depende de `DLX2`, ya construida en la

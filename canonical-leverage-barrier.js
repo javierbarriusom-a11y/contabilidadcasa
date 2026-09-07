@@ -23,6 +23,10 @@
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 
+  function round2(value) {
+    return Math.round((number(value) + Number.EPSILON) * 100) / 100;
+  }
+
   function issue(id, level, title, detail) {
     return { id, level, title, detail };
   }
@@ -119,5 +123,42 @@
     };
   }
 
-  return { SCHEMA_ID, DEBT_SERVICE_RATIO_LIMIT, evaluateLeverageBarrier };
+  // LEV1 (Oleada 3, Bloque 2) — política de apalancamiento del hogar: un límite máximo, declarado de
+  // antemano por el hogar, sobre cuánta deuda-para-invertir se permite frente a su patrimonio neto o
+  // su ingreso anual — nunca un porcentaje "prudente" inventado por este motor. Guardarraíl
+  // complementario a evaluateLeverageBarrier: ese exige condiciones mínimas para explorar CUALQUIER
+  // deuda nueva; este limita el TOTAL acumulado (deuda ya tomada vía AP3/AP6 más lo que se esté
+  // explorando ahora) frente al techo declarado. A propósito no cubre el crédito Lombard de
+  // APX2/APX3: su propia nota ya deja constancia de que ese instrumento queda fuera del guardarraíl
+  // general por tener garantía real y un perfil de riesgo distinto — el mismo motivo por el que APX2
+  // se salta evaluateLeverageBarrier. Motor puro: nunca bloquea nada por sí solo, solo informa —
+  // quien lo consuma decide si exige confirmación explícita antes de seguir.
+  function evaluateLeveragePolicy({ limitPct, basis, referenceValue, currentLeverageDebt = 0, proposedAdditionalDebt = 0 } = {}) {
+    const limit = Math.max(0, number(limitPct));
+    const reference = Math.max(0, number(referenceValue));
+    if (!(limit > 0) || !(reference > 0)) {
+      return { schemaId: SCHEMA_ID, calculable: false, basis: basis || null };
+    }
+    const limitAmount = round2(reference * (limit / 100));
+    const current = round2(Math.max(0, number(currentLeverageDebt)));
+    const proposed = round2(Math.max(0, number(proposedAdditionalDebt)));
+    const totalDebt = round2(current + proposed);
+    const withinLimit = totalDebt <= limitAmount;
+    return {
+      schemaId: SCHEMA_ID,
+      calculable: true,
+      basis,
+      limitPct: limit,
+      referenceValue: reference,
+      limitAmount,
+      currentLeverageDebt: current,
+      proposedAdditionalDebt: proposed,
+      totalDebt,
+      withinLimit,
+      excessAmount: withinLimit ? 0 : round2(totalDebt - limitAmount),
+      usedPct: limitAmount > 0 ? round2((totalDebt / limitAmount) * 100) : null,
+    };
+  }
+
+  return { SCHEMA_ID, DEBT_SERVICE_RATIO_LIMIT, evaluateLeverageBarrier, evaluateLeveragePolicy };
 });

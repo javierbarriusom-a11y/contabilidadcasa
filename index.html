@@ -2678,6 +2678,32 @@
 
             <div class="e19-ajustes-group" id="ajustes-deuda" aria-labelledby="ajustes-deuda-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-deuda-title">Deuda y apalancamiento</h3>
+            <!-- LEV1 (Oleada 3, Bloque 2): política de apalancamiento del hogar — límite máximo de
+                 deuda-para-invertir, declarado de antemano como % de patrimonio neto o de ingreso
+                 anual, que el simulador de AP3 (abajo) consulta al explorar deuda nueva. Guardarraíl
+                 puro: nunca bloquea nada por sí solo, solo hace visible si el total (deuda ya tomada
+                 + lo que se esté explorando) supera el techo declarado. No cubre el crédito Lombard
+                 de APX2/APX3 a propósito — mismo motivo por el que ese instrumento ya queda fuera del
+                 guardarraíl general AP4. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Política de apalancamiento del hogar</h3>
+              <p class="e19-kpi-note">Declara de antemano cuánta deuda-para-invertir estás dispuesto a acumular como máximo, como porcentaje de tu patrimonio neto o de tu ingreso anual. El simulador de apalancamiento de abajo (AP3) avisa si una nueva exploración superaría este límite — nunca bloquea nada por sí solo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Referencia</span>
+                  <select id="lev1Basis">
+                    <option value="net-worth">Patrimonio neto</option>
+                    <option value="income">Ingreso anual</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Límite máximo (%)</span>
+                  <input id="lev1LimitPct" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 20" />
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="lev1PolicyStatus"></div>
+            </article>
+
             <!-- DI4: impacto de un aval dado en la capacidad de endeudamiento futura. Un banco
                  descuenta la cuota del aval de tu propia capacidad como si fuera deuda tuya, aunque
                  hoy no la estés pagando. Campo único aquí; el impacto se calcula y se muestra en

@@ -1,6 +1,58 @@
 # Estado del proyecto
 
-Fecha de revisión: 6 de septiembre de 2026.
+Fecha de revisión: 7 de septiembre de 2026.
+
+## Cierre de sesión — 7 de septiembre de 2026 (157): `VER-1/2/3` resueltas, `LEV1` construida (Oleada 3)
+
+Continuación directa de la sesión 156. Primera sesión de construcción real de
+`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, siguiendo su propio plan de ejecución: primero el Bloque 1
+(las tres verificaciones obligatorias), después la primera tarea del Bloque 2 (`LEV1`).
+
+- **`VER-1`/`VER-2`/`VER-3` resueltas por lectura de código** (sin ejecución en caliente — mismo nivel
+  de rigor que el resto de verificaciones de esta familia de backlogs):
+  - `VER-1`: el forecast recalculado por `recomputeModelIfNeeded()` (`app.js:7392`) ya se repropaga sin
+    abrir pantallas — corre en cada `render()` global (`app.js:35559`) y repuebla por firma
+    `canonicalScenarioResults` (`app.js:7340`), que `goalPlanning()`/`e16Input()` leen en directo, sin
+    caché propia que quede obsoleta. Único matiz: `APX3` es un simulador manual (caída hipotética
+    declarada a mano), no un dato ambiental — no aplica el mismo criterio de cascada automática.
+    **`PVC1` queda reducida** a un indicador visible ("recalculado hace X"); el motor ya existe.
+  - `VER-2`: mismo patrón — `agentOptimalDebtPayoffPlan()` (`AP1`) se autoinvalida por firma
+    (`agentDebtOptimizationCacheKey()`). **`DEB1` queda reducida** al aviso de cambio de veredicto.
+  - `VER-3`: `FC3` solo cubre pérdidas ya realizadas (FIFO, `app.js:17919`); el dato de pérdida no
+    realizada por posición ya existe en `fifoLedger()` (`canonical-portfolio.js:175`). **`INV6` se
+    confirma**, con esfuerzo reducido (filtrar/rankear, no motor nuevo).
+  - Detalle completo, con referencias de línea, en la tabla de resultados del Bloque 1 de
+    `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`.
+
+- **`LEV1` construida — política de apalancamiento del hogar**: un límite máximo de
+  deuda-para-invertir, declarado de antemano como % de patrimonio neto o de ingreso anual.
+  - Motor puro nuevo: `evaluateLeveragePolicy()` en `canonical-leverage-barrier.js` (junto a `AP4`,
+    `evaluateLeverageBarrier`) — nunca bloquea nada por sí solo, solo informa (mismo contrato que
+    `amortizeCushionGuardrail`, `DLX1`).
+  - Reutiliza fuentes ya existentes, sin inventar ningún dato nuevo aparte del propio límite:
+    patrimonio neto de `lpNetWorthSnapshot()` (`LPX1`/`LPX2`), ingreso mensual ya usado por `AP3`/`E16`,
+    y la deuda de apalancamiento ya tomada vía
+    `FinanceCanonicalLeverageSustainability.takenScenariosOf()` — la misma fuente que ya vigila `AP6`,
+    sin recontarla por separado.
+  - Tarjeta nueva en Ajustes › Deuda y apalancamiento (`lev1Basis`, `lev1LimitPct`,
+    `lev1PolicyStatus`), colocada antes del simulador `AP3` al que informa. El simulador de `AP3`
+    (`ap3ResultHtml`) muestra ahora una vista previa del impacto de la deuda explorada sobre el límite
+    declarado, antes de que el hogar la marque como tomada.
+  - A propósito no cubre el crédito Lombard de `APX2`/`APX3`: igual que ya hacía `AP4`, ese instrumento
+    queda fuera del guardarraíl general por tener garantía real y un perfil de riesgo distinto.
+
+- **Nota del entorno**: este contenedor no tenía `node_modules` instalado al empezar la sesión (igual
+  que en la sesión 155) — instalado con `npm install` antes de validar.
+
+- **Validación**: `npm run verify` en verde — **3309/3309 pruebas** (3292 previas + 17 nuevas de
+  `LEV1`, en `tests/lev1-politica-apalancamiento.test.cjs`: unitarias del motor puro e integración
+  estática del wiring en `app.js`/`index.html`), accesibilidad estructural **1126 IDs únicos** (antes
+  1123 — suma de los tres campos nuevos de la tarjeta de `LEV1`), rendimiento dentro de los umbrales de
+  `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-workflow-backlog-vmg1x2` — commit y push
+  siguientes, PR en borrador y fusión a `main` en cuanto el CI esté en verde, autorización ya dada por
+  el hogar (`CLAUDE.md`).
 
 ## Cierre de sesión — 6 de septiembre de 2026 (156): corrige `LEV5` perdida en la Oleada 3
 

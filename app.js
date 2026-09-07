@@ -3704,6 +3704,11 @@ function saveScenarioSettings() {
     emergencyCreditRate: round2(Math.max(0, Number(state.emergencyCreditRate || 0))),
     // DI4 · cuota mensual equivalente de avales dados, mismo criterio que la línea de crédito.
     loanGuaranteeMonthly: round2(Math.max(0, Number(state.loanGuaranteeMonthly || 0))),
+    // LEV1 (Oleada 3) · límite máximo de deuda-para-invertir declarado por el hogar, y la base sobre
+    // la que se calcula (patrimonio neto o ingreso anual) — mismo criterio que el resto de política
+    // del hogar: se sincroniza y se restaura, 0 significa «sin configurar».
+    leveragePolicyLimitPct: round2(Math.max(0, Number(state.leveragePolicyLimitPct || 0))),
+    leveragePolicyBasis: state.leveragePolicyBasis === "income" ? "income" : "net-worth",
     // SP3 · cobertura del seguro de hogar y valor de reposición de bienes — faltaban en esta lista
     // desde que se construyeron: se editaban en `state` pero nunca sobrevivían a un recargar la
     // página, porque `saveScenarioSettings()` solo persiste lo que aparece aquí explícitamente.
@@ -15865,6 +15870,111 @@ function handleFc5Optimize() {
   note.innerHTML = fc5ResultHtml(result);
 }
 
+// LEV1 (Oleada 3, Bloque 2) · política de apalancamiento del hogar — un límite máximo de
+// deuda-para-invertir, declarado de antemano por el hogar como % de su patrimonio neto o de su
+// ingreso anual, que el resto de este bloque (hoy AP3/AP6; más adelante LEV3-LEV8) consulta antes de
+// dejar que la deuda tomada supere ese techo sin que el hogar lo vea explícitamente. Reutiliza
+// exactamente las mismas fuentes que ya existen: patrimonio neto de LPX1/LPX2 (lpNetWorthSnapshot),
+// ingreso mensual de AP3/E16 (state.baseHouseholdIncome), y la deuda de apalancamiento ya tomada que
+// ya vigila AP6 (FinanceCanonicalLeverageSustainability.takenScenariosOf) — ningún dato nuevo que
+// declarar aparte salvo el propio límite. A propósito no cubre el crédito Lombard de APX2/APX3: su
+// nota ya dejaba constancia de que ese instrumento queda fuera del guardarraíl general (AP4) por
+// tener garantía real y un perfil de riesgo distinto — este guardarraíl respeta el mismo criterio.
+function lev1PolicyLimitPct() {
+  const configured = Number(state?.leveragePolicyLimitPct || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function lev1PolicyBasis() {
+  return state?.leveragePolicyBasis === "income" ? "income" : "net-worth";
+}
+
+const LEV1_BASIS_LABEL = { "net-worth": "patrimonio neto", income: "ingreso anual" };
+
+function lev1ReferenceValue(basis) {
+  if (basis === "income") {
+    const monthlyIncome = Math.max(0, Number(state?.baseHouseholdIncome || baseData?.assumptions?.monthlyIncome || 0));
+    return monthlyIncome > 0 ? round2(monthlyIncome * 12) : 0;
+  }
+  const snapshot = lpNetWorthSnapshot();
+  return snapshot.calculable ? Math.max(0, round2(snapshot.netWorth)) : 0;
+}
+
+function lev1CurrentLeverageDebt() {
+  const engine = window.FinanceCanonicalLeverageSustainability;
+  if (!engine) return 0;
+  const taken = engine.takenScenariosOf(ap3LeverageScenarios());
+  return round2(taken.reduce((sum, row) => sum + Number(row?.result?.newDebtAmount || 0), 0));
+}
+
+function lev1PolicyResult({ proposedAdditionalDebt = 0 } = {}) {
+  const engine = window.FinanceCanonicalLeverageBarrier;
+  if (!engine) return null;
+  const basis = lev1PolicyBasis();
+  return engine.evaluateLeveragePolicy({
+    limitPct: lev1PolicyLimitPct(),
+    basis,
+    referenceValue: lev1ReferenceValue(basis),
+    currentLeverageDebt: lev1CurrentLeverageDebt(),
+    proposedAdditionalDebt,
+  });
+}
+
+function lev1ResultHtml(result) {
+  if (!result || !result.calculable) {
+    return "Declara un límite (%) y elige patrimonio neto o ingreso anual como referencia para activar este guardarraíl.";
+  }
+  const basisLabel = LEV1_BASIS_LABEL[result.basis] || result.basis;
+  const headline = `Límite declarado: ${result.limitPct}% de tu ${basisLabel} (${money(result.referenceValue, true)}) = ${money(result.limitAmount, true)} de deuda-para-invertir como máximo.`;
+  const proposedLine = result.proposedAdditionalDebt > 0
+    ? ` + ${money(result.proposedAdditionalDebt, true)} en exploración = ${money(result.totalDebt, true)}`
+    : "";
+  const usageLine = `Deuda de apalancamiento ya tomada: ${money(result.currentLeverageDebt, true)}${proposedLine} (${result.usedPct === null ? "—" : `${result.usedPct}%`} del límite).`;
+  const statusLine = result.withinLimit
+    ? `<p class="e19-kpi-note positive">Dentro del límite declarado.</p>`
+    : `<p class="e19-kpi-note negative"><strong>Por encima del límite declarado</strong> por ${money(result.excessAmount, true)} — este guardarraíl no bloquea nada por sí solo, pero revísalo antes de seguir.</p>`;
+  return `<p>${headline}</p><p>${usageLine}</p>${statusLine}`;
+}
+
+function renderLev1PolicyStatus(options) {
+  const box = qs("lev1PolicyStatus");
+  if (!box) return null;
+  const result = lev1PolicyResult(options);
+  box.innerHTML = lev1ResultHtml(result);
+  return result;
+}
+
+// Vista previa del impacto de una deuda de apalancamiento en exploración (AP3) sobre la política ya
+// declarada — visible en el momento de decidir, no solo en la tarjeta de estado de Ajustes.
+function lev1PolicyPreviewHtml(proposedAdditionalDebt) {
+  const result = lev1PolicyResult({ proposedAdditionalDebt: Math.max(0, Number(proposedAdditionalDebt || 0)) });
+  if (!result || !result.calculable || !(proposedAdditionalDebt > 0)) return "";
+  const basisLabel = LEV1_BASIS_LABEL[result.basis] || result.basis;
+  return result.withinLimit
+    ? `<p class="e19-kpi-note">Con esta deuda nueva, tu apalancamiento total pasaría a ${money(result.totalDebt, true)} — ${result.usedPct}% de tu límite declarado (${result.limitPct}% de tu ${basisLabel}).</p>`
+    : `<p class="e19-kpi-note negative"><strong>Con esta deuda nueva superarías tu política de apalancamiento (LEV1)</strong> por ${money(result.excessAmount, true)} — revisa el límite declarado antes de marcarla como tomada.</p>`;
+}
+
+function syncLev1PolicyControls() {
+  const limitField = qs("lev1LimitPct");
+  if (limitField && document.activeElement !== limitField) {
+    const value = lev1PolicyLimitPct();
+    limitField.value = value > 0 ? String(value) : "";
+  }
+  const basisField = qs("lev1Basis");
+  if (basisField && document.activeElement !== basisField) basisField.value = lev1PolicyBasis();
+}
+
+function handleLev1PolicyChange() {
+  if (!state) return;
+  const parsedLimit = parseAmount(qs("lev1LimitPct")?.value);
+  state.leveragePolicyLimitPct = parsedLimit !== null && parsedLimit > 0 ? round2(parsedLimit) : 0;
+  state.leveragePolicyBasis = qs("lev1Basis")?.value === "income" ? "income" : "net-worth";
+  saveScenarioSettings();
+  syncLev1PolicyControls();
+  renderLev1PolicyStatus();
+}
+
 // AP3 · simulador de apalancamiento (pedir deuda nueva para invertir) — explorar, no ejecutar.
 // Depende de AP4 (canonical-leverage-barrier.js), a propósito: sin sus condiciones mínimas
 // verificadas no hay simulación que mostrar, así que el propio guardarraíl se recalcula y se
@@ -15916,7 +16026,7 @@ function ap3ResultHtml(result) {
     const scenario = result.scenarios[key];
     return `<li><strong>${escapeHtml(scenario.label)} (${scenario.ratePercent}%)</strong>: rendimiento esperado ${money(scenario.expectedAnnualReturn, true)}/año, coste de la deuda ${money(result.annualDebtCost, true)}/año → resultado neto ${money(scenario.netAnnualResult, true)}/año (${assessmentLabel[scenario.assessment]}, no una orden — revisa los números antes de aceptarla).</li>`;
   }).join("");
-  return `<p>Deuda nueva: ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% anual → coste de la deuda ${money(result.annualDebtCost, true)}/año.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+  return `<p>Deuda nueva: ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% anual → coste de la deuda ${money(result.annualDebtCost, true)}/año.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>${lev1PolicyPreviewHtml(result.newDebtAmount)}`;
 }
 
 function handleAp3Simulate() {
@@ -16042,6 +16152,7 @@ function toggleAp3ScenarioTaken(id) {
   saveScenarioSettings();
   renderAp3ScenarioList();
   renderAp6Alert();
+  renderLev1PolicyStatus();
   renderAp5Queue();
 }
 
@@ -16061,6 +16172,7 @@ function saveAp3Scenario() {
   if (qs("ap3ScenarioName")) qs("ap3ScenarioName").value = "";
   renderAp3ScenarioList();
   renderAp6Alert();
+  renderLev1PolicyStatus();
   announceStatus("Escenario de apalancamiento guardado.");
 }
 
@@ -16069,6 +16181,7 @@ function removeAp3Scenario(id) {
   saveScenarioSettings();
   renderAp3ScenarioList();
   renderAp6Alert();
+  renderLev1PolicyStatus();
 }
 
 // AP6 · alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada. Depende de AP3:
@@ -26333,6 +26446,8 @@ function renderAjustes() {
   renderAp6Alert();
   renderAp1DebtOptions();
   renderAp5Queue();
+  syncLev1PolicyControls();
+  renderLev1PolicyStatus();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -36546,6 +36661,8 @@ async function init() {
   qs("ajustesEmergencyCreditLimit")?.addEventListener("change", handleEmergencyCreditLimitChange);
   qs("ajustesEmergencyCreditRate")?.addEventListener("change", handleEmergencyCreditRateChange);
   qs("ajustesLoanGuaranteeMonthly")?.addEventListener("change", handleLoanGuaranteeMonthlyChange);
+  qs("lev1LimitPct")?.addEventListener("change", handleLev1PolicyChange);
+  qs("lev1Basis")?.addEventListener("change", handleLev1PolicyChange);
   qs("ajustesAutoAdjustForecastBias")?.addEventListener("change", handleAutoAdjustForecastBiasChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
