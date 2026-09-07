@@ -2831,10 +2831,14 @@
                  ya construido): compara el ahorro de intereses de amortizar anticipadamente una
                  deuda existente frente a lo que ese mismo importe podría haber generado invertido
                  en la cartera real del hogar. El TIN de la deuda lo declara el hogar: ningún
-                 contrato de deuda de la app guarda un tipo de interés propio. -->
+                 contrato de deuda de la app guarda un tipo de interés propio.
+                 DEB1 (Oleada 3, Bloque 2, alcance confirmado por VER-2): AP1 ya se recalcula solo
+                 por firma, no hacía falta motor nuevo — solo el aviso de #deb1VerdictChangeAlert,
+                 visible sin tener que rellenar el formulario y pulsar «Comparar» de nuevo. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Comparador: amortizar vs. invertir</h3>
               <p class="e19-kpi-note">Para un importe de caja disponible, compara amortizar anticipadamente una deuda existente frente a invertirlo en tu cartera real (misma rentabilidad XIRR que ya usa el simulador de decisión, IV5). Ninguna cifra de mercado se inventa aquí — solo el TIN de la deuda, que declaras tú.</p>
+              <div class="e19-kpi-note" id="deb1VerdictChangeAlert"></div>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Deuda a amortizar</span>

@@ -2,7 +2,7 @@
 
 Fecha de revisión: 7 de septiembre de 2026.
 
-## Cierre de sesión — 7 de septiembre de 2026 (157): `VER-1/2/3` resueltas, `LEV1` construida (Oleada 3)
+## Cierre de sesión — 7 de septiembre de 2026 (157): Bloque 2 completo — `VER-1/2/3`, `LEV1`, `PVC1`, `DEB1` (Oleada 3)
 
 Continuación directa de la sesión 156. Primera sesión de construcción real de
 `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, siguiendo su propio plan de ejecución: primero el Bloque 1
@@ -41,13 +41,34 @@ Continuación directa de la sesión 156. Primera sesión de construcción real d
   - A propósito no cubre el crédito Lombard de `APX2`/`APX3`: igual que ya hacía `AP4`, ese instrumento
     queda fuera del guardarraíl general por tener garantía real y un perfil de riesgo distinto.
 
+- **`PVC1` construida — indicador de recálculo visible**: `recomputeModelIfNeeded()` marca ahora
+  `lastModelRecomputeAt` cuando recalcula de verdad (nunca en cada llamada — solo cuando la firma
+  cambió), expuesta vía `FinanceP2Bridge.lastModelRecomputeAt()`. Los paneles de metas (E15) y
+  seguimiento predictivo (E16) en `p2-ui.js` muestran ahora "datos recalculados hace X" al principio
+  de su cuerpo — sin motor de cascada nuevo, tal como `VER-1` ya adelantaba. Excluido `APX3` a
+  propósito (simulador manual, no un dato ambiental).
+
+- **`DEB1` construida — aviso de cambio de veredicto en `AP1`**: cada comparación real que el hogar
+  ejecuta en `AP1` (con un veredicto calculable — nunca "invertir-no-calculable") se guarda como
+  `ap1TrackedComparison`. En cada render de la tarjeta, `deb1RecomputeTrackedAssessment()` la
+  recalcula con los datos vivos actuales (principal real de la deuda seleccionada vía `p2DebtRows()`,
+  XIRR real de la cartera vía `iv5PortfolioAnnualReturnPct()`) reutilizando tal cual
+  `compareAmortizeVsInvest()`/`opportunityCost()` — sin motor nuevo. Si el veredicto cambió de
+  sentido, un aviso aparece en la propia tarjeta de `AP1` (`#deb1VerdictChangeAlert`) sin que el hogar
+  tenga que rellenar el formulario y pulsar «Comparar» de nuevo para descubrirlo.
+
+- **Con esto, el Bloque 2 (cimiento) de la Oleada 3 queda completo**: `LEV1`, `PVC1` y `DEB1` hechas.
+  Siguiente paso natural: Bloque 3 (11 tareas de alto impacto, sin preguntas de alcance).
+
 - **Nota del entorno**: este contenedor no tenía `node_modules` instalado al empezar la sesión (igual
   que en la sesión 155) — instalado con `npm install` antes de validar.
 
-- **Validación**: `npm run verify` en verde — **3309/3309 pruebas** (3292 previas + 17 nuevas de
-  `LEV1`, en `tests/lev1-politica-apalancamiento.test.cjs`: unitarias del motor puro e integración
-  estática del wiring en `app.js`/`index.html`), accesibilidad estructural **1126 IDs únicos** (antes
-  1123 — suma de los tres campos nuevos de la tarjeta de `LEV1`), rendimiento dentro de los umbrales de
+- **Validación**: `npm run verify` en verde — **3323/3323 pruebas** (3309 tras `LEV1` + 14 nuevas de
+  `PVC1`/`DEB1`, en `tests/pvc1-indicador-recalculo.test.cjs` y
+  `tests/deb1-aviso-cambio-veredicto.test.cjs`: integración estática del wiring en
+  `app.js`/`index.html`/`p2-ui.js`), accesibilidad estructural **1127 IDs únicos** (antes 1126 — el
+  hueco del aviso `#deb1VerdictChangeAlert`; `PVC1` no añade ningún id, solo texto dentro de paneles
+  ya existentes), rendimiento dentro de los umbrales de
   `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
 
 - **Pendiente de publicar**: rama `claude/finanzas-casa-workflow-backlog-vmg1x2` — commit y push

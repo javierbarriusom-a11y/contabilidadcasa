@@ -153,6 +153,10 @@ let visualBulkEditorSignature = "";
 let dataEntryMonthSignature = "";
 let seriesEditorSignature = "";
 let simulationSignature = "";
+// PVC1 (Oleada 3, Bloque 2) · marca de cuándo recomputeModelIfNeeded() recalculó de verdad por
+// última vez (nunca en cada llamada — solo cuando la firma cambió), para que E15/E16 puedan mostrar
+// "recalculado hace X" sin que el hogar tenga que abrir cada pantalla para confiar en que está al día.
+let lastModelRecomputeAt = null;
 let renderFrame = 0;
 let activeViewRenderFrame = 0;
 let activeViewRenderTimer = 0;
@@ -3709,6 +3713,9 @@ function saveScenarioSettings() {
     // del hogar: se sincroniza y se restaura, 0 significa «sin configurar».
     leveragePolicyLimitPct: round2(Math.max(0, Number(state.leveragePolicyLimitPct || 0))),
     leveragePolicyBasis: state.leveragePolicyBasis === "income" ? "income" : "net-worth",
+    // DEB1 (Oleada 3) · última comparación amortizar-vs-invertir que el hogar miró de verdad en AP1,
+    // para poder avisar si el veredicto cambia de sentido entre un cierre y el siguiente.
+    ap1TrackedComparison: scenarioSettings.ap1TrackedComparison || null,
     // SP3 · cobertura del seguro de hogar y valor de reposición de bienes — faltaban en esta lista
     // desde que se construyeron: se editaban en `state` pero nunca sobrevivían a un recargar la
     // página, porque `saveScenarioSettings()` solo persiste lo que aparece aquí explícitamente.
@@ -7401,6 +7408,7 @@ function recomputeModelIfNeeded(force = false) {
     return;
   }
   simulationSignature = nextSignature;
+  lastModelRecomputeAt = new Date().toISOString();
   savingsAgentPlanCache = { key: "", value: null };
   agentDebtOptimizationCache = { key: "", value: null };
   homeDebtOutlookCache = { key: "", value: null };
@@ -16253,6 +16261,57 @@ const AP1_ASSESSMENT_LABEL = {
   neutral: "cualquiera de las dos — el resultado es prácticamente el mismo",
 };
 
+// DEB1 (Oleada 3, Bloque 2) · aviso de cambio de veredicto de AP1 entre un cierre y el siguiente.
+// VER-2 confirmó que AP1 ya se recalcula solo por firma (agentDebtOptimizationCacheKey) — lo único
+// que faltaba era el aviso: guarda la última comparación que el hogar miró de verdad (mismos
+// importes declarados) y, en cada render, la recalcula con los datos vivos actuales (principal real
+// de la deuda, XIRR real de la cartera) para avisar si el veredicto cambió de sentido, sin que el
+// hogar tenga que rellenar el formulario y pulsar «Comparar» otra vez para descubrirlo.
+function ap1TrackedComparison() {
+  return scenarioSettings.ap1TrackedComparison || null;
+}
+
+function saveAp1TrackedComparison(tracked) {
+  scenarioSettings.ap1TrackedComparison = tracked;
+  saveScenarioSettings();
+}
+
+function deb1RecomputeTrackedAssessment(tracked) {
+  const debtComparator = window.FinanceDebtComparator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!debtComparator || !portfolioEngine) return null;
+  const debt = p2DebtRows().find((row) => row.id === tracked.debtId) || null;
+  const investmentResult = portfolioEngine.opportunityCost({
+    amount: tracked.amount,
+    months: tracked.months,
+    annualReturnPct: iv5PortfolioAnnualReturnPct(),
+  });
+  const result = debtComparator.compareAmortizeVsInvest({
+    amount: tracked.amount,
+    months: tracked.months,
+    debtAnnualRatePct: tracked.debtAnnualRatePct,
+    remainingPrincipal: debt ? debt.currentPrincipal : null,
+    investmentResult,
+  });
+  return result.calculable ? result.assessment : null;
+}
+
+function deb1VerdictChangeHtml() {
+  const tracked = ap1TrackedComparison();
+  if (!tracked) return "";
+  const currentAssessment = deb1RecomputeTrackedAssessment(tracked);
+  if (!currentAssessment || currentAssessment === tracked.assessment) return "";
+  const wasLabel = AP1_ASSESSMENT_LABEL[tracked.assessment] || tracked.assessment;
+  const nowLabel = AP1_ASSESSMENT_LABEL[currentAssessment] || currentAssessment;
+  return `<p class="negative"><strong>El veredicto de tu comparación guardada ha cambiado</strong> (${money(tracked.amount, true)}, ${tracked.months} mes(es)): antes convenía ${escapeHtml(wasLabel)}, ahora conviene ${escapeHtml(nowLabel)} — vuelve a comparar para confirmarlo.</p>`;
+}
+
+function renderDeb1VerdictChangeAlert() {
+  const box = qs("deb1VerdictChangeAlert");
+  if (!box) return;
+  box.innerHTML = deb1VerdictChangeHtml();
+}
+
 // La lectura amortizar/invertir es una sugerencia apoyada en los números de al lado, nunca una
 // orden — se dice así de forma explícita, mismo criterio que AP3 con sus escenarios de rentabilidad.
 function ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) {
@@ -16403,6 +16462,16 @@ function handleAp1Compare() {
     })
     : null;
   note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
+  // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
+  // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
+  if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {
+    saveAp1TrackedComparison({
+      debtId, amount, months, debtAnnualRatePct,
+      assessment: result.assessment,
+      evaluatedAt: new Date().toISOString(),
+    });
+  }
+  renderDeb1VerdictChangeAlert();
 }
 
 // AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3 (escenarios de
@@ -26448,6 +26517,7 @@ function renderAjustes() {
   renderAp5Queue();
   syncLev1PolicyControls();
   renderLev1PolicyStatus();
+  renderDeb1VerdictChangeAlert();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -27963,6 +28033,10 @@ function p2ExportModel(version = p2State().exportVersion || 1) {
 window.FinanceP2Bridge = {
   getState: p2State,
   saveState: saveP2State,
+  // PVC1 · cuándo se recalculó de verdad el modelo por última vez (recomputeModelIfNeeded), para
+  // que E15/E16 muestren "recalculado hace X" sin que el hogar tenga que confiar a ciegas en que
+  // los datos están al día.
+  lastModelRecomputeAt: () => lastModelRecomputeAt,
   months: () => selectableMonths().map((month) => ({ key: month.key, label: month.label })),
   seriesRows: p2SeriesRows,
   movements: p2MovementRows,
