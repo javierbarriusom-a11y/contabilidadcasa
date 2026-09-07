@@ -1190,6 +1190,7 @@ function deudaContratosRowHtml(contract) {
       <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="currentPrincipal" value="${round2(contract.currentPrincipal)}" aria-label="Capital pendiente de ${entityLabel}" /></td>
       <td><input type="number" min="0" max="60" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="apr" value="${aprValue}" placeholder="sin dato" aria-label="TAE de ${entityLabel}" /></td>
       <td><input type="number" min="0" step="0.01" inputmode="decimal" data-deuda-contrato-id="${id}" data-deuda-contrato-field="currentPayment" value="${round2(contract.currentPayment)}" aria-label="Cuota mensual de ${entityLabel}" /></td>
+      <td><input type="number" min="0" max="100" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="fiscalDeductionPct" value="${contract.fiscalDeductionPct > 0 ? contract.fiscalDeductionPct : ""}" placeholder="0" aria-label="Deducción fiscal de ${entityLabel} (%)" /></td>
       <td><input type="number" min="0" step="1" inputmode="numeric" data-deuda-contrato-id="${id}" data-deuda-contrato-field="remainingInstallments" value="${installments}" aria-label="Plazos restantes de ${entityLabel}" /></td>
       <td><select data-deuda-contrato-id="${id}" data-deuda-contrato-field="paymentStatus" aria-label="Estado de ${entityLabel}">${deudaContratosStatusOptionsHtml(contract.paymentStatus)}</select></td>
       <td><span class="e19-badge ${quality.tone}">${escapeHtml(quality.label)}</span>${edited ? ' <span class="e19-badge e19-badge-neutral">Editado</span>' : ""}</td>
@@ -1203,7 +1204,7 @@ function renderDeudaContratos() {
   if (!body) return;
   const contracts = debtContractSourceRows();
   body.innerHTML = `<thead><tr>
-        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th><span class="sr-only">Acciones</span></th>
+        <th>Entidad</th><th>Capital pendiente</th><th>TAE</th><th>Cuota mensual</th><th>Deducción fiscal (%)</th><th>Plazos restantes</th><th>Estado</th><th>Calidad del dato</th><th><span class="sr-only">Acciones</span></th>
       </tr></thead>
       <tbody>${contracts.map(deudaContratosRowHtml).join("")}</tbody>`;
   const overriddenCount = contracts.filter((contract) => debtContractOverrides[contract.id]).length;
@@ -1215,6 +1216,82 @@ function renderDeudaContratos() {
   }
   const cuadreEl = qs("deudaContratosCuadre");
   if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
+  renderDeb5FiscalPriority(contracts);
+  renderDeb6DebtChecklist(contracts);
+}
+
+// DEB5 (Oleada 3, Bloque 4): prioridad multideuda ajustada por fiscalidad — orden de "mayor coste
+// real" entre TODAS las deudas activas con TAE declarado, usando el TAE efectivo tras la deducción
+// fiscal de cada contrato (columna de arriba). Se recalcula en cada redibujado de la tabla, sin
+// formulario propio: la única fuente de datos es la propia tabla de contratos.
+function renderDeb5FiscalPriority(contracts) {
+  const note = qs("deb5FiscalPriorityNote");
+  if (!note) return;
+  const engine = window.FinanceDebtContracts;
+  const result = engine?.fiscalAdjustedDebtPriority?.(contracts);
+  if (!result || !result.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Sin deudas activas con TAE declarado todavía — nada que priorizar.</p>`;
+    return;
+  }
+  const items = result.rows
+    .map((row) => `<li class="commit-barrier-item">${row.priorityRank}. <strong>${escapeHtml(row.entity)}</strong> — TAE nominal ${row.nominalAprPct}%${row.fiscalDeductionPct > 0 ? `, ${row.fiscalDeductionPct}% deducible → TAE efectivo <strong>${row.effectiveAprPct}%</strong>` : ""}</li>`)
+    .join("");
+  const warning = result.reorderedByFiscal
+    ? `<p class="e19-kpi-note is-warn">La deducción fiscal cambia este orden frente al TAE nominal solo — revisa antes de amortizar "la de interés más alto" sin más.</p>`
+    : "";
+  note.innerHTML = `<ol class="commit-barrier-list">${items}</ol>${warning}`;
+}
+
+// DEB6 (Oleada 3, Bloque 4): simulador de consolidación — casillas para elegir qué deudas activas
+// entrarían en un préstamo nuevo, comparado contra mantenerlas por separado. Nada se ejecuta: es
+// una simulación de lectura, igual que AP1/Comparar.
+function renderDeb6DebtChecklist(contracts) {
+  const box = qs("deb6DebtChecklist");
+  if (!box) return;
+  const eligible = contracts.filter((contract) => contract.paymentStatus === "active" && contract.currentPrincipal > 0);
+  if (eligible.length < 2) {
+    box.innerHTML = `<p class="e19-kpi-note">Hacen falta al menos dos deudas activas para simular una consolidación.</p>`;
+    return;
+  }
+  box.innerHTML = eligible
+    .map((contract) => `<label class="commit-barrier-item">
+        <input type="checkbox" data-deb6-contract-checkbox="${escapeHtml(contract.id)}" />
+        ${escapeHtml(contract.entity)} — ${money(contract.currentPrincipal, true)}${contract.apr ? ` a ${contract.apr}% TAE` : ""}
+      </label>`)
+    .join("");
+  const resultNote = qs("deb6ConsolidationNote");
+  if (resultNote) resultNote.innerHTML = "";
+}
+
+function deb6SelectedContractIds() {
+  return Array.from(document.querySelectorAll("[data-deb6-contract-checkbox]:checked")).map((el) => el.dataset.deb6ContractCheckbox);
+}
+
+function handleDeb6Simulate() {
+  const note = qs("deb6ConsolidationNote");
+  if (!note) return;
+  const engine = window.FinanceDebtContracts;
+  if (!engine) return;
+  const contractIds = deb6SelectedContractIds();
+  const newRatePct = Number(String(qs("deb6NewLoanRatePct")?.value || "").trim().replace(",", "."));
+  const newTermMonths = Math.round(Number(String(qs("deb6NewLoanTermMonths")?.value || "").trim().replace(",", ".")));
+  const result = engine.simulateDebtConsolidation({
+    contracts: debtContractSourceRows(),
+    contractIds,
+    newLoan: { annualRatePct: newRatePct, termMonths: newTermMonths },
+  });
+  if (!result.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note is-warn">${
+      result.reason === "need-at-least-two-debts"
+        ? "Selecciona al menos dos deudas activas para consolidar."
+        : "Declara el TAE y el plazo del préstamo nuevo."
+    }</p>`;
+    return;
+  }
+  const deltaLabel = result.worthIt
+    ? `ahorro de ${money(Math.abs(result.totalCostDelta), true)}`
+    : `${money(Math.abs(result.totalCostDelta), true)} MÁS caro`;
+  note.innerHTML = `<p>Consolidar ${result.contractIds.length} deudas (${money(result.totalPrincipal, true)} de capital) en un préstamo nuevo a ${result.newRatePct}% durante ${result.newTermMonths} meses: cuota de ${money(result.newMonthlyPayment, true)}/mes (antes ${money(result.currentMonthlyPayment, true)}/mes por separado), coste total ${money(result.newTotalCost, true)} frente a ${money(result.currentTotalCost, true)} manteniéndolas separadas — <strong>${deltaLabel}</strong> frente a no consolidar.</p>`;
 }
 
 // D-15 · el simulador visual promovido desde «Herramientas avanzadas» a pestaña de Deuda: al
@@ -1239,6 +1316,7 @@ function deudaContratosParseFieldValue(field, raw) {
   const value = Number(trimmed.replace(",", "."));
   if (!Number.isFinite(value) || value < 0) return { invalid: true };
   if (field === "apr" && value > 60) return { invalid: true };
+  if (field === "fiscalDeductionPct" && value > 100) return { invalid: true };
   if (DEBT_CONTRACT_INTEGER_FIELDS.includes(field)) return { value: Math.floor(value) };
   return { value: round2(value) };
 }

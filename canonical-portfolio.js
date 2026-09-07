@@ -291,6 +291,9 @@
       // comisión declarada", nunca "comisión cero confirmada" — igual que el resto de campos
       // opcionales de este contrato.
       feePct: knownNumber(raw.feePct) ? nonNegative(raw.feePct) : 0,
+      // LEV6 (Oleada 3, Bloque 4): convicción declarada por el hogar (1-5, menor = vender antes al
+      // desapalancar) — opcional, null si no se declara, nunca un valor medio inventado.
+      convictionScore: knownNumber(raw.convictionScore) ? Math.max(1, Math.min(5, Math.round(number(raw.convictionScore)))) : null,
     };
     return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: xirr(cashFlows) };
   }
@@ -420,6 +423,52 @@
       const action = Math.abs(deviation) <= thresholdPct ? "ok" : amount > 0 ? "comprar" : "vender";
       return { type, currentPct, targetPct, deviation, amount, action };
     }).filter((row) => row.currentPct > 0 || row.targetPct > 0);
+  }
+
+  // LEV6 (Oleada 3, Bloque 4): plan de desapalancamiento con prioridad — al reducir deuda de
+  // apalancamiento vendiendo posiciones, tres criterios de prioridad. Dos son directos (menor coste
+  // fiscal de liquidar, menor convicción declarada); el tercero, decisión del hogar (sesión 159): en
+  // vez de "mayor correlación con el resto del patrimonio" (exige el mismo histórico de rendimientos
+  // que ya bloqueó APX4), "misma clase de activo ya sobreexpuesta" — reutiliza rebalanceSuggestions
+  // (IV6, ya existente) en vez de un motor nuevo: una posición cuyo tipo ya supera el objetivo
+  // declarado en más del umbral de rebalanceo se prioriza, porque venderla también corrige esa
+  // sobreexposición. El coste fiscal se deriva de la plusvalía ya calculada (gainLoss) y el tipo del
+  // ahorro que el hogar ya declara para FC4/APX1 — nunca un tipo impositivo inventado; sin él, el
+  // coste fiscal se trata como 0 (no como "desconocido"), igual que rebalanceSuggestions trata la
+  // ausencia de objetivo declarado.
+  function deleveragingPriority({ positions = [], totalsByType = {}, totalValue = 0, targets = {}, savingsTaxRatePct = 0, thresholdPct = REBALANCE_THRESHOLD_PCT } = {}) {
+    const overexposedTypes = new Set(
+      rebalanceSuggestions(totalsByType, totalValue, targets, thresholdPct)
+        .filter((row) => row.action === "vender")
+        .map((row) => row.type),
+    );
+    const rate = knownNumber(savingsTaxRatePct) ? Math.max(0, Math.min(100, number(savingsTaxRatePct))) : 0;
+    const candidates = (Array.isArray(positions) ? positions : [])
+      .filter((position) => number(position.currentValue) > 0)
+      .map((position) => {
+        const gain = number(position.gainLoss);
+        const taxCost = gain > 0 ? round2(gain * (rate / 100)) : 0;
+        return {
+          id: position.id,
+          label: position.label,
+          type: position.type,
+          currentValue: round2(number(position.currentValue)),
+          taxCost,
+          convictionScore: knownNumber(position.convictionScore) ? number(position.convictionScore) : null,
+          overexposed: overexposedTypes.has(position.type),
+        };
+      });
+    if (!candidates.length) return { calculable: false, rows: [] };
+    const rows = [...candidates]
+      .sort((a, b) => {
+        if (a.overexposed !== b.overexposed) return a.overexposed ? -1 : 1;
+        if (a.taxCost !== b.taxCost) return a.taxCost - b.taxCost;
+        const aConviction = a.convictionScore ?? 99;
+        const bConviction = b.convictionScore ?? 99;
+        return aConviction - bConviction;
+      })
+      .map((row, index) => ({ ...row, priorityRank: index + 1 }));
+    return { calculable: true, rows };
   }
 
   // IV5: coste de oportunidad de un importe de caja frente a haberlo dejado invertido en la cartera
@@ -603,6 +652,51 @@
     };
   }
 
+  // INV1 (Oleada 3, Bloque 4): clase de activo por posición, declarada a mano — vive en el registro
+  // RAW de la posición (`position.assetClass`), exactamente el mismo patrón que `goalId` (IVX6):
+  // solo hace falta para esta comparación, no para el resto de la cartera, así que no se añade a
+  // `normalizePosition()` (que expone un contrato con campos fijos). Es un tipo propio, distinto del
+  // tipo de instrumento (POSITION_TYPES: fondo/acción/ETF/cripto/otro) — aquí interesa el perfil de
+  // riesgo declarado, no el vehículo.
+  const ASSET_CLASS_TYPES = Object.freeze(["renta-variable", "renta-fija", "monetario", "alternativo"]);
+  const ASSET_CLASS_RISK_PROFILE = Object.freeze({
+    "renta-variable": "growth",
+    alternativo: "growth",
+    "renta-fija": "defensive",
+    monetario: "defensive",
+  });
+
+  // Lectura real (composición por clase declarada, de las posiciones ligadas a ESE objetivo) frente
+  // a la banda de horizonte que ya calcula IVX6 — nunca una regla automática de "vende X%": IVX6 ya
+  // avisa de que esta app no clasifica riesgo/volatilidad real, así que esto solo hace visible el
+  // contraste. `mismatch` usa el mismo umbral del 50% que ya usa IVX8 para "dominante" (aquí:
+  // creciente vs. defensivo), no una cifra objetivo inventada por banda.
+  function assetClassVsGlidePath({ goalId, positions = [] } = {}, band) {
+    const linked = (Array.isArray(positions) ? positions : []).filter((position) => position.goalId === goalId);
+    const totalValue = round2(linked.reduce((sum, position) => sum + number(position.currentValue), 0));
+    if (!linked.length || !(totalValue > 0)) return { calculable: false };
+    const byClass = {};
+    linked.forEach((position) => {
+      const value = number(position.currentValue);
+      const assetClass = ASSET_CLASS_TYPES.includes(position.assetClass) ? position.assetClass : "sin-clasificar";
+      byClass[assetClass] = round2((byClass[assetClass] || 0) + value);
+    });
+    const rows = Object.entries(byClass)
+      .map(([assetClass, value]) => ({ assetClass, value, pct: Math.round((value / totalValue) * 100) }))
+      .sort((a, b) => b.value - a.value);
+    const growthValue = round2(ASSET_CLASS_TYPES.filter((type) => ASSET_CLASS_RISK_PROFILE[type] === "growth").reduce((sum, type) => sum + (byClass[type] || 0), 0));
+    const defensiveValue = round2(ASSET_CLASS_TYPES.filter((type) => ASSET_CLASS_RISK_PROFILE[type] === "defensive").reduce((sum, type) => sum + (byClass[type] || 0), 0));
+    const growthPct = Math.round((growthValue / totalValue) * 100);
+    const defensivePct = Math.round((defensiveValue / totalValue) * 100);
+    const unclassifiedPct = Math.max(0, 100 - growthPct - defensivePct);
+    const mismatch = (band === "conservative" || band === "overdue") && growthPct > 50
+      ? "growth-heavy-for-defensive-band"
+      : band === "growth" && defensivePct > 50
+        ? "defensive-heavy-for-growth-band"
+        : null;
+    return { calculable: true, band, totalValue, rows, growthPct, defensivePct, unclassifiedPct, mismatch };
+  }
+
   // IVX4: coste compuesto de comisiones — aísla el efecto puro de la comisión anual declarada
   // (feePct) sobre el valor actual a lo largo de un horizonte, sin asumir ninguna rentabilidad de
   // mercado (eso exigiría inventar un supuesto de crecimiento que el hogar no ha declarado). El
@@ -640,6 +734,7 @@
     positionQuality,
     summarizePositions,
     rebalanceSuggestions,
+    deleveragingPriority,
     isFundToFundTransfer,
     applyFundTransfer,
     xirr,
@@ -654,6 +749,9 @@
     GLIDE_PATH_BANDS,
     glidePathBand,
     glidePathForGoal,
+    ASSET_CLASS_TYPES,
+    ASSET_CLASS_RISK_PROFILE,
+    assetClassVsGlidePath,
     FEE_COST_SCHEMA_ID,
     compoundedFeeCost,
   };

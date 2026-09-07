@@ -51,6 +51,11 @@
       // participa en simulate() — es metadato que Presupuesto del mes lee para sumar este importe
       // al forecast por categoría en los meses que el evento cubre, sin tocar este motor.
       categoryId: text(raw.categoryId || ""),
+      // PVC10 (Oleada 3, Bloque 4): probabilidad declarada (0-100, opcional). Sin declarar, null —
+      // simulate() sigue aplicando el evento a valor completo exactamente igual que antes de esta
+      // tarea; solo weightedForecastWithUncertainEvents() (más abajo) la usa, y trata "sin declarar"
+      // como 100% (certero), nunca como "desconocido" que se ignoraría.
+      probabilityPct: Number.isFinite(Number(raw.probabilityPct)) ? Math.max(0, Math.min(100, Number(raw.probabilityPct))) : null,
     };
   }
 
@@ -142,6 +147,62 @@
       label: profile.label,
       profile: { incomeFactor: profile.incomeFactor, expenseFactor: profile.expenseFactor },
       rows,
+      metrics: {
+        minChecking: rows.length ? Math.min(...rows.map((row) => row.closingChecking)) : 0,
+        negativeMonths,
+        finalSavings: rows.at(-1)?.closingSavings || savings,
+        finalLiquidity: rows.at(-1)?.closingLiquidity || checking + savings,
+        debtImpact,
+        recoveryMonth: recoveryMonth(rows),
+      },
+    };
+  }
+
+  // PVC10 (Oleada 3, Bloque 4): previsión ponderada por eventos inciertos — extiende el constructor
+  // de eventos A8-2 (arriba, `probabilityPct`) sin tocar simulate(): Base/Favorable/Tensión siguen
+  // aplicando cada evento a valor completo, exactamente igual que antes. Aquí, en cambio, el impacto
+  // de CADA evento se escala por su propia probabilidad declarada antes de acumularlo — un "valor
+  // esperado", no un cuarto perfil. Un evento sin probabilidad declarada cuenta como 100% (certero),
+  // igual que simulate() lo trataría. Decisión del hogar (sesión 159): visible tanto en la
+  // comparación principal del Laboratorio como en su propio detalle — las dos ubicaciones.
+  function weightedForecastWithUncertainEvents(forecast = {}, rawEvents = []) {
+    const source = Array.isArray(forecast?.series) ? forecast.series : [];
+    const events = rawEvents.map(normalizeEvent);
+    let checking = number(assumptionValue(forecast, "openingChecking"));
+    let savings = number(assumptionValue(forecast, "openingSavings"));
+    const autoCapSavings = assumptionValue(forecast, "autoCapSavings", true) !== false;
+    let debtImpact = 0;
+    const rows = source.map((month, index) => {
+      const impacts = events.reduce((total, event) => {
+        const startIndex = source.findIndex((item) => item.monthKey === event.monthKey);
+        const impact = eventImpact(event, index, startIndex);
+        const weight = Number.isFinite(event.probabilityPct) ? Math.max(0, Math.min(100, event.probabilityPct)) / 100 : 1;
+        total.income += impact.income * weight;
+        total.outflow += impact.outflow * weight;
+        total.debt += impact.debt * weight;
+        return total;
+      }, { income: 0, outflow: 0, debt: 0 });
+      const income = round(number(month.totals?.income) + impacts.income);
+      const outflows = round(number(month.totals?.outflowsBeforeSaving) + impacts.outflow);
+      const targetSaving = number(month.totals?.saving);
+      const available = checking + income - outflows;
+      const saving = autoCapSavings ? round(Math.max(0, Math.min(targetSaving, available - outflows))) : round(targetSaving);
+      checking = round(available - saving);
+      savings = round(savings + saving);
+      debtImpact = round(debtImpact + impacts.debt);
+      return {
+        monthKey: month.monthKey, label: month.label, income, outflows, saving,
+        closingChecking: checking, closingSavings: savings, closingLiquidity: round(checking + savings),
+        eventIncome: round(impacts.income), eventOutflow: round(impacts.outflow), debtImpact: round(impacts.debt),
+      };
+    });
+    const negativeMonths = rows.filter((row) => row.closingChecking < 0).length;
+    const uncertainEvents = events.filter((event) => !ASSET_SHOCK_TARGET_TYPE[event.type] && Number.isFinite(event.probabilityPct));
+    return {
+      id: "weighted-uncertain",
+      label: "Ponderado por probabilidad",
+      rows,
+      uncertainEvents: uncertainEvents.map((event) => ({ id: event.id, label: event.label, probabilityPct: event.probabilityPct, amount: event.amount })),
       metrics: {
         minChecking: rows.length ? Math.min(...rows.map((row) => row.closingChecking)) : 0,
         negativeMonths,
@@ -368,5 +429,51 @@
       overwroteOriginal: false };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, MONTE_CARLO_DEFAULT_TRAJECTORIES, MONTE_CARLO_MAX_TRAJECTORIES, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, monteCarloSimulation, saveScenario, recalculateSavedScenario };
+  // PVC5 (Oleada 3, Bloque 4): recalibración trimestral del triángulo Monte Carlo — decisión del
+  // hogar (sesión 159): ventana de 8 trimestres (24 meses) de histórico reconciliado en vez de todo
+  // el histórico disponible, con confirmación explícita antes de aplicar (nunca automático, mismo
+  // contrato del resto de la app). Reutiliza prudentSimulation() tal cual — ya acepta cualquier
+  // `history` — comparando el triángulo de siempre (todo el histórico) contra el recortado a la
+  // ventana, sin motor nuevo de percentiles.
+  function shiftMonthKey(monthKeyValue, deltaMonths) {
+    const match = /^(\d{4})-(\d{2})$/.exec(String(monthKeyValue || ""));
+    if (!match) return "";
+    const totalMonths = Number(match[1]) * 12 + (Number(match[2]) - 1) - Math.floor(number(deltaMonths));
+    const year = Math.floor(totalMonths / 12);
+    const monthIndex = ((totalMonths % 12) + 12) % 12;
+    return `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+  }
+
+  function windowedHistory(history, asOfMonthKey, quarters) {
+    const list = Array.isArray(history) ? history : [];
+    const months = Math.max(1, Math.floor(number(quarters, 8))) * 3;
+    const cutoff = shiftMonthKey(asOfMonthKey, months - 1);
+    if (!cutoff) return list;
+    return list.filter((item) => String(item?.monthKey || "") >= cutoff);
+  }
+
+  const QUARTERLY_RECALIBRATION_SCHEMA_ID = "finance-pvc5-quarterly-recalibration/v1";
+
+  function quarterlyRecalibrationProposal(forecast = {}, events = [], options = {}) {
+    const quarters = Math.max(1, Math.floor(number(options.quarters, 8)));
+    const history = Array.isArray(options.history) ? options.history : [];
+    const proposedHistory = windowedHistory(history, options.asOfMonthKey, quarters);
+    const current = prudentSimulation(forecast, events, { history, manualRange: options.manualRange, generatedAt: options.generatedAt });
+    const proposed = prudentSimulation(forecast, events, { history: proposedHistory, manualRange: options.manualRange, generatedAt: options.generatedAt });
+    const changed = current.percentiles.p10 !== proposed.percentiles.p10
+      || current.percentiles.p50 !== proposed.percentiles.p50
+      || current.percentiles.p90 !== proposed.percentiles.p90;
+    return {
+      schemaId: QUARTERLY_RECALIBRATION_SCHEMA_ID,
+      windowMonths: quarters * 3,
+      currentPercentiles: current.percentiles,
+      currentSampleSize: current.sampleSize,
+      proposedPercentiles: proposed.percentiles,
+      proposedSampleSize: proposed.sampleSize,
+      proposedCalibrated: proposed.calibrated,
+      changed,
+    };
+  }
+
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, MONTE_CARLO_DEFAULT_TRAJECTORIES, MONTE_CARLO_MAX_TRAJECTORIES, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, monteCarloSimulation, saveScenario, recalculateSavedScenario, windowedHistory, QUARTERLY_RECALIBRATION_SCHEMA_ID, quarterlyRecalibrationProposal, weightedForecastWithUncertainEvents };
 });

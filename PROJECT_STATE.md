@@ -43,6 +43,153 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
 
+## Cierre de sesión — 7 de septiembre de 2026 (159c): Bloque 4 completo — 10 de 10 tareas grandes (Oleada 3)
+
+Continuación directa, misma sesión 159. Tras los dos checkpoints anteriores (`DEB5`/`DEB6`/`INV9`/`INV1` +
+fix `GOB9`, y `LEV5`/`LEV6`/`LEV7`), se completaron las tres tareas restantes del Bloque 4:
+
+- **`INV10` — comparador genérico vender vs. pedir prestado contra la cartera**: `sellVsBorrowComparison()`
+  (`canonical-leverage-simulator.js`) compone `opportunityCost` (IV5) + `lombardCreditCapacity` (APX2,
+  mismos LTV/tipo ya declarados) + coste fiscal de liquidar (plusvalía proporcional al importe retirado, al
+  tipo del ahorro de FC4). Coste de vender = plusvalía + crecimiento perdido; coste de pedir prestado = solo
+  el interés en el horizonte, sin vender nada. Genérico para cualquier meta, tal y como decidió el hogar.
+- **`PVC5` — recalibración trimestral del triángulo Monte Carlo**: `quarterlyRecalibrationProposal()`
+  (`canonical-e13-scenarios.js`) reutiliza `prudentSimulation()` tal cual, comparando el triángulo P10/P50/
+  P90 con todo el histórico conciliado frente a una ventana de 8 trimestres (24 meses). Nunca cambia sola:
+  el hogar ve ambos triángulos lado a lado y solo tras confirmar explícitamente (`esx1HistoryForCalibration()`)
+  el Laboratorio de escenarios (y LEV7) empiezan a usar la ventana en vez de todo el histórico.
+- **`PVC10` — previsión ponderada por eventos inciertos**: extiende el constructor de eventos A8-2
+  (`canonical-e13-scenarios.js`, `normalizeEvent`) con `probabilityPct` (0-100, opcional — sin declarar,
+  100% certero, mismo comportamiento que antes). `weightedForecastWithUncertainEvents()` pondera el impacto
+  de cada evento por su propia probabilidad antes de acumularlo, sin tocar `simulate()` (Base/Favorable/
+  Tensión siguen aplicando cada evento a valor completo). Visible en las dos ubicaciones que pidió el hogar:
+  fila permanente en la comparación principal del Laboratorio (solo cuando hay algún evento con probabilidad
+  declarada) y desglose por evento en un contenedor propio.
+
+**Con esto, el Bloque 4 de la Oleada 3 queda completo: 10 de 11 tareas construidas, 1 (`GOB5`) pospuesta
+con motivo documentado** (bloqueada de facto por `A5-4`, sin backend push en producción — se retoma cuando
+esa infraestructura esté lista). Ninguna de las 10 se retiró: las 11 preguntas de alcance resueltas en una
+sola tanda con el hogar sostenían esfuerzo `L` en todos los casos menos ese bloqueo externo.
+
+- **Validación**: `npm run verify` en verde — **3514/3514 pruebas** (3478 del checkpoint anterior + 36
+  nuevas), accesibilidad estructural **1176 IDs únicos** (antes 1168), rendimiento dentro de los umbrales
+  de `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, Bloque 4 (sección 6) completo, las 10
+tareas construidas marcadas ✅ con referencia de código, y el Plan de ejecución (sección 9, Paso 4) cerrado
+con el resultado real. Siguiente paso natural: Bloque 5 (16 tareas S/S-M/M, sin preguntas de alcance).
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr`, PR #257 — este es el commit final
+  del Bloque 4 completo sobre el mismo PR. Fusión a `main` en cuanto el CI esté en verde, autorización ya
+  dada por el hogar (`CLAUDE.md`).
+
+## Cierre de sesión — 7 de septiembre de 2026 (159b): Bloque 4, segundo checkpoint — 7 de 10 tareas grandes (Oleada 3)
+
+Continuación directa, misma sesión 159. Tras el primer checkpoint (`DEB5`, `DEB6`, `INV9`, `INV1` + fix de
+`GOB9`, PR #257), se construyeron las tres tareas de apalancamiento del Bloque 4, todas encadenadas sobre
+el mismo dato real (composición de la cartera pignorada) y el mismo simulador (APX3):
+
+- **`LEV6` — plan de desapalancamiento con prioridad**: `deleveragingPriority()`
+  (`canonical-portfolio.js`) prioriza qué posición vender primero al reducir deuda de apalancamiento, con
+  tres criterios: 1) clase de activo ya sobreexpuesta frente al objetivo declarado (reutiliza
+  `rebalanceSuggestions`, IV6 — sustituye "correlación con el resto del patrimonio", sin histórico real que
+  la sostenga), 2) menor coste fiscal (derivado de la plusvalía ya calculada, `gainLoss`, y el tipo del
+  ahorro de FC4), 3) menor convicción declarada (`convictionScore`, campo nuevo 1-5 en `normalizePosition`,
+  opcional). Tarjeta nueva justo debajo de los objetivos de reparto de IV6.
+- **`LEV5` — colchón de garantía dinámico según volatilidad declarada**: `weightedPortfolioStressDropPct()`
+  (`canonical-leverage-simulator.js`) pondera una caída máxima plausible (%) declarada a mano por clase de
+  activo (mismo campo `assetClass` de `INV1`) por el valor real de cada posición pignorada, y ese resultado
+  alimenta directamente el `stressDropPct` del simulador de margin call de APX3 — antes había que escribirlo
+  a mano en cada simulación. Una posición sin clase declarada, o cuya clase no tiene banda, queda fuera del
+  cálculo ponderado (`coveragePct` avisa cuánta cartera sí entra).
+- **`LEV7` — seguro de cola frente a margin call**: `tailRiskAgainstMarginCall()`
+  (`canonical-leverage-simulator.js`) compone el resultado de APX3 (si se dispara la llamada de garantía y
+  cuánta garantía adicional exige) con `minCheckingPercentiles.p10` del Monte Carlo de `ESX1` — el peor
+  escenario de liquidez YA calibrado, sin abrir una calibración de cola de mercado nueva (decisión del
+  hogar). Responde: si la llamada se disparase justo en ese peor escenario, ¿la caja mínima simulada
+  cubriría la garantía exigida?
+
+- **Validación**: `npm run verify` en verde — **3478/3478 pruebas** (3442 del checkpoint anterior + 36
+  nuevas), accesibilidad estructural **1168 IDs únicos** (antes 1159), rendimiento dentro de los umbrales
+  de `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, Bloque 4 (sección 6), `LEV5`/`LEV6`/
+`LEV7` marcadas ✅ con referencia de código.
+
+Quedan 3 tareas del Bloque 4 (`INV10`, `PVC5`, `PVC10`) — el hogar sigue priorizando calidad sobre
+completar todas de una sentada; se continúa en la misma sesión si el ritmo lo permite.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr`, PR #257 ya abierto en borrador —
+  este es un commit adicional al mismo PR, no uno nuevo. Fusión a `main` en cuanto el CI esté en verde,
+  autorización ya dada por el hogar (`CLAUDE.md`).
+
+## Cierre de sesión — 7 de septiembre de 2026 (159): Bloque 4, primera mitad — 4 de 10 tareas grandes + bug de GOB9 corregido (Oleada 3)
+
+Continuación directa de la sesión 158 (Bloque 3 completo, ya fusionado a `main`). El Bloque 4 son 11
+"apuestas grandes" (esfuerzo L) que exigían resolver antes una pregunta de alcance con el hogar — las 11
+se resolvieron en una sola tanda (`AskUserQuestion`, tres rondas de hasta 4 preguntas), siguiendo el propio
+plan del backlog (Paso 4). Resultado: 10 tareas a construir y 1 (`GOB5`) pospuesta por bloqueo externo
+(`A5-4`, sin backend push en producción).
+
+Antes de construir, una sesión de investigación de código (agente `Explore`) corrigió dos supuestos de
+partida equivocados — documentados aquí para que no se repita el mismo malentendido en otra sesión:
+
+- **`AP1`/`DEB1` no son el motor de prioridad multideuda** — son el comparador amortizar-vs-invertir y su
+  aviso de cambio de veredicto. El motor real de prioridad (`agentDebtPayoffCandidates`) solo cubre deudas
+  de Caixabank/Bankinter. `DEB5`/`DEB6` (abajo) se construyeron directamente sobre la lista completa de
+  contratos de `canonical-debt-contracts.js`, cubriendo así TODAS las deudas del hogar sin tocar ni
+  ampliar el filtro restringido de `AP1`/`DEB1` — mismo resultado pedido, con menos riesgo sobre código ya
+  en producción.
+- **Bug real encontrado de rebote, corregido en esta sesión**: `renderGob9ResiliencePanel()` (Bloque 3,
+  sesión 158, ya en `main`) leía `window.FinanceCanonicalE13Scenarios` — un global que nunca existió; el
+  motor real se registra como `window.FinanceCanonicalE13`. El escenario de tensión de `GOB9` (panel de
+  resiliencia patrimonial) nunca se aplicaba de verdad en producción (`stressExpenseFactor` caía siempre a
+  1), sin que ningún test lo detectara — el test de wiring solo comprobaba el texto del código, no que el
+  global existiera. Corregido con test de regresión que ejecuta la función en un sandbox real (no solo
+  regex sobre texto), para que este tipo de fallo no pueda volver a colarse en silencio.
+
+Dado el volumen (10 tareas L, más del doble de esfuerzo que un bloque S/M típico), el hogar pidió
+priorizar calidad sobre completar las 10 en una sola sentada: construir en orden de menor a mayor
+dependencia, validar cada una a fondo, y parar si el ritmo comprometía la calidad en vez de forzar el
+resto. Con 4 de 10 hechas y `npm run verify` en verde, este es el punto de corte de la sesión — las 6
+restantes (`INV10`, `LEV5`, `LEV6`, `LEV7`, `PVC5`, `PVC10`) quedan para la siguiente sesión, ya con las
+11 preguntas de alcance resueltas y sin necesidad de volver a plantearlas.
+
+- **`DEB5` — prioridad multideuda ajustada por fiscalidad**: `fiscalAdjustedDebtPriority()`
+  (`canonical-debt-contracts.js`) ordena TODAS las deudas activas con TAE declarado por TAE **efectivo**
+  tras la deducción fiscal de cada contrato (`fiscalDeductionPct`, campo nuevo declarado a mano, 0 por
+  defecto — sin declarar, el TAE efectivo coincide con el nominal). Tarjeta nueva en Deuda › Contratos,
+  recalculada en cada edición de la tabla.
+- **`DEB6` — simulador de consolidación de varias deudas**: `simulateDebtConsolidation()`
+  (`canonical-debt-contracts.js`) compara el coste total de mantener varias deudas seleccionadas por
+  separado contra un préstamo nuevo declarado (TAE + plazo, amortización francesa estándar) — pura
+  simulación de lectura, ninguna deuda cambia de estado. Checklist de selección + formulario en la misma
+  pantalla que `DEB5`.
+- **`INV9` — el local en alquiler, activo con P&L propio**: caso real confirmado con el hogar (ingreso de
+  800€/mes ya con línea propia, declarado neto). `rentalAssetPnL()` (`canonical-assets.js`) anualiza el
+  ingreso declarado y calcula la rentabilidad bruta sobre el valor del inmueble — mismo patrón que
+  `investedAmount`/`alternativeAssetReturn` de `IVX3` (Oleada 2): el dato se declara una vez, la
+  rentabilidad se deriva.
+- **`INV1` — clasificación de clase de activo por posición vs. banda de `IVX6`**: `assetClassVsGlidePath()`
+  (`canonical-portfolio.js`) compara la composición real por clase declarada (`renta-variable`/
+  `renta-fija`/`monetario`/`alternativo`, campo `assetClass` en el registro raw de la posición, mismo
+  patrón que `goalId`) contra la banda de horizonte que ya calcula `IVX6` — nunca una regla automática de
+  "vende X%" (mismo criterio que la propia nota de `IVX6`), solo hace visible el contraste, con el mismo
+  umbral del 50% que ya usa `IVX8` para "dominante".
+
+- **Validación**: `npm run verify` en verde — **3442/3442 pruebas** (3396 de la sesión 158 + 46 nuevas:
+  motor puro y wiring de `DEB5`/`DEB6`/`INV9`/`INV1`, más el test de regresión del bug de `GOB9`),
+  accesibilidad estructural **1159 IDs únicos** (antes 1150), rendimiento dentro de los umbrales de
+  `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+- **Nota del entorno**: este contenedor no tenía `node_modules` instalado al empezar la sesión (mismo
+  patrón que las sesiones 155-158) — instalado con `npm install` antes de validar.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, Bloque 4 (sección 6) con las 11
+decisiones de alcance documentadas y las 4 tareas hechas marcadas ✅ con referencia de código.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` — commit y push siguientes, PR en
+  borrador y fusión a `main` en cuanto el CI esté en verde, autorización ya dada por el hogar (`CLAUDE.md`).
+
 ## Cierre de sesión — 7 de septiembre de 2026 (158): Bloque 3 completo — 11 tareas de alto impacto (Oleada 3)
 
 Continuación directa de la sesión 157 (Bloque 2 completo). El hogar pidió construir el Bloque 3 entero

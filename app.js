@@ -8552,6 +8552,8 @@ const DEBT_CONTRACT_EDITABLE_FIELDS = [
   "currentPayment",
   ...DEBT_CONTRACT_INTEGER_FIELDS,
   "paymentStatus",
+  // DEB5 (Oleada 3, Bloque 4): % del interés deducible fiscalmente, declarado por contrato.
+  "fiscalDeductionPct",
 ];
 
 // D-2d · un contrato de ejemplo eliminado no se puede borrar de DEBT_PORTFOLIO (es código, no
@@ -16091,6 +16093,51 @@ function handleApx2LombardSimulate() {
   note.innerHTML = apx2LombardResultHtml(result);
 }
 
+// INV10 (Oleada 3, Bloque 4): comparador genérico vender vs. pedir prestado contra la cartera, para
+// financiar cualquier meta que necesite caja — decisión del hogar (sesión 159): genérico, no acotado
+// a una sola meta. Compone opportunityCost (IV5, ya usado por AP1/DEB1), lombardCreditCapacity
+// (APX2, mismos LTV/tipo ya declarados arriba) y sellVsBorrowComparison (INV10), sin motor nuevo
+// aparte del propio comparador.
+function handleInv10Compare() {
+  const note = qs("inv10Note");
+  if (!note) return;
+  const leverageEngine = window.FinanceCanonicalLeverageSimulator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!leverageEngine || !portfolioEngine) return;
+  const amount = parseAmount(qs("inv10Amount")?.value);
+  const months = Math.round(parseAmount(qs("inv10Months")?.value));
+  const gainLossPct = parseAmount(qs("inv10GainLossPct")?.value);
+  const portfolioValue = portfolioEngine.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const investmentResult = portfolioEngine.opportunityCost({ amount, months, annualReturnPct: iv5PortfolioAnnualReturnPct() });
+  const lombardCapacity = leverageEngine.lombardCreditCapacity({
+    portfolioValue,
+    ltvPct: parseAmount(qs("apx2LtvPct")?.value),
+    annualRatePct: parseAmount(qs("apx2RatePct")?.value),
+  });
+  const result = leverageEngine.sellVsBorrowComparison({
+    amount,
+    months,
+    gainLossPct,
+    savingsTaxRatePct: dividendSpanishSavingsRatePct(),
+    investmentResult,
+    lombardCapacity,
+  });
+  if (!result.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Declara el importe, el horizonte en meses, y la rentabilidad esperada de tu cartera (Inversión › Cartera) para comparar.</p>`;
+    return;
+  }
+  const sellLine = `<p>Vender: ${money(result.sellTaxCost, true)} de coste fiscal estimado + ${money(result.sellForegoneGrowth, true)} de crecimiento que dejarías de generar = <strong>${money(result.sellTotalCost, true)}</strong> de coste total.</p>`;
+  if (!result.borrowFeasible) {
+    note.innerHTML = `${sellLine}<p class="e19-kpi-note">Con el LTV y la cartera declarados, la capacidad Lombard (arriba) no llega a cubrir el importe pedido — no es comparable pedir prestado.</p>`;
+    return;
+  }
+  const borrowLine = `<p>Pedir prestado: <strong>${money(result.borrowTotalCost, true)}</strong> de interés en el horizonte, sin vender nada (la cartera sigue generando el crecimiento de arriba).</p>`;
+  const verdict = result.cheaper === "sell"
+    ? `<p class="e19-kpi-note positive">Vender sale ${money(result.difference, true)} más barato en este horizonte.</p>`
+    : `<p class="e19-kpi-note positive">Pedir prestado sale ${money(result.difference, true)} más barato en este horizonte.</p>`;
+  note.innerHTML = `${sellLine}${borrowLine}${verdict}`;
+}
+
 // APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de APX2. El
 // hogar declara cuánto pidió prestado de verdad (loanAmount, no necesariamente la capacidad máxima
 // de APX2), el LTV de mantenimiento que exige el banco y una caída hipotética de la cartera a
@@ -16132,6 +16179,116 @@ function handleApx3MarginCallSimulate() {
     })
     : null;
   note.innerHTML = apx3MarginCallResultHtml(result, guardrail);
+  renderLev7TailRisk();
+}
+
+// LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call — compone el margin call de APX3
+// (arriba) con el P10 de liquidez mínima que ya calibra el Monte Carlo de ESX1
+// (minCheckingPercentiles), reutilizando el mismo forecast/histórico/eventos que alimenta el
+// Laboratorio de escenarios. Decisión del hogar (sesión 159): "el peor 5%" se define sobre esa banda
+// ya calibrada, sin una calibración de cola de mercado nueva.
+function renderLev7TailRisk() {
+  const note = qs("lev7TailRiskNote");
+  if (!note) return;
+  const leverageEngine = window.FinanceCanonicalLeverageSimulator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  const E13 = window.FinanceCanonicalE13;
+  if (!leverageEngine || !portfolioEngine || !E13) return;
+  const portfolioValue = portfolioEngine.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const marginCallResult = leverageEngine.lombardMarginCallSimulation({
+    portfolioValue,
+    loanAmount: parseAmount(qs("apx3LoanAmount")?.value),
+    maintenanceLtvPct: parseAmount(qs("apx3MaintenanceLtvPct")?.value),
+    stressDropPct: parseAmount(qs("apx3StressDropPct")?.value),
+  });
+  const forecast = canonicalScenarioResults.base?.forecast;
+  if (!forecast) {
+    note.innerHTML = `<p class="e19-kpi-note">El forecast canónico todavía no está disponible para calibrar el peor escenario de liquidez.</p>`;
+    return;
+  }
+  const history = reconciledMonthlyNetHistory();
+  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const result = leverageEngine.tailRiskAgainstMarginCall({ marginCallResult, minCheckingPercentiles: monteCarlo.minCheckingPercentiles });
+  if (!result.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Simula primero la caída de arriba (margin call) con importe pedido, LTV de mantenimiento y caída declarados.</p>`;
+    return;
+  }
+  if (!result.marginCallTriggered) {
+    note.innerHTML = `<p class="e19-kpi-note">Con la caída declarada arriba no se dispara llamada de garantía — no hay coste de cola que cubrir.</p>`;
+    return;
+  }
+  note.innerHTML = result.covered
+    ? `<p class="e19-kpi-note">Aunque la caída disparase la llamada de garantía, tu peor escenario de liquidez ya simulado (P10: ${money(result.worstCaseLiquidityP10, true)}) cubriría los ${money(result.additionalCollateralNeeded, true)} exigidos — no hace falta seguro de cola adicional.</p>`
+    : `<p class="e19-kpi-note negative">En tu peor escenario de liquidez ya simulado (P10: ${money(result.worstCaseLiquidityP10, true)}) no llegarías a cubrir los ${money(result.additionalCollateralNeeded, true)} exigidos — faltarían ${money(result.shortfall, true)}. Esa es la cobertura que un seguro de cola tendría que cerrar.</p>`;
+}
+
+// LEV5 (Oleada 3, Bloque 4): colchón de garantía dinámico — banda de volatilidad (caída máxima
+// plausible, %) declarada a mano por clase de activo, igual criterio que el triángulo de ESX1.
+const LEV5_VOLATILITY_FIELDS = {
+  "renta-variable": "lev5VolatilityRentaVariable",
+  "renta-fija": "lev5VolatilityRentaFija",
+  monetario: "lev5VolatilityMonetario",
+  alternativo: "lev5VolatilityAlternativo",
+};
+
+function lev5VolatilityBands() {
+  return scenarioSettings.lev5VolatilityBands && typeof scenarioSettings.lev5VolatilityBands === "object"
+    ? scenarioSettings.lev5VolatilityBands
+    : {};
+}
+
+function syncLev5VolatilityControls() {
+  const bands = lev5VolatilityBands();
+  Object.entries(LEV5_VOLATILITY_FIELDS).forEach(([assetClass, fieldId]) => {
+    const field = qs(fieldId);
+    if (!field || document.activeElement === field) return;
+    const configured = Number(bands[assetClass] || 0);
+    field.value = configured > 0 ? String(configured) : "";
+  });
+}
+
+function saveLev5VolatilityBands() {
+  const bands = {};
+  Object.entries(LEV5_VOLATILITY_FIELDS).forEach(([assetClass, fieldId]) => {
+    const value = parseAmount(qs(fieldId)?.value);
+    if (value > 0) bands[assetClass] = value;
+  });
+  scenarioSettings.lev5VolatilityBands = bands;
+  saveScenarioSettings();
+  renderLev5DynamicStress();
+  announceStatus("Bandas de volatilidad guardadas.");
+}
+
+// Sustituye el stressDropPct manual de APX3 por la caída ponderada real de la cartera pignorada,
+// reutilizando el mismo importe pedido y LTV de mantenimiento ya declarados arriba (apx3LoanAmount/
+// apx3MaintenanceLtvPct) — sin duplicar esos campos.
+function renderLev5DynamicStress() {
+  const note = qs("lev5DynamicStressNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!engine || !portfolioEngine) return;
+  const positions = portfolioEngine.normalizePositions(iv1PositionsList()).positions;
+  const stress = engine.weightedPortfolioStressDropPct({ positions, volatilityBands: lev5VolatilityBands() });
+  if (!stress.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Declara al menos una banda de volatilidad por clase de activo (y clasifica tus posiciones en Patrimonio e inversión, campo "Clase de activo") para estimar la caída ponderada real.</p>`;
+    return;
+  }
+  const marginCall = engine.lombardMarginCallSimulation({
+    portfolioValue: stress.totalValue,
+    loanAmount: parseAmount(qs("apx3LoanAmount")?.value),
+    maintenanceLtvPct: parseAmount(qs("apx3MaintenanceLtvPct")?.value),
+    stressDropPct: stress.weightedDropPct,
+  });
+  const coverageNote = stress.coveragePct < 100
+    ? ` (cubre el ${stress.coveragePct}% de la cartera — el resto no tiene clase o banda declarada)`
+    : "";
+  const marginCallNote = !marginCall.calculable
+    ? `<p class="e19-kpi-note">Declara importe pedido y LTV de mantenimiento (arriba, en el simulador de margin call) para ver el efecto sobre la garantía.</p>`
+    : marginCall.marginCallTriggered
+      ? `<p class="e19-kpi-note negative">Con esa caída ponderada, se dispararía una llamada de garantía por ${money(marginCall.additionalCollateralNeeded, true)}.</p>`
+      : `<p class="e19-kpi-note">Con esa caída ponderada, el LTV se mantendría por debajo del de mantenimiento — sin llamada de garantía.</p>`;
+  note.innerHTML = `<p>Caída ponderada estimada de la cartera pignorada: <strong>${stress.weightedDropPct}%</strong>${coverageNote}.</p>${marginCallNote}`;
 }
 
 // LEV3 (Oleada 3, Bloque 3): estrés combinado — tipos al alza y mercado a la baja a la vez.
@@ -17524,8 +17681,11 @@ function renderLpx2NetWorthRunway() {
 
 // GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — combina la liquidez real (misma fuente
 // que DLX1/AP1), la cuota de deuda ya comprometida (p2DebtRows, la misma que ya usa AP5) y el
-// escenario de tensión de E13 (FinanceCanonicalE13Scenarios.PROFILES, "stress") en un único número
+// escenario de tensión de E13 (FinanceCanonicalE13.PROFILES, "stress") en un único número
 // de meses. Sin motor nuevo aparte de resilienceMonths (canonical-cushion.js), que solo compone.
+// Corrección Bloque 4 (sesión 159): el global real es FinanceCanonicalE13 (canonical-e13-scenarios.js),
+// no FinanceCanonicalE13Scenarios — con el nombre equivocado stressProfile era siempre undefined y el
+// escenario de tensión nunca se aplicaba, aunque el test de wiring (regex sobre texto) no lo detectaba.
 function gob9MonthlyDebtService() {
   return round2(p2DebtRows().reduce((sum, row) => sum + Math.max(0, Number(row.currentPayment) || 0), 0));
 }
@@ -17534,7 +17694,7 @@ function renderGob9ResiliencePanel() {
   const note = qs("gob9ResiliencePanel");
   if (!note) return;
   const cushionEngine = window.FinanceCanonicalCushion;
-  const scenariosEngine = window.FinanceCanonicalE13Scenarios;
+  const scenariosEngine = window.FinanceCanonicalE13;
   const monthlyOutflow = lpAverageMonthlyOutflow();
   if (!cushionEngine || !monthlyOutflow) {
     note.innerHTML = `<p>Sin previsión viva calculada todavía — hace falta un gasto mensual medio para estimar la resiliencia.</p>`;
@@ -17675,10 +17835,12 @@ function clearA14AssetForm() {
   const valueInput = qs("a14AssetValue");
   const categoryInput = qs("a14AssetCategory");
   const investedAmountInput = qs("a14AssetInvestedAmount");
+  const monthlyRentIncomeInput = qs("a14AssetMonthlyRentIncome");
   if (labelInput) labelInput.value = "";
   if (valueInput) valueInput.value = "";
   if (categoryInput) categoryInput.value = "";
   if (investedAmountInput) investedAmountInput.value = "";
+  if (monthlyRentIncomeInput) monthlyRentIncomeInput.value = "";
 }
 
 // A14-3 (núcleo, sin CSV todavía — sesión aparte): actualizar un activo ya registrado nunca
@@ -17696,17 +17858,20 @@ function saveA14Asset() {
   const category = (qs("a14AssetCategory")?.value || "").trim();
   const investedAmountRaw = qs("a14AssetInvestedAmount")?.value;
   const investedAmount = investedAmountRaw === "" || investedAmountRaw === undefined ? null : parseAmount(investedAmountRaw);
+  // INV9: mismo criterio "vacío = sin dato, nunca 0" que investedAmount (IVX3).
+  const monthlyRentIncomeRaw = qs("a14AssetMonthlyRentIncome")?.value;
+  const monthlyRentIncome = monthlyRentIncomeRaw === "" || monthlyRentIncomeRaw === undefined ? null : parseAmount(monthlyRentIncomeRaw);
   if (!label) {
     announceStatus("Indica una etiqueta para el activo antes de guardarlo.");
     return;
   }
   const existing = findA14AssetMatch(type, label);
   if (existing) {
-    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance, category, investedAmount } };
+    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome } };
     renderA14AssetPendingCompare();
     return;
   }
-  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, category, investedAmount, owner: "household" }];
+  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome, owner: "household" }];
   saveAssetsList(next);
   clearA14AssetForm();
   renderA14AssetList();
@@ -17770,6 +17935,18 @@ function a14AssetReturnLabel(asset) {
   return ` · rentabilidad ${sign}${result.returnPct}% (${sign}${money(result.returnAmount, true)} sobre ${money(result.investedAmount, true)} invertidos)`;
 }
 
+// INV9 (Oleada 3, Bloque 4): P&L del inmueble en alquiler — ingreso neto mensual declarado,
+// anualizado, y rentabilidad bruta sobre el valor del inmueble (rentalAssetPnL, canonical-assets.js).
+// Sin ingreso declarado, no añade nada — mismo criterio que a14AssetReturnLabel.
+function a14AssetRentalLabel(asset) {
+  const engine = window.FinanceCanonicalAssets;
+  if (!engine) return "";
+  const result = engine.rentalAssetPnL({ value: Number(asset.value) || 0, monthlyRentIncome: asset.monthlyRentIncome });
+  if (!result.calculable) return "";
+  const yieldLabel = result.grossYieldPct === null ? "" : `, ${result.grossYieldPct}% de rentabilidad bruta`;
+  return ` · alquiler ${money(result.monthlyRentIncome, true)}/mes (${money(result.annualRentIncome, true)}/año${yieldLabel})`;
+}
+
 function renderA14AssetList() {
   const list = qs("a14AssetList");
   if (!list) return;
@@ -17777,7 +17954,7 @@ function renderA14AssetList() {
     const typeLabel = A14_ASSET_TYPE_LABELS[asset.type] || "Otro";
     const provenanceLabel = A14_PROVENANCE_LABELS[asset.provenance] || "desconocido";
     const categoryLabel = asset.category ? ` · ${escapeHtml(asset.category)}` : "";
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)}${categoryLabel} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}${a14AssetReturnLabel(asset)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)}${categoryLabel} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}${a14AssetReturnLabel(asset)}${a14AssetRentalLabel(asset)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
   });
   list.innerHTML = rows.join("") || `<li class="e19-kpi-note">Sin activos registrados todavía.</li>`;
 }
@@ -17872,12 +18049,16 @@ function clearIv1PositionForm() {
   const valueInput = qs("iv1PositionValue");
   const acquisitionInput = qs("iv1PositionAcquisitionDate");
   const feePctInput = qs("iv1PositionFeePct");
+  const assetClassInput = qs("iv1PositionAssetClass");
+  const convictionScoreInput = qs("iv1PositionConvictionScore");
   if (labelInput) labelInput.value = "";
   if (quantityInput) quantityInput.value = "";
   if (costInput) costInput.value = "";
   if (valueInput) valueInput.value = "";
   if (acquisitionInput) acquisitionInput.value = "";
   if (feePctInput) feePctInput.value = "";
+  if (assetClassInput) assetClassInput.value = "";
+  if (convictionScoreInput) convictionScoreInput.value = "";
 }
 
 function saveIv1Position() {
@@ -17897,11 +18078,18 @@ function saveIv1Position() {
   const goalId = qs("iv1PositionGoalId")?.value || "";
   // IVX4: comisión anual declarada (TER/gastos de gestión, %) — opcional, nunca un valor de fábrica.
   const feePct = parseAmount(qs("iv1PositionFeePct")?.value);
+  // INV1: clase de activo declarada a mano (perfil de riesgo) — mismo patrón que goalId: vive en el
+  // registro de la posición, no en normalizePosition, solo hace falta para comparar contra IVX6.
+  const assetClass = qs("iv1PositionAssetClass")?.value || "";
+  // LEV6: convicción declarada (1-5, opcional) — sí vive en normalizePosition (como feePct), se
+  // recorta al guardar el input crudo.
+  const convictionScoreRaw = qs("iv1PositionConvictionScore")?.value;
+  const convictionScore = convictionScoreRaw === "" || convictionScoreRaw === undefined ? null : parseAmount(convictionScoreRaw);
   if (!label) {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, contributions: [], disposals: [], scheduledContributions: [] }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, contributions: [], disposals: [], scheduledContributions: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
@@ -17912,6 +18100,8 @@ function saveIv1Position() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+  renderLev6DeleveragingPriority();
+  renderLev5DynamicStress();
   renderIvx6GlidePath();
   announceStatus(`Posición «${label}» registrada.`);
 }
@@ -17952,6 +18142,8 @@ function saveIv1Contribution() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+  renderLev6DeleveragingPriority();
+  renderLev5DynamicStress();
   announceStatus(`Aportación de ${money(amount, true)} añadida a «${target.label}».`);
 }
 
@@ -17987,6 +18179,8 @@ function saveIv1Disposal() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+  renderLev6DeleveragingPriority();
+  renderLev5DynamicStress();
   announceStatus(`Venta parcial de «${target.label}» registrada.`);
 }
 
@@ -18076,6 +18270,8 @@ function saveIv1Transfer() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+  renderLev6DeleveragingPriority();
+  renderLev5DynamicStress();
   announceStatus(`«${source.label}» traspasado a «${label}» sin coste fiscal — coste y fecha de adquisición conservados.`);
 }
 
@@ -18089,6 +18285,8 @@ function removeIv1Position(id) {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderIv6Rebalance();
+  renderLev6DeleveragingPriority();
+  renderLev5DynamicStress();
   renderIvx6GlidePath();
 }
 
@@ -18201,28 +18399,58 @@ const IVX6_BAND_LABELS = {
   overdue: "Objetivo vencido o sin fecha calculable: revisa la fecha objetivo en el plan.",
 };
 
+// INV1 (Oleada 3, Bloque 4): etiquetas de las clases declarables — "sin-clasificar" es la que
+// asetClassVsGlidePath asigna a una posición sin clase declarada, nunca fabricada.
+const INV1_ASSET_CLASS_LABELS = {
+  "renta-variable": "Renta variable",
+  "renta-fija": "Renta fija",
+  monetario: "Monetario",
+  alternativo: "Alternativo",
+  "sin-clasificar": "Sin clasificar",
+};
+
+const INV1_MISMATCH_NOTES = {
+  "growth-heavy-for-defensive-band": "Más de la mitad en clases de crecimiento pese al horizonte corto de la banda de arriba.",
+  "defensive-heavy-for-growth-band": "Más de la mitad en clases defensivas pese al horizonte largo — hay margen sin usar.",
+};
+
 function renderIvx6GlidePath() {
   const container = qs("ivx6GlidePath");
+  const classContainer = qs("inv1AssetClassNote");
   if (!container) return;
   const engine = window.FinanceCanonicalPortfolio;
   const positions = iv1PositionsList();
   const linkedGoalIds = new Set(positions.map((position) => position.goalId).filter(Boolean));
   if (!engine || !linkedGoalIds.size) {
     container.innerHTML = `<p class="e19-kpi-note">Vincula una posición a un objetivo con fecha (arriba, al registrar la posición) para ver su banda de horizonte.</p>`;
+    if (classContainer) classContainer.innerHTML = "";
     return;
   }
   const goals = activeGoalsForBudget();
+  const classCards = [];
   const cards = [...linkedGoalIds].map((goalId) => {
     const goal = goals.find((item) => item.id === goalId);
     if (!goal || !goal.targetDate) return "";
     const result = engine.glidePathForGoal({ goalId, goalName: goal.name, targetDate: goal.targetDate, positions });
     if (!result.calculable) return "";
     const rows = result.positions.map((position) => `<li>${escapeHtml(position.label)}: ${money(position.value, true)} (${position.pct}%)</li>`).join("");
+    // INV1: composición real por clase de activo declarada, frente a la banda que se acaba de calcular.
+    const classResult = engine.assetClassVsGlidePath({ goalId, positions }, result.band);
+    if (classResult.calculable) {
+      const classRows = classResult.rows.map((row) => `<li>${escapeHtml(INV1_ASSET_CLASS_LABELS[row.assetClass] || row.assetClass)}: ${money(row.value, true)} (${row.pct}%)</li>`).join("");
+      const mismatchNote = classResult.mismatch ? ` <span class="warning">${INV1_MISMATCH_NOTES[classResult.mismatch]}</span>` : "";
+      classCards.push(`<li><strong>${escapeHtml(result.goalName)}</strong>${mismatchNote}<ul class="commit-barrier-list">${classRows}</ul></li>`);
+    }
     return `<li><strong>${escapeHtml(result.goalName)}</strong> — ${IVX6_BAND_LABELS[result.band]}<ul class="commit-barrier-list">${rows}</ul></li>`;
   }).filter(Boolean);
   container.innerHTML = cards.length
     ? `<ul class="e19-kpi-note">${cards.join("")}</ul>`
     : `<p class="e19-kpi-note">Los objetivos vinculados ya no tienen fecha objetivo o fueron eliminados.</p>`;
+  if (classContainer) {
+    classContainer.innerHTML = classCards.length
+      ? `<ul class="e19-kpi-note">${classCards.join("")}</ul>`
+      : `<p class="e19-kpi-note">Declara la clase de activo de cada posición (arriba, al registrarla) para comparar la cartera real contra la banda de horizonte.</p>`;
+  }
 }
 
 // FC1: opciones del selector de venta parcial — mismo patrón que renderIv1TransferOptions.
@@ -18492,6 +18720,8 @@ function saveIv6Targets() {
   scenarioSettings.portfolioTargets = targets;
   saveScenarioSettings();
   renderIv6Rebalance();
+  renderLev6DeleveragingPriority();
+  renderLev5DynamicStress();
   announceStatus("Objetivos de reparto guardados.");
 }
 
@@ -18520,6 +18750,40 @@ function renderIv6Rebalance() {
     return `<li class="negative">${escapeHtml(label)}: ${row.currentPct}% (objetivo ${row.targetPct}%) — ${verb} ${money(Math.abs(row.amount), true)}</li>`;
   });
   note.innerHTML = `<ul class="e19-kpi-note">${rows2.join("")}</ul>`;
+}
+
+// LEV6 (Oleada 3, Bloque 4): plan de desapalancamiento con prioridad — orden de venta al reducir
+// deuda de apalancamiento: primero las posiciones cuyo tipo ya está sobreexpuesto frente al objetivo
+// de IV6 (deleveragingPriority reutiliza rebalanceSuggestions), luego menor coste fiscal (plusvalía
+// ya calculada por normalizePositions, tipo del ahorro de FC4), luego menor convicción declarada.
+function renderLev6DeleveragingPriority() {
+  const note = qs("lev6DeleveragingNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    note.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición para ver la prioridad de desapalancamiento.</p>`;
+    return;
+  }
+  const normalized = engine.normalizePositions(rows);
+  const result = engine.deleveragingPriority({
+    positions: normalized.positions,
+    totalsByType: normalized.summary.totalsByType,
+    totalValue: normalized.summary.totalValue,
+    targets: iv6PortfolioTargets(),
+    savingsTaxRatePct: dividendSpanishSavingsRatePct(),
+  });
+  if (!result.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Sin posiciones con valor para priorizar.</p>`;
+    return;
+  }
+  const items = result.rows.map((row) => {
+    const typeLabel = IV1_POSITION_TYPE_LABELS[row.type] || "Otro";
+    const overexposedNote = row.overexposed ? " — clase ya sobreexpuesta frente al objetivo" : "";
+    const convictionNote = row.convictionScore === null ? "" : `, convicción ${row.convictionScore}/5`;
+    return `<li class="commit-barrier-item">${row.priorityRank}. <strong>${escapeHtml(row.label)}</strong> (${escapeHtml(typeLabel)}, ${money(row.currentValue, true)})${overexposedNote}, coste fiscal estimado ${money(row.taxCost, true)}${convictionNote}</li>`;
+  }).join("");
+  note.innerHTML = `<ol class="commit-barrier-list">${items}</ol>`;
 }
 
 function executiveAdvisorContext({ allowHeavy = true } = {}) {
@@ -19840,6 +20104,59 @@ function pvx2AdaptiveHorizonHtml(horizon) {
   return `<div class="table-wrap"><table class="e19-table pvx2-horizon-table"><thead><tr><th>Periodo</th><th>Resolución</th><th>Liquidez de cierre</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+// PVC5 (Oleada 3, Bloque 4): recalibración trimestral del triángulo Monte Carlo — ventana de 8
+// trimestres (24 meses), con confirmación explícita del hogar antes de aplicar (nunca automático).
+// Sin confirmar, el triángulo sigue calculándose con TODO el histórico, exactamente igual que antes
+// de esta tarea.
+function pvc5QuarterlyWindowConfirmed() {
+  return Boolean(scenarioSettings.pvc5WindowConfirmedAt);
+}
+
+function savePvc5WindowConfirmation(confirmed) {
+  scenarioSettings.pvc5WindowConfirmedAt = confirmed ? new Date().toISOString() : "";
+  saveScenarioSettings();
+  renderPvc5RecalibrationNote();
+  renderE13ScenarioLab();
+}
+
+function esx1HistoryForCalibration(fullHistory) {
+  const E13 = window.FinanceCanonicalE13;
+  if (!E13 || !pvc5QuarterlyWindowConfirmed()) return fullHistory;
+  return E13.windowedHistory(fullHistory, monthKey(modelStartDate()), 8);
+}
+
+function renderPvc5RecalibrationNote() {
+  const note = qs("pvc5RecalibrationNote");
+  if (!note) return;
+  const E13 = window.FinanceCanonicalE13;
+  const forecast = canonicalScenarioResults.base?.forecast;
+  if (!E13 || !forecast) {
+    note.innerHTML = `<p class="e19-kpi-note">El forecast canónico todavía no está disponible.</p>`;
+    return;
+  }
+  const history = reconciledMonthlyNetHistory();
+  const proposal = E13.quarterlyRecalibrationProposal(forecast, e13ScenarioEvents, {
+    history,
+    asOfMonthKey: monthKey(modelStartDate()),
+    quarters: 8,
+    manualRange: { min: -500, base: 0, max: 500 },
+    generatedAt: forecast.generatedAt,
+  });
+  const currentlyApplied = pvc5QuarterlyWindowConfirmed();
+  const p10Label = (percentiles) => `P10 ${money(percentiles.p10, true)} · P50 ${money(percentiles.p50, true)} · P90 ${money(percentiles.p90, true)}`;
+  const comparisonLine = `<p>Con todo el histórico (${proposal.currentSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.currentPercentiles)}.</p>
+    <p>Con la ventana de 8 trimestres (${proposal.proposedSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.proposedPercentiles)}${!proposal.proposedCalibrated ? " — muestra corta, cae al rango manual" : ""}.</p>`;
+  const changeNote = proposal.changed
+    ? `<p class="e19-kpi-note is-warn">La ventana de 8 trimestres ${currentlyApplied ? "(ya aplicada)" : "propuesta"} cambia el triángulo frente a usar todo el histórico.</p>`
+    : `<p class="e19-kpi-note">La ventana no cambia el triángulo frente a usar todo el histórico — misma calibración.</p>`;
+  const actionButton = currentlyApplied
+    ? `<button type="button" class="e19-btn e19-btn-secondary" id="pvc5RevertWindow">Volver a usar todo el histórico</button>`
+    : `<button type="button" class="e19-btn e19-btn-primary" id="pvc5ApplyWindow">Aplicar ventana de 8 trimestres</button>`;
+  note.innerHTML = `${comparisonLine}${changeNote}${actionButton}`;
+  qs("pvc5ApplyWindow")?.addEventListener("click", () => savePvc5WindowConfirmation(true));
+  qs("pvc5RevertWindow")?.addEventListener("click", () => savePvc5WindowConfirmation(false));
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -19861,9 +20178,24 @@ function renderE13ScenarioLab() {
     if (e13BudgetCategoryOptions().includes(previousCategory)) categorySelect.value = previousCategory;
   }
   const lab = E13.buildLab(forecast, e13ScenarioEvents, { generatedAt: forecast.generatedAt, assets: e13AssetsForLab() });
+  // PVC10 (Oleada 3, Bloque 4): previsión ponderada por eventos inciertos — solo se añade la fila
+  // permanente cuando hay al menos un evento con probabilidad declarada (si no, coincidiría con
+  // "Base" y sería ruido). Decisión del hogar (sesión 159): visible en la comparación principal
+  // (aquí) Y en su propio detalle (pvc10WeightedDetail, más abajo).
+  const weighted = E13.weightedForecastWithUncertainEvents(forecast, e13ScenarioEvents);
   qs("e13EventList").innerHTML = lab.events.length
-    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${e13EventAmountLabel(event)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
+    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${e13EventAmountLabel(event)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}${Number.isFinite(event.probabilityPct) ? ` · 🎲 ${event.probabilityPct}%` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
     : '<span class="e13-empty-events">Sin eventos añadidos. Los tres escenarios muestran solo sus supuestos base.</span>';
+  const weightedRowHtml = weighted.uncertainEvents.length
+    ? `<div class="e13-comparison-row e13-weighted-uncertain" role="row">
+      <strong>${escapeHtml(weighted.label)}</strong>
+      <span class="${weighted.metrics.minChecking < 0 ? "negative" : "positive"}">${money(weighted.metrics.minChecking, true)}</span>
+      <span>${weighted.metrics.negativeMonths}</span>
+      <span>${money(weighted.metrics.finalSavings, true)}</span>
+      <span>${money(weighted.metrics.debtImpact, true)}</span>
+      <span>${weighted.metrics.recoveryMonth === null ? "Sin ruptura" : weighted.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(weighted.metrics.recoveryMonth)}</span>
+    </div>`
+    : "";
   comparison.innerHTML = `<div class="e13-comparison-head" role="row">
       <span>Escenario</span><span>Caja mínima</span><span>Meses negativos</span><span>Ahorro final</span><span>Deuda simulada</span><span>Recuperación</span>
     </div>${lab.scenarios.map((scenario) => `<div class="e13-comparison-row e13-${escapeHtml(scenario.id)}" role="row">
@@ -19873,15 +20205,24 @@ function renderE13ScenarioLab() {
       <span>${money(scenario.metrics.finalSavings, true)}</span>
       <span>${money(scenario.metrics.debtImpact, true)}</span>
       <span>${scenario.metrics.recoveryMonth === null ? "Sin ruptura" : scenario.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(scenario.metrics.recoveryMonth)}</span>
-    </div>`).join("")}`;
+    </div>`).join("")}${weightedRowHtml}`;
+  const weightedDetail = qs("pvc10WeightedDetail");
+  if (weightedDetail) {
+    weightedDetail.innerHTML = weighted.uncertainEvents.length
+      ? `<p class="e19-kpi-note">Previsión ponderada por probabilidad: caja mínima ${money(weighted.metrics.minChecking, true)}, contando cada evento incierto solo por la parte de su probabilidad declarada.</p><ul class="e19-kpi-note">${weighted.uncertainEvents.map((event) => `<li>${escapeHtml(event.label)}: ${event.probabilityPct}% de probabilidad sobre ${money(event.amount, true)}/mes.</li>`).join("")}</ul>`
+      : `<p class="e19-kpi-note">Declara una probabilidad (%, opcional) al añadir un evento arriba para ver aquí la previsión ponderada.</p>`;
+  }
   // PV3: misma construcción del histórico que usa recalibrateForecastLearning() al cerrar el mes,
   // ahora compartida en reconciledMonthlyNetHistory() en vez de duplicada.
   const history = reconciledMonthlyNetHistory();
   const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
   const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
-  const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
-  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  // PVC5: el triángulo P10/P50/P90 usa todo el histórico (comportamiento de siempre) o la ventana de
+  // 8 trimestres, según lo que el hogar haya confirmado explícitamente — nunca cambia solo.
+  const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  renderPvc5RecalibrationNote();
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
@@ -19965,6 +20306,10 @@ function addE13ScenarioEvent() {
   const monthKeyValue = qs("e13EventMonth")?.value || "";
   const duration = Math.max(1, Math.round(Number(qs("e13EventDuration")?.value || 1)));
   const categoryId = qs("e13EventCategory")?.value || "";
+  // PVC10: probabilidad declarada (0-100, opcional) — vacío se guarda como null (certero, mismo
+  // comportamiento que antes de esta tarea), nunca como 100 fabricado ni como 0.
+  const probabilityRaw = qs("e13EventProbabilityPct")?.value;
+  const probabilityPct = probabilityRaw === "" || probabilityRaw === undefined ? null : Math.max(0, Math.min(100, parseAmount(probabilityRaw)));
   if (!amount || !monthKeyValue) {
     qs("e13ScenarioStatus").textContent = "Indica mes e importe para añadir el evento.";
     return;
@@ -19977,6 +20322,7 @@ function addE13ScenarioEvent() {
     monthKey: monthKeyValue,
     duration,
     categoryId,
+    probabilityPct,
   }];
   renderE13ScenarioLab();
 }
@@ -26826,6 +27172,9 @@ function renderAjustes() {
   renderIv1PositionConcentration();
   syncIv6TargetControls();
   renderIv6Rebalance();
+  renderLev6DeleveragingPriority();
+  syncLev5VolatilityControls();
+  renderLev5DynamicStress();
   renderIvx6GlidePath();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
@@ -36732,6 +37081,7 @@ async function init() {
     if (removeButton) handleDeudaContratosRemove(removeButton.dataset.deudaContratoRemove);
   });
   qs("deudaContratosAddForm")?.addEventListener("submit", (event) => handleDeudaContratosAddSubmit(event));
+  qs("deb6SimulateRun")?.addEventListener("click", () => handleDeb6Simulate());
   qs("deudaContratosCuadre")?.addEventListener("click", (event) => {
     if (event.target.closest("#deudaContratosCuadreAdjust")) {
       qs("deudaContratosTable")?.querySelector("input[data-deuda-contrato-field='currentPrincipal']")?.focus();
@@ -37149,7 +37499,9 @@ async function init() {
   qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
+  qs("inv10Run")?.addEventListener("click", handleInv10Compare);
   qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
+  qs("lev5VolatilitySave")?.addEventListener("click", saveLev5VolatilityBands);
   qs("lev3CombinedStressRun")?.addEventListener("click", handleLev3CombinedStress);
   qs("pvx5MonthSelect")?.addEventListener("change", renderPvx5CausalTree);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);

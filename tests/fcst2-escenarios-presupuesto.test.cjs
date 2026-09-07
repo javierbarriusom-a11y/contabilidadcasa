@@ -238,7 +238,7 @@ test("FCST-2 · el formulario de eventos de Escenarios (E13) tiene un selector d
 
 test("FCST-2 · addE13ScenarioEvent lee la categoría del selector y la incluye en el evento", () => {
   assert.match(appSrc, /const categoryId = qs\("e13EventCategory"\)\?\.value \|\| "";/);
-  assert.match(appSrc, /categoryId,\s*\}\];\s*\n\s*renderE13ScenarioLab\(\);\s*\n\}/);
+  assert.match(appSrc, /categoryId,\s*probabilityPct,\s*\}\];\s*\n\s*renderE13ScenarioLab\(\);\s*\n\}/);
 });
 
 test("FCST-2 · e13BudgetCategoryOptions existe y renderE13ScenarioLab rellena el selector", () => {

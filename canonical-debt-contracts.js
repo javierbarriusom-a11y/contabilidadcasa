@@ -149,6 +149,11 @@
       owner: raw.owner || "household",
       apr: known(raw.apr ?? raw.tae) ? nonNegative(raw.apr ?? raw.tae) : null,
       revolving: isRevolvingType(raw.type),
+      // DEB5 (Oleada 3, Bloque 4): % del interés de ESTA deuda deducible fiscalmente (p. ej.
+      // deducción autonómica vigente de una hipoteca), declarado a mano por contrato — nunca
+      // inferido de tipo/entidad. Sin declarar, 0: el TAE efectivo coincide con el nominal, así
+      // que un contrato sin este dato se comporta exactamente como antes de que existiera el campo.
+      fiscalDeductionPct: Math.min(100, nonNegative(raw.fiscalDeductionPct)),
     };
     const arrears = estimateArrears(contract, options.asOfMonthKey);
     const normalized = { ...contract, arrearsMonths: arrears.months, arrearsEstimated: arrears.amount };
@@ -280,6 +285,92 @@
     };
   }
 
+  // DEB5 (Oleada 3, Bloque 4): prioridad multideuda ajustada por fiscalidad. El orden por "mayor
+  // coste" no es el TAE nominal cuando una deuda tiene deducción fiscal vigente (p. ej. hipoteca con
+  // deducción autonómica) y otra no (p. ej. préstamo personal): el TAE efectivo tras la deducción es
+  // el que de verdad compara el coste de mantener cada deuda. Opera sobre TODAS las deudas activas
+  // con TAE declarado — sin el filtro restringido de entidades que usa el asesor de amortización
+  // (AP1/DEB1), porque aquí no hay optimización automática, solo un orden informativo a la vista.
+  function fiscalAdjustedDebtPriority(contracts = []) {
+    const candidates = (Array.isArray(contracts) ? contracts : [])
+      .filter((contract) => contract.paymentStatus === "active" && contract.currentPrincipal > 0 && number(contract.apr) > 0)
+      .map((contract) => {
+        const nominalAprPct = round2(number(contract.apr));
+        const fiscalDeductionPct = Math.min(100, Math.max(0, number(contract.fiscalDeductionPct)));
+        const effectiveAprPct = round2(nominalAprPct * (1 - fiscalDeductionPct / 100));
+        return {
+          id: contract.id,
+          entity: contract.entity,
+          type: contract.type,
+          owner: contract.owner,
+          currentPrincipal: contract.currentPrincipal,
+          nominalAprPct,
+          fiscalDeductionPct,
+          effectiveAprPct,
+        };
+      });
+    if (!candidates.length) return { schemaId: SCHEMA_ID, schemaVersion: SCHEMA_VERSION, calculable: false, rows: [] };
+    const byNominalIds = [...candidates].sort((a, b) => b.nominalAprPct - a.nominalAprPct).map((row) => row.id);
+    const byEffective = [...candidates].sort((a, b) => b.effectiveAprPct - a.effectiveAprPct);
+    const rows = byEffective.map((row, index) => ({ ...row, priorityRank: index + 1 }));
+    return {
+      schemaId: SCHEMA_ID,
+      schemaVersion: SCHEMA_VERSION,
+      calculable: true,
+      rows,
+      reorderedByFiscal: byNominalIds.join("|") !== byEffective.map((row) => row.id).join("|"),
+    };
+  }
+
+  // DEB6 (Oleada 3, Bloque 4): simulador de consolidación de varias deudas activas en un préstamo
+  // nuevo declarado (TAE y plazo a mano, nunca supuestos). Coste ANTES = suma de lo que queda por
+  // pagar de cada deuda seleccionada con su cuota y plazo actuales; coste DESPUÉS = amortización
+  // francesa estándar del préstamo nuevo sobre la suma de principales. Es una simulación hipotética,
+  // distinta del plan ya reunificado (`reunified`/`unifiedPlan` de `normalizeContracts`) — aquí
+  // ninguna deuda cambia de estado hasta que el hogar decida ejecutarlo de verdad.
+  function simulateDebtConsolidation({ contracts = [], contractIds = [], newLoan = {} } = {}) {
+    const ids = Array.isArray(contractIds) ? contractIds : [];
+    const selected = (Array.isArray(contracts) ? contracts : [])
+      .filter((contract) => ids.includes(contract.id) && contract.paymentStatus === "active" && contract.currentPrincipal > 0);
+    if (selected.length < 2) {
+      return { schemaId: SCHEMA_ID, schemaVersion: SCHEMA_VERSION, calculable: false, reason: "need-at-least-two-debts" };
+    }
+    const newRatePct = number(newLoan.annualRatePct, -1);
+    const newTermMonths = Math.max(0, Math.floor(number(newLoan.termMonths)));
+    if (!(newRatePct >= 0) || !(newTermMonths > 0)) {
+      return { schemaId: SCHEMA_ID, schemaVersion: SCHEMA_VERSION, calculable: false, reason: "missing-new-loan-terms" };
+    }
+    const totalPrincipal = round2(selected.reduce((sum, contract) => sum + contract.currentPrincipal, 0));
+    const currentMonthlyPayment = round2(selected.reduce((sum, contract) => sum + contract.currentPayment, 0));
+    const currentTotalCost = round2(selected.reduce((sum, contract) => {
+      const months = contract.remainingInstallments > 0
+        ? contract.remainingInstallments
+        : (contract.currentPayment > 0 ? Math.ceil(contract.currentPrincipal / contract.currentPayment) : 0);
+      return sum + (contract.currentPayment > 0 && months > 0 ? contract.currentPayment * months : contract.currentPrincipal);
+    }, 0));
+    const monthlyRate = newRatePct / 100 / 12;
+    const newMonthlyPayment = monthlyRate > 0
+      ? round2((totalPrincipal * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -newTermMonths)))
+      : round2(totalPrincipal / newTermMonths);
+    const newTotalCost = round2(newMonthlyPayment * newTermMonths);
+    return {
+      schemaId: SCHEMA_ID,
+      schemaVersion: SCHEMA_VERSION,
+      calculable: true,
+      contractIds: selected.map((contract) => contract.id),
+      totalPrincipal,
+      currentMonthlyPayment,
+      currentTotalCost,
+      newRatePct: round2(newRatePct),
+      newTermMonths,
+      newMonthlyPayment,
+      newTotalCost,
+      totalCostDelta: round2(newTotalCost - currentTotalCost),
+      monthlyPaymentDelta: round2(newMonthlyPayment - currentMonthlyPayment),
+      worthIt: newTotalCost < currentTotalCost,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -297,5 +388,7 @@
     isRevolvingType,
     prioritizeRevolving,
     nextCheaperPrepaymentWindow,
+    fiscalAdjustedDebtPriority,
+    simulateDebtConsolidation,
   };
 });
