@@ -291,6 +291,9 @@
       // comisión declarada", nunca "comisión cero confirmada" — igual que el resto de campos
       // opcionales de este contrato.
       feePct: knownNumber(raw.feePct) ? nonNegative(raw.feePct) : 0,
+      // LEV6 (Oleada 3, Bloque 4): convicción declarada por el hogar (1-5, menor = vender antes al
+      // desapalancar) — opcional, null si no se declara, nunca un valor medio inventado.
+      convictionScore: knownNumber(raw.convictionScore) ? Math.max(1, Math.min(5, Math.round(number(raw.convictionScore)))) : null,
     };
     return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: xirr(cashFlows) };
   }
@@ -420,6 +423,52 @@
       const action = Math.abs(deviation) <= thresholdPct ? "ok" : amount > 0 ? "comprar" : "vender";
       return { type, currentPct, targetPct, deviation, amount, action };
     }).filter((row) => row.currentPct > 0 || row.targetPct > 0);
+  }
+
+  // LEV6 (Oleada 3, Bloque 4): plan de desapalancamiento con prioridad — al reducir deuda de
+  // apalancamiento vendiendo posiciones, tres criterios de prioridad. Dos son directos (menor coste
+  // fiscal de liquidar, menor convicción declarada); el tercero, decisión del hogar (sesión 159): en
+  // vez de "mayor correlación con el resto del patrimonio" (exige el mismo histórico de rendimientos
+  // que ya bloqueó APX4), "misma clase de activo ya sobreexpuesta" — reutiliza rebalanceSuggestions
+  // (IV6, ya existente) en vez de un motor nuevo: una posición cuyo tipo ya supera el objetivo
+  // declarado en más del umbral de rebalanceo se prioriza, porque venderla también corrige esa
+  // sobreexposición. El coste fiscal se deriva de la plusvalía ya calculada (gainLoss) y el tipo del
+  // ahorro que el hogar ya declara para FC4/APX1 — nunca un tipo impositivo inventado; sin él, el
+  // coste fiscal se trata como 0 (no como "desconocido"), igual que rebalanceSuggestions trata la
+  // ausencia de objetivo declarado.
+  function deleveragingPriority({ positions = [], totalsByType = {}, totalValue = 0, targets = {}, savingsTaxRatePct = 0, thresholdPct = REBALANCE_THRESHOLD_PCT } = {}) {
+    const overexposedTypes = new Set(
+      rebalanceSuggestions(totalsByType, totalValue, targets, thresholdPct)
+        .filter((row) => row.action === "vender")
+        .map((row) => row.type),
+    );
+    const rate = knownNumber(savingsTaxRatePct) ? Math.max(0, Math.min(100, number(savingsTaxRatePct))) : 0;
+    const candidates = (Array.isArray(positions) ? positions : [])
+      .filter((position) => number(position.currentValue) > 0)
+      .map((position) => {
+        const gain = number(position.gainLoss);
+        const taxCost = gain > 0 ? round2(gain * (rate / 100)) : 0;
+        return {
+          id: position.id,
+          label: position.label,
+          type: position.type,
+          currentValue: round2(number(position.currentValue)),
+          taxCost,
+          convictionScore: knownNumber(position.convictionScore) ? number(position.convictionScore) : null,
+          overexposed: overexposedTypes.has(position.type),
+        };
+      });
+    if (!candidates.length) return { calculable: false, rows: [] };
+    const rows = [...candidates]
+      .sort((a, b) => {
+        if (a.overexposed !== b.overexposed) return a.overexposed ? -1 : 1;
+        if (a.taxCost !== b.taxCost) return a.taxCost - b.taxCost;
+        const aConviction = a.convictionScore ?? 99;
+        const bConviction = b.convictionScore ?? 99;
+        return aConviction - bConviction;
+      })
+      .map((row, index) => ({ ...row, priorityRank: index + 1 }));
+    return { calculable: true, rows };
   }
 
   // IV5: coste de oportunidad de un importe de caja frente a haberlo dejado invertido en la cartera
@@ -685,6 +734,7 @@
     positionQuality,
     summarizePositions,
     rebalanceSuggestions,
+    deleveragingPriority,
     isFundToFundTransfer,
     applyFundTransfer,
     xirr,

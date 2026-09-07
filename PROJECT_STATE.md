@@ -43,6 +43,46 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
 
+## Cierre de sesión — 7 de septiembre de 2026 (159b): Bloque 4, segundo checkpoint — 7 de 10 tareas grandes (Oleada 3)
+
+Continuación directa, misma sesión 159. Tras el primer checkpoint (`DEB5`, `DEB6`, `INV9`, `INV1` + fix de
+`GOB9`, PR #257), se construyeron las tres tareas de apalancamiento del Bloque 4, todas encadenadas sobre
+el mismo dato real (composición de la cartera pignorada) y el mismo simulador (APX3):
+
+- **`LEV6` — plan de desapalancamiento con prioridad**: `deleveragingPriority()`
+  (`canonical-portfolio.js`) prioriza qué posición vender primero al reducir deuda de apalancamiento, con
+  tres criterios: 1) clase de activo ya sobreexpuesta frente al objetivo declarado (reutiliza
+  `rebalanceSuggestions`, IV6 — sustituye "correlación con el resto del patrimonio", sin histórico real que
+  la sostenga), 2) menor coste fiscal (derivado de la plusvalía ya calculada, `gainLoss`, y el tipo del
+  ahorro de FC4), 3) menor convicción declarada (`convictionScore`, campo nuevo 1-5 en `normalizePosition`,
+  opcional). Tarjeta nueva justo debajo de los objetivos de reparto de IV6.
+- **`LEV5` — colchón de garantía dinámico según volatilidad declarada**: `weightedPortfolioStressDropPct()`
+  (`canonical-leverage-simulator.js`) pondera una caída máxima plausible (%) declarada a mano por clase de
+  activo (mismo campo `assetClass` de `INV1`) por el valor real de cada posición pignorada, y ese resultado
+  alimenta directamente el `stressDropPct` del simulador de margin call de APX3 — antes había que escribirlo
+  a mano en cada simulación. Una posición sin clase declarada, o cuya clase no tiene banda, queda fuera del
+  cálculo ponderado (`coveragePct` avisa cuánta cartera sí entra).
+- **`LEV7` — seguro de cola frente a margin call**: `tailRiskAgainstMarginCall()`
+  (`canonical-leverage-simulator.js`) compone el resultado de APX3 (si se dispara la llamada de garantía y
+  cuánta garantía adicional exige) con `minCheckingPercentiles.p10` del Monte Carlo de `ESX1` — el peor
+  escenario de liquidez YA calibrado, sin abrir una calibración de cola de mercado nueva (decisión del
+  hogar). Responde: si la llamada se disparase justo en ese peor escenario, ¿la caja mínima simulada
+  cubriría la garantía exigida?
+
+- **Validación**: `npm run verify` en verde — **3478/3478 pruebas** (3442 del checkpoint anterior + 36
+  nuevas), accesibilidad estructural **1168 IDs únicos** (antes 1159), rendimiento dentro de los umbrales
+  de `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, Bloque 4 (sección 6), `LEV5`/`LEV6`/
+`LEV7` marcadas ✅ con referencia de código.
+
+Quedan 3 tareas del Bloque 4 (`INV10`, `PVC5`, `PVC10`) — el hogar sigue priorizando calidad sobre
+completar todas de una sentada; se continúa en la misma sesión si el ritmo lo permite.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr`, PR #257 ya abierto en borrador —
+  este es un commit adicional al mismo PR, no uno nuevo. Fusión a `main` en cuanto el CI esté en verde,
+  autorización ya dada por el hogar (`CLAUDE.md`).
+
 ## Cierre de sesión — 7 de septiembre de 2026 (159): Bloque 4, primera mitad — 4 de 10 tareas grandes + bug de GOB9 corregido (Oleada 3)
 
 Continuación directa de la sesión 158 (Bloque 3 completo, ya fusionado a `main`). El Bloque 4 son 11

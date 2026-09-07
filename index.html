@@ -2885,6 +2885,46 @@
               <div class="e19-kpi-note" id="apx3MarginCallNote"></div>
             </article>
 
+            <!-- LEV5 (Oleada 3, Bloque 4): colchón de garantía dinámico — en vez de escribir a mano
+                 la caída a explorar de arriba, declara una banda de volatilidad (caída máxima
+                 plausible, %) por clase de activo. Con las posiciones ya clasificadas (Patrimonio e
+                 inversión, INV1), pondera esa banda por la composición real de la cartera pignorada
+                 y reutiliza el importe pedido/LTV de mantenimiento de arriba. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Colchón de garantía dinámico según volatilidad</h3>
+              <p class="e19-kpi-note">Declara la caída máxima plausible por clase de activo (nunca calculada de un histórico que esta app no guarda) y se pondera por la composición real de tu cartera pignorada, en vez de escribir una única caída a mano arriba.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Renta variable (%)</span>
+                  <input id="lev5VolatilityRentaVariable" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 40" />
+                </label>
+                <label class="month-picker">
+                  <span>Renta fija (%)</span>
+                  <input id="lev5VolatilityRentaFija" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 10" />
+                </label>
+                <label class="month-picker">
+                  <span>Monetario (%)</span>
+                  <input id="lev5VolatilityMonetario" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 2" />
+                </label>
+                <label class="month-picker">
+                  <span>Alternativo (%)</span>
+                  <input id="lev5VolatilityAlternativo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 60" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev5VolatilitySave">Guardar bandas</button>
+              <div id="lev5DynamicStressNote"></div>
+            </article>
+
+            <!-- LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call — compone el margin
+                 call de arriba (APX3) con el P10 de liquidez mínima ya calibrado por el Monte Carlo
+                 del Laboratorio de escenarios (ESX1). Se recalcula al pulsar "Simular caída" de
+                 arriba, sin formulario propio. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Seguro de cola frente a margin call</h3>
+              <p class="e19-kpi-note">Si la llamada de garantía de arriba se disparase justo en tu peor escenario de liquidez ya simulado (P10 del Laboratorio de escenarios), ¿tu caja mínima de ese escenario cubriría la garantía exigida?</p>
+              <div id="lev7TailRiskNote"></div>
+            </article>
+
             <!-- LEV3 (Oleada 3, Bloque 3): estrés combinado — tipos al alza y mercado a la baja a la
                  vez. Reutiliza los campos ya declarados de la hipoteca (arriba, en Patrimonio e
                  inversión) y del margin call (justo arriba) — solo pide los puntos de subida de
@@ -3298,6 +3338,12 @@
                     <option value="alternativo">Alternativo</option>
                   </select>
                 </label>
+                <!-- LEV6 (Oleada 3, Bloque 4): convicción declarada (1-5) — solo se usa para
+                     priorizar qué vender primero al desapalancar. Opcional. -->
+                <label class="month-picker">
+                  <span>Convicción (1-5, opcional)</span>
+                  <input id="iv1PositionConvictionScore" type="number" min="1" max="5" step="1" inputmode="numeric" placeholder="Ej. 3" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
               <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
@@ -3448,6 +3494,12 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
               <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
+              <!-- LEV6 (Oleada 3, Bloque 4): orden de venta al desapalancar — reutiliza estos mismos
+                   objetivos de arriba (IV6) para saber qué clase ya está sobreexpuesta, más el coste
+                   fiscal (plusvalía ya calculada) y la convicción declarada por posición. -->
+              <h4 class="escenario-motor-panel-title">Al desapalancar, ¿qué vender primero?</h4>
+              <p class="e19-kpi-note">Prioriza vender la clase ya sobreexpuesta frente al objetivo de arriba, con menor coste fiscal, y a igualdad de lo anterior, la de menor convicción declarada.</p>
+              <div id="lev6DeleveragingNote"></div>
             </article>
             </div>
 

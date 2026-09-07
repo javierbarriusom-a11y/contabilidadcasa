@@ -17,12 +17,12 @@ test("IV2: saveIv1Position lee la fecha de adquisición y registra la posición 
   // IVX6 (Oleada 2 Bloque 3) añadió el campo goalId y su comentario antes del literal, IVX4 añadió
   // feePct, e INV1 (Oleada 3 Bloque 4) añadió assetClass — la ventana crece a 1900, la comprobación
   // sigue siendo la misma.
-  const block = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 1900);
+  const block = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 2600);
   assert.match(block, /qs\("iv1PositionAcquisitionDate"\)\?\.value/);
   // IVX6 añadió goalId, IVX4 (misma oleada) feePct e INV1 (Oleada 3 Bloque 4) assetClass, los tres
   // entre provenance y contributions — el objeto sigue guardando contributions vacío, solo cambia
   // lo que hay justo antes.
-  assert.match(block, /acquisitionDate, provenance, goalId, feePct, assetClass, contributions: \[\]/);
+  assert.match(block, /acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, contributions: \[\]/);
 });
 
 test("IV2: saveIv1Contribution valida posición, importe positivo y fecha antes de guardar", () => {
@@ -42,7 +42,7 @@ test("IV2: renderIv1ContributionOptions existe y se llama junto al resto de rend
   // IVX6 (Oleada 2 Bloque 3) añadió el campo goalId, IVX4 feePct e INV1 (Oleada 3 Bloque 4)
   // assetClass, cada uno con su comentario, antes de esta llamada — la ventana crece a 2100, la
   // comprobación sigue siendo la misma.
-  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 2100);
+  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 2600);
   assert.match(saveBlock, /renderIv1ContributionOptions\(\);/);
   const transferBlock = appSource.slice(appSource.indexOf("function saveIv1Transfer"), appSource.indexOf("function saveIv1Transfer") + 1400);
   assert.match(transferBlock, /renderIv1ContributionOptions\(\);/);

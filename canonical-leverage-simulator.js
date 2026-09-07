@@ -213,6 +213,75 @@
     };
   }
 
+  // LEV5 (Oleada 3, Bloque 4): colchón de garantía dinámico — APX3 usa una caída hipotética
+  // (`stressDropPct`) fija, declarada a mano en cada simulación. Aquí se deriva una caída estimada de
+  // la cartera pignorada REAL, ponderando el valor de cada posición por una banda de volatilidad
+  // (caída máxima plausible, %) que el hogar declara por clase de activo (`assetClass`, el mismo
+  // campo que INV1) — igual criterio que el triángulo P10/P50/P90 de ESX1: una banda declarada a
+  // mano, nunca calculada de una serie histórica que la app no guarda. Una posición sin clase
+  // declarada, o cuya clase no tiene banda declarada, queda fuera del cálculo ponderado (nunca se le
+  // asigna una banda por defecto) — `coveragePct` dice cuánta cartera sí entra en la estimación.
+  const WEIGHTED_STRESS_SCHEMA_ID = "finance-lev5-weighted-stress-drop/v1";
+
+  function weightedPortfolioStressDropPct({ positions, volatilityBands } = {}) {
+    const bands = volatilityBands && typeof volatilityBands === "object" ? volatilityBands : {};
+    const list = Array.isArray(positions) ? positions : [];
+    const totalValue = round2(list.reduce((sum, position) => sum + Math.max(0, number(position?.currentValue)), 0));
+    const classified = list
+      .filter((position) => Math.max(0, number(position?.currentValue)) > 0 && Number.isFinite(Number(bands[position?.assetClass])))
+      .map((position) => ({
+        value: Math.max(0, number(position.currentValue)),
+        dropPct: Math.max(0, Math.min(100, number(bands[position.assetClass]))),
+      }));
+    const classifiedValue = round2(classified.reduce((sum, row) => sum + row.value, 0));
+    if (!(classifiedValue > 0)) return { schemaId: WEIGHTED_STRESS_SCHEMA_ID, calculable: false };
+    const weightedDropPct = round2(classified.reduce((sum, row) => sum + row.value * row.dropPct, 0) / classifiedValue);
+    return {
+      schemaId: WEIGHTED_STRESS_SCHEMA_ID,
+      calculable: true,
+      weightedDropPct,
+      classifiedValue,
+      totalValue,
+      unclassifiedValue: round2(Math.max(0, totalValue - classifiedValue)),
+      coveragePct: totalValue > 0 ? Math.round((classifiedValue / totalValue) * 100) : 0,
+    };
+  }
+
+  // LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call — compone el margin call ya
+  // calculado de APX3 con el P10 de liquidez mínima que YA calibra el Monte Carlo de ESX1
+  // (`minCheckingPercentiles`, `canonical-e13-scenarios.js`). Decisión del hogar (sesión 159): "el
+  // peor 5%" se define sobre esa banda ya calibrada, sin abrir una calibración de cola de mercado
+  // nueva (que exigiría un histórico de rendimientos que esta app no guarda). Pregunta que responde:
+  // si la llamada de garantía se disparase justo en el escenario de liquidez ya simulado como
+  // "peor" (P10), ¿la caja mínima de ese escenario cubre la garantía adicional exigida, o falta
+  // seguro de cola? Nunca decide contratar nada — solo dice si haría falta.
+  const TAIL_RISK_SCHEMA_ID = "finance-lev7-tail-risk-margin-call/v1";
+
+  function tailRiskAgainstMarginCall({ marginCallResult, minCheckingPercentiles } = {}) {
+    if (!marginCallResult || marginCallResult.calculable !== true) {
+      return { schemaId: TAIL_RISK_SCHEMA_ID, calculable: false, reason: "margin-call-not-calculable" };
+    }
+    if (!marginCallResult.marginCallTriggered) {
+      return { schemaId: TAIL_RISK_SCHEMA_ID, calculable: true, marginCallTriggered: false };
+    }
+    const p10 = number(minCheckingPercentiles?.p10, NaN);
+    if (!Number.isFinite(p10)) {
+      return { schemaId: TAIL_RISK_SCHEMA_ID, calculable: false, reason: "missing-p10" };
+    }
+    const additionalCollateralNeeded = marginCallResult.additionalCollateralNeeded;
+    const worstCaseLiquidityP10 = round2(Math.max(0, p10));
+    const covered = worstCaseLiquidityP10 >= additionalCollateralNeeded;
+    return {
+      schemaId: TAIL_RISK_SCHEMA_ID,
+      calculable: true,
+      marginCallTriggered: true,
+      additionalCollateralNeeded,
+      worstCaseLiquidityP10,
+      covered,
+      shortfall: round2(Math.max(0, additionalCollateralNeeded - worstCaseLiquidityP10)),
+    };
+  }
+
   return {
     SCHEMA_ID,
     SAVED_SCHEMA_ID,
@@ -225,5 +294,9 @@
     lombardMarginCallSimulation,
     LOMBARD_COMPARISON_SCHEMA_ID,
     compareLombardOffers,
+    WEIGHTED_STRESS_SCHEMA_ID,
+    weightedPortfolioStressDropPct,
+    TAIL_RISK_SCHEMA_ID,
+    tailRiskAgainstMarginCall,
   };
 });
