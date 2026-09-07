@@ -2788,6 +2788,44 @@
               <div class="e19-kpi-note" id="apx2LombardNote"></div>
             </article>
 
+            <!-- LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. APX2
+                 (arriba) calcula UNA oferta declarada; este registra las condiciones reales de
+                 varias y las compara lado a lado sobre la misma cartera real — mismo patrón de
+                 lista repetible que la pérdida arrastrada de FC3 (Fiscal). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador de líneas Lombard entre entidades</h3>
+              <p class="e19-kpi-note">Registra las condiciones reales de varias ofertas de crédito con garantía de cartera y compáralas lado a lado sobre tu cartera real: coste del primer año y margen de seguridad frente a una llamada de garantía (distancia entre el LTV al que prestan y el LTV de mantenimiento).</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Entidad</span>
+                  <input id="lev4OfferEntity" type="text" placeholder="Ej. Banco X" />
+                </label>
+                <label class="month-picker">
+                  <span>LTV máximo (%)</span>
+                  <input id="lev4OfferMaxLtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 50" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo (% anual)</span>
+                  <input id="lev4OfferRatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión de apertura (%)</span>
+                  <input id="lev4OfferOpeningFeePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión de cancelación (%)</span>
+                  <input id="lev4OfferCancellationFeePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>LTV de mantenimiento (%)</span>
+                  <input id="lev4OfferMaintenanceLtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 70" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev4OfferSave">Añadir oferta</button>
+              <ul class="commit-barrier-list" id="lev4OfferList"></ul>
+              <div class="e19-kpi-note" id="lev4ComparisonNote"></div>
+            </article>
+
             <!-- APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de
                  APX2. El hogar declara cuánto pidió prestado de verdad, el LTV de mantenimiento del
                  banco y una caída hipotética de la cartera — nunca un umbral "típico" inventado.
@@ -2813,6 +2851,25 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="apx3MarginCallRun">Simular caída</button>
               <div class="e19-kpi-note" id="apx3MarginCallNote"></div>
+            </article>
+
+            <!-- LEV3 (Oleada 3, Bloque 3): estrés combinado — tipos al alza y mercado a la baja a la
+                 vez. Reutiliza los campos ya declarados de la hipoteca (arriba, en Patrimonio e
+                 inversión) y del margin call (justo arriba) — solo pide los puntos de subida de
+                 tipos, la caída de cartera ya la tiene el simulador de arriba. En una crisis real
+                 ambos suelen moverse juntos: el efecto compuesto no es la suma de los dos por
+                 separado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Estrés combinado: tipos al alza y mercado a la baja</h3>
+              <p class="e19-kpi-note">Si tienes hipoteca variable Y crédito con garantía de cartera, simula qué pasaría si los tipos subieran y la cartera cayera a la vez — el mismo escenario de crisis real, en vez de mirar cada estrés por separado. Usa la hipoteca declarada en Patrimonio e inversión y la caída de cartera del simulador de margin call de arriba.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Subida de tipos a explorar (puntos)</span>
+                  <input id="lev3RateDeltaPoints" type="number" step="0.1" inputmode="decimal" placeholder="Ej. 1.5" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev3CombinedStressRun">Simular estrés combinado</button>
+              <div class="e19-kpi-note" id="lev3CombinedStressNote"></div>
             </article>
 
             <!-- AP6: alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada.
@@ -2856,9 +2913,41 @@
                   <span>Horizonte a comparar (meses)</span>
                   <input id="ap1Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
                 </label>
+                <!-- DEB2 (Oleada 3, Bloque 3): comisión de amortización anticipada real del contrato,
+                     si la tiene — sin ella el reparto de DLX2 destinaría todo el excedente a "toDebt"
+                     sin contar que la propia comisión se paga con ese mismo excedente. -->
+                <label class="month-picker">
+                  <span>Comisión de amortización anticipada de esa deuda (%)</span>
+                  <input id="ap1PrepaymentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ap1CompareRun">Comparar</button>
               <div class="e19-kpi-note" id="ap1CompareNote"></div>
+            </article>
+
+            <!-- DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente. Muchos contratos con
+                 comisión de amortización anticipada la reducen en un escalón declarado en el
+                 contrato; sin este aviso, DEB2 (arriba) podría dimensionar una amortización justo
+                 antes de que esa comisión bajase de precio por pura impaciencia. Solo un escalón
+                 declarado a mano — el hogar añade otro si el contrato tiene más de uno. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Ventana de comisión decreciente</h3>
+              <p class="e19-kpi-note">Si el contrato de esa deuda tiene una comisión de amortización anticipada que baja en un escalón declarado, avisa de la fecha exacta en la que amortizar pasa a ser más barato — para no ejecutar la amortización de arriba (DEB2) justo antes de esa fecha.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Comisión actual (%)</span>
+                  <input id="deb8CurrentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Ese escalón termina en (mes)</span>
+                  <input id="deb8TierUntilMonth" type="month" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión siguiente (%)</span>
+                  <input id="deb8NextPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="deb8PrepaymentWindowNote"></div>
             </article>
 
             <!-- DLX3: retrospectiva "¿me habría quedado sin colchón?" — depende de DLX1 (mismo
@@ -2923,10 +3012,13 @@
 
             <!-- DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo marco de tres
                  escenarios (base/favorable/tensión) que ya usa el Laboratorio de escenarios (E13),
-                 aplicado al tipo de interés — calculadora puntual, sin tipos de mercado reales. -->
+                 aplicado al tipo de interés. DEB4 (Oleada 3, Bloque 3) persiste estos campos (antes
+                 solo calculadora puntual) para poder vigilarlos como radar continuo: declara un
+                 umbral de meses aceptable y avisa sin tener que volver a abrir el simulador. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Hipoteca variable → fija bajo escenarios de tipos</h3>
               <p class="e19-kpi-note">Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos — base, favorable y tensión (mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: pones los tuyos.</p>
+              <div class="e19-kpi-note" id="deb4RadarAlert"></div>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Capital pendiente (€)</span>
@@ -2949,6 +3041,12 @@
                 <label class="month-picker">
                   <span>Coste de refinanciar (€)</span>
                   <input id="ajustesMortgageRefinancingCost" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <!-- DEB4: umbral de meses aceptable para el radar — sin él, el radar no tiene con
+                     qué decidir si el punto de equilibrio actual merece un aviso. -->
+                <label class="month-picker">
+                  <span>Radar: avisar si se recupera en ≤ (meses)</span>
+                  <input id="deb4MaxBreakEvenMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 24" />
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMortgageScenariosCompare">Comparar</button>
@@ -3065,6 +3163,17 @@
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Runway patrimonial completo</h3>
               <div class="e19-kpi-note" id="lpx2NetWorthRunway"></div>
+            </article>
+
+            <!-- GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — "aguanto X meses" sin
+                 vender nada ni pedir prestado. Combina el colchón (liquidez real, DLX1), la deuda
+                 (la cuota sigue debiéndose aunque el ingreso se corte) y un escenario de tensión
+                 declarado (mismo marco base/favorable/tensión de E13). Distinto de LPX2 (arriba):
+                 aquí solo cuenta lo disponible de verdad en una emergencia. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Resiliencia: ¿cuántos meses aguanto?</h3>
+              <p class="e19-kpi-note">Solo liquidez real (nunca cartera de inversión ni activos ilíquidos, que exigirían vender) frente al gasto medio bajo el escenario de tensión de E13 más la cuota de deuda que sigues debiendo aunque se corte el ingreso.</p>
+              <div class="e19-kpi-note" id="gob9ResiliencePanel"></div>
             </article>
 
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
@@ -3376,6 +3485,24 @@
                 <span>Aplicar automáticamente cuando la confianza sea alta</span>
               </label>
               <p class="e19-kpi-note" id="ajustesAutoAdjustForecastBiasNote"></p>
+            </article>
+
+            <!-- PVC6 (Oleada 3, Bloque 3): previsión con control de versiones. En cada cierre de mes
+                 (A1-2) se congela un snapshot del registro de supuestos ya versionado (A7-2/E12a) —
+                 esta tarjeta compara "qué preveíamos entonces" contra la previsión de ahora, con el
+                 diff de qué supuesto concreto cambió. Distinto de PVX1 (backtesting de precisión):
+                 aquí se compara el MODELO, no solo el acierto final. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Previsión con control de versiones</h3>
+              <p class="e19-kpi-note">Cada cierre de mes firmado guarda una foto de los supuestos de la previsión de ese momento. Elige un cierre pasado para ver exactamente qué supuesto cambió desde entonces hasta la previsión de ahora.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Comparar con el cierre de</span>
+                  <select id="pvc6SnapshotSelect"></select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="pvc6SnapshotCompare">Comparar</button>
+              <div class="e19-kpi-note" id="pvc6SnapshotDiffNote"></div>
             </article>
 
             <article class="e19-card">

@@ -169,6 +169,50 @@
     };
   }
 
+  // LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. APX2 calcula la
+  // capacidad de crédito de UNA oferta declarada; este motor registra las condiciones reales de
+  // varias ofertas (LTV máximo, tipo, comisión de apertura/cancelación, LTV de mantenimiento) y las
+  // compara lado a lado sobre la misma cartera real — igual criterio que el comparador de tarifas
+  // (canonical-tariff-comparator.js): nunca inventa una condición "típica", solo las que el hogar
+  // ha declarado de cada entidad. El margen de seguridad (`safetyMarginPts`) es la distancia en
+  // puntos entre el LTV al que prestan y el LTV de mantenimiento que dispara la llamada de
+  // garantía — cuanto mayor, más caída de mercado aguanta esa oferta antes de un margin call.
+  const LOMBARD_COMPARISON_SCHEMA_ID = "finance-lev4-lombard-comparison/v1";
+
+  function compareLombardOffers({ offers, portfolioValue } = {}) {
+    const value = Math.max(0, round2(portfolioValue));
+    const list = Array.isArray(offers) ? offers : [];
+    if (!(value > 0) || !list.length) return { schemaId: LOMBARD_COMPARISON_SCHEMA_ID, calculable: false, rows: [] };
+    const rows = list
+      .map((offer) => {
+        const maxLtvPct = Math.max(0, Math.min(100, number(offer?.maxLtvPct)));
+        const annualRatePct = Math.max(0, number(offer?.annualRatePct));
+        const openingFeePct = Math.max(0, number(offer?.openingFeePct));
+        const cancellationFeePct = Math.max(0, number(offer?.cancellationFeePct));
+        const maintenanceLtvPct = Math.max(0, Math.min(100, number(offer?.maintenanceLtvPct)));
+        const capacity = round2(value * (maxLtvPct / 100));
+        const annualCost = round2(capacity * (annualRatePct / 100));
+        const openingFee = round2(capacity * (openingFeePct / 100));
+        const cancellationFee = round2(capacity * (cancellationFeePct / 100));
+        const firstYearCost = round2(annualCost + openingFee);
+        return {
+          id: String(offer?.id || ""),
+          entity: String(offer?.entity || "").trim() || "Entidad",
+          maxLtvPct, annualRatePct, openingFeePct, cancellationFeePct, maintenanceLtvPct,
+          capacity, annualCost, openingFee, cancellationFee, firstYearCost,
+          safetyMarginPts: maintenanceLtvPct > 0 ? round2(maintenanceLtvPct - maxLtvPct) : null,
+        };
+      })
+      .sort((a, b) => a.firstYearCost - b.firstYearCost);
+    return {
+      schemaId: LOMBARD_COMPARISON_SCHEMA_ID,
+      calculable: true,
+      portfolioValue: value,
+      rows,
+      cheapestId: rows[0]?.id || null,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SAVED_SCHEMA_ID,
@@ -179,5 +223,7 @@
     lombardCreditCapacity,
     MARGIN_CALL_SCHEMA_ID,
     lombardMarginCallSimulation,
+    LOMBARD_COMPARISON_SCHEMA_ID,
+    compareLombardOffers,
   };
 });

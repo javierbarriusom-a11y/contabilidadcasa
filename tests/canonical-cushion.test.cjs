@@ -363,6 +363,78 @@ test("surplusAllocationRule · sin veredicto claro de AP1 (empate o sin cartera)
 });
 
 // ---------------------------------------------------------------------------------------------
+// DEB2 (Oleada 3, Bloque 3) · dimensionador de amortización parcial óptima — recibe el excedente
+// que DLX2 ya destinó a "amortizar deuda" y decide cuánto de verdad amortizar, contando la
+// comisión de amortización anticipada real del contrato. Nunca todo-o-nada.
+// ---------------------------------------------------------------------------------------------
+
+test("dimensionOptimalPrepayment · sin excedente asignado, no calculable", () => {
+  assert.deepEqual(
+    Cushion.dimensionOptimalPrepayment({ allocatedSurplus: 0, remainingPrincipal: 5000, penaltyPct: 2 }),
+    { calculable: false },
+  );
+});
+
+test("dimensionOptimalPrepayment · sin comisión, amortiza el excedente entero (capado al capital pendiente)", () => {
+  const result = Cushion.dimensionOptimalPrepayment({ allocatedSurplus: 300, remainingPrincipal: 5000, penaltyPct: 0 });
+  assert.equal(result.amount, 300);
+  assert.equal(result.penaltyCost, 0);
+  assert.equal(result.totalCash, 300);
+  assert.equal(result.leftoverSurplus, 0);
+  assert.equal(result.fullPayoff, false);
+});
+
+test("dimensionOptimalPrepayment · con comisión, el importe se ajusta a la baja para que quepa la comisión en el excedente", () => {
+  // excedente 300, comisión 2% -> amortizable = 300 / 1.02 = 294.12; comisión = 5.88; total = 300
+  const result = Cushion.dimensionOptimalPrepayment({ allocatedSurplus: 300, remainingPrincipal: 5000, penaltyPct: 2 });
+  assert.equal(result.amount, 294.12);
+  assert.equal(result.penaltyCost, 5.88);
+  assert.equal(result.totalCash, 300);
+  assert.equal(result.leftoverSurplus, 0);
+});
+
+test("dimensionOptimalPrepayment · nunca supera el capital pendiente, aunque sobre excedente", () => {
+  const result = Cushion.dimensionOptimalPrepayment({ allocatedSurplus: 10000, remainingPrincipal: 2000, penaltyPct: 1 });
+  assert.equal(result.amount, 2000);
+  assert.equal(result.fullPayoff, true);
+  assert.equal(result.penaltyCost, 20);
+  assert.equal(result.leftoverSurplus, 7980);
+});
+
+// ---------------------------------------------------------------------------------------------
+// GOB9 (Oleada 3, Bloque 3) · panel único de resiliencia — combina liquidez real, deuda y un
+// escenario de tensión declarado en un único número de meses de aguante.
+// ---------------------------------------------------------------------------------------------
+
+test("resilienceMonths · sin gasto ni deuda, no calculable (no se divide por cero)", () => {
+  assert.deepEqual(Cushion.resilienceMonths({ liquidity: 5000, monthlyBurn: 0 }), { calculable: false });
+});
+
+test("resilienceMonths · sin estrés declarado (factor 1) ni deuda, es la liquidez entre el gasto medio", () => {
+  const result = Cushion.resilienceMonths({ liquidity: 6000, monthlyBurn: 2000 });
+  assert.equal(result.stressedBurn, 2000);
+  assert.equal(result.totalMonthlyOutflow, 2000);
+  assert.equal(result.months, 3);
+});
+
+test("resilienceMonths · el escenario de tensión encarece el gasto antes de dividir", () => {
+  const result = Cushion.resilienceMonths({ liquidity: 6000, monthlyBurn: 2000, stressExpenseFactor: 1.1 });
+  assert.equal(result.stressedBurn, 2200);
+  assert.equal(result.months, Math.floor((6000 / 2200) * 10) / 10);
+});
+
+test("resilienceMonths · la cuota de deuda resta aguante, igual que el gasto", () => {
+  const result = Cushion.resilienceMonths({ liquidity: 6000, monthlyBurn: 2000, monthlyDebtService: 1000 });
+  assert.equal(result.totalMonthlyOutflow, 3000);
+  assert.equal(result.months, 2);
+});
+
+test("resilienceMonths · un factor de tensión por debajo de 1 nunca abarata el gasto (mínimo 1)", () => {
+  const result = Cushion.resilienceMonths({ liquidity: 6000, monthlyBurn: 2000, stressExpenseFactor: 0.9 });
+  assert.equal(result.stressedBurn, 2000);
+});
+
+// ---------------------------------------------------------------------------------------------
 // DLX3 (Oleada 2, Bloque 4) · retrospectiva "¿me habría quedado sin colchón?" — reconstrucción
 // hacia atrás desde la liquidez de hoy, con el flujo neto real ya conciliado (mismo historial que
 // PVX1) y el suelo VIGENTE (nunca uno histórico, que la app no guarda versionado).

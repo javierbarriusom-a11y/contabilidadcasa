@@ -62,13 +62,21 @@ function baseContext(names, extra = {}) {
   // `sobresEnabled()` para decidir si Sobres está activo. `state: {}` (sin `envelopes.enabled`) deja
   // la bandera apagada, que es el comportamiento de tres pasos que estas pruebas ya cubrían.
   const withSobres = names.includes("sobresEnabled") ? names : ["sobresEnabled", ...names];
-  return sandboxWith(withSobres, {
+  // GOB6: cierreFirmChecks llama a cierreRecalcCheck() internamente — tiene que cargarse en el
+  // mismo sandbox, igual que sobresEnabled.
+  const withRecalcCheck = withSobres.includes("cierreFirmChecks") && !withSobres.includes("cierreRecalcCheck")
+    ? [...withSobres, "cierreRecalcCheck"]
+    : withSobres;
+  return sandboxWith(withRecalcCheck, {
     round2: (v) => Math.round((Number(v || 0) + Number.EPSILON) * 100) / 100,
     money: (v) => `${v}€`,
     escapeHtml: (v) => String(v),
     accountBalancesFromState: () => ({ caixa: 1000, mediolanum: 500 }),
     monthClosures: [],
     state: {},
+    // GOB6 (Oleada 3, Bloque 3): cierreFirmChecks ahora lee window.FinanceP2Bridge.lastModelRecomputeAt()
+    // (misma marca que PVC1) — un stub por defecto sin recálculo todavía, sobrescribible por prueba.
+    window: { FinanceP2Bridge: { lastModelRecomputeAt: () => null } },
     ...extra,
   });
 }
@@ -142,19 +150,39 @@ test("C-1 · el paso 2 se desbloquea cuando las cuentas cuadran, el 3 solo cuand
 
 // --- cierreFirmChecks (C-5) ----------------------------------------------------------------------
 
-test("C-5 · las tres comprobaciones fallan por separado, no todas a la vez", () => {
+test("C-5 · las cuatro comprobaciones fallan por separado, no todas a la vez", () => {
   const context = baseContext(["cierreFirmChecks", "cierreAccountsSettled"]);
   const checks = context.cierreFirmChecks([{ status: "descuadra" }], [{ cause: "unclassified" }], 0);
-  assert.equal(checks.length, 3);
+  assert.equal(checks.length, 4);
   assert.equal(checks[0].met, false);
   assert.equal(checks[1].met, false);
   assert.equal(checks[2].met, false);
 });
 
-test("C-5 · con todo en orden las tres comprobaciones cumplen", () => {
-  const context = baseContext(["cierreFirmChecks", "cierreAccountsSettled"]);
+test("C-5 · con todo en orden, incluido el recálculo (GOB6), las cuatro comprobaciones cumplen", () => {
+  const context = baseContext(["cierreFirmChecks", "cierreAccountsSettled"], {
+    window: { FinanceP2Bridge: { lastModelRecomputeAt: () => new Date().toISOString() } },
+  });
   const checks = context.cierreFirmChecks([{ status: "cuadra" }], [], 41);
   assert.ok(checks.every((check) => check.met));
+});
+
+// --- cierreRecalcCheck (GOB6, Oleada 3 Bloque 3) --------------------------------------------------
+
+test("GOB6 · sin ningún recálculo todavía (lastModelRecomputeAt nulo), la comprobación no cumple", () => {
+  const context = baseContext(["cierreRecalcCheck"]);
+  const check = context.cierreRecalcCheck();
+  assert.equal(check.met, false);
+  assert.match(check.label, /Colchón, deuda, metas y apalancamiento recalculados/);
+});
+
+test("GOB6 · con un recálculo reciente, la comprobación cumple y dice hace cuánto", () => {
+  const context = baseContext(["cierreRecalcCheck"], {
+    window: { FinanceP2Bridge: { lastModelRecomputeAt: () => new Date().toISOString() } },
+  });
+  const check = context.cierreRecalcCheck();
+  assert.equal(check.met, true);
+  assert.match(check.label, /hace un momento/);
 });
 
 // --- cierreGroupTasksByCause (C-3) ----------------------------------------------------------------

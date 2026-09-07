@@ -116,3 +116,37 @@ test("un contrato documentado alcanza calidad completa", () => {
   assert.equal(contract.dataQuality.complete, true);
   assert.equal(contract.dataQuality.confidence, "high");
 });
+
+// ---------------------------------------------------------------------------------------------
+// DEB8 (Oleada 3, Bloque 3) · ventana de comisión decreciente — solo el escalón vigente y el
+// siguiente, nunca decide amortizar por su cuenta.
+// ---------------------------------------------------------------------------------------------
+
+test("nextCheaperPrepaymentWindow · sin escalones declarados, no calculable", () => {
+  assert.deepEqual(DebtContracts.nextCheaperPrepaymentWindow([], "2026-09"), { calculable: false });
+});
+
+test("nextCheaperPrepaymentWindow · dentro del primer escalón, avisa de la fecha en la que baja", () => {
+  const tiers = [{ untilMonth: "2027-06", pct: 2 }, { untilMonth: null, pct: 1 }];
+  const result = DebtContracts.nextCheaperPrepaymentWindow(tiers, "2026-09");
+  assert.equal(result.calculable, true);
+  assert.equal(result.currentPct, 2);
+  assert.equal(result.hasUpcomingWindow, true);
+  assert.equal(result.nextPct, 1);
+  assert.equal(result.nextFromMonth, "2027-06");
+  assert.equal(result.monthsUntil, 9);
+});
+
+test("nextCheaperPrepaymentWindow · ya en el escalón final, sin más ventanas que esperar", () => {
+  const tiers = [{ untilMonth: "2027-06", pct: 2 }, { untilMonth: null, pct: 1 }];
+  const result = DebtContracts.nextCheaperPrepaymentWindow(tiers, "2028-01");
+  assert.equal(result.calculable, true);
+  assert.equal(result.currentPct, 1);
+  assert.equal(result.hasUpcomingWindow, false);
+  assert.equal(result.nextFromMonth, null);
+});
+
+test("nextCheaperPrepaymentWindow · sin fecha de referencia, no calculable", () => {
+  const tiers = [{ untilMonth: "2027-06", pct: 2 }, { untilMonth: null, pct: 1 }];
+  assert.deepEqual(DebtContracts.nextCheaperPrepaymentWindow(tiers, ""), { calculable: false });
+});

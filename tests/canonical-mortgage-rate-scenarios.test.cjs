@@ -61,3 +61,47 @@ test("evaluateMortgageRateScenarios · empate real cuando ambas cuestan lo mismo
   assert.equal(base.cheaper, "tie");
   assert.equal(base.difference, 0);
 });
+
+// ---------------------------------------------------------------------------------------------
+// LEV3 (Oleada 3, Bloque 3) · estrés combinado — tipos al alza y mercado a la baja a la vez.
+// Compone el estrés de tipos de este mismo motor con el margin call ya calculado de APX3
+// (lombardMarginCallSimulation), sin reimplementar ninguno de los dos.
+// ---------------------------------------------------------------------------------------------
+
+test("evaluateCombinedStress · sin hipoteca ni margin call calculables, no calculable", () => {
+  assert.deepEqual(Mortgage.evaluateCombinedStress({}), { schemaId: "finance-lev3-combined-stress/v1", calculable: false });
+});
+
+test("evaluateCombinedStress · solo hipoteca declarada, sin margin call", () => {
+  const result = Mortgage.evaluateCombinedStress({
+    principal: 120000, months: 240, currentVariableRate: 3, deltaPoints: 1.5,
+  });
+  assert.equal(result.calculable, true);
+  assert.equal(result.mortgage.calculable, true);
+  assert.equal(result.mortgage.stressedRate, 4.5);
+  assert.equal(result.mortgage.extraMonthlyPayment > 0, true);
+  assert.equal(result.marginCall.calculable, false);
+  assert.equal(result.bothTriggeredTogether, false);
+});
+
+test("evaluateCombinedStress · hipoteca y margin call disparados a la vez", () => {
+  const marginCallResult = {
+    calculable: true,
+    marginCallTriggered: true,
+    additionalCollateralNeeded: 5000,
+  };
+  const result = Mortgage.evaluateCombinedStress({
+    principal: 120000, months: 240, currentVariableRate: 3, deltaPoints: 1.5, marginCallResult,
+  });
+  assert.equal(result.bothTriggeredTogether, true);
+  assert.equal(result.combinedOneOffCashNeeded, 5000);
+  assert.equal(result.combinedMonthlyCashStrain, result.mortgage.extraMonthlyPayment);
+});
+
+test("evaluateCombinedStress · margin call no disparado, bothTriggeredTogether false aunque suba la cuota", () => {
+  const marginCallResult = { calculable: true, marginCallTriggered: false, additionalCollateralNeeded: 0 };
+  const result = Mortgage.evaluateCombinedStress({
+    principal: 120000, months: 240, currentVariableRate: 3, deltaPoints: 1.5, marginCallResult,
+  });
+  assert.equal(result.bothTriggeredTogether, false);
+});

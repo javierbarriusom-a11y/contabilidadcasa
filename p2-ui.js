@@ -487,6 +487,52 @@
     }));
   }
 
+  // GOB4 (Oleada 3, Bloque 3): vista por titular en hogar compartido. "Mis metas, mi deuda, mi
+  // aportación" separado de la vista agregada, sobre el mismo reparto por titular (javi/tere/hogar)
+  // que ya usan las metas (goal.owner, arriba) y la deuda (ownership, ya expuesto por
+  // bridge().debts()/p2DebtRows — mismo campo `owner` que usa DEB1/AP5) — sin dato nuevo que
+  // declarar, solo un filtro de solo lectura, para no tener que entender los 10 dominios de
+  // Ajustes para ver solo lo propio. Nunca incluye "hogar" (compartido): esta vista es justo lo
+  // contrario, lo que le corresponde a un titular en particular.
+  let gob4SelectedMember = "javi";
+
+  function gob4MemberGoals(owner) {
+    return state().goals.filter((goal) => goal.owner === owner).map((goal) => domain().goalSnapshot(goal));
+  }
+
+  function gob4MemberDebts(owner) {
+    return (bridge()?.debts() || []).filter((row) => row.owner === owner);
+  }
+
+  function gob4MemberContribution(goals) {
+    return goals.reduce((sum, goal) => sum + goal.contributions.reduce((total, item) => total + Number(item.amount || 0), 0), 0);
+  }
+
+  function renderGob4MemberView() {
+    const target = mount("home", "gob4-member-view", "beforeend", panel("gob4-member-view", "Vista por titular", "Mis metas, mi deuda, mi aportación", "Solo lo que corresponde a este titular, sin tener que entender el resto de dominios de Ajustes."));
+    if (!target) return;
+    const member = gob4SelectedMember;
+    const goals = gob4MemberGoals(member);
+    const debts = gob4MemberDebts(member);
+    const contribution = gob4MemberContribution(goals);
+    const totalDebt = debts.reduce((sum, row) => sum + Number(row.currentPrincipal || 0), 0);
+    const totalDebtPayment = debts.reduce((sum, row) => sum + Number(row.currentPayment || 0), 0);
+    target.querySelector("[data-p2-body]").innerHTML = `
+      <label class="p2-field"><span>Titular</span><select data-gob4-member-select>${["javi", "tere"].map((value) => `<option value="${value}" ${value === member ? "selected" : ""}>${ownerLabel(value)}</option>`).join("")}</select></label>
+      <div class="p2-kpis">
+        <div class="p2-kpi"><span>Mis metas activas</span><strong>${goals.filter((goal) => goal.status === "active").length}</strong></div>
+        <div class="p2-kpi"><span>Mi deuda pendiente</span><strong>${euro(totalDebt)}</strong></div>
+        <div class="p2-kpi"><span>Mi cuota mensual</span><strong>${euro(totalDebtPayment)}</strong></div>
+        <div class="p2-kpi"><span>Mi aportación total</span><strong>${euro(contribution)}</strong></div>
+      </div>
+      <div class="p2-list" data-gob4-goals>${goals.length ? goals.map((goal) => `<div class="p2-contribution"><span>${esc(goal.name)}</span><strong>${euro(goal.saved)} / ${euro(goal.target)}</strong><small>${goal.progress}%</small></div>`).join("") : '<p class="p2-help">Sin metas propias todavía.</p>'}</div>
+      <div class="p2-list" data-gob4-debts>${debts.length ? debts.map((row) => `<div class="p2-contribution"><span>${esc(row.entity)} · ${esc(row.type)}</span><strong>${euro(row.currentPrincipal)}</strong><small>${euro(row.currentPayment)}/mes</small></div>`).join("") : '<p class="p2-help">Sin deuda propia todavía.</p>'}</div>`;
+    target.querySelector("[data-gob4-member-select]")?.addEventListener("change", (event) => {
+      gob4SelectedMember = event.target.value === "tere" ? "tere" : "javi";
+      renderGob4MemberView();
+    });
+  }
+
   function renderBehavior() {
     const target = mount("movements", "p2-behavior", "beforeend", panel("p2-behavior", "Comportamiento conciliado", "Tendencias y anomalías reales", "Los indicadores excluyen movimientos sin asignar: la procedencia queda visible y no se mezcla con estimaciones."));
     if (!target) return;
@@ -594,7 +640,7 @@
   function render(viewId) {
     if (!bridge() || !domain()) return;
     if (viewId === "savings-agent") renderGoals();
-    if (viewId === "home") renderE16Monitoring();
+    if (viewId === "home") { renderE16Monitoring(); renderGob4MemberView(); }
     if (viewId === "data-entry") { renderFamilyAndExport(); renderE9ActivationStatus(); }
     // Repaso pixel-perfect del 20 de agosto: Movimientos.pdf no lleva la tarjeta "Comportamiento
     // conciliado" — se deja de montar en Movimientos (renderBehavior() queda sin llamar, no se

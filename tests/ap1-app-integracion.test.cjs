@@ -67,7 +67,7 @@ test("DLX1: handleAp1Compare calcula el guardarraíl con el mismo suelo y reserv
 
 test("DLX1: el guardarraíl se antepone a la lectura amortizar/invertir, no la sustituye", () => {
   const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 2200);
-  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ ap1ResultHtml\(/);
+  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb2DimensionHtml\(surplusAllocation\) : ""\) \+ ap1ResultHtml\(/);
 });
 
 test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del estado", () => {

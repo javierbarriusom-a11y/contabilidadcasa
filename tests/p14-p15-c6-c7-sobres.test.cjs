@@ -57,6 +57,9 @@ function baseHelpers(extra = {}) {
     ledgerMonthLabel: (key) => key,
     csvValue: (v) => `"${String(v ?? "").replaceAll('"', '""')}"`,
     seriesKeyForRow: (row) => row.key,
+    // GOB6 (Oleada 3, Bloque 3): cierreFirmChecks llama a cierreRecalcCheck(), que lee
+    // window.FinanceP2Bridge.lastModelRecomputeAt() — stub por defecto sin recálculo.
+    window: { FinanceP2Bridge: { lastModelRecomputeAt: () => null } },
     ...extra,
   };
 }
@@ -306,12 +309,12 @@ test("C-1 · con Sobres activo, Cierre inserta «Liquidar sobres» como paso 3 y
 });
 
 test("C-5 · «Ningún sobre sin destino» solo aparece con Sobres activo, y bloquea si falta origen", () => {
-  const off = sandboxWith(["cierreFirmChecks", "cierreAccountsSettled", "sobresEnabled", "cierreSobresAllResolved", "cierreSobresResolved"], baseHelpers({ state: {}, cierreSobresChoices: {} }));
+  const off = sandboxWith(["cierreFirmChecks", "cierreAccountsSettled", "sobresEnabled", "cierreSobresAllResolved", "cierreSobresResolved", "cierreRecalcCheck"], baseHelpers({ state: {}, cierreSobresChoices: {} }));
   const checksOff = off.cierreFirmChecks([{ status: "cuadra" }], [], 5, []);
   assert.equal(checksOff.some((check) => check.id === "sobres"), false);
 
   const on = sandboxWith(
-    ["cierreFirmChecks", "cierreAccountsSettled", "sobresEnabled", "cierreSobresAllResolved", "cierreSobresResolved"],
+    ["cierreFirmChecks", "cierreAccountsSettled", "sobresEnabled", "cierreSobresAllResolved", "cierreSobresResolved", "cierreRecalcCheck"],
     baseHelpers({ state: { envelopes: { enabled: true } }, cierreSobresChoices: {} }),
   );
   const checksOn = on.cierreFirmChecks([{ status: "cuadra" }], [], 5, [{ rowKey: "ocio", saldo: -20, rule: "arrastra" }]);

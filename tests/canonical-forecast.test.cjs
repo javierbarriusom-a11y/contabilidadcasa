@@ -126,6 +126,114 @@ test("learnFromHistory · cada desviación lleva su previsto medio y severidad, 
   assert.equal(salary.severity, "low"); // 150/2000 = 7,5%, por debajo del 10%
 });
 
+// ---------------------------------------------------------------------------------------------
+// PVC6 (Oleada 3, Bloque 3) · previsión con control de versiones — diffAssumptionSnapshots
+// compara dos registros de supuestos ya versionados (buildAssumptionRegistry), sin recalcular
+// nada, para decir exactamente qué supuesto concreto cambió entre un cierre y la previsión actual.
+// ---------------------------------------------------------------------------------------------
+
+function assumptionRegistry(overrides = {}) {
+  return {
+    schemaId: forecast.ASSUMPTIONS_SCHEMA_ID,
+    items: [
+      { id: "incomeFactor", label: "Factor general de ingresos", unit: "ratio", value: 1.05, ...overrides.incomeFactor },
+      { id: "expenseFactor", label: "Factor general de gastos", unit: "ratio", value: 1.1, ...overrides.expenseFactor },
+      { id: "plannedMonthlySaving", label: "Ahorro mensual objetivo", unit: "EUR", value: 250, ...overrides.plannedMonthlySaving },
+      { id: "autoCapSavings", label: "Ajuste automático del ahorro", unit: "boolean", value: true, ...overrides.autoCapSavings },
+    ],
+  };
+}
+
+test("diffAssumptionSnapshots · sin snapshot previo o sin actual, no calculable", () => {
+  assert.deepEqual(forecast.diffAssumptionSnapshots(null, assumptionRegistry()), { calculable: false, changed: [], unchangedCount: 0 });
+  assert.deepEqual(forecast.diffAssumptionSnapshots(assumptionRegistry(), null), { calculable: false, changed: [], unchangedCount: 0 });
+});
+
+test("diffAssumptionSnapshots · sin cambios, changed vacío y unchangedCount con todos los supuestos", () => {
+  const result = forecast.diffAssumptionSnapshots(assumptionRegistry(), assumptionRegistry());
+  assert.equal(result.calculable, true);
+  assert.equal(result.changed.length, 0);
+  assert.equal(result.unchangedCount, 4);
+});
+
+test("diffAssumptionSnapshots · detecta exactamente qué supuesto cambió, con antes y después", () => {
+  const previous = assumptionRegistry();
+  const current = assumptionRegistry({ incomeFactor: { value: 1.08 }, autoCapSavings: { value: false } });
+  const result = forecast.diffAssumptionSnapshots(previous, current);
+  assert.equal(result.changed.length, 2);
+  assert.equal(result.unchangedCount, 2);
+  const income = result.changed.find((item) => item.id === "incomeFactor");
+  assert.equal(income.previousValue, 1.05);
+  assert.equal(income.currentValue, 1.08);
+});
+
+test("diffAssumptionSnapshots · un supuesto nuevo que no existía en el snapshot previo no cuenta como cambio ni como sin cambios", () => {
+  const previous = assumptionRegistry();
+  const current = {
+    items: [...assumptionRegistry().items, { id: "fiscalLargeFamily", label: "Familia numerosa", unit: "boolean", value: true }],
+  };
+  const result = forecast.diffAssumptionSnapshots(previous, current);
+  assert.equal(result.changed.length, 0);
+  assert.equal(result.unchangedCount, 4);
+});
+
+// ---------------------------------------------------------------------------------------------
+// PVC3 (Oleada 3, Bloque 3) · detector de cambio estructural vs. ruido — exige persistencia de
+// 2-3 meses consecutivos fuera de banda y en el mismo sentido, ADEMÁS de la confianza de 12 meses
+// que ya exigía applyLearnedBias, antes de considerar una desviación un cambio real.
+// ---------------------------------------------------------------------------------------------
+
+function structuralMonth(monthKey, planned, actual) {
+  return { monthKey, conceptId: "monthly-net", planned, actual, reconciled: true };
+}
+
+test("detectStructuralChange · menos meses que los exigidos, no calculable", () => {
+  const result = forecast.detectStructuralChange([structuralMonth("2026-08", 1000, 1200)], { requiredConsecutiveMonths: 3 });
+  assert.equal(result.isStructural, false);
+  assert.equal(result.reason, "insufficient-sample");
+});
+
+test("detectStructuralChange · tres meses seguidos fuera de banda y en el mismo sentido: cambio estructural", () => {
+  const result = forecast.detectStructuralChange([
+    structuralMonth("2026-06", 1000, 1150),
+    structuralMonth("2026-07", 1000, 1200),
+    structuralMonth("2026-08", 1000, 1180),
+  ], { requiredConsecutiveMonths: 3 });
+  assert.equal(result.isStructural, true);
+  assert.equal(result.direction, "up");
+  assert.equal(result.reason, "");
+});
+
+test("detectStructuralChange · un mes atípico entre otros dentro de banda no cuenta como estructural", () => {
+  const result = forecast.detectStructuralChange([
+    structuralMonth("2026-06", 1000, 1010), // dentro de banda
+    structuralMonth("2026-07", 1000, 1600), // imprevisto puntual
+    structuralMonth("2026-08", 1000, 1020), // dentro de banda
+  ], { requiredConsecutiveMonths: 3 });
+  assert.equal(result.isStructural, false);
+  assert.equal(result.reason, "within-band");
+});
+
+test("detectStructuralChange · desviaciones grandes pero en sentidos opuestos no cuentan como estructural", () => {
+  const result = forecast.detectStructuralChange([
+    structuralMonth("2026-06", 1000, 1300),
+    structuralMonth("2026-07", 1000, 600),
+    structuralMonth("2026-08", 1000, 1300),
+  ], { requiredConsecutiveMonths: 3 });
+  assert.equal(result.isStructural, false);
+  assert.equal(result.reason, "inconsistent-direction");
+});
+
+test("detectStructuralChange · solo mira el concepto declarado, ignora otros", () => {
+  const result = forecast.detectStructuralChange([
+    structuralMonth("2026-06", 1000, 1300),
+    structuralMonth("2026-07", 1000, 1300),
+    { monthKey: "2026-08", conceptId: "otro", planned: 1000, actual: 1300, reconciled: true },
+  ], { requiredConsecutiveMonths: 3 });
+  assert.equal(result.isStructural, false);
+  assert.equal(result.reason, "insufficient-sample");
+});
+
 test("learnFromHistory · una partida con desviación grande frente a lo previsto sale como alta", () => {
   const learned = forecast.learnFromHistory([
     { monthKey: "2026-01", conceptId: "leisure", label: "Ocio", planned: 100, actual: 160, reconciled: true },
