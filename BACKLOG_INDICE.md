@@ -61,6 +61,20 @@ accionables (3 verificaciones de código + 41 tareas nuevas) en 5 bloques, ningu
 tres condiciones externas de la tabla de abajo — resuelve el «cierre de ciclo» que sigue a
 continuación, sin esperar a ninguna de ellas.
 
+**Actualizado el 7 de septiembre de 2026 (sesión 160): nace `OPT-24`, sin bloqueo, puede empezar ya.**
+El hogar pidió auditar la pantalla «Ajustes» («se está convirtiendo en un cajón de sastre»). La
+auditoría, hecha sobre el código real de `index.html`, confirmó el diagnóstico con cifras: 62
+tarjetas, de las que solo 16 (26%) son configuración real — el resto son simuladores/comparadores
+activos (38) o tarjetas mixtas (8) que se han ido acumulando ahí sin que ninguna sesión revisara el
+conjunto. `OPT-24` (detalle completo en `BACKLOG_OPTIMIZACION.md` §3) mueve el bloque más
+desproporcionado (Deuda y apalancamiento, 18 tarjetas) a la ruta «Deuda» ya existente, y separa
+Configuración de Herramientas dentro de las sub-pestañas de Ajustes que se quedan — sin abrir ninguna
+ruta nueva, sin revivir «Herramientas avanzadas» y sin contradecir `OPT-15` (que ya fija Ajustes como
+una de las 6 rutas finales). A diferencia del resto de la Fase 2, `OPT-24` no depende del reloj de 30
+días de `OPT-2`: no retira ninguna pantalla heredada, solo reorganiza contenido ya vivo. Recomendado
+cerrarla antes de que `OPT-15` fije la navegación final, para que la fije alrededor de una Ajustes ya
+limpia.
+
 ## Cierre de ciclo anterior — 5 de septiembre de 2026 (histórico)
 
 Con `O-5` cerrada, las tres colas activas del proyecto habían llegado al mismo punto a la vez: todo lo

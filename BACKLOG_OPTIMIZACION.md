@@ -56,6 +56,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-7 | Paneles completos de «modo familiar» y «alertas» compitiendo en «Hoy» | Medio-Alto | S-M | ⏳ |
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
+| 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ⏳ · sin bloqueo, no depende de OPT-2 |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
@@ -265,6 +266,66 @@ La fase de mayor impacto del backlog. El diseño **ya existe**
 (`docs/mockups/HANDOFF_REDISENO_6_VISTAS.md`, decisión de producto tomada el 10 de agosto de 2026);
 esto es ejecución, no diseño desde cero. **Ninguna tarea de esta fase empieza sin los datos de
 OPT-2** — es la diferencia entre decidir con evidencia y repetir el patrón que causó el problema.
+**Excepción explícita: `OPT-24`.** No retira ni fusiona ninguna pantalla heredada — reorganiza
+contenido ya vivo y en uso dentro de una pantalla que sigue existiendo tal cual en las 6 rutas
+finales, así que la razón de esperar a `OPT-2` (no decidir a ciegas qué retirar) no le aplica. Puede
+empezar ya, en paralelo con cualquier otra fase.
+
+### OPT-24 · Separar configuración de herramientas dentro de «Ajustes»
+
+**Por qué.** Auditoría pedida por el usuario el 7 de septiembre de 2026 («la pantalla de Ajustes se
+está convirtiendo en un cajón de sastre»), verificada contra el código real de `index.html:2174-3819`
+(sección `#ajustes`, 10 sub-pestañas). El criterio original de esta pantalla (comentario que la abre,
+`index.html:2167-2173`, decisiones V6-2/V6-3/V6-4) era estrecho: reserva operativa, dos umbrales
+propios y exportación. Desde entonces se han ido añadiendo, tarea a tarea y cada una justificada por
+sí sola («reutiliza sin motor nuevo un dato ya declarado aquí»), simuladores y comparadores de
+decisión que no son configuración. El recuento real hoy:
+
+| Categoría | Tarjetas | % |
+|---|---|---|
+| Ajuste/configuración real (dato declarado una vez, sin botón de ejecutar/comparar) | 16 | 26% |
+| Funcionalidad activa (simulador, comparador, panel con botón y resultado a consultar) | 38 | 61% |
+| Mixta (registro + herramienta incrustados en la misma tarjeta) | 8 | 13% |
+
+El caso más desproporcionado es la sub-pestaña «Deuda y apalancamiento»: 18 tarjetas, de las que 16
+son simuladores/comparadores activos (Lombard, margin call, amortizar vs. invertir, estrés
+combinado, cola de prioridad, hipoteca variable→fija...) y solo 2 son configuración pura (política de
+apalancamiento del hogar, avales dados).
+
+**Restricciones ya decididas que esta tarea respeta, sin reabrirlas:**
+- `OPT-15` ya fija Ajustes como una de las 6 rutas finales (Hoy, Plan, Deuda, Datos, Cierre,
+  Ajustes) — esta tarea no la elimina ni le resta ese estatus, solo reorganiza lo que hay dentro y
+  mueve un bloque completo a una ruta que ya existe.
+- El desplegable «Herramientas avanzadas» va camino de vaciarse (`OPT-11` a `OPT-13`), no de
+  llenarse — esta tarea no revive ese desplegable como destino para simuladores nuevos.
+
+**Tareas:**
+1. **Mover la sub-pestaña «Deuda y apalancamiento» completa (18 tarjetas) de Ajustes a la ruta
+   «Deuda» ya existente** (`#deuda-ruta`), mismo patrón que ya usó `D-15` para promover el simulador
+   visual de deuda desde Herramientas avanzadas a esa misma pestaña. Dentro de Deuda, separar las 2
+   tarjetas de configuración (política de apalancamiento, avales dados) de las 16 de herramienta con
+   el mismo mecanismo de sub-grupos del punto 2, en vez de dejarlas huérfanas en Ajustes.
+2. **Dentro de las sub-pestañas que se quedan en Ajustes** (Hogar, Reserva y colchón, Seguros,
+   Fiscal, Patrimonio e inversión, Simuladores y Laboratorio, Presupuesto y operación, Datos y
+   exportación — ninguna tiene ruta de primer nivel propia en el plan de `OPT-15`, así que se quedan
+   aquí por fuerza), reestructurar cada una en dos sub-grupos visibles bajo la misma barra de anclas
+   ya existente (`#ajustesAnchors`): «Configuración» y «Herramientas» — sin crear ninguna ruta ni
+   pantalla nueva.
+3. **Resolver las 8 tarjetas mixtas caso a caso**, partiéndolas en su mitad de dato y su mitad de
+   herramienta cuando sea practicable. Empezar por la más grave: «Cartera de inversión: registro por
+   posición» (`index.html:3305`), que mezcla el registro maestro de `IV1` con seis herramientas
+   incrustadas (XIRR, FIFO de ventas, comparación con benchmark, coste de comisiones, glide path,
+   exposición cruzada) — separar el registro base de sus herramientas asociadas, dejando claro cuál
+   es cuál.
+4. Actualizar `tests/navigation-structure.test.cjs` y cualquier test de wiring que dé por hecho la
+   posición actual de una tarjeta movida.
+
+**Resultado esperado:** Ajustes deja de ser un cajón de sastre — cada tarjeta vive donde su propio
+comportamiento indica (dato declarado vs. decisión activa), sin abrir rutas nuevas, sin revivir
+Herramientas avanzadas y sin contradecir `OPT-15`. El grupo de Deuda y apalancamiento, el más
+desproporcionado, queda donde temáticamente siempre debió estar.
+
+---
 
 ### OPT-10 · Clasificar pantallas heredadas por uso real
 
@@ -547,13 +608,17 @@ redundante, aunque no fuera la causa principal).
 
 1. OPT-1 → OPT-2 → OPT-3 → OPT-4 → OPT-5 *(Fase 0 completa primero; sin riesgo y sienta la base de
    datos y de medición que necesita todo lo demás)*
-2. OPT-6 → OPT-7 → OPT-8 *(«Hoy» se arregla rápido y es lo que más se ve cada día)*
-3. OPT-10 *(cuando OPT-2 lleve ~30 días corriendo)*
-4. OPT-11 *(la parte «barata» de la Fase 2: borrar lo que tiene 0 uso)*
-5. OPT-19 *(se activa en paralelo desde ya, coste continuo bajo)*
-6. OPT-18 *(verificación rápida, en paralelo)*
-7. OPT-9 *(limpieza de `!important`, sin prisa)*
-8. OPT-12 → OPT-13 → OPT-14 → OPT-15 *(el grueso: fusión real de pantallas a 6 vistas)*
-9. OPT-16 → OPT-17 *(ES modules + carga diferida, más natural una vez reducidas las pantallas)*
-10. OPT-20 → OPT-21 → OPT-22 *(gobernanza, continua desde el principio pero sin fecha de cierre)*
-11. ~~OPT-23~~ *(resuelta el 3-sep-2026, ver nota bajo la tarea — sin código pendiente)*
+2. **OPT-24 *(en paralelo desde el minuto cero — no depende de OPT-2 ni de ninguna otra tarea de este
+   backlog; conviene cerrarla antes de que OPT-15 fije la navegación final alrededor de una Ajustes
+   ya limpia, en vez de fijarla alrededor del cajón de sastre actual)***
+3. OPT-6 → OPT-7 → OPT-8 *(«Hoy» se arregla rápido y es lo que más se ve cada día)*
+4. OPT-10 *(cuando OPT-2 lleve ~30 días corriendo)*
+5. OPT-11 *(la parte «barata» de la Fase 2: borrar lo que tiene 0 uso)*
+6. OPT-19 *(se activa en paralelo desde ya, coste continuo bajo)*
+7. OPT-18 *(verificación rápida, en paralelo)*
+8. OPT-9 *(limpieza de `!important`, sin prisa)*
+9. OPT-12 → OPT-13 → OPT-14 → OPT-15 *(el grueso: fusión real de pantallas a 6 vistas; OPT-15 ya
+   encuentra Ajustes reorganizada por OPT-24 si esta se cerró antes, como se recomienda)*
+10. OPT-16 → OPT-17 *(ES modules + carga diferida, más natural una vez reducidas las pantallas)*
+11. OPT-20 → OPT-21 → OPT-22 *(gobernanza, continua desde el principio pero sin fecha de cierre)*
+12. ~~OPT-23~~ *(resuelta el 3-sep-2026, ver nota bajo la tarea — sin código pendiente)*
