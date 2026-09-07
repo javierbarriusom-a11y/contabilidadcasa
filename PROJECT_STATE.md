@@ -43,6 +43,49 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
 
+## Cierre de sesión — 7 de septiembre de 2026 (160): nace `OPT-24` — Ajustes es un cajón de sastre, auditado y con plan de reorganización
+
+Sesión corta, solo documentación, sin cambio de código. El hogar pidió analizar la pantalla
+«Ajustes» («se está convirtiendo en un cajón de sastre») y proponer una reorganización. Auditoría
+hecha sobre el código real de `index.html` (sección `#ajustes`, 10 sub-pestañas), con un agente de
+exploración dedicado al inventario:
+
+- **Diagnóstico confirmado con cifras**: 62 tarjetas en Ajustes hoy, de las que solo **16 (26%) son
+  configuración real** (dato declarado una vez, sin botón de ejecutar/comparar). **38 (61%) son
+  funcionalidad activa** (simuladores, comparadores, paneles con botón y resultado a consultar) y
+  **8 (13%) son mixtas** (registro + herramienta en la misma tarjeta). El caso más desproporcionado:
+  la sub-pestaña «Deuda y apalancamiento», 18 tarjetas de las que 16 son simuladores/comparadores.
+- **Dos restricciones ya decididas que la propuesta respeta sin reabrirlas**: `OPT-15` ya fija
+  Ajustes como una de las 6 rutas finales del menú (Hoy, Plan, Deuda, Datos, Cierre, Ajustes) — no
+  se elimina ni se le resta ese estatus. Y «Herramientas avanzadas» va camino de vaciarse (`OPT-11`
+  a `OPT-13`), no de llenarse — la propuesta no la revive como destino para simuladores nuevos.
+- **`OPT-24` nace** (`BACKLOG_OPTIMIZACION.md` §3, dentro de la Fase 2): mover la sub-pestaña «Deuda
+  y apalancamiento» completa (18 tarjetas) a la ruta «Deuda» ya existente (mismo patrón que `D-15`),
+  y separar Configuración de Herramientas dentro de las sub-pestañas que se quedan en Ajustes
+  (Hogar, Reserva y colchón, Seguros, Fiscal, Patrimonio e inversión, Simuladores y Laboratorio,
+  Presupuesto y operación, Datos y exportación — ninguna tiene ruta propia en el plan de `OPT-15`).
+  Las 8 tarjetas mixtas se resuelven caso a caso, empezando por la más grave («Cartera de inversión:
+  registro por posición», que mezcla el registro maestro de IV1 con seis herramientas incrustadas).
+- **Decisión de secuencia**: a diferencia del resto de la Fase 2, `OPT-24` **no depende del reloj de
+  30 días de `OPT-2`** — no retira ninguna pantalla heredada, solo reorganiza contenido ya vivo y en
+  uso. Se recomienda cerrarla antes de que `OPT-15` fije la navegación final, para que la fije
+  alrededor de una Ajustes ya limpia en vez de alrededor del cajón de sastre actual. Insertada como
+  paso 2 del orden de ejecución consolidado (§6), en paralelo desde ya.
+- **Sin código todavía**: esta sesión solo documenta la tarea (contexto, restricciones, pasos,
+  resultado esperado) siguiendo el formato de casa del resto de `OPT-*`. La reestructuración real de
+  `index.html`/`app.js` queda para una sesión de implementación aparte.
+
+- **Validación**: `npm test` en verde — **3514/3514 pruebas** (sin cambio respecto al cierre
+  anterior, coherente con que no se tocó ningún archivo de código). `tests/opt20-indice-backlogs.test.cjs`
+  (el test que verifica la consistencia de `BACKLOG_INDICE.md`) verificado en verde tras el cambio.
+
+**Backlog actualizado**: `BACKLOG_OPTIMIZACION.md` (tabla maestra §0, entrada completa de `OPT-24`
+en §3, orden de ejecución §6) y `BACKLOG_INDICE.md` (nota fechada del 7 de septiembre).
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` (reiniciada desde `main`
+  tras el merge del PR #257) — commit y push siguientes, PR en borrador y fusión a `main` en cuanto
+  el CI esté en verde, autorización ya dada por el hogar (`CLAUDE.md`).
+
 ## Cierre de sesión — 7 de septiembre de 2026 (159c): Bloque 4 completo — 10 de 10 tareas grandes (Oleada 3)
 
 Continuación directa, misma sesión 159. Tras los dos checkpoints anteriores (`DEB5`/`DEB6`/`INV9`/`INV1` +
