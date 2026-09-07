@@ -117,8 +117,8 @@ caliente, mismo nivel de rigor que el resto de verificaciones de esta familia de
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 1 | ✅ LEV1 | Política de apalancamiento del hogar | Apalancamiento | M | Alto | Hecho (sesión 157). Un límite máximo de deuda-para-invertir sobre patrimonio neto o ingreso anual, declarado por el hogar de antemano, con guardarraíl puro `evaluateLeveragePolicy()` (`canonical-leverage-barrier.js`) que compara ese límite contra la deuda de apalancamiento ya tomada (reutiliza `FinanceCanonicalLeverageSustainability.takenScenariosOf`, la misma fuente que ya vigila `AP6`) y contra lo que `AP3` esté explorando ahora. Tarjeta nueva en Ajustes › Deuda y apalancamiento; el simulador de `AP3` muestra el impacto sobre el límite antes de marcar una exploración como tomada. Como el guardarraíl de colchón (`DLX1`), nunca bloquea — solo informa. A propósito no cubre el crédito Lombard de `APX2`/`APX3`: su nota ya dejaba constancia de que ese instrumento queda fuera del guardarraíl general de deuda (`AP4`) por tener un perfil de riesgo distinto. |
-| 2 | ⏳ PVC1 | Indicador de recálculo visible (alcance confirmado por `VER-1`) | Previsión viva | S | Alto | `VER-1` confirmó que el motor de cascada ya existe (`recomputeModelIfNeeded()` repropaga por firma a metas/riesgo sin caché obsoleta); `PVC1` se reduce a un indicador "recalculado hace X" por módulo dependiente, para que el hecho de que ya ocurrió sea visible y no solo cierto puertas adentro. No incluye `APX3` (simulador manual, fuera de este patrón — ver `VER-1`). |
-| 3 | ⏳ DEB1 | Aviso de cambio de veredicto (alcance confirmado por `VER-2`) | Deuda-liquidez | S | Alto | `VER-2` confirmó que `AP1` ya se recalcula solo por firma en cada cierre; `DEB1` se reduce a que avise cuando su veredicto cambie de sentido entre un cierre y el siguiente, en vez de exigir que el hogar vuelva a abrir la pantalla para descubrirlo. |
+| 2 | ✅ PVC1 | Indicador de recálculo visible (alcance confirmado por `VER-1`) | Previsión viva | S | Alto | Hecho (sesión 157). `VER-1` confirmó que el motor de cascada ya existe (`recomputeModelIfNeeded()` repropaga por firma a metas/riesgo sin caché obsoleta); marca `lastModelRecomputeAt` cuando recalcula de verdad (nunca en cada llamada), expuesta vía `FinanceP2Bridge.lastModelRecomputeAt()` y mostrada como "datos recalculados hace X" en los paneles de metas (E15) y seguimiento predictivo (E16, `p2-ui.js`). No incluye `APX3` (simulador manual, fuera de este patrón — ver `VER-1`). |
+| 3 | ✅ DEB1 | Aviso de cambio de veredicto (alcance confirmado por `VER-2`) | Deuda-liquidez | S | Alto | Hecho (sesión 157). `VER-2` confirmó que `AP1` ya se recalcula solo por firma; guarda la última comparación real que el hogar miró (`ap1TrackedComparison`) y, en cada render, la recalcula con datos vivos (principal actual de la deuda, XIRR real de la cartera) para avisar si el veredicto cambió de sentido — visible en la propia tarjeta de AP1 sin tener que rellenar el formulario y pulsar «Comparar» de nuevo. |
 
 ---
 
@@ -217,8 +217,9 @@ retiró. Detalle completo en la tabla de resultados del Bloque 1.
 razón para construirla ya. `PVC1` y `DEB1` cierran el bloque con el esfuerzo real, no el estimado a
 ciegas.
 
-**`LEV1` hecha el 7 de septiembre de 2026 (sesión 157).** Quedan `PVC1` y `DEB1` (esfuerzo `S` cada
-una, confirmado en el Paso 1) para cerrar el Bloque 2.
+**Bloque 2 completo el 7 de septiembre de 2026 (sesión 157): `LEV1`, `PVC1` y `DEB1` hechas.** El
+cimiento de la Oleada 3 queda cerrado — siguiente paso: Bloque 3 (11 tareas de alto impacto, sin
+preguntas de alcance).
 
 **Paso 3 — Bloque 3 completo (11 tareas S/S-M/M).** Ninguna depende de una decisión de alcance ni de
 otra tarea de esta oleada fuera del propio bloque (`DEB2` depende de `DLX2`, ya construida en la
