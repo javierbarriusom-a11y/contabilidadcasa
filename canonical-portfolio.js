@@ -603,6 +603,51 @@
     };
   }
 
+  // INV1 (Oleada 3, Bloque 4): clase de activo por posición, declarada a mano — vive en el registro
+  // RAW de la posición (`position.assetClass`), exactamente el mismo patrón que `goalId` (IVX6):
+  // solo hace falta para esta comparación, no para el resto de la cartera, así que no se añade a
+  // `normalizePosition()` (que expone un contrato con campos fijos). Es un tipo propio, distinto del
+  // tipo de instrumento (POSITION_TYPES: fondo/acción/ETF/cripto/otro) — aquí interesa el perfil de
+  // riesgo declarado, no el vehículo.
+  const ASSET_CLASS_TYPES = Object.freeze(["renta-variable", "renta-fija", "monetario", "alternativo"]);
+  const ASSET_CLASS_RISK_PROFILE = Object.freeze({
+    "renta-variable": "growth",
+    alternativo: "growth",
+    "renta-fija": "defensive",
+    monetario: "defensive",
+  });
+
+  // Lectura real (composición por clase declarada, de las posiciones ligadas a ESE objetivo) frente
+  // a la banda de horizonte que ya calcula IVX6 — nunca una regla automática de "vende X%": IVX6 ya
+  // avisa de que esta app no clasifica riesgo/volatilidad real, así que esto solo hace visible el
+  // contraste. `mismatch` usa el mismo umbral del 50% que ya usa IVX8 para "dominante" (aquí:
+  // creciente vs. defensivo), no una cifra objetivo inventada por banda.
+  function assetClassVsGlidePath({ goalId, positions = [] } = {}, band) {
+    const linked = (Array.isArray(positions) ? positions : []).filter((position) => position.goalId === goalId);
+    const totalValue = round2(linked.reduce((sum, position) => sum + number(position.currentValue), 0));
+    if (!linked.length || !(totalValue > 0)) return { calculable: false };
+    const byClass = {};
+    linked.forEach((position) => {
+      const value = number(position.currentValue);
+      const assetClass = ASSET_CLASS_TYPES.includes(position.assetClass) ? position.assetClass : "sin-clasificar";
+      byClass[assetClass] = round2((byClass[assetClass] || 0) + value);
+    });
+    const rows = Object.entries(byClass)
+      .map(([assetClass, value]) => ({ assetClass, value, pct: Math.round((value / totalValue) * 100) }))
+      .sort((a, b) => b.value - a.value);
+    const growthValue = round2(ASSET_CLASS_TYPES.filter((type) => ASSET_CLASS_RISK_PROFILE[type] === "growth").reduce((sum, type) => sum + (byClass[type] || 0), 0));
+    const defensiveValue = round2(ASSET_CLASS_TYPES.filter((type) => ASSET_CLASS_RISK_PROFILE[type] === "defensive").reduce((sum, type) => sum + (byClass[type] || 0), 0));
+    const growthPct = Math.round((growthValue / totalValue) * 100);
+    const defensivePct = Math.round((defensiveValue / totalValue) * 100);
+    const unclassifiedPct = Math.max(0, 100 - growthPct - defensivePct);
+    const mismatch = (band === "conservative" || band === "overdue") && growthPct > 50
+      ? "growth-heavy-for-defensive-band"
+      : band === "growth" && defensivePct > 50
+        ? "defensive-heavy-for-growth-band"
+        : null;
+    return { calculable: true, band, totalValue, rows, growthPct, defensivePct, unclassifiedPct, mismatch };
+  }
+
   // IVX4: coste compuesto de comisiones — aísla el efecto puro de la comisión anual declarada
   // (feePct) sobre el valor actual a lo largo de un horizonte, sin asumir ninguna rentabilidad de
   // mercado (eso exigiría inventar un supuesto de crecimiento que el hogar no ha declarado). El
@@ -654,6 +699,9 @@
     GLIDE_PATH_BANDS,
     glidePathBand,
     glidePathForGoal,
+    ASSET_CLASS_TYPES,
+    ASSET_CLASS_RISK_PROFILE,
+    assetClassVsGlidePath,
     FEE_COST_SCHEMA_ID,
     compoundedFeeCost,
   };

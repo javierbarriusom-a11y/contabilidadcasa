@@ -8552,6 +8552,8 @@ const DEBT_CONTRACT_EDITABLE_FIELDS = [
   "currentPayment",
   ...DEBT_CONTRACT_INTEGER_FIELDS,
   "paymentStatus",
+  // DEB5 (Oleada 3, Bloque 4): % del interés deducible fiscalmente, declarado por contrato.
+  "fiscalDeductionPct",
 ];
 
 // D-2d · un contrato de ejemplo eliminado no se puede borrar de DEBT_PORTFOLIO (es código, no
@@ -17524,8 +17526,11 @@ function renderLpx2NetWorthRunway() {
 
 // GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — combina la liquidez real (misma fuente
 // que DLX1/AP1), la cuota de deuda ya comprometida (p2DebtRows, la misma que ya usa AP5) y el
-// escenario de tensión de E13 (FinanceCanonicalE13Scenarios.PROFILES, "stress") en un único número
+// escenario de tensión de E13 (FinanceCanonicalE13.PROFILES, "stress") en un único número
 // de meses. Sin motor nuevo aparte de resilienceMonths (canonical-cushion.js), que solo compone.
+// Corrección Bloque 4 (sesión 159): el global real es FinanceCanonicalE13 (canonical-e13-scenarios.js),
+// no FinanceCanonicalE13Scenarios — con el nombre equivocado stressProfile era siempre undefined y el
+// escenario de tensión nunca se aplicaba, aunque el test de wiring (regex sobre texto) no lo detectaba.
 function gob9MonthlyDebtService() {
   return round2(p2DebtRows().reduce((sum, row) => sum + Math.max(0, Number(row.currentPayment) || 0), 0));
 }
@@ -17534,7 +17539,7 @@ function renderGob9ResiliencePanel() {
   const note = qs("gob9ResiliencePanel");
   if (!note) return;
   const cushionEngine = window.FinanceCanonicalCushion;
-  const scenariosEngine = window.FinanceCanonicalE13Scenarios;
+  const scenariosEngine = window.FinanceCanonicalE13;
   const monthlyOutflow = lpAverageMonthlyOutflow();
   if (!cushionEngine || !monthlyOutflow) {
     note.innerHTML = `<p>Sin previsión viva calculada todavía — hace falta un gasto mensual medio para estimar la resiliencia.</p>`;
@@ -17675,10 +17680,12 @@ function clearA14AssetForm() {
   const valueInput = qs("a14AssetValue");
   const categoryInput = qs("a14AssetCategory");
   const investedAmountInput = qs("a14AssetInvestedAmount");
+  const monthlyRentIncomeInput = qs("a14AssetMonthlyRentIncome");
   if (labelInput) labelInput.value = "";
   if (valueInput) valueInput.value = "";
   if (categoryInput) categoryInput.value = "";
   if (investedAmountInput) investedAmountInput.value = "";
+  if (monthlyRentIncomeInput) monthlyRentIncomeInput.value = "";
 }
 
 // A14-3 (núcleo, sin CSV todavía — sesión aparte): actualizar un activo ya registrado nunca
@@ -17696,17 +17703,20 @@ function saveA14Asset() {
   const category = (qs("a14AssetCategory")?.value || "").trim();
   const investedAmountRaw = qs("a14AssetInvestedAmount")?.value;
   const investedAmount = investedAmountRaw === "" || investedAmountRaw === undefined ? null : parseAmount(investedAmountRaw);
+  // INV9: mismo criterio "vacío = sin dato, nunca 0" que investedAmount (IVX3).
+  const monthlyRentIncomeRaw = qs("a14AssetMonthlyRentIncome")?.value;
+  const monthlyRentIncome = monthlyRentIncomeRaw === "" || monthlyRentIncomeRaw === undefined ? null : parseAmount(monthlyRentIncomeRaw);
   if (!label) {
     announceStatus("Indica una etiqueta para el activo antes de guardarlo.");
     return;
   }
   const existing = findA14AssetMatch(type, label);
   if (existing) {
-    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance, category, investedAmount } };
+    a14PendingAssetUpdate = { existing, next: { type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome } };
     renderA14AssetPendingCompare();
     return;
   }
-  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, category, investedAmount, owner: "household" }];
+  const next = [...assetsList(), { id: `asset-${Date.now()}`, type, label, value, asOf, provenance, category, investedAmount, monthlyRentIncome, owner: "household" }];
   saveAssetsList(next);
   clearA14AssetForm();
   renderA14AssetList();
@@ -17770,6 +17780,18 @@ function a14AssetReturnLabel(asset) {
   return ` · rentabilidad ${sign}${result.returnPct}% (${sign}${money(result.returnAmount, true)} sobre ${money(result.investedAmount, true)} invertidos)`;
 }
 
+// INV9 (Oleada 3, Bloque 4): P&L del inmueble en alquiler — ingreso neto mensual declarado,
+// anualizado, y rentabilidad bruta sobre el valor del inmueble (rentalAssetPnL, canonical-assets.js).
+// Sin ingreso declarado, no añade nada — mismo criterio que a14AssetReturnLabel.
+function a14AssetRentalLabel(asset) {
+  const engine = window.FinanceCanonicalAssets;
+  if (!engine) return "";
+  const result = engine.rentalAssetPnL({ value: Number(asset.value) || 0, monthlyRentIncome: asset.monthlyRentIncome });
+  if (!result.calculable) return "";
+  const yieldLabel = result.grossYieldPct === null ? "" : `, ${result.grossYieldPct}% de rentabilidad bruta`;
+  return ` · alquiler ${money(result.monthlyRentIncome, true)}/mes (${money(result.annualRentIncome, true)}/año${yieldLabel})`;
+}
+
 function renderA14AssetList() {
   const list = qs("a14AssetList");
   if (!list) return;
@@ -17777,7 +17799,7 @@ function renderA14AssetList() {
     const typeLabel = A14_ASSET_TYPE_LABELS[asset.type] || "Otro";
     const provenanceLabel = A14_PROVENANCE_LABELS[asset.provenance] || "desconocido";
     const categoryLabel = asset.category ? ` · ${escapeHtml(asset.category)}` : "";
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)}${categoryLabel} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}${a14AssetReturnLabel(asset)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(asset.label)}</strong><span>${escapeHtml(typeLabel)}${categoryLabel} · ${money(Number(asset.value) || 0, true)} · procedencia ${escapeHtml(provenanceLabel)}${a14AssetReturnLabel(asset)}${a14AssetRentalLabel(asset)}</span><button type="button" class="e19-btn e19-btn-secondary" data-a14-asset-remove="${escapeHtml(asset.id)}">Quitar</button></li>`;
   });
   list.innerHTML = rows.join("") || `<li class="e19-kpi-note">Sin activos registrados todavía.</li>`;
 }
@@ -17872,12 +17894,14 @@ function clearIv1PositionForm() {
   const valueInput = qs("iv1PositionValue");
   const acquisitionInput = qs("iv1PositionAcquisitionDate");
   const feePctInput = qs("iv1PositionFeePct");
+  const assetClassInput = qs("iv1PositionAssetClass");
   if (labelInput) labelInput.value = "";
   if (quantityInput) quantityInput.value = "";
   if (costInput) costInput.value = "";
   if (valueInput) valueInput.value = "";
   if (acquisitionInput) acquisitionInput.value = "";
   if (feePctInput) feePctInput.value = "";
+  if (assetClassInput) assetClassInput.value = "";
 }
 
 function saveIv1Position() {
@@ -17897,11 +17921,14 @@ function saveIv1Position() {
   const goalId = qs("iv1PositionGoalId")?.value || "";
   // IVX4: comisión anual declarada (TER/gastos de gestión, %) — opcional, nunca un valor de fábrica.
   const feePct = parseAmount(qs("iv1PositionFeePct")?.value);
+  // INV1: clase de activo declarada a mano (perfil de riesgo) — mismo patrón que goalId: vive en el
+  // registro de la posición, no en normalizePosition, solo hace falta para comparar contra IVX6.
+  const assetClass = qs("iv1PositionAssetClass")?.value || "";
   if (!label) {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, contributions: [], disposals: [], scheduledContributions: [] }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, assetClass, contributions: [], disposals: [], scheduledContributions: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
@@ -18201,28 +18228,58 @@ const IVX6_BAND_LABELS = {
   overdue: "Objetivo vencido o sin fecha calculable: revisa la fecha objetivo en el plan.",
 };
 
+// INV1 (Oleada 3, Bloque 4): etiquetas de las clases declarables — "sin-clasificar" es la que
+// asetClassVsGlidePath asigna a una posición sin clase declarada, nunca fabricada.
+const INV1_ASSET_CLASS_LABELS = {
+  "renta-variable": "Renta variable",
+  "renta-fija": "Renta fija",
+  monetario: "Monetario",
+  alternativo: "Alternativo",
+  "sin-clasificar": "Sin clasificar",
+};
+
+const INV1_MISMATCH_NOTES = {
+  "growth-heavy-for-defensive-band": "Más de la mitad en clases de crecimiento pese al horizonte corto de la banda de arriba.",
+  "defensive-heavy-for-growth-band": "Más de la mitad en clases defensivas pese al horizonte largo — hay margen sin usar.",
+};
+
 function renderIvx6GlidePath() {
   const container = qs("ivx6GlidePath");
+  const classContainer = qs("inv1AssetClassNote");
   if (!container) return;
   const engine = window.FinanceCanonicalPortfolio;
   const positions = iv1PositionsList();
   const linkedGoalIds = new Set(positions.map((position) => position.goalId).filter(Boolean));
   if (!engine || !linkedGoalIds.size) {
     container.innerHTML = `<p class="e19-kpi-note">Vincula una posición a un objetivo con fecha (arriba, al registrar la posición) para ver su banda de horizonte.</p>`;
+    if (classContainer) classContainer.innerHTML = "";
     return;
   }
   const goals = activeGoalsForBudget();
+  const classCards = [];
   const cards = [...linkedGoalIds].map((goalId) => {
     const goal = goals.find((item) => item.id === goalId);
     if (!goal || !goal.targetDate) return "";
     const result = engine.glidePathForGoal({ goalId, goalName: goal.name, targetDate: goal.targetDate, positions });
     if (!result.calculable) return "";
     const rows = result.positions.map((position) => `<li>${escapeHtml(position.label)}: ${money(position.value, true)} (${position.pct}%)</li>`).join("");
+    // INV1: composición real por clase de activo declarada, frente a la banda que se acaba de calcular.
+    const classResult = engine.assetClassVsGlidePath({ goalId, positions }, result.band);
+    if (classResult.calculable) {
+      const classRows = classResult.rows.map((row) => `<li>${escapeHtml(INV1_ASSET_CLASS_LABELS[row.assetClass] || row.assetClass)}: ${money(row.value, true)} (${row.pct}%)</li>`).join("");
+      const mismatchNote = classResult.mismatch ? ` <span class="warning">${INV1_MISMATCH_NOTES[classResult.mismatch]}</span>` : "";
+      classCards.push(`<li><strong>${escapeHtml(result.goalName)}</strong>${mismatchNote}<ul class="commit-barrier-list">${classRows}</ul></li>`);
+    }
     return `<li><strong>${escapeHtml(result.goalName)}</strong> — ${IVX6_BAND_LABELS[result.band]}<ul class="commit-barrier-list">${rows}</ul></li>`;
   }).filter(Boolean);
   container.innerHTML = cards.length
     ? `<ul class="e19-kpi-note">${cards.join("")}</ul>`
     : `<p class="e19-kpi-note">Los objetivos vinculados ya no tienen fecha objetivo o fueron eliminados.</p>`;
+  if (classContainer) {
+    classContainer.innerHTML = classCards.length
+      ? `<ul class="e19-kpi-note">${classCards.join("")}</ul>`
+      : `<p class="e19-kpi-note">Declara la clase de activo de cada posición (arriba, al registrarla) para comparar la cartera real contra la banda de horizonte.</p>`;
+  }
 }
 
 // FC1: opciones del selector de venta parcial — mismo patrón que renderIv1TransferOptions.
@@ -36732,6 +36789,7 @@ async function init() {
     if (removeButton) handleDeudaContratosRemove(removeButton.dataset.deudaContratoRemove);
   });
   qs("deudaContratosAddForm")?.addEventListener("submit", (event) => handleDeudaContratosAddSubmit(event));
+  qs("deb6SimulateRun")?.addEventListener("click", () => handleDeb6Simulate());
   qs("deudaContratosCuadre")?.addEventListener("click", (event) => {
     if (event.target.closest("#deudaContratosCuadreAdjust")) {
       qs("deudaContratosTable")?.querySelector("input[data-deuda-contrato-field='currentPrincipal']")?.focus();

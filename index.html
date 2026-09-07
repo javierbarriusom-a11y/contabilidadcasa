@@ -1665,7 +1665,39 @@
               <table class="e19-table deuda-contratos-table" id="deudaContratosTable"></table>
             </div>
             <div id="deudaContratosCuadre"></div>
-            <p class="e19-kpi-note">Entidad, tipo, número, capital, TAE, cuota, plazos restantes y estado se editan directamente en la tabla. Cualquier contrato se puede eliminar, incluidos los de ejemplo — se pide confirmación antes de borrarlo.</p>
+            <p class="e19-kpi-note">Entidad, tipo, número, capital, TAE, cuota, deducción fiscal, plazos restantes y estado se editan directamente en la tabla. Cualquier contrato se puede eliminar, incluidos los de ejemplo — se pide confirmación antes de borrarlo.</p>
+
+            <!-- DEB5 (Oleada 3, Bloque 4): prioridad multideuda ajustada por fiscalidad. Cuando hay
+                 más de una deuda activa con deducción fiscal distinta (p. ej. hipoteca con deducción
+                 autonómica vigente vs. préstamo personal sin deducción), el orden de "mayor coste" no
+                 es el TAE nominal de la tabla de arriba sino el TAE efectivo tras esa deducción. Sin
+                 formulario propio: lee directamente los TAE y deducciones ya declarados arriba. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Prioridad de amortización ajustada por fiscalidad</h3>
+              <p class="e19-kpi-note">Orden de "mayor coste real" entre todas las deudas activas con TAE declarado, usando el TAE efectivo tras la deducción fiscal de cada una (columna de arriba) en vez del TAE nominal solo.</p>
+              <div id="deb5FiscalPriorityNote"></div>
+            </article>
+
+            <!-- DEB6 (Oleada 3, Bloque 4): simulador de consolidación de varias deudas activas en un
+                 préstamo nuevo declarado (TAE + plazo, nunca supuestos). Solo simula: ninguna deuda
+                 cambia de estado hasta que el hogar lo ejecute de verdad desde Contratos. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de consolidación de deudas</h3>
+              <p class="e19-kpi-note">Elige qué deudas activas entrarían en un préstamo nuevo y compara el coste total de mantenerlas separadas frente a consolidarlas.</p>
+              <div id="deb6DebtChecklist" class="commit-barrier-list"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>TAE del préstamo nuevo (%)</span>
+                  <input id="deb6NewLoanRatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Plazo del préstamo nuevo (meses)</span>
+                  <input id="deb6NewLoanTermMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="deb6SimulateRun">Simular consolidación</button>
+              <div class="e19-kpi-note" id="deb6ConsolidationNote"></div>
+            </article>
 
             <div class="e19-card deuda-contratos-add-card">
               <h3>Dar de alta un contrato nuevo</h3>
@@ -3124,6 +3156,14 @@
                   <span>Importe invertido (€, opcional)</span>
                   <input id="a14AssetInvestedAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="Para calcular la rentabilidad" />
                 </label>
+                <!-- INV9 (Oleada 3, Bloque 4): solo tiene sentido de verdad para "Inmueble" en
+                     alquiler, pero se deja disponible para cualquier tipo — mismo criterio que el
+                     importe invertido de arriba. Ya neto: si hay gastos que descontar (IBI, comunidad,
+                     seguro...), se restan antes de escribir este importe. -->
+                <label class="month-picker">
+                  <span>Ingreso de alquiler neto mensual (€, opcional)</span>
+                  <input id="a14AssetMonthlyRentIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="Si este activo está en alquiler" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="a14AssetAdd">Añadir activo</button>
               <div class="e19-kpi-note" id="a14AssetPendingCompare" hidden></div>
@@ -3245,6 +3285,19 @@
                   <span>Comisión anual declarada (%, opcional)</span>
                   <input id="iv1PositionFeePct" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 1.5" />
                 </label>
+                <!-- INV1 (Oleada 3, Bloque 4): clase de activo declarada a mano — perfil de riesgo,
+                     distinto del tipo de instrumento de arriba. Opcional: sin ella, la posición
+                     cuenta como "sin clasificar" en la comparación de abajo, nunca se inventa. -->
+                <label class="month-picker">
+                  <span>Clase de activo (opcional)</span>
+                  <select id="iv1PositionAssetClass">
+                    <option value="">-- Sin clasificar --</option>
+                    <option value="renta-variable">Renta variable</option>
+                    <option value="renta-fija">Renta fija</option>
+                    <option value="monetario">Monetario</option>
+                    <option value="alternativo">Alternativo</option>
+                  </select>
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
               <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
@@ -3281,6 +3334,11 @@
                    una posición vinculada arriba. No recomienda a qué posición mover cada euro (esta
                    app no clasifica el riesgo de cada posición), solo la fase estándar. -->
               <div id="ivx6GlidePath"></div>
+              <!-- INV1 (Oleada 3, Bloque 4): lectura real de la cartera por clase de activo
+                   declarada, frente a la banda de IVX6 de arriba — nunca una regla de "vende X%",
+                   solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
+                   se fabrica precisión). -->
+              <div id="inv1AssetClassNote"></div>
               <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
                    fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
                    de un movimiento. Las unidades son opcionales: sin ellas, la aportación sigue

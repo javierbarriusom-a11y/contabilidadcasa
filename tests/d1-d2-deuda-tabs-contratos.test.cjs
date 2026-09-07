@@ -203,6 +203,8 @@ test("D-2/D-2d · los campos editables cubren entidad, tipo, número, cifras, pl
     "currentPayment",
     "remainingInstallments",
     "paymentStatus",
+    // DEB5 (Oleada 3, Bloque 4): deducción fiscal declarada por contrato.
+    "fiscalDeductionPct",
   ]);
 });
 
@@ -703,6 +705,11 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
       // tests/d-2b-cuadre-capital-deuda.test.cjs.
       debtCapitalCuadre: () => ({ status: "sin-cierre", current: 0, atClose: null, diff: null, monthKey: null }),
       deudaContratosCuadreHtml: () => "",
+      // DEB5/DEB6 (Oleada 3, Bloque 4): renderDeudaContratos ya las llama al final — cubiertas de
+      // verdad en tests/deb5-deb6-prioridad-fiscal-y-consolidacion.test.cjs, aquí solo evita que
+      // este test (centrado en la tabla y su cabecera) reviente por dependencias no relacionadas.
+      renderDeb5FiscalPriority: () => {},
+      renderDeb6DebtChecklist: () => {},
       qs: (id) => ({
         set innerHTML(value) {
           written[id] = value;

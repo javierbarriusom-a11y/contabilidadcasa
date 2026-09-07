@@ -8,7 +8,7 @@ const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 test("A14-3: actualizar un activo existente no sobrescribe en silencio, pide confirmación", () => {
   assert.match(appSource, /function findA14AssetMatch\(type, label\)/);
   assert.match(appSource, /function renderA14AssetPendingCompare\(\)/);
-  const saveBlock = appSource.slice(appSource.indexOf("function saveA14Asset"), appSource.indexOf("function saveA14Asset") + 1300);
+  const saveBlock = appSource.slice(appSource.indexOf("function saveA14Asset"), appSource.indexOf("function saveA14Asset") + 1700);
   assert.match(saveBlock, /findA14AssetMatch/);
   assert.match(saveBlock, /a14PendingAssetUpdate = \{ existing, next:/);
 });

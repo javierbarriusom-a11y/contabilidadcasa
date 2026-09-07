@@ -99,11 +99,35 @@
     };
   }
 
+  // INV9 (Oleada 3, Bloque 4): P&L de un inmueble en alquiler — ingreso de alquiler NETO mensual
+  // declarado (nunca gastos separados: si el hogar necesita descontar IBI/comunidad/seguro, resta
+  // esos gastos antes de declarar este importe, igual que ya hace con investedAmount en IVX3). La
+  // rentabilidad bruta es el ingreso anualizado sobre el valor declarado del inmueble — mismo patrón
+  // que alternativeAssetReturn: sin ingreso declarado y positivo, calculable: false, nunca un 0%
+  // fabricado.
+  function rentalAssetPnL({ value, monthlyRentIncome } = {}) {
+    const rent = knownNumber(monthlyRentIncome) ? nonNegative(monthlyRentIncome) : null;
+    if (rent === null || rent <= 0) return { calculable: false };
+    const assetValue = knownNumber(value) ? nonNegative(value) : 0;
+    const annualRentIncome = round2(rent * 12);
+    return {
+      calculable: true,
+      monthlyRentIncome: rent,
+      annualRentIncome,
+      value: assetValue,
+      grossYieldPct: assetValue > 0 ? round2((annualRentIncome / assetValue) * 100) : null,
+    };
+  }
+
   function normalizeAsset(raw = {}, index = 0) {
     const provenance = provenanceOf(raw);
     const type = assetType(raw.type);
     const value = knownNumber(raw.value) ? nonNegative(raw.value) : 0;
     const investedAmount = knownNumber(raw.investedAmount) ? nonNegative(raw.investedAmount) : null;
+    // INV9: ingreso de alquiler NETO mensual, opcional para cualquier tipo pero con sentido de verdad
+    // solo en "inmueble" — mismo criterio que investedAmount en "alternativo" (IVX3): vacío es null,
+    // nunca 0, y nunca se piden gastos aparte porque el hogar ya declara este importe neto.
+    const monthlyRentIncome = knownNumber(raw.monthlyRentIncome) ? nonNegative(raw.monthlyRentIncome) : null;
     const asset = {
       id: String(raw.id || `asset-${index + 1}`),
       schemaId: SCHEMA_ID,
@@ -118,8 +142,14 @@
       notes: known(raw.notes) ? String(raw.notes).trim() : "",
       category: known(raw.category) ? String(raw.category).trim() : "",
       investedAmount,
+      monthlyRentIncome,
     };
-    return { ...asset, returnInfo: alternativeAssetReturn({ value, investedAmount }), dataQuality: assetQuality(asset, raw) };
+    return {
+      ...asset,
+      returnInfo: alternativeAssetReturn({ value, investedAmount }),
+      rentalPnL: rentalAssetPnL({ value, monthlyRentIncome }),
+      dataQuality: assetQuality(asset, raw),
+    };
   }
 
   function validateAssets(assets = []) {
@@ -234,6 +264,7 @@
     validateAssets,
     assetQuality,
     alternativeAssetReturn,
+    rentalAssetPnL,
     summarizeAssets,
     FINANCIAL_INDEPENDENCE_SCHEMA_ID,
     financialIndependenceTarget,

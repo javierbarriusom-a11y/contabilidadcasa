@@ -43,6 +43,73 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
 
+## Cierre de sesión — 7 de septiembre de 2026 (159): Bloque 4, primera mitad — 4 de 10 tareas grandes + bug de GOB9 corregido (Oleada 3)
+
+Continuación directa de la sesión 158 (Bloque 3 completo, ya fusionado a `main`). El Bloque 4 son 11
+"apuestas grandes" (esfuerzo L) que exigían resolver antes una pregunta de alcance con el hogar — las 11
+se resolvieron en una sola tanda (`AskUserQuestion`, tres rondas de hasta 4 preguntas), siguiendo el propio
+plan del backlog (Paso 4). Resultado: 10 tareas a construir y 1 (`GOB5`) pospuesta por bloqueo externo
+(`A5-4`, sin backend push en producción).
+
+Antes de construir, una sesión de investigación de código (agente `Explore`) corrigió dos supuestos de
+partida equivocados — documentados aquí para que no se repita el mismo malentendido en otra sesión:
+
+- **`AP1`/`DEB1` no son el motor de prioridad multideuda** — son el comparador amortizar-vs-invertir y su
+  aviso de cambio de veredicto. El motor real de prioridad (`agentDebtPayoffCandidates`) solo cubre deudas
+  de Caixabank/Bankinter. `DEB5`/`DEB6` (abajo) se construyeron directamente sobre la lista completa de
+  contratos de `canonical-debt-contracts.js`, cubriendo así TODAS las deudas del hogar sin tocar ni
+  ampliar el filtro restringido de `AP1`/`DEB1` — mismo resultado pedido, con menos riesgo sobre código ya
+  en producción.
+- **Bug real encontrado de rebote, corregido en esta sesión**: `renderGob9ResiliencePanel()` (Bloque 3,
+  sesión 158, ya en `main`) leía `window.FinanceCanonicalE13Scenarios` — un global que nunca existió; el
+  motor real se registra como `window.FinanceCanonicalE13`. El escenario de tensión de `GOB9` (panel de
+  resiliencia patrimonial) nunca se aplicaba de verdad en producción (`stressExpenseFactor` caía siempre a
+  1), sin que ningún test lo detectara — el test de wiring solo comprobaba el texto del código, no que el
+  global existiera. Corregido con test de regresión que ejecuta la función en un sandbox real (no solo
+  regex sobre texto), para que este tipo de fallo no pueda volver a colarse en silencio.
+
+Dado el volumen (10 tareas L, más del doble de esfuerzo que un bloque S/M típico), el hogar pidió
+priorizar calidad sobre completar las 10 en una sola sentada: construir en orden de menor a mayor
+dependencia, validar cada una a fondo, y parar si el ritmo comprometía la calidad en vez de forzar el
+resto. Con 4 de 10 hechas y `npm run verify` en verde, este es el punto de corte de la sesión — las 6
+restantes (`INV10`, `LEV5`, `LEV6`, `LEV7`, `PVC5`, `PVC10`) quedan para la siguiente sesión, ya con las
+11 preguntas de alcance resueltas y sin necesidad de volver a plantearlas.
+
+- **`DEB5` — prioridad multideuda ajustada por fiscalidad**: `fiscalAdjustedDebtPriority()`
+  (`canonical-debt-contracts.js`) ordena TODAS las deudas activas con TAE declarado por TAE **efectivo**
+  tras la deducción fiscal de cada contrato (`fiscalDeductionPct`, campo nuevo declarado a mano, 0 por
+  defecto — sin declarar, el TAE efectivo coincide con el nominal). Tarjeta nueva en Deuda › Contratos,
+  recalculada en cada edición de la tabla.
+- **`DEB6` — simulador de consolidación de varias deudas**: `simulateDebtConsolidation()`
+  (`canonical-debt-contracts.js`) compara el coste total de mantener varias deudas seleccionadas por
+  separado contra un préstamo nuevo declarado (TAE + plazo, amortización francesa estándar) — pura
+  simulación de lectura, ninguna deuda cambia de estado. Checklist de selección + formulario en la misma
+  pantalla que `DEB5`.
+- **`INV9` — el local en alquiler, activo con P&L propio**: caso real confirmado con el hogar (ingreso de
+  800€/mes ya con línea propia, declarado neto). `rentalAssetPnL()` (`canonical-assets.js`) anualiza el
+  ingreso declarado y calcula la rentabilidad bruta sobre el valor del inmueble — mismo patrón que
+  `investedAmount`/`alternativeAssetReturn` de `IVX3` (Oleada 2): el dato se declara una vez, la
+  rentabilidad se deriva.
+- **`INV1` — clasificación de clase de activo por posición vs. banda de `IVX6`**: `assetClassVsGlidePath()`
+  (`canonical-portfolio.js`) compara la composición real por clase declarada (`renta-variable`/
+  `renta-fija`/`monetario`/`alternativo`, campo `assetClass` en el registro raw de la posición, mismo
+  patrón que `goalId`) contra la banda de horizonte que ya calcula `IVX6` — nunca una regla automática de
+  "vende X%" (mismo criterio que la propia nota de `IVX6`), solo hace visible el contraste, con el mismo
+  umbral del 50% que ya usa `IVX8` para "dominante".
+
+- **Validación**: `npm run verify` en verde — **3442/3442 pruebas** (3396 de la sesión 158 + 46 nuevas:
+  motor puro y wiring de `DEB5`/`DEB6`/`INV9`/`INV1`, más el test de regresión del bug de `GOB9`),
+  accesibilidad estructural **1159 IDs únicos** (antes 1150), rendimiento dentro de los umbrales de
+  `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+- **Nota del entorno**: este contenedor no tenía `node_modules` instalado al empezar la sesión (mismo
+  patrón que las sesiones 155-158) — instalado con `npm install` antes de validar.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, Bloque 4 (sección 6) con las 11
+decisiones de alcance documentadas y las 4 tareas hechas marcadas ✅ con referencia de código.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` — commit y push siguientes, PR en
+  borrador y fusión a `main` en cuanto el CI esté en verde, autorización ya dada por el hogar (`CLAUDE.md`).
+
 ## Cierre de sesión — 7 de septiembre de 2026 (158): Bloque 3 completo — 11 tareas de alto impacto (Oleada 3)
 
 Continuación directa de la sesión 157 (Bloque 2 completo). El hogar pidió construir el Bloque 3 entero
