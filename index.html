@@ -982,12 +982,28 @@
                 <label><span>Desde</span><select id="e13EventMonth"></select></label>
                 <label><span>Duración</span><input id="e13EventDuration" type="number" min="1" max="120" step="1" value="1" /></label>
                 <label><span>Categoría (opcional)</span><select id="e13EventCategory"><option value="">Sin categoría (solo caja)</option></select></label>
+                <!-- PVC10 (Oleada 3, Bloque 4): probabilidad declarada (0-100, opcional). Sin
+                     declarar, el evento cuenta como certero (100%) en la previsión ponderada de
+                     abajo — mismo comportamiento que antes de esta tarea. -->
+                <label><span>Probabilidad (%, opcional)</span><input id="e13EventProbabilityPct" type="number" min="0" max="100" step="1" placeholder="Certero" /></label>
                 <button type="submit">Añadir a la simulación</button>
               </form>
               <p class="inline-feedback" id="e13ScenarioStatus" role="status"></p>
               <div class="e13-event-list" id="e13EventList"></div>
               <div class="e13-comparison" id="e13ScenarioComparison"></div>
+              <!-- PVC10 (Oleada 3, Bloque 4): detalle de la previsión ponderada por eventos
+                   inciertos — la fila permanente ya vive arriba, en la comparación principal
+                   (e13ScenarioComparison); aquí solo el desglose por evento. -->
+              <div id="pvc10WeightedDetail"></div>
               <div class="e13-advanced-analysis" id="e13AdvancedAnalysis"></div>
+              <!-- PVC5 (Oleada 3, Bloque 4): recalibración trimestral del triángulo Monte Carlo — el
+                   hogar compara todo el histórico frente a la ventana de 8 trimestres y confirma
+                   explícitamente antes de aplicarla; nunca cambia sola. -->
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title">Recalibración trimestral del triángulo</h3>
+                <p class="e19-kpi-note">El triángulo P10/P50/P90 de arriba usa todo tu histórico conciliado por defecto. Aquí puedes comparar contra una ventana de los últimos 8 trimestres, y aplicarla solo si tú lo confirmas.</p>
+                <div id="pvc5RecalibrationNote"></div>
+              </article>
               <div class="data-actions">
                 <button type="button" class="secondary-button" data-e13-save>Guardar escenario reproducible</button>
               </div>
@@ -2818,6 +2834,30 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="apx2LombardRun">Calcular</button>
               <div class="e19-kpi-note" id="apx2LombardNote"></div>
+            </article>
+
+            <!-- INV10 (Oleada 3, Bloque 4): comparador genérico vender vs. pedir prestado contra el
+                 activo, para financiar cualquier meta que necesite caja. Reutiliza el LTV/tipo del
+                 crédito Lombard declarados arriba (APX2) para el lado "pedir prestado". -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Vender vs. pedir prestado contra la cartera</h3>
+              <p class="e19-kpi-note">Para financiar cualquier meta que necesite caja: compara el coste de vender parte de la cartera (plusvalía + crecimiento que dejarías de generar) frente a pedirla prestada con garantía de cartera (LTV/tipo declarados arriba), sin vender nada.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe que necesitas (€)</span>
+                  <input id="inv10Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte a comparar (meses)</span>
+                  <input id="inv10Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
+                </label>
+                <label class="month-picker">
+                  <span>Plusvalía declarada de la posición a vender (%, opcional)</span>
+                  <input id="inv10GainLossPct" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="inv10Run">Comparar</button>
+              <div class="e19-kpi-note" id="inv10Note"></div>
             </article>
 
             <!-- LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. APX2

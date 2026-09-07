@@ -43,6 +43,46 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
 
+## Cierre de sesión — 7 de septiembre de 2026 (159c): Bloque 4 completo — 10 de 10 tareas grandes (Oleada 3)
+
+Continuación directa, misma sesión 159. Tras los dos checkpoints anteriores (`DEB5`/`DEB6`/`INV9`/`INV1` +
+fix `GOB9`, y `LEV5`/`LEV6`/`LEV7`), se completaron las tres tareas restantes del Bloque 4:
+
+- **`INV10` — comparador genérico vender vs. pedir prestado contra la cartera**: `sellVsBorrowComparison()`
+  (`canonical-leverage-simulator.js`) compone `opportunityCost` (IV5) + `lombardCreditCapacity` (APX2,
+  mismos LTV/tipo ya declarados) + coste fiscal de liquidar (plusvalía proporcional al importe retirado, al
+  tipo del ahorro de FC4). Coste de vender = plusvalía + crecimiento perdido; coste de pedir prestado = solo
+  el interés en el horizonte, sin vender nada. Genérico para cualquier meta, tal y como decidió el hogar.
+- **`PVC5` — recalibración trimestral del triángulo Monte Carlo**: `quarterlyRecalibrationProposal()`
+  (`canonical-e13-scenarios.js`) reutiliza `prudentSimulation()` tal cual, comparando el triángulo P10/P50/
+  P90 con todo el histórico conciliado frente a una ventana de 8 trimestres (24 meses). Nunca cambia sola:
+  el hogar ve ambos triángulos lado a lado y solo tras confirmar explícitamente (`esx1HistoryForCalibration()`)
+  el Laboratorio de escenarios (y LEV7) empiezan a usar la ventana en vez de todo el histórico.
+- **`PVC10` — previsión ponderada por eventos inciertos**: extiende el constructor de eventos A8-2
+  (`canonical-e13-scenarios.js`, `normalizeEvent`) con `probabilityPct` (0-100, opcional — sin declarar,
+  100% certero, mismo comportamiento que antes). `weightedForecastWithUncertainEvents()` pondera el impacto
+  de cada evento por su propia probabilidad antes de acumularlo, sin tocar `simulate()` (Base/Favorable/
+  Tensión siguen aplicando cada evento a valor completo). Visible en las dos ubicaciones que pidió el hogar:
+  fila permanente en la comparación principal del Laboratorio (solo cuando hay algún evento con probabilidad
+  declarada) y desglose por evento en un contenedor propio.
+
+**Con esto, el Bloque 4 de la Oleada 3 queda completo: 10 de 11 tareas construidas, 1 (`GOB5`) pospuesta
+con motivo documentado** (bloqueada de facto por `A5-4`, sin backend push en producción — se retoma cuando
+esa infraestructura esté lista). Ninguna de las 10 se retiró: las 11 preguntas de alcance resueltas en una
+sola tanda con el hogar sostenían esfuerzo `L` en todos los casos menos ese bloqueo externo.
+
+- **Validación**: `npm run verify` en verde — **3514/3514 pruebas** (3478 del checkpoint anterior + 36
+  nuevas), accesibilidad estructural **1176 IDs únicos** (antes 1168), rendimiento dentro de los umbrales
+  de `OPT-5`, `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, Bloque 4 (sección 6) completo, las 10
+tareas construidas marcadas ✅ con referencia de código, y el Plan de ejecución (sección 9, Paso 4) cerrado
+con el resultado real. Siguiente paso natural: Bloque 5 (16 tareas S/S-M/M, sin preguntas de alcance).
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr`, PR #257 — este es el commit final
+  del Bloque 4 completo sobre el mismo PR. Fusión a `main` en cuanto el CI esté en verde, autorización ya
+  dada por el hogar (`CLAUDE.md`).
+
 ## Cierre de sesión — 7 de septiembre de 2026 (159b): Bloque 4, segundo checkpoint — 7 de 10 tareas grandes (Oleada 3)
 
 Continuación directa, misma sesión 159. Tras el primer checkpoint (`DEB5`, `DEB6`, `INV9`, `INV1` + fix de

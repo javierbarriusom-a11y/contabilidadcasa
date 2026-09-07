@@ -16093,6 +16093,51 @@ function handleApx2LombardSimulate() {
   note.innerHTML = apx2LombardResultHtml(result);
 }
 
+// INV10 (Oleada 3, Bloque 4): comparador genérico vender vs. pedir prestado contra la cartera, para
+// financiar cualquier meta que necesite caja — decisión del hogar (sesión 159): genérico, no acotado
+// a una sola meta. Compone opportunityCost (IV5, ya usado por AP1/DEB1), lombardCreditCapacity
+// (APX2, mismos LTV/tipo ya declarados arriba) y sellVsBorrowComparison (INV10), sin motor nuevo
+// aparte del propio comparador.
+function handleInv10Compare() {
+  const note = qs("inv10Note");
+  if (!note) return;
+  const leverageEngine = window.FinanceCanonicalLeverageSimulator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!leverageEngine || !portfolioEngine) return;
+  const amount = parseAmount(qs("inv10Amount")?.value);
+  const months = Math.round(parseAmount(qs("inv10Months")?.value));
+  const gainLossPct = parseAmount(qs("inv10GainLossPct")?.value);
+  const portfolioValue = portfolioEngine.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const investmentResult = portfolioEngine.opportunityCost({ amount, months, annualReturnPct: iv5PortfolioAnnualReturnPct() });
+  const lombardCapacity = leverageEngine.lombardCreditCapacity({
+    portfolioValue,
+    ltvPct: parseAmount(qs("apx2LtvPct")?.value),
+    annualRatePct: parseAmount(qs("apx2RatePct")?.value),
+  });
+  const result = leverageEngine.sellVsBorrowComparison({
+    amount,
+    months,
+    gainLossPct,
+    savingsTaxRatePct: dividendSpanishSavingsRatePct(),
+    investmentResult,
+    lombardCapacity,
+  });
+  if (!result.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Declara el importe, el horizonte en meses, y la rentabilidad esperada de tu cartera (Inversión › Cartera) para comparar.</p>`;
+    return;
+  }
+  const sellLine = `<p>Vender: ${money(result.sellTaxCost, true)} de coste fiscal estimado + ${money(result.sellForegoneGrowth, true)} de crecimiento que dejarías de generar = <strong>${money(result.sellTotalCost, true)}</strong> de coste total.</p>`;
+  if (!result.borrowFeasible) {
+    note.innerHTML = `${sellLine}<p class="e19-kpi-note">Con el LTV y la cartera declarados, la capacidad Lombard (arriba) no llega a cubrir el importe pedido — no es comparable pedir prestado.</p>`;
+    return;
+  }
+  const borrowLine = `<p>Pedir prestado: <strong>${money(result.borrowTotalCost, true)}</strong> de interés en el horizonte, sin vender nada (la cartera sigue generando el crecimiento de arriba).</p>`;
+  const verdict = result.cheaper === "sell"
+    ? `<p class="e19-kpi-note positive">Vender sale ${money(result.difference, true)} más barato en este horizonte.</p>`
+    : `<p class="e19-kpi-note positive">Pedir prestado sale ${money(result.difference, true)} más barato en este horizonte.</p>`;
+  note.innerHTML = `${sellLine}${borrowLine}${verdict}`;
+}
+
 // APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de APX2. El
 // hogar declara cuánto pidió prestado de verdad (loanAmount, no necesariamente la capacidad máxima
 // de APX2), el LTV de mantenimiento que exige el banco y una caída hipotética de la cartera a
@@ -16162,7 +16207,7 @@ function renderLev7TailRisk() {
     return;
   }
   const history = reconciledMonthlyNetHistory();
-  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
   const result = leverageEngine.tailRiskAgainstMarginCall({ marginCallResult, minCheckingPercentiles: monteCarlo.minCheckingPercentiles });
   if (!result.calculable) {
     note.innerHTML = `<p class="e19-kpi-note">Simula primero la caída de arriba (margin call) con importe pedido, LTV de mantenimiento y caída declarados.</p>`;
@@ -20059,6 +20104,59 @@ function pvx2AdaptiveHorizonHtml(horizon) {
   return `<div class="table-wrap"><table class="e19-table pvx2-horizon-table"><thead><tr><th>Periodo</th><th>Resolución</th><th>Liquidez de cierre</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
+// PVC5 (Oleada 3, Bloque 4): recalibración trimestral del triángulo Monte Carlo — ventana de 8
+// trimestres (24 meses), con confirmación explícita del hogar antes de aplicar (nunca automático).
+// Sin confirmar, el triángulo sigue calculándose con TODO el histórico, exactamente igual que antes
+// de esta tarea.
+function pvc5QuarterlyWindowConfirmed() {
+  return Boolean(scenarioSettings.pvc5WindowConfirmedAt);
+}
+
+function savePvc5WindowConfirmation(confirmed) {
+  scenarioSettings.pvc5WindowConfirmedAt = confirmed ? new Date().toISOString() : "";
+  saveScenarioSettings();
+  renderPvc5RecalibrationNote();
+  renderE13ScenarioLab();
+}
+
+function esx1HistoryForCalibration(fullHistory) {
+  const E13 = window.FinanceCanonicalE13;
+  if (!E13 || !pvc5QuarterlyWindowConfirmed()) return fullHistory;
+  return E13.windowedHistory(fullHistory, monthKey(modelStartDate()), 8);
+}
+
+function renderPvc5RecalibrationNote() {
+  const note = qs("pvc5RecalibrationNote");
+  if (!note) return;
+  const E13 = window.FinanceCanonicalE13;
+  const forecast = canonicalScenarioResults.base?.forecast;
+  if (!E13 || !forecast) {
+    note.innerHTML = `<p class="e19-kpi-note">El forecast canónico todavía no está disponible.</p>`;
+    return;
+  }
+  const history = reconciledMonthlyNetHistory();
+  const proposal = E13.quarterlyRecalibrationProposal(forecast, e13ScenarioEvents, {
+    history,
+    asOfMonthKey: monthKey(modelStartDate()),
+    quarters: 8,
+    manualRange: { min: -500, base: 0, max: 500 },
+    generatedAt: forecast.generatedAt,
+  });
+  const currentlyApplied = pvc5QuarterlyWindowConfirmed();
+  const p10Label = (percentiles) => `P10 ${money(percentiles.p10, true)} · P50 ${money(percentiles.p50, true)} · P90 ${money(percentiles.p90, true)}`;
+  const comparisonLine = `<p>Con todo el histórico (${proposal.currentSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.currentPercentiles)}.</p>
+    <p>Con la ventana de 8 trimestres (${proposal.proposedSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.proposedPercentiles)}${!proposal.proposedCalibrated ? " — muestra corta, cae al rango manual" : ""}.</p>`;
+  const changeNote = proposal.changed
+    ? `<p class="e19-kpi-note is-warn">La ventana de 8 trimestres ${currentlyApplied ? "(ya aplicada)" : "propuesta"} cambia el triángulo frente a usar todo el histórico.</p>`
+    : `<p class="e19-kpi-note">La ventana no cambia el triángulo frente a usar todo el histórico — misma calibración.</p>`;
+  const actionButton = currentlyApplied
+    ? `<button type="button" class="e19-btn e19-btn-secondary" id="pvc5RevertWindow">Volver a usar todo el histórico</button>`
+    : `<button type="button" class="e19-btn e19-btn-primary" id="pvc5ApplyWindow">Aplicar ventana de 8 trimestres</button>`;
+  note.innerHTML = `${comparisonLine}${changeNote}${actionButton}`;
+  qs("pvc5ApplyWindow")?.addEventListener("click", () => savePvc5WindowConfirmation(true));
+  qs("pvc5RevertWindow")?.addEventListener("click", () => savePvc5WindowConfirmation(false));
+}
+
 function renderE13ScenarioLab() {
   const comparison = qs("e13ScenarioComparison");
   const monthSelect = qs("e13EventMonth");
@@ -20080,9 +20178,24 @@ function renderE13ScenarioLab() {
     if (e13BudgetCategoryOptions().includes(previousCategory)) categorySelect.value = previousCategory;
   }
   const lab = E13.buildLab(forecast, e13ScenarioEvents, { generatedAt: forecast.generatedAt, assets: e13AssetsForLab() });
+  // PVC10 (Oleada 3, Bloque 4): previsión ponderada por eventos inciertos — solo se añade la fila
+  // permanente cuando hay al menos un evento con probabilidad declarada (si no, coincidiría con
+  // "Base" y sería ruido). Decisión del hogar (sesión 159): visible en la comparación principal
+  // (aquí) Y en su propio detalle (pvc10WeightedDetail, más abajo).
+  const weighted = E13.weightedForecastWithUncertainEvents(forecast, e13ScenarioEvents);
   qs("e13EventList").innerHTML = lab.events.length
-    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${e13EventAmountLabel(event)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
+    ? lab.events.map((event) => `<span class="e13-event-chip"><b>${escapeHtml(e13EventLabel(event.type))}</b> · ${e13EventAmountLabel(event)} · ${escapeHtml(event.monthKey)} · ${event.duration} mes(es)${event.categoryId ? ` · 🏷️ ${escapeHtml(event.categoryId)}` : ""}${Number.isFinite(event.probabilityPct) ? ` · 🎲 ${event.probabilityPct}%` : ""}<button type="button" data-e13-remove="${escapeHtml(event.id)}" aria-label="Quitar ${escapeHtml(e13EventLabel(event.type))}">×</button></span>`).join("")
     : '<span class="e13-empty-events">Sin eventos añadidos. Los tres escenarios muestran solo sus supuestos base.</span>';
+  const weightedRowHtml = weighted.uncertainEvents.length
+    ? `<div class="e13-comparison-row e13-weighted-uncertain" role="row">
+      <strong>${escapeHtml(weighted.label)}</strong>
+      <span class="${weighted.metrics.minChecking < 0 ? "negative" : "positive"}">${money(weighted.metrics.minChecking, true)}</span>
+      <span>${weighted.metrics.negativeMonths}</span>
+      <span>${money(weighted.metrics.finalSavings, true)}</span>
+      <span>${money(weighted.metrics.debtImpact, true)}</span>
+      <span>${weighted.metrics.recoveryMonth === null ? "Sin ruptura" : weighted.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(weighted.metrics.recoveryMonth)}</span>
+    </div>`
+    : "";
   comparison.innerHTML = `<div class="e13-comparison-head" role="row">
       <span>Escenario</span><span>Caja mínima</span><span>Meses negativos</span><span>Ahorro final</span><span>Deuda simulada</span><span>Recuperación</span>
     </div>${lab.scenarios.map((scenario) => `<div class="e13-comparison-row e13-${escapeHtml(scenario.id)}" role="row">
@@ -20092,15 +20205,24 @@ function renderE13ScenarioLab() {
       <span>${money(scenario.metrics.finalSavings, true)}</span>
       <span>${money(scenario.metrics.debtImpact, true)}</span>
       <span>${scenario.metrics.recoveryMonth === null ? "Sin ruptura" : scenario.metrics.recoveryMonth === "not-recovered" ? "No recupera" : escapeHtml(scenario.metrics.recoveryMonth)}</span>
-    </div>`).join("")}`;
+    </div>`).join("")}${weightedRowHtml}`;
+  const weightedDetail = qs("pvc10WeightedDetail");
+  if (weightedDetail) {
+    weightedDetail.innerHTML = weighted.uncertainEvents.length
+      ? `<p class="e19-kpi-note">Previsión ponderada por probabilidad: caja mínima ${money(weighted.metrics.minChecking, true)}, contando cada evento incierto solo por la parte de su probabilidad declarada.</p><ul class="e19-kpi-note">${weighted.uncertainEvents.map((event) => `<li>${escapeHtml(event.label)}: ${event.probabilityPct}% de probabilidad sobre ${money(event.amount, true)}/mes.</li>`).join("")}</ul>`
+      : `<p class="e19-kpi-note">Declara una probabilidad (%, opcional) al añadir un evento arriba para ver aquí la previsión ponderada.</p>`;
+  }
   // PV3: misma construcción del histórico que usa recalibrateForecastLearning() al cerrar el mes,
   // ahora compartida en reconciledMonthlyNetHistory() en vez de duplicada.
   const history = reconciledMonthlyNetHistory();
   const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
   const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
-  const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
-  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history, manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  // PVC5: el triángulo P10/P50/P90 usa todo el histórico (comportamiento de siempre) o la ventana de
+  // 8 trimestres, según lo que el hogar haya confirmado explícitamente — nunca cambia solo.
+  const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  renderPvc5RecalibrationNote();
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
@@ -20184,6 +20306,10 @@ function addE13ScenarioEvent() {
   const monthKeyValue = qs("e13EventMonth")?.value || "";
   const duration = Math.max(1, Math.round(Number(qs("e13EventDuration")?.value || 1)));
   const categoryId = qs("e13EventCategory")?.value || "";
+  // PVC10: probabilidad declarada (0-100, opcional) — vacío se guarda como null (certero, mismo
+  // comportamiento que antes de esta tarea), nunca como 100 fabricado ni como 0.
+  const probabilityRaw = qs("e13EventProbabilityPct")?.value;
+  const probabilityPct = probabilityRaw === "" || probabilityRaw === undefined ? null : Math.max(0, Math.min(100, parseAmount(probabilityRaw)));
   if (!amount || !monthKeyValue) {
     qs("e13ScenarioStatus").textContent = "Indica mes e importe para añadir el evento.";
     return;
@@ -20196,6 +20322,7 @@ function addE13ScenarioEvent() {
     monthKey: monthKeyValue,
     duration,
     categoryId,
+    probabilityPct,
   }];
   renderE13ScenarioLab();
 }
@@ -37372,6 +37499,7 @@ async function init() {
   qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
+  qs("inv10Run")?.addEventListener("click", handleInv10Compare);
   qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
   qs("lev5VolatilitySave")?.addEventListener("click", saveLev5VolatilityBands);
   qs("lev3CombinedStressRun")?.addEventListener("click", handleLev3CombinedStress);

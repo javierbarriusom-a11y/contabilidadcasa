@@ -282,6 +282,57 @@
     };
   }
 
+  // INV10 (Oleada 3, Bloque 4): comparador genérico "vender activo vs. pedir prestado contra él"
+  // para financiar cualquier meta que necesite un importe de caja — decisión del hogar (sesión 159):
+  // genérico para cualquier meta, no acotado a una sola. Compone tres motores ya existentes, sin
+  // inventar ninguno nuevo: coste fiscal de vender (plusvalía proporcional al importe retirado, al
+  // tipo del ahorro ya declarado en FC4) + crecimiento que ese importe deja de generar si sale de la
+  // cartera (`opportunityCost`, IV5, ya calculado y pasado como `investmentResult`) frente al coste
+  // de pedirlo prestado con garantía de cartera en su lugar (`lombardCreditCapacity`, APX2, ya
+  // calculado y pasado como `lombardCapacity`) — la cartera sigue invertida en ese caso, sin vender
+  // nada ni pagar plusvalía ahora, así que su coste es solo el interés pagado en el horizonte.
+  const SELL_VS_BORROW_SCHEMA_ID = "finance-inv10-sell-vs-borrow/v1";
+
+  function sellVsBorrowComparison({ amount, months, gainLossPct, savingsTaxRatePct, investmentResult, lombardCapacity } = {}) {
+    const needed = Math.max(0, round2(amount));
+    const horizonMonths = Math.max(0, number(months));
+    if (!(needed > 0) || !(horizonMonths > 0) || !investmentResult?.calculable) {
+      return { schemaId: SELL_VS_BORROW_SCHEMA_ID, calculable: false };
+    }
+    const gainPct = Number.isFinite(gainLossPct) ? Math.max(0, gainLossPct) : 0;
+    const taxRate = Math.max(0, Math.min(100, number(savingsTaxRatePct)));
+    // Plusvalía embebida en el importe retirado, vendiendo pro-rata: si costBasis=100 y value=150
+    // (gainLossPct=50%), retirar "needed" de caja realiza needed*(50/150) de plusvalía.
+    const realizedGain = gainPct > 0 ? round2(needed * (gainPct / (100 + gainPct))) : 0;
+    const sellTaxCost = round2(realizedGain * (taxRate / 100));
+    const sellForegoneGrowth = investmentResult.gain;
+    const sellTotalCost = round2(sellTaxCost + sellForegoneGrowth);
+    const borrowFeasible = Boolean(lombardCapacity?.calculable) && lombardCapacity.capacity >= needed;
+    if (!borrowFeasible) {
+      return {
+        schemaId: SELL_VS_BORROW_SCHEMA_ID,
+        calculable: true,
+        borrowFeasible: false,
+        sellTaxCost,
+        sellForegoneGrowth,
+        sellTotalCost,
+      };
+    }
+    const years = horizonMonths / 12;
+    const borrowTotalCost = round2(needed * (lombardCapacity.annualRatePct / 100) * years);
+    return {
+      schemaId: SELL_VS_BORROW_SCHEMA_ID,
+      calculable: true,
+      borrowFeasible: true,
+      sellTaxCost,
+      sellForegoneGrowth,
+      sellTotalCost,
+      borrowTotalCost,
+      cheaper: sellTotalCost <= borrowTotalCost ? "sell" : "borrow",
+      difference: round2(Math.abs(sellTotalCost - borrowTotalCost)),
+    };
+  }
+
   return {
     SCHEMA_ID,
     SAVED_SCHEMA_ID,
@@ -298,5 +349,7 @@
     weightedPortfolioStressDropPct,
     TAIL_RISK_SCHEMA_ID,
     tailRiskAgainstMarginCall,
+    SELL_VS_BORROW_SCHEMA_ID,
+    sellVsBorrowComparison,
   };
 });
