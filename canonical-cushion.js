@@ -222,6 +222,59 @@
     };
   }
 
+  // DEB2 (Oleada 3, Bloque 3): dimensionador de amortización parcial óptima. Recibe el importe que
+  // DLX2 ya destinó a "amortizar deuda" (`toDebt`) — nunca inventa un excedente propio — y decide
+  // cuánto de ese importe destinar de verdad a amortizar ESTA deuda concreta, contando la comisión
+  // de amortización anticipada real del contrato si la tiene: la comisión se paga sobre el propio
+  // importe amortizado, así que amortizar el excedente entero dejaría sin cubrir su propia comisión.
+  // Nunca todo-o-nada: el importe se ajusta hacia abajo lo justo para que "amortizado + su comisión"
+  // quepa en el excedente disponible, y nunca supera el capital pendiente de la deuda.
+  function dimensionOptimalPrepayment({ allocatedSurplus, remainingPrincipal, penaltyPct = 0 } = {}) {
+    const surplus = round2(Math.max(0, number(allocatedSurplus)));
+    if (surplus <= 0) return { calculable: false };
+    const principal = round2(Math.max(0, number(remainingPrincipal)));
+    const pct = Math.max(0, number(penaltyPct));
+    const affordable = pct > 0 ? round2(surplus / (1 + pct / 100)) : surplus;
+    const amount = round2(Math.min(affordable, principal > 0 ? principal : affordable));
+    const penaltyCost = round2(amount * (pct / 100));
+    const totalCash = round2(amount + penaltyCost);
+    return {
+      calculable: true,
+      allocatedSurplus: surplus,
+      remainingPrincipal: principal,
+      penaltyPct: pct,
+      amount,
+      penaltyCost,
+      totalCash,
+      leftoverSurplus: round2(Math.max(0, surplus - totalCash)),
+      fullPayoff: principal > 0 && amount >= principal,
+    };
+  }
+
+  // GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — "aguanto X meses" sin vender nada ni
+  // pedir prestado. Combina el colchón (liquidez de verdad, la misma que ya usan DLX1/AP1 — nunca
+  // cartera de inversión ni activos ilíquidos, que exigirían vender), la deuda (la cuota mensual
+  // sigue debiéndose aunque el ingreso se corte, así que resta aguante igual que el gasto) y un
+  // escenario de tensión declarado (mismo marco base/favorable/tensión de E13, nunca un porcentaje
+  // "típico" inventado aquí). Distinto de LPX2 (runway de patrimonio neto completo, incluye lo no
+  // líquido): este solo cuenta lo disponible de verdad en una emergencia real.
+  function resilienceMonths({ liquidity, monthlyBurn, stressExpenseFactor = 1, monthlyDebtService = 0 } = {}) {
+    const liquiditySafe = round2(Math.max(0, number(liquidity)));
+    const stressedBurn = round2(Math.max(0, number(monthlyBurn)) * Math.max(1, number(stressExpenseFactor, 1)));
+    const debtService = round2(Math.max(0, number(monthlyDebtService)));
+    const totalMonthlyOutflow = round2(stressedBurn + debtService);
+    if (!(totalMonthlyOutflow > 0)) return { calculable: false };
+    return {
+      calculable: true,
+      liquidity: liquiditySafe,
+      monthlyBurn: round2(Math.max(0, number(monthlyBurn))),
+      stressedBurn,
+      monthlyDebtService: debtService,
+      totalMonthlyOutflow,
+      months: Math.floor((liquiditySafe / totalMonthlyOutflow) * 10) / 10,
+    };
+  }
+
   // DLX3: retrospectiva "¿me habría quedado sin colchón?". Reconstruye la liquidez de cada mes ya
   // conciliado (mismo historial real que ya expone PVX1, reconciledMonthlyNetHistory en app.js)
   // caminando hacia atrás desde la liquidez de HOY: balance_del_mes = balance_del_mes_siguiente -
@@ -273,6 +326,8 @@
     AMORTIZE_EARLY_WARNING_MARGIN,
     amortizeCushionGuardrail,
     surplusAllocationRule,
+    dimensionOptimalPrepayment,
     cushionRetrospective,
+    resilienceMonths,
   };
 });

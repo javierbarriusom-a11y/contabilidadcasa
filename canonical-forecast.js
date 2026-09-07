@@ -95,6 +95,28 @@
     return { schemaId: ASSUMPTIONS_SCHEMA_ID, version: 1, generatedAt, fingerprint, items };
   }
 
+  // PVC6 (Oleada 3, Bloque 3): previsión con control de versiones. Compara dos snapshots del
+  // registro de supuestos ya versionado (A7-2/E12a, buildAssumptionRegistry) — "qué preveíamos
+  // entonces" contra "qué prevemos ahora" — y dice exactamente qué supuesto concreto cambió,
+  // nunca solo si el resultado final acertó (eso ya lo hace PVX1, backtesting de precisión). Motor
+  // puro: solo compara dos registros ya construidos, no vuelve a calcular ningún supuesto.
+  function diffAssumptionSnapshots(previous, current) {
+    const previousItems = new Map((Array.isArray(previous?.items) ? previous.items : []).map((item) => [item.id, item]));
+    const currentItems = Array.isArray(current?.items) ? current.items : [];
+    if (!previousItems.size || !currentItems.length) return { calculable: false, changed: [], unchangedCount: 0 };
+    const changed = [];
+    let unchangedCount = 0;
+    currentItems.forEach((item) => {
+      const prior = previousItems.get(item.id);
+      if (!prior || prior.value === item.value) {
+        if (prior) unchangedCount += 1;
+        return;
+      }
+      changed.push({ id: item.id, label: item.label, unit: item.unit, previousValue: prior.value, currentValue: item.value });
+    });
+    return { calculable: true, changed, unchangedCount };
+  }
+
   function decomposeMonth(month = {}, row = {}, index = 0) {
     const incomeRecurring = round(month.income ?? month.baseIncome);
     const incomeAdjustment = round(number(row.income) - incomeRecurring);
@@ -324,6 +346,45 @@
     });
   }
 
+  // PVC3 (Oleada 3, Bloque 3): detector de cambio estructural vs. ruido. `applyLearnedBias` (abajo)
+  // ya exige confianza "alta" (≥12 meses de muestra) antes de desplazar la previsión base, pero esa
+  // media de 12 meses puede seguir diluyendo un solo mes atípico sin filtrarlo del todo — un
+  // imprevisto puntual dentro de esos 12 meses puede contaminar diez años de forecast igual. Este
+  // motor exige, ADEMÁS, que los últimos `requiredConsecutiveMonths` meses reconciliados (2-3, nunca
+  // uno solo) estén fuera de banda Y en el mismo sentido — una subida de nómina real empuja varios
+  // meses seguidos en la misma dirección; un mes atípico no. Mismo umbral de "fuera de banda" que
+  // deviationSeverity (DEVIATION_SEVERITY_THRESHOLDS.medium), para no inventar un segundo criterio.
+  function detectStructuralChange(records = [], options = {}) {
+    const conceptId = text(options.conceptId || "monthly-net");
+    const requiredConsecutiveMonths = Math.max(2, Math.round(number(options.requiredConsecutiveMonths) || 3));
+    const usable = records
+      .filter((record) => record?.reconciled === true && text(record.conceptId || "monthly-net") === conceptId && /^\d{4}-\d{2}$/.test(text(record.monthKey)))
+      .filter((record) => Number.isFinite(Number(record.planned)) && Number.isFinite(Number(record.actual)))
+      .slice()
+      .sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1)); // más reciente primero
+    if (usable.length < requiredConsecutiveMonths) {
+      return { schemaId: `${LEARNING_SCHEMA_ID}/structural-change/v1`, conceptId, requiredConsecutiveMonths, isStructural: false, reason: "insufficient-sample", sampleMonths: usable.length };
+    }
+    const recent = usable.slice(0, requiredConsecutiveMonths).map((record) => {
+      const planned = number(record.planned);
+      const delta = number(record.actual) - planned;
+      const ratio = planned !== 0 ? delta / Math.abs(planned) : (delta === 0 ? 0 : Infinity);
+      return { monthKey: record.monthKey, delta: round(delta), ratio, direction: delta > 0 ? "up" : delta < 0 ? "down" : "flat" };
+    });
+    const outOfBand = recent.every((month) => Math.abs(month.ratio) >= DEVIATION_SEVERITY_THRESHOLDS.medium);
+    const firstDirection = recent[0].direction;
+    const sameDirection = firstDirection !== "flat" && recent.every((month) => month.direction === firstDirection);
+    const isStructural = outOfBand && sameDirection;
+    return {
+      schemaId: `${LEARNING_SCHEMA_ID}/structural-change/v1`,
+      conceptId, requiredConsecutiveMonths, isStructural,
+      reason: isStructural ? "" : !outOfBand ? "within-band" : "inconsistent-direction",
+      direction: sameDirection ? firstDirection : null,
+      recentMonths: recent,
+      averageRecentDelta: round(recent.reduce((sum, month) => sum + month.delta, 0) / recent.length),
+    };
+  }
+
   // PV1: autoajuste de la previsión por niveles de confianza — depende de PV5 y reutiliza
   // learnFromHistory() (E12b) tal cual. Antes de esto, cada desviación salía siempre con
   // `confirmRequired: true`/`applied: false`, a propósito (regla transversal: ninguna previsión se
@@ -336,12 +397,18 @@
   // mes porque cada mes futuro hereda el saldo del anterior; nunca reescribe el desglose de
   // ingreso/gasto ni el ahorro aplicado, y cada mes lleva su propia marca `learnedBias` explícita —
   // la previsión sigue pareciendo previsión, nunca un dato real disfrazado.
+  // PVC3: `options.structural` (resultado de detectStructuralChange, arriba) es opcional a
+  // propósito — quien no lo pase mantiene el contrato de siempre (solo confianza alta). Cuando SÍ
+  // se pasa, además exige `isStructural === true`: ni la confianza de 12 meses ni la persistencia
+  // reciente bastan por separado, hacen falta las dos.
   function applyLearnedBias(series = [], learning = {}, options = {}) {
     const enabled = options.enabled !== false;
     const conceptId = text(options.conceptId || "monthly-net");
     const deviations = Array.isArray(learning.deviations) ? learning.deviations : [];
     const deviation = deviations.find((item) => item.conceptId === conceptId) || null;
-    const eligible = Boolean(enabled && deviation && deviation.confidence === "high");
+    const structuralRequired = options.structural && typeof options.structural === "object";
+    const structuralPassed = !structuralRequired || options.structural.isStructural === true;
+    const eligible = Boolean(enabled && deviation && deviation.confidence === "high" && structuralPassed);
     const monthlyAmount = eligible ? round(deviation.averageDelta) : 0;
     return series.map((month, index) => {
       const cumulativeAmount = eligible ? round(monthlyAmount * (index + 1)) : 0;
@@ -359,6 +426,9 @@
           conceptId, enabled, applied: eligible,
           confidence: deviation ? deviation.confidence : "low",
           sampleMonths: deviation ? deviation.sampleMonths : 0,
+          // PVC3: solo se expone cuando quien llama pasó `options.structural` — nunca inventa un
+          // veredicto de persistencia que no se pidió calcular.
+          structural: structuralRequired ? options.structural : null,
           monthlyAmount, cumulativeAmount,
         },
       };
@@ -403,5 +473,5 @@
     };
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, applyLearnedBias, causalTreeForMonth };
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, detectStructuralChange, applyLearnedBias, diffAssumptionSnapshots, causalTreeForMonth };
 });

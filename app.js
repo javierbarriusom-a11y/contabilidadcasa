@@ -4937,6 +4937,10 @@ async function closeCurrentMonthTransaction() {
     // PV3: el cierre firmado es el disparador de la recalibración en cascada del aprendizaje de
     // desviaciones (E12b) — mismo espíritu local que recordCierreAprendizaje, justo encima.
     recalibrateForecastLearning(month, closedAt);
+    // PVC6: mismo cierre firmado también congela el registro de supuestos de la previsión, para
+    // poder compararlo más adelante contra la previsión de un momento futuro.
+    recordPvc6ForecastSnapshot(month, closedAt);
+    renderPvc6SnapshotOptions();
     // D-2b: cada cierre firmado congela una foto nueva de la deuda viva — mismo espíritu local que
     // C-13, no toca el RPC transaccional ni el esquema remoto.
     saveDebtCapitalSnapshotAtClose({ total: homeDebtOutlook().pendingPrincipal, monthKey: month, closedAt });
@@ -7337,7 +7341,11 @@ function computeCanonicalScenario(projectOutflows = [], options = {}) {
   // propios proyectos/eventos); no deben verse alteradas por un aprendizaje que no pidió ahí.
   if (persistedContext === "base") {
     const biasLearning = requiredCanonicalForecast().learnFromHistory(reconciledMonthlyNetHistory(), { generatedAt: scenario.forecast.generatedAt });
-    scenario.forecast.series = requiredCanonicalForecast().applyLearnedBias(scenario.forecast.series, biasLearning, { enabled: state?.autoAdjustForecastBias !== false });
+    // PVC3 (Oleada 3, Bloque 3): además de la confianza de 12 meses que ya exigía applyLearnedBias,
+    // requiere que los últimos meses reconciliados estén fuera de banda y en el mismo sentido —
+    // sin esto, un imprevisto puntual dentro de esos 12 meses podía seguir moviendo la base.
+    const structuralChange = requiredCanonicalForecast().detectStructuralChange(reconciledMonthlyNetHistory());
+    scenario.forecast.series = requiredCanonicalForecast().applyLearnedBias(scenario.forecast.series, biasLearning, { enabled: state?.autoAdjustForecastBias !== false, structural: structuralChange });
   }
   scenarioSettings.forecastAssumptions = scenario.forecast.assumptions;
   const snapshot = scenario.snapshot;
@@ -16126,6 +16134,52 @@ function handleApx3MarginCallSimulate() {
   note.innerHTML = apx3MarginCallResultHtml(result, guardrail);
 }
 
+// LEV3 (Oleada 3, Bloque 3): estrés combinado — tipos al alza y mercado a la baja a la vez.
+// Reutiliza tal cual el estrés de tipos de DI1 (monthlyPayment) y el margin call ya calculado de
+// APX3 (lombardMarginCallSimulation) — sin motor nuevo, solo los compone en un único resultado.
+function lev3CombinedStressResultHtml(result) {
+  if (!result || !result.calculable) {
+    return "Declara la hipoteca (Patrimonio e inversión) y/o el crédito con garantía de cartera (arriba) para simular el estrés combinado.";
+  }
+  const parts = [];
+  if (result.mortgage.calculable) {
+    parts.push(`<p>Hipoteca: la cuota subiría de ${money(result.mortgage.currentMonthlyPayment, true)}/mes a ${money(result.mortgage.stressedMonthlyPayment, true)}/mes (+${money(result.mortgage.extraMonthlyPayment, true)}/mes) con tipos al ${result.mortgage.stressedRate}%.</p>`);
+  }
+  if (result.marginCall.calculable) {
+    parts.push(result.marginCall.marginCallTriggered
+      ? `<p class="e19-kpi-note negative">Y a la vez, esa misma caída de mercado dispararía una llamada de garantía por ${money(result.marginCall.additionalCollateralNeeded, true)}.</p>`
+      : `<p>El crédito con garantía de cartera no se vería afectado por esa caída — el LTV se mantendría por debajo del de mantenimiento.</p>`);
+  }
+  if (result.bothTriggeredTogether) {
+    parts.push(`<p class="e19-kpi-note negative"><strong>Estrés combinado:</strong> ${money(result.combinedMonthlyCashStrain, true)}/mes de más en la hipoteca, a la vez que ${money(result.combinedOneOffCashNeeded, true)} de garantía adicional exigida de golpe — el efecto compuesto de ambos moviéndose juntos, no la suma de mirarlos por separado.</p>`);
+  }
+  return parts.join("");
+}
+
+function handleLev3CombinedStress() {
+  const note = qs("lev3CombinedStressNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalMortgageRateScenarios;
+  const leverageEngine = window.FinanceCanonicalLeverageSimulator;
+  const portfolio = window.FinanceCanonicalPortfolio;
+  if (!engine || !leverageEngine || !portfolio) return;
+  const portfolioValue = portfolio.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const marginCallResult = leverageEngine.lombardMarginCallSimulation({
+    portfolioValue,
+    loanAmount: parseAmount(qs("apx3LoanAmount")?.value),
+    maintenanceLtvPct: parseAmount(qs("apx3MaintenanceLtvPct")?.value),
+    stressDropPct: parseAmount(qs("apx3StressDropPct")?.value),
+  });
+  const result = engine.evaluateCombinedStress({
+    principal: parseAmount(qs("ajustesMortgagePrincipal")?.value),
+    months: parseAmount(qs("ajustesMortgageMonths")?.value),
+    currentVariableRate: parseAmount(qs("ajustesMortgageVariableRate")?.value),
+    deltaPoints: parseAmount(qs("lev3RateDeltaPoints")?.value) || 0,
+    marginCallResult,
+  });
+  note.innerHTML = lev3CombinedStressResultHtml(result);
+}
+
 function ap3LeverageScenarios() {
   scenarioSettings.ap3LeverageScenarios = Array.isArray(scenarioSettings.ap3LeverageScenarios) ? scenarioSettings.ap3LeverageScenarios : [];
   return scenarioSettings.ap3LeverageScenarios;
@@ -16424,6 +16478,52 @@ function dlx2SurplusAllocationHtml(allocation) {
   return `<p class="e19-kpi-note"><strong>Reparto automático del excedente (DLX2)</strong>: ${parts.join("; ")}.</p>`;
 }
 
+// DEB2 (Oleada 3, Bloque 3): dimensiona cuánto del excedente que DLX2 ya destinó a "amortizar deuda"
+// (surplusAllocation.toDebt) se puede destinar de verdad a esta deuda concreta, contando su comisión
+// de amortización anticipada real (declarada por el hogar en ap1PrepaymentPenaltyPct) — nunca
+// todo-o-nada, porque la propia comisión se paga con ese mismo excedente.
+function deb2DimensionHtml(allocation) {
+  const cushionEngine = window.FinanceCanonicalCushion;
+  if (!cushionEngine || !allocation || !allocation.calculable || !(allocation.toDebt > 0)) return "";
+  const debtId = qs("ap1DebtSelect")?.value || "";
+  const debt = p2DebtRows().find((row) => row.id === debtId) || null;
+  const penaltyPct = parseAmount(qs("ap1PrepaymentPenaltyPct")?.value) || 0;
+  const result = cushionEngine.dimensionOptimalPrepayment({
+    allocatedSurplus: allocation.toDebt,
+    remainingPrincipal: debt ? debt.currentPrincipal : 0,
+    penaltyPct,
+  });
+  if (!result.calculable) return "";
+  if (penaltyPct <= 0) {
+    return `<p class="e19-kpi-note"><strong>Amortización dimensionada (DEB2)</strong>: ${money(result.amount, true)}${result.fullPayoff ? " (liquida la deuda entera)" : ""} — sin comisión de amortización anticipada declarada.</p>`;
+  }
+  const payoffNote = result.fullPayoff ? " — liquida la deuda entera" : "";
+  return `<p class="e19-kpi-note"><strong>Amortización dimensionada (DEB2)</strong>: ${money(result.amount, true)}${payoffNote}, más ${money(result.penaltyCost, true)} de comisión (${penaltyPct}%) = ${money(result.totalCash, true)} de caja necesaria de los ${money(allocation.toDebt, true)} destinados a esta deuda${result.leftoverSurplus > 0 ? ` (sobran ${money(result.leftoverSurplus, true)} sin usar)` : ""}.</p>`;
+}
+
+// DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente declarada a mano — un único escalón
+// (comisión actual, mes en que termina, comisión siguiente). Reutiliza
+// FinanceDebtContracts.nextCheaperPrepaymentWindow (mismos helpers de mes que ya usa DI3/D-2).
+function renderDeb8PrepaymentWindow() {
+  const box = qs("deb8PrepaymentWindowNote");
+  if (!box) return;
+  const engine = window.FinanceDebtContracts;
+  const currentPct = parseAmount(qs("deb8CurrentPenaltyPct")?.value);
+  const untilMonth = qs("deb8TierUntilMonth")?.value || "";
+  const nextPct = parseAmount(qs("deb8NextPenaltyPct")?.value);
+  if (!engine || !(currentPct > 0) || !untilMonth) {
+    box.innerHTML = "";
+    return;
+  }
+  const tiers = [{ untilMonth, pct: currentPct }, { untilMonth: null, pct: Math.max(0, nextPct || 0) }];
+  const result = engine.nextCheaperPrepaymentWindow(tiers, monthKey(modelStartDate()));
+  if (!result.calculable || !result.hasUpcomingWindow) {
+    box.innerHTML = "";
+    return;
+  }
+  box.innerHTML = `<p>La comisión de amortización anticipada baja de <strong>${result.currentPct}%</strong> a <strong>${result.nextPct}%</strong> dentro de ${result.monthsUntil} mes(es) — evita amortizar antes de esa fecha si puedes esperar.</p>`;
+}
+
 function handleAp1Compare() {
   const note = qs("ap1CompareNote");
   if (!note) return;
@@ -16461,7 +16561,7 @@ function handleAp1Compare() {
       assessment: result.calculable ? result.assessment : null,
     })
     : null;
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
   // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
   // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
   if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {
@@ -16542,9 +16642,68 @@ function handleAjustesCompareTariffs() {
   note.textContent = `Fija: ${money(result.fixedMonthlyCost, true)}/mes · Variable: ${money(result.variableMonthlyCost, true)}/mes. ${verdictText}${breakEvenText}`;
 }
 
+// DEB4 (Oleada 3, Bloque 3): radar de refinanciación activo. APX5 (refinancingBreakEvenMonths) ya
+// calcula el punto de equilibrio bajo demanda; este motor persiste los campos de la hipoteca y un
+// umbral de meses aceptable declarado por el hogar, para poder avisar en cada arranque de la app
+// sin que haga falta volver a abrir el simulador y pulsar «Comparar» cada mes por si acaso — mismo
+// criterio que DEB1 con el aviso de cambio de veredicto.
+function deb4RadarSettings() {
+  return (scenarioSettings.deb4Radar && typeof scenarioSettings.deb4Radar === "object") ? scenarioSettings.deb4Radar : {};
+}
+
+function saveDeb4RadarSettings() {
+  scenarioSettings.deb4Radar = {
+    principal: parseAmount(qs("ajustesMortgagePrincipal")?.value) || 0,
+    months: parseAmount(qs("ajustesMortgageMonths")?.value) || 0,
+    variableRate: parseAmount(qs("ajustesMortgageVariableRate")?.value) || 0,
+    fixedRate: parseAmount(qs("ajustesMortgageFixedRate")?.value) || 0,
+    refinancingCost: parseAmount(qs("ajustesMortgageRefinancingCost")?.value) || 0,
+    maxBreakEvenMonths: parseAmount(qs("deb4MaxBreakEvenMonths")?.value) || 0,
+  };
+  saveScenarioSettings();
+  renderDeb4RefinancingRadar();
+}
+
+function syncDeb4RadarControls() {
+  const saved = deb4RadarSettings();
+  const fields = {
+    ajustesMortgagePrincipal: saved.principal,
+    ajustesMortgageMonths: saved.months,
+    ajustesMortgageVariableRate: saved.variableRate,
+    ajustesMortgageFixedRate: saved.fixedRate,
+    ajustesMortgageRefinancingCost: saved.refinancingCost,
+    deb4MaxBreakEvenMonths: saved.maxBreakEvenMonths,
+  };
+  Object.entries(fields).forEach(([id, value]) => {
+    const field = qs(id);
+    if (!field || document.activeElement === field) return;
+    field.value = value > 0 ? String(value) : "";
+  });
+}
+
+function renderDeb4RefinancingRadar() {
+  const box = qs("deb4RadarAlert");
+  if (!box) return;
+  const engine = window.FinanceCanonicalMortgageRateScenarios;
+  const saved = deb4RadarSettings();
+  if (!engine || !(saved.principal > 0) || !(saved.maxBreakEvenMonths > 0)) {
+    box.innerHTML = "";
+    return;
+  }
+  const scenarios = engine.evaluateMortgageRateScenarios({
+    principal: saved.principal, months: saved.months, currentVariableRate: saved.variableRate, fixedRateOffer: saved.fixedRate,
+  });
+  const breakEven = engine.refinancingBreakEvenMonths(scenarios.scenarios, saved.refinancingCost);
+  if (!breakEven.calculable || breakEven.months > saved.maxBreakEvenMonths) {
+    box.innerHTML = "";
+    return;
+  }
+  box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación (DEB4):</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>`;
+}
+
 // DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo criterio que A19-3 (comparador de
-// tarifas): calculadora puntual, sin persistir nada en scenarioSettings — lee los campos y muestra
-// el resultado en el momento.
+// tarifas): calculadora puntual en pantalla — DEB4 (arriba) persiste sus campos aparte para el
+// radar continuo, sin que este cálculo puntual dependa de esa persistencia.
 function handleDi1CompareMortgageScenarios() {
   const note = qs("ajustesMortgageScenariosNote");
   if (!note) return;
@@ -17363,6 +17522,38 @@ function renderLpx2NetWorthRunway() {
   note.innerHTML = `<p>Con un gasto medio de ${money(result.monthlyBurn, true)}/mes y patrimonio neto de ${money(result.netWorth, true)}: <strong>${result.months} mes(es) de runway</strong> si el ingreso se cortara por completo.${illiquidNote}</p>`;
 }
 
+// GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — combina la liquidez real (misma fuente
+// que DLX1/AP1), la cuota de deuda ya comprometida (p2DebtRows, la misma que ya usa AP5) y el
+// escenario de tensión de E13 (FinanceCanonicalE13Scenarios.PROFILES, "stress") en un único número
+// de meses. Sin motor nuevo aparte de resilienceMonths (canonical-cushion.js), que solo compone.
+function gob9MonthlyDebtService() {
+  return round2(p2DebtRows().reduce((sum, row) => sum + Math.max(0, Number(row.currentPayment) || 0), 0));
+}
+
+function renderGob9ResiliencePanel() {
+  const note = qs("gob9ResiliencePanel");
+  if (!note) return;
+  const cushionEngine = window.FinanceCanonicalCushion;
+  const scenariosEngine = window.FinanceCanonicalE13Scenarios;
+  const monthlyOutflow = lpAverageMonthlyOutflow();
+  if (!cushionEngine || !monthlyOutflow) {
+    note.innerHTML = `<p>Sin previsión viva calculada todavía — hace falta un gasto mensual medio para estimar la resiliencia.</p>`;
+    return;
+  }
+  const stressProfile = scenariosEngine?.PROFILES?.find((profile) => profile.id === "stress");
+  const result = cushionEngine.resilienceMonths({
+    liquidity: accountBalancesFromState().total,
+    monthlyBurn: monthlyOutflow,
+    stressExpenseFactor: stressProfile ? stressProfile.expenseFactor : 1,
+    monthlyDebtService: gob9MonthlyDebtService(),
+  });
+  if (!result.calculable) {
+    note.innerHTML = `<p>Sin gasto mensual medio calculable todavía.</p>`;
+    return;
+  }
+  note.innerHTML = `<p><strong>${result.months} mes(es) de aguante</strong> con ${money(result.liquidity, true)} de liquidez real, frente a ${money(result.stressedBurn, true)}/mes de gasto bajo tensión${result.monthlyDebtService > 0 ? ` + ${money(result.monthlyDebtService, true)}/mes de cuotas de deuda` : ""} = ${money(result.totalMonthlyOutflow, true)}/mes en total.</p>`;
+}
+
 // RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9, ya real) y el
 // hogar compartido de arriba (A5-3). No ejecuta ninguna acción por sí sola: solo hace visible el
 // estado real de cada punto, con la copia y la invitación a un clic de distancia si falta algo.
@@ -18140,6 +18331,80 @@ function renderFc3PriorLossList() {
   list.innerHTML = rows.length
     ? rows.map((entry) => `<li class="commit-barrier-item"><span>${escapeHtml(entry.year)}: ${money(entry.amount, true)}</span><button type="button" class="e19-btn e19-btn-secondary" data-fc3-loss-remove="${escapeHtml(entry.id)}">Quitar</button></li>`).join("")
     : `<li class="e19-kpi-note">Sin pérdidas arrastradas registradas.</li>`;
+}
+
+// LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. Mismo patrón de lista
+// repetible que fc3PriorLossesList (Fiscal) — condiciones reales declaradas por el hogar, nunca un
+// valor "típico" inventado.
+function lev4LombardOffersList() {
+  return Array.isArray(scenarioSettings.lev4LombardOffers) ? scenarioSettings.lev4LombardOffers : [];
+}
+
+function saveLev4LombardOffersList(next) {
+  scenarioSettings.lev4LombardOffers = next;
+  saveScenarioSettings();
+}
+
+function saveLev4LombardOffer() {
+  const entity = String(qs("lev4OfferEntity")?.value || "").trim();
+  const maxLtvPct = parseAmount(qs("lev4OfferMaxLtvPct")?.value);
+  const annualRatePct = parseAmount(qs("lev4OfferRatePct")?.value);
+  const openingFeePct = parseAmount(qs("lev4OfferOpeningFeePct")?.value) || 0;
+  const cancellationFeePct = parseAmount(qs("lev4OfferCancellationFeePct")?.value) || 0;
+  const maintenanceLtvPct = parseAmount(qs("lev4OfferMaintenanceLtvPct")?.value) || 0;
+  if (!entity || !(maxLtvPct > 0) || !(annualRatePct >= 0)) {
+    announceStatus("Indica entidad, LTV máximo y tipo para añadir la oferta.");
+    return;
+  }
+  const next = [...lev4LombardOffersList(), {
+    id: `lev4offer-${Date.now()}`, entity, maxLtvPct, annualRatePct, openingFeePct, cancellationFeePct, maintenanceLtvPct,
+  }];
+  saveLev4LombardOffersList(next);
+  qs("lev4OfferEntity").value = "";
+  qs("lev4OfferMaxLtvPct").value = "";
+  qs("lev4OfferRatePct").value = "";
+  qs("lev4OfferOpeningFeePct").value = "";
+  qs("lev4OfferCancellationFeePct").value = "";
+  qs("lev4OfferMaintenanceLtvPct").value = "";
+  renderLev4LombardComparison();
+  announceStatus(`Oferta de ${entity} añadida al comparador Lombard.`);
+}
+
+function removeLev4LombardOffer(id) {
+  saveLev4LombardOffersList(lev4LombardOffersList().filter((entry) => entry.id !== id));
+  renderLev4LombardComparison();
+}
+
+function lev4ComparisonResultHtml(result) {
+  if (!result || !result.calculable) return "";
+  const rows = result.rows.map((row) => {
+    const cheapestTag = row.id === result.cheapestId ? " — más barata el primer año" : "";
+    const marginText = row.safetyMarginPts === null ? "sin LTV de mantenimiento declarado" : `${row.safetyMarginPts} pts de margen antes de un margin call`;
+    return `<li>${escapeHtml(row.entity)}: capacidad ${money(row.capacity, true)}, coste primer año ${money(row.firstYearCost, true)} (tipo ${row.annualRatePct}% + apertura ${row.openingFeePct}%)${cheapestTag} — ${marginText}.</li>`;
+  }).join("");
+  return `<div class="e19-kpi-note"><p><strong>Comparación sobre tu cartera real (${money(result.portfolioValue, true)}):</strong></p><ul class="commit-barrier-list">${rows}</ul></div>`;
+}
+
+function renderLev4LombardComparison() {
+  const list = qs("lev4OfferList");
+  const note = qs("lev4ComparisonNote");
+  if (!list && !note) return;
+  const offers = lev4LombardOffersList();
+  if (list) {
+    list.innerHTML = offers.length
+      ? offers.map((offer) => `<li class="commit-barrier-item"><span>${escapeHtml(offer.entity)}: LTV ${offer.maxLtvPct}%, tipo ${offer.annualRatePct}%, apertura ${offer.openingFeePct}%, cancelación ${offer.cancellationFeePct}%, mantenimiento ${offer.maintenanceLtvPct}%</span><button type="button" class="e19-btn e19-btn-secondary" data-lev4-offer-remove="${escapeHtml(offer.id)}">Quitar</button></li>`).join("")
+      : `<li class="e19-kpi-note">Sin ofertas registradas todavía.</li>`;
+  }
+  if (!note) return;
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  const portfolio = window.FinanceCanonicalPortfolio;
+  if (!engine || !portfolio || offers.length < 2) {
+    note.innerHTML = offers.length === 1 ? `<p class="e19-kpi-note">Añade al menos una oferta más para comparar.</p>` : "";
+    return;
+  }
+  const portfolioValue = portfolio.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const result = engine.compareLombardOffers({ offers, portfolioValue });
+  note.innerHTML = lev4ComparisonResultHtml(result);
 }
 
 function fc3ResultHtml(result) {
@@ -26200,6 +26465,17 @@ function pv1AutoAdjustBiasNote(learnedBias) {
   if (learnedBias.applied) {
     return `Autoajuste activo: ${money(learnedBias.monthlyAmount, true)}/mes de desviación aprendida (confianza alta, ${learnedBias.sampleMonths} meses conciliados) — la caja proyectada del escenario base ya lo incluye, acumulado mes a mes.`;
   }
+  // PVC3: con confianza ya alta, si lo que falta es la persistencia reciente (2-3 meses seguidos
+  // fuera de banda, en el mismo sentido), el mensaje lo dice explícitamente — nunca deja al hogar
+  // pensando que hace falta más historial cuando en realidad el bloqueo es otro.
+  if (learnedBias.confidence === "high" && learnedBias.structural && !learnedBias.structural.isStructural) {
+    const reasonText = learnedBias.structural.reason === "insufficient-sample"
+      ? "todavía no hay suficientes meses conciliados recientes"
+      : learnedBias.structural.reason === "inconsistent-direction"
+        ? "los últimos meses no van en el mismo sentido"
+        : "los últimos meses no están lo bastante fuera de banda";
+    return `Autoajuste en espera: la desviación tiene confianza alta, pero los últimos ${learnedBias.structural.requiredConsecutiveMonths} meses no confirman un cambio estructural (${reasonText}) — podría ser un imprevisto puntual, no una subida real. Sigue como sugerencia pendiente de confirmar.`;
+  }
   if (learnedBias.sampleMonths > 0) {
     return `Autoajuste en espera: la desviación aprendida tiene confianza ${PV4_CONFIDENCE_LABEL[learnedBias.confidence] || learnedBias.confidence} (${learnedBias.sampleMonths} meses conciliados) — hace falta confianza alta (≥12 meses) para que se aplique sola. Sigue como sugerencia pendiente de confirmar.`;
   }
@@ -26534,6 +26810,7 @@ function renderAjustes() {
   renderLpx3ContinuityChecklist();
   renderLpx1FinancialIndependence();
   renderLpx2NetWorthRunway();
+  renderGob9ResiliencePanel();
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
@@ -26542,6 +26819,10 @@ function renderAjustes() {
   renderIv1GoalOptions();
   renderIv1PositionSummary();
   renderFc3PriorLossList();
+  renderLev4LombardComparison();
+  syncDeb4RadarControls();
+  renderDeb4RefinancingRadar();
+  renderPvc6SnapshotOptions();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
   renderIv6Rebalance();
@@ -32847,6 +33128,72 @@ function recordCierreAprendizaje(monthKey, closedAt) {
 // de regenerarlo con datos que puedan cambiar después (una partida renombrada, una categoría
 // reclasificada). `totals` viaja aparte de `pdfLines` (no solo el texto ya formateado) para que #6
 // pueda sumar cifras reales sin tener que volver a parsear un PDF de mentira.
+// PVC6 (Oleada 3, Bloque 3): previsión con control de versiones. Mismo patrón local que C-13/D-2b
+// (#5, justo abajo): un snapshot congelado del registro de supuestos ya versionado (A7-2/E12a,
+// buildAssumptionRegistry) en cada cierre firmado — no toca el RPC transaccional ni el esquema
+// remoto — para poder comparar "qué preveíamos entonces" contra "qué prevemos ahora" sin volver a
+// calcular nada, solo con diffAssumptionSnapshots sobre dos registros ya construidos.
+const PVC6_SNAPSHOTS_MAX = 36;
+
+function loadPvc6ForecastSnapshots() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("pvc6-forecast-snapshots"), "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePvc6ForecastSnapshots(list) {
+  storageSet(storageKey("pvc6-forecast-snapshots"), JSON.stringify(list.slice(0, PVC6_SNAPSHOTS_MAX)));
+}
+
+function recordPvc6ForecastSnapshot(monthKey, closedAt) {
+  const assumptions = canonicalScenarioResults.base?.forecast?.assumptions;
+  if (!assumptions) return;
+  const history = loadPvc6ForecastSnapshots().filter((entry) => entry.monthKey !== monthKey);
+  history.unshift({ monthKey, closedAt, assumptions });
+  savePvc6ForecastSnapshots(history);
+}
+
+function renderPvc6SnapshotOptions() {
+  const select = qs("pvc6SnapshotSelect");
+  if (!select) return;
+  const snapshots = loadPvc6ForecastSnapshots();
+  const previousValue = select.value;
+  select.innerHTML = snapshots.length
+    ? snapshots.map((entry) => `<option value="${escapeHtml(entry.monthKey)}">${escapeHtml(registrarMesLongMonth(entry.monthKey))}</option>`).join("")
+    : `<option value="">Sin cierres firmados todavía</option>`;
+  if (snapshots.some((entry) => entry.monthKey === previousValue)) select.value = previousValue;
+}
+
+function pvc6DiffResultHtml(result) {
+  if (!result || !result.calculable) return "Sin previsión actual o sin ese snapshot guardado para comparar.";
+  if (!result.changed.length) {
+    return `<p class="e19-kpi-note positive">Ningún supuesto ha cambiado desde ese cierre (${result.unchangedCount} sin cambios).</p>`;
+  }
+  const rows = result.changed.map((item) => {
+    const format = (value) => (item.unit === "boolean" ? (value ? "sí" : "no") : item.unit === "EUR" ? money(value, true) : item.unit === "percent" ? `${value}%` : value);
+    return `<li><strong>${escapeHtml(item.label)}</strong>: ${format(item.previousValue)} → ${format(item.currentValue)}.</li>`;
+  }).join("");
+  return `<div class="e19-kpi-note"><p>${result.changed.length} supuesto(s) cambiado(s) desde entonces (${result.unchangedCount} sin cambios):</p><ul class="commit-barrier-list">${rows}</ul></div>`;
+}
+
+function handlePvc6SnapshotCompare() {
+  const note = qs("pvc6SnapshotDiffNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalForecast;
+  const monthKey = qs("pvc6SnapshotSelect")?.value || "";
+  const snapshot = loadPvc6ForecastSnapshots().find((entry) => entry.monthKey === monthKey);
+  if (!engine || !snapshot) {
+    note.innerHTML = "Elige un cierre firmado con snapshot guardado para comparar.";
+    return;
+  }
+  const current = canonicalScenarioResults.base?.forecast?.assumptions;
+  const result = engine.diffAssumptionSnapshots(snapshot.assumptions, current);
+  note.innerHTML = pvc6DiffResultHtml(result);
+}
+
 function loadCierreReportArchive() {
   try {
     const parsed = JSON.parse(storageGet(storageKey("cierre-report-archive"), "[]"));
@@ -36737,6 +37084,9 @@ async function init() {
   qs("ajustesLoanGuaranteeMonthly")?.addEventListener("change", handleLoanGuaranteeMonthlyChange);
   qs("lev1LimitPct")?.addEventListener("change", handleLev1PolicyChange);
   qs("lev1Basis")?.addEventListener("change", handleLev1PolicyChange);
+  qs("deb8CurrentPenaltyPct")?.addEventListener("change", renderDeb8PrepaymentWindow);
+  qs("deb8TierUntilMonth")?.addEventListener("change", renderDeb8PrepaymentWindow);
+  qs("deb8NextPenaltyPct")?.addEventListener("change", renderDeb8PrepaymentWindow);
   qs("ajustesAutoAdjustForecastBias")?.addEventListener("change", handleAutoAdjustForecastBiasChange);
   qs("ajustesDuplicateWindow")?.addEventListener("change", handleDuplicateWindowChange);
   qs("ajustesPartidaThreshold")?.addEventListener("change", handlePartidaDeviationThresholdChange);
@@ -36800,6 +37150,7 @@ async function init() {
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
   qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
+  qs("lev3CombinedStressRun")?.addEventListener("click", handleLev3CombinedStress);
   qs("pvx5MonthSelect")?.addEventListener("change", renderPvx5CausalTree);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
   qs("ap3ScenarioList")?.addEventListener("click", (event) => {
@@ -36816,6 +37167,9 @@ async function init() {
   qs("ap5StrategySelect")?.addEventListener("change", renderAp5Queue);
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);
+  ["ajustesMortgagePrincipal", "ajustesMortgageMonths", "ajustesMortgageVariableRate", "ajustesMortgageFixedRate", "ajustesMortgageRefinancingCost", "deb4MaxBreakEvenMonths"].forEach((id) => {
+    qs(id)?.addEventListener("change", saveDeb4RadarSettings);
+  });
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
   qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);
@@ -36844,6 +37198,13 @@ async function init() {
     const removeButton = event.target.closest("[data-fc3-loss-remove]");
     if (!removeButton) return;
     removeFc3PriorLoss(removeButton.dataset.fc3LossRemove);
+  });
+  qs("pvc6SnapshotCompare")?.addEventListener("click", handlePvc6SnapshotCompare);
+  qs("lev4OfferSave")?.addEventListener("click", saveLev4LombardOffer);
+  qs("lev4OfferList")?.addEventListener("click", (event) => {
+    const removeButton = event.target.closest("[data-lev4-offer-remove]");
+    if (!removeButton) return;
+    removeLev4LombardOffer(removeButton.dataset.lev4OfferRemove);
   });
   qs("iv1PositionList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-iv1-position-remove]");

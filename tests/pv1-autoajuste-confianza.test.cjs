@@ -97,6 +97,33 @@ test("applyLearnedBias · admite un conceptId distinto de monthly-net sin romper
   assert.equal(out[0].learnedBias.conceptId, "otro-concepto");
 });
 
+// ---------------------------------------------------------------------------------------------
+// PVC3 (Oleada 3, Bloque 3) · el gate de persistencia reciente es opcional (options.structural):
+// quien no lo pasa mantiene el contrato de siempre; quien lo pasa exige ADEMÁS isStructural.
+// ---------------------------------------------------------------------------------------------
+
+test("applyLearnedBias · sin options.structural, se comporta igual que antes de PVC3 (solo confianza alta)", () => {
+  const out = forecast.applyLearnedBias(series(1), learningWith(highDeviation()), { enabled: true });
+  assert.equal(out[0].learnedBias.applied, true);
+  assert.equal(out[0].learnedBias.structural, null);
+});
+
+test("applyLearnedBias · con options.structural.isStructural=false, no aplica aunque la confianza sea alta", () => {
+  const out = forecast.applyLearnedBias(series(1), learningWith(highDeviation()), {
+    enabled: true, structural: { isStructural: false, reason: "within-band" },
+  });
+  assert.equal(out[0].learnedBias.applied, false);
+  assert.equal(out[0].learnedBias.confidence, "high");
+  assert.equal(out[0].learnedBias.structural.reason, "within-band");
+});
+
+test("applyLearnedBias · con options.structural.isStructural=true y confianza alta, sí aplica", () => {
+  const out = forecast.applyLearnedBias(series(1), learningWith(highDeviation()), {
+    enabled: true, structural: { isStructural: true, direction: "up" },
+  });
+  assert.equal(out[0].learnedBias.applied, true);
+});
+
 function functionBody(name, source = app) {
   const start = source.indexOf(`function ${name}(`);
   assert.ok(start >= 0, `No existe ${name} en app.js`);
@@ -110,6 +137,12 @@ test("computeCanonicalScenario solo aplica el autoajuste sobre el escenario base
   assert.match(body, /if \(persistedContext === "base"\)/);
   assert.match(body, /applyLearnedBias\(scenario\.forecast\.series, biasLearning/);
   assert.match(body, /enabled: state\?\.autoAdjustForecastBias !== false/);
+});
+
+test("PVC3: computeCanonicalScenario calcula detectStructuralChange y lo pasa a applyLearnedBias", () => {
+  const body = functionBody("computeCanonicalScenario");
+  assert.match(body, /detectStructuralChange\(reconciledMonthlyNetHistory\(\)\)/);
+  assert.match(body, /structural: structuralChange/);
 });
 
 test("modelComputationSignature incluye autoAdjustForecastBias, o el interruptor no forzaría recalcular", () => {
@@ -148,6 +181,12 @@ test("el interruptor está declarado en index.html, versionado y cableado en Aju
   assert.match(html, /id="ajustesAutoAdjustForecastBiasNote"/);
   assert.match(app, /qs\("ajustesAutoAdjustForecastBias"\)\?\.addEventListener\("change", handleAutoAdjustForecastBiasChange\)/);
   assert.match(app, /syncAutoAdjustForecastBiasControl\(\);\s*\n\s*renderAjustesAutoAdjustForecastBiasNote\(\);/);
+});
+
+test("PVC3: pv1AutoAdjustBiasNote explica el bloqueo de persistencia reciente, no solo de confianza", () => {
+  const body = functionBody("pv1AutoAdjustBiasNote");
+  assert.match(body, /learnedBias\.confidence === "high" && learnedBias\.structural && !learnedBias\.structural\.isStructural/);
+  assert.match(body, /cambio estructural/);
 });
 
 test("el Laboratorio de escenarios (E13) muestra el estado del autoajuste junto al resto del aprendizaje", () => {

@@ -2,6 +2,122 @@
 
 Fecha de revisión: 7 de septiembre de 2026.
 
+## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
+
+Este documento supera las 12.500 líneas y ya es difícil de navegar para retomar contexto entre
+sesiones. Este índice no repite el detalle de cada cierre — vive en su propia entrada, en orden
+cronológico descendente más abajo — solo señala qué decisiones de fondo siguen aplicando *hoy*,
+para no tener que releer el historial completo. Se regenera una vez por trimestre (próxima
+revisión: T4 2026, oct-dic); una decisión que quede invalidada por un cierre posterior se retira
+de aquí en la siguiente regeneración, no al momento.
+
+- **Repositorio vivo**: `contabilidadcasa` es el único repositorio en desarrollo; `finanzas-casa-def`
+  queda congelado desde el 10 de agosto de 2026 y no recibe cambios. Detalle y motivo en `CLAUDE.md`.
+- **Publicación sin pedir permiso cada vez**: validar → actualizar estado → commit/push → PR en
+  borrador → fusionar a `main` en cuanto el CI esté en verde, todo en el mismo turno, sin
+  confirmación explícita en cada paso (decisión del 10 de agosto de 2026, `CLAUDE.md`). Los frenos
+  (no publicar en rojo, nunca push directo a `main`, nunca hacia `finanzas-casa-def`, consultar si
+  el cambio va más allá de lo pedido o borra datos) siguen en pie.
+- **Ninguna acción financiera real se ejecuta sola** (`A11-4`): comprar, vender, amortizar,
+  transferir o tomar deuda nueva siempre exige confirmación explícita del hogar. Todo motor nuevo,
+  incluida la Oleada 3 completa, respeta este contrato — nunca se ha revisado ni se espera revisar.
+- **Reparto por titular (`javi`/`tere`/`household`)**: el modelo de propiedad de deuda (`E14`),
+  gastos compartidos (`A18-1`/`A18-2`/`A18-3`, `canonical-household-split.js`) y hogar compartido
+  remoto con roles y áreas (`E9-1`/`RGX1`/`RGX2`) coexisten como fuentes de "quién es quién" — no se
+  ha unificado en un único modelo de identidad, y no hace falta mientras ninguna de las tres
+  necesite leer a las otras dos.
+- **El crédito Lombard (`APX2`/`APX3`) queda fuera del guardarraíl general de deuda (`AP4`)**: tiene
+  garantía real y un perfil de riesgo distinto al resto de deuda para invertir; toda tarea nueva de
+  apalancamiento (`LEV1`, `LEV3`...) respeta la misma exclusión salvo que se declare lo contrario.
+  El techo de `LEV1` sí aplica a la deuda Lombard tomada, solo el guardarraíl de condiciones mínimas
+  (`AP4`) no.
+- **Sin serie histórica de valoraciones por posición ni clasificación de clase de activo/sector/
+  divisa**: hueco de datos documentado desde la Oleada 2 (`APX4`/`IVX1`/`IVX5`) que sigue vigente y
+  ya ha reducido el alcance de varias tareas de la Oleada 3 (`INV1`, `INV2`, `INV4`, `LEV5`, `LEV6`).
+  Cualquier tarea nueva que necesite correlación o volatilidad de cartera real choca con el mismo
+  hueco hasta que se decida abrir esa dimensión de datos.
+- **Backlog vigente**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, con `BACKLOG_INDICE.md` como mapa
+  de qué documento sustituye a cuál — consultar ese índice antes de retomar cualquier cola antigua.
+- **Tres condiciones externas siguen sin resolverse**, sin fecha conocida ninguna de las tres
+  (detalle en `BACKLOG_INDICE.md`, Bloque 0): el reloj de 30 días de `OPT-2` (arranca el 29 de
+  agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
+  contratación de un proveedor PSD2 (`O-6`).
+
+## Cierre de sesión — 7 de septiembre de 2026 (158): Bloque 3 completo — 11 tareas de alto impacto (Oleada 3)
+
+Continuación directa de la sesión 157 (Bloque 2 completo). El hogar pidió construir el Bloque 3 entero
+de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` de una sola sentada, sin preguntas de alcance previas —
+las 11 tareas del bloque ya venían sin ninguna decisión de producto pendiente. Construidas en el orden
+del propio backlog, reutilizando al máximo motores ya existentes (mismo criterio que `LEV1`/`PVC1`/`DEB1`
+en la sesión anterior):
+
+- **`PVC3` — detector de cambio estructural vs. ruido**: `detectStructuralChange()`
+  (`canonical-forecast.js`) exige que los últimos 2-3 meses reconciliados estén fuera de banda y en el
+  mismo sentido, ADEMÁS de la confianza de 12 meses que ya exigía `applyLearnedBias()` (PV1) — sin esto,
+  un mes atípico dentro de esos 12 meses seguía pudiendo mover la previsión base. Gate opcional
+  (`options.structural`): quien no lo pasa mantiene el contrato de siempre.
+- **`PVC6` — previsión con control de versiones**: cada cierre de mes firmado (A1-2) congela ahora un
+  snapshot del registro de supuestos ya versionado (A7-2/E12a) — mismo patrón local que C-13/D-2b, sin
+  tocar el RPC transaccional. Tarjeta nueva en Ajustes compara "qué preveíamos entonces" contra la
+  previsión de ahora con `diffAssumptionSnapshots()`, listando qué supuesto concreto cambió. Distinto de
+  `PVX1` (backtesting de precisión): compara el modelo, no solo el acierto final.
+- **`LEV3` — estrés combinado tipos + mercado**: `evaluateCombinedStress()`
+  (`canonical-mortgage-rate-scenarios.js`) compone el estrés de tipos de DI1 con el margin call ya
+  calculado de APX3 (`lombardMarginCallSimulation`) en un único resultado — tarjeta nueva justo debajo
+  del simulador de margin call, reutilizando los campos ya declarados de la hipoteca.
+- **`LEV4` — comparador de líneas Lombard entre entidades**: `compareLombardOffers()`
+  (`canonical-leverage-simulator.js`) registra condiciones reales de varias ofertas (lista repetible,
+  mismo patrón que la pérdida arrastrada de FC3) y las compara sobre la cartera real: coste del primer
+  año y margen de seguridad frente a un margin call.
+- **`DEB2` — dimensionador de amortización parcial óptima**: `dimensionOptimalPrepayment()`
+  (`canonical-cushion.js`) recibe el importe que DLX2 ya destina a "amortizar deuda" y lo ajusta a la
+  baja para que la comisión de amortización anticipada (declarada en la propia tarjeta de AP1) quepa en
+  ese excedente — nunca todo-o-nada.
+- **`DEB4` — radar de refinanciación activo**: los campos de la hipoteca de DI1 (antes calculadora
+  puntual, sin persistir) ahora se guardan junto a un umbral de meses declarado; en cada arranque
+  `renderDeb4RefinancingRadar()` reutiliza `evaluateMortgageRateScenarios`/`refinancingBreakEvenMonths`
+  (APX5) y avisa si el punto de equilibrio ya cruza el umbral, sin reabrir el simulador cada mes.
+- **`DEB8` — alerta de ventana de comisión decreciente**: `nextCheaperPrepaymentWindow()`
+  (`canonical-debt-contracts.js`) recibe un escalón de comisión declarado a mano y avisa de la fecha
+  exacta en la que amortizar sale más barato — para no ejecutar `DEB2` en el peor momento del contrato.
+- **`GOB3` — resumen ejecutivo trimestral**: índice de decisiones vigentes al principio de este mismo
+  documento (repositorio vivo, publicación sin pedir permiso, `A11-4`, reparto por titular, exclusión
+  Lombard de AP4, hueco de datos de la Oleada 2, backlog vigente, tres condiciones externas) —
+  puramente documental, sin código de producto, próxima regeneración T4 2026.
+- **`GOB4` — vista por titular en hogar compartido**: `renderGob4MemberView()` (`p2-ui.js`), montada en
+  Inicio (no en Ajustes, a propósito): filtra metas (`goal.owner`) y deuda (`bridge().debts()`, mismo
+  `owner` que ya usa DEB1/AP5) por titular, con la aportación total a esas metas — nunca "hogar", es la
+  vista de un titular en particular.
+- **`GOB6` — checklist de cierre de mes con verificación cruzada**: `cierreRecalcCheck()`
+  (`views/cierre.js`) añade una cuarta comprobación al checklist «Antes de firmar» con la misma marca de
+  PVC1 (`FinanceP2Bridge.lastModelRecomputeAt`) — visible en el momento de firmar, no solo en
+  Ajustes/E15/E16 como hacía PVC1.
+- **`GOB9` — panel único de resiliencia**: `resilienceMonths()` (`canonical-cushion.js`) combina liquidez
+  real (misma fuente que DLX1/AP1), cuota de deuda (`p2DebtRows`) y el escenario de tensión de E13
+  (`PROFILES`) en un único número de meses de aguante — tarjeta nueva justo debajo del runway
+  patrimonial completo (LPX2), del que se distingue por no contar nada ilíquido.
+
+**Con esto, el Bloque 3 de la Oleada 3 queda completo (11/11)**. Siguiente paso natural: Bloque 4 (11
+apuestas grandes, cada una con su pregunta de alcance explícita para el hogar, a resolver en una sola
+tanda).
+
+- **Validación**: `npm run verify` en verde — **3396/3396 pruebas** (3323 de la sesión 157 + 73 nuevas
+  de esta sesión, repartidas por tarea: tests de motor puro por cada `canonical-*.js` tocado o nuevo, y
+  tests de wiring app.js/index.html/p2-ui.js/views/cierre.js por cada tarjeta o panel nuevo), accesibilidad
+  estructural **1150 IDs únicos** (antes 1127 — los huecos de las nuevas tarjetas: `deb4RadarAlert`,
+  `deb8PrepaymentWindowNote`, `lev3CombinedStressNote`, `lev4OfferList`, `pvc6SnapshotDiffNote`,
+  `gob9ResiliencePanel`, entre otros), rendimiento dentro de los umbrales de `OPT-5`,
+  `build:site`/`test:privacy`/`test:smoke` sin incidencias.
+- **Nota del entorno**: este contenedor no tenía `node_modules` instalado al empezar la sesión (mismo
+  patrón que las sesiones 155-157) — instalado con `npm install` antes de validar.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, Bloque 3 (sección 5) y Plan de
+ejecución (sección 9, Paso 3) marcados como completos, con referencia de código por tarea.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-3-20l5p2` — commit y push siguientes, PR
+  en borrador y fusión a `main` en cuanto el CI esté en verde, autorización ya dada por el hogar
+  (`CLAUDE.md`).
+
 ## Cierre de sesión — 7 de septiembre de 2026 (157): Bloque 2 completo — `VER-1/2/3`, `LEV1`, `PVC1`, `DEB1` (Oleada 3)
 
 Continuación directa de la sesión 156. Primera sesión de construcción real de

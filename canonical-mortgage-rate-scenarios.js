@@ -87,5 +87,51 @@
     return { calculable: true, monthlySavings, cost, months: Math.ceil(cost / monthlySavings) };
   }
 
-  return { RATE_SCENARIOS, monthlyPayment, evaluateMortgageRateScenarios, refinancingBreakEvenMonths };
+  // LEV3 (Oleada 3, Bloque 3): estrés combinado — tipos al alza y mercado a la baja a la vez. DI1
+  // estresa el tipo de la hipoteca por separado y APX3 (`lombardMarginCallSimulation`,
+  // canonical-leverage-simulator.js) estresa el mercado por separado, pero en una crisis real ambos
+  // suelen moverse juntos: quien tiene hipoteca variable Y crédito Lombard vería su cuota subir Y
+  // una posible llamada de garantía a la vez. No inventa ningún dato de mercado: el hogar declara
+  // cuánto suben los tipos (en puntos) y cuánto cae la cartera (%), igual que ya declara cada
+  // estrés por separado. `marginCallResult` es el resultado ya calculado de
+  // `lombardMarginCallSimulation` para no reimplementar ese motor — este solo lo compone junto al
+  // impacto de tipos.
+  function evaluateCombinedStress({ principal, months, currentVariableRate, deltaPoints = 0, marginCallResult } = {}) {
+    const p = Math.max(0, number(principal));
+    const n = Math.max(1, Math.round(number(months)));
+    const currentRate = Math.max(0, number(currentVariableRate));
+    const stressedRate = Math.max(0, round2(currentRate + number(deltaPoints)));
+    const hasMortgage = p > 0 && n > 0;
+    const mortgageImpact = hasMortgage
+      ? {
+        calculable: true,
+        currentRate,
+        stressedRate,
+        currentMonthlyPayment: monthlyPayment(p, currentRate, n),
+        stressedMonthlyPayment: monthlyPayment(p, stressedRate, n),
+        extraMonthlyPayment: round2(monthlyPayment(p, stressedRate, n) - monthlyPayment(p, currentRate, n)),
+      }
+      : { calculable: false };
+    const marginCall = marginCallResult && marginCallResult.calculable ? marginCallResult : { calculable: false };
+    if (!mortgageImpact.calculable && !marginCall.calculable) {
+      return { schemaId: "finance-lev3-combined-stress/v1", calculable: false };
+    }
+    return {
+      schemaId: "finance-lev3-combined-stress/v1",
+      calculable: true,
+      mortgage: mortgageImpact,
+      marginCall,
+      combinedMonthlyCashStrain: round2(number(mortgageImpact.extraMonthlyPayment)),
+      combinedOneOffCashNeeded: round2(number(marginCall.additionalCollateralNeeded)),
+      bothTriggeredTogether: mortgageImpact.calculable && Boolean(marginCall.marginCallTriggered) && mortgageImpact.extraMonthlyPayment > 0,
+    };
+  }
+
+  return {
+    RATE_SCENARIOS,
+    monthlyPayment,
+    evaluateMortgageRateScenarios,
+    refinancingBreakEvenMonths,
+    evaluateCombinedStress,
+  };
 });

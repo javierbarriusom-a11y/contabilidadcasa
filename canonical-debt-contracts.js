@@ -244,6 +244,42 @@
     };
   }
 
+  // DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente. Muchos contratos con comisión de
+  // amortización anticipada la reducen en un escalón declarado por contrato (p. ej. 2% los primeros
+  // años, 1% después) — sin este aviso, `DEB2` podría dimensionar una amortización justo antes de que
+  // esa comisión bajase de precio por pura impaciencia. `tiers` es la lista de escalones declarados
+  // por el hogar (nunca inventados): cada uno con el mes en que deja de aplicar (`untilMonth`, o
+  // `null` para el escalón final sin fecha de fin) y el porcentaje de esa comisión mientras aplica.
+  // Motor puro: solo lee el escalón vigente y el siguiente, nunca decide amortizar por su cuenta.
+  function nextCheaperPrepaymentWindow(tiers, asOfMonthKey) {
+    const list = (Array.isArray(tiers) ? tiers : [])
+      .map((tier) => ({ untilMonth: monthKey(tier?.untilMonth) || null, pct: Math.max(0, number(tier?.pct)) }))
+      .filter((tier) => tier.pct >= 0)
+      .sort((a, b) => {
+        if (!a.untilMonth) return 1;
+        if (!b.untilMonth) return -1;
+        return monthDistance(b.untilMonth, a.untilMonth);
+      });
+    if (!list.length) return { calculable: false };
+    const asOf = monthKey(asOfMonthKey);
+    if (!asOf) return { calculable: false };
+    const currentIndex = list.findIndex((tier) => !tier.untilMonth || monthDistance(asOf, tier.untilMonth) >= 0);
+    if (currentIndex === -1) return { calculable: false };
+    const current = list[currentIndex];
+    const next = list[currentIndex + 1] || null;
+    if (!next || !current.untilMonth) {
+      return { calculable: true, currentPct: current.pct, hasUpcomingWindow: false, nextPct: null, nextFromMonth: null, monthsUntil: null };
+    }
+    return {
+      calculable: true,
+      currentPct: current.pct,
+      hasUpcomingWindow: next.pct < current.pct,
+      nextPct: next.pct,
+      nextFromMonth: current.untilMonth,
+      monthsUntil: Math.max(0, monthDistance(asOf, current.untilMonth)),
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -260,5 +296,6 @@
     summarizeContracts,
     isRevolvingType,
     prioritizeRevolving,
+    nextCheaperPrepaymentWindow,
   };
 });

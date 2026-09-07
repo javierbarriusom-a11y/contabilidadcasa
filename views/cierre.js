@@ -95,6 +95,26 @@ function cierreStepsHtml(steps, activeStep) {
     .join("");
 }
 
+// GOB6 (Oleada 3, Bloque 3): checklist de cierre con verificación cruzada. VER-1 (Bloque 1) ya
+// confirmó que recomputeModelIfNeeded() repropaga por firma a metas (E15) y riesgo (E16) en cada
+// render() global — colchón y apalancamiento leen del mismo canonicalScenarioResults, así que
+// heredan la misma garantía. PVC1 solo lo hizo visible como indicador aparte en esas dos pantallas;
+// esto lo hace visible donde más importa: el propio checklist de cierre, antes de firmar. Sin
+// motor nuevo — misma marca de PVC1 (FinanceP2Bridge.lastModelRecomputeAt), expuesta aquí como una
+// comprobación más.
+function cierreRecalcCheck() {
+  const iso = window.FinanceP2Bridge?.lastModelRecomputeAt?.();
+  if (!iso) {
+    return { id: "recalculo", label: "Colchón, deuda, metas y apalancamiento recalculados (todavía sin recalcular)", met: false };
+  }
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  const ago = minutes < 1 ? "hace un momento"
+    : minutes < 60 ? `hace ${minutes} minuto(s)`
+    : minutes < 1440 ? `hace ${Math.floor(minutes / 60)} hora(s)`
+    : `hace ${Math.floor(minutes / 1440)} día(s)`;
+  return { id: "recalculo", label: `Colchón, deuda, metas y apalancamiento recalculados (${ago})`, met: true };
+}
+
 // C-5: cuatro comprobaciones del mockup. «Ningún sobre sin destino» solo se muestra con Sobres
 // activo — con la bandera apagada se documenta como paso inexistente en vez de fingir un estado que
 // cumple (regla transversal 04), igual que antes de que Sobres existiera.
@@ -105,6 +125,7 @@ function cierreFirmChecks(accountRows, tasks, monthMovementCount, sobresRows = [
   ];
   if (sobresEnabled()) checks.push({ id: "sobres", label: "Ningún sobre sin destino", met: cierreSobresAllResolved(sobresRows) });
   checks.push({ id: "extracto", label: `Extracto incorporado · ${monthMovementCount} movimiento(s)`, met: monthMovementCount > 0 });
+  checks.push(cierreRecalcCheck());
   return checks;
 }
 
