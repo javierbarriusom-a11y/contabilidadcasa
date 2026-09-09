@@ -46,7 +46,12 @@ test("todo documento BACKLOG*.md (salvo el propio índice) apunta de vuelta a BA
   });
 });
 
-test("BACKLOG_INDICE.md nombra BACKLOG_ULTIMATE_SEPTIEMBRE.md como la cola vigente con trabajo abierto", () => {
+test("BACKLOG_INDICE.md nombra BACKLOG_ULTIMATE_SEPTIEMBRE.md como una cola con trabajo abierto todavía", () => {
+  // Antes esta prueba buscaba la palabra "Vigente" tras el nombre del documento — coincidía por
+  // accidente con la fila de BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md (que sí decía "🟢 Vigente"),
+  // no con la fila de este propio documento (que siempre dijo "🟡 Casi cerrado"). Al cerrarse la
+  // Oleada 3 (sesión 163c) esa coincidencia accidental desapareció; el criterio real —que este
+  // documento sigue teniendo trabajo abierto, no histórico— no ha cambiado.
   const indice = fs.readFileSync(path.join(root, "BACKLOG_INDICE.md"), "utf8");
-  assert.match(indice, /BACKLOG_ULTIMATE_SEPTIEMBRE\.md.*Vigente/s);
+  assert.match(indice, /BACKLOG_ULTIMATE_SEPTIEMBRE\.md.*Casi cerrado/s);
 });

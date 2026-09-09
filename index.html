@@ -1868,6 +1868,25 @@
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ap3ScenarioSave">Guardar escenario explorado</button>
+              <!-- LEV8 (Oleada 3, Bloque 5): tesis de apalancamiento — mismo patrón de diario que
+                   ya usa PV5 para el forecast, aplicado aquí a una decisión de apalancamiento. Se
+                   registra en el momento de marcar un escenario como tomado (abajo), nunca antes:
+                   solo tiene sentido para una deuda que de verdad se va a tomar, no para cualquier
+                   exploración guardada. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Qué se espera ganar (opcional, se pide al marcar como tomada)</span>
+                  <input id="lev8ThesisExpectedGain" type="text" placeholder="Ej. batir el 5% anual a 10 años" />
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte de la tesis (meses)</span>
+                  <input id="lev8ThesisHorizonMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 120" />
+                </label>
+                <label class="month-picker">
+                  <span>Qué invalidaría la decisión</span>
+                  <input id="lev8ThesisInvalidation" type="text" placeholder="Ej. rentabilidad real por debajo del coste de la deuda dos años seguidos" />
+                </label>
+              </div>
               <ul class="commit-barrier-list" id="ap3ScenarioList"></ul>
             </article>
 
@@ -2064,6 +2083,20 @@
               <h3 class="escenario-motor-panel-title">Comparador: amortizar vs. invertir</h3>
               <p class="e19-kpi-note">Para un importe de caja disponible, compara amortizar anticipadamente una deuda existente frente a invertirlo en tu cartera real (misma rentabilidad XIRR que ya usa el simulador de decisión, IV5). Ninguna cifra de mercado se inventa aquí — solo el TIN de la deuda, que declaras tú.</p>
               <div class="e19-kpi-note" id="deb1VerdictChangeAlert"></div>
+              <!-- DEB7 (Oleada 3, Bloque 5): "amortizar antes" y "coste financiero mínimo" pueden
+                   no coincidir — este selector deja que el hogar declare cuál pesa más para él,
+                   sin que el sistema imponga una única "respuesta óptima" que ignore el valor
+                   psicológico de no deber nada. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tu preferencia declarada</span>
+                  <select id="deb7PreferenceSelect">
+                    <option value="coste-minimo">Coste financiero mínimo</option>
+                    <option value="libre-deudas">Estar libre de deudas cuanto antes</option>
+                  </select>
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="deb7PreferenceNote"></div>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Deuda a amortizar</span>
@@ -2088,9 +2121,18 @@
                   <span>Comisión de amortización anticipada de esa deuda (%)</span>
                   <input id="ap1PrepaymentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
                 </label>
+                <!-- DEB3 (Oleada 3, Bloque 5): cuántos meses se está dispuesto a esperar antes de
+                     decidir amortizar o no, por si aparece mejor información — distinto del
+                     "Horizonte a comparar" de arriba (ese es el plazo de la comparación amortizar
+                     vs. invertir, no una espera antes de decidir). -->
+                <label class="month-picker">
+                  <span>Meses de espera antes de decidir (opcionalidad)</span>
+                  <input id="deb3WaitMonths" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="ap1CompareRun">Comparar</button>
               <div class="e19-kpi-note" id="ap1CompareNote"></div>
+              <div class="e19-kpi-note" id="deb3OptionValueNote"></div>
             </article>
 
             <!-- DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente. Muchos contratos con
@@ -2648,6 +2690,17 @@
               </div>
             </div>
 
+            <!-- GOB7 (Oleada 3, Bloque 5): oculta las tarjetas "Herramientas" de cada grupo de
+                 abajo (simuladores y comparadores) para una sesión con asesor o pareja, dejando
+                 solo el dato real del hogar ("Configuración"). Nunca borra nada — un clic más lo
+                 revierte. -->
+            <div class="e19-kpi-note">
+              <label class="month-picker">
+                <span>Modo sesión con asesor o pareja (oculta simuladores y comparadores)</span>
+                <input id="gob7AdvisorModeToggle" type="checkbox" />
+              </label>
+            </div>
+
             <nav class="e19-ajustes-anchors" id="ajustesAnchors" aria-label="Secciones de Ajustes">
                 <button type="button" data-ajustes-anchor="ajustes-hogar">Hogar</button>
                 <button type="button" data-ajustes-anchor="ajustes-reserva">Reserva y colchón</button>
@@ -2803,6 +2856,43 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmJavi">Confirmo yo, Javi</button>
               <button type="button" class="e19-btn e19-btn-secondary" id="a18ConfirmTere">Confirmo yo, Tere</button>
               <ul class="commit-barrier-list" id="a18SettlementHistory"></ul>
+            </article>
+
+            <!-- GOB10 (Oleada 3, Bloque 5): generaliza LEV8 (tesis) y DEB3 (posponer con revisión)
+                 a cualquier decisión financiera del hogar, no solo deuda/apalancamiento. Mismos tres
+                 campos de tesis que LEV8 ya usa en AP3, más una revisión programada a 6 o 12 meses
+                 — nunca inventa un "coste de esperar" para una decisión sin TIN declarado, eso es
+                 exclusivo de DEB3. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Registro de decisiones con revisión programada</h3>
+              <p class="e19-kpi-note">Cualquier decisión financiera del hogar (no solo deuda o apalancamiento): describe qué decidiste, qué esperas de ello, y programa cuándo revisarlo. Si la fecha pasa sin marcarla como revisada, el Centro de alertas lo avisa.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Decisión</span>
+                  <input id="gob10Description" type="text" placeholder="Ej. cambiar de trabajo, mudarnos, comprar el coche ahora" />
+                </label>
+                <label class="month-picker">
+                  <span>Qué esperas de esta decisión</span>
+                  <input id="gob10ExpectedGain" type="text" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte (meses, opcional)</span>
+                  <input id="gob10HorizonMonths" type="number" min="0" step="1" inputmode="numeric" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Se invalida si</span>
+                  <input id="gob10Invalidation" type="text" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Revisar en</span>
+                  <select id="gob10ReviewMonths">
+                    <option value="6">6 meses</option>
+                    <option value="12">12 meses</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob10SaveDecision">Guardar decisión</button>
+              <ul class="commit-barrier-list" id="gob10DecisionList"></ul>
             </article>
             </div>
 
@@ -3170,6 +3260,18 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="fcx1WithdrawalRun">Simular rescate</button>
               <div class="e19-kpi-note" id="fcx1WithdrawalNote"></div>
+            </article>
+
+            <!-- GOB8 (Oleada 3, Bloque 5): resumen exportable que compone las tres calculadoras
+                 fiscales de arriba (IRPF general, dividendos, rescate de pensiones) en un único
+                 borrador de apoyo, con los mismos datos que ya tengan rellenos sus propios campos.
+                 Nunca sustituye a la gestoría — el propio texto lo dice en su primera línea. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Borrador de apoyo para la Renta</h3>
+              <p class="e19-kpi-note">Junta la estimación de IRPF general, la retención de dividendos extranjeros y el rescate de pensiones (las tres tarjetas de arriba) en un único texto, con los datos que tengan rellenos ahora mismo sus propios campos. Es un borrador de apoyo — nunca un sustituto de la gestoría ni de la declaración oficial.</p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob8GenerateDraft">Generar borrador</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob8DownloadDraft">Descargar (.txt)</button>
+              <pre class="e19-kpi-note" id="gob8DraftPreview"></pre>
             </article>
 
             <!-- CPX2: modo segunda opinión para decisiones externas al plan (una oferta de coche, un

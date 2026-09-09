@@ -3725,6 +3725,14 @@ function saveScenarioSettings() {
     // DEB1 (Oleada 3) · última comparación amortizar-vs-invertir que el hogar miró de verdad en AP1,
     // para poder avisar si el veredicto cambia de sentido entre un cierre y el siguiente.
     ap1TrackedComparison: scenarioSettings.ap1TrackedComparison || null,
+    // DEB7 (Oleada 3, Bloque 5) · qué pesa más para el hogar entre "coste financiero mínimo" (lo
+    // que ya calcula AP1 por defecto) y "estar libre de deudas cuanto antes" (valor psicológico de
+    // no deber nada, que ninguna fórmula financiera captura). "coste-minimo" es el valor por
+    // defecto porque es el que AP1 ya asumía implícitamente antes de esta tarea.
+    deb7Preference: state.deb7Preference === "libre-deudas" ? "libre-deudas" : "coste-minimo",
+    // GOB7 (Oleada 3, Bloque 5) · modo sesión con asesor/pareja, mismo criterio de persistencia
+    // que el resto de datos del hogar (0/false por defecto, se sincroniza y se restaura).
+    advisorSessionMode: !!state.advisorSessionMode,
     // SP3 · cobertura del seguro de hogar y valor de reposición de bienes — faltaban en esta lista
     // desde que se construyeron: se editaban en `state` pero nunca sobrevivían a un recargar la
     // página, porque `saveScenarioSettings()` solo persiste lo que aparece aquí explícitamente.
@@ -15898,6 +15906,108 @@ function handleFcx1SimulateWithdrawal() {
   note.innerHTML = fcx1ResultHtml(result);
 }
 
+// GOB8 (Oleada 3, Bloque 5): borrador de apoyo para la Renta — compone en un único texto los tres
+// cálculos fiscales que ya viven por separado arriba (IRPF general, retención de dividendos
+// extranjeros, rescate de pensiones), leyendo los mismos campos que sus propios botones "Estimar" /
+// "Simular", con los mismos motores y el mismo aviso profesional de cada uno. No recalcula nada
+// nuevo ni inventa ninguna cifra: si una sección no tiene datos suficientes, dice por qué en vez de
+// omitirse en silencio. Nunca sustituye a la gestoría — lo dice la primera línea del propio texto.
+function gob8IrpfLine() {
+  const engine = window.FinanceCanonicalIrpfEstimator;
+  if (!engine) return "Motor de IRPF no disponible.";
+  const baseLow = parseAmount(qs("irpfBaseLow")?.value);
+  const baseHigh = parseAmount(qs("irpfBaseHigh")?.value) || baseLow;
+  const withholdingsPaid = parseAmount(qs("irpfWithholdingsPaid")?.value);
+  const result = engine.estimateIrpfResult({
+    taxableBaseRange: { low: baseLow, high: baseHigh },
+    withholdingsPaid,
+    stateScale: latestIrpfScale("state") || {},
+    regionalScale: latestIrpfScale("regional") || {},
+  });
+  return irpfResultLabel(result);
+}
+
+function gob8DividendLine() {
+  const engine = window.FinanceCanonicalDividendTax;
+  const gross = dividendGrossAmount();
+  if (!engine || gross <= 0) return "Sin importe bruto de dividendo declarado (Ajustes › Fiscal) — sección sin datos.";
+  const result = engine.calculateDividendTax({
+    grossAmount: gross,
+    foreignWithholdingPct: dividendForeignWithholdingPct(),
+    spanishSavingsRatePct: dividendSpanishSavingsRatePct(),
+  });
+  const excessNote = result.excessForeignWithholding > 0
+    ? ` Quedan ${money(result.excessForeignWithholding, true)} de retención de origen sin deducir, no recuperables sin reclamarlos al país de origen.`
+    : "";
+  return `Bruto ${money(result.grossAmount, true)}: retención de origen ${money(result.foreignWithheld, true)}, cuota española adicional ${money(result.additionalSpanishTax, true)} (tras deducir ${money(result.creditableForeignTax, true)} de doble imposición). Neto: ${money(result.netAmount, true)}.${excessNote}`;
+}
+
+// Misma lógica de motor y de fallback que handleFcx1SimulateWithdrawal (arriba), duplicada a
+// propósito en vez de refactorizada: ese handler ya está en producción y probado, y tocarlo para
+// que devuelva un resultado en vez de escribir en el DOM directamente iría más allá de lo que pide
+// esta tarea.
+function gob8Fcx1Line() {
+  const engine = window.FinanceCanonicalIrpfEstimator;
+  const amount = parseAmount(qs("fcx1WithdrawalAmount")?.value);
+  if (!engine || !(amount > 0)) return "Sin rescate de pensiones simulado — sección sin datos.";
+  const currentAnnualIncome = parseAmount(qs("fcx1CurrentAnnualIncome")?.value);
+  let result = engine.marginalTaxOnAdditionalIncome({
+    amount, currentAnnualIncome,
+    stateScale: latestIrpfScale("state") || {},
+    regionalScale: latestIrpfScale("regional") || {},
+  });
+  if (!result.calculable && result.reason === "missing-brackets") {
+    const flatRate = fiscalWithholdingRate();
+    if (flatRate > 0) {
+      const marginalTax = round2(amount * (flatRate / 100));
+      result = { calculable: true, method: "flat-marginal-rate", marginalTax, netAmount: round2(amount - marginalTax), effectiveRatePct: flatRate };
+    }
+  }
+  if (!result.calculable) return "Sin tramos de IRPF ni retención declarada (Ajustes › supuestos fiscales) — sección sin datos.";
+  const methodLine = result.method === "progressive-brackets"
+    ? "calculado por tramos progresivos (escala general estatal + autonómica)"
+    : `calculado con el tipo marginal declarado (${result.effectiveRatePct}%, A15-1)`;
+  return `Rescate de ${money(amount, true)}: coste marginal estimado ${money(result.marginalTax, true)} (${methodLine}), neto tras impuesto ${money(result.netAmount, true)}. No incluye reducciones por antigüedad de las aportaciones ni la modalidad en forma de renta.`;
+}
+
+function gob8DraftText() {
+  const generatedAt = new Date().toLocaleDateString("es-ES");
+  return [
+    `Borrador de apoyo para la Renta — generado el ${generatedAt}`,
+    "",
+    "Este documento es un borrador de APOYO, nunca un sustituto de la gestoría ni de la declaración oficial. Verifica cada cifra con un profesional o con el simulador oficial de la Agencia Tributaria antes de presentar nada.",
+    "",
+    "1) Estimación de resultado de IRPF (a devolver / a pagar)",
+    gob8IrpfLine(),
+    "",
+    "2) Retención de dividendos extranjeros y deducción por doble imposición",
+    gob8DividendLine(),
+    "",
+    "3) Rescate de pensiones como capital único (si se ha simulado uno)",
+    gob8Fcx1Line(),
+  ].join("\n");
+}
+
+function renderGob8DraftPreview() {
+  const box = qs("gob8DraftPreview");
+  if (!box) return;
+  box.textContent = gob8DraftText();
+}
+
+function handleGob8DownloadDraft() {
+  const content = gob8DraftText();
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `borrador-renta-${new Date().toISOString().slice(0, 10)}.txt`;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 function handleFc5Optimize() {
   const note = qs("fc5OptimizeNote");
   if (!note) return;
@@ -16370,6 +16480,118 @@ function ap3ScenarioLabel(row) {
   return `Deuda ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% · escenario base: lectura ${assessmentLabel[result.scenarios.base.assessment]}`;
 }
 
+// LEV8 (Oleada 3, Bloque 5): tesis de apalancamiento, con su propio marcador HTML por si se
+// escapeHtml de un campo vacío no debe pintar nada.
+function lev8ThesisHtml(thesis) {
+  if (!thesis) return "";
+  const parts = [];
+  if (thesis.expectedGain) parts.push(`espera: ${escapeHtml(thesis.expectedGain)}`);
+  if (thesis.horizonMonths) parts.push(`horizonte: ${thesis.horizonMonths} meses`);
+  if (thesis.invalidation) parts.push(`se invalida si: ${escapeHtml(thesis.invalidation)}`);
+  if (!parts.length) return "";
+  return ` · <span class="e19-kpi-note">tesis — ${parts.join(" · ")}</span>`;
+}
+
+// GOB10 (Oleada 3, Bloque 5): generaliza LEV8 y DEB3 a cualquier decisión financiera del hogar, no
+// solo deuda/apalancamiento. Reutiliza tal cual el mismo formato de tesis que LEV8 ya definió
+// (expectedGain/horizonMonths/invalidation, vía lev8ThesisHtml) — sin reinventar un segundo
+// formato para lo mismo. De DEB3 generaliza solo la DISCIPLINA de posponer con fecha de revisión,
+// nunca su cálculo: DEB3 pudo cuantificar un coste de esperar porque una deuda tiene un TIN
+// declarado; una decisión genérica ("¿nos mudamos?", "¿cambiamos de trabajo?") no tiene ningún tipo
+// de interés que aplicar, así que este registro nunca inventa una cifra de "coste de esperar" para
+// decisiones que no son deuda — solo programa cuándo revisar, en 6 o 12 meses declarados por el
+// hogar, y avisa (vía el marco genérico de alertas, alert-decision-review-overdue más abajo) si esa
+// fecha ya pasó sin marcarse como revisada.
+function gob10Decisions() {
+  scenarioSettings.gob10Decisions = Array.isArray(scenarioSettings.gob10Decisions) ? scenarioSettings.gob10Decisions : [];
+  return scenarioSettings.gob10Decisions;
+}
+
+function gob10ReviewDueAt(reviewMonths, from = new Date()) {
+  const months = reviewMonths === 12 ? 12 : 6;
+  const due = new Date(from.getFullYear(), from.getMonth() + months, from.getDate());
+  return due.toISOString();
+}
+
+function saveGob10Decision({ description, expectedGain, horizonMonths, invalidation, reviewMonths }) {
+  const now = new Date();
+  const next = [...gob10Decisions(), {
+    id: `gob10-${Date.now()}`,
+    description: String(description || "").trim(),
+    thesis: {
+      expectedGain: String(expectedGain || "").trim(),
+      horizonMonths: Number.isFinite(horizonMonths) && horizonMonths > 0 ? horizonMonths : null,
+      invalidation: String(invalidation || "").trim(),
+      recordedAt: now.toISOString(),
+    },
+    reviewMonths: reviewMonths === 12 ? 12 : 6,
+    createdAt: now.toISOString(),
+    reviewDueAt: gob10ReviewDueAt(reviewMonths, now),
+    reviewedAt: null,
+  }];
+  scenarioSettings.gob10Decisions = next;
+  saveScenarioSettings();
+}
+
+function removeGob10Decision(id) {
+  scenarioSettings.gob10Decisions = gob10Decisions().filter((row) => row.id !== id);
+  saveScenarioSettings();
+}
+
+// Desmarcar restaura la revisión a pendiente en su misma fecha programada — no la recalcula, es la
+// misma revisión que se dijo que se iba a hacer, solo que todavía no se hizo de verdad.
+function toggleGob10DecisionReviewed(id) {
+  scenarioSettings.gob10Decisions = gob10Decisions().map((row) =>
+    row.id === id ? { ...row, reviewedAt: row.reviewedAt ? null : new Date().toISOString() } : row);
+  saveScenarioSettings();
+  renderGob10DecisionList();
+}
+
+function gob10OverdueReviewsCount(now = new Date()) {
+  return gob10Decisions().filter((row) => !row.reviewedAt && new Date(row.reviewDueAt).getTime() <= now.getTime()).length;
+}
+
+function gob10ReviewStatusLabel(row, now = new Date()) {
+  if (row.reviewedAt) return `revisada el ${String(row.reviewedAt).slice(0, 10)}`;
+  const overdue = new Date(row.reviewDueAt).getTime() <= now.getTime();
+  return overdue ? `revisión vencida (programada para el ${String(row.reviewDueAt).slice(0, 10)})` : `revisión programada: ${String(row.reviewDueAt).slice(0, 10)}`;
+}
+
+function gob10DecisionItemHtml(row) {
+  const overdue = !row.reviewedAt && new Date(row.reviewDueAt).getTime() <= Date.now();
+  const toggleLabel = row.reviewedAt ? "Desmarcar revisada" : "Marcar revisada";
+  return `<li class="commit-barrier-item${overdue ? " negative" : ""}"><strong>${escapeHtml(row.description)}</strong><span>${escapeHtml(gob10ReviewStatusLabel(row))}${lev8ThesisHtml(row.thesis)}</span><button type="button" class="e19-btn e19-btn-secondary" data-gob10-review-toggle="${escapeHtml(row.id)}">${toggleLabel}</button><button type="button" class="e19-btn e19-btn-secondary" data-gob10-remove="${escapeHtml(row.id)}">Quitar</button></li>`;
+}
+
+function renderGob10DecisionList() {
+  const list = qs("gob10DecisionList");
+  if (!list) return;
+  const rows = gob10Decisions();
+  list.innerHTML = rows.length
+    ? rows.map((row) => gob10DecisionItemHtml(row)).join("")
+    : `<li class="e19-kpi-note">Sin decisiones registradas todavía.</li>`;
+}
+
+function handleGob10SaveDecision() {
+  const description = qs("gob10Description")?.value || "";
+  if (!description.trim()) {
+    announceStatus("Describe brevemente la decisión antes de guardarla.");
+    return;
+  }
+  saveGob10Decision({
+    description,
+    expectedGain: qs("gob10ExpectedGain")?.value || "",
+    horizonMonths: parseAmount(qs("gob10HorizonMonths")?.value),
+    invalidation: qs("gob10Invalidation")?.value || "",
+    reviewMonths: parseAmount(qs("gob10ReviewMonths")?.value) === 12 ? 12 : 6,
+  });
+  ["gob10Description", "gob10ExpectedGain", "gob10HorizonMonths", "gob10Invalidation"].forEach((id) => {
+    if (qs(id)) qs(id).value = "";
+  });
+  renderGob10DecisionList();
+  announceStatus("Decisión registrada, con revisión programada.");
+}
+
 function renderAp3ScenarioList() {
   const list = qs("ap3ScenarioList");
   if (!list) return;
@@ -16378,7 +16600,7 @@ function renderAp3ScenarioList() {
     ? rows.map((row) => {
         const takenTag = row.takenAt ? ` · tomada el ${escapeHtml(String(row.takenAt).slice(0, 10))}` : "";
         const toggleLabel = row.takenAt ? "Desmarcar como tomada" : "Marcar como tomada";
-        return `<li class="commit-barrier-item"><strong>${escapeHtml(row.name)}</strong><span>${escapeHtml(ap3ScenarioLabel(row))} · ${escapeHtml(String(row.createdAt).slice(0, 10))}${takenTag}</span><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-taken-toggle="${escapeHtml(row.id)}">${toggleLabel}</button><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-remove="${escapeHtml(row.id)}">Eliminar</button></li>`;
+        return `<li class="commit-barrier-item"><strong>${escapeHtml(row.name)}</strong><span>${escapeHtml(ap3ScenarioLabel(row))} · ${escapeHtml(String(row.createdAt).slice(0, 10))}${takenTag}${lev8ThesisHtml(row.thesis)}</span><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-taken-toggle="${escapeHtml(row.id)}">${toggleLabel}</button><button type="button" class="e19-btn e19-btn-secondary" data-ap3-scenario-remove="${escapeHtml(row.id)}">Eliminar</button></li>`;
       }).join("")
     : `<li class="e19-kpi-note">Sin escenarios explorados guardados todavía.</li>`;
 }
@@ -16387,10 +16609,29 @@ function renderAp3ScenarioList() {
 // real — un hecho que declara el propio hogar, igual que un activo en A14 o una escala de IRPF en
 // A15-1, nunca algo que la app infiera ni ejecute por su cuenta. `takenAt` es la única diferencia
 // entre "explorado" (AP3) y "tomado" (lo que vigila AP6).
+// LEV8 (Oleada 3, Bloque 5): al pasar de "explorado" a "tomado" (nunca al desmarcar), registra la
+// tesis declarada en los tres campos de arriba — qué se espera ganar, a qué horizonte, y qué la
+// invalidaría — mismo patrón de diario que ya usa PV5, aplicado aquí a una decisión concreta. Una
+// tesis ya escrita se conserva aunque luego se desmarque el escenario (es un registro histórico de
+// lo que se creía en ese momento, no se borra al deshacer el "tomada").
 function toggleAp3ScenarioTaken(id) {
+  const marking = !ap3LeverageScenarios().find((row) => row.id === id)?.takenAt;
+  const thesis = marking
+    ? {
+        expectedGain: (qs("lev8ThesisExpectedGain")?.value || "").trim(),
+        horizonMonths: parseAmount(qs("lev8ThesisHorizonMonths")?.value) || null,
+        invalidation: (qs("lev8ThesisInvalidation")?.value || "").trim(),
+        recordedAt: new Date().toISOString(),
+      }
+    : null;
   scenarioSettings.ap3LeverageScenarios = ap3LeverageScenarios().map((row) =>
-    row.id === id ? { ...row, takenAt: row.takenAt ? null : new Date().toISOString() } : row);
+    row.id === id ? { ...row, takenAt: row.takenAt ? null : new Date().toISOString(), thesis: marking ? thesis : row.thesis } : row);
   saveScenarioSettings();
+  if (marking) {
+    if (qs("lev8ThesisExpectedGain")) qs("lev8ThesisExpectedGain").value = "";
+    if (qs("lev8ThesisHorizonMonths")) qs("lev8ThesisHorizonMonths").value = "";
+    if (qs("lev8ThesisInvalidation")) qs("lev8ThesisInvalidation").value = "";
+  }
   renderAp3ScenarioList();
   renderAp6Alert();
   renderLev1PolicyStatus();
@@ -16703,6 +16944,76 @@ function renderDeb8PrepaymentWindow() {
   box.innerHTML = `<p>La comisión de amortización anticipada baja de <strong>${result.currentPct}%</strong> a <strong>${result.nextPct}%</strong> dentro de ${result.monthsUntil} mes(es) — evita amortizar antes de esa fecha si puedes esperar.</p>`;
 }
 
+// DEB7 (Oleada 3, Bloque 5): preferencia declarada entre coste financiero mínimo (lo que AP1 ya
+// calculaba) y estar libre de deudas cuanto antes. Se guarda como un dato más del hogar
+// (scenarioSettings.deb7Preference), mismo criterio que LEV1 con su base de referencia.
+const DEB7_PREFERENCE_LABEL = { "coste-minimo": "coste financiero mínimo", "libre-deudas": "estar libre de deudas cuanto antes" };
+
+function deb7Preference() {
+  return state?.deb7Preference === "libre-deudas" ? "libre-deudas" : "coste-minimo";
+}
+
+function syncDeb7PreferenceControl() {
+  const select = qs("deb7PreferenceSelect");
+  if (select && document.activeElement !== select) select.value = deb7Preference();
+}
+
+// Último veredicto real de AP1 (handleAp1Compare) — para poder releer la tensión con la
+// preferencia declarada cuando el hogar cambia el selector sin tener que pulsar «Comparar» de nuevo.
+let deb7LastAp1Assessment = null;
+
+function deb7PreferenceHtml(reading) {
+  if (!reading.applies) return "";
+  if (reading.conflicts) {
+    return `<p class="e19-kpi-note warning"><strong>Tensión con tu preferencia declarada (DEB7):</strong> declaraste que prefieres ${DEB7_PREFERENCE_LABEL["libre-deudas"]}, pero el cálculo financiero de abajo dice que compensa más invertir. Ninguna de las dos es «la respuesta correcta» — amortizar sigue siendo una opción legítima si para ti pesa más no deber nada que esa diferencia de números.</p>`;
+  }
+  return `<p class="e19-kpi-note">Tu preferencia declarada (${DEB7_PREFERENCE_LABEL["libre-deudas"]}) coincide con la lectura financiera de abajo.</p>`;
+}
+
+function renderDeb7PreferenceReading() {
+  const box = qs("deb7PreferenceNote");
+  const comparator = window.FinanceDebtComparator;
+  if (!box || !comparator) return;
+  const reading = comparator.declaredPreferenceReading(deb7LastAp1Assessment, deb7Preference());
+  box.innerHTML = deb7PreferenceHtml(reading);
+}
+
+function handleDeb7PreferenceChange() {
+  if (!state) return;
+  state.deb7Preference = qs("deb7PreferenceSelect")?.value === "libre-deudas" ? "libre-deudas" : "coste-minimo";
+  saveScenarioSettings();
+  syncDeb7PreferenceControl();
+  renderDeb7PreferenceReading();
+}
+
+// DEB3 (Oleada 3, Bloque 5): valor de la opcionalidad de esperar. Reutiliza el mismo importe y TIN
+// que AP1 ya pide, más un "meses de espera" propio (deb3WaitMonths) y el mismo gasto mensual total
+// que ya usa GOB9 (lpAverageMonthlyOutflow + cuota de deuda comprometida) para expresar la
+// contrapartida en meses de aguante reales, nunca en un "valor de la opción" en euros que exigiría
+// inventar una probabilidad. Ver waitingOptionValue (canonical-debt-comparator.js) para el porqué.
+function deb3OptionValueHtml(result) {
+  if (!result.calculable) return "";
+  const runwayNote = result.liquidityRunwayMonths === null
+    ? ""
+    : ` Mientras tanto, esos ${money(result.amount, true)} en caja cubrirían por sí solos ${result.liquidityRunwayMonths} mes(es) de tu gasto total (GOB9) si hiciera falta usarlos para otra cosa.`;
+  return `<p class="e19-kpi-note"><strong>Valor de la opcionalidad de esperar (DEB3):</strong> esperar ${result.waitMonths} mes(es) antes de amortizar cuesta con seguridad ${money(result.waitingCost, true)} en interés no evitado.${runwayNote}</p>`;
+}
+
+function renderDeb3OptionValue(amount, debtAnnualRatePct) {
+  const box = qs("deb3OptionValueNote");
+  const comparator = window.FinanceDebtComparator;
+  if (!box || !comparator) return;
+  const waitMonths = Math.round(parseAmount(qs("deb3WaitMonths")?.value));
+  const monthlyOutflow = lpAverageMonthlyOutflow();
+  const result = comparator.waitingOptionValue({
+    amount,
+    debtAnnualRatePct,
+    waitMonths,
+    monthlyOutflow: Number.isFinite(monthlyOutflow) ? round2(monthlyOutflow + gob9MonthlyDebtService()) : null,
+  });
+  box.innerHTML = deb3OptionValueHtml(result);
+}
+
 function handleAp1Compare() {
   const note = qs("ap1CompareNote");
   if (!note) return;
@@ -16751,6 +17062,9 @@ function handleAp1Compare() {
     });
   }
   renderDeb1VerdictChangeAlert();
+  renderDeb3OptionValue(amount, debtAnnualRatePct);
+  deb7LastAp1Assessment = result.calculable ? result.assessment : null;
+  renderDeb7PreferenceReading();
 }
 
 // AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3 (escenarios de
@@ -27258,7 +27572,57 @@ function handleFiscalLargeFamilyChange(event) {
    de cada tarjeta, y su edición sigue viviendo donde ya vivía —duplicar esos formularios aquí
    arriesgaría dos caminos que se desincronicen sin necesidad—. Construir esos editores propios queda
    para cuando haga falta de verdad, no antes. */
+// GOB7 (Oleada 3, Bloque 5): vista de presentación simplificada de Ajustes para una sesión con
+// asesor o pareja, apoyada en la separación Configuración/Herramientas que OPT-24 Fase 2 ya dejó
+// hecha en cada uno de los grupos de #ajustes (Hogar, Reserva, Seguros, Fiscal, Patrimonio,
+// Presupuesto y operación, Datos): "Configuración" es el dato real del hogar (lo que tiene sentido
+// mostrar en una sesión con alguien de fuera); "Herramientas" son los simuladores/comparadores —
+// el "detalle técnico de los 42+ módulos" que este modo oculta. No inventa una taxonomía nueva ni
+// toca el DOM de cada tarjeta una a una: recorre cada `.e19-ajustes-group` y oculta todo lo que
+// caiga después de su encabezado "Herramientas" hasta el siguiente encabezado de grupo — nunca
+// borra nada, solo el atributo `hidden`, reversible con un solo clic.
+function advisorSessionModeEnabled() {
+  return !!state?.advisorSessionMode;
+}
+
+function applyAdvisorSessionMode(enabled) {
+  const ajustesSection = document.getElementById("ajustes");
+  if (!ajustesSection) return;
+  ajustesSection.querySelectorAll(".e19-ajustes-group").forEach((group) => {
+    let hideRest = false;
+    Array.from(group.children).forEach((child) => {
+      if (child.classList && child.classList.contains("e19-ajustes-group-title")) {
+        const label = (child.textContent || "").trim();
+        hideRest = label === "Herramientas" && enabled;
+        child.hidden = hideRest;
+        return;
+      }
+      child.hidden = hideRest;
+    });
+  });
+}
+
+function syncGob7AdvisorModeControl() {
+  const toggle = qs("gob7AdvisorModeToggle");
+  if (toggle && document.activeElement !== toggle) toggle.checked = advisorSessionModeEnabled();
+}
+
+function handleGob7AdvisorModeToggle(event) {
+  if (!state) return;
+  state.advisorSessionMode = !!event.target.checked;
+  saveScenarioSettings();
+  applyAdvisorSessionMode(state.advisorSessionMode);
+  announceStatus(state.advisorSessionMode ? "Modo sesión con asesor o pareja activado: los simuladores quedan ocultos." : "Modo sesión con asesor o pareja desactivado.");
+}
+
 function renderAjustes() {
+  // GOB7 (Oleada 3, Bloque 5): reaplica el modo sesión con asesor/pareja en cada render, no solo al
+  // marcar la casilla — el DOM de las 93 tarjetas de Ajustes es estático (se rellena, no se
+  // reconstruye), pero reafirmarlo aquí evita que un futuro render que toque el `hidden` de una
+  // tarjeta suelta lo deje inconsistente con la casilla.
+  syncGob7AdvisorModeControl();
+  applyAdvisorSessionMode(advisorSessionModeEnabled());
+  renderGob10DecisionList();
   // OPT-6: el editor de cobertura aprendida (#e6CoverageEditor) vive aquí, no en «Hoy» — pero se
   // rellena con la misma función que ya usaba «Hoy» (renderE6Coverage, guardada por
   // qs("e6CoveragePanel"), que sigue existiendo allí). Se llama aquí también para que la ficha
@@ -28521,6 +28885,9 @@ const UX_ALERT_METRICS = {
   rebalanceDeviationPct: { label: "Desviación de rebalanceo de cartera", format: (value) => `${Number(value || 0).toFixed(1)} puntos` },
   // INV4 (Oleada 3, Bloque 5): % de la cartera que concentra la posición mayor — 0 sin posiciones.
   topPositionConcentrationPct: { label: "Concentración en la mayor posición", format: (value) => `${Number(value || 0).toFixed(0)}%` },
+  // GOB10 (Oleada 3, Bloque 5): decisiones registradas con revisión programada (6/12 meses) cuya
+  // fecha ya pasó sin marcarse como revisada — 0 sin ninguna vencida.
+  overdueDecisionReviewsCount: { label: "Revisiones de decisiones vencidas", format: (value) => `${Number(value || 0)} pendiente(s)` },
 };
 
 function uxDateAfterDays(days = 30) {
@@ -28614,6 +28981,22 @@ function defaultUxAlerts() {
       action: "Revisar la tarjeta de análisis de cartera en Ajustes › Patrimonio e inversión — considerar diversificar la posición mayor.",
       reviewDate: uxDateAfterDays(30),
       frequency: "monthly",
+      paused: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // GOB10 (Oleada 3, Bloque 5): una decisión con revisión vencida y sin marcar es exactamente lo
+    // que este registro existe para evitar que se olvide — umbral 0: cualquier revisión vencida ya
+    // dispara el aviso, nunca hace falta acumular varias.
+    {
+      id: "alert-decision-review-overdue",
+      name: "Revisión de decisión vencida",
+      metric: "overdueDecisionReviewsCount",
+      operator: "above",
+      threshold: 0,
+      action: "Abrir Ajustes › Hogar › Registro de decisiones y marcar como revisada (o quitarla si ya no aplica).",
+      reviewDate: uxDateAfterDays(30),
+      frequency: "weekly",
       paused: false,
       createdAt: now,
       updatedAt: now,
@@ -28733,6 +29116,8 @@ function alertMetricSnapshot() {
     rebalanceDeviationPct: round2(portfolioRebalanceDeviationPct()),
     // INV4: idéntico al que ya calcula renderIv1PositionConcentration() para la posición mayor.
     topPositionConcentrationPct: round2(iv1TopPositionConcentrationPct()),
+    // GOB10: cuántas decisiones registradas tienen su revisión programada ya vencida sin marcar.
+    overdueDecisionReviewsCount: gob10OverdueReviewsCount(),
   };
 }
 
@@ -37788,6 +38173,22 @@ async function init() {
     removeAp3Scenario(removeButton.dataset.ap3ScenarioRemove);
   });
   qs("ap1CompareRun")?.addEventListener("click", handleAp1Compare);
+  qs("deb7PreferenceSelect")?.addEventListener("change", handleDeb7PreferenceChange);
+  qs("gob7AdvisorModeToggle")?.addEventListener("change", handleGob7AdvisorModeToggle);
+  qs("gob8GenerateDraft")?.addEventListener("click", renderGob8DraftPreview);
+  qs("gob8DownloadDraft")?.addEventListener("click", handleGob8DownloadDraft);
+  qs("gob10SaveDecision")?.addEventListener("click", handleGob10SaveDecision);
+  qs("gob10DecisionList")?.addEventListener("click", (event) => {
+    const toggleButton = event.target.closest("[data-gob10-review-toggle]");
+    if (toggleButton) {
+      toggleGob10DecisionReviewed(toggleButton.dataset.gob10ReviewToggle);
+      return;
+    }
+    const removeButton = event.target.closest("[data-gob10-remove]");
+    if (!removeButton) return;
+    removeGob10Decision(removeButton.dataset.gob10Remove);
+    renderGob10DecisionList();
+  });
   qs("ap5StrategySelect")?.addEventListener("change", renderAp5Queue);
   qs("ajustesTariffCompare")?.addEventListener("click", handleAjustesCompareTariffs);
   qs("ajustesMortgageScenariosCompare")?.addEventListener("click", handleDi1CompareMortgageScenarios);

@@ -36,7 +36,9 @@ test("AP5: renderAp5Queue nunca inventa una cola cuando no hay nada que prioriza
 
 test("AP5: el selector está cableado y la cola se refresca al marcar o desmarcar una deuda tomada", () => {
   assert.match(appSource, /qs\("ap5StrategySelect"\)\?\.addEventListener\("change", renderAp5Queue\);/);
-  const toggleBlock = appSource.slice(appSource.indexOf("function toggleAp3ScenarioTaken("), appSource.indexOf("function toggleAp3ScenarioTaken(") + 400);
+  // LEV8 (Oleada 3, Bloque 5) alargó la función con la captura de la tesis de apalancamiento
+  // antes de las llamadas a render — la ventana crece a 1100.
+  const toggleBlock = appSource.slice(appSource.indexOf("function toggleAp3ScenarioTaken("), appSource.indexOf("function toggleAp3ScenarioTaken(") + 1100);
   assert.match(toggleBlock, /renderAp5Queue\(\);/);
 });
 

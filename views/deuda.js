@@ -1316,6 +1316,8 @@ function renderDeudaApalancamiento() {
   renderAp6Alert();
   renderAp1DebtOptions();
   renderAp5Queue();
+  syncDeb7PreferenceControl();
+  renderDeb7PreferenceReading();
   syncLev1PolicyControls();
   renderLev1PolicyStatus();
   renderDeb1VerdictChangeAlert();
