@@ -59,7 +59,19 @@ que ya bloqueó `APX4`/`IVX1`/`IVX5`. **El siguiente trabajo real de producto vi
 [`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`](BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md)**: 44 tareas
 accionables (3 verificaciones de código + 41 tareas nuevas) en 5 bloques, ninguna bloqueada por las
 tres condiciones externas de la tabla de abajo — resuelve el «cierre de ciclo» que sigue a
-continuación, sin esperar a ninguna de ellas.
+continuación, sin esperar a ninguna de ellas. **Cerrada el 9 de septiembre de 2026 (sesión 163) — ver
+la actualización más reciente, justo abajo.**
+
+**Actualizado el 9 de septiembre de 2026 (sesión 163c): `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`
+cerrada.** Bloques 1 a 5 resueltos: 43/44 tareas accionables construidas o reducidas con motivo
+documentado, y 1 postergada con motivo (`GOB5`, bloqueada por `A5-4` sin backend push en producción).
+El Bloque 5 (16 tareas, relleno de hueco) se completó en tres sub-tandas de esta misma sesión —
+previsión viva (`PVC2/4/7/8/9`), inversión (`INV2/4/6/7/8`) y deuda + gobierno
+(`LEV8`/`DEB3`/`DEB7`/`GOB7`/`GOB8`/`GOB10`) — cada una validada y publicada por separado. Detalle
+completo, con referencias de código por tarea, en la tabla del Bloque 5 de ese documento y en los
+cierres de sesión de `PROJECT_STATE.md`. El reloj de `OPT-2` (tabla de condiciones externas, abajo)
+todavía no ha cumplido sus 30 días a esta fecha — sigue como nota a pie de página, no como prioridad
+siguiente.
 
 **Actualizado el 9 de septiembre de 2026 (sesión 162): `OPT-24` cerrada.** Nacida en la sesión 160
 tras una auditoría pedida por el hogar («Ajustes se está convirtiendo en un cajón de sastre»), que
@@ -97,7 +109,7 @@ sesión a sesión de todo lo cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`** | 🟢 **Vigente — 44 tareas accionables, sin código todavía** | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | — |
+| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`** | ✅ **Cerrada — 43/44 hechas (construidas o reducidas con motivo), 1 postergada (`GOB5`, condición externa)** | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | — |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | 🟡 Casi cerrado — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada) | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` para el trabajo nuevo de estos cuatro frentes; su propio remanente (`RGX3`) sigue vigente aquí hasta que `A5-1` esté en producción |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | 🟡 Casi cerrado — 94/99 hechas, 5 en espera de calendario | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia. Su tabla de estado no refleja el cierre real — ver `PROJECT_STATE.md` | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` para el trabajo nuevo; su propio remanente (`OPT-10/11/12/13/15`) sigue vigente aquí hasta que cumpla el plazo de `OPT-2` |
 | `BACKLOG_OPERACION.md` | 🟡 Casi cerrado — O-1 a O-5 hechos, solo `O-6` (PSD2, bloqueada por proveedor externo) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |

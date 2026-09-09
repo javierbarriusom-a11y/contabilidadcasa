@@ -174,6 +174,60 @@
     };
   }
 
+  const WAITING_OPTION_VALUE_SCHEMA_ID = "finance.debt-waiting-option-value";
+
+  // DEB3 (Oleada 3, Bloque 5): valor de la opcionalidad de esperar antes de decidir amortizar.
+  // AP1/DEB1 tratan amortizar-vs-invertir como una decisión que hay que tomar ya; esto cuantifica
+  // el lado que esas dos tareas no miran: posponer la decisión unos meses tiene un coste CIERTO (el
+  // interés que la deuda sigue generando sobre el importe mientras no se amortiza, misma fórmula
+  // simple que compareAmortizeVsInvest) y una contrapartida también CIERTA (ese importe sigue en
+  // caja, disponible). Nunca calcula un "valor de la opción" en euros — eso exigiría inventar la
+  // probabilidad de que aparezca mejor información antes de que termine la espera, dato que esta
+  // app no tiene. En su lugar, la contrapartida se expresa en meses de gasto total que ese importe
+  // por sí solo cubriría (mismo gasto mensual que ya usa GOB9), una medida real y no una promesa de
+  // rentabilidad. Da los dos números ciertos; el hogar decide si la flexibilidad compensa el coste.
+  function waitingOptionValue({ amount = 0, debtAnnualRatePct = null, waitMonths = 0, monthlyOutflow = null } = {}) {
+    const cashAmount = Math.max(0, round2(finite(amount)));
+    const months = Math.max(0, Math.floor(finite(waitMonths)));
+    const debtRate = knownFinite(debtAnnualRatePct) ? debtAnnualRatePct : NaN;
+    if (cashAmount <= 0 || months <= 0 || !Number.isFinite(debtRate)) {
+      return { schema: WAITING_OPTION_VALUE_SCHEMA_ID, calculable: false };
+    }
+    const years = months / 12;
+    const waitingCost = round2(cashAmount * (debtRate / 100) * years);
+    const outflow = knownFinite(monthlyOutflow) ? Math.max(0, round2(monthlyOutflow)) : null;
+    const liquidityRunwayMonths = outflow && outflow > 0 ? Math.floor((cashAmount / outflow) * 10) / 10 : null;
+    return {
+      schema: WAITING_OPTION_VALUE_SCHEMA_ID,
+      calculable: true,
+      amount: cashAmount,
+      waitMonths: months,
+      debtAnnualRatePct: round2(debtRate),
+      waitingCost,
+      monthlyOutflow: outflow,
+      liquidityRunwayMonths,
+    };
+  }
+
+  const DEBT_PREFERENCE = Object.freeze({ MIN_COST: "coste-minimo", DEBT_FREE: "libre-deudas" });
+
+  // DEB7 (Oleada 3, Bloque 5): "amortizar antes" y "coste financiero mínimo" pueden no coincidir
+  // — compareAmortizeVsInvest (AP1) solo mira el segundo. Cuando el hogar declara que prefiere
+  // estar libre de deudas cuanto antes y el veredicto financiero de AP1 dice "invertir", esta
+  // función se limita a señalar la tensión entre ambos: nunca sustituye el veredicto de AP1 por
+  // uno propio ni decide cuál de los dos "gana" — esa es una preferencia del hogar, no un cálculo.
+  function declaredPreferenceReading(assessment, preference) {
+    if (preference !== DEBT_PREFERENCE.DEBT_FREE) return { calculable: false, applies: false };
+    if (!["amortizar", "invertir", "neutral"].includes(assessment)) return { calculable: false, applies: false };
+    return {
+      calculable: true,
+      applies: true,
+      preference,
+      assessment,
+      conflicts: assessment === "invertir",
+    };
+  }
+
   const BREAK_EVEN_SCHEMA_ID = "finance.amortize-vs-invest-break-even";
 
   // AP2: punto de equilibrio entre el TIN de una deuda y la rentabilidad de inversión esperada.
@@ -295,6 +349,10 @@
     compareAgreements,
     AMORTIZE_VS_INVEST_SCHEMA_ID,
     compareAmortizeVsInvest,
+    WAITING_OPTION_VALUE_SCHEMA_ID,
+    waitingOptionValue,
+    DEBT_PREFERENCE,
+    declaredPreferenceReading,
     REDUCE_QUOTA_VS_TERM_SCHEMA_ID,
     amortizeReduceQuotaVsTerm,
     NET_DEBT_COST_SCHEMA_ID,

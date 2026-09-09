@@ -186,12 +186,12 @@ texto, no el global real). Corregido y con test de regresión que ejecuta la fun
 | 33 | ✅ INV6 | Compensación de pérdidas latentes antes del cierre fiscal (confirmada por `VER-3`) | Inversión / Fiscalidad | S-M (reducido: `gainLoss` no realizado ya lo calcula `fifoLedger()`, solo falta filtrar/rankear candidatas) | Alto | Hecho (sesión 163). `latentLossHarvestingCandidates()` (`canonical-portfolio.js`) filtra y ordena posiciones con `gainLoss` negativo, con la norma española de no recompra (2 meses cotizados, 1 año no cotizados) como aviso explícito — nunca sugiere vender por sí sola. Tarjeta nueva en Ajustes › Fiscal, justo antes de FC3, que la complementa. |
 | 34 | ✅ INV7 | Escalera de liquidez de la cartera | Inversión | M | Medio | Hecho (sesión 163). `liquidityLadder()` clasifica cada posición por tipo (acción/ETF/cripto = inmediata 0-2 días, fondo = corta 3-7 días, "otro" = sin clasificar, nunca con una velocidad inventada) y cruza el valor acumulado con el mismo `cushionFloor()` que ya usan DLX1/AP6, para saber si la liquidez rápida basta para cubrir el colchón mínimo. |
 | 35 | ✅ INV8 | Seguimiento de plan de aportación periódica (DCA) | Inversión | S-M | Bajo | Hecho (sesión 163). Dos campos opcionales nuevos por posición (aportación mensual prevista + inicio del plan); `dcaPlanStatus()` compara lo aportado de verdad (coste inicial + `contributions` de IV2, ya registrados) contra lo que el plan esperaría a estas alturas, y avisa del retraso acumulado en euros y meses al ritmo previsto. |
-| 36 | ⏳ LEV8 | Registro de la tesis de apalancamiento | Apalancamiento | S-M | Medio | Al activar apalancamiento, guardar qué se espera ganar, a qué horizonte y qué invalidaría la decisión — mismo patrón de diario que ya usa `PV5` para el forecast, aplicado aquí a una decisión de apalancamiento. |
-| 37 | ⏳ DEB3 | Valor de la opcionalidad de esperar | Deuda-liquidez | M | Medio | Cuantifica qué se pierde y qué se gana por no amortizar ya y conservar liquidez disponible por si aparece mejor información — pensamiento de opciones reales aplicado a una decisión que `AP1`/`DEB1` tratan como binaria. |
-| 38 | ⏳ DEB7 | Preferencia declarada: coste mínimo vs. libre de deudas | Deuda-liquidez | S-M | Medio | Expone que "amortizar antes" y "coste financiero mínimo" pueden no coincidir, y deja que el hogar declare cuál pesa más — el sistema recomienda en consecuencia vía `AP1`/`DEB1`, sin imponer una única "respuesta óptima" que ignore el valor psicológico de no deber nada. |
-| 39 | ⏳ GOB7 | Modo "sesión con asesor o pareja" | Gobierno | S-M | Bajo | Vista de presentación simplificada, ocultando el detalle técnico de los 42+ módulos de Ajustes, apoyada en la navegación ya existente de `e17-experience.js`. |
-| 40 | ⏳ GOB8 | Borrador de apoyo para la Renta | Gobierno / Fiscalidad | M | Medio | Con IRPF (`canonical-irpf-estimator.js`), dividendos (`canonical-dividend-tax.js`) y rescate de pensiones (`FCX1`) ya modelados por separado, genera un resumen exportable de apoyo — nunca sustituto de la gestoría. |
-| 41 | ⏳ GOB10 | Registro de decisiones con revisión programada | Gobierno | S-M | Bajo | Generaliza `LEV8` y `DEB3` a cualquier decisión financiera del hogar (no solo deuda y apalancamiento): guarda la tesis y programa un recordatorio de revisión a 6/12 meses. |
+| 36 | ✅ LEV8 | Registro de la tesis de apalancamiento | Apalancamiento | S-M | Medio | Hecho (sesión 163c). Al marcar un escenario de AP3 como tomado (nunca al desmarcarlo) se capturan tres campos declarados por el hogar — qué se espera ganar, a qué horizonte y qué invalidaría la decisión (`lev8ThesisHtml`, `toggleAp3ScenarioTaken`) — y se conservan aunque luego se desmarque, como registro histórico de lo que se creía en ese momento. |
+| 37 | ✅ DEB3 | Valor de la opcionalidad de esperar | Deuda-liquidez | M | Medio | Hecho (sesión 163c). `waitingOptionValue()` (`canonical-debt-comparator.js`) cuantifica solo lo cierto: el interés no evitado por esperar (misma fórmula simple que `compareAmortizeVsInvest`, AP1) frente a los meses de gasto total que ese mismo importe cubriría en caja (mismo gasto de GOB9) — nunca un "valor de la opción" en euros, que exigiría inventar una probabilidad de que aparezca mejor información. |
+| 38 | ✅ DEB7 | Preferencia declarada: coste mínimo vs. libre de deudas | Deuda-liquidez | S-M | Medio | Hecho (sesión 163c). `declaredPreferenceReading()` (`canonical-debt-comparator.js`) señala la tensión cuando el hogar declara que prefiere estar libre de deudas cuanto antes pero el veredicto de AP1 dice que compensa más invertir — nunca sustituye el veredicto de AP1 por uno propio, solo constata que ninguna de las dos es "la respuesta correcta". Selector nuevo en la tarjeta de AP1. |
+| 39 | ✅ GOB7 | Modo "sesión con asesor o pareja" | Gobierno | S-M | Bajo | Hecho (sesión 163c). Reutiliza la separación Configuración/Herramientas que `OPT-24` Fase 2 ya dejó hecha en cada grupo de Ajustes: una casilla (`applyAdvisorSessionMode`) oculta con `hidden` (reversible con un clic, nunca borra nada) todo lo que cae bajo "Herramientas" en los 8 grupos que la tienen, dejando visible solo el dato real del hogar. |
+| 40 | ✅ GOB8 | Borrador de apoyo para la Renta | Gobierno / Fiscalidad | M | Medio | Hecho (sesión 163c). `gob8DraftText()` compone en un único `.txt` descargable los tres cálculos que ya viven por separado (IRPF general, dividendos, rescate de pensiones), leyendo los mismos campos que sus propios botones — sin recalcular nada nuevo. Nueva tarjeta en Ajustes › Fiscal, justo tras las tres calculadoras que compone. |
+| 41 | ✅ GOB10 | Registro de decisiones con revisión programada | Gobierno | S-M | Bajo | Hecho (sesión 163c). Generaliza la tesis de `LEV8` (mismo formato, `lev8ThesisHtml`) a cualquier decisión del hogar, con revisión programada a 6/12 meses y aviso en el Centro de alertas si vence sin marcarse (`alert-decision-review-overdue`). De `DEB3` generaliza solo la disciplina de posponer con fecha, nunca su cálculo: una decisión sin TIN declarado no tiene coste de esperar que inventar. |
 
 ---
 
@@ -257,10 +257,22 @@ en la tabla del Bloque 4 y en los cierres de sesión de `PROJECT_STATE.md`. Sigu
 **Paso 5 — Bloque 5 como relleno de hueco entre apuestas grandes**, exactamente igual que el resto de
 bloques S/M de la Oleada 2: sin bloquear nada más, material natural para sesiones cortas.
 
-**Cierre de la oleada:** cuando los Bloques 1 a 5 estén resueltos (construidos, reducidos o retirados
-con motivo), actualizar `BACKLOG_INDICE.md` con el resultado real — igual que se hizo para la Oleada 2
-— y comprobar si el reloj de `OPT-2` (Bloque 0) ya cumplió: si es así, esa cola pasa a ser la siguiente
-prioridad real, no una nota a pie de página.
+**Bloque 5 completo el 9 de septiembre de 2026 (sesión 163, en tres sub-tandas — a/b/c): las 16 tareas
+hechas**, repartidas por tema para poder validar y publicar cada tanda por separado: (a) previsión viva
+— `PVC2`, `PVC4`, `PVC7`, `PVC8`, `PVC9`; (b) inversión — `INV2`, `INV4`, `INV6`, `INV7`, `INV8`; (c)
+deuda + gobierno — `LEV8`, `DEB3`, `DEB7`, `GOB7`, `GOB8`, `GOB10`. Detalle completo, con referencias de
+código por tarea, en la tabla del Bloque 5 y en los cierres de sesión de `PROJECT_STATE.md`. De rebote
+se corrigió un bug propio (sub-tanda b): una colisión de nombre de función (`monthsBetween`) en
+`canonical-portfolio.js` rompía en silencio el cálculo de `glidePathForGoal` (`IVX6`) — detectada por el
+propio test de la función afectada, nunca por el código nuevo que la causó.
+
+**Cierre de la oleada (9 de septiembre de 2026):** los Bloques 1 a 5 están todos resueltos (construidos,
+reducidos o retirados con motivo — `GOB5`, Bloque 4, es la única postergación real, documentada y
+bloqueada por `A5-4`). Esta Oleada 3 queda cerrada: 43/44 tareas accionables construidas o reducidas con
+motivo, 1 postergada con motivo declarado. Pendiente de `BACKLOG_INDICE.md`: reflejar este cierre —
+hecho en el mismo cierre de sesión. Reloj de `OPT-2` (Bloque 0 de `BACKLOG_ULTIMATE_SEPTIEMBRE.md`):
+arrancó el 29 de agosto de 2026, cumple 30 días a finales de septiembre — **todavía no ha cumplido** a
+fecha de este cierre, así que su cola sigue en nota a pie de página, no como prioridad siguiente.
 
 ## 10. Nota de alcance
 

@@ -36,12 +36,67 @@ de aquí en la siguiente regeneración, no al momento.
   ya ha reducido el alcance de varias tareas de la Oleada 3 (`INV1`, `INV2`, `INV4`, `LEV5`, `LEV6`).
   Cualquier tarea nueva que necesite correlación o volatilidad de cartera real choca con el mismo
   hueco hasta que se decida abrir esa dimensión de datos.
-- **Backlog vigente**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`, con `BACKLOG_INDICE.md` como mapa
-  de qué documento sustituye a cuál — consultar ese índice antes de retomar cualquier cola antigua.
+- **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` cerrada (9 de septiembre de 2026, sesión 163c)**:
+  43/44 tareas accionables construidas o reducidas con motivo, 1 postergada (`GOB5`, condición
+  externa). `BACKLOG_INDICE.md` sigue siendo el mapa de qué documento es la fuente viva de cada
+  cola — consultarlo antes de retomar cualquier cola antigua, incluida esta ya cerrada.
 - **Tres condiciones externas siguen sin resolverse**, sin fecha conocida ninguna de las tres
   (detalle en `BACKLOG_INDICE.md`, Bloque 0): el reloj de 30 días de `OPT-2` (arranca el 29 de
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
+
+## Cierre de sesión — 9 de septiembre de 2026 (163c): Bloque 5 de Oleada 3, sub-bloque «Deuda + Gobierno» — LEV8, DEB3, DEB7, GOB7, GOB8, GOB10 — Bloque 5 completo, Oleada 3 cerrada
+
+Continuación de la sesión 163: tercer y último sub-bloque del Bloque 5, las 6 tareas de
+«Deuda + Gobierno». Con estas seis, el Bloque 5 queda completo (16/16) y, per §9 del propio
+backlog, la Oleada 3 queda cerrada (43/44 tareas accionables construidas o reducidas con motivo,
+1 postergada — `GOB5`, condición externa).
+
+- **`LEV8`** — al marcar (nunca al desmarcar) un escenario de `AP3` como deuda de apalancamiento
+  realmente tomada, se capturan tres campos declarados por el hogar: qué se espera ganar, a qué
+  horizonte y qué invalidaría la decisión (`lev8ThesisHtml`). Misma idea de diario que `PV5`
+  aplicada a una decisión concreta; una tesis ya escrita se conserva aunque luego se desmarque el
+  escenario, como registro histórico de lo que se creía en ese momento.
+- **`DEB3`** — `waitingOptionValue()` (`canonical-debt-comparator.js`) cuantifica solo lo que es
+  cierto de esperar antes de decidir amortizar: el interés no evitado durante la espera (misma
+  fórmula simple que `compareAmortizeVsInvest`, AP1) frente a los meses de gasto total (GOB9) que
+  ese mismo importe en caja cubriría por sí solo. Nunca calcula un "valor de la opción" en euros —
+  exigiría inventar una probabilidad de que aparezca mejor información, dato que la app no tiene.
+  Campo nuevo ("meses de espera") y nota de resultado en la propia tarjeta de AP1.
+- **`DEB7`** — `declaredPreferenceReading()` (mismo módulo) deja declarar al hogar si pesa más el
+  coste financiero mínimo (lo que AP1 ya calculaba) o estar libre de deudas cuanto antes. Cuando
+  hay tensión (preferencia "libre de deudas" pero AP1 dice "invertir"), lo señala explícitamente —
+  nunca sustituye el veredicto de AP1 por uno propio ni impone una "respuesta correcta".
+- **`GOB7`** — modo "sesión con asesor o pareja": una casilla en Ajustes que oculta (con `hidden`,
+  reversible con un clic) todo lo que cae bajo el encabezado "Herramientas" en cada uno de los 8
+  grupos de Ajustes que ya tenían esa separación (`OPT-24` Fase 2), dejando visible solo el dato
+  real del hogar ("Configuración"). Sin taxonomía nueva que inventar — reutiliza la que `OPT-24`
+  ya dejó hecha.
+- **`GOB8`** — borrador de apoyo para la Renta: `gob8DraftText()` compone en un único `.txt`
+  descargable las tres calculadoras fiscales que ya viven por separado (IRPF general, dividendos
+  extranjeros, rescate de pensiones), leyendo los mismos campos que sus propios botones — sin
+  recalcular nada nuevo. Nunca sustituye a la gestoría, lo dice la primera línea del propio texto.
+- **`GOB10`** — generaliza `LEV8` (mismo formato de tesis, `lev8ThesisHtml` reutilizada tal cual) a
+  cualquier decisión financiera del hogar, con revisión programada a 6 o 12 meses y aviso en el
+  Centro de alertas (`alert-decision-review-overdue`) si la fecha pasa sin marcarse como revisada.
+  De `DEB3` generaliza solo la disciplina de posponer con fecha, nunca su cálculo: una decisión sin
+  TIN declarado (mudarse, cambiar de trabajo...) no tiene un coste de esperar que inventar.
+- **Validación**: `npm run verify` completo en verde — `npm test` **3657/3657** (los tres primeros
+  fallos tras el cambio de `toggleAp3ScenarioTaken` por `LEV8` fueron de ventana fija demasiado
+  pequeña en tests de AP5/AP6/LEV1 ya existentes, ajustados a 1100 caracteres, mismo patrón ya
+  conocido esta sesión), `test:a11y` (**1201 IDs únicos**, +18 sobre la sesión anterior por los
+  nuevos campos/botones/contenedores), `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke`, todos sin errores.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` (Bloque 5 §7: `LEV8`/`DEB3`/
+`DEB7`/`GOB7`/`GOB8`/`GOB10` pasan de ⏳ a ✅ con el detalle de construcción; §9 "Plan de ejecución":
+Paso 5 y "Cierre de la oleada" documentados como completos, con el estado real del reloj de `OPT-2`
+— todavía no cumplido). `BACKLOG_INDICE.md` actualizado con la Oleada 3 como cerrada.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` — commit y push
+  siguientes, PR en borrador y fusión a `main` en cuanto el CI esté en verde, autorización ya dada
+  por el hogar (`CLAUDE.md`). PR del sub-bloque anterior (`INV2`/`INV4`/`INV6`/`INV7`/`INV8`,
+  #262) sigue su propio ciclo en paralelo.
 
 ## Cierre de sesión — 9 de septiembre de 2026 (163b): Bloque 5 de Oleada 3, sub-bloque «Inversión» — INV2, INV4, INV6, INV7, INV8
 

@@ -121,7 +121,9 @@ test("ap3ResultHtml incluye la vista previa del impacto sobre la política LEV1"
 });
 
 test("guardar, quitar o marcar/desmarcar un escenario de AP3 refresca el estado de LEV1", () => {
-  const toggle = appSource.slice(appSource.indexOf("function toggleAp3ScenarioTaken("), appSource.indexOf("function toggleAp3ScenarioTaken(") + 400);
+  // LEV8 (Oleada 3, Bloque 5) alargó la función con la captura de la tesis de apalancamiento
+  // antes de las llamadas a render — la ventana crece a 1100.
+  const toggle = appSource.slice(appSource.indexOf("function toggleAp3ScenarioTaken("), appSource.indexOf("function toggleAp3ScenarioTaken(") + 1100);
   const save = appSource.slice(appSource.indexOf("function saveAp3Scenario("), appSource.indexOf("function saveAp3Scenario(") + 700);
   const remove = appSource.slice(appSource.indexOf("function removeAp3Scenario("), appSource.indexOf("function removeAp3Scenario(") + 400);
   [toggle, save, remove].forEach((block) => assert.match(block, /renderLev1PolicyStatus\(\)/));

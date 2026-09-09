@@ -22,7 +22,9 @@ test("AP6: la lista de escenarios AP3 ofrece marcar/desmarcar como tomada", () =
 });
 
 test("AP6: toggleAp3ScenarioTaken alterna takenAt sin tocar el resto del escenario", () => {
-  const block = appSource.slice(appSource.indexOf("function toggleAp3ScenarioTaken("), appSource.indexOf("function toggleAp3ScenarioTaken(") + 500);
+  // LEV8 (Oleada 3, Bloque 5) alargó la función con la captura de la tesis de apalancamiento
+  // antes de las llamadas a render — la ventana crece a 1100.
+  const block = appSource.slice(appSource.indexOf("function toggleAp3ScenarioTaken("), appSource.indexOf("function toggleAp3ScenarioTaken(") + 1100);
   assert.match(block, /row\.takenAt \? null : new Date\(\)\.toISOString\(\)/);
   assert.match(block, /renderAp3ScenarioList\(\);/);
   assert.match(block, /renderAp6Alert\(\);/);
