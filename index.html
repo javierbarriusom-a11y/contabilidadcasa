@@ -1770,6 +1770,474 @@
             </article>
           </section>
 
+          <section class="e19-deuda-decidir view-section" id="deuda-apalancamiento">
+            <nav class="e19-registrar-tabs" id="deudaApalancamientoScreenTabs" aria-label="Pestañas de Deuda"></nav>
+            <div class="section-title with-action">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Decidir · apalancamiento</p>
+                <h2 class="e19-heading">Deuda y apalancamiento</h2>
+                <p class="e19-subtitle">Declara tu límite antes de pedir deuda nueva para invertir, y explora aquí todo lo que depende de ese límite: simuladores, comparadores y alertas. Nada se ejecuta ni se aplica al plan real desde esta pantalla.</p>
+              </div>
+            </div>
+
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
+            <!-- LEV1 (Oleada 3, Bloque 2): política de apalancamiento del hogar — límite máximo de
+                 deuda-para-invertir, declarado de antemano como % de patrimonio neto o de ingreso
+                 anual, que el simulador de AP3 (abajo) consulta al explorar deuda nueva. Guardarraíl
+                 puro: nunca bloquea nada por sí solo, solo hace visible si el total (deuda ya tomada
+                 + lo que se esté explorando) supera el techo declarado. No cubre el crédito Lombard
+                 de APX2/APX3 a propósito — mismo motivo por el que ese instrumento ya queda fuera del
+                 guardarraíl general AP4. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Política de apalancamiento del hogar</h3>
+              <p class="e19-kpi-note">Declara de antemano cuánta deuda-para-invertir estás dispuesto a acumular como máximo, como porcentaje de tu patrimonio neto o de tu ingreso anual. El simulador de apalancamiento de abajo (AP3) avisa si una nueva exploración superaría este límite — nunca bloquea nada por sí solo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Referencia</span>
+                  <select id="lev1Basis">
+                    <option value="net-worth">Patrimonio neto</option>
+                    <option value="income">Ingreso anual</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Límite máximo (%)</span>
+                  <input id="lev1LimitPct" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 20" />
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="lev1PolicyStatus"></div>
+            </article>
+
+            <!-- DI4: impacto de un aval dado en la capacidad de endeudamiento futura. Un banco
+                 descuenta la cuota del aval de tu propia capacidad como si fuera deuda tuya, aunque
+                 hoy no la estés pagando. Campo único aquí; el impacto se calcula y se muestra en
+                 Deuda › Ruta y Comparar, junto a la capacidad de endeudamiento (D-12) que ya vive
+                 ahí — sin inventario de avales todavía. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Avales dados</h3>
+              <p class="e19-kpi-note">Si has avalado la deuda de otra persona, esa cuota se descuenta de tu propia capacidad de endeudamiento futura — aunque hoy no la pagues tú.</p>
+              <label class="month-picker">
+                <span>Cuota mensual equivalente del aval (€)</span>
+                <input id="ajustesLoanGuaranteeMonthly" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+              </label>
+              <p class="e19-kpi-note" id="ajustesLoanGuaranteeNote"></p>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <!-- AP3: simulador de apalancamiento (pedir deuda nueva para invertir) — explorar, no
+                 ejecutar. Depende de AP4 (canonical-leverage-barrier.js): sin sus condiciones
+                 mínimas verificadas (colchón por encima del suelo, deuda actual sin incidencias
+                 críticas, cuota actual contenida), no hay simulación que mostrar. Los tres
+                 escenarios de rentabilidad esperada los declara el hogar — el motor no inventa
+                 ninguna cifra de mercado. La lectura favorable/desfavorable es una sugerencia que
+                 se explica con números, nunca una orden: nada se ejecuta ni se persiste como
+                 decisión, solo como exploración guardada. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de apalancamiento (explorar, no ejecutar)</h3>
+              <p class="e19-kpi-note">Antes de pedir deuda nueva para invertir: comprueba primero el guardarraíl de seguridad y, si lo superas, explora el coste de esa deuda frente a tres escenarios de rentabilidad esperada que tú declares. Ninguna cifra de mercado se inventa aquí, y ningún resultado es una recomendación de actuar — solo una lectura que puedes aceptar o descartar.</p>
+              <div class="e19-kpi-note" id="ap3BarrierStatus"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Deuda nueva a simular (€)</span>
+                  <input id="ap3DebtAmount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo de la deuda nueva (% anual)</span>
+                  <input id="ap3DebtRate" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Rentabilidad esperada, pesimista (% anual)</span>
+                  <input id="ap3ReturnPessimistic" type="number" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Rentabilidad esperada, base (% anual)</span>
+                  <input id="ap3ReturnBase" type="number" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Rentabilidad esperada, optimista (% anual)</span>
+                  <input id="ap3ReturnOptimistic" type="number" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ap3SimulateRun">Simular</button>
+              <div class="e19-kpi-note" id="ap3SimulatorNote"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre del escenario a guardar</span>
+                  <input id="ap3ScenarioName" type="text" placeholder="Ej. Hipoteca para invertir en fondo indexado" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ap3ScenarioSave">Guardar escenario explorado</button>
+              <ul class="commit-barrier-list" id="ap3ScenarioList"></ul>
+            </article>
+
+            <!-- APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (simulador de
+                 ejecución de garantía, todavía sin construir). LTV y tipo los declara el hogar,
+                 nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo
+                 con garantía real tiene un perfil de riesgo distinto al de la deuda sin garantizar. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Crédito con garantía de cartera (Lombard)</h3>
+              <p class="e19-kpi-note">Cuánto podrías pedir prestado contra tu cartera de inversión real (Inversión › Cartera), a un LTV que tú declares. No modela el riesgo de ejecución de garantía si la cartera cae de valor — eso lo añadirá APX3 más adelante.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>LTV declarado (%)</span>
+                  <input id="apx2LtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 50" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo del crédito (% anual)</span>
+                  <input id="apx2RatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="apx2LombardRun">Calcular</button>
+              <div class="e19-kpi-note" id="apx2LombardNote"></div>
+            </article>
+
+            <!-- INV10 (Oleada 3, Bloque 4): comparador genérico vender vs. pedir prestado contra el
+                 activo, para financiar cualquier meta que necesite caja. Reutiliza el LTV/tipo del
+                 crédito Lombard declarados arriba (APX2) para el lado "pedir prestado". -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Vender vs. pedir prestado contra la cartera</h3>
+              <p class="e19-kpi-note">Para financiar cualquier meta que necesite caja: compara el coste de vender parte de la cartera (plusvalía + crecimiento que dejarías de generar) frente a pedirla prestada con garantía de cartera (LTV/tipo declarados arriba), sin vender nada.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe que necesitas (€)</span>
+                  <input id="inv10Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte a comparar (meses)</span>
+                  <input id="inv10Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
+                </label>
+                <label class="month-picker">
+                  <span>Plusvalía declarada de la posición a vender (%, opcional)</span>
+                  <input id="inv10GainLossPct" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="inv10Run">Comparar</button>
+              <div class="e19-kpi-note" id="inv10Note"></div>
+            </article>
+
+            <!-- LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. APX2
+                 (arriba) calcula UNA oferta declarada; este registra las condiciones reales de
+                 varias y las compara lado a lado sobre la misma cartera real — mismo patrón de
+                 lista repetible que la pérdida arrastrada de FC3 (Fiscal). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador de líneas Lombard entre entidades</h3>
+              <p class="e19-kpi-note">Registra las condiciones reales de varias ofertas de crédito con garantía de cartera y compáralas lado a lado sobre tu cartera real: coste del primer año y margen de seguridad frente a una llamada de garantía (distancia entre el LTV al que prestan y el LTV de mantenimiento).</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Entidad</span>
+                  <input id="lev4OfferEntity" type="text" placeholder="Ej. Banco X" />
+                </label>
+                <label class="month-picker">
+                  <span>LTV máximo (%)</span>
+                  <input id="lev4OfferMaxLtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 50" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo (% anual)</span>
+                  <input id="lev4OfferRatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión de apertura (%)</span>
+                  <input id="lev4OfferOpeningFeePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión de cancelación (%)</span>
+                  <input id="lev4OfferCancellationFeePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>LTV de mantenimiento (%)</span>
+                  <input id="lev4OfferMaintenanceLtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 70" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev4OfferSave">Añadir oferta</button>
+              <ul class="commit-barrier-list" id="lev4OfferList"></ul>
+              <div class="e19-kpi-note" id="lev4ComparisonNote"></div>
+            </article>
+
+            <!-- APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de
+                 APX2. El hogar declara cuánto pidió prestado de verdad, el LTV de mantenimiento del
+                 banco y una caída hipotética de la cartera — nunca un umbral "típico" inventado.
+                 Extiende el guardarraíl AP4 al nuevo instrumento: si la caída dispara la llamada,
+                 compara la garantía adicional necesaria contra el mismo guardarraíl de colchón que
+                 ya usan DLX1/AP1. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de ejecución de garantía (margin call)</h3>
+              <p class="e19-kpi-note">Si tomaste el crédito con garantía de cartera de arriba, simula qué pasaría si la cartera cayera de valor: si se dispararía una llamada de garantía, y cuánta garantía adicional o liquidación forzosa exigiría el banco. No decide cuál de las dos opciones tomar.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe realmente pedido prestado (€)</span>
+                  <input id="apx3LoanAmount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>LTV de mantenimiento del banco (%)</span>
+                  <input id="apx3MaintenanceLtvPct" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Ej. 70" />
+                </label>
+                <label class="month-picker">
+                  <span>Caída de la cartera a explorar (%)</span>
+                  <input id="apx3StressDropPct" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Ej. 20" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="apx3MarginCallRun">Simular caída</button>
+              <div class="e19-kpi-note" id="apx3MarginCallNote"></div>
+            </article>
+
+            <!-- LEV5 (Oleada 3, Bloque 4): colchón de garantía dinámico — en vez de escribir a mano
+                 la caída a explorar de arriba, declara una banda de volatilidad (caída máxima
+                 plausible, %) por clase de activo. Con las posiciones ya clasificadas (Patrimonio e
+                 inversión, INV1), pondera esa banda por la composición real de la cartera pignorada
+                 y reutiliza el importe pedido/LTV de mantenimiento de arriba. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Colchón de garantía dinámico según volatilidad</h3>
+              <p class="e19-kpi-note">Declara la caída máxima plausible por clase de activo (nunca calculada de un histórico que esta app no guarda) y se pondera por la composición real de tu cartera pignorada, en vez de escribir una única caída a mano arriba.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Renta variable (%)</span>
+                  <input id="lev5VolatilityRentaVariable" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 40" />
+                </label>
+                <label class="month-picker">
+                  <span>Renta fija (%)</span>
+                  <input id="lev5VolatilityRentaFija" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 10" />
+                </label>
+                <label class="month-picker">
+                  <span>Monetario (%)</span>
+                  <input id="lev5VolatilityMonetario" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 2" />
+                </label>
+                <label class="month-picker">
+                  <span>Alternativo (%)</span>
+                  <input id="lev5VolatilityAlternativo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 60" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev5VolatilitySave">Guardar bandas</button>
+              <div id="lev5DynamicStressNote"></div>
+            </article>
+
+            <!-- LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call — compone el margin
+                 call de arriba (APX3) con el P10 de liquidez mínima ya calibrado por el Monte Carlo
+                 del Laboratorio de escenarios (ESX1). Se recalcula al pulsar "Simular caída" de
+                 arriba, sin formulario propio. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Seguro de cola frente a margin call</h3>
+              <p class="e19-kpi-note">Si la llamada de garantía de arriba se disparase justo en tu peor escenario de liquidez ya simulado (P10 del Laboratorio de escenarios), ¿tu caja mínima de ese escenario cubriría la garantía exigida?</p>
+              <div id="lev7TailRiskNote"></div>
+            </article>
+
+            <!-- LEV3 (Oleada 3, Bloque 3): estrés combinado — tipos al alza y mercado a la baja a la
+                 vez. Reutiliza los campos ya declarados de la hipoteca (arriba, en Patrimonio e
+                 inversión) y del margin call (justo arriba) — solo pide los puntos de subida de
+                 tipos, la caída de cartera ya la tiene el simulador de arriba. En una crisis real
+                 ambos suelen moverse juntos: el efecto compuesto no es la suma de los dos por
+                 separado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Estrés combinado: tipos al alza y mercado a la baja</h3>
+              <p class="e19-kpi-note">Si tienes hipoteca variable Y crédito con garantía de cartera, simula qué pasaría si los tipos subieran y la cartera cayera a la vez — el mismo escenario de crisis real, en vez de mirar cada estrés por separado. Usa la hipoteca declarada en Patrimonio e inversión y la caída de cartera del simulador de margin call de arriba.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Subida de tipos a explorar (puntos)</span>
+                  <input id="lev3RateDeltaPoints" type="number" step="0.1" inputmode="decimal" placeholder="Ej. 1.5" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev3CombinedStressRun">Simular estrés combinado</button>
+              <div class="e19-kpi-note" id="lev3CombinedStressNote"></div>
+            </article>
+
+            <!-- AP6: alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada.
+                 Depende de AP3: la única deuda de apalancamiento que existe en la app es la que se
+                 exploró y guardó arriba. AP3 nunca guarda una posición real, así que este motor solo
+                 vigila los escenarios que el propio hogar ha marcado explícitamente como tomados con
+                 el botón "Marcar como tomada" de la lista de arriba — nunca una inferencia
+                 automática ni una deuda inventada. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Alerta: colchón frente a la deuda de apalancamiento tomada</h3>
+              <p class="e19-kpi-note">Cuando marques arriba un escenario explorado como tomado de verdad, esta alerta vigila si el colchón de emergencia actual sigue cubriendo su suelo mientras esa deuda sigue viva. No inventa ninguna deuda: solo mira los escenarios que tú mismo has marcado como tomados.</p>
+              <div class="e19-kpi-note" id="ap6SustainabilityAlert"></div>
+            </article>
+
+            <!-- AP1: comparador amortizar vs. invertir. Depende de IV1/IV2 e IV5 (opportunityCost,
+                 ya construido): compara el ahorro de intereses de amortizar anticipadamente una
+                 deuda existente frente a lo que ese mismo importe podría haber generado invertido
+                 en la cartera real del hogar. El TIN de la deuda lo declara el hogar: ningún
+                 contrato de deuda de la app guarda un tipo de interés propio.
+                 DEB1 (Oleada 3, Bloque 2, alcance confirmado por VER-2): AP1 ya se recalcula solo
+                 por firma, no hacía falta motor nuevo — solo el aviso de #deb1VerdictChangeAlert,
+                 visible sin tener que rellenar el formulario y pulsar «Comparar» de nuevo. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador: amortizar vs. invertir</h3>
+              <p class="e19-kpi-note">Para un importe de caja disponible, compara amortizar anticipadamente una deuda existente frente a invertirlo en tu cartera real (misma rentabilidad XIRR que ya usa el simulador de decisión, IV5). Ninguna cifra de mercado se inventa aquí — solo el TIN de la deuda, que declaras tú.</p>
+              <div class="e19-kpi-note" id="deb1VerdictChangeAlert"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Deuda a amortizar</span>
+                  <select id="ap1DebtSelect"></select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe disponible (€)</span>
+                  <input id="ap1Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>TIN de esa deuda (% anual)</span>
+                  <input id="ap1DebtRate" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte a comparar (meses)</span>
+                  <input id="ap1Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
+                </label>
+                <!-- DEB2 (Oleada 3, Bloque 3): comisión de amortización anticipada real del contrato,
+                     si la tiene — sin ella el reparto de DLX2 destinaría todo el excedente a "toDebt"
+                     sin contar que la propia comisión se paga con ese mismo excedente. -->
+                <label class="month-picker">
+                  <span>Comisión de amortización anticipada de esa deuda (%)</span>
+                  <input id="ap1PrepaymentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ap1CompareRun">Comparar</button>
+              <div class="e19-kpi-note" id="ap1CompareNote"></div>
+            </article>
+
+            <!-- DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente. Muchos contratos con
+                 comisión de amortización anticipada la reducen en un escalón declarado en el
+                 contrato; sin este aviso, DEB2 (arriba) podría dimensionar una amortización justo
+                 antes de que esa comisión bajase de precio por pura impaciencia. Solo un escalón
+                 declarado a mano — el hogar añade otro si el contrato tiene más de uno. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Ventana de comisión decreciente</h3>
+              <p class="e19-kpi-note">Si el contrato de esa deuda tiene una comisión de amortización anticipada que baja en un escalón declarado, avisa de la fecha exacta en la que amortizar pasa a ser más barato — para no ejecutar la amortización de arriba (DEB2) justo antes de esa fecha.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Comisión actual (%)</span>
+                  <input id="deb8CurrentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Ese escalón termina en (mes)</span>
+                  <input id="deb8TierUntilMonth" type="month" />
+                </label>
+                <label class="month-picker">
+                  <span>Comisión siguiente (%)</span>
+                  <input id="deb8NextPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="deb8PrepaymentWindowNote"></div>
+            </article>
+
+            <!-- DLX3: retrospectiva "¿me habría quedado sin colchón?" — depende de DLX1 (mismo
+                 suelo) y PVX1 (mismo historial real conciliado, tarjeta más arriba en Fiscal).
+                 Reconstrucción aproximada de la liquidez pasada a partir del flujo neto real, nunca
+                 una cifra con apariencia de precisión histórica exacta: la propia tarjeta declara
+                 qué no reconstruye. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Retrospectiva: ¿me habría quedado sin colchón?</h3>
+              <p class="e19-kpi-note">Reconstruye la liquidez de cada mes ya conciliado con el banco, mes a mes hacia atrás desde tu liquidez de hoy, y la compara con el suelo actual del colchón. Es una aproximación: solo usa el flujo neto real, no reconstruye traspasos puntuales entre cuentas.</p>
+              <div id="dlx3Retrospective"></div>
+            </article>
+
+            <!-- AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3
+                 (escenarios marcados como tomados en AP6) y A16-5 (criterios avalancha/bola de
+                 nieve, ya construidos en la Ruta de deuda) — mismos dos criterios, sin inventar un
+                 tercero. Una deuda solo explorada en AP3 (sin marcar como tomada) nunca entra en la
+                 cola: no es una deuda real todavía. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Deuda: cola única de prioridad (nueva y existente)</h3>
+              <p class="e19-kpi-note">Mezcla la deuda existente con la deuda de apalancamiento que hayas marcado como tomada (arriba, en el simulador de AP3) en una única cola de prioridad de pago, con el mismo criterio de la Ruta de deuda.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Criterio de orden</span>
+                  <select id="ap5StrategySelect">
+                    <option value="avalancha">Avalancha (mayor TAE primero)</option>
+                    <option value="bola-nieve">Bola de nieve (menor saldo primero)</option>
+                  </select>
+                </label>
+              </div>
+              <ul class="commit-barrier-list" id="ap5QueueList"></ul>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
+              <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Consumo mensual (kWh u otra unidad)</span>
+                  <input id="ajustesTariffConsumption" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Precio fijo (€/unidad)</span>
+                  <input id="ajustesTariffFixedPrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cargo fijo mensual — tarifa fija (€)</span>
+                  <input id="ajustesTariffFixedFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Precio variable estimado (€/unidad)</span>
+                  <input id="ajustesTariffVariablePrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cargo fijo mensual — tarifa variable (€)</span>
+                  <input id="ajustesTariffVariableFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesTariffCompare">Comparar</button>
+              <p class="e19-kpi-note" id="ajustesTariffComparatorNote"></p>
+            </article>
+
+            <!-- DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo marco de tres
+                 escenarios (base/favorable/tensión) que ya usa el Laboratorio de escenarios (E13),
+                 aplicado al tipo de interés. DEB4 (Oleada 3, Bloque 3) persiste estos campos (antes
+                 solo calculadora puntual) para poder vigilarlos como radar continuo: declara un
+                 umbral de meses aceptable y avisa sin tener que volver a abrir el simulador. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Hipoteca variable → fija bajo escenarios de tipos</h3>
+              <p class="e19-kpi-note">Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos — base, favorable y tensión (mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: pones los tuyos.</p>
+              <div class="e19-kpi-note" id="deb4RadarAlert"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Capital pendiente (€)</span>
+                  <input id="ajustesMortgagePrincipal" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Meses restantes</span>
+                  <input id="ajustesMortgageMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="240" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo variable actual (%)</span>
+                  <input id="ajustesMortgageVariableRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Oferta de tipo fijo (%)</span>
+                  <input id="ajustesMortgageFixedRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
+                </label>
+                <!-- APX5: coste total de refinanciar, no solo el tipo — comisión de cancelación/
+                     subrogación + gastos de novación, para el punto de equilibrio en meses. -->
+                <label class="month-picker">
+                  <span>Coste de refinanciar (€)</span>
+                  <input id="ajustesMortgageRefinancingCost" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <!-- DEB4: umbral de meses aceptable para el radar — sin él, el radar no tiene con
+                     qué decidir si el punto de equilibrio actual merece un aviso. -->
+                <label class="month-picker">
+                  <span>Radar: avisar si se recupera en ≤ (meses)</span>
+                  <input id="deb4MaxBreakEvenMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 24" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMortgageScenariosCompare">Comparar</button>
+              <div class="e19-kpi-note" id="ajustesMortgageScenariosNote"></div>
+            </article>
+
+            <!-- DI5: reestructuración conjunta ante una caída de ingresos. Usa los contratos reales
+                 de Deuda › Contratos (activos, con cuota) — solo pide el ingreso mensual tras la
+                 caída, y propone en qué orden alargar plazos hasta el ratio seguro configurado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Reestructuración conjunta ante una caída de ingresos</h3>
+              <p class="e19-kpi-note">Mira todos tus contratos de deuda activos juntos frente a un ingreso reducido, y propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ingreso mensual tras la caída (€)</span>
+                  <input id="ajustesJointRestructuringIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesJointRestructuringCompare">Comparar</button>
+              <div class="e19-kpi-note" id="ajustesJointRestructuringNote"></div>
+            </article>
+          </section>
+
           <section class="e19-analisis view-section" id="analisis">
             <div class="section-title with-action">
               <div>
@@ -2185,7 +2653,6 @@
                 <button type="button" data-ajustes-anchor="ajustes-reserva">Reserva y colchón</button>
                 <button type="button" data-ajustes-anchor="ajustes-seguros">Seguros</button>
                 <button type="button" data-ajustes-anchor="ajustes-fiscal">Fiscal</button>
-                <button type="button" data-ajustes-anchor="ajustes-deuda">Deuda y apalancamiento</button>
                 <button type="button" data-ajustes-anchor="ajustes-patrimonio">Patrimonio e inversión</button>
                 <button type="button" data-ajustes-anchor="ajustes-laboratorio">Simuladores y Laboratorio</button>
                 <button type="button" data-ajustes-anchor="ajustes-operacion">Presupuesto y operación</button>
@@ -2721,464 +3188,6 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="fc3PriorLossSave">Registrar pérdida arrastrada</button>
               <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
-            </article>
-            </div>
-
-            <div class="e19-ajustes-group" id="ajustes-deuda" aria-labelledby="ajustes-deuda-title">
-              <h3 class="e19-ajustes-group-title" id="ajustes-deuda-title">Deuda y apalancamiento</h3>
-            <!-- LEV1 (Oleada 3, Bloque 2): política de apalancamiento del hogar — límite máximo de
-                 deuda-para-invertir, declarado de antemano como % de patrimonio neto o de ingreso
-                 anual, que el simulador de AP3 (abajo) consulta al explorar deuda nueva. Guardarraíl
-                 puro: nunca bloquea nada por sí solo, solo hace visible si el total (deuda ya tomada
-                 + lo que se esté explorando) supera el techo declarado. No cubre el crédito Lombard
-                 de APX2/APX3 a propósito — mismo motivo por el que ese instrumento ya queda fuera del
-                 guardarraíl general AP4. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Política de apalancamiento del hogar</h3>
-              <p class="e19-kpi-note">Declara de antemano cuánta deuda-para-invertir estás dispuesto a acumular como máximo, como porcentaje de tu patrimonio neto o de tu ingreso anual. El simulador de apalancamiento de abajo (AP3) avisa si una nueva exploración superaría este límite — nunca bloquea nada por sí solo.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Referencia</span>
-                  <select id="lev1Basis">
-                    <option value="net-worth">Patrimonio neto</option>
-                    <option value="income">Ingreso anual</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Límite máximo (%)</span>
-                  <input id="lev1LimitPct" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 20" />
-                </label>
-              </div>
-              <div class="e19-kpi-note" id="lev1PolicyStatus"></div>
-            </article>
-
-            <!-- DI4: impacto de un aval dado en la capacidad de endeudamiento futura. Un banco
-                 descuenta la cuota del aval de tu propia capacidad como si fuera deuda tuya, aunque
-                 hoy no la estés pagando. Campo único aquí; el impacto se calcula y se muestra en
-                 Deuda › Ruta y Comparar, junto a la capacidad de endeudamiento (D-12) que ya vive
-                 ahí — sin inventario de avales todavía. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Avales dados</h3>
-              <p class="e19-kpi-note">Si has avalado la deuda de otra persona, esa cuota se descuenta de tu propia capacidad de endeudamiento futura — aunque hoy no la pagues tú.</p>
-              <label class="month-picker">
-                <span>Cuota mensual equivalente del aval (€)</span>
-                <input id="ajustesLoanGuaranteeMonthly" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
-              </label>
-              <p class="e19-kpi-note" id="ajustesLoanGuaranteeNote"></p>
-            </article>
-
-            <!-- AP3: simulador de apalancamiento (pedir deuda nueva para invertir) — explorar, no
-                 ejecutar. Depende de AP4 (canonical-leverage-barrier.js): sin sus condiciones
-                 mínimas verificadas (colchón por encima del suelo, deuda actual sin incidencias
-                 críticas, cuota actual contenida), no hay simulación que mostrar. Los tres
-                 escenarios de rentabilidad esperada los declara el hogar — el motor no inventa
-                 ninguna cifra de mercado. La lectura favorable/desfavorable es una sugerencia que
-                 se explica con números, nunca una orden: nada se ejecuta ni se persiste como
-                 decisión, solo como exploración guardada. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Simulador de apalancamiento (explorar, no ejecutar)</h3>
-              <p class="e19-kpi-note">Antes de pedir deuda nueva para invertir: comprueba primero el guardarraíl de seguridad y, si lo superas, explora el coste de esa deuda frente a tres escenarios de rentabilidad esperada que tú declares. Ninguna cifra de mercado se inventa aquí, y ningún resultado es una recomendación de actuar — solo una lectura que puedes aceptar o descartar.</p>
-              <div class="e19-kpi-note" id="ap3BarrierStatus"></div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Deuda nueva a simular (€)</span>
-                  <input id="ap3DebtAmount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo de la deuda nueva (% anual)</span>
-                  <input id="ap3DebtRate" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Rentabilidad esperada, pesimista (% anual)</span>
-                  <input id="ap3ReturnPessimistic" type="number" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Rentabilidad esperada, base (% anual)</span>
-                  <input id="ap3ReturnBase" type="number" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Rentabilidad esperada, optimista (% anual)</span>
-                  <input id="ap3ReturnOptimistic" type="number" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ap3SimulateRun">Simular</button>
-              <div class="e19-kpi-note" id="ap3SimulatorNote"></div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Nombre del escenario a guardar</span>
-                  <input id="ap3ScenarioName" type="text" placeholder="Ej. Hipoteca para invertir en fondo indexado" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ap3ScenarioSave">Guardar escenario explorado</button>
-              <ul class="commit-barrier-list" id="ap3ScenarioList"></ul>
-            </article>
-
-            <!-- APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (simulador de
-                 ejecución de garantía, todavía sin construir). LTV y tipo los declara el hogar,
-                 nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo
-                 con garantía real tiene un perfil de riesgo distinto al de la deuda sin garantizar. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Crédito con garantía de cartera (Lombard)</h3>
-              <p class="e19-kpi-note">Cuánto podrías pedir prestado contra tu cartera de inversión real (Inversión › Cartera), a un LTV que tú declares. No modela el riesgo de ejecución de garantía si la cartera cae de valor — eso lo añadirá APX3 más adelante.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>LTV declarado (%)</span>
-                  <input id="apx2LtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 50" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo del crédito (% anual)</span>
-                  <input id="apx2RatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="apx2LombardRun">Calcular</button>
-              <div class="e19-kpi-note" id="apx2LombardNote"></div>
-            </article>
-
-            <!-- INV10 (Oleada 3, Bloque 4): comparador genérico vender vs. pedir prestado contra el
-                 activo, para financiar cualquier meta que necesite caja. Reutiliza el LTV/tipo del
-                 crédito Lombard declarados arriba (APX2) para el lado "pedir prestado". -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Vender vs. pedir prestado contra la cartera</h3>
-              <p class="e19-kpi-note">Para financiar cualquier meta que necesite caja: compara el coste de vender parte de la cartera (plusvalía + crecimiento que dejarías de generar) frente a pedirla prestada con garantía de cartera (LTV/tipo declarados arriba), sin vender nada.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Importe que necesitas (€)</span>
-                  <input id="inv10Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Horizonte a comparar (meses)</span>
-                  <input id="inv10Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
-                </label>
-                <label class="month-picker">
-                  <span>Plusvalía declarada de la posición a vender (%, opcional)</span>
-                  <input id="inv10GainLossPct" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="inv10Run">Comparar</button>
-              <div class="e19-kpi-note" id="inv10Note"></div>
-            </article>
-
-            <!-- LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. APX2
-                 (arriba) calcula UNA oferta declarada; este registra las condiciones reales de
-                 varias y las compara lado a lado sobre la misma cartera real — mismo patrón de
-                 lista repetible que la pérdida arrastrada de FC3 (Fiscal). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Comparador de líneas Lombard entre entidades</h3>
-              <p class="e19-kpi-note">Registra las condiciones reales de varias ofertas de crédito con garantía de cartera y compáralas lado a lado sobre tu cartera real: coste del primer año y margen de seguridad frente a una llamada de garantía (distancia entre el LTV al que prestan y el LTV de mantenimiento).</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Entidad</span>
-                  <input id="lev4OfferEntity" type="text" placeholder="Ej. Banco X" />
-                </label>
-                <label class="month-picker">
-                  <span>LTV máximo (%)</span>
-                  <input id="lev4OfferMaxLtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 50" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo (% anual)</span>
-                  <input id="lev4OfferRatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Comisión de apertura (%)</span>
-                  <input id="lev4OfferOpeningFeePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Comisión de cancelación (%)</span>
-                  <input id="lev4OfferCancellationFeePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>LTV de mantenimiento (%)</span>
-                  <input id="lev4OfferMaintenanceLtvPct" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 70" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="lev4OfferSave">Añadir oferta</button>
-              <ul class="commit-barrier-list" id="lev4OfferList"></ul>
-              <div class="e19-kpi-note" id="lev4ComparisonNote"></div>
-            </article>
-
-            <!-- APX3: simulador de ejecución de garantía (margin call) sobre el crédito Lombard de
-                 APX2. El hogar declara cuánto pidió prestado de verdad, el LTV de mantenimiento del
-                 banco y una caída hipotética de la cartera — nunca un umbral "típico" inventado.
-                 Extiende el guardarraíl AP4 al nuevo instrumento: si la caída dispara la llamada,
-                 compara la garantía adicional necesaria contra el mismo guardarraíl de colchón que
-                 ya usan DLX1/AP1. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Simulador de ejecución de garantía (margin call)</h3>
-              <p class="e19-kpi-note">Si tomaste el crédito con garantía de cartera de arriba, simula qué pasaría si la cartera cayera de valor: si se dispararía una llamada de garantía, y cuánta garantía adicional o liquidación forzosa exigiría el banco. No decide cuál de las dos opciones tomar.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Importe realmente pedido prestado (€)</span>
-                  <input id="apx3LoanAmount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>LTV de mantenimiento del banco (%)</span>
-                  <input id="apx3MaintenanceLtvPct" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Ej. 70" />
-                </label>
-                <label class="month-picker">
-                  <span>Caída de la cartera a explorar (%)</span>
-                  <input id="apx3StressDropPct" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Ej. 20" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="apx3MarginCallRun">Simular caída</button>
-              <div class="e19-kpi-note" id="apx3MarginCallNote"></div>
-            </article>
-
-            <!-- LEV5 (Oleada 3, Bloque 4): colchón de garantía dinámico — en vez de escribir a mano
-                 la caída a explorar de arriba, declara una banda de volatilidad (caída máxima
-                 plausible, %) por clase de activo. Con las posiciones ya clasificadas (Patrimonio e
-                 inversión, INV1), pondera esa banda por la composición real de la cartera pignorada
-                 y reutiliza el importe pedido/LTV de mantenimiento de arriba. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Colchón de garantía dinámico según volatilidad</h3>
-              <p class="e19-kpi-note">Declara la caída máxima plausible por clase de activo (nunca calculada de un histórico que esta app no guarda) y se pondera por la composición real de tu cartera pignorada, en vez de escribir una única caída a mano arriba.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Renta variable (%)</span>
-                  <input id="lev5VolatilityRentaVariable" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 40" />
-                </label>
-                <label class="month-picker">
-                  <span>Renta fija (%)</span>
-                  <input id="lev5VolatilityRentaFija" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 10" />
-                </label>
-                <label class="month-picker">
-                  <span>Monetario (%)</span>
-                  <input id="lev5VolatilityMonetario" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 2" />
-                </label>
-                <label class="month-picker">
-                  <span>Alternativo (%)</span>
-                  <input id="lev5VolatilityAlternativo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Ej. 60" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="lev5VolatilitySave">Guardar bandas</button>
-              <div id="lev5DynamicStressNote"></div>
-            </article>
-
-            <!-- LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call — compone el margin
-                 call de arriba (APX3) con el P10 de liquidez mínima ya calibrado por el Monte Carlo
-                 del Laboratorio de escenarios (ESX1). Se recalcula al pulsar "Simular caída" de
-                 arriba, sin formulario propio. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Seguro de cola frente a margin call</h3>
-              <p class="e19-kpi-note">Si la llamada de garantía de arriba se disparase justo en tu peor escenario de liquidez ya simulado (P10 del Laboratorio de escenarios), ¿tu caja mínima de ese escenario cubriría la garantía exigida?</p>
-              <div id="lev7TailRiskNote"></div>
-            </article>
-
-            <!-- LEV3 (Oleada 3, Bloque 3): estrés combinado — tipos al alza y mercado a la baja a la
-                 vez. Reutiliza los campos ya declarados de la hipoteca (arriba, en Patrimonio e
-                 inversión) y del margin call (justo arriba) — solo pide los puntos de subida de
-                 tipos, la caída de cartera ya la tiene el simulador de arriba. En una crisis real
-                 ambos suelen moverse juntos: el efecto compuesto no es la suma de los dos por
-                 separado. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Estrés combinado: tipos al alza y mercado a la baja</h3>
-              <p class="e19-kpi-note">Si tienes hipoteca variable Y crédito con garantía de cartera, simula qué pasaría si los tipos subieran y la cartera cayera a la vez — el mismo escenario de crisis real, en vez de mirar cada estrés por separado. Usa la hipoteca declarada en Patrimonio e inversión y la caída de cartera del simulador de margin call de arriba.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Subida de tipos a explorar (puntos)</span>
-                  <input id="lev3RateDeltaPoints" type="number" step="0.1" inputmode="decimal" placeholder="Ej. 1.5" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="lev3CombinedStressRun">Simular estrés combinado</button>
-              <div class="e19-kpi-note" id="lev3CombinedStressNote"></div>
-            </article>
-
-            <!-- AP6: alerta cuando el líquido ya no sostiene la deuda de apalancamiento tomada.
-                 Depende de AP3: la única deuda de apalancamiento que existe en la app es la que se
-                 exploró y guardó arriba. AP3 nunca guarda una posición real, así que este motor solo
-                 vigila los escenarios que el propio hogar ha marcado explícitamente como tomados con
-                 el botón "Marcar como tomada" de la lista de arriba — nunca una inferencia
-                 automática ni una deuda inventada. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Alerta: colchón frente a la deuda de apalancamiento tomada</h3>
-              <p class="e19-kpi-note">Cuando marques arriba un escenario explorado como tomado de verdad, esta alerta vigila si el colchón de emergencia actual sigue cubriendo su suelo mientras esa deuda sigue viva. No inventa ninguna deuda: solo mira los escenarios que tú mismo has marcado como tomados.</p>
-              <div class="e19-kpi-note" id="ap6SustainabilityAlert"></div>
-            </article>
-
-            <!-- AP1: comparador amortizar vs. invertir. Depende de IV1/IV2 e IV5 (opportunityCost,
-                 ya construido): compara el ahorro de intereses de amortizar anticipadamente una
-                 deuda existente frente a lo que ese mismo importe podría haber generado invertido
-                 en la cartera real del hogar. El TIN de la deuda lo declara el hogar: ningún
-                 contrato de deuda de la app guarda un tipo de interés propio.
-                 DEB1 (Oleada 3, Bloque 2, alcance confirmado por VER-2): AP1 ya se recalcula solo
-                 por firma, no hacía falta motor nuevo — solo el aviso de #deb1VerdictChangeAlert,
-                 visible sin tener que rellenar el formulario y pulsar «Comparar» de nuevo. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Comparador: amortizar vs. invertir</h3>
-              <p class="e19-kpi-note">Para un importe de caja disponible, compara amortizar anticipadamente una deuda existente frente a invertirlo en tu cartera real (misma rentabilidad XIRR que ya usa el simulador de decisión, IV5). Ninguna cifra de mercado se inventa aquí — solo el TIN de la deuda, que declaras tú.</p>
-              <div class="e19-kpi-note" id="deb1VerdictChangeAlert"></div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Deuda a amortizar</span>
-                  <select id="ap1DebtSelect"></select>
-                </label>
-                <label class="month-picker">
-                  <span>Importe disponible (€)</span>
-                  <input id="ap1Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>TIN de esa deuda (% anual)</span>
-                  <input id="ap1DebtRate" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Horizonte a comparar (meses)</span>
-                  <input id="ap1Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
-                </label>
-                <!-- DEB2 (Oleada 3, Bloque 3): comisión de amortización anticipada real del contrato,
-                     si la tiene — sin ella el reparto de DLX2 destinaría todo el excedente a "toDebt"
-                     sin contar que la propia comisión se paga con ese mismo excedente. -->
-                <label class="month-picker">
-                  <span>Comisión de amortización anticipada de esa deuda (%)</span>
-                  <input id="ap1PrepaymentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ap1CompareRun">Comparar</button>
-              <div class="e19-kpi-note" id="ap1CompareNote"></div>
-            </article>
-
-            <!-- DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente. Muchos contratos con
-                 comisión de amortización anticipada la reducen en un escalón declarado en el
-                 contrato; sin este aviso, DEB2 (arriba) podría dimensionar una amortización justo
-                 antes de que esa comisión bajase de precio por pura impaciencia. Solo un escalón
-                 declarado a mano — el hogar añade otro si el contrato tiene más de uno. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Ventana de comisión decreciente</h3>
-              <p class="e19-kpi-note">Si el contrato de esa deuda tiene una comisión de amortización anticipada que baja en un escalón declarado, avisa de la fecha exacta en la que amortizar pasa a ser más barato — para no ejecutar la amortización de arriba (DEB2) justo antes de esa fecha.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Comisión actual (%)</span>
-                  <input id="deb8CurrentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Ese escalón termina en (mes)</span>
-                  <input id="deb8TierUntilMonth" type="month" />
-                </label>
-                <label class="month-picker">
-                  <span>Comisión siguiente (%)</span>
-                  <input id="deb8NextPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <div class="e19-kpi-note" id="deb8PrepaymentWindowNote"></div>
-            </article>
-
-            <!-- DLX3: retrospectiva "¿me habría quedado sin colchón?" — depende de DLX1 (mismo
-                 suelo) y PVX1 (mismo historial real conciliado, tarjeta más arriba en Fiscal).
-                 Reconstrucción aproximada de la liquidez pasada a partir del flujo neto real, nunca
-                 una cifra con apariencia de precisión histórica exacta: la propia tarjeta declara
-                 qué no reconstruye. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Retrospectiva: ¿me habría quedado sin colchón?</h3>
-              <p class="e19-kpi-note">Reconstruye la liquidez de cada mes ya conciliado con el banco, mes a mes hacia atrás desde tu liquidez de hoy, y la compara con el suelo actual del colchón. Es una aproximación: solo usa el flujo neto real, no reconstruye traspasos puntuales entre cuentas.</p>
-              <div id="dlx3Retrospective"></div>
-            </article>
-
-            <!-- AP5: deuda nueva y existente en una sola cola de prioridad. Depende de AP3
-                 (escenarios marcados como tomados en AP6) y A16-5 (criterios avalancha/bola de
-                 nieve, ya construidos en la Ruta de deuda) — mismos dos criterios, sin inventar un
-                 tercero. Una deuda solo explorada en AP3 (sin marcar como tomada) nunca entra en la
-                 cola: no es una deuda real todavía. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Deuda: cola única de prioridad (nueva y existente)</h3>
-              <p class="e19-kpi-note">Mezcla la deuda existente con la deuda de apalancamiento que hayas marcado como tomada (arriba, en el simulador de AP3) en una única cola de prioridad de pago, con el mismo criterio de la Ruta de deuda.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Criterio de orden</span>
-                  <select id="ap5StrategySelect">
-                    <option value="avalancha">Avalancha (mayor TAE primero)</option>
-                    <option value="bola-nieve">Bola de nieve (menor saldo primero)</option>
-                  </select>
-                </label>
-              </div>
-              <ul class="commit-barrier-list" id="ap5QueueList"></ul>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Comparador educativo de tarifas fijas</h3>
-              <p class="e19-kpi-note">Compara una tarifa de precio fijo con una de precio variable (luz, gas...) según tu consumo, y a qué precio variable medio saldría igual. Sin precios de mercado reales: pones los tuyos.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Consumo mensual (kWh u otra unidad)</span>
-                  <input id="ajustesTariffConsumption" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Precio fijo (€/unidad)</span>
-                  <input id="ajustesTariffFixedPrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Cargo fijo mensual — tarifa fija (€)</span>
-                  <input id="ajustesTariffFixedFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
-                </label>
-                <label class="month-picker">
-                  <span>Precio variable estimado (€/unidad)</span>
-                  <input id="ajustesTariffVariablePrice" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Cargo fijo mensual — tarifa variable (€)</span>
-                  <input id="ajustesTariffVariableFee" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Opcional" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesTariffCompare">Comparar</button>
-              <p class="e19-kpi-note" id="ajustesTariffComparatorNote"></p>
-            </article>
-
-            <!-- DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo marco de tres
-                 escenarios (base/favorable/tensión) que ya usa el Laboratorio de escenarios (E13),
-                 aplicado al tipo de interés. DEB4 (Oleada 3, Bloque 3) persiste estos campos (antes
-                 solo calculadora puntual) para poder vigilarlos como radar continuo: declara un
-                 umbral de meses aceptable y avisa sin tener que volver a abrir el simulador. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Hipoteca variable → fija bajo escenarios de tipos</h3>
-              <p class="e19-kpi-note">Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos — base, favorable y tensión (mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: pones los tuyos.</p>
-              <div class="e19-kpi-note" id="deb4RadarAlert"></div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Capital pendiente (€)</span>
-                  <input id="ajustesMortgagePrincipal" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Meses restantes</span>
-                  <input id="ajustesMortgageMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="240" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo variable actual (%)</span>
-                  <input id="ajustesMortgageVariableRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Oferta de tipo fijo (%)</span>
-                  <input id="ajustesMortgageFixedRate" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0" />
-                </label>
-                <!-- APX5: coste total de refinanciar, no solo el tipo — comisión de cancelación/
-                     subrogación + gastos de novación, para el punto de equilibrio en meses. -->
-                <label class="month-picker">
-                  <span>Coste de refinanciar (€)</span>
-                  <input id="ajustesMortgageRefinancingCost" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <!-- DEB4: umbral de meses aceptable para el radar — sin él, el radar no tiene con
-                     qué decidir si el punto de equilibrio actual merece un aviso. -->
-                <label class="month-picker">
-                  <span>Radar: avisar si se recupera en ≤ (meses)</span>
-                  <input id="deb4MaxBreakEvenMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 24" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesMortgageScenariosCompare">Comparar</button>
-              <div class="e19-kpi-note" id="ajustesMortgageScenariosNote"></div>
-            </article>
-
-            <!-- DI5: reestructuración conjunta ante una caída de ingresos. Usa los contratos reales
-                 de Deuda › Contratos (activos, con cuota) — solo pide el ingreso mensual tras la
-                 caída, y propone en qué orden alargar plazos hasta el ratio seguro configurado. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Reestructuración conjunta ante una caída de ingresos</h3>
-              <p class="e19-kpi-note">Mira todos tus contratos de deuda activos juntos frente a un ingreso reducido, y propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Ingreso mensual tras la caída (€)</span>
-                  <input id="ajustesJointRestructuringIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesJointRestructuringCompare">Comparar</button>
-              <div class="e19-kpi-note" id="ajustesJointRestructuringNote"></div>
             </article>
             </div>
 

@@ -195,6 +195,7 @@ const HEAVY_RENDER_VIEWS = new Set([
   "deuda-ruta",
   "deuda-contratos",
   "deuda-simulador",
+  "deuda-apalancamiento",
   "cierre",
   "conciliar",
   "analisis",
@@ -216,6 +217,7 @@ const VIEW_CHUNKS = {
   "deuda-ruta": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-ruta" },
   "deuda-contratos": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-contratos" },
   "deuda-simulador": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-simulador" },
+  "deuda-apalancamiento": { src: "views/deuda.js?v=20260830di3a1", rootId: "deuda-apalancamiento" },
   cierre: { src: "views/cierre.js?v=20260826a1", rootId: "cierre" },
   conciliar: { src: "views/cierre.js?v=20260826a1", rootId: "conciliar" },
   analisis: { src: "views/analisis.js?v=20260831a164c1", rootId: "analisis" },
@@ -556,6 +558,10 @@ const viewTitles = {
   "deuda-simulador": {
     eyebrow: "Decidir · simulador visual",
     title: "Simulador visual de estrategias de deuda",
+  },
+  "deuda-apalancamiento": {
+    eyebrow: "Decidir · apalancamiento",
+    title: "Deuda y apalancamiento",
   },
   conciliar: {
     eyebrow: "Control · conciliación",
@@ -27123,8 +27129,6 @@ function renderAjustes() {
   renderAjustesDividendTaxNote();
   syncEmergencyCreditLineControls();
   renderAjustesEmergencyCreditLineNote();
-  syncLoanGuaranteeControl();
-  renderAjustesLoanGuaranteeNote();
   syncAutoAdjustForecastBiasControl();
   renderAjustesAutoAdjustForecastBiasNote();
   renderRemuneratedAccounts();
@@ -27132,14 +27136,6 @@ function renderAjustes() {
   renderInsurancePolicies();
   renderTaxTables();
   renderIrpfBracketScales();
-  renderAp3BarrierStatus();
-  renderAp3ScenarioList();
-  renderAp6Alert();
-  renderAp1DebtOptions();
-  renderAp5Queue();
-  syncLev1PolicyControls();
-  renderLev1PolicyStatus();
-  renderDeb1VerdictChangeAlert();
   syncFiscalAssumptionControls();
   renderAjustesAssumptionRegistry();
   syncA18IncomeControls();
@@ -27165,16 +27161,11 @@ function renderAjustes() {
   renderIv1GoalOptions();
   renderIv1PositionSummary();
   renderFc3PriorLossList();
-  renderLev4LombardComparison();
-  syncDeb4RadarControls();
-  renderDeb4RefinancingRadar();
   renderPvc6SnapshotOptions();
   renderIv1PositionConcentration();
   syncIv6TargetControls();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
-  syncLev5VolatilityControls();
-  renderLev5DynamicStress();
   renderIvx6GlidePath();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
@@ -27186,7 +27177,6 @@ function renderAjustes() {
   renderPv5Diary();
   renderPvx5CausalTree();
   renderPvx1Backtest();
-  renderDlx3Retrospective();
   renderAnnualReview();
 
   const balances = accountBalancesFromState();
@@ -36362,6 +36352,9 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     case "deuda-simulador":
       renderDeudaSimulador();
+      break;
+    case "deuda-apalancamiento":
+      renderDeudaApalancamiento();
       break;
     case "conciliar":
       renderConciliar();

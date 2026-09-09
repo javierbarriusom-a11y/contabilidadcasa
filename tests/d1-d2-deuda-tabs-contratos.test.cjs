@@ -71,10 +71,10 @@ function sandboxTabs() {
   return context;
 }
 
-test("D-1/D-15 · las cuatro pestañas son Ruta, Comparar, Contratos y Simulador visual, en ese orden", () => {
+test("D-1/D-15/OPT-24 · las cinco pestañas son Ruta, Comparar, Contratos, Simulador visual y Apalancamiento, en ese orden", () => {
   const source = extractConst("DEUDA_SCREEN_TABS");
   const ids = [...source.matchAll(/id: "([\w-]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador"]);
+  assert.deepEqual(ids, ["deuda-ruta", "deuda-comparar", "deuda-contratos", "deuda-simulador", "deuda-apalancamiento"]);
 });
 
 test("D-1/OPT-4 · deudaScreenTabsHtml marca is-active y aria-current=\"page\" solo en la pestaña activa", () => {

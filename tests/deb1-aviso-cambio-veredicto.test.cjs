@@ -10,6 +10,7 @@ const path = require("node:path");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
 
 test("la tarjeta de AP1 tiene el hueco del aviso de cambio de veredicto, visible sin pulsar Comparar", () => {
   assert.match(indexSource, /id="deb1VerdictChangeAlert"/);
@@ -59,7 +60,7 @@ test("saveScenarioSettings persiste ap1TrackedComparison", () => {
   assert.match(block, /ap1TrackedComparison: scenarioSettings\.ap1TrackedComparison \|\| null/);
 });
 
-test("el aviso se recalcula en el arranque de la app, no solo tras pulsar Comparar", () => {
-  const initBlock = appSource.slice(appSource.indexOf("renderLev1PolicyStatus();\n  renderDeb1VerdictChangeAlert();"), appSource.indexOf("renderLev1PolicyStatus();\n  renderDeb1VerdictChangeAlert();") + 60);
+test("el aviso se recalcula al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta), no solo tras pulsar Comparar", () => {
+  const initBlock = deudaSource.slice(deudaSource.indexOf("renderLev1PolicyStatus();\n  renderDeb1VerdictChangeAlert();"), deudaSource.indexOf("renderLev1PolicyStatus();\n  renderDeb1VerdictChangeAlert();") + 60);
   assert.match(initBlock, /renderDeb1VerdictChangeAlert\(\);/);
 });

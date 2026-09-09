@@ -56,7 +56,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-7 | Paneles completos de «modo familiar» y «alertas» compitiendo en «Hoy» | Medio-Alto | S-M | ⏳ |
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
-| 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ⏳ · sin bloqueo, no depende de OPT-2 |
+| 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | 🟡 · Tarea 1 (Deuda y apalancamiento → ruta Deuda) hecha; Tareas 2-4 pendientes |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
@@ -319,6 +319,21 @@ apalancamiento del hogar, avales dados).
    es cuál.
 4. Actualizar `tests/navigation-structure.test.cjs` y cualquier test de wiring que dé por hecho la
    posición actual de una tarjeta movida.
+
+**Progreso (8 de septiembre de 2026, sesión 161):** Tarea 1 completada. La sub-pestaña «Deuda y
+apalancamiento» ya no existe en Ajustes: sus 18 tarjetas viven ahora en una quinta pantalla de la
+ruta Deuda (`#deuda-apalancamiento`), con la misma barra de pestañas de pantalla que ya comparten
+Ruta/Comparar/Contratos/Simulador visual (`DEUDA_SCREEN_TABS` en `views/deuda.js`), y separadas
+dentro de esa pantalla en «Configuración» (política de apalancamiento del hogar, avales dados) y
+«Herramientas» (los 16 simuladores/comparadores/alertas restantes). Las 16 llamadas de refresco que
+vivían dentro de `renderAjustes()` se movieron a una nueva `renderDeudaApalancamiento()` en
+`views/deuda.js`, cableada en el dispatcher central y en `HEAVY_RENDER_VIEWS`/`VIEW_CHUNKS`. Ningún
+motor canónico ni identificador de campo cambió — es un traslado de UI, no un rediseño de lógica.
+15 tests de wiring que asumían la ubicación anterior se actualizaron para apuntar a la nueva
+pantalla; `npm run verify` completo en verde (3514/3514 tests, a11y, rendimiento, build, privacidad
+y smoke del sitio público). Quedan pendientes las Tareas 2-4 (separar Configuración/Herramientas en
+las 8 sub-pestañas de Ajustes que se quedan, resolver las 8 tarjetas mixtas, y el resto de tests de
+`navigation-structure`).
 
 **Resultado esperado:** Ajustes deja de ser un cajón de sastre — cada tarjeta vive donde su propio
 comportamiento indica (dato declarado vs. decisión activa), sin abrir rutas nuevas, sin revivir

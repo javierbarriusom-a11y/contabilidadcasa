@@ -37,5 +37,5 @@ test("handlePvc6SnapshotCompare reutiliza FinanceCanonicalForecast.diffAssumptio
 
 test("el botón de comparar está conectado y el select se rellena en el arranque de la app", () => {
   assert.match(appSource, /qs\("pvc6SnapshotCompare"\)\?\.addEventListener\("click", handlePvc6SnapshotCompare\)/);
-  assert.match(appSource, /renderDeb4RefinancingRadar\(\);\s*\n\s*renderPvc6SnapshotOptions\(\);/);
+  assert.match(appSource, /renderFc3PriorLossList\(\);\s*\n\s*renderPvc6SnapshotOptions\(\);/);
 });

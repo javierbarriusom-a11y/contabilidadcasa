@@ -4,6 +4,7 @@ const fs = require("node:fs");
 
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
+const deudaSource = fs.readFileSync(require.resolve("../views/deuda.js"), "utf8");
 
 test("DI4: la tarjeta de Ajustes tiene el campo de la cuota mensual del aval", () => {
   assert.match(indexSource, /id="ajustesLoanGuaranteeMonthly"/);
@@ -31,10 +32,10 @@ test("DI4: el campo guarda en scenarioSettings al cambiar", () => {
   assert.match(body, /loanGuaranteeMonthly: round2\(Math\.max\(0, Number\(state\.loanGuaranteeMonthly \|\| 0\)\)\)/);
 });
 
-test("DI4: renderAjustes sincroniza y rellena la nota del aval", () => {
-  const start = appSource.indexOf("function renderAjustes(");
-  const end = appSource.indexOf("\n}", start);
-  const body = appSource.slice(start, end);
+test("DI4: renderDeudaApalancamiento sincroniza y rellena la nota del aval (OPT-24: ya no es un ajuste, es una herramienta)", () => {
+  const start = deudaSource.indexOf("function renderDeudaApalancamiento(");
+  const end = deudaSource.indexOf("\n}", start);
+  const body = deudaSource.slice(start, end);
   assert.match(body, /syncLoanGuaranteeControl\(\);/);
   assert.match(body, /renderAjustesLoanGuaranteeNote\(\);/);
 });

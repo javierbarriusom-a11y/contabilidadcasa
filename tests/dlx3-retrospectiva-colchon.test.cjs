@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, "..");
 const read = (name) => fs.readFileSync(path.join(root, name), "utf8");
 const app = read("app.js");
 const html = read("index.html");
+const deudaSource = read(path.join("views", "deuda.js"));
 
 // DLX3 (Oleada 2 Bloque 4): retrospectiva "¿me habría quedado sin colchón?". Usa el mismo
 // historial real conciliado que ya expone PVX1 (reconciledMonthlyNetHistory) y el suelo VIGENTE
@@ -109,5 +110,5 @@ test("app.js: renderDlx3Retrospective reutiliza reconciledMonthlyNetHistory y cu
   assert.match(block, /reconciledMonthlyNetHistory\(\)/);
   assert.match(block, /cushionEngine\.cushionRetrospective\(/);
   assert.match(block, /floor: cushionEngine\.cushionFloor\(lastSimulation, cuadroMandosReserve\(\)\)\.value/);
-  assert.match(app, /renderPvx1Backtest\(\);\s*\n\s*renderDlx3Retrospective\(\);/);
+  assert.match(deudaSource, /renderLev5DynamicStress\(\);\s*\n\s*renderDlx3Retrospective\(\);/);
 });
