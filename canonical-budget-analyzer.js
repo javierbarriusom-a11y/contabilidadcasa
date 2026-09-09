@@ -101,6 +101,38 @@ class CanonicalBudgetAnalyzer {
   }
 
   /**
+   * PVC2: reparte la banda de incertidumbre del horizonte largo (p. ej. P90-P10 de ESX1, hoy
+   * repartida por igual entre categorías con volatilidad muy distinta) según la desviación
+   * histórica propia de cada categoría (`stdDev` de `analyzeCategory`), no un reparto uniforme.
+   * Bajo el supuesto de independencia entre categorías (sin datos de correlación real — mismo
+   * hueco que bloqueó IVX1/IVX5), la varianza total es la suma de las varianzas de cada categoría,
+   * así que el peso de cada una es su propia varianza sobre esa suma.
+   *
+   * @param {Array<{categoryId: string, analysis: object|null}>} categoryAnalyses - analysis = resultado de analyzeCategory (o null, se ignora)
+   * @param {number} bandWidth - amplitud de la banda total a repartir (€, p. ej. p90 - p10)
+   * @returns {Array<{categoryId, monthlyStdDev, sharePct, explainedWidth}>} ordenado de mayor a menor peso
+   */
+  static categoryConfidenceShare(categoryAnalyses, bandWidth) {
+    const withVariance = (categoryAnalyses || [])
+      .filter((entry) => Number(entry?.analysis?.stdDev) > 0)
+      .map((entry) => ({ categoryId: entry.categoryId, monthlyStdDev: entry.analysis.stdDev, variance: entry.analysis.stdDev ** 2 }));
+    const totalVariance = withVariance.reduce((sum, entry) => sum + entry.variance, 0);
+    if (!withVariance.length || totalVariance <= 0) return [];
+    const width = Math.abs(Number(bandWidth) || 0);
+    return withVariance
+      .map((entry) => {
+        const sharePct = Math.round((entry.variance / totalVariance) * 10000) / 100;
+        return {
+          categoryId: entry.categoryId,
+          monthlyStdDev: Math.round(entry.monthlyStdDev * 100) / 100,
+          sharePct,
+          explainedWidth: Math.round(width * (sharePct / 100) * 100) / 100,
+        };
+      })
+      .sort((a, b) => b.sharePct - a.sharePct);
+  }
+
+  /**
    * Agrupa movimientos por mes y suma totales.
    */
   static _aggregateByMonth(movements, months) {

@@ -429,6 +429,28 @@
       overwroteOriginal: false };
   }
 
+  // PVC7 (Oleada 3, Bloque 5): los escenarios guardados (A8-7) no caducaban — un escenario podía
+  // seguir mostrándose como vigente aunque el forecast base ya se hubiera recalibrado de verdad
+  // desde que se guardó. Reutiliza tal cual recalculateSavedScenario() (misma comparación
+  // original/recalculado que ya usa el botón «Recalcular copia») para decidir si la caja mínima del
+  // escenario base se movió más de un umbral porcentual — solo entonces, y solo si además cambió la
+  // huella del forecast (una huella distinta sin cambio material no cuenta como caducidad), se
+  // marca "desactualizado". Nunca se borra ni se recalcula solo: es una etiqueta informativa.
+  const SAVED_SCENARIO_STALE_THRESHOLD_PCT = 20;
+
+  function savedScenarioStaleness(recalculation = {}, options = {}) {
+    const thresholdPct = Number.isFinite(options.thresholdPct) ? options.thresholdPct : SAVED_SCENARIO_STALE_THRESHOLD_PCT;
+    const before = recalculation?.original?.scenarios?.[0]?.metrics?.minChecking;
+    const after = recalculation?.recalculated?.scenarios?.[0]?.metrics?.minChecking;
+    const fingerprintChanged = recalculation?.originalForecastFingerprint !== recalculation?.currentForecastFingerprint;
+    if (!Number.isFinite(before) || !Number.isFinite(after)) {
+      return { schemaId: `${SCHEMA_ID}/saved-scenario-staleness-v1`, stale: false, reason: "sin-datos-suficientes", delta: 0, deltaPct: 0, thresholdPct, fingerprintChanged };
+    }
+    const delta = round(after - before);
+    const deltaPct = before !== 0 ? round(Math.abs(delta / before) * 100) : (delta !== 0 ? 100 : 0);
+    return { schemaId: `${SCHEMA_ID}/saved-scenario-staleness-v1`, stale: fingerprintChanged && deltaPct >= thresholdPct, delta, deltaPct, thresholdPct, fingerprintChanged, before, after };
+  }
+
   // PVC5 (Oleada 3, Bloque 4): recalibración trimestral del triángulo Monte Carlo — decisión del
   // hogar (sesión 159): ventana de 8 trimestres (24 meses) de histórico reconciliado en vez de todo
   // el histórico disponible, con confirmación explícita antes de aplicar (nunca automático, mismo
@@ -475,5 +497,5 @@
     };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, MONTE_CARLO_DEFAULT_TRAJECTORIES, MONTE_CARLO_MAX_TRAJECTORIES, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, monteCarloSimulation, saveScenario, recalculateSavedScenario, windowedHistory, QUARTERLY_RECALIBRATION_SCHEMA_ID, quarterlyRecalibrationProposal, weightedForecastWithUncertainEvents };
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, MONTE_CARLO_DEFAULT_TRAJECTORIES, MONTE_CARLO_MAX_TRAJECTORIES, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, monteCarloSimulation, saveScenario, recalculateSavedScenario, savedScenarioStaleness, SAVED_SCENARIO_STALE_THRESHOLD_PCT, windowedHistory, QUARTERLY_RECALIBRATION_SCHEMA_ID, quarterlyRecalibrationProposal, weightedForecastWithUncertainEvents };
 });

@@ -12,7 +12,7 @@ const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const p2UiSource = fs.readFileSync(path.join(__dirname, "..", "p2-ui.js"), "utf8");
 
 test("recomputeModelIfNeeded marca lastModelRecomputeAt solo cuando recalcula de verdad (no en cada llamada)", () => {
-  const block = appSource.slice(appSource.indexOf("function recomputeModelIfNeeded("), appSource.indexOf("function recomputeModelIfNeeded(") + 700);
+  const block = appSource.slice(appSource.indexOf("function recomputeModelIfNeeded("), appSource.indexOf("function recomputeModelIfNeeded(") + 900);
   const returnIndex = block.indexOf("return;");
   const markIndex = block.indexOf("lastModelRecomputeAt = new Date().toISOString();");
   assert.ok(returnIndex >= 0 && markIndex > returnIndex, "La marca debe quedar después del atajo por firma sin cambios, nunca antes");

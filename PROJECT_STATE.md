@@ -43,6 +43,58 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
 
+## Cierre de sesión — 9 de septiembre de 2026 (163): Bloque 5 de Oleada 3, sub-bloque «Previsión viva» — PVC2, PVC4, PVC7, PVC8, PVC9
+
+El usuario pidió cerrar y actualizar el backlog de Oleada 3; al revisar el documento se confirmó que
+la oleada NO estaba lista para cerrarse (el Bloque 5, 16 tareas, seguía sin empezar) — se lo señalé
+explícitamente y, ante la elección del hogar, empecé el Bloque 5 en vez de darlo por cerrado sin
+serlo. Primer sub-bloque: las 5 tareas de «Previsión viva» (`PVC2`, `PVC4`, `PVC7`, `PVC8`, `PVC9`).
+
+- **`PVC2`** — `CanonicalBudgetAnalyzer.categoryConfidenceShare()` (`canonical-budget-analyzer.js`)
+  reparte la banda P10-P90 del triángulo de `ESX1` entre categorías de gasto según su propia
+  varianza histórica (`stdDev²` de `analyzeCategory`/`PVX4`), bajo el supuesto explícito de
+  independencia entre categorías — nunca por igual. Tarjeta nueva en el Laboratorio de escenarios.
+- **`PVC4`** — `categoryDriftWindows()` (`canonical-forecast.js`) reconstruye previsto/real por
+  partida desde los meses ya cerrados y archivados (`pvc4CategoryHistoryRecords()` reutiliza
+  `registrarMesCollect()`, la única fuente real por partida que existe hoy — `learnFromHistory()`
+  solo tenía un concepto agregado, "monthly-net"). Compara tres ventanas (3/6/12 meses): marca
+  "sesgo sistemático" cuando la desviación va siempre en la misma dirección, con tendencia
+  empeorando/mejorando/estable. Tarjeta nueva en Ajustes › Presupuesto y operación.
+- **`PVC7`** — `savedScenarioStaleness()` (`canonical-e13-scenarios.js`) reutiliza
+  `recalculateSavedScenario()` (mismo cálculo que ya usaba el botón «Recalcular copia») y marca
+  "desactualizado" un escenario guardado solo si la huella del forecast cambió Y la caja mínima del
+  escenario base recalculado se movió ≥20% — una huella distinta sin cambio material (p. ej. un
+  dato editado que no afecta a ese escenario) no cuenta como caducidad. Badge junto a cada
+  escenario guardado, nunca se recalcula ni se borra solo.
+- **`PVC8`** — `reforecastMaterialityAlert()` (`canonical-forecast.js`) compara la caja mínima antes
+  y después de cada recálculo real (`recomputeModelIfNeeded()`, capturada justo antes de
+  sobrescribir `lastSimulation`) contra un umbral doble — absoluto (200€) Y relativo a la caja
+  disponible ahora mismo (10%) — para no ser ni demasiado sensible con colchones grandes ni
+  demasiado laxo con pequeños. Expuesta vía `FinanceP2Bridge.reforecastMaterialityAlert()`, visible
+  en los paneles de metas (E15) y riesgo (E16) junto al indicador de `PVC1` ya existente.
+- **`PVC9`** — `previsionChangeOneLiner()` (`canonical-forecast.js`) combina el árbol causal de una
+  cifra (`PVX5`, `causalTreeForMonth`) con el detector de cambio estructural (`PVC3`,
+  `detectStructuralChange`) en una frase: sin cambio estructural sostenido lo dice tal cual —nunca
+  inventa un "por qué" para algo que `PVC3` ya descartó como ruido—, y con cambio estructural cita
+  el componente del árbol causal del mes elegido que más pesa en euros, como ejemplo concreto (no
+  como atribución exacta de varios meses). Frase visible en la propia tarjeta del árbol causal.
+- **Validación**: `npm run verify` completo en verde — `npm test` **3556/3556** (2 tests de ventana
+  fija ajustados por el crecimiento de `renderE13ScenarioLab()`/`recomputeModelIfNeeded()`,
+  patrón ya conocido de sesiones anteriores), `test:a11y` (**1178 IDs únicos**, +2 sobre la sesión
+  anterior por las dos tarjetas nuevas con contenedor propio — PVC2/PVC7/PVC8 reutilizan
+  contenedores o puntos de extensión ya existentes), `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke`, todos sin errores.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` (Bloque 5 §7: `PVC2`/`PVC4`/
+`PVC7`/`PVC8`/`PVC9` pasan de ⏳ a ✅ con el detalle de construcción). Quedan 11 tareas del Bloque 5
+(`INV2`, `INV4`, `INV6`, `INV7`, `INV8`, `LEV8`, `DEB3`, `DEB7`, `GOB7`, `GOB8`, `GOB10`) para
+sesiones siguientes — la oleada sigue sin poder cerrarse hasta que estén resueltas (construidas o
+retiradas con motivo).
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` (adelantada a `main` tras
+  el merge del PR #260) — commit y push siguientes, PR en borrador y fusión a `main` en cuanto el CI
+  esté en verde, autorización ya dada por el hogar (`CLAUDE.md`).
+
 ## Cierre de sesión — 9 de septiembre de 2026 (162): `OPT-24` cerrada — Configuración/Herramientas en Ajustes y 3 tarjetas mixtas resueltas
 
 El usuario pidió continuar con las Tareas 2-4 de `OPT-24`: separar Configuración/Herramientas en las

@@ -31,10 +31,10 @@ test("A14-5: e13AssetsForLab delega en FinanceCanonicalAssets.normalizeAssets si
 test("A14-5: renderE13ScenarioLab construye el laboratorio con los activos declarados y pinta la tarjeta de patrimonio simulado", () => {
   // ESX4 (Oleada 2 Bloque 3) añadió la tarjeta de la malla de ingresos × gastos antes de esta,
   // ESX1/ESX3 (Oleada 2 Bloque 5) añadieron Monte Carlo y el escenario inverso, PVC5 (Oleada 3
-  // Bloque 4) añadió la recalibración trimestral, y PVC10 (misma oleada) la previsión ponderada por
-  // eventos inciertos — la ventana crece de 6400 a 7200 a 7900 a 8400 a 10200, la comprobación sigue
-  // siendo la misma.
-  const block = appSource.slice(appSource.indexOf("function renderE13ScenarioLab("), appSource.indexOf("function renderE13ScenarioLab(") + 10200);
+  // Bloque 4) añadió la recalibración trimestral, PVC10 (misma oleada) la previsión ponderada por
+  // eventos inciertos, y PVC2 (Bloque 5) la banda de confianza por categoría — la ventana crece de
+  // 6400 a 7200 a 7900 a 8400 a 10200 a 10900, la comprobación sigue siendo la misma.
+  const block = appSource.slice(appSource.indexOf("function renderE13ScenarioLab("), appSource.indexOf("function renderE13ScenarioLab(") + 10900);
   assert.match(block, /E13\.buildLab\(forecast, e13ScenarioEvents, \{ generatedAt: forecast\.generatedAt, assets: e13AssetsForLab\(\) \}\)/);
   assert.match(block, /Patrimonio simulado \(A14-5\)/);
   assert.match(block, /e13AssetImpactHtml\(lab\.assetImpact\)/);

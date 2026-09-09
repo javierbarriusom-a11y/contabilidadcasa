@@ -157,6 +157,9 @@ let simulationSignature = "";
 // última vez (nunca en cada llamada — solo cuando la firma cambió), para que E15/E16 puedan mostrar
 // "recalculado hace X" sin que el hogar tenga que abrir cada pantalla para confiar en que está al día.
 let lastModelRecomputeAt = null;
+// PVC8: última alerta de materialidad del recálculo (null hasta el primer recálculo con un
+// "antes" real que comparar — el primer cómputo tras cargar nunca genera alerta).
+let pvc8MaterialityAlert = null;
 let renderFrame = 0;
 let activeViewRenderFrame = 0;
 let activeViewRenderTimer = 0;
@@ -7421,6 +7424,11 @@ function recomputeModelIfNeeded(force = false) {
   if (!force && simulationSignature === nextSignature && canonicalScenarioRows("active").length && canonicalScenarioRows("base").length && canonicalScenarioRows("planned").length) {
     return;
   }
+  // PVC8: caja mínima ANTES de sobrescribir lastSimulation con el recálculo — null en el primer
+  // cómputo (nada con lo que comparar todavía), nunca un 0 inventado.
+  const pvc8PreviousMinChecking = Array.isArray(lastSimulation) && lastSimulation.length
+    ? Math.min(...lastSimulation.map((row) => Number(row.closingChecking)))
+    : null;
   simulationSignature = nextSignature;
   lastModelRecomputeAt = new Date().toISOString();
   savingsAgentPlanCache = { key: "", value: null };
@@ -7433,6 +7441,14 @@ function recomputeModelIfNeeded(force = false) {
   const plannedScenario = computeCanonicalScenario(projectPlan.outflows, { useActuals: false, engineContext: "planned" });
   lastSimulation = activeScenario.rows;
   lastPlannedSimulation = plannedScenario.rows;
+  // PVC8 (Oleada 3, Bloque 5): PVX3 ya recalculaba al instante — faltaba decidir cuándo avisar. Solo
+  // compara si ya había un "antes" real; la caja disponible ahora mismo (no la proyectada) es la base
+  // del umbral relativo.
+  const pvc8NextMinChecking = lastSimulation.length ? Math.min(...lastSimulation.map((row) => Number(row.closingChecking))) : null;
+  const pvc8AvailableCash = accountBalancesFromState().total;
+  pvc8MaterialityAlert = pvc8PreviousMinChecking === null
+    ? null
+    : window.FinanceCanonicalForecast.reforecastMaterialityAlert(pvc8PreviousMinChecking, pvc8NextMinChecking, pvc8AvailableCash);
 }
 
 function updateKpis(rows, baseRows = rows) {
@@ -19985,6 +20001,25 @@ function e13BudgetCategoryOptions() {
   return [...set].sort();
 }
 
+// PVC2 (Oleada 3, Bloque 5): reutiliza budgetAnalysisForCategory() (mismo cálculo que ya usa PVX4
+// para sugerir presupuesto) por cada categoría con histórico, y CanonicalBudgetAnalyzer.
+// categoryConfidenceShare() reparte una banda total (p. ej. P10-P90 de ESX1) según la varianza
+// propia de cada categoría, en vez de asumir que todas contribuyen por igual.
+function pvc2CategoryConfidenceShare(bandWidth) {
+  if (!window.FinanceCanonicalBudgetAnalyzer?.CanonicalBudgetAnalyzer) return [];
+  const monthKey = currentBudgetMonthKey();
+  const categoryAnalyses = e13BudgetCategoryOptions().map((categoryId) => ({
+    categoryId,
+    analysis: budgetAnalysisForCategory(categoryId, monthKey),
+  }));
+  return window.FinanceCanonicalBudgetAnalyzer.CanonicalBudgetAnalyzer.categoryConfidenceShare(categoryAnalyses, bandWidth);
+}
+
+function pvc2ConfidenceShareHtml(shares) {
+  if (!shares.length) return '<p class="e19-kpi-note">Sin histórico suficiente por categoría (mínimo 3 meses) para repartir la banda todavía.</p>';
+  return `<ul class="e19-kpi-note">${shares.slice(0, 6).map((item) => `<li>${escapeHtml(item.categoryId)}: ${item.sharePct}% de la banda (±${money(item.explainedWidth, true)}), desviación mensual histórica ${money(item.monthlyStdDev, true)}.</li>`).join("")}</ul>`;
+}
+
 // PV2 · termómetro de desviación por partida. Visualiza lo que learnFromHistory() (E12b) ya calcula
 // — un termómetro por partida en vez del texto de una sola línea que solo mostraba la primera. La
 // barra usa severity (bajo/medio/alto, normalizado contra lo previsto medio de esa partida) para que
@@ -20229,6 +20264,10 @@ function renderE13ScenarioLab() {
   const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
   const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
   renderPvc5RecalibrationNote();
+  // PVC2 (Oleada 3, Bloque 5): reparte la banda P10-P90 de arriba entre categorías según su propia
+  // volatilidad histórica (PVX4), en vez de dejarla repartida por igual entre categorías con
+  // volatilidad muy distinta.
+  const pvc2Shares = pvc2CategoryConfidenceShare(prudent.percentiles.p90 - prudent.percentiles.p10);
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
@@ -20238,6 +20277,7 @@ function renderE13ScenarioLab() {
     <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
     <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
+    <article class="e6-quality-card"><header><strong>PVC2 · banda de confianza por categoría</strong><span class="status-pill ${pvc2Shares.length ? "good" : "warn"}">${pvc2Shares.length} categoría(s)</span></header><p class="e19-kpi-note">De la banda P10-P90 de arriba, qué categorías de gasto explican más incertidumbre por su propia volatilidad histórica (nunca repartida por igual).</p>${pvc2ConfidenceShareHtml(pvc2Shares)}</article>
     <article class="e6-quality-card"><header><strong>ESX1 · Monte Carlo (${monteCarlo.calculable ? monteCarlo.trajectories : 0} trayectorias)</strong><span class="status-pill ${monteCarlo.calculable && monteCarlo.calibrated ? "good" : "warn"}">${monteCarlo.calculable ? escapeHtml(monteCarlo.source) : "sin datos"}</span></header>${esx1MonteCarloHtml(monteCarlo)}</article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
     <article class="e6-quality-card"><header><strong>ESX3 · escenario inverso</strong><span class="status-pill ${inverseScenario.alreadyBroken ? "warn" : "good"}">${inverseScenario.alreadyBroken ? "Ya roto" : "Punto de cruce"}</span></header>${esx3InverseScenarioHtml(inverseScenario)}</article>
@@ -20251,7 +20291,19 @@ function renderE13ScenarioLab() {
     ? scenarioSettings.e13SavedScenarios
     : Array.isArray(localSaved) ? localSaved : [];
   if (saved.length && !scenarioSettings.e13SavedScenarios?.length) scenarioSettings.e13SavedScenarios = saved;
-  qs("e13SavedScenarios").innerHTML = saved.length ? saved.map((item) => `<article class="e13-event-chip"><b>${escapeHtml(item.name)}</b> · ${escapeHtml(item.savedAt.slice(0, 10))} · huella ${escapeHtml(item.sourceForecastFingerprint)}<button type="button" data-e13-rerun="${escapeHtml(item.id)}">Recalcular copia</button></article>`).join("") : '<span class="e13-empty-events">Todavía no hay escenarios guardados.</span>';
+  // PVC7 (Oleada 3, Bloque 5): etiqueta "desactualizado" solo cuando la huella del forecast cambió
+  // Y la caja mínima del escenario base recalculado se movió más de un umbral desde que se guardó —
+  // nunca solo por la huella (un cambio sin efecto real no es caducidad), y nunca se recalcula ni
+  // se borra sola.
+  qs("e13SavedScenarios").innerHTML = saved.length ? saved.map((item) => {
+    let staleBadge = "";
+    try {
+      const recalculation = E13.recalculateSavedScenario(item, forecast, { assets: e13AssetsForLab() });
+      const staleness = E13.savedScenarioStaleness(recalculation);
+      if (staleness.stale) staleBadge = ` <span class="status-pill warn">Desactualizado (caja mínima ±${staleness.deltaPct}%)</span>`;
+    } catch { /* escenario no compatible con este esquema, sin badge */ }
+    return `<article class="e13-event-chip"><b>${escapeHtml(item.name)}</b> · ${escapeHtml(item.savedAt.slice(0, 10))} · huella ${escapeHtml(item.sourceForecastFingerprint)}${staleBadge}<button type="button" data-e13-rerun="${escapeHtml(item.id)}">Recalcular copia</button></article>`;
+  }).join("") : '<span class="e13-empty-events">Todavía no hay escenarios guardados.</span>';
   qs("e13ScenarioStatus").textContent = `${lab.events.length} evento(s) temporal(es). Huella del forecast: ${lab.sourceForecastFingerprint}. Simular no modifica el plan.`;
 }
 
@@ -27176,6 +27228,7 @@ function renderAjustes() {
   renderCierreReportArchive();
   renderPv5Diary();
   renderPvx5CausalTree();
+  renderPvc4CategoryDrift();
   renderPvx1Backtest();
   renderAnnualReview();
 
@@ -28657,6 +28710,9 @@ window.FinanceP2Bridge = {
   // que E15/E16 muestren "recalculado hace X" sin que el hogar tenga que confiar a ciegas en que
   // los datos están al día.
   lastModelRecomputeAt: () => lastModelRecomputeAt,
+  // PVC8 · alerta de materialidad del último recálculo (null si no hay "antes" con el que
+  // comparar, o si el cambio no superó los dos umbrales a la vez).
+  reforecastMaterialityAlert: () => pvc8MaterialityAlert,
   months: () => selectableMonths().map((month) => ({ key: month.key, label: month.label })),
   seriesRows: p2SeriesRows,
   movements: p2MovementRows,
@@ -33733,6 +33789,57 @@ function renderPvx1Backtest() {
   container.innerHTML = pvx1BacktestHtml(history, learning);
 }
 
+// PVC4 (Oleada 3, Bloque 5): a diferencia de reconciledMonthlyNetHistory() (un único concepto
+// "monthly-net" agregado, el que ya usa PVX1), esta reconstruye planned/actual POR PARTIDA de cada
+// mes ya cerrado y archivado (mismo registrarMesCollect() que ya usa el propio cierre) — la única
+// fuente real de previsto/real por partida que existe hoy.
+function pvc4CategoryHistoryRecords() {
+  const closedMonthKeys = loadCierreReportArchive().map((entry) => entry.monthKey);
+  const records = [];
+  closedMonthKeys.forEach((monthKey) => {
+    const monthObj = cuadroMandosAllMonths().find((item) => item.key === monthKey);
+    if (!monthObj) return;
+    const entries = registrarMesCollect(monthObj);
+    [...entries.income, ...entries.expense].forEach((entry) => {
+      if (!entry.hasActual) return;
+      records.push({
+        conceptId: `${entry.kind}:${entry.label}`,
+        label: entry.label,
+        monthKey,
+        planned: entry.planned,
+        actual: entry.actual,
+        reconciled: true,
+      });
+    });
+  });
+  return records;
+}
+
+const PVC4_TREND_LABEL = { empeorando: "empeorando", mejorando: "mejorando", estable: "estable", "sin-datos-suficientes": "sin datos suficientes" };
+
+function pvc4CategoryDriftHtml(drifts) {
+  if (!drifts.length) return '<p class="e19-kpi-note">Sin al menos 3 meses cerrados y archivados con datos reales por partida todavía.</p>';
+  const rows = drifts
+    .filter((item) => item.systematic)
+    .sort((a, b) => Math.abs(b.windows[0].averageDelta) - Math.abs(a.windows[0].averageDelta))
+    .slice(0, 8)
+    .map((item) => {
+      const cells = item.windows.map((window) => `${window.months}m: ${window.sampleMonths ? money(window.averageDelta, true) : "sin datos"}`).join(" · ");
+      return `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><span>${cells} — ${escapeHtml(PVC4_TREND_LABEL[item.trend] || item.trend)}</span></li>`;
+    })
+    .join("");
+  return rows
+    ? `<p class="e19-kpi-note">Partidas con sesgo sistemático (misma dirección en todas las ventanas con datos):</p><ul class="commit-barrier-list">${rows}</ul>`
+    : '<p class="e19-kpi-note">Ninguna partida muestra sesgo sistemático todavía — las desviaciones no van siempre en la misma dirección.</p>';
+}
+
+function renderPvc4CategoryDrift() {
+  const container = qs("pvc4CategoryDrift");
+  if (!container) return;
+  const drifts = window.FinanceCanonicalForecast?.categoryDriftWindows(pvc4CategoryHistoryRecords()) || [];
+  container.innerHTML = pvc4CategoryDriftHtml(drifts);
+}
+
 // DLX3: retrospectiva "¿me habría quedado sin colchón?" — usa el mismo historial real conciliado
 // que PVX1 (reconciledMonthlyNetHistory) sobre el suelo vigente del colchón (mismo cushionFloor que
 // ya usan DLX1/AP6). Reconstrucción aproximada, no una cifra con apariencia de precisión histórica:
@@ -33807,6 +33914,13 @@ function renderPvx5CausalTree() {
   select.innerHTML = monthOptionsHtml(requested, months);
   const tree = engine.causalTreeForMonth(select.value, { series: forecast.series, diary: loadPv5Diary() });
   container.innerHTML = pvx5CausalTreeHtml(tree);
+  // PVC9 (Oleada 3, Bloque 5): combina este mismo árbol causal (PVX5, arriba) con el detector de
+  // cambio estructural (PVC3) en una frase, para quien no quiere navegar el árbol completo.
+  const oneLiner = qs("pvc9OneLiner");
+  if (oneLiner) {
+    const structuralChange = engine.detectStructuralChange(reconciledMonthlyNetHistory());
+    oneLiner.textContent = engine.previsionChangeOneLiner(tree, structuralChange);
+  }
 }
 
 function renderCierreReportArchive() {
