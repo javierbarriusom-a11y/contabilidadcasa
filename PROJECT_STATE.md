@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 8 de septiembre de 2026.
+Fecha de revisión: 9 de septiembre de 2026.
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -42,6 +42,77 @@ de aquí en la siguiente regeneración, no al momento.
   (detalle en `BACKLOG_INDICE.md`, Bloque 0): el reloj de 30 días de `OPT-2` (arranca el 29 de
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
+
+## Cierre de sesión — 9 de septiembre de 2026 (162): `OPT-24` cerrada — Configuración/Herramientas en Ajustes y 3 tarjetas mixtas resueltas
+
+El usuario pidió continuar con las Tareas 2-4 de `OPT-24`: separar Configuración/Herramientas en las
+8 sub-pestañas que se quedaron en Ajustes tras la Tarea 1, y resolver las tarjetas mixtas empezando
+por «Cartera de inversión: registro por posición».
+
+- **Catálogo completo primero**: antes de tocar nada, se leyeron y clasificaron una a una las 44
+  tarjetas que quedaban en las 8 sub-pestañas (Hogar, Reserva y colchón, Seguros, Fiscal, Patrimonio
+  e inversión, Simuladores y Laboratorio, Presupuesto y operación, Datos y exportación). «Navegación»
+  se dejó fuera, como ya preveía la redacción de la tarea: es un índice de enlaces a otras pantallas,
+  ni configuración ni herramienta.
+- **Regla de clasificación aplicada** (para que la decisión sea auditable, no una impresión): una
+  tarjeta es **Configuración** si declara un dato que (a) alimenta el cálculo de OTRA
+  tarjeta/pantalla más allá de su propia nota local — verificado con `grep` en `app.js` caso por
+  caso cuando había duda, no solo leyendo la prosa —, o (b) es un registro de entidades (cuentas,
+  pólizas, activos, tablas fiscales, escalas de IRPF, miembros del hogar) sin veredicto propio, o
+  (c) es un interruptor/política que cambia el comportamiento de otra pantalla. Es **Herramienta**
+  el resto: cualquier tarjeta cuyo propósito central es un veredicto, comparación, simulación o
+  consulta de solo lectura, aunque tome uno o dos datos para hacerlo y no tenga botón. Esta regla
+  corrigió una primera clasificación demasiado literal (por presencia de botón) que habría colocado
+  mal casos como «Línea de crédito de emergencia» o «Cobertura de vida frente a deuda» — ambas
+  declaran un dato pero solo producen un veredicto local, sin que ninguna otra pantalla las lea.
+- **Separación en las 8 sub-pestañas**: cada una gana dos sub-grupos («Configuración»/«Herramientas»)
+  bajo la misma barra de anclas ya existente (`#ajustesAnchors`) — sin ruta ni pantalla nueva. Solo
+  se reordenaron tarjetas dentro de cada sub-pestaña (nunca entre sub-pestañas), y se comprobó antes
+  de mover nada que ninguna referencia visible «arriba»/«abajo» entre tarjetas quedara invertida —
+  en varios casos (Fiscal, Presupuesto y operación) el orden final coincidió con extraer el
+  subconjunto Configuración y el subconjunto Herramienta cada uno preservando su propio orden
+  relativo original, lo que bastó para no romper ninguna referencia.
+- **3 tarjetas mixtas resueltas** (de las 8 originales; las 5 restantes resultaron ser de un solo
+  propósito con una nota derivada local, no genuinamente mixtas, así que se clasificaron enteras sin
+  partirlas):
+  1. **Cartera de inversión: registro por posición** (`IV1`, la más grave — 18 campos + 6
+     herramientas incrustadas: XIRR, FIFO de ventas, benchmark, coste de comisiones, concentración,
+     glide path, exposición cruzada). Partida en dos tarjetas adyacentes: «Cartera de inversión:
+     registro por posición» (Configuración — alta, traspaso, aportación, venta parcial y aportación
+     futura de posiciones) y «Cartera de inversión: análisis y comparativa» (Herramientas —
+     benchmark, coste de comisiones, concentración, exposición cruzada, glide path). Quedan
+     adyacentes en el documento por construcción: la de Configuración es la última de su bloque, la
+     de Herramientas la primera del siguiente.
+  2. **Cartera: objetivo de reparto y rebalanceo** (`IV6`+`LEV6`): el bloque «Al desapalancar, ¿qué
+     vender primero?» (`LEV6`, sin campos propios) se separó en su propia tarjeta de Herramientas,
+     justo después de la de análisis de cartera.
+  3. **Compensación de pérdidas y ganancias a cierre de año** (`FC3`): el registro de «Pérdidas
+     arrastradas de años anteriores» se separó en su propia tarjeta de Configuración (en el bloque
+     de Fiscal); la calculadora («Calcular compensación») se queda en Herramientas y sigue leyendo
+     ese registro tal cual.
+- **Sin cambios de lógica de negocio**: es reorganización de HTML — mover, reordenar y en 2 casos
+  partir en dos `<article>` el mismo contenido, sin tocar ningún motor canónico, id de campo ni
+  clave de `scenarioSettings`. Los cross-references «arriba»/«abajo» que sí eran visibles para el
+  usuario se verificaron uno a uno antes de reordenar y, donde una tarjeta cambió de sitio relativo
+  a otra que la mencionaba, se actualizó el texto para que sigan siendo ciertos.
+- **Tests**: `tests/navigation-structure.test.cjs` no comprueba contenido de Ajustes (solo estructura
+  de rutas/menú) — verificado sin cambios. 1 test de wiring sí asumía una distancia máxima en
+  caracteres entre `IV6` y `LEV6` en el DOM que dejó de cumplirse al separarlas en dos tarjetas;
+  actualizado para comprobar el orden y el texto de referencia en vez de una distancia arbitraria.
+- **Validación**: `npm run verify` completo en verde — `npm test` **3514/3514** (mismo total: 1 test
+  se actualizó, ninguno se añadió ni se quitó), `test:a11y` (**1176 IDs únicos**, mismo número que
+  antes de esta sesión — nada se duplicó ni se perdió al partir las 2 tarjetas mixtas),
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` del sitio público, todos sin
+  errores.
+
+**Backlog actualizado**: `BACKLOG_OPTIMIZACION.md` (`OPT-24` pasa a ✅ en la tabla maestra §0, nota
+de progreso completa en §3 con las 3 tarjetas mixtas resueltas y el criterio de clasificación
+documentado, marcada `~~OPT-24~~` en el orden de ejecución §6) y `BACKLOG_INDICE.md` (nota
+actualizada del 9 de septiembre). `OPT-24` queda cerrada, con sus 4 tareas hechas.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` (adelantada a `main` tras
+  el merge del PR #259) — commit y push siguientes, PR en borrador y fusión a `main` en cuanto el CI
+  esté en verde, autorización ya dada por el hogar (`CLAUDE.md`).
 
 ## Cierre de sesión — 8 de septiembre de 2026 (161): `OPT-24` Tarea 1 — «Deuda y apalancamiento» sale de Ajustes y entra en la ruta Deuda
 

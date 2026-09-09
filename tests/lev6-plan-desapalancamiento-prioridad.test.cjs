@@ -133,10 +133,13 @@ test("wiring: renderLev6DeleveragingPriority usa deleveragingPriority, normalize
   assert.match(block, /iv6PortfolioTargets\(\)/);
 });
 
-test("wiring: la tarjeta de LEV6 vive en index.html, junto a los objetivos de reparto de IV6", () => {
+test("wiring: la tarjeta de LEV6 vive en index.html, después de los objetivos de reparto de IV6 que consulta (OPT-24: en su propia tarjeta de Herramientas, no fusionada con la de IV6)", () => {
   const iv6Pos = indexSource.indexOf('id="iv6RebalanceSummary"');
+  const lev6TitlePos = indexSource.indexOf("Al desapalancar, ¿qué vender primero?");
   const lev6Pos = indexSource.indexOf('id="lev6DeleveragingNote"');
-  assert.ok(iv6Pos >= 0 && lev6Pos > iv6Pos && lev6Pos - iv6Pos < 800);
+  assert.ok(iv6Pos >= 0 && lev6TitlePos > iv6Pos, "LEV6 debe declararse después de los objetivos de IV6 que consulta");
+  assert.ok(lev6Pos > lev6TitlePos, "lev6DeleveragingNote debe vivir dentro de la tarjeta de LEV6");
+  assert.match(indexSource.slice(lev6TitlePos, lev6Pos + 50), /objetivo de reparto declarado arriba/);
 });
 
 test("wiring: renderLev6DeleveragingPriority se llama junto a renderIv6Rebalance en cada mutación relevante", () => {
