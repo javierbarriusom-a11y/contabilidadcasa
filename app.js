@@ -18073,6 +18073,8 @@ function clearIv1PositionForm() {
   const feePctInput = qs("iv1PositionFeePct");
   const assetClassInput = qs("iv1PositionAssetClass");
   const convictionScoreInput = qs("iv1PositionConvictionScore");
+  const dcaMonthlyAmountInput = qs("iv1PositionDcaMonthlyAmount");
+  const dcaStartDateInput = qs("iv1PositionDcaStartDate");
   if (labelInput) labelInput.value = "";
   if (quantityInput) quantityInput.value = "";
   if (costInput) costInput.value = "";
@@ -18081,6 +18083,8 @@ function clearIv1PositionForm() {
   if (feePctInput) feePctInput.value = "";
   if (assetClassInput) assetClassInput.value = "";
   if (convictionScoreInput) convictionScoreInput.value = "";
+  if (dcaMonthlyAmountInput) dcaMonthlyAmountInput.value = "";
+  if (dcaStartDateInput) dcaStartDateInput.value = "";
 }
 
 function saveIv1Position() {
@@ -18107,11 +18111,14 @@ function saveIv1Position() {
   // recorta al guardar el input crudo.
   const convictionScoreRaw = qs("iv1PositionConvictionScore")?.value;
   const convictionScore = convictionScoreRaw === "" || convictionScoreRaw === undefined ? null : parseAmount(convictionScoreRaw);
+  // INV8: plan de aportación periódica (DCA) declarado — opcional, ambos campos o ninguno.
+  const dcaMonthlyAmount = parseAmount(qs("iv1PositionDcaMonthlyAmount")?.value);
+  const dcaStartDate = qs("iv1PositionDcaStartDate")?.value || "";
   if (!label) {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, contributions: [], disposals: [], scheduledContributions: [] }];
+  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, dcaMonthlyAmount, dcaStartDate, contributions: [], disposals: [], scheduledContributions: [] }];
   saveIv1PositionsList(next);
   clearIv1PositionForm();
   renderIv1PositionList();
@@ -18121,6 +18128,9 @@ function saveIv1Position() {
   renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderInv6LatentLossCandidates();
+  renderInv7LiquidityLadder();
+  renderInv8DcaTracking();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -18581,6 +18591,90 @@ function renderFc3PriorLossList() {
   list.innerHTML = rows.length
     ? rows.map((entry) => `<li class="commit-barrier-item"><span>${escapeHtml(entry.year)}: ${money(entry.amount, true)}</span><button type="button" class="e19-btn e19-btn-secondary" data-fc3-loss-remove="${escapeHtml(entry.id)}">Quitar</button></li>`).join("")
     : `<li class="e19-kpi-note">Sin pérdidas arrastradas registradas.</li>`;
+}
+
+// INV6 (Oleada 3, Bloque 5): candidatas a compensación con minusvalía todavía no realizada — reutiliza
+// normalizePositions() (IV1) y latentLossHarvestingCandidates() (canonical-portfolio.js), sin motor
+// de cálculo nuevo. Nunca sugiere vender por sí sola (regla transversal 04): solo lista y ordena.
+function renderInv6LatentLossCandidates() {
+  const container = qs("inv6LatentLossCandidates");
+  if (!container) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Registra al menos una posición en «Cartera de inversión» para ver candidatas.</p>';
+    return;
+  }
+  const result = engine.normalizePositions(rows);
+  const { candidates, totalLatentLoss } = engine.latentLossHarvestingCandidates(result.positions);
+  if (!candidates.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Ninguna posición tiene minusvalía latente ahora mismo.</p>';
+    return;
+  }
+  const items = candidates
+    .map((item) => `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><span class="negative">${money(item.gainLoss, true)} (${item.gainLossPct}%)</span></li>`)
+    .join("");
+  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul><p class="e19-kpi-note">Pérdida latente total si se vendieran todas: ${money(totalLatentLoss, true)}.</p>`;
+}
+
+// INV7 (Oleada 3, Bloque 5): escalera de liquidez — reutiliza normalizePositions() (IV1) y
+// liquidityLadder() (canonical-portfolio.js), cruzada con el mismo cushionFloor() que ya usan
+// DLX1/AP6. Distinto de LPX2 (runway de patrimonio neto total): aquí importa la velocidad de
+// conversión a caja, no el valor total.
+function renderInv7LiquidityLadder() {
+  const container = qs("inv7LiquidityLadder");
+  if (!container) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const cushionEngine = window.FinanceCanonicalCushion;
+  const rows = iv1PositionsList();
+  if (!engine || !cushionEngine || !rows.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Registra al menos una posición en «Cartera de inversión» para ver la escalera de liquidez.</p>';
+    return;
+  }
+  const result = engine.normalizePositions(rows);
+  const floor = cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+  const ladder = engine.liquidityLadder(result.positions, floor);
+  const items = ladder.tiers
+    .filter((tier) => tier.value > 0)
+    .map((tier) => `<li class="commit-barrier-item"><span>${escapeHtml(tier.label)}</span><span>${money(tier.value, true)}</span></li>`)
+    .join("");
+  const floorNote = ladder.floorCovered
+    ? `<p class="e19-kpi-note">Tu colchón mínimo (${money(ladder.floorValue, true)}) queda cubierto ya con la liquidez ${ladder.floorCoveredBy === "inmediata" ? "inmediata" : "de hasta 7 días"}.</p>`
+    : `<p class="e19-kpi-note">Ni sumando toda la liquidez clasificada (inmediata + corta) se cubre tu colchón mínimo (${money(ladder.floorValue, true)}) — la parte "sin clasificar" no cuenta, su velocidad de conversión no se conoce.</p>`;
+  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul>${floorNote}`;
+}
+
+// INV8 (Oleada 3, Bloque 5): reutiliza dcaPlanStatus() (canonical-portfolio.js) sobre las
+// posiciones ya normalizadas — sin motor de cálculo nuevo. Solo aparece para posiciones con un
+// plan declarado; sin ningún plan, la tarjeta lo dice y no hay nada más que mostrar.
+function renderInv8DcaTracking() {
+  const container = qs("inv8DcaTracking");
+  if (!container) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Sin posiciones registradas todavía.</p>';
+    return;
+  }
+  const result = engine.normalizePositions(rows);
+  const today = new Date().toISOString().slice(0, 10);
+  const tracked = result.positions
+    .filter((position) => position.dcaPlan)
+    .map((position) => ({ position, status: engine.dcaPlanStatus(position, today) }))
+    .filter((entry) => entry.status.calculable);
+  if (!tracked.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Declara una aportación periódica prevista (€/mes) e inicio del plan en el registro de arriba para ver aquí el seguimiento.</p>';
+    return;
+  }
+  const items = tracked
+    .map(({ position, status }) => {
+      const note = status.behindSchedule
+        ? `<span class="negative">retraso de ${money(status.delay, true)} (~${status.delayMonths} mes(es) al ritmo previsto)</span>`
+        : `<span class="positive">al día o por delante del plan</span>`;
+      return `<li class="commit-barrier-item"><span>${escapeHtml(position.label)}</span><span>${money(status.actualCumulative, true)} de ${money(status.plannedCumulative, true)} previstos — ${note}</span></li>`;
+    })
+    .join("");
+  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul>`;
 }
 
 // LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. Mismo patrón de lista
@@ -27215,6 +27309,9 @@ function renderAjustes() {
   renderFc3PriorLossList();
   renderPvc6SnapshotOptions();
   renderIv1PositionConcentration();
+  renderInv6LatentLossCandidates();
+  renderInv7LiquidityLadder();
+  renderInv8DcaTracking();
   syncIv6TargetControls();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
@@ -28419,6 +28516,11 @@ const UX_ALERT_METRICS = {
   minimumCashMonths: { label: "Colchón mínimo (meses)", format: (value) => `${Number(value || 0).toFixed(1)} meses` },
   debtRatio: { label: "Ratio deuda / ingresos", format: (value) => `${Number(value || 0).toFixed(1)}%` },
   freeCapacity: { label: "Capacidad libre mensual", format: (value) => money(value, true) },
+  // INV2 (Oleada 3, Bloque 5): mayor desviación (en puntos) entre el % real y el % objetivo
+  // declarado por tipo de activo (IV6/rebalanceSuggestions) — 0 sin objetivos declarados.
+  rebalanceDeviationPct: { label: "Desviación de rebalanceo de cartera", format: (value) => `${Number(value || 0).toFixed(1)} puntos` },
+  // INV4 (Oleada 3, Bloque 5): % de la cartera que concentra la posición mayor — 0 sin posiciones.
+  topPositionConcentrationPct: { label: "Concentración en la mayor posición", format: (value) => `${Number(value || 0).toFixed(0)}%` },
 };
 
 function uxDateAfterDays(days = 30) {
@@ -28479,6 +28581,39 @@ function defaultUxAlerts() {
       action: "Revisar el pie de impacto de Plan y frenar gasto discrecional hasta recuperar colchón.",
       reviewDate: uxDateAfterDays(30),
       frequency: "weekly",
+      paused: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // INV2 (Oleada 3, Bloque 5): la desviación de rebalanceo (IV6) ya se calculaba, pero solo era
+    // visible al abrir Ajustes › Patrimonio e inversión — sin objetivos declarados, la métrica
+    // vale 0 y esta alerta nunca dispara (mismo guardia que el resto de este contrato). Mismo
+    // umbral que ya usa rebalanceSuggestions() internamente (REBALANCE_THRESHOLD_PCT).
+    {
+      id: "alert-portfolio-rebalance",
+      name: "Cartera desviada del objetivo de reparto",
+      metric: "rebalanceDeviationPct",
+      operator: "above",
+      threshold: 10,
+      action: "Revisar la tarjeta de rebalanceo en Ajustes › Patrimonio e inversión y comprar o vender lo sugerido, si procede.",
+      reviewDate: uxDateAfterDays(30),
+      frequency: "monthly",
+      paused: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+    // INV4 (Oleada 3, Bloque 5): mismo umbral (50%) que ya usaba renderIv1PositionConcentration()
+    // para marcar "sobreexposición a una sola posición" — sin serie histórica de rendimientos ni
+    // clasificación de sector/divisa, no hay correlación estadística real que calcular todavía.
+    {
+      id: "alert-portfolio-concentration",
+      name: "Sobreexposición a una sola posición",
+      metric: "topPositionConcentrationPct",
+      operator: "above",
+      threshold: 50,
+      action: "Revisar la tarjeta de análisis de cartera en Ajustes › Patrimonio e inversión — considerar diversificar la posición mayor.",
+      reviewDate: uxDateAfterDays(30),
+      frequency: "monthly",
       paused: false,
       createdAt: now,
       updatedAt: now,
@@ -28551,6 +28686,33 @@ function familyContextSnapshot() {
   });
 }
 
+// INV2 (Oleada 3, Bloque 5): misma fuente que ya usa renderIv6Rebalance() (normalizePositions +
+// rebalanceSuggestions) — sin objetivos declarados o sin posiciones, rebalanceSuggestions() ya
+// devuelve [] por su propio guardia, así que aquí la desviación es 0 (nunca "desconocido").
+function portfolioRebalanceDeviationPct() {
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) return 0;
+  const result = engine.normalizePositions(rows);
+  const suggestions = engine.rebalanceSuggestions(result.summary.totalsByType, result.summary.totalValue, iv6PortfolioTargets());
+  return suggestions.length ? Math.max(...suggestions.map((row) => Math.abs(row.deviation))) : 0;
+}
+
+// INV4 (Oleada 3, Bloque 5): mismo % que ya calcula renderIv1PositionConcentration() para la
+// posición mayor sobre el total — sin serie histórica de rendimientos ni clasificación de sector/
+// divisa por posición (mismo hueco de datos que ya bloqueó APX4/IVX1/IVX5), no hay correlación
+// estadística real que calcular; este es el umbral simple que sí es calculable hoy.
+function iv1TopPositionConcentrationPct() {
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) return 0;
+  const result = engine.normalizePositions(rows);
+  const totalValue = result.summary.totalValue;
+  if (totalValue <= 0) return 0;
+  const topPosition = [...result.positions].sort((a, b) => b.currentValue - a.currentValue)[0];
+  return topPosition ? Math.round((topPosition.currentValue / totalValue) * 100) : 0;
+}
+
 function alertMetricSnapshot() {
   const actionContext = unifiedActionCenterModel().context || {};
   const rows = (actionContext.rows || []).slice(0, 12);
@@ -28568,6 +28730,9 @@ function alertMetricSnapshot() {
     minimumCashMonths: round2(safeCoverageMonths(minLiquidity, avgOutflow) ?? 0),
     debtRatio: round2(Number(savings.debtToIncomeRatio || 0) * 100),
     freeCapacity: round2(Number(actionContext.capacity?.avgTransfer12m || 0)),
+    rebalanceDeviationPct: round2(portfolioRebalanceDeviationPct()),
+    // INV4: idéntico al que ya calcula renderIv1PositionConcentration() para la posición mayor.
+    topPositionConcentrationPct: round2(iv1TopPositionConcentrationPct()),
   };
 }
 

@@ -22,7 +22,7 @@ test("IV2: saveIv1Position lee la fecha de adquisición y registra la posición 
   // IVX6 añadió goalId, IVX4 (misma oleada) feePct e INV1 (Oleada 3 Bloque 4) assetClass, los tres
   // entre provenance y contributions — el objeto sigue guardando contributions vacío, solo cambia
   // lo que hay justo antes.
-  assert.match(block, /acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, contributions: \[\]/);
+  assert.match(block, /acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, dcaMonthlyAmount, dcaStartDate, contributions: \[\]/);
 });
 
 test("IV2: saveIv1Contribution valida posición, importe positivo y fecha antes de guardar", () => {

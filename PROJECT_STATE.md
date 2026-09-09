@@ -43,6 +43,57 @@ de aquí en la siguiente regeneración, no al momento.
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
 
+## Cierre de sesión — 9 de septiembre de 2026 (163b): Bloque 5 de Oleada 3, sub-bloque «Inversión» — INV2, INV4, INV6, INV7, INV8
+
+Continuación de la sesión 163: segundo sub-bloque del Bloque 5, las 5 tareas de "Inversión".
+
+- **`INV2`** — la desviación de rebalanceo ya la calculaba `rebalanceSuggestions()` (IV6), pero solo
+  era visible al abrir Ajustes › Patrimonio e inversión. Se conectó al framework de alertas ya
+  existente (V6-2/`UxSettings`, el mismo de "Umbrales de aviso"): nuevo metric
+  `rebalanceDeviationPct` (`portfolioRebalanceDeviationPct()`, máxima desviación absoluta entre
+  tipos de activo) con el mismo umbral (10 puntos) que ya usaba `rebalanceSuggestions()`
+  internamente. Sin objetivos declarados, la métrica es 0 y la alerta nunca dispara.
+- **`INV4`** — mismo patrón que `INV2`: el % de la mayor posición sobre el total ya lo calculaba
+  `renderIv1PositionConcentration()` como nota pasiva; nuevo metric `topPositionConcentrationPct`
+  conectado al mismo framework de alertas, umbral 50% (el mismo que ya usaba esa nota).
+- **`INV6`** — `VER-3` (sesión 157) ya había confirmado que `FC3` solo cubre pérdidas ya
+  realizadas por venta. `latentLossHarvestingCandidates()` (`canonical-portfolio.js`) filtra
+  posiciones con `gainLoss` negativo (dato ya calculado por `normalizePositions`) y las ordena de
+  mayor a menor pérdida — con el aviso explícito de la norma española de no recompra (2 meses en
+  cotizados, 1 año en no cotizados), para no inducir a vender y recomprar antes de que la pérdida
+  sea deducible. Tarjeta nueva en Ajustes › Fiscal, justo antes de la calculadora de FC3 que la
+  complementa (candidatas antes de vender → compensación después de vender).
+- **`INV7`** — `liquidityLadder()` clasifica cada posición por tipo en tres tramos: inmediata (0-2
+  días: acción/ETF/cripto), corta (3-7 días: fondo) y sin clasificar ("otro" — nunca se inventa una
+  velocidad de conversión que no se conoce). Cruza el valor acumulado con el mismo `cushionFloor()`
+  que ya usan DLX1/AP6 para decidir si la liquidez rápida basta para cubrir el colchón mínimo sin
+  necesitar la parte sin clasificar. Distinto de `LPX2` (runway de patrimonio neto total): aquí
+  importa la velocidad, no el valor total.
+- **`INV8`** — dos campos opcionales nuevos en el registro de posición (aportación mensual
+  prevista, inicio del plan). `dcaPlanStatus()` compara lo aportado de verdad desde el inicio del
+  plan (coste inicial si es posterior al inicio + `contributions` de IV2 ya registradas) contra lo
+  que el plan esperaría a estas alturas, y avisa del retraso en euros y en meses al ritmo previsto.
+  IVX7 (ya existente) sigue mostrando el coste medio hacia atrás; esto mira hacia delante.
+- **Bug propio encontrado y corregido de rebote**: al añadir `dcaMonthsElapsed()` (INV8) en
+  `canonical-portfolio.js` se descubrió que su primer nombre (`monthsBetween`) coincidía con una
+  función YA EXISTENTE en el mismo módulo (usada por `glidePathForGoal`, IVX6) — la declaración
+  posterior sobrescribía a la anterior en el mismo ámbito, rompiendo el glide path en silencio (sin
+  fallo visible hasta que la suite de tests lo detectó). Renombrada antes de publicar; sin este
+  bloque de tests, el error habría llegado a producción.
+- **Validación**: `npm run verify` completo en verde — `npm test` **3595/3595** (varios tests de
+  ventana fija y de texto literal en `saveIv1Position()` ajustados por los dos campos nuevos del
+  plan DCA, patrón ya conocido), `test:a11y` (**1183 IDs únicos**, +5 sobre la sesión anterior por
+  los nuevos contenedores/campos), `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke`, todos sin errores.
+
+**Backlog actualizado**: `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` (Bloque 5 §7: `INV2`/`INV4`/
+`INV6`/`INV7`/`INV8` pasan de ⏳/⚠️ a ✅ con el detalle de construcción). Quedan 6 tareas del
+Bloque 5 (`LEV8`, `DEB3`, `DEB7`, `GOB7`, `GOB8`, `GOB10`) para sesiones siguientes.
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` (adelantada a `main` tras
+  el merge del PR #261) — commit y push siguientes, PR en borrador y fusión a `main` en cuanto el
+  CI esté en verde, autorización ya dada por el hogar (`CLAUDE.md`).
+
 ## Cierre de sesión — 9 de septiembre de 2026 (163): Bloque 5 de Oleada 3, sub-bloque «Previsión viva» — PVC2, PVC4, PVC7, PVC8, PVC9
 
 El usuario pidió cerrar y actualizar el backlog de Oleada 3; al revisar el documento se confirmó que

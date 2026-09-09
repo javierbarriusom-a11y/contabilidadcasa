@@ -95,7 +95,7 @@ test("index.html: campo de comisión anual al registrar una posición y horizont
 test("app.js: saveIv1Position guarda feePct, clearIv1PositionForm lo limpia, y el listener del horizonte recalcula la lista", () => {
   const saveBlock = extractFunction("saveIv1Position");
   assert.match(saveBlock, /qs\("iv1PositionFeePct"\)\?\.value/);
-  assert.match(saveBlock, /goalId, feePct, assetClass, convictionScore, contributions: \[\]/);
+  assert.match(saveBlock, /goalId, feePct, assetClass, convictionScore, dcaMonthlyAmount, dcaStartDate, contributions: \[\]/);
   const clearBlock = extractFunction("clearIv1PositionForm");
   assert.match(clearBlock, /feePctInput\.value = ""/);
   assert.match(app, /qs\("ivx4FeeHorizonYears"\)\?\.addEventListener\("input", renderIv1PositionList\)/);

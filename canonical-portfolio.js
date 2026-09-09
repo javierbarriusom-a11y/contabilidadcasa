@@ -294,6 +294,14 @@
       // LEV6 (Oleada 3, Bloque 4): convicción declarada por el hogar (1-5, menor = vender antes al
       // desapalancar) — opcional, null si no se declara, nunca un valor medio inventado.
       convictionScore: knownNumber(raw.convictionScore) ? Math.max(1, Math.min(5, Math.round(number(raw.convictionScore)))) : null,
+      // INV8 (Oleada 3, Bloque 5): plan de aportación periódica declarado — opcional, null si no
+      // se declara (mismos dos campos crudos que el resto del formulario, dcaMonthlyAmount/
+      // dcaStartDate; aquí se agrupan en un solo objeto de conveniencia). dcaPlanStatus() (más
+      // abajo) lo compara contra las aportaciones reales (contributions, arriba) ya registradas,
+      // nunca inventa un calendario de aportaciones.
+      dcaPlan: (knownNumber(raw.dcaMonthlyAmount) && number(raw.dcaMonthlyAmount) > 0 && asOfDate(raw.dcaStartDate))
+        ? { monthlyAmount: nonNegative(raw.dcaMonthlyAmount), startDate: asOfDate(raw.dcaStartDate) }
+        : null,
     };
     return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: xirr(cashFlows) };
   }
@@ -722,6 +730,117 @@
     };
   }
 
+  // INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3 solo cubre pérdidas ya realizadas vía FIFO):
+  // candidatas a compensación de pérdidas y ganancias ANTES de vender — el dato base (gainLoss no
+  // realizado por posición) ya lo calcula normalizePositions() arriba, esta función solo filtra y
+  // ordena. Nunca sugiere ejecutar nada (regla transversal 04): es una lista de candidatas, con el
+  // aviso explícito de la norma española de no recompra (2 meses en cotizados, 1 año en no
+  // cotizados) para no inducir a vender y recomprar antes de que la pérdida sea deducible.
+  const LATENT_LOSS_SCHEMA_ID = "finanzas-casa-portfolio-latent-loss-harvesting";
+
+  function latentLossHarvestingCandidates(positions = []) {
+    const candidates = (Array.isArray(positions) ? positions : [])
+      .filter((position) => number(position.gainLoss) < 0)
+      .map((position) => ({
+        id: position.id, label: position.label, type: position.type,
+        gainLoss: round2(position.gainLoss), gainLossPct: round2(position.gainLossPct),
+        currentValue: round2(position.currentValue), costBasis: round2(position.costBasis),
+      }))
+      .sort((a, b) => a.gainLoss - b.gainLoss);
+    return {
+      schemaId: LATENT_LOSS_SCHEMA_ID,
+      candidates,
+      totalLatentLoss: round2(candidates.reduce((sum, item) => sum + item.gainLoss, 0)),
+    };
+  }
+
+  // INV7 (Oleada 3, Bloque 5): escalera de liquidez de la cartera — a cuántos días puede
+  // convertirse cada posición en caja sin penalización severa, cruzado con el suelo del colchón
+  // (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto total): aquí importa la
+  // VELOCIDAD de conversión, no el valor total. El día de liquidación por tipo es un valor típico
+  // de mercado (T+2 en bolsa para acción/ETF, T+3 habitual en fondos españoles, mercado cripto sin
+  // ventana de liquidación) — nunca inventado para "otro", que queda fuera de la escalera como "sin
+  // clasificar" en vez de fingir una velocidad que no se conoce.
+  const LIQUIDITY_TIER_BY_TYPE = {
+    accion: "inmediata", etf: "inmediata", cripto: "inmediata",
+    fondo: "corta",
+    otro: "sin-clasificar",
+  };
+  const LIQUIDITY_TIERS = [
+    { tier: "inmediata", label: "Inmediata (0-2 días)", maxDays: 2 },
+    { tier: "corta", label: "Corta (3-7 días)", maxDays: 7 },
+    { tier: "sin-clasificar", label: "Sin clasificar", maxDays: null },
+  ];
+  const LIQUIDITY_LADDER_SCHEMA_ID = "finanzas-casa-portfolio-liquidity-ladder";
+
+  function liquidityLadder(positions = [], floorValue = 0) {
+    const byTier = new Map(LIQUIDITY_TIERS.map((tier) => [tier.tier, { ...tier, value: 0, types: [] }]));
+    (Array.isArray(positions) ? positions : []).forEach((position) => {
+      const tierId = LIQUIDITY_TIER_BY_TYPE[positionType(position.type)] || "sin-clasificar";
+      const entry = byTier.get(tierId);
+      entry.value = round2(entry.value + number(position.currentValue));
+      if (!entry.types.includes(position.type)) entry.types.push(position.type);
+    });
+    const tiers = LIQUIDITY_TIERS.map((tier) => byTier.get(tier.tier));
+    let cumulative = 0;
+    let tierCoveringFloor = null;
+    const floor = number(floorValue);
+    tiers.forEach((tier) => {
+      if (tier.tier === "sin-clasificar") return; // no cuenta para cubrir el colchón: velocidad desconocida
+      cumulative = round2(cumulative + tier.value);
+      if (tierCoveringFloor === null && floor > 0 && cumulative >= floor) tierCoveringFloor = tier.tier;
+    });
+    return {
+      schemaId: LIQUIDITY_LADDER_SCHEMA_ID,
+      tiers,
+      floorValue: round2(floor),
+      floorCoveredBy: tierCoveringFloor,
+      floorCovered: tierCoveringFloor !== null,
+    };
+  }
+
+  // INV8 (Oleada 3, Bloque 5): seguimiento de plan de aportación periódica (DCA) — IVX7 (arriba)
+  // ya muestra el coste medio hacia atrás; esto mira hacia delante. Reutiliza `contributions`
+  // (IV2) y `acquisitionDate`/`initialCost` (ya normalizados) para saber cuánto se ha aportado de
+  // verdad desde que empezó el plan, sin duplicar ese dato en un registro aparte.
+  function dcaMonthsElapsed(startIso, endIso) {
+    const start = new Date(`${startIso}T00:00:00Z`);
+    const end = new Date(`${endIso}T00:00:00Z`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
+    const months = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
+    return Math.max(0, months) + 1; // el propio mes de inicio ya cuenta como un periodo cumplido
+  }
+
+  const DCA_PLAN_SCHEMA_ID = "finanzas-casa-portfolio-dca-plan-status";
+
+  function dcaPlanStatus(position = {}, asOf = "") {
+    const plan = position.dcaPlan || {};
+    const monthlyAmount = number(plan.monthlyAmount);
+    const startDate = asOfDate(plan.startDate);
+    if (!(monthlyAmount > 0) || !startDate || !asOf) {
+      return { schemaId: DCA_PLAN_SCHEMA_ID, calculable: false };
+    }
+    const monthsElapsed = dcaMonthsElapsed(startDate, asOf);
+    const plannedCumulative = round2(monthsElapsed * monthlyAmount);
+    const sinceStart = [];
+    if (position.acquisitionDate && position.acquisitionDate >= startDate) sinceStart.push(number(position.initialCost));
+    (Array.isArray(position.contributions) ? position.contributions : []).forEach((contribution) => {
+      if (contribution.date >= startDate && contribution.date <= asOf) sinceStart.push(number(contribution.amount));
+    });
+    const actualCumulative = round2(sinceStart.reduce((sum, amount) => sum + amount, 0));
+    const delay = round2(plannedCumulative - actualCumulative);
+    return {
+      schemaId: DCA_PLAN_SCHEMA_ID,
+      calculable: true,
+      monthsElapsed,
+      plannedCumulative,
+      actualCumulative,
+      delay,
+      behindSchedule: delay > 0,
+      delayMonths: delay > 0 ? round2(delay / monthlyAmount) : 0,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -733,6 +852,9 @@
     validatePositions,
     positionQuality,
     summarizePositions,
+    latentLossHarvestingCandidates,
+    liquidityLadder,
+    dcaPlanStatus,
     rebalanceSuggestions,
     deleveragingPriority,
     isFundToFundTransfer,

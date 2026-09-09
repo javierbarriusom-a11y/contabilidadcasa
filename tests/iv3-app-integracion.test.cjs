@@ -30,7 +30,7 @@ test("IV3: renderIv1ScheduledContributionOptions existe y se llama junto al rest
   // IVX6 añadió el campo goalId, IVX4 (misma oleada) el campo feePct, e INV1 (Oleada 3 Bloque 4) el
   // campo assetClass, cada uno con su comentario, antes de esta llamada — la ventana crece a 2300,
   // la comprobación sigue siendo la misma.
-  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 2600);
+  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 2900);
   assert.match(saveBlock, /renderIv1ScheduledContributionOptions\(\);/);
   const transferBlock = appSource.slice(appSource.indexOf("function saveIv1Transfer("), appSource.indexOf("function saveIv1Transfer(") + 1400);
   assert.match(transferBlock, /renderIv1ScheduledContributionOptions\(\);/);
