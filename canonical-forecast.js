@@ -251,6 +251,64 @@
     };
   }
 
+  // PVC4 (Oleada 3, Bloque 5): extiende learnFromHistory().deviations (A11-3) — hasta ahora un único
+  // promedio sobre TODO el histórico reconciliado — a varias ventanas de tiempo (3/6/12 meses) por
+  // partida, para distinguir una desviación de sesgo sistemático (misma dirección en todas las
+  // ventanas con datos, p. ej. "el ocio de verano siempre sale más caro") de una desviación reciente
+  // que no se sostiene en el histórico largo. Reutiliza deviationSeverity() tal cual, sin criterio
+  // nuevo de gravedad.
+  function categoryDriftWindows(records = [], windows = [3, 6, 12]) {
+    const usable = records.filter((record) => record?.reconciled === true && /^\d{4}-\d{2}$/.test(text(record.monthKey)) && Number.isFinite(record.planned) && Number.isFinite(record.actual));
+    const byCategory = new Map();
+    usable.forEach((record) => {
+      const conceptId = text(record.conceptId || record.label || "unclassified");
+      if (!byCategory.has(conceptId)) byCategory.set(conceptId, { conceptId, label: text(record.label || conceptId), rows: [] });
+      byCategory.get(conceptId).rows.push(record);
+    });
+    return [...byCategory.values()]
+      .map((category) => {
+        const sorted = [...category.rows].sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1));
+        const windowResults = windows.map((months) => {
+          const slice = sorted.slice(0, months);
+          const deltas = slice.map((row) => number(row.actual) - number(row.planned));
+          const averagePlanned = slice.length ? round(slice.reduce((sum, row) => sum + number(row.planned), 0) / slice.length) : 0;
+          const averageDelta = deltas.length ? round(deltas.reduce((sum, value) => sum + value, 0) / deltas.length) : 0;
+          return { months, sampleMonths: slice.length, averageDelta, severity: slice.length ? deviationSeverity(averageDelta, averagePlanned) : "low" };
+        });
+        const withData = windowResults.filter((window) => window.sampleMonths >= Math.min(3, window.months));
+        const systematic = withData.length >= 2 && withData[0].averageDelta !== 0 && withData.every((window) => Math.sign(window.averageDelta) === Math.sign(withData[0].averageDelta));
+        const shortest = windowResults[0];
+        const longest = windowResults[windowResults.length - 1];
+        const trend = shortest.sampleMonths > 0 && longest.sampleMonths > 0
+          ? (Math.abs(shortest.averageDelta) > Math.abs(longest.averageDelta) * 1.2 ? "empeorando"
+            : Math.abs(shortest.averageDelta) < Math.abs(longest.averageDelta) * 0.8 ? "mejorando" : "estable")
+          : "sin-datos-suficientes";
+        return { conceptId: category.conceptId, label: category.label, windows: windowResults, systematic, trend };
+      })
+      .filter((item) => item.windows.some((window) => window.sampleMonths > 0));
+  }
+
+  // PVC8 (Oleada 3, Bloque 5): recomputeModelIfNeeded() ya recalcula el forecast al instante en
+  // cada cambio (PVX3) — lo que faltaba era decidir CUÁNDO ese recálculo es lo bastante grande para
+  // avisar, en vez de quedar en silencio dentro de un número actualizado. Umbral doble (absoluto Y
+  // relativo a la caja disponible ahora mismo): 50€ es ruido con 20.000€ de colchón, pero puede ser
+  // importante con 300€ — un único umbral (solo absoluto o solo relativo) sería demasiado sensible
+  // en uno de los dos extremos. Solo avisa si supera los dos a la vez.
+  const REFORECAST_MATERIALITY_DEFAULT = Object.freeze({ absoluteThreshold: 200, relativeThresholdPct: 10 });
+
+  function reforecastMaterialityAlert(before, after, availableCash, options = {}) {
+    const absoluteThreshold = Number.isFinite(options.absoluteThreshold) ? options.absoluteThreshold : REFORECAST_MATERIALITY_DEFAULT.absoluteThreshold;
+    const relativeThresholdPct = Number.isFinite(options.relativeThresholdPct) ? options.relativeThresholdPct : REFORECAST_MATERIALITY_DEFAULT.relativeThresholdPct;
+    if (!Number.isFinite(before) || !Number.isFinite(after)) {
+      return { schemaId: `${SCHEMA_ID}/reforecast-materiality-v1`, material: false, delta: 0, deltaPct: 0, absoluteThreshold, relativeThresholdPct };
+    }
+    const delta = round(after - before);
+    const cashBase = Math.abs(number(availableCash)) || Math.abs(before) || 1;
+    const deltaPct = round((Math.abs(delta) / cashBase) * 100);
+    const material = Math.abs(delta) >= absoluteThreshold && deltaPct >= relativeThresholdPct;
+    return { schemaId: `${SCHEMA_ID}/reforecast-materiality-v1`, material, delta, deltaPct, absoluteThreshold, relativeThresholdPct };
+  }
+
   // PV4: bandas de confianza sobre la liquidez proyectada — no recalcula ninguna desviación, usa
   // las que ya calculó learnFromHistory().deviations (mismo aprendizaje de E12b que reutilizó PV2).
   // El margen base es la desviación media absoluta de las partidas con historial suficiente; crece
@@ -473,5 +531,30 @@
     };
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, detectStructuralChange, applyLearnedBias, diffAssumptionSnapshots, causalTreeForMonth };
+  // PVC9 (Oleada 3, Bloque 5): combina el árbol causal de una cifra (PVX5, causalTreeForMonth) con
+  // el detector de cambio estructural (PVC3, detectStructuralChange) en una sola frase — para quien
+  // no quiere navegar el árbol completo. Sin motor nuevo: solo lee lo que ambos ya calculan. Si no
+  // hay cambio estructural, lo dice tal cual (nunca inventa un "por qué" para una desviación que el
+  // propio PVC3 ya descartó como ruido); si lo hay, cita el componente del árbol causal del mes más
+  // reciente de la racha que más pesa en euros, como ejemplo concreto, no como atribución exacta de
+  // varios meses.
+  function previsionChangeOneLiner(causalTree, structuralChange) {
+    if (!structuralChange || structuralChange.reason === "insufficient-sample") {
+      return "Todavía no hay suficientes meses conciliados para saber si el cambio reciente es estructural o solo ruido.";
+    }
+    if (!structuralChange.isStructural) {
+      return "La previsión no muestra un cambio estructural sostenido — las variaciones recientes parecen ruido, no una tendencia.";
+    }
+    const directionLabel = structuralChange.direction === "up" ? "ha subido" : structuralChange.direction === "down" ? "ha bajado" : "ha cambiado";
+    const monthsLabel = `${structuralChange.requiredConsecutiveMonths} meses seguidos`;
+    if (!causalTree?.calculable) {
+      return `Tu previsión ${directionLabel} de forma sostenida en los últimos ${monthsLabel}.`;
+    }
+    const leaves = causalTree.branches.flatMap((branch) => branch.leaves.map((leaf) => ({ ...leaf, branchLabel: branch.label })));
+    const dominant = leaves.reduce((best, leaf) => (Math.abs(leaf.amount) > Math.abs(best?.amount ?? 0) ? leaf : best), null);
+    const driverLabel = dominant && dominant.amount !== 0 ? ` — en ${text(causalTree.label)}, el componente que más pesa es "${dominant.label}" dentro de ${dominant.branchLabel.toLowerCase()}` : "";
+    return `Tu previsión ${directionLabel} de forma sostenida en los últimos ${monthsLabel}${driverLabel}.`;
+  }
+
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, detectStructuralChange, applyLearnedBias, diffAssumptionSnapshots, causalTreeForMonth, categoryDriftWindows, reforecastMaterialityAlert, REFORECAST_MATERIALITY_DEFAULT, previsionChangeOneLiner };
 });

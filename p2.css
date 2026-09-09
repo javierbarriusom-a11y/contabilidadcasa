@@ -33,6 +33,8 @@
 }
 .p2-muted { color: #607078; }
 .p2-help { margin-top: 4px !important; color: #607078; font-size: 0.86rem; }
+/* PVC8: mismo tono ámbar que .p2-status.warn, para la alerta de materialidad del recálculo. */
+.p2-help.p2-warn { color: #8a5b00; font-weight: 700; }
 
 .p2-grid { display: grid; gap: 14px; }
 .p2-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }

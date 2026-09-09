@@ -3724,10 +3724,26 @@
               <p class="e19-kpi-note" id="pv5DiaryEmpty" hidden>Todavía no ha cambiado ninguna cifra tras un cierre de mes.</p>
             </article>
 
+            <!-- PVC4 (Oleada 3, Bloque 5): extiende learnFromHistory()/A11-3 y el backtesting de
+                 PVX1 a nivel de partida, con tres ventanas (3/6/12 meses) en vez de un único
+                 promedio sobre todo el histórico — para distinguir sesgo sistemático (misma
+                 dirección en las tres ventanas) de una desviación puntual reciente. Usa los meses
+                 ya cerrados y archivados en «Informes de cierre archivados» (Datos y exportación). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Marcador de deriva por partida</h3>
+              <p class="e19-kpi-note">Qué partidas se han desviado siempre en la misma dirección en los últimos 3, 6 y 12 meses cerrados — un sesgo sistemático, no ruido de un mes suelto.</p>
+              <div id="pvc4CategoryDrift"></div>
+            </article>
+
             <!-- PVX5: árbol causal navegable de una cifra. Combina la serie ya decompuesta del
-                 forecast (A7-3) con el diario de recalibración (PV5) de arriba — sin motor nuevo. -->
+                 forecast (A7-3) con el diario de recalibración (PV5) de arriba — sin motor nuevo.
+                 PVC9 (Oleada 3, Bloque 5) añade la frase de arriba del árbol: combina este mismo
+                 árbol con el detector de cambio estructural (PVC3) para quien no quiere navegar el
+                 árbol completo — nunca inventa un "por qué" si PVC3 ya descartó el cambio como
+                 ruido. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Árbol causal de una cifra</h3>
+              <p class="e19-kpi-note" id="pvc9OneLiner"></p>
               <p class="e19-kpi-note">Elige un mes y navega por qué es esa cifra: ingresos y salidas, y dentro de cada una, cuánto es recurrente, ajuste manual, deuda o proyecto — con el motivo del diario de arriba si ese cierre cambió algo.</p>
               <label class="month-picker">
                 <span>Mes</span>
