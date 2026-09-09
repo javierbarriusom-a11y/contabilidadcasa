@@ -3190,6 +3190,19 @@
               <div class="e19-kpi-note" id="cpx2SecondOpinionNote"></div>
             </article>
 
+            <!-- INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3, justo abajo, solo cubre pérdidas
+                 YA realizadas por venta): candidatas a compensación ANTES de vender — posiciones
+                 con minusvalía latente (gainLoss negativo, ya calculado por normalizePositions en
+                 IV1) que podría interesar realizar antes de cerrar el año fiscal. Solo identifica y
+                 ordena, nunca sugiere vender por sí sola (regla transversal 04) — y avisa de la
+                 norma española de no recompra para no inducir a comprar de vuelta demasiado
+                 pronto. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Pérdidas latentes candidatas a compensación</h3>
+              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de abajo. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
+              <div id="inv6LatentLossCandidates"></div>
+            </article>
+
             <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
                  IV1/IV2 y reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya
                  calcula FC1 (fifoLedger) — sin motor de cálculo nuevo. Solo neta transmisiones
@@ -3402,6 +3415,17 @@
                   <span>Convicción (1-5, opcional)</span>
                   <input id="iv1PositionConvictionScore" type="number" min="1" max="5" step="1" inputmode="numeric" placeholder="Ej. 3" />
                 </label>
+                <!-- INV8 (Oleada 3, Bloque 5): plan de aportación periódica (DCA) declarado —
+                     opcional. Se compara más abajo, en Herramientas, contra las aportaciones
+                     reales ya registradas (no un calendario nuevo, solo el plan contra lo real). -->
+                <label class="month-picker">
+                  <span>Aportación periódica prevista (€/mes, opcional)</span>
+                  <input id="iv1PositionDcaMonthlyAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 200" />
+                </label>
+                <label class="month-picker">
+                  <span>Inicio del plan de aportación (opcional)</span>
+                  <input id="iv1PositionDcaStartDate" type="date" />
+                </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>
               <!-- FC2: traspaso entre fondos sin peaje fiscal. Reutiliza los campos Tipo/Nombre/Valor
@@ -3525,6 +3549,18 @@
                    solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
                    se fabrica precisión). -->
               <div id="inv1AssetClassNote"></div>
+              <!-- INV7 (Oleada 3, Bloque 5): escalera de liquidez — a cuántos días puede
+                   convertirse cada posición en caja sin penalización severa, cruzado con el suelo
+                   del colchón (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto
+                   total): aquí importa la velocidad de conversión, no el valor total. -->
+              <h4 class="escenario-motor-panel-title">Escalera de liquidez</h4>
+              <p class="e19-kpi-note">A cuántos días puede convertirse cada posición en caja sin penalización severa, y si eso basta para cubrir tu colchón mínimo si hiciera falta.</p>
+              <div id="inv7LiquidityLadder"></div>
+              <!-- INV8 (Oleada 3, Bloque 5): IVX7 (arriba, en la lista de posiciones) ya muestra el
+                   coste medio hacia atrás; esto mira hacia delante — solo aparece si al menos una
+                   posición declaró un plan de aportación periódica (arriba, en el registro). -->
+              <h4 class="escenario-motor-panel-title">Plan de aportación periódica (DCA)</h4>
+              <div id="inv8DcaTracking"></div>
             </article>
 
             <!-- LEV6 (Oleada 3, Bloque 4; separado de la tarjeta de objetivos por OPT-24): orden de
