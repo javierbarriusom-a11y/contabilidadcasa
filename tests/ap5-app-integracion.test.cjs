@@ -4,6 +4,7 @@ const fs = require("node:fs");
 
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
+const deudaSource = fs.readFileSync(require.resolve("../views/deuda.js"), "utf8");
 
 test("AP5: la tarjeta de cola única de prioridad tiene su selector y su lista", () => {
   ["ap5StrategySelect", "ap5QueueList"].forEach((id) => {
@@ -39,6 +40,6 @@ test("AP5: el selector está cableado y la cola se refresca al marcar o desmarca
   assert.match(toggleBlock, /renderAp5Queue\(\);/);
 });
 
-test("AP5: la cola se renderiza en el arranque de la app, justo después de la lista de deudas de AP1", () => {
-  assert.match(appSource, /renderAp1DebtOptions\(\);\s*\n\s*renderAp5Queue\(\);/);
+test("AP5: la cola se renderiza al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta), justo después de la lista de deudas de AP1", () => {
+  assert.match(deudaSource, /renderAp1DebtOptions\(\);\s*\n\s*renderAp5Queue\(\);/);
 });

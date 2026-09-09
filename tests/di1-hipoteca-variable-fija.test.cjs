@@ -84,9 +84,9 @@ test("no persiste nada en scenarioSettings: es una calculadora puntual", () => {
   assert.doesNotMatch(body, /saveScenarioSettings/);
 });
 
-test("la calculadora vive en #ajustes con sus campos (los cuatro originales más el de APX5), botón y nota", () => {
-  const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
-  assert.ok(openTag, "No existe la sección #ajustes");
+test("la calculadora vive en #deuda-apalancamiento (OPT-24: ya no es un ajuste, es una herramienta) con sus campos (los cuatro originales más el de APX5), botón y nota", () => {
+  const openTag = /<section[^>]*id="deuda-apalancamiento"[^>]*>/.exec(html);
+  assert.ok(openTag, "No existe la sección #deuda-apalancamiento");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
   const ajustes = html.slice(start, end);

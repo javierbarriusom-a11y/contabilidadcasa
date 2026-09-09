@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 7 de septiembre de 2026.
+Fecha de revisión: 8 de septiembre de 2026.
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -42,6 +42,53 @@ de aquí en la siguiente regeneración, no al momento.
   (detalle en `BACKLOG_INDICE.md`, Bloque 0): el reloj de 30 días de `OPT-2` (arranca el 29 de
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
   contratación de un proveedor PSD2 (`O-6`).
+
+## Cierre de sesión — 8 de septiembre de 2026 (161): `OPT-24` Tarea 1 — «Deuda y apalancamiento» sale de Ajustes y entra en la ruta Deuda
+
+Primera tarea de implementación de `OPT-24` (nacida en la sesión anterior, 160). El hogar delegó la
+elección de la siguiente tarea («lo que tú creas que sea mejor para el producto»); se optó por
+implementar `OPT-24` antes de abrir el Bloque 5 de Oleada 3, para no seguir engordando el mismo
+cajón de sastre que la tarea corrige.
+
+- **Qué se movió**: la sub-pestaña «Deuda y apalancamiento» completa (18 tarjetas) sale de Ajustes
+  y se convierte en una quinta pantalla de la ruta Deuda, `#deuda-apalancamiento`, con la misma
+  barra de pestañas de pantalla que ya comparten Ruta/Comparar/Contratos/Simulador visual
+  (`DEUDA_SCREEN_TABS`/`DEUDA_SCREEN_TAB_NAV_IDS` en `views/deuda.js`) — mismo patrón que ya usó
+  `D-15` para promover el simulador visual desde Herramientas avanzadas. Dentro de la nueva
+  pantalla, las 18 tarjetas quedan separadas en dos sub-grupos: **Configuración** (política de
+  apalancamiento del hogar de `LEV1`, avales dados de `DI4`) y **Herramientas** (los 16
+  simuladores/comparadores/alertas restantes: `AP3`, `APX2`, `INV10`, `LEV4`, `APX3`, `LEV5`,
+  `LEV7`, `LEV3`, `AP6`, `AP1`, `DEB8`, `DLX3`, `AP5`, el comparador educativo de tarifas, `DEB4` y
+  `DI5`).
+- **Cómo se movió, sin tocar ningún motor**: es un traslado de UI, no un rediseño de lógica. Las 16
+  llamadas de refresco que vivían dentro de `renderAjustes()` (`app.js`) se extrajeron a una nueva
+  `renderDeudaApalancamiento()` en `views/deuda.js`, en el mismo orden relativo que tenían antes.
+  Se dio de alta la nueva ruta en el dispatcher central, en `HEAVY_RENDER_VIEWS`, en `VIEW_CHUNKS`
+  (comparte el mismo `views/deuda.js` que las otras 4 pantallas de Deuda, sin fichero nuevo) y en el
+  mapa de metadatos de ruta (`eyebrow`/`title`). Ningún identificador de campo, motor canónico ni
+  clave de `scenarioSettings` cambió — todo lo que ya guardaban esas 18 tarjetas sigue guardándose
+  igual, solo cambia dónde viven en el DOM.
+- **Ajustes se queda con 44 tarjetas** (era 62): la barra de anclas de Ajustes pierde la entrada
+  «Deuda y apalancamiento», que pasaba directamente de Fiscal a Patrimonio e inversión. Las Tareas
+  2-4 de `OPT-24` (separar Configuración/Herramientas en las 8 sub-pestañas que se quedan en
+  Ajustes, y resolver las 8 tarjetas mixtas) quedan para una sesión siguiente — no dependen de esta
+  y pueden avanzar en paralelo o después, sin orden obligado entre ellas.
+- **Tests**: 15 tests de wiring que asumían la ubicación anterior (comprobaban `#ajustes` o
+  secuencias de llamadas dentro de `renderAjustes()`) se actualizaron para apuntar a
+  `#deuda-apalancamiento`/`renderDeudaApalancamiento()` — mismo aserto, nueva ubicación. Ningún test
+  de motor canónico cambió: la lógica de negocio no se tocó.
+- **Validación**: `npm run verify` completo en verde — `npm test` **3514/3514** (mismo total que el
+  cierre anterior: es un traslado, no se añadió ni se quitó ningún test), `test:a11y` (1176 IDs
+  únicos), `test:performance`, `build:site`, `test:privacy` y `test:smoke` del sitio público, todos
+  sin errores. `tests/opt20-indice-backlogs.test.cjs` verificado en verde tras el cambio de
+  `BACKLOG_OPTIMIZACION.md`.
+
+**Backlog actualizado**: `BACKLOG_OPTIMIZACION.md` (tabla maestra §0: `OPT-24` pasa de ⏳ a 🟡 con
+la Tarea 1 hecha; nota de «Progreso» añadida dentro de la entrada de `OPT-24` en §3).
+
+- **Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` (adelantada a `main` tras
+  el merge del PR #258) — commit y push siguientes, PR en borrador y fusión a `main` en cuanto el CI
+  esté en verde, autorización ya dada por el hogar (`CLAUDE.md`).
 
 ## Cierre de sesión — 7 de septiembre de 2026 (160): nace `OPT-24` — Ajustes es un cajón de sastre, auditado y con plan de reorganización
 

@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 const buildScript = fs.readFileSync(require.resolve("../tools/build-public-site.mjs"), "utf8");
+const deudaSource = fs.readFileSync(require.resolve("../views/deuda.js"), "utf8");
 
 test("AP6: la tarjeta de alerta de sostenibilidad de la deuda tomada tiene su contenedor", () => {
   assert.match(indexSource, /id="ap6SustainabilityAlert"/);
@@ -48,8 +49,8 @@ test("AP6: el listener de la lista de escenarios distingue el toggle de tomada d
   assert.match(block, /removeAp3Scenario\(removeButton\.dataset\.ap3ScenarioRemove\)/);
 });
 
-test("AP6: la alerta se renderiza en el arranque de la app, justo después de la lista de escenarios AP3", () => {
-  assert.match(appSource, /renderAp3BarrierStatus\(\);\s*\n\s*renderAp3ScenarioList\(\);\s*\n\s*renderAp6Alert\(\);/);
+test("AP6: la alerta se renderiza al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta), justo después de la lista de escenarios AP3", () => {
+  assert.match(deudaSource, /renderAp3BarrierStatus\(\);\s*\n\s*renderAp3ScenarioList\(\);\s*\n\s*renderAp6Alert\(\);/);
 });
 
 test("AP6: sin escenarios tomados nunca finge sostenibilidad, y una vez insostenible nunca se silencia", () => {

@@ -1116,12 +1116,14 @@ const DEUDA_SCREEN_TABS = [
   { id: "deuda-comparar", label: "Comparar" },
   { id: "deuda-contratos", label: "Contratos" },
   { id: "deuda-simulador", label: "Simulador visual" },
+  { id: "deuda-apalancamiento", label: "Apalancamiento" },
 ];
 const DEUDA_SCREEN_TAB_NAV_IDS = {
   "deuda-ruta": "deudaRutaScreenTabs",
   "deuda-comparar": "deudaCompararScreenTabs",
   "deuda-contratos": "deudaContratosScreenTabs",
   "deuda-simulador": "deudaSimuladorScreenTabs",
+  "deuda-apalancamiento": "deudaApalancamientoScreenTabs",
 };
 
 function deudaScreenTabsHtml(activeId) {
@@ -1300,6 +1302,31 @@ function handleDeb6Simulate() {
 function renderDeudaSimulador() {
   renderDeudaScreenTabs("deuda-simulador");
   sendDebtRoadmapState();
+}
+
+// OPT-24 (Oleada 3, Optimización): «Deuda y apalancamiento» vivía como una sub-pestaña más de
+// Ajustes, mezclando configuración real (LEV1, Avales) con 16 simuladores/comparadores/alertas que
+// no son ajustes en absoluto. Se traslada aquí como quinta pantalla de Deuda — mismo patrón de
+// barra de pestañas que Ruta/Comparar/Contratos/Simulador — con las 16 llamadas de refresco que
+// antes vivían dentro de renderAjustes().
+function renderDeudaApalancamiento() {
+  renderDeudaScreenTabs("deuda-apalancamiento");
+  renderAp3BarrierStatus();
+  renderAp3ScenarioList();
+  renderAp6Alert();
+  renderAp1DebtOptions();
+  renderAp5Queue();
+  syncLev1PolicyControls();
+  renderLev1PolicyStatus();
+  renderDeb1VerdictChangeAlert();
+  syncLoanGuaranteeControl();
+  renderAjustesLoanGuaranteeNote();
+  renderLev4LombardComparison();
+  syncDeb4RadarControls();
+  renderDeb4RefinancingRadar();
+  syncLev5VolatilityControls();
+  renderLev5DynamicStress();
+  renderDlx3Retrospective();
 }
 
 // Vacío = «sin corregir», nunca cero ni cadena vacía forzada: borra el override y vuelve al valor

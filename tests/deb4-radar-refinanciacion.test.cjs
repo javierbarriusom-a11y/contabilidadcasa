@@ -10,6 +10,7 @@ const path = require("node:path");
 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+const deudaSource = fs.readFileSync(path.join(__dirname, "..", "views", "deuda.js"), "utf8");
 
 test("la tarjeta de hipoteca tiene el hueco del radar, visible antes del botón Comparar", () => {
   const cardStart = indexSource.indexOf("Hipoteca variable → fija bajo escenarios de tipos");
@@ -47,6 +48,6 @@ test("los seis campos de la hipoteca (incluido el umbral) se persisten al cambia
   assert.match(saveBlock, /renderDeb4RefinancingRadar\(\);/);
 });
 
-test("el radar se sincroniza y renderiza en el arranque de la app", () => {
-  assert.match(appSource, /syncDeb4RadarControls\(\);\s*renderDeb4RefinancingRadar\(\);/);
+test("el radar se sincroniza y renderiza al abrir Deuda › Apalancamiento (OPT-24: ya no es un ajuste, es una herramienta)", () => {
+  assert.match(deudaSource, /syncDeb4RadarControls\(\);\s*renderDeb4RefinancingRadar\(\);/);
 });

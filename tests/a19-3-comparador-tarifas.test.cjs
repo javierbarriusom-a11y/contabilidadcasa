@@ -71,9 +71,9 @@ test("handleAjustesCompareTariffs · con datos válidos, muestra ambos costes y 
   assert.match(result, /fija sale más barata/);
 });
 
-test("la calculadora vive en #ajustes con su botón y nota de resultado", () => {
-  const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
-  assert.ok(openTag, "No existe la sección #ajustes");
+test("la calculadora vive en #deuda-apalancamiento (OPT-24: ya no es un ajuste, es una herramienta) con su botón y nota de resultado", () => {
+  const openTag = /<section[^>]*id="deuda-apalancamiento"[^>]*>/.exec(html);
+  assert.ok(openTag, "No existe la sección #deuda-apalancamiento");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
   const ajustes = html.slice(start, end);

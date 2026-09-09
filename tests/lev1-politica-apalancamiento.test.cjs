@@ -79,14 +79,14 @@ test("nunca bloquea nada por sí solo: solo informa, incluso muy por encima del 
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-test("la tarjeta de política de apalancamiento vive en Ajustes › Deuda y apalancamiento", () => {
+test("la tarjeta de política de apalancamiento vive en Deuda › Apalancamiento (OPT-24: ya no es una sub-pestaña de Ajustes)", () => {
   ["lev1Basis", "lev1LimitPct", "lev1PolicyStatus"].forEach((id) => {
     assert.match(indexSource, new RegExp(`id="${id}"`), `Falta #${id} en la tarjeta de LEV1`);
   });
-  const groupStart = indexSource.indexOf('id="ajustes-deuda-title"');
+  const groupStart = indexSource.indexOf('id="deuda-apalancamiento"');
   const cardStart = indexSource.indexOf("Política de apalancamiento del hogar");
   const ap3Start = indexSource.indexOf("Simulador de apalancamiento (explorar, no ejecutar)");
-  assert.ok(groupStart >= 0 && cardStart > groupStart, "La tarjeta LEV1 debe vivir dentro del dominio Deuda y apalancamiento");
+  assert.ok(groupStart >= 0 && cardStart > groupStart, "La tarjeta LEV1 debe vivir dentro de la pantalla Deuda · Apalancamiento");
   assert.ok(cardStart < ap3Start, "LEV1 debe declararse antes del simulador AP3 que la consulta");
 });
 
