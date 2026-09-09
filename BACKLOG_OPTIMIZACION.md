@@ -56,7 +56,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-7 | Paneles completos de «modo familiar» y «alertas» compitiendo en «Hoy» | Medio-Alto | S-M | ⏳ |
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
-| 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | 🟡 · Tarea 1 (Deuda y apalancamiento → ruta Deuda) hecha; Tareas 2-4 pendientes |
+| 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ✅ (8 sep) |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
@@ -320,20 +320,65 @@ apalancamiento del hogar, avales dados).
 4. Actualizar `tests/navigation-structure.test.cjs` y cualquier test de wiring que dé por hecho la
    posición actual de una tarjeta movida.
 
-**Progreso (8 de septiembre de 2026, sesión 161):** Tarea 1 completada. La sub-pestaña «Deuda y
-apalancamiento» ya no existe en Ajustes: sus 18 tarjetas viven ahora en una quinta pantalla de la
-ruta Deuda (`#deuda-apalancamiento`), con la misma barra de pestañas de pantalla que ya comparten
-Ruta/Comparar/Contratos/Simulador visual (`DEUDA_SCREEN_TABS` en `views/deuda.js`), y separadas
-dentro de esa pantalla en «Configuración» (política de apalancamiento del hogar, avales dados) y
-«Herramientas» (los 16 simuladores/comparadores/alertas restantes). Las 16 llamadas de refresco que
-vivían dentro de `renderAjustes()` se movieron a una nueva `renderDeudaApalancamiento()` en
-`views/deuda.js`, cableada en el dispatcher central y en `HEAVY_RENDER_VIEWS`/`VIEW_CHUNKS`. Ningún
-motor canónico ni identificador de campo cambió — es un traslado de UI, no un rediseño de lógica.
-15 tests de wiring que asumían la ubicación anterior se actualizaron para apuntar a la nueva
-pantalla; `npm run verify` completo en verde (3514/3514 tests, a11y, rendimiento, build, privacidad
-y smoke del sitio público). Quedan pendientes las Tareas 2-4 (separar Configuración/Herramientas en
-las 8 sub-pestañas de Ajustes que se quedan, resolver las 8 tarjetas mixtas, y el resto de tests de
-`navigation-structure`).
+**Progreso — cerrada (8-9 de septiembre de 2026, sesiones 161-162):**
+
+- **Tarea 1 (sesión 161).** La sub-pestaña «Deuda y apalancamiento» ya no existe en Ajustes: sus 18
+  tarjetas viven ahora en una quinta pantalla de la ruta Deuda (`#deuda-apalancamiento`), con la
+  misma barra de pestañas de pantalla que ya comparten Ruta/Comparar/Contratos/Simulador visual
+  (`DEUDA_SCREEN_TABS` en `views/deuda.js`), y separadas dentro de esa pantalla en «Configuración»
+  (política de apalancamiento del hogar, avales dados) y «Herramientas» (los 16
+  simuladores/comparadores/alertas restantes). Las 16 llamadas de refresco que vivían dentro de
+  `renderAjustes()` se movieron a una nueva `renderDeudaApalancamiento()` en `views/deuda.js`,
+  cableada en el dispatcher central y en `HEAVY_RENDER_VIEWS`/`VIEW_CHUNKS`. Ningún motor canónico
+  ni identificador de campo cambió — es un traslado de UI, no un rediseño de lógica.
+- **Tareas 2-3 (sesión 162), hechas a la vez** porque resolver bien las tarjetas mixtas exigía tocar
+  el mismo HTML que la separación Configuración/Herramientas. Las 8 sub-pestañas que se quedaron en
+  Ajustes (Hogar, Reserva y colchón, Seguros, Fiscal, Patrimonio e inversión, Simuladores y
+  Laboratorio, Presupuesto y operación, Datos y exportación) se reestructuraron cada una en dos
+  sub-grupos («Configuración»/«Herramientas») bajo la misma barra de anclas ya existente — sin ruta
+  ni pantalla nueva. «Navegación» (los accesos rápidos a otras pantallas) se dejó tal cual, como se
+  decidió al redactar la tarea: no es ni configuración ni herramienta, es un índice de enlaces.
+  Regla de clasificación aplicada, para que sea auditable: **Configuración** = declara un dato que
+  (a) alimenta el cálculo de OTRA tarjeta/pantalla más allá de su propia nota local, o (b) es un
+  registro de entidades (cuentas, pólizas, activos, tablas, escalas, miembros del hogar) sin
+  veredicto propio, o (c) es un interruptor/política que cambia el comportamiento de otra pantalla.
+  **Herramienta** = el resto: cualquier tarjeta cuyo propósito central es un veredicto, comparación,
+  simulación o consulta de solo lectura, aunque tome uno o dos datos para hacerlo y no tenga botón.
+  Solo se reordenaron tarjetas dentro de cada sub-pestaña (nunca entre sub-pestañas), y se comprobó
+  antes de mover nada que ninguna referencia visible «arriba»/«abajo» entre tarjetas quedara
+  invertida por el reordenamiento.
+  De las 8 tarjetas mixtas originales, se resolvieron 3 — las únicas que de verdad mezclaban un
+  registro con una herramienta con inputs propios en la misma tarjeta (el resto del cajón de sastre
+  eran tarjetas de un solo propósito, aunque estuvieran mal clasificadas):
+  1. **«Cartera de inversión: registro por posición»** (`IV1`, la más grave, 18 campos + 6
+     herramientas incrustadas) → partida en «Cartera de inversión: registro por posición»
+     (Configuración: alta/traspaso/aportación/venta/aportación futura de posiciones) y «Cartera de
+     inversión: análisis y comparativa» (Herramientas: benchmark, coste de comisiones,
+     concentración, exposición cruzada, glide path) — adyacentes en el documento (la de
+     Configuración es la última del bloque, la de Herramientas la primera del siguiente).
+  2. **«Cartera: objetivo de reparto y rebalanceo»** (`IV6`+`LEV6`) → el bloque «Al desapalancar,
+     ¿qué vender primero?» (`LEV6`, sin campos propios, solo lee el objetivo declarado arriba) se
+     separó en su propia tarjeta de Herramientas.
+  3. **«Compensación de pérdidas y ganancias a cierre de año»** (`FC3`) → el registro de «Pérdidas
+     arrastradas de años anteriores» se separó en su propia tarjeta de Configuración; la
+     calculadora («Calcular compensación») se queda en Herramientas y sigue leyendo ese registro.
+  Las 5 tarjetas mixtas restantes de la auditoría original resultaron, al revisarlas una a una, ser
+  de un solo propósito con una nota derivada local (p. ej. «Línea de crédito de emergencia»,
+  «Cobertura de vida frente a deuda») — se clasificaron entera cada una como Herramienta bajo la
+  regla anterior, sin partirlas: partir una tarjeta de un solo formulario en dos no habría separado
+  nada real.
+- **Tarea 4.** `tests/navigation-structure.test.cjs` no comprueba contenido ni posición de tarjetas
+  de Ajustes (solo estructura de rutas/menú, no tocada) — verificado, sin cambios. 1 test de wiring
+  (`lev6-plan-desapalancamiento-prioridad.test.cjs`) sí asumía la distancia exacta entre `IV6` y
+  `LEV6` en el DOM; actualizado para comprobar el orden (LEV6 después de IV6) y el nuevo texto de
+  referencia, no una distancia en caracteres que ya no aplica tras separarlas en dos tarjetas.
+- **Validación**: `npm run verify` completo en verde — `npm test` **3514/3514** (mismo total: es
+  reorganización de HTML, no se añadió ni quitó lógica de negocio, solo se actualizó 1 test de
+  posición), `test:a11y` (1176 IDs únicos, mismo número que antes — nada se duplicó ni se perdió),
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke` del sitio público, todos sin
+  errores.
+
+`OPT-24` queda cerrada con las 4 tareas hechas.
 
 **Resultado esperado:** Ajustes deja de ser un cajón de sastre — cada tarjeta vive donde su propio
 comportamiento indica (dato declarado vs. decisión activa), sin abrir rutas nuevas, sin revivir
@@ -623,9 +668,8 @@ redundante, aunque no fuera la causa principal).
 
 1. OPT-1 → OPT-2 → OPT-3 → OPT-4 → OPT-5 *(Fase 0 completa primero; sin riesgo y sienta la base de
    datos y de medición que necesita todo lo demás)*
-2. **OPT-24 *(en paralelo desde el minuto cero — no depende de OPT-2 ni de ninguna otra tarea de este
-   backlog; conviene cerrarla antes de que OPT-15 fije la navegación final alrededor de una Ajustes
-   ya limpia, en vez de fijarla alrededor del cajón de sastre actual)***
+2. ~~OPT-24~~ *(cerrada el 9-sep-2026, ver nota bajo la tarea — Ajustes ya reorganizada, OPT-15
+   encontrará las 6 rutas finales alrededor de una Ajustes limpia, no del cajón de sastre original)*
 3. OPT-6 → OPT-7 → OPT-8 *(«Hoy» se arregla rápido y es lo que más se ve cada día)*
 4. OPT-10 *(cuando OPT-2 lleve ~30 días corriendo)*
 5. OPT-11 *(la parte «barata» de la Fase 2: borrar lo que tiene 0 uso)*

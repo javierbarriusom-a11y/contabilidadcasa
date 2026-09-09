@@ -2662,6 +2662,7 @@
 
             <div class="e19-ajustes-group" id="ajustes-hogar" aria-labelledby="ajustes-hogar-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-hogar-title">Hogar</h3>
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>
               <p class="e19-kpi-note">Registro comparado de las cuentas remuneradas activas: cuál paga mejor TAE y qué rendimiento medio da el conjunto, ponderado por saldo.</p>
@@ -2757,6 +2758,7 @@
               <ul class="commit-barrier-list" id="a18RuleList"></ul>
             </article>
 
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
             <!-- A18-2: saldo continuo "quién debe a quién" — depende de A18-1. Cada gasto compartido
                  registrado aquí ya fue pagado al 100% por uno de los dos; el reparto de arriba dice
                  cuál era su cuota justa, así que el saldo acumula lo que el otro le debe. Cálculo
@@ -2806,6 +2808,7 @@
 
             <div class="e19-ajustes-group" id="ajustes-reserva" aria-labelledby="ajustes-reserva-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-reserva-title">Reserva y colchón</h3>
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Reserva operativa</h3>
               <p class="e19-kpi-note">El colchón que no quieres tocar. Lo usan el pie de impacto de Plan, el color del mapa de calor y, si no indicas otra, el guardarraíl del comparador de deuda.</p>
@@ -2816,6 +2819,7 @@
               <p class="e19-kpi-note" id="ajustesReserveNote"></p>
             </article>
 
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
               <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
@@ -2835,6 +2839,33 @@
 
             <div class="e19-ajustes-group" id="ajustes-seguros" aria-labelledby="ajustes-seguros-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-seguros-title">Seguros</h3>
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Inventario de pólizas</h3>
+              <p class="e19-kpi-note">Pólizas de seguro con su fecha de vencimiento. Aparecen en el calendario financiero (.ics) el mes en que vencen, con la prima si la conoces.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Nombre</span>
+                  <input id="ajustesInsurancePolicyName" type="text" placeholder="Seguro de hogar" />
+                </label>
+                <label class="month-picker">
+                  <span>Vencimiento</span>
+                  <input id="ajustesInsurancePolicyDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Prima anual (€)</span>
+                  <input id="ajustesInsurancePolicyPremium" type="number" min="0" step="10" inputmode="decimal" placeholder="Opcional" />
+                </label>
+                <label class="month-picker">
+                  <span>Notas</span>
+                  <input id="ajustesInsurancePolicyNotes" type="text" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesInsurancePolicyAdd">Añadir póliza</button>
+              <div id="ajustesInsurancePolicies"></div>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Deducible óptimo del seguro</h3>
               <p class="e19-kpi-note">Cuanta más franquicia asumas, menor la prima — pero mayor el golpe de caja si hay un siniestro. Esta cifra es la mayor franquicia habitual que tu colchón, por encima del suelo protegido, podría absorber sin caer por debajo de ese suelo.</p>
@@ -2894,58 +2925,11 @@
               </div>
               <p class="e19-kpi-note" id="ajustesHomeInsuranceNote"></p>
             </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Inventario de pólizas</h3>
-              <p class="e19-kpi-note">Pólizas de seguro con su fecha de vencimiento. Aparecen en el calendario financiero (.ics) el mes en que vencen, con la prima si la conoces.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Nombre</span>
-                  <input id="ajustesInsurancePolicyName" type="text" placeholder="Seguro de hogar" />
-                </label>
-                <label class="month-picker">
-                  <span>Vencimiento</span>
-                  <input id="ajustesInsurancePolicyDate" type="date" />
-                </label>
-                <label class="month-picker">
-                  <span>Prima anual (€)</span>
-                  <input id="ajustesInsurancePolicyPremium" type="number" min="0" step="10" inputmode="decimal" placeholder="Opcional" />
-                </label>
-                <label class="month-picker">
-                  <span>Notas</span>
-                  <input id="ajustesInsurancePolicyNotes" type="text" placeholder="Opcional" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="ajustesInsurancePolicyAdd">Añadir póliza</button>
-              <div id="ajustesInsurancePolicies"></div>
-            </article>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-fiscal" aria-labelledby="ajustes-fiscal-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-fiscal-title">Fiscal</h3>
-            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
-                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
-                 conexión todavía a un dividendo real de la cartera de IV1). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
-              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Dividendo bruto (€)</span>
-                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Retención en origen (%)</span>
-                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo del ahorro en España (%)</span>
-                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
-            </article>
-
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Tablas fiscales</h3>
               <p class="e19-kpi-note">Registro de qué año fiscal está cubierto (tramos de IRPF, mínimos personales, etc.), para saber cuándo toca la actualización anual. No calcula nada fiscal por sí solo.</p>
@@ -3020,6 +3004,84 @@
               <ul class="commit-barrier-list" id="irpfBracketScaleList"></ul>
             </article>
 
+            <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
+                 (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
+                 editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
+                 fiscales más los ocho generales del forecast que ya calculaba el motor). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Registro de supuestos</h3>
+              <p class="e19-kpi-note">Supuestos fiscales del hogar, versionados junto a los del forecast — un único lugar, no una cifra suelta en cada pantalla.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tributación conjunta</span>
+                  <input id="ajustesFiscalJointTaxation" type="checkbox" />
+                </label>
+                <label class="month-picker">
+                  <span>Retenciones (%)</span>
+                  <input id="ajustesFiscalWithholdingRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Aportaciones deducibles al año (€)</span>
+                  <input id="ajustesFiscalDeductibleContributions" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Alquiler deducible al año (€)</span>
+                  <input id="ajustesFiscalDeductibleRent" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Familia numerosa</span>
+                  <input id="ajustesFiscalLargeFamily" type="checkbox" />
+                </label>
+              </div>
+              <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
+            </article>
+
+            <!-- FC3 (OPT-24): pérdidas arrastradas de años anteriores — antes vivía dentro de la
+                 misma tarjeta que «Calcular compensación», mezclando el registro (dato declarado
+                 una vez por año con pérdida) con la herramienta que lo consume. Separado: este
+                 registro es configuración, «Calcular compensación» (en Herramientas, más abajo)
+                 sigue leyéndolo tal cual dentro de la ventana legal de 4 ejercicios. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Pérdidas arrastradas de años anteriores</h3>
+              <p class="e19-kpi-note">Pérdidas patrimoniales de años anteriores todavía dentro de la ventana legal de 4 ejercicios. El cálculo de compensación de pérdidas y ganancias, en Herramientas, las aplica automáticamente.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Pérdida arrastrada de un año anterior (€)</span>
+                  <input id="fc3PriorLossAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Año de esa pérdida</span>
+                  <input id="fc3PriorLossYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2025" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc3PriorLossSave">Registrar pérdida arrastrada</button>
+              <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
+                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
+                 conexión todavía a un dividendo real de la cartera de IV1). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
+              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Dividendo bruto (€)</span>
+                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Retención en origen (%)</span>
+                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo del ahorro en España (%)</span>
+                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Estimador de resultado de IRPF</h3>
               <p class="e19-kpi-note">Estimación orientativa a partir de las escalas registradas arriba — nunca sustituye asesoría fiscal ni el simulador oficial de la Agencia Tributaria. El resultado se muestra como rango, no como una única cifra.</p>
@@ -3060,38 +3122,6 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="fc5OptimizeRun">Calcular</button>
               <div class="e19-kpi-note" id="fc5OptimizeNote"></div>
-            </article>
-
-            <!-- A15-1: registro central de supuestos (A7-2) — hasta ahora el motor
-                 (buildAssumptionRegistry) existía pero ningún sitio de la app lo llamaba. Aquí se
-                 editan los cinco supuestos fiscales y se ve, versionada, la lista completa (los
-                 fiscales más los ocho generales del forecast que ya calculaba el motor). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Registro de supuestos</h3>
-              <p class="e19-kpi-note">Supuestos fiscales del hogar, versionados junto a los del forecast — un único lugar, no una cifra suelta en cada pantalla.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Tributación conjunta</span>
-                  <input id="ajustesFiscalJointTaxation" type="checkbox" />
-                </label>
-                <label class="month-picker">
-                  <span>Retenciones (%)</span>
-                  <input id="ajustesFiscalWithholdingRate" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Aportaciones deducibles al año (€)</span>
-                  <input id="ajustesFiscalDeductibleContributions" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Alquiler deducible al año (€)</span>
-                  <input id="ajustesFiscalDeductibleRent" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Familia numerosa</span>
-                  <input id="ajustesFiscalLargeFamily" type="checkbox" />
-                </label>
-              </div>
-              <ul class="commit-barrier-list" id="ajustesAssumptionRegistry"></ul>
             </article>
 
             <!-- PVX1: backtesting público del propio motor de previsión — el mismo aprendizaje que
@@ -3176,23 +3206,12 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
               <div class="e19-kpi-note" id="fc3CompareNote"></div>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Pérdida arrastrada de un año anterior (€)</span>
-                  <input id="fc3PriorLossAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Año de esa pérdida</span>
-                  <input id="fc3PriorLossYear" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2025" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc3PriorLossSave">Registrar pérdida arrastrada</button>
-              <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
             </article>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-patrimonio" aria-labelledby="ajustes-patrimonio-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-patrimonio-title">Patrimonio e inversión</h3>
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- A14-4: desglose por tipo y concentración de riesgo. Depende solo del contrato
                  canónico A14-1 (canonical-assets.js); registro manual mínimo aquí — la
                  importación/actualización con bandeja previa es A14-3, sesión aparte. Sin activos
@@ -3264,45 +3283,35 @@
               <div class="e19-kpi-note" id="rgxKnowledgeConcentration"></div>
             </article>
 
-            <!-- LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1
-                 (activos con procedencia, arriba) y SP1 (inventario de pólizas, en Ajustes ›
-                 Seguros). Dos puntos se verifican solos con datos reales; los otros tres no tienen
-                 ninguna fuente de datos en la app (testamento, beneficiarios, a quién avisar) —
-                 quedan como casillas que confirma el propio hogar, nunca inventadas. -->
+            <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
+                 sin objetivos declarados, tarjeta neutra (mismo guardia que el resto del contrato). -->
             <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Continuidad ante fallecimiento o incapacidad</h3>
-              <p class="e19-kpi-note">Checklist de lo que hace falta para que otra persona pueda hacerse cargo — no ejecuta ninguna acción, solo hace visible qué falta.</p>
-              <div id="lpx3ContinuityChecklist"></div>
-            </article>
-
-            <!-- LPX1: capital objetivo de independencia financiera (patrimonio neto A14-2 frente a
-                 gasto anual estimado de la previsión viva ÷ tasa de retirada declarada por el
-                 hogar). Regla de la renta perpetua, sin proyección de mercado. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Independencia financiera</h3>
-              <label class="month-picker">
-                <span>Tasa de retirada objetivo (%)</span>
-                <input type="number" step="0.01" min="0" id="lpx1WithdrawalRatePct" placeholder="Ej. 4" />
-              </label>
-              <div class="e19-kpi-note" id="lpx1FinancialIndependence"></div>
-            </article>
-
-            <!-- LPX2: runway del patrimonio neto completo (no solo el colchón líquido, DLX1) frente
-                 al gasto mensual medio de la previsión viva, con aviso de qué parte no es líquida. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Runway patrimonial completo</h3>
-              <div class="e19-kpi-note" id="lpx2NetWorthRunway"></div>
-            </article>
-
-            <!-- GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — "aguanto X meses" sin
-                 vender nada ni pedir prestado. Combina el colchón (liquidez real, DLX1), la deuda
-                 (la cuota sigue debiéndose aunque el ingreso se corte) y un escenario de tensión
-                 declarado (mismo marco base/favorable/tensión de E13). Distinto de LPX2 (arriba):
-                 aquí solo cuenta lo disponible de verdad en una emergencia. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Resiliencia: ¿cuántos meses aguanto?</h3>
-              <p class="e19-kpi-note">Solo liquidez real (nunca cartera de inversión ni activos ilíquidos, que exigirían vender) frente al gasto medio bajo el escenario de tensión de E13 más la cuota de deuda que sigues debiendo aunque se corte el ingreso.</p>
-              <div class="e19-kpi-note" id="gob9ResiliencePanel"></div>
+              <h3 class="escenario-motor-panel-title">Cartera: objetivo de reparto y rebalanceo</h3>
+              <p class="e19-kpi-note">Fija el % objetivo por tipo de activo. Cuando el reparto real se desvíe más de 10 puntos del objetivo, verás cuánto comprar o vender para volver a él.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Fondo (%)</span>
+                  <input id="iv6TargetFondo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Acción (%)</span>
+                  <input id="iv6TargetAccion" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>ETF (%)</span>
+                  <input id="iv6TargetEtf" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Cripto (%)</span>
+                  <input id="iv6TargetCripto" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Otro (%)</span>
+                  <input id="iv6TargetOtro" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
+              <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
             </article>
 
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
@@ -3406,6 +3415,88 @@
               </label>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionTransfer">Traspasar</button>
               <ul class="commit-barrier-list" id="iv1PositionList"></ul>
+              <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
+                   fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
+                   de un movimiento. Las unidades son opcionales: sin ellas, la aportación sigue
+                   sumando al coste total pero no entra en el reparto FIFO de una venta futura. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Añadir aportación a</span>
+                  <select id="iv1ContributionTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe aportado (€)</span>
+                  <input id="iv1ContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Unidades compradas (opcional)</span>
+                  <input id="iv1ContributionQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de la aportación</span>
+                  <input id="iv1ContributionDate" type="date" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ContributionAdd">Añadir aportación</button>
+              <!-- FC1: venta parcial de una posición ya registrada. El reparto FIFO de qué lote
+                   se vende (más antiguo primero) lo calcula canonical-portfolio.js; aquí solo se
+                   registra el movimiento (unidades vendidas, importe recibido, fecha). Sin
+                   unidades suficientes en lotes con fecha anterior a la venta, la plusvalía
+                   realizada se informa como no calculable — nunca una cifra inventada. -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Vender parte de</span>
+                  <select id="iv1DisposalTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Unidades vendidas</span>
+                  <input id="iv1DisposalQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Importe recibido (€)</span>
+                  <input id="iv1DisposalProceeds" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha de la venta</span>
+                  <input id="iv1DisposalDate" type="date" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1DisposalAdd">Registrar venta parcial</button>
+              <!-- IV3: aportación futura ya decidida pero todavía no ejecutada — solo fecha,
+                   importe y una nota opcional. No toca coste, unidades, XIRR ni FIFO: su único
+                   destino es el calendario financiero (A10-2), igual que ya hacen los vencimientos
+                   de pólizas (SP1) o la Campaña de la Renta (A15-3). -->
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Programar aportación futura a</span>
+                  <select id="iv1ScheduledContributionTarget">
+                    <option value="">-- Selecciona una posición --</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Importe previsto (€)</span>
+                  <input id="iv1ScheduledContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Fecha prevista</span>
+                  <input id="iv1ScheduledContributionDate" type="date" />
+                </label>
+                <label class="month-picker">
+                  <span>Nota (opcional)</span>
+                  <input id="iv1ScheduledContributionNote" type="text" placeholder="" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ScheduledContributionAdd">Programar aportación</button>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cartera de inversión: análisis y comparativa</h3>
+              <p class="e19-kpi-note">Sobre las posiciones registradas arriba: comparación con un índice de referencia declarado, coste compuesto de comisiones, concentración, exposición cruzada vivienda-inversión y fase del glide path por objetivo.</p>
               <!-- IVX2: comparación contra un índice de referencia. Calculadora puntual, no se
                    trae ningún precio de mercado real — el hogar declara la rentabilidad anualizada
                    del índice para el mismo periodo. -->
@@ -3434,121 +3525,58 @@
                    solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
                    se fabrica precisión). -->
               <div id="inv1AssetClassNote"></div>
-              <!-- IV2 + FC1: aportación adicional a una posición ya registrada, con su propia
-                   fecha — la XIRR deja de coincidir con la rentabilidad simple en cuanto hay más
-                   de un movimiento. Las unidades son opcionales: sin ellas, la aportación sigue
-                   sumando al coste total pero no entra en el reparto FIFO de una venta futura. -->
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Añadir aportación a</span>
-                  <select id="iv1ContributionTarget">
-                    <option value="">-- Selecciona una posición --</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Importe aportado (€)</span>
-                  <input id="iv1ContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Unidades compradas (opcional)</span>
-                  <input id="iv1ContributionQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha de la aportación</span>
-                  <input id="iv1ContributionDate" type="date" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ContributionAdd">Añadir aportación</button>
-
-              <!-- FC1: venta parcial de una posición ya registrada. El reparto FIFO de qué lote
-                   se vende (más antiguo primero) lo calcula canonical-portfolio.js; aquí solo se
-                   registra el movimiento (unidades vendidas, importe recibido, fecha). Sin
-                   unidades suficientes en lotes con fecha anterior a la venta, la plusvalía
-                   realizada se informa como no calculable — nunca una cifra inventada. -->
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Vender parte de</span>
-                  <select id="iv1DisposalTarget">
-                    <option value="">-- Selecciona una posición --</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Unidades vendidas</span>
-                  <input id="iv1DisposalQuantity" type="number" min="0" step="any" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Importe recibido (€)</span>
-                  <input id="iv1DisposalProceeds" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha de la venta</span>
-                  <input id="iv1DisposalDate" type="date" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1DisposalAdd">Registrar venta parcial</button>
-
-              <!-- IV3: aportación futura ya decidida pero todavía no ejecutada — solo fecha,
-                   importe y una nota opcional. No toca coste, unidades, XIRR ni FIFO: su único
-                   destino es el calendario financiero (A10-2), igual que ya hacen los vencimientos
-                   de pólizas (SP1) o la Campaña de la Renta (A15-3). -->
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Programar aportación futura a</span>
-                  <select id="iv1ScheduledContributionTarget">
-                    <option value="">-- Selecciona una posición --</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Importe previsto (€)</span>
-                  <input id="iv1ScheduledContributionAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Fecha prevista</span>
-                  <input id="iv1ScheduledContributionDate" type="date" />
-                </label>
-                <label class="month-picker">
-                  <span>Nota (opcional)</span>
-                  <input id="iv1ScheduledContributionNote" type="text" placeholder="" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv1ScheduledContributionAdd">Programar aportación</button>
             </article>
 
-            <!-- IV6: rebalanceo guiado por umbral. Reutiliza canonical-portfolio.js (IV1/IV4) —
-                 sin objetivos declarados, tarjeta neutra (mismo guardia que el resto del contrato). -->
+            <!-- LEV6 (Oleada 3, Bloque 4; separado de la tarjeta de objetivos por OPT-24): orden de
+                 venta al desapalancar — reutiliza los objetivos de reparto declarados arriba (IV6)
+                 para saber qué clase ya está sobreexpuesta, más el coste fiscal (plusvalía ya
+                 calculada) y la convicción declarada por posición. Sin campos propios: solo lectura
+                 de lo ya declarado en las tarjetas de arriba. -->
             <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Cartera: objetivo de reparto y rebalanceo</h3>
-              <p class="e19-kpi-note">Fija el % objetivo por tipo de activo. Cuando el reparto real se desvíe más de 10 puntos del objetivo, verás cuánto comprar o vender para volver a él.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Fondo (%)</span>
-                  <input id="iv6TargetFondo" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Acción (%)</span>
-                  <input id="iv6TargetAccion" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>ETF (%)</span>
-                  <input id="iv6TargetEtf" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Cripto (%)</span>
-                  <input id="iv6TargetCripto" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Otro (%)</span>
-                  <input id="iv6TargetOtro" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
-              <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
-              <!-- LEV6 (Oleada 3, Bloque 4): orden de venta al desapalancar — reutiliza estos mismos
-                   objetivos de arriba (IV6) para saber qué clase ya está sobreexpuesta, más el coste
-                   fiscal (plusvalía ya calculada) y la convicción declarada por posición. -->
-              <h4 class="escenario-motor-panel-title">Al desapalancar, ¿qué vender primero?</h4>
-              <p class="e19-kpi-note">Prioriza vender la clase ya sobreexpuesta frente al objetivo de arriba, con menor coste fiscal, y a igualdad de lo anterior, la de menor convicción declarada.</p>
+              <h3 class="escenario-motor-panel-title">Al desapalancar, ¿qué vender primero?</h3>
+              <p class="e19-kpi-note">Prioriza vender la clase ya sobreexpuesta frente al objetivo de reparto declarado arriba, con menor coste fiscal, y a igualdad de lo anterior, la de menor convicción declarada.</p>
               <div id="lev6DeleveragingNote"></div>
+            </article>
+
+            <!-- LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1
+                 (activos con procedencia, arriba) y SP1 (inventario de pólizas, en Ajustes ›
+                 Seguros). Dos puntos se verifican solos con datos reales; los otros tres no tienen
+                 ninguna fuente de datos en la app (testamento, beneficiarios, a quién avisar) —
+                 quedan como casillas que confirma el propio hogar, nunca inventadas. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Continuidad ante fallecimiento o incapacidad</h3>
+              <p class="e19-kpi-note">Checklist de lo que hace falta para que otra persona pueda hacerse cargo — no ejecuta ninguna acción, solo hace visible qué falta.</p>
+              <div id="lpx3ContinuityChecklist"></div>
+            </article>
+
+            <!-- LPX1: capital objetivo de independencia financiera (patrimonio neto A14-2 frente a
+                 gasto anual estimado de la previsión viva ÷ tasa de retirada declarada por el
+                 hogar). Regla de la renta perpetua, sin proyección de mercado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Independencia financiera</h3>
+              <label class="month-picker">
+                <span>Tasa de retirada objetivo (%)</span>
+                <input type="number" step="0.01" min="0" id="lpx1WithdrawalRatePct" placeholder="Ej. 4" />
+              </label>
+              <div class="e19-kpi-note" id="lpx1FinancialIndependence"></div>
+            </article>
+
+            <!-- LPX2: runway del patrimonio neto completo (no solo el colchón líquido, DLX1) frente
+                 al gasto mensual medio de la previsión viva, con aviso de qué parte no es líquida. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Runway patrimonial completo</h3>
+              <div class="e19-kpi-note" id="lpx2NetWorthRunway"></div>
+            </article>
+
+            <!-- GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — "aguanto X meses" sin
+                 vender nada ni pedir prestado. Combina el colchón (liquidez real, DLX1), la deuda
+                 (la cuota sigue debiéndose aunque el ingreso se corte) y un escenario de tensión
+                 declarado (mismo marco base/favorable/tensión de E13). Distinto de LPX2 (arriba):
+                 aquí solo cuenta lo disponible de verdad en una emergencia. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Resiliencia: ¿cuántos meses aguanto?</h3>
+              <p class="e19-kpi-note">Solo liquidez real (nunca cartera de inversión ni activos ilíquidos, que exigirían vender) frente al gasto medio bajo el escenario de tensión de E13 más la cuota de deuda que sigues debiendo aunque se corte el ingreso.</p>
+              <div class="e19-kpi-note" id="gob9ResiliencePanel"></div>
             </article>
             </div>
 
@@ -3607,6 +3635,7 @@
 
             <div class="e19-ajustes-group" id="ajustes-operacion" aria-labelledby="ajustes-operacion-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-operacion-title">Presupuesto y operación</h3>
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- OPT-6: editor de cobertura aprendida (H-3b), trasladado desde «Hoy» — es
                  configuración puntual, no lectura diaria; no encajaba en una pantalla pensada como
                  «una lectura y tres decisiones» (mockup 1a). «Hoy» conserva solo la lectura
@@ -3646,24 +3675,6 @@
               <p class="e19-kpi-note" id="ajustesAutoAdjustForecastBiasNote"></p>
             </article>
 
-            <!-- PVC6 (Oleada 3, Bloque 3): previsión con control de versiones. En cada cierre de mes
-                 (A1-2) se congela un snapshot del registro de supuestos ya versionado (A7-2/E12a) —
-                 esta tarjeta compara "qué preveíamos entonces" contra la previsión de ahora, con el
-                 diff de qué supuesto concreto cambió. Distinto de PVX1 (backtesting de precisión):
-                 aquí se compara el MODELO, no solo el acierto final. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Previsión con control de versiones</h3>
-              <p class="e19-kpi-note">Cada cierre de mes firmado guarda una foto de los supuestos de la previsión de ese momento. Elige un cierre pasado para ver exactamente qué supuesto cambió desde entonces hasta la previsión de ahora.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Comparar con el cierre de</span>
-                  <select id="pvc6SnapshotSelect"></select>
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="pvc6SnapshotCompare">Comparar</button>
-              <div class="e19-kpi-note" id="pvc6SnapshotDiffNote"></div>
-            </article>
-
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Umbrales propios</h3>
               <p class="e19-kpi-note">Ventana de duplicados al importar y desviación que cuenta como aviso al registrar el mes. Vacío significa «sin configurar»: cada uno cae a su comportamiento de siempre.</p>
@@ -3685,6 +3696,25 @@
               <p class="e19-kpi-note">Un sobre por partida de Gastos variables: lo no gastado o lo gastado de más se liquida al cerrar el mes. Con la bandera apagada, Plan y Cierre siguen como siempre.</p>
               <label class="ajustes-sobres-toggle"><input id="ajustesSobresEnabled" type="checkbox" /> Activar sobres</label>
               <div id="ajustesSobresRules"></div>
+            </article>
+
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
+            <!-- PVC6 (Oleada 3, Bloque 3): previsión con control de versiones. En cada cierre de mes
+                 (A1-2) se congela un snapshot del registro de supuestos ya versionado (A7-2/E12a) —
+                 esta tarjeta compara "qué preveíamos entonces" contra la previsión de ahora, con el
+                 diff de qué supuesto concreto cambió. Distinto de PVX1 (backtesting de precisión):
+                 aquí se compara el MODELO, no solo el acierto final. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Previsión con control de versiones</h3>
+              <p class="e19-kpi-note">Cada cierre de mes firmado guarda una foto de los supuestos de la previsión de ese momento. Elige un cierre pasado para ver exactamente qué supuesto cambió desde entonces hasta la previsión de ahora.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Comparar con el cierre de</span>
+                  <select id="pvc6SnapshotSelect"></select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="pvc6SnapshotCompare">Comparar</button>
+              <div class="e19-kpi-note" id="pvc6SnapshotDiffNote"></div>
             </article>
 
             <article class="e19-card">
@@ -3716,6 +3746,7 @@
 
             <div class="e19-ajustes-group" id="ajustes-datos" aria-labelledby="ajustes-datos-title">
               <h3 class="e19-ajustes-group-title" id="ajustes-datos-title">Datos y exportación</h3>
+            <h3 class="e19-ajustes-group-title">Configuración</h3>
             <!-- E9-1 (RGX1/RGX2): hogar compartido — miembros, roles y áreas. La tabla y el modelo
                  de solo lectura ya existían (canonical-e9-household.js, migrations/20260801_
                  e9_household.sql); esta tarjeta añade la interfaz y las funciones de escritura
@@ -3728,6 +3759,7 @@
               <div id="rgxHouseholdCard"></div>
             </article>
 
+            <h3 class="e19-ajustes-group-title">Herramientas</h3>
             <!-- RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9)
                  y el hogar compartido de arriba. No ejecuta ninguna acción, solo hace visible qué
                  falta y por qué, con la copia y la invitación a un clic de distancia. -->
