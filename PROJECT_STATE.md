@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 9 de septiembre de 2026.
+Fecha de revisión: 10 de septiembre de 2026.
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -43,7 +43,74 @@ de aquí en la siguiente regeneración, no al momento.
 - **Tres condiciones externas siguen sin resolverse**, sin fecha conocida ninguna de las tres
   (detalle en `BACKLOG_INDICE.md`, Bloque 0): el reloj de 30 días de `OPT-2` (arranca el 29 de
   agosto), activación de infraestructura de IA en producción (`A5-1`, desbloquea `RGX3`/`DEX6`), y
-  contratación de un proveedor PSD2 (`O-6`).
+  contratación de un proveedor PSD2 (`O-6`). **10 de septiembre de 2026 (sesión 164): `A5-1` avanzó
+  de código pero la condición sigue sin cumplirse** — ver el cierre de sesión inmediatamente abajo.
+- **A5-1 usa Anthropic, no OpenAI (10 de septiembre de 2026, sesión 164)**: el backend privado del
+  asistente llama a `https://api.anthropic.com/v1/messages` (`ANTHROPIC_API_KEY`/`ANTHROPIC_MODEL`),
+  no a OpenAI — decisión explícita del hogar: ya tiene cuenta y facturación con Anthropic, evita
+  abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
+  `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
+
+## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
+
+Con la Oleada 3 ya cerrada, se planteó abrir una "Oleada 4" (auditoría crítica de copiloto, fiscalidad,
+patrimonio, continuidad e IA, multidispositivo — mismo rigor que ya se aplicó a la Oleada 3). Antes de
+construir nada nuevo, la propia auditoría encontró un hallazgo de mayor peso que cualquier feature
+nueva: `A5-1` (backend real del asistente, con llamada a un proveedor externo) llevaba semanas
+construido pero apagado en producción por trámites pendientes — no por falta de código. El hogar
+decidió explícitamente priorizar resolver esos trámites antes de seguir abriendo features nuevas.
+
+- **Hallazgo de la auditoría (antes de tocar código)**: la lectura de `A5_ACTIVATION.md` y del backend
+  mostró que dos de sus cuatro pendientes de activación estaban mal etiquetados. El pendiente 3
+  ("conectar hogar y push a Supabase") daba por no resuelta la mitad de hogar, cuando la migración
+  `20260904_e9_household_writes.sql` (sesión ~150) ya la resolvió por una vía distinta y mejor: el
+  navegador escribe directo contra funciones `security definer` de Postgres, sin pasar nunca por
+  `backend/server.mjs` — que de hecho nunca llegó a desplegarse en ningún sitio, según su propio
+  comentario en la migración. El push (`A5-4`) sigue sin conectar, pero es un pendiente aparte, no
+  parte de A5-1.
+- **Decisión de arquitectura**: en vez de desplegar `backend/server.mjs` en un hosting nuevo (con
+  coste explícito, ~4-6 €/mes, y mantenimiento), se migra a una Supabase Edge Function
+  (`supabase/functions/assistant-query/index.ts`) — mismo patrón ya elegido dos veces en este
+  proyecto para el hogar (E9-1, A19-1). Coste marginal ≈ 0 € al volumen de un asistente doméstico
+  (incluido en el tier ya contratado de Supabase). `backend/server.mjs` se mantiene como alternativa
+  para quien prefiera autoalojar, con la misma lógica.
+- **Decisión de proveedor**: Anthropic en vez de OpenAI para la llamada del asistente — el hogar ya
+  tiene cuenta y facturación con Anthropic (esta misma sesión), sin necesidad de abrir un proveedor
+  nuevo. Sustitución literal, campo a campo: `https://api.anthropic.com/v1/messages` en vez de
+  `https://api.openai.com/v1/responses`; una herramienta única `strict:true` + `tool_choice` fijo
+  (`finance_read_only_answer`) en vez de `text.format.json_schema`, misma garantía de "solo puede
+  devolver este JSON exacto"; `x-api-key`/`anthropic-version` en vez de `Authorization: Bearer`. El
+  resto del contrato (`canonical-e9-assistant.js`: solo lectura, cita obligatoria, rechazo de
+  escrituras) no cambia — valida la respuesta sea de quien sea el proveedor. Un rechazo de los
+  clasificadores de seguridad (`stop_reason: "refusal"`) cae al fallback local igual que cualquier
+  otro fallo, sin inventar una respuesta.
+- **Verificador de sesión real** (`supabase-session-verifier.js`): en vez de exigir un tercer servicio
+  a desplegar (`FINANCE_AUTH_VERIFY_URL`, que nunca se construyó), el backend verifica el token
+  directamente contra el propio Supabase Auth del hogar (`GET /auth/v1/user`) — mismo criterio que
+  evitó desplegar un backend para el hogar. `FINANCE_AUTH_VERIFY_URL` sigue aceptándose como override
+  explícito. No comprueba permisos por rol aquí: eso lo siguen haciendo las funciones `security
+  definer` de Postgres con el JWT propio de quien llama.
+- **Lo que queda genuinamente pendiente y es del hogar, no de esta sesión** (documentado en
+  `A5_ACTIVATION.md`): `A5-2` (evaluar modelos reales de Anthropic con coste real de API — no se
+  puede simular), desplegar de verdad la Edge Function (`supabase functions deploy` + `supabase
+  secrets set`, credenciales que solo tiene el hogar) y repetir la prueba de aceptación con dos
+  cuentas reales contra esa función ya desplegada. El fichero de la Edge Function no se pudo ejecutar
+  en un runtime Deno real dentro de esta sesión (no había `deno` disponible) — se revisó a mano
+  contra la documentación de Supabase Edge Functions, con aviso explícito en el propio fichero de
+  probarlo con `supabase functions serve` antes de confiar en él.
+- **Validación**: `npm run verify` completo en verde — `npm test` **3665/3665** (+8 sobre la sesión
+  anterior: 7 de `supabase-session-verifier.test.cjs` + 1 nuevo caso de rechazo en
+  `private-backend.test.cjs`, 1 test existente reescrito para la forma de petición de Anthropic en
+  vez de la de OpenAI), `test:a11y` (1201 IDs, sin cambio — esta sesión no tocó HTML),
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
+- **La condición externa de `BACKLOG_INDICE.md` ("A5-1 activo en producción real") NO se da por
+  cumplida** — sigue exactamente igual de bloqueada que antes de esta sesión hasta que el hogar
+  despliegue la función, evalúe el modelo y complete la prueba con dos cuentas. Esta sesión avanzó el
+  código, no la activación real.
+
+**Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` — commit y push siguientes, PR
+en borrador y fusión a `main` en cuanto el CI esté en verde, autorización ya dada por el hogar
+(`CLAUDE.md`).
 
 ## Cierre de sesión — 9 de septiembre de 2026 (163c): Bloque 5 de Oleada 3, sub-bloque «Deuda + Gobierno» — LEV8, DEB3, DEB7, GOB7, GOB8, GOB10 — Bloque 5 completo, Oleada 3 cerrada
 

@@ -5,7 +5,14 @@ const assistant = require("./canonical-e9-assistant.js");
 const foundation = require("./canonical-e9-foundation.js");
 
 const SCHEMA_ID = "finance-a5-private-backend/v1";
-const RESPONSE_URL = "https://api.openai.com/v1/responses";
+// A5-1 (sesión 164): Anthropic en vez de OpenAI — el hogar ya tiene cuenta y facturación con
+// Anthropic (esta misma conversación), evitando abrir un proveedor nuevo solo para el asistente.
+// La salida estructurada se fuerza con una herramienta única `strict:true` + `tool_choice` fijo en
+// vez del `text.format.json_schema` de la Responses API de OpenAI — mismo contrato de "solo puede
+// devolver este JSON exacto", documentado en la API de Mensajes de Anthropic.
+const RESPONSE_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_VERSION = "2023-06-01";
+const RESPONSE_TOOL_NAME = "finance_read_only_answer";
 const DEFAULT_REMOTE_TIMEOUT_MS = 10000;
 const SERVICE_NAMES = ["household", "assistant", "actions", "notifications", "banking"];
 const text = (value) => String(value ?? "").trim();
@@ -66,17 +73,21 @@ function createPrivateBackend(options = {}) {
     const id = requestId(`${auth.userId || "anonymous"}:${query.payload.question}:${query.payload.provenance.generatedAt}`);
     const payload = {
       model: config.model,
-      store: false,
-      input: [
-        { role: "system", content: "Responde solo con el modelo ejecutivo recibido. No propongas acciones de escritura. Cita únicamente las fuentes recibidas." },
-        { role: "user", content: JSON.stringify(query.payload) },
-      ],
-      text: { format: { type: "json_schema", name: "finance_read_only_answer", strict: true, schema: RESPONSE_SCHEMA } },
+      max_tokens: 1024,
+      system: "Responde solo con el modelo ejecutivo recibido. No propongas acciones de escritura. Cita únicamente las fuentes recibidas. Llama siempre a la herramienta finance_read_only_answer con tu respuesta.",
+      messages: [{ role: "user", content: JSON.stringify(query.payload) }],
+      tool_choice: { type: "tool", name: RESPONSE_TOOL_NAME },
+      tools: [{
+        name: RESPONSE_TOOL_NAME,
+        description: "Devuelve la respuesta de solo lectura al ejecutivo financiero, citando únicamente las fuentes recibidas.",
+        strict: true,
+        input_schema: RESPONSE_SCHEMA,
+      }],
     };
     let response;
     let raw;
     try {
-      response = await fetchWithTimeout(config.fetch, RESPONSE_URL, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${config.apiKey}` }, body: JSON.stringify(payload) }, config.remoteTimeoutMs);
+      response = await fetchWithTimeout(config.fetch, RESPONSE_URL, { method: "POST", headers: { "content-type": "application/json", "x-api-key": config.apiKey, "anthropic-version": ANTHROPIC_VERSION }, body: JSON.stringify(payload) }, config.remoteTimeoutMs);
       raw = await response.json();
     } catch (error) {
       config.audit({ type: "assistant-failed", requestId: id, reason: error.name === "AbortError" ? "timeout" : "provider-unavailable", at: config.now() });
@@ -117,11 +128,12 @@ function createPrivateBackend(options = {}) {
 }
 
 function parseStructuredOutput(response = {}) {
-  const direct = response.output_parsed || response.outputParsed;
-  if (direct && typeof direct === "object") return direct;
-  const outputText = text(response.output_text) || (Array.isArray(response.output) ? response.output.flatMap((item) => Array.isArray(item.content) ? item.content : []).map((item) => text(item.text)).filter(Boolean).join("\n") : "");
-  if (!outputText) return {};
-  try { return JSON.parse(outputText); } catch { return {}; }
+  // Un rechazo de los clasificadores de seguridad de Anthropic (stop_reason "refusal") o cualquier
+  // turno sin la llamada forzada a la herramienta se trata igual que una respuesta vacía: cae en
+  // validateResponse (falta "answer") y de ahí al fallback local — nunca se inventa una respuesta.
+  if (response.stop_reason === "refusal") return {};
+  const block = (Array.isArray(response.content) ? response.content : []).find((item) => item && item.type === "tool_use" && item.name === RESPONSE_TOOL_NAME);
+  return block && typeof block.input === "object" && block.input ? block.input : {};
 }
 
 module.exports = { DEFAULT_REMOTE_TIMEOUT_MS, RESPONSE_SCHEMA, RESPONSE_URL, SCHEMA_ID, createPrivateBackend, parseStructuredOutput };

@@ -1,9 +1,15 @@
 import http from "node:http";
 import { createPrivateBackend } from "../private-backend.js";
+import { verifySupabaseSession } from "../supabase-session-verifier.js";
 
 const port = Number(process.env.PORT || 8787);
+// A5-1 (sesión 164): el verificador externo por defecto es el propio Supabase Auth del hogar (ya en
+// producción) en vez de un tercer servicio a desplegar. FINANCE_AUTH_VERIFY_URL sigue aceptándose
+// como override explícito, por si algún día conviene un verificador distinto.
 const authVerifyUrl = String(process.env.FINANCE_AUTH_VERIFY_URL || "").trim();
-const apiKey = String(process.env.OPENAI_API_KEY || "").trim();
+const supabaseUrl = String(process.env.SUPABASE_URL || "").trim();
+const supabaseAnonKey = String(process.env.SUPABASE_ANON_KEY || "").trim();
+const apiKey = String(process.env.ANTHROPIC_API_KEY || "").trim();
 const enabled = process.env.FINANCE_EXTERNAL_ENABLED === "true";
 const remoteTimeoutMs = Math.max(1, Number(process.env.FINANCE_REMOTE_TIMEOUT_MS || 10000));
 const serviceNames = ["household", "assistant", "actions", "notifications", "banking"];
@@ -22,8 +28,7 @@ async function fetchWithTimeout(url, options = {}) {
   }
 }
 
-async function authorize(request, service, scopes) {
-  if (!authVerifyUrl) return { allowed: false, reason: "auth-verifier-not-configured" };
+async function authorizeViaExternalUrl(request, service, scopes) {
   const authorization = request.headers?.authorization || "";
   if (!authorization.startsWith("Bearer ")) return { allowed: false, reason: "bearer-required" };
   try {
@@ -39,12 +44,24 @@ async function authorize(request, service, scopes) {
   }
 }
 
+// FINANCE_AUTH_VERIFY_URL, si está configurada, gana como override explícito; en su ausencia el
+// verificador por defecto es el propio Supabase Auth del hogar (ver supabase-session-verifier.js).
+// La comprobación de permiso por servicio/área no vive aquí: las funciones `security definer` de
+// Supabase la aplican con el JWT propio de quien llama (RLS de por medio) cuando el comando llega
+// a household/push — este verificador solo confirma que la sesión es real y de quién es.
+async function authorize(request, service, scopes) {
+  if (authVerifyUrl) return authorizeViaExternalUrl(request, service, scopes);
+  return verifySupabaseSession({ fetch, supabaseUrl, supabaseAnonKey, authorization: request.headers?.authorization || "", timeoutMs: remoteTimeoutMs });
+}
+
+const authConfigured = Boolean(authVerifyUrl) || Boolean(supabaseUrl && supabaseAnonKey);
+
 const app = createPrivateBackend({
   enabled,
   serviceEnabled,
   remoteTimeoutMs,
   apiKey,
-  model: process.env.OPENAI_MODEL,
+  model: process.env.ANTHROPIC_MODEL,
   authorize,
   audit: (event) => { if (process.env.FINANCE_AUDIT_STDOUT === "true") process.stdout.write(`${JSON.stringify(event)}\n`); },
 });
@@ -61,7 +78,7 @@ function readBody(request) {
 const server = http.createServer(async (request, response) => {
   if (request.method === "GET" && request.url === "/health") {
     response.writeHead(200, { "content-type": "application/json" });
-    response.end(JSON.stringify({ schemaId: app.SCHEMA_ID, enabled: app.config.enabled, serviceEnabled: app.config.serviceEnabled, modelConfigured: Boolean(app.config.model), authConfigured: Boolean(authVerifyUrl), remoteTimeoutMs: app.config.remoteTimeoutMs }));
+    response.end(JSON.stringify({ schemaId: app.SCHEMA_ID, enabled: app.config.enabled, serviceEnabled: app.config.serviceEnabled, modelConfigured: Boolean(app.config.model), authConfigured, remoteTimeoutMs: app.config.remoteTimeoutMs }));
     return;
   }
   try {
