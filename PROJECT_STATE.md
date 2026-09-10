@@ -108,9 +108,20 @@ decidió explícitamente priorizar resolver esos trámites antes de seguir abrie
   despliegue la función, evalúe el modelo y complete la prueba con dos cuentas. Esta sesión avanzó el
   código, no la activación real.
 
-**Pendiente de publicar**: rama `claude/finanzas-casa-bloque-4-ckcvlr` — commit y push siguientes, PR
-en borrador y fusión a `main` en cuanto el CI esté en verde, autorización ya dada por el hogar
-(`CLAUDE.md`).
+**Publicado**: PR [#264](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/264) fusionado
+a `main` el 10 de septiembre de 2026 (CI en verde, `mergeable_state: clean`, sin comentarios de
+revisión pendientes). Rama `claude/finanzas-casa-bloque-4-ckcvlr` sincronizada con `main` tras la
+fusión. Nada pendiente de publicar de este cierre.
+
+- **No se abrió la Oleada 4**: la auditoría crítica de copiloto/IA, fiscalidad, patrimonio,
+  continuidad y multidispositivo (misma sesión, antes de priorizar A5-1) se completó y sus hallazgos
+  quedan documentados en esta conversación, pero **no se convirtió en un documento
+  `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`** — el hogar redirigió el trabajo a activar A5-1 primero.
+  Si se retoma, los hallazgos reutilizables son: copiloto y multidispositivo ya resueltos (sin tarea
+  nueva que abrir ahí); fiscalidad sin cobertura de Patrimonio/Grandes Fortunas ni Sucesiones y
+  Donaciones (el hogar dijo "no aplica hoy, pero puede aplicar" — candidato a un aviso temprano
+  reusando el motor de patrimonio neto ya construido, no una calculadora fiscal nueva); continuidad
+  sin planificación sucesoria real más allá de tres casillas manuales en `LPX3`.
 
 ## Cierre de sesión — 9 de septiembre de 2026 (163c): Bloque 5 de Oleada 3, sub-bloque «Deuda + Gobierno» — LEV8, DEB3, DEB7, GOB7, GOB8, GOB10 — Bloque 5 completo, Oleada 3 cerrada
 
