@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 10 de septiembre de 2026.
+Fecha de revisión: 11 de septiembre de 2026.
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -50,6 +50,51 @@ de aquí en la siguiente regeneración, no al momento.
   no a OpenAI — decisión explícita del hogar: ya tiene cuenta y facturación con Anthropic, evita
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
+
+## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fase 1/7, Seguros) — Ajustes → Herramientas avanzadas, y hallazgo de conflicto con OPT-15
+
+El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)
+proponiendo mover los comparadores/simuladores de Ajustes a nuevas categorías de "Herramientas avanzadas"
+en el menú lateral, dejando Ajustes solo con configuración real. Tras inventariar el código real (Ajustes
+es una sola `#ajustes` de anclas de scroll, no pestañas reales; ~35 tarjetas "Herramienta" son HTML inline
+sin ruta propia) y confirmar con el usuario alcance y criterio de coste, se acordó un plan en 7 fases,
+empezando por Seguros como piloto de bajo riesgo.
+
+- **Fase 1 (OPT-25) construida y publicada**: las 4 tarjetas de `ajustes-seguros > Herramientas`
+  (deducible óptimo SP5, autoseguro vs. seguro SP4, cobertura de vida SP2, seguro de hogar vs. reposición
+  SP3) se trasladaron a una `view-section` nueva, `#herramientas-seguros`, con entrada propia en el
+  desplegable "Herramientas avanzadas" (grupo `analysis` ya existente, sin tocar el fieldset de
+  preferencias). Ajustes > Seguros se queda solo con el inventario de pólizas (SP1) y un enlace puente.
+  Ningún motor canónico, id ni listener cambió — `renderAjustes()` se reutiliza tal cual para la vista
+  nueva (`case "herramientas-seguros": renderAjustes();`), porque puebla por `qs(id)` sin importar dónde
+  vive cada tarjeta en el DOM. Entrada añadida también en `e17-experience.js` (lanzador Cmd/K y guía).
+- **Verificación real en navegador** (Chromium headless, no solo tests de texto): servida la app estática,
+  confirmado que `#sp4Run` ya no está bajo `#ajustes-seguros`, que `#herramientas-seguros` renderiza las
+  4 tarjetas con datos reales calculados (deducible óptimo con colchón/suelo actuales) y que el
+  comparador autoseguro-vs-seguro funciona interactuando de verdad con los campos.
+- **Validación**: `npm run verify` completo en verde tras `npm install` (el contenedor no traía
+  `node_modules`, así que las pruebas de `build:site` fallaban por falta de `esbuild` — no relacionado
+  con este cambio, confirmado comparando contra el árbol sin modificar antes de instalar). `npm test`
+  **3665/3665** (2 tests de ubicación de SP4/SP5 reescritos para `#herramientas-seguros` en vez de
+  `#ajustes`; 1 test de contrato de navegación —`navigation-structure.test.cjs`— actualizado de 14 a 15
+  enlaces en el grupo `analysis` y de 30 a 31 enlaces totales del menú avanzado, documentando por qué).
+  `test:a11y` **1202 IDs únicos** (+1 sobre los 1201 de antes: la nueva sección aporta ids nuevos sin
+  duplicar ninguno existente), `test:performance`, `build:site`, `test:privacy` y `test:smoke`, todos sin
+  errores.
+- **Hallazgo y decisión del hogar: `OPT-15` queda anulada para «Herramientas avanzadas»**.
+  `BACKLOG_OPTIMIZACION.md` (`OPT-24`, cerrada el 8-9 sept.) declaraba por escrito una restricción que
+  esta fase 1 contradice: *"El desplegable «Herramientas avanzadas» va camino de vaciarse (`OPT-11` a
+  `OPT-13`), no de llenarse — esta tarea no revive ese desplegable como destino para simuladores
+  nuevos."* Esa intención venía de `OPT-15` ("menú lateral a 6 rutas principales, sin «Herramientas
+  avanzadas»"), bloqueada sin empezar (`⛔ · depende de OPT-11 a OPT-14`, que a su vez dependen de
+  `OPT-2`) — nunca llegó a ejecutarse, pero seguía siendo la intención documentada del proyecto hasta
+  hoy. Puesto el conflicto delante del usuario de forma explícita (con el detalle completo de ambas
+  tareas), confirmó la reversión: «Herramientas avanzadas» pasa a ser destino permanente de estos
+  comparadores, no un menú de salida. Registrado en `BACKLOG_OPTIMIZACION.md` (nota bajo `OPT-15` y
+  ficha de `OPT-25`) y en `BACKLOG_INDICE.md`.
+
+**Publicado**: pendiente de commit/push/PR a `claude/funny-allen-5dzzxc` en este mismo cierre. Fases 2-7
+siguen en la lista de tareas de la sesión, con el mismo criterio de destino ya confirmado.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 

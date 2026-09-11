@@ -37,6 +37,9 @@
     { target: "deuda-simulador", label: "Simulador visual de deuda (nuevo)", group: "analysis", keywords: "deuda simulador visual quita pago unico refinanciacion calendario perfil escenario asnef cirbe" },
     { target: "conciliar", label: "Conciliación (nuevo)", group: "data", keywords: "conciliacion cerrar mes tareas extracto nuevo e20" },
     { target: "asesor-decision", label: "Asesor ejecutivo (nuevo)", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
+    // OPT-25 (reorganización de Ajustes, opción B, 11 sept. 2026): primera categoría nueva de
+    // Herramientas avanzadas — las 4 tarjetas vivían en Ajustes > Seguros > Herramientas.
+    { target: "herramientas-seguros", label: "Seguros: comparadores y simuladores (nuevo)", group: "analysis", keywords: "seguros deducible franquicia autoseguro poliza vida hogar reposicion cobertura siniestro opt-25" },
     { target: "debt-roadmap", label: "Plan de deuda", group: "legacy", keywords: "deuda negociar ofertas cuota refinanciacion" },
     { target: "savings-agent", label: "Objetivos y ahorro", group: "legacy", keywords: "objetivos huchas aportaciones ahorro" },
     { target: "movements", label: "Movimientos", group: "legacy", keywords: "movimientos banco categorias buscar" },
@@ -64,6 +67,7 @@
     home: ["Para qué sirve", "Revisar primero caja, riesgos y las tres decisiones de hoy.", "Solo lectura", "Abrir Actualizar si falta un saldo o movimiento."],
     "update-hub": ["Para qué sirve", "Poner al día saldos, movimientos, reales, previsiones e importaciones.", "Puede guardar cambios", "Elige una ruta y confirma el recibo antes de continuar."],
     ajustes: ["Para qué sirve", "Fijar la reserva operativa y encontrar dónde se editan cuentas, partidas, umbrales y exportación.", "Guarda solo la reserva", "El resto de tarjetas te llevan a la pantalla donde ese dato se edita de verdad."],
+    "herramientas-seguros": ["Para qué sirve", "Comparar deducible, autoseguro, vida y hogar antes de decidir una póliza.", "Solo lectura, sin persistencia salvo lo ya guardado en Ajustes", "El inventario de pólizas se edita en Ajustes → Seguros, no aquí."],
     "datos-importar": ["Para qué sirve", "Importar un extracto tomando una decisión por movimiento dudoso y por posible duplicado, antes de que nada toque el plan.", "Requiere confirmación", "Nada se incorpora hasta el paso 4; se puede deshacer después desde «Carga de datos»."],
     "registrar-mes": ["Para qué sirve", "Ver qué partidas del mes siguen sin real y anotarlas una a una.", "Guarda al salir de la casilla", "Vaciar un real recupera el previsto; escribir 0 significa «ocurrió por cero»."],
     "cuadro-mandos": ["Para qué sirve", "Cambiar el previsto de una partida y ver qué le hace al plan antes de guardar.", "Requiere confirmación", "Nada se guarda hasta que pulses «Guardar cambios» en el pie de impacto."],

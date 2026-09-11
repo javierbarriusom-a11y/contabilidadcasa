@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 const indexSource = fs.readFileSync(require.resolve("../index.html"), "utf8");
 
-test("SP3: la tarjeta de Ajustes tiene los campos de cobertura y valor de reposición", () => {
+test("SP3: la tarjeta (Herramientas avanzadas → Seguros desde OPT-25) tiene los campos de cobertura y valor de reposición", () => {
   assert.match(indexSource, /id="ajustesHomeInsuranceCoverage"/);
   assert.match(indexSource, /id="ajustesHomeInsuranceReplacementValue"/);
   assert.match(indexSource, /id="ajustesHomeInsuranceNote"/);

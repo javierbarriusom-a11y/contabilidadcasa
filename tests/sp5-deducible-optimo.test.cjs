@@ -12,13 +12,15 @@ const html = read("index.html");
 // colchón líquido actual (accountBalancesFromState) y el mismo suelo que ya usan Plan y el mapa de
 // calor (cushionFloor con lastSimulation y la reserva operativa configurada).
 
-test("la nota del deducible óptimo vive en #ajustes", () => {
-  const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
-  assert.ok(openTag, "No existe la sección #ajustes");
+// OPT-25 (11 sept. 2026): la tarjeta se trasladó de #ajustes a Herramientas avanzadas →
+// Seguros (#herramientas-seguros) — mismo id, misma función, solo cambia dónde vive en el DOM.
+test("la nota del deducible óptimo vive en #herramientas-seguros", () => {
+  const openTag = /<section[^>]*id="herramientas-seguros"[^>]*>/.exec(html);
+  assert.ok(openTag, "No existe la sección #herramientas-seguros");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
-  const ajustes = html.slice(start, end);
-  assert.match(ajustes, /id="ajustesOptimalDeductibleNote"/);
+  const herramientasSeguros = html.slice(start, end);
+  assert.match(herramientasSeguros, /id="ajustesOptimalDeductibleNote"/);
 });
 
 test("renderAjustesOptimalDeductibleNote reutiliza cushionFloor y el colchón líquido actual, sin campo nuevo que guardar", () => {

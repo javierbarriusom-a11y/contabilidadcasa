@@ -94,18 +94,21 @@ test("no persiste nada en scenarioSettings: es una calculadora puntual", () => {
   assert.doesNotMatch(body, /saveScenarioSettings/);
 });
 
-test("la tarjeta vive en #ajustes con sus campos, botón y nota, junto al deducible óptimo (SP5)", () => {
-  const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
-  assert.ok(openTag, "No existe la sección #ajustes");
+// OPT-25 (11 sept. 2026): la tarjeta se trasladó de #ajustes a Herramientas avanzadas →
+// Seguros (#herramientas-seguros), junto al resto de comparadores de seguros — mismos ids,
+// motor y wiring, solo cambia dónde vive en el DOM.
+test("la tarjeta vive en #herramientas-seguros con sus campos, botón y nota, junto al deducible óptimo (SP5)", () => {
+  const openTag = /<section[^>]*id="herramientas-seguros"[^>]*>/.exec(html);
+  assert.ok(openTag, "No existe la sección #herramientas-seguros");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
-  const ajustes = html.slice(start, end);
+  const herramientasSeguros = html.slice(start, end);
   ["sp4PotentialLoss", "sp4AnnualPremium", "sp4Probability", "sp4Run", "sp4Note"].forEach((id) => {
-    assert.match(ajustes, new RegExp(`id="${id}"`), `Falta #${id}`);
+    assert.match(herramientasSeguros, new RegExp(`id="${id}"`), `Falta #${id}`);
   });
-  const deductibleIndex = ajustes.indexOf("ajustesOptimalDeductibleNote");
-  const sp4Index = ajustes.indexOf("sp4PotentialLoss");
-  assert.ok(deductibleIndex >= 0 && sp4Index > deductibleIndex, "SP4 debería vivir justo después de SP5 en Ajustes");
+  const deductibleIndex = herramientasSeguros.indexOf("ajustesOptimalDeductibleNote");
+  const sp4Index = herramientasSeguros.indexOf("sp4PotentialLoss");
+  assert.ok(deductibleIndex >= 0 && sp4Index > deductibleIndex, "SP4 debería vivir justo después de SP5 en Herramientas avanzadas → Seguros");
 });
 
 test("el botón está cableado", () => {
