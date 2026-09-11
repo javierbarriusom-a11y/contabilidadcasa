@@ -2033,6 +2033,41 @@
               <div class="e19-kpi-note" id="apx3MarginCallNote"></div>
             </article>
 
+            <!-- LEV9 (Oleada 4, Bloque 2 — bandera del diagnóstico "El Libro Vivo", F-07, sin
+                 precedente en la Oleada 3): comparador cruzado de los tres instrumentos de
+                 apalancamiento para la MISMA necesidad de capital. Reutiliza el LTV/tipo Lombard ya
+                 declarados arriba (APX2) y compone el guardarraíl que aplica a cada instrumento (AP4
+                 no cubre Lombard; LEV1 sí incluye el techo total, pero no sustituye unas condiciones
+                 mínimas propias de Lombard, que hoy no existen). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Comparador cruzado de instrumentos de apalancamiento</h3>
+              <p class="e19-kpi-note">Para una misma necesidad de capital, compara lado a lado el crédito con garantía de cartera (LTV/tipo declarados arriba), una hipoteca o ampliación hipotecaria, y una línea de crédito — con el guardarraíl que aplica a cada uno.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Capital que necesitas (€)</span>
+                  <input id="lev9Amount" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Horizonte a comparar (meses)</span>
+                  <input id="lev9Months" type="number" min="1" step="1" inputmode="numeric" placeholder="12" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo de la hipoteca/ampliación (% anual)</span>
+                  <input id="lev9MortgageRatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Límite de tu línea de crédito (€)</span>
+                  <input id="lev9CreditLineLimit" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo de la línea de crédito (% anual)</span>
+                  <input id="lev9CreditLineRatePct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev9CompareRun">Comparar</button>
+              <div class="e19-kpi-note" id="lev9ComparisonNote"></div>
+            </article>
+
             <!-- LEV5 (Oleada 3, Bloque 4): colchón de garantía dinámico — en vez de escribir a mano
                  la caída a explorar de arriba, declara una banda de volatilidad (caída máxima
                  plausible, %) por clase de activo. Con las posiciones ya clasificadas (Patrimonio e
@@ -2166,6 +2201,17 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="ap1CompareRun">Comparar</button>
               <div class="e19-kpi-note" id="ap1CompareNote"></div>
               <div class="e19-kpi-note" id="deb3OptionValueNote"></div>
+            </article>
+
+            <!-- DEB9 (Oleada 4, Bloque 2 — bandera del diagnóstico "El Libro Vivo", F-10, sin
+                 precedente en la Oleada 3): síntesis única "cancelar vs. mantener deuda", con las
+                 cuatro piezas que la sustentan siempre visibles (APX1, DEB3, DEB2, INV7) — nunca
+                 combinadas en una única cifra "mejorada" que oculte de dónde sale cada parte. Se
+                 recalcula con el mismo botón «Comparar» de arriba (AP1), sin ningún campo nuevo. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Síntesis: cancelar vs. mantener esta deuda</h3>
+              <p class="e19-kpi-note">Cruza el veredicto financiero de arriba (AP1) con el coste real después de impuestos (APX1), el coste de esperar (DEB3), el importe dimensionado a amortizar (DEB2) y si tu liquidez real ya cubre el colchón (INV7) — en una sola lectura explicada, nunca una orden de ejecutar nada.</p>
+              <div class="e19-kpi-note" id="deb9SynthesisNote"></div>
             </article>
 
             <!-- DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente. Muchos contratos con
@@ -6180,8 +6226,10 @@
     <script defer src="canonical-budget-forecast-category.js?v=20260826a1"></script>
     <script defer src="executive-read-model.js?v=20260801e6a"></script>
     <script defer src="canonical-debt-comparator.js?v=20260903ap2a1"></script>
+    <script defer src="canonical-debt-cancel-or-hold-synthesis.js?v=20260911deb9a1"></script>
     <script defer src="canonical-leverage-barrier.js?v=20260829ap4a1"></script>
     <script defer src="canonical-leverage-simulator.js?v=20260902ap3a1"></script>
+    <script defer src="canonical-leverage-cross-comparator.js?v=20260911lev9a1"></script>
     <script defer src="canonical-leverage-sustainability.js?v=20260903ap6a1"></script>
     <script defer src="canonical-recommendation-citation.js?v=20260829cp3a1"></script>
     <script defer src="canonical-life-coverage.js?v=20260829sp2a1"></script>

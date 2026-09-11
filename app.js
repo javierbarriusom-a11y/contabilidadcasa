@@ -16223,6 +16223,69 @@ function handleAp3Simulate() {
   note.innerHTML = ap3ResultHtml(result);
 }
 
+// LEV9 (Oleada 4, Bloque 2 — bandera del diagnóstico, sin precedente en la Oleada 3): comparador
+// cruzado de instrumentos de apalancamiento para UNA MISMA necesidad de capital. Reutiliza tal cual
+// lombardCreditCapacity (APX2, mismos campos de LTV/tipo ya declarados arriba) y
+// evaluateEmergencyCreditLine (DI2) — sin ningún motor nuevo aparte del propio comparador — y compone
+// el guardarraíl ya vigente para cada instrumento: AP4 (ap3LeverageBarrierInput, no aplica a Lombard)
+// y LEV1 (lev1PolicyResult) con el importe declarado como deuda propuesta.
+function lev9ResultHtml(result) {
+  if (!result.calculable) {
+    return "Declara el importe de capital que necesitas, el horizonte en meses, y al menos los datos de uno de los tres instrumentos (Lombard arriba, hipoteca o línea de crédito) para comparar.";
+  }
+  const rows = result.instruments.map((item) => {
+    if (!item.available) {
+      return `<li><strong>${escapeHtml(item.label)}</strong>: sin datos declarados todavía.</li>`;
+    }
+    const feasibleLine = item.feasible
+      ? `coste estimado en el horizonte: <strong>${money(item.totalCost, true)}</strong>`
+      : `<span class="negative">no cubre el importe necesitado (faltarían ${money(item.shortfall, true)})</span>`;
+    const cheapestTag = result.cheapestId === item.id ? ` <span class="e19-kpi-note positive">— más barato de los disponibles</span>` : "";
+    return `<li><strong>${escapeHtml(item.label)}</strong>: ${feasibleLine}${cheapestTag}<br /><span class="e19-kpi-note">${escapeHtml(item.guardrailNote)}</span></li>`;
+  }).join("");
+  const barrierLine = result.barrierValid === null ? "" : result.barrierValid
+    ? `<p class="e19-kpi-note positive">Guardarraíl de condiciones mínimas (AP4) superado para los instrumentos a los que aplica.</p>`
+    : `<p class="e19-kpi-note negative">Guardarraíl de condiciones mínimas (AP4) NO superado — revisa sus bloqueos antes de considerar hipoteca o línea de crédito (no aplica a Lombard).</p>`;
+  const policyLine = result.policyWithinLimit === null ? "" : result.policyWithinLimit
+    ? `<p class="e19-kpi-note positive">Dentro de tu política de apalancamiento declarada (LEV1).</p>`
+    : `<p class="e19-kpi-note negative">Por encima de tu política de apalancamiento declarada (LEV1) si tomaras este importe con este instrumento.</p>`;
+  return `<p>Necesidad de capital: ${money(result.amount, true)} a ${result.months} mes(es).</p><ul class="commit-barrier-list">${rows}</ul>${barrierLine}${policyLine}<p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+}
+
+function handleLev9Compare() {
+  const note = qs("lev9ComparisonNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalLeverageCrossComparator;
+  const lombardEngine = window.FinanceCanonicalLeverageSimulator;
+  const creditLineEngine = window.FinanceCanonicalEmergencyCreditLine;
+  const portfolio = window.FinanceCanonicalPortfolio;
+  if (!engine || !lombardEngine || !creditLineEngine) return;
+  const amount = parseAmount(qs("lev9Amount")?.value);
+  const months = Math.round(parseAmount(qs("lev9Months")?.value));
+  const portfolioValue = portfolio ? portfolio.normalizePositions(iv1PositionsList()).summary.totalValue : 0;
+  const barrierResult = window.FinanceCanonicalLeverageBarrier?.evaluateLeverageBarrier(ap3LeverageBarrierInput()) || null;
+  const leveragePolicy = lev1PolicyResult({ proposedAdditionalDebt: Number.isFinite(amount) && amount > 0 ? amount : 0 });
+  const result = engine.crossInstrumentLeverageComparison({
+    amount,
+    months,
+    lombard: {
+      portfolioValue,
+      ltvPct: parseAmount(qs("apx2LtvPct")?.value),
+      annualRatePct: parseAmount(qs("apx2RatePct")?.value),
+    },
+    mortgage: { annualRatePct: parseAmount(qs("lev9MortgageRatePct")?.value) },
+    creditLine: {
+      limit: parseAmount(qs("lev9CreditLineLimit")?.value),
+      annualRatePct: parseAmount(qs("lev9CreditLineRatePct")?.value),
+    },
+    barrierResult,
+    leveragePolicy,
+    lombardEngine,
+    creditLineEngine,
+  });
+  note.innerHTML = lev9ResultHtml(result);
+}
+
 // APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (Bloque 4, simulador de
 // ejecución de garantía). Capacidad de préstamo contra la cartera real (IV1) a un LTV que declara
 // el hogar, nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo con
@@ -17038,6 +17101,77 @@ function renderDeb3OptionValue(amount, debtAnnualRatePct) {
   box.innerHTML = deb3OptionValueHtml(result);
 }
 
+// DEB9 reutiliza la misma llamada a waitingOptionValue con el mismo importe/TIN/meses de espera que
+// DEB3 ya pide — duplicada aquí a propósito (mismo criterio de autonomía entre motores canónicos que
+// ya sigue el resto del repositorio, DI5) en vez de acoplar ambas funciones de render entre sí.
+function deb9WaitingOptionResult(amount, debtAnnualRatePct) {
+  const comparator = window.FinanceDebtComparator;
+  if (!comparator) return null;
+  const waitMonths = Math.round(parseAmount(qs("deb3WaitMonths")?.value));
+  const monthlyOutflow = lpAverageMonthlyOutflow();
+  return comparator.waitingOptionValue({
+    amount,
+    debtAnnualRatePct,
+    waitMonths,
+    monthlyOutflow: Number.isFinite(monthlyOutflow) ? round2(monthlyOutflow + gob9MonthlyDebtService()) : null,
+  });
+}
+
+// DEB9 (Oleada 4, Bloque 2 — bandera del diagnóstico, sin precedente en la Oleada 3): síntesis única
+// "cancelar vs. mantener deuda", con las cuatro piezas que la sustentan (APX1/netDebtCostAfterTax,
+// DEB3/waitingOptionValue, DEB2/dimensionOptimalPrepayment, INV7/liquidityLadder) siempre visibles —
+// nunca combinadas en una única cifra "mejorada" que oculte de dónde sale cada parte (mismo criterio
+// que la advertencia de PVC14). Se recalcula con el mismo botón «Comparar» de AP1, reutilizando sus
+// resultados ya calculados (result, breakEven, guardrail, surplusAllocation) sin pedir ningún campo
+// nuevo aparte de los que ya rellenan las tarjetas de arriba.
+const DEB9_VERDICT_LABEL = {
+  cancelar: "Cancelar (amortizar) esta deuda",
+  mantener: "Mantener esta deuda e invertir el importe",
+  revisar: "Sin veredicto financiero claro — revisa los números de abajo",
+  "no-cancelar-ahora": "No cancelar ahora mismo",
+};
+
+function deb9SynthesisHtml(result) {
+  if (!result || !result.calculable) {
+    return `<p class="e19-kpi-note">Completa el comparador de arriba (AP1) para ver la síntesis.</p>`;
+  }
+  const verdictLabel = DEB9_VERDICT_LABEL[result.verdict] || result.verdict;
+  const cautionLine = result.liquidityCaution
+    ? `<p class="e19-kpi-note warning">Aviso de liquidez (INV7): el suelo del colchón no queda cubierto por tramos de liquidez inmediata o corta todavía, aunque el balance total sea suficiente.</p>`
+    : "";
+  return `<p><strong>${escapeHtml(verdictLabel)}</strong></p><p>${escapeHtml(result.headline)}</p>${cautionLine}`;
+}
+
+function deb9Synthesize({ ap1, breakEven, debt, amount, debtAnnualRatePct, penaltyPct, surplusAllocation, guardrail }) {
+  const debtComparator = window.FinanceDebtComparator;
+  const cushionEngine = window.FinanceCanonicalCushion;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  const synthesisEngine = window.FinanceCanonicalDebtCancelOrHoldSynthesis;
+  if (!debtComparator || !cushionEngine || !portfolioEngine || !synthesisEngine) return null;
+  const netDebtCost = debtComparator.netDebtCostAfterTax(breakEven, dividendSpanishSavingsRatePct());
+  const waitingOption = deb9WaitingOptionResult(amount, debtAnnualRatePct);
+  const prepaymentDimension = surplusAllocation && surplusAllocation.calculable && surplusAllocation.toDebt > 0
+    ? cushionEngine.dimensionOptimalPrepayment({
+      allocatedSurplus: surplusAllocation.toDebt,
+      remainingPrincipal: debt ? debt.currentPrincipal : 0,
+      penaltyPct,
+    })
+    : null;
+  const positions = portfolioEngine.normalizePositions(iv1PositionsList()).positions;
+  const floor = cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value;
+  const liquidity = portfolioEngine.liquidityLadder(positions, floor);
+  return synthesisEngine.cancelOrHoldDebtSynthesis({
+    ap1, netDebtCost, waitingOption, prepaymentDimension, liquidity, cushionGuardrail: guardrail,
+  });
+}
+
+function renderDeb9Synthesis(params) {
+  const box = qs("deb9SynthesisNote");
+  if (!box) return;
+  const result = deb9Synthesize(params);
+  box.innerHTML = deb9SynthesisHtml(result);
+}
+
 function handleAp1Compare() {
   const note = qs("ap1CompareNote");
   if (!note) return;
@@ -17087,6 +17221,11 @@ function handleAp1Compare() {
   }
   renderDeb1VerdictChangeAlert();
   renderDeb3OptionValue(amount, debtAnnualRatePct);
+  renderDeb9Synthesis({
+    ap1: result, breakEven, debt, amount, debtAnnualRatePct,
+    penaltyPct: parseAmount(qs("ap1PrepaymentPenaltyPct")?.value) || 0,
+    surplusAllocation, guardrail,
+  });
   deb7LastAp1Assessment = result.calculable ? result.assessment : null;
   renderDeb7PreferenceReading();
 }
@@ -38207,6 +38346,7 @@ async function init() {
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
   qs("inv10Run")?.addEventListener("click", handleInv10Compare);
   qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
+  qs("lev9CompareRun")?.addEventListener("click", handleLev9Compare);
   qs("lev5VolatilitySave")?.addEventListener("click", saveLev5VolatilityBands);
   qs("lev3CombinedStressRun")?.addEventListener("click", handleLev3CombinedStress);
   qs("pvx5MonthSelect")?.addEventListener("change", renderPvx5CausalTree);
