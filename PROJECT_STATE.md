@@ -51,7 +51,7 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
-## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-4/7, Seguros, Fiscal, Decidir y Patrimonio e inversión) — Ajustes → Herramientas avanzadas
+## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-5/7, + Analizar) — Ajustes → Herramientas avanzadas
 
 El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)
 proponiendo mover los comparadores/simuladores de Ajustes a nuevas categorías de "Herramientas avanzadas"
@@ -159,8 +159,28 @@ empezando por Seguros como piloto de bajo riesgo.
   grupo `analysis` y de 33 a 34 enlaces totales). `test:a11y` **1205 IDs únicos**, `test:performance`,
   `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
 
-**Publicado**: fases 1-3 fusionadas (PR #266, #267, #268). Fase 4 pendiente de commit/push/PR en este
-mismo cierre. Fases 5-7 siguen en la lista de tareas de la sesión, con el mismo criterio confirmado.
+- **Fase 4 publicada**: PR [#269](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/269)
+  fusionado a `main` (CI `verify` en verde, `mergeable_state: clean`). Rama sincronizada con `main`.
+- **Fase 5 (OPT-25) construida — primera que reutiliza una categoría ya existente**: a diferencia de
+  las fases 1-4 (que crearon Seguros, Fiscal, Patrimonio e inversión desde cero), Analizar ya existía
+  en el desplegable con 8 enlaces a pantallas propias. Se añade un único enlace nuevo bajo ese mismo
+  label, apuntando a una `view-section` consolidada, `#herramientas-analizar`, con 6 tarjetas: las 5
+  de `ajustes-operacion > Herramientas` (Previsión con control de versiones PVC6, Diario de
+  recalibración PV5, Marcador de deriva por partida PVC4, Árbol causal de una cifra PVX5, Revisión
+  anual), más Backtesting PVX1 (venía de Ajustes › Fiscal — no es fiscal, es de previsión). Con esto,
+  Ajustes › Fiscal se queda sin ninguna tarjeta de Herramientas: solo configuración y tres notas
+  puente hacia las otras tres pantallas nuevas de Herramientas avanzadas.
+- **Verificación real en navegador de la fase 5**: `#herramientas-analizar` renderiza exactamente 6
+  `article.e19-card` con sus ids intactos; las notas puente en Ajustes › Presupuesto y operación y
+  Ajustes › Fiscal enlazan correctamente a la nueva pantalla.
+- **Validación de la fase 5**: `npm test` **3665/3665** (1 test de ubicación de PVC6 reescrito para
+  `#herramientas-analizar`; contrato de navegación actualizado de 18 a 19 enlaces en el grupo
+  `analysis` y de 34 a 35 enlaces totales — el único incremento de +1 de todas las fases, porque no
+  se creó categoría nueva). `test:a11y` **1206 IDs únicos**, `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke`, todos sin errores.
+
+**Publicado**: fases 1-4 fusionadas (PR #266, #267, #268, #269). Fase 5 pendiente de commit/push/PR en
+este mismo cierre. Fases 6-7 siguen en la lista de tareas de la sesión, con el mismo criterio confirmado.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 
