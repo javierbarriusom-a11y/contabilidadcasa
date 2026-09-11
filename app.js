@@ -435,6 +435,10 @@ const viewTitles = {
     eyebrow: "Herramientas avanzadas · Fiscal",
     title: "Calculadoras y comparadores fiscales",
   },
+  "segunda-opinion": {
+    eyebrow: "Herramientas avanzadas · Decidir",
+    title: "Segunda opinión: decisión externa al plan",
+  },
   "faqs-ayuda": {
     eyebrow: "Ayuda",
     title: "Manual por casos de uso: actualizar, predecir, concluir",
@@ -36999,6 +37003,9 @@ async function renderActiveSection(viewId = viewFromHash()) {
     case "herramientas-fiscal":
       renderAjustes();
       break;
+    // OPT-25 (fase 3): "segunda-opinion" (CPX2) no tiene case aquí a propósito — es una
+    // calculadora puntual sin estado que sincronizar al entrar (handleCpx2SecondOpinion solo se
+    // dispara al pulsar "Comprobar"), igual que antes de moverse fuera de renderAjustes().
     case "alerts-center":
       renderAlertsCenter();
       break;

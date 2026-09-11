@@ -37,6 +37,8 @@
     { target: "deuda-simulador", label: "Simulador visual de deuda (nuevo)", group: "analysis", keywords: "deuda simulador visual quita pago unico refinanciacion calendario perfil escenario asnef cirbe" },
     { target: "conciliar", label: "Conciliación (nuevo)", group: "data", keywords: "conciliacion cerrar mes tareas extracto nuevo e20" },
     { target: "asesor-decision", label: "Asesor ejecutivo (nuevo)", group: "assistants", keywords: "asesor ejecutivo decision oferta deuda vencimiento nuevo e20" },
+    // OPT-25 (fase 3, 11 sept. 2026): trasladada desde Ajustes > Fiscal > Herramientas.
+    { target: "segunda-opinion", label: "Segunda opinión: decisión externa al plan", group: "analysis", keywords: "segunda opinion decision externa compromiso oferta prestamo cambio ingresos caja tension cpx2 opt-25" },
     // OPT-25 (reorganización de Ajustes, opción B, 11 sept. 2026): primera categoría nueva de
     // Herramientas avanzadas — las 4 tarjetas vivían en Ajustes > Seguros > Herramientas.
     { target: "herramientas-seguros", label: "Seguros: comparadores y simuladores (nuevo)", group: "analysis", keywords: "seguros deducible franquicia autoseguro poliza vida hogar reposicion cobertura siniestro opt-25" },
@@ -71,6 +73,7 @@
     ajustes: ["Para qué sirve", "Fijar la reserva operativa y encontrar dónde se editan cuentas, partidas, umbrales y exportación.", "Guarda solo la reserva", "El resto de tarjetas te llevan a la pantalla donde ese dato se edita de verdad."],
     "herramientas-seguros": ["Para qué sirve", "Comparar deducible, autoseguro, vida y hogar antes de decidir una póliza.", "Solo lectura, sin persistencia salvo lo ya guardado en Ajustes", "El inventario de pólizas se edita en Ajustes → Seguros, no aquí."],
     "herramientas-fiscal": ["Para qué sirve", "Estimar IRPF, dividendos, venta parcial, pensiones y compensación de pérdidas antes de decidir.", "Ninguna sustituye asesoría fiscal", "Las tablas, escalas y supuestos se editan en Ajustes → Fiscal, no aquí."],
+    "segunda-opinion": ["Para qué sirve", "Comprobar si tu caja aguanta un compromiso externo al plan, también en un año peor de lo esperado.", "Solo lectura, sin persistencia", "Calculadora puntual: no guarda nada entre visitas."],
     "datos-importar": ["Para qué sirve", "Importar un extracto tomando una decisión por movimiento dudoso y por posible duplicado, antes de que nada toque el plan.", "Requiere confirmación", "Nada se incorpora hasta el paso 4; se puede deshacer después desde «Carga de datos»."],
     "registrar-mes": ["Para qué sirve", "Ver qué partidas del mes siguen sin real y anotarlas una a una.", "Guarda al salir de la casilla", "Vaciar un real recupera el previsto; escribir 0 significa «ocurrió por cero»."],
     "cuadro-mandos": ["Para qué sirve", "Cambiar el previsto de una partida y ver qué le hace al plan antes de guardar.", "Requiere confirmación", "Nada se guarda hasta que pulses «Guardar cambios» en el pie de impacto."],

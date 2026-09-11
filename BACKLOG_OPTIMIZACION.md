@@ -57,7 +57,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
 | 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ✅ (8 sep) |
-| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fases 1-2/7 (Seguros, Fiscal) ✅ 11-sep, 3-7 en curso — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
+| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fases 1-3/7 (Seguros, Fiscal, Decidir) ✅ 11-sep, 4-7 en curso — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
@@ -418,7 +418,9 @@ más abajo. Con esto, las fases 2-7 continúan.
    a `#herramientas-fiscal`. Backtesting (PVX1), Segunda opinión (CPX2) y Pérdidas latentes (INV6) se
    quedan en Ajustes → Fiscal de momento, para sus propias fases. `npm run verify` en verde, `npm test`
    3665/3665.
-3. **Fase 3 — Decidir (Segunda opinión, CPX2).** Pendiente.
+3. **Fase 3 — Decidir (Segunda opinión, CPX2) ✅ (11-sep-2026, sesión 165).** La tarjeta CPX2 se
+   traslada a `#segunda-opinion`, pantalla propia dentro del grupo Decidir (no encajaba en ninguna de
+   las pantallas de Decidir ya existentes). `npm run verify` en verde, `npm test` 3665/3665.
 4. **Fase 4 — Patrimonio e inversión.** Pendiente.
 5. **Fase 5 — Analizar (ampliada).** Pendiente.
 6. **Fase 6 — Datos.** Pendiente.

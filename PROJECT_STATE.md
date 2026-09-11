@@ -51,7 +51,7 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
-## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-2/7, Seguros y Fiscal) — Ajustes → Herramientas avanzadas
+## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-3/7, Seguros, Fiscal y Decidir) — Ajustes → Herramientas avanzadas
 
 El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)
 proponiendo mover los comparadores/simuladores de Ajustes a nuevas categorías de "Herramientas avanzadas"
@@ -113,9 +113,25 @@ empezando por Seguros como piloto de bajo riesgo.
   DOM, que ya no aplica al vivir en pantallas distintas; contrato de navegación actualizado de 15 a 16
   enlaces en el grupo `analysis` y de 31 a 32 enlaces totales). `test:a11y` **1203 IDs únicos**,
   `test:performance`, `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
+- **Fase 2 publicada**: PR [#267](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/267)
+  fusionado a `main` (CI `verify` en verde, `mergeable_state: clean`). Rama sincronizada con `main`.
+- **Fase 3 (OPT-25) construida**: la tarjeta "Segunda opinión: decisión externa al plan" (CPX2), que
+  vivía en `ajustes-fiscal > Herramientas` pese a no ser fiscal (es una pregunta de tesorería sobre un
+  compromiso externo), se traslada a una `view-section` propia, `#segunda-opinion`, con entrada en el
+  grupo Decidir del desplegable — no encajaba temáticamente en ninguna de las pantallas de Decidir ya
+  existentes (deuda, escenarios, asesor ejecutivo de ofertas), así que se le da pantalla propia en vez
+  de forzarla dentro de otra. Sin `case` de render en el dispatcher: es una calculadora puntual sin
+  estado que sincronizar al entrar (se dispara solo al pulsar "Comprobar"), igual que antes.
+- **Verificación real en navegador de la fase 3**: `#segunda-opinion` renderiza el campo y el botón;
+  interactuando con un impacto mensual de -300 € el comparador devuelve un resultado real (caja base
+  vs. caja bajo tensión) idéntico al que ya daba en Ajustes.
+- **Validación de la fase 3**: `npm test` **3665/3665** (sin tests de ubicación que reescribir — CPX2 no
+  tenía ninguno que asumiera `#ajustes`; contrato de navegación actualizado de 16 a 17 enlaces en el
+  grupo `analysis` y de 32 a 33 enlaces totales). `test:a11y` **1204 IDs únicos**, `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
 
-**Publicado**: fase 1 fusionada (PR #266). Fase 2 pendiente de commit/push/PR en este mismo cierre.
-Fases 3-7 siguen en la lista de tareas de la sesión, con el mismo criterio de destino ya confirmado.
+**Publicado**: fases 1-2 fusionadas (PR #266, #267). Fase 3 pendiente de commit/push/PR en este mismo
+cierre. Fases 4-7 siguen en la lista de tareas de la sesión, con el mismo criterio de destino confirmado.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 
