@@ -128,6 +128,9 @@
               <a href="#registrar-mes" data-e17-group="data">Registrar el mes (nuevo)</a>
               <a href="#data-entry" data-e17-group="data">Carga de datos</a>
               <a href="#conciliar" data-e17-group="data">Conciliación (nuevo)</a>
+              <!-- OPT-25 (fase 6, 11 sept. 2026): un único enlace nuevo bajo el label «Datos» ya
+                   existente (criterio de menor coste, igual que la fase 5 con Analizar). -->
+              <a href="#herramientas-datos" data-e17-group="data">Continuidad, compartir y archivo (nuevo)</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="legacy">Versiones anteriores</p>
               <a href="#debt-roadmap" data-e17-group="legacy">Plan de deuda</a>
@@ -3183,6 +3186,76 @@
             </article>
           </section>
 
+          <!-- OPT-25 (fase 6, 11 sept. 2026): categoría Datos, ya existente en el desplegable
+               (5 enlaces a pantallas propias) — esta fase añade UN enlace nuevo bajo ese mismo
+               label, siguiendo el criterio de menor coste (fase 5). 4 tarjetas: las 4 de
+               ajustes-datos > Herramientas que no son la exportación (protegida por el subtítulo
+               de Ajustes, V6-4 — se queda donde está). -->
+          <section class="e19-asesor-decision view-section" id="herramientas-datos">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Datos</p>
+                <h2 class="e19-heading">Continuidad, compartir y archivo</h2>
+                <p class="e19-subtitle">El hogar compartido se sigue editando en <a href="#ajustes">Ajustes → Datos y exportación</a>; la exportación de CSV, PDF y calendario también se pide desde ahí.</p>
+              </div>
+            </div>
+
+            <!-- RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9)
+                 y el hogar compartido de Ajustes. No ejecuta ninguna acción, solo hace visible qué
+                 falta y por qué, con la copia y la invitación a un clic de distancia. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulacro: ¿qué pasa si pierdes el acceso?</h3>
+              <p class="e19-kpi-note">Repaso guiado de tres puntos: copia de emergencia reciente, alguien más con rol de propietario o administrador, y cobertura por área. Descarga tu copia en «Datos» y gestiona el hogar en <a href="#ajustes">Ajustes → Datos y exportación</a> si algo falta.</p>
+              <div id="rgx1AccessDrill"></div>
+            </article>
+
+            <!-- A19-1: enlace de solo lectura, redactado y caducable — depende de A14-1. Comparte
+                 el plan de deuda o el forecast a 6 meses con un asesor externo sin cuenta propia ni
+                 acceso a movimientos individuales. El token en crudo solo existe en la URL que se
+                 genera al pulsar «Generar enlace»: nunca se guarda (Supabase solo almacena su
+                 hash), y la página que lo consume (share.html) es independiente de esta app, sin
+                 sesión ni datos locales. Requiere sesión remota iniciada — el enlace pertenece a
+                 quien lo genera. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Enlace de solo lectura para un asesor externo</h3>
+              <p class="e19-kpi-note">Comparte una vista concreta y redactada — nunca movimientos individuales — con quien no tiene cuenta propia. Caduca solo, y puedes revocarlo antes si hace falta.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Qué compartir</span>
+                  <select id="a19ShareViewType">
+                    <option value="debt-plan">Plan de deuda</option>
+                    <option value="forecast-6m">Forecast a 6 meses</option>
+                    <option value="kids-summary">Vista para hijos (colchón y patrimonio)</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Caduca en (días)</span>
+                  <input id="a19ShareTtlDays" type="number" min="1" max="90" step="1" value="14" inputmode="decimal" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a19ShareSave">Generar enlace</button>
+              <p class="inline-feedback" id="a19ShareStatus" role="status"></p>
+              <ul class="commit-barrier-list" id="a19ShareLinkList"></ul>
+            </article>
+
+            <!-- A19-2: informe PDF certificado — depende de A14-2/A14-3. Capacidad de pago,
+                 patrimonio neto, calendario de deuda y colchón, con fecha y advertencia de que es
+                 un resumen propio, no una certificación bancaria. Reutiliza el escritor de PDF sin
+                 librería externa ya construido (P2Export.downloadPlainPdf, OPT-3/V6-4). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Informe PDF certificado</h3>
+              <p class="e19-kpi-note">Descarga un resumen en PDF con capacidad de pago, patrimonio neto, calendario de deuda y colchón de emergencia, con fecha. Es un resumen elaborado por ti a partir de tus propios datos — no es una certificación bancaria ni un documento oficial.</p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="a19CertifiedReportDownload">Descargar informe PDF certificado</button>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Informes de cierre archivados</h3>
+              <p class="e19-kpi-note">Un informe por cada mes firmado en Cierre, congelado en el momento de firmarlo — no se regenera con datos que hayan podido cambiar después.</p>
+              <ul class="cierre-report-archive-list" id="cierreReportArchiveList"></ul>
+              <p class="e19-kpi-note" id="cierreReportArchiveEmpty" hidden>Todavía no hay ningún mes firmado.</p>
+            </article>
+          </section>
+
           <!-- V6-3/V6-2/V6-4 · reúne lo que hoy vive repartido: la reserva operativa, los dos
                umbrales propios (ventana de duplicados, desviación por partida) y la exportación se
                hacen aquí de verdad; el colchón mínimo en meses es una regla más del framework de
@@ -4052,54 +4125,14 @@
               <div id="rgxHouseholdCard"></div>
             </article>
 
+            <!-- OPT-25 (fase 6, 11 sept. 2026): 4 de las 5 tarjetas de Herramientas se movieron a
+                 Herramientas avanzadas → Datos (#herramientas-datos): Simulacro RGX1, Enlace de
+                 solo lectura A19-1, Informe PDF certificado A19-2, Informes de cierre archivados.
+                 «Exportar» se queda aquí a propósito — el subtítulo de esta pantalla promete
+                 explícitamente que la exportación «se hace desde aquí mismo» (V6-4), excepción
+                 declarada junto a la cobertura aprendida, la reserva operativa y los umbrales. -->
             <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <!-- RGX1: simulacro guiado de pérdida de acceso — combina la copia de emergencia (A0-9)
-                 y el hogar compartido de arriba. No ejecuta ninguna acción, solo hace visible qué
-                 falta y por qué, con la copia y la invitación a un clic de distancia. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Simulacro: ¿qué pasa si pierdes el acceso?</h3>
-              <p class="e19-kpi-note">Repaso guiado de tres puntos: copia de emergencia reciente, alguien más con rol de propietario o administrador, y cobertura por área. Descarga tu copia en «Datos» y gestiona el hogar arriba si algo falta.</p>
-              <div id="rgx1AccessDrill"></div>
-            </article>
-
-            <!-- A19-1: enlace de solo lectura, redactado y caducable — depende de A14-1. Comparte
-                 el plan de deuda o el forecast a 6 meses con un asesor externo sin cuenta propia ni
-                 acceso a movimientos individuales. El token en crudo solo existe en la URL que se
-                 genera al pulsar «Generar enlace»: nunca se guarda (Supabase solo almacena su
-                 hash), y la página que lo consume (share.html) es independiente de esta app, sin
-                 sesión ni datos locales. Requiere sesión remota iniciada — el enlace pertenece a
-                 quien lo genera. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Enlace de solo lectura para un asesor externo</h3>
-              <p class="e19-kpi-note">Comparte una vista concreta y redactada — nunca movimientos individuales — con quien no tiene cuenta propia. Caduca solo, y puedes revocarlo antes si hace falta.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Qué compartir</span>
-                  <select id="a19ShareViewType">
-                    <option value="debt-plan">Plan de deuda</option>
-                    <option value="forecast-6m">Forecast a 6 meses</option>
-                    <option value="kids-summary">Vista para hijos (colchón y patrimonio)</option>
-                  </select>
-                </label>
-                <label class="month-picker">
-                  <span>Caduca en (días)</span>
-                  <input id="a19ShareTtlDays" type="number" min="1" max="90" step="1" value="14" inputmode="decimal" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a19ShareSave">Generar enlace</button>
-              <p class="inline-feedback" id="a19ShareStatus" role="status"></p>
-              <ul class="commit-barrier-list" id="a19ShareLinkList"></ul>
-            </article>
-
-            <!-- A19-2: informe PDF certificado — depende de A14-2/A14-3. Capacidad de pago,
-                 patrimonio neto, calendario de deuda y colchón, con fecha y advertencia de que es
-                 un resumen propio, no una certificación bancaria. Reutiliza el escritor de PDF sin
-                 librería externa ya construido (P2Export.downloadPlainPdf, OPT-3/V6-4). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Informe PDF certificado</h3>
-              <p class="e19-kpi-note">Descarga un resumen en PDF con capacidad de pago, patrimonio neto, calendario de deuda y colchón de emergencia, con fecha. Es un resumen elaborado por ti a partir de tus propios datos — no es una certificación bancaria ni un documento oficial.</p>
-              <button type="button" class="e19-btn e19-btn-secondary" id="a19CertifiedReportDownload">Descargar informe PDF certificado</button>
-            </article>
+            <p class="e19-kpi-note">El simulacro de pérdida de acceso, el enlace de solo lectura para un asesor externo, el informe PDF certificado y los informes de cierre archivados viven ahora en <a href="#herramientas-datos">Herramientas avanzadas → Datos</a>.</p>
 
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Exportar</h3>
@@ -4110,13 +4143,6 @@
                 <button type="button" class="e19-btn e19-btn-secondary" id="ajustesExportIcs">Descargar calendario (.ics)</button>
               </div>
               <p class="e19-kpi-note" id="ajustesExportNote"></p>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Informes de cierre archivados</h3>
-              <p class="e19-kpi-note">Un informe por cada mes firmado en Cierre, congelado en el momento de firmarlo — no se regenera con datos que hayan podido cambiar después.</p>
-              <ul class="cierre-report-archive-list" id="cierreReportArchiveList"></ul>
-              <p class="e19-kpi-note" id="cierreReportArchiveEmpty" hidden>Todavía no hay ningún mes firmado.</p>
             </article>
             </div>
 

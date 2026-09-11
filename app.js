@@ -443,6 +443,10 @@ const viewTitles = {
     eyebrow: "Herramientas avanzadas · Analizar",
     title: "Análisis de previsión",
   },
+  "herramientas-datos": {
+    eyebrow: "Herramientas avanzadas · Datos",
+    title: "Continuidad, compartir y archivo",
+  },
   "segunda-opinion": {
     eyebrow: "Herramientas avanzadas · Decidir",
     title: "Segunda opinión: decisión externa al plan",
@@ -37017,6 +37021,10 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     // OPT-25 (fase 5): mismo patrón — Analizar (categoría ya existente, un solo enlace nuevo).
     case "herramientas-analizar":
+      renderAjustes();
+      break;
+    // OPT-25 (fase 6): mismo patrón — Datos (categoría ya existente, un solo enlace nuevo).
+    case "herramientas-datos":
       renderAjustes();
       break;
     // OPT-25 (fase 3): "segunda-opinion" (CPX2) no tiene case aquí a propósito — es una

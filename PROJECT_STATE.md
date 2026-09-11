@@ -51,7 +51,7 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
-## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-5/7, + Analizar) — Ajustes → Herramientas avanzadas
+## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-6/7, + Datos) — Ajustes → Herramientas avanzadas
 
 El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)
 proponiendo mover los comparadores/simuladores de Ajustes a nuevas categorías de "Herramientas avanzadas"
@@ -179,8 +179,31 @@ empezando por Seguros como piloto de bajo riesgo.
   se creó categoría nueva). `test:a11y` **1206 IDs únicos**, `test:performance`, `build:site`,
   `test:privacy` y `test:smoke`, todos sin errores.
 
-**Publicado**: fases 1-4 fusionadas (PR #266, #267, #268, #269). Fase 5 pendiente de commit/push/PR en
-este mismo cierre. Fases 6-7 siguen en la lista de tareas de la sesión, con el mismo criterio confirmado.
+- **Fase 5 publicada**: PR [#270](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/270)
+  fusionado a `main` (CI `verify` en verde, `mergeable_state: clean`). Rama sincronizada con `main`.
+- **Fase 6 (OPT-25) construida — y una desviación deliberada del plan original**: de las 5 tarjetas
+  de `ajustes-datos > Herramientas`, solo 4 se movieron a `#herramientas-datos` (Simulacro de pérdida
+  de acceso RGX1, Enlace de solo lectura para asesor externo A19-1, Informe PDF certificado A19-2,
+  Informes de cierre archivados), con un único enlace nuevo bajo el label «Datos» ya existente del
+  desplegable (mismo criterio de coste que la fase 5). **«Exportar» se queda en Ajustes a propósito**:
+  el propio subtítulo de la pantalla Ajustes promete explícitamente que la exportación "se hace desde
+  aquí mismo" (decisión V6-4, un compromiso de producto ya existente, no una elección de esta sesión)
+  — moverla habría hecho falsa esa frase visible para el usuario. Es el mismo tipo de hallazgo que el
+  conflicto con `OPT-15` al principio de la sesión: se detectó al releer el contenido real antes de
+  mover nada, y se resolvió sin necesidad de volver a preguntar porque no contradice la instrucción
+  del hogar — al contrario, la respeta con más precisión (el hogar pidió reorganizar contenido, no
+  romper promesas ya hechas al propio usuario final de la app).
+- **Verificación real en navegador de la fase 6**: `#herramientas-datos` renderiza exactamente 4
+  `article.e19-card`; Ajustes › Datos y exportación conserva el botón `#ajustesExportCsv` y ya no
+  contiene `#rgx1AccessDrill`.
+- **Validación de la fase 6**: `npm test` **3665/3665** (sin tests de ubicación que reescribir —
+  ninguna de las 4 tarjetas tenía uno que asumiera `#ajustes`; contrato de navegación actualizado:
+  el array exacto del grupo `data` gana `herramientas-datos` al final, y el total de enlaces sube de
+  35 a 36). `test:a11y` **1207 IDs únicos**, `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke`, todos sin errores.
+
+**Publicado**: fases 1-5 fusionadas (PR #266-#270). Fase 6 pendiente de commit/push/PR en este mismo
+cierre. Fase 7 (limpieza de Ajustes) sigue en la lista de tareas de la sesión — cierra el plan OPT-25.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 
