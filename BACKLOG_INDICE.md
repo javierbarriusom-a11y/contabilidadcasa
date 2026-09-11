@@ -85,6 +85,17 @@ los tests de wiring afectados se actualizaron. Sin ruta nueva, sin revivir «Her
 y sin contradecir `OPT-15` (que ya fija Ajustes como una de las 6 rutas finales) — al contrario,
 `OPT-15` encontrará la navegación final alrededor de una Ajustes ya limpia.
 
+**Actualizado el 11 de septiembre de 2026 (sesión 165): nace `OPT-25` y anula `OPT-15` para
+«Herramientas avanzadas».** Un mockup externo ("Claude Design", opción B) propuso lo contrario de lo
+que asumía `OPT-24`: sacar las tarjetas de «Herramientas» de Ajustes y darles categorías propias
+dentro de «Herramientas avanzadas», en vez de mantenerlas en dos sub-grupos de la misma pantalla. Esa
+dirección contradecía por escrito la restricción de `OPT-24` (no revivir ese desplegable) y la razón
+de ser de `OPT-15` (retirarlo). Puesto el conflicto delante del hogar tras publicar la primera fase
+(Seguros), la respuesta fue confirmar la reversión: «Herramientas avanzadas» se queda de forma
+permanente como destino de estos comparadores. `OPT-15` queda anulada para ese propósito — ver su
+propia ficha en `BACKLOG_OPTIMIZACION.md` §3. `OPT-25` continúa en 7 fases; detalle y progreso en
+`BACKLOG_OPTIMIZACION.md` y en `PROJECT_STATE.md` (cierre de sesión 165).
+
 ## Cierre de ciclo anterior — 5 de septiembre de 2026 (histórico)
 
 Con `O-5` cerrada, las tres colas activas del proyecto habían llegado al mismo punto a la vez: todo lo
@@ -95,7 +106,7 @@ porque ninguna de esas tres colas se resolvió con la Oleada 3:
 
 | Cola | Qué queda | Condición de desbloqueo | Quién la controla |
 | --- | --- | --- | --- |
-| `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | `OPT-10`, `OPT-11`, `OPT-12`, `OPT-13`, `OPT-15` | Reloj de 30 días de `OPT-2` (arrancó 29 de agosto) | Calendario — cumple a finales de septiembre de 2026 |
+| `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | `OPT-10`, `OPT-11`, `OPT-12`, `OPT-13` (`OPT-15` anulada por `OPT-25`, 11-sep) | Reloj de 30 días de `OPT-2` (arrancó 29 de agosto) | Calendario — cumple a finales de septiembre de 2026 |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | `RGX3` (Bloque 6) y `DEX6` (Bloque 1) | `A5-1` (IA) activo en producción real, no solo en base local | Externa — activación de infraestructura, sin fecha conocida |
 | `BACKLOG_OPERACION.md` | `O-6` (= `T-3` en `BACKLOG.md`) | Contratación de un proveedor PSD2 (candidato evaluado: GoCardless) | Decisión de producto fuera del equipo de desarrollo |
 

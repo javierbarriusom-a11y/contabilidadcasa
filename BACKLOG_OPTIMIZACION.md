@@ -57,13 +57,13 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
 | 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ✅ (8 sep) |
-| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fase 1/7 (Seguros) ✅ 11-sep, 2-7 en pausa — ⚠️ contradice la premisa de `OPT-15`, ver nota |
+| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fase 1/7 (Seguros) ✅ 11-sep, 2-7 en curso — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
 | 2 | OPT-13 | Retirar cada heredada en cuanto su función está cubierta | Crítico | L | ⛔ · depende de OPT-12 |
 | 2 | OPT-14 | Fusionar los seis pares de pantallas gemelas documentados | Crítico | L | 🟡 · relegación y paridad confirmadas, retirada de código ⛔ depende de OPT-2 |
-| 2 | OPT-15 | Menú lateral a 6 rutas principales, sin «Herramientas avanzadas» | Alto | S | ⛔ · depende de OPT-11 a OPT-14 |
+| 2 | OPT-15 | Menú lateral a 6 rutas principales, sin «Herramientas avanzadas» | Alto | S | ⛔ · anulada para «Herramientas avanzadas» por `OPT-25` (11-sep, ratificado) — ver nota |
 | 3 | OPT-16 | Migrar módulos a ES modules | Medio (habilitador) | M-L | 🟡 · evaluada el 3-sep, no se ejecuta — ver ficha |
 | 3 | OPT-17 | Carga diferida (`import()`) por vista activa | Alto | L | 🟡 · evaluada el 3-sep, no se ejecuta — ver ficha |
 | 3 | OPT-18 | Verificar/activar compresión Brotli-Gzip del artefacto publicado | Medio | S | ⏳ |
@@ -398,17 +398,15 @@ inversión nuevas; Decidir/Analizar/Datos ampliadas). Instrucción explícita de
 menor coste de desarrollo para los casos ambiguos (Laboratorio, Saldo continuo... se quedan donde ya
 estaban si moverlos no aporta nada y cuesta más).
 
-**⚠️ Contradice una restricción escrita de `OPT-24`/`OPT-15`, sin resolver todavía.** `OPT-24` (arriba)
-fija explícitamente: *"El desplegable «Herramientas avanzadas» va camino de vaciarse (`OPT-11` a
-`OPT-13`), no de llenarse — esta tarea no revive ese desplegable como destino para simuladores nuevos."*
-Esa intención viene de `OPT-15` (retirar «Herramientas avanzadas» del menú lateral), que sigue bloqueada
-sin empezar (depende de `OPT-11`-`OPT-14`, que a su vez dependen de `OPT-2`, sin datos de uso reales
-todavía). La instrucción de esta sesión se toma como una decisión nueva del hogar que **reabre y
-revierte** esa premisa para este menú en concreto — pero es una decisión de producto, no de ingeniería,
-y no se da por confirmada en este backlog hasta que el hogar la ratifique explícitamente sabiendo del
-conflicto (ver `PROJECT_STATE.md`, cierre de sesión 165, para el detalle completo). Si se ratifica, este
-párrafo se sustituye por la decisión y se marca `OPT-15` como superada en `BACKLOG_INDICE.md`; si no, las
-fases ya construidas (fase 1, Seguros) se reconsideran con el mismo criterio de coste que las trajo aquí.
+**⚠️ Anula, para «Herramientas avanzadas», una restricción escrita de `OPT-24`/`OPT-15` — ratificado por
+el hogar el 11-sep-2026 (sesión 165).** `OPT-24` fijaba explícitamente: *"El desplegable «Herramientas
+avanzadas» va camino de vaciarse (`OPT-11` a `OPT-13`), no de llenarse — esta tarea no revive ese
+desplegable como destino para simuladores nuevos."* Esa intención venía de `OPT-15` (retirar el menú),
+que nunca llegó a ejecutarse (bloqueada sin empezar, dependía de `OPT-11`-`OPT-14`, que a su vez
+dependían de `OPT-2`, sin datos de uso reales). Puesto el conflicto delante del hogar de forma explícita
+tras publicar la fase 1, la respuesta fue confirmar la reversión: «Herramientas avanzadas» pasa a ser
+destino permanente de estos comparadores, no un menú de salida. Ver la nota de anulación bajo `OPT-15`
+más abajo. Con esto, las fases 2-7 continúan.
 
 **Progreso:**
 1. **Fase 1 — Seguros ✅ (11-sep-2026, sesión 165).** Las 4 tarjetas de `ajustes-seguros > Herramientas`
@@ -529,8 +527,17 @@ reales de uso.
 
 ### OPT-15 · Menú lateral a 6 rutas
 
+**⚠️ Premisa anulada para «Herramientas avanzadas» (11-sep-2026, sesión 165, ratificado por el hogar).**
+Esta tarea nunca llegó a ejecutarse (siguió bloqueada por `OPT-11`-`OPT-14`, sin empezar). Mientras
+tanto, `OPT-25` decidió lo contrario: en vez de vaciar el desplegable «Herramientas avanzadas» hasta
+retirarlo, lo usa como destino permanente de los comparadores/simuladores que salen de Ajustes. El hogar
+confirmó explícitamente esa dirección al preguntársele por el conflicto. Las tareas 1-2 de abajo quedan
+sin objeto para «Herramientas avanzadas» — el menú se queda. Si en el futuro se retoma la idea de
+simplificar la navegación de primer nivel, tendría que ser una tarea nueva que parta de este estado, no
+una reactivación de esta.
+
 **Depende de:** OPT-11 a OPT-14 completadas (o al menos las suficientes para que el desplegable
-«Herramientas avanzadas» quede vacío o casi).
+«Herramientas avanzadas» quede vacío o casi). *(Ya sin objeto — ver nota de anulación arriba.)*
 
 **Tareas:**
 1. Reescribir `<nav class="side-nav">` de `index.html` a las 6 rutas principales (Hoy, Plan, Deuda,

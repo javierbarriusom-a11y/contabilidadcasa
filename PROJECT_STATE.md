@@ -81,22 +81,20 @@ empezando por Seguros como piloto de bajo riesgo.
   `test:a11y` **1202 IDs únicos** (+1 sobre los 1201 de antes: la nueva sección aporta ids nuevos sin
   duplicar ninguno existente), `test:performance`, `build:site`, `test:privacy` y `test:smoke`, todos sin
   errores.
-- **Hallazgo que detiene la cadena de fases antes de la 2 — pendiente de decisión explícita del hogar**:
-  `BACKLOG_OPTIMIZACION.md` (`OPT-24`, cerrada el 8-9 sept.) declara por escrito una restricción que esta
-  fase 1 contradice: *"El desplegable «Herramientas avanzadas» va camino de vaciarse (`OPT-11` a `OPT-13`),
-  no de llenarse — esta tarea no revive ese desplegable como destino para simuladores nuevos."* Esa
-  intención viene de `OPT-15` ("menú lateral a 6 rutas principales, sin «Herramientas avanzadas»"), que
-  sigue bloqueada (`⛔ · depende de OPT-11 a OPT-14`, que a su vez dependen de `OPT-2`, sin empezar) — es
-  decir, nunca llegó a ejecutarse, pero seguía siendo la intención documentada del proyecto hasta hoy. La
-  instrucción del usuario en esta sesión fue explícita y literal ("que ocupen secciones relevantes en el
-  menú lateral en herramientas avanzadas"), así que se entiende como una decisión nueva que **reabre y
-  revierte** la premisa de `OPT-15` para este menú — pero no se ha registrado esa reversión por escrito
-  todavía en `BACKLOG_OPTIMIZACION.md`, y las 6 fases que quedan (Fiscal, Decidir, Patrimonio e inversión,
-  Analizar, Datos, limpieza de Ajustes) profundizan mucho más en esa dirección que esta primera. Se
-  detiene la cadena aquí, con la fase 1 ya publicada y en verde, para poner esta contradicción delante del
-  usuario antes de seguir — no para deshacer nada de lo ya construido.
+- **Hallazgo y decisión del hogar: `OPT-15` queda anulada para «Herramientas avanzadas»**.
+  `BACKLOG_OPTIMIZACION.md` (`OPT-24`, cerrada el 8-9 sept.) declaraba por escrito una restricción que
+  esta fase 1 contradice: *"El desplegable «Herramientas avanzadas» va camino de vaciarse (`OPT-11` a
+  `OPT-13`), no de llenarse — esta tarea no revive ese desplegable como destino para simuladores
+  nuevos."* Esa intención venía de `OPT-15` ("menú lateral a 6 rutas principales, sin «Herramientas
+  avanzadas»"), bloqueada sin empezar (`⛔ · depende de OPT-11 a OPT-14`, que a su vez dependen de
+  `OPT-2`) — nunca llegó a ejecutarse, pero seguía siendo la intención documentada del proyecto hasta
+  hoy. Puesto el conflicto delante del usuario de forma explícita (con el detalle completo de ambas
+  tareas), confirmó la reversión: «Herramientas avanzadas» pasa a ser destino permanente de estos
+  comparadores, no un menú de salida. Registrado en `BACKLOG_OPTIMIZACION.md` (nota bajo `OPT-15` y
+  ficha de `OPT-25`) y en `BACKLOG_INDICE.md`.
+
 **Publicado**: pendiente de commit/push/PR a `claude/funny-allen-5dzzxc` en este mismo cierre. Fases 2-7
-siguen en la lista de tareas de la sesión, sin empezar — bloqueadas por la decisión pendiente de arriba.
+siguen en la lista de tareas de la sesión, con el mismo criterio de destino ya confirmado.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 
