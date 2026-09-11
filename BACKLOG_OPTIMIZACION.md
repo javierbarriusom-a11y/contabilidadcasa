@@ -57,7 +57,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
 | 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ✅ (8 sep) |
-| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fase 1/7 (Seguros) ✅ 11-sep, 2-7 en curso — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
+| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fases 1-2/7 (Seguros, Fiscal) ✅ 11-sep, 3-7 en curso — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
@@ -413,7 +413,11 @@ más abajo. Con esto, las fases 2-7 continúan.
    (SP2, SP3, SP4, SP5) se trasladaron a la `view-section` nueva `#herramientas-seguros`, con entrada en
    el desplegable (grupo `analysis` reutilizado). `npm run verify` en verde, `npm test` 3665/3665.
    Publicada a `main` — ver PR referenciado en `PROJECT_STATE.md`.
-2. **Fase 2 — Fiscal.** Pendiente, en pausa hasta resolver el punto anterior.
+2. **Fase 2 — Fiscal ✅ (11-sep-2026, sesión 165).** Las 7 tarjetas puramente fiscales de
+   `ajustes-fiscal > Herramientas` (FC4, estimador de IRPF, FC5, A15-4, FCX1, GOB8, FC3) se trasladaron
+   a `#herramientas-fiscal`. Backtesting (PVX1), Segunda opinión (CPX2) y Pérdidas latentes (INV6) se
+   quedan en Ajustes → Fiscal de momento, para sus propias fases. `npm run verify` en verde, `npm test`
+   3665/3665.
 3. **Fase 3 — Decidir (Segunda opinión, CPX2).** Pendiente.
 4. **Fase 4 — Patrimonio e inversión.** Pendiente.
 5. **Fase 5 — Analizar (ampliada).** Pendiente.

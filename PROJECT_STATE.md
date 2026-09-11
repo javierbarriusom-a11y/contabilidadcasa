@@ -51,7 +51,7 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
-## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fase 1/7, Seguros) — Ajustes → Herramientas avanzadas, y hallazgo de conflicto con OPT-15
+## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-2/7, Seguros y Fiscal) — Ajustes → Herramientas avanzadas
 
 El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)
 proponiendo mover los comparadores/simuladores de Ajustes a nuevas categorías de "Herramientas avanzadas"
@@ -92,9 +92,30 @@ empezando por Seguros como piloto de bajo riesgo.
   tareas), confirmó la reversión: «Herramientas avanzadas» pasa a ser destino permanente de estos
   comparadores, no un menú de salida. Registrado en `BACKLOG_OPTIMIZACION.md` (nota bajo `OPT-15` y
   ficha de `OPT-25`) y en `BACKLOG_INDICE.md`.
+- **Fase 1 publicada**: PR [#266](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/266)
+  fusionado a `main` (CI `verify` en verde, `mergeable_state: clean`). Rama `claude/funny-allen-5dzzxc`
+  sincronizada con `main` tras la fusión.
+- **Fase 2 (OPT-25) construida**: las 7 tarjetas de `ajustes-fiscal > Herramientas` que son puramente
+  fiscales (retención de dividendos FC4, estimador de IRPF, venta parcial del tramo del ahorro FC5,
+  simulador de aportación a pensiones A15-4, rescate de pensiones FCX1, borrador de apoyo para la Renta
+  GOB8, compensación de pérdidas y ganancias FC3) se trasladaron a una `view-section` nueva,
+  `#herramientas-fiscal`, con entrada propia en el desplegable (mismo patrón que la fase 1). Ajustes >
+  Fiscal se queda con la configuración (tablas, escalas, supuestos, pérdidas arrastradas) y, de momento,
+  con Backtesting (PVX1), Segunda opinión (CPX2) y Pérdidas latentes (INV6) — se moverán en sus propias
+  fases (Analizar, Decidir, Patrimonio e inversión). Corregidas dos referencias de texto que quedaban
+  rotas tras el traslado ("el estimador de abajo", "la calculadora de abajo") para que apunten a la
+  nueva ubicación en vez de a un sitio que ya no está justo debajo.
+- **Verificación real en navegador de la fase 2**: `#herramientas-fiscal` renderiza las 7 tarjetas con
+  sus ids intactos; el estimador de IRPF responde con un mensaje real ("faltan tramos fiscales...") al
+  interactuar con los campos sin escalas registradas.
+- **Validación de la fase 2**: `npm test` **3665/3665** (1 test de ubicación de A15-4 reescrito para
+  `#herramientas-fiscal`; 1 test de wiring de INV6 reescrito porque comprobaba adyacencia con FC3 en el
+  DOM, que ya no aplica al vivir en pantallas distintas; contrato de navegación actualizado de 15 a 16
+  enlaces en el grupo `analysis` y de 31 a 32 enlaces totales). `test:a11y` **1203 IDs únicos**,
+  `test:performance`, `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
 
-**Publicado**: pendiente de commit/push/PR a `claude/funny-allen-5dzzxc` en este mismo cierre. Fases 2-7
-siguen en la lista de tareas de la sesión, con el mismo criterio de destino ya confirmado.
+**Publicado**: fase 1 fusionada (PR #266). Fase 2 pendiente de commit/push/PR en este mismo cierre.
+Fases 3-7 siguen en la lista de tareas de la sesión, con el mismo criterio de destino ya confirmado.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 
