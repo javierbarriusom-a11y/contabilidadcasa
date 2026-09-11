@@ -439,6 +439,10 @@ const viewTitles = {
     eyebrow: "Herramientas avanzadas · Patrimonio e inversión",
     title: "Comparadores de patrimonio e inversión",
   },
+  "herramientas-analizar": {
+    eyebrow: "Herramientas avanzadas · Analizar",
+    title: "Análisis de previsión",
+  },
   "segunda-opinion": {
     eyebrow: "Herramientas avanzadas · Decidir",
     title: "Segunda opinión: decisión externa al plan",
@@ -37009,6 +37013,10 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
     case "herramientas-patrimonio":
+      renderAjustes();
+      break;
+    // OPT-25 (fase 5): mismo patrón — Analizar (categoría ya existente, un solo enlace nuevo).
+    case "herramientas-analizar":
       renderAjustes();
       break;
     // OPT-25 (fase 3): "segunda-opinion" (CPX2) no tiene case aquí a propósito — es una

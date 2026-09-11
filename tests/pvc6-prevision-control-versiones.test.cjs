@@ -11,13 +11,19 @@ const path = require("node:path");
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-test("la tarjeta de control de versiones vive en Ajustes, junto al autoajuste de la previsión", () => {
-  const autoAdjustPos = indexSource.indexOf('id="ajustesAutoAdjustForecastBiasNote"');
-  const pvc6Pos = indexSource.indexOf('id="pvc6SnapshotSelect"');
-  assert.ok(autoAdjustPos >= 0 && pvc6Pos > autoAdjustPos);
+// OPT-25 (fase 5, 11 sept. 2026): la tarjeta se trasladó de Ajustes › Presupuesto y operación a
+// Herramientas avanzadas → Analizar (#herramientas-analizar) — mismos ids, misma función, solo
+// cambia dónde vive en el DOM. El autoajuste de la previsión se queda en Ajustes.
+test("la tarjeta de control de versiones vive en Herramientas avanzadas → Analizar", () => {
+  const openTag = /<section[^>]*id="herramientas-analizar"[^>]*>/.exec(indexSource);
+  assert.ok(openTag, "No existe la sección #herramientas-analizar");
+  const start = openTag.index + openTag[0].length;
+  const end = indexSource.indexOf("</section>", start);
+  const herramientasAnalizar = indexSource.slice(start, end);
   ["pvc6SnapshotSelect", "pvc6SnapshotCompare", "pvc6SnapshotDiffNote"].forEach((id) => {
-    assert.match(indexSource, new RegExp(`id="${id}"`));
+    assert.match(herramientasAnalizar, new RegExp(`id="${id}"`));
   });
+  assert.match(indexSource, /id="ajustesAutoAdjustForecastBiasNote"/, "el autoajuste de la previsión debe seguir en Ajustes");
 });
 
 test("recordPvc6ForecastSnapshot guarda el registro de supuestos del escenario base, sin recalcular nada", () => {
