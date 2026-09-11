@@ -427,6 +427,10 @@ const viewTitles = {
     eyebrow: "Ajustes",
     title: "Cuentas, reserva, partidas y exportación en un mismo sitio",
   },
+  "herramientas-seguros": {
+    eyebrow: "Herramientas avanzadas · Seguros",
+    title: "Comparadores y simuladores de seguros",
+  },
   "faqs-ayuda": {
     eyebrow: "Ayuda",
     title: "Manual por casos de uso: actualizar, predecir, concluir",
@@ -36979,6 +36983,12 @@ async function renderActiveSection(viewId = viewFromHash()) {
       renderUpdateHub();
       break;
     case "ajustes":
+      renderAjustes();
+      break;
+    // OPT-25: los comparadores de seguros viven ahora en su propia view-section dentro de
+    // Herramientas avanzadas, pero sus ids y motores no cambiaron — renderAjustes() los sigue
+    // rellenando por qs(id), esté cada tarjeta física en #ajustes o en #herramientas-seguros.
+    case "herramientas-seguros":
       renderAjustes();
       break;
     case "alerts-center":

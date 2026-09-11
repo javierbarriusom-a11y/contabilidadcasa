@@ -57,6 +57,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
 | 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ✅ (8 sep) |
+| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fase 1/7 (Seguros) ✅ 11-sep, 2-7 en pausa — ⚠️ contradice la premisa de `OPT-15`, ver nota |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
@@ -384,6 +385,47 @@ apalancamiento del hogar, avales dados).
 comportamiento indica (dato declarado vs. decisión activa), sin abrir rutas nuevas, sin revivir
 Herramientas avanzadas y sin contradecir `OPT-15`. El grupo de Deuda y apalancamiento, el más
 desproporcionado, queda donde temáticamente siempre debió estar.
+
+---
+
+### OPT-25 · Mover las «Herramientas» de Ajustes a Herramientas avanzadas (mockup Claude Design, opción B)
+
+**Por qué.** El usuario trajo el 10-11 de septiembre de 2026 un mockup externo ("Claude Design", opción
+B) que propone lo contrario de lo que asumía `OPT-24`: en vez de mantener «Configuración»/«Herramientas»
+como dos sub-grupos dentro de la misma pantalla de Ajustes, las tarjetas de «Herramientas» se sacan de
+Ajustes y ocupan categorías nuevas del menú «Herramientas avanzadas» (Seguros, Fiscal, Patrimonio e
+inversión nuevas; Decidir/Analizar/Datos ampliadas). Instrucción explícita del usuario, con criterio de
+menor coste de desarrollo para los casos ambiguos (Laboratorio, Saldo continuo... se quedan donde ya
+estaban si moverlos no aporta nada y cuesta más).
+
+**⚠️ Contradice una restricción escrita de `OPT-24`/`OPT-15`, sin resolver todavía.** `OPT-24` (arriba)
+fija explícitamente: *"El desplegable «Herramientas avanzadas» va camino de vaciarse (`OPT-11` a
+`OPT-13`), no de llenarse — esta tarea no revive ese desplegable como destino para simuladores nuevos."*
+Esa intención viene de `OPT-15` (retirar «Herramientas avanzadas» del menú lateral), que sigue bloqueada
+sin empezar (depende de `OPT-11`-`OPT-14`, que a su vez dependen de `OPT-2`, sin datos de uso reales
+todavía). La instrucción de esta sesión se toma como una decisión nueva del hogar que **reabre y
+revierte** esa premisa para este menú en concreto — pero es una decisión de producto, no de ingeniería,
+y no se da por confirmada en este backlog hasta que el hogar la ratifique explícitamente sabiendo del
+conflicto (ver `PROJECT_STATE.md`, cierre de sesión 165, para el detalle completo). Si se ratifica, este
+párrafo se sustituye por la decisión y se marca `OPT-15` como superada en `BACKLOG_INDICE.md`; si no, las
+fases ya construidas (fase 1, Seguros) se reconsideran con el mismo criterio de coste que las trajo aquí.
+
+**Progreso:**
+1. **Fase 1 — Seguros ✅ (11-sep-2026, sesión 165).** Las 4 tarjetas de `ajustes-seguros > Herramientas`
+   (SP2, SP3, SP4, SP5) se trasladaron a la `view-section` nueva `#herramientas-seguros`, con entrada en
+   el desplegable (grupo `analysis` reutilizado). `npm run verify` en verde, `npm test` 3665/3665.
+   Publicada a `main` — ver PR referenciado en `PROJECT_STATE.md`.
+2. **Fase 2 — Fiscal.** Pendiente, en pausa hasta resolver el punto anterior.
+3. **Fase 3 — Decidir (Segunda opinión, CPX2).** Pendiente.
+4. **Fase 4 — Patrimonio e inversión.** Pendiente.
+5. **Fase 5 — Analizar (ampliada).** Pendiente.
+6. **Fase 6 — Datos.** Pendiente.
+7. **Fase 7 — Limpieza de Ajustes** (renombrar Hogar, repartir Navegación, acceso a Laboratorio).
+   Pendiente.
+
+**Resultado esperado (si se ratifica):** Ajustes queda con ~24 tarjetas de configuración pura; los ~34
+comparadores/simuladores pasan a vivir en Herramientas avanzadas, agrupados por tema. Mismo criterio de
+`OPT-24` de no tocar motores canónicos ni ids — solo reubicación de HTML y su wiring de vista.
 
 ---
 

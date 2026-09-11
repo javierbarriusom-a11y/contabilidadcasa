@@ -91,6 +91,12 @@
               <a href="#deuda-simulador" data-e17-group="analysis">Simulador visual de deuda (nuevo)</a>
               <a href="#asesor-decision" data-e17-group="assistants">Asesor ejecutivo (nuevo)</a>
 
+              <!-- OPT-25 (11 sept. 2026): primera categoría nueva de la reorganización de Ajustes —
+                   Seguros. Usa el grupo "analysis" ya existente (no crea un data-e17-group nuevo) para
+                   no tocar el fieldset de preferencias de e17PreferencesDialog. -->
+              <p class="advanced-nav-label" data-e17-nav-label="seguros">Seguros</p>
+              <a href="#herramientas-seguros" data-e17-group="analysis">Comparadores y simuladores de seguros</a>
+
               <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
               <a href="#presupuesto-mes" data-e17-group="analysis">Presupuesto del mes (nuevo)</a>
               <a href="#estado-semana" data-e17-group="analysis">Estado de la semana (nuevo)</a>
@@ -2674,6 +2680,82 @@
             </div>
           </section>
 
+          <!-- OPT-25 (reorganización de Ajustes, opción B, 11 sept. 2026): primera categoría nueva
+               de Herramientas avanzadas — Seguros. Las 4 tarjetas vivían en ajustes-seguros >
+               Herramientas; se trasladan con sus ids, motores canónicos y listeners intactos
+               (renderAjustes() se sigue llamando también aquí, ver case "herramientas-seguros" en
+               scheduleActiveSectionRender). Ajustes se queda solo con el inventario de pólizas
+               (configuración). -->
+          <section class="e19-asesor-decision view-section" id="herramientas-seguros">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Seguros</p>
+                <h2 class="e19-heading">Comparadores y simuladores de seguros</h2>
+                <p class="e19-subtitle">Nada aquí es un dato que rellenas una vez. El inventario de pólizas se sigue editando en <a href="#ajustes">Ajustes → Seguros</a>.</p>
+              </div>
+            </div>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Deducible óptimo del seguro</h3>
+              <p class="e19-kpi-note">Cuanta más franquicia asumas, menor la prima — pero mayor el golpe de caja si hay un siniestro. Esta cifra es la mayor franquicia habitual que tu colchón, por encima del suelo protegido, podría absorber sin caer por debajo de ese suelo.</p>
+              <p class="e19-kpi-note" id="ajustesOptimalDeductibleNote"></p>
+            </article>
+
+            <!-- SP4: autoseguro vs. comprar seguro para riesgos pequeños. Un golpe que rompería el
+                 suelo protegido (mismo cushionFloor() que SP5, arriba) se asegura siempre, pase lo
+                 que pase con la prima — solo por debajo de ese suelo entra en juego la prima frente
+                 al coste esperado, y solo si se declara una probabilidad. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Autoseguro vs. comprar seguro</h3>
+              <p class="e19-kpi-note">Para un riesgo pequeño (móvil, electrodoméstico, garantía extendida...): si tu colchón absorbe el golpe sin problema, ¿compensa pagar la prima o sale más barato asumirlo tú mismo?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Golpe potencial (€)</span>
+                  <input id="sp4PotentialLoss" type="number" min="0" step="10" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Prima anual del seguro (€)</span>
+                  <input id="sp4AnnualPremium" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Probabilidad anual estimada (%, opcional)</span>
+                  <input id="sp4Probability" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Opcional" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="sp4Run">Comparar</button>
+              <div class="e19-kpi-note" id="sp4Note"></div>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cobertura de vida frente a deuda</h3>
+              <p class="e19-kpi-note">Si la persona asegurada faltara, ¿la indemnización cubre lo que queda por pagar de toda la deuda viva? Sin inventario de pólizas todavía: un único capital agregado.</p>
+              <label class="month-picker">
+                <span>Capital asegurado</span>
+                <input id="ajustesLifeInsuranceCapital" type="number" min="0" step="1000" inputmode="decimal" placeholder="Sin configurar" />
+              </label>
+              <p class="e19-kpi-note" id="ajustesLifeInsuranceCapitalNote"></p>
+            </article>
+
+            <!-- SP3: seguro de hogar (contenido) vs. valor de reposición de bienes declarado. Mismo
+                 patrón de dos campos + nota que SP2 (capital de vida vs. deuda): motor puro en
+                 canonical-home-insurance.js, sin inventario de pólizas. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Seguro de hogar vs. valor de reposición</h3>
+              <p class="e19-kpi-note">Si hubiera un siniestro total del contenido del hogar, ¿la cobertura del seguro basta para reponerlo todo?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Cobertura del seguro (€)</span>
+                  <input id="ajustesHomeInsuranceCoverage" type="number" min="0" step="100" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Valor de reposición de bienes (€)</span>
+                  <input id="ajustesHomeInsuranceReplacementValue" type="number" min="0" step="100" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesHomeInsuranceNote"></p>
+            </article>
+          </section>
+
           <!-- V6-3/V6-2/V6-4 · reúne lo que hoy vive repartido: la reserva operativa, los dos
                umbrales propios (ventana de duplicados, desviación por partida) y la exportación se
                hacen aquí de verdad; el colchón mínimo en meses es una regla más del framework de
@@ -2955,66 +3037,12 @@
               <div id="ajustesInsurancePolicies"></div>
             </article>
 
-            <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Deducible óptimo del seguro</h3>
-              <p class="e19-kpi-note">Cuanta más franquicia asumas, menor la prima — pero mayor el golpe de caja si hay un siniestro. Esta cifra es la mayor franquicia habitual que tu colchón, por encima del suelo protegido, podría absorber sin caer por debajo de ese suelo.</p>
-              <p class="e19-kpi-note" id="ajustesOptimalDeductibleNote"></p>
-            </article>
-
-            <!-- SP4: autoseguro vs. comprar seguro para riesgos pequeños. Un golpe que rompería el
-                 suelo protegido (mismo cushionFloor() que SP5, arriba) se asegura siempre, pase lo
-                 que pase con la prima — solo por debajo de ese suelo entra en juego la prima frente
-                 al coste esperado, y solo si se declara una probabilidad. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Autoseguro vs. comprar seguro</h3>
-              <p class="e19-kpi-note">Para un riesgo pequeño (móvil, electrodoméstico, garantía extendida...): si tu colchón absorbe el golpe sin problema, ¿compensa pagar la prima o sale más barato asumirlo tú mismo?</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Golpe potencial (€)</span>
-                  <input id="sp4PotentialLoss" type="number" min="0" step="10" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Prima anual del seguro (€)</span>
-                  <input id="sp4AnnualPremium" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Probabilidad anual estimada (%, opcional)</span>
-                  <input id="sp4Probability" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="Opcional" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="sp4Run">Comparar</button>
-              <div class="e19-kpi-note" id="sp4Note"></div>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Cobertura de vida frente a deuda</h3>
-              <p class="e19-kpi-note">Si la persona asegurada faltara, ¿la indemnización cubre lo que queda por pagar de toda la deuda viva? Sin inventario de pólizas todavía: un único capital agregado.</p>
-              <label class="month-picker">
-                <span>Capital asegurado</span>
-                <input id="ajustesLifeInsuranceCapital" type="number" min="0" step="1000" inputmode="decimal" placeholder="Sin configurar" />
-              </label>
-              <p class="e19-kpi-note" id="ajustesLifeInsuranceCapitalNote"></p>
-            </article>
-
-            <!-- SP3: seguro de hogar (contenido) vs. valor de reposición de bienes declarado. Mismo
-                 patrón de dos campos + nota que SP2 (capital de vida vs. deuda): motor puro en
-                 canonical-home-insurance.js, sin inventario de pólizas. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Seguro de hogar vs. valor de reposición</h3>
-              <p class="e19-kpi-note">Si hubiera un siniestro total del contenido del hogar, ¿la cobertura del seguro basta para reponerlo todo?</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Cobertura del seguro (€)</span>
-                  <input id="ajustesHomeInsuranceCoverage" type="number" min="0" step="100" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Valor de reposición de bienes (€)</span>
-                  <input id="ajustesHomeInsuranceReplacementValue" type="number" min="0" step="100" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesHomeInsuranceNote"></p>
-            </article>
+            <!-- OPT-25 (reorganización de Ajustes, opción B, 11 sept. 2026): los 4 comparadores y
+                 simuladores de seguros (deducible óptimo, autoseguro, vida y hogar) se movieron a
+                 Herramientas avanzadas → Seguros (#herramientas-seguros). Sus ids, motores canónicos
+                 y wiring no cambiaron — solo su posición en el DOM — así que el enlace de abajo es
+                 la única diferencia visible desde aquí. -->
+            <p class="e19-kpi-note">Los comparadores de seguros (deducible óptimo, autoseguro, vida y hogar) viven ahora en <a href="#herramientas-seguros">Herramientas avanzadas → Seguros</a>.</p>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-fiscal" aria-labelledby="ajustes-fiscal-title">

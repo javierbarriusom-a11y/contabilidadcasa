@@ -94,7 +94,10 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // FASE 7 (TRACK-3, 27 de agosto) añade «Estado de la semana» justo detrás de Presupuesto del mes:
   // funde alertas de caja (E16), ritmo de presupuesto y vencimientos de objetivos (E15) en una sola
   // lectura de solo lectura.
-  assert.equal(byGroup.analysis.length, 14, "Decidir y Analizar suman catorce enlaces tras Estado de la semana");
-  // A17-1 añade el widget de solo lectura: treinta enlaces.
-  assert.equal(links.length, 30, "treinta enlaces en el menú avanzado tras el widget de solo lectura");
+  // OPT-25 (reorganización de Ajustes, opción B, 11 sept. 2026) añade «Comparadores y simuladores
+  // de seguros», primera categoría nueva del plan de reorganización — reutiliza el grupo
+  // "analysis" ya existente en vez de crear uno propio, así no toca el fieldset de preferencias.
+  assert.equal(byGroup.analysis.length, 15, "Decidir, Analizar y Seguros suman quince enlaces tras OPT-25");
+  // A17-1 añade el widget de solo lectura: treinta enlaces. OPT-25 añade Seguros: treinta y uno.
+  assert.equal(links.length, 31, "treinta y un enlaces en el menú avanzado tras Seguros (OPT-25)");
 });
