@@ -51,6 +51,63 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
+## Cierre de sesión — 11 de septiembre de 2026 (166b): primera oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+
+El usuario pidió abordar la primera oleada de desarrollos del backlog recién nacido en la sesión 166,
+siguiendo su propio "Plan de ejecución sugerido" (§10): Bloque 1 (verificaciones) antes que cualquier
+construcción, y las dos banderas del Bloque 2 justo después por ser el mayor impacto sin depender de
+ninguna decisión de alcance previa.
+
+- **Bloque 1 — las tres verificaciones, hechas por lectura directa del código real** (nunca de la
+  documentación de backlog):
+  - `VER-4`: `fiscalAdjustedDebtPriority()` (DEB5) **no** está cableada a `surplusAllocationRule()`/
+    `dimensionOptimalPrepayment()` — el hogar elige a mano qué deuda amortizar en `#ap1DebtSelect`,
+    sin ver la prioridad fiscal ya calculada en Contratos. Alcance de `DEB10` confirmado: cableado
+    completo, no un aviso.
+  - `VER-5`: el asistente (`canonical-e9-assistant.js`) **no** cita la función `canonical-*.js` real
+    que sustenta cada dato — `validateResponse()` solo exige que la cita exista como id de categoría
+    genérica (`metric:idle-cash`), nunca el archivo/función de origen; los campos `source`/`method`
+    que sí lo permitirían (`executive-read-model.js`) no se rellenan en ningún punto real (CP1/CP2).
+    Alcance de `GOB17` confirmado: se construye completa.
+  - `VER-6`: `categoryDriftWindows()` (PVC4) y `_detectMonthlySeasonality()` leen de fuentes de datos
+    distintas — la primera solo meses cerrados y reconciliados, la segunda transacciones vivas del
+    mes en curso. Alcance de `PVC12` confirmado: consolidación de alcance mayor (candidata a sesión
+    propia), no un simple recableado.
+  - Las tres, junto con el alcance ya confirmado de `DEB10`/`GOB17`/`PVC12`, quedan documentadas en
+    `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` y en `BACKLOG_INDICE.md`.
+- **Bloque 2 — las dos banderas del diagnóstico, construidas de punta a punta**:
+  - `LEV9` — comparador cruzado de instrumentos de apalancamiento (Lombard / hipoteca / línea de
+    crédito) para una misma necesidad de capital. Motor nuevo `canonical-leverage-cross-comparator.js`
+    (`crossInstrumentLeverageComparison()`), que reutiliza sin reimplementar `lombardCreditCapacity`
+    (APX2), la misma cuota francesa que `canonical-mortgage-rate-scenarios.js` y
+    `evaluateEmergencyCreditLine` (DI2), señalando además qué guardarraíl aplica a cada instrumento
+    (`AP4` no cubre Lombard; `LEV1` informativo en los tres) y cuál sale más barato. Tarjeta nueva en
+    Ajustes › Deuda y apalancamiento, entre APX3 y el comparador AP1.
+  - `DEB9` — síntesis única "cancelar vs. mantener deuda", con las cuatro piezas que la sustentan
+    siempre visibles (nunca combinadas en una única cifra "mejorada", mismo criterio que la
+    advertencia de `PVC14`). Motor nuevo `canonical-debt-cancel-or-hold-synthesis.js`
+    (`cancelOrHoldDebtSynthesis()`), que cruza el veredicto de AP1 con `netDebtCostAfterTax` (APX1),
+    `waitingOptionValue` (DEB3), `dimensionOptimalPrepayment` (DEB2) y `liquidityLadder` (INV7); el
+    guardarraíl de colchón (DLX1) manda primero — en `insostenible`, ninguna otra pieza puede
+    recomendar cancelar. Tarjeta nueva justo debajo del comparador AP1, recalculada con su mismo
+    botón «Comparar», sin pedir ningún campo nuevo.
+  - Ambos motores son puros (sin DOM ni estado global), nunca ejecutan ni deciden nada por el hogar —
+    mismo contrato que `A11-4` y el resto del bloque de apalancamiento/deuda.
+- **Validación**: `npm run verify` completo en verde. `npm test` **3689/3689** pruebas (24 nuevas en
+  `tests/lev9-comparador-cruzado-apalancamiento.test.cjs` y
+  `tests/deb9-sintesis-cancelar-mantener-deuda.test.cjs`, motor + wiring de ambas tarjetas).
+  `test:a11y` **1215 IDs únicos** (+12 sobre los 1203 de la sesión 165, por las dos tarjetas nuevas,
+  ninguno duplicado). `test:performance`, `build:site`, `test:privacy` y `test:smoke`, todos sin
+  errores (el contenedor no traía `node_modules`; tras `npm install`, las 7 fallas iniciales de
+  `build:site`/`esbuild` desaparecieron — mismo problema ya documentado en sesiones 165-166, no
+  relacionado con este cambio).
+- **Pendiente para la siguiente oleada**: `DEB10`, `GOB17` y `PVC12` con su alcance ya confirmado
+  (ver arriba) pero sin construir todavía; el resto del Bloque 3 en adelante (`PVC11` y siguientes)
+  sigue intacto en `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`.
+- **Publicado**: commit y push a `claude/vibrant-meitner-qc99i8`, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea
+  ya vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 11 de septiembre de 2026 (166): nace `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
 
 El usuario pidió una auditoría crítica de producto sobre los mismos cuatro frentes de la Oleada 3
