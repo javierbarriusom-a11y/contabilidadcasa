@@ -97,6 +97,10 @@
               <p class="advanced-nav-label" data-e17-nav-label="seguros">Seguros</p>
               <a href="#herramientas-seguros" data-e17-group="analysis">Comparadores y simuladores de seguros</a>
 
+              <!-- OPT-25 (fase 2, 11 sept. 2026): segunda categoría nueva — Fiscal. -->
+              <p class="advanced-nav-label" data-e17-nav-label="fiscal">Fiscal</p>
+              <a href="#herramientas-fiscal" data-e17-group="analysis">Calculadoras y comparadores fiscales</a>
+
               <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
               <a href="#presupuesto-mes" data-e17-group="analysis">Presupuesto del mes (nuevo)</a>
               <a href="#estado-semana" data-e17-group="analysis">Estado de la semana (nuevo)</a>
@@ -2756,6 +2760,157 @@
             </article>
           </section>
 
+          <!-- OPT-25 (fase 2, 11 sept. 2026): segunda categoría nueva de Herramientas avanzadas —
+               Fiscal. Las 7 tarjetas vivían en ajustes-fiscal > Herramientas; se trasladan con sus
+               ids, motores canónicos y listeners intactos (renderAjustes() se sigue llamando
+               también aquí). Ajustes > Fiscal se queda con la configuración (tablas, escalas,
+               supuestos, pérdidas arrastradas) y con Backtesting/Segunda opinión/Pérdidas latentes,
+               pendientes de sus propias fases (Analizar, Decidir, Patrimonio e inversión). -->
+          <section class="e19-asesor-decision view-section" id="herramientas-fiscal">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Fiscal</p>
+                <h2 class="e19-heading">Calculadoras y comparadores fiscales</h2>
+                <p class="e19-subtitle">Ninguna sustituye asesoría fiscal. Las tablas y escalas de IRPF, el registro de supuestos y las pérdidas arrastradas se siguen editando en <a href="#ajustes">Ajustes → Fiscal</a>.</p>
+              </div>
+            </div>
+
+            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
+                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
+                 conexión todavía a un dividendo real de la cartera de IV1). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
+              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Dividendo bruto (€)</span>
+                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Retención en origen (%)</span>
+                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>Tipo del ahorro en España (%)</span>
+                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Estimador de resultado de IRPF</h3>
+              <p class="e19-kpi-note">Estimación orientativa a partir de las escalas registradas en Ajustes → Fiscal — nunca sustituye asesoría fiscal ni el simulador oficial de la Agencia Tributaria. El resultado se muestra como rango, no como una única cifra.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Base imponible general estimada, mínimo (€)</span>
+                  <input id="irpfBaseLow" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Base imponible general estimada, máximo (€)</span>
+                  <input id="irpfBaseHigh" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Retenciones y pagos a cuenta ya realizados (€)</span>
+                  <input id="irpfWithholdingsPaid" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="irpfEstimateRun">Estimar resultado</button>
+              <div class="e19-kpi-note" id="irpfEstimatorNote"></div>
+            </article>
+
+            <!-- FC5: venta parcial optimizando el tramo del ahorro. Depende de IV2 y reutiliza tal
+                 cual el motor de tramos progresivos de A15-2 (validateBracketScale/progressiveTax) —
+                 el hogar registra la escala del tramo del ahorro con la misma tarjeta de escalas de
+                 Ajustes → Fiscal ("Tramo del ahorro"), sin escala nueva que inventar. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Venta parcial: optimizar el tramo del ahorro</h3>
+              <p class="e19-kpi-note">Dice cuánto de la plusvalía que valoras vender cabe todavía en el tramo del ahorro actual antes de saltar al siguiente tipo, usando la escala del tramo del ahorro registrada en Ajustes → Fiscal. La base ya generada este año puede venir del resultado de la compensación de pérdidas y ganancias (más abajo). No es una recomendación de vender — solo información para decidir.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Base ya generada este año en el tramo del ahorro (€)</span>
+                  <input id="fc5AlreadyRealized" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Plusvalía de la venta que valoras (€)</span>
+                  <input id="fc5ProposedGain" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc5OptimizeRun">Calcular</button>
+              <div class="e19-kpi-note" id="fc5OptimizeNote"></div>
+            </article>
+
+            <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
+                 frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
+                 (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
+                 estimado — sin tabla de tramos real (A15-2 no está construido todavía). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Simulador de aportación a plan de pensiones</h3>
+              <p class="e19-kpi-note">Aportación deducible frente al límite legal vigente, ahorro fiscal estimado con tu retención declarada y si la aportación completa compromete tu reserva protegida.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Aportación a simular (€)</span>
+                  <input id="pensionSimContribution" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
+              <div class="e19-kpi-note" id="pensionSimNote"></div>
+            </article>
+
+            <!-- FCX1: rescate de pensiones modelado, como capital único sumado a la base general del
+                 año. Con las dos escalas de tramos ya registradas en Ajustes → Fiscal (A15-2) usa el
+                 coste marginal real por tramos; sin ellas, cae al tipo marginal declarado
+                 (A15-4/A15-1). No modela reducciones (40% de aportaciones anteriores a 2007, mínimo
+                 exento) ni la modalidad en forma de renta — la app no registra cuándo se hizo cada
+                 aportación. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Rescate de pensiones (capital único)</h3>
+              <p class="e19-kpi-note">Coste marginal estimado de rescatar el plan como capital, sumado a tu renta general del año — no incluye reducciones fiscales por antigüedad de las aportaciones ni la modalidad en forma de renta.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe a rescatar (€)</span>
+                  <input id="fcx1WithdrawalAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Renta general del año antes del rescate (€)</span>
+                  <input id="fcx1CurrentAnnualIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fcx1WithdrawalRun">Simular rescate</button>
+              <div class="e19-kpi-note" id="fcx1WithdrawalNote"></div>
+            </article>
+
+            <!-- GOB8 (Oleada 3, Bloque 5): resumen exportable que compone las tres calculadoras
+                 fiscales de arriba (IRPF general, dividendos, rescate de pensiones) en un único
+                 borrador de apoyo, con los mismos datos que ya tengan rellenos sus propios campos.
+                 Nunca sustituye a la gestoría — el propio texto lo dice en su primera línea. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Borrador de apoyo para la Renta</h3>
+              <p class="e19-kpi-note">Junta la estimación de IRPF general, la retención de dividendos extranjeros y el rescate de pensiones (las tres tarjetas de arriba) en un único texto, con los datos que tengan rellenos ahora mismo sus propios campos. Es un borrador de apoyo — nunca un sustituto de la gestoría ni de la declaración oficial.</p>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob8GenerateDraft">Generar borrador</button>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob8DownloadDraft">Descargar (.txt)</button>
+              <pre class="e19-kpi-note" id="gob8DraftPreview"></pre>
+            </article>
+
+            <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
+                 IV1/IV2 y reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya
+                 calcula FC1 (fifoLedger) — sin motor de cálculo nuevo. Solo neta transmisiones
+                 contra transmisiones, nunca contra rendimientos del capital mobiliario (dividendos,
+                 intereses): ese 25% cruzado de la Ley IRPF queda fuera de alcance a propósito. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Compensación de pérdidas y ganancias a cierre de año</h3>
+              <p class="e19-kpi-note">Neta las plusvalías y minusvalías realizadas del año elegido (mismo cálculo FIFO que ya usa la venta parcial de arriba) y aplica pérdidas de años anteriores dentro de la ventana legal de 4 ejercicios. Solo transmisiones contra transmisiones — no sustituye asesoría fiscal.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Año a cerrar</span>
+                  <input id="fc3Year" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
+              <div class="e19-kpi-note" id="fc3CompareNote"></div>
+            </article>
+          </section>
+
           <!-- V6-3/V6-2/V6-4 · reúne lo que hoy vive repartido: la reserva operativa, los dos
                umbrales propios (ventana de duplicados, desviación por partida) y la exportación se
                hacen aquí de verdad; el colchón mínimo en meses es una regla más del framework de
@@ -3081,7 +3236,7 @@
                  resultado. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Escalas de IRPF (estatal y autonómica)</h3>
-              <p class="e19-kpi-note">Registra la escala general estatal y la de tu comunidad autónoma, con su fuente — el estimador de abajo no calcula nada hasta que las dos estén registradas. Tramos como "límite:tipo, límite:tipo, ...", el último sin límite: por ejemplo <code>12450:9.5, 20200:12, :22.5</code>.</p>
+              <p class="e19-kpi-note">Registra la escala general estatal y la de tu comunidad autónoma, con su fuente — el estimador de <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a> no calcula nada hasta que las dos estén registradas. Tramos como "límite:tipo, límite:tipo, ...", el último sin límite: por ejemplo <code>12450:9.5, 20200:12, :22.5</code>.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Tipo de escala</span>
@@ -3157,11 +3312,12 @@
             <!-- FC3 (OPT-24): pérdidas arrastradas de años anteriores — antes vivía dentro de la
                  misma tarjeta que «Calcular compensación», mezclando el registro (dato declarado
                  una vez por año con pérdida) con la herramienta que lo consume. Separado: este
-                 registro es configuración, «Calcular compensación» (en Herramientas, más abajo)
-                 sigue leyéndolo tal cual dentro de la ventana legal de 4 ejercicios. -->
+                 registro es configuración; «Calcular compensación» sigue leyéndolo tal cual dentro
+                 de la ventana legal de 4 ejercicios, ahora desde Herramientas avanzadas → Fiscal
+                 (#herramientas-fiscal, OPT-25 fase 2). -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Pérdidas arrastradas de años anteriores</h3>
-              <p class="e19-kpi-note">Pérdidas patrimoniales de años anteriores todavía dentro de la ventana legal de 4 ejercicios. El cálculo de compensación de pérdidas y ganancias, en Herramientas, las aplica automáticamente.</p>
+              <p class="e19-kpi-note">Pérdidas patrimoniales de años anteriores todavía dentro de la ventana legal de 4 ejercicios. El cálculo de compensación de pérdidas y ganancias, en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>, las aplica automáticamente.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Pérdida arrastrada de un año anterior (€)</span>
@@ -3176,71 +3332,13 @@
               <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
             </article>
 
+            <!-- OPT-25 (fase 2, 11 sept. 2026): 7 comparadores fiscales (FC4, estimador de IRPF,
+                 FC5, A15-4, FCX1, GOB8, FC3) se movieron a Herramientas avanzadas → Fiscal
+                 (#herramientas-fiscal). Backtesting (PVX1), Segunda opinión (CPX2) y Pérdidas
+                 latentes (INV6) se quedan aquí de momento — van a Analizar, Decidir y Patrimonio e
+                 inversión respectivamente en fases posteriores del mismo plan. -->
             <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <!-- FC4: retención de dividendos extranjeros y deducción por doble imposición
-                 internacional. Motor puro en canonical-dividend-tax.js, calculadora suelta (sin
-                 conexión todavía a un dividendo real de la cartera de IV1). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Retención de dividendos y doble imposición</h3>
-              <p class="e19-kpi-note">La retención practicada en origen solo es deducible en España hasta lo que esa renta tributaría aquí. ¿Cuánto queda neto y cuánto de la retención de origen no se recupera?</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Dividendo bruto (€)</span>
-                  <input id="ajustesDividendGrossAmount" type="number" min="0" step="10" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Retención en origen (%)</span>
-                  <input id="ajustesDividendForeignWithholdingPct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>Tipo del ahorro en España (%)</span>
-                  <input id="ajustesDividendSpanishSavingsRatePct" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesDividendTaxNote"></p>
-            </article>
-
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Estimador de resultado de IRPF</h3>
-              <p class="e19-kpi-note">Estimación orientativa a partir de las escalas registradas arriba — nunca sustituye asesoría fiscal ni el simulador oficial de la Agencia Tributaria. El resultado se muestra como rango, no como una única cifra.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Base imponible general estimada, mínimo (€)</span>
-                  <input id="irpfBaseLow" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Base imponible general estimada, máximo (€)</span>
-                  <input id="irpfBaseHigh" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Retenciones y pagos a cuenta ya realizados (€)</span>
-                  <input id="irpfWithholdingsPaid" type="number" min="0" step="100" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="irpfEstimateRun">Estimar resultado</button>
-              <div class="e19-kpi-note" id="irpfEstimatorNote"></div>
-            </article>
-
-            <!-- FC5: venta parcial optimizando el tramo del ahorro. Depende de IV2 y reutiliza tal
-                 cual el motor de tramos progresivos de A15-2 (validateBracketScale/progressiveTax) —
-                 el hogar registra la escala del tramo del ahorro con la misma tarjeta de escalas de
-                 arriba ("Tramo del ahorro"), sin escala nueva que inventar. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Venta parcial: optimizar el tramo del ahorro</h3>
-              <p class="e19-kpi-note">Dice cuánto de la plusvalía que valoras vender cabe todavía en el tramo del ahorro actual antes de saltar al siguiente tipo, usando la escala del tramo del ahorro registrada arriba. La base ya generada este año puede venir del resultado de la compensación de pérdidas y ganancias (más abajo). No es una recomendación de vender — solo información para decidir.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Base ya generada este año en el tramo del ahorro (€)</span>
-                  <input id="fc5AlreadyRealized" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Plusvalía de la venta que valoras (€)</span>
-                  <input id="fc5ProposedGain" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc5OptimizeRun">Calcular</button>
-              <div class="e19-kpi-note" id="fc5OptimizeNote"></div>
-            </article>
+            <p class="e19-kpi-note">Los comparadores fiscales (retención de dividendos, estimador de IRPF, venta parcial del tramo del ahorro, aportación y rescate de pensiones, borrador de la Renta, compensación de pérdidas y ganancias) viven ahora en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>.</p>
 
             <!-- PVX1: backtesting público del propio motor de previsión — el mismo aprendizaje que
                  ya alimenta PV1/PV2/PV3/PV4, mostrado aquí en vez de escondido dentro del
@@ -3249,57 +3347,6 @@
               <h3 class="escenario-motor-panel-title">Backtesting: cómo ha acertado la previsión</h3>
               <p class="e19-kpi-note">Mes a mes, lo que la previsión decía frente a lo realmente conciliado con el banco — solo meses ya cerrados y conciliados, nunca una previsión sin confirmar.</p>
               <div id="pvx1Backtest"></div>
-            </article>
-
-            <!-- A15-4: compara el ahorro fiscal estimado de una aportación a plan de pensiones
-                 frente a la liquidez que queda inmovilizada, usando el límite deducible vigente
-                 (canonical-pension-simulator.js) y la retención de A15-1 como tipo marginal
-                 estimado — sin tabla de tramos real (A15-2 no está construido todavía). -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Simulador de aportación a plan de pensiones</h3>
-              <p class="e19-kpi-note">Aportación deducible frente al límite legal vigente, ahorro fiscal estimado con tu retención declarada y si la aportación completa compromete tu reserva protegida.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Aportación a simular (€)</span>
-                  <input id="pensionSimContribution" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="pensionSimRun">Simular</button>
-              <div class="e19-kpi-note" id="pensionSimNote"></div>
-            </article>
-
-            <!-- FCX1: rescate de pensiones modelado, como capital único sumado a la base general del
-                 año. Con las dos escalas de tramos ya registradas arriba (A15-2) usa el coste
-                 marginal real por tramos; sin ellas, cae al tipo marginal declarado (A15-4/A15-1).
-                 No modela reducciones (40% de aportaciones anteriores a 2007, mínimo exento) ni la
-                 modalidad en forma de renta — la app no registra cuándo se hizo cada aportación. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Rescate de pensiones (capital único)</h3>
-              <p class="e19-kpi-note">Coste marginal estimado de rescatar el plan como capital, sumado a tu renta general del año — no incluye reducciones fiscales por antigüedad de las aportaciones ni la modalidad en forma de renta.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Importe a rescatar (€)</span>
-                  <input id="fcx1WithdrawalAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-                <label class="month-picker">
-                  <span>Renta general del año antes del rescate (€)</span>
-                  <input id="fcx1CurrentAnnualIncome" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fcx1WithdrawalRun">Simular rescate</button>
-              <div class="e19-kpi-note" id="fcx1WithdrawalNote"></div>
-            </article>
-
-            <!-- GOB8 (Oleada 3, Bloque 5): resumen exportable que compone las tres calculadoras
-                 fiscales de arriba (IRPF general, dividendos, rescate de pensiones) en un único
-                 borrador de apoyo, con los mismos datos que ya tengan rellenos sus propios campos.
-                 Nunca sustituye a la gestoría — el propio texto lo dice en su primera línea. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Borrador de apoyo para la Renta</h3>
-              <p class="e19-kpi-note">Junta la estimación de IRPF general, la retención de dividendos extranjeros y el rescate de pensiones (las tres tarjetas de arriba) en un único texto, con los datos que tengan rellenos ahora mismo sus propios campos. Es un borrador de apoyo — nunca un sustituto de la gestoría ni de la declaración oficial.</p>
-              <button type="button" class="e19-btn e19-btn-secondary" id="gob8GenerateDraft">Generar borrador</button>
-              <button type="button" class="e19-btn e19-btn-secondary" id="gob8DownloadDraft">Descargar (.txt)</button>
-              <pre class="e19-kpi-note" id="gob8DraftPreview"></pre>
             </article>
 
             <!-- CPX2: modo segunda opinión para decisiones externas al plan (una oferta de coche, un
@@ -3329,26 +3376,8 @@
                  pronto. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Pérdidas latentes candidatas a compensación</h3>
-              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de abajo. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
+              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
               <div id="inv6LatentLossCandidates"></div>
-            </article>
-
-            <!-- FC3: compensación de pérdidas y ganancias patrimoniales a cierre de año. Depende de
-                 IV1/IV2 y reutiliza tal cual las plusvalías/minusvalías realizadas por venta que ya
-                 calcula FC1 (fifoLedger) — sin motor de cálculo nuevo. Solo neta transmisiones
-                 contra transmisiones, nunca contra rendimientos del capital mobiliario (dividendos,
-                 intereses): ese 25% cruzado de la Ley IRPF queda fuera de alcance a propósito. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Compensación de pérdidas y ganancias a cierre de año</h3>
-              <p class="e19-kpi-note">Neta las plusvalías y minusvalías realizadas del año elegido (mismo cálculo FIFO que ya usa la venta parcial de arriba) y aplica pérdidas de años anteriores dentro de la ventana legal de 4 ejercicios. Solo transmisiones contra transmisiones — no sustituye asesoría fiscal.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Año a cerrar</span>
-                  <input id="fc3Year" type="number" min="2000" max="2100" step="1" inputmode="numeric" placeholder="2026" />
-                </label>
-              </div>
-              <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
-              <div class="e19-kpi-note" id="fc3CompareNote"></div>
             </article>
             </div>
 

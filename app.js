@@ -431,6 +431,10 @@ const viewTitles = {
     eyebrow: "Herramientas avanzadas · Seguros",
     title: "Comparadores y simuladores de seguros",
   },
+  "herramientas-fiscal": {
+    eyebrow: "Herramientas avanzadas · Fiscal",
+    title: "Calculadoras y comparadores fiscales",
+  },
   "faqs-ayuda": {
     eyebrow: "Ayuda",
     title: "Manual por casos de uso: actualizar, predecir, concluir",
@@ -36989,6 +36993,10 @@ async function renderActiveSection(viewId = viewFromHash()) {
     // Herramientas avanzadas, pero sus ids y motores no cambiaron — renderAjustes() los sigue
     // rellenando por qs(id), esté cada tarjeta física en #ajustes o en #herramientas-seguros.
     case "herramientas-seguros":
+      renderAjustes();
+      break;
+    // OPT-25 (fase 2): mismo patrón que herramientas-seguros — Fiscal.
+    case "herramientas-fiscal":
       renderAjustes();
       break;
     case "alerts-center":

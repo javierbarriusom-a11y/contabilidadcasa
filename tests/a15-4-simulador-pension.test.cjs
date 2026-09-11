@@ -109,15 +109,17 @@ test("no persiste nada en scenarioSettings: es una calculadora puntual", () => {
   assert.doesNotMatch(body, /saveScenarioSettings/);
 });
 
-test("la tarjeta vive en #ajustes con su campo, botón y nota", () => {
-  const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
-  assert.ok(openTag, "No existe la sección #ajustes");
+// OPT-25 (fase 2, 11 sept. 2026): la tarjeta se trasladó de #ajustes a Herramientas avanzadas →
+// Fiscal (#herramientas-fiscal) — mismos ids, misma función, solo cambia dónde vive en el DOM.
+test("la tarjeta vive en #herramientas-fiscal con su campo, botón y nota", () => {
+  const openTag = /<section[^>]*id="herramientas-fiscal"[^>]*>/.exec(html);
+  assert.ok(openTag, "No existe la sección #herramientas-fiscal");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
-  const ajustes = html.slice(start, end);
-  assert.match(ajustes, /id="pensionSimContribution"/);
-  assert.match(ajustes, /id="pensionSimRun"/);
-  assert.match(ajustes, /id="pensionSimNote"/);
+  const herramientasFiscal = html.slice(start, end);
+  assert.match(herramientasFiscal, /id="pensionSimContribution"/);
+  assert.match(herramientasFiscal, /id="pensionSimRun"/);
+  assert.match(herramientasFiscal, /id="pensionSimNote"/);
 });
 
 test("el botón está cableado", () => {
