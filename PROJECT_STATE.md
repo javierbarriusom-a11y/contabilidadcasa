@@ -51,7 +51,7 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
-## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-6/7, + Datos) — Ajustes → Herramientas avanzadas
+## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 cerrada (7/7 fases) — Ajustes → Herramientas avanzadas
 
 El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)
 proponiendo mover los comparadores/simuladores de Ajustes a nuevas categorías de "Herramientas avanzadas"
@@ -202,8 +202,58 @@ empezando por Seguros como piloto de bajo riesgo.
   35 a 36). `test:a11y` **1207 IDs únicos**, `test:performance`, `build:site`, `test:privacy` y
   `test:smoke`, todos sin errores.
 
-**Publicado**: fases 1-5 fusionadas (PR #266-#270). Fase 6 pendiente de commit/push/PR en este mismo
-cierre. Fase 7 (limpieza de Ajustes) sigue en la lista de tareas de la sesión — cierra el plan OPT-25.
+- **Fase 6 publicada**: PR [#271](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/271)
+  fusionado a `main` (CI `verify` en verde, `mergeable_state: clean`). Rama sincronizada con `main`.
+- **Fase 7 (OPT-25) construida — cierre del plan, con dos desviaciones deliberadas más**:
+  1. **Renombrado cosmético**: el grupo "Hogar" pasa a llamarse "Hogar y cuentas" (título del grupo
+     y botón de ancla), sin tocar contenido.
+  2. **"Navegación" se deja intacta, sin repartir entre otros grupos** — desviación del plan original
+     de esta fase. Sus 4 botones (`#ajustesRouteGrid`) están cubiertos por un test estructural
+     (`v6-3-vista-ajustes.test.cjs`) que exige que los tres destinos con ruta (Cuentas, Partidas,
+     Umbrales de aviso → `visual-detail`/`alerts-center`) vivan dentro de una ventana de 3.000
+     caracteres desde `id="ajustesRouteGrid"` — repartirlos entre grupos distintos habría roto ese
+     contrato sin necesidad real, y `OPT-24` (8-9 sept.) ya había decidido explícitamente dejar
+     Navegación tal cual por la misma razón ("no es ni configuración ni herramienta, es un índice de
+     enlaces"). Se respeta esa decisión previa en vez de repetir el análisis y llegar a otro sitio.
+  3. **Acceso rápido a Laboratorio** desde Herramientas avanzadas → Datos, pero **sin pantalla
+     propia**: un enlace a `#ajustes` (una vista real), no a `#ajustes-laboratorio` (un grupo interno
+     sin ruta) — un enlace directo a un id que no es `.view-section` habría dejado todas las vistas
+     ocultas al no encontrar coincidencia en `setActiveView`. Construir el mecanismo de scroll
+     automático tras activar la vista exigía JS nuevo con un riesgo de romper el enrutado por hash
+     que no compensaba frente a la alternativa de un clic más (el botón "Simuladores y Laboratorio"
+     de las anclas de Ajustes, que ya existe). Añadido "laboratorio" a las palabras clave del
+     lanzador (Cmd/Ctrl+K) de la entrada "Ajustes" para que se encuentre buscando por nombre.
+  4. **Subtítulo de Ajustes actualizado**: ya no dice "cada tarjeta te lleva a donde se edita" sin
+     matiz (impreciso ahora que Ajustes es sobre todo configuración real, no una página de enlaces);
+     explica que los comparadores viven en Herramientas avanzadas y qué sigue siendo la excepción
+     (cobertura aprendida, reserva operativa, umbrales, exportación).
+- **Verificación real en navegador de la fase 7**: confirmado que el enlace de Laboratorio activa
+  Ajustes sin dejar la pantalla en blanco, y que el botón de ancla "Simuladores y Laboratorio"
+  desplaza correctamente hasta el grupo tras eso.
+- **Validación de la fase 7**: `npm test` **3665/3665** (contrato de navegación actualizado: el
+  array exacto del grupo `data` gana `ajustes` al final —el acceso a Laboratorio—, y el total de
+  enlaces sube de 36 a 37, cierre del plan de 7 fases). `test:a11y` **1207 IDs únicos** (sin cambio:
+  fase de solo texto y enlaces, ningún id nuevo). `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke`, todos sin errores.
+
+## OPT-25 cerrada — resumen de las 7 fases
+
+Con la fase 7 publicada, el plan completo queda cerrado. Resultado: Ajustes pasa de 9 grupos con
+tarjetas de configuración y herramientas mezcladas a 9 grupos (8 con contenido + Navegación) casi
+enteramente de configuración; Herramientas avanzadas gana 4 categorías nuevas (Seguros, Fiscal,
+Patrimonio e inversión, Decidir·Segunda opinión) y amplía 2 ya existentes (Analizar, Datos) con un
+único enlace cada una — 26 tarjetas movidas en total, ninguna con motor ni lógica tocados. El hallazgo
+más importante de la sesión no fue de UI: `OPT-15` (retirar "Herramientas avanzadas") quedó anulada
+para este menú, que pasa a ser destino permanente — decisión ratificada explícitamente por el hogar
+tras publicar la fase 1, documentada en `BACKLOG_OPTIMIZACION.md` y `BACKLOG_INDICE.md`. Dos
+desviaciones del plan original, detectadas releyendo el contenido real antes de mover nada en vez de
+seguir el plan a ciegas: "Exportar" se queda en Ajustes (promesa explícita del propio subtítulo,
+fase 6) y "Navegación" se queda intacta (contrato de test ya existente + precedente de `OPT-24`, fase
+7). Siete PRs, todas fusionadas en verde el mismo día: #266, #267, #268, #269, #270, #271 y la
+pendiente de esta fase 7.
+
+**Publicado**: fases 1-6 fusionadas (PR #266-#271). Fase 7 pendiente de commit/push/PR en este mismo
+cierre — con ella, el plan OPT-25 queda 100% cerrado.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 
