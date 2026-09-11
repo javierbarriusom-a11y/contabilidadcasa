@@ -95,9 +95,11 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   // funde alertas de caja (E16), ritmo de presupuesto y vencimientos de objetivos (E15) en una sola
   // lectura de solo lectura.
   // OPT-25 (reorganización de Ajustes, opción B, 11 sept. 2026) añade «Comparadores y simuladores
-  // de seguros» (fase 1) y «Calculadoras y comparadores fiscales» (fase 2) — reutiliza el grupo
-  // "analysis" ya existente en vez de crear uno propio, así no toca el fieldset de preferencias.
-  assert.equal(byGroup.analysis.length, 16, "Decidir, Analizar, Seguros y Fiscal suman dieciséis enlaces tras OPT-25 fase 2");
-  // A17-1 añade el widget de solo lectura: treinta enlaces. OPT-25 añade Seguros y Fiscal: treinta y dos.
-  assert.equal(links.length, 32, "treinta y dos enlaces en el menú avanzado tras Seguros y Fiscal (OPT-25)");
+  // de seguros» (fase 1), «Calculadoras y comparadores fiscales» (fase 2) y «Segunda opinión»
+  // (fase 3) — reutiliza el grupo "analysis" ya existente en vez de crear uno propio, así no toca
+  // el fieldset de preferencias.
+  assert.equal(byGroup.analysis.length, 17, "Decidir, Analizar, Seguros, Fiscal y Segunda opinión suman diecisiete enlaces tras OPT-25 fase 3");
+  // A17-1 añade el widget de solo lectura: treinta enlaces. OPT-25 añade Seguros, Fiscal y Segunda
+  // opinión: treinta y tres.
+  assert.equal(links.length, 33, "treinta y tres enlaces en el menú avanzado tras OPT-25 fase 3");
 });
