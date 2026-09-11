@@ -57,7 +57,7 @@ Orden de ejecución consolidado (todas las fases, un solo ranking) al final del 
 | 1 | OPT-8 | «Hoy» sin jerarquía visual (10 módulos con el mismo peso) | Alto | M | ⏳ |
 | 1 | OPT-9 | 23 `!important` en `styles.css` (guerras de especificidad) | Medio | M | ⏳ |
 | 2 | OPT-24 | «Ajustes» es un cajón de sastre: 62 tarjetas, solo 16 son configuración real | Alto | M | ✅ (8 sep) |
-| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | 🟡 · fases 1-6/7 ✅ 11-sep, 7 en curso — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
+| 2 | OPT-25 | Mover las «Herramientas» de Ajustes a categorías nuevas de «Herramientas avanzadas» (mockup Claude Design, opción B) | Alto | L (7 fases) | ✅ (11-sep) · 7/7 fases — anula la premisa de `OPT-15` para este menú, ratificado por el hogar |
 | 2 | OPT-10 | Clasificar pantallas heredadas por uso real | Crítico | S | ⛔ · depende de OPT-2 |
 | 2 | OPT-11 | Retirar pantallas heredadas sin uso | Alto | M | ⛔ · depende de OPT-10 |
 | 2 | OPT-12 | Migrar la función real que falta antes de retirar cada heredada con uso | Alto | M-L | ⛔ · depende de OPT-10 |
@@ -437,12 +437,29 @@ más abajo. Con esto, las fases 2-7 continúan.
    se queda en Ajustes porque el subtítulo de la pantalla promete explícitamente que "se hace desde
    aquí mismo" (V6-4) — moverla habría roto esa frase visible al usuario. `npm run verify` en verde,
    `npm test` 3665/3665.
-7. **Fase 7 — Limpieza de Ajustes** (renombrar Hogar, repartir Navegación, acceso a Laboratorio).
-   Pendiente.
+7. **Fase 7 — Limpieza de Ajustes ✅ (11-sep-2026, sesión 165) — con dos desviaciones deliberadas.**
+   "Hogar" pasa a "Hogar y cuentas" (cosmético). **"Navegación" NO se reparte**, al contrario que el
+   plan original: un test estructural (`v6-3-vista-ajustes.test.cjs`) exige que sus 3 botones con
+   ruta vivan dentro de una ventana de 3.000 caracteres desde `id="ajustesRouteGrid"`, y `OPT-24` ya
+   había decidido explícitamente dejarla intacta por la misma razón ("no es ni configuración ni
+   herramienta, es un índice de enlaces") — se respeta esa decisión previa. Acceso rápido a
+   Laboratorio añadido en Herramientas avanzadas → Datos, pero enlazando a `#ajustes` (vista real),
+   no a `#ajustes-laboratorio` (un enlace directo a un id que no es `.view-section` habría dejado
+   todas las vistas ocultas). Subtítulo de Ajustes actualizado para reflejar que ahora es sobre todo
+   configuración real, no una página de enlaces. `npm run verify` en verde, `npm test` 3665/3665.
 
-**Resultado esperado (si se ratifica):** Ajustes queda con ~24 tarjetas de configuración pura; los ~34
-comparadores/simuladores pasan a vivir en Herramientas avanzadas, agrupados por tema. Mismo criterio de
-`OPT-24` de no tocar motores canónicos ni ids — solo reubicación de HTML y su wiring de vista.
+**`OPT-25` queda cerrada con las 7 fases hechas.**
+
+**Resultado real (7/7 fases hechas):** Ajustes queda con la configuración real del hogar (cuentas,
+reserva, escalas fiscales, patrimonio, umbrales, hogar compartido, exportación) más el grupo Navegación
+intacto por precedente de `OPT-24`. 26 tarjetas de comparadores/simuladores pasan a vivir en
+Herramientas avanzadas, en 4 categorías nuevas (Seguros, Fiscal, Patrimonio e inversión, y la pantalla
+propia de Segunda opinión bajo Decidir) y 2 ya existentes ampliadas con un único enlace cada una
+(Analizar, Datos). Dos tarjetas se quedaron deliberadamente fuera del movimiento original por
+contradecir compromisos ya existentes del producto: "Exportar" (promesa del propio subtítulo de
+Ajustes, V6-4) y el grupo "Navegación" completo (contrato de test + precedente explícito de `OPT-24`).
+Mismo criterio de `OPT-24` en todo el plan: no se tocó ningún motor canónico ni id — solo reubicación
+de HTML y su wiring de vista.
 
 ---
 

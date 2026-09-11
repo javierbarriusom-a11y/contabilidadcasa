@@ -131,6 +131,15 @@
               <!-- OPT-25 (fase 6, 11 sept. 2026): un único enlace nuevo bajo el label «Datos» ya
                    existente (criterio de menor coste, igual que la fase 5 con Analizar). -->
               <a href="#herramientas-datos" data-e17-group="data">Continuidad, compartir y archivo (nuevo)</a>
+              <!-- OPT-25 (fase 7, 11 sept. 2026): acceso rápido a Laboratorio (catálogo de 18
+                   pantallas heredadas), que sigue viviendo dentro de Ajustes a propósito — L-8 dice
+                   explícitamente que no tiene ruta propia, para que L-10 no deje ningún hash
+                   apuntando a un sitio vacío al retirarse en Fase 7 del propio Laboratorio. Enlaza a
+                   #ajustes (una vista real) en vez de a #ajustes-laboratorio (un grupo interno, sin
+                   ruta): un enlace directo a un id que no es una .view-section dejaría todas las
+                   vistas ocultas al no encontrar coincidencia en setActiveView. Desde Ajustes, el
+                   botón «Simuladores y Laboratorio» de las anclas de arriba hace el último tramo. -->
+              <a href="#ajustes" data-e17-group="data">Laboratorio: catálogo de pantallas heredadas (dentro de Ajustes)</a>
 
               <p class="advanced-nav-label" data-e17-nav-label="legacy">Versiones anteriores</p>
               <a href="#debt-roadmap" data-e17-group="legacy">Plan de deuda</a>
@@ -3268,7 +3277,7 @@
               <div>
                 <p class="panel-kicker e19-eyebrow">Ajustes</p>
                 <h2 class="e19-heading">Cuentas, reserva, umbrales, partidas y exportación en un mismo sitio</h2>
-                <p class="e19-subtitle">Cada tarjeta te lleva a donde ese dato se edita de verdad. La cobertura aprendida, la reserva operativa, los dos umbrales de abajo y la exportación son la excepción: se hacen desde aquí mismo.</p>
+                <p class="e19-subtitle">Cada tarjeta es un dato real del hogar que editas aquí. Los comparadores y simuladores viven en Herramientas avanzadas, en el menú lateral — cada grupo enlaza al suyo. Cuentas y partidas siguen editándose donde ya vivían (en Navegación, más abajo); la cobertura aprendida, la reserva operativa, los umbrales y la exportación se hacen aquí mismo.</p>
               </div>
             </div>
 
@@ -3284,7 +3293,7 @@
             </div>
 
             <nav class="e19-ajustes-anchors" id="ajustesAnchors" aria-label="Secciones de Ajustes">
-                <button type="button" data-ajustes-anchor="ajustes-hogar">Hogar</button>
+                <button type="button" data-ajustes-anchor="ajustes-hogar">Hogar y cuentas</button>
                 <button type="button" data-ajustes-anchor="ajustes-reserva">Reserva y colchón</button>
                 <button type="button" data-ajustes-anchor="ajustes-seguros">Seguros</button>
                 <button type="button" data-ajustes-anchor="ajustes-fiscal">Fiscal</button>
@@ -3296,7 +3305,7 @@
             </nav>
 
             <div class="e19-ajustes-group" id="ajustes-hogar" aria-labelledby="ajustes-hogar-title">
-              <h3 class="e19-ajustes-group-title" id="ajustes-hogar-title">Hogar</h3>
+              <h3 class="e19-ajustes-group-title" id="ajustes-hogar-title">Hogar y cuentas</h3>
             <h3 class="e19-ajustes-group-title">Configuración</h3>
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cuentas remuneradas</h3>

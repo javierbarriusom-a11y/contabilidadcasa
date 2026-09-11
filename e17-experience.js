@@ -12,7 +12,7 @@
     // datos: no tiene entrada duplicada en el menú avanzado. Plan, Deuda y Cierre no repiten
     // entrada aquí: ya la tenían como `cuadro-mandos`, `deuda-ruta` y `conciliar` más abajo, y
     // duplicarla solo daría dos resultados iguales en el buscador.
-    { target: "ajustes", label: "Ajustes", group: "main", keywords: "ajustes reserva operativa cuentas partidas umbrales exportar csv v6" },
+    { target: "ajustes", label: "Ajustes", group: "main", keywords: "ajustes reserva operativa cuentas partidas umbrales exportar csv v6 laboratorio pantallas heredadas archivo" },
     { target: "faqs-ayuda", label: "FAQs y ayuda", group: "main", keywords: "faq ayuda manual usuario casos de uso actualizar datos predicciones simular conclusiones preguntas frecuentes" },
     // A17-1 (bloque 3, septiembre): solo lectura, pensado para un atajo del icono instalado, no
     // para navegar desde el menú — pero sigue siendo localizable desde el buscador como cualquier
