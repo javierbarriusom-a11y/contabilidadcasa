@@ -104,6 +104,10 @@
               <p class="advanced-nav-label" data-e17-nav-label="fiscal">Fiscal</p>
               <a href="#herramientas-fiscal" data-e17-group="analysis">Calculadoras y comparadores fiscales</a>
 
+              <!-- OPT-25 (fase 4, 11 sept. 2026): tercera categoría nueva — Patrimonio e inversión. -->
+              <p class="advanced-nav-label" data-e17-nav-label="patrimonio">Patrimonio e inversión</p>
+              <a href="#herramientas-patrimonio" data-e17-group="analysis">Comparadores de patrimonio e inversión</a>
+
               <p class="advanced-nav-label" data-e17-nav-label="analizar">Analizar</p>
               <a href="#presupuesto-mes" data-e17-group="analysis">Presupuesto del mes (nuevo)</a>
               <a href="#estado-semana" data-e17-group="analysis">Estado de la semana (nuevo)</a>
@@ -2945,6 +2949,151 @@
             </article>
           </section>
 
+          <!-- OPT-25 (fase 4, 11 sept. 2026): cuarta categoría nueva de Herramientas avanzadas —
+               Patrimonio e inversión, la más grande. 8 tarjetas: las 6 que vivían en
+               ajustes-patrimonio > Herramientas, más Línea de crédito de emergencia (venía de
+               Ajustes › Reserva y colchón) y Pérdidas latentes candidatas a compensación INV6
+               (venía de Ajustes › Fiscal, temáticamente es de cartera, no fiscal). Mismos ids,
+               motores canónicos y listeners — renderAjustes() se sigue llamando también aquí. -->
+          <section class="e19-asesor-decision view-section" id="herramientas-patrimonio">
+            <div class="section-title">
+              <div>
+                <p class="panel-kicker e19-eyebrow">Herramientas avanzadas · Patrimonio e inversión</p>
+                <h2 class="e19-heading">Comparadores de patrimonio e inversión</h2>
+                <p class="e19-subtitle">El patrimonio neto, los objetivos de reparto y el registro de posiciones se siguen editando en <a href="#ajustes">Ajustes → Patrimonio e inversión</a>.</p>
+              </div>
+            </div>
+
+            <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
+                 Contrato canónico canonical-portfolio.js — base para IV2 (TWR/XIRR), FC1 (FIFO) y
+                 el resto del bloque de inversión. La correlación real entre activos (lo que pide
+                 IV4 además de la concentración) necesita datos de mercado y queda pendiente. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Cartera de inversión: análisis y comparativa</h3>
+              <p class="e19-kpi-note">Sobre las posiciones registradas en <a href="#ajustes">Ajustes → Patrimonio e inversión</a>: comparación con un índice de referencia declarado, coste compuesto de comisiones, concentración, exposición cruzada vivienda-inversión y fase del glide path por objetivo.</p>
+              <!-- IVX2: comparación contra un índice de referencia. Calculadora puntual, no se
+                   trae ningún precio de mercado real — el hogar declara la rentabilidad anualizada
+                   del índice para el mismo periodo. -->
+              <label class="month-picker">
+                <span>Índice de referencia (rentabilidad anualizada declarada, %)</span>
+                <input type="number" step="0.01" id="iv1BenchmarkAnnualReturnPct" placeholder="Ej. 7 (MSCI World)" />
+              </label>
+              <!-- IVX4: horizonte para el coste compuesto de comisiones de cada posición con
+                   comisión declarada — sin horizonte no hay nada que proyectar. -->
+              <label class="month-picker">
+                <span>Horizonte para el coste de comisiones (años)</span>
+                <input type="number" min="1" step="1" id="ivx4FeeHorizonYears" placeholder="Ej. 10" />
+              </label>
+              <div class="e19-kpi-note" id="iv1PositionSummary"></div>
+              <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
+              <!-- IVX8: sobreexposición cruzada vivienda-inversión — extiende IV4 (esta tarjeta) y
+                   A14-4 (Patrimonio), comparando vivienda contra cartera de inversión, la pareja
+                   concreta que ninguno de los dos avisa por separado. -->
+              <div class="e19-kpi-note" id="ivx8HousingExposure"></div>
+              <!-- IVX6: glide path por objetivo — banda de horizonte de cada objetivo con al menos
+                   una posición vinculada en Ajustes. No recomienda a qué posición mover cada euro
+                   (esta app no clasifica el riesgo de cada posición), solo la fase estándar. -->
+              <div id="ivx6GlidePath"></div>
+              <!-- INV1 (Oleada 3, Bloque 4): lectura real de la cartera por clase de activo
+                   declarada, frente a la banda de IVX6 de arriba — nunca una regla de "vende X%",
+                   solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
+                   se fabrica precisión). -->
+              <div id="inv1AssetClassNote"></div>
+              <!-- INV7 (Oleada 3, Bloque 5): escalera de liquidez — a cuántos días puede
+                   convertirse cada posición en caja sin penalización severa, cruzado con el suelo
+                   del colchón (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto
+                   total): aquí importa la velocidad de conversión, no el valor total. -->
+              <h4 class="escenario-motor-panel-title">Escalera de liquidez</h4>
+              <p class="e19-kpi-note">A cuántos días puede convertirse cada posición en caja sin penalización severa, y si eso basta para cubrir tu colchón mínimo si hiciera falta.</p>
+              <div id="inv7LiquidityLadder"></div>
+              <!-- INV8 (Oleada 3, Bloque 5): IVX7 (en Ajustes, en la lista de posiciones) ya
+                   muestra el coste medio hacia atrás; esto mira hacia delante — solo aparece si al
+                   menos una posición declaró un plan de aportación periódica en su registro. -->
+              <h4 class="escenario-motor-panel-title">Plan de aportación periódica (DCA)</h4>
+              <div id="inv8DcaTracking"></div>
+            </article>
+
+            <!-- LEV6 (Oleada 3, Bloque 4; separado de la tarjeta de objetivos por OPT-24): orden de
+                 venta al desapalancar — reutiliza los objetivos de reparto declarados en Ajustes
+                 (IV6) para saber qué clase ya está sobreexpuesta, más el coste fiscal (plusvalía ya
+                 calculada) y la convicción declarada por posición. Sin campos propios: solo lectura
+                 de lo ya declarado en Ajustes → Patrimonio e inversión. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Al desapalancar, ¿qué vender primero?</h3>
+              <p class="e19-kpi-note">Prioriza vender la clase ya sobreexpuesta frente al objetivo de reparto declarado en <a href="#ajustes">Ajustes → Patrimonio e inversión</a>, con menor coste fiscal, y a igualdad de lo anterior, la de menor convicción declarada.</p>
+              <div id="lev6DeleveragingNote"></div>
+            </article>
+
+            <!-- LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1
+                 (activos con procedencia, en Ajustes) y SP1 (inventario de pólizas, en Ajustes ›
+                 Seguros). Dos puntos se verifican solos con datos reales; los otros tres no tienen
+                 ninguna fuente de datos en la app (testamento, beneficiarios, a quién avisar) —
+                 quedan como casillas que confirma el propio hogar, nunca inventadas. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Continuidad ante fallecimiento o incapacidad</h3>
+              <p class="e19-kpi-note">Checklist de lo que hace falta para que otra persona pueda hacerse cargo — no ejecuta ninguna acción, solo hace visible qué falta.</p>
+              <div id="lpx3ContinuityChecklist"></div>
+            </article>
+
+            <!-- LPX1: capital objetivo de independencia financiera (patrimonio neto A14-2 frente a
+                 gasto anual estimado de la previsión viva ÷ tasa de retirada declarada por el
+                 hogar). Regla de la renta perpetua, sin proyección de mercado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Independencia financiera</h3>
+              <label class="month-picker">
+                <span>Tasa de retirada objetivo (%)</span>
+                <input type="number" step="0.01" min="0" id="lpx1WithdrawalRatePct" placeholder="Ej. 4" />
+              </label>
+              <div class="e19-kpi-note" id="lpx1FinancialIndependence"></div>
+            </article>
+
+            <!-- LPX2: runway del patrimonio neto completo (no solo el colchón líquido, DLX1) frente
+                 al gasto mensual medio de la previsión viva, con aviso de qué parte no es líquida. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Runway patrimonial completo</h3>
+              <div class="e19-kpi-note" id="lpx2NetWorthRunway"></div>
+            </article>
+
+            <!-- GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — "aguanto X meses" sin
+                 vender nada ni pedir prestado. Combina el colchón (liquidez real, DLX1), la deuda
+                 (la cuota sigue debiéndose aunque el ingreso se corte) y un escenario de tensión
+                 declarado (mismo marco base/favorable/tensión de E13). Distinto de LPX2 (arriba):
+                 aquí solo cuenta lo disponible de verdad en una emergencia. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Resiliencia: ¿cuántos meses aguanto?</h3>
+              <p class="e19-kpi-note">Solo liquidez real (nunca cartera de inversión ni activos ilíquidos, que exigirían vender) frente al gasto medio bajo el escenario de tensión de E13 más la cuota de deuda que sigues debiendo aunque se corte el ingreso.</p>
+              <div class="e19-kpi-note" id="gob9ResiliencePanel"></div>
+            </article>
+
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
+              <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa (Ajustes → Reserva y colchón): si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Límite de la línea</span>
+                  <input id="ajustesEmergencyCreditLimit" type="number" min="0" step="500" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+                <label class="month-picker">
+                  <span>TIN de la línea (%)</span>
+                  <input id="ajustesEmergencyCreditRate" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
+                </label>
+              </div>
+              <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
+            </article>
+
+            <!-- INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3, en Herramientas avanzadas →
+                 Fiscal, solo cubre pérdidas YA realizadas por venta): candidatas a compensación
+                 ANTES de vender — posiciones con minusvalía latente (gainLoss negativo, ya
+                 calculado por normalizePositions en IV1) que podría interesar realizar antes de
+                 cerrar el año fiscal. Solo identifica y ordena, nunca sugiere vender por sí sola
+                 (regla transversal 04) — y avisa de la norma española de no recompra. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Pérdidas latentes candidatas a compensación</h3>
+              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
+              <div id="inv6LatentLossCandidates"></div>
+            </article>
+          </section>
+
           <!-- V6-3/V6-2/V6-4 · reúne lo que hoy vive repartido: la reserva operativa, los dos
                umbrales propios (ventana de duplicados, desviación por partida) y la exportación se
                hacen aquí de verdad; el colchón mínimo en meses es una regla más del framework de
@@ -3180,22 +3329,11 @@
               <p class="e19-kpi-note" id="ajustesReserveNote"></p>
             </article>
 
+            <!-- OPT-25 (fase 4, 11 sept. 2026): se movió a Herramientas avanzadas → Patrimonio e
+                 inversión (#herramientas-patrimonio), junto con el resto de comparadores de esa
+                 categoría — no encajaba en una categoría propia solo por esta tarjeta. -->
             <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
-              <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa: si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>
-              <div class="cuadro-mandos-controls">
-                <label class="month-picker">
-                  <span>Límite de la línea</span>
-                  <input id="ajustesEmergencyCreditLimit" type="number" min="0" step="500" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-                <label class="month-picker">
-                  <span>TIN de la línea (%)</span>
-                  <input id="ajustesEmergencyCreditRate" type="number" min="0" step="0.5" inputmode="decimal" placeholder="Sin configurar" />
-                </label>
-              </div>
-              <p class="e19-kpi-note" id="ajustesEmergencyCreditLineNote"></p>
-            </article>
+            <p class="e19-kpi-note">La línea de crédito de emergencia vive ahora en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>.</p>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-seguros" aria-labelledby="ajustes-seguros-title">
@@ -3366,14 +3504,14 @@
               <ul class="commit-barrier-list" id="fc3PriorLossList"></ul>
             </article>
 
-            <!-- OPT-25 (fases 2-3, 11 sept. 2026): 7 comparadores fiscales (FC4, estimador de IRPF,
+            <!-- OPT-25 (fases 2-4, 11 sept. 2026): 7 comparadores fiscales (FC4, estimador de IRPF,
                  FC5, A15-4, FCX1, GOB8, FC3) se movieron a Herramientas avanzadas → Fiscal
                  (#herramientas-fiscal); Segunda opinión (CPX2) a Herramientas avanzadas → Decidir
-                 (#segunda-opinion). Backtesting (PVX1) y Pérdidas latentes (INV6) se quedan aquí de
-                 momento — van a Analizar y Patrimonio e inversión en fases posteriores del mismo
-                 plan. -->
+                 (#segunda-opinion); Pérdidas latentes (INV6) a Herramientas avanzadas → Patrimonio e
+                 inversión (#herramientas-patrimonio, no es un tema fiscal en sí, es de cartera).
+                 Backtesting (PVX1) se queda aquí de momento — va a Analizar en una fase posterior. -->
             <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <p class="e19-kpi-note">Los comparadores fiscales (retención de dividendos, estimador de IRPF, venta parcial del tramo del ahorro, aportación y rescate de pensiones, borrador de la Renta, compensación de pérdidas y ganancias) viven ahora en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. La segunda opinión sobre una decisión externa al plan vive en <a href="#segunda-opinion">Herramientas avanzadas → Decidir</a>.</p>
+            <p class="e19-kpi-note">Los comparadores fiscales (retención de dividendos, estimador de IRPF, venta parcial del tramo del ahorro, aportación y rescate de pensiones, borrador de la Renta, compensación de pérdidas y ganancias) viven ahora en <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. La segunda opinión sobre una decisión externa al plan vive en <a href="#segunda-opinion">Herramientas avanzadas → Decidir</a>. Las pérdidas latentes candidatas a compensación viven en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>.</p>
 
             <!-- PVX1: backtesting público del propio motor de previsión — el mismo aprendizaje que
                  ya alimenta PV1/PV2/PV3/PV4, mostrado aquí en vez de escondido dentro del
@@ -3382,19 +3520,6 @@
               <h3 class="escenario-motor-panel-title">Backtesting: cómo ha acertado la previsión</h3>
               <p class="e19-kpi-note">Mes a mes, lo que la previsión decía frente a lo realmente conciliado con el banco — solo meses ya cerrados y conciliados, nunca una previsión sin confirmar.</p>
               <div id="pvx1Backtest"></div>
-            </article>
-
-            <!-- INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3, justo abajo, solo cubre pérdidas
-                 YA realizadas por venta): candidatas a compensación ANTES de vender — posiciones
-                 con minusvalía latente (gainLoss negativo, ya calculado por normalizePositions en
-                 IV1) que podría interesar realizar antes de cerrar el año fiscal. Solo identifica y
-                 ordena, nunca sugiere vender por sí sola (regla transversal 04) — y avisa de la
-                 norma española de no recompra para no inducir a comprar de vuelta demasiado
-                 pronto. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Pérdidas latentes candidatas a compensación</h3>
-              <p class="e19-kpi-note">Posiciones con minusvalía todavía no realizada (sin vender) que podrían interesar vender antes de cerrar el año, para compensar con la calculadora de <a href="#herramientas-fiscal">Herramientas avanzadas → Fiscal</a>. Solo informa — no es una recomendación de vender, y la pérdida solo es deducible si respetas la norma de no recompra (2 meses en cotizados, 1 año en no cotizados).</p>
-              <div id="inv6LatentLossCandidates"></div>
             </article>
             </div>
 
@@ -3559,7 +3684,7 @@
                   </select>
                 </label>
                 <!-- IVX6: objetivo asociado (opcional) — solo objetivos con fecha, para calcular
-                     el horizonte del glide path más abajo. -->
+                     el horizonte del glide path de Herramientas avanzadas → Patrimonio e inversión. -->
                 <label class="month-picker">
                   <span>Objetivo asociado (opcional)</span>
                   <select id="iv1PositionGoalId">
@@ -3574,7 +3699,8 @@
                 </label>
                 <!-- INV1 (Oleada 3, Bloque 4): clase de activo declarada a mano — perfil de riesgo,
                      distinto del tipo de instrumento de arriba. Opcional: sin ella, la posición
-                     cuenta como "sin clasificar" en la comparación de abajo, nunca se inventa. -->
+                     cuenta como "sin clasificar" en la comparación de Herramientas avanzadas →
+                     Patrimonio e inversión, nunca se inventa. -->
                 <label class="month-picker">
                   <span>Clase de activo (opcional)</span>
                   <select id="iv1PositionAssetClass">
@@ -3592,8 +3718,9 @@
                   <input id="iv1PositionConvictionScore" type="number" min="1" max="5" step="1" inputmode="numeric" placeholder="Ej. 3" />
                 </label>
                 <!-- INV8 (Oleada 3, Bloque 5): plan de aportación periódica (DCA) declarado —
-                     opcional. Se compara más abajo, en Herramientas, contra las aportaciones
-                     reales ya registradas (no un calendario nuevo, solo el plan contra lo real). -->
+                     opcional. Se compara en Herramientas avanzadas → Patrimonio e inversión, contra
+                     las aportaciones reales ya registradas (no un calendario nuevo, solo el plan
+                     contra lo real). -->
                 <label class="month-picker">
                   <span>Aportación periódica prevista (€/mes, opcional)</span>
                   <input id="iv1PositionDcaMonthlyAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 200" />
@@ -3693,103 +3820,14 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1ScheduledContributionAdd">Programar aportación</button>
             </article>
 
+            <!-- OPT-25 (fase 4, 11 sept. 2026): las 6 tarjetas de Herramientas (Cartera análisis y
+                 comparativa con Escalera de liquidez/DCA anidados, Qué vender primero LEV6,
+                 Continuidad LPX3, Independencia financiera LPX1, Runway LPX2, Resiliencia GOB9) se
+                 movieron a Herramientas avanzadas → Patrimonio e inversión (#herramientas-patrimonio),
+                 junto con Línea de crédito de emergencia (venía de Ajustes › Reserva y colchón) y
+                 Pérdidas latentes candidatas a compensación (INV6, venía de Ajustes › Fiscal). -->
             <h3 class="e19-ajustes-group-title">Herramientas</h3>
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Cartera de inversión: análisis y comparativa</h3>
-              <p class="e19-kpi-note">Sobre las posiciones registradas arriba: comparación con un índice de referencia declarado, coste compuesto de comisiones, concentración, exposición cruzada vivienda-inversión y fase del glide path por objetivo.</p>
-              <!-- IVX2: comparación contra un índice de referencia. Calculadora puntual, no se
-                   trae ningún precio de mercado real — el hogar declara la rentabilidad anualizada
-                   del índice para el mismo periodo. -->
-              <label class="month-picker">
-                <span>Índice de referencia (rentabilidad anualizada declarada, %)</span>
-                <input type="number" step="0.01" id="iv1BenchmarkAnnualReturnPct" placeholder="Ej. 7 (MSCI World)" />
-              </label>
-              <!-- IVX4: horizonte para el coste compuesto de comisiones de cada posición con
-                   comisión declarada — sin horizonte no hay nada que proyectar. -->
-              <label class="month-picker">
-                <span>Horizonte para el coste de comisiones (años)</span>
-                <input type="number" min="1" step="1" id="ivx4FeeHorizonYears" placeholder="Ej. 10" />
-              </label>
-              <div class="e19-kpi-note" id="iv1PositionSummary"></div>
-              <div class="e19-kpi-note" id="iv1PositionConcentration"></div>
-              <!-- IVX8: sobreexposición cruzada vivienda-inversión — extiende IV4 (esta tarjeta) y
-                   A14-4 (Patrimonio), comparando vivienda contra cartera de inversión, la pareja
-                   concreta que ninguno de los dos avisa por separado. -->
-              <div class="e19-kpi-note" id="ivx8HousingExposure"></div>
-              <!-- IVX6: glide path por objetivo — banda de horizonte de cada objetivo con al menos
-                   una posición vinculada arriba. No recomienda a qué posición mover cada euro (esta
-                   app no clasifica el riesgo de cada posición), solo la fase estándar. -->
-              <div id="ivx6GlidePath"></div>
-              <!-- INV1 (Oleada 3, Bloque 4): lectura real de la cartera por clase de activo
-                   declarada, frente a la banda de IVX6 de arriba — nunca una regla de "vende X%",
-                   solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
-                   se fabrica precisión). -->
-              <div id="inv1AssetClassNote"></div>
-              <!-- INV7 (Oleada 3, Bloque 5): escalera de liquidez — a cuántos días puede
-                   convertirse cada posición en caja sin penalización severa, cruzado con el suelo
-                   del colchón (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto
-                   total): aquí importa la velocidad de conversión, no el valor total. -->
-              <h4 class="escenario-motor-panel-title">Escalera de liquidez</h4>
-              <p class="e19-kpi-note">A cuántos días puede convertirse cada posición en caja sin penalización severa, y si eso basta para cubrir tu colchón mínimo si hiciera falta.</p>
-              <div id="inv7LiquidityLadder"></div>
-              <!-- INV8 (Oleada 3, Bloque 5): IVX7 (arriba, en la lista de posiciones) ya muestra el
-                   coste medio hacia atrás; esto mira hacia delante — solo aparece si al menos una
-                   posición declaró un plan de aportación periódica (arriba, en el registro). -->
-              <h4 class="escenario-motor-panel-title">Plan de aportación periódica (DCA)</h4>
-              <div id="inv8DcaTracking"></div>
-            </article>
-
-            <!-- LEV6 (Oleada 3, Bloque 4; separado de la tarjeta de objetivos por OPT-24): orden de
-                 venta al desapalancar — reutiliza los objetivos de reparto declarados arriba (IV6)
-                 para saber qué clase ya está sobreexpuesta, más el coste fiscal (plusvalía ya
-                 calculada) y la convicción declarada por posición. Sin campos propios: solo lectura
-                 de lo ya declarado en las tarjetas de arriba. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Al desapalancar, ¿qué vender primero?</h3>
-              <p class="e19-kpi-note">Prioriza vender la clase ya sobreexpuesta frente al objetivo de reparto declarado arriba, con menor coste fiscal, y a igualdad de lo anterior, la de menor convicción declarada.</p>
-              <div id="lev6DeleveragingNote"></div>
-            </article>
-
-            <!-- LPX3: checklist de continuidad ante fallecimiento o incapacidad. Depende de A14-1
-                 (activos con procedencia, arriba) y SP1 (inventario de pólizas, en Ajustes ›
-                 Seguros). Dos puntos se verifican solos con datos reales; los otros tres no tienen
-                 ninguna fuente de datos en la app (testamento, beneficiarios, a quién avisar) —
-                 quedan como casillas que confirma el propio hogar, nunca inventadas. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Continuidad ante fallecimiento o incapacidad</h3>
-              <p class="e19-kpi-note">Checklist de lo que hace falta para que otra persona pueda hacerse cargo — no ejecuta ninguna acción, solo hace visible qué falta.</p>
-              <div id="lpx3ContinuityChecklist"></div>
-            </article>
-
-            <!-- LPX1: capital objetivo de independencia financiera (patrimonio neto A14-2 frente a
-                 gasto anual estimado de la previsión viva ÷ tasa de retirada declarada por el
-                 hogar). Regla de la renta perpetua, sin proyección de mercado. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Independencia financiera</h3>
-              <label class="month-picker">
-                <span>Tasa de retirada objetivo (%)</span>
-                <input type="number" step="0.01" min="0" id="lpx1WithdrawalRatePct" placeholder="Ej. 4" />
-              </label>
-              <div class="e19-kpi-note" id="lpx1FinancialIndependence"></div>
-            </article>
-
-            <!-- LPX2: runway del patrimonio neto completo (no solo el colchón líquido, DLX1) frente
-                 al gasto mensual medio de la previsión viva, con aviso de qué parte no es líquida. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Runway patrimonial completo</h3>
-              <div class="e19-kpi-note" id="lpx2NetWorthRunway"></div>
-            </article>
-
-            <!-- GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — "aguanto X meses" sin
-                 vender nada ni pedir prestado. Combina el colchón (liquidez real, DLX1), la deuda
-                 (la cuota sigue debiéndose aunque el ingreso se corte) y un escenario de tensión
-                 declarado (mismo marco base/favorable/tensión de E13). Distinto de LPX2 (arriba):
-                 aquí solo cuenta lo disponible de verdad en una emergencia. -->
-            <article class="e19-card">
-              <h3 class="escenario-motor-panel-title">Resiliencia: ¿cuántos meses aguanto?</h3>
-              <p class="e19-kpi-note">Solo liquidez real (nunca cartera de inversión ni activos ilíquidos, que exigirían vender) frente al gasto medio bajo el escenario de tensión de E13 más la cuota de deuda que sigues debiendo aunque se corte el ingreso.</p>
-              <div class="e19-kpi-note" id="gob9ResiliencePanel"></div>
-            </article>
+            <p class="e19-kpi-note">Los comparadores de patrimonio e inversión (análisis de cartera, escalera de liquidez, plan DCA, qué vender primero al desapalancar, continuidad, independencia financiera, runway, resiliencia, línea de crédito de emergencia y pérdidas latentes) viven ahora en <a href="#herramientas-patrimonio">Herramientas avanzadas → Patrimonio e inversión</a>.</p>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-laboratorio" aria-labelledby="ajustes-laboratorio-title">

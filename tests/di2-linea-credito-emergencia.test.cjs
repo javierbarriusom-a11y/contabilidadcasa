@@ -67,15 +67,18 @@ test("evaluateEmergencyCreditLine · TIN o límite negativos se recortan a 0", (
   assert.equal(result.creditRate, 0);
 });
 
-test("los campos de límite y TIN de la línea de crédito viven en #ajustes", () => {
-  const openTag = /<section[^>]*id="ajustes"[^>]*>/.exec(html);
-  assert.ok(openTag, "No existe la sección #ajustes");
+// OPT-25 (fase 4, 11 sept. 2026): la tarjeta se trasladó de #ajustes a Herramientas avanzadas →
+// Patrimonio e inversión (#herramientas-patrimonio) — mismos ids, misma función, solo cambia
+// dónde vive en el DOM.
+test("los campos de límite y TIN de la línea de crédito viven en #herramientas-patrimonio", () => {
+  const openTag = /<section[^>]*id="herramientas-patrimonio"[^>]*>/.exec(html);
+  assert.ok(openTag, "No existe la sección #herramientas-patrimonio");
   const start = openTag.index + openTag[0].length;
   const end = html.indexOf("<section", start);
-  const ajustes = html.slice(start, end);
-  assert.match(ajustes, /id="ajustesEmergencyCreditLimit"/);
-  assert.match(ajustes, /id="ajustesEmergencyCreditRate"/);
-  assert.match(ajustes, /id="ajustesEmergencyCreditLineNote"/);
+  const herramientasPatrimonio = html.slice(start, end);
+  assert.match(herramientasPatrimonio, /id="ajustesEmergencyCreditLimit"/);
+  assert.match(herramientasPatrimonio, /id="ajustesEmergencyCreditRate"/);
+  assert.match(herramientasPatrimonio, /id="ajustesEmergencyCreditLineNote"/);
 });
 
 test("el script del motor canónico está registrado en index.html", () => {

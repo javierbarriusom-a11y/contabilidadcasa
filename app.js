@@ -435,6 +435,10 @@ const viewTitles = {
     eyebrow: "Herramientas avanzadas · Fiscal",
     title: "Calculadoras y comparadores fiscales",
   },
+  "herramientas-patrimonio": {
+    eyebrow: "Herramientas avanzadas · Patrimonio e inversión",
+    title: "Comparadores de patrimonio e inversión",
+  },
   "segunda-opinion": {
     eyebrow: "Herramientas avanzadas · Decidir",
     title: "Segunda opinión: decisión externa al plan",
@@ -37001,6 +37005,10 @@ async function renderActiveSection(viewId = viewFromHash()) {
       break;
     // OPT-25 (fase 2): mismo patrón que herramientas-seguros — Fiscal.
     case "herramientas-fiscal":
+      renderAjustes();
+      break;
+    // OPT-25 (fase 4): mismo patrón — Patrimonio e inversión.
+    case "herramientas-patrimonio":
       renderAjustes();
       break;
     // OPT-25 (fase 3): "segunda-opinion" (CPX2) no tiene case aquí a propósito — es una

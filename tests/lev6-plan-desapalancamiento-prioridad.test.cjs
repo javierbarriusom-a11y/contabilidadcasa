@@ -133,13 +133,28 @@ test("wiring: renderLev6DeleveragingPriority usa deleveragingPriority, normalize
   assert.match(block, /iv6PortfolioTargets\(\)/);
 });
 
-test("wiring: la tarjeta de LEV6 vive en index.html, después de los objetivos de reparto de IV6 que consulta (OPT-24: en su propia tarjeta de Herramientas, no fusionada con la de IV6)", () => {
-  const iv6Pos = indexSource.indexOf('id="iv6RebalanceSummary"');
-  const lev6TitlePos = indexSource.indexOf("Al desapalancar, ¿qué vender primero?");
-  const lev6Pos = indexSource.indexOf('id="lev6DeleveragingNote"');
-  assert.ok(iv6Pos >= 0 && lev6TitlePos > iv6Pos, "LEV6 debe declararse después de los objetivos de IV6 que consulta");
+// OPT-25 (fase 4, 11 sept. 2026): LEV6 se trasladó de Ajustes › Patrimonio e inversión a
+// Herramientas avanzadas → Patrimonio e inversión (#herramientas-patrimonio); IV6 (objetivos de
+// reparto) se queda en Ajustes. Ya no son adyacentes en el DOM ni viven en la misma pantalla, así
+// que la tarjeta enlaza explícitamente a dónde se declaran los objetivos que consulta, en vez de
+// depender de un orden de documento que ya no refleja la relación entre ambas.
+test("wiring: la tarjeta de LEV6 vive en Herramientas avanzadas → Patrimonio e inversión y enlaza a los objetivos de reparto de IV6 en Ajustes (OPT-24: en su propia tarjeta de Herramientas, no fusionada con la de IV6)", () => {
+  const patrimonioTools = /<section class="e19-asesor-decision view-section" id="herramientas-patrimonio">/.exec(indexSource);
+  assert.ok(patrimonioTools, "No existe la sección herramientas-patrimonio");
+  const start = patrimonioTools.index + patrimonioTools[0].length;
+  const end = indexSource.indexOf("</section>", start);
+  const herramientasPatrimonio = indexSource.slice(start, end);
+  const lev6TitlePos = herramientasPatrimonio.indexOf("Al desapalancar, ¿qué vender primero?");
+  const lev6Pos = herramientasPatrimonio.indexOf('id="lev6DeleveragingNote"');
+  assert.ok(lev6TitlePos >= 0, "LEV6 debe vivir en Herramientas avanzadas → Patrimonio e inversión");
   assert.ok(lev6Pos > lev6TitlePos, "lev6DeleveragingNote debe vivir dentro de la tarjeta de LEV6");
-  assert.match(indexSource.slice(lev6TitlePos, lev6Pos + 50), /objetivo de reparto declarado arriba/);
+  assert.match(herramientasPatrimonio.slice(lev6TitlePos, lev6Pos + 50), /objetivo de reparto declarado en.*Ajustes/);
+
+  const ajustesGroup = /<div class="e19-ajustes-group" id="ajustes-patrimonio"[^>]*>/.exec(indexSource);
+  assert.ok(ajustesGroup, "No existe el grupo ajustes-patrimonio");
+  const ajustesStart = ajustesGroup.index + ajustesGroup[0].length;
+  const ajustesEnd = indexSource.indexOf('<div class="e19-ajustes-group"', ajustesStart);
+  assert.match(indexSource.slice(ajustesStart, ajustesEnd), /id="iv6RebalanceSummary"/, "IV6 debe seguir en Ajustes › Patrimonio e inversión");
 });
 
 test("wiring: renderLev6DeleveragingPriority se llama junto a renderIv6Rebalance en cada mutación relevante", () => {
