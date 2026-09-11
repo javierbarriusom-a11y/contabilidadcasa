@@ -59,8 +59,10 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
 
   // V4-4 añade «Importar extracto en 4 pasos» al frente del grupo Datos: es el primer paso del
   // flujo (importar antes de registrar a mano lo que quede). A17-1 añade el widget de solo lectura
-  // por delante de eso: no es un paso del flujo de datos, es un atajo de consulta.
-  assert.deepEqual(byGroup.data, ["widget", "datos-importar", "registrar-mes", "data-entry", "conciliar"]);
+  // por delante de eso: no es un paso del flujo de datos, es un atajo de consulta. OPT-25 (fase 6,
+  // 11 sept. 2026) añade «Continuidad, compartir y archivo» al final: un único enlace nuevo bajo
+  // este mismo label, con las 4 tarjetas que salieron de Ajustes › Datos y exportación.
+  assert.deepEqual(byGroup.data, ["widget", "datos-importar", "registrar-mes", "data-entry", "conciliar", "herramientas-datos"]);
   // El grupo relegado sigue el orden que tenían las pantallas en el propio menú: primero lo que
   // estaba en Decidir (V3-5, según su posición original) y en Analizar (V2-8), luego Datos (V4-6)
   // y por último Cierre (V5-3, con «operations-manual» como única superviviente del bloque 5).
@@ -102,5 +104,6 @@ test("el menú avanzado tiene exactamente los enlaces esperados en cada grupo", 
   assert.equal(byGroup.analysis.length, 19, "Decidir, Analizar, Seguros, Fiscal, Segunda opinión y Patrimonio suman diecinueve enlaces tras OPT-25 fase 5");
   // A17-1 añade el widget de solo lectura: treinta enlaces. OPT-25 añade Seguros, Fiscal, Segunda
   // opinión, Patrimonio y Análisis de previsión: treinta y cinco.
-  assert.equal(links.length, 35, "treinta y cinco enlaces en el menú avanzado tras OPT-25 fase 5");
+  // OPT-25 fase 6 añade «Continuidad, compartir y archivo» al grupo Datos: treinta y seis.
+  assert.equal(links.length, 36, "treinta y seis enlaces en el menú avanzado tras OPT-25 fase 6");
 });
