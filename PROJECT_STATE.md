@@ -51,6 +51,42 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
+## Cierre de sesión — 11 de septiembre de 2026 (166): nace `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+
+El usuario pidió una auditoría crítica de producto sobre los mismos cuatro frentes de la Oleada 3
+—previsión que se autoajuste con datos reales, inversión, apalancamiento (pedir deuda para invertir) y
+decidir cancelar deuda existente o no según el líquido real—, pidiendo esta vez más de 40 propuestas
+nuevas y profundidad especial en previsión viva y en apalancamiento/deuda.
+
+- **Auditoría independiente primero**: se investigó el código real (no la documentación de backlog) en
+  tres frentes en paralelo — motor de previsión/recalibración, deuda/apalancamiento, inversión/cartera/
+  fiscalidad — y se publicó como artefacto propio, ["El Libro
+  Vivo"](https://claude.ai/code/artifact/b30b9e52-c0fd-42d9-a993-2ef6625a40ad): 10 hallazgos de
+  diagnóstico (con severidad y cita `archivo:línea`) y 49 propuestas nuevas (10 previsión, 10 inversión,
+  9 apalancamiento, 9 deuda, 11 catálogo adicional), más una sección explícita de qué NO construir
+  (automatizar ejecución de apalancamiento/cancelación, benchmark entre hogares, ensemble oculto, tablas
+  fiscales sin año de vigencia visible, opinión del asistente sin cita de fuente).
+- **Cruce obligatorio contra la Oleada 3 antes de convertirlo en backlog**: `BACKLOG_INDICE.md` reveló
+  que la Oleada 3 (cerrada 9-sep, sesión 163c) cubrió exactamente los mismos cuatro frentes, así que se
+  leyó entera (284 líneas) y se contrastó fila a fila contra las 49 propuestas nuevas — misma disciplina
+  que la propia Oleada 3 aplicó a la Oleada 2. Resultado: **4 propuestas ya construidas** (`PA-4`≈`PVC9`
+  `previsionChangeOneLiner`, `AP-8`≈`LEV8` bitácora de tesis, `O-3`≈`GOB9` `resilienceMonths`, `O-8`≈`LEV1`
+  política de apalancamiento) y **7 de alcance reducido** por depender de piezas que la Oleada 3 ya
+  construyó parcialmente (`PA-2`, `PA-9`, `DE-2`, `DE-6`, `AP-3`, `IN-10`, `O-10`).
+- **Nace `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`**: 45 tareas accionables (38 de alcance íntegro + 7
+  reducido) más 3 verificaciones de código previas (`VER-4` a `VER-6`), continuando los mismos prefijos
+  de la Oleada 3 (`PVC11`-`PVC19`, `INV11`-`INV20`, `LEV9`-`LEV16`, `DEB9`-`DEB17`, `GOB11`-`GOB19`) en
+  vez de inventar unos nuevos. Las dos banderas del diagnóstico —comparador cruzado de instrumentos de
+  apalancamiento (`LEV9`) y síntesis única «cancelar vs. mantener deuda» (`DEB9`)— quedan en el Bloque 2,
+  sin dependencias de alcance. `BACKLOG_INDICE.md` actualizado (nueva entrada + fila del mapa completo).
+- **Validación**: `npm run verify` no se ejecutó completo (cambio puramente documental, sin tocar
+  `app.js` ni ningún `canonical-*.js`); se ejecutó `npm test` como mínimo exigido. Primera pasada con
+  6 fallos, los seis en `build:site` (`esbuild` ausente del contenedor — mismo problema ya documentado en
+  la sesión 165, no relacionado con este cambio); tras `npm install`, **3665/3665 pruebas** en verde.
+- **Publicado**: commit y push a `claude/financial-app-improvements-6velg0`, PR en borrador abierto y
+  fusión a `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en
+  cada tarea ya vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 cerrada (7/7 fases) — Ajustes → Herramientas avanzadas
 
 El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)

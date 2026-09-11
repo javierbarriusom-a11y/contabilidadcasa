@@ -85,6 +85,20 @@ los tests de wiring afectados se actualizaron. Sin ruta nueva, sin revivir «Her
 y sin contradecir `OPT-15` (que ya fija Ajustes como una de las 6 rutas finales) — al contrario,
 `OPT-15` encontrará la navegación final alrededor de una Ajustes ya limpia.
 
+**Actualizado el 11 de septiembre de 2026 (sesión 166): nace el siguiente backlog de producto.** El
+hogar pidió una segunda auditoría crítica sobre los mismos cuatro frentes de la Oleada 3 —previsión
+autoajustable, inversión, apalancamiento y deuda según liquidez—, esta vez con más de 40 propuestas y
+profundidad especial en previsión viva y en apalancamiento/deuda. Esa auditoría se hizo primero como
+documento independiente (["El Libro Vivo"](https://claude.ai/code/artifact/b30b9e52-c0fd-42d9-a993-2ef6625a40ad),
+10 hallazgos + 49 propuestas) y se cruzó contra `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` antes de
+convertirla en tareas — igual disciplina que la propia Oleada 3 aplicó a la Oleada 2. Ese cruce encontró
+que 4 de las 49 ya estaban construidas y que 7 necesitaban reducir su alcance. **El siguiente trabajo
+real de producto vive en
+[`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`](BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md)**: 45 tareas
+accionables + 3 verificaciones de código previas, en los mismos cinco frentes que la Oleada 3
+(`PVC`/`INV`/`LEV`/`DEB`/`GOB`, continuando su numeración), sin bloqueo de ninguna de las tres
+condiciones externas de la tabla de abajo.
+
 **Actualizado el 11 de septiembre de 2026 (sesión 165): nace `OPT-25` y anula `OPT-15` para
 «Herramientas avanzadas».** Un mockup externo ("Claude Design", opción B) propuso lo contrario de lo
 que asumía `OPT-24`: sacar las tarjetas de «Herramientas» de Ajustes y darles categorías propias
@@ -120,7 +134,8 @@ sesión a sesión de todo lo cerrado hasta aquí (49/51 de la Oleada 2 + `O-1` a
 
 | Documento | Estado | Qué es | Sustituido/reconciliado por |
 | --- | --- | --- | --- |
-| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md`** | ✅ **Cerrada — 43/44 hechas (construidas o reducidas con motivo), 1 postergada (`GOB5`, condición externa)** | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | — |
+| **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`** | 🟢 Vigente — 45 tareas accionables + 3 verificaciones previas, sin empezar | Segunda auditoría crítica de producto sobre los mismos cuatro frentes de la Oleada 3, nacida de ["El Libro Vivo"](https://claude.ai/code/artifact/b30b9e52-c0fd-42d9-a993-2ef6625a40ad) (10 hallazgos + 49 propuestas), tras retirar 4 propuestas ya construidas en la Oleada 3 y reducir el alcance de otras 7 | — |
+| `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` | ✅ Cerrada — 43/44 hechas (construidas o reducidas con motivo), 1 postergada (`GOB5`, condición externa) | Auditoría crítica de producto (previsión autoajustable, inversión, apalancamiento, deuda según liquidez) convertida en 44 tareas en 5 bloques (3 verificaciones de código + cimiento + alto impacto + apuestas grandes + relleno), tras retirar 5 propuestas ya construidas en la Oleada 2 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` para el trabajo nuevo de estos cuatro frentes; contenido histórico intacto |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` | 🟡 Casi cerrado — Bloques 1-5 cerrados (50/51), solo queda `RGX3` (Bloque 6, condicionada) | 51 tareas nuevas (previsión viva, escenarios, entrada de datos, inversión, apalancamiento, deuda según liquidez, copiloto, fiscalidad, patrimonio, continuidad e IA, multidispositivo) en 6 bloques; el Bloque 1 (entrada de datos) fue primero por decisión explícita | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` para el trabajo nuevo de estos cuatro frentes; su propio remanente (`RGX3`) sigue vigente aquí hasta que `A5-1` esté en producción |
 | `BACKLOG_ULTIMATE_SEPTIEMBRE.md` | 🟡 Casi cerrado — 94/99 hechas, 5 en espera de calendario | Orden de ejecución de las 49 tareas del backlog vigente + 50 de la ampliación de septiembre (previsión viva, inversión, apalancamiento, copiloto, experiencia, fiscalidad, tesorería, deuda, seguros), en 11 bloques por nivel de dependencia. Su tabla de estado no refleja el cierre real — ver `PROJECT_STATE.md` | `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_2.md` para el trabajo nuevo; su propio remanente (`OPT-10/11/12/13/15`) sigue vigente aquí hasta que cumpla el plazo de `OPT-2` |
 | `BACKLOG_OPERACION.md` | 🟡 Casi cerrado — O-1 a O-5 hechos, solo `O-6` (PSD2, bloqueada por proveedor externo) | Eje paralelo de decisiones rápidas y uso diario, nacido de un diagnóstico de consultoría del 21/08 (`O-` prefijo) | No lo sustituye ningún otro — eje independiente, uso directo |
