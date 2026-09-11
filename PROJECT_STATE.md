@@ -51,7 +51,7 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
-## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-3/7, Seguros, Fiscal y Decidir) — Ajustes → Herramientas avanzadas
+## Cierre de sesión — 11 de septiembre de 2026 (165): OPT-25 (fases 1-4/7, Seguros, Fiscal, Decidir y Patrimonio e inversión) — Ajustes → Herramientas avanzadas
 
 El usuario trajo un mockup de "Claude Design" (`Finanzas_Casa_v4_10_Ajustes_y_Herramientas.pdf`, opción B)
 proponiendo mover los comparadores/simuladores de Ajustes a nuevas categorías de "Herramientas avanzadas"
@@ -130,8 +130,37 @@ empezando por Seguros como piloto de bajo riesgo.
   grupo `analysis` y de 32 a 33 enlaces totales). `test:a11y` **1204 IDs únicos**, `test:performance`,
   `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
 
-**Publicado**: fases 1-2 fusionadas (PR #266, #267). Fase 3 pendiente de commit/push/PR en este mismo
-cierre. Fases 4-7 siguen en la lista de tareas de la sesión, con el mismo criterio de destino confirmado.
+- **Fase 3 publicada**: PR [#268](https://github.com/javierbarriusom-a11y/contabilidadcasa/pull/268)
+  fusionado a `main` (CI `verify` en verde, `mergeable_state: clean`). Rama sincronizada con `main`.
+- **Fase 4 (OPT-25) construida — la más grande del plan**: las 6 tarjetas de
+  `ajustes-patrimonio > Herramientas` (Cartera de inversión: análisis y comparativa, con Escalera de
+  liquidez INV7 y Plan DCA INV8 anidados; Al desapalancar qué vender primero LEV6; Continuidad LPX3;
+  Independencia financiera LPX1; Runway patrimonial LPX2; Resiliencia GOB9), más Línea de crédito de
+  emergencia (venía de Ajustes › Reserva y colchón) y Pérdidas latentes candidatas a compensación
+  INV6 (venía de Ajustes › Fiscal, fase 2 — temáticamente es de cartera, no fiscal), se trasladaron a
+  una `view-section` nueva, `#herramientas-patrimonio` (8 tarjetas en total), con entrada propia en
+  el desplegable. Ajustes → Patrimonio e inversión se queda con la configuración (patrimonio neto y
+  desglose A14-4, objetivo de reparto IV6, registro de posiciones IV1).
+- **Efecto colateral corregido**: varias tarjetas que se quedan en Ajustes (registro de posiciones
+  IV1, objetivo de reparto IV6) tenían comentarios de desarrollo y, en dos casos, texto visible que
+  decía "más abajo, en Herramientas" o "de abajo" para referirse a tarjetas que ahora viven en otra
+  pantalla — corregidas para nombrar explícitamente Herramientas avanzadas → Patrimonio e inversión.
+  Dentro de la nueva pantalla, LEV6 y la propia "Cartera: análisis y comparativa" también
+  referenciaban "arriba" a campos que ahora están en Ajustes — corregidas igual.
+- **Verificación real en navegador de la fase 4**: `#herramientas-patrimonio` renderiza las 8
+  tarjetas con sus ids intactos (confirmado con `querySelectorAll` que hay exactamente 8
+  `article.e19-card`); las notas puente en Ajustes › Patrimonio y Ajustes › Reserva enlazan
+  correctamente a la nueva pantalla.
+- **Validación de la fase 4**: `npm test` **3665/3665** (1 test de ubicación de la línea de crédito
+  de emergencia reescrito para `#herramientas-patrimonio`; 2 tests de wiring —INV6 y LEV6— reescritos
+  porque comprobaban adyacencia/orden en el DOM con tarjetas que se quedaron en Ajustes, algo que ya
+  no aplica al vivir en pantallas distintas — ambos ahora comprueban que cada tarjeta enlaza
+  explícitamente a dónde vive la otra; contrato de navegación actualizado de 17 a 18 enlaces en el
+  grupo `analysis` y de 33 a 34 enlaces totales). `test:a11y` **1205 IDs únicos**, `test:performance`,
+  `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
+
+**Publicado**: fases 1-3 fusionadas (PR #266, #267, #268). Fase 4 pendiente de commit/push/PR en este
+mismo cierre. Fases 5-7 siguen en la lista de tareas de la sesión, con el mismo criterio confirmado.
 
 ## Cierre de sesión — 10 de septiembre de 2026 (164): Activación de A5-1 — verificador de sesión real, Anthropic en vez de OpenAI, Edge Function
 

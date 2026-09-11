@@ -48,17 +48,18 @@ test("latentLossHarvestingCandidates está exportada", () => {
 const appSource = fs.readFileSync(path.join(__dirname, "..", "app.js"), "utf8");
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
-// OPT-25 (fase 2, 11 sept. 2026): FC3 se trasladó de Ajustes › Fiscal a Herramientas avanzadas →
-// Fiscal (#herramientas-fiscal); INV6 se queda en Ajustes › Fiscal. Ya no son adyacentes en el
-// DOM, así que la tarjeta enlaza explícitamente a dónde vive ahora la calculadora que complementa.
-test("wiring: la tarjeta de INV6 vive en Ajustes › Fiscal y enlaza a la calculadora de FC3 en Herramientas avanzadas", () => {
-  const fiscalGroup = /<div class="e19-ajustes-group" id="ajustes-fiscal"[^>]*>/.exec(indexSource);
-  assert.ok(fiscalGroup, "No existe el grupo ajustes-fiscal");
-  const start = fiscalGroup.index + fiscalGroup[0].length;
-  const end = indexSource.indexOf('<div class="e19-ajustes-group"', start);
-  const ajustesFiscal = indexSource.slice(start, end);
-  assert.match(ajustesFiscal, /id="inv6LatentLossCandidates"/, "INV6 debe seguir en Ajustes › Fiscal");
-  assert.match(ajustesFiscal, /href="#herramientas-fiscal"/, "debe enlazar a donde vive ahora la calculadora FC3");
+// OPT-25 (fase 4, 11 sept. 2026): INV6 se trasladó de Ajustes › Fiscal a Herramientas avanzadas →
+// Patrimonio e inversión (#herramientas-patrimonio, temáticamente es de cartera, no fiscal). FC3
+// vive en Herramientas avanzadas → Fiscal (#herramientas-fiscal, fase 2) — pantallas distintas, así
+// que la tarjeta sigue enlazando explícitamente a dónde vive la calculadora que complementa.
+test("wiring: la tarjeta de INV6 vive en Herramientas avanzadas › Patrimonio e inversión y enlaza a la calculadora de FC3 en Herramientas avanzadas › Fiscal", () => {
+  const patrimonioTools = /<section class="e19-asesor-decision view-section" id="herramientas-patrimonio">/.exec(indexSource);
+  assert.ok(patrimonioTools, "No existe la sección herramientas-patrimonio");
+  const start = patrimonioTools.index + patrimonioTools[0].length;
+  const end = indexSource.indexOf("</section>", start);
+  const herramientasPatrimonio = indexSource.slice(start, end);
+  assert.match(herramientasPatrimonio, /id="inv6LatentLossCandidates"/, "INV6 debe vivir en Herramientas avanzadas › Patrimonio e inversión");
+  assert.match(herramientasPatrimonio, /href="#herramientas-fiscal"/, "debe enlazar a donde vive ahora la calculadora FC3");
 
   const fiscalTools = /<section class="e19-asesor-decision view-section" id="herramientas-fiscal">/.exec(indexSource);
   assert.ok(fiscalTools, "No existe la sección herramientas-fiscal");
