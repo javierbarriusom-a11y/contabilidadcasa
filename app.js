@@ -18743,6 +18743,217 @@ function renderLpx2NetWorthRunway() {
   note.innerHTML = `<p>Con un gasto medio de ${money(result.monthlyBurn, true)}/mes y patrimonio neto de ${money(result.netWorth, true)}: <strong>${result.months} mes(es) de runway</strong> si el ingreso se cortara por completo.${illiquidNote}</p>`;
 }
 
+// GOB11 (Oleada 4, apuesta grande, O-1): proyección de jubilación unificada — cruza la cartera real
+// (INV11: el plan de pensiones ya es una posición más, con XIRR y liquidez "bloqueada"), el gasto
+// medio de la previsión viva (misma fuente que LPX1/LPX2) y un objetivo de independencia financiera
+// propio con fecha (variante de LPX1 con horizonte, no una copia — LPX1 no proyecta cuándo se
+// alcanza, solo dónde está el hogar hoy). Vive en app.js, no en un canonical-*.js nuevo, porque cruza
+// canonical-portfolio.js, la previsión viva y los supuestos del hogar sin que ninguno dependa del
+// otro — mismo criterio que INV18/GOB8.
+//
+// Ningún supuesto se inventa (decisión confirmada por el hogar antes de construir): tasa de
+// crecimiento anual de cartera y de pensión (pueden ser distintas — perfiles de riesgo distintos),
+// aportación mensual futura a cada una, pensión pública estimada y tasa de retirada objetivo son
+// todos declarados. Sin alguno de los que hacen falta para el cálculo, `calculable` es `false` y
+// `missing` dice exactamente qué falta — nunca una cifra de mercado asumida en su lugar.
+//
+// Decisión de alcance explícita (mismo criterio que INV11 ya fijó): la pensión que cuenta aquí es la
+// declarada como posición de cartera (`plan-pension`, INV11), nunca el saldo estático "Pensión" de
+// A14 — no se unifican ambas fuentes, evitar declarar el mismo plan en las dos es responsabilidad del
+// hogar. Sin ninguna posición `plan-pension` registrada, la pensión privada proyectada es 0€, con
+// aviso explícito en la tarjeta, nunca leída en silencio del saldo de A14.
+//
+// La pensión pública (Seguridad Social) es un dato manual declarado (`gob11StatePensionMonthly`) —
+// esta app no tiene ningún estimador de pensión pública futura; sin declararlo, la proyección cubre
+// solo cartera + plan de pensiones privado y lo dice explícitamente, nunca asume 0 en silencio ni una
+// pensión inventada.
+function gob11MonthsToRetirement(retirementMonth, nowDate = new Date()) {
+  const match = String(retirementMonth || "").match(/^(\d{4})-(\d{2})$/);
+  if (!match) return null;
+  const nowYear = nowDate.getFullYear();
+  const nowMonth = nowDate.getMonth() + 1;
+  return (Number(match[1]) - nowYear) * 12 + (Number(match[2]) - nowMonth);
+}
+
+// Valor futuro de un capital presente más aportaciones mensuales constantes, a una tasa de
+// crecimiento ANUAL declarada (convertida a mensual compuesta) — fórmula estándar de anualidad, no
+// una simulación de mercado. `months` ya viene acotado a >= 0 por quien llama.
+function gob11FutureValue(presentValue, monthlyContribution, annualGrowthPct, months) {
+  const present = Math.max(0, Number(presentValue) || 0);
+  const contribution = Number(monthlyContribution) || 0;
+  if (months <= 0) return round2(present);
+  const monthlyRate = Math.pow(1 + Math.max(-99, Number(annualGrowthPct) || 0) / 100, 1 / 12) - 1;
+  if (Math.abs(monthlyRate) < 1e-9) return round2(present + contribution * months);
+  const growthFactor = Math.pow(1 + monthlyRate, months);
+  return round2(present * growthFactor + contribution * ((growthFactor - 1) / monthlyRate));
+}
+
+function gob11RetirementProjection(input = {}) {
+  const {
+    now = new Date(),
+    retirementMonth,
+    portfolioValue = 0,
+    pensionValue = 0,
+    portfolioGrowthPct,
+    pensionGrowthPct,
+    monthlyContributionPortfolio = 0,
+    monthlyContributionPension = 0,
+    statePensionMonthly,
+    annualExpensesToday,
+    annualInflationPct = 0,
+    withdrawalRatePct,
+  } = input;
+
+  const months = gob11MonthsToRetirement(retirementMonth, now);
+  const missing = [];
+  if (months === null) missing.push("retirementMonth");
+  if (!(Number(withdrawalRatePct) > 0)) missing.push("withdrawalRatePct");
+  if (!(Number(annualExpensesToday) > 0)) missing.push("annualExpensesToday");
+  if (Number(portfolioValue) > 0 && !Number.isFinite(Number(portfolioGrowthPct))) missing.push("portfolioGrowthPct");
+  if (Number(pensionValue) > 0 && !Number.isFinite(Number(pensionGrowthPct))) missing.push("pensionGrowthPct");
+  if (missing.length) return { calculable: false, missing };
+
+  const clampedMonths = Math.max(0, months);
+  const years = round2(clampedMonths / 12);
+  const portfolioAtRetirement = gob11FutureValue(portfolioValue, monthlyContributionPortfolio, portfolioGrowthPct || 0, clampedMonths);
+  const pensionAtRetirement = gob11FutureValue(pensionValue, monthlyContributionPension, pensionGrowthPct || 0, clampedMonths);
+  const totalCorpusAtRetirement = round2(portfolioAtRetirement + pensionAtRetirement);
+
+  const inflationFactor = Math.pow(1 + Math.max(-99, Number(annualInflationPct) || 0) / 100, years);
+  const annualExpensesAtRetirement = round2(Number(annualExpensesToday) * inflationFactor);
+
+  const includesStatePension = Number(statePensionMonthly) > 0;
+  const statePensionAnnual = includesStatePension ? round2(Number(statePensionMonthly) * 12) : 0;
+  const netAnnualExpensesToFund = round2(Math.max(0, annualExpensesAtRetirement - statePensionAnnual));
+
+  const targetCorpus = round2(netAnnualExpensesToFund / (Number(withdrawalRatePct) / 100));
+  const gap = round2(targetCorpus - totalCorpusAtRetirement);
+
+  const yearlyTrajectory = [];
+  const wholeYears = Math.floor(clampedMonths / 12);
+  for (let year = 1; year <= wholeYears; year += 1) {
+    const monthsElapsed = year * 12;
+    const yearPortfolio = gob11FutureValue(portfolioValue, monthlyContributionPortfolio, portfolioGrowthPct || 0, monthsElapsed);
+    const yearPension = gob11FutureValue(pensionValue, monthlyContributionPension, pensionGrowthPct || 0, monthsElapsed);
+    yearlyTrajectory.push({
+      year, calendarYear: now.getFullYear() + year,
+      portfolioValue: yearPortfolio, pensionValue: yearPension,
+      totalValue: round2(yearPortfolio + yearPension),
+    });
+  }
+
+  return {
+    calculable: true,
+    pastDate: months < 0,
+    monthsToRetirement: clampedMonths,
+    yearsToRetirement: years,
+    portfolioAtRetirement, pensionAtRetirement, totalCorpusAtRetirement,
+    annualExpensesAtRetirement, includesStatePension, statePensionAnnual, netAnnualExpensesToFund,
+    targetCorpus, gap, reached: totalCorpusAtRetirement >= targetCorpus,
+    yearlyTrajectory,
+  };
+}
+
+// Cada campo se guarda por separado, nunca agrupado — mismo criterio (y mismo bug ya detectado una
+// vez) que PVC14: agrupar campos declarados por el hogar hace que tabular entre ellos borre los que
+// aún están vacíos en ese instante.
+const GOB11_FIELD_IDS = [
+  "gob11RetirementMonth", "gob11PortfolioGrowthPct", "gob11PensionGrowthPct",
+  "gob11MonthlyContributionPortfolio", "gob11MonthlyContributionPension",
+  "gob11StatePensionMonthly", "gob11WithdrawalRatePct",
+];
+
+function handleGob11FieldChange() {
+  GOB11_FIELD_IDS.forEach((id) => {
+    const el = qs(id);
+    if (!el) return;
+    if (id === "gob11RetirementMonth") {
+      scenarioSettings[id] = el.value || undefined;
+      return;
+    }
+    const value = parseAmount(el.value);
+    scenarioSettings[id] = value === null ? undefined : value;
+  });
+  saveScenarioSettings();
+  renderGob11Panel();
+}
+
+function renderGob11Inputs() {
+  GOB11_FIELD_IDS.forEach((id) => {
+    const el = qs(id);
+    if (!el || document.activeElement === el) return;
+    const stored = scenarioSettings[id];
+    el.value = stored === undefined || stored === null ? "" : String(stored);
+  });
+}
+
+function gob11PortfolioAndPensionValues() {
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!portfolioEngine) return null;
+  const summary = portfolioEngine.normalizePositions(iv1PositionsList()).summary;
+  const pensionValue = round2(summary.totalsByType["plan-pension"] || 0);
+  return { portfolioValue: round2(summary.totalValue - pensionValue), pensionValue };
+}
+
+function gob11TrajectoryTableHtml(yearlyTrajectory) {
+  if (!yearlyTrajectory.length) return "";
+  const rows = yearlyTrajectory.map((row) => `<tr><td>${row.calendarYear}</td><td>${money(row.portfolioValue, true)}</td><td>${money(row.pensionValue, true)}</td><td>${money(row.totalValue, true)}</td></tr>`).join("");
+  return `<table class="e19-table gob11-trajectory"><thead><tr><th>Año</th><th>Cartera</th><th>Pensión privada</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderGob11Panel() {
+  const note = qs("gob11ProjectionNote");
+  const trajectoryHost = qs("gob11Trajectory");
+  if (!note) return;
+  renderGob11Inputs();
+  const values = gob11PortfolioAndPensionValues();
+  const monthlyOutflow = lpAverageMonthlyOutflow();
+  if (!values) {
+    note.innerHTML = `<p>El motor de cartera todavía no está disponible.</p>`;
+    if (trajectoryHost) trajectoryHost.innerHTML = "";
+    return;
+  }
+  const result = gob11RetirementProjection({
+    retirementMonth: scenarioSettings.gob11RetirementMonth,
+    portfolioValue: values.portfolioValue,
+    pensionValue: values.pensionValue,
+    portfolioGrowthPct: scenarioSettings.gob11PortfolioGrowthPct,
+    pensionGrowthPct: scenarioSettings.gob11PensionGrowthPct,
+    monthlyContributionPortfolio: scenarioSettings.gob11MonthlyContributionPortfolio,
+    monthlyContributionPension: scenarioSettings.gob11MonthlyContributionPension,
+    statePensionMonthly: scenarioSettings.gob11StatePensionMonthly,
+    annualExpensesToday: monthlyOutflow ? monthlyOutflow * 12 : null,
+    annualInflationPct: state?.annualInflation,
+    withdrawalRatePct: scenarioSettings.gob11WithdrawalRatePct,
+  });
+  const pensionNote = values.pensionValue > 0
+    ? ""
+    : ` <span class="e19-kpi-note">Sin ninguna posición declarada como plan de pensiones (INV11) — la pensión privada cuenta como 0€. Decláralo en Cartera si tienes una.</span>`;
+  if (!result.calculable) {
+    const labels = {
+      retirementMonth: "fecha de jubilación", withdrawalRatePct: "tasa de retirada objetivo",
+      annualExpensesToday: "gasto mensual medio de la previsión viva (calcula un forecast primero)",
+      portfolioGrowthPct: "crecimiento anual de la cartera", pensionGrowthPct: "crecimiento anual del plan de pensiones",
+    };
+    note.innerHTML = `<p>Declara lo que falta para proyectar tu jubilación: ${result.missing.map((id) => labels[id] || id).join(", ")}.${pensionNote}</p>`;
+    if (trajectoryHost) trajectoryHost.innerHTML = "";
+    return;
+  }
+  const pastDateNote = result.pastDate ? `<p class="e19-kpi-note is-warn">La fecha declarada ya pasó — la proyección usa el valor de hoy, sin crecimiento adicional.</p>` : "";
+  const statePensionNote = result.includesStatePension
+    ? `Pensión pública declarada: ${money(result.statePensionAnnual, true)}/año, ya descontada del gasto a cubrir con capital.`
+    : `Sin pensión pública declarada — la proyección cubre solo cartera + plan de pensiones privado, no lo que pueda aportar la Seguridad Social.`;
+  const verdict = result.reached
+    ? `<strong class="positive">A este ritmo, llegas a tu fecha de jubilación con superávit de ${money(Math.abs(result.gap), true)}.</strong>`
+    : `<strong class="warning">A este ritmo, llegas a tu fecha de jubilación con un déficit de ${money(result.gap, true)}.</strong>`;
+  note.innerHTML = `<p>En ${result.yearsToRetirement} año(s): cartera proyectada ${money(result.portfolioAtRetirement, true)}, pensión privada proyectada ${money(result.pensionAtRetirement, true)} — total <strong>${money(result.totalCorpusAtRetirement, true)}</strong>.</p>
+    <p>Objetivo a esa fecha: ${money(result.targetCorpus, true)} (gasto anual estimado ${money(result.annualExpensesAtRetirement, true)} con inflación declarada, al ${scenarioSettings.gob11WithdrawalRatePct}% de retirada). ${statePensionNote}</p>
+    <p>${verdict}</p>
+    ${pastDateNote}
+    <p class="e19-kpi-note">Proyección de anualidad con las tasas de crecimiento y aportaciones que has declarado — no es una simulación de mercado ni modela reducciones fiscales de rescate de pensión. Cambia cualquier supuesto arriba para ver el efecto.${pensionNote}</p>`;
+  if (trajectoryHost) trajectoryHost.innerHTML = gob11TrajectoryTableHtml(result.yearlyTrajectory);
+}
+
 // GOB9 (Oleada 3, Bloque 3): panel único de resiliencia — combina la liquidez real (misma fuente
 // que DLX1/AP1), la cuota de deuda ya comprometida (p2DebtRows, la misma que ya usa AP5) y el
 // escenario de tensión de E13 (FinanceCanonicalE13.PROFILES, "stress") en un único número
@@ -28877,6 +29088,7 @@ function renderAjustes() {
   renderLpx1FinancialIndependence();
   renderLpx2NetWorthRunway();
   renderGob9ResiliencePanel();
+  renderGob11Panel();
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
@@ -39114,6 +39326,9 @@ async function init() {
   });
   ["pvc14ManualP10", "pvc14ManualBase", "pvc14ManualP90", "pvc14HistoricalWeightPct"].forEach((id) => {
     qs(id)?.addEventListener("change", handlePvc14ManualFieldChange);
+  });
+  GOB11_FIELD_IDS.forEach((id) => {
+    qs(id)?.addEventListener("change", handleGob11FieldChange);
   });
   qs("esx2EventTemplate")?.addEventListener("change", (event) => applyE13EventTemplate(event.target.value));
   qs("e13EventBuilder")?.addEventListener("submit", (event) => {

@@ -7,17 +7,18 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 178, 12 de septiembre de 2026): `PVC14` construida — Bloques 3 y 4 quedan
-completos.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`,
-`DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13`
-y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170);
-`INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada (sesión 172);
-`INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174); `INV12`, `INV14`,
-`INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176);
-`INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión) quedó completo;
-`PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión viva) queda también
-**completo**. Quedan 13 tareas accionables: las tres apuestas grandes restantes (`GOB11`, `GOB15`,
-`GOB19`, todas reservadas a sesión propia) y el resto de los Bloques 5-7.
+**Estado (sesión 179, 12 de septiembre de 2026): `GOB11` construida — segunda de las tres apuestas
+grandes restantes.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo
+(`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`,
+`DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17`
+(sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada
+(sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174);
+`INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada
+(sesión 176); `INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión)
+quedó completo; `PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión
+viva) queda también completo; `GOB11` en sesión propia dedicada (sesión 179). Quedan 12 tareas
+accionables: dos apuestas grandes restantes (`GOB15`, `GOB19`, reservadas a sesión propia cada una)
+y el resto de los Bloques 5-7.
 
 ## 0. Por qué existe este documento
 
@@ -181,7 +182,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 37 | ⏳ `GOB11` | Proyección de jubilación unificada (pensión + cartera + forecast + objetivos) | `O-1` | L | Alto | Depende en la práctica de `INV11` (pensión conectada a cartera) para dar una trayectoria real, no solo patrimonio bruto. |
+| 37 | ✅ `GOB11` | Proyección de jubilación unificada (pensión + cartera + forecast + objetivos) | `O-1` | L | Alto | **Hecho (sesión 179).** `gob11RetirementProjection()` (`app.js`) cruza cartera + plan-pension (INV11), gasto medio de la previsión viva y un objetivo de independencia financiera con fecha de jubilación declarada. Tasas de crecimiento, aportación mensual futura, pensión pública (dato manual) y tasa de retirada, todo declarado por el hogar — nunca inventado. |
 | 38 | ⏳ `GOB12` | Plantilla reutilizable de "evento de vida" (hijo, mudanza, cambio de trabajo) | `O-2` | M | Medio | Paquete de gasto recurrente + posible caída temporal de ingreso + objetivo nuevo, en vez de modelar cada evento a mano. |
 | 39 | ⏳ `GOB13` | Ritual anual de revisión guiada | `O-4` | M | Medio | Complementa, no repite, `GOB6` (checklist *mensual* de cierre): fuerza revisar en un solo sitio, una vez al año, supuestos caducados (`PVC15`), ofertas de deuda sin comparar (`DEB14`) y desviación de cartera (`INV17`). |
 | 40 | ⏳ `GOB14` | Informe trimestral exportable, maquetado para presentar a la familia | `O-5` | M | Bajo-Medio | Distinto de `GOB3` (resumen trimestral de `PROJECT_STATE.md`, uso interno de desarrollo): esta es una vista para enseñar, no para trabajar, con las cifras ejecutivas de procedencia (`A2-6`) ya existentes. |
@@ -206,7 +207,7 @@ los IDs de este backlog:
 3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15` — las tres
    construidas en la sesión 168 (`GOB17` ya construida en la sesión 167).
 4. **Grandes apuestas (L), reservar sesión propia**: `INV11` (hecho, sesión 176), `INV18` (hecho,
-   sesión 177), `PVC14` (hecho, sesión 178), `GOB11`, `GOB15`, `GOB19`.
+   sesión 177), `PVC14` (hecho, sesión 178), `GOB11` (hecho, sesión 179), `GOB15`, `GOB19`.
 5. **Cuestionar el alcance antes de construir, no descartar sin más** (mismo criterio que la propia
    auditoría aplicó a sí misma con `FCX2` en la Oleada 2): `PVC14` (hecho — el ensemble ponderado
    muestra siempre los dos triángulos de origen, nunca solo la cifra mezclada), `INV16` (correlación declarada,
