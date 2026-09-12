@@ -3076,6 +3076,28 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="fc3CompareRun">Calcular compensación</button>
               <div class="e19-kpi-note" id="fc3CompareNote"></div>
             </article>
+
+            <!-- INV18 (Oleada 4, Bloque 4, IN-8): "¿de qué posición y cuándo saco X€ más barato?" —
+                 cruza la venta parcial (FC5, optimizePartialSale), el rescate de pensión (FCX1,
+                 marginalTaxOnAdditionalIncome) y la fecha de un objetivo (E15) sobre las posiciones
+                 reales de la cartera. Reutiliza los mismos campos ya declarados arriba (base ya
+                 generada del ahorro, renta general del año) sin duplicarlos. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">¿De qué posición y cuándo saco X€ más barato?</h3>
+              <p class="e19-kpi-note">Sobre las posiciones registradas en <a href="#ajustes">Ajustes → Patrimonio e inversión</a> (fondo, acción, ETF, cripto, plan de pensiones), calcula el orden más barato para conseguir el importe que necesitas, usando la base del ahorro y la renta general ya declaradas arriba.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Importe que necesitas conseguir (€)</span>
+                  <input id="inv18AmountNeeded" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Objetivo asociado (opcional, solo para la fecha)</span>
+                  <select id="inv18GoalSelect"><option value="">-- Sin objetivo asociado --</option></select>
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="inv18CalculateRun">Calcular plan</button>
+              <div class="e19-kpi-note" id="inv18PlanNote"></div>
+            </article>
           </section>
 
           <!-- OPT-25 (fase 4, 11 sept. 2026): cuarta categoría nueva de Herramientas avanzadas —

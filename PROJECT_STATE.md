@@ -36,6 +36,16 @@ de aquí en la siguiente regeneración, no al momento.
   ya ha reducido el alcance de varias tareas de la Oleada 3 (`INV1`, `INV2`, `INV4`, `LEV5`, `LEV6`).
   Cualquier tarea nueva que necesite correlación o volatilidad de cartera real choca con el mismo
   hueco hasta que se decida abrir esa dimensión de datos.
+- **La app puede ser directiva, no solo informativa, cuando ayude de verdad** (decisión del hogar,
+  12 de septiembre de 2026, sesión 177): hasta ahora casi toda tarjeta fiscal/de cartera cerraba con
+  "esto es información, nunca una recomendación". A partir de esta sesión, en tareas nuevas se puede
+  saltar esa coletilla cuando de verdad aporte más ser directivo (p. ej. `INV18` dice en qué orden
+  vender, no solo el coste de cada opción por separado) — a criterio de quien construye, sin pedir
+  permiso cada vez. Alcance explícito: **solo tareas nuevas a partir de aquí**; las ~15+ pantallas ya
+  publicadas con ese disclaimer (`FC5`, `FCX1`, `LEV6`, el estimador de IRPF...) no se tocan
+  retroactivamente salvo que el hogar lo pida expresamente. Lo que no cambia: los límites reales del
+  cálculo (heurísticas no exactas, reducciones fiscales no modeladas, etc.) se siguen declarando
+  siempre — ser directivo no es dejar de ser honesto sobre lo que el motor no sabe.
 - **`BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_3.md` cerrada (9 de septiembre de 2026, sesión 163c)**:
   43/44 tareas accionables construidas o reducidas con motivo, 1 postergada (`GOB5`, condición
   externa). `BACKLOG_INDICE.md` sigue siendo el mapa de qué documento es la fuente viva de cada
@@ -59,6 +69,59 @@ de aquí en la siguiente regeneración, no al momento.
   dedicada. Detalle completo de cada decisión en la nota de la fila correspondiente de
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` y `GOB15` siguen siendo apuestas L, reservadas a sesión propia.
+
+## Cierre de sesión — 12 de septiembre de 2026 (177): `INV18`
+
+El usuario pidió seguir con la segunda de las seis apuestas grandes de la oleada, `INV18`. A
+diferencia de `INV11` (donde el hueco real era mucho más pequeño de lo que sugería el backlog),
+aquí el diagnóstico confirmó que el hueco es real: `optimizePartialSale` (FC5),
+`marginalTaxOnAdditionalIncome` (FCX1) y la fecha de un objetivo (`financialCalendar`, E15) existen,
+están probados, pero de verdad viven sueltos — ninguno mira las posiciones reales de la cartera ni
+habla con los otros dos. Plan (heurística greedy con reevaluación, sin optimizador combinatorio
+exacto; sin reducciones fiscales de pensión) presentado y confirmado por el usuario antes de tocar
+código. En el mismo turno, el usuario autorizó además que la app pueda ser directiva cuando ayude de
+verdad, en vez de limitarse siempre a "esto es información, nunca una recomendación" — alcance
+acotado a tareas nuevas a partir de aquí, ver el índice de decisiones vigentes arriba.
+
+**Construido**:
+- `INV18` (`IN-8`) — vista única "¿de qué posición y cuándo saco X€ más barato?". Nueva función
+  `inv18WithdrawalPlan()` en `app.js` (orquestación entre motores, mismo patrón que `GOB8`: ningún
+  `canonical-*.js` depende de otro, así que quien cruza varios vive en `app.js`). Reparte el importe
+  pedido con un relleno voraz que **reevalúa el coste marginal en cada paso**, no un orden fijo por
+  tipo: en cada iteración calcula cuánto costaría ahora mismo cada posición todavía disponible —
+  `optimizePartialSale` sobre la plusvalía proporcional para fondo/acción/ETF/cripto (base del
+  ahorro), `marginalTaxOnAdditionalIncome` sobre el importe completo para plan-pensión (base
+  general, tributa el 100%, no solo la plusvalía) — y elige la más barata en ese momento, actualizando
+  los dos acumulados fiscales (base del ahorro ya "gastada", renta general ya sumada) para la
+  siguiente iteración. Una posición en pérdidas sale gratis y se prioriza siempre. El "cuándo": si
+  hay plusvalía ya realizada este año (`fc5AlreadyRealized`, reutilizado sin duplicar), compara con
+  esperar al 1 de enero (esa base resetea por definición legal) — solo del lado del ahorro, nunca del
+  lado de la pensión (exigiría inventar la renta general futura del hogar). Nota de fecha si se
+  vincula un objetivo (selector nuevo, solo para eso, no para financiar). Nueva tarjeta en
+  Herramientas avanzadas → Fiscal, después de "Compensación de pérdidas y ganancias". El texto de
+  salida ya no lleva el disclaimer "nunca una recomendación": dice el orden a seguir directamente,
+  conservando honestos los límites reales (heurística, no óptimo exacto; sin reducciones de pensión).
+  Tests: `tests/inv18-plan-retirada-mas-barato.test.cjs` (15 tests, incluida una prueba explícita de
+  que el algoritmo puede elegir una pensión antes que un fondo cuando de verdad sale más barato, no
+  por una regla fija de "primero lo líquido").
+- **Validación**: `npm run verify` completo en verde. `npm test` **3979/3979** pruebas (15 nuevas de
+  `INV18`). `test:a11y` **1253 IDs únicos** (antes 1249, sesión 176; +4 por los campos nuevos
+  `inv18AmountNeeded`, `inv18GoalSelect`, `inv18CalculateRun`, `inv18PlanNote`).
+  `test:performance`: diff 10.000 filas 39,8 ms, forecast y escenarios 185,3 ms, recursos 2210 KB,
+  presupuestos a escala (1000 categorías × 10 años) — análisis 161,6 ms, alertas 96,4 ms, forecast
+  181,2 ms, histórico de presupuestos 31,0 ms, índice de transacciones por categoría 120,9 ms.
+  `build:site`, `test:privacy` y `test:smoke` sin errores. Además, prueba manual en navegador real
+  (servidor estático local + Playwright): registrada una escala del ahorro real (6.000:19%, :21%) y
+  una posición de fondo real (coste 4.000 €, valor 10.000 €), el cálculo de INV18 para 3.000 €
+  devolvió el coste marginal correcto (342 €, sobre 1.800 € de plusvalía proporcional al 19%), sin
+  errores de consola.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 14 tareas accionables — las cuatro apuestas grandes
+  restantes (`PVC14`, `GOB11`, `GOB15`, `GOB19`, cada una reservada a su propia sesión) y el resto de
+  los Bloques 5-7: `LEV10`/`16` (Bloque 5), `DEB12`/`14`/`16` (Bloque 6), `GOB12`-`14`/`16`/`18`
+  (Bloque 7).
 
 ## Cierre de sesión — 12 de septiembre de 2026 (176): `INV11`
 
