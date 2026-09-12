@@ -35,8 +35,9 @@ test("FC1: el botón de venta parcial está cableado a saveIv1Disposal", () => {
 test("FC1: renderIv1DisposalOptions existe y se llama junto al resto de renders de cartera", () => {
   assert.match(appSource, /function renderIv1DisposalOptions/);
   // IVX6 añadió el campo goalId e IVX4 (misma oleada) el campo feePct, cada uno con su comentario,
-  // antes de esta llamada — la ventana crece de 1400 a 2000, la comprobación sigue siendo la misma.
-  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 2900);
+  // antes de esta llamada; INV14/INV15/INV20 (Oleada 4, Bloque 4) ampliaron el bloque todavía más
+  // — la ventana crece a 4200, la comprobación sigue siendo la misma.
+  const saveBlock = appSource.slice(appSource.indexOf("function saveIv1Position("), appSource.indexOf("function saveIv1Position(") + 4200);
   assert.match(saveBlock, /renderIv1DisposalOptions\(\);/);
   const transferBlock = appSource.slice(appSource.indexOf("function saveIv1Transfer("), appSource.indexOf("function saveIv1Transfer(") + 1400);
   assert.match(transferBlock, /renderIv1DisposalOptions\(\);/);

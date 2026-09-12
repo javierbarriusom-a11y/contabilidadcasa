@@ -3199,6 +3199,16 @@
                 </label>
               </div>
               <div class="e19-kpi-note" id="inv16CorrelationNote"></div>
+              <!-- INV14 (Oleada 4, Bloque 4): exposición por divisa y geografía, declarada por
+                   posición (arriba, al registrarla) — esta app no trae datos de mercado sobre la
+                   composición real de un fondo/ETF, así que no se deriva, se pregunta. -->
+              <h4 class="escenario-motor-panel-title">Exposición por divisa y geografía (INV14)</h4>
+              <div id="inv14CurrencyGeographyExposure"></div>
+              <!-- INV19 (Oleada 4, Bloque 4): el coste de no tocar nunca tu cartera, a 10-20 años,
+                   visto como trayectoria — extiende IVX4 (coste compuesto de comisiones puntual) a
+                   una curva completa, sin ningún supuesto de rentabilidad de mercado. -->
+              <h4 class="escenario-motor-panel-title">El coste de no tocar tu cartera, a 10-20 años (INV19)</h4>
+              <div id="inv19FeeCostTrajectory"></div>
               <!-- INV7 (Oleada 3, Bloque 5): escalera de liquidez — a cuántos días puede
                    convertirse cada posición en caja sin penalización severa, cruzado con el suelo
                    del colchón (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto
@@ -4022,6 +4032,19 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv6TargetSave">Guardar objetivos</button>
               <div class="e19-kpi-note" id="iv6RebalanceSummary"></div>
+              <!-- INV17 (Oleada 4, Bloque 4): revisión de rebalanceo por calendario — complementa el
+                   aviso por umbral de arriba con un recordatorio simple por tiempo transcurrido
+                   desde la última revisión CONFIRMADA por el hogar, nunca inferida de otra acción. -->
+              <h4 class="escenario-motor-panel-title">Revisión de rebalanceo por calendario (INV17)</h4>
+              <p class="e19-kpi-note">El aviso de arriba solo salta si el reparto cruza el umbral de golpe — una cartera que se desalinea despacio puede tardar años en cruzarlo. Este recordatorio avisa por tiempo transcurrido, aunque ningún tipo haya cruzado el umbral todavía.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Revisar cada (meses)</span>
+                  <input id="inv17ReviewIntervalMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 6" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="inv17MarkReviewed">Marcar revisado hoy</button>
+              <div id="inv17RebalanceCalendarNote"></div>
             </article>
 
             <!-- IV1 (núcleo) + IV4: registro de cartera por posición y aviso de concentración.
@@ -4124,6 +4147,46 @@
                 <label class="month-picker">
                   <span>Inicio del plan de aportación (opcional)</span>
                   <input id="iv1PositionDcaStartDate" type="date" />
+                </label>
+                <!-- INV14 (Oleada 4, Bloque 4): divisa y geografía declaradas, opcionales — esta app
+                     no trae datos de mercado sobre la composición real de un fondo/ETF, así que se
+                     preguntan directamente. Sin declarar, cuenta como "sin declarar" en Herramientas
+                     avanzadas → Patrimonio e inversión, nunca se asume EUR/España por defecto. -->
+                <label class="month-picker">
+                  <span>Divisa (opcional)</span>
+                  <input id="iv1PositionCurrency" type="text" maxlength="3" placeholder="Ej. EUR" />
+                </label>
+                <label class="month-picker">
+                  <span>Geografía (opcional)</span>
+                  <select id="iv1PositionRegion">
+                    <option value="">-- Sin declarar --</option>
+                    <option value="espana">España</option>
+                    <option value="zona-euro">Zona euro (resto)</option>
+                    <option value="europa-no-euro">Europa (no euro)</option>
+                    <option value="estados-unidos">Estados Unidos</option>
+                    <option value="mercados-emergentes">Mercados emergentes</option>
+                    <option value="global">Global / diversificado</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </label>
+                <!-- INV15 (Oleada 4, Bloque 4): coste de custodia/corretaje anual declarado (€/año),
+                     opcional y distinto de la comisión de gestión de arriba (feePct, un %) — casi
+                     siempre un importe fijo, no un % sobre el valor. -->
+                <label class="month-picker">
+                  <span>Custodia/corretaje anual (€/año, opcional)</span>
+                  <input id="iv1PositionCustodyFeeAnnual" type="number" min="0" step="1" inputmode="decimal" placeholder="Ej. 30" />
+                </label>
+                <!-- INV20 (Oleada 4, Bloque 4): anulación declarada de la liquidez que INV7 infiere
+                     por tipo de instrumento — opcional, solo para cuando el tipo no refleja la
+                     liquidez real de esta posición concreta (p. ej. un ETF de nicho poco líquido). -->
+                <label class="month-picker">
+                  <span>Anular liquidez inferida por tipo (opcional)</span>
+                  <select id="iv1PositionLiquidityOverride">
+                    <option value="">-- No anular (usar la del tipo) --</option>
+                    <option value="inmediata">Inmediata (0-2 días)</option>
+                    <option value="corta">Corta (3-7 días)</option>
+                    <option value="sin-clasificar">Sin clasificar</option>
+                  </select>
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="iv1PositionAdd">Añadir posición</button>

@@ -28,6 +28,11 @@
       flexibility: ["fixed", "flexible"].includes(raw.flexibility) ? raw.flexibility : "flexible",
       fundingSource: ["savings", "income", "debt", "other"].includes(raw.fundingSource) ? raw.fundingSource : "savings",
       status: ["active", "paused", "completed", "cancelled"].includes(raw.status) ? raw.status : "active",
+      // INV12 (Oleada 4, Bloque 4): posiciones de cartera declaradas como financiadoras de este
+      // objetivo — mismo campo que p2-domain.js normaliza al guardar el estado real del hogar. Se
+      // formaliza aquí también porque este módulo es la fuente que consumen contributionPlan() y
+      // financialCalendar(), y ambos deben ver el mismo dato normalizado, no una copia distinta.
+      fundingPositions: [...new Set((Array.isArray(raw.fundingPositions) ? raw.fundingPositions : []).map((value) => text(value)).filter(Boolean))],
     };
   }
 

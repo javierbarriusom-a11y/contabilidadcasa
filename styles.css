@@ -1462,6 +1462,26 @@ main {
   color: var(--muted);
 }
 
+/* INV19 · coste de no tocar la cartera a 10-20 años: mismo criterio de construcción SVG que
+   PV4/PVC19 (polígono viewBox 0-100, preserveAspectRatio="none"), reutilizando .pv4-cone-wrap y
+   .pv4-cone-labels como contenedor y fila de etiquetas. */
+.inv19-fee-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.inv19-fee-area {
+  fill: rgba(198, 93, 44, 0.22);
+  stroke: none;
+}
+
+.inv19-fee-net-line {
+  fill: none;
+  stroke: #c65d2c;
+  stroke-width: 1.5;
+}
+
 .secondary-button {
   display: inline-flex;
   align-items: center;

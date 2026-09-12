@@ -18928,6 +18928,13 @@ function clearIv1PositionForm() {
   const convictionScoreInput = qs("iv1PositionConvictionScore");
   const dcaMonthlyAmountInput = qs("iv1PositionDcaMonthlyAmount");
   const dcaStartDateInput = qs("iv1PositionDcaStartDate");
+  // INV14 (Oleada 4, Bloque 4): divisa y geografía declaradas, opcionales.
+  const currencyInput = qs("iv1PositionCurrency");
+  const regionInput = qs("iv1PositionRegion");
+  // INV15 (Oleada 4, Bloque 4): coste de custodia/corretaje declarado, opcional.
+  const custodyFeeAnnualInput = qs("iv1PositionCustodyFeeAnnual");
+  // INV20 (Oleada 4, Bloque 4): anulación declarada de la liquidez inferida por tipo, opcional.
+  const liquidityOverrideInput = qs("iv1PositionLiquidityOverride");
   if (labelInput) labelInput.value = "";
   if (quantityInput) quantityInput.value = "";
   if (costInput) costInput.value = "";
@@ -18938,6 +18945,10 @@ function clearIv1PositionForm() {
   if (convictionScoreInput) convictionScoreInput.value = "";
   if (dcaMonthlyAmountInput) dcaMonthlyAmountInput.value = "";
   if (dcaStartDateInput) dcaStartDateInput.value = "";
+  if (currencyInput) currencyInput.value = "";
+  if (regionInput) regionInput.value = "";
+  if (custodyFeeAnnualInput) custodyFeeAnnualInput.value = "";
+  if (liquidityOverrideInput) liquidityOverrideInput.value = "";
 }
 
 function saveIv1Position() {
@@ -18967,12 +18978,28 @@ function saveIv1Position() {
   // INV8: plan de aportación periódica (DCA) declarado — opcional, ambos campos o ninguno.
   const dcaMonthlyAmount = parseAmount(qs("iv1PositionDcaMonthlyAmount")?.value);
   const dcaStartDate = qs("iv1PositionDcaStartDate")?.value || "";
+  // INV14: divisa y geografía declaradas, opcionales — esta app no trae datos de mercado sobre la
+  // composición real de un fondo/ETF, así que se preguntan directamente en vez de asumir EUR/España.
+  const currency = (qs("iv1PositionCurrency")?.value || "").trim();
+  const region = qs("iv1PositionRegion")?.value || "";
+  // INV15: coste de custodia/corretaje anual declarado (€/año), opcional y distinto de feePct
+  // (TER/gestión, ya declarado arriba) — ambos suman al coste total de propiedad real.
+  const custodyFeeAnnual = parseAmount(qs("iv1PositionCustodyFeeAnnual")?.value);
+  // INV20: anulación declarada de la liquidez que INV7 infiere por tipo de instrumento — opcional,
+  // solo para cuando el tipo no refleja la liquidez real de esta posición concreta.
+  const liquidityOverride = qs("iv1PositionLiquidityOverride")?.value || "";
   if (!label) {
     announceStatus("Indica un nombre o ticker para la posición antes de guardarla.");
     return;
   }
-  const next = [...iv1PositionsList(), { id: `position-${Date.now()}`, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, dcaMonthlyAmount, dcaStartDate, contributions: [], disposals: [], scheduledContributions: [] }];
+  const newPositionId = `position-${Date.now()}`;
+  const next = [...iv1PositionsList(), { id: newPositionId, type, label, quantity, costBasis, currentValue, asOf, acquisitionDate, provenance, goalId, feePct, assetClass, convictionScore, dcaMonthlyAmount, dcaStartDate, currency, region, custodyFeeAnnual, liquidityTierOverride: liquidityOverride, contributions: [], disposals: [], scheduledContributions: [] }];
   saveIv1PositionsList(next);
+  // INV12: la elección de objetivo de arriba sigue escribiendo el campo de fortuna `goalId` en la
+  // posición (compatibilidad con lo ya construido en IVX6), pero ahora también se declara en el
+  // propio objetivo (`fundingPositions`, la fuente formal) — así el objetivo deja de depender por
+  // completo de que alguien escanee todas las posiciones para saber qué lo financia.
+  if (goalId) inv12AddPositionToGoalFunding(goalId, newPositionId);
   clearIv1PositionForm();
   renderIv1PositionList();
   renderIv1TransferOptions();
@@ -18982,6 +19009,8 @@ function saveIv1Position() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderInv16ConcentrationWarnings();
+  renderInv14CurrencyGeographyExposure();
+  renderInv19FeeCostTrajectory();
   renderInv6LatentLossCandidates();
   renderInv7LiquidityLadder();
   renderInv8DcaTracking();
@@ -19031,6 +19060,8 @@ function saveIv1Contribution() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderInv16ConcentrationWarnings();
+  renderInv14CurrencyGeographyExposure();
+  renderInv19FeeCostTrajectory();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19071,6 +19102,8 @@ function saveIv1Disposal() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderInv16ConcentrationWarnings();
+  renderInv14CurrencyGeographyExposure();
+  renderInv19FeeCostTrajectory();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19165,6 +19198,8 @@ function saveIv1Transfer() {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderInv16ConcentrationWarnings();
+  renderInv14CurrencyGeographyExposure();
+  renderInv19FeeCostTrajectory();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19173,8 +19208,36 @@ function saveIv1Transfer() {
   announceStatus(`«${source.label}» traspasado a «${label}» sin coste fiscal — coste y fecha de adquisición conservados.`);
 }
 
+// INV12: mantiene `fundingPositions` (declarado en el objetivo) sincronizado con el `goalId` que se
+// declara al registrar la posición — sin esto, el campo nuevo quedaría desactualizado en cuanto se
+// añadiera una posición, y volvería a ser tan poco fiable como el campo de fortuna que sustituye.
+function inv12AddPositionToGoalFunding(goalId, positionId) {
+  const p2 = p2State();
+  const goals = p2.goals || [];
+  if (!goals.some((goal) => goal.id === goalId)) return;
+  saveP2State({
+    ...p2,
+    goals: goals.map((goal) => (goal.id === goalId
+      ? { ...goal, fundingPositions: [...new Set([...(goal.fundingPositions || []), positionId])] }
+      : goal)),
+  });
+}
+
+function inv12RemovePositionFromGoalFunding(positionId) {
+  const p2 = p2State();
+  const goals = p2.goals || [];
+  if (!goals.some((goal) => (goal.fundingPositions || []).includes(positionId))) return;
+  saveP2State({
+    ...p2,
+    goals: goals.map((goal) => (goal.fundingPositions || []).includes(positionId)
+      ? { ...goal, fundingPositions: goal.fundingPositions.filter((id) => id !== positionId) }
+      : goal),
+  });
+}
+
 function removeIv1Position(id) {
   saveIv1PositionsList(iv1PositionsList().filter((position) => position.id !== id));
+  inv12RemovePositionFromGoalFunding(id);
   renderIv1PositionList();
   renderIv1TransferOptions();
   renderIv1ContributionOptions();
@@ -19183,6 +19246,8 @@ function removeIv1Position(id) {
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
   renderInv16ConcentrationWarnings();
+  renderInv14CurrencyGeographyExposure();
+  renderInv19FeeCostTrajectory();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19225,7 +19290,8 @@ function renderIv1PositionList() {
     const realizedNote = fc1RealizedGainLabel(position.realizedGain, position.disposals.length);
     const averageCostNote = ivx7AverageCostLabel(position);
     const feeCostNote = ivx4FeeCostLabel(position);
-    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
+    const totalCostNote = inv15TotalCostOfOwnershipLabel(position);
+    return `<li class="commit-barrier-item"><strong>${escapeHtml(position.label)}</strong><span>${escapeHtml(typeLabel)} · coste ${money(position.costBasis, true)} · valor ${money(position.currentValue, true)} · <span class="${gainClass}">${money(position.gainLoss, true)} (${position.gainLossPct}%)</span> · ${escapeHtml(iv2XirrLabel(position.xirr))}${contributionsNote}${realizedNote ? ` · ${escapeHtml(realizedNote)}` : ""}${averageCostNote ? ` · ${escapeHtml(averageCostNote)}` : ""}${feeCostNote ? ` · ${escapeHtml(feeCostNote)}` : ""}${totalCostNote ? ` · ${escapeHtml(totalCostNote)}` : ""}</span><button type="button" class="e19-btn e19-btn-secondary" data-iv1-position-remove="${escapeHtml(position.id)}">Quitar</button></li>`;
   }).join("");
 }
 
@@ -19254,6 +19320,20 @@ function ivx4FeeCostLabel(position) {
   const result = engine.compoundedFeeCost({ currentValue: position.currentValue, feePct: position.feePct, years });
   if (!result.calculable) return "";
   return `comisión ${position.feePct}%/año: coste compuesto a ${years} año(s) ${money(result.totalFeeCost, true)}`;
+}
+
+// INV15 (Oleada 4, Bloque 4): coste total de propiedad real — IVX4 (arriba) solo aísla el TER/
+// gestión declarado; esto suma el otro coste habitual y casi siempre fijo de mantener una posición
+// (custodia/corretaje, €/año declarado) usando el mismo horizonte compartido. Solo aparece si la
+// posición declaró comisión de gestión o coste de custodia (o ambos) y hay horizonte introducido.
+function inv15TotalCostOfOwnershipLabel(position) {
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine || !position || !(position.feePct > 0 || position.custodyFeeAnnual > 0)) return "";
+  const years = parseAmount(qs("ivx4FeeHorizonYears")?.value);
+  if (!(years > 0)) return "";
+  const result = engine.totalCostOfOwnership({ currentValue: position.currentValue, feePct: position.feePct, custodyFeeAnnual: position.custodyFeeAnnual, years });
+  if (!result.calculable) return "";
+  return `coste total de propiedad a ${years} año(s): gestión ${money(result.managementFeeCost, true)} + custodia/corretaje ${money(result.custodyFeeCost, true)} = ${money(result.totalCost, true)}`;
 }
 
 // FC2: opciones del selector de traspaso — cualquier posición registrada puede figurar como
@@ -19352,6 +19432,8 @@ function saveInv16CorrelationDeclarations() {
   scenarioSettings.inv16AssetClassCorrelation = declared;
   saveScenarioSettings();
   renderInv16ConcentrationWarnings();
+  renderInv14CurrencyGeographyExposure();
+  renderInv19FeeCostTrajectory();
 }
 
 // INV16: avisa de concentración cuando dos clases de activo con peso real en la cartera están
@@ -19388,28 +19470,126 @@ function renderInv16ConcentrationWarnings() {
   note.innerHTML = `<ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">Correlación declarada por ti, nunca calculada — sirve para avisar, no decide ni bloquea nada.</p>`;
 }
 
+// INV14 (Oleada 4, Bloque 4): exposición por divisa y geografía, DECLARADA por posición — mismo
+// criterio que INV1/INV16: esta app no trae ningún dato de mercado sobre la divisa/geografía real
+// de un fondo o ETF (dependería de su cartera subyacente, que cambia sin avisar), así que se
+// pregunta directamente al registrar la posición. "Sin declarar" es una categoría más, nunca se
+// asume EUR/España por defecto.
+const INV14_REGION_LABELS = {
+  espana: "España",
+  "zona-euro": "Zona euro (resto)",
+  "europa-no-euro": "Europa (no euro)",
+  "estados-unidos": "Estados Unidos",
+  "mercados-emergentes": "Mercados emergentes",
+  global: "Global / diversificado",
+  otro: "Otro",
+  "sin-declarar": "Sin declarar",
+};
+
+function renderInv14CurrencyGeographyExposure() {
+  const container = qs("inv14CurrencyGeographyExposure");
+  if (!container) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    container.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición con valor para ver la exposición por divisa y geografía.</p>`;
+    return;
+  }
+  const positions = engine.normalizePositions(rows).positions;
+  const result = engine.currencyGeographyExposure(positions);
+  if (!result.calculable) {
+    container.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición con valor para ver la exposición por divisa y geografía.</p>`;
+    return;
+  }
+  const rowsHtml = (list, labels) => list.map((row) => {
+    const label = labels ? (labels[row.key] || row.key) : row.key;
+    const warning = row.key !== "sin-declarar" && row.pct >= 50 ? " — concentración alta" : "";
+    return `<li>${escapeHtml(label)}: ${money(row.value, true)} (${row.pct}%${warning})</li>`;
+  }).join("");
+  container.innerHTML = `
+    <h5 class="escenario-motor-panel-title">Por divisa (declarada)</h5>
+    <ul class="commit-barrier-list">${rowsHtml(result.currencyRows, null)}</ul>
+    <h5 class="escenario-motor-panel-title">Por geografía (declarada)</h5>
+    <ul class="commit-barrier-list">${rowsHtml(result.regionRows, INV14_REGION_LABELS)}</ul>
+    <p class="e19-kpi-note">Divisa y geografía declaradas por ti al registrar cada posición, nunca derivadas de la composición real de un fondo — solo avisa de concentración, nunca decide ni bloquea nada.</p>`;
+}
+
+// INV19 (Oleada 4, Bloque 4): el coste de no tocar nunca tu cartera, a 10-20 años, visto como
+// curva — compoundedFeeCost (IVX4) ya da el número final a un horizonte puntual; una trayectoria
+// que se acelera con el tiempo es más fácil de entender que una sola cifra. Mismo criterio SVG que
+// PVC19 (pv4ConfidenceBandHtml): viewBox 0-100, se estira al ancho real del contenedor.
+function inv19FeeCostTrajectoryHtml(trajectory) {
+  if (!trajectory.calculable) return "";
+  const points = trajectory.points;
+  const min = Math.min(...points.map((point) => point.netValue));
+  const max = trajectory.grossValue;
+  const span = Math.max(1, max - min);
+  const stepX = points.length > 1 ? 100 / (points.length - 1) : 0;
+  const xAt = (index) => round2(points.length > 1 ? index * stepX : 50);
+  const yAt = (value) => round2(100 - ((value - min) / span) * 100);
+  // Polígono cerrado: curva neta de izquierda a derecha (abajo) + línea plana del valor bruto de
+  // derecha a izquierda (arriba) — mismo criterio de construcción que pv4ConfidenceBandHtml (PVC19)
+  // para que el área entre ambas líneas no se autointersecte.
+  const netPointsLeftToRight = points.map((point, index) => `${xAt(index)},${yAt(point.netValue)}`);
+  const grossPointsRightToLeft = points.map((_point, index) => `${xAt(index)},${yAt(max)}`).reverse();
+  const chartLabel = `Valor de la cartera sin tocarla si la comisión anual declarada sigue descontando cada año, de hoy a ${trajectory.years} años: de ${money(max, true)} a ${money(points[points.length - 1].netValue, true)}.`;
+  const svg = `<svg class="inv19-fee-chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(chartLabel)}">
+    <polygon class="inv19-fee-area" points="${[...netPointsLeftToRight, ...grossPointsRightToLeft].join(" ")}"></polygon>
+    <polyline class="inv19-fee-net-line" points="${netPointsLeftToRight.join(" ")}" vector-effect="non-scaling-stroke"></polyline>
+  </svg>`;
+  const markYears = [10, 20].filter((year) => year <= trajectory.years);
+  const labelsRow = `<div class="pv4-cone-labels"><span>Hoy</span>${markYears.map((year) => `<span>${year} años</span>`).join("")}${markYears[markYears.length - 1] !== trajectory.years ? `<span>${trajectory.years} años</span>` : ""}</div>`;
+  return `<div class="pv4-cone-wrap">${svg}</div>${labelsRow}<p class="e19-kpi-note">Partiendo de ${money(max, true)} en ${trajectory.positionsCount} posición(es) con comisión declarada: a ${trajectory.years} años, sin ninguna aportación ni rentabilidad de mercado supuesta, la comisión sola se llevaría ${money(trajectory.totalFeeCost, true)}.</p>`;
+}
+
+function renderInv19FeeCostTrajectory() {
+  const container = qs("inv19FeeCostTrajectory");
+  if (!container) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const rows = iv1PositionsList();
+  if (!engine || !rows.length) {
+    container.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición con comisión anual declarada para ver el coste de no tocar tu cartera a 10-20 años.</p>`;
+    return;
+  }
+  const positions = engine.normalizePositions(rows).positions;
+  const trajectory = engine.portfolioFeeCostTrajectory(positions, engine.FEE_COST_TRAJECTORY_DEFAULT_YEARS);
+  if (!trajectory.calculable) {
+    container.innerHTML = `<p class="e19-kpi-note">Declara la comisión anual (arriba, al registrar cada posición) en al menos una posición con valor para ver esta trayectoria.</p>`;
+    return;
+  }
+  container.innerHTML = inv19FeeCostTrajectoryHtml(trajectory);
+}
+
 function renderIvx6GlidePath() {
   const container = qs("ivx6GlidePath");
   const classContainer = qs("inv1AssetClassNote");
   if (!container) return;
   const engine = window.FinanceCanonicalPortfolio;
   const positions = iv1PositionsList();
-  const linkedGoalIds = new Set(positions.map((position) => position.goalId).filter(Boolean));
+  const goals = activeGoalsForBudget();
+  // INV12: la lista de objetivos con alguna posición vinculada ahora combina la fuente formal
+  // (goal.fundingPositions, declarada en el propio objetivo) con el escaneo histórico por
+  // `position.goalId` (campo de fortuna anterior a INV12) — un objetivo aparece si cualquiera de
+  // las dos fuentes lo enlaza, para no dejar de mostrar vínculos ya existentes antes de esta tarea.
+  const linkedGoalIds = new Set([
+    ...positions.map((position) => position.goalId).filter(Boolean),
+    ...goals.filter((goal) => (goal.fundingPositions || []).length).map((goal) => goal.id),
+  ]);
   if (!engine || !linkedGoalIds.size) {
     container.innerHTML = `<p class="e19-kpi-note">Vincula una posición a un objetivo con fecha (arriba, al registrar la posición) para ver su banda de horizonte.</p>`;
     if (classContainer) classContainer.innerHTML = "";
     return;
   }
-  const goals = activeGoalsForBudget();
   const classCards = [];
   const cards = [...linkedGoalIds].map((goalId) => {
     const goal = goals.find((item) => item.id === goalId);
     if (!goal || !goal.targetDate) return "";
-    const result = engine.glidePathForGoal({ goalId, goalName: goal.name, targetDate: goal.targetDate, positions });
+    const fundingPositionIds = goal.fundingPositions || [];
+    const result = engine.glidePathForGoal({ goalId, goalName: goal.name, targetDate: goal.targetDate, positions, fundingPositionIds });
     if (!result.calculable) return "";
     const rows = result.positions.map((position) => `<li>${escapeHtml(position.label)}: ${money(position.value, true)} (${position.pct}%)</li>`).join("");
     // INV1: composición real por clase de activo declarada, frente a la banda que se acaba de calcular.
-    const classResult = engine.assetClassVsGlidePath({ goalId, positions }, result.band);
+    const classResult = engine.assetClassVsGlidePath({ goalId, positions, fundingPositionIds }, result.band);
     if (classResult.calculable) {
       const classRows = classResult.rows.map((row) => `<li>${escapeHtml(INV1_ASSET_CLASS_LABELS[row.assetClass] || row.assetClass)}: ${money(row.value, true)} (${row.pct}%)</li>`).join("");
       const mismatchNote = classResult.mismatch ? ` <span class="warning">${INV1_MISMATCH_NOTES[classResult.mismatch]}</span>` : "";
@@ -19578,7 +19758,13 @@ function renderInv7LiquidityLadder() {
   const ladder = engine.liquidityLadder(result.positions, floor);
   const items = ladder.tiers
     .filter((tier) => tier.value > 0)
-    .map((tier) => `<li class="commit-barrier-item"><span>${escapeHtml(tier.label)}</span><span>${money(tier.value, true)}</span></li>`)
+    .map((tier) => {
+      // INV20: cuánto de este tramo viene de una anulación declarada por posición, no del tipo de
+      // instrumento — visible para que el hogar sepa cuándo está viendo su propio criterio en vez
+      // del inferido.
+      const overrideNote = tier.overriddenValue > 0 ? ` <span class="e19-kpi-note">(${money(tier.overriddenValue, true)} por anulación declarada)</span>` : "";
+      return `<li class="commit-barrier-item"><span>${escapeHtml(tier.label)}</span><span>${money(tier.value, true)}${overrideNote}</span></li>`;
+    })
     .join("");
   const floorNote = ladder.floorCovered
     ? `<p class="e19-kpi-note">Tu colchón mínimo (${money(ladder.floorValue, true)}) queda cubierto ya con la liquidez ${ladder.floorCoveredBy === "inmediata" ? "inmediata" : "de hasta 7 días"}.</p>`
@@ -19850,6 +20036,58 @@ function renderIv6Rebalance() {
     return `<li class="negative">${escapeHtml(label)}: ${row.currentPct}% (objetivo ${row.targetPct}%) — ${verb} ${money(Math.abs(row.amount), true)}</li>`;
   });
   note.innerHTML = `<ul class="e19-kpi-note">${rows2.join("")}</ul>`;
+}
+
+// INV17 (Oleada 4, Bloque 4): revisión de rebalanceo por calendario — IV6 (arriba) solo avisa
+// cuando la desviación cruza el umbral de un salto; una cartera que se desalinea despacio puede
+// tardar años en cruzarlo. Recordatorio simple por tiempo transcurrido desde la última revisión
+// CONFIRMADA por el hogar (nunca inferida de otra acción, mismo criterio que PVC15 con la
+// caducidad de un supuesto) — sin ninguna revisión registrada, se considera vencida desde el
+// principio.
+function inv17RebalanceReviewIntervalMonths() {
+  const configured = Number(scenarioSettings.inv17RebalanceReviewIntervalMonths);
+  return Number.isFinite(configured) && configured > 0 ? configured : window.FinanceCanonicalPortfolio?.REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS || 6;
+}
+
+function saveInv17RebalanceReviewInterval() {
+  const value = parseAmount(qs("inv17ReviewIntervalMonths")?.value);
+  if (value > 0) scenarioSettings.inv17RebalanceReviewIntervalMonths = value;
+  else delete scenarioSettings.inv17RebalanceReviewIntervalMonths;
+  saveScenarioSettings();
+  renderInv17RebalanceCalendarReview();
+}
+
+function markInv17RebalanceReviewed() {
+  // Fecha sin hora (YYYY-MM-DD), mismo formato que asOfDate() (canonical-portfolio.js) espera —
+  // una marca de tiempo completa no la reconocería y la revisión parecería no calculable.
+  scenarioSettings.inv17LastRebalanceReviewAt = new Date().toISOString().slice(0, 10);
+  saveScenarioSettings();
+  renderInv17RebalanceCalendarReview();
+  announceStatus("Revisión de rebalanceo marcada como hecha hoy.");
+}
+
+function renderInv17RebalanceCalendarReview() {
+  const note = qs("inv17RebalanceCalendarNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine) return;
+  const intervalInput = qs("inv17ReviewIntervalMonths");
+  if (intervalInput && document.activeElement !== intervalInput) {
+    intervalInput.value = scenarioSettings.inv17RebalanceReviewIntervalMonths ? String(scenarioSettings.inv17RebalanceReviewIntervalMonths) : "";
+  }
+  const status = engine.rebalanceCalendarReviewStatus({
+    lastReviewedAt: scenarioSettings.inv17LastRebalanceReviewAt || "",
+    intervalMonths: inv17RebalanceReviewIntervalMonths(),
+  });
+  if (!status.reviewed) {
+    note.innerHTML = `<p class="e19-kpi-note warning">Todavía no has marcado ninguna revisión de rebalanceo — hazlo la primera vez para empezar a contar los ${status.intervalMonths} meses.</p>`;
+    return;
+  }
+  if (status.due) {
+    note.innerHTML = `<p class="e19-kpi-note warning">Han pasado ${status.monthsSinceReview} mes(es) desde tu última revisión (${status.lastReviewedAt}) — toca revisar el reparto aunque ningún tipo haya cruzado el umbral de desviación.</p>`;
+    return;
+  }
+  note.innerHTML = `<p class="e19-kpi-note positive">Última revisión hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}), dentro de tu intervalo de ${status.intervalMonths} meses.</p>`;
 }
 
 // LEV6 (Oleada 3, Bloque 4): plan de desapalancamiento con prioridad — orden de venta al reducir
@@ -28375,12 +28613,15 @@ function renderAjustes() {
   renderIv1PositionConcentration();
   renderInv6LatentLossCandidates();
   renderInv16ConcentrationWarnings();
+  renderInv14CurrencyGeographyExposure();
+  renderInv19FeeCostTrajectory();
   renderInv7LiquidityLadder();
   renderInv8DcaTracking();
   renderInv13DcaTaxProjection();
   syncIv6TargetControls();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
+  renderInv17RebalanceCalendarReview();
   syncApx3LombardDeclarationControls();
   syncInv16CorrelationControls();
   renderLev12ProactiveMarginCallAlert();
@@ -39247,6 +39488,8 @@ async function init() {
     removeIv1Position(removeButton.dataset.iv1PositionRemove);
   });
   qs("iv6TargetSave")?.addEventListener("click", saveIv6Targets);
+  qs("inv17ReviewIntervalMonths")?.addEventListener("change", saveInv17RebalanceReviewInterval);
+  qs("inv17MarkReviewed")?.addEventListener("click", markInv17RebalanceReviewed);
   qs("a18RuleList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-a18-rule-remove]");
     if (!removeButton) return;

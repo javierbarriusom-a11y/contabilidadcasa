@@ -60,6 +60,82 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` y `GOB15` siguen siendo apuestas L, reservadas a sesión propia.
 
+## Cierre de sesión — 12 de septiembre de 2026 (175): `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 174, esta vez con el resto de tareas
+normales del Bloque 4 (Inversión) de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` que no son apuesta
+grande: `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20`, dejando `INV11` e `INV18` (las dos
+apuestas L de este bloque) para sus sesiones propias posteriores, en el orden ya establecido. Plan
+confirmado por el usuario antes de tocar código.
+
+**Construido**:
+- `INV12` — formaliza `fundingPositions` en el schema del objetivo, en vez de depender solo del
+  campo de fortuna `position.goalId` (nunca validado por `normalizePosition()` ni por
+  `canonical-e15-goals.js`, igual que ya pasaba con `assetClass`/INV1). Nuevo campo `fundingPositions`
+  (array de ids de posición, deduplicado) añadido a `normalizeGoal()` tanto en `p2-domain.js` (la
+  fuente real que persiste `p2.goals`) como en `canonical-e15-goals.js` (la que consumen
+  `contributionPlan()`/`financialCalendar()`), y una nueva `linkedPositionsForGoal()`
+  (`canonical-portfolio.js`) que `glidePathForGoal()`/`assetClassVsGlidePath()` usan como fuente
+  preferente, cayendo al escaneo histórico por `goalId` solo si no hay nada declarado en el
+  objetivo. `saveIv1Position()`/`removeIv1Position()` mantienen ambos campos sincronizados
+  automáticamente al guardar/quitar una posición — la UX de registro no cambia, pero el objetivo ya
+  no depende de que alguien escanee todas las posiciones para saber qué lo financia. Tests:
+  `tests/inv12-fundingpositions-objetivo.test.cjs` (12 tests).
+- `INV14` — exposición por divisa y geografía, declarada por posición (nunca derivada de la
+  composición real de un fondo/ETF, que esta app no conoce). Nuevos campos crudos `currency`
+  (texto libre, se guarda en mayúsculas) y `region` (lista cerrada de 7 geografías) en el registro
+  de cartera, más `currencyGeographyExposure()` (`canonical-portfolio.js`) que agrupa el valor real
+  de la cartera por cada dimensión — "sin-declarar" es una categoría más, nunca EUR/España
+  asumidos por defecto. Avisa de concentración con el mismo umbral del 50% que el resto del módulo
+  (INV16/IVX8), nunca decide ni bloquea nada. Se muestra en Herramientas avanzadas → Patrimonio e
+  inversión, junto a la correlación declarada de INV16. Tests:
+  `tests/inv14-exposicion-divisa-geografia.test.cjs` (9 tests).
+- `INV15` — coste total de propiedad real por posición. IVX4 (`compoundedFeeCost`) solo aislaba el
+  TER/gestión declarado; nuevo campo `custodyFeeAnnual` (€/año, importe fijo declarado — no un %,
+  porque la mayoría de brokers cobran lo mismo tenga la posición 1.000€ o 100.000€) y nueva
+  `totalCostOfOwnership()` (`canonical-portfolio.js`) que suma, sin componer, ese coste fijo al
+  coste compuesto de comisión de gestión que ya calculaba IVX4. Se muestra junto al resto de notas
+  de cada posición en el registro de cartera. Tests: `tests/inv15-coste-total-propiedad.test.cjs`
+  (9 tests).
+- `INV17` — revisión de rebalanceo por calendario, complementando el aviso por umbral de IV6 (que
+  solo salta si la desviación cruza el 10% de golpe; una cartera que se desalinea despacio puede
+  tardar años). Nueva `rebalanceCalendarReviewStatus()` (`canonical-portfolio.js`) compara los
+  meses transcurridos desde la última revisión CONFIRMADA por el hogar (nunca inferida de otra
+  acción, mismo criterio que la caducidad de supuestos de PVC15) contra un intervalo declarado
+  (6 meses por defecto); sin ninguna revisión registrada, se considera vencida desde el principio.
+  Tarjeta nueva en Ajustes → Cartera: objetivo de reparto y rebalanceo, con botón «Marcar revisado
+  hoy». Tests: `tests/inv17-revision-rebalanceo-calendario.test.cjs` (11 tests).
+- `INV19` — el coste de no tocar nunca tu cartera, a 10-20 años, en un gráfico. IVX4 daba un número
+  puntual a un horizonte; nueva `portfolioFeeCostTrajectory()` (`canonical-portfolio.js`) genera la
+  trayectoria año a año sumando cada posición con comisión declarada por separado (nunca un % medio
+  inventado sobre el conjunto, que distorsionaría el resultado si las comisiones declaradas son
+  distintas entre posiciones). Se dibuja como un polígono SVG continuo, mismo criterio de
+  construcción que el cono de incertidumbre de PVC19. Tests:
+  `tests/inv19-coste-no-tocar-cartera.test.cjs` (9 tests).
+- `INV20` — anulación declarada de la liquidez que INV7 (`liquidityLadder`) infiere por tipo de
+  instrumento, para cuando el tipo no refleja la liquidez real de una posición concreta (p. ej. un
+  ETF de nicho menos líquido que uno indexado grande). Nuevo campo `liquidityTierOverride`
+  (uno de los tres tramos ya existentes, opcional) que `liquidityLadder()` prioriza sobre el
+  tramo inferido por tipo cuando se declara; la escalera de liquidez de INV7 anota cuánto de cada
+  tramo viene de una anulación declarada, sin sustituir el total. Tests:
+  `tests/inv20-anular-liquidez-declarada.test.cjs` (8 tests).
+- **Validación**: `npm run verify` completo en verde (`npm install` de nuevo necesario al empezar
+  la sesión, como en sesiones anteriores). `npm test` **3950/3950** pruebas (58 nuevas: 12 de INV12,
+  9 de INV14, 9 de INV15, 11 de INV17, 9 de INV19 y 8 de INV20). `test:a11y` **1248 IDs únicos**
+  (antes 1239; +9 por los campos y contenedores nuevos de INV14/INV15/INV17/INV19/INV20).
+  `test:performance`: diff 10.000 filas 37,5 ms, forecast y escenarios 202,9 ms, recursos 2197 KB,
+  presupuestos a escala (1000 categorías × 10 años) — análisis 144,9 ms, alertas 92,2 ms, forecast
+  170,6 ms, histórico de presupuestos 41,5 ms, índice de transacciones por categoría 120,7 ms.
+  `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 16 tareas accionables — las seis apuestas grandes
+  (`INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`, cada una reservada a su propia sesión, en
+  ese orden) y el resto de los Bloques 5-7: `LEV10`/`16` (Bloque 5), `DEB12`/`14`/`16` (Bloque 6),
+  `GOB12`-`14`/`16`/`18` (Bloque 7). Con esta sesión el Bloque 4 (inversión) queda completo salvo
+  `INV11`/`INV18`.
+
 ## Cierre de sesión — 12 de septiembre de 2026 (174): `PVC16`, `PVC17`, `PVC18` y `PVC19`
 
 El usuario pidió seguir con la siguiente oleada tras la sesión 173, esta vez cerrando el resto del
