@@ -60,6 +60,70 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` y `GOB15` siguen siendo apuestas L, reservadas a sesión propia.
 
+## Cierre de sesión — 12 de septiembre de 2026 (174): `PVC16`, `PVC17`, `PVC18` y `PVC19`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 173, esta vez cerrando el resto del
+Bloque 3 (previsión viva) de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`: las cuatro tareas normales que
+quedaban de ese bloque (`PVC16`, `PVC17`, `PVC18`, `PVC19`), dejando `PVC14` (la única apuesta L del
+bloque) para su sesión propia dedicada, igual que ya pasó con los Bloques 1 y 2. Plan confirmado por el
+usuario antes de tocar código.
+
+**Construido**:
+- `PVC16` — marcar eventos no recurrentes para que no contaminen el sesgo aprendido. `record.nonRecurring
+  === true` (declarado por el hogar con motivo obligatorio, nunca inferido) se excluye de `usable` tanto
+  en `learnFromHistory()` como en `detectStructuralChange()` (`canonical-forecast.js`) — complemento
+  simétrico de `PVC3` (que busca persistencia real): un mes marcado como excepcional no contamina ni el
+  sesgo aprendido ni la detección de cambio estructural. La marca se persiste en `pvc16-non-recurring-
+  months` (motivo + fecha) y `reconciledMonthlyNetHistory()` la propaga. Se muestra en Análisis de
+  previsión, debajo del backtesting de PVX1 (que ahora anota inline qué meses quedan excluidos y por
+  qué), con un selector de mes conciliado + motivo y una lista de meses marcados con botón para
+  desmarcar. Tests: `tests/pvc16-eventos-no-recurrentes.test.cjs` (11 tests).
+- `PVC17` — índice único de "salud predictiva", con tendencia. Nueva `predictiveHealthIndex()`
+  (`canonical-e16-monitoring.js`) agrega el `meanAbsoluteError` global que `predictionQuality()` (E16) ya
+  calculaba —ponderado por muestra, no por categoría a partes iguales— en una única cifra, hasta ahora
+  solo interna a `PVC13` y sin ningún sitio que la mostrara al hogar. No inventa una escala 0-100 (exigiría
+  un umbral de "error aceptable" que el hogar no ha declarado): el índice ES el error medio en euros. La
+  tendencia compara contra la última medición guardada en el mismo cierre de mes que ya recalibra PV3
+  (`pvc17-health-snapshot`); sin medición previa, "sin-historial" explícito, nunca "estable" por defecto
+  (bug real detectado y corregido en el propio desarrollo: `Number(null)` es `0`, finito, así que la
+  comprobación necesitaba excluir `null`/`undefined` antes de coaccionar a número). Se muestra en Análisis
+  de previsión con el desglose por categoría que antes solo existía disperso. Tests:
+  `tests/pvc17-salud-predictiva.test.cjs` (15 tests).
+- `PVC18` — etiquetar la causa de cada cambio de previsión (alcance reducido, confirmado en el propio
+  backlog): sobre la comparación que `PVC6` (Oleada 3) ya hace con `diffAssumptionSnapshots()`, nueva
+  `pvc18ChangeCauses()` (`app.js`) etiqueta hasta tres causas no excluyentes entre sí, leyendo piezas que
+  ya existían — "supuesto editado" es lo que el propio diff ya detecta; "dato nuevo" y "modelo recalibrado"
+  se leen del diario de PV5 (ya con marca de tiempo por entrada) filtrado a lo ocurrido después del cierre
+  que se está comparando, siendo "modelo recalibrado" el subconjunto de esos cambios que además cruzó el
+  umbral de confianza alta de PV1 (`pv1AutoAdjustTransitionNote`, reutilizada tal cual). Ningún motor de
+  comparación nuevo. Tests: `tests/pvc18-causa-cambio-prevision.test.cjs` (13 tests).
+- `PVC19` — el cono de incertidumbre debe verse como un cono. Corrección de renderizado únicamente
+  (`pv4ConfidenceBandHtml()`, `app.js`): las columnas de barras sueltas por mes —sin conexión visual entre
+  ellas, por lo que el ensanche de `confidenceBands()` (ya calculado con `√(mes+1)`) quedaba invisible— se
+  sustituyen por un polígono SVG continuo entre el límite bajo y alto de cada mes (la forma de cono en sí)
+  más una línea central, con los mismos `low`/`high`/`center` de siempre, sin tocar ningún cálculo. Tests:
+  `tests/pvc19-cono-incertidumbre.test.cjs` (7 tests) más la actualización del test existente de PV4 al
+  nuevo marcado (columnas → polígono).
+- **Validación**: `npm run verify` completo en verde (tras `npm install`, que de nuevo faltaba por
+  completo en el contenedor de esta sesión). `npm test` **3892/3892** pruebas (46 nuevas entre las cuatro
+  tareas; el resto sin cambios de fixture necesarios salvo la actualización deliberada de dos tests
+  existentes cuyo detalle de implementación cambió a propósito: el mapeo histórico→muestras de
+  `predictionQuality` se factorizó en `pvc17QualitySamplesFromHistory()`, y el marcado de columnas de PV4
+  pasó a un polígono SVG). `test:a11y` **1239 IDs únicos** (antes 1233; +6 por los campos nuevos de PVC16/
+  PVC17). `test:performance`: diff 10.000 filas 32,2 ms, forecast y escenarios 164,2 ms, recursos 2182 KB,
+  presupuestos a escala (1000 categorías × 10 años) — análisis 115,0 ms, alertas 73,2 ms, forecast 137,4 ms,
+  histórico de presupuestos 34,7 ms, índice de transacciones por categoría 82,1 ms. `build:site`,
+  `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main` en
+  cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya vigente
+  (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 22 tareas accionables — las seis apuestas grandes
+  (`INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`, cada una reservada a su propia sesión, en ese
+  orden por la dependencia real de `GOB11` sobre `INV11` y por dejar `GOB15` para el final) y el resto de
+  los Bloques 4-7: `INV12`/`14`/`15`/`17`/`19`/`20` (Bloque 4), `LEV10`/`16` (Bloque 5), `DEB12`/`14`/`16`
+  (Bloque 6), `GOB12`-`14`/`16`/`18` (Bloque 7). Con esta sesión el Bloque 3 (previsión viva) queda
+  completo salvo `PVC14`.
+
 ## Cierre de sesión — 12 de septiembre de 2026 (173): `INV16` y `LEV14`
 
 El usuario pidió seguir con la siguiente oleada tras la sesión 172, priorizando `INV16` y `LEV14` —

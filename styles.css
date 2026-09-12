@@ -1426,47 +1426,40 @@ main {
   padding-top: 4px;
 }
 
-/* PV4 · bandas de confianza: una columna por mes, con una barra sombreada del extremo bajo al alto
-   de la banda y una marca fina en el centro (el valor previsto sin margen). */
-.pv4-band-list {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
+/* PV4/PVC19 · cono de incertidumbre: un polígono SVG continuo entre el límite bajo y el alto de
+   cada mes (el cono en sí, se ensancha con el tiempo) más una línea central para el valor previsto
+   sin margen. viewBox 0-100 con preserveAspectRatio="none": se estira al ancho real del contenedor,
+   por eso la línea central lleva vector-effect="non-scaling-stroke" (que el trazo no se deforme). */
+.pv4-cone-wrap {
+  width: 100%;
+  height: 120px;
   margin-top: 8px;
-  overflow-x: auto;
 }
 
-.pv4-band-col {
+.pv4-cone-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pv4-cone-area {
+  fill: rgba(47, 74, 120, 0.28);
+  stroke: none;
+}
+
+.pv4-cone-center {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 1.5;
+}
+
+.pv4-cone-labels {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  justify-content: space-between;
   gap: 4px;
-  flex: 1 0 auto;
-  min-width: 28px;
-}
-
-.pv4-band-track {
-  position: relative;
-  width: 14px;
-  height: 90px;
-  border-radius: 4px;
-  background: var(--surface-soft);
-}
-
-.pv4-band-range {
-  position: absolute;
-  left: 0;
-  right: 0;
-  border-radius: 4px;
-  background: rgba(47, 74, 120, 0.28);
-}
-
-.pv4-band-center {
-  position: absolute;
-  left: -2px;
-  right: -2px;
-  height: 2px;
-  background: var(--green);
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 .secondary-button {

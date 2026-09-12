@@ -266,8 +266,17 @@
     return "low";
   }
 
+  // PVC16 (Oleada 4, Bloque 3): complemento simétrico de detectStructuralChange (abajo) — aquella
+  // busca persistencia real antes de aceptar un cambio; esta excluye explícitamente un mes que el
+  // hogar ya sabe que fue excepcional (una avería, un ingreso puntual) antes de que contamine el
+  // sesgo aprendido. `record.nonRecurring === true` es una marca declarada por el hogar (nunca
+  // inferida por el motor: no hay heurística de "esto parece un evento raro"), la misma disciplina
+  // de "confirmRequired" que ya rige el resto de learnFromHistory. Un registro marcado se excluye
+  // de `usable` igual que uno sin reconciliar — no participa ni en las deviations ni en la
+  // estacionalidad mensual, porque ambas se calculan sobre la misma lista base.
   function learnFromHistory(records = [], metadata = {}) {
-    const usable = records.filter((record) => record?.reconciled === true && /^\d{4}-\d{2}$/.test(text(record.monthKey)));
+    const usable = records.filter((record) => record?.reconciled === true && record?.nonRecurring !== true && /^\d{4}-\d{2}$/.test(text(record.monthKey)));
+    const excludedNonRecurring = records.filter((record) => record?.reconciled === true && record?.nonRecurring === true).length;
     const concepts = new Map();
     usable.forEach((record) => {
       const conceptId = text(record.conceptId || record.rowKey || record.label || "unclassified");
@@ -298,6 +307,7 @@
     return {
       schemaId: LEARNING_SCHEMA_ID, generatedAt: metadata.generatedAt || new Date().toISOString(),
       source: "reconciled-ledger-only", includedRecords: usable.length, excludedRecords: records.length - usable.length,
+      excludedNonRecurring,
       deviations, seasonality, warning: usable.length < 6 ? "Muestra insuficiente: no apliques ajustes sin revisión manual." : "",
     };
   }
@@ -483,7 +493,10 @@
     const conceptId = text(options.conceptId || "monthly-net");
     const requiredConsecutiveMonths = Math.max(2, Math.round(number(options.requiredConsecutiveMonths) || 3));
     const usable = records
-      .filter((record) => record?.reconciled === true && text(record.conceptId || "monthly-net") === conceptId && /^\d{4}-\d{2}$/.test(text(record.monthKey)))
+      // PVC16: un mes marcado como excepcional tampoco cuenta como señal de persistencia — si
+      // entrara en la ventana reciente podría, por sí solo, disparar o bloquear un cambio
+      // estructural que no es tal, exactamente lo que esta marca declarada quiere evitar.
+      .filter((record) => record?.reconciled === true && record?.nonRecurring !== true && text(record.conceptId || "monthly-net") === conceptId && /^\d{4}-\d{2}$/.test(text(record.monthKey)))
       .filter((record) => Number.isFinite(Number(record.planned)) && Number.isFinite(Number(record.actual)))
       .slice()
       .sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1)); // más reciente primero

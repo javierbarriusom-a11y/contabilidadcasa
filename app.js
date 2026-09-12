@@ -21124,38 +21124,47 @@ function deviationThermometerHtml(deviations) {
 
 const PV4_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
 
-// PV4: bandas de confianza sobre la liquidez proyectada, no una sola línea. Cada columna es un mes;
-// la barra sombreada va del extremo bajo al alto de la banda, con una marca en el centro (el valor
-// previsto sin margen). Ventana de 12 meses a propósito — la banda ya se ensancha con el tiempo
-// (confidenceBands), mostrar años enteros aquí solo comprimiría la vista sin añadir nada legible.
+// PV4: bandas de confianza sobre la liquidez proyectada, no una sola línea. Ventana de 12 meses a
+// propósito — la banda ya se ensancha con el tiempo (confidenceBands), mostrar años enteros aquí
+// solo comprimiría la vista sin añadir nada legible.
+// PVC19 (Oleada 4, Bloque 3): confidenceBands() ya calculaba un margen creciente con √(mes+1) — lo
+// que no se veía era el ensanche en sí. Columnas de barras sueltas, una por mes sin conexión entre
+// ellas, no dejan que el ojo siga un envolvente continuo: el cono quedaba invisible aunque los
+// números ya lo reflejaran. Corrección de renderizado únicamente (mismo low/high/center de
+// siempre, ningún cálculo nuevo): un polígono SVG continuo entre el límite bajo y el alto de cada
+// mes es la forma de cono en sí, con una línea central para el valor previsto sin margen.
 function pv4ConfidenceBandHtml(bands) {
   if (!bands.length) return '<p class="e19-kpi-note">Sin previsión disponible todavía.</p>';
   const values = bands.flatMap((band) => [band.low, band.high]);
   const min = Math.min(0, ...values);
   const max = Math.max(1, ...values);
   const span = Math.max(1, max - min);
-  const pct = (value) => Math.round(((value - min) / span) * 100);
-  const cols = bands.map((band) => {
-    const bottom = pct(band.low);
-    const height = Math.max(2, pct(band.high) - bottom);
-    return `<div class="pv4-band-col">
-      <div class="pv4-band-track">
-        <div class="pv4-band-range" style="bottom:${bottom}%;height:${height}%" title="${escapeHtml(`${money(band.low, true)} a ${money(band.high, true)}`)}"></div>
-        <div class="pv4-band-center" style="bottom:${pct(band.center)}%"></div>
-      </div>
-      <small>${escapeHtml(band.label)}</small>
-    </div>`;
-  }).join("");
+  const stepX = bands.length > 1 ? 100 / (bands.length - 1) : 0;
+  const xAt = (index) => round2(bands.length > 1 ? index * stepX : 50);
+  const yAt = (value) => round2(100 - ((value - min) / span) * 100);
+  const highPoints = bands.map((band, index) => `${xAt(index)},${yAt(band.high)}`);
+  const lowPoints = bands.map((band, index) => `${xAt(index)},${yAt(band.low)}`).reverse();
+  const centerPoints = bands.map((band, index) => `${xAt(index)},${yAt(band.center)}`).join(" ");
   const first = bands[0];
+  const last = bands[bands.length - 1];
+  const growthNote = bands.length > 1 && last.margin > first.margin
+    ? `El margen crece de ±${money(first.margin, true)} en ${first.label} a ±${money(last.margin, true)} en ${last.label}.`
+    : "";
+  const chartLabel = `Cono de incertidumbre de la liquidez proyectada, de ${first.label} a ${last.label}. ${growthNote || "Margen constante en todo el horizonte."}`;
+  const svg = `<svg class="pv4-cone-chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="${escapeHtml(chartLabel)}">
+    <polygon class="pv4-cone-area" points="${[...highPoints, ...lowPoints].join(" ")}"></polygon>
+    <polyline class="pv4-cone-center" points="${centerPoints}" vector-effect="non-scaling-stroke"></polyline>
+  </svg>`;
+  const labelsRow = `<div class="pv4-cone-labels">${bands.map((band) => `<span>${escapeHtml(band.label)}</span>`).join("")}</div>`;
   const note = first.sampleConcepts
-    ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} partida(s) con historial suficiente. Se ensancha cuanto más lejos está el mes.`
+    ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} partida(s) con historial suficiente. ${growthNote || "Se ensancha cuanto más lejos está el mes."}`
     : "Sin historial conciliado suficiente todavía: la banda es de ancho cero, no un margen inventado.";
   // PVC13: el margen puede venir del error medio real medido (predictionQuality, E16) en vez del
   // sesgo medio por partida, cuando el primero es mayor — se dice explícitamente, nunca en silencio.
   const measuredNote = first.marginSource === "measured-error"
     ? ` Ensanchada hasta el error medio real medido (${money(first.measuredMae, true)}), mayor que el sesgo medio por partida.`
     : "";
-  return `<div class="pv4-band-list">${cols}</div><p class="e19-kpi-note">${note}${measuredNote}</p>`;
+  return `<div class="pv4-cone-wrap">${svg}</div>${labelsRow}<p class="e19-kpi-note">${note}${measuredNote}</p>`;
 }
 
 // ESX4: malla de dos supuestos cruzados — extiende la tarjeta de Sensibilidad (que varía un
@@ -21343,9 +21352,7 @@ function renderE13ScenarioLab() {
   // PVC13 (Oleada 4, Bloque 3): cierra el bucle entre predictionQuality() (E16, hasta ahora sin
   // ningún sitio real que la llamara) y confidenceBands() (PV4) — mismo histórico conciliado que ya
   // usa PVX1/learnFromHistory, reutilizado como muestras predicho/real en vez de un pipeline nuevo.
-  const qualitySamples = history
-    .filter((record) => Number.isFinite(record.planned) && Number.isFinite(record.actual))
-    .map((record) => ({ actual: record.actual, predicted: record.planned, category: "monthly-net", complete: true }));
+  const qualitySamples = pvc17QualitySamplesFromHistory(history);
   const predictionQuality = window.FinanceCanonicalE16?.predictionQuality({ samples: qualitySamples }) || null;
   const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning, { quality: predictionQuality });
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
@@ -28392,6 +28399,8 @@ function renderAjustes() {
   renderPvx5CausalTree();
   renderPvc4CategoryDrift();
   renderPvx1Backtest();
+  renderPvc16NonRecurringMonths();
+  renderPvc17PredictiveHealth();
   renderAnnualReview();
 
   const balances = accountBalancesFromState();
@@ -34813,16 +34822,50 @@ function renderPvc6SnapshotOptions() {
   if (snapshots.some((entry) => entry.monthKey === previousValue)) select.value = previousValue;
 }
 
-function pvc6DiffResultHtml(result) {
+// PVC18 (Oleada 4, Bloque 3): alcance reducido — PVC6 (arriba) ya compara "qué preveíamos
+// entonces" contra "qué prevemos ahora" con diffAssumptionSnapshots(); aquí solo se etiqueta la
+// CAUSA de ese cambio ya detectado, sin motor de comparación nuevo. Tres causas posibles, no
+// excluyentes entre sí (pueden darse varias a la vez, incluso ninguna en los supuestos y aun así
+// haber cambiado la previsión): "supuesto editado" es exactamente lo que diffAssumptionSnapshots
+// ya detecta (un valor distinto); "dato nuevo" y "modelo recalibrado" se leen del propio diario de
+// PV5 (ya registra, con marca de tiempo, cada cambio de la desviación aprendida) filtrado a lo
+// ocurrido DESPUÉS del cierre que se está comparando — "modelo recalibrado" es el subconjunto de
+// esos cambios que además cruzó el umbral de confianza alta de PV1 (pv1AutoAdjustTransitionNote ya
+// detecta exactamente ese cruce, reutilizado tal cual). Ninguna causa se inventa: las tres se leen
+// de piezas que ya existían, solo se combinan y se etiquetan.
+const PVC18_CAUSE_LABELS = {
+  "supuesto-editado": "supuesto editado a mano",
+  "dato-nuevo": "dato nuevo conciliado",
+  "modelo-recalibrado": "modelo recalibrado (cruce de confianza de PV1)",
+};
+
+function pvc18ChangeCauses(diffResult, sinceTimestamp) {
+  const causes = [];
+  if (diffResult?.calculable && diffResult.changed.length) causes.push("supuesto-editado");
+  const sinceTime = sinceTimestamp ? Date.parse(sinceTimestamp) : NaN;
+  const entriesSince = Number.isFinite(sinceTime) ? loadPv5Diary().filter((entry) => Date.parse(entry.at) > sinceTime) : [];
+  if (entriesSince.length) causes.push("dato-nuevo");
+  if (entriesSince.some((entry) => pv1AutoAdjustTransitionNote(entry))) causes.push("modelo-recalibrado");
+  return causes;
+}
+
+function pvc18CausesHtml(causes) {
+  if (!causes.length) return "";
+  const labels = causes.map((cause) => PVC18_CAUSE_LABELS[cause] || cause).join(", ");
+  return `<p class="e19-kpi-note">Causa del cambio desde ese cierre: ${escapeHtml(labels)}.</p>`;
+}
+
+function pvc6DiffResultHtml(result, causes = []) {
   if (!result || !result.calculable) return "Sin previsión actual o sin ese snapshot guardado para comparar.";
+  const causesHtml = pvc18CausesHtml(causes);
   if (!result.changed.length) {
-    return `<p class="e19-kpi-note positive">Ningún supuesto ha cambiado desde ese cierre (${result.unchangedCount} sin cambios).</p>`;
+    return `${causesHtml}<p class="e19-kpi-note positive">Ningún supuesto ha cambiado desde ese cierre (${result.unchangedCount} sin cambios).</p>`;
   }
   const rows = result.changed.map((item) => {
     const format = (value) => (item.unit === "boolean" ? (value ? "sí" : "no") : item.unit === "EUR" ? money(value, true) : item.unit === "percent" ? `${value}%` : value);
     return `<li><strong>${escapeHtml(item.label)}</strong>: ${format(item.previousValue)} → ${format(item.currentValue)}.</li>`;
   }).join("");
-  return `<div class="e19-kpi-note"><p>${result.changed.length} supuesto(s) cambiado(s) desde entonces (${result.unchangedCount} sin cambios):</p><ul class="commit-barrier-list">${rows}</ul></div>`;
+  return `${causesHtml}<div class="e19-kpi-note"><p>${result.changed.length} supuesto(s) cambiado(s) desde entonces (${result.unchangedCount} sin cambios):</p><ul class="commit-barrier-list">${rows}</ul></div>`;
 }
 
 function handlePvc6SnapshotCompare() {
@@ -34837,7 +34880,8 @@ function handlePvc6SnapshotCompare() {
   }
   const current = canonicalScenarioResults.base?.forecast?.assumptions;
   const result = engine.diffAssumptionSnapshots(snapshot.assumptions, current);
-  note.innerHTML = pvc6DiffResultHtml(result);
+  const causes = pvc18ChangeCauses(result, snapshot.closedAt);
+  note.innerHTML = pvc6DiffResultHtml(result, causes);
 }
 
 function loadCierreReportArchive() {
@@ -34884,22 +34928,71 @@ function handleCierreReportArchiveDownload(monthKey) {
 // cierre a otro sin dejar rastro no es distinto de que no exista. Ninguna previsión se ajusta sola
 // (regla transversal 04): el aprendizaje sigue con `confirmRequired: true`/`applied: false`; esto
 // solo registra qué cambió y por qué.
+// PVC16 (Oleada 4, Bloque 3): meses marcados por el hogar como excepcionales, con motivo
+// declarado — nunca un booleano solo, para que quien lo revise después sepa por qué se excluyó
+// (mismo criterio de "declarado, no inferido" que ya aplican INV16/LEV14). Vive en localStorage,
+// no en scenarioSettings, porque no forma parte de ningún escenario financiero: es una anotación
+// sobre el histórico real ya conciliado, igual que el snapshot de PV3 o el diario de PV5.
+function loadPvc16NonRecurringMonths() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("pvc16-non-recurring-months"), "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePvc16NonRecurringMonths(map) {
+  storageSet(storageKey("pvc16-non-recurring-months"), JSON.stringify(map));
+}
+
+function markPvc16NonRecurringMonth(monthKey, reason) {
+  const trimmedReason = String(reason || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(String(monthKey || "")) || !trimmedReason) return;
+  const map = loadPvc16NonRecurringMonths();
+  map[monthKey] = { reason: trimmedReason, markedAt: new Date().toISOString() };
+  savePvc16NonRecurringMonths(map);
+}
+
+function unmarkPvc16NonRecurringMonth(monthKey) {
+  const map = loadPvc16NonRecurringMonths();
+  delete map[monthKey];
+  savePvc16NonRecurringMonths(map);
+}
+
 function reconciledMonthlyNetHistory() {
   const forecast = canonicalScenarioResults.base?.forecast;
   if (!forecast) return [];
   const matchedMonths = new Map((canonicalLedgerSnapshot?.reconciliation?.months || []).filter((month) => month.status === "matched").map((month) => [month.monthKey, month]));
-  return [...matchedMonths.values()].map((month) => ({
-    monthKey: month.monthKey,
-    conceptId: "monthly-net",
-    label: "Flujo mensual",
-    planned: (() => {
-      const row = forecast.series.find((item) => item.monthKey === month.monthKey);
-      return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN;
-    })(),
-    actual: Number(month.bankIncome) - Number(month.bankExpense),
-    amount: Number(month.bankIncome) - Number(month.bankExpense),
-    reconciled: true,
-  }));
+  const nonRecurringMonths = loadPvc16NonRecurringMonths();
+  return [...matchedMonths.values()].map((month) => {
+    const nonRecurring = nonRecurringMonths[month.monthKey];
+    return {
+      monthKey: month.monthKey,
+      conceptId: "monthly-net",
+      label: "Flujo mensual",
+      planned: (() => {
+        const row = forecast.series.find((item) => item.monthKey === month.monthKey);
+        return row ? Number(row.totals.income) - Number(row.totals.outflowsBeforeSaving) : NaN;
+      })(),
+      actual: Number(month.bankIncome) - Number(month.bankExpense),
+      amount: Number(month.bankIncome) - Number(month.bankExpense),
+      reconciled: true,
+      // PVC16: solo se marca cuando el hogar lo declaró explícitamente con un motivo — su ausencia
+      // es el comportamiento de siempre (participa en el aprendizaje).
+      nonRecurring: Boolean(nonRecurring),
+      nonRecurringReason: nonRecurring ? nonRecurring.reason : "",
+    };
+  });
+}
+
+// PVC17 (Oleada 4, Bloque 3): mismo mapeo histórico conciliado → muestras predicho/real que ya
+// construía renderE13ScenarioLab() para alimentar predictionQuality() (PVC13) — factorizado aquí
+// para que el índice único de salud predictiva (más abajo) no reimplemente el mismo mapeo.
+function pvc17QualitySamplesFromHistory(history) {
+  return (Array.isArray(history) ? history : [])
+    .filter((record) => Number.isFinite(record.planned) && Number.isFinite(record.actual))
+    .map((record) => ({ actual: record.actual, predicted: record.planned, category: "monthly-net", complete: true }));
 }
 
 function loadPv3LearningSnapshot() {
@@ -34913,6 +35006,23 @@ function loadPv3LearningSnapshot() {
 
 function savePv3LearningSnapshot(snapshot) {
   storageSet(storageKey("pv3-learning-snapshot"), JSON.stringify(snapshot));
+}
+
+// PVC17: última medición guardada del índice de salud predictiva, para calcular la tendencia
+// mismo patrón snapshot-a-snapshot que PV3 (arriba) — se actualiza en el mismo cierre de mes
+// firmado que recalibra el aprendizaje de desviaciones, nunca en cada render (comparar contra sí
+// misma en cada apertura de pantalla no diría nada sobre una tendencia real).
+function loadPvc17HealthSnapshot() {
+  try {
+    const parsed = JSON.parse(storageGet(storageKey("pvc17-health-snapshot"), "{}"));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePvc17HealthSnapshot(snapshot) {
+  storageSet(storageKey("pvc17-health-snapshot"), JSON.stringify(snapshot));
 }
 
 const PV5_DIARY_MAX_ENTRIES = 200;
@@ -34984,6 +35094,11 @@ function recalibrateForecastLearning(monthKey, closedAt) {
   });
   savePv3LearningSnapshot(nextSnapshot);
   if (newEntries.length) savePv5Diary([...newEntries, ...loadPv5Diary()]);
+  // PVC17: misma cadencia de mes cerrado que el resto de este disparador — guarda el MAE de HOY
+  // (antes de que este cierre lo cambie) para que la próxima vez pueda decir si mejoró o empeoró,
+  // nunca comparado contra sí mismo en el mismo instante.
+  const quality = window.FinanceCanonicalE16?.predictionQuality({ samples: pvc17QualitySamplesFromHistory(reconciledMonthlyNetHistory()) });
+  if (quality) savePvc17HealthSnapshot({ meanAbsoluteError: quality.meanAbsoluteError, samples: quality.samples, at: closedAt });
   return newEntries;
 }
 
@@ -35064,7 +35179,11 @@ function pvx1BacktestHtml(history, learning) {
     .map((record) => {
       const delta = round2(record.actual - record.planned);
       const deltaClass = delta > 0 ? "positive" : delta < 0 ? "negative" : "";
-      return `<li class="commit-barrier-item"><span>${escapeHtml(record.monthKey)}</span><span>previsto ${money(record.planned, true)} · real ${money(record.actual, true)} · <span class="${deltaClass}">${delta > 0 ? "+" : ""}${money(delta, true)}</span></span></li>`;
+      // PVC16: nota visible cuando el mes está marcado como excepcional — el backtesting sigue
+      // mostrando previsto/real de ese mes (sigue siendo un mes real conciliado), pero deja claro
+      // que no participa en la desviación media de abajo ni en el sesgo aprendido.
+      const nonRecurringNote = record.nonRecurring ? ` · <em>excepcional: ${escapeHtml(record.nonRecurringReason)} (excluido del aprendizaje)</em>` : "";
+      return `<li class="commit-barrier-item"><span>${escapeHtml(record.monthKey)}</span><span>previsto ${money(record.planned, true)} · real ${money(record.actual, true)} · <span class="${deltaClass}">${delta > 0 ? "+" : ""}${money(delta, true)}</span>${nonRecurringNote}</span></li>`;
     })
     .join("");
   const summary = learning?.deviations?.[0];
@@ -35082,6 +35201,90 @@ function renderPvx1Backtest() {
   const history = reconciledMonthlyNetHistory();
   const learning = window.FinanceCanonicalForecast?.learnFromHistory(history, { generatedAt: forecast?.generatedAt }) || {};
   container.innerHTML = pvx1BacktestHtml(history, learning);
+}
+
+// PVC16 (Oleada 4, Bloque 3): reutiliza el mismo histórico que PVX1 (reconciledMonthlyNetHistory,
+// ya con nonRecurring/nonRecurringReason resueltos) — no reconstruye una segunda lista de "meses
+// conciliados disponibles". Un mes ya marcado desaparece del selector (no tiene sentido volver a
+// marcarlo) y aparece en la lista de abajo con su motivo y un botón para desmarcarlo.
+function pvc16NonRecurringMarkup(history) {
+  const marked = history.filter((record) => record.nonRecurring);
+  const unmarked = history.filter((record) => !record.nonRecurring);
+  const markedRows = marked.length
+    ? [...marked].sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1))
+      .map((record) => `<li class="commit-barrier-item"><span>${escapeHtml(record.monthKey)}</span><span>${escapeHtml(record.nonRecurringReason)}</span><button type="button" class="e19-btn e19-btn-secondary" data-pvc16-unmark="${escapeHtml(record.monthKey)}">Quitar marca</button></li>`)
+      .join("")
+    : `<li class="e19-kpi-note">Sin meses marcados como excepcionales.</li>`;
+  const options = [...unmarked].sort((a, b) => (a.monthKey < b.monthKey ? 1 : -1))
+    .map((record) => `<option value="${escapeHtml(record.monthKey)}">${escapeHtml(record.monthKey)}</option>`)
+    .join("");
+  return { markedRows, options, hasUnmarked: Boolean(unmarked.length) };
+}
+
+function renderPvc16NonRecurringMonths() {
+  const list = qs("pvc16NonRecurringList");
+  const select = qs("pvc16MonthSelect");
+  const button = qs("pvc16MarkMonth");
+  if (!list || !select) return;
+  const { markedRows, options, hasUnmarked } = pvc16NonRecurringMarkup(reconciledMonthlyNetHistory());
+  list.innerHTML = markedRows;
+  select.innerHTML = hasUnmarked ? options : `<option value="">Sin meses conciliados disponibles</option>`;
+  select.disabled = !hasUnmarked;
+  if (button) button.disabled = !hasUnmarked;
+}
+
+function handlePvc16MarkMonth() {
+  const monthKey = qs("pvc16MonthSelect")?.value || "";
+  const reasonInput = qs("pvc16Reason");
+  const reason = reasonInput?.value || "";
+  if (!monthKey || !String(reason).trim()) {
+    announceStatus("Indica el mes y el motivo antes de marcarlo como excepcional.");
+    return;
+  }
+  markPvc16NonRecurringMonth(monthKey, reason);
+  if (reasonInput) reasonInput.value = "";
+  renderPvc16NonRecurringMonths();
+  announceStatus(`${monthKey} marcado como excepcional: se excluye del aprendizaje de desviaciones.`);
+}
+
+function handlePvc16UnmarkMonth(monthKey) {
+  unmarkPvc16NonRecurringMonth(monthKey);
+  renderPvc16NonRecurringMonths();
+  announceStatus(`${monthKey} vuelve a participar en el aprendizaje de desviaciones.`);
+}
+
+// PVC17 (Oleada 4, Bloque 3): de solo lectura, igual que pvc11PendingLearningPreview — nunca
+// guarda nada por su cuenta (el único guardado del snapshot vive en recalibrateForecastLearning,
+// en el cierre de mes firmado). Reutiliza tal cual predictionQuality() (E16) y su nuevo
+// predictiveHealthIndex() sobre el mismo histórico conciliado que ya alimenta PVX1/PVC16.
+function pvc17PredictiveHealthIndex() {
+  const quality = window.FinanceCanonicalE16?.predictionQuality({ samples: pvc17QualitySamplesFromHistory(reconciledMonthlyNetHistory()) });
+  if (!quality) return null;
+  const previous = loadPvc17HealthSnapshot();
+  return window.FinanceCanonicalE16.predictiveHealthIndex(quality, Number.isFinite(previous.meanAbsoluteError) ? previous.meanAbsoluteError : null);
+}
+
+function renderPvc17PredictiveHealth() {
+  const note = qs("pvc17HealthNote");
+  const list = qs("pvc17HealthCategories");
+  if (!note) return;
+  const index = pvc17PredictiveHealthIndex();
+  if (!index || !index.samples) {
+    note.textContent = "Sin muestras completas todavía (hace falta al menos un mes conciliado con previsto y real) para calcular la salud predictiva.";
+    if (list) list.innerHTML = "";
+    return;
+  }
+  const trendLine = index.trend === "sin-historial"
+    ? " Sin medición previa con la que comparar todavía — se guarda una en el próximo cierre de mes."
+    : index.trend === "estable"
+      ? ` Se mantiene estable frente al último cierre de mes (${money(index.previousMeanAbsoluteError, true)}).`
+      : ` Ha pasado de ${money(index.previousMeanAbsoluteError, true)} a ${money(index.meanAbsoluteError, true)} desde el último cierre de mes: ${index.trend}.`;
+  note.textContent = `Error medio absoluto de la previsión: ${money(index.meanAbsoluteError, true)} sobre ${index.samples} muestra(s), confianza ${index.confidence}.${trendLine}`;
+  if (list) {
+    list.innerHTML = index.categories.length
+      ? index.categories.map((cat) => `<li class="commit-barrier-item"><span>${escapeHtml(cat.category)}</span><span>${money(cat.meanAbsoluteError, true)} sobre ${cat.samples} muestra(s)</span></li>`).join("")
+      : `<li class="e19-kpi-note">Sin categorías con muestras suficientes todavía.</li>`;
+  }
 }
 
 // PVC4 (Oleada 3, Bloque 5): a diferencia de reconciledMonthlyNetHistory() (un único concepto
@@ -39026,6 +39229,12 @@ async function init() {
     removeFc3PriorLoss(removeButton.dataset.fc3LossRemove);
   });
   qs("pvc6SnapshotCompare")?.addEventListener("click", handlePvc6SnapshotCompare);
+  qs("pvc16MarkMonth")?.addEventListener("click", handlePvc16MarkMonth);
+  qs("pvc16NonRecurringList")?.addEventListener("click", (event) => {
+    const unmarkButton = event.target.closest("[data-pvc16-unmark]");
+    if (!unmarkButton) return;
+    handlePvc16UnmarkMonth(unmarkButton.dataset.pvc16Unmark);
+  });
   qs("lev4OfferSave")?.addEventListener("click", saveLev4LombardOffer);
   qs("lev4OfferList")?.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-lev4-offer-remove]");

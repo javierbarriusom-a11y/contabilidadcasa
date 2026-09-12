@@ -3316,10 +3316,13 @@
                  (A1-2) se congela un snapshot del registro de supuestos ya versionado (A7-2/E12a) —
                  esta tarjeta compara "qué preveíamos entonces" contra la previsión de ahora, con el
                  diff de qué supuesto concreto cambió. Distinto de PVX1 (backtesting de precisión, al
-                 final de esta misma pantalla): aquí se compara el MODELO, no solo el acierto final. -->
+                 final de esta misma pantalla): aquí se compara el MODELO, no solo el acierto final.
+                 PVC18 (Oleada 4, Bloque 3) añade, sobre esa misma comparación, la causa del cambio:
+                 supuesto editado a mano, dato nuevo conciliado y/o modelo recalibrado (cruce de
+                 confianza de PV1) — las tres pueden darse a la vez, o ninguna en los supuestos. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Previsión con control de versiones</h3>
-              <p class="e19-kpi-note">Cada cierre de mes firmado guarda una foto de los supuestos de la previsión de ese momento. Elige un cierre pasado para ver exactamente qué supuesto cambió desde entonces hasta la previsión de ahora.</p>
+              <p class="e19-kpi-note">Cada cierre de mes firmado guarda una foto de los supuestos de la previsión de ese momento. Elige un cierre pasado para ver exactamente qué supuesto cambió desde entonces hasta la previsión de ahora, y por qué: supuesto editado a mano, dato nuevo conciliado o modelo recalibrado.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Comparar con el cierre de</span>
@@ -3389,6 +3392,39 @@
               <h3 class="escenario-motor-panel-title">Backtesting: cómo ha acertado la previsión</h3>
               <p class="e19-kpi-note">Mes a mes, lo que la previsión decía frente a lo realmente conciliado con el banco — solo meses ya cerrados y conciliados, nunca una previsión sin confirmar.</p>
               <div id="pvx1Backtest"></div>
+            </article>
+
+            <!-- PVC16 (Oleada 4, Bloque 3): complemento simétrico de detectStructuralChange (PVC3,
+                 arriba busca persistencia real) — un mes que el propio hogar sabe que fue
+                 excepcional (una avería, un ingreso puntual) se puede excluir explícitamente del
+                 aprendizaje de desviaciones, con un motivo obligatorio, nunca por una heurística
+                 automática. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Meses excepcionales, fuera del aprendizaje</h3>
+              <p class="e19-kpi-note">Si un mes conciliado fue un caso puntual (una avería, un ingreso extraordinario), márcalo aquí con el motivo para que no desvíe la desviación media ni el cambio estructural detectado — el mes sigue apareciendo en el backtesting de arriba, solo deja de contar para el aprendizaje.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Mes conciliado</span>
+                  <select id="pvc16MonthSelect"></select>
+                </label>
+                <label class="month-picker">
+                  <span>Motivo</span>
+                  <input id="pvc16Reason" type="text" placeholder="Ej. avería del coche, no se repite" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="pvc16MarkMonth">Marcar como excepcional</button>
+              <ul class="commit-barrier-list" id="pvc16NonRecurringList"></ul>
+            </article>
+
+            <!-- PVC17 (Oleada 4, Bloque 3): agrega el error medio absoluto de predictionQuality()
+                 (E16), hasta ahora solo interno a PVC13, en una cifra única con tendencia — hoy
+                 esa información existía dispersa por categoría y sin ningún sitio que la mostrara
+                 al hogar. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Salud predictiva: un único índice</h3>
+              <p class="e19-kpi-note">Cuánto se equivoca de media la previsión frente a lo realmente conciliado, en una sola cifra que se actualiza en cada cierre de mes — con la tendencia frente al cierre anterior. No es una nota sobre 100: es el error medio en euros, ya calculado por el motor de calidad de previsión.</p>
+              <p class="e19-kpi-note" id="pvc17HealthNote"></p>
+              <ul class="commit-barrier-list" id="pvc17HealthCategories"></ul>
             </article>
           </section>
 
