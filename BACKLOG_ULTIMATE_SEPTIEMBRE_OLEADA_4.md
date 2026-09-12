@@ -7,15 +7,16 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 174, 12 de septiembre de 2026): `PVC16`-`PVC19` construidas, Bloque 3 cerrado salvo
-`PVC14`.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`,
-`DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y
-`LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170); `INV13`,
-`LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada (sesión 172); `INV16` y
-`LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174) — con esto el Bloque 3 (previsión
-viva) queda completo salvo `PVC14`, la apuesta L reservada a sesión propia. Quedan 22 tareas
-accionables: las seis apuestas grandes (`INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`, todas
-reservadas a sesión propia) y el resto de los Bloques 4-7.
+**Estado (sesión 175, 12 de septiembre de 2026): `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20`
+construidas, Bloque 4 cerrado salvo `INV11`/`INV18`.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`,
+sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta
+a punta (sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`,
+`LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión
+propia dedicada (sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19`
+(sesión 174) — con esto el Bloque 3 (previsión viva) quedó completo salvo `PVC14`; `INV12`, `INV14`,
+`INV15`, `INV17`, `INV19` e `INV20` (sesión 175) — con esto el Bloque 4 (inversión) queda completo
+salvo `INV11`/`INV18`. Quedan 16 tareas accionables: las seis apuestas grandes (`INV11`, `INV18`,
+`PVC14`, `GOB11`, `GOB15`, `GOB19`, todas reservadas a sesión propia) y el resto de los Bloques 5-7.
 
 ## 0. Por qué existe este documento
 
@@ -130,15 +131,15 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 12 | ⏳ `INV11` | Tratar el plan de pensiones como una posición de cartera más | `IN-1` | L | Alto | `canonical-pension-simulator.js` sigue sin XIRR real, sin rebalanceo y sin glide path — ningún cambio de la Oleada 3 lo conectó. |
-| 13 | ⏳ `INV12` | Formalizar `fundingPositions` en el schema del objetivo, no como campo de fortuna | `IN-2` | M | Medio | `goalId` sigue sin formar parte de `normalizePosition()` ni de `canonical-e15-goals.js`, pese a que `INV1` (Oleada 3) ya usa un campo raw equivalente (`position.assetClass`) con el mismo patrón de fortuna. |
+| 13 | ✅ `INV12` | Formalizar `fundingPositions` en el schema del objetivo, no como campo de fortuna | `IN-2` | M | Medio | **Hecho (sesión 175).** Nuevo campo `fundingPositions` (array de ids de posición, deduplicado) en `normalizeGoal()` de `p2-domain.js` (la fuente real de `p2.goals`) y de `canonical-e15-goals.js`. Nueva `linkedPositionsForGoal()` (`canonical-portfolio.js`) que `glidePathForGoal()`/`assetClassVsGlidePath()` usan como fuente preferente, cayendo al escaneo histórico por `position.goalId` solo si el objetivo no declara nada. `saveIv1Position()`/`removeIv1Position()` mantienen ambos campos sincronizados automáticamente — la UX de registro no cambia, pero el objetivo ya no depende de escanear todas las posiciones para saber qué lo financia. Tests: `tests/inv12-fundingpositions-objetivo.test.cjs`. |
 | 14 | ✅ `INV13` | Proyección fiscal de la aportación periódica (DCA) | `IN-3` | M | Alto | **Hecho (sesión 171).** `renderInv13DcaTaxProjection()` (`app.js`) reutiliza tal cual `optimizePartialSale()` (FC5, mismo campo `fc5AlreadyRealized` que ya usa LEV15) sobre la plusvalía REAL ya calculada de cada posición (`position.gainLoss`, la misma que usa `deleveragingPriority`/LEV6) — nunca un % de ganancia declarado a mano. Se muestra en Inversión, junto al seguimiento DCA de INV8. Tests: `tests/inv13-proyeccion-fiscal-dca.test.cjs`. |
-| 15 | ⏳ `INV14` | Exposición declarada por divisa y geografía | `IN-4` | S | Medio | Cero campos de divisa/región en `POSITION_TYPES`; declarativo, no derivado de mercado, coherente con el resto del módulo. |
-| 16 | ⏳ `INV15` | Coste total de propiedad real por posición (custodia + corretaje) | `IN-5` | S | Medio | `compoundedFeeCost` (`IVX4`) solo cubre TER/gestión declarado. |
+| 15 | ✅ `INV14` | Exposición declarada por divisa y geografía | `IN-4` | S | Medio | **Hecho (sesión 175).** Nuevos campos crudos `currency` (texto libre, mayúsculas) y `region` (lista cerrada de 7 geografías) en el registro de posición, más `currencyGeographyExposure()` (`canonical-portfolio.js`) que agrupa el valor real de la cartera por cada dimensión — "sin-declarar" es una categoría más, nunca EUR/España asumidos por defecto. Avisa de concentración con el mismo umbral del 50% que INV16/IVX8, nunca decide ni bloquea nada. Tests: `tests/inv14-exposicion-divisa-geografia.test.cjs`. |
+| 16 | ✅ `INV15` | Coste total de propiedad real por posición (custodia + corretaje) | `IN-5` | S | Medio | **Hecho (sesión 175).** Nuevo campo `custodyFeeAnnual` (€/año, importe fijo declarado — no un %, porque la mayoría de brokers cobran lo mismo tenga la posición 1.000€ o 100.000€) y nueva `totalCostOfOwnership()` (`canonical-portfolio.js`) que suma, sin componer, ese coste fijo al coste compuesto de comisión de gestión que ya calculaba `compoundedFeeCost` (IVX4). Tests: `tests/inv15-coste-total-propiedad.test.cjs`. |
 | 17 | ✅ `INV16` | Correlación declarada, cualitativa, entre clases de activo | `IN-6` | M | Medio | **Hecho (sesión 173).** Nueva `qualitativeConcentrationWarnings()` (`canonical-portfolio.js`) cruza la composición real de la cartera por clase de activo (mismo campo `position.assetClass` de INV1) con una correlación cualitativa declarada por el hogar entre cada par de clases (`alta`/`media`/`baja`/`negativa`, 6 pares posibles de las 4 clases) — sin ningún valor por defecto: un par sin declarar queda fuera del todo, nunca se le asume "media" ni ninguna otra cifra. Solo avisa cuando dos clases con correlación "alta" declarada pesan de verdad en la cartera (ambas > 0), con el % combinado y si supera el mismo umbral del 50% ("dominante") que ya usa `assetClassVsGlidePath`. Nunca decide ni bloquea nada. Se muestra en Inversión, justo debajo de la lectura por clase de activo de INV1. Tests: `tests/inv16-correlacion-clases-activo.test.cjs`. |
-| 18 | ⏳ `INV17` | Revisión de rebalanceo por calendario, no solo por umbral | `IN-7` | S | Medio | `INV2` (Oleada 3) solo dispara alerta al cruzar el 10% de desviación; una cartera que se desalinea despacio nunca lo cruza en un salto. |
+| 18 | ✅ `INV17` | Revisión de rebalanceo por calendario, no solo por umbral | `IN-7` | S | Medio | **Hecho (sesión 175).** Nueva `rebalanceCalendarReviewStatus()` (`canonical-portfolio.js`) compara los meses transcurridos desde la última revisión CONFIRMADA por el hogar (nunca inferida de otra acción, mismo criterio que la caducidad de supuestos de PVC15) contra un intervalo declarado (6 meses por defecto); sin ninguna revisión registrada, se considera vencida desde el principio. Complementa, no sustituye, el aviso por umbral de `IV6`/`rebalanceSuggestions`. Tarjeta nueva con botón «Marcar revisado hoy» en Ajustes → Cartera: objetivo de reparto y rebalanceo. Tests: `tests/inv17-revision-rebalanceo-calendario.test.cjs`. |
 | 19 | ⏳ `INV18` | Vista única "¿de qué posición y cuándo saco X€ más barato?" | `IN-8` | L | Alto | Cruza `optimizePartialSale`, `marginalTaxOnAdditionalIncome` y el calendario de objetivos — hoy sueltos. |
-| 20 | ⏳ `INV19` | El coste de no tocar tu cartera nunca, a 10-20 años, en un gráfico | `IN-9` | S | Bajo-Medio | `compoundedFeeCost` da un número puntual; falta la trayectoria compuesta visual. |
-| 21 | ⚠️ `INV20` | Permitir anular la liquidez inferida por tipo con un valor declarado por posición | `IN-10` | S | Medio | Alcance reducido: `INV7` (Oleada 3, `liquidityLadder`) ya clasifica cada posición por tipo en tres franjas (inmediata/corta/sin clasificar). Falta solo la anulación declarada cuando el tipo no refleja la liquidez real de una posición concreta (p. ej. un ETF de nicho menos líquido que uno indexado grande) — no un campo obligatorio nuevo. |
+| 20 | ✅ `INV19` | El coste de no tocar tu cartera nunca, a 10-20 años, en un gráfico | `IN-9` | S | Bajo-Medio | **Hecho (sesión 175).** Nueva `portfolioFeeCostTrajectory()` (`canonical-portfolio.js`) genera la trayectoria año a año sumando cada posición con comisión declarada por separado (nunca un % medio inventado sobre el conjunto). Se dibuja como un polígono SVG continuo, mismo criterio de construcción que el cono de incertidumbre de PVC19. Tests: `tests/inv19-coste-no-tocar-cartera.test.cjs`. |
+| 21 | ✅ `INV20` | Permitir anular la liquidez inferida por tipo con un valor declarado por posición | `IN-10` | S | Medio | **Hecho (sesión 175).** Alcance reducido confirmado: nuevo campo `liquidityTierOverride` (uno de los tres tramos ya existentes de `INV7`/`liquidityLadder`, opcional) que se prioriza sobre el tramo inferido por tipo cuando se declara; la escalera de liquidez anota cuánto de cada tramo viene de una anulación declarada, sin sustituir el total. Tests: `tests/inv20-anular-liquidez-declarada.test.cjs`. |
 
 ---
 

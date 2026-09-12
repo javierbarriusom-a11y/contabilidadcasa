@@ -104,7 +104,9 @@ test("wiring: saveIv1Position guarda assetClass en el registro de la posición (
 test("wiring: renderIvx6GlidePath también pinta la comparación de clase de activo (INV1)", () => {
   const start = appSource.indexOf("function renderIvx6GlidePath(");
   assert.ok(start >= 0, "No existe renderIvx6GlidePath");
-  const block = appSource.slice(start, start + 1800);
+  // INV12 (Oleada 4, Bloque 4) amplió el cálculo de linkedGoalIds antes de esta llamada — la
+  // ventana crece de 1800 a 2200, la comprobación sigue siendo la misma.
+  const block = appSource.slice(start, start + 2200);
   assert.match(block, /assetClassVsGlidePath\(/);
 });
 

@@ -302,6 +302,20 @@
       dcaPlan: (knownNumber(raw.dcaMonthlyAmount) && number(raw.dcaMonthlyAmount) > 0 && asOfDate(raw.dcaStartDate))
         ? { monthlyAmount: nonNegative(raw.dcaMonthlyAmount), startDate: asOfDate(raw.dcaStartDate) }
         : null,
+      // INV14 (Oleada 4, Bloque 4): divisa y geografía declaradas — opcionales, "" si no se
+      // declaran (nunca EUR/España asumidos por defecto). La divisa es texto libre en mayúsculas
+      // (código ISO habitual, p. ej. USD) porque esta app no valida contra una lista de divisas
+      // reales; la geografía sí usa una lista cerrada (GEOGRAPHY_REGIONS, más abajo).
+      currency: known(raw.currency) ? String(raw.currency).trim().toLocaleUpperCase("es") : "",
+      region: GEOGRAPHY_REGIONS.includes(raw.region) ? raw.region : "",
+      // INV15 (Oleada 4, Bloque 4): coste de custodia/corretaje anual declarado (€/año) — 0 significa
+      // "sin coste declarado", igual que feePct. Se declara como importe fijo, no como %, porque la
+      // mayoría de brokers cobran lo mismo tenga la posición 1.000€ o 100.000€.
+      custodyFeeAnnual: knownNumber(raw.custodyFeeAnnual) ? nonNegative(raw.custodyFeeAnnual) : 0,
+      // INV20 (Oleada 4, Bloque 4): anulación declarada de la liquidez que INV7 (liquidityLadder,
+      // más abajo) infiere por tipo de instrumento — null si no se declara, nunca inferido de otro
+      // dato. Solo para cuando el tipo no refleja la liquidez real de esta posición concreta.
+      liquidityTierOverride: LIQUIDITY_TIERS.some((tier) => tier.tier === raw.liquidityTierOverride) ? raw.liquidityTierOverride : null,
     };
     return { ...position, dataQuality: positionQuality(position, raw), cashFlows, xirr: xirr(cashFlows) };
   }
@@ -431,6 +445,45 @@
       const action = Math.abs(deviation) <= thresholdPct ? "ok" : amount > 0 ? "comprar" : "vender";
       return { type, currentPct, targetPct, deviation, amount, action };
     }).filter((row) => row.currentPct > 0 || row.targetPct > 0);
+  }
+
+  // INV17 (Oleada 4, Bloque 4): revisión de rebalanceo por calendario — rebalanceSuggestions (IV6,
+  // arriba) solo avisa cuando la desviación cruza el umbral de un salto; una cartera que se
+  // desalinea despacio (unos pocos puntos cada mes) puede tardar años en cruzarlo sin que nadie la
+  // revise mientras tanto. Complementa, no sustituye, el aviso por umbral: un recordatorio simple
+  // por tiempo transcurrido desde la última revisión CONFIRMADA por el hogar (nunca inferida de
+  // otra acción, mismo criterio que PVC15 con la caducidad de un supuesto) — sin ninguna revisión
+  // registrada, se considera vencida desde el principio, nunca "recién revisada" por defecto.
+  const REBALANCE_CALENDAR_REVIEW_SCHEMA_ID = "finance-inv17-rebalance-calendar-review/v1";
+  const REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS = 6;
+
+  function monthsSinceDate(dateIso, referenceDate = new Date()) {
+    const start = asOfDate(dateIso);
+    const reference = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+    if (!start || Number.isNaN(reference.getTime())) return null;
+    const [sy, sm, sd] = start.split("-").map(Number);
+    const startUtc = Date.UTC(sy, sm - 1, sd);
+    const referenceUtc = Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate());
+    if (referenceUtc < startUtc) return 0;
+    let months = (reference.getUTCFullYear() - sy) * 12 + (reference.getUTCMonth() - (sm - 1));
+    if (reference.getUTCDate() < sd) months -= 1;
+    return Math.max(0, months);
+  }
+
+  function rebalanceCalendarReviewStatus({ lastReviewedAt, intervalMonths = REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS } = {}, referenceDate = new Date()) {
+    const effectiveInterval = knownNumber(intervalMonths) && number(intervalMonths) > 0 ? number(intervalMonths) : REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS;
+    if (!known(lastReviewedAt)) {
+      return { schemaId: REBALANCE_CALENDAR_REVIEW_SCHEMA_ID, reviewed: false, due: true, monthsSinceReview: null, intervalMonths: effectiveInterval, lastReviewedAt: "" };
+    }
+    const monthsElapsed = monthsSinceDate(lastReviewedAt, referenceDate);
+    return {
+      schemaId: REBALANCE_CALENDAR_REVIEW_SCHEMA_ID,
+      reviewed: true,
+      due: monthsElapsed === null || monthsElapsed >= effectiveInterval,
+      monthsSinceReview: monthsElapsed,
+      intervalMonths: effectiveInterval,
+      lastReviewedAt: asOfDate(lastReviewedAt),
+    };
   }
 
   // LEV6 (Oleada 3, Bloque 4): plan de desapalancamiento con prioridad — al reducir deuda de
@@ -634,11 +687,25 @@
     return (ty - fy) * 12 + (tm - fm);
   }
 
-  function glidePathForGoal({ goalId, goalName, targetDate, positions = [] } = {}, now = new Date()) {
+  // INV12 (Oleada 4, Bloque 4): qué posiciones financian un objetivo se resuelve, por orden de
+  // preferencia, desde `fundingPositions` (declarado en el propio objetivo, la fuente formal desde
+  // esta tarea) y solo si ese array está vacío se recurre al escaneo histórico por `position.goalId`
+  // (campo de fortuna, anterior a INV12, que se mantiene por compatibilidad con datos ya guardados).
+  function linkedPositionsForGoal(goalId, positions, fundingPositionIds) {
+    const list = Array.isArray(positions) ? positions : [];
+    const declared = Array.isArray(fundingPositionIds) ? fundingPositionIds.filter(known) : [];
+    if (declared.length) {
+      const idSet = new Set(declared);
+      return list.filter((position) => idSet.has(position.id));
+    }
+    return list.filter((position) => position.goalId === goalId);
+  }
+
+  function glidePathForGoal({ goalId, goalName, targetDate, positions = [], fundingPositionIds } = {}, now = new Date()) {
     if (!known(goalId) || !known(targetDate)) return { schema: GLIDE_PATH_SCHEMA_ID, calculable: false };
     const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
     const monthsRemaining = monthsBetween(targetDate, nowKey);
-    const linked = (Array.isArray(positions) ? positions : []).filter((position) => position.goalId === goalId);
+    const linked = linkedPositionsForGoal(goalId, positions, fundingPositionIds);
     const totalValue = round2(linked.reduce((sum, position) => sum + number(position.currentValue), 0));
     const rows = linked
       .map((position) => ({
@@ -679,8 +746,8 @@
   // avisa de que esta app no clasifica riesgo/volatilidad real, así que esto solo hace visible el
   // contraste. `mismatch` usa el mismo umbral del 50% que ya usa IVX8 para "dominante" (aquí:
   // creciente vs. defensivo), no una cifra objetivo inventada por banda.
-  function assetClassVsGlidePath({ goalId, positions = [] } = {}, band) {
-    const linked = (Array.isArray(positions) ? positions : []).filter((position) => position.goalId === goalId);
+  function assetClassVsGlidePath({ goalId, positions = [], fundingPositionIds } = {}, band) {
+    const linked = linkedPositionsForGoal(goalId, positions, fundingPositionIds);
     const totalValue = round2(linked.reduce((sum, position) => sum + number(position.currentValue), 0));
     if (!linked.length || !(totalValue > 0)) return { calculable: false };
     const byClass = {};
@@ -730,6 +797,65 @@
     };
   }
 
+  // INV15 (Oleada 4, Bloque 4): coste total de propiedad real — IVX4 (compoundedFeeCost, arriba)
+  // solo aísla el efecto del TER/gestión declarado. El otro coste habitual de mantener una posición
+  // es la custodia/corretaje, casi siempre un importe FIJO anual (€/año) más que un % sobre el
+  // valor — se declara así, no como otro %, para no fingir que escala con el valor cuando muchos
+  // brokers cobran lo mismo tenga la posición 1.000€ o 100.000€. Por eso no compone sobre sí mismo
+  // (un coste fijo anual no crece exponencialmente): se suma sin componer al coste compuesto de
+  // feePct que ya calcula compoundedFeeCost.
+  const TOTAL_COST_OF_OWNERSHIP_SCHEMA_ID = "finance-inv15-total-cost-of-ownership/v1";
+
+  function totalCostOfOwnership({ currentValue, feePct, custodyFeeAnnual, years } = {}) {
+    const horizonYears = Math.max(0, number(years));
+    const custodyAnnual = Math.max(0, number(custodyFeeAnnual));
+    const managementFeeCost = compoundedFeeCost({ currentValue, feePct, years });
+    if (!(horizonYears > 0) || !(custodyAnnual > 0 || managementFeeCost.calculable)) {
+      return { schema: TOTAL_COST_OF_OWNERSHIP_SCHEMA_ID, calculable: false };
+    }
+    const managementCost = managementFeeCost.calculable ? managementFeeCost.totalFeeCost : 0;
+    const custodyCost = round2(custodyAnnual * horizonYears);
+    return {
+      schema: TOTAL_COST_OF_OWNERSHIP_SCHEMA_ID,
+      calculable: true,
+      years: horizonYears,
+      managementFeeCost: managementCost,
+      custodyFeeCost: custodyCost,
+      totalCost: round2(managementCost + custodyCost),
+    };
+  }
+
+  // INV19 (Oleada 4, Bloque 4): el coste de no tocar nunca tu cartera (dejar corriendo la comisión
+  // anual declarada de cada posición) visto como trayectoria, no como una única cifra puntual —
+  // compoundedFeeCost (IVX4) ya da el número final a un horizonte, pero una curva que se acelera es
+  // más fácil de entender que leer "12.345€" sin más contexto. Suma, año a año, el valor neto de
+  // CADA posición con comisión declarada por separado (cada una compone a su propio feePct) — nunca
+  // un % medio inventado sobre el conjunto, que distorsionaría el resultado si las comisiones
+  // declaradas son distintas entre posiciones.
+  const FEE_COST_TRAJECTORY_SCHEMA_ID = "finance-inv19-fee-cost-trajectory/v1";
+  const FEE_COST_TRAJECTORY_DEFAULT_YEARS = 20;
+
+  function portfolioFeeCostTrajectory(positions = [], years = FEE_COST_TRAJECTORY_DEFAULT_YEARS) {
+    const horizonYears = Math.max(1, Math.round(number(years, FEE_COST_TRAJECTORY_DEFAULT_YEARS)));
+    const feeBearing = (Array.isArray(positions) ? positions : []).filter((position) => number(position?.currentValue) > 0 && number(position?.feePct) > 0);
+    if (!feeBearing.length) return { schema: FEE_COST_TRAJECTORY_SCHEMA_ID, calculable: false };
+    const grossValue = round2(feeBearing.reduce((sum, position) => sum + number(position.currentValue), 0));
+    const points = [];
+    for (let year = 0; year <= horizonYears; year += 1) {
+      const netValue = round2(feeBearing.reduce((sum, position) => sum + number(position.currentValue) * Math.pow(1 - number(position.feePct) / 100, year), 0));
+      points.push({ year, netValue, cumulativeFeeCost: round2(grossValue - netValue) });
+    }
+    return {
+      schema: FEE_COST_TRAJECTORY_SCHEMA_ID,
+      calculable: true,
+      years: horizonYears,
+      positionsCount: feeBearing.length,
+      grossValue,
+      points,
+      totalFeeCost: points[points.length - 1].cumulativeFeeCost,
+    };
+  }
+
   // INV6 (Oleada 3, Bloque 5; VER-3 confirmó que FC3 solo cubre pérdidas ya realizadas vía FIFO):
   // candidatas a compensación de pérdidas y ganancias ANTES de vender — el dato base (gainLoss no
   // realizado por posición) ya lo calcula normalizePositions() arriba, esta función solo filtra y
@@ -774,11 +900,16 @@
   const LIQUIDITY_LADDER_SCHEMA_ID = "finanzas-casa-portfolio-liquidity-ladder";
 
   function liquidityLadder(positions = [], floorValue = 0) {
-    const byTier = new Map(LIQUIDITY_TIERS.map((tier) => [tier.tier, { ...tier, value: 0, types: [] }]));
+    const byTier = new Map(LIQUIDITY_TIERS.map((tier) => [tier.tier, { ...tier, value: 0, types: [], overriddenValue: 0 }]));
     (Array.isArray(positions) ? positions : []).forEach((position) => {
-      const tierId = LIQUIDITY_TIER_BY_TYPE[positionType(position.type)] || "sin-clasificar";
+      // INV20: el tramo declarado por el hogar para ESTA posición manda sobre el que se infiere por
+      // tipo de instrumento — solo cuando el hogar lo declara explícitamente (el tipo no siempre
+      // refleja la liquidez real, p. ej. un ETF de nicho menos líquido que uno indexado grande).
+      const overridden = LIQUIDITY_TIERS.some((tier) => tier.tier === position.liquidityTierOverride);
+      const tierId = overridden ? position.liquidityTierOverride : (LIQUIDITY_TIER_BY_TYPE[positionType(position.type)] || "sin-clasificar");
       const entry = byTier.get(tierId);
       entry.value = round2(entry.value + number(position.currentValue));
+      if (overridden) entry.overriddenValue = round2(entry.overriddenValue + number(position.currentValue));
       if (!entry.types.includes(position.type)) entry.types.push(position.type);
     });
     const tiers = LIQUIDITY_TIERS.map((tier) => byTier.get(tier.tier));
@@ -909,6 +1040,48 @@
     };
   }
 
+  // INV14 (Oleada 4, Bloque 4): exposición por divisa y geografía, DECLARADA por el hogar — mismo
+  // criterio que INV1 (clase de activo) e INV16 (correlación): esta app no trae ningún dato de
+  // mercado sobre la divisa o geografía real de un fondo/ETF (dependería de su cartera subyacente,
+  // que cambia sin avisar), así que se pregunta directamente. Sin declarar, la posición cuenta como
+  // "sin-declarar" en cada dimensión — nunca se asume EUR/España por defecto solo porque el hogar
+  // viva ahí.
+  const GEOGRAPHY_REGIONS = Object.freeze(["espana", "zona-euro", "europa-no-euro", "estados-unidos", "mercados-emergentes", "global", "otro"]);
+  const EXPOSURE_UNDECLARED = "sin-declarar";
+  const EXPOSURE_DOMINANT_THRESHOLD_PCT = 50; // mismo umbral que el resto de avisos de concentración (INV16/IVX8)
+  const CURRENCY_GEOGRAPHY_SCHEMA_ID = "finance-inv14-currency-geography-exposure/v1";
+
+  function currencyGeographyExposure(positions = []) {
+    const list = Array.isArray(positions) ? positions : [];
+    const totalValue = round2(list.reduce((sum, position) => sum + Math.max(0, number(position?.currentValue)), 0));
+    if (!(totalValue > 0)) return { schemaId: CURRENCY_GEOGRAPHY_SCHEMA_ID, calculable: false };
+    const byCurrency = {};
+    const byRegion = {};
+    list.forEach((position) => {
+      const value = Math.max(0, number(position?.currentValue));
+      if (value <= 0) return;
+      const currency = known(position?.currency) ? String(position.currency).trim().toLocaleUpperCase("es") : EXPOSURE_UNDECLARED;
+      byCurrency[currency] = round2((byCurrency[currency] || 0) + value);
+      const region = GEOGRAPHY_REGIONS.includes(position?.region) ? position.region : EXPOSURE_UNDECLARED;
+      byRegion[region] = round2((byRegion[region] || 0) + value);
+    });
+    const toRows = (map) => Object.entries(map)
+      .map(([key, value]) => ({ key, value, pct: Math.round((value / totalValue) * 100) }))
+      .sort((a, b) => b.value - a.value);
+    const currencyRows = toRows(byCurrency);
+    const regionRows = toRows(byRegion);
+    const dominantOf = (rows) => rows.find((row) => row.key !== EXPOSURE_UNDECLARED && row.pct >= EXPOSURE_DOMINANT_THRESHOLD_PCT) || null;
+    return {
+      schemaId: CURRENCY_GEOGRAPHY_SCHEMA_ID,
+      calculable: true,
+      totalValue,
+      currencyRows,
+      regionRows,
+      dominantCurrency: dominantOf(currencyRows),
+      dominantRegion: dominantOf(regionRows),
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -924,6 +1097,9 @@
     liquidityLadder,
     dcaPlanStatus,
     rebalanceSuggestions,
+    REBALANCE_CALENDAR_REVIEW_SCHEMA_ID,
+    REBALANCE_CALENDAR_REVIEW_DEFAULT_MONTHS,
+    rebalanceCalendarReviewStatus,
     deleveragingPriority,
     isFundToFundTransfer,
     applyFundTransfer,
@@ -938,15 +1114,23 @@
     GLIDE_PATH_SCHEMA_ID,
     GLIDE_PATH_BANDS,
     glidePathBand,
+    linkedPositionsForGoal,
     glidePathForGoal,
     ASSET_CLASS_TYPES,
     ASSET_CLASS_RISK_PROFILE,
     assetClassVsGlidePath,
     FEE_COST_SCHEMA_ID,
     compoundedFeeCost,
+    TOTAL_COST_OF_OWNERSHIP_SCHEMA_ID,
+    totalCostOfOwnership,
+    FEE_COST_TRAJECTORY_SCHEMA_ID,
+    FEE_COST_TRAJECTORY_DEFAULT_YEARS,
+    portfolioFeeCostTrajectory,
     ASSET_CLASS_CORRELATION_LEVELS,
     assetClassCorrelationPairKey,
     assetClassCorrelationPairs,
     qualitativeConcentrationWarnings,
+    GEOGRAPHY_REGIONS,
+    currencyGeographyExposure,
   };
 });

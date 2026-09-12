@@ -94,7 +94,9 @@ test("wiring: el registro de posición tiene los dos campos del plan DCA, antes 
 
 test("wiring: saveIv1Position lee y guarda dcaMonthlyAmount/dcaStartDate en el registro", () => {
   const start = appSource.indexOf("function saveIv1Position(");
-  const block = appSource.slice(start, start + 2500);
+  // INV14/INV15/INV20 (Oleada 4, Bloque 4) añadieron campos nuevos entre dcaStartDate y el objeto
+  // final — la ventana crece de 2500 a 3500, la comprobación sigue siendo la misma.
+  const block = appSource.slice(start, start + 3500);
   assert.match(block, /qs\("iv1PositionDcaMonthlyAmount"\)\?\.value/);
   assert.match(block, /qs\("iv1PositionDcaStartDate"\)\?\.value/);
   assert.match(block, /dcaMonthlyAmount, dcaStartDate/);
