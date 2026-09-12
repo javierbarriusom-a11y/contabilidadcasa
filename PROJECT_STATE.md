@@ -1,6 +1,6 @@
 # Estado del proyecto
 
-Fecha de revisión: 11 de septiembre de 2026.
+Fecha de revisión: 12 de septiembre de 2026.
 
 ## Índice de decisiones vigentes (GOB3 — trimestral, T3 2026: jul-sep)
 
@@ -57,10 +57,63 @@ de aquí en la siguiente regeneración, no al momento.
   (apalancamiento parcial escalonado) se construirá, pero solo como simulador informativo, nunca
   ejecuta nada; `GOB15` (simulador de vender la vivienda habitual) se confirma para una sesión futura
   dedicada. Detalle completo de cada decisión en la nota de la fila correspondiente de
-  `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. Ninguna de las cuatro se construyó todavía (`PVC14` y
-  `GOB15` siguen siendo apuestas L para sesión propia; `INV16` y `LEV14` son esfuerzo M, candidatas a
-  una próxima sesión normal) — esta decisión solo elimina el bloqueo de alcance, no adelanta la
-  construcción.
+  `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
+  `PVC14` y `GOB15` siguen siendo apuestas L, reservadas a sesión propia.
+
+## Cierre de sesión — 12 de septiembre de 2026 (173): `INV16` y `LEV14`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 172, priorizando `INV16` y `LEV14` —
+las dos únicas tareas del resto del backlog que ya venían con el alcance resuelto explícitamente por
+el hogar (§10.5, sesión 171), dejando las seis apuestas grandes (`INV11`, `INV18`, `PVC14`, `GOB11`,
+`GOB15`, `GOB19`) para sesiones propias dedicadas y el resto de los Bloques 3-7 para sesiones
+normales posteriores. Plan propuesto (13 sesiones más para agotar el backlog) confirmado por el
+usuario antes de tocar código.
+
+**Construido**:
+- `INV16` — correlación cualitativa declarada entre clases de activo. Nueva `assetClassCorrelationPairs()`/
+  `qualitativeConcentrationWarnings()` (`canonical-portfolio.js`): 6 pares posibles entre las 4 clases
+  de activo ya declarables (INV1), cada uno con un nivel cualitativo declarado por el hogar
+  (`alta`/`media`/`baja`/`negativa`) — sin ningún valor por defecto, un par sin declarar queda fuera
+  del todo, nunca se le asume "media" ni ninguna otra cifra (mismo criterio de no fabricar precisión
+  que ya aplica `assetClassVsGlidePath` con las posiciones sin clasificar). Solo avisa de
+  concentración cuando dos clases con correlación "alta" declarada pesan de verdad en la cartera real
+  (ambas > 0), con el % combinado y si supera el mismo umbral del 50% ("dominante") que ya usa
+  `assetClassVsGlidePath` — nunca decide ni bloquea nada. Se muestra en Inversión, justo debajo de la
+  lectura por clase de activo de INV1, con 6 selectores (uno por par) que se guardan solos al cambiar.
+  Tests: `tests/inv16-correlacion-clases-activo.test.cjs` (16 tests: generación de pares, motor puro,
+  wiring de los 6 selects y del guardado).
+- `LEV14` — apalancamiento parcial escalonado (dollar-cost leverage). Nueva
+  `staggeredLeverageDeployment()` (`canonical-leverage-simulator.js`) reutiliza tal cual
+  `simulateLeverage()` (AP3) para la comparación de referencia (`lumpSum`), sin reimplementar su
+  aritmética, y añade solo dos campos nuevos (número de tramos, intervalo en meses) sobre el importe/
+  tipo/escenarios ya declarados en AP3. Mismo guardarraíl AP4. Bajo los mismos supuestos declarados
+  para cada tramo, el resultado anual esperado una vez desplegado el importe entero es, por
+  aritmética, idéntico al de tomarlo de una sola vez — la tarjeta lo dice explícitamente: escalonar no
+  mejora ni empeora esa cifra esperada, solo reparte en el tiempo cuándo se toma cada tramo, reduciendo
+  el riesgo de comprometer todo el importe en un único mal momento (riesgo de timing que este
+  simulador no cuantifica, mismo criterio de no fabricar precisión que `INV16`). Solo informativo:
+  nunca programa ni ejecuta ninguna toma de deuda real. Se muestra en Ajustes › Deuda y apalancamiento,
+  justo debajo del simulador AP3. Tests: `tests/lev14-apalancamiento-escalonado.test.cjs` (11 tests:
+  motor puro, reutilización exacta de `simulateLeverage`, wiring del botón y de los campos).
+- **Validación**: `npm run verify` completo en verde (tras `npm install`, que de nuevo faltaba por
+  completo en el contenedor de esta sesión). `npm test` **3846/3846** pruebas (27 nuevas entre `INV16`
+  y `LEV14`; las 3819 existentes sin cambios de fixture necesarios — una única corrección de orden de
+  llamadas en `renderAjustes()` para no romper el wiring ya probado de `renderInv6LatentLossCandidates`).
+  `test:a11y` **1233 IDs únicos** (antes 1222; +11 por los nuevos campos de ambas tarjetas — 6 selects
+  y una nota de INV16, 2 campos, un botón y una nota de LEV14). `test:performance`: diff 10.000 filas
+  40,2 ms, forecast y escenarios 204,1 ms, recursos 2169 KB, presupuestos a escala (1000 categorías ×
+  10 años) — análisis 157,7 ms, alertas 99,1 ms, forecast 188,2 ms, histórico de presupuestos 41,1 ms,
+  índice de transacciones por categoría 132,2 ms. `build:site`, `test:privacy` y `test:smoke` sin
+  errores.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 26 tareas accionables — las seis apuestas grandes
+  (`INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`, cada una reservada a su propia sesión, en ese
+  orden por la dependencia real de `GOB11` sobre `INV11` y por dejar `GOB15` — vender la vivienda
+  habitual — para el final, con una reconfirmación del hogar antes de construirla dado su calado) y el
+  resto de los Bloques 3-7: `PVC16`-`19` (Bloque 3), `INV12`/`14`/`15`/`17`/`19`/`20` (Bloque 4),
+  `LEV10`/`16` (Bloque 5), `DEB12`/`14`/`16` (Bloque 6), `GOB12`-`14`/`16`/`18` (Bloque 7).
 
 ## Cierre de sesión — 12 de septiembre de 2026 (172): `PVC12` — consolidación de estacionalidad/deriva por categoría
 

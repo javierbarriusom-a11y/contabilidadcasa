@@ -841,6 +841,74 @@
     };
   }
 
+  // INV16 (Oleada 4, Bloque 4): correlación cualitativa entre clases de activo, DECLARADA por el
+  // hogar — el código ya descarta correlación cuantitativa real en INV1/IVX6 (arriba) por falta de
+  // un histórico de valoraciones que esta app no guarda; calcularla igualmente sería falsa
+  // precisión, no una mejora. Alcance confirmado por el hogar (sesión 171): declarada y editable,
+  // nunca una tabla fija de mercado con valores por defecto. Sin correlación declarada para un par,
+  // ese par queda fuera del todo — nunca se le asume "media" ni ningún otro valor. Solo avisa de
+  // concentración cuando dos clases con correlación "alta" declarada pesan de verdad en la cartera
+  // real (ambas con valor > 0) — nunca decide ni bloquea nada, mismo criterio que el resto de
+  // avisos de concentración de este módulo (IVX8, `mismatch` de assetClassVsGlidePath).
+  const ASSET_CLASS_CORRELATION_LEVELS = Object.freeze(["alta", "media", "baja", "negativa"]);
+  const CONCENTRATION_DOMINANT_THRESHOLD_PCT = 50; // mismo umbral que assetClassVsGlidePath (arriba)
+  const INV16_SCHEMA_ID = "finance-inv16-asset-class-correlation/v1";
+
+  function assetClassCorrelationPairKey(classA, classB) {
+    return [classA, classB].sort().join("|");
+  }
+
+  function assetClassCorrelationPairs() {
+    const pairs = [];
+    for (let i = 0; i < ASSET_CLASS_TYPES.length; i += 1) {
+      for (let j = i + 1; j < ASSET_CLASS_TYPES.length; j += 1) {
+        const classA = ASSET_CLASS_TYPES[i];
+        const classB = ASSET_CLASS_TYPES[j];
+        pairs.push({ classA, classB, key: assetClassCorrelationPairKey(classA, classB) });
+      }
+    }
+    return pairs;
+  }
+
+  function qualitativeConcentrationWarnings({ positions = [], correlationDeclarations = {} } = {}) {
+    const list = Array.isArray(positions) ? positions : [];
+    const totalValue = round2(list.reduce((sum, position) => sum + Math.max(0, number(position?.currentValue)), 0));
+    if (!(totalValue > 0)) return { schemaId: INV16_SCHEMA_ID, calculable: false };
+    const byClass = {};
+    list.forEach((position) => {
+      const value = Math.max(0, number(position?.currentValue));
+      const assetClass = ASSET_CLASS_TYPES.includes(position?.assetClass) ? position.assetClass : null;
+      if (!assetClass || value <= 0) return; // sin clasificar queda fuera, nunca un reparto asumido
+      byClass[assetClass] = round2((byClass[assetClass] || 0) + value);
+    });
+    const declared = correlationDeclarations && typeof correlationDeclarations === "object" ? correlationDeclarations : {};
+    const pairs = assetClassCorrelationPairs();
+    const warnings = pairs
+      .map((pair) => ({ ...pair, level: ASSET_CLASS_CORRELATION_LEVELS.includes(declared[pair.key]) ? declared[pair.key] : null }))
+      .filter((pair) => pair.level === "alta" && number(byClass[pair.classA]) > 0 && number(byClass[pair.classB]) > 0)
+      .map((pair) => {
+        const combinedValue = round2(number(byClass[pair.classA]) + number(byClass[pair.classB]));
+        const combinedPct = Math.round((combinedValue / totalValue) * 100);
+        return {
+          classA: pair.classA,
+          classB: pair.classB,
+          classAPct: Math.round((number(byClass[pair.classA]) / totalValue) * 100),
+          classBPct: Math.round((number(byClass[pair.classB]) / totalValue) * 100),
+          combinedPct,
+          dominant: combinedPct >= CONCENTRATION_DOMINANT_THRESHOLD_PCT,
+        };
+      })
+      .sort((a, b) => b.combinedPct - a.combinedPct);
+    return {
+      schemaId: INV16_SCHEMA_ID,
+      calculable: true,
+      totalValue,
+      declaredPairs: pairs.filter((pair) => ASSET_CLASS_CORRELATION_LEVELS.includes(declared[pair.key])).length,
+      totalPairs: pairs.length,
+      warnings,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SCHEMA_VERSION,
@@ -876,5 +944,9 @@
     assetClassVsGlidePath,
     FEE_COST_SCHEMA_ID,
     compoundedFeeCost,
+    ASSET_CLASS_CORRELATION_LEVELS,
+    assetClassCorrelationPairKey,
+    assetClassCorrelationPairs,
+    qualitativeConcentrationWarnings,
   };
 });

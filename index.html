@@ -1934,6 +1934,28 @@
               <ul class="commit-barrier-list" id="ap3ScenarioList"></ul>
             </article>
 
+            <!-- LEV14 (Oleada 4, Bloque 5): apalancamiento parcial escalonado (dollar-cost
+                 leverage) — reutiliza tal cual el importe, tipo y escenarios de rentabilidad ya
+                 declarados arriba en el simulador de apalancamiento (AP3), añadiendo solo el número
+                 de tramos y el intervalo entre ellos. Alcance confirmado por el hogar (sesión 171):
+                 solo simulador informativo, nunca programa ni ejecuta ninguna toma de deuda real. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Apalancamiento parcial escalonado (LEV14)</h3>
+              <p class="e19-kpi-note">En vez de tomar toda la deuda nueva de una vez, explora repartirla en varios tramos iguales a lo largo del tiempo — usa el importe, el tipo y los escenarios de rentabilidad ya declarados arriba. No cambia la rentabilidad esperada bajo los mismos supuestos, solo reparte cuándo te expones a cada tramo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Número de tramos</span>
+                  <input id="lev14NumTranches" type="number" min="2" step="1" inputmode="numeric" placeholder="Ej. 4" />
+                </label>
+                <label class="month-picker">
+                  <span>Intervalo entre tramos (meses)</span>
+                  <input id="lev14IntervalMonths" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 3" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="lev14SimulateRun">Simular escalonado</button>
+              <div class="e19-kpi-note" id="lev14StaggeredNote"></div>
+            </article>
+
             <!-- APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (simulador de
                  ejecución de garantía, todavía sin construir). LTV y tipo los declara el hogar,
                  nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo
@@ -3106,6 +3128,77 @@
                    solo el contraste visible (mismo criterio que IVX6: sin datos de riesgo real, no
                    se fabrica precisión). -->
               <div id="inv1AssetClassNote"></div>
+              <!-- INV16 (Oleada 4, Bloque 4): correlación cualitativa DECLARADA por el hogar entre
+                   clases de activo — esta app no calcula correlación real (sin histórico de
+                   valoraciones, ver INV1/IVX6 arriba). Alcance confirmado por el hogar (sesión
+                   171): declarada y editable, nunca una tabla fija. Solo avisa de concentración
+                   cuando dos clases con correlación "alta" declarada pesan de verdad en la
+                   cartera. -->
+              <h4 class="escenario-motor-panel-title">Correlación declarada entre clases de activo (INV16)</h4>
+              <p class="e19-kpi-note">Esta app no calcula correlación real entre clases de activo (no guarda un histórico de valoraciones). Declara tú mismo, cualitativamente, cuánto crees que se mueven juntas dos clases — sirve solo para avisar de concentración cuando ambas pesan de verdad en tu cartera, nunca es un cálculo de mercado.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Renta variable / Renta fija</span>
+                  <select id="inv16CorrRentaVariableRentaFija">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta variable / Monetario</span>
+                  <select id="inv16CorrRentaVariableMonetario">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta variable / Alternativo</span>
+                  <select id="inv16CorrRentaVariableAlternativo">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta fija / Monetario</span>
+                  <select id="inv16CorrRentaFijaMonetario">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Renta fija / Alternativo</span>
+                  <select id="inv16CorrRentaFijaAlternativo">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+                <label class="month-picker">
+                  <span>Monetario / Alternativo</span>
+                  <select id="inv16CorrMonetarioAlternativo">
+                    <option value="">Sin declarar</option>
+                    <option value="alta">Alta</option>
+                    <option value="media">Media</option>
+                    <option value="baja">Baja</option>
+                    <option value="negativa">Negativa</option>
+                  </select>
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="inv16CorrelationNote"></div>
               <!-- INV7 (Oleada 3, Bloque 5): escalera de liquidez — a cuántos días puede
                    convertirse cada posición en caja sin penalización severa, cruzado con el suelo
                    del colchón (canonical-cushion.js). Distinto de LPX2 (runway de patrimonio neto
