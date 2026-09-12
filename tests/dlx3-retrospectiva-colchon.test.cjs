@@ -110,5 +110,7 @@ test("app.js: renderDlx3Retrospective reutiliza reconciledMonthlyNetHistory y cu
   assert.match(block, /reconciledMonthlyNetHistory\(\)/);
   assert.match(block, /cushionEngine\.cushionRetrospective\(/);
   assert.match(block, /floor: cushionEngine\.cushionFloor\(lastSimulation, cuadroMandosReserve\(\)\)\.value/);
-  assert.match(deudaSource, /renderLev5DynamicStress\(\);\s*\n\s*renderDlx3Retrospective\(\);/);
+  // LEV12/LEV11 (Oleada 4, Bloque 5) intercalaron su sincronización y sus dos alertas proactivas
+  // entre renderLev5DynamicStress() y renderDlx3Retrospective() en el mismo render central.
+  assert.match(deudaSource, /renderLev5DynamicStress\(\);\s*\n\s*syncApx3LombardDeclarationControls\(\);\s*\n\s*renderLev12ProactiveMarginCallAlert\(\);\s*\n\s*renderLev11PreventiveDeleveragingAlert\(\);\s*\n\s*renderDlx3Retrospective\(\);/);
 });

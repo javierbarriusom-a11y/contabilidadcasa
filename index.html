@@ -2048,6 +2048,15 @@
               <div class="e19-kpi-note" id="apx3MarginCallNote"></div>
             </article>
 
+            <!-- LEV12 (Oleada 4, Bloque 5): alerta proactiva de LTV — el importe pedido y el LTV de
+                 mantenimiento de arriba quedan declarados (se guardan solos al salir del campo), y
+                 esta tarjeta vigila el LTV de HOY sin que haga falta pulsar "Simular caída". -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Alerta proactiva de LTV (LEV12)</h3>
+              <p class="e19-kpi-note">Con el importe pedido y el LTV de mantenimiento declarados arriba, vigila cuánto camino le queda a tu LTV de hoy hasta el de mantenimiento — sin tener que simular una caída cada vez que quieras saberlo.</p>
+              <div id="lev12ProactiveAlertNote"></div>
+            </article>
+
             <!-- LEV9 (Oleada 4, Bloque 2 — bandera del diagnóstico "El Libro Vivo", F-07, sin
                  precedente en la Oleada 3): comparador cruzado de los tres instrumentos de
                  apalancamiento para la MISMA necesidad de capital. Reutiliza el LTV/tipo Lombard ya
@@ -2111,6 +2120,16 @@
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="lev5VolatilitySave">Guardar bandas</button>
               <div id="lev5DynamicStressNote"></div>
+            </article>
+
+            <!-- LEV11 (Oleada 4, Bloque 5; alcance reducido): reutiliza la caída ponderada de arriba
+                 (LEV5) para decidir CUÁNDO conviene desapalancarse de forma preventiva, y el orden de
+                 venta ya priorizado de LEV6 para decidir QUÉ vender primero — antes de que llegue un
+                 margin call real, no cuando ya ha pasado. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Desapalancamiento preventivo (LEV11)</h3>
+              <p class="e19-kpi-note">Si la caída ponderada estimada de tu cartera (arriba) ya dispararía una llamada de garantía, esto es lo que tocaría vender primero según tu prioridad de desapalancamiento (LEV6) — antes de esperar a que pase de verdad. Nunca ejecuta ninguna venta por su cuenta.</p>
+              <div id="lev11PreventiveDeleveragingNote"></div>
             </article>
 
             <!-- LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call — compone el margin
@@ -2203,6 +2222,17 @@
                 <label class="month-picker">
                   <span>Comisión de amortización anticipada de esa deuda (%)</span>
                   <input id="ap1PrepaymentPenaltyPct" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0" />
+                </label>
+                <!-- DEB11 (Oleada 4, Bloque 6): sobre el importe ya dimensionado por DEB2 (arriba),
+                     decisión explícita entre reducir cuota o reducir plazo — nunca decidida por la
+                     app, solo reflejada una vez declarada. -->
+                <label class="month-picker">
+                  <span>Tu decisión declarada (DEB11): ¿reducir cuota o plazo?</span>
+                  <select id="deb11PreferenceSelect">
+                    <option value="">Sin decidir todavía</option>
+                    <option value="reducir-cuota">Reducir cuota</option>
+                    <option value="reducir-plazo">Reducir plazo</option>
+                  </select>
                 </label>
                 <!-- DEB3 (Oleada 3, Bloque 5): cuántos meses se está dispuesto a esperar antes de
                      decidir amortizar o no, por si aparece mejor información — distinto del
@@ -3088,6 +3118,10 @@
                    menos una posición declaró un plan de aportación periódica en su registro. -->
               <h4 class="escenario-motor-panel-title">Plan de aportación periódica (DCA)</h4>
               <div id="inv8DcaTracking"></div>
+              <!-- INV13 (Oleada 4, Bloque 4): proyección fiscal de vender hoy lo acumulado del plan
+                   DCA de arriba, sobre la plusvalía real ya calculada de cada posición. -->
+              <h4 class="escenario-motor-panel-title">Proyección fiscal del plan DCA (INV13)</h4>
+              <div id="inv13DcaTaxProjection"></div>
             </article>
 
             <!-- LEV6 (Oleada 3, Bloque 4; separado de la tarjeta de objetivos por OPT-24): orden de

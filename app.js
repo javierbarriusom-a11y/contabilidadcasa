@@ -3754,6 +3754,10 @@ function saveScenarioSettings() {
     // no deber nada, que ninguna fórmula financiera captura). "coste-minimo" es el valor por
     // defecto porque es el que AP1 ya asumía implícitamente antes de esta tarea.
     deb7Preference: state.deb7Preference === "libre-deudas" ? "libre-deudas" : "coste-minimo",
+    // DEB11 (Oleada 4, Bloque 6) · decisión declarada entre reducir cuota o reducir plazo sobre el
+    // importe ya dimensionado por DEB2 — cadena vacía significa "sin decidir todavía", nunca un
+    // valor por defecto asumido en su lugar (a diferencia de DEB7, aquí AP1 no asumía nada implícito).
+    deb11Preference: state.deb11Preference === "reducir-cuota" || state.deb11Preference === "reducir-plazo" ? state.deb11Preference : "",
     // GOB7 (Oleada 3, Bloque 5) · modo sesión con asesor/pareja, mismo criterio de persistencia
     // que el resto de datos del hogar (0/false por defecto, se sincroniza y se restaura).
     advisorSessionMode: !!state.advisorSessionMode,
@@ -16399,6 +16403,135 @@ function apx3MarginCallResultHtml(result, guardrail) {
   return `${stateLine}<p class="e19-kpi-note negative"><strong>Llamada de garantía:</strong> el banco exigiría, a tu elección, ${money(result.additionalCollateralNeeded, true)} de garantía adicional, o liquidar ${money(result.forcedLiquidationAmount, true)} de la cartera, para volver al LTV de mantenimiento. Esta simulación no decide cuál de las dos opciones tomar.</p>${guardrailLine}`;
 }
 
+// LEV12/LEV11 (Oleada 4, Bloque 5): declaración persistida del crédito Lombard tomado — hasta ahora
+// apx3LoanAmount/apx3MaintenanceLtvPct eran campos puramente efímeros, leídos solo al pulsar
+// «Simular caída», sin sobrevivir a un recargar la página. Sin persistirlos, ni la alerta proactiva
+// de LTV (LEV12) ni el desapalancamiento preventivo (LEV11) tendrían nada que vigilar sin que el
+// hogar volviera a teclearlos cada vez que se abre la pantalla — se guardan aquí, en
+// scenarioSettings, mismo criterio que las bandas de volatilidad de LEV5. No sustituyen el campo de
+// "caída a explorar" (apx3StressDropPct), que sigue siendo una exploración puntual, no un dato fijo.
+function apx3LombardDeclaration() {
+  return scenarioSettings.apx3LombardDeclaration && typeof scenarioSettings.apx3LombardDeclaration === "object"
+    ? scenarioSettings.apx3LombardDeclaration
+    : {};
+}
+
+function syncApx3LombardDeclarationControls() {
+  const declaration = apx3LombardDeclaration();
+  const loanField = qs("apx3LoanAmount");
+  const ltvField = qs("apx3MaintenanceLtvPct");
+  if (loanField && document.activeElement !== loanField && !loanField.value && declaration.loanAmount > 0) {
+    loanField.value = String(declaration.loanAmount);
+  }
+  if (ltvField && document.activeElement !== ltvField && !ltvField.value && declaration.maintenanceLtvPct > 0) {
+    ltvField.value = String(declaration.maintenanceLtvPct);
+  }
+}
+
+function saveApx3LombardDeclaration() {
+  const loanAmount = parseAmount(qs("apx3LoanAmount")?.value);
+  const maintenanceLtvPct = parseAmount(qs("apx3MaintenanceLtvPct")?.value);
+  scenarioSettings.apx3LombardDeclaration = {
+    loanAmount: loanAmount > 0 ? round2(loanAmount) : 0,
+    maintenanceLtvPct: maintenanceLtvPct > 0 ? round2(maintenanceLtvPct) : 0,
+  };
+  saveScenarioSettings();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
+}
+
+// LEV12 (Oleada 4, Bloque 5): reutiliza tal cual proactiveLtvAlert (canonical-leverage-simulator.js)
+// sobre la declaración persistida de arriba y la cartera real (IV1) — sin ningún botón, se recalcula
+// cada vez que se abre esta pantalla o cambia la cartera.
+function renderLev12ProactiveMarginCallAlert() {
+  const note = qs("lev12ProactiveAlertNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  const declaration = apx3LombardDeclaration();
+  if (!engine || !portfolioEngine || !(declaration.loanAmount > 0) || !(declaration.maintenanceLtvPct > 0)) {
+    note.innerHTML = `<p class="e19-kpi-note">Declara el importe pedido y el LTV de mantenimiento (arriba, en el simulador de margin call) para vigilar tu LTV sin tener que simular una caída cada vez.</p>`;
+    return;
+  }
+  const portfolioValue = portfolioEngine.normalizePositions(iv1PositionsList()).summary.totalValue;
+  const alert = engine.proactiveLtvAlert({
+    portfolioValue,
+    loanAmount: declaration.loanAmount,
+    maintenanceLtvPct: declaration.maintenanceLtvPct,
+  });
+  if (!alert.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición de cartera (IV1) para vigilar tu LTV.</p>`;
+    return;
+  }
+  if (!alert.severity) {
+    note.innerHTML = `<p class="e19-kpi-note positive">LTV actual: ${alert.currentLtvPct}% (de mantenimiento: ${alert.maintenanceLtvPct}%) — margen holgado, sin necesidad de vigilancia especial.</p>`;
+    return;
+  }
+  const SEVERITY_LABEL = { critical: "llamada de garantía ya en marcha", high: "muy cerca del LTV de mantenimiento", medium: "acercándose al LTV de mantenimiento" };
+  const severityClass = alert.severity === "critical" ? "negative" : "warning";
+  note.innerHTML = `<p class="e19-kpi-note ${severityClass}"><strong>Alerta proactiva de LTV (LEV12):</strong> ${alert.currentLtvPct}% de LTV frente al ${alert.maintenanceLtvPct}% de mantenimiento (${alert.ratioToMaintenancePct}% del camino recorrido) — ${SEVERITY_LABEL[alert.severity]}.</p>`;
+}
+
+// LEV11 (Oleada 4, Bloque 5): alcance reducido por el propio backlog — reutiliza tal cual la caída
+// ponderada ya estimada por LEV5 (weightedPortfolioStressDropPct, sobre las bandas de volatilidad
+// declaradas) para decidir CUÁNDO conviene desapalancarse de forma preventiva (si esa caída
+// realista, no una caída "a explorar" cualquiera, ya dispararía un margin call) y
+// deleveragingPriority (LEV6, Oleada 3) para decidir QUÉ vender primero — preventiveDeleveragingAllocation
+// solo reparte el importe entre esas filas ya priorizadas. Nunca decide vender nada por su cuenta.
+function renderLev11PreventiveDeleveragingAlert() {
+  const note = qs("lev11PreventiveDeleveragingNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  const declaration = apx3LombardDeclaration();
+  if (!engine || !portfolioEngine || !(declaration.loanAmount > 0) || !(declaration.maintenanceLtvPct > 0)) {
+    note.innerHTML = `<p class="e19-kpi-note">Declara el importe pedido y el LTV de mantenimiento (arriba) para vigilar el desapalancamiento preventivo.</p>`;
+    return;
+  }
+  const rows = iv1PositionsList();
+  if (!rows.length) {
+    note.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición de cartera para vigilar el desapalancamiento preventivo.</p>`;
+    return;
+  }
+  const normalized = portfolioEngine.normalizePositions(rows);
+  const stress = engine.weightedPortfolioStressDropPct({ positions: normalized.positions, volatilityBands: lev5VolatilityBands() });
+  if (!stress.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Declara al menos una banda de volatilidad por clase de activo (Colchón de garantía dinámico, arriba) para estimar cuándo conviene desapalancarse preventivamente.</p>`;
+    return;
+  }
+  const marginCall = engine.lombardMarginCallSimulation({
+    portfolioValue: stress.totalValue,
+    loanAmount: declaration.loanAmount,
+    maintenanceLtvPct: declaration.maintenanceLtvPct,
+    stressDropPct: stress.weightedDropPct,
+  });
+  if (!marginCall.calculable || !marginCall.marginCallTriggered) {
+    const dropNote = marginCall.calculable ? `${marginCall.stressDropPct}%` : `${stress.weightedDropPct}%`;
+    note.innerHTML = `<p class="e19-kpi-note positive">Con la caída ponderada estimada de tu cartera (${dropNote}), no se dispararía una llamada de garantía — sin necesidad de desapalancamiento preventivo todavía.</p>`;
+    return;
+  }
+  const priority = portfolioEngine.deleveragingPriority({
+    positions: normalized.positions,
+    totalsByType: normalized.summary.totalsByType,
+    totalValue: normalized.summary.totalValue,
+    targets: iv6PortfolioTargets(),
+    savingsTaxRatePct: dividendSpanishSavingsRatePct(),
+  });
+  const allocation = priority.calculable
+    ? engine.preventiveDeleveragingAllocation({ amountToCover: marginCall.forcedLiquidationAmount, priorityRows: priority.rows })
+    : { calculable: false };
+  const headline = `<p class="e19-kpi-note warning"><strong>Desapalancamiento preventivo (LEV11):</strong> con la caída ponderada estimada de tu cartera (${stress.weightedDropPct}%) ya se dispararía una llamada de garantía por ${money(marginCall.additionalCollateralNeeded, true)} de garantía adicional, o ${money(marginCall.forcedLiquidationAmount, true)} de liquidación forzosa — antes de que llegue a pasar de verdad, esto es lo que tocaría vender primero (LEV6):</p>`;
+  if (!allocation.calculable) {
+    note.innerHTML = `${headline}<p class="e19-kpi-note">Sin posiciones con valor para priorizar la venta.</p>`;
+    return;
+  }
+  const items = allocation.allocation.map((row) => `<li class="commit-barrier-item">${row.priorityRank}. <strong>${escapeHtml(row.label)}</strong>: ${money(row.amount, true)}</li>`).join("");
+  const shortfallNote = allocation.shortfall > 0
+    ? `<p class="e19-kpi-note negative">Ni vendiendo toda la cartera priorizable se cubrirían ${money(allocation.shortfall, true)} restantes.</p>`
+    : "";
+  note.innerHTML = `${headline}<ol class="commit-barrier-list">${items}</ol>${shortfallNote}<p class="e19-kpi-note">Ninguna venta se ejecuta sola: la decisión final, y el momento, siguen siendo tuyos.</p>`;
+}
+
 function handleApx3MarginCallSimulate() {
   const note = qs("apx3MarginCallNote");
   if (!note) return;
@@ -17094,6 +17227,71 @@ function deb10PriorityHint(selectedDebtId) {
   return `<p class="e19-kpi-note warning"><strong>Prioridad fiscal (DEB10/DEB5):</strong> por TAE efectivo tras deducción fiscal, la deuda con mayor coste real es <strong>${escapeHtml(top.entity)}</strong> (${top.effectiveAprPct}%) — distinta a la seleccionada arriba. La elección final sigue siendo tuya.</p>`;
 }
 
+// DEB11 (Oleada 4, Bloque 6): DEB2 (arriba) ya dice CUÁNTO amortizar de verdad (neto de comisión)
+// del excedente que DLX2 destina a esta deuda, pero no si ese importe debería reducir cuota o
+// plazo — decisión igual de real, y distinta de APX6 (Bloque 2, sesión 141), que solo responde para
+// el importe bruto tecleado en AP1, no para el ya dimensionado aquí. Reutiliza tal cual
+// amortizeReduceQuotaVsTerm (APX6) sobre el importe neto de DEB2, y añade una preferencia declarada
+// persistida (mismo patrón que DEB7) para que la elección quede explícita en vez de implícita —
+// nunca decide por el hogar cuál de las dos tomar, solo refleja la que ya declaró.
+const DEB11_PREFERENCE_LABEL = { "reducir-cuota": "reducir cuota", "reducir-plazo": "reducir plazo" };
+
+function deb11Preference() {
+  const value = state?.deb11Preference;
+  return value === "reducir-cuota" || value === "reducir-plazo" ? value : "";
+}
+
+function syncDeb11PreferenceControl() {
+  const select = qs("deb11PreferenceSelect");
+  if (select && document.activeElement !== select) select.value = deb11Preference();
+}
+
+function handleDeb11PreferenceChange() {
+  if (!state) return;
+  const value = qs("deb11PreferenceSelect")?.value || "";
+  state.deb11Preference = value === "reducir-cuota" || value === "reducir-plazo" ? value : "";
+  saveScenarioSettings();
+  syncDeb11PreferenceControl();
+  handleAp1Compare();
+}
+
+function deb11ReduceQuotaVsTermHtml(allocation) {
+  const cushionEngine = window.FinanceCanonicalCushion;
+  const comparator = window.FinanceDebtComparator;
+  if (!cushionEngine || !comparator || !allocation || !allocation.calculable || !(allocation.toDebt > 0)) return "";
+  const debtId = qs("ap1DebtSelect")?.value || "";
+  const debt = p2DebtRows().find((row) => row.id === debtId) || null;
+  if (!debt) return "";
+  const penaltyPct = parseAmount(qs("ap1PrepaymentPenaltyPct")?.value) || 0;
+  const dimension = cushionEngine.dimensionOptimalPrepayment({
+    allocatedSurplus: allocation.toDebt,
+    remainingPrincipal: debt.currentPrincipal,
+    penaltyPct,
+  });
+  if (!dimension.calculable || !(dimension.amount > 0)) return "";
+  const contract = debtContractSourceRows().find((row) => row.id === debt.id);
+  const remainingMonths = Math.round(Number(contract?.remainingInstallments) || 0);
+  if (remainingMonths <= 0) return "";
+  const debtAnnualRatePct = parseAmount(qs("ap1DebtRate")?.value);
+  const result = comparator.amortizeReduceQuotaVsTerm({
+    principal: debt.currentPrincipal,
+    annualRatePct: debtAnnualRatePct,
+    months: remainingMonths,
+    lumpSum: dimension.amount,
+  });
+  if (!result.calculable) return "";
+  const preference = deb11Preference();
+  const quotaTag = preference === "reducir-cuota" ? ` <span class="e19-kpi-note positive">— tu decisión declarada</span>` : "";
+  const termTag = preference === "reducir-plazo" ? ` <span class="e19-kpi-note positive">— tu decisión declarada</span>` : "";
+  const preferenceNote = preference
+    ? `<p class="e19-kpi-note">Tu decisión declarada (DEB11): ${DEB11_PREFERENCE_LABEL[preference]}.</p>`
+    : `<p class="e19-kpi-note warning">Todavía no has declarado si prefieres reducir cuota o reducir plazo para este importe — elige arriba (DEB11).</p>`;
+  return `<div class="e19-kpi-note"><p><strong>Reducir cuota vs. reducir plazo, sobre el importe ya dimensionado (DEB11/DEB2: ${money(dimension.amount, true)})</strong> — plazo real restante: ${result.months} meses:</p><ul class="commit-barrier-list">
+    <li>Reducir cuota: pasa de ${money(result.currentPayment, true)}/mes a ${money(result.reduceQuota.newPayment, true)}/mes (−${money(result.reduceQuota.paymentReduction, true)}), mismo plazo — ahorra ${money(result.reduceQuota.interestSaved, true)} en intereses.${quotaTag}</li>
+    <li>Reducir plazo: sigue en ${money(result.currentPayment, true)}/mes, pero termina ${result.reduceTerm.monthsReduced} mes(es) antes — ahorra ${money(result.reduceTerm.interestSaved, true)} en intereses.${termTag}</li>
+  </ul>${preferenceNote}</div>`;
+}
+
 // DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente declarada a mano — un único escalón
 // (comisión actual, mes en que termina, comisión siguiente). Reutiliza
 // FinanceDebtContracts.nextCheaperPrepaymentWindow (mismos helpers de mes que ya usa DI3/D-2).
@@ -17349,7 +17547,7 @@ function handleAp1Compare() {
       forecastSeries: e13Engine.simulate(canonicalScenarioResults.base?.forecast || {}, stressProfile, []).rows,
     })
     : null;
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (cancellationStressGuardrail ? deb17CancellationStressHtml(cancellationStressGuardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (cancellationStressGuardrail ? deb17CancellationStressHtml(cancellationStressGuardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + (surplusAllocation ? deb11ReduceQuotaVsTermHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
   // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
   // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
   if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {
@@ -18748,9 +18946,12 @@ function saveIv1Position() {
   renderInv6LatentLossCandidates();
   renderInv7LiquidityLadder();
   renderInv8DcaTracking();
+  renderInv13DcaTaxProjection();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
   renderIvx6GlidePath();
   announceStatus(`Posición «${label}» registrada.`);
 }
@@ -18793,6 +18994,8 @@ function saveIv1Contribution() {
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
   announceStatus(`Aportación de ${money(amount, true)} añadida a «${target.label}».`);
 }
 
@@ -18830,6 +19033,8 @@ function saveIv1Disposal() {
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
   announceStatus(`Venta parcial de «${target.label}» registrada.`);
 }
 
@@ -18921,6 +19126,8 @@ function saveIv1Transfer() {
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
   announceStatus(`«${source.label}» traspasado a «${label}» sin coste fiscal — coste y fecha de adquisición conservados.`);
 }
 
@@ -18936,6 +19143,8 @@ function removeIv1Position(id) {
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
   renderIvx6GlidePath();
 }
 
@@ -19294,6 +19503,46 @@ function renderInv8DcaTracking() {
   container.innerHTML = `<ul class="commit-barrier-list">${items}</ul>`;
 }
 
+// INV13 (Oleada 4, Bloque 4): INV8 (arriba) solo compara aportado vs. planificado del plan DCA,
+// nunca dice qué pasaría fiscalmente si se vendiera lo acumulado. Reutiliza tal cual
+// optimizePartialSale (FC5, mismo campo fc5AlreadyRealized que ya usa LEV15, sin duplicarlo) sobre
+// la plusvalía REAL ya calculada de cada posición (position.gainLoss, la misma que ya usa
+// deleveragingPriority/LEV6) — nunca un % de ganancia declarado a mano, porque aquí el dato real ya
+// existe. Solo aparece para posiciones con plan DCA y plusvalía positiva acumulada; sin plusvalía,
+// no hay nada que proyectar todavía.
+function renderInv13DcaTaxProjection() {
+  const container = qs("inv13DcaTaxProjection");
+  if (!container) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  const irpfEngine = window.FinanceCanonicalIrpfEstimator;
+  const rows = iv1PositionsList();
+  if (!engine || !irpfEngine || !rows.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Sin posiciones registradas todavía.</p>';
+    return;
+  }
+  const positions = engine.normalizePositions(rows).positions.filter((position) => position.dcaPlan);
+  if (!positions.length) {
+    container.innerHTML = '<p class="e19-kpi-note">Declara una aportación periódica prevista (arriba) para ver aquí la proyección fiscal de venderla.</p>';
+    return;
+  }
+  const scale = latestIrpfScale("savings");
+  const alreadyRealizedGain = parseAmount(qs("fc5AlreadyRealized")?.value);
+  const items = positions
+    .map((position) => {
+      const proposedGain = Math.max(0, round2(Number(position.gainLoss) || 0));
+      if (proposedGain <= 0) {
+        return `<li class="commit-barrier-item"><span>${escapeHtml(position.label)}</span><span class="e19-kpi-note">sin plusvalía acumulada todavía</span></li>`;
+      }
+      const fiscal = irpfEngine.optimizePartialSale({ scale: scale || {}, alreadyRealizedGain, proposedGain });
+      if (!fiscal.calculable) {
+        return `<li class="commit-barrier-item"><span>${escapeHtml(position.label)}</span><span class="e19-kpi-note">plusvalía acumulada ${money(proposedGain, true)} — registra la escala del tramo del ahorro en Fiscal › IRPF para estimar el coste fiscal</span></li>`;
+      }
+      return `<li class="commit-barrier-item"><span>${escapeHtml(position.label)}</span><span>plusvalía acumulada ${money(proposedGain, true)} → ${money(fiscal.marginalTax, true)} de coste fiscal estimado si se vendiera hoy entera (tipo marginal ${fiscal.currentBracketRatePct}%)</span></li>`;
+    })
+    .join("");
+  container.innerHTML = `<ul class="commit-barrier-list">${items}</ul><p class="e19-kpi-note">Proyección sobre la plusvalía acumulada de HOY, no sobre lo que aportarás en el futuro — cambia si el mercado se mueve o si añades más aportaciones. Nunca decide vender por ti.</p>`;
+}
+
 // LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. Mismo patrón de lista
 // repetible que fc3PriorLossesList (Fiscal) — condiciones reales declaradas por el hogar, nunca un
 // valor "típico" inventado.
@@ -19455,6 +19704,8 @@ function saveIv6Targets() {
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
   announceStatus("Objetivos de reparto guardados.");
 }
 
@@ -28002,9 +28253,14 @@ function renderAjustes() {
   renderInv6LatentLossCandidates();
   renderInv7LiquidityLadder();
   renderInv8DcaTracking();
+  renderInv13DcaTaxProjection();
   syncIv6TargetControls();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
+  syncApx3LombardDeclarationControls();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
+  syncDeb11PreferenceControl();
   renderIvx6GlidePath();
   syncDuplicateWindowControl();
   syncPartidaDeviationControl();
@@ -38554,6 +38810,8 @@ async function init() {
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
   qs("inv10Run")?.addEventListener("click", handleInv10Compare);
   qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
+  qs("apx3LoanAmount")?.addEventListener("change", saveApx3LombardDeclaration);
+  qs("apx3MaintenanceLtvPct")?.addEventListener("change", saveApx3LombardDeclaration);
   qs("lev9CompareRun")?.addEventListener("click", handleLev9Compare);
   qs("lev5VolatilitySave")?.addEventListener("click", saveLev5VolatilityBands);
   qs("lev3CombinedStressRun")?.addEventListener("click", handleLev3CombinedStress);
@@ -38571,6 +38829,7 @@ async function init() {
   });
   qs("ap1CompareRun")?.addEventListener("click", handleAp1Compare);
   qs("deb7PreferenceSelect")?.addEventListener("change", handleDeb7PreferenceChange);
+  qs("deb11PreferenceSelect")?.addEventListener("change", handleDeb11PreferenceChange);
   qs("gob7AdvisorModeToggle")?.addEventListener("change", handleGob7AdvisorModeToggle);
   qs("gob8GenerateDraft")?.addEventListener("click", renderGob8DraftPreview);
   qs("gob8DownloadDraft")?.addEventListener("click", handleGob8DownloadDraft);
