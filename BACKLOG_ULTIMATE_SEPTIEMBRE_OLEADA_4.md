@@ -7,11 +7,11 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 166b, misma fecha): primera oleada construida.** Bloque 1 completo (`VER-4`, `VER-5`,
-`VER-6`, las tres con hallazgo "no está cableado/no cita/son motores independientes" — ver sus filas)
-y Bloque 2 completo (`LEV9`, `DEB9`, las dos banderas del diagnóstico). Quedan 43 tareas accionables
-de las 45 originales, con el alcance de `DEB10`, `GOB17` y `PVC12` ya confirmado por las verificaciones
-en vez de condicionado a ellas.
+**Estado (sesión 167, 12 de septiembre de 2026): segunda oleada construida.** Bloque 1 completo
+(`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). Además,
+`DEB10` y `GOB17` construidas de punta a punta (sesión 167) — las dos tareas de tamaño moderado cuyo
+alcance ya confirmaba el Bloque 1. Quedan 41 tareas accionables: `PVC12` (candidata a sesión propia,
+consolidación de mayor calado) y los Bloques 3-7 completos.
 
 ## 0. Por qué existe este documento
 
@@ -160,7 +160,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 29 | ⏳ `DEB10` | Al amortizar, priorizar automáticamente qué deuda concreta primero | `DE-2` | M | Alto | Alcance confirmado por `VER-4` (sesión 166b): `fiscalAdjustedDebtPriority()` (DEB5) NO está cableada a `surplusAllocationRule()`/`dimensionOptimalPrepayment()` — hoy el hogar elige la deuda a mano en `#ap1DebtSelect`, sin ver la prioridad fiscal calculada en la pantalla de Contratos. Pendiente: sugerir (nunca preseleccionar de forma silenciosa) la deuda #1 de `fiscalAdjustedDebtPriority()` en el propio comparador AP1/DEB2, dejando la elección final al hogar — no una tarea de "aviso visible" como se estimaba antes de verificar. |
+| 29 | ✅ `DEB10` | Al amortizar, priorizar automáticamente qué deuda concreta primero | `DE-2` | M | Alto | **Hecho (sesión 167).** `deb10PriorityHint()` (`app.js`) reutiliza `fiscalAdjustedDebtPriority()` (DEB5) sobre `debtContractSourceRows()`, sin motor propio. Compara la deuda #1 por TAE efectivo tras deducción fiscal contra la seleccionada en `#ap1DebtSelect`: si coincide, lo confirma; si no, avisa cuál sería la de mayor coste real — nunca la preselecciona en silencio, la elección final sigue siendo del hogar. Se muestra en cada «Comparar» de AP1. Tests: `tests/deb10-prioridad-fiscal-sugerida-ap1.test.cjs`. |
 | 30 | ⏳ `DEB11` | Amortización parcial: reducir cuota vs. reducir plazo, como decisión explícita | `DE-3` | M | Alto | `dimensionOptimalPrepayment` (`DEB2`) dimensiona el importe, no desglosa esta segunda decisión, igual de real. |
 | 31 | ⏳ `DEB12` | El precio de esperar (`waitingOptionValue`) como serie temporal, no cifra congelada | `DE-4` | M | Medio | Reutiliza el patrón de "comparación trackeada" que `DEB1` ya usa para el veredicto de `AP1`, aplicado ahora a `DEB3`. |
 | 32 | ⏳ `DEB13` | Alerta de "deuda cara dormida" | `DE-5` | S | Alto | `DEB5` prioriza, pero no alerta cuando una TAE está muy por encima de cualquier rentabilidad esperada declarada en la cartera — cruce automático nuevo con `compareAmortizeVsInvest`. |
@@ -181,7 +181,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 40 | ⏳ `GOB14` | Informe trimestral exportable, maquetado para presentar a la familia | `O-5` | M | Bajo-Medio | Distinto de `GOB3` (resumen trimestral de `PROJECT_STATE.md`, uso interno de desarrollo): esta es una vista para enseñar, no para trabajar, con las cifras ejecutivas de procedencia (`A2-6`) ya existentes. |
 | 41 | ⏳ `GOB15` | Simulador de vender la vivienda habitual y pasar a alquiler | `O-6` | L | Medio | Reutiliza `rentalAssetPnL()` (`INV9`, Oleada 3) para el lado del alquiler recibido/pagado. |
 | 42 | ⏳ `GOB16` | Vigilancia de cláusulas de deuda más allá de TAE y capital | `O-7` | M | Medio | Acotado a lo que `DEB4`/`DEB8` (Oleada 3) no cubren: vinculación de productos, comisión de apertura de operación nueva, fecha de revisión de diferencial. |
-| 43 | ⏳ `GOB17` | El asistente cita siempre la función `canonical-*.js` real que sustenta su respuesta | `O-9` | M | Alto | Alcance confirmado por `VER-5` (sesión 166b): NO cita la función real hoy — cita ids de categoría (`metric:idle-cash`) que no identifican el archivo/función de origen. Pendiente: rellenar `source`/`method` (ya existen como campos en `executive-read-model.js`) con el nombre real de archivo/función en cada punto donde se construye un `readModel.metrics`/CP1/CP2, y mostrar esa cita al hogar, no solo el id interno. |
+| 43 | ✅ `GOB17` | El asistente cita siempre la función `canonical-*.js` real que sustenta su respuesta | `O-9` | M | Alto | **Hecho (sesión 167).** `sourceCatalog()` (`canonical-e9-assistant.js`) ahora propaga `source`/`method` también en alertas y decisiones, no solo en métricas (campos añadidos, ninguno retirado). CP1 declara `canonical-e16-monitoring.js` · `predictiveAlerts()`; CP2 declara `canonical-cushion.js` + `canonical-portfolio.js` · `cushionFloor()`/`opportunityCost()` vía `cp2IdleCashSummary` (`app.js`). Ambas citas reales se muestran al hogar junto al id interno, nunca en su lugar. Tests: `tests/gob17-cita-funcion-real.test.cjs`. |
 | 44 | ⚠️ `GOB18` | Exportar un registro de `GOB10` como paquete de decisión (PDF) para un asesor externo | `O-10` | M | Bajo-Medio | Alcance reducido: `GOB10` (Oleada 3) ya generaliza el registro de tesis con revisión programada a cualquier decisión. Falta solo la capa de exportación/empaquetado, no un registro nuevo. |
 | 45 | ⏳ `GOB19` | Plantilla de separación patrimonial combinando reparto y reestructuración | `O-12` | L | Medio | Combina `canonical-household-split.js` y `canonical-joint-restructuring.js`, hoy aislados, sin construir un tercer motor. |
 
@@ -197,8 +197,8 @@ los IDs de este backlog:
    verificaciones en primer lugar.
 2. **Las dos banderas del Bloque 2** (`LEV9`, `DEB9`) son las de mayor impacto y ninguna depende de una
    decisión de alcance previa — candidatas naturales a ir justo después de las verificaciones.
-3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15`, `GOB17` (si
-   `VER-5` confirma que hace falta construirla).
+3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15` (`GOB17` ya
+   construida en la sesión 167).
 4. **Grandes apuestas (L), reservar sesión propia**: `INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`,
    `GOB19`.
 5. **Cuestionar el alcance antes de construir, no descartar sin más** (mismo criterio que la propia

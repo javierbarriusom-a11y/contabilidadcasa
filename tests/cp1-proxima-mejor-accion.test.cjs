@@ -51,6 +51,8 @@ function sandbox() {
   vm.createContext(context);
   vm.runInContext(`const CP1_SEVERITY_RANK = ${JSON.stringify({ critical: 0, high: 1, medium: 2 })};`, context);
   vm.runInContext(`const CP1_ALERT_LABELS = ${JSON.stringify({ cash: "Revisar la caja prevista", variation: "Revisar la variación prevista", debt: "Revisar el ratio de deuda" })};`, context);
+  vm.runInContext(`const CP1_SOURCE = "canonical-e16-monitoring.js";`, context);
+  vm.runInContext(`const CP1_METHOD = "predictiveAlerts()";`, context);
   vm.runInContext(`const CPX3_IGNORED_DAYS_THRESHOLD = 3;`, context);
   vm.runInContext(extractFunction("cpx3IgnoredNoteHtml"), context);
   vm.runInContext(extractFunction("cp1NextBestAction"), context);

@@ -17008,6 +17008,25 @@ function deb2DimensionHtml(allocation) {
   return `<p class="e19-kpi-note"><strong>Amortización dimensionada (DEB2)</strong>: ${money(result.amount, true)}${payoffNote}, más ${money(result.penaltyCost, true)} de comisión (${penaltyPct}%) = ${money(result.totalCash, true)} de caja necesaria de los ${money(allocation.toDebt, true)} destinados a esta deuda${result.leftoverSurplus > 0 ? ` (sobran ${money(result.leftoverSurplus, true)} sin usar)` : ""}.</p>`;
 }
 
+// DEB10 (Oleada 4, Bloque 6): sugiere en el propio comparador AP1 qué deuda amortizar primero,
+// reutilizando tal cual fiscalAdjustedDebtPriority() (DEB5) — antes esa prioridad solo se veía,
+// aislada, en Deuda › Contratos, sin cruzarla nunca con la deuda que el hogar elige a mano en
+// #ap1DebtSelect. Nunca preselecciona nada en silencio: solo dice cuál sería la #1 por TAE
+// efectivo tras deducción fiscal y si coincide o no con la ya seleccionada, dejando la elección
+// final al hogar, igual que ya hace DEB5 con su propio aviso de reordenación.
+function deb10PriorityHint(selectedDebtId) {
+  const engine = window.FinanceDebtContracts;
+  if (!engine) return "";
+  const result = engine.fiscalAdjustedDebtPriority(debtContractSourceRows());
+  if (!result.calculable || !result.rows.length) return "";
+  const top = result.rows[0];
+  if (result.rows.length === 1 && top.id === selectedDebtId) return "";
+  if (top.id === selectedDebtId) {
+    return `<p class="e19-kpi-note"><strong>Prioridad fiscal (DEB10/DEB5):</strong> la deuda seleccionada arriba, ${escapeHtml(top.entity)}, es ya la de mayor coste real (TAE efectivo ${top.effectiveAprPct}%).</p>`;
+  }
+  return `<p class="e19-kpi-note warning"><strong>Prioridad fiscal (DEB10/DEB5):</strong> por TAE efectivo tras deducción fiscal, la deuda con mayor coste real es <strong>${escapeHtml(top.entity)}</strong> (${top.effectiveAprPct}%) — distinta a la seleccionada arriba. La elección final sigue siendo tuya.</p>`;
+}
+
 // DEB8 (Oleada 3, Bloque 3): ventana de comisión decreciente declarada a mano — un único escalón
 // (comisión actual, mes en que termina, comisión siguiente). Reutiliza
 // FinanceDebtContracts.nextCheaperPrepaymentWindow (mismos helpers de mes que ya usa DI3/D-2).
@@ -17209,7 +17228,7 @@ function handleAp1Compare() {
       assessment: result.calculable ? result.assessment : null,
     })
     : null;
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
   // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
   // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
   if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {

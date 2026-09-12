@@ -56,6 +56,8 @@ function sandbox(idleCash) {
   };
   vm.createContext(context);
   vm.runInContext("const bridge = () => root.FinanceP2Bridge;", context);
+  vm.runInContext('const CP2_SOURCE = "canonical-cushion.js + canonical-portfolio.js";', context);
+  vm.runInContext('const CP2_METHOD = "cushionFloor() / opportunityCost() vía cp2IdleCashSummary (app.js)";', context);
   vm.runInContext(extractFunction(ui, "cp2IdleCashSignal"), context);
   vm.runInContext(extractFunction(ui, "cp2IdleCashHtml"), context);
   return context;

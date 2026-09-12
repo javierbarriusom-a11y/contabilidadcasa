@@ -12,14 +12,25 @@
   const list = (value) => (Array.isArray(value) ? value : []);
   const object = (value) => (value && typeof value === "object" && !Array.isArray(value) ? value : {});
 
+  // GOB17 (Oleada 4, Bloque 7): antes, solo las métricas llevaban `source`/`method` en el catálogo
+  // — decisiones y alertas solo tenían un id de categoría (`alert:cash-2026-10`) que no identifica
+  // qué archivo/función `canonical-*.js` sustenta el dato. Ahora las tres formas del catálogo
+  // aceptan y propagan los mismos dos campos, para que quien construye la cita (CP1, CP2, o
+  // cualquier otro consumidor futuro) pueda declarar la función real, no solo el id interno.
   function sourceCatalog(readModel = {}) {
     const metrics = Object.values(object(readModel.metrics)).map((item) => ({
       id: `metric:${text(item.id)}`, kind: "metric", label: text(item.label), asOf: text(item.asOf || readModel.asOf),
       source: text(item.source), method: text(item.method), coverage: text(item.coverage), confidence: text(item.confidence, "low"),
       value: item.value ?? null, unit: text(item.unit),
     }));
-    const decisions = list(readModel.decisions).map((item, index) => ({ id: `decision:${text(item.id || item.key || index)}`, kind: "decision", label: text(item.title || item.label), rank: Number(item.rank || index + 1) }));
-    const alerts = list(readModel.alerts).map((item, index) => ({ id: `alert:${text(item.id || index)}`, kind: "alert", label: text(item.title || item.label), status: text(item.status) }));
+    const decisions = list(readModel.decisions).map((item, index) => ({
+      id: `decision:${text(item.id || item.key || index)}`, kind: "decision", label: text(item.title || item.label),
+      source: text(item.source), method: text(item.method), rank: Number(item.rank || index + 1),
+    }));
+    const alerts = list(readModel.alerts).map((item, index) => ({
+      id: `alert:${text(item.id || index)}`, kind: "alert", label: text(item.title || item.label),
+      source: text(item.source), method: text(item.method), status: text(item.status),
+    }));
     return [...metrics, ...decisions, ...alerts];
   }
 
