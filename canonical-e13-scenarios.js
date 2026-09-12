@@ -233,17 +233,67 @@
     };
   }
 
+  // PVC14 (Oleada 4, apuesta grande): ensemble ponderado y visible entre el triángulo histórico
+  // (P10/P50/P90 de esta misma función sobre el histórico conciliado) y un triángulo manual
+  // DECLARADO por el hogar — nunca el Monte Carlo, que no es un tercer origen de datos comparable:
+  // ya se construye encima del resultado de esta función (ver monteCarloSimulation), pedirle un
+  // peso propio mezclaría una entrada con su propia salida. Sin uno de los dos triángulos se usa el
+  // otro al 100% (mismo comportamiento que el "uno u otro" de antes de esta tarea); sin ninguno, no
+  // calculable — nunca un triángulo inventado (antes de esta tarea, un `manualRange` no declarado
+  // producía en silencio un triángulo de ceros, indistinguible de "sin desviación real"). El peso
+  // es siempre el que declare el hogar (sesión 171: "pesos ajustables, no fijos"), nunca uno fijo
+  // decidido por este motor.
+  const ENSEMBLE_SCHEMA_ID = `${SCHEMA_ID}/ensemble-v1`;
+
+  function ensembleForecastRange({ historical, manual, historicalWeightPct } = {}) {
+    if (!historical && !manual) return { schemaId: ENSEMBLE_SCHEMA_ID, calculable: false, reason: "no-source" };
+    if (historical && !manual) {
+      return { schemaId: ENSEMBLE_SCHEMA_ID, calculable: true, source: "reconciled-history", historicalWeightPct: 100, percentiles: historical, historical, manual: null };
+    }
+    if (!historical && manual) {
+      return { schemaId: ENSEMBLE_SCHEMA_ID, calculable: true, source: "manual-range", historicalWeightPct: 0, percentiles: manual, historical: null, manual };
+    }
+    const historicalWeight = Math.max(0, Math.min(100, Number.isFinite(Number(historicalWeightPct)) ? Number(historicalWeightPct) : 100));
+    const weight = historicalWeight / 100;
+    const blend = (key) => round(historical[key] * weight + manual[key] * (1 - weight));
+    return {
+      schemaId: ENSEMBLE_SCHEMA_ID, calculable: true, source: "ensemble", historicalWeightPct: historicalWeight,
+      percentiles: { p10: blend("p10"), p50: blend("p50"), p90: blend("p90") },
+      historical, manual,
+    };
+  }
+
   function prudentSimulation(forecast = {}, events = [], options = {}) {
     const observations = (options.history || []).filter((item) => item?.reconciled === true && Number.isFinite(Number(item.amount))).map((item) => number(item.amount));
-    const manualRange = options.manualRange || {};
     const enoughHistory = observations.length >= 6;
-    const range = enoughHistory
+    const historicalPercentiles = enoughHistory
       ? { p10: quantile(observations, 0.1), p50: quantile(observations, 0.5), p90: quantile(observations, 0.9) }
-      : { p10: number(manualRange.min), p50: number(manualRange.base), p90: number(manualRange.max) };
-    return { schemaId: `${SCHEMA_ID}/prudent-v1`, source: enoughHistory ? "reconciled-history" : "manual-range",
-      sampleSize: observations.length, percentiles: range, calibrated: enoughHistory,
-      warning: enoughHistory ? "" : "Muestra corta: percentiles derivados de rangos manuales, no de una probabilidad observada.",
-      baseline: buildLab(forecast, events, options), writesPlan: false };
+      : null;
+    const manualRangeInput = options.manualRange || {};
+    const manualDeclared = ["min", "base", "max"].every((key) => Number.isFinite(Number(manualRangeInput[key])));
+    const manualPercentiles = manualDeclared
+      ? { p10: number(manualRangeInput.min), p50: number(manualRangeInput.base), p90: number(manualRangeInput.max) }
+      : null;
+    const ensemble = ensembleForecastRange({ historical: historicalPercentiles, manual: manualPercentiles, historicalWeightPct: options.historicalWeightPct });
+    if (!ensemble.calculable) {
+      return {
+        schemaId: `${SCHEMA_ID}/prudent-v1`, calculable: false, source: "none", sampleSize: observations.length,
+        percentiles: null, calibrated: false, historicalWeightPct: null, historical: null, manual: null,
+        warning: "Sin histórico suficiente (mínimo 6 meses conciliados) ni rango manual declarado por el hogar: no hay percentiles que calcular.",
+        baseline: buildLab(forecast, events, options), writesPlan: false,
+      };
+    }
+    return {
+      schemaId: `${SCHEMA_ID}/prudent-v1`, calculable: true, source: ensemble.source, sampleSize: observations.length,
+      percentiles: ensemble.percentiles, calibrated: enoughHistory, historicalWeightPct: ensemble.historicalWeightPct,
+      historical: ensemble.historical, manual: ensemble.manual,
+      warning: ensemble.source === "manual-range"
+        ? "Muestra corta (menos de 6 meses conciliados): percentiles derivados solo del rango manual declarado, no de una probabilidad observada."
+        : ensemble.source === "ensemble"
+          ? "Mezcla histórico y manual según el peso declarado — ajústalo si el histórico todavía te parece corto para pesar tanto."
+          : "",
+      baseline: buildLab(forecast, events, options), writesPlan: false,
+    };
   }
 
   // ESX1: Monte Carlo de cientos de trayectorias sobre la incertidumbre YA calibrada por
@@ -272,7 +322,7 @@
   function monteCarloSimulation(forecast = {}, events = [], options = {}) {
     const monteCarloSchemaId = `${SCHEMA_ID}/monte-carlo-v1`;
     const prudent = prudentSimulation(forecast, events, options);
-    const { p10, p50, p90 } = prudent.percentiles;
+    const { p10, p50, p90 } = prudent.percentiles || {};
     const baseline = prudent.baseline.scenarios.find((scenario) => scenario.id === "base") || prudent.baseline.scenarios[0];
     const monthCount = baseline?.rows?.length || 0;
     // p90 < p10 solo puede venir de un rango manual invertido (mínimo declarado por encima del
@@ -480,22 +530,24 @@
     const quarters = Math.max(1, Math.floor(number(options.quarters, 8)));
     const history = Array.isArray(options.history) ? options.history : [];
     const proposedHistory = windowedHistory(history, options.asOfMonthKey, quarters);
-    const current = prudentSimulation(forecast, events, { history, manualRange: options.manualRange, generatedAt: options.generatedAt });
-    const proposed = prudentSimulation(forecast, events, { history: proposedHistory, manualRange: options.manualRange, generatedAt: options.generatedAt });
-    const changed = current.percentiles.p10 !== proposed.percentiles.p10
-      || current.percentiles.p50 !== proposed.percentiles.p50
-      || current.percentiles.p90 !== proposed.percentiles.p90;
+    const current = prudentSimulation(forecast, events, { history, manualRange: options.manualRange, historicalWeightPct: options.historicalWeightPct, generatedAt: options.generatedAt });
+    const proposed = prudentSimulation(forecast, events, { history: proposedHistory, manualRange: options.manualRange, historicalWeightPct: options.historicalWeightPct, generatedAt: options.generatedAt });
+    // Comparación robusta a que uno de los dos triángulos sea null (no calculable, p. ej. sin
+    // histórico suficiente en la ventana y sin manual declarado) — nunca leer `.p10` de un null.
+    const changed = JSON.stringify(current.percentiles) !== JSON.stringify(proposed.percentiles);
     return {
       schemaId: QUARTERLY_RECALIBRATION_SCHEMA_ID,
       windowMonths: quarters * 3,
       currentPercentiles: current.percentiles,
+      currentCalculable: current.calculable,
       currentSampleSize: current.sampleSize,
       proposedPercentiles: proposed.percentiles,
+      proposedCalculable: proposed.calculable,
       proposedSampleSize: proposed.sampleSize,
       proposedCalibrated: proposed.calibrated,
       changed,
     };
   }
 
-  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, MONTE_CARLO_DEFAULT_TRAJECTORIES, MONTE_CARLO_MAX_TRAJECTORIES, buildLab, normalizeEvent, simulate, assetImpact, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, monteCarloSimulation, saveScenario, recalculateSavedScenario, savedScenarioStaleness, SAVED_SCENARIO_STALE_THRESHOLD_PCT, windowedHistory, QUARTERLY_RECALIBRATION_SCHEMA_ID, quarterlyRecalibrationProposal, weightedForecastWithUncertainEvents };
+  return { SCHEMA_ID, SAVED_SCHEMA_ID, EVENT_TYPES, PROFILES, ASSET_SHOCK_TARGET_TYPE, MONTE_CARLO_DEFAULT_TRAJECTORIES, MONTE_CARLO_MAX_TRAJECTORIES, buildLab, normalizeEvent, simulate, assetImpact, ensembleForecastRange, prudentSimulation, correlateRisks, sensitivity, sensitivityGrid, inverseScenario, monteCarloSimulation, saveScenario, recalculateSavedScenario, savedScenarioStaleness, SAVED_SCENARIO_STALE_THRESHOLD_PCT, windowedHistory, QUARTERLY_RECALIBRATION_SCHEMA_ID, quarterlyRecalibrationProposal, weightedForecastWithUncertainEvents };
 });

@@ -60,7 +60,7 @@ test("E13b usa histórico conciliado o declara un rango manual prudente", () => 
   assert.equal(calibrated.source, "reconciled-history");
   assert.equal(calibrated.calibrated, true);
   assert.equal(manual.source, "manual-range");
-  assert.match(manual.warning, /rangos manuales/);
+  assert.match(manual.warning, /rango manual declarado/);
 });
 
 test("E13b documenta riesgos incompatibles y calcula sensibilidad", () => {
