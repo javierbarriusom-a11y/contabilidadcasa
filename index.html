@@ -3331,6 +3331,25 @@
               <div class="e19-kpi-note" id="gob9ResiliencePanel"></div>
             </article>
 
+            <!-- GOB11 (Oleada 4, apuesta grande, O-1): proyección de jubilación unificada — cartera
+                 real (INV11: el plan de pensiones es una posición más) + gasto medio de la previsión
+                 viva + objetivo de independencia financiera con fecha. Todos los supuestos (tasas de
+                 crecimiento, aportación futura, pensión pública, tasa de retirada) son declarados por
+                 el hogar, nunca inventados. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Proyección de jubilación unificada</h3>
+              <p class="e19-kpi-note">Cruza tu cartera (incluida cualquier posición de plan de pensiones, INV11) con tu gasto medio y un objetivo de independencia financiera a tu fecha de jubilación declarada.</p>
+              <label><span>Fecha de jubilación objetivo</span><input id="gob11RetirementMonth" type="month" /></label>
+              <label><span>Crecimiento anual esperado de la cartera (%)</span><input id="gob11PortfolioGrowthPct" type="number" step="0.01" placeholder="Sin declarar" /></label>
+              <label><span>Crecimiento anual esperado del plan de pensiones (%)</span><input id="gob11PensionGrowthPct" type="number" step="0.01" placeholder="Sin declarar" /></label>
+              <label><span>Aportación mensual futura a la cartera (€)</span><input id="gob11MonthlyContributionPortfolio" type="number" step="1" placeholder="0" /></label>
+              <label><span>Aportación mensual futura al plan de pensiones (€)</span><input id="gob11MonthlyContributionPension" type="number" step="1" placeholder="0" /></label>
+              <label><span>Pensión pública estimada (€/mes, dato manual)</span><input id="gob11StatePensionMonthly" type="number" step="1" placeholder="Sin declarar" /></label>
+              <label><span>Tasa de retirada objetivo en jubilación (%)</span><input id="gob11WithdrawalRatePct" type="number" step="0.01" placeholder="Ej. 4" /></label>
+              <div class="e19-kpi-note" id="gob11ProjectionNote"></div>
+              <div id="gob11Trajectory"></div>
+            </article>
+
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Línea de crédito de emergencia</h3>
               <p class="e19-kpi-note">¿Sustituye una línea de crédito a mano parte del colchón líquido? Se compara con tu reserva operativa (Ajustes → Reserva y colchón): si la cubre, calcula el coste estimado de una disposición de emergencia de 3 meses.</p>

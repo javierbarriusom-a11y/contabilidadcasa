@@ -70,6 +70,75 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 12 de septiembre de 2026 (179): `GOB11`
+
+El usuario pidió seguir con la segunda de las tres apuestas grandes restantes de la oleada, `GOB11`
+(tras `INV11`, `INV18` y `PVC14` en las tres sesiones anteriores). Plan presentado y confirmado por
+el usuario antes de tocar código.
+
+**Diagnóstico previo**: el backlog describía `GOB11` como una proyección de jubilación que cruza
+pensión + cartera + previsión + objetivos, y decía explícitamente que dependía en la práctica de
+`INV11` para dar una trayectoria real. Revisando el código, ninguna pieza existente proyecta
+patrimonio a años vista: `canonical-e13-scenarios.js`/`canonical-forecast.js` (E13) trabajan mes a
+mes sobre la caja corriente, `canonical-e15-goals.js` (E15) calcula aportación mensual requerida a
+horizonte de meses (pensado para metas cercanas, no para décadas de crecimiento compuesto), y
+`financialIndependenceTarget()` (`LPX1`, `canonical-assets.js`) da un capital objetivo sin fecha ni
+proyección de crecimiento. El hueco era real, no un simple recableado — hacía falta una pieza nueva
+que compusiera capital actual × tasa de crecimiento anual × años hasta la jubilación × aportación
+futura, y la comparara contra un objetivo con fecha.
+
+Antes de construir, se plantearon al usuario cuatro decisiones de alcance, todas confirmadas: (1) las
+tasas de crecimiento (cartera y plan de pensiones, pueden ser distintas) las declara el hogar, nunca
+un valor de mercado asumido; (2) la pensión pública (Seguridad Social) entra como dato manual
+declarado, ya que la app no tiene ningún estimador propio; (3) la fecha de jubilación es un campo
+declarado propio, no un objetivo de `E15` (mezclarlo habría arrastrado `contributionPlan()`, pensado
+para metas de meses, a un horizonte de décadas para el que no está pensado); (4) la tarjeta puede ser
+directiva (decisión de sesión 177: "a este ritmo llegas con un déficit/superávit de X€"), declarando
+siempre los supuestos usados.
+
+**Construido**:
+- `GOB11` — proyección de jubilación unificada. Nueva `gob11RetirementProjection()` (`app.js`, cruza
+  varios motores sin que ninguno dependa de otro, mismo patrón que `INV18`/`GOB8`) compone el valor
+  actual de cartera y plan de pensiones (`canonical-portfolio.js`, vía `normalizePositions().summary.
+  totalsByType["plan-pension"]`), una tasa de crecimiento anual declarada para cada una (fórmula de
+  anualidad estándar, conversión a tasa mensual compuesta — nunca una simulación de mercado), la
+  aportación mensual futura declarada a cada una, y los compara a la fecha de jubilación declarada
+  contra un objetivo de independencia financiera (gasto medio de la previsión viva × inflación
+  declarada hasta esa fecha, menos la pensión pública declarada si la hay, entre la tasa de retirada
+  declarada). Sin alguno de los datos necesarios para el cálculo, `calculable: false` y `missing`
+  dice exactamente qué falta — nunca una cifra de mercado inventada en su lugar. Devuelve además una
+  trayectoria año a año (cartera, pensión, total) hasta la jubilación, mostrada en tabla.
+  Decisión de alcance explícita, mismo criterio que `INV11` ya fijó: la pensión que cuenta aquí es la
+  declarada como posición de cartera (`plan-pension`), nunca el saldo estático "Pensión" de `A14` —
+  no se unifican ambas fuentes; sin ninguna posición `plan-pension` registrada, la pensión privada
+  proyectada es 0€, con aviso explícito en la tarjeta. Siete campos nuevos declarables en
+  Patrimonio e inversión (`gob11RetirementMonth`, `gob11PortfolioGrowthPct`, `gob11PensionGrowthPct`,
+  `gob11MonthlyContributionPortfolio`, `gob11MonthlyContributionPension`, `gob11StatePensionMonthly`,
+  `gob11WithdrawalRatePct`), cada uno persistido por separado (nunca agrupado — mismo criterio que
+  `PVC14` ya fijó tras su propio bug de guardado agrupado; verificado en esta tarea con Playwright que
+  declarar dos de los siete campos, uno a uno, sobrevive a recargar la página sin borrar ninguno).
+  Tarjeta nueva justo después del panel de resiliencia (`GOB9`) en Patrimonio e inversión. Tests:
+  `tests/gob11-proyeccion-jubilacion-unificada.test.cjs` (23 tests).
+- **Validación**: `npm install` de nuevo necesario al empezar la sesión (`node_modules` no existía).
+  `npm run verify` completo en verde. `npm test` **4023/4023** pruebas (23 nuevas de `GOB11`).
+  `test:a11y` **1267 IDs únicos** (antes 1258, sesión 178; +9 por los siete campos declarables más
+  las dos notas de resultado). `test:performance`: diff 10.000 filas 32,5 ms, forecast y escenarios
+  168,6 ms, recursos 2228 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 104,6 ms,
+  alertas 65,3 ms, forecast 131,6 ms, histórico de presupuestos 41,0 ms, índice de transacciones por
+  categoría 84,0 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual
+  adicional en navegador real con Playwright: (1) con una posición `fondo` y otra `plan-pension`
+  declaradas y los siete campos rellenados, la tarjeta muestra la proyección, el objetivo, el
+  veredicto directivo (déficit/superávit) y una tabla de 20 filas (una por año) coherente con la
+  fecha declarada; (2) declarar solo dos de los siete campos, uno a uno con tabulación entre ellos,
+  sobrevive a recargar la página sin que ninguno se borre; sin errores de consola relacionados con el
+  código nuevo en ningún caso.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 12 tareas accionables — las dos apuestas grandes
+  restantes (`GOB15`, `GOB19`, cada una reservada a su propia sesión) y el resto de los Bloques 5-7:
+  `LEV10`/`16` (Bloque 5), `DEB12`/`14`/`16` (Bloque 6), `GOB12`-`14`/`16`/`18` (Bloque 7).
+
 ## Cierre de sesión — 12 de septiembre de 2026 (178): `PVC14`
 
 El usuario pidió seguir con la tercera de las seis apuestas grandes de la oleada, `PVC14`. El
