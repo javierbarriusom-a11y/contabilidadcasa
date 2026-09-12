@@ -34986,6 +34986,10 @@ function pvc4CategoryHistoryRecords() {
         planned: entry.planned,
         actual: entry.actual,
         reconciled: true,
+        // PVC12: solo los gastos tienen categoría bancaria equivalente real (categoryForPartidaEntry
+        // usa BUDGET_EXPENSE_CATEGORIES/classifyTransaction, pensados para gasto); un ingreso
+        // "clasificado como gasto" no tendría ningún sentido para cruzar con estacionalidad.
+        categoryId: entry.kind === "expense" ? categoryForPartidaEntry(entry) : null,
       });
     });
   });
@@ -34993,6 +34997,24 @@ function pvc4CategoryHistoryRecords() {
 }
 
 const PVC4_TREND_LABEL = { empeorando: "empeorando", mejorando: "mejorando", estable: "estable", "sin-datos-suficientes": "sin datos suficientes" };
+
+// PVC12: puente de solo lectura entre el sesgo por partida (PVC4, meses cerrados y conciliados) y
+// la estacionalidad ya validada de ML-1/canonical-budget-forecast-category.js (transacciones vivas
+// de la categoría bancaria equivalente) — nunca las funde ni recalcula el sesgo con ellas, solo
+// añade la pista cuando ambas coinciden en la misma categoría. Sin categoryId (ingresos, o una
+// partida sin transacciones bancarias que la respalden todavía) no hay nada que cruzar.
+function pvc12SeasonalCrossReferenceNote(categoryId) {
+  if (!categoryId || !window.FinanceCanonicalBudgetForecastCategory) return "";
+  const spendByMonth = new Map();
+  (budgetNegativeTransactionsByCategory().get(categoryId) || []).forEach((row) => {
+    spendByMonth.set(row.month, (spendByMonth.get(row.month) || 0) + Math.abs(Number(row.amount || 0)));
+  });
+  const spendEntries = [...spendByMonth.entries()].map(([monthKey, spent]) => ({ monthKey, spent }));
+  const patterns = window.FinanceCanonicalBudgetForecastCategory.CanonicalBudgetForecastCategory.seasonalPatternsFromCalendarSpend(spendEntries);
+  if (!patterns.length) return "";
+  const monthNames = patterns.slice(0, 2).map((pattern) => new Date(2000, pattern.calendarMonth - 1, 1).toLocaleDateString("es-ES", { month: "long" }));
+  return ` También muestra patrón estacional real en ${monthNames.join(" y ")} — puede explicar parte del sesgo.`;
+}
 
 function pvc4CategoryDriftHtml(drifts) {
   if (!drifts.length) return '<p class="e19-kpi-note">Sin al menos 3 meses cerrados y archivados con datos reales por partida todavía.</p>';
@@ -35002,7 +35024,8 @@ function pvc4CategoryDriftHtml(drifts) {
     .slice(0, 8)
     .map((item) => {
       const cells = item.windows.map((window) => `${window.months}m: ${window.sampleMonths ? money(window.averageDelta, true) : "sin datos"}`).join(" · ");
-      return `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><span>${cells} — ${escapeHtml(PVC4_TREND_LABEL[item.trend] || item.trend)}</span></li>`;
+      const seasonalNote = pvc12SeasonalCrossReferenceNote(item.categoryId);
+      return `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><span>${cells} — ${escapeHtml(PVC4_TREND_LABEL[item.trend] || item.trend)}${seasonalNote ? escapeHtml(seasonalNote) : ""}</span></li>`;
     })
     .join("");
   return rows

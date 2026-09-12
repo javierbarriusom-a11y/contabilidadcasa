@@ -7,16 +7,20 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 171, 12 de septiembre de 2026): sexta oleada construida.** Bloque 1 completo
-(`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y
-`GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y
-`DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170). Además, `INV13`, `LEV12`, `DEB11` y
-`LEV11` construidas de punta a punta (sesión 171). Las cuatro decisiones de alcance del §10.5 quedaron
-resueltas explícitamente por el hogar en la sesión 171 (detalle en la nota de cada fila), aunque
-`PVC14`/`GOB15` (apuestas L) e `INV16`/`LEV14` (esfuerzo M) siguen sin construirse. Quedan 29 tareas
-accionables: `PVC12` (candidata a sesión propia, consolidación de mayor calado), `INV16`/`LEV14` (ya
-con alcance confirmado), las apuestas grandes (`INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`) y
-el resto de los Bloques 3-7.
+**Estado (sesión 172, 12 de septiembre de 2026): `PVC12` construida en sesión propia dedicada.** Bloque
+1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b).
+`DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168);
+`PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y
+`LEV11` (sesión 171). Las cuatro decisiones de alcance del §10.5 quedaron resueltas explícitamente por
+el hogar en la sesión 171 (detalle en la nota de cada fila), aunque `PVC14`/`GOB15` (apuestas L) e
+`INV16`/`LEV14` (esfuerzo M) siguen sin construirse. `PVC12` (sesión 172): consolidada la
+estacionalidad duplicada entre el motor interno de `canonical-budget-forecast-category.js` y el ya
+visible de ML-1 en una única función (`seasonalPatternsFromCalendarSpend`); el sesgo de PVC4 se
+mantiene deliberadamente separado (mide algo distinto, sobre datos distintos, tal y como confirmó
+`VER-6`), con solo una nota cruzada de solo lectura cuando ambos coinciden. Detalle completo en el
+cierre de sesión 172 de `PROJECT_STATE.md`. Quedan 28 tareas accionables: `INV16`/`LEV14` (ya con
+alcance confirmado), las apuestas grandes (`INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`) y el
+resto de los Bloques 3-7.
 
 ## 0. Por qué existe este documento
 
@@ -115,7 +119,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 3 | ✅ `PVC11` | Recalibración incremental por movimiento conciliado, no solo al cerrar el mes | `PA-1` | M | Alto | **Hecho (sesión 170).** `pvc11PendingLearningPreview()` (`app.js`) recalcula `learnFromHistory()` con el histórico conciliado disponible AHORA y lo compara contra la última foto ya guardada (`loadPv3LearningSnapshot`) para contar cuántos meses nuevos están conciliados pero sin aprender todavía — de solo lectura, nunca guarda nada ni aplica ningún ajuste; la única disciplina que recalibra sigue siendo el cierre de mes firmado (misma exigencia de confirmación explícita que `applyLearnedBias`). Se muestra en Análisis de previsión, junto al diario de PV5. Tests: `tests/pvc11-desviacion-en-construccion.test.cjs`. |
-| 4 | ⚠️ `PVC12` | Consolidar los mecanismos de estacionalidad/deriva por categoría | `PA-2` | M-L | Alto | Alcance confirmado por `VER-6` (sesión 166b): `categoryDriftWindows()` (PVC4) y `_detectMonthlySeasonality()` leen de fuentes distintas — la primera solo meses cerrados y reconciliados (`registrarMesCollect`), la segunda transacciones vivas del mes en curso. Consolidar exige reconciliar dos fuentes de datos y dos criterios de "mes válido", no solo recablear una llamada — candidata a sesión propia dedicada, no a esta primera oleada. |
+| 4 | ✅ `PVC12` | Consolidar los mecanismos de estacionalidad/deriva por categoría | `PA-2` | M-L | Alto | **Hecho (sesión 172, sesión propia dedicada).** El sesgo de `categoryDriftWindows()` (PVC4, solo meses cerrados y conciliados) se mantiene separado de la estacionalidad — miden cosas distintas sobre datos distintos, confirmado por `VER-6`. La duplicación real estaba entre `_detectMonthlySeasonality()` (interno, invisible) y `budgetSeasonalPatterns()` (ML-1, ya visible): nueva función pura `seasonalPatternsFromCalendarSpend()` (`canonical-budget-forecast-category.js`) extrae tal cual el algoritmo de ML-1 y ambos motores pasan a usarla — cuando encuentra un patrón validado para un mes, sustituye al índice interno más débil, nunca al revés (mismo criterio "solo mejora con señal real" de `PVC13`). `categoryDriftWindows()` gana un `categoryId` de solo lectura y `pvc4CategoryDriftHtml()` añade una nota cruzada cuando una partida con sesgo sistemático coincide con un patrón estacional real de su categoría equivalente — nunca recalcula el sesgo. Tests: `tests/pvc12-consolidacion-estacionalidad-deriva.test.cjs`. |
 | 5 | ✅ `PVC13` | Cerrar el bucle de `predictionQuality()`: que el error medido ensanche o estreche `confidenceBands()` | `PA-3` | M | Crítico | **Hecho (sesión 169).** `confidenceBands()` (`canonical-forecast.js`) acepta ahora `options.quality` (un `predictionQuality()` ya calculado, E16 — hasta ahora sin ningún sitio real que la llamara): por desigualdad triangular, el MAE medido sobre cada muestra nunca es menor que \|sesgo medio\| ya usado, así que cuando hay medición real disponible el margen se ensancha hasta ese MAE — nunca se estrecha. `renderE13ScenarioLab` (`app.js`) construye las muestras desde el mismo histórico conciliado que ya usa PVX1/`learnFromHistory` (sin pipeline nuevo) y `pv4ConfidenceBandHtml` dice explícitamente cuándo el ensanche viene del error medido. Backward-compatible: sin `options.quality`, el comportamiento es idéntico al anterior. Tests: `tests/pvc13-cierre-bucle-confidence-bands.test.cjs`. |
 | 6 | ⏳ `PVC14` | Ensemble ponderado y visible entre histórico, manual y Monte Carlo | `PA-5` | L | Alto | Los tres métodos actúan aislados hoy; la ponderación debe mostrarse siempre ("60% histórico, 40% tu estimación manual"), nunca ocultarse tras una cifra "mejorada" — ver también la advertencia en el Bloque 6. **Alcance confirmado por el hogar (sesión 171): pesos ajustables por el hogar, no fijos.** Sigue siendo apuesta L, candidata a sesión propia — esta decisión solo fija el alcance, no adelanta la construcción. |
 | 7 | ✅ `PVC15` | Alerta de "supuesto caducado" | `PA-6` | S | Medio | **Hecho (sesión 168).** `assumptionExpiryAlerts()` (`canonical-forecast.js`) compara la antigüedad de cada supuesto INDIVIDUAL de `buildAssumptionRegistry()` (`updatedAt`) contra un umbral en meses por tipo — 6-12 meses para los que más cambian en la práctica (factores de ingreso/gasto, inflación, retenciones), 24 para los que rara vez cambian (familia numerosa, tributación conjunta); los saldos iniciales y el ahorro automático quedan excluidos a propósito. Distinto de `PVC7` (caducidad de un *escenario guardado* frente al forecast actual). Se muestra junto a cada supuesto en Ajustes › Registro de supuestos (`renderAjustesAssumptionRegistry`), sin formulario propio. Tests: `tests/pvc15-alerta-supuesto-caducado.test.cjs`. |
