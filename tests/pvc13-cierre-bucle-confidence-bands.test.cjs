@@ -96,9 +96,14 @@ function extractFunction(name) {
 
 test("wiring: renderE13ScenarioLab construye las muestras de predictionQuality desde el histórico conciliado y las pasa a confidenceBands", () => {
   const block = extractFunction("renderE13ScenarioLab");
+  // PVC17 (Oleada 4, Bloque 3): el mapeo histórico → muestras se factorizó en
+  // pvc17QualitySamplesFromHistory() (un único algoritmo, dos usos: aquí y en el índice único de
+  // salud predictiva) — renderE13ScenarioLab ya no lo reimplementa inline, solo la llama.
+  assert.match(block, /const qualitySamples = pvc17QualitySamplesFromHistory\(history\);/);
   assert.match(block, /window\.FinanceCanonicalE16\?\.predictionQuality\(\{ samples: qualitySamples \}\)/);
-  assert.match(block, /actual: record\.actual, predicted: record\.planned/);
   assert.match(block, /confidenceBands\(forecast\.series\.slice\(0, 12\), learning, \{ quality: predictionQuality \}\)/);
+  const helper = extractFunction("pvc17QualitySamplesFromHistory");
+  assert.match(helper, /actual: record\.actual, predicted: record\.planned/);
 });
 
 test("wiring: pv4ConfidenceBandHtml explica cuándo la banda se ensanchó por error medido, nunca en silencio", () => {

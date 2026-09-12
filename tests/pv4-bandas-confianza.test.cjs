@@ -41,6 +41,7 @@ function sandbox() {
   const context = {
     escapeHtml: (v) => String(v ?? ""),
     money: (v) => `${Number(v || 0).toFixed(2)} €`,
+    round2: (v) => Math.round((Number(v) + Number.EPSILON) * 100) / 100,
     PV4_CONFIDENCE_LABEL: { high: "alta", medium: "media", low: "baja" },
   };
   vm.createContext(context);
@@ -63,10 +64,14 @@ test("pv4ConfidenceBandHtml · sin historial suficiente (sampleConcepts 0), lo d
   assert.match(output, /banda es de ancho cero, no un margen inventado/);
 });
 
-test("pv4ConfidenceBandHtml · con datos, pinta una columna por mes con su etiqueta y confianza", () => {
+// PVC19 (Oleada 4, Bloque 3): el render pasó de columnas de barras sueltas a un polígono SVG
+// continuo (el cono en sí) — ver tests/pvc19-cono-incertidumbre.test.cjs para el detalle del
+// polígono/envolvente. Aquí solo se comprueba que sigue habiendo una etiqueta por mes y la
+// confianza, ambas ya cubiertas antes de PVC19.
+test("pv4ConfidenceBandHtml · con datos, pinta la etiqueta de cada mes y la confianza", () => {
   const ctx = sandbox();
   const output = ctx.pv4ConfidenceBandHtml([band(), band({ monthKey: "2026-10", label: "oct 26" })]);
-  assert.equal((output.match(/pv4-band-col/g) || []).length, 2);
+  assert.equal((output.match(/pv4-cone-labels/g) || []).length, 1);
   assert.match(output, /sep 26/);
   assert.match(output, /oct 26/);
   assert.match(output, /alta/);

@@ -134,6 +134,31 @@
     return { schemaId: `${SCHEMA_ID}/recommendations/v1`, readOnly: true, recommendations, note: "Las recomendaciones explican datos y alternativas; no modifican el plan ni ejecutan acciones." };
   }
 
+  // PVC17 (Oleada 4, Bloque 3): agrega el MAE que predictionQuality() ya calcula, hoy disperso por
+  // categoría (quality.categories) y sin ningún sitio que lo muestre como cifra única, en un
+  // índice de salud predictiva con tendencia. No inventa una escala 0-100: normalizar el error en
+  // "puntos de salud" exigiría un umbral de "cuánto error es aceptable" que el hogar no ha
+  // declarado en ningún sitio (mismo criterio de no fabricar precisión que INV16/LEV14) — el
+  // índice ES directamente el meanAbsoluteError global de predictionQuality(), ya ponderado por
+  // muestra (una categoría con más muestras pesa más, sin promediar categorías a partes iguales).
+  // La tendencia compara contra la última medición guardada (mismo patrón snapshot-a-snapshot que
+  // PV3/PVC11): sin medición previa, "sin-historial" es la respuesta honesta, nunca "estable".
+  function predictiveHealthIndex(quality = {}, previousMeanAbsoluteError = null) {
+    const currentMae = number(quality.meanAbsoluteError);
+    // Number(null) es 0 (finito): sin esta comprobación explícita, "sin medición previa" (null)
+    // se confundiría con "la medición previa fue exactamente 0".
+    const hasPrevious = previousMeanAbsoluteError !== null && previousMeanAbsoluteError !== undefined && Number.isFinite(Number(previousMeanAbsoluteError));
+    const previousMae = hasPrevious ? round2(previousMeanAbsoluteError) : null;
+    const delta = hasPrevious ? round2(currentMae - previousMae) : null;
+    const trend = !hasPrevious ? "sin-historial" : Math.abs(delta) < 0.005 ? "estable" : delta < 0 ? "mejorando" : "empeorando";
+    return {
+      schemaId: `${SCHEMA_ID}/health-index/v1`, readOnly: true,
+      meanAbsoluteError: currentMae, samples: quality.samples || 0, confidence: quality.confidence || "baja",
+      previousMeanAbsoluteError: previousMae, delta, trend,
+      categories: Array.isArray(quality.categories) ? quality.categories : [],
+    };
+  }
+
   function buildReadModel(input = {}) {
     const alerts = predictiveAlerts(input.forecast, input.riskBudget, input);
     const changes = changeSummary(input);
@@ -142,5 +167,5 @@
     return { schemaId: SCHEMA_ID, version: 1, readOnly: true, generatedAt: text(input.generatedAt) || new Date().toISOString(), alerts, changes, quality, recommendations };
   }
 
-  return { SCHEMA_ID, normalizeRiskBudget, predictiveAlerts, changeSummary, predictionQuality, traceableRecommendations, buildReadModel, cashSeverityBand, CASH_APPROACHING_RATIO };
+  return { SCHEMA_ID, normalizeRiskBudget, predictiveAlerts, changeSummary, predictionQuality, predictiveHealthIndex, traceableRecommendations, buildReadModel, cashSeverityBand, CASH_APPROACHING_RATIO };
 });
