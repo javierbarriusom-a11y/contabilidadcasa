@@ -7,8 +7,9 @@ const appSource = fs.readFileSync(require.resolve("../app.js"), "utf8");
 test("AP2: handleAp1Compare también calcula el punto de equilibrio con el mismo TIN/horizonte", () => {
   // DLX1 añadió el cálculo del guardarraíl de colchón y DLX2 el reparto del excedente, ambos entre
   // el punto de equilibrio y el pintado del resultado; DEB15 (Oleada 4, Bloque 6) añadió el
-  // guardarraíl a varios meses justo antes del pintado — la ventana crece de 1800 a 2100 a 3000.
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3000);
+  // guardarraíl a varios meses justo antes del pintado, y DEB17 (Oleada 4, Bloque 6) el mismo
+  // guardarraíl bajo tensión justo después — la ventana crece de 1800 a 2100 a 3000 a 3800.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3800);
   assert.match(block, /debtComparator\.breakEvenInvestmentRatePct\(debtAnnualRatePct, months\)/);
   assert.match(block, /ap1ResultHtml\(result, investmentAnnualReturnPct, breakEven\)/);
 });

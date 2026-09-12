@@ -70,7 +70,8 @@ test("DEB3: renderDeb3OptionValue lee el campo propio de meses de espera y compo
 
 test("DEB3: handleAp1Compare llama a renderDeb3OptionValue tras comparar, reutilizando el importe y el TIN ya leídos", () => {
   // DEB15 (Oleada 4, Bloque 6) añadió el guardarraíl a varios meses antes del pintado del
-  // resultado — la ventana crece de 3000 a 3900.
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3900);
+  // resultado, y DEB17 (Oleada 4, Bloque 6) el mismo guardarraíl bajo tensión justo después — la
+  // ventana crece de 3000 a 3900 a 4700.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 4700);
   assert.match(block, /renderDeb3OptionValue\(amount, debtAnnualRatePct\);/);
 });

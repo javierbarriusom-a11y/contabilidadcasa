@@ -51,6 +51,79 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
+## Cierre de sesión — 12 de septiembre de 2026 (170): quinta oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 169 (modo Inicio del flujo de
+trabajo, con plan propuesto y confirmado explícitamente antes de tocar código). Alcance elegido:
+`PVC11`, `LEV13` y `DEB17` — las tres tareas de esfuerzo M / beneficio Alto que no exigían
+consultar alcance con el hogar de antemano y reutilizan motores ya existentes según la propia nota
+del backlog, dejando las apuestas grandes (L), las de alcance por confirmar y `PVC12` para
+sesiones dedicadas, tal y como recomienda el propio backlog.
+
+- **`PVC11` — recalibración incremental por movimiento conciliado, no solo al cerrar el mes**:
+  hasta ahora el único disparador de `learnFromHistory()` era `recalibrateForecastLearning()`, que
+  solo corre en el cierre de mes firmado (PV3/E12b) — un mes ya conciliado en
+  `canonicalLedgerSnapshot.reconciliation.months` podía llevar semanas esperando ese cierre sin que
+  se notara. Nueva función de solo lectura `pvc11PendingLearningPreview()` (`app.js`): recalcula
+  `learnFromHistory()` con el histórico conciliado disponible ahora y lo compara contra la última
+  foto ya guardada (`loadPv3LearningSnapshot`) para contar cuántos meses nuevos están conciliados
+  pero sin aprender todavía — nunca guarda nada ni aplica ningún ajuste, la única disciplina que
+  recalibra sigue siendo el cierre de mes firmado (misma exigencia de confirmación explícita que ya
+  protege a `applyLearnedBias`). Se muestra en una tarjeta nueva en Análisis de previsión, junto al
+  diario de recalibración de PV5. Tests: `tests/pvc11-desviacion-en-construccion.test.cjs`.
+- **`LEV13` — sensibilidad del veredicto de apalancarse, punto de cruce exacto por bisección**:
+  `simulateLeverage()` (AP3) solo decía si cada escenario declarado (pesimista/base/optimista) era
+  favorable o desfavorable HOY, sin decir cuánto margen real tenía ese veredicto. Nueva función
+  `leverageVerdictCrossing()` (`canonical-leverage-simulator.js`) aplica la misma bisección exacta
+  que ya usa `inverseScenario()` (laboratorio de previsión, E13) — reimplementada localmente porque
+  `findFactorCrossing` no estaba exportada del otro módulo — para calcular cuánto tendría que caer
+  la rentabilidad esperada, o cuánto tendría que subir el tipo de la deuda nueva, antes de que cada
+  escenario cambie de signo. Un escenario ya desfavorable hoy no tiene punto de cruce hacia delante
+  que buscar (mismo criterio que `alreadyBroken` en `inverseScenario`). Se muestra en el simulador
+  AP3 (`lev13VerdictCrossingHtml`), justo debajo del resultado ya calculado. Tests:
+  `tests/lev13-sensibilidad-cruce-apalancamiento.test.cjs`.
+- **`DEB17` — test de estrés de la cancelación contra el escenario de tensión, no solo el base**:
+  el guardarraíl a varios meses de `DEB15` (`cancellationLiquidityGuardrail`) solo proyectaba la
+  liquidez futura contra el escenario BASE del forecast. `handleAp1Compare` ahora calcula además el
+  mismo guardarraíl contra el perfil de tensión ya calibrado en el laboratorio de escenarios (E13,
+  `PROFILES` id `"stress"`: -10% ingresos, +10% gastos), pasando las filas de `simulate()` como
+  `forecastSeries` — `cancellationLiquidityGuardrail` ya aceptaba filas planas
+  (`row.closingLiquidity`) además de la serie anidada del forecast, así que no hizo falta ningún
+  adaptador. Misma condición de activación que `DEB15` (solo cancelación TOTAL). Nueva función de
+  render `deb17CancellationStressHtml`. Tests: `tests/deb17-test-estres-cancelacion.test.cjs`.
+- **Validación**: `npm run verify` completo en verde (tras `npm install`, que faltaba por completo
+  en el contenedor de esta sesión — `node_modules` no existía). `npm test` **3772/3772** pruebas (28
+  nuevas: 11 en `pvc11-desviacion-en-construccion.test.cjs`, 9 en
+  `lev13-sensibilidad-cruce-apalancamiento.test.cjs`, 8 en `deb17-test-estres-cancelacion.test.cjs`,
+  más 6 archivos de test ya existentes con su ventana de extracción de código ajustada porque DEB17
+  añadió líneas dentro de `handleAp1Compare()` que esos tests ya recortaban por longitud fija —
+  `tests/ap1-app-integracion.test.cjs`, `tests/ap2-app-integracion.test.cjs`,
+  `tests/deb3-opcionalidad-esperar.test.cjs`, `tests/deb7-preferencia-declarada.test.cjs`,
+  `tests/deb9-sintesis-cancelar-mantener-deuda.test.cjs` (mismo patrón de "la ventana crece" ya
+  documentado en sesiones anteriores) y `tests/pvx5-causal-tree.test.cjs` (una llamada nueva
+  intercalada en el ciclo de render, `renderPvc11PendingLearning()`, sin cambiar ningún criterio de
+  prueba, solo el texto exacto esperado). `test:a11y` **1218 IDs únicos** (+1: la tarjeta nueva de
+  PVC11, `pvc11PendingLearningNote` — LEV13 y DEB17 no añaden ningún elemento nuevo al DOM, ambas
+  reutilizan tarjetas existentes de AP3/AP1). `test:performance`, `build:site`, `test:privacy` y
+  `test:smoke`, todos sin errores. Verificación manual adicional en navegador (Playwright headless,
+  Chromium): las tres funciones nuevas (`pvc11PendingLearningPreview`/render, `leverageVerdictCrossing`
+  + `lev13VerdictCrossingHtml`, `deb17CancellationStressHtml`) se ejecutaron con datos sintéticos
+  cargados en la propia app publicada, sin ninguna excepción de página — el único ruido de consola
+  fue el bloqueo de red del propio sandbox al script externo de Supabase (`cdn.jsdelivr.net`), ya
+  presente antes de esta sesión y ajeno a los cambios.
+- **Pendiente para la siguiente oleada**: 33 tareas accionables de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+  siguen intactas — `PVC12` (consolidación de estacionalidad/deriva, candidata a sesión propia),
+  `PVC16`-`19`, `INV11`-`20`, `LEV10`-`12`/`14`/`16`, `DEB11`/`12`/`14`/`16`, `GOB11`-`16`/`18`/`19`.
+  Los cinco frentes marcados por el propio §10 para "cuestionar el alcance antes de construir"
+  (`PVC14`, `INV16`, `LEV14`, `GOB15`) y las apuestas grandes (L: `INV11`, `INV18`, `PVC14`, `GOB11`,
+  `GOB15`, `GOB19`) siguen sin tocar, a la espera de una sesión dedicada o de confirmación explícita
+  del hogar.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`). La rama de trabajo (`claude/youthful-babbage-fywsp9`) partía ya
+  fusionada del cierre de la sesión 169 (GitHub la había borrado en remoto tras el PR #277); se
+  retomó desde el mismo commit que `main`, sin ningún trabajo suelto que recuperar.
+
 ## Cierre de sesión — 12 de septiembre de 2026 (169): cuarta oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
 
 El usuario pidió seguir con la siguiente oleada tras la sesión 168. Alcance elegido: `PVC13` y
