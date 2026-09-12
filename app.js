@@ -16200,7 +16200,30 @@ function ap3ResultHtml(result) {
     const scenario = result.scenarios[key];
     return `<li><strong>${escapeHtml(scenario.label)} (${scenario.ratePercent}%)</strong>: rendimiento esperado ${money(scenario.expectedAnnualReturn, true)}/año, coste de la deuda ${money(result.annualDebtCost, true)}/año → resultado neto ${money(scenario.netAnnualResult, true)}/año (${assessmentLabel[scenario.assessment]}, no una orden — revisa los números antes de aceptarla).</li>`;
   }).join("");
-  return `<p>Deuda nueva: ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% anual → coste de la deuda ${money(result.annualDebtCost, true)}/año.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>${lev1PolicyPreviewHtml(result.newDebtAmount)}`;
+  return `<p>Deuda nueva: ${money(result.newDebtAmount, true)} al ${result.newDebtAnnualRatePercent}% anual → coste de la deuda ${money(result.annualDebtCost, true)}/año.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>${lev1PolicyPreviewHtml(result.newDebtAmount)}${lev13VerdictCrossingHtml(result)}`;
+}
+
+// LEV13 (Oleada 4, Bloque 5): aplica la misma bisección exacta de inverseScenario() (laboratorio de
+// previsión, E13) sobre simulateLeverage() — en vez de decir solo "favorable/desfavorable hoy",
+// dice cuánto margen real tiene ese veredicto: cuánto tendría que caer la rentabilidad esperada, o
+// cuánto tendría que subir el tipo de la deuda nueva, antes de que cada escenario cambie de signo.
+// Nunca decide nada por su cuenta, solo mide la sensibilidad del propio resultado ya calculado.
+function lev13VerdictCrossingHtml(result) {
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  if (!engine) return "";
+  const crossing = engine.leverageVerdictCrossing(result);
+  if (!crossing.calculable) return "";
+  const rows = crossing.scenarios.map((scenario) => {
+    if (scenario.alreadyUnfavorable) return `<li><strong>${escapeHtml(scenario.label)}</strong>: ${escapeHtml(scenario.note)}</li>`;
+    const returnLine = scenario.returnDropPercent !== null
+      ? `la rentabilidad esperada podría caer un ${scenario.returnDropPercent}% (hasta el ${scenario.returnCrossingPct}%) antes de dejar de ser favorable`
+      : "la rentabilidad esperada no cruza a desfavorable ni cayendo a 0%";
+    const rateLine = scenario.rateRisePercent !== null
+      ? `el tipo de la deuda nueva podría subir un ${scenario.rateRisePercent}% (hasta el ${scenario.rateCrossingPct}%) antes de dejar de ser favorable`
+      : escapeHtml(scenario.note);
+    return `<li><strong>${escapeHtml(scenario.label)}</strong>: ${returnLine}; ${rateLine}.</li>`;
+  }).join("");
+  return `<div class="e19-kpi-note"><p>Sensibilidad del veredicto (punto de cruce exacto):</p><ul class="commit-barrier-list">${rows}</ul></div>`;
 }
 
 function handleAp3Simulate() {
@@ -17248,6 +17271,23 @@ function deb15CancellationGuardrailHtml(result) {
   return `<p class="negative"><strong>Guardarraíl a ${result.horizonMonths} meses (DEB15)</strong> — aunque el día de la cancelación el colchón aguante, en ${breaches.length} de los ${result.horizonMonths} meses siguientes caería por debajo del suelo según el forecast (peor mes: ${escapeHtml(result.worst.label)}, ${money(result.worst.projectedLiquidity, true)}). No se ha descontado la cuota que dejarías de pagar: si acaso, esto subestima la liquidez futura real.</p>`;
 }
 
+// DEB17 (Oleada 4, Bloque 6): DEB15 (arriba) ya proyecta la liquidez de los próximos meses tras una
+// cancelación total, pero solo contra el escenario BASE del forecast — nunca contra un escenario de
+// tensión. Reutiliza tal cual el propio guardarraíl de DEB15 (cancellationLiquidityGuardrail) y el
+// perfil de tensión ya calibrado en el laboratorio de escenarios (E13, PROFILES: "stress", -10%
+// ingresos/+10% gastos) para simular la MISMA cancelación bajo un mes de tensión inmediatamente
+// después, en vez de un motor de estrés nuevo. cancellationLiquidityGuardrail ya acepta filas planas
+// (row.closingLiquidity) además de la serie anidada del forecast (row.totals.closingLiquidity), así
+// que las filas que devuelve simulate() encajan sin adaptador.
+function deb17CancellationStressHtml(result) {
+  if (!result || !result.calculable) return "";
+  if (result.holds) {
+    return `<p class="positive"><strong>Test de estrés de la cancelación (DEB17)</strong> — incluso bajo un escenario de tensión (-10% ingresos, +10% gastos) en los ${result.horizonMonths} meses siguientes, el colchón se mantendría por encima del suelo (peor mes: ${escapeHtml(result.worst.label)}, ${money(result.worst.projectedLiquidity, true)}).</p>`;
+  }
+  const breaches = result.projected.filter((month) => month.status === "insostenible");
+  return `<p class="negative"><strong>Test de estrés de la cancelación (DEB17)</strong> — bajo un escenario de tensión (-10% ingresos, +10% gastos), ${breaches.length} de los ${result.horizonMonths} meses siguientes caería el colchón por debajo del suelo (peor mes: ${escapeHtml(result.worst.label)}, ${money(result.worst.projectedLiquidity, true)}), aunque el escenario base (DEB15) aguante. No se ha descontado la cuota que dejarías de pagar: si acaso, esto subestima la liquidez futura real.</p>`;
+}
+
 function handleAp1Compare() {
   const note = qs("ap1CompareNote");
   if (!note) return;
@@ -17297,7 +17337,19 @@ function handleAp1Compare() {
       forecastSeries: canonicalScenarioResults.base?.forecast?.series || [],
     })
     : null;
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
+  // DEB17 (Oleada 4, Bloque 6): mismo guardarraíl de DEB15, misma condición de cancelación TOTAL,
+  // pero contra el perfil de tensión de E13 en vez del escenario base.
+  const e13Engine = window.FinanceCanonicalE13;
+  const stressProfile = e13Engine?.PROFILES?.find((profile) => profile.id === "stress");
+  const cancellationStressGuardrail = cushionEngine && isFullCancellation && e13Engine && stressProfile
+    ? cushionEngine.cancellationLiquidityGuardrail({
+      amount,
+      liquidity: accountBalancesFromState().total,
+      floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+      forecastSeries: e13Engine.simulate(canonicalScenarioResults.base?.forecast || {}, stressProfile, []).rows,
+    })
+    : null;
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (cancellationStressGuardrail ? deb17CancellationStressHtml(cancellationStressGuardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
   // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
   // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
   if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {
@@ -27962,6 +28014,7 @@ function renderAjustes() {
   renderAjustesLaboratorio();
   renderCierreReportArchive();
   renderPv5Diary();
+  renderPvc11PendingLearning();
   renderPvx5CausalTree();
   renderPvc4CategoryDrift();
   renderPvx1Backtest();
@@ -34574,6 +34627,50 @@ function renderPv5Diary() {
       </li>`,
     )
     .join("");
+}
+
+// PVC11 (Oleada 4, Bloque 3): el único disparador de learnFromHistory() sigue siendo
+// recalibrateForecastLearning(), que solo corre en el cierre de mes firmado (PV3/E12b) — un mes
+// que ya está conciliado en canonicalLedgerSnapshot.reconciliation.months (por eso ya lo recoge
+// reconciledMonthlyNetHistory()) puede llevar semanas esperando ese cierre sin que se note. Esta
+// función es una vista previa de solo lectura: recalcula learnFromHistory() con el histórico
+// conciliado disponible AHORA y lo compara contra la última foto ya guardada
+// (loadPv3LearningSnapshot) para contar cuántos meses nuevos están conciliados pero todavía sin
+// aprender. Nunca llama a savePv3LearningSnapshot ni a applyLearnedBias — la única disciplina que
+// aplica el ajuste sigue siendo el cierre de mes firmado, misma exigencia de confirmación
+// explícita que ya protege a applyLearnedBias.
+function pvc11PendingLearningPreview() {
+  const learning = window.FinanceCanonicalForecast?.learnFromHistory(reconciledMonthlyNetHistory());
+  if (!learning) return { pending: false, pendingMonths: 0 };
+  const current = learning.deviations.find((item) => item.conceptId === "monthly-net");
+  const previous = loadPv3LearningSnapshot()["monthly-net"];
+  const currentSample = current?.sampleMonths || 0;
+  const previousSample = previous?.sampleMonths || 0;
+  const pendingMonths = Math.max(0, currentSample - previousSample);
+  if (!pendingMonths || !current) return { pending: false, pendingMonths: 0 };
+  return {
+    pending: true,
+    pendingMonths,
+    currentDelta: current.averageDelta,
+    currentSeverity: current.severity,
+    currentConfidence: current.confidence,
+    previousDelta: previous ? previous.averageDelta : null,
+  };
+}
+
+function renderPvc11PendingLearning() {
+  const note = qs("pvc11PendingLearningNote");
+  if (!note) return;
+  const preview = pvc11PendingLearningPreview();
+  if (!preview.pending) {
+    note.textContent = "Sin movimientos conciliados nuevos desde el último cierre: el aprendizaje de desviaciones está al día.";
+    return;
+  }
+  const monthsLabel = preview.pendingMonths === 1 ? "1 mes conciliado nuevo" : `${preview.pendingMonths} meses conciliados nuevos`;
+  const shift = preview.previousDelta === null
+    ? `la desviación media provisional sería ${money(preview.currentDelta, true)}`
+    : `la desviación media pasaría de ${money(preview.previousDelta, true)} a ${money(preview.currentDelta, true)}`;
+  note.textContent = `${monthsLabel} desde el último cierre, todavía sin aprender: si cerraras el mes ahora, ${shift} (confianza ${preview.currentConfidence}). No se aplica nada hasta que cierres el mes.`;
 }
 
 // PVX1: backtesting público del propio motor de previsión — el mismo aprendizaje que ya alimenta

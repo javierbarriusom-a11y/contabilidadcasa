@@ -333,6 +333,72 @@
     };
   }
 
+  // LEV13 (Oleada 4, Bloque 5): hasta ahora simulateLeverage() solo dice si cada escenario declarado
+  // (pesimista/base/optimista) es favorable o desfavorable HOY, con la rentabilidad y el tipo tal
+  // cual se declararon — sin decir cuánto margen real tiene ese veredicto antes de cambiar de signo.
+  // Misma bisección exacta que ya usa inverseScenario() (canonical-e13-scenarios.js, laboratorio de
+  // previsión general): aquí en vez de escalar ingresos/gastos del forecast, se escala la
+  // rentabilidad esperada o el tipo de la deuda nueva. Un escenario ya desfavorable hoy no tiene un
+  // punto de cruce hacia delante que buscar (mismo criterio que "alreadyBroken" en inverseScenario).
+  function findFactorCrossing(probe, lowerBound, upperBound, { tolerance = 0.5, maxIterations = 30 } = {}) {
+    const lowerValue = probe(lowerBound);
+    const upperValue = probe(upperBound);
+    if (lowerValue === 0) return lowerBound;
+    if (upperValue === 0) return upperBound;
+    if (Math.sign(lowerValue) === Math.sign(upperValue)) return null;
+    let low = lowerBound; let high = upperBound; let lowValue = lowerValue;
+    for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+      const mid = (low + high) / 2;
+      const midValue = probe(mid);
+      if (Math.abs(midValue) <= tolerance) return mid;
+      if (Math.sign(midValue) === Math.sign(lowValue)) { low = mid; lowValue = midValue; } else { high = mid; }
+    }
+    return (low + high) / 2;
+  }
+
+  const VERDICT_CROSSING_SCHEMA_ID = "finance-lev13-leverage-verdict-crossing/v1";
+  const VERDICT_CROSSING_RATE_CEILING_MULTIPLIER_DEFAULT = 5;
+
+  function leverageVerdictCrossing(simulationResult = {}, options = {}) {
+    if (!simulationResult || simulationResult.calculable !== true) {
+      return { schemaId: VERDICT_CROSSING_SCHEMA_ID, calculable: false };
+    }
+    const debtAmount = simulationResult.newDebtAmount;
+    const debtRatePct = simulationResult.newDebtAnnualRatePercent;
+    const rateCeilingMultiplier = Math.max(1, number(options.rateCeilingMultiplier) || VERDICT_CROSSING_RATE_CEILING_MULTIPLIER_DEFAULT);
+    const scenarios = ["pessimistic", "base", "optimistic"].map((id) => {
+      const scenario = simulationResult.scenarios[id];
+      if (!(scenario.netAnnualResult > 0)) {
+        return {
+          id, label: scenario.label, alreadyUnfavorable: true,
+          returnDropPercent: null, rateRisePercent: null,
+          note: "Este escenario ya es desfavorable hoy: no hay un punto de cruce hacia delante que buscar.",
+        };
+      }
+      // ¿Cuánto tendría que caer la rentabilidad esperada declarada (factor 1 → 0) para que este
+      // escenario deje de ser favorable, con el tipo de la deuda fijo?
+      const returnCrossingFactor = findFactorCrossing(
+        (factor) => round2(debtAmount * ((scenario.ratePercent * factor) / 100) - debtAmount * (debtRatePct / 100)),
+        0, 1,
+      );
+      // ¿Cuánto tendría que subir el tipo de la deuda nueva (factor 1 → techo) para que este
+      // escenario deje de ser favorable, con la rentabilidad esperada fija?
+      const rateCrossingFactor = findFactorCrossing(
+        (factor) => round2(debtAmount * (scenario.ratePercent / 100) - debtAmount * ((debtRatePct * factor) / 100)),
+        1, rateCeilingMultiplier,
+      );
+      return {
+        id, label: scenario.label, alreadyUnfavorable: false,
+        returnDropPercent: returnCrossingFactor !== null ? round2((1 - returnCrossingFactor) * 100) : null,
+        returnCrossingPct: returnCrossingFactor !== null ? round2(scenario.ratePercent * returnCrossingFactor) : null,
+        rateRisePercent: rateCrossingFactor !== null ? round2((rateCrossingFactor - 1) * 100) : null,
+        rateCrossingPct: rateCrossingFactor !== null ? round2(debtRatePct * rateCrossingFactor) : null,
+        note: rateCrossingFactor !== null ? "" : `Ni multiplicando el tipo de la deuda por ${rateCeilingMultiplier} se rompe este escenario en el rango explorado.`,
+      };
+    });
+    return { schemaId: VERDICT_CROSSING_SCHEMA_ID, calculable: true, rateCeilingMultiplier, scenarios };
+  }
+
   return {
     SCHEMA_ID,
     SAVED_SCHEMA_ID,
@@ -351,5 +417,7 @@
     tailRiskAgainstMarginCall,
     SELL_VS_BORROW_SCHEMA_ID,
     sellVsBorrowComparison,
+    VERDICT_CROSSING_SCHEMA_ID,
+    leverageVerdictCrossing,
   };
 });

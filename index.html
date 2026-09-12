@@ -3210,6 +3210,15 @@
               <p class="e19-kpi-note" id="pv5DiaryEmpty" hidden>Todavía no ha cambiado ninguna cifra tras un cierre de mes.</p>
             </article>
 
+            <!-- PVC11 (Oleada 4, Bloque 3): el diario de arriba (PV5) solo se escribe en el cierre
+                 de mes firmado — esta tarjeta es la vista previa de solo lectura de lo que ya está
+                 conciliado y esperando ese cierre, para que la desviación en construcción no quede
+                 oculta hasta entonces. Nunca aplica nada por sí sola. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Desviación en construcción</h3>
+              <p class="e19-kpi-note" id="pvc11PendingLearningNote"></p>
+            </article>
+
             <!-- PVC4 (Oleada 3, Bloque 5): extiende learnFromHistory()/A11-3 y el backtesting de
                  PVX1 a nivel de partida, con tres ventanas (3/6/12 meses) en vez de un único
                  promedio sobre todo el histórico — para distinguir sesgo sistemático (misma

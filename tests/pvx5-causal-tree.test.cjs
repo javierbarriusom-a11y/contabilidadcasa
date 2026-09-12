@@ -116,7 +116,9 @@ test("app.js: renderPvx5CausalTree usa causalTreeForMonth con la serie base y el
   assert.match(block, /engine\.causalTreeForMonth\(/);
   assert.match(block, /loadPv5Diary\(\)/);
   assert.match(block, /selectableMonths\(\{ includeClosed: true \}\)/);
-  assert.match(appSource, /renderPv5Diary\(\);\s*\n\s*renderPvx5CausalTree\(\);/);
+  // PVC11 (Oleada 4, Bloque 3) intercaló renderPvc11PendingLearning() entre renderPv5Diary() y
+  // renderPvx5CausalTree() en el ciclo de render — mismo hueco, una llamada más.
+  assert.match(appSource, /renderPv5Diary\(\);\s*\n\s*renderPvc11PendingLearning\(\);\s*\n\s*renderPvx5CausalTree\(\);/);
   assert.match(appSource, /qs\("pvx5MonthSelect"\)\?\.addEventListener\("change", renderPvx5CausalTree\);/);
 });
 
