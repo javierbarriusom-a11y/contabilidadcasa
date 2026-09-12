@@ -185,6 +185,47 @@
     };
   }
 
+  // DEB15 (Oleada 4, Bloque 6): guardarraíl de liquidez a varios meses tras una cancelación TOTAL de
+  // deuda, no solo en el instante — amortizeCushionGuardrail (DLX1, arriba) ya protege el colchón el
+  // día de la operación, pero una cancelación grande puede dejarlo justo ese día y quebrarlo el mes
+  // siguiente en cuanto llegue un gasto ya previsto que hoy no se ve. Reutiliza el propio forecast
+  // (la misma serie mensual que ya usan PV4/PVC2/etc., sin recalcular nada): proyecta la liquidez que
+  // el forecast ya prevé para cada uno de los próximos `horizonMonths` meses, reducida por el importe
+  // pagado hoy — hipótesis deliberadamente conservadora, porque no da por hecho que la cuota de la
+  // deuda cancelada desaparece del forecast (eso exigiría que el hogar ya hubiera actualizado su
+  // plan tras cancelar); si acaso, subestima la liquidez futura real, nunca la sobreestima. Si
+  // cualquier mes del horizonte cae por debajo del suelo, el guardarraíl no se sostiene, aunque el
+  // día de la cancelación sí pasara amortizeCushionGuardrail.
+  const DEFAULT_CANCELLATION_GUARDRAIL_MONTHS = 6;
+
+  function cancellationLiquidityGuardrail({ amount, liquidity, floor, forecastSeries = [], horizonMonths = DEFAULT_CANCELLATION_GUARDRAIL_MONTHS } = {}) {
+    const amountSafe = round2(Math.max(0, number(amount)));
+    const floorSafe = round2(Math.max(0, number(floor)));
+    const instant = amortizeCushionGuardrail({ amount: amountSafe, liquidity, floor: floorSafe });
+    const months = Math.max(1, Math.floor(number(horizonMonths, DEFAULT_CANCELLATION_GUARDRAIL_MONTHS)));
+    const series = (Array.isArray(forecastSeries) ? forecastSeries : []).slice(0, months);
+    if (!series.length) return { calculable: false, instant };
+    const earlyWarningFloor = round2(floorSafe * (1 + AMORTIZE_EARLY_WARNING_MARGIN));
+    const projected = series.map((row, index) => {
+      const forecastLiquidity = round2(number(row.totals?.closingLiquidity ?? row.closingLiquidity));
+      const projectedLiquidity = round2(forecastLiquidity - amountSafe);
+      const status = projectedLiquidity < floorSafe ? "insostenible" : projectedLiquidity < earlyWarningFloor ? "ajustado" : "sostenible";
+      return { monthKey: String(row.monthKey ?? ""), label: String(row.label ?? ""), horizon: index + 1, forecastLiquidity, projectedLiquidity, status };
+    });
+    const worst = projected.reduce((min, month) => (min === null || month.projectedLiquidity < min.projectedLiquidity ? month : min), null);
+    return {
+      calculable: true,
+      instant,
+      // El horizonte realmente evaluado, no el pedido: si el forecast no llega tan lejos, decirlo
+      // tal cual es más honesto que afirmar haber comprobado meses que no se pudieron proyectar.
+      horizonMonths: series.length,
+      requestedHorizonMonths: months,
+      projected,
+      worst,
+      holds: !projected.some((month) => month.status === "insostenible"),
+    };
+  }
+
   // DLX2: reparto automático del excedente mensual. Depende de DLX1 (mismo suelo y liquidez de
   // amortizeCushionGuardrail) y del veredicto que ya calcula AP1 (compareAmortizeVsInvest,
   // canonical-debt-comparator.js): primero protege el colchón hasta su suelo con la parte del
@@ -325,6 +366,8 @@
     cushionMaturityLadder,
     AMORTIZE_EARLY_WARNING_MARGIN,
     amortizeCushionGuardrail,
+    DEFAULT_CANCELLATION_GUARDRAIL_MONTHS,
+    cancellationLiquidityGuardrail,
     surplusAllocationRule,
     dimensionOptimalPrepayment,
     cushionRetrospective,

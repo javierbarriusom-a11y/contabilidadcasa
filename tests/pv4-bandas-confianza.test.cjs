@@ -74,8 +74,16 @@ test("pv4ConfidenceBandHtml · con datos, pinta una columna por mes con su etiqu
 
 test("renderE13ScenarioLab calcula las bandas sobre 12 meses de forecast.series y las pinta junto al termómetro", () => {
   const source = extractFunction("renderE13ScenarioLab");
-  assert.match(source, /confidenceBands = window\.FinanceCanonicalForecast\.confidenceBands\(forecast\.series\.slice\(0, 12\), learning\)/);
+  assert.match(source, /confidenceBands = window\.FinanceCanonicalForecast\.confidenceBands\(forecast\.series\.slice\(0, 12\), learning, \{ quality: predictionQuality \}\)/);
   assert.match(source, /pv4ConfidenceBandHtml\(confidenceBands\)/);
+});
+
+// PVC13 (Oleada 4, Bloque 3): la misma función construye ahora las muestras de predictionQuality
+// (E16) desde el histórico conciliado y las pasa como quality a confidenceBands, para que el error
+// medido pueda ensanchar la banda cuando sea mayor que el sesgo medio ya usado.
+test("renderE13ScenarioLab construye predictionQuality desde el histórico conciliado antes de confidenceBands", () => {
+  const source = extractFunction("renderE13ScenarioLab");
+  assert.match(source, /predictionQuality = window\.FinanceCanonicalE16\?\.predictionQuality\(\{ samples: qualitySamples \}\) \|\| null/);
 });
 
 test("el motor canónico (con confidenceBands) está versionado en index.html", () => {

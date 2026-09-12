@@ -371,11 +371,23 @@
   // la incertidumbre todavía", no una anchura inventada.
   const CONFIDENCE_BAND_MAX_WIDENING = 3;
 
+  // PVC13 (Oleada 4, Bloque 3): cierra el bucle con predictionQuality() (E16) — hasta ahora esta
+  // función solo usaba el sesgo medio (|averageDelta| medio de learnFromHistory), que se puede
+  // cancelar cuando los errores de un mes a otro cambian de signo aunque su dispersión real sea
+  // alta. `options.quality` (un `predictionQuality()` ya calculado, opcional) trae el error medio
+  // absoluto medido sobre CADA muestra, que por desigualdad triangular nunca es menor que |sesgo
+  // medio| — así que cuando hay medición real disponible, el margen se ensancha (nunca se estrecha)
+  // hasta ese error medido. Sin `options.quality`, el comportamiento es idéntico al de antes.
   function confidenceBands(series = [], learning = {}, options = {}) {
     const deviations = (Array.isArray(learning.deviations) ? learning.deviations : []).filter((item) => item.sampleMonths > 0);
-    const baseMargin = deviations.length
+    const biasMargin = deviations.length
       ? round(deviations.reduce((sum, item) => sum + Math.abs(number(item.averageDelta)), 0) / deviations.length)
       : 0;
+    const measuredMae = Number.isFinite(options?.quality?.meanAbsoluteError) && number(options?.quality?.samples) > 0
+      ? round(options.quality.meanAbsoluteError)
+      : null;
+    const baseMargin = measuredMae !== null ? Math.max(biasMargin, measuredMae) : biasMargin;
+    const marginSource = measuredMae !== null && measuredMae > biasMargin ? "measured-error" : "bias";
     const bandConfidence = !deviations.length ? "low"
       : deviations.every((item) => item.confidence === "high") ? "high"
         : deviations.some((item) => item.confidence === "low") ? "low" : "medium";
@@ -387,7 +399,7 @@
         monthKey: text(row.monthKey), label: text(row.label),
         center, low: round(center - margin), high: round(center + margin), margin,
       };
-    }).map((band) => ({ ...band, confidence: bandConfidence, sampleConcepts: deviations.length }));
+    }).map((band) => ({ ...band, confidence: bandConfidence, sampleConcepts: deviations.length, marginSource, measuredMae }));
   }
 
   // A16-3: detección de recurrentes/suscripciones. Reutiliza confidence() tal cual (mismo criterio

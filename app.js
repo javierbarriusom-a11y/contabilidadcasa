@@ -17235,6 +17235,19 @@ function renderDeb9Synthesis(params) {
   box.innerHTML = deb9SynthesisHtml(result);
 }
 
+// DEB15 (Oleada 4, Bloque 6): extiende el guardarraíl de colchón (DLX1, arriba) de "el día de la
+// cancelación" a "los próximos meses", usando el propio forecast (cancellationLiquidityGuardrail,
+// canonical-cushion.js). Solo se muestra cuando se está comparando una cancelación TOTAL, no una
+// amortización parcial cualquiera.
+function deb15CancellationGuardrailHtml(result) {
+  if (!result || !result.calculable) return "";
+  if (result.holds) {
+    return `<p class="positive"><strong>Guardarraíl a ${result.horizonMonths} meses (DEB15)</strong> — el colchón se mantendría por encima del suelo en los ${result.horizonMonths} meses siguientes a la cancelación (peor mes: ${escapeHtml(result.worst.label)}, ${money(result.worst.projectedLiquidity, true)}).</p>`;
+  }
+  const breaches = result.projected.filter((month) => month.status === "insostenible");
+  return `<p class="negative"><strong>Guardarraíl a ${result.horizonMonths} meses (DEB15)</strong> — aunque el día de la cancelación el colchón aguante, en ${breaches.length} de los ${result.horizonMonths} meses siguientes caería por debajo del suelo según el forecast (peor mes: ${escapeHtml(result.worst.label)}, ${money(result.worst.projectedLiquidity, true)}). No se ha descontado la cuota que dejarías de pagar: si acaso, esto subestima la liquidez futura real.</p>`;
+}
+
 function handleAp1Compare() {
   const note = qs("ap1CompareNote");
   if (!note) return;
@@ -17272,7 +17285,19 @@ function handleAp1Compare() {
       assessment: result.calculable ? result.assessment : null,
     })
     : null;
-  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
+  // DEB15 (Oleada 4, Bloque 6): solo aplica a una cancelación TOTAL (el importe cubre el principal
+  // pendiente entero de la deuda seleccionada) — una amortización parcial ya queda cubierta por el
+  // guardarraíl instantáneo (DLX1) de arriba, sin necesidad de proyectar meses futuros.
+  const isFullCancellation = Boolean(debt) && Number.isFinite(amount) && amount > 0 && amount >= debt.currentPrincipal;
+  const cancellationGuardrail = cushionEngine && isFullCancellation
+    ? cushionEngine.cancellationLiquidityGuardrail({
+      amount,
+      liquidity: accountBalancesFromState().total,
+      floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
+      forecastSeries: canonicalScenarioResults.base?.forecast?.series || [],
+    })
+    : null;
+  note.innerHTML = (guardrail ? dlx1GuardrailHtml(guardrail) : "") + (cancellationGuardrail ? deb15CancellationGuardrailHtml(cancellationGuardrail) : "") + (surplusAllocation ? dlx2SurplusAllocationHtml(surplusAllocation) : "") + (surplusAllocation ? deb2DimensionHtml(surplusAllocation) : "") + deb10PriorityHint(debtId) + ap1ResultHtml(result, investmentAnnualReturnPct, breakEven) + apx6ReduceQuotaVsTermHtml(debt, amount, debtAnnualRatePct);
   // DEB1: solo se hace seguimiento de un veredicto real (amortizar/invertir/neutral), nunca de
   // "invertir-no-calculable" — no hay nada que comparar sin una lectura de verdad la primera vez.
   if (result.calculable && debtId && ["amortizar", "invertir", "neutral"].includes(result.assessment)) {
@@ -20706,7 +20731,12 @@ function pv4ConfidenceBandHtml(bands) {
   const note = first.sampleConcepts
     ? `Banda de confianza ${escapeHtml(PV4_CONFIDENCE_LABEL[first.confidence] || first.confidence)}, a partir de ${first.sampleConcepts} partida(s) con historial suficiente. Se ensancha cuanto más lejos está el mes.`
     : "Sin historial conciliado suficiente todavía: la banda es de ancho cero, no un margen inventado.";
-  return `<div class="pv4-band-list">${cols}</div><p class="e19-kpi-note">${note}</p>`;
+  // PVC13: el margen puede venir del error medio real medido (predictionQuality, E16) en vez del
+  // sesgo medio por partida, cuando el primero es mayor — se dice explícitamente, nunca en silencio.
+  const measuredNote = first.marginSource === "measured-error"
+    ? ` Ensanchada hasta el error medio real medido (${money(first.measuredMae, true)}), mayor que el sesgo medio por partida.`
+    : "";
+  return `<div class="pv4-band-list">${cols}</div><p class="e19-kpi-note">${note}${measuredNote}</p>`;
 }
 
 // ESX4: malla de dos supuestos cruzados — extiende la tarjeta de Sensibilidad (que varía un
@@ -20891,7 +20921,14 @@ function renderE13ScenarioLab() {
   // ahora compartida en reconciledMonthlyNetHistory() en vez de duplicada.
   const history = reconciledMonthlyNetHistory();
   const learning = window.FinanceCanonicalForecast.learnFromHistory(history, { generatedAt: forecast.generatedAt });
-  const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning);
+  // PVC13 (Oleada 4, Bloque 3): cierra el bucle entre predictionQuality() (E16, hasta ahora sin
+  // ningún sitio real que la llamara) y confidenceBands() (PV4) — mismo histórico conciliado que ya
+  // usa PVX1/learnFromHistory, reutilizado como muestras predicho/real en vez de un pipeline nuevo.
+  const qualitySamples = history
+    .filter((record) => Number.isFinite(record.planned) && Number.isFinite(record.actual))
+    .map((record) => ({ actual: record.actual, predicted: record.planned, category: "monthly-net", complete: true }));
+  const predictionQuality = window.FinanceCanonicalE16?.predictionQuality({ samples: qualitySamples }) || null;
+  const confidenceBands = window.FinanceCanonicalForecast.confidenceBands(forecast.series.slice(0, 12), learning, { quality: predictionQuality });
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
   // PVC5: el triángulo P10/P50/P90 usa todo el histórico (comportamiento de siempre) o la ventana de
   // 8 trimestres, según lo que el hogar haya confirmado explícitamente — nunca cambia solo.
