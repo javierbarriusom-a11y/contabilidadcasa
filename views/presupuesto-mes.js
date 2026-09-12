@@ -654,28 +654,16 @@ function budgetCalendarMonthName(monthNumber) {
   return new Date(2000, monthNumber - 1, 1).toLocaleDateString("es-ES", { month: "long" });
 }
 
+// PVC12 (Oleada 4): la aritmética de "¿qué meses de calendario se salen de la media?" vive ahora
+// en `canonical-budget-forecast-category.js` (`seasonalPatternsFromCalendarSpend`), reutilizada
+// tal cual también por `_detectMonthlySeasonality` del propio forecast por categoría — un único
+// cálculo de estacionalidad en vez de dos que podían disentir sobre datos casi idénticos. Esta
+// función solo construye los pares mes/gasto reales (vía `budgetAlertForRow`, sin motor propio).
 function budgetSeasonalPatterns(category, monthKey, monthsBack = 24) {
-  const spendByCalendarMonth = {};
-  recentBudgetMonthKeys(monthKey, monthsBack)
+  const spendEntries = recentBudgetMonthKeys(monthKey, monthsBack)
     .concat(monthKey)
-    .forEach((m) => {
-      const spent = budgetAlertForRow({ categoryId: category, amountCap: 1 }, m).metrics.spent;
-      if (spent <= 0) return;
-      const calendarMonth = Number(m.split("-")[1]);
-      (spendByCalendarMonth[calendarMonth] ||= []).push(spent);
-    });
-  const allValues = Object.values(spendByCalendarMonth).flat();
-  if (allValues.length < 6) return [];
-  const overallAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
-  if (overallAvg <= 0) return [];
-  return Object.entries(spendByCalendarMonth)
-    .filter(([, values]) => values.length >= 2)
-    .map(([calendarMonth, values]) => {
-      const avg = values.reduce((a, b) => a + b, 0) / values.length;
-      return { calendarMonth: Number(calendarMonth), avg, samples: values.length, deviationPct: Math.round(((avg - overallAvg) / overallAvg) * 100) };
-    })
-    .filter((pattern) => Math.abs(pattern.deviationPct) >= 10)
-    .sort((a, b) => Math.abs(b.deviationPct) - Math.abs(a.deviationPct));
+    .map((m) => ({ monthKey: m, spent: budgetAlertForRow({ categoryId: category, amountCap: 1 }, m).metrics.spent }));
+  return window.FinanceCanonicalBudgetForecastCategory.CanonicalBudgetForecastCategory.seasonalPatternsFromCalendarSpend(spendEntries);
 }
 
 function presupuestoMesSeasonalHtml(monthKey) {

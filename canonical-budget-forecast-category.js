@@ -82,6 +82,41 @@ class CanonicalBudgetForecastCategory {
   }
 
   /**
+   * PVC12 (Oleada 4, consolidación confirmada por VER-6): el algoritmo de "¿qué meses de
+   * calendario se salen de la media?" ya existe, validado y VISIBLE al hogar, en
+   * `budgetSeasonalPatterns` (ML-1, `views/presupuesto-mes.js`, tarjeta "Patrones estacionales").
+   * Este método extrae esa misma lógica aquí, como función pura sobre pares mes/gasto (sin
+   * depender de `budgetAlertForRow` ni de ningún estado de la app), para que ML-1 y este motor de
+   * forecast dejen de mantener dos cálculos de estacionalidad distintos sobre datos casi idénticos
+   * — nunca fusiona esto con `categoryDriftWindows` (PVC4), que mide sesgo previsto/real sobre
+   * meses cerrados y conciliados, una pregunta distinta sobre una fuente de datos distinta que
+   * `VER-6` ya confirmó que debía seguir separada.
+   */
+  static seasonalPatternsFromCalendarSpend(spendEntries, options = {}) {
+    const minDeviationPct = Number.isFinite(options.minDeviationPct) ? options.minDeviationPct : 10;
+    const minSamplesPerMonth = Number.isFinite(options.minSamplesPerMonth) ? options.minSamplesPerMonth : 2;
+    const minTotalSamples = Number.isFinite(options.minTotalSamples) ? options.minTotalSamples : 6;
+    const spendByCalendarMonth = {};
+    (spendEntries || []).forEach(({ monthKey, spent }) => {
+      if (!(spent > 0)) return;
+      const calendarMonth = Number(String(monthKey).split('-')[1]);
+      (spendByCalendarMonth[calendarMonth] ||= []).push(spent);
+    });
+    const allValues = Object.values(spendByCalendarMonth).flat();
+    if (allValues.length < minTotalSamples) return [];
+    const overallAvg = allValues.reduce((a, b) => a + b, 0) / allValues.length;
+    if (overallAvg <= 0) return [];
+    return Object.entries(spendByCalendarMonth)
+      .filter(([, values]) => values.length >= minSamplesPerMonth)
+      .map(([calendarMonth, values]) => {
+        const avg = values.reduce((a, b) => a + b, 0) / values.length;
+        return { calendarMonth: Number(calendarMonth), avg, samples: values.length, deviationPct: Math.round(((avg - overallAvg) / overallAvg) * 100) };
+      })
+      .filter((pattern) => Math.abs(pattern.deviationPct) >= minDeviationPct)
+      .sort((a, b) => Math.abs(b.deviationPct) - Math.abs(a.deviationPct));
+  }
+
+  /**
    * Detecta patrones por mes del año (enero siempre alto, julio bajo, etc.)
    */
   static _detectMonthlySeasonality(monthlyHistory) {
@@ -103,6 +138,14 @@ class CanonicalBudgetForecastCategory {
       const monthAvg = data.totals.reduce((s, x) => s + x, 0) / data.totals.length;
       seasonalIndex[monthNum] = monthAvg / globalAvg; // Índice: 1.0 = promedio, 1.2 = 20% arriba
     }
+
+    // PVC12: donde el criterio ya validado de arriba (mismos umbrales de materialidad que ML-1)
+    // encuentra un patrón real para ese mes de calendario, ese factor sustituye al índice interno
+    // — nunca al revés. Los meses sin patrón materialmente significativo conservan el índice
+    // interno de siempre (fallback; nunca se deja un mes sin factor, mismo criterio de "solo
+    // ensancha, nunca estrecha" ya usado en PVC13).
+    const validated = this.seasonalPatternsFromCalendarSpend(monthlyHistory.map((m) => ({ monthKey: m.month, spent: m.total })));
+    validated.forEach((pattern) => { seasonalIndex[pattern.calendarMonth] = 1 + pattern.deviationPct / 100; });
 
     return seasonalIndex;
   }

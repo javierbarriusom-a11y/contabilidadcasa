@@ -62,6 +62,76 @@ de aquí en la siguiente regeneración, no al momento.
   una próxima sesión normal) — esta decisión solo elimina el bloqueo de alcance, no adelanta la
   construcción.
 
+## Cierre de sesión — 12 de septiembre de 2026 (172): `PVC12` — consolidación de estacionalidad/deriva por categoría
+
+El usuario pidió dedicar esta sesión entera solo a `PVC12` (candidata a sesión propia según `VER-6`,
+sesión 166b), sin tocar el resto de las 29 tareas accionables pendientes.
+
+**Análisis previo, más matizado que "fusionar las dos fuentes de datos" (leído del código real, no
+solo de la nota del backlog)**: había **tres** motores implicados, no dos — `categoryDriftWindows()`
+(PVC4) mide **sesgo** (previsto vs. real) por partida del plan, solo sobre meses **cerrados y
+conciliados con banco**; `_detectMonthlySeasonality()` (interno de
+`canonical-budget-forecast-category.js`, invisible, solo alimentaba `suggestedAmountForCategory`/
+`budgetForecastHorizons`) y `budgetSeasonalPatterns()` (ML-1, ya visible como tarjeta "Patrones
+estacionales" en Presupuesto del mes, elegida como motor oficial en la sesión de `P-3`) calculan
+ambos un índice de **estacionalidad** por categoría bancaria, sobre transacciones vivas, con
+criterios de materialidad distintos y sin que el hogar pueda comprobar si coinciden. Fusionar el
+sesgo (PVC4) con la estacionalidad habría degradado una de las dos garantías reales (verdad
+conciliada vs. actualización en vivo) — se mantiene la separación que `VER-6` ya señaló. La
+duplicación evitable de verdad estaba entre las otras dos. Alcance confirmado explícitamente por el
+usuario antes de tocar código (opción recomendada de tres presentadas).
+
+**Construido**:
+- `seasonalPatternsFromCalendarSpend()`, nueva función pura en `canonical-budget-forecast-category.js`
+  — extrae tal cual la aritmética que ya usaba `budgetSeasonalPatterns` (ML-1): índice de desviación
+  por mes de calendario, con el mismo umbral de materialidad (≥10% desviación, ≥2 muestras/mes, ≥6
+  muestras totales). `budgetSeasonalPatterns()` (`views/presupuesto-mes.js`) pasa a delegar en ella
+  en vez de mantener su propia copia del cálculo — un único algoritmo, dos usos.
+- `_detectMonthlySeasonality()` (mismo archivo) ahora llama a `seasonalPatternsFromCalendarSpend()`
+  sobre su propio histórico mensual y, cuando encuentra un patrón validado para un mes de calendario,
+  ese factor sustituye al índice interno más débil (sin mínimo de muestras por mes) que se usaba
+  hasta ahora — nunca al revés. Sin patrón validado para un mes, se conserva el cálculo interno de
+  siempre: mismo criterio de "nunca estrecha, solo mejora cuando hay señal real" que ya usó `PVC13`.
+  Mejora automáticamente `suggestedAmountForCategory()` y `budgetForecastHorizons()` (Presupuesto del
+  mes) sin tocar ninguno de sus dos puntos de llamada.
+- `categoryDriftWindows()` (`canonical-forecast.js`, PVC4) gana un campo `categoryId` (la categoría
+  bancaria equivalente a la partida, vía `categoryForPartidaEntry()` — solo para gastos, un ingreso
+  "clasificado como gasto" no tendría sentido) que viaja sin alterar el cálculo de sesgo existente.
+  `pvc4CategoryHistoryRecords()` (`app.js`) lo rellena al construir cada registro.
+- Nueva `pvc12SeasonalCrossReferenceNote()` (`app.js`): puente de solo lectura — cuando una partida
+  con sesgo sistemático tiene una categoría bancaria equivalente con un patrón estacional real
+  detectado (mismo umbral que ML-1), `pvc4CategoryDriftHtml()` añade una nota nombrando el mes
+  ("También muestra patrón estacional real en diciembre — puede explicar parte del sesgo"). Nunca
+  recalcula ni sustituye el sesgo — solo añade contexto cuando existe.
+- Tests: `tests/pvc12-consolidacion-estacionalidad-deriva.test.cjs` (16 tests: función pura,
+  compatibilidad de `_detectMonthlySeasonality`/`forecast()`, paso de `categoryId` en
+  `categoryDriftWindows()`, delegación de `budgetSeasonalPatterns()`, `pvc12SeasonalCrossReferenceNote`
+  y wiring estático).
+- **Validación**: `npm run verify` completo en verde (tras `npm install`, que de nuevo faltaba por
+  completo en el contenedor de esta sesión — mismo síntoma ya documentado en sesiones anteriores).
+  `npm test` **3820/3820** pruebas (16 nuevas de PVC12; las 3804 existentes, incluidas
+  `tests/budget-core.test.cjs` y `tests/fcst1-forecast-horizontes.test.cjs`, sin cambios de fixture
+  necesarios). `test:a11y` **1222 IDs únicos** (sin cambio — PVC12 no añade ningún elemento nuevo al
+  DOM, solo texto dentro de tarjetas existentes). `test:performance`: diff 10.000 filas 51,4 ms,
+  forecast y escenarios 251,3 ms, recursos 2163 KB, presupuestos a escala (1000 categorías × 10 años)
+  — análisis 190,0 ms, alertas 133,8 ms, forecast 231,5 ms, histórico de presupuestos 53,5 ms, índice
+  de transacciones por categoría 170,8 ms. `build:site`, `test:privacy` y `test:smoke` sin errores.
+  Verificación manual adicional con Playwright headless (Chromium) contra un servidor estático local
+  sirviendo `dist/`: `seasonalPatternsFromCalendarSpend` responde correctamente desde el runtime real
+  del navegador con datos sintéticos; tras navegar a Presupuesto del mes (carga del chunk diferido de
+  `views/presupuesto-mes.js`), `budgetSeasonalPatterns` se ejecuta sin excepción; la tarjeta de PVC4 en
+  Ajustes renderiza sin excepción. Mismo único ruido de consola ya documentado en sesiones anteriores
+  (bloqueo de red del sandbox a un recurso externo y un 404 preexistentes en `dist/` sin cambios de
+  esta sesión), ninguna excepción nueva.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: sin cambios respecto al cierre de la sesión 171 salvo por
+  `PVC12` — quedan 28 tareas accionables: `PVC16`-`19`, `INV12`, `INV14`, `INV15`, `INV17`, `INV19`,
+  `INV20`, `LEV10`, `LEV16`, `DEB12`, `DEB14`, `DEB16`, `GOB12`-`14`/`16`/`18`, las cuatro ya resueltas
+  de alcance pero no construidas (`INV16`, `LEV14`, esfuerzo M; `PVC14`, `GOB15`, apuesta L) y las
+  apuestas grandes restantes (`INV11`, `INV18`, `GOB11`, `GOB19`).
+
 ## Cierre de sesión — 12 de septiembre de 2026 (171): sexta oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
 
 El usuario pidió seguir con la siguiente oleada tras la sesión 170 y resolver además las cuatro

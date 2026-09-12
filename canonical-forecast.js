@@ -334,7 +334,11 @@
           ? (Math.abs(shortest.averageDelta) > Math.abs(longest.averageDelta) * 1.2 ? "empeorando"
             : Math.abs(shortest.averageDelta) < Math.abs(longest.averageDelta) * 0.8 ? "mejorando" : "estable")
           : "sin-datos-suficientes";
-        return { conceptId: category.conceptId, label: category.label, windows: windowResults, systematic, trend };
+        // PVC12: categoryId (la categoría bancaria equivalente a esta partida, cuando el registro
+        // la trae) viaja aquí solo para que quien muestre el sesgo pueda, si quiere, cruzarlo con
+        // `seasonalPatternsFromCalendarSpend` (canonical-budget-forecast-category.js) — nunca para
+        // recalcular el propio sesgo, que sigue midiéndose solo sobre meses cerrados y conciliados.
+        return { conceptId: category.conceptId, label: category.label, categoryId: sorted[0]?.categoryId || null, windows: windowResults, systematic, trend };
       })
       .filter((item) => item.windows.some((window) => window.sampleMonths > 0));
   }
