@@ -16048,6 +16048,195 @@ function handleFc5Optimize() {
   note.innerHTML = fc5ResultHtml(result);
 }
 
+// INV18 (Oleada 4, Bloque 4, IN-8): "¿de qué posición y cuándo saco X€ más barato?" — cruza tres
+// motores que hasta ahora vivían sueltos: optimizePartialSale (FC5, coste marginal de una plusvalía
+// en la base del ahorro), marginalTaxOnAdditionalIncome (FCX1, coste marginal de un rescate de
+// pensión en la base general) y la fecha de un objetivo (E15). Nunca los ejecuta con importes
+// inventados: usa las posiciones reales de IV1/IV2, la plusvalía ya realizada este año que ya
+// declara FC5 (fc5AlreadyRealized, sin duplicarla) y la renta general ya declarada en FCX1
+// (fcx1CurrentAnnualIncome, sin duplicarla tampoco).
+//
+// Reparte el importe pedido con un relleno voraz (greedy) que reevalúa el coste marginal en cada
+// paso: en cada iteración calcula cuánto costaría sacar de CADA posición todavía disponible dado el
+// acumulado ya "gastado" en su base fiscal (la base del ahorro para fondo/acción/ETF/cripto, la base
+// general para plan-pensión — son dos bases distintas en el IRPF español, nunca una sola escala), y
+// elige la más barata en ese momento. Esto es una heurística explicable, no un optimizador
+// combinatorio exacto: no garantiza el mínimo global entre todas las combinaciones de tramos
+// posibles, a cambio de que cada paso se pueda auditar a ojo. Una posición en pérdidas (gainLoss<=0)
+// sale gratis a efectos fiscales y por tanto siempre se prioriza primero.
+//
+// El "cuándo" solo se simula del lado del ahorro (fc5AlreadyRealized resetea cada 1 de enero por
+// definición legal); del lado de la pensión no se simula "esperar al año que viene" porque exigiría
+// inventar la renta general futura del hogar, dato que esta app no proyecta en ningún otro sitio.
+function inv18WithdrawalPlan({ amountNeeded, positions = [], alreadyRealizedGain = 0, currentAnnualIncome = 0, savingsScale, stateScale, regionalScale, flatRatePct = 0 } = {}) {
+  const irpf = window.FinanceCanonicalIrpfEstimator;
+  const needed = Math.max(0, round2(Number(amountNeeded) || 0));
+  if (!irpf) return { calculable: false, reason: "engine-missing" };
+  if (!(needed > 0)) return { calculable: false, reason: "missing-amount" };
+
+  const SAVINGS_TYPES = ["fondo", "accion", "etf", "cripto"];
+  const candidates = positions
+    .filter((position) => (Number(position.currentValue) || 0) > 0 && (SAVINGS_TYPES.includes(position.type) || position.type === "plan-pension"))
+    .map((position) => ({
+      id: position.id,
+      label: position.label,
+      type: position.type,
+      remainingValue: round2(Number(position.currentValue) || 0),
+      gainLoss: Number(position.gainLoss) || 0,
+    }));
+  const excludedCount = positions.filter((position) => (Number(position.currentValue) || 0) > 0).length - candidates.length;
+
+  function costOf(candidate, amount, savingsBase, generalIncome) {
+    if (candidate.type === "plan-pension") {
+      let result = irpf.marginalTaxOnAdditionalIncome({ amount, currentAnnualIncome: generalIncome, stateScale: stateScale || {}, regionalScale: regionalScale || {} });
+      if (result.calculable) return { marginalTax: result.marginalTax, method: "progressive-brackets" };
+      if (result.reason === "missing-brackets" && flatRatePct > 0) {
+        return { marginalTax: round2(amount * (flatRatePct / 100)), method: "flat-marginal-rate" };
+      }
+      return null;
+    }
+    const gainShare = candidate.remainingValue > 0 ? round2(candidate.gainLoss * (amount / candidate.remainingValue)) : 0;
+    if (gainShare <= 0) return { marginalTax: 0, method: "sin-plusvalia", gainShare: 0 };
+    const result = irpf.optimizePartialSale({ scale: savingsScale || {}, alreadyRealizedGain: savingsBase, proposedGain: gainShare });
+    if (!result.calculable) return null;
+    return { marginalTax: result.marginalTax, method: "progressive-brackets", gainShare };
+  }
+
+  function runPlan(startingSavingsBase) {
+    const pool = candidates.map((candidate) => ({ ...candidate }));
+    let remaining = needed;
+    let savingsBase = Math.max(0, round2(Number(startingSavingsBase) || 0));
+    let generalIncome = Math.max(0, round2(Number(currentAnnualIncome) || 0));
+    const steps = [];
+    const skipped = new Set();
+    while (remaining > 0.004) {
+      let best = null;
+      for (const candidate of pool) {
+        if (candidate.remainingValue <= 0 || skipped.has(candidate.id)) continue;
+        const amount = round2(Math.min(remaining, candidate.remainingValue));
+        const priced = costOf(candidate, amount, savingsBase, generalIncome);
+        if (!priced) { skipped.add(candidate.id); continue; }
+        const effectiveRatePct = amount > 0 ? round2((priced.marginalTax / amount) * 100) : 0;
+        if (!best || priced.marginalTax < best.priced.marginalTax || (priced.marginalTax === best.priced.marginalTax && amount > best.amount)) {
+          best = { candidate, amount, priced, effectiveRatePct };
+        }
+      }
+      if (!best) break;
+      steps.push({
+        id: best.candidate.id, label: best.candidate.label, type: best.candidate.type,
+        amount: best.amount, marginalTax: best.priced.marginalTax, netAmount: round2(best.amount - best.priced.marginalTax),
+        effectiveRatePct: best.effectiveRatePct, method: best.priced.method,
+      });
+      remaining = round2(Math.max(0, remaining - best.amount));
+      best.candidate.remainingValue = round2(best.candidate.remainingValue - best.amount);
+      if (best.candidate.type === "plan-pension") generalIncome = round2(generalIncome + best.amount);
+      else if (best.priced.gainShare > 0) savingsBase = round2(savingsBase + best.priced.gainShare);
+    }
+    const totalCovered = round2(needed - remaining);
+    const totalMarginalTax = round2(steps.reduce((sum, step) => sum + step.marginalTax, 0));
+    return {
+      steps, totalCovered, remainingUncovered: remaining,
+      totalMarginalTax, totalNet: round2(totalCovered - totalMarginalTax),
+      blendedRatePct: totalCovered > 0 ? round2((totalMarginalTax / totalCovered) * 100) : 0,
+    };
+  }
+
+  if (!candidates.length) return { calculable: false, reason: excludedCount > 0 ? "no-priceable-positions" : "no-positions" };
+
+  const now = runPlan(alreadyRealizedGain);
+  const hasSavingsSteps = now.steps.some((step) => step.type !== "plan-pension");
+  const nextYear = alreadyRealizedGain > 0 && hasSavingsSteps ? runPlan(0) : null;
+
+  return {
+    calculable: true, amountNeeded: needed, excludedCount,
+    now, nextYear: nextYear && nextYear.totalMarginalTax < now.totalMarginalTax ? nextYear : null,
+  };
+}
+
+// INV18: opciones del selector de objetivo — mismo patrón que renderIv1GoalOptions (FC1/INV12), un
+// selector propio porque aquí solo sirve para la nota de fecha, nunca para vincular la posición.
+function renderInv18GoalOptions() {
+  const select = qs("inv18GoalSelect");
+  if (!select) return;
+  const previous = select.value;
+  const options = activeGoalsForBudget()
+    .filter((goal) => goal.targetDate)
+    .map((goal) => `<option value="${escapeHtml(goal.id)}">${escapeHtml(goal.name)}</option>`);
+  select.innerHTML = `<option value="">-- Sin objetivo asociado --</option>${options.join("")}`;
+  if (options.some((option) => option.includes(`value="${escapeHtml(previous)}"`))) select.value = previous;
+}
+
+// INV18: texto del plan de retirada — a partir de ahora la app puede ser directiva cuando ayuda de
+// verdad (decisión del hogar, sesión 177), así que esto ya no se redacta como "solo información,
+// nunca una recomendación": dice en qué orden sacar el dinero. Lo que sigue siendo honesto es el
+// límite real del cálculo — heurística, no óptimo exacto; sin reducciones de pensión — porque eso
+// no es una coletilla legal, es lo que de verdad no se puede garantizar con los datos disponibles.
+function inv18PlanHtml(result, goalContext) {
+  if (!result.calculable) {
+    if (result.reason === "engine-missing") return "Motor fiscal no disponible.";
+    if (result.reason === "no-positions") return "Registra al menos una posición en fondo, acción, ETF, cripto o plan de pensiones (Ajustes → Patrimonio e inversión) para calcular un plan de retirada.";
+    if (result.reason === "no-priceable-positions") return "Ninguna de tus posiciones declaradas tiene un tipo con motor fiscal aplicable (fondo, acción, ETF, cripto o plan de pensiones) — decláralo para incluirla.";
+    return "Indica el importe que necesitas conseguir (mayor que cero).";
+  }
+  const renderPlan = (plan, title) => {
+    if (!plan.steps.length) {
+      return `<p><strong>${escapeHtml(title)}:</strong> no se pudo calcular ningún coste — faltan escalas de IRPF registradas en Ajustes → Fiscal (tramo del ahorro, o escala general estatal + autonómica / retención declarada).</p>`;
+    }
+    const methodNoteFor = (method) => method === "sin-plusvalia" ? "sin plusvalía, sin coste fiscal" : method === "flat-marginal-rate" ? "tipo marginal declarado, sin tramos reales" : "tramos progresivos reales";
+    const items = plan.steps.map((step, index) => {
+      const typeLabel = IV1_POSITION_TYPE_LABELS[step.type] || step.type;
+      return `<li class="commit-barrier-item">${index + 1}. Saca ${money(step.amount, true)} de <strong>${escapeHtml(step.label)}</strong> (${escapeHtml(typeLabel)}): coste marginal ${money(step.marginalTax, true)} (${step.effectiveRatePct}% efectivo, ${methodNoteFor(step.method)}), neto ${money(step.netAmount, true)}.</li>`;
+    }).join("");
+    const coverageNote = plan.remainingUncovered > 0.004
+      ? ` <span class="warning">Quedan ${money(plan.remainingUncovered, true)} sin cubrir: no hay más posiciones con motor fiscal aplicable.</span>`
+      : "";
+    return `<p><strong>${escapeHtml(title)}</strong> (coste total ${money(plan.totalMarginalTax, true)}, ${plan.blendedRatePct}% efectivo, neto recibido ${money(plan.totalNet, true)}):</p><ol class="commit-barrier-list">${items}</ol>${coverageNote}`;
+  };
+
+  let html = `<p>Para conseguir ${money(result.amountNeeded, true)}: saca el dinero en este orden.</p>${renderPlan(result.now, "Plan sugerido")}`;
+  if (result.nextYear) {
+    const savedAmount = round2(result.now.totalMarginalTax - result.nextYear.totalMarginalTax);
+    const goalBlocksWaiting = goalContext?.withinYear
+      ? ` Tu objetivo "${escapeHtml(goalContext.name)}" vence dentro de este mismo ejercicio fiscal, así que esperar no es viable para cubrirlo a él — pero sí para cualquier otra necesidad que puedas posponer.`
+      : "";
+    html += `<p class="e19-kpi-note">Mejor todavía si puedes esperar: a partir del 1 de enero, cuando se reinicia la base del ahorro ya generada este año, el mismo plan costaría ${money(savedAmount, true)} menos.${goalBlocksWaiting}</p>`;
+  } else if (goalContext) {
+    html += goalContext.withinYear
+      ? `<p class="e19-kpi-note">Objetivo "${escapeHtml(goalContext.name)}" (${goalContext.targetDate}): vence dentro de este ejercicio fiscal, no hay margen para esperar a que se reinicie ningún tramo.</p>`
+      : `<p class="e19-kpi-note">Objetivo "${escapeHtml(goalContext.name)}" (${goalContext.targetDate}): vence en un ejercicio fiscal futuro, hay margen para planear el momento.</p>`;
+  }
+  if (result.excludedCount > 0) {
+    html += `<p class="e19-kpi-note">${result.excludedCount} posición(es) excluida(s) del plan: sin tipo con motor fiscal aplicable (declara fondo, acción, ETF, cripto o plan de pensiones).</p>`;
+  }
+  html += `<p class="e19-kpi-note">Orden calculado por el coste más barato disponible en cada paso, no un óptimo exacto entre todas las combinaciones de tramos posibles. No modela reducciones fiscales de la pensión (antigüedad de aportaciones anteriores a 2007, mínimo exento) ni la modalidad en forma de renta — para eso, verifica con un profesional antes de ejecutar nada.</p>`;
+  return html;
+}
+
+function handleInv18CalculatePlan() {
+  const note = qs("inv18PlanNote");
+  if (!note) return;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!portfolioEngine) return;
+  const amountNeeded = parseAmount(qs("inv18AmountNeeded")?.value);
+  const alreadyRealizedGain = parseAmount(qs("fc5AlreadyRealized")?.value);
+  const currentAnnualIncome = parseAmount(qs("fcx1CurrentAnnualIncome")?.value);
+  const positions = portfolioEngine.normalizePositions(iv1PositionsList()).positions;
+  const result = inv18WithdrawalPlan({
+    amountNeeded, positions, alreadyRealizedGain, currentAnnualIncome,
+    savingsScale: latestIrpfScale("savings"), stateScale: latestIrpfScale("state"), regionalScale: latestIrpfScale("regional"),
+    flatRatePct: fiscalWithholdingRate(),
+  });
+  const goalId = qs("inv18GoalSelect")?.value;
+  let goalContext = null;
+  if (goalId) {
+    const goal = activeGoalsForBudget().find((item) => item.id === goalId);
+    if (goal?.targetDate) {
+      goalContext = { name: goal.name, targetDate: goal.targetDate, withinYear: Number(String(goal.targetDate).slice(0, 4)) <= new Date().getFullYear() };
+    }
+  }
+  note.innerHTML = inv18PlanHtml(result, goalContext);
+}
+
 // LEV1 (Oleada 3, Bloque 2) · política de apalancamiento del hogar — un límite máximo de
 // deuda-para-invertir, declarado de antemano por el hogar como % de su patrimonio neto o de su
 // ingreso anual, que el resto de este bloque (hoy AP3/AP6; más adelante LEV3-LEV8) consulta antes de
@@ -28607,6 +28796,7 @@ function renderAjustes() {
   renderIv1DisposalOptions();
   renderIv1ScheduledContributionOptions();
   renderIv1GoalOptions();
+  renderInv18GoalOptions();
   renderIv1PositionSummary();
   renderFc3PriorLossList();
   renderPvc6SnapshotOptions();
@@ -39443,6 +39633,7 @@ async function init() {
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
   qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);
+  qs("inv18CalculateRun")?.addEventListener("click", handleInv18CalculatePlan);
   qs("cpx2SecondOpinionRun")?.addEventListener("click", handleCpx2SecondOpinion);
   qs("a18IncomeJavi")?.addEventListener("change", saveA18Incomes);
   qs("a18IncomeTere")?.addEventListener("change", saveA18Incomes);

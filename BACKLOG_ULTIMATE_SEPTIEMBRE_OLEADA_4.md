@@ -7,17 +7,17 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 176, 12 de septiembre de 2026): `INV11` construida — Bloque 4 (inversión) queda
-completo salvo `INV18`.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2
-completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167);
-`PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17`
-(sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada
-(sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174) — con
-esto el Bloque 3 (previsión viva) quedó completo salvo `PVC14`; `INV12`, `INV14`, `INV15`, `INV17`,
-`INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176) — con esto el Bloque 4
-(inversión) queda completo salvo `INV18`. Quedan 15 tareas accionables: las cinco apuestas grandes
-restantes (`INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`, todas reservadas a sesión propia) y el resto de
-los Bloques 5-7.
+**Estado (sesión 177, 12 de septiembre de 2026): `INV18` construida — Bloque 4 (inversión) queda
+completo.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`,
+`DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13`
+y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170);
+`INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada (sesión 172);
+`INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174) — con esto el
+Bloque 3 (previsión viva) quedó completo salvo `PVC14`; `INV12`, `INV14`, `INV15`, `INV17`, `INV19`
+e `INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176); `INV18` en sesión propia
+dedicada (sesión 177) — con esto el Bloque 4 (inversión) queda **completo**. Quedan 14 tareas
+accionables: las cuatro apuestas grandes restantes (`PVC14`, `GOB11`, `GOB15`, `GOB19`, todas
+reservadas a sesión propia) y el resto de los Bloques 5-7.
 
 ## 0. Por qué existe este documento
 
@@ -138,7 +138,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 16 | ✅ `INV15` | Coste total de propiedad real por posición (custodia + corretaje) | `IN-5` | S | Medio | **Hecho (sesión 175).** Nuevo campo `custodyFeeAnnual` (€/año, importe fijo declarado — no un %, porque la mayoría de brokers cobran lo mismo tenga la posición 1.000€ o 100.000€) y nueva `totalCostOfOwnership()` (`canonical-portfolio.js`) que suma, sin componer, ese coste fijo al coste compuesto de comisión de gestión que ya calculaba `compoundedFeeCost` (IVX4). Tests: `tests/inv15-coste-total-propiedad.test.cjs`. |
 | 17 | ✅ `INV16` | Correlación declarada, cualitativa, entre clases de activo | `IN-6` | M | Medio | **Hecho (sesión 173).** Nueva `qualitativeConcentrationWarnings()` (`canonical-portfolio.js`) cruza la composición real de la cartera por clase de activo (mismo campo `position.assetClass` de INV1) con una correlación cualitativa declarada por el hogar entre cada par de clases (`alta`/`media`/`baja`/`negativa`, 6 pares posibles de las 4 clases) — sin ningún valor por defecto: un par sin declarar queda fuera del todo, nunca se le asume "media" ni ninguna otra cifra. Solo avisa cuando dos clases con correlación "alta" declarada pesan de verdad en la cartera (ambas > 0), con el % combinado y si supera el mismo umbral del 50% ("dominante") que ya usa `assetClassVsGlidePath`. Nunca decide ni bloquea nada. Se muestra en Inversión, justo debajo de la lectura por clase de activo de INV1. Tests: `tests/inv16-correlacion-clases-activo.test.cjs`. |
 | 18 | ✅ `INV17` | Revisión de rebalanceo por calendario, no solo por umbral | `IN-7` | S | Medio | **Hecho (sesión 175).** Nueva `rebalanceCalendarReviewStatus()` (`canonical-portfolio.js`) compara los meses transcurridos desde la última revisión CONFIRMADA por el hogar (nunca inferida de otra acción, mismo criterio que la caducidad de supuestos de PVC15) contra un intervalo declarado (6 meses por defecto); sin ninguna revisión registrada, se considera vencida desde el principio. Complementa, no sustituye, el aviso por umbral de `IV6`/`rebalanceSuggestions`. Tarjeta nueva con botón «Marcar revisado hoy» en Ajustes → Cartera: objetivo de reparto y rebalanceo. Tests: `tests/inv17-revision-rebalanceo-calendario.test.cjs`. |
-| 19 | ⏳ `INV18` | Vista única "¿de qué posición y cuándo saco X€ más barato?" | `IN-8` | L | Alto | Cruza `optimizePartialSale`, `marginalTaxOnAdditionalIncome` y el calendario de objetivos — hoy sueltos. |
+| 19 | ✅ `INV18` | Vista única "¿de qué posición y cuándo saco X€ más barato?" | `IN-8` | L | Alto | Confirmado: hueco real, no exagerado como `INV11`. Nueva `inv18WithdrawalPlan()` (`app.js`) cruza `optimizePartialSale` (base del ahorro) y `marginalTaxOnAdditionalIncome` (base general, importe completo para pensión) sobre las posiciones reales con un relleno voraz que reevalúa el coste marginal en cada paso — nunca un orden fijo por tipo. Compara con esperar al ejercicio fiscal siguiente cuando hay plusvalía ya realizada. Ya no lleva el disclaimer "solo información": dice el orden a seguir (decisión de alcance del hogar, sesión 177, ver `PROJECT_STATE.md`). Sin optimizador combinatorio exacto ni reducciones fiscales de pensión. `tests/inv18-plan-retirada-mas-barato.test.cjs` (15 tests). |
 | 20 | ✅ `INV19` | El coste de no tocar tu cartera nunca, a 10-20 años, en un gráfico | `IN-9` | S | Bajo-Medio | **Hecho (sesión 175).** Nueva `portfolioFeeCostTrajectory()` (`canonical-portfolio.js`) genera la trayectoria año a año sumando cada posición con comisión declarada por separado (nunca un % medio inventado sobre el conjunto). Se dibuja como un polígono SVG continuo, mismo criterio de construcción que el cono de incertidumbre de PVC19. Tests: `tests/inv19-coste-no-tocar-cartera.test.cjs`. |
 | 21 | ✅ `INV20` | Permitir anular la liquidez inferida por tipo con un valor declarado por posición | `IN-10` | S | Medio | **Hecho (sesión 175).** Alcance reducido confirmado: nuevo campo `liquidityTierOverride` (uno de los tres tramos ya existentes de `INV7`/`liquidityLadder`, opcional) que se prioriza sobre el tramo inferido por tipo cuando se declara; la escalera de liquidez anota cuánto de cada tramo viene de una anulación declarada, sin sustituir el total. Tests: `tests/inv20-anular-liquidez-declarada.test.cjs`. |
 
@@ -205,8 +205,8 @@ los IDs de este backlog:
    decisión de alcance previa — candidatas naturales a ir justo después de las verificaciones.
 3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15` — las tres
    construidas en la sesión 168 (`GOB17` ya construida en la sesión 167).
-4. **Grandes apuestas (L), reservar sesión propia**: `INV11` (hecho, sesión 176), `INV18`, `PVC14`,
-   `GOB11`, `GOB15`, `GOB19`.
+4. **Grandes apuestas (L), reservar sesión propia**: `INV11` (hecho, sesión 176), `INV18` (hecho,
+   sesión 177), `PVC14`, `GOB11`, `GOB15`, `GOB19`.
 5. **Cuestionar el alcance antes de construir, no descartar sin más** (mismo criterio que la propia
    auditoría aplicó a sí misma con `FCX2` en la Oleada 2): `PVC14` (el ensemble ponderado solo vale la
    pena si la ponderación queda siempre visible — ver advertencia), `INV16` (correlación declarada,
