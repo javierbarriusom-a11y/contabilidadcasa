@@ -1727,6 +1727,17 @@
               <div id="deb5FiscalPriorityNote"></div>
             </article>
 
+            <!-- DEB13 (Oleada 4, Bloque 6): alerta de "deuda cara dormida" — cruce automático entre
+                 la prioridad fiscal de DEB5 (arriba) y compareAmortizeVsInvest (AP1) para cada deuda
+                 activa, sin esperar a que el hogar la seleccione en el comparador. Solo aparece
+                 cuando hay al menos una deuda cuyo coste real ya supera la rentabilidad esperada de
+                 la cartera; se queda vacía en caso contrario. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Deuda cara dormida</h3>
+              <p class="e19-kpi-note">Deudas activas cuyo TAE efectivo ya supera la rentabilidad que hoy rinde tu cartera (Inversión › Cartera), sin que nadie las esté amortizando de hecho.</p>
+              <div id="deb13DormantDebtAlert"></div>
+            </article>
+
             <!-- DEB6 (Oleada 3, Bloque 4): simulador de consolidación de varias deudas activas en un
                  préstamo nuevo declarado (TAE + plazo, nunca supuestos). Solo simula: ninguna deuda
                  cambia de estado hasta que el hogar lo ejecute de verdad desde Contratos. -->
@@ -2027,6 +2038,10 @@
                 <label class="month-picker">
                   <span>Caída de la cartera a explorar (%)</span>
                   <input id="apx3StressDropPct" type="number" min="0" max="99" step="1" inputmode="decimal" placeholder="Ej. 20" />
+                </label>
+                <label class="month-picker">
+                  <span>Plusvalía declarada de la cartera pignorada (%, opcional, para LEV15)</span>
+                  <input id="lev15GainLossPct" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
                 </label>
               </div>
               <button type="button" class="e19-btn e19-btn-secondary" id="apx3MarginCallRun">Simular caída</button>

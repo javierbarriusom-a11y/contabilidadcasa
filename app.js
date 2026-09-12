@@ -16397,8 +16397,52 @@ function handleApx3MarginCallSimulate() {
       floor: cushionEngine.cushionFloor(lastSimulation, cuadroMandosReserve()).value,
     })
     : null;
-  note.innerHTML = apx3MarginCallResultHtml(result, guardrail);
+  note.innerHTML = apx3MarginCallResultHtml(result, guardrail) + lev15MarginCallExitCostHtml(result);
   renderLev7TailRisk();
+}
+
+// LEV15 (Oleada 4, Bloque 5): coste en euros y efecto fiscal comparado de las dos salidas reales
+// del margin call de APX3 (aportar garantía vs. liquidación forzosa) — lombardMarginCallSimulation
+// ya calcula ambos importes, pero no dice cuál sale más barato de verdad ni el efecto fiscal de
+// vender bajo llamada de garantía. Aportar garantía no tiene coste fiscal (no es una venta); la
+// liquidación forzosa sí, calculada con el mismo motor de tramos del ahorro que ya usa FC5
+// (optimizePartialSale) sobre la plusvalía ya realizada este año (mismo campo que FC5,
+// `fc5AlreadyRealized`, sin duplicarlo) y la que llevaría implícita el importe liquidado, según el %
+// de plusvalía declarado sobre la cartera pignorada — misma fórmula pro-rata (importe vendido →
+// plusvalía contenida) que ya usa INV10 (sellVsBorrowComparison). Nunca decide cuál salida tomar,
+// solo compara su coste total.
+function lev15ForcedLiquidationGain(forcedLiquidationAmount, gainLossPct) {
+  const pct = Number.isFinite(gainLossPct) ? Math.max(0, gainLossPct) : 0;
+  if (!(forcedLiquidationAmount > 0) || pct <= 0) return 0;
+  return round2(forcedLiquidationAmount * (pct / (100 + pct)));
+}
+
+function lev15MarginCallExitCostHtml(marginCallResult) {
+  if (!marginCallResult || !marginCallResult.calculable || !marginCallResult.marginCallTriggered) return "";
+  const irpfEngine = window.FinanceCanonicalIrpfEstimator;
+  const collateralCost = marginCallResult.additionalCollateralNeeded;
+  const gainLossPct = parseAmount(qs("lev15GainLossPct")?.value);
+  const proposedGain = lev15ForcedLiquidationGain(marginCallResult.forcedLiquidationAmount, gainLossPct);
+  const scale = latestIrpfScale("savings");
+  const alreadyRealizedGain = parseAmount(qs("fc5AlreadyRealized")?.value);
+  const fiscal = irpfEngine && proposedGain > 0
+    ? irpfEngine.optimizePartialSale({ scale: scale || {}, alreadyRealizedGain, proposedGain })
+    : null;
+  const liquidationTaxCost = fiscal?.calculable ? fiscal.marginalTax : 0;
+  const liquidationTotalCost = round2(marginCallResult.forcedLiquidationAmount + liquidationTaxCost);
+  const fiscalNote = fiscal?.calculable
+    ? ` + ${money(liquidationTaxCost, true)} de coste fiscal estimado (tipo marginal ${fiscal.currentBracketRatePct}% sobre ${money(proposedGain, true)} de plusvalía)`
+    : proposedGain > 0
+      ? " (registra la escala del tramo del ahorro en Fiscal › IRPF para estimar el coste fiscal)"
+      : "";
+  const difference = round2(Math.abs(collateralCost - liquidationTotalCost));
+  const cheaperLine = collateralCost <= liquidationTotalCost
+    ? `Aportar garantía sale ${money(difference, true)} más barato en esta simulación.`
+    : `La liquidación forzosa sale ${money(difference, true)} más barata en esta simulación.`;
+  return `<div class="e19-kpi-note"><p><strong>Coste comparado de las dos salidas (LEV15)</strong>:</p><ul class="commit-barrier-list">
+      <li>Aportar garantía: <strong>${money(collateralCost, true)}</strong>, sin efecto fiscal (no es una venta).</li>
+      <li>Liquidación forzosa: ${money(marginCallResult.forcedLiquidationAmount, true)} vendidos${fiscalNote} = <strong>${money(liquidationTotalCost, true)}</strong> de coste total.</li>
+    </ul><p class="${collateralCost <= liquidationTotalCost ? "positive" : "negative"}">${cheaperLine} Ninguna de las dos se ejecuta sola: la elección final sigue siendo tuya.</p></div>`;
 }
 
 // LEV7 (Oleada 3, Bloque 4): seguro de cola frente a margin call — compone el margin call de APX3
@@ -27665,15 +27709,26 @@ const ASSUMPTION_REGISTRY_UNIT_FORMAT = {
 // Recalcula siempre con los valores actuales (para que la lista nunca muestre un supuesto general
 // desfasado si se editó fuera de esta tarjeta) — nunca persiste por sí sola; eso lo hace
 // persistAssumptionRegistry(), solo cuando de verdad se edita un supuesto fiscal.
+// PVC15 (Oleada 4, Bloque 3): alerta de "supuesto caducado" — antigüedad de cada supuesto
+// INDIVIDUAL frente a su propia fecha de confirmación (`assumptionExpiryAlerts`, A7-2/A15-1),
+// distinta de PVC7 (caducidad de un escenario guardado frente al forecast actual). Se recalcula
+// junto al resto del registro, sin formulario propio ni umbral editable todavía.
 function renderAjustesAssumptionRegistry() {
   const list = qs("ajustesAssumptionRegistry");
-  if (!list || !window.FinanceCanonicalForecast?.buildAssumptionRegistry) return;
-  const registry = window.FinanceCanonicalForecast.buildAssumptionRegistry(
+  const engine = window.FinanceCanonicalForecast;
+  if (!list || !engine?.buildAssumptionRegistry) return;
+  const registry = engine.buildAssumptionRegistry(
     assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" },
   );
+  const expiry = engine.assumptionExpiryAlerts ? engine.assumptionExpiryAlerts(registry) : { expired: [] };
+  const expiredById = new Map(expiry.expired.map((entry) => [entry.id, entry]));
   list.innerHTML = registry.items.map((item) => {
     const format = ASSUMPTION_REGISTRY_UNIT_FORMAT[item.unit] || ((value) => String(value));
-    return `<li class="commit-barrier-item"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(format(item.value))}</strong><small>Actualizado ${escapeHtml(formatIsoDate(item.updatedAt.slice(0, 10)))}</small></li>`;
+    const expiredEntry = expiredById.get(item.id);
+    const expiryNote = expiredEntry
+      ? ` · <strong>supuesto caducado</strong> (sin confirmar hace ${expiredEntry.ageMonths} meses, más de ${expiredEntry.thresholdMonths})`
+      : "";
+    return `<li class="commit-barrier-item${expiredEntry ? " warning" : ""}"><span>${escapeHtml(item.label)}</span><strong>${escapeHtml(format(item.value))}</strong><small>Actualizado ${escapeHtml(formatIsoDate(item.updatedAt.slice(0, 10)))}${expiryNote}</small></li>`;
   }).join("");
 }
 
