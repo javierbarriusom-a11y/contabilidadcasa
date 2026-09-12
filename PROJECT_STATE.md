@@ -51,6 +51,69 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
+## Cierre de sesión — 12 de septiembre de 2026 (169): cuarta oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 168. Alcance elegido: `PVC13` y
+`DEB15` — las dos tareas de beneficio Crítico restantes que no exigían confirmar alcance con el hogar
+de antemano (a diferencia de `PVC14`, `INV16`, `LEV14` o `GOB15`, marcadas en el propio §10 del
+backlog para consultar antes de construir), dejando las apuestas grandes (L) y `PVC12` para sesiones
+propias dedicadas.
+
+- **`PVC13` — cerrar el bucle de `predictionQuality()` con `confidenceBands()`**: hasta ahora
+  `confidenceBands()` (PV4, `canonical-forecast.js`) solo ensanchaba la banda de confianza con el
+  sesgo medio (`|averageDelta|` promedio de `learnFromHistory()`), que se puede cancelar cuando los
+  errores de un mes a otro cambian de signo aunque su dispersión real sea alta. `predictionQuality()`
+  (E16) existía en el código desde antes pero ningún sitio real de la app la llamaba.
+  `confidenceBands()` acepta ahora `options.quality` (un `predictionQuality()` ya calculado): por
+  desigualdad triangular, el error medio absoluto medido
+  sobre cada muestra nunca es menor que el sesgo medio ya usado, así que el margen se ensancha hasta
+  ese error medido cuando lo hay — nunca se estrecha. `renderE13ScenarioLab` construye las muestras
+  desde el mismo histórico conciliado que ya usa PVX1/`learnFromHistory`, sin pipeline nuevo, y
+  `pv4ConfidenceBandHtml` dice explícitamente cuándo el ensanche viene del error medido. Backward
+  compatible: sin `options.quality`, el comportamiento es idéntico al de antes (todos los tests
+  previos de `confidenceBands` siguieron pasando sin cambios). Tests:
+  `tests/pvc13-cierre-bucle-confidence-bands.test.cjs`.
+- **`DEB15` — guardarraíl de liquidez a varios meses tras una cancelación total**:
+  `cancellationLiquidityGuardrail()` (`canonical-cushion.js`) extiende `amortizeCushionGuardrail`
+  (DLX1, que solo mira el saldo del día de la operación) proyectando la liquidez que el propio
+  forecast ya prevé para los próximos 6 meses (configurable), reducida por el importe pagado hoy —
+  hipótesis deliberadamente conservadora: no asume que la cuota de la deuda cancelada desaparece del
+  forecast, así que si acaso subestima la liquidez futura real, nunca la sobreestima. Solo se activa
+  en `handleAp1Compare` (AP1) cuando el importe cancela el principal entero de la deuda
+  seleccionada — una amortización parcial ya queda cubierta por el guardarraíl instantáneo de
+  siempre. Si el forecast disponible no llega al horizonte pedido, lo dice tal cual en vez de
+  inventar meses. Tests: `tests/deb15-guardarrail-liquidez-cancelacion.test.cjs`.
+- **Validación**: `npm run verify` completo en verde. `npm test` **3744/3744** pruebas (18 nuevas: 7
+  en `tests/pvc13-cierre-bucle-confidence-bands.test.cjs`, 9 en
+  `tests/deb15-guardarrail-liquidez-cancelacion.test.cjs`, 1 en `tests/pv4-bandas-confianza.test.cjs`
+  y 1 en `tests/ap1-app-integracion.test.cjs`, más 9 archivos de test ya existentes con su ventana de
+  extracción de código ajustada porque las dos tareas añadieron líneas dentro de funciones que esos
+  tests ya recortaban por longitud fija —`tests/pv4-bandas-confianza.test.cjs`,
+  `tests/pvc2-banda-confianza-categoria.test.cjs`, `tests/pvc5-recalibracion-trimestral.test.cjs`,
+  `tests/a14-5-app-integracion.test.cjs`, `tests/ap1-app-integracion.test.cjs` (con una nueva sección
+  DEB15), `tests/ap2-app-integracion.test.cjs`, `tests/deb3-opcionalidad-esperar.test.cjs`,
+  `tests/deb7-preferencia-declarada.test.cjs`, `tests/deb9-sintesis-cancelar-mantener-deuda.test.cjs`
+  — mismo patrón de "la ventana crece" ya documentado en `tests/a14-5-app-integracion.test.cjs` desde
+  sesiones anteriores, sin cambiar el criterio de ninguna prueba, solo su desplazamiento de texto.
+  `test:a11y` **1217 IDs únicos** (sin cambio: ninguna de las dos tareas añade elementos nuevos al
+  DOM, ambas reutilizan tarjetas existentes de AP1/E13). `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke`, todos sin errores. Verificación manual adicional en navegador
+  (Playwright headless): DEB15 comprobado de punta a punta con datos de ejemplo (cancelación total de
+  una deuda con un mes futuro por debajo del suelo según el forecast, el aviso aparece correctamente);
+  PVC13 comprobado sin errores de consola (sin histórico conciliado en los datos de ejemplo, no hay
+  caso real de ensanche por error medido que enseñar en este entorno, pero la ruta no lanza ninguna
+  excepción).
+- **Pendiente para la siguiente oleada**: `PVC12` (consolidación de estacionalidad/deriva, candidata
+  a sesión propia) y el resto de los Bloques 3-7 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+  (`PVC11`/`16`-`19`, `INV11`-`20`, `LEV10`-`14`/`16`, `DEB11`/`12`/`14`/`16`/`17`, `GOB11`-`19`), 36
+  tareas accionables intactas. Los cinco frentes marcados por el propio §10 para "cuestionar el
+  alcance antes de construir" (`PVC14`, `INV16`, `LEV14`, `GOB15`) y las apuestas grandes (L: `INV11`,
+  `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`) siguen sin tocar, a la espera de una sesión dedicada o
+  de confirmación explícita del hogar.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 12 de septiembre de 2026 (168): tercera oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
 
 El usuario pidió seguir con la siguiente oleada tras la sesión 167. Alcance elegido: `PVC15`, `DEB13`

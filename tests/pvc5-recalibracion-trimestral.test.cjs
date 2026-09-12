@@ -124,7 +124,9 @@ test("wiring: una vez confirmada, esx1HistoryForCalibration devuelve el históri
 test("wiring: el Laboratorio de escenarios (renderE13ScenarioLab) usa esx1HistoryForCalibration para el triángulo, no el histórico crudo directamente en prudentSimulation/monteCarloSimulation", () => {
   const start = appSource.indexOf("function renderE13ScenarioLab(");
   assert.ok(start >= 0, "No existe renderE13ScenarioLab");
-  const block = appSource.slice(start, start + 6200);
+  // +700 sobre la ventana anterior: PVC13 (Oleada 4, Bloque 3) añadió las muestras de
+  // predictionQuality antes de esta llamada, dentro de la misma función.
+  const block = appSource.slice(start, start + 6900);
   assert.match(block, /E13\.prudentSimulation\(forecast, e13ScenarioEvents, \{ history: esx1HistoryForCalibration\(history\)/);
   assert.match(block, /E13\.monteCarloSimulation\(forecast, e13ScenarioEvents, \{ history: esx1HistoryForCalibration\(history\)/);
 });

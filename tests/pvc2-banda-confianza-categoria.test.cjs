@@ -79,7 +79,9 @@ test("wiring: pvc2CategoryConfidenceShare usa budgetAnalysisForCategory y Canoni
 test("wiring: renderE13ScenarioLab calcula la banda con prudent.percentiles.p90 - p10 y pinta la tarjeta de PVC2", () => {
   const start = appSource.indexOf("function renderE13ScenarioLab(");
   assert.ok(start >= 0, "No existe renderE13ScenarioLab");
-  const block = appSource.slice(start, start + 9000);
+  // +700 sobre la ventana anterior: PVC13 (Oleada 4, Bloque 3) añadió las muestras de
+  // predictionQuality antes de esta llamada, dentro de la misma función.
+  const block = appSource.slice(start, start + 9700);
   assert.match(block, /pvc2CategoryConfidenceShare\(prudent\.percentiles\.p90 - prudent\.percentiles\.p10\)/);
   assert.match(block, /pvc2ConfidenceShareHtml\(pvc2Shares\)/);
 });

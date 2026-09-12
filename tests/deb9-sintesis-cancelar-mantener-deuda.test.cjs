@@ -113,7 +113,9 @@ test("wiring: la tarjeta DEB9 vive en index.html justo después del comparador A
 });
 
 test("wiring: handleAp1Compare llama a renderDeb9Synthesis con los resultados ya calculados (AP1, DLX1, DLX2)", () => {
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3000);
+  // DEB15 (Oleada 4, Bloque 6) añadió el guardarraíl a varios meses antes del pintado del
+  // resultado — la ventana crece de 3000 a 3900.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3900);
   assert.match(block, /renderDeb9Synthesis\(\{/);
   assert.match(block, /ap1: result/);
   assert.match(block, /surplusAllocation, guardrail/);

@@ -67,8 +67,10 @@ test("DLX1: handleAp1Compare calcula el guardarraíl con el mismo suelo y reserv
 });
 
 test("DLX1: el guardarraíl se antepone a la lectura amortizar/invertir, no la sustituye", () => {
-  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 2200);
-  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb2DimensionHtml\(surplusAllocation\) : ""\) \+ deb10PriorityHint\(debtId\) \+ ap1ResultHtml\(/);
+  // DEB15 (Oleada 4, Bloque 6) añadió el guardarraíl a varios meses, entre DLX1 y DLX2 — la ventana
+  // crece de 2200 a 3100.
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3100);
+  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(cancellationGuardrail \? deb15CancellationGuardrailHtml\(cancellationGuardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb2DimensionHtml\(surplusAllocation\) : ""\) \+ deb10PriorityHint\(debtId\) \+ ap1ResultHtml\(/);
 });
 
 test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del estado", () => {
@@ -77,6 +79,18 @@ test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del e
   assert.match(block, /ajustado/);
   assert.match(block, /insostenible/);
   assert.doesNotMatch(block, /bloque|deshabilita|impide/i);
+});
+
+// ---------------------------------------------------------------------------------------------
+// DEB15 (Oleada 4, Bloque 6) · guardarraíl de colchón a varios meses, solo para una cancelación
+// TOTAL de la deuda seleccionada — extiende DLX1 (el día de la operación) con el propio forecast.
+// ---------------------------------------------------------------------------------------------
+
+test("DEB15: handleAp1Compare solo calcula el guardarraíl a varios meses cuando el importe cancela el principal entero", () => {
+  const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3100);
+  assert.match(block, /isFullCancellation = Boolean\(debt\) && Number\.isFinite\(amount\) && amount > 0 && amount >= debt\.currentPrincipal/);
+  assert.match(block, /cushionEngine\.cancellationLiquidityGuardrail\(/);
+  assert.match(block, /forecastSeries: canonicalScenarioResults\.base\?\.forecast\?\.series \|\| \[\]/);
 });
 
 // ---------------------------------------------------------------------------------------------
