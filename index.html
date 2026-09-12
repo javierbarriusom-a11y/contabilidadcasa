@@ -4025,6 +4025,12 @@
                   <span>Cripto (%)</span>
                   <input id="iv6TargetCripto" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
                 </label>
+                <!-- INV11 (Oleada 4, Bloque 4): plan de pensiones como tipo de instrumento propio,
+                     no como "Otro" — participa en el rebalanceo igual que cualquier otro tipo. -->
+                <label class="month-picker">
+                  <span>Plan de pensiones (%)</span>
+                  <input id="iv6TargetPlanPension" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
+                </label>
                 <label class="month-picker">
                   <span>Otro (%)</span>
                   <input id="iv6TargetOtro" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="0" />
@@ -4055,7 +4061,7 @@
                  registradas, tarjeta neutra. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Cartera de inversión: registro por posición</h3>
-              <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición, el reparto por tipo y el aviso de sobreexposición.</p>
+              <p class="e19-kpi-note">Registra cada posición (fondo, acción, ETF, cripto, plan de pensiones, otro) con su coste y valor actual para ver la plusvalía o minusvalía por posición, el reparto por tipo y el aviso de sobreexposición.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Tipo</span>
@@ -4064,6 +4070,10 @@
                     <option value="accion">Acción</option>
                     <option value="etf">ETF</option>
                     <option value="cripto">Cripto</option>
+                    <!-- INV11 (Oleada 4, Bloque 4): plan de pensiones como posición de cartera más,
+                         no como saldo aparte de A14 — entra en XIRR (IV2), rebalanceo (IV6) y glide
+                         path (IVX6) igual que el resto de tipos. -->
+                    <option value="plan-pension">Plan de pensiones</option>
                     <option value="otro">Otro</option>
                   </select>
                 </label>

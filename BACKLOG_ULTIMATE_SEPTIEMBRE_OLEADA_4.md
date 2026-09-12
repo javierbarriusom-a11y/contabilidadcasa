@@ -7,16 +7,17 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 175, 12 de septiembre de 2026): `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20`
-construidas, Bloque 4 cerrado salvo `INV11`/`INV18`.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`,
-sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta
-a punta (sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`,
-`LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión
-propia dedicada (sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19`
-(sesión 174) — con esto el Bloque 3 (previsión viva) quedó completo salvo `PVC14`; `INV12`, `INV14`,
-`INV15`, `INV17`, `INV19` e `INV20` (sesión 175) — con esto el Bloque 4 (inversión) queda completo
-salvo `INV11`/`INV18`. Quedan 16 tareas accionables: las seis apuestas grandes (`INV11`, `INV18`,
-`PVC14`, `GOB11`, `GOB15`, `GOB19`, todas reservadas a sesión propia) y el resto de los Bloques 5-7.
+**Estado (sesión 176, 12 de septiembre de 2026): `INV11` construida — Bloque 4 (inversión) queda
+completo salvo `INV18`.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2
+completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167);
+`PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17`
+(sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada
+(sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174) — con
+esto el Bloque 3 (previsión viva) quedó completo salvo `PVC14`; `INV12`, `INV14`, `INV15`, `INV17`,
+`INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176) — con esto el Bloque 4
+(inversión) queda completo salvo `INV18`. Quedan 15 tareas accionables: las cinco apuestas grandes
+restantes (`INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`, todas reservadas a sesión propia) y el resto de
+los Bloques 5-7.
 
 ## 0. Por qué existe este documento
 
@@ -130,7 +131,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 12 | ⏳ `INV11` | Tratar el plan de pensiones como una posición de cartera más | `IN-1` | L | Alto | `canonical-pension-simulator.js` sigue sin XIRR real, sin rebalanceo y sin glide path — ningún cambio de la Oleada 3 lo conectó. |
+| 12 | ✅ `INV11` | Tratar el plan de pensiones como una posición de cartera más | `IN-1` | L | Alto | **Hecho (sesión 176, sesión propia dedicada).** La causa real no eran tres motores por construir: `normalizePosition()` (XIRR, IV2), `rebalanceSuggestions()` (IV6) y `glidePathForGoal()`/`assetClassVsGlidePath()` (IVX6/INV1) ya eran genéricos — el plan de pensiones nunca pasaba por ellos porque `POSITION_TYPES` no tenía un tipo para él. Nuevo `"plan-pension"` en `POSITION_TYPES` desbloquea las tres funciones sin motor nuevo. Único mecanismo nuevo: tramo de liquidez propio `"bloqueada"` (`LIQUIDITY_TIER_BY_TYPE`/`LIQUIDITY_TIERS`), distinto de `"sin-clasificar"` — de un plan de pensiones sí se conoce la velocidad de conversión (cero, salvo jubilación o supuesto tasado), nunca cuenta para cubrir el colchón; el override de `INV20` sigue disponible para un plan ya en fase de rescate. No se toca `canonical-pension-simulator.js` (A15-4, sigue simulando la decisión de aportar, no un ledger), no se extiende el traspaso FC2 a pensiones (régimen fiscal de movilización no verificado) y no se unifica con el saldo "Pensión" de A14 (sigue aparte, mismo criterio ya aceptado para "Inversión"). Tests: `tests/inv11-plan-pension-posicion-cartera.test.cjs` (14 tests). |
 | 13 | ✅ `INV12` | Formalizar `fundingPositions` en el schema del objetivo, no como campo de fortuna | `IN-2` | M | Medio | **Hecho (sesión 175).** Nuevo campo `fundingPositions` (array de ids de posición, deduplicado) en `normalizeGoal()` de `p2-domain.js` (la fuente real de `p2.goals`) y de `canonical-e15-goals.js`. Nueva `linkedPositionsForGoal()` (`canonical-portfolio.js`) que `glidePathForGoal()`/`assetClassVsGlidePath()` usan como fuente preferente, cayendo al escaneo histórico por `position.goalId` solo si el objetivo no declara nada. `saveIv1Position()`/`removeIv1Position()` mantienen ambos campos sincronizados automáticamente — la UX de registro no cambia, pero el objetivo ya no depende de escanear todas las posiciones para saber qué lo financia. Tests: `tests/inv12-fundingpositions-objetivo.test.cjs`. |
 | 14 | ✅ `INV13` | Proyección fiscal de la aportación periódica (DCA) | `IN-3` | M | Alto | **Hecho (sesión 171).** `renderInv13DcaTaxProjection()` (`app.js`) reutiliza tal cual `optimizePartialSale()` (FC5, mismo campo `fc5AlreadyRealized` que ya usa LEV15) sobre la plusvalía REAL ya calculada de cada posición (`position.gainLoss`, la misma que usa `deleveragingPriority`/LEV6) — nunca un % de ganancia declarado a mano. Se muestra en Inversión, junto al seguimiento DCA de INV8. Tests: `tests/inv13-proyeccion-fiscal-dca.test.cjs`. |
 | 15 | ✅ `INV14` | Exposición declarada por divisa y geografía | `IN-4` | S | Medio | **Hecho (sesión 175).** Nuevos campos crudos `currency` (texto libre, mayúsculas) y `region` (lista cerrada de 7 geografías) en el registro de posición, más `currencyGeographyExposure()` (`canonical-portfolio.js`) que agrupa el valor real de la cartera por cada dimensión — "sin-declarar" es una categoría más, nunca EUR/España asumidos por defecto. Avisa de concentración con el mismo umbral del 50% que INV16/IVX8, nunca decide ni bloquea nada. Tests: `tests/inv14-exposicion-divisa-geografia.test.cjs`. |
@@ -204,8 +205,8 @@ los IDs de este backlog:
    decisión de alcance previa — candidatas naturales a ir justo después de las verificaciones.
 3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15` — las tres
    construidas en la sesión 168 (`GOB17` ya construida en la sesión 167).
-4. **Grandes apuestas (L), reservar sesión propia**: `INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`,
-   `GOB19`.
+4. **Grandes apuestas (L), reservar sesión propia**: `INV11` (hecho, sesión 176), `INV18`, `PVC14`,
+   `GOB11`, `GOB15`, `GOB19`.
 5. **Cuestionar el alcance antes de construir, no descartar sin más** (mismo criterio que la propia
    auditoría aplicó a sí misma con `FCX2` en la Oleada 2): `PVC14` (el ensemble ponderado solo vale la
    pena si la ponderación queda siempre visible — ver advertencia), `INV16` (correlación declarada,

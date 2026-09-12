@@ -60,6 +60,58 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` y `GOB15` siguen siendo apuestas L, reservadas a sesión propia.
 
+## Cierre de sesión — 12 de septiembre de 2026 (176): `INV11`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 175, empezando por la primera de las
+seis apuestas grandes (`INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`), cada una reservada a su
+propia sesión según el orden ya establecido. Plan confirmado por el usuario antes de tocar código.
+
+**Diagnóstico previo (antes de construir nada)**: el backlog describía `INV11` como "el plan de
+pensiones sigue sin XIRR real, sin rebalanceo y sin glide path", lo que sugería tres motores nuevos.
+Revisando el código real, la causa es una sola: `canonical-pension-simulator.js` (A15-4) simula el
+ahorro fiscal de una aportación puntual, pero el plan de pensiones nunca ha sido una posición de
+`canonical-portfolio.js` (IV1) — solo existe como saldo estático y aislado en el patrimonio de A14
+(`A14_ASSET_TYPE_LABELS.pension`), sin relación con la cartera. `normalizePosition()` ya calcula XIRR
+real de forma genérica sobre cualquier lista de flujos con fecha (IV2), `rebalanceSuggestions()` ya
+itera de forma genérica sobre `POSITION_TYPES` (IV6), y `glidePathForGoal()`/`assetClassVsGlidePath()`
+ya son genéricos sobre cualquier posición ligada a un objetivo (IVX6/INV1) — las tres funciones ya
+existían y estaban probadas, pero el plan de pensiones nunca llegaba a pasar por ellas porque
+`POSITION_TYPES` no incluía un tipo para él (caía en "otro" o, más probablemente, ni se intentaba
+registrar).
+
+**Construido**:
+- `INV11` — plan de pensiones como posición de cartera más. Nuevo tipo de instrumento `"plan-pension"`
+  en `POSITION_TYPES` (`canonical-portfolio.js`) — con esto, sin motor nuevo, el plan de pensiones
+  entra automáticamente en la XIRR real (IV2), el rebalanceo por tipo (IV6, con su propio % objetivo
+  declarable en Ajustes → Cartera) y el glide path por objetivo (IVX6/INV1, vía `fundingPositions` o
+  `assetClass` declarados igual que cualquier otra posición). Único mecanismo nuevo de verdad: un
+  tramo de liquidez propio, `"bloqueada"`, distinto de `"sin-clasificar"` — de un plan de pensiones SÍ
+  se conoce la velocidad de conversión a caja (cero, salvo jubilación o un supuesto tasado), así que
+  tratarlo como "no sabemos" habría sido incorrecto; el override declarado de `INV20` sigue disponible
+  para un plan ya en fase de rescate. Decisiones de alcance explícitas, para que quien retome esto no
+  las reconstruya al revés: no se toca `canonical-pension-simulator.js` (A15-4, sigue simulando la
+  decisión de aportar, no un ledger), no se extiende el traspaso sin peaje fiscal de FC2 a pensiones
+  (acotado a fondo→fondo, régimen fiscal de movilización de planes no verificado) y no se unifica con
+  el saldo "Pensión" de A14 (sigue siendo una foto de patrimonio aparte, mismo criterio ya aceptado
+  hoy para "Inversión" — declarar el mismo plan en ambos sitios sería duplicar, responsabilidad del
+  hogar evitarlo, igual que ya pasa con el resto de la cartera). Tests:
+  `tests/inv11-plan-pension-posicion-cartera.test.cjs` (14 tests).
+- **Validación**: `npm install` de nuevo necesario al empezar la sesión (`node_modules` no existía).
+  `npm run verify` completo en verde. `npm test` **3964/3964** pruebas (14 nuevas de `INV11`).
+  `test:a11y` **1249 IDs únicos** (antes 1248, sesión 175; +1 por el campo nuevo
+  `iv6TargetPlanPension` en Ajustes → Cartera).
+  `test:performance`: diff 10.000 filas 39,5 ms, forecast y escenarios 197,7 ms, recursos 2197 KB,
+  presupuestos a escala (1000 categorías × 10 años) — análisis 150,6 ms, alertas 98,6 ms, forecast
+  181,0 ms, histórico de presupuestos 40,8 ms, índice de transacciones por categoría 139,2 ms.
+  `build:site`, `test:privacy` y `test:smoke` sin errores.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 15 tareas accionables — las cinco apuestas grandes
+  restantes (`INV18`, `PVC14`, `GOB11`, `GOB15`, `GOB19`, cada una reservada a su propia sesión) y el
+  resto de los Bloques 5-7: `LEV10`/`16` (Bloque 5), `DEB12`/`14`/`16` (Bloque 6), `GOB12`-`14`/`16`/`18`
+  (Bloque 7).
+
 ## Cierre de sesión — 12 de septiembre de 2026 (175): `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20`
 
 El usuario pidió seguir con la siguiente oleada tras la sesión 174, esta vez con el resto de tareas
