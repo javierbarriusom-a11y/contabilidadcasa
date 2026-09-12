@@ -7,11 +7,12 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 167, 12 de septiembre de 2026): segunda oleada construida.** Bloque 1 completo
-(`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). Además,
-`DEB10` y `GOB17` construidas de punta a punta (sesión 167) — las dos tareas de tamaño moderado cuyo
-alcance ya confirmaba el Bloque 1. Quedan 41 tareas accionables: `PVC12` (candidata a sesión propia,
-consolidación de mayor calado) y los Bloques 3-7 completos.
+**Estado (sesión 168, 12 de septiembre de 2026): tercera oleada construida.** Bloque 1 completo
+(`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y
+`GOB17` construidas de punta a punta (sesión 167). Además, `PVC15`, `DEB13` y `LEV15` construidas de
+punta a punta (sesión 168) — las tres tareas de esfuerzo S / alto-medio impacto que el propio §10
+señalaba para un hueco de sesión corta. Quedan 38 tareas accionables: `PVC12` (candidata a sesión
+propia, consolidación de mayor calado) y el resto de los Bloques 3-7.
 
 ## 0. Por qué existe este documento
 
@@ -113,7 +114,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 4 | ⚠️ `PVC12` | Consolidar los mecanismos de estacionalidad/deriva por categoría | `PA-2` | M-L | Alto | Alcance confirmado por `VER-6` (sesión 166b): `categoryDriftWindows()` (PVC4) y `_detectMonthlySeasonality()` leen de fuentes distintas — la primera solo meses cerrados y reconciliados (`registrarMesCollect`), la segunda transacciones vivas del mes en curso. Consolidar exige reconciliar dos fuentes de datos y dos criterios de "mes válido", no solo recablear una llamada — candidata a sesión propia dedicada, no a esta primera oleada. |
 | 5 | ⏳ `PVC13` | Cerrar el bucle de `predictionQuality()`: que el error medido ensanche o estreche `confidenceBands()` | `PA-3` | M | Crítico | Ningún mecanismo de la Oleada 3 cierra este bucle: `PVC2` reparte la banda ya calculada entre categorías por varianza, pero no usa el MAE/sesgo medido por `predictionQuality()` para ajustar nada. Sigue siendo el hallazgo más caro de previsión (`F-02`). |
 | 6 | ⏳ `PVC14` | Ensemble ponderado y visible entre histórico, manual y Monte Carlo | `PA-5` | L | Alto | Los tres métodos actúan aislados hoy; la ponderación debe mostrarse siempre ("60% histórico, 40% tu estimación manual"), nunca ocultarse tras una cifra "mejorada" — ver también la advertencia en el Bloque 6. |
-| 7 | ⏳ `PVC15` | Alerta de "supuesto caducado" | `PA-6` | S | Medio | Umbral de antigüedad por tipo de supuesto sobre `buildAssumptionRegistry()`; distinto de `PVC7` (caducidad de un *escenario guardado* frente al forecast actual) — aquí es la antigüedad de un *supuesto individual* (tipo de interés, salario) frente a su propia fecha de confirmación. |
+| 7 | ✅ `PVC15` | Alerta de "supuesto caducado" | `PA-6` | S | Medio | **Hecho (sesión 168).** `assumptionExpiryAlerts()` (`canonical-forecast.js`) compara la antigüedad de cada supuesto INDIVIDUAL de `buildAssumptionRegistry()` (`updatedAt`) contra un umbral en meses por tipo — 6-12 meses para los que más cambian en la práctica (factores de ingreso/gasto, inflación, retenciones), 24 para los que rara vez cambian (familia numerosa, tributación conjunta); los saldos iniciales y el ahorro automático quedan excluidos a propósito. Distinto de `PVC7` (caducidad de un *escenario guardado* frente al forecast actual). Se muestra junto a cada supuesto en Ajustes › Registro de supuestos (`renderAjustesAssumptionRegistry`), sin formulario propio. Tests: `tests/pvc15-alerta-supuesto-caducado.test.cjs`. |
 | 8 | ⏳ `PVC16` | Marcar eventos no recurrentes para que no contaminen el sesgo aprendido | `PA-7` | M | Medio | Complemento simétrico de `detectStructuralChange` (`PVC3`, busca persistencia): aquí se excluye explícitamente un mes marcado como excepcional del cómputo de `learnFromHistory()`. |
 | 9 | ⏳ `PVC17` | Índice único de "salud predictiva", con tendencia | `PA-8` | S | Medio | Agrega el MAE ponderado de todas las categorías de `canonical-e16-monitoring.js` en una sola cifra con tendencia — hoy la info existe dispersa por categoría, nunca como número único. |
 | 10 | ⚠️ `PVC18` | Etiquetar la causa de cada cambio de previsión: dato nuevo, supuesto editado o modelo recalibrado | `PA-9` | S-M | Medio | Alcance reducido: `PVC6` (Oleada 3) ya compara "qué preveíamos entonces vs. ahora" con `diffAssumptionSnapshots()`. Falta solo la etiqueta explícita de causa sobre esa comparación ya existente, no un motor de comparación nuevo. |
@@ -149,7 +150,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 24 | ⏳ `LEV12` | Alertas proactivas de LTV, no solo simulación bajo demanda | `AP-4` | M | Alto | Toda la vigilancia de LTV sigue siendo bajo demanda (`lombardMarginCallSimulation`); ningún cambio de la Oleada 3 la hizo proactiva. Reutiliza el patrón de alertas de A11. |
 | 25 | ⏳ `LEV13` | Sensibilidad del veredicto de apalancarse: punto de cruce exacto por bisección | `AP-5` | M | Alto | Aplica la misma bisección exacta de `inverseScenario` (forecast general) sobre `simulateLeverage`, en vez de un método nuevo. |
 | 26 | ⏳ `LEV14` | Apalancamiento parcial escalonado (dollar-cost leverage) | `AP-6` | M | Medio | Simetría con `INV8`/DCA, aplicada ahora al lado de la deuda. |
-| 27 | ⏳ `LEV15` | Coste comparado en euros y efecto fiscal de las dos salidas del margin call | `AP-7` | S | Alto | `lombardMarginCallSimulation` lista aportar garantía vs. liquidación forzosa sin comparar su coste; se apoya en `optimizePartialSale` para el efecto fiscal de una liquidación forzosa. |
+| 27 | ✅ `LEV15` | Coste comparado en euros y efecto fiscal de las dos salidas del margin call | `AP-7` | S | Alto | **Hecho (sesión 168).** `lev15MarginCallExitCostHtml()` (`app.js`) compara el coste total de las dos salidas que ya calcula `lombardMarginCallSimulation` (APX3): aportar garantía (sin efecto fiscal, no es una venta) frente a liquidación forzosa, cuyo efecto fiscal se estima con `optimizePartialSale` (mismo motor de tramos del ahorro que FC5) sobre la plusvalía ya realizada este año (`fc5AlreadyRealized`, sin duplicar el campo) y la que llevaría implícita el importe liquidado según un % de plusvalía declarado sobre la cartera pignorada (`lev15GainLossPct`, misma fórmula pro-rata que ya usa `sellVsBorrowComparison`/INV10). Nunca decide cuál salida tomar. Tests: `tests/lev15-coste-salidas-margin-call.test.cjs`. |
 | 28 | ⏳ `LEV16` | El coste de oportunidad de NO apalancarse, simétrico al riesgo de apalancarse | `AP-9` | S | Medio | Todo el módulo enmarca la pregunta solo desde el riesgo de apalancarse; falta el lado simétrico de mantener liquidez ociosa sin invertir ni apalancar. |
 
 ---
@@ -163,7 +164,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 29 | ✅ `DEB10` | Al amortizar, priorizar automáticamente qué deuda concreta primero | `DE-2` | M | Alto | **Hecho (sesión 167).** `deb10PriorityHint()` (`app.js`) reutiliza `fiscalAdjustedDebtPriority()` (DEB5) sobre `debtContractSourceRows()`, sin motor propio. Compara la deuda #1 por TAE efectivo tras deducción fiscal contra la seleccionada en `#ap1DebtSelect`: si coincide, lo confirma; si no, avisa cuál sería la de mayor coste real — nunca la preselecciona en silencio, la elección final sigue siendo del hogar. Se muestra en cada «Comparar» de AP1. Tests: `tests/deb10-prioridad-fiscal-sugerida-ap1.test.cjs`. |
 | 30 | ⏳ `DEB11` | Amortización parcial: reducir cuota vs. reducir plazo, como decisión explícita | `DE-3` | M | Alto | `dimensionOptimalPrepayment` (`DEB2`) dimensiona el importe, no desglosa esta segunda decisión, igual de real. |
 | 31 | ⏳ `DEB12` | El precio de esperar (`waitingOptionValue`) como serie temporal, no cifra congelada | `DE-4` | M | Medio | Reutiliza el patrón de "comparación trackeada" que `DEB1` ya usa para el veredicto de `AP1`, aplicado ahora a `DEB3`. |
-| 32 | ⏳ `DEB13` | Alerta de "deuda cara dormida" | `DE-5` | S | Alto | `DEB5` prioriza, pero no alerta cuando una TAE está muy por encima de cualquier rentabilidad esperada declarada en la cartera — cruce automático nuevo con `compareAmortizeVsInvest`. |
+| 32 | ✅ `DEB13` | Alerta de "deuda cara dormida" | `DE-5` | S | Alto | **Hecho (sesión 168).** `deb13DormantExpensiveDebtAlerts()` (`views/deuda.js`) cruza `fiscalAdjustedDebtPriority()` (DEB5) con `compareAmortizeVsInvest` (AP1) para TODA deuda activa, usando el capital pendiente y el plazo real de cada contrato en vez de un importe/horizonte escrito a mano — así no hace falta que el hogar la seleccione en AP1 para verla. Se muestra en Deuda › Contratos, junto a la propia prioridad fiscal de DEB5. Tests: `tests/deb13-deuda-cara-dormida.test.cjs`. |
 | 33 | ⚠️ `DEB14` | Alerta de "llevas N meses sin comparar tu hipoteca contra una oferta de mercado registrada" | `DE-6` | S | Medio | Alcance reducido: `DEB4` (Oleada 3) ya avisa proactivamente cuando el punto de equilibrio de los *propios* escenarios de tipos cruza un umbral — un ángulo distinto ("tu cálculo cambió") al de esta tarea ("no has mirado el mercado"), que usa el registro de ofertas externas (`normalizeOffer`) que `DEB4` no consulta. |
 | 34 | ⏳ `DEB15` | Guardarraíl de liquidez a 3-6 meses tras una cancelación total, no solo en el instante | `DE-7` | M | Crítico | Antes de ejecutar, simula el colchón resultante los meses siguientes con el propio forecast — hoy solo se mira el saldo del día de la cancelación. |
 | 35 | ⏳ `DEB16` | Avalancha vs. bola de nieve, como preferencia declarada para el orden entre varias deudas | `DE-8` | S | Medio | Distinto de `DEB7` (preferencia agregada costo-mínimo vs. libre-de-deudas sobre el veredicto de `AP1`): aquí la pregunta es el *orden* entre varias deudas simultáneas, no la preferencia general. `simulateDebtConsolidation` (`DEB6`) da el coste, no el orden. |
@@ -197,8 +198,8 @@ los IDs de este backlog:
    verificaciones en primer lugar.
 2. **Las dos banderas del Bloque 2** (`LEV9`, `DEB9`) son las de mayor impacto y ninguna depende de una
    decisión de alcance previa — candidatas naturales a ir justo después de las verificaciones.
-3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15` (`GOB17` ya
-   construida en la sesión 167).
+3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15` — las tres
+   construidas en la sesión 168 (`GOB17` ya construida en la sesión 167).
 4. **Grandes apuestas (L), reservar sesión propia**: `INV11`, `INV18`, `PVC14`, `GOB11`, `GOB15`,
    `GOB19`.
 5. **Cuestionar el alcance antes de construir, no descartar sin más** (mismo criterio que la propia

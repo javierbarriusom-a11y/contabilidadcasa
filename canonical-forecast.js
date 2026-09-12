@@ -95,6 +95,57 @@
     return { schemaId: ASSUMPTIONS_SCHEMA_ID, version: 1, generatedAt, fingerprint, items };
   }
 
+  // PVC15 (Oleada 4, Bloque 3): alerta de "supuesto caducado" — antigüedad de un supuesto
+  // INDIVIDUAL (tipo de interés, salario...) frente a su propia fecha de confirmación
+  // (`updatedAt` de A7-2/A15-1), distinto de PVC7 (caducidad de un ESCENARIO GUARDADO frente al
+  // forecast actual, no de un supuesto suelto). Umbral en meses por tipo de supuesto: los que en la
+  // práctica cambian más a menudo (factores de ingreso/gasto, inflación, retenciones) caducan antes
+  // que los que rara vez cambian (familia numerosa, tributación conjunta). Los saldos iniciales
+  // (openingChecking/openingSavings) y el interruptor de ahorro automático (autoCapSavings) quedan
+  // fuera a propósito: no son una estimación que se pueda quedar desfasada, se recalculan solos
+  // desde el saldo real / el propio comportamiento vigente.
+  const ASSUMPTION_EXPIRY_MONTHS_DEFAULT = Object.freeze({
+    incomeFactor: 6,
+    annualIncomeGrowth: 12,
+    expenseFactor: 6,
+    annualInflation: 6,
+    plannedMonthlySaving: 12,
+    fiscalWithholdingRate: 12,
+    fiscalDeductibleContributions: 12,
+    fiscalDeductibleRent: 12,
+    fiscalJointTaxation: 24,
+    fiscalLargeFamily: 24,
+  });
+
+  function monthsSinceUpdated(updatedAt, referenceDate) {
+    const updated = text(updatedAt).slice(0, 10);
+    const [uy, um] = updated.split("-").map(Number);
+    if (!uy || !um) return null;
+    const ref = referenceDate instanceof Date ? referenceDate : new Date(referenceDate || Date.now());
+    if (Number.isNaN(ref.getTime())) return null;
+    return (ref.getFullYear() - uy) * 12 + (ref.getMonth() + 1 - um);
+  }
+
+  function assumptionExpiryAlerts(registry, referenceDate = new Date(), options = {}) {
+    const thresholds = { ...ASSUMPTION_EXPIRY_MONTHS_DEFAULT, ...(options.thresholdMonths || {}) };
+    const items = Array.isArray(registry?.items) ? registry.items : [];
+    const expired = items
+      .map((item) => {
+        const thresholdMonths = thresholds[item.id];
+        if (!Number.isFinite(thresholdMonths)) return null;
+        const ageMonths = monthsSinceUpdated(item.updatedAt, referenceDate);
+        if (ageMonths === null || ageMonths < thresholdMonths) return null;
+        return { id: item.id, label: item.label, unit: item.unit, updatedAt: item.updatedAt, ageMonths, thresholdMonths };
+      })
+      .filter(Boolean);
+    return {
+      schemaId: `${ASSUMPTIONS_SCHEMA_ID}/expiry-v1`,
+      referenceDate: referenceDate instanceof Date ? referenceDate.toISOString() : text(referenceDate),
+      thresholdMonths: thresholds,
+      expired,
+    };
+  }
+
   // PVC6 (Oleada 3, Bloque 3): previsión con control de versiones. Compara dos snapshots del
   // registro de supuestos ya versionado (A7-2/E12a, buildAssumptionRegistry) — "qué preveíamos
   // entonces" contra "qué prevemos ahora" — y dice exactamente qué supuesto concreto cambió,
@@ -556,5 +607,5 @@
     return `Tu previsión ${directionLabel} de forma sostenida en los últimos ${monthsLabel}${driverLabel}.`;
   }
 
-  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, detectStructuralChange, applyLearnedBias, diffAssumptionSnapshots, causalTreeForMonth, categoryDriftWindows, reforecastMaterialityAlert, REFORECAST_MATERIALITY_DEFAULT, previsionChangeOneLiner };
+  return { SCHEMA_ID, ASSUMPTIONS_SCHEMA_ID, LEARNING_SCHEMA_ID, CAUSAL_TREE_SCHEMA_ID, TOLERANCE, DEVIATION_SEVERITY_THRESHOLDS, CONFIDENCE_BAND_MAX_WIDENING, buildAssumptionRegistry, buildForecast, validateParity, learnFromHistory, adaptiveHorizon, deviationSeverity, detectRecurringSubscriptions, confidenceBands, detectStructuralChange, applyLearnedBias, diffAssumptionSnapshots, causalTreeForMonth, categoryDriftWindows, reforecastMaterialityAlert, REFORECAST_MATERIALITY_DEFAULT, previsionChangeOneLiner, ASSUMPTION_EXPIRY_MONTHS_DEFAULT, assumptionExpiryAlerts };
 });

@@ -1219,6 +1219,7 @@ function renderDeudaContratos() {
   const cuadreEl = qs("deudaContratosCuadre");
   if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
   renderDeb5FiscalPriority(contracts);
+  renderDeb13DormantExpensiveDebtAlert(contracts);
   renderDeb6DebtChecklist(contracts);
 }
 
@@ -1242,6 +1243,55 @@ function renderDeb5FiscalPriority(contracts) {
     ? `<p class="e19-kpi-note is-warn">La deducción fiscal cambia este orden frente al TAE nominal solo — revisa antes de amortizar "la de interés más alto" sin más.</p>`
     : "";
   note.innerHTML = `<ol class="commit-barrier-list">${items}</ol>${warning}`;
+}
+
+// DEB13 (Oleada 4, Bloque 6): alerta de "deuda cara dormida" — DEB5 (arriba) ya prioriza QUÉ deuda
+// amortizar primero, pero nunca avisa cuando el coste real de una deuda concreta (TAE efectivo tras
+// deducción fiscal) supera con claridad la rentabilidad que la propia cartera del hogar espera
+// obtener (IV5), mientras nadie la está amortizando de hecho — "dormida" porque no está bajo
+// revisión activa en el comparador AP1. Cruce automático nuevo con compareAmortizeVsInvest (AP1):
+// mismo motor que ya usa el propio comparador, aplicado aquí con el capital pendiente y el plazo
+// real de cada contrato en vez de un importe/horizonte escrito a mano, para evaluar TODA deuda
+// activa sin esperar a que el hogar la seleccione en AP1. Nunca decide amortizar por su cuenta:
+// solo señala qué deuda(s) cumplen la condición, dejando la acción al comparador de siempre.
+function deb13DormantExpensiveDebtAlerts(contracts) {
+  const priorityEngine = window.FinanceDebtContracts;
+  const comparator = window.FinanceDebtComparator;
+  const portfolioEngine = window.FinanceCanonicalPortfolio;
+  if (!priorityEngine || !comparator || !portfolioEngine) return [];
+  const annualReturnPct = iv5PortfolioAnnualReturnPct();
+  if (annualReturnPct === null) return [];
+  const priority = priorityEngine.fiscalAdjustedDebtPriority(contracts);
+  if (!priority.calculable) return [];
+  const contractsById = new Map((contracts || []).map((contract) => [contract.id, contract]));
+  return priority.rows
+    .map((row) => {
+      const contract = contractsById.get(row.id);
+      const months = Math.round(Number(contract?.remainingInstallments) || 0);
+      if (!(row.currentPrincipal > 0) || months <= 0) return null;
+      const investmentResult = portfolioEngine.opportunityCost({ amount: row.currentPrincipal, months, annualReturnPct });
+      const result = comparator.compareAmortizeVsInvest({
+        amount: row.currentPrincipal, months, debtAnnualRatePct: row.effectiveAprPct,
+        remainingPrincipal: row.currentPrincipal, investmentResult,
+      });
+      if (!result.calculable || result.assessment !== "amortizar") return null;
+      return { entity: row.entity, effectiveAprPct: row.effectiveAprPct, annualReturnPct, amortizeSavings: result.amortizeSavings, investGain: result.investGain };
+    })
+    .filter(Boolean);
+}
+
+function renderDeb13DormantExpensiveDebtAlert(contracts) {
+  const note = qs("deb13DormantDebtAlert");
+  if (!note) return;
+  const alerts = deb13DormantExpensiveDebtAlerts(contracts);
+  if (!alerts.length) {
+    note.innerHTML = "";
+    return;
+  }
+  const items = alerts
+    .map((alert) => `<li class="commit-barrier-item warning"><strong>${escapeHtml(alert.entity)}</strong>: TAE efectivo ${alert.effectiveAprPct}% frente al ${alert.annualReturnPct}% que rinde hoy tu cartera — amortizarla ahorraría ${money(alert.amortizeSavings, true)} de intereses frente a los ${money(alert.investGain, true)} que ganarías manteniéndola invertida en ese mismo plazo.</li>`)
+    .join("");
+  note.innerHTML = `<p class="e19-kpi-note is-warn"><strong>Deuda cara dormida (DEB13):</strong> ninguna acción activa la está amortizando, y su coste real ya supera lo que tu cartera espera rendir.</p><ul class="commit-barrier-list">${items}</ul>`;
 }
 
 // DEB6 (Oleada 3, Bloque 4): simulador de consolidación — casillas para elegir qué deudas activas

@@ -709,6 +709,9 @@ test("D-2 · renderDeudaContratos pinta pestañas, cabecera y filas, y usa el de
       // verdad en tests/deb5-deb6-prioridad-fiscal-y-consolidacion.test.cjs, aquí solo evita que
       // este test (centrado en la tabla y su cabecera) reviente por dependencias no relacionadas.
       renderDeb5FiscalPriority: () => {},
+      // DEB13 (Oleada 4, Bloque 6): renderDeudaContratos ya la llama junto a DEB5 — cubierta de
+      // verdad en tests/deb13-deuda-cara-dormida.test.cjs, aquí solo evita que este test reviente.
+      renderDeb13DormantExpensiveDebtAlert: () => {},
       renderDeb6DebtChecklist: () => {},
       qs: (id) => ({
         set innerHTML(value) {

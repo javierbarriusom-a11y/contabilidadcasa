@@ -51,6 +51,62 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
+## Cierre de sesión — 12 de septiembre de 2026 (168): tercera oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 167. Alcance elegido: `PVC15`, `DEB13`
+y `LEV15` — las tres tareas de esfuerzo S / impacto medio-alto que el propio §10 del backlog señalaba
+para un hueco de sesión corta, dejando `PVC12` (consolidación de mayor calado) para una sesión propia
+dedicada, tal y como recomienda el backlog.
+
+- **`PVC15` — alerta de "supuesto caducado"**: nueva función `assumptionExpiryAlerts()` en
+  `canonical-forecast.js`, que compara la antigüedad (`updatedAt`) de cada supuesto INDIVIDUAL del
+  registro ya versionado (`buildAssumptionRegistry()`, A7-2/A15-1) contra un umbral en meses por tipo
+  de supuesto: 6 meses para los factores de ingreso/gasto e inflación (los que más cambian en la
+  práctica), 12 para el ahorro objetivo y los tres campos fiscales numéricos, 24 para tributación
+  conjunta y familia numerosa (los que rara vez cambian). Los saldos iniciales
+  (`openingChecking`/`openingSavings`) y el interruptor de ahorro automático quedan excluidos a
+  propósito: se recalculan solos, no son una estimación que pueda quedar desfasada. Distinta de
+  `PVC7` (Oleada 3), que vigila la caducidad de un *escenario guardado* frente al forecast actual, no
+  la de un supuesto suelto. Se muestra junto a cada supuesto en Ajustes › Registro de supuestos
+  (`renderAjustesAssumptionRegistry`), sin formulario ni umbral editable todavía. Tests:
+  `tests/pvc15-alerta-supuesto-caducado.test.cjs`.
+- **`DEB13` — alerta de "deuda cara dormida"**: nueva función `deb13DormantExpensiveDebtAlerts()` en
+  `views/deuda.js`, que cruza `fiscalAdjustedDebtPriority()` (DEB5) con `compareAmortizeVsInvest`
+  (AP1) para TODA deuda activa —no solo la que el hogar tenga seleccionada en el comparador—, usando
+  el capital pendiente y el plazo real de cada contrato en vez de un importe/horizonte escrito a
+  mano. Solo avisa cuando amortizar de verdad saldría más barato que mantener esa deuda mientras se
+  invierte a la rentabilidad real de la cartera (IV5). Se muestra en Deuda › Contratos, junto a la
+  propia prioridad fiscal de DEB5, y se queda vacía cuando ninguna deuda cumple la condición. Tests:
+  `tests/deb13-deuda-cara-dormida.test.cjs`.
+- **`LEV15` — coste comparado en euros y efecto fiscal de las dos salidas del margin call**: nuevas
+  funciones `lev15ForcedLiquidationGain()`/`lev15MarginCallExitCostHtml()` en `app.js`, que comparan
+  el coste total de las dos salidas que ya calcula `lombardMarginCallSimulation` (APX3): aportar
+  garantía (sin efecto fiscal, no es una venta) frente a liquidación forzosa, cuyo efecto fiscal se
+  estima con `optimizePartialSale` (mismo motor de tramos del ahorro que FC5) sobre la plusvalía ya
+  realizada este año (reutiliza `fc5AlreadyRealized`, sin duplicar el campo) y la que llevaría
+  implícita el importe liquidado, según un nuevo campo declarado (`lev15GainLossPct`, misma fórmula
+  pro-rata importe→plusvalía que ya usa `sellVsBorrowComparison`/INV10). Nunca decide cuál salida
+  tomar, solo compara su coste total. Verificado también a mano en navegador (Playwright headless):
+  con una posición de cartera y una escala de tramos del ahorro registradas, la simulación de una
+  caída que dispara la llamada de garantía muestra correctamente ambos costes y el efecto fiscal real
+  de la liquidación forzosa. Tests: `tests/lev15-coste-salidas-margin-call.test.cjs`.
+- **Validación**: `npm run verify` completo en verde (tras `npm install`, el contenedor no traía
+  `node_modules` — mismo problema ya documentado en sesiones 165-167, no relacionado con este
+  cambio). `npm test` **3726/3726** pruebas (21 nuevas: 7 en `tests/pvc15-alerta-supuesto-caducado.test.cjs`,
+  7 en `tests/deb13-deuda-cara-dormida.test.cjs`, 7 en `tests/lev15-coste-salidas-margin-call.test.cjs`;
+  más 1 wiring existente actualizado en `tests/d1-d2-deuda-tabs-contratos.test.cjs` por la nueva
+  llamada a `renderDeb13DormantExpensiveDebtAlert` dentro de `renderDeudaContratos`). `test:a11y`
+  **1217 IDs únicos** (+2 sobre los 1215 de la sesión 167, por los dos campos/elementos nuevos —
+  `deb13DormantDebtAlert` y `lev15GainLossPct` — ninguno duplicado). `test:performance`, `build:site`,
+  `test:privacy` y `test:smoke`, todos sin errores.
+- **Pendiente para la siguiente oleada**: `PVC12` (consolidación de estacionalidad/deriva, candidata a
+  sesión propia) y el resto de los Bloques 3-7 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+  (`PVC11`/`PVC13`-`19` salvo `PVC15`, `INV11`-`20`, `LEV10`-`16` salvo `LEV15`, `DEB11`-`17` salvo
+  `DEB13`, `GOB11`-`19`), 38 tareas accionables intactas.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 12 de septiembre de 2026 (167): segunda oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
 
 El usuario pidió seguir con la siguiente fase tras la primera oleada (sesión 166b). Alcance elegido:
