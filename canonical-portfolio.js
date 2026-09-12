@@ -7,7 +7,12 @@
 
   const SCHEMA_ID = "finanzas-casa-portfolio";
   const SCHEMA_VERSION = 1;
-  const POSITION_TYPES = ["fondo", "accion", "etf", "cripto", "otro"];
+  // INV11 (Oleada 4, Bloque 4): "plan-pension" se añade como tipo de instrumento propio, no como
+  // variante de "otro" — es la única forma de que una posición de plan de pensiones entre en las
+  // funciones ya construidas (XIRR real de IV2, rebalanceo de IV6, glide path de IVX6) sin motor
+  // nuevo: todas ya son genéricas sobre POSITION_TYPES/ASSET_CLASS_TYPES, solo hacía falta un valor
+  // de tipo que las active.
+  const POSITION_TYPES = ["fondo", "accion", "etf", "cripto", "plan-pension", "otro"];
   const PROVENANCE_VALUES = ["declared", "estimated", "unknown"];
 
   function number(value, fallback = 0) {
@@ -887,14 +892,21 @@
   // de mercado (T+2 en bolsa para acción/ETF, T+3 habitual en fondos españoles, mercado cripto sin
   // ventana de liquidación) — nunca inventado para "otro", que queda fuera de la escalera como "sin
   // clasificar" en vez de fingir una velocidad que no se conoce.
+  // INV11 (Oleada 4, Bloque 4): "bloqueada" es un tramo distinto de "sin-clasificar" a propósito —
+  // de un plan de pensiones SÍ se conoce la velocidad de conversión: cero, salvo jubilación o un
+  // supuesto tasado (fallecimiento, incapacidad, paro de larga duración...), nunca a demanda. Tratarlo
+  // como "sin-clasificar" diría "no sabemos", cuando en realidad "sabemos que no es líquida". El
+  // override declarado de INV20 sigue disponible por si el hogar ya está en fase de rescate.
   const LIQUIDITY_TIER_BY_TYPE = {
     accion: "inmediata", etf: "inmediata", cripto: "inmediata",
     fondo: "corta",
+    "plan-pension": "bloqueada",
     otro: "sin-clasificar",
   };
   const LIQUIDITY_TIERS = [
     { tier: "inmediata", label: "Inmediata (0-2 días)", maxDays: 2 },
     { tier: "corta", label: "Corta (3-7 días)", maxDays: 7 },
+    { tier: "bloqueada", label: "Bloqueada hasta jubilación o supuesto tasado", maxDays: null },
     { tier: "sin-clasificar", label: "Sin clasificar", maxDays: null },
   ];
   const LIQUIDITY_LADDER_SCHEMA_ID = "finanzas-casa-portfolio-liquidity-ladder";
@@ -917,7 +929,9 @@
     let tierCoveringFloor = null;
     const floor = number(floorValue);
     tiers.forEach((tier) => {
-      if (tier.tier === "sin-clasificar") return; // no cuenta para cubrir el colchón: velocidad desconocida
+      // "sin-clasificar": velocidad desconocida. "bloqueada": velocidad conocida y es cero. Ninguna
+      // de las dos cuenta para cubrir el colchón.
+      if (tier.tier === "sin-clasificar" || tier.tier === "bloqueada") return;
       cumulative = round2(cumulative + tier.value);
       if (tierCoveringFloor === null && floor > 0 && cumulative >= floor) tierCoveringFloor = tier.tier;
     });

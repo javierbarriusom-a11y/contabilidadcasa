@@ -18906,7 +18906,7 @@ function renderIvx8HousingExposure() {
   note.innerHTML = `<p class="warning">Sobreexposición cruzada: ${dominantLabel} concentra el ${dominantPct}% del conjunto vivienda + cartera de inversión (${money(result.housingValue, true)} vivienda, ${money(result.portfolioValue, true)} cartera).</p>`;
 }
 
-const IV1_POSITION_TYPE_LABELS = { fondo: "Fondo", accion: "Acción", etf: "ETF", cripto: "Cripto", otro: "Otro" };
+const IV1_POSITION_TYPE_LABELS = { fondo: "Fondo", accion: "Acción", etf: "ETF", cripto: "Cripto", "plan-pension": "Plan de pensiones", otro: "Otro" };
 
 function iv1PositionsList() {
   return Array.isArray(scenarioSettings.portfolioPositions) ? scenarioSettings.portfolioPositions : [];
@@ -19768,7 +19768,7 @@ function renderInv7LiquidityLadder() {
     .join("");
   const floorNote = ladder.floorCovered
     ? `<p class="e19-kpi-note">Tu colchón mínimo (${money(ladder.floorValue, true)}) queda cubierto ya con la liquidez ${ladder.floorCoveredBy === "inmediata" ? "inmediata" : "de hasta 7 días"}.</p>`
-    : `<p class="e19-kpi-note">Ni sumando toda la liquidez clasificada (inmediata + corta) se cubre tu colchón mínimo (${money(ladder.floorValue, true)}) — la parte "sin clasificar" no cuenta, su velocidad de conversión no se conoce.</p>`;
+    : `<p class="e19-kpi-note">Ni sumando toda la liquidez clasificada (inmediata + corta) se cubre tu colchón mínimo (${money(ladder.floorValue, true)}) — lo "bloqueado" (p. ej. plan de pensiones) y lo "sin clasificar" no cuentan: uno no se puede convertir en caja a demanda, del otro no se conoce la velocidad.</p>`;
   container.innerHTML = `<ul class="commit-barrier-list">${items}</ul>${floorNote}`;
 }
 
@@ -19979,7 +19979,7 @@ function renderIv1PositionConcentration() {
   renderRgxKnowledgeConcentration();
 }
 
-const IV6_TARGET_FIELDS = { fondo: "iv6TargetFondo", accion: "iv6TargetAccion", etf: "iv6TargetEtf", cripto: "iv6TargetCripto", otro: "iv6TargetOtro" };
+const IV6_TARGET_FIELDS = { fondo: "iv6TargetFondo", accion: "iv6TargetAccion", etf: "iv6TargetEtf", cripto: "iv6TargetCripto", "plan-pension": "iv6TargetPlanPension", otro: "iv6TargetOtro" };
 
 function iv6PortfolioTargets() {
   return scenarioSettings.portfolioTargets && typeof scenarioSettings.portfolioTargets === "object" ? scenarioSettings.portfolioTargets : {};
