@@ -16477,6 +16477,117 @@ function handleLev14Simulate() {
   note.innerHTML = lev14ResultHtml(result);
 }
 
+// LEV10 (Oleada 4, Bloque 5, AP-2): curva de coste marginal de deuda nueva por tramo — hasta ahora
+// AP3 (simulateLeverage) solo admite un tipo único (ap3DebtRate) aplicado a todo el importe, como si
+// el banco cobrara siempre el mismo tipo diera igual cuánto se pida. Muchas ofertas reales de banco
+// son progresivas por tramo (p. ej. hasta 20.000€ al 3%, el resto al 4,5%). Reutiliza tal cual
+// progressiveTax() (canonical-irpf-estimator.js, A15-2) para la suma por tramos — el mismo primitivo
+// genérico de "aplicar un tipo distinto a cada porción de un importe" que ya usa el motor fiscal, sin
+// escala nueva que inventar. No reutiliza validateBracketScale() del mismo motor a propósito: esa
+// exige una fuente pública citable (autoridad, URL, fecha de comprobación) pensada para tablas
+// fiscales oficiales — una oferta de banco es un dato declarado por el hogar, no una fuente pública,
+// así que aquí basta con tramos válidos (límites crecientes, el último abierto, tipos entre 0-100%).
+// Reutiliza el importe ya declarado arriba (ap3DebtAmount) sin duplicar el campo — mismo criterio que
+// LEV14. Solo informativo: nunca decide el tipo a usar ni rellena ap3DebtRate por su cuenta.
+function lev10DeclaredTiers(settings = {}) {
+  const tiers = [];
+  const t1Limit = Number(settings.lev10Tier1Limit);
+  const t1Rate = Number(settings.lev10Tier1RatePct);
+  if (Number.isFinite(t1Limit) && t1Limit > 0 && Number.isFinite(t1Rate) && t1Rate >= 0) {
+    tiers.push({ limit: t1Limit, rate: t1Rate });
+    const t2Limit = Number(settings.lev10Tier2Limit);
+    const t2Rate = Number(settings.lev10Tier2RatePct);
+    if (Number.isFinite(t2Limit) && t2Limit > t1Limit && Number.isFinite(t2Rate) && t2Rate >= 0) {
+      tiers.push({ limit: t2Limit, rate: t2Rate });
+    }
+  }
+  const t3Rate = Number(settings.lev10Tier3RatePct);
+  if (Number.isFinite(t3Rate) && t3Rate >= 0) tiers.push({ limit: null, rate: t3Rate });
+  return tiers;
+}
+
+function lev10DebtMarginalCostCurve({ tiers = [], amount } = {}) {
+  const irpf = window.FinanceCanonicalIrpfEstimator;
+  if (!irpf) return { calculable: false, reason: "engine-missing" };
+  if (!Array.isArray(tiers) || tiers.length < 2) return { calculable: false, reason: "not-enough-tiers" };
+  const lastTier = tiers[tiers.length - 1];
+  if (lastTier.limit !== null) return { calculable: false, reason: "last-tier-not-open" };
+  for (let index = 0; index < tiers.length; index += 1) {
+    const rate = Number(tiers[index].rate);
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) return { calculable: false, reason: "invalid-rate" };
+    if (index < tiers.length - 1) {
+      const limit = Number(tiers[index].limit);
+      const previous = index > 0 ? Number(tiers[index - 1].limit) : 0;
+      if (!Number.isFinite(limit) || limit <= previous) return { calculable: false, reason: "limits-not-increasing" };
+    }
+  }
+  const debtAmount = Math.max(0, round2(Number(amount) || 0));
+  if (!(debtAmount > 0)) return { calculable: false, reason: "missing-amount" };
+  const annualCost = irpf.progressiveTax(debtAmount, tiers);
+  const blendedRatePct = round2((annualCost / debtAmount) * 100);
+  let previousLimit = 0;
+  let marginalRatePct = round2(Number(lastTier.rate));
+  const breakdown = [];
+  tiers.forEach((tier) => {
+    const upper = tier.limit === null ? Infinity : Number(tier.limit);
+    const portion = round2(Math.max(0, Math.min(debtAmount, upper) - previousLimit));
+    if (portion > 0) {
+      breakdown.push({ limit: tier.limit, ratePct: round2(Number(tier.rate)), portion, cost: round2(portion * (Number(tier.rate) / 100)) });
+      marginalRatePct = round2(Number(tier.rate));
+    }
+    previousLimit = upper;
+  });
+  return { calculable: true, debtAmount, annualCost, blendedRatePct, marginalRatePct, breakdown };
+}
+
+// Cada tramo se guarda por separado, nunca agrupado — mismo criterio (y mismo bug ya detectado una
+// vez) que PVC14/GOB11.
+const LEV10_FIELD_IDS = ["lev10Tier1Limit", "lev10Tier1RatePct", "lev10Tier2Limit", "lev10Tier2RatePct", "lev10Tier3RatePct"];
+
+function handleLev10FieldChange() {
+  LEV10_FIELD_IDS.forEach((id) => {
+    const el = qs(id);
+    if (!el) return;
+    const value = parseAmount(el.value);
+    scenarioSettings[id] = value === null ? undefined : value;
+  });
+  saveScenarioSettings();
+  renderLev10DebtCostCurve();
+}
+
+function renderLev10Inputs() {
+  LEV10_FIELD_IDS.forEach((id) => {
+    const el = qs(id);
+    if (!el || document.activeElement === el) return;
+    const stored = scenarioSettings[id];
+    el.value = stored === undefined || stored === null ? "" : String(stored);
+  });
+}
+
+function lev10CostCurveHtml(result) {
+  if (result.reason === "not-enough-tiers") {
+    return "Declara al menos dos tramos (el importe hasta el que aplica un tipo, y el tipo del resto) con ofertas reales de tu banco para ver el coste combinado.";
+  }
+  if (result.reason === "missing-amount") {
+    return "Indica el importe de deuda nueva a simular (arriba, en «Deuda nueva a simular») para ver el coste combinado según tus tramos.";
+  }
+  if (!result.calculable) return "Revisa los tramos declarados: los límites deben ser crecientes y los tipos entre 0-100%.";
+  const rows = result.breakdown.map((row) => `<tr><td>${row.limit === null ? "Resto (sin límite)" : `Hasta ${money(row.limit, true)}`}</td><td>${row.ratePct}%</td><td>${money(row.portion, true)}</td><td>${money(row.cost, true)}</td></tr>`).join("");
+  return `<p>Con ${money(result.debtAmount, true)} de deuda nueva: coste anual combinado <strong>${money(result.annualCost, true)}</strong> (tipo medio ${result.blendedRatePct}%). El siguiente euro que pidas prestado costaría al <strong>${result.marginalRatePct}%</strong> — el tipo marginal del tramo en el que caes hoy.</p>
+    <table class="e19-table"><thead><tr><th>Tramo</th><th>Tipo</th><th>Importe en el tramo</th><th>Coste anual</th></tr></thead><tbody>${rows}</tbody></table>
+    <p class="e19-kpi-note">Tramos declarados por ti según ofertas reales de tu banco — nunca una curva de mercado inventada. No rellena «Tipo de la deuda nueva» por su cuenta: si quieres que el simulador de apalancamiento (AP3) lo use, escribe tú el tipo medio o el marginal arriba.</p>`;
+}
+
+function renderLev10DebtCostCurve() {
+  const note = qs("lev10CostCurveNote");
+  if (!note) return;
+  renderLev10Inputs();
+  const tiers = lev10DeclaredTiers(scenarioSettings);
+  const amount = parseAmount(qs("ap3DebtAmount")?.value);
+  const result = lev10DebtMarginalCostCurve({ tiers, amount });
+  note.innerHTML = lev10CostCurveHtml(result);
+}
+
 // LEV9 (Oleada 4, Bloque 2 — bandera del diagnóstico, sin precedente en la Oleada 3): comparador
 // cruzado de instrumentos de apalancamiento para UNA MISMA necesidad de capital. Reutiliza tal cual
 // lombardCreditCapacity (APX2, mismos campos de LTV/tipo ya declarados arriba) y
@@ -39330,6 +39441,10 @@ async function init() {
   GOB11_FIELD_IDS.forEach((id) => {
     qs(id)?.addEventListener("change", handleGob11FieldChange);
   });
+  LEV10_FIELD_IDS.forEach((id) => {
+    qs(id)?.addEventListener("change", handleLev10FieldChange);
+  });
+  qs("ap3DebtAmount")?.addEventListener("input", renderLev10DebtCostCurve);
   qs("esx2EventTemplate")?.addEventListener("change", (event) => applyE13EventTemplate(event.target.value));
   qs("e13EventBuilder")?.addEventListener("submit", (event) => {
     event.preventDefault();
