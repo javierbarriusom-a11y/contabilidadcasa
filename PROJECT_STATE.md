@@ -50,6 +50,96 @@ de aquí en la siguiente regeneración, no al momento.
   no a OpenAI — decisión explícita del hogar: ya tiene cuenta y facturación con Anthropic, evita
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
+- **Las cuatro decisiones de alcance del §10.5 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` quedaron
+  resueltas explícitamente por el hogar (12 de septiembre de 2026, sesión 171)**: `PVC14` (ensemble
+  ponderado) se construirá con pesos ajustables por el hogar, no fijos; `INV16` (correlación
+  cualitativa) se construirá declarada y editable por el hogar, no una tabla fija; `LEV14`
+  (apalancamiento parcial escalonado) se construirá, pero solo como simulador informativo, nunca
+  ejecuta nada; `GOB15` (simulador de vender la vivienda habitual) se confirma para una sesión futura
+  dedicada. Detalle completo de cada decisión en la nota de la fila correspondiente de
+  `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. Ninguna de las cuatro se construyó todavía (`PVC14` y
+  `GOB15` siguen siendo apuestas L para sesión propia; `INV16` y `LEV14` son esfuerzo M, candidatas a
+  una próxima sesión normal) — esta decisión solo elimina el bloqueo de alcance, no adelanta la
+  construcción.
+
+## Cierre de sesión — 12 de septiembre de 2026 (171): sexta oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+
+El usuario pidió seguir con la siguiente oleada tras la sesión 170 y resolver además las cuatro
+decisiones de alcance pendientes del backlog para desbloquearlas de cara al futuro. Alcance elegido
+para construir: `INV13`, `LEV12`, `DEB11` y `LEV11` — las cuatro tareas de esfuerzo M / beneficio Alto
+que no exigían decisión de alcance previa, dejando las apuestas grandes (L: `INV11`, `INV18`, `PVC14`,
+`GOB11`, `GOB15`, `GOB19`) y `PVC12` para sesiones propias dedicadas.
+
+- **`INV13` — proyección fiscal del plan de aportación periódica (DCA)**: `INV8` (Oleada 3) solo
+  compara aportado vs. planificado del plan DCA, sin decir qué pasaría fiscalmente si se vendiera lo
+  acumulado. Nueva función `renderInv13DcaTaxProjection()` (`app.js`) reutiliza tal cual
+  `optimizePartialSale()` (FC5, `canonical-irpf-estimator.js`, mismo campo `fc5AlreadyRealized` que ya
+  usa LEV15, sin duplicarlo) sobre la plusvalía REAL ya calculada de cada posición
+  (`position.gainLoss`, la misma que usa `deleveragingPriority`/LEV6) — nunca un % de ganancia
+  declarado a mano, porque el dato real ya existe en la app. Se muestra en Inversión, justo debajo del
+  seguimiento DCA de INV8 (`#inv13DcaTaxProjection`). Tests:
+  `tests/inv13-proyeccion-fiscal-dca.test.cjs`.
+- **`LEV12` — alerta proactiva de LTV, no solo simulación bajo demanda**: hasta ahora
+  `lombardMarginCallSimulation()` (APX3) solo se calculaba al pulsar «Simular caída», con
+  `apx3LoanAmount`/`apx3MaintenanceLtvPct` como campos puramente efímeros que no sobrevivían a
+  recargar la página. Se persisten ahora en `scenarioSettings.apx3LombardDeclaration` (mismo criterio
+  que las bandas de volatilidad de LEV5) y nueva función `proactiveLtvAlert()`
+  (`canonical-leverage-simulator.js`) reutiliza tal cual el mismo motor de margin call, con
+  `stressDropPct: 0` (el LTV de HOY), añadiendo una banda de severidad de 3 niveles (mismo criterio
+  que `cashSeverityBand`, E16: medio ≥70% del camino hacia el LTV de mantenimiento, alto ≥85%, crítico
+  ≥100%) sobre cuánto camino queda hasta el margin call real. Se muestra en Ajustes › Deuda y
+  apalancamiento, justo debajo del simulador APX3 (`#lev12ProactiveAlertNote`), sin botón propio —se
+  recalcula cada vez que se abre esa pantalla o cambia la cartera. Tests:
+  `tests/lev12-alerta-proactiva-ltv.test.cjs`.
+- **`DEB11` — amortización parcial: reducir cuota vs. reducir plazo, como decisión explícita**: DEB2
+  (`dimensionOptimalPrepayment`) ya dice CUÁNTO amortizar de verdad (neto de comisión) del excedente
+  que DLX2 destina a una deuda, pero no si ese importe debería reducir cuota o plazo — y APX6
+  (`amortizeReduceQuotaVsTerm`, sesión 141) solo respondía esa pregunta para el importe BRUTO tecleado
+  en AP1, no para el ya dimensionado por DEB2. Nueva función `deb11ReduceQuotaVsTermHtml()` (`app.js`)
+  reutiliza tal cual `amortizeReduceQuotaVsTerm()` sobre el importe neto de DEB2, y añade una
+  preferencia declarada persistida (`state.deb11Preference`, mismo patrón que DEB7) para que la
+  elección quede explícita en vez de implícita — nunca decide por el hogar cuál de las dos tomar, solo
+  refleja la que ya declaró (selector `#deb11PreferenceSelect`, junto al resto de campos de AP1). Se
+  muestra en cada «Comparar» de AP1, justo debajo de la tarjeta de DEB2. Tests:
+  `tests/deb11-cuota-vs-plazo-decision.test.cjs`.
+- **`LEV11` — desapalancamiento preventivo por drawdown, antes del margin call (alcance reducido)**:
+  `deleveragingPriority()` (LEV6, Oleada 3) ya resuelve QUÉ vender primero al desapalancar; faltaba la
+  regla de CUÁNDO y CUÁNTO activar esa priorización de forma preventiva. Nueva función
+  `preventiveDeleveragingAllocation()` (`canonical-leverage-simulator.js`) reutiliza tal cual la caída
+  ponderada ya estimada por LEV5 (`weightedPortfolioStressDropPct`, sobre las bandas de volatilidad
+  declaradas) para decidir el CUÁNDO (si esa caída realista ya dispararía un margin call vía
+  `lombardMarginCallSimulation`) y `deleveragingPriority()` (LEV6) para decidir el QUÉ — esta función
+  solo reparte el importe a cubrir (`forcedLiquidationAmount`) entre las filas ya priorizadas, de la #1
+  en adelante, hasta cubrirlo. Nunca vende nada por su cuenta. Se muestra en Ajustes › Deuda y
+  apalancamiento, justo debajo del colchón de garantía dinámico de LEV5
+  (`#lev11PreventiveDeleveragingNote`). Tests: `tests/lev11-desapalancamiento-preventivo.test.cjs`.
+- **Validación**: `npm run verify` completo en verde (tras `npm install`, que faltaba de nuevo por
+  completo en el contenedor de esta sesión — `node_modules` no existía; una vez instalado, las 6
+  pruebas de `build:site` que habían fallado por la misma causa pasaron sin más cambios). `npm test`
+  **3804/3804** pruebas (32 nuevas repartidas en los 4 archivos de test de arriba, más 5 archivos de
+  test ya existentes con su ventana de extracción de código o su regex literal ajustados porque las
+  cuatro tareas añadieron texto dentro de `handleAp1Compare()`, `saveScenarioSettings()` y el render
+  central de la pantalla Deuda › Apalancamiento que esos tests ya recortaban o casaban de forma exacta
+  — `tests/ap1-app-integracion.test.cjs`, `tests/ap2-app-integracion.test.cjs`,
+  `tests/deb7-preferencia-declarada.test.cjs`, `tests/gob7-modo-sesion-asesor.test.cjs` (mismo patrón
+  de "la ventana crece" ya documentado en sesiones anteriores) y
+  `tests/dlx3-retrospectiva-colchon.test.cjs` (el regex de dos llamadas adyacentes tuvo que incluir las
+  tres llamadas nuevas intercaladas entre medias). `test:a11y` **1222 IDs únicos** (+4 sobre los 1218
+  de la sesión 170: el selector `deb11PreferenceSelect` y los tres contenedores nuevos de INV13/LEV12/
+  LEV11). `test:performance`, `build:site`, `test:privacy` y `test:smoke`, todos sin errores.
+  Verificación manual adicional con Playwright headless (Chromium) contra un servidor estático local:
+  las cuatro funciones nuevas y los cuatro elementos de DOM nuevos (`inv13DcaTaxProjection`,
+  `deb11PreferenceSelect`, `lev12ProactiveAlertNote`, `lev11PreventiveDeleveragingNote`) existen y
+  cargan sin ninguna excepción de página — mismo único ruido de consola ya documentado en sesiones
+  anteriores (bloqueo de red del sandbox al script externo de Supabase, ajeno a los cambios).
+- **Pendiente para la siguiente oleada**: 29 tareas accionables siguen intactas —
+  `PVC12` (consolidación de estacionalidad/deriva, candidata a sesión propia), `PVC16`-`19`, `INV12`,
+  `INV14`, `INV15`, `INV17`, `INV19`, `INV20`, `LEV10`, `LEV16`, `DEB12`, `DEB14`, `DEB16`, `GOB12`-
+  `14`/`16`/`18`, más las cuatro ya resueltas de alcance pero no construidas (`INV16`, `LEV14`, esfuerzo
+  M; `PVC14`, `GOB15`, apuesta L) y las apuestas grandes restantes (`INV11`, `INV18`, `GOB11`, `GOB19`).
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
 
 ## Cierre de sesión — 12 de septiembre de 2026 (170): quinta oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
 

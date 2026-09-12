@@ -169,6 +169,67 @@
     };
   }
 
+  // LEV12 (Oleada 4, Bloque 5): lombardMarginCallSimulation (arriba) solo se calcula bajo demanda,
+  // al pulsar «Simular caída» — el LTV real de la cartera puede acercarse al de mantenimiento sin
+  // que nadie lo note hasta la próxima vez que se abra esa pantalla. Reutiliza tal cual el mismo
+  // motor, con `stressDropPct: 0` (el LTV de HOY, sin ninguna caída hipotética) — sin ninguna
+  // simulación nueva, solo una banda de severidad de 3 niveles (mismo criterio que
+  // `cashSeverityBand`, E16) sobre cuánto camino queda hasta el LTV de mantenimiento que dispararía
+  // la llamada de garantía real.
+  const PROACTIVE_LTV_ALERT_SCHEMA_ID = "finance-canonical-lev12-proactive-ltv-alert/v1";
+  const PROACTIVE_LTV_THRESHOLDS = Object.freeze({ critical: 100, high: 85, medium: 70 });
+
+  function proactiveLtvAlert({ portfolioValue, loanAmount, maintenanceLtvPct } = {}) {
+    const simulation = lombardMarginCallSimulation({ portfolioValue, loanAmount, maintenanceLtvPct, stressDropPct: 0 });
+    if (!simulation.calculable) return { schemaId: PROACTIVE_LTV_ALERT_SCHEMA_ID, calculable: false };
+    const ratioToMaintenancePct = round2((simulation.currentLtvPct / simulation.maintenanceLtvPct) * 100);
+    let severity = null;
+    if (ratioToMaintenancePct >= PROACTIVE_LTV_THRESHOLDS.critical) severity = "critical";
+    else if (ratioToMaintenancePct >= PROACTIVE_LTV_THRESHOLDS.high) severity = "high";
+    else if (ratioToMaintenancePct >= PROACTIVE_LTV_THRESHOLDS.medium) severity = "medium";
+    return {
+      schemaId: PROACTIVE_LTV_ALERT_SCHEMA_ID,
+      calculable: true,
+      currentLtvPct: simulation.currentLtvPct,
+      maintenanceLtvPct: simulation.maintenanceLtvPct,
+      ratioToMaintenancePct,
+      severity,
+    };
+  }
+
+  // LEV11 (Oleada 4, Bloque 5): alcance reducido por el propio backlog — deleveragingPriority()
+  // (LEV6, Oleada 3, canonical-portfolio.js) ya resuelve QUÉ vender primero al desapalancar; lo que
+  // faltaba era CUÁNDO y CUÁNTO activar esa priorización de forma preventiva, antes de un margin
+  // call real. Esta función no decide el "cuándo" (eso lo hace la caída ponderada ya estimada por
+  // LEV5, `weightedPortfolioStressDropPct`, pasada por quien llama junto al margin call ya calculado
+  // con esa caída) ni reconstruye el "qué vender" (las filas ya priorizadas por LEV6, pasadas tal
+  // cual) — solo reparte el importe a cubrir (`forcedLiquidationAmount` del margin call bajo esa
+  // caída estimada) entre esas filas, de la #1 en adelante, hasta cubrirlo. Nunca vende nada sola.
+  const PREVENTIVE_DELEVERAGING_SCHEMA_ID = "finance-canonical-lev11-preventive-deleveraging/v1";
+
+  function preventiveDeleveragingAllocation({ amountToCover, priorityRows } = {}) {
+    const target = Math.max(0, round2(amountToCover));
+    const rows = Array.isArray(priorityRows) ? priorityRows : [];
+    if (!(target > 0) || !rows.length) return { schemaId: PREVENTIVE_DELEVERAGING_SCHEMA_ID, calculable: false };
+    let remaining = target;
+    const allocation = [];
+    rows.forEach((row) => {
+      if (remaining <= 0) return;
+      const take = Math.min(Math.max(0, number(row.currentValue)), remaining);
+      if (take <= 0) return;
+      allocation.push({ id: row.id, label: row.label, priorityRank: row.priorityRank, amount: round2(take) });
+      remaining = round2(remaining - take);
+    });
+    return {
+      schemaId: PREVENTIVE_DELEVERAGING_SCHEMA_ID,
+      calculable: true,
+      amountToCover: target,
+      allocation,
+      covered: round2(target - Math.max(0, remaining)),
+      shortfall: Math.max(0, round2(remaining)),
+    };
+  }
+
   // LEV4 (Oleada 3, Bloque 3): comparador de líneas Lombard entre entidades. APX2 calcula la
   // capacidad de crédito de UNA oferta declarada; este motor registra las condiciones reales de
   // varias ofertas (LTV máximo, tipo, comisión de apertura/cancelación, LTV de mantenimiento) y las
@@ -409,6 +470,11 @@
     lombardCreditCapacity,
     MARGIN_CALL_SCHEMA_ID,
     lombardMarginCallSimulation,
+    PROACTIVE_LTV_ALERT_SCHEMA_ID,
+    PROACTIVE_LTV_THRESHOLDS,
+    proactiveLtvAlert,
+    PREVENTIVE_DELEVERAGING_SCHEMA_ID,
+    preventiveDeleveragingAllocation,
     LOMBARD_COMPARISON_SCHEMA_ID,
     compareLombardOffers,
     WEIGHTED_STRESS_SCHEMA_ID,

@@ -68,10 +68,11 @@ test("DLX1: handleAp1Compare calcula el guardarraíl con el mismo suelo y reserv
 
 test("DLX1: el guardarraíl se antepone a la lectura amortizar/invertir, no la sustituye", () => {
   // DEB15 (Oleada 4, Bloque 6) añadió el guardarraíl a varios meses, entre DLX1 y DLX2; DEB17
-  // (Oleada 4, Bloque 6) añadió el mismo guardarraíl bajo tensión justo después — la ventana crece
-  // de 2200 a 3100 a 3900.
+  // (Oleada 4, Bloque 6) añadió el mismo guardarraíl bajo tensión justo después; DEB11 (Oleada 4,
+  // Bloque 6) añadió la tarjeta de reducir cuota vs. plazo sobre el importe dimensionado — la
+  // ventana crece de 2200 a 3100 a 3900.
   const block = appSource.slice(appSource.indexOf("function handleAp1Compare("), appSource.indexOf("function handleAp1Compare(") + 3900);
-  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(cancellationGuardrail \? deb15CancellationGuardrailHtml\(cancellationGuardrail\) : ""\) \+ \(cancellationStressGuardrail \? deb17CancellationStressHtml\(cancellationStressGuardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb2DimensionHtml\(surplusAllocation\) : ""\) \+ deb10PriorityHint\(debtId\) \+ ap1ResultHtml\(/);
+  assert.match(block, /note\.innerHTML = \(guardrail \? dlx1GuardrailHtml\(guardrail\) : ""\) \+ \(cancellationGuardrail \? deb15CancellationGuardrailHtml\(cancellationGuardrail\) : ""\) \+ \(cancellationStressGuardrail \? deb17CancellationStressHtml\(cancellationStressGuardrail\) : ""\) \+ \(surplusAllocation \? dlx2SurplusAllocationHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb2DimensionHtml\(surplusAllocation\) : ""\) \+ \(surplusAllocation \? deb11ReduceQuotaVsTermHtml\(surplusAllocation\) : ""\) \+ deb10PriorityHint\(debtId\) \+ ap1ResultHtml\(/);
 });
 
 test("DLX1: dlx1GuardrailHtml nunca dice que bloquea nada — solo informa del estado", () => {

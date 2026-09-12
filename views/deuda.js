@@ -1368,6 +1368,7 @@ function renderDeudaApalancamiento() {
   renderAp5Queue();
   syncDeb7PreferenceControl();
   renderDeb7PreferenceReading();
+  syncDeb11PreferenceControl();
   syncLev1PolicyControls();
   renderLev1PolicyStatus();
   renderDeb1VerdictChangeAlert();
@@ -1378,6 +1379,9 @@ function renderDeudaApalancamiento() {
   renderDeb4RefinancingRadar();
   syncLev5VolatilityControls();
   renderLev5DynamicStress();
+  syncApx3LombardDeclarationControls();
+  renderLev12ProactiveMarginCallAlert();
+  renderLev11PreventiveDeleveragingAlert();
   renderDlx3Retrospective();
 }
 
