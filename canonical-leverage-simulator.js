@@ -460,6 +460,80 @@
     return { schemaId: VERDICT_CROSSING_SCHEMA_ID, calculable: true, rateCeilingMultiplier, scenarios };
   }
 
+  // LEV14 (Oleada 4, Bloque 5): apalancamiento parcial escalonado (dollar-cost leverage) — simetría
+  // con INV8 (DCA), aplicada ahora al lado de la deuda. Alcance confirmado por el hogar (sesión
+  // 171): se construye, pero SOLO como simulador informativo — nunca programa ni ejecuta ninguna
+  // toma de deuda real. Mismo guardarraíl AP4 que simulateLeverage(): sin barrera superada, no hay
+  // nada que escalonar. Bajo los mismos tipo y escenarios de rentabilidad declarados para cada
+  // tramo (este motor no inventa que cambien de un tramo a otro), el resultado anual esperado una
+  // vez desplegado el importe entero es, por aritmética, idéntico al de tomarlo de una sola vez
+  // (`lumpSum`, reutilizando tal cual simulateLeverage() sin reimplementar su cálculo) — escalonar
+  // no mejora ni empeora esa cifra esperada bajo los mismos supuestos, solo reparte en el tiempo
+  // CUÁNDO se toma cada tramo y desde cuándo cuenta su coste, reduciendo el riesgo de comprometer
+  // todo el importe en un único mal momento. Ese riesgo de timing no se cuantifica aquí (exigiría
+  // modelar cómo varían tipos o rentabilidad entre tramos, un dato que esta app no tiene) — mismo
+  // criterio de no fabricar precisión que INV16 con la correlación cualitativa.
+  const STAGGERED_LEVERAGE_SCHEMA_ID = "finance-lev14-staggered-leverage/v1";
+  const STAGGERED_LEVERAGE_MIN_TRANCHES = 2;
+
+  function staggeredLeverageDeployment(input = {}) {
+    const barrier = input.barrierResult;
+    if (!barrier || typeof barrier !== "object" || barrier.valid !== true) {
+      return {
+        schemaId: STAGGERED_LEVERAGE_SCHEMA_ID,
+        calculable: false,
+        reason: "barrier-blocked",
+        blockers: Array.isArray(barrier?.blockers) ? barrier.blockers : [],
+      };
+    }
+    const totalDebtAmount = Math.max(0, round2(input.totalDebtAmount));
+    if (!(totalDebtAmount > 0)) {
+      return { schemaId: STAGGERED_LEVERAGE_SCHEMA_ID, calculable: false, reason: "missing-debt-amount", blockers: [] };
+    }
+    const numTranches = Math.round(number(input.numTranches));
+    if (!(numTranches >= STAGGERED_LEVERAGE_MIN_TRANCHES)) {
+      return { schemaId: STAGGERED_LEVERAGE_SCHEMA_ID, calculable: false, reason: "at-least-two-tranches-required", blockers: [] };
+    }
+    const trancheIntervalMonths = Math.max(1, Math.round(number(input.trancheIntervalMonths, 1)));
+    const trancheAmount = round2(totalDebtAmount / numTranches);
+    const tranches = [];
+    let cumulativeDeployed = 0;
+    for (let index = 0; index < numTranches; index += 1) {
+      cumulativeDeployed = round2(cumulativeDeployed + trancheAmount);
+      tranches.push({
+        index: index + 1,
+        monthOffset: index * trancheIntervalMonths,
+        amount: trancheAmount,
+        cumulativeDeployed,
+        cumulativeDeployedPct: Math.round((cumulativeDeployed / totalDebtAmount) * 100),
+      });
+    }
+    const lumpSum = simulateLeverage({
+      barrierResult: barrier,
+      newDebtAmount: totalDebtAmount,
+      newDebtAnnualRatePercent: input.newDebtAnnualRatePercent,
+      expectedReturnScenarios: input.expectedReturnScenarios,
+    });
+    return {
+      schemaId: STAGGERED_LEVERAGE_SCHEMA_ID,
+      calculable: true,
+      totalDebtAmount,
+      numTranches,
+      trancheIntervalMonths,
+      trancheAmount,
+      fullyDeployedAtMonth: (numTranches - 1) * trancheIntervalMonths,
+      tranches,
+      lumpSum,
+      note:
+        "Bajo los mismos tipo y escenarios de rentabilidad declarados para cada tramo, el resultado " +
+        "anual esperado una vez desplegado el importe entero (arriba, comparación de referencia) es " +
+        "el mismo que tomarlo de una sola vez — escalonar no mejora ni empeora esa cifra esperada, " +
+        "solo reparte en el tiempo cuándo te expones a cada tramo, reduciendo el riesgo de " +
+        "comprometer todo el importe en un único mal momento.",
+      warning: PROFESSIONAL_WARNING,
+    };
+  }
+
   return {
     SCHEMA_ID,
     SAVED_SCHEMA_ID,
@@ -485,5 +559,7 @@
     sellVsBorrowComparison,
     VERDICT_CROSSING_SCHEMA_ID,
     leverageVerdictCrossing,
+    STAGGERED_LEVERAGE_SCHEMA_ID,
+    staggeredLeverageDeployment,
   };
 });

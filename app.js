@@ -16250,6 +16250,44 @@ function handleAp3Simulate() {
   note.innerHTML = ap3ResultHtml(result);
 }
 
+// LEV14 (Oleada 4, Bloque 5): apalancamiento parcial escalonado — reutiliza tal cual los mismos
+// campos ya declarados arriba en el simulador AP3 (importe, tipo, escenarios de rentabilidad), sin
+// duplicarlos, añadiendo solo el número de tramos y el intervalo entre ellos. Solo informativo:
+// nunca programa ni ejecuta ninguna toma de deuda real.
+function lev14ResultHtml(result) {
+  if (!result.calculable) {
+    if (result.reason === "barrier-blocked") return "Guardarraíl no superado — resuelve los bloqueos del simulador de apalancamiento (arriba) antes de explorar el escalonado.";
+    if (result.reason === "missing-debt-amount") return "Indica el importe total de deuda nueva a escalonar (arriba, en «Deuda nueva a simular»).";
+    if (result.reason === "at-least-two-tranches-required") return "Indica al menos 2 tramos — con 1 tramo es el mismo simulador de arriba, sin escalonar.";
+    return "Faltan datos para calcular.";
+  }
+  const rows = result.tranches
+    .map((tranche) => `<li>Tramo ${tranche.index} (mes ${tranche.monthOffset}): ${money(tranche.amount, true)} → acumulado ${money(tranche.cumulativeDeployed, true)} (${tranche.cumulativeDeployedPct}% del total).</li>`)
+    .join("");
+  return `<p>${result.numTranches} tramos de ${money(result.trancheAmount, true)} cada uno, cada ${result.trancheIntervalMonths} mes(es) — desplegado por completo en el mes ${result.fullyDeployedAtMonth}.</p><ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">${escapeHtml(result.note)}</p><p class="e19-kpi-note">${escapeHtml(result.warning)}</p>`;
+}
+
+function handleLev14Simulate() {
+  const note = qs("lev14StaggeredNote");
+  if (!note) return;
+  const barrierResult = renderAp3BarrierStatus();
+  const engine = window.FinanceCanonicalLeverageSimulator;
+  if (!engine || !barrierResult) return;
+  const result = engine.staggeredLeverageDeployment({
+    barrierResult,
+    totalDebtAmount: parseAmount(qs("ap3DebtAmount")?.value),
+    numTranches: parseAmount(qs("lev14NumTranches")?.value),
+    trancheIntervalMonths: parseAmount(qs("lev14IntervalMonths")?.value),
+    newDebtAnnualRatePercent: parseAmount(qs("ap3DebtRate")?.value),
+    expectedReturnScenarios: {
+      pessimisticPercent: parseAmount(qs("ap3ReturnPessimistic")?.value),
+      basePercent: parseAmount(qs("ap3ReturnBase")?.value),
+      optimisticPercent: parseAmount(qs("ap3ReturnOptimistic")?.value),
+    },
+  });
+  note.innerHTML = lev14ResultHtml(result);
+}
+
 // LEV9 (Oleada 4, Bloque 2 — bandera del diagnóstico, sin precedente en la Oleada 3): comparador
 // cruzado de instrumentos de apalancamiento para UNA MISMA necesidad de capital. Reutiliza tal cual
 // lombardCreditCapacity (APX2, mismos campos de LTV/tipo ya declarados arriba) y
@@ -18943,6 +18981,7 @@ function saveIv1Position() {
   renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderInv16ConcentrationWarnings();
   renderInv6LatentLossCandidates();
   renderInv7LiquidityLadder();
   renderInv8DcaTracking();
@@ -18991,6 +19030,7 @@ function saveIv1Contribution() {
   renderIv1PositionList();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderInv16ConcentrationWarnings();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19030,6 +19070,7 @@ function saveIv1Disposal() {
   renderIv1PositionList();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderInv16ConcentrationWarnings();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19123,6 +19164,7 @@ function saveIv1Transfer() {
   renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderInv16ConcentrationWarnings();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19140,6 +19182,7 @@ function removeIv1Position(id) {
   renderIv1ScheduledContributionOptions();
   renderIv1PositionSummary();
   renderIv1PositionConcentration();
+  renderInv16ConcentrationWarnings();
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   renderLev5DynamicStress();
@@ -19271,6 +19314,79 @@ const INV1_MISMATCH_NOTES = {
   "growth-heavy-for-defensive-band": "Más de la mitad en clases de crecimiento pese al horizonte corto de la banda de arriba.",
   "defensive-heavy-for-growth-band": "Más de la mitad en clases defensivas pese al horizonte largo — hay margen sin usar.",
 };
+
+// INV16 (Oleada 4, Bloque 4): un id de campo por par de clases de activo (INV1_ASSET_CLASS_LABELS,
+// arriba) — mismo patrón que LEV5_VOLATILITY_FIELDS con las bandas de volatilidad. La clave usa el
+// mismo orden alfabético que assetClassCorrelationPairKey (canonical-portfolio.js) para que ambos
+// lados coincidan sin tener que exportar la función de clave.
+const INV16_CORRELATION_FIELDS = {
+  "alternativo|monetario": "inv16CorrMonetarioAlternativo",
+  "alternativo|renta-fija": "inv16CorrRentaFijaAlternativo",
+  "alternativo|renta-variable": "inv16CorrRentaVariableAlternativo",
+  "monetario|renta-fija": "inv16CorrRentaFijaMonetario",
+  "monetario|renta-variable": "inv16CorrRentaVariableMonetario",
+  "renta-fija|renta-variable": "inv16CorrRentaVariableRentaFija",
+};
+
+function inv16CorrelationDeclarations() {
+  return scenarioSettings.inv16AssetClassCorrelation && typeof scenarioSettings.inv16AssetClassCorrelation === "object"
+    ? scenarioSettings.inv16AssetClassCorrelation
+    : {};
+}
+
+function syncInv16CorrelationControls() {
+  const declared = inv16CorrelationDeclarations();
+  Object.entries(INV16_CORRELATION_FIELDS).forEach(([key, fieldId]) => {
+    const field = qs(fieldId);
+    if (!field || document.activeElement === field) return;
+    field.value = declared[key] || "";
+  });
+}
+
+function saveInv16CorrelationDeclarations() {
+  const declared = {};
+  Object.entries(INV16_CORRELATION_FIELDS).forEach(([key, fieldId]) => {
+    const value = qs(fieldId)?.value || "";
+    if (value) declared[key] = value;
+  });
+  scenarioSettings.inv16AssetClassCorrelation = declared;
+  saveScenarioSettings();
+  renderInv16ConcentrationWarnings();
+}
+
+// INV16: avisa de concentración cuando dos clases de activo con peso real en la cartera están
+// declaradas por el hogar con correlación "alta" entre sí — nunca calcula ni asume nada por su
+// cuenta, y nunca decide ni bloquea: solo hace visible un riesgo que el reparto por tipo de
+// instrumento (POSITION_TYPES) o por clase aislada (INV1, arriba) no muestra por separado.
+function renderInv16ConcentrationWarnings() {
+  const note = qs("inv16CorrelationNote");
+  if (!note) return;
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine) return;
+  const positions = engine.normalizePositions(iv1PositionsList()).positions;
+  const result = engine.qualitativeConcentrationWarnings({ positions, correlationDeclarations: inv16CorrelationDeclarations() });
+  if (!result.calculable) {
+    note.innerHTML = `<p class="e19-kpi-note">Registra al menos una posición con valor y clase de activo declarada (arriba) para ver avisos de concentración.</p>`;
+    return;
+  }
+  if (!result.declaredPairs) {
+    note.innerHTML = `<p class="e19-kpi-note">Declara arriba cuánto crees que se mueven juntas dos clases de activo (al menos un par) para activar avisos de concentración.</p>`;
+    return;
+  }
+  if (!result.warnings.length) {
+    note.innerHTML = `<p class="e19-kpi-note positive">Con lo declarado (${result.declaredPairs} de ${result.totalPairs} pares), ninguna pareja de clases con correlación alta pesa lo bastante junta en tu cartera.</p>`;
+    return;
+  }
+  const rows = result.warnings
+    .map((warning) => {
+      const labelA = INV1_ASSET_CLASS_LABELS[warning.classA] || warning.classA;
+      const labelB = INV1_ASSET_CLASS_LABELS[warning.classB] || warning.classB;
+      const dominantNote = warning.dominant ? ` <span class="warning">— más de la mitad de la cartera junta entre las dos</span>` : "";
+      return `<li><strong>${escapeHtml(labelA)} (${warning.classAPct}%) + ${escapeHtml(labelB)} (${warning.classBPct}%)</strong>, declaradas con correlación alta entre sí → ${warning.combinedPct}% de tu cartera podría moverse junta${dominantNote}.</li>`;
+    })
+    .join("");
+  note.innerHTML = `<ul class="commit-barrier-list">${rows}</ul><p class="e19-kpi-note">Correlación declarada por ti, nunca calculada — sirve para avisar, no decide ni bloquea nada.</p>`;
+}
 
 function renderIvx6GlidePath() {
   const container = qs("ivx6GlidePath");
@@ -28251,6 +28367,7 @@ function renderAjustes() {
   renderPvc6SnapshotOptions();
   renderIv1PositionConcentration();
   renderInv6LatentLossCandidates();
+  renderInv16ConcentrationWarnings();
   renderInv7LiquidityLadder();
   renderInv8DcaTracking();
   renderInv13DcaTaxProjection();
@@ -28258,6 +28375,7 @@ function renderAjustes() {
   renderIv6Rebalance();
   renderLev6DeleveragingPriority();
   syncApx3LombardDeclarationControls();
+  syncInv16CorrelationControls();
   renderLev12ProactiveMarginCallAlert();
   renderLev11PreventiveDeleveragingAlert();
   syncDeb11PreferenceControl();
@@ -38830,6 +38948,7 @@ async function init() {
   qs("irpfEstimateRun")?.addEventListener("click", handleAjustesEstimateIrpf);
   qs("fc5OptimizeRun")?.addEventListener("click", handleFc5Optimize);
   qs("ap3SimulateRun")?.addEventListener("click", handleAp3Simulate);
+  qs("lev14SimulateRun")?.addEventListener("click", handleLev14Simulate);
   qs("apx2LombardRun")?.addEventListener("click", handleApx2LombardSimulate);
   qs("inv10Run")?.addEventListener("click", handleInv10Compare);
   qs("apx3MarginCallRun")?.addEventListener("click", handleApx3MarginCallSimulate);
@@ -38837,6 +38956,9 @@ async function init() {
   qs("apx3MaintenanceLtvPct")?.addEventListener("change", saveApx3LombardDeclaration);
   qs("lev9CompareRun")?.addEventListener("click", handleLev9Compare);
   qs("lev5VolatilitySave")?.addEventListener("click", saveLev5VolatilityBands);
+  Object.values(INV16_CORRELATION_FIELDS).forEach((fieldId) => {
+    qs(fieldId)?.addEventListener("change", saveInv16CorrelationDeclarations);
+  });
   qs("lev3CombinedStressRun")?.addEventListener("click", handleLev3CombinedStress);
   qs("pvx5MonthSelect")?.addEventListener("change", renderPvx5CausalTree);
   qs("ap3ScenarioSave")?.addEventListener("click", saveAp3Scenario);
