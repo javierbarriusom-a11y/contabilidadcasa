@@ -175,12 +175,19 @@
   const CP1_SEVERITY_RANK = { critical: 0, high: 1, medium: 2 };
   const CP1_ALERT_LABELS = { cash: "Revisar la caja prevista", variation: "Revisar la variación prevista", debt: "Revisar el ratio de deuda" };
 
+  // GOB17: las tres alertas (cash/variation/debt) salen todas de la misma función real —
+  // `predictiveAlerts()` en canonical-e16-monitoring.js — así que se declara una sola vez aquí, no
+  // por alerta, y se propaga como `source`/`method` real al catálogo de canonical-e9-assistant.js
+  // en vez de dejar esos campos vacíos como antes de esta tarea.
+  const CP1_SOURCE = "canonical-e16-monitoring.js";
+  const CP1_METHOD = "predictiveAlerts()";
+
   function cp1NextBestAction(model) {
     const assistantApi = root.FinanceCanonicalE9Assistant;
     const citationApi = root.FinanceCanonicalRecommendationCitation;
     const alerts = model?.alerts?.alerts || [];
     if (!assistantApi || !citationApi || !alerts.length) return null;
-    const sources = assistantApi.sourceCatalog({ alerts: alerts.map((item) => ({ id: item.id, label: item.message })) });
+    const sources = assistantApi.sourceCatalog({ alerts: alerts.map((item) => ({ id: item.id, label: item.message, source: CP1_SOURCE, method: CP1_METHOD })) });
     const availableSources = new Set(sources.map((item) => item.id));
     const candidates = [...alerts]
       .sort((a, b) => (CP1_SEVERITY_RANK[a.severity] ?? 3) - (CP1_SEVERITY_RANK[b.severity] ?? 3))
@@ -189,6 +196,7 @@
         message: alert.message,
         severity: alert.severity,
         citations: [`alert:${alert.id}`],
+        citedSource: `${CP1_SOURCE} · ${CP1_METHOD}`,
         evidence: Array.isArray(alert.evidence) ? alert.evidence : [],
         confidence: alert.confidence || "",
       }));
@@ -219,7 +227,10 @@
   function rgx4TwoLevelExplanationHtml(action) {
     const evidenceItems = (action.evidence || []).map((item) => `<li>${esc(item)}</li>`).join("");
     const confidenceItem = action.confidence ? `<li>Confianza del dato: ${esc(action.confidence)}</li>` : "";
-    return `<details class="p2-details"><summary>Ver por qué</summary><ul class="p2-help">${evidenceItems}${confidenceItem}<li>Cita: ${esc(action.citations.join(", "))}</li></ul></details>`;
+    // GOB17: además del id interno de la cita, se muestra la función real que la sustenta cuando
+    // quien la construyó la declaró (citedSource) — nunca solo el id de categoría.
+    const sourceItem = action.citedSource ? `<li>Fuente real: ${esc(action.citedSource)}</li>` : "";
+    return `<details class="p2-details"><summary>Ver por qué</summary><ul class="p2-help">${evidenceItems}${confidenceItem}${sourceItem}<li>Cita: ${esc(action.citations.join(", "))}</li></ul></details>`;
   }
 
   function cp1NextBestActionHtml(action, trackedEntry) {
@@ -275,13 +286,20 @@
   // fuentes de canonical-e9-assistant.js (sourceCatalog) y verificada por CP3 antes de mostrarse —
   // mismo patrón que CP1. Sin caja por encima del suelo del colchón, o si la cita no pasara la
   // validación, no hay señal que mostrar — nunca una cifra inventada.
+  // GOB17: `cp2IdleCashSummary()` (app.js) calcula la caja parada combinando el suelo del colchón
+  // (`cushionFloor()`, canonical-cushion.js) y el coste de oportunidad real de la cartera
+  // (`opportunityCost()`, canonical-portfolio.js) — se declara aquí para que el catálogo de
+  // canonical-e9-assistant.js cite esas dos funciones reales, no solo el id `metric:idle-cash`.
+  const CP2_SOURCE = "canonical-cushion.js + canonical-portfolio.js";
+  const CP2_METHOD = "cushionFloor() / opportunityCost() vía cp2IdleCashSummary (app.js)";
+
   function cp2IdleCashSignal() {
     const assistantApi = root.FinanceCanonicalE9Assistant;
     const citationApi = root.FinanceCanonicalRecommendationCitation;
     const idle = bridge()?.idleCash?.();
     if (!assistantApi || !citationApi || !idle || !(idle.idleAmount > 0)) return null;
     const sources = assistantApi.sourceCatalog({
-      metrics: { idleCash: { id: "idle-cash", label: "Líquido por encima del suelo del colchón", value: idle.idleAmount } },
+      metrics: { idleCash: { id: "idle-cash", label: "Líquido por encima del suelo del colchón", value: idle.idleAmount, source: CP2_SOURCE, method: CP2_METHOD } },
     });
     const availableSources = new Set(sources.map((item) => item.id));
     const candidate = {
@@ -290,6 +308,7 @@
       floor: idle.floor,
       opportunityCost: idle.opportunityCost,
       citations: ["metric:idle-cash"],
+      citedSource: `${CP2_SOURCE} · ${CP2_METHOD}`,
     };
     const validated = citationApi.validateRecommendation(candidate, { availableSources });
     return validated.valid ? candidate : null;
@@ -300,7 +319,10 @@
     const gainLine = signal.opportunityCost && signal.opportunityCost.calculable
       ? ` Si se hubiera invertido a la rentabilidad real de tu cartera, habría generado ${euro(signal.opportunityCost.gain)} en 12 meses.`
       : "";
-    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(signal.label)}</strong></div><p>${euro(signal.idleAmount)} por encima del suelo del colchón (${euro(signal.floor)}).${gainLine} Compara amortizar deuda frente a invertir en Ajustes (AP1).</p><p class="p2-help">Cita: ${esc(signal.citations.join(", "))}.</p></article>`;
+    // GOB17: la cita interna (id de categoría) va acompañada de la función real cuando existe, en
+    // vez de mostrar solo `metric:idle-cash` sin decir qué archivo/función lo sustenta.
+    const sourceLine = signal.citedSource ? ` · Fuente real: ${esc(signal.citedSource)}` : "";
+    return `<article class="p2-item"><div class="p2-item-head"><strong>${esc(signal.label)}</strong></div><p>${euro(signal.idleAmount)} por encima del suelo del colchón (${euro(signal.floor)}).${gainLine} Compara amortizar deuda frente a invertir en Ajustes (AP1).</p><p class="p2-help">Cita: ${esc(signal.citations.join(", "))}${sourceLine}.</p></article>`;
   }
 
   // TT2: escalera de vencimientos para el exceso sobre el colchón. Depende de CP2 (idleCash, ya

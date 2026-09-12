@@ -51,6 +51,47 @@ de aquí en la siguiente regeneración, no al momento.
   abrir un proveedor nuevo solo para esto. Cualquier tarea futura que toque `private-backend.js` o
   `A5_ACTIVATION.md` debe asumir Anthropic como proveedor por defecto.
 
+## Cierre de sesión — 12 de septiembre de 2026 (167): segunda oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+
+El usuario pidió seguir con la siguiente fase tras la primera oleada (sesión 166b). Alcance elegido:
+`DEB10` y `GOB17` — las dos tareas de tamaño moderado cuyo alcance ya había confirmado el Bloque 1 de
+verificaciones — dejando `PVC12` (consolidación de mayor calado, dos fuentes de datos distintas) para
+una sesión propia dedicada, tal y como recomendaba el propio backlog en su §10.
+
+- **`DEB10` — sugerir en el propio comparador AP1 qué deuda amortizar primero**: nueva función
+  `deb10PriorityHint()` en `app.js`, que reutiliza tal cual `fiscalAdjustedDebtPriority()` (DEB5,
+  `canonical-debt-contracts.js`) sobre `debtContractSourceRows()` — sin motor propio. Compara la
+  deuda #1 por TAE efectivo tras deducción fiscal contra la que el hogar ya tiene seleccionada en
+  `#ap1DebtSelect`: si coincide, lo confirma; si no, avisa de cuál sería la de mayor coste real sin
+  preseleccionar nada — la elección final sigue siendo del hogar, mismo criterio que el propio aviso
+  de reordenación de DEB5. Se muestra en cada «Comparar» de AP1, junto al resto de piezas de DLX1/
+  DLX2/DEB2. Tests: `tests/deb10-prioridad-fiscal-sugerida-ap1.test.cjs`.
+- **`GOB17` — el asistente cita la función `canonical-*.js` real, no solo un id de categoría**:
+  `sourceCatalog()` (`canonical-e9-assistant.js`) antes solo propagaba `source`/`method` en métricas;
+  ahora también en alertas y decisiones, sin tocar su contrato de validación (campos añadidos,
+  ninguno retirado). CP1 (`cp1NextBestAction`, `p2-ui.js`) declara su fuente real una sola vez
+  (`canonical-e16-monitoring.js` · `predictiveAlerts()`, la única función que genera sus tres tipos de
+  alerta) y CP2 (`cp2IdleCashSignal`) declara la suya (`canonical-cushion.js` + `canonical-portfolio.js`
+  · `cushionFloor()`/`opportunityCost()` vía `cp2IdleCashSummary` en `app.js`). Ambas citas reales se
+  muestran al hogar junto al id interno (`rgx4TwoLevelExplanationHtml` y `cp2IdleCashHtml`), nunca en
+  su lugar — compatibilidad hacia atrás intacta cuando no hay `citedSource` declarado. Tests:
+  `tests/gob17-cita-funcion-real.test.cjs`, más ajustes de compatibilidad en los sandboxes ya
+  existentes de `tests/cp1-proxima-mejor-accion.test.cjs` y `tests/cp2-dinero-parado.test.cjs`.
+- **Validación**: `npm run verify` completo en verde. `npm test` **3705/3705** pruebas (16 nuevas:
+  7 en `tests/deb10-prioridad-fiscal-sugerida-ap1.test.cjs`, 9 en
+  `tests/gob17-cita-funcion-real.test.cjs`; más 1 wiring existente actualizado en
+  `tests/ap1-app-integracion.test.cjs` por la nueva llamada a `deb10PriorityHint` dentro de
+  `handleAp1Compare`). `test:a11y`, `test:performance`, `build:site`, `test:privacy` y `test:smoke`,
+  todos sin errores.
+- **Pendiente para la siguiente oleada**: `PVC12` (consolidación de estacionalidad/deriva, candidata a
+  sesión propia) y el resto de los Bloques 3-7 de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
+  (`PVC11`/`PVC13`-`19`, `INV11`-`20`, `LEV10`-`16`, `DEB11`-`17`, `GOB11`-`19`), 41 tareas accionables
+  intactas.
+- **Publicado**: la rama de trabajo (`claude/vibrant-meitner-qc99i8`) se reinició desde `main` porque
+  el PR de la sesión anterior (#274) ya estaba fusionado; commit y push del trabajo de esta sesión, PR
+  en borrador abierto y fusión a `main` en cuanto el CI esté en verde, por la autorización de
+  publicación sin preguntar en cada tarea ya vigente (`CLAUDE.md`).
+
 ## Cierre de sesión — 11 de septiembre de 2026 (166b): primera oleada de `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`
 
 El usuario pidió abordar la primera oleada de desarrollos del backlog recién nacido en la sesión 166,
