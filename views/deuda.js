@@ -1383,6 +1383,7 @@ function renderDeudaApalancamiento() {
   renderLev12ProactiveMarginCallAlert();
   renderLev11PreventiveDeleveragingAlert();
   renderDlx3Retrospective();
+  renderLev10DebtCostCurve();
 }
 
 // Vacío = «sin corregir», nunca cero ni cadena vacía forzada: borra el override y vuelve al valor

@@ -1986,6 +1986,44 @@
               <div class="e19-kpi-note" id="lev14StaggeredNote"></div>
             </article>
 
+            <!-- LEV10 (Oleada 4, Bloque 5, AP-2): curva de coste marginal de deuda nueva por tramo —
+                 muchas ofertas reales de banco son progresivas (hasta cierto importe a un tipo, el
+                 resto a otro), pero AP3 arriba solo admite un tipo único para todo el importe.
+                 Reutiliza el importe ya declarado arriba (ap3DebtAmount), sin duplicarlo. Tramos
+                 declarados por el hogar según ofertas reales de su banco, nunca una curva de mercado
+                 inventada; se actualiza solo, sin botón, en cuanto cambia un tramo o el importe. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Curva de coste marginal de deuda por tramo (LEV10)</h3>
+              <p class="e19-kpi-note">Si tu banco cobra un tipo distinto según cuánto pidas prestado, declara aquí sus tramos reales para ver el coste combinado y el tipo marginal — usa el importe ya declarado arriba en «Deuda nueva a simular».</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tramo 1: hasta (€)</span>
+                  <input id="lev10Tier1Limit" type="number" min="0" step="100" inputmode="decimal" placeholder="Ej. 20000" />
+                </label>
+                <label class="month-picker">
+                  <span>Tramo 1: tipo (% anual)</span>
+                  <input id="lev10Tier1RatePct" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 3" />
+                </label>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tramo 2: hasta (€, opcional)</span>
+                  <input id="lev10Tier2Limit" type="number" min="0" step="100" inputmode="decimal" placeholder="Sin declarar" />
+                </label>
+                <label class="month-picker">
+                  <span>Tramo 2: tipo (% anual, opcional)</span>
+                  <input id="lev10Tier2RatePct" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Sin declarar" />
+                </label>
+              </div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Resto (sin límite): tipo (% anual)</span>
+                  <input id="lev10Tier3RatePct" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ej. 4.5" />
+                </label>
+              </div>
+              <div class="e19-kpi-note" id="lev10CostCurveNote"></div>
+            </article>
+
             <!-- APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (simulador de
                  ejecución de garantía, todavía sin construir). LTV y tipo los declara el hogar,
                  nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo

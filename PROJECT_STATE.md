@@ -70,6 +70,69 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 12 de septiembre de 2026 (180): `LEV10`
+
+El usuario pidió seguir con `LEV10` (Bloque 5, apalancamiento), la primera tarea del resto de los
+Bloques 5-7 tras cerrar `GOB11`.
+
+**Diagnóstico previo**: el backlog describía `LEV10` como una curva de coste marginal de deuda por
+tramo, con la nota "tramos declarados por el hogar según ofertas reales de su banco, no una curva de
+mercado inventada". Revisando el código, `simulateLeverage()` (AP3, `canonical-leverage-simulator.js`)
+solo admite un tipo único (`ap3DebtRate`/`newDebtAnnualRatePercent`) aplicado a todo el importe, como
+si el banco cobrara siempre el mismo tipo diera igual cuánto se pida — hueco real, muchas ofertas de
+banco son progresivas por tramo (p. ej. hasta 20.000€ al 3%, el resto al 4,5%). Buscando un primitivo
+genérico ya construido para "aplicar un tipo distinto a cada porción de un importe" (para no inventar
+una escala nueva), apareció `progressiveTax(taxableBase, brackets)` en `canonical-irpf-estimator.js`
+(A15-2) — el mismo motor de tramos progresivos que ya usan `optimizePartialSale` (FC5/INV18) y
+`marginalTaxOnAdditionalIncome` (FCX1/INV18), con `brackets` como `{limit, rate}` — exactamente la
+forma que necesita una curva de coste de deuda por tramo. Decisión de diseño explícita: no se
+reutiliza `validateBracketScale()` del mismo motor, porque exige una fuente pública citable
+(autoridad, URL, fecha de comprobación) pensada para tablas fiscales oficiales — una oferta de banco
+es un dato declarado por el hogar, no una fuente pública, así que `LEV10` valida solo que los tramos
+sean coherentes (límites crecientes, el último abierto, tipos entre 0-100%) sin exigir esa cita.
+
+**Construido**:
+- `LEV10` — nueva `lev10DebtMarginalCostCurve()` (`app.js`) reutiliza `progressiveTax()` (A15-2) para
+  sumar el coste anual por tramo dado un importe, y calcula además el tipo medio (blended) y el tipo
+  marginal (el tipo del tramo en el que cae el último euro pedido). Reutiliza el importe ya declarado
+  arriba en el simulador de apalancamiento (`ap3DebtAmount`, AP3), sin duplicarlo — mismo criterio que
+  ya aplicó `LEV14`. Tres campos nuevos declarables (tramo 1: hasta €/tipo; tramo 2 opcional: hasta
+  €/tipo; tramo 3, resto sin límite: tipo), persistidos cada uno por separado (mismo criterio que
+  `PVC14`/`GOB11`). Se muestra justo debajo del apalancamiento escalonado (`LEV14`) en Deuda →
+  Apalancamiento, y se actualiza solo (sin botón) en cuanto cambia un tramo o el importe de AP3 —
+  nunca rellena el tipo de AP3 por su cuenta, solo informa. Solo calculable con al menos dos tramos
+  declarados (con uno solo sería el mismo simulador de tipo único de arriba).
+  **Bug real detectado y corregido antes de publicar**: la primera versión repintaba los campos desde
+  `renderAjustes()` (`app.js`), asumiendo que esa función es el lote de renderizado universal de la
+  app — igual que `GOB11`/`LPX1`, que sí viven ahí. Pero "Deuda y apalancamiento" es una vista cargada
+  de forma perezosa (`views/deuda.js`, `OPT-24`) con su propio punto de entrada,
+  `renderDeudaApalancamiento()`, que NO pasa por `renderAjustes()`: los tramos se guardaban
+  correctamente (confirmado leyendo `localStorage` con Playwright) pero no se repintaban en los
+  campos al recargar la página o al volver a la vista — se detectó en la validación manual de esta
+  misma tarea, nunca habría aparecido en `npm test` (que no ejecuta un navegador real). Corregido
+  moviendo la llamada a `renderLev10DebtCostCurve()` a `renderDeudaApalancamiento()`. Tests:
+  `tests/lev10-curva-coste-marginal-deuda.test.cjs` (19 tests, incluida la prueba de regresión de
+  esta llamada de repintado en la vista correcta).
+- **Validación**: `npm run verify` completo en verde. `npm test` **4042/4042** pruebas (19 nuevas de
+  `LEV10`). `test:a11y` **1273 IDs únicos** (antes 1267, sesión 179; +6 por los cinco campos
+  declarables más la nota de resultado). `test:performance`: diff 10.000 filas 40,9 ms, forecast y
+  escenarios 194,1 ms, recursos 2235 KB, presupuestos a escala (1000 categorías × 10 años) — análisis
+  148,5 ms, alertas 95,2 ms, forecast 173,7 ms, histórico de presupuestos 32,1 ms, índice de
+  transacciones por categoría 126,1 ms. `build:site`, `test:privacy` y `test:smoke` sin errores.
+  Validación manual adicional en navegador real con Playwright: (1) con dos tramos declarados
+  (hasta 20.000€ al 3%, resto al 4,5%) y 30.000€ en «Deuda nueva a simular» (AP3), la nota muestra
+  coste anual combinado 1.050€, tipo medio 3,5% y tipo marginal 4,5%, con el desglose por tramo
+  correcto; (2) declarar los tramos uno a uno, tabulando entre ellos, y recargar la página — aquí es
+  donde se detectó el bug de repintado descrito arriba, antes de corregirlo los campos se vaciaban en
+  el DOM aunque `localStorage` sí conservaba el dato; después de corregirlo, sobreviven correctamente;
+  sin errores de consola relacionados con el código nuevo en ningún caso.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 11 tareas accionables — las dos apuestas grandes
+  restantes (`GOB15`, `GOB19`, cada una reservada a su propia sesión) y el resto de los Bloques 5-7:
+  `LEV16` (Bloque 5), `DEB12`/`14`/`16` (Bloque 6), `GOB12`-`14`/`16`/`18` (Bloque 7).
+
 ## Cierre de sesión — 12 de septiembre de 2026 (179): `GOB11`
 
 El usuario pidió seguir con la segunda de las tres apuestas grandes restantes de la oleada, `GOB11`

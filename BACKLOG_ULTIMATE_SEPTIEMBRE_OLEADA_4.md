@@ -7,16 +7,16 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 179, 12 de septiembre de 2026): `GOB11` construida — segunda de las tres apuestas
-grandes restantes.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo
-(`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`,
-`DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17`
-(sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada
-(sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174);
-`INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada
-(sesión 176); `INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión)
-quedó completo; `PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión
-viva) queda también completo; `GOB11` en sesión propia dedicada (sesión 179). Quedan 12 tareas
+**Estado (sesión 180, 12 de septiembre de 2026): `LEV10` construida — arranca el Bloque 5.**
+Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`,
+sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y
+`LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170);
+`INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada (sesión 172);
+`INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174); `INV12`, `INV14`,
+`INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176);
+`INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión) quedó completo;
+`PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión viva) queda también
+completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10` (sesión 180). Quedan 11 tareas
 accionables: dos apuestas grandes restantes (`GOB15`, `GOB19`, reservadas a sesión propia cada una)
 y el resto de los Bloques 5-7.
 
@@ -151,7 +151,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
-| 22 | ⏳ `LEV10` | Curva de coste marginal de deuda por tramo | `AP-2` | M | Medio | Tramos declarados por el hogar según ofertas reales de su banco — no una curva de mercado inventada. |
+| 22 | ✅ `LEV10` | Curva de coste marginal de deuda por tramo | `AP-2` | M | Medio | **Hecho (sesión 180).** `lev10DebtMarginalCostCurve()` (`app.js`) reutiliza tal cual `progressiveTax()` (`canonical-irpf-estimator.js`, A15-2) para sumar el coste por tramo — el mismo primitivo genérico de "aplicar un tipo distinto a cada porción de un importe" que ya usa el motor fiscal, sin escala nueva que inventar. No reutiliza `validateBracketScale()` del mismo motor (exige fuente pública citable, pensada para tablas fiscales oficiales, no para una oferta de banco declarada). Reutiliza el importe ya declarado en el simulador AP3 (`ap3DebtAmount`), sin duplicarlo. Muestra tipo medio, tipo marginal y desglose por tramo; nunca rellena el tipo de AP3 por su cuenta. |
 | 23 | ✅ `LEV11` | Política de desapalancamiento preventivo por drawdown, antes del margin call | `AP-3` | M | Alto | **Hecho (sesión 171).** Alcance reducido confirmado por `VER`-style: `deleveragingPriority()` (LEV6, Oleada 3) ya resuelve *qué vender primero*. Nueva `preventiveDeleveragingAllocation()` (`canonical-leverage-simulator.js`) reutiliza tal cual la caída ponderada ya estimada por LEV5 (`weightedPortfolioStressDropPct`) para decidir el *cuándo* (si esa caída realista ya dispararía un margin call) y `deleveragingPriority()` para el *qué* — solo reparte el importe a cubrir entre las filas ya priorizadas. Nunca vende nada por su cuenta. Tests: `tests/lev11-desapalancamiento-preventivo.test.cjs`. |
 | 24 | ✅ `LEV12` | Alertas proactivas de LTV, no solo simulación bajo demanda | `AP-4` | M | Alto | **Hecho (sesión 171).** Nueva `proactiveLtvAlert()` (`canonical-leverage-simulator.js`) reutiliza tal cual `lombardMarginCallSimulation` (con `stressDropPct: 0`, el LTV de HOY) y añade una banda de severidad de 3 niveles (mismo criterio que `cashSeverityBand`, E16) sobre cuánto camino queda hasta el LTV de mantenimiento. El importe pedido y el LTV de mantenimiento, hasta ahora campos efímeros, se persisten (`scenarioSettings.apx3LombardDeclaration`) para que la alerta no necesite que el hogar vuelva a teclearlos cada vez. Tests: `tests/lev12-alerta-proactiva-ltv.test.cjs`. |
 | 25 | ✅ `LEV13` | Sensibilidad del veredicto de apalancarse: punto de cruce exacto por bisección | `AP-5` | M | Alto | **Hecho (sesión 170).** `leverageVerdictCrossing()` (`canonical-leverage-simulator.js`) aplica la misma bisección exacta de `inverseScenario` (forecast general) sobre `simulateLeverage` — reimplementada localmente porque `findFactorCrossing` no estaba exportada del otro módulo — para decir cuánto tendría que caer la rentabilidad esperada, o cuánto tendría que subir el tipo de la deuda nueva, antes de que cada escenario cambie de signo. Un escenario ya desfavorable hoy no tiene punto de cruce hacia delante (mismo criterio que `alreadyBroken`). Se muestra en el simulador AP3 (`lev13VerdictCrossingHtml`). Tests: `tests/lev13-sensibilidad-cruce-apalancamiento.test.cjs`. |
