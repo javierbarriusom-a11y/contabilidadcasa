@@ -68,7 +68,65 @@ de aquí en la siguiente regeneración, no al momento.
   ejecuta nada; `GOB15` (simulador de vender la vivienda habitual) se confirma para una sesión futura
   dedicada. Detalle completo de cada decisión en la nota de la fila correspondiente de
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
-  `PVC14` y `GOB15` siguen siendo apuestas L, reservadas a sesión propia.
+  `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
+
+## Cierre de sesión — 12 de septiembre de 2026 (178): `PVC14`
+
+El usuario pidió seguir con la tercera de las seis apuestas grandes de la oleada, `PVC14`. El
+diagnóstico previo cambió el planteamiento real de forma importante respecto al enunciado del
+backlog ("ensemble ponderado y visible entre histórico, manual y Monte Carlo"): revisando el código,
+(1) el "manual" no existía como dato declarado — las tres llamadas a `prudentSimulation()`/
+`monteCarloSimulation()` en `app.js` pasaban literalmente `manualRange: { min: -500, base: 0, max:
+500 }` hardcodeado, un número inventado que nadie del hogar había escrito nunca; (2) Monte Carlo no
+es un tercer método independiente que se pueda pesar junto a los otros dos: ya se construye ENCIMA
+del triángulo que decide `prudentSimulation()` (histórico o manual), así que pedirle un peso propio
+mezclaría una entrada con su propia salida. Plan (manual real declarado + `ensembleForecastRange()`
+mezclando histórico y manual con peso ajustable, sin tocar Monte Carlo ni `confidenceBands()`/PV4)
+presentado y confirmado por el usuario antes de tocar código.
+
+**Construido**:
+- `PVC14` — nueva `ensembleForecastRange()` (`canonical-e13-scenarios.js`) mezcla el triángulo
+  histórico (P10/P50/P90 que ya calculaba `prudentSimulation()` sobre el histórico conciliado) y un
+  triángulo manual DECLARADO por el hogar, con un peso ajustable (0-100%, decisión ya confirmada en
+  sesión 171: "pesos ajustables, no fijos"). Sin uno de los dos triángulos, se usa el otro al 100%
+  (mismo comportamiento de fallback de siempre); sin ninguno, `calculable: false` — nunca un
+  triángulo inventado (antes de esta tarea, sin manual declarado y sin histórico, el resultado era
+  en silencio un triángulo de ceros, indistinguible de "sin desviación real"; ahora se declara
+  explícitamente que no hay datos). `prudentSimulation()` pasa a construirse sobre este ensemble;
+  `monteCarloSimulation()` no se toca — hereda el triángulo ya mezclado sin cambio de código.
+  Nuevos campos declarables en el Laboratorio de escenarios (`pvc14ManualP10`/`Base`/`P90`,
+  `pvc14HistoricalWeightPct`), persistidos cada uno por separado (nunca agrupados: agruparlos
+  produjo un bug real detectado en la validación manual — rellenar un campo y tabular al siguiente
+  borraba el primero porque los otros dos seguían vacíos en ese instante; corregido antes de
+  publicar). La tarjeta "Simulación prudente" muestra siempre los dos triángulos de origen por
+  separado además del resultado mezclado, nunca solo la cifra "mejorada" — exigencia explícita del
+  propio backlog (§11). Se sustituyeron las 4 llamadas hardcodeadas (`LEV7`, `PVC5`, y las dos de
+  Simulación prudente/Monte Carlo) por el manual real. Alcance confirmado con el usuario: no se toca
+  `confidenceBands()`/PV4 (banda mes a mes del gráfico de previsión) — mide otra cosa sobre otro
+  dato, mismo criterio que `PVC12` aplicó a estacionalidad vs. deriva. Tests:
+  `tests/pvc14-ensemble-historico-manual.test.cjs` (21 tests, incluida la prueba de regresión del
+  bug de guardado por campo).
+- **Validación**: `npm run verify` completo en verde. `npm test` **4000/4000** pruebas (21 nuevas de
+  `PVC14`). `test:a11y` **1258 IDs únicos** (antes 1253, sesión 177; +5 por los campos nuevos).
+  `test:performance`: diff 10.000 filas 38,9 ms, forecast y escenarios 184,3 ms, recursos 2216 KB,
+  presupuestos a escala (1000 categorías × 10 años) — análisis 147,0 ms, alertas 94,3 ms, forecast
+  173,4 ms, histórico de presupuestos 35,2 ms, índice de transacciones por categoría 120,1 ms.
+  `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual adicional en navegador
+  real con Playwright: (1) declarar los tres campos manuales tabulando uno a uno persiste
+  correctamente los tres tras recargar la página (el bug de guardado agrupado se detectó y corrigió
+  aquí, antes de esta comprobación); (2) con histórico conciliado inyectado y manual declarado, la
+  tarjeta muestra los dos triángulos por separado y la mezcla ponderada correcta; sin errores de
+  consola en ningún caso. También se detectó y corrigió en esta validación un `TypeError` real en un
+  consumidor ya existente (`pvc2CategoryConfidenceShare`, PVC2) que asumía que
+  `prudent.percentiles` nunca era `null` — ahora sí puede serlo cuando no hay histórico ni manual
+  declarado, y se guardó con el guardarraíl correspondiente.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 13 tareas accionables — las tres apuestas grandes
+  restantes (`GOB11`, `GOB15`, `GOB19`, cada una reservada a su propia sesión) y el resto de los
+  Bloques 5-7: `LEV10`/`16` (Bloque 5), `DEB12`/`14`/`16` (Bloque 6), `GOB12`-`14`/`16`/`18`
+  (Bloque 7).
 
 ## Cierre de sesión — 12 de septiembre de 2026 (177): `INV18`
 

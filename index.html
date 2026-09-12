@@ -1028,6 +1028,36 @@
                    inciertos — la fila permanente ya vive arriba, en la comparación principal
                    (e13ScenarioComparison); aquí solo el desglose por evento. -->
               <div id="pvc10WeightedDetail"></div>
+              <!-- PVC14 (Oleada 4, apuesta grande): hasta ahora, sin histórico suficiente (menos de
+                   6 meses conciliados), "Simulación prudente" y el Monte Carlo de abajo caían en
+                   silencio a un rango fijo (-500/0/500) que nadie había declarado — justo el tipo
+                   de cifra inventada que esta app evita en todos los demás sitios. Aquí se declara
+                   de verdad la propia estimación del hogar, y el peso con el que se mezcla con el
+                   histórico (0-100%, ajustable por el hogar — nunca fijo) se ve siempre junto a los
+                   dos triángulos de origen, nunca oculto tras una única cifra "mejorada". -->
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title">Tu propia estimación (para mezclar con el histórico)</h3>
+                <p class="e19-kpi-note">Declara tu propio rango de desviación mensual esperada (P10 pesimista, P50 base, P90 optimista, en €) — se usa solo cuando no hay histórico suficiente, o mezclado con él según el peso que declares abajo. Sin declarar, se sigue usando solo el histórico (o "no calculable" si tampoco hay histórico).</p>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker">
+                    <span>P10 pesimista (€/mes)</span>
+                    <input id="pvc14ManualP10" type="number" step="1" inputmode="decimal" placeholder="Sin declarar" />
+                  </label>
+                  <label class="month-picker">
+                    <span>P50 base (€/mes)</span>
+                    <input id="pvc14ManualBase" type="number" step="1" inputmode="decimal" placeholder="Sin declarar" />
+                  </label>
+                  <label class="month-picker">
+                    <span>P90 optimista (€/mes)</span>
+                    <input id="pvc14ManualP90" type="number" step="1" inputmode="decimal" placeholder="Sin declarar" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Peso del histórico en la mezcla (%)</span>
+                    <input id="pvc14HistoricalWeightPct" type="number" min="0" max="100" step="1" placeholder="100" />
+                  </label>
+                </div>
+                <p class="e19-kpi-note" id="pvc14ManualNote"></p>
+              </article>
               <div class="e13-advanced-analysis" id="e13AdvancedAnalysis"></div>
               <!-- PVC5 (Oleada 3, Bloque 4): recalibración trimestral del triángulo Monte Carlo — el
                    hogar compara todo el histórico frente a la ventana de 8 trimestres y confirma

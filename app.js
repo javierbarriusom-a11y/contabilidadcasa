@@ -16853,7 +16853,7 @@ function renderLev7TailRisk() {
     return;
   }
   const history = reconciledMonthlyNetHistory();
-  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: pvc14ManualRange(), historicalWeightPct: pvc14HistoricalWeightPct(), generatedAt: forecast.generatedAt });
   const result = leverageEngine.tailRiskAgainstMarginCall({ marginCallResult, minCheckingPercentiles: monteCarlo.minCheckingPercentiles });
   if (!result.calculable) {
     note.innerHTML = `<p class="e19-kpi-note">Simula primero la caída de arriba (margin call) con importe pedido, LTV de mantenimiento y caída declarados.</p>`;
@@ -21609,6 +21609,29 @@ function esx4SensitivityGridHtml(grid) {
   return `<div class="table-wrap"><table class="e19-table esx4-sensitivity-grid"><thead>${header}</thead><tbody>${rows}</tbody></table></div><p class="e19-kpi-note">Caja mínima proyectada del horizonte completo bajo cada combinación de ingresos y gastos a la vez (caso base ${money(grid.baselineMinChecking, true)}).</p>`;
 }
 
+// PVC14: etiquetas legibles de la fuente del triángulo P10/P50/P90 — "ensemble" y "none" son
+// valores nuevos de esta tarea; los otros dos ya existían pero se mostraban como cadena técnica sin
+// traducir (mismo sitio que se toca para añadir los nuevos, así que se corrige de paso).
+const PVC14_SOURCE_LABELS = {
+  "reconciled-history": "Solo histórico", "manual-range": "Solo manual", ensemble: "Ensemble histórico + manual", none: "Sin datos",
+};
+
+// PVC14 (Oleada 4, apuesta grande): la tarjeta de Simulación prudente ahora muestra SIEMPRE los dos
+// triángulos de origen (histórico y manual) por separado cuando el resultado es un ensemble, nunca
+// solo la cifra ya mezclada — exigencia explícita del propio backlog (§11): combinar métodos sin
+// mostrar de dónde sale cada parte genera falsa precisión, no mejor previsión.
+function pvc14PrudentSimulationHtml(prudent) {
+  if (!prudent.calculable) return `<p class="e19-kpi-note">${escapeHtml(prudent.warning)}</p>`;
+  const triangle = (percentiles) => `P10 ${money(percentiles.p10, true)} · P50 ${money(percentiles.p50, true)} · P90 ${money(percentiles.p90, true)}`;
+  const sourcesHtml = prudent.source === "ensemble"
+    ? `<ul class="commit-barrier-list">
+        <li class="commit-barrier-item"><span>Histórico (${prudent.sampleSize} meses conciliados)</span><span>${triangle(prudent.historical)}</span></li>
+        <li class="commit-barrier-item"><span>Manual declarado</span><span>${triangle(prudent.manual)}</span></li>
+      </ul><p>Mezcla al <strong>${prudent.historicalWeightPct}% histórico / ${round2(100 - prudent.historicalWeightPct)}% manual</strong>: ${triangle(prudent.percentiles)}.</p>`
+    : `<p>${triangle(prudent.percentiles)}.</p>`;
+  return `${sourcesHtml}<p class="e19-kpi-note">${escapeHtml(prudent.warning)}</p>`;
+}
+
 // ESX1: Monte Carlo de cientos de trayectorias — extiende la tarjeta de Simulación prudente (A8-3)
 // con la probabilidad de ruptura y la banda P10/P50/P90 de la caja mínima sobre el horizonte
 // completo, en vez de un único percentil puntual. Un rango sin calibrar (sin historial suficiente)
@@ -21668,6 +21691,63 @@ function pvx2AdaptiveHorizonHtml(horizon) {
 // trimestres (24 meses), con confirmación explícita del hogar antes de aplicar (nunca automático).
 // Sin confirmar, el triángulo sigue calculándose con TODO el histórico, exactamente igual que antes
 // de esta tarea.
+// PVC14 (Oleada 4, apuesta grande): rango manual DECLARADO por el hogar (P10/P50/P90 de desviación
+// mensual esperada) — sustituye al `{min:-500, base:0, max:500}` que antes se pasaba hardcodeado a
+// prudentSimulation()/monteCarloSimulation() en cada llamada, sin que el hogar lo hubiera declarado
+// nunca. Se lee siempre de `scenarioSettings` (la fuente persistida), nunca del DOM directamente:
+// así el ensemble ve el valor guardado desde la primera carga, sin depender de que el formulario ya
+// se haya repintado antes. Campos ausentes o no numéricos significan "sin declarar", nunca 0 por
+// defecto — mismo criterio "declarado, nunca inventado" que el resto de campos opcionales de la app.
+// Cada campo se guarda por separado (nunca como un objeto {min,base,max} agrupado): si se guardara
+// agrupado, editar un solo campo mientras los otros dos siguen vacíos borraría el grupo entero en
+// cada tabulación — justo el bug que detectó la validación manual en navegador de esta tarea (rellenar
+// P10 y tabular a Base borraba P10 porque, en ese instante, Base y P90 aún estaban vacíos). Guardando
+// cada campo de forma independiente, la exigencia de "los tres declarados" se aplica solo al LEER
+// (aquí), nunca al guardar.
+function pvc14ManualRange() {
+  const min = Number(scenarioSettings.pvc14ManualP10);
+  const base = Number(scenarioSettings.pvc14ManualBase);
+  const max = Number(scenarioSettings.pvc14ManualP90);
+  if (![min, base, max].every(Number.isFinite)) return {};
+  return { min, base, max };
+}
+
+function pvc14HistoricalWeightPct() {
+  const value = Number(scenarioSettings.pvc14HistoricalWeightPct);
+  return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : undefined;
+}
+
+function handlePvc14ManualFieldChange() {
+  const min = parseAmount(qs("pvc14ManualP10")?.value);
+  scenarioSettings.pvc14ManualP10 = min === null ? undefined : min;
+  const base = parseAmount(qs("pvc14ManualBase")?.value);
+  scenarioSettings.pvc14ManualBase = base === null ? undefined : base;
+  const max = parseAmount(qs("pvc14ManualP90")?.value);
+  scenarioSettings.pvc14ManualP90 = max === null ? undefined : max;
+  const weight = parseAmount(qs("pvc14HistoricalWeightPct")?.value);
+  scenarioSettings.pvc14HistoricalWeightPct = weight === null ? undefined : Math.max(0, Math.min(100, weight));
+  saveScenarioSettings();
+  renderE13ScenarioLab();
+}
+
+function renderPvc14ManualFields() {
+  const setValue = (id, value) => { const el = qs(id); if (el && document.activeElement !== el) el.value = Number.isFinite(value) ? String(value) : ""; };
+  setValue("pvc14ManualP10", Number(scenarioSettings.pvc14ManualP10));
+  setValue("pvc14ManualBase", Number(scenarioSettings.pvc14ManualBase));
+  setValue("pvc14ManualP90", Number(scenarioSettings.pvc14ManualP90));
+  const weightEl = qs("pvc14HistoricalWeightPct");
+  if (weightEl && document.activeElement !== weightEl) {
+    weightEl.value = Number.isFinite(scenarioSettings.pvc14HistoricalWeightPct) ? String(scenarioSettings.pvc14HistoricalWeightPct) : "";
+  }
+  const note = qs("pvc14ManualNote");
+  if (!note) return;
+  const declared = Object.keys(pvc14ManualRange()).length > 0;
+  const weightDeclared = Number.isFinite(scenarioSettings.pvc14HistoricalWeightPct);
+  note.textContent = declared
+    ? `Declarado. ${weightDeclared ? `Se mezclará al ${pvc14HistoricalWeightPct()}% histórico cuando ambos estén disponibles.` : "Sin peso declarado: por defecto se mezclará al 100% histórico cuando ambos estén disponibles (ajusta el peso arriba para cambiarlo)."}`
+    : "Sin declarar — Simulación prudente y Monte Carlo siguen usando solo el histórico (o no serán calculables sin él).";
+}
+
 function pvc5QuarterlyWindowConfirmed() {
   return Boolean(scenarioSettings.pvc5WindowConfirmedAt);
 }
@@ -21699,13 +21779,18 @@ function renderPvc5RecalibrationNote() {
     history,
     asOfMonthKey: monthKey(modelStartDate()),
     quarters: 8,
-    manualRange: { min: -500, base: 0, max: 500 },
+    manualRange: pvc14ManualRange(), historicalWeightPct: pvc14HistoricalWeightPct(),
     generatedAt: forecast.generatedAt,
   });
   const currentlyApplied = pvc5QuarterlyWindowConfirmed();
-  const p10Label = (percentiles) => `P10 ${money(percentiles.p10, true)} · P50 ${money(percentiles.p50, true)} · P90 ${money(percentiles.p90, true)}`;
+  // PVC14: con la ventana recortada, el histórico puede dejar de estar calibrado y el triángulo
+  // pasar a depender del manual declarado (o quedar sin calcular si tampoco hay manual) — nunca se
+  // asume que `percentiles` existe.
+  const p10Label = (percentiles) => percentiles
+    ? `P10 ${money(percentiles.p10, true)} · P50 ${money(percentiles.p50, true)} · P90 ${money(percentiles.p90, true)}`
+    : "no calculable (sin histórico suficiente ni manual declarado)";
   const comparisonLine = `<p>Con todo el histórico (${proposal.currentSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.currentPercentiles)}.</p>
-    <p>Con la ventana de 8 trimestres (${proposal.proposedSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.proposedPercentiles)}${!proposal.proposedCalibrated ? " — muestra corta, cae al rango manual" : ""}.</p>`;
+    <p>Con la ventana de 8 trimestres (${proposal.proposedSampleSize} mes(es) conciliado(s)): ${p10Label(proposal.proposedPercentiles)}${!proposal.proposedCalibrated && proposal.proposedCalculable ? " — muestra corta, cae al manual declarado (o se mezcla con él)" : ""}.</p>`;
   const changeNote = proposal.changed
     ? `<p class="e19-kpi-note is-warn">La ventana de 8 trimestres ${currentlyApplied ? "(ya aplicada)" : "propuesta"} cambia el triángulo frente a usar todo el histórico.</p>`
     : `<p class="e19-kpi-note">La ventana no cambia el triángulo frente a usar todo el histórico — misma calibración.</p>`;
@@ -21722,6 +21807,7 @@ function renderE13ScenarioLab() {
   const monthSelect = qs("e13EventMonth");
   const categorySelect = qs("e13EventCategory");
   if (!comparison || !monthSelect) return;
+  renderPvc14ManualFields();
   const forecast = canonicalScenarioResults.base?.forecast;
   const E13 = window.FinanceCanonicalE13;
   if (!forecast || !E13) {
@@ -21785,13 +21871,14 @@ function renderE13ScenarioLab() {
   const horizon = window.FinanceCanonicalForecast.adaptiveHorizon(forecast.series);
   // PVC5: el triángulo P10/P50/P90 usa todo el histórico (comportamiento de siempre) o la ventana de
   // 8 trimestres, según lo que el hogar haya confirmado explícitamente — nunca cambia solo.
-  const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
-  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: { min: -500, base: 0, max: 500 }, generatedAt: forecast.generatedAt });
+  const prudent = E13.prudentSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: pvc14ManualRange(), historicalWeightPct: pvc14HistoricalWeightPct(), generatedAt: forecast.generatedAt });
+  const monteCarlo = E13.monteCarloSimulation(forecast, e13ScenarioEvents, { history: esx1HistoryForCalibration(history), manualRange: pvc14ManualRange(), historicalWeightPct: pvc14HistoricalWeightPct(), generatedAt: forecast.generatedAt });
   renderPvc5RecalibrationNote();
   // PVC2 (Oleada 3, Bloque 5): reparte la banda P10-P90 de arriba entre categorías según su propia
   // volatilidad histórica (PVX4), en vez de dejarla repartida por igual entre categorías con
-  // volatilidad muy distinta.
-  const pvc2Shares = pvc2CategoryConfidenceShare(prudent.percentiles.p90 - prudent.percentiles.p10);
+  // volatilidad muy distinta. PVC14: `prudent.percentiles` puede ser `null` ahora (sin histórico
+  // suficiente ni manual declarado) — nunca asumir que existe.
+  const pvc2Shares = prudent.percentiles ? pvc2CategoryConfidenceShare(prudent.percentiles.p90 - prudent.percentiles.p10) : [];
   const sensitivity = E13.sensitivity(forecast, e13ScenarioEvents);
   const dominant = sensitivity.dominantFactors.map((factor) => `${escapeHtml(factor.label)} (${factor.impact >= 0 ? "+" : ""}${money(factor.impact, true)})`).join(" · ");
   const sensitivityGrid = E13.sensitivityGrid(forecast, e13ScenarioEvents);
@@ -21800,7 +21887,7 @@ function renderE13ScenarioLab() {
     <article class="e6-quality-card"><header><strong>Aprendizaje E12b · termómetro de desviación por partida</strong><span class="status-pill ${learning.includedRecords >= 6 ? "good" : "warn"}">${learning.includedRecords} meses</span></header><p class="e19-kpi-note">Solo meses conciliados. Ajuste sugerido por partida, pendiente de confirmar.</p>${deviationThermometerHtml(learning.deviations)}</article>
     <article class="e6-quality-card"><header><strong>PV1 · autoajuste de la previsión</strong><span class="status-pill ${forecast.series[0]?.learnedBias?.applied ? "good" : "warn"}">${forecast.series[0]?.learnedBias?.applied ? "Activo" : "En espera"}</span></header><p class="e19-kpi-note">${escapeHtml(pv1AutoAdjustBiasNote(forecast.series[0]?.learnedBias))}</p></article>
     <article class="e6-quality-card"><header><strong>Bandas de confianza</strong><span class="status-pill ${confidenceBands[0]?.confidence === "high" ? "good" : confidenceBands[0]?.confidence === "medium" ? "warn" : ""}">${escapeHtml(PV4_CONFIDENCE_LABEL[confidenceBands[0]?.confidence] || "sin datos")}</span></header><p class="e19-kpi-note">Liquidez proyectada con margen de incertidumbre — no una sola línea.</p>${pv4ConfidenceBandHtml(confidenceBands)}</article>
-    <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calibrated ? "good" : "warn"}">${escapeHtml(prudent.source)}</span></header><p>P10 ${money(prudent.percentiles.p10, true)} · P50 ${money(prudent.percentiles.p50, true)} · P90 ${money(prudent.percentiles.p90, true)}. ${escapeHtml(prudent.warning)}</p></article>
+    <article class="e6-quality-card"><header><strong>Simulación prudente</strong><span class="status-pill ${prudent.calculable && prudent.calibrated ? "good" : "warn"}">${escapeHtml(PVC14_SOURCE_LABELS[prudent.source] || prudent.source)}</span></header>${pvc14PrudentSimulationHtml(prudent)}</article>
     <article class="e6-quality-card"><header><strong>PVC2 · banda de confianza por categoría</strong><span class="status-pill ${pvc2Shares.length ? "good" : "warn"}">${pvc2Shares.length} categoría(s)</span></header><p class="e19-kpi-note">De la banda P10-P90 de arriba, qué categorías de gasto explican más incertidumbre por su propia volatilidad histórica (nunca repartida por igual).</p>${pvc2ConfidenceShareHtml(pvc2Shares)}</article>
     <article class="e6-quality-card"><header><strong>ESX1 · Monte Carlo (${monteCarlo.calculable ? monteCarlo.trajectories : 0} trayectorias)</strong><span class="status-pill ${monteCarlo.calculable && monteCarlo.calibrated ? "good" : "warn"}">${monteCarlo.calculable ? escapeHtml(monteCarlo.source) : "sin datos"}</span></header>${esx1MonteCarloHtml(monteCarlo)}</article>
     <article class="e6-quality-card"><header><strong>Sensibilidad</strong><span class="status-pill">3 factores</span></header><p>${dominant || "Añade eventos para ampliar el análisis."}</p></article>
@@ -39024,6 +39111,9 @@ async function init() {
       history.pushState(null, "", `#${navButton.dataset.homeNav}`);
       setActiveView(navButton.dataset.homeNav);
     }
+  });
+  ["pvc14ManualP10", "pvc14ManualBase", "pvc14ManualP90", "pvc14HistoricalWeightPct"].forEach((id) => {
+    qs(id)?.addEventListener("change", handlePvc14ManualFieldChange);
   });
   qs("esx2EventTemplate")?.addEventListener("change", (event) => applyE13EventTemplate(event.target.value));
   qs("e13EventBuilder")?.addEventListener("submit", (event) => {
