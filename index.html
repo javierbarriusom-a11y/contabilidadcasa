@@ -1909,6 +1909,17 @@
               <div id="deb13DormantDebtAlert"></div>
             </article>
 
+            <!-- GOB16 (Oleada 4, Bloque 7, O-7): vigilancia de cláusulas de deuda más allá de TAE y
+                 capital. Acotado a lo que DEB4/DEB8 (Oleada 3) no cubren: vinculación de productos
+                 exigida, comisión de apertura declarada y fecha de revisión del diferencial pactado
+                 — un contrato sin declarar no genera ninguna alerta. Un <details> por contrato,
+                 mismo patrón que el calendario de amortización de Deuda › Ruta. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Vigilancia de cláusulas de deuda</h3>
+              <p class="e19-kpi-note">Más allá de TAE y capital: vinculación de productos exigida, comisión de apertura declarada y cada cuánto toca revisar el diferencial pactado. Declara lo que sepas de cada contrato activo.</p>
+              <div id="gob16ClauseWatch"></div>
+            </article>
+
             <!-- DEB6 (Oleada 3, Bloque 4): simulador de consolidación de varias deudas activas en un
                  préstamo nuevo declarado (TAE + plazo, nunca supuestos). Solo simula: ninguna deuda
                  cambia de estado hasta que el hogar lo ejecute de verdad desde Contratos. -->
@@ -4004,7 +4015,7 @@
                  exclusivo de DEB3. -->
             <article class="e19-card">
               <h3 class="escenario-motor-panel-title">Registro de decisiones con revisión programada</h3>
-              <p class="e19-kpi-note">Cualquier decisión financiera del hogar (no solo deuda o apalancamiento): describe qué decidiste, qué esperas de ello, y programa cuándo revisarlo. Si la fecha pasa sin marcarla como revisada, el Centro de alertas lo avisa.</p>
+              <p class="e19-kpi-note">Cualquier decisión financiera del hogar (no solo deuda o apalancamiento): describe qué decidiste, qué esperas de ello, y programa cuándo revisarlo. Si la fecha pasa sin marcarla como revisada, el Centro de alertas lo avisa. Cada decisión se puede exportar como paquete en PDF (GOB18) para llevarla a un asesor externo.</p>
               <div class="cuadro-mandos-controls">
                 <label class="month-picker">
                   <span>Decisión</span>

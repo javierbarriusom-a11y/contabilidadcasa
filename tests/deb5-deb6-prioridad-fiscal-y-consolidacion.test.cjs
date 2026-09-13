@@ -185,7 +185,7 @@ test("wiring: la tarjeta de consolidación (DEB6) vive en index.html, dentro de 
 test("wiring: renderDeudaContratos recalcula DEB5 y DEB6 cada vez que la tabla se redibuja", () => {
   const start = deudaSource.indexOf("function renderDeudaContratos(");
   assert.ok(start >= 0, "No existe renderDeudaContratos");
-  const block = deudaSource.slice(start, start + 1400);
+  const block = deudaSource.slice(start, start + 1600);
   assert.match(block, /renderDeb5FiscalPriority\(/);
   assert.match(block, /renderDeb6DebtChecklist\(/);
 });

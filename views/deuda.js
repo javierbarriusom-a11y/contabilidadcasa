@@ -1221,6 +1221,7 @@ function renderDeudaContratos() {
   renderDeb5FiscalPriority(contracts);
   renderDeb16PayoffOrder(contracts);
   renderDeb13DormantExpensiveDebtAlert(contracts);
+  renderGob16ClauseWatch(contracts);
   renderDeb6DebtChecklist(contracts);
 }
 
@@ -1352,6 +1353,105 @@ function renderDeb13DormantExpensiveDebtAlert(contracts) {
     .map((alert) => `<li class="commit-barrier-item warning"><strong>${escapeHtml(alert.entity)}</strong>: TAE efectivo ${alert.effectiveAprPct}% frente al ${alert.annualReturnPct}% que rinde hoy tu cartera — amortizarla ahorraría ${money(alert.amortizeSavings, true)} de intereses frente a los ${money(alert.investGain, true)} que ganarías manteniéndola invertida en ese mismo plazo.</li>`)
     .join("");
   note.innerHTML = `<p class="e19-kpi-note is-warn"><strong>Deuda cara dormida (DEB13):</strong> ninguna acción activa la está amortizando, y su coste real ya supera lo que tu cartera espera rendir.</p><ul class="commit-barrier-list">${items}</ul>`;
+}
+
+// GOB16 (Oleada 4, Bloque 7, O-7): vigilancia de cláusulas de deuda más allá de TAE y capital.
+// Acotado a lo que DEB4 (radar de refinanciación) y DEB8 (ventana de comisión decreciente, ambas
+// Oleada 3) no cubren: vinculación de productos exigida por el contrato, comisión de apertura ya
+// declarada (dato de referencia, sin motor propio) y fecha de revisión del diferencial pactado —
+// reutiliza tal cual `rebalanceCalendarReviewStatus()` (INV17/GOB13, canonical-portfolio.js) para
+// "cuántos meses hace que se revisó", en vez de escribir un cuarto ayudante de meses. Las cláusulas
+// se declaran por contrato (`scenarioSettings.gob16DebtClauses`, mismo patrón de dato del hogar que
+// `savingsPlan`/`assumptionRegistry`) — nunca inferidas: un contrato sin declarar no genera ninguna
+// alerta.
+function gob16DebtClauses() {
+  return scenarioSettings.gob16DebtClauses && typeof scenarioSettings.gob16DebtClauses === "object" ? scenarioSettings.gob16DebtClauses : {};
+}
+
+function gob16ContractClause(contractId) {
+  const clause = gob16DebtClauses()[contractId] || {};
+  return {
+    linkedProducts: String(clause.linkedProducts || "").trim(),
+    linkedProductsCompliant: clause.linkedProductsCompliant !== false,
+    openingFeePct: Math.max(0, Number(clause.openingFeePct) || 0),
+    rateReviewIntervalMonths: Math.max(0, Math.floor(Number(clause.rateReviewIntervalMonths) || 0)),
+    lastRateReviewAt: String(clause.lastRateReviewAt || "").trim(),
+  };
+}
+
+function gob16SaveContractClause(contractId, field, rawValue) {
+  if (!state || !contractId) return;
+  const current = gob16ContractClause(contractId);
+  const patch = field === "linkedProductsCompliant" ? { linkedProductsCompliant: Boolean(rawValue) }
+    : field === "openingFeePct" ? { openingFeePct: Math.max(0, Math.min(100, Number(String(rawValue).replace(",", ".")) || 0)) }
+    : field === "rateReviewIntervalMonths" ? { rateReviewIntervalMonths: Math.max(0, Math.floor(Number(rawValue) || 0)) }
+    : field === "lastRateReviewAt" ? { lastRateReviewAt: String(rawValue || "").trim() }
+    : { linkedProducts: String(rawValue || "").trim() };
+  scenarioSettings.gob16DebtClauses = { ...gob16DebtClauses(), [contractId]: { ...current, ...patch } };
+  saveScenarioSettings();
+}
+
+function gob16RateReviewStatus(contractId, referenceDate = new Date()) {
+  const clause = gob16ContractClause(contractId);
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine || !clause.rateReviewIntervalMonths) return null;
+  return engine.rebalanceCalendarReviewStatus({ lastReviewedAt: clause.lastRateReviewAt, intervalMonths: clause.rateReviewIntervalMonths }, referenceDate);
+}
+
+function gob16ClauseRowHtml(contract, isOpen) {
+  const id = escapeHtml(contract.id);
+  const entityLabel = escapeHtml(contract.entity);
+  const clause = gob16ContractClause(contract.id);
+  const review = gob16RateReviewStatus(contract.id);
+  const reviewNote = !review
+    ? "Sin intervalo de revisión declarado."
+    : review.reviewed
+    ? `Última revisión hace ${review.monthsSinceReview} mes(es)${review.due ? " — toca revisarlo." : "."}`
+    : "Nunca declarada — toca revisarlo.";
+  const summary = !clause.linkedProductsCompliant || (review && review.due)
+    ? `${entityLabel} — revisar`
+    : entityLabel;
+  return `<details class="deuda-ruta-calendar-item" data-gob16-clause-card="${id}"${isOpen ? " open" : ""}>
+      <summary>${summary}</summary>
+      <label class="month-picker"><span>Vinculación de productos exigida</span>
+        <input type="text" maxlength="120" placeholder="p. ej. seguro de vida, nómina domiciliada" data-gob16-contract-id="${id}" data-gob16-field="linkedProducts" value="${escapeHtml(clause.linkedProducts)}" aria-label="Vinculación de productos de ${entityLabel}" />
+      </label>
+      <label class="month-picker">
+        <input type="checkbox" data-gob16-contract-id="${id}" data-gob16-field="linkedProductsCompliant" ${clause.linkedProductsCompliant ? "checked" : ""} aria-label="Vinculación cumplida de ${entityLabel}" />
+        <span>Vinculación cumplida hoy</span>
+      </label>
+      <label class="month-picker"><span>Comisión de apertura declarada (%)</span>
+        <input type="number" min="0" max="100" step="0.01" inputmode="decimal" placeholder="0" data-gob16-contract-id="${id}" data-gob16-field="openingFeePct" value="${clause.openingFeePct > 0 ? clause.openingFeePct : ""}" aria-label="Comisión de apertura de ${entityLabel}" />
+      </label>
+      <label class="month-picker"><span>Revisar diferencial cada (meses)</span>
+        <input type="number" min="0" max="60" step="1" inputmode="numeric" placeholder="0" data-gob16-contract-id="${id}" data-gob16-field="rateReviewIntervalMonths" value="${clause.rateReviewIntervalMonths > 0 ? clause.rateReviewIntervalMonths : ""}" aria-label="Intervalo de revisión del diferencial de ${entityLabel}" />
+      </label>
+      <label class="month-picker"><span>Última revisión del diferencial</span>
+        <input type="month" data-gob16-contract-id="${id}" data-gob16-field="lastRateReviewAt" value="${escapeHtml(clause.lastRateReviewAt)}" aria-label="Fecha de la última revisión del diferencial de ${entityLabel}" />
+      </label>
+      <p class="e19-kpi-note${clause.linkedProductsCompliant ? "" : " is-danger"}">${clause.linkedProductsCompliant ? "Sin riesgo de vinculación declarado." : "Vinculación NO cumplida: el banco podría dejar de aplicar la bonificación pactada."}</p>
+      <p class="e19-kpi-note${review && review.due ? " is-danger" : ""}">${reviewNote}</p>
+    </details>`;
+}
+
+function renderGob16ClauseWatch(contracts) {
+  const box = qs("gob16ClauseWatch");
+  if (!box) return;
+  // Editar un campo repinta toda la vigilancia (mismo patrón que el resto de tarjetas de esta
+  // pantalla) — sin esto, el <details> que se estaba editando se cerraría solo en cada cambio.
+  const openIds = new Set(Array.from(box.querySelectorAll("details[open]")).map((el) => el.dataset.gob16ClauseCard));
+  const active = (contracts || []).filter((contract) => contract.paymentStatus === "active");
+  box.innerHTML = active.length
+    ? active.map((contract) => gob16ClauseRowHtml(contract, openIds.has(contract.id))).join("")
+    : `<p class="e19-kpi-note">Sin deudas activas que vigilar todavía.</p>`;
+}
+
+function handleGob16ClauseFieldChange(input) {
+  const contractId = input?.dataset?.gob16ContractId;
+  const field = input?.dataset?.gob16Field;
+  if (!contractId || !field) return;
+  gob16SaveContractClause(contractId, field, input.type === "checkbox" ? input.checked : input.value);
+  renderGob16ClauseWatch(debtContractSourceRows());
 }
 
 // DEB6 (Oleada 3, Bloque 4): simulador de consolidación — casillas para elegir qué deudas activas

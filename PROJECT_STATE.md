@@ -70,6 +70,68 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (189): `GOB16` y `GOB18`
+
+El usuario pidió seguir con las dos tareas restantes del Bloque 7 en la misma sesión: `GOB16` y
+`GOB18`.
+
+**`GOB16` — Vigilancia de cláusulas de deuda más allá de TAE y capital.** Diagnóstico previo: acotado
+a lo que `DEB4` (radar de refinanciación) y `DEB8` (ventana de comisión decreciente, ambas Oleada 3)
+no cubren — vinculación de productos exigida por el contrato, comisión de apertura ya declarada
+(dato de referencia) y fecha de revisión del diferencial pactado. Construido en Deuda › Contratos,
+justo después de la tarjeta de `DEB13`: un `<details>` por deuda activa (mismo patrón que el
+calendario de amortización de Deuda › Ruta), con tres campos declarables por contrato
+(`scenarioSettings.gob16DebtClauses`, mismo criterio de persistencia que `savingsPlan`/
+`assumptionRegistry`) — vinculación de productos + su cumplimiento, comisión de apertura declarada, e
+intervalo/fecha de revisión del diferencial. La revisión del diferencial reutiliza tal cual
+`rebalanceCalendarReviewStatus()` (`INV17`/`GOB13`, `canonical-portfolio.js`) para "cuántos meses hace
+que se revisó", sin escribir un cuarto ayudante de meses. Un fallo real encontrado y corregido solo
+por validación manual en navegador (ni la lectura del código ni el test unitario original lo
+detectaron): al editar cualquier campo, `renderGob16ClauseWatch()` repintaba todos los `<details>`
+desde cero y perdía cuál estaba abierto, cerrándose solo justo después de cada cambio — se corrigió
+preservando los ids abiertos antes de repintar (`box.querySelectorAll("details[open]")`), con test
+nuevo que lo cubre. Tests: `tests/gob16-vigilancia-clausulas-deuda.test.cjs` (21 tests).
+
+**`GOB18` — Exportar un registro de `GOB10` como paquete de decisión (PDF) para un asesor externo,
+alcance reducido.** Diagnóstico previo confirmado: `GOB10` (Oleada 3) ya generaliza el registro de
+tesis con revisión programada a cualquier decisión — solo faltaba la capa de exportación, no un
+registro nuevo. Nuevo botón "Exportar paquete (PDF)" en cada decisión de Ajustes › Hogar (junto a
+"Marcar revisada"/"Quitar"), que reutiliza tal cual el escritor de PDF sin librería externa ya
+construido (`P2Export.downloadPlainPdf`, mismo mecanismo que `A19-2`/`V6-4`) y la misma etiqueta de
+estado que ya calcula `gob10ReviewStatusLabel` — ningún motor ni dato nuevo, solo reformatea una
+decisión ya registrada (descripción, tesis, revisión programada) en un documento de una página, con
+el mismo aviso de "no es un documento oficial" que ya llevan el resto de exportaciones para asesor
+externo. Tests: `tests/gob18-exportar-paquete-decision.test.cjs` (10 tests).
+
+Cuatro tests preexistentes necesitaron ajuste tras estos dos cambios, sin tocar su cobertura real:
+tres usaban una ventana de caracteres fija (`slice(start, start + N)`) para capturar el cuerpo de una
+función y dejaron de alcanzar hasta el final tras crecer el código (`tests/d1-d2-deuda-tabs-
+contratos.test.cjs`, `tests/deb5-deb6-prioridad-fiscal-y-consolidacion.test.cjs`,
+`tests/gob10-registro-decisiones.test.cjs` ×2 asserts) — se ampliaron las ventanas y, en el caso de
+`d1-d2`, se añadió el stub que faltaba de `renderGob16ClauseWatch` (mismo patrón que ya usaban los
+stubs de `DEB13`/`DEB16` en ese test).
+
+- **Validación**: `npm run verify` completo en verde. `npm test` **4187/4187** pruebas (31 nuevas: 21
+  de `GOB16` + 10 de `GOB18`). `test:a11y` **1305 IDs únicos** (antes 1304, sesión 188; +1 por el
+  botón nuevo de exportar paquete). `test:performance`: diff 10.000 filas 41,0 ms, forecast y
+  escenarios 189,4 ms, recursos 2263 KB, presupuestos a escala (1000 categorías × 10 años) — análisis
+  147,5 ms, alertas 97,3 ms, forecast 176,6 ms, histórico de presupuestos 39,7 ms, índice de
+  transacciones por categoría 129,2 ms. `build:site`, `test:privacy` y `test:smoke` sin errores.
+  Validación manual adicional en navegador real con Playwright: (1) `GOB16` — se dio de alta un
+  contrato activo real desde el propio formulario de Contratos, se abrió su `<details>`, se marcó la
+  vinculación como no cumplida (el resumen y la nota pasan a avisar), se declaró un intervalo de
+  revisión sin fecha previa ("toca revisarlo"), y el estado persistió tras recargar la página; (2)
+  `GOB18` — se registró una decisión nueva en Ajustes › Hogar y el botón "Exportar paquete (PDF)"
+  disparó la descarga real (`paquete-decision-<fecha>.pdf`); (3) sin errores de consola nuevos en
+  ningún caso, tras descartar como artefacto del propio guion de prueba (disparar `change` dos veces
+  seguidas sobre el mismo campo) un error que había aparecido en la primera pasada.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: con esto el Bloque 7 queda completo salvo las dos apuestas
+  grandes ya reservadas a sesión propia (`GOB15`, `GOB19`). Con `GOB14`, `GOB16` y `GOB18` ya
+  construidas, `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` solo deja esas dos tareas accionables.
+
 ## Cierre de sesión — 13 de septiembre de 2026 (188): `GOB14`
 
 El usuario pidió seguir con el Bloque 7. Con `GOB13` cerrada, siguiente en la tabla: `GOB14`.

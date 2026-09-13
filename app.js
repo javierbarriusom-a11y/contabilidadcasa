@@ -3808,6 +3808,10 @@ function saveScenarioSettings() {
     incomeFactor: state.incomeFactor,
     expenseFactor: state.expenseFactor,
     savingsPlan: scenarioSettings.savingsPlan || {},
+    // GOB16 (Oleada 4, Bloque 7) · cláusulas de deuda declaradas por contrato (vinculación de
+    // productos, comisión de apertura, revisión del diferencial) — mismo criterio que savingsPlan/
+    // assumptionRegistry: vive directamente en scenarioSettings, sin espejo en `state`.
+    gob16DebtClauses: scenarioSettings.gob16DebtClauses && typeof scenarioSettings.gob16DebtClauses === "object" ? scenarioSettings.gob16DebtClauses : {},
     savingsAgent: scenarioSettings.savingsAgent || {},
     executiveAdvisor: scenarioSettings.executiveAdvisor || {},
     migrations: scenarioSettings.migrations || {},
@@ -17438,7 +17442,7 @@ function gob10ReviewStatusLabel(row, now = new Date()) {
 function gob10DecisionItemHtml(row) {
   const overdue = !row.reviewedAt && new Date(row.reviewDueAt).getTime() <= Date.now();
   const toggleLabel = row.reviewedAt ? "Desmarcar revisada" : "Marcar revisada";
-  return `<li class="commit-barrier-item${overdue ? " negative" : ""}"><strong>${escapeHtml(row.description)}</strong><span>${escapeHtml(gob10ReviewStatusLabel(row))}${lev8ThesisHtml(row.thesis)}</span><button type="button" class="e19-btn e19-btn-secondary" data-gob10-review-toggle="${escapeHtml(row.id)}">${toggleLabel}</button><button type="button" class="e19-btn e19-btn-secondary" data-gob10-remove="${escapeHtml(row.id)}">Quitar</button></li>`;
+  return `<li class="commit-barrier-item${overdue ? " negative" : ""}"><strong>${escapeHtml(row.description)}</strong><span>${escapeHtml(gob10ReviewStatusLabel(row))}${lev8ThesisHtml(row.thesis)}</span><button type="button" class="e19-btn e19-btn-secondary" data-gob10-review-toggle="${escapeHtml(row.id)}">${toggleLabel}</button><button type="button" class="e19-btn e19-btn-secondary" data-gob18-export="${escapeHtml(row.id)}">Exportar paquete (PDF)</button><button type="button" class="e19-btn e19-btn-secondary" data-gob10-remove="${escapeHtml(row.id)}">Quitar</button></li>`;
 }
 
 function renderGob10DecisionList() {
@@ -17468,6 +17472,39 @@ function handleGob10SaveDecision() {
   });
   renderGob10DecisionList();
   announceStatus("Decisión registrada, con revisión programada.");
+}
+
+// GOB18 (Oleada 4, Bloque 7, O-10, alcance reducido): GOB10 (arriba) ya generaliza el registro de
+// tesis con revisión programada a cualquier decisión — falta solo la capa de exportación/
+// empaquetado para un asesor externo, no un registro nuevo. Mismo escritor de PDF sin librería
+// externa que A19-2/V6-4 (`P2Export.downloadPlainPdf`) y la misma etiqueta de estado ya calculada
+// por `gob10ReviewStatusLabel` — sin motor ni dato nuevo, solo reformatea lo que GOB10 ya guarda de
+// esa decisión concreta.
+function gob18DecisionPackageLines(decision) {
+  const thesis = decision.thesis || {};
+  return [
+    `PAQUETE DE DECISIÓN — ${decision.description}`,
+    `Registrada: ${String(decision.createdAt || "").slice(0, 10)}`,
+    "",
+    "TESIS",
+    `Qué se espera: ${thesis.expectedGain || "sin declarar"}`,
+    `Horizonte: ${thesis.horizonMonths ? `${thesis.horizonMonths} meses` : "sin declarar"}`,
+    `Se invalida si: ${thesis.invalidation || "sin declarar"}`,
+    "",
+    "REVISIÓN PROGRAMADA",
+    `Cada ${decision.reviewMonths} meses — próxima revisión: ${String(decision.reviewDueAt || "").slice(0, 10)}`,
+    `Estado: ${gob10ReviewStatusLabel(decision)}`,
+    "",
+    "Este documento es un resumen elaborado por el propio hogar a partir de sus propios datos declarados — no es una certificación bancaria ni un documento oficial.",
+  ];
+}
+
+function downloadGob18DecisionPackage(id) {
+  if (!window.P2Export) return;
+  const decision = gob10Decisions().find((row) => row.id === id);
+  if (!decision) return;
+  const today = new Date().toISOString().slice(0, 10);
+  window.P2Export.downloadPlainPdf(gob18DecisionPackageLines(decision), `paquete-decision-${today}.pdf`);
 }
 
 function renderAp3ScenarioList() {
@@ -40047,6 +40084,10 @@ async function init() {
     const removeButton = event.target.closest("[data-deuda-contrato-remove]");
     if (removeButton) handleDeudaContratosRemove(removeButton.dataset.deudaContratoRemove);
   });
+  qs("gob16ClauseWatch")?.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-gob16-contract-id]");
+    if (input) handleGob16ClauseFieldChange(input);
+  });
   qs("deudaContratosAddForm")?.addEventListener("submit", (event) => handleDeudaContratosAddSubmit(event));
   qs("deb6SimulateRun")?.addEventListener("click", () => handleDeb6Simulate());
   qs("deudaContratosCuadre")?.addEventListener("click", (event) => {
@@ -40502,6 +40543,11 @@ async function init() {
     const toggleButton = event.target.closest("[data-gob10-review-toggle]");
     if (toggleButton) {
       toggleGob10DecisionReviewed(toggleButton.dataset.gob10ReviewToggle);
+      return;
+    }
+    const exportButton = event.target.closest("[data-gob18-export]");
+    if (exportButton) {
+      downloadGob18DecisionPackage(exportButton.dataset.gob18Export);
       return;
     }
     const removeButton = event.target.closest("[data-gob10-remove]");
