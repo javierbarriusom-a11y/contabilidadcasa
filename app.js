@@ -40022,6 +40022,7 @@ async function init() {
     if (event.target.id === "cierreSignButton") handleCierreSign();
     if (event.target.id === "cierreDownloadCsv") handleCierreDownload("csv");
     if (event.target.id === "cierreDownloadPdf") handleCierreDownload("pdf");
+    if (event.target.closest("[data-gob13-mark-done]")) markGob13AnnualReviewDone();
   });
   qs("cierreClassifyDialog")?.addEventListener("click", (event) => {
     if (event.target === event.currentTarget) { qs("cierreClassifyDialog").close(); return; }
