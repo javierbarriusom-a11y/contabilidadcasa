@@ -2511,6 +2511,22 @@
               <div class="e19-kpi-note" id="ajustesMortgageScenariosNote"></div>
             </article>
 
+            <!-- DEB14 (Oleada 4, Bloque 6, alcance reducido): distinto de DEB4 (arriba, "tu cálculo
+                 cambió") — aquí la pregunta es "no has mirado el mercado". Cruza la deuda declarada
+                 como Hipoteca en Deuda › Contratos con el registro de ofertas externas de Deuda ›
+                 Ruta (E14, normalizeOffer), sin motor nuevo. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">¿Cuánto hace que miraste el mercado por tu hipoteca?</h3>
+              <p class="e19-kpi-note">Distinto del radar de arriba: eso avisa cuando TU cálculo de tipos cambia de sentido. Esto avisa cuando llevas demasiado tiempo sin registrar una oferta de mercado real (Deuda › Ruta) contra la deuda que declaraste como "Hipoteca" en Deuda › Contratos.</p>
+              <div class="e19-kpi-note" id="deb14MarketCheckAlert"></div>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Avisar si pasan más de (meses)</span>
+                  <input id="deb14MaxMonthsWithoutOffer" type="number" min="1" step="1" inputmode="numeric" placeholder="Ej. 12" />
+                </label>
+              </div>
+            </article>
+
             <!-- DI5: reestructuración conjunta ante una caída de ingresos. Usa los contratos reales
                  de Deuda › Contratos (activos, con cuota) — solo pide el ingreso mensual tras la
                  caída, y propone en qué orden alargar plazos hasta el ratio seguro configurado. -->

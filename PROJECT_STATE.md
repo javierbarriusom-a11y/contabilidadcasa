@@ -70,6 +70,63 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (184): `DEB14`
+
+El usuario pidió seguir con `DEB14` para cerrar del todo el Bloque 6 (deuda según liquidez) tras
+`DEB16`.
+
+**Diagnóstico previo**: el backlog ya marcaba `DEB14` con alcance reducido desde antes de esta oleada
+de sesiones: "llevas N meses sin comparar tu hipoteca contra una oferta de mercado registrada",
+distinta de `DEB4` (Oleada 3) porque esa avisa cuando el punto de equilibrio de los PROPIOS escenarios
+de tipos declarados por el hogar cruza un umbral ("tu cálculo cambió") — nunca consulta si de verdad
+se ha mirado el mercado. `DEB14` usa en su lugar el registro de ofertas externas de Deuda › Ruta
+(`normalizeOffer`, `canonical-e14-operations.js`, `E14`), que `DEB4` no consulta. Revisando el modelo
+de `DEB4`: sus campos de hipoteca (`principal`, `variableRate`, `fixedRate`...) son un dato
+completamente independiente, sin vínculo con ningún contrato real de Deuda › Contratos — así que
+`DEB14` no podía apoyarse en ese modelo. En su lugar, se apoya en un campo que SÍ es declarado por el
+hogar en cada contrato personalizado: `type` (texto libre, igual que `entity`/`number`) — un contrato
+cuyo `type` contenga "hipoteca" es la hipoteca del hogar a efectos de esta alerta, sin inventar
+ninguna heurística de detección automática.
+
+**Construido**:
+- `DEB14` — nueva tarjeta en Deuda y apalancamiento, justo debajo del radar de `DEB4`: un campo de
+  umbral declarado (`#deb14MaxMonthsWithoutOffer`, meses) y `deb14MarketCheckAlertHtml()` (`app.js`),
+  que cruza `debtContractSourceRows()` (filtrado por `type` conteniendo "hipoteca", activo) con
+  `e14bWorkspace().offers` (filtrado por `contractId`) para calcular los meses reales transcurridos
+  desde la oferta MÁS RECIENTE registrada para esa deuda (`monthDistance`/`dateFromMonthKey`, ya
+  existentes) — sin motor nuevo. Si nunca se ha registrado ninguna oferta para esa hipoteca, lo dice
+  explícitamente en vez de inventar un número de meses. Sin umbral declarado, no se calcula nada
+  (mismo criterio "declarado, nunca inventado" que `DEB4` con `maxBreakEvenMonths`).
+  - **Lecciones de `DEB16` aplicadas desde el principio esta vez, sin repetir ninguno de sus dos
+    fallos**: (1) `handleDeb14MaxMonthsChange` vive en `app.js` (no en `views/deuda.js`), así que su
+    listener se registra por referencia directa sin riesgo de `ReferenceError` por carga perezosa;
+    (2) `deb14MaxMonthsWithoutOffer` se añadió a la lista explícita y cerrada de campos de
+    `saveScenarioSettings()` desde el primer commit, verificado con Playwright que sobrevive a
+    recargar la página.
+  - Tests: `tests/deb14-cuanto-hace-que-miraste-mercado.test.cjs` (18 tests, los 18 en verde a la
+    primera) — no repite la cobertura de `normalizeOffer`, ya cubierta en
+    `tests/canonical-e14-operations.test.cjs`.
+- **Con esto el Bloque 6 (deuda según liquidez) queda completo.**
+- **Validación**: `npm run verify` completo en verde. `npm test` **4092/4092** pruebas (18 nuevas de
+  `DEB14`, más un ajuste en `tests/gob7-modo-sesion-asesor.test.cjs`: la ventana de adyacencia sobre
+  `saveScenarioSettings()` creció de 1200 a 1600 caracteres, mismo patrón de crecimiento que ya
+  documentaba desde `DEB11`/`DEB16`). `test:a11y` **1279 IDs únicos** (antes 1277, sesión 183; +2 por
+  el campo y su nota nuevos). `test:performance`: diff 10.000 filas 39,6 ms, forecast y escenarios
+  204,0 ms, recursos 2245 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 147,8 ms,
+  alertas 96,8 ms, forecast 176,1 ms, histórico de presupuestos 38,1 ms, índice de transacciones por
+  categoría 140,3 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual
+  adicional en navegador real con Playwright: (1) confirmó que el arranque no se rompe; (2) sin
+  umbral declarado, la tarjeta no muestra nada; (3) con una hipoteca personalizada declarada y una
+  oferta antigua registrada, avisa correctamente con los meses reales y la fecha de la última oferta;
+  (4) con una oferta reciente, muestra el mensaje positivo de estar dentro del umbral; (5) el umbral
+  declarado persiste tras recargar; (6) sin errores de consola de la app en ningún caso.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 7 tareas accionables — las dos apuestas grandes
+  (`GOB15`, `GOB19`, cada una reservada a su propia sesión) y el Bloque 7 completo (`GOB12`-`14`/
+  `16`/`18`).
+
 ## Cierre de sesión — 13 de septiembre de 2026 (183): `DEB16`
 
 El usuario pidió seguir con `DEB16` para cerrar el Bloque 6 (deuda según liquidez) tras `DEB12`.
