@@ -2024,6 +2024,17 @@
               <div class="e19-kpi-note" id="lev10CostCurveNote"></div>
             </article>
 
+            <!-- LEV16 (Oleada 4, Bloque 5, AP-9): coste de oportunidad de NO apalancarse, simétrico
+                 al riesgo de apalancarse que domina el resto de esta pantalla. Reutiliza tal cual
+                 cp2IdleCashSummary() (CP2): liquidez por encima del colchón sin invertir ni
+                 apalancar. Sin campos nuevos que declarar — se deriva de datos ya existentes
+                 (colchón, cuentas, XIRR real de cartera). -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">El coste de NO apalancarse (LEV16)</h3>
+              <p class="e19-kpi-note">Todo lo de arriba mide el riesgo de tomar deuda para invertir. Esto mide el lado simétrico: cuánto cuesta la alternativa más prudente — dejar la liquidez sobrante parada, sin invertir ni apalancar.</p>
+              <div class="e19-kpi-note" id="lev16IdleLiquidityNote"></div>
+            </article>
+
             <!-- APX2: crédito con garantía de cartera (Lombard) — primer paso de APX3 (simulador de
                  ejecución de garantía, todavía sin construir). LTV y tipo los declara el hogar,
                  nunca un LTV "típico" inventado. Fuera del guardarraíl AP4 a propósito: un préstamo

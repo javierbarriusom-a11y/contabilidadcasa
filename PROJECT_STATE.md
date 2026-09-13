@@ -70,6 +70,56 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (181): `LEV16`
+
+El usuario pidió seguir con `LEV16` para cerrar el Bloque 5 (apalancamiento) tras `LEV10`.
+
+**Diagnóstico previo**: el backlog describía `LEV16` como "el coste de oportunidad de NO
+apalancarse, simétrico al riesgo de apalancarse", señalando que "todo el módulo enmarca la pregunta
+solo desde el riesgo de apalancarse; falta el lado simétrico de mantener liquidez ociosa sin invertir
+ni apalancar". Revisando el módulo completo (AP4 guardarraíl, LEV1 política, AP3 con sus tres
+escenarios de rentabilidad, LEV5/LEV11/LEV12/LEV13 de riesgo), en efecto todo habla del riesgo de
+tomar deuda para invertir, nunca del coste de la alternativa prudente. Buscando si ya existía el dato
+antes de construir nada nuevo, apareció `cp2IdleCashSummary()` (`app.js`, sesión de la tarea `CP2`,
+"dinero parado"): liquidez por encima del colchón que ni protege nada ni está invertida, con su coste
+de oportunidad ya calculado a la XIRR real de la cartera (`opportunityCost`, IV5) — pero sin ninguna
+tarjeta visible en ningún sitio (solo alimentaba `TT2`, la escalera de vencimientos, y el catálogo de
+métricas del asistente ejecutivo). El hueco no era de cálculo, era de visibilidad en el contexto
+correcto: nadie había puesto ese dato ya calculado junto a las herramientas de riesgo de apalancarse,
+que es justo donde importa para leer la decisión con las dos caras.
+
+**Construido**:
+- `LEV16` — nueva `lev16IdleLiquidityCostHtml(idleSummary)` (`app.js`), función pura que recibe el
+  resultado ya calculado de `cp2IdleCashSummary()` (mismo patrón que `ap3ResultHtml(result)`) y lo
+  muestra en Deuda → Apalancamiento, justo debajo de la curva de coste marginal (`LEV10`): cuánto
+  cuesta mantener la liquidez sobrante parada 12 meses más, a la rentabilidad real de la cartera.
+  Sin motor nuevo, sin campos que declarar — se deriva de datos ya existentes (colchón, cuentas, XIRR
+  real). Misma lección de `LEV10` aplicada desde el principio esta vez: la llamada de repintado va en
+  `renderDeudaApalancamiento()` (`views/deuda.js`), no en `renderAjustes()` (`app.js`) — "Deuda y
+  apalancamiento" es una vista cargada de forma perezosa con su propio punto de entrada. Verificado
+  con Playwright que el repintado ocurre correctamente al entrar en la vista, sin ese bug. Tests:
+  `tests/lev16-coste-no-apalancarse.test.cjs` (8 tests) — no repite la cobertura de
+  `cp2IdleCashSummary()` (ya cubierta en `tests/cp2-dinero-parado.test.cjs`), solo prueba la función
+  de presentación nueva con resultados simulados.
+- **Con esto el Bloque 5 (apalancamiento) queda completo**: `LEV9` (Bloque 2, bandera),
+  `LEV10`-`LEV16` construidas todas.
+- **Validación**: `npm run verify` completo en verde. `npm test` **4050/4050** pruebas (8 nuevas de
+  `LEV16`). `test:a11y` **1274 IDs únicos** (antes 1273, sesión 180; +1 por la nota de resultado
+  nueva). `test:performance`: diff 10.000 filas 30,2 ms, forecast y escenarios 157,1 ms, recursos
+  2237 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 126,9 ms, alertas 63,9 ms,
+  forecast 123,5 ms, histórico de presupuestos 33,8 ms, índice de transacciones por categoría
+  89,6 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual adicional en
+  navegador real con Playwright: (1) sin posiciones de cartera declaradas, la nota dice
+  explícitamente que falta el XIRR real, nunca inventa una rentabilidad; (2) con una posición de
+  cartera declarada, la nota muestra el importe de liquidez ociosa, la rentabilidad real y el coste
+  de oportunidad correctos; sin errores de consola en ningún caso.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 10 tareas accionables — las dos apuestas grandes
+  restantes (`GOB15`, `GOB19`, cada una reservada a su propia sesión) y el resto de los Bloques 6-7:
+  `DEB12`/`14`/`16` (Bloque 6), `GOB12`-`14`/`16`/`18` (Bloque 7).
+
 ## Cierre de sesión — 12 de septiembre de 2026 (180): `LEV10`
 
 El usuario pidió seguir con `LEV10` (Bloque 5, apalancamiento), la primera tarea del resto de los

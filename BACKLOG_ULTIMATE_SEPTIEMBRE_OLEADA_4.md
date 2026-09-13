@@ -7,18 +7,19 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 180, 12 de septiembre de 2026): `LEV10` construida — arranca el Bloque 5.**
-Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`,
-sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y
-`LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170);
-`INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada (sesión 172);
-`INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174); `INV12`, `INV14`,
-`INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176);
-`INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión) quedó completo;
-`PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión viva) queda también
-completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10` (sesión 180). Quedan 11 tareas
-accionables: dos apuestas grandes restantes (`GOB15`, `GOB19`, reservadas a sesión propia cada una)
-y el resto de los Bloques 5-7.
+**Estado (sesión 181, 13 de septiembre de 2026): `LEV16` construida — Bloque 5 (apalancamiento)
+queda completo.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo
+(`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`,
+`DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17`
+(sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada
+(sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174);
+`INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada
+(sesión 176); `INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión)
+quedó completo; `PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión
+viva) queda también completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10` (sesión 180);
+`LEV16` (sesión 181) — con esto el Bloque 5 (apalancamiento) queda también completo. Quedan 10
+tareas accionables: dos apuestas grandes restantes (`GOB15`, `GOB19`, reservadas a sesión propia
+cada una) y el resto de los Bloques 6-7.
 
 ## 0. Por qué existe este documento
 
@@ -157,7 +158,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 25 | ✅ `LEV13` | Sensibilidad del veredicto de apalancarse: punto de cruce exacto por bisección | `AP-5` | M | Alto | **Hecho (sesión 170).** `leverageVerdictCrossing()` (`canonical-leverage-simulator.js`) aplica la misma bisección exacta de `inverseScenario` (forecast general) sobre `simulateLeverage` — reimplementada localmente porque `findFactorCrossing` no estaba exportada del otro módulo — para decir cuánto tendría que caer la rentabilidad esperada, o cuánto tendría que subir el tipo de la deuda nueva, antes de que cada escenario cambie de signo. Un escenario ya desfavorable hoy no tiene punto de cruce hacia delante (mismo criterio que `alreadyBroken`). Se muestra en el simulador AP3 (`lev13VerdictCrossingHtml`). Tests: `tests/lev13-sensibilidad-cruce-apalancamiento.test.cjs`. |
 | 26 | ✅ `LEV14` | Apalancamiento parcial escalonado (dollar-cost leverage) | `AP-6` | M | Medio | **Hecho (sesión 173).** Nueva `staggeredLeverageDeployment()` (`canonical-leverage-simulator.js`) reparte el importe declarado en el simulador AP3 en varios tramos iguales a lo largo del tiempo (número de tramos e intervalo en meses, únicos campos nuevos), mismo guardarraíl AP4 que `simulateLeverage()`. Reutiliza tal cual `simulateLeverage()` para la comparación de referencia (`lumpSum`): bajo los mismos tipo y escenarios de rentabilidad declarados para cada tramo, el resultado anual esperado una vez desplegado el importe entero es, por aritmética, idéntico a tomarlo de una sola vez — escalonar no mejora ni empeora esa cifra, solo reparte en el tiempo cuándo se toma cada tramo, reduciendo el riesgo de comprometer todo el importe en un único mal momento (riesgo que este simulador no cuantifica, mismo criterio de no fabricar precisión que `INV16`). Solo informativo: nunca programa ni ejecuta ninguna toma de deuda real. Se muestra en Ajustes › Deuda y apalancamiento, justo debajo del simulador AP3. Tests: `tests/lev14-apalancamiento-escalonado.test.cjs`. |
 | 27 | ✅ `LEV15` | Coste comparado en euros y efecto fiscal de las dos salidas del margin call | `AP-7` | S | Alto | **Hecho (sesión 168).** `lev15MarginCallExitCostHtml()` (`app.js`) compara el coste total de las dos salidas que ya calcula `lombardMarginCallSimulation` (APX3): aportar garantía (sin efecto fiscal, no es una venta) frente a liquidación forzosa, cuyo efecto fiscal se estima con `optimizePartialSale` (mismo motor de tramos del ahorro que FC5) sobre la plusvalía ya realizada este año (`fc5AlreadyRealized`, sin duplicar el campo) y la que llevaría implícita el importe liquidado según un % de plusvalía declarado sobre la cartera pignorada (`lev15GainLossPct`, misma fórmula pro-rata que ya usa `sellVsBorrowComparison`/INV10). Nunca decide cuál salida tomar. Tests: `tests/lev15-coste-salidas-margin-call.test.cjs`. |
-| 28 | ⏳ `LEV16` | El coste de oportunidad de NO apalancarse, simétrico al riesgo de apalancarse | `AP-9` | S | Medio | Todo el módulo enmarca la pregunta solo desde el riesgo de apalancarse; falta el lado simétrico de mantener liquidez ociosa sin invertir ni apalancar. |
+| 28 | ✅ `LEV16` | El coste de oportunidad de NO apalancarse, simétrico al riesgo de apalancarse | `AP-9` | S | Medio | **Hecho (sesión 181).** `lev16IdleLiquidityCostHtml()` (`app.js`) reutiliza tal cual `cp2IdleCashSummary()` (CP2) — liquidez por encima del colchón sin invertir ni apalancar — y la muestra en Deuda → Apalancamiento, justo debajo de las herramientas de riesgo de apalancarse, sin motor nuevo ni campos que declarar. Con esto el Bloque 5 (apalancamiento) queda completo. |
 
 ---
 
