@@ -70,6 +70,56 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (188): `GOB14`
+
+El usuario pidió seguir con el Bloque 7. Con `GOB13` cerrada, siguiente en la tabla: `GOB14`.
+
+**Diagnóstico previo**: el backlog describía `GOB14` como "informe trimestral exportable,
+maquetado para presentar a la familia", distinto de `GOB3` (índice de decisiones de
+`PROJECT_STATE.md`, uso interno de desarrollo) y de la exportación de Análisis (`A-11`, vista de
+trabajo con cifras técnicas de colchón/desviación/cascada): esta es una vista para enseñar, no para
+trabajar, reutilizando "las cifras ejecutivas de procedencia (`A2-6`) ya existentes" — el mismo
+contrato `ExecutiveReadModel`/`unifiedActionCenterModel()` que hoy audita `renderE6KpiQuality()` en
+Análisis (label/valor/fecha/fuente/método/cobertura/confianza de cada KPI), sin recalcular ningún
+dato. El mecanismo de exportación "PDF de una página" ya existe y se reutiliza por tercera vez
+(`A-11`/`C-12`/`L-7`): `#cierrePrintEvidence` + `window.print()`.
+
+**Construido**:
+- `GOB14` — nueva tarjeta "Informe trimestral para la familia" en Herramientas avanzadas → Datos
+  (`#herramientas-datos`), junto al informe PDF certificado (`A19-2`) y los informes de cierre
+  archivados. `gob14QuarterlyReportContext()` (`app.js`) reutiliza tal cual
+  `unifiedActionCenterModel().readModel` (las seis cifras ejecutivas con procedencia: liquidez,
+  capacidad libre, reserva protegida, cobertura hasta el siguiente ingreso, deuda pendiente y fecha
+  libre de deuda) y sus hasta tres decisiones prioritarias, sin motor propio. El trimestre en curso
+  se calcula con `currentBudgetQuarterKey()`/`budgetLongPeriodRange()` (ya construidos para
+  presupuesto anual/trimestral, `BUD-1`). `gob14QuarterlyReportPrintHtml()` maqueta el informe en
+  lenguaje llano — valor + fecha + confianza por KPI, la lista de decisiones o "sin decisiones
+  prioritarias pendientes", y un aviso agregado si hay cifras de confianza baja (nunca las da por
+  buenas en silencio). Botón "Descargar informe trimestral" (`downloadGob14QuarterlyReport`),
+  conectado en el mismo bloque de wiring de `#ajustes`/`#herramientas-datos` que ya usa
+  `a19CertifiedReportDownload`. Tests: `tests/gob14-informe-trimestral-familia.test.cjs` (15 tests,
+  los 15 en verde tras corregir la abreviatura real de "septiembre" que da el `Intl` de este entorno
+  — "sept", no "sep" — tomada de la salida real, no supuesta).
+- **Validación**: `npm run verify` completo en verde. `npm test` **4156/4156** pruebas (15 nuevas).
+  `test:a11y` **1304 IDs únicos** (antes 1303, sesión 187; +1 por el botón nuevo). `test:performance`:
+  diff 10.000 filas 30,8 ms, forecast y escenarios 165,5 ms, recursos 2261 KB, presupuestos a escala
+  (1000 categorías × 10 años) — análisis 104,9 ms, alertas 69,1 ms, forecast 116,3 ms, histórico de
+  presupuestos 27,4 ms, índice de transacciones por categoría 125,0 ms. `build:site`, `test:privacy`
+  y `test:smoke` sin errores. Validación manual adicional en navegador real con Playwright: (1) el
+  botón aparece en Herramientas avanzadas → Datos; (2) al pulsarlo se genera el informe con los datos
+  de ejemplo reales (KPI, fecha, confianza) y se llama a `window.print()`; (3) la clase de impresión
+  del `<body>` se añade y se retira correctamente; (4) sin errores de consola nuevos — los tres
+  avisos de red observados (CDN de Supabase bloqueado por la sandbox y dos 404) ya existían al cargar
+  la página antes de tocar nada, verificado aparte sirviendo la página sola.
+  - Nota de entorno: esta sesión partió sin `node_modules/` instalado (contenedor recién
+    aprovisionado); se ejecutó `npm install` antes de validar. No es un cambio de dependencias del
+    repositorio — `package.json`/`package-lock.json` no se han tocado.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 2 tareas del Bloque 7 (`GOB16`, `GOB18`) y las dos
+  apuestas grandes (`GOB15`, `GOB19`, cada una reservada a su propia sesión).
+
 ## Cierre de sesión — 13 de septiembre de 2026 (187): `GOB13`
 
 El usuario pidió seguir con el Bloque 7. Con `GOB12` cerrada, siguiente en la tabla: `GOB13`.

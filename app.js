@@ -19579,6 +19579,77 @@ function downloadA19CertifiedReport() {
   window.P2Export.downloadPlainPdf(a19CertifiedReportLines(), `informe-certificado-${today}.pdf`);
 }
 
+// GOB14 (Oleada 4, Bloque 7): informe trimestral exportable, maquetado para presentar a la
+// familia. Distinto de GOB3 (índice de decisiones de PROJECT_STATE.md, uso interno de
+// desarrollo) y de la exportación de Análisis (A-11, vista de trabajo con cifras técnicas de
+// colchón/desviación): esta es una vista para enseñar, no para trabajar. Reutiliza tal cual las
+// cifras ejecutivas ya citadas por procedencia (A2-6, unifiedActionCenterModel/
+// ExecutiveReadModel) — el mismo dato que ya audita renderE6KpiQuality en Análisis, aquí en
+// lenguaje llano — y las hasta 3 decisiones prioritarias (readModel.decisions), sin motor nuevo.
+// Mismo mecanismo de "PDF de una página" que A-11/C-12 (#cierrePrintEvidence + window.print()).
+const GOB14_CONFIDENCE_LABEL = { high: "alta", medium: "media", low: "baja" };
+
+function gob14QuarterLabel(quarterKey) {
+  const match = /^(\d{4})-Q([1-4])$/.exec(String(quarterKey || ""));
+  const range = match ? budgetLongPeriodRange("quarterly", quarterKey) : null;
+  if (!range) return String(quarterKey || "");
+  const monthName = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString("es-ES", { month: "short" }).replace(".", "");
+  return `T${match[2]} ${match[1]} (${monthName(range.start)}-${monthName(range.end)})`;
+}
+
+// El motor (A2-6) guarda "YYYY-MM" en bruto para `debtFreeDate` cuando es una fecha real (para que
+// quien lo consuma pueda ordenarlo/compararlo) y frases ya legibles ("sin deuda pendiente", "fuera
+// de horizonte"...) en el resto de casos — aquí solo se decide cuál de las dos formas es, nunca se
+// recalcula el dato.
+function gob14MetricValueText(item) {
+  if (item.value === null || item.value === undefined || item.value === "") return HOME_MISSING_VALUE;
+  if (item.unit === "EUR") return money(item.value, true);
+  if (item.unit === "EUR/month") return `${money(item.value, true)}/mes`;
+  if (/^\d{4}-\d{2}$/.test(String(item.value))) return ledgerMonthLabel(item.value);
+  return String(item.value);
+}
+
+function gob14QuarterlyReportContext() {
+  const model = unifiedActionCenterModel().readModel;
+  return {
+    quarterLabel: gob14QuarterLabel(currentBudgetQuarterKey()),
+    generatedAt: formatIsoDate(defaultBalanceDate()),
+    metrics: Object.values(model?.metrics || {}),
+    decisions: model?.decisions || [],
+    quality: model?.quality || { complete: true, missingMetadata: [], lowConfidence: [] },
+  };
+}
+
+function gob14QuarterlyReportPrintHtml(context) {
+  const metricsHtml = context.metrics
+    .map((item) => `<tr><td>${escapeHtml(item.label)}</td><td>${escapeHtml(gob14MetricValueText(item))}</td><td>${escapeHtml(item.asOf)}</td><td>${escapeHtml(GOB14_CONFIDENCE_LABEL[item.confidence] || item.confidence)}</td></tr>`)
+    .join("");
+  const decisionsHtml = context.decisions.length
+    ? `<ol>${context.decisions.map((item) => `<li><strong>${escapeHtml(item.title || item.label || "")}</strong>${item.text ? ` — ${escapeHtml(item.text)}` : ""}</li>`).join("")}</ol>`
+    : "<p>Sin decisiones prioritarias pendientes.</p>";
+  const qualityText = context.quality.lowConfidence.length
+    ? `${context.quality.lowConfidence.length} cifra(s) de este informe tienen confianza baja: revísalas antes de decidir con ellas.`
+    : "Todas las cifras de este informe tienen confianza media o alta.";
+  return `<h1>Informe trimestral — ${escapeHtml(context.quarterLabel)}</h1>
+    <p>Generado el ${escapeHtml(context.generatedAt)}. Resumen para compartir en casa, no un documento de trabajo.</p>
+    <h2>Cifras clave, con su procedencia</h2>
+    <table><thead><tr><th>Indicador</th><th>Valor</th><th>Fecha</th><th>Confianza</th></tr></thead><tbody>${metricsHtml}</tbody></table>
+    <p>${escapeHtml(qualityText)}</p>
+    <h2>Qué toca decidir</h2>
+    ${decisionsHtml}`;
+}
+
+// Mismo contenedor global de impresión que A-11/C-12/L-7 (`#cierrePrintEvidence`, fuera de
+// `.app-shell`): un solo mecanismo de "PDF de una página" para toda la app, no uno por pantalla.
+function downloadGob14QuarterlyReport() {
+  const container = qs("cierrePrintEvidence");
+  if (!container) return;
+  container.innerHTML = gob14QuarterlyReportPrintHtml(gob14QuarterlyReportContext());
+  document.body.classList.add("is-printing-cierre-evidence");
+  window.print();
+  document.body.classList.remove("is-printing-cierre-evidence");
+}
+
 // A14-4: desglose por tipo y concentración de riesgo. Lee scenarioSettings.assets (activos
 // declarados a mano, mismo patrón de registro simple que A18-1) y delega toda la normalización en
 // FinanceCanonicalAssets (A14-1) — sin motor propio. Sin activos registrados, el hogar ve un estado
@@ -40532,6 +40603,7 @@ async function init() {
   });
   qs("a19ShareSave")?.addEventListener("click", saveA19ShareLink);
   qs("a19CertifiedReportDownload")?.addEventListener("click", downloadA19CertifiedReport);
+  qs("gob14QuarterlyReportDownload")?.addEventListener("click", downloadGob14QuarterlyReport);
   qs("a19ShareLinkList")?.addEventListener("click", (event) => {
     const revokeButton = event.target.closest("[data-a19-share-revoke]");
     if (!revokeButton) return;
