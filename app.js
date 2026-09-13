@@ -17741,13 +17741,72 @@ function renderDeb3OptionValue(amount, debtAnnualRatePct) {
   if (!box || !comparator) return;
   const waitMonths = Math.round(parseAmount(qs("deb3WaitMonths")?.value));
   const monthlyOutflow = lpAverageMonthlyOutflow();
+  const outflowValue = Number.isFinite(monthlyOutflow) ? round2(monthlyOutflow + gob9MonthlyDebtService()) : null;
   const result = comparator.waitingOptionValue({
     amount,
     debtAnnualRatePct,
     waitMonths,
-    monthlyOutflow: Number.isFinite(monthlyOutflow) ? round2(monthlyOutflow + gob9MonthlyDebtService()) : null,
+    monthlyOutflow: outflowValue,
   });
   box.innerHTML = deb3OptionValueHtml(result);
+  if (result.calculable) {
+    saveDeb3TrackedWait({ amount, debtAnnualRatePct, waitMonths, monthlyOutflow: outflowValue, evaluatedAt: new Date().toISOString() });
+  }
+  renderDeb12WaitingCostSoFar();
+}
+
+function deb3TrackedWait() {
+  return scenarioSettings.deb3TrackedWait || null;
+}
+
+function saveDeb3TrackedWait(tracked) {
+  scenarioSettings.deb3TrackedWait = tracked;
+  saveScenarioSettings();
+}
+
+// DEB12 (Oleada 4, Bloque 6, DE-4): meses de calendario ya transcurridos desde una fecha declarada
+// hacia atrás, mismo criterio año/mes (sin contar días) que ya usa gob11MonthsToRetirement hacia
+// delante.
+function deb12MonthsElapsedSince(isoDate, nowDate = new Date()) {
+  const since = new Date(isoDate);
+  if (Number.isNaN(since.getTime())) return null;
+  const months = (nowDate.getFullYear() - since.getFullYear()) * 12 + (nowDate.getMonth() - since.getMonth());
+  return Math.max(0, months);
+}
+
+// DEB12 (Oleada 4, Bloque 6, DE-4): waitingOptionValue (DEB3) es una cifra fija calculada el día que
+// se declara "voy a esperar N meses" — si el hogar no vuelve a pulsar «Comparar», la nota se queda
+// congelada con esa misma cifra para siempre, aunque pasen meses o años reales de por medio. Mismo
+// patrón "trackeado" que DEB1 ya usa para el veredicto de AP1 (guardar la comparación tal y como se
+// miró, con su fecha, y recalcularla en cada render contra la realidad viva) aplicado ahora a DEB3:
+// aquí la "realidad viva" es el propio calendario. Se guarda cuándo se declaró la espera
+// (evaluatedAt) y, en cada render, se recalcula waitingOptionValue con los meses que de verdad han
+// pasado desde entonces (nunca más que los declarados) — el coste avanza solo con el tiempo en vez
+// de quedarse fijo en la cifra del día que se comparó.
+function deb12WaitingCostSoFarHtml(tracked, nowDate = new Date()) {
+  if (!tracked) return "";
+  const comparator = window.FinanceDebtComparator;
+  if (!comparator) return "";
+  const elapsedMonths = deb12MonthsElapsedSince(tracked.evaluatedAt, nowDate);
+  if (elapsedMonths === null || elapsedMonths <= 0) return "";
+  const cappedElapsed = Math.min(elapsedMonths, tracked.waitMonths);
+  const soFar = comparator.waitingOptionValue({
+    amount: tracked.amount,
+    debtAnnualRatePct: tracked.debtAnnualRatePct,
+    waitMonths: cappedElapsed,
+    monthlyOutflow: tracked.monthlyOutflow,
+  });
+  if (!soFar.calculable) return "";
+  const finishedNote = elapsedMonths >= tracked.waitMonths
+    ? ` Ya se cumplieron los ${tracked.waitMonths} mes(es) que declaraste esperar — si sigues sin decidir, vuelve a pulsar «Comparar» para trackear un nuevo periodo de espera.`
+    : "";
+  return `<p class="e19-kpi-note"><strong>Lo que ya llevas pagado por esperar (DEB12):</strong> han pasado ${cappedElapsed} de los ${tracked.waitMonths} mes(es) que declaraste esperar — hasta hoy, esa espera ya te ha costado ${money(soFar.waitingCost, true)} en interés no evitado.${finishedNote}</p>`;
+}
+
+function renderDeb12WaitingCostSoFar() {
+  const box = qs("deb12WaitingCostSoFarNote");
+  if (!box) return;
+  box.innerHTML = deb12WaitingCostSoFarHtml(deb3TrackedWait());
 }
 
 // DEB9 reutiliza la misma llamada a waitingOptionValue con el mismo importe/TIN/meses de espera que

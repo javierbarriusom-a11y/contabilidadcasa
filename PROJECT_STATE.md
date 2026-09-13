@@ -70,6 +70,63 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (182): `DEB12`
+
+El usuario pidió seguir con `DEB12` para arrancar el Bloque 6 (deuda según liquidez) tras cerrar el
+Bloque 5 con `LEV16`.
+
+**Diagnóstico previo**: el backlog describía `DEB12` como "el precio de esperar (`waitingOptionValue`)
+como serie temporal, no cifra congelada", indicando reutilizar el patrón de "comparación trackeada"
+que `DEB1` ya usa para el veredicto de `AP1`, aplicado ahora a `DEB3`. Revisando `DEB3`
+(`waitingOptionValue()`, `canonical-debt-comparator.js`): calcula el interés no evitado por esperar
+`N` meses declarados, pero esa cifra se computa una única vez, al pulsar «Comparar», y la nota se
+queda fija con ese resultado para siempre — si el hogar no vuelve a rellenar el formulario, no hay
+forma de saber cuánto de esa espera ya se ha "pagado" de verdad a medida que pasa el tiempo real.
+Revisando `DEB1` (`ap1TrackedComparison`/`deb1RecomputeTrackedAssessment`/`deb1VerdictChangeHtml`):
+el patrón exacto es guardar la comparación tal y como se miró (con su fecha, `evaluatedAt`) y, en
+cada render, recalcularla contra la realidad viva — en `DEB1` esa realidad es el principal real de
+la deuda y la XIRR real de la cartera; en `DEB3` la realidad viva equivalente es el propio
+calendario: los meses que de verdad han pasado desde que se declaró la espera.
+
+**Construido**:
+- `DEB12` — `scenarioSettings.deb3TrackedWait` guarda `{amount, debtAnnualRatePct, waitMonths,
+  monthlyOutflow, evaluatedAt}` cada vez que `renderDeb3OptionValue()` produce un resultado
+  calculable (mismo momento en que `DEB1` guarda su propio snapshot, dentro del mismo flujo de
+  «Comparar»). Nueva `deb12MonthsElapsedSince(isoDate, nowDate)` (`app.js`) — mismo criterio
+  año/mes sin días que ya usa `gob11MonthsToRetirement`, aquí hacia atrás — y nueva
+  `deb12WaitingCostSoFarHtml(tracked, nowDate)`, función pura que recalcula `waitingOptionValue()`
+  (sin motor nuevo) con los meses REALES transcurridos desde `evaluatedAt` (nunca más que los
+  declarados) para mostrar cuánto ha costado la espera hasta hoy, no solo el total previsto para el
+  final del plazo. Si ya se cumplió el plazo declarado, lo dice explícitamente e invita a volver a
+  comparar para trackear un nuevo periodo, en vez de seguir acumulando en silencio más allá de lo
+  declarado. Se muestra en Deuda → Apalancamiento, justo debajo de la nota de `DEB3`
+  (`#deb12WaitingCostSoFarNote`). Misma lección de `LEV10` aplicada desde el principio: el
+  repintado de vista-completa va en `renderDeudaApalancamiento()` (`views/deuda.js`), no en
+  `renderAjustes()` (`app.js`) — verificado con Playwright que, tras recargar la página con el reloj
+  de `evaluatedAt` adelantado 2 meses (sin volver a pulsar «Comparar»), la nota nueva aparece sola
+  con el coste acumulado correcto (100 € de los 300 € totales para un ejemplo de 10.000 € al 6% TIN
+  a 6 meses declarados). Tests: `tests/deb12-precio-esperar-serie-temporal.test.cjs` (11 tests) — no
+  repite la cobertura de `waitingOptionValue()` en sí, ya cubierta en
+  `tests/deb3-opcionalidad-esperar.test.cjs`.
+- **Validación**: `npm run verify` completo en verde. `npm test` **4061/4061** pruebas (11 nuevas de
+  `DEB12`). `test:a11y` **1275 IDs únicos** (antes 1274, sesión 181; +1 por la nota de resultado
+  nueva). `test:performance`: diff 10.000 filas 30,2 ms, forecast y escenarios 154,4 ms, recursos
+  2240 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 108,4 ms, alertas 69,6 ms,
+  forecast 131,1 ms, histórico de presupuestos 27,9 ms, índice de transacciones por categoría
+  86,7 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual adicional en
+  navegador real con Playwright confirmó las cuatro fases: (1) sin comparación trackeada, la nota
+  nueva está vacía; (2) tras pulsar «Comparar», `DEB3` muestra su nota habitual y el snapshot queda
+  guardado con su fecha; (3) adelantando el reloj de `evaluatedAt` 2 meses y recargando sin tocar el
+  formulario, la nota de `DEB12` aparece sola con el coste acumulado real; sin errores de consola de
+  la app en ningún caso (el único fallo de red observado fue una CDN externa, `supabase-js`, bloqueada
+  por el entorno de sandbox — ajeno a este cambio).
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 9 tareas accionables — las dos apuestas grandes
+  (`GOB15`, `GOB19`, cada una reservada a su propia sesión), el resto del Bloque 6 (`DEB14`/`16`) y
+  el Bloque 7 completo (`GOB12`-`14`/`16`/`18`).
+
 ## Cierre de sesión — 13 de septiembre de 2026 (181): `LEV16`
 
 El usuario pidió seguir con `LEV16` para cerrar el Bloque 5 (apalancamiento) tras `LEV10`.
