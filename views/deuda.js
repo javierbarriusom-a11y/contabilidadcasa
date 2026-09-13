@@ -1219,6 +1219,7 @@ function renderDeudaContratos() {
   const cuadreEl = qs("deudaContratosCuadre");
   if (cuadreEl) cuadreEl.innerHTML = deudaContratosCuadreHtml(debtCapitalCuadre());
   renderDeb5FiscalPriority(contracts);
+  renderDeb16PayoffOrder(contracts);
   renderDeb13DormantExpensiveDebtAlert(contracts);
   renderDeb6DebtChecklist(contracts);
 }
@@ -1243,6 +1244,65 @@ function renderDeb5FiscalPriority(contracts) {
     ? `<p class="e19-kpi-note is-warn">La deducción fiscal cambia este orden frente al TAE nominal solo — revisa antes de amortizar "la de interés más alto" sin más.</p>`
     : "";
   note.innerHTML = `<ol class="commit-barrier-list">${items}</ol>${warning}`;
+}
+
+// DEB16 (Oleada 4, Bloque 6, DE-8): DEB5 (arriba) ordena todas las deudas activas por coste real
+// (TAE efectivo tras deducción fiscal) — la lógica de "avalancha" de los métodos clásicos de repago
+// de varias deudas. Nunca pregunta si el hogar prefiere en su lugar "bola de nieve" (empezar por la
+// de menor capital pendiente, para ir cerrando deudas antes y ganar impulso psicológico, aunque no
+// sea la de mayor coste). Distinto de DEB7 (preferencia agregada coste-mínimo vs. libre-de-deudas
+// sobre el veredicto de UNA deuda en AP1): aquí la pregunta es el ORDEN entre VARIAS deudas
+// simultáneas, no si amortizar o invertir. `simulateDebtConsolidation` (DEB6) da el coste de
+// consolidar, nunca este orden. Reutiliza tal cual las mismas filas ya calculadas por
+// `fiscalAdjustedDebtPriority()` (DEB5, misma llamada de arriba) — sin filtro ni motor propio — y
+// solo las reordena según la estrategia declarada. Nunca decide cuál de las dos "es mejor": ambas
+// son igual de válidas, una prioriza el coste financiero y la otra el impulso de ver deudas cerradas.
+const DEB16_STRATEGY_LABEL = {
+  avalancha: "avalancha (mayor coste real primero)",
+  "bola-de-nieve": "bola de nieve (menor capital pendiente primero)",
+};
+
+function deb16PayoffStrategy() {
+  return state?.deb16PayoffStrategy === "bola-de-nieve" ? "bola-de-nieve" : "avalancha";
+}
+
+function syncDeb16PayoffStrategyControl() {
+  const select = qs("deb16PayoffStrategySelect");
+  if (select && document.activeElement !== select) select.value = deb16PayoffStrategy();
+}
+
+function handleDeb16PayoffStrategyChange() {
+  if (!state) return;
+  state.deb16PayoffStrategy = qs("deb16PayoffStrategySelect")?.value === "bola-de-nieve" ? "bola-de-nieve" : "avalancha";
+  saveScenarioSettings();
+  syncDeb16PayoffStrategyControl();
+  renderDeb16PayoffOrder();
+}
+
+function deb16OrderedRows(priorityResult, strategy) {
+  if (!priorityResult || !priorityResult.calculable) return [];
+  const ordered = strategy === "bola-de-nieve"
+    ? [...priorityResult.rows].sort((a, b) => a.currentPrincipal - b.currentPrincipal)
+    : [...priorityResult.rows].sort((a, b) => b.effectiveAprPct - a.effectiveAprPct);
+  return ordered.map((row, index) => ({ ...row, payoffRank: index + 1 }));
+}
+
+function deb16PayoffOrderHtml(priorityResult, strategy) {
+  const rows = deb16OrderedRows(priorityResult, strategy);
+  if (!rows.length) return `<p class="e19-kpi-note">Sin deudas activas con TAE declarado todavía — nada que ordenar.</p>`;
+  const items = rows
+    .map((row) => `<li class="commit-barrier-item">${row.payoffRank}. <strong>${escapeHtml(row.entity)}</strong> — ${money(row.currentPrincipal, true)} pendiente${strategy === "avalancha" ? `, TAE efectivo ${row.effectiveAprPct}%` : ""}</li>`)
+    .join("");
+  return `<p class="e19-kpi-note">Estrategia declarada: ${DEB16_STRATEGY_LABEL[strategy] || strategy}.</p><ol class="commit-barrier-list">${items}</ol>`;
+}
+
+function renderDeb16PayoffOrder(contracts) {
+  const note = qs("deb16PayoffOrderNote");
+  const engine = window.FinanceDebtContracts;
+  if (!note || !engine) return;
+  syncDeb16PayoffStrategyControl();
+  const priorityResult = engine.fiscalAdjustedDebtPriority(contracts || debtContractSourceRows());
+  note.innerHTML = deb16PayoffOrderHtml(priorityResult, deb16PayoffStrategy());
 }
 
 // DEB13 (Oleada 4, Bloque 6): alerta de "deuda cara dormida" — DEB5 (arriba) ya prioriza QUÉ deuda

@@ -70,6 +70,71 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (183): `DEB16`
+
+El usuario pidió seguir con `DEB16` para cerrar el Bloque 6 (deuda según liquidez) tras `DEB12`.
+
+**Diagnóstico previo**: el backlog describía `DEB16` como "avalancha vs. bola de nieve, como
+preferencia declarada para el orden entre varias deudas", distinguiéndola explícitamente de `DEB7`
+(preferencia agregada coste-mínimo vs. libre-de-deudas sobre el veredicto de UNA deuda en `AP1`): aquí
+la pregunta es el ORDEN entre VARIAS deudas simultáneas. Revisando `DEB5`
+(`fiscalAdjustedDebtPriority()`, `canonical-debt-contracts.js`): ya ordena TODAS las deudas activas
+por TAE efectivo tras deducción fiscal — exactamente la lógica de "avalancha" (mayor coste real
+primero) de los métodos clásicos de repago — pero nunca pregunta si el hogar prefiere en su lugar
+"bola de nieve" (empezar por la de menor capital pendiente, para ir cerrando deudas antes y ganar
+impulso psicológico). `simulateDebtConsolidation` (`DEB6`) da el coste de consolidar, nunca este
+orden. El hueco era una reordenación declarable de un dato ya calculado, no un motor nuevo.
+
+**Construido**:
+- `DEB16` — nueva tarjeta en Deuda › Contratos, justo debajo de la de `DEB5`: un desplegable
+  (`#deb16PayoffStrategySelect`, "avalancha" por defecto — mismo criterio de valor por defecto que
+  `DEB7` con "coste-mínimo", porque es el que la app ya mostraba antes de esta tarea) y una lista
+  ordenada (`deb16PayoffOrderHtml()`, `views/deuda.js`) que reutiliza tal cual las mismas filas ya
+  calculadas por `fiscalAdjustedDebtPriority()` — sin filtro ni motor propio — y solo las reordena:
+  por TAE efectivo descendente para avalancha, por capital pendiente ascendente para bola de nieve.
+  Nunca decide cuál de las dos "es mejor": ambas son igual de válidas.
+  - **Dos fallos reales encontrados y corregidos durante la construcción, ninguno detectado por
+    `npm test` hasta escribir los tests que los cubren, y el segundo solo por validación manual en
+    navegador**:
+    1. El listener del nuevo desplegable se registró inicialmente como referencia directa
+       (`addEventListener("change", handleDeb16PayoffStrategyChange)`) en el bloque de arranque de
+       `app.js` — pero `handleDeb16PayoffStrategyChange` vive en `views/deuda.js`, cargado de forma
+       perezosa DESPUÉS de que ese bloque se ejecute. Resultado: `ReferenceError` inmediato que
+       reventaba el arranque completo de la app ("No se pudo cargar la app"), detectado solo al
+       abrir la app en un navegador real, no por la suite de tests. Corregido envolviendo la llamada
+       en una función anónima (`() => handleDeb16PayoffStrategyChange()`), mismo patrón que ya usa
+       `handleDeudaCompararReserveInput` para el mismo problema.
+    2. La preferencia declarada (`state.deb16PayoffStrategy`) se guardaba en memoria pero no
+       sobrevivía a recargar la página: `saveScenarioSettings()` no serializa `state` genéricamente,
+       sino una lista explícita y cerrada de campos (el propio código ya documenta el mismo fallo
+       histórico para `SP3`/`FC4`) — faltaba añadir `deb16PayoffStrategy` a esa lista. Corregido y
+       cubierto con un test de wiring dedicado para que no vuelva a pasar desapercibido.
+  - Tests: `tests/deb16-avalancha-vs-bola-de-nieve.test.cjs` (14 tests, incluido un caso que
+    demuestra que avalancha y bola de nieve divergen de verdad cuando la deuda más cara no es la más
+    pequeña) — no repite la cobertura de `fiscalAdjustedDebtPriority()`, ya cubierta en
+    `tests/deb5-deb6-prioridad-fiscal-y-consolidacion.test.cjs`.
+- **Con esto el Bloque 6 (deuda según liquidez) queda completo** salvo `DEB14` (alcance ya reducido,
+  marcado como tal desde antes de esta oleada de sesiones).
+- **Validación**: `npm run verify` completo en verde. `npm test` **4074/4074** pruebas (14 nuevas de
+  `DEB16`, más 2 tests preexistentes ajustados: la ventana de `tests/gob7-modo-sesion-asesor.test.cjs`
+  que verifica la adyacencia en `saveScenarioSettings()` creció de 900 a 1200 caracteres, mismo
+  patrón de crecimiento que ya documentaba desde `DEB11`; y un stub nuevo para
+  `renderDeb16PayoffOrder` en `tests/d1-d2-deuda-tabs-contratos.test.cjs`, mismo patrón que los stubs
+  ya existentes de DEB5/DEB13). `test:a11y` **1277 IDs únicos** (antes 1275, sesión 182; +2 por el
+  desplegable y su nota de resultado nuevos). `test:performance`: diff 10.000 filas 38,0 ms, forecast
+  y escenarios 191,8 ms, recursos 2241 KB, presupuestos a escala (1000 categorías × 10 años) —
+  análisis 149,4 ms, alertas 96,3 ms, forecast 180,1 ms, histórico de presupuestos 33,1 ms, índice de
+  transacciones por categoría 129,1 ms. `build:site`, `test:privacy` y `test:smoke` sin errores.
+  Validación manual adicional en navegador real con Playwright: (1) confirmó el fallo de arranque
+  del punto 1 y su corrección; (2) confirmó el fallo de persistencia del punto 2 y su corrección,
+  incluida la persistencia tras recargar; (3) sin errores de consola de la app en ningún caso.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 8 tareas accionables — las dos apuestas grandes
+  (`GOB15`, `GOB19`, cada una reservada a su propia sesión), `DEB14` (alcance ya reducido, Bloque 6)
+  y el Bloque 7 completo (`GOB12`-`14`/`16`/`18`).
+
 ## Cierre de sesión — 13 de septiembre de 2026 (182): `DEB12`
 
 El usuario pidió seguir con `DEB12` para arrancar el Bloque 6 (deuda según liquidez) tras cerrar el
