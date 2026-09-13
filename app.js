@@ -7313,9 +7313,91 @@ function refreshCanonicalDailyAudit(monthlyInput, rows, context) {
   return snapshot;
 }
 
+// GOB20 (Oleada 4, Bloque 7, nace al partir GOB12 en sesión 185): ajuste real de ingreso declarado
+// por un rango de meses, que la previsión en vivo (canonicalScenarioResults.base/active/planned)
+// respeta de verdad — hasta ahora el único lugar para declarar una caída de ingreso temporal era el
+// Laboratorio de escenarios (E13), explícitamente de solo lectura y sin ningún efecto en el plan
+// real: canonicalEngineInput() solo leía ingresos históricos/planificados reales, sin ninguna capa
+// de ajustes declarados. Vive como scenarioSettings.incomeAdjustments (mismo patrón que
+// ap1TrackedComparison/e14Debt.offers: se muta el array directamente y se propaga solo por el
+// spread de saveScenarioSettings(), sin necesitar su propia entrada en la lista explícita de
+// campos) y se resta del ingreso de cada mes justo abajo, en canonicalEngineInput() — el único
+// punto donde el ingreso planificado entra al motor (canonical-engine.js lee month.income como
+// baseIncome), así que ningún otro cálculo necesita enterarse de este ajuste por separado. Con el
+// array vacío (comportamiento por defecto) el resultado es idéntico al de antes de esta tarea.
+function gob20IncomeAdjustments() {
+  return Array.isArray(scenarioSettings.incomeAdjustments) ? scenarioSettings.incomeAdjustments : [];
+}
+
+function gob20IncomeAdjustmentForMonth(adjustments, monthKeyValue) {
+  const targetDate = dateFromMonthKey(monthKeyValue);
+  if (!targetDate || !Number.isFinite(targetDate.getTime())) return 0;
+  return round2(adjustments.reduce((total, adjustment) => {
+    const startDate = dateFromMonthKey(adjustment.startMonthKey);
+    if (!startDate || !Number.isFinite(startDate.getTime())) return total;
+    const duration = Math.max(1, Math.round(Number(adjustment.duration) || 1));
+    const offset = monthDistance(startDate, targetDate);
+    if (offset < 0 || offset >= duration) return total;
+    return total + Math.max(0, Number(adjustment.monthlyAmount) || 0);
+  }, 0));
+}
+
+function saveGob20IncomeAdjustments(next) {
+  scenarioSettings.incomeAdjustments = next;
+  saveScenarioSettings();
+  recomputeModelIfNeeded(true);
+}
+
+function addGob20IncomeAdjustment() {
+  const note = qs("gob20AdjustmentStatus");
+  const label = qs("gob20AdjustmentLabel")?.value.trim() || "Caída de ingreso declarada";
+  const monthlyAmount = Math.max(0, parseAmount(qs("gob20AdjustmentAmount")?.value) || 0);
+  const startMonthKey = qs("gob20AdjustmentMonth")?.value || "";
+  const duration = Math.max(1, Math.round(Number(qs("gob20AdjustmentDuration")?.value) || 1));
+  if (!monthlyAmount || !startMonthKey) {
+    if (note) note.textContent = "Indica el mes de inicio y el importe mensual de la caída para declararla.";
+    return;
+  }
+  const current = gob20IncomeAdjustments();
+  saveGob20IncomeAdjustments([...current, {
+    id: `gob20-${Date.now()}-${current.length + 1}`,
+    label,
+    monthlyAmount,
+    startMonthKey,
+    duration,
+    createdAt: new Date().toISOString(),
+  }]);
+  renderGob20IncomeAdjustments();
+  renderNewLifeSimulation({ forceHeavy: true });
+  if (note) note.textContent = "Caída de ingreso declarada — la previsión en vivo ya la refleja.";
+}
+
+function removeGob20IncomeAdjustment(id) {
+  saveGob20IncomeAdjustments(gob20IncomeAdjustments().filter((adjustment) => adjustment.id !== id));
+  renderGob20IncomeAdjustments();
+  renderNewLifeSimulation({ forceHeavy: true });
+}
+
+function gob20IncomeAdjustmentsHtml(adjustments) {
+  if (!adjustments.length) {
+    return `<p class="e19-kpi-note">Sin caídas de ingreso declaradas — la previsión en vivo usa tu ingreso real tal cual.</p>`;
+  }
+  const items = adjustments
+    .map((adjustment) => `<li class="commit-barrier-item"><strong>${escapeHtml(adjustment.label)}</strong>: ${money(adjustment.monthlyAmount, true)}/mes desde ${escapeHtml(adjustment.startMonthKey)}, durante ${adjustment.duration} mes(es) <button type="button" class="e19-btn e19-btn-secondary" data-gob20-remove="${escapeHtml(adjustment.id)}">Quitar</button></li>`)
+    .join("");
+  return `<ul class="commit-barrier-list">${items}</ul>`;
+}
+
+function renderGob20IncomeAdjustments() {
+  const list = qs("gob20IncomeAdjustmentsList");
+  if (!list) return;
+  list.innerHTML = gob20IncomeAdjustmentsHtml(gob20IncomeAdjustments());
+}
+
 function canonicalEngineInput(projectOutflows = [], options = {}) {
   const start = modelStartDate();
   const startingBalances = accountBalancesFromState();
+  const incomeAdjustments = gob20IncomeAdjustments();
   const months = [];
   for (let i = 0; i < modelMonthCount(); i += 1) {
     const date = addMonths(start, i);
@@ -7326,11 +7408,13 @@ function canonicalEngineInput(projectOutflows = [], options = {}) {
     const lastIncomeDay = incomeEvents.length
       ? Math.max(...incomeEvents.map((event) => Number(event.day || 1)))
       : payrollDate.getDate();
+    const incomeAdjustment = gob20IncomeAdjustmentForMonth(incomeAdjustments, detail.monthKey);
     months.push({
       index: i + 1,
       month: monthLabel(date),
       monthKey: detail.monthKey,
-      income: detail.income,
+      income: round2(Math.max(0, detail.income - incomeAdjustment)),
+      incomeAdjustment,
       coreSpend: detail.coreSpend,
       variableOperationalSpend: detail.variableOperationalSpend,
       car: detail.car,
@@ -7453,6 +7537,10 @@ function modelComputationSignature() {
     projects,
     debtLiquidations,
     savingsPlan: scenarioSettings.savingsPlan || {},
+    // GOB20: si esto no entra en la firma, un ajuste de ingreso recién declarado o eliminado se
+    // quedaría sin efecto hasta el siguiente recálculo por otro motivo — mismo riesgo que ya
+    // documentan operatingReserve/autoAdjustForecastBias arriba.
+    incomeAdjustments: gob20IncomeAdjustments(),
     incomeActuals,
     expenseActuals,
     customPlanningRows,
@@ -22504,6 +22592,7 @@ function renderNewLifeSimulation({ forceHeavy = false } = {}) {
   renderNewLifeTimeline(ctx);
   renderNewLifeDecisionNotes(ctx);
   renderE13ScenarioLab();
+  renderGob20IncomeAdjustments();
   if (!hasOptimization && !forceHeavy) scheduleHeavyAdvisorRefresh("new-life-simulation");
 }
 
@@ -39569,6 +39658,11 @@ async function init() {
       removeE13ScenarioEvent(removeScenarioEvent.dataset.e13Remove);
       return;
     }
+    const removeIncomeAdjustment = event.target.closest("[data-gob20-remove]");
+    if (removeIncomeAdjustment) {
+      removeGob20IncomeAdjustment(removeIncomeAdjustment.dataset.gob20Remove);
+      return;
+    }
     const actionButton = event.target.closest("[data-new-life-action]");
     if (actionButton) {
       const action = actionButton.dataset.newLifeAction;
@@ -40220,6 +40314,7 @@ async function init() {
     qs(id)?.addEventListener("change", saveDeb4RadarSettings);
   });
   qs("deb14MaxMonthsWithoutOffer")?.addEventListener("change", handleDeb14MaxMonthsChange);
+  qs("gob20AdjustmentAdd")?.addEventListener("click", addGob20IncomeAdjustment);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
   qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);

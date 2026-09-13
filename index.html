@@ -1024,6 +1024,37 @@
               <p class="inline-feedback" id="e13ScenarioStatus" role="status"></p>
               <div class="e13-event-list" id="e13EventList"></div>
               <div class="e13-comparison" id="e13ScenarioComparison"></div>
+              <!-- GOB20 (Oleada 4, Bloque 7): a diferencia de los eventos de arriba (Laboratorio de
+                   escenarios, solo simulación, nunca toca el plan real), esto SÍ se aplica de
+                   verdad — la previsión en vivo resta este importe del ingreso de cada mes
+                   declarado, mientras dure. Nace de partir GOB12: el hogar quería poder aplicar de
+                   verdad una caída de ingreso temporal, y no existía ningún mecanismo real para
+                   ello hasta esta tarea. -->
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title">Caída de ingreso declarada — se aplica a la previsión real</h3>
+                <p class="e19-kpi-note">Distinto de los eventos de arriba: esto SÍ afecta a la previsión en vivo (Hoy, PV1-PV5, Presupuesto…), no es una simulación. Declara un importe mensual, desde qué mes y durante cuántos meses — sin declarar nada, tu ingreso real sigue sin tocarse.</p>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker">
+                    <span>Motivo (opcional)</span>
+                    <input id="gob20AdjustmentLabel" type="text" placeholder="Ej. Reducción de jornada" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Caída mensual (€)</span>
+                    <input id="gob20AdjustmentAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Desde</span>
+                    <input id="gob20AdjustmentMonth" type="month" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Duración (meses)</span>
+                    <input id="gob20AdjustmentDuration" type="number" min="1" step="1" inputmode="numeric" placeholder="1" />
+                  </label>
+                </div>
+                <button type="button" class="e19-btn e19-btn-secondary" id="gob20AdjustmentAdd">Declarar caída de ingreso</button>
+                <p class="e19-kpi-note" id="gob20AdjustmentStatus" role="status"></p>
+                <div id="gob20IncomeAdjustmentsList"></div>
+              </article>
               <!-- PVC10 (Oleada 3, Bloque 4): detalle de la previsión ponderada por eventos
                    inciertos — la fila permanente ya vive arriba, en la comparación principal
                    (e13ScenarioComparison); aquí solo el desglose por evento. -->

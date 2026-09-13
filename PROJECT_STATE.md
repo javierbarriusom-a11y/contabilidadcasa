@@ -70,6 +70,57 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (185): `GOB20`
+
+El hogar pidió seguir con el Bloque 7. Al diagnosticar `GOB12` ("plantilla de evento de vida": gasto
+recurrente + posible caída temporal de ingreso + objetivo nuevo) apareció una decisión de alcance
+real que se llevó a la conversación antes de construir: `GOB12` necesita un botón "aplicar a real"
+para la caída de ingreso, pero **no existía ningún mecanismo real** para ello — solo el Laboratorio
+de escenarios (E13), explícitamente de solo lectura, y `canonicalEngineInput()` (la única puerta de
+entrada del ingreso planificado al motor real) solo leía ingresos históricos/planificados reales,
+sin ninguna capa de "ajustes declarados". El hogar confirmó explícitamente construir ese motor ahora,
+en vez de aplazarlo — de ahí nace `GOB20`, documentado en el backlog como spin-off directo de
+`GOB12` en el momento de tomar la decisión.
+
+**Diagnóstico previo**: `canonical-engine.js` lee `month.income` como `baseIncome` — un único punto
+de entrada. Cualquier ajuste declarado que se aplique justo ahí, en `canonicalEngineInput()` (`app.js`),
+se propaga solo a todo lo que ya depende del forecast base (PV1-PV5, GOB9, GOB11, Presupuesto...) sin
+tocar ningún otro motor. La memoización de `recomputeModelIfNeeded()` (`modelComputationSignature()`)
+debía incluir el nuevo campo declarado, o un ajuste recién declarado se quedaría sin efecto hasta el
+siguiente recálculo por otro motivo — mismo riesgo que ya avisaban `operatingReserve`/
+`autoAdjustForecastBias` en ese mismo objeto.
+
+**Construido**:
+- `GOB20` — `scenarioSettings.incomeAdjustments` (array declarado, mismo patrón de persistencia que
+  `ap1TrackedComparison`/`e14Debt.offers`: se muta directamente y se propaga solo por el spread de
+  `saveScenarioSettings()`). Nueva `gob20IncomeAdjustmentForMonth(adjustments, monthKey)` (`app.js`)
+  sub-total de todas las caídas activas ese mes (varias se suman si solapan). `canonicalEngineInput()`
+  resta ese total del ingreso de cada mes antes de construirlo — con el array vacío (comportamiento
+  por defecto) el resultado es idéntico byte a byte al de antes de esta tarea, verificado por toda la
+  suite existente (miles de tests que ya ejercitan `computeCanonicalScenario`/`canonicalEngineInput`
+  sin declarar ningún ajuste, todos siguen en verde). Nueva tarjeta "Caída de ingreso declarada — se
+  aplica a la previsión real" en Simulación de nueva vida, justo debajo (y explícitamente contrastada
+  con) el constructor de eventos del Laboratorio de escenarios (E13) de solo lectura. Tests:
+  `tests/gob20-ajuste-real-ingreso.test.cjs` (17 tests).
+- **Validación**: `npm run verify` completo en verde. `npm test` **4109/4109** pruebas (17 nuevas).
+  `test:a11y` **1286 IDs únicos** (antes 1279, sesión 184; +7 por los cuatro campos, el botón, el
+  estado y la lista nuevos). `test:performance`: diff 10.000 filas 44,0 ms, forecast y escenarios
+  252,4 ms, recursos 2250 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 192,7 ms,
+  alertas 124,2 ms, forecast 220,5 ms, histórico de presupuestos 47,7 ms, índice de transacciones por
+  categoría 167,4 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual
+  adicional en navegador real con Playwright, sobre el forecast REAL (`lastBaseSimulation`, no una
+  simulación): (1) ingreso del primer mes antes de declarar nada, 5.000 €; (2) tras declarar una
+  caída de 600 €/mes durante 3 meses desde ese mismo mes, el ingreso real baja a 4.400 € — exactos;
+  (3) al quitar el ajuste, vuelve a 5.000 €; (4) declarando un segundo ajuste (300 €/2 meses) y
+  recargando la página SIN quitarlo, la reducción de 300 € sigue aplicada tras recargar; (5) sin
+  errores de consola de la app en ningún caso.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: `GOB12` (ahora desbloqueada: el botón de aplicar a real
+  para la caída de ingreso ya tiene motor real donde aterrizar), `GOB13`, `GOB14`, `GOB16`, `GOB18`
+  del Bloque 7, y las dos apuestas grandes (`GOB15`, `GOB19`, cada una reservada a su propia sesión).
+
 ## Cierre de sesión — 13 de septiembre de 2026 (184): `DEB14`
 
 El usuario pidió seguir con `DEB14` para cerrar del todo el Bloque 6 (deuda según liquidez) tras

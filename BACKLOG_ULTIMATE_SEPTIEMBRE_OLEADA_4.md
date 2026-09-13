@@ -7,20 +7,21 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 184, 13 de septiembre de 2026): `DEB14` construida — Bloque 6 (deuda según
-liquidez) queda completo.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2
-completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167);
-`PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17`
-(sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada
-(sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174);
-`INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada
-(sesión 176); `INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión)
-quedó completo; `PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión
-viva) queda también completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10` (sesión 180);
-`LEV16` (sesión 181) — con esto el Bloque 5 (apalancamiento) queda también completo; `DEB12`
-(sesión 182); `DEB16` (sesión 183); `DEB14` (sesión 184) — con esto el Bloque 6 queda también
-completo. Quedan 7 tareas accionables: las dos apuestas grandes (`GOB15`, `GOB19`, reservadas a
-sesión propia cada una) y el Bloque 7 completo.
+**Estado (sesión 185, 13 de septiembre de 2026): `GOB20` construida — motor real de ajuste de
+ingreso, nacido al diagnosticar `GOB12`.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b)
+y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta
+(sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`,
+`LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión
+propia dedicada (sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19`
+(sesión 174); `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión
+propia dedicada (sesión 176); `INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4
+(inversión) quedó completo; `PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3
+(previsión viva) queda también completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10`
+(sesión 180); `LEV16` (sesión 181) — con esto el Bloque 5 (apalancamiento) queda también completo;
+`DEB12` (sesión 182); `DEB16` (sesión 183); `DEB14` (sesión 184) — con esto el Bloque 6 queda también
+completo; `GOB20` (sesión 185), spin-off de `GOB12` (ver nota de la tarea). Quedan 7 tareas
+accionables: `GOB12` (ahora desbloqueada), `GOB13`, `GOB14`, `GOB16`, `GOB18` del Bloque 7, y las dos
+apuestas grandes (`GOB15`, `GOB19`, reservadas a sesión propia cada una).
 
 ## 0. Por qué existe este documento
 
@@ -180,7 +181,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 
 ---
 
-## 9. Bloque 7 — Catálogo adicional (9 tareas, continúa `GOB`)
+## 9. Bloque 7 — Catálogo adicional (10 tareas, continúa `GOB`)
 
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
@@ -193,6 +194,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 43 | ✅ `GOB17` | El asistente cita siempre la función `canonical-*.js` real que sustenta su respuesta | `O-9` | M | Alto | **Hecho (sesión 167).** `sourceCatalog()` (`canonical-e9-assistant.js`) ahora propaga `source`/`method` también en alertas y decisiones, no solo en métricas (campos añadidos, ninguno retirado). CP1 declara `canonical-e16-monitoring.js` · `predictiveAlerts()`; CP2 declara `canonical-cushion.js` + `canonical-portfolio.js` · `cushionFloor()`/`opportunityCost()` vía `cp2IdleCashSummary` (`app.js`). Ambas citas reales se muestran al hogar junto al id interno, nunca en su lugar. Tests: `tests/gob17-cita-funcion-real.test.cjs`. |
 | 44 | ⚠️ `GOB18` | Exportar un registro de `GOB10` como paquete de decisión (PDF) para un asesor externo | `O-10` | M | Bajo-Medio | Alcance reducido: `GOB10` (Oleada 3) ya generaliza el registro de tesis con revisión programada a cualquier decisión. Falta solo la capa de exportación/empaquetado, no un registro nuevo. |
 | 45 | ⏳ `GOB19` | Plantilla de separación patrimonial combinando reparto y reestructuración | `O-12` | L | Medio | Combina `canonical-household-split.js` y `canonical-joint-restructuring.js`, hoy aislados, sin construir un tercer motor. |
+| 46 | ✅ `GOB20` | Motor de ajuste real de ingreso declarado (por un rango de meses) que la previsión en vivo respete | `GOB12` | L | Medio | **Hecho (sesión 185).** Nace al diagnosticar `GOB12`: no existía ningún mecanismo real (solo el Laboratorio de escenarios E13, de solo lectura) para declarar una caída temporal de ingreso que la previsión en vivo respetara de verdad. El hogar confirmó construirlo ya, en vez de aplazarlo. Nueva `scenarioSettings.incomeAdjustments`, restada del ingreso de cada mes en `canonicalEngineInput()` (la única puerta de entrada del ingreso al motor real) — con el array vacío, comportamiento idéntico al de antes, verificado por toda la suite existente. Tarjeta nueva en Simulación de nueva vida, junto al Laboratorio de escenarios. Tests: `tests/gob20-ajuste-real-ingreso.test.cjs`. |
 
 ---
 
