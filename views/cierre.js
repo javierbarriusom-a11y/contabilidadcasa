@@ -133,6 +133,97 @@ function cierreFirmChecksHtml(checks) {
   return checks.map((check) => `<li class="deuda-ruta-check${check.met ? " is-ok" : " is-danger"}">${escapeHtml(check.label)}</li>`).join("");
 }
 
+// GOB13 (Oleada 4, Bloque 7): ritual anual de revisión guiada. Complementa, no repite, GOB6 (arriba
+// — checklist MENSUAL de cierre): fuerza revisar en un solo sitio, UNA VEZ AL AÑO, tres cosas que
+// hoy viven aisladas cada una en su propia pantalla — supuestos caducados (PVC15,
+// assumptionExpiryAlerts), ofertas de deuda sin comparar (DEB14, deb14MarketCheckFreshness) y
+// desviación de cartera (INV17, rebalanceCalendarReviewStatus) — reutilizadas tal cual, sin motor
+// propio. El propio ritual anual usa la MISMA función genérica de INV17
+// (rebalanceCalendarReviewStatus, sin nada específico de cartera dentro) para su propio "cuánto
+// hace que se hizo por última vez", en vez de escribir un cuarto ayudante de diferencia de meses.
+function gob13AssumptionExpiryCheck() {
+  const engine = window.FinanceCanonicalForecast;
+  if (!engine?.buildAssumptionRegistry || !engine?.assumptionExpiryAlerts) {
+    return { id: "supuestos", label: "Supuestos fiscales al día (PVC15)", met: null };
+  }
+  const registry = engine.buildAssumptionRegistry(assumptionRegistryInput(), scenarioSettings.assumptionRegistry || {}, { source: "Ajustes" });
+  const expiredCount = engine.assumptionExpiryAlerts(registry).expired.length;
+  return {
+    id: "supuestos",
+    label: expiredCount
+      ? `${expiredCount} supuesto(s) fiscal(es) caducado(s) sin confirmar (PVC15)`
+      : "Supuestos fiscales al día (PVC15)",
+    met: expiredCount === 0,
+  };
+}
+
+function gob13DebtOfferCheck() {
+  const result = deb14MarketCheckFreshness();
+  if (!result.calculable) return { id: "ofertas", label: "Comparación de mercado de tu hipoteca (DEB14, sin umbral declarado)", met: null };
+  const overdueCount = result.rows.filter((row) => row.overdue).length;
+  return {
+    id: "ofertas",
+    label: overdueCount
+      ? `${overdueCount} deuda(s) sin comparar contra el mercado a tiempo (DEB14)`
+      : "Ofertas de mercado comparadas a tiempo (DEB14)",
+    met: overdueCount === 0,
+  };
+}
+
+function gob13PortfolioDeviationCheck() {
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine) return { id: "cartera", label: "Revisión de rebalanceo de cartera (INV17)", met: null };
+  const status = engine.rebalanceCalendarReviewStatus({
+    lastReviewedAt: scenarioSettings.inv17LastRebalanceReviewAt || "",
+    intervalMonths: inv17RebalanceReviewIntervalMonths(),
+  });
+  return {
+    id: "cartera",
+    label: !status.reviewed
+      ? "Todavía no has marcado ninguna revisión de rebalanceo (INV17)"
+      : status.due
+        ? `Revisión de rebalanceo pendiente (INV17, hace ${status.monthsSinceReview} mes(es))`
+        : `Rebalanceo revisado hace ${status.monthsSinceReview} mes(es) (INV17)`,
+    met: status.reviewed && !status.due,
+  };
+}
+
+function gob13AnnualReviewChecklist() {
+  return [gob13AssumptionExpiryCheck(), gob13DebtOfferCheck(), gob13PortfolioDeviationCheck()];
+}
+
+function gob13AnnualReviewStatus() {
+  const engine = window.FinanceCanonicalPortfolio;
+  if (!engine) return { reviewed: false, due: true, monthsSinceReview: null, lastReviewedAt: "" };
+  return engine.rebalanceCalendarReviewStatus({ lastReviewedAt: scenarioSettings.gob13LastAnnualReviewAt || "", intervalMonths: 12 });
+}
+
+function gob13AnnualReviewHtml() {
+  const items = gob13AnnualReviewChecklist()
+    .map((check) => `<li class="deuda-ruta-check${check.met === false ? " is-danger" : check.met === true ? " is-ok" : ""}">${escapeHtml(check.label)}</li>`)
+    .join("");
+  const status = gob13AnnualReviewStatus();
+  const statusLine = !status.reviewed
+    ? `<p class="e19-kpi-note is-warn">Todavía no has marcado ningún ritual anual — hazlo la primera vez para empezar a contar los 12 meses.</p>`
+    : status.due
+      ? `<p class="e19-kpi-note is-warn">Han pasado ${status.monthsSinceReview} mes(es) desde tu último ritual anual (${status.lastReviewedAt}) — toca repetirlo.</p>`
+      : `<p class="e19-kpi-note positive">Último ritual anual hace ${status.monthsSinceReview} mes(es) (${status.lastReviewedAt}), dentro del año.</p>`;
+  return `<ul class="deuda-ruta-checklist">${items}</ul>${statusLine}`;
+}
+
+function renderGob13AnnualReview() {
+  const note = qs("gob13AnnualReviewNote");
+  if (!note) return;
+  note.innerHTML = gob13AnnualReviewHtml();
+}
+
+function markGob13AnnualReviewDone() {
+  scenarioSettings.gob13LastAnnualReviewAt = new Date().toISOString().slice(0, 10);
+  saveScenarioSettings();
+  renderGob13AnnualReview();
+  announceStatus("Ritual anual de revisión marcado como hecho hoy.");
+}
+
 // C-3: tareas agrupadas por causa — cuentas, clasificación y saldo — en vez de la lista plana que
 // ya usa `#conciliar`. C-4: abrir una tarea solo navega a la pantalla de origen; nunca la marca
 // resuelta por sí sola, así que no hay botón «marcar hecho» — la tarea desaparece cuando el dato
@@ -1068,6 +1159,7 @@ function renderCierre() {
   // — es la lista acumulada de todos los cierres firmados hasta ahora, no solo el de este mes.
   const aprendizajeEl = qs("cierreAprendizaje");
   if (aprendizajeEl) aprendizajeEl.innerHTML = cierreAprendizajeHtml();
+  renderGob13AnnualReview();
 
   if (currentClosure) {
     if (titleEl) titleEl.textContent = `${ledgerMonthLabel(currentMonthKey)} cerrado`;

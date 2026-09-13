@@ -70,6 +70,50 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (187): `GOB13`
+
+El usuario pidió seguir con el Bloque 7. Con `GOB12` cerrada, siguiente en la tabla: `GOB13`.
+
+**Diagnóstico previo**: el backlog describía `GOB13` como "ritual anual de revisión guiada", que
+complementa (no repite) `GOB6` — el checklist MENSUAL de cierre — forzando revisar en un solo sitio,
+una vez al año, tres cosas ya construidas y dispersas cada una en su propia pantalla: supuestos
+caducados (`PVC15`, `assumptionExpiryAlerts`), ofertas de deuda sin comparar (`DEB14`,
+`deb14MarketCheckFreshness`, sesión 184) y desviación de cartera (`INV17`,
+`rebalanceCalendarReviewStatus`). Revisando `INV17`: su función de estado ya es completamente
+GENÉRICA (fecha de última revisión + intervalo declarado en meses → revisada/pendiente/nunca), sin
+nada específico de cartera dentro — perfecta para reutilizar tal cual también para el propio "cuánto
+hace que se hizo el ritual anual", en vez de escribir un cuarto ayudante de diferencia de meses en la
+misma sesión (ya van tres: `deb12MonthsElapsedSince`, `monthDistance`, y este).
+
+**Construido**:
+- `GOB13` — nueva tarjeta "Ritual anual de revisión guiada" en Cierre (`views/cierre.js`, visible
+  tanto con el mes abierto como cerrado — es un ritual anual, no del mes en curso), con tres
+  funciones de comprobación (`gob13AssumptionExpiryCheck`, `gob13DebtOfferCheck`,
+  `gob13PortfolioDeviationCheck`) que reutilizan tal cual los tres motores existentes, sin motor
+  propio, y una cuarta (`gob13AnnualReviewStatus`) que reutiliza `rebalanceCalendarReviewStatus`
+  (`INV17`, `canonical-portfolio.js`) con un intervalo de 12 meses para trackear el propio ritual —
+  mismo patrón visual que el checklist de `GOB6` (clases `deuda-ruta-checklist`/`deuda-ruta-check`).
+  Botón "Marcar ritual anual como hecho hoy" (`markGob13AnnualReviewDone`), conectado dentro del
+  delegado de clics ya existente de `#cierre` en `app.js` (nunca por referencia directa, misma
+  lección de `DEB16` sobre vistas de carga perezosa). Tests:
+  `tests/gob13-ritual-anual-revision.test.cjs` (16 tests, los 16 en verde a la primera).
+- **Validación**: `npm run verify` completo en verde. `npm test` **4141/4141** pruebas (16 nuevas).
+  `test:a11y` **1303 IDs únicos** (antes 1302, sesión 186; +1 por la nota nueva). `test:performance`:
+  diff 10.000 filas 47,8 ms, forecast y escenarios 251,8 ms, recursos 2257 KB, presupuestos a escala
+  (1000 categorías × 10 años) — análisis 192,7 ms, alertas 131,5 ms, forecast 234,1 ms, histórico de
+  presupuestos 48,4 ms, índice de transacciones por categoría 170,1 ms. `build:site`, `test:privacy`
+  y `test:smoke` sin errores. Validación manual adicional en navegador real con Playwright: (1) la
+  tarjeta pinta los tres chequeos con el estado real de los datos de ejemplo; (2) al pulsar "Marcar
+  ritual anual como hecho hoy", el estado cambia a "hace 0 mes(es) (hoy)"; (3) persiste tras
+  recargar la página sin volver a marcar; (4) sin errores de consola de la app en ningún caso —
+  cuarta tarea seguida sin ningún fallo nuevo, tras aplicar ya de memoria las lecciones de `LEV10`/
+  `DEB16`/`GOB12`.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 3 tareas del Bloque 7 (`GOB14`, `GOB16`, `GOB18`) y
+  las dos apuestas grandes (`GOB15`, `GOB19`, cada una reservada a su propia sesión).
+
 ## Cierre de sesión — 13 de septiembre de 2026 (186): `GOB12`
 
 Con `GOB20` fusionada, `GOB12` ("plantilla reutilizable de evento de vida") quedaba desbloqueada: el
