@@ -7394,6 +7394,136 @@ function renderGob20IncomeAdjustments() {
   list.innerHTML = gob20IncomeAdjustmentsHtml(gob20IncomeAdjustments());
 }
 
+// GOB12 (Oleada 4, Bloque 7): paquete reutilizable de "evento de vida" — hasta ahora, declarar un
+// gasto recurrente nuevo, una posible caída temporal de ingreso y un objetivo de ahorro nuevo exigía
+// tres acciones sueltas en tres sitios distintos. Reutiliza tal cual los tres motores ya existentes
+// — sin motor propio — y los agrupa en una sola acción guiada, con nombres reales de evento (mismas
+// etiquetas que ESX2, arriba) en vez de campos abstractos. "Simular" solo añade eventos al
+// Laboratorio (E13, de solo lectura); "Aplicar a real" sube de verdad el tope de una categoría de
+// presupuesto EXISTENTE para el gasto recurrente (CanonicalBudgetSchema.upsert, sumando sobre lo ya
+// declarado — nunca lo pisa) y declara de verdad la caída de ingreso (GOB20,
+// scenarioSettings.incomeAdjustments) — nunca inventa una categoría de presupuesto nueva ni una
+// probabilidad de que el evento ocurra. El objetivo nuevo, si se declara, se crea siempre como
+// acción real e inmediata en p2State().goals (un objetivo nunca es "simulado", a diferencia del
+// gasto y la caída de ingreso, que sí tienen un lado de solo-simulación).
+function gob12MonthRange(startMonthKey, duration) {
+  const startDate = dateFromMonthKey(startMonthKey);
+  if (!startDate || !Number.isFinite(startDate.getTime())) return [];
+  const months = [];
+  for (let i = 0; i < Math.max(1, Math.round(Number(duration) || 1)); i += 1) {
+    months.push(monthKey(addMonths(startDate, i)));
+  }
+  return months;
+}
+
+function gob12PackageFormValues() {
+  return {
+    templateId: qs("gob12Template")?.value || "other",
+    expenseAmount: Math.max(0, parseAmount(qs("gob12ExpenseAmount")?.value) || 0),
+    expenseMonth: qs("gob12ExpenseMonth")?.value || "",
+    expenseDuration: Math.max(1, Math.round(Number(qs("gob12ExpenseDuration")?.value) || 1)),
+    expenseCategoryId: qs("gob12ExpenseCategory")?.value || "Otros gastos",
+    includeIncomeLoss: Boolean(qs("gob12IncludeIncomeLoss")?.checked),
+    incomeAmount: Math.max(0, parseAmount(qs("gob12IncomeAmount")?.value) || 0),
+    incomeMonth: qs("gob12IncomeMonth")?.value || "",
+    incomeDuration: Math.max(1, Math.round(Number(qs("gob12IncomeDuration")?.value) || 1)),
+    includeGoal: Boolean(qs("gob12IncludeGoal")?.checked),
+    goalName: qs("gob12GoalName")?.value.trim() || "",
+    goalTarget: Math.max(0, parseAmount(qs("gob12GoalTarget")?.value) || 0),
+    goalTargetDate: qs("gob12GoalTargetDate")?.value || "",
+  };
+}
+
+const GOB12_TEMPLATE_EXPENSE_TYPE = { child: "expense", move: "move", "job-change": "expense", other: "expense" };
+
+function gob12PushE13Event(type, amount, monthKeyValue, duration) {
+  e13ScenarioEvents = [...e13ScenarioEvents, {
+    id: `e13-${Date.now()}-${e13ScenarioEvents.length + 1}`,
+    type,
+    label: e13EventLabel(type),
+    amount,
+    monthKey: monthKeyValue,
+    duration,
+    categoryId: "",
+    probabilityPct: null,
+  }];
+}
+
+function gob12SimulatePackage() {
+  const note = qs("gob12Status");
+  const values = gob12PackageFormValues();
+  if (!values.expenseAmount || !values.expenseMonth) {
+    if (note) note.textContent = "Indica el importe y el mes de inicio del gasto recurrente para simular el paquete.";
+    return;
+  }
+  gob12PushE13Event(GOB12_TEMPLATE_EXPENSE_TYPE[values.templateId] || "expense", values.expenseAmount, values.expenseMonth, values.expenseDuration);
+  if (values.includeIncomeLoss && values.incomeAmount && values.incomeMonth) {
+    gob12PushE13Event("income-loss", values.incomeAmount, values.incomeMonth, values.incomeDuration);
+  }
+  renderE13ScenarioLab();
+  if (note) note.textContent = "Paquete añadido al Laboratorio de escenarios — todavía no afecta al plan real.";
+}
+
+function gob12ApplyExpenseToReal(values) {
+  const engine = window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema;
+  const months = gob12MonthRange(values.expenseMonth, values.expenseDuration);
+  if (!engine || !months.length) return false;
+  months.forEach((monthYearValue) => {
+    const currentCap = Number(engine.findForCategoryMonth(budgets, values.expenseCategoryId, monthYearValue)?.amountCap) || 0;
+    budgets = engine.upsert(budgets, {
+      categoryId: values.expenseCategoryId,
+      period: "monthly",
+      monthYear: monthYearValue,
+      amountCap: round2(currentCap + values.expenseAmount),
+      source: "manual",
+    });
+  });
+  saveBudgets();
+  return true;
+}
+
+function gob12ApplyIncomeLossToReal(values) {
+  if (!values.includeIncomeLoss || !values.incomeAmount || !values.incomeMonth) return false;
+  const current = gob20IncomeAdjustments();
+  saveGob20IncomeAdjustments([...current, {
+    id: `gob20-${Date.now()}-${current.length + 1}`,
+    label: "Evento de vida (GOB12)",
+    monthlyAmount: values.incomeAmount,
+    startMonthKey: values.incomeMonth,
+    duration: values.incomeDuration,
+    createdAt: new Date().toISOString(),
+  }]);
+  return true;
+}
+
+function gob12ApplyGoalToReal(values) {
+  if (!values.includeGoal || !values.goalName || !values.goalTarget) return false;
+  const engine = window.P2Domain;
+  if (!engine) return false;
+  const current = p2State();
+  saveP2State({ ...current, goals: [...current.goals, engine.normalizeGoal({ name: values.goalName, target: values.goalTarget, targetDate: values.goalTargetDate })] });
+  return true;
+}
+
+function gob12ApplyPackageToReal() {
+  const note = qs("gob12Status");
+  const values = gob12PackageFormValues();
+  if (!values.expenseAmount || !values.expenseMonth) {
+    if (note) note.textContent = "Indica el importe y el mes de inicio del gasto recurrente para aplicarlo a real.";
+    return;
+  }
+  const appliedExpense = gob12ApplyExpenseToReal(values);
+  const appliedIncome = gob12ApplyIncomeLossToReal(values);
+  const appliedGoal = gob12ApplyGoalToReal(values);
+  recomputeModelIfNeeded(true);
+  renderNewLifeSimulation({ forceHeavy: true });
+  const parts = [];
+  if (appliedExpense) parts.push(`la partida de presupuesto (${money(values.expenseAmount, true)}/mes, ${values.expenseDuration} mes(es))`);
+  if (appliedIncome) parts.push("la caída de ingreso declarada");
+  if (appliedGoal) parts.push("el objetivo nuevo");
+  if (note) note.textContent = parts.length ? `Aplicado a real: ${parts.join(", ")}.` : "No había nada que aplicar a real — revisa los campos.";
+}
+
 function canonicalEngineInput(projectOutflows = [], options = {}) {
   const start = modelStartDate();
   const startingBalances = accountBalancesFromState();
@@ -40315,6 +40445,8 @@ async function init() {
   });
   qs("deb14MaxMonthsWithoutOffer")?.addEventListener("change", handleDeb14MaxMonthsChange);
   qs("gob20AdjustmentAdd")?.addEventListener("click", addGob20IncomeAdjustment);
+  qs("gob12SimulateBtn")?.addEventListener("click", gob12SimulatePackage);
+  qs("gob12ApplyRealBtn")?.addEventListener("click", gob12ApplyPackageToReal);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
   qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);

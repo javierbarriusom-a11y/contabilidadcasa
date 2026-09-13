@@ -1055,6 +1055,97 @@
                 <p class="e19-kpi-note" id="gob20AdjustmentStatus" role="status"></p>
                 <div id="gob20IncomeAdjustmentsList"></div>
               </article>
+              <!-- GOB12 (Oleada 4, Bloque 7): reutiliza tal cual los tres motores ya existentes de
+                   arriba (eventos E13, GOB20, objetivos E15) en una sola acción guiada, con nombres
+                   reales de evento (mismas etiquetas que ESX2) en vez de campos abstractos. "Simular"
+                   solo añade eventos al Laboratorio (de solo lectura); "Aplicar a real" sube de
+                   verdad el tope de una categoría de presupuesto existente para el gasto recurrente
+                   y declara de verdad la caída de ingreso (GOB20) — nunca inventa una categoría
+                   nueva. El objetivo, si se declara, se crea siempre real e inmediato: un objetivo
+                   nunca es "simulado". -->
+              <article class="e19-card">
+                <h3 class="escenario-motor-panel-title">Paquete de evento de vida (GOB12)</h3>
+                <p class="e19-kpi-note">Hijo, mudanza, cambio de trabajo… agrupa en una sola acción el gasto recurrente, la posible caída de ingreso y un objetivo de ahorro nuevo, en vez de declarar cada pieza por separado.</p>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker">
+                    <span>Evento</span>
+                    <select id="gob12Template">
+                      <option value="child">Nace un hijo</option>
+                      <option value="move">Mudanza</option>
+                      <option value="job-change">Cambio de trabajo</option>
+                      <option value="other">Otro evento de vida</option>
+                    </select>
+                  </label>
+                </div>
+                <h4 class="escenario-motor-panel-title">Gasto recurrente</h4>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker">
+                    <span>Importe mensual (€)</span>
+                    <input id="gob12ExpenseAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Desde</span>
+                    <input id="gob12ExpenseMonth" type="month" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Duración (meses)</span>
+                    <input id="gob12ExpenseDuration" type="number" min="1" step="1" inputmode="numeric" placeholder="1" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Categoría de presupuesto (para "Aplicar a real")</span>
+                    <select id="gob12ExpenseCategory">
+                      <option value="Refinanciacion">Refinanciacion</option>
+                      <option value="Coche">Coche</option>
+                      <option value="Creditos antiguos">Creditos antiguos</option>
+                      <option value="Tarjeta Mastercard">Tarjeta Mastercard</option>
+                      <option value="Suministros y telecom">Suministros y telecom</option>
+                      <option value="Vivienda/comunidad">Vivienda/comunidad</option>
+                      <option value="Efectivo">Efectivo</option>
+                      <option value="Traspasos/ahorro">Traspasos/ahorro</option>
+                      <option value="Seguros">Seguros</option>
+                      <option value="Alimentacion">Alimentacion</option>
+                      <option value="Otros gastos" selected>Otros gastos</option>
+                    </select>
+                  </label>
+                </div>
+                <h4 class="escenario-motor-panel-title">Posible caída de ingreso (opcional)</h4>
+                <label class="month-picker"><input id="gob12IncludeIncomeLoss" type="checkbox" /> <span>Incluir caída de ingreso en el paquete</span></label>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker">
+                    <span>Caída mensual (€)</span>
+                    <input id="gob12IncomeAmount" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Desde</span>
+                    <input id="gob12IncomeMonth" type="month" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Duración (meses)</span>
+                    <input id="gob12IncomeDuration" type="number" min="1" step="1" inputmode="numeric" placeholder="1" />
+                  </label>
+                </div>
+                <h4 class="escenario-motor-panel-title">Objetivo de ahorro nuevo (opcional)</h4>
+                <label class="month-picker"><input id="gob12IncludeGoal" type="checkbox" /> <span>Crear también un objetivo de ahorro</span></label>
+                <div class="cuadro-mandos-controls">
+                  <label class="month-picker">
+                    <span>Nombre del objetivo</span>
+                    <input id="gob12GoalName" type="text" placeholder="Ej. Fondo mudanza" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Importe objetivo (€)</span>
+                    <input id="gob12GoalTarget" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                  </label>
+                  <label class="month-picker">
+                    <span>Fecha objetivo</span>
+                    <input id="gob12GoalTargetDate" type="month" />
+                  </label>
+                </div>
+                <div class="data-actions">
+                  <button type="button" class="secondary-button" id="gob12SimulateBtn">Simular en el Laboratorio</button>
+                  <button type="button" class="e19-btn e19-btn-secondary" id="gob12ApplyRealBtn">Aplicar a real</button>
+                </div>
+                <p class="e19-kpi-note" id="gob12Status" role="status"></p>
+              </article>
               <!-- PVC10 (Oleada 3, Bloque 4): detalle de la previsión ponderada por eventos
                    inciertos — la fila permanente ya vive arriba, en la comparación principal
                    (e13ScenarioComparison); aquí solo el desglose por evento. -->

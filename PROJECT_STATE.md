@@ -70,6 +70,68 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 13 de septiembre de 2026 (186): `GOB12`
+
+Con `GOB20` fusionada, `GOB12` ("plantilla reutilizable de evento de vida") quedaba desbloqueada: el
+botón de "aplicar a real" de la caída de ingreso ya tenía un motor real donde aterrizar.
+
+**Diagnóstico previo (resumen, ya detallado en la entrada de `GOB20`)**: `ESX2` (Oleada 3) ya
+construyó plantillas de eventos de vida con nombre real (Nace un hijo, Mudanza...), pero solo crean
+UN evento hipotético a la vez en el Laboratorio de escenarios (E13, de solo lectura). `GOB12` pedía
+agrupar en una sola acción tres piezas que hoy exigían tres pasos sueltos: gasto recurrente, posible
+caída de ingreso y objetivo de ahorro nuevo. Tres decisiones de alcance se llevaron a la conversación
+antes de construir: (1) el objetivo nuevo se crea en `p2State().goals` (E15, con fecha objetivo y
+plan de aportación), no en el sistema más simple de sobres; (2) el gasto recurrente y la caída de
+ingreso viven primero como simulación en el Laboratorio E13, con un botón explícito para aplicarlos
+a real; (3) ese botón de aplicar a real debía cubrir TANTO el gasto como la caída de ingreso, lo que
+llevó a construir `GOB20` primero (sesión 185) porque no existía ningún mecanismo real para la
+segunda pieza.
+
+**Construido**:
+- `GOB12` — nueva tarjeta "Paquete de evento de vida" en Simulación de nueva vida, justo debajo de la
+  de `GOB20`. Un desplegable de evento (Nace un hijo / Mudanza / Cambio de trabajo / Otro, mismas
+  etiquetas que `ESX2`), campos para el gasto recurrente (siempre) y, opcionales mediante checkbox,
+  la caída de ingreso y el objetivo nuevo. Botón "Simular en el Laboratorio" (`gob12SimulatePackage`)
+  solo añade eventos a `e13ScenarioEvents` (E13, de solo lectura) — reutiliza tal cual
+  `e13EventLabel()`, sin motor propio. Botón "Aplicar a real" (`gob12ApplyPackageToReal`) hace las
+  tres cosas de verdad: sube el tope de una categoría de presupuesto EXISTENTE
+  (`CanonicalBudgetSchema.upsert`, SUMANDO sobre lo ya declarado, nunca pisándolo) para cada mes del
+  rango declarado; declara la caída de ingreso real vía `GOB20`
+  (`scenarioSettings.incomeAdjustments`); y crea el objetivo nuevo real e inmediato en
+  `p2State().goals` (`window.P2Domain.normalizeGoal`, `saveP2State`) — un objetivo nunca es
+  "simulado", a diferencia de las otras dos piezas. Nunca inventa una categoría de presupuesto nueva.
+  - **Un fallo real encontrado y corregido, solo por validación manual en navegador (ni la lectura
+    del código fuente ni el test unitario lo detectaron, porque el mock del test replicaba
+    exactamente el mismo error)**: `window.FinanceCanonicalBudgetSchema` no expone `upsert`/
+    `findForCategoryMonth` directamente — expone `{ CanonicalBudgetSchema: { upsert, ... } }`, un
+    nivel de anidación más (confirmado por el resto del código, `views/presupuesto-mes.js` y
+    `app.js` ya acceden siempre como `window.FinanceCanonicalBudgetSchema?.CanonicalBudgetSchema`).
+    El primer intento llamaba directamente sobre `window.FinanceCanonicalBudgetSchema`, y el test
+    unitario mockeaba `window.FinanceCanonicalBudgetSchema` con la clase ya desenvuelta —
+    reproduciendo el mismo error en el mock y en el código, así que pasaba en verde sin detectar
+    nada. Solo Playwright en un navegador real, contra el módulo `canonical-budget-schema.js`
+    verdadero, lo hizo saltar (`TypeError: engine.findForCategoryMonth is not a function`).
+    Corregido en ambos sitios.
+  - Tests: `tests/gob12-paquete-evento-de-vida.test.cjs` (16 tests, usando los módulos canónicos
+    reales `canonical-budget-schema.js` y `p2-domain.js`, no dobles).
+- **Validación**: `npm run verify` completo en verde. `npm test` **4125/4125** pruebas (16 nuevas).
+  `test:a11y` **1302 IDs únicos** (antes 1286, sesión 185; +16, exactamente los 16 campos/botones
+  nuevos). `test:performance`: diff 10.000 filas 62,9 ms, forecast y escenarios 252,0 ms, recursos
+  2256 KB, presupuestos a escala (1000 categorías × 10 años) — análisis 183,2 ms, alertas 125,0 ms,
+  forecast 219,4 ms, histórico de presupuestos 48,3 ms, índice de transacciones por categoría
+  171,1 ms. `build:site`, `test:privacy` y `test:smoke` sin errores. Validación manual adicional en
+  navegador real con Playwright, sobre el estado REAL de la app (no una simulación): (1) "Simular"
+  añade 2 eventos al Laboratorio sin tocar ingreso real ni objetivos; (2) "Aplicar a real" reduce el
+  ingreso real exactamente en el importe declarado (5.000 € → 4.600 €), sube el tope de presupuesto
+  de la categoría elegida exactamente al importe declarado (250 €), y crea el objetivo real con
+  nombre, importe y fecha correctos; (3) las tres piezas persisten tras recargar la página; (4) sin
+  errores de consola de la app en ningún caso, tras corregir el fallo descrito arriba.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a
+  `main` en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada
+  tarea ya vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: quedan 4 tareas del Bloque 7 (`GOB13`, `GOB14`, `GOB16`,
+  `GOB18`) y las dos apuestas grandes (`GOB15`, `GOB19`, cada una reservada a su propia sesión).
+
 ## Cierre de sesión — 13 de septiembre de 2026 (185): `GOB20`
 
 El hogar pidió seguir con el Bloque 7. Al diagnosticar `GOB12` ("plantilla de evento de vida": gasto

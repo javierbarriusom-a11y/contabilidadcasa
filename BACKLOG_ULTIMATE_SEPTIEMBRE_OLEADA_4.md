@@ -7,21 +7,20 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 185, 13 de septiembre de 2026): `GOB20` construida — motor real de ajuste de
-ingreso, nacido al diagnosticar `GOB12`.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b)
-y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta
-(sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`,
-`LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión
-propia dedicada (sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19`
-(sesión 174); `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión
-propia dedicada (sesión 176); `INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4
-(inversión) quedó completo; `PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3
-(previsión viva) queda también completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10`
-(sesión 180); `LEV16` (sesión 181) — con esto el Bloque 5 (apalancamiento) queda también completo;
-`DEB12` (sesión 182); `DEB16` (sesión 183); `DEB14` (sesión 184) — con esto el Bloque 6 queda también
-completo; `GOB20` (sesión 185), spin-off de `GOB12` (ver nota de la tarea). Quedan 7 tareas
-accionables: `GOB12` (ahora desbloqueada), `GOB13`, `GOB14`, `GOB16`, `GOB18` del Bloque 7, y las dos
-apuestas grandes (`GOB15`, `GOB19`, reservadas a sesión propia cada una).
+**Estado (sesión 186, 13 de septiembre de 2026): `GOB12` construida.** Bloque 1 completo (`VER-4`,
+`VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17`
+construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15`
+(sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11`
+(sesión 171); `PVC12` en sesión propia dedicada (sesión 172); `INV16` y `LEV14` (sesión 173);
+`PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174); `INV12`, `INV14`, `INV15`, `INV17`, `INV19` e
+`INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176); `INV18` en sesión propia
+dedicada (sesión 177) — con esto el Bloque 4 (inversión) quedó completo; `PVC14` en sesión propia
+dedicada (sesión 178) — con esto el Bloque 3 (previsión viva) queda también completo; `GOB11` en
+sesión propia dedicada (sesión 179); `LEV10` (sesión 180); `LEV16` (sesión 181) — con esto el
+Bloque 5 (apalancamiento) queda también completo; `DEB12` (sesión 182); `DEB16` (sesión 183);
+`DEB14` (sesión 184) — con esto el Bloque 6 queda también completo; `GOB20` (sesión 185), spin-off
+de `GOB12`; `GOB12` (sesión 186). Quedan 6 tareas accionables: `GOB13`, `GOB14`, `GOB16`, `GOB18`
+del Bloque 7, y las dos apuestas grandes (`GOB15`, `GOB19`, reservadas a sesión propia cada una).
 
 ## 0. Por qué existe este documento
 
@@ -186,7 +185,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | Orden | ID | Tarea | Origen | Esfuerzo | Beneficio | Nota |
 |---|---|---|---|---|---|---|
 | 37 | ✅ `GOB11` | Proyección de jubilación unificada (pensión + cartera + forecast + objetivos) | `O-1` | L | Alto | **Hecho (sesión 179).** `gob11RetirementProjection()` (`app.js`) cruza cartera + plan-pension (INV11), gasto medio de la previsión viva y un objetivo de independencia financiera con fecha de jubilación declarada. Tasas de crecimiento, aportación mensual futura, pensión pública (dato manual) y tasa de retirada, todo declarado por el hogar — nunca inventado. |
-| 38 | ⏳ `GOB12` | Plantilla reutilizable de "evento de vida" (hijo, mudanza, cambio de trabajo) | `O-2` | M | Medio | Paquete de gasto recurrente + posible caída temporal de ingreso + objetivo nuevo, en vez de modelar cada evento a mano. |
+| 38 | ✅ `GOB12` | Plantilla reutilizable de "evento de vida" (hijo, mudanza, cambio de trabajo) | `O-2` | M | Medio | **Hecho (sesión 186).** Tarjeta en Simulación de nueva vida: "Simular" añade eventos al Laboratorio E13 (solo lectura); "Aplicar a real" sube de verdad el tope de una categoría de presupuesto existente, declara la caída de ingreso real (`GOB20`, construida antes por esta misma tarea) y crea un objetivo nuevo real en `p2State().goals` (E15, con fecha). Sin motor propio. Tests: `tests/gob12-paquete-evento-de-vida.test.cjs`. |
 | 39 | ⏳ `GOB13` | Ritual anual de revisión guiada | `O-4` | M | Medio | Complementa, no repite, `GOB6` (checklist *mensual* de cierre): fuerza revisar en un solo sitio, una vez al año, supuestos caducados (`PVC15`), ofertas de deuda sin comparar (`DEB14`) y desviación de cartera (`INV17`). |
 | 40 | ⏳ `GOB14` | Informe trimestral exportable, maquetado para presentar a la familia | `O-5` | M | Bajo-Medio | Distinto de `GOB3` (resumen trimestral de `PROJECT_STATE.md`, uso interno de desarrollo): esta es una vista para enseñar, no para trabajar, con las cifras ejecutivas de procedencia (`A2-6`) ya existentes. |
 | 41 | ⏳ `GOB15` | Simulador de vender la vivienda habitual y pasar a alquiler | `O-6` | L | Medio | Reutiliza `rentalAssetPnL()` (`INV9`, Oleada 3) para el lado del alquiler recibido/pagado. **Confirmado por el hogar (sesión 171): sí, en una sesión futura dedicada.** Sigue siendo apuesta L, sin construir. |
