@@ -1757,6 +1757,25 @@
               <div id="deb5FiscalPriorityNote"></div>
             </article>
 
+            <!-- DEB16 (Oleada 4, Bloque 6): DEB5 (arriba) siempre ordena por coste real ("avalancha").
+                 Esta tarjeta deja declarar la preferencia por "bola de nieve" (menor capital pendiente
+                 primero) en su lugar, y reordena las mismas filas ya calculadas por DEB5 según la
+                 estrategia elegida — sin decidir cuál de las dos es mejor. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Orden para amortizar varias deudas (avalancha vs. bola de nieve)</h3>
+              <p class="e19-kpi-note">Avalancha prioriza el menor coste financiero; bola de nieve prioriza cerrar deudas antes, aunque no sea la de mayor coste. Ninguna de las dos es "la correcta" — declara la que mejor encaje contigo.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Tu preferencia declarada</span>
+                  <select id="deb16PayoffStrategySelect">
+                    <option value="avalancha">Avalancha (mayor coste real primero)</option>
+                    <option value="bola-de-nieve">Bola de nieve (menor capital pendiente primero)</option>
+                  </select>
+                </label>
+              </div>
+              <div id="deb16PayoffOrderNote"></div>
+            </article>
+
             <!-- DEB13 (Oleada 4, Bloque 6): alerta de "deuda cara dormida" — cruce automático entre
                  la prioridad fiscal de DEB5 (arriba) y compareAmortizeVsInvest (AP1) para cada deuda
                  activa, sin esperar a que el hogar la seleccione en el comparador. Solo aparece

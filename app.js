@@ -3758,6 +3758,10 @@ function saveScenarioSettings() {
     // importe ya dimensionado por DEB2 — cadena vacía significa "sin decidir todavía", nunca un
     // valor por defecto asumido en su lugar (a diferencia de DEB7, aquí AP1 no asumía nada implícito).
     deb11Preference: state.deb11Preference === "reducir-cuota" || state.deb11Preference === "reducir-plazo" ? state.deb11Preference : "",
+    // DEB16 (Oleada 4, Bloque 6) · estrategia declarada para el orden entre varias deudas —
+    // "avalancha" es el valor por defecto porque es el criterio de coste real que DEB5 ya usaba
+    // antes de esta tarea, mismo criterio que "coste-minimo" en DEB7.
+    deb16PayoffStrategy: state.deb16PayoffStrategy === "bola-de-nieve" ? "bola-de-nieve" : "avalancha",
     // GOB7 (Oleada 3, Bloque 5) · modo sesión con asesor/pareja, mismo criterio de persistencia
     // que el resto de datos del hogar (0/false por defecto, se sincroniza y se restaura).
     advisorSessionMode: !!state.advisorSessionMode,
@@ -40115,6 +40119,7 @@ async function init() {
   qs("ap1CompareRun")?.addEventListener("click", handleAp1Compare);
   qs("deb7PreferenceSelect")?.addEventListener("change", handleDeb7PreferenceChange);
   qs("deb11PreferenceSelect")?.addEventListener("change", handleDeb11PreferenceChange);
+  qs("deb16PayoffStrategySelect")?.addEventListener("change", () => handleDeb16PayoffStrategyChange());
   qs("gob7AdvisorModeToggle")?.addEventListener("change", handleGob7AdvisorModeToggle);
   qs("gob8GenerateDraft")?.addEventListener("click", renderGob8DraftPreview);
   qs("gob8DownloadDraft")?.addEventListener("click", handleGob8DownloadDraft);
