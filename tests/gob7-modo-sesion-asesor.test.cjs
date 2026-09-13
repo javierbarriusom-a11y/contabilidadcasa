@@ -77,8 +77,9 @@ test("GOB7: con el modo desactivado, nada queda oculto (reversible con un clic)"
 test("GOB7: el modo se persiste como un dato más del hogar (mismo criterio que DEB7/LEV1)", () => {
   // DEB11 (Oleada 4, Bloque 6) intercaló su propia preferencia declarada entre deb7Preference y
   // advisorSessionMode en saveScenarioSettings — la ventana crece de 500 a 900. DEB16 (Oleada 4,
-  // Bloque 6) intercaló otra más — la ventana crece de 900 a 1200.
-  const block = appSource.slice(appSource.indexOf("deb7Preference: state.deb7Preference"), appSource.indexOf("deb7Preference: state.deb7Preference") + 1200);
+  // Bloque 6) intercaló otra más — la ventana crece de 900 a 1200. DEB14 (Oleada 4, Bloque 6)
+  // intercaló otra más — la ventana crece de 1200 a 1600.
+  const block = appSource.slice(appSource.indexOf("deb7Preference: state.deb7Preference"), appSource.indexOf("deb7Preference: state.deb7Preference") + 1600);
   assert.match(block, /advisorSessionMode: !!state\.advisorSessionMode,/);
 });
 

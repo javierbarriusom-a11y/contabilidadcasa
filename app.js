@@ -3762,6 +3762,10 @@ function saveScenarioSettings() {
     // "avalancha" es el valor por defecto porque es el criterio de coste real que DEB5 ya usaba
     // antes de esta tarea, mismo criterio que "coste-minimo" en DEB7.
     deb16PayoffStrategy: state.deb16PayoffStrategy === "bola-de-nieve" ? "bola-de-nieve" : "avalancha",
+    // DEB14 (Oleada 4, Bloque 6) · umbral de meses sin registrar una oferta de mercado nueva contra
+    // la hipoteca declarada — 0 significa «sin configurar», mismo criterio que duplicateWindowDays/
+    // partidaDeviationThreshold (V6-2).
+    deb14MaxMonthsWithoutOffer: state.deb14MaxMonthsWithoutOffer ? Math.round(Math.max(1, Math.min(120, Number(state.deb14MaxMonthsWithoutOffer)))) : 0,
     // GOB7 (Oleada 3, Bloque 5) · modo sesión con asesor/pareja, mismo criterio de persistencia
     // que el resto de datos del hogar (0/false por defecto, se sincroniza y se restaura).
     advisorSessionMode: !!state.advisorSessionMode,
@@ -18121,6 +18125,80 @@ function renderDeb4RefinancingRadar() {
     return;
   }
   box.innerHTML = `<p class="e19-kpi-note positive"><strong>Radar de refinanciación (DEB4):</strong> con las condiciones ya declaradas, refinanciar recuperaría su coste en ${breakEven.months} mes(es) — dentro de tu umbral de ${saved.maxBreakEvenMonths}. Revísalo antes de decidir.</p>`;
+}
+
+// DEB14 (Oleada 4, Bloque 6, DE-6, alcance reducido): DEB4 (arriba) avisa cuando el punto de
+// equilibrio de los PROPIOS escenarios de tipos declarados cruza un umbral ("tu cálculo cambió") —
+// pero nunca consulta si de verdad se ha mirado el mercado. Ángulo distinto: cuánto tiempo lleva el
+// hogar sin registrar una oferta externa real contra la deuda que el propio hogar declaró como
+// "Hipoteca" en Deuda › Contratos (campo de texto libre de un contrato personalizado, igual que
+// entidad o número) — "no has mirado el mercado" en vez de "tu cálculo cambió". El registro de
+// ofertas es el mismo de Deuda › Ruta (`normalizeOffer`, E14) que DEB4 no consulta. Sin motor nuevo:
+// solo cruza dos registros ya existentes.
+function deb14MortgageContracts() {
+  return debtContractSourceRows().filter((contract) =>
+    contract.paymentStatus === "active" && String(contract.type || "").toLocaleLowerCase("es").includes("hipoteca"));
+}
+
+function deb14LatestOfferMonth(contractId) {
+  const months = e14bWorkspace().offers
+    .filter((offer) => offer.contractId === contractId && offer.receivedAt)
+    .map((offer) => offer.receivedAt);
+  return months.length ? months.reduce((latest, month) => (month > latest ? month : latest)) : null;
+}
+
+function deb14MaxMonthsWithoutOffer() {
+  const configured = Number(state?.deb14MaxMonthsWithoutOffer || 0);
+  return Number.isFinite(configured) && configured > 0 ? configured : 0;
+}
+
+function deb14MarketCheckFreshness(nowDate = new Date()) {
+  const maxMonths = deb14MaxMonthsWithoutOffer();
+  const mortgages = deb14MortgageContracts();
+  if (!maxMonths || !mortgages.length) return { calculable: false };
+  const rows = mortgages.map((contract) => {
+    const latest = deb14LatestOfferMonth(contract.id);
+    if (!latest) return { entity: contract.entity, neverCompared: true, monthsSince: null, latest: null, overdue: true };
+    const monthsSince = monthDistance(dateFromMonthKey(latest), nowDate);
+    return { entity: contract.entity, neverCompared: false, monthsSince, latest, overdue: monthsSince >= maxMonths };
+  });
+  return { calculable: true, maxMonths, rows };
+}
+
+function deb14MarketCheckAlertHtml(result) {
+  if (!result.calculable) return "";
+  const overdue = result.rows.filter((row) => row.overdue);
+  if (!overdue.length) {
+    return `<p class="e19-kpi-note positive">Todas tus deudas declaradas como hipoteca tienen una oferta de mercado registrada dentro de tu umbral de ${result.maxMonths} mes(es).</p>`;
+  }
+  const items = overdue
+    .map((row) => row.neverCompared
+      ? `<li class="commit-barrier-item warning"><strong>${escapeHtml(row.entity)}</strong>: nunca has registrado una oferta de mercado para compararla (Deuda › Ruta).</li>`
+      : `<li class="commit-barrier-item warning"><strong>${escapeHtml(row.entity)}</strong>: llevas ${row.monthsSince} mes(es) sin registrar una oferta de mercado nueva — la última es de ${escapeHtml(row.latest)}, tu umbral declarado es de ${result.maxMonths} mes(es).</li>`)
+    .join("");
+  return `<p class="e19-kpi-note warning"><strong>Llevas tiempo sin mirar el mercado (DEB14):</strong> distinto del radar de arriba (DEB4), que solo avisa si TU cálculo de tipos cambia de sentido — esto es que no has comparado contra ninguna oferta real registrada.</p><ul class="commit-barrier-list">${items}</ul>`;
+}
+
+function renderDeb14MarketCheckAlert() {
+  const note = qs("deb14MarketCheckAlert");
+  if (!note) return;
+  note.innerHTML = deb14MarketCheckAlertHtml(deb14MarketCheckFreshness());
+}
+
+function handleDeb14MaxMonthsChange(event) {
+  if (!state) return;
+  const next = positiveIntegerFromField(event.target.value, { max: 120 });
+  event.target.value = next > 0 ? String(next) : "";
+  state.deb14MaxMonthsWithoutOffer = next;
+  saveScenarioSettings();
+  renderDeb14MarketCheckAlert();
+}
+
+function syncDeb14MaxMonthsControl() {
+  const field = qs("deb14MaxMonthsWithoutOffer");
+  if (!field || document.activeElement === field) return;
+  const configured = deb14MaxMonthsWithoutOffer();
+  field.value = configured > 0 ? String(configured) : "";
 }
 
 // DI1: hipoteca variable → fija bajo escenarios de tipos. Mismo criterio que A19-3 (comparador de
@@ -40141,6 +40219,7 @@ async function init() {
   ["ajustesMortgagePrincipal", "ajustesMortgageMonths", "ajustesMortgageVariableRate", "ajustesMortgageFixedRate", "ajustesMortgageRefinancingCost", "deb4MaxBreakEvenMonths"].forEach((id) => {
     qs(id)?.addEventListener("change", saveDeb4RadarSettings);
   });
+  qs("deb14MaxMonthsWithoutOffer")?.addEventListener("change", handleDeb14MaxMonthsChange);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
   qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);

@@ -1446,6 +1446,8 @@ function renderDeudaApalancamiento() {
   renderLev10DebtCostCurve();
   renderLev16IdleLiquidityCost();
   renderDeb12WaitingCostSoFar();
+  syncDeb14MaxMonthsControl();
+  renderDeb14MarketCheckAlert();
 }
 
 // Vacío = «sin corregir», nunca cero ni cadena vacía forzada: borra el override y vuelve al valor
