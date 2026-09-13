@@ -7,17 +7,17 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 181, 13 de septiembre de 2026): `LEV16` construida — Bloque 5 (apalancamiento)
-queda completo.** Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo
-(`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`,
-`DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17`
-(sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada
-(sesión 172); `INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174);
-`INV12`, `INV14`, `INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada
-(sesión 176); `INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión)
-quedó completo; `PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión
-viva) queda también completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10` (sesión 180);
-`LEV16` (sesión 181) — con esto el Bloque 5 (apalancamiento) queda también completo. Quedan 10
+**Estado (sesión 182, 13 de septiembre de 2026): `DEB12` construida — arranca el Bloque 6.**
+Bloque 1 completo (`VER-4`, `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`,
+sesión 166b). `DEB10` y `GOB17` construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y
+`LEV15` (sesión 168); `PVC13` y `DEB15` (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170);
+`INV13`, `LEV12`, `DEB11` y `LEV11` (sesión 171); `PVC12` en sesión propia dedicada (sesión 172);
+`INV16` y `LEV14` (sesión 173); `PVC16`, `PVC17`, `PVC18` y `PVC19` (sesión 174); `INV12`, `INV14`,
+`INV15`, `INV17`, `INV19` e `INV20` (sesión 175); `INV11` en sesión propia dedicada (sesión 176);
+`INV18` en sesión propia dedicada (sesión 177) — con esto el Bloque 4 (inversión) quedó completo;
+`PVC14` en sesión propia dedicada (sesión 178) — con esto el Bloque 3 (previsión viva) queda también
+completo; `GOB11` en sesión propia dedicada (sesión 179); `LEV10` (sesión 180); `LEV16` (sesión 181)
+— con esto el Bloque 5 (apalancamiento) queda también completo; `DEB12` (sesión 182). Quedan 9
 tareas accionables: dos apuestas grandes restantes (`GOB15`, `GOB19`, reservadas a sesión propia
 cada una) y el resto de los Bloques 6-7.
 
@@ -170,7 +170,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 |---|---|---|---|---|---|---|
 | 29 | ✅ `DEB10` | Al amortizar, priorizar automáticamente qué deuda concreta primero | `DE-2` | M | Alto | **Hecho (sesión 167).** `deb10PriorityHint()` (`app.js`) reutiliza `fiscalAdjustedDebtPriority()` (DEB5) sobre `debtContractSourceRows()`, sin motor propio. Compara la deuda #1 por TAE efectivo tras deducción fiscal contra la seleccionada en `#ap1DebtSelect`: si coincide, lo confirma; si no, avisa cuál sería la de mayor coste real — nunca la preselecciona en silencio, la elección final sigue siendo del hogar. Se muestra en cada «Comparar» de AP1. Tests: `tests/deb10-prioridad-fiscal-sugerida-ap1.test.cjs`. |
 | 30 | ✅ `DEB11` | Amortización parcial: reducir cuota vs. reducir plazo, como decisión explícita | `DE-3` | M | Alto | **Hecho (sesión 171).** `dimensionOptimalPrepayment` (`DEB2`) dimensiona el importe, no desglosa esta segunda decisión. Nueva `deb11ReduceQuotaVsTermHtml()` (`app.js`) reutiliza tal cual `amortizeReduceQuotaVsTerm()` (APX6, sesión 141) sobre el importe NETO de DEB2 (distinto del importe bruto que ya usa APX6 por su cuenta), y añade una preferencia declarada persistida (`state.deb11Preference`, mismo patrón que DEB7) para que la elección entre reducir cuota o plazo quede explícita. Nunca decide por el hogar. Tests: `tests/deb11-cuota-vs-plazo-decision.test.cjs`. |
-| 31 | ⏳ `DEB12` | El precio de esperar (`waitingOptionValue`) como serie temporal, no cifra congelada | `DE-4` | M | Medio | Reutiliza el patrón de "comparación trackeada" que `DEB1` ya usa para el veredicto de `AP1`, aplicado ahora a `DEB3`. |
+| 31 | ✅ `DEB12` | El precio de esperar (`waitingOptionValue`) como serie temporal, no cifra congelada | `DE-4` | M | Medio | **Hecho (sesión 182).** `scenarioSettings.deb3TrackedWait` guarda el importe/TIN/meses declarados y la fecha en que se declaró la espera (`evaluatedAt`), mismo patrón de "comparación trackeada" que `DEB1` (`ap1TrackedComparison`). Nueva `deb12WaitingCostSoFarHtml()` (`app.js`) recalcula `waitingOptionValue()` (sin motor nuevo) con los meses REALES transcurridos desde entonces (nunca más que los declarados), así el coste avanza solo con el calendario en vez de quedarse congelado en la cifra del día que se comparó. Tests: `tests/deb12-precio-esperar-serie-temporal.test.cjs`. |
 | 32 | ✅ `DEB13` | Alerta de "deuda cara dormida" | `DE-5` | S | Alto | **Hecho (sesión 168).** `deb13DormantExpensiveDebtAlerts()` (`views/deuda.js`) cruza `fiscalAdjustedDebtPriority()` (DEB5) con `compareAmortizeVsInvest` (AP1) para TODA deuda activa, usando el capital pendiente y el plazo real de cada contrato en vez de un importe/horizonte escrito a mano — así no hace falta que el hogar la seleccione en AP1 para verla. Se muestra en Deuda › Contratos, junto a la propia prioridad fiscal de DEB5. Tests: `tests/deb13-deuda-cara-dormida.test.cjs`. |
 | 33 | ⚠️ `DEB14` | Alerta de "llevas N meses sin comparar tu hipoteca contra una oferta de mercado registrada" | `DE-6` | S | Medio | Alcance reducido: `DEB4` (Oleada 3) ya avisa proactivamente cuando el punto de equilibrio de los *propios* escenarios de tipos cruza un umbral — un ángulo distinto ("tu cálculo cambió") al de esta tarea ("no has mirado el mercado"), que usa el registro de ofertas externas (`normalizeOffer`) que `DEB4` no consulta. |
 | 34 | ✅ `DEB15` | Guardarraíl de liquidez a 3-6 meses tras una cancelación total, no solo en el instante | `DE-7` | M | Crítico | **Hecho (sesión 169).** `cancellationLiquidityGuardrail()` (`canonical-cushion.js`) extiende `amortizeCushionGuardrail` (DLX1, el día de la operación) proyectando la liquidez que el propio forecast ya prevé para los próximos 6 meses (configurable), reducida por el importe pagado hoy — hipótesis conservadora, nunca asume que la cuota cancelada desaparece del forecast. Solo se activa en `handleAp1Compare` (AP1) cuando el importe cancela el principal entero de la deuda seleccionada, no en una amortización parcial (ya cubierta por DLX1). Si el forecast no alcanza el horizonte pedido, lo dice explícitamente en vez de inventar meses. Tests: `tests/deb15-guardarrail-liquidez-cancelacion.test.cjs`. |
