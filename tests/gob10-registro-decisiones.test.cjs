@@ -47,10 +47,14 @@ test("GOB10: gob10OverdueReviewsCount solo cuenta las que no están revisadas y 
 });
 
 test("GOB10: gob10DecisionItemHtml reutiliza lev8ThesisHtml (misma tesis, generalizada) y marca visualmente lo vencido", () => {
-  const block = appSource.slice(appSource.indexOf("function gob10DecisionItemHtml("), appSource.indexOf("function gob10DecisionItemHtml(") + 700);
+  const block = appSource.slice(appSource.indexOf("function gob10DecisionItemHtml("), appSource.indexOf("function gob10DecisionItemHtml(") + 900);
   assert.match(block, /lev8ThesisHtml\(row\.thesis\)/);
   assert.match(block, /overdue \? " negative" : ""/);
   assert.match(block, /data-gob10-review-toggle=/);
+  // GOB18 (Oleada 4, Bloque 7): botón de exportar el paquete de decisión, cubierto de verdad en
+  // tests/gob18-exportar-paquete-decision.test.cjs — aquí solo confirma que vive junto a los otros
+  // dos botones del mismo elemento.
+  assert.match(block, /data-gob18-export=/);
   assert.match(block, /data-gob10-remove=/);
 });
 
@@ -61,8 +65,11 @@ test("GOB10: handleGob10SaveDecision exige una descripción no vacía antes de g
 });
 
 test("GOB10: el listener delegado distingue el toggle de revisada del botón de quitar", () => {
-  const block = appSource.slice(appSource.indexOf('qs("gob10DecisionList")?.addEventListener'), appSource.indexOf('qs("gob10DecisionList")?.addEventListener') + 600);
+  const block = appSource.slice(appSource.indexOf('qs("gob10DecisionList")?.addEventListener'), appSource.indexOf('qs("gob10DecisionList")?.addEventListener') + 900);
   assert.match(block, /toggleGob10DecisionReviewed\(toggleButton\.dataset\.gob10ReviewToggle\)/);
+  // GOB18: el mismo listener distingue también el botón de exportar, cubierto de verdad en
+  // tests/gob18-exportar-paquete-decision.test.cjs.
+  assert.match(block, /downloadGob18DecisionPackage\(exportButton\.dataset\.gob18Export\)/);
   assert.match(block, /removeGob10Decision\(removeButton\.dataset\.gob10Remove\)/);
 });
 
