@@ -16588,6 +16588,33 @@ function renderLev10DebtCostCurve() {
   note.innerHTML = lev10CostCurveHtml(result);
 }
 
+// LEV16 (Oleada 4, Bloque 5, AP-9): coste de oportunidad de NO apalancarse, simétrico al riesgo de
+// apalancarse que domina el resto de este módulo — AP4 (guardarraíl), LEV1 (política), AP3 (tres
+// escenarios de rentabilidad, con el pesimista casi siempre negativo), LEV5/LEV11/LEV12/LEV13 hablan
+// todos del riesgo de tomar deuda para invertir, nunca del coste de la alternativa más prudente:
+// dejar la liquidez parada, sin invertir ni apalancar. Reutiliza tal cual `cp2IdleCashSummary()`
+// (CP2, sesión previa): liquidez por encima del colchón que ni protege nada (eso ya lo cubre el
+// suelo) ni está invertida — sin motor nuevo, esta tarea solo hace visible ese dato ya calculado
+// justo donde se explora la decisión de apalancarse, para que se lea con las dos caras a la vista.
+// `idleSummary` es siempre el resultado ya calculado de `cp2IdleCashSummary()` — nunca se recalcula
+// aquí, mismo criterio que `ap3ResultHtml(result)` recibe un resultado ya compuesto.
+function lev16IdleLiquidityCostHtml(idleSummary) {
+  if (!idleSummary || !(idleSummary.idleAmount > 0)) {
+    return `<p class="e19-kpi-note">Sin liquidez ociosa por encima de tu colchón ahora mismo (Ajustes → Reserva y colchón) — nada que comparar por este lado.</p>`;
+  }
+  if (!idleSummary.opportunityCost || !idleSummary.opportunityCost.calculable) {
+    return `<p class="e19-kpi-note">Tienes ${money(idleSummary.idleAmount, true)} de liquidez por encima de tu colchón, sin invertir ni apalancar, pero todavía no hay XIRR real de cartera (declara al menos una posición en Patrimonio e inversión) para estimar lo que cuesta mantenerla parada.</p>`;
+  }
+  const cost = idleSummary.opportunityCost;
+  return `<p>Tienes <strong>${money(idleSummary.idleAmount, true)}</strong> de liquidez por encima de tu colchón, sin invertir ni apalancar. A la rentabilidad real de tu cartera (${cost.annualReturnPct}% anual), mantenerla parada 12 meses más te costaría <strong>${money(cost.gain, true)}</strong> en rendimiento no capturado.</p><p class="e19-kpi-note">Simétrico al riesgo de apalancarse que exploras arriba: esto es el coste de la alternativa más prudente, no una recomendación de invertir esa liquidez ni de pedir deuda nueva.</p>`;
+}
+
+function renderLev16IdleLiquidityCost() {
+  const note = qs("lev16IdleLiquidityNote");
+  if (!note) return;
+  note.innerHTML = lev16IdleLiquidityCostHtml(cp2IdleCashSummary());
+}
+
 // LEV9 (Oleada 4, Bloque 2 — bandera del diagnóstico, sin precedente en la Oleada 3): comparador
 // cruzado de instrumentos de apalancamiento para UNA MISMA necesidad de capital. Reutiliza tal cual
 // lombardCreditCapacity (APX2, mismos campos de LTV/tipo ya declarados arriba) y
