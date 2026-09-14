@@ -4044,6 +4044,28 @@
               <button type="button" class="e19-btn e19-btn-secondary" id="gob10SaveDecision">Guardar decisión</button>
               <ul class="commit-barrier-list" id="gob10DecisionList"></ul>
             </article>
+
+            <!-- GOB19 (Oleada 4, Bloque 7, O-12): plantilla de separación patrimonial. Sin motor
+                 propio: combina la titularidad de deuda ya declarada (E14, Herramientas avanzadas →
+                 Datos → Familia y paquete para asesor) con la reestructuración conjunta de DI5 —
+                 llamada una vez por titular con su ingreso individual, en vez de una sola vez con el
+                 ingreso conjunto— y el saldo pendiente de gastos compartidos de A18, arriba. -->
+            <article class="e19-card">
+              <h3 class="escenario-motor-panel-title">Plantilla de separación patrimonial</h3>
+              <p class="e19-kpi-note">Si el hogar se separa: qué deuda le queda a cada titular (según la titularidad ya declarada en Herramientas avanzadas → Datos) y si su cuota es sostenible solo con su propio ingreso, más el saldo de gastos compartidos que conviene liquidar antes de separar cuentas. No reparte activos ni ejecuta ninguna operación.</p>
+              <div class="cuadro-mandos-controls">
+                <label class="month-picker">
+                  <span>Ingreso mensual de Javi tras la separación (€)</span>
+                  <input id="gob19IncomeJavi" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+                <label class="month-picker">
+                  <span>Ingreso mensual de Tere tras la separación (€)</span>
+                  <input id="gob19IncomeTere" type="number" min="0" step="1" inputmode="decimal" placeholder="0" />
+                </label>
+              </div>
+              <button type="button" class="e19-btn e19-btn-secondary" id="gob19SeparationCompare">Comparar</button>
+              <div class="e19-kpi-note" id="gob19SeparationNote"></div>
+            </article>
             </div>
 
             <div class="e19-ajustes-group" id="ajustes-reserva" aria-labelledby="ajustes-reserva-title">

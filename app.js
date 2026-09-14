@@ -6952,6 +6952,7 @@ function applyHelpTooltips() {
   qs("ajustesFiscalLargeFamily")?.setAttribute("data-help", "Marca si sois familia numerosa. Es un supuesto, no un cálculo: entra versionado en el registro de supuestos.");
   qs("ajustesMortgageScenariosCompare")?.setAttribute("data-help", "Compara tu hipoteca variable con una oferta de tipo fijo bajo tres escenarios de tipos (base/favorable/tensión, mismo marco que el Laboratorio de escenarios). Sin tipos de mercado reales: tú pones los tuyos.");
   qs("ajustesJointRestructuringCompare")?.setAttribute("data-help", "Con los contratos activos de Deuda › Contratos, propone en qué orden alargar plazos (el tipo más caro primero) para volver al ratio deuda/ingresos seguro configurado en Ajustes › Alertas, dado el ingreso mensual que indiques.");
+  qs("gob19SeparationCompare")?.setAttribute("data-help", "Reparte la deuda activa por el titular ya declarado (Javi/Tere/Hogar en Herramientas avanzadas → Datos), reestructura la cuota de cada uno con su ingreso individual tras la separación —mismo motor que la reestructuración conjunta, llamado una vez por persona— y recuerda el saldo de gastos compartidos pendiente de liquidar antes de separar cuentas.");
   addHelpToControl(
     "coreSpend",
     "Referencia calculada: media de gastos de detalle de los próximos 12 meses, excluyendo coche, deuda y proyectos.",
@@ -18853,6 +18854,75 @@ function renderA18SettlementCard() {
       ? settlements.slice().reverse().map((settlement) => `<li class="commit-barrier-item"><span>${escapeHtml(a18SettlementLabel(settlement))}</span></li>`).join("")
       : `<li class="e19-kpi-note">Sin liquidaciones confirmadas todavía.</li>`;
   }
+}
+
+// GOB19 (Oleada 4, Bloque 7, O-12): plantilla de separación patrimonial. Sin motor propio — combina
+// la titularidad de deuda ya declarada por el hogar (modelo E14, p2State().ownership, editable en
+// Herramientas avanzadas → Datos → Familia y paquete para asesor) con canonical-joint-restructuring.js
+// (DI5, arriba): en vez de una sola llamada con el ingreso conjunto, se llama una vez por titular con
+// su ingreso individual tras la separación, sobre solo la deuda que ese titular se queda. Se completa
+// con el saldo pendiente de gastos compartidos que ya calcula A18 (a18CurrentProposal), como aviso de
+// qué liquidar antes de separar cuentas. No reparte activos: A14 no declara titular por posición
+// (siempre "household"), abrir eso sería inventar un modelo de titularidad que el hogar no ha pedido.
+function gob19DebtsByOwner() {
+  const grouped = { javi: [], tere: [], household: [] };
+  const ownerByContractId = new Map(
+    debtContractSourceRows().map((row) => [
+      row.id,
+      p2State().ownership?.[`debt|${row.id}`] || window.P2Domain?.inferOwner(`${row.entity} ${row.number}`, row.id) || "household",
+    ]),
+  );
+  di5RestructuringContracts().forEach((contract) => {
+    const owner = ownerByContractId.get(contract.id);
+    (grouped[owner] || grouped.household).push(contract);
+  });
+  return grouped;
+}
+
+const GOB19_OWNER_LABELS = { household: "Hogar", javi: "Javi", tere: "Tere" };
+
+function gob19RestructuringSectionHtml(person, income, contracts, safeRatio) {
+  const label = GOB19_OWNER_LABELS[person];
+  if (!contracts.length) {
+    return `<p><strong>${escapeHtml(label)}</strong>: sin deuda propia asignada — nada que reestructurar.</p>`;
+  }
+  if (!income || income <= 0) {
+    return `<p><strong>${escapeHtml(label)}</strong>: indica su ingreso mensual tras la separación para comparar su deuda asignada (${contracts.length} contrato(s)).</p>`;
+  }
+  const engine = window.FinanceCanonicalJointRestructuring;
+  const result = engine?.jointRestructuringPlan({ contracts, monthlyIncome: income, safeRatio });
+  if (!result) return "";
+  const ratioPct = result.currentRatio === null ? "—" : Math.round(result.currentRatio * 100);
+  if (!result.overBudget) {
+    return `<p><strong>${escapeHtml(label)}</strong>: con ${money(income, true)}/mes, su cuota de deuda propia (${money(result.currentTotalPayment, true)}/mes, ${ratioPct}%) ya está por debajo del ${Math.round(safeRatio * 100)}% de ratio seguro. Sin necesidad de reestructurar.</p>`;
+  }
+  const rows = result.proposals.map((proposal) => proposal.action === "sin cambios"
+    ? `<li><strong>${escapeHtml(proposal.label)}</strong>: sin cambios, cuota ${money(proposal.currentMonthlyPayment, true)}/mes.</li>`
+    : `<li><strong>${escapeHtml(proposal.label)}</strong>: alargar de ${proposal.currentMonths} a ${proposal.extendedMonths} meses — cuota de ${money(proposal.currentMonthlyPayment, true)} a ${money(proposal.newMonthlyPayment, true)}/mes (alivio de ${money(proposal.relief, true)}/mes).</li>`
+  ).join("");
+  const summary = result.sufficient
+    ? `alivio conseguido ${money(result.totalReliefAchieved, true)}/mes, cubre el ${money(result.reliefNeeded, true)}/mes que hacía falta.`
+    : `alivio conseguido ${money(result.totalReliefAchieved, true)}/mes — no cubre del todo el ${money(result.reliefNeeded, true)}/mes que haría falta ni alargando todos los plazos.`;
+  return `<div><p><strong>${escapeHtml(label)}</strong>: cuota propia actual ${money(result.currentTotalPayment, true)}/mes (${ratioPct}% de su ingreso, ratio seguro ${Math.round(safeRatio * 100)}%).</p><ul class="commit-barrier-list">${rows}</ul><p>${escapeHtml(summary)}</p></div>`;
+}
+
+function handleGob19SeparationTemplate() {
+  const note = qs("gob19SeparationNote");
+  if (!note) return;
+  const incomeJavi = parseAmount(qs("gob19IncomeJavi")?.value);
+  const incomeTere = parseAmount(qs("gob19IncomeTere")?.value);
+  const grouped = gob19DebtsByOwner();
+  const safeRatio = (alertThresholdOverride("debtRatio") ?? 32) / 100;
+  const settlement = a18CurrentProposal();
+  const settlementHtml = settlement.hasPendingBalance
+    ? `<p>Antes de separar cuentas, liquida el saldo pendiente de gastos compartidos: <strong>${escapeHtml(A18_OWNER_LABELS[settlement.from])} debe a ${escapeHtml(A18_OWNER_LABELS[settlement.to])} ${money(settlement.amount, true)}</strong> (ver «Liquidación con doble confirmación» arriba).</p>`
+    : `<p>Sin saldo pendiente de gastos compartidos que liquidar.</p>`;
+  const unassignedHtml = grouped.household.length
+    ? `<p class="negative">${grouped.household.length} deuda(s) activa(s) siguen a nombre de «Hogar» (sin asignar a Javi o Tere) en Herramientas avanzadas → Datos → Familia y paquete para asesor — quedan fuera de este reparto hasta que se asignen.</p>`
+    : "";
+  const javiHtml = gob19RestructuringSectionHtml("javi", incomeJavi, grouped.javi, safeRatio);
+  const tereHtml = gob19RestructuringSectionHtml("tere", incomeTere, grouped.tere, safeRatio);
+  note.innerHTML = `${settlementHtml}${unassignedHtml}${javiHtml}${tereHtml}`;
 }
 
 // A19-1: enlace de solo lectura, redactado y caducable — depende de una sesión remota (mismo
@@ -40566,6 +40636,7 @@ async function init() {
   qs("gob12SimulateBtn")?.addEventListener("click", gob12SimulatePackage);
   qs("gob12ApplyRealBtn")?.addEventListener("click", gob12ApplyPackageToReal);
   qs("ajustesJointRestructuringCompare")?.addEventListener("click", handleDi5CompareJointRestructuring);
+  qs("gob19SeparationCompare")?.addEventListener("click", handleGob19SeparationTemplate);
   qs("pensionSimRun")?.addEventListener("click", handleA154SimulatePension);
   qs("fcx1WithdrawalRun")?.addEventListener("click", handleFcx1SimulateWithdrawal);
   qs("inv18CalculateRun")?.addEventListener("click", handleInv18CalculatePlan);

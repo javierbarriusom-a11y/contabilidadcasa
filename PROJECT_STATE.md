@@ -70,6 +70,59 @@ de aquí en la siguiente regeneración, no al momento.
   `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md`. **`INV16` y `LEV14` ya están construidas (sesión 173)**;
   `PVC14` ya está construida (sesión 178); `GOB15` sigue siendo apuesta L, reservada a sesión propia.
 
+## Cierre de sesión — 14 de septiembre de 2026 (190): `GOB19`
+
+De las dos apuestas grandes que quedaban en `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` (`GOB15`,
+`GOB19`), el usuario eligió empezar por `GOB19` — alcance más contenido y previsible (integración de
+dos motores ya probados, sin mecánica nueva) frente a `GOB15` (simulador de vender la vivienda
+habitual, que sí exige diseñar mecánica financiera nueva) — dejando `GOB15` para una sesión dedicada
+aparte.
+
+**`GOB19` — Plantilla de separación patrimonial.** Diagnóstico previo: el backlog pedía combinar
+`canonical-household-split.js` (A18, saldo de gastos compartidos + liquidación con doble confirmación)
+y `canonical-joint-restructuring.js` (DI5, reestructuración conjunta ante una caída de ingresos) *sin
+construir un tercer motor*. Se encontró que ya existe un modelo real de titularidad por contrato de
+deuda (E14, `p2State().ownership['debt|<id>']`, editable en Herramientas avanzadas → Datos → «Familia y
+paquete para asesor») — se reutilizó tal cual en vez de inventar un campo de asignación nuevo. Nueva
+tarjeta en Ajustes › Hogar y cuentas, justo debajo de `GOB10`: agrupa la deuda activa por el titular ya
+declarado (`gob19DebtsByOwner`, mismo filtro que `di5RestructuringContracts`) y llama a
+`jointRestructuringPlan()` (DI5, sin tocarlo) una vez por titular con su ingreso individual declarado
+tras la separación, en vez de una sola vez con el ingreso conjunto — así cada uno ve si su reparto de
+deuda es sostenible solo con su propio ingreso. Se completa con el saldo pendiente de gastos
+compartidos que ya calcula A18 (`a18CurrentProposal`, reutilizado sin cambios) como aviso de qué
+liquidar antes de separar cuentas, y con un aviso explícito de cuánta deuda sigue a nombre de «Hogar»
+(sin asignar a Javi o Tere) — esa queda fuera del reparto hasta que el hogar la asigne, nunca se le
+asigna por defecto. Decisión de alcance explícita: no reparte activos (vivienda, cartera, cuentas) —
+A14 no declara titular por posición (siempre «household», sin edición), así que abrir eso habría sido
+inventar un modelo de titularidad de activos que el hogar no ha pedido; ese hueco queda documentado,
+no resuelto. Informativo, no ejecuta ni decide nada. Tests:
+`tests/gob19-plantilla-separacion-patrimonial.test.cjs` (15 tests).
+
+- **Validación**: `npm run verify` completo en verde. `npm test` **4202/4202** pruebas (15 nuevas de
+  `GOB19`; antes de correrlas hubo que ejecutar `npm install` porque `node_modules` no existía en el
+  contenedor de esta sesión — sin relación con el código de la tarea). `test:a11y` **1309 IDs únicos**
+  (antes 1305, sesión 189; +4 por los dos campos de ingreso, el botón y la nota nuevos). `test:performance`:
+  diff 10.000 filas 37,0 ms, forecast y escenarios 211,8 ms, recursos 2269 KB, presupuestos a escala
+  (1000 categorías × 10 años) — análisis 140,6 ms, alertas 92,3 ms, forecast 165,9 ms, histórico de
+  presupuestos 42,6 ms, índice de transacciones por categoría 122,6 ms. `build:site`, `test:privacy` y
+  `test:smoke` sin errores. Validación manual adicional en navegador real con Playwright: la tarjeta se
+  renderiza en Ajustes › Hogar y cuentas con su ayuda contextual, y sin ninguna deuda asignada a Javi o
+  Tere el «Comparar» muestra correctamente «sin saldo pendiente de gastos compartidos» y «sin deuda
+  propia asignada» para ambos titulares, sin errores de consola propios de la app (solo ruido de red
+  ajeno, de dominios externos bloqueados por el proxy del entorno). No se pudo completar en el mismo
+  pase la validación manual del camino "con deuda asignada" — el `<select>` de titularidad de Herramientas
+  avanzadas → Datos quedó inaccesible al automatismo de Playwright tras expandir el desplegable de
+  navegación avanzada, por una razón de UI no diagnosticada y ajena a esta tarea; ese camino sí está
+  cubierto por la suite automática, que ejecuta la función real (`gob19DebtsByOwner`,
+  `handleGob19SeparationTemplate`) con datos de titularidad realistas.
+- **Publicado**: commit y push a la rama de trabajo en curso, PR en borrador abierto y fusión a `main`
+  en cuanto el CI esté en verde, por la autorización de publicación sin preguntar en cada tarea ya
+  vigente (`CLAUDE.md`).
+- **Pendiente para la siguiente oleada**: con esto `BACKLOG_ULTIMATE_SEPTIEMBRE_OLEADA_4.md` deja una
+  sola tarea accionable: `GOB15` (simulador de vender la vivienda habitual y pasar a alquiler),
+  confirmada por el hogar para una sesión futura dedicada aparte (sesión 171). Sigue pendiente también
+  validar en navegador el camino "con deuda asignada" de `GOB19` cuando se retome esa pantalla.
+
 ## Cierre de sesión — 13 de septiembre de 2026 (189): `GOB16` y `GOB18`
 
 El usuario pidió seguir con las dos tareas restantes del Bloque 7 en la misma sesión: `GOB16` y
