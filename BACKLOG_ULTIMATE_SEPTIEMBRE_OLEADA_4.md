@@ -7,7 +7,7 @@
 
 Fecha de creación: 11 de septiembre de 2026. Repositorio vivo: `javierbarriusom-a11y/contabilidadcasa`.
 
-**Estado (sesión 189, 13 de septiembre de 2026): `GOB16` y `GOB18` construidas.** Bloque 1 completo (`VER-4`,
+**Estado (sesión 190, 14 de septiembre de 2026): `GOB19` construida.** Bloque 1 completo (`VER-4`,
 `VER-5`, `VER-6`, sesión 166b) y Bloque 2 completo (`LEV9`, `DEB9`, sesión 166b). `DEB10` y `GOB17`
 construidas de punta a punta (sesión 167); `PVC15`, `DEB13` y `LEV15` (sesión 168); `PVC13` y `DEB15`
 (sesión 169); `PVC11`, `LEV13` y `DEB17` (sesión 170); `INV13`, `LEV12`, `DEB11` y `LEV11`
@@ -20,8 +20,8 @@ sesión propia dedicada (sesión 179); `LEV10` (sesión 180); `LEV16` (sesión 1
 Bloque 5 (apalancamiento) queda también completo; `DEB12` (sesión 182); `DEB16` (sesión 183);
 `DEB14` (sesión 184) — con esto el Bloque 6 queda también completo; `GOB20` (sesión 185), spin-off
 de `GOB12`; `GOB12` (sesión 186); `GOB13` (sesión 187); `GOB14` (sesión 188); `GOB16` y `GOB18`
-(sesión 189) — con esto el Bloque 7 queda completo salvo las dos apuestas grandes. Quedan 2 tareas
-accionables: las apuestas grandes (`GOB15`, `GOB19`, reservadas a sesión propia cada una).
+(sesión 189); `GOB19` (sesión 190) — con esto el Bloque 7 queda completo salvo una única apuesta
+grande. Queda 1 tarea accionable: `GOB15`, reservada a sesión propia.
 
 ## 0. Por qué existe este documento
 
@@ -193,7 +193,7 @@ en la Oleada 3, ambos son integración pura de piezas ya construidas y probadas.
 | 42 | ✅ `GOB16` | Vigilancia de cláusulas de deuda más allá de TAE y capital | `O-7` | M | Medio | **Hecho (sesión 189).** Acotado a lo que `DEB4`/`DEB8` (Oleada 3) no cubren: vinculación de productos, comisión de apertura de operación nueva, fecha de revisión de diferencial. Nueva tarjeta en Deuda › Contratos, justo después de `DEB13`: un `<details>` por deuda activa con las tres cláusulas declarables (`scenarioSettings.gob16DebtClauses`), reutilizando tal cual `rebalanceCalendarReviewStatus()` (`INV17`/`GOB13`) para la revisión del diferencial — sin motor propio. Tests: `tests/gob16-vigilancia-clausulas-deuda.test.cjs`. |
 | 43 | ✅ `GOB17` | El asistente cita siempre la función `canonical-*.js` real que sustenta su respuesta | `O-9` | M | Alto | **Hecho (sesión 167).** `sourceCatalog()` (`canonical-e9-assistant.js`) ahora propaga `source`/`method` también en alertas y decisiones, no solo en métricas (campos añadidos, ninguno retirado). CP1 declara `canonical-e16-monitoring.js` · `predictiveAlerts()`; CP2 declara `canonical-cushion.js` + `canonical-portfolio.js` · `cushionFloor()`/`opportunityCost()` vía `cp2IdleCashSummary` (`app.js`). Ambas citas reales se muestran al hogar junto al id interno, nunca en su lugar. Tests: `tests/gob17-cita-funcion-real.test.cjs`. |
 | 44 | ✅ `GOB18` | Exportar un registro de `GOB10` como paquete de decisión (PDF) para un asesor externo | `O-10` | M | Bajo-Medio | **Hecho (sesión 189).** Alcance reducido confirmado: `GOB10` (Oleada 3) ya generaliza el registro de tesis con revisión programada a cualquier decisión — solo faltaba la capa de exportación. Botón "Exportar paquete (PDF)" en cada decisión de Ajustes › Hogar, reutilizando tal cual `P2Export.downloadPlainPdf` (mismo mecanismo que `A19-2`/`V6-4`) y `gob10ReviewStatusLabel` para el estado — sin motor ni dato nuevo. Tests: `tests/gob18-exportar-paquete-decision.test.cjs`. |
-| 45 | ⏳ `GOB19` | Plantilla de separación patrimonial combinando reparto y reestructuración | `O-12` | L | Medio | Combina `canonical-household-split.js` y `canonical-joint-restructuring.js`, hoy aislados, sin construir un tercer motor. |
+| 45 | ✅ `GOB19` | Plantilla de separación patrimonial combinando reparto y reestructuración | `O-12` | L | Medio | **Hecho (sesión 190).** Sin motor propio: reutiliza la titularidad de deuda ya declarada (E14, `p2State().ownership`) para agrupar la deuda activa por Javi/Tere/Hogar y llama a `jointRestructuringPlan()` (DI5) una vez por titular con su ingreso individual tras la separación, en vez de una sola vez con el ingreso conjunto — más el saldo pendiente de gastos compartidos que ya calcula A18 (`a18CurrentProposal`), como aviso de qué liquidar antes de separar cuentas. No reparte activos (A14 no declara titular por posición). Tarjeta nueva en Ajustes › Hogar y cuentas, justo debajo de `GOB10`. Tests: `tests/gob19-plantilla-separacion-patrimonial.test.cjs` (15 tests). |
 | 46 | ✅ `GOB20` | Motor de ajuste real de ingreso declarado (por un rango de meses) que la previsión en vivo respete | `GOB12` | L | Medio | **Hecho (sesión 185).** Nace al diagnosticar `GOB12`: no existía ningún mecanismo real (solo el Laboratorio de escenarios E13, de solo lectura) para declarar una caída temporal de ingreso que la previsión en vivo respetara de verdad. El hogar confirmó construirlo ya, en vez de aplazarlo. Nueva `scenarioSettings.incomeAdjustments`, restada del ingreso de cada mes en `canonicalEngineInput()` (la única puerta de entrada del ingreso al motor real) — con el array vacío, comportamiento idéntico al de antes, verificado por toda la suite existente. Tarjeta nueva en Simulación de nueva vida, junto al Laboratorio de escenarios. Tests: `tests/gob20-ajuste-real-ingreso.test.cjs`. |
 
 ---
@@ -211,7 +211,8 @@ los IDs de este backlog:
 3. **Bajo esfuerzo / alto impacto para hueco de sesión corta**: `PVC15`, `DEB13`, `LEV15` — las tres
    construidas en la sesión 168 (`GOB17` ya construida en la sesión 167).
 4. **Grandes apuestas (L), reservar sesión propia**: `INV11` (hecho, sesión 176), `INV18` (hecho,
-   sesión 177), `PVC14` (hecho, sesión 178), `GOB11` (hecho, sesión 179), `GOB15`, `GOB19`.
+   sesión 177), `PVC14` (hecho, sesión 178), `GOB11` (hecho, sesión 179), `GOB19` (hecho, sesión 190),
+   `GOB15` (pendiente, reservada a sesión propia).
 5. **Cuestionar el alcance antes de construir, no descartar sin más** (mismo criterio que la propia
    auditoría aplicó a sí misma con `FCX2` en la Oleada 2): `PVC14` (hecho — el ensemble ponderado
    muestra siempre los dos triángulos de origen, nunca solo la cifra mezclada), `INV16` (correlación declarada,
